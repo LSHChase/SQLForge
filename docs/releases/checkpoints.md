@@ -14,3 +14,4 @@
 | 2026-04-14 | SQL intent batch intake | `checkpoint/2026-04-14-sql-intent-batch-intake` | Daily SQL raw-text intake, batch splitting, batch summary, and browser-safe local testing |
 | 2026-04-14 | SQL pressure plan orchestration | `checkpoint/2026-04-14-sql-pressure-plan-orchestration` | Pressure cohorts, candidate test sets, concurrency ladder, and sampling rules for daily SQL batches |
 | 2026-04-14 | SQL scenario blueprint | `checkpoint/2026-04-14-sql-scenario-blueprint` | Staged stress-test blueprint, workload mix guidance, and operator checklist for daily SQL batches |
+| 2026-04-14 | SQL execution manifest | `checkpoint/2026-04-14-sql-execution-manifest` | Machine-readable execution manifest with stage criteria, metric focus, and guardrails |

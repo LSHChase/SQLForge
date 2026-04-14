@@ -21,6 +21,8 @@ const sqlPressurePlanMessage = ref('');
 const sqlPressurePlanResult = ref(null);
 const sqlScenarioBlueprintMessage = ref('');
 const sqlScenarioBlueprintResult = ref(null);
+const sqlExecutionManifestMessage = ref('');
+const sqlExecutionManifestResult = ref(null);
 const sqlIntentMode = ref('single');
 const isSubmitting = ref(false);
 const isProbing = ref(false);
@@ -28,6 +30,7 @@ const isPreviewing = ref(false);
 const isAnalyzingIntent = ref(false);
 const isBuildingPressurePlan = ref(false);
 const isBuildingScenarioBlueprint = ref(false);
+const isBuildingExecutionManifest = ref(false);
 const selectedConnectionId = ref('');
 const previewSql = ref('select 1 as health_check');
 const previewMaxRows = ref(20);
@@ -480,6 +483,7 @@ async function buildSqlPressurePlan() {
 async function buildSqlScenarioBlueprint() {
   sqlScenarioBlueprintMessage.value = '';
   sqlScenarioBlueprintResult.value = null;
+  sqlExecutionManifestResult.value = null;
   isBuildingScenarioBlueprint.value = true;
 
   try {
@@ -508,6 +512,40 @@ async function buildSqlScenarioBlueprint() {
     sqlScenarioBlueprintMessage.value = error.message;
   } finally {
     isBuildingScenarioBlueprint.value = false;
+  }
+}
+
+async function buildSqlExecutionManifest() {
+  sqlExecutionManifestMessage.value = '';
+  sqlExecutionManifestResult.value = null;
+  isBuildingExecutionManifest.value = true;
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/sql/intent-analysis/execution-manifest`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        batchId: sqlIntentBatchId.value,
+        source: sqlIntentSource.value,
+        targetConcurrency: sqlPressureTargetConcurrency.value,
+        rawSqlText: sqlIntentBatchInput.value
+      })
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.message || 'sql execution manifest failed');
+    }
+
+    sqlExecutionManifestResult.value = payload;
+    sqlExecutionManifestMessage.value = `执行 manifest 已生成，共 ${payload.stages.length} 个阶段。`;
+  } catch (error) {
+    sqlExecutionManifestMessage.value = error.message;
+  } finally {
+    isBuildingExecutionManifest.value = false;
   }
 }
 
@@ -635,6 +673,15 @@ watch(
             >
               {{ isBuildingScenarioBlueprint ? '生成中...' : '生成场景蓝图' }}
             </button>
+            <button
+              v-if="sqlIntentMode === 'batch'"
+              class="ghost-button"
+              type="button"
+              :disabled="isBuildingExecutionManifest"
+              @click="buildSqlExecutionManifest"
+            >
+              {{ isBuildingExecutionManifest ? '生成中...' : '生成执行清单' }}
+            </button>
           </div>
         </div>
 
@@ -694,6 +741,7 @@ watch(
         <p v-if="sqlIntentMessage" class="info-text">{{ sqlIntentMessage }}</p>
         <p v-if="sqlPressurePlanMessage" class="info-text">{{ sqlPressurePlanMessage }}</p>
         <p v-if="sqlScenarioBlueprintMessage" class="info-text">{{ sqlScenarioBlueprintMessage }}</p>
+        <p v-if="sqlExecutionManifestMessage" class="info-text">{{ sqlExecutionManifestMessage }}</p>
 
         <div v-if="sqlIntentResult" class="analysis-panel">
           <div class="probe-head">
@@ -877,6 +925,55 @@ watch(
                 class="alert-item"
               >
                 <strong>check {{ index + 1 }}</strong>
+                <span>{{ item }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="sqlExecutionManifestResult" class="analysis-panel pressure-plan-panel">
+          <div class="probe-head">
+            <strong>Execution Manifest</strong>
+            <span class="badge">{{ sqlExecutionManifestResult.stages.length }} stages</span>
+          </div>
+
+          <div class="analysis-grid">
+            <div class="overview-item">
+              <strong>{{ sqlExecutionManifestResult.manifestVersion }}</strong>
+              <span>manifest version</span>
+            </div>
+            <div class="overview-item">
+              <strong>{{ sqlExecutionManifestResult.parsedStatementCount }}</strong>
+              <span>parsed statements</span>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Manifest Stages</strong>
+            </div>
+            <div class="alert-list">
+              <div v-for="stage in sqlExecutionManifestResult.stages" :key="stage.stageId" class="alert-item">
+                <strong>{{ stage.order }}. {{ stage.stageId }}</strong>
+                <span>
+                  {{ stage.workloadMode }} · focus={{ stage.metricFocus.join(', ') }} ·
+                  concurrency={{ stage.concurrencyRange.join(', ') || 'n/a' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Global Guardrails</strong>
+            </div>
+            <div class="alert-list">
+              <div
+                v-for="(item, index) in sqlExecutionManifestResult.globalGuardrails"
+                :key="index"
+                class="alert-item"
+              >
+                <strong>guard {{ index + 1 }}</strong>
                 <span>{{ item }}</span>
               </div>
             </div>

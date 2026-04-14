@@ -4,6 +4,7 @@ import com.sqlforge.backend.service.SqlIntentAnalysisService;
 import com.sqlforge.backend.service.SqlIntentBatchAnalysisService;
 import com.sqlforge.backend.service.SqlPressurePlanService;
 import com.sqlforge.backend.service.SqlScenarioBlueprintService;
+import com.sqlforge.backend.service.SqlExecutionManifestService;
 import com.sqlforge.backend.web.dto.SqlIntentAnalysisRequest;
 import com.sqlforge.backend.web.dto.SqlIntentBatchRequest;
 import com.sqlforge.backend.web.dto.SqlPressurePlanRequest;
@@ -22,17 +23,20 @@ public class SqlAnalysisController {
     private final SqlIntentBatchAnalysisService sqlIntentBatchAnalysisService;
     private final SqlPressurePlanService sqlPressurePlanService;
     private final SqlScenarioBlueprintService sqlScenarioBlueprintService;
+    private final SqlExecutionManifestService sqlExecutionManifestService;
 
     public SqlAnalysisController(
         SqlIntentAnalysisService sqlIntentAnalysisService,
         SqlIntentBatchAnalysisService sqlIntentBatchAnalysisService,
         SqlPressurePlanService sqlPressurePlanService,
-        SqlScenarioBlueprintService sqlScenarioBlueprintService
+        SqlScenarioBlueprintService sqlScenarioBlueprintService,
+        SqlExecutionManifestService sqlExecutionManifestService
     ) {
         this.sqlIntentAnalysisService = sqlIntentAnalysisService;
         this.sqlIntentBatchAnalysisService = sqlIntentBatchAnalysisService;
         this.sqlPressurePlanService = sqlPressurePlanService;
         this.sqlScenarioBlueprintService = sqlScenarioBlueprintService;
+        this.sqlExecutionManifestService = sqlExecutionManifestService;
     }
 
     @PostMapping("/intent-analysis")
@@ -53,5 +57,10 @@ public class SqlAnalysisController {
     @PostMapping("/intent-analysis/scenario-blueprint")
     public Map<String, Object> scenarioBlueprint(@Valid @RequestBody SqlPressurePlanRequest request) {
         return sqlScenarioBlueprintService.buildBlueprint(request);
+    }
+
+    @PostMapping("/intent-analysis/execution-manifest")
+    public Map<String, Object> executionManifest(@Valid @RequestBody SqlPressurePlanRequest request) {
+        return sqlExecutionManifestService.buildManifest(request);
     }
 }

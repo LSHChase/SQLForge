@@ -271,6 +271,21 @@ curl -X POST http://localhost:8080/api/v1/sql/intent-analysis/scenario-blueprint
 
 该接口会把每日 SQL 批次转成分阶段的压测蓝图，包括阶段目标、并发区间、候选语句集合、workload mix 和执行检查项。
 
+### SQL 执行清单 Manifest
+
+```bash
+curl -X POST http://localhost:8080/api/v1/sql/intent-analysis/execution-manifest \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "batchId": "daily-sql-batch",
+    "source": "stress-sample",
+    "targetConcurrency": 48,
+    "rawSqlText": "select id, user_name from lake.users where id = 42 limit 1;\n\nselect o.user_id, sum(o.amount) from lake.orders o join lake.dim_users u on o.user_id = u.user_id where o.ds between '\''2026-04-01'\'' and '\''2026-04-14'\'' group by 1;\n\nselect user_id, row_number() over(partition by ds order by amount desc) from lake.orders"
+  }'
+```
+
+该接口会把场景蓝图进一步转换成机器可读的执行清单，包含阶段顺序、入口/退出条件、指标关注点和全局 guardrails。
+
 ## 工程约束
 
 - 全仓库文本文件按 UTF-8 编码
