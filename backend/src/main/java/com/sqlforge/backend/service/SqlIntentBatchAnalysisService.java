@@ -18,16 +18,11 @@ public class SqlIntentBatchAnalysisService {
     }
 
     public Map<String, Object> analyzeBatch(SqlIntentBatchRequest request) {
-        List<String> statements = splitStatements(request.getRawSqlText());
-        List<SqlIntentAnalysisRequest.StatementInput> items = new ArrayList<SqlIntentAnalysisRequest.StatementInput>();
-
-        for (int index = 0; index < statements.size(); index += 1) {
-            SqlIntentAnalysisRequest.StatementInput item = new SqlIntentAnalysisRequest.StatementInput();
-            item.setId(buildStatementId(request.getBatchId(), index + 1));
-            item.setSource(request.getSource());
-            item.setSql(statements.get(index));
-            items.add(item);
-        }
+        List<SqlIntentAnalysisRequest.StatementInput> items = buildStatementInputs(
+            request.getBatchId(),
+            request.getSource(),
+            request.getRawSqlText()
+        );
 
         SqlIntentAnalysisRequest analysisRequest = new SqlIntentAnalysisRequest();
         analysisRequest.setStatements(items);
@@ -39,6 +34,21 @@ public class SqlIntentBatchAnalysisService {
         result.put("parsedStatementCount", Integer.valueOf(items.size()));
         result.put("splitMode", resolveSplitMode(request.getRawSqlText(), items.size()));
         return result;
+    }
+
+    List<SqlIntentAnalysisRequest.StatementInput> buildStatementInputs(String batchId, String source, String rawSqlText) {
+        List<String> statements = splitStatements(rawSqlText);
+        List<SqlIntentAnalysisRequest.StatementInput> items = new ArrayList<SqlIntentAnalysisRequest.StatementInput>();
+
+        for (int index = 0; index < statements.size(); index += 1) {
+            SqlIntentAnalysisRequest.StatementInput item = new SqlIntentAnalysisRequest.StatementInput();
+            item.setId(buildStatementId(batchId, index + 1));
+            item.setSource(source);
+            item.setSql(statements.get(index));
+            items.add(item);
+        }
+
+        return items;
     }
 
     List<String> splitStatements(String rawSqlText) {
