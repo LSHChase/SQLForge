@@ -13,7 +13,7 @@ Current grade is intentionally blunt so future runs can improve it.
 | Reporting | B | Reports and workflows exist with stable shapes and action outputs; BI baselines now persist locally and are visible through a dedicated history API/workspace panel |
 | Tenancy | C+ | Tenant profiles now flow through a shared provider boundary, but the backing data is still static |
 | Repo Knowledge | B | Harness-style docs added, now backed by a dedicated repository knowledge lint |
-| Mechanical Enforcement | B | Structural tests exist and repository knowledge now has dedicated lint tooling |
+| Mechanical Enforcement | B+ | Structural tests exist, repository knowledge has dedicated lint tooling, and verification is now wired into CI plus optional pre-commit hooks |
 
 ## Highest Priority Gaps
 

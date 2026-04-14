@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+echo "running repository knowledge lint"
+npm run lint:docs

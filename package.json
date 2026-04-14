@@ -7,8 +7,12 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
+    "prepare:hooks": "sh scripts/install-git-hooks.sh",
     "lint:docs": "node scripts/lint-repository-knowledge.js",
-    "test": "npm run lint:docs && node --test"
+    "test": "npm run lint:docs && node --test",
+    "verify:backend": "cd backend && mvn -q test",
+    "verify:frontend": "cd frontend && npm run build",
+    "verify:all": "npm test && npm run verify:backend && npm run verify:frontend"
   },
   "engines": {
     "node": ">=22"

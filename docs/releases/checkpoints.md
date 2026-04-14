@@ -26,3 +26,4 @@
 | 2026-04-14 | Tenant profile provider | `checkpoint/2026-04-14-tenant-profile-provider` | Shared tenant profile provider boundary for SQL assessment and BI workflow services, replacing duplicated hard-coded tenant maps |
 | 2026-04-14 | Benchmark executor contract | `checkpoint/2026-04-14-benchmark-executor-contract` | Dry-run benchmark executor provider registry and contract output for BI release workflow execution planning |
 | 2026-04-14 | Workflow baseline history | `checkpoint/2026-04-14-workflow-baseline-history` | Baseline listing API plus workflow workspace history panel for persisted BI release comparisons across backend restarts |
+| 2026-04-14 | Repository knowledge automation | `checkpoint/2026-04-14-repository-knowledge-automation` | CI workflow, optional pre-commit hook, and root verification scripts for repository knowledge and main validation paths |

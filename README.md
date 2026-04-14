@@ -66,6 +66,23 @@ mvn spring-boot:run
 
 默认地址：`http://localhost:8080`
 
+## 工程校验与 Hook
+
+```bash
+npm test
+npm run verify:backend
+npm run verify:frontend
+npm run verify:all
+```
+
+如需启用本地 Git pre-commit 校验，可执行：
+
+```bash
+npm run prepare:hooks
+```
+
+该命令会把仓库 hooks 路径切换到 `.githooks/`，当前 pre-commit 只强制执行仓库知识 lint，用于在提交前发现 Harness 文档结构漂移。
+
 ## 容器启动
 
 ```bash
