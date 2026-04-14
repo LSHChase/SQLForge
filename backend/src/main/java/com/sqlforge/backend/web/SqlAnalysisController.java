@@ -3,6 +3,7 @@ package com.sqlforge.backend.web;
 import com.sqlforge.backend.service.SqlIntentAnalysisService;
 import com.sqlforge.backend.service.SqlIntentBatchAnalysisService;
 import com.sqlforge.backend.service.SqlPressurePlanService;
+import com.sqlforge.backend.service.SqlScenarioBlueprintService;
 import com.sqlforge.backend.web.dto.SqlIntentAnalysisRequest;
 import com.sqlforge.backend.web.dto.SqlIntentBatchRequest;
 import com.sqlforge.backend.web.dto.SqlPressurePlanRequest;
@@ -20,15 +21,18 @@ public class SqlAnalysisController {
     private final SqlIntentAnalysisService sqlIntentAnalysisService;
     private final SqlIntentBatchAnalysisService sqlIntentBatchAnalysisService;
     private final SqlPressurePlanService sqlPressurePlanService;
+    private final SqlScenarioBlueprintService sqlScenarioBlueprintService;
 
     public SqlAnalysisController(
         SqlIntentAnalysisService sqlIntentAnalysisService,
         SqlIntentBatchAnalysisService sqlIntentBatchAnalysisService,
-        SqlPressurePlanService sqlPressurePlanService
+        SqlPressurePlanService sqlPressurePlanService,
+        SqlScenarioBlueprintService sqlScenarioBlueprintService
     ) {
         this.sqlIntentAnalysisService = sqlIntentAnalysisService;
         this.sqlIntentBatchAnalysisService = sqlIntentBatchAnalysisService;
         this.sqlPressurePlanService = sqlPressurePlanService;
+        this.sqlScenarioBlueprintService = sqlScenarioBlueprintService;
     }
 
     @PostMapping("/intent-analysis")
@@ -44,5 +48,10 @@ public class SqlAnalysisController {
     @PostMapping("/intent-analysis/pressure-plan")
     public Map<String, Object> pressurePlan(@Valid @RequestBody SqlPressurePlanRequest request) {
         return sqlPressurePlanService.buildPlan(request);
+    }
+
+    @PostMapping("/intent-analysis/scenario-blueprint")
+    public Map<String, Object> scenarioBlueprint(@Valid @RequestBody SqlPressurePlanRequest request) {
+        return sqlScenarioBlueprintService.buildBlueprint(request);
     }
 }

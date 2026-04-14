@@ -28,6 +28,7 @@ Stress-testing preparation needs a pure structural way to classify incoming SQL 
 - `POST /api/v1/sql/intent-analysis`
 - `POST /api/v1/sql/intent-analysis/daily-batch`
 - `POST /api/v1/sql/intent-analysis/pressure-plan`
+- `POST /api/v1/sql/intent-analysis/scenario-blueprint`
 
 ## Current Delivery
 
@@ -36,3 +37,4 @@ Stress-testing preparation needs a pure structural way to classify incoming SQL 
 - Frontend provides a minimal analysis panel for manual SQL inspection.
 - Daily SQL samples can be pasted as raw text and split by semicolon or blank line before structural analysis.
 - The backend can derive a pressure-preparation plan with candidate sets, concurrency ladder, and sampling rules from daily SQL batches.
+- The backend can derive staged scenario blueprints with workload mix and operator checklist guidance from daily SQL batches.

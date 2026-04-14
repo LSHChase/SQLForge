@@ -19,12 +19,15 @@ const sqlIntentMessage = ref('');
 const sqlIntentResult = ref(null);
 const sqlPressurePlanMessage = ref('');
 const sqlPressurePlanResult = ref(null);
+const sqlScenarioBlueprintMessage = ref('');
+const sqlScenarioBlueprintResult = ref(null);
 const sqlIntentMode = ref('single');
 const isSubmitting = ref(false);
 const isProbing = ref(false);
 const isPreviewing = ref(false);
 const isAnalyzingIntent = ref(false);
 const isBuildingPressurePlan = ref(false);
+const isBuildingScenarioBlueprint = ref(false);
 const selectedConnectionId = ref('');
 const previewSql = ref('select 1 as health_check');
 const previewMaxRows = ref(20);
@@ -442,6 +445,7 @@ async function analyzeSqlIntent() {
 async function buildSqlPressurePlan() {
   sqlPressurePlanMessage.value = '';
   sqlPressurePlanResult.value = null;
+  sqlScenarioBlueprintResult.value = null;
   isBuildingPressurePlan.value = true;
 
   try {
@@ -470,6 +474,40 @@ async function buildSqlPressurePlan() {
     sqlPressurePlanMessage.value = error.message;
   } finally {
     isBuildingPressurePlan.value = false;
+  }
+}
+
+async function buildSqlScenarioBlueprint() {
+  sqlScenarioBlueprintMessage.value = '';
+  sqlScenarioBlueprintResult.value = null;
+  isBuildingScenarioBlueprint.value = true;
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/sql/intent-analysis/scenario-blueprint`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        batchId: sqlIntentBatchId.value,
+        source: sqlIntentSource.value,
+        targetConcurrency: sqlPressureTargetConcurrency.value,
+        rawSqlText: sqlIntentBatchInput.value
+      })
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.message || 'sql scenario blueprint failed');
+    }
+
+    sqlScenarioBlueprintResult.value = payload;
+    sqlScenarioBlueprintMessage.value = `场景蓝图已生成，共规划 ${payload.stages.length} 个阶段。`;
+  } catch (error) {
+    sqlScenarioBlueprintMessage.value = error.message;
+  } finally {
+    isBuildingScenarioBlueprint.value = false;
   }
 }
 
@@ -588,6 +626,15 @@ watch(
             >
               {{ isBuildingPressurePlan ? '编排中...' : '生成压测计划' }}
             </button>
+            <button
+              v-if="sqlIntentMode === 'batch'"
+              class="ghost-button"
+              type="button"
+              :disabled="isBuildingScenarioBlueprint"
+              @click="buildSqlScenarioBlueprint"
+            >
+              {{ isBuildingScenarioBlueprint ? '生成中...' : '生成场景蓝图' }}
+            </button>
           </div>
         </div>
 
@@ -646,6 +693,7 @@ watch(
 
         <p v-if="sqlIntentMessage" class="info-text">{{ sqlIntentMessage }}</p>
         <p v-if="sqlPressurePlanMessage" class="info-text">{{ sqlPressurePlanMessage }}</p>
+        <p v-if="sqlScenarioBlueprintMessage" class="info-text">{{ sqlScenarioBlueprintMessage }}</p>
 
         <div v-if="sqlIntentResult" class="analysis-panel">
           <div class="probe-head">
@@ -769,6 +817,67 @@ watch(
               <div v-for="rule in sqlPressurePlanResult.samplingPlan.rules" :key="rule.loadClass" class="alert-item">
                 <strong>{{ rule.loadClass }}</strong>
                 <span>sampleRatio={{ rule.sampleRatio }} · {{ rule.reason }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="sqlScenarioBlueprintResult" class="analysis-panel pressure-plan-panel">
+          <div class="probe-head">
+            <strong>Scenario Blueprint</strong>
+            <span class="badge">{{ sqlScenarioBlueprintResult.stages.length }} stages</span>
+          </div>
+
+          <div class="analysis-grid">
+            <div class="overview-item">
+              <strong>{{ sqlScenarioBlueprintResult.parsedStatementCount }}</strong>
+              <span>parsed statements</span>
+            </div>
+            <div class="overview-item">
+              <strong>{{ sqlScenarioBlueprintResult.workloadMix.length }}</strong>
+              <span>workload mix groups</span>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Stages</strong>
+            </div>
+            <div class="alert-list">
+              <div v-for="stage in sqlScenarioBlueprintResult.stages" :key="stage.stageId" class="alert-item">
+                <strong>{{ stage.stageId }}</strong>
+                <span>
+                  {{ stage.goal }} · concurrency={{ stage.concurrencyRange.join(', ') || 'n/a' }} ·
+                  statements={{ stage.statementIds.join(', ') || 'n/a' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Workload Mix</strong>
+            </div>
+            <div class="alert-list">
+              <div v-for="item in sqlScenarioBlueprintResult.workloadMix" :key="item.loadClass" class="alert-item">
+                <strong>{{ item.loadClass }}</strong>
+                <span>trafficRatio={{ item.trafficRatio }} · preferredSet={{ item.preferredSet }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Operator Checklist</strong>
+            </div>
+            <div class="alert-list">
+              <div
+                v-for="(item, index) in sqlScenarioBlueprintResult.operatorChecklist"
+                :key="index"
+                class="alert-item"
+              >
+                <strong>check {{ index + 1 }}</strong>
+                <span>{{ item }}</span>
               </div>
             </div>
           </div>
