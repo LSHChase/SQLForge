@@ -16,10 +16,12 @@
 - if a decision matters later, write it down in-repo
 - keep indexes current
 - use execution plans for multi-step work
+- read `docs/references/task-start-requirements.md` before every new requirement task
 
 ## Delivery
 
 - follow harness engineering: docs-first, architecture-explicit, traceable checkpoints
+- every requirement task starts by reading the mandatory repository docs in `docs/references/task-start-requirements.md`
 - when a complete feature family lands, create a completion record in `docs/exec-plans/completed/`
 - after that record exists, create one git commit for the feature family
 - create one git tag checkpoint for the same commit
