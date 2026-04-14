@@ -11,7 +11,7 @@ Current grade is intentionally blunt so future runs can improve it.
 | Execution | B- | Benchmark matrix now covers more dimensions, no real executor yet |
 | Intelligence | B | Core models, recommendations, and plan stability analysis exist; heuristics still need calibration |
 | Reporting | B | Reports and workflows exist with stable shapes and action outputs; BI baselines now persist locally |
-| Tenancy | C | Tenant profiles are static in-memory |
+| Tenancy | C+ | Tenant profiles now flow through a shared provider boundary, but the backing data is still static |
 | Repo Knowledge | B | Harness-style docs added, now backed by a dedicated repository knowledge lint |
 | Mechanical Enforcement | B | Structural tests exist and repository knowledge now has dedicated lint tooling |
 

@@ -140,6 +140,7 @@ curl -X POST http://localhost:8080/api/v1/connections \
 当前连接信息会以元数据形式持久化到后端本地文件，默认路径为 `${java.io.tmpdir}/sqlforge/connections.json`。密码不会出现在 API 返回结果里，也不会被写入该文件。
 
 BI 发布评估工作流的历史 baseline 也会以文件形式持久化，默认路径为 `${java.io.tmpdir}/sqlforge/workflow-baselines.json`，用于跨重启保留上一次评估摘要。
+后端的租户容量画像目前通过共享的 tenant profile provider 提供，后续可替换为真实控制面配置来源。
 
 ### 连通性探测
 

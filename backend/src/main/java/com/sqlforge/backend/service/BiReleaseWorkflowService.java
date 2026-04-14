@@ -1,5 +1,6 @@
 package com.sqlforge.backend.service;
 
+import com.sqlforge.backend.model.TenantProfile;
 import com.sqlforge.backend.repository.WorkflowBaselineRepository;
 import com.sqlforge.backend.web.dto.BiReleaseRequest;
 import java.nio.charset.StandardCharsets;
@@ -12,15 +13,23 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class BiReleaseWorkflowService {
 
     private final WorkflowBaselineRepository baselineRepository;
+    private final TenantProfileProvider tenantProfileProvider;
 
-    public BiReleaseWorkflowService(WorkflowBaselineRepository baselineRepository) {
+    @Autowired
+    public BiReleaseWorkflowService(WorkflowBaselineRepository baselineRepository, TenantProfileProvider tenantProfileProvider) {
         this.baselineRepository = baselineRepository;
+        this.tenantProfileProvider = tenantProfileProvider;
+    }
+
+    BiReleaseWorkflowService(WorkflowBaselineRepository baselineRepository) {
+        this(baselineRepository, new StaticTenantProfileProvider());
     }
 
     public Map<String, Object> execute(BiReleaseRequest request) {
@@ -61,7 +70,7 @@ public class BiReleaseWorkflowService {
     }
 
     private Map<String, Object> assessSql(BiReleaseRequest request) {
-        Map<String, Object> tenant = resolveTenant(request.getTenantId());
+        Map<String, Object> tenant = tenantProfileProvider.resolve(request.getTenantId()).toMap();
         Map<String, Object> assessment = buildAssessment(request.getSql());
         String riskLevel = buildRiskLevel(castList(assessment.get("risks")));
         int targetConcurrency = request.getTargetConcurrency() == null ? 20 : request.getTargetConcurrency().intValue();
@@ -173,32 +182,6 @@ public class BiReleaseWorkflowService {
         report.put("benchmarkAnalysis", benchmarkAnalysisSection);
         report.put("actions", benchmarkAnalysis.get("recommendations"));
         return report;
-    }
-
-    private Map<String, Object> resolveTenant(String tenantId) {
-        Map<String, Object> tenant = new LinkedHashMap<String, Object>();
-
-        if ("tenant-a".equals(tenantId)) {
-            tenant.put("id", "tenant-a");
-            tenant.put("maxConcurrency", 20);
-            tenant.put("maxMemoryGb", 100);
-            tenant.put("maxScanTbPerHour", 1);
-            return tenant;
-        }
-
-        if ("tenant-b".equals(tenantId)) {
-            tenant.put("id", "tenant-b");
-            tenant.put("maxConcurrency", 50);
-            tenant.put("maxMemoryGb", 200);
-            tenant.put("maxScanTbPerHour", 2);
-            return tenant;
-        }
-
-        tenant.put("id", tenantId == null || tenantId.trim().isEmpty() ? "default-tenant" : tenantId);
-        tenant.put("maxConcurrency", 20);
-        tenant.put("maxMemoryGb", 100);
-        tenant.put("maxScanTbPerHour", 1);
-        return tenant;
     }
 
     private Map<String, Object> buildAssessment(String sql) {

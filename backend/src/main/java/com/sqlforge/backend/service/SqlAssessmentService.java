@@ -1,5 +1,6 @@
 package com.sqlforge.backend.service;
 
+import com.sqlforge.backend.model.TenantProfile;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -8,13 +9,25 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SqlAssessmentService {
 
+    private final TenantProfileProvider tenantProfileProvider;
+
+    @Autowired
+    public SqlAssessmentService(TenantProfileProvider tenantProfileProvider) {
+        this.tenantProfileProvider = tenantProfileProvider;
+    }
+
+    SqlAssessmentService() {
+        this(new StaticTenantProfileProvider());
+    }
+
     public Map<String, Object> assess(String tenantId, String sql, Integer slaMs, Integer targetConcurrency) {
-        Map<String, Object> tenant = resolveTenant(tenantId);
+        Map<String, Object> tenant = tenantProfileProvider.resolve(tenantId).toMap();
         Map<String, Object> assessment = buildAssessment(sql);
         String riskLevel = buildRiskLevel(castList(assessment.get("risks")));
         int resolvedTargetConcurrency = targetConcurrency == null ? 20 : targetConcurrency.intValue();
@@ -27,32 +40,6 @@ public class SqlAssessmentService {
         result.put("assessment", assessment);
         result.put("requestedSlaMs", slaMs);
         return result;
-    }
-
-    private Map<String, Object> resolveTenant(String tenantId) {
-        Map<String, Object> tenant = new LinkedHashMap<String, Object>();
-
-        if ("tenant-a".equals(tenantId)) {
-            tenant.put("id", "tenant-a");
-            tenant.put("maxConcurrency", Integer.valueOf(20));
-            tenant.put("maxMemoryGb", Integer.valueOf(100));
-            tenant.put("maxScanTbPerHour", Integer.valueOf(1));
-            return tenant;
-        }
-
-        if ("tenant-b".equals(tenantId)) {
-            tenant.put("id", "tenant-b");
-            tenant.put("maxConcurrency", Integer.valueOf(50));
-            tenant.put("maxMemoryGb", Integer.valueOf(200));
-            tenant.put("maxScanTbPerHour", Integer.valueOf(2));
-            return tenant;
-        }
-
-        tenant.put("id", tenantId == null || tenantId.trim().isEmpty() ? "default-tenant" : tenantId);
-        tenant.put("maxConcurrency", Integer.valueOf(20));
-        tenant.put("maxMemoryGb", Integer.valueOf(100));
-        tenant.put("maxScanTbPerHour", Integer.valueOf(1));
-        return tenant;
     }
 
     private Map<String, Object> buildAssessment(String sql) {
