@@ -25,6 +25,8 @@ const sqlExecutionManifestMessage = ref('');
 const sqlExecutionManifestResult = ref(null);
 const sqlCampaignScheduleMessage = ref('');
 const sqlCampaignScheduleResult = ref(null);
+const sqlRunPackageMessage = ref('');
+const sqlRunPackageResult = ref(null);
 const sqlIntentMode = ref('single');
 const isSubmitting = ref(false);
 const isProbing = ref(false);
@@ -34,6 +36,7 @@ const isBuildingPressurePlan = ref(false);
 const isBuildingScenarioBlueprint = ref(false);
 const isBuildingExecutionManifest = ref(false);
 const isBuildingCampaignSchedule = ref(false);
+const isBuildingRunPackage = ref(false);
 const selectedConnectionId = ref('');
 const previewSql = ref('select 1 as health_check');
 const previewMaxRows = ref(20);
@@ -556,6 +559,7 @@ async function buildSqlExecutionManifest() {
 async function buildSqlCampaignSchedule() {
   sqlCampaignScheduleMessage.value = '';
   sqlCampaignScheduleResult.value = null;
+  sqlRunPackageResult.value = null;
   isBuildingCampaignSchedule.value = true;
 
   try {
@@ -584,6 +588,40 @@ async function buildSqlCampaignSchedule() {
     sqlCampaignScheduleMessage.value = error.message;
   } finally {
     isBuildingCampaignSchedule.value = false;
+  }
+}
+
+async function buildSqlRunPackage() {
+  sqlRunPackageMessage.value = '';
+  sqlRunPackageResult.value = null;
+  isBuildingRunPackage.value = true;
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/sql/intent-analysis/run-package`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        batchId: sqlIntentBatchId.value,
+        source: sqlIntentSource.value,
+        targetConcurrency: sqlPressureTargetConcurrency.value,
+        rawSqlText: sqlIntentBatchInput.value
+      })
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.message || 'sql run package failed');
+    }
+
+    sqlRunPackageResult.value = payload;
+    sqlRunPackageMessage.value = `run package 已生成，共 ${payload.artifacts.length} 个主 artifact。`;
+  } catch (error) {
+    sqlRunPackageMessage.value = error.message;
+  } finally {
+    isBuildingRunPackage.value = false;
   }
 }
 
@@ -729,6 +767,15 @@ watch(
             >
               {{ isBuildingCampaignSchedule ? '生成中...' : '生成阶段排期' }}
             </button>
+            <button
+              v-if="sqlIntentMode === 'batch'"
+              class="ghost-button"
+              type="button"
+              :disabled="isBuildingRunPackage"
+              @click="buildSqlRunPackage"
+            >
+              {{ isBuildingRunPackage ? '生成中...' : '生成交付包' }}
+            </button>
           </div>
         </div>
 
@@ -790,6 +837,7 @@ watch(
         <p v-if="sqlScenarioBlueprintMessage" class="info-text">{{ sqlScenarioBlueprintMessage }}</p>
         <p v-if="sqlExecutionManifestMessage" class="info-text">{{ sqlExecutionManifestMessage }}</p>
         <p v-if="sqlCampaignScheduleMessage" class="info-text">{{ sqlCampaignScheduleMessage }}</p>
+        <p v-if="sqlRunPackageMessage" class="info-text">{{ sqlRunPackageMessage }}</p>
 
         <div v-if="sqlIntentResult" class="analysis-panel">
           <div class="probe-head">
@@ -1081,6 +1129,60 @@ watch(
             <div class="alert-list">
               <div v-for="(item, index) in sqlCampaignScheduleResult.handoffNotes" :key="index" class="alert-item">
                 <strong>note {{ index + 1 }}</strong>
+                <span>{{ item }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="sqlRunPackageResult" class="analysis-panel pressure-plan-panel">
+          <div class="probe-head">
+            <strong>Run Package</strong>
+            <span class="badge">{{ sqlRunPackageResult.artifacts.length }} artifacts</span>
+          </div>
+
+          <div class="analysis-grid">
+            <div class="overview-item">
+              <strong>{{ sqlRunPackageResult.packageVersion }}</strong>
+              <span>package version</span>
+            </div>
+            <div class="overview-item">
+              <strong>{{ sqlRunPackageResult.recommendedFiles.length }}</strong>
+              <span>recommended files</span>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Artifacts</strong>
+            </div>
+            <div class="alert-list">
+              <div v-for="artifact in sqlRunPackageResult.artifacts" :key="artifact.name" class="alert-item">
+                <strong>{{ artifact.name }}</strong>
+                <span>{{ artifact.suggestedFileName }} · keys={{ artifact.topLevelKeys.join(', ') }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Recommended Files</strong>
+            </div>
+            <div class="alert-list">
+              <div v-for="item in sqlRunPackageResult.recommendedFiles" :key="item.fileName" class="alert-item">
+                <strong>{{ item.fileName }}</strong>
+                <span>{{ item.format }} · {{ item.purpose }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Handoff Checklist</strong>
+            </div>
+            <div class="alert-list">
+              <div v-for="(item, index) in sqlRunPackageResult.handoffChecklist" :key="index" class="alert-item">
+                <strong>handoff {{ index + 1 }}</strong>
                 <span>{{ item }}</span>
               </div>
             </div>

@@ -301,6 +301,21 @@ curl -X POST http://localhost:8080/api/v1/sql/intent-analysis/campaign-schedule 
 
 该接口会在 execution manifest 之上生成阶段排期，包含 warmup/sample/cooldown 时间窗、promotion gate、fallback 行为和 handoff notes。
 
+### SQL Run Package
+
+```bash
+curl -X POST http://localhost:8080/api/v1/sql/intent-analysis/run-package \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "batchId": "daily-sql-batch",
+    "source": "stress-sample",
+    "targetConcurrency": 48,
+    "rawSqlText": "select id, user_name from lake.users where id = 42 limit 1;\n\nselect o.user_id, sum(o.amount) from lake.orders o join lake.dim_users u on o.user_id = u.user_id where o.ds between '\''2026-04-01'\'' and '\''2026-04-14'\'' group by 1;\n\nselect user_id, row_number() over(partition by ds order by amount desc) from lake.orders"
+  }'
+```
+
+该接口会把分析、计划、蓝图、manifest 和 schedule 组合成统一交付包，并给出建议文件名与 handoff checklist。
+
 ## 工程约束
 
 - 全仓库文本文件按 UTF-8 编码

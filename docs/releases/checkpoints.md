@@ -16,3 +16,4 @@
 | 2026-04-14 | SQL scenario blueprint | `checkpoint/2026-04-14-sql-scenario-blueprint` | Staged stress-test blueprint, workload mix guidance, and operator checklist for daily SQL batches |
 | 2026-04-14 | SQL execution manifest | `checkpoint/2026-04-14-sql-execution-manifest` | Machine-readable execution manifest with stage criteria, metric focus, and guardrails |
 | 2026-04-14 | SQL campaign schedule | `checkpoint/2026-04-14-sql-campaign-schedule` | Timed stage windows, promotion gates, fallback actions, and handoff notes |
+| 2026-04-14 | SQL run package | `checkpoint/2026-04-14-sql-run-package` | Unified handoff package with artifact pointers, recommended files, export sections, and checklist |
