@@ -49,3 +49,4 @@ Stress-testing preparation needs a pure structural way to classify incoming SQL 
 - The backend can derive an operator-readable briefing report with summary, risks, next actions, and review agenda.
 - The backend can derive a structure-based readiness gate with decision, blockers, prerequisites, and recommendations.
 - The frontend exposes the SQL workflow in a multi-menu workspace instead of a single long page and supports Chinese/English switching.
+- The backend now routes structural SQL extraction through a parser adapter and typed AST contract so the heuristic parser can be replaced later without rewriting the workflow chain.

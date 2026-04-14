@@ -16,8 +16,8 @@ class SqlCampaignScheduleServiceTest {
             new SqlExecutionManifestService(
                 new SqlScenarioBlueprintService(
                     new SqlPressurePlanService(
-                        new SqlIntentBatchAnalysisService(new SqlIntentAnalysisService(new SqlAssessmentService())),
-                        new SqlIntentAnalysisService(new SqlAssessmentService())
+                        new SqlIntentBatchAnalysisService(new SqlIntentAnalysisService(new SqlAssessmentService(), new HeuristicSqlParserAdapter())),
+                        new SqlIntentAnalysisService(new SqlAssessmentService(), new HeuristicSqlParserAdapter())
                     )
                 )
             )

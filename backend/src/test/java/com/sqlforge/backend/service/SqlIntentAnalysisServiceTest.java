@@ -13,7 +13,7 @@ class SqlIntentAnalysisServiceTest {
 
     @Test
     void shouldAnalyzeSqlStructureWithoutExecution() {
-        SqlIntentAnalysisService service = new SqlIntentAnalysisService(new SqlAssessmentService());
+        SqlIntentAnalysisService service = new SqlIntentAnalysisService(new SqlAssessmentService(), new HeuristicSqlParserAdapter());
         SqlIntentAnalysisRequest request = request(
             statement(
                 "daily-report",
@@ -40,7 +40,7 @@ class SqlIntentAnalysisServiceTest {
 
     @Test
     void shouldSummarizeBatchIntentAndLoadClasses() {
-        SqlIntentAnalysisService service = new SqlIntentAnalysisService(new SqlAssessmentService());
+        SqlIntentAnalysisService service = new SqlIntentAnalysisService(new SqlAssessmentService(), new HeuristicSqlParserAdapter());
         SqlIntentAnalysisRequest request = request(
             statement("point", "daily-sample", "select id, user_name from lake.users where id = 42 limit 1"),
             statement(

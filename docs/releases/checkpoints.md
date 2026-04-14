@@ -22,3 +22,4 @@
 | 2026-04-14 | Workflow workspace delivery | `checkpoint/2026-04-14-workflow-workspace-delivery` | Frontend Java workflow workspace for BI release evaluation, capacity planning, and plan-stability analysis with zh/en navigation |
 | 2026-04-14 | Workflow baseline persistence | `checkpoint/2026-04-14-workflow-baseline-persistence` | File-backed BI workflow baseline repository so previous-baseline comparisons survive backend restarts |
 | 2026-04-14 | Repository knowledge lint | `checkpoint/2026-04-14-repository-knowledge-lint` | Dedicated repository knowledge lint script plus test integration for Harness-style doc structure enforcement |
+| 2026-04-14 | SQL parser adapter | `checkpoint/2026-04-14-sql-parser-adapter` | Typed SQL structure AST plus heuristic parser adapter abstraction for intent-analysis and downstream workflow reuse |

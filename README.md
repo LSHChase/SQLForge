@@ -245,6 +245,7 @@ curl -X POST http://localhost:8080/api/v1/sql/intent-analysis \
 ```
 
 该接口执行纯结构分析：只基于 SQL 文本输出指纹、结构画像、意图标签和压测导向的负载分类，不连接数据库、不执行查询。
+当前后端已经把结构解析收敛到可替换的 parser adapter 与 typed AST contract，便于后续接入真实 Trino parser。
 
 ### SQL 日批量结构分析
 

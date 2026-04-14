@@ -13,8 +13,8 @@ class SqlPressurePlanServiceTest {
     @Test
     void shouldBuildPressurePlanFromDailySqlBatch() {
         SqlPressurePlanService service = new SqlPressurePlanService(
-            new SqlIntentBatchAnalysisService(new SqlIntentAnalysisService(new SqlAssessmentService())),
-            new SqlIntentAnalysisService(new SqlAssessmentService())
+            new SqlIntentBatchAnalysisService(new SqlIntentAnalysisService(new SqlAssessmentService(), new HeuristicSqlParserAdapter())),
+            new SqlIntentAnalysisService(new SqlAssessmentService(), new HeuristicSqlParserAdapter())
         );
         SqlPressurePlanRequest request = new SqlPressurePlanRequest();
         request.setBatchId("batch-20260414");
@@ -39,8 +39,8 @@ class SqlPressurePlanServiceTest {
     @Test
     void shouldCreateDiverseSmokeSetAcrossLoadClasses() {
         SqlPressurePlanService service = new SqlPressurePlanService(
-            new SqlIntentBatchAnalysisService(new SqlIntentAnalysisService(new SqlAssessmentService())),
-            new SqlIntentAnalysisService(new SqlAssessmentService())
+            new SqlIntentBatchAnalysisService(new SqlIntentAnalysisService(new SqlAssessmentService(), new HeuristicSqlParserAdapter())),
+            new SqlIntentAnalysisService(new SqlAssessmentService(), new HeuristicSqlParserAdapter())
         );
         SqlPressurePlanRequest request = new SqlPressurePlanRequest();
         request.setBatchId("batch-diverse");

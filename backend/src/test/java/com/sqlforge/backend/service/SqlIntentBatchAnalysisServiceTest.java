@@ -12,7 +12,9 @@ class SqlIntentBatchAnalysisServiceTest {
 
     @Test
     void shouldSplitSemicolonSeparatedDailySqlSamples() {
-        SqlIntentBatchAnalysisService service = new SqlIntentBatchAnalysisService(new SqlIntentAnalysisService(new SqlAssessmentService()));
+        SqlIntentBatchAnalysisService service = new SqlIntentBatchAnalysisService(
+            new SqlIntentAnalysisService(new SqlAssessmentService(), new HeuristicSqlParserAdapter())
+        );
         SqlIntentBatchRequest request = new SqlIntentBatchRequest();
         request.setBatchId("daily");
         request.setSource("stress-sample");
@@ -31,7 +33,9 @@ class SqlIntentBatchAnalysisServiceTest {
 
     @Test
     void shouldFallbackToBlankLineSplittingForDailyPasteBlocks() {
-        SqlIntentBatchAnalysisService service = new SqlIntentBatchAnalysisService(new SqlIntentAnalysisService(new SqlAssessmentService()));
+        SqlIntentBatchAnalysisService service = new SqlIntentBatchAnalysisService(
+            new SqlIntentAnalysisService(new SqlAssessmentService(), new HeuristicSqlParserAdapter())
+        );
 
         List<String> statements = service.splitStatements(
             "select id from lake.users where id = 1\n\n"

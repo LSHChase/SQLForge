@@ -14,8 +14,8 @@ class SqlScenarioBlueprintServiceTest {
     void shouldBuildScenarioBlueprintFromDailySqlBatch() {
         SqlScenarioBlueprintService service = new SqlScenarioBlueprintService(
             new SqlPressurePlanService(
-                new SqlIntentBatchAnalysisService(new SqlIntentAnalysisService(new SqlAssessmentService())),
-                new SqlIntentAnalysisService(new SqlAssessmentService())
+                new SqlIntentBatchAnalysisService(new SqlIntentAnalysisService(new SqlAssessmentService(), new HeuristicSqlParserAdapter())),
+                new SqlIntentAnalysisService(new SqlAssessmentService(), new HeuristicSqlParserAdapter())
             )
         );
         SqlPressurePlanRequest request = new SqlPressurePlanRequest();
