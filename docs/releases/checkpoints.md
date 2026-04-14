@@ -20,3 +20,4 @@
 | 2026-04-14 | SQL briefing report | `checkpoint/2026-04-14-sql-briefing-report` | Operator-readable final review report with summary, risks, actions, and agenda |
 | 2026-04-14 | SQL readiness gate and bilingual workspace | `checkpoint/2026-04-14-sql-readiness-gate-bilingual-workspace` | Structure-based readiness decision API plus multi-menu zh/en frontend workspace for connections, analysis, planning, and handoff |
 | 2026-04-14 | Workflow workspace delivery | `checkpoint/2026-04-14-workflow-workspace-delivery` | Frontend Java workflow workspace for BI release evaluation, capacity planning, and plan-stability analysis with zh/en navigation |
+| 2026-04-14 | Workflow baseline persistence | `checkpoint/2026-04-14-workflow-baseline-persistence` | File-backed BI workflow baseline repository so previous-baseline comparisons survive backend restarts |

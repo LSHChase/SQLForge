@@ -1,6 +1,6 @@
 package com.sqlforge.backend.service;
 
-import com.sqlforge.backend.repository.InMemoryWorkflowBaselineRepository;
+import com.sqlforge.backend.repository.WorkflowBaselineRepository;
 import com.sqlforge.backend.web.dto.BiReleaseRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -17,9 +17,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class BiReleaseWorkflowService {
 
-    private final InMemoryWorkflowBaselineRepository baselineRepository;
+    private final WorkflowBaselineRepository baselineRepository;
 
-    public BiReleaseWorkflowService(InMemoryWorkflowBaselineRepository baselineRepository) {
+    public BiReleaseWorkflowService(WorkflowBaselineRepository baselineRepository) {
         this.baselineRepository = baselineRepository;
     }
 

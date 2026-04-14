@@ -35,3 +35,4 @@ BI teams need to know whether a new SQL can be released without blowing up Trino
 - Java Spring Boot backend exposes the BI release workflow as the mainline implementation.
 - Output includes SQL assessment, benchmark plan, benchmark analysis, previous baseline comparison, and release decision.
 - Frontend workspace exposes the BI release workflow with editable request inputs and JSON result review.
+- Previous baseline summaries are now persisted to local backend storage so second-run comparisons survive process restarts.

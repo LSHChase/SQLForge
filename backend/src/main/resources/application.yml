@@ -16,3 +16,4 @@ sqlforge:
     allowed-origin-patterns: http://localhost:*,http://127.0.0.1:*
   storage:
     connections-file: ${java.io.tmpdir}/sqlforge/connections.json
+    workflow-baselines-file: ${java.io.tmpdir}/sqlforge/workflow-baselines.json
