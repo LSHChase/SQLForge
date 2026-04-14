@@ -11,6 +11,7 @@ This workflow lets operators register and validate data-engine connection defini
 3. Perform offline validation on the backend.
 4. Persist validated connection metadata on the backend.
 5. Return the registered connection list to the frontend.
+6. Probe TCP connectivity and generate engine-specific JDBC URL diagnostics.
 
 ## Supported Engine Codes
 
@@ -23,8 +24,8 @@ This workflow lets operators register and validate data-engine connection defini
 
 ## Current Limits
 
-- validation is offline only
-- no real JDBC or vendor SDK connection is attempted yet
+- validation is still offline for credentials and semantics
+- probe performs a real TCP connectivity check but does not execute JDBC authentication yet
 - credentials are not returned by API responses
 - raw passwords are not persisted to disk
 - current persistence stores metadata only and is not a secret vault
@@ -35,3 +36,4 @@ This workflow lets operators register and validate data-engine connection defini
 - `GET /api/v1/connections`
 - `POST /api/v1/connections/validate`
 - `POST /api/v1/connections`
+- `POST /api/v1/connections/probe`

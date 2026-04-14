@@ -8,7 +8,10 @@ const connections = ref([]);
 const errorMessage = ref('');
 const saveMessage = ref('');
 const validationMessage = ref('');
+const probeMessage = ref('');
+const probeResult = ref(null);
 const isSubmitting = ref(false);
+const isProbing = ref(false);
 const form = ref({
   name: 'Primary Trino',
   engineCode: 'trino',
@@ -108,6 +111,35 @@ async function createConnection() {
   }
 }
 
+async function probeConnection() {
+  probeMessage.value = '';
+  probeResult.value = null;
+  isProbing.value = true;
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/connections/probe`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(form.value)
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.message || 'probe failed');
+    }
+
+    probeResult.value = payload.probe;
+    probeMessage.value = payload.probe.messages.join('；');
+  } catch (error) {
+    probeMessage.value = error.message;
+  } finally {
+    isProbing.value = false;
+  }
+}
+
 onMounted(() => {
   loadSystemState();
 });
@@ -162,7 +194,12 @@ onMounted(() => {
             <p class="section-kicker">Connection Studio</p>
             <h2>新增数据引擎连接</h2>
           </div>
-          <button class="ghost-button" type="button" @click="validateConnection">离线校验</button>
+          <div class="button-stack">
+            <button class="ghost-button" type="button" @click="validateConnection">离线校验</button>
+            <button class="ghost-button" type="button" :disabled="isProbing" @click="probeConnection">
+              {{ isProbing ? '探测中...' : '连通性探测' }}
+            </button>
+          </div>
         </div>
 
         <div class="form-grid">
@@ -214,7 +251,19 @@ onMounted(() => {
             {{ isSubmitting ? '提交中...' : '保存连接' }}
           </button>
           <p v-if="validationMessage" class="info-text">{{ validationMessage }}</p>
+          <p v-if="probeMessage" class="info-text">{{ probeMessage }}</p>
           <p v-if="saveMessage" class="success-text">{{ saveMessage }}</p>
+        </div>
+
+        <div v-if="probeResult" class="probe-panel">
+          <div class="probe-head">
+            <strong>Probe Result</strong>
+            <span :class="probeResult.reachable ? 'probe-ok' : 'probe-fail'">
+              {{ probeResult.status }}
+            </span>
+          </div>
+          <p class="probe-line"><strong>JDBC URL:</strong> {{ probeResult.jdbcUrl }}</p>
+          <p class="probe-line"><strong>耗时:</strong> {{ probeResult.durationMs }} ms</p>
         </div>
       </article>
 

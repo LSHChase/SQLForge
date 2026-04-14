@@ -1,7 +1,9 @@
 package com.sqlforge.backend.web;
 
 import com.sqlforge.backend.model.ConnectionDefinition;
+import com.sqlforge.backend.model.ConnectionProbeResult;
 import com.sqlforge.backend.model.ConnectionValidationResult;
+import com.sqlforge.backend.service.ConnectionProbeService;
 import com.sqlforge.backend.service.ConnectionService;
 import com.sqlforge.backend.web.dto.ConnectionRequest;
 import java.util.LinkedHashMap;
@@ -21,9 +23,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class ConnectionController {
 
     private final ConnectionService connectionService;
+    private final ConnectionProbeService connectionProbeService;
 
-    public ConnectionController(ConnectionService connectionService) {
+    public ConnectionController(
+        ConnectionService connectionService,
+        ConnectionProbeService connectionProbeService
+    ) {
         this.connectionService = connectionService;
+        this.connectionProbeService = connectionProbeService;
     }
 
     @GetMapping
@@ -38,6 +45,20 @@ public class ConnectionController {
         ConnectionValidationResult validationResult = connectionService.validate(request);
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("validation", validationResult);
+        return payload;
+    }
+
+    @PostMapping("/probe")
+    public Map<String, Object> probe(@Valid @RequestBody ConnectionRequest request) {
+        ConnectionValidationResult validationResult = connectionService.validate(request);
+
+        if (!validationResult.isValid()) {
+            throw new IllegalArgumentException(String.join("; ", validationResult.getMessages()));
+        }
+
+        ConnectionProbeResult probeResult = connectionProbeService.probe(request);
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("probe", probeResult);
         return payload;
     }
 

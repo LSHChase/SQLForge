@@ -6,3 +6,4 @@
 | 2026-04-13 | Harness task-start governance | `checkpoint/2026-04-13-harness-task-start-governance` | Mandatory task-start reading order, AGENTS entry point, repository enforcement tests |
 | 2026-04-13 | Engine connection foundation | `checkpoint/2026-04-13-engine-connection-foundation` | Backend validation and registration APIs, frontend connection management UI |
 | 2026-04-13 | Connection persistence and secret hygiene | `checkpoint/2026-04-13-connection-persistence-and-secret-hygiene` | File-backed connection metadata persistence, no raw password persistence, backend repository tests |
+| 2026-04-13 | Connection probe foundation | `checkpoint/2026-04-13-connection-probe-foundation` | Real TCP connectivity probe API, JDBC URL diagnostics, frontend probe result panel |
