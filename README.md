@@ -372,6 +372,7 @@ curl -X POST http://localhost:8080/api/v1/sql/intent-analysis/readiness-gate \
 - 前后端独立构建、独立部署
 - 后端连接器层预留 Kyligence 和 MRS-Hetu 扩展位
 - 运行环境优先兼容 `amd64` 与 `arm64`
+- 仓库知识结构可通过 `npm run lint:docs` 做独立校验
 
 ## 仓库知识入口
 
