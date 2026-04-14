@@ -100,7 +100,7 @@ async function createConnection() {
     }
 
     connections.value = [payload.connection, ...connections.value];
-    saveMessage.value = `连接已登记：${payload.connection.name}`;
+    saveMessage.value = `连接已登记并持久化元数据：${payload.connection.name}`;
   } catch (error) {
     saveMessage.value = error.message;
   } finally {
@@ -125,6 +125,7 @@ onMounted(() => {
       <div class="hero-meta">
         <span>Backend: {{ health }}</span>
         <span>API: {{ apiBaseUrl }}</span>
+        <span>Storage: metadata persisted, secrets excluded</span>
       </div>
       <p v-if="errorMessage" class="status-hint">
         当前展示的是本地回退引擎清单，因为后端接口尚未连通：{{ errorMessage }}
@@ -204,6 +205,10 @@ onMounted(() => {
           <span>启用 SSL/TLS</span>
         </label>
 
+        <p class="info-text muted-text">
+          当前版本只持久化连接元数据，密码不会写入返回结果或落盘文件。
+        </p>
+
         <div class="action-row">
           <button class="primary-button" type="button" :disabled="isSubmitting" @click="createConnection">
             {{ isSubmitting ? '提交中...' : '保存连接' }}
@@ -231,6 +236,7 @@ onMounted(() => {
             <div class="connection-meta">
               <span>{{ connection.catalog }}</span>
               <span>{{ connection.status }}</span>
+              <span>{{ connection.createdAt }}</span>
             </div>
           </div>
         </div>

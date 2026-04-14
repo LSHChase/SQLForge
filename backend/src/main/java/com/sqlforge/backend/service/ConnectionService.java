@@ -3,7 +3,7 @@ package com.sqlforge.backend.service;
 import com.sqlforge.backend.model.ConnectionDefinition;
 import com.sqlforge.backend.model.ConnectionValidationResult;
 import com.sqlforge.backend.model.EngineDescriptor;
-import com.sqlforge.backend.repository.InMemoryConnectionRepository;
+import com.sqlforge.backend.repository.FileConnectionRepository;
 import com.sqlforge.backend.web.dto.ConnectionRequest;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -16,11 +16,11 @@ import org.springframework.stereotype.Service;
 public class ConnectionService {
 
     private final EngineCatalogService engineCatalogService;
-    private final InMemoryConnectionRepository connectionRepository;
+    private final FileConnectionRepository connectionRepository;
 
     public ConnectionService(
         EngineCatalogService engineCatalogService,
-        InMemoryConnectionRepository connectionRepository
+        FileConnectionRepository connectionRepository
     ) {
         this.engineCatalogService = engineCatalogService;
         this.connectionRepository = connectionRepository;

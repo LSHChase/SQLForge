@@ -100,6 +100,8 @@ curl -X POST http://localhost:8080/api/v1/connections \
   }'
 ```
 
+当前连接信息会以元数据形式持久化到后端本地文件，默认路径为 `${java.io.tmpdir}/sqlforge/connections.json`。密码不会出现在 API 返回结果里，也不会被写入该文件。
+
 ## 工程约束
 
 - 全仓库文本文件按 UTF-8 编码

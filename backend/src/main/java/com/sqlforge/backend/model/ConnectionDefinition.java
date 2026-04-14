@@ -1,5 +1,7 @@
 package com.sqlforge.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
 
 public class ConnectionDefinition {
@@ -15,17 +17,18 @@ public class ConnectionDefinition {
     private final String status;
     private final Instant createdAt;
 
+    @JsonCreator
     public ConnectionDefinition(
-        String id,
-        String name,
-        String engineCode,
-        String host,
-        Integer port,
-        String catalog,
-        String username,
-        boolean sslEnabled,
-        String status,
-        Instant createdAt
+        @JsonProperty("id") String id,
+        @JsonProperty("name") String name,
+        @JsonProperty("engineCode") String engineCode,
+        @JsonProperty("host") String host,
+        @JsonProperty("port") Integer port,
+        @JsonProperty("catalog") String catalog,
+        @JsonProperty("username") String username,
+        @JsonProperty("sslEnabled") boolean sslEnabled,
+        @JsonProperty("status") String status,
+        @JsonProperty("createdAt") Instant createdAt
     ) {
         this.id = id;
         this.name = name;
