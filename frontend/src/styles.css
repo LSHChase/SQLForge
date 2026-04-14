@@ -93,6 +93,14 @@ body {
   margin-top: 20px;
 }
 
+.analysis-section {
+  margin-top: 20px;
+}
+
+.analysis-card {
+  grid-column: 1 / -1;
+}
+
 .card {
   padding: 24px;
 }
@@ -337,6 +345,57 @@ body {
   background: rgba(20, 33, 61, 0.03);
 }
 
+.analysis-panel {
+  margin-top: 18px;
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.tag-chip,
+.signal-chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.tag-chip {
+  background: rgba(42, 157, 143, 0.14);
+  color: #1d6f66;
+}
+
+.signal-chip {
+  background: rgba(247, 127, 0, 0.14);
+  color: #b25b00;
+}
+
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.alert-item {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(155, 34, 38, 0.06);
+}
+
 .preview-label {
   display: flex;
   flex-direction: column;
@@ -465,6 +524,10 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+
   .connection-item {
     flex-direction: column;
   }
@@ -475,6 +538,10 @@ body {
 
   .connection-actions {
     min-width: auto;
+  }
+
+  .alert-item {
+    grid-template-columns: 1fr;
   }
 
   .hero-panel,

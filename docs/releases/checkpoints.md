@@ -10,3 +10,4 @@
 | 2026-04-13 | Engine profiles and ARM delivery | `checkpoint/2026-04-13-engine-profiles-and-arm-delivery` | Rich engine connection profiles, frontend defaults, Dockerfiles, compose-based split deployment |
 | 2026-04-14 | Connection execution module | `checkpoint/2026-04-14-connection-execution-module` | Saved-connection lifecycle, JDBC-aware probe, SQL preview, activity history, module overview |
 | 2026-04-14 | Java workflow migration | `checkpoint/2026-04-14-java-workflow-migration` | Spring Boot mainline for BI release, capacity planning, and plan stability workflow APIs |
+| 2026-04-14 | SQL intent analysis foundation | `checkpoint/2026-04-14-sql-intent-analysis-foundation` | Pure-structure SQL intent API, pressure classification, and manual analysis panel |

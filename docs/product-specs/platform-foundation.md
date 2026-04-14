@@ -11,6 +11,7 @@ This spec defines the mandatory delivery baseline for the SQLForge platform foun
 3. The system must use a front-end/back-end separation model.
 4. The backend must expose an API that allows the frontend to query supported engine metadata.
 5. The backend connector capability must cover MySQL, Trino, Presto, ClickHouse, MRS-Hetu, and Kyligence.
+6. The backend must expose a pure-structure SQL analysis API that can classify input SQL without executing it.
 
 ## Non-Functional Requirements
 

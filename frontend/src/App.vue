@@ -15,12 +15,20 @@ const probeMessage = ref('');
 const probeResult = ref(null);
 const previewMessage = ref('');
 const previewResult = ref(null);
+const sqlIntentMessage = ref('');
+const sqlIntentResult = ref(null);
 const isSubmitting = ref(false);
 const isProbing = ref(false);
 const isPreviewing = ref(false);
+const isAnalyzingIntent = ref(false);
 const selectedConnectionId = ref('');
 const previewSql = ref('select 1 as health_check');
 const previewMaxRows = ref(20);
+const sqlIntentSource = ref('manual-sample');
+const sqlIntentInput = ref(
+  "with recent_orders as (select user_id, amount from lake.orders where ds >= '2026-04-01') "
+    + "select user_id, sum(amount) from recent_orders group by 1 order by sum(amount) desc"
+);
 const form = ref({
   name: 'Primary Trino',
   engineCode: 'trino',
@@ -366,6 +374,43 @@ async function previewQuery() {
   }
 }
 
+async function analyzeSqlIntent() {
+  sqlIntentMessage.value = '';
+  sqlIntentResult.value = null;
+  isAnalyzingIntent.value = true;
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/sql/intent-analysis`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        statements: [
+          {
+            id: 'manual-analysis',
+            source: sqlIntentSource.value,
+            sql: sqlIntentInput.value
+          }
+        ]
+      })
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.message || 'sql intent analysis failed');
+    }
+
+    sqlIntentResult.value = payload;
+    sqlIntentMessage.value = '结构分析已完成，结果仅基于 SQL 形态，不依赖数据库执行。';
+  } catch (error) {
+    sqlIntentMessage.value = error.message;
+  } finally {
+    isAnalyzingIntent.value = false;
+  }
+}
+
 onMounted(() => {
   loadSystemState();
 });
@@ -458,6 +503,88 @@ watch(
           </div>
         </div>
         <p v-else class="empty-state">当前还没有保存的连接。</p>
+      </article>
+    </section>
+
+    <section class="content-grid analysis-section">
+      <article class="card analysis-card">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Structure Analysis</p>
+            <h2>SQL 意图识别</h2>
+          </div>
+          <button class="primary-button" type="button" :disabled="isAnalyzingIntent" @click="analyzeSqlIntent">
+            {{ isAnalyzingIntent ? '分析中...' : '结构分析' }}
+          </button>
+        </div>
+
+        <p class="info-text">
+          面向压测前准备的纯结构分析能力。当前只看 SQL 文本形态，不连接数据库、不执行查询。
+        </p>
+
+        <label class="preview-label compact-label">
+          <span>样本来源</span>
+          <input v-model="sqlIntentSource" type="text" />
+        </label>
+        <label class="preview-label">
+          <span>输入 SQL</span>
+          <textarea v-model="sqlIntentInput" rows="8"></textarea>
+        </label>
+
+        <p v-if="sqlIntentMessage" class="info-text">{{ sqlIntentMessage }}</p>
+
+        <div v-if="sqlIntentResult" class="analysis-panel">
+          <div class="probe-head">
+            <strong>Analysis Summary</strong>
+            <span class="badge">{{ sqlIntentResult.summary.statementCount }} statements</span>
+          </div>
+
+          <div class="analysis-grid">
+            <div class="overview-item">
+              <strong>{{ Object.keys(sqlIntentResult.summary.byLoadClass || {}).join(', ') || 'n/a' }}</strong>
+              <span>load class</span>
+            </div>
+            <div class="overview-item">
+              <strong>{{ Object.keys(sqlIntentResult.summary.byIntentTag || {}).length }}</strong>
+              <span>intent tags</span>
+            </div>
+          </div>
+
+          <div
+            v-for="item in sqlIntentResult.analyses"
+            :key="item.statementId"
+            class="preview-panel"
+          >
+            <div class="probe-head">
+              <strong>{{ item.statementId }}</strong>
+              <span class="badge">{{ item.pressureProfile.loadClass }}</span>
+            </div>
+            <p class="probe-line"><strong>Fingerprint:</strong> {{ item.fingerprint }}</p>
+            <p class="probe-line"><strong>Statement Type:</strong> {{ item.structure.statementType }}</p>
+            <p class="probe-line"><strong>Tables:</strong> {{ item.structure.tables.join(', ') || 'n/a' }}</p>
+            <p class="probe-line"><strong>Join Type:</strong> {{ item.structure.joinType }}</p>
+            <p class="probe-line">
+              <strong>Complexity:</strong> {{ item.pressureProfile.complexityTier }} ({{ item.pressureProfile.complexityScore }})
+            </p>
+
+            <div class="tag-list">
+              <span v-for="tag in item.intentTags" :key="tag" class="tag-chip">{{ tag }}</span>
+            </div>
+
+            <div class="tag-list">
+              <span v-for="signal in item.pressureProfile.pressureSignals" :key="signal" class="signal-chip">
+                {{ signal }}
+              </span>
+            </div>
+
+            <div v-if="item.structuralAlerts && item.structuralAlerts.length" class="alert-list">
+              <div v-for="(alert, index) in item.structuralAlerts" :key="index" class="alert-item">
+                <strong>{{ alert.code }}</strong>
+                <span>{{ alert.message }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </article>
     </section>
 

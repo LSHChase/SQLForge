@@ -209,6 +209,24 @@ curl -X POST http://localhost:8080/api/v1/workflows/plan-stability \
   }'
 ```
 
+### SQL 意图结构分析
+
+```bash
+curl -X POST http://localhost:8080/api/v1/sql/intent-analysis \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "statements": [
+      {
+        "id": "daily-report",
+        "source": "manual-sample",
+        "sql": "with recent_orders as (select user_id, amount from lake.orders where ds >= '\''2026-04-01'\'') select user_id, sum(amount) from recent_orders group by 1 order by sum(amount) desc"
+      }
+    ]
+  }'
+```
+
+该接口执行纯结构分析：只基于 SQL 文本输出指纹、结构画像、意图标签和压测导向的负载分类，不连接数据库、不执行查询。
+
 ## 工程约束
 
 - 全仓库文本文件按 UTF-8 编码
