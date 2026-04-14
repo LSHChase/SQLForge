@@ -30,6 +30,7 @@ Stress-testing preparation needs a pure structural way to classify incoming SQL 
 - `POST /api/v1/sql/intent-analysis/pressure-plan`
 - `POST /api/v1/sql/intent-analysis/scenario-blueprint`
 - `POST /api/v1/sql/intent-analysis/execution-manifest`
+- `POST /api/v1/sql/intent-analysis/campaign-schedule`
 
 ## Current Delivery
 
@@ -40,3 +41,4 @@ Stress-testing preparation needs a pure structural way to classify incoming SQL 
 - The backend can derive a pressure-preparation plan with candidate sets, concurrency ladder, and sampling rules from daily SQL batches.
 - The backend can derive staged scenario blueprints with workload mix and operator checklist guidance from daily SQL batches.
 - The backend can derive machine-readable execution manifests with stage criteria, metric focus, and global guardrails.
+- The backend can derive campaign schedules with stage windows, promotion gates, fallback actions, and handoff notes.

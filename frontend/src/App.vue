@@ -23,6 +23,8 @@ const sqlScenarioBlueprintMessage = ref('');
 const sqlScenarioBlueprintResult = ref(null);
 const sqlExecutionManifestMessage = ref('');
 const sqlExecutionManifestResult = ref(null);
+const sqlCampaignScheduleMessage = ref('');
+const sqlCampaignScheduleResult = ref(null);
 const sqlIntentMode = ref('single');
 const isSubmitting = ref(false);
 const isProbing = ref(false);
@@ -31,6 +33,7 @@ const isAnalyzingIntent = ref(false);
 const isBuildingPressurePlan = ref(false);
 const isBuildingScenarioBlueprint = ref(false);
 const isBuildingExecutionManifest = ref(false);
+const isBuildingCampaignSchedule = ref(false);
 const selectedConnectionId = ref('');
 const previewSql = ref('select 1 as health_check');
 const previewMaxRows = ref(20);
@@ -518,6 +521,7 @@ async function buildSqlScenarioBlueprint() {
 async function buildSqlExecutionManifest() {
   sqlExecutionManifestMessage.value = '';
   sqlExecutionManifestResult.value = null;
+  sqlCampaignScheduleResult.value = null;
   isBuildingExecutionManifest.value = true;
 
   try {
@@ -546,6 +550,40 @@ async function buildSqlExecutionManifest() {
     sqlExecutionManifestMessage.value = error.message;
   } finally {
     isBuildingExecutionManifest.value = false;
+  }
+}
+
+async function buildSqlCampaignSchedule() {
+  sqlCampaignScheduleMessage.value = '';
+  sqlCampaignScheduleResult.value = null;
+  isBuildingCampaignSchedule.value = true;
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/sql/intent-analysis/campaign-schedule`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        batchId: sqlIntentBatchId.value,
+        source: sqlIntentSource.value,
+        targetConcurrency: sqlPressureTargetConcurrency.value,
+        rawSqlText: sqlIntentBatchInput.value
+      })
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.message || 'sql campaign schedule failed');
+    }
+
+    sqlCampaignScheduleResult.value = payload;
+    sqlCampaignScheduleMessage.value = `campaign schedule 已生成，总时长 ${payload.campaignSummary.totalDurationMinutes} 分钟。`;
+  } catch (error) {
+    sqlCampaignScheduleMessage.value = error.message;
+  } finally {
+    isBuildingCampaignSchedule.value = false;
   }
 }
 
@@ -682,6 +720,15 @@ watch(
             >
               {{ isBuildingExecutionManifest ? '生成中...' : '生成执行清单' }}
             </button>
+            <button
+              v-if="sqlIntentMode === 'batch'"
+              class="ghost-button"
+              type="button"
+              :disabled="isBuildingCampaignSchedule"
+              @click="buildSqlCampaignSchedule"
+            >
+              {{ isBuildingCampaignSchedule ? '生成中...' : '生成阶段排期' }}
+            </button>
           </div>
         </div>
 
@@ -742,6 +789,7 @@ watch(
         <p v-if="sqlPressurePlanMessage" class="info-text">{{ sqlPressurePlanMessage }}</p>
         <p v-if="sqlScenarioBlueprintMessage" class="info-text">{{ sqlScenarioBlueprintMessage }}</p>
         <p v-if="sqlExecutionManifestMessage" class="info-text">{{ sqlExecutionManifestMessage }}</p>
+        <p v-if="sqlCampaignScheduleMessage" class="info-text">{{ sqlCampaignScheduleMessage }}</p>
 
         <div v-if="sqlIntentResult" class="analysis-panel">
           <div class="probe-head">
@@ -974,6 +1022,65 @@ watch(
                 class="alert-item"
               >
                 <strong>guard {{ index + 1 }}</strong>
+                <span>{{ item }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="sqlCampaignScheduleResult" class="analysis-panel pressure-plan-panel">
+          <div class="probe-head">
+            <strong>Campaign Schedule</strong>
+            <span class="badge">{{ sqlCampaignScheduleResult.stages.length }} stages</span>
+          </div>
+
+          <div class="analysis-grid">
+            <div class="overview-item">
+              <strong>{{ sqlCampaignScheduleResult.campaignSummary.totalDurationMinutes }}</strong>
+              <span>total minutes</span>
+            </div>
+            <div class="overview-item">
+              <strong>{{ sqlCampaignScheduleResult.campaignSummary.maxConcurrencyTarget }}</strong>
+              <span>max concurrency</span>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Scheduled Stages</strong>
+            </div>
+            <div class="alert-list">
+              <div v-for="stage in sqlCampaignScheduleResult.stages" :key="stage.stageId" class="alert-item">
+                <strong>{{ stage.stageId }}</strong>
+                <span>
+                  {{ stage.window.startMinute }}-{{ stage.window.endMinute }} min ·
+                  warmup={{ stage.window.warmupMinutes }} ·
+                  sample={{ stage.window.sampleMinutes }} ·
+                  cooldown={{ stage.window.cooldownMinutes }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Promotion Gates</strong>
+            </div>
+            <div class="alert-list">
+              <div v-for="stage in sqlCampaignScheduleResult.stages" :key="`${stage.stageId}-gate`" class="alert-item">
+                <strong>{{ stage.stageId }}</strong>
+                <span>{{ stage.promotionGate.join('；') }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Handoff Notes</strong>
+            </div>
+            <div class="alert-list">
+              <div v-for="(item, index) in sqlCampaignScheduleResult.handoffNotes" :key="index" class="alert-item">
+                <strong>note {{ index + 1 }}</strong>
                 <span>{{ item }}</span>
               </div>
             </div>

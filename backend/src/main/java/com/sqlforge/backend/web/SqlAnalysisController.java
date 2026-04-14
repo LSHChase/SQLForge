@@ -5,6 +5,7 @@ import com.sqlforge.backend.service.SqlIntentBatchAnalysisService;
 import com.sqlforge.backend.service.SqlPressurePlanService;
 import com.sqlforge.backend.service.SqlScenarioBlueprintService;
 import com.sqlforge.backend.service.SqlExecutionManifestService;
+import com.sqlforge.backend.service.SqlCampaignScheduleService;
 import com.sqlforge.backend.web.dto.SqlIntentAnalysisRequest;
 import com.sqlforge.backend.web.dto.SqlIntentBatchRequest;
 import com.sqlforge.backend.web.dto.SqlPressurePlanRequest;
@@ -24,19 +25,22 @@ public class SqlAnalysisController {
     private final SqlPressurePlanService sqlPressurePlanService;
     private final SqlScenarioBlueprintService sqlScenarioBlueprintService;
     private final SqlExecutionManifestService sqlExecutionManifestService;
+    private final SqlCampaignScheduleService sqlCampaignScheduleService;
 
     public SqlAnalysisController(
         SqlIntentAnalysisService sqlIntentAnalysisService,
         SqlIntentBatchAnalysisService sqlIntentBatchAnalysisService,
         SqlPressurePlanService sqlPressurePlanService,
         SqlScenarioBlueprintService sqlScenarioBlueprintService,
-        SqlExecutionManifestService sqlExecutionManifestService
+        SqlExecutionManifestService sqlExecutionManifestService,
+        SqlCampaignScheduleService sqlCampaignScheduleService
     ) {
         this.sqlIntentAnalysisService = sqlIntentAnalysisService;
         this.sqlIntentBatchAnalysisService = sqlIntentBatchAnalysisService;
         this.sqlPressurePlanService = sqlPressurePlanService;
         this.sqlScenarioBlueprintService = sqlScenarioBlueprintService;
         this.sqlExecutionManifestService = sqlExecutionManifestService;
+        this.sqlCampaignScheduleService = sqlCampaignScheduleService;
     }
 
     @PostMapping("/intent-analysis")
@@ -62,5 +66,10 @@ public class SqlAnalysisController {
     @PostMapping("/intent-analysis/execution-manifest")
     public Map<String, Object> executionManifest(@Valid @RequestBody SqlPressurePlanRequest request) {
         return sqlExecutionManifestService.buildManifest(request);
+    }
+
+    @PostMapping("/intent-analysis/campaign-schedule")
+    public Map<String, Object> campaignSchedule(@Valid @RequestBody SqlPressurePlanRequest request) {
+        return sqlCampaignScheduleService.buildSchedule(request);
     }
 }
