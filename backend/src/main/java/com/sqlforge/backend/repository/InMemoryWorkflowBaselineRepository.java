@@ -1,7 +1,9 @@
 package com.sqlforge.backend.repository;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -12,6 +14,11 @@ public class InMemoryWorkflowBaselineRepository implements WorkflowBaselineRepos
     @Override
     public Map<String, Object> get(String fingerprint) {
         return baselines.get(fingerprint);
+    }
+
+    @Override
+    public List<Map<String, Object>> findAll() {
+        return new ArrayList<Map<String, Object>>(baselines.values());
     }
 
     @Override

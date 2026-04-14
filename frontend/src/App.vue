@@ -49,6 +49,7 @@ const messages = {
       analysisResults: '结构分析结果',
       workflowWorkbench: 'Java 工作流工作台',
       workflowResults: '工作流产物',
+      workflowBaselines: 'BI 基线历史',
       pressureWorkbench: '压测编排工作台',
       pressureResults: '压测编排产物',
       handoffWorkbench: '交付与门禁工作台',
@@ -138,6 +139,7 @@ const messages = {
       briefing: '生成汇报稿',
       gate: '生成准入门禁',
       biRelease: '运行 BI 发布评估',
+      refreshBaselines: '刷新基线历史',
       capacityPlan: '运行容量规划',
       planStability: '运行计划稳定性',
       openConnections: '去连接管理',
@@ -160,7 +162,9 @@ const messages = {
       unreachable: '不可达',
       ready: '可推进',
       caution: '谨慎推进',
-      blocked: '阻塞'
+      blocked: '阻塞',
+      approved: '已批准',
+      'needs-optimization': '需优化'
     },
     empty: {
       overview: '后端返回后会展示连接概览。',
@@ -171,7 +175,8 @@ const messages = {
       analysis: '完成结构分析后会在这里展示摘要与逐条画像。',
       pressure: '生成任一压测产物后会在这里展示结果。',
       handoff: '生成交付包、汇报稿或 readiness gate 后会在这里展示结果。',
-      workflows: '运行任一 Java 工作流后，会在这里展示决策、摘要和原始 JSON。'
+      workflows: '运行任一 Java 工作流后，会在这里展示决策、摘要和原始 JSON。',
+      workflowBaselines: '已持久化的 BI 基线会在这里展示，便于跨重启对比。'
     },
     hints: {
       batchSplit: '建议使用分号或空行分隔多条 SQL。这里只做结构分析，不会连接数据库或执行 SQL。',
@@ -205,6 +210,7 @@ const messages = {
       gate: 'Readiness gate 已完成，结论为 {decision}。',
       invalidJson: 'JSON 输入格式不正确：{field}',
       biRelease: 'BI 发布评估已完成，结论为 {decision}。',
+      workflowBaselines: '已加载 {count} 条 BI 基线历史。',
       capacityPlan: '容量规划已完成，新增 Worker 需求 {count}。',
       planStability: '计划稳定性分析已完成，动作建议为 {decision}。'
     }
@@ -254,6 +260,7 @@ const messages = {
       analysisResults: 'Structural Analysis Output',
       workflowWorkbench: 'Java Workflow Workspace',
       workflowResults: 'Workflow Output',
+      workflowBaselines: 'BI Baseline History',
       pressureWorkbench: 'Pressure Planning Workspace',
       pressureResults: 'Pressure Planning Artifacts',
       handoffWorkbench: 'Handoff and Gate Workspace',
@@ -343,6 +350,7 @@ const messages = {
       briefing: 'Build Briefing Report',
       gate: 'Build Readiness Gate',
       biRelease: 'Run BI Release',
+      refreshBaselines: 'Refresh Baselines',
       capacityPlan: 'Run Capacity Plan',
       planStability: 'Run Plan Stability',
       openConnections: 'Open Connections',
@@ -365,7 +373,9 @@ const messages = {
       unreachable: 'unreachable',
       ready: 'ready',
       caution: 'caution',
-      blocked: 'blocked'
+      blocked: 'blocked',
+      approved: 'approved',
+      'needs-optimization': 'needs optimization'
     },
     empty: {
       overview: 'Connection overview will appear after the backend responds.',
@@ -376,7 +386,8 @@ const messages = {
       analysis: 'Structural summary and statement cards will appear here after analysis.',
       pressure: 'Pressure-planning results will appear here after any artifact is generated.',
       handoff: 'Run package, briefing report, or readiness gate output will appear here after generation.',
-      workflows: 'Workflow decisions, summaries, and raw JSON will appear here after execution.'
+      workflows: 'Workflow decisions, summaries, and raw JSON will appear here after execution.',
+      workflowBaselines: 'Persisted BI baselines will appear here for cross-restart comparison.'
     },
     hints: {
       batchSplit: 'Separate multiple statements with semicolons or blank lines. This path only performs structural analysis and never executes SQL.',
@@ -410,6 +421,7 @@ const messages = {
       gate: 'Readiness gate completed with a {decision} decision.',
       invalidJson: 'Invalid JSON input: {field}',
       biRelease: 'BI release evaluation completed with a {decision} decision.',
+      workflowBaselines: 'Loaded {count} BI baseline records.',
       capacityPlan: 'Capacity planning completed with {count} additional workers required.',
       planStability: 'Plan stability analysis completed with a {decision} action.'
     }
@@ -465,9 +477,11 @@ const sqlBriefingReportResult = ref(null);
 const sqlReadinessGateMessage = ref('');
 const sqlReadinessGateResult = ref(null);
 const biReleaseMessage = ref('');
+const workflowBaselineHistoryMessage = ref('');
 const capacityPlanMessage = ref('');
 const planStabilityMessage = ref('');
 const biReleaseResult = ref(null);
+const workflowBaselineHistoryResult = ref(null);
 const capacityPlanResult = ref(null);
 const planStabilityResult = ref(null);
 const sqlIntentMode = ref('single');
@@ -483,6 +497,7 @@ const isBuildingRunPackage = ref(false);
 const isBuildingBriefingReport = ref(false);
 const isBuildingReadinessGate = ref(false);
 const isRunningBiRelease = ref(false);
+const isLoadingWorkflowBaselines = ref(false);
 const isRunningCapacityPlan = ref(false);
 const isRunningPlanStability = ref(false);
 const selectedConnectionId = ref('');
@@ -659,6 +674,7 @@ const latestMessages = computed(() => [
   previewMessage.value,
   sqlIntentMessage.value,
   biReleaseMessage.value,
+  workflowBaselineHistoryMessage.value,
   capacityPlanMessage.value,
   planStabilityMessage.value,
   sqlPressurePlanMessage.value,
@@ -778,6 +794,9 @@ const workflowPanels = computed(() => [
     badge: planStabilityResult.value?.stabilityAnalysis?.decision || ''
   }
 ].filter((item) => item.result));
+const workflowBaselineItems = computed(() => (
+  Array.isArray(workflowBaselineHistoryResult.value?.baselines) ? workflowBaselineHistoryResult.value.baselines : []
+));
 const handoffPanels = computed(() => [
   {
     id: 'run-package',
@@ -1353,10 +1372,29 @@ async function runBiReleaseWorkflow() {
     biReleaseMessage.value = t('messages.biRelease', {
       decision: payload.decision || t('labels.noData')
     });
+    await loadWorkflowBaselineHistory();
   } catch (error) {
     biReleaseMessage.value = error.message;
   } finally {
     isRunningBiRelease.value = false;
+  }
+}
+
+async function loadWorkflowBaselineHistory() {
+  workflowBaselineHistoryMessage.value = '';
+  isLoadingWorkflowBaselines.value = true;
+
+  try {
+    const payload = await requestJson('/api/v1/workflows/bi-release/baselines?limit=12');
+    workflowBaselineHistoryResult.value = payload;
+    workflowBaselineHistoryMessage.value = t('messages.workflowBaselines', {
+      count: payload.baselineCount ?? payload.baselines?.length ?? 0
+    });
+  } catch (error) {
+    workflowBaselineHistoryResult.value = null;
+    workflowBaselineHistoryMessage.value = error.message;
+  } finally {
+    isLoadingWorkflowBaselines.value = false;
   }
 }
 
@@ -1448,8 +1486,25 @@ function readinessDecisionLabel(decision) {
   return localized || decision;
 }
 
+function workflowDecisionLabel(decision) {
+  if (!decision) {
+    return t('labels.noData');
+  }
+
+  const localized = t(`status.${decision}`);
+  return localized || decision;
+}
+
 function decisionClass(decision) {
-  return `decision-${decision || 'caution'}`;
+  if (decision === 'blocked') {
+    return 'decision-blocked';
+  }
+
+  if (decision === 'approved' || decision === 'ready') {
+    return 'decision-ready';
+  }
+
+  return 'decision-caution';
 }
 
 function probeHealthy(result) {
@@ -1487,6 +1542,7 @@ function statementAlerts(item) {
 
 onMounted(() => {
   loadSystemState();
+  loadWorkflowBaselineHistory();
 });
 </script>
 
@@ -2164,6 +2220,72 @@ onMounted(() => {
             </button>
           </div>
           <p v-if="capacityPlanMessage" class="status-message">{{ capacityPlanMessage }}</p>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">{{ t('sections.workflowBaselines') }}</p>
+              <h3>{{ t('sections.workflowBaselines') }}</h3>
+            </div>
+            <span class="badge">{{ workflowBaselineItems.length }}</span>
+          </div>
+
+          <div class="action-row">
+            <button
+              class="ghost-button"
+              type="button"
+              :disabled="isLoadingWorkflowBaselines"
+              @click="loadWorkflowBaselineHistory"
+            >
+              {{ t('buttons.refreshBaselines') }}
+            </button>
+          </div>
+          <p v-if="workflowBaselineHistoryMessage" class="status-message">{{ workflowBaselineHistoryMessage }}</p>
+
+          <template v-if="workflowBaselineItems.length">
+            <div class="result-grid">
+              <article v-for="item in workflowBaselineItems" :key="item.fingerprint" class="result-card">
+                <div class="panel-head">
+                  <div>
+                    <strong>{{ item.tenantId || t('labels.noData') }}</strong>
+                    <p class="card-subtitle">{{ item.updatedAt || t('labels.noData') }}</p>
+                  </div>
+                  <strong class="decision-pill" :class="decisionClass(item.decision)">
+                    {{ workflowDecisionLabel(item.decision) }}
+                  </strong>
+                </div>
+
+                <div class="definition-grid">
+                  <div class="metric-card">
+                    <span>{{ t('labels.fingerprint') }}</span>
+                    <strong>{{ item.fingerprint || t('labels.noData') }}</strong>
+                  </div>
+                  <div class="metric-card">
+                    <span>{{ t('labels.tenantId') }}</span>
+                    <strong>{{ item.tenantId || t('labels.noData') }}</strong>
+                  </div>
+                  <div class="metric-card">
+                    <span>{{ t('labels.decision') }}</span>
+                    <strong>{{ workflowDecisionLabel(item.decision) }}</strong>
+                  </div>
+                  <div class="metric-card">
+                    <span>{{ t('labels.lastUpdated') }}</span>
+                    <strong>{{ item.updatedAt || t('labels.noData') }}</strong>
+                  </div>
+                  <div class="metric-card">
+                    <span>P99</span>
+                    <strong>{{ item.summary?.p99Ms ?? t('labels.noData') }}</strong>
+                  </div>
+                  <div class="metric-card">
+                    <span>P50</span>
+                    <strong>{{ item.summary?.p50Ms ?? item.summary?.averageLatencyMs ?? t('labels.noData') }}</strong>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </template>
+          <p v-else class="empty-state">{{ t('empty.workflowBaselines') }}</p>
         </article>
 
         <article class="panel span-2">

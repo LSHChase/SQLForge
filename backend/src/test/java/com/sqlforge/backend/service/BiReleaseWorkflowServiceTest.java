@@ -52,6 +52,18 @@ class BiReleaseWorkflowServiceTest {
         assertFalse("new-baseline".equals(baselineComparison.get("status")));
     }
 
+    @Test
+    void shouldListPersistedBaselines() {
+        BiReleaseWorkflowService service = new BiReleaseWorkflowService(new InMemoryWorkflowBaselineRepository());
+
+        service.execute(request());
+        Map<String, Object> history = service.listBaselines(Integer.valueOf(10));
+
+        assertEquals("bi-release-baseline-history", history.get("workflow"));
+        assertEquals(Integer.valueOf(1), history.get("baselineCount"));
+        assertEquals(1, castList(history.get("baselines")).size());
+    }
+
     private BiReleaseRequest request() {
         BiReleaseRequest request = new BiReleaseRequest();
         request.setTenantId("tenant-a");
@@ -93,5 +105,10 @@ class BiReleaseWorkflowServiceTest {
     @SuppressWarnings("unchecked")
     private Map<String, Object> castMap(Object value) {
         return (Map<String, Object>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> castList(Object value) {
+        return (List<Map<String, Object>>) value;
     }
 }

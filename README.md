@@ -51,8 +51,11 @@ npm run dev
 `Java 工作流` 工作区目前已接入：
 
 - BI 发布评估：`POST /api/v1/workflows/bi-release`
+- BI 基线历史：`GET /api/v1/workflows/bi-release/baselines`
 - 容量规划：`POST /api/v1/workflows/capacity-plan`
 - 执行计划稳定性：`POST /api/v1/workflows/plan-stability`
+
+其中 BI 发布评估结果会写入本地 baseline 存储，前端工作流工作区可直接刷新最近 12 条历史基线，用于跨重启回看 fingerprint、tenant、decision 与摘要指标。
 
 ## 后端启动
 
@@ -140,6 +143,7 @@ curl -X POST http://localhost:8080/api/v1/connections \
 当前连接信息会以元数据形式持久化到后端本地文件，默认路径为 `${java.io.tmpdir}/sqlforge/connections.json`。密码不会出现在 API 返回结果里，也不会被写入该文件。
 
 BI 发布评估工作流的历史 baseline 也会以文件形式持久化，默认路径为 `${java.io.tmpdir}/sqlforge/workflow-baselines.json`，用于跨重启保留上一次评估摘要。
+该持久化 baseline 现已通过独立查询接口暴露给前端工作区，便于直接查看最近历史记录而不必再次执行工作流。
 后端的租户容量画像目前通过共享的 tenant profile provider 提供，后续可替换为真实控制面配置来源。
 BI 发布评估结果当前还会返回 `executorPlan`，用于描述当前 benchmark executor contract。现阶段默认 provider 为 `dry-run`，用于在真实执行器接入前固定执行边界。
 
@@ -193,6 +197,12 @@ curl -X POST http://localhost:8080/api/v1/workflows/bi-release \
     "slaMs": 5000,
     "targetConcurrency": 20
   }'
+```
+
+### BI 发布 baseline 历史
+
+```bash
+curl "http://localhost:8080/api/v1/workflows/bi-release/baselines?limit=12"
 ```
 
 ### 容量规划工作流

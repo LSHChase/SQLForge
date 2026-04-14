@@ -9,6 +9,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -79,6 +80,27 @@ public class BiReleaseWorkflowService {
         result.put("previousBaseline", previousBaseline);
         result.put("report", report);
         return result;
+    }
+
+    public Map<String, Object> listBaselines(Integer limit) {
+        List<Map<String, Object>> baselines = new ArrayList<Map<String, Object>>(baselineRepository.findAll());
+        Collections.sort(baselines, new Comparator<Map<String, Object>>() {
+            @Override
+            public int compare(Map<String, Object> left, Map<String, Object> right) {
+                return String.valueOf(right.get("updatedAt")).compareTo(String.valueOf(left.get("updatedAt")));
+            }
+        });
+
+        int resolvedLimit = limit == null || limit.intValue() <= 0 ? 20 : limit.intValue();
+        if (baselines.size() > resolvedLimit) {
+            baselines = new ArrayList<Map<String, Object>>(baselines.subList(0, resolvedLimit));
+        }
+
+        Map<String, Object> response = new LinkedHashMap<String, Object>();
+        response.put("workflow", "bi-release-baseline-history");
+        response.put("baselineCount", Integer.valueOf(baselines.size()));
+        response.put("baselines", baselines);
+        return response;
     }
 
     private Map<String, Object> assessSql(BiReleaseRequest request) {

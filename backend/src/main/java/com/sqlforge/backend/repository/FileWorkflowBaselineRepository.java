@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.PostConstruct;
@@ -52,6 +54,11 @@ public class FileWorkflowBaselineRepository implements WorkflowBaselineRepositor
     @Override
     public synchronized Map<String, Object> get(String fingerprint) {
         return baselines.get(fingerprint);
+    }
+
+    @Override
+    public synchronized List<Map<String, Object>> findAll() {
+        return new ArrayList<Map<String, Object>>(baselines.values());
     }
 
     @Override

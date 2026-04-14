@@ -10,7 +10,7 @@ Current grade is intentionally blunt so future runs can improve it.
 | Data Construction | C+ | Sampling plan is modeled, no Hudi/HMS integration yet |
 | Execution | B- | Benchmark matrix now covers more dimensions and exposes executor contracts, but only dry-run execution is available |
 | Intelligence | B | Core models, recommendations, and plan stability analysis exist; heuristics still need calibration |
-| Reporting | B | Reports and workflows exist with stable shapes and action outputs; BI baselines now persist locally |
+| Reporting | B | Reports and workflows exist with stable shapes and action outputs; BI baselines now persist locally and are visible through a dedicated history API/workspace panel |
 | Tenancy | C+ | Tenant profiles now flow through a shared provider boundary, but the backing data is still static |
 | Repo Knowledge | B | Harness-style docs added, now backed by a dedicated repository knowledge lint |
 | Mechanical Enforcement | B | Structural tests exist and repository knowledge now has dedicated lint tooling |

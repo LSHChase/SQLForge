@@ -8,8 +8,10 @@ import com.sqlforge.backend.web.dto.CapacityPlanRequest;
 import com.sqlforge.backend.web.dto.PlanStabilityRequest;
 import java.util.Map;
 import javax.validation.Valid;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,6 +36,11 @@ public class WorkflowController {
     @PostMapping("/bi-release")
     public Map<String, Object> biRelease(@Valid @RequestBody BiReleaseRequest request) {
         return biReleaseWorkflowService.execute(request);
+    }
+
+    @GetMapping("/bi-release/baselines")
+    public Map<String, Object> biReleaseBaselines(@RequestParam(value = "limit", required = false) Integer limit) {
+        return biReleaseWorkflowService.listBaselines(limit);
     }
 
     @PostMapping("/capacity-plan")

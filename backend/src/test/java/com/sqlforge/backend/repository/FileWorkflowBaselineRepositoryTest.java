@@ -37,6 +37,22 @@ class FileWorkflowBaselineRepositoryTest {
         assertTrue(persistedJson.contains("\"fp-1\""));
     }
 
+    @Test
+    void findAllShouldReturnPersistedBaselines() throws Exception {
+        Path storageFile = tempDir.resolve("workflow-baselines-list.json");
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+        FileWorkflowBaselineRepository repository = new FileWorkflowBaselineRepository(objectMapper, storageFile.toString());
+
+        repository.load();
+        repository.save("fp-1", "tenant-a", "approved", summary(1250.0d, 1100.0d));
+        repository.save("fp-2", "tenant-b", "blocked", summary(2250.0d, 1800.0d));
+
+        FileWorkflowBaselineRepository reloaded = new FileWorkflowBaselineRepository(objectMapper, storageFile.toString());
+        reloaded.load();
+
+        assertEquals(2, reloaded.findAll().size());
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, Object> summary(double p99Ms, double averageLatencyMs) {
         Map<String, Object> summary = new LinkedHashMap<String, Object>();
