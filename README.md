@@ -12,7 +12,7 @@ SQLForge 正在切换到您指定的生产栈：
 
 本仓库现在同时包含两部分：
 
-- `frontend/`：新的 Vue 前端骨架
+- `frontend/`：Vue 多菜单双语控制台（中文 / English）
 - `backend/`：新的 Spring Boot 后端骨架
 
 历史 `src/` 与 `test/` 目录保留为早期 Node.js 原型参考，不再作为主交付结构。
@@ -36,6 +36,16 @@ npm run dev
 ```
 
 默认地址：`http://localhost:5173`
+
+启动后默认进入多工作区界面，包含：
+
+- 总览
+- 连接管理
+- SQL 结构分析
+- 压测编排
+- 交付门禁
+
+界面内置中英文切换，不依赖额外 i18n 库。
 
 ## 后端启动
 
@@ -330,6 +340,21 @@ curl -X POST http://localhost:8080/api/v1/sql/intent-analysis/briefing-report \
 ```
 
 该接口会把 run package 压缩成面向评审和交接的人类可读汇报稿，包含执行摘要、风险焦点、下一步动作和 review agenda。
+
+### SQL Readiness Gate
+
+```bash
+curl -X POST http://localhost:8080/api/v1/sql/intent-analysis/readiness-gate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "batchId": "daily-sql-batch",
+    "source": "stress-sample",
+    "targetConcurrency": 48,
+    "rawSqlText": "select id, user_name from lake.users where id = 42 limit 1;\n\nselect o.user_id, sum(o.amount) from lake.orders o join lake.dim_users u on o.user_id = u.user_id where o.ds between '\''2026-04-01'\'' and '\''2026-04-14'\'' group by 1;\n\nselect user_id, row_number() over(partition by ds order by amount desc) from lake.orders"
+  }'
+```
+
+该接口会基于结构侧产物给出 `blocked`、`caution` 或 `ready` 结论，并列出 blocker、放行前条件与建议动作。
 
 ## 工程约束
 

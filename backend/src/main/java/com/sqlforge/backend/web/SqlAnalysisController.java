@@ -8,6 +8,7 @@ import com.sqlforge.backend.service.SqlExecutionManifestService;
 import com.sqlforge.backend.service.SqlCampaignScheduleService;
 import com.sqlforge.backend.service.SqlRunPackageService;
 import com.sqlforge.backend.service.SqlBriefingReportService;
+import com.sqlforge.backend.service.SqlReadinessGateService;
 import com.sqlforge.backend.web.dto.SqlIntentAnalysisRequest;
 import com.sqlforge.backend.web.dto.SqlIntentBatchRequest;
 import com.sqlforge.backend.web.dto.SqlPressurePlanRequest;
@@ -30,6 +31,7 @@ public class SqlAnalysisController {
     private final SqlCampaignScheduleService sqlCampaignScheduleService;
     private final SqlRunPackageService sqlRunPackageService;
     private final SqlBriefingReportService sqlBriefingReportService;
+    private final SqlReadinessGateService sqlReadinessGateService;
 
     public SqlAnalysisController(
         SqlIntentAnalysisService sqlIntentAnalysisService,
@@ -39,7 +41,8 @@ public class SqlAnalysisController {
         SqlExecutionManifestService sqlExecutionManifestService,
         SqlCampaignScheduleService sqlCampaignScheduleService,
         SqlRunPackageService sqlRunPackageService,
-        SqlBriefingReportService sqlBriefingReportService
+        SqlBriefingReportService sqlBriefingReportService,
+        SqlReadinessGateService sqlReadinessGateService
     ) {
         this.sqlIntentAnalysisService = sqlIntentAnalysisService;
         this.sqlIntentBatchAnalysisService = sqlIntentBatchAnalysisService;
@@ -49,6 +52,7 @@ public class SqlAnalysisController {
         this.sqlCampaignScheduleService = sqlCampaignScheduleService;
         this.sqlRunPackageService = sqlRunPackageService;
         this.sqlBriefingReportService = sqlBriefingReportService;
+        this.sqlReadinessGateService = sqlReadinessGateService;
     }
 
     @PostMapping("/intent-analysis")
@@ -89,5 +93,10 @@ public class SqlAnalysisController {
     @PostMapping("/intent-analysis/briefing-report")
     public Map<String, Object> briefingReport(@Valid @RequestBody SqlPressurePlanRequest request) {
         return sqlBriefingReportService.buildReport(request);
+    }
+
+    @PostMapping("/intent-analysis/readiness-gate")
+    public Map<String, Object> readinessGate(@Valid @RequestBody SqlPressurePlanRequest request) {
+        return sqlReadinessGateService.evaluate(request);
     }
 }
