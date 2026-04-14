@@ -4,7 +4,21 @@ import { onMounted, ref } from 'vue';
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const health = ref('checking');
 const engines = ref([]);
+const connections = ref([]);
 const errorMessage = ref('');
+const saveMessage = ref('');
+const validationMessage = ref('');
+const isSubmitting = ref(false);
+const form = ref({
+  name: 'Primary Trino',
+  engineCode: 'trino',
+  host: 'trino.sqlforge.local',
+  port: 8443,
+  catalog: 'lakehouse',
+  username: 'analyst',
+  password: 'changeit',
+  sslEnabled: true
+});
 
 const fallbackEngines = [
   { code: 'mysql', name: 'MySQL', category: 'oltp' },
@@ -17,24 +31,80 @@ const fallbackEngines = [
 
 async function loadSystemState() {
   try {
-    const [healthResponse, enginesResponse] = await Promise.all([
+    const [healthResponse, enginesResponse, connectionsResponse] = await Promise.all([
       fetch(`${apiBaseUrl}/api/v1/system/health`),
-      fetch(`${apiBaseUrl}/api/v1/system/engines`)
+      fetch(`${apiBaseUrl}/api/v1/system/engines`),
+      fetch(`${apiBaseUrl}/api/v1/connections`)
     ]);
 
-    if (!healthResponse.ok || !enginesResponse.ok) {
+    if (!healthResponse.ok || !enginesResponse.ok || !connectionsResponse.ok) {
       throw new Error('backend service returned an unexpected response');
     }
 
     const healthPayload = await healthResponse.json();
     const enginesPayload = await enginesResponse.json();
+    const connectionsPayload = await connectionsResponse.json();
 
     health.value = healthPayload.status;
     engines.value = enginesPayload.engines;
+    connections.value = connectionsPayload.connections;
   } catch (error) {
     health.value = 'offline';
     engines.value = fallbackEngines;
+    connections.value = [];
     errorMessage.value = error.message;
+  }
+}
+
+async function validateConnection() {
+  validationMessage.value = '';
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/connections/validate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(form.value)
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.message || 'validation failed');
+    }
+
+    validationMessage.value = payload.validation.messages.join('；');
+  } catch (error) {
+    validationMessage.value = error.message;
+  }
+}
+
+async function createConnection() {
+  saveMessage.value = '';
+  isSubmitting.value = true;
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/connections`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(form.value)
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.message || 'create connection failed');
+    }
+
+    connections.value = [payload.connection, ...connections.value];
+    saveMessage.value = `连接已登记：${payload.connection.name}`;
+  } catch (error) {
+    saveMessage.value = error.message;
+  } finally {
+    isSubmitting.value = false;
   }
 }
 
@@ -81,6 +151,90 @@ onMounted(() => {
             <span>{{ engine.category }}</span>
           </div>
         </div>
+      </article>
+    </section>
+
+    <section class="workspace-grid">
+      <article class="card connection-card">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Connection Studio</p>
+            <h2>新增数据引擎连接</h2>
+          </div>
+          <button class="ghost-button" type="button" @click="validateConnection">离线校验</button>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            <span>连接名称</span>
+            <input v-model="form.name" type="text" />
+          </label>
+          <label>
+            <span>数据引擎</span>
+            <select v-model="form.engineCode">
+              <option v-for="engine in engines" :key="engine.code" :value="engine.code">
+                {{ engine.name }}
+              </option>
+            </select>
+          </label>
+          <label>
+            <span>主机地址</span>
+            <input v-model="form.host" type="text" />
+          </label>
+          <label>
+            <span>端口</span>
+            <input v-model.number="form.port" type="number" min="1" max="65535" />
+          </label>
+          <label>
+            <span>Catalog / Database</span>
+            <input v-model="form.catalog" type="text" />
+          </label>
+          <label>
+            <span>用户名</span>
+            <input v-model="form.username" type="text" />
+          </label>
+          <label class="full-span">
+            <span>密码</span>
+            <input v-model="form.password" type="password" />
+          </label>
+        </div>
+
+        <label class="switch-row">
+          <input v-model="form.sslEnabled" type="checkbox" />
+          <span>启用 SSL/TLS</span>
+        </label>
+
+        <div class="action-row">
+          <button class="primary-button" type="button" :disabled="isSubmitting" @click="createConnection">
+            {{ isSubmitting ? '提交中...' : '保存连接' }}
+          </button>
+          <p v-if="validationMessage" class="info-text">{{ validationMessage }}</p>
+          <p v-if="saveMessage" class="success-text">{{ saveMessage }}</p>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Registry</p>
+            <h2>已登记连接</h2>
+          </div>
+          <span class="badge">{{ connections.length }} entries</span>
+        </div>
+
+        <div v-if="connections.length" class="connection-list">
+          <div v-for="connection in connections" :key="connection.id" class="connection-item">
+            <div>
+              <strong>{{ connection.name }}</strong>
+              <p>{{ connection.engineCode }} · {{ connection.host }}:{{ connection.port }}</p>
+            </div>
+            <div class="connection-meta">
+              <span>{{ connection.catalog }}</span>
+              <span>{{ connection.status }}</span>
+            </div>
+          </div>
+        </div>
+        <p v-else class="empty-state">当前还没有登记连接。</p>
       </article>
     </section>
   </main>

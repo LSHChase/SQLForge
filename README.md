@@ -60,6 +60,46 @@ curl http://localhost:8080/api/v1/system/health
 curl http://localhost:8080/api/v1/system/engines
 ```
 
+### 已登记连接列表
+
+```bash
+curl http://localhost:8080/api/v1/connections
+```
+
+### 连接离线校验
+
+```bash
+curl -X POST http://localhost:8080/api/v1/connections/validate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Primary Trino",
+    "engineCode": "trino",
+    "host": "trino.sqlforge.local",
+    "port": 8443,
+    "catalog": "lakehouse",
+    "username": "analyst",
+    "password": "changeit",
+    "sslEnabled": true
+  }'
+```
+
+### 新增连接
+
+```bash
+curl -X POST http://localhost:8080/api/v1/connections \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Primary Trino",
+    "engineCode": "trino",
+    "host": "trino.sqlforge.local",
+    "port": 8443,
+    "catalog": "lakehouse",
+    "username": "analyst",
+    "password": "changeit",
+    "sslEnabled": true
+  }'
+```
+
 ## 工程约束
 
 - 全仓库文本文件按 UTF-8 编码

@@ -3,6 +3,7 @@ package com.sqlforge.backend.service;
 import com.sqlforge.backend.model.EngineDescriptor;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,5 +18,21 @@ public class EngineCatalogService {
             new EngineDescriptor("mrs-hetu", "MRS-Hetu", "query-engine", true),
             new EngineDescriptor("kyligence", "Kyligence", "cube-engine", true)
         );
+    }
+
+    public EngineDescriptor findByCode(String code) {
+        if (code == null) {
+            return null;
+        }
+
+        String normalized = code.toLowerCase(Locale.ROOT);
+
+        for (EngineDescriptor descriptor : listSupportedEngines()) {
+            if (descriptor.getCode().toLowerCase(Locale.ROOT).equals(normalized)) {
+                return descriptor;
+            }
+        }
+
+        return null;
     }
 }
