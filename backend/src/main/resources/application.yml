@@ -1,0 +1,16 @@
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+spring:
+  mvc:
+    problemdetails:
+      enabled: true
+
+sqlforge:
+  cors:
+    allowed-origin: http://localhost:5173

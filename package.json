@@ -1,0 +1,15 @@
+{
+  "name": "sqlforge",
+  "version": "0.1.0",
+  "description": "SQLForge: Trino OLAP intelligent stress-testing and capacity planning platform scaffold",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
