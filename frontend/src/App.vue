@@ -20,6 +20,7 @@ const messages = {
       dashboard: '总览',
       connections: '连接管理',
       analysis: '结构分析',
+      workflows: '工作流',
       pressure: '压测编排',
       handoff: '交付门禁'
     },
@@ -27,6 +28,7 @@ const messages = {
       dashboard: '查看技术栈、架构规则、引擎支持与运行摘要',
       connections: '登记连接、做离线校验、探测与 SQL 预览',
       analysis: '对单条或批量 SQL 做纯结构意图识别',
+      workflows: '运行 BI 发布评估、容量规划与执行计划稳定性分析',
       pressure: '从日批 SQL 生成压测计划、蓝图、Manifest 与排期',
       handoff: '输出交付包、汇报稿与 readiness gate 结论'
     },
@@ -45,6 +47,8 @@ const messages = {
       activity: '连接活动',
       analysisWorkbench: 'SQL 结构分析工作台',
       analysisResults: '结构分析结果',
+      workflowWorkbench: 'Java 工作流工作台',
+      workflowResults: '工作流产物',
       pressureWorkbench: '压测编排工作台',
       pressureResults: '压测编排产物',
       handoffWorkbench: '交付与门禁工作台',
@@ -67,6 +71,21 @@ const messages = {
       username: '用户名',
       password: '密码',
       ssl: '启用 SSL',
+      tenantId: '租户标识',
+      slaMs: '目标 SLA(ms)',
+      baselineQps: '基线 QPS',
+      trafficGrowthFactor: '流量增长系数',
+      avgServiceTimeSec: '平均服务时长(秒)',
+      currentWorkers: '当前 Worker 数',
+      targetP99Ms: '目标 P99(ms)',
+      hotDataGb: '热数据量(GB)',
+      metricsJson: '指标样本 JSON',
+      queryMixJson: '查询混合 JSON',
+      dataProfileJson: '数据画像 JSON',
+      resourceBreakdownJson: '资源拆分 JSON',
+      historicalPlanJson: '历史最优计划 JSON',
+      currentPlanJson: '当前计划 JSON',
+      candidatePlansJson: '候选计划 JSON',
       source: '样本来源',
       batchId: '批次标识',
       targetConcurrency: '目标并发',
@@ -118,8 +137,12 @@ const messages = {
       runPackage: '生成交付包',
       briefing: '生成汇报稿',
       gate: '生成准入门禁',
+      biRelease: '运行 BI 发布评估',
+      capacityPlan: '运行容量规划',
+      planStability: '运行计划稳定性',
       openConnections: '去连接管理',
       openAnalysis: '去结构分析',
+      openWorkflows: '去工作流',
       openPressure: '去压测编排',
       openHandoff: '去交付门禁'
     },
@@ -147,10 +170,12 @@ const messages = {
       preview: '执行预览后会在这里展示返回数据。',
       analysis: '完成结构分析后会在这里展示摘要与逐条画像。',
       pressure: '生成任一压测产物后会在这里展示结果。',
-      handoff: '生成交付包、汇报稿或 readiness gate 后会在这里展示结果。'
+      handoff: '生成交付包、汇报稿或 readiness gate 后会在这里展示结果。',
+      workflows: '运行任一 Java 工作流后，会在这里展示决策、摘要和原始 JSON。'
     },
     hints: {
       batchSplit: '建议使用分号或空行分隔多条 SQL。这里只做结构分析，不会连接数据库或执行 SQL。',
+      workflows: '这些工作流已在 Java 后端实现，前端这里只负责参数装配、触发执行和结果展示。',
       pressure: '压测编排依赖同一批次的原始 SQL 文本，只做纯结构推演。',
       handoff: '交付层产物会沿用同一批次输入，生成适合评审与放行的结构化结论。',
       rules: [
@@ -177,7 +202,11 @@ const messages = {
       schedule: '阶段排期已生成，总时长 {minutes} 分钟。',
       runPackage: '交付包已生成，共 {count} 个主 artifact。',
       briefing: '汇报稿已生成，agenda 共 {count} 项。',
-      gate: 'Readiness gate 已完成，结论为 {decision}。'
+      gate: 'Readiness gate 已完成，结论为 {decision}。',
+      invalidJson: 'JSON 输入格式不正确：{field}',
+      biRelease: 'BI 发布评估已完成，结论为 {decision}。',
+      capacityPlan: '容量规划已完成，新增 Worker 需求 {count}。',
+      planStability: '计划稳定性分析已完成，动作建议为 {decision}。'
     }
   },
   en: {
@@ -196,6 +225,7 @@ const messages = {
       dashboard: 'Overview',
       connections: 'Connections',
       analysis: 'Analysis',
+      workflows: 'Workflows',
       pressure: 'Pressure',
       handoff: 'Handoff'
     },
@@ -203,6 +233,7 @@ const messages = {
       dashboard: 'See the stack, architecture rules, engine support, and runtime summary',
       connections: 'Register connections, run offline validation, probes, and SQL previews',
       analysis: 'Run pure structural SQL intent analysis for single or daily batch input',
+      workflows: 'Run BI release evaluation, capacity planning, and plan-stability workflows',
       pressure: 'Generate planning artifacts from daily SQL batches',
       handoff: 'Produce handoff packages, briefing reports, and readiness decisions'
     },
@@ -221,6 +252,8 @@ const messages = {
       activity: 'Connection Activity',
       analysisWorkbench: 'SQL Structural Analysis Workspace',
       analysisResults: 'Structural Analysis Output',
+      workflowWorkbench: 'Java Workflow Workspace',
+      workflowResults: 'Workflow Output',
       pressureWorkbench: 'Pressure Planning Workspace',
       pressureResults: 'Pressure Planning Artifacts',
       handoffWorkbench: 'Handoff and Gate Workspace',
@@ -243,6 +276,21 @@ const messages = {
       username: 'Username',
       password: 'Password',
       ssl: 'SSL Enabled',
+      tenantId: 'Tenant Id',
+      slaMs: 'Target SLA(ms)',
+      baselineQps: 'Baseline QPS',
+      trafficGrowthFactor: 'Traffic Growth Factor',
+      avgServiceTimeSec: 'Avg Service Time(sec)',
+      currentWorkers: 'Current Workers',
+      targetP99Ms: 'Target P99(ms)',
+      hotDataGb: 'Hot Data(GB)',
+      metricsJson: 'Metrics JSON',
+      queryMixJson: 'Query Mix JSON',
+      dataProfileJson: 'Data Profile JSON',
+      resourceBreakdownJson: 'Resource Breakdown JSON',
+      historicalPlanJson: 'Historical Best Plan JSON',
+      currentPlanJson: 'Current Plan JSON',
+      candidatePlansJson: 'Candidate Plans JSON',
       source: 'Sample Source',
       batchId: 'Batch Id',
       targetConcurrency: 'Target Concurrency',
@@ -294,8 +342,12 @@ const messages = {
       runPackage: 'Build Run Package',
       briefing: 'Build Briefing Report',
       gate: 'Build Readiness Gate',
+      biRelease: 'Run BI Release',
+      capacityPlan: 'Run Capacity Plan',
+      planStability: 'Run Plan Stability',
       openConnections: 'Open Connections',
       openAnalysis: 'Open Analysis',
+      openWorkflows: 'Open Workflows',
       openPressure: 'Open Pressure',
       openHandoff: 'Open Handoff'
     },
@@ -323,10 +375,12 @@ const messages = {
       preview: 'Preview output will appear here after a SQL preview runs.',
       analysis: 'Structural summary and statement cards will appear here after analysis.',
       pressure: 'Pressure-planning results will appear here after any artifact is generated.',
-      handoff: 'Run package, briefing report, or readiness gate output will appear here after generation.'
+      handoff: 'Run package, briefing report, or readiness gate output will appear here after generation.',
+      workflows: 'Workflow decisions, summaries, and raw JSON will appear here after execution.'
     },
     hints: {
       batchSplit: 'Separate multiple statements with semicolons or blank lines. This path only performs structural analysis and never executes SQL.',
+      workflows: 'These workflows already exist in the Java backend. The frontend only assembles parameters, triggers execution, and presents results.',
       pressure: 'Pressure planning reuses the same raw SQL batch and stays fully structure-driven.',
       handoff: 'Handoff artifacts reuse the same batch input to produce review and release-facing outputs.',
       rules: [
@@ -353,7 +407,11 @@ const messages = {
       schedule: 'Campaign schedule generated with a {minutes}-minute duration.',
       runPackage: 'Run package generated with {count} primary artifacts.',
       briefing: 'Briefing report generated with {count} agenda items.',
-      gate: 'Readiness gate completed with a {decision} decision.'
+      gate: 'Readiness gate completed with a {decision} decision.',
+      invalidJson: 'Invalid JSON input: {field}',
+      biRelease: 'BI release evaluation completed with a {decision} decision.',
+      capacityPlan: 'Capacity planning completed with {count} additional workers required.',
+      planStability: 'Plan stability analysis completed with a {decision} action.'
     }
   }
 };
@@ -406,6 +464,12 @@ const sqlBriefingReportMessage = ref('');
 const sqlBriefingReportResult = ref(null);
 const sqlReadinessGateMessage = ref('');
 const sqlReadinessGateResult = ref(null);
+const biReleaseMessage = ref('');
+const capacityPlanMessage = ref('');
+const planStabilityMessage = ref('');
+const biReleaseResult = ref(null);
+const capacityPlanResult = ref(null);
+const planStabilityResult = ref(null);
 const sqlIntentMode = ref('single');
 const isSubmitting = ref(false);
 const isProbing = ref(false);
@@ -418,6 +482,9 @@ const isBuildingCampaignSchedule = ref(false);
 const isBuildingRunPackage = ref(false);
 const isBuildingBriefingReport = ref(false);
 const isBuildingReadinessGate = ref(false);
+const isRunningBiRelease = ref(false);
+const isRunningCapacityPlan = ref(false);
+const isRunningPlanStability = ref(false);
 const selectedConnectionId = ref('');
 const previewSql = ref('select 1 as health_check');
 const previewMaxRows = ref(20);
@@ -433,6 +500,35 @@ const sqlIntentBatchInput = ref(
     + "select o.user_id, sum(o.amount) from lake.orders o join lake.dim_users u on o.user_id = u.user_id "
     + "where o.ds between '2026-04-01' and '2026-04-14' group by 1;"
 );
+const biReleaseForm = ref({
+  tenantId: 'tenant-a',
+  sql: "select user_id, sum(amount) from lake.orders where ds >= current_date - interval '7' day group by 1",
+  slaMs: 5000,
+  targetConcurrency: 20,
+  dataProfileJson: '{\n  "fullRows": 120000000,\n  "sampleRows": 2500000,\n  "skew": 1.35,\n  "hotDataGb": 420\n}',
+  metricsJson: '[\n  { "run": 1, "latencyMs": 3820, "gcPauseMs": 110 },\n  { "run": 2, "latencyMs": 4010, "gcPauseMs": 96 }\n]',
+  resourceBreakdownJson: '{\n  "cpu": 0.76,\n  "memory": 0.62,\n  "io": 0.41\n}',
+  queryMixJson: '[\n  { "name": "daily-report", "cpuTimeSec": 14.2, "arrivalRate": 120, "memoryPeakGb": 5.5 },\n  { "name": "lookup", "cpuTimeSec": 1.8, "arrivalRate": 640, "memoryPeakGb": 0.6 }\n]'
+});
+const capacityPlanForm = ref({
+  baselineQps: 120,
+  trafficGrowthFactor: 2.4,
+  avgServiceTimeSec: 0.135,
+  currentWorkers: 24,
+  targetP99Ms: 4000,
+  targetConcurrency: 64,
+  hotDataGb: 2400,
+  queryMixJson: '[\n  { "name": "dashboard", "cpuTimeSec": 2.4, "arrivalRate": 220, "memoryPeakGb": 1.2 },\n  { "name": "heavy-report", "cpuTimeSec": 11.8, "arrivalRate": 48, "memoryPeakGb": 6.4 }\n]'
+});
+const planStabilityForm = ref({
+  tenantId: 'tenant-a',
+  sql: 'select o.user_id, sum(o.amount) from lake.orders o join lake.dim_users u on o.user_id = u.user_id group by 1',
+  slaMs: 5000,
+  targetConcurrency: 20,
+  historicalBestPlanJson: '{\n  "planHash": "best-1",\n  "latencyMs": 1220,\n  "distribution": "broadcast",\n  "statsAgeHours": 6,\n  "joinOrder": ["orders", "dim_users"]\n}',
+  currentPlanJson: '{\n  "planHash": "curr-1",\n  "latencyMs": 1700,\n  "distribution": "partitioned",\n  "statsAgeHours": 36,\n  "joinOrder": ["dim_users", "orders"]\n}',
+  candidatePlansJson: '[\n  {\n    "planHash": "cand-1",\n    "latencyMs": 1400,\n    "distribution": "broadcast",\n    "statsAgeHours": 8,\n    "joinOrder": ["orders", "dim_users"]\n  }\n]'
+});
 const suspendEngineDefaults = ref(false);
 
 function defaultConnectionForm() {
@@ -524,6 +620,7 @@ const menuItems = computed(() => [
   { id: 'dashboard', label: t('menu.dashboard'), description: t('menuDesc.dashboard') },
   { id: 'connections', label: t('menu.connections'), description: t('menuDesc.connections') },
   { id: 'analysis', label: t('menu.analysis'), description: t('menuDesc.analysis') },
+  { id: 'workflows', label: t('menu.workflows'), description: t('menuDesc.workflows') },
   { id: 'pressure', label: t('menu.pressure'), description: t('menuDesc.pressure') },
   { id: 'handoff', label: t('menu.handoff'), description: t('menuDesc.handoff') }
 ]);
@@ -561,6 +658,9 @@ const latestMessages = computed(() => [
   probeMessage.value,
   previewMessage.value,
   sqlIntentMessage.value,
+  biReleaseMessage.value,
+  capacityPlanMessage.value,
+  planStabilityMessage.value,
   sqlPressurePlanMessage.value,
   sqlScenarioBlueprintMessage.value,
   sqlExecutionManifestMessage.value,
@@ -653,6 +753,31 @@ const pressurePanels = computed(() => [
       : ''
   }
 ].filter((item) => item.message || item.result));
+const workflowPanels = computed(() => [
+  {
+    id: 'bi-release',
+    title: t('buttons.biRelease'),
+    message: biReleaseMessage.value,
+    result: biReleaseResult.value,
+    badge: biReleaseResult.value?.decision || ''
+  },
+  {
+    id: 'capacity-plan',
+    title: t('buttons.capacityPlan'),
+    message: capacityPlanMessage.value,
+    result: capacityPlanResult.value,
+    badge: capacityPlanResult.value?.capacityPlan?.workerPlan?.additionalWorkers != null
+      ? `${capacityPlanResult.value.capacityPlan.workerPlan.additionalWorkers} ${locale.value === 'en' ? 'addl workers' : '新增 Worker'}`
+      : ''
+  },
+  {
+    id: 'plan-stability',
+    title: t('buttons.planStability'),
+    message: planStabilityMessage.value,
+    result: planStabilityResult.value,
+    badge: planStabilityResult.value?.stabilityAnalysis?.decision || ''
+  }
+].filter((item) => item.result));
 const handoffPanels = computed(() => [
   {
     id: 'run-package',
@@ -1185,6 +1310,127 @@ async function buildSqlReadinessGate() {
   }
 }
 
+function parseStructuredJson(text, fieldKey, fallbackValue) {
+  if (!text || !String(text).trim()) {
+    return fallbackValue;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(t('messages.invalidJson', { field: t(fieldKey) }));
+  }
+}
+
+async function runBiReleaseWorkflow() {
+  biReleaseMessage.value = '';
+  biReleaseResult.value = null;
+  isRunningBiRelease.value = true;
+
+  try {
+    const payload = await requestJson('/api/v1/workflows/bi-release', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        tenantId: biReleaseForm.value.tenantId,
+        sql: biReleaseForm.value.sql,
+        slaMs: biReleaseForm.value.slaMs,
+        targetConcurrency: biReleaseForm.value.targetConcurrency,
+        dataProfile: parseStructuredJson(biReleaseForm.value.dataProfileJson, 'labels.dataProfileJson', null),
+        metrics: parseStructuredJson(biReleaseForm.value.metricsJson, 'labels.metricsJson', []),
+        resourceBreakdown: parseStructuredJson(
+          biReleaseForm.value.resourceBreakdownJson,
+          'labels.resourceBreakdownJson',
+          null
+        ),
+        queryMix: parseStructuredJson(biReleaseForm.value.queryMixJson, 'labels.queryMixJson', [])
+      })
+    });
+
+    biReleaseResult.value = payload;
+    biReleaseMessage.value = t('messages.biRelease', {
+      decision: payload.decision || t('labels.noData')
+    });
+  } catch (error) {
+    biReleaseMessage.value = error.message;
+  } finally {
+    isRunningBiRelease.value = false;
+  }
+}
+
+async function runCapacityPlanWorkflow() {
+  capacityPlanMessage.value = '';
+  capacityPlanResult.value = null;
+  isRunningCapacityPlan.value = true;
+
+  try {
+    const payload = await requestJson('/api/v1/workflows/capacity-plan', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        baselineQps: capacityPlanForm.value.baselineQps,
+        trafficGrowthFactor: capacityPlanForm.value.trafficGrowthFactor,
+        avgServiceTimeSec: capacityPlanForm.value.avgServiceTimeSec,
+        currentWorkers: capacityPlanForm.value.currentWorkers,
+        targetP99Ms: capacityPlanForm.value.targetP99Ms,
+        targetConcurrency: capacityPlanForm.value.targetConcurrency,
+        hotDataGb: capacityPlanForm.value.hotDataGb,
+        queryMix: parseStructuredJson(capacityPlanForm.value.queryMixJson, 'labels.queryMixJson', [])
+      })
+    });
+
+    capacityPlanResult.value = payload;
+    capacityPlanMessage.value = t('messages.capacityPlan', {
+      count: payload.capacityPlan?.workerPlan?.additionalWorkers ?? 0
+    });
+  } catch (error) {
+    capacityPlanMessage.value = error.message;
+  } finally {
+    isRunningCapacityPlan.value = false;
+  }
+}
+
+async function runPlanStabilityWorkflow() {
+  planStabilityMessage.value = '';
+  planStabilityResult.value = null;
+  isRunningPlanStability.value = true;
+
+  try {
+    const payload = await requestJson('/api/v1/workflows/plan-stability', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        tenantId: planStabilityForm.value.tenantId,
+        sql: planStabilityForm.value.sql,
+        slaMs: planStabilityForm.value.slaMs,
+        targetConcurrency: planStabilityForm.value.targetConcurrency,
+        historicalBestPlan: parseStructuredJson(
+          planStabilityForm.value.historicalBestPlanJson,
+          'labels.historicalPlanJson',
+          null
+        ),
+        currentPlan: parseStructuredJson(planStabilityForm.value.currentPlanJson, 'labels.currentPlanJson', null),
+        candidatePlans: parseStructuredJson(planStabilityForm.value.candidatePlansJson, 'labels.candidatePlansJson', [])
+      })
+    });
+
+    planStabilityResult.value = payload;
+    planStabilityMessage.value = t('messages.planStability', {
+      decision: payload.stabilityAnalysis?.decision || t('labels.noData')
+    });
+  } catch (error) {
+    planStabilityMessage.value = error.message;
+  } finally {
+    isRunningPlanStability.value = false;
+  }
+}
+
 function healthLabel(value) {
   return t(`status.${value}`) || value;
 }
@@ -1370,6 +1616,9 @@ onMounted(() => {
             </button>
             <button class="ghost-button" type="button" @click="activeMenu = 'analysis'">
               {{ t('buttons.openAnalysis') }}
+            </button>
+            <button class="ghost-button" type="button" @click="activeMenu = 'workflows'">
+              {{ t('buttons.openWorkflows') }}
             </button>
             <button class="ghost-button" type="button" @click="activeMenu = 'pressure'">
               {{ t('buttons.openPressure') }}
@@ -1799,6 +2048,194 @@ onMounted(() => {
           </template>
 
           <p v-else class="empty-state">{{ t('empty.analysis') }}</p>
+        </article>
+      </section>
+
+      <section v-else-if="activeMenu === 'workflows'" class="panel-grid">
+        <article class="panel span-2">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">{{ t('sections.workflowWorkbench') }}</p>
+              <h3>{{ t('sections.workflowWorkbench') }}</h3>
+            </div>
+          </div>
+          <p class="section-note">{{ t('hints.workflows') }}</p>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <strong>{{ t('buttons.biRelease') }}</strong>
+              <p class="card-subtitle">`POST /api/v1/workflows/bi-release`</p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              <span>{{ t('labels.tenantId') }}</span>
+              <input v-model="biReleaseForm.tenantId" type="text" />
+            </label>
+            <label>
+              <span>{{ t('labels.slaMs') }}</span>
+              <input v-model.number="biReleaseForm.slaMs" type="number" min="1" />
+            </label>
+            <label class="span-2">
+              <span>{{ t('labels.targetConcurrency') }}</span>
+              <input v-model.number="biReleaseForm.targetConcurrency" type="number" min="1" />
+            </label>
+          </div>
+
+          <label class="field-block">
+            <span>{{ t('labels.singleSql') }}</span>
+            <textarea v-model="biReleaseForm.sql" rows="7"></textarea>
+          </label>
+          <label class="field-block">
+            <span>{{ t('labels.dataProfileJson') }}</span>
+            <textarea v-model="biReleaseForm.dataProfileJson" rows="8"></textarea>
+          </label>
+          <label class="field-block">
+            <span>{{ t('labels.metricsJson') }}</span>
+            <textarea v-model="biReleaseForm.metricsJson" rows="8"></textarea>
+          </label>
+          <label class="field-block">
+            <span>{{ t('labels.resourceBreakdownJson') }}</span>
+            <textarea v-model="biReleaseForm.resourceBreakdownJson" rows="6"></textarea>
+          </label>
+          <label class="field-block">
+            <span>{{ t('labels.queryMixJson') }}</span>
+            <textarea v-model="biReleaseForm.queryMixJson" rows="8"></textarea>
+          </label>
+
+          <div class="action-row">
+            <button class="primary-button" type="button" :disabled="isRunningBiRelease" @click="runBiReleaseWorkflow">
+              {{ t('buttons.biRelease') }}
+            </button>
+          </div>
+          <p v-if="biReleaseMessage" class="status-message">{{ biReleaseMessage }}</p>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <strong>{{ t('buttons.capacityPlan') }}</strong>
+              <p class="card-subtitle">`POST /api/v1/workflows/capacity-plan`</p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              <span>{{ t('labels.baselineQps') }}</span>
+              <input v-model.number="capacityPlanForm.baselineQps" type="number" min="0.0001" step="0.0001" />
+            </label>
+            <label>
+              <span>{{ t('labels.trafficGrowthFactor') }}</span>
+              <input v-model.number="capacityPlanForm.trafficGrowthFactor" type="number" min="1" step="0.1" />
+            </label>
+            <label>
+              <span>{{ t('labels.avgServiceTimeSec') }}</span>
+              <input v-model.number="capacityPlanForm.avgServiceTimeSec" type="number" min="0.0001" step="0.0001" />
+            </label>
+            <label>
+              <span>{{ t('labels.currentWorkers') }}</span>
+              <input v-model.number="capacityPlanForm.currentWorkers" type="number" min="1" />
+            </label>
+            <label>
+              <span>{{ t('labels.targetP99Ms') }}</span>
+              <input v-model.number="capacityPlanForm.targetP99Ms" type="number" min="1" />
+            </label>
+            <label>
+              <span>{{ t('labels.targetConcurrency') }}</span>
+              <input v-model.number="capacityPlanForm.targetConcurrency" type="number" min="1" />
+            </label>
+            <label class="span-2">
+              <span>{{ t('labels.hotDataGb') }}</span>
+              <input v-model.number="capacityPlanForm.hotDataGb" type="number" min="0" step="0.1" />
+            </label>
+          </div>
+
+          <label class="field-block">
+            <span>{{ t('labels.queryMixJson') }}</span>
+            <textarea v-model="capacityPlanForm.queryMixJson" rows="8"></textarea>
+          </label>
+
+          <div class="action-row">
+            <button class="primary-button" type="button" :disabled="isRunningCapacityPlan" @click="runCapacityPlanWorkflow">
+              {{ t('buttons.capacityPlan') }}
+            </button>
+          </div>
+          <p v-if="capacityPlanMessage" class="status-message">{{ capacityPlanMessage }}</p>
+        </article>
+
+        <article class="panel span-2">
+          <div class="panel-head">
+            <div>
+              <strong>{{ t('buttons.planStability') }}</strong>
+              <p class="card-subtitle">`POST /api/v1/workflows/plan-stability`</p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              <span>{{ t('labels.tenantId') }}</span>
+              <input v-model="planStabilityForm.tenantId" type="text" />
+            </label>
+            <label>
+              <span>{{ t('labels.slaMs') }}</span>
+              <input v-model.number="planStabilityForm.slaMs" type="number" min="1" />
+            </label>
+            <label class="span-2">
+              <span>{{ t('labels.targetConcurrency') }}</span>
+              <input v-model.number="planStabilityForm.targetConcurrency" type="number" min="1" />
+            </label>
+          </div>
+
+          <label class="field-block">
+            <span>{{ t('labels.singleSql') }}</span>
+            <textarea v-model="planStabilityForm.sql" rows="7"></textarea>
+          </label>
+          <label class="field-block">
+            <span>{{ t('labels.historicalPlanJson') }}</span>
+            <textarea v-model="planStabilityForm.historicalBestPlanJson" rows="8"></textarea>
+          </label>
+          <label class="field-block">
+            <span>{{ t('labels.currentPlanJson') }}</span>
+            <textarea v-model="planStabilityForm.currentPlanJson" rows="8"></textarea>
+          </label>
+          <label class="field-block">
+            <span>{{ t('labels.candidatePlansJson') }}</span>
+            <textarea v-model="planStabilityForm.candidatePlansJson" rows="8"></textarea>
+          </label>
+
+          <div class="action-row">
+            <button class="primary-button" type="button" :disabled="isRunningPlanStability" @click="runPlanStabilityWorkflow">
+              {{ t('buttons.planStability') }}
+            </button>
+          </div>
+          <p v-if="planStabilityMessage" class="status-message">{{ planStabilityMessage }}</p>
+        </article>
+
+        <article class="panel span-2">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">{{ t('sections.workflowResults') }}</p>
+              <h3>{{ t('sections.workflowResults') }}</h3>
+            </div>
+          </div>
+          <template v-if="workflowPanels.length">
+            <div class="result-grid">
+              <article v-for="panel in workflowPanels" :key="panel.id" class="result-card">
+                <div class="panel-head">
+                  <div>
+                    <strong>{{ panel.title }}</strong>
+                    <p v-if="panel.message" class="card-subtitle">{{ panel.message }}</p>
+                  </div>
+                  <span v-if="panel.badge" class="badge">{{ panel.badge }}</span>
+                </div>
+                <pre class="json-block">{{ formatJson(panel.result) }}</pre>
+              </article>
+            </div>
+          </template>
+          <p v-else class="empty-state">{{ t('empty.workflows') }}</p>
         </article>
       </section>
 

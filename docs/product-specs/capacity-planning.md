@@ -34,3 +34,4 @@ Platform teams need an estimate of worker gap and hardware demand before major t
 
 - Java Spring Boot backend exposes deterministic capacity planning output.
 - Output includes arrival model, worker gap, resource estimate, and structured capacity report.
+- Frontend workspace exposes capacity planning inputs and renders the structured capacity result for operator review.

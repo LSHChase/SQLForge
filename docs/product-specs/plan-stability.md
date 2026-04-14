@@ -33,3 +33,4 @@ Production latency can spike when Trino chooses a different execution plan for t
 
 - Java Spring Boot backend exposes plan diff, root-cause hints, decision, and operator actions.
 - The workflow keeps SQL fingerprint assessment in-band so operators can trace plan regression against the same SQL context.
+- Frontend workspace exposes historical/current/candidate plan payload editors and renders decision output in-browser.

@@ -42,10 +42,17 @@ npm run dev
 - 总览
 - 连接管理
 - SQL 结构分析
+- Java 工作流
 - 压测编排
 - 交付门禁
 
 界面内置中英文切换，不依赖额外 i18n 库。
+
+`Java 工作流` 工作区目前已接入：
+
+- BI 发布评估：`POST /api/v1/workflows/bi-release`
+- 容量规划：`POST /api/v1/workflows/capacity-plan`
+- 执行计划稳定性：`POST /api/v1/workflows/plan-stability`
 
 ## 后端启动
 
