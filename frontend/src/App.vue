@@ -27,6 +27,8 @@ const sqlCampaignScheduleMessage = ref('');
 const sqlCampaignScheduleResult = ref(null);
 const sqlRunPackageMessage = ref('');
 const sqlRunPackageResult = ref(null);
+const sqlBriefingReportMessage = ref('');
+const sqlBriefingReportResult = ref(null);
 const sqlIntentMode = ref('single');
 const isSubmitting = ref(false);
 const isProbing = ref(false);
@@ -37,6 +39,7 @@ const isBuildingScenarioBlueprint = ref(false);
 const isBuildingExecutionManifest = ref(false);
 const isBuildingCampaignSchedule = ref(false);
 const isBuildingRunPackage = ref(false);
+const isBuildingBriefingReport = ref(false);
 const selectedConnectionId = ref('');
 const previewSql = ref('select 1 as health_check');
 const previewMaxRows = ref(20);
@@ -594,6 +597,7 @@ async function buildSqlCampaignSchedule() {
 async function buildSqlRunPackage() {
   sqlRunPackageMessage.value = '';
   sqlRunPackageResult.value = null;
+  sqlBriefingReportResult.value = null;
   isBuildingRunPackage.value = true;
 
   try {
@@ -622,6 +626,40 @@ async function buildSqlRunPackage() {
     sqlRunPackageMessage.value = error.message;
   } finally {
     isBuildingRunPackage.value = false;
+  }
+}
+
+async function buildSqlBriefingReport() {
+  sqlBriefingReportMessage.value = '';
+  sqlBriefingReportResult.value = null;
+  isBuildingBriefingReport.value = true;
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/sql/intent-analysis/briefing-report`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        batchId: sqlIntentBatchId.value,
+        source: sqlIntentSource.value,
+        targetConcurrency: sqlPressureTargetConcurrency.value,
+        rawSqlText: sqlIntentBatchInput.value
+      })
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.message || 'sql briefing report failed');
+    }
+
+    sqlBriefingReportResult.value = payload;
+    sqlBriefingReportMessage.value = `briefing report 已生成，agenda 共 ${payload.reviewAgenda.length} 项。`;
+  } catch (error) {
+    sqlBriefingReportMessage.value = error.message;
+  } finally {
+    isBuildingBriefingReport.value = false;
   }
 }
 
@@ -776,6 +814,15 @@ watch(
             >
               {{ isBuildingRunPackage ? '生成中...' : '生成交付包' }}
             </button>
+            <button
+              v-if="sqlIntentMode === 'batch'"
+              class="ghost-button"
+              type="button"
+              :disabled="isBuildingBriefingReport"
+              @click="buildSqlBriefingReport"
+            >
+              {{ isBuildingBriefingReport ? '生成中...' : '生成汇报稿' }}
+            </button>
           </div>
         </div>
 
@@ -838,6 +885,7 @@ watch(
         <p v-if="sqlExecutionManifestMessage" class="info-text">{{ sqlExecutionManifestMessage }}</p>
         <p v-if="sqlCampaignScheduleMessage" class="info-text">{{ sqlCampaignScheduleMessage }}</p>
         <p v-if="sqlRunPackageMessage" class="info-text">{{ sqlRunPackageMessage }}</p>
+        <p v-if="sqlBriefingReportMessage" class="info-text">{{ sqlBriefingReportMessage }}</p>
 
         <div v-if="sqlIntentResult" class="analysis-panel">
           <div class="probe-head">
@@ -1184,6 +1232,66 @@ watch(
               <div v-for="(item, index) in sqlRunPackageResult.handoffChecklist" :key="index" class="alert-item">
                 <strong>handoff {{ index + 1 }}</strong>
                 <span>{{ item }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="sqlBriefingReportResult" class="analysis-panel pressure-plan-panel">
+          <div class="probe-head">
+            <strong>Briefing Report</strong>
+            <span class="badge">{{ sqlBriefingReportResult.reviewAgenda.length }} agenda items</span>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Executive Summary</strong>
+            </div>
+            <p class="probe-line"><strong>Headline:</strong> {{ sqlBriefingReportResult.executiveSummary.headline }}</p>
+            <div class="alert-list">
+              <div
+                v-for="(item, index) in sqlBriefingReportResult.executiveSummary.highlights"
+                :key="index"
+                class="alert-item"
+              >
+                <strong>highlight {{ index + 1 }}</strong>
+                <span>{{ item }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Risk Focus</strong>
+            </div>
+            <div class="alert-list">
+              <div v-for="item in sqlBriefingReportResult.riskFocus" :key="item.signal" class="alert-item">
+                <strong>{{ item.signal }}</strong>
+                <span>{{ item.reviewPriority }} · {{ item.whyItMatters }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Next Actions</strong>
+            </div>
+            <div class="alert-list">
+              <div v-for="item in sqlBriefingReportResult.nextActions" :key="item.title" class="alert-item">
+                <strong>{{ item.title }}</strong>
+                <span>{{ item.detail }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="probe-head">
+              <strong>Review Agenda</strong>
+            </div>
+            <div class="alert-list">
+              <div v-for="item in sqlBriefingReportResult.reviewAgenda" :key="item.topic" class="alert-item">
+                <strong>{{ item.topic }}</strong>
+                <span>{{ item.focus }}</span>
               </div>
             </div>
           </div>

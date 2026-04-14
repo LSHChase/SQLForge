@@ -32,6 +32,7 @@ Stress-testing preparation needs a pure structural way to classify incoming SQL 
 - `POST /api/v1/sql/intent-analysis/execution-manifest`
 - `POST /api/v1/sql/intent-analysis/campaign-schedule`
 - `POST /api/v1/sql/intent-analysis/run-package`
+- `POST /api/v1/sql/intent-analysis/briefing-report`
 
 ## Current Delivery
 
@@ -44,3 +45,4 @@ Stress-testing preparation needs a pure structural way to classify incoming SQL 
 - The backend can derive machine-readable execution manifests with stage criteria, metric focus, and global guardrails.
 - The backend can derive campaign schedules with stage windows, promotion gates, fallback actions, and handoff notes.
 - The backend can assemble a unified run package with artifact pointers, recommended files, and handoff checklist output.
+- The backend can derive an operator-readable briefing report with summary, risks, next actions, and review agenda.

@@ -17,3 +17,4 @@
 | 2026-04-14 | SQL execution manifest | `checkpoint/2026-04-14-sql-execution-manifest` | Machine-readable execution manifest with stage criteria, metric focus, and guardrails |
 | 2026-04-14 | SQL campaign schedule | `checkpoint/2026-04-14-sql-campaign-schedule` | Timed stage windows, promotion gates, fallback actions, and handoff notes |
 | 2026-04-14 | SQL run package | `checkpoint/2026-04-14-sql-run-package` | Unified handoff package with artifact pointers, recommended files, export sections, and checklist |
+| 2026-04-14 | SQL briefing report | `checkpoint/2026-04-14-sql-briefing-report` | Operator-readable final review report with summary, risks, actions, and agenda |

@@ -7,6 +7,7 @@ import com.sqlforge.backend.service.SqlScenarioBlueprintService;
 import com.sqlforge.backend.service.SqlExecutionManifestService;
 import com.sqlforge.backend.service.SqlCampaignScheduleService;
 import com.sqlforge.backend.service.SqlRunPackageService;
+import com.sqlforge.backend.service.SqlBriefingReportService;
 import com.sqlforge.backend.web.dto.SqlIntentAnalysisRequest;
 import com.sqlforge.backend.web.dto.SqlIntentBatchRequest;
 import com.sqlforge.backend.web.dto.SqlPressurePlanRequest;
@@ -28,6 +29,7 @@ public class SqlAnalysisController {
     private final SqlExecutionManifestService sqlExecutionManifestService;
     private final SqlCampaignScheduleService sqlCampaignScheduleService;
     private final SqlRunPackageService sqlRunPackageService;
+    private final SqlBriefingReportService sqlBriefingReportService;
 
     public SqlAnalysisController(
         SqlIntentAnalysisService sqlIntentAnalysisService,
@@ -36,7 +38,8 @@ public class SqlAnalysisController {
         SqlScenarioBlueprintService sqlScenarioBlueprintService,
         SqlExecutionManifestService sqlExecutionManifestService,
         SqlCampaignScheduleService sqlCampaignScheduleService,
-        SqlRunPackageService sqlRunPackageService
+        SqlRunPackageService sqlRunPackageService,
+        SqlBriefingReportService sqlBriefingReportService
     ) {
         this.sqlIntentAnalysisService = sqlIntentAnalysisService;
         this.sqlIntentBatchAnalysisService = sqlIntentBatchAnalysisService;
@@ -45,6 +48,7 @@ public class SqlAnalysisController {
         this.sqlExecutionManifestService = sqlExecutionManifestService;
         this.sqlCampaignScheduleService = sqlCampaignScheduleService;
         this.sqlRunPackageService = sqlRunPackageService;
+        this.sqlBriefingReportService = sqlBriefingReportService;
     }
 
     @PostMapping("/intent-analysis")
@@ -80,5 +84,10 @@ public class SqlAnalysisController {
     @PostMapping("/intent-analysis/run-package")
     public Map<String, Object> runPackage(@Valid @RequestBody SqlPressurePlanRequest request) {
         return sqlRunPackageService.buildPackage(request);
+    }
+
+    @PostMapping("/intent-analysis/briefing-report")
+    public Map<String, Object> briefingReport(@Valid @RequestBody SqlPressurePlanRequest request) {
+        return sqlBriefingReportService.buildReport(request);
     }
 }
