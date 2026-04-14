@@ -161,6 +161,54 @@ curl -X POST http://localhost:8080/api/v1/connections/query-preview \
   }'
 ```
 
+### BI 发布评估工作流
+
+```bash
+curl -X POST http://localhost:8080/api/v1/workflows/bi-release \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "tenantId": "tenant-a",
+    "sql": "select user_id, sum(amount) from lake.orders where ds >= current_date - interval '\''7'\'' day group by 1",
+    "slaMs": 5000,
+    "targetConcurrency": 20
+  }'
+```
+
+### 容量规划工作流
+
+```bash
+curl -X POST http://localhost:8080/api/v1/workflows/capacity-plan \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "baselineQps": 120,
+    "trafficGrowthFactor": 2.4,
+    "avgServiceTimeSec": 0.135,
+    "currentWorkers": 24,
+    "targetP99Ms": 4000,
+    "hotDataGb": 2400
+  }'
+```
+
+### 执行计划稳定性分析工作流
+
+```bash
+curl -X POST http://localhost:8080/api/v1/workflows/plan-stability \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "tenantId": "tenant-a",
+    "sql": "select o.user_id, sum(o.amount) from lake.orders o join lake.dim_users u on o.user_id = u.user_id group by 1",
+    "slaMs": 5000,
+    "targetConcurrency": 20,
+    "currentPlan": {
+      "planHash": "curr-1",
+      "latencyMs": 1700,
+      "distribution": "broadcast",
+      "statsAgeHours": 36,
+      "joinOrder": ["orders", "dim_users"]
+    }
+  }'
+```
+
 ## 工程约束
 
 - 全仓库文本文件按 UTF-8 编码

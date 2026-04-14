@@ -24,3 +24,12 @@ Production latency can spike when Trino chooses a different execution plan for t
 - the same plan pair always yields the same diff summary
 - clear distinction between plan regression and mere workload growth
 - output maps to an operator action: `protect-best-plan`, `refresh-stats`, `observe`, or `investigate`
+
+## Initial API Shape
+
+- `POST /api/v1/workflows/plan-stability`
+
+## Current Delivery
+
+- Java Spring Boot backend exposes plan diff, root-cause hints, decision, and operator actions.
+- The workflow keeps SQL fingerprint assessment in-band so operators can trace plan regression against the same SQL context.

@@ -26,3 +26,4 @@ This spec defines the mandatory delivery baseline for the SQLForge platform foun
 - backend exposes health and supported-engine endpoints.
 - engine metadata is rich enough to drive frontend connection defaults.
 - repository includes an ARM-ready container delivery path.
+- Java backend is the active path for workflow migration away from the legacy Node prototype.

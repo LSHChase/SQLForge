@@ -9,3 +9,4 @@
 | 2026-04-13 | Connection probe foundation | `checkpoint/2026-04-13-connection-probe-foundation` | Real TCP connectivity probe API, JDBC URL diagnostics, frontend probe result panel |
 | 2026-04-13 | Engine profiles and ARM delivery | `checkpoint/2026-04-13-engine-profiles-and-arm-delivery` | Rich engine connection profiles, frontend defaults, Dockerfiles, compose-based split deployment |
 | 2026-04-14 | Connection execution module | `checkpoint/2026-04-14-connection-execution-module` | Saved-connection lifecycle, JDBC-aware probe, SQL preview, activity history, module overview |
+| 2026-04-14 | Java workflow migration | `checkpoint/2026-04-14-java-workflow-migration` | Spring Boot mainline for BI release, capacity planning, and plan stability workflow APIs |
