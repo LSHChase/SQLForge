@@ -22,8 +22,10 @@ class BiReleaseWorkflowServiceTest {
         assertEquals("bi-release-evaluation", result.get("workflow"));
         assertTrue(result.containsKey("benchmarkPlan"));
         assertTrue(result.containsKey("benchmarkAnalysis"));
+        assertTrue(result.containsKey("executorPlan"));
         assertTrue(result.containsKey("report"));
         assertTrue(result.containsKey("decision"));
+        assertEquals("dry-run", castMap(result.get("executorPlan")).get("providerCode"));
     }
 
     @Test

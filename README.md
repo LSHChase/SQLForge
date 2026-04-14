@@ -141,6 +141,7 @@ curl -X POST http://localhost:8080/api/v1/connections \
 
 BI 发布评估工作流的历史 baseline 也会以文件形式持久化，默认路径为 `${java.io.tmpdir}/sqlforge/workflow-baselines.json`，用于跨重启保留上一次评估摘要。
 后端的租户容量画像目前通过共享的 tenant profile provider 提供，后续可替换为真实控制面配置来源。
+BI 发布评估结果当前还会返回 `executorPlan`，用于描述当前 benchmark executor contract。现阶段默认 provider 为 `dry-run`，用于在真实执行器接入前固定执行边界。
 
 ### 连通性探测
 

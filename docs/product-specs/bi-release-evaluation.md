@@ -37,3 +37,4 @@ BI teams need to know whether a new SQL can be released without blowing up Trino
 - Frontend workspace exposes the BI release workflow with editable request inputs and JSON result review.
 - Previous baseline summaries are now persisted to local backend storage so second-run comparisons survive process restarts.
 - Tenant profile resolution now flows through a shared provider boundary instead of duplicate hard-coded maps inside workflow services.
+- BI release output now includes executor provider contract metadata so the platform can evolve from dry-run planning to real benchmark execution.

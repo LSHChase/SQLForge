@@ -24,3 +24,4 @@
 | 2026-04-14 | Repository knowledge lint | `checkpoint/2026-04-14-repository-knowledge-lint` | Dedicated repository knowledge lint script plus test integration for Harness-style doc structure enforcement |
 | 2026-04-14 | SQL parser adapter | `checkpoint/2026-04-14-sql-parser-adapter` | Typed SQL structure AST plus heuristic parser adapter abstraction for intent-analysis and downstream workflow reuse |
 | 2026-04-14 | Tenant profile provider | `checkpoint/2026-04-14-tenant-profile-provider` | Shared tenant profile provider boundary for SQL assessment and BI workflow services, replacing duplicated hard-coded tenant maps |
+| 2026-04-14 | Benchmark executor contract | `checkpoint/2026-04-14-benchmark-executor-contract` | Dry-run benchmark executor provider registry and contract output for BI release workflow execution planning |

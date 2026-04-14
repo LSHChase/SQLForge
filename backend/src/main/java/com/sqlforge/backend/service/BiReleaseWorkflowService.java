@@ -21,15 +21,25 @@ public class BiReleaseWorkflowService {
 
     private final WorkflowBaselineRepository baselineRepository;
     private final TenantProfileProvider tenantProfileProvider;
+    private final BenchmarkExecutorRegistry benchmarkExecutorRegistry;
 
     @Autowired
-    public BiReleaseWorkflowService(WorkflowBaselineRepository baselineRepository, TenantProfileProvider tenantProfileProvider) {
+    public BiReleaseWorkflowService(
+        WorkflowBaselineRepository baselineRepository,
+        TenantProfileProvider tenantProfileProvider,
+        BenchmarkExecutorRegistry benchmarkExecutorRegistry
+    ) {
         this.baselineRepository = baselineRepository;
         this.tenantProfileProvider = tenantProfileProvider;
+        this.benchmarkExecutorRegistry = benchmarkExecutorRegistry;
     }
 
     BiReleaseWorkflowService(WorkflowBaselineRepository baselineRepository) {
-        this(baselineRepository, new StaticTenantProfileProvider());
+        this(
+            baselineRepository,
+            new StaticTenantProfileProvider(),
+            new BenchmarkExecutorRegistry(java.util.Arrays.<BenchmarkExecutorProvider>asList(new DryRunBenchmarkExecutorProvider()))
+        );
     }
 
     public Map<String, Object> execute(BiReleaseRequest request) {
@@ -40,7 +50,8 @@ public class BiReleaseWorkflowService {
         Map<String, Object> previousBaseline = baselineRepository.get(fingerprint);
         Map<String, Object> benchmarkPlan = createBenchmarkPlan(request, assessment);
         Map<String, Object> benchmarkAnalysis = analyzeBenchmark(request, assessment, previousBaseline);
-        Map<String, Object> report = buildSqlPerformanceReport(assessment, benchmarkPlan, benchmarkAnalysis, tenant);
+        Map<String, Object> executorPlan = benchmarkExecutorRegistry.buildExecutionPlan(request, assessment, benchmarkPlan, benchmarkAnalysis);
+        Map<String, Object> report = buildSqlPerformanceReport(assessment, benchmarkPlan, benchmarkAnalysis, executorPlan, tenant);
 
         int riskRank = riskRank(String.valueOf(assessment.get("riskLevel")));
         Map<String, Object> sanitized = castMap(benchmarkAnalysis.get("sanitized"));
@@ -64,6 +75,7 @@ public class BiReleaseWorkflowService {
         result.put("sqlAssessment", assessment);
         result.put("benchmarkPlan", benchmarkPlan);
         result.put("benchmarkAnalysis", benchmarkAnalysis);
+        result.put("executorPlan", executorPlan);
         result.put("previousBaseline", previousBaseline);
         result.put("report", report);
         return result;
@@ -148,6 +160,7 @@ public class BiReleaseWorkflowService {
         Map<String, Object> assessmentResult,
         Map<String, Object> benchmarkPlan,
         Map<String, Object> benchmarkAnalysis,
+        Map<String, Object> executorPlan,
         Map<String, Object> tenant
     ) {
         Map<String, Object> assessment = castMap(assessmentResult.get("assessment"));
@@ -180,6 +193,7 @@ public class BiReleaseWorkflowService {
         report.put("assessment", assessment);
         report.put("benchmarkPlan", benchmarkPlanSection);
         report.put("benchmarkAnalysis", benchmarkAnalysisSection);
+        report.put("executorPlan", executorPlan);
         report.put("actions", benchmarkAnalysis.get("recommendations"));
         return report;
     }
