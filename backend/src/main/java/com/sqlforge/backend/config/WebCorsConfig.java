@@ -8,14 +8,28 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebCorsConfig implements WebMvcConfigurer {
 
-    @Value("${sqlforge.cors.allowed-origin:http://localhost:5173}")
-    private String allowedOrigin;
+    @Value("${sqlforge.cors.allowed-origin-patterns:http://localhost:* ,http://127.0.0.1:*}")
+    private String allowedOriginPatterns;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-            .allowedOrigins(allowedOrigin)
+            .allowedOriginPatterns(parsePatterns())
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("*");
+    }
+
+    private String[] parsePatterns() {
+        String[] rawPatterns = allowedOriginPatterns.split(",");
+        java.util.List<String> patterns = new java.util.ArrayList<String>();
+
+        for (String rawPattern : rawPatterns) {
+            String value = rawPattern.trim();
+            if (!value.isEmpty()) {
+                patterns.add(value);
+            }
+        }
+
+        return patterns.toArray(new String[patterns.size()]);
     }
 }

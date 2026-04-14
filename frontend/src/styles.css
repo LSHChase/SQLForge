@@ -356,6 +356,18 @@ body {
   margin-top: 16px;
 }
 
+.mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.mode-button-active {
+  background: #14213d;
+  color: #ffffff;
+}
+
 .tag-list {
   display: flex;
   flex-wrap: wrap;

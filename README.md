@@ -227,6 +227,20 @@ curl -X POST http://localhost:8080/api/v1/sql/intent-analysis \
 
 该接口执行纯结构分析：只基于 SQL 文本输出指纹、结构画像、意图标签和压测导向的负载分类，不连接数据库、不执行查询。
 
+### SQL 日批量结构分析
+
+```bash
+curl -X POST http://localhost:8080/api/v1/sql/intent-analysis/daily-batch \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "batchId": "daily-sql-batch",
+    "source": "stress-sample",
+    "rawSqlText": "select id, user_name from lake.users where id = 42 limit 1;\n\nselect o.user_id, sum(o.amount) from lake.orders o join lake.dim_users u on o.user_id = u.user_id where o.ds between '\''2026-04-01'\'' and '\''2026-04-14'\'' group by 1;"
+  }'
+```
+
+该接口支持将多条 SQL 以分号或空行分隔后一次性提交，返回批量结构分析摘要和逐条结构画像。
+
 ## 工程约束
 
 - 全仓库文本文件按 UTF-8 编码

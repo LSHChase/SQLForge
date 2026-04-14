@@ -17,6 +17,7 @@ const previewMessage = ref('');
 const previewResult = ref(null);
 const sqlIntentMessage = ref('');
 const sqlIntentResult = ref(null);
+const sqlIntentMode = ref('single');
 const isSubmitting = ref(false);
 const isProbing = ref(false);
 const isPreviewing = ref(false);
@@ -25,9 +26,15 @@ const selectedConnectionId = ref('');
 const previewSql = ref('select 1 as health_check');
 const previewMaxRows = ref(20);
 const sqlIntentSource = ref('manual-sample');
+const sqlIntentBatchId = ref('daily-sql-batch');
 const sqlIntentInput = ref(
   "with recent_orders as (select user_id, amount from lake.orders where ds >= '2026-04-01') "
     + "select user_id, sum(amount) from recent_orders group by 1 order by sum(amount) desc"
+);
+const sqlIntentBatchInput = ref(
+  "select id, user_name from lake.users where id = 42 limit 1;\n\n"
+    + "select o.user_id, sum(o.amount) from lake.orders o join lake.dim_users u on o.user_id = u.user_id "
+    + "where o.ds between '2026-04-01' and '2026-04-14' group by 1;"
 );
 const form = ref({
   name: 'Primary Trino',
@@ -380,21 +387,34 @@ async function analyzeSqlIntent() {
   isAnalyzingIntent.value = true;
 
   try {
-    const response = await fetch(`${apiBaseUrl}/api/v1/sql/intent-analysis`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        statements: [
-          {
-            id: 'manual-analysis',
-            source: sqlIntentSource.value,
-            sql: sqlIntentInput.value
-          }
-        ]
-      })
-    });
+    const response = await fetch(
+      sqlIntentMode.value === 'batch'
+        ? `${apiBaseUrl}/api/v1/sql/intent-analysis/daily-batch`
+        : `${apiBaseUrl}/api/v1/sql/intent-analysis`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+          sqlIntentMode.value === 'batch'
+            ? {
+                batchId: sqlIntentBatchId.value,
+                source: sqlIntentSource.value,
+                rawSqlText: sqlIntentBatchInput.value
+              }
+            : {
+                statements: [
+                  {
+                    id: 'manual-analysis',
+                    source: sqlIntentSource.value,
+                    sql: sqlIntentInput.value
+                  }
+                ]
+              }
+        )
+      }
+    );
 
     const payload = await response.json();
 
@@ -403,7 +423,10 @@ async function analyzeSqlIntent() {
     }
 
     sqlIntentResult.value = payload;
-    sqlIntentMessage.value = '结构分析已完成，结果仅基于 SQL 形态，不依赖数据库执行。';
+    sqlIntentMessage.value =
+      sqlIntentMode.value === 'batch'
+        ? `批量结构分析已完成，共解析 ${payload.parsedStatementCount} 条 SQL。`
+        : '结构分析已完成，结果仅基于 SQL 形态，不依赖数据库执行。';
   } catch (error) {
     sqlIntentMessage.value = error.message;
   } finally {
@@ -522,14 +545,50 @@ watch(
           面向压测前准备的纯结构分析能力。当前只看 SQL 文本形态，不连接数据库、不执行查询。
         </p>
 
+        <div class="mode-switch">
+          <button
+            class="ghost-button"
+            :class="{ 'mode-button-active': sqlIntentMode === 'single' }"
+            type="button"
+            @click="sqlIntentMode = 'single'"
+          >
+            单条分析
+          </button>
+          <button
+            class="ghost-button"
+            :class="{ 'mode-button-active': sqlIntentMode === 'batch' }"
+            type="button"
+            @click="sqlIntentMode = 'batch'"
+          >
+            日批量分析
+          </button>
+        </div>
+
         <label class="preview-label compact-label">
           <span>样本来源</span>
           <input v-model="sqlIntentSource" type="text" />
         </label>
-        <label class="preview-label">
-          <span>输入 SQL</span>
-          <textarea v-model="sqlIntentInput" rows="8"></textarea>
-        </label>
+
+        <template v-if="sqlIntentMode === 'single'">
+          <label class="preview-label">
+            <span>输入 SQL</span>
+            <textarea v-model="sqlIntentInput" rows="8"></textarea>
+          </label>
+        </template>
+
+        <template v-else>
+          <label class="preview-label compact-label">
+            <span>批次标识</span>
+            <input v-model="sqlIntentBatchId" type="text" />
+          </label>
+          <label class="preview-label">
+            <span>批量 SQL 输入</span>
+            <textarea v-model="sqlIntentBatchInput" rows="10"></textarea>
+          </label>
+          <p class="info-text muted-text">
+            建议使用分号或空行分隔多条 SQL。当前只做文本拆分和结构分析，不执行任何语句。
+          </p>
+        </template>
 
         <p v-if="sqlIntentMessage" class="info-text">{{ sqlIntentMessage }}</p>
 
@@ -547,6 +606,14 @@ watch(
             <div class="overview-item">
               <strong>{{ Object.keys(sqlIntentResult.summary.byIntentTag || {}).length }}</strong>
               <span>intent tags</span>
+            </div>
+            <div v-if="sqlIntentResult.parsedStatementCount" class="overview-item">
+              <strong>{{ sqlIntentResult.parsedStatementCount }}</strong>
+              <span>parsed statements</span>
+            </div>
+            <div v-if="sqlIntentResult.splitMode" class="overview-item">
+              <strong>{{ sqlIntentResult.splitMode }}</strong>
+              <span>split mode</span>
             </div>
           </div>
 

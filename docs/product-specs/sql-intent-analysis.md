@@ -26,9 +26,11 @@ Stress-testing preparation needs a pure structural way to classify incoming SQL 
 ## Initial API Shape
 
 - `POST /api/v1/sql/intent-analysis`
+- `POST /api/v1/sql/intent-analysis/daily-batch`
 
 ## Current Delivery
 
 - Java Spring Boot backend supports batch SQL intent analysis from input SQL text.
 - Output includes structural profile, intent tags, pressure-oriented load class, and structural alerts.
 - Frontend provides a minimal analysis panel for manual SQL inspection.
+- Daily SQL samples can be pasted as raw text and split by semicolon or blank line before structural analysis.
