@@ -52,5 +52,6 @@ test('task start requirements encode the mandatory harness workflow', () => {
   assert.match(content, /mandatory reading before every new requirement task/i);
   assert.match(content, /Harness engineering discipline/i);
   assert.match(content, /Do not start implementation before reading the required documents/i);
+  assert.match(content, /large module delivery is complete/i);
   assert.match(content, /create a git commit, create a git tag/i);
 });

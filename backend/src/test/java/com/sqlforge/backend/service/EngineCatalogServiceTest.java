@@ -21,8 +21,10 @@ class EngineCatalogServiceTest {
         assertEquals(8080, trino.getDefaultPort());
         assertEquals("http", trino.getTransport());
         assertEquals("trino", trino.getJdbcScheme());
+        assertEquals("io.trino.jdbc.TrinoDriver", trino.getDriverClassName());
         assertEquals(7070, kyligence.getDefaultPort());
         assertEquals("kylin", kyligence.getJdbcScheme());
+        assertEquals("org.apache.kylin.jdbc.Driver", kyligence.getDriverClassName());
         assertTrue(kyligence.isArmReady());
     }
 }

@@ -1,51 +1,41 @@
 package com.sqlforge.backend.model;
 
 import java.util.List;
+import java.util.Map;
 
-public class ConnectionProbeResult {
+public class QueryPreviewResult {
 
-    private final boolean reachable;
     private final String status;
-    private final String transportStatus;
     private final String driverStatus;
     private final String jdbcUrl;
-    private final String driverClassName;
-    private final boolean jdbcAttempted;
+    private final int rowCount;
+    private final List<String> columns;
+    private final List<Map<String, Object>> rows;
     private final long durationMs;
     private final List<String> messages;
 
-    public ConnectionProbeResult(
-        boolean reachable,
+    public QueryPreviewResult(
         String status,
-        String transportStatus,
         String driverStatus,
         String jdbcUrl,
-        String driverClassName,
-        boolean jdbcAttempted,
+        int rowCount,
+        List<String> columns,
+        List<Map<String, Object>> rows,
         long durationMs,
         List<String> messages
     ) {
-        this.reachable = reachable;
         this.status = status;
-        this.transportStatus = transportStatus;
         this.driverStatus = driverStatus;
         this.jdbcUrl = jdbcUrl;
-        this.driverClassName = driverClassName;
-        this.jdbcAttempted = jdbcAttempted;
+        this.rowCount = rowCount;
+        this.columns = columns;
+        this.rows = rows;
         this.durationMs = durationMs;
         this.messages = messages;
     }
 
-    public boolean isReachable() {
-        return reachable;
-    }
-
     public String getStatus() {
         return status;
-    }
-
-    public String getTransportStatus() {
-        return transportStatus;
     }
 
     public String getDriverStatus() {
@@ -56,12 +46,16 @@ public class ConnectionProbeResult {
         return jdbcUrl;
     }
 
-    public String getDriverClassName() {
-        return driverClassName;
+    public int getRowCount() {
+        return rowCount;
     }
 
-    public boolean isJdbcAttempted() {
-        return jdbcAttempted;
+    public List<String> getColumns() {
+        return columns;
+    }
+
+    public List<Map<String, Object>> getRows() {
+        return rows;
     }
 
     public long getDurationMs() {

@@ -6,8 +6,9 @@ import com.sqlforge.backend.web.dto.ConnectionRequest;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Locale;
 import org.springframework.stereotype.Service;
 
@@ -16,32 +17,74 @@ public class ConnectionProbeService {
 
     private static final int DEFAULT_TIMEOUT_MS = 2000;
 
-    private final EngineCatalogService engineCatalogService;
+    private final JdbcConnectionSupportService jdbcConnectionSupportService;
 
-    public ConnectionProbeService(EngineCatalogService engineCatalogService) {
-        this.engineCatalogService = engineCatalogService;
+    public ConnectionProbeService(JdbcConnectionSupportService jdbcConnectionSupportService) {
+        this.jdbcConnectionSupportService = jdbcConnectionSupportService;
     }
 
     public ConnectionProbeResult probe(ConnectionRequest request) {
-        String jdbcUrl = buildJdbcUrl(request);
+        EngineDescriptor engine = jdbcConnectionSupportService.findEngine(request.getEngineCode());
+        String jdbcUrl = jdbcConnectionSupportService.buildJdbcUrl(request);
+        String driverClassName = engine == null ? "" : engine.getDriverClassName();
         long startedAt = System.currentTimeMillis();
 
         try {
             probeSocket(request.getHost().trim(), request.getPort().intValue(), DEFAULT_TIMEOUT_MS);
-            long duration = System.currentTimeMillis() - startedAt;
-            return new ConnectionProbeResult(
-                true,
-                "reachable",
-                jdbcUrl,
-                duration,
-                Arrays.asList("tcp connectivity check succeeded", "jdbc url generated")
-            );
+
+            if (!jdbcConnectionSupportService.isDriverAvailable(driverClassName)) {
+                long duration = System.currentTimeMillis() - startedAt;
+                return new ConnectionProbeResult(
+                    true,
+                    "driver-missing",
+                    "reachable",
+                    "missing",
+                    jdbcUrl,
+                    driverClassName,
+                    false,
+                    duration,
+                    Arrays.asList("tcp connectivity check succeeded", "jdbc driver is not available on the classpath")
+                );
+            }
+
+            try {
+                attemptJdbcConnection(jdbcUrl, request);
+                long duration = System.currentTimeMillis() - startedAt;
+                return new ConnectionProbeResult(
+                    true,
+                    "connected",
+                    "reachable",
+                    "loaded",
+                    jdbcUrl,
+                    driverClassName,
+                    true,
+                    duration,
+                    Arrays.asList("tcp connectivity check succeeded", "jdbc driver loaded", "jdbc connection succeeded")
+                );
+            } catch (SQLException exception) {
+                long duration = System.currentTimeMillis() - startedAt;
+                return new ConnectionProbeResult(
+                    true,
+                    "jdbc-connect-failed",
+                    "reachable",
+                    "loaded",
+                    jdbcUrl,
+                    driverClassName,
+                    true,
+                    duration,
+                    Arrays.asList("tcp connectivity check succeeded", "jdbc driver loaded", exception.getMessage())
+                );
+            }
         } catch (IOException exception) {
             long duration = System.currentTimeMillis() - startedAt;
             return new ConnectionProbeResult(
                 false,
                 "unreachable",
+                "unreachable",
+                "not-attempted",
                 jdbcUrl,
+                driverClassName,
+                false,
                 duration,
                 Arrays.asList("tcp connectivity check failed", exception.getMessage())
             );
@@ -49,38 +92,13 @@ public class ConnectionProbeService {
     }
 
     public String buildJdbcUrl(ConnectionRequest request) {
-        EngineDescriptor engine = engineCatalogService.findByCode(request.getEngineCode());
+        return jdbcConnectionSupportService.buildJdbcUrl(request);
+    }
 
-        if (engine == null) {
-            return "unsupported://" + request.getHost() + ":" + request.getPort();
+    protected void attemptJdbcConnection(String jdbcUrl, ConnectionRequest request) throws SQLException {
+        try (Connection ignored = jdbcConnectionSupportService.openConnection(jdbcUrl, request, DEFAULT_TIMEOUT_MS)) {
+            // successful probe
         }
-
-        String engineCode = engine.getCode().toLowerCase(Locale.ROOT);
-        String host = request.getHost().trim();
-        Integer port = request.getPort();
-        String catalog = request.getCatalog().trim();
-
-        if ("mysql".equals(engineCode)) {
-            return "jdbc:mysql://" + host + ":" + port + "/" + catalog;
-        }
-
-        if ("clickhouse".equals(engineCode)) {
-            return "jdbc:clickhouse://" + host + ":" + port + "/" + catalog;
-        }
-
-        if ("kyligence".equals(engineCode)) {
-            return "jdbc:kylin://" + host + ":" + port + "/" + catalog;
-        }
-
-        if ("mrs-hetu".equals(engineCode)) {
-            return "jdbc:presto://" + host + ":" + port + "/" + catalog;
-        }
-
-        if ("trino".equals(engineCode) || "presto".equals(engineCode)) {
-            return "jdbc:" + engineCode + "://" + host + ":" + port + "/" + catalog;
-        }
-
-        return "jdbc:" + engineCode + "://" + host + ":" + port + "/" + catalog;
     }
 
     protected void probeSocket(String host, int port, int timeoutMs) throws IOException {

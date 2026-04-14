@@ -22,9 +22,10 @@
 
 - follow harness engineering: docs-first, architecture-explicit, traceable checkpoints
 - every requirement task starts by reading the mandatory repository docs in `docs/references/task-start-requirements.md`
-- when a complete feature family lands, create a completion record in `docs/exec-plans/completed/`
-- after that record exists, create one git commit for the feature family
-- create one git tag checkpoint for the same commit
+- when a complete large module lands, create a completion record in `docs/exec-plans/completed/`
+- after that record exists, create one git commit for the module delivery
+- create one git tag checkpoint for the same module commit
+- do not force checkpoint commits for every small feature slice inside the same module
 - write the checkpoint tag into the completion record so the repository can trace implementation to git history
 
 ## Enforcement

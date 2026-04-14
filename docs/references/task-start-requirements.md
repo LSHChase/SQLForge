@@ -32,7 +32,7 @@ Before implementation starts, read these repository documents in order:
 2. Do not invent requirements when repository docs already define them.
 3. If a requirement changes architecture, update docs in the same delivery slice.
 4. If work spans multiple steps or domains, create or update an execution plan first.
-5. When a feature family is complete, add a completion record, create a git commit, create a git tag, and write the tag into the record.
+5. When a large module delivery is complete, add a completion record, create a git commit, create a git tag, and write the tag into the record.
 6. Keep AGENTS short; move durable instructions into `docs/`.
 7. Encode repeatable rules in tests or tooling whenever possible.
 
@@ -42,5 +42,5 @@ A requirement task is not considered properly started unless:
 
 - the mandatory documents were read
 - the relevant product and design scope was identified
-- the plan and checkpoint obligations were acknowledged
+- the plan and module-level checkpoint obligations were acknowledged
 - implementation matches the documented architecture boundaries

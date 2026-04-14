@@ -52,8 +52,48 @@ public class FileConnectionRepository {
         return connectionDefinition;
     }
 
+    public synchronized ConnectionDefinition update(ConnectionDefinition connectionDefinition) {
+        for (int index = 0; index < connections.size(); index += 1) {
+            if (connections.get(index).getId().equals(connectionDefinition.getId())) {
+                connections.set(index, connectionDefinition);
+                persist();
+                return connectionDefinition;
+            }
+        }
+
+        throw new IllegalArgumentException("connection does not exist");
+    }
+
     public synchronized List<ConnectionDefinition> findAll() {
         return new ArrayList<ConnectionDefinition>(connections);
+    }
+
+    public synchronized ConnectionDefinition findById(String id) {
+        for (ConnectionDefinition connection : connections) {
+            if (connection.getId().equals(id)) {
+                return connection;
+            }
+        }
+
+        return null;
+    }
+
+    public synchronized boolean deleteById(String id) {
+        boolean removed = false;
+
+        for (int index = 0; index < connections.size(); index += 1) {
+            if (connections.get(index).getId().equals(id)) {
+                connections.remove(index);
+                removed = true;
+                break;
+            }
+        }
+
+        if (removed) {
+            persist();
+        }
+
+        return removed;
     }
 
     private void persist() {

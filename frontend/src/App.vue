@@ -4,14 +4,23 @@ import { onMounted, ref, watch } from 'vue';
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const health = ref('checking');
 const engines = ref([]);
+const driverAudit = ref([]);
+const overview = ref(null);
 const connections = ref([]);
+const connectionActivity = ref([]);
 const errorMessage = ref('');
 const saveMessage = ref('');
 const validationMessage = ref('');
 const probeMessage = ref('');
 const probeResult = ref(null);
+const previewMessage = ref('');
+const previewResult = ref(null);
 const isSubmitting = ref(false);
 const isProbing = ref(false);
+const isPreviewing = ref(false);
+const selectedConnectionId = ref('');
+const previewSql = ref('select 1 as health_check');
+const previewMaxRows = ref(20);
 const form = ref({
   name: 'Primary Trino',
   engineCode: 'trino',
@@ -31,6 +40,7 @@ const fallbackEngines = [
     defaultPort: 3306,
     transport: 'tcp',
     jdbcScheme: 'mysql',
+    driverClassName: 'com.mysql.cj.jdbc.Driver',
     profileNote: 'default profile for transactional MySQL instances'
   },
   {
@@ -40,6 +50,7 @@ const fallbackEngines = [
     defaultPort: 8080,
     transport: 'http',
     jdbcScheme: 'trino',
+    driverClassName: 'io.trino.jdbc.TrinoDriver',
     profileNote: 'coordinator endpoint; many secure clusters use 8443'
   },
   {
@@ -49,6 +60,7 @@ const fallbackEngines = [
     defaultPort: 8080,
     transport: 'http',
     jdbcScheme: 'presto',
+    driverClassName: 'com.facebook.presto.jdbc.PrestoDriver',
     profileNote: 'classic coordinator endpoint for Presto deployments'
   },
   {
@@ -58,6 +70,7 @@ const fallbackEngines = [
     defaultPort: 8123,
     transport: 'http',
     jdbcScheme: 'clickhouse',
+    driverClassName: 'com.clickhouse.jdbc.ClickHouseDriver',
     profileNote: 'http endpoint; native tcp deployments often use 9000'
   },
   {
@@ -67,6 +80,7 @@ const fallbackEngines = [
     defaultPort: 28443,
     transport: 'http',
     jdbcScheme: 'presto',
+    driverClassName: 'io.hetu.core.jdbc.HetuDriver',
     profileNote: 'hetu-compatible coordinator profile for MRS distributions'
   },
   {
@@ -76,6 +90,7 @@ const fallbackEngines = [
     defaultPort: 7070,
     transport: 'http',
     jdbcScheme: 'kylin',
+    driverClassName: 'org.apache.kylin.jdbc.Driver',
     profileNote: 'kylin-compatible profile used by Kyligence gateways'
   }
 ];
@@ -92,28 +107,88 @@ function applyEngineDefaults(engineCode) {
 
 async function loadSystemState() {
   try {
-    const [healthResponse, enginesResponse, connectionsResponse] = await Promise.all([
+    const [healthResponse, enginesResponse, driverAuditResponse, overviewResponse, connectionsResponse] = await Promise.all([
       fetch(`${apiBaseUrl}/api/v1/system/health`),
       fetch(`${apiBaseUrl}/api/v1/system/engines`),
+      fetch(`${apiBaseUrl}/api/v1/system/driver-audit`),
+      fetch(`${apiBaseUrl}/api/v1/system/connection-overview`),
       fetch(`${apiBaseUrl}/api/v1/connections`)
     ]);
 
-    if (!healthResponse.ok || !enginesResponse.ok || !connectionsResponse.ok) {
+    if (!healthResponse.ok || !enginesResponse.ok || !driverAuditResponse.ok || !overviewResponse.ok || !connectionsResponse.ok) {
       throw new Error('backend service returned an unexpected response');
     }
 
     const healthPayload = await healthResponse.json();
     const enginesPayload = await enginesResponse.json();
+    const driverAuditPayload = await driverAuditResponse.json();
+    const overviewPayload = await overviewResponse.json();
     const connectionsPayload = await connectionsResponse.json();
 
     health.value = healthPayload.status;
     engines.value = enginesPayload.engines;
+    driverAudit.value = driverAuditPayload.drivers;
+    overview.value = overviewPayload.overview;
     connections.value = connectionsPayload.connections;
   } catch (error) {
     health.value = 'offline';
     engines.value = fallbackEngines;
+    driverAudit.value = fallbackEngines.map((engine) => ({
+      engineCode: engine.code,
+      engineName: engine.name,
+      driverClassName: engine.driverClassName,
+      available: false
+    }));
+    overview.value = null;
     connections.value = [];
     errorMessage.value = error.message;
+  }
+}
+
+function loadConnection(connection) {
+  selectedConnectionId.value = connection.id;
+  form.value = {
+    name: connection.name,
+    engineCode: connection.engineCode,
+    host: connection.host,
+    port: connection.port,
+    catalog: connection.catalog,
+    username: connection.username,
+    password: '',
+    sslEnabled: connection.sslEnabled
+  };
+  saveMessage.value = `已加载连接：${connection.name}，请重新输入密码后执行探测或 SQL 预览`;
+  loadConnectionActivity(connection.id);
+}
+
+function resetEditor() {
+  selectedConnectionId.value = '';
+  connectionActivity.value = [];
+  form.value = {
+    name: 'Primary Trino',
+    engineCode: 'trino',
+    host: 'trino.sqlforge.local',
+    port: 8443,
+    catalog: 'lakehouse',
+    username: 'analyst',
+    password: 'changeit',
+    sslEnabled: true
+  };
+  saveMessage.value = '已切换到新建模式';
+}
+
+async function loadConnectionActivity(connectionId) {
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/connections/${connectionId}/activity`);
+
+    if (!response.ok) {
+      throw new Error('failed to load connection activity');
+    }
+
+    const payload = await response.json();
+    connectionActivity.value = payload.activity;
+  } catch (error) {
+    connectionActivity.value = [];
   }
 }
 
@@ -146,13 +221,19 @@ async function createConnection() {
   isSubmitting.value = true;
 
   try {
-    const response = await fetch(`${apiBaseUrl}/api/v1/connections`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(form.value)
-    });
+    const isUpdate = Boolean(selectedConnectionId.value);
+    const response = await fetch(
+      isUpdate
+        ? `${apiBaseUrl}/api/v1/connections/${selectedConnectionId.value}`
+        : `${apiBaseUrl}/api/v1/connections`,
+      {
+        method: isUpdate ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(form.value)
+      }
+    );
 
     const payload = await response.json();
 
@@ -160,12 +241,48 @@ async function createConnection() {
       throw new Error(payload.message || 'create connection failed');
     }
 
-    connections.value = [payload.connection, ...connections.value];
-    saveMessage.value = `连接已登记并持久化元数据：${payload.connection.name}`;
+    if (isUpdate) {
+      connections.value = connections.value.map((connection) =>
+        connection.id === payload.connection.id ? payload.connection : connection
+      );
+      saveMessage.value = `连接已更新：${payload.connection.name}`;
+      loadConnectionActivity(payload.connection.id);
+    } else {
+      connections.value = [payload.connection, ...connections.value];
+      saveMessage.value = `连接已登记并持久化元数据：${payload.connection.name}`;
+      loadConnectionActivity(payload.connection.id);
+      selectedConnectionId.value = payload.connection.id;
+    }
+    loadSystemState();
   } catch (error) {
     saveMessage.value = error.message;
   } finally {
     isSubmitting.value = false;
+  }
+}
+
+async function deleteConnection(connectionId) {
+  saveMessage.value = '';
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/connections/${connectionId}`, {
+      method: 'DELETE'
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.message || 'delete connection failed');
+    }
+
+    connections.value = connections.value.filter((connection) => connection.id !== connectionId);
+    if (selectedConnectionId.value === connectionId) {
+      resetEditor();
+    }
+    saveMessage.value = `连接已删除：${connectionId}`;
+    loadSystemState();
+  } catch (error) {
+    saveMessage.value = error.message;
   }
 }
 
@@ -180,7 +297,10 @@ async function probeConnection() {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(form.value)
+      body: JSON.stringify({
+        ...form.value,
+        connectionId: selectedConnectionId.value || undefined
+      })
     });
 
     const payload = await response.json();
@@ -191,10 +311,58 @@ async function probeConnection() {
 
     probeResult.value = payload.probe;
     probeMessage.value = payload.probe.messages.join('；');
+    if (payload.connection) {
+      connections.value = connections.value.map((connection) =>
+        connection.id === payload.connection.id ? payload.connection : connection
+      );
+      loadConnectionActivity(payload.connection.id);
+      loadSystemState();
+    }
   } catch (error) {
     probeMessage.value = error.message;
   } finally {
     isProbing.value = false;
+  }
+}
+
+async function previewQuery() {
+  previewMessage.value = '';
+  previewResult.value = null;
+  isPreviewing.value = true;
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/connections/query-preview`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ...form.value,
+        connectionId: selectedConnectionId.value || undefined,
+        sql: previewSql.value,
+        maxRows: previewMaxRows.value
+      })
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.message || 'query preview failed');
+    }
+
+    previewResult.value = payload.preview;
+    previewMessage.value = payload.preview.messages.join('；');
+    if (payload.connection) {
+      connections.value = connections.value.map((connection) =>
+        connection.id === payload.connection.id ? payload.connection : connection
+      );
+      loadConnectionActivity(payload.connection.id);
+      loadSystemState();
+    }
+  } catch (error) {
+    previewMessage.value = error.message;
+  } finally {
+    isPreviewing.value = false;
   }
 }
 
@@ -249,6 +417,47 @@ watch(
             <span>{{ engine.category }} · {{ engine.transport }} · {{ engine.defaultPort }}</span>
           </div>
         </div>
+        <div class="driver-audit-list">
+          <div v-for="item in driverAudit" :key="item.engineCode" class="driver-audit-item">
+            <strong>{{ item.engineName }}</strong>
+            <span>{{ item.available ? 'driver-ready' : 'driver-missing' }}</span>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section v-if="overview" class="content-grid">
+      <article class="card">
+        <h2>连接模块总览</h2>
+        <div class="overview-grid">
+          <div class="overview-item">
+            <strong>{{ overview.totalConnections }}</strong>
+            <span>saved connections</span>
+          </div>
+          <div class="overview-item">
+            <strong>{{ overview.driverReadyCount }}</strong>
+            <span>drivers ready</span>
+          </div>
+          <div class="overview-item">
+            <strong>{{ overview.lastProbeHealthyCount }}</strong>
+            <span>healthy probe</span>
+          </div>
+          <div class="overview-item">
+            <strong>{{ overview.lastPreviewHealthyCount }}</strong>
+            <span>healthy preview</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>按引擎分布</h2>
+        <div v-if="overview.engines && overview.engines.length" class="driver-audit-list">
+          <div v-for="item in overview.engines" :key="item.engineCode" class="driver-audit-item">
+            <strong>{{ item.engineCode }}</strong>
+            <span>{{ item.connectionCount }} connections</span>
+          </div>
+        </div>
+        <p v-else class="empty-state">当前还没有保存的连接。</p>
       </article>
     </section>
 
@@ -257,12 +466,16 @@ watch(
         <div class="section-head">
           <div>
             <p class="section-kicker">Connection Studio</p>
-            <h2>新增数据引擎连接</h2>
+            <h2>{{ selectedConnectionId ? '编辑已登记连接' : '新增数据引擎连接' }}</h2>
           </div>
           <div class="button-stack">
+            <button class="ghost-button" type="button" @click="resetEditor">新建模式</button>
             <button class="ghost-button" type="button" @click="validateConnection">离线校验</button>
             <button class="ghost-button" type="button" :disabled="isProbing" @click="probeConnection">
               {{ isProbing ? '探测中...' : '连通性探测' }}
+            </button>
+            <button class="ghost-button" type="button" :disabled="isPreviewing" @click="previewQuery">
+              {{ isPreviewing ? '预览中...' : 'SQL 预览' }}
             </button>
           </div>
         </div>
@@ -315,13 +528,19 @@ watch(
             (engines.find((engine) => engine.code === form.engineCode) || {}).profileNote
           }}
         </p>
+        <p class="info-text muted-text" v-if="engines.length">
+          预期驱动类：{{
+            (engines.find((engine) => engine.code === form.engineCode) || {}).driverClassName
+          }}
+        </p>
 
         <div class="action-row">
           <button class="primary-button" type="button" :disabled="isSubmitting" @click="createConnection">
-            {{ isSubmitting ? '提交中...' : '保存连接' }}
+            {{ isSubmitting ? '提交中...' : selectedConnectionId ? '更新连接' : '保存连接' }}
           </button>
           <p v-if="validationMessage" class="info-text">{{ validationMessage }}</p>
           <p v-if="probeMessage" class="info-text">{{ probeMessage }}</p>
+          <p v-if="previewMessage" class="info-text">{{ previewMessage }}</p>
           <p v-if="saveMessage" class="success-text">{{ saveMessage }}</p>
         </div>
 
@@ -333,7 +552,64 @@ watch(
             </span>
           </div>
           <p class="probe-line"><strong>JDBC URL:</strong> {{ probeResult.jdbcUrl }}</p>
+          <p class="probe-line"><strong>传输层:</strong> {{ probeResult.transportStatus }}</p>
+          <p class="probe-line"><strong>驱动层:</strong> {{ probeResult.driverStatus }}</p>
+          <p class="probe-line"><strong>驱动类:</strong> {{ probeResult.driverClassName || 'n/a' }}</p>
+          <p class="probe-line"><strong>JDBC 尝试:</strong> {{ probeResult.jdbcAttempted ? 'yes' : 'no' }}</p>
           <p class="probe-line"><strong>耗时:</strong> {{ probeResult.durationMs }} ms</p>
+        </div>
+
+        <div class="preview-panel">
+          <div class="probe-head">
+            <strong>SQL Preview</strong>
+            <span class="badge">{{ previewMaxRows }} rows max</span>
+          </div>
+          <label class="preview-label">
+            <span>预览 SQL</span>
+            <textarea v-model="previewSql" rows="6"></textarea>
+          </label>
+          <label class="preview-label compact-label">
+            <span>最大返回行数</span>
+            <input v-model.number="previewMaxRows" type="number" min="1" max="100" />
+          </label>
+
+          <div v-if="previewResult" class="preview-result">
+            <p class="probe-line"><strong>状态:</strong> {{ previewResult.status }}</p>
+            <p class="probe-line"><strong>驱动层:</strong> {{ previewResult.driverStatus }}</p>
+            <p class="probe-line"><strong>JDBC URL:</strong> {{ previewResult.jdbcUrl }}</p>
+            <p class="probe-line"><strong>返回行数:</strong> {{ previewResult.rowCount }}</p>
+            <p class="probe-line"><strong>耗时:</strong> {{ previewResult.durationMs }} ms</p>
+
+            <div v-if="previewResult.columns && previewResult.columns.length" class="preview-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th v-for="column in previewResult.columns" :key="column">{{ column }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(row, rowIndex) in previewResult.rows" :key="rowIndex">
+                    <td v-for="column in previewResult.columns" :key="column">{{ row[column] }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="selectedConnectionId" class="preview-panel">
+          <div class="probe-head">
+            <strong>Connection Activity</strong>
+            <span class="badge">{{ connectionActivity.length }} events</span>
+          </div>
+          <div v-if="connectionActivity.length" class="activity-list">
+            <div v-for="item in connectionActivity" :key="item.id" class="activity-item">
+              <strong>{{ item.actionType }}</strong>
+              <span>{{ item.actionStatus }}</span>
+              <span>{{ item.createdAt }}</span>
+            </div>
+          </div>
+          <p v-else class="empty-state">当前连接还没有活动记录。</p>
         </div>
       </article>
 
@@ -356,6 +632,16 @@ watch(
               <span>{{ connection.catalog }}</span>
               <span>{{ connection.status }}</span>
               <span>{{ connection.createdAt }}</span>
+              <span v-if="connection.lastProbeStatus">
+                probe: {{ connection.lastProbeStatus }}
+              </span>
+              <span v-if="connection.lastPreviewStatus">
+                preview: {{ connection.lastPreviewStatus }}
+              </span>
+            </div>
+            <div class="connection-actions">
+              <button class="ghost-button" type="button" @click="loadConnection(connection)">加载</button>
+              <button class="danger-button" type="button" @click="deleteConnection(connection.id)">删除</button>
             </div>
           </div>
         </div>

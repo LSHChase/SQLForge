@@ -18,6 +18,7 @@ public class EngineCatalogService {
                 3306,
                 "tcp",
                 "mysql",
+                "com.mysql.cj.jdbc.Driver",
                 "default profile for transactional MySQL instances",
                 true
             ),
@@ -28,6 +29,7 @@ public class EngineCatalogService {
                 8080,
                 "http",
                 "trino",
+                "io.trino.jdbc.TrinoDriver",
                 "coordinator endpoint; many secure clusters use 8443",
                 true
             ),
@@ -38,6 +40,7 @@ public class EngineCatalogService {
                 8080,
                 "http",
                 "presto",
+                "com.facebook.presto.jdbc.PrestoDriver",
                 "classic coordinator endpoint for Presto deployments",
                 true
             ),
@@ -48,6 +51,7 @@ public class EngineCatalogService {
                 8123,
                 "http",
                 "clickhouse",
+                "com.clickhouse.jdbc.ClickHouseDriver",
                 "http endpoint; native tcp deployments often use 9000",
                 true
             ),
@@ -58,6 +62,7 @@ public class EngineCatalogService {
                 28443,
                 "http",
                 "mrs-hetu",
+                "io.hetu.core.jdbc.HetuDriver",
                 "hetu-compatible coordinator profile for MRS distributions",
                 true
             ),
@@ -68,6 +73,7 @@ public class EngineCatalogService {
                 7070,
                 "http",
                 "kylin",
+                "org.apache.kylin.jdbc.Driver",
                 "kylin-compatible profile used by Kyligence gateways",
                 true
             )

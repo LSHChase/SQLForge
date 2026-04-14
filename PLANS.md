@@ -12,5 +12,5 @@ Execution plans are first-class repository artifacts.
 
 - short-lived work can live in the agent session
 - anything architectural, cross-cutting, or multi-step should be checked into `docs/exec-plans/`
-- when a feature family reaches a coherent delivery slice, record it under `docs/exec-plans/completed/`
-- each completed feature family must end with a git commit and a git tag checkpoint
+- when a large module reaches a coherent delivery slice, record it under `docs/exec-plans/completed/`
+- git commit and git tag checkpoints now happen per large module delivery, not per small feature slice

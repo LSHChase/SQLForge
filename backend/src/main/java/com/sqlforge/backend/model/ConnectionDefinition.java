@@ -16,6 +16,10 @@ public class ConnectionDefinition {
     private final boolean sslEnabled;
     private final String status;
     private final Instant createdAt;
+    private final String lastProbeStatus;
+    private final Instant lastProbeAt;
+    private final String lastPreviewStatus;
+    private final Instant lastPreviewAt;
 
     @JsonCreator
     public ConnectionDefinition(
@@ -28,7 +32,11 @@ public class ConnectionDefinition {
         @JsonProperty("username") String username,
         @JsonProperty("sslEnabled") boolean sslEnabled,
         @JsonProperty("status") String status,
-        @JsonProperty("createdAt") Instant createdAt
+        @JsonProperty("createdAt") Instant createdAt,
+        @JsonProperty("lastProbeStatus") String lastProbeStatus,
+        @JsonProperty("lastProbeAt") Instant lastProbeAt,
+        @JsonProperty("lastPreviewStatus") String lastPreviewStatus,
+        @JsonProperty("lastPreviewAt") Instant lastPreviewAt
     ) {
         this.id = id;
         this.name = name;
@@ -40,6 +48,40 @@ public class ConnectionDefinition {
         this.sslEnabled = sslEnabled;
         this.status = status;
         this.createdAt = createdAt;
+        this.lastProbeStatus = lastProbeStatus;
+        this.lastProbeAt = lastProbeAt;
+        this.lastPreviewStatus = lastPreviewStatus;
+        this.lastPreviewAt = lastPreviewAt;
+    }
+
+    public ConnectionDefinition(
+        String id,
+        String name,
+        String engineCode,
+        String host,
+        Integer port,
+        String catalog,
+        String username,
+        boolean sslEnabled,
+        String status,
+        Instant createdAt
+    ) {
+        this(
+            id,
+            name,
+            engineCode,
+            host,
+            port,
+            catalog,
+            username,
+            sslEnabled,
+            status,
+            createdAt,
+            null,
+            null,
+            null,
+            null
+        );
     }
 
     public String getId() {
@@ -80,5 +122,21 @@ public class ConnectionDefinition {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public String getLastProbeStatus() {
+        return lastProbeStatus;
+    }
+
+    public Instant getLastProbeAt() {
+        return lastProbeAt;
+    }
+
+    public String getLastPreviewStatus() {
+        return lastPreviewStatus;
+    }
+
+    public Instant getLastPreviewAt() {
+        return lastPreviewAt;
     }
 }

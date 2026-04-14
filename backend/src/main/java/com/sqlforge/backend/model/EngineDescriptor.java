@@ -8,6 +8,7 @@ public class EngineDescriptor {
     private final int defaultPort;
     private final String transport;
     private final String jdbcScheme;
+    private final String driverClassName;
     private final String profileNote;
     private final boolean armReady;
 
@@ -18,6 +19,7 @@ public class EngineDescriptor {
         int defaultPort,
         String transport,
         String jdbcScheme,
+        String driverClassName,
         String profileNote,
         boolean armReady
     ) {
@@ -27,6 +29,7 @@ public class EngineDescriptor {
         this.defaultPort = defaultPort;
         this.transport = transport;
         this.jdbcScheme = jdbcScheme;
+        this.driverClassName = driverClassName;
         this.profileNote = profileNote;
         this.armReady = armReady;
     }
@@ -53,6 +56,10 @@ public class EngineDescriptor {
 
     public String getJdbcScheme() {
         return jdbcScheme;
+    }
+
+    public String getDriverClassName() {
+        return driverClassName;
     }
 
     public String getProfileNote() {

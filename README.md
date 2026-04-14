@@ -68,10 +68,22 @@ curl http://localhost:8080/api/v1/system/health
 curl http://localhost:8080/api/v1/system/engines
 ```
 
+### 驱动审计
+
+```bash
+curl http://localhost:8080/api/v1/system/driver-audit
+```
+
 ### 已登记连接列表
 
 ```bash
 curl http://localhost:8080/api/v1/connections
+```
+
+### 删除连接
+
+```bash
+curl -X DELETE http://localhost:8080/api/v1/connections/<connection-id>
 ```
 
 ### 连接离线校验
@@ -128,6 +140,26 @@ curl -X POST http://localhost:8080/api/v1/connections/probe \
 ```
 
 该接口会返回真实 TCP 连通性结果，以及按引擎生成的 JDBC URL 诊断信息。
+如果当前服务 classpath 中存在对应 JDBC 驱动，还会继续尝试真实的 `DriverManager` 连接，并返回驱动层状态。
+
+### SQL 预览
+
+```bash
+curl -X POST http://localhost:8080/api/v1/connections/query-preview \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Preview Trino",
+    "engineCode": "trino",
+    "host": "127.0.0.1",
+    "port": 8080,
+    "catalog": "lakehouse",
+    "username": "analyst",
+    "password": "changeit",
+    "sslEnabled": true,
+    "sql": "select 1 as health_check",
+    "maxRows": 20
+  }'
+```
 
 ## 工程约束
 

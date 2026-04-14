@@ -17,13 +17,16 @@ public class ConnectionService {
 
     private final EngineCatalogService engineCatalogService;
     private final FileConnectionRepository connectionRepository;
+    private final ConnectionActivityService connectionActivityService;
 
     public ConnectionService(
         EngineCatalogService engineCatalogService,
-        FileConnectionRepository connectionRepository
+        FileConnectionRepository connectionRepository,
+        ConnectionActivityService connectionActivityService
     ) {
         this.engineCatalogService = engineCatalogService;
         this.connectionRepository = connectionRepository;
+        this.connectionActivityService = connectionActivityService;
     }
 
     public ConnectionValidationResult validate(ConnectionRequest request) {
@@ -88,10 +91,115 @@ public class ConnectionService {
             Instant.now()
         );
 
-        return connectionRepository.save(connectionDefinition);
+        ConnectionDefinition saved = connectionRepository.save(connectionDefinition);
+        connectionActivityService.record(saved.getId(), saved.getName(), "create", "registered", "connection created");
+        return saved;
+    }
+
+    public ConnectionDefinition update(String id, ConnectionRequest request) {
+        ConnectionValidationResult validation = validate(request);
+
+        if (!validation.isValid()) {
+            throw new IllegalArgumentException(String.join("; ", validation.getMessages()));
+        }
+
+        ConnectionDefinition existing = connectionRepository.findById(id);
+
+        if (existing == null) {
+            throw new IllegalArgumentException("connection does not exist");
+        }
+
+        ConnectionDefinition updated = new ConnectionDefinition(
+            existing.getId(),
+            request.getName().trim(),
+            request.getEngineCode().trim(),
+            request.getHost().trim(),
+            request.getPort(),
+            request.getCatalog().trim(),
+            request.getUsername().trim(),
+            request.isSslEnabled(),
+            existing.getStatus(),
+            existing.getCreatedAt()
+        );
+
+        ConnectionDefinition saved = connectionRepository.update(updated);
+        connectionActivityService.record(saved.getId(), saved.getName(), "update", "updated", "connection updated");
+        return saved;
     }
 
     public List<ConnectionDefinition> listConnections() {
         return connectionRepository.findAll();
+    }
+
+    public ConnectionDefinition recordProbe(String id, String probeStatus) {
+        ConnectionDefinition existing = connectionRepository.findById(id);
+
+        if (existing == null) {
+            throw new IllegalArgumentException("connection does not exist");
+        }
+
+        ConnectionDefinition updated = new ConnectionDefinition(
+            existing.getId(),
+            existing.getName(),
+            existing.getEngineCode(),
+            existing.getHost(),
+            existing.getPort(),
+            existing.getCatalog(),
+            existing.getUsername(),
+            existing.isSslEnabled(),
+            existing.getStatus(),
+            existing.getCreatedAt(),
+            probeStatus,
+            Instant.now(),
+            existing.getLastPreviewStatus(),
+            existing.getLastPreviewAt()
+        );
+
+        ConnectionDefinition saved = connectionRepository.update(updated);
+        connectionActivityService.record(saved.getId(), saved.getName(), "probe", probeStatus, "probe result recorded");
+        return saved;
+    }
+
+    public ConnectionDefinition recordPreview(String id, String previewStatus) {
+        ConnectionDefinition existing = connectionRepository.findById(id);
+
+        if (existing == null) {
+            throw new IllegalArgumentException("connection does not exist");
+        }
+
+        ConnectionDefinition updated = new ConnectionDefinition(
+            existing.getId(),
+            existing.getName(),
+            existing.getEngineCode(),
+            existing.getHost(),
+            existing.getPort(),
+            existing.getCatalog(),
+            existing.getUsername(),
+            existing.isSslEnabled(),
+            existing.getStatus(),
+            existing.getCreatedAt(),
+            existing.getLastProbeStatus(),
+            existing.getLastProbeAt(),
+            previewStatus,
+            Instant.now()
+        );
+
+        ConnectionDefinition saved = connectionRepository.update(updated);
+        connectionActivityService.record(saved.getId(), saved.getName(), "preview", previewStatus, "preview result recorded");
+        return saved;
+    }
+
+    public void deleteConnection(String id) {
+        ConnectionDefinition existing = connectionRepository.findById(id);
+
+        if (existing == null || !connectionRepository.deleteById(id)) {
+            throw new IllegalArgumentException("connection does not exist");
+        }
+
+        connectionActivityService.record(existing.getId(), existing.getName(), "delete", "deleted", "connection deleted");
+    }
+
+    public List<com.sqlforge.backend.model.ConnectionActivity> listActivity(String id) {
+        return connectionActivityService.listForConnection(id);
     }
 }

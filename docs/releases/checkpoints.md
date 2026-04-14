@@ -8,3 +8,4 @@
 | 2026-04-13 | Connection persistence and secret hygiene | `checkpoint/2026-04-13-connection-persistence-and-secret-hygiene` | File-backed connection metadata persistence, no raw password persistence, backend repository tests |
 | 2026-04-13 | Connection probe foundation | `checkpoint/2026-04-13-connection-probe-foundation` | Real TCP connectivity probe API, JDBC URL diagnostics, frontend probe result panel |
 | 2026-04-13 | Engine profiles and ARM delivery | `checkpoint/2026-04-13-engine-profiles-and-arm-delivery` | Rich engine connection profiles, frontend defaults, Dockerfiles, compose-based split deployment |
+| 2026-04-14 | Connection execution module | `checkpoint/2026-04-14-connection-execution-module` | Saved-connection lifecycle, JDBC-aware probe, SQL preview, activity history, module overview |
