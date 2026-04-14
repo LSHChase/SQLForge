@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const health = ref('checking');
@@ -24,13 +24,71 @@ const form = ref({
 });
 
 const fallbackEngines = [
-  { code: 'mysql', name: 'MySQL', category: 'oltp' },
-  { code: 'trino', name: 'Trino', category: 'query-engine' },
-  { code: 'presto', name: 'Presto', category: 'query-engine' },
-  { code: 'clickhouse', name: 'ClickHouse', category: 'olap' },
-  { code: 'mrs-hetu', name: 'MRS-Hetu', category: 'query-engine' },
-  { code: 'kyligence', name: 'Kyligence', category: 'cube-engine' }
+  {
+    code: 'mysql',
+    name: 'MySQL',
+    category: 'oltp',
+    defaultPort: 3306,
+    transport: 'tcp',
+    jdbcScheme: 'mysql',
+    profileNote: 'default profile for transactional MySQL instances'
+  },
+  {
+    code: 'trino',
+    name: 'Trino',
+    category: 'query-engine',
+    defaultPort: 8080,
+    transport: 'http',
+    jdbcScheme: 'trino',
+    profileNote: 'coordinator endpoint; many secure clusters use 8443'
+  },
+  {
+    code: 'presto',
+    name: 'Presto',
+    category: 'query-engine',
+    defaultPort: 8080,
+    transport: 'http',
+    jdbcScheme: 'presto',
+    profileNote: 'classic coordinator endpoint for Presto deployments'
+  },
+  {
+    code: 'clickhouse',
+    name: 'ClickHouse',
+    category: 'olap',
+    defaultPort: 8123,
+    transport: 'http',
+    jdbcScheme: 'clickhouse',
+    profileNote: 'http endpoint; native tcp deployments often use 9000'
+  },
+  {
+    code: 'mrs-hetu',
+    name: 'MRS-Hetu',
+    category: 'query-engine',
+    defaultPort: 28443,
+    transport: 'http',
+    jdbcScheme: 'presto',
+    profileNote: 'hetu-compatible coordinator profile for MRS distributions'
+  },
+  {
+    code: 'kyligence',
+    name: 'Kyligence',
+    category: 'cube-engine',
+    defaultPort: 7070,
+    transport: 'http',
+    jdbcScheme: 'kylin',
+    profileNote: 'kylin-compatible profile used by Kyligence gateways'
+  }
 ];
+
+function applyEngineDefaults(engineCode) {
+  const selectedEngine = engines.value.find((engine) => engine.code === engineCode);
+
+  if (!selectedEngine) {
+    return;
+  }
+
+  form.value.port = selectedEngine.defaultPort;
+}
 
 async function loadSystemState() {
   try {
@@ -143,6 +201,13 @@ async function probeConnection() {
 onMounted(() => {
   loadSystemState();
 });
+
+watch(
+  () => form.value.engineCode,
+  (engineCode) => {
+    applyEngineDefaults(engineCode);
+  }
+);
 </script>
 
 <template>
@@ -181,7 +246,7 @@ onMounted(() => {
         <div class="engine-list">
           <div v-for="engine in engines" :key="engine.code" class="engine-pill">
             <strong>{{ engine.name }}</strong>
-            <span>{{ engine.category }}</span>
+            <span>{{ engine.category }} · {{ engine.transport }} · {{ engine.defaultPort }}</span>
           </div>
         </div>
       </article>
@@ -244,6 +309,11 @@ onMounted(() => {
 
         <p class="info-text muted-text">
           当前版本只持久化连接元数据，密码不会写入返回结果或落盘文件。
+        </p>
+        <p class="info-text muted-text" v-if="engines.length">
+          当前引擎档案：{{
+            (engines.find((engine) => engine.code === form.engineCode) || {}).profileNote
+          }}
         </p>
 
         <div class="action-row">

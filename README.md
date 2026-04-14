@@ -46,6 +46,14 @@ mvn spring-boot:run
 
 默认地址：`http://localhost:8080`
 
+## 容器启动
+
+```bash
+docker compose up --build
+```
+
+该交付路径使用前后端独立 Dockerfile，并选用支持 `amd64` / `arm64` 的基础镜像。
+
 ## 已提供的后端接口骨架
 
 ### 健康检查

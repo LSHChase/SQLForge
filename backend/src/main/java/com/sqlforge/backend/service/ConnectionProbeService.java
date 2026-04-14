@@ -72,7 +72,11 @@ public class ConnectionProbeService {
             return "jdbc:kylin://" + host + ":" + port + "/" + catalog;
         }
 
-        if ("trino".equals(engineCode) || "presto".equals(engineCode) || "mrs-hetu".equals(engineCode)) {
+        if ("mrs-hetu".equals(engineCode)) {
+            return "jdbc:presto://" + host + ":" + port + "/" + catalog;
+        }
+
+        if ("trino".equals(engineCode) || "presto".equals(engineCode)) {
             return "jdbc:" + engineCode + "://" + host + ":" + port + "/" + catalog;
         }
 

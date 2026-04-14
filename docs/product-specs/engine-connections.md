@@ -12,6 +12,7 @@ This workflow lets operators register and validate data-engine connection defini
 4. Persist validated connection metadata on the backend.
 5. Return the registered connection list to the frontend.
 6. Probe TCP connectivity and generate engine-specific JDBC URL diagnostics.
+7. Expose engine profiles with default ports and protocol hints.
 
 ## Supported Engine Codes
 
