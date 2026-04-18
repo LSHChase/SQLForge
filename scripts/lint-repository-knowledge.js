@@ -10,6 +10,8 @@ const requiredDocsPaths = [
   'docs/README.md',
   'docs/architecture',
   'docs/architecture/init.md',
+  'docs/quality',
+  'docs/quality/validation-rules.md',
   'docs/rules',
   'docs/rules/codex-rules.md',
   'docs/adr',
@@ -32,6 +34,14 @@ const requiredReadmeMarkers = [
   'docs/security/compliance.md',
   'docs/plans/phase-0-plan.md'
 ]
+
+const expectedRuleEnd = 143
+const expectedValidationRuleStart = 116
+const expectedValidationRuleEnd = 143
+
+function formatRuleId(id) {
+  return `R-${String(id).padStart(3, '0')}`
+}
 
 function absolutePath(relativePath) {
   return path.join(rootDir, relativePath)
@@ -90,9 +100,9 @@ function ensureRuleContinuity(errors, checks) {
   const uniqueSorted = Array.from(new Set(matches)).sort((a, b) => a - b)
 
   const missing = []
-  for (let index = 1; index <= 115; index += 1) {
+  for (let index = 1; index <= expectedRuleEnd; index += 1) {
     if (!uniqueSorted.includes(index)) {
-      missing.push(`R-${String(index).padStart(3, '0')}`)
+      missing.push(formatRuleId(index))
     }
   }
 
@@ -101,12 +111,53 @@ function ensureRuleContinuity(errors, checks) {
     return
   }
 
-  if (uniqueSorted.length !== 115) {
-    errors.push(`codex-rules.md expected 115 unique rule ids, found ${uniqueSorted.length}`)
+  const maxRuleId = uniqueSorted[uniqueSorted.length - 1] || 0
+  if (maxRuleId < expectedRuleEnd) {
+    errors.push(`codex-rules.md max rule id must be >= ${formatRuleId(expectedRuleEnd)}, found ${formatRuleId(maxRuleId)}`)
     return
   }
 
-  checks.push('codex-rules.md rule continuity ok (R-001 to R-115)')
+  checks.push(`codex-rules.md rule continuity ok (${formatRuleId(1)} to ${formatRuleId(expectedRuleEnd)})`)
+  checks.push(`codex-rules.md max rule id ok (${formatRuleId(maxRuleId)})`)
+}
+
+function ensureValidationRules(errors, checks) {
+  const validationRulesPath = 'docs/quality/validation-rules.md'
+  if (!pathExists(validationRulesPath)) {
+    errors.push(`Missing validation rules file: ${validationRulesPath}`)
+    return
+  }
+
+  const content = readFile(validationRulesPath)
+  if (!content.trim()) {
+    errors.push(`${validationRulesPath} is empty`)
+    return
+  }
+
+  if (!content.includes('## 索引')) {
+    errors.push(`${validationRulesPath} missing index section`)
+    return
+  }
+
+  const indexSection = content.includes('## 阶段质量门禁')
+    ? content.split('## 阶段质量门禁')[0]
+    : content
+
+  const missingIndexRules = []
+  for (let index = expectedValidationRuleStart; index <= expectedValidationRuleEnd; index += 1) {
+    const ruleId = formatRuleId(index)
+    if (!indexSection.includes(ruleId)) {
+      missingIndexRules.push(ruleId)
+    }
+  }
+
+  if (missingIndexRules.length > 0) {
+    errors.push(`validation-rules.md missing indexed validation rules:\n- ${missingIndexRules.join('\n- ')}`)
+    return
+  }
+
+  checks.push(`validation-rules.md exists and is non-empty (${validationRulesPath})`)
+  checks.push(`validation-rules.md index ok (${formatRuleId(expectedValidationRuleStart)} to ${formatRuleId(expectedValidationRuleEnd)})`)
 }
 
 function ensureReadmeIndex(errors, checks) {
@@ -140,6 +191,7 @@ function main() {
   ensureDocsStructure(errors, checks)
   ensureAdrTemplate(errors, checks)
   ensureRuleContinuity(errors, checks)
+  ensureValidationRules(errors, checks)
   ensureReadmeIndex(errors, checks)
 
   if (errors.length > 0) {
