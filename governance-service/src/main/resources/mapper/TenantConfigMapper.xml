@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.TenantConfigMapper">
+
+    <resultMap id="TenantConfigResultMap" type="com.company.governance.domain.tenant.entity.TenantConfig">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="quotaConcurrent" column="quota_concurrent"/>
+        <result property="quotaStorage" column="quota_storage"/>
+        <result property="defaultEngine" column="default_engine"/>
+        <result property="backupEngine" column="backup_engine"/>
+        <result property="auditLevel" column="audit_level"/>
+        <result property="retentionDays" column="retention_days"/>
+        <result property="accelerationQuota" column="acceleration_quota"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        id,
+        tenant_id,
+        quota_concurrent,
+        quota_storage,
+        default_engine,
+        backup_engine,
+        audit_level,
+        retention_days,
+        acceleration_quota,
+        create_time,
+        update_time
+    </sql>
+
+    <select id="selectByTenantId" resultMap="TenantConfigResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM tenant_config
+        WHERE tenant_id = #{tenantId}
+    </select>
+
+    <insert id="insert" parameterType="com.company.governance.domain.tenant.entity.TenantConfig">
+        INSERT INTO tenant_config (
+            tenant_id,
+            quota_concurrent,
+            quota_storage,
+            default_engine,
+            backup_engine,
+            audit_level,
+            retention_days,
+            acceleration_quota,
+            create_time,
+            update_time
+        ) VALUES (
+            #{tenantId},
+            #{quotaConcurrent},
+            #{quotaStorage},
+            #{defaultEngine},
+            #{backupEngine},
+            #{auditLevel},
+            #{retentionDays},
+            #{accelerationQuota},
+            #{createTime},
+            #{updateTime}
+        )
+    </insert>
+
+    <update id="updateByTenantId" parameterType="com.company.governance.domain.tenant.entity.TenantConfig">
+        UPDATE tenant_config
+        SET quota_concurrent = #{quotaConcurrent},
+            quota_storage = #{quotaStorage},
+            default_engine = #{defaultEngine},
+            backup_engine = #{backupEngine},
+            audit_level = #{auditLevel},
+            retention_days = #{retentionDays},
+            acceleration_quota = #{accelerationQuota},
+            update_time = #{updateTime}
+        WHERE tenant_id = #{tenantId}
+    </update>
+
+    <delete id="deleteByTenantId">
+        DELETE FROM tenant_config
+        WHERE tenant_id = #{tenantId}
+    </delete>
+</mapper>

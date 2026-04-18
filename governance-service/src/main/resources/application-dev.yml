@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SQLFORGE_DEV_DB_URL:jdbc:mysql://localhost:3306/sqlforge?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
+    username: ${SQLFORGE_DEV_DB_USER:sqlforge}
+    password: ${SQLFORGE_DEV_DB_PASSWORD:sqlforge}
+  redis:
+    host: ${SQLFORGE_DEV_REDIS_HOST:localhost}
+    port: ${SQLFORGE_DEV_REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${SQLFORGE_DEV_KAFKA_BOOTSTRAP:localhost:9092}
+
+logging:
+  level:
+    com.company.governance: DEBUG
+    org.mybatis: DEBUG
+
+sqlforge:
+  optional:
+    h2-enabled: false

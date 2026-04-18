@@ -1,0 +1,20 @@
+# Human Constraint History
+
+本文件为 append-only 历史账本，用于记录人类明确表达的长期规则、边界和执行约束。
+
+## 2026-04-18T00:00:00-06:00
+
+- 初始化导入 SQLForge 架构初始化总文档，建立仓库内文档体系基线。
+- 锁定当前规则索引范围为 `R-001` 至 `R-115`，以 `docs/architecture/init.md` 为权威来源。
+- 锁定阶段0任务按顺序执行，单任务完成后必须停下等待下一条指令。
+- 锁定技术栈：
+  - 后端：Java 8、Spring Boot 2.7.x、MyBatis XML、Maven、Lombok、MapStruct
+  - 前端：Vue 3、JavaScript、Element Plus 2.4+、Pinia、Vue Router 4、Vite
+  - 基础设施：Nacos 2.2.x、Spring Cloud Gateway 3.1.x、Sentinel 1.8.x、XXL-JOB 2.4
+  - 数据：MySQL 8.0/TDSQL、Redis 7.x、Kafka 3.6+、Hudi 0.14.0(COW)
+  - 部署：华为云私有云，兼容 ARM64 + AMD64，UTF-8 + LF
+- 锁定后端强制分层：
+  - `controller -> service -> domain -> infrastructure`
+  - 领域层无 Spring 注解
+  - 包结构为“领域目录 + 分层子目录”
+- 规则索引入口：`docs/rules/codex-rules.md`

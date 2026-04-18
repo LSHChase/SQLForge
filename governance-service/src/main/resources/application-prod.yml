@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SQLFORGE_PROD_DB_URL:jdbc:mysql://tdsql-prod:3306/sqlforge}
+    username: ${SQLFORGE_PROD_DB_USER:sqlforge}
+    password: ${SQLFORGE_PROD_DB_PASSWORD:}
+  redis:
+    cluster:
+      nodes: ${SQLFORGE_PROD_REDIS_NODES:redis-prod-1:6379,redis-prod-2:6379,redis-prod-3:6379}
+  kafka:
+    bootstrap-servers: ${SQLFORGE_PROD_KAFKA_BOOTSTRAP:kafka-prod-1:9092,kafka-prod-2:9092,kafka-prod-3:9092}
+
+logging:
+  level:
+    root: INFO
+    com.company.governance: INFO
+  config: classpath:logback-spring.xml
+
+sqlforge:
+  storage:
+    metadata: TDSQL_OR_GAUSSDB
+  logging:
+    format: JSON

@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SQLFORGE_TEST_DB_URL:jdbc:mysql://mysql-test:3306/sqlforge_test?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
+    username: ${SQLFORGE_TEST_DB_USER:sqlforge}
+    password: ${SQLFORGE_TEST_DB_PASSWORD:sqlforge}
+  redis:
+    host: ${SQLFORGE_TEST_REDIS_HOST:redis-test}
+    port: ${SQLFORGE_TEST_REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${SQLFORGE_TEST_KAFKA_BOOTSTRAP:kafka-test:9092}
+
+logging:
+  level:
+    com.company.governance: INFO

@@ -1,0 +1,79 @@
+:root {
+  color-scheme: light;
+  font-family:
+    'IBM Plex Sans',
+    'Noto Sans SC',
+    'PingFang SC',
+    sans-serif;
+  --el-color-primary: #409eff;
+  --el-color-primary-light-3: #79bbff;
+  --el-color-primary-light-5: #a0cfff;
+  --el-color-primary-light-7: #c6e2ff;
+  --el-color-primary-light-8: #d9ecff;
+  --el-color-primary-light-9: #ecf5ff;
+  --el-border-radius-base: 14px;
+  --sqlforge-bg: #f5f8fc;
+  --sqlforge-bg-elevated: #eef5ff;
+  --sqlforge-panel-strong: rgba(255, 255, 255, 0.86);
+  --sqlforge-text-primary: #10233f;
+  --sqlforge-text-secondary: #52637a;
+  --sqlforge-text-muted: #7e8fa5;
+  --sqlforge-border: rgba(110, 138, 174, 0.18);
+}
+
+html {
+  background: var(--sqlforge-bg);
+}
+
+html.dark {
+  color-scheme: dark;
+  --sqlforge-bg: #08111f;
+  --sqlforge-bg-elevated: #0e172a;
+  --sqlforge-panel-strong: rgba(15, 23, 42, 0.88);
+  --sqlforge-text-primary: #eff6ff;
+  --sqlforge-text-secondary: #c7d2e4;
+  --sqlforge-text-muted: #90a4bf;
+  --sqlforge-border: rgba(129, 155, 197, 0.22);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--sqlforge-bg);
+  color: var(--sqlforge-text-primary);
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.route-page {
+  min-height: 100%;
+}
+
+.route-card {
+  padding: 28px;
+  border: 1px solid var(--sqlforge-border);
+  border-radius: 24px;
+  background: var(--sqlforge-panel-strong);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+}
+
+.route-eyebrow {
+  margin: 0 0 8px;
+  color: var(--sqlforge-text-muted);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.route-title {
+  margin: 0;
+  font-size: 32px;
+}
+
+.route-description {
+  margin: 14px 0 0;
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.7;
+}

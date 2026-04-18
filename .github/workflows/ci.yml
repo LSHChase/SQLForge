@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Maven tests when pom exists
+        run: |
+          if [ -f pom.xml ]; then
+            mvn -B test
+          else
+            echo "pom.xml not present yet, skip Maven tests"
+          fi
+
+      - name: Run frontend build when package exists
+        run: |
+          if [ -f package.json ]; then
+            npm install
+            npm run build
+          else
+            echo "package.json not present yet, skip frontend build"
+          fi
+
+      - name: Repository sanity check
+        run: |
+          test -f README.md
+          test -f AGENTS.md
+          test -f .gitignore
+          test -f .editorconfig

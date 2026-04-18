@@ -1,0 +1,15 @@
+package com.company.common.constants;
+
+/**
+ * Shared Redis key prefixes.
+ */
+public final class CacheKeyConstants {
+
+    public static final String TENANT_CONFIG_PREFIX = "sqlforge:tenant:config:";
+    public static final String DATASOURCE_HEALTH_PREFIX = "sqlforge:datasource:health:";
+    public static final String SQL_FINGERPRINT_PREFIX = "sqlforge:sql:fingerprint:";
+    public static final String AUDIT_ARCHIVE_PREFIX = "sqlforge:audit:archive:";
+
+    private CacheKeyConstants() {
+    }
+}
