@@ -1,20 +1,31 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${SQLFORGE_DEV_DB_URL:jdbc:mysql://localhost:3306/sqlforge?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
+    url: ${SQLFORGE_DEV_DB_URL:jdbc:mysql://localhost:3306/sqlforge?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
     username: ${SQLFORGE_DEV_DB_USER:sqlforge}
     password: ${SQLFORGE_DEV_DB_PASSWORD:sqlforge}
   redis:
     host: ${SQLFORGE_DEV_REDIS_HOST:localhost}
     port: ${SQLFORGE_DEV_REDIS_PORT:6379}
+    password: ${SQLFORGE_DEV_REDIS_PASSWORD:}
   kafka:
     bootstrap-servers: ${SQLFORGE_DEV_KAFKA_BOOTSTRAP:localhost:9092}
 
+# 生产环境要求：useSSL=true，auth.enabled=true（R-115/R-111）
 logging:
   level:
+    root: DEBUG
     com.company.governance: DEBUG
     org.mybatis: DEBUG
 
 sqlforge:
   optional:
     h2-enabled: false
+  obs:
+    endpoint: ${SQLFORGE_DEV_OBS_ENDPOINT:http://localhost:9000}
+    access-key: ${SQLFORGE_DEV_OBS_ACCESS_KEY:minioadmin}
+    secret-key: ${SQLFORGE_DEV_OBS_SECRET_KEY:minioadmin}
+    bucket: ${SQLFORGE_DEV_OBS_BUCKET:sqlforge-dev}
+
+auth:
+  enabled: false
