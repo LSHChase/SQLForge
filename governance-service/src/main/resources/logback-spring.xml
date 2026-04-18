@@ -4,7 +4,7 @@
 
     <property name="LOG_PATH" value="logs/${appName}"/>
     <property name="CONSOLE_PATTERN"
-              value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%thread]){cyan} %clr(%logger{36}){blue} - %msg%n"/>
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"/>
     <property name="FILE_PATTERN"
               value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %replace(%msg){'(?i)(password|token|secret)=([^,\\s]+)','\\1=***'}%n"/>
 

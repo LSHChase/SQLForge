@@ -13,3 +13,8 @@ spring:
 logging:
   level:
     com.company.governance: INFO
+
+auth:
+  enabled: true
+  valid-tokens:
+    - ${SQLFORGE_TEST_AUTH_TOKEN:test-auth-token}

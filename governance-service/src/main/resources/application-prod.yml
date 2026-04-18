@@ -21,3 +21,8 @@ sqlforge:
     metadata: TDSQL_OR_GAUSSDB
   logging:
     format: JSON
+
+auth:
+  enabled: true
+  valid-tokens:
+    - ${SQLFORGE_PROD_AUTH_TOKEN}
