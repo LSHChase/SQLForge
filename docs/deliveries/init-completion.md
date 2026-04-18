@@ -56,3 +56,13 @@
 1. Execute `Task-009` environment deployment reminder.
 2. Start next service skeleton rollout based on the governance template.
 3. Introduce deployment guides and environment-specific hardening for MySQL, Redis, Kafka and Nacos.
+
+## Repair Records
+
+- 2026-04-19T01:25:50+08:00
+  Phase 0 blocker repair completed for `QV-001`, `QV-002`, and `QV-003`.
+  Primary fix commit: `b0d3ce9`
+  Highlights:
+  - Migrated governance HTTP entrypoints into `application/controller` and `application/service`.
+  - Added `TenantContext`, `RequestContext`, `AuthInterceptor`, and `WebMvcConfig` with dev/prod auth toggles.
+  - Added tenant config query flow, access-control placeholder, error codes, tests, and access-control spec doc.
