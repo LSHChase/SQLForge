@@ -123,6 +123,7 @@ SELECT * FROM kafka_message_queue;
 ```bash
 curl -X POST http://localhost:8080/admin/messages/retry
 curl http://localhost:8080/admin/messages/stats
+./scripts/manual-message-queue-smoke.sh --cleanup
 ```
 
 如需检查待处理消息数量，也可以执行：

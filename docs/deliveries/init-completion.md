@@ -90,3 +90,11 @@
   - Replaced the MinIO Docker health-check command from missing `curl` to bundled `mc ready local`.
   - Recreated the MinIO container and confirmed it transitions to `healthy`.
   - Re-ran `./scripts/health-check.sh` with MySQL, Redis, MessageQueue, MinIO, governance-service, and frontend all green.
+
+- 2026-04-19T08:35:00-05:00
+  Added a repeatable manual smoke script for the R-144 database-backed message queue flow.
+  Planned commit message: `docs(scripts): add manual database-queue smoke script`
+  Highlights:
+  - Added `scripts/manual-message-queue-smoke.sh` to drive health check, queue insert, retry call, status verification, and optional cleanup.
+  - Updated local setup docs to reference the smoke script alongside the admin endpoints.
+  - Kept the local environment running and used `--cleanup` mode to avoid leaving smoke-test data in `kafka_message_queue`.
