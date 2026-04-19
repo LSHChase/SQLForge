@@ -74,3 +74,11 @@
   - Removed local Kafka dependency from default startup and health-check flows, while retaining optional production reference compose configuration.
   - Added `messaging.mode` based `DATABASE` / `KAFKA` / `MOCK` configuration across dev, test, and prod resources.
   - Added `kafka_message_queue` bootstrap schema, local verification guidance, and R-144 repository knowledge checks.
+
+- 2026-04-19T07:57:25-05:00
+  R-144 runtime verification and admin endpoint completion finished for the governance service.
+  Planned commit message: `feat(R-144): add database queue admin endpoints and runtime verification`
+  Highlights:
+  - Fixed local startup and health-check scripts to execute SQL with the `sqlforge/sqlforge` account, matching the running container.
+  - Added `/admin/messages/retry` and `/admin/messages/stats` backed by MyBatis access to `kafka_message_queue`.
+  - Verified end-to-end local startup, health check, stats query, failed-message retry, and then cleaned the temporary verification message.

@@ -86,13 +86,13 @@ wait_for_mysql() {
 run_sql_file() {
   local sql_file="$1"
   echo "Applying ${sql_file}..."
-  compose exec -T mysql mysql -uroot -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
+  compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
 }
 
 check_message_queue_table() {
   local table_count
 
-  table_count="$(compose exec -T mysql mysql -N -B -uroot -psqlforge sqlforge -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='sqlforge' AND table_name='kafka_message_queue';" 2>/dev/null || echo "")"
+  table_count="$(compose exec -T mysql mysql -N -B -usqlforge -psqlforge sqlforge -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='sqlforge' AND table_name='kafka_message_queue';" 2>/dev/null || echo "")"
 
   if [[ "${table_count}" == "1" ]]; then
     echo "Verified kafka_message_queue table exists for R-144 DATABASE mode."
@@ -125,7 +125,7 @@ main() {
 
   cat <<'EOF'
 Local services are ready:
-- MySQL: mysql://root:sqlforge@localhost:3306/sqlforge
+- MySQL: mysql://sqlforge:sqlforge@localhost:3306/sqlforge
 - Redis: redis://localhost:6379
 - MinIO API: http://localhost:9000
 - MinIO Console: http://localhost:9001

@@ -35,7 +35,7 @@ main() {
     print_status "Redis" "FAIL" "tcp://localhost:6379"
   fi
 
-  pending_count="$(docker exec sqlforge-mysql mysql -N -B -uroot -psqlforge sqlforge -e "SELECT COUNT(*) FROM kafka_message_queue WHERE status='PENDING';" 2>/dev/null || true)"
+  pending_count="$(docker exec sqlforge-mysql mysql -N -B -usqlforge -psqlforge sqlforge -e "SELECT COUNT(*) FROM kafka_message_queue WHERE status='PENDING';" 2>/dev/null || true)"
   if [[ "${pending_count}" =~ ^[0-9]+$ ]]; then
     print_status "MessageQueue" "OK" "消息队列（数据库模拟）：${pending_count}条待处理"
   else

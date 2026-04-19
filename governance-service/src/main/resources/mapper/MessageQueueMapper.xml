@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.MessageQueueMapper">
+
+    <resultMap id="MessageQueueStatsResultMap" type="com.company.governance.domain.message.entity.MessageQueueRecord">
+        <result property="totalCount" column="total_count"/>
+        <result property="pendingCount" column="pending_count"/>
+        <result property="sentCount" column="sent_count"/>
+        <result property="consumedCount" column="consumed_count"/>
+        <result property="failedCount" column="failed_count"/>
+    </resultMap>
+
+    <update id="retryFailedMessages">
+        UPDATE kafka_message_queue
+        SET status = 'PENDING',
+            error_log = NULL,
+            consumed_at = NULL,
+            retry_count = 0
+        WHERE status = 'FAILED'
+    </update>
+
+    <select id="selectQueueStats" resultMap="MessageQueueStatsResultMap">
+        SELECT
+            COUNT(*) AS total_count,
+            SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) AS pending_count,
+            SUM(CASE WHEN status = 'SENT' THEN 1 ELSE 0 END) AS sent_count,
+            SUM(CASE WHEN status = 'CONSUMED' THEN 1 ELSE 0 END) AS consumed_count,
+            SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) AS failed_count
+        FROM kafka_message_queue
+    </select>
+</mapper>

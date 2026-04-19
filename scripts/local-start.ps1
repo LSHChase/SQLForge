@@ -106,14 +106,14 @@ function Invoke-MySqlScript {
     param([string]$RelativePath)
 
     Write-Host "Applying $RelativePath..."
-    Get-Content -Raw (Join-Path $RepoRoot $RelativePath) | & docker exec -i sqlforge-mysql mysql -uroot -psqlforge sqlforge
+    Get-Content -Raw (Join-Path $RepoRoot $RelativePath) | & docker exec -i sqlforge-mysql mysql -usqlforge -psqlforge sqlforge
 }
 
 function Test-MessageQueueTable {
     $query = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='sqlforge' AND table_name='kafka_message_queue';"
 
     try {
-        $result = & docker exec sqlforge-mysql mysql -N -B -uroot -psqlforge sqlforge -e $query 2>$null
+        $result = & docker exec sqlforge-mysql mysql -N -B -usqlforge -psqlforge sqlforge -e $query 2>$null
         if (($result | Out-String).Trim() -eq '1') {
             Write-Host 'Verified kafka_message_queue table exists for R-144 DATABASE mode.'
         } else {
@@ -150,7 +150,7 @@ Invoke-MySqlScript -RelativePath 'sql/init-data.sql'
 Test-MessageQueueTable
 
 Write-Host 'Local services are ready:'
-Write-Host '- MySQL: mysql://root:sqlforge@localhost:3306/sqlforge'
+Write-Host '- MySQL: mysql://sqlforge:sqlforge@localhost:3306/sqlforge'
 Write-Host '- Redis: redis://localhost:6379'
 Write-Host '- MinIO API: http://localhost:9000'
 Write-Host '- MinIO Console: http://localhost:9001'

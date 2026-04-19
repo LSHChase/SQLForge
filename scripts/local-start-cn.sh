@@ -93,7 +93,7 @@ wait_for_mysql() {
 run_sql_file() {
   local sql_file="$1"
   echo "Applying ${sql_file}..."
-  compose exec -T mysql mysql -uroot -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
+  compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
 }
 
 pull_with_retry() {
@@ -141,7 +141,7 @@ main() {
 
   cat <<'EOF'
 Local CN-mirror services are ready:
-- MySQL: mysql://root:sqlforge@localhost:3306/sqlforge
+- MySQL: mysql://sqlforge:sqlforge@localhost:3306/sqlforge
 - Redis: redis://localhost:6379
 - Kafka: localhost:9092
 - MinIO API: http://localhost:9000

@@ -83,7 +83,7 @@ PowerShell：
 
 ## 访问地址
 
-- MySQL：`localhost:3306`
+- MySQL：`localhost:3306`（默认本地账号 `sqlforge/sqlforge`）
 - Redis：`localhost:6379`
 - MinIO API：`http://localhost:9000`
 - MinIO Console：`http://localhost:9001`
@@ -122,6 +122,7 @@ SELECT * FROM kafka_message_queue;
 
 ```bash
 curl -X POST http://localhost:8080/admin/messages/retry
+curl http://localhost:8080/admin/messages/stats
 ```
 
 如需检查待处理消息数量，也可以执行：
@@ -150,8 +151,8 @@ SELECT COUNT(*) FROM kafka_message_queue WHERE status = 'PENDING';
 如果只想重新导入初始化数据，也可以：
 
 ```bash
-docker compose exec -T mysql mysql -uroot -psqlforge sqlforge < sql/init-schema.sql
-docker compose exec -T mysql mysql -uroot -psqlforge sqlforge < sql/init-data.sql
+docker compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < sql/init-schema.sql
+docker compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < sql/init-data.sql
 ```
 
 ## 健康检查
@@ -213,7 +214,7 @@ docker-compose -f docker-compose-simple.yml up -d
 ### 消息队列表不存在
 
 - 重新执行 `sql/init-schema.sql`
-- 确认 `docker compose exec -T mysql mysql -uroot -psqlforge sqlforge < sql/init-schema.sql` 执行成功
+- 确认 `docker compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < sql/init-schema.sql` 执行成功
 - 确认本地配置为 `messaging.mode=DATABASE`
 
 ### 前端代理失效
