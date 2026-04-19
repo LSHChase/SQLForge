@@ -18,7 +18,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 
-    private static final Logger log = LoggerFactory.getLogger(AuthInterceptor.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthInterceptor.class);
 
     private static final String TENANT_HEADER = "X-Tenant-Id";
     private static final String USER_TOKEN_HEADER = "X-User-Token";
@@ -45,12 +45,12 @@ public class AuthInterceptor implements HandlerInterceptor {
             } else if (authProperties.isEnabled()) {
                 throw new UnauthorizedException("Missing X-Tenant-Id header");
             } else {
-                log.warn("Missing X-Tenant-Id header, traceId={}, uri={}", traceId, request.getRequestURI());
+                LOGGER.warn("Missing X-Tenant-Id header, traceId={}, uri={}", traceId, request.getRequestURI());
             }
 
             validateToken(traceId, userToken, request.getRequestURI());
 
-            log.info("Resolved request context, traceId={}, tenantId={}, uri={}",
+            LOGGER.info("Resolved request context, traceId={}, tenantId={}, uri={}",
                 traceId,
                 StringUtils.hasText(tenantId) ? tenantId : "UNKNOWN",
                 request.getRequestURI());
@@ -81,7 +81,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             if (authProperties.isEnabled()) {
                 throw new UnauthorizedException("Missing X-User-Token header");
             }
-            log.warn("Missing X-User-Token header, traceId={}, uri={}", traceId, requestUri);
+            LOGGER.warn("Missing X-User-Token header, traceId={}, uri={}", traceId, requestUri);
             return;
         }
 
@@ -90,6 +90,6 @@ public class AuthInterceptor implements HandlerInterceptor {
             throw new UnauthorizedException("Invalid X-User-Token");
         }
 
-        log.info("Token校验预留, traceId={}, uri={}", traceId, requestUri);
+        LOGGER.info("Token校验预留, traceId={}, uri={}", traceId, requestUri);
     }
 }

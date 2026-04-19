@@ -12,6 +12,8 @@ const requiredDocsPaths = [
   'docs/architecture/init.md',
   'docs/architecture/messaging-abstraction.md',
   'docs/quality',
+  'docs/quality/alibaba-java-guidelines.md',
+  'docs/quality/frontend-backend-separation-baseline.md',
   'docs/quality/validation-rules.md',
   'docs/rules',
   'docs/rules/codex-rules.md',
@@ -31,14 +33,17 @@ const requiredReadmeMarkers = [
   'docs/README.md',
   'docs/architecture/init.md',
   'docs/rules/codex-rules.md',
+  'docs/quality/alibaba-java-guidelines.md',
   'docs/adr/README.md',
   'docs/security/compliance.md',
   'docs/plans/phase-0-plan.md'
 ]
 
-const expectedRuleEnd = 144
-const expectedValidationRuleStart = 116
-const expectedValidationRuleEnd = 144
+const expectedRuleEnd = 154
+const expectedValidationIndexRanges = [
+  [116, 144],
+  [151, 154]
+]
 const requiredMessagingConfigs = [
   'governance-service/src/main/resources/application-dev.yml',
   'governance-service/src/main/resources/application-test.yml',
@@ -70,6 +75,22 @@ function ensureDocsStructure(errors, checks) {
   }
 
   checks.push(`docs structure ok (${requiredDocsPaths.length} paths)`)
+}
+
+function ensureAlibabaGuidelineArchive(errors, checks) {
+  const archiveDir = 'docs/references/raw-requirements/alibaba-java-guidelines'
+  const requiredArchiveFiles = [
+    `${archiveDir}/Java开发手册(黄山版).pdf`,
+    `${archiveDir}/README.snapshot.md`,
+    `${archiveDir}/source-metadata.md`
+  ]
+  const missing = requiredArchiveFiles.filter(item => !pathExists(item))
+  if (missing.length > 0) {
+    errors.push(`Missing Alibaba guideline archive files:\n- ${missing.join('\n- ')}`)
+    return
+  }
+
+  checks.push(`Alibaba guideline archive ok (${requiredArchiveFiles.length} files)`)
 }
 
 function ensureAdrTemplate(errors, checks) {
@@ -151,12 +172,14 @@ function ensureValidationRules(errors, checks) {
     : content
 
   const missingIndexRules = []
-  for (let index = expectedValidationRuleStart; index <= expectedValidationRuleEnd; index += 1) {
-    const ruleId = formatRuleId(index)
-    if (!indexSection.includes(ruleId)) {
-      missingIndexRules.push(ruleId)
+  expectedValidationIndexRanges.forEach(([start, end]) => {
+    for (let index = start; index <= end; index += 1) {
+      const ruleId = formatRuleId(index)
+      if (!indexSection.includes(ruleId)) {
+        missingIndexRules.push(ruleId)
+      }
     }
-  }
+  })
 
   if (missingIndexRules.length > 0) {
     errors.push(`validation-rules.md missing indexed validation rules:\n- ${missingIndexRules.join('\n- ')}`)
@@ -164,7 +187,37 @@ function ensureValidationRules(errors, checks) {
   }
 
   checks.push(`validation-rules.md exists and is non-empty (${validationRulesPath})`)
-  checks.push(`validation-rules.md index ok (${formatRuleId(expectedValidationRuleStart)} to ${formatRuleId(expectedValidationRuleEnd)})`)
+  const indexDescriptions = expectedValidationIndexRanges
+    .map(([start, end]) => `${formatRuleId(start)} to ${formatRuleId(end)}`)
+    .join(', ')
+  checks.push(`validation-rules.md index ok (${indexDescriptions})`)
+}
+
+function ensureAlibabaGuidelineDoc(errors, checks) {
+  const guidelineDocPath = 'docs/quality/alibaba-java-guidelines.md'
+  if (!pathExists(guidelineDocPath)) {
+    errors.push(`Missing Alibaba guideline document: ${guidelineDocPath}`)
+    return
+  }
+
+  const content = readFile(guidelineDocPath)
+  const requiredMarkers = [
+    '黄山版',
+    '2022-02-03',
+    '强制执行',
+    '推荐执行',
+    '人工评审',
+    'Controller',
+    'Service',
+    'Repository'
+  ]
+  const missingMarkers = requiredMarkers.filter(marker => !content.includes(marker))
+  if (missingMarkers.length > 0) {
+    errors.push(`Alibaba guideline document missing markers:\n- ${missingMarkers.join('\n- ')}`)
+    return
+  }
+
+  checks.push('Alibaba guideline document ok')
 }
 
 function ensureReadmeIndex(errors, checks) {
@@ -228,9 +281,11 @@ function main() {
   const checks = []
 
   ensureDocsStructure(errors, checks)
+  ensureAlibabaGuidelineArchive(errors, checks)
   ensureAdrTemplate(errors, checks)
   ensureRuleContinuity(errors, checks)
   ensureValidationRules(errors, checks)
+  ensureAlibabaGuidelineDoc(errors, checks)
   ensureReadmeIndex(errors, checks)
   ensureMessagingModeConfig(errors, checks)
   ensureMessagingSchema(errors, checks)

@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/governance/tenant-config")
 public class TenantConfigController {
 
-    private static final Logger log = LoggerFactory.getLogger(TenantConfigController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TenantConfigController.class);
 
     private final TenantConfigApplicationService tenantConfigApplicationService;
 
@@ -27,7 +27,7 @@ public class TenantConfigController {
     @GetMapping
     public TenantConfigVO getTenantConfig(@RequestParam(value = "tenantId", required = false) String tenantId) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
-        log.info("Handling tenant config query, tenantId={}, traceId={}",
+        LOGGER.info("Handling tenant config query, tenantId={}, traceId={}",
             effectiveTenantId,
             RequestContext.getTraceId());
         return tenantConfigApplicationService.findByTenantId(effectiveTenantId);

@@ -23,6 +23,8 @@ SQLForge 是一个面向企业 BI 与数据中台场景的 SQL 生命周期治�
 - 文档入口：`docs/README.md`
 - 架构初始化总文档：`docs/architecture/init.md`
 - 规则库：`docs/rules/codex-rules.md`
+- Java 规范治理：`docs/quality/alibaba-java-guidelines.md`
+- 前后端分离基线：`docs/quality/frontend-backend-separation-baseline.md`
 - ADR 目录：`docs/adr/README.md`
 - 合规说明：`docs/security/compliance.md`
 - 阶段计划：`docs/plans/phase-0-plan.md`

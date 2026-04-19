@@ -19,6 +19,8 @@ test:
 
 lint:
 	@if [ -f scripts/lint-repository-knowledge.js ]; then node scripts/lint-repository-knowledge.js; else echo "skip docs lint: script not found"; fi
+	@if [ -f scripts/check-frontend-backend-separation.js ]; then node scripts/check-frontend-backend-separation.js; else echo "skip separation lint: script not found"; fi
+	@if [ -f pom.xml ]; then mvn -B validate pmd:pmd checkstyle:check -DskipTests; else echo "skip backend lint: pom.xml not found"; fi
 	@if [ -f package.json ]; then npm install && npm run lint --if-present; else echo "skip frontend lint: package.json not found"; fi
 
 clean:

@@ -15,6 +15,7 @@ import com.company.governance.application.service.HealthStatusApplicationService
 import com.company.governance.application.service.TenantConfigApplicationService;
 import com.company.governance.config.AuthProperties;
 import com.company.governance.config.WebMvcConfig;
+import com.company.governance.infrastructure.persistence.mapper.MessageQueueMapper;
 import com.company.governance.infrastructure.persistence.mapper.TenantConfigMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -40,6 +41,9 @@ class AuthWebMvcTest {
 
     @MockBean
     private TenantConfigMapper tenantConfigMapper;
+
+    @MockBean
+    private MessageQueueMapper messageQueueMapper;
 
     @Test
     void shouldBypassInterceptorForHealthEndpoint() throws Exception {

@@ -29,15 +29,25 @@ jobs:
       - name: Run Maven tests when pom exists
         run: |
           if [ -f pom.xml ]; then
+            mvn -B validate pmd:pmd checkstyle:check -DskipTests
             mvn -B test
           else
             echo "pom.xml not present yet, skip Maven tests"
+          fi
+
+      - name: Check frontend-backend separation
+        run: |
+          if [ -f scripts/check-frontend-backend-separation.js ]; then
+            node scripts/check-frontend-backend-separation.js
+          else
+            echo "separation script not present yet, skip separation check"
           fi
 
       - name: Run frontend build when package exists
         run: |
           if [ -f package.json ]; then
             npm install
+            npm run lint
             npm run build
           else
             echo "package.json not present yet, skip frontend build"
@@ -45,6 +55,7 @@ jobs:
 
       - name: Repository sanity check
         run: |
+          node scripts/lint-repository-knowledge.js
           test -f README.md
           test -f AGENTS.md
           test -f .gitignore

@@ -16,7 +16,7 @@ import org.springframework.util.StringUtils;
 @Service
 public class TenantConfigApplicationService {
 
-    private static final Logger log = LoggerFactory.getLogger(TenantConfigApplicationService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TenantConfigApplicationService.class);
     private static final String DEFAULT_DATA_SOURCE_ID = "governance-tenant-config";
 
     private final TenantConfigRepository tenantConfigRepository;
@@ -43,7 +43,7 @@ public class TenantConfigApplicationService {
             throw new BizException(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, "Tenant id must not be empty");
         }
 
-        log.info("Loading tenant config, currentTenantId={}, targetTenantId={}, traceId={}",
+        LOGGER.info("Loading tenant config, currentTenantId={}, targetTenantId={}, traceId={}",
             currentTenantId,
             tenantId,
             RequestContext.getTraceId());

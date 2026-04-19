@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class MessageAdminApplicationService {
 
-    private static final Logger log = LoggerFactory.getLogger(MessageAdminApplicationService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MessageAdminApplicationService.class);
 
     private final MessageQueueRepository messageQueueRepository;
 
@@ -21,7 +21,7 @@ public class MessageAdminApplicationService {
 
     public MessageRetryResultVO retryFailedMessages() {
         int retriedCount = messageQueueRepository.retryFailedMessages();
-        log.info("Retried failed database-queue messages, retriedCount={}", retriedCount);
+        LOGGER.info("Retried failed database-queue messages, retriedCount={}", retriedCount);
         return new MessageRetryResultVO(retriedCount, "ACCEPTED");
     }
 
