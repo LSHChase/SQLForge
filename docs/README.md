@@ -11,6 +11,7 @@
 3. 产品/设计/接口文档
    当前阶段以 [架构初始化总文档](./architecture/init.md) 中的接口契约与服务边界为准，后续新增文档统一补入 `docs/`。
    - [消息抽象说明](./architecture/messaging-abstraction.md)
+   - [前端设计系统](./frontend/design-system.md)
 4. [阶段0执行计划](./plans/phase-0-plan.md)
    当前初始化阶段的任务顺序、依赖关系、验收口径与交付节奏。
 5. [本地部署指南](./deployments/local-setup.md)
@@ -36,6 +37,8 @@
   原始需求、历史约束与长期输入归档。
 - `security/`
   合规、安全与等保规则说明。
+- `frontend/`
+  前端设计系统、组件与页面视觉规范。
 - `plans/`
   分阶段执行计划。
 - `deployments/`

@@ -1,20 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { defineComponent, h } from 'vue'
-
-const createPlaceholderView = (title, description) =>
-  defineComponent({
-    name: `${title.replace(/\s+/g, '')}Page`,
-    setup() {
-      return () =>
-        h('section', { class: 'route-page' }, [
-          h('div', { class: 'route-card' }, [
-            h('p', { class: 'route-eyebrow' }, 'SQLForge'),
-            h('h1', { class: 'route-title' }, title),
-            h('p', { class: 'route-description' }, description)
-          ])
-        ])
-    }
-  })
+import DashboardView from '../views/dashboard/DashboardView.vue'
+import RoutePlaceholder from '../views/common/RoutePlaceholder.vue'
 
 export const constantRoutes = [
   {
@@ -24,55 +10,86 @@ export const constantRoutes = [
   {
     path: '/dashboard',
     name: 'Dashboard',
-    component: createPlaceholderView('Dashboard', 'Overview of SQL lifecycle governance posture.'),
+    component: DashboardView,
     meta: {
       menu: true,
-      titleKey: 'dashboard.title'
+      titleKey: 'dashboard.title',
+      descriptionKey: 'dashboard.summary'
     }
   },
   {
     path: '/sql-query',
     name: 'SqlQuery',
-    component: createPlaceholderView('SQL Query', 'Unified query submission and execution routing workspace.'),
+    component: RoutePlaceholder,
+    props: {
+      eyebrowKey: 'common.platformTagline',
+      titleKey: 'sqlQuery.title',
+      descriptionKey: 'sqlQuery.summary'
+    },
     meta: {
       menu: true,
-      titleKey: 'sqlQuery.title'
+      titleKey: 'sqlQuery.title',
+      descriptionKey: 'sqlQuery.summary'
     }
   },
   {
     path: '/parse-record',
     name: 'ParseRecord',
-    component: createPlaceholderView('Parse Record', 'Track parser output, rewrite status and historical diagnostics.'),
+    component: RoutePlaceholder,
+    props: {
+      eyebrowKey: 'common.platformTagline',
+      titleKey: 'parseRecord.title',
+      descriptionKey: 'parseRecord.summary'
+    },
     meta: {
       menu: true,
-      titleKey: 'parseRecord.title'
+      titleKey: 'parseRecord.title',
+      descriptionKey: 'parseRecord.summary'
     }
   },
   {
     path: '/benchmark',
     name: 'Benchmark',
-    component: createPlaceholderView('Benchmark Report', 'Inspect baseline, P99 latency and engine comparison metrics.'),
+    component: RoutePlaceholder,
+    props: {
+      eyebrowKey: 'common.platformTagline',
+      titleKey: 'benchmark.title',
+      descriptionKey: 'benchmark.summary'
+    },
     meta: {
       menu: true,
-      titleKey: 'benchmark.title'
+      titleKey: 'benchmark.title',
+      descriptionKey: 'benchmark.summary'
     }
   },
   {
     path: '/acceleration',
     name: 'Acceleration',
-    component: createPlaceholderView('Acceleration', 'Review acceleration policy, materialized view and partition guidance.'),
+    component: RoutePlaceholder,
+    props: {
+      eyebrowKey: 'common.platformTagline',
+      titleKey: 'acceleration.title',
+      descriptionKey: 'acceleration.summary'
+    },
     meta: {
       menu: true,
-      titleKey: 'acceleration.title'
+      titleKey: 'acceleration.title',
+      descriptionKey: 'acceleration.summary'
     }
   },
   {
     path: '/system',
     name: 'System',
-    component: createPlaceholderView('System Management', 'Manage tenants, routing defaults, audit retention and global settings.'),
+    component: RoutePlaceholder,
+    props: {
+      eyebrowKey: 'common.platformTagline',
+      titleKey: 'system.title',
+      descriptionKey: 'system.summary'
+    },
     meta: {
       menu: true,
-      titleKey: 'system.title'
+      titleKey: 'system.title',
+      descriptionKey: 'system.summary'
     }
   }
 ]

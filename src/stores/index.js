@@ -37,7 +37,7 @@ export const useUserStore = defineStore('userStore', {
 export const useGlobalConfigStore = defineStore('globalConfigStore', {
   state: () => ({
     locale: 'zh-CN',
-    theme: 'light',
+    theme: 'dark',
     compactMode: false
   }),
   actions: {
