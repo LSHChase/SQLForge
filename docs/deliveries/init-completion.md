@@ -82,3 +82,11 @@
   - Fixed local startup and health-check scripts to execute SQL with the `sqlforge/sqlforge` account, matching the running container.
   - Added `/admin/messages/retry` and `/admin/messages/stats` backed by MyBatis access to `kafka_message_queue`.
   - Verified end-to-end local startup, health check, stats query, failed-message retry, and then cleaned the temporary verification message.
+
+- 2026-04-19T08:28:12-05:00
+  Local infrastructure health check alignment completed for MinIO.
+  Planned commit message: `fix(infra): align minio healthcheck with bundled mc client`
+  Highlights:
+  - Replaced the MinIO Docker health-check command from missing `curl` to bundled `mc ready local`.
+  - Recreated the MinIO container and confirmed it transitions to `healthy`.
+  - Re-ran `./scripts/health-check.sh` with MySQL, Redis, MessageQueue, MinIO, governance-service, and frontend all green.
