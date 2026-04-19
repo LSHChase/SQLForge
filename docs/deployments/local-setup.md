@@ -134,6 +134,46 @@ docker compose exec -T mysql mysql -uroot -psqlforge sqlforge < sql/init-data.sq
 ./scripts/health-check.sh
 ```
 
+## 网络故障排查
+
+### Docker 镜像拉取失败
+
+- 优先使用国内镜像版启动脚本：
+
+```bash
+./scripts/local-start-cn.sh
+```
+
+- 或直接使用国内镜像 compose：
+
+```bash
+docker-compose -f docker-compose-cn.yml up -d
+```
+
+- 如果阶段 0 或阶段 1 初期开发只需要 MySQL 与 Redis，优先使用简化版：
+
+```bash
+docker-compose -f docker-compose-simple.yml up -d
+```
+
+### 离线环境部署
+
+- 参考 [offline-setup.md](/models/project/codex/SQLForge/docs/deployments/offline-setup.md)
+- 在可联网机器先执行 `docker pull` 和 `docker save`
+- 在目标机器执行 `docker load -i sqlforge-images.tar`
+
+### 孤儿容器与脏卷清理
+
+```bash
+./scripts/cleanup-orphans.sh
+```
+
+### 启动前端口检查
+
+```bash
+./scripts/check-ports.sh
+```
+
 ## 常见问题
 
 ### MySQL 连接拒绝
