@@ -464,8 +464,8 @@
 #### R-142 验证规则版本自指
 
 - 触发时机：本规则追加后，每次 Codex 对话开始时
-- 执行动作：自检当前规则库最大 ID 是否为 `R-143`（或更新），`validation-rules.md` 是否存在且非空
-- 失败处置：若缺失 `R-116` 至 `R-143`，立即告警“规则库版本过低，缺少自动验证规则”并中止任务
+- 执行动作：自检当前规则库最大 ID 是否为 `R-144`（或更新），`validation-rules.md` 是否存在且非空
+- 失败处置：若缺失 `R-116` 至 `R-144`，立即告警“规则库版本过低，缺少自动验证规则”并中止任务
 - 关联规则：`R-003`, `R-135`
 
 #### R-143 人类豁免通道
@@ -474,3 +474,127 @@
 - 执行动作：Codex 必须记录豁免原因到 `validation-log.md`；生成 ADR 记录本次豁免的破坏面与风险；然后继续执行
 - 输出要求：《人类豁免记录》，含豁免规则、原因、时间、风险告知
 - 关联规则：`R-049`, `R-050`
+
+## Kafka专项开发模式
+
+#### R-144 Kafka本地开发抽象模式
+
+- 触发时机：Codex 识别到任务涉及 Kafka 生产者、消费者、Topic、消息发送、事件监听等任何 Kafka 相关功能时。
+- 执行动作：必须自动按本规则实现 Kafka 抽象层与环境切换，禁止直接要求本地启动 Kafka 服务作为开发前置条件。
+
+##### 核心原则
+
+1. 本地开发环境不强制部署 Kafka，但 Kafka 功能逻辑必须可验证，可通过模拟、数据库或接口方式完成。
+2. 生产环境配置必须可无缝切换至真实 Kafka，不允许本地模拟方案侵入生产路径。
+3. 代码结构必须预留 Kafka 接入点，业务代码禁止直接依赖具体消息中间件实现。
+
+##### 实现模式（三选一，按场景优先级）
+
+1. 模式A：数据库模拟模式（默认优先）
+   - 适用场景：审计日志、异步通知、状态流转等可持久化消息。
+   - 实现要求：
+     - 创建表 `kafka_message_queue`（或领域相关表名），字段至少包含：
+       - `id`：`BIGINT` 自增
+       - `topic`：`VARCHAR(128)`，模拟 Kafka Topic
+       - `partition_key`：`VARCHAR(128)`，分区键
+       - `message_body`：`TEXT`，JSON 格式消息体
+       - `headers`：`TEXT`，JSON 格式消息头
+       - `status`：`ENUM('PENDING','SENT','CONSUMED','FAILED')`
+       - `retry_count`：`INT DEFAULT 0`
+       - `created_at`：`TIMESTAMP`
+       - `consumed_at`：`TIMESTAMP`
+       - `error_log`：`TEXT`
+     - 生产者统一通过 `KafkaProducerService.send(topic, key, message, headers)` 或等价抽象接口发送。
+     - `dev` 环境写入消息表并将 `status='PENDING'`。
+     - `prod` 环境通过配置切换为真实 Kafka Producer 发送。
+     - 消费者统一通过 `KafkaConsumerService.poll(topic, batchSize)` 或等价抽象接口消费。
+     - `dev` 环境从消息表中轮询 `status='PENDING'` 数据模拟拉取。
+     - `prod` 环境切换为 `@KafkaListener` 或等价 Kafka 消费机制。
+     - 必须提供每 5 秒扫描待消费消息的调度任务，消费成功更新为 `CONSUMED`，失败则 `retry_count + 1`，超过 3 次标记为 `FAILED`。
+     - 必须提供管理接口：
+       - `POST /admin/messages/retry`：重试 `FAILED` 消息
+       - `GET /admin/messages/stats`：查询消息统计
+2. 模式B：接口转发模式
+   - 适用场景：消息需要与外部系统交互，例如第三方平台回调或转发。
+   - 实现要求：
+     - `dev` 环境由生产者调用 MockServer 或本地 HTTP 接口。
+     - Mock 响应必须可预设，以验证业务处理逻辑。
+     - `prod` 环境切换为真实外部接口地址。
+3. 模式C：内存队列模式
+   - 适用场景：纯单元测试。
+   - 实现要求：
+     - 使用 `ConcurrentLinkedQueue` 或等价内存队列模拟 Topic。
+     - 测试用例必须验证入队、出队与监听逻辑。
+     - 禁止用于集成测试或本地开发验证。
+
+##### 配置切换机制（强制）
+
+- `application-dev.yml`
+
+```yaml
+messaging:
+  mode: DATABASE
+  kafka:
+    enabled: false
+    bootstrap-servers: localhost:9092
+  database:
+    enabled: true
+    poll-interval: 5000
+    max-retry: 3
+```
+
+- `application-prod.yml`
+
+```yaml
+messaging:
+  mode: KAFKA
+  kafka:
+    enabled: true
+    bootstrap-servers: kafka-cluster:9092
+    producer:
+      acks: all
+      retries: 3
+    consumer:
+      group-id: sqlforge-group
+      auto-offset-reset: earliest
+  database:
+    enabled: false
+```
+
+##### 代码结构要求
+
+1. 抽象接口层固定为 `domain/messaging/`
+   - `MessageProducer.java`：`send(topic, key, message, headers)`
+   - `MessageConsumer.java`：`poll(topic, batchSize)` / `listen(topic, handler)`
+   - 禁止业务代码直接依赖 `KafkaTemplate` 或任何具体消息实现。
+2. 实现层固定为 `infrastructure/messaging/`
+   - `DatabaseMessageProducer.java` / `DatabaseMessageConsumer.java`
+   - `KafkaMessageProducer.java` / `KafkaMessageConsumer.java`
+   - `MockMessageProducer.java` / `MockMessageConsumer.java`
+3. 工厂与配置层固定在 `config/`
+   - `MessagingConfig.java`：根据 `messaging.mode` 创建对应 Bean
+   - 使用 `@ConditionalOnProperty` 做环境切换
+
+##### 验证要求
+
+1. 本地开发验证（无需 Kafka 运行）
+   - 调用业务接口触发消息发送。
+   - 查询消息表确认写入成功。
+   - 等待 5 秒或手动调用 `/admin/messages/retry`，确认消息进入消费流程。
+   - 检查业务结果，例如审计日志或状态表更新。
+2. 单元测试验证
+   - 使用 `@ActiveProfiles("test")` 且 `messaging.mode=MOCK`。
+   - 验证消息入队后业务监听器被调用。
+   - 验证异常场景的重试逻辑。
+
+##### 文档要求
+
+1. 每次实现 Kafka 相关功能时，必须同步更新 `docs/architecture/messaging-abstraction.md`，说明当前采用的模式、切换方式与约束边界。
+2. 接口契约文档必须标注 Topic 名称、消息格式与消费顺序要求。
+
+##### 关联规则
+
+- `R-066`：多环境配置隔离
+- `R-068`：高内聚低耦合
+- `R-121`：接口契约符合度
+- `R-128`：环境配置验证

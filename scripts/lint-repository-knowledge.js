@@ -10,6 +10,7 @@ const requiredDocsPaths = [
   'docs/README.md',
   'docs/architecture',
   'docs/architecture/init.md',
+  'docs/architecture/messaging-abstraction.md',
   'docs/quality',
   'docs/quality/validation-rules.md',
   'docs/rules',
@@ -35,9 +36,15 @@ const requiredReadmeMarkers = [
   'docs/plans/phase-0-plan.md'
 ]
 
-const expectedRuleEnd = 143
+const expectedRuleEnd = 144
 const expectedValidationRuleStart = 116
-const expectedValidationRuleEnd = 143
+const expectedValidationRuleEnd = 144
+const requiredMessagingConfigs = [
+  'governance-service/src/main/resources/application-dev.yml',
+  'governance-service/src/main/resources/application-test.yml',
+  'governance-service/src/main/resources/application-prod.yml',
+  'governance-service/src/test/resources/application-test.yml'
+]
 
 function formatRuleId(id) {
   return `R-${String(id).padStart(3, '0')}`
@@ -184,6 +191,38 @@ function ensureReadmeIndex(errors, checks) {
   checks.push('README.md documentation index ok')
 }
 
+function ensureMessagingModeConfig(errors, checks) {
+  const missingFiles = requiredMessagingConfigs.filter(item => !pathExists(item))
+  if (missingFiles.length > 0) {
+    errors.push(`R-144 missing application config files:\n- ${missingFiles.join('\n- ')}`)
+    return
+  }
+
+  const missingMode = requiredMessagingConfigs.filter(item => !readFile(item).includes('messaging:\n  mode:'))
+  if (missingMode.length > 0) {
+    errors.push(`R-144 application configs missing messaging.mode:\n- ${missingMode.join('\n- ')}`)
+    return
+  }
+
+  checks.push(`R-144 messaging.mode config ok (${requiredMessagingConfigs.length} files)`)
+}
+
+function ensureMessagingSchema(errors, checks) {
+  const schemaPath = 'sql/init-schema.sql'
+  if (!pathExists(schemaPath)) {
+    errors.push(`Missing schema file: ${schemaPath}`)
+    return
+  }
+
+  const content = readFile(schemaPath)
+  if (!content.includes('CREATE TABLE IF NOT EXISTS kafka_message_queue')) {
+    errors.push(`R-144 schema missing kafka_message_queue table in ${schemaPath}`)
+    return
+  }
+
+  checks.push(`R-144 schema ok (${schemaPath} contains kafka_message_queue)`)
+}
+
 function main() {
   const errors = []
   const checks = []
@@ -193,6 +232,8 @@ function main() {
   ensureRuleContinuity(errors, checks)
   ensureValidationRules(errors, checks)
   ensureReadmeIndex(errors, checks)
+  ensureMessagingModeConfig(errors, checks)
+  ensureMessagingSchema(errors, checks)
 
   if (errors.length > 0) {
     console.error('Repository knowledge lint failed:\n')

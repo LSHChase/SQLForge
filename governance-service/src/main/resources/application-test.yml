@@ -7,8 +7,16 @@ spring:
   redis:
     host: ${SQLFORGE_TEST_REDIS_HOST:redis-test}
     port: ${SQLFORGE_TEST_REDIS_PORT:6379}
+
+# 集成测试默认使用DATABASE模式；单元测试使用src/test/resources中的MOCK配置。
+messaging:
+  mode: DATABASE
   kafka:
-    bootstrap-servers: ${SQLFORGE_TEST_KAFKA_BOOTSTRAP:kafka-test:9092}
+    enabled: false
+  database:
+    enabled: true
+    poll-interval: 5000
+    max-retry: 3
 
 logging:
   level:

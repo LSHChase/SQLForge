@@ -64,6 +64,10 @@ INSERT INTO system_dictionary (
   ('accelerationType', 'BUCKET', 'Bucket', 3, 1, 'Bucket acceleration'),
   ('accelerationType', 'SPLIT', 'Split', 4, 1, 'Split acceleration'),
   ('accelerationType', 'REPLACE', 'Replace', 5, 1, 'Replace acceleration'),
+  ('messagingStatus', 'PENDING', 'Pending', 1, 1, 'R-144 database queue pending message'),
+  ('messagingStatus', 'SENT', 'Sent', 2, 1, 'R-144 database queue sent message'),
+  ('messagingStatus', 'CONSUMED', 'Consumed', 3, 1, 'R-144 database queue consumed message'),
+  ('messagingStatus', 'FAILED', 'Failed', 4, 1, 'R-144 database queue failed message'),
   ('auditLevel', 'STRICT', 'Strict', 1, 1, 'High risk statements require strict review'),
   ('auditLevel', 'NORMAL', 'Normal', 2, 1, 'Default audit review level'),
   ('auditLevel', 'LOOSE', 'Loose', 3, 1, 'Record only with low intervention')

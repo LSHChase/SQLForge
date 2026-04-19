@@ -8,10 +8,19 @@ spring:
     host: ${SQLFORGE_DEV_REDIS_HOST:localhost}
     port: ${SQLFORGE_DEV_REDIS_PORT:6379}
     password: ${SQLFORGE_DEV_REDIS_PASSWORD:}
-  kafka:
-    bootstrap-servers: ${SQLFORGE_DEV_KAFKA_BOOTSTRAP:localhost:9092}
 
 # 生产环境要求：useSSL=true，auth.enabled=true（R-115/R-111）
+# 生产环境切换为messaging.mode=KAFKA（R-144）。
+messaging:
+  mode: DATABASE
+  kafka:
+    enabled: false
+    # bootstrap-servers: ${SQLFORGE_DEV_KAFKA_BOOTSTRAP:localhost:9092}
+  database:
+    enabled: true
+    poll-interval: 5000
+    max-retry: 3
+
 logging:
   level:
     root: DEBUG

@@ -109,6 +109,21 @@ function Invoke-MySqlScript {
     Get-Content -Raw (Join-Path $RepoRoot $RelativePath) | & docker exec -i sqlforge-mysql mysql -uroot -psqlforge sqlforge
 }
 
+function Test-MessageQueueTable {
+    $query = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='sqlforge' AND table_name='kafka_message_queue';"
+
+    try {
+        $result = & docker exec sqlforge-mysql mysql -N -B -uroot -psqlforge sqlforge -e $query 2>$null
+        if (($result | Out-String).Trim() -eq '1') {
+            Write-Host 'Verified kafka_message_queue table exists for R-144 DATABASE mode.'
+        } else {
+            Write-Warning 'kafka_message_queue table does not exist. Check sql/init-schema.sql and R-144 setup.'
+        }
+    } catch {
+        Write-Warning 'Unable to verify kafka_message_queue table. Check MySQL initialization and R-144 setup.'
+    }
+}
+
 Set-Location $RepoRoot
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
@@ -117,7 +132,7 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
 
 Initialize-Compose
 
-foreach ($port in 3306, 6379, 9092, 9000) {
+foreach ($port in 3306, 6379, 9000) {
     if (Test-LocalPortInUse -Port $port) {
         throw "Port $port is already in use. Release it before starting the local environment."
     }
@@ -132,10 +147,11 @@ Wait-ForMySqlReady
 
 Invoke-MySqlScript -RelativePath 'sql/init-schema.sql'
 Invoke-MySqlScript -RelativePath 'sql/init-data.sql'
+Test-MessageQueueTable
 
 Write-Host 'Local services are ready:'
 Write-Host '- MySQL: mysql://root:sqlforge@localhost:3306/sqlforge'
 Write-Host '- Redis: redis://localhost:6379'
-Write-Host '- Kafka: localhost:9092'
 Write-Host '- MinIO API: http://localhost:9000'
 Write-Host '- MinIO Console: http://localhost:9001'
+Write-Host '消息队列使用数据库模拟模式（R-144），无需Kafka。'

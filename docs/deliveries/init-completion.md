@@ -66,3 +66,11 @@
   - Migrated governance HTTP entrypoints into `application/controller` and `application/service`.
   - Added `TenantContext`, `RequestContext`, `AuthInterceptor`, and `WebMvcConfig` with dev/prod auth toggles.
   - Added tenant config query flow, access-control placeholder, error codes, tests, and access-control spec doc.
+
+- 2026-04-19T07:16:05-05:00
+  R-144 global consistency sync completed for compose, startup scripts, environment config, SQL bootstrap, deployment docs, and repository lint.
+  Planned commit message: `refactor(R-144): sync kafka abstraction to compose, scripts, config, sql, docs, lint`
+  Highlights:
+  - Removed local Kafka dependency from default startup and health-check flows, while retaining optional production reference compose configuration.
+  - Added `messaging.mode` based `DATABASE` / `KAFKA` / `MOCK` configuration across dev, test, and prod resources.
+  - Added `kafka_message_queue` bootstrap schema, local verification guidance, and R-144 repository knowledge checks.

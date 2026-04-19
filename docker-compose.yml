@@ -38,9 +38,12 @@ services:
       timeout: 5s
       retries: 10
 
+  # 本地开发使用R-144 DATABASE模式，Kafka仅在生产环境启用。
   kafka:
     image: bitnami/kafka:3.6.2
     container_name: sqlforge-kafka
+    profiles:
+      - optional
     restart: unless-stopped
     environment:
       KAFKA_CFG_NODE_ID: 1

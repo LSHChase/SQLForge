@@ -45,6 +45,22 @@ CREATE TABLE IF NOT EXISTS audit_log (
   KEY idx_audit_log_target (target_type, target_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Immutable audit logs, production should isolate storage strategy';
 
+CREATE TABLE IF NOT EXISTS kafka_message_queue (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+  topic VARCHAR(128) NOT NULL COMMENT 'Simulated Kafka topic',
+  partition_key VARCHAR(128) DEFAULT NULL COMMENT 'Partition key',
+  message_body TEXT NOT NULL COMMENT 'JSON message body',
+  headers TEXT DEFAULT NULL COMMENT 'JSON headers',
+  status ENUM('PENDING','SENT','CONSUMED','FAILED') NOT NULL DEFAULT 'PENDING' COMMENT 'Message status',
+  retry_count INT NOT NULL DEFAULT 0 COMMENT 'Retry count',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Created time',
+  consumed_at TIMESTAMP NULL DEFAULT NULL COMMENT 'Consumed time',
+  error_log TEXT DEFAULT NULL COMMENT 'Error log',
+  PRIMARY KEY (id),
+  KEY idx_topic_status (topic, status),
+  KEY idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='R-144数据库模拟模式消息队列';
+
 CREATE TABLE IF NOT EXISTS sql_query_job (
   job_id VARCHAR(64) NOT NULL COMMENT 'SQL query job identifier',
   tenant_id VARCHAR(64) NOT NULL COMMENT 'Tenant identifier',

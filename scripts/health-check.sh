@@ -16,6 +16,8 @@ print_status() {
 }
 
 main() {
+  local pending_count=""
+
   echo "Service              Status   Detail"
   echo "---------------------------------------------"
 
@@ -33,10 +35,11 @@ main() {
     print_status "Redis" "FAIL" "tcp://localhost:6379"
   fi
 
-  if check_tcp 127.0.0.1 9092; then
-    print_status "Kafka" "OK" "tcp://localhost:9092"
+  pending_count="$(docker exec sqlforge-mysql mysql -N -B -uroot -psqlforge sqlforge -e "SELECT COUNT(*) FROM kafka_message_queue WHERE status='PENDING';" 2>/dev/null || true)"
+  if [[ "${pending_count}" =~ ^[0-9]+$ ]]; then
+    print_status "MessageQueue" "OK" "消息队列（数据库模拟）：${pending_count}条待处理"
   else
-    print_status "Kafka" "FAIL" "tcp://localhost:9092"
+    print_status "MessageQueue" "FAIL" "消息队列（数据库模拟）：kafka_message_queue unavailable"
   fi
 
   if command -v curl >/dev/null 2>&1 && curl -fsS http://localhost:9000/minio/health/live >/dev/null 2>&1; then

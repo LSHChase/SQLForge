@@ -89,11 +89,23 @@ run_sql_file() {
   compose exec -T mysql mysql -uroot -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
 }
 
+check_message_queue_table() {
+  local table_count
+
+  table_count="$(compose exec -T mysql mysql -N -B -uroot -psqlforge sqlforge -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='sqlforge' AND table_name='kafka_message_queue';" 2>/dev/null || echo "")"
+
+  if [[ "${table_count}" == "1" ]]; then
+    echo "Verified kafka_message_queue table exists for R-144 DATABASE mode."
+  else
+    echo "Warning: kafka_message_queue table does not exist. Check sql/init-schema.sql and R-144 setup." >&2
+  fi
+}
+
 main() {
   cd "${REPO_ROOT}"
   setup_compose
 
-  for port in 3306 6379 9092 9000; do
+  for port in 3306 6379 9000; do
     if is_port_in_use "${port}"; then
       echo "Port ${port} is already in use. Release it before starting the local environment." >&2
       exit 1
@@ -109,14 +121,15 @@ main() {
 
   run_sql_file "sql/init-schema.sql"
   run_sql_file "sql/init-data.sql"
+  check_message_queue_table
 
   cat <<'EOF'
 Local services are ready:
 - MySQL: mysql://root:sqlforge@localhost:3306/sqlforge
 - Redis: redis://localhost:6379
-- Kafka: localhost:9092
 - MinIO API: http://localhost:9000
 - MinIO Console: http://localhost:9001
+消息队列使用数据库模拟模式（R-144），无需Kafka。
 EOF
 }
 

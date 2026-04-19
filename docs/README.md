@@ -10,6 +10,7 @@
    Codex 执行和仓库落地的 append-only 规则索引，按 `R-001` 至 `R-115` 编号维护。
 3. 产品/设计/接口文档
    当前阶段以 [架构初始化总文档](./architecture/init.md) 中的接口契约与服务边界为准，后续新增文档统一补入 `docs/`。
+   - [消息抽象说明](./architecture/messaging-abstraction.md)
 4. [阶段0执行计划](./plans/phase-0-plan.md)
    当前初始化阶段的任务顺序、依赖关系、验收口径与交付节奏。
 5. [本地部署指南](./deployments/local-setup.md)
@@ -26,6 +27,7 @@
 
 - `architecture/`
   架构总览与初始化基线。
+  - `messaging-abstraction.md`：Kafka 与消息能力的本地开发抽象模式、切换方式和契约约束。
 - `rules/`
   规则库与可执行约束。
 - `adr/`

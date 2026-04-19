@@ -7,8 +7,21 @@ spring:
   redis:
     cluster:
       nodes: ${SQLFORGE_PROD_REDIS_NODES:redis-prod-1:6379,redis-prod-2:6379,redis-prod-3:6379}
+
+# R-144：生产环境使用真实Kafka。
+messaging:
+  mode: KAFKA
   kafka:
+    enabled: true
     bootstrap-servers: ${SQLFORGE_PROD_KAFKA_BOOTSTRAP:kafka-prod-1:9092,kafka-prod-2:9092,kafka-prod-3:9092}
+    producer:
+      acks: all
+      retries: 3
+    consumer:
+      group-id: ${SQLFORGE_PROD_KAFKA_GROUP_ID:sqlforge-group}
+      auto-offset-reset: earliest
+  database:
+    enabled: false
 
 logging:
   level:

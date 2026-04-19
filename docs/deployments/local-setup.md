@@ -24,10 +24,11 @@ Windows PowerShell：
 启动脚本会完成以下动作：
 
 1. 检查 Docker 与 Docker Compose 是否已安装
-2. 检查 `3306`、`6379`、`9092`、`9000` 端口是否被占用
-3. 启动 MySQL、Redis、Kafka、MinIO
+2. 检查 `3306`、`6379`、`9000` 端口是否被占用
+3. 启动 MySQL、Redis、MinIO
 4. 等待 MySQL 就绪
 5. 自动执行 `sql/init-schema.sql` 与 `sql/init-data.sql`
+6. 检查 `kafka_message_queue` 表是否存在
 
 ## 手动启动
 
@@ -84,7 +85,6 @@ PowerShell：
 
 - MySQL：`localhost:3306`
 - Redis：`localhost:6379`
-- Kafka：`localhost:9092`
 - MinIO API：`http://localhost:9000`
 - MinIO Console：`http://localhost:9001`
 - Governance Service：`http://localhost:8080/api/governance/health`
@@ -97,7 +97,6 @@ macOS / Linux：
 ```bash
 lsof -i :3306
 lsof -i :6379
-lsof -i :9092
 lsof -i :9000
 ```
 
@@ -106,9 +105,38 @@ Windows：
 ```powershell
 netstat -ano | findstr 3306
 netstat -ano | findstr 6379
-netstat -ano | findstr 9092
 netstat -ano | findstr 9000
 ```
+
+## 消息队列本地开发
+
+本地开发使用 R-144 `DATABASE` 模式，无需启动 Kafka。消息发送、消费、重试与待处理状态统一通过 `kafka_message_queue` 表模拟。
+
+验证命令：
+
+```sql
+SELECT * FROM kafka_message_queue;
+```
+
+管理接口：
+
+```bash
+curl -X POST http://localhost:8080/admin/messages/retry
+```
+
+如需检查待处理消息数量，也可以执行：
+
+```sql
+SELECT COUNT(*) FROM kafka_message_queue WHERE status = 'PENDING';
+```
+
+## 生产环境切换
+
+生产环境切换到真实 Kafka 时：
+
+1. 将 `messaging.mode` 修改为 `KAFKA`
+2. 配置 `messaging.kafka.bootstrap-servers`
+3. 使用 `docker compose --profile optional up -d kafka` 或生产编排启用 Kafka 服务
 
 ## 数据重置
 
@@ -182,11 +210,11 @@ docker-compose -f docker-compose-simple.yml up -d
 - 确认本机 `3306` 端口未被其他 MySQL 占用
 - 确认本地开发配置使用 `jdbc:mysql://localhost:3306/sqlforge?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true`
 
-### Kafka 连不上
+### 消息队列表不存在
 
-- 确认 `localhost:9092` 未被其他 Kafka 占用
-- 确认 `docker logs sqlforge-kafka` 中 KRaft 初始化成功
-- 本地消费者与生产者统一使用 `localhost:9092`
+- 重新执行 `sql/init-schema.sql`
+- 确认 `docker compose exec -T mysql mysql -uroot -psqlforge sqlforge < sql/init-schema.sql` 执行成功
+- 确认本地配置为 `messaging.mode=DATABASE`
 
 ### 前端代理失效
 
