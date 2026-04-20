@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import DashboardView from '../views/dashboard/DashboardView.vue'
 import RoutePlaceholder from '../views/common/RoutePlaceholder.vue'
+import { deliveryProgressEnabled } from '../config/runtimeFlags'
 
 export const constantRoutes = [
   {
@@ -93,6 +94,21 @@ export const constantRoutes = [
     }
   }
 ]
+
+if (deliveryProgressEnabled) {
+  constantRoutes.splice(2, 0, {
+    path: '/delivery-progress',
+    name: 'DeliveryProgress',
+    component: () => import('../views/delivery/DeliveryProgressView.vue'),
+    meta: {
+      menu: true,
+      temporary: true,
+      envLimited: true,
+      titleKey: 'deliveryProgress.title',
+      descriptionKey: 'deliveryProgress.summary'
+    }
+  })
+}
 
 const router = createRouter({
   history: createWebHistory(),

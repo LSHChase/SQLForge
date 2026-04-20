@@ -4,6 +4,79 @@
 
 ## Done
 
+### E-TASK-009: 建立临时 AI 交付进度页路由与展示骨架
+
+- Status: done
+- Priority: 2
+- Depends on: E-TASK-001, E-TASK-002, Phase-C
+- Completed at: 2026-04-20
+- Commit subject: `feat(frontend): E-TASK-009 complete temporary delivery progress page`
+- Scope: 建立 `/delivery-progress` 临时只读页面，展示 AI 编码任务进度且与 `/dashboard` 分离；展示真值只来自 `tasks.md`、`tasks-done.md`、验证日志和执行计划派生快照。
+- Validation:
+  - `npm run build`
+  - `npm run build -- --mode development --outDir dist-dev`
+  - `npm run lint`
+  - `python3 scripts/task_audit.py --check`
+  - `node scripts/lint-repository-knowledge.js`
+  - 非生产路由可达
+  - 生产默认隐藏
+- Progress log:
+  - 2026-04-20: instantiated from `Phase-E / E-STORY-004` as the temporary AI delivery progress page task.
+  - 2026-04-20: started early by explicit human direction while the repository active wave remains `Phase-C`; execution must preserve `R-166` boundaries and keep `/dashboard` as the official business homepage.
+  - 2026-04-20: extended the temporary page with runtime-flag semantics, temporary/non-production navigation badges, and ledger-derived sections for recent changes, pending blockers, and dependency chains without introducing a parallel state source.
+  - 2026-04-20: completed current implementation and validation scope for `E-STORY-004`, appended validation evidence, and archived the task after single-task git closeout.
+
+### C-TASK-001: 盘点应抽取的公共能力
+
+- Status: done
+- Priority: 1
+- Depends on: none
+- Completed at: 2026-04-20
+- Commit subject: `docs(governance): DOC-GOV-001 establish document truth baseline`
+- Scope: 对照 `sqlforge-common`、`governance-service` 与文档边界，产出当前应收敛到 common 的能力清单，明确哪些能力仍留在业务模块。
+- Validation:
+  - `mvn clean compile`
+  - `node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/task_audit.py --check`
+- Progress log:
+  - 2026-04-20: instantiated from `Phase-C` as the first executable shared-foundation task.
+  - 2026-04-20: `docs/plans/implementation-readiness.md` 与 `docs/architecture/service-capability-map.md` 已把 `sqlforge-common` 应承载的公共能力和禁入边界显式盘点完成，并写入主计划和真值文档。
+  - 2026-04-20: strict ledger reconciliation revalidated repository compile and knowledge lint, then archived the inventory task because its implementation and git-history evidence are both present.
+
+### C-TASK-004: 对齐所有 application-*.yml 职责
+
+- Status: done
+- Priority: 2
+- Depends on: none
+- Completed at: 2026-04-20
+- Commit subject: `refactor(R-144): sync kafka abstraction to compose, scripts, config, sql, docs, lint`
+- Scope: 明确 dev/test/prod 配置职责，补齐 coverage 和 Sonar 执行入口所需的环境说明，不改变生产默认安全语义。
+- Validation:
+  - `bash scripts/run-coverage.sh --phase report-only`
+  - `node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/task_audit.py --check`
+- Progress log:
+  - 2026-04-20: instantiated from `Phase-C` to align configuration responsibilities before deeper service hardening.
+  - 2026-04-20: dev / main-test / test-resource / prod 的 `messaging.mode` 职责已分别固定为 `DATABASE` / `DATABASE` / `MOCK` / `KAFKA`，并同步到了本地部署和消息抽象文档。
+  - 2026-04-20: strict ledger reconciliation reran `bash scripts/run-coverage.sh --phase report-only`, confirmed report generation and profile responsibility consistency, then archived the task.
+
+### C-TASK-006: 完成消息流管理接口验证
+
+- Status: done
+- Priority: 2
+- Depends on: C-TASK-005
+- Completed at: 2026-04-20
+- Commit subject: `feat(R-144): add database queue admin endpoints and runtime verification`
+- Scope: 验证 retry/stats/manual smoke 管理接口，确保消息表与治理管理面闭环可用。
+- Validation:
+  - `mvn test`
+  - `node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/task_audit.py --check`
+- Progress log:
+  - 2026-04-20: instantiated from `Phase-C` after message abstraction routing was established.
+  - 2026-04-20: `MessageAdminController`、`MessageAdminApplicationServiceTest`、`scripts/manual-message-queue-smoke.sh`、`docs/deliveries/init-completion.md` 与 `docs/deployments/local-setup.md` 已形成管理接口、消息表和人工 smoke 的验证闭环。
+  - 2026-04-20: strict ledger reconciliation revalidated the current test chain and knowledge lint, confirmed that runtime verification evidence is already documented, then archived the task.
+
 ### HARN-001: Codify foreman workflow and task ledger
 
 - Status: done

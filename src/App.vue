@@ -26,6 +26,28 @@ const workspaceSummary = computed(() =>
   })
 )
 const userBadge = computed(() => `${userStore.displayName} · ${userStore.role}`)
+const buildRoutePills = meta => {
+  const pills = []
+
+  if (meta?.temporary) {
+    pills.push({
+      key: 'temporary',
+      label: t('common.temporaryPage'),
+      className: 'status-pill-temporary'
+    })
+  }
+
+  if (meta?.envLimited) {
+    pills.push({
+      key: 'envLimited',
+      label: t('common.nonProductionOnly'),
+      className: 'status-pill-muted'
+    })
+  }
+
+  return pills
+}
+const activeRoutePills = computed(() => buildRoutePills(route.meta))
 
 const handleThemeToggle = () => {
   globalConfigStore.toggleTheme()
@@ -66,7 +88,22 @@ onMounted(() => {
                 :key="item.path"
                 :index="item.path"
               >
-                <span class="menu-item-label">{{ t(item.meta.titleKey) }}</span>
+                <div class="menu-item-content">
+                  <span class="menu-item-label">{{ t(item.meta.titleKey) }}</span>
+                  <div
+                    v-if="buildRoutePills(item.meta).length"
+                    class="menu-item-pills"
+                  >
+                    <span
+                      v-for="pill in buildRoutePills(item.meta)"
+                      :key="`${item.path}-${pill.key}`"
+                      class="menu-item-pill"
+                      :class="pill.className"
+                    >
+                      {{ pill.label }}
+                    </span>
+                  </div>
+                </div>
               </el-menu-item>
             </el-menu>
           </el-scrollbar>
@@ -97,7 +134,17 @@ onMounted(() => {
             <p class="page-kicker">{{ t('common.currentWorkspace') }}</p>
             <div class="page-title-row">
               <h2 class="page-title">{{ t(route.meta.titleKey || 'dashboard.title') }}</h2>
-              <span class="page-status-pill">{{ t('common.desktopMode') }}</span>
+              <div class="page-title-pills">
+                <span class="page-status-pill">{{ t('common.desktopMode') }}</span>
+                <span
+                  v-for="pill in activeRoutePills"
+                  :key="pill.key"
+                  class="page-status-pill"
+                  :class="pill.className"
+                >
+                  {{ pill.label }}
+                </span>
+              </div>
             </div>
             <p class="page-summary">{{ pageDescription }}</p>
           </div>
@@ -209,6 +256,17 @@ onMounted(() => {
   color: var(--sqlforge-text-secondary);
 }
 
+.status-pill-temporary {
+  border-color: rgba(214, 179, 48, 0.28);
+  background: rgba(214, 179, 48, 0.12);
+}
+
+.status-pill-muted {
+  border-color: var(--sqlforge-border-default);
+  background: transparent;
+  color: var(--sqlforge-text-secondary);
+}
+
 .sidebar-section {
   flex: 1;
   min-height: 0;
@@ -248,6 +306,32 @@ onMounted(() => {
 .menu-item-label {
   font-size: 14px;
   font-weight: 500;
+}
+
+.menu-item-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.menu-item-pills,
+.page-title-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.menu-item-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-pill);
+  color: var(--sqlforge-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .sidebar-runtime {
@@ -298,6 +382,7 @@ onMounted(() => {
 .page-title-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   margin-top: 8px;
 }

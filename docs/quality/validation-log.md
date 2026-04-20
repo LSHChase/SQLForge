@@ -50,3 +50,10 @@
 2026-04-20T03:50:52-05:00 | DOC-GOV-003 closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
 2026-04-20T04:05:05-05:00 | DOC-GOV-004 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-20T04:05:05-05:00 | DOC-GOV-004 closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T09:30:10-05:00 | E-TASK-009 second-pass frontend-lint | `R-124`, `R-133`, `R-166` | passed | `npm run lint`
+2026-04-20T09:30:10-05:00 | E-TASK-009 second-pass frontend-build prod | `R-124`, `R-133`, `R-166` | passed | `npm run build`
+2026-04-20T09:30:10-05:00 | E-TASK-009 second-pass frontend-build dev | `R-124`, `R-133`, `R-166` | passed | `npm run build -- --mode development --outDir dist-dev`
+2026-04-20T09:30:10-05:00 | E-TASK-009 second-pass prod-route-hidden | `R-166` | passed | `rg -n "/delivery-progress" dist` returned no matches
+2026-04-20T09:30:10-05:00 | E-TASK-009 second-pass dev-route-visible | `R-166` | passed | `rg -n "/delivery-progress" dist-dev`
+2026-04-20T09:30:10-05:00 | E-TASK-009 second-pass task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T09:30:10-05:00 | E-TASK-009 second-pass knowledge-lint | `R-131`, `R-133`, `R-166` | passed | `node scripts/lint-repository-knowledge.js`

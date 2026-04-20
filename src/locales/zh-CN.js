@@ -12,6 +12,8 @@ export default {
     backupEngine: '备用引擎',
     currentTenant: '当前租户',
     desktopMode: '桌面端基线',
+    temporaryPage: '临时页',
+    nonProductionOnly: '仅非生产',
     switchToDark: '切换深色',
     switchToLight: '切换浅色'
   },
@@ -41,6 +43,89 @@ export default {
     activitySummary: '保留运行时间线视角，避免首页退化成静态介绍页。',
     nextTitle: '建议动作',
     nextSummary: '根据当前风险与运行状态，直接进入对应业务页面处理。'
+  },
+  deliveryProgress: {
+    title: 'AI交付进度',
+    summary: '仅在研发/交付阶段展示 AI 编码任务推进状态、验证结果与模块进度。',
+    eyebrow: 'delivery strict mode',
+    heroTitle: '把 AI 编码任务的推进真值固定在权威台账之上。',
+    heroSummary:
+      '该页面只读展示 `tasks.md`、`tasks-done.md`、验证日志与执行计划派生出的交付快照，不替代正式业务首页，也不维护平行状态源。',
+    visibilityLabel: 'production hidden',
+    visibilityTitle: '该页面仅在非生产环境展示',
+    visibilitySummary: '项目投产后默认隐藏入口，历史记录继续保留在任务台账、验证日志和 Git 回写中。',
+    summaryTitle: '状态总览',
+    summaryDescription: '先看任务状态分布，再下钻具体执行、模块进度与验证证据。',
+    activeTasksTitle: '活动任务',
+    activeTasksDescription: '当前进行中、待办、待审与阻塞任务都来自活动任务台账快照。',
+    moduleTitle: '模块进度',
+    moduleDescription: '按任务 ID 所在执行域汇总完成率，便于快速判断推进密度与堵点。',
+    recentChangesTitle: '最近变更',
+    recentChangesDescription: '将任务进度日志、归档记录与验证日志合并成一个只读时间线，便于回溯最近一次真实动作。',
+    blockedTitle: '阻塞与待决原因',
+    blockedDescription: '优先列出显式 blocked 任务；若当前无 blocked，则回退展示最新进展日志中仍未闭合的待决项。',
+    blockedFootnote: '当前列表包含台账中已显式标记为 blocked 的任务。',
+    pendingFootnote: '当前无显式 blocked 任务，以下为从最新进度日志提取的待决原因。',
+    dependencyTitle: '依赖链',
+    dependencyDescription: '把活动任务依赖拆开展示，区分已在台账、仅在计划和未被跟踪的依赖。',
+    completedTitle: '最近完成',
+    completedDescription: '已归档任务与 commit subject 只从 `tasks-done.md` 派生，不手填。',
+    validationTitle: '最近验证',
+    validationDescription: '验证时间线只读展示 `validation-log.md` 的最新记录。',
+    changeKind: {
+      progress: '进度回写',
+      done: '任务归档',
+      validation: '验证记录'
+    },
+    cards: {
+      todo: '待开始',
+      inProgress: '执行中',
+      inReview: '待验收',
+      blocked: '已阻塞',
+      done: '已完成'
+    },
+    status: {
+      todo: '待开始',
+      in_progress: '执行中',
+      in_review: '待验收',
+      blocked: '已阻塞',
+      done: '已完成',
+      planned: '计划中',
+      untracked: '未跟踪'
+    },
+    dependencySource: {
+      ledger: '来源: 任务台账',
+      plan: '来源: 执行计划',
+      external: '来源: 待人工补齐'
+    },
+    runtime: {
+      modePill: '模式 {mode}',
+      modeLabel: '当前模式',
+      flagLabel: '开关状态',
+      scopeLabel: '可见范围',
+      scope: '非生产可见',
+      reasonNonProduction: '当前为非生产构建，且未通过 `VITE_ENABLE_DELIVERY_PROGRESS=false` 关闭该临时页面入口。',
+      reasonFlagDisabled: '当前构建虽然不是生产模式，但显式设置了 `VITE_ENABLE_DELIVERY_PROGRESS=false`，因此入口不会注册。',
+      reasonProduction: '生产构建不会注册该临时页面路由；投产后默认不可见。',
+      flag: {
+        enabled: '已显式启用',
+        disabled: '已显式关闭',
+        default: '默认开启'
+      }
+    },
+    meta: {
+      priority: '优先级',
+      dependsOn: '依赖',
+      totalTasks: '个任务',
+      blockedSource: '来源: 最新进度日志',
+      unresolvedCount: '未闭合依赖 {count} 个'
+    },
+    empty: {
+      blockedTitle: '当前没有待展示的阻塞项',
+      blockedDescription: '若后续任务进入 `blocked`，或最新进度日志写入新的待决原因，这里会自动刷新。',
+      dependencyTitle: '当前没有依赖链',
+      dependencyDescription: '待活动任务补入 `Depends on` 后，这里会自动展示依赖结构。'
+    }
   },
   sqlQuery: {
     title: 'SQL查询',
