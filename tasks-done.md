@@ -84,6 +84,24 @@
   - 2026-04-20: `docs/plans/implementation-readiness.md` 与 `docs/architecture/service-capability-map.md` 已把 `sqlforge-common` 应承载的公共能力和禁入边界显式盘点完成，并写入主计划和真值文档。
   - 2026-04-20: strict ledger reconciliation revalidated repository compile and knowledge lint, then archived the inventory task because its implementation and git-history evidence are both present.
 
+### C-TASK-002: 建立 common 包结构
+
+- Status: done
+- Priority: 1
+- Depends on: C-TASK-001
+- Completed at: 2026-04-20
+- Commit subject: `refactor(common): C-TASK-002 close shared package structure baseline`
+- Scope: 按“领域目录 + 分层子目录”与公共层边界建立 `sqlforge-common` 的目标包结构，不引入服务专属逻辑。
+- Validation:
+  - `mvn -B clean compile`
+  - `mvn -B test`
+  - `mvn -B validate pmd:pmd checkstyle:check`
+  - `node scripts/lint-repository-knowledge.js`
+- Progress log:
+  - 2026-04-20: instantiated from `Phase-C` after shared-capability inventory.
+  - 2026-04-20: strict ledger reconciliation marked the task as partial; `sqlforge-common` 已形成 `async`、`audit`、`config`、`constants`、`context`、`exception`、`log`、`utils` 包结构，且当前验证链 `mvn clean compile`、`mvn test`、`mvn validate pmd:pmd checkstyle:check`、`node scripts/lint-repository-knowledge.js` 已通过，但单任务 git closeout 仍缺失，暂不归档。
+  - 2026-04-20: synced `document-truth-baseline.md` so the shared module no longer appears as a placeholder-only module, then archived the package-structure task for single-task git closeout.
+
 ### C-TASK-004: 对齐所有 application-*.yml 职责
 
 - Status: done

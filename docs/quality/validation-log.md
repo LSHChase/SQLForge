@@ -81,3 +81,7 @@
 2026-04-20T11:48:25-05:00 | DOC-GOV-005 closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
 2026-04-20T11:50:38-05:00 | OPS-GOV-001 sonar-entrypoint | `R-117` | skipped | `bash scripts/run-sonar.sh` => missing `SONAR_HOST_URL` and `SONAR_TOKEN`
 2026-04-20T11:50:38-05:00 | OPS-GOV-001 coverage-entrypoint | `R-117` | passed | `bash scripts/run-coverage.sh --phase report-only`
+2026-04-20T11:54:11-05:00 | C-TASK-002 closeout compile | `R-119`, `R-120` | passed | `mvn -B clean compile`
+2026-04-20T11:54:11-05:00 | C-TASK-002 closeout test | `R-119`, `R-120` | passed | `mvn -B test`
+2026-04-20T11:54:11-05:00 | C-TASK-002 closeout static-check | `R-040`, `R-120` | passed | `mvn -B validate pmd:pmd checkstyle:check`
+2026-04-20T11:54:11-05:00 | C-TASK-002 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`

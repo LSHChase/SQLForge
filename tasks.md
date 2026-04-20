@@ -16,20 +16,6 @@ _No tasks._
 
 ## In Review
 
-### C-TASK-002: 建立 common 包结构
-
-- Status: in_review
-- Priority: 1
-- Depends on: C-TASK-001
-- Scope: 按“领域目录 + 分层子目录”与公共层边界建立 `sqlforge-common` 的目标包结构，不引入服务专属逻辑。
-- Validation:
-  - 目录结构符合 `R-021`、`R-022`、`R-067`
-  - `mvn -B clean compile`
-  - 包结构回归检查
-- Progress log:
-  - 2026-04-20: instantiated from `Phase-C` after shared-capability inventory.
-  - 2026-04-20: strict ledger reconciliation marked the task as partial; `sqlforge-common` 已形成 `async`、`audit`、`config`、`constants`、`context`、`exception`、`log`、`utils` 包结构，且当前验证链 `mvn clean compile`、`mvn test`、`mvn validate pmd:pmd checkstyle:check`、`node scripts/lint-repository-knowledge.js` 已通过，但单任务 git closeout 仍缺失，暂不归档。
-
 ### C-TASK-003: 迁移重复或散落能力
 
 - Status: in_review

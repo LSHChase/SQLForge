@@ -25,18 +25,28 @@
 - Maven 聚合工程存在两个后端模块：
   - `sqlforge-common/`
   - `governance-service/`
-- `sqlforge-common/` 当前仍为占位共享模块，仅有 `pom.xml`，尚未承载公共源码。
+- `sqlforge-common/` 已承载共享底座基线：
+  - 统一错误码常量
+  - 请求/租户上下文
+  - 共享异常模型
+  - 审计事件契约
+  - 公共配置契约与通用工具
 - `governance-service/` 已具备最小治理基线：
   - Spring Boot 应用入口
   - controller / application service / domain / infrastructure 分层骨架
-  - 最小租户上下文建立与拦截器
+  - 受保护接口的统一请求上下文拦截器，当前要求完整 `X-*` 请求上下文字段
+  - `DATABASE` / `MOCK` 可运行的消息抽象基线，以及 `KAFKA` 客户端接入基线
+  - 内部治理契约入口（租户范围、数据源访问、审计写入、调度扩展点）
+  - 数据库消息管理接口（`retry` / `stats`），并限制在 `DATABASE` 模式下使用
   - MyBatis XML
   - 多环境配置
   - 基础测试
 - 当前已验证通过：
+  - `mvn clean compile`
+  - `mvn test`
+  - `mvn validate pmd:pmd checkstyle:check`
   - `node scripts/lint-repository-knowledge.js`
   - `node scripts/check-frontend-backend-separation.js`
-  - `mvn -B test`
   - `npm run build`
   - `npm run lint`
 
@@ -81,9 +91,10 @@
 
 ## Immediate Pending Gaps
 
-- `sqlforge-common` 尚未落成共享公共层实现。
 - 4 微服务中的查询执行服务、SQL 优化服务、压测引擎服务仍未建立独立代码模块。
 - 访问控制当前仍是“最小租户校验基线”，尚未形成完整角色矩阵和数据源授权实现。
+- `KAFKA` 模式虽已接入真实客户端，但尚未沉淀真实 Kafka 集群运行验证、鉴权和安全参数配置证据。
+- 治理扩展点当前仍以租户范围、数据源访问、审计写入、调度状态契约为主，未演进为完整治理中心能力。
 - 前端当前仍以基础壳层为主，尚未落成完整驾驶舱与五大业务页。
 
 ## Related Documents
