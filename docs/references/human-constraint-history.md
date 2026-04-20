@@ -89,3 +89,15 @@
 - 影响：
   - 主执行计划中的 `HC-001`、`HC-003`、`HC-005`、`HC-006` 进入已确认状态。
   - 后续服务拆分、ADR、部署与安全文档必须以本次决策为准。
+
+## 2026-04-19T14:00:00-05:00
+
+- 事件：继续执行后，对 `docs/references/raw-requirements/` 的历史规则冲突进行语义澄清并收口。
+- 结论：
+  - `docs/references/raw-requirements/` 是长期归档根目录，必须持续存在。
+  - 初始化阶段允许其先为空目录；一旦引入原始资料，允许并要求在该目录下保留文件和子目录。
+  - 后续不能再把“必须保持为空目录”作为长期验收口径。
+- 落点：
+  - `docs/rules/codex-rules.md` 追加 `R-155`
+  - `docs/plans/master-execution-plan.md`
+  - `docs/plans/phase-0-plan.md`

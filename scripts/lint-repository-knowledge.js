@@ -39,7 +39,7 @@ const requiredReadmeMarkers = [
   'docs/plans/phase-0-plan.md'
 ]
 
-const expectedRuleEnd = 154
+const expectedRuleEnd = 155
 const expectedValidationIndexRanges = [
   [116, 144],
   [151, 154]
