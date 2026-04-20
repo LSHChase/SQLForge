@@ -24,5 +24,6 @@ logging:
 
 auth:
   enabled: true
-  valid-tokens:
-    - ${SQLFORGE_TEST_AUTH_TOKEN:test-auth-token}
+  trusted-auth-sources:
+    - header
+    - gateway

@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class AuthProperties {
 
     private boolean enabled = false;
-    private List<String> validTokens = new ArrayList<>();
+    private List<String> trustedAuthSources = new ArrayList<String>();
 
     public boolean isEnabled() {
         return enabled;
@@ -18,11 +18,11 @@ public class AuthProperties {
         this.enabled = enabled;
     }
 
-    public List<String> getValidTokens() {
-        return validTokens;
+    public List<String> getTrustedAuthSources() {
+        return trustedAuthSources;
     }
 
-    public void setValidTokens(List<String> validTokens) {
-        this.validTokens = validTokens;
+    public void setTrustedAuthSources(List<String> trustedAuthSources) {
+        this.trustedAuthSources = trustedAuthSources;
     }
 }

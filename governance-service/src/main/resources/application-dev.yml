@@ -38,3 +38,5 @@ sqlforge:
 
 auth:
   enabled: false
+  trusted-auth-sources:
+    - header

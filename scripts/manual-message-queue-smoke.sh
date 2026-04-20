@@ -7,6 +7,10 @@ MYSQL_CONTAINER="${MYSQL_CONTAINER:-sqlforge-mysql}"
 MYSQL_DATABASE="${MYSQL_DATABASE:-sqlforge}"
 MYSQL_USER="${MYSQL_USER:-sqlforge}"
 MYSQL_PASSWORD="${MYSQL_PASSWORD:-sqlforge}"
+REQUEST_TENANT_ID="${REQUEST_TENANT_ID:-system}"
+REQUEST_USER_ID="${REQUEST_USER_ID:-operator-001}"
+REQUEST_ROLE_CODES="${REQUEST_ROLE_CODES:-TENANT_ADMIN,OPERATOR}"
+REQUEST_AUTH_SOURCE="${REQUEST_AUTH_SOURCE:-header}"
 
 MESSAGE_ID=""
 MESSAGE_TOPIC="manual.smoke"
@@ -45,8 +49,9 @@ print_step() {
 assert_http_ok() {
   local url="$1"
   local status_code
+  shift
 
-  status_code="$(curl -s -o /tmp/sqlforge-manual-smoke-response.out -w '%{http_code}' "${url}")"
+  status_code="$(curl -s -o /tmp/sqlforge-manual-smoke-response.out -w '%{http_code}' "$@" "${url}")"
   if [[ "${status_code}" != "200" ]]; then
     echo "HTTP request failed for ${url}, status=${status_code}" >&2
     [[ -f /tmp/sqlforge-manual-smoke-response.out ]] && cat /tmp/sqlforge-manual-smoke-response.out >&2
@@ -58,14 +63,32 @@ assert_http_ok() {
 assert_post_ok() {
   local url="$1"
   local status_code
+  shift
 
-  status_code="$(curl -s -o /tmp/sqlforge-manual-smoke-response.out -w '%{http_code}' -X POST "${url}")"
+  status_code="$(curl -s -o /tmp/sqlforge-manual-smoke-response.out -w '%{http_code}' -X POST "$@" "${url}")"
   if [[ "${status_code}" != "200" ]]; then
     echo "HTTP POST failed for ${url}, status=${status_code}" >&2
     [[ -f /tmp/sqlforge-manual-smoke-response.out ]] && cat /tmp/sqlforge-manual-smoke-response.out >&2
     exit 1
   fi
   cat /tmp/sqlforge-manual-smoke-response.out
+}
+
+build_protected_headers() {
+  local request_id="$1"
+  local trace_id="$2"
+  local issued_at="$3"
+  local expires_at="$4"
+
+  printf '%s\n' \
+    "-H" "${REQUEST_HEADER_TENANT_ID:-X-Tenant-Id}: ${REQUEST_TENANT_ID}" \
+    "-H" "${REQUEST_HEADER_USER_ID:-X-User-Id}: ${REQUEST_USER_ID}" \
+    "-H" "${REQUEST_HEADER_ROLE_CODES:-X-Role-Codes}: ${REQUEST_ROLE_CODES}" \
+    "-H" "${REQUEST_HEADER_REQUEST_ID:-X-Request-Id}: ${request_id}" \
+    "-H" "${REQUEST_HEADER_TRACE_ID:-X-Trace-Id}: ${trace_id}" \
+    "-H" "${REQUEST_HEADER_AUTH_SOURCE:-X-Auth-Source}: ${REQUEST_AUTH_SOURCE}" \
+    "-H" "${REQUEST_HEADER_ISSUED_AT:-X-Issued-At}: ${issued_at}" \
+    "-H" "${REQUEST_HEADER_EXPIRES_AT:-X-Expires-At}: ${expires_at}"
 }
 
 cleanup_message() {
@@ -79,7 +102,9 @@ cleanup_message() {
 }
 
 main() {
-  local trace_id message_body message_headers stats_before stats_after retry_response row_after
+  local trace_id request_id message_body message_headers stats_before stats_after retry_response row_after
+  local issued_at expires_at
+  local -a protected_headers
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -103,6 +128,10 @@ main() {
   require_command curl
 
   trace_id="manual-smoke-$(date +%Y%m%d%H%M%S)"
+  request_id="manual-request-$(date +%Y%m%d%H%M%S)"
+  issued_at="$(date +%s000)"
+  expires_at="$((issued_at + 600000))"
+  mapfile -t protected_headers < <(build_protected_headers "${request_id}" "${trace_id}" "${issued_at}" "${expires_at}")
   printf -v message_body "${MESSAGE_BODY_TEMPLATE}" "${trace_id}"
   printf -v message_headers "${MESSAGE_HEADERS_TEMPLATE}" "${trace_id}"
 
@@ -110,7 +139,7 @@ main() {
   assert_http_ok "${API_BASE_URL}/api/governance/health"
 
   print_step "Reading queue stats before insert"
-  stats_before="$(assert_http_ok "${API_BASE_URL}/admin/messages/stats")"
+  stats_before="$(assert_http_ok "${API_BASE_URL}/api/governance/admin/messages/stats" "${protected_headers[@]}")"
   echo "${stats_before}"
 
   print_step "Inserting a FAILED smoke-test message into kafka_message_queue"
@@ -122,7 +151,7 @@ main() {
   mysql_exec "SELECT id, topic, status, retry_count, error_log FROM kafka_message_queue WHERE id = ${MESSAGE_ID};"
 
   print_step "Calling retry endpoint"
-  retry_response="$(assert_post_ok "${API_BASE_URL}/admin/messages/retry")"
+  retry_response="$(assert_post_ok "${API_BASE_URL}/api/governance/admin/messages/retry" "${protected_headers[@]}")"
   echo "${retry_response}"
 
   print_step "Validating row after retry"
@@ -134,7 +163,7 @@ main() {
   fi
 
   print_step "Reading queue stats after retry"
-  stats_after="$(assert_http_ok "${API_BASE_URL}/admin/messages/stats")"
+  stats_after="$(assert_http_ok "${API_BASE_URL}/api/governance/admin/messages/stats" "${protected_headers[@]}")"
   echo "${stats_after}"
 
   if [[ "${CLEANUP}" == "true" ]]; then

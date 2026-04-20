@@ -185,6 +185,9 @@
 - 当前占位能力已改为“显式角色门禁 + 显式数据源绑定占位配置 + 默认拒绝”
 - 当前 `governance-service` 仅对治理内置数据源 `governance-tenant-config` 提供基线放行，且要求 `PLATFORM_ADMIN` 或 `TENANT_ADMIN`
 - 其他数据源访问在当前阶段必须通过 `governance.access-control.placeholder.tenant-datasource-bindings` 显式配置，否则拒绝
+- 当前内部 `datasource-access/check` 契约在拒绝时必须返回显式错误码：
+  - 跨租户目标不匹配：`20001` `GOVERNANCE_TENANT_ACCESS_DENIED`
+  - 数据源绑定或授权拒绝：`20002` `GOVERNANCE_DATASOURCE_ACCESS_DENIED`
 - 当前治理服务已固定以下失败错误码：
   - 角色不满足治理访问要求：`20000` `GOVERNANCE_ACCESS_DENIED`
   - 跨租户访问拒绝：`20001` `GOVERNANCE_TENANT_ACCESS_DENIED`

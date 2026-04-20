@@ -2,8 +2,8 @@ package com.company.governance.application.controller;
 
 import com.company.governance.application.controller.vo.TenantConfigVO;
 import com.company.governance.application.service.TenantConfigApplicationService;
-import com.company.governance.common.context.RequestContext;
-import com.company.governance.common.context.TenantContext;
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.context.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;

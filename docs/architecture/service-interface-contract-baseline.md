@@ -24,6 +24,18 @@
 | `issuedAt` | Yes | 凭证签发时间 | 身份来源提供 |
 | `expiresAt` | Yes | 凭证失效时间 | 身份来源提供 |
 
+说明：
+
+- 当前 `governance-service` 对所有受保护接口统一要求以下请求头：
+  - `X-Tenant-Id`
+  - `X-User-Id`
+  - `X-Role-Codes`
+  - `X-Request-Id`
+  - `X-Trace-Id`
+  - `X-Auth-Source`
+  - `X-Issued-At`
+  - `X-Expires-At`
+
 ## 2. Unified Error Code Ownership
 
 遵循 `R-057`，错误码继续分为系统级 `10000-19999` 与业务级 `20000-29999`，并按服务域固定子区间：
@@ -50,9 +62,9 @@
 
 | Interaction | Transport | Contract owner | Required DTO / response baseline | Current status |
 |:---|:---|:---|:---|:---|
-| 查询执行服务 -> 公共管理服务 | HTTP | 公共管理服务 | `TenantScopeCheckRequest/Response`, `DatasourceAccessCheckRequest/Response`, `QuotaCheckRequest/Response`, `AuditWriteRequest/Response` | Planned |
-| SQL 优化服务 -> 公共管理服务 | HTTP | 公共管理服务 | `OptimizationApprovalCheckRequest/Response`, `MetadataLookupRequest/Response`, `AuditWriteRequest/Response` | Planned |
-| 压测引擎服务 -> 公共管理服务 | HTTP | 公共管理服务 | `BenchmarkAuthorizationRequest/Response`, `ShadowEnvironmentCheckRequest/Response`, `AuditWriteRequest/Response` | Planned |
+| 查询执行服务 -> 公共管理服务 | HTTP | 公共管理服务 | `TenantScopeCheckRequest/Response`, `DatasourceAccessCheckRequest/Response`, `QuotaCheckRequest/Response`, `AuditWriteRequest/Response` | Partial |
+| SQL 优化服务 -> 公共管理服务 | HTTP | 公共管理服务 | `OptimizationApprovalCheckRequest/Response`, `MetadataLookupRequest/Response`, `AuditWriteRequest/Response` | Partial |
+| 压测引擎服务 -> 公共管理服务 | HTTP | 公共管理服务 | `BenchmarkAuthorizationRequest/Response`, `ShadowEnvironmentCheckRequest/Response`, `AuditWriteRequest/Response` | Partial |
 | 查询执行服务 -> SQL 优化服务 | HTTP / async callback | SQL 优化服务 | `OptimizationTaskSubmitRequest/Response`, `OptimizationTaskStatusResponse`, `AccelerationPlanApplyRequest/Response` | Planned |
 | 压测引擎服务 -> 查询执行服务 | HTTP | 查询执行服务 | `QueryFingerprintLookupRequest/Response`, `RoutingRuleSnapshotRequest/Response` | Planned |
 
@@ -61,13 +73,25 @@
 - 所有 DTO 均为跨服务契约对象，不得复用内部 entity。
 - `sqlforge-common` 仅承载共享契约基类、通用上下文和错误响应，不承载某一服务专属业务 DTO。
 - 若跨服务契约变化具有兼容风险，必须先更新本文件和主计划，再进入实现。
-
-## 4. Event Contract Baseline
-
+- 当前 `governance-service` 已提供首轮内部契约入口：
+  - `/api/governance/internal/tenant-scope/check`
+  - `/api/governance/internal/datasource-access/check`
+  - `/api/governance/internal/audit/write`
+  - `/api/governance/internal/schedule/extensions`
 - 当前 `datasource-access` 占位实现已改为治理服务本地显式配置驱动：
   - 治理内置数据源按角色白名单放行
   - 其他数据源按租户绑定表放行
   - 未命中显式规则时默认拒绝
+
+治理内部契约当前收口如下：
+
+| Endpoint | Contract stage | Current implementation stage | Required baseline | Current notes |
+|:---|:---|:---|:---|:---|
+| `/api/governance/internal/datasource-access/check` | `LONG_TERM_BASELINE` | `TRANSITIONAL_SKELETON` | request: `tenantId`,`datasourceId`; response: `allowed`,`reason`,`errorCode`,`contractStage`,`implementationStage` | 长期保留为跨服务授权检查入口；当前决策仍由治理本地 placeholder 规则驱动 |
+| `/api/governance/internal/audit/write` | `LONG_TERM_BASELINE` | `TRANSITIONAL_SKELETON` | request: `serviceCode`,`operationCode`,`resourceType`,`resourceId`,`resultStatus`,`elapsedMs`,`sourceIp`,`userAgent`; response: `status`,`messageTopic`,`deliveryMode`,`contractStage`,`implementationStage` | 长期保留为跨服务审计写入入口；当前仍通过共享消息抽象发送审计事件 |
+| `/api/governance/internal/schedule/extensions` | `TRANSITIONAL_SKELETON` | `TRANSITIONAL_SKELETON` | response: `extensionPoint`,`ownerService`,`status`,`currentMode`,`contractStage`,`implementationStage` | 当前只暴露治理调度扩展状态骨架，不代表完整调度域模型已固化 |
+
+## 4. Event Contract Baseline
 
 | Event | Producer | Consumer | Payload minimum fields | Purpose |
 |:---|:---|:---|:---|:---|
@@ -82,6 +106,7 @@
 - 事件契约必须可审计、可追踪、可重放。
 - 事件名和字段语义由生产者拥有，但不得绕过本基线定义最低字段。
 - 若运行环境暂不启用消息中间件，必须保留等价的数据库队列或 mock 契约语义。
+- 当前代码已通过 `governance.audit.event` 发布审计事件契约；`ConfigChangedEvent` 等其他治理事件仍处于基线定义阶段。
 
 ## 5. Audit Contract Baseline
 
@@ -103,7 +128,29 @@
 | `sourceIp` | Yes |
 | `userAgent` | Yes |
 
-## 6. Related Documents
+说明：
+
+- 当前治理内部 `audit/write` 契约中：
+  - `tenantId`,`userId`,`traceId`,`requestId` 由受保护请求上下文提供
+  - `occurredAt` 由治理服务落审计事件时生成
+  - `serviceCode`,`operationCode`,`resourceType`,`resourceId`,`resultStatus`,`elapsedMs`,`sourceIp`,`userAgent` 由调用方显式提供
+- 当前 `audit/write` 失败错误码已固定：
+  - `10005` `SYSTEM_CONTEXT_MISSING`
+  - `10008` `SYSTEM_MESSAGE_MODE_INVALID`
+  - `10009` `SYSTEM_AUDIT_CONTRACT_INVALID`
+  - `11002` `GOVERNANCE_SYSTEM_MESSAGE_ROUTE_INVALID`
+
+## 6. Datasource Access Contract Baseline
+
+当前治理内部 `datasource-access/check` 契约返回规则：
+
+- `allowed=true` 时必须返回 `reason`，并显式返回 `contractStage` 与 `implementationStage`
+- `allowed=false` 时必须返回显式 `errorCode`
+- 当前失败错误码已固定：
+  - `20001` `GOVERNANCE_TENANT_ACCESS_DENIED`
+  - `20002` `GOVERNANCE_DATASOURCE_ACCESS_DENIED`
+
+## 7. Related Documents
 
 - `docs/security/access-control-spec.md`
 - `docs/architecture/service-capability-map.md`

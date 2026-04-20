@@ -1,6 +1,6 @@
 package com.company.governance.domain.tenant.entity;
 
-import com.company.common.constants.DataSourceTypeEnum;
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import java.time.LocalDateTime;
 
 public class TenantConfig {

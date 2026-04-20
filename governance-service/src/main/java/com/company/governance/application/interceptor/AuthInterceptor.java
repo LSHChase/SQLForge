@@ -1,28 +1,26 @@
 package com.company.governance.application.interceptor;
 
-import com.company.governance.common.context.RequestContext;
-import com.company.governance.common.context.TenantContext;
-import com.company.governance.common.exception.UnauthorizedException;
 import com.company.governance.config.AuthProperties;
+import com.company.sqlforge.common.audit.AuditContext;
+import com.company.sqlforge.common.config.RequestHeaderConstants;
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.exception.UnauthorizedException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthInterceptor.class);
-
-    private static final String TENANT_HEADER = "X-Tenant-Id";
-    private static final String USER_TOKEN_HEADER = "X-User-Token";
-    private static final String TRACE_ID_HEADER = "X-Trace-Id";
 
     private final AuthProperties authProperties;
 
@@ -33,31 +31,37 @@ public class AuthInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         try {
-            String traceId = resolveTraceId(request);
-            String tenantId = request.getHeader(TENANT_HEADER);
-            String userToken = request.getHeader(USER_TOKEN_HEADER);
+            String requestId = requireHeader(request, RequestHeaderConstants.REQUEST_ID);
+            String traceId = requireHeader(request, RequestHeaderConstants.TRACE_ID);
+            request.setAttribute(RequestHeaderConstants.REQUEST_ID, requestId);
+            request.setAttribute(RequestHeaderConstants.TRACE_ID, traceId);
 
-            RequestContext.set(traceId, userToken);
-            response.setHeader(TRACE_ID_HEADER, traceId);
+            String tenantId = requireHeader(request, RequestHeaderConstants.TENANT_ID);
+            String userId = requireHeader(request, RequestHeaderConstants.USER_ID);
+            List<String> roleCodes = parseRoleCodes(requireHeader(request, RequestHeaderConstants.ROLE_CODES));
+            String authSource = requireHeader(request, RequestHeaderConstants.AUTH_SOURCE);
+            long issuedAt = parseEpochMilli(request, RequestHeaderConstants.ISSUED_AT);
+            long expiresAt = parseEpochMilli(request, RequestHeaderConstants.EXPIRES_AT);
 
-            if (StringUtils.hasText(tenantId)) {
-                TenantContext.set(tenantId);
-            } else if (authProperties.isEnabled()) {
-                throw new UnauthorizedException("Missing X-Tenant-Id header");
-            } else {
-                LOGGER.warn("Missing X-Tenant-Id header, traceId={}, uri={}", traceId, request.getRequestURI());
-            }
+            validateTimeWindow(issuedAt, expiresAt);
+            validateAuthSource(authSource);
+            validateNotExpired(expiresAt);
 
-            validateToken(traceId, userToken, request.getRequestURI());
+            RequestContext.set(tenantId, userId, roleCodes, requestId, traceId, authSource, issuedAt, expiresAt);
+            response.setHeader(RequestHeaderConstants.REQUEST_ID, requestId);
+            response.setHeader(RequestHeaderConstants.TRACE_ID, traceId);
 
-            LOGGER.info("Resolved request context, traceId={}, tenantId={}, uri={}",
+            LOGGER.info("Resolved request context, requestId={}, traceId={}, tenantId={}, userId={}, roleCodes={}, uri={}",
+                requestId,
                 traceId,
-                StringUtils.hasText(tenantId) ? tenantId : "UNKNOWN",
+                tenantId,
+                userId,
+                roleCodes,
                 request.getRequestURI());
             return true;
         } catch (RuntimeException ex) {
-            TenantContext.clear();
             RequestContext.clear();
+            AuditContext.clear();
             throw ex;
         }
     }
@@ -67,29 +71,57 @@ public class AuthInterceptor implements HandlerInterceptor {
                                 HttpServletResponse response,
                                 Object handler,
                                 Exception ex) {
-        TenantContext.clear();
         RequestContext.clear();
+        AuditContext.clear();
     }
 
-    private String resolveTraceId(HttpServletRequest request) {
-        String traceId = request.getHeader(TRACE_ID_HEADER);
-        return StringUtils.hasText(traceId) ? traceId : UUID.randomUUID().toString();
+    private String requireHeader(HttpServletRequest request, String headerName) {
+        String headerValue = request.getHeader(headerName);
+        if (headerValue == null || headerValue.trim().isEmpty()) {
+            throw new UnauthorizedException("Missing " + headerName + " header");
+        }
+        return headerValue.trim();
     }
 
-    private void validateToken(String traceId, String userToken, String requestUri) {
-        if (!StringUtils.hasText(userToken)) {
-            if (authProperties.isEnabled()) {
-                throw new UnauthorizedException("Missing X-User-Token header");
-            }
-            LOGGER.warn("Missing X-User-Token header, traceId={}, uri={}", traceId, requestUri);
+    private List<String> parseRoleCodes(String rawRoleCodes) {
+        List<String> roleCodes = Arrays.stream(rawRoleCodes.split(","))
+            .map(String::trim)
+            .filter(item -> !item.isEmpty())
+            .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(roleCodes)) {
+            throw new UnauthorizedException("Missing " + RequestHeaderConstants.ROLE_CODES + " header");
+        }
+        return new ArrayList<String>(roleCodes);
+    }
+
+    private long parseEpochMilli(HttpServletRequest request, String headerName) {
+        String value = requireHeader(request, headerName);
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException ex) {
+            throw new UnauthorizedException("Invalid " + headerName + " header");
+        }
+    }
+
+    private void validateTimeWindow(long issuedAt, long expiresAt) {
+        if (issuedAt <= 0L || expiresAt <= 0L || issuedAt > expiresAt) {
+            throw new UnauthorizedException("Invalid authentication time window");
+        }
+    }
+
+    private void validateAuthSource(String authSource) {
+        if (!authProperties.isEnabled()) {
             return;
         }
-
-        List<String> validTokens = authProperties.getValidTokens();
-        if (!CollectionUtils.isEmpty(validTokens) && !validTokens.contains(userToken)) {
-            throw new UnauthorizedException("Invalid X-User-Token");
+        List<String> trustedAuthSources = authProperties.getTrustedAuthSources();
+        if (!CollectionUtils.isEmpty(trustedAuthSources) && !trustedAuthSources.contains(authSource)) {
+            throw new UnauthorizedException("Unsupported " + RequestHeaderConstants.AUTH_SOURCE + " header");
         }
+    }
 
-        LOGGER.info("Token校验预留, traceId={}, uri={}", traceId, requestUri);
+    private void validateNotExpired(long expiresAt) {
+        if (authProperties.isEnabled() && expiresAt < System.currentTimeMillis()) {
+            throw new UnauthorizedException("Authentication context has expired");
+        }
     }
 }

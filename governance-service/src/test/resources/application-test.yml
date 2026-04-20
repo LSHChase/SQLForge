@@ -5,3 +5,8 @@ spring:
 # 单元测试使用MOCK内存消息模式；集成测试配置见src/main/resources/application-test.yml。
 messaging:
   mode: MOCK
+
+auth:
+  enabled: false
+  trusted-auth-sources:
+    - header

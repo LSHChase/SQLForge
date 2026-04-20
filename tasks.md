@@ -16,24 +16,6 @@ _No tasks._
 
 ## In Review
 
-### C-TASK-009: 规划审计、数据源、调度扩展点
-
-- Status: in_review
-- Priority: 2
-- Depends on: C-TASK-008
-- Scope: 只补治理扩展契约和骨架，不提前塞入完整业务实现；保持审计、数据源和调度扩展点的接口、错误码和文档一致。
-- Validation:
-  - 接口文档和错误码一致
-  - `mvn -B clean compile`
-  - `mvn -B test`
-  - `mvn validate pmd:pmd checkstyle:check`
-  - `node scripts/lint-repository-knowledge.js`
-- Progress log:
-  - 2026-04-20: instantiated from `Phase-C` as the governance extension-contract follow-up task.
-  - 2026-04-20: strict ledger reconciliation marked the task as partial; internal governance contract endpoints for `tenant-scope`、`datasource-access`、`audit/write`、`schedule/extensions` 已存在且测试通过，但仍需把扩展点从当前骨架进一步收口到完整契约，见 `IMP-007`。
-  - 2026-04-20: hardened `datasource-access/check`、`audit/write`、`schedule/extensions` contracts in `governance-service`, added explicit contract-stage / implementation-stage metadata, fixed audit required fields (`serviceCode`,`elapsedMs`,`sourceIp`,`userAgent`), and synced `service-interface-contract-baseline.md` plus `access-control-spec.md`.
-  - 2026-04-20: validation passed with `mvn clean compile`, `mvn test`, `mvn validate pmd:pmd checkstyle:check`, and `node scripts/lint-repository-knowledge.js`; task remains `in_review` because the audit-write path currently depends on message-abstraction files still pending separate git closeout under `C-TASK-005`.
-
 ### C-TASK-002: 建立 common 包结构
 
 - Status: in_review

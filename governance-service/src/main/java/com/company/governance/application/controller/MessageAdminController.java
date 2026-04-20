@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/admin/messages")
+@RequestMapping("/api/governance/admin/messages")
 public class MessageAdminController {
 
     private final MessageAdminApplicationService messageAdminApplicationService;

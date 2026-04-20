@@ -37,5 +37,6 @@ sqlforge:
 
 auth:
   enabled: true
-  valid-tokens:
-    - ${SQLFORGE_PROD_AUTH_TOKEN}
+  trusted-auth-sources:
+    - gateway
+    - token
