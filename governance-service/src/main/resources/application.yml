@@ -27,4 +27,21 @@ mybatis:
 
 auth:
   enabled: false
-  valid-tokens: []
+  trusted-auth-sources:
+    - header
+
+governance:
+  access-control:
+    placeholder:
+      enabled: true
+      deny-by-default: true
+      governance-datasource-ids:
+        - governance-tenant-config
+      tenant-config-allowed-roles:
+        - PLATFORM_ADMIN
+        - TENANT_ADMIN
+      datasource-use-allowed-roles:
+        - PLATFORM_ADMIN
+        - TENANT_ADMIN
+        - OPERATOR
+        - ANALYST

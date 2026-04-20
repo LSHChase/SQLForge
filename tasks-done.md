@@ -4,6 +4,25 @@
 
 ## Done
 
+### C-TASK-008: 落实租户配置与访问占位能力
+
+- Status: done
+- Priority: 2
+- Depends on: C-TASK-007
+- Completed at: 2026-04-20
+- Commit subject: `feat(governance): C-TASK-008 tighten tenant access placeholder policy`
+- Scope: 保持 phase 0 最小租户校验闭环，继续把 `governance-service` 收敛为公共管理服务基线，不扩散到其他目标微服务职责。
+- Validation:
+  - `mvn clean compile`
+  - `mvn test`
+  - `node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/task_audit.py --check`
+- Progress log:
+  - 2026-04-20: instantiated from `Phase-C` after governance-service baseline hardening.
+  - 2026-04-20: strict ledger reconciliation marked the task as partial; `TenantAccessLogic`、`TenantConfigApplicationService` 和治理内部租户/数据源检查接口已经存在并通过当前测试链验证，但数据源授权仍是 placeholder，完整角色与资源矩阵仍待后续实现，见 `IMP-005`。
+  - 2026-04-20: replaced the old non-empty datasource placeholder with a governance-local explicit placeholder policy under `governance.access-control.placeholder`, added tenant-config role gating and platform-admin override in `TenantConfigApplicationService`, and kept all logic inside `governance-service`.
+  - 2026-04-20: validation passed with `mvn clean compile`, `mvn test`, `node scripts/lint-repository-knowledge.js`, and `python3 scripts/task_audit.py --check`, then the task was archived for single-task git closeout.
+
 ### E-TASK-009: 建立临时 AI 交付进度页路由与展示骨架
 
 - Status: done

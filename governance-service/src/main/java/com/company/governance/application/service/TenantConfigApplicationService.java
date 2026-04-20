@@ -1,15 +1,16 @@
 package com.company.governance.application.service;
 
-import com.company.common.constants.ErrorCodeConstants;
-import com.company.common.exception.BizException;
 import com.company.governance.application.controller.vo.TenantConfigVO;
 import com.company.governance.application.service.converter.TenantConfigConverter;
-import com.company.governance.common.context.RequestContext;
-import com.company.governance.common.context.TenantContext;
 import com.company.governance.domain.tenant.logic.TenantAccessLogic;
 import com.company.governance.domain.tenant.repository.TenantConfigRepository;
+import com.company.sqlforge.common.constants.ErrorCodeConstants;
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.context.TenantContext;
+import com.company.sqlforge.common.exception.BizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -17,7 +18,10 @@ import org.springframework.util.StringUtils;
 public class TenantConfigApplicationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TenantConfigApplicationService.class);
+    private static final String PLATFORM_ADMIN = "PLATFORM_ADMIN";
+    private static final String TENANT_ADMIN = "TENANT_ADMIN";
     private static final String DEFAULT_DATA_SOURCE_ID = "governance-tenant-config";
+    private static final String TENANT_CONFIG_ACCESS_DENIED_MESSAGE = "当前角色无权读取租户配置";
 
     private final TenantConfigRepository tenantConfigRepository;
     private final TenantAccessLogic tenantAccessLogic;
@@ -33,14 +37,41 @@ public class TenantConfigApplicationService {
 
     public TenantConfigVO findByTenantId(String tenantId) {
         String currentTenantId = TenantContext.get();
-        if (!tenantAccessLogic.validateDataSourceAccess(currentTenantId, DEFAULT_DATA_SOURCE_ID)) {
+        boolean platformAdmin = RequestContext.hasRole(PLATFORM_ADMIN);
+        if (!StringUtils.hasText(currentTenantId)) {
             throw new BizException(
-                ErrorCodeConstants.ERROR_ACCESS_DENIED,
-                ErrorCodeConstants.ERROR_ACCESS_DENIED_MESSAGE
+                ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
+                HttpStatus.UNAUTHORIZED,
+                "Tenant context is missing"
             );
         }
         if (!StringUtils.hasText(tenantId)) {
-            throw new BizException(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, "Tenant id must not be empty");
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                "Tenant id must not be empty"
+            );
+        }
+        if (!platformAdmin && !RequestContext.hasRole(TENANT_ADMIN)) {
+            throw new BizException(
+                ErrorCodeConstants.GOVERNANCE_ACCESS_DENIED,
+                HttpStatus.FORBIDDEN,
+                TENANT_CONFIG_ACCESS_DENIED_MESSAGE
+            );
+        }
+        if (!currentTenantId.equals(tenantId) && !platformAdmin) {
+            throw new BizException(
+                ErrorCodeConstants.GOVERNANCE_TENANT_ACCESS_DENIED,
+                HttpStatus.FORBIDDEN,
+                ErrorCodeConstants.GOVERNANCE_TENANT_ACCESS_DENIED_MESSAGE
+            );
+        }
+        if (!platformAdmin && !tenantAccessLogic.validateDataSourceAccess(currentTenantId, DEFAULT_DATA_SOURCE_ID)) {
+            throw new BizException(
+                ErrorCodeConstants.GOVERNANCE_DATASOURCE_ACCESS_DENIED,
+                HttpStatus.FORBIDDEN,
+                ErrorCodeConstants.GOVERNANCE_DATASOURCE_ACCESS_DENIED_MESSAGE
+            );
         }
 
         LOGGER.info("Loading tenant config, currentTenantId={}, targetTenantId={}, traceId={}",
@@ -50,7 +81,8 @@ public class TenantConfigApplicationService {
         return tenantConfigRepository.findByTenantId(tenantId)
             .map(tenantConfigConverter::toVO)
             .orElseThrow(() -> new BizException(
-                ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
+                ErrorCodeConstants.GOVERNANCE_TENANT_CONFIG_NOT_FOUND,
+                HttpStatus.NOT_FOUND,
                 "Tenant config not found"
             ));
     }

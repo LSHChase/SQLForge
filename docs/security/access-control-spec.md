@@ -182,6 +182,13 @@
 当前仓库现状：
 
 - `governance-service` 已通过 `TenantAccessLogic` 和请求上下文建立最小租户校验能力
+- 当前占位能力已改为“显式角色门禁 + 显式数据源绑定占位配置 + 默认拒绝”
+- 当前 `governance-service` 仅对治理内置数据源 `governance-tenant-config` 提供基线放行，且要求 `PLATFORM_ADMIN` 或 `TENANT_ADMIN`
+- 其他数据源访问在当前阶段必须通过 `governance.access-control.placeholder.tenant-datasource-bindings` 显式配置，否则拒绝
+- 当前治理服务已固定以下失败错误码：
+  - 角色不满足治理访问要求：`20000` `GOVERNANCE_ACCESS_DENIED`
+  - 跨租户访问拒绝：`20001` `GOVERNANCE_TENANT_ACCESS_DENIED`
+  - 数据源绑定或授权拒绝：`20002` `GOVERNANCE_DATASOURCE_ACCESS_DENIED`
 - 当前实现仍属于阶段性基线，不代表最终访问控制已完整交付
 - 当前代码重点是“后端必须建立租户上下文”，尚未完成完整角色矩阵、数据源权限矩阵和统一身份服务接入
 

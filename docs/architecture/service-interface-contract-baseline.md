@@ -64,6 +64,11 @@
 
 ## 4. Event Contract Baseline
 
+- 当前 `datasource-access` 占位实现已改为治理服务本地显式配置驱动：
+  - 治理内置数据源按角色白名单放行
+  - 其他数据源按租户绑定表放行
+  - 未命中显式规则时默认拒绝
+
 | Event | Producer | Consumer | Payload minimum fields | Purpose |
 |:---|:---|:---|:---|:---|
 | `ConfigChangedEvent` | 公共管理服务 | 查询执行 / SQL 优化 / 压测引擎 | `tenantId`,`eventId`,`traceId`,`configType`,`resourceId`,`changedAt` | 配置下发与缓存失效 |

@@ -12,20 +12,6 @@ _No tasks._
 
 ## In Progress
 
-### C-TASK-008: 落实租户配置与访问占位能力
-
-- Status: in_progress
-- Priority: 2
-- Depends on: C-TASK-007
-- Scope: 保持 phase 0 最小租户校验闭环，继续把 `governance-service` 收敛为公共管理服务基线，不扩散到其他目标微服务职责。
-- Validation:
-  - 正常/异常/越权占位测试
-  - `mvn -B clean compile`
-  - `mvn -B test`
-- Progress log:
-  - 2026-04-20: instantiated from `Phase-C` after governance-service baseline hardening.
-  - 2026-04-20: strict ledger reconciliation marked the task as partial; `TenantAccessLogic`、`TenantConfigApplicationService` 和治理内部租户/数据源检查接口已经存在并通过当前测试链验证，但数据源授权仍是 placeholder，完整角色与资源矩阵仍待后续实现，见 `IMP-005`。
-
 ### C-TASK-009: 规划审计、数据源、调度扩展点
 
 - Status: in_progress
