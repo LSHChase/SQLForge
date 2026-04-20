@@ -670,3 +670,43 @@ messaging:
 - `R-101` 中“空目录”的历史语义仅适用于初始化阶段“目录已创建但尚未导入原始资料”的起始状态，不构成后续长期必须保持为空的要求。
 - 一旦有原始需求、规范 PDF、README 快照、来源元数据或其他原始资料进入仓库，必须统一归档到 `docs/references/raw-requirements/` 下的文件或子目录中，不得散落到其他路径替代该根目录。
 - 后续 lint、计划、阶段验收和文档说明都应按“归档根目录必须存在，可包含归档内容”的语义执行。
+
+## Harness 任务治理（R-156 至 R-161）
+
+### R-156 任务台账真值
+
+- `tasks.md` 和 `tasks-done.md` 分别是活动任务与完成任务的唯一规范台账。
+- `tasks.md` 只允许 `todo`、`in_progress`、`in_review`、`blocked` 状态。
+- `done` 任务不得保留在 `tasks.md`，必须移入 `tasks-done.md`。
+- 不得额外创建 JSON、YAML 或其他机器状态文件追踪任务状态；`.agent/config.json` 仅用于机器参数，不记录任务状态。
+
+### R-157 任务关闭与单任务提交
+
+- 每个完成任务必须按“实现 -> 自审 -> 验证 -> 文档同步 -> 台账回写 -> 归档 -> 单任务 commit”的顺序关闭。
+- 一个已验证任务对应一个 commit，commit subject 必须同时满足 Conventional Commits 与 task id 约束。
+- 只能 stage 当前任务相关文件，禁止 `git add .`、`git add -A`、`git commit -a`。
+- 若 commit 未成功，任务不得视为完成。
+
+### R-158 INBOX 人工决策入口
+
+- `INBOX.md` 只记录仍需人类判断、批准、优先级排序或任务塑形的问题。
+- 已在任务日志中完整记录的失败或确定性工程事项，不得重复记入 INBOX。
+- 未经人类确认，不得直接把 INBOX 条目转为实现任务。
+
+### R-159 根 Git 边界与嵌套仓阻断
+
+- 仓库根目录是唯一规范 Git 边界。
+- 若发现 nested `.git`、Git 拓扑漂移或冲突状态，foreman 必须暂停，等待人类确认处理方式。
+- 根 Git 边界无效时，不得继续执行任务关闭流程。
+
+### R-160 任务审计脚本强制执行
+
+- 关闭任务前必须执行 `python3 scripts/task_audit.py --check`。
+- 审计脚本至少检查：活动台账不得含 done、任务 ID 不重复、blocked 任务包含 `Next action:` 与 `Escalation:`、完成任务 commit subject 可在 Git history 中追溯。
+- 若 task audit 失败，必须先修复台账或 Git 追踪问题，再继续关闭流程。
+
+### R-161 外部规则迁移替换约束
+
+- 从其他项目迁移 harness engineering 规则时，只允许迁移治理思想、流程结构和验证口径。
+- 其他项目专属的服务名、模块边界、HTTP 路由、端口、运行时拓扑、测试矩阵和 artifact 名称不得直接作为 SQLForge 事实沿用。
+- 迁移结果必须显式替换为 SQLForge 当前仓库事实，或明确标记为“仅迁移思想、不迁移实现语义”。

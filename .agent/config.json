@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "branch_prefix": "foreman/",
+  "commit_template": "{type}({scope}): {task_id} {title}",
+  "push_remote": "origin",
+  "auto_push_after_commit": false,
+  "todo_warning_threshold": 3,
+  "max_iterations": 8,
+  "lock_poll_seconds": 5,
+  "max_task_attempts": 3,
+  "doc_gardening_interval": 2,
+  "task_selection": {
+    "allowed_statuses": [
+      "todo"
+    ],
+    "priority_order": "ascending",
+    "tie_breaker": "oldest_updated_at"
+  },
+  "architecture_trigger_paths": [
+    "docs/architecture/init.md",
+    "docs/architecture/messaging-abstraction.md",
+    "docs/security/compliance.md",
+    "docs/security/access-control-spec.md"
+  ],
+  "validation_commands": [
+    "node scripts/lint-repository-knowledge.js",
+    "node scripts/check-frontend-backend-separation.js",
+    "mvn -B test",
+    "mvn -B clean compile",
+    "mvn -B validate pmd:pmd checkstyle:check",
+    "npm run build",
+    "npm run lint",
+    "docker compose config",
+    "bash scripts/health-check.sh",
+    "bash scripts/manual-message-queue-smoke.sh",
+    "python3 scripts/task_audit.py --check"
+  ],
+  "service_health_checks": [
+    {
+      "name": "knowledge-lint",
+      "command": "node scripts/lint-repository-knowledge.js"
+    },
+    {
+      "name": "frontend-backend-separation",
+      "command": "node scripts/check-frontend-backend-separation.js"
+    },
+    {
+      "name": "local-health",
+      "command": "bash scripts/health-check.sh"
+    }
+  ]
+}

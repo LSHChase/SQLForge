@@ -15,11 +15,24 @@ const requiredDocsPaths = [
   'docs/quality/alibaba-java-guidelines.md',
   'docs/quality/frontend-backend-separation-baseline.md',
   'docs/quality/validation-rules.md',
+  'docs/quality/validation-log.md',
   'docs/rules',
   'docs/rules/codex-rules.md',
+  'docs/operations',
+  'docs/operations/README.md',
+  'docs/operations/foreman-workflow.md',
+  'docs/operations/human-collaboration.md',
+  'docs/operations/local-development.md',
+  'docs/operations/best-practices.md',
+  'docs/operations/git-and-task-closeout.md',
   'docs/adr',
   'docs/adr/README.md',
   'docs/adr/adr-template.md',
+  'docs/generated',
+  'docs/generated/repo-map.md',
+  'docs/exec-plans',
+  'docs/exec-plans/active',
+  'docs/exec-plans/completed',
   'docs/references',
   'docs/references/human-constraint-history.md',
   'docs/references/raw-requirements',
@@ -29,8 +42,17 @@ const requiredDocsPaths = [
   'docs/plans/phase-0-plan.md'
 ]
 
+const requiredGovernancePaths = [
+  'tasks.md',
+  'tasks-done.md',
+  'INBOX.md',
+  '.agent/config.json',
+  'scripts/task_audit.py'
+]
+
 const requiredReadmeMarkers = [
   'docs/README.md',
+  'docs/operations/README.md',
   'docs/architecture/init.md',
   'docs/rules/codex-rules.md',
   'docs/quality/alibaba-java-guidelines.md',
@@ -39,10 +61,11 @@ const requiredReadmeMarkers = [
   'docs/plans/phase-0-plan.md'
 ]
 
-const expectedRuleEnd = 155
+const expectedRuleEnd = 161
 const expectedValidationIndexRanges = [
   [116, 144],
-  [151, 154]
+  [151, 154],
+  [156, 161]
 ]
 const requiredMessagingConfigs = [
   'governance-service/src/main/resources/application-dev.yml',
@@ -91,6 +114,16 @@ function ensureAlibabaGuidelineArchive(errors, checks) {
   }
 
   checks.push(`Alibaba guideline archive ok (${requiredArchiveFiles.length} files)`)
+}
+
+function ensureGovernanceStructure(errors, checks) {
+  const missing = requiredGovernancePaths.filter(item => !pathExists(item))
+  if (missing.length > 0) {
+    errors.push(`Missing required governance paths:\n- ${missing.join('\n- ')}`)
+    return
+  }
+
+  checks.push(`governance structure ok (${requiredGovernancePaths.length} paths)`)
 }
 
 function ensureAdrTemplate(errors, checks) {
@@ -244,6 +277,28 @@ function ensureReadmeIndex(errors, checks) {
   checks.push('README.md documentation index ok')
 }
 
+function ensureDocsReadmeIndex(errors, checks) {
+  const docsReadmePath = 'docs/README.md'
+  if (!pathExists(docsReadmePath)) {
+    errors.push(`Missing docs/README.md`)
+    return
+  }
+
+  const content = readFile(docsReadmePath)
+  const requiredMarkers = [
+    './quality/validation-rules.md',
+    './operations/README.md',
+    './generated/repo-map.md'
+  ]
+  const missingMarkers = requiredMarkers.filter(marker => !content.includes(marker))
+  if (missingMarkers.length > 0) {
+    errors.push(`docs/README.md missing governance index references:\n- ${missingMarkers.join('\n- ')}`)
+    return
+  }
+
+  checks.push('docs/README.md governance index ok')
+}
+
 function ensureMessagingModeConfig(errors, checks) {
   const missingFiles = requiredMessagingConfigs.filter(item => !pathExists(item))
   if (missingFiles.length > 0) {
@@ -281,12 +336,14 @@ function main() {
   const checks = []
 
   ensureDocsStructure(errors, checks)
+  ensureGovernanceStructure(errors, checks)
   ensureAlibabaGuidelineArchive(errors, checks)
   ensureAdrTemplate(errors, checks)
   ensureRuleContinuity(errors, checks)
   ensureValidationRules(errors, checks)
   ensureAlibabaGuidelineDoc(errors, checks)
   ensureReadmeIndex(errors, checks)
+  ensureDocsReadmeIndex(errors, checks)
   ensureMessagingModeConfig(errors, checks)
   ensureMessagingSchema(errors, checks)
 

@@ -20,3 +20,5 @@ Thumbs.db
 Desktop.ini
 .cache/
 coverage/
+__pycache__/
+*.pyc

@@ -101,3 +101,20 @@
   - `docs/rules/codex-rules.md` 追加 `R-155`
   - `docs/plans/master-execution-plan.md`
   - `docs/plans/phase-0-plan.md`
+
+## 2026-04-19T15:30:00-05:00
+
+- 事件：人类要求按严格模式把外部项目的 Easy Engine 规则完整分析后迁移到 SQLForge，并在确认后落地实现。
+- 约束：
+  - 不得直接照搬外部项目的服务名、模块边界、HTTP 路由、端口、运行时拓扑、测试矩阵或 artifact 名称。
+  - 必须完整分析每一类输入规则，并给出“迁移、适配、替换、仅迁移思想或判定为项目专属不迁移”的结论。
+  - 任何删除、更新、修改操作都要先输出给人类确认，再执行。
+  - SQLForge 新增 harness 层后，任务状态真值固定在 `tasks.md` 与 `tasks-done.md`，人工决策入口固定在 `INBOX.md`，机器参数固定在 `.agent/config.json`。
+- 新增规则：`R-156` 至 `R-161`。
+- 落点：
+  - `docs/rules/codex-rules.md`
+  - `docs/quality/validation-rules.md`
+  - `docs/operations/`
+  - `tasks.md`
+  - `tasks-done.md`
+  - `INBOX.md`

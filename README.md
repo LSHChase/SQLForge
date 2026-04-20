@@ -15,12 +15,14 @@ SQLForge 是一个面向企业 BI 与数据中台场景的 SQL 生命周期治�
 1. 启动基础依赖：`docker compose up -d`
 2. 查看可用命令：`make help`
 3. 阅读架构与执行规范：`docs/README.md`
+4. 查看当前任务台账：`tasks.md`
 
 当前仓库处于阶段 0 初始化中，后续任务会逐步补齐父 POM、公共模块、服务骨架、前端框架、SQL 初始化脚本与检查脚本。
 
 ## 文档索引
 
 - 文档入口：`docs/README.md`
+- 运维协作：`docs/operations/README.md`
 - 计划索引：`docs/plans/README.md`
 - 主执行计划：`docs/plans/master-execution-plan.md`
 - 架构初始化总文档：`docs/architecture/init.md`
@@ -31,3 +33,5 @@ SQLForge 是一个面向企业 BI 与数据中台场景的 SQL 生命周期治�
 - 合规说明：`docs/security/compliance.md`
 - 华为云部署：`docs/deployments/huawei-cloud-setup.md`
 - 阶段计划：`docs/plans/phase-0-plan.md`
+- 任务台账：`tasks.md`
+- 完成归档：`tasks-done.md`
