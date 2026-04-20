@@ -26,10 +26,11 @@ Last refreshed: `2026-04-20`
 
 - `docs/architecture/`: architecture baseline and messaging abstraction
 - `docs/architecture/service-capability-map.md`: target 4-service allocation mapped to current modules
+- `docs/architecture/service-interface-contract-baseline.md`: interface-level baseline for context fields, error-code ownership, DTO/event boundaries, and audit payloads
 - `docs/rules/`: append-only rule ledger
 - `docs/quality/`: validation rules, quality baselines, validation log
 - `docs/operations/`: foreman workflow, collaboration, local dev, closeout, best practices
-- `docs/plans/`: master execution plan, historical phase plan, truth baseline, readiness spec, coverage matrices, retrospective template, governance retrospective
+- `docs/plans/`: master execution plan, historical phase plan, truth baseline, gap matrix, phase prerequisite matrix, readiness spec, coverage matrices, task governance extension, retrospective template, governance retrospectives
 - `docs/exec-plans/active/`: approved active execution plans
 - `docs/exec-plans/completed/`: completed or abandoned execution plans
 - `docs/generated/`: generated navigation artifacts

@@ -40,3 +40,8 @@
 2026-04-20T02:48:52-05:00 | DOC-GOV-002 repair frontend-build | `R-124`, `R-133` | passed | `npm run build`
 2026-04-20T02:48:52-05:00 | DOC-GOV-002 repair frontend-lint | `R-124`, `R-133` | passed | `npm run lint`
 2026-04-20T02:48:52-05:00 | DOC-GOV-002 repair task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T16:19:40+08:00 | DOC-GOV-002 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T16:19:40+08:00 | DOC-GOV-002 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
+2026-04-20T16:19:40+08:00 | DOC-GOV-002 closeout backend | `R-119`, `R-133` | passed | `mvn -B test`
+2026-04-20T16:19:40+08:00 | DOC-GOV-002 closeout frontend-build | `R-124`, `R-133` | passed | `npm run build`
+2026-04-20T16:19:40+08:00 | DOC-GOV-002 closeout frontend-lint | `R-124`, `R-133` | passed | `npm run lint`

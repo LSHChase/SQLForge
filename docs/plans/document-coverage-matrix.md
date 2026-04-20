@@ -20,6 +20,7 @@
 | `docs/architecture/init.md` | Authority | 总体架构、规则、阶段、接口契约、任务模板 | Consumed | 主计划主基线 |
 | `docs/architecture/messaging-abstraction.md` | Authority | `R-144` 消息抽象模式 | Consumed | 配置、消息实现、部署切换 |
 | `docs/architecture/service-capability-map.md` | Authority | 4 微服务与当前仓库模块的能力映射 | Consumed | 服务拆分、common 边界、`governance-service` 过渡约束 |
+| `docs/architecture/service-interface-contract-baseline.md` | Authority | 统一身份、错误码、DTO/事件和审计契约基线 | Consumed | 服务实现前的接口级约束 |
 | `docs/deliveries/init-completion.md` | Indexed | 阶段0交付记录 | Consumed | 阶段0真值、tag 回写、交付闭环 |
 | `docs/deployments/local-setup.md` | Authority | 本地部署与健康检查 | Consumed | 本地环境、smoke、脚本说明 |
 | `docs/deployments/offline-setup.md` | Authority | 离线部署 | Consumed | 部署文档统一基线 |
@@ -36,11 +37,15 @@
 | `docs/plans/master-execution-plan.md` | Authority | 当前主执行计划 | Consumed | 主控文档 |
 | `docs/plans/phase-0-plan.md` | Indexed | 阶段0历史计划 | Consumed | 阶段0真值修正 |
 | `docs/plans/document-coverage-matrix.md` | Indexed | 文档全量覆盖矩阵 | Consumed | 证明 `docs/` 全量纳入 |
+| `docs/plans/document-gap-matrix.md` | Indexed | 冲突、漂移、缺失与残余实现缺口矩阵 | Consumed | 严格核验闭口检查 |
 | `docs/plans/document-truth-baseline.md` | Authority | 当前仓库真值、历史记录、目标边界分层与漂移映射 | Consumed | 编码前真值判断、漂移治理、文档消费入口 |
 | `docs/plans/implementation-readiness.md` | Authority | 编码前置消费顺序、主题权威来源、执行波次 | Consumed | 实施顺序、冲突处理、任务进入条件 |
+| `docs/plans/phase-prerequisite-matrix.md` | Authority | 阶段输入文档、ADR、规则、验证和确认点矩阵 | Consumed | 阶段进入前置条件检查 |
 | `docs/plans/retrospective-template.md` | Indexed | 阶段与复杂批次复盘模板 | Referenced | 复盘闭环与后续治理沉淀 |
 | `docs/plans/document-governance-retrospective-2026-04-20.md` | Indexed | 本轮文档治理复盘记录 | Consumed | 漂移、缺口和后续治理沉淀 |
+| `docs/plans/document-governance-repair-retrospective-2026-04-20.md` | Indexed | 本轮严格核验缺口修复复盘记录 | Consumed | 治理闭口与 repair 批次追溯 |
 | `docs/plans/task-spec-matrix.md` | Indexed | Harness Task 字段矩阵 | Consumed | 补齐 59 个 Task 的 10 字段 |
+| `docs/plans/task-governance-extension-matrix.md` | Indexed | 59 个 Task 的确认点、数据影响、回滚扩展矩阵 | Consumed | 严格治理扩展字段追踪 |
 | `docs/quality/alibaba-java-guidelines.md` | Authority | Java 规范适配文档 | Consumed | Java 实现与扫描治理 |
 | `docs/quality/frontend-backend-separation-baseline.md` | Authority | 前后端分离基线 | Consumed | 边界治理与脚本校验 |
 | `docs/quality/validation-log.md` | Indexed | 验证行为审计日志 | Referenced | 验证证据追溯与关闭链路 |

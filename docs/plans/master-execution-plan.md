@@ -16,12 +16,15 @@
 - 主执行计划直接消费的权威文档：
   - `docs/README.md`
   - `docs/plans/document-truth-baseline.md`
+  - `docs/plans/document-gap-matrix.md`
   - `docs/architecture/init.md`
   - `docs/rules/codex-rules.md`
   - `docs/quality/validation-rules.md`
   - `docs/plans/implementation-readiness.md`
+  - `docs/plans/phase-prerequisite-matrix.md`
   - `docs/architecture/messaging-abstraction.md`
   - `docs/architecture/service-capability-map.md`
+  - `docs/architecture/service-interface-contract-baseline.md`
   - `docs/frontend/design-system.md`
   - `docs/quality/alibaba-java-guidelines.md`
   - `docs/quality/frontend-backend-separation-baseline.md`
@@ -39,8 +42,11 @@
   - [document-coverage-matrix.md](./document-coverage-matrix.md)
 - 全部 59 个 Task 的 Harness 10 字段补全集见：
   - [task-spec-matrix.md](./task-spec-matrix.md)
+- 全部 59 个 Task 的人工确认点、数据影响与回滚扩展字段见：
+  - [task-governance-extension-matrix.md](./task-governance-extension-matrix.md)
 - 本轮治理专项复盘见：
   - [document-governance-retrospective-2026-04-20.md](./document-governance-retrospective-2026-04-20.md)
+  - [document-governance-repair-retrospective-2026-04-20.md](./document-governance-repair-retrospective-2026-04-20.md)
 
 ### 2.2 Repository facts already verified
 
@@ -100,14 +106,17 @@
 | Source | Governs | Current repository target | Execution impact | Verification anchor |
 |:---|:---|:---|:---|:---|
 | `docs/plans/document-truth-baseline.md` | 当前仓库真值、历史记录、漂移映射 | 全仓 | 决定“已实现事实”和“目标架构”的读取方式 | 文档全量覆盖验证 |
+| `docs/plans/document-gap-matrix.md` | 冲突、漂移、缺失与残余实现缺口矩阵 | 全仓 | 决定严格核验时的缺口闭口判断 | 文档全量覆盖验证 |
 | `docs/architecture/init.md` | 总体架构、阶段、服务边界、任务拆解模板 | 全仓主基线 | 决定阶段拆解、服务边界、接口优先顺序 | `R-116`, `R-121` |
 | `docs/rules/codex-rules.md` | 执行规则、工程约束、验证规则 | 全仓 | 决定可变更边界与验证门禁 | `R-117` 至 `R-154` |
 | `docs/quality/validation-rules.md` | 阶段/Task/回归/环境验证 | 全仓 | 决定所有 Task 的验证格式 | `R-119` 至 `R-154` |
 | `docs/plans/implementation-readiness.md` | 编码前置消费顺序与执行波次 | 全仓 | 决定任务入场条件、波次推进和冲突处理 | `R-116`, `R-133` |
+| `docs/plans/phase-prerequisite-matrix.md` | 各阶段输入文档、ADR、规则、验证和确认点矩阵 | 全仓 | 决定阶段 ready/not ready 判断 | `R-116`, `R-163` |
 | `docs/security/compliance.md` | 等保与审计 | 后端、部署、运维 | 决定身份、租户、审计、加密、备份 | `R-111` 至 `R-118` |
 | `docs/security/access-control-spec.md` | 完整访问控制规格与阶段实现基线 | `governance-service` 及后续 4 微服务 | 决定身份、角色、资源、租户、审计和失败处理边界 | `R-111` 至 `R-115` |
 | `docs/architecture/messaging-abstraction.md` | 消息抽象与环境切换 | `governance-service`, SQL, 配置, 脚本 | 决定 `DATABASE/MOCK/KAFKA` 模式 | `R-144` |
 | `docs/architecture/service-capability-map.md` | 4 微服务与当前模块的过渡映射 | `governance-service`, `sqlforge-common`, 后续新模块 | 决定模块归属、过渡实现和服务边界迁移顺序 | `R-126`, 文档全量覆盖验证 |
+| `docs/architecture/service-interface-contract-baseline.md` | 统一身份上下文、错误码归属、DTO/事件和审计契约 | 后续 4 微服务与公共层 | 决定接口级约束和跨服务契约边界 | `R-057`, `R-068`, `R-111` 至 `R-115` |
 | `docs/frontend/design-system.md` | 前端视觉与组件基线 | `src/` | 决定 Dashboard 和业务页视觉风格 | `R-023` 至 `R-030` |
 | `docs/quality/alibaba-java-guidelines.md` | Java 代码规范治理 | `sqlforge-common/`, `governance-service/` | 决定 Java 实现方式与扫描要求 | `R-145` 至 `R-154` |
 | `docs/quality/frontend-backend-separation-baseline.md` | 前后端边界 | 根级前端与 Maven 后端 | 决定目录和职责边界 | 分离检查脚本 |
@@ -116,7 +125,9 @@
 | `docs/adr/README.md` | 决策索引 | `docs/adr/` | 决定 ADR 落地缺口与优先级 | `HC-003` |
 | `docs/plans/document-coverage-matrix.md` | `docs/` 全量文件覆盖证明 | `docs/` | 证明所有文档与归档资料已被盘点和分类 | 文档全量覆盖验证 |
 | `docs/plans/task-spec-matrix.md` | Harness Task 字段补全集 | 全部 59 个 Task | 为每个 Task 补齐 10 个必填字段 | Task 规格完整性验证 |
+| `docs/plans/task-governance-extension-matrix.md` | 59 个 Task 的人工确认点、数据影响和回滚扩展字段 | 全部 59 个 Task | 为严格治理提供 10 字段之外的补充约束 | `R-164`, Task 规格完整性验证 |
 | `docs/plans/document-governance-retrospective-2026-04-20.md` | 本轮治理专项复盘 | `docs/` | 沉淀漂移、差距和后续治理动作 | `R-133`, `R-140` |
+| `docs/plans/document-governance-repair-retrospective-2026-04-20.md` | 本轮严格核验缺口修复复盘 | `docs/` | 沉淀 7 项缺口的闭口动作与批次一致性 | `R-133`, `R-140`, `R-162` |
 
 ## 6. Execution Breakdown
 
@@ -536,16 +547,23 @@ Tasks:
 ### 10.1 New planning authorities
 
 - 当前仓库真值分层：`docs/plans/document-truth-baseline.md`
+- 严格核验缺口矩阵：`docs/plans/document-gap-matrix.md`
 - 编码前置消费顺序与波次执行：`docs/plans/implementation-readiness.md`
+- 阶段输入文档、ADR、规则和确认点矩阵：`docs/plans/phase-prerequisite-matrix.md`
 - 4 微服务到当前仓库的能力映射：`docs/architecture/service-capability-map.md`
+- 服务间统一接口契约：`docs/architecture/service-interface-contract-baseline.md`
+- Task 扩展治理字段：`docs/plans/task-governance-extension-matrix.md`
 - 阶段/批次复盘模板：`docs/plans/retrospective-template.md`
 
 ### 10.2 Immediate execution effect
 
 - `A-STORY-001` 和 `A-STORY-002` 的输出已被进一步固化到 `document-truth-baseline.md`
 - `A-STORY-003` 中“规则、文档、实现、验证之间的映射”新增了当前消费顺序与漂移映射说明
+- 严格核验与阶段切换时，必须同时检查 `document-gap-matrix.md` 与 `phase-prerequisite-matrix.md`
 - `C-STORY-001` 与 `C-STORY-003` 后续实现时，必须先遵守 `service-capability-map.md` 对 `sqlforge-common` 与 `governance-service` 的边界约束
+- `Phase-C` 之后的跨服务实现，必须先遵守 `service-interface-contract-baseline.md` 中的错误码归属和 DTO/事件边界
 - 所有后续编码波次默认先遵守 `implementation-readiness.md` 的消费顺序和执行分波
+- 若核心 10 字段无法承载严格治理要求，则同步维护 `task-governance-extension-matrix.md`
 
 ### 10.3 Current truth reminder
 
@@ -560,3 +578,7 @@ Tasks:
 ### 10.4 Retro requirement
 
 - 任何跨服务、跨前后端或跨规则治理批次结束后，都应补一份基于 `retrospective-template.md` 的复盘记录。
+
+### 10.5 Strict audit closeout
+
+- 2026-04-20 严格核验中识别出的 7 项未完全闭口缺口，已通过新增 gap matrix、phase prerequisite matrix、service interface contract baseline、task governance extension matrix，以及 `DOC-GOV-001` / `DOC-GOV-002` 任务归档和 repair 复盘完成闭口。

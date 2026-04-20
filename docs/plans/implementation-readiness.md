@@ -149,6 +149,10 @@
 ## Related Documents
 
 - `docs/plans/document-truth-baseline.md`
+- `docs/plans/document-gap-matrix.md`
 - `docs/plans/master-execution-plan.md`
+- `docs/plans/phase-prerequisite-matrix.md`
 - `docs/plans/task-spec-matrix.md`
+- `docs/plans/task-governance-extension-matrix.md`
 - `docs/architecture/service-capability-map.md`
+- `docs/architecture/service-interface-contract-baseline.md`

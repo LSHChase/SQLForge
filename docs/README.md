@@ -20,6 +20,7 @@
    当前阶段以 [架构初始化总文档](./architecture/init.md) 中的接口契约与服务边界为准，后续新增文档统一补入 `docs/`。
    - [消息抽象说明](./architecture/messaging-abstraction.md)
    - [服务能力分配图](./architecture/service-capability-map.md)
+   - [服务接口契约基线](./architecture/service-interface-contract-baseline.md)
    - [前端设计系统](./frontend/design-system.md)
    - [阿里 Java 规范适配](./quality/alibaba-java-guidelines.md)
    - [前后端分离基线检查](./quality/frontend-backend-separation-baseline.md)
@@ -51,12 +52,14 @@
 15. 复盘与持续治理
    - [复盘模板](./plans/retrospective-template.md)
    - [本轮文档治理复盘](./plans/document-governance-retrospective-2026-04-20.md)
+   - [本轮文档治理修复复盘](./plans/document-governance-repair-retrospective-2026-04-20.md)
 
 ## 文档地图
 
 - `architecture/`
   架构总览与初始化基线。
   - `messaging-abstraction.md`：Kafka 与消息能力的本地开发抽象模式、切换方式和契约约束。
+  - `service-interface-contract-baseline.md`：4 微服务统一身份、错误码、DTO/事件和审计契约基线。
 - `rules/`
   规则库与可执行约束。
 - `quality/`
@@ -74,9 +77,13 @@
 - `plans/`
   计划索引、主执行计划与分阶段执行计划。
   - `document-truth-baseline.md`：当前仓库事实、历史记录与目标边界的真值分层。
+  - `document-gap-matrix.md`：冲突、漂移、缺失与残余实现缺口矩阵。
   - `implementation-readiness.md`：编码前阅读顺序、主题权威来源和实施波次。
+  - `phase-prerequisite-matrix.md`：各阶段输入文档、ADR、规则、验证和确认点矩阵。
   - `retrospective-template.md`：阶段或复杂批次复盘模板。
   - `document-governance-retrospective-2026-04-20.md`：本轮治理复盘实例。
+  - `document-governance-repair-retrospective-2026-04-20.md`：本轮严格核验修复复盘实例。
+  - `task-governance-extension-matrix.md`：59 个 Task 的人工确认点、数据影响、回滚扩展矩阵。
 - `exec-plans/`
   已确认复杂执行计划的活动与归档目录。
 - `generated/`
@@ -98,8 +105,18 @@
   任务开始前的读文档顺序、主题权威来源、冲突处理方式和分波次执行顺序。
 - [服务能力分配图](./architecture/service-capability-map.md)
   4 微服务目标与当前 `governance-service` / `sqlforge-common` 的过渡映射。
+- [服务接口契约基线](./architecture/service-interface-contract-baseline.md)
+  统一身份上下文字段、错误码归属、服务间 DTO/事件边界和审计契约。
+- [文档缺口矩阵](./plans/document-gap-matrix.md)
+  把冲突、漂移、缺失项和残余实现缺口显式矩阵化。
+- [阶段前置条件矩阵](./plans/phase-prerequisite-matrix.md)
+  为每个阶段显式列出输入文档、ADR、规则、验证规则和人工确认点。
+- [Task 治理扩展矩阵](./plans/task-governance-extension-matrix.md)
+  在核心 10 字段之外，显式维护 59 个 Task 的人工确认点、数据影响和回滚策略。
 - [复盘模板](./plans/retrospective-template.md)
   每轮复杂交付后的标准复盘骨架。
+- [本轮文档治理修复复盘](./plans/document-governance-repair-retrospective-2026-04-20.md)
+  本轮 7 项严格核验缺口修复的实际复盘记录。
 
 后续开始任何非 trivial 编码任务时，优先阅读顺序调整为：
 

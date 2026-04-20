@@ -120,3 +120,4 @@
 
 - 当前主计划中的 59 个 Task 已全部补齐 10 个 Harness 字段。
 - 若后续新增 Task，必须先在主计划新增，再同步补充到本矩阵。
+- 若任务需要显式维护人工确认点、数据影响和回滚策略，继续同步更新 `docs/plans/task-governance-extension-matrix.md`。

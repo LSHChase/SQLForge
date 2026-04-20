@@ -12,14 +12,19 @@ const requiredDocsPaths = [
   'docs/architecture/init.md',
   'docs/architecture/messaging-abstraction.md',
   'docs/architecture/service-capability-map.md',
+  'docs/architecture/service-interface-contract-baseline.md',
   'docs/plans/README.md',
   'docs/plans/master-execution-plan.md',
   'docs/plans/document-coverage-matrix.md',
+  'docs/plans/document-gap-matrix.md',
   'docs/plans/document-truth-baseline.md',
   'docs/plans/implementation-readiness.md',
+  'docs/plans/phase-prerequisite-matrix.md',
   'docs/plans/retrospective-template.md',
   'docs/plans/document-governance-retrospective-2026-04-20.md',
+  'docs/plans/document-governance-repair-retrospective-2026-04-20.md',
   'docs/plans/task-spec-matrix.md',
+  'docs/plans/task-governance-extension-matrix.md',
   'docs/quality',
   'docs/quality/alibaba-java-guidelines.md',
   'docs/quality/frontend-backend-separation-baseline.md',
@@ -70,7 +75,7 @@ const requiredReadmeMarkers = [
   'docs/plans/phase-0-plan.md'
 ]
 
-const expectedRuleEnd = 161
+const expectedRuleEnd = 164
 const expectedValidationIndexRanges = [
   [116, 144],
   [151, 154],
@@ -299,11 +304,16 @@ function ensureDocsReadmeIndex(errors, checks) {
     './operations/README.md',
     './generated/repo-map.md',
     './plans/document-truth-baseline.md',
+    './plans/document-gap-matrix.md',
     './plans/implementation-readiness.md',
+    './plans/phase-prerequisite-matrix.md',
     './architecture/service-capability-map.md',
+    './architecture/service-interface-contract-baseline.md',
     './plans/retrospective-template.md',
     './plans/document-governance-retrospective-2026-04-20.md',
+    './plans/document-governance-repair-retrospective-2026-04-20.md',
     './plans/task-spec-matrix.md',
+    './plans/task-governance-extension-matrix.md',
     'tasks.md',
     'tasks-done.md',
     'INBOX.md'

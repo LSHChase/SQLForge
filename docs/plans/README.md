@@ -34,14 +34,26 @@
   用于隔离当前仓库事实、已确认目标、历史记录和归档原文。
 - `implementation-readiness.md`
   用于定义任务开始前的文档消费顺序、主题权威、冲突处理和波次执行顺序。
+- `document-gap-matrix.md`
+  用于显式维护本轮治理中的冲突、漂移、缺失与残余实现缺口。
+- `phase-prerequisite-matrix.md`
+  用于为每个阶段显式列出输入文档、ADR、规则、验证和人工确认点。
+- `task-governance-extension-matrix.md`
+  用于补齐 59 个 Task 的人工确认点、数据影响与回滚扩展字段。
 - `retrospective-template.md`
   用于阶段或复杂批次结束后的标准复盘。
 - `document-governance-retrospective-2026-04-20.md`
   本轮文档治理专项的实际复盘记录。
+- `document-governance-repair-retrospective-2026-04-20.md`
+  本轮严格核验缺口修复的实际复盘记录。
 
 使用方式：
 
 - 判断“现在仓库里到底有什么”时，先读 `document-truth-baseline.md`
 - 判断“接下来这轮编码按什么顺序推进”时，读 `implementation-readiness.md`
+- 判断“当前还有哪些治理缺口、是否已经闭口”时，读 `document-gap-matrix.md`
+- 判断“某阶段是否具备进入条件”时，读 `phase-prerequisite-matrix.md`
+- 判断“某个 Task 的人工确认点、数据影响和回滚策略”时，读 `task-governance-extension-matrix.md`
 - 需要在交付后沉淀复盘时，使用 `retrospective-template.md`
 - 需要追溯本轮治理专项的实际结果时，读 `document-governance-retrospective-2026-04-20.md`
+- 需要追溯本轮严格核验修复结果时，读 `document-governance-repair-retrospective-2026-04-20.md`
