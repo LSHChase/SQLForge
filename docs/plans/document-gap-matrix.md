@@ -49,7 +49,7 @@
 
 | ID | Topic | Current status | Execution owner |
 |:---|:---|:---|:---|
-| `IMP-002` | 查询执行服务独立模块 | Pending | `Phase-D` |
+| `IMP-002` | 查询执行服务独立模块 | Partial | `Phase-D` |
 | `IMP-003` | SQL 优化服务独立模块 | Pending | `Phase-D` |
 | `IMP-004` | 压测引擎服务独立模块 | Pending | `Phase-D` |
 | `IMP-005` | 访问控制完整代码化落地 | Partial | `Phase-C` / `Phase-D` |

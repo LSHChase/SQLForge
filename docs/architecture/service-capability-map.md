@@ -8,7 +8,7 @@
 
 | Final service | Core responsibilities | Current carrier | Current state |
 |:---|:---|:---|:---|
-| 查询执行服务 | 查询提交、路由、缓存、轻量解析、轻量改写、执行控制、结果聚合 | 尚未建立独立模块 | Pending |
+| 查询执行服务 | 查询提交、路由、缓存、轻量解析、轻量改写、执行控制、结果聚合 | `query-execution-service` | Partial |
 | SQL 优化服务 | 异步深度解析、改写建议、加速建议、成本估算、物化视图策略 | 尚未建立独立模块 | Pending |
 | 压测引擎服务 | 压测任务、调度、并行执行、报告生成、隔离控制 | 尚未建立独立模块 | Pending |
 | 公共管理服务 | 租户、配额、数据源、审计、合规、元数据、调度、平台治理 | `governance-service` | Partial |
@@ -29,7 +29,23 @@
 - 平台级租户管理
 - 权限模型配置
 - 异步深度优化建议计算
+- 加速建议审批与物化视图治理
 - 压测执行与压测报告
+
+当前由 `query-execution-service` 承载的最小实现包括：
+
+- Spring Boot 应用入口和独立 Maven 模块
+- `application` / `domain` / `infrastructure` / `config` 分层骨架
+- 查询执行服务的不可变边界定义，显式收口到路由、执行控制、轻量解析、轻量改写和已批准加速配置应用
+- `JDBC` / `REST` / `CLIENT` 三种 Hetu 访问模式的边界声明
+- 只读优先、开源 parser 复用、已批准加速配置运行时应用的策略声明
+
+当前还未完整承载：
+
+- 对外 HTTP controller、DTO/VO 与错误码
+- 与公共管理服务的实际租户、数据源、审计调用
+- 同步执行闭环、异常回滚和运行日志
+- 真实引擎适配器与结果聚合实现
 
 ## 2. SQL 优化服务
 
@@ -125,7 +141,7 @@
 - 下一轮后端实现优先级应是：
   1. 把 `sqlforge-common` 做实
   2. 把 `governance-service` 强化为公共管理服务基线
-  3. 新建查询执行服务骨架
+  3. 在 `query-execution-service` 上继续补齐查询接口与同步执行闭环
   4. 新建 SQL 优化服务骨架
   5. 新建压测引擎服务骨架
 

@@ -117,7 +117,7 @@
 - [实现就绪规范](./plans/implementation-readiness.md)
   任务开始前的读文档顺序、主题权威来源、冲突处理方式和分波次执行顺序。
 - [服务能力分配图](./architecture/service-capability-map.md)
-  4 微服务目标与当前 `governance-service` / `sqlforge-common` 的过渡映射。
+  4 微服务目标与当前 `governance-service` / `sqlforge-common` / `query-execution-service` 的过渡映射。
 - [C4 文字总览](./architecture/c4-overview.md)
   作为 `R-133` 的 C4 权威更新落点，统一维护 Level 1-4 的文字版架构说明。
 - [服务接口契约基线](./architecture/service-interface-contract-baseline.md)

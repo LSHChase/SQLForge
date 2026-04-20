@@ -1,0 +1,21 @@
+query-execution:
+  hetu:
+    enabled: false
+    allowed-modes:
+      - JDBC
+      - REST
+      - CLIENT
+  routing:
+    preferred-engines:
+      - HETU
+      - HIVE
+
+logging:
+  level:
+    root: DEBUG
+    com.company.queryexecution: DEBUG
+
+auth:
+  enabled: false
+  trusted-auth-sources:
+    - header

@@ -59,9 +59,10 @@
 ### 2.3 Current implementation facts
 
 - 当前仓库存在根级前端工程，入口为 `package.json`、`vite.config.js`、`src/`
-- 当前 Maven 聚合工程包含 `sqlforge-common/` 与 `governance-service/`
+- 当前 Maven 聚合工程包含 `sqlforge-common/`、`governance-service/` 与 `query-execution-service/`
 - `sqlforge-common/` 已有共享错误码、上下文、异常、审计契约、日志与工具基线源码
 - `governance-service/` 已有基础应用、controller、application service、统一请求上下文校验能力、MyBatis XML、配置文件和基础测试
+- `query-execution-service/` 已有独立应用入口、分层骨架、边界定义、多环境配置和基础测试
 - `docs/adr/` 已按 `ADR-001` 至 `ADR-013` 补齐实体文件
 - `docs/deployments/` 已补齐 `huawei-cloud-setup.md`
 
@@ -103,15 +104,13 @@
 
 ## 4.1 Current Active Wave
 
-- 当前建议执行波次：`Phase-C`
-- 当前活跃目标：共享底座与公共治理服务
+- 当前运行波次：`Phase-D`
+- 当前活跃目标：查询执行服务边界落地
 - 当前已实例化到运行台账的首批可执行任务：
-  - `C-TASK-001`
-  - `C-TASK-002`
-  - `C-TASK-004`
-  - `C-TASK-007`
+  - `D-TASK-001`
 - 说明：
-  - 上述任务已下钻到根级 `tasks.md`
+  - `Phase-C` 的边界收敛已完成，但阶段退出门禁仍被覆盖率阈值和 Sonar 环境前置条件阻塞；该阻塞已记录在 `docs/quality/validation-log.md`
+  - `D-TASK-001` 由人类明确指令提前进入运行台账
   - 后续开始执行时，以 `tasks.md` 的状态流转为运行真值，以本计划保持阶段和依赖权威
 
 ## 5. Traceability Matrix

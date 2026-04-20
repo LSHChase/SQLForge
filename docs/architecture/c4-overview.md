@@ -21,13 +21,13 @@
 ## 2. Current Truth Snapshot
 
 - 当前仓库已有根级前端工程，负责驾驶舱与业务页面。
-- 当前 Maven 聚合工程只包含 `sqlforge-common/` 与 `governance-service/`。
+- 当前 Maven 聚合工程包含 `sqlforge-common/`、`governance-service/` 与 `query-execution-service/`。
 - 目标架构固定为 4 个微服务：
   - 查询执行服务
   - SQL 优化服务
   - 压测引擎服务
   - 公共管理服务
-- 当前只有公共管理服务方向的 `governance-service` 形成阶段性代码基线，其余 3 个服务仍处于目标边界和计划阶段。
+- 当前已有公共管理服务方向的 `governance-service` 基线，以及查询执行服务方向的 `query-execution-service` 边界骨架；SQL 优化服务与压测引擎服务仍处于目标边界和计划阶段。
 
 ## 3. C4 Level 1: System Context
 
@@ -51,8 +51,8 @@ SQLForge 面向多租户数据平台治理、查询执行、SQL 优化与压测�
 |:---|:---|:---|
 | Root frontend (`src/`, `package.json`) | 驾驶舱、业务页面、前端信息架构 | Current |
 | `governance-service` | 公共管理服务阶段性基线，承载治理接口、租户配置、消息治理、请求上下文与基础能力 | Current |
+| `query-execution-service` | 查询执行服务边界骨架，固化路由、执行控制、轻量解析、轻量改写和已批准加速配置应用的承载位置 | Current baseline |
 | `sqlforge-common` | 共享错误码、上下文、异常、审计契约、配置常量、日志与工具能力 | Current |
-| 查询执行服务 | 负责查询路由、执行管理、轻量解析与运行时加速配置应用 | Target |
 | SQL 优化服务 | 负责深度解析、异步改写建议、加速建议与物化视图治理 | Target |
 | 压测引擎服务 | 负责压测任务编排、隔离执行、阈值判定与报告 | Target |
 | MySQL / 存储表结构 | 配置、治理、消息、审计等数据持久化 | Current |
@@ -85,6 +85,17 @@ SQLForge 面向多租户数据平台治理、查询执行、SQL 优化与压测�
   - 错误码、缓存键、数据源类型等
 - `log/` / `utils/` / `async/`
   - 公共日志切面、工具类与异步执行能力
+
+### 5.3 `query-execution-service`
+
+- `application/`
+  - 仅暴露边界快照应用服务，后续 DTO/VO/Controller 在 `D-TASK-002` 进入
+- `domain/`
+  - 查询执行边界定义、只读优先策略、Hetu 三模式接入边界、已批准加速配置应用边界
+- `infrastructure/`
+  - 为 JDBC / REST / client 适配器预留独立目录，避免业务层耦合具体引擎客户端
+- `config/`
+  - 独立服务名、端口、多环境和日志配置骨架
 
 ## 6. C4 Level 4: Code-Level Baseline
 

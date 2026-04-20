@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-001: 固化查询执行服务边界
+
+- Status: done
+- Priority: 1
+- Depends on: none
+- Completed at: 2026-04-20
+- Commit subject: `feat(query-execution): D-TASK-001 solidify query execution service boundary`
+- Scope: 建立 `query-execution-service` 独立模块骨架，固化路由、执行控制、轻量解析、轻量改写和已批准加速配置应用的服务边界，不把治理、异步优化或压测主流程重新混入本服务。
+- Validation:
+  - 服务边界与 ADR 一致性检查
+  - `mvn -B clean compile`
+  - `mvn -B test`
+  - `mvn -B validate pmd:pmd checkstyle:check`
+  - `node scripts/check-frontend-backend-separation.js`
+  - `node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/task_audit.py --check`
+- Progress log:
+  - 2026-04-20: instantiated from `Phase-D / D-STORY-001` under explicit human direction after the final `Phase-C` audit cleanup commit `68f7bb1`.
+  - 2026-04-20: `Phase-C` exit gate remains blocked by coverage threshold and missing Sonar environment configuration; this task proceeded by explicit human direction and did not rewrite that gate state.
+  - 2026-04-20: added `query-execution-service` as an independent Maven module with application/domain/infrastructure/config skeleton, immutable boundary definition, multi-profile configuration, and a boundary application service plus unit test.
+  - 2026-04-20: synced `service-capability-map.md`, `c4-overview.md`, `document-truth-baseline.md`, `document-gap-matrix.md`, `master-execution-plan.md`, `frontend-backend-separation-baseline.md`, `repo-map.md`, `README.md`, and `docs/README.md` so the new service carrier is treated as current fact instead of a pure target.
+  - 2026-04-20: validation passed with compile, test, static-check, frontend-backend separation check, knowledge lint, and pre-closeout task audit, then the task was archived for single-task git closeout.
+
 ### C-TASK-008: 落实租户配置与访问占位能力
 
 - Status: done

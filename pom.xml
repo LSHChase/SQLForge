@@ -12,6 +12,7 @@
     <description>Parent POM for SQLForge microservices and shared modules</description>
 
     <modules>
+        <module>query-execution-service</module>
         <module>sqlforge-common</module>
         <module>governance-service</module>
     </modules>

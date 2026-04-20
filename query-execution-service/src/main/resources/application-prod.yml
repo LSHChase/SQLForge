@@ -1,0 +1,23 @@
+query-execution:
+  hetu:
+    enabled: true
+    allowed-modes:
+      - JDBC
+      - REST
+      - CLIENT
+  routing:
+    preferred-engines:
+      - HETU
+      - SPARK
+
+logging:
+  level:
+    root: INFO
+    com.company.queryexecution: INFO
+  config: classpath:logback-spring.xml
+
+auth:
+  enabled: true
+  trusted-auth-sources:
+    - gateway
+    - token

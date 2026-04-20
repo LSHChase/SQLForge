@@ -102,3 +102,10 @@
 2026-04-20T12:05:14-05:00 | Phase-C exit recheck knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-20T12:05:14-05:00 | Phase-C exit recheck task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
 2026-04-20T12:05:14-05:00 | Phase-C exit recheck boundary-and-ledger review | `R-126`, `R-144`, `R-156`, `R-161` | blocked | shared foundation boundary remains clean, `governance-service` remains scoped to public-management duties, Kafka real-environment validation stays deferred, and ledgers/docs/logs are aligned after `C-TASK-002`,`C-TASK-003`,`C-TASK-007` closeout; Phase-C still cannot formally exit until coverage and Sonar environment prerequisites are satisfied
+2026-04-20T12:20:00-05:00 | D-TASK-001 closeout compile | `R-119`, `R-120` | passed | `mvn -B clean compile`
+2026-04-20T12:20:00-05:00 | D-TASK-001 closeout test | `R-119`, `R-120` | passed | `mvn -B test`
+2026-04-20T12:20:00-05:00 | D-TASK-001 closeout static-check | `R-040`, `R-120` | passed | `mvn -B validate pmd:pmd checkstyle:check`
+2026-04-20T12:20:00-05:00 | D-TASK-001 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
+2026-04-20T12:20:00-05:00 | D-TASK-001 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T12:20:00-05:00 | D-TASK-001 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T12:20:00-05:00 | D-TASK-001 closeout boundary-doc-sync | `R-126`, `R-133` | passed | `query-execution-service` current carrier, C4, truth baseline, gap matrix, master plan, repo map, and separation baseline synced to the new service boundary

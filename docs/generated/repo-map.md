@@ -20,7 +20,8 @@ Last refreshed: `2026-04-20`
 ## Backend Modules
 
 - `governance-service/`: current governance backend baseline
-- `sqlforge-common/`: shared module placeholder and future common layer
+- `query-execution-service/`: query execution service boundary skeleton
+- `sqlforge-common/`: shared common layer baseline
 
 ## Docs
 

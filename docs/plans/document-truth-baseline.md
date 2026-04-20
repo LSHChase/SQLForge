@@ -22,9 +22,10 @@
   - `package.json`
   - `vite.config.js`
   - `src/`
-- Maven 聚合工程存在两个后端模块：
+- Maven 聚合工程存在三个后端模块：
   - `sqlforge-common/`
   - `governance-service/`
+  - `query-execution-service/`
 - `sqlforge-common/` 已承载共享底座基线：
   - 统一错误码常量
   - 请求/租户上下文
@@ -41,6 +42,13 @@
   - MyBatis XML
   - 多环境配置
   - 基础测试
+- `query-execution-service/` 已具备查询执行边界基线：
+  - Spring Boot 应用入口与独立 Maven 模块
+  - `application` / `domain` / `infrastructure` / `config` 分层骨架
+  - 查询执行边界定义，显式固化路由、执行控制、轻量解析、轻量改写和已批准加速配置应用
+  - `JDBC` / `REST` / `CLIENT` 三种 Hetu 访问模式的承载边界
+  - 独立多环境配置与日志配置骨架
+  - 基础单元测试
 - 当前已验证通过：
   - `mvn clean compile`
   - `mvn test`
@@ -91,7 +99,8 @@
 
 ## Immediate Pending Gaps
 
-- 4 微服务中的查询执行服务、SQL 优化服务、压测引擎服务仍未建立独立代码模块。
+- SQL 优化服务、压测引擎服务仍未建立独立代码模块。
+- 查询执行服务已建立独立模块骨架，但接口 DTO/VO、同步执行闭环、治理调用和执行适配器仍待 `Phase-D` 后续任务补齐。
 - 访问控制当前仍是“最小租户校验基线”，尚未形成完整角色矩阵和数据源授权实现。
 - `KAFKA` 模式虽已接入真实客户端，但尚未沉淀真实 Kafka 集群运行验证、鉴权和安全参数配置证据。
 - 治理扩展点当前仍以租户范围、数据源访问、审计写入、调度状态契约为主，未演进为完整治理中心能力。
