@@ -48,3 +48,5 @@
 2026-04-20T03:50:52-05:00 | DOC-GOV-002 closeout task-audit backfill | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
 2026-04-20T03:50:52-05:00 | DOC-GOV-003 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-20T03:50:52-05:00 | DOC-GOV-003 closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T04:05:05-05:00 | DOC-GOV-004 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T04:05:05-05:00 | DOC-GOV-004 closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`

@@ -121,3 +121,14 @@
   - 以 append-only 方式补录 `DOC-GOV-002 closeout task-audit`，并以 `DOC-GOV-003` 归档本次微型治理批次。
 - Scope boundary:
   - 本次只修复治理一致性残留，不新增业务代码、不改变既有规则语义。
+
+## 9. Follow-Up Closure For `DOC-GOV-004`
+
+- Trigger:
+  - 严格复核后，`docs/README.md` 第 7 节仍保留“当前阶段以 `init.md` 中的接口契约与服务边界为准”的旧口径，与已建立的服务能力分配图和服务接口契约基线存在主入口级权威漂移。
+- Additional cure:
+  - 保留 `init.md` 作为历史初始化基线与总览入口。
+  - 将主入口中的当前服务边界权威显式指向 `service-capability-map.md`。
+  - 将主入口中的当前接口契约权威显式指向 `service-interface-contract-baseline.md`。
+- Scope boundary:
+  - 本次只修正主入口权威口径，不改动任何规则编号、矩阵结构或业务实现计划。

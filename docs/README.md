@@ -17,7 +17,7 @@
 6. [运维与协作文档](./operations/README.md)
    Foreman 工作流、人类协作、本地开发、任务关闭与 best practices。
 7. 产品/设计/接口文档
-   当前阶段以 [架构初始化总文档](./architecture/init.md) 中的接口契约与服务边界为准，后续新增文档统一补入 `docs/`。
+   [架构初始化总文档](./architecture/init.md) 仍是历史初始化基线与总览入口；当前服务边界以 [服务能力分配图](./architecture/service-capability-map.md) 为准，当前接口契约以 [服务接口契约基线](./architecture/service-interface-contract-baseline.md) 为准，后续新增文档统一补入 `docs/`。
    - [消息抽象说明](./architecture/messaging-abstraction.md)
    - [服务能力分配图](./architecture/service-capability-map.md)
    - [服务接口契约基线](./architecture/service-interface-contract-baseline.md)
