@@ -109,7 +109,8 @@
 
 - 2026-04-19T13:00:00-05:00
   Phase-B documentation backfill completed for ADR entities, Huawei Cloud deployment guidance, and access-control specification.
-  Commit: pending
+  Commit: `7b8891195ee049d14f2620a54c7a77a801b08940`
+  Tag: `checkpoint/2026-04-19-phase-b-doc-governance-backfill`
   Highlights:
   - Added `ADR-001` to `ADR-013` entity files and updated `docs/adr/README.md` index links.
   - Added `docs/deployments/huawei-cloud-setup.md` and aligned it with production `KAFKA` messaging mode.
