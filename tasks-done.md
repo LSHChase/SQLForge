@@ -175,6 +175,24 @@
   - 2026-04-20: `MessageAdminController`、`MessageAdminApplicationServiceTest`、`scripts/manual-message-queue-smoke.sh`、`docs/deliveries/init-completion.md` 与 `docs/deployments/local-setup.md` 已形成管理接口、消息表和人工 smoke 的验证闭环。
   - 2026-04-20: strict ledger reconciliation revalidated the current test chain and knowledge lint, confirmed that runtime verification evidence is already documented, then archived the task.
 
+### C-TASK-007: 对齐现有分层
+
+- Status: done
+- Priority: 2
+- Depends on: none
+- Completed at: 2026-04-20
+- Commit subject: `refactor(governance): C-TASK-007 close layered governance baseline`
+- Scope: 对齐 `governance-service` 当前 controller/application/domain/infrastructure 分层，确保其继续向公共管理服务边界收敛。
+- Validation:
+  - `mvn -B clean compile`
+  - `mvn -B test`
+  - `mvn -B validate pmd:pmd checkstyle:check`
+  - `node scripts/lint-repository-knowledge.js`
+- Progress log:
+  - 2026-04-20: instantiated from `Phase-C` as the first governance-service hardening task.
+  - 2026-04-20: strict ledger reconciliation marked the task as partial; 当前工作树已形成 `controller` / `application` / `domain` / `infrastructure` 分层、严格请求上下文校验与治理内部契约基线，并通过 `mvn clean compile`、`mvn test`、`mvn validate pmd:pmd checkstyle:check`、`node scripts/lint-repository-knowledge.js` 验证，但当前分层调整尚未完成单任务 git closeout，暂不归档。
+  - 2026-04-20: removed the last `governance.common` remnants, added regression coverage for `HealthStatusApplicationService` and `MessageRetryResultVO`, and synced local delivery/setup notes with the protected governance admin paths and current Phase-C baseline summary.
+
 ### HARN-001: Codify foreman workflow and task ledger
 
 - Status: done

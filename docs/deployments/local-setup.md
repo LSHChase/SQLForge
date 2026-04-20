@@ -121,9 +121,23 @@ SELECT * FROM kafka_message_queue;
 管理接口：
 
 ```bash
-curl -X POST http://localhost:8080/admin/messages/retry
-curl http://localhost:8080/admin/messages/stats
 ./scripts/manual-message-queue-smoke.sh --cleanup
+```
+
+如需手工调用受保护接口，至少需要带齐以下请求头：
+
+```bash
+now=$(date +%s000)
+expires_at=$((now + 600000))
+curl http://localhost:8080/api/governance/admin/messages/stats \
+  -H "X-Tenant-Id: system" \
+  -H "X-User-Id: operator-001" \
+  -H "X-Role-Codes: TENANT_ADMIN,OPERATOR" \
+  -H "X-Request-Id: local-request-001" \
+  -H "X-Trace-Id: local-trace-001" \
+  -H "X-Auth-Source: header" \
+  -H "X-Issued-At: ${now}" \
+  -H "X-Expires-At: ${expires_at}"
 ```
 
 如需检查待处理消息数量，也可以执行：
@@ -138,7 +152,8 @@ SELECT COUNT(*) FROM kafka_message_queue WHERE status = 'PENDING';
 
 1. 将 `messaging.mode` 修改为 `KAFKA`
 2. 配置 `messaging.kafka.bootstrap-servers`
-3. 使用 `docker compose --profile optional up -d kafka` 或生产编排启用 Kafka 服务
+3. 按环境补齐 Kafka 安全参数与连通性验证
+4. 使用 `docker compose --profile optional up -d kafka` 或生产编排启用 Kafka 服务
 
 ## 数据重置
 

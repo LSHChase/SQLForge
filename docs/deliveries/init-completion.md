@@ -88,7 +88,7 @@
   Planned commit message: `feat(R-144): add database queue admin endpoints and runtime verification`
   Highlights:
   - Fixed local startup and health-check scripts to execute SQL with the `sqlforge/sqlforge` account, matching the running container.
-  - Added `/admin/messages/retry` and `/admin/messages/stats` backed by MyBatis access to `kafka_message_queue`.
+  - Added governance message admin endpoints backed by MyBatis access to `kafka_message_queue`; current path is `/api/governance/admin/messages/retry` and `/api/governance/admin/messages/stats`.
   - Verified end-to-end local startup, health check, stats query, failed-message retry, and then cleaned the temporary verification message.
 
 - 2026-04-19T08:28:12-05:00
@@ -116,3 +116,12 @@
   - Added `docs/deployments/huawei-cloud-setup.md` and aligned it with production `KAFKA` messaging mode.
   - Replaced the access-control placeholder document with a complete identity, role, resource, authorization, audit, and failure-handling specification.
   - Updated the master execution plan and phase 0 plan to reflect the confirmed 4-microservice target and current repository truth.
+
+- 2026-04-20T19:55:00-05:00
+  Phase-C shared foundation and governance baseline implementation completed for the current repository stage.
+  Planned commit message: `feat(phase-c): implement shared common foundation and governance baseline`
+  Highlights:
+  - Consolidated shared base capabilities into `sqlforge-common` under `com.company.sqlforge.common`, including error codes, request context, audit contract, shared exceptions, logging, async, and utilities.
+  - Switched `governance-service` to the shared request/error model, enforced strict protected-request headers, and added internal governance contract endpoints for tenant scope, datasource access, audit write, and schedule extension status.
+  - Implemented `DATABASE` / `MOCK` messaging abstraction baseline with queue admin APIs, polling job, topic registry, test coverage, and Kafka client integration baseline; real-cluster runtime verification is still pending.
+  - Re-ran `mvn clean compile`, `mvn test`, `mvn validate pmd:pmd checkstyle:check`, and `node scripts/lint-repository-knowledge.js`.
