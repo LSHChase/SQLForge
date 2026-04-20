@@ -11,23 +11,31 @@
 
 ## 2. Evidence Basis
 
-### 2.1 Primary documents
+### 2.1 Repository-wide document set
 
-- `docs/README.md`
-- `docs/architecture/init.md`
-- `docs/rules/codex-rules.md`
-- `docs/quality/validation-rules.md`
-- `docs/architecture/messaging-abstraction.md`
-- `docs/frontend/design-system.md`
-- `docs/quality/alibaba-java-guidelines.md`
-- `docs/quality/frontend-backend-separation-baseline.md`
-- `docs/security/compliance.md`
-- `docs/security/access-control-spec.md`
-- `docs/adr/README.md`
-- `docs/deployments/local-setup.md`
-- `docs/deployments/offline-setup.md`
-- `docs/references/human-constraint-history.md`
-- `docs/deliveries/init-completion.md`
+- 主执行计划直接消费的权威文档：
+  - `docs/README.md`
+  - `docs/architecture/init.md`
+  - `docs/rules/codex-rules.md`
+  - `docs/quality/validation-rules.md`
+  - `docs/architecture/messaging-abstraction.md`
+  - `docs/frontend/design-system.md`
+  - `docs/quality/alibaba-java-guidelines.md`
+  - `docs/quality/frontend-backend-separation-baseline.md`
+  - `docs/security/compliance.md`
+  - `docs/security/access-control-spec.md`
+  - `docs/adr/README.md`
+  - `docs/deployments/local-setup.md`
+  - `docs/deployments/offline-setup.md`
+  - `docs/deployments/huawei-cloud-setup.md`
+  - `docs/references/human-constraint-history.md`
+  - `docs/deliveries/init-completion.md`
+  - `docs/plans/README.md`
+  - `docs/plans/phase-0-plan.md`
+- 全量 `docs/` 文件盘点、角色分类和消费状态见：
+  - [document-coverage-matrix.md](./document-coverage-matrix.md)
+- 全部 59 个 Task 的 Harness 10 字段补全集见：
+  - [task-spec-matrix.md](./task-spec-matrix.md)
 
 ### 2.2 Repository facts already verified
 
@@ -98,6 +106,8 @@
 | `docs/plans/phase-0-plan.md` | 历史阶段0任务顺序 | 阶段0基线对照 | 用于真值修正，不直接代表当前全部现状 | `HC-002` |
 | `docs/deliveries/init-completion.md` | 阶段0交付记录 | 初始化交付基线 | 用于交付状态与 Tag 回写对齐 | `HC-007` |
 | `docs/adr/README.md` | 决策索引 | `docs/adr/` | 决定 ADR 落地缺口与优先级 | `HC-003` |
+| `docs/plans/document-coverage-matrix.md` | `docs/` 全量文件覆盖证明 | `docs/` | 证明所有文档与归档资料已被盘点和分类 | 文档全量覆盖验证 |
+| `docs/plans/task-spec-matrix.md` | Harness Task 字段补全集 | 全部 59 个 Task | 为每个 Task 补齐 10 个必填字段 | Task 规格完整性验证 |
 
 ## 6. Execution Breakdown
 
@@ -196,7 +206,8 @@ Tasks:
 ##### Story `B-STORY-003` 规则冲突与原始资料治理
 
 - 目标：收敛 `raw-requirements` 空目录要求与原始资料归档要求的冲突。
-- 验证：冲突被正式记录并等待人工确认，确认前不擅自改规则。
+- 验证：规则、lint、计划和阶段验收口径对 `raw-requirements/` 的语义保持一致。
+- 当前进展：已通过 `R-155` 完成语义澄清，当前任务转为一致性维护而非等待确认。
 
 Tasks:
 
@@ -458,6 +469,7 @@ Tasks:
 - Rule and verification self-maintenance: `R-131` to `R-143`
 - Messaging abstraction: `R-144`
 - Java governance: `R-145` to `R-154`
+- Archive semantics clarification: `R-155`
 
 ### 6.3 Task-level validation requirements
 
@@ -480,6 +492,14 @@ Tasks:
 - 涉及部署：
   - 编排语法检查
   - 必要环境 smoke
+
+### 6.4 Documentation coverage validation
+
+- `docs/` 全量文件必须进入 [document-coverage-matrix.md](./document-coverage-matrix.md)
+- 每份文档必须标注为 `Authority`、`Indexed` 或 `Archive`
+- 主执行计划必须显式引用所有 `Authority` 文档
+- 所有 Task 必须在 [task-spec-matrix.md](./task-spec-matrix.md) 中补齐 10 个 Harness 字段
+- `raw-requirements/` 的验收语义必须与 `R-155` 保持一致
 
 ## 8. Human Confirmation Ledger
 

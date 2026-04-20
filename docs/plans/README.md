@@ -8,6 +8,10 @@
    当前全量执行控制文档，负责汇总事实基线、阶段拆解、Epic/Story/Task 结构、验证矩阵与人工确认项。
 2. [阶段0执行计划](./phase-0-plan.md)
    初始化阶段历史计划，保留原任务顺序、依赖关系与验收口径，供阶段真值对齐时引用。
+3. [文档覆盖矩阵](./document-coverage-matrix.md)
+   用于证明 `docs/` 目录全部文档与归档资料已被主计划纳入，不遗漏。
+4. [Task 字段矩阵](./task-spec-matrix.md)
+   为主计划中的全部 Task 补齐 Harness Engineering 所要求的 10 项字段。
 
 ## 计划治理要求
 
@@ -20,4 +24,6 @@
 
 - 当前主控计划文档：`master-execution-plan.md`
 - 当前历史阶段文档：`phase-0-plan.md`
+- 当前文档全量覆盖证明：`document-coverage-matrix.md`
+- 当前 Task 字段补全集：`task-spec-matrix.md`
 - 当前未闭合事项：以主执行计划中的 `Human Confirmation Ledger` 为准
