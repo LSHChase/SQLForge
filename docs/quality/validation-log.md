@@ -79,3 +79,5 @@
 2026-04-20T11:23:53-05:00 | Phase-C exit boundary-and-ledger review | `R-126`, `R-156`, `R-161` | blocked | shared foundation / governance scope / Kafka deferred docs remain aligned, but `tasks.md` still contains `C-TASK-002`,`C-TASK-003`,`C-TASK-007` and worktree still contains mixed uncommitted changes, so Phase-C cannot close out yet
 2026-04-20T11:48:25-05:00 | DOC-GOV-005 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-20T11:48:25-05:00 | DOC-GOV-005 closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T11:50:38-05:00 | OPS-GOV-001 sonar-entrypoint | `R-117` | skipped | `bash scripts/run-sonar.sh` => missing `SONAR_HOST_URL` and `SONAR_TOKEN`
+2026-04-20T11:50:38-05:00 | OPS-GOV-001 coverage-entrypoint | `R-117` | passed | `bash scripts/run-coverage.sh --phase report-only`

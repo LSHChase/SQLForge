@@ -35,6 +35,28 @@ jobs:
             echo "pom.xml not present yet, skip Maven tests"
           fi
 
+      - name: Generate backend coverage report
+        run: |
+          if [ -f scripts/run-coverage.sh ]; then
+            bash scripts/run-coverage.sh --phase report-only
+          else
+            echo "coverage script not present yet, skip coverage report"
+          fi
+
+      - name: Run SonarQube scan when secrets exist
+        if: ${{ secrets.SONAR_HOST_URL != '' && secrets.SONAR_TOKEN != '' }}
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+          SONAR_PROJECT_NAME: SQLForge
+        run: |
+          if [ -f scripts/run-sonar.sh ]; then
+            bash scripts/run-sonar.sh --require-config
+          else
+            echo "sonar script not present yet, skip sonar scan"
+          fi
+
       - name: Check frontend-backend separation
         run: |
           if [ -f scripts/check-frontend-backend-separation.js ]; then

@@ -16,6 +16,13 @@
 - 后端测试：`mvn -B test`
 - 后端编译：`mvn -B clean compile`
 - Java 规范扫描：`mvn -B validate pmd:pmd checkstyle:check`
+- 覆盖率报告：`bash scripts/run-coverage.sh --phase report-only`
+- 阶段门禁覆盖率检查：
+  - 阶段 0：`bash scripts/run-coverage.sh --phase phase0`
+  - 阶段 1+：`bash scripts/run-coverage.sh --phase phase1plus`
+- SonarQube 扫描：
+  - 本地或 CI 已配置环境变量时：`bash scripts/run-sonar.sh --require-config`
+  - 尚未配置环境变量时可先执行：`bash scripts/run-sonar.sh`
 - 前端构建：`npm run build`
 - 前端 lint：`npm run lint`
 - Compose 语法检查：`docker compose config`
