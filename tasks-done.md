@@ -102,6 +102,24 @@
   - 2026-04-20: strict ledger reconciliation marked the task as partial; `sqlforge-common` 已形成 `async`、`audit`、`config`、`constants`、`context`、`exception`、`log`、`utils` 包结构，且当前验证链 `mvn clean compile`、`mvn test`、`mvn validate pmd:pmd checkstyle:check`、`node scripts/lint-repository-knowledge.js` 已通过，但单任务 git closeout 仍缺失，暂不归档。
   - 2026-04-20: synced `document-truth-baseline.md` so the shared module no longer appears as a placeholder-only module, then archived the package-structure task for single-task git closeout.
 
+### C-TASK-003: 迁移重复或散落能力
+
+- Status: done
+- Priority: 1
+- Depends on: C-TASK-002
+- Completed at: 2026-04-20
+- Commit subject: `refactor(common): C-TASK-003 migrate scattered shared capabilities`
+- Scope: 把共性能力迁移到 common，仅迁移共性能力，不破坏服务边界。
+- Validation:
+  - `mvn -B clean compile`
+  - `mvn -B test`
+  - `mvn -B validate pmd:pmd checkstyle:check`
+  - `node scripts/lint-repository-knowledge.js`
+- Progress log:
+  - 2026-04-20: instantiated from `Phase-C` after common package structure settled.
+  - 2026-04-20: strict ledger reconciliation marked the task as partial; 旧 `com.company.common` 与治理服务内部重复 common 能力已被当前工作树迁移到 `com.company.sqlforge.common` 并由 `governance-service` 消费，当前验证链 `mvn clean compile`、`mvn test`、`mvn validate pmd:pmd checkstyle:check`、`node scripts/lint-repository-knowledge.js` 已通过，但单任务 git closeout 仍缺失，暂不归档。
+  - 2026-04-20: removed the last tracked `com.company.common` sources from `sqlforge-common` and updated `document-gap-matrix.md` so the shared-layer implementation no longer remains as an open gap.
+
 ### C-TASK-004: 对齐所有 application-*.yml 职责
 
 - Status: done

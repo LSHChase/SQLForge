@@ -16,19 +16,6 @@ _No tasks._
 
 ## In Review
 
-### C-TASK-003: 迁移重复或散落能力
-
-- Status: in_review
-- Priority: 1
-- Depends on: C-TASK-002
-- Scope: 把共性能力迁移到 common，仅迁移共性能力，不破坏服务边界。
-- Validation:
-  - `mvn -B clean compile`
-  - 消费方通过
-- Progress log:
-  - 2026-04-20: instantiated from `Phase-C` after common package structure settled.
-  - 2026-04-20: strict ledger reconciliation marked the task as partial; 旧 `com.company.common` 与治理服务内部重复 common 能力已被当前工作树迁移到 `com.company.sqlforge.common` 并由 `governance-service` 消费，当前验证链 `mvn clean compile`、`mvn test`、`mvn validate pmd:pmd checkstyle:check`、`node scripts/lint-repository-knowledge.js` 已通过，但单任务 git closeout 仍缺失，暂不归档。
-
 ### C-TASK-007: 对齐现有分层
 
 - Status: in_review
