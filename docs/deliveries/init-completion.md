@@ -4,7 +4,7 @@
 
 - CompletionTime: 2026-04-18T10:52:53-05:00
 - Branch: `init_codex_new`
-- Commit: pending
+- Commit: `de4888692226ff25e2125f947296bc06e2c7c0cb`
 - Tag: `v0.1.0-init`
 - Scope: `Task-001` to `Task-008`
 
@@ -51,11 +51,19 @@
 - `npm run build`
 - `npm run lint`
 
+## Environment Reminder
+
+- 当前仓库已完成本地初始化基线，但这不等于生产环境就绪。
+- 必须继续准备独立 MySQL/TDSQL 环境，不能长期依赖本地 Docker MySQL。
+- 必须准备独立 Kafka 集群，并在生产配置中切换到 `messaging.mode=KAFKA`。
+- 必须补齐生产鉴权、租户隔离、审计保留、敏感配置加密和备份恢复演练。
+- 目标环境部署说明见 [huawei-cloud-setup.md](/models/project/codex/SQLForge/docs/deployments/huawei-cloud-setup.md)。
+
 ## Next Stage Tasks
 
-1. Execute `Task-009` environment deployment reminder.
-2. Start next service skeleton rollout based on the governance template.
-3. Introduce deployment guides and environment-specific hardening for MySQL, Redis, Kafka and Nacos.
+1. Close the remaining delivery metadata gap for real commit/tag write-back.
+2. Start next service skeleton rollout based on the confirmed 4-service target architecture.
+3. Resolve the `raw-requirements` directory rule conflict tracked in the master execution plan.
 
 ## Repair Records
 
@@ -98,3 +106,12 @@
   - Added `scripts/manual-message-queue-smoke.sh` to drive health check, queue insert, retry call, status verification, and optional cleanup.
   - Updated local setup docs to reference the smoke script alongside the admin endpoints.
   - Kept the local environment running and used `--cleanup` mode to avoid leaving smoke-test data in `kafka_message_queue`.
+
+- 2026-04-19T13:00:00-05:00
+  Phase-B documentation backfill completed for ADR entities, Huawei Cloud deployment guidance, and access-control specification.
+  Commit: pending
+  Highlights:
+  - Added `ADR-001` to `ADR-013` entity files and updated `docs/adr/README.md` index links.
+  - Added `docs/deployments/huawei-cloud-setup.md` and aligned it with production `KAFKA` messaging mode.
+  - Replaced the access-control placeholder document with a complete identity, role, resource, authorization, audit, and failure-handling specification.
+  - Updated the master execution plan and phase 0 plan to reflect the confirmed 4-microservice target and current repository truth.

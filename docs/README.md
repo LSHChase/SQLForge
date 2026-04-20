@@ -14,16 +14,22 @@
    - [前端设计系统](./frontend/design-system.md)
    - [阿里 Java 规范适配](./quality/alibaba-java-guidelines.md)
    - [前后端分离基线检查](./quality/frontend-backend-separation-baseline.md)
-4. [阶段0执行计划](./plans/phase-0-plan.md)
-   当前初始化阶段的任务顺序、依赖关系、验收口径与交付节奏。
-5. [本地部署指南](./deployments/local-setup.md)
-   本地 Docker 依赖、启动脚本、健康检查与故障排查说明。
-6. 仓库约定与 ADR
+4. [计划索引](./plans/README.md)
+   执行计划入口，统一索引主执行计划、阶段计划与确认台账。
+5. [主执行计划](./plans/master-execution-plan.md)
+   当前全量执行控制文档，按 Harness Engineering 要求拆分阶段、Epic、Story、Task、验证矩阵与人工确认项。
+6. [阶段0执行计划](./plans/phase-0-plan.md)
+   初始化阶段历史计划，保留原任务顺序、依赖关系、验收口径与交付节奏。
+7. 部署文档
+   - [本地部署指南](./deployments/local-setup.md)
+   - [离线部署指南](./deployments/offline-setup.md)
+   - [华为云部署指南](./deployments/huawei-cloud-setup.md)
+8. 仓库约定与 ADR
    - [ADR 索引](./adr/README.md)
    - [ADR 模板](./adr/adr-template.md)
    - [等保合规说明](./security/compliance.md)
    - [人类约束历史账本](./references/human-constraint-history.md)
-7. 原始需求与归档
+9. 原始需求与归档
    - `docs/references/raw-requirements/`
 
 ## 文档地图
@@ -44,10 +50,10 @@
 - `frontend/`
   前端设计系统、组件与页面视觉规范。
 - `plans/`
-  分阶段执行计划。
+  计划索引、主执行计划与分阶段执行计划。
 - `deployments/`
   本地与目标环境部署说明。
 
 ## 当前阶段说明
 
-阶段 0 的目标是完成项目基础设施初始化。实现代码必须以后端强制分层、前后端分离、多环境配置、等保嵌入和文档优先为前提，不得绕过本文档体系直接推进编码。
+当前计划体系以 [主执行计划](./plans/master-execution-plan.md) 为主控文档，[阶段0执行计划](./plans/phase-0-plan.md) 作为历史阶段计划保留。实现代码必须以后端强制分层、前后端分离、多环境配置、等保嵌入和文档优先为前提，不得绕过本文档体系直接推进编码。
