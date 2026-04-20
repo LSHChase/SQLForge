@@ -445,7 +445,7 @@ Tasks:
 
 ## 7. Verification Matrix
 
-### 6.1 Global commands
+### 7.1 Global commands
 
 - `node scripts/lint-repository-knowledge.js`
 - `node scripts/check-frontend-backend-separation.js`
@@ -454,7 +454,7 @@ Tasks:
 - `npm run build`
 - `npm run lint`
 
-### 6.2 Rule-driven verification
+### 7.2 Rule-driven verification
 
 - Phase entry: `R-116`
 - Phase delivery gate: `R-117`
@@ -471,7 +471,7 @@ Tasks:
 - Java governance: `R-145` to `R-154`
 - Archive semantics clarification: `R-155`
 
-### 6.3 Task-level validation requirements
+### 7.3 Task-level validation requirements
 
 - 每个 Task 至少包含：
   - 正常场景验证
@@ -493,7 +493,7 @@ Tasks:
   - 编排语法检查
   - 必要环境 smoke
 
-### 6.4 Documentation coverage validation
+### 7.4 Documentation coverage validation
 
 - `docs/` 全量文件必须进入 [document-coverage-matrix.md](./document-coverage-matrix.md)
 - 每份文档必须标注为 `Authority`、`Indexed` 或 `Archive`
