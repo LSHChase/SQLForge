@@ -60,8 +60,8 @@
 
 - 当前仓库存在根级前端工程，入口为 `package.json`、`vite.config.js`、`src/`
 - 当前 Maven 聚合工程包含 `sqlforge-common/` 与 `governance-service/`
-- `sqlforge-common/` 当前只有 `pom.xml`，尚无源码
-- `governance-service/` 已有基础应用、controller、application service、最小租户校验能力、MyBatis XML、配置文件和基础测试
+- `sqlforge-common/` 已有共享错误码、上下文、异常、审计契约、日志与工具基线源码
+- `governance-service/` 已有基础应用、controller、application service、统一请求上下文校验能力、MyBatis XML、配置文件和基础测试
 - `docs/adr/` 已按 `ADR-001` 至 `ADR-013` 补齐实体文件
 - `docs/deployments/` 已补齐 `huawei-cloud-setup.md`
 
@@ -100,6 +100,19 @@
 | `Phase-D` | 核心业务服务实现 | 分阶段落地查询执行、SQL优化、压测、数据治理能力 | `R-116` | 核心接口和服务边界可验证 |
 | `Phase-E` | 前端驾驶舱与业务页面 | 按任务流完成驾驶舱和业务页面分离 | `R-116` | 前后端分离与页面信息架构达标 |
 | `Phase-F` | 部署、运维、生产就绪 | 完善部署、运维、合规、门禁与交付闭环 | `R-116` | `R-117`、`R-118`、CI、部署文档和演练达标 |
+
+## 4.1 Current Active Wave
+
+- 当前建议执行波次：`Phase-C`
+- 当前活跃目标：共享底座与公共治理服务
+- 当前已实例化到运行台账的首批可执行任务：
+  - `C-TASK-001`
+  - `C-TASK-002`
+  - `C-TASK-004`
+  - `C-TASK-007`
+- 说明：
+  - 上述任务已下钻到根级 `tasks.md`
+  - 后续开始执行时，以 `tasks.md` 的状态流转为运行真值，以本计划保持阶段和依赖权威
 
 ## 5. Traceability Matrix
 
@@ -260,6 +273,10 @@ Tasks:
   - `governance-service` 满足当前治理底座职责
   - 配置、消息、日志、异常、审计、上下文遵循统一约束
 - 依赖：`Phase-B`
+- 当前进展：
+  - `C-STORY-001` 已完成首轮落地，`sqlforge-common` 已被 `governance-service` 消费
+  - `C-STORY-002` 已完成 `DATABASE` / `MOCK` 可运行基线、管理接口和 `KAFKA` 客户端接入，真实集群运行验证仍待补齐
+  - `C-STORY-003` 已完成治理扩展契约骨架和严格请求上下文基线，完整治理能力仍待后续阶段增强
 
 ##### Story `C-STORY-001` Common 模块补齐
 
@@ -379,6 +396,11 @@ Tasks:
 
 - 目标：交付 `10.1` 定义的驾驶舱 IA。
 - 验证：板块完整、导航清晰、深色主题一致。
+- 补充口径：
+  - 正式产品首页 `/dashboard` 保留为业务首页，不被 AI 交付进度能力替代。
+  - AI 交付进度页属于研发/交付阶段的临时子页面，建议独立路由 `/delivery-progress`。
+  - 进度页展示真值必须来自 `tasks.md`、`tasks-done.md`、验证日志、执行计划与 Git 回写记录，不得另造平行状态源。
+  - 生产环境默认隐藏该临时页面入口，避免其进入正式投产体验。
 
 Tasks:
 
@@ -412,6 +434,17 @@ Tasks:
 |:---|:---|:---|:---|:---|
 | `E-TASK-007` | 扩展分离检查清单 | 文档+脚本 | `Phase-C` | 分离检查脚本通过 |
 | `E-TASK-008` | 清理潜在越界逻辑 | 只处理边界问题 | `E-TASK-007` | 前端仅保留编排/预校验/展示 |
+
+##### Story `E-STORY-004` 临时 AI 交付进度页
+
+- 目标：为架构师和交付负责人交付独立的 `/delivery-progress` 临时页面，用于只读展示 AI 编码任务推进状态，并与正式业务首页 `/dashboard` 严格分离。
+- 验证：页面可读取权威台账派生状态、生产环境默认隐藏入口、业务首页不受影响。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `E-TASK-009` | 建立临时 AI 交付进度页路由与展示骨架 | `/delivery-progress`、只读展示、非生产隐藏 | `E-TASK-001`,`E-TASK-002`,`Phase-C` | `npm run build`、非生产路由可达、生产默认隐藏、展示源仅来自权威台账 |
 
 ### Phase-F 部署、运维、生产就绪
 

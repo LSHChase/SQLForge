@@ -12,6 +12,8 @@
    用于证明 `docs/` 目录全部文档与归档资料已被主计划纳入，不遗漏。
 4. [Task 字段矩阵](./task-spec-matrix.md)
    为主计划中的全部 Task 补齐 Harness Engineering 所要求的 10 项字段。
+5. [流程与治理审计说明](./process-flow-and-governance-audit-2026-04-20.md)
+   对当前工程交付全流程、产品运行流程、流程缺陷、整改建议和逐文档修订建议做正式归档。
 
 ## 计划治理要求
 
@@ -46,6 +48,8 @@
   本轮文档治理专项的实际复盘记录。
 - `document-governance-repair-retrospective-2026-04-20.md`
   本轮严格核验缺口修复的实际复盘记录。
+- `process-flow-and-governance-audit-2026-04-20.md`
+  基于当前仓库文档全量扫描形成的正式流程说明与治理审计文档。
 
 使用方式：
 
@@ -57,3 +61,4 @@
 - 需要在交付后沉淀复盘时，使用 `retrospective-template.md`
 - 需要追溯本轮治理专项的实际结果时，读 `document-governance-retrospective-2026-04-20.md`
 - 需要追溯本轮严格核验修复结果时，读 `document-governance-repair-retrospective-2026-04-20.md`
+- 需要一次性理解当前全流程、流程缺陷和整改优先级时，读 `process-flow-and-governance-audit-2026-04-20.md`

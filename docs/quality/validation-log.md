@@ -68,3 +68,14 @@
 2026-04-20T11:12:30-05:00 | C-TASK-009 closeout static-check | `R-040`, `R-121` | passed | `mvn -B validate pmd:pmd checkstyle:check`
 2026-04-20T11:12:30-05:00 | C-TASK-009 closeout knowledge | `R-121`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-20T11:12:30-05:00 | C-TASK-009 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T11:23:53-05:00 | Phase-C exit clean-install | `R-117`, `R-119` | passed | `mvn -B clean install`
+2026-04-20T11:23:53-05:00 | Phase-C exit static-check | `R-040`, `R-117` | passed | `mvn -B validate pmd:pmd checkstyle:check`
+2026-04-20T11:23:53-05:00 | Phase-C exit coverage | `R-117` | failed | `bash scripts/run-coverage.sh --phase phase1plus` => aggregated line coverage `77.9642%` < required `85.00%`
+2026-04-20T11:23:53-05:00 | Phase-C exit frontend-build | `R-117`, `R-124` | passed | `npm run build`
+2026-04-20T11:23:53-05:00 | Phase-C exit frontend-lint | `R-117`, `R-124` | passed | `npm run lint`
+2026-04-20T11:23:53-05:00 | Phase-C exit knowledge | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T11:23:53-05:00 | Phase-C exit task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T11:23:53-05:00 | Phase-C exit sonar | `R-117` | skipped | `bash scripts/run-sonar.sh` => missing `SONAR_HOST_URL` and `SONAR_TOKEN`
+2026-04-20T11:23:53-05:00 | Phase-C exit boundary-and-ledger review | `R-126`, `R-156`, `R-161` | blocked | shared foundation / governance scope / Kafka deferred docs remain aligned, but `tasks.md` still contains `C-TASK-002`,`C-TASK-003`,`C-TASK-007` and worktree still contains mixed uncommitted changes, so Phase-C cannot close out yet
+2026-04-20T11:48:25-05:00 | DOC-GOV-005 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T11:48:25-05:00 | DOC-GOV-005 closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`

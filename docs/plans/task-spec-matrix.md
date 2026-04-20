@@ -101,6 +101,7 @@
 | `E-TASK-006` | 深色设计系统组件化 | N/A | `R-027`,`R-063`,`R-097`,`R-124` | `Core`,`Front` | 把主题 token 和组件规则转成实现 | `VUE-FE` | `frontend/router/views/styles` | token 生效、build、lint | `E-TASK-004` | dev |
 | `E-TASK-007` | 扩展分离检查清单 | N/A | `R-015`,`R-018`,`R-019` | `Core`,`Front` | 强化前后端分离校验 | `DOCS`,`OPS` | `docs`,`deployments/ci/scripts` | 分离检查脚本通过 | `Phase-C` | dev/ci |
 | `E-TASK-008` | 清理潜在越界逻辑 | N/A | `R-018`,`R-019`,`R-020` | `Core`,`Front`,`Sec` | 清理前端中的权威业务判断 | `VUE-FE`,`JAVA-BE` | `frontend/router/views/styles`,`application/domain/infrastructure` | 边界抽查、build、lint | `E-TASK-007` | dev/test |
+| `E-TASK-009` | 建立临时 AI 交付进度页路由与展示骨架 | N/A | `R-023`,`R-024`,`R-029`,`R-166` | `Core`,`Front`,`Delivery` | 建立 `/delivery-progress` 临时只读页面，展示 AI 任务进度且与 `/dashboard` 分离 | `VUE-FE` | `frontend/router/views/styles` | 非生产路由可达、生产默认隐藏、展示源仅来自权威台账、build | `E-TASK-001`,`E-TASK-002`,`Phase-C` | dev/test/prod-switch |
 
 ## Phase-F
 

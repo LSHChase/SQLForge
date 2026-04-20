@@ -263,7 +263,7 @@
 7. **执行引擎调用：** 通过Hetu（JDBC/REST/客户端）、Hive、Spark或ClickHouse执行
 8. **结果返回：** 流式返回查询结果
 9. **异步后置：**
-   - 审计日志写入（Kafka，保留30天）
+   - 审计事件写入：Kafka/消息链路仅作异步缓冲、补偿与重试，短期保留；权威审计日志主存储落库后保留不少于180天
    - 查询记录落库（MySQL）
    - 触发异步深度解析任务（首次或Schema变更时）
    - 触发异步加速分析任务（识别加速机会）
@@ -381,8 +381,8 @@
 
 | 服务域 | 核心职责 | 包含原服务 | 关键实体 | 部署约束 |
 |:---|:---|:---|:---|:---|
-| **查询执行服务** | 缓存检查、路由决策、Hetu多模式调用、结果聚合、SQL解析（轻量+深度）、SQL改写（规则+AI）、执行管理、异常回滚、加速配置应用 | 原查询网关、SQL解析、SQL改写、执行管理、加速服务 | QueryJob、CacheEntry、RoutingRule、ParsedSQL、ASTNode、ParseTask、RewriteRule、RewriteSuggestion、CostEstimate、ExecutionPlan、ExecutorInstance、ConnectionPool、AccelerationConfig、MaterializedView | 无状态，多实例负载均衡；解析与改写模块CPU亲和性调度；执行管理模块长连接会话保持 |
-| **SQL优化服务** | 异步深度解析、异步改写推荐、加速建议生成（预计算/分区/分桶/拆分/替换）、物化视图管理、成本估算、优化结果反馈 | 原SQL解析（异步部分）、SQL改写（异步部分）、加速服务（核心逻辑）、元数据服务（优化相关部分） | ParseTask（异步）、RewriteSuggestion（异步）、AccelerationConfig、MaterializedView、PartitionStrategy、CostEstimate、TableSchema、ColumnStats | 计算密集型，CPU独占；与查询执行服务共享元数据缓存；独立调度队列避免影响联机查询 |
+| **查询执行服务** | 缓存检查、路由决策、Hetu多模式调用、结果聚合、SQL轻量解析、SQL轻量改写、执行管理、异常回滚、已批准加速配置的运行时应用 | 原查询网关、SQL解析（轻量部分）、SQL改写（轻量部分）、执行管理、加速配置运行时应用 | QueryJob、CacheEntry、RoutingRule、ParsedSQL、ASTNode、ExecutionPlan、ExecutorInstance、ConnectionPool、AccelerationConfig | 无状态，多实例负载均衡；轻量解析与轻量改写保持低延迟；执行管理模块长连接会话保持 |
+| **SQL优化服务** | 异步深度解析、异步改写推荐、加速建议生成（预计算/分区/分桶/拆分/替换）、物化视图管理、成本估算、优化结果反馈 | 原SQL解析（异步深度部分）、SQL改写（异步建议部分）、加速服务（核心逻辑）、元数据服务（优化相关部分） | ParseTask（异步）、RewriteSuggestion（异步）、CostEstimate、AccelerationConfig、MaterializedView、PartitionStrategy、TableSchema、ColumnStats | 计算密集型，CPU独占；与查询执行服务共享元数据缓存；独立调度队列避免影响联机查询 |
 | **压测引擎服务** | 压测任务DAG调度、多引擎并行执行、基线生成、阈值判定、压测报告生成、与生产环境安全隔离 | 原压测引擎、任务调度（压测相关部分） | BenchmarkTask、BenchmarkReport、EngineProfile、ScheduleJob（压测类型）、JobDependency | 独立资源池，与生产环境物理隔离；独立K8s命名空间或独立集群；禁止直接访问生产数据源 |
 | **公共管理服务** | 租户管理、配额控制、配置中心、计费统计、数据源管理、Schema同步、审计日志生成、合规检查、数据血缘采集、任务调度（非压测类）、平台级监控 | 原平台治理、元数据服务（管理部分）、合规审计、数据血缘、任务调度（通用部分） | TenantConfig、ResourceQuota、UsageBill、DataSource、TableSchema、AuditRule、AuditLog、SensitiveMask、ReviewTask、LineageNode、LineageEdge、ImpactReport、ScheduleJob（通用类型） | 管理面服务，高可用部署；审计日志双写（本地+Kafka）；血缘服务可独立扩缩容 |
 
@@ -855,6 +855,12 @@ SQL优化服务 → 公共管理服务（获取元数据、统计信息、写入
 
 ## 第十部分：研发子页面与进度管理设计
 
+语义拆分说明：
+
+- 当前正式产品首页继续保留为业务首页 `/dashboard`，用于承载 SQL 生命周期治理相关的业务摘要、风险提示与五大功能入口。
+- “关注 AI 编码任务完成情况”的页面不再与正式业务首页混用，改为独立的临时交付子页面。
+- 该临时页面只服务研发/交付阶段的 AI 执行进度追踪，不属于项目正式产品能力；项目全部结束并投产后默认不展示。
+
 ### 10.1 子页面信息架构
 
 **页面名称：** 研发驾驶舱（R&D Cockpit）
@@ -910,6 +916,55 @@ SQL优化服务 → 公共管理服务（获取元数据、统计信息、写入
     ├── 上下文清理记录（任务完成后清理日志）
     └── 需求原文归档（所有人类输入原始快照）
 ```
+
+当前执行口径补充：
+
+- 上述结构保留为历史初始化设计索引，不再单独定义“AI 编码进度页”的最终语义。
+- 当前仓库的正式产品首页仍是业务首页 `/dashboard`，必须保留。
+- AI 编码进度展示能力改由下述 `10.2` 的独立临时页面承担，避免与产品首页混淆。
+
+### 10.2 临时 AI 交付进度页
+
+**建议页面名称：** AI 交付进度页（AI Delivery Progress）
+
+**建议路由：** `/delivery-progress`
+
+**页面定位：**
+
+- 该页面仅用于研发/交付阶段观察 AI 编码任务推进情况，不属于 SQLForge 的正式产品功能需求。
+- 页面目标是让架构师或交付负责人查看任务新增、修改、执行后的最新状态，包括已完成、执行中、阻塞、模块进度、验证结果与交付回写情况。
+- 正式业务首页 `/dashboard` 继续保留，用于业务与运行态摘要；不得被该临时页面替代。
+
+**展示数据来源：**
+
+- 任务状态真值固定来自：
+  - `tasks.md`
+  - `tasks-done.md`
+- 执行与验证证据来自：
+  - `docs/quality/validation-log.md`
+  - `docs/plans/master-execution-plan.md`
+  - `docs/exec-plans/active/`
+  - `docs/exec-plans/completed/`
+  - Git 提交 / tag 回写记录
+- 页面不得再维护一套独立、人工手填且脱离权威文档的并行状态源；若需要展示聚合视图，只能从上述权威来源读取或派生。
+
+**更新责任：**
+
+- 每次任务新增、修改、执行、阻塞、完成、归档后，AI 必须先同步权威台账与相关文档，再由页面读取更新后的真值进行展示。
+- 人类负责目标、优先级与审批；AI/Foreman 负责把执行状态、验证证据、交付回写与文档同步到权威来源。
+- 若页面展示内容与 `tasks.md`、`tasks-done.md`、验证日志或执行计划不一致，以权威文档为准，页面必须尽快修正。
+
+**投产后隐藏机制：**
+
+- 该页面默认只允许在研发、测试、交付环境展示，不进入正式生产导航。
+- 生产环境必须默认隐藏或关闭该页面入口，可通过构建开关、环境变量或路由开关控制。
+- 项目全部结束并进入正式投产后，该页面应从产品导航中移除或保持不可见，但其历史权威数据仍保留在任务台账、验证日志、计划与 Git 记录中，不得删除。
+
+当前 C4 更新落点说明：
+
+- `docs/architecture/c4-overview.md` 是当前权威的文字版 C4 工件，用于承接 `R-133` 的 C4 同步要求。
+- 本文第十部分保留初始化驾驶舱中的 C4 层级与信息架构索引，不作为后续架构变更的唯一更新位置。
+- 当服务拓扑、容器边界或分层结构发生变化时，优先更新 `c4-overview.md`；若本节目录层级也受影响，再同步更新本节。
 
 ---
 
@@ -997,6 +1052,12 @@ SQL优化服务 → 公共管理服务（获取元数据、统计信息、写入
 ---
 
 ## 第十二部分：里程碑与任务清单
+
+说明：
+
+- 本部分保留初始化阶段的历史里程碑与任务示例，用于追溯来源计划，不代表当前仓库的执行阶段模型。
+- 当前执行阶段、阶段门禁与任务推进顺序以 `docs/plans/master-execution-plan.md`、`docs/plans/implementation-readiness.md` 和 `docs/plans/phase-prerequisite-matrix.md` 为准。
+- 因此本节中的“阶段0-阶段3”与“11个原始服务来源”只作为历史初始化语义保留，不再作为当前实现落地口径。
 
 ### 12.1 四阶段交付计划
 

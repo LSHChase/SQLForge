@@ -17,6 +17,7 @@
 | Path | Type | Role | Current status | Plan usage |
 |:---|:---|:---|:---|:---|
 | `docs/README.md` | Authority | 文档入口 | Consumed | 主计划证据基础、阅读顺序入口 |
+| `docs/architecture/c4-overview.md` | Authority | 当前权威的文字版 C4 架构总览与更新落点 | Referenced | 承接 `R-133` 的 C4 同步要求，统一维护 Level 1-4 文字架构说明 |
 | `docs/architecture/init.md` | Authority | 总体架构、规则、阶段、接口契约、任务模板 | Consumed | 主计划主基线 |
 | `docs/architecture/messaging-abstraction.md` | Authority | `R-144` 消息抽象模式 | Consumed | 配置、消息实现、部署切换 |
 | `docs/architecture/service-capability-map.md` | Authority | 4 微服务与当前仓库模块的能力映射 | Consumed | 服务拆分、common 边界、`governance-service` 过渡约束 |
@@ -41,6 +42,7 @@
 | `docs/plans/document-truth-baseline.md` | Authority | 当前仓库真值、历史记录、目标边界分层与漂移映射 | Consumed | 编码前真值判断、漂移治理、文档消费入口 |
 | `docs/plans/implementation-readiness.md` | Authority | 编码前置消费顺序、主题权威来源、执行波次 | Consumed | 实施顺序、冲突处理、任务进入条件 |
 | `docs/plans/phase-prerequisite-matrix.md` | Authority | 阶段输入文档、ADR、规则、验证和确认点矩阵 | Consumed | 阶段进入前置条件检查 |
+| `docs/plans/process-flow-and-governance-audit-2026-04-20.md` | Indexed | 正式全流程说明、流程缺陷审计与整改建议 | Consumed | 供后续接手人与治理批次快速理解当前执行流程与缺陷闭口优先级 |
 | `docs/plans/retrospective-template.md` | Indexed | 阶段与复杂批次复盘模板 | Referenced | 复盘闭环与后续治理沉淀 |
 | `docs/plans/document-governance-retrospective-2026-04-20.md` | Indexed | 本轮文档治理复盘记录 | Consumed | 漂移、缺口和后续治理沉淀 |
 | `docs/plans/document-governance-repair-retrospective-2026-04-20.md` | Indexed | 本轮严格核验缺口修复复盘记录 | Consumed | 治理闭口与 repair 批次追溯 |
