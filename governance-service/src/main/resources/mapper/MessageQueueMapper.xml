@@ -4,6 +4,19 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.MessageQueueMapper">
 
+    <resultMap id="MessageQueueRecordResultMap" type="com.company.governance.domain.message.entity.MessageQueueRecord">
+        <id property="id" column="id"/>
+        <result property="topic" column="topic"/>
+        <result property="partitionKey" column="partition_key"/>
+        <result property="messageBody" column="message_body"/>
+        <result property="headers" column="headers"/>
+        <result property="status" column="status"/>
+        <result property="retryCount" column="retry_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="consumedAt" column="consumed_at"/>
+        <result property="errorLog" column="error_log"/>
+    </resultMap>
+
     <resultMap id="MessageQueueStatsResultMap" type="com.company.governance.domain.message.entity.MessageQueueRecord">
         <result property="totalCount" column="total_count"/>
         <result property="pendingCount" column="pending_count"/>
@@ -11,6 +24,58 @@
         <result property="consumedCount" column="consumed_count"/>
         <result property="failedCount" column="failed_count"/>
     </resultMap>
+
+    <insert id="insert" parameterType="com.company.governance.domain.message.entity.MessageQueueRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO kafka_message_queue (
+            topic,
+            partition_key,
+            message_body,
+            headers,
+            status,
+            retry_count
+        ) VALUES (
+            #{topic},
+            #{partitionKey},
+            #{messageBody},
+            #{headers},
+            #{status},
+            #{retryCount}
+        )
+    </insert>
+
+    <select id="selectPendingMessages" resultMap="MessageQueueRecordResultMap">
+        SELECT
+            id,
+            topic,
+            partition_key,
+            message_body,
+            headers,
+            status,
+            retry_count,
+            created_at,
+            consumed_at,
+            error_log
+        FROM kafka_message_queue
+        WHERE topic = #{topic}
+          AND status = 'PENDING'
+        ORDER BY created_at ASC
+        LIMIT #{batchSize}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE kafka_message_queue
+        SET status = #{status},
+            error_log = #{errorLog},
+            retry_count = CASE
+                WHEN #{status} = 'FAILED' THEN retry_count + 1
+                ELSE retry_count
+            END,
+            consumed_at = CASE
+                WHEN #{consumedAtSql} = 'CURRENT_TIMESTAMP' THEN CURRENT_TIMESTAMP
+                ELSE consumed_at
+            END
+        WHERE id = #{id}
+    </update>
 
     <update id="retryFailedMessages">
         UPDATE kafka_message_queue

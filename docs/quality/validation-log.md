@@ -57,3 +57,9 @@
 2026-04-20T09:30:10-05:00 | E-TASK-009 second-pass dev-route-visible | `R-166` | passed | `rg -n "/delivery-progress" dist-dev`
 2026-04-20T09:30:10-05:00 | E-TASK-009 second-pass task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
 2026-04-20T09:30:10-05:00 | E-TASK-009 second-pass knowledge-lint | `R-131`, `R-133`, `R-166` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T11:05:18-05:00 | C-TASK-005 closeout compile | `R-119`, `R-144` | passed | `mvn -B clean compile`
+2026-04-20T11:05:18-05:00 | C-TASK-005 closeout test | `R-119`, `R-144` | passed | `mvn -B test`
+2026-04-20T11:05:18-05:00 | C-TASK-005 closeout static-check | `R-040`, `R-144` | passed | `mvn -B validate pmd:pmd checkstyle:check`
+2026-04-20T11:05:18-05:00 | C-TASK-005 closeout knowledge | `R-131`, `R-133`, `R-144` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T11:05:18-05:00 | C-TASK-005 closeout coverage | `R-117`, `R-144` | passed | `bash scripts/run-coverage.sh --phase report-only`
+2026-04-20T11:05:18-05:00 | C-TASK-005 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`

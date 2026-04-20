@@ -34,12 +34,24 @@
 
 业务代码必须只依赖上述抽象接口，禁止直接依赖 `KafkaTemplate`、Kafka 客户端或任意数据库轮询实现。
 
+当前 `governance-service` 已实现：
+
+- `domain/messaging/` 抽象接口与 `MessageEnvelope`
+- `infrastructure/messaging/` 下的 `Database` / `Mock` / `Kafka` 三种模式实现
+- `MessagingConfig` 按 `messaging.mode` 选择 Bean
+- `DatabaseMessagePollingJob` 轮询治理消息 Topic
+- `MessageAdminController` 提供 `retry` / `stats` 管理接口，仅在 `DATABASE` 模式下可用
+- 当前 `KAFKA` 模式已接入真实 Kafka 客户端基线：
+  - `KafkaMessageProducer` 使用 Kafka 客户端发送消息
+  - `KafkaMessageConsumer` 使用 Kafka 客户端启动后台监听循环
+  - 当前仓库只完成代码接入与单元测试覆盖，尚未记录真实 Kafka 集群运行验证证据
+
 ## 实现映射
 
 - `DatabaseMessageProducer` -> `kafka_message_queue` 表
 - `DatabaseMessageConsumer` -> 轮询 `kafka_message_queue` 中 `PENDING` 消息
-- `KafkaMessageProducer` -> `KafkaTemplate`
-- `KafkaMessageConsumer` -> `@KafkaListener`
+- `KafkaMessageProducer` -> Kafka 客户端 Producer
+- `KafkaMessageConsumer` -> Kafka 客户端 Consumer 后台监听循环
 - `MockMessageProducer` -> `ConcurrentLinkedQueue`
 - `MockMessageConsumer` -> `ConcurrentLinkedQueue`
 
@@ -63,7 +75,7 @@ CREATE TABLE kafka_message_queue (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='R-144数据库模拟模式消息队列';
 ```
 
-## 配置切换：messaging.mode + @ConditionalOnProperty
+## 配置切换：messaging.mode + MessagingConfig
 
 ```yaml
 messaging:
@@ -81,7 +93,7 @@ messaging:
 - `src/test/resources/application-test.yml`：`messaging.mode=MOCK`
 - `application-prod.yml`：`messaging.mode=KAFKA`
 
-配置层建议通过 `MessagingConfig` + `@ConditionalOnProperty` 选择具体 Producer / Consumer Bean。
+当前代码通过 `MessagingConfig` 按 `messaging.mode` 显式选择具体 Producer / Consumer Bean。
 
 ## 本地验证：查询表 + 调用重试接口
 
@@ -101,8 +113,15 @@ SELECT COUNT(*) FROM kafka_message_queue WHERE status = 'PENDING';
 4. 如需手动重试失败消息，调用：
 
 ```bash
-curl -X POST http://localhost:8080/admin/messages/retry
+./scripts/manual-message-queue-smoke.sh --cleanup
 ```
+
+说明：
+
+- `/api/governance/admin/messages/retry`
+- `/api/governance/admin/messages/stats`
+
+以上接口都属于受保护接口，必须带齐请求上下文头；本地人工验证优先使用仓库内脚本，避免手工遗漏请求头。
 
 ## 生产部署：docker-compose启用Kafka服务 + 切换mode为KAFKA
 
@@ -118,9 +137,11 @@ docker compose --profile optional up -d kafka
    - `messaging.kafka.enabled=true`
    - `messaging.kafka.bootstrap-servers=<cluster>`
 4. 保持业务层接口不变，仅替换基础设施实现。
+5. 当前还需要补真实 Kafka 连通性与消费链路运行验证证据。
 
 ## 维护说明
 
 - Topic 名称、消息体 JSON 结构、Headers、分区键策略和消费顺序要求，必须同步维护到对应接口契约文档。
 - 本文件负责定义全局抽象模式，不承载具体业务 Topic 细节。
+- 当前仓库已完成 `DATABASE` / `MOCK` 可运行基线，以及 `KAFKA` 代码接入基线；真实集群运行验证仍待补齐。
 - 相关规则：`R-066`, `R-068`, `R-121`, `R-128`, `R-144`

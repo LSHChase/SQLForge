@@ -139,4 +139,15 @@ public class MessageQueueRecord {
     public void setFailedCount(Long failedCount) {
         this.failedCount = failedCount;
     }
+
+    public static MessageQueueRecord pending(String topic, String partitionKey, String messageBody, String headers) {
+        MessageQueueRecord messageQueueRecord = new MessageQueueRecord();
+        messageQueueRecord.setTopic(topic);
+        messageQueueRecord.setPartitionKey(partitionKey);
+        messageQueueRecord.setMessageBody(messageBody);
+        messageQueueRecord.setHeaders(headers);
+        messageQueueRecord.setStatus("PENDING");
+        messageQueueRecord.setRetryCount(0);
+        return messageQueueRecord;
+    }
 }
