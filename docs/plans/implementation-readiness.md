@@ -24,8 +24,10 @@
 5. `docs/quality/validation-rules.md`
 6. 领域专项文档
 7. `docs/plans/master-execution-plan.md`
-8. `docs/plans/task-spec-matrix.md`
-9. 根级 `tasks.md` / `tasks-done.md` / `INBOX.md`
+8. `docs/plans/phase-prerequisite-matrix.md`
+9. `docs/plans/task-spec-matrix.md`
+10. `docs/plans/task-governance-extension-matrix.md`
+11. 根级 `tasks.md` / `tasks-done.md` / `INBOX.md`
 
 ### Authority by topic
 
@@ -36,7 +38,7 @@
 | 访问控制与合规 | `docs/security/access-control-spec.md`, `docs/security/compliance.md` | `docs/rules/codex-rules.md` |
 | 前端信息架构与视觉 | `docs/frontend/design-system.md` | `docs/quality/frontend-backend-separation-baseline.md` |
 | 验证口径 | `docs/quality/validation-rules.md` | `docs/quality/validation-log.md` |
-| 当前执行顺序与依赖 | `docs/plans/master-execution-plan.md` | `docs/plans/task-spec-matrix.md` |
+| 当前执行顺序与依赖 | `docs/plans/master-execution-plan.md`, `docs/plans/phase-prerequisite-matrix.md` | `docs/plans/task-spec-matrix.md`, `docs/plans/task-governance-extension-matrix.md` |
 | 历史原因追溯 | `docs/references/human-constraint-history.md` | `docs/references/raw-requirements/` |
 
 ### Conflict handling

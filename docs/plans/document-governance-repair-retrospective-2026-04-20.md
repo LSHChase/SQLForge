@@ -110,3 +110,14 @@
   - 新增治理文档后继续同步维护 coverage completeness 与 required docs lint
 - Docs or ADR updates needed:
   - 后续进入服务实现后，应继续细化真实 DTO 命名、事件版本化和错误码枚举清单
+
+## 8. Follow-Up Closure For `DOC-GOV-003`
+
+- Trigger:
+  - 严格复核后发现仍有 3 组微型一致性残留：`implementation-readiness.md` 未显式消费阶段前置条件矩阵与 Task 扩展治理矩阵，`docs/README.md` 的非 trivial 编码阅读顺序未同步这两份矩阵，`validation-log.md` 缺失 `DOC-GOV-002 closeout task-audit` 对称记录。
+- Additional cure:
+  - 把 `phase-prerequisite-matrix.md` 与 `task-governance-extension-matrix.md` 补入实现就绪规范的任务起始顺序与执行依赖权威来源。
+  - 把同两份矩阵补入 `docs/README.md` 的非 trivial 编码任务优先阅读顺序。
+  - 以 append-only 方式补录 `DOC-GOV-002 closeout task-audit`，并以 `DOC-GOV-003` 归档本次微型治理批次。
+- Scope boundary:
+  - 本次只修复治理一致性残留，不新增业务代码、不改变既有规则语义。

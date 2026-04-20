@@ -127,5 +127,7 @@
 5. `docs/quality/validation-rules.md`
 6. 对应专项文档
 7. `docs/plans/master-execution-plan.md`
-8. [Task 字段矩阵](./plans/task-spec-matrix.md)
-9. 根级任务台账与人工决策入口：`tasks.md` / `tasks-done.md` / `INBOX.md`
+8. [阶段前置条件矩阵](./plans/phase-prerequisite-matrix.md)
+9. [Task 字段矩阵](./plans/task-spec-matrix.md)
+10. [Task 治理扩展矩阵](./plans/task-governance-extension-matrix.md)
+11. 根级任务台账与人工决策入口：`tasks.md` / `tasks-done.md` / `INBOX.md`
