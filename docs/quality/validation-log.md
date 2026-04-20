@@ -93,3 +93,12 @@
 2026-04-20T11:58:24-05:00 | C-TASK-007 closeout test | `R-119`, `R-120` | passed | `mvn -B test`
 2026-04-20T11:58:24-05:00 | C-TASK-007 closeout static-check | `R-040`, `R-120` | passed | `mvn -B validate pmd:pmd checkstyle:check`
 2026-04-20T11:58:24-05:00 | C-TASK-007 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T12:05:14-05:00 | Phase-C exit recheck clean-install | `R-117`, `R-119` | passed | `mvn -B clean install`
+2026-04-20T12:05:14-05:00 | Phase-C exit recheck static-check | `R-040`, `R-117` | passed | `mvn -B validate pmd:pmd checkstyle:check`
+2026-04-20T12:05:14-05:00 | Phase-C exit recheck coverage | `R-117` | failed | `bash scripts/run-coverage.sh --phase phase1plus` => aggregated line coverage `77.9642%` < required `85.00%`
+2026-04-20T12:05:14-05:00 | Phase-C exit recheck sonar | `R-117` | skipped | `bash scripts/run-sonar.sh` => missing `SONAR_HOST_URL` and `SONAR_TOKEN`
+2026-04-20T12:05:14-05:00 | Phase-C exit recheck frontend-build | `R-117`, `R-124` | passed | `npm run build`
+2026-04-20T12:05:14-05:00 | Phase-C exit recheck frontend-lint | `R-117`, `R-124` | passed | `npm run lint`
+2026-04-20T12:05:14-05:00 | Phase-C exit recheck knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T12:05:14-05:00 | Phase-C exit recheck task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T12:05:14-05:00 | Phase-C exit recheck boundary-and-ledger review | `R-126`, `R-144`, `R-156`, `R-161` | blocked | shared foundation boundary remains clean, `governance-service` remains scoped to public-management duties, Kafka real-environment validation stays deferred, and ledgers/docs/logs are aligned after `C-TASK-002`,`C-TASK-003`,`C-TASK-007` closeout; Phase-C still cannot formally exit until coverage and Sonar environment prerequisites are satisfied
