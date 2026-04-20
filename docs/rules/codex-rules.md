@@ -710,3 +710,10 @@ messaging:
 - 从其他项目迁移 harness engineering 规则时，只允许迁移治理思想、流程结构和验证口径。
 - 其他项目专属的服务名、模块边界、HTTP 路由、端口、运行时拓扑、测试矩阵和 artifact 名称不得直接作为 SQLForge 事实沿用。
 - 迁移结果必须显式替换为 SQLForge 当前仓库事实，或明确标记为“仅迁移思想、不迁移实现语义”。
+
+## Current Consumption Note (2026-04-20)
+
+- `R-001` 至 `R-115` 仍是初始化基线，语义来源保持 `docs/architecture/init.md` 不变。
+- `R-116` 至 `R-161` 是初始化后追加的验证、Java 规范与 harness 治理规则。
+- 当前仓库执行时，若初始化文档中的目标落点路径与真实文档路径不一致，统一按 `docs/plans/document-truth-baseline.md` 中的漂移映射消费。
+- 本说明不新增规则编号，不改变既有规则语义，只补充当前仓库的实际消费顺序。

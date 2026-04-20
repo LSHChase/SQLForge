@@ -27,3 +27,21 @@
 - 当前文档全量覆盖证明：`document-coverage-matrix.md`
 - 当前 Task 字段补全集：`task-spec-matrix.md`
 - 当前未闭合事项：以主执行计划中的 `Human Confirmation Ledger` 为准
+
+## 2026-04-20 新增治理文档
+
+- `document-truth-baseline.md`
+  用于隔离当前仓库事实、已确认目标、历史记录和归档原文。
+- `implementation-readiness.md`
+  用于定义任务开始前的文档消费顺序、主题权威、冲突处理和波次执行顺序。
+- `retrospective-template.md`
+  用于阶段或复杂批次结束后的标准复盘。
+- `document-governance-retrospective-2026-04-20.md`
+  本轮文档治理专项的实际复盘记录。
+
+使用方式：
+
+- 判断“现在仓库里到底有什么”时，先读 `document-truth-baseline.md`
+- 判断“接下来这轮编码按什么顺序推进”时，读 `implementation-readiness.md`
+- 需要在交付后沉淀复盘时，使用 `retrospective-template.md`
+- 需要追溯本轮治理专项的实际结果时，读 `document-governance-retrospective-2026-04-20.md`

@@ -11,6 +11,15 @@ const requiredDocsPaths = [
   'docs/architecture',
   'docs/architecture/init.md',
   'docs/architecture/messaging-abstraction.md',
+  'docs/architecture/service-capability-map.md',
+  'docs/plans/README.md',
+  'docs/plans/master-execution-plan.md',
+  'docs/plans/document-coverage-matrix.md',
+  'docs/plans/document-truth-baseline.md',
+  'docs/plans/implementation-readiness.md',
+  'docs/plans/retrospective-template.md',
+  'docs/plans/document-governance-retrospective-2026-04-20.md',
+  'docs/plans/task-spec-matrix.md',
   'docs/quality',
   'docs/quality/alibaba-java-guidelines.md',
   'docs/quality/frontend-backend-separation-baseline.md',
@@ -288,7 +297,16 @@ function ensureDocsReadmeIndex(errors, checks) {
   const requiredMarkers = [
     './quality/validation-rules.md',
     './operations/README.md',
-    './generated/repo-map.md'
+    './generated/repo-map.md',
+    './plans/document-truth-baseline.md',
+    './plans/implementation-readiness.md',
+    './architecture/service-capability-map.md',
+    './plans/retrospective-template.md',
+    './plans/document-governance-retrospective-2026-04-20.md',
+    './plans/task-spec-matrix.md',
+    'tasks.md',
+    'tasks-done.md',
+    'INBOX.md'
   ]
   const missingMarkers = requiredMarkers.filter(marker => !content.includes(marker))
   if (missingMarkers.length > 0) {
@@ -331,6 +349,48 @@ function ensureMessagingSchema(errors, checks) {
   checks.push(`R-144 schema ok (${schemaPath} contains kafka_message_queue)`)
 }
 
+function listDocsFiles(directory) {
+  const items = fs.readdirSync(directory, { withFileTypes: true })
+  const files = []
+  items.forEach(item => {
+    const absolute = path.join(directory, item.name)
+    if (item.isDirectory()) {
+      files.push(...listDocsFiles(absolute))
+      return
+    }
+
+    const relative = path.relative(rootDir, absolute).replace(/\\/g, '/')
+    files.push(relative)
+  })
+  return files
+}
+
+function ensureCoverageMatrixCompleteness(errors, checks) {
+  const coveragePath = 'docs/plans/document-coverage-matrix.md'
+  if (!pathExists(coveragePath)) {
+    errors.push(`Missing coverage matrix: ${coveragePath}`)
+    return
+  }
+
+  const content = readFile(coveragePath)
+  const matrixPaths = Array.from(new Set(Array.from(content.matchAll(/`(docs\/[^`]+)`/g)).map(item => item[1]))).sort()
+  const docsFiles = listDocsFiles(absolutePath('docs')).sort()
+  const missing = docsFiles.filter(item => !matrixPaths.includes(item))
+  const extra = matrixPaths.filter(item => !pathExists(item))
+
+  if (missing.length > 0) {
+    errors.push(`document-coverage-matrix.md missing docs file entries:\n- ${missing.join('\n- ')}`)
+    return
+  }
+
+  if (extra.length > 0) {
+    errors.push(`document-coverage-matrix.md contains nonexistent docs paths:\n- ${extra.join('\n- ')}`)
+    return
+  }
+
+  checks.push(`document-coverage-matrix.md completeness ok (${docsFiles.length} docs files)`)
+}
+
 function main() {
   const errors = []
   const checks = []
@@ -346,6 +406,7 @@ function main() {
   ensureDocsReadmeIndex(errors, checks)
   ensureMessagingModeConfig(errors, checks)
   ensureMessagingSchema(errors, checks)
+  ensureCoverageMatrixCompleteness(errors, checks)
 
   if (errors.length > 0) {
     console.error('Repository knowledge lint failed:\n')

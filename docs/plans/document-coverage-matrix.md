@@ -19,18 +19,31 @@
 | `docs/README.md` | Authority | 文档入口 | Consumed | 主计划证据基础、阅读顺序入口 |
 | `docs/architecture/init.md` | Authority | 总体架构、规则、阶段、接口契约、任务模板 | Consumed | 主计划主基线 |
 | `docs/architecture/messaging-abstraction.md` | Authority | `R-144` 消息抽象模式 | Consumed | 配置、消息实现、部署切换 |
+| `docs/architecture/service-capability-map.md` | Authority | 4 微服务与当前仓库模块的能力映射 | Consumed | 服务拆分、common 边界、`governance-service` 过渡约束 |
 | `docs/deliveries/init-completion.md` | Indexed | 阶段0交付记录 | Consumed | 阶段0真值、tag 回写、交付闭环 |
 | `docs/deployments/local-setup.md` | Authority | 本地部署与健康检查 | Consumed | 本地环境、smoke、脚本说明 |
 | `docs/deployments/offline-setup.md` | Authority | 离线部署 | Consumed | 部署文档统一基线 |
 | `docs/deployments/huawei-cloud-setup.md` | Authority | 华为云私有云部署 | Consumed | 生产部署与 `KAFKA` 模式切换 |
+| `docs/generated/repo-map.md` | Indexed | 仓库结构导航快照 | Consumed | AI 导航、仓库结构入口与目录真值辅助说明 |
 | `docs/frontend/design-system.md` | Authority | 前端视觉与页面设计规则 | Consumed | Dashboard、业务页、主题系统 |
+| `docs/operations/README.md` | Indexed | 运维与协作索引 | Consumed | operations 文档入口 |
+| `docs/operations/best-practices.md` | Authority | 可泛化工程规则账本 | Referenced | 复用规则、Root Cause/Cure/Generalization 沉淀 |
+| `docs/operations/foreman-workflow.md` | Authority | foreman 任务流与开发循环 | Referenced | 任务入口、开发循环与归档闭环 |
+| `docs/operations/git-and-task-closeout.md` | Authority | Git 边界与任务关闭顺序 | Referenced | 单任务关闭、审计链与 commit 规则 |
+| `docs/operations/human-collaboration.md` | Authority | 人机协作边界与脏工作树处理 | Referenced | stop/continue、冲突与协作边界 |
+| `docs/operations/local-development.md` | Authority | 本地命令、脚本与环境入口 | Referenced | 本地开发验证与环境约束 |
 | `docs/plans/README.md` | Indexed | 计划导航 | Consumed | 计划入口与附录说明 |
 | `docs/plans/master-execution-plan.md` | Authority | 当前主执行计划 | Consumed | 主控文档 |
 | `docs/plans/phase-0-plan.md` | Indexed | 阶段0历史计划 | Consumed | 阶段0真值修正 |
 | `docs/plans/document-coverage-matrix.md` | Indexed | 文档全量覆盖矩阵 | Consumed | 证明 `docs/` 全量纳入 |
+| `docs/plans/document-truth-baseline.md` | Authority | 当前仓库真值、历史记录、目标边界分层与漂移映射 | Consumed | 编码前真值判断、漂移治理、文档消费入口 |
+| `docs/plans/implementation-readiness.md` | Authority | 编码前置消费顺序、主题权威来源、执行波次 | Consumed | 实施顺序、冲突处理、任务进入条件 |
+| `docs/plans/retrospective-template.md` | Indexed | 阶段与复杂批次复盘模板 | Referenced | 复盘闭环与后续治理沉淀 |
+| `docs/plans/document-governance-retrospective-2026-04-20.md` | Indexed | 本轮文档治理复盘记录 | Consumed | 漂移、缺口和后续治理沉淀 |
 | `docs/plans/task-spec-matrix.md` | Indexed | Harness Task 字段矩阵 | Consumed | 补齐 59 个 Task 的 10 字段 |
 | `docs/quality/alibaba-java-guidelines.md` | Authority | Java 规范适配文档 | Consumed | Java 实现与扫描治理 |
 | `docs/quality/frontend-backend-separation-baseline.md` | Authority | 前后端分离基线 | Consumed | 边界治理与脚本校验 |
+| `docs/quality/validation-log.md` | Indexed | 验证行为审计日志 | Referenced | 验证证据追溯与关闭链路 |
 | `docs/quality/validation-rules.md` | Authority | `R-116` 至 `R-154` 验证规则 | Consumed | 任务和阶段验证矩阵 |
 | `docs/references/human-constraint-history.md` | Authority | 长期约束历史账本 | Consumed | 规则追加与人类决策追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/Java开发手册(黄山版).pdf` | Archive | Java 规范原始 PDF | Archived | `R-154` 来源追溯 |
@@ -55,9 +68,17 @@
 | `docs/adr/ADR-011-cache-consistency-with-hudi-timestamp.md` | Authority | 缓存一致性策略 | Referenced | 查询执行缓存策略 |
 | `docs/adr/ADR-012-saga-plus-local-transaction.md` | Authority | Saga + 本地事务 | Referenced | 跨服务事务编排 |
 | `docs/adr/ADR-013-acceleration-service-and-materialized-view-strategy.md` | Authority | 加速与物化视图策略 | Consumed | SQL 优化服务设计 |
+| `docs/exec-plans/active/.gitkeep` | Indexed | 活动执行计划目录占位文件 | Referenced | 保持活动执行计划目录可追踪 |
+| `docs/exec-plans/completed/.gitkeep` | Indexed | 完成执行计划目录占位文件 | Referenced | 保持完成执行计划目录可追踪 |
 
 ## Completeness Statement
 
 - 当前 `docs/` 目录下所有文件均已进入本矩阵。
-- 主执行计划对 `Authority` 与 `Indexed` 文档全部建立了显式引用关系。
+- 主执行计划已显式引用当前执行所需的核心 `Authority` 文档与关键 `Indexed` 文档；其余条目通过本矩阵、ADR 索引、计划索引或目录索引追踪。
 - `Archive` 文档已按 `R-062`、`R-154`、`R-155` 归档，不被遗漏，也不被误写成权威架构事实。
+
+## Update Note 2026-04-20
+
+- 新增治理文档已正式并入主矩阵，而不是只保留在增量附录中。
+- 以上新增文档不替代历史初始化文本。
+- `Authority` 类型文档已被 `docs/README.md` 与 `master-execution-plan.md` 主体部分显式引用。

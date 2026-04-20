@@ -2,7 +2,7 @@
 
 > Generated snapshot for AI navigation. Refresh when layout or module boundaries change.
 
-Last refreshed: `2026-04-19`
+Last refreshed: `2026-04-20`
 
 ## Root
 
@@ -25,10 +25,11 @@ Last refreshed: `2026-04-19`
 ## Docs
 
 - `docs/architecture/`: architecture baseline and messaging abstraction
+- `docs/architecture/service-capability-map.md`: target 4-service allocation mapped to current modules
 - `docs/rules/`: append-only rule ledger
 - `docs/quality/`: validation rules, quality baselines, validation log
 - `docs/operations/`: foreman workflow, collaboration, local dev, closeout, best practices
-- `docs/plans/`: master execution plan, historical phase plan, coverage matrices
+- `docs/plans/`: master execution plan, historical phase plan, truth baseline, readiness spec, coverage matrices, retrospective template, governance retrospective
 - `docs/exec-plans/active/`: approved active execution plans
 - `docs/exec-plans/completed/`: completed or abandoned execution plans
 - `docs/generated/`: generated navigation artifacts
