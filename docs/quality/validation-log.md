@@ -157,3 +157,11 @@
 2026-04-20T21:48:20-05:00 | D-TASK-006 closeout api-path-coverage | `R-041`, `R-121` | passed | `OptimizationTaskControllerTest` covers submit success, failed placeholder polling, unknown task 404, and invalid callback 400
 2026-04-20T21:48:20-05:00 | D-TASK-006 closeout flow-log-sampling | `R-123` | passed | `OptimizationTaskApplicationServiceTest` captures submit START / STATE_CHANGE / END logs and missing-task FAILED exception log
 2026-04-20T21:48:20-05:00 | D-TASK-006 closeout doc-sync | `R-121`, `R-126`, `R-133` | passed | `README.md`, `service-interface-contract-baseline.md`, `service-capability-map.md`, `c4-overview.md`, `document-truth-baseline.md`, `init.md`, and `repo-map.md` synced to `ASYNC_TASK_API_SKELETON`
+2026-04-20T23:36:21-05:00 | D-TASK-007 closeout compile | `R-119`, `R-121` | passed | `mvn -B clean compile`
+2026-04-20T23:36:21-05:00 | D-TASK-007 closeout test | `R-119`, `R-121` | passed | `mvn -B test`
+2026-04-20T23:36:21-05:00 | D-TASK-007 closeout static-check | `R-040`, `R-121` | passed | `mvn -B validate pmd:pmd checkstyle:check`
+2026-04-20T23:36:21-05:00 | D-TASK-007 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
+2026-04-20T23:36:21-05:00 | D-TASK-007 closeout knowledge | `R-121`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T23:36:21-05:00 | D-TASK-007 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T23:36:21-05:00 | D-TASK-007 closeout payload-coverage | `R-121` | passed | `OptimizationTaskControllerTest` and `OptimizationTaskModelApplicationServiceTest` cover structured `suggestion / failure` payloads across rewrite success, parse success, and failed placeholder paths
+2026-04-20T23:36:21-05:00 | D-TASK-007 closeout doc-sync | `R-121`, `R-126`, `R-133` | passed | `service-interface-contract-baseline.md`, `service-capability-map.md`, `document-truth-baseline.md`, and `init.md` synced from `summary/error` to structured `suggestion / failure` response fields

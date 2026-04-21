@@ -151,7 +151,7 @@
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
 | `POST /api/sql-optimization/tasks` | `OptimizationTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`datasourceType`,`taskContext` | `OptimizationTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`contractStage`,`implementationStage` | `ASYNC_TASK_API_SKELETON` |
-| `GET /api/sql-optimization/tasks/{taskId}` | path: `taskId` | `OptimizationTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`requestedSuggestionTypes`,`summary`,`error`,`submittedAt`,`startedAt`,`finishedAt`,`statusHistory`,`contractStage`,`implementationStage` | `ASYNC_TASK_API_SKELETON` |
+| `GET /api/sql-optimization/tasks/{taskId}` | path: `taskId` | `OptimizationTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`requestedSuggestionTypes`,`suggestion`,`failure`,`submittedAt`,`startedAt`,`finishedAt`,`statusHistory`,`contractStage`,`implementationStage` | `ASYNC_TASK_API_SKELETON` |
 
 当前 `OptimizationTaskSubmitRequest` 基线字段如下：
 
@@ -173,11 +173,30 @@
 - `statusQueryPath`
 - `progressPercent`
 - `requestedSuggestionTypes`
-- `summary`
-- `error.code`
-- `error.message`
-- `error.suggestedAction`
-- `error.retryable`
+- `suggestion.summary`
+- `suggestion.primaryRecommendation`
+- `suggestion.confidenceScore`
+- `suggestion.artifacts[].category`
+- `suggestion.artifacts[].name`
+- `suggestion.artifacts[].content`
+- `suggestion.benefits[].category`
+- `suggestion.benefits[].estimatedImprovementPercent`
+- `suggestion.benefits[].summary`
+- `suggestion.costs[].category`
+- `suggestion.costs[].level`
+- `suggestion.costs[].summary`
+- `suggestion.risks[].level`
+- `suggestion.risks[].category`
+- `suggestion.risks[].summary`
+- `suggestion.risks[].mitigation`
+- `failure.code`
+- `failure.message`
+- `failure.suggestedAction`
+- `failure.retryable`
+- `failure.failedPhase`
+- `failure.risks[].category`
+- `failure.risks[].summary`
+- `failure.risks[].mitigation`
 - `submittedAt`
 - `startedAt`
 - `finishedAt`
@@ -213,6 +232,11 @@
 - 当前 `POST /api/sql-optimization/tasks` 会先返回 `QUEUED / SUBMITTED` 快照，再由占位处理链立即推进到成功或失败，以保持异步接口语义和稳定测试行为。
 - 当前 `GET /api/sql-optimization/tasks/{taskId}` 已可查询占位 repository 中的最新任务状态；未知任务返回 `22001`。
 - 当前模型已显式区分“外部生命周期状态”和“内部处理阶段”，避免把 parse / rewrite / acceleration suggestion 三类任务混成单一线性状态。
+- 当前成功结果统一输出到 `suggestion`，并按三类任务给出结构化 `artifacts / benefits / costs / risks`：
+  - `PARSE`：偏向 AST 摘要、血缘提示、分析收益和解析适配风险
+  - `REWRITE`：偏向候选 SQL、规则轨迹、延迟/扫描收益、语义漂移风险
+  - `ACCELERATION_SUGGESTION`：偏向加速计划、物化视图/分区策略、延迟/扫描收益、存储与新鲜度成本
+- 当前失败结果统一输出到 `failure`，保留错误码和重试语义，并附失败阶段与风险说明。
 - 当前 placeholder 失败路径通过 SQL 或指纹中的显式 `FAIL_OPTIMIZATION` 标记触发，用于稳定验证轮询失败场景。
 - 当前实现仍未接入真实 MySQL 持久化、队列调度、事件回调和建议结果明细输出，这些能力继续由后续 `Phase-D` 任务补齐。
 

@@ -69,6 +69,7 @@
 - `POST /api/sql-optimization/tasks` 和 `GET /api/sql-optimization/tasks/{taskId}` 的过渡骨架
 - 基于 in-memory placeholder repository 的提交、轮询、失败路径与流程日志
 - 基础 DTO / VO 与错误码区间固化
+- 结构化 `suggestion / failure` 输出，覆盖收益、成本、风险与任务类型差异
 
 当前还未完整承载：
 

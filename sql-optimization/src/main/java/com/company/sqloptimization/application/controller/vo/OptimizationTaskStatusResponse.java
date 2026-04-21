@@ -17,8 +17,8 @@ public class OptimizationTaskStatusResponse {
     private final OptimizationTaskPriority priority;
     private final Integer progressPercent;
     private final List<AccelerationSuggestionType> requestedSuggestionTypes;
-    private final String summary;
-    private final OptimizationTaskErrorVO error;
+    private final OptimizationSuggestionVO suggestion;
+    private final OptimizationFailureVO failure;
     private final Instant submittedAt;
     private final Instant startedAt;
     private final Instant finishedAt;
@@ -33,8 +33,8 @@ public class OptimizationTaskStatusResponse {
                                           OptimizationTaskPriority priority,
                                           Integer progressPercent,
                                           List<AccelerationSuggestionType> requestedSuggestionTypes,
-                                          String summary,
-                                          OptimizationTaskErrorVO error,
+                                          OptimizationSuggestionVO suggestion,
+                                          OptimizationFailureVO failure,
                                           Instant submittedAt,
                                           Instant startedAt,
                                           Instant finishedAt,
@@ -48,8 +48,8 @@ public class OptimizationTaskStatusResponse {
         this.priority = priority;
         this.progressPercent = progressPercent;
         this.requestedSuggestionTypes = requestedSuggestionTypes;
-        this.summary = summary;
-        this.error = error;
+        this.suggestion = suggestion;
+        this.failure = failure;
         this.submittedAt = submittedAt;
         this.startedAt = startedAt;
         this.finishedAt = finishedAt;
@@ -86,12 +86,12 @@ public class OptimizationTaskStatusResponse {
         return requestedSuggestionTypes;
     }
 
-    public String getSummary() {
-        return summary;
+    public OptimizationSuggestionVO getSuggestion() {
+        return suggestion;
     }
 
-    public OptimizationTaskErrorVO getError() {
-        return error;
+    public OptimizationFailureVO getFailure() {
+        return failure;
     }
 
     public Instant getSubmittedAt() {

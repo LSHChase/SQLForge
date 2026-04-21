@@ -71,7 +71,8 @@ class OptimizationTaskModelApplicationServiceTest {
         assertEquals(OptimizationTaskType.REWRITE, statusResponse.getTaskType());
         assertEquals(OptimizationTaskPriority.NORMAL, statusResponse.getPriority());
         assertEquals(2, statusResponse.getStatusHistory().size());
-        assertNull(statusResponse.getError());
+        assertNull(statusResponse.getFailure());
+        assertNull(statusResponse.getSuggestion());
         assertNotNull(statusResponse.getStartedAt());
     }
 
@@ -88,6 +89,57 @@ class OptimizationTaskModelApplicationServiceTest {
         );
 
         assertTrue(task.getRequestedSuggestionTypes().isEmpty());
+    }
+
+    @Test
+    void shouldExposeStructuredParseSuggestionForSucceededTask() {
+        OptimizationTaskModelApplicationService service = new OptimizationTaskModelApplicationService();
+        OptimizationTask task = service.createQueuedTask(
+            baseRequest(OptimizationTaskType.PARSE),
+            "task-004",
+            Instant.parse("2026-04-20T00:12:00Z")
+        );
+        task.markRunning(Instant.parse("2026-04-20T00:12:01Z"));
+        task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "PLACEHOLDER_PARSE_SUMMARY_READY");
+        task.markSucceeded("Deep parse placeholder completed for sqlFingerprint=fp-parse", Instant.parse("2026-04-20T00:12:05Z"));
+
+        OptimizationTaskStatusResponse response = service.buildStatusResponse(task);
+
+        assertNotNull(response.getSuggestion());
+        assertEquals("Use the deep-parse output to confirm source tables, expression hotspots, and rewrite readiness.",
+            response.getSuggestion().getPrimaryRecommendation());
+        assertEquals("AST_SUMMARY", response.getSuggestion().getArtifacts().get(0).getCategory());
+        assertEquals("ANALYSIS_CONFIDENCE", response.getSuggestion().getBenefits().get(0).getCategory());
+        assertEquals("CPU_TIME", response.getSuggestion().getCosts().get(0).getCategory());
+        assertEquals("PARSER_ABSTRACTION", response.getSuggestion().getRisks().get(0).getCategory());
+    }
+
+    @Test
+    void shouldExposeStructuredFailureForFailedTask() {
+        OptimizationTaskModelApplicationService service = new OptimizationTaskModelApplicationService();
+        OptimizationTask task = service.createQueuedTask(
+            baseRequest(OptimizationTaskType.ACCELERATION_SUGGESTION),
+            "task-005",
+            Instant.parse("2026-04-20T00:15:00Z")
+        );
+        task.markRunning(Instant.parse("2026-04-20T00:15:01Z"));
+        task.markFailed(
+            new com.company.sqloptimization.domain.task.OptimizationTaskError(
+                13000,
+                "SQL 优化异步任务骨架尚未接入真实队列与持久化",
+                "retry later",
+                true
+            ),
+            Instant.parse("2026-04-20T00:15:05Z")
+        );
+
+        OptimizationTaskStatusResponse response = service.buildStatusResponse(task);
+
+        assertNotNull(response.getFailure());
+        assertEquals(Integer.valueOf(13000), Integer.valueOf(response.getFailure().getCode()));
+        assertEquals("FINISHED", response.getFailure().getFailedPhase());
+        assertEquals("PIPELINE_READINESS", response.getFailure().getRisks().get(0).getCategory());
+        assertNull(response.getSuggestion());
     }
 
     private OptimizationTaskSubmitRequest baseRequest(OptimizationTaskType taskType) {

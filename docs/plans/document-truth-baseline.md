@@ -67,6 +67,7 @@
   - 生命周期状态、处理阶段流转、优先级、解析深度和加速建议类型的领域模型
   - `POST /api/sql-optimization/tasks` 与 `GET /api/sql-optimization/tasks/{taskId}` skeleton
   - in-memory placeholder repository、提交流程日志、失败路径和基础测试
+  - `suggestion / failure` 结构化输出，当前已覆盖收益、成本、风险和任务类型差异
 - 当前已验证通过：
   - `mvn clean compile`
   - `mvn test`
