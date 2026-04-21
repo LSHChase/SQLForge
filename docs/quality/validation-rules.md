@@ -445,7 +445,7 @@
 - 触发时机：任务准备归档或关闭时。
 - 检查清单：
   1. 已记录实现、自审、验证和文档同步证据
-  2. 任务已从 `tasks.md` 移入 `tasks-done.md`
+  2. pre-commit 审计前，当前关闭任务已从 `tasks.md` 移入 `tasks-done.md`，且 `tasks.md` 不再保留该任务
   3. commit subject 同时符合 Conventional Commits 与 task id 约束
   4. stage 内容仅覆盖当前任务相关文件
 - 通过标准：4 项全部通过。
@@ -478,12 +478,12 @@
 
 ### R-160 任务审计脚本验证
 
-- 触发时机：任务关闭前。
+- 触发时机：任务 closeout 的 pre-commit 阶段，以及单任务 commit 完成后的 immediate post-closeout 阶段。
 - 检查清单：
   1. 已执行 `python3 scripts/task_audit.py --check`
   2. 审计输出无阻塞项
   3. blocked 任务包含 `Next action:` 与 `Escalation:`
-  4. 已完成任务 commit subject 可在 Git history 中追溯
+  4. pre-commit 阶段最多只允许一个“最新归档、当天关闭、尚待本次 commit 写入 Git history”的任务例外；post-closeout 阶段 `tasks-done.md` 中所有任务的 commit subject 都必须可在 Git history 中追溯
 - 通过标准：4 项全部通过。
 - 失败处置：先修复台账或 Git 追踪问题，再继续关闭流程。
 - 关联规则：`R-160`
@@ -502,11 +502,12 @@
 
 ### R-168 任务收尾上下文收缩与清理验证衔接
 
-- 触发时机：新增 `R-168` 后的任务准备进入 `in_review` 或 `done`，以及完成单任务 commit 切换到下一任务前。
+- 触发时机：新增 `R-168` 后的任务准备进入 closeout、从 `tasks.md` 归档到 `tasks-done.md`、以及完成单任务 commit 切换到下一任务前。
 - 检查清单：
-  1. `tasks.md` / `tasks-done.md` 中存在结构化 `Context closeout` 记录，至少包含 `Completed scope`、`Validation evidence`、`Residual risk`、`Next step`
+  1. 当前 closeout 任务在 pre-commit 审计前已经以最终归档形态写入 `tasks-done.md`，并存在结构化 `Context closeout` 记录，至少包含 `Completed scope`、`Validation evidence`、`Residual risk`、`Next step`
   2. 若当前运行环境不支持 `/contract`、`/clear`，仍已通过权威台账回写、验证日志、`INBOX.md` / 执行计划记录和重新建立上下文完成等价动作
-  3. 下一任务开始前，重新按项目阅读顺序消费权威来源，而不是直接沿用上一任务的局部推理
-- 通过标准：3 项全部通过。
+  3. 单任务 commit 完成后，已再次确认当前任务的 `Commit subject` 进入 Git history，再开始上下文清理
+  4. 下一任务开始前，重新按项目阅读顺序消费权威来源，而不是直接沿用上一任务的局部推理
+- 通过标准：4 项全部通过。
 - 失败处置：不得关闭任务或切换下一任务；先补足 closeout 记录与上下文重建动作。
 - 关联规则：`R-134`, `R-156`, `R-157`, `R-168`

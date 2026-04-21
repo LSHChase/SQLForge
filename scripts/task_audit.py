@@ -123,15 +123,44 @@ def worktree_has_changes() -> bool:
     return bool(result.stdout.strip())
 
 
-def allows_pending_closeout_commit(block: Dict[str, str], subject: str, subjects: List[str]) -> bool:
-    if subject in subjects:
-        return False
+def validate_pending_commit_state(done_blocks: List[Dict[str, str]], subjects: List[str], errors: List[str]) -> List[str]:
+    pending_blocks = []
+    for block in done_blocks:
+        subject = commit_subject_of(block)
+        if subject and subject not in subjects:
+            pending_blocks.append(block)
 
-    completed_at = completed_at_of(block)
+    if not pending_blocks:
+        return []
+
+    if len(pending_blocks) != 1:
+        errors.append(
+            "Only one archived task may be pending git history during pre-commit closeout:\n- "
+            + "\n- ".join(block["task_id"] for block in pending_blocks)
+        )
+        return []
+
+    pending_block = pending_blocks[0]
+    if not done_blocks or pending_block["task_id"] != done_blocks[0]["task_id"]:
+        errors.append(
+            f"{pending_block['task_id']} is pending git history but is not the newest archived task in tasks-done.md."
+        )
+        return []
+
+    completed_at = completed_at_of(pending_block)
     if completed_at != date.today().isoformat():
-        return False
+        errors.append(
+            f"{pending_block['task_id']} is pending git history but Completed at is not today ({date.today().isoformat()})."
+        )
+        return []
 
-    return worktree_has_changes()
+    if not worktree_has_changes():
+        errors.append(
+            f"{pending_block['task_id']} is pending git history but the worktree is clean; current closeout state is inconsistent."
+        )
+        return []
+
+    return [pending_block["task_id"]]
 
 
 def audit() -> List[str]:
@@ -183,6 +212,7 @@ def audit() -> List[str]:
             errors.append(f"{block['task_id']} is blocked but missing 'Next action:' or 'Escalation:'.")
 
     subjects = git_subjects()
+    allowed_pending_ids = validate_pending_commit_state(done_blocks, subjects, errors)
     for block in done_blocks:
         status = status_of(block)
         if status != "done":
@@ -192,7 +222,7 @@ def audit() -> List[str]:
         if not subject:
             errors.append(f"{block['task_id']} in tasks-done.md is missing 'Commit subject:'.")
             continue
-        if subject not in subjects and not allows_pending_closeout_commit(block, subject, subjects):
+        if subject not in subjects and block["task_id"] not in allowed_pending_ids:
             errors.append(f"{block['task_id']} commit subject not found in git history: {subject}")
         if requires_context_closeout(block, done_ledger=True):
             validate_context_closeout(block, errors)
@@ -220,7 +250,7 @@ def main() -> int:
     print("- tasks.md contains no done tasks")
     print("- tasks and tasks-done have no duplicate ids")
     print("- blocked tasks contain escalation metadata")
-    print("- tasks-done commit subjects exist in git history, or the current closeout task is pending its commit")
+    print("- tasks-done commit subjects exist in git history, except at most one newest same-day closeout task pending its commit")
     print("- R-168 Context closeout markers exist for applicable in-review/done tasks")
     return 0
 

@@ -219,3 +219,6 @@
 2026-04-21T03:15:09-05:00 | HARN-003 closeout py-compile | `R-168` | passed | `python3 -m py_compile scripts/task_audit.py`
 2026-04-21T03:15:09-05:00 | HARN-003 closeout knowledge-lint | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-21T03:17:49-05:00 | HARN-003 closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check`
+2026-04-21T03:33:54-05:00 | HARN-004 closeout py-compile | `R-168` | passed | `python3 -m py_compile scripts/task_audit.py`
+2026-04-21T03:33:54-05:00 | HARN-004 closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check`
+2026-04-21T03:33:54-05:00 | HARN-004 closeout knowledge-lint | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
