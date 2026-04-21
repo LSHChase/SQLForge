@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper">
+
+    <resultMap id="ExportRecordResultMap" type="com.company.governance.domain.trace.entity.ExportRecord">
+        <id property="exportId" column="export_id"/>
+        <result property="historyId" column="history_id"/>
+        <result property="resultId" column="result_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="exportFormat" column="export_format"/>
+        <result property="exportStatus" column="export_status"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="requestId" column="request_id"/>
+        <result property="sagaId" column="saga_id"/>
+        <result property="storageType" column="storage_type"/>
+        <result property="storageUri" column="storage_uri"/>
+        <result property="checksum" column="checksum"/>
+        <result property="exportOptions" column="export_options"/>
+        <result property="errorCode" column="error_code"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="finishedAt" column="finished_at"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        export_id,
+        history_id,
+        result_id,
+        tenant_id,
+        export_format,
+        export_status,
+        trace_id,
+        request_id,
+        saga_id,
+        storage_type,
+        storage_uri,
+        checksum,
+        export_options,
+        error_code,
+        error_message,
+        created_by,
+        create_time,
+        finished_at
+    </sql>
+
+    <select id="selectById" resultMap="ExportRecordResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM export_record
+        WHERE export_id = #{exportId}
+    </select>
+
+    <insert id="insert" parameterType="com.company.governance.domain.trace.entity.ExportRecord">
+        INSERT INTO export_record (
+            export_id,
+            history_id,
+            result_id,
+            tenant_id,
+            export_format,
+            export_status,
+            trace_id,
+            request_id,
+            saga_id,
+            storage_type,
+            storage_uri,
+            checksum,
+            export_options,
+            error_code,
+            error_message,
+            created_by,
+            create_time,
+            finished_at
+        ) VALUES (
+            #{exportId},
+            #{historyId},
+            #{resultId},
+            #{tenantId},
+            #{exportFormat},
+            #{exportStatus},
+            #{traceId},
+            #{requestId},
+            #{sagaId},
+            #{storageType},
+            #{storageUri},
+            #{checksum},
+            #{exportOptions},
+            #{errorCode},
+            #{errorMessage},
+            #{createdBy},
+            #{createTime},
+            #{finishedAt}
+        )
+    </insert>
+</mapper>

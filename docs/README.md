@@ -19,6 +19,7 @@
 7. 产品/设计/接口文档
    [架构初始化总文档](./architecture/init.md) 仍是历史初始化基线与总览入口；当前 C4 权威更新落点以 [C4 文字总览](./architecture/c4-overview.md) 为准，当前服务边界以 [服务能力分配图](./architecture/service-capability-map.md) 为准，当前接口契约以 [服务接口契约基线](./architecture/service-interface-contract-baseline.md) 为准，后续新增文档统一补入 `docs/`。
    - [C4 文字总览](./architecture/c4-overview.md)
+   - [持久化基线](./architecture/persistence.md)
    - [消息抽象说明](./architecture/messaging-abstraction.md)
    - [服务能力分配图](./architecture/service-capability-map.md)
    - [服务接口契约基线](./architecture/service-interface-contract-baseline.md)
@@ -63,6 +64,7 @@
 - `architecture/`
   架构总览与初始化基线。
   - `c4-overview.md`：当前权威的文字版 C4 总览与更新落点。
+  - `persistence.md`：MySQL 主持久化、核心追溯链、MyBatis XML 与增量脚本权威基线。
   - `messaging-abstraction.md`：Kafka 与消息能力的本地开发抽象模式、切换方式和契约约束。
   - `service-interface-contract-baseline.md`：4 微服务统一身份、错误码、DTO/事件和审计契约基线。
 - `rules/`

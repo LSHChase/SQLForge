@@ -14,7 +14,7 @@ Last refreshed: `2026-04-21`
 - `.agent/config.json`: machine-readable foreman defaults
 - `package.json`, `vite.config.js`, `src/`: root Vue frontend
 - `pom.xml`: Maven parent
-- `sql/`: schema and seed SQL
+- `sql/`: schema, migrations, and seed SQL
 - `scripts/`: repository automation and validation utilities
 
 ## Backend Modules
@@ -28,6 +28,7 @@ Last refreshed: `2026-04-21`
 ## Docs
 
 - `docs/architecture/`: architecture baseline and messaging abstraction
+- `docs/architecture/persistence.md`: MySQL persistence, traceability chain, and MyBatis XML baseline
 - `docs/architecture/service-capability-map.md`: target 4-service allocation mapped to current modules
 - `docs/architecture/service-interface-contract-baseline.md`: interface-level baseline for context fields, error-code ownership, DTO/event boundaries, and audit payloads
 - `docs/rules/`: append-only rule ledger

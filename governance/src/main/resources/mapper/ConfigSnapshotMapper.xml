@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.ConfigSnapshotMapper">
+
+    <resultMap id="ConfigSnapshotResultMap" type="com.company.governance.domain.trace.entity.ConfigSnapshotRecord">
+        <id property="configSnapshotId" column="config_snapshot_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="serviceCode" column="service_code"/>
+        <result property="sourceConfigType" column="source_config_type"/>
+        <result property="sourceConfigId" column="source_config_id"/>
+        <result property="sourceVersion" column="source_version"/>
+        <result property="snapshotStatus" column="snapshot_status"/>
+        <result property="snapshotReason" column="snapshot_reason"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="requestId" column="request_id"/>
+        <result property="sagaId" column="saga_id"/>
+        <result property="snapshotPayload" column="snapshot_payload"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        config_snapshot_id,
+        tenant_id,
+        service_code,
+        source_config_type,
+        source_config_id,
+        source_version,
+        snapshot_status,
+        snapshot_reason,
+        trace_id,
+        request_id,
+        saga_id,
+        snapshot_payload,
+        created_by,
+        create_time
+    </sql>
+
+    <select id="selectById" resultMap="ConfigSnapshotResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM config_snapshot
+        WHERE config_snapshot_id = #{configSnapshotId}
+    </select>
+
+    <insert id="insert" parameterType="com.company.governance.domain.trace.entity.ConfigSnapshotRecord">
+        INSERT INTO config_snapshot (
+            config_snapshot_id,
+            tenant_id,
+            service_code,
+            source_config_type,
+            source_config_id,
+            source_version,
+            snapshot_status,
+            snapshot_reason,
+            trace_id,
+            request_id,
+            saga_id,
+            snapshot_payload,
+            created_by,
+            create_time
+        ) VALUES (
+            #{configSnapshotId},
+            #{tenantId},
+            #{serviceCode},
+            #{sourceConfigType},
+            #{sourceConfigId},
+            #{sourceVersion},
+            #{snapshotStatus},
+            #{snapshotReason},
+            #{traceId},
+            #{requestId},
+            #{sagaId},
+            #{snapshotPayload},
+            #{createdBy},
+            #{createTime}
+        )
+    </insert>
+</mapper>

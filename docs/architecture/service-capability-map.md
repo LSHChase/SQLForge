@@ -124,6 +124,7 @@
 - 最小租户上下文建立
 - 租户配置查询
 - 消息重试与管理入口骨架
+- 核心追溯链表结构基线：`config_snapshot`、`execution_result`、`query_history`、`export_record` 与扩展后的 `audit_log`
 - MyBatis XML 与多环境配置基础
 
 当前还未完整承载：

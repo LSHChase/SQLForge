@@ -1,0 +1,131 @@
+# SQLForge Persistence Baseline
+
+本文件是 `R-031`、`R-055`、`R-065` 与 `R-129` 的当前权威落点，统一描述 SQLForge 的 MySQL 主持久化方向、核心追溯链、MyBatis XML 落点与增量脚本约束。
+
+## Scope
+
+- 当前主持久化方向固定为 MySQL。
+- 当前数据库初始化脚本固定为 `sql/init-schema.sql` 与 `sql/init-data.sql`。
+- 当前增量脚本目录固定为 `sql/migrations/`。
+- 当前 Java 持久化实现固定为 MyBatis XML，禁止在注解中写复杂 SQL。
+
+## Current Carrier
+
+- `governance` 是当前承载事务型治理元数据的实现载体。
+- `sql-optimization` 与 `benchmark-engine` 当前仍停留在 HTTP skeleton 与 placeholder repository 阶段，尚未接入真实 MySQL 持久化。
+- 因此，Phase-D 的核心追溯链先在 `governance` 内以 schema + entity + mapper XML 形式固化，避免真实导出、审计和跨服务补偿接入时继续漂移。
+
+## Core Traceability Chain
+
+当前 Phase-D 固化的核心追溯链如下：
+
+1. `config_snapshot`
+2. `execution_result`
+3. `query_history`
+4. `export_record`
+5. `audit_log`
+
+主外键关系：
+
+- `execution_result.config_snapshot_id -> config_snapshot.config_snapshot_id`
+- `query_history.result_id -> execution_result.result_id`
+- `export_record.history_id -> query_history.history_id`
+- `export_record.result_id -> execution_result.result_id`
+- `audit_log.config_snapshot_id -> config_snapshot.config_snapshot_id`
+- `audit_log.result_id -> execution_result.result_id`
+- `audit_log.history_id -> query_history.history_id`
+- `audit_log.export_id -> export_record.export_id`
+
+该链路满足 `R-034` 对 config/result/history/export/audit 可追溯关联键的要求，并为 `ADR-012` 的 saga + 本地事务补偿链预留稳定引用点。
+
+## Shared Trace Keys
+
+以下字段是当前跨服务追溯的共享最小键集：
+
+- `tenant_id`
+- `service_code`
+- `trace_id`
+- `request_id`
+- `saga_id`
+
+使用原则：
+
+- `tenant_id` 负责租户隔离与历史查询过滤。
+- `service_code` 标识写入方服务，避免后续多服务共表时失去归属。
+- `trace_id` 用于一次链路内的日志、消息、审计串联。
+- `request_id` 用于单次请求级别定位。
+- `saga_id` 用于跨服务补偿、重试与消息重放关联。
+
+## Table Responsibilities
+
+### `config_snapshot`
+
+- 保存配置快照，不直接把审计、导出、结果链路绑死在 `tenant_config`、`system_config` 或 `acceleration_config` 原表上。
+- 通过 `source_config_type + source_config_id + source_version` 保留来源。
+- `snapshot_payload` 必须保存可复现的配置快照。
+
+### `execution_result`
+
+- 保存查询执行、SQL 优化、压测等任务的统一结果锚点。
+- 通过 `task_id + task_type` 指回原始任务或执行对象。
+- `result_summary` 与 `result_payload` 仅保存结构化、脱敏后的结果内容。
+
+### `query_history`
+
+- 保存可追溯的历史查询快照。
+- 明文 SQL 不得落库；如需保留原文，必须进入 `sql_text_cipher` 等密文字段。
+- `history_type` 用于区分查询执行、优化、压测等历史来源。
+
+### `export_record`
+
+- 保存 JSON / PDF / HTML / CSV 等导出行为的元数据与存储位置。
+- 导出对象必须基于 `query_history` 或可复现结果，而不是浏览器瞬时状态。
+
+### `audit_log`
+
+- 继续作为不可变审计证据表。
+- 在既有字段基础上追加 `service_code`、`trace_id`、`request_id`、`saga_id` 与四类追溯外键。
+- 审计记录允许引用 config/result/history/export 任意一层，但不要求每条记录都填满全部外键。
+
+## MyBatis XML Mapping Baseline
+
+当前治理侧的表到实体映射基线如下：
+
+| Table | Entity | Mapper XML |
+|:---|:---|:---|
+| `config_snapshot` | `ConfigSnapshotRecord` | `governance/src/main/resources/mapper/ConfigSnapshotMapper.xml` |
+| `execution_result` | `ExecutionResultRecord` | `governance/src/main/resources/mapper/ExecutionResultMapper.xml` |
+| `query_history` | `QueryHistoryRecord` | `governance/src/main/resources/mapper/QueryHistoryMapper.xml` |
+| `export_record` | `ExportRecord` | `governance/src/main/resources/mapper/ExportRecordMapper.xml` |
+| `audit_log` | `AuditLogRecord` | `governance/src/main/resources/mapper/AuditLogMapper.xml` |
+
+当前 mapper 只固化 `insert` 与 `selectById` 最小骨架，目的是先把表结构、主外键和字段命名稳定下来，再在后续任务中接入真实 repository、事务编排和业务写入路径。
+
+## Migration Policy
+
+- 当前不引入 Flyway。
+- 变更表结构时必须同时更新：
+  - `sql/init-schema.sql`
+  - `sql/migrations/V{date_or_version}__*.sql`
+  - 对应 Entity / Mapper XML
+  - 本文档中的映射与职责描述
+- 已发布环境必须优先执行增量脚本，不允许仅依赖重跑初始化脚本。
+
+当前 D-TASK-011 的增量脚本：
+
+- `sql/migrations/V20260421_011__core_traceability_chain.sql`
+
+## Validation Baseline
+
+触发 `R-129` 时至少完成以下四项：
+
+1. 更新 `sql/init-schema.sql`
+2. 提供增量脚本
+3. 在本地 MySQL 执行脚本成功
+4. 更新 Entity 与脚本映射文档
+
+当前仓库内的最小自动化校验为：
+
+- `governance` 模块中的 `TraceabilitySchemaMappingTest`
+
+该测试只检查 schema / migration / mapper XML 的命名一致性，不替代真实 MySQL 执行验证。

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.AuditLogMapper">
+
+    <resultMap id="AuditLogResultMap" type="com.company.governance.domain.trace.entity.AuditLogRecord">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="serviceCode" column="service_code"/>
+        <result property="operationType" column="operation_type"/>
+        <result property="targetType" column="target_type"/>
+        <result property="targetId" column="target_id"/>
+        <result property="requestId" column="request_id"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="sagaId" column="saga_id"/>
+        <result property="configSnapshotId" column="config_snapshot_id"/>
+        <result property="resultId" column="result_id"/>
+        <result property="historyId" column="history_id"/>
+        <result property="exportId" column="export_id"/>
+        <result property="requestParams" column="request_params"/>
+        <result property="responseSummary" column="response_summary"/>
+        <result property="status" column="status"/>
+        <result property="costMs" column="cost_ms"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        id,
+        tenant_id,
+        service_code,
+        operation_type,
+        target_type,
+        target_id,
+        request_id,
+        trace_id,
+        saga_id,
+        config_snapshot_id,
+        result_id,
+        history_id,
+        export_id,
+        request_params,
+        response_summary,
+        status,
+        cost_ms,
+        create_time
+    </sql>
+
+    <select id="selectById" resultMap="AuditLogResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM audit_log
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.company.governance.domain.trace.entity.AuditLogRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO audit_log (
+            tenant_id,
+            service_code,
+            operation_type,
+            target_type,
+            target_id,
+            request_id,
+            trace_id,
+            saga_id,
+            config_snapshot_id,
+            result_id,
+            history_id,
+            export_id,
+            request_params,
+            response_summary,
+            status,
+            cost_ms,
+            create_time
+        ) VALUES (
+            #{tenantId},
+            #{serviceCode},
+            #{operationType},
+            #{targetType},
+            #{targetId},
+            #{requestId},
+            #{traceId},
+            #{sagaId},
+            #{configSnapshotId},
+            #{resultId},
+            #{historyId},
+            #{exportId},
+            #{requestParams},
+            #{responseSummary},
+            #{status},
+            #{costMs},
+            #{createTime}
+        )
+    </insert>
+</mapper>

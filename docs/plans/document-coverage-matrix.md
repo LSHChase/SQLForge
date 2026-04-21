@@ -19,6 +19,7 @@
 | `docs/README.md` | Authority | 文档入口 | Consumed | 主计划证据基础、阅读顺序入口 |
 | `docs/architecture/c4-overview.md` | Authority | 当前权威的文字版 C4 架构总览与更新落点 | Referenced | 承接 `R-133` 的 C4 同步要求，统一维护 Level 1-4 文字架构说明 |
 | `docs/architecture/init.md` | Authority | 总体架构、规则、阶段、接口契约、任务模板 | Consumed | 主计划主基线 |
+| `docs/architecture/persistence.md` | Authority | MySQL 持久化、核心追溯链、MyBatis XML 与增量脚本基线 | Consumed | `R-031`,`R-055`,`R-065`,`R-129` 当前权威落点 |
 | `docs/architecture/messaging-abstraction.md` | Authority | `R-144` 消息抽象模式 | Consumed | 配置、消息实现、部署切换 |
 | `docs/architecture/service-capability-map.md` | Authority | 4 微服务与当前仓库模块的能力映射 | Consumed | 服务拆分、common 边界、`governance` 过渡约束 |
 | `docs/architecture/service-interface-contract-baseline.md` | Authority | 统一身份、错误码、DTO/事件和审计契约基线 | Consumed | 服务实现前的接口级约束 |

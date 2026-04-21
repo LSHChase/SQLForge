@@ -25,7 +25,12 @@ import com.company.governance.application.service.MessageAdminApplicationService
 import com.company.governance.application.service.TenantConfigApplicationService;
 import com.company.governance.config.AuthProperties;
 import com.company.governance.config.WebMvcConfig;
+import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
+import com.company.governance.infrastructure.persistence.mapper.ConfigSnapshotMapper;
+import com.company.governance.infrastructure.persistence.mapper.ExecutionResultMapper;
+import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.MessageQueueMapper;
+import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
 import com.company.governance.infrastructure.persistence.mapper.TenantConfigMapper;
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
@@ -67,6 +72,21 @@ class AuthWebMvcTest {
 
     @MockBean
     private MessageQueueMapper messageQueueMapper;
+
+    @MockBean
+    private ConfigSnapshotMapper configSnapshotMapper;
+
+    @MockBean
+    private ExecutionResultMapper executionResultMapper;
+
+    @MockBean
+    private QueryHistoryMapper queryHistoryMapper;
+
+    @MockBean
+    private ExportRecordMapper exportRecordMapper;
+
+    @MockBean
+    private AuditLogMapper auditLogMapper;
 
     @Test
     void shouldBypassInterceptorForHealthEndpoint() throws Exception {
