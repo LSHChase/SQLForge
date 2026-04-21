@@ -127,6 +127,7 @@
 - 核心追溯链表结构基线：`config_snapshot`、`execution_result`、`query_history`、`export_record` 与扩展后的 `audit_log`
 - `POST /api/governance/internal/audit/write` 的真实落库基线，支持把 `config/result/history/export` 追溯键接入 `audit_log`
 - header-based stateless auth 的 `LOGIN` / `LOGOUT` 审计落库基线
+- 共享 AES-256 敏感字段保护基线，以及 `GovernanceProtectedPersistenceService` 对 config/result/history/export/audit/system-config 的受保护写入入口
 - MyBatis XML 与多环境配置基础
 
 当前还未完整承载：
@@ -134,7 +135,7 @@
 - 角色矩阵
 - 数据源授权矩阵
 - 跨服务主动上报与审计全链路
-- 敏感配置加密落库
+- 更完整的平台治理配置与外部密钥管理接入
 - 平台治理完整实体模型
 
 ## Governance Service Transition Rules

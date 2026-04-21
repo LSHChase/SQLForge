@@ -10,7 +10,6 @@ import com.company.governance.domain.trace.entity.ExecutionResultRecord;
 import com.company.governance.domain.trace.entity.ExportRecord;
 import com.company.governance.domain.trace.entity.QueryHistoryRecord;
 import com.company.governance.infrastructure.messaging.GovernanceMessagingTopics;
-import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
 import com.company.governance.infrastructure.persistence.mapper.ConfigSnapshotMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExecutionResultMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
@@ -53,7 +52,7 @@ public class GovernanceAuditTrailService {
         "Governance audit contract route is unavailable";
     private static final String UNKNOWN_VALUE = "UNKNOWN";
 
-    private final AuditLogMapper auditLogMapper;
+    private final GovernanceProtectedPersistenceService governanceProtectedPersistenceService;
     private final ConfigSnapshotMapper configSnapshotMapper;
     private final ExecutionResultMapper executionResultMapper;
     private final QueryHistoryMapper queryHistoryMapper;
@@ -61,14 +60,14 @@ public class GovernanceAuditTrailService {
     private final MessageProducer messageProducer;
     private final MessagingProperties messagingProperties;
 
-    public GovernanceAuditTrailService(AuditLogMapper auditLogMapper,
+    public GovernanceAuditTrailService(GovernanceProtectedPersistenceService governanceProtectedPersistenceService,
                                        ConfigSnapshotMapper configSnapshotMapper,
                                        ExecutionResultMapper executionResultMapper,
                                        QueryHistoryMapper queryHistoryMapper,
                                        ExportRecordMapper exportRecordMapper,
                                        MessageProducer messageProducer,
                                        MessagingProperties messagingProperties) {
-        this.auditLogMapper = auditLogMapper;
+        this.governanceProtectedPersistenceService = governanceProtectedPersistenceService;
         this.configSnapshotMapper = configSnapshotMapper;
         this.executionResultMapper = executionResultMapper;
         this.queryHistoryMapper = queryHistoryMapper;
@@ -112,7 +111,7 @@ public class GovernanceAuditTrailService {
             resultStatus,
             elapsedMs
         );
-        auditLogMapper.insert(auditLogRecord);
+        governanceProtectedPersistenceService.saveAuditLog(auditLogRecord);
         publishAuditEvent(tenantId, userId, requestId, traceId, serviceCode, operationCode, resourceType, resourceId,
             resultStatus, elapsedMs, sourceIp, userAgent);
         LOGGER.info("Persisted governance audit record, auditId={}, serviceCode={}, operationCode={}, status={}",
@@ -188,7 +187,7 @@ public class GovernanceAuditTrailService {
                 resultStatus,
                 0L
             );
-            auditLogMapper.insert(auditLogRecord);
+            governanceProtectedPersistenceService.saveAuditLog(auditLogRecord);
             AuditContext.set(new AuditEvent(
                 DateUtils.format(DateUtils.now()),
                 tenantId,

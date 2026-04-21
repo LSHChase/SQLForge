@@ -52,6 +52,9 @@
   - 内部治理契约入口（租户范围、数据源访问、审计写入、调度扩展点）
   - `audit/write` 已同步落库到 `audit_log`，并支持可选 `configSnapshotId/resultId/historyId/exportId` 追溯键
   - header-based stateless auth 的 `LOGIN` / `LOGOUT` 审计落库基线
+  - 共享 AES-256 敏感字段加密与脱敏组件
+  - `GovernanceProtectedPersistenceService` 已把 `config_snapshot` / `execution_result` / `query_history` / `export_record` / `audit_log` / `system_config` 接到统一受保护写入入口
+  - `system_config` 已补齐 `sensitive_flag/value_ciphertext/value_mask/encryption_*` 列基线，用于密码 / token / key 类配置的密文存储
   - 数据库消息管理接口（`retry` / `stats`），并限制在 `DATABASE` 模式下使用
   - `config_snapshot` / `execution_result` / `query_history` / `export_record` / `audit_log` 的核心追溯链 schema、Entity 与 MyBatis XML 骨架
   - `sql/migrations/V20260421_011__core_traceability_chain.sql` 增量脚本
@@ -136,7 +139,7 @@
 - 压测引擎服务已建立独立 `benchmark-engine` 模块与提交/轮询/报告查询 API skeleton，但真实执行链路、真实导出链路和跨服务协同仍待 `Phase-D` 后续任务补齐。
 - 查询执行服务已建立独立模块骨架、公共 HTTP DTO/VO/错误码、最小同步执行闭环，以及本地流程日志与 timeout/fallback 恢复标记；真实治理调用、真实引擎适配器和跨服务审计补偿仍待 `Phase-D` 后续任务补齐。
 - SQL 优化服务已建立独立模块与提交/轮询 API skeleton，但 MySQL 持久化、队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
-- Phase-D 核心追溯链已在 `governance` 内完成 schema、migration、entity 与 mapper XML 固化，且 `audit/write` 与 header-based stateless auth 已接入真实 `audit_log` 落库；查询执行、SQL 优化、压测引擎等其他服务的主动上报链仍待后续任务补齐。
+- Phase-D 核心追溯链已在 `governance` 内完成 schema、migration、entity 与 mapper XML 固化，且 `audit/write` 与 header-based stateless auth 已接入真实 `audit_log` 落库；当前敏感字段加密基线已进入共享组件和治理受保护持久化入口，但查询执行、SQL 优化、压测引擎等其他服务的主动上报链仍待后续任务补齐。
 - 访问控制当前仍是“最小租户校验基线”，尚未形成完整角色矩阵和数据源授权实现。
 - `KAFKA` 模式虽已接入真实客户端，但尚未沉淀真实 Kafka 集群运行验证、鉴权和安全参数配置证据。
 - 治理扩展点当前仍以租户范围、数据源访问、审计写入、调度状态契约为主，未演进为完整治理中心能力。

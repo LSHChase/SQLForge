@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.SystemConfigMapper">
+
+    <resultMap id="SystemConfigResultMap" type="com.company.governance.domain.system.entity.SystemConfigRecord">
+        <id property="configKey" column="config_key"/>
+        <result property="configValue" column="config_value"/>
+        <result property="sensitiveFlag" column="sensitive_flag"/>
+        <result property="valueCiphertext" column="value_ciphertext"/>
+        <result property="valueMask" column="value_mask"/>
+        <result property="encryptionAlgorithm" column="encryption_algorithm"/>
+        <result property="encryptionKeyId" column="encryption_key_id"/>
+        <result property="configType" column="config_type"/>
+        <result property="description" column="description"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        config_key,
+        config_value,
+        sensitive_flag,
+        value_ciphertext,
+        value_mask,
+        encryption_algorithm,
+        encryption_key_id,
+        config_type,
+        description
+    </sql>
+
+    <select id="selectByKey" resultMap="SystemConfigResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM system_config
+        WHERE config_key = #{configKey}
+    </select>
+
+    <insert id="insertOrUpdate" parameterType="com.company.governance.domain.system.entity.SystemConfigRecord">
+        INSERT INTO system_config (
+            config_key,
+            config_value,
+            sensitive_flag,
+            value_ciphertext,
+            value_mask,
+            encryption_algorithm,
+            encryption_key_id,
+            config_type,
+            description
+        ) VALUES (
+            #{configKey},
+            #{configValue},
+            #{sensitiveFlag},
+            #{valueCiphertext},
+            #{valueMask},
+            #{encryptionAlgorithm},
+            #{encryptionKeyId},
+            #{configType},
+            #{description}
+        )
+        ON DUPLICATE KEY UPDATE
+            config_value = VALUES(config_value),
+            sensitive_flag = VALUES(sensitive_flag),
+            value_ciphertext = VALUES(value_ciphertext),
+            value_mask = VALUES(value_mask),
+            encryption_algorithm = VALUES(encryption_algorithm),
+            encryption_key_id = VALUES(encryption_key_id),
+            config_type = VALUES(config_type),
+            description = VALUES(description)
+    </insert>
+</mapper>

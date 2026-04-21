@@ -88,7 +88,14 @@
 | Endpoint | Contract stage | Current implementation stage | Required baseline | Current notes |
 |:---|:---|:---|:---|:---|
 | `/api/governance/internal/datasource-access/check` | `LONG_TERM_BASELINE` | `TRANSITIONAL_SKELETON` | request: `tenantId`,`datasourceId`; response: `allowed`,`reason`,`errorCode`,`contractStage`,`implementationStage` | 长期保留为跨服务授权检查入口；当前决策仍由治理本地 placeholder 规则驱动 |
-| `/api/governance/internal/audit/write` | `LONG_TERM_BASELINE` | `DATABASE_AUDIT_WRITE_BASELINE` | request: required `serviceCode`,`operationCode`,`resourceType`,`resourceId`,`resultStatus`,`elapsedMs`,`sourceIp`,`userAgent`; optional `sagaId`,`configSnapshotId`,`resultId`,`historyId`,`exportId`,`requestParams`,`responseSummary`; response: `auditId`,`status`,`messageTopic`,`deliveryMode`,`contractStage`,`implementationStage` | 长期保留为跨服务审计写入入口；当前已同步写入 `audit_log` 并保留共享消息抽象扩散 |
+| `/api/governance/internal/audit/write` | `LONG_TERM_BASELINE` | `DATABASE_AUDIT_WRITE_BASELINE` | request: required `serviceCode`,`operationCode`,`resourceType`,`resourceId`,`resultStatus`,`elapsedMs`,`sourceIp`,`userAgent`; optional `sagaId`,`configSnapshotId`,`resultId`,`historyId`,`exportId`,`requestParams`,`responseSummary`; response: `auditId`,`status`,`messageTopic`,`deliveryMode`,`contractStage`,`implementationStage` | 长期保留为跨服务审计写入入口；当前已同步写入 `audit_log`、统一脱敏 `requestParams/responseSummary` 并保留共享消息抽象扩散 |
+
+敏感字段处理补充基线：
+
+- `AuditWriteRequest.requestParams`：允许调用方上传结构化请求摘要，但当前真实写入路径只保留脱敏 JSON，不允许密码 / token / key 明文进入 `audit_log.request_params`
+- `AuditWriteRequest.responseSummary`：只允许传入脱敏文本摘要；当前真实写入路径会再次执行敏感模式掩码
+- `system_config`：命中密码 / token / key 类键名时，当前治理持久化基线只允许写入 `value_ciphertext/value_mask/encryption_*`，不得把原值留在 `config_value`
+- `config_snapshot.snapshotPayload`、`execution_result.resultPayload`、`query_history.queryContext`、`export_record.exportOptions`：当前治理持久化基线对命中的敏感叶子节点执行 AES-256 envelope 加密
 | `/api/governance/internal/schedule/extensions` | `TRANSITIONAL_SKELETON` | `TRANSITIONAL_SKELETON` | response: `extensionPoint`,`ownerService`,`status`,`currentMode`,`contractStage`,`implementationStage` | 当前只暴露治理调度扩展状态骨架，不代表完整调度域模型已固化 |
 
 ## 3.1 Query Execution Public HTTP Baseline

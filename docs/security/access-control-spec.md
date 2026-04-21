@@ -186,6 +186,10 @@
 - 当前 `governance` 仅对治理内置数据源 `governance-tenant-config` 提供基线放行，且要求 `PLATFORM_ADMIN` 或 `TENANT_ADMIN`
 - 其他数据源访问在当前阶段必须通过 `governance.access-control.placeholder.tenant-datasource-bindings` 显式配置，否则拒绝
 - 当前 header-based stateless auth 已把每次受保护请求的鉴权建立/释放记录为 `LOGIN` / `LOGOUT` 审计事件；鉴权前置失败会记录失败型 `LOGIN` 审计事件
+- 当前 `governance` 已通过共享 AES-256 基线把密码 / token / key 类字段接入统一持久化保护入口：
+  - `system_config` 敏感键写入 `value_ciphertext`
+  - `config_snapshot/result_payload/query_context/export_options` 的敏感叶子节点写入密文 envelope
+  - `audit_log.request_params/response_summary` 与导出地址、错误文本仅保留脱敏内容
 - 当前内部 `datasource-access/check` 契约在拒绝时必须返回显式错误码：
   - 跨租户目标不匹配：`20001` `GOVERNANCE_TENANT_ACCESS_DENIED`
   - 数据源绑定或授权拒绝：`20002` `GOVERNANCE_DATASOURCE_ACCESS_DENIED`

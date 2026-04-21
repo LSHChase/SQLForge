@@ -63,23 +63,27 @@
 - 保存配置快照，不直接把审计、导出、结果链路绑死在 `tenant_config`、`system_config` 或 `acceleration_config` 原表上。
 - 通过 `source_config_type + source_config_id + source_version` 保留来源。
 - `snapshot_payload` 必须保存可复现的配置快照。
+- 当前 `governance` 已通过共享 AES-256 基线把 `snapshot_payload` 中命中的密码 / token / key 类字段转为密文 envelope，再落入 JSON 列。
 
 ### `execution_result`
 
 - 保存查询执行、SQL 优化、压测等任务的统一结果锚点。
 - 通过 `task_id + task_type` 指回原始任务或执行对象。
 - `result_summary` 与 `result_payload` 仅保存结构化、脱敏后的结果内容。
+- 当前 `result_summary` 走掩码路径，`result_payload` 走敏感叶子节点加密路径，失败 `error_message` 仅允许脱敏后的摘要。
 
 ### `query_history`
 
 - 保存可追溯的历史查询快照。
 - 明文 SQL 不得落库；如需保留原文，必须进入 `sql_text_cipher` 等密文字段。
 - `history_type` 用于区分查询执行、优化、压测等历史来源。
+- 当前 `query_context` 进入受保护持久化入口时，会把密码 / token / key 类字段转为密文 envelope。
 
 ### `export_record`
 
 - 保存 JSON / PDF / HTML / CSV 等导出行为的元数据与存储位置。
 - 导出对象必须基于 `query_history` 或可复现结果，而不是浏览器瞬时状态。
+- 当前 `storage_uri` 仅允许保存脱敏后的地址摘要；`export_options` 的敏感叶子节点会在落库前加密。
 
 ### `audit_log`
 
@@ -89,6 +93,20 @@
 - 当前已落地两类真实写入入口：
   - `POST /api/governance/internal/audit/write`
   - `governance` 的 header-based stateless auth `LOGIN` / `LOGOUT` 事件
+- 当前 audit 真写链会在入库前统一处理 `request_params` 与 `response_summary`：
+  - `request_params` 仅保留脱敏 JSON
+  - `response_summary` 仅保留脱敏文本
+
+### `system_config`
+
+- `system_config` 继续作为平台级配置表。
+- 非敏感配置继续走 `config_value` 明文列。
+- 命中密码 / token / key 类键名的配置改为：
+  - `config_value = NULL`
+  - `sensitive_flag = 1`
+  - `value_ciphertext` 保存 AES-256 密文 envelope
+  - `value_mask` 保存只读掩码摘要
+  - `encryption_algorithm` / `encryption_key_id` 保存解密元数据
 
 ## MyBatis XML Mapping Baseline
 
@@ -101,8 +119,9 @@
 | `query_history` | `QueryHistoryRecord` | `governance/src/main/resources/mapper/QueryHistoryMapper.xml` |
 | `export_record` | `ExportRecord` | `governance/src/main/resources/mapper/ExportRecordMapper.xml` |
 | `audit_log` | `AuditLogRecord` | `governance/src/main/resources/mapper/AuditLogMapper.xml` |
+| `system_config` | `SystemConfigRecord` | `governance/src/main/resources/mapper/SystemConfigMapper.xml` |
 
-当前 mapper 只固化 `insert` 与 `selectById` 最小骨架，目的是先把表结构、主外键和字段命名稳定下来，再在后续任务中接入真实 repository、事务编排和业务写入路径。
+当前 mapper 只固化 `insert/selectById` 或等价最小骨架，目的是先把表结构、主外键和字段命名稳定下来，再在后续任务中接入真实 repository、事务编排和业务写入路径。当前 `governance` 已额外提供 `GovernanceProtectedPersistenceService` 作为 config/result/history/export/audit/system-config 的敏感字段保护写入入口。
 
 ## Migration Policy
 
@@ -117,6 +136,10 @@
 当前 D-TASK-011 的增量脚本：
 
 - `sql/migrations/V20260421_011__core_traceability_chain.sql`
+
+当前 D-TASK-013 追加的增量脚本：
+
+- `sql/migrations/V20260421_013__sensitive_data_encryption_baseline.sql`
 
 ## Validation Baseline
 

@@ -34,6 +34,9 @@ class TraceabilitySchemaMappingTest {
         assertContains(schema, "CONSTRAINT fk_audit_log_result");
         assertContains(schema, "CONSTRAINT fk_audit_log_history");
         assertContains(schema, "CONSTRAINT fk_audit_log_export");
+        assertContains(schema, "sensitive_flag TINYINT(1) NOT NULL DEFAULT 0");
+        assertContains(schema, "value_ciphertext TEXT DEFAULT NULL");
+        assertContains(schema, "encryption_key_id VARCHAR(64) DEFAULT NULL");
     }
 
     @Test
@@ -46,6 +49,16 @@ class TraceabilitySchemaMappingTest {
         assertContains(migration, "CREATE TABLE IF NOT EXISTS query_history");
         assertContains(migration, "CREATE TABLE IF NOT EXISTS export_record");
         assertContains(migration, "ADD CONSTRAINT fk_audit_log_export");
+    }
+
+    @Test
+    void shouldProvideIncrementalMigrationForSensitiveFieldEncryptionBaseline() throws IOException {
+        String migration = readRepositoryFile("sql/migrations/V20260421_013__sensitive_data_encryption_baseline.sql");
+
+        assertContains(migration, "ALTER TABLE system_config");
+        assertContains(migration, "ADD COLUMN sensitive_flag");
+        assertContains(migration, "ADD COLUMN value_ciphertext");
+        assertContains(migration, "ADD COLUMN encryption_key_id");
     }
 
     @Test
@@ -63,6 +76,9 @@ class TraceabilitySchemaMappingTest {
         assertContains(readMapper("mapper/AuditLogMapper.xml"), "result_id");
         assertContains(readMapper("mapper/AuditLogMapper.xml"), "history_id");
         assertContains(readMapper("mapper/AuditLogMapper.xml"), "export_id");
+        assertContains(readMapper("mapper/SystemConfigMapper.xml"), "FROM system_config");
+        assertContains(readMapper("mapper/SystemConfigMapper.xml"), "value_ciphertext");
+        assertContains(readMapper("mapper/SystemConfigMapper.xml"), "encryption_key_id");
     }
 
     private static String readMapper(String resourcePath) throws IOException {

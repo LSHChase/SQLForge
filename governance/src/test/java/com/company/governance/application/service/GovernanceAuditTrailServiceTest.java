@@ -26,6 +26,7 @@ import com.company.governance.infrastructure.persistence.mapper.ConfigSnapshotMa
 import com.company.governance.infrastructure.persistence.mapper.ExecutionResultMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
+import com.company.governance.infrastructure.persistence.mapper.SystemConfigMapper;
 import com.company.sqlforge.common.audit.AuditContext;
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.MessagingMode;
@@ -33,6 +34,9 @@ import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.security.SensitiveDataCryptoProperties;
+import com.company.sqlforge.common.security.SensitiveDataCryptoService;
+import com.company.sqlforge.common.security.SensitiveDataProtectionService;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -58,7 +62,7 @@ class GovernanceAuditTrailServiceTest {
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.DATABASE);
         GovernanceAuditTrailService service = new GovernanceAuditTrailService(
-            auditLogMapper,
+            protectedPersistenceService(auditLogMapper),
             configSnapshotMapper,
             executionResultMapper,
             queryHistoryMapper,
@@ -100,8 +104,8 @@ class GovernanceAuditTrailServiceTest {
         request.setResultId("res-001");
         request.setHistoryId("hist-001");
         request.setExportId("exp-001");
-        request.setRequestParams("{\"sqlFingerprint\":\"abc\"}");
-        request.setResponseSummary("query executed");
+        request.setRequestParams("{\"sqlFingerprint\":\"abc\",\"apiToken\":\"secret-token\"}");
+        request.setResponseSummary("query executed with password=abc123");
 
         AuditWriteResponse response = service.writeAudit(request);
 
@@ -121,6 +125,9 @@ class GovernanceAuditTrailServiceTest {
         assertEquals("hist-001", inserted.getHistoryId());
         assertEquals("exp-001", inserted.getExportId());
         assertEquals("QUERY_EXECUTE_SYNC", inserted.getOperationType());
+        org.junit.jupiter.api.Assertions.assertFalse(inserted.getRequestParams().contains("secret-token"));
+        org.junit.jupiter.api.Assertions.assertTrue(inserted.getRequestParams().contains("***"));
+        org.junit.jupiter.api.Assertions.assertFalse(inserted.getResponseSummary().contains("abc123"));
     }
 
     @Test
@@ -130,7 +137,7 @@ class GovernanceAuditTrailServiceTest {
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.MOCK);
         GovernanceAuditTrailService service = new GovernanceAuditTrailService(
-            auditLogMapper,
+            protectedPersistenceService(auditLogMapper),
             mock(ConfigSnapshotMapper.class),
             mock(ExecutionResultMapper.class),
             mock(QueryHistoryMapper.class),
@@ -174,7 +181,7 @@ class GovernanceAuditTrailServiceTest {
     @Test
     void shouldRejectWhenTraceabilityReferenceIsMissing() {
         GovernanceAuditTrailService service = new GovernanceAuditTrailService(
-            mock(AuditLogMapper.class),
+            protectedPersistenceService(mock(AuditLogMapper.class)),
             mock(ConfigSnapshotMapper.class),
             mock(ExecutionResultMapper.class),
             mock(QueryHistoryMapper.class),
@@ -213,7 +220,7 @@ class GovernanceAuditTrailServiceTest {
     void shouldRecordAuthenticationLoginAndLogoutLocally() {
         AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
         GovernanceAuditTrailService service = new GovernanceAuditTrailService(
-            auditLogMapper,
+            protectedPersistenceService(auditLogMapper),
             mock(ConfigSnapshotMapper.class),
             mock(ExecutionResultMapper.class),
             mock(QueryHistoryMapper.class),
@@ -253,7 +260,7 @@ class GovernanceAuditTrailServiceTest {
     void shouldRecordAuthenticationFailureWithFallbackTraceability() {
         AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
         GovernanceAuditTrailService service = new GovernanceAuditTrailService(
-            auditLogMapper,
+            protectedPersistenceService(auditLogMapper),
             mock(ConfigSnapshotMapper.class),
             mock(ExecutionResultMapper.class),
             mock(QueryHistoryMapper.class),
@@ -280,11 +287,30 @@ class GovernanceAuditTrailServiceTest {
         assertEquals("FAILED", inserted.getStatus());
         assertNotNull(inserted.getRequestId());
         assertNotNull(inserted.getTraceId());
+        org.junit.jupiter.api.Assertions.assertFalse(inserted.getRequestParams().contains("raw-secret"));
     }
 
     private MessagingProperties databaseMessaging() {
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.DATABASE);
         return messagingProperties;
+    }
+
+    private GovernanceProtectedPersistenceService protectedPersistenceService(AuditLogMapper auditLogMapper) {
+        SensitiveDataCryptoProperties sensitiveDataCryptoProperties = new SensitiveDataCryptoProperties();
+        SensitiveDataCryptoService sensitiveDataCryptoService =
+            new SensitiveDataCryptoService(sensitiveDataCryptoProperties);
+        SensitiveDataProtectionService sensitiveDataProtectionService =
+            new SensitiveDataProtectionService(sensitiveDataCryptoService);
+        return new GovernanceProtectedPersistenceService(
+            mock(ConfigSnapshotMapper.class),
+            mock(ExecutionResultMapper.class),
+            mock(QueryHistoryMapper.class),
+            mock(ExportRecordMapper.class),
+            auditLogMapper,
+            mock(SystemConfigMapper.class),
+            sensitiveDataProtectionService,
+            sensitiveDataCryptoService
+        );
     }
 }

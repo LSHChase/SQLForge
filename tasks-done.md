@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-013: 落实敏感字段加密
+
+- Status: done
+- Priority: 1
+- Depends on: D-TASK-011
+- Completed at: 2026-04-21
+- Commit subject: `feat(governance): D-TASK-013 implement sensitive data encryption baseline`
+- Scope: 在 Phase-D 已稳定的 `config/result/history/export/audit` 追溯链基础上，补共享 AES-256 敏感字段保护能力，并把 `governance` 内的 config snapshot、execution result、query history、export record、audit log 与 `system_config` 接到统一受保护持久化入口；优先收口密码、token、key 的密文存储，以及审计/导出相关字段的脱敏落库基线，不提前展开完整配置中心 UI、外部 KMS 或其他服务的真实上报改造。
+- Validation:
+  - 库、日志、导出无明文
+  - `mvn -B -pl governance -am clean compile`
+  - `mvn -B -pl governance -am test`
+  - `mvn -B -pl governance -am validate pmd:pmd checkstyle:check`
+  - `node scripts/check-frontend-backend-separation.js`
+  - `node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/task_audit.py --check`
+- Progress log:
+  - 2026-04-21: instantiated from `Phase-D / D-STORY-004` after D-TASK-012 stabilized the real audit write path, so the traceability chain could move from “schema exists” to “sensitive leaves are actually protected before persistence”.
+  - 2026-04-21: added shared AES-256 GCM crypto and sensitive-key classification utilities under `sqlforge-shared`, so governance and later services can reuse one envelope format instead of ad hoc masking rules.
+  - 2026-04-21: introduced `GovernanceProtectedPersistenceService` to protect `config_snapshot.snapshot_payload`, `execution_result.result_payload`, `query_history.query_context`, `export_record.export_options`, `audit_log.request_params/response_summary`, and raw SQL ciphertext writes before mapper persistence.
+  - 2026-04-21: extended `system_config` with `sensitive_flag/value_ciphertext/value_mask/encryption_algorithm/encryption_key_id` and added `SystemConfigMapper`, so password/token/key style settings now have a stable ciphertext storage baseline instead of competing for the plain `config_value` column.
+  - 2026-04-21: switched the existing governance audit write path onto the protected persistence service, added tests covering encrypted traceability leaves, masked audit/export fields, ciphertext SQL history payloads, and sensitive system-config storage, then synced persistence, security, capability, truth, init, repo-map, validation log, and task ledger documents.
+
 ### D-TASK-012: 落实审计日志链路
 
 - Status: done

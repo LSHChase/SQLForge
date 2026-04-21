@@ -30,6 +30,11 @@ logging:
 sqlforge:
   optional:
     h2-enabled: false
+  security:
+    crypto:
+      algorithm: AES256_GCM
+      key-id: ${SQLFORGE_DEV_CRYPTO_KEY_ID:governance-dev-key}
+      base64-key: ${SQLFORGE_DEV_CRYPTO_KEY_BASE64:MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=}
   obs:
     endpoint: ${SQLFORGE_DEV_OBS_ENDPOINT:http://localhost:9000}
     access-key: ${SQLFORGE_DEV_OBS_ACCESS_KEY:minioadmin}

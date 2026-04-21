@@ -22,6 +22,13 @@ logging:
   level:
     com.company.governance: INFO
 
+sqlforge:
+  security:
+    crypto:
+      algorithm: AES256_GCM
+      key-id: ${SQLFORGE_TEST_CRYPTO_KEY_ID:governance-test-key}
+      base64-key: ${SQLFORGE_TEST_CRYPTO_KEY_BASE64:MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=}
+
 auth:
   enabled: true
   trusted-auth-sources:

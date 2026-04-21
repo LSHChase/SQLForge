@@ -32,6 +32,7 @@ import com.company.governance.infrastructure.persistence.mapper.ExecutionResultM
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.MessageQueueMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
+import com.company.governance.infrastructure.persistence.mapper.SystemConfigMapper;
 import com.company.governance.infrastructure.persistence.mapper.TenantConfigMapper;
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
@@ -91,6 +92,9 @@ class AuthWebMvcTest {
 
     @MockBean
     private AuditLogMapper auditLogMapper;
+
+    @MockBean
+    private SystemConfigMapper systemConfigMapper;
 
     @Test
     void shouldBypassInterceptorForHealthEndpoint() throws Exception {

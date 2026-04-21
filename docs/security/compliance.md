@@ -72,6 +72,20 @@
 - 日志、异常栈、导出文件中不得出现明文敏感数据。
 - 密钥管理要与业务数据分离，可接入独立密钥服务或统一配置中心。
 
+当前实现基线：
+
+- `sqlforge-shared` 已提供共享 AES-256 GCM 密文 envelope 能力，当前 envelope 结构包含 `algorithm`、`keyId` 与随机 IV。
+- `governance` 已提供 `GovernanceProtectedPersistenceService`，对以下写入点执行统一保护：
+  - `config_snapshot.snapshot_payload`
+  - `execution_result.result_payload`
+  - `query_history.query_context`
+  - `export_record.export_options`
+  - `audit_log.request_params`
+  - `audit_log.response_summary`
+  - `system_config` 的密码 / token / key 类配置
+- `system_config` 中命中敏感键名时，原值不再进入 `config_value`，而是写入 `value_ciphertext` 并保留 `value_mask/encryption_algorithm/encryption_key_id`
+- 日志层继续保留 `password|token|secret` 模式掩码，持久化层再执行一次结构化脱敏/加密
+
 ### 验证点
 
 - 数据库中不存在明文密码、Token、密钥。
