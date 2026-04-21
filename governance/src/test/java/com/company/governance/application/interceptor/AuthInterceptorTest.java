@@ -5,7 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
+import com.company.governance.application.service.GovernanceAuditTrailService;
 import com.company.governance.config.AuthProperties;
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
@@ -33,7 +36,8 @@ class AuthInterceptorTest {
         AuthProperties authProperties = new AuthProperties();
         authProperties.setEnabled(false);
         authProperties.setTrustedAuthSources(Collections.emptyList());
-        AuthInterceptor authInterceptor = new AuthInterceptor(authProperties);
+        GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
+        AuthInterceptor authInterceptor = new AuthInterceptor(authProperties, governanceAuditTrailService);
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/governance/tenant-config");
         addProtectedHeaders(request);
@@ -46,12 +50,14 @@ class AuthInterceptorTest {
         assertEquals(RequestContext.getTraceId(), response.getHeader(RequestHeaderConstants.TRACE_ID));
         assertEquals(RequestContext.getRequestId(), response.getHeader(RequestHeaderConstants.REQUEST_ID));
         assertEquals(Arrays.asList("TENANT_ADMIN", "OPERATOR"), RequestContext.getRoleCodes());
+        verify(governanceAuditTrailService).recordAuthenticationAccepted(request);
 
         authInterceptor.afterCompletion(request, response, new Object(), null);
 
         assertNull(TenantContext.get());
         assertNull(RequestContext.getTraceId());
         assertNull(RequestContext.getUserId());
+        verify(governanceAuditTrailService).recordAuthenticationReleased(request, null);
     }
 
     @Test
@@ -59,7 +65,8 @@ class AuthInterceptorTest {
         AuthProperties authProperties = new AuthProperties();
         authProperties.setEnabled(true);
         authProperties.setTrustedAuthSources(Collections.singletonList(AuthSourceConstants.GATEWAY));
-        AuthInterceptor authInterceptor = new AuthInterceptor(authProperties);
+        GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
+        AuthInterceptor authInterceptor = new AuthInterceptor(authProperties, governanceAuditTrailService);
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/governance/tenant-config");
         addProtectedHeaders(request);
@@ -77,6 +84,7 @@ class AuthInterceptorTest {
         assertNull(TenantContext.get());
         assertNull(RequestContext.getTraceId());
         assertNull(RequestContext.getUserId());
+        verify(governanceAuditTrailService).recordAuthenticationRejected(request, ex);
     }
 
     @Test
@@ -84,7 +92,8 @@ class AuthInterceptorTest {
         AuthProperties authProperties = new AuthProperties();
         authProperties.setEnabled(true);
         authProperties.setTrustedAuthSources(Collections.singletonList(AuthSourceConstants.HEADER));
-        AuthInterceptor authInterceptor = new AuthInterceptor(authProperties);
+        GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
+        AuthInterceptor authInterceptor = new AuthInterceptor(authProperties, governanceAuditTrailService);
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/governance/tenant-config");
         addProtectedHeaders(request);
@@ -98,6 +107,7 @@ class AuthInterceptorTest {
         );
 
         assertEquals(ErrorCodeConstants.SYSTEM_UNAUTHORIZED, ex.getCode());
+        verify(governanceAuditTrailService).recordAuthenticationRejected(request, ex);
     }
 
     private void addProtectedHeaders(MockHttpServletRequest request) {

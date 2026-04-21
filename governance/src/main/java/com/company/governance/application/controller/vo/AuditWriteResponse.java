@@ -2,6 +2,7 @@ package com.company.governance.application.controller.vo;
 
 public class AuditWriteResponse {
 
+    private final Long auditId;
     private final String serviceCode;
     private final String operationCode;
     private final String status;
@@ -10,13 +11,15 @@ public class AuditWriteResponse {
     private final String contractStage;
     private final String implementationStage;
 
-    public AuditWriteResponse(String serviceCode,
+    public AuditWriteResponse(Long auditId,
+                              String serviceCode,
                               String operationCode,
                               String status,
                               String messageTopic,
                               String deliveryMode,
                               String contractStage,
                               String implementationStage) {
+        this.auditId = auditId;
         this.serviceCode = serviceCode;
         this.operationCode = operationCode;
         this.status = status;
@@ -24,6 +27,10 @@ public class AuditWriteResponse {
         this.deliveryMode = deliveryMode;
         this.contractStage = contractStage;
         this.implementationStage = implementationStage;
+    }
+
+    public Long getAuditId() {
+        return auditId;
     }
 
     public String getServiceCode() {

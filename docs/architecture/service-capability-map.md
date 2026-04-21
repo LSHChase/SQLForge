@@ -125,13 +125,15 @@
 - 租户配置查询
 - 消息重试与管理入口骨架
 - 核心追溯链表结构基线：`config_snapshot`、`execution_result`、`query_history`、`export_record` 与扩展后的 `audit_log`
+- `POST /api/governance/internal/audit/write` 的真实落库基线，支持把 `config/result/history/export` 追溯键接入 `audit_log`
+- header-based stateless auth 的 `LOGIN` / `LOGOUT` 审计落库基线
 - MyBatis XML 与多环境配置基础
 
 当前还未完整承载：
 
 - 角色矩阵
 - 数据源授权矩阵
-- 审计全链路
+- 跨服务主动上报与审计全链路
 - 敏感配置加密落库
 - 平台治理完整实体模型
 

@@ -86,6 +86,9 @@
 - 继续作为不可变审计证据表。
 - 在既有字段基础上追加 `service_code`、`trace_id`、`request_id`、`saga_id` 与四类追溯外键。
 - 审计记录允许引用 config/result/history/export 任意一层，但不要求每条记录都填满全部外键。
+- 当前已落地两类真实写入入口：
+  - `POST /api/governance/internal/audit/write`
+  - `governance` 的 header-based stateless auth `LOGIN` / `LOGOUT` 事件
 
 ## MyBatis XML Mapping Baseline
 

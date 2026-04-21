@@ -10,6 +10,13 @@ public class AuditWriteRequest {
     private Long elapsedMs;
     private String sourceIp;
     private String userAgent;
+    private String sagaId;
+    private String configSnapshotId;
+    private String resultId;
+    private String historyId;
+    private String exportId;
+    private String requestParams;
+    private String responseSummary;
 
     public String getServiceCode() {
         return serviceCode;
@@ -73,5 +80,61 @@ public class AuditWriteRequest {
 
     public void setUserAgent(String userAgent) {
         this.userAgent = userAgent;
+    }
+
+    public String getSagaId() {
+        return sagaId;
+    }
+
+    public void setSagaId(String sagaId) {
+        this.sagaId = sagaId;
+    }
+
+    public String getConfigSnapshotId() {
+        return configSnapshotId;
+    }
+
+    public void setConfigSnapshotId(String configSnapshotId) {
+        this.configSnapshotId = configSnapshotId;
+    }
+
+    public String getResultId() {
+        return resultId;
+    }
+
+    public void setResultId(String resultId) {
+        this.resultId = resultId;
+    }
+
+    public String getHistoryId() {
+        return historyId;
+    }
+
+    public void setHistoryId(String historyId) {
+        this.historyId = historyId;
+    }
+
+    public String getExportId() {
+        return exportId;
+    }
+
+    public void setExportId(String exportId) {
+        this.exportId = exportId;
+    }
+
+    public String getRequestParams() {
+        return requestParams;
+    }
+
+    public void setRequestParams(String requestParams) {
+        this.requestParams = requestParams;
+    }
+
+    public String getResponseSummary() {
+        return responseSummary;
+    }
+
+    public void setResponseSummary(String responseSummary) {
+        this.responseSummary = responseSummary;
     }
 }

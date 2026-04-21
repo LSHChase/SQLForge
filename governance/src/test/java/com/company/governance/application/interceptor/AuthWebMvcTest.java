@@ -20,6 +20,7 @@ import com.company.governance.application.controller.vo.ScheduleExtensionStatusV
 import com.company.governance.application.controller.vo.TenantConfigVO;
 import com.company.governance.application.controller.vo.TenantScopeCheckResponse;
 import com.company.governance.application.service.GovernanceCapabilityApplicationService;
+import com.company.governance.application.service.GovernanceAuditTrailService;
 import com.company.governance.application.service.HealthStatusApplicationService;
 import com.company.governance.application.service.MessageAdminApplicationService;
 import com.company.governance.application.service.TenantConfigApplicationService;
@@ -66,6 +67,9 @@ class AuthWebMvcTest {
 
     @MockBean
     private GovernanceCapabilityApplicationService governanceCapabilityApplicationService;
+
+    @MockBean
+    private GovernanceAuditTrailService governanceAuditTrailService;
 
     @MockBean
     private TenantConfigMapper tenantConfigMapper;
@@ -155,6 +159,7 @@ class AuthWebMvcTest {
             ));
         when(governanceCapabilityApplicationService.publishAuditEvent(org.mockito.ArgumentMatchers.any()))
             .thenReturn(new AuditWriteResponse(
+                Long.valueOf(1L),
                 "QUERY_EXECUTION",
                 "AUDIT_QUERY",
                 "ACCEPTED",

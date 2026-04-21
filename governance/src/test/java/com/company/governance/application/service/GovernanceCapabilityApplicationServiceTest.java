@@ -5,10 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,9 +17,7 @@ import com.company.governance.application.controller.vo.DatasourceAccessCheckRes
 import com.company.governance.application.controller.vo.ScheduleExtensionStatusVO;
 import com.company.governance.application.controller.vo.TenantScopeCheckResponse;
 import com.company.governance.config.MessagingProperties;
-import com.company.governance.domain.messaging.MessageProducer;
 import com.company.governance.domain.tenant.logic.TenantAccessLogic;
-import com.company.governance.infrastructure.messaging.GovernanceMessagingTopics;
 import com.company.sqlforge.common.audit.AuditContext;
 import com.company.sqlforge.common.config.MessagingMode;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
@@ -44,12 +38,12 @@ class GovernanceCapabilityApplicationServiceTest {
     @Test
     void shouldCheckTenantScopeAndDatasourceAccess() {
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
-        MessageProducer messageProducer = mock(MessageProducer.class);
+        GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.DATABASE);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
             tenantAccessLogic,
-            messageProducer,
+            governanceAuditTrailService,
             messagingProperties
         );
         RequestContext.set(
@@ -88,12 +82,12 @@ class GovernanceCapabilityApplicationServiceTest {
     @Test
     void shouldAllowPlatformAdminToResolveCrossTenantChecks() {
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
-        MessageProducer messageProducer = mock(MessageProducer.class);
+        GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.DATABASE);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
             tenantAccessLogic,
-            messageProducer,
+            governanceAuditTrailService,
             messagingProperties
         );
         RequestContext.set(
@@ -129,12 +123,12 @@ class GovernanceCapabilityApplicationServiceTest {
     @Test
     void shouldReturnExplicitDatasourceDenialContract() {
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
-        MessageProducer messageProducer = mock(MessageProducer.class);
+        GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.DATABASE);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
             tenantAccessLogic,
-            messageProducer,
+            governanceAuditTrailService,
             messagingProperties
         );
         RequestContext.set(
@@ -162,14 +156,14 @@ class GovernanceCapabilityApplicationServiceTest {
     }
 
     @Test
-    void shouldPublishAuditEventThroughConfiguredMessageProducer() {
+    void shouldDelegateAuditWriteToTrailService() {
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
-        MessageProducer messageProducer = mock(MessageProducer.class);
+        GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.MOCK);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
             tenantAccessLogic,
-            messageProducer,
+            governanceAuditTrailService,
             messagingProperties
         );
         RequestContext.set(
@@ -193,36 +187,43 @@ class GovernanceCapabilityApplicationServiceTest {
         request.setSourceIp("127.0.0.1");
         request.setUserAgent("JUnit");
 
+        when(governanceAuditTrailService.writeAudit(request)).thenReturn(new AuditWriteResponse(
+            Long.valueOf(101L),
+            "QUERY_EXECUTION",
+            "AUDIT_QUERY",
+            "ACCEPTED",
+            "governance.audit.event",
+            "MOCK",
+            "LONG_TERM_BASELINE",
+            "DATABASE_AUDIT_WRITE_BASELINE"
+        ));
+
         AuditWriteResponse response = service.publishAuditEvent(request);
         ScheduleExtensionStatusVO scheduleExtensionStatusVO = service.getScheduleExtensionStatus();
 
         assertEquals("ACCEPTED", response.getStatus());
+        assertEquals(Long.valueOf(101L), response.getAuditId());
         assertEquals("QUERY_EXECUTION", response.getServiceCode());
         assertEquals("governance.audit.event", response.getMessageTopic());
         assertEquals("MOCK", response.getDeliveryMode());
         assertEquals("LONG_TERM_BASELINE", response.getContractStage());
-        assertEquals("TRANSITIONAL_SKELETON", response.getImplementationStage());
+        assertEquals("DATABASE_AUDIT_WRITE_BASELINE", response.getImplementationStage());
         assertEquals("MOCK", scheduleExtensionStatusVO.getCurrentMode());
         assertEquals("TEST_ONLY", scheduleExtensionStatusVO.getStatus());
         assertEquals("GOVERNANCE", scheduleExtensionStatusVO.getOwnerService());
         assertEquals("TRANSITIONAL_SKELETON", scheduleExtensionStatusVO.getContractStage());
-        verify(messageProducer).send(
-            eq(GovernanceMessagingTopics.AUDIT_EVENT),
-            eq("tenant-a"),
-            contains("\"serviceCode\":\"QUERY_EXECUTION\""),
-            anyMap()
-        );
+        verify(governanceAuditTrailService).writeAudit(request);
     }
 
     @Test
     void shouldRejectAuditEventWhenRequiredContractFieldsMissing() {
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
-        MessageProducer messageProducer = mock(MessageProducer.class);
+        GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.DATABASE);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
             tenantAccessLogic,
-            messageProducer,
+            governanceAuditTrailService,
             messagingProperties
         );
         RequestContext.set(
@@ -244,6 +245,11 @@ class GovernanceCapabilityApplicationServiceTest {
         request.setElapsedMs(10L);
         request.setSourceIp("127.0.0.1");
         request.setUserAgent("JUnit");
+        when(governanceAuditTrailService.writeAudit(request)).thenThrow(new BizException(
+            ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID,
+            org.springframework.http.HttpStatus.BAD_REQUEST,
+            "serviceCode must not be empty"
+        ));
 
         BizException ex = assertThrows(BizException.class, () -> service.publishAuditEvent(request));
 
@@ -251,14 +257,14 @@ class GovernanceCapabilityApplicationServiceTest {
     }
 
     @Test
-    void shouldTranslateAuditRouteFailureToGovernanceSystemError() {
+    void shouldPropagateAuditRouteFailureFromTrailService() {
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
-        MessageProducer messageProducer = mock(MessageProducer.class);
+        GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.DATABASE);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
             tenantAccessLogic,
-            messageProducer,
+            governanceAuditTrailService,
             messagingProperties
         );
         RequestContext.set(
@@ -280,9 +286,11 @@ class GovernanceCapabilityApplicationServiceTest {
         request.setElapsedMs(5L);
         request.setSourceIp("127.0.0.1");
         request.setUserAgent("JUnit");
-        doThrow(new IllegalStateException("route unavailable"))
-            .when(messageProducer)
-            .send(eq(GovernanceMessagingTopics.AUDIT_EVENT), eq("tenant-a"), contains("\"operationCode\":\"AUDIT_QUERY\""), anyMap());
+        when(governanceAuditTrailService.writeAudit(request)).thenThrow(new BizException(
+            ErrorCodeConstants.GOVERNANCE_SYSTEM_MESSAGE_ROUTE_INVALID,
+            org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+            "Governance audit contract route is unavailable"
+        ));
 
         BizException ex = assertThrows(BizException.class, () -> service.publishAuditEvent(request));
 

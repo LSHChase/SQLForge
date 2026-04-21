@@ -88,7 +88,7 @@
 | Endpoint | Contract stage | Current implementation stage | Required baseline | Current notes |
 |:---|:---|:---|:---|:---|
 | `/api/governance/internal/datasource-access/check` | `LONG_TERM_BASELINE` | `TRANSITIONAL_SKELETON` | request: `tenantId`,`datasourceId`; response: `allowed`,`reason`,`errorCode`,`contractStage`,`implementationStage` | 长期保留为跨服务授权检查入口；当前决策仍由治理本地 placeholder 规则驱动 |
-| `/api/governance/internal/audit/write` | `LONG_TERM_BASELINE` | `TRANSITIONAL_SKELETON` | request: `serviceCode`,`operationCode`,`resourceType`,`resourceId`,`resultStatus`,`elapsedMs`,`sourceIp`,`userAgent`; response: `status`,`messageTopic`,`deliveryMode`,`contractStage`,`implementationStage` | 长期保留为跨服务审计写入入口；当前仍通过共享消息抽象发送审计事件 |
+| `/api/governance/internal/audit/write` | `LONG_TERM_BASELINE` | `DATABASE_AUDIT_WRITE_BASELINE` | request: required `serviceCode`,`operationCode`,`resourceType`,`resourceId`,`resultStatus`,`elapsedMs`,`sourceIp`,`userAgent`; optional `sagaId`,`configSnapshotId`,`resultId`,`historyId`,`exportId`,`requestParams`,`responseSummary`; response: `auditId`,`status`,`messageTopic`,`deliveryMode`,`contractStage`,`implementationStage` | 长期保留为跨服务审计写入入口；当前已同步写入 `audit_log` 并保留共享消息抽象扩散 |
 | `/api/governance/internal/schedule/extensions` | `TRANSITIONAL_SKELETON` | `TRANSITIONAL_SKELETON` | response: `extensionPoint`,`ownerService`,`status`,`currentMode`,`contractStage`,`implementationStage` | 当前只暴露治理调度扩展状态骨架，不代表完整调度域模型已固化 |
 
 ## 3.1 Query Execution Public HTTP Baseline
@@ -423,6 +423,12 @@
   - `tenantId`,`userId`,`traceId`,`requestId` 由受保护请求上下文提供
   - `occurredAt` 由治理服务落审计事件时生成
   - `serviceCode`,`operationCode`,`resourceType`,`resourceId`,`resultStatus`,`elapsedMs`,`sourceIp`,`userAgent` 由调用方显式提供
+  - `configSnapshotId`,`resultId`,`historyId`,`exportId` 为可选追溯键；若提供，治理服务必须校验对应记录已存在
+  - `requestParams`,`responseSummary` 为可选脱敏审计摘要；不得包含明文凭据或原始敏感 SQL
+- 当前实现状态：
+  - `audit/write` 已同步写入 `audit_log`
+  - 同一请求会保留 `governance.audit.event` 消息扩散语义，供后续异步消费或外部归档复用
+  - 当前 `governance` 在 header-based stateless auth 基线下，已把每次受保护请求的鉴权建立/释放审计为 `LOGIN` / `LOGOUT` 类型事件
 - 当前 `audit/write` 失败错误码已固定：
   - `10005` `SYSTEM_CONTEXT_MISSING`
   - `10008` `SYSTEM_MESSAGE_MODE_INVALID`

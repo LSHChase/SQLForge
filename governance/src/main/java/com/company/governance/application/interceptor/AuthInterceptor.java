@@ -1,6 +1,7 @@
 package com.company.governance.application.interceptor;
 
 import com.company.governance.config.AuthProperties;
+import com.company.governance.application.service.GovernanceAuditTrailService;
 import com.company.sqlforge.common.audit.AuditContext;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.context.RequestContext;
@@ -23,9 +24,12 @@ public class AuthInterceptor implements HandlerInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthInterceptor.class);
 
     private final AuthProperties authProperties;
+    private final GovernanceAuditTrailService governanceAuditTrailService;
 
-    public AuthInterceptor(AuthProperties authProperties) {
+    public AuthInterceptor(AuthProperties authProperties,
+                           GovernanceAuditTrailService governanceAuditTrailService) {
         this.authProperties = authProperties;
+        this.governanceAuditTrailService = governanceAuditTrailService;
     }
 
     @Override
@@ -58,8 +62,10 @@ public class AuthInterceptor implements HandlerInterceptor {
                 userId,
                 roleCodes,
                 request.getRequestURI());
+            governanceAuditTrailService.recordAuthenticationAccepted(request);
             return true;
         } catch (RuntimeException ex) {
+            governanceAuditTrailService.recordAuthenticationRejected(request, ex);
             RequestContext.clear();
             AuditContext.clear();
             throw ex;
@@ -71,6 +77,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                                 HttpServletResponse response,
                                 Object handler,
                                 Exception ex) {
+        governanceAuditTrailService.recordAuthenticationReleased(request, ex);
         RequestContext.clear();
         AuditContext.clear();
     }

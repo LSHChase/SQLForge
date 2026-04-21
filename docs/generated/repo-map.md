@@ -19,7 +19,7 @@ Last refreshed: `2026-04-21`
 
 ## Backend Modules
 
-- `governance/`: current governance backend baseline
+- `governance/`: governance backend baseline with audit persistence chain and stateless auth audit hooks
 - `query-execution/`: query execution service boundary skeleton
 - `sql-optimization/`: sql optimization submit/status api skeleton
 - `benchmark-engine/`: benchmark-engine task submit/status and report query api skeleton with placeholder repository
