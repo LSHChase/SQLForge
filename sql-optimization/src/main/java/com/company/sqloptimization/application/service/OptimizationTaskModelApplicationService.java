@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 public class OptimizationTaskModelApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
-    private static final String IMPLEMENTATION_STAGE = "TASK_MODEL_BASELINE";
+    private static final String IMPLEMENTATION_STAGE = "ASYNC_TASK_API_SKELETON";
     private static final String STATUS_QUERY_PATH_TEMPLATE = "/api/sql-optimization/tasks/%s";
 
     public OptimizationTask createQueuedTask(OptimizationTaskSubmitRequest request, String taskId, Instant submittedAt) {

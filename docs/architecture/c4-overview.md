@@ -27,7 +27,7 @@
   - SQL 优化服务
   - 压测引擎服务
   - 公共管理服务
-- 当前已有公共管理服务方向的 `governance` 基线、查询执行服务方向的 `query-execution` 边界骨架，以及 SQL 优化服务方向的 `sql-optimization` 任务模型骨架；压测引擎服务仍处于目标边界和计划阶段。
+- 当前已有公共管理服务方向的 `governance` 基线、查询执行服务方向的 `query-execution` 边界骨架，以及 SQL 优化服务方向的 `sql-optimization` 提交/轮询 API skeleton；压测引擎服务仍处于目标边界和计划阶段。
 
 ## 3. C4 Level 1: System Context
 
@@ -52,7 +52,7 @@ SQLForge 面向多租户数据平台治理、查询执行、SQL 优化与压测�
 | Root frontend (`src/`, `package.json`) | 驾驶舱、业务页面、前端信息架构 | Current |
 | `governance` | 公共管理服务阶段性基线，承载治理接口、租户配置、消息治理、请求上下文与基础能力 | Current |
 | `query-execution` | 查询执行服务边界骨架，固化路由、执行控制、轻量解析、轻量改写和已批准加速配置应用的承载位置 | Current baseline |
-| `sql-optimization` | SQL 优化服务任务模型骨架，固化异步任务类型、状态流转和提交/轮询契约对象 | Current baseline |
+| `sql-optimization` | SQL 优化服务提交/轮询 API skeleton，固化异步任务类型、状态流转、占位 repository 和提交/轮询契约对象 | Current baseline |
 | `sqlforge-shared` | 共享错误码、上下文、异常、审计契约、配置常量、日志与工具能力 | Current |
 | 压测引擎服务 | 负责压测任务编排、隔离执行、阈值判定与报告 | Target |
 | MySQL / 存储表结构 | 配置、治理、消息、审计等数据持久化 | Current |
@@ -102,12 +102,12 @@ SQLForge 面向多租户数据平台治理、查询执行、SQL 优化与压测�
 ### 5.4 `sql-optimization`
 
 - `application/`
-  - 作为入站与编排代码包域，承载异步优化任务提交 DTO、状态响应 VO 和模型转换 service
+  - 作为入站与编排代码包域，承载异步优化任务 controller、提交 DTO、状态响应 VO 和应用 service
   - 实际分层仍以 `controller`、`service` 为准，不把 `application` 单独视为一层
 - `domain/`
   - 异步优化任务实体、任务类型、生命周期状态、处理阶段流转、优先级和加速建议类型
 - `infrastructure/`
-  - 当前仅预留队列、持久化和回调适配位置，尚未接入真实实现
+  - 当前已提供 in-memory placeholder repository；真实队列、持久化和回调适配仍待接入
 - `config/`
   - 独立服务名、端口、多环境和日志配置骨架
 

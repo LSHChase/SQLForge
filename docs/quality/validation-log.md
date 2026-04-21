@@ -148,3 +148,12 @@
 2026-04-20T21:25:41-05:00 | D-TASK-005 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
 2026-04-20T21:25:41-05:00 | D-TASK-005 closeout state-flow-coverage | `R-121`, `R-042` | passed | `OptimizationTaskStateFlowTest` covers rewrite happy path, invalid acceleration phase shortcut, and queued cancellation
 2026-04-20T21:25:41-05:00 | D-TASK-005 closeout contract-doc-sync | `R-121`, `R-126`, `R-133` | passed | `sql-optimization` module, task-model DTO/VO, error codes, truth baseline, C4, capability map, interface baseline, and repo map synced to the new SQL optimization carrier
+2026-04-20T21:48:20-05:00 | D-TASK-006 closeout compile | `R-119`, `R-121`, `R-123` | passed | `mvn -B clean compile`
+2026-04-20T21:48:20-05:00 | D-TASK-006 closeout test | `R-119`, `R-121`, `R-123` | passed | `mvn -B test`
+2026-04-20T21:48:20-05:00 | D-TASK-006 closeout static-check | `R-040`, `R-121`, `R-123` | passed | `mvn -B validate pmd:pmd checkstyle:check`
+2026-04-20T21:48:20-05:00 | D-TASK-006 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
+2026-04-20T21:48:20-05:00 | D-TASK-006 closeout knowledge | `R-121`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T21:48:20-05:00 | D-TASK-006 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T21:48:20-05:00 | D-TASK-006 closeout api-path-coverage | `R-041`, `R-121` | passed | `OptimizationTaskControllerTest` covers submit success, failed placeholder polling, unknown task 404, and invalid callback 400
+2026-04-20T21:48:20-05:00 | D-TASK-006 closeout flow-log-sampling | `R-123` | passed | `OptimizationTaskApplicationServiceTest` captures submit START / STATE_CHANGE / END logs and missing-task FAILED exception log
+2026-04-20T21:48:20-05:00 | D-TASK-006 closeout doc-sync | `R-121`, `R-126`, `R-133` | passed | `README.md`, `service-interface-contract-baseline.md`, `service-capability-map.md`, `c4-overview.md`, `document-truth-baseline.md`, `init.md`, and `repo-map.md` synced to `ASYNC_TASK_API_SKELETON`

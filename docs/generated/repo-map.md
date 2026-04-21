@@ -21,7 +21,7 @@ Last refreshed: `2026-04-20`
 
 - `governance/`: current governance backend baseline
 - `query-execution/`: query execution service boundary skeleton
-- `sql-optimization/`: sql optimization task-model baseline
+- `sql-optimization/`: sql optimization submit/status api skeleton
 - `sqlforge-shared/`: shared common layer baseline
 
 ## Docs

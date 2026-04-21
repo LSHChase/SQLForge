@@ -66,11 +66,12 @@
 - `application` / `domain` / `infrastructure` / `config` 分层骨架
 - `PARSE` / `REWRITE` / `ACCELERATION_SUGGESTION` 三类异步优化任务模型
 - `QUEUED` / `RUNNING` / `SUCCEEDED` / `FAILED` / `CANCELLED` 生命周期状态与类型感知的处理阶段流转
-- 面向后续提交/轮询接口的基础 DTO / VO 与错误码区间固化
+- `POST /api/sql-optimization/tasks` 和 `GET /api/sql-optimization/tasks/{taskId}` 的过渡骨架
+- 基于 in-memory placeholder repository 的提交、轮询、失败路径与流程日志
+- 基础 DTO / VO 与错误码区间固化
 
 当前还未完整承载：
 
-- 任务提交与状态查询 HTTP 入口
 - MySQL 持久化、队列调度和回调通知
 - 建议结果明细、审批协同与物化视图治理
 
