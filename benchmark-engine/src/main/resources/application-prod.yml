@@ -1,0 +1,8 @@
+logging:
+  level:
+    root: INFO
+    com.company.benchmarkengine: INFO
+
+benchmark-engine:
+  execution:
+    mode: managed

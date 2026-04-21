@@ -165,3 +165,8 @@
 2026-04-20T23:36:21-05:00 | D-TASK-007 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
 2026-04-20T23:36:21-05:00 | D-TASK-007 closeout payload-coverage | `R-121` | passed | `OptimizationTaskControllerTest` and `OptimizationTaskModelApplicationServiceTest` cover structured `suggestion / failure` payloads across rewrite success, parse success, and failed placeholder paths
 2026-04-20T23:36:21-05:00 | D-TASK-007 closeout doc-sync | `R-121`, `R-126`, `R-133` | passed | `service-interface-contract-baseline.md`, `service-capability-map.md`, `document-truth-baseline.md`, and `init.md` synced from `summary/error` to structured `suggestion / failure` response fields
+2026-04-20T23:59:40-05:00 | D-TASK-008 closeout compile | `R-119`, `R-121`, `R-127` | passed | `mvn -B clean compile`
+2026-04-20T23:59:40-05:00 | D-TASK-008 closeout test | `R-119`, `R-121`, `R-127` | passed | `mvn -B test`
+2026-04-20T23:59:40-05:00 | D-TASK-008 closeout static-check | `R-040`, `R-121`, `R-127` | passed | `mvn -B validate pmd:pmd checkstyle:check`
+2026-04-20T23:59:40-05:00 | D-TASK-008 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
+2026-04-20T23:59:40-05:00 | D-TASK-008 closeout knowledge | `R-121`, `R-126`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`

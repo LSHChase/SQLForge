@@ -10,7 +10,7 @@
 |:---|:---|:---|:---|
 | 查询执行服务 | 查询提交、路由、缓存、轻量解析、轻量改写、执行控制、结果聚合 | `query-execution` | Partial |
 | SQL 优化服务 | 异步深度解析、改写建议、加速建议、成本估算、物化视图策略 | `sql-optimization` | Partial |
-| 压测引擎服务 | 压测任务、调度、并行执行、报告生成、隔离控制 | 尚未建立独立模块 | Pending |
+| 压测引擎服务 | 压测任务、调度、并行执行、报告生成、隔离控制 | `benchmark-engine` | Partial |
 | 公共管理服务 | 租户、配额、数据源、审计、合规、元数据、调度、平台治理 | `governance` | Partial |
 
 ## Service Allocation
@@ -91,6 +91,22 @@
 - 平台治理配置中心
 - 通用元数据治理
 
+当前由 `benchmark-engine` 承载的最小实现包括：
+
+- Spring Boot 应用入口和独立 Maven 模块
+- `application` / `domain` / `infrastructure` / `config` 分层骨架
+- `BASELINE` / `COMPARISON` / `REGRESSION_GUARD` 三类压测任务模型
+- `QUEUED` / `RUNNING` / `SUCCEEDED` / `FAILED` / `CANCELLED` 生命周期状态与任务类型感知的阶段流转
+- 只读要求、影子环境模式、脱敏要求、并发/时长/预热/数据规模等任务元数据固化
+- 阈值模型、阈值判定结果、引擎指标快照、优化建议和报告契约对象
+- 基础 DTO / VO、错误码区间和模型装配 service
+
+当前还未完整承载：
+
+- `POST /api/benchmark-engine/tasks` 提交流程与轮询接口
+- 真正的调度、隔离执行、持久化、队列和报告导出
+- 与公共管理服务、查询执行服务的真实跨服务调用
+
 ## 4. 公共管理服务
 
 负责：
@@ -153,11 +169,11 @@
 ## Immediate Implementation Implications
 
 - 下一轮后端实现优先级应是：
-  1. 把 `sqlforge-shared` 做实
-  2. 把 `governance` 强化为公共管理服务基线
-  3. 新建 SQL 优化服务骨架
-  4. 新建压测引擎服务骨架
-  5. 在 `query-execution` 上继续补真实治理调用与真实引擎适配器
+  1. 在 `benchmark-engine` 上补压测任务提交与状态轮询骨架
+  2. 在 `benchmark-engine` 上补报告查询与导出骨架
+  3. 在 `query-execution` 上继续补真实治理调用与真实引擎适配器
+  4. 在 `sql-optimization` 上补持久化、队列和回调通知
+  5. 在 `governance` 上继续补完整授权矩阵与审计链路
 
 ## Related Documents
 

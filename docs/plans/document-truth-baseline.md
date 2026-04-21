@@ -32,11 +32,12 @@
   - `package.json`
   - `vite.config.js`
   - `src/`
-- Maven 聚合工程存在四个后端模块：
+- Maven 聚合工程存在五个后端模块：
   - `sqlforge-shared/`
   - `governance/`
   - `query-execution/`
   - `sql-optimization/`
+  - `benchmark-engine/`
 - `sqlforge-shared/` 已承载共享底座基线：
   - 统一错误码常量
   - 请求/租户上下文
@@ -68,6 +69,13 @@
   - `POST /api/sql-optimization/tasks` 与 `GET /api/sql-optimization/tasks/{taskId}` skeleton
   - in-memory placeholder repository、提交流程日志、失败路径和基础测试
   - `suggestion / failure` 结构化输出，当前已覆盖收益、成本、风险和任务类型差异
+- `benchmark-engine/` 已具备压测任务/报告模型基线：
+  - Spring Boot 应用入口与独立 Maven 模块
+  - `application` 包域下的 DTO / VO / service 与 `domain` / `infrastructure` / `config` 分层骨架
+  - `BASELINE` / `COMPARISON` / `REGRESSION_GUARD` 三类压测任务实体
+  - 生命周期状态、处理阶段流转、影子环境模式、只读要求、脱敏要求和阈值模型
+  - 引擎指标快照、阈值判定结果、建议输出和报告实体
+  - 基础模型测试与契约装配测试
 - 当前已验证通过：
   - `mvn clean compile`
   - `mvn test`
@@ -118,7 +126,7 @@
 
 ## Immediate Pending Gaps
 
-- 压测引擎服务仍未建立独立代码模块。
+- 压测引擎服务已建立独立 `benchmark-engine` 模块，但提交流程、状态轮询、真实执行链路和报告查询接口仍待 `Phase-D` 后续任务补齐。
 - 查询执行服务已建立独立模块骨架、公共 HTTP DTO/VO/错误码、最小同步执行闭环，以及本地流程日志与 timeout/fallback 恢复标记；真实治理调用、真实引擎适配器和跨服务审计补偿仍待 `Phase-D` 后续任务补齐。
 - SQL 优化服务已建立独立模块与提交/轮询 API skeleton，但 MySQL 持久化、队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
 - 访问控制当前仍是“最小租户校验基线”，尚未形成完整角色矩阵和数据源授权实现。

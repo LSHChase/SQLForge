@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: benchmark-engine
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+server:
+  port: 8083
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.company.benchmarkengine: INFO
+
+benchmark-engine:
+  isolation:
+    readonly-required: true
+    shadow-environment-default: REQUIRED
+    desensitization-default: REQUIRED
+  task-model:
+    contract-stage: LONG_TERM_BASELINE
+    implementation-stage: MODEL_BASELINE

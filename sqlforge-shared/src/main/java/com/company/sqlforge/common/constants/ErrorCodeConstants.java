@@ -27,6 +27,9 @@ public final class ErrorCodeConstants {
     public static final int SQL_OPTIMIZATION_SYSTEM_PIPELINE_NOT_READY = 13000;
     public static final int SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID = 13001;
     public static final int SQL_OPTIMIZATION_SYSTEM_CALLBACK_CONTRACT_INVALID = 13002;
+    public static final int BENCHMARK_ENGINE_SYSTEM_PIPELINE_NOT_READY = 14000;
+    public static final int BENCHMARK_ENGINE_SYSTEM_STATE_TRANSITION_INVALID = 14001;
+    public static final int BENCHMARK_ENGINE_SYSTEM_REPORT_MODEL_INVALID = 14002;
 
     public static final int GOVERNANCE_ACCESS_DENIED = 20000;
     public static final int GOVERNANCE_TENANT_ACCESS_DENIED = 20001;
@@ -42,11 +45,16 @@ public final class ErrorCodeConstants {
     public static final int SQL_OPTIMIZATION_TASK_NOT_FOUND = 22001;
     public static final int SQL_OPTIMIZATION_TASK_ALREADY_FINISHED = 22002;
     public static final int SQL_OPTIMIZATION_SUGGESTION_NOT_READY = 22003;
+    public static final int BENCHMARK_TASK_INVALID = 23000;
+    public static final int BENCHMARK_TASK_NOT_FOUND = 23001;
+    public static final int BENCHMARK_REPORT_NOT_FOUND = 23002;
+    public static final int BENCHMARK_ISOLATION_POLICY_REJECTED = 23003;
 
     public static final String GOVERNANCE_TENANT_ACCESS_DENIED_MESSAGE = "当前租户无权访问目标租户配置";
     public static final String GOVERNANCE_DATASOURCE_ACCESS_DENIED_MESSAGE = "当前租户无权访问治理数据源";
     public static final String QUERY_EXECUTION_PIPELINE_NOT_READY_MESSAGE = "联机查询同步执行闭环尚未就绪";
     public static final String SQL_OPTIMIZATION_PIPELINE_NOT_READY_MESSAGE = "SQL 优化异步任务骨架尚未接入真实队列与持久化";
+    public static final String BENCHMARK_ENGINE_PIPELINE_NOT_READY_MESSAGE = "压测引擎任务与报告模型已固化，但提交流程、执行链路和报告查询接口仍待接入";
 
     private ErrorCodeConstants() {
     }

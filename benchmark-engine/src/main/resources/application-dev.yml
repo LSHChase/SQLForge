@@ -1,0 +1,13 @@
+logging:
+  level:
+    root: DEBUG
+    com.company.benchmarkengine: DEBUG
+
+auth:
+  enabled: false
+  trusted-auth-sources:
+    - header
+
+benchmark-engine:
+  execution:
+    mode: isolated-placeholder

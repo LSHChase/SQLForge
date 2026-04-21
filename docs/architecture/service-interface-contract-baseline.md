@@ -240,6 +240,113 @@
 - 当前 placeholder 失败路径通过 SQL 或指纹中的显式 `FAIL_OPTIMIZATION` 标记触发，用于稳定验证轮询失败场景。
 - 当前实现仍未接入真实 MySQL 持久化、队列调度、事件回调和建议结果明细输出，这些能力继续由后续 `Phase-D` 任务补齐。
 
+## 3.3 Benchmark Engine Model Contract Baseline
+
+当前 `benchmark-engine` 已建立独立模块，并将压测任务/阈值/报告模型固化为后续接口复用的公共契约对象；真实 HTTP 入口继续由 `D-TASK-009` / `D-TASK-010` 补齐。
+
+当前模型基线涉及以下契约对象：
+
+- `BenchmarkTaskSubmitRequest`
+- `BenchmarkTaskSubmitResponse`
+- `BenchmarkTaskStatusResponse`
+- `BenchmarkReportResponse`
+
+当前 `BenchmarkTaskSubmitRequest` 基线字段如下：
+
+- `tenantId`：必填
+- `taskType`：必填，当前固定为 `BASELINE` / `COMPARISON` / `REGRESSION_GUARD`
+- `sqlText` / `sqlFingerprint`：至少应有一个可追踪 SQL 标识
+- `taskContext.priority`：`HIGH` / `NORMAL` / `LOW`，默认 `NORMAL`
+- `taskContext.targetEngines`：目标引擎列表，默认 `HETU`
+- `taskContext.concurrency`：并发度，默认 `8`
+- `taskContext.durationSeconds`：压测持续时长，默认 `300`
+- `taskContext.rampUpSeconds`：预热时长，默认 `30`
+- `taskContext.datasetSizeLabel`：数据规模标签，默认 `UNSPECIFIED`
+- `taskContext.readonlyRequired`：默认 `true`
+- `taskContext.shadowEnvironmentMode`：`REQUIRED` / `PREFERRED` / `DISABLED`，默认 `REQUIRED`
+- `taskContext.desensitizationRequirement`：`REQUIRED` / `OPTIONAL`，默认 `REQUIRED`
+- `taskContext.thresholds[]`：阈值列表，元素字段为 `metric`、`operator`、`targetValue`、`severity`、`description`
+
+当前 `BenchmarkTaskStatusResponse` 基线字段如下：
+
+- `taskId`
+- `taskType`
+- `status`
+- `currentPhase`
+- `priority`
+- `progressPercent`
+- `targetEngines`
+- `readonlyRequired`
+- `shadowEnvironmentMode`
+- `desensitizationRequirement`
+- `thresholdCount`
+- `reportId`
+- `error.code`
+- `error.message`
+- `error.suggestedAction`
+- `error.retryable`
+- `submittedAt`
+- `startedAt`
+- `finishedAt`
+- `contractStage`
+- `implementationStage`
+
+当前 `BenchmarkReportResponse` 基线字段如下：
+
+- `reportId`
+- `taskId`
+- `taskType`
+- `sqlFingerprint`
+- `verdict`
+- `generatedAt`
+- `engineResults[].engine`
+- `engineResults[].targetQps`
+- `engineResults[].actualQps`
+- `engineResults[].p50LatencyMs`
+- `engineResults[].p95LatencyMs`
+- `engineResults[].p99LatencyMs`
+- `engineResults[].cpuUsagePercent`
+- `engineResults[].memoryUsageMb`
+- `engineResults[].scannedDataBytes`
+- `engineResults[].verdict`
+- `engineResults[].notes`
+- `thresholdAssessments[].metric`
+- `thresholdAssessments[].verdict`
+- `thresholdAssessments[].actualValue`
+- `thresholdAssessments[].targetValue`
+- `thresholdAssessments[].summary`
+- `recommendations[].category`
+- `recommendations[].title`
+- `recommendations[].summary`
+- `recommendations[].expectedBenefit`
+- `recommendations[].riskLevel`
+- `contractStage`
+- `implementationStage`
+
+当前压测任务的公共状态与阶段基线如下：
+
+- 生命周期状态：`QUEUED` / `RUNNING` / `SUCCEEDED` / `FAILED` / `CANCELLED`
+- 通用起止阶段：`SUBMITTED` -> `FINISHED`
+- `BASELINE`：`SUBMITTED` -> `BASELINE_PREPARING` -> `WARMING_UP` -> `EXECUTING` -> `THRESHOLD_EVALUATING` -> `REPORTING` -> `FINISHED`
+- `COMPARISON`：`SUBMITTED` -> `BASELINE_PREPARING` -> `SHADOW_VALIDATING` -> `WARMING_UP` -> `EXECUTING` -> `THRESHOLD_EVALUATING` -> `REPORTING` -> `FINISHED`
+- `REGRESSION_GUARD`：`SUBMITTED` -> `SHADOW_VALIDATING` -> `EXECUTING` -> `THRESHOLD_EVALUATING` -> `REPORTING` -> `FINISHED`
+
+当前固定的压测引擎错误码首轮落点：
+
+- `14000` `BENCHMARK_ENGINE_SYSTEM_PIPELINE_NOT_READY`
+- `14001` `BENCHMARK_ENGINE_SYSTEM_STATE_TRANSITION_INVALID`
+- `14002` `BENCHMARK_ENGINE_SYSTEM_REPORT_MODEL_INVALID`
+- `23000` `BENCHMARK_TASK_INVALID`
+- `23001` `BENCHMARK_TASK_NOT_FOUND`
+- `23002` `BENCHMARK_REPORT_NOT_FOUND`
+- `23003` `BENCHMARK_ISOLATION_POLICY_REJECTED`
+
+说明：
+
+- 当前 `benchmark-engine` 只固化了模型与契约，不代表压测执行、调度、导出和报告查询接口已经开放。
+- 当前模型已经把 `ADR-007` 要求的只读标记、影子环境标记和脱敏要求显式入模，避免后续执行链路绕过安全基线。
+- 当前报告模型已覆盖引擎指标快照、阈值判定和建议输出，供后续提交流程与报告查询接口直接复用。
+
 ## 4. Event Contract Baseline
 
 | Event | Producer | Consumer | Payload minimum fields | Purpose |
