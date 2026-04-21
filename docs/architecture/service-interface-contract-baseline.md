@@ -93,11 +93,11 @@
 
 ## 3.1 Query Execution Public HTTP Baseline
 
-当前 `query-execution-service` 已固化首轮联机查询 DTO / VO / 错误码契约：
+当前 `query-execution-service` 已固化联机查询 DTO / VO / 错误码契约，并把公共 HTTP 入口接到最小同步执行闭环：
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
-| `/api/query-execution/queries/execute` | `QueryExecuteRequest` with `sqlText`,`tenantId`,`datasourceType`,`queryContext`,`accelerationPreference`,`faultToleranceStrategy` | `QueryExecuteResponse` with `status`,`rows`,`downloadUrl`,`metadata`,`degraded`,`degradeReason`,`retryPath`,`error`,`sqlFingerprint`,`contractStage`,`implementationStage` | `TRANSITIONAL_SKELETON` |
+| `/api/query-execution/queries/execute` | `QueryExecuteRequest` with `sqlText`,`tenantId`,`datasourceType`,`queryContext`,`accelerationPreference`,`faultToleranceStrategy` | `QueryExecuteResponse` with `status`,`rows`,`downloadUrl`,`metadata`,`degraded`,`degradeReason`,`retryPath`,`error`,`sqlFingerprint`,`contractStage`,`implementationStage` | `MINIMAL_SYNC_BASELINE` |
 
 当前 `QueryExecuteRequest` / `QueryExecuteResponse` 约束如下：
 
@@ -133,8 +133,9 @@
 
 说明：
 
-- 当前实现仍返回 `TRANSITIONAL_SKELETON` 阶段响应，不代表同步执行闭环已落地。
-- `D-TASK-003` 将继续把该 HTTP 契约接到最小同步执行路径，同时保持只读优先和错误码区间不漂移。
+- 当前实现已提供确定性的最小同步执行闭环：只读单语句 SQL 守卫、`AUTO/HETU -> HETU` 的主路由、`HETU -> HIVE` 的受控 fallback，以及正常/超时/失败/降级四条基础状态路径。
+- 当前实现仍不代表真实数据库执行已经开放：真实治理调用、真实引擎适配器、异常回滚和运行日志增强仍待后续任务补齐。
+- `D-TASK-004` 将继续补异常回滚与运行日志，同时保持只读优先和错误码区间不漂移。
 
 ## 4. Event Contract Baseline
 

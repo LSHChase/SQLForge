@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-003: 实现最小同步执行闭环
+
+- Status: done
+- Priority: 1
+- Depends on: D-TASK-002
+- Completed at: 2026-04-20
+- Commit subject: `feat(query-execution): D-TASK-003 implement minimal sync execution loop`
+- Scope: 在 `query-execution-service` 中把 `/api/query-execution/queries/execute` 接到最小同步执行路径，保持只读优先和确定性输出，不放开任意 SQL 执行。
+- Validation:
+  - 正常/超时/失败/降级路径测试
+  - `mvn -B clean compile`
+  - `mvn -B test`
+  - `mvn -B validate pmd:pmd checkstyle:check`
+  - `node scripts/check-frontend-backend-separation.js`
+  - `node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/task_audit.py --check`
+- Progress log:
+  - 2026-04-20: instantiated from `Phase-D / D-STORY-001` after `D-TASK-002` committed the public DTO / VO / error-code contract baseline in commit `0624dd0`.
+  - 2026-04-20: implementation stayed inside the query-execution-service boundary and introduced a deterministic synchronous skeleton with read-only SQL guard, controlled route/fallback decisions, and no arbitrary SQL execution capability.
+  - 2026-04-20: replaced the pure contract placeholder service with `QueryExecutionApplicationService`, added read-only assessment/guard logic, a deterministic execution adapter, and route handling for success, timeout, rejected-risk, and fallback-degraded paths.
+  - 2026-04-20: synced service-interface, truth-baseline, architecture overview, capability map, and init docs so the repository now treats minimal synchronous execution as current fact while keeping governance calls, real adapters, rollback, and runtime logs deferred to follow-up work.
+  - 2026-04-20: reran compile, test, static-check, separation, knowledge-lint, and pre-closeout task audit, then archived the task for single-task git closeout.
+
 ### D-TASK-002: 定义联机查询接口 DTO/VO/错误码
 
 - Status: done
