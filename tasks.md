@@ -4,6 +4,8 @@
 
 - 状态只允许：`todo`、`in_progress`、`in_review`、`blocked`
 - `done` 任务必须移入 `tasks-done.md`
+- `blocked` 任务必须包含：`Next action:`、`Escalation:`、`Human decision:`
+- `in_review` 任务必须包含：`Review reason:`、`Human decision:`
 - 任务台账不替代 `docs/plans/master-execution-plan.md`
 
 ## Todo

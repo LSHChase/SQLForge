@@ -222,3 +222,8 @@
 2026-04-21T03:33:54-05:00 | HARN-004 closeout py-compile | `R-168` | passed | `python3 -m py_compile scripts/task_audit.py`
 2026-04-21T03:33:54-05:00 | HARN-004 closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check`
 2026-04-21T03:33:54-05:00 | HARN-004 closeout knowledge-lint | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T04:03:25-05:00 | HARN-004 post-closeout task-audit repair | `R-156`, `R-160`, `R-168` | passed | detached `HEAD` worktree replay with current `task_audit.py`, repaired `tasks-done.md` ordering, and `HARN-005` closeout block removed to validate `1197e1b` post-closeout state via `python3 scripts/task_audit.py --check --phase post-closeout`
+2026-04-21T04:03:25-05:00 | HARN-004 post-closeout knowledge-lint repair | `R-131`, `R-133`, `R-168` | passed | detached `HEAD` worktree replay with current `lint-repository-knowledge.js` validated the repaired `1197e1b` post-closeout repository state
+2026-04-21T04:03:25-05:00 | HARN-005 closeout py-compile | `R-168` | passed | `python3 -m py_compile scripts/task_audit.py`
+2026-04-21T04:03:25-05:00 | HARN-005 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T04:03:25-05:00 | HARN-005 closeout knowledge-lint | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`

@@ -435,10 +435,13 @@
   1. `tasks.md` 只包含 `todo`、`in_progress`、`in_review`、`blocked`
   2. `tasks.md` 不含 `done` 任务
   3. 同一 task id 不同时出现在两个台账中
-  4. `.agent/config.json` 未被用作任务状态存储
-- 通过标准：4 项全部通过。
+  4. `tasks-done.md` 按最新归档在上、历史归档在下维护，当前正在 closeout 的任务位于 `## Done` 顶部
+  5. `blocked` 任务包含 `Next action:`、`Escalation:` 与 `Human decision:`
+  6. `in_review` 任务包含 `Review reason:` 与 `Human decision:`
+  7. `.agent/config.json` 未被用作任务状态存储
+- 通过标准：7 项全部通过。
 - 失败处置：修复台账状态或拆分机器参数与任务状态。
-- 关联规则：`R-156`
+- 关联规则：`R-156`, `R-165`
 
 ### R-157 任务关闭与单任务提交验证
 
@@ -480,13 +483,13 @@
 
 - 触发时机：任务 closeout 的 pre-commit 阶段，以及单任务 commit 完成后的 immediate post-closeout 阶段。
 - 检查清单：
-  1. 已执行 `python3 scripts/task_audit.py --check`
+  1. 已按阶段执行 `python3 scripts/task_audit.py --check --phase pre-closeout|post-closeout`
   2. 审计输出无阻塞项
-  3. blocked 任务包含 `Next action:` 与 `Escalation:`
+  3. `blocked` / `in_review` 任务包含所需的人类决策元数据
   4. pre-commit 阶段最多只允许一个“最新归档、当天关闭、尚待本次 commit 写入 Git history”的任务例外；post-closeout 阶段 `tasks-done.md` 中所有任务的 commit subject 都必须可在 Git history 中追溯
 - 通过标准：4 项全部通过。
 - 失败处置：先修复台账或 Git 追踪问题，再继续关闭流程。
-- 关联规则：`R-160`
+- 关联规则：`R-160`, `R-165`
 
 ### R-161 外部规则迁移替换验证
 

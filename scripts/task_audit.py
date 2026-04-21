@@ -27,6 +27,9 @@ REQUIRED_CONTEXT_CLOSEOUT_MARKERS = [
     "Residual risk:",
     "Next step:",
 ]
+PHASE_PRE_CLOSEOUT = "pre-closeout"
+PHASE_POST_CLOSEOUT = "post-closeout"
+ALLOWED_PHASES = {PHASE_PRE_CLOSEOUT, PHASE_POST_CLOSEOUT}
 
 
 def extract_section(content: str, heading: str, next_headings: List[str]) -> str:
@@ -101,6 +104,23 @@ def validate_context_closeout(block: Dict[str, str], errors: List[str]) -> None:
         )
 
 
+def validate_done_ledger_order(done_blocks: List[Dict[str, str]], errors: List[str]) -> None:
+    previous_completed_at = ""
+    for block in done_blocks:
+        completed_at = completed_at_of(block)
+        if not completed_at:
+            errors.append(f"{block['task_id']} in tasks-done.md is missing 'Completed at:'.")
+            continue
+
+        if previous_completed_at and completed_at > previous_completed_at:
+            errors.append(
+                f"{block['task_id']} is out of order in tasks-done.md; newer completed tasks must be prepended above older ones."
+            )
+            return
+
+        previous_completed_at = completed_at
+
+
 def git_subjects() -> List[str]:
     result = subprocess.run(
         ["git", "log", "--format=%s"],
@@ -163,7 +183,28 @@ def validate_pending_commit_state(done_blocks: List[Dict[str, str]], subjects: L
     return [pending_block["task_id"]]
 
 
-def audit() -> List[str]:
+def validate_human_decision_state(block: Dict[str, str], errors: List[str]) -> None:
+    body = block["body"]
+    status = status_of(block)
+    if status == "blocked":
+        missing = [marker for marker in ("Next action:", "Escalation:", "Human decision:") if marker not in body]
+        if missing:
+            errors.append(
+                f"{block['task_id']} is blocked but missing required human-decision markers:\n- "
+                + "\n- ".join(missing)
+            )
+        return
+
+    if status == "in_review":
+        missing = [marker for marker in ("Review reason:", "Human decision:") if marker not in body]
+        if missing:
+            errors.append(
+                f"{block['task_id']} is in_review but missing required review markers:\n- "
+                + "\n- ".join(missing)
+            )
+
+
+def audit(phase: str) -> List[str]:
     errors: List[str] = []
     tasks_content = TASKS_PATH.read_text(encoding="utf-8")
     done_content = DONE_PATH.read_text(encoding="utf-8")
@@ -186,6 +227,8 @@ def audit() -> List[str]:
     )
     done_blocks = extract_task_blocks(done_content)
 
+    validate_done_ledger_order(done_blocks, errors)
+
     active_ids = [block["task_id"] for block in active_blocks]
     done_ids = [block["task_id"] for block in done_blocks]
 
@@ -203,16 +246,14 @@ def audit() -> List[str]:
         if status not in {"todo", "in_progress", "in_review", "blocked"}:
             errors.append(f"{block['task_id']} in tasks.md has invalid status '{status}'.")
             continue
+        validate_human_decision_state(block, errors)
         if requires_context_closeout(block, done_ledger=False):
             validate_context_closeout(block, errors)
 
-    for block in extract_task_blocks(blocked):
-        body = block["body"]
-        if "Next action:" not in body or "Escalation:" not in body:
-            errors.append(f"{block['task_id']} is blocked but missing 'Next action:' or 'Escalation:'.")
-
     subjects = git_subjects()
-    allowed_pending_ids = validate_pending_commit_state(done_blocks, subjects, errors)
+    allowed_pending_ids = []
+    if phase == PHASE_PRE_CLOSEOUT:
+        allowed_pending_ids = validate_pending_commit_state(done_blocks, subjects, errors)
     for block in done_blocks:
         status = status_of(block)
         if status != "done":
@@ -222,7 +263,7 @@ def audit() -> List[str]:
         if not subject:
             errors.append(f"{block['task_id']} in tasks-done.md is missing 'Commit subject:'.")
             continue
-        if subject not in subjects and block["task_id"] not in allowed_pending_ids:
+        if subject not in subjects and (phase != PHASE_PRE_CLOSEOUT or block["task_id"] not in allowed_pending_ids):
             errors.append(f"{block['task_id']} commit subject not found in git history: {subject}")
         if requires_context_closeout(block, done_ledger=True):
             validate_context_closeout(block, errors)
@@ -233,12 +274,18 @@ def audit() -> List[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Audit SQLForge task ledgers.")
     parser.add_argument("--check", action="store_true", help="Run the default task audit.")
+    parser.add_argument(
+        "--phase",
+        choices=sorted(ALLOWED_PHASES),
+        default=PHASE_PRE_CLOSEOUT,
+        help="Audit phase to evaluate. Defaults to pre-closeout for backward compatibility.",
+    )
     args = parser.parse_args()
 
     if not args.check:
         parser.error("Only --check is supported.")
 
-    errors = audit()
+    errors = audit(args.phase)
     if errors:
         print("Task audit failed:\n", file=sys.stderr)
         for error in errors:
@@ -246,11 +293,15 @@ def main() -> int:
             print("", file=sys.stderr)
         return 1
 
-    print("Task audit passed:")
+    print(f"Task audit passed ({args.phase}):")
     print("- tasks.md contains no done tasks")
     print("- tasks and tasks-done have no duplicate ids")
-    print("- blocked tasks contain escalation metadata")
-    print("- tasks-done commit subjects exist in git history, except at most one newest same-day closeout task pending its commit")
+    print("- blocked and in_review tasks contain required human-decision metadata")
+    if args.phase == PHASE_PRE_CLOSEOUT:
+        print("- tasks-done commit subjects exist in git history, except at most one newest same-day closeout task pending its commit")
+    else:
+        print("- tasks-done commit subjects all exist in git history")
+    print("- tasks-done ordering is newest-first for closeout evaluation")
     print("- R-168 Context closeout markers exist for applicable in-review/done tasks")
     return 0
 
