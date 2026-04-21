@@ -79,6 +79,7 @@
 | `docs/adr/ADR-013-acceleration-service-and-materialized-view-strategy.md` | Authority | 加速与物化视图策略 | Consumed | SQL 优化服务设计 |
 | `docs/exec-plans/active/.gitkeep` | Indexed | 活动执行计划目录占位文件 | Referenced | 保持活动执行计划目录可追踪 |
 | `docs/exec-plans/completed/.gitkeep` | Indexed | 完成执行计划目录占位文件 | Referenced | 保持完成执行计划目录可追踪 |
+| `docs/exec-plans/completed/HARN-009-closeout-boundary-repair-plan.md` | Indexed | 当前 closeout 边界与完成台账结构修复批次执行计划 | Consumed | 收口 HARN-008 复盘中发现的归档边界和 done-ledger 结构校验缺口 |
 | `docs/exec-plans/completed/HARN-007-codex-runtime-integration-plan.md` | Indexed | 已完成的 Codex 运行时集成治理批次执行计划 | Referenced | 追溯 HARN-007 的原始批次目标、交付件与验证顺序 |
 | `docs/exec-plans/completed/HARN-008-governance-runtime-hardening-plan.md` | Indexed | 已完成的 Codex 治理/runtime 闭口批次执行计划 | Referenced | 追溯 HARN-008 对 6 个治理闭口点的实现、验证与 closeout 顺序 |
 

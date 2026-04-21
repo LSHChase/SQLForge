@@ -251,10 +251,18 @@ def master_plan_metadata(task_id: str) -> Dict[str, str]:
 
 def extract_task_blocks_with_spans(content: str) -> List[Dict[str, Any]]:
     matches = list(TASK_HEADER_PATTERN.finditer(content))
+    section_matches = list(re.finditer(r"^##\s+.+$", content, re.MULTILINE))
     blocks: List[Dict[str, Any]] = []
     for position, match in enumerate(matches):
         start = match.start()
-        end = matches[position + 1].start() if position + 1 < len(matches) else len(content)
+        end_candidates = [len(content)]
+        if position + 1 < len(matches):
+            end_candidates.append(matches[position + 1].start())
+        for section_match in section_matches:
+            if section_match.start() > start:
+                end_candidates.append(section_match.start())
+                break
+        end = min(end_candidates)
         blocks.append(
             {
                 "task_id": match.group(1).strip(),
@@ -998,6 +1006,14 @@ def prepend_done_block(content: str, block: str) -> str:
     return content[:start] + section
 
 
+def update_document_coverage_for_exec_plan(move_from: str, move_to: str) -> None:
+    coverage_path = DOCS_DIR / "plans" / "document-coverage-matrix.md"
+    content = read_text(coverage_path)
+    updated = content.replace(move_from, move_to)
+    if updated != content:
+        write_text(coverage_path, updated)
+
+
 def move_active_plan_to_completed(task_id: str) -> tuple[str, str] | None:
     active_path_text = current_active_plan(task_id)
     if not active_path_text:
@@ -1008,7 +1024,10 @@ def move_active_plan_to_completed(task_id: str) -> tuple[str, str] | None:
     completed_path = COMPLETED_EXEC_PLAN_DIR / active_path.name
     completed_path.parent.mkdir(parents=True, exist_ok=True)
     active_path.rename(completed_path)
-    return relative_path(active_path), relative_path(completed_path)
+    move_from = relative_path(active_path)
+    move_to = relative_path(completed_path)
+    update_document_coverage_for_exec_plan(move_from, move_to)
+    return move_from, move_to
 
 
 def resolved_completed_plan_ref(task_id: str, fallback: str) -> str:
@@ -1063,6 +1082,20 @@ def git_add_paths(paths: Sequence[str]) -> None:
         raise SystemExit(result.stderr.strip() or result.stdout.strip() or "git add failed")
 
 
+def path_is_git_tracked(path: str) -> bool:
+    result = run(["git", "ls-files", "--error-unmatch", "--", path])
+    return result.code == 0
+
+
+def filter_stageable_paths(paths: Sequence[str]) -> List[str]:
+    filtered: List[str] = []
+    for path in paths:
+        target = ROOT / path
+        if target.exists() or path_is_git_tracked(path):
+            filtered.append(path)
+    return filtered
+
+
 def git_commit_subject(subject: str) -> str:
     result = run(["git", "commit", "-m", subject])
     if result.code != 0:
@@ -1082,6 +1115,8 @@ def command_closeout(args: argparse.Namespace) -> int:
 
     archived_body, tasks_ref, done_ref = archive_task_block(args.task, args)
     moved_plan = move_active_plan_to_completed(args.task)
+    if moved_plan is not None:
+        command_compile_governance(argparse.Namespace(check=False))
     pre_audit_label = f"{args.task} closeout task-audit pre"
     run_and_log(
         ["python3", "scripts/task_audit.py", "--check", "--phase", "pre-closeout"],
@@ -1100,7 +1135,7 @@ def command_closeout(args: argparse.Namespace) -> int:
     stage_paths = list(validated_stage_paths) + [tasks_ref, done_ref]
     if moved_plan is not None:
         stage_paths.extend([moved_plan[0], moved_plan[1]])
-    deduped_stage_paths = list(dict.fromkeys(stage_paths))
+    deduped_stage_paths = filter_stageable_paths(list(dict.fromkeys(stage_paths)))
     git_add_paths(deduped_stage_paths)
 
     commit_subject = commit_subject_of(archived_body)

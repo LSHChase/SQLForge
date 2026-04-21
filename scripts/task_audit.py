@@ -100,6 +100,27 @@ def extract_task_blocks(content: str) -> List[Dict[str, str]]:
     return blocks
 
 
+def strip_task_blocks(content: str) -> str:
+    stripped_parts: List[str] = []
+    cursor = 0
+    matches = list(re.finditer(r"^###\s+([A-Z0-9-]+):\s+(.+)$", content, re.MULTILINE))
+    section_matches = list(re.finditer(r"^##\s+.+$", content, re.MULTILINE))
+    for index, match in enumerate(matches):
+        start = match.start()
+        end_candidates = [len(content)]
+        if index + 1 < len(matches):
+            end_candidates.append(matches[index + 1].start())
+        for section_match in section_matches:
+            if section_match.start() > start:
+                end_candidates.append(section_match.start())
+                break
+        end = min(end_candidates)
+        stripped_parts.append(content[cursor:start])
+        cursor = end
+    stripped_parts.append(content[cursor:])
+    return "".join(stripped_parts)
+
+
 def status_of(block: Dict[str, str]) -> str:
     match = STATUS_PATTERN.search(block["body"])
     return match.group(1).strip() if match else ""
@@ -180,6 +201,29 @@ def validate_done_ledger_order(done_blocks: List[Dict[str, str]], errors: List[s
             return
 
         previous_completed_at = completed_at
+
+
+def validate_done_ledger_structure(done_content: str, errors: List[str]) -> None:
+    marker = "## Done"
+    start = done_content.find(marker)
+    if start == -1:
+        errors.append("tasks-done.md is missing the '## Done' section.")
+        return
+
+    tail = done_content[start + len(marker) :]
+    unexpected_headings = re.findall(r"^##\s+(.+)$", tail, re.MULTILINE)
+    if unexpected_headings:
+        errors.append(
+            "tasks-done.md contains unexpected section headings after '## Done':\n- "
+            + "\n- ".join(unexpected_headings)
+        )
+
+    done_section = extract_section(done_content, "Done", [])
+    leftover = strip_task_blocks(done_section)
+    leftover_lines = [line for line in leftover.splitlines() if line.strip() and line.strip() != "_No tasks._"]
+    if leftover_lines:
+        preview = "\n- ".join(line.strip() for line in leftover_lines[:5])
+        errors.append("tasks-done.md contains non-task stray content inside the done section:\n- " + preview)
 
 
 def git_subjects() -> List[str]:
@@ -380,6 +424,7 @@ def audit(phase: str) -> List[str]:
     done_blocks = extract_task_blocks(done_content)
     inbox_blocks = extract_task_blocks(inbox_content)
 
+    validate_done_ledger_structure(done_content, errors)
     validate_done_ledger_order(done_blocks, errors)
 
     active_ids = [block["task_id"] for block in active_blocks]
