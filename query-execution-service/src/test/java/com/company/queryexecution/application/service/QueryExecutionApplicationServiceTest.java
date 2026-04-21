@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.queryexecution.application.controller.dto.QueryContextDTO;
@@ -11,16 +12,22 @@ import com.company.queryexecution.application.controller.dto.QueryExecuteRequest
 import com.company.queryexecution.application.controller.vo.QueryExecuteResponse;
 import com.company.queryexecution.domain.query.AccelerationPreference;
 import com.company.queryexecution.domain.query.FaultToleranceStrategy;
+import com.company.queryexecution.domain.query.QueryExecutionStep;
 import com.company.queryexecution.domain.query.QueryExecutionStatus;
 import com.company.queryexecution.infrastructure.adapter.DeterministicQueryExecutionAdapter;
+import com.company.queryexecution.infrastructure.adapter.QueryExecutionAdapter;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
+@ExtendWith(OutputCaptureExtension.class)
 class QueryExecutionApplicationServiceTest {
 
     @Test
-    void shouldExecuteSynchronouslyForReadonlyHetuQuery() {
+    void shouldExecuteSynchronouslyForReadonlyHetuQuery(CapturedOutput output) {
         QueryExecutionApplicationService service =
             new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter());
         QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
@@ -35,6 +42,11 @@ class QueryExecutionApplicationServiceTest {
         assertNull(response.getError());
         assertEquals(1, response.getRows().size());
         assertTrue(response.getMetadata().isAccelerationApplied());
+        assertTrue(output.getOut().contains("operation=QUERY_EXECUTE_SYNC"));
+        assertTrue(output.getOut().contains("status=START"));
+        assertTrue(output.getOut().contains("to=PRIMARY_ROUTE_SELECTED"));
+        assertTrue(output.getOut().contains("status=END resultStatus=SUCCESS"));
+        assertFalse(output.getOut().contains("SELECT * FROM orders"));
     }
 
     @Test
@@ -52,6 +64,9 @@ class QueryExecutionApplicationServiceTest {
         assertEquals(ErrorCodeConstants.QUERY_EXECUTION_SYSTEM_ENGINE_TIMEOUT, response.getError().getCode());
         assertEquals(1, response.getRetryPath().size());
         assertEquals("HETU", response.getRetryPath().get(0).getEngine());
+        assertEquals("TIMEOUT", response.getRetryPath().get(0).getResultStatus());
+        assertEquals("LOCAL_TIMEOUT_ROLLBACK_MARKED", response.getRetryPath().get(0).getLocalRecoveryMarker());
+        assertEquals("CLOSE_PRIMARY_ATTEMPT_CONTEXT", response.getRetryPath().get(0).getLocalRecoveryAction());
     }
 
     @Test
@@ -85,7 +100,32 @@ class QueryExecutionApplicationServiceTest {
         assertEquals(2, response.getRetryPath().size());
         assertEquals("HETU", response.getRetryPath().get(0).getEngine());
         assertEquals("HIVE", response.getRetryPath().get(1).getEngine());
+        assertEquals("LOCAL_TIMEOUT_ROLLBACK_MARKED", response.getRetryPath().get(0).getLocalRecoveryMarker());
+        assertEquals("LOCAL_FALLBACK_COMPENSATION_MARKED", response.getRetryPath().get(1).getLocalRecoveryMarker());
+        assertEquals("RECORD_DEGRADED_RESULT", response.getRetryPath().get(1).getLocalRecoveryAction());
         assertNull(response.getError());
+    }
+
+    @Test
+    void shouldLogExceptionWhenExecutionAdapterFails(CapturedOutput output) {
+        QueryExecutionApplicationService service =
+            new QueryExecutionApplicationService(new QueryExecutionAdapter() {
+                @Override
+                public QueryExecutionStep execute(DataSourceTypeEnum targetEngine,
+                                                  String actualSql,
+                                                  QueryExecuteRequest request,
+                                                  boolean degradedPath) {
+                    throw new IllegalStateException("simulated adapter failure");
+                }
+            });
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> service.executeSynchronously(
+            baseRequest("SELECT * FROM orders")
+        ));
+
+        assertEquals("simulated adapter failure", ex.getMessage());
+        assertTrue(output.getOut().contains("status=FAILED phase=EXCEPTION"));
+        assertTrue(output.getOut().contains("reason=simulated adapter failure"));
     }
 
     private QueryExecuteRequest baseRequest(String sqlText) {

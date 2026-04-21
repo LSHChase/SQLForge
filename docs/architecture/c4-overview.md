@@ -89,9 +89,9 @@ SQLForge 面向多租户数据平台治理、查询执行、SQL 优化与压测�
 ### 5.3 `query-execution-service`
 
 - `application/`
-  - 已暴露边界快照服务、公共查询 controller/DTO/VO 与最小同步执行应用服务
+  - 已暴露边界快照服务、公共查询 controller/DTO/VO、最小同步执行应用服务和流程日志入口
 - `domain/`
-  - 查询执行边界定义、只读优先策略、最小同步状态流转、Hetu 三模式接入边界、已批准加速配置应用边界
+  - 查询执行边界定义、只读优先策略、最小同步状态流转、本地 timeout/fallback 恢复标记、Hetu 三模式接入边界、已批准加速配置应用边界
 - `infrastructure/`
   - 当前包含受控的确定性同步执行适配器，并继续为 JDBC / REST / client 真实适配器预留独立目录
 - `config/`

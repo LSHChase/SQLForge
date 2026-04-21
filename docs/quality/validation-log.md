@@ -124,3 +124,12 @@
 2026-04-20T19:19:38-05:00 | D-TASK-003 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
 2026-04-20T19:19:38-05:00 | D-TASK-003 closeout path-coverage | `R-042`, `R-045` | passed | `QueryExecutionApplicationServiceTest` covers success, timeout, risk-rejected failure, and fallback-degraded synchronous paths
 2026-04-20T19:19:38-05:00 | D-TASK-003 closeout doc-sync | `R-126`, `R-133` | passed | `service-interface-contract-baseline.md`, `document-truth-baseline.md`, `init.md`, `c4-overview.md`, and `service-capability-map.md` synced to the minimal synchronous execution baseline
+2026-04-20T19:37:03-05:00 | D-TASK-004 closeout compile | `R-119`, `R-123` | passed | `mvn -B clean compile`
+2026-04-20T19:37:03-05:00 | D-TASK-004 closeout test | `R-119`, `R-123` | passed | `mvn -B test`
+2026-04-20T19:37:03-05:00 | D-TASK-004 closeout static-check | `R-040`, `R-123` | passed | `mvn -B validate pmd:pmd checkstyle:check`
+2026-04-20T19:37:03-05:00 | D-TASK-004 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
+2026-04-20T19:37:03-05:00 | D-TASK-004 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T19:37:03-05:00 | D-TASK-004 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T19:37:03-05:00 | D-TASK-004 closeout flow-log-sampling | `R-123` | passed | `QueryExecutionApplicationServiceTest` captures START / STATE_CHANGE / END / FAILED phase logs and verifies SQL text is not printed
+2026-04-20T19:37:03-05:00 | D-TASK-004 closeout recovery-marker-sampling | `R-123`, `R-042`, `R-045` | passed | timeout/fallback tests verify `LOCAL_TIMEOUT_ROLLBACK_MARKED` and `LOCAL_FALLBACK_COMPENSATION_MARKED` in `retryPath`
+2026-04-20T19:37:03-05:00 | D-TASK-004 closeout doc-sync | `R-126`, `R-133` | passed | `service-interface-contract-baseline.md`, `document-truth-baseline.md`, `init.md`, `c4-overview.md`, and `service-capability-map.md` synced to the observable execution baseline

@@ -116,6 +116,11 @@
 - `metadata.scannedRows`
 - `metadata.cacheHit`
 - `metadata.accelerationApplied`
+- `retryPath[].engine`
+- `retryPath[].elapsedMs`
+- `retryPath[].resultStatus`
+- `retryPath[].localRecoveryMarker`
+- `retryPath[].localRecoveryAction`
 - `error.code`
 - `error.message`
 - `error.suggestedAction`
@@ -134,8 +139,10 @@
 说明：
 
 - 当前实现已提供确定性的最小同步执行闭环：只读单语句 SQL 守卫、`AUTO/HETU -> HETU` 的主路由、`HETU -> HIVE` 的受控 fallback，以及正常/超时/失败/降级四条基础状态路径。
-- 当前实现仍不代表真实数据库执行已经开放：真实治理调用、真实引擎适配器、异常回滚和运行日志增强仍待后续任务补齐。
-- `D-TASK-004` 将继续补异常回滚与运行日志，同时保持只读优先和错误码区间不漂移。
+- 当前实现已补齐入口/出口/异常/状态变更日志，并在 timeout/fallback 路径上输出本地回滚/补偿标记：
+  - timeout: `LOCAL_TIMEOUT_ROLLBACK_MARKED` + `CLOSE_PRIMARY_ATTEMPT_CONTEXT`
+  - fallback: `LOCAL_FALLBACK_COMPENSATION_MARKED` + `RECORD_DEGRADED_RESULT`
+- 当前实现仍不代表真实数据库执行已经开放：真实治理调用、真实引擎适配器和跨服务审计补偿仍待后续任务补齐。
 
 ## 4. Event Contract Baseline
 

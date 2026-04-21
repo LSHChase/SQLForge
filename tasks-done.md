@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-004: 增加异常回滚与运行日志
+
+- Status: done
+- Priority: 1
+- Depends on: D-TASK-003
+- Completed at: 2026-04-20
+- Commit subject: `feat(query-execution): D-TASK-004 add rollback markers and flow logs`
+- Scope: 给 `query-execution-service` 的最小同步执行闭环补入口/出口/异常/状态变更日志，并把 timeout/fallback 路径的本地回滚/补偿标记固化到当前响应模型与代码路径。
+- Validation:
+  - `R-123` 抽查通过
+  - `mvn -B clean compile`
+  - `mvn -B test`
+  - `mvn -B validate pmd:pmd checkstyle:check`
+  - `node scripts/check-frontend-backend-separation.js`
+  - `node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/task_audit.py --check`
+- Progress log:
+  - 2026-04-20: instantiated from `Phase-D / D-STORY-001` after `D-TASK-003` committed the minimal synchronous execution loop in commit `ea25220`.
+  - 2026-04-20: this task stayed inside the existing synchronous skeleton and only added observability plus local recovery markers; it did not open real database execution, distributed rollback, or governance audit integration.
+  - 2026-04-20: extended `QueryExecutionApplicationService` with entry/exit/exception/state-change logs keyed by SQL fingerprint, kept SQL text out of logs, and added timeout/fallback local recovery markers through `retryPath.resultStatus/localRecoveryMarker/localRecoveryAction`.
+  - 2026-04-20: added regression tests covering success logging, timeout rollback marker, fallback compensation marker, and exception logging, then synced architecture/truth/interface docs to the new observable execution baseline.
+  - 2026-04-20: reran compile, test, static-check, separation, knowledge-lint, and pre-closeout task audit, then archived the task for single-task git closeout.
+
 ### D-TASK-003: 实现最小同步执行闭环
 
 - Status: done
