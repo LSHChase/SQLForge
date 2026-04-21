@@ -41,6 +41,7 @@
 | `docs/plans/document-coverage-matrix.md` | Indexed | 文档全量覆盖矩阵 | Consumed | 证明 `docs/` 全量纳入 |
 | `docs/plans/document-gap-matrix.md` | Indexed | 冲突、漂移、缺失与残余实现缺口矩阵 | Consumed | 严格核验闭口检查 |
 | `docs/plans/document-truth-baseline.md` | Authority | 当前仓库真值、历史记录、目标边界分层与漂移映射 | Consumed | 编码前真值判断、漂移治理、文档消费入口 |
+| `docs/plans/codex-governance-integration-blueprint.md` | Authority | Codex 运行时接线蓝图与执行前/中/后治理契约 | Consumed | `AGENTS`、project-scoped `.codex`、hooks、foreman CLI 与真值体系的接线权威 |
 | `docs/plans/implementation-readiness.md` | Authority | 编码前置消费顺序、主题权威来源、执行波次 | Consumed | 实施顺序、冲突处理、任务进入条件 |
 | `docs/plans/phase-prerequisite-matrix.md` | Authority | 阶段输入文档、ADR、规则、验证和确认点矩阵 | Consumed | 阶段进入前置条件检查 |
 | `docs/plans/process-flow-and-governance-audit-2026-04-20.md` | Indexed | 正式全流程说明、流程缺陷审计与整改建议 | Consumed | 供后续接手人与治理批次快速理解当前执行流程与缺陷闭口优先级 |
@@ -77,6 +78,7 @@
 | `docs/adr/ADR-012-saga-plus-local-transaction.md` | Authority | Saga + 本地事务 | Referenced | 跨服务事务编排 |
 | `docs/adr/ADR-013-acceleration-service-and-materialized-view-strategy.md` | Authority | 加速与物化视图策略 | Consumed | SQL 优化服务设计 |
 | `docs/exec-plans/active/.gitkeep` | Indexed | 活动执行计划目录占位文件 | Referenced | 保持活动执行计划目录可追踪 |
+| `docs/exec-plans/active/HARN-007-codex-runtime-integration-plan.md` | Indexed | Codex 运行时集成治理批次的活动执行计划 | Consumed | 当前治理任务的批次目标、交付件、执行步骤与验证顺序 |
 | `docs/exec-plans/completed/.gitkeep` | Indexed | 完成执行计划目录占位文件 | Referenced | 保持完成执行计划目录可追踪 |
 
 ## Completeness Statement

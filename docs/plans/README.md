@@ -8,17 +8,20 @@
    当前全量执行控制文档，负责汇总事实基线、阶段拆解、Epic/Story/Task 结构、验证矩阵与人工确认项。
 2. [阶段0执行计划](./phase-0-plan.md)
    初始化阶段历史计划，保留原任务顺序、依赖关系与验收口径，供阶段真值对齐时引用。
-3. [文档覆盖矩阵](./document-coverage-matrix.md)
+3. [Codex 集成治理蓝图](./codex-governance-integration-blueprint.md)
+   定义如何把 SQLForge 的文档真值、任务台账、验证、closeout、Git 审计链与 Codex 的 `AGENTS`、project-scoped `.codex/`、hooks 和 foreman CLI 接到同一执行链。
+4. [文档覆盖矩阵](./document-coverage-matrix.md)
    用于证明 `docs/` 目录全部文档与归档资料已被主计划纳入，不遗漏。
-4. [Task 字段矩阵](./task-spec-matrix.md)
+5. [Task 字段矩阵](./task-spec-matrix.md)
    为主计划中的全部 Task 补齐 Harness Engineering 所要求的 10 项字段。
-5. [流程与治理审计说明](./process-flow-and-governance-audit-2026-04-20.md)
+6. [流程与治理审计说明](./process-flow-and-governance-audit-2026-04-20.md)
    对当前工程交付全流程、产品运行流程、流程缺陷、整改建议和逐文档修订建议做正式归档。
 
 ## 计划治理要求
 
 - 所有计划、阶段、Epic、Story、Task 必须符合 Harness Engineering 的“先固化意图、约束、接口、验证，再执行”要求。
 - 所有跨步骤、跨前后端、跨领域工作必须先落到计划文档，再进入实现。
+- 涉及 Codex 执行路径、project-scoped `.codex/` 配置、hooks、foreman CLI 或任务运行态接线的治理改造，必须同时对齐本目录中的 Codex 集成蓝图与对应活动 exec plan。
 - 所有 Task 必须具备独立验证计划，且验证内容必须真实执行，不得以推测替代。
 - 已存在的阶段计划作为历史记录保留；新的全局计划统一追加在本目录，不覆盖历史语义。
 
@@ -36,6 +39,8 @@
   用于隔离当前仓库事实、已确认目标、历史记录和归档原文。
 - `implementation-readiness.md`
   用于定义任务开始前的文档消费顺序、主题权威、冲突处理和波次执行顺序。
+- `codex-governance-integration-blueprint.md`
+  用于定义 Codex 执行前、中、后如何接入仓库文档真值、台账、验证、closeout 与 Git 审计链。
 - `document-gap-matrix.md`
   用于显式维护本轮治理中的冲突、漂移、缺失与残余实现缺口。
 - `phase-prerequisite-matrix.md`

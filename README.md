@@ -25,6 +25,7 @@ SQLForge 是一个面向企业 BI 与数据中台场景的 SQL 生命周期治�
 - 运维协作：`docs/operations/README.md`
 - 计划索引：`docs/plans/README.md`
 - 主执行计划：`docs/plans/master-execution-plan.md`
+- Codex 集成治理蓝图：`docs/plans/codex-governance-integration-blueprint.md`
 - 架构初始化总文档：`docs/architecture/init.md`
 - 规则库：`docs/rules/codex-rules.md`
 - Java 规范治理：`docs/quality/alibaba-java-guidelines.md`

@@ -9,7 +9,7 @@
 2. [Human Collaboration](./human-collaboration.md)
    人类与 foreman 的职责边界、`stop` / `continue`、脏工作树、冲突处理和命令可用性约束。
 3. [Local Development](./local-development.md)
-   当前仓库可用的本地命令、脚本、环境约束和验证入口。
+   当前仓库可用的本地命令、脚本、环境约束、Codex `foreman.py` 入口和验证入口。
 4. [Git And Task Closeout](./git-and-task-closeout.md)
    根 Git 边界、单任务单 commit、task audit、上下文收缩/清理和关闭顺序。
 5. [Best Practices](./best-practices.md)
@@ -21,4 +21,5 @@
 - 已完成归档：`tasks-done.md`
 - 人工决策入口：`INBOX.md`
 - 机器参数：`.agent/config.json`
+- Codex 项目级配置与 hooks：`.codex/config.toml`、`.codex/hooks.json`
 - 验证日志：`docs/quality/validation-log.md`

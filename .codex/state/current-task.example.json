@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "task_id": "HARN-007",
+  "task_class": "standard",
+  "phase": "implementation",
+  "status": "active",
+  "plan_ref": "docs/exec-plans/active/HARN-007-codex-runtime-integration-plan.md",
+  "bound_to_ledger": true,
+  "strict_mode": true,
+  "requires_human_decision": false,
+  "delivery_scope": false,
+  "preflight": {
+    "completed": true,
+    "timestamp": "2026-04-21T06:29:41-05:00",
+    "context_hash": "sha256:example"
+  },
+  "validation": {
+    "last_run_at": "",
+    "passed": false,
+    "evidence_refs": []
+  },
+  "closeout": {
+    "done_ready": false,
+    "pre_closeout_audit_passed": false,
+    "commit_created": false,
+    "post_closeout_audit_passed": false,
+    "delivery_writeback_completed": false
+  },
+  "traceability": {
+    "tasks_md_ref": "tasks.md#HARN-007",
+    "inbox_ref": "",
+    "done_md_ref": ""
+  },
+  "updated_at": "2026-04-21T06:29:41-05:00"
+}

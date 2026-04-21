@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SQLForge Codex current-task state",
+  "type": "object",
+  "required": [
+    "version",
+    "task_id",
+    "task_class",
+    "phase",
+    "status",
+    "bound_to_ledger",
+    "strict_mode",
+    "requires_human_decision",
+    "delivery_scope",
+    "preflight",
+    "validation",
+    "closeout",
+    "traceability",
+    "updated_at"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "task_class": {
+      "type": "string",
+      "enum": ["advisory", "trivial", "standard", "delivery"]
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "idle",
+        "preflight",
+        "discovery",
+        "implementation",
+        "validation",
+        "done_ready",
+        "closeout",
+        "delivery_closeout",
+        "closed",
+        "blocked"
+      ]
+    },
+    "status": {
+      "type": "string"
+    },
+    "bound_to_ledger": {
+      "type": "boolean"
+    },
+    "strict_mode": {
+      "type": "boolean"
+    },
+    "requires_human_decision": {
+      "type": "boolean"
+    },
+    "delivery_scope": {
+      "type": "boolean"
+    },
+    "preflight": {
+      "type": "object"
+    },
+    "validation": {
+      "type": "object"
+    },
+    "closeout": {
+      "type": "object"
+    },
+    "traceability": {
+      "type": "object"
+    },
+    "updated_at": {
+      "type": "string"
+    }
+  }
+}

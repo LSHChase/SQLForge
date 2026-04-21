@@ -28,17 +28,19 @@
    - [前后端分离基线检查](./quality/frontend-backend-separation-baseline.md)
 8. [计划索引](./plans/README.md)
    执行计划入口，统一索引主执行计划、阶段计划与确认台账。
-9. [主执行计划](./plans/master-execution-plan.md)
+9. [Codex 集成治理蓝图](./plans/codex-governance-integration-blueprint.md)
+   定义如何把 `docs/` 真值体系、任务台账、验证、closeout 与 Codex 的 `AGENTS`、project-scoped `.codex` 配置、hooks 和 foreman CLI 接到一条运行链上。
+10. [主执行计划](./plans/master-execution-plan.md)
    当前全量执行控制文档，按 Harness Engineering 要求拆分阶段、Epic、Story、Task、验证矩阵与人工确认项。
-10. [阶段0执行计划](./plans/phase-0-plan.md)
+11. [阶段0执行计划](./plans/phase-0-plan.md)
    初始化阶段历史计划，保留原任务顺序、依赖关系、验收口径与交付节奏。
-11. [流程与治理审计说明](./plans/process-flow-and-governance-audit-2026-04-20.md)
+12. [流程与治理审计说明](./plans/process-flow-and-governance-audit-2026-04-20.md)
    汇总当前工程交付全流程、产品运行流程、流程缺陷、整改建议与逐文档修订建议。
-12. 部署文档
+13. 部署文档
    - [本地部署指南](./deployments/local-setup.md)
    - [离线部署指南](./deployments/offline-setup.md)
    - [华为云部署指南](./deployments/huawei-cloud-setup.md)
-13. 仓库约定、任务台账与 ADR
+14. 仓库约定、任务台账与 ADR
    - 根级任务台账：`tasks.md`
    - 完成归档：`tasks-done.md`
    - 人工决策入口：`INBOX.md`
@@ -46,14 +48,14 @@
    - [生成仓库地图](./generated/repo-map.md)
    - `docs/exec-plans/active/`
    - `docs/exec-plans/completed/`
-14. 仓库约定与 ADR
+15. 仓库约定与 ADR
    - [ADR 索引](./adr/README.md)
    - [ADR 模板](./adr/adr-template.md)
    - [等保合规说明](./security/compliance.md)
    - [人类约束历史账本](./references/human-constraint-history.md)
-15. 原始需求与归档
+16. 原始需求与归档
    - `docs/references/raw-requirements/`
-16. 复盘与持续治理
+17. 复盘与持续治理
    - [复盘模板](./plans/retrospective-template.md)
    - [本轮文档治理复盘](./plans/document-governance-retrospective-2026-04-20.md)
    - [本轮文档治理修复复盘](./plans/document-governance-repair-retrospective-2026-04-20.md)
@@ -86,6 +88,7 @@
   - `document-truth-baseline.md`：当前仓库事实、历史记录、目标边界与工程命名映射的真值分层。
   - `document-gap-matrix.md`：冲突、漂移、缺失与残余实现缺口矩阵。
   - `implementation-readiness.md`：编码前阅读顺序、主题权威来源和实施波次。
+  - `codex-governance-integration-blueprint.md`：Codex 运行时接线蓝图，定义 `AGENTS`、`.codex/`、hooks、foreman CLI 与真值体系的关系。
   - `phase-prerequisite-matrix.md`：各阶段输入文档、ADR、规则、验证和确认点矩阵。
   - `process-flow-and-governance-audit-2026-04-20.md`：正式全流程说明、流程缺陷审计、整改建议和文档修订建议。
   - `retrospective-template.md`：阶段或复杂批次复盘模板。
@@ -96,6 +99,8 @@
   已确认复杂执行计划的活动与归档目录。
 - `generated/`
   AI 导航和仓库结构快照生成物。
+- `.codex/`
+  Codex 项目级配置、hooks、policy 编译产物与运行态状态目录；这些文件不替代 `docs/` 真值。
 - `deployments/`
   本地与目标环境部署说明。
 

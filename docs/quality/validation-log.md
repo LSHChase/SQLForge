@@ -244,3 +244,14 @@
 2026-04-21T05:03:26-05:00 | HARN-006 closeout py-compile | `R-160` | passed | `python3 -m py_compile scripts/task_audit.py`
 2026-04-21T05:03:26-05:00 | HARN-006 closeout task-audit pre | `R-156`, `R-158`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-04-21T05:03:26-05:00 | HARN-006 closeout knowledge-lint | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T05:50:06-05:00 | D-TASK-005..013 strict-remediation backend-regression | `R-113`, `R-114`, `R-119`, `R-121`, `R-123`, `R-128`, `R-129`, `R-144` | passed | `mvn -pl sql-optimization,benchmark-engine,governance -am test -DskipITs`
+2026-04-21T05:50:06-05:00 | D-TASK-005..013 strict-remediation task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T05:50:06-05:00 | D-TASK-005..013 strict-remediation knowledge-lint | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T06:47:29-05:00 | HARN-007 validate | `R-133`, `R-160` | passed | `python3 -m py_compile scripts/foreman.py`
+2026-04-21T06:47:29-05:00 | HARN-007 validate | `R-133`, `R-160` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T06:47:29-05:00 | HARN-007 validate | `R-133`, `R-160` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T06:48:42-05:00 | HARN-007 governance-compile | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-21T06:48:42-05:00 | HARN-007 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T06:47:29-05:00 | HARN-007 validate | `R-133`, `R-160` | passed | `python3 -m py_compile scripts/foreman.py`
+2026-04-21T06:47:29-05:00 | HARN-007 validate | `R-133`, `R-160` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T06:47:29-05:00 | HARN-007 validate | `R-133`, `R-160` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`

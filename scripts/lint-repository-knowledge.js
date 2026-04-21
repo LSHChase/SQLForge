@@ -18,6 +18,7 @@ const requiredDocsPaths = [
   'docs/plans/document-coverage-matrix.md',
   'docs/plans/document-gap-matrix.md',
   'docs/plans/document-truth-baseline.md',
+  'docs/plans/codex-governance-integration-blueprint.md',
   'docs/plans/implementation-readiness.md',
   'docs/plans/phase-prerequisite-matrix.md',
   'docs/plans/retrospective-template.md',
@@ -53,7 +54,21 @@ const requiredDocsPaths = [
   'docs/security',
   'docs/security/compliance.md',
   'docs/plans',
-  'docs/plans/phase-0-plan.md'
+  'docs/plans/phase-0-plan.md',
+  '.codex',
+  '.codex/config.toml',
+  '.codex/hooks.json',
+  '.codex/hooks',
+  '.codex/hooks/shared.py',
+  '.codex/hooks/user_prompt_submit.py',
+  '.codex/hooks/pre_tool_use.py',
+  '.codex/hooks/permission_request.py',
+  '.codex/hooks/stop.py',
+  '.codex/policy',
+  '.codex/policy/current-task.schema.json',
+  '.codex/state',
+  '.codex/state/.gitkeep',
+  '.codex/state/current-task.example.json'
 ]
 
 const requiredGovernancePaths = [
@@ -61,7 +76,8 @@ const requiredGovernancePaths = [
   'tasks-done.md',
   'INBOX.md',
   '.agent/config.json',
-  'scripts/task_audit.py'
+  'scripts/task_audit.py',
+  'scripts/foreman.py'
 ]
 
 const requiredReadmeMarkers = [
@@ -72,7 +88,8 @@ const requiredReadmeMarkers = [
   'docs/quality/alibaba-java-guidelines.md',
   'docs/adr/README.md',
   'docs/security/compliance.md',
-  'docs/plans/phase-0-plan.md'
+  'docs/plans/phase-0-plan.md',
+  'docs/plans/codex-governance-integration-blueprint.md'
 ]
 
 const expectedRuleEnd = 168

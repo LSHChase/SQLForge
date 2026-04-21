@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "blueprint_sha256": "e3fbf6f482d6dc62fb3769c23b25bc9442acfeaa9ae6279dfda16f5d704b4489",
+    "active_plan_sha256": "c45d46cf45a988cde7033663c36c6972f8a911c5c78d77b214a1219a18071083"
+  },
+  "task_classes": {
+    "advisory": {
+      "requires_ledger": false,
+      "delivery_scope": false
+    },
+    "trivial": {
+      "requires_ledger": false,
+      "delivery_scope": false
+    },
+    "standard": {
+      "requires_ledger": true,
+      "delivery_scope": false
+    },
+    "delivery": {
+      "requires_ledger": true,
+      "delivery_scope": true
+    }
+  }
+}

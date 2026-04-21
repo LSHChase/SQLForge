@@ -22,3 +22,7 @@ Desktop.ini
 coverage/
 __pycache__/
 *.pyc
+.codex-log/
+.codex/state/*.json
+!.codex/state/*.example.json
+!.codex/state/.gitkeep

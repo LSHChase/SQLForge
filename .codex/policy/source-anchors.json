@@ -1,0 +1,22 @@
+{
+  "metadata": {
+    "blueprint_sha256": "e3fbf6f482d6dc62fb3769c23b25bc9442acfeaa9ae6279dfda16f5d704b4489",
+    "active_plan_sha256": "c45d46cf45a988cde7033663c36c6972f8a911c5c78d77b214a1219a18071083"
+  },
+  "blueprint": "docs/plans/codex-governance-integration-blueprint.md",
+  "active_exec_plan": "docs/exec-plans/active/HARN-007-codex-runtime-integration-plan.md",
+  "authority_entry": [
+    "docs/README.md",
+    "docs/plans/document-truth-baseline.md",
+    "docs/architecture/init.md",
+    "docs/rules/codex-rules.md",
+    "docs/quality/validation-rules.md",
+    "docs/plans/master-execution-plan.md",
+    "docs/plans/phase-prerequisite-matrix.md",
+    "docs/plans/task-spec-matrix.md",
+    "docs/plans/task-governance-extension-matrix.md",
+    "tasks.md",
+    "tasks-done.md",
+    "INBOX.md"
+  ]
+}
