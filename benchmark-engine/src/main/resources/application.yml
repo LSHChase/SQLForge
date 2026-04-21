@@ -29,3 +29,19 @@ benchmark-engine:
   task-model:
     contract-stage: LONG_TERM_BASELINE
     implementation-stage: ASYNC_TASK_API_SKELETON
+  task-execution:
+    poll-interval-ms: 25
+    queue-visibility-delay-ms: 100
+    phase-delay-ms: 40
+
+auth:
+  enabled: false
+  trusted-auth-sources:
+    - header
+
+sqlforge:
+  security:
+    crypto:
+      algorithm: AES256_GCM
+      key-id: ${SQLFORGE_BENCHMARK_ENGINE_CRYPTO_KEY_ID:benchmark-engine-dev-key}
+      base64-key: ${SQLFORGE_BENCHMARK_ENGINE_CRYPTO_KEY_BASE64:}

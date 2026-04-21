@@ -1,0 +1,118 @@
+package com.company.benchmarkengine.application.controller.vo;
+
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdVerdict;
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import java.time.Instant;
+import java.util.List;
+
+public class BenchmarkReportRawDataResponse {
+
+    private final String reportId;
+    private final String taskId;
+    private final BenchmarkTaskType taskType;
+    private final String tenantId;
+    private final String sqlFingerprint;
+    private final BenchmarkThresholdVerdict verdict;
+    private final Instant generatedAt;
+    private final List<DataSourceTypeEnum> targetEngines;
+    private final List<BenchmarkEngineMetricVO> engineResults;
+    private final List<BenchmarkThresholdAssessmentVO> thresholdAssessments;
+    private final List<BenchmarkTrendChartVO> trendCharts;
+    private final List<BenchmarkRecommendationVO> recommendations;
+    private final String reportQueryPath;
+    private final String contractStage;
+    private final String implementationStage;
+
+    public BenchmarkReportRawDataResponse(String reportId,
+                                          String taskId,
+                                          BenchmarkTaskType taskType,
+                                          String tenantId,
+                                          String sqlFingerprint,
+                                          BenchmarkThresholdVerdict verdict,
+                                          Instant generatedAt,
+                                          List<DataSourceTypeEnum> targetEngines,
+                                          List<BenchmarkEngineMetricVO> engineResults,
+                                          List<BenchmarkThresholdAssessmentVO> thresholdAssessments,
+                                          List<BenchmarkTrendChartVO> trendCharts,
+                                          List<BenchmarkRecommendationVO> recommendations,
+                                          String reportQueryPath,
+                                          String contractStage,
+                                          String implementationStage) {
+        this.reportId = reportId;
+        this.taskId = taskId;
+        this.taskType = taskType;
+        this.tenantId = tenantId;
+        this.sqlFingerprint = sqlFingerprint;
+        this.verdict = verdict;
+        this.generatedAt = generatedAt;
+        this.targetEngines = targetEngines;
+        this.engineResults = engineResults;
+        this.thresholdAssessments = thresholdAssessments;
+        this.trendCharts = trendCharts;
+        this.recommendations = recommendations;
+        this.reportQueryPath = reportQueryPath;
+        this.contractStage = contractStage;
+        this.implementationStage = implementationStage;
+    }
+
+    public String getReportId() {
+        return reportId;
+    }
+
+    public String getTaskId() {
+        return taskId;
+    }
+
+    public BenchmarkTaskType getTaskType() {
+        return taskType;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public String getSqlFingerprint() {
+        return sqlFingerprint;
+    }
+
+    public BenchmarkThresholdVerdict getVerdict() {
+        return verdict;
+    }
+
+    public Instant getGeneratedAt() {
+        return generatedAt;
+    }
+
+    public List<DataSourceTypeEnum> getTargetEngines() {
+        return targetEngines;
+    }
+
+    public List<BenchmarkEngineMetricVO> getEngineResults() {
+        return engineResults;
+    }
+
+    public List<BenchmarkThresholdAssessmentVO> getThresholdAssessments() {
+        return thresholdAssessments;
+    }
+
+    public List<BenchmarkTrendChartVO> getTrendCharts() {
+        return trendCharts;
+    }
+
+    public List<BenchmarkRecommendationVO> getRecommendations() {
+        return recommendations;
+    }
+
+    public String getReportQueryPath() {
+        return reportQueryPath;
+    }
+
+    public String getContractStage() {
+        return contractStage;
+    }
+
+    public String getImplementationStage() {
+        return implementationStage;
+    }
+}

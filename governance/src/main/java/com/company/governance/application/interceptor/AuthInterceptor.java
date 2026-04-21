@@ -62,14 +62,34 @@ public class AuthInterceptor implements HandlerInterceptor {
                 userId,
                 roleCodes,
                 request.getRequestURI());
-            governanceAuditTrailService.recordAuthenticationAccepted(request);
-            return true;
         } catch (RuntimeException ex) {
-            governanceAuditTrailService.recordAuthenticationRejected(request, ex);
+            try {
+                governanceAuditTrailService.recordAuthenticationRejected(request, ex);
+            } catch (RuntimeException auditEx) {
+                RequestContext.clear();
+                AuditContext.clear();
+                throw auditEx;
+            }
             RequestContext.clear();
             AuditContext.clear();
             throw ex;
         }
+        try {
+            governanceAuditTrailService.recordAuthenticationAccepted(request);
+        } catch (RuntimeException ex) {
+            RequestContext.clear();
+            AuditContext.clear();
+            throw ex;
+        }
+        return true;
+    }
+
+    @Override
+    public void postHandle(HttpServletRequest request,
+                           HttpServletResponse response,
+                           Object handler,
+                           org.springframework.web.servlet.ModelAndView modelAndView) {
+        governanceAuditTrailService.recordAuthenticationReleased(request, null);
     }
 
     @Override
@@ -77,7 +97,9 @@ public class AuthInterceptor implements HandlerInterceptor {
                                 HttpServletResponse response,
                                 Object handler,
                                 Exception ex) {
-        governanceAuditTrailService.recordAuthenticationReleased(request, ex);
+        if (ex != null) {
+            governanceAuditTrailService.recordAuthenticationReleased(request, ex);
+        }
         RequestContext.clear();
         AuditContext.clear();
     }

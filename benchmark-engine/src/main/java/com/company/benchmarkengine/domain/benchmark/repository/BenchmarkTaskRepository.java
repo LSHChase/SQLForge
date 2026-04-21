@@ -2,6 +2,8 @@ package com.company.benchmarkengine.domain.benchmark.repository;
 
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
+import java.time.Instant;
+import java.util.List;
 
 public interface BenchmarkTaskRepository {
 
@@ -14,4 +16,6 @@ public interface BenchmarkTaskRepository {
     BenchmarkReport findReportByTaskId(String taskId);
 
     BenchmarkReport findReportByReportId(String reportId);
+
+    List<BenchmarkTask> findQueuedTasksSubmittedBefore(Instant cutoff);
 }

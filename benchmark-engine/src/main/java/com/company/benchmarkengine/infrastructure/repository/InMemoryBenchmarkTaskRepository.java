@@ -2,7 +2,12 @@ package com.company.benchmarkengine.infrastructure.repository;
 
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskStatus;
 import com.company.benchmarkengine.domain.benchmark.repository.BenchmarkTaskRepository;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Repository;
@@ -40,5 +45,19 @@ public class InMemoryBenchmarkTaskRepository implements BenchmarkTaskRepository 
     @Override
     public BenchmarkReport findReportByReportId(String reportId) {
         return reportByReportIdStore.get(reportId);
+    }
+
+    @Override
+    public List<BenchmarkTask> findQueuedTasksSubmittedBefore(Instant cutoff) {
+        if (cutoff == null) {
+            return Collections.emptyList();
+        }
+        List<BenchmarkTask> tasks = new ArrayList<BenchmarkTask>();
+        for (BenchmarkTask task : taskStore.values()) {
+            if (task.getStatus() == BenchmarkTaskStatus.QUEUED && !task.getSubmittedAt().isAfter(cutoff)) {
+                tasks.add(task);
+            }
+        }
+        return tasks;
     }
 }

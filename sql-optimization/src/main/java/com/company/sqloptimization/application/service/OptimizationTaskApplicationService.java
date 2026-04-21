@@ -1,15 +1,14 @@
 package com.company.sqloptimization.application.service;
 
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import com.company.sqloptimization.application.controller.dto.OptimizationTaskSubmitRequest;
 import com.company.sqloptimization.application.controller.vo.OptimizationTaskStatusResponse;
 import com.company.sqloptimization.application.controller.vo.OptimizationTaskSubmitResponse;
 import com.company.sqloptimization.domain.task.OptimizationTask;
-import com.company.sqloptimization.domain.task.OptimizationTaskError;
-import com.company.sqloptimization.domain.task.OptimizationTaskPhase;
-import com.company.sqloptimization.domain.task.OptimizationTaskType;
 import com.company.sqloptimization.domain.task.repository.OptimizationTaskRepository;
 import java.time.Instant;
 import java.util.UUID;
@@ -30,10 +29,6 @@ public class OptimizationTaskApplicationService {
     private static final String QUERY_OPERATION = "OPTIMIZATION_TASK_STATUS_QUERY";
     private static final String STATE_REQUEST_ACCEPTED = "REQUEST_ACCEPTED";
     private static final String STATE_TASK_QUEUED = "TASK_QUEUED";
-    private static final String STATE_PLACEHOLDER_RUNNING = "PLACEHOLDER_RUNNING";
-    private static final String STATE_PLACEHOLDER_SUCCEEDED = "PLACEHOLDER_SUCCEEDED";
-    private static final String STATE_PLACEHOLDER_FAILED = "PLACEHOLDER_FAILED";
-    private static final String FAILURE_MARKER = "FAIL_OPTIMIZATION";
     private static final long PLACEHOLDER_ESTIMATE_SECONDS = 30L;
 
     private final OptimizationTaskModelApplicationService optimizationTaskModelApplicationService;
@@ -49,6 +44,7 @@ public class OptimizationTaskApplicationService {
 
     public OptimizationTaskSubmitResponse submitTask(OptimizationTaskSubmitRequest request) {
         long start = System.currentTimeMillis();
+        request.setTenantId(requireAuthorizedTenant(request.getTenantId()));
         String normalizedFingerprint = normalizeFingerprint(request);
         logSubmitStart(request, normalizedFingerprint);
         try {
@@ -75,7 +71,6 @@ public class OptimizationTaskApplicationService {
                 task,
                 submittedAt.plusSeconds(PLACEHOLDER_ESTIMATE_SECONDS)
             );
-            processPlaceholderLifecycle(task);
             logEnd(SUBMIT_OPERATION, task.getTaskId(), request.getTenantId(), start, task.getStatus().name());
             return response;
         } catch (RuntimeException ex) {
@@ -96,6 +91,7 @@ public class OptimizationTaskApplicationService {
                     "Optimization task does not exist for taskId=" + taskId
                 );
             }
+            verifyTenantAccess(task.getTenantId());
             OptimizationTaskStatusResponse response = optimizationTaskModelApplicationService.buildStatusResponse(task);
             logEnd(QUERY_OPERATION, taskId, task.getTenantId(), start, task.getStatus().name());
             return response;
@@ -103,92 +99,6 @@ public class OptimizationTaskApplicationService {
             logFailure(QUERY_OPERATION, taskId, null, start, ex);
             throw ex;
         }
-    }
-
-    private void processPlaceholderLifecycle(OptimizationTask task) {
-        task.markRunning(Instant.now());
-        optimizationTaskRepository.save(task);
-        logStateChange(
-            SUBMIT_OPERATION,
-            task.getTaskId(),
-            task.getTenantId(),
-            task.getTaskType().name(),
-            STATE_TASK_QUEUED,
-            STATE_PLACEHOLDER_RUNNING,
-            task.getStatus().name(),
-            task.getCurrentPhase().name()
-        );
-
-        if (shouldForceFailure(task)) {
-            task.markFailed(
-                new OptimizationTaskError(
-                    ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_PIPELINE_NOT_READY,
-                    ErrorCodeConstants.SQL_OPTIMIZATION_PIPELINE_NOT_READY_MESSAGE,
-                    "Remove the FAIL_OPTIMIZATION marker or wait for the real worker pipeline in a later task.",
-                    true
-                ),
-                Instant.now()
-            );
-            optimizationTaskRepository.save(task);
-            logStateChange(
-                SUBMIT_OPERATION,
-                task.getTaskId(),
-                task.getTenantId(),
-                task.getTaskType().name(),
-                STATE_PLACEHOLDER_RUNNING,
-                STATE_PLACEHOLDER_FAILED,
-                task.getStatus().name(),
-                task.getError().getMessage()
-            );
-            return;
-        }
-
-        advancePlaceholderPhases(task);
-        task.markSucceeded(buildSummary(task), Instant.now());
-        optimizationTaskRepository.save(task);
-        logStateChange(
-            SUBMIT_OPERATION,
-            task.getTaskId(),
-            task.getTenantId(),
-            task.getTaskType().name(),
-            STATE_PLACEHOLDER_RUNNING,
-            STATE_PLACEHOLDER_SUCCEEDED,
-            task.getStatus().name(),
-            task.getSummary()
-        );
-    }
-
-    private void advancePlaceholderPhases(OptimizationTask task) {
-        if (task.getTaskType() == OptimizationTaskType.PARSE) {
-            task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "PLACEHOLDER_PARSE_SUMMARY_READY");
-            return;
-        }
-        if (task.getTaskType() == OptimizationTaskType.REWRITE) {
-            task.advancePhase(OptimizationTaskPhase.SQL_REWRITING, 45, "PLACEHOLDER_REWRITE_RULES_APPLIED");
-            task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "PLACEHOLDER_REWRITE_SUMMARY_READY");
-            return;
-        }
-        task.advancePhase(OptimizationTaskPhase.COST_ESTIMATING, 35, "PLACEHOLDER_COST_BASELINE_READY");
-        task.advancePhase(OptimizationTaskPhase.ACCELERATION_PLANNING, 70, "PLACEHOLDER_ACCELERATION_PLAN_READY");
-        task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 90, "PLACEHOLDER_ACCELERATION_SUMMARY_READY");
-    }
-
-    private String buildSummary(OptimizationTask task) {
-        if (task.getTaskType() == OptimizationTaskType.PARSE) {
-            return "Deep parse placeholder completed for sqlFingerprint=" + task.getSqlFingerprint();
-        }
-        if (task.getTaskType() == OptimizationTaskType.REWRITE) {
-            return "Rewrite suggestion placeholder completed for sqlFingerprint=" + task.getSqlFingerprint();
-        }
-        return "Acceleration suggestion placeholder completed for sqlFingerprint=" + task.getSqlFingerprint();
-    }
-
-    private boolean shouldForceFailure(OptimizationTask task) {
-        return containsFailureMarker(task.getSqlText()) || containsFailureMarker(task.getSqlFingerprint());
-    }
-
-    private boolean containsFailureMarker(String value) {
-        return value != null && value.toUpperCase().contains(FAILURE_MARKER);
     }
 
     private void validateCallbackUrl(OptimizationTaskSubmitRequest request) {
@@ -210,6 +120,36 @@ public class OptimizationTaskApplicationService {
             return request.getSqlFingerprint().trim();
         }
         return SqlFingerprintUtils.fingerprint(request.getSqlText().trim());
+    }
+
+    private String requireAuthorizedTenant(String requestTenantId) {
+        String contextTenantId = RequestContext.getTenantId();
+        if (contextTenantId == null || contextTenantId.trim().isEmpty()) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
+                HttpStatus.UNAUTHORIZED,
+                "tenantId is missing from authenticated request context"
+            );
+        }
+        if (requestTenantId != null && requestTenantId.trim().length() > 0
+            && !contextTenantId.equals(requestTenantId.trim())) {
+            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+        }
+        return contextTenantId;
+    }
+
+    private void verifyTenantAccess(String resourceTenantId) {
+        String contextTenantId = RequestContext.getTenantId();
+        if (contextTenantId == null || contextTenantId.trim().isEmpty()) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
+                HttpStatus.UNAUTHORIZED,
+                "tenantId is missing from authenticated request context"
+            );
+        }
+        if (!contextTenantId.equals(resourceTenantId)) {
+            throw new AccessDeniedException("Authenticated tenant cannot access this optimization task");
+        }
     }
 
     private void logSubmitStart(OptimizationTaskSubmitRequest request, String sqlFingerprint) {

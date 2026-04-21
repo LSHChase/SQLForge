@@ -5,6 +5,7 @@ import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmi
 import com.company.benchmarkengine.application.controller.dto.BenchmarkThresholdDTO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkEngineMetricVO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommendationVO;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskErrorVO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskStatusResponse;
@@ -109,6 +110,7 @@ public class BenchmarkTaskModelApplicationService {
             "report-" + task.getTaskId(),
             task.getTaskId(),
             task.getTaskType(),
+            task.getTenantId(),
             task.getSqlFingerprint(),
             generatedAt,
             engineProfiles,
@@ -134,6 +136,26 @@ public class BenchmarkTaskModelApplicationService {
             Arrays.asList("JSON", "PDF", "HTML"),
             buildReportQueryPath(report.getReportId()),
             buildRawDataDownloadPath(report.getReportId()),
+            CONTRACT_STAGE,
+            REPORT_IMPLEMENTATION_STAGE
+        );
+    }
+
+    public BenchmarkReportRawDataResponse buildRawDataResponse(BenchmarkReport report) {
+        return new BenchmarkReportRawDataResponse(
+            report.getReportId(),
+            report.getTaskId(),
+            report.getTaskType(),
+            report.getTenantId(),
+            report.getSqlFingerprint(),
+            report.getVerdict(),
+            report.getGeneratedAt(),
+            toTargetEngines(report.getEngineProfiles()),
+            toEngineMetricVOs(report.getEngineProfiles()),
+            toThresholdAssessmentVOs(report.getThresholdAssessments()),
+            buildTrendCharts(report.getEngineProfiles()),
+            toRecommendationVOs(report.getRecommendations()),
+            buildReportQueryPath(report.getReportId()),
             CONTRACT_STAGE,
             REPORT_IMPLEMENTATION_STAGE
         );

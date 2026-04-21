@@ -52,6 +52,7 @@ class AuthInterceptorTest {
         assertEquals(Arrays.asList("TENANT_ADMIN", "OPERATOR"), RequestContext.getRoleCodes());
         verify(governanceAuditTrailService).recordAuthenticationAccepted(request);
 
+        authInterceptor.postHandle(request, response, new Object(), null);
         authInterceptor.afterCompletion(request, response, new Object(), null);
 
         assertNull(TenantContext.get());

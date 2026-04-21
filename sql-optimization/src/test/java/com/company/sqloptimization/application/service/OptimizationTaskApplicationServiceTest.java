@@ -5,11 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqloptimization.application.controller.dto.OptimizationTaskContextDTO;
 import com.company.sqloptimization.application.controller.dto.OptimizationTaskSubmitRequest;
 import com.company.sqloptimization.application.controller.vo.OptimizationTaskSubmitResponse;
 import com.company.sqloptimization.infrastructure.repository.InMemoryOptimizationTaskRepository;
+import java.util.Arrays;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -18,12 +21,18 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 @ExtendWith(OutputCaptureExtension.class)
 class OptimizationTaskApplicationServiceTest {
 
+    @AfterEach
+    void tearDown() {
+        RequestContext.clear();
+    }
+
     @Test
-    void shouldLogSubmitLifecycleForPlaceholderSuccess(CapturedOutput output) {
+    void shouldLogSubmitLifecycleForQueuedSubmit(CapturedOutput output) {
         OptimizationTaskApplicationService service = new OptimizationTaskApplicationService(
             new OptimizationTaskModelApplicationService(),
             new InMemoryOptimizationTaskRepository()
         );
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
         OptimizationTaskSubmitResponse response = service.submitTask(baseRequest("SELECT * FROM orders"));
 
@@ -31,8 +40,7 @@ class OptimizationTaskApplicationServiceTest {
         assertTrue(output.getOut().contains("operation=OPTIMIZATION_TASK_SUBMIT"));
         assertTrue(output.getOut().contains("status=START"));
         assertTrue(output.getOut().contains("from=REQUEST_ACCEPTED to=TASK_QUEUED"));
-        assertTrue(output.getOut().contains("to=PLACEHOLDER_SUCCEEDED"));
-        assertTrue(output.getOut().contains("status=END resultStatus=SUCCEEDED"));
+        assertTrue(output.getOut().contains("status=END resultStatus=QUEUED"));
     }
 
     @Test
@@ -41,6 +49,7 @@ class OptimizationTaskApplicationServiceTest {
             new OptimizationTaskModelApplicationService(),
             new InMemoryOptimizationTaskRepository()
         );
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
         BizException ex = assertThrows(BizException.class, () -> service.getTaskStatus("missing-task"));
 

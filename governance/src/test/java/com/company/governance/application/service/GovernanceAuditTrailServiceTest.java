@@ -14,6 +14,8 @@ import static org.mockito.Mockito.when;
 import com.company.governance.application.controller.dto.AuditWriteRequest;
 import com.company.governance.application.controller.vo.AuditWriteResponse;
 import com.company.governance.config.MessagingProperties;
+import com.company.governance.domain.message.entity.MessageQueueRecord;
+import com.company.governance.domain.message.repository.MessageQueueRepository;
 import com.company.governance.domain.messaging.MessageProducer;
 import com.company.governance.domain.trace.entity.AuditLogRecord;
 import com.company.governance.domain.trace.entity.ConfigSnapshotRecord;
@@ -45,6 +47,8 @@ import org.springframework.mock.web.MockHttpServletRequest;
 
 class GovernanceAuditTrailServiceTest {
 
+    private static final String TEST_BASE64_KEY = "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=";
+
     @AfterEach
     void tearDown() {
         AuditContext.clear();
@@ -67,6 +71,7 @@ class GovernanceAuditTrailServiceTest {
             executionResultMapper,
             queryHistoryMapper,
             exportRecordMapper,
+            mock(MessageQueueRepository.class),
             messageProducer,
             messagingProperties
         );
@@ -142,6 +147,7 @@ class GovernanceAuditTrailServiceTest {
             mock(ExecutionResultMapper.class),
             mock(QueryHistoryMapper.class),
             mock(ExportRecordMapper.class),
+            mock(MessageQueueRepository.class),
             messageProducer,
             messagingProperties
         );
@@ -186,6 +192,7 @@ class GovernanceAuditTrailServiceTest {
             mock(ExecutionResultMapper.class),
             mock(QueryHistoryMapper.class),
             mock(ExportRecordMapper.class),
+            mock(MessageQueueRepository.class),
             mock(MessageProducer.class),
             databaseMessaging()
         );
@@ -225,6 +232,7 @@ class GovernanceAuditTrailServiceTest {
             mock(ExecutionResultMapper.class),
             mock(QueryHistoryMapper.class),
             mock(ExportRecordMapper.class),
+            mock(MessageQueueRepository.class),
             mock(MessageProducer.class),
             databaseMessaging()
         );
@@ -265,6 +273,7 @@ class GovernanceAuditTrailServiceTest {
             mock(ExecutionResultMapper.class),
             mock(QueryHistoryMapper.class),
             mock(ExportRecordMapper.class),
+            mock(MessageQueueRepository.class),
             mock(MessageProducer.class),
             databaseMessaging()
         );
@@ -290,6 +299,64 @@ class GovernanceAuditTrailServiceTest {
         org.junit.jupiter.api.Assertions.assertFalse(inserted.getRequestParams().contains("raw-secret"));
     }
 
+    @Test
+    void shouldQueueFallbackMessageWhenPrimaryDeliveryFails() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        MessageProducer messageProducer = mock(MessageProducer.class);
+        MessageQueueRepository messageQueueRepository = mock(MessageQueueRepository.class);
+        GovernanceAuditTrailService service = new GovernanceAuditTrailService(
+            protectedPersistenceService(auditLogMapper),
+            mock(ConfigSnapshotMapper.class),
+            mock(ExecutionResultMapper.class),
+            mock(QueryHistoryMapper.class),
+            mock(ExportRecordMapper.class),
+            messageQueueRepository,
+            messageProducer,
+            databaseMessaging()
+        );
+        RequestContext.set(
+            "tenant-a",
+            "user-01",
+            Arrays.asList("TENANT_ADMIN"),
+            "request-801",
+            "trace-801",
+            "header",
+            100L,
+            200L
+        );
+        doAnswer(invocation -> {
+            AuditLogRecord record = invocation.getArgument(0);
+            record.setId(Long.valueOf(300L));
+            return 1;
+        }).when(auditLogMapper).insert(org.mockito.ArgumentMatchers.any(AuditLogRecord.class));
+        doAnswer(invocation -> {
+            throw new BizException(
+                ErrorCodeConstants.GOVERNANCE_SYSTEM_MESSAGE_ROUTE_INVALID,
+                "primary route unavailable"
+            );
+        }).when(messageProducer).send(
+            eq(GovernanceMessagingTopics.AUDIT_EVENT),
+            eq("tenant-a"),
+            contains("\"operationCode\":\"QUERY_EXECUTE_SYNC\""),
+            anyMap()
+        );
+
+        AuditWriteRequest request = new AuditWriteRequest();
+        request.setServiceCode("QUERY_EXECUTION");
+        request.setOperationCode("QUERY_EXECUTE_SYNC");
+        request.setResourceType("SQL_QUERY");
+        request.setResourceId("query-801");
+        request.setResultStatus("SUCCESS");
+        request.setElapsedMs(10L);
+        request.setSourceIp("127.0.0.1");
+        request.setUserAgent("JUnit");
+
+        AuditWriteResponse response = service.writeAudit(request);
+
+        assertEquals(Long.valueOf(300L), response.getAuditId());
+        verify(messageQueueRepository).enqueueMessage(org.mockito.ArgumentMatchers.any(MessageQueueRecord.class));
+    }
+
     private MessagingProperties databaseMessaging() {
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.DATABASE);
@@ -298,6 +365,7 @@ class GovernanceAuditTrailServiceTest {
 
     private GovernanceProtectedPersistenceService protectedPersistenceService(AuditLogMapper auditLogMapper) {
         SensitiveDataCryptoProperties sensitiveDataCryptoProperties = new SensitiveDataCryptoProperties();
+        sensitiveDataCryptoProperties.setBase64Key(TEST_BASE64_KEY);
         SensitiveDataCryptoService sensitiveDataCryptoService =
             new SensitiveDataCryptoService(sensitiveDataCryptoProperties);
         SensitiveDataProtectionService sensitiveDataProtectionService =

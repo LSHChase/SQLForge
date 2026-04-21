@@ -6,15 +6,20 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Arrays;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.CollectionUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 @Component
-public class SensitiveDataCryptoService {
+public class SensitiveDataCryptoService implements InitializingBean {
 
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
     private static final String AES = "AES";
@@ -24,11 +29,29 @@ public class SensitiveDataCryptoService {
     private static final int GCM_TAG_LENGTH_BITS = 128;
 
     private final SensitiveDataCryptoProperties properties;
+    private final Environment environment;
     private final SecureRandom secureRandom;
 
     public SensitiveDataCryptoService(SensitiveDataCryptoProperties properties) {
+        this(properties, null);
+    }
+
+    @Autowired
+    public SensitiveDataCryptoService(SensitiveDataCryptoProperties properties, Environment environment) {
         this.properties = properties;
+        this.environment = environment;
         this.secureRandom = new SecureRandom();
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        if (isTestProfileActive()) {
+            return;
+        }
+        if (!StringUtils.hasText(properties.getBase64Key())) {
+            throw invalidCryptoConfiguration("Missing base64Key for sensitive data encryption");
+        }
+        secretKey();
     }
 
     public String encrypt(String plainText) {
@@ -90,6 +113,15 @@ public class SensitiveDataCryptoService {
 
     public String getKeyId() {
         return properties.getKeyId();
+    }
+
+    private boolean isTestProfileActive() {
+        if (environment == null) {
+            return false;
+        }
+        String[] activeProfiles = environment.getActiveProfiles();
+        return !CollectionUtils.isEmpty(Arrays.asList(activeProfiles))
+            && Arrays.asList(activeProfiles).contains("test");
     }
 
     private byte[] encryptInternal(byte[] plainBytes, byte[] iv) {

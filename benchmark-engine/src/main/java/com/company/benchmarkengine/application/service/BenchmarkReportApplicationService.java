@@ -2,12 +2,15 @@ package com.company.benchmarkengine.application.service;
 
 import com.company.benchmarkengine.application.controller.vo.BenchmarkEngineMetricVO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommendationVO;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkThresholdAssessmentVO;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.benchmarkengine.domain.benchmark.repository.BenchmarkTaskRepository;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -42,6 +45,19 @@ public class BenchmarkReportApplicationService {
             return response;
         } catch (RuntimeException ex) {
             logFailure(reportId, BenchmarkReportFormat.JSON, start, ex);
+            throw ex;
+        }
+    }
+
+    public BenchmarkReportRawDataResponse getRawDataReport(String reportId) {
+        long start = System.currentTimeMillis();
+        LOGGER.info("operation={} entity={} format={} status=START", QUERY_OPERATION, reportId, "RAW_DATA");
+        try {
+            BenchmarkReportRawDataResponse response = benchmarkTaskModelApplicationService.buildRawDataResponse(loadReport(reportId));
+            logEnd(reportId, null, start);
+            return response;
+        } catch (RuntimeException ex) {
+            logFailure(reportId, null, start, ex);
             throw ex;
         }
     }
@@ -86,7 +102,22 @@ public class BenchmarkReportApplicationService {
                 "Benchmark report does not exist for reportId=" + reportId
             );
         }
+        verifyTenantAccess(report.getTenantId());
         return report;
+    }
+
+    private void verifyTenantAccess(String resourceTenantId) {
+        String contextTenantId = RequestContext.getTenantId();
+        if (contextTenantId == null || contextTenantId.trim().isEmpty()) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
+                HttpStatus.UNAUTHORIZED,
+                "tenantId is missing from authenticated request context"
+            );
+        }
+        if (!contextTenantId.equals(resourceTenantId)) {
+            throw new AccessDeniedException("Authenticated tenant cannot access this benchmark report");
+        }
     }
 
     private BenchmarkRenderedReport renderPdf(BenchmarkReportResponse response) {

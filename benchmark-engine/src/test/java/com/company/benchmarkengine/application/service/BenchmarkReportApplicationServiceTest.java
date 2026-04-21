@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.company.sqlforge.common.context.RequestContext;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
@@ -12,9 +13,16 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
 import com.company.benchmarkengine.infrastructure.repository.InMemoryBenchmarkTaskRepository;
 import com.company.sqlforge.common.exception.BizException;
 import java.time.Instant;
+import java.util.Arrays;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 class BenchmarkReportApplicationServiceTest {
+
+    @AfterEach
+    void tearDown() {
+        RequestContext.clear();
+    }
 
     @Test
     void shouldRenderPdfAndHtmlPlaceholderContent() {
@@ -22,6 +30,7 @@ class BenchmarkReportApplicationServiceTest {
         InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
         BenchmarkReportApplicationService service = new BenchmarkReportApplicationService(modelService, repository);
         BenchmarkReport report = storeReport(modelService, repository, "benchmark-report-001");
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
         BenchmarkRenderedReport pdf = service.renderReport(report.getReportId(), BenchmarkReportFormat.PDF);
         BenchmarkRenderedReport html = service.renderReport(report.getReportId(), BenchmarkReportFormat.HTML);
@@ -40,6 +49,7 @@ class BenchmarkReportApplicationServiceTest {
         BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
         InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
         BenchmarkReportApplicationService service = new BenchmarkReportApplicationService(modelService, repository);
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
         BizException invalidFormat = assertThrows(BizException.class, () -> service.parseFormat("CSV"));
         BizException missingReport = assertThrows(BizException.class, () -> service.getJsonReport("missing-report"));

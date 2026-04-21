@@ -284,3 +284,10 @@
 2026-04-21T08:27:55-05:00 | HARN-009 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
 2026-04-21T08:27:55-05:00 | HARN-009 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-04-21T08:28:35-05:00 | HARN-009 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T08:42:42-05:00 | D-TASK-014 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-21T08:42:42-05:00 | D-TASK-014 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T08:42:42-05:00 | D-TASK-014 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T08:42:47-05:00 | D-TASK-014 validate | `R-133`, `R-168` | passed | `mvn -B -pl benchmark-engine -am test`
+2026-04-21T08:42:51-05:00 | D-TASK-014 validate | `R-133`, `R-168` | passed | `mvn -B -pl sql-optimization -am test`
+2026-04-21T08:42:54-05:00 | D-TASK-014 validate | `R-133`, `R-168` | passed | `mvn -B -pl governance -am test`
+2026-04-21T08:44:20-05:00 | D-TASK-014 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`

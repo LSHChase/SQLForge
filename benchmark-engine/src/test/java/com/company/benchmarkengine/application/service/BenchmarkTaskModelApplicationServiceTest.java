@@ -113,8 +113,10 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals(BenchmarkThresholdVerdict.WARNING, response.getThresholdAssessments().get(2).getVerdict());
         assertEquals("JSON", response.getRequestedFormat());
         assertEquals("/api/benchmark-engine/reports/report-benchmark-task-003", response.getReportQueryPath());
+        assertEquals("/api/benchmark-engine/reports/report-benchmark-task-003/raw-data", response.getRawDataDownloadPath());
         assertEquals("ENGINE_SELECTION", response.getRecommendations().get(0).getCategory());
         assertEquals("REPORT_QUERY_API_SKELETON", response.getImplementationStage());
+        assertEquals("tenant-a", report.getTenantId());
     }
 
     @Test

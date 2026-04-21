@@ -3,6 +3,8 @@ package com.company.governance.application.service;
 import com.company.governance.application.controller.dto.AuditWriteRequest;
 import com.company.governance.application.controller.vo.AuditWriteResponse;
 import com.company.governance.config.MessagingProperties;
+import com.company.governance.domain.message.entity.MessageQueueRecord;
+import com.company.governance.domain.message.repository.MessageQueueRepository;
 import com.company.governance.domain.messaging.MessageProducer;
 import com.company.governance.domain.trace.entity.AuditLogRecord;
 import com.company.governance.domain.trace.entity.ConfigSnapshotRecord;
@@ -57,6 +59,7 @@ public class GovernanceAuditTrailService {
     private final ExecutionResultMapper executionResultMapper;
     private final QueryHistoryMapper queryHistoryMapper;
     private final ExportRecordMapper exportRecordMapper;
+    private final MessageQueueRepository messageQueueRepository;
     private final MessageProducer messageProducer;
     private final MessagingProperties messagingProperties;
 
@@ -65,6 +68,7 @@ public class GovernanceAuditTrailService {
                                        ExecutionResultMapper executionResultMapper,
                                        QueryHistoryMapper queryHistoryMapper,
                                        ExportRecordMapper exportRecordMapper,
+                                       MessageQueueRepository messageQueueRepository,
                                        MessageProducer messageProducer,
                                        MessagingProperties messagingProperties) {
         this.governanceProtectedPersistenceService = governanceProtectedPersistenceService;
@@ -72,8 +76,28 @@ public class GovernanceAuditTrailService {
         this.executionResultMapper = executionResultMapper;
         this.queryHistoryMapper = queryHistoryMapper;
         this.exportRecordMapper = exportRecordMapper;
+        this.messageQueueRepository = messageQueueRepository;
         this.messageProducer = messageProducer;
         this.messagingProperties = messagingProperties;
+    }
+
+    public GovernanceAuditTrailService(GovernanceProtectedPersistenceService governanceProtectedPersistenceService,
+                                       ConfigSnapshotMapper configSnapshotMapper,
+                                       ExecutionResultMapper executionResultMapper,
+                                       QueryHistoryMapper queryHistoryMapper,
+                                       ExportRecordMapper exportRecordMapper,
+                                       MessageProducer messageProducer,
+                                       MessagingProperties messagingProperties) {
+        this(
+            governanceProtectedPersistenceService,
+            configSnapshotMapper,
+            executionResultMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            null,
+            messageProducer,
+            messagingProperties
+        );
     }
 
     public AuditWriteResponse writeAudit(AuditWriteRequest request) {
@@ -129,7 +153,7 @@ public class GovernanceAuditTrailService {
     }
 
     public void recordAuthenticationAccepted(HttpServletRequest request) {
-        safePersistAuthenticationEvent(request, AUTH_LOGIN_OPERATION, "SUCCESS", AUTH_LOGIN_SUCCESS_SUMMARY, null);
+        persistAuthenticationEvent(request, AUTH_LOGIN_OPERATION, "SUCCESS", AUTH_LOGIN_SUCCESS_SUMMARY, null);
     }
 
     public void recordAuthenticationRejected(HttpServletRequest request, RuntimeException failure) {
@@ -137,78 +161,73 @@ public class GovernanceAuditTrailService {
         if (failure != null && StringUtils.hasText(failure.getMessage())) {
             summary = failure.getMessage();
         }
-        safePersistAuthenticationEvent(request, AUTH_LOGIN_OPERATION, "FAILED", summary, failure);
+        persistAuthenticationEvent(request, AUTH_LOGIN_OPERATION, "FAILED", summary, failure);
     }
 
     public void recordAuthenticationReleased(HttpServletRequest request, Exception completionError) {
-        safePersistAuthenticationEvent(request, AUTH_LOGOUT_OPERATION,
+        persistAuthenticationEvent(request, AUTH_LOGOUT_OPERATION,
             completionError == null ? "SUCCESS" : "PARTIAL", AUTH_LOGOUT_SUMMARY, completionError);
     }
 
-    private void safePersistAuthenticationEvent(HttpServletRequest request,
-                                                String operationType,
-                                                String resultStatus,
-                                                String responseSummary,
-                                                Exception error) {
-        try {
-            String tenantId = firstNonBlank(RequestContext.getTenantId(), trimToNull(headerValue(request, RequestHeaderConstants.TENANT_ID)), UNKNOWN_VALUE);
-            String requestId = firstNonBlank(RequestContext.getRequestId(), trimToNull(headerValue(request, RequestHeaderConstants.REQUEST_ID)), generateFallbackCorrelationId("request"));
-            String traceId = firstNonBlank(RequestContext.getTraceId(), trimToNull(headerValue(request, RequestHeaderConstants.TRACE_ID)), generateFallbackCorrelationId("trace"));
-            String roleCodes = trimToNull(headerValue(request, RequestHeaderConstants.ROLE_CODES));
-            String authSource = trimToNull(headerValue(request, RequestHeaderConstants.AUTH_SOURCE));
-            String requestUri = request == null ? UNKNOWN_VALUE : request.getRequestURI();
-            String userId = firstNonBlank(RequestContext.getUserId(), trimToNull(headerValue(request, RequestHeaderConstants.USER_ID)), UNKNOWN_VALUE);
-            Map<String, String> authPayload = new HashMap<String, String>();
-            authPayload.put("uri", requestUri);
-            authPayload.put("method", request == null ? UNKNOWN_VALUE : request.getMethod());
-            authPayload.put("authSource", firstNonBlank(authSource, UNKNOWN_VALUE));
-            authPayload.put("roleCodes", firstNonBlank(roleCodes, UNKNOWN_VALUE));
-            authPayload.put("sourceIp", resolveSourceIp(request));
-            authPayload.put("userAgent", resolveUserAgent(request));
-            if (error != null && StringUtils.hasText(error.getMessage())) {
-                authPayload.put("error", error.getMessage());
-            }
-
-            AuditLogRecord auditLogRecord = buildAuditLogRecord(
-                tenantId,
-                ServiceCodeConstants.GOVERNANCE,
-                operationType,
-                AUTH_TARGET_TYPE,
-                requestUri,
-                requestId,
-                traceId,
-                null,
-                null,
-                null,
-                null,
-                null,
-                JsonUtils.toJson(authPayload),
-                responseSummary,
-                resultStatus,
-                0L
-            );
-            governanceProtectedPersistenceService.saveAuditLog(auditLogRecord);
-            AuditContext.set(new AuditEvent(
-                DateUtils.format(DateUtils.now()),
-                tenantId,
-                userId,
-                ServiceCodeConstants.GOVERNANCE,
-                operationType,
-                AUTH_TARGET_TYPE,
-                requestUri,
-                resultStatus,
-                0L,
-                traceId,
-                requestId,
-                resolveSourceIp(request),
-                resolveUserAgent(request)
-            ));
-            LOGGER.info("Persisted authentication audit record, auditId={}, operationType={}, status={}, uri={}",
-                auditLogRecord.getId(), operationType, resultStatus, requestUri);
-        } catch (RuntimeException ex) {
-            LOGGER.warn("Failed to persist authentication audit record, operationType={}, reason={}",
-                operationType, ex.getMessage());
+    private void persistAuthenticationEvent(HttpServletRequest request,
+                                            String operationType,
+                                            String resultStatus,
+                                            String responseSummary,
+                                            Exception error) {
+        String tenantId = firstNonBlank(RequestContext.getTenantId(), trimToNull(headerValue(request, RequestHeaderConstants.TENANT_ID)), UNKNOWN_VALUE);
+        String requestId = firstNonBlank(RequestContext.getRequestId(), trimToNull(headerValue(request, RequestHeaderConstants.REQUEST_ID)), generateFallbackCorrelationId("request"));
+        String traceId = firstNonBlank(RequestContext.getTraceId(), trimToNull(headerValue(request, RequestHeaderConstants.TRACE_ID)), generateFallbackCorrelationId("trace"));
+        String roleCodes = trimToNull(headerValue(request, RequestHeaderConstants.ROLE_CODES));
+        String authSource = trimToNull(headerValue(request, RequestHeaderConstants.AUTH_SOURCE));
+        String requestUri = request == null ? UNKNOWN_VALUE : request.getRequestURI();
+        String userId = firstNonBlank(RequestContext.getUserId(), trimToNull(headerValue(request, RequestHeaderConstants.USER_ID)), UNKNOWN_VALUE);
+        Map<String, String> authPayload = new HashMap<String, String>();
+        authPayload.put("uri", requestUri);
+        authPayload.put("method", request == null ? UNKNOWN_VALUE : request.getMethod());
+        authPayload.put("authSource", firstNonBlank(authSource, UNKNOWN_VALUE));
+        authPayload.put("roleCodes", firstNonBlank(roleCodes, UNKNOWN_VALUE));
+        authPayload.put("sourceIp", resolveSourceIp(request));
+        authPayload.put("userAgent", resolveUserAgent(request));
+        if (error != null && StringUtils.hasText(error.getMessage())) {
+            authPayload.put("error", error.getMessage());
         }
+
+        AuditLogRecord auditLogRecord = buildAuditLogRecord(
+            tenantId,
+            ServiceCodeConstants.GOVERNANCE,
+            operationType,
+            AUTH_TARGET_TYPE,
+            requestUri,
+            requestId,
+            traceId,
+            null,
+            null,
+            null,
+            null,
+            null,
+            JsonUtils.toJson(authPayload),
+            responseSummary,
+            resultStatus,
+            0L
+        );
+        governanceProtectedPersistenceService.saveAuditLog(auditLogRecord);
+        AuditContext.set(new AuditEvent(
+            DateUtils.format(DateUtils.now()),
+            tenantId,
+            userId,
+            ServiceCodeConstants.GOVERNANCE,
+            operationType,
+            AUTH_TARGET_TYPE,
+            requestUri,
+            resultStatus,
+            0L,
+            traceId,
+            requestId,
+            resolveSourceIp(request),
+            resolveUserAgent(request)
+        ));
+        LOGGER.info("Persisted authentication audit record, auditId={}, operationType={}, status={}, uri={}",
+            auditLogRecord.getId(), operationType, resultStatus, requestUri);
     }
 
     private void publishAuditEvent(String tenantId,
@@ -250,11 +269,33 @@ public class GovernanceAuditTrailService {
                 headers
             );
         } catch (RuntimeException ex) {
+            enqueueAuditFallback(tenantId, auditEvent, headers, ex);
+        }
+    }
+
+    private void enqueueAuditFallback(String tenantId,
+                                      AuditEvent auditEvent,
+                                      Map<String, String> headers,
+                                      RuntimeException failure) {
+        try {
+            MessageQueueRecord fallbackMessage = MessageQueueRecord.pending(
+                GovernanceMessagingTopics.AUDIT_EVENT,
+                tenantId,
+                JsonUtils.toJson(auditEvent),
+                JsonUtils.toJson(headers)
+            );
+            if (messageQueueRepository == null) {
+                throw failure;
+            }
+            messageQueueRepository.enqueueMessage(fallbackMessage);
+            LOGGER.warn("Primary audit message delivery failed, queued fallback message, tenantId={}, reason={}",
+                tenantId, failure.getMessage());
+        } catch (RuntimeException fallbackEx) {
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_SYSTEM_MESSAGE_ROUTE_INVALID,
                 HttpStatus.SERVICE_UNAVAILABLE,
                 GOVERNANCE_AUDIT_ROUTE_UNAVAILABLE_MESSAGE,
-                ex
+                fallbackEx
             );
         }
     }

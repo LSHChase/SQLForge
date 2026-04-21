@@ -3,14 +3,12 @@ package com.company.benchmarkengine.application.service;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskStatusResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskSubmitResponse;
-import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
-import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
-import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase;
-import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
 import com.company.benchmarkengine.domain.benchmark.ShadowEnvironmentMode;
 import com.company.benchmarkengine.domain.benchmark.repository.BenchmarkTaskRepository;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import java.time.Instant;
@@ -29,10 +27,6 @@ public class BenchmarkTaskApplicationService {
     private static final String QUERY_OPERATION = "BENCHMARK_TASK_STATUS_QUERY";
     private static final String STATE_REQUEST_ACCEPTED = "REQUEST_ACCEPTED";
     private static final String STATE_TASK_QUEUED = "TASK_QUEUED";
-    private static final String STATE_PLACEHOLDER_RUNNING = "PLACEHOLDER_RUNNING";
-    private static final String STATE_PLACEHOLDER_SUCCEEDED = "PLACEHOLDER_SUCCEEDED";
-    private static final String STATE_PLACEHOLDER_FAILED = "PLACEHOLDER_FAILED";
-    private static final String FAILURE_MARKER = "FAIL_BENCHMARK";
     private static final long PLACEHOLDER_ESTIMATE_SECONDS = 45L;
 
     private final BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService;
@@ -46,6 +40,7 @@ public class BenchmarkTaskApplicationService {
 
     public BenchmarkTaskSubmitResponse submitTask(BenchmarkTaskSubmitRequest request) {
         long start = System.currentTimeMillis();
+        request.setTenantId(requireAuthorizedTenant(request.getTenantId()));
         String normalizedFingerprint = normalizeFingerprint(request);
         logSubmitStart(request, normalizedFingerprint);
         try {
@@ -72,7 +67,6 @@ public class BenchmarkTaskApplicationService {
                 task,
                 submittedAt.plusSeconds(PLACEHOLDER_ESTIMATE_SECONDS)
             );
-            processPlaceholderLifecycle(task);
             logEnd(SUBMIT_OPERATION, task.getTaskId(), request.getTenantId(), start, task.getStatus().name());
             return response;
         } catch (RuntimeException ex) {
@@ -93,6 +87,7 @@ public class BenchmarkTaskApplicationService {
                     "Benchmark task does not exist for taskId=" + taskId
                 );
             }
+            verifyTenantAccess(task.getTenantId(), "Authenticated tenant cannot access this benchmark task");
             BenchmarkTaskStatusResponse response = benchmarkTaskModelApplicationService.buildStatusResponse(task);
             logEnd(QUERY_OPERATION, taskId, task.getTenantId(), start, task.getStatus().name());
             return response;
@@ -100,90 +95,6 @@ public class BenchmarkTaskApplicationService {
             logFailure(QUERY_OPERATION, taskId, null, start, ex);
             throw ex;
         }
-    }
-
-    private void processPlaceholderLifecycle(BenchmarkTask task) {
-        task.markRunning(Instant.now());
-        benchmarkTaskRepository.saveTask(task);
-        logStateChange(
-            SUBMIT_OPERATION,
-            task.getTaskId(),
-            task.getTenantId(),
-            task.getTaskType().name(),
-            STATE_TASK_QUEUED,
-            STATE_PLACEHOLDER_RUNNING,
-            task.getStatus().name(),
-            task.getCurrentPhase().name()
-        );
-
-        if (shouldForceFailure(task)) {
-            task.markFailed(
-                new BenchmarkTaskError(
-                    ErrorCodeConstants.BENCHMARK_ENGINE_SYSTEM_PIPELINE_NOT_READY,
-                    ErrorCodeConstants.BENCHMARK_ENGINE_PIPELINE_NOT_READY_MESSAGE,
-                    "Remove the FAIL_BENCHMARK marker or wait for the real execution pipeline in a later task.",
-                    true
-                ),
-                Instant.now()
-            );
-            benchmarkTaskRepository.saveTask(task);
-            logStateChange(
-                SUBMIT_OPERATION,
-                task.getTaskId(),
-                task.getTenantId(),
-                task.getTaskType().name(),
-                STATE_PLACEHOLDER_RUNNING,
-                STATE_PLACEHOLDER_FAILED,
-                task.getStatus().name(),
-                task.getError().getMessage()
-            );
-            return;
-        }
-
-        advancePlaceholderPhases(task);
-        BenchmarkReport report = benchmarkTaskModelApplicationService.buildPlaceholderReport(task, Instant.now());
-        benchmarkTaskRepository.saveReport(report);
-        task.markSucceeded(report.getReportId(), Instant.now());
-        benchmarkTaskRepository.saveTask(task);
-        logStateChange(
-            SUBMIT_OPERATION,
-            task.getTaskId(),
-            task.getTenantId(),
-            task.getTaskType().name(),
-            STATE_PLACEHOLDER_RUNNING,
-            STATE_PLACEHOLDER_SUCCEEDED,
-            task.getStatus().name(),
-            report.getReportId()
-        );
-    }
-
-    private void advancePlaceholderPhases(BenchmarkTask task) {
-        if (task.getTaskType() == BenchmarkTaskType.BASELINE) {
-            task.advancePhase(BenchmarkTaskPhase.WARMING_UP, 35, "PLACEHOLDER_WARMUP_READY");
-            task.advancePhase(BenchmarkTaskPhase.EXECUTING, 60, "PLACEHOLDER_RUN_STARTED");
-            task.advancePhase(BenchmarkTaskPhase.THRESHOLD_EVALUATING, 80, "PLACEHOLDER_RUN_FINISHED");
-            task.advancePhase(BenchmarkTaskPhase.REPORTING, 95, "PLACEHOLDER_REPORT_ASSEMBLING");
-            return;
-        }
-        if (task.getTaskType() == BenchmarkTaskType.COMPARISON) {
-            task.advancePhase(BenchmarkTaskPhase.SHADOW_VALIDATING, 25, "PLACEHOLDER_SHADOW_ENVIRONMENT_VALIDATED");
-            task.advancePhase(BenchmarkTaskPhase.WARMING_UP, 45, "PLACEHOLDER_WARMUP_READY");
-            task.advancePhase(BenchmarkTaskPhase.EXECUTING, 65, "PLACEHOLDER_COMPARISON_RUN_STARTED");
-            task.advancePhase(BenchmarkTaskPhase.THRESHOLD_EVALUATING, 82, "PLACEHOLDER_COMPARISON_RUN_FINISHED");
-            task.advancePhase(BenchmarkTaskPhase.REPORTING, 96, "PLACEHOLDER_REPORT_ASSEMBLING");
-            return;
-        }
-        task.advancePhase(BenchmarkTaskPhase.EXECUTING, 55, "PLACEHOLDER_REGRESSION_RUN_STARTED");
-        task.advancePhase(BenchmarkTaskPhase.THRESHOLD_EVALUATING, 82, "PLACEHOLDER_REGRESSION_RUN_FINISHED");
-        task.advancePhase(BenchmarkTaskPhase.REPORTING, 96, "PLACEHOLDER_REPORT_ASSEMBLING");
-    }
-
-    private boolean shouldForceFailure(BenchmarkTask task) {
-        return containsFailureMarker(task.getSqlText()) || containsFailureMarker(task.getSqlFingerprint());
-    }
-
-    private boolean containsFailureMarker(String value) {
-        return value != null && value.toUpperCase().contains(FAILURE_MARKER);
     }
 
     private void validateIsolationPolicy(BenchmarkTaskSubmitRequest request) {
@@ -211,6 +122,36 @@ public class BenchmarkTaskApplicationService {
             return request.getSqlFingerprint().trim();
         }
         return SqlFingerprintUtils.fingerprint(request.getSqlText().trim());
+    }
+
+    private String requireAuthorizedTenant(String requestTenantId) {
+        String contextTenantId = RequestContext.getTenantId();
+        if (contextTenantId == null || contextTenantId.trim().isEmpty()) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
+                HttpStatus.UNAUTHORIZED,
+                "tenantId is missing from authenticated request context"
+            );
+        }
+        if (requestTenantId != null && requestTenantId.trim().length() > 0
+            && !contextTenantId.equals(requestTenantId.trim())) {
+            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+        }
+        return contextTenantId;
+    }
+
+    private void verifyTenantAccess(String resourceTenantId, String message) {
+        String contextTenantId = RequestContext.getTenantId();
+        if (contextTenantId == null || contextTenantId.trim().isEmpty()) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
+                HttpStatus.UNAUTHORIZED,
+                "tenantId is missing from authenticated request context"
+            );
+        }
+        if (!contextTenantId.equals(resourceTenantId)) {
+            throw new AccessDeniedException(message);
+        }
     }
 
     private void logSubmitStart(BenchmarkTaskSubmitRequest request, String sqlFingerprint) {

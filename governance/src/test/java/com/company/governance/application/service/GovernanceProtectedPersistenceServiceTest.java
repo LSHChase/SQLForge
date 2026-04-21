@@ -30,6 +30,8 @@ import org.mockito.ArgumentCaptor;
 
 class GovernanceProtectedPersistenceServiceTest {
 
+    private static final String TEST_BASE64_KEY = "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=";
+
     @Test
     void shouldProtectTraceabilityRecordsBeforePersistence() {
         ConfigSnapshotMapper configSnapshotMapper = mock(ConfigSnapshotMapper.class);
@@ -39,6 +41,7 @@ class GovernanceProtectedPersistenceServiceTest {
         AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
         SystemConfigMapper systemConfigMapper = mock(SystemConfigMapper.class);
         SensitiveDataCryptoProperties cryptoProperties = new SensitiveDataCryptoProperties();
+        cryptoProperties.setBase64Key(TEST_BASE64_KEY);
         SensitiveDataCryptoService cryptoService = new SensitiveDataCryptoService(cryptoProperties);
         GovernanceProtectedPersistenceService service = new GovernanceProtectedPersistenceService(
             configSnapshotMapper,
@@ -121,6 +124,7 @@ class GovernanceProtectedPersistenceServiceTest {
         SystemConfigMapper systemConfigMapper = mock(SystemConfigMapper.class);
         doAnswer(invocation -> 1).when(systemConfigMapper).insertOrUpdate(org.mockito.ArgumentMatchers.any(SystemConfigRecord.class));
         SensitiveDataCryptoProperties cryptoProperties = new SensitiveDataCryptoProperties();
+        cryptoProperties.setBase64Key(TEST_BASE64_KEY);
         SensitiveDataCryptoService cryptoService = new SensitiveDataCryptoService(cryptoProperties);
         GovernanceProtectedPersistenceService service = new GovernanceProtectedPersistenceService(
             mock(ConfigSnapshotMapper.class),

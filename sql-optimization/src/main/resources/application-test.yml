@@ -1,8 +1,11 @@
-spring:
-  profiles:
-    active: test
-
 auth:
   enabled: false
   trusted-auth-sources:
     - header
+
+sqlforge:
+  security:
+    crypto:
+      algorithm: AES256_GCM
+      key-id: ${SQLFORGE_SQL_OPTIMIZATION_TEST_CRYPTO_KEY_ID:sql-optimization-test-key}
+      base64-key: ${SQLFORGE_SQL_OPTIMIZATION_TEST_CRYPTO_KEY_BASE64:MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=}

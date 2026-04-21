@@ -10,6 +10,7 @@ public class BenchmarkReport {
     private final String reportId;
     private final String taskId;
     private final BenchmarkTaskType taskType;
+    private final String tenantId;
     private final String sqlFingerprint;
     private final Instant generatedAt;
     private final List<BenchmarkEngineProfile> engineProfiles;
@@ -20,6 +21,7 @@ public class BenchmarkReport {
     public BenchmarkReport(String reportId,
                            String taskId,
                            BenchmarkTaskType taskType,
+                           String tenantId,
                            String sqlFingerprint,
                            Instant generatedAt,
                            List<BenchmarkEngineProfile> engineProfiles,
@@ -28,6 +30,7 @@ public class BenchmarkReport {
         this.reportId = reportId;
         this.taskId = taskId;
         this.taskType = taskType;
+        this.tenantId = tenantId;
         this.sqlFingerprint = sqlFingerprint;
         this.generatedAt = generatedAt;
         this.engineProfiles = immutableCopy(engineProfiles);
@@ -66,6 +69,10 @@ public class BenchmarkReport {
 
     public BenchmarkTaskType getTaskType() {
         return taskType;
+    }
+
+    public String getTenantId() {
+        return tenantId;
     }
 
     public String getSqlFingerprint() {

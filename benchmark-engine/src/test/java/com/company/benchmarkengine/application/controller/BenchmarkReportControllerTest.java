@@ -11,16 +11,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.company.benchmarkengine.BenchmarkEngineApplication;
+import com.company.sqlforge.common.config.AuthSourceConstants;
+import com.company.sqlforge.common.config.RequestHeaderConstants;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @SpringBootTest(classes = BenchmarkEngineApplication.class)
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 class BenchmarkReportControllerTest {
 
     @Autowired
@@ -30,7 +35,7 @@ class BenchmarkReportControllerTest {
     void shouldQueryJsonReportByReportId() throws Exception {
         String reportId = submitSucceededTaskAndReadReportId();
 
-        mockMvc.perform(get("/api/benchmark-engine/reports/{reportId}", reportId))
+        mockMvc.perform(addProtectedHeaders(get("/api/benchmark-engine/reports/{reportId}", reportId)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.reportId").value(reportId))
             .andExpect(jsonPath("$.requestedFormat").value("JSON"))
@@ -48,13 +53,13 @@ class BenchmarkReportControllerTest {
     void shouldRenderPdfAndHtmlReportFormats() throws Exception {
         String reportId = submitSucceededTaskAndReadReportId();
 
-        mockMvc.perform(get("/api/benchmark-engine/reports/{reportId}", reportId).queryParam("format", "PDF"))
+        mockMvc.perform(addProtectedHeaders(get("/api/benchmark-engine/reports/{reportId}", reportId).queryParam("format", "PDF")))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_PDF))
             .andExpect(header().string("Content-Disposition", containsString(".pdf")))
             .andExpect(content().string(startsWith("%PDF-1.4")));
 
-        mockMvc.perform(get("/api/benchmark-engine/reports/{reportId}", reportId).queryParam("format", "HTML"))
+        mockMvc.perform(addProtectedHeaders(get("/api/benchmark-engine/reports/{reportId}", reportId).queryParam("format", "HTML")))
             .andExpect(status().isOk())
             .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
             .andExpect(header().string("Content-Disposition", endsWith(".html\"")))
@@ -63,17 +68,32 @@ class BenchmarkReportControllerTest {
 
     @Test
     void shouldRejectUnknownFormatAndMissingReport() throws Exception {
-        mockMvc.perform(get("/api/benchmark-engine/reports/{reportId}", "missing-report"))
+        mockMvc.perform(addProtectedHeaders(get("/api/benchmark-engine/reports/{reportId}", "missing-report")))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.code").value(23002));
 
-        mockMvc.perform(get("/api/benchmark-engine/reports/{reportId}", "missing-report").queryParam("format", "CSV"))
+        mockMvc.perform(addProtectedHeaders(get("/api/benchmark-engine/reports/{reportId}", "missing-report").queryParam("format", "CSV")))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(10001));
     }
 
+    @Test
+    void shouldQueryRawDataAndRejectCrossTenantAccess() throws Exception {
+        String reportId = submitSucceededTaskAndReadReportId();
+
+        mockMvc.perform(addProtectedHeaders(get("/api/benchmark-engine/reports/{reportId}/raw-data", reportId)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.reportId").value(reportId))
+            .andExpect(jsonPath("$.tenantId").value("tenant-a"))
+            .andExpect(jsonPath("$.engineResults[0].engine").value("HETU"));
+
+        mockMvc.perform(addProtectedHeaders(get("/api/benchmark-engine/reports/{reportId}", reportId), "tenant-b"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value(10003));
+    }
+
     private String submitSucceededTaskAndReadReportId() throws Exception {
-        MvcResult submitResult = mockMvc.perform(post("/api/benchmark-engine/tasks")
+        MvcResult submitResult = mockMvc.perform(addProtectedHeaders(post("/api/benchmark-engine/tasks"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"tenantId\":\"tenant-a\",\"taskType\":\"COMPARISON\",\"sqlText\":\"SELECT * FROM orders\","
                     + "\"taskContext\":{\"priority\":\"HIGH\",\"targetEngines\":[\"HETU\",\"HIVE\"],"
@@ -83,9 +103,33 @@ class BenchmarkReportControllerTest {
             .andReturn();
 
         String taskId = JsonTestUtils.readValue(submitResult.getResponse().getContentAsString(), "$.taskId");
-        MvcResult statusResult = mockMvc.perform(get("/api/benchmark-engine/tasks/{taskId}", taskId))
-            .andExpect(status().isOk())
-            .andReturn();
-        return JsonTestUtils.readValue(statusResult.getResponse().getContentAsString(), "$.reportId");
+        for (int attempt = 0; attempt < 20; attempt++) {
+            MvcResult statusResult = mockMvc.perform(addProtectedHeaders(get("/api/benchmark-engine/tasks/{taskId}", taskId)))
+                .andExpect(status().isOk())
+                .andReturn();
+            String status = JsonTestUtils.readValue(statusResult.getResponse().getContentAsString(), "$.status");
+            if ("SUCCEEDED".equals(status)) {
+                return JsonTestUtils.readValue(statusResult.getResponse().getContentAsString(), "$.reportId");
+            }
+            Thread.sleep(40L);
+        }
+        throw new AssertionError("Benchmark report was not generated in time");
+    }
+
+    private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {
+        return addProtectedHeaders(builder, "tenant-a");
+    }
+
+    private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder, String tenantId) {
+        long now = System.currentTimeMillis();
+        return builder
+            .header(RequestHeaderConstants.TENANT_ID, tenantId)
+            .header(RequestHeaderConstants.USER_ID, "operator-001")
+            .header(RequestHeaderConstants.ROLE_CODES, "TENANT_ADMIN,OPERATOR")
+            .header(RequestHeaderConstants.REQUEST_ID, "request-001")
+            .header(RequestHeaderConstants.TRACE_ID, "trace-001")
+            .header(RequestHeaderConstants.AUTH_SOURCE, AuthSourceConstants.HEADER)
+            .header(RequestHeaderConstants.ISSUED_AT, String.valueOf(now - 1000L))
+            .header(RequestHeaderConstants.EXPIRES_AT, String.valueOf(now + 60000L));
     }
 }

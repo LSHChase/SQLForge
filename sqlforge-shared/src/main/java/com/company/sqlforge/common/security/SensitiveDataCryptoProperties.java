@@ -9,7 +9,7 @@ public class SensitiveDataCryptoProperties {
 
     private String algorithm = "AES256_GCM";
     private String keyId = "local-dev-key";
-    private String base64Key = "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=";
+    private String base64Key;
 
     public String getAlgorithm() {
         return algorithm;
