@@ -4,6 +4,31 @@
 
 ## Done
 
+### F-TASK-007: 补齐监控与日志规范落地清单
+
+- Status: done
+- Completed at: 2026-04-21
+- Commit subject: `docs(deploy): F-TASK-007 add observability baseline checklist`
+- Priority: 1
+- Depends on: `Phase-D`
+- Scope: 输出 logs/metrics/alerts 落地清单 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Matrix context: Phase-F / Story `F-STORY-003` 运维、审计与恢复
+- Human confirmation point: 监控/日志采样策略显著削弱需人工确认
+- Data impact: 日志、指标、告警配置
+- Rollback / recovery: 恢复原监控规则
+- Validation:
+  - 清单完整、映射一致
+  - `python3 scripts/foreman.py validate F-TASK-007`
+- Progress log:
+  - 2026-04-21: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-21: audited current observability facts across 4 backend modules, confirming shared `logback-spring.xml` baselines, shared actuator exposure (`health/info/metrics/prometheus`), governance audit fallback logs, and async task flow logs already exist in code/config.
+  - 2026-04-21: created `docs/deployments/observability-baseline.md` to distinguish current implemented logs/metrics signals from still-missing business metrics, alert rules, and tracing/platform pipeline integrations, then wired the new authority doc into docs entrypoints and coverage tracking.
+- Context closeout:
+  - Completed scope: 新增 `docs/deployments/observability-baseline.md`，把 4 个后端服务当前已落地的日志、Actuator 暴露、审计/异步状态流信号统一收口为 logs/metrics/alerts 运维清单，并同步更新文档入口、华为云部署引用、文档真值基线与覆盖矩阵。
+  - Validation evidence: `python3 scripts/foreman.py validate F-TASK-007 --include-task-audit`；`node scripts/lint-repository-knowledge.js`；`python3 scripts/task_audit.py --check --phase pre-closeout`；`python3 scripts/task_audit.py --check --phase post-closeout`。
+  - Residual risk: 当前仓库仍未实现业务级 Micrometer 指标、仓库内 Prometheus/Alertmanager/Grafana 规则文件和统一 tracing/log pipeline 配置，业务告警仍需外部平台按本文档补位。
+  - Next step: 进入 `F-TASK-008` 时，直接复用本 observability 基线中的审计、消息队列、导出与敏感数据观测项，补齐备份恢复策略和演练模板。
+
 ### D-TASK-014: 收口异步服务鉴权、占位执行与审计兜底
 
 - Status: done

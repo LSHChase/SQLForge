@@ -40,6 +40,7 @@
    - [本地部署指南](./deployments/local-setup.md)
    - [离线部署指南](./deployments/offline-setup.md)
    - [华为云部署指南](./deployments/huawei-cloud-setup.md)
+   - [可观测基线](./deployments/observability-baseline.md)
 14. 仓库约定、任务台账与 ADR
    - 根级任务台账：`tasks.md`
    - 完成归档：`tasks-done.md`
@@ -103,6 +104,7 @@
   Codex 项目级配置、hooks、policy 编译产物与运行态状态目录；这些文件不替代 `docs/` 真值。
 - `deployments/`
   本地与目标环境部署说明。
+  - `observability-baseline.md`：当前 logs/metrics/alerts 运维落地清单与缺口基线。
 
 ## 当前阶段说明
 
@@ -130,6 +132,8 @@
   作为 `R-133` 的 C4 权威更新落点，统一维护 Level 1-4 的文字版架构说明。
 - [服务接口契约基线](./architecture/service-interface-contract-baseline.md)
   统一身份上下文字段、错误码归属、服务间 DTO/事件边界和审计契约。
+- [可观测基线](./deployments/observability-baseline.md)
+  把当前 4 个后端服务的 logs/metrics/alerts 实现事实与生产运维清单收口到一处，避免实现与运维口径继续漂移。
 - [文档缺口矩阵](./plans/document-gap-matrix.md)
   把冲突、漂移、缺失项和残余实现缺口显式矩阵化。
 - [阶段前置条件矩阵](./plans/phase-prerequisite-matrix.md)

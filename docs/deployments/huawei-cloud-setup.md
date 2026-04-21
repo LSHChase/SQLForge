@@ -125,6 +125,9 @@ messaging:
   - `application-prod.yml` 存在且非空
   - `messaging.mode=KAFKA`
   - 生产鉴权开关已开启
+- 可观测：
+  - 4 个后端服务的 `/actuator/prometheus` 已纳入采集
+  - `logs / metrics / alerts` 基线已按 `observability-baseline.md` 接入
 - 基础设施：
   - Kafka、MySQL、Redis、OBS/MRS 连通
   - 端口和服务发现配置正确
@@ -158,5 +161,6 @@ messaging:
 
 - [local-setup.md](/models/project/codex/SQLForge/docs/deployments/local-setup.md)
 - [offline-setup.md](/models/project/codex/SQLForge/docs/deployments/offline-setup.md)
+- [observability-baseline.md](/models/project/codex/SQLForge/docs/deployments/observability-baseline.md)
 - [messaging-abstraction.md](/models/project/codex/SQLForge/docs/architecture/messaging-abstraction.md)
 - [access-control-spec.md](/models/project/codex/SQLForge/docs/security/access-control-spec.md)

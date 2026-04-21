@@ -33,6 +33,7 @@ SQLForge 是一个面向企业 BI 与数据中台场景的 SQL 生命周期治�
 - ADR 目录：`docs/adr/README.md`
 - 合规说明：`docs/security/compliance.md`
 - 华为云部署：`docs/deployments/huawei-cloud-setup.md`
+- 可观测基线：`docs/deployments/observability-baseline.md`
 - 阶段计划：`docs/plans/phase-0-plan.md`
 - 任务台账：`tasks.md`
 - 完成归档：`tasks-done.md`

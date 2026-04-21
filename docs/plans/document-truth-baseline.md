@@ -66,6 +66,7 @@
   - `application` 包域下的 controller / service 与 `domain` / `infrastructure` / `config` 分层骨架
   - 查询执行边界定义，显式固化路由、执行控制、轻量解析、轻量改写和已批准加速配置应用
   - `JDBC` / `REST` / `CLIENT` 三种 Hetu 访问模式的承载边界
+  - `START / STATE_CHANGE / END / FAILED` 流程日志与 timeout / fallback 本地恢复标记
   - 独立多环境配置与日志配置骨架
   - 基础单元测试
 - `sql-optimization/` 已具备 SQL 优化提交/轮询骨架：
@@ -74,7 +75,7 @@
   - `PARSE` / `REWRITE` / `ACCELERATION_SUGGESTION` 三类异步优化任务实体
   - 生命周期状态、处理阶段流转、优先级、解析深度和加速建议类型的领域模型
   - `POST /api/sql-optimization/tasks` 与 `GET /api/sql-optimization/tasks/{taskId}` skeleton
-  - in-memory placeholder repository、提交流程日志、失败路径和基础测试
+  - in-memory placeholder repository、header-based 鉴权、租户隔离、异步占位执行器、提交流程日志、失败路径和基础测试
   - `suggestion / failure` 结构化输出，当前已覆盖收益、成本、风险和任务类型差异
 - `benchmark-engine/` 已具备压测任务与报告查询骨架：
   - Spring Boot 应用入口与独立 Maven 模块
@@ -82,10 +83,14 @@
   - `BASELINE` / `COMPARISON` / `REGRESSION_GUARD` 三类压测任务实体
   - 生命周期状态、处理阶段流转、影子环境模式、只读要求、脱敏要求和阈值模型
   - `POST /api/benchmark-engine/tasks` 与 `GET /api/benchmark-engine/tasks/{taskId}` skeleton
-  - `GET /api/benchmark-engine/reports/{reportId}` skeleton，支持 `format=JSON|PDF|HTML`
-  - in-memory placeholder repository、提交流程日志、失败路径、占位报告落库、报告查询和基础测试
+  - `GET /api/benchmark-engine/reports/{reportId}` skeleton，支持 `format=JSON|PDF|HTML`，并提供 `/raw-data` 查询路径
+  - in-memory placeholder repository、header-based 鉴权、租户隔离、异步占位执行器、提交流程日志、失败路径、占位报告落库、报告查询和基础测试
   - 引擎指标快照、阈值判定结果、趋势图表、建议输出和报告实体
   - 基础模型测试、应用服务测试与控制器测试
+- 当前可观测事实已形成统一文档落点：
+  - 4 个后端服务都已暴露 `health/info/metrics/prometheus`
+  - 4 个后端服务都已具备 `logback-spring.xml` 日志基线，支持控制台、滚动文件、生产 JSON console 和敏感字段掩码
+  - `docs/deployments/observability-baseline.md` 已把当前 `logs / metrics / alerts` 事实、运维落地清单和残余缺口收口为正式文档
 - 当前已验证通过：
   - `mvn clean compile`
   - `mvn test`
@@ -140,6 +145,7 @@
 - 查询执行服务已建立独立模块骨架、公共 HTTP DTO/VO/错误码、最小同步执行闭环，以及本地流程日志与 timeout/fallback 恢复标记；真实治理调用、真实引擎适配器和跨服务审计补偿仍待 `Phase-D` 后续任务补齐。
 - SQL 优化服务已建立独立模块与提交/轮询 API skeleton，但 MySQL 持久化、队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
 - Phase-D 核心追溯链已在 `governance` 内完成 schema、migration、entity 与 mapper XML 固化，且 `audit/write` 与 header-based stateless auth 已接入真实 `audit_log` 落库；当前敏感字段加密基线已进入共享组件和治理受保护持久化入口，但查询执行、SQL 优化、压测引擎等其他服务的主动上报链仍待后续任务补齐。
+- 当前虽已形成 observability 文档基线，但仓库内仍未实现业务级 Micrometer 指标、仓库内 PrometheusRule / Alertmanager / Grafana 配置、以及统一日志采集 pipeline 模板。
 - 访问控制当前仍是“最小租户校验基线”，尚未形成完整角色矩阵和数据源授权实现。
 - `KAFKA` 模式虽已接入真实客户端，但尚未沉淀真实 Kafka 集群运行验证、鉴权和安全参数配置证据。
 - 治理扩展点当前仍以租户范围、数据源访问、审计写入、调度状态契约为主，未演进为完整治理中心能力。
