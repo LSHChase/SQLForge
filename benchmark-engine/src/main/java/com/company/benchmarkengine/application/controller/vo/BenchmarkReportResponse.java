@@ -2,6 +2,7 @@ package com.company.benchmarkengine.application.controller.vo;
 
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdVerdict;
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import java.time.Instant;
 import java.util.List;
 
@@ -13,9 +14,15 @@ public class BenchmarkReportResponse {
     private final String sqlFingerprint;
     private final BenchmarkThresholdVerdict verdict;
     private final Instant generatedAt;
+    private final List<DataSourceTypeEnum> targetEngines;
     private final List<BenchmarkEngineMetricVO> engineResults;
     private final List<BenchmarkThresholdAssessmentVO> thresholdAssessments;
+    private final List<BenchmarkTrendChartVO> trendCharts;
     private final List<BenchmarkRecommendationVO> recommendations;
+    private final String requestedFormat;
+    private final List<String> availableFormats;
+    private final String reportQueryPath;
+    private final String rawDataDownloadPath;
     private final String contractStage;
     private final String implementationStage;
 
@@ -25,9 +32,15 @@ public class BenchmarkReportResponse {
                                    String sqlFingerprint,
                                    BenchmarkThresholdVerdict verdict,
                                    Instant generatedAt,
+                                   List<DataSourceTypeEnum> targetEngines,
                                    List<BenchmarkEngineMetricVO> engineResults,
                                    List<BenchmarkThresholdAssessmentVO> thresholdAssessments,
+                                   List<BenchmarkTrendChartVO> trendCharts,
                                    List<BenchmarkRecommendationVO> recommendations,
+                                   String requestedFormat,
+                                   List<String> availableFormats,
+                                   String reportQueryPath,
+                                   String rawDataDownloadPath,
                                    String contractStage,
                                    String implementationStage) {
         this.reportId = reportId;
@@ -36,9 +49,15 @@ public class BenchmarkReportResponse {
         this.sqlFingerprint = sqlFingerprint;
         this.verdict = verdict;
         this.generatedAt = generatedAt;
+        this.targetEngines = targetEngines;
         this.engineResults = engineResults;
         this.thresholdAssessments = thresholdAssessments;
+        this.trendCharts = trendCharts;
         this.recommendations = recommendations;
+        this.requestedFormat = requestedFormat;
+        this.availableFormats = availableFormats;
+        this.reportQueryPath = reportQueryPath;
+        this.rawDataDownloadPath = rawDataDownloadPath;
         this.contractStage = contractStage;
         this.implementationStage = implementationStage;
     }
@@ -67,6 +86,10 @@ public class BenchmarkReportResponse {
         return generatedAt;
     }
 
+    public List<DataSourceTypeEnum> getTargetEngines() {
+        return targetEngines;
+    }
+
     public List<BenchmarkEngineMetricVO> getEngineResults() {
         return engineResults;
     }
@@ -75,8 +98,28 @@ public class BenchmarkReportResponse {
         return thresholdAssessments;
     }
 
+    public List<BenchmarkTrendChartVO> getTrendCharts() {
+        return trendCharts;
+    }
+
     public List<BenchmarkRecommendationVO> getRecommendations() {
         return recommendations;
+    }
+
+    public String getRequestedFormat() {
+        return requestedFormat;
+    }
+
+    public List<String> getAvailableFormats() {
+        return availableFormats;
+    }
+
+    public String getReportQueryPath() {
+        return reportQueryPath;
+    }
+
+    public String getRawDataDownloadPath() {
+        return rawDataDownloadPath;
     }
 
     public String getContractStage() {

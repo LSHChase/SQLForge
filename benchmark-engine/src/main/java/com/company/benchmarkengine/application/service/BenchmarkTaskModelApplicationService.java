@@ -9,6 +9,9 @@ import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResp
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskErrorVO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskStatusResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskSubmitResponse;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkTrendChartVO;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkTrendPointVO;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkTrendSeriesVO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkThresholdAssessmentVO;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkEngineProfile;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendation;
@@ -36,8 +39,10 @@ public class BenchmarkTaskModelApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
     private static final String TASK_IMPLEMENTATION_STAGE = "ASYNC_TASK_API_SKELETON";
-    private static final String REPORT_IMPLEMENTATION_STAGE = "MODEL_BASELINE";
+    private static final String REPORT_IMPLEMENTATION_STAGE = "REPORT_QUERY_API_SKELETON";
     private static final String STATUS_QUERY_PATH_TEMPLATE = "/api/benchmark-engine/tasks/%s";
+    private static final String REPORT_QUERY_PATH_TEMPLATE = "/api/benchmark-engine/reports/%s";
+    private static final String RAW_DATA_PATH_TEMPLATE = "/api/benchmark-engine/reports/%s/raw-data";
 
     public BenchmarkTask createQueuedTask(BenchmarkTaskSubmitRequest request, String taskId, Instant submittedAt) {
         BenchmarkTaskContextDTO taskContext = request.getTaskContext() == null
@@ -120,9 +125,15 @@ public class BenchmarkTaskModelApplicationService {
             report.getSqlFingerprint(),
             report.getVerdict(),
             report.getGeneratedAt(),
+            toTargetEngines(report.getEngineProfiles()),
             toEngineMetricVOs(report.getEngineProfiles()),
             toThresholdAssessmentVOs(report.getThresholdAssessments()),
+            buildTrendCharts(report.getEngineProfiles()),
             toRecommendationVOs(report.getRecommendations()),
+            "JSON",
+            Arrays.asList("JSON", "PDF", "HTML"),
+            buildReportQueryPath(report.getReportId()),
+            buildRawDataDownloadPath(report.getReportId()),
             CONTRACT_STAGE,
             REPORT_IMPLEMENTATION_STAGE
         );
@@ -130,6 +141,14 @@ public class BenchmarkTaskModelApplicationService {
 
     private String buildStatusQueryPath(String taskId) {
         return String.format(STATUS_QUERY_PATH_TEMPLATE, taskId);
+    }
+
+    private String buildReportQueryPath(String reportId) {
+        return String.format(REPORT_QUERY_PATH_TEMPLATE, reportId);
+    }
+
+    private String buildRawDataDownloadPath(String reportId) {
+        return String.format(RAW_DATA_PATH_TEMPLATE, reportId);
     }
 
     private BenchmarkTaskErrorVO toErrorVO(BenchmarkTaskError error) {
@@ -193,6 +212,17 @@ public class BenchmarkTaskModelApplicationService {
             );
         }
         return Collections.unmodifiableList(profiles);
+    }
+
+    private List<DataSourceTypeEnum> toTargetEngines(List<BenchmarkEngineProfile> engineProfiles) {
+        if (engineProfiles == null || engineProfiles.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<DataSourceTypeEnum> targetEngines = new ArrayList<DataSourceTypeEnum>(engineProfiles.size());
+        for (BenchmarkEngineProfile engineProfile : engineProfiles) {
+            targetEngines.add(engineProfile.getEngine());
+        }
+        return Collections.unmodifiableList(targetEngines);
     }
 
     private String buildEngineNote(BenchmarkTaskType taskType, int index) {
@@ -357,6 +387,93 @@ public class BenchmarkTaskModelApplicationService {
         return Collections.unmodifiableList(items);
     }
 
+    private List<BenchmarkTrendChartVO> buildTrendCharts(List<BenchmarkEngineProfile> engineProfiles) {
+        return Arrays.asList(
+            buildLatencyDistributionChart(engineProfiles),
+            buildThroughputTimelineChart(engineProfiles),
+            buildResourceUsageChart(engineProfiles)
+        );
+    }
+
+    private BenchmarkTrendChartVO buildLatencyDistributionChart(List<BenchmarkEngineProfile> engineProfiles) {
+        List<BenchmarkTrendSeriesVO> series = new ArrayList<BenchmarkTrendSeriesVO>(engineProfiles.size());
+        for (BenchmarkEngineProfile profile : engineProfiles) {
+            series.add(
+                new BenchmarkTrendSeriesVO(
+                    profile.getEngine().name(),
+                    Arrays.asList(
+                        new BenchmarkTrendPointVO("P50", profile.getP50LatencyMs()),
+                        new BenchmarkTrendPointVO("P95", profile.getP95LatencyMs()),
+                        new BenchmarkTrendPointVO("P99", profile.getP99LatencyMs())
+                    )
+                )
+            );
+        }
+        return new BenchmarkTrendChartVO(
+            "LATENCY_DISTRIBUTION_HISTOGRAM",
+            "Latency distribution",
+            "Percentile bucket",
+            "Latency (ms)",
+            Collections.unmodifiableList(series)
+        );
+    }
+
+    private BenchmarkTrendChartVO buildThroughputTimelineChart(List<BenchmarkEngineProfile> engineProfiles) {
+        List<BenchmarkTrendSeriesVO> series = new ArrayList<BenchmarkTrendSeriesVO>(engineProfiles.size());
+        for (BenchmarkEngineProfile profile : engineProfiles) {
+            series.add(
+                new BenchmarkTrendSeriesVO(
+                    profile.getEngine().name(),
+                    Arrays.asList(
+                        new BenchmarkTrendPointVO("T+0", scaled(profile.getActualQps(), "0.78")),
+                        new BenchmarkTrendPointVO("T+60", scaled(profile.getActualQps(), "0.92")),
+                        new BenchmarkTrendPointVO("T+120", profile.getActualQps())
+                    )
+                )
+            );
+        }
+        return new BenchmarkTrendChartVO(
+            "THROUGHPUT_TIME_SERIES",
+            "Throughput timeline",
+            "Elapsed time",
+            "QPS",
+            Collections.unmodifiableList(series)
+        );
+    }
+
+    private BenchmarkTrendChartVO buildResourceUsageChart(List<BenchmarkEngineProfile> engineProfiles) {
+        List<BenchmarkTrendSeriesVO> series = new ArrayList<BenchmarkTrendSeriesVO>(engineProfiles.size() * 2);
+        for (BenchmarkEngineProfile profile : engineProfiles) {
+            series.add(
+                new BenchmarkTrendSeriesVO(
+                    profile.getEngine().name() + " CPU",
+                    Arrays.asList(
+                        new BenchmarkTrendPointVO("Warmup", scaled(profile.getCpuUsagePercent(), "0.72")),
+                        new BenchmarkTrendPointVO("Steady", scaled(profile.getCpuUsagePercent(), "0.88")),
+                        new BenchmarkTrendPointVO("Peak", profile.getCpuUsagePercent())
+                    )
+                )
+            );
+            series.add(
+                new BenchmarkTrendSeriesVO(
+                    profile.getEngine().name() + " Memory",
+                    Arrays.asList(
+                        new BenchmarkTrendPointVO("Warmup", scaled(profile.getMemoryUsageMb(), "0.67")),
+                        new BenchmarkTrendPointVO("Steady", scaled(profile.getMemoryUsageMb(), "0.84")),
+                        new BenchmarkTrendPointVO("Peak", profile.getMemoryUsageMb())
+                    )
+                )
+            );
+        }
+        return new BenchmarkTrendChartVO(
+            "RESOURCE_USAGE_CURVE",
+            "Resource usage curve",
+            "Benchmark stage",
+            "Resource value",
+            Collections.unmodifiableList(series)
+        );
+    }
+
     private List<BenchmarkRecommendationVO> toRecommendationVOs(List<BenchmarkRecommendation> recommendations) {
         if (recommendations == null || recommendations.isEmpty()) {
             return Collections.emptyList();
@@ -374,5 +491,9 @@ public class BenchmarkTaskModelApplicationService {
             );
         }
         return Collections.unmodifiableList(items);
+    }
+
+    private BigDecimal scaled(BigDecimal value, String factor) {
+        return value.multiply(new BigDecimal(factor)).setScale(2, BigDecimal.ROUND_HALF_UP);
     }
 }

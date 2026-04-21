@@ -107,10 +107,14 @@ class BenchmarkTaskModelApplicationServiceTest {
 
         assertEquals(BenchmarkThresholdVerdict.WARNING, response.getVerdict());
         assertEquals(2, response.getEngineResults().size());
+        assertEquals(2, response.getTargetEngines().size());
         assertEquals(3, response.getThresholdAssessments().size());
+        assertEquals(3, response.getTrendCharts().size());
         assertEquals(BenchmarkThresholdVerdict.WARNING, response.getThresholdAssessments().get(2).getVerdict());
+        assertEquals("JSON", response.getRequestedFormat());
+        assertEquals("/api/benchmark-engine/reports/report-benchmark-task-003", response.getReportQueryPath());
         assertEquals("ENGINE_SELECTION", response.getRecommendations().get(0).getCategory());
-        assertEquals("MODEL_BASELINE", response.getImplementationStage());
+        assertEquals("REPORT_QUERY_API_SKELETON", response.getImplementationStage());
     }
 
     @Test
@@ -146,6 +150,7 @@ class BenchmarkTaskModelApplicationServiceTest {
 
         assertEquals(BenchmarkThresholdVerdict.FAIL, response.getVerdict());
         assertEquals(BenchmarkThresholdVerdict.FAIL, response.getThresholdAssessments().get(0).getVerdict());
+        assertEquals("RESOURCE_USAGE_CURVE", response.getTrendCharts().get(2).getChartType());
         assertEquals("REGRESSION_GATE", response.getRecommendations().get(0).getCategory());
     }
 

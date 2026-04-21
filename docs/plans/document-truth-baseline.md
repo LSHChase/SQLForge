@@ -69,14 +69,15 @@
   - `POST /api/sql-optimization/tasks` 与 `GET /api/sql-optimization/tasks/{taskId}` skeleton
   - in-memory placeholder repository、提交流程日志、失败路径和基础测试
   - `suggestion / failure` 结构化输出，当前已覆盖收益、成本、风险和任务类型差异
-- `benchmark-engine/` 已具备压测任务提交/轮询骨架：
+- `benchmark-engine/` 已具备压测任务与报告查询骨架：
   - Spring Boot 应用入口与独立 Maven 模块
   - `application` 包域下的 controller / DTO / VO / service 与 `domain` / `infrastructure` / `config` 分层骨架
   - `BASELINE` / `COMPARISON` / `REGRESSION_GUARD` 三类压测任务实体
   - 生命周期状态、处理阶段流转、影子环境模式、只读要求、脱敏要求和阈值模型
   - `POST /api/benchmark-engine/tasks` 与 `GET /api/benchmark-engine/tasks/{taskId}` skeleton
-  - in-memory placeholder repository、提交流程日志、失败路径、占位报告落库和基础测试
-  - 引擎指标快照、阈值判定结果、建议输出和报告实体
+  - `GET /api/benchmark-engine/reports/{reportId}` skeleton，支持 `format=JSON|PDF|HTML`
+  - in-memory placeholder repository、提交流程日志、失败路径、占位报告落库、报告查询和基础测试
+  - 引擎指标快照、阈值判定结果、趋势图表、建议输出和报告实体
   - 基础模型测试、应用服务测试与控制器测试
 - 当前已验证通过：
   - `mvn clean compile`
@@ -128,7 +129,7 @@
 
 ## Immediate Pending Gaps
 
-- 压测引擎服务已建立独立 `benchmark-engine` 模块与提交/轮询 API skeleton，但真实执行链路和报告查询接口仍待 `Phase-D` 后续任务补齐。
+- 压测引擎服务已建立独立 `benchmark-engine` 模块与提交/轮询/报告查询 API skeleton，但真实执行链路、真实导出链路和跨服务协同仍待 `Phase-D` 后续任务补齐。
 - 查询执行服务已建立独立模块骨架、公共 HTTP DTO/VO/错误码、最小同步执行闭环，以及本地流程日志与 timeout/fallback 恢复标记；真实治理调用、真实引擎适配器和跨服务审计补偿仍待 `Phase-D` 后续任务补齐。
 - SQL 优化服务已建立独立模块与提交/轮询 API skeleton，但 MySQL 持久化、队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
 - 访问控制当前仍是“最小租户校验基线”，尚未形成完整角色矩阵和数据源授权实现。

@@ -27,7 +27,7 @@
   - SQL 优化服务
   - 压测引擎服务
   - 公共管理服务
-- 当前已有公共管理服务方向的 `governance` 基线、查询执行服务方向的 `query-execution` 边界骨架、SQL 优化服务方向的 `sql-optimization` 提交/轮询 API skeleton，以及压测引擎服务方向的 `benchmark-engine` 提交/轮询 API skeleton。
+- 当前已有公共管理服务方向的 `governance` 基线、查询执行服务方向的 `query-execution` 边界骨架、SQL 优化服务方向的 `sql-optimization` 提交/轮询 API skeleton，以及压测引擎服务方向的 `benchmark-engine` 提交/轮询/报告查询 API skeleton。
 
 ## 3. C4 Level 1: System Context
 
@@ -53,7 +53,7 @@ SQLForge 面向多租户数据平台治理、查询执行、SQL 优化与压测�
 | `governance` | 公共管理服务阶段性基线，承载治理接口、租户配置、消息治理、请求上下文与基础能力 | Current |
 | `query-execution` | 查询执行服务边界骨架，固化路由、执行控制、轻量解析、轻量改写和已批准加速配置应用的承载位置 | Current baseline |
 | `sql-optimization` | SQL 优化服务提交/轮询 API skeleton，固化异步任务类型、状态流转、占位 repository 和提交/轮询契约对象 | Current baseline |
-| `benchmark-engine` | 压测引擎服务提交/轮询 API skeleton，固化压测任务、阈值、隔离约束、占位 repository 和报告契约对象 | Current baseline |
+| `benchmark-engine` | 压测引擎服务提交/轮询/报告查询 API skeleton，固化压测任务、阈值、隔离约束、占位 repository 和报告契约对象 | Current baseline |
 | `sqlforge-shared` | 共享错误码、上下文、异常、审计契约、配置常量、日志与工具能力 | Current |
 | MySQL / 存储表结构 | 配置、治理、消息、审计等数据持久化 | Current |
 | Kafka / 消息抽象通道 | 生产消息总线，支持治理与异步事件 | Current baseline + Target production |
@@ -114,7 +114,7 @@ SQLForge 面向多租户数据平台治理、查询执行、SQL 优化与压测�
 ### 5.5 `benchmark-engine`
 
 - `application/`
-  - 作为入站与编排代码包域，承载压测任务 controller、提交 DTO、任务状态 VO、报告 VO 和应用 service
+  - 作为入站与编排代码包域，承载压测任务 controller、报告 controller、提交 DTO、任务状态 VO、报告 VO 和应用 service
   - 实际分层仍以 `controller`、`service` 为准，不把 `application` 单独视为一层
 - `domain/`
   - 压测任务实体、任务类型、生命周期状态、处理阶段流转、阈值评估、影子环境/只读/脱敏约束和报告实体

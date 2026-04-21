@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-010: 实现压测报告查询接口
+
+- Status: done
+- Priority: 1
+- Depends on: D-TASK-009
+- Completed at: 2026-04-21
+- Commit subject: `feat(benchmark-engine): D-TASK-010 add report query api skeleton`
+- Scope: 在 `benchmark-engine` 中补 `GET /api/benchmark-engine/reports/{reportId}`，基于已落库的 placeholder `BenchmarkReport` 打通 JSON / PDF / HTML 三种查询形态；同步固化趋势图表、格式元数据、查询路径和原始数据下载占位路径，不提前接入真实导出引擎、文件存储或真实执行链路。
+- Validation:
+  - 报告 JSON/PDF/HTML/404/非法格式测试
+  - `mvn -B -pl benchmark-engine -am clean compile`
+  - `mvn -B -pl benchmark-engine -am test`
+  - `mvn -B -pl benchmark-engine -am validate pmd:pmd checkstyle:check`
+  - `node scripts/check-frontend-backend-separation.js`
+  - `node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/task_audit.py --check`
+- Progress log:
+  - 2026-04-21: instantiated from `Phase-D / D-STORY-003` after `D-TASK-009` stabilized placeholder task submit/poll flow and report persistence.
+  - 2026-04-21: added `BenchmarkReportController` and `BenchmarkReportApplicationService` so `benchmark-engine` now exposes `GET /api/benchmark-engine/reports/{reportId}` with `format=JSON|PDF|HTML`.
+  - 2026-04-21: upgraded `BenchmarkReportResponse` from model-only payload to report-query baseline by adding target engines, trend charts, available formats, report query path, and raw-data download placeholder path.
+  - 2026-04-21: kept JSON as the structured default response, and rendered PDF / HTML as placeholder export bodies with stable content type and `Content-Disposition` metadata so later real templates can replace the renderer without reshaping the HTTP contract.
+  - 2026-04-21: extended controller and service tests to cover JSON success, PDF success, HTML success, missing report 404, and invalid format 400, then synced README, interface baseline, capability map, truth baseline, C4, init summary, repo map, and validation log to `REPORT_QUERY_API_SKELETON`.
+
 ### D-TASK-009: 实现压测任务提交流程骨架
 
 - Status: done

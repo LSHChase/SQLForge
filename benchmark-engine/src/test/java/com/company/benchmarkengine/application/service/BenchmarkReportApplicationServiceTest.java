@@ -1,0 +1,82 @@
+package com.company.benchmarkengine.application.service;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
+import com.company.benchmarkengine.infrastructure.repository.InMemoryBenchmarkTaskRepository;
+import com.company.sqlforge.common.exception.BizException;
+import java.time.Instant;
+import org.junit.jupiter.api.Test;
+
+class BenchmarkReportApplicationServiceTest {
+
+    @Test
+    void shouldRenderPdfAndHtmlPlaceholderContent() {
+        BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
+        InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
+        BenchmarkReportApplicationService service = new BenchmarkReportApplicationService(modelService, repository);
+        BenchmarkReport report = storeReport(modelService, repository, "benchmark-report-001");
+
+        BenchmarkRenderedReport pdf = service.renderReport(report.getReportId(), BenchmarkReportFormat.PDF);
+        BenchmarkRenderedReport html = service.renderReport(report.getReportId(), BenchmarkReportFormat.HTML);
+
+        assertEquals("application/pdf", pdf.getMediaType().toString());
+        assertTrue(new String(pdf.getContent()).startsWith("%PDF-1.4"));
+        assertTrue(new String(pdf.getContent()).contains(report.getReportId()));
+
+        assertEquals("text/html", html.getMediaType().toString());
+        assertTrue(new String(html.getContent()).contains("SQLForge Benchmark Report"));
+        assertTrue(new String(html.getContent()).contains(report.getReportId()));
+    }
+
+    @Test
+    void shouldRejectUnknownFormatAndMissingReport() {
+        BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
+        InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
+        BenchmarkReportApplicationService service = new BenchmarkReportApplicationService(modelService, repository);
+
+        BizException invalidFormat = assertThrows(BizException.class, () -> service.parseFormat("CSV"));
+        BizException missingReport = assertThrows(BizException.class, () -> service.getJsonReport("missing-report"));
+
+        assertEquals(Integer.valueOf(10001), Integer.valueOf(invalidFormat.getCode()));
+        assertEquals(Integer.valueOf(23002), Integer.valueOf(missingReport.getCode()));
+    }
+
+    private BenchmarkReport storeReport(BenchmarkTaskModelApplicationService modelService,
+                                        InMemoryBenchmarkTaskRepository repository,
+                                        String taskId) {
+        BenchmarkTask task = modelService.createQueuedTask(
+            baseRequest(),
+            taskId,
+            Instant.parse("2026-04-21T00:00:00Z")
+        );
+        task.markRunning(Instant.parse("2026-04-21T00:00:01Z"));
+        task.advancePhase(com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase.WARMING_UP, 35, "WARMUP");
+        task.advancePhase(com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase.EXECUTING, 60, "RUNNING");
+        task.advancePhase(
+            com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase.THRESHOLD_EVALUATING,
+            82,
+            "THRESHOLDS"
+        );
+        task.advancePhase(com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase.REPORTING, 96, "REPORTING");
+        task.markSucceeded("report-" + taskId, Instant.parse("2026-04-21T00:00:10Z"));
+        BenchmarkReport report = modelService.buildPlaceholderReport(task, Instant.parse("2026-04-21T00:00:11Z"));
+        repository.saveReport(report);
+        return report;
+    }
+
+    private BenchmarkTaskSubmitRequest baseRequest() {
+        BenchmarkTaskSubmitRequest request = new BenchmarkTaskSubmitRequest();
+        request.setTenantId("tenant-a");
+        request.setTaskType(BenchmarkTaskType.BASELINE);
+        request.setSqlText("SELECT * FROM orders");
+        request.setSqlFingerprint("fp-report-query");
+        return request;
+    }
+}
