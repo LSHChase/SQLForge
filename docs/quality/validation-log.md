@@ -140,3 +140,11 @@
 2026-04-20T21:06:12-05:00 | OPS-NAME-001 closeout knowledge | `R-131`, `R-133`, `R-161`, `R-167` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-20T21:06:12-05:00 | OPS-NAME-001 closeout naming-scan | `R-167` | passed | repo-wide `rg` confirms old engineering names remain only in the archived task scope and the explicit historical-name mapping table
 2026-04-20T21:06:12-05:00 | OPS-NAME-001 closeout layering-wording-scan | `R-020`, `R-021`, `R-167` | passed | repo-wide `rg` found no remaining wording that treats `application` as a peer runtime layer beside `controller` and `service`
+2026-04-20T21:25:41-05:00 | D-TASK-005 closeout compile | `R-119`, `R-121` | passed | `mvn -B clean compile`
+2026-04-20T21:25:41-05:00 | D-TASK-005 closeout test | `R-119`, `R-121` | passed | `mvn -B test`
+2026-04-20T21:25:41-05:00 | D-TASK-005 closeout static-check | `R-040`, `R-121` | passed | `mvn -B validate pmd:pmd checkstyle:check`
+2026-04-20T21:25:41-05:00 | D-TASK-005 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
+2026-04-20T21:25:41-05:00 | D-TASK-005 closeout knowledge | `R-121`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T21:25:41-05:00 | D-TASK-005 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T21:25:41-05:00 | D-TASK-005 closeout state-flow-coverage | `R-121`, `R-042` | passed | `OptimizationTaskStateFlowTest` covers rewrite happy path, invalid acceleration phase shortcut, and queued cancellation
+2026-04-20T21:25:41-05:00 | D-TASK-005 closeout contract-doc-sync | `R-121`, `R-126`, `R-133` | passed | `sql-optimization` module, task-model DTO/VO, error codes, truth baseline, C4, capability map, interface baseline, and repo map synced to the new SQL optimization carrier

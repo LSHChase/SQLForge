@@ -32,10 +32,11 @@
   - `package.json`
   - `vite.config.js`
   - `src/`
-- Maven 聚合工程存在三个后端模块：
+- Maven 聚合工程存在四个后端模块：
   - `sqlforge-shared/`
   - `governance/`
   - `query-execution/`
+  - `sql-optimization/`
 - `sqlforge-shared/` 已承载共享底座基线：
   - 统一错误码常量
   - 请求/租户上下文
@@ -59,6 +60,12 @@
   - `JDBC` / `REST` / `CLIENT` 三种 Hetu 访问模式的承载边界
   - 独立多环境配置与日志配置骨架
   - 基础单元测试
+- `sql-optimization/` 已具备 SQL 优化任务模型基线：
+  - Spring Boot 应用入口与独立 Maven 模块
+  - `application` 包域下的 DTO / VO / service 与 `domain` / `infrastructure` / `config` 分层骨架
+  - `PARSE` / `REWRITE` / `ACCELERATION_SUGGESTION` 三类异步优化任务实体
+  - 生命周期状态、处理阶段流转、优先级、解析深度和加速建议类型的领域模型
+  - 提交响应 / 状态响应契约对象与基础单元测试
 - 当前已验证通过：
   - `mvn clean compile`
   - `mvn test`
@@ -109,8 +116,9 @@
 
 ## Immediate Pending Gaps
 
-- SQL 优化服务、压测引擎服务仍未建立独立代码模块。
+- 压测引擎服务仍未建立独立代码模块。
 - 查询执行服务已建立独立模块骨架、公共 HTTP DTO/VO/错误码、最小同步执行闭环，以及本地流程日志与 timeout/fallback 恢复标记；真实治理调用、真实引擎适配器和跨服务审计补偿仍待 `Phase-D` 后续任务补齐。
+- SQL 优化服务已建立独立模块与任务模型骨架，但任务提交/轮询 HTTP 入口、MySQL 持久化、队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
 - 访问控制当前仍是“最小租户校验基线”，尚未形成完整角色矩阵和数据源授权实现。
 - `KAFKA` 模式虽已接入真实客户端，但尚未沉淀真实 Kafka 集群运行验证、鉴权和安全参数配置证据。
 - 治理扩展点当前仍以租户范围、数据源访问、审计写入、调度状态契约为主，未演进为完整治理中心能力。

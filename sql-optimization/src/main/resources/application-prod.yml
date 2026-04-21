@@ -1,0 +1,10 @@
+logging:
+  level:
+    root: INFO
+    com.company.sqloptimization: INFO
+
+sql-optimization:
+  callbacks:
+    enabled: true
+  queues:
+    mode: managed

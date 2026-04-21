@@ -9,7 +9,7 @@
 | Final service | Core responsibilities | Current carrier | Current state |
 |:---|:---|:---|:---|
 | 查询执行服务 | 查询提交、路由、缓存、轻量解析、轻量改写、执行控制、结果聚合 | `query-execution` | Partial |
-| SQL 优化服务 | 异步深度解析、改写建议、加速建议、成本估算、物化视图策略 | 尚未建立独立模块 | Pending |
+| SQL 优化服务 | 异步深度解析、改写建议、加速建议、成本估算、物化视图策略 | `sql-optimization` | Partial |
 | 压测引擎服务 | 压测任务、调度、并行执行、报告生成、隔离控制 | 尚未建立独立模块 | Pending |
 | 公共管理服务 | 租户、配额、数据源、审计、合规、元数据、调度、平台治理 | `governance` | Partial |
 
@@ -59,6 +59,20 @@
 - 同步联机查询主链路
 - 租户、数据源和审计主数据管理
 - 压测调度
+
+当前由 `sql-optimization` 承载的最小实现包括：
+
+- Spring Boot 应用入口和独立 Maven 模块
+- `application` / `domain` / `infrastructure` / `config` 分层骨架
+- `PARSE` / `REWRITE` / `ACCELERATION_SUGGESTION` 三类异步优化任务模型
+- `QUEUED` / `RUNNING` / `SUCCEEDED` / `FAILED` / `CANCELLED` 生命周期状态与类型感知的处理阶段流转
+- 面向后续提交/轮询接口的基础 DTO / VO 与错误码区间固化
+
+当前还未完整承载：
+
+- 任务提交与状态查询 HTTP 入口
+- MySQL 持久化、队列调度和回调通知
+- 建议结果明细、审批协同与物化视图治理
 
 ## 3. 压测引擎服务
 

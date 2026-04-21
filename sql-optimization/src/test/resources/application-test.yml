@@ -1,0 +1,8 @@
+spring:
+  profiles:
+    active: test
+
+auth:
+  enabled: false
+  trusted-auth-sources:
+    - header

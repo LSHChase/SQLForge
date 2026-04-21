@@ -7,6 +7,7 @@ public final class ServiceCodeConstants {
 
     public static final String GOVERNANCE = "GOVERNANCE";
     public static final String QUERY_EXECUTION = "QUERY_EXECUTION";
+    public static final String SQL_OPTIMIZATION = "SQL_OPTIMIZATION";
 
     private ServiceCodeConstants() {
     }

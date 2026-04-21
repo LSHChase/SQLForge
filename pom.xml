@@ -13,6 +13,7 @@
 
     <modules>
         <module>query-execution</module>
+        <module>sql-optimization</module>
         <module>sqlforge-shared</module>
         <module>governance</module>
     </modules>

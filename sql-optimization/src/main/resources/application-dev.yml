@@ -1,0 +1,15 @@
+logging:
+  level:
+    root: DEBUG
+    com.company.sqloptimization: DEBUG
+
+auth:
+  enabled: false
+  trusted-auth-sources:
+    - header
+
+sql-optimization:
+  callbacks:
+    enabled: false
+  queues:
+    mode: local-placeholder

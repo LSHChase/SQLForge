@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: sql-optimization
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+server:
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.company.sqloptimization: INFO
+
+sql-optimization:
+  parser:
+    strategy: OPEN_SOURCE_ABSTRACTION_FOR_DEEP_OPTIMIZATION
+  task-model:
+    isolated-queue: true
+    contract-stage: LONG_TERM_BASELINE
+    implementation-stage: TASK_MODEL_BASELINE

@@ -65,7 +65,7 @@
 | 查询执行服务 -> 公共管理服务 | HTTP | 公共管理服务 | `TenantScopeCheckRequest/Response`, `DatasourceAccessCheckRequest/Response`, `QuotaCheckRequest/Response`, `AuditWriteRequest/Response` | Partial |
 | SQL 优化服务 -> 公共管理服务 | HTTP | 公共管理服务 | `OptimizationApprovalCheckRequest/Response`, `MetadataLookupRequest/Response`, `AuditWriteRequest/Response` | Partial |
 | 压测引擎服务 -> 公共管理服务 | HTTP | 公共管理服务 | `BenchmarkAuthorizationRequest/Response`, `ShadowEnvironmentCheckRequest/Response`, `AuditWriteRequest/Response` | Partial |
-| 查询执行服务 -> SQL 优化服务 | HTTP / async callback | SQL 优化服务 | `OptimizationTaskSubmitRequest/Response`, `OptimizationTaskStatusResponse`, `AccelerationPlanApplyRequest/Response` | Planned |
+| 查询执行服务 -> SQL 优化服务 | HTTP / async callback | SQL 优化服务 | `OptimizationTaskSubmitRequest/Response`, `OptimizationTaskStatusResponse`, `AccelerationPlanApplyRequest/Response` | Task-model baseline |
 | 压测引擎服务 -> 查询执行服务 | HTTP | 查询执行服务 | `QueryFingerprintLookupRequest/Response`, `RoutingRuleSnapshotRequest/Response` | Planned |
 
 规则：
@@ -143,6 +143,71 @@
   - timeout: `LOCAL_TIMEOUT_ROLLBACK_MARKED` + `CLOSE_PRIMARY_ATTEMPT_CONTEXT`
   - fallback: `LOCAL_FALLBACK_COMPENSATION_MARKED` + `RECORD_DEGRADED_RESULT`
 - 当前实现仍不代表真实数据库执行已经开放：真实治理调用、真实引擎适配器和跨服务审计补偿仍待后续任务补齐。
+
+## 3.2 SQL Optimization Task Contract Baseline
+
+当前 `sql-optimization` 已固化异步优化任务的基础 DTO / VO 和状态模型，供后续 `D-TASK-006` 的提交与轮询接口直接复用；当前仅冻结契约，不代表公共 HTTP 入口已经开放。
+
+当前 `OptimizationTaskSubmitRequest` 基线字段如下：
+
+- `tenantId`：必填
+- `taskType`：必填，当前固定为 `PARSE` / `REWRITE` / `ACCELERATION_SUGGESTION`
+- `sqlText` / `sqlFingerprint`：二选一至少提供一个
+- `datasourceType`：必填，当前沿用共享枚举
+- `taskContext.parseDepth`：`LIGHT` / `DEEP`，默认 `DEEP`
+- `taskContext.priority`：`HIGH` / `NORMAL` / `LOW`，默认 `NORMAL`
+- `taskContext.callbackUrl`：可选
+- `taskContext.requestedSuggestionTypes`：仅 `ACCELERATION_SUGGESTION` 任务允许传入；为空时按 `ALL` 归一
+
+当前 `OptimizationTaskSubmitResponse` / `OptimizationTaskStatusResponse` 基线字段如下：
+
+- `taskId`
+- `status`
+- `currentPhase`
+- `estimatedReadyAt`
+- `statusQueryPath`
+- `progressPercent`
+- `requestedSuggestionTypes`
+- `summary`
+- `error.code`
+- `error.message`
+- `error.suggestedAction`
+- `error.retryable`
+- `submittedAt`
+- `startedAt`
+- `finishedAt`
+- `statusHistory[].previousStatus`
+- `statusHistory[].currentStatus`
+- `statusHistory[].previousPhase`
+- `statusHistory[].currentPhase`
+- `statusHistory[].occurredAt`
+- `statusHistory[].note`
+- `contractStage`
+- `implementationStage`
+
+当前异步优化任务的公共状态与阶段基线如下：
+
+- 生命周期状态：`QUEUED` / `RUNNING` / `SUCCEEDED` / `FAILED` / `CANCELLED`
+- 通用起止阶段：`SUBMITTED` -> `FINISHED`
+- `PARSE`：`SUBMITTED` -> `DEEP_PARSING` -> `RESULT_ASSEMBLING` -> `FINISHED`
+- `REWRITE`：`SUBMITTED` -> `DEEP_PARSING` -> `SQL_REWRITING` -> `RESULT_ASSEMBLING` -> `FINISHED`
+- `ACCELERATION_SUGGESTION`：`SUBMITTED` -> `DEEP_PARSING` -> `COST_ESTIMATING` -> `ACCELERATION_PLANNING` -> `RESULT_ASSEMBLING` -> `FINISHED`
+
+当前固定的 SQL 优化错误码首轮落点：
+
+- `13000` `SQL_OPTIMIZATION_SYSTEM_PIPELINE_NOT_READY`
+- `13001` `SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID`
+- `13002` `SQL_OPTIMIZATION_SYSTEM_CALLBACK_CONTRACT_INVALID`
+- `22000` `SQL_OPTIMIZATION_TASK_INVALID`
+- `22001` `SQL_OPTIMIZATION_TASK_NOT_FOUND`
+- `22002` `SQL_OPTIMIZATION_TASK_ALREADY_FINISHED`
+- `22003` `SQL_OPTIMIZATION_SUGGESTION_NOT_READY`
+
+说明：
+
+- 当前 `statusQueryPath` 仅固化为后续轮询接口路径模板，不代表 `GET /api/sql-optimization/tasks/{taskId}` 已在运行时开放。
+- 当前模型已显式区分“外部生命周期状态”和“内部处理阶段”，避免把 parse / rewrite / acceleration suggestion 三类任务混成单一线性状态。
+- 当前实现仍未接入真实 MySQL 持久化、队列调度、事件回调和建议结果明细输出，这些能力继续由后续 `Phase-D` 任务补齐。
 
 ## 4. Event Contract Baseline
 
