@@ -13,13 +13,7 @@
 
 _No tasks._
 
+
 ## In Progress
-_No tasks._
-
-## In Review
-
-_No tasks._
-
-## Blocked
 
 _No tasks._

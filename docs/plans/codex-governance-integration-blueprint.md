@@ -135,7 +135,7 @@ Responsibilities:
 - classify request type (`advisory`, `trivial`, `standard`, `delivery`)
 - decide whether task binding is required
 - run or request `preflight`
-- add compact authority-aware context via `additionalContext`
+- add compact authority-aware context via `hookSpecificOutput.additionalContext`
 
 Allowed outputs:
 
@@ -158,6 +158,7 @@ Boundaries:
 
 - only intercepts Bash
 - useful guardrail, not a complete enforcement boundary
+- when a repository rule must deny execution, the hook returns the official `PreToolUse` permission contract instead of ad-hoc top-level fields
 
 #### `PermissionRequest`
 
@@ -165,6 +166,7 @@ Responsibilities:
 
 - auto-allow or auto-deny approval prompts for out-of-sandbox operations according to repository policy
 - does not handle normal in-repo governance flow
+- ordinary in-repo commands should usually pass through without overriding Codex's default approval flow
 
 #### `Stop`
 
@@ -236,6 +238,11 @@ Purpose:
 - run pre-closeout audit
 - enforce single-task commit expectations
 - run post-closeout audit
+- clean runtime state back to `idle` while preserving a compact `last_task` snapshot
+
+Closeout safety rule:
+
+- `closeout` must require explicit `--stage-path` file arguments so unrelated dirty worktree changes cannot be silently scooped into the commit
 
 ### 8.8 `delivery-closeout`
 
@@ -269,6 +276,7 @@ Minimum fields:
 
 ### 9.2 Task classes
 
+- `none` (idle runtime only)
 - `advisory`
 - `trivial`
 - `standard`
@@ -293,6 +301,7 @@ Minimum fields:
 2. `done_ready` is the earliest phase where `Stop` may escalate into closeout.
 3. `delivery_closeout` is only legal for `delivery` tasks.
 4. `blocked` requires the human-decision chain in the ledger and/or `INBOX.md`.
+5. closeout cleanup returns `current-task.json` to `phase=idle` / `status=idle`, and preserves the last archived task only in the `last_task` snapshot.
 
 ## 10. Closeout And Delivery Contract
 
@@ -306,6 +315,7 @@ Task closeout includes:
 4. pre-closeout audit
 5. single-task commit
 6. post-closeout audit
+7. runtime cleanup
 
 ### 10.2 Delivery closeout
 
@@ -334,6 +344,11 @@ If repo-local `.codex/` config or hooks are not active:
 ### 11.3 Trusted-project constraint
 
 Repo-local `.codex/config.toml` and `.codex/hooks.json` depend on the project running in a trusted Codex environment. This is an acceleration path, not a replacement for repository governance itself.
+
+Current validation path:
+
+- deterministic runtime validation via `python3 scripts/validate_codex_runtime.py`
+- real local Codex CLI verification via `codex exec --json` in a trusted project
 
 ## 12. Acceptance Gates
 

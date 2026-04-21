@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import json
-import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -60,26 +60,68 @@ def emit(payload: Dict[str, Any]) -> None:
     sys.stdout.write(json.dumps(payload, ensure_ascii=True))
 
 
-def success(additional_context: str | None = None) -> None:
-    payload: Dict[str, Any] = {}
-    if additional_context:
-        payload["additionalContext"] = additional_context
-    emit(payload)
+def emit_user_prompt_context(additional_context: str) -> None:
+    emit(
+        {
+            "hookSpecificOutput": {
+                "hookEventName": "UserPromptSubmit",
+                "additionalContext": additional_context,
+            }
+        }
+    )
 
 
-def block(reason: str) -> None:
+def emit_prompt_block(reason: str) -> None:
     emit({"decision": "block", "reason": reason})
 
 
-def allow(reason: str | None = None) -> None:
-    payload: Dict[str, Any] = {"decision": "allow"}
-    if reason:
-        payload["reason"] = reason
+def emit_pretool_deny(reason: str) -> None:
+    emit(
+        {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": reason,
+            }
+        }
+    )
+
+
+def emit_pretool_allow(system_message: str | None = None) -> None:
+    payload: Dict[str, Any] = {}
+    if system_message:
+        payload["systemMessage"] = system_message
     emit(payload)
 
 
-def deny(reason: str) -> None:
-    emit({"decision": "deny", "reason": reason})
+def emit_permission_decision(decision: str, reason: str) -> None:
+    emit(
+        {
+            "hookSpecificOutput": {
+                "hookEventName": "PermissionRequest",
+                "permissionDecision": decision,
+                "permissionDecisionReason": reason,
+            }
+        }
+    )
+
+
+def emit_permission_pass(system_message: str | None = None) -> None:
+    payload: Dict[str, Any] = {}
+    if system_message:
+        payload["systemMessage"] = system_message
+    emit(payload)
+
+
+def emit_stop_block(reason: str) -> None:
+    emit({"decision": "block", "reason": reason})
+
+
+def emit_stop_allow(system_message: str | None = None) -> None:
+    payload: Dict[str, Any] = {}
+    if system_message:
+        payload["systemMessage"] = system_message
+    emit(payload)
 
 
 def current_phase() -> str:
@@ -87,7 +129,11 @@ def current_phase() -> str:
 
 
 def current_task_class() -> str:
-    return str(load_current_task().get("task_class", "advisory"))
+    return str(load_current_task().get("task_class", "none"))
+
+
+def current_task_id() -> str:
+    return str(load_current_task().get("task_id", ""))
 
 
 def is_bound_to_ledger() -> bool:
@@ -95,7 +141,7 @@ def is_bound_to_ledger() -> bool:
 
 
 def detect_prompt_text(payload: Dict[str, Any]) -> str:
-    for key in ("prompt", "input", "message"):
+    for key in ("prompt", "input", "message", "user_prompt"):
         value = payload.get(key)
         if isinstance(value, str):
             return value
@@ -106,31 +152,28 @@ def detect_bash_command(payload: Dict[str, Any]) -> str:
     if isinstance(payload.get("command"), str):
         return payload["command"]
     tool_input = payload.get("tool_input")
-    if isinstance(tool_input, dict) and isinstance(tool_input.get("cmd"), str):
-        return tool_input["cmd"]
+    if isinstance(tool_input, dict):
+        for key in ("command", "cmd"):
+            value = tool_input.get(key)
+            if isinstance(value, str):
+                return value
     return ""
 
 
-def has_strict_stop_phase() -> bool:
-    return current_phase() in {"done_ready", "closeout", "delivery_closeout"}
-
-
-def now_iso() -> str:
-    result = subprocess.run(
-        ["date", "--iso-8601=seconds"],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
+def detect_prompt_task_id(prompt: str) -> str:
+    match = next(
+        iter(
+            re.finditer(
+                r"\b(?:[A-Z]-TASK-\d+|[A-Z]+-[A-Z0-9-]+-\d+|HARN-\d+|DOC-GOV-\d+|OPS-GOV-\d+)\b",
+                prompt,
+            )
+        ),
+        None,
     )
-    return result.stdout.strip()
+    return match.group(0) if match else ""
 
 
 def update_runtime_state(**fields: Any) -> None:
     current = load_current_task()
     current.update(fields)
     save_json(CURRENT_TASK_PATH, current)
-
-
-def env_enabled(name: str) -> bool:
-    return os.environ.get(name, "").lower() in {"1", "true", "yes", "on"}

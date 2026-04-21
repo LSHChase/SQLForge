@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from shared import allow, deny, detect_bash_command, read_stdin_json
+from shared import detect_bash_command, emit_permission_decision, emit_permission_pass, read_stdin_json
 
 
 AUTO_DENY_PATTERNS = ("git push", "gh release", "npm publish", "mvn deploy")
@@ -15,10 +15,10 @@ def main() -> int:
     lowered = command.lower()
 
     if any(pattern in lowered for pattern in AUTO_DENY_PATTERNS):
-        deny(f"Repository policy requires explicit human approval outside Codex for: {command}")
+        emit_permission_decision("deny", f"Repository policy requires explicit human approval outside Codex for: {command}")
         return 0
 
-    allow("No additional repository-specific approval override.")
+    emit_permission_pass()
     return 0
 
 

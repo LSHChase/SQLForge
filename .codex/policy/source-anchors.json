@@ -1,10 +1,16 @@
 {
   "metadata": {
-    "blueprint_sha256": "e3fbf6f482d6dc62fb3769c23b25bc9442acfeaa9ae6279dfda16f5d704b4489",
-    "active_plan_sha256": "c45d46cf45a988cde7033663c36c6972f8a911c5c78d77b214a1219a18071083"
+    "blueprint_sha256": "6bbabae00413b99191b291715521e3568fe6f0a93178f48643952b9224f1b83f"
   },
   "blueprint": "docs/plans/codex-governance-integration-blueprint.md",
-  "active_exec_plan": "docs/exec-plans/active/HARN-007-codex-runtime-integration-plan.md",
+  "master_execution_plan": "docs/plans/master-execution-plan.md",
+  "task_spec_matrix": "docs/plans/task-spec-matrix.md",
+  "task_governance_matrix": "docs/plans/task-governance-extension-matrix.md",
+  "active_exec_plans": [],
+  "completed_exec_plans": [
+    "docs/exec-plans/completed/HARN-007-codex-runtime-integration-plan.md",
+    "docs/exec-plans/completed/HARN-008-governance-runtime-hardening-plan.md"
+  ],
   "authority_entry": [
     "docs/README.md",
     "docs/plans/document-truth-baseline.md",

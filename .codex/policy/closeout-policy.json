@@ -1,7 +1,6 @@
 {
   "metadata": {
-    "blueprint_sha256": "e3fbf6f482d6dc62fb3769c23b25bc9442acfeaa9ae6279dfda16f5d704b4489",
-    "active_plan_sha256": "c45d46cf45a988cde7033663c36c6972f8a911c5c78d77b214a1219a18071083"
+    "blueprint_sha256": "6bbabae00413b99191b291715521e3568fe6f0a93178f48643952b9224f1b83f"
   },
   "task_closeout_steps": [
     "validate",
@@ -9,10 +8,12 @@
     "archive_task",
     "task_audit_pre_closeout",
     "single_task_commit",
-    "task_audit_post_closeout"
+    "task_audit_post_closeout",
+    "runtime_cleanup"
   ],
   "delivery_closeout_extra_steps": [
     "tag",
     "writeback_delivery_records"
-  ]
+  ],
+  "stage_scope_rule": "closeout requires explicit --stage-path file arguments"
 }

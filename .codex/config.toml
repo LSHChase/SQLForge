@@ -1,6 +1,6 @@
-[features]
-codex_hooks = true
-
 project_doc_fallback_filenames = [".agents.md", "TEAM_GUIDE.md"]
 project_doc_max_bytes = 131072
 project_root_markers = [".git", "AGENTS.md", "pom.xml", "package.json"]
+
+[features]
+codex_hooks = true

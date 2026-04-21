@@ -1,18 +1,18 @@
 {
-  "version": 1,
-  "task_id": "HARN-007",
-  "task_class": "standard",
-  "phase": "implementation",
-  "status": "active",
-  "plan_ref": "docs/exec-plans/active/HARN-007-codex-runtime-integration-plan.md",
-  "bound_to_ledger": true,
+  "version": 2,
+  "task_id": "",
+  "task_class": "none",
+  "phase": "idle",
+  "status": "idle",
+  "plan_ref": "",
+  "bound_to_ledger": false,
   "strict_mode": true,
   "requires_human_decision": false,
   "delivery_scope": false,
   "preflight": {
-    "completed": true,
-    "timestamp": "2026-04-21T06:29:41-05:00",
-    "context_hash": "sha256:example"
+    "completed": false,
+    "timestamp": "",
+    "context_hash": ""
   },
   "validation": {
     "last_run_at": "",
@@ -21,15 +21,29 @@
   },
   "closeout": {
     "done_ready": false,
+    "archived": false,
+    "archived_at": "",
     "pre_closeout_audit_passed": false,
     "commit_created": false,
+    "commit_sha": "",
     "post_closeout_audit_passed": false,
-    "delivery_writeback_completed": false
+    "delivery_writeback_completed": false,
+    "cleanup_completed": false
   },
   "traceability": {
-    "tasks_md_ref": "tasks.md#HARN-007",
+    "tasks_md_ref": "",
     "inbox_ref": "",
     "done_md_ref": ""
   },
-  "updated_at": "2026-04-21T06:29:41-05:00"
+  "last_task": {
+    "task_id": "HARN-008",
+    "task_class": "standard",
+    "commit_subject": "feat(codex): HARN-008 close the remaining governance runtime gaps",
+    "commit_sha": "0123456789abcdef0123456789abcdef01234567",
+    "done_md_ref": "tasks-done.md#HARN-008",
+    "plan_ref": "docs/exec-plans/completed/HARN-008-governance-runtime-hardening-plan.md",
+    "closed_at": "2026-04-21T12:00:00-05:00",
+    "delivery_writeback_completed": false
+  },
+  "updated_at": "2026-04-21T12:00:00-05:00"
 }

@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from shared import block, current_phase, load_current_task, load_session_context, read_stdin_json, run_foreman, success
+from shared import current_phase, emit_stop_allow, emit_stop_block, load_current_task, read_stdin_json, run_foreman
 
 
 def main() -> int:
@@ -12,30 +12,29 @@ def main() -> int:
     phase = current_phase()
 
     if phase not in {"done_ready", "closeout", "delivery_closeout"}:
-        summary = load_session_context().get("summary", "")
-        success(summary if isinstance(summary, str) and summary else None)
+        emit_stop_allow()
         return 0
 
     task_id = task.get("task_id")
     if not task_id:
-        block("Runtime state entered a closeout phase without an active task id.")
+        emit_stop_block("Runtime state entered a closeout phase without an active task id.")
         return 0
 
     code, stdout, stderr = run_foreman(["audit", "--phase", "pre-closeout"])
     if code != 0:
-        block(
+        emit_stop_block(
             "Task cannot stop yet because pre-closeout governance checks failed. "
             f"Run closeout steps for {task_id} first.\n{stderr or stdout}"
         )
         return 0
 
     if phase == "delivery_closeout":
-        block(
+        emit_stop_block(
             f"Task {task_id} is in delivery_closeout and still requires tag/write-back completion before stop."
         )
         return 0
 
-    block(
+    emit_stop_block(
         f"Task {task_id} is in {phase}; archive it, create the single-task commit, "
         "and rerun post-closeout audit before ending the turn."
     )

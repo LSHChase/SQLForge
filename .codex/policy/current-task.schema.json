@@ -28,7 +28,13 @@
     },
     "task_class": {
       "type": "string",
-      "enum": ["advisory", "trivial", "standard", "delivery"]
+      "enum": [
+        "none",
+        "advisory",
+        "trivial",
+        "standard",
+        "delivery"
+      ]
     },
     "phase": {
       "type": "string",
@@ -46,6 +52,15 @@
       ]
     },
     "status": {
+      "type": "string",
+      "enum": [
+        "idle",
+        "active",
+        "blocked",
+        "closed"
+      ]
+    },
+    "plan_ref": {
       "type": "string"
     },
     "bound_to_ledger": {
@@ -70,6 +85,9 @@
       "type": "object"
     },
     "traceability": {
+      "type": "object"
+    },
+    "last_task": {
       "type": "object"
     },
     "updated_at": {

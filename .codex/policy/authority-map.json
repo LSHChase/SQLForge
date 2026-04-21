@@ -1,7 +1,6 @@
 {
   "metadata": {
-    "blueprint_sha256": "e3fbf6f482d6dc62fb3769c23b25bc9442acfeaa9ae6279dfda16f5d704b4489",
-    "active_plan_sha256": "c45d46cf45a988cde7033663c36c6972f8a911c5c78d77b214a1219a18071083"
+    "blueprint_sha256": "6bbabae00413b99191b291715521e3568fe6f0a93178f48643952b9224f1b83f"
   },
   "source": "docs/README.md",
   "entries": [
@@ -17,5 +16,37 @@
     "tasks.md",
     "tasks-done.md",
     "INBOX.md"
+  ],
+  "authority_digest": [
+    {
+      "path": "docs/README.md",
+      "title": "SQLForge Docs",
+      "excerpt": "\u672c\u76ee\u5f55\u662f SQLForge \u7684\u552f\u4e00\u957f\u671f\u77e5\u8bc6\u5165\u53e3\uff0c\u9075\u5faa Harness Engineering \u4e0e `R-006` \u7684\u6587\u6863\u4f18\u5148\u987a\u5e8f\u3002",
+      "sha256": "37135f7014c393caecb4e2095af10caf5c8e0412ee9038e8f41c89304b90ee91"
+    },
+    {
+      "path": "docs/plans/document-truth-baseline.md",
+      "title": "SQLForge Document Truth Baseline",
+      "excerpt": "\u672c\u6587\u4ef6\u7528\u4e8e\u628a SQLForge \u5f53\u524d\u4ed3\u5e93\u4e2d\u7684\u201c\u5df2\u5b9e\u73b0\u4e8b\u5b9e\u201d\u201c\u5df2\u786e\u8ba4\u76ee\u6807\u201d\u201c\u5386\u53f2\u8bb0\u5f55\u201d\u201c\u5f52\u6863\u539f\u6587\u201d\u548c\u201c\u5f85\u5b9e\u73b0\u7f3a\u53e3\u201d\u5206\u5c42\uff0c\u907f\u514d\u540e\u7eed\u7f16\u7801\u628a\u76ee\u6807\u67b6\u6784\u3001\u521d\u59cb\u5316\u5360\u4f4d\u548c\u5f53\u524d\u5b9e\u73b0\u6df7\u5199\u6210\u540c\u4e00\u5c42\u4e8b\u5b9e\u3002",
+      "sha256": "4f233f5969ce0073ee9e14db2c34f5a5bdeed4e001511bfacf50a0b2228874c2"
+    },
+    {
+      "path": "docs/architecture/init.md",
+      "title": "SQL\u751f\u547d\u5468\u671f\u6cbb\u7406\u5e73\u53f0 \u2014 \u67b6\u6784\u521d\u59cb\u5316\u603b\u6587\u6863",
+      "excerpt": "\u57fa\u4e8e\u5168\u90e8\u5386\u53f2\u786e\u8ba4\u3001\u8865\u5145\u89c4\u5219\u53ca\u4fee\u590d\u9879\uff0c\u73b0\u8f93\u51fa\u5b8c\u6574\u7248\u300a\u9879\u76ee\u67b6\u6784\u521d\u59cb\u5316\u6587\u6863\u300b\u3002",
+      "sha256": "09aff22fdb0a64a9718c22636123816ca91f85da248f3178b6c1a5356e93622d"
+    },
+    {
+      "path": "docs/rules/codex-rules.md",
+      "title": "Codex Rules",
+      "excerpt": "\u672c\u6587\u4ef6\u4e3a append-only \u89c4\u5219\u8d26\u672c\uff0c\u57fa\u7ebf\u6765\u6e90\u4e3a `docs/architecture/init.md` \u7684 `R-001` \u81f3 `R-115`\uff0c\u540e\u7eed\u89c4\u5219\u6309\u8ffd\u52a0\u65b9\u5f0f\u6269\u5c55\u5230\u5f53\u524d\u7248\u672c\u3002",
+      "sha256": "d83f78c03a302cf264ecceb123a2c422506e6b920bf339a0618a731e93f8e98b"
+    },
+    {
+      "path": "docs/quality/validation-rules.md",
+      "title": "Validation Rules",
+      "excerpt": "\u672c\u6587\u4ef6\u72ec\u7acb\u6536\u5f55 `R-116` \u81f3 `R-161` \u7684\u9a8c\u8bc1\u89c4\u5219\uff0c\u5e76\u8865\u5145 `R-168` \u7684\u6267\u884c\u578b\u9a8c\u8bc1\u8854\u63a5\uff0c\u7528\u4e8e\u5feb\u901f\u67e5\u9605\u9636\u6bb5\u95e8\u7981\u3001\u4efb\u52a1\u9a8c\u8bc1\u3001\u56de\u5f52\u9a8c\u8bc1\u3001\u73af\u5883\u9a8c\u8bc1\u3001\u89c4\u5219\u81ea\u7ef4\u62a4\u3001\u81ea\u52a8\u89e6\u53d1\u9a8c\u8bc1\u89c4\u5219\u4e0e harness \u4efb\u52a1\u6cbb\u7406\u9a8c\u8bc1\u3002",
+      "sha256": "f09365ebe9371b4c27786d479d77b6b7ff83530814d4f30ece2926aa18f6a453"
+    }
   ]
 }

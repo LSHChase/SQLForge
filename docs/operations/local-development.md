@@ -6,6 +6,9 @@
 - Codex / foreman 预检：`python3 scripts/foreman.py preflight`
 - Codex / foreman 治理编译：`python3 scripts/foreman.py compile-governance`
 - Codex / foreman 审计包装：`python3 scripts/foreman.py audit --phase pre-closeout`
+- Codex / foreman 运行时验证：`python3 scripts/validate_codex_runtime.py`
+- Codex / foreman 任务 closeout：`python3 scripts/foreman.py closeout <TASK_ID> --stage-path <FILE> ...`
+- Codex / foreman delivery closeout：`python3 scripts/foreman.py delivery-closeout <TASK_ID> --tag <TAG> --writeback-file <FILE>`
 - 启动本地流程：`bash scripts/local-start.sh`
 - 停止本地流程：`bash scripts/local-stop.sh`
 - 健康检查：`bash scripts/health-check.sh`
@@ -32,6 +35,7 @@
 - 任务台账审计：`python3 scripts/task_audit.py --check`
 - Codex 运行态状态目录：`.codex/state/`
 - Codex 项目级 hook 编排：`.codex/hooks.json`
+- 真实 Codex 项目验证：`codex exec --json "Reply with OK only."`
 
 ## Environment Rules
 

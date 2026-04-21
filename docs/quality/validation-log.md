@@ -255,3 +255,16 @@
 2026-04-21T06:47:29-05:00 | HARN-007 validate | `R-133`, `R-160` | passed | `python3 -m py_compile scripts/foreman.py`
 2026-04-21T06:47:29-05:00 | HARN-007 validate | `R-133`, `R-160` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-21T06:47:29-05:00 | HARN-007 validate | `R-133`, `R-160` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T08:05:10-05:00 | HARN-008 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-21T08:05:10-05:00 | HARN-008 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T08:05:26-05:00 | HARN-008 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-21T08:05:26-05:00 | HARN-008 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-21T08:05:26-05:00 | HARN-008 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T08:05:49-05:00 | HARN-008 validate | `R-133`, `R-168` | passed | `codex exec --json --sandbox read-only --skip-git-repo-check Reply with OK only.`
+2026-04-21T08:09:48-05:00 | HARN-008 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-21T08:09:48-05:00 | HARN-008 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T08:10:08-05:00 | HARN-008 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-21T08:10:08-05:00 | HARN-008 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-21T08:10:08-05:00 | HARN-008 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T08:10:26-05:00 | HARN-008 validate | `R-133`, `R-168` | passed | `codex exec --json --sandbox read-only --skip-git-repo-check Reply with OK only.`
+2026-04-21T08:11:52-05:00 | HARN-008 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`

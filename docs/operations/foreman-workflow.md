@@ -36,7 +36,7 @@ Foreman 接手任务前按以下顺序建立上下文：
 6. 进入 closeout 前先完成“上下文收缩”：把实现结果、验证证据、剩余风险、未决项和下一步写回权威来源，并为当前任务写定最终 `Commit subject`
 7. 将当前完成任务从 `tasks.md` 移入 `tasks-done.md`，确保 `Context closeout` 已完整，并把最新归档任务追加到 `## Done` 顶部
 8. 运行 `python3 scripts/task_audit.py --check --phase pre-closeout`
-9. 只 stage 当前任务相关文件并创建单任务 commit
+9. 只通过显式文件路径 stage 当前任务相关文件并创建单任务 commit；不得使用会吸入其他脏改动的目录级或全量 stage 方式
 10. commit 完成后立即运行 `python3 scripts/task_audit.py --check --phase post-closeout` 与必要知识校验，确认当前任务的 `Commit subject` 已进入 Git history，再执行“上下文清理”后进入下一任务；若当前 Codex 运行环境支持 `/contract`、`/clear` 或等价命令，可以使用，但它们只是可选实现方式，不是唯一规范动作
 
 ## Context Hygiene

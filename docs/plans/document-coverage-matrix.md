@@ -78,8 +78,9 @@
 | `docs/adr/ADR-012-saga-plus-local-transaction.md` | Authority | Saga + 本地事务 | Referenced | 跨服务事务编排 |
 | `docs/adr/ADR-013-acceleration-service-and-materialized-view-strategy.md` | Authority | 加速与物化视图策略 | Consumed | SQL 优化服务设计 |
 | `docs/exec-plans/active/.gitkeep` | Indexed | 活动执行计划目录占位文件 | Referenced | 保持活动执行计划目录可追踪 |
-| `docs/exec-plans/active/HARN-007-codex-runtime-integration-plan.md` | Indexed | Codex 运行时集成治理批次的活动执行计划 | Consumed | 当前治理任务的批次目标、交付件、执行步骤与验证顺序 |
 | `docs/exec-plans/completed/.gitkeep` | Indexed | 完成执行计划目录占位文件 | Referenced | 保持完成执行计划目录可追踪 |
+| `docs/exec-plans/completed/HARN-007-codex-runtime-integration-plan.md` | Indexed | 已完成的 Codex 运行时集成治理批次执行计划 | Referenced | 追溯 HARN-007 的原始批次目标、交付件与验证顺序 |
+| `docs/exec-plans/completed/HARN-008-governance-runtime-hardening-plan.md` | Indexed | 已完成的 Codex 治理/runtime 闭口批次执行计划 | Referenced | 追溯 HARN-008 对 6 个治理闭口点的实现、验证与 closeout 顺序 |
 
 ## Completeness Statement
 
