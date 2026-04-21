@@ -180,3 +180,18 @@
   - `docs/architecture/init.md`
   - `docs/plans/master-execution-plan.md`
   - `docs/rules/codex-rules.md`
+
+## 2026-04-21T02:42:41-05:00
+
+- 事件：人类要求把“任务完成后自动调用 `/contract` 和 `/clear`”改写成符合 Harness Engineering 的正式项目口径。
+- 新增规则：`R-168`。
+- 约束：
+  - 项目要求的是任务完成后的“上下文收缩”和“上下文清理”结果，而不是强绑定某个 Codex 客户端斜杠命令。
+  - `/contract`、`/clear` 只有在当前运行环境稳定支持时，才能作为可选辅助动作；环境不支持时，必须通过台账回写、验证日志、`INBOX.md` / 执行计划补录和重新建立上下文完成等价动作。
+  - 下一任务开始前必须重新按项目阅读顺序建立上下文，不得把上一任务的局部推理直接带入下一任务。
+- 落点：
+  - `docs/rules/codex-rules.md`
+  - `docs/operations/foreman-workflow.md`
+  - `docs/operations/git-and-task-closeout.md`
+  - `docs/operations/human-collaboration.md`
+  - `docs/README.md`

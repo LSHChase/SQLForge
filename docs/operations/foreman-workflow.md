@@ -33,9 +33,16 @@ Foreman 接手任务前按以下顺序建立上下文：
 3. 自审代码、规则、文档和边界影响
 4. 执行适用验证并记录证据
 5. 如行为、API、架构、配置、合规或文档入口变化，则同步更新文档
-6. 回写 `tasks.md` 或 `tasks-done.md`
+6. 进入 closeout 前先完成“上下文收缩”：把实现结果、验证证据、剩余风险、未决项和下一步写回 `tasks.md` / `tasks-done.md`、`docs/quality/validation-log.md`、`INBOX.md` 或相关执行计划
 7. 运行 `python3 scripts/task_audit.py --check`
 8. 只 stage 当前任务相关文件并创建单任务 commit
+9. commit 完成后执行“上下文清理”，再进入下一任务；若当前 Codex 运行环境支持 `/contract`、`/clear` 或等价命令，可以使用，但它们只是可选实现方式，不是唯一规范动作
+
+## Context Hygiene
+
+- Harness Engineering 要求的是“上下文收缩”和“上下文清理”的结果，不是强绑定某个客户端斜杠命令。
+- 若当前运行环境不支持 `/contract`、`/clear`，必须通过权威台账回写、验证日志补录、`INBOX.md` / 执行计划记录和重新按 Entry Order 建立上下文来完成等价动作。
+- 下一任务开始前，必须重新核对权威来源；不得把上一任务中的临时判断直接沿用为下一任务事实。
 
 ## Progress Log Requirements
 

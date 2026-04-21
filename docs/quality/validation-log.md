@@ -210,3 +210,12 @@
 2026-04-21T02:35:56-05:00 | D-TASK-013 closeout encryption-path-coverage | `R-114`, `R-128` | passed | `GovernanceProtectedPersistenceServiceTest`, `GovernanceAuditTrailServiceTest`, and `TraceabilitySchemaMappingTest` cover AES-256 protected config/result/history/export payloads, SQL ciphertext storage, audit/export desensitization, sensitive `system_config` ciphertext columns, and `SystemConfigMapper` / migration alignment
 2026-04-21T02:35:56-05:00 | D-TASK-013 closeout doc-sync | `R-114`, `R-126`, `R-133`, `R-128` | passed | `persistence.md`, `service-interface-contract-baseline.md`, `service-capability-map.md`, `document-truth-baseline.md`, `compliance.md`, `access-control-spec.md`, `init.md`, `repo-map.md`, `tasks-done.md`, and `validation-log.md` synced to the sensitive data encryption baseline
 2026-04-21T02:38:56-05:00 | D-TASK-013 post-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-21T03:04:05-05:00 | R-168 governance closeout py-compile | `R-168` | passed | `python3 -m py_compile scripts/task_audit.py`
+2026-04-21T03:04:05-05:00 | R-168 governance closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check`
+2026-04-21T03:04:05-05:00 | R-168 governance closeout knowledge-lint | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T03:08:46-05:00 | R-168 governance closeout repair py-compile | `R-168` | passed | `python3 -m py_compile scripts/task_audit.py`
+2026-04-21T03:08:46-05:00 | R-168 governance closeout repair task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check`
+2026-04-21T03:08:46-05:00 | R-168 governance closeout repair knowledge-lint | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T03:15:09-05:00 | HARN-003 closeout py-compile | `R-168` | passed | `python3 -m py_compile scripts/task_audit.py`
+2026-04-21T03:15:09-05:00 | HARN-003 closeout knowledge-lint | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T03:17:49-05:00 | HARN-003 closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check`

@@ -29,6 +29,11 @@
 10. `docs/plans/task-governance-extension-matrix.md`
 11. 根级 `tasks.md` / `tasks-done.md` / `INBOX.md`
 
+任务切换补充：
+
+- 上一任务完成 closeout 后，不得直接沿用上一任务的局部推理、临时假设或未验证记忆。
+- 切换到下一任务前，必须重新按上述 `Task start order` 建立上下文；`R-168` 要求的“上下文清理”只有在重新消费权威来源后才算真正完成。
+
 ### Authority by topic
 
 | Topic | Primary authority | Supporting authority |
@@ -57,6 +62,7 @@
 - 输入、输出、错误码、审计要求、租户边界已知。
 - 验证方式可执行，且能写回验证日志。
 - 若涉及既有规则、接口或服务边界变化，已先更新相关文档或进入确认台账。
+- 若上一任务刚完成 closeout，已重新按 `Task start order` 建立当前任务上下文，而不是沿用上一任务局部记忆。
 
 ## Execution Sequence
 

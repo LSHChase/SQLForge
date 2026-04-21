@@ -31,9 +31,9 @@
 | `docs/frontend/design-system.md` | Authority | 前端视觉与页面设计规则 | Consumed | Dashboard、业务页、主题系统 |
 | `docs/operations/README.md` | Indexed | 运维与协作索引 | Consumed | operations 文档入口 |
 | `docs/operations/best-practices.md` | Authority | 可泛化工程规则账本 | Referenced | 复用规则、Root Cause/Cure/Generalization 沉淀 |
-| `docs/operations/foreman-workflow.md` | Authority | foreman 任务流与开发循环 | Referenced | 任务入口、开发循环与归档闭环 |
-| `docs/operations/git-and-task-closeout.md` | Authority | Git 边界与任务关闭顺序 | Referenced | 单任务关闭、审计链与 commit 规则 |
-| `docs/operations/human-collaboration.md` | Authority | 人机协作边界与脏工作树处理 | Referenced | stop/continue、冲突与协作边界 |
+| `docs/operations/foreman-workflow.md` | Authority | foreman 任务流、开发循环与上下文收缩/清理 | Consumed | 任务入口、开发循环、closeout 与上下文切换闭环 |
+| `docs/operations/git-and-task-closeout.md` | Authority | Git 边界、上下文收缩/清理与任务关闭顺序 | Consumed | 单任务关闭、审计链、commit 规则与 closeout 顺序 |
+| `docs/operations/human-collaboration.md` | Authority | 人机协作边界、命令可用性与脏工作树处理 | Consumed | stop/continue、冲突与 `/contract` / `/clear` 可用性约束 |
 | `docs/operations/local-development.md` | Authority | 本地命令、脚本与环境入口 | Referenced | 本地开发验证与环境约束 |
 | `docs/plans/README.md` | Indexed | 计划导航 | Consumed | 计划入口与附录说明 |
 | `docs/plans/master-execution-plan.md` | Authority | 当前主执行计划 | Consumed | 主控文档 |
@@ -52,7 +52,7 @@
 | `docs/quality/alibaba-java-guidelines.md` | Authority | Java 规范适配文档 | Consumed | Java 实现与扫描治理 |
 | `docs/quality/frontend-backend-separation-baseline.md` | Authority | 前后端分离基线 | Consumed | 边界治理与脚本校验 |
 | `docs/quality/validation-log.md` | Indexed | 验证行为审计日志 | Referenced | 验证证据追溯与关闭链路 |
-| `docs/quality/validation-rules.md` | Authority | `R-116` 至 `R-154` 验证规则 | Consumed | 任务和阶段验证矩阵 |
+| `docs/quality/validation-rules.md` | Authority | `R-116` 至 `R-161` 验证规则与 `R-168` 执行衔接 | Consumed | 任务、阶段与上下文收尾验证矩阵 |
 | `docs/references/human-constraint-history.md` | Authority | 长期约束历史账本 | Consumed | 规则追加与人类决策追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/Java开发手册(黄山版).pdf` | Archive | Java 规范原始 PDF | Archived | `R-154` 来源追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/README.snapshot.md` | Archive | Java 规范原始 README 快照 | Archived | `R-154` 来源追溯 |

@@ -75,11 +75,12 @@ const requiredReadmeMarkers = [
   'docs/plans/phase-0-plan.md'
 ]
 
-const expectedRuleEnd = 167
+const expectedRuleEnd = 168
 const expectedValidationIndexRanges = [
   [116, 144],
   [151, 154],
-  [156, 161]
+  [156, 161],
+  [168, 168]
 ]
 const requiredMessagingConfigs = [
   'governance/src/main/resources/application-dev.yml',

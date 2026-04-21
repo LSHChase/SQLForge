@@ -7,6 +7,7 @@ import argparse
 import re
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Dict, List
 
@@ -16,6 +17,16 @@ TASKS_PATH = ROOT / "tasks.md"
 DONE_PATH = ROOT / "tasks-done.md"
 STATUS_PATTERN = re.compile(r"^- Status:\s*(.+)$", re.MULTILINE)
 COMMIT_PATTERN = re.compile(r"^- Commit subject:\s*`?(.+?)`?$", re.MULTILINE)
+COMPLETED_AT_PATTERN = re.compile(r"^- Completed at:\s*(.+)$", re.MULTILINE)
+PROGRESS_LOG_DATE_PATTERN = re.compile(r"^\s*-\s+(\d{4}-\d{2}-\d{2}):", re.MULTILINE)
+R168_EFFECTIVE_DATE = "2026-04-21"
+REQUIRED_CONTEXT_CLOSEOUT_MARKERS = [
+    "Context closeout:",
+    "Completed scope:",
+    "Validation evidence:",
+    "Residual risk:",
+    "Next step:",
+]
 
 
 def extract_section(content: str, heading: str, next_headings: List[str]) -> str:
@@ -59,6 +70,37 @@ def commit_subject_of(block: Dict[str, str]) -> str:
     return match.group(1).strip() if match else ""
 
 
+def completed_at_of(block: Dict[str, str]) -> str:
+    match = COMPLETED_AT_PATTERN.search(block["body"])
+    return match.group(1).strip() if match else ""
+
+
+def latest_progress_date_of(block: Dict[str, str]) -> str:
+    matches = PROGRESS_LOG_DATE_PATTERN.findall(block["body"])
+    return matches[-1] if matches else ""
+
+
+def requires_context_closeout(block: Dict[str, str], done_ledger: bool) -> bool:
+    if done_ledger:
+        completed_at = completed_at_of(block)
+        return bool(completed_at and completed_at >= R168_EFFECTIVE_DATE)
+
+    status = status_of(block)
+    if status != "in_review":
+        return False
+
+    latest_progress_date = latest_progress_date_of(block)
+    return bool(latest_progress_date and latest_progress_date >= R168_EFFECTIVE_DATE)
+
+
+def validate_context_closeout(block: Dict[str, str], errors: List[str]) -> None:
+    missing = [marker for marker in REQUIRED_CONTEXT_CLOSEOUT_MARKERS if marker not in block["body"]]
+    if missing:
+        errors.append(
+            f"{block['task_id']} is missing required Context closeout markers:\n- " + "\n- ".join(missing)
+        )
+
+
 def git_subjects() -> List[str]:
     result = subprocess.run(
         ["git", "log", "--format=%s"],
@@ -68,6 +110,28 @@ def git_subjects() -> List[str]:
         text=True,
     )
     return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def worktree_has_changes() -> bool:
+    result = subprocess.run(
+        ["git", "status", "--short"],
+        cwd=ROOT,
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    return bool(result.stdout.strip())
+
+
+def allows_pending_closeout_commit(block: Dict[str, str], subject: str, subjects: List[str]) -> bool:
+    if subject in subjects:
+        return False
+
+    completed_at = completed_at_of(block)
+    if completed_at != date.today().isoformat():
+        return False
+
+    return worktree_has_changes()
 
 
 def audit() -> List[str]:
@@ -109,6 +173,9 @@ def audit() -> List[str]:
         status = status_of(block)
         if status not in {"todo", "in_progress", "in_review", "blocked"}:
             errors.append(f"{block['task_id']} in tasks.md has invalid status '{status}'.")
+            continue
+        if requires_context_closeout(block, done_ledger=False):
+            validate_context_closeout(block, errors)
 
     for block in extract_task_blocks(blocked):
         body = block["body"]
@@ -125,8 +192,10 @@ def audit() -> List[str]:
         if not subject:
             errors.append(f"{block['task_id']} in tasks-done.md is missing 'Commit subject:'.")
             continue
-        if subject not in subjects:
+        if subject not in subjects and not allows_pending_closeout_commit(block, subject, subjects):
             errors.append(f"{block['task_id']} commit subject not found in git history: {subject}")
+        if requires_context_closeout(block, done_ledger=True):
+            validate_context_closeout(block, errors)
 
     return errors
 
@@ -151,7 +220,8 @@ def main() -> int:
     print("- tasks.md contains no done tasks")
     print("- tasks and tasks-done have no duplicate ids")
     print("- blocked tasks contain escalation metadata")
-    print("- tasks-done commit subjects exist in git history")
+    print("- tasks-done commit subjects exist in git history, or the current closeout task is pending its commit")
+    print("- R-168 Context closeout markers exist for applicable in-review/done tasks")
     return 0
 
 
