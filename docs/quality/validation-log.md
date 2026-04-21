@@ -227,3 +227,20 @@
 2026-04-21T04:03:25-05:00 | HARN-005 closeout py-compile | `R-168` | passed | `python3 -m py_compile scripts/task_audit.py`
 2026-04-21T04:03:25-05:00 | HARN-005 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-04-21T04:03:25-05:00 | HARN-005 closeout knowledge-lint | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T04:41:11-05:00 | HARN-006 pre-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T04:41:11-05:00 | HARN-006 knowledge-lint | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T04:53:28-05:00 | HARN-006 evidence-clarification | `R-140`, `R-168` | recorded | the 2026-04-21T04:41:11 `HARN-006` entries are working-tree validation snapshots captured while the task remained active, not closeout evidence; authoritative pre/post-closeout evidence still requires archival plus single-task commit
+2026-04-21T04:53:28-05:00 | HARN-006 working-tree py-compile | `R-160` | passed | `python3 -m py_compile scripts/task_audit.py`
+2026-04-21T04:53:28-05:00 | HARN-006 working-tree task-audit snapshot | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T04:53:28-05:00 | HARN-006 working-tree knowledge snapshot | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T04:54:39-05:00 | HARN-006 task-audit false-positive fix | `R-156`, `R-160` | passed | refined `scripts/task_audit.py` so `todo` / `in_progress` checks only match structured unresolved-human-decision fields, not narrative mentions of field names
+2026-04-21T04:54:39-05:00 | HARN-006 working-tree py-compile repair | `R-160` | passed | `python3 -m py_compile scripts/task_audit.py`
+2026-04-21T04:54:39-05:00 | HARN-006 working-tree task-audit repair snapshot | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T04:54:39-05:00 | HARN-006 working-tree knowledge repair snapshot | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T05:03:26-05:00 | HARN-006 inbox-structure-and-escalation-hardening | `R-156`, `R-158`, `R-160` | passed | tightened `scripts/task_audit.py` so blocked/in_review checks require structured escalation fields and INBOX items are validated for `Status:` / `Needed decision:` plus `Task refs:` / `Plan refs:` structure and reverse task references
+2026-04-21T05:03:26-05:00 | HARN-006 working-tree py-compile hardening | `R-160` | passed | `python3 -m py_compile scripts/task_audit.py`
+2026-04-21T05:03:26-05:00 | HARN-006 working-tree task-audit hardening snapshot | `R-156`, `R-158`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T05:03:26-05:00 | HARN-006 working-tree knowledge hardening snapshot | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T05:03:26-05:00 | HARN-006 closeout py-compile | `R-160` | passed | `python3 -m py_compile scripts/task_audit.py`
+2026-04-21T05:03:26-05:00 | HARN-006 closeout task-audit pre | `R-156`, `R-158`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T05:03:26-05:00 | HARN-006 closeout knowledge-lint | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`

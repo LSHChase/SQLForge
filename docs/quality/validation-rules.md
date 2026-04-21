@@ -436,11 +436,12 @@
   2. `tasks.md` 不含 `done` 任务
   3. 同一 task id 不同时出现在两个台账中
   4. `tasks-done.md` 按最新归档在上、历史归档在下维护，当前正在 closeout 的任务位于 `## Done` 顶部
-  5. `blocked` 任务包含 `Next action:`、`Escalation:` 与 `Human decision:`
-  6. `in_review` 任务包含 `Review reason:` 与 `Human decision:`
-  7. `.agent/config.json` 未被用作任务状态存储
-- 通过标准：7 项全部通过。
-- 失败处置：修复台账状态或拆分机器参数与任务状态。
+  5. `blocked` 任务包含 `Next action:`、`Escalation:`、`Human decision:` 与 `INBOX ref:`
+  6. `in_review` 任务包含 `Review reason:`、`Human decision:` 与 `INBOX ref:`
+  7. `todo` / `in_progress` 任务不包含升级链字段或显式等待人类处理的标记
+  8. `.agent/config.json` 未被用作任务状态存储
+- 通过标准：8 项全部通过。
+- 失败处置：修复台账状态、补齐升级链记录或拆分机器参数与任务状态；禁止把“需人类判断”的任务伪装成可自动继续状态。
 - 关联规则：`R-156`, `R-165`
 
 ### R-157 任务关闭与单任务提交验证
@@ -459,12 +460,15 @@
 
 - 触发时机：新增或更新 `INBOX.md` 时。
 - 检查清单：
-  1. 条目确实仍需人类判断或批准
-  2. 条目不是已明确目标的确定性实现任务
-  3. 条目不是已在任务日志完整记录的失败重复项
-  4. 条目可追溯到相关任务、计划或决策背景
-- 通过标准：4 项全部通过。
-- 失败处置：移回任务台账、计划文档或删除重复条目。
+  1. 条目使用稳定 `INBOX-*` 标识
+  2. 条目包含 `Status:` 与 `Needed decision:`
+  3. 条目确实仍需人类判断或批准
+  4. 条目不是已明确目标的确定性实现任务
+  5. 条目不是已在任务日志完整记录的失败重复项
+  6. 条目通过 `Task refs:`、`Plan refs:` 或等价字段可追溯到相关任务、计划或决策背景
+  7. 若问题已升级到 `INBOX.md`，对应任务包含同一 `INBOX ref:`，且条目在 `Task refs:` 中列出对应 task id；若仅保留在任务日志，则任务中明确 `INBOX ref: task-log-only: <reason>`
+- 通过标准：7 项全部通过。
+- 失败处置：补齐双向追溯链，或移回任务台账、计划文档并删除重复条目。
 - 关联规则：`R-158`
 
 ### R-159 根 Git 边界验证
@@ -485,10 +489,10 @@
 - 检查清单：
   1. 已按阶段执行 `python3 scripts/task_audit.py --check --phase pre-closeout|post-closeout`
   2. 审计输出无阻塞项
-  3. `blocked` / `in_review` 任务包含所需的人类决策元数据
+  3. `blocked` / `in_review` 任务包含所需的人类决策元数据与合法 `INBOX ref:`，且 `todo` / `in_progress` 不含待人类处理标记
   4. pre-commit 阶段最多只允许一个“最新归档、当天关闭、尚待本次 commit 写入 Git history”的任务例外；post-closeout 阶段 `tasks-done.md` 中所有任务的 commit subject 都必须可在 Git history 中追溯
 - 通过标准：4 项全部通过。
-- 失败处置：先修复台账或 Git 追踪问题，再继续关闭流程。
+- 失败处置：先修复台账、补齐升级链记录或 Git 追踪问题，再继续关闭流程；禁止把“需人类判断”的任务伪装成可自动继续状态。
 - 关联规则：`R-160`, `R-165`
 
 ### R-161 外部规则迁移替换验证

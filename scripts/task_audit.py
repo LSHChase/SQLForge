@@ -15,10 +15,15 @@ from typing import Dict, List
 ROOT = Path(__file__).resolve().parent.parent
 TASKS_PATH = ROOT / "tasks.md"
 DONE_PATH = ROOT / "tasks-done.md"
+INBOX_PATH = ROOT / "INBOX.md"
 STATUS_PATTERN = re.compile(r"^- Status:\s*(.+)$", re.MULTILINE)
 COMMIT_PATTERN = re.compile(r"^- Commit subject:\s*`?(.+?)`?$", re.MULTILINE)
 COMPLETED_AT_PATTERN = re.compile(r"^- Completed at:\s*(.+)$", re.MULTILINE)
 PROGRESS_LOG_DATE_PATTERN = re.compile(r"^\s*-\s+(\d{4}-\d{2}-\d{2}):", re.MULTILINE)
+INBOX_REF_PATTERN = re.compile(r"^- INBOX ref:\s*(.+)$", re.MULTILINE)
+TASK_REFS_PATTERN = re.compile(r"^- Task refs:\s*(.+)$", re.MULTILINE)
+PLAN_REFS_PATTERN = re.compile(r"^- Plan refs:\s*(.+)$", re.MULTILINE)
+NEEDED_DECISION_PATTERN = re.compile(r"^- Needed decision:\s*(.+)$", re.MULTILINE)
 R168_EFFECTIVE_DATE = "2026-04-21"
 REQUIRED_CONTEXT_CLOSEOUT_MARKERS = [
     "Context closeout:",
@@ -30,6 +35,38 @@ REQUIRED_CONTEXT_CLOSEOUT_MARKERS = [
 PHASE_PRE_CLOSEOUT = "pre-closeout"
 PHASE_POST_CLOSEOUT = "post-closeout"
 ALLOWED_PHASES = {PHASE_PRE_CLOSEOUT, PHASE_POST_CLOSEOUT}
+UNRESOLVED_HUMAN_MARKERS = (
+    "Human decision:",
+    "Review reason:",
+    "Escalation:",
+    "Next action:",
+    "INBOX ref:",
+)
+UNRESOLVED_HUMAN_PHRASES = (
+    "等待人类",
+    "等待 review",
+    "等待审批",
+    "awaiting human",
+    "awaiting review",
+    "pending human",
+    "pending review",
+)
+TASK_LOG_ONLY_PREFIX = "task-log-only:"
+INBOX_ID_PATTERN = re.compile(r"^INBOX-[A-Z0-9-]+$")
+UNRESOLVED_HUMAN_FIELD_PATTERNS = {
+    marker: re.compile(rf"^\s*-\s*{re.escape(marker)}", re.MULTILINE) for marker in UNRESOLVED_HUMAN_MARKERS
+}
+BLOCKED_REQUIRED_FIELD_PATTERNS = {
+    "Next action:": re.compile(r"^\s*-\s*Next action:\s*.+$", re.MULTILINE),
+    "Escalation:": re.compile(r"^\s*-\s*Escalation:\s*.+$", re.MULTILINE),
+    "Human decision:": re.compile(r"^\s*-\s*Human decision:\s*.+$", re.MULTILINE),
+    "INBOX ref:": re.compile(r"^\s*-\s*INBOX ref:\s*.+$", re.MULTILINE),
+}
+IN_REVIEW_REQUIRED_FIELD_PATTERNS = {
+    "Review reason:": re.compile(r"^\s*-\s*Review reason:\s*.+$", re.MULTILINE),
+    "Human decision:": re.compile(r"^\s*-\s*Human decision:\s*.+$", re.MULTILINE),
+    "INBOX ref:": re.compile(r"^\s*-\s*INBOX ref:\s*.+$", re.MULTILINE),
+}
 
 
 def extract_section(content: str, heading: str, next_headings: List[str]) -> str:
@@ -81,6 +118,30 @@ def completed_at_of(block: Dict[str, str]) -> str:
 def latest_progress_date_of(block: Dict[str, str]) -> str:
     matches = PROGRESS_LOG_DATE_PATTERN.findall(block["body"])
     return matches[-1] if matches else ""
+
+
+def inbox_ref_of(block: Dict[str, str]) -> str:
+    match = INBOX_REF_PATTERN.search(block["body"])
+    return match.group(1).strip() if match else ""
+
+
+def task_refs_of(block: Dict[str, str]) -> List[str]:
+    match = TASK_REFS_PATTERN.search(block["body"])
+    if not match:
+        return []
+    return [item.strip() for item in match.group(1).split(",") if item.strip()]
+
+
+def plan_refs_of(block: Dict[str, str]) -> List[str]:
+    match = PLAN_REFS_PATTERN.search(block["body"])
+    if not match:
+        return []
+    return [item.strip() for item in match.group(1).split(",") if item.strip()]
+
+
+def needed_decision_of(block: Dict[str, str]) -> str:
+    match = NEEDED_DECISION_PATTERN.search(block["body"])
+    return match.group(1).strip() if match else ""
 
 
 def requires_context_closeout(block: Dict[str, str], done_ledger: bool) -> bool:
@@ -186,28 +247,119 @@ def validate_pending_commit_state(done_blocks: List[Dict[str, str]], subjects: L
 def validate_human_decision_state(block: Dict[str, str], errors: List[str]) -> None:
     body = block["body"]
     status = status_of(block)
+    inbox_ref = inbox_ref_of(block)
     if status == "blocked":
-        missing = [marker for marker in ("Next action:", "Escalation:", "Human decision:") if marker not in body]
+        missing = [marker for marker, pattern in BLOCKED_REQUIRED_FIELD_PATTERNS.items() if not pattern.search(body)]
         if missing:
             errors.append(
                 f"{block['task_id']} is blocked but missing required human-decision markers:\n- "
                 + "\n- ".join(missing)
             )
+            return
+        validate_inbox_ref(block, inbox_ref, errors)
         return
 
     if status == "in_review":
-        missing = [marker for marker in ("Review reason:", "Human decision:") if marker not in body]
+        missing = [marker for marker, pattern in IN_REVIEW_REQUIRED_FIELD_PATTERNS.items() if not pattern.search(body)]
         if missing:
             errors.append(
                 f"{block['task_id']} is in_review but missing required review markers:\n- "
                 + "\n- ".join(missing)
             )
+            return
+        validate_inbox_ref(block, inbox_ref, errors)
+        return
+
+    if status in {"todo", "in_progress"}:
+        unexpected_markers = [
+            marker for marker, pattern in UNRESOLVED_HUMAN_FIELD_PATTERNS.items() if pattern.search(body)
+        ]
+        if unexpected_markers:
+            errors.append(
+                f"{block['task_id']} is {status} but still contains unresolved human-decision markers:\n- "
+                + "\n- ".join(unexpected_markers)
+            )
+        lowered = body.lower()
+        phrases = [phrase for phrase in UNRESOLVED_HUMAN_PHRASES if phrase in lowered or phrase in body]
+        if phrases:
+            errors.append(
+                f"{block['task_id']} is {status} but still contains waiting-for-human phrases:\n- "
+                + "\n- ".join(phrases)
+            )
+
+
+def validate_inbox_ref(block: Dict[str, str], inbox_ref: str, errors: List[str]) -> None:
+    if not inbox_ref:
+        return
+
+    if inbox_ref.startswith(TASK_LOG_ONLY_PREFIX):
+        if not inbox_ref[len(TASK_LOG_ONLY_PREFIX) :].strip():
+            errors.append(
+                f"{block['task_id']} uses '{TASK_LOG_ONLY_PREFIX}' but does not explain why the issue stays only in the task log."
+            )
+        return
+
+    if not INBOX_ID_PATTERN.match(inbox_ref):
+        errors.append(
+            f"{block['task_id']} has invalid INBOX ref '{inbox_ref}'; expected 'INBOX-...' or '{TASK_LOG_ONLY_PREFIX} <reason>'."
+        )
+        return
+
+    if inbox_ref not in INBOX_INDEX:
+        errors.append(f"{block['task_id']} references missing INBOX item '{inbox_ref}'.")
+        return
+
+    inbox_task_refs = task_refs_of(INBOX_INDEX[inbox_ref])
+    if block["task_id"] not in inbox_task_refs:
+        errors.append(
+            f"{block['task_id']} references '{inbox_ref}' but the INBOX item does not list the task in 'Task refs:'."
+        )
+
+
+INBOX_INDEX = {
+    block["task_id"]: block for block in extract_task_blocks(INBOX_PATH.read_text(encoding="utf-8"))
+}
+
+
+def validate_inbox_blocks(
+    inbox_blocks: List[Dict[str, str]],
+    active_ids: List[str],
+    done_ids: List[str],
+    errors: List[str],
+) -> None:
+    inbox_ids = [block["task_id"] for block in inbox_blocks]
+    duplicates = sorted(set(inbox_id for inbox_id in inbox_ids if inbox_ids.count(inbox_id) > 1))
+    if duplicates:
+        errors.append("Duplicate INBOX ids found:\n- " + "\n- ".join(duplicates))
+
+    known_task_ids = set(active_ids) | set(done_ids)
+    for block in inbox_blocks:
+        inbox_id = block["task_id"]
+        if not INBOX_ID_PATTERN.match(inbox_id):
+            errors.append(f"{inbox_id} in INBOX.md does not use the required 'INBOX-*' identifier format.")
+
+        status = status_of(block)
+        if not status:
+            errors.append(f"{inbox_id} in INBOX.md is missing 'Status:'.")
+
+        task_refs = task_refs_of(block)
+        plan_refs = plan_refs_of(block)
+        if not task_refs and not plan_refs:
+            errors.append(f"{inbox_id} in INBOX.md must contain 'Task refs:' or 'Plan refs:'.")
+
+        for task_ref in task_refs:
+            if task_ref not in known_task_ids:
+                errors.append(f"{inbox_id} in INBOX.md references unknown task id '{task_ref}' in 'Task refs:'.")
+
+        if not needed_decision_of(block):
+            errors.append(f"{inbox_id} in INBOX.md is missing 'Needed decision:'.")
 
 
 def audit(phase: str) -> List[str]:
     errors: List[str] = []
     tasks_content = TASKS_PATH.read_text(encoding="utf-8")
     done_content = DONE_PATH.read_text(encoding="utf-8")
+    inbox_content = INBOX_PATH.read_text(encoding="utf-8")
 
     if "## Done" in tasks_content:
         errors.append("tasks.md must not contain a '## Done' section.")
@@ -226,6 +378,7 @@ def audit(phase: str) -> List[str]:
         + extract_task_blocks(blocked)
     )
     done_blocks = extract_task_blocks(done_content)
+    inbox_blocks = extract_task_blocks(inbox_content)
 
     validate_done_ledger_order(done_blocks, errors)
 
@@ -240,6 +393,8 @@ def audit(phase: str) -> List[str]:
     overlap = sorted(set(active_ids) & set(done_ids))
     if overlap:
         errors.append("Task ids must not exist in both tasks.md and tasks-done.md:\n- " + "\n- ".join(overlap))
+
+    validate_inbox_blocks(inbox_blocks, active_ids, done_ids, errors)
 
     for block in active_blocks:
         status = status_of(block)
@@ -296,7 +451,8 @@ def main() -> int:
     print(f"Task audit passed ({args.phase}):")
     print("- tasks.md contains no done tasks")
     print("- tasks and tasks-done have no duplicate ids")
-    print("- blocked and in_review tasks contain required human-decision metadata")
+    print("- blocked and in_review tasks contain required human-decision metadata and valid INBOX refs")
+    print("- todo and in_progress tasks contain no unresolved human-decision markers")
     if args.phase == PHASE_PRE_CLOSEOUT:
         print("- tasks-done commit subjects exist in git history, except at most one newest same-day closeout task pending its commit")
     else:

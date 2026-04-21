@@ -11,7 +11,9 @@
 - Foreman 执行任务时默认始终采用严格模式，不得静默丢失需求、约束、证据、历史记录、任务状态或文档同步项。
 - 只要出现不确定、冲突、缺失、无法证明或可能造成语义丢失的内容，就必须暂停相关拍板动作，转为记录并等待人类决定或补充。
 - 若问题仍需人类判断、批准、优先级排序或任务塑形，必须进入 `INBOX.md` 或对应任务/计划日志；不得自行替人类做最终决定。
-- 当任务状态转为 `blocked` 或 `in_review` 时，任务条目必须显式写出 `Human decision:`，说明当前等待人类回答、批准或 review 的具体问题；`in_review` 还必须写出 `Review reason:`。
+- 当任务状态转为 `blocked` 或 `in_review` 时，任务条目必须显式写出 `Human decision:` 与 `INBOX ref:`，说明当前等待人类回答、批准或 review 的具体问题；`in_review` 还必须写出 `Review reason:`。
+- 若 `blocked` / `in_review` 的升级链记录不完整，Foreman 必须先补齐记录并保持阻塞或评审态；不得把任务降格回 `todo` / `in_progress`，也不得继续 closeout 来绕过人类决策。
+- `todo` / `in_progress` 不得保留未决人工判断、升级链字段或显式等待人类处理的标记；若出现此类内容，必须立即升级状态。
 
 ## Context Commands
 
@@ -43,4 +45,5 @@
 - `INBOX.md` 只用于仍需人类判断、批准、优先级排序或任务塑形的问题
 - 已在任务日志完整记录的失败，不重复写入 INBOX
 - 已明确目标的 harness 或实现变更，直接创建任务，不先放 INBOX
-- 若任务日志中的 `Human decision:` 已足够表达等待内容，可以暂不新增 INBOX 条目；若问题需跨任务追踪，则补入 `INBOX.md` 并在任务中引用
+- 条目格式使用 `### INBOX-XXX: 标题`，并记录 `Status:`、`Needed decision:`，以及 `Task refs:` / `Plan refs:` 之一
+- 若任务日志中的 `Human decision:` 已足够表达等待内容，可以暂不新增 INBOX 条目，但任务必须写 `INBOX ref: task-log-only: <reason>`；若问题需跨任务追踪，则补入 `INBOX.md` 并在任务中用 `INBOX ref: INBOX-XXX` 引用，且该条目必须在 `Task refs:` 中列出对应 task id

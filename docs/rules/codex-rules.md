@@ -684,7 +684,9 @@ messaging:
 - `tasks.md` 只允许 `todo`、`in_progress`、`in_review`、`blocked` 状态。
 - `done` 任务不得保留在 `tasks.md`，必须移入 `tasks-done.md`。
 - `tasks-done.md` 必须按最新归档在上、历史归档在下维护；当前正在 closeout 的任务位于 `## Done` 顶部。
-- `blocked` 任务必须包含 `Next action:`、`Escalation:` 与 `Human decision:`；`in_review` 任务必须包含 `Review reason:` 与 `Human decision:`。
+- `blocked` 任务必须包含 `Next action:`、`Escalation:`、`Human decision:` 与 `INBOX ref:`；`in_review` 任务必须包含 `Review reason:`、`Human decision:` 与 `INBOX ref:`。
+- 若 `blocked` / `in_review` 缺少升级链记录，任务不得伪装成可自动继续、可关闭或可回退为普通执行态；必须先补齐记录。
+- `todo` / `in_progress` 任务不得保留未决人工判断、升级链字段或显式等待人类处理的标记；出现此类内容时，必须升级为 `blocked` 或 `in_review`。
 - 不得额外创建 JSON、YAML 或其他机器状态文件追踪任务状态；`.agent/config.json` 仅用于机器参数，不记录任务状态。
 
 ### R-157 任务关闭与单任务提交
@@ -697,7 +699,9 @@ messaging:
 ### R-158 INBOX 人工决策入口
 
 - `INBOX.md` 只记录仍需人类判断、批准、优先级排序或任务塑形的问题。
+- `INBOX.md` 条目必须使用稳定 ID（如 `INBOX-001`），并记录 `Status:`、`Needed decision:`，以及 `Task refs:` / `Plan refs:` 之一。
 - 已在任务日志中完整记录的失败或确定性工程事项，不得重复记入 INBOX。
+- 若问题已升级到 `INBOX.md`，对应任务必须通过 `INBOX ref:` 回指该条目，且该条目必须在 `Task refs:` 中列出对应 task id；`Plan refs:` 只用于补充计划背景或尚未形成任务的事项。若仅保留在任务日志，必须写明 `INBOX ref: task-log-only: <reason>`。
 - 未经人类确认，不得直接把 INBOX 条目转为实现任务。
 
 ### R-159 根 Git 边界与嵌套仓阻断
@@ -709,8 +713,8 @@ messaging:
 ### R-160 任务审计脚本强制执行
 
 - pre-closeout 必须执行 `python3 scripts/task_audit.py --check --phase pre-closeout`，单任务 commit 完成后必须立即执行 `python3 scripts/task_audit.py --check --phase post-closeout`。
-- 审计脚本至少检查：活动台账不得含 done、任务 ID 不重复、`tasks-done.md` 最新归档顺序正确、`blocked` / `in_review` 任务含人类决策元数据、完成任务 commit subject 按阶段满足 Git history 可追溯要求。
-- 若 task audit 失败，必须先修复台账或 Git 追踪问题，再继续关闭流程。
+- 审计脚本至少检查：活动台账不得含 done、任务 ID 不重复、`tasks-done.md` 最新归档顺序正确、`blocked` / `in_review` 任务含人类决策元数据与 `INBOX ref:`、`todo` / `in_progress` 不得静默保留待人类处理标记、完成任务 commit subject 按阶段满足 Git history 可追溯要求。
+- 若 task audit 失败，必须先修复台账、补齐升级链记录或 Git 追踪问题，再继续关闭流程；禁止把“需人类判断”的任务伪装成可自动继续状态。
 
 ### R-161 外部规则迁移替换约束
 

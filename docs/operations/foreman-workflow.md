@@ -59,6 +59,7 @@ Foreman 接手任务前按以下顺序建立上下文：
 ## Escalation
 
 - 达到最大尝试次数或必须人工决策时，任务改为 `blocked`
-- `blocked` 任务必须包含 `Next action:`、`Escalation:` 和 `Human decision:`
+- `blocked` 任务必须包含 `Next action:`、`Escalation:`、`Human decision:` 和 `INBOX ref:`
 - 需要人类 code review 时，任务改为 `in_review` 并暂停
-- `in_review` 任务必须包含 `Review reason:` 和 `Human decision:`
+- `in_review` 任务必须包含 `Review reason:`、`Human decision:` 和 `INBOX ref:`
+- `todo` / `in_progress` 不得保留未决人工判断、升级链字段或显式等待人类处理标记；出现此类内容时，必须立即升级为 `blocked` 或 `in_review`
