@@ -20,6 +20,11 @@ public final class ErrorCodeConstants {
     public static final int GOVERNANCE_SYSTEM_TENANT_CONTEXT_INVALID = 11001;
     public static final int GOVERNANCE_SYSTEM_MESSAGE_ROUTE_INVALID = 11002;
 
+    public static final int QUERY_EXECUTION_SYSTEM_ROUTE_UNAVAILABLE = 12000;
+    public static final int QUERY_EXECUTION_SYSTEM_ENGINE_TIMEOUT = 12001;
+    public static final int QUERY_EXECUTION_SYSTEM_PARSER_FAILURE = 12002;
+    public static final int QUERY_EXECUTION_SYSTEM_PIPELINE_NOT_READY = 12003;
+
     public static final int GOVERNANCE_ACCESS_DENIED = 20000;
     public static final int GOVERNANCE_TENANT_ACCESS_DENIED = 20001;
     public static final int GOVERNANCE_DATASOURCE_ACCESS_DENIED = 20002;
@@ -27,8 +32,13 @@ public final class ErrorCodeConstants {
     public static final int GOVERNANCE_MESSAGE_RETRY_FAILED = 20004;
     public static final int GOVERNANCE_MESSAGE_STATS_UNAVAILABLE = 20005;
 
+    public static final int QUERY_EXECUTION_RISK_REJECTED = 21000;
+    public static final int QUERY_EXECUTION_ROUTE_REJECTED = 21001;
+    public static final int QUERY_EXECUTION_RESULT_LIMIT_EXCEEDED = 21002;
+
     public static final String GOVERNANCE_TENANT_ACCESS_DENIED_MESSAGE = "当前租户无权访问目标租户配置";
     public static final String GOVERNANCE_DATASOURCE_ACCESS_DENIED_MESSAGE = "当前租户无权访问治理数据源";
+    public static final String QUERY_EXECUTION_PIPELINE_NOT_READY_MESSAGE = "联机查询同步执行闭环尚未就绪";
 
     private ErrorCodeConstants() {
     }

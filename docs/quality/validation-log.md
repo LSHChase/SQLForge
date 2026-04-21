@@ -109,3 +109,10 @@
 2026-04-20T12:20:00-05:00 | D-TASK-001 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-20T12:20:00-05:00 | D-TASK-001 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
 2026-04-20T12:20:00-05:00 | D-TASK-001 closeout boundary-doc-sync | `R-126`, `R-133` | passed | `query-execution-service` current carrier, C4, truth baseline, gap matrix, master plan, repo map, and separation baseline synced to the new service boundary
+2026-04-20T19:01:55-05:00 | D-TASK-002 closeout compile | `R-119`, `R-121` | passed | `mvn -B clean compile`
+2026-04-20T19:01:55-05:00 | D-TASK-002 closeout test | `R-119`, `R-121` | passed | `mvn -B test`
+2026-04-20T19:01:55-05:00 | D-TASK-002 closeout static-check | `R-040`, `R-121` | passed | `mvn -B validate pmd:pmd checkstyle:check`
+2026-04-20T19:01:55-05:00 | D-TASK-002 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
+2026-04-20T19:01:55-05:00 | D-TASK-002 closeout knowledge | `R-121`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T19:01:55-05:00 | D-TASK-002 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
+2026-04-20T19:01:55-05:00 | D-TASK-002 closeout contract-doc-sync | `R-121`, `R-133` | passed | `service-interface-contract-baseline.md` synced with `/api/query-execution/queries/execute`, DTO/VO fields, transitional skeleton stage, and fixed query-execution error-code range

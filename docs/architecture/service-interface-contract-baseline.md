@@ -91,6 +91,51 @@
 | `/api/governance/internal/audit/write` | `LONG_TERM_BASELINE` | `TRANSITIONAL_SKELETON` | request: `serviceCode`,`operationCode`,`resourceType`,`resourceId`,`resultStatus`,`elapsedMs`,`sourceIp`,`userAgent`; response: `status`,`messageTopic`,`deliveryMode`,`contractStage`,`implementationStage` | 长期保留为跨服务审计写入入口；当前仍通过共享消息抽象发送审计事件 |
 | `/api/governance/internal/schedule/extensions` | `TRANSITIONAL_SKELETON` | `TRANSITIONAL_SKELETON` | response: `extensionPoint`,`ownerService`,`status`,`currentMode`,`contractStage`,`implementationStage` | 当前只暴露治理调度扩展状态骨架，不代表完整调度域模型已固化 |
 
+## 3.1 Query Execution Public HTTP Baseline
+
+当前 `query-execution-service` 已固化首轮联机查询 DTO / VO / 错误码契约：
+
+| Endpoint | Request baseline | Response baseline | Current implementation stage |
+|:---|:---|:---|:---|
+| `/api/query-execution/queries/execute` | `QueryExecuteRequest` with `sqlText`,`tenantId`,`datasourceType`,`queryContext`,`accelerationPreference`,`faultToleranceStrategy` | `QueryExecuteResponse` with `status`,`rows`,`downloadUrl`,`metadata`,`degraded`,`degradeReason`,`retryPath`,`error`,`sqlFingerprint`,`contractStage`,`implementationStage` | `TRANSITIONAL_SKELETON` |
+
+当前 `QueryExecuteRequest` / `QueryExecuteResponse` 约束如下：
+
+- `sqlText`：必填，最大 `10MB`
+- `tenantId`：必填
+- `datasourceType`：必填，当前使用共享枚举 `HETU` / `HIVE` / `SPARK` / `CLICKHOUSE` / `GAUSSDB` / `AUTO`
+- `queryContext.timeoutMs`：若提供则必须大于 `0`
+- `accelerationPreference`：`PREFER_ACCELERATED` / `PREFER_FRESH` / `NONE`
+- `faultToleranceStrategy`：`RETRY_THEN_FALLBACK` / `FAIL_FAST` / `FALLBACK_IMMEDIATE`
+
+当前 `QueryExecuteResponse` 契约字段与初始化边界对齐如下：
+
+- `metadata.targetEngine`
+- `metadata.actualSql`
+- `metadata.elapsedMs`
+- `metadata.scannedRows`
+- `metadata.cacheHit`
+- `metadata.accelerationApplied`
+- `error.code`
+- `error.message`
+- `error.suggestedAction`
+- `error.retryable`
+
+当前固定的查询执行错误码首轮落点：
+
+- `12000` `QUERY_EXECUTION_SYSTEM_ROUTE_UNAVAILABLE`
+- `12001` `QUERY_EXECUTION_SYSTEM_ENGINE_TIMEOUT`
+- `12002` `QUERY_EXECUTION_SYSTEM_PARSER_FAILURE`
+- `12003` `QUERY_EXECUTION_SYSTEM_PIPELINE_NOT_READY`
+- `21000` `QUERY_EXECUTION_RISK_REJECTED`
+- `21001` `QUERY_EXECUTION_ROUTE_REJECTED`
+- `21002` `QUERY_EXECUTION_RESULT_LIMIT_EXCEEDED`
+
+说明：
+
+- 当前实现仍返回 `TRANSITIONAL_SKELETON` 阶段响应，不代表同步执行闭环已落地。
+- `D-TASK-003` 将继续把该 HTTP 契约接到最小同步执行路径，同时保持只读优先和错误码区间不漂移。
+
 ## 4. Event Contract Baseline
 
 | Event | Producer | Consumer | Payload minimum fields | Purpose |

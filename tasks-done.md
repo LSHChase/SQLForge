@@ -4,6 +4,28 @@
 
 ## Done
 
+### D-TASK-002: 定义联机查询接口 DTO/VO/错误码
+
+- Status: done
+- Priority: 1
+- Depends on: D-TASK-001
+- Completed at: 2026-04-20
+- Commit subject: `feat(query-execution): D-TASK-002 define online query api contracts`
+- Scope: 在 `query-execution-service` 中固化联机查询的请求/响应 DTO、错误码区间和最小 HTTP 契约入口，保持契约优先，不提前引入真实执行引擎闭环。
+- Validation:
+  - `R-121` 四项检查通过
+  - `mvn -B clean compile`
+  - `mvn -B test`
+  - `mvn -B validate pmd:pmd checkstyle:check`
+  - `node scripts/check-frontend-backend-separation.js`
+  - `node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/task_audit.py --check`
+- Progress log:
+  - 2026-04-20: instantiated from `Phase-D / D-STORY-001` after `D-TASK-001` established the independent `query-execution-service` module baseline.
+  - 2026-04-20: this task remained contract-first and limited to DTO/VO, error-code ownership, controller/service contract shape, and baseline interface documentation; the synchronous execution loop remains reserved for `D-TASK-003`.
+  - 2026-04-20: added `QueryExecutionController`, request/response DTO/VO models, query execution status and policy enums, a contract application service skeleton, shared query-execution error codes/service code, and contract tests covering valid request, validation failure, and pipeline-not-ready fallback behavior.
+  - 2026-04-20: synced `service-interface-contract-baseline.md`, reran compile, test, static-check, separation, knowledge-lint, and pre-closeout task audit, then archived the task for single-task git closeout.
+
 ### D-TASK-001: 固化查询执行服务边界
 
 - Status: done
