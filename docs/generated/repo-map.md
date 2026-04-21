@@ -2,7 +2,7 @@
 
 > Generated snapshot for AI navigation. Refresh when layout or module boundaries change.
 
-Last refreshed: `2026-04-20`
+Last refreshed: `2026-04-21`
 
 ## Root
 
@@ -22,7 +22,7 @@ Last refreshed: `2026-04-20`
 - `governance/`: current governance backend baseline
 - `query-execution/`: query execution service boundary skeleton
 - `sql-optimization/`: sql optimization submit/status api skeleton
-- `benchmark-engine/`: benchmark-engine task and report model baseline
+- `benchmark-engine/`: benchmark-engine submit/status api skeleton with placeholder repository
 - `sqlforge-shared/`: shared common layer baseline
 
 ## Docs

@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-009: 实现压测任务提交流程骨架
+
+- Status: done
+- Priority: 1
+- Depends on: D-TASK-008
+- Completed at: 2026-04-21
+- Commit subject: `feat(benchmark-engine): D-TASK-009 add task submit and status api skeleton`
+- Scope: 在 `benchmark-engine` 中补 `POST /api/benchmark-engine/tasks` 与 `GET /api/benchmark-engine/tasks/{taskId}`，用 in-memory placeholder repository 串通提交、轮询、失败路径和流程日志，同时把成功路径的占位报告落库，为后续 `D-TASK-010` 的报告查询接口保留稳定承载点，不提前接入真实调度、隔离执行或导出链路。
+- Validation:
+  - 提交/轮询/失败路径测试
+  - `mvn -B clean compile`
+  - `mvn -B test`
+  - `mvn -B validate pmd:pmd checkstyle:check`
+  - `node scripts/check-frontend-backend-separation.js`
+  - `node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/task_audit.py --check`
+- Progress log:
+  - 2026-04-21: instantiated from `Phase-D / D-STORY-003` after `D-TASK-008` stabilized the benchmark task/report model and contract baseline.
+  - 2026-04-21: added `BenchmarkTaskController`, `BenchmarkTaskApplicationService`, repository contract, and `InMemoryBenchmarkTaskRepository` so `benchmark-engine` now exposes submit and polling HTTP skeletons on an independent carrier.
+  - 2026-04-21: kept async semantics by returning a queued snapshot from `POST /api/benchmark-engine/tasks`, then running a deterministic placeholder lifecycle that can reach success or failure for stable poll-path tests.
+  - 2026-04-21: enforced current isolation guardrails in the skeleton by rejecting `readonlyRequired=false` and `shadowEnvironmentMode=DISABLED`, while still preserving placeholder failure coverage via the explicit `FAIL_BENCHMARK` marker.
+  - 2026-04-21: stored placeholder reports on successful runs so `D-TASK-010` can add report query HTTP contracts without reshaping the current task flow, then synced interface baseline, capability map, truth baseline, C4, init summary, README, repo map, and validation log to `ASYNC_TASK_API_SKELETON`.
+
 ### D-TASK-008: 定义压测任务与报告模型
 
 - Status: done

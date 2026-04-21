@@ -5,18 +5,33 @@ import com.company.benchmarkengine.domain.benchmark.DesensitizationRequirement;
 import com.company.benchmarkengine.domain.benchmark.ShadowEnvironmentMode;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import java.util.List;
+import javax.validation.Valid;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.Size;
 
 public class BenchmarkTaskContextDTO {
 
     private BenchmarkTaskPriority priority;
+
+    @Size(max = 8, message = "targetEngines exceeds 8 items")
     private List<DataSourceTypeEnum> targetEngines;
+
+    @Min(value = 1L, message = "concurrency must be greater than 0")
     private Integer concurrency;
+
+    @Min(value = 1L, message = "durationSeconds must be greater than 0")
     private Integer durationSeconds;
+
+    @Min(value = 0L, message = "rampUpSeconds must not be negative")
     private Integer rampUpSeconds;
+
+    @Size(max = 64, message = "datasetSizeLabel exceeds 64 characters")
     private String datasetSizeLabel;
     private Boolean readonlyRequired;
     private ShadowEnvironmentMode shadowEnvironmentMode;
     private DesensitizationRequirement desensitizationRequirement;
+
+    @Valid
     private List<BenchmarkThresholdDTO> thresholds;
 
     public BenchmarkTaskPriority getPriority() {

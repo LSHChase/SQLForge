@@ -240,9 +240,14 @@
 - 当前 placeholder 失败路径通过 SQL 或指纹中的显式 `FAIL_OPTIMIZATION` 标记触发，用于稳定验证轮询失败场景。
 - 当前实现仍未接入真实 MySQL 持久化、队列调度、事件回调和建议结果明细输出，这些能力继续由后续 `Phase-D` 任务补齐。
 
-## 3.3 Benchmark Engine Model Contract Baseline
+## 3.3 Benchmark Engine Task Contract Baseline
 
-当前 `benchmark-engine` 已建立独立模块，并将压测任务/阈值/报告模型固化为后续接口复用的公共契约对象；真实 HTTP 入口继续由 `D-TASK-009` / `D-TASK-010` 补齐。
+当前 `benchmark-engine` 已将压测任务契约接到公共 HTTP skeleton，并通过 in-memory placeholder repository 提供可测的提交、轮询与失败路径；报告查询接口继续由 `D-TASK-010` 补齐。
+
+| Endpoint | Request baseline | Response baseline | Current implementation stage |
+|:---|:---|:---|:---|
+| `POST /api/benchmark-engine/tasks` | `BenchmarkTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`taskContext` | `BenchmarkTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`contractStage`,`implementationStage` | `ASYNC_TASK_API_SKELETON` |
+| `GET /api/benchmark-engine/tasks/{taskId}` | path: `taskId` | `BenchmarkTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`targetEngines`,`readonlyRequired`,`shadowEnvironmentMode`,`desensitizationRequirement`,`thresholdCount`,`reportId`,`error`,`submittedAt`,`startedAt`,`finishedAt`,`contractStage`,`implementationStage` | `ASYNC_TASK_API_SKELETON` |
 
 当前模型基线涉及以下契约对象：
 
@@ -266,6 +271,16 @@
 - `taskContext.shadowEnvironmentMode`：`REQUIRED` / `PREFERRED` / `DISABLED`，默认 `REQUIRED`
 - `taskContext.desensitizationRequirement`：`REQUIRED` / `OPTIONAL`，默认 `REQUIRED`
 - `taskContext.thresholds[]`：阈值列表，元素字段为 `metric`、`operator`、`targetValue`、`severity`、`description`
+
+当前 `BenchmarkTaskSubmitResponse` 基线字段如下：
+
+- `taskId`
+- `status`
+- `currentPhase`
+- `estimatedReadyAt`
+- `statusQueryPath`
+- `contractStage`
+- `implementationStage`
 
 当前 `BenchmarkTaskStatusResponse` 基线字段如下：
 
@@ -343,9 +358,13 @@
 
 说明：
 
-- 当前 `benchmark-engine` 只固化了模型与契约，不代表压测执行、调度、导出和报告查询接口已经开放。
+- 当前 `POST /api/benchmark-engine/tasks` 会先返回 `QUEUED / SUBMITTED` 快照，再由占位处理链立即推进到成功或失败，并在成功路径上把占位报告落入 placeholder repository。
+- 当前 `GET /api/benchmark-engine/tasks/{taskId}` 已可查询最新任务状态；未知任务返回 `23001`。
+- 当前占位失败路径通过 SQL 或指纹中的显式 `FAIL_BENCHMARK` 标记触发，用于稳定验证轮询失败场景。
+- 当前 `readonlyRequired=false` 或 `shadowEnvironmentMode=DISABLED` 会被当前骨架拒绝，并返回 `23003`，以保持 `ADR-007` 的隔离约束不被绕过。
 - 当前模型已经把 `ADR-007` 要求的只读标记、影子环境标记和脱敏要求显式入模，避免后续执行链路绕过安全基线。
-- 当前报告模型已覆盖引擎指标快照、阈值判定和建议输出，供后续提交流程与报告查询接口直接复用。
+- 当前报告模型已覆盖引擎指标快照、阈值判定和建议输出，且成功路径已经把占位报告落库，供后续报告查询接口直接复用。
+- 当前实现仍未接入真实调度、隔离执行、持久化队列和报告查询公共接口，这些能力继续由后续 `Phase-D` 任务补齐。
 
 ## 4. Event Contract Baseline
 

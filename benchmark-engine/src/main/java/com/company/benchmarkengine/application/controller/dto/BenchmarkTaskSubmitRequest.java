@@ -1,14 +1,28 @@
 package com.company.benchmarkengine.application.controller.dto;
 
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
+import javax.validation.Valid;
+import javax.validation.constraints.AssertTrue;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
 public class BenchmarkTaskSubmitRequest {
 
+    @NotBlank(message = "tenantId is required")
     private String tenantId;
+
+    @NotNull(message = "taskType is required")
     private BenchmarkTaskType taskType;
+
+    @Size(max = 10485760, message = "sqlText exceeds 10MB limit")
     private String sqlText;
+
+    @Size(max = 128, message = "sqlFingerprint exceeds 128 characters")
     private String sqlFingerprint;
-    private BenchmarkTaskContextDTO taskContext;
+
+    @Valid
+    private BenchmarkTaskContextDTO taskContext = new BenchmarkTaskContextDTO();
 
     public String getTenantId() {
         return tenantId;
@@ -47,6 +61,15 @@ public class BenchmarkTaskSubmitRequest {
     }
 
     public void setTaskContext(BenchmarkTaskContextDTO taskContext) {
-        this.taskContext = taskContext;
+        this.taskContext = taskContext == null ? new BenchmarkTaskContextDTO() : taskContext;
+    }
+
+    @AssertTrue(message = "Either sqlText or sqlFingerprint must be provided")
+    public boolean isSqlIdentityProvided() {
+        return hasText(sqlText) || hasText(sqlFingerprint);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && value.trim().length() > 0;
     }
 }

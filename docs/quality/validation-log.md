@@ -170,3 +170,11 @@
 2026-04-20T23:59:40-05:00 | D-TASK-008 closeout static-check | `R-040`, `R-121`, `R-127` | passed | `mvn -B validate pmd:pmd checkstyle:check`
 2026-04-20T23:59:40-05:00 | D-TASK-008 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
 2026-04-20T23:59:40-05:00 | D-TASK-008 closeout knowledge | `R-121`, `R-126`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T00:21:07-05:00 | D-TASK-009 closeout compile | `R-119`, `R-121`, `R-123`, `R-127` | passed | `mvn -B -pl benchmark-engine -am clean compile`
+2026-04-21T00:21:07-05:00 | D-TASK-009 closeout test | `R-119`, `R-121`, `R-123`, `R-127` | passed | `mvn -B -pl benchmark-engine -am test`
+2026-04-21T00:21:07-05:00 | D-TASK-009 closeout static-check | `R-040`, `R-121`, `R-123`, `R-127` | passed | `mvn -B -pl benchmark-engine -am validate pmd:pmd checkstyle:check`
+2026-04-21T00:21:07-05:00 | D-TASK-009 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
+2026-04-21T00:21:07-05:00 | D-TASK-009 closeout knowledge | `R-121`, `R-126`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T00:21:07-05:00 | D-TASK-009 closeout api-path-coverage | `R-041`, `R-121`, `R-127` | passed | `BenchmarkTaskControllerTest` covers submit success, forced placeholder failure polling, unknown task 404, and unsafe isolation 400
+2026-04-21T00:21:07-05:00 | D-TASK-009 closeout flow-log-sampling | `R-123` | passed | `BenchmarkTaskApplicationServiceTest` captures submit START / STATE_CHANGE / END logs and missing-task FAILED exception log
+2026-04-21T00:21:07-05:00 | D-TASK-009 closeout doc-sync | `R-121`, `R-126`, `R-133` | passed | `README.md`, `service-interface-contract-baseline.md`, `service-capability-map.md`, `document-truth-baseline.md`, `c4-overview.md`, `init.md`, and `repo-map.md` synced to `benchmark-engine` task submit/poll skeleton

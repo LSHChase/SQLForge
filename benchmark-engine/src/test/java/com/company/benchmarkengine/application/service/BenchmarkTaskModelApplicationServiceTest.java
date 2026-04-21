@@ -65,14 +65,18 @@ class BenchmarkTaskModelApplicationServiceTest {
         );
         task.markRunning(Instant.parse("2026-04-20T00:05:05Z"));
 
-        BenchmarkTaskSubmitResponse submitResponse = service.buildSubmitResponse(task);
+        BenchmarkTaskSubmitResponse submitResponse = service.buildSubmitResponse(
+            task,
+            Instant.parse("2026-04-20T00:05:50Z")
+        );
         BenchmarkTaskStatusResponse statusResponse = service.buildStatusResponse(task);
 
         assertEquals("benchmark-task-002", submitResponse.getTaskId());
         assertEquals(BenchmarkTaskStatus.RUNNING, submitResponse.getStatus());
         assertEquals(BenchmarkTaskPhase.BASELINE_PREPARING, submitResponse.getCurrentPhase());
+        assertEquals("/api/benchmark-engine/tasks/benchmark-task-002", submitResponse.getStatusQueryPath());
         assertEquals("LONG_TERM_BASELINE", submitResponse.getContractStage());
-        assertEquals("MODEL_BASELINE", submitResponse.getImplementationStage());
+        assertEquals("ASYNC_TASK_API_SKELETON", submitResponse.getImplementationStage());
 
         assertEquals(BenchmarkTaskType.COMPARISON, statusResponse.getTaskType());
         assertEquals(BenchmarkTaskPriority.NORMAL, statusResponse.getPriority());

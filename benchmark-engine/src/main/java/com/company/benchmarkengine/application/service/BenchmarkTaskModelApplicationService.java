@@ -35,7 +35,9 @@ import org.springframework.stereotype.Service;
 public class BenchmarkTaskModelApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
-    private static final String IMPLEMENTATION_STAGE = "MODEL_BASELINE";
+    private static final String TASK_IMPLEMENTATION_STAGE = "ASYNC_TASK_API_SKELETON";
+    private static final String REPORT_IMPLEMENTATION_STAGE = "MODEL_BASELINE";
+    private static final String STATUS_QUERY_PATH_TEMPLATE = "/api/benchmark-engine/tasks/%s";
 
     public BenchmarkTask createQueuedTask(BenchmarkTaskSubmitRequest request, String taskId, Instant submittedAt) {
         BenchmarkTaskContextDTO taskContext = request.getTaskContext() == null
@@ -60,13 +62,15 @@ public class BenchmarkTaskModelApplicationService {
         return BenchmarkTask.submit(taskId, submission, submittedAt);
     }
 
-    public BenchmarkTaskSubmitResponse buildSubmitResponse(BenchmarkTask task) {
+    public BenchmarkTaskSubmitResponse buildSubmitResponse(BenchmarkTask task, Instant estimatedReadyAt) {
         return new BenchmarkTaskSubmitResponse(
             task.getTaskId(),
             task.getStatus(),
             task.getCurrentPhase(),
+            estimatedReadyAt,
+            buildStatusQueryPath(task.getTaskId()),
             CONTRACT_STAGE,
-            IMPLEMENTATION_STAGE
+            TASK_IMPLEMENTATION_STAGE
         );
     }
 
@@ -89,7 +93,7 @@ public class BenchmarkTaskModelApplicationService {
             task.getStartedAt(),
             task.getFinishedAt(),
             CONTRACT_STAGE,
-            IMPLEMENTATION_STAGE
+            TASK_IMPLEMENTATION_STAGE
         );
     }
 
@@ -120,8 +124,12 @@ public class BenchmarkTaskModelApplicationService {
             toThresholdAssessmentVOs(report.getThresholdAssessments()),
             toRecommendationVOs(report.getRecommendations()),
             CONTRACT_STAGE,
-            IMPLEMENTATION_STAGE
+            REPORT_IMPLEMENTATION_STAGE
         );
+    }
+
+    private String buildStatusQueryPath(String taskId) {
+        return String.format(STATUS_QUERY_PATH_TEMPLATE, taskId);
     }
 
     private BenchmarkTaskErrorVO toErrorVO(BenchmarkTaskError error) {

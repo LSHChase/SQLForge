@@ -97,14 +97,16 @@
 - `application` / `domain` / `infrastructure` / `config` 分层骨架
 - `BASELINE` / `COMPARISON` / `REGRESSION_GUARD` 三类压测任务模型
 - `QUEUED` / `RUNNING` / `SUCCEEDED` / `FAILED` / `CANCELLED` 生命周期状态与任务类型感知的阶段流转
+- `POST /api/benchmark-engine/tasks` 和 `GET /api/benchmark-engine/tasks/{taskId}` 的过渡骨架
+- 基于 in-memory placeholder repository 的提交、轮询、失败路径、占位报告落库与流程日志
 - 只读要求、影子环境模式、脱敏要求、并发/时长/预热/数据规模等任务元数据固化
 - 阈值模型、阈值判定结果、引擎指标快照、优化建议和报告契约对象
 - 基础 DTO / VO、错误码区间和模型装配 service
 
 当前还未完整承载：
 
-- `POST /api/benchmark-engine/tasks` 提交流程与轮询接口
-- 真正的调度、隔离执行、持久化、队列和报告导出
+- 真正的调度、隔离执行、队列和报告导出
+- 报告查询公共 HTTP 接口
 - 与公共管理服务、查询执行服务的真实跨服务调用
 
 ## 4. 公共管理服务
@@ -169,11 +171,11 @@
 ## Immediate Implementation Implications
 
 - 下一轮后端实现优先级应是：
-  1. 在 `benchmark-engine` 上补压测任务提交与状态轮询骨架
-  2. 在 `benchmark-engine` 上补报告查询与导出骨架
-  3. 在 `query-execution` 上继续补真实治理调用与真实引擎适配器
-  4. 在 `sql-optimization` 上补持久化、队列和回调通知
-  5. 在 `governance` 上继续补完整授权矩阵与审计链路
+  1. 在 `benchmark-engine` 上补报告查询与导出骨架
+  2. 在 `query-execution` 上继续补真实治理调用与真实引擎适配器
+  3. 在 `sql-optimization` 上补持久化、队列和回调通知
+  4. 在 `governance` 上继续补完整授权矩阵与审计链路
+  5. 在 `benchmark-engine` 上补真实调度与隔离执行链路
 
 ## Related Documents
 
