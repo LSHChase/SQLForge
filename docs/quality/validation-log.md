@@ -101,14 +101,14 @@
 2026-04-20T12:05:14-05:00 | Phase-C exit recheck frontend-lint | `R-117`, `R-124` | passed | `npm run lint`
 2026-04-20T12:05:14-05:00 | Phase-C exit recheck knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-20T12:05:14-05:00 | Phase-C exit recheck task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
-2026-04-20T12:05:14-05:00 | Phase-C exit recheck boundary-and-ledger review | `R-126`, `R-144`, `R-156`, `R-161` | blocked | shared foundation boundary remains clean, `governance-service` remains scoped to public-management duties, Kafka real-environment validation stays deferred, and ledgers/docs/logs are aligned after `C-TASK-002`,`C-TASK-003`,`C-TASK-007` closeout; Phase-C still cannot formally exit until coverage and Sonar environment prerequisites are satisfied
+2026-04-20T12:05:14-05:00 | Phase-C exit recheck boundary-and-ledger review | `R-126`, `R-144`, `R-156`, `R-161` | blocked | shared foundation boundary remains clean, `governance` remains scoped to public-management duties, Kafka real-environment validation stays deferred, and ledgers/docs/logs are aligned after `C-TASK-002`,`C-TASK-003`,`C-TASK-007` closeout; Phase-C still cannot formally exit until coverage and Sonar environment prerequisites are satisfied
 2026-04-20T12:20:00-05:00 | D-TASK-001 closeout compile | `R-119`, `R-120` | passed | `mvn -B clean compile`
 2026-04-20T12:20:00-05:00 | D-TASK-001 closeout test | `R-119`, `R-120` | passed | `mvn -B test`
 2026-04-20T12:20:00-05:00 | D-TASK-001 closeout static-check | `R-040`, `R-120` | passed | `mvn -B validate pmd:pmd checkstyle:check`
 2026-04-20T12:20:00-05:00 | D-TASK-001 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
 2026-04-20T12:20:00-05:00 | D-TASK-001 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-20T12:20:00-05:00 | D-TASK-001 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
-2026-04-20T12:20:00-05:00 | D-TASK-001 closeout boundary-doc-sync | `R-126`, `R-133` | passed | `query-execution-service` current carrier, C4, truth baseline, gap matrix, master plan, repo map, and separation baseline synced to the new service boundary
+2026-04-20T12:20:00-05:00 | D-TASK-001 closeout boundary-doc-sync | `R-126`, `R-133` | passed | `query-execution` current carrier, C4, truth baseline, gap matrix, master plan, repo map, and separation baseline synced to the new service boundary
 2026-04-20T19:01:55-05:00 | D-TASK-002 closeout compile | `R-119`, `R-121` | passed | `mvn -B clean compile`
 2026-04-20T19:01:55-05:00 | D-TASK-002 closeout test | `R-119`, `R-121` | passed | `mvn -B test`
 2026-04-20T19:01:55-05:00 | D-TASK-002 closeout static-check | `R-040`, `R-121` | passed | `mvn -B validate pmd:pmd checkstyle:check`
@@ -122,7 +122,7 @@
 2026-04-20T19:19:38-05:00 | D-TASK-003 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
 2026-04-20T19:19:38-05:00 | D-TASK-003 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-20T19:19:38-05:00 | D-TASK-003 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
-2026-04-20T19:19:38-05:00 | D-TASK-003 closeout path-coverage | `R-042`, `R-045` | passed | `QueryExecutionApplicationServiceTest` covers success, timeout, risk-rejected failure, and fallback-degraded synchronous paths
+2026-04-20T19:19:38-05:00 | D-TASK-003 closeout path-coverage | `R-042`, `R-045` | passed | `QueryExecutionApplicationTest` covers success, timeout, risk-rejected failure, and fallback-degraded synchronous paths
 2026-04-20T19:19:38-05:00 | D-TASK-003 closeout doc-sync | `R-126`, `R-133` | passed | `service-interface-contract-baseline.md`, `document-truth-baseline.md`, `init.md`, `c4-overview.md`, and `service-capability-map.md` synced to the minimal synchronous execution baseline
 2026-04-20T19:37:03-05:00 | D-TASK-004 closeout compile | `R-119`, `R-123` | passed | `mvn -B clean compile`
 2026-04-20T19:37:03-05:00 | D-TASK-004 closeout test | `R-119`, `R-123` | passed | `mvn -B test`
@@ -130,6 +130,13 @@
 2026-04-20T19:37:03-05:00 | D-TASK-004 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
 2026-04-20T19:37:03-05:00 | D-TASK-004 closeout knowledge | `R-131`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-20T19:37:03-05:00 | D-TASK-004 pre-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
-2026-04-20T19:37:03-05:00 | D-TASK-004 closeout flow-log-sampling | `R-123` | passed | `QueryExecutionApplicationServiceTest` captures START / STATE_CHANGE / END / FAILED phase logs and verifies SQL text is not printed
+2026-04-20T19:37:03-05:00 | D-TASK-004 closeout flow-log-sampling | `R-123` | passed | `QueryExecutionApplicationTest` captures START / STATE_CHANGE / END / FAILED phase logs and verifies SQL text is not printed
 2026-04-20T19:37:03-05:00 | D-TASK-004 closeout recovery-marker-sampling | `R-123`, `R-042`, `R-045` | passed | timeout/fallback tests verify `LOCAL_TIMEOUT_ROLLBACK_MARKED` and `LOCAL_FALLBACK_COMPENSATION_MARKED` in `retryPath`
 2026-04-20T19:37:03-05:00 | D-TASK-004 closeout doc-sync | `R-126`, `R-133` | passed | `service-interface-contract-baseline.md`, `document-truth-baseline.md`, `init.md`, `c4-overview.md`, and `service-capability-map.md` synced to the observable execution baseline
+2026-04-20T21:06:12-05:00 | OPS-NAME-001 closeout compile | `R-119`, `R-167` | passed | `mvn -B clean compile`
+2026-04-20T21:06:12-05:00 | OPS-NAME-001 closeout test | `R-119`, `R-167` | passed | `mvn -B test`
+2026-04-20T21:06:12-05:00 | OPS-NAME-001 closeout static-check | `R-040`, `R-167` | passed | `mvn -B validate pmd:pmd checkstyle:check`
+2026-04-20T21:06:12-05:00 | OPS-NAME-001 closeout separation | `R-124`, `R-133`, `R-167` | passed | `node scripts/check-frontend-backend-separation.js`
+2026-04-20T21:06:12-05:00 | OPS-NAME-001 closeout knowledge | `R-131`, `R-133`, `R-161`, `R-167` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-20T21:06:12-05:00 | OPS-NAME-001 closeout naming-scan | `R-167` | passed | repo-wide `rg` confirms old engineering names remain only in the archived task scope and the explicit historical-name mapping table
+2026-04-20T21:06:12-05:00 | OPS-NAME-001 closeout layering-wording-scan | `R-020`, `R-021`, `R-167` | passed | repo-wide `rg` found no remaining wording that treats `application` as a peer runtime layer beside `controller` and `service`

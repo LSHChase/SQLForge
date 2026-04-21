@@ -8,7 +8,7 @@
 
 ## Context
 
-`docs/architecture/init.md` 同时保留了“11 个原始服务来源”和“合并后的 4 个微服务目标”。人类已确认项目最终形态采用 4 个微服务，而不是保留 11 个独立交付服务。当前仓库已有前端工程、`sqlforge-common` 和 `governance-service`，仍处于从初始化脚手架向目标服务拓扑过渡阶段。
+`docs/architecture/init.md` 同时保留了“11 个原始服务来源”和“合并后的 4 个微服务目标”。人类已确认项目最终形态采用 4 个微服务，而不是保留 11 个独立交付服务。当前仓库已有前端工程、`sqlforge-shared` 和 `governance`，仍处于从初始化脚手架向目标服务拓扑过渡阶段。
 
 ## Decision Drivers
 
@@ -64,7 +64,7 @@
 
 ## Implementation Notes
 
-- 当前 `governance-service` 视为公共管理服务的现阶段实现基线
+- 当前 `governance` 视为公共管理服务的现阶段实现基线
 - 后续新增模块和接口必须标注映射到 4 个最终服务之一
 - 跨域调用只能通过 Service DTO 和接口契约
 

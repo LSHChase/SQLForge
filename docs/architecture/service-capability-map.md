@@ -8,10 +8,10 @@
 
 | Final service | Core responsibilities | Current carrier | Current state |
 |:---|:---|:---|:---|
-| 查询执行服务 | 查询提交、路由、缓存、轻量解析、轻量改写、执行控制、结果聚合 | `query-execution-service` | Partial |
+| 查询执行服务 | 查询提交、路由、缓存、轻量解析、轻量改写、执行控制、结果聚合 | `query-execution` | Partial |
 | SQL 优化服务 | 异步深度解析、改写建议、加速建议、成本估算、物化视图策略 | 尚未建立独立模块 | Pending |
 | 压测引擎服务 | 压测任务、调度、并行执行、报告生成、隔离控制 | 尚未建立独立模块 | Pending |
-| 公共管理服务 | 租户、配额、数据源、审计、合规、元数据、调度、平台治理 | `governance-service` | Partial |
+| 公共管理服务 | 租户、配额、数据源、审计、合规、元数据、调度、平台治理 | `governance` | Partial |
 
 ## Service Allocation
 
@@ -32,7 +32,7 @@
 - 加速建议审批与物化视图治理
 - 压测执行与压测报告
 
-当前由 `query-execution-service` 承载的最小实现包括：
+当前由 `query-execution` 承载的最小实现包括：
 
 - Spring Boot 应用入口和独立 Maven 模块
 - `application` / `domain` / `infrastructure` / `config` 分层骨架
@@ -84,7 +84,7 @@
 - 统一身份上下文和资源范围校验基线
 - 为其他服务提供受控查询、授权和审计入口
 
-当前由 `governance-service` 承载的最小实现包括：
+当前由 `governance` 承载的最小实现包括：
 
 - 健康检查
 - 最小租户上下文建立
@@ -102,16 +102,16 @@
 
 ## Governance Service Transition Rules
 
-- 当前 `governance-service` 只能继续向“公共管理服务”边界收敛。
-- 不允许把查询执行、异步优化或压测主流程长期堆进 `governance-service`。
-- 若为快速验证需要在 `governance-service` 暂放跨域能力，必须：
+- 当前 `governance` 只能继续向“公共管理服务”边界收敛。
+- 不允许把查询执行、异步优化或压测主流程长期堆进 `governance`。
+- 若为快速验证需要在 `governance` 暂放跨域能力，必须：
   - 明确标注是过渡实现
   - 给出迁移目标服务
   - 不固化为长期契约
 
-## sqlforge-common Boundary
+## sqlforge-shared Boundary
 
-`sqlforge-common` 仅允许承载以下公共能力：
+`sqlforge-shared` 仅允许承载以下公共能力：
 
 - 错误码常量
 - 基础异常模型
@@ -120,12 +120,12 @@
 - 公共配置契约
 - 无业务语义的工具类
 
-`sqlforge-common` 不允许承载：
+`sqlforge-shared` 不允许承载：
 
 - 业务实体
 - 服务专有 repository
 - 领域逻辑
-- 面向单一服务的 controller 或 application service
+- 面向单一服务的 controller 或位于 `application` 包域内的 service
 
 ## Cross-Service Rules
 
@@ -137,11 +137,11 @@
 ## Immediate Implementation Implications
 
 - 下一轮后端实现优先级应是：
-  1. 把 `sqlforge-common` 做实
-  2. 把 `governance-service` 强化为公共管理服务基线
+  1. 把 `sqlforge-shared` 做实
+  2. 把 `governance` 强化为公共管理服务基线
   3. 新建 SQL 优化服务骨架
   4. 新建压测引擎服务骨架
-  5. 在 `query-execution-service` 上继续补真实治理调用与真实引擎适配器
+  5. 在 `query-execution` 上继续补真实治理调用与真实引擎适配器
 
 ## Related Documents
 

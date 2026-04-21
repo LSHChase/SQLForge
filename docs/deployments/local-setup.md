@@ -47,7 +47,7 @@ docker-compose up -d
 启动后端：
 
 ```bash
-cd governance-service
+cd governance
 mvn spring-boot:run
 ```
 

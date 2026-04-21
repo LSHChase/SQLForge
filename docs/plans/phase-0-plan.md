@@ -34,8 +34,8 @@
 |:---|:---|:---|
 | `Task-001` | Completed | 根目录基础文件已初始化并完成关键内容校验 |
 | `Task-002` | Completed | 文档体系已入仓，架构总文档、规则库、ADR 实体文件、计划、部署与合规文档已建立 |
-| `Task-003` | Completed | 父 POM 与 `sqlforge-common/` 已建立；当前 `sqlforge-common/` 仍需后续补齐源码 |
-| `Task-004` | Completed | `governance-service/` 已建立并完成阶段性修复与基础测试 |
+| `Task-003` | Completed | 父 POM 与 `sqlforge-shared/` 已建立；当前 `sqlforge-shared/` 仍需后续补齐源码 |
+| `Task-004` | Completed | `governance/` 已建立并完成阶段性修复与基础测试 |
 | `Task-005` | Completed | 前端框架、路由、主题、国际化与基础页面骨架已建立 |
 | `Task-006` | Completed | `sql/init-schema.sql` 与 `sql/init-data.sql` 已建立，并已覆盖本地消息表初始化 |
 | `Task-007` | Completed | 仓库知识检查脚本与前后端分离检查脚本已建立并通过验证 |

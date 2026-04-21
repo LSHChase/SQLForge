@@ -62,18 +62,18 @@
 
 ### Wave 1: Shared foundation
 
-- 目标：让 `sqlforge-common` 承载真正的跨服务公共能力。
+- 目标：让 `sqlforge-shared` 承载真正的跨服务公共能力。
 - 首批建议能力：
   - error code constants
   - request/tenant context primitives
   - audit event contract
   - shared exception model
   - shared config and utility boundaries
-- 完成标准：公共能力被 `governance-service` 消费，且不夹带业务实体。
+- 完成标准：公共能力被 `governance` 消费，且不夹带业务实体。
 
 ### Wave 2: Public management service hardening
 
-- 目标：把当前 `governance-service` 从“最小治理基线”推进到“公共管理服务可扩展底座”。
+- 目标：把当前 `governance` 从“最小治理基线”推进到“公共管理服务可扩展底座”。
 - 优先实现：
   - 身份上下文校验强化
   - 角色与租户边界

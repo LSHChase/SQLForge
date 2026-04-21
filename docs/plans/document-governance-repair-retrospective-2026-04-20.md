@@ -34,7 +34,7 @@
   - 追加 `DOC-GOV-001` 与 `DOC-GOV-002` 的任务归档与 git closeout
   - 将新增文档接入主入口、主计划、coverage matrix、repo map 与 lint
 - What remained pending:
-  - 仅剩实现层缺口：`sqlforge-common` 共享层、查询执行服务、SQL 优化服务、压测引擎服务、访问控制完整代码化
+  - 仅剩实现层缺口：`sqlforge-shared` 共享层、查询执行服务、SQL 优化服务、压测引擎服务、访问控制完整代码化
 - What changed in the plan:
   - 原计划中的隐式治理要求被进一步拆成显式矩阵和契约表
   - Task 治理字段从核心 10 字段扩展为“10 字段 + 3 个治理补充字段”的双层结构
@@ -101,7 +101,7 @@
 ## 7. Follow-Up Items
 
 - Next batch candidates:
-  - `sqlforge-common` 公共层做实
+  - `sqlforge-shared` 公共层做实
   - 公共管理服务继续收敛
   - 查询执行 / SQL 优化 / 压测引擎服务骨架落地
 - Human confirmations still needed:

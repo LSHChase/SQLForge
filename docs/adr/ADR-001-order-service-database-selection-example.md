@@ -69,7 +69,7 @@
 
 ## Implementation Notes
 
-- 影响模块：`governance-service`、后续 4 个微服务的管理面与事务域
+- 影响模块：`governance`、后续 4 个微服务的管理面与事务域
 - 数据访问方式：MyBatis XML
 - 关键表：租户、数据源、审计、导出、消息队列、调度元数据
 - 后续需建立冷热分层、审计归档和备份恢复文档

@@ -34,7 +34,7 @@
 
 业务代码必须只依赖上述抽象接口，禁止直接依赖 `KafkaTemplate`、Kafka 客户端或任意数据库轮询实现。
 
-当前 `governance-service` 已实现：
+当前 `governance` 已实现：
 
 - `domain/messaging/` 抽象接口与 `MessageEnvelope`
 - `infrastructure/messaging/` 下的 `Database` / `Mock` / `Kafka` 三种模式实现

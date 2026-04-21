@@ -6,9 +6,9 @@ const path = require('path')
 const rootDir = process.cwd()
 const frontendRoot = path.join(rootDir, 'src')
 const backendRoots = [
-  path.join(rootDir, 'governance-service'),
-  path.join(rootDir, 'query-execution-service'),
-  path.join(rootDir, 'sqlforge-common')
+  path.join(rootDir, 'governance'),
+  path.join(rootDir, 'query-execution'),
+  path.join(rootDir, 'sqlforge-shared')
 ]
 const ignoredDirs = new Set([
   '.git',

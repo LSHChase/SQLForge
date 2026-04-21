@@ -4,6 +4,27 @@
 
 ## Done
 
+### OPS-NAME-001: 全仓模块与工程命名去 Service 化整改
+
+- Status: done
+- Priority: 1
+- Depends on: none
+- Completed at: 2026-04-20
+- Commit subject: `refactor(repo): OPS-NAME-001 remove Service suffix from engineering names`
+- Scope: 以严格模式对全仓执行模块/工程/运行时命名整改，统一把 `governance-service`、`query-execution-service`、`sqlforge-common` 及相关运行标签、脚本、规则、需求、流程、验证日志、历史台账收敛到无 `Service` 后缀的工程命名，同时保留后端 `application` 包域、`controller`/`service` 实际分层与 `*Service` 服务类型命名，不丢失既有章节/步骤/流程/历史内容，并建立旧名到新名的权威映射。
+- Validation:
+  - `mvn -B clean compile`
+  - `mvn -B test`
+  - `mvn -B validate pmd:pmd checkstyle:check`
+  - `node scripts/check-frontend-backend-separation.js`
+  - `node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/task_audit.py --check`
+- Progress log:
+  - 2026-04-20: instantiated as the temporary highest-priority strict-mode naming remediation task; all feature work paused until repo-wide module, runtime, code, script, and document naming were synchronized.
+  - 2026-04-20: renamed module directories, Maven modules, artifact ids, Spring application names, runtime labels, service-code constants, scripts, tests, rules, plans, validation logs, and historical ledgers from `*-service` / `sqlforge-common` engineering names to `governance` / `query-execution` / `sqlforge-shared`.
+  - 2026-04-20: preserved backend layering semantics by keeping `application` as a package domain, `controller` and `service` as the actual inbound layers, and concrete service-layer types on `*Service` naming.
+  - 2026-04-20: repaired the remaining wording tail by correcting the old-to-new mapping table and removing the last misleading `application service` layer phrasing, then reran repo-wide validation for single-task closeout.
+
 ### D-TASK-004: 增加异常回滚与运行日志
 
 - Status: done
@@ -11,7 +32,7 @@
 - Depends on: D-TASK-003
 - Completed at: 2026-04-20
 - Commit subject: `feat(query-execution): D-TASK-004 add rollback markers and flow logs`
-- Scope: 给 `query-execution-service` 的最小同步执行闭环补入口/出口/异常/状态变更日志，并把 timeout/fallback 路径的本地回滚/补偿标记固化到当前响应模型与代码路径。
+- Scope: 给 `query-execution` 的最小同步执行闭环补入口/出口/异常/状态变更日志，并把 timeout/fallback 路径的本地回滚/补偿标记固化到当前响应模型与代码路径。
 - Validation:
   - `R-123` 抽查通过
   - `mvn -B clean compile`
@@ -34,7 +55,7 @@
 - Depends on: D-TASK-002
 - Completed at: 2026-04-20
 - Commit subject: `feat(query-execution): D-TASK-003 implement minimal sync execution loop`
-- Scope: 在 `query-execution-service` 中把 `/api/query-execution/queries/execute` 接到最小同步执行路径，保持只读优先和确定性输出，不放开任意 SQL 执行。
+- Scope: 在 `query-execution` 中把 `/api/query-execution/queries/execute` 接到最小同步执行路径，保持只读优先和确定性输出，不放开任意 SQL 执行。
 - Validation:
   - 正常/超时/失败/降级路径测试
   - `mvn -B clean compile`
@@ -45,7 +66,7 @@
   - `python3 scripts/task_audit.py --check`
 - Progress log:
   - 2026-04-20: instantiated from `Phase-D / D-STORY-001` after `D-TASK-002` committed the public DTO / VO / error-code contract baseline in commit `0624dd0`.
-  - 2026-04-20: implementation stayed inside the query-execution-service boundary and introduced a deterministic synchronous skeleton with read-only SQL guard, controlled route/fallback decisions, and no arbitrary SQL execution capability.
+  - 2026-04-20: implementation stayed inside the query-execution boundary and introduced a deterministic synchronous skeleton with read-only SQL guard, controlled route/fallback decisions, and no arbitrary SQL execution capability.
   - 2026-04-20: replaced the pure contract placeholder service with `QueryExecutionApplicationService`, added read-only assessment/guard logic, a deterministic execution adapter, and route handling for success, timeout, rejected-risk, and fallback-degraded paths.
   - 2026-04-20: synced service-interface, truth-baseline, architecture overview, capability map, and init docs so the repository now treats minimal synchronous execution as current fact while keeping governance calls, real adapters, rollback, and runtime logs deferred to follow-up work.
   - 2026-04-20: reran compile, test, static-check, separation, knowledge-lint, and pre-closeout task audit, then archived the task for single-task git closeout.
@@ -57,7 +78,7 @@
 - Depends on: D-TASK-001
 - Completed at: 2026-04-20
 - Commit subject: `feat(query-execution): D-TASK-002 define online query api contracts`
-- Scope: 在 `query-execution-service` 中固化联机查询的请求/响应 DTO、错误码区间和最小 HTTP 契约入口，保持契约优先，不提前引入真实执行引擎闭环。
+- Scope: 在 `query-execution` 中固化联机查询的请求/响应 DTO、错误码区间和最小 HTTP 契约入口，保持契约优先，不提前引入真实执行引擎闭环。
 - Validation:
   - `R-121` 四项检查通过
   - `mvn -B clean compile`
@@ -67,9 +88,9 @@
   - `node scripts/lint-repository-knowledge.js`
   - `python3 scripts/task_audit.py --check`
 - Progress log:
-  - 2026-04-20: instantiated from `Phase-D / D-STORY-001` after `D-TASK-001` established the independent `query-execution-service` module baseline.
+  - 2026-04-20: instantiated from `Phase-D / D-STORY-001` after `D-TASK-001` established the independent `query-execution` module baseline.
   - 2026-04-20: this task remained contract-first and limited to DTO/VO, error-code ownership, controller/service contract shape, and baseline interface documentation; the synchronous execution loop remains reserved for `D-TASK-003`.
-  - 2026-04-20: added `QueryExecutionController`, request/response DTO/VO models, query execution status and policy enums, a contract application service skeleton, shared query-execution error codes/service code, and contract tests covering valid request, validation failure, and pipeline-not-ready fallback behavior.
+  - 2026-04-20: added `QueryExecutionController`, request/response DTO/VO models, query execution status and policy enums, a contract service skeleton in the `application` package domain, shared query-execution error codes/service code, and contract tests covering valid request, validation failure, and pipeline-not-ready fallback behavior.
   - 2026-04-20: synced `service-interface-contract-baseline.md`, reran compile, test, static-check, separation, knowledge-lint, and pre-closeout task audit, then archived the task for single-task git closeout.
 
 ### D-TASK-001: 固化查询执行服务边界
@@ -79,7 +100,7 @@
 - Depends on: none
 - Completed at: 2026-04-20
 - Commit subject: `feat(query-execution): D-TASK-001 solidify query execution service boundary`
-- Scope: 建立 `query-execution-service` 独立模块骨架，固化路由、执行控制、轻量解析、轻量改写和已批准加速配置应用的服务边界，不把治理、异步优化或压测主流程重新混入本服务。
+- Scope: 建立 `query-execution` 独立模块骨架，固化路由、执行控制、轻量解析、轻量改写和已批准加速配置应用的服务边界，不把治理、异步优化或压测主流程重新混入本服务。
 - Validation:
   - 服务边界与 ADR 一致性检查
   - `mvn -B clean compile`
@@ -91,7 +112,7 @@
 - Progress log:
   - 2026-04-20: instantiated from `Phase-D / D-STORY-001` under explicit human direction after the final `Phase-C` audit cleanup commit `68f7bb1`.
   - 2026-04-20: `Phase-C` exit gate remains blocked by coverage threshold and missing Sonar environment configuration; this task proceeded by explicit human direction and did not rewrite that gate state.
-  - 2026-04-20: added `query-execution-service` as an independent Maven module with application/domain/infrastructure/config skeleton, immutable boundary definition, multi-profile configuration, and a boundary application service plus unit test.
+  - 2026-04-20: added `query-execution` as an independent Maven module with `application` package-domain plus `domain`/`infrastructure`/`config` skeleton, immutable boundary definition, multi-profile configuration, and the boundary service class `QueryExecutionBoundaryApplicationService` plus unit test.
   - 2026-04-20: synced `service-capability-map.md`, `c4-overview.md`, `document-truth-baseline.md`, `document-gap-matrix.md`, `master-execution-plan.md`, `frontend-backend-separation-baseline.md`, `repo-map.md`, `README.md`, and `docs/README.md` so the new service carrier is treated as current fact instead of a pure target.
   - 2026-04-20: validation passed with compile, test, static-check, frontend-backend separation check, knowledge lint, and pre-closeout task audit, then the task was archived for single-task git closeout.
 
@@ -102,16 +123,16 @@
 - Depends on: C-TASK-007
 - Completed at: 2026-04-20
 - Commit subject: `feat(governance): C-TASK-008 tighten tenant access placeholder policy`
-- Scope: 保持 phase 0 最小租户校验闭环，继续把 `governance-service` 收敛为公共管理服务基线，不扩散到其他目标微服务职责。
+- Scope: 保持 phase 0 最小租户校验闭环，继续把 `governance` 收敛为公共管理服务基线，不扩散到其他目标微服务职责。
 - Validation:
   - `mvn clean compile`
   - `mvn test`
   - `node scripts/lint-repository-knowledge.js`
   - `python3 scripts/task_audit.py --check`
 - Progress log:
-  - 2026-04-20: instantiated from `Phase-C` after governance-service baseline hardening.
+  - 2026-04-20: instantiated from `Phase-C` after governance baseline hardening.
   - 2026-04-20: strict ledger reconciliation marked the task as partial; `TenantAccessLogic`、`TenantConfigApplicationService` 和治理内部租户/数据源检查接口已经存在并通过当前测试链验证，但数据源授权仍是 placeholder，完整角色与资源矩阵仍待后续实现，见 `IMP-005`。
-  - 2026-04-20: replaced the old non-empty datasource placeholder with a governance-local explicit placeholder policy under `governance.access-control.placeholder`, added tenant-config role gating and platform-admin override in `TenantConfigApplicationService`, and kept all logic inside `governance-service`.
+  - 2026-04-20: replaced the old non-empty datasource placeholder with a governance-local explicit placeholder policy under `governance.access-control.placeholder`, added tenant-config role gating and platform-admin override in `TenantConfigApplicationService`, and kept all logic inside `governance`.
   - 2026-04-20: validation passed with `mvn clean compile`, `mvn test`, `node scripts/lint-repository-knowledge.js`, and `python3 scripts/task_audit.py --check`, then the task was archived for single-task git closeout.
 
 ### C-TASK-009: 规划审计、数据源、调度扩展点
@@ -132,7 +153,7 @@
 - Progress log:
   - 2026-04-20: instantiated from `Phase-C` as the governance extension-contract follow-up task.
   - 2026-04-20: strict ledger reconciliation marked the task as partial; internal governance contract endpoints for `tenant-scope`、`datasource-access`、`audit/write`、`schedule/extensions` 已存在且测试通过，但仍需把扩展点从当前骨架进一步收口到完整契约，见 `IMP-007`。
-  - 2026-04-20: hardened `datasource-access/check`、`audit/write`、`schedule/extensions` contracts in `governance-service`, added explicit contract-stage / implementation-stage metadata, fixed audit required fields (`serviceCode`,`elapsedMs`,`sourceIp`,`userAgent`), and synced `service-interface-contract-baseline.md` plus `access-control-spec.md`.
+  - 2026-04-20: hardened `datasource-access/check`、`audit/write`、`schedule/extensions` contracts in `governance`, added explicit contract-stage / implementation-stage metadata, fixed audit required fields (`serviceCode`,`elapsedMs`,`sourceIp`,`userAgent`), and synced `service-interface-contract-baseline.md` plus `access-control-spec.md`.
   - 2026-04-20: validation passed with `mvn clean compile`, `mvn test`, `mvn validate pmd:pmd checkstyle:check`, and `node scripts/lint-repository-knowledge.js`; task remained `in_review` until the message-abstraction closeout under `C-TASK-005` was committed.
   - 2026-04-20: reran compile, test, static-check, knowledge-lint, and pre-closeout task audit after `C-TASK-005`, then archived the governance extension-contract task for single-task git closeout.
 
@@ -165,14 +186,14 @@
 - Depends on: none
 - Completed at: 2026-04-20
 - Commit subject: `docs(governance): DOC-GOV-001 establish document truth baseline`
-- Scope: 对照 `sqlforge-common`、`governance-service` 与文档边界，产出当前应收敛到 common 的能力清单，明确哪些能力仍留在业务模块。
+- Scope: 对照 `sqlforge-shared`、`governance` 与文档边界，产出当前应收敛到 common 的能力清单，明确哪些能力仍留在业务模块。
 - Validation:
   - `mvn clean compile`
   - `node scripts/lint-repository-knowledge.js`
   - `python3 scripts/task_audit.py --check`
 - Progress log:
   - 2026-04-20: instantiated from `Phase-C` as the first executable shared-foundation task.
-  - 2026-04-20: `docs/plans/implementation-readiness.md` 与 `docs/architecture/service-capability-map.md` 已把 `sqlforge-common` 应承载的公共能力和禁入边界显式盘点完成，并写入主计划和真值文档。
+  - 2026-04-20: `docs/plans/implementation-readiness.md` 与 `docs/architecture/service-capability-map.md` 已把 `sqlforge-shared` 应承载的公共能力和禁入边界显式盘点完成，并写入主计划和真值文档。
   - 2026-04-20: strict ledger reconciliation revalidated repository compile and knowledge lint, then archived the inventory task because its implementation and git-history evidence are both present.
 
 ### C-TASK-002: 建立 common 包结构
@@ -182,7 +203,7 @@
 - Depends on: C-TASK-001
 - Completed at: 2026-04-20
 - Commit subject: `refactor(common): C-TASK-002 close shared package structure baseline`
-- Scope: 按“领域目录 + 分层子目录”与公共层边界建立 `sqlforge-common` 的目标包结构，不引入服务专属逻辑。
+- Scope: 按“领域目录 + 分层子目录”与公共层边界建立 `sqlforge-shared` 的目标包结构，不引入服务专属逻辑。
 - Validation:
   - `mvn -B clean compile`
   - `mvn -B test`
@@ -190,7 +211,7 @@
   - `node scripts/lint-repository-knowledge.js`
 - Progress log:
   - 2026-04-20: instantiated from `Phase-C` after shared-capability inventory.
-  - 2026-04-20: strict ledger reconciliation marked the task as partial; `sqlforge-common` 已形成 `async`、`audit`、`config`、`constants`、`context`、`exception`、`log`、`utils` 包结构，且当前验证链 `mvn clean compile`、`mvn test`、`mvn validate pmd:pmd checkstyle:check`、`node scripts/lint-repository-knowledge.js` 已通过，但单任务 git closeout 仍缺失，暂不归档。
+  - 2026-04-20: strict ledger reconciliation marked the task as partial; `sqlforge-shared` 已形成 `async`、`audit`、`config`、`constants`、`context`、`exception`、`log`、`utils` 包结构，且当前验证链 `mvn clean compile`、`mvn test`、`mvn validate pmd:pmd checkstyle:check`、`node scripts/lint-repository-knowledge.js` 已通过，但单任务 git closeout 仍缺失，暂不归档。
   - 2026-04-20: synced `document-truth-baseline.md` so the shared module no longer appears as a placeholder-only module, then archived the package-structure task for single-task git closeout.
 
 ### C-TASK-003: 迁移重复或散落能力
@@ -208,8 +229,8 @@
   - `node scripts/lint-repository-knowledge.js`
 - Progress log:
   - 2026-04-20: instantiated from `Phase-C` after common package structure settled.
-  - 2026-04-20: strict ledger reconciliation marked the task as partial; 旧 `com.company.common` 与治理服务内部重复 common 能力已被当前工作树迁移到 `com.company.sqlforge.common` 并由 `governance-service` 消费，当前验证链 `mvn clean compile`、`mvn test`、`mvn validate pmd:pmd checkstyle:check`、`node scripts/lint-repository-knowledge.js` 已通过，但单任务 git closeout 仍缺失，暂不归档。
-  - 2026-04-20: removed the last tracked `com.company.common` sources from `sqlforge-common` and updated `document-gap-matrix.md` so the shared-layer implementation no longer remains as an open gap.
+  - 2026-04-20: strict ledger reconciliation marked the task as partial; 旧 `com.company.common` 与治理服务内部重复 common 能力已被当前工作树迁移到 `com.company.sqlforge.common` 并由 `governance` 消费，当前验证链 `mvn clean compile`、`mvn test`、`mvn validate pmd:pmd checkstyle:check`、`node scripts/lint-repository-knowledge.js` 已通过，但单任务 git closeout 仍缺失，暂不归档。
+  - 2026-04-20: removed the last tracked `com.company.common` sources from `sqlforge-shared` and updated `document-gap-matrix.md` so the shared-layer implementation no longer remains as an open gap.
 
 ### C-TASK-004: 对齐所有 application-*.yml 职责
 
@@ -263,7 +284,7 @@
   - `python3 scripts/task_audit.py --check`
 - Progress log:
   - 2026-04-20: instantiated from `Phase-C` after message abstraction routing was established.
-  - 2026-04-20: `MessageAdminController`、`MessageAdminApplicationServiceTest`、`scripts/manual-message-queue-smoke.sh`、`docs/deliveries/init-completion.md` 与 `docs/deployments/local-setup.md` 已形成管理接口、消息表和人工 smoke 的验证闭环。
+  - 2026-04-20: `MessageAdminController`、`MessageAdminApplicationTest`、`scripts/manual-message-queue-smoke.sh`、`docs/deliveries/init-completion.md` 与 `docs/deployments/local-setup.md` 已形成管理接口、消息表和人工 smoke 的验证闭环。
   - 2026-04-20: strict ledger reconciliation revalidated the current test chain and knowledge lint, confirmed that runtime verification evidence is already documented, then archived the task.
 
 ### C-TASK-007: 对齐现有分层
@@ -273,15 +294,15 @@
 - Depends on: none
 - Completed at: 2026-04-20
 - Commit subject: `refactor(governance): C-TASK-007 close layered governance baseline`
-- Scope: 对齐 `governance-service` 当前 controller/application/domain/infrastructure 分层，确保其继续向公共管理服务边界收敛。
+- Scope: 对齐 `governance` 当前 `application` 包域下的 `controller`/`service` 与 `domain`/`infrastructure` 分层，确保其继续向公共管理服务边界收敛。
 - Validation:
   - `mvn -B clean compile`
   - `mvn -B test`
   - `mvn -B validate pmd:pmd checkstyle:check`
   - `node scripts/lint-repository-knowledge.js`
 - Progress log:
-  - 2026-04-20: instantiated from `Phase-C` as the first governance-service hardening task.
-  - 2026-04-20: strict ledger reconciliation marked the task as partial; 当前工作树已形成 `controller` / `application` / `domain` / `infrastructure` 分层、严格请求上下文校验与治理内部契约基线，并通过 `mvn clean compile`、`mvn test`、`mvn validate pmd:pmd checkstyle:check`、`node scripts/lint-repository-knowledge.js` 验证，但当前分层调整尚未完成单任务 git closeout，暂不归档。
+  - 2026-04-20: instantiated from `Phase-C` as the first governance hardening task.
+  - 2026-04-20: strict ledger reconciliation marked the task as partial; 当前工作树已形成 `application` 包域下的 `controller` / `service` 与 `domain` / `infrastructure` 分层、严格请求上下文校验与治理内部契约基线，并通过 `mvn clean compile`、`mvn test`、`mvn validate pmd:pmd checkstyle:check`、`node scripts/lint-repository-knowledge.js` 验证，但当前分层调整尚未完成单任务 git closeout，暂不归档。
   - 2026-04-20: removed the last `governance.common` remnants, added regression coverage for `HealthStatusApplicationService` and `MessageRetryResultVO`, and synced local delivery/setup notes with the protected governance admin paths and current Phase-C baseline summary.
 
 ### HARN-001: Codify foreman workflow and task ledger
@@ -420,6 +441,6 @@
   - `bash scripts/run-coverage.sh --phase report-only`
   - `python3 scripts/task_audit.py --check`
 - Progress log:
-  - 2026-04-20: cleanup classification isolated the remaining CI/quality files from Phase-C feature work because they add delivery gate entrypoints rather than shared-foundation or governance-service functionality.
+  - 2026-04-20: cleanup classification isolated the remaining CI/quality files from Phase-C feature work because they add delivery gate entrypoints rather than shared-foundation or governance functionality.
   - 2026-04-20: added `scripts/run-sonar.sh`, wired coverage/Sonar helpers into `.github/workflows/ci.yml`, `Makefile`, and `docs/operations/local-development.md`, and kept the Sonar path no-op safe when environment variables are not configured.
   - 2026-04-20: reran the Sonar helper in no-config mode, reran coverage report generation, and prepared the quality-gate batch for single-task git closeout.

@@ -49,9 +49,9 @@ main() {
   fi
 
   if command -v curl >/dev/null 2>&1 && curl -fsS http://localhost:8080/api/governance/health | grep -q '"status":"UP"'; then
-    print_status "governance-service" "OK" "http://localhost:8080/api/governance/health"
+    print_status "governance" "OK" "http://localhost:8080/api/governance/health"
   else
-    print_status "governance-service" "FAIL" "http://localhost:8080/api/governance/health"
+    print_status "governance" "FAIL" "http://localhost:8080/api/governance/health"
   fi
 
   if command -v curl >/dev/null 2>&1 && curl -fsS http://localhost:3000 >/dev/null 2>&1; then

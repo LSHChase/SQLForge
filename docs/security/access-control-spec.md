@@ -181,9 +181,9 @@
 
 当前仓库现状：
 
-- `governance-service` 已通过 `TenantAccessLogic` 和请求上下文建立最小租户校验能力
+- `governance` 已通过 `TenantAccessLogic` 和请求上下文建立最小租户校验能力
 - 当前占位能力已改为“显式角色门禁 + 显式数据源绑定占位配置 + 默认拒绝”
-- 当前 `governance-service` 仅对治理内置数据源 `governance-tenant-config` 提供基线放行，且要求 `PLATFORM_ADMIN` 或 `TENANT_ADMIN`
+- 当前 `governance` 仅对治理内置数据源 `governance-tenant-config` 提供基线放行，且要求 `PLATFORM_ADMIN` 或 `TENANT_ADMIN`
 - 其他数据源访问在当前阶段必须通过 `governance.access-control.placeholder.tenant-datasource-bindings` 显式配置，否则拒绝
 - 当前内部 `datasource-access/check` 契约在拒绝时必须返回显式错误码：
   - 跨租户目标不匹配：`20001` `GOVERNANCE_TENANT_ACCESS_DENIED`

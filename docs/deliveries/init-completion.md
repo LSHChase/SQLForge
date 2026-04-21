@@ -31,9 +31,9 @@
   - `docs/plans/phase-0-plan.md`
 - Backend parent and common module
   - `pom.xml`
-  - `sqlforge-common/`
+  - `sqlforge-shared/`
 - First service template
-  - `governance-service/`
+  - `governance/`
 - Frontend bootstrap
   - `package.json`
   - `vite.config.js`
@@ -71,7 +71,7 @@
   Phase 0 blocker repair completed for `QV-001`, `QV-002`, and `QV-003`.
   Primary fix commit: `b0d3ce9`
   Highlights:
-  - Migrated governance HTTP entrypoints into `application/controller` and `application/service`.
+  - Migrated governance HTTP entrypoints into the `application` package domain, with concrete code split between `controller` and `service`.
   - Added `TenantContext`, `RequestContext`, `AuthInterceptor`, and `WebMvcConfig` with dev/prod auth toggles.
   - Added tenant config query flow, access-control placeholder, error codes, tests, and access-control spec doc.
 
@@ -97,7 +97,7 @@
   Highlights:
   - Replaced the MinIO Docker health-check command from missing `curl` to bundled `mc ready local`.
   - Recreated the MinIO container and confirmed it transitions to `healthy`.
-  - Re-ran `./scripts/health-check.sh` with MySQL, Redis, MessageQueue, MinIO, governance-service, and frontend all green.
+  - Re-ran `./scripts/health-check.sh` with MySQL, Redis, MessageQueue, MinIO, governance, and frontend all green.
 
 - 2026-04-19T08:35:00-05:00
   Added a repeatable manual smoke script for the R-144 database-backed message queue flow.
@@ -121,7 +121,7 @@
   Phase-C shared foundation and governance baseline implementation completed for the current repository stage.
   Planned commit message: `feat(phase-c): implement shared common foundation and governance baseline`
   Highlights:
-  - Consolidated shared base capabilities into `sqlforge-common` under `com.company.sqlforge.common`, including error codes, request context, audit contract, shared exceptions, logging, async, and utilities.
-  - Switched `governance-service` to the shared request/error model, enforced strict protected-request headers, and added internal governance contract endpoints for tenant scope, datasource access, audit write, and schedule extension status.
+  - Consolidated shared base capabilities into `sqlforge-shared` under `com.company.sqlforge.common`, including error codes, request context, audit contract, shared exceptions, logging, async, and utilities.
+  - Switched `governance` to the shared request/error model, enforced strict protected-request headers, and added internal governance contract endpoints for tenant scope, datasource access, audit write, and schedule extension status.
   - Implemented `DATABASE` / `MOCK` messaging abstraction baseline with queue admin APIs, polling job, topic registry, test coverage, and Kafka client integration baseline; real-cluster runtime verification is still pending.
   - Re-ran `mvn clean compile`, `mvn test`, `mvn validate pmd:pmd checkstyle:check`, and `node scripts/lint-repository-knowledge.js`.

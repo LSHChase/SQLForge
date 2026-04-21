@@ -6,6 +6,16 @@
 
 当前基线时间：`2026-04-20`
 
+## Engineering Naming Mapping
+
+| Historical engineering name | Current engineering name | Notes |
+|:---|:---|:---|
+| `governance-service` | `governance` | 公共管理服务模块；业务文案仍可写“governance 服务” |
+| `query-execution-service` | `query-execution` | 查询执行服务模块；工程标识不再追加 `Service` |
+| `sqlforge-common` | `sqlforge-shared` | 共享底座模块；保持只承载真正公共能力 |
+
+本映射是当前仓库关于模块与工程命名的唯一权威映射。历史文档、台账、验证日志与脚本如已重写为当前工程命名，仍以上表作为旧名追溯基线。
+
 ## Truth Layers
 
 | Layer | Meaning | Can be used as current fact | Typical sources |
@@ -23,18 +33,18 @@
   - `vite.config.js`
   - `src/`
 - Maven 聚合工程存在三个后端模块：
-  - `sqlforge-common/`
-  - `governance-service/`
-  - `query-execution-service/`
-- `sqlforge-common/` 已承载共享底座基线：
+  - `sqlforge-shared/`
+  - `governance/`
+  - `query-execution/`
+- `sqlforge-shared/` 已承载共享底座基线：
   - 统一错误码常量
   - 请求/租户上下文
   - 共享异常模型
   - 审计事件契约
   - 公共配置契约与通用工具
-- `governance-service/` 已具备最小治理基线：
+- `governance/` 已具备最小治理基线：
   - Spring Boot 应用入口
-  - controller / application service / domain / infrastructure 分层骨架
+  - `application` 包域下的 controller / service / domain / infrastructure 分层骨架
   - 受保护接口的统一请求上下文拦截器，当前要求完整 `X-*` 请求上下文字段
   - `DATABASE` / `MOCK` 可运行的消息抽象基线，以及 `KAFKA` 客户端接入基线
   - 内部治理契约入口（租户范围、数据源访问、审计写入、调度扩展点）
@@ -42,9 +52,9 @@
   - MyBatis XML
   - 多环境配置
   - 基础测试
-- `query-execution-service/` 已具备查询执行边界基线：
+- `query-execution/` 已具备查询执行边界基线：
   - Spring Boot 应用入口与独立 Maven 模块
-  - `application` / `domain` / `infrastructure` / `config` 分层骨架
+  - `application` 包域下的 controller / service 与 `domain` / `infrastructure` / `config` 分层骨架
   - 查询执行边界定义，显式固化路由、执行控制、轻量解析、轻量改写和已批准加速配置应用
   - `JDBC` / `REST` / `CLIENT` 三种 Hetu 访问模式的承载边界
   - 独立多环境配置与日志配置骨架
@@ -61,8 +71,8 @@
 ## Confirmed Targets
 
 - 最终服务目标固定为 `4` 个微服务，而不是初始化来源中的 `11` 个原始服务。
-- 当前 `governance-service` 只代表“公共管理服务”的阶段性实现基线，不代表其他服务已经实现。
-- `sqlforge-common` 只能承载跨服务公共能力，不能演化成承载业务逻辑的杂项仓。
+- 当前 `governance` 只代表“公共管理服务”的阶段性实现基线，不代表其他服务已经实现。
+- `sqlforge-shared` 只能承载跨服务公共能力，不能演化成承载业务逻辑的杂项仓。
 - 访问控制、租户隔离、审计、敏感信息加密和备份恢复已经形成完整文档规格，但代码尚未全部落地。
 
 ## Historical Records That Must Not Be Misread

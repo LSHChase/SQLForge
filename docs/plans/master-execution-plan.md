@@ -59,10 +59,10 @@
 ### 2.3 Current implementation facts
 
 - 当前仓库存在根级前端工程，入口为 `package.json`、`vite.config.js`、`src/`
-- 当前 Maven 聚合工程包含 `sqlforge-common/`、`governance-service/` 与 `query-execution-service/`
-- `sqlforge-common/` 已有共享错误码、上下文、异常、审计契约、日志与工具基线源码
-- `governance-service/` 已有基础应用、controller、application service、统一请求上下文校验能力、MyBatis XML、配置文件和基础测试
-- `query-execution-service/` 已有独立应用入口、分层骨架、边界定义、多环境配置和基础测试
+- 当前 Maven 聚合工程包含 `sqlforge-shared/`、`governance/` 与 `query-execution/`
+- `sqlforge-shared/` 已有共享错误码、上下文、异常、审计契约、日志与工具基线源码
+- `governance/` 已有基础应用、位于 `application` 包域内的 controller/service、统一请求上下文校验能力、MyBatis XML、配置文件和基础测试
+- `query-execution/` 已有独立应用入口、分层骨架、边界定义、多环境配置和基础测试
 - `docs/adr/` 已按 `ADR-001` 至 `ADR-013` 补齐实体文件
 - `docs/deployments/` 已补齐 `huawei-cloud-setup.md`
 
@@ -125,12 +125,12 @@
 | `docs/plans/implementation-readiness.md` | 编码前置消费顺序与执行波次 | 全仓 | 决定任务入场条件、波次推进和冲突处理 | `R-116`, `R-133` |
 | `docs/plans/phase-prerequisite-matrix.md` | 各阶段输入文档、ADR、规则、验证和确认点矩阵 | 全仓 | 决定阶段 ready/not ready 判断 | `R-116`, `R-163` |
 | `docs/security/compliance.md` | 等保与审计 | 后端、部署、运维 | 决定身份、租户、审计、加密、备份 | `R-111` 至 `R-118` |
-| `docs/security/access-control-spec.md` | 完整访问控制规格与阶段实现基线 | `governance-service` 及后续 4 微服务 | 决定身份、角色、资源、租户、审计和失败处理边界 | `R-111` 至 `R-115` |
-| `docs/architecture/messaging-abstraction.md` | 消息抽象与环境切换 | `governance-service`, SQL, 配置, 脚本 | 决定 `DATABASE/MOCK/KAFKA` 模式 | `R-144` |
-| `docs/architecture/service-capability-map.md` | 4 微服务与当前模块的过渡映射 | `governance-service`, `sqlforge-common`, 后续新模块 | 决定模块归属、过渡实现和服务边界迁移顺序 | `R-126`, 文档全量覆盖验证 |
+| `docs/security/access-control-spec.md` | 完整访问控制规格与阶段实现基线 | `governance` 及后续 4 微服务 | 决定身份、角色、资源、租户、审计和失败处理边界 | `R-111` 至 `R-115` |
+| `docs/architecture/messaging-abstraction.md` | 消息抽象与环境切换 | `governance`, SQL, 配置, 脚本 | 决定 `DATABASE/MOCK/KAFKA` 模式 | `R-144` |
+| `docs/architecture/service-capability-map.md` | 4 微服务与当前模块的过渡映射 | `governance`, `sqlforge-shared`, 后续新模块 | 决定模块归属、过渡实现和服务边界迁移顺序 | `R-126`, 文档全量覆盖验证 |
 | `docs/architecture/service-interface-contract-baseline.md` | 统一身份上下文、错误码归属、DTO/事件和审计契约 | 后续 4 微服务与公共层 | 决定接口级约束和跨服务契约边界 | `R-057`, `R-068`, `R-111` 至 `R-115` |
 | `docs/frontend/design-system.md` | 前端视觉与组件基线 | `src/` | 决定 Dashboard 和业务页视觉风格 | `R-023` 至 `R-030` |
-| `docs/quality/alibaba-java-guidelines.md` | Java 代码规范治理 | `sqlforge-common/`, `governance-service/` | 决定 Java 实现方式与扫描要求 | `R-145` 至 `R-154` |
+| `docs/quality/alibaba-java-guidelines.md` | Java 代码规范治理 | `sqlforge-shared/`, `governance/` | 决定 Java 实现方式与扫描要求 | `R-145` 至 `R-154` |
 | `docs/quality/frontend-backend-separation-baseline.md` | 前后端边界 | 根级前端与 Maven 后端 | 决定目录和职责边界 | 分离检查脚本 |
 | `docs/plans/phase-0-plan.md` | 历史阶段0任务顺序 | 阶段0基线对照 | 用于真值修正，不直接代表当前全部现状 | `HC-002` |
 | `docs/deliveries/init-completion.md` | 阶段0交付记录 | 初始化交付基线 | 用于交付状态与 Tag 回写对齐 | `HC-007` |
@@ -180,7 +180,7 @@ Tasks:
 | Task ID | Task | Scope | Dependencies | Verification |
 |:---|:---|:---|:---|:---|
 | `A-TASK-004` | 盘点前端实现现状 | 路由、页面、主题、i18n | 无 | `npm run build`、`npm run lint` |
-| `A-TASK-005` | 盘点后端实现现状 | common、governance-service、测试、配置 | 无 | `mvn -B test` |
+| `A-TASK-005` | 盘点后端实现现状 | common、governance、测试、配置 | 无 | `mvn -B test` |
 | `A-TASK-006` | 盘点脚本与部署现状 | `scripts/`、`docker-compose*`、SQL | `A-TASK-005` | 脚本/编排存在性与文档引用一致 |
 
 ##### Story `A-STORY-003` 追踪矩阵与确认台账
@@ -268,12 +268,12 @@ Tasks:
 
 - 目标：完成后端共享底座、配置治理、消息抽象和公共治理服务扩展基线。
 - 成功标准：
-  - `sqlforge-common` 具备公共源码
-  - `governance-service` 满足当前治理底座职责
+  - `sqlforge-shared` 具备公共源码
+  - `governance` 满足当前治理底座职责
   - 配置、消息、日志、异常、审计、上下文遵循统一约束
 - 依赖：`Phase-B`
 - 当前进展：
-  - `C-STORY-001` 已完成首轮落地，`sqlforge-common` 已被 `governance-service` 消费
+  - `C-STORY-001` 已完成首轮落地，`sqlforge-shared` 已被 `governance` 消费
   - `C-STORY-002` 已完成 `DATABASE` / `MOCK` 可运行基线、管理接口和 `KAFKA` 客户端接入，真实集群运行验证仍待补齐
   - `C-STORY-003` 已完成治理扩展契约骨架和严格请求上下文基线，完整治理能力仍待后续阶段增强
 
@@ -305,14 +305,14 @@ Tasks:
 
 ##### Story `C-STORY-003` 公共治理服务增强
 
-- 目标：把 `governance-service` 明确为公共管理服务的当前实现基线。
+- 目标：把 `governance` 明确为公共管理服务的当前实现基线。
 - 验证：接口契约、tenant 校验、错误码、MyBatis XML、日志满足现有规则。
 
 Tasks:
 
 | Task ID | Task | Scope | Dependencies | Verification |
 |:---|:---|:---|:---|:---|
-| `C-TASK-007` | 对齐现有 controller/application/domain/infrastructure 分层 | 不扁平化 | `Phase-B` | `R-120` 检查通过 |
+| `C-TASK-007` | 对齐现有 `application` 包域下的 `controller/service` 与 `domain/infrastructure` 分层 | 不扁平化 | `Phase-B` | `R-120` 检查通过 |
 | `C-TASK-008` | 落实租户配置与访问占位能力 | 当前 phase 0 允许 placeholder | `C-TASK-007` | 测试覆盖正常/异常/越权占位路径 |
 | `C-TASK-009` | 规划审计、数据源、调度扩展点 | 只补契约和骨架 | `C-TASK-008` | 接口文档和错误码一致 |
 
@@ -568,7 +568,7 @@ Tasks:
 ## 9. Defaults
 
 - 当前默认不修改既有规则语义，只新增计划导航与主执行计划。
-- 当前默认把 `governance-service` 视为公共管理服务的现阶段实现基线，而不是全部目标能力已完成。
+- 当前默认把 `governance` 视为公共管理服务的现阶段实现基线，而不是全部目标能力已完成。
 - 当前默认所有新增计划和后续任务都遵循“task 内高内聚、task 间低耦合、验证先行”。
 - 当前默认每个阶段结束前必须回填：阶段状态、验证结果、剩余风险、待确认项状态、交付记录。
 
@@ -592,7 +592,7 @@ Tasks:
 - `A-STORY-001` 和 `A-STORY-002` 的输出已被进一步固化到 `document-truth-baseline.md`
 - `A-STORY-003` 中“规则、文档、实现、验证之间的映射”新增了当前消费顺序与漂移映射说明
 - 严格核验与阶段切换时，必须同时检查 `document-gap-matrix.md` 与 `phase-prerequisite-matrix.md`
-- `C-STORY-001` 与 `C-STORY-003` 后续实现时，必须先遵守 `service-capability-map.md` 对 `sqlforge-common` 与 `governance-service` 的边界约束
+- `C-STORY-001` 与 `C-STORY-003` 后续实现时，必须先遵守 `service-capability-map.md` 对 `sqlforge-shared` 与 `governance` 的边界约束
 - `Phase-C` 之后的跨服务实现，必须先遵守 `service-interface-contract-baseline.md` 中的错误码归属和 DTO/事件边界
 - 所有后续编码波次默认先遵守 `implementation-readiness.md` 的消费顺序和执行分波
 - 若核心 10 字段无法承载严格治理要求，则同步维护 `task-governance-extension-matrix.md`
@@ -600,8 +600,8 @@ Tasks:
 ### 10.3 Current truth reminder
 
 - 当前通过验证的事实仍是：
-  - `governance-service` 是当前最小治理基线
-  - `sqlforge-common` 仍为共享层占位模块
+  - `governance` 是当前最小治理基线
+  - `sqlforge-shared` 仍为共享层占位模块
   - 查询执行服务、SQL 优化服务、压测引擎服务尚未形成独立代码模块
 - 因此 Phase-C 之后的所有实现都必须显式区分：
   - “当前在哪个模块落地”

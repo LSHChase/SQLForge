@@ -20,7 +20,7 @@
 - Success criteria:
   - 文档体系不再混写“当前事实”和“目标架构”
   - 后续编码前具备明确文档消费顺序
-  - `governance-service` 与 `sqlforge-common` 的过渡边界被明确写清
+  - `governance` 与 `sqlforge-shared` 的过渡边界被明确写清
   - 所有相关检查命令通过
 - Non-goals:
   - 不实现新的业务服务代码
@@ -39,7 +39,7 @@
   - 在严格复验后扩展 `scripts/lint-repository-knowledge.js`，让新增治理文档与 coverage 完整性进入脚本校验
   - 为本批次补写本复盘文档
 - What remained pending:
-  - `sqlforge-common` 仍未承载真实公共源码
+  - `sqlforge-shared` 仍未承载真实公共源码
   - 查询执行服务、SQL 优化服务、压测引擎服务仍未建立独立代码模块
   - 访问控制完整实现仍待后续服务化落地
 - What changed in the plan:
@@ -107,8 +107,8 @@
 ## 7. Follow-Up Items
 
 - Next batch candidates:
-  - `sqlforge-common` 公共层做实
-  - `governance-service` 向公共管理服务边界继续收敛
+  - `sqlforge-shared` 公共层做实
+  - `governance` 向公共管理服务边界继续收敛
   - 新建查询执行服务骨架
 - Human confirmations still needed:
   - 若后续要删除、废弃或重命名历史规则落点，仍需人工确认

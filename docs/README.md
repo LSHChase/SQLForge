@@ -5,7 +5,7 @@
 ## 阅读顺序
 
 1. [文档真值基线](./plans/document-truth-baseline.md)
-   当前仓库事实、已确认目标、历史记录和原始归档的分层说明；需要判断“现在仓库真实状态”时先读本文。
+   当前仓库事实、已确认目标、历史记录、原始归档和工程命名映射的分层说明；需要判断“现在仓库真实状态”时先读本文。
 2. [架构初始化总文档](./architecture/init.md)
    入口总览，包含初始化规则基线、来源服务职责映射、13 项 ADR、4 阶段里程碑、等保规则、加速服务与异常回滚设计；后续追加规则以规则库为准，最终服务口径以已确认的 4 微服务目标为准。
 3. [规则库](./rules/codex-rules.md)
@@ -81,7 +81,7 @@
   前端设计系统、组件与页面视觉规范。
 - `plans/`
   计划索引、主执行计划与分阶段执行计划。
-  - `document-truth-baseline.md`：当前仓库事实、历史记录与目标边界的真值分层。
+  - `document-truth-baseline.md`：当前仓库事实、历史记录、目标边界与工程命名映射的真值分层。
   - `document-gap-matrix.md`：冲突、漂移、缺失与残余实现缺口矩阵。
   - `implementation-readiness.md`：编码前阅读顺序、主题权威来源和实施波次。
   - `phase-prerequisite-matrix.md`：各阶段输入文档、ADR、规则、验证和确认点矩阵。
@@ -113,11 +113,11 @@
 本轮文档治理新增以下执行型文档，用于把“当前真值”“目标边界”和“编码前置条件”分开消费：
 
 - [文档真值基线](./plans/document-truth-baseline.md)
-  当前仓库真值、历史记录和目标架构的分层说明，以及初始化目标落点与当前权威文档的漂移映射。
+  当前仓库真值、历史记录、工程命名映射和目标架构的分层说明，以及初始化目标落点与当前权威文档的漂移映射。
 - [实现就绪规范](./plans/implementation-readiness.md)
   任务开始前的读文档顺序、主题权威来源、冲突处理方式和分波次执行顺序。
 - [服务能力分配图](./architecture/service-capability-map.md)
-  4 微服务目标与当前 `governance-service` / `sqlforge-common` / `query-execution-service` 的过渡映射。
+  4 微服务目标与当前 `governance` / `sqlforge-shared` / `query-execution` 的过渡映射。
 - [C4 文字总览](./architecture/c4-overview.md)
   作为 `R-133` 的 C4 权威更新落点，统一维护 Level 1-4 的文字版架构说明。
 - [服务接口契约基线](./architecture/service-interface-contract-baseline.md)

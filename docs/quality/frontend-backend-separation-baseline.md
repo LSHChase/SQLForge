@@ -5,7 +5,7 @@
 ## 当前结构
 
 - 前端工程位于仓库根目录，入口为 `package.json`、`vite.config.js`、`src/`。
-- 后端工程位于 Maven 多模块目录，当前包括 `sqlforge-common/`、`governance-service/` 与 `query-execution-service/`。
+- 后端工程位于 Maven 多模块目录，当前包括 `sqlforge-shared/`、`governance/` 与 `query-execution/`。
 - 前端通过 Vite 代理访问 `http://localhost:8080`，未直接依赖后端实现类。
 
 ## 检测范围

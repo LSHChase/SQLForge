@@ -26,7 +26,7 @@
 
 说明：
 
-- 当前 `governance-service` 对所有受保护接口统一要求以下请求头：
+- 当前 `governance` 对所有受保护接口统一要求以下请求头：
   - `X-Tenant-Id`
   - `X-User-Id`
   - `X-Role-Codes`
@@ -42,7 +42,7 @@
 
 | Range | Domain | Owner service | Notes |
 |:---|:---|:---|:---|
-| `10000-10999` | 公共系统错误 | `sqlforge-common` | 跨服务共享的参数、上下文、序列化、审计、消息抽象错误 |
+| `10000-10999` | 公共系统错误 | `sqlforge-shared` | 跨服务共享的参数、上下文、序列化、审计、消息抽象错误 |
 | `11000-11999` | 公共管理系统错误 | 公共管理服务 | 身份、租户、数据源、审计、配额、配置中心相关系统错误 |
 | `12000-12999` | 查询执行系统错误 | 查询执行服务 | 路由、缓存、轻量解析、执行控制系统错误 |
 | `13000-13999` | SQL 优化系统错误 | SQL 优化服务 | 异步解析、建议生成、物化视图系统错误 |
@@ -54,7 +54,7 @@
 
 规则：
 
-- `sqlforge-common` 只定义共享错误码，不拥有单服务业务错误。
+- `sqlforge-shared` 只定义共享错误码，不拥有单服务业务错误。
 - 单服务不能占用其他服务的业务区间。
 - 跨服务返回统一 `ErrorResponse` 结构，不直接暴露内部堆栈。
 
@@ -71,9 +71,9 @@
 规则：
 
 - 所有 DTO 均为跨服务契约对象，不得复用内部 entity。
-- `sqlforge-common` 仅承载共享契约基类、通用上下文和错误响应，不承载某一服务专属业务 DTO。
+- `sqlforge-shared` 仅承载共享契约基类、通用上下文和错误响应，不承载某一服务专属业务 DTO。
 - 若跨服务契约变化具有兼容风险，必须先更新本文件和主计划，再进入实现。
-- 当前 `governance-service` 已提供首轮内部契约入口：
+- 当前 `governance` 已提供首轮内部契约入口：
   - `/api/governance/internal/tenant-scope/check`
   - `/api/governance/internal/datasource-access/check`
   - `/api/governance/internal/audit/write`
@@ -93,7 +93,7 @@
 
 ## 3.1 Query Execution Public HTTP Baseline
 
-当前 `query-execution-service` 已固化联机查询 DTO / VO / 错误码契约，并把公共 HTTP 入口接到最小同步执行闭环：
+当前 `query-execution` 已固化联机查询 DTO / VO / 错误码契约，并把公共 HTTP 入口接到最小同步执行闭环：
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|

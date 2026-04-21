@@ -72,7 +72,7 @@
 | **R-017** | 文件编码统一UTF-8，行尾统一LF，运行/构建路径必须兼容amd64和arm64 | `.editorconfig`、`pom.xml` |
 | **R-018** | 前端负责页面编排、表单输入、交互反馈、体验型预校验；后端是权威边界，负责规则校验、业务编排、执行控制、持久化、审计 | `docs/architecture/boundary.md` |
 | **R-019** | 重要领域判断不能长期留在前端状态里；前端可以预校验，但后端必须重新校验全部请求 | 接口契约文档 |
-| **R-020** | 新的跨域行为应通过后端service/controller边界进入，不能靠前端拼装临时逻辑 | `docs/architecture/cross-domain.md` |
+| **R-020** | 新的跨域行为应通过后端 `controller -> service` 实际分层进入，不能靠前端拼装临时逻辑；`application` 仅作为承载入站与编排代码的包域 | `docs/architecture/cross-domain.md` |
 | **R-021** | 后端目标分层至少要有：接口层、dto、service、logic/impl、entity、dao/mapper、vo；可补validator、converter、exception、config、audit、job | `docs/architecture/backend-layers.md` |
 | **R-022** | 后端包结构是"领域目录 + 分层子目录"，不是继续把所有东西堆在扁平web/service/repository/model下 | `docs/architecture/package-structure.md` |
 | **R-061** | 项目前后端分离、支持ARM架构，前端轻量、后端可重，后端代码强制分层 | 架构文档全局 |
@@ -1320,9 +1320,9 @@ SQL优化服务 → 公共管理服务（获取元数据、统计信息、写入
 
 ### 19.4 当前实现状态提醒
 
-- 当前 `governance-service` 仍只是公共管理服务的阶段性实现基线。
-- 当前 `sqlforge-common` 已形成共享底座基线，但仍需继续保持只承载真正公共能力的边界。
-- 当前 `query-execution-service` 已形成查询执行服务的独立模块骨架、公共 DTO/VO/错误码、最小同步执行闭环，以及本地流程日志与 timeout/fallback 恢复标记，但真实治理调用、真实引擎适配器和跨服务审计补偿仍待 `Phase-D` 后续任务补齐。
+- 当前 `governance` 仍只是公共管理服务的阶段性实现基线。
+- 当前 `sqlforge-shared` 已形成共享底座基线，但仍需继续保持只承载真正公共能力的边界。
+- 当前 `query-execution` 已形成查询执行服务的独立模块骨架、公共 DTO/VO/错误码、最小同步执行闭环，以及本地流程日志与 timeout/fallback 恢复标记，但真实治理调用、真实引擎适配器和跨服务审计补偿仍待 `Phase-D` 后续任务补齐。
 - SQL 优化服务、压测引擎服务仍属于已确认目标，尚未在代码层独立成型。
 
 ### 19.5 复盘要求

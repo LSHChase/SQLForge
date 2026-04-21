@@ -75,17 +75,17 @@ const requiredReadmeMarkers = [
   'docs/plans/phase-0-plan.md'
 ]
 
-const expectedRuleEnd = 166
+const expectedRuleEnd = 167
 const expectedValidationIndexRanges = [
   [116, 144],
   [151, 154],
   [156, 161]
 ]
 const requiredMessagingConfigs = [
-  'governance-service/src/main/resources/application-dev.yml',
-  'governance-service/src/main/resources/application-test.yml',
-  'governance-service/src/main/resources/application-prod.yml',
-  'governance-service/src/test/resources/application-test.yml'
+  'governance/src/main/resources/application-dev.yml',
+  'governance/src/main/resources/application-test.yml',
+  'governance/src/main/resources/application-prod.yml',
+  'governance/src/test/resources/application-test.yml'
 ]
 
 function formatRuleId(id) {

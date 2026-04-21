@@ -8,7 +8,7 @@
 - 公开稳定版本：`黄山版`
 - 官方发布日期：`2022-02-03`
 - 原始资料归档目录：`docs/references/raw-requirements/alibaba-java-guidelines/`
-- 当前适用范围：`sqlforge-common/`、`governance-service/`、`query-execution-service/` 及后续 Java 服务模块
+- 当前适用范围：`sqlforge-shared/`、`governance/`、`query-execution/` 及后续 Java 模块
 
 ## 落地方式
 
