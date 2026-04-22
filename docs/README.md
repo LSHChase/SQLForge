@@ -99,7 +99,7 @@
   - `retrospective-template.md`：阶段或复杂批次复盘模板。
   - `document-governance-retrospective-2026-04-20.md`：本轮治理复盘实例。
   - `document-governance-repair-retrospective-2026-04-20.md`：本轮严格核验修复复盘实例。
-  - `task-governance-extension-matrix.md`：59 个 Task 的人工确认点、数据影响、回滚扩展矩阵。
+  - `task-governance-extension-matrix.md`：Task 的人工确认点、数据影响、回滚扩展矩阵。
 - `exec-plans/`
   已确认复杂执行计划的活动与归档目录。
 - `generated/`
@@ -156,7 +156,7 @@
 - [阶段前置条件矩阵](./plans/phase-prerequisite-matrix.md)
   为每个阶段显式列出输入文档、ADR、规则、验证规则和人工确认点。
 - [Task 治理扩展矩阵](./plans/task-governance-extension-matrix.md)
-  在核心 10 字段之外，显式维护 59 个 Task 的人工确认点、数据影响和回滚策略。
+  在核心 10 字段之外，显式维护 Task 的人工确认点、数据影响和回滚策略。
 - [复盘模板](./plans/retrospective-template.md)
   每轮复杂交付后的标准复盘骨架。
 - [本轮文档治理修复复盘](./plans/document-governance-repair-retrospective-2026-04-20.md)

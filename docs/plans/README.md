@@ -46,7 +46,7 @@
 - `phase-prerequisite-matrix.md`
   用于为每个阶段显式列出输入文档、ADR、规则、验证和人工确认点。
 - `task-governance-extension-matrix.md`
-  用于补齐 59 个 Task 的人工确认点、数据影响与回滚扩展字段。
+  用于补齐 Task 的人工确认点、数据影响与回滚扩展字段。
 - `retrospective-template.md`
   用于阶段或复杂批次结束后的标准复盘。
 - `document-governance-retrospective-2026-04-20.md`

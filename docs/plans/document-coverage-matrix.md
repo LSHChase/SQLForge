@@ -53,8 +53,8 @@
 | `docs/plans/retrospective-template.md` | Indexed | 阶段与复杂批次复盘模板 | Referenced | 复盘闭环与后续治理沉淀 |
 | `docs/plans/document-governance-retrospective-2026-04-20.md` | Indexed | 本轮文档治理复盘记录 | Consumed | 漂移、缺口和后续治理沉淀 |
 | `docs/plans/document-governance-repair-retrospective-2026-04-20.md` | Indexed | 本轮严格核验缺口修复复盘记录 | Consumed | 治理闭口与 repair 批次追溯 |
-| `docs/plans/task-spec-matrix.md` | Indexed | Harness Task 字段矩阵 | Consumed | 补齐 59 个 Task 的 10 字段 |
-| `docs/plans/task-governance-extension-matrix.md` | Indexed | 59 个 Task 的确认点、数据影响、回滚扩展矩阵 | Consumed | 严格治理扩展字段追踪 |
+| `docs/plans/task-spec-matrix.md` | Indexed | Harness Task 字段矩阵 | Consumed | 补齐 Task 的 10 字段 |
+| `docs/plans/task-governance-extension-matrix.md` | Indexed | Task 的确认点、数据影响、回滚扩展矩阵 | Consumed | 严格治理扩展字段追踪 |
 | `docs/quality/alibaba-java-guidelines.md` | Authority | Java 规范适配文档 | Consumed | Java 实现与扫描治理 |
 | `docs/quality/frontend-backend-separation-baseline.md` | Authority | 前后端分离基线 | Consumed | 边界治理与脚本校验 |
 | `docs/quality/validation-log.md` | Indexed | 验证行为审计日志 | Referenced | 验证证据追溯与关闭链路 |

@@ -26,6 +26,7 @@
 | `A-TASK-007` | 若规则语义本身变化需人工确认 | 无运行时数据；规则映射 | 追加映射修正或缺口说明 |
 | `A-TASK-008` | 冲突推荐方案需人工确认 | 无运行时数据；冲突台账 | 追加新方案，不覆写旧方案 |
 | `A-TASK-009` | 模板字段删减需人工确认 | 无运行时数据；计划模板 | 追加模板扩展说明 |
+| `A-TASK-010` | 若 active wave 恢复点或已执行任务归属需要改写历史语义则需人工确认 | 无运行时数据；主计划、矩阵、台账与 INBOX 对齐 | 追加 reconciliation 记录并修正矩阵/索引，不删除历史归档块 |
 
 ## Phase-B
 
@@ -74,6 +75,8 @@
 | `D-TASK-011` | 核心表结构变更需人工确认 | schema、实体、关联键 | 提供兼容 DDL / 数据修复脚本并回退映射 |
 | `D-TASK-012` | 审计链路覆盖范围缩减需人工确认 | 审计日志表和事件记录 | 恢复旧审计写入并保留补录脚本 |
 | `D-TASK-013` | 加密策略或密钥管理变更需人工确认 | 敏感字段密文、配置 | 恢复旧密钥/算法并执行密文修复 |
+| `D-TASK-014` | 若异步服务占位执行或审计兜底语义放宽需人工确认 | 异步任务、治理审计兜底与消息回退状态 | 恢复旧鉴权/隔离/审计兜底路径并保留兼容补录 |
+| `D-TASK-015` | 若真实执行适配放宽只读边界或引入破坏式执行契约需人工确认 | 查询执行适配配置、执行结果聚合、审计记录 | 切回最小同步基线并保留兼容执行模式/错误映射 |
 
 ## Phase-E
 
@@ -102,6 +105,25 @@
 | `F-TASK-007` | 监控/日志采样策略显著削弱需人工确认 | 日志、指标、告警配置 | 恢复原监控规则 |
 | `F-TASK-008` | 备份恢复目标或演练频率变更需人工确认 | 备份元数据、演练记录 | 恢复旧模板并补录演练 |
 | `F-TASK-009` | 交付闭环若省略 commit/tag 回写需人工确认 | 交付记录、git 元数据、验证日志 | 补写交付记录和标签/提交元数据 |
+| `F-TASK-010` | 若默认 CI 放宽 runtime smoke 阻断需人工确认 | CI runtime smoke、compose/health 证据 | 恢复默认 smoke 门禁并保留脚本入口 |
+| `F-TASK-011` | 若多服务启动探针被降级回单服务检查需人工确认 | CI/runtime 多服务探针 | 恢复统一 runtime smoke 编排 |
+| `F-TASK-012` | 若 query-execution 到 governance 的业务门禁被移出默认流水线需人工确认 | 跨服务业务 smoke、审计补偿证据 | 恢复 query-governance business smoke |
+| `F-TASK-013` | 若 optimization/benchmark 跨服务门禁被放宽需人工确认 | 优化/压测业务 smoke 与补偿证据 | 恢复 optimization/benchmark smoke |
+| `F-TASK-014` | 若浏览器真实业务 smoke 被降级为静态/占位检查需人工确认 | 前端真实业务 smoke、浏览器脚本 | 恢复 browser runtime gate |
+| `F-TASK-015` | 若优化服务重新退回 in-memory carrier 需人工确认 | `optimization_task` 数据与调度状态 | 恢复 MySQL carrier 或保留迁移兼容层 |
+| `F-TASK-016` | 若压测服务重新退回 placeholder carrier 需人工确认 | `benchmark_task` / `benchmark_task_report` 数据与调度状态 | 恢复持久化 carrier 或保留兼容查询路径 |
+| `F-TASK-017` | 若前端失败恢复与补偿证据从默认门禁移除需人工确认 | 浏览器恢复路径与队列证据展示 | 恢复 browser runtime smoke 覆盖 |
+| `F-TASK-018` | 若治理管理页删除已交付修复动作需人工确认 | 前端治理运维展示与调用路径 | 恢复 `/system` 治理页和修复动作入口 |
+| `F-TASK-019` | 若补偿判定重新退化为单信号易抖动策略需人工确认 | 前端补偿指标与验证日志 | 恢复双信号判定并补录验证证据 |
+| `F-TASK-020` | 若治理历史页再次退回 placeholder 页面需人工确认 | 历史诊断展示与运行时 smoke | 恢复 live history page 与 smoke |
+| `F-TASK-021` | 若修复追溯页删减取证/补偿证据需人工确认 | repair evidence 展示与 drill-through | 恢复取证链路与兼容入口 |
+| `F-TASK-022` | 若长期历史查询再次退回 recent-scan 语义需人工确认 | governance history 索引、分页与旧数据窗口 | 恢复 indexed lookup 并补兼容脚本 |
+| `F-TASK-023` | 若审计取证分页与跨页 drill-through 被删减需人工确认 | forensic lookup、分页与前端路径 | 恢复跨页诊断链 |
+| `F-TASK-024` | 若 remediation decision page 删除真实修复动作需人工确认 | 治理故障处置页面与修复调用 | 恢复 decision/remediation chain |
+| `F-TASK-025` | 若 archival window / deep pagination 能力被削弱需人工确认 | governance history lookup 索引和查询窗口 | 恢复 long-window/deep-pagination 基线 |
+| `F-TASK-026` | 若真实 Kafka gate 被降回文档占位或安全参数校验被弱化需人工确认 | Kafka runtime gate、配置与恢复证据 | 恢复 dedicated Kafka gate 与安全校验 |
+| `F-TASK-027` | 若 Phase-F 退出门禁再次放宽为非阻断需人工确认 | phase gate、coverage、Sonar、R-118 证据 | 恢复阻断语义并补录缺失证据 |
+| `F-TASK-028` | 若主线业务与治理运维路径重新混用需人工确认 | 前端 route namespace 与导航结构 | 恢复主业务/governance namespace 分离 |
 
 ## Related Documents
 

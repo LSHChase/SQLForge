@@ -40,9 +40,9 @@
   - `docs/plans/phase-0-plan.md`
 - 全量 `docs/` 文件盘点、角色分类和消费状态见：
   - [document-coverage-matrix.md](./document-coverage-matrix.md)
-- 全部 59 个 Task 的 Harness 10 字段补全集见：
+- 全部 Task 的 Harness 10 字段补全集见：
   - [task-spec-matrix.md](./task-spec-matrix.md)
-- 全部 59 个 Task 的人工确认点、数据影响与回滚扩展字段见：
+- 全部 Task 的人工确认点、数据影响与回滚扩展字段见：
   - [task-governance-extension-matrix.md](./task-governance-extension-matrix.md)
 - 本轮治理专项复盘见：
   - [document-governance-retrospective-2026-04-20.md](./document-governance-retrospective-2026-04-20.md)
@@ -59,10 +59,12 @@
 ### 2.3 Current implementation facts
 
 - 当前仓库存在根级前端工程，入口为 `package.json`、`vite.config.js`、`src/`
-- 当前 Maven 聚合工程包含 `sqlforge-shared/`、`governance/` 与 `query-execution/`
+- 当前 Maven 聚合工程包含 `sqlforge-shared/`、`governance/`、`query-execution/`、`sql-optimization/` 与 `benchmark-engine/`
 - `sqlforge-shared/` 已有共享错误码、上下文、异常、审计契约、日志与工具基线源码
 - `governance/` 已有基础应用、位于 `application` 包域内的 controller/service、统一请求上下文校验能力、MyBatis XML、配置文件和基础测试
 - `query-execution/` 已有独立应用入口、分层骨架、边界定义、多环境配置和基础测试
+- `sql-optimization/` 已有独立应用入口、异步任务模型、MySQL 任务持久化与 scheduled worker 基线
+- `benchmark-engine/` 已有独立应用入口、压测任务/报告模型、MySQL 任务与报告持久化基线
 - `docs/adr/` 已按 `ADR-001` 至 `ADR-013` 补齐实体文件
 - `docs/deployments/` 已补齐 `huawei-cloud-setup.md`
 
@@ -72,6 +74,7 @@
 - `HC-003` 已确认并执行：补齐 `ADR-001` 至 `ADR-013`
 - `HC-005` 已确认并执行：补齐华为云部署文档，并与 `R-144` 生产 Kafka 模式对齐
 - `HC-006` 已确认并执行：访问控制文档补全为完整规格
+- `HC-007` 已确认并执行：`A-TASK-010` 用于回补 post-publication 已执行任务并将主线恢复点显式切回 `Phase-D / D-TASK-015`
 
 ## 3. Planning Rules
 
@@ -105,13 +108,13 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D`
-- 当前活跃目标：查询执行服务边界落地
-- 当前已实例化到运行台账的首批可执行任务：
-  - `D-TASK-001`
+- 当前活跃目标：`query-execution` 真实执行链补完
+- 当前下一条可执行主线任务：
+  - `D-TASK-015`
 - 说明：
-  - `Phase-C` 的边界收敛已完成，但阶段退出门禁仍被覆盖率阈值和 Sonar 环境前置条件阻塞；该阻塞已记录在 `docs/quality/validation-log.md`
-  - `D-TASK-001` 由人类明确指令提前进入运行台账
-  - 后续开始执行时，以 `tasks.md` 的状态流转为运行真值，以本计划保持阶段和依赖权威
+  - `A-TASK-010` 已用于回补 `D-TASK-014`、`F-TASK-010` 至 `F-TASK-028` 与台账/矩阵漂移，使主计划重新追上 `tasks-done.md`
+  - `Phase-F` 运维治理加固已完成到 `F-TASK-027`/`F-TASK-028`，但其 remaining hardening 仍受覆盖率阈值、Sonar secrets 与自动 release trigger 约束
+  - 后续执行以 `tasks.md` 的状态流转为运行真值，以本计划保持阶段顺序、依赖和 next executable task 权威
 
 ## 5. Traceability Matrix
 
@@ -136,8 +139,8 @@
 | `docs/deliveries/init-completion.md` | 阶段0交付记录 | 初始化交付基线 | 用于交付状态与 Tag 回写对齐 | `HC-007` |
 | `docs/adr/README.md` | 决策索引 | `docs/adr/` | 决定 ADR 落地缺口与优先级 | `HC-003` |
 | `docs/plans/document-coverage-matrix.md` | `docs/` 全量文件覆盖证明 | `docs/` | 证明所有文档与归档资料已被盘点和分类 | 文档全量覆盖验证 |
-| `docs/plans/task-spec-matrix.md` | Harness Task 字段补全集 | 全部 59 个 Task | 为每个 Task 补齐 10 个必填字段 | Task 规格完整性验证 |
-| `docs/plans/task-governance-extension-matrix.md` | 59 个 Task 的人工确认点、数据影响和回滚扩展字段 | 全部 59 个 Task | 为严格治理提供 10 字段之外的补充约束 | `R-164`, Task 规格完整性验证 |
+| `docs/plans/task-spec-matrix.md` | Harness Task 字段补全集 | 全部 Task | 为每个 Task 补齐 10 个必填字段 | Task 规格完整性验证 |
+| `docs/plans/task-governance-extension-matrix.md` | Task 的人工确认点、数据影响和回滚扩展字段 | 全部 Task | 为严格治理提供 10 字段之外的补充约束 | `R-164`, Task 规格完整性验证 |
 | `docs/plans/document-governance-retrospective-2026-04-20.md` | 本轮治理专项复盘 | `docs/` | 沉淀漂移、差距和后续治理动作 | `R-133`, `R-140` |
 | `docs/plans/document-governance-repair-retrospective-2026-04-20.md` | 本轮严格核验缺口修复复盘 | `docs/` | 沉淀 7 项缺口的闭口动作与批次一致性 | `R-133`, `R-140`, `R-162` |
 
@@ -196,6 +199,17 @@ Tasks:
 | `A-TASK-007` | 建立规则映射矩阵 | `R-001` 至当前最大规则 | `A-STORY-001`,`A-STORY-002` | 每条规则至少有落点或缺口记录 |
 | `A-TASK-008` | 建立冲突台账 | 只记录不改规则 | `A-TASK-007` | 每项冲突包含影响范围/推荐方案 |
 | `A-TASK-009` | 固化 Harness 计划模板 | Epic/Story/Task 标准字段 | `A-TASK-007` | 模板覆盖 `11.2` 全字段 |
+
+##### Story `A-STORY-004` 主计划与运行台账回联
+
+- 目标：把主计划、任务矩阵、完成台账、验证日志与 INBOX 的真实完成度重新对齐，消除 active wave 与已执行任务脱节。
+- 验证：主计划 current active wave、任务矩阵与 `tasks-done.md` 的任务编号和阶段顺序一致。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `A-TASK-010` | 主计划与运行台账对齐 | 回补 post-publication 已执行任务、修正 active wave、清理已解决 INBOX | `A-STORY-003` | `task_audit`、knowledge lint、主计划/矩阵/台账交叉检查通过 |
 
 ### Phase-B 阶段0修正与缺口补齐
 
@@ -380,6 +394,18 @@ Tasks:
 | `D-TASK-012` | 落实审计日志链路 | SQL 操作/登录/权限变更 | `D-TASK-011` | `R-113` 场景测试 |
 | `D-TASK-013` | 落实敏感字段加密 | 密码/token/key | `D-TASK-011` | 库、日志、导出无明文 |
 
+##### Story `D-STORY-005` 运行时执行链与跨服务补完
+
+- 目标：把已落地的跨服务运行时兜底补回主计划，并继续推进 `query-execution` 从最小同步闭环走向真实执行适配与结果聚合基线。
+- 验证：跨服务治理调用、执行适配、结果聚合与失败恢复路径有真实测试和文档证据。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `D-TASK-014` | 收口异步服务鉴权、占位执行与审计兜底 | `sql-optimization`、`benchmark-engine`、`governance` 的跨服务运行时兜底 | `D-TASK-013` | 异步服务与治理服务模块测试、task audit 通过 |
+| `D-TASK-015` | 补完 `query-execution` 真实执行适配与结果聚合基线 | Hetu 多模式适配、执行模式选择、结果聚合与审计证据收口 | `D-TASK-014` | 模块测试、跨模式适配测试、runtime smoke 与契约文档同步 |
+
 ### Phase-E 前端驾驶舱与业务页面
 
 #### Epic `E-EPIC-001` Frontend Information Architecture
@@ -494,6 +520,35 @@ Tasks:
 | `F-TASK-007` | 补齐监控与日志规范落地清单 | logs/metrics/alerts | `Phase-D` | 规范与实现映射完整 |
 | `F-TASK-008` | 补齐备份恢复策略与演练记录模板 | RPO/RTO/加密 | `F-TASK-007` | `R-115` 验证项可追溯 |
 | `F-TASK-009` | 阶段交付回写闭环 | 完成记录/commit/tag/tag回写 | `F-TASK-008` | 交付记录模板闭环 |
+
+##### Story `F-STORY-004` 运行时门禁扩展与治理链路硬化
+
+- 目标：把运行时 smoke、浏览器门禁、治理历史链路、Kafka 运行验证与 Phase-F 退出门禁扩展补回主计划。
+- 验证：默认 CI、Phase Gate、浏览器 runtime smoke、Kafka gate 与治理历史页面的验证证据链一致。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `F-TASK-010` | 接入运行时 smoke 到默认 CI | compose/health/message queue smoke 入 CI | `F-TASK-005`,`F-TASK-006` | runtime smoke 与 CI 证据链通过 |
+| `F-TASK-011` | 扩展多服务运行时 smoke 门禁 | `query-execution`、`sql-optimization`、`benchmark-engine`、frontend 启动探针 | `F-TASK-010` | 多服务 startup/runtime smoke 通过 |
+| `F-TASK-012` | 扩展跨服务业务级 runtime smoke 门禁 | `query-execution -> governance` 成功/失败/审计补偿 | `F-TASK-011` | query-governance business smoke 通过 |
+| `F-TASK-013` | 扩展优化与压测业务级 runtime smoke 门禁 | `sql-optimization` / `benchmark-engine` 到治理服务的业务门禁 | `F-TASK-012` | optimization/benchmark business smoke 通过 |
+| `F-TASK-014` | 扩展前端真实业务 runtime smoke 门禁 | 浏览器驱动 `sql-query`/`acceleration`/`benchmark` 真实路径 | `F-TASK-013` | frontend runtime smoke 通过 |
+| `F-TASK-015` | 推进 `sql-optimization` 真实持久化与调度链路 | MySQL 任务表、scheduled worker、治理 smoke | `F-TASK-013` | 优化服务模块测试与手工 smoke 通过 |
+| `F-TASK-016` | 推进 `benchmark-engine` 真实持久化与调度链路 | MySQL 任务/报告表、scheduled worker、治理 smoke | `F-TASK-015` | 压测服务模块测试与手工 smoke 通过 |
+| `F-TASK-017` | 扩展前端失败恢复与审计补偿 runtime gate | 浏览器侧失败恢复、补偿与 backlog 证据 | `F-TASK-016` | browser runtime smoke 通过 |
+| `F-TASK-018` | 扩展 `system` 治理管理页 browser runtime gate | tenant-config、message stats、retry failed messages | `F-TASK-017` | browser runtime smoke 与治理修复动作通过 |
+| `F-TASK-019` | 加固前端补偿信号稳定性 | pending/total 双信号、收口残余验证日志 | `F-TASK-018` | lint/build/browser smoke 通过 |
+| `F-TASK-020` | 扩展治理历史页 browser runtime gate | `/parse-record` 真实历史诊断页 | `F-TASK-019` | governance history runtime smoke 通过 |
+| `F-TASK-021` | 扩展治理历史修复追溯页 browser runtime gate | `/repair-evidence` 取证与补偿证据 | `F-TASK-020` | repair evidence runtime smoke 通过 |
+| `F-TASK-022` | 升级治理长期历史反查与分页追溯 | indexed history lookup、分页与旧数据追溯 | `F-TASK-021` | governance history test + frontend runtime smoke 通过 |
+| `F-TASK-023` | 扩展历史诊断与审计取证分页链路 | `/audit-forensics` 与 parse record drill-through | `F-TASK-022` | governance history test + frontend runtime smoke 通过 |
+| `F-TASK-024` | 新增审计故障处置与修复决策页 | `/audit-troubleshooting` remediation decision page | `F-TASK-023` | remediation runtime chain 通过 |
+| `F-TASK-025` | 补齐治理归档历史窗口与深分页链路 | archival-window query、深分页和 drill-through | `F-TASK-024` | governance history API + runtime smoke 通过 |
+| `F-TASK-026` | 接入真实 Kafka 运行验证与环境安全参数门禁 | bootstrap/security 校验、成功/恢复 smoke | `F-TASK-025` | real Kafka runtime gate 通过 |
+| `F-TASK-027` | 收口 Phase-F 退出门禁缺口 | DB script、coverage、Sonar、R-118 证据 | `F-TASK-026` | phase gate / DB / compliance baseline 通过 |
+| `F-TASK-028` | 拆分主线业务与治理运维页面路径 | `/governance/history/*` 与 `/governance/ops/*` route namespace | `F-TASK-024` | lint/build/browser routing 校验通过 |
 
 ## 7. Verification Matrix
 

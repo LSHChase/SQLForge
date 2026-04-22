@@ -1,6 +1,6 @@
 # SQLForge Task Specification Matrix
 
-本文件用于把 [master-execution-plan.md](/models/project/codex/SQLForge/docs/plans/master-execution-plan.md) 中的 59 个 Task 补齐为 Harness Engineering 要求的 10 项字段。
+本文件用于把 [master-execution-plan.md](/models/project/codex/SQLForge/docs/plans/master-execution-plan.md) 中的 Task 补齐为 Harness Engineering 要求的 10 项字段。
 
 ## Context Aliases
 
@@ -40,6 +40,7 @@
 | `A-TASK-007` | 建立规则映射矩阵 | N/A | `R-001`~`R-155` | `Core`,`Val`,`Archive` | 每条规则至少映射到文档/代码/验证/缺口 | `DOCS` | `docs` | 规则连续性与落点检查 | `A-STORY-001`,`A-STORY-002` | docs-only |
 | `A-TASK-008` | 建立冲突台账 | N/A | `R-049`,`R-050` | `Core`,`Archive` | 每个冲突具备范围/收益/破坏面/方案 | `DOCS` | `docs` | 冲突项编号和字段完整 | `A-TASK-007` | docs-only |
 | `A-TASK-009` | 固化 Harness 计划模板 | N/A | `R-007`,`R-116`,`R-136` | `Core`,`Val` | 建立 Task 10 字段标准模板 | `DOCS` | `docs` | 对照 `11.2` 字段完整性检查 | `A-TASK-007` | docs-only |
+| `A-TASK-010` | 主计划与运行台账对齐 | N/A | `R-006`,`R-007`,`R-133`,`R-156`,`R-163` | `Core`,`Val`,`Delivery`,`Archive` | 回补 post-publication 已执行任务、修正 active wave、清理已解决 INBOX | `DOCS` | `docs` | `task_audit`、knowledge lint、计划/矩阵/台账交叉检查 | `A-STORY-003` | docs-only |
 
 ## Phase-B
 
@@ -88,6 +89,8 @@
 | `D-TASK-011` | 补齐核心表与关联键设计 | `ADR-001`,`ADR-009`,`ADR-012` | `R-034`,`R-106`,`R-129` | `Core`,`ADR`,`Sec`,`Msg` | 定义 config/result/history/export/audit 关联键 | `SQL`,`JAVA-BE` | `application(controller/service)/domain/infrastructure`,`common` | schema/sql/entity 映射检查 | `Phase-C` | dev/test/prod |
 | `D-TASK-012` | 落实审计日志链路 | `ADR-009`,`ADR-012` | `R-113`,`R-144` | `Core`,`ADR`,`Sec`,`Msg` | 建立 SQL/登录/权限变更审计链路 | `JAVA-BE`,`SQL` | `application(controller/service)/domain/infrastructure` | `R-113` 场景测试 | `D-TASK-011` | dev/test/prod |
 | `D-TASK-013` | 落实敏感字段加密 | `ADR-009` | `R-114`,`R-128` | `Core`,`Sec`,`Deploy` | 定义并实现密码/token/key 加密策略 | `JAVA-BE`,`SQL`,`OPS` | `application(controller/service)/domain/infrastructure`,`common` | 库/日志/导出无明文 | `D-TASK-011` | test/prod |
+| `D-TASK-014` | 收口异步服务鉴权、占位执行与审计兜底 | `ADR-009`,`ADR-012`,`ADR-013` | `R-041`,`R-111`~`R-115`,`R-123`,`R-144` | `Core`,`ADR`,`Sec`,`Msg` | 为异步服务补齐鉴权、租户隔离、占位执行与治理审计兜底 | `JAVA-BE`,`SQL` | `application(controller/service)/domain/infrastructure` | sql-optimization/benchmark/governance 模块测试与 task audit | `D-TASK-013` | dev/test/prod |
+| `D-TASK-015` | 补完 `query-execution` 真实执行适配与结果聚合基线 | `ADR-004`,`ADR-005`,`ADR-012`,`ADR-013` | `R-018`,`R-020`,`R-041`,`R-042`,`R-045`,`R-121`,`R-123`,`R-126` | `Core`,`ADR`,`Sec`,`Msg` | 落实 Hetu 多模式执行适配、模式选择、结果聚合与审计证据 | `JAVA-BE` | `application(controller/service)/domain/infrastructure` | 模块测试、跨模式适配测试、runtime smoke | `D-TASK-014` | dev/test |
 
 ## Phase-E
 
@@ -116,9 +119,28 @@
 | `F-TASK-007` | 补齐监控与日志规范落地清单 | `ADR-009` | `R-039`,`R-060`,`R-064` | `Core`,`Deploy`,`Sec` | 输出 logs/metrics/alerts 落地清单 | `DOCS`,`OPS` | `docs`,`deployments/ci/scripts` | 清单完整、映射一致 | `Phase-D` | prod-doc |
 | `F-TASK-008` | 补齐备份恢复策略与演练记录模板 | `ADR-009`,`ADR-010` | `R-115`,`R-118` | `Core`,`Deploy`,`Sec`,`Delivery` | 定义 RPO/RTO/演练记录模板 | `DOCS`,`OPS` | `docs`,`deployments/ci/scripts` | 备份恢复模板可追溯 | `F-TASK-007` | prod-doc |
 | `F-TASK-009` | 阶段交付回写闭环 | N/A | `R-012`,`R-040`,`R-117` | `Core`,`Delivery`,`Archive` | 完成记录、commit、tag、回写闭环 | `DOCS`,`OPS` | `docs`,`deployments/ci/scripts` | 交付记录与 git 元数据一致 | `F-TASK-008` | docs/ci |
+| `F-TASK-010` | 接入运行时 smoke 到默认 CI | `ADR-012` | `R-075`,`R-117`,`R-130`,`R-141` | `Core`,`Val`,`Deploy`,`Msg` | 把 compose、启动探针和消息队列 smoke 接入默认 CI | `OPS`,`DOCS` | `deployments/ci/scripts`,`docs` | compose/runtime smoke/CI 通过 | `F-TASK-005`,`F-TASK-006` | ci/dev |
+| `F-TASK-011` | 扩展多服务运行时 smoke 门禁 | `ADR-002`,`ADR-012` | `R-117`,`R-123`,`R-141` | `Core`,`Val`,`Deploy`,`Front` | 把多服务启动探针并入统一 runtime smoke | `OPS`,`DOCS` | `deployments/ci/scripts`,`docs` | multi-service runtime smoke | `F-TASK-010` | ci/dev |
+| `F-TASK-012` | 扩展跨服务业务级 runtime smoke 门禁 | `ADR-002`,`ADR-012` | `R-117`,`R-123`,`R-126`,`R-141` | `Core`,`Val`,`Sec`,`Msg` | query-execution 到治理服务的业务级成功/失败/补偿门禁 | `OPS`,`JAVA-BE` | `deployments/ci/scripts`,`application(controller/service)/domain/infrastructure` | query-governance business smoke | `F-TASK-011` | ci/dev |
+| `F-TASK-013` | 扩展优化与压测业务级 runtime smoke 门禁 | `ADR-002`,`ADR-012`,`ADR-013` | `R-117`,`R-123`,`R-126`,`R-141`,`R-144` | `Core`,`Val`,`Sec`,`Msg` | sql-optimization/benchmark-engine 到治理服务的业务级成功/失败/补偿门禁 | `OPS`,`JAVA-BE` | `deployments/ci/scripts`,`application(controller/service)/domain/infrastructure` | optimization/benchmark smoke | `F-TASK-012` | ci/dev |
+| `F-TASK-014` | 扩展前端真实业务 runtime smoke 门禁 | N/A | `R-015`,`R-023`~`R-030`,`R-124`,`R-141` | `Core`,`Front`,`Val` | 浏览器驱动真实业务页并入默认 runtime gate | `VUE-FE`,`OPS` | `frontend/router/views/styles`,`deployments/ci/scripts` | lint/build/browser smoke | `F-TASK-013` | ci/dev |
+| `F-TASK-015` | 推进 `sql-optimization` 真实持久化与调度链路 | `ADR-013` | `R-020`,`R-033`,`R-041`,`R-123`,`R-129` | `Core`,`ADR`,`Sec`,`Msg` | MySQL 任务表、状态流转、scheduled worker 与治理 smoke | `JAVA-BE`,`SQL` | `application(controller/service)/domain/infrastructure` | 模块测试与 manual smoke | `F-TASK-013` | dev/test |
+| `F-TASK-016` | 推进 `benchmark-engine` 真实持久化与调度链路 | `ADR-007`,`ADR-012` | `R-020`,`R-033`,`R-041`,`R-123`,`R-129` | `Core`,`ADR`,`Sec`,`Msg` | MySQL 任务/报告表、scheduled worker 与治理 smoke | `JAVA-BE`,`SQL` | `application(controller/service)/domain/infrastructure` | 模块测试与 manual smoke | `F-TASK-015` | dev/test |
+| `F-TASK-017` | 扩展前端失败恢复与审计补偿 runtime gate | N/A | `R-023`~`R-030`,`R-124`,`R-141` | `Core`,`Front`,`Val`,`Sec` | 把失败恢复和审计补偿可视化纳入浏览器门禁 | `VUE-FE`,`OPS` | `frontend/router/views/styles`,`deployments/ci/scripts` | browser runtime smoke | `F-TASK-016` | dev/test |
+| `F-TASK-018` | 扩展 `system` 治理管理页 browser runtime gate | N/A | `R-023`,`R-028`,`R-124`,`R-141` | `Core`,`Front`,`Sec` | `system` 页接入 tenant-config、message stats、retry | `VUE-FE`,`JAVA-BE` | `frontend/router/views/styles`,`application(controller/service)/domain/infrastructure` | lint/build/browser smoke | `F-TASK-017` | dev/test |
+| `F-TASK-019` | 加固前端补偿信号稳定性 | N/A | `R-024`,`R-028`,`R-124`,`R-141` | `Core`,`Front`,`Val` | 稳定 pending/total 双信号并收口残余验证日志 | `VUE-FE` | `frontend/router/views/styles` | lint/build/browser smoke | `F-TASK-018` | dev/test |
+| `F-TASK-020` | 扩展治理历史页 browser runtime gate | N/A | `R-023`,`R-028`,`R-124`,`R-141` | `Core`,`Front`,`Sec` | `/parse-record` 真实历史诊断链路 | `VUE-FE`,`JAVA-BE` | `frontend/router/views/styles`,`application(controller/service)/domain/infrastructure` | governance test + browser smoke | `F-TASK-019` | dev/test |
+| `F-TASK-021` | 扩展治理历史修复追溯页 browser runtime gate | N/A | `R-023`,`R-028`,`R-124`,`R-141` | `Core`,`Front`,`Sec` | `/repair-evidence` 修复追溯链路 | `VUE-FE`,`JAVA-BE` | `frontend/router/views/styles`,`application(controller/service)/domain/infrastructure` | governance test + browser smoke | `F-TASK-020` | dev/test |
+| `F-TASK-022` | 升级治理长期历史反查与分页追溯 | `ADR-009` | `R-033`,`R-038`,`R-121`,`R-129`,`R-141` | `Core`,`Sec`,`Val` | indexed history query、分页与旧窗口追溯 | `JAVA-BE`,`SQL`,`VUE-FE` | `application(controller/service)/domain/infrastructure`,`frontend/router/views/styles` | governance test + browser smoke | `F-TASK-021` | dev/test |
+| `F-TASK-023` | 扩展历史诊断与审计取证分页链路 | `ADR-009` | `R-033`,`R-038`,`R-121`,`R-141` | `Core`,`Sec`,`Front` | `/audit-forensics` 与分页 drill-through | `JAVA-BE`,`VUE-FE` | `application(controller/service)/domain/infrastructure`,`frontend/router/views/styles` | governance test + browser smoke | `F-TASK-022` | dev/test |
+| `F-TASK-024` | 新增审计故障处置与修复决策页 | `ADR-009`,`ADR-012` | `R-023`,`R-028`,`R-121`,`R-141` | `Core`,`Front`,`Sec`,`Msg` | remediation decision page 与修复动作运行链 | `VUE-FE`,`JAVA-BE` | `frontend/router/views/styles`,`application(controller/service)/domain/infrastructure` | governance test + browser smoke | `F-TASK-023` | dev/test |
+| `F-TASK-025` | 补齐治理归档历史窗口与深分页链路 | `ADR-009` | `R-033`,`R-038`,`R-121`,`R-129`,`R-141` | `Core`,`Sec`,`Front` | archival-window query、深分页与跨页 drill-through | `JAVA-BE`,`SQL`,`VUE-FE` | `application(controller/service)/domain/infrastructure`,`frontend/router/views/styles` | governance test + runtime smoke | `F-TASK-024` | dev/test |
+| `F-TASK-026` | 接入真实 Kafka 运行验证与环境安全参数门禁 | `ADR-012` | `R-117`,`R-118`,`R-141`,`R-144` | `Core`,`Msg`,`Deploy`,`Sec` | Kafka bootstrap/security 校验、成功/恢复 smoke | `OPS`,`JAVA-BE` | `deployments/ci/scripts`,`application(controller/service)/domain/infrastructure` | Kafka runtime gate | `F-TASK-025` | ci/dev |
+| `F-TASK-027` | 收口 Phase-F 退出门禁缺口 | `ADR-009`,`ADR-012` | `R-117`,`R-118`,`R-130`,`R-141`,`R-151` | `Core`,`Val`,`Deploy`,`Sec` | DB script、coverage、Sonar 与 R-118 证据收口 | `OPS`,`DOCS`,`JAVA-BE` | `deployments/ci/scripts`,`docs`,`common` | phase gate / DB / compliance baseline | `F-TASK-026` | ci/dev/prod-doc |
+| `F-TASK-028` | 拆分主线业务与治理运维页面路径 | N/A | `R-023`~`R-030`,`R-124`,`R-141` | `Core`,`Front` | 主业务路由与治理 history/ops namespace 拆分 | `VUE-FE` | `frontend/router/views/styles` | lint/build/browser routing | `F-TASK-024` | dev/test |
 
 ## Completeness Statement
 
-- 当前主计划中的 59 个 Task 已全部补齐 10 个 Harness 字段。
+- 当前主计划中的 Task 已全部补齐 10 个 Harness 字段。
 - 若后续新增 Task，必须先在主计划新增，再同步补充到本矩阵。
 - 若任务需要显式维护人工确认点、数据影响和回滚策略，继续同步更新 `docs/plans/task-governance-extension-matrix.md`。
