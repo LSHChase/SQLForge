@@ -33,7 +33,13 @@ const queuePendingDelta = computed(() => {
   }
   return queueStatsAfter.value.pending - queueStatsBefore.value.pending
 })
-const compensationDetected = computed(() => queuePendingDelta.value >= 1)
+const queueTotalDelta = computed(() => {
+  if (!queueStatsBefore.value || !queueStatsAfter.value) {
+    return 0
+  }
+  return queueStatsAfter.value.total - queueStatsBefore.value.total
+})
+const compensationDetected = computed(() => queuePendingDelta.value >= 1 || queueTotalDelta.value >= 1)
 
 const datasourceOptions = computed(() => ['HETU', 'HIVE'])
 const accelerationOptions = computed(() => [
@@ -322,6 +328,10 @@ const runRecoveryFlow = async () => {
               <div class="evidence-item">
                 <span class="evidence-label">{{ isChinese ? 'pending 增量' : 'Pending delta' }}</span>
                 <strong data-testid="query-flow-queue-pending-delta">{{ queuePendingDelta }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? 'total 增量' : 'Total delta' }}</span>
+                <strong data-testid="query-flow-queue-total-delta">{{ queueTotalDelta }}</strong>
               </div>
               <div class="evidence-item">
                 <span class="evidence-label">{{ isChinese ? '失败消息数' : 'Failed messages' }}</span>
