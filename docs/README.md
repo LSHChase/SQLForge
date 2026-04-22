@@ -50,6 +50,7 @@
    - [生成仓库地图](./generated/repo-map.md)
    - `docs/exec-plans/active/`
    - `docs/exec-plans/completed/`
+   - [Phase-F Story-003 交付记录](./deliveries/phase-f-story-003-ops-closeout.md)
 15. 仓库约定与 ADR
    - [ADR 索引](./adr/README.md)
    - [ADR 模板](./adr/adr-template.md)
@@ -107,6 +108,10 @@
   本地与目标环境部署说明。
   - `observability-baseline.md`：当前 logs/metrics/alerts 运维落地清单与缺口基线。
   - `backup-recovery-baseline.md`：当前备份对象、恢复目标与演练模板基线。
+- `deliveries/`
+  交付记录与阶段回写。
+  - `init-completion.md`：阶段 0 初始化交付记录与历史 repair 记录。
+  - `phase-f-story-003-ops-closeout.md`：`F-TASK-009` 收口的 Phase-F 运维、审计与恢复交付记录与 write-back 模板。
 
 ## 当前阶段说明
 

@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-009: 阶段交付回写闭环
+
+- Status: done
+- Completed at: 2026-04-21
+- Commit subject: `docs(delivery): F-TASK-009 close phase-f delivery loop`
+- Priority: 1
+- Depends on: `F-TASK-008`
+- Scope: 完成记录、commit、tag、回写闭环 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Matrix context: Phase-F / Story `F-STORY-003` 运维、审计与恢复
+- Human confirmation point: 交付闭环若省略 commit/tag 回写需人工确认
+- Data impact: 交付记录、git 元数据、验证日志
+- Rollback / recovery: 补写交付记录和标签/提交元数据
+- Validation:
+  - `交付记录与 git 元数据一致`
+  - `python3 scripts/foreman.py validate F-TASK-009`
+- Progress log:
+  - 2026-04-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 docs/deliveries/phase-f-story-003-ops-closeout.md，统一记录 Phase-F Story-003 下 F-TASK-007/008 的交付基线、F-TASK-009 的 delivery closeout 清单与 write-back 模板，并同步更新 docs 入口与文档覆盖矩阵，形成阶段交付闭环的文档落点。
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-009 --include-task-audit；node scripts/lint-repository-knowledge.js；python3 scripts/task_audit.py --check --phase pre-closeout；python3 scripts/task_audit.py --check --phase post-closeout。
+  - Residual risk: 当前 foreman 的 delivery-closeout 只负责打 tag 和追加 write-back，实际 write-back 仍会在仓库内留下后续元数据改动；此外 F-STORY-003 的交付闭环仍依赖人工维护 tag 命名策略和交付记录选择。
+  - Next step: 执行 delivery-closeout，为本次 Phase-F Story-003 交付主提交打 tag，并把 tag/write-back 元数据回填到 docs/deliveries/phase-f-story-003-ops-closeout.md。
+
 ### F-TASK-008: 补齐备份恢复策略与演练记录模板
 
 - Status: done
