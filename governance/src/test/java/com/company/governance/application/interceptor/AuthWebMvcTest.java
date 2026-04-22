@@ -37,6 +37,7 @@ import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
 import com.company.governance.infrastructure.persistence.mapper.ConfigSnapshotMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExecutionResultMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
+import com.company.governance.infrastructure.persistence.mapper.GovernanceHistoryLookupIndexMapper;
 import com.company.governance.infrastructure.persistence.mapper.MessageQueueMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
 import com.company.governance.infrastructure.persistence.mapper.SystemConfigMapper;
@@ -100,6 +101,9 @@ class AuthWebMvcTest {
 
     @MockBean
     private ExportRecordMapper exportRecordMapper;
+
+    @MockBean
+    private GovernanceHistoryLookupIndexMapper governanceHistoryLookupIndexMapper;
 
     @MockBean
     private AuditLogMapper auditLogMapper;
@@ -183,7 +187,16 @@ class AuthWebMvcTest {
 
         when(governanceHistoryApplicationService.findRecentTraces("system", Integer.valueOf(5)))
             .thenReturn(Collections.singletonList(summary));
-        when(governanceHistoryApplicationService.lookupTraces("system", "trace-001", "task-001", "report-001", null, Integer.valueOf(5)))
+        when(governanceHistoryApplicationService.lookupTraces(
+            "system",
+            "trace-001",
+            "task-001",
+            "report-001",
+            null,
+            null,
+            null,
+            Integer.valueOf(5)
+        ))
             .thenReturn(new GovernanceTraceLookupPageVO(Collections.singletonList(summary), Boolean.FALSE, null));
         when(governanceHistoryApplicationService.findTraceDetail("system", "trace-001", Integer.valueOf(5)))
             .thenReturn(detail);
@@ -205,7 +218,16 @@ class AuthWebMvcTest {
             .andExpect(jsonPath("$.auditEventCount").value(1));
 
         verify(governanceHistoryApplicationService).findRecentTraces("system", Integer.valueOf(5));
-        verify(governanceHistoryApplicationService).lookupTraces("system", "trace-001", "task-001", "report-001", null, Integer.valueOf(5));
+        verify(governanceHistoryApplicationService).lookupTraces(
+            "system",
+            "trace-001",
+            "task-001",
+            "report-001",
+            null,
+            null,
+            null,
+            Integer.valueOf(5)
+        );
         verify(governanceHistoryApplicationService).findTraceDetail("system", "trace-001", Integer.valueOf(5));
     }
 

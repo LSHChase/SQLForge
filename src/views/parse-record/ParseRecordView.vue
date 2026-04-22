@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import {
   formatRuntimeError,
   getGovernanceTraceDetail,
@@ -18,6 +19,8 @@ const form = reactive({
   traceId: '',
   taskId: '',
   reportId: '',
+  windowStart: '',
+  windowEnd: '',
   limit: 12
 })
 
@@ -139,12 +142,14 @@ const formatTimestamp = value => {
 const normalizeFilters = () => ({
   traceId: String(form.traceId || '').trim(),
   taskId: String(form.taskId || '').trim(),
-  reportId: String(form.reportId || '').trim()
+  reportId: String(form.reportId || '').trim(),
+  windowStart: String(form.windowStart || '').trim(),
+  windowEnd: String(form.windowEnd || '').trim()
 })
 
 const syncRouteQuery = query => {
   router.replace({
-    path: '/parse-record',
+    path: ROUTE_PATHS.parseRecord,
     query
   })
 }
@@ -169,6 +174,12 @@ const buildDrillQuery = source => {
   }
   if (hasDisplayValue(filters?.reportId)) {
     query.reportId = String(filters.reportId)
+  }
+  if (hasDisplayValue(filters?.windowStart)) {
+    query.windowStart = String(filters.windowStart)
+  }
+  if (hasDisplayValue(filters?.windowEnd)) {
+    query.windowEnd = String(filters.windowEnd)
   }
   return query
 }
@@ -320,6 +331,8 @@ const clearLookup = async () => {
   form.traceId = ''
   form.taskId = ''
   form.reportId = ''
+  form.windowStart = ''
+  form.windowEnd = ''
   lookupResults.value = []
   hasMore.value = false
   nextCursor.value = ''
@@ -337,7 +350,7 @@ const openRepairEvidence = () => {
     return
   }
   router.push({
-    path: '/repair-evidence',
+    path: ROUTE_PATHS.repairEvidence,
     query: buildDrillQuery(source)
   })
 }
@@ -348,7 +361,7 @@ const openAuditForensics = () => {
     return
   }
   router.push({
-    path: '/audit-forensics',
+    path: ROUTE_PATHS.auditForensics,
     query: buildDrillQuery(source)
   })
 }
@@ -394,6 +407,8 @@ onMounted(async () => {
   form.traceId = String(route.query.traceId || '')
   form.taskId = String(route.query.taskId || '')
   form.reportId = String(route.query.reportId || '')
+  form.windowStart = String(route.query.windowStart || '')
+  form.windowEnd = String(route.query.windowEnd || '')
 
   await loadRecentTraces()
   if (form.traceId || form.taskId || form.reportId) {
@@ -439,6 +454,24 @@ onMounted(async () => {
           <label class="field-block">
             <span class="field-label">{{ isChinese ? '返回数量' : 'Lookup limit' }}</span>
             <el-input v-model="form.limit" data-testid="parse-record-limit" />
+          </label>
+
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? '窗口起点' : 'Window start' }}</span>
+            <el-input
+              v-model="form.windowStart"
+              data-testid="parse-record-window-start"
+              :placeholder="isChinese ? '2026-04-01T00:00:00' : '2026-04-01T00:00:00'"
+            />
+          </label>
+
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? '窗口终点' : 'Window end' }}</span>
+            <el-input
+              v-model="form.windowEnd"
+              data-testid="parse-record-window-end"
+              :placeholder="isChinese ? '2026-04-22T23:59:59' : '2026-04-22T23:59:59'"
+            />
           </label>
 
           <label class="field-block field-block-wide">

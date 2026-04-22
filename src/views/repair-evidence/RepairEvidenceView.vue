@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import {
   formatRuntimeError,
   getGovernanceTraceDetail,
@@ -18,6 +19,8 @@ const form = reactive({
   traceId: '',
   taskId: '',
   reportId: '',
+  windowStart: '',
+  windowEnd: '',
   limit: 12
 })
 
@@ -212,7 +215,9 @@ const loadTraceDetail = async traceId => {
 const normalizeFilters = () => ({
   traceId: form.traceId,
   taskId: form.taskId,
-  reportId: form.reportId
+  reportId: form.reportId,
+  windowStart: form.windowStart,
+  windowEnd: form.windowEnd
 })
 
 const applyLookupPage = async (pageResponse, append = false) => {
@@ -295,6 +300,8 @@ const clearLookup = () => {
   form.traceId = ''
   form.taskId = ''
   form.reportId = ''
+  form.windowStart = ''
+  form.windowEnd = ''
   lookupResults.value = []
   detail.value = null
   errorMessage.value = ''
@@ -313,7 +320,9 @@ const buildTroubleshootingQuery = source => {
   const filters = {
     traceId: form.traceId || source?.traceId,
     taskId: form.taskId || source?.taskId,
-    reportId: form.reportId || source?.reportId
+    reportId: form.reportId || source?.reportId,
+    windowStart: form.windowStart,
+    windowEnd: form.windowEnd
   }
 
   if (hasDisplayValue(filters.traceId)) {
@@ -325,6 +334,12 @@ const buildTroubleshootingQuery = source => {
   if (hasDisplayValue(filters.reportId)) {
     query.reportId = String(filters.reportId).trim()
   }
+  if (hasDisplayValue(filters.windowStart)) {
+    query.windowStart = String(filters.windowStart).trim()
+  }
+  if (hasDisplayValue(filters.windowEnd)) {
+    query.windowEnd = String(filters.windowEnd).trim()
+  }
 
   return query
 }
@@ -335,7 +350,7 @@ const openTroubleshooting = () => {
     return
   }
   router.push({
-    path: '/audit-troubleshooting',
+    path: ROUTE_PATHS.auditTroubleshooting,
     query: buildTroubleshootingQuery(source)
   })
 }
@@ -386,6 +401,12 @@ onMounted(async () => {
   }
   if (hasDisplayValue(route.query.reportId)) {
     form.reportId = String(route.query.reportId)
+  }
+  if (hasDisplayValue(route.query.windowStart)) {
+    form.windowStart = String(route.query.windowStart)
+  }
+  if (hasDisplayValue(route.query.windowEnd)) {
+    form.windowEnd = String(route.query.windowEnd)
   }
   if (form.traceId || form.taskId || form.reportId) {
     await runLookup()

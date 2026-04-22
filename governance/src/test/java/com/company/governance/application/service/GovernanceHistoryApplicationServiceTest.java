@@ -15,6 +15,7 @@ import com.company.governance.domain.trace.entity.QueryHistoryRecord;
 import com.company.governance.domain.trace.entity.TraceLookupHitRecord;
 import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
+import com.company.governance.infrastructure.persistence.mapper.GovernanceHistoryLookupIndexMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
@@ -348,8 +349,26 @@ class GovernanceHistoryApplicationServiceTest {
             buildExport("trace-benchmark-report", "report-001", "SUCCESS", LocalDateTime.parse("2026-04-22T10:03:00"))
         ));
 
-        GovernanceTraceLookupPageVO taskMatches = service.lookupTraces("tenant-a", null, "task-001", null, null, Integer.valueOf(10));
-        GovernanceTraceLookupPageVO reportMatches = service.lookupTraces("tenant-a", null, null, "report-001", null, Integer.valueOf(10));
+        GovernanceTraceLookupPageVO taskMatches = service.lookupTraces(
+            "tenant-a",
+            null,
+            "task-001",
+            null,
+            null,
+            null,
+            null,
+            Integer.valueOf(10)
+        );
+        GovernanceTraceLookupPageVO reportMatches = service.lookupTraces(
+            "tenant-a",
+            null,
+            null,
+            "report-001",
+            null,
+            null,
+            null,
+            Integer.valueOf(10)
+        );
 
         assertEquals(2, taskMatches.getItems().size());
         assertEquals("SMOKE-FORCE-AUDIT-FALLBACK-task-001", taskMatches.getItems().get(0).getTraceId());
@@ -455,11 +474,22 @@ class GovernanceHistoryApplicationServiceTest {
         when(exportRecordMapper.selectByTraceIds("tenant-a", Collections.singletonList("trace-oldest")))
             .thenReturn(Collections.emptyList());
 
-        GovernanceTraceLookupPageVO firstPage = service.lookupTraces("tenant-a", null, "task-001", null, null, Integer.valueOf(1));
+        GovernanceTraceLookupPageVO firstPage = service.lookupTraces(
+            "tenant-a",
+            null,
+            "task-001",
+            null,
+            null,
+            null,
+            null,
+            Integer.valueOf(1)
+        );
         GovernanceTraceLookupPageVO secondPage = service.lookupTraces(
             "tenant-a",
             null,
             "task-001",
+            null,
+            null,
             null,
             firstPage.getNextCursor(),
             Integer.valueOf(1)
@@ -468,6 +498,8 @@ class GovernanceHistoryApplicationServiceTest {
             "tenant-a",
             null,
             "task-001",
+            null,
+            null,
             null,
             secondPage.getNextCursor(),
             Integer.valueOf(1)
@@ -482,6 +514,71 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals(1, thirdPage.getItems().size());
         assertEquals("trace-oldest", thirdPage.getItems().get(0).getTraceId());
         assertEquals(Boolean.FALSE, thirdPage.getHasMore());
+    }
+
+    @Test
+    void shouldLookupIndexedHistoryWithinExplicitWindow() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        GovernanceHistoryLookupIndexMapper governanceHistoryLookupIndexMapper = mock(GovernanceHistoryLookupIndexMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            governanceHistoryLookupIndexMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(governanceHistoryLookupIndexMapper.selectTraceHitsByLookupId(
+            "tenant-a",
+            "TASK",
+            "task-001",
+            LocalDateTime.parse("2026-04-01T00:00:00"),
+            LocalDateTime.parse("2026-04-30T23:59:59"),
+            null,
+            null,
+            2
+        )).thenReturn(Collections.singletonList(
+            buildTraceHit("trace-windowed", "2026-04-22T10:06:00", 1002L)
+        ));
+        when(auditLogMapper.selectByTraceIds("tenant-a", Collections.singletonList("trace-windowed"))).thenReturn(Collections.singletonList(
+            buildAudit("trace-windowed", "SQL_OPTIMIZATION", "FAILED", "SQL_OPTIMIZATION_TASK", "task-001",
+                LocalDateTime.parse("2026-04-22T10:06:00"),
+                "{\"serviceCode\":\"SQL_OPTIMIZATION\",\"taskId\":\"task-001\"}",
+                "{\"resultStatus\":\"FAILED\",\"taskId\":\"task-001\",\"errorCode\":\"13000\"}")
+        ));
+        when(queryHistoryMapper.selectByTraceIds("tenant-a", Collections.singletonList("trace-windowed")))
+            .thenReturn(Collections.emptyList());
+        when(exportRecordMapper.selectByTraceIds("tenant-a", Collections.singletonList("trace-windowed")))
+            .thenReturn(Collections.emptyList());
+
+        GovernanceTraceLookupPageVO page = service.lookupTraces(
+            "tenant-a",
+            null,
+            "task-001",
+            null,
+            "2026-04-01T00:00:00",
+            "2026-04-30T23:59:59",
+            null,
+            Integer.valueOf(1)
+        );
+
+        assertEquals(1, page.getItems().size());
+        assertEquals("trace-windowed", page.getItems().get(0).getTraceId());
+        assertEquals(Boolean.FALSE, page.getHasMore());
     }
 
     @Test
@@ -511,7 +608,7 @@ class GovernanceHistoryApplicationServiceTest {
 
         BizException exception = assertThrows(
             BizException.class,
-            () -> service.lookupTraces("tenant-a", null, null, null, null, Integer.valueOf(10))
+            () -> service.lookupTraces("tenant-a", null, null, null, null, null, null, Integer.valueOf(10))
         );
 
         assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());

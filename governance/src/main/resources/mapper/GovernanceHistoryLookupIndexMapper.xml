@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.GovernanceHistoryLookupIndexMapper">
+
+    <resultMap id="TraceLookupHitResultMap" type="com.company.governance.domain.trace.entity.TraceLookupHitRecord">
+        <id property="traceId" column="trace_id"/>
+        <result property="lastSeenAt" column="last_seen_at"/>
+        <result property="lastAuditId" column="last_audit_id"/>
+    </resultMap>
+
+    <select id="selectTraceHitsByLookupId" resultMap="TraceLookupHitResultMap">
+        SELECT
+            trace_id,
+            last_seen_at,
+            last_audit_id
+        FROM governance_history_lookup_index
+        WHERE tenant_id = #{tenantId}
+          AND lookup_type = #{lookupType}
+          AND lookup_id = #{lookupId}
+          <if test="windowStart != null">
+            AND last_seen_at &gt;= #{windowStart}
+          </if>
+          <if test="windowEnd != null">
+            AND last_seen_at &lt;= #{windowEnd}
+          </if>
+          <if test="cursorCreatedAt != null and cursorAuditId != null">
+            AND (
+              last_seen_at &lt; #{cursorCreatedAt}
+              OR (last_seen_at = #{cursorCreatedAt} AND last_audit_id &lt; #{cursorAuditId})
+            )
+          </if>
+        ORDER BY last_seen_at DESC, last_audit_id DESC
+        LIMIT #{limit}
+    </select>
+</mapper>

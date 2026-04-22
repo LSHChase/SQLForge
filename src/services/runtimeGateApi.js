@@ -233,6 +233,12 @@ export const lookupGovernanceTraces = (tenantId, filters = {}, limit = 12, reque
       params.set(key, value)
     }
   })
+  ;['windowStart', 'windowEnd'].forEach(key => {
+    const value = String(filters?.[key] || '').trim()
+    if (value) {
+      params.set(key, value)
+    }
+  })
   const cursor = String(filters?.cursor || '').trim()
   if (cursor) {
     params.set('cursor', cursor)

@@ -45,17 +45,30 @@ public class GovernanceHistoryController {
         @RequestParam(value = "traceId", required = false) String traceId,
         @RequestParam(value = "taskId", required = false) String taskId,
         @RequestParam(value = "reportId", required = false) String reportId,
+        @RequestParam(value = "windowStart", required = false) String windowStart,
+        @RequestParam(value = "windowEnd", required = false) String windowEnd,
         @RequestParam(value = "cursor", required = false) String cursor,
         @RequestParam(value = "limit", required = false) Integer limit) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
-        LOGGER.info("Handling governance trace lookup, tenantId={}, traceId={}, taskId={}, reportId={}, cursor={}, requestTraceId={}",
+        LOGGER.info("Handling governance trace lookup, tenantId={}, traceId={}, taskId={}, reportId={}, windowStart={}, windowEnd={}, cursor={}, requestTraceId={}",
             effectiveTenantId,
             traceId,
             taskId,
             reportId,
+            windowStart,
+            windowEnd,
             cursor,
             RequestContext.getTraceId());
-        return governanceHistoryApplicationService.lookupTraces(effectiveTenantId, traceId, taskId, reportId, cursor, limit);
+        return governanceHistoryApplicationService.lookupTraces(
+            effectiveTenantId,
+            traceId,
+            taskId,
+            reportId,
+            windowStart,
+            windowEnd,
+            cursor,
+            limit
+        );
     }
 
     @GetMapping("/traces/{traceId}")

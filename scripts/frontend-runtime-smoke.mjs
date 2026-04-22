@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { chromium } from 'playwright'
+import { ROUTE_PATHS } from '../src/config/routePaths.mjs'
 
 const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 'http://127.0.0.1:3000'
 const defaultTimeoutMs = Number(process.env.FRONTEND_RUNTIME_SMOKE_TIMEOUT_MS || 60000)
@@ -104,6 +105,38 @@ const expectInputValue = async (page, testId, expectedText) => {
   const value = await locator.inputValue()
   assert(value.includes(expectedText), `Expected ${testId} to include "${expectedText}", got "${value}"`)
   return value
+}
+
+const expectUrlIncludes = async (page, expectedText) => {
+  const startedAt = Date.now()
+  let currentUrl = page.url()
+
+  while (Date.now() - startedAt < defaultTimeoutMs) {
+    currentUrl = page.url()
+    if (currentUrl.includes(expectedText)) {
+      return currentUrl
+    }
+    await page.waitForTimeout(200)
+  }
+
+  throw new Error(`Expected current URL to include "${expectedText}", got "${currentUrl}"`)
+}
+
+const expectUrlQueryParam = async (page, key, expectedValue) => {
+  const startedAt = Date.now()
+  let currentUrl = page.url()
+  let actualValue = null
+
+  while (Date.now() - startedAt < defaultTimeoutMs) {
+    currentUrl = page.url()
+    actualValue = new URL(currentUrl).searchParams.get(key)
+    if (actualValue === expectedValue) {
+      return actualValue
+    }
+    await page.waitForTimeout(200)
+  }
+
+  throw new Error(`Expected URL param "${key}" to equal "${expectedValue}", got "${actualValue}" from "${currentUrl}"`)
 }
 
 const expectNumberAtLeast = async (page, testId, minimum) => {
@@ -310,7 +343,10 @@ const selectTraceByText = async (page, serviceCode, status) => {
 }
 
 const runParseRecordFlow = async (page, runtimeEvidence) => {
-  await page.goto(`${frontendBaseUrl}/parse-record`, { waitUntil: 'networkidle' })
+  const lookupWindowStart = '2026-04-01T00:00:00'
+  const lookupWindowEnd = '2026-04-30T23:59:59'
+
+  await page.goto(`${frontendBaseUrl}${ROUTE_PATHS.parseRecord}`, { waitUntil: 'networkidle' })
   await page.getByTestId('parse-record-page').waitFor({ timeout: defaultTimeoutMs })
 
   await expectNumberAtLeast(page, 'parse-record-recent-count', 3)
@@ -341,6 +377,8 @@ const runParseRecordFlow = async (page, runtimeEvidence) => {
   await page.getByTestId('parse-record-trace-id').fill('')
   await page.getByTestId('parse-record-task-id').fill(runtimeEvidence.optimizationTaskId)
   await page.getByTestId('parse-record-report-id').fill('')
+  await page.getByTestId('parse-record-window-start').fill(lookupWindowStart)
+  await page.getByTestId('parse-record-window-end').fill(lookupWindowEnd)
   await page.getByTestId('parse-record-run-lookup').click()
 
   await expectText(page, 'parse-record-page-mode', 'TASK')
@@ -348,13 +386,19 @@ const runParseRecordFlow = async (page, runtimeEvidence) => {
   await page.getByTestId('parse-record-has-more').waitFor({ timeout: defaultTimeoutMs })
   await expectText(page, 'parse-record-detail-service-code', 'SQL_OPTIMIZATION')
   await expectText(page, 'parse-record-detail-task-id', runtimeEvidence.optimizationTaskId)
+  await expectInputValue(page, 'parse-record-window-start', lookupWindowStart)
+  await expectInputValue(page, 'parse-record-window-end', lookupWindowEnd)
+  await expectUrlQueryParam(page, 'windowStart', lookupWindowStart)
+  await expectUrlQueryParam(page, 'windowEnd', lookupWindowEnd)
   await page.getByTestId('parse-record-load-more').click()
   await expectNumberAtLeast(page, 'parse-record-display-count', 2)
 
   await page.getByTestId('parse-record-open-audit-forensics').click()
 
   return {
-    queryTraceId
+    queryTraceId,
+    lookupWindowStart,
+    lookupWindowEnd
   }
 }
 
@@ -362,6 +406,8 @@ const runAuditForensicsFlow = async (page, runtimeEvidence) => {
   await page.getByTestId('audit-forensics-page').waitFor({ timeout: defaultTimeoutMs })
 
   await expectInputValue(page, 'audit-forensics-task-id', runtimeEvidence.optimizationTaskId)
+  await expectUrlQueryParam(page, 'windowStart', runtimeEvidence.lookupWindowStart)
+  await expectUrlQueryParam(page, 'windowEnd', runtimeEvidence.lookupWindowEnd)
   await expectNumberAtLeast(page, 'audit-forensics-match-count', 1)
   await page.getByTestId('audit-forensics-has-more').waitFor({ timeout: defaultTimeoutMs })
   await expectText(page, 'audit-forensics-detail-service-code', 'SQL_OPTIMIZATION')
@@ -383,6 +429,8 @@ const runAuditTroubleshootingFlow = async (page, runtimeEvidence) => {
 
     await expectInputValue(page, 'audit-troubleshooting-task-id', runtimeEvidence.optimizationTaskId)
     await expectInputValue(page, 'audit-troubleshooting-remediation-tenant-id', 'system')
+    await expectUrlQueryParam(page, 'windowStart', runtimeEvidence.lookupWindowStart)
+    await expectUrlQueryParam(page, 'windowEnd', runtimeEvidence.lookupWindowEnd)
     await expectNumberAtLeast(page, 'audit-troubleshooting-match-count', 1)
     await page.getByTestId('audit-troubleshooting-has-more').waitFor({ timeout: defaultTimeoutMs })
     await expectText(page, 'audit-troubleshooting-detail-service-code', 'SQL_OPTIMIZATION')
@@ -412,6 +460,8 @@ const runAuditTroubleshootingFlow = async (page, runtimeEvidence) => {
     await page.getByTestId('audit-troubleshooting-open-repair-evidence').click()
     await page.getByTestId('repair-evidence-page').waitFor({ timeout: defaultTimeoutMs })
     await expectInputValue(page, 'repair-evidence-task-id', runtimeEvidence.optimizationTaskId)
+    await expectUrlQueryParam(page, 'windowStart', runtimeEvidence.lookupWindowStart)
+    await expectUrlQueryParam(page, 'windowEnd', runtimeEvidence.lookupWindowEnd)
     await expectNumberAtLeast(page, 'repair-evidence-match-count', 1)
     await expectText(page, 'repair-evidence-detail-service-code', 'SQL_OPTIMIZATION')
     await expectText(page, 'repair-evidence-detail-status', 'FAILED')
@@ -430,7 +480,7 @@ const runAuditTroubleshootingFlow = async (page, runtimeEvidence) => {
 
 const runRepairEvidenceFlow = async (page, runtimeEvidence, options = {}) => {
   if (!options.alreadyOnPage) {
-    await page.goto(`${frontendBaseUrl}/repair-evidence`, { waitUntil: 'networkidle' })
+    await page.goto(`${frontendBaseUrl}${ROUTE_PATHS.repairEvidence}`, { waitUntil: 'networkidle' })
   }
   await page.getByTestId('repair-evidence-page').waitFor({ timeout: defaultTimeoutMs })
 
@@ -511,17 +561,23 @@ const main = async () => {
     const parseRecordEvidence = await runParseRecordFlow(page, runtimeEvidence)
     await runAuditForensicsFlow(page, {
       ...runtimeEvidence,
-      queryTraceId: parseRecordEvidence.queryTraceId
+      queryTraceId: parseRecordEvidence.queryTraceId,
+      lookupWindowStart: parseRecordEvidence.lookupWindowStart,
+      lookupWindowEnd: parseRecordEvidence.lookupWindowEnd
     })
     await runAuditTroubleshootingFlow(page, {
       queryTraceId: parseRecordEvidence.queryTraceId,
       optimizationTaskId: optimizationEvidence.failedTaskId,
-      benchmarkReportId: benchmarkEvidence.reportId
+      benchmarkReportId: benchmarkEvidence.reportId,
+      lookupWindowStart: parseRecordEvidence.lookupWindowStart,
+      lookupWindowEnd: parseRecordEvidence.lookupWindowEnd
     })
     await runRepairEvidenceFlow(page, {
       queryTraceId: parseRecordEvidence.queryTraceId,
       optimizationTaskId: optimizationEvidence.failedTaskId,
-      benchmarkReportId: benchmarkEvidence.reportId
+      benchmarkReportId: benchmarkEvidence.reportId,
+      lookupWindowStart: parseRecordEvidence.lookupWindowStart,
+      lookupWindowEnd: parseRecordEvidence.lookupWindowEnd
     })
   } finally {
     await browser.close()

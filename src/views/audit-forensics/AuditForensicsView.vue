@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import {
   formatRuntimeError,
   getGovernanceTraceDetail,
@@ -18,6 +19,8 @@ const form = reactive({
   traceId: '',
   taskId: '',
   reportId: '',
+  windowStart: '',
+  windowEnd: '',
   limit: 12
 })
 
@@ -202,12 +205,14 @@ const resolveRepairSignal = currentDetail => {
 const normalizeFilters = () => ({
   traceId: String(form.traceId || '').trim(),
   taskId: String(form.taskId || '').trim(),
-  reportId: String(form.reportId || '').trim()
+  reportId: String(form.reportId || '').trim(),
+  windowStart: String(form.windowStart || '').trim(),
+  windowEnd: String(form.windowEnd || '').trim()
 })
 
 const syncRouteQuery = query => {
   router.replace({
-    path: '/audit-forensics',
+    path: ROUTE_PATHS.auditForensics,
     query
   })
 }
@@ -232,6 +237,12 @@ const buildDrillQuery = source => {
   }
   if (hasDisplayValue(filters?.reportId)) {
     query.reportId = String(filters.reportId)
+  }
+  if (hasDisplayValue(filters?.windowStart)) {
+    query.windowStart = String(filters.windowStart)
+  }
+  if (hasDisplayValue(filters?.windowEnd)) {
+    query.windowEnd = String(filters.windowEnd)
   }
   return query
 }
@@ -338,6 +349,8 @@ const clearLookup = () => {
   form.traceId = ''
   form.taskId = ''
   form.reportId = ''
+  form.windowStart = ''
+  form.windowEnd = ''
   lookupResults.value = []
   detail.value = null
   errorMessage.value = ''
@@ -356,7 +369,7 @@ const openParseRecord = () => {
     return
   }
   router.push({
-    path: '/parse-record',
+    path: ROUTE_PATHS.parseRecord,
     query: buildDrillQuery(source)
   })
 }
@@ -367,7 +380,7 @@ const openRepairEvidence = () => {
     return
   }
   router.push({
-    path: '/repair-evidence',
+    path: ROUTE_PATHS.repairEvidence,
     query: buildDrillQuery(source)
   })
 }
@@ -378,7 +391,7 @@ const openTroubleshooting = () => {
     return
   }
   router.push({
-    path: '/audit-troubleshooting',
+    path: ROUTE_PATHS.auditTroubleshooting,
     query: {
       ...buildDrillQuery(source),
       remediationTenantId: 'system'
@@ -423,6 +436,8 @@ onMounted(async () => {
   form.traceId = String(route.query.traceId || '')
   form.taskId = String(route.query.taskId || '')
   form.reportId = String(route.query.reportId || '')
+  form.windowStart = String(route.query.windowStart || '')
+  form.windowEnd = String(route.query.windowEnd || '')
 
   if (form.traceId || form.taskId || form.reportId) {
     await runLookup()

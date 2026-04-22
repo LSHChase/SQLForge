@@ -10,6 +10,7 @@ import com.company.governance.domain.trace.entity.QueryHistoryRecord;
 import com.company.governance.domain.trace.entity.TraceLookupHitRecord;
 import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
+import com.company.governance.infrastructure.persistence.mapper.GovernanceHistoryLookupIndexMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -49,6 +51,8 @@ public class GovernanceHistoryApplicationService {
     private static final int MAX_LOOKUP_SOURCE_SCAN_LIMIT = 400;
     private static final int LOOKUP_PAGE_FETCH_OVERFLOW = 1;
     private static final int TRACE_LOOKUP_SOURCE_LIMIT = 100;
+    private static final String LOOKUP_TYPE_TASK = "TASK";
+    private static final String LOOKUP_TYPE_REPORT = "REPORT";
     private static final List<String> TASK_TARGET_TYPES = Collections.unmodifiableList(
         java.util.Arrays.asList("TASK", "SQL_OPTIMIZATION_TASK", "BENCHMARK_ENGINE_TASK")
     );
@@ -60,6 +64,7 @@ public class GovernanceHistoryApplicationService {
         };
 
     private final AuditLogMapper auditLogMapper;
+    private final GovernanceHistoryLookupIndexMapper governanceHistoryLookupIndexMapper;
     private final QueryHistoryMapper queryHistoryMapper;
     private final ExportRecordMapper exportRecordMapper;
     private final TenantAccessLogic tenantAccessLogic;
@@ -68,7 +73,17 @@ public class GovernanceHistoryApplicationService {
                                                QueryHistoryMapper queryHistoryMapper,
                                                ExportRecordMapper exportRecordMapper,
                                                TenantAccessLogic tenantAccessLogic) {
+        this(auditLogMapper, null, queryHistoryMapper, exportRecordMapper, tenantAccessLogic);
+    }
+
+    @Autowired
+    public GovernanceHistoryApplicationService(AuditLogMapper auditLogMapper,
+                                               GovernanceHistoryLookupIndexMapper governanceHistoryLookupIndexMapper,
+                                               QueryHistoryMapper queryHistoryMapper,
+                                               ExportRecordMapper exportRecordMapper,
+                                               TenantAccessLogic tenantAccessLogic) {
         this.auditLogMapper = auditLogMapper;
+        this.governanceHistoryLookupIndexMapper = governanceHistoryLookupIndexMapper;
         this.queryHistoryMapper = queryHistoryMapper;
         this.exportRecordMapper = exportRecordMapper;
         this.tenantAccessLogic = tenantAccessLogic;
@@ -107,12 +122,16 @@ public class GovernanceHistoryApplicationService {
                                                     String traceId,
                                                     String taskId,
                                                     String reportId,
+                                                    String windowStart,
+                                                    String windowEnd,
                                                     String cursor,
                                                     Integer limit) {
         String effectiveTenantId = resolveAuthorizedTenantId(tenantId);
         String normalizedTraceId = trimToNull(traceId);
         String normalizedTaskId = trimToNull(taskId);
         String normalizedReportId = trimToNull(reportId);
+        LocalDateTime windowStartAt = parseWindowValue(windowStart, "windowStart");
+        LocalDateTime windowEndAt = parseWindowValue(windowEnd, "windowEnd");
         if (!StringUtils.hasText(normalizedTraceId)
             && !StringUtils.hasText(normalizedTaskId)
             && !StringUtils.hasText(normalizedReportId)) {
@@ -120,6 +139,13 @@ public class GovernanceHistoryApplicationService {
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
                 "one of traceId, taskId, or reportId must be provided"
+            );
+        }
+        if (windowStartAt != null && windowEndAt != null && windowStartAt.isAfter(windowEndAt)) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                "windowStart must not be later than windowEnd"
             );
         }
 
@@ -145,6 +171,8 @@ public class GovernanceHistoryApplicationService {
             effectiveTenantId,
             normalizedTaskId,
             normalizedReportId,
+            windowStartAt,
+            windowEndAt,
             lookupCursor,
             resolvedLimit + LOOKUP_PAGE_FETCH_OVERFLOW
         );
@@ -430,8 +458,34 @@ public class GovernanceHistoryApplicationService {
     private List<TraceLookupHitRecord> loadIndexedTraceHits(String tenantId,
                                                             String taskId,
                                                             String reportId,
+                                                            LocalDateTime windowStart,
+                                                            LocalDateTime windowEnd,
                                                             LookupCursor cursor,
                                                             int limit) {
+        if (governanceHistoryLookupIndexMapper != null) {
+            if (StringUtils.hasText(taskId)) {
+                return governanceHistoryLookupIndexMapper.selectTraceHitsByLookupId(
+                    tenantId,
+                    LOOKUP_TYPE_TASK,
+                    taskId,
+                    windowStart,
+                    windowEnd,
+                    cursor == null ? null : cursor.getCreatedAt(),
+                    cursor == null ? null : cursor.getAuditId(),
+                    limit
+                );
+            }
+            return governanceHistoryLookupIndexMapper.selectTraceHitsByLookupId(
+                tenantId,
+                LOOKUP_TYPE_REPORT,
+                reportId,
+                windowStart,
+                windowEnd,
+                cursor == null ? null : cursor.getCreatedAt(),
+                cursor == null ? null : cursor.getAuditId(),
+                limit
+            );
+        }
         if (StringUtils.hasText(taskId)) {
             return auditLogMapper.selectTraceHitsByTargetId(
                 tenantId,
@@ -450,6 +504,21 @@ public class GovernanceHistoryApplicationService {
             cursor == null ? null : cursor.getAuditId(),
             limit
         );
+    }
+
+    private LocalDateTime parseWindowValue(String value, String fieldName) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(value.trim());
+        } catch (Exception ex) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                fieldName + " is invalid"
+            );
+        }
     }
 
     private LookupCursor parseLookupCursor(String cursor) {

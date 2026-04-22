@@ -11,15 +11,6 @@
 
 ## Todo
 
-### F-TASK-025: 补齐治理归档历史窗口与深分页链路
-
-- Status: in_progress
-- Priority: 1
-- Depends on: F-TASK-024
-- Scope: Extend governance historical diagnostics beyond current indexed table lookups by adding archival-window query support, stronger deep-pagination strategy, and stable drill-through for older trace/task/report evidence across audit/query/export history so large-tenant and older-data forensics do not remain bounded by the current hot-window indexes.
-- Validation:
-  - `python3 scripts/foreman.py validate F-TASK-025`
-
 ### F-TASK-026: 接入真实 Kafka 运行验证与环境安全参数门禁
 
 - Status: in_progress

@@ -493,3 +493,6 @@
 2026-04-22T08:31:18-05:00 | F-TASK-026 validate | `R-133`, `R-168` | passed | `mvn -B -pl governance -Dtest=MessagingConfigTest,KafkaMessageProducerTest,KafkaMessageConsumerTest test`
 2026-04-22T08:32:00-05:00 | F-TASK-026 validate | `R-133`, `R-168` | passed | `bash scripts/run-phase-gates.sh --gate compliance --run-real-kafka-gate`
 2026-04-22T08:35:26-05:00 | F-TASK-028 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-22T08:35:26-05:00 | F-TASK-028 closeout commit | `R-168` | passed | `c43ce4e8005eef0578b5976832f5bdf0b74639a0`
+2026-04-22T08:35:26-05:00 | F-TASK-028 post-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
+2026-04-22T08:36:16-05:00 | F-TASK-025 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
