@@ -1,7 +1,15 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SQLFORGE_DEV_DB_URL:jdbc:mysql://localhost:3306/sqlforge?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${SQLFORGE_DEV_DB_USER:sqlforge}
+    password: ${SQLFORGE_DEV_DB_PASSWORD:sqlforge}
+
 logging:
   level:
     root: DEBUG
     com.company.sqloptimization: DEBUG
+    org.mybatis: DEBUG
 
 auth:
   enabled: false
@@ -18,5 +26,3 @@ sqlforge:
 sql-optimization:
   callbacks:
     enabled: false
-  queues:
-    mode: local-placeholder

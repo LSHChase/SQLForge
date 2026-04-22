@@ -21,13 +21,17 @@ logging:
     root: INFO
     com.company.sqloptimization: INFO
 
+mybatis:
+  config-location: classpath:mybatis-config.xml
+  mapper-locations: classpath*:mapper/*.xml
+
 sql-optimization:
   parser:
     strategy: OPEN_SOURCE_ABSTRACTION_FOR_DEEP_OPTIMIZATION
   task-model:
     isolated-queue: true
     contract-stage: LONG_TERM_BASELINE
-    implementation-stage: ASYNC_TASK_API_SKELETON
+    implementation-stage: DATABASE_SCHEDULED_WORKER_BASELINE
   task-execution:
     poll-interval-ms: 25
     queue-visibility-delay-ms: 100
@@ -40,6 +44,8 @@ sql-optimization:
       AUTO: ${SQL_OPTIMIZATION_GOVERNANCE_DATASOURCE_AUTO:optimization-hetu}
       HETU: ${SQL_OPTIMIZATION_GOVERNANCE_DATASOURCE_HETU:optimization-hetu}
       HIVE: ${SQL_OPTIMIZATION_GOVERNANCE_DATASOURCE_HIVE:optimization-hive}
+  queues:
+    mode: database-worker
 
 auth:
   enabled: false

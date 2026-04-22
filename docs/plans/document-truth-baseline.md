@@ -69,13 +69,13 @@
   - `START / STATE_CHANGE / END / FAILED` 流程日志与 timeout / fallback 本地恢复标记
   - 独立多环境配置与日志配置骨架
   - 基础单元测试
-- `sql-optimization/` 已具备 SQL 优化提交/轮询骨架：
+- `sql-optimization/` 已具备 SQL 优化提交/轮询与数据库持久化基线：
   - Spring Boot 应用入口与独立 Maven 模块
   - `application` 包域下的 controller / DTO / VO / service 与 `domain` / `infrastructure` / `config` 分层骨架
   - `PARSE` / `REWRITE` / `ACCELERATION_SUGGESTION` 三类异步优化任务实体
   - 生命周期状态、处理阶段流转、优先级、解析深度和加速建议类型的领域模型
-  - `POST /api/sql-optimization/tasks` 与 `GET /api/sql-optimization/tasks/{taskId}` skeleton
-  - in-memory placeholder repository、header-based 鉴权、租户隔离、异步占位执行器、提交流程日志、失败路径和基础测试
+  - `POST /api/sql-optimization/tasks` 与 `GET /api/sql-optimization/tasks/{taskId}` HTTP 契约
+  - `optimization_task` MySQL 任务表、MyBatis XML repository、header-based 鉴权、租户隔离、scheduled worker、提交流程日志、失败路径和基础测试
   - `suggestion / failure` 结构化输出，当前已覆盖收益、成本、风险和任务类型差异
 - `benchmark-engine/` 已具备压测任务与报告查询骨架：
   - Spring Boot 应用入口与独立 Maven 模块

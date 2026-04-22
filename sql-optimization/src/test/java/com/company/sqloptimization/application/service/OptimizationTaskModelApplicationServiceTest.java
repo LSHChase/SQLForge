@@ -66,7 +66,7 @@ class OptimizationTaskModelApplicationServiceTest {
         assertEquals(OptimizationTaskPhase.DEEP_PARSING, submitResponse.getCurrentPhase());
         assertEquals("/api/sql-optimization/tasks/task-002", submitResponse.getStatusQueryPath());
         assertEquals("LONG_TERM_BASELINE", submitResponse.getContractStage());
-        assertEquals("ASYNC_TASK_API_SKELETON", submitResponse.getImplementationStage());
+        assertEquals("DATABASE_SCHEDULED_WORKER_BASELINE", submitResponse.getImplementationStage());
 
         assertEquals(OptimizationTaskType.REWRITE, statusResponse.getTaskType());
         assertEquals(OptimizationTaskPriority.NORMAL, statusResponse.getPriority());
@@ -126,7 +126,7 @@ class OptimizationTaskModelApplicationServiceTest {
         task.markFailed(
             new com.company.sqloptimization.domain.task.OptimizationTaskError(
                 13000,
-                "SQL 优化异步任务骨架尚未接入真实队列与持久化",
+                "SQL optimization worker failed before producing a suggestion payload",
                 "retry later",
                 true
             ),

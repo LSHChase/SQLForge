@@ -15,22 +15,22 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
-public class OptimizationTaskPlaceholderExecutor {
+public class OptimizationTaskWorker {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(OptimizationTaskPlaceholderExecutor.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(OptimizationTaskWorker.class);
 
-    private static final String OPERATION = "OPTIMIZATION_TASK_EXECUTOR";
+    private static final String OPERATION = "OPTIMIZATION_TASK_WORKER";
     private static final String STATE_TASK_QUEUED = "TASK_QUEUED";
-    private static final String STATE_PLACEHOLDER_RUNNING = "PLACEHOLDER_RUNNING";
-    private static final String STATE_PLACEHOLDER_SUCCEEDED = "PLACEHOLDER_SUCCEEDED";
-    private static final String STATE_PLACEHOLDER_FAILED = "PLACEHOLDER_FAILED";
+    private static final String STATE_WORKER_RUNNING = "WORKER_RUNNING";
+    private static final String STATE_WORKER_SUCCEEDED = "WORKER_SUCCEEDED";
+    private static final String STATE_WORKER_FAILED = "WORKER_FAILED";
     private static final String FAILURE_MARKER = "FAIL_OPTIMIZATION";
 
     private final OptimizationTaskRepository optimizationTaskRepository;
     private final OptimizationTaskExecutionProperties executionProperties;
 
-    public OptimizationTaskPlaceholderExecutor(OptimizationTaskRepository optimizationTaskRepository,
-                                               OptimizationTaskExecutionProperties executionProperties) {
+    public OptimizationTaskWorker(OptimizationTaskRepository optimizationTaskRepository,
+                                  OptimizationTaskExecutionProperties executionProperties) {
         this.optimizationTaskRepository = optimizationTaskRepository;
         this.executionProperties = executionProperties;
     }
@@ -49,28 +49,28 @@ public class OptimizationTaskPlaceholderExecutor {
         try {
             task.markRunning(Instant.now());
             optimizationTaskRepository.save(task);
-            logStateChange(task, STATE_TASK_QUEUED, STATE_PLACEHOLDER_RUNNING, task.getCurrentPhase().name());
+            logStateChange(task, STATE_TASK_QUEUED, STATE_WORKER_RUNNING, task.getCurrentPhase().name());
             if (shouldForceFailure(task)) {
                 delay();
                 task.markFailed(
                     new OptimizationTaskError(
                         ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_PIPELINE_NOT_READY,
-                        ErrorCodeConstants.SQL_OPTIMIZATION_PIPELINE_NOT_READY_MESSAGE,
-                        "Remove the FAIL_OPTIMIZATION marker or wait for the real worker pipeline in a later task.",
+                        "SQL optimization worker failed before producing a suggestion payload",
+                        "Inspect the database-backed worker pipeline and retry after the carrier is healthy.",
                         true
                     ),
                     Instant.now()
                 );
                 optimizationTaskRepository.save(task);
-                logStateChange(task, STATE_PLACEHOLDER_RUNNING, STATE_PLACEHOLDER_FAILED, task.getError().getMessage());
+                logStateChange(task, STATE_WORKER_RUNNING, STATE_WORKER_FAILED, task.getError().getMessage());
                 logEnd(task, start);
                 return;
             }
-            advancePlaceholderPhases(task);
+            advancePhases(task);
             delay();
             task.markSucceeded(buildSummary(task), Instant.now());
             optimizationTaskRepository.save(task);
-            logStateChange(task, STATE_PLACEHOLDER_RUNNING, STATE_PLACEHOLDER_SUCCEEDED, task.getSummary());
+            logStateChange(task, STATE_WORKER_RUNNING, STATE_WORKER_SUCCEEDED, task.getSummary());
             logEnd(task, start);
         } catch (RuntimeException ex) {
             LOGGER.error("operation={} entity={} tenantId={} costMs={} status=FAILED phase=EXCEPTION reason={}",
@@ -84,30 +84,30 @@ public class OptimizationTaskPlaceholderExecutor {
         }
     }
 
-    private void advancePlaceholderPhases(OptimizationTask task) {
+    private void advancePhases(OptimizationTask task) {
         if (task.getTaskType() == OptimizationTaskType.PARSE) {
             delay();
-            task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "PLACEHOLDER_PARSE_SUMMARY_READY");
+            task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "WORKER_PARSE_SUMMARY_READY");
             optimizationTaskRepository.save(task);
             return;
         }
         if (task.getTaskType() == OptimizationTaskType.REWRITE) {
             delay();
-            task.advancePhase(OptimizationTaskPhase.SQL_REWRITING, 45, "PLACEHOLDER_REWRITE_RULES_APPLIED");
+            task.advancePhase(OptimizationTaskPhase.SQL_REWRITING, 45, "WORKER_REWRITE_RULES_APPLIED");
             optimizationTaskRepository.save(task);
             delay();
-            task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "PLACEHOLDER_REWRITE_SUMMARY_READY");
+            task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "WORKER_REWRITE_SUMMARY_READY");
             optimizationTaskRepository.save(task);
             return;
         }
         delay();
-        task.advancePhase(OptimizationTaskPhase.COST_ESTIMATING, 35, "PLACEHOLDER_COST_BASELINE_READY");
+        task.advancePhase(OptimizationTaskPhase.COST_ESTIMATING, 35, "WORKER_COST_BASELINE_READY");
         optimizationTaskRepository.save(task);
         delay();
-        task.advancePhase(OptimizationTaskPhase.ACCELERATION_PLANNING, 70, "PLACEHOLDER_ACCELERATION_PLAN_READY");
+        task.advancePhase(OptimizationTaskPhase.ACCELERATION_PLANNING, 70, "WORKER_ACCELERATION_PLAN_READY");
         optimizationTaskRepository.save(task);
         delay();
-        task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 90, "PLACEHOLDER_ACCELERATION_SUMMARY_READY");
+        task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 90, "WORKER_ACCELERATION_SUMMARY_READY");
         optimizationTaskRepository.save(task);
     }
 
@@ -162,7 +162,7 @@ public class OptimizationTaskPlaceholderExecutor {
             Thread.sleep(executionProperties.getPhaseDelayMs());
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Optimization placeholder executor interrupted", ex);
+            throw new IllegalStateException("Optimization worker interrupted", ex);
         }
     }
 }

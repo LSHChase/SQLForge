@@ -27,7 +27,7 @@ usage() {
 Usage: ./scripts/manual-sql-optimization-governance-smoke.sh [--cleanup]
 
 Options:
-  --cleanup   Delete smoke-created audit_log and kafka_message_queue rows after verification.
+  --cleanup   Delete smoke-created optimization_task, audit_log and kafka_message_queue rows after verification.
 EOF
 }
 
@@ -150,6 +150,9 @@ cleanup_rows() {
   if [[ "${CLEANUP}" != "true" ]]; then
     return
   fi
+
+  print_step "Cleaning up smoke optimization tasks"
+  mysql_exec "DELETE FROM optimization_task WHERE task_id IN ('${success_task_id:-}','${failure_task_id:-}');"
 
   print_step "Cleaning up smoke queue rows"
   mysql_exec "DELETE FROM kafka_message_queue WHERE topic = 'governance.audit.event' AND (message_body LIKE '%\\\"requestId\\\":\\\"${COMPENSATION_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${SUCCESS_SUBMIT_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${SUCCESS_STATUS_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${FAILURE_SUBMIT_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${FAILURE_STATUS_REQUEST_ID}\\\"%');"

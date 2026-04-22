@@ -107,7 +107,7 @@ SQLForge 面向多租户数据平台治理、查询执行、SQL 优化与压测�
 - `domain/`
   - 异步优化任务实体、任务类型、生命周期状态、处理阶段流转、优先级和加速建议类型
 - `infrastructure/`
-  - 当前已提供 in-memory placeholder repository；真实队列、持久化和回调适配仍待接入
+  - 当前已提供 MyBatis XML repository、`optimization_task` MySQL 任务表和 in-process scheduled worker；外部队列与回调适配仍待接入
 - `config/`
   - 独立服务名、端口、多环境和日志配置骨架
 

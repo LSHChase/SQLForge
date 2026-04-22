@@ -65,7 +65,7 @@
 | 查询执行服务 -> 公共管理服务 | HTTP | 公共管理服务 | `TenantScopeCheckRequest/Response`, `DatasourceAccessCheckRequest/Response`, `QuotaCheckRequest/Response`, `AuditWriteRequest/Response` | Partial |
 | SQL 优化服务 -> 公共管理服务 | HTTP | 公共管理服务 | `OptimizationApprovalCheckRequest/Response`, `MetadataLookupRequest/Response`, `AuditWriteRequest/Response` | Partial |
 | 压测引擎服务 -> 公共管理服务 | HTTP | 公共管理服务 | `BenchmarkAuthorizationRequest/Response`, `ShadowEnvironmentCheckRequest/Response`, `AuditWriteRequest/Response` | Partial |
-| 查询执行服务 -> SQL 优化服务 | HTTP / async callback | SQL 优化服务 | `OptimizationTaskSubmitRequest/Response`, `OptimizationTaskStatusResponse`, `AccelerationPlanApplyRequest/Response` | `ASYNC_TASK_API_SKELETON` |
+| 查询执行服务 -> SQL 优化服务 | HTTP / async callback | SQL 优化服务 | `OptimizationTaskSubmitRequest/Response`, `OptimizationTaskStatusResponse`, `AccelerationPlanApplyRequest/Response` | `DATABASE_SCHEDULED_WORKER_BASELINE` |
 | 压测引擎服务 -> 查询执行服务 | HTTP | 查询执行服务 | `QueryFingerprintLookupRequest/Response`, `RoutingRuleSnapshotRequest/Response` | Planned |
 
 规则：
@@ -153,12 +153,12 @@
 
 ## 3.2 SQL Optimization Task Contract Baseline
 
-当前 `sql-optimization` 已将异步优化任务契约接到公共 HTTP skeleton，并通过 in-memory placeholder repository 提供可测的提交、轮询与失败路径。
+当前 `sql-optimization` 已将异步优化任务契约接到公共 HTTP 入口，并通过 MySQL 持久化任务表与 scheduled worker 提供可测的提交、轮询与失败路径。
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
-| `POST /api/sql-optimization/tasks` | `OptimizationTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`datasourceType`,`taskContext` | `OptimizationTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`contractStage`,`implementationStage` | `ASYNC_TASK_API_SKELETON` |
-| `GET /api/sql-optimization/tasks/{taskId}` | path: `taskId` | `OptimizationTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`requestedSuggestionTypes`,`suggestion`,`failure`,`submittedAt`,`startedAt`,`finishedAt`,`statusHistory`,`contractStage`,`implementationStage` | `ASYNC_TASK_API_SKELETON` |
+| `POST /api/sql-optimization/tasks` | `OptimizationTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`datasourceType`,`taskContext` | `OptimizationTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`contractStage`,`implementationStage` | `DATABASE_SCHEDULED_WORKER_BASELINE` |
+| `GET /api/sql-optimization/tasks/{taskId}` | path: `taskId` | `OptimizationTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`requestedSuggestionTypes`,`suggestion`,`failure`,`submittedAt`,`startedAt`,`finishedAt`,`statusHistory`,`contractStage`,`implementationStage` | `DATABASE_SCHEDULED_WORKER_BASELINE` |
 
 当前 `OptimizationTaskSubmitRequest` 基线字段如下：
 

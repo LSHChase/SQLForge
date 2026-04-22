@@ -3,6 +3,7 @@ package com.company.sqlforge.common.utils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 /**
  * Shared JSON helpers backed by a thread-safe ObjectMapper.
@@ -10,6 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public final class JsonUtils {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+        .findAndRegisterModules()
+        .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private JsonUtils() {

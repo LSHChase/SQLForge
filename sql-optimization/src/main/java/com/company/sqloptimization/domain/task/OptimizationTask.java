@@ -53,6 +53,40 @@ public class OptimizationTask {
         this.statusHistory = statusHistory;
     }
 
+    private OptimizationTask(String taskId,
+                             OptimizationTaskSubmission submission,
+                             Instant submittedAt,
+                             List<OptimizationTaskStatusTransition> statusHistory,
+                             OptimizationTaskStatus status,
+                             OptimizationTaskPhase currentPhase,
+                             Integer progressPercent,
+                             Instant startedAt,
+                             Instant finishedAt,
+                             String summary,
+                             OptimizationTaskError error) {
+        this.taskId = taskId;
+        this.tenantId = submission.getTenantId();
+        this.taskType = submission.getTaskType();
+        this.sqlText = submission.getSqlText();
+        this.sqlFingerprint = submission.getSqlFingerprint();
+        this.datasourceType = submission.getDatasourceType();
+        this.priority = submission.getPriority();
+        this.parseDepth = submission.getParseDepth();
+        this.callbackUrl = submission.getCallbackUrl();
+        this.requestedSuggestionTypes = submission.getRequestedSuggestionTypes();
+        this.submittedAt = submittedAt;
+        this.statusHistory = statusHistory == null
+            ? new ArrayList<OptimizationTaskStatusTransition>()
+            : new ArrayList<OptimizationTaskStatusTransition>(statusHistory);
+        this.status = status == null ? OptimizationTaskStatus.QUEUED : status;
+        this.currentPhase = currentPhase == null ? OptimizationTaskPhase.SUBMITTED : currentPhase;
+        this.progressPercent = progressPercent == null ? Integer.valueOf(0) : progressPercent;
+        this.startedAt = startedAt;
+        this.finishedAt = finishedAt;
+        this.summary = summary;
+        this.error = error;
+    }
+
     public static OptimizationTask submit(String taskId, OptimizationTaskSubmission submission, Instant submittedAt) {
         List<OptimizationTaskStatusTransition> history = new ArrayList<OptimizationTaskStatusTransition>();
         history.add(
@@ -66,6 +100,32 @@ public class OptimizationTask {
             )
         );
         return new OptimizationTask(taskId, submission, submittedAt, history);
+    }
+
+    public static OptimizationTask restore(String taskId,
+                                           OptimizationTaskSubmission submission,
+                                           Instant submittedAt,
+                                           List<OptimizationTaskStatusTransition> statusHistory,
+                                           OptimizationTaskStatus status,
+                                           OptimizationTaskPhase currentPhase,
+                                           Integer progressPercent,
+                                           Instant startedAt,
+                                           Instant finishedAt,
+                                           String summary,
+                                           OptimizationTaskError error) {
+        return new OptimizationTask(
+            taskId,
+            submission,
+            submittedAt,
+            statusHistory,
+            status,
+            currentPhase,
+            progressPercent,
+            startedAt,
+            finishedAt,
+            summary,
+            error
+        );
     }
 
     public void markRunning(Instant actualStartedAt) {

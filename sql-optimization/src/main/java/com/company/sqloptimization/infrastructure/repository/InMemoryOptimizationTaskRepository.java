@@ -9,9 +9,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@ConditionalOnProperty(prefix = "sql-optimization.queues", name = "mode", havingValue = "local-placeholder", matchIfMissing = true)
 public class InMemoryOptimizationTaskRepository implements OptimizationTaskRepository {
 
     private final Map<String, OptimizationTask> store = new ConcurrentHashMap<String, OptimizationTask>();

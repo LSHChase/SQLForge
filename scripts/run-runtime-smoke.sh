@@ -101,6 +101,11 @@ compose() {
   "${COMPOSE_BIN[@]}" "$@"
 }
 
+run_sql_file() {
+  local sql_file="$1"
+  compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
+}
+
 print_step() {
   printf '\n[%s] %s\n' "$(date '+%H:%M:%S')" "$1"
 }
@@ -194,6 +199,12 @@ start_stack() {
   print_step "Starting local infrastructure"
   bash "${REPO_ROOT}/scripts/local-start.sh"
   STACK_STARTED_BY_SCRIPT=true
+}
+
+ensure_runtime_schema() {
+  print_step "Applying runtime schema baseline"
+  run_sql_file "sql/init-schema.sql"
+  run_sql_file "sql/init-data.sql"
 }
 
 install_backend_runtime_dependencies() {
@@ -352,6 +363,7 @@ start_frontend() {
 run_runtime_smoke() {
   mkdir -p "${RUNTIME_SMOKE_LOG_DIR}"
   start_stack
+  ensure_runtime_schema
   install_backend_runtime_dependencies
   start_governance
   start_query_execution

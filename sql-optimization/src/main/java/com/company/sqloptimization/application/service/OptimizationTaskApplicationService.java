@@ -24,7 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 /**
- * Provides the transitional submit/poll API skeleton before persistence and queue integrations arrive.
+ * Provides the submit/poll API on top of the persisted optimization task carrier.
  */
 @Service
 public class OptimizationTaskApplicationService {
@@ -35,7 +35,7 @@ public class OptimizationTaskApplicationService {
     private static final String QUERY_OPERATION = "OPTIMIZATION_TASK_STATUS_QUERY";
     private static final String STATE_REQUEST_ACCEPTED = "REQUEST_ACCEPTED";
     private static final String STATE_TASK_QUEUED = "TASK_QUEUED";
-    private static final long PLACEHOLDER_ESTIMATE_SECONDS = 30L;
+    private static final long READY_ESTIMATE_SECONDS = 30L;
     private static final String RESOURCE_TYPE_TASK = "SQL_OPTIMIZATION_TASK";
 
     private final OptimizationTaskModelApplicationService optimizationTaskModelApplicationService;
@@ -81,7 +81,7 @@ public class OptimizationTaskApplicationService {
             );
             OptimizationTaskSubmitResponse response = optimizationTaskModelApplicationService.buildSubmitResponse(
                 task,
-                submittedAt.plusSeconds(PLACEHOLDER_ESTIMATE_SECONDS)
+                submittedAt.plusSeconds(READY_ESTIMATE_SECONDS)
             );
             logEnd(SUBMIT_OPERATION, task.getTaskId(), request.getTenantId(), start, task.getStatus().name());
             writeAuditRecord(

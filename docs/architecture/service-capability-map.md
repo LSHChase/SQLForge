@@ -67,13 +67,14 @@
 - `PARSE` / `REWRITE` / `ACCELERATION_SUGGESTION` 三类异步优化任务模型
 - `QUEUED` / `RUNNING` / `SUCCEEDED` / `FAILED` / `CANCELLED` 生命周期状态与类型感知的处理阶段流转
 - `POST /api/sql-optimization/tasks` 和 `GET /api/sql-optimization/tasks/{taskId}` 的过渡骨架
-- 基于 in-memory placeholder repository 的提交、轮询、失败路径与流程日志
+- 基于 MySQL `optimization_task` 任务表、MyBatis XML repository 和 in-process scheduled worker 的提交、轮询、失败路径与流程日志
 - 基础 DTO / VO 与错误码区间固化
 - 结构化 `suggestion / failure` 输出，覆盖收益、成本、风险与任务类型差异
+- 与 `governance` 的租户/数据源检查、审计写入、失败恢复与补偿 queue smoke
 
 当前还未完整承载：
 
-- MySQL 持久化、队列调度和回调通知
+- 外部队列调度、回调通知
 - 建议结果明细、审批协同与物化视图治理
 
 ## 3. 压测引擎服务
@@ -176,7 +177,7 @@
 
 - 下一轮后端实现优先级应是：
   1. 在 `query-execution` 上继续补真实治理调用与真实引擎适配器
-  2. 在 `sql-optimization` 上补持久化、队列和回调通知
+  2. 在 `sql-optimization` 上补外部队列、回调通知和更细粒度结果持久化
   3. 在 `benchmark-engine` 上补真实调度、隔离执行与真实导出链路
   4. 在 `governance` 上继续补完整授权矩阵与审计链路
   5. 在跨服务共享表与关联键层补齐 Phase-D 核心数据基线

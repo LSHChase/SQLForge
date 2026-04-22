@@ -12,8 +12,9 @@
 ## Current Carrier
 
 - `governance` 是当前承载事务型治理元数据的实现载体。
-- `sql-optimization` 与 `benchmark-engine` 当前仍停留在 HTTP skeleton 与 placeholder repository 阶段，尚未接入真实 MySQL 持久化。
-- 因此，Phase-D 的核心追溯链先在 `governance` 内以 schema + entity + mapper XML 形式固化，避免真实导出、审计和跨服务补偿接入时继续漂移。
+- `sql-optimization` 当前已接入 MySQL `optimization_task` 任务表、MyBatis XML mapper 与 in-process scheduled worker，用于承载真实任务持久化和状态流转。
+- `benchmark-engine` 当前仍停留在 HTTP skeleton 与 placeholder repository 阶段，尚未接入真实 MySQL 持久化。
+- 因此，Phase-D 的核心追溯链仍先在 `governance` 内以 schema + entity + mapper XML 形式固化，同时允许 `sql-optimization` 在独立任务表上先落真实 carrier，避免优化任务实现继续漂移。
 
 ## Core Traceability Chain
 
@@ -120,6 +121,7 @@
 | `export_record` | `ExportRecord` | `governance/src/main/resources/mapper/ExportRecordMapper.xml` |
 | `audit_log` | `AuditLogRecord` | `governance/src/main/resources/mapper/AuditLogMapper.xml` |
 | `system_config` | `SystemConfigRecord` | `governance/src/main/resources/mapper/SystemConfigMapper.xml` |
+| `optimization_task` | `OptimizationTaskRecord` | `sql-optimization/src/main/resources/mapper/OptimizationTaskMapper.xml` |
 
 当前 mapper 只固化 `insert/selectById` 或等价最小骨架，目的是先把表结构、主外键和字段命名稳定下来，再在后续任务中接入真实 repository、事务编排和业务写入路径。当前 `governance` 已额外提供 `GovernanceProtectedPersistenceService` 作为 config/result/history/export/audit/system-config 的敏感字段保护写入入口。
 

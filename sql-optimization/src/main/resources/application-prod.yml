@@ -1,3 +1,10 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SQLFORGE_SQL_OPTIMIZATION_DB_URL:jdbc:mysql://sqlforge-mysql:3306/sqlforge?useSSL=true&serverTimezone=UTC&allowPublicKeyRetrieval=false}
+    username: ${SQLFORGE_SQL_OPTIMIZATION_DB_USER:sqlforge}
+    password: ${SQLFORGE_SQL_OPTIMIZATION_DB_PASSWORD:}
+
 logging:
   level:
     root: INFO
@@ -14,4 +21,4 @@ sql-optimization:
   callbacks:
     enabled: true
   queues:
-    mode: managed
+    mode: database-worker

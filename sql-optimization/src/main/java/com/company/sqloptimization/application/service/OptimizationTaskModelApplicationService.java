@@ -32,7 +32,7 @@ import org.springframework.stereotype.Service;
 public class OptimizationTaskModelApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
-    private static final String IMPLEMENTATION_STAGE = "ASYNC_TASK_API_SKELETON";
+    private static final String IMPLEMENTATION_STAGE = "DATABASE_SCHEDULED_WORKER_BASELINE";
     private static final String STATUS_QUERY_PATH_TEMPLATE = "/api/sql-optimization/tasks/%s";
 
     public OptimizationTask createQueuedTask(OptimizationTaskSubmitRequest request, String taskId, Instant submittedAt) {
@@ -208,7 +208,7 @@ public class OptimizationTaskModelApplicationService {
                 new OptimizationRiskVO(
                     error.isRetryable() ? "MEDIUM" : "HIGH",
                     "PIPELINE_READINESS",
-                    "Suggestion output is unavailable because the placeholder worker path could not finish the task.",
+                    "Suggestion output is unavailable because the database-backed worker could not finish the task.",
                     "Inspect the failed phase and retry only after the task carrier is healthy."
                 )
             )

@@ -4,6 +4,24 @@
 
 ## Done
 
+### F-TASK-015: 推进 sql-optimization 真实持久化与调度链路
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `feat(sql-optimization): persist optimization tasks with scheduled worker`
+- Priority: 1
+- Depends on: N/A
+- Scope: 把 sql-optimization 从 in-memory 占位执行器推进到 MySQL 持久化任务表、真实状态流转与 worker/scheduler 链路，并同步更新验证脚本与文档证据链。
+- Validation:
+  - `python3 scripts/foreman.py validate F-TASK-015`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Replace sql-optimization placeholder carrier with MySQL-backed optimization_task persistence, scheduled worker execution, runtime schema bootstrap, and governance smoke coverage.
+  - Validation evidence: mvn -B -pl sql-optimization -am test; bash scripts/manual-sql-optimization-governance-smoke.sh --cleanup; python3 scripts/foreman.py validate F-TASK-015
+  - Residual risk: Full default runtime smoke remains blocked locally by an existing port 3000 frontend process; backend sql-optimization runtime path is validated directly.
+  - Next step: Start the follow-up benchmark-engine persistence/scheduler task, then extend frontend smoke to failure recovery and audit compensation visualization.
+
 ### F-TASK-014: 扩展前端真实业务 runtime smoke 门禁
 
 - Status: done

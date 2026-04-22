@@ -11,7 +11,7 @@ import com.company.sqloptimization.infrastructure.repository.InMemoryOptimizatio
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
-class OptimizationTaskPlaceholderExecutorTest {
+class OptimizationTaskWorkerTest {
 
     @Test
     void shouldAdvanceQueuedTaskToSuccess() {
@@ -23,9 +23,9 @@ class OptimizationTaskPlaceholderExecutorTest {
         OptimizationTaskExecutionProperties properties = new OptimizationTaskExecutionProperties();
         properties.setQueueVisibilityDelayMs(0L);
         properties.setPhaseDelayMs(0L);
-        OptimizationTaskPlaceholderExecutor executor = new OptimizationTaskPlaceholderExecutor(repository, properties);
+        OptimizationTaskWorker worker = new OptimizationTaskWorker(repository, properties);
 
-        executor.processQueuedTasks();
+        worker.processQueuedTasks();
 
         assertEquals("SUCCEEDED", repository.findByTaskId("task-async-001").getStatus().name());
     }
