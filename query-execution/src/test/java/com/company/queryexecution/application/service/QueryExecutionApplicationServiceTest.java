@@ -6,6 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.company.queryexecution.application.controller.dto.QueryContextDTO;
 import com.company.queryexecution.application.controller.dto.QueryExecuteRequest;
@@ -16,6 +20,7 @@ import com.company.queryexecution.domain.query.QueryExecutionStep;
 import com.company.queryexecution.domain.query.QueryExecutionStatus;
 import com.company.queryexecution.infrastructure.adapter.DeterministicQueryExecutionAdapter;
 import com.company.queryexecution.infrastructure.adapter.QueryExecutionAdapter;
+import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import org.junit.jupiter.api.Test;
@@ -29,7 +34,7 @@ class QueryExecutionApplicationServiceTest {
     @Test
     void shouldExecuteSynchronouslyForReadonlyHetuQuery(CapturedOutput output) {
         QueryExecutionApplicationService service =
-            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter());
+            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient());
         QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
         request.setAccelerationPreference(AccelerationPreference.PREFER_ACCELERATED);
 
@@ -52,7 +57,7 @@ class QueryExecutionApplicationServiceTest {
     @Test
     void shouldReturnTimeoutWhenFailFastThresholdIsExceeded() {
         QueryExecutionApplicationService service =
-            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter());
+            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient());
         QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
         request.setQueryContext(timeoutContext(30L));
         request.setFaultToleranceStrategy(FaultToleranceStrategy.FAIL_FAST);
@@ -72,7 +77,7 @@ class QueryExecutionApplicationServiceTest {
     @Test
     void shouldRejectNonReadonlySqlBeforeExecution() {
         QueryExecutionApplicationService service =
-            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter());
+            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient());
         QueryExecuteRequest request = baseRequest("DELETE FROM orders");
 
         QueryExecuteResponse response = service.executeSynchronously(request);
@@ -87,7 +92,7 @@ class QueryExecutionApplicationServiceTest {
     @Test
     void shouldFallbackToHiveWhenRetryThenFallbackIsEnabled() {
         QueryExecutionApplicationService service =
-            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter());
+            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient());
         QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
         request.setQueryContext(timeoutContext(30L));
         request.setFaultToleranceStrategy(FaultToleranceStrategy.RETRY_THEN_FALLBACK);
@@ -108,6 +113,7 @@ class QueryExecutionApplicationServiceTest {
 
     @Test
     void shouldLogExceptionWhenExecutionAdapterFails(CapturedOutput output) {
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
         QueryExecutionApplicationService service =
             new QueryExecutionApplicationService(new QueryExecutionAdapter() {
                 @Override
@@ -117,7 +123,7 @@ class QueryExecutionApplicationServiceTest {
                                                   boolean degradedPath) {
                     throw new IllegalStateException("simulated adapter failure");
                 }
-            });
+            }, governanceCapabilityClient);
 
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> service.executeSynchronously(
             baseRequest("SELECT * FROM orders")
@@ -126,6 +132,21 @@ class QueryExecutionApplicationServiceTest {
         assertEquals("simulated adapter failure", ex.getMessage());
         assertTrue(output.getOut().contains("status=FAILED phase=EXCEPTION"));
         assertTrue(output.getOut().contains("reason=simulated adapter failure"));
+        verify(governanceCapabilityClient).writeAudit(any());
+    }
+
+    @Test
+    void shouldCallGovernanceChecksAndAuditOnSuccessfulExecution() {
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        QueryExecutionApplicationService service =
+            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), governanceCapabilityClient);
+
+        QueryExecuteResponse response = service.executeSynchronously(baseRequest("SELECT * FROM orders"));
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        verify(governanceCapabilityClient).assertTenantScope("tenant-a");
+        verify(governanceCapabilityClient).assertDatasourceAccess("tenant-a", DataSourceTypeEnum.HETU);
+        verify(governanceCapabilityClient).writeAudit(any());
     }
 
     private QueryExecuteRequest baseRequest(String sqlText) {
@@ -140,5 +161,13 @@ class QueryExecutionApplicationServiceTest {
         QueryContextDTO queryContext = new QueryContextDTO();
         queryContext.setTimeoutMs(timeoutMs);
         return queryContext;
+    }
+
+    private GovernanceCapabilityClient mockGovernanceClient() {
+        GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
+        doNothing().when(governanceCapabilityClient).assertTenantScope(any());
+        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any());
+        doNothing().when(governanceCapabilityClient).writeAudit(any());
+        return governanceCapabilityClient;
     }
 }

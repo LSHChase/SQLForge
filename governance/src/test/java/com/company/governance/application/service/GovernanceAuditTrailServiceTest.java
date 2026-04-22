@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import com.company.governance.application.controller.dto.AuditWriteRequest;
 import com.company.governance.application.controller.vo.AuditWriteResponse;
+import com.company.governance.config.GovernanceAuditProperties;
 import com.company.governance.config.MessagingProperties;
 import com.company.governance.domain.message.entity.MessageQueueRecord;
 import com.company.governance.domain.message.repository.MessageQueueRepository;
@@ -73,7 +74,8 @@ class GovernanceAuditTrailServiceTest {
             exportRecordMapper,
             mock(MessageQueueRepository.class),
             messageProducer,
-            messagingProperties
+            messagingProperties,
+            auditProperties()
         );
         RequestContext.set(
             "tenant-a",
@@ -149,7 +151,8 @@ class GovernanceAuditTrailServiceTest {
             mock(ExportRecordMapper.class),
             mock(MessageQueueRepository.class),
             messageProducer,
-            messagingProperties
+            messagingProperties,
+            auditProperties()
         );
         RequestContext.set(
             "tenant-a",
@@ -194,7 +197,8 @@ class GovernanceAuditTrailServiceTest {
             mock(ExportRecordMapper.class),
             mock(MessageQueueRepository.class),
             mock(MessageProducer.class),
-            databaseMessaging()
+            databaseMessaging(),
+            auditProperties()
         );
         RequestContext.set(
             "tenant-a",
@@ -234,7 +238,8 @@ class GovernanceAuditTrailServiceTest {
             mock(ExportRecordMapper.class),
             mock(MessageQueueRepository.class),
             mock(MessageProducer.class),
-            databaseMessaging()
+            databaseMessaging(),
+            auditProperties()
         );
         doAnswer(invocation -> {
             AuditLogRecord record = invocation.getArgument(0);
@@ -275,7 +280,8 @@ class GovernanceAuditTrailServiceTest {
             mock(ExportRecordMapper.class),
             mock(MessageQueueRepository.class),
             mock(MessageProducer.class),
-            databaseMessaging()
+            databaseMessaging(),
+            auditProperties()
         );
         doAnswer(invocation -> {
             AuditLogRecord record = invocation.getArgument(0);
@@ -312,7 +318,8 @@ class GovernanceAuditTrailServiceTest {
             mock(ExportRecordMapper.class),
             messageQueueRepository,
             messageProducer,
-            databaseMessaging()
+            databaseMessaging(),
+            auditProperties()
         );
         RequestContext.set(
             "tenant-a",
@@ -380,5 +387,9 @@ class GovernanceAuditTrailServiceTest {
             sensitiveDataProtectionService,
             sensitiveDataCryptoService
         );
+    }
+
+    private GovernanceAuditProperties auditProperties() {
+        return new GovernanceAuditProperties();
     }
 }

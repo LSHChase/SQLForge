@@ -12,12 +12,18 @@ import com.company.queryexecution.domain.query.QueryExecutionStep;
 import com.company.queryexecution.domain.query.ReadonlyQueryAssessment;
 import com.company.queryexecution.domain.query.ReadonlyQueryGuard;
 import com.company.queryexecution.infrastructure.adapter.QueryExecutionAdapter;
+import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.queryexecution.infrastructure.governance.QueryExecutionAuditRecord;
+import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
+import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -51,11 +57,15 @@ public class QueryExecutionApplicationService {
     private static final String MARKER_FALLBACK_COMPENSATION = "LOCAL_FALLBACK_COMPENSATION_MARKED";
     private static final String ACTION_CLOSE_PRIMARY_ATTEMPT_CONTEXT = "CLOSE_PRIMARY_ATTEMPT_CONTEXT";
     private static final String ACTION_RECORD_DEGRADED_RESULT = "RECORD_DEGRADED_RESULT";
+    private static final String RESOURCE_TYPE_QUERY = "QUERY_EXECUTION_QUERY";
 
     private final QueryExecutionAdapter queryExecutionAdapter;
+    private final GovernanceCapabilityClient governanceCapabilityClient;
 
-    public QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter) {
+    public QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
+                                            GovernanceCapabilityClient governanceCapabilityClient) {
         this.queryExecutionAdapter = queryExecutionAdapter;
+        this.governanceCapabilityClient = governanceCapabilityClient;
     }
 
     public QueryExecuteResponse executeSynchronously(QueryExecuteRequest request) {
@@ -65,6 +75,8 @@ public class QueryExecutionApplicationService {
         logStart(request, sqlFingerprint);
         try {
             DataSourceTypeEnum primaryEngine = resolvePrimaryEngine(request.getDatasourceType());
+            governanceCapabilityClient.assertTenantScope(request.getTenantId());
+            governanceCapabilityClient.assertDatasourceAccess(request.getTenantId(), request.getDatasourceType());
 
             ReadonlyQueryAssessment readonlyQueryAssessment = ReadonlyQueryGuard.assess(actualSql);
             if (!readonlyQueryAssessment.isReadonly()) {
@@ -268,6 +280,14 @@ public class QueryExecutionApplicationService {
                 ex.getMessage(),
                 ex
             );
+            writeAuditRecord(
+                request,
+                sqlFingerprint,
+                null,
+                QueryExecutionStatus.FAILED.name(),
+                System.currentTimeMillis() - start,
+                ex.getMessage()
+            );
             throw ex;
         }
     }
@@ -398,6 +418,7 @@ public class QueryExecutionApplicationService {
     private QueryExecuteResponse logAndReturn(QueryExecuteResponse response,
                                               QueryExecuteRequest request,
                                               long start) {
+        long costMs = System.currentTimeMillis() - start;
         LOGGER.info(
             "operation={} entity={} tenantId={} requestedDatasource={} faultTolerance={} costMs={} status=END resultStatus={} degraded={}",
             OPERATION,
@@ -405,10 +426,11 @@ public class QueryExecutionApplicationService {
             request.getTenantId(),
             request.getDatasourceType(),
             request.getFaultToleranceStrategy(),
-            System.currentTimeMillis() - start,
+            costMs,
             response.getStatus(),
             response.isDegraded()
         );
+        writeAuditRecord(request, response.getSqlFingerprint(), response, response.getStatus().name(), costMs, null);
         return response;
     }
 
@@ -487,5 +509,52 @@ public class QueryExecutionApplicationService {
             return primaryEngine.name();
         }
         return requestedEngine == null ? DataSourceTypeEnum.AUTO.name() : requestedEngine.name();
+    }
+
+    private void writeAuditRecord(QueryExecuteRequest request,
+                                  String sqlFingerprint,
+                                  QueryExecuteResponse response,
+                                  String resultStatus,
+                                  long elapsedMs,
+                                  String failureReason) {
+        governanceCapabilityClient.writeAudit(
+            new QueryExecutionAuditRecord(
+                OPERATION,
+                RESOURCE_TYPE_QUERY,
+                sqlFingerprint,
+                resultStatus,
+                elapsedMs,
+                buildRequestParams(request, sqlFingerprint),
+                buildResponseSummary(response, failureReason)
+            )
+        );
+    }
+
+    private String buildRequestParams(QueryExecuteRequest request, String sqlFingerprint) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("serviceCode", ServiceCodeConstants.QUERY_EXECUTION);
+        payload.put("tenantId", request.getTenantId());
+        payload.put("datasourceType", request.getDatasourceType() == null ? null : request.getDatasourceType().name());
+        payload.put("faultToleranceStrategy", request.getFaultToleranceStrategy() == null
+            ? null
+            : request.getFaultToleranceStrategy().name());
+        payload.put("accelerationPreference", request.getAccelerationPreference() == null
+            ? null
+            : request.getAccelerationPreference().name());
+        payload.put("sqlFingerprint", sqlFingerprint);
+        return JsonUtils.toJson(payload);
+    }
+
+    private String buildResponseSummary(QueryExecuteResponse response, String failureReason) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("resultStatus", response == null ? QueryExecutionStatus.FAILED.name() : response.getStatus().name());
+        payload.put("targetEngine", response == null || response.getMetadata() == null
+            ? null
+            : response.getMetadata().getTargetEngine());
+        payload.put("degraded", response != null && response.isDegraded());
+        payload.put("retryPathSize", response == null || response.getRetryPath() == null ? 0 : response.getRetryPath().size());
+        payload.put("errorCode", response == null || response.getError() == null ? null : response.getError().getCode());
+        payload.put("failureReason", failureReason);
+        return JsonUtils.toJson(payload);
     }
 }

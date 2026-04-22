@@ -18,6 +18,7 @@ SERVICE_LOGS=()
 RUNTIME_SMOKE_LOG_DIR="${RUNTIME_SMOKE_LOG_DIR:-/tmp/sqlforge-runtime-smoke}"
 DEV_CRYPTO_KEY_BASE64="${SQLFORGE_DEV_CRYPTO_KEY_BASE64:-MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=}"
 SPRING_BOOT_PLUGIN_VERSION=""
+GOVERNANCE_SMOKE_TRACE_PREFIX="${SQLFORGE_GOVERNANCE_SMOKE_FORCE_TRACE_PREFIX:-SMOKE-FORCE-AUDIT-FALLBACK}"
 
 usage() {
   cat <<'EOF'
@@ -247,6 +248,8 @@ start_governance() {
   (
     cd "${REPO_ROOT}"
     export SQLFORGE_DEV_CRYPTO_KEY_BASE64="${DEV_CRYPTO_KEY_BASE64}"
+    export SQLFORGE_GOVERNANCE_SMOKE_FORCE_AUDIT_DELIVERY_FAILURE="${SQLFORGE_GOVERNANCE_SMOKE_FORCE_AUDIT_DELIVERY_FAILURE:-true}"
+    export SQLFORGE_GOVERNANCE_SMOKE_FORCE_TRACE_PREFIX="${GOVERNANCE_SMOKE_TRACE_PREFIX}"
     exec nohup mvn -B -f governance/pom.xml \
       "org.springframework.boot:spring-boot-maven-plugin:$(spring_boot_version):run" \
       > "${log_file}" 2>&1
@@ -348,6 +351,9 @@ run_runtime_smoke() {
 
   print_step "Running health check gate"
   bash "${REPO_ROOT}/scripts/health-check.sh" --fail-on-error
+
+  print_step "Running query-execution to governance business smoke"
+  bash "${REPO_ROOT}/scripts/manual-query-governance-smoke.sh" --cleanup
 
   print_step "Running message queue smoke"
   bash "${REPO_ROOT}/scripts/manual-message-queue-smoke.sh" --cleanup

@@ -41,6 +41,11 @@ sqlforge:
     secret-key: ${SQLFORGE_DEV_OBS_SECRET_KEY:minioadmin}
     bucket: ${SQLFORGE_DEV_OBS_BUCKET:sqlforge-dev}
 
+governance:
+  audit:
+    smoke-force-primary-delivery-failure-enabled: ${SQLFORGE_GOVERNANCE_SMOKE_FORCE_AUDIT_DELIVERY_FAILURE:false}
+    smoke-force-trace-prefix: ${SQLFORGE_GOVERNANCE_SMOKE_FORCE_TRACE_PREFIX:SMOKE-FORCE-AUDIT-FALLBACK}
+
 auth:
   enabled: false
   trusted-auth-sources:

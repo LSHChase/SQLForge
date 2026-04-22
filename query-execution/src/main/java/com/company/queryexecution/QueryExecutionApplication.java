@@ -2,10 +2,15 @@ package com.company.queryexecution;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 /**
  * Query execution service bootstrap.
  */
+@EnableConfigurationProperties({
+    com.company.queryexecution.config.AuthProperties.class,
+    com.company.queryexecution.config.QueryExecutionGovernanceProperties.class
+})
 @SpringBootApplication(scanBasePackages = {"com.company.queryexecution", "com.company.sqlforge.common"})
 public class QueryExecutionApplication {
 

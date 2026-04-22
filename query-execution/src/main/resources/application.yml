@@ -28,3 +28,11 @@ query-execution:
     strategy: OPEN_SOURCE_ABSTRACTION_FOR_LIGHTWEIGHT_PATH
   acceleration:
     ownership-mode: APPLY_APPROVED_RUNTIME_CONFIG_ONLY
+  governance:
+    base-url: ${QUERY_EXECUTION_GOVERNANCE_BASE_URL:http://localhost:8080/api/governance/internal}
+    connect-timeout-ms: ${QUERY_EXECUTION_GOVERNANCE_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${QUERY_EXECUTION_GOVERNANCE_READ_TIMEOUT_MS:5000}
+    datasource-id-map:
+      AUTO: ${QUERY_EXECUTION_GOVERNANCE_DATASOURCE_AUTO:query-hetu}
+      HETU: ${QUERY_EXECUTION_GOVERNANCE_DATASOURCE_HETU:query-hetu}
+      HIVE: ${QUERY_EXECUTION_GOVERNANCE_DATASOURCE_HIVE:query-hive}

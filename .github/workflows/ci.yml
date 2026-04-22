@@ -100,7 +100,7 @@ jobs:
             echo "docker-compose.yml not present yet, skip compose validation"
           fi
 
-      - name: Run multi-service runtime smoke checks
+      - name: Run multi-service runtime and business smoke checks
         run: |
           if [ -f docker-compose.yml ]; then
             bash scripts/run-runtime-smoke.sh --runtime-smoke

@@ -2,6 +2,7 @@ package com.company.governance.application.service;
 
 import com.company.governance.application.controller.dto.AuditWriteRequest;
 import com.company.governance.application.controller.vo.AuditWriteResponse;
+import com.company.governance.config.GovernanceAuditProperties;
 import com.company.governance.config.MessagingProperties;
 import com.company.governance.domain.message.entity.MessageQueueRecord;
 import com.company.governance.domain.message.repository.MessageQueueRepository;
@@ -63,6 +64,7 @@ public class GovernanceAuditTrailService {
     private final MessageQueueRepository messageQueueRepository;
     private final MessageProducer messageProducer;
     private final MessagingProperties messagingProperties;
+    private final GovernanceAuditProperties governanceAuditProperties;
 
     @Autowired
     public GovernanceAuditTrailService(GovernanceProtectedPersistenceService governanceProtectedPersistenceService,
@@ -72,7 +74,8 @@ public class GovernanceAuditTrailService {
                                        ExportRecordMapper exportRecordMapper,
                                        MessageQueueRepository messageQueueRepository,
                                        MessageProducer messageProducer,
-                                       MessagingProperties messagingProperties) {
+                                       MessagingProperties messagingProperties,
+                                       GovernanceAuditProperties governanceAuditProperties) {
         this.governanceProtectedPersistenceService = governanceProtectedPersistenceService;
         this.configSnapshotMapper = configSnapshotMapper;
         this.executionResultMapper = executionResultMapper;
@@ -81,6 +84,7 @@ public class GovernanceAuditTrailService {
         this.messageQueueRepository = messageQueueRepository;
         this.messageProducer = messageProducer;
         this.messagingProperties = messagingProperties;
+        this.governanceAuditProperties = governanceAuditProperties;
     }
 
     public GovernanceAuditTrailService(GovernanceProtectedPersistenceService governanceProtectedPersistenceService,
@@ -89,7 +93,8 @@ public class GovernanceAuditTrailService {
                                        QueryHistoryMapper queryHistoryMapper,
                                        ExportRecordMapper exportRecordMapper,
                                        MessageProducer messageProducer,
-                                       MessagingProperties messagingProperties) {
+                                       MessagingProperties messagingProperties,
+                                       GovernanceAuditProperties governanceAuditProperties) {
         this(
             governanceProtectedPersistenceService,
             configSnapshotMapper,
@@ -98,7 +103,8 @@ public class GovernanceAuditTrailService {
             exportRecordMapper,
             null,
             messageProducer,
-            messagingProperties
+            messagingProperties,
+            governanceAuditProperties
         );
     }
 
@@ -264,6 +270,9 @@ public class GovernanceAuditTrailService {
         headers.put("traceId", traceId);
         headers.put("requestId", requestId);
         try {
+            if (shouldForcePrimaryDeliveryFailure(traceId)) {
+                throw new IllegalStateException("Simulated primary audit delivery failure for smoke verification");
+            }
             messageProducer.send(
                 GovernanceMessagingTopics.AUDIT_EVENT,
                 tenantId,
@@ -273,6 +282,13 @@ public class GovernanceAuditTrailService {
         } catch (RuntimeException ex) {
             enqueueAuditFallback(tenantId, auditEvent, headers, ex);
         }
+    }
+
+    private boolean shouldForcePrimaryDeliveryFailure(String traceId) {
+        return governanceAuditProperties.isSmokeForcePrimaryDeliveryFailureEnabled()
+            && StringUtils.hasText(governanceAuditProperties.getSmokeForceTracePrefix())
+            && StringUtils.hasText(traceId)
+            && traceId.startsWith(governanceAuditProperties.getSmokeForceTracePrefix());
     }
 
     private void enqueueAuditFallback(String tenantId,

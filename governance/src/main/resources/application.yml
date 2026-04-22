@@ -45,3 +45,7 @@ governance:
         - TENANT_ADMIN
         - OPERATOR
         - ANALYST
+      tenant-datasource-bindings:
+        tenant-a:
+          - query-hetu
+          - query-hive
