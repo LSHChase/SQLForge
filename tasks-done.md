@@ -4,6 +4,24 @@
 
 ## Done
 
+### F-TASK-020: 扩展治理历史页 browser runtime gate
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `feat(governance): extend parse record history runtime gate`
+- Priority: 1
+- Depends on: N/A
+- Scope: add governance history read APIs, replace /parse-record placeholder with a real traceability page, and extend browser runtime smoke to assert history/audit evidence rendering
+- Validation:
+  - `python3 scripts/foreman.py validate F-TASK-020`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added governance history summary/detail APIs, replaced /parse-record placeholder with a live historical diagnosis page, and extended the default browser runtime gate to assert audit traceability rendering.
+  - Validation evidence: foreman validate passed with npm run lint, npm run build, governance targeted tests, bash scripts/health-check.sh --fail-on-error, and npm run smoke:frontend-runtime after restarting governance with the dev crypto key.
+  - Residual risk: query_history/export_record remain empty in current dev smoke, so parse-record evidence is still audit-driven until later history/export writers are expanded.
+  - Next step: Continue expanding browser runtime gate into additional governance history and audit troubleshooting views.
+
 ### F-TASK-019: 加固前端补偿信号稳定性
 
 - Status: done

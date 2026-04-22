@@ -10,10 +10,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.company.governance.application.controller.HealthController;
 import com.company.governance.application.controller.GovernanceCapabilityController;
+import com.company.governance.application.controller.GovernanceHistoryController;
 import com.company.governance.application.controller.MessageAdminController;
 import com.company.governance.application.controller.TenantConfigController;
 import com.company.governance.application.controller.vo.AuditWriteResponse;
 import com.company.governance.application.controller.vo.DatasourceAccessCheckResponse;
+import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
+import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO;
 import com.company.governance.application.controller.vo.HealthStatusVO;
 import com.company.governance.application.controller.vo.MessageStatsVO;
 import com.company.governance.application.controller.vo.ScheduleExtensionStatusVO;
@@ -21,9 +24,12 @@ import com.company.governance.application.controller.vo.TenantConfigVO;
 import com.company.governance.application.controller.vo.TenantScopeCheckResponse;
 import com.company.governance.application.service.GovernanceCapabilityApplicationService;
 import com.company.governance.application.service.GovernanceAuditTrailService;
+import com.company.governance.application.service.GovernanceHistoryApplicationService;
 import com.company.governance.application.service.HealthStatusApplicationService;
 import com.company.governance.application.service.MessageAdminApplicationService;
 import com.company.governance.application.service.TenantConfigApplicationService;
+import java.time.LocalDateTime;
+import java.util.Collections;
 import com.company.governance.config.AuthProperties;
 import com.company.governance.config.WebMvcConfig;
 import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
@@ -49,6 +55,7 @@ import org.springframework.beans.factory.annotation.Autowired;
     HealthController.class,
     TenantConfigController.class,
     MessageAdminController.class,
+    GovernanceHistoryController.class,
     GovernanceCapabilityController.class
 })
 @Import({WebMvcConfig.class, AuthInterceptor.class})
@@ -65,6 +72,9 @@ class AuthWebMvcTest {
 
     @MockBean
     private MessageAdminApplicationService messageAdminApplicationService;
+
+    @MockBean
+    private GovernanceHistoryApplicationService governanceHistoryApplicationService;
 
     @MockBean
     private GovernanceCapabilityApplicationService governanceCapabilityApplicationService;
@@ -138,6 +148,55 @@ class AuthWebMvcTest {
             .andExpect(header().exists(RequestHeaderConstants.REQUEST_ID));
 
         verify(messageAdminApplicationService).getMessageStats();
+    }
+
+    @Test
+    void shouldProtectGovernanceHistoryEndpoints() throws Exception {
+        GovernanceTraceSummaryVO summary = new GovernanceTraceSummaryVO(
+            "trace-001",
+            "request-001",
+            "QUERY_EXECUTION",
+            "EXECUTE_QUERY",
+            "QUERY",
+            "fp-001",
+            "PARTIAL",
+            LocalDateTime.parse("2026-04-22T10:00:00"),
+            Integer.valueOf(1),
+            Integer.valueOf(1),
+            Integer.valueOf(0),
+            Integer.valueOf(0),
+            null,
+            null,
+            "fp-001",
+            "12000",
+            "HIVE",
+            Boolean.TRUE
+        );
+        GovernanceTraceDetailVO detail = new GovernanceTraceDetailVO();
+        detail.setTraceId("trace-001");
+        detail.setLatestStatus("PARTIAL");
+        detail.setAuditEventCount(Integer.valueOf(1));
+        detail.setAuditEvents(Collections.<GovernanceTraceDetailVO.AuditEventVO>emptyList());
+        detail.setQueryHistories(Collections.<GovernanceTraceDetailVO.QueryHistoryVO>emptyList());
+        detail.setExportRecords(Collections.<GovernanceTraceDetailVO.ExportRecordVO>emptyList());
+
+        when(governanceHistoryApplicationService.findRecentTraces("system", Integer.valueOf(5)))
+            .thenReturn(Collections.singletonList(summary));
+        when(governanceHistoryApplicationService.findTraceDetail("system", "trace-001", Integer.valueOf(5)))
+            .thenReturn(detail);
+
+        mockMvc.perform(addProtectedHeaders(get("/api/governance/history/traces?limit=5")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].traceId").value("trace-001"))
+            .andExpect(jsonPath("$[0].latestStatus").value("PARTIAL"));
+
+        mockMvc.perform(addProtectedHeaders(get("/api/governance/history/traces/trace-001?limit=5")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.traceId").value("trace-001"))
+            .andExpect(jsonPath("$.auditEventCount").value(1));
+
+        verify(governanceHistoryApplicationService).findRecentTraces("system", Integer.valueOf(5));
+        verify(governanceHistoryApplicationService).findTraceDetail("system", "trace-001", Integer.valueOf(5));
     }
 
     @Test

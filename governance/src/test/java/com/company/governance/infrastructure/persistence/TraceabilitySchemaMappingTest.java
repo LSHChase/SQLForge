@@ -69,13 +69,16 @@ class TraceabilitySchemaMappingTest {
         assertContains(readMapper("mapper/ExecutionResultMapper.xml"), "config_snapshot_id");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "FROM query_history");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "result_id");
+        assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "trace_id = #{traceId}");
         assertContains(readMapper("mapper/ExportRecordMapper.xml"), "FROM export_record");
         assertContains(readMapper("mapper/ExportRecordMapper.xml"), "history_id");
+        assertContains(readMapper("mapper/ExportRecordMapper.xml"), "trace_id = #{traceId}");
         assertContains(readMapper("mapper/AuditLogMapper.xml"), "FROM audit_log");
         assertContains(readMapper("mapper/AuditLogMapper.xml"), "config_snapshot_id");
         assertContains(readMapper("mapper/AuditLogMapper.xml"), "result_id");
         assertContains(readMapper("mapper/AuditLogMapper.xml"), "history_id");
         assertContains(readMapper("mapper/AuditLogMapper.xml"), "export_id");
+        assertContains(readMapper("mapper/AuditLogMapper.xml"), "trace_id = #{traceId}");
         assertContains(readMapper("mapper/SystemConfigMapper.xml"), "FROM system_config");
         assertContains(readMapper("mapper/SystemConfigMapper.xml"), "value_ciphertext");
         assertContains(readMapper("mapper/SystemConfigMapper.xml"), "encryption_key_id");

@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import DashboardView from '../views/dashboard/DashboardView.vue'
-import RoutePlaceholder from '../views/common/RoutePlaceholder.vue'
 import SqlQueryView from '../views/query/SqlQueryView.vue'
+import ParseRecordView from '../views/parse-record/ParseRecordView.vue'
 import AccelerationView from '../views/optimization/AccelerationView.vue'
 import BenchmarkView from '../views/benchmark/BenchmarkView.vue'
 import SystemView from '../views/system/SystemView.vue'
@@ -35,12 +35,7 @@ export const constantRoutes = [
   {
     path: '/parse-record',
     name: 'ParseRecord',
-    component: RoutePlaceholder,
-    props: {
-      eyebrowKey: 'common.platformTagline',
-      titleKey: 'parseRecord.title',
-      descriptionKey: 'parseRecord.summary'
-    },
+    component: ParseRecordView,
     meta: {
       menu: true,
       titleKey: 'parseRecord.title',

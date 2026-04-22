@@ -45,6 +45,25 @@
         WHERE history_id = #{historyId}
     </select>
 
+    <select id="selectRecentByTenant" resultMap="QueryHistoryResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM query_history
+        WHERE tenant_id = #{tenantId}
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectByTraceId" resultMap="QueryHistoryResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM query_history
+        WHERE tenant_id = #{tenantId}
+          AND trace_id = #{traceId}
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
     <insert id="insert" parameterType="com.company.governance.domain.trace.entity.QueryHistoryRecord">
         INSERT INTO query_history (
             history_id,

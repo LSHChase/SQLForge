@@ -53,6 +53,25 @@
         WHERE export_id = #{exportId}
     </select>
 
+    <select id="selectRecentByTenant" resultMap="ExportRecordResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM export_record
+        WHERE tenant_id = #{tenantId}
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectByTraceId" resultMap="ExportRecordResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM export_record
+        WHERE tenant_id = #{tenantId}
+          AND trace_id = #{traceId}
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
     <insert id="insert" parameterType="com.company.governance.domain.trace.entity.ExportRecord">
         INSERT INTO export_record (
             export_id,

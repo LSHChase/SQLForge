@@ -66,9 +66,28 @@ const readText = async (page, testId) => {
   return (await locator.textContent())?.trim() || ''
 }
 
+const waitForTextIncludes = async (page, testId, expectedText) => {
+  const startedAt = Date.now()
+  let latestText = ''
+
+  while (Date.now() - startedAt < defaultTimeoutMs) {
+    latestText = await readText(page, testId)
+    if (latestText.includes(expectedText)) {
+      return latestText
+    }
+    await page.waitForTimeout(200)
+  }
+
+  throw new Error(`Expected ${testId} to include "${expectedText}", got "${latestText}"`)
+}
+
 const expectText = async (page, testId, expectedText) => {
+  return waitForTextIncludes(page, testId, expectedText)
+}
+
+const expectNonEmptyText = async (page, testId) => {
   const text = await readText(page, testId)
-  assert(text.includes(expectedText), `Expected ${testId} to include "${expectedText}", got "${text}"`)
+  assert(text.length > 0 && text !== '-', `Expected ${testId} to be non-empty, got "${text}"`)
   return text
 }
 
@@ -249,6 +268,44 @@ const runSystemFlow = async page => {
   }
 }
 
+const selectTraceByText = async (page, serviceCode, status) => {
+  const locator = page.getByTestId('parse-record-trace-item').filter({
+    hasText: serviceCode
+  }).filter({
+    hasText: status
+  }).first()
+  await locator.waitFor({ timeout: defaultTimeoutMs })
+  await locator.click()
+}
+
+const runParseRecordFlow = async page => {
+  await page.goto(`${frontendBaseUrl}/parse-record`, { waitUntil: 'networkidle' })
+  await page.getByTestId('parse-record-page').waitFor({ timeout: defaultTimeoutMs })
+
+  await expectNumberAtLeast(page, 'parse-record-recent-count', 3)
+  await expectNumberAtLeast(page, 'parse-record-non-success-count', 2)
+
+  await selectTraceByText(page, 'QUERY_EXECUTION', 'PARTIAL')
+  await expectText(page, 'parse-record-detail-service-code', 'QUERY_EXECUTION')
+  await expectText(page, 'parse-record-detail-status', 'PARTIAL')
+  await expectText(page, 'parse-record-detail-target-engine', 'HIVE')
+  await expectNonEmptyText(page, 'parse-record-detail-sql-fingerprint')
+  await expectNumberAtLeast(page, 'parse-record-detail-audit-count', 1)
+
+  await selectTraceByText(page, 'SQL_OPTIMIZATION', 'FAILED')
+  await expectText(page, 'parse-record-detail-service-code', 'SQL_OPTIMIZATION')
+  await expectText(page, 'parse-record-detail-status', 'FAILED')
+  await expectText(page, 'parse-record-detail-error-code', '13000')
+  await expectNonEmptyText(page, 'parse-record-detail-task-id')
+
+  await selectTraceByText(page, 'BENCHMARK_ENGINE', 'FAILED')
+  await expectText(page, 'parse-record-detail-service-code', 'BENCHMARK_ENGINE')
+  await expectText(page, 'parse-record-detail-status', 'FAILED')
+  await expectText(page, 'parse-record-detail-error-code', '14000')
+  await expectNonEmptyText(page, 'parse-record-detail-task-id')
+  await page.getByTestId('parse-record-audit-event').first().waitFor({ timeout: defaultTimeoutMs })
+}
+
 const main = async () => {
   const executablePath = resolveExecutablePath()
   const browser = await chromium.launch({
@@ -267,6 +324,7 @@ const main = async () => {
     await runOptimizationFlow(page)
     await runBenchmarkFlow(page)
     await runSystemFlow(page)
+    await runParseRecordFlow(page)
   } finally {
     await browser.close()
   }

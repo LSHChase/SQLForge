@@ -211,6 +211,30 @@ export const getGovernanceTenantConfig = (tenantId, requestOptions = {}) =>
     }
   })
 
+export const getGovernanceTraceSummaries = (tenantId, limit = 12, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/governance/history/traces?tenantId=${encodeURIComponent(tenantId)}&limit=${encodeURIComponent(limit)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-trace-summaries',
+      ...requestOptions
+    }
+  })
+
+export const getGovernanceTraceDetail = (tenantId, traceId, limit = 20, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url:
+      `/api/governance/history/traces/${encodeURIComponent(traceId)}` +
+      `?tenantId=${encodeURIComponent(tenantId)}&limit=${encodeURIComponent(limit)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-trace-detail',
+      ...requestOptions
+    }
+  })
+
 export const formatRuntimeError = error => {
   if (error?.response?.data) {
     const { code, message } = error.response.data

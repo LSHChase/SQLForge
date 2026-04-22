@@ -53,6 +53,35 @@
         WHERE id = #{id}
     </select>
 
+    <select id="selectRecentByTenant" resultMap="AuditLogResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM audit_log
+        WHERE tenant_id = #{tenantId}
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectRecentBusinessByTenant" resultMap="AuditLogResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM audit_log
+        WHERE tenant_id = #{tenantId}
+          AND service_code &lt;&gt; 'GOVERNANCE'
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectByTraceId" resultMap="AuditLogResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM audit_log
+        WHERE tenant_id = #{tenantId}
+          AND trace_id = #{traceId}
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
     <insert id="insert" parameterType="com.company.governance.domain.trace.entity.AuditLogRecord" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO audit_log (
             tenant_id,
