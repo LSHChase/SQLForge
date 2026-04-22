@@ -65,7 +65,8 @@
   - Spring Boot 应用入口与独立 Maven 模块
   - `application` 包域下的 controller / service 与 `domain` / `infrastructure` / `config` 分层骨架
   - 查询执行边界定义，显式固化路由、执行控制、轻量解析、轻量改写和已批准加速配置应用
-  - `JDBC` / `REST` / `CLIENT` 三种 Hetu 访问模式的承载边界
+  - `JDBC` / `REST` / `CLIENT` 三种 Hetu 访问模式的承载边界，以及 feature-flagged 的真实模式路由与结果聚合基线
+  - 与 `governance` 的租户范围校验、数据源访问检查和审计写入 HTTP 客户端基线
   - `START / STATE_CHANGE / END / FAILED` 流程日志与 timeout / fallback 本地恢复标记
   - 独立多环境配置与日志配置骨架
   - 基础单元测试
@@ -147,7 +148,7 @@
 ## Immediate Pending Gaps
 
 - 压测引擎服务已建立独立 `benchmark-engine` 模块与提交/轮询/报告查询 API、MySQL 任务/报告载体和 scheduled worker 基线，但真实隔离执行链路、真实导出链路和更深层跨服务协同仍待 `Phase-D` 后续任务补齐。
-- 查询执行服务已建立独立模块骨架、公共 HTTP DTO/VO/错误码、最小同步执行闭环，以及本地流程日志与 timeout/fallback 恢复标记；真实治理调用、真实引擎适配器和跨服务审计补偿仍待 `Phase-D` 后续任务补齐。
+- 查询执行服务已建立独立模块骨架、公共 HTTP DTO/VO/错误码、治理检查/审计写入 HTTP 基线，以及 feature-flagged Hetu `JDBC/REST/CLIENT` 多模式执行链；真实集群接入证据、生产级参数固化和更完整的跨服务审计补偿仍待 `Phase-D` 后续任务补齐。
 - SQL 优化服务已建立独立模块、提交/轮询 API、MySQL `optimization_task` 任务表和 scheduled worker 基线，但外部队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
 - Phase-D 核心追溯链已在 `governance` 内完成 schema、migration、entity 与 mapper XML 固化，且 `audit/write` 与 header-based stateless auth 已接入真实 `audit_log` 落库；当前敏感字段加密基线已进入共享组件和治理受保护持久化入口，但查询执行、SQL 优化、压测引擎等其他服务的主动上报链仍待后续任务补齐。
 - 当前虽已形成 observability 文档基线，且默认 runtime smoke 已覆盖 4 个后端服务与前端的真实启动探针，并验证 `query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 的治理检查、失败恢复与审计补偿链路，但仓库内仍未实现业务级 Micrometer 指标、仓库内 PrometheusRule / Alertmanager / Grafana 配置、以及统一日志采集 pipeline 模板。

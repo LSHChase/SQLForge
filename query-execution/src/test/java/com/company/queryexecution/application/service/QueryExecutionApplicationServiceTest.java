@@ -42,11 +42,15 @@ class QueryExecutionApplicationServiceTest {
 
         assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
         assertEquals("HETU", response.getMetadata().getTargetEngine());
-        assertEquals("MINIMAL_SYNC_BASELINE", response.getImplementationStage());
+        assertEquals("HETU_MODE_CHAIN_BASELINE", response.getImplementationStage());
         assertFalse(response.isDegraded());
         assertNull(response.getError());
         assertEquals(1, response.getRows().size());
         assertTrue(response.getMetadata().isAccelerationApplied());
+        assertEquals("SIMULATED", response.getMetadata().getExecutionMode());
+        assertEquals(1, response.getMetadata().getAttemptedModes().size());
+        assertEquals("SIMULATED", response.getMetadata().getAttemptedModes().get(0));
+        assertEquals(1, response.getMetadata().getRowCount());
         assertTrue(output.getOut().contains("operation=QUERY_EXECUTE_SYNC"));
         assertTrue(output.getOut().contains("status=START"));
         assertTrue(output.getOut().contains("to=PRIMARY_ROUTE_SELECTED"));
@@ -108,6 +112,10 @@ class QueryExecutionApplicationServiceTest {
         assertEquals("LOCAL_TIMEOUT_ROLLBACK_MARKED", response.getRetryPath().get(0).getLocalRecoveryMarker());
         assertEquals("LOCAL_FALLBACK_COMPENSATION_MARKED", response.getRetryPath().get(1).getLocalRecoveryMarker());
         assertEquals("RECORD_DEGRADED_RESULT", response.getRetryPath().get(1).getLocalRecoveryAction());
+        assertEquals("HIVE_FALLBACK", response.getMetadata().getExecutionMode());
+        assertEquals(1, response.getMetadata().getAttemptedModes().size());
+        assertEquals("HIVE_FALLBACK", response.getMetadata().getAttemptedModes().get(0));
+        assertEquals(1, response.getMetadata().getRowCount());
         assertNull(response.getError());
     }
 

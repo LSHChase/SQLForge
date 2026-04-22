@@ -37,7 +37,7 @@ public class QueryExecutionApplicationService {
     private static final Logger LOGGER = LoggerFactory.getLogger(QueryExecutionApplicationService.class);
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
-    private static final String IMPLEMENTATION_STAGE = "MINIMAL_SYNC_BASELINE";
+    private static final String IMPLEMENTATION_STAGE = "HETU_MODE_CHAIN_BASELINE";
     private static final String OPERATION = "QUERY_EXECUTE_SYNC";
     private static final String READONLY_SQL_REJECTION_MESSAGE = "当前同步查询路径仅允许只读单语句 SQL";
     private static final String ROUTE_UNAVAILABLE_MESSAGE = "当前同步查询路径尚未为目标数据源开放执行路由";
@@ -366,7 +366,10 @@ public class QueryExecutionApplicationService {
                 executionStep.getElapsedMs(),
                 executionStep.getScannedRows(),
                 executionStep.isCacheHit(),
-                executionStep.isAccelerationApplied()
+                executionStep.isAccelerationApplied(),
+                executionStep.getExecutionMode(),
+                executionStep.getAttemptedModes(),
+                executionStep.getRows() == null ? 0 : executionStep.getRows().size()
             ),
             degraded,
             degradeReason,
@@ -390,7 +393,17 @@ public class QueryExecutionApplicationService {
             status,
             Collections.<java.util.Map<String, Object>>emptyList(),
             null,
-            new QueryExecutionMetadataVO(targetEngine, actualSql, elapsedMs, scannedRows, false, false),
+            new QueryExecutionMetadataVO(
+                targetEngine,
+                actualSql,
+                elapsedMs,
+                scannedRows,
+                false,
+                false,
+                "NONE",
+                Collections.<String>emptyList(),
+                0
+            ),
             false,
             null,
             retryPath,

@@ -26,6 +26,22 @@ query-execution:
     readonly-first: true
   parser:
     strategy: OPEN_SOURCE_ABSTRACTION_FOR_LIGHTWEIGHT_PATH
+  hetu:
+    enabled: ${QUERY_EXECUTION_HETU_ENABLED:false}
+    jdbc:
+      url: ${QUERY_EXECUTION_HETU_JDBC_URL:}
+      username: ${QUERY_EXECUTION_HETU_JDBC_USERNAME:}
+      password: ${QUERY_EXECUTION_HETU_JDBC_PASSWORD:}
+      query-timeout-seconds: ${QUERY_EXECUTION_HETU_JDBC_QUERY_TIMEOUT_SECONDS:30}
+      max-rows: ${QUERY_EXECUTION_HETU_JDBC_MAX_ROWS:200}
+    rest:
+      endpoint: ${QUERY_EXECUTION_HETU_REST_ENDPOINT:}
+      auth-token: ${QUERY_EXECUTION_HETU_REST_AUTH_TOKEN:}
+      connect-timeout-ms: ${QUERY_EXECUTION_HETU_REST_CONNECT_TIMEOUT_MS:3000}
+      read-timeout-ms: ${QUERY_EXECUTION_HETU_REST_READ_TIMEOUT_MS:5000}
+      max-rows: ${QUERY_EXECUTION_HETU_REST_MAX_ROWS:200}
+    client:
+      enabled: ${QUERY_EXECUTION_HETU_CLIENT_ENABLED:false}
   acceleration:
     ownership-mode: APPLY_APPROVED_RUNTIME_CONFIG_ONLY
   governance:

@@ -100,11 +100,11 @@
 
 ## 3.1 Query Execution Public HTTP Baseline
 
-当前 `query-execution` 已固化联机查询 DTO / VO / 错误码契约，并把公共 HTTP 入口接到最小同步执行闭环：
+当前 `query-execution` 已固化联机查询 DTO / VO / 错误码契约，并把公共 HTTP 入口接到 Hetu 多模式执行链基线；默认本地/CI 仍通过 feature flag 关闭真实 Hetu 链并回落到确定性模拟执行：
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
-| `/api/query-execution/queries/execute` | `QueryExecuteRequest` with `sqlText`,`tenantId`,`datasourceType`,`queryContext`,`accelerationPreference`,`faultToleranceStrategy` | `QueryExecuteResponse` with `status`,`rows`,`downloadUrl`,`metadata`,`degraded`,`degradeReason`,`retryPath`,`error`,`sqlFingerprint`,`contractStage`,`implementationStage` | `MINIMAL_SYNC_BASELINE` |
+| `/api/query-execution/queries/execute` | `QueryExecuteRequest` with `sqlText`,`tenantId`,`datasourceType`,`queryContext`,`accelerationPreference`,`faultToleranceStrategy` | `QueryExecuteResponse` with `status`,`rows`,`downloadUrl`,`metadata`,`degraded`,`degradeReason`,`retryPath`,`error`,`sqlFingerprint`,`contractStage`,`implementationStage` | `HETU_MODE_CHAIN_BASELINE` |
 
 当前 `QueryExecuteRequest` / `QueryExecuteResponse` 约束如下：
 
@@ -123,6 +123,9 @@
 - `metadata.scannedRows`
 - `metadata.cacheHit`
 - `metadata.accelerationApplied`
+- `metadata.executionMode`
+- `metadata.attemptedModes[]`
+- `metadata.rowCount`
 - `retryPath[].engine`
 - `retryPath[].elapsedMs`
 - `retryPath[].resultStatus`
@@ -145,11 +148,12 @@
 
 说明：
 
-- 当前实现已提供确定性的最小同步执行闭环：只读单语句 SQL 守卫、`AUTO/HETU -> HETU` 的主路由、`HETU -> HIVE` 的受控 fallback，以及正常/超时/失败/降级四条基础状态路径。
+- 当前实现已提供 feature-flagged Hetu 多模式执行基线：只读单语句 SQL 守卫、`AUTO/HETU -> HETU` 的主路由、`HETU -> HIVE` 的受控 fallback，以及 `JDBC` / `REST` / `CLIENT` 三种 Hetu 接入模式的顺序选择与 attempted-modes 结果收口。
+- 当 `query-execution.hetu.enabled=false` 时，当前实现默认回落到确定性的 `SIMULATED` / `HIVE_FALLBACK` 本地基线，以保持本地开发、模块测试和 runtime smoke 的稳定行为。
 - 当前实现已补齐入口/出口/异常/状态变更日志，并在 timeout/fallback 路径上输出本地回滚/补偿标记：
   - timeout: `LOCAL_TIMEOUT_ROLLBACK_MARKED` + `CLOSE_PRIMARY_ATTEMPT_CONTEXT`
   - fallback: `LOCAL_FALLBACK_COMPENSATION_MARKED` + `RECORD_DEGRADED_RESULT`
-- 当前实现仍不代表真实数据库执行已经开放：真实治理调用、真实引擎适配器和跨服务审计补偿仍待后续任务补齐。
+- 当前实现已具备治理检查与审计写入的跨服务 HTTP 基线，以及可启用的真实 Hetu 适配器代码路径；真实集群接入证据、更完整的审计补偿与生产级运行参数仍待后续任务补齐。
 
 ## 3.2 SQL Optimization Task Contract Baseline
 

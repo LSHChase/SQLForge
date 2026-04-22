@@ -16,6 +16,7 @@ import com.company.queryexecution.config.AuthProperties;
 import com.company.queryexecution.config.WebMvcConfig;
 import com.company.queryexecution.domain.query.QueryExecutionStatus;
 import com.company.sqlforge.common.exception.GlobalExceptionHandler;
+import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,14 +45,24 @@ class QueryExecutionControllerTest {
                 QueryExecutionStatus.SUCCESS,
                 Collections.singletonList(Collections.<String, Object>singletonMap("engine", "HETU")),
                 null,
-                new QueryExecutionMetadataVO("HETU", "SELECT 1", 74L, 32L, false, true),
+                new QueryExecutionMetadataVO(
+                    "HETU",
+                    "SELECT 1",
+                    74L,
+                    32L,
+                    false,
+                    true,
+                    "SIMULATED",
+                    Arrays.asList("SIMULATED"),
+                    1
+                ),
                 false,
                 null,
                 Collections.emptyList(),
                 null,
                 "fingerprint-001",
                 "LONG_TERM_BASELINE",
-                "MINIMAL_SYNC_BASELINE"
+                "HETU_MODE_CHAIN_BASELINE"
             ));
 
         mockMvc.perform(post("/api/query-execution/queries/execute")
@@ -69,9 +80,12 @@ class QueryExecutionControllerTest {
             .andExpect(header().exists("X-Trace-Id"))
             .andExpect(jsonPath("$.status").value("SUCCESS"))
             .andExpect(jsonPath("$.metadata.targetEngine").value("HETU"))
+            .andExpect(jsonPath("$.metadata.executionMode").value("SIMULATED"))
+            .andExpect(jsonPath("$.metadata.attemptedModes[0]").value("SIMULATED"))
+            .andExpect(jsonPath("$.metadata.rowCount").value(1))
             .andExpect(jsonPath("$.rows[0].engine").value("HETU"))
             .andExpect(jsonPath("$.contractStage").value("LONG_TERM_BASELINE"))
-            .andExpect(jsonPath("$.implementationStage").value("MINIMAL_SYNC_BASELINE"));
+            .andExpect(jsonPath("$.implementationStage").value("HETU_MODE_CHAIN_BASELINE"));
 
         verify(queryExecutionApplicationService).executeSynchronously(any());
     }
