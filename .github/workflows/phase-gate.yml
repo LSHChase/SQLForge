@@ -1,0 +1,59 @@
+name: Phase Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      gate:
+        description: Gate scope
+        required: true
+        default: full
+        type: choice
+        options:
+          - entry
+          - delivery
+          - compliance
+          - full
+      coverage_phase:
+        description: Coverage phase for delivery/full
+        required: true
+        default: phase1plus
+        type: choice
+        options:
+          - report-only
+          - phase0
+          - phase1plus
+      require_sonar:
+        description: Require Sonar configuration
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  phase-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install frontend dependencies
+        if: ${{ inputs.gate == 'delivery' || inputs.gate == 'full' }}
+        run: npm install
+
+      - name: Run phase gate
+        run: |
+          ARGS=(--gate "${{ inputs.gate }}" --coverage-phase "${{ inputs.coverage_phase }}")
+          if [ "${{ inputs.require_sonar }}" = "true" ]; then
+            ARGS+=(--require-sonar)
+          fi
+          bash scripts/run-phase-gates.sh "${ARGS[@]}"

@@ -35,17 +35,19 @@
 
 | Area | Current implementation | Evidence |
 |:---|:---|:---|
-| Workflow count | 当前仓库只有一个 GitHub Actions 工作流：`.github/workflows/ci.yml` | `.github/workflows/ci.yml` |
+| Workflow count | 当前仓库有两个 GitHub Actions 工作流：`.github/workflows/ci.yml` 与 `.github/workflows/phase-gate.yml` | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml` |
 | Trigger policy | 在 `main` / `master` / `develop` 的 `push` 以及所有 `pull_request` 上触发 | `.github/workflows/ci.yml` |
 | Job topology | 当前只有一个 job：`build-and-test`，运行环境为 `ubuntu-latest` | `.github/workflows/ci.yml` |
 | Runtime setup | workflow 会安装 Java 8 和 Node.js 20 | `.github/workflows/ci.yml` |
 | Backend static checks | workflow 会执行 `mvn -B validate pmd:pmd checkstyle:check -DskipTests` | `.github/workflows/ci.yml` |
 | Backend tests | workflow 会执行 `mvn -B test` | `.github/workflows/ci.yml` |
-| Coverage integration | workflow 会调用 `bash scripts/run-coverage.sh --phase report-only` 生成覆盖率报告，但不启用阈值阻断 | `.github/workflows/ci.yml`, `scripts/run-coverage.sh` |
+| Coverage integration | 主 CI 继续调用 `bash scripts/run-coverage.sh --phase report-only` 生成覆盖率报告；阶段切换阻断改由 `Phase Gate` workflow 显式运行 `phase0|phase1plus` | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `scripts/run-coverage.sh` |
 | Sonar integration | workflow 仅在 `SONAR_HOST_URL` 与 `SONAR_TOKEN` secrets 存在时执行 `bash scripts/run-sonar.sh --require-config` | `.github/workflows/ci.yml`, `scripts/run-sonar.sh` |
 | Boundary lint | workflow 会执行 `node scripts/check-frontend-backend-separation.js` | `.github/workflows/ci.yml` |
 | Frontend lint/build | workflow 会执行 `npm install`、`npm run lint`、`npm run build` | `.github/workflows/ci.yml`, `package.json` |
 | Repository knowledge lint | workflow 会执行 `node scripts/lint-repository-knowledge.js`，并补充校验 `README.md`、`AGENTS.md`、`.gitignore`、`.editorconfig` 存在 | `.github/workflows/ci.yml` |
+| Governance gate in CI | 主 CI 已接入 `python3 scripts/task_audit.py --check` 与 `python3 scripts/foreman.py compile-governance --check` | `.github/workflows/ci.yml` |
+| Manual phase gate workflow | 新增 `Phase Gate` workflow，通过 `workflow_dispatch` 执行 `entry|delivery|compliance|full` 阶段门禁 | `.github/workflows/phase-gate.yml`, `scripts/run-phase-gates.sh` |
 
 ## Current CI Coverage Matrix
 
@@ -61,15 +63,15 @@
 | Frontend lint | Enabled | `npm run lint` | 与 `npm install` 同步执行 |
 | Frontend build | Enabled | `npm run build` | 与 `npm install` 同步执行 |
 | Repository knowledge lint | Enabled | `node scripts/lint-repository-knowledge.js` | 已作为仓库级文档门禁 |
+| Task audit | Enabled | `python3 scripts/task_audit.py --check` | 已进入主 CI |
+| Governance compile drift check | Enabled | `python3 scripts/foreman.py compile-governance --check` | 已进入主 CI |
 
 ### Available Locally But Not In CI
 
 | Capability | Current local entry point | Why it is not counted as CI coverage |
 |:---|:---|:---|
 | Phase gate coverage thresholds | `bash scripts/run-coverage.sh --phase phase0|phase1plus` | workflow 只调用了 `report-only`，未启用阈值阻断 |
-| Task audit | `python3 scripts/task_audit.py --check` | 当前 workflow 未调用 |
-| Foreman task validation | `python3 scripts/foreman.py validate <TASK_ID>` | 当前 workflow 未调用 |
-| Governance compile drift check | `python3 scripts/foreman.py compile-governance --check` | 当前 workflow 未调用 |
+| Foreman task validation | `python3 scripts/foreman.py validate <TASK_ID>` | 当前 workflow 仍未做任务级 validate 编排 |
 | Codex runtime validation | `python3 scripts/validate_codex_runtime.py` | 当前 workflow 未调用 |
 | Compose syntax validation | `docker compose config` | 当前 workflow 未调用 |
 | Local startup / health / smoke | `bash scripts/local-start.sh`, `bash scripts/health-check.sh`, `bash scripts/manual-message-queue-smoke.sh` | 当前 workflow 未启动服务，也未做 runtime smoke |
@@ -78,19 +80,18 @@
 
 以下缺口属于 `F-TASK-004` 盘点结论，不是“已经接入”的事实：
 
-1. 尚未把 `R-116` / `R-117` / `R-118` 的阶段门禁脚本化接入 CI。
-2. 尚未把 `python3 scripts/task_audit.py --check` 接入 CI，台账审计仍主要依赖任务级执行。
-3. 尚未把 `python3 scripts/foreman.py compile-governance --check` 与 `python3 scripts/foreman.py validate <TASK>` 接入 CI。
-4. 覆盖率脚本当前只以 `report-only` 模式运行，尚未启用阶段阈值阻断。
-5. Sonar 目前是“有 secrets 才运行”的可选项，不是仓库默认必经门禁。
-6. 未在 CI 中执行 `docker compose config`、本地启动、健康检查或消息链路 smoke。
-7. 当前 workflow 使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
+1. `R-116` / `R-117` / `R-118` 已有脚本和 `workflow_dispatch` 接线，但尚未自动绑定到阶段切换事件。
+2. 当前 workflow 仍未把 `python3 scripts/foreman.py validate <TASK>` 纳入通用 CI。
+3. `Phase Gate` 的 `phase1plus` 覆盖率阈值当前仍可能阻断，因为仓库聚合覆盖率尚未稳定达到 85%。
+4. Sonar 目前仍是“有 secrets 才能真正通过”的门禁项，不是无条件可运行。
+5. 未在 CI 中执行 `docker compose config`、本地启动、健康检查或消息链路 smoke。
+6. 当前 workflow 使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
 
 ## Recommended Follow-Up Mapping
 
 | Next task | Recommended scope based on current inventory |
 |:---|:---|
-| `F-TASK-005` | 先把 `task_audit`、`foreman compile-governance --check`、阶段覆盖率阈值或等价 phase gate 引入 CI，形成真正阻断 |
+| `F-TASK-005` | 已完成：`task_audit`、`compile-governance --check` 与 `Phase Gate` workflow 已接入 |
 | `F-TASK-006` | 在现有 Maven 静态检查已入 CI 的基础上，补齐 Java 规范扫描结果的可追溯文档和门禁说明，必要时细化报告留存 |
 
 ## Exit Criteria For F-TASK-004

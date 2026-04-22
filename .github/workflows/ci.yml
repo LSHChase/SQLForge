@@ -26,6 +26,12 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Task audit
+        run: python3 scripts/task_audit.py --check
+
+      - name: Governance compile drift check
+        run: python3 scripts/foreman.py compile-governance --check
+
       - name: Run Maven tests when pom exists
         run: |
           if [ -f pom.xml ]; then

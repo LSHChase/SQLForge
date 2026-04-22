@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-005: 接入阶段门禁脚本化验证
+
+- Status: done
+- Completed at: 2026-04-21
+- Commit subject: `ci(gates): F-TASK-005 script phase gate checks`
+- Priority: 1
+- Depends on: `F-TASK-004`
+- Scope: 让阶段切换可阻断 Tech: `OPS`,`DOCS`. Layer: `deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-F / Story `F-STORY-002` CI 与质量门禁
+- Human confirmation point: 门禁阻断规则放宽需人工确认
+- Data impact: CI 阻断逻辑
+- Rollback / recovery: 恢复原门禁规则
+- Validation:
+  - 门禁阻断验证
+  - `python3 scripts/foreman.py validate F-TASK-005`
+- Progress log:
+  - 2026-04-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 scripts/run-phase-gates.sh 与 scripts/verify_compliance_baseline.py，把 R-116/R-117/R-118 阶段门禁脚本化；在 .github/workflows/ci.yml 增加 task_audit 与 foreman compile-governance --check 的默认阻断，并新增手动 phase-gate workflow 承载可执行的 entry/compliance/delivery 门禁；同步更新 CI 能力基线、阶段门禁基线、docs 入口与文档覆盖矩阵。
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-005 --include-task-audit；node scripts/lint-repository-knowledge.js；bash scripts/run-phase-gates.sh --gate entry；bash scripts/run-phase-gates.sh --gate compliance；bash scripts/run-phase-gates.sh --gate delivery --coverage-phase phase0；python3 scripts/task_audit.py --check --phase pre-closeout；python3 scripts/task_audit.py --check --phase post-closeout。
+  - Residual risk: 当前默认 CI 仍未把完整 delivery gate 设为每次提交必跑，phase1plus 85% 覆盖率与 Sonar 依赖仍通过手动 phase-gate workflow 承载；compose/runtime smoke 也尚未接入默认流水线。
+  - Next step: 进入 F-TASK-006，把 Java 静态扫描结果在 CI 中拆分为可追踪的质量步骤与工件，补齐 R-151/R-152 的落地证据。
+
 ### F-TASK-004: 盘点现有 CI 能力
 
 - Status: done
