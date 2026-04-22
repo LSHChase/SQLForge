@@ -313,3 +313,7 @@
 2026-04-21T19:50:15-05:00 | F-TASK-009 post-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
 2026-04-21T19:50:51-05:00 | F-TASK-009 delivery tag | `R-012`, `R-117` | passed | `git tag -a checkpoint/2026-04-21-phase-f-story-003-ops-closeout -m Phase-F Story-003 observability and recovery delivery closeout`
 2026-04-21T19:50:51-05:00 | F-TASK-009 delivery writeback | `R-012`, `R-117` | passed | `append docs/deliveries/phase-f-story-003-ops-closeout.md`
+2026-04-21T20:43:12-05:00 | F-TASK-004 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-21T20:43:12-05:00 | F-TASK-004 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T20:43:12-05:00 | F-TASK-004 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T20:46:56-05:00 | F-TASK-004 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`

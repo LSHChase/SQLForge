@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-004: 盘点现有 CI 能力
+
+- Status: done
+- Completed at: 2026-04-21
+- Commit subject: `docs(ci): F-TASK-004 inventory current CI coverage`
+- Priority: 1
+- Depends on: `Phase-C`,`Phase-E`
+- Scope: 盘点 CI 对 lint/build/test 的覆盖 Tech: `OPS`,`DOCS`. Layer: `deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-F / Story `F-STORY-002` CI 与质量门禁
+- Human confirmation point: 无
+- Data impact: CI 清单和流水线映射
+- Rollback / recovery: 恢复原 CI 清单说明
+- Validation:
+  - `CI 清单完整性检查`
+  - `python3 scripts/foreman.py validate F-TASK-004`
+- Progress log:
+  - 2026-04-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 docs/deployments/ci-capability-baseline.md，盘点 .github/workflows/ci.yml 当前对 lint/build/test/scan 的真实覆盖，明确本地可执行但尚未进入 CI 的 task_audit、foreman validate、phase gate coverage、compose/runtime smoke 等缺口，并同步更新 docs 入口、文档真值基线与覆盖矩阵。
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-004 --include-task-audit；node scripts/lint-repository-knowledge.js；python3 scripts/task_audit.py --check --phase pre-closeout；python3 scripts/task_audit.py --check --phase post-closeout。
+  - Residual risk: 当前 .github/workflows/ci.yml 仍未接入 task_audit、foreman compile-governance --check、phase gate coverage threshold、compose/runtime smoke，也未把 Sonar 固化为默认必经门禁；这些缺口需要后续 F-TASK-005/006 补齐。
+  - Next step: 进入 F-TASK-005，把 task_audit、governance compile check 和阶段门禁脚本化接入 CI，先形成真正可阻断的 phase gate。
+
 ### F-TASK-009: 阶段交付回写闭环
 
 - Status: done

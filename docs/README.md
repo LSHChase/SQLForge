@@ -42,6 +42,7 @@
    - [华为云部署指南](./deployments/huawei-cloud-setup.md)
    - [可观测基线](./deployments/observability-baseline.md)
    - [备份恢复基线](./deployments/backup-recovery-baseline.md)
+   - [CI 能力基线](./deployments/ci-capability-baseline.md)
 14. 仓库约定、任务台账与 ADR
    - 根级任务台账：`tasks.md`
    - 完成归档：`tasks-done.md`
@@ -108,6 +109,7 @@
   本地与目标环境部署说明。
   - `observability-baseline.md`：当前 logs/metrics/alerts 运维落地清单与缺口基线。
   - `backup-recovery-baseline.md`：当前备份对象、恢复目标与演练模板基线。
+  - `ci-capability-baseline.md`：当前 GitHub Actions CI 覆盖、缺口与后续门禁接入映射。
 - `deliveries/`
   交付记录与阶段回写。
   - `init-completion.md`：阶段 0 初始化交付记录与历史 repair 记录。
@@ -143,6 +145,8 @@
   把当前 4 个后端服务的 logs/metrics/alerts 实现事实与生产运维清单收口到一处，避免实现与运维口径继续漂移。
 - [备份恢复基线](./deployments/backup-recovery-baseline.md)
   把当前 MySQL、审计、导出元数据、消息兜底与密钥边界的备份恢复目标、责任分工和演练模板收口到一处，避免恢复 runbook 继续漂移。
+- [CI 能力基线](./deployments/ci-capability-baseline.md)
+  把当前 `.github/workflows/ci.yml` 已覆盖项、本地未入 CI 的命令，以及后续 phase gate / Java 扫描接入缺口收口到一处，避免 CI 口径继续漂移。
 - [文档缺口矩阵](./plans/document-gap-matrix.md)
   把冲突、漂移、缺失项和残余实现缺口显式矩阵化。
 - [阶段前置条件矩阵](./plans/phase-prerequisite-matrix.md)
