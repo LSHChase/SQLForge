@@ -135,6 +135,10 @@ export default {
     title: 'Parse Record',
     summary: 'Track parser output, rewrite status, failed samples and historical diagnostics.'
   },
+  repairEvidence: {
+    title: 'Repair Evidence',
+    summary: 'Reverse lookup trace, task and report evidence to confirm compensation and repair outcomes.'
+  },
   benchmark: {
     title: 'Benchmark Report',
     summary: 'Inspect baseline, peak latency, regression deltas and release readiness.'

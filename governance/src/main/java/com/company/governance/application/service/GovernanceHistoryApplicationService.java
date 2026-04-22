@@ -41,6 +41,9 @@ public class GovernanceHistoryApplicationService {
     private static final int MAX_LIMIT = 50;
     private static final int RECENT_SOURCE_SCAN_MULTIPLIER = 5;
     private static final int MAX_RECENT_SOURCE_SCAN_LIMIT = 200;
+    private static final int LOOKUP_SOURCE_SCAN_MULTIPLIER = 8;
+    private static final int MIN_LOOKUP_SOURCE_SCAN_LIMIT = 120;
+    private static final int MAX_LOOKUP_SOURCE_SCAN_LIMIT = 400;
     private static final TypeReference<LinkedHashMap<String, Object>> MAP_TYPE =
         new TypeReference<LinkedHashMap<String, Object>>() {
         };
@@ -64,39 +67,7 @@ public class GovernanceHistoryApplicationService {
         String effectiveTenantId = resolveAuthorizedTenantId(tenantId);
         int resolvedLimit = normalizeLimit(limit);
         int recentSourceScanLimit = resolveRecentSourceScanLimit(resolvedLimit);
-        LinkedHashMap<String, TraceAggregate> aggregateByTraceId = new LinkedHashMap<String, TraceAggregate>();
-
-        mergeAuditLogs(
-            aggregateByTraceId,
-            auditLogMapper.selectRecentBusinessByTenant(effectiveTenantId, recentSourceScanLimit)
-        );
-        mergeQueryHistories(
-            aggregateByTraceId,
-            queryHistoryMapper.selectRecentByTenant(effectiveTenantId, recentSourceScanLimit)
-        );
-        mergeExportRecords(
-            aggregateByTraceId,
-            exportRecordMapper.selectRecentByTenant(effectiveTenantId, recentSourceScanLimit)
-        );
-
-        List<TraceAggregate> aggregates = new ArrayList<TraceAggregate>(aggregateByTraceId.values());
-        Collections.sort(aggregates, new Comparator<TraceAggregate>() {
-            @Override
-            public int compare(TraceAggregate left, TraceAggregate right) {
-                LocalDateTime leftTime = left.getLastSeenAt();
-                LocalDateTime rightTime = right.getLastSeenAt();
-                if (leftTime == null && rightTime == null) {
-                    return 0;
-                }
-                if (leftTime == null) {
-                    return 1;
-                }
-                if (rightTime == null) {
-                    return -1;
-                }
-                return rightTime.compareTo(leftTime);
-            }
-        });
+        List<TraceAggregate> aggregates = loadRecentAggregates(effectiveTenantId, recentSourceScanLimit);
 
         List<GovernanceTraceSummaryVO> summaries = new ArrayList<GovernanceTraceSummaryVO>();
         List<String> displayGroupKeys = new ArrayList<String>();
@@ -119,6 +90,50 @@ public class GovernanceHistoryApplicationService {
             Integer.valueOf(summaries.size()),
             summaries.isEmpty() ? "-" : summaries.get(0).getTraceId());
         return summaries;
+    }
+
+    public List<GovernanceTraceSummaryVO> lookupTraces(String tenantId,
+                                                       String traceId,
+                                                       String taskId,
+                                                       String reportId,
+                                                       Integer limit) {
+        String effectiveTenantId = resolveAuthorizedTenantId(tenantId);
+        String normalizedTraceId = trimToNull(traceId);
+        String normalizedTaskId = trimToNull(taskId);
+        String normalizedReportId = trimToNull(reportId);
+        if (!StringUtils.hasText(normalizedTraceId)
+            && !StringUtils.hasText(normalizedTaskId)
+            && !StringUtils.hasText(normalizedReportId)) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                "one of traceId, taskId, or reportId must be provided"
+            );
+        }
+
+        int resolvedLimit = normalizeLimit(limit);
+        int lookupSourceScanLimit = resolveLookupSourceScanLimit(resolvedLimit);
+        List<TraceAggregate> aggregates = loadRecentAggregates(effectiveTenantId, lookupSourceScanLimit);
+        List<GovernanceTraceSummaryVO> matches = new ArrayList<GovernanceTraceSummaryVO>();
+        for (TraceAggregate aggregate : aggregates) {
+            if (!aggregate.shouldDisplayInRecentList()) {
+                continue;
+            }
+            if (!aggregate.matchesLookupCriteria(normalizedTraceId, normalizedTaskId, normalizedReportId)) {
+                continue;
+            }
+            matches.add(aggregate.toSummaryVO());
+            if (matches.size() >= resolvedLimit) {
+                break;
+            }
+        }
+        LOGGER.info("Loaded governance trace lookup, tenantId={}, traceId={}, taskId={}, reportId={}, count={}",
+            effectiveTenantId,
+            StringUtils.hasText(normalizedTraceId) ? normalizedTraceId : "-",
+            StringUtils.hasText(normalizedTaskId) ? normalizedTaskId : "-",
+            StringUtils.hasText(normalizedReportId) ? normalizedReportId : "-",
+            Integer.valueOf(matches.size()));
+        return matches;
     }
 
     public GovernanceTraceDetailVO findTraceDetail(String tenantId, String traceId, Integer limit) {
@@ -278,6 +293,51 @@ public class GovernanceHistoryApplicationService {
             return resolvedLimit;
         }
         return Math.min(MAX_RECENT_SOURCE_SCAN_LIMIT, scaledLimit);
+    }
+
+    private int resolveLookupSourceScanLimit(int resolvedLimit) {
+        int scaledLimit = resolvedLimit * LOOKUP_SOURCE_SCAN_MULTIPLIER;
+        if (scaledLimit < resolvedLimit) {
+            return Math.min(MAX_LOOKUP_SOURCE_SCAN_LIMIT, MIN_LOOKUP_SOURCE_SCAN_LIMIT);
+        }
+        int candidate = Math.max(MIN_LOOKUP_SOURCE_SCAN_LIMIT, scaledLimit);
+        return Math.min(MAX_LOOKUP_SOURCE_SCAN_LIMIT, candidate);
+    }
+
+    private List<TraceAggregate> loadRecentAggregates(String tenantId, int sourceScanLimit) {
+        LinkedHashMap<String, TraceAggregate> aggregateByTraceId = new LinkedHashMap<String, TraceAggregate>();
+        mergeAuditLogs(
+            aggregateByTraceId,
+            auditLogMapper.selectRecentBusinessByTenant(tenantId, sourceScanLimit)
+        );
+        mergeQueryHistories(
+            aggregateByTraceId,
+            queryHistoryMapper.selectRecentByTenant(tenantId, sourceScanLimit)
+        );
+        mergeExportRecords(
+            aggregateByTraceId,
+            exportRecordMapper.selectRecentByTenant(tenantId, sourceScanLimit)
+        );
+
+        List<TraceAggregate> aggregates = new ArrayList<TraceAggregate>(aggregateByTraceId.values());
+        Collections.sort(aggregates, new Comparator<TraceAggregate>() {
+            @Override
+            public int compare(TraceAggregate left, TraceAggregate right) {
+                LocalDateTime leftTime = left.getLastSeenAt();
+                LocalDateTime rightTime = right.getLastSeenAt();
+                if (leftTime == null && rightTime == null) {
+                    return 0;
+                }
+                if (leftTime == null) {
+                    return 1;
+                }
+                if (rightTime == null) {
+                    return -1;
+                }
+                return rightTime.compareTo(leftTime);
+            }
+        });
+        return aggregates;
     }
 
     private Map<String, Object> parseJsonObject(String content) {
@@ -513,6 +573,19 @@ public class GovernanceHistoryApplicationService {
         private String toDisplayGroupKey() {
             String businessKey = firstNonBlank(this.taskId, this.reportId, this.resourceId, this.sqlFingerprint, this.traceId);
             return firstNonBlank(this.serviceCode, "TRACE") + "::" + businessKey;
+        }
+
+        private boolean matchesLookupCriteria(String candidateTraceId, String candidateTaskId, String candidateReportId) {
+            if (StringUtils.hasText(candidateTraceId) && !candidateTraceId.equals(this.traceId)) {
+                return false;
+            }
+            if (StringUtils.hasText(candidateTaskId) && !candidateTaskId.equals(this.taskId)) {
+                return false;
+            }
+            if (StringUtils.hasText(candidateReportId) && !candidateReportId.equals(this.reportId)) {
+                return false;
+            }
+            return true;
         }
 
         private String inferReportId(AuditLogRecord record) {

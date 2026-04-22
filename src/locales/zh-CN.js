@@ -135,6 +135,10 @@ export default {
     title: '解析记录',
     summary: '跟踪解析结果、改写状态、失败样本与历史诊断。'
   },
+  repairEvidence: {
+    title: '修复证据',
+    summary: '按 trace、task、report 反查治理链路，确认补偿与修复结果。'
+  },
   benchmark: {
     title: '压测报告',
     summary: '查看基线、峰值延迟、回归差异与准入判断。'

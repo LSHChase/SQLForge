@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import DashboardView from '../views/dashboard/DashboardView.vue'
 import SqlQueryView from '../views/query/SqlQueryView.vue'
 import ParseRecordView from '../views/parse-record/ParseRecordView.vue'
+import RepairEvidenceView from '../views/repair-evidence/RepairEvidenceView.vue'
 import AccelerationView from '../views/optimization/AccelerationView.vue'
 import BenchmarkView from '../views/benchmark/BenchmarkView.vue'
 import SystemView from '../views/system/SystemView.vue'
@@ -40,6 +41,16 @@ export const constantRoutes = [
       menu: true,
       titleKey: 'parseRecord.title',
       descriptionKey: 'parseRecord.summary'
+    }
+  },
+  {
+    path: '/repair-evidence',
+    name: 'RepairEvidence',
+    component: RepairEvidenceView,
+    meta: {
+      menu: true,
+      titleKey: 'repairEvidence.title',
+      descriptionKey: 'repairEvidence.summary'
     }
   },
   {

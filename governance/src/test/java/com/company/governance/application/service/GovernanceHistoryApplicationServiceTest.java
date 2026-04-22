@@ -264,6 +264,96 @@ class GovernanceHistoryApplicationServiceTest {
     }
 
     @Test
+    void shouldLookupTracesByTaskAndReportWithoutCollapsingCompensationEvidence() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(auditLogMapper.selectRecentBusinessByTenant("tenant-a", 120)).thenReturn(Arrays.asList(
+            buildAudit("SMOKE-FORCE-AUDIT-FALLBACK-task-001", "SQL_OPTIMIZATION", "FAILED",
+                "SQL_OPTIMIZATION_TASK", "task-001",
+                LocalDateTime.parse("2026-04-22T10:06:00"),
+                "{\"serviceCode\":\"SQL_OPTIMIZATION\",\"taskId\":\"task-001\"}",
+                "{\"resultStatus\":\"FAILED\",\"taskId\":\"task-001\",\"currentPhase\":\"COMPENSATED\",\"errorCode\":\"13000\"}"),
+            buildAudit("trace-opt-failed", "SQL_OPTIMIZATION", "FAILED",
+                "SQL_OPTIMIZATION_TASK", "task-001",
+                LocalDateTime.parse("2026-04-22T10:05:00"),
+                "{\"serviceCode\":\"SQL_OPTIMIZATION\",\"taskId\":\"task-001\"}",
+                "{\"resultStatus\":\"FAILED\",\"taskId\":\"task-001\",\"errorCode\":\"13000\"}"),
+            buildAudit("trace-benchmark-report", "BENCHMARK_ENGINE", "SUCCESS",
+                "REPORT", "report-001",
+                LocalDateTime.parse("2026-04-22T10:04:00"),
+                "{\"serviceCode\":\"BENCHMARK_ENGINE\",\"reportId\":\"report-001\"}",
+                "{\"resultStatus\":\"SUCCESS\",\"reportId\":\"report-001\"}")
+        ));
+        when(queryHistoryMapper.selectRecentByTenant("tenant-a", 120)).thenReturn(Collections.emptyList());
+        when(exportRecordMapper.selectRecentByTenant("tenant-a", 120)).thenReturn(Collections.singletonList(
+            buildExport("trace-benchmark-report", "report-001", "SUCCESS", LocalDateTime.parse("2026-04-22T10:03:00"))
+        ));
+
+        List<GovernanceTraceSummaryVO> taskMatches = service.lookupTraces("tenant-a", null, "task-001", null, Integer.valueOf(10));
+        List<GovernanceTraceSummaryVO> reportMatches = service.lookupTraces("tenant-a", null, null, "report-001", Integer.valueOf(10));
+
+        assertEquals(2, taskMatches.size());
+        assertEquals("SMOKE-FORCE-AUDIT-FALLBACK-task-001", taskMatches.get(0).getTraceId());
+        assertEquals("trace-opt-failed", taskMatches.get(1).getTraceId());
+        assertEquals(1, reportMatches.size());
+        assertEquals("trace-benchmark-report", reportMatches.get(0).getTraceId());
+        assertEquals("report-001", reportMatches.get(0).getReportId());
+    }
+
+    @Test
+    void shouldRejectLookupWithoutTraceTaskOrReportId() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+
+        BizException exception = assertThrows(
+            BizException.class,
+            () -> service.lookupTraces("tenant-a", null, null, null, Integer.valueOf(10))
+        );
+
+        assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());
+    }
+
+    @Test
     void shouldRejectCrossTenantHistoryReadWithoutPlatformAdmin() {
         AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
         QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);

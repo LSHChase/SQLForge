@@ -38,6 +38,23 @@ public class GovernanceHistoryController {
         return governanceHistoryApplicationService.findRecentTraces(effectiveTenantId, limit);
     }
 
+    @GetMapping("/lookups")
+    public List<GovernanceTraceSummaryVO> lookupTraces(
+        @RequestParam(value = "tenantId", required = false) String tenantId,
+        @RequestParam(value = "traceId", required = false) String traceId,
+        @RequestParam(value = "taskId", required = false) String taskId,
+        @RequestParam(value = "reportId", required = false) String reportId,
+        @RequestParam(value = "limit", required = false) Integer limit) {
+        String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
+        LOGGER.info("Handling governance trace lookup, tenantId={}, traceId={}, taskId={}, reportId={}, requestTraceId={}",
+            effectiveTenantId,
+            traceId,
+            taskId,
+            reportId,
+            RequestContext.getTraceId());
+        return governanceHistoryApplicationService.lookupTraces(effectiveTenantId, traceId, taskId, reportId, limit);
+    }
+
     @GetMapping("/traces/{traceId}")
     public GovernanceTraceDetailVO getTraceDetail(@PathVariable("traceId") String traceId,
                                                   @RequestParam(value = "tenantId", required = false) String tenantId,

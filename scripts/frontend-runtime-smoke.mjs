@@ -99,9 +99,24 @@ const expectNumber = async (page, testId) => {
 }
 
 const expectNumberAtLeast = async (page, testId, minimum) => {
-  const value = await expectNumber(page, testId)
-  assert(value >= minimum, `Expected ${testId} to be >= ${minimum}, got ${value}`)
-  return value
+  const startedAt = Date.now()
+  let latestText = ''
+  let latestValue = Number.NaN
+
+  while (Date.now() - startedAt < defaultTimeoutMs) {
+    latestText = await readText(page, testId)
+    latestValue = Number(latestText)
+    if (Number.isFinite(latestValue) && latestValue >= minimum) {
+      return latestValue
+    }
+    await page.waitForTimeout(200)
+  }
+
+  assert(
+    Number.isFinite(latestValue) && latestValue >= minimum,
+    `Expected ${testId} to be >= ${minimum}, got "${latestText}"`
+  )
+  return latestValue
 }
 
 const waitForPost = (page, pathFragment) =>
@@ -192,6 +207,10 @@ const runOptimizationFlow = async page => {
   await expectText(page, 'optimization-flow-compensation-status', 'FAILED')
   await expectText(page, 'optimization-flow-compensation-indicator', 'COMPENSATED')
   await expectNumberAtLeast(page, 'optimization-flow-queue-total-delta', 1)
+
+  return {
+    failedTaskId: await expectNonEmptyText(page, 'optimization-flow-task-id')
+  }
 }
 
 const runBenchmarkFlow = async page => {
@@ -238,6 +257,10 @@ const runBenchmarkFlow = async page => {
   await expectText(page, 'benchmark-flow-compensation-status', 'FAILED')
   await expectText(page, 'benchmark-flow-compensation-indicator', 'COMPENSATED')
   await expectNumberAtLeast(page, 'benchmark-flow-queue-total-delta', 1)
+
+  return {
+    reportId: reportIdText
+  }
 }
 
 const runSystemFlow = async page => {
@@ -291,6 +314,7 @@ const runParseRecordFlow = async page => {
   await expectText(page, 'parse-record-detail-target-engine', 'HIVE')
   await expectNonEmptyText(page, 'parse-record-detail-sql-fingerprint')
   await expectNumberAtLeast(page, 'parse-record-detail-audit-count', 1)
+  const queryTraceId = await expectNonEmptyText(page, 'parse-record-detail-trace-id')
 
   await selectTraceByText(page, 'SQL_OPTIMIZATION', 'FAILED')
   await expectText(page, 'parse-record-detail-service-code', 'SQL_OPTIMIZATION')
@@ -304,6 +328,53 @@ const runParseRecordFlow = async page => {
   await expectText(page, 'parse-record-detail-error-code', '14000')
   await expectNonEmptyText(page, 'parse-record-detail-task-id')
   await page.getByTestId('parse-record-audit-event').first().waitFor({ timeout: defaultTimeoutMs })
+
+  return {
+    queryTraceId
+  }
+}
+
+const runRepairEvidenceFlow = async (page, runtimeEvidence) => {
+  await page.goto(`${frontendBaseUrl}/repair-evidence`, { waitUntil: 'networkidle' })
+  await page.getByTestId('repair-evidence-page').waitFor({ timeout: defaultTimeoutMs })
+
+  await page.getByTestId('repair-evidence-trace-id').fill(runtimeEvidence.queryTraceId)
+  await page.getByTestId('repair-evidence-task-id').fill('')
+  await page.getByTestId('repair-evidence-report-id').fill('')
+  await page.getByTestId('repair-evidence-run-lookup').click()
+
+  await expectNumberAtLeast(page, 'repair-evidence-match-count', 1)
+  await expectText(page, 'repair-evidence-detail-service-code', 'QUERY_EXECUTION')
+  await expectText(page, 'repair-evidence-detail-status', 'PARTIAL')
+  await expectText(page, 'repair-evidence-detail-lookup-mode', 'TRACE')
+  await expectText(page, 'repair-evidence-detail-repair-signal', 'DEGRADED_RECOVERY')
+  await expectNonEmptyText(page, 'repair-evidence-detail-sql-fingerprint')
+
+  await page.getByTestId('repair-evidence-trace-id').fill('')
+  await page.getByTestId('repair-evidence-task-id').fill(runtimeEvidence.optimizationTaskId)
+  await page.getByTestId('repair-evidence-report-id').fill('')
+  await page.getByTestId('repair-evidence-run-lookup').click()
+
+  await expectNumberAtLeast(page, 'repair-evidence-match-count', 2)
+  await expectNumberAtLeast(page, 'repair-evidence-compensation-count', 1)
+  await expectText(page, 'repair-evidence-detail-service-code', 'SQL_OPTIMIZATION')
+  await expectText(page, 'repair-evidence-detail-status', 'FAILED')
+  await expectText(page, 'repair-evidence-detail-lookup-mode', 'TASK')
+  await expectText(page, 'repair-evidence-detail-task-id', runtimeEvidence.optimizationTaskId)
+  await page.getByTestId('repair-evidence-compensation-pill').first().waitFor({ timeout: defaultTimeoutMs })
+
+  await page.getByTestId('repair-evidence-trace-id').fill('')
+  await page.getByTestId('repair-evidence-task-id').fill('')
+  await page.getByTestId('repair-evidence-report-id').fill(runtimeEvidence.benchmarkReportId)
+  await page.getByTestId('repair-evidence-run-lookup').click()
+
+  await expectNumberAtLeast(page, 'repair-evidence-match-count', 1)
+  await expectNumberAtLeast(page, 'repair-evidence-report-count', 1)
+  await expectText(page, 'repair-evidence-detail-service-code', 'BENCHMARK_ENGINE')
+  await expectText(page, 'repair-evidence-detail-status', 'SUCCESS')
+  await expectText(page, 'repair-evidence-detail-lookup-mode', 'REPORT')
+  await expectText(page, 'repair-evidence-detail-report-id', runtimeEvidence.benchmarkReportId)
+  await page.getByTestId('repair-evidence-audit-event').first().waitFor({ timeout: defaultTimeoutMs })
 }
 
 const main = async () => {
@@ -321,10 +392,15 @@ const main = async () => {
 
   try {
     await runQueryFlow(page)
-    await runOptimizationFlow(page)
-    await runBenchmarkFlow(page)
+    const optimizationEvidence = await runOptimizationFlow(page)
+    const benchmarkEvidence = await runBenchmarkFlow(page)
     await runSystemFlow(page)
-    await runParseRecordFlow(page)
+    const parseRecordEvidence = await runParseRecordFlow(page)
+    await runRepairEvidenceFlow(page, {
+      queryTraceId: parseRecordEvidence.queryTraceId,
+      optimizationTaskId: optimizationEvidence.failedTaskId,
+      benchmarkReportId: benchmarkEvidence.reportId
+    })
   } finally {
     await browser.close()
   }

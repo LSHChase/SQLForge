@@ -222,11 +222,34 @@ export const getGovernanceTraceSummaries = (tenantId, limit = 12, requestOptions
     }
   })
 
+export const lookupGovernanceTraces = (tenantId, filters = {}, limit = 12, requestOptions = {}) => {
+  const params = new URLSearchParams()
+  params.set('tenantId', tenantId)
+  params.set('limit', String(limit))
+
+  ;['traceId', 'taskId', 'reportId'].forEach(key => {
+    const value = String(filters?.[key] || '').trim()
+    if (value) {
+      params.set(key, value)
+    }
+  })
+
+  return request({
+    method: 'get',
+    url: `/api/governance/history/lookups?${params.toString()}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-trace-lookups',
+      ...requestOptions
+    }
+  })
+}
+
 export const getGovernanceTraceDetail = (tenantId, traceId, limit = 20, requestOptions = {}) =>
   request({
     method: 'get',
     url:
-      `/api/governance/history/traces/${encodeURIComponent(traceId)}` +
+        `/api/governance/history/traces/${encodeURIComponent(traceId)}` +
       `?tenantId=${encodeURIComponent(tenantId)}&limit=${encodeURIComponent(limit)}`,
     tenantId,
     requestOptions: {
