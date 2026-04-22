@@ -1,7 +1,15 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SQLFORGE_DEV_DB_URL:jdbc:mysql://localhost:3306/sqlforge?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${SQLFORGE_DEV_DB_USER:sqlforge}
+    password: ${SQLFORGE_DEV_DB_PASSWORD:sqlforge}
+
 logging:
   level:
     root: DEBUG
     com.company.benchmarkengine: DEBUG
+    org.mybatis: DEBUG
 
 auth:
   enabled: false
@@ -16,5 +24,5 @@ sqlforge:
       base64-key: ${SQLFORGE_BENCHMARK_ENGINE_DEV_CRYPTO_KEY_BASE64:}
 
 benchmark-engine:
-  execution:
-    mode: isolated-placeholder
+  queues:
+    mode: database-worker

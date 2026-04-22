@@ -60,6 +60,45 @@ public class BenchmarkTask {
         this.progressPercent = Integer.valueOf(0);
     }
 
+    private BenchmarkTask(String taskId,
+                          BenchmarkTaskSubmission submission,
+                          Instant submittedAt,
+                          List<BenchmarkTaskStatusTransition> statusHistory,
+                          BenchmarkTaskStatus status,
+                          BenchmarkTaskPhase currentPhase,
+                          Integer progressPercent,
+                          Instant startedAt,
+                          Instant finishedAt,
+                          String reportId,
+                          BenchmarkTaskError error) {
+        this.taskId = taskId;
+        this.tenantId = submission.getTenantId();
+        this.taskType = submission.getTaskType();
+        this.sqlText = submission.getSqlText();
+        this.sqlFingerprint = submission.getSqlFingerprint();
+        this.priority = submission.getPriority();
+        this.targetEngines = submission.getTargetEngines();
+        this.concurrency = submission.getConcurrency();
+        this.durationSeconds = submission.getDurationSeconds();
+        this.rampUpSeconds = submission.getRampUpSeconds();
+        this.datasetSizeLabel = submission.getDatasetSizeLabel();
+        this.readonlyRequired = submission.getReadonlyRequired();
+        this.shadowEnvironmentMode = submission.getShadowEnvironmentMode();
+        this.desensitizationRequirement = submission.getDesensitizationRequirement();
+        this.thresholds = submission.getThresholds();
+        this.submittedAt = submittedAt;
+        this.statusHistory = statusHistory == null
+            ? new ArrayList<BenchmarkTaskStatusTransition>()
+            : new ArrayList<BenchmarkTaskStatusTransition>(statusHistory);
+        this.status = status == null ? BenchmarkTaskStatus.QUEUED : status;
+        this.currentPhase = currentPhase == null ? BenchmarkTaskPhase.SUBMITTED : currentPhase;
+        this.progressPercent = progressPercent == null ? Integer.valueOf(0) : progressPercent;
+        this.startedAt = startedAt;
+        this.finishedAt = finishedAt;
+        this.reportId = reportId;
+        this.error = error;
+    }
+
     public static BenchmarkTask submit(String taskId, BenchmarkTaskSubmission submission, Instant submittedAt) {
         List<BenchmarkTaskStatusTransition> history = new ArrayList<BenchmarkTaskStatusTransition>();
         history.add(
@@ -73,6 +112,32 @@ public class BenchmarkTask {
             )
         );
         return new BenchmarkTask(taskId, submission, submittedAt, history);
+    }
+
+    public static BenchmarkTask restore(String taskId,
+                                        BenchmarkTaskSubmission submission,
+                                        Instant submittedAt,
+                                        List<BenchmarkTaskStatusTransition> statusHistory,
+                                        BenchmarkTaskStatus status,
+                                        BenchmarkTaskPhase currentPhase,
+                                        Integer progressPercent,
+                                        Instant startedAt,
+                                        Instant finishedAt,
+                                        String reportId,
+                                        BenchmarkTaskError error) {
+        return new BenchmarkTask(
+            taskId,
+            submission,
+            submittedAt,
+            statusHistory,
+            status,
+            currentPhase,
+            progressPercent,
+            startedAt,
+            finishedAt,
+            reportId,
+            error
+        );
     }
 
     public void markRunning(Instant actualStartedAt) {

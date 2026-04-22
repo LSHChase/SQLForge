@@ -71,21 +71,60 @@ CREATE TABLE IF NOT EXISTS execution_plan (
   KEY idx_execution_plan_job_id (job_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Execution plans and fallback metadata';
 
-CREATE TABLE IF NOT EXISTS benchmark_report (
+CREATE TABLE IF NOT EXISTS benchmark_task (
+  task_id VARCHAR(64) NOT NULL COMMENT 'Benchmark task identifier',
+  tenant_id VARCHAR(64) NOT NULL COMMENT 'Tenant identifier',
+  task_type VARCHAR(32) NOT NULL COMMENT 'Benchmark task type: BASELINE/COMPARISON/REGRESSION_GUARD',
+  sql_text LONGTEXT DEFAULT NULL COMMENT 'Submitted SQL text snapshot',
+  sql_fingerprint VARCHAR(128) NOT NULL COMMENT 'Normalized SQL fingerprint',
+  priority VARCHAR(16) NOT NULL COMMENT 'Task priority',
+  target_engines_json JSON NOT NULL COMMENT 'Requested target engine list JSON',
+  concurrency INT DEFAULT NULL COMMENT 'Requested benchmark concurrency',
+  duration_seconds INT DEFAULT NULL COMMENT 'Requested benchmark duration in seconds',
+  ramp_up_seconds INT DEFAULT NULL COMMENT 'Requested ramp-up duration in seconds',
+  dataset_size_label VARCHAR(64) DEFAULT NULL COMMENT 'Dataset size label',
+  readonly_required TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Readonly guardrail flag',
+  shadow_environment_mode VARCHAR(32) NOT NULL COMMENT 'Shadow environment requirement mode',
+  desensitization_requirement VARCHAR(32) NOT NULL COMMENT 'Desensitization requirement mode',
+  thresholds_json JSON NOT NULL COMMENT 'Threshold definitions JSON',
+  status VARCHAR(16) NOT NULL COMMENT 'Task status: QUEUED/RUNNING/SUCCEEDED/FAILED/CANCELLED',
+  current_phase VARCHAR(32) NOT NULL COMMENT 'Current task phase',
+  progress_percent INT NOT NULL DEFAULT 0 COMMENT 'Progress percentage',
+  report_id VARCHAR(64) DEFAULT NULL COMMENT 'Generated report identifier when available',
+  error_code INT DEFAULT NULL COMMENT 'Failure code',
+  error_message VARCHAR(512) DEFAULT NULL COMMENT 'Desensitized failure message',
+  error_suggested_action VARCHAR(512) DEFAULT NULL COMMENT 'Suggested follow-up action',
+  error_retryable TINYINT(1) DEFAULT NULL COMMENT 'Whether failure is retryable',
+  status_history_json JSON NOT NULL COMMENT 'Ordered status transition history JSON',
+  submitted_at DATETIME(3) NOT NULL COMMENT 'Submit timestamp',
+  started_at DATETIME(3) DEFAULT NULL COMMENT 'Worker start timestamp',
+  finished_at DATETIME(3) DEFAULT NULL COMMENT 'Finish timestamp',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+  PRIMARY KEY (task_id),
+  KEY idx_benchmark_task_status_submitted (status, submitted_at),
+  KEY idx_benchmark_task_tenant_time (tenant_id, create_time),
+  KEY idx_benchmark_task_fingerprint (sql_fingerprint)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Persistent benchmark task carrier for scheduler and worker flow';
+
+CREATE TABLE IF NOT EXISTS benchmark_task_report (
   report_id VARCHAR(64) NOT NULL COMMENT 'Benchmark report identifier',
-  sql_fingerprint CHAR(32) NOT NULL COMMENT 'Normalized SQL fingerprint',
-  engine_type VARCHAR(32) NOT NULL COMMENT 'Benchmarked engine type',
-  qps_baseline DECIMAL(18,4) DEFAULT NULL COMMENT 'Baseline QPS',
-  p50_latency DECIMAL(18,4) DEFAULT NULL COMMENT 'P50 latency in ms',
-  p99_latency DECIMAL(18,4) DEFAULT NULL COMMENT 'P99 latency in ms',
-  cpu_usage DECIMAL(8,4) DEFAULT NULL COMMENT 'CPU usage ratio',
-  memory_usage DECIMAL(18,4) DEFAULT NULL COMMENT 'Memory usage in MB',
-  scan_rows BIGINT DEFAULT NULL COMMENT 'Rows scanned',
-  verdict VARCHAR(32) NOT NULL COMMENT 'Benchmark verdict',
+  task_id VARCHAR(64) NOT NULL COMMENT 'Related benchmark task identifier',
+  tenant_id VARCHAR(64) NOT NULL COMMENT 'Tenant identifier',
+  task_type VARCHAR(32) NOT NULL COMMENT 'Benchmark task type',
+  sql_fingerprint VARCHAR(128) NOT NULL COMMENT 'Normalized SQL fingerprint',
+  generated_at DATETIME(3) NOT NULL COMMENT 'Report generation timestamp',
+  verdict VARCHAR(32) NOT NULL COMMENT 'Report verdict',
+  engine_profiles_json JSON NOT NULL COMMENT 'Per-engine benchmark metrics JSON',
+  threshold_assessments_json JSON NOT NULL COMMENT 'Threshold assessment JSON',
+  recommendations_json JSON NOT NULL COMMENT 'Recommendation list JSON',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
   PRIMARY KEY (report_id),
-  KEY idx_benchmark_report_fingerprint (sql_fingerprint),
-  KEY idx_benchmark_report_engine (engine_type)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Benchmark reports for engine comparison';
+  UNIQUE KEY uk_benchmark_task_report_task_id (task_id),
+  KEY idx_benchmark_task_report_tenant_time (tenant_id, create_time),
+  KEY idx_benchmark_task_report_fingerprint (sql_fingerprint)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Persistent benchmark reports written back by the benchmark worker';
 
 CREATE TABLE IF NOT EXISTS optimization_task (
   task_id VARCHAR(64) NOT NULL COMMENT 'Optimization task identifier',

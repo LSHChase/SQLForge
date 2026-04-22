@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkReportMapper">
+
+    <resultMap id="BenchmarkReportRecordMap" type="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkReportRecord">
+        <id property="reportId" column="report_id"/>
+        <result property="taskId" column="task_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="taskType" column="task_type"/>
+        <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <result property="generatedAt" column="generated_at"/>
+        <result property="verdict" column="verdict"/>
+        <result property="engineProfilesJson" column="engine_profiles_json"/>
+        <result property="thresholdAssessmentsJson" column="threshold_assessments_json"/>
+        <result property="recommendationsJson" column="recommendations_json"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        report_id,
+        task_id,
+        tenant_id,
+        task_type,
+        sql_fingerprint,
+        generated_at,
+        verdict,
+        engine_profiles_json,
+        threshold_assessments_json,
+        recommendations_json,
+        create_time,
+        update_time
+    </sql>
+
+    <select id="selectByReportId" resultMap="BenchmarkReportRecordMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM benchmark_task_report
+        WHERE report_id = #{reportId}
+    </select>
+
+    <select id="selectByTaskId" resultMap="BenchmarkReportRecordMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM benchmark_task_report
+        WHERE task_id = #{taskId}
+    </select>
+
+    <insert id="insert" parameterType="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkReportRecord">
+        INSERT INTO benchmark_task_report (
+            report_id,
+            task_id,
+            tenant_id,
+            task_type,
+            sql_fingerprint,
+            generated_at,
+            verdict,
+            engine_profiles_json,
+            threshold_assessments_json,
+            recommendations_json
+        ) VALUES (
+            #{reportId},
+            #{taskId},
+            #{tenantId},
+            #{taskType},
+            #{sqlFingerprint},
+            #{generatedAt},
+            #{verdict},
+            #{engineProfilesJson},
+            #{thresholdAssessmentsJson},
+            #{recommendationsJson}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkReportRecord">
+        UPDATE benchmark_task_report
+        SET task_id = #{taskId},
+            tenant_id = #{tenantId},
+            task_type = #{taskType},
+            sql_fingerprint = #{sqlFingerprint},
+            generated_at = #{generatedAt},
+            verdict = #{verdict},
+            engine_profiles_json = #{engineProfilesJson},
+            threshold_assessments_json = #{thresholdAssessmentsJson},
+            recommendations_json = #{recommendationsJson}
+        WHERE report_id = #{reportId}
+    </update>
+</mapper>

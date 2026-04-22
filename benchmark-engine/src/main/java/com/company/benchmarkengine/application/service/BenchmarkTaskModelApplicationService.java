@@ -39,8 +39,8 @@ import org.springframework.stereotype.Service;
 public class BenchmarkTaskModelApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
-    private static final String TASK_IMPLEMENTATION_STAGE = "ASYNC_TASK_API_SKELETON";
-    private static final String REPORT_IMPLEMENTATION_STAGE = "REPORT_QUERY_API_SKELETON";
+    private static final String TASK_IMPLEMENTATION_STAGE = "DATABASE_SCHEDULED_WORKER_BASELINE";
+    private static final String REPORT_IMPLEMENTATION_STAGE = "DATABASE_PERSISTED_REPORT_BASELINE";
     private static final String STATUS_QUERY_PATH_TEMPLATE = "/api/benchmark-engine/tasks/%s";
     private static final String REPORT_QUERY_PATH_TEMPLATE = "/api/benchmark-engine/reports/%s";
     private static final String RAW_DATA_PATH_TEMPLATE = "/api/benchmark-engine/reports/%s/raw-data";

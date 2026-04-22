@@ -1325,8 +1325,8 @@ SQL优化服务 → 公共管理服务（获取元数据、统计信息、写入
 - 当前 `governance` 已补齐 Phase-D 核心追溯链的 schema、增量脚本、Entity 与 MyBatis XML 骨架，并已把内部 `audit/write` 与 header-based stateless auth 的 `LOGIN` / `LOGOUT` 事件接入真实 `audit_log` 写入；当前还新增了共享 AES-256 敏感字段保护能力、`system_config` 密文列基线，以及 config/result/history/export/audit 的受保护持久化入口；其他服务的主动审计上报、导出链路和跨服务持久化接入仍待后续任务补齐。
 - 当前 `sqlforge-shared` 已形成共享底座基线，但仍需继续保持只承载真正公共能力的边界。
 - 当前 `query-execution` 已形成查询执行服务的独立模块骨架、公共 DTO/VO/错误码、最小同步执行闭环，以及本地流程日志与 timeout/fallback 恢复标记，但真实治理调用、真实引擎适配器和跨服务审计补偿仍待 `Phase-D` 后续任务补齐。
-- 当前 `sql-optimization` 已形成 SQL 优化服务的独立模块、提交/轮询 API skeleton、占位任务处理链，以及结构化 `suggestion / failure` 输出，但持久化、队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
-- 当前 `benchmark-engine` 已形成压测引擎服务的独立模块、提交/轮询/报告查询 API skeleton、占位任务处理链和占位报告落库能力，但隔离执行链路、真实导出链路和跨服务协同仍待 `Phase-D` 后续任务补齐。
+- 当前 `sql-optimization` 已形成 SQL 优化服务的独立模块、提交/轮询 API、`optimization_task` MySQL 任务表、scheduled worker，以及结构化 `suggestion / failure` 输出，但外部队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
+- 当前 `benchmark-engine` 已形成压测引擎服务的独立模块、提交/轮询/报告查询 API、`benchmark_task` / `benchmark_task_report` MySQL 载体、scheduled worker 和报告回写能力，但隔离执行链路、真实导出链路和更深层跨服务协同仍待 `Phase-D` 后续任务补齐。
 
 ### 19.5 复盘要求
 

@@ -76,7 +76,7 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals(BenchmarkTaskPhase.BASELINE_PREPARING, submitResponse.getCurrentPhase());
         assertEquals("/api/benchmark-engine/tasks/benchmark-task-002", submitResponse.getStatusQueryPath());
         assertEquals("LONG_TERM_BASELINE", submitResponse.getContractStage());
-        assertEquals("ASYNC_TASK_API_SKELETON", submitResponse.getImplementationStage());
+        assertEquals("DATABASE_SCHEDULED_WORKER_BASELINE", submitResponse.getImplementationStage());
 
         assertEquals(BenchmarkTaskType.COMPARISON, statusResponse.getTaskType());
         assertEquals(BenchmarkTaskPriority.NORMAL, statusResponse.getPriority());
@@ -115,7 +115,7 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals("/api/benchmark-engine/reports/report-benchmark-task-003", response.getReportQueryPath());
         assertEquals("/api/benchmark-engine/reports/report-benchmark-task-003/raw-data", response.getRawDataDownloadPath());
         assertEquals("ENGINE_SELECTION", response.getRecommendations().get(0).getCategory());
-        assertEquals("REPORT_QUERY_API_SKELETON", response.getImplementationStage());
+        assertEquals("DATABASE_PERSISTED_REPORT_BASELINE", response.getImplementationStage());
         assertEquals("tenant-a", report.getTenantId());
     }
 
@@ -168,8 +168,8 @@ class BenchmarkTaskModelApplicationServiceTest {
         task.markFailed(
             new BenchmarkTaskError(
                 14000,
-                "压测引擎任务与报告模型已固化，但提交流程、执行链路和报告查询接口仍待接入",
-                "retry after task submit flow is available",
+                "Benchmark worker failed before report write-back completed",
+                "Inspect the benchmark task table, report table, and worker pipeline before retrying.",
                 true
             ),
             Instant.parse("2026-04-20T00:20:05Z")

@@ -10,9 +10,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@ConditionalOnProperty(prefix = "benchmark-engine.queues", name = "mode", havingValue = "local-placeholder")
 public class InMemoryBenchmarkTaskRepository implements BenchmarkTaskRepository {
 
     private final Map<String, BenchmarkTask> taskStore = new ConcurrentHashMap<String, BenchmarkTask>();

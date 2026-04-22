@@ -21,6 +21,10 @@ logging:
     root: INFO
     com.company.benchmarkengine: INFO
 
+mybatis:
+  config-location: classpath:mybatis-config.xml
+  mapper-locations: classpath*:mapper/*.xml
+
 benchmark-engine:
   isolation:
     readonly-required: true
@@ -28,11 +32,13 @@ benchmark-engine:
     desensitization-default: REQUIRED
   task-model:
     contract-stage: LONG_TERM_BASELINE
-    implementation-stage: ASYNC_TASK_API_SKELETON
+    implementation-stage: DATABASE_SCHEDULED_WORKER_BASELINE
   task-execution:
     poll-interval-ms: 25
     queue-visibility-delay-ms: 100
     phase-delay-ms: 40
+  queues:
+    mode: database-worker
   governance:
     base-url: ${BENCHMARK_ENGINE_GOVERNANCE_BASE_URL:http://localhost:8080/api/governance/internal}
     connect-timeout-ms: ${BENCHMARK_ENGINE_GOVERNANCE_CONNECT_TIMEOUT_MS:3000}

@@ -51,7 +51,7 @@ class BenchmarkReportControllerTest {
             .andExpect(jsonPath("$.trendCharts[0].chartType").value("LATENCY_DISTRIBUTION_HISTOGRAM"))
             .andExpect(jsonPath("$.reportQueryPath").value("/api/benchmark-engine/reports/" + reportId))
             .andExpect(jsonPath("$.rawDataDownloadPath").value("/api/benchmark-engine/reports/" + reportId + "/raw-data"))
-            .andExpect(jsonPath("$.implementationStage").value("REPORT_QUERY_API_SKELETON"));
+            .andExpect(jsonPath("$.implementationStage").value("DATABASE_PERSISTED_REPORT_BASELINE"));
     }
 
     @Test

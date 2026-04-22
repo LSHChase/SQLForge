@@ -77,14 +77,14 @@
   - `POST /api/sql-optimization/tasks` 与 `GET /api/sql-optimization/tasks/{taskId}` HTTP 契约
   - `optimization_task` MySQL 任务表、MyBatis XML repository、header-based 鉴权、租户隔离、scheduled worker、提交流程日志、失败路径和基础测试
   - `suggestion / failure` 结构化输出，当前已覆盖收益、成本、风险和任务类型差异
-- `benchmark-engine/` 已具备压测任务与报告查询骨架：
+- `benchmark-engine/` 已具备压测任务、报告查询与数据库持久化基线：
   - Spring Boot 应用入口与独立 Maven 模块
   - `application` 包域下的 controller / DTO / VO / service 与 `domain` / `infrastructure` / `config` 分层骨架
   - `BASELINE` / `COMPARISON` / `REGRESSION_GUARD` 三类压测任务实体
   - 生命周期状态、处理阶段流转、影子环境模式、只读要求、脱敏要求和阈值模型
-  - `POST /api/benchmark-engine/tasks` 与 `GET /api/benchmark-engine/tasks/{taskId}` skeleton
-  - `GET /api/benchmark-engine/reports/{reportId}` skeleton，支持 `format=JSON|PDF|HTML`，并提供 `/raw-data` 查询路径
-  - in-memory placeholder repository、header-based 鉴权、租户隔离、异步占位执行器、提交流程日志、失败路径、占位报告落库、报告查询和基础测试
+  - `POST /api/benchmark-engine/tasks` 与 `GET /api/benchmark-engine/tasks/{taskId}` 数据库 worker 基线
+  - `GET /api/benchmark-engine/reports/{reportId}` 报告查询基线，支持 `format=JSON|PDF|HTML`，并提供 `/raw-data` 查询路径
+  - `benchmark_task` / `benchmark_task_report` MySQL 载体、MyBatis XML repository、header-based 鉴权、租户隔离、scheduled worker、提交流程日志、失败路径、报告回写、报告查询和基础测试
   - 引擎指标快照、阈值判定结果、趋势图表、建议输出和报告实体
   - 基础模型测试、应用服务测试与控制器测试
 - 当前可观测事实已形成统一文档落点：
@@ -146,9 +146,9 @@
 
 ## Immediate Pending Gaps
 
-- 压测引擎服务已建立独立 `benchmark-engine` 模块与提交/轮询/报告查询 API skeleton，但真实执行链路、真实导出链路和跨服务协同仍待 `Phase-D` 后续任务补齐。
+- 压测引擎服务已建立独立 `benchmark-engine` 模块与提交/轮询/报告查询 API、MySQL 任务/报告载体和 scheduled worker 基线，但真实隔离执行链路、真实导出链路和更深层跨服务协同仍待 `Phase-D` 后续任务补齐。
 - 查询执行服务已建立独立模块骨架、公共 HTTP DTO/VO/错误码、最小同步执行闭环，以及本地流程日志与 timeout/fallback 恢复标记；真实治理调用、真实引擎适配器和跨服务审计补偿仍待 `Phase-D` 后续任务补齐。
-- SQL 优化服务已建立独立模块与提交/轮询 API skeleton，但 MySQL 持久化、队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
+- SQL 优化服务已建立独立模块、提交/轮询 API、MySQL `optimization_task` 任务表和 scheduled worker 基线，但外部队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
 - Phase-D 核心追溯链已在 `governance` 内完成 schema、migration、entity 与 mapper XML 固化，且 `audit/write` 与 header-based stateless auth 已接入真实 `audit_log` 落库；当前敏感字段加密基线已进入共享组件和治理受保护持久化入口，但查询执行、SQL 优化、压测引擎等其他服务的主动上报链仍待后续任务补齐。
 - 当前虽已形成 observability 文档基线，且默认 runtime smoke 已覆盖 4 个后端服务与前端的真实启动探针，并验证 `query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 的治理检查、失败恢复与审计补偿链路，但仓库内仍未实现业务级 Micrometer 指标、仓库内 PrometheusRule / Alertmanager / Grafana 配置、以及统一日志采集 pipeline 模板。
 - 访问控制当前仍是“最小租户校验基线”，尚未形成完整角色矩阵和数据源授权实现。

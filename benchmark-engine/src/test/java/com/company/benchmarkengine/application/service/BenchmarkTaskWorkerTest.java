@@ -11,7 +11,7 @@ import com.company.benchmarkengine.infrastructure.repository.InMemoryBenchmarkTa
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
-class BenchmarkTaskPlaceholderExecutorTest {
+class BenchmarkTaskWorkerTest {
 
     @Test
     void shouldAdvanceQueuedTaskAndGenerateReport() {
@@ -23,9 +23,9 @@ class BenchmarkTaskPlaceholderExecutorTest {
         BenchmarkTaskExecutionProperties properties = new BenchmarkTaskExecutionProperties();
         properties.setQueueVisibilityDelayMs(0L);
         properties.setPhaseDelayMs(0L);
-        BenchmarkTaskPlaceholderExecutor executor = new BenchmarkTaskPlaceholderExecutor(modelService, repository, properties);
+        BenchmarkTaskWorker worker = new BenchmarkTaskWorker(modelService, repository, properties);
 
-        executor.processQueuedTasks();
+        worker.processQueuedTasks();
 
         assertEquals("SUCCEEDED", repository.findTaskByTaskId("benchmark-task-async-001").getStatus().name());
         assertEquals("report-benchmark-task-async-001", repository.findTaskByTaskId("benchmark-task-async-001").getReportId());

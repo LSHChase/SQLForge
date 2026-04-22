@@ -224,7 +224,7 @@
 2. 未提供仓库内的 `OBS` 生命周期、归档或导出对象恢复脚本。
 3. 未提供密钥托管、轮换编排或 `keyId` 清单自动校验工具。
 4. 未提供恢复后自动 smoke 脚本来串联健康探针、审计写入、队列统计和脱敏抽检。
-5. `query-execution`、`sql-optimization`、`benchmark-engine` 当前仍未接入各自独立的 MySQL 持久化，因此恢复验收仍以服务健康和治理元数据关联验证为主。
+5. `query-execution` 当前仍未接入独立 MySQL 持久化，因此其恢复验收仍以服务健康和治理元数据关联验证为主；`sql-optimization` 与 `benchmark-engine` 已分别接入 `optimization_task`、`benchmark_task` / `benchmark_task_report` 持久化，可额外执行任务表和报告回写验收。
 
 ## Exit Criteria For F-TASK-008
 

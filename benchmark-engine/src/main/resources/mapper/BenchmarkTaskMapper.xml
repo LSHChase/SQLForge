@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTaskMapper">
+
+    <resultMap id="BenchmarkTaskRecordMap" type="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTaskRecord">
+        <id property="taskId" column="task_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="taskType" column="task_type"/>
+        <result property="sqlText" column="sql_text"/>
+        <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <result property="priority" column="priority"/>
+        <result property="targetEnginesJson" column="target_engines_json"/>
+        <result property="concurrency" column="concurrency"/>
+        <result property="durationSeconds" column="duration_seconds"/>
+        <result property="rampUpSeconds" column="ramp_up_seconds"/>
+        <result property="datasetSizeLabel" column="dataset_size_label"/>
+        <result property="readonlyRequired" column="readonly_required"/>
+        <result property="shadowEnvironmentMode" column="shadow_environment_mode"/>
+        <result property="desensitizationRequirement" column="desensitization_requirement"/>
+        <result property="thresholdsJson" column="thresholds_json"/>
+        <result property="status" column="status"/>
+        <result property="currentPhase" column="current_phase"/>
+        <result property="progressPercent" column="progress_percent"/>
+        <result property="reportId" column="report_id"/>
+        <result property="errorCode" column="error_code"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="errorSuggestedAction" column="error_suggested_action"/>
+        <result property="errorRetryable" column="error_retryable"/>
+        <result property="statusHistoryJson" column="status_history_json"/>
+        <result property="submittedAt" column="submitted_at"/>
+        <result property="startedAt" column="started_at"/>
+        <result property="finishedAt" column="finished_at"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        task_id,
+        tenant_id,
+        task_type,
+        sql_text,
+        sql_fingerprint,
+        priority,
+        target_engines_json,
+        concurrency,
+        duration_seconds,
+        ramp_up_seconds,
+        dataset_size_label,
+        readonly_required,
+        shadow_environment_mode,
+        desensitization_requirement,
+        thresholds_json,
+        status,
+        current_phase,
+        progress_percent,
+        report_id,
+        error_code,
+        error_message,
+        error_suggested_action,
+        error_retryable,
+        status_history_json,
+        submitted_at,
+        started_at,
+        finished_at,
+        create_time,
+        update_time
+    </sql>
+
+    <select id="selectByTaskId" resultMap="BenchmarkTaskRecordMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM benchmark_task
+        WHERE task_id = #{taskId}
+    </select>
+
+    <select id="selectQueuedTasksSubmittedBefore" resultMap="BenchmarkTaskRecordMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM benchmark_task
+        WHERE status = 'QUEUED'
+          AND submitted_at &lt;= #{cutoff}
+        ORDER BY submitted_at ASC
+    </select>
+
+    <insert id="insert" parameterType="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTaskRecord">
+        INSERT INTO benchmark_task (
+            task_id,
+            tenant_id,
+            task_type,
+            sql_text,
+            sql_fingerprint,
+            priority,
+            target_engines_json,
+            concurrency,
+            duration_seconds,
+            ramp_up_seconds,
+            dataset_size_label,
+            readonly_required,
+            shadow_environment_mode,
+            desensitization_requirement,
+            thresholds_json,
+            status,
+            current_phase,
+            progress_percent,
+            report_id,
+            error_code,
+            error_message,
+            error_suggested_action,
+            error_retryable,
+            status_history_json,
+            submitted_at,
+            started_at,
+            finished_at
+        ) VALUES (
+            #{taskId},
+            #{tenantId},
+            #{taskType},
+            #{sqlText},
+            #{sqlFingerprint},
+            #{priority},
+            #{targetEnginesJson},
+            #{concurrency},
+            #{durationSeconds},
+            #{rampUpSeconds},
+            #{datasetSizeLabel},
+            #{readonlyRequired},
+            #{shadowEnvironmentMode},
+            #{desensitizationRequirement},
+            #{thresholdsJson},
+            #{status},
+            #{currentPhase},
+            #{progressPercent},
+            #{reportId},
+            #{errorCode},
+            #{errorMessage},
+            #{errorSuggestedAction},
+            #{errorRetryable},
+            #{statusHistoryJson},
+            #{submittedAt},
+            #{startedAt},
+            #{finishedAt}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTaskRecord">
+        UPDATE benchmark_task
+        SET tenant_id = #{tenantId},
+            task_type = #{taskType},
+            sql_text = #{sqlText},
+            sql_fingerprint = #{sqlFingerprint},
+            priority = #{priority},
+            target_engines_json = #{targetEnginesJson},
+            concurrency = #{concurrency},
+            duration_seconds = #{durationSeconds},
+            ramp_up_seconds = #{rampUpSeconds},
+            dataset_size_label = #{datasetSizeLabel},
+            readonly_required = #{readonlyRequired},
+            shadow_environment_mode = #{shadowEnvironmentMode},
+            desensitization_requirement = #{desensitizationRequirement},
+            thresholds_json = #{thresholdsJson},
+            status = #{status},
+            current_phase = #{currentPhase},
+            progress_percent = #{progressPercent},
+            report_id = #{reportId},
+            error_code = #{errorCode},
+            error_message = #{errorMessage},
+            error_suggested_action = #{errorSuggestedAction},
+            error_retryable = #{errorRetryable},
+            status_history_json = #{statusHistoryJson},
+            submitted_at = #{submittedAt},
+            started_at = #{startedAt},
+            finished_at = #{finishedAt}
+        WHERE task_id = #{taskId}
+    </update>
+</mapper>

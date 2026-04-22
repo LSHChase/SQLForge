@@ -100,14 +100,14 @@
 - `QUEUED` / `RUNNING` / `SUCCEEDED` / `FAILED` / `CANCELLED` 生命周期状态与任务类型感知的阶段流转
 - `POST /api/benchmark-engine/tasks` 和 `GET /api/benchmark-engine/tasks/{taskId}` 的过渡骨架
 - `GET /api/benchmark-engine/reports/{reportId}` 的 JSON / PDF / HTML 报告查询骨架
-- 基于 in-memory placeholder repository 的提交、轮询、失败路径、占位报告落库、报告查询与流程日志
+- 基于 MySQL `benchmark_task` / `benchmark_task_report`、MyBatis XML repository 和 in-process scheduled worker 的提交、轮询、失败路径、报告回写、报告查询与流程日志
 - 只读要求、影子环境模式、脱敏要求、并发/时长/预热/数据规模等任务元数据固化
 - 阈值模型、阈值判定结果、引擎指标快照、趋势图表、优化建议和报告契约对象
 - 基础 DTO / VO、错误码区间和模型装配 service
 
 当前还未完整承载：
 
-- 真正的调度、隔离执行、队列和报告导出
+- 外部队列调度、隔离执行和真实报告导出
 - 与公共管理服务、查询执行服务的真实跨服务调用
 
 ## 4. 公共管理服务

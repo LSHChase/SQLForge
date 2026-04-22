@@ -1,3 +1,10 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SQLFORGE_BENCHMARK_ENGINE_DB_URL:jdbc:mysql://sqlforge-mysql:3306/sqlforge?useSSL=true&serverTimezone=UTC&allowPublicKeyRetrieval=false}
+    username: ${SQLFORGE_BENCHMARK_ENGINE_DB_USER:sqlforge}
+    password: ${SQLFORGE_BENCHMARK_ENGINE_DB_PASSWORD:}
+
 logging:
   level:
     root: INFO
@@ -11,5 +18,5 @@ sqlforge:
       base64-key: ${SQLFORGE_BENCHMARK_ENGINE_PROD_CRYPTO_KEY_BASE64:}
 
 benchmark-engine:
-  execution:
-    mode: managed
+  queues:
+    mode: database-worker

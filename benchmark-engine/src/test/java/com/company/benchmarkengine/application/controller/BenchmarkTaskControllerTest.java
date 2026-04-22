@@ -49,7 +49,7 @@ class BenchmarkTaskControllerTest {
             .andExpect(jsonPath("$.currentPhase").value("SUBMITTED"))
             .andExpect(jsonPath("$.statusQueryPath", startsWith("/api/benchmark-engine/tasks/")))
             .andExpect(jsonPath("$.contractStage").value("LONG_TERM_BASELINE"))
-            .andExpect(jsonPath("$.implementationStage").value("ASYNC_TASK_API_SKELETON"))
+            .andExpect(jsonPath("$.implementationStage").value("DATABASE_SCHEDULED_WORKER_BASELINE"))
             .andExpect(header().exists(RequestHeaderConstants.TRACE_ID))
             .andReturn();
 
@@ -133,7 +133,7 @@ class BenchmarkTaskControllerTest {
                         .andExpect(jsonPath("$.reportId", startsWith("report-")))
                         .andExpect(jsonPath("$.targetEngines[0]").value("HETU"))
                         .andExpect(jsonPath("$.shadowEnvironmentMode").value("REQUIRED"))
-                        .andExpect(jsonPath("$.implementationStage").value("ASYNC_TASK_API_SKELETON"));
+                        .andExpect(jsonPath("$.implementationStage").value("DATABASE_SCHEDULED_WORKER_BASELINE"));
                 } else {
                     mockMvc.perform(addProtectedHeaders(get("/api/benchmark-engine/tasks/{taskId}", taskId)))
                         .andExpect(status().isOk())
@@ -141,7 +141,7 @@ class BenchmarkTaskControllerTest {
                         .andExpect(jsonPath("$.currentPhase").value("FINISHED"))
                         .andExpect(jsonPath("$.error.code").value(14000))
                         .andExpect(jsonPath("$.error.retryable").value(true))
-                        .andExpect(jsonPath("$.error.message", containsString("压测引擎任务与报告模型已固化")));
+                        .andExpect(jsonPath("$.error.message", containsString("report write-back completed")));
                 }
                 return;
             }

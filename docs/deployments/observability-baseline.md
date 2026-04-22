@@ -43,7 +43,7 @@
 | Sensitive masking | 日志消息统一对 `password|token|secret` 进行掩码替换，避免明文落日志 | 各服务 `logback-spring.xml` |
 | Query execution flow logs | 查询执行路径已覆盖 `START / STATE_CHANGE / END / FAILED`，并记录 `operation/entity/tenantId/requestedDatasource/faultTolerance/costMs/resultStatus` | `query-execution/src/main/java/com/company/queryexecution/application/service/QueryExecutionApplicationService.java` |
 | Governance auth/audit logs | 治理服务已记录鉴权上下文建立、审计落库成功、审计消息降级入队、数据库队列轮询完成、失败消息重试等关键日志 | `governance/src/main/java/com/company/governance/application/interceptor/AuthInterceptor.java`, `governance/src/main/java/com/company/governance/application/service/GovernanceAuditTrailService.java`, `governance/src/main/java/com/company/governance/infrastructure/messaging/DatabaseMessagePollingJob.java`, `governance/src/main/java/com/company/governance/application/service/MessageAdminApplicationService.java` |
-| Async task flow logs | SQL 优化与压测引擎均已记录任务提交、查询、scheduled worker 状态变更、结束和异常失败日志 | `sql-optimization/src/main/java/com/company/sqloptimization/application/service/OptimizationTaskApplicationService.java`, `sql-optimization/src/main/java/com/company/sqloptimization/application/service/OptimizationTaskWorker.java`, `benchmark-engine/src/main/java/com/company/benchmarkengine/application/service/BenchmarkTaskApplicationService.java`, `benchmark-engine/src/main/java/com/company/benchmarkengine/application/service/BenchmarkTaskPlaceholderExecutor.java`, `benchmark-engine/src/main/java/com/company/benchmarkengine/application/service/BenchmarkReportApplicationService.java` |
+| Async task flow logs | SQL 优化与压测引擎均已记录任务提交、查询、scheduled worker 状态变更、结束和异常失败日志 | `sql-optimization/src/main/java/com/company/sqloptimization/application/service/OptimizationTaskApplicationService.java`, `sql-optimization/src/main/java/com/company/sqloptimization/application/service/OptimizationTaskWorker.java`, `benchmark-engine/src/main/java/com/company/benchmarkengine/application/service/BenchmarkTaskApplicationService.java`, `benchmark-engine/src/main/java/com/company/benchmarkengine/application/service/BenchmarkTaskWorker.java`, `benchmark-engine/src/main/java/com/company/benchmarkengine/application/service/BenchmarkReportApplicationService.java` |
 | AOP operation logs | 部分治理接口已通过共享 `OperationLogAspect` 补齐 `operation/entity/requestId/traceId/status/costMs` 结构化日志 | `sqlforge-shared/src/main/java/com/company/sqlforge/common/log/OperationLogAspect.java` |
 
 ### Metrics And Health
@@ -113,7 +113,7 @@
 | Database queue backlog | `MessageAdminApplicationService#getMessageStats()` 或 `kafka_message_queue` | `pendingCount` 持续增长或 `failedCount > 0` | 执行消息重试、检查消费者和下游可用性 |
 | Authentication rejection spike | `audit_log` 中 `LOGIN` 失败事件或鉴权拒绝日志 | 失败事件异常上升 | 判断为攻击、配置错误或上游鉴权异常 |
 | SQL optimization async failure | `sql-optimization` 任务/执行器日志 | `status=FAILED phase=EXCEPTION` 或任务失败持续出现 | 排查占位执行器、回调地址、租户上下文和任务载体 |
-| Benchmark async failure | `benchmark-engine` 任务/执行器日志 | `status=FAILED phase=EXCEPTION` 或任务失败持续出现 | 排查影子环境要求、只读约束、执行器状态和报告链 |
+| Benchmark async failure | `benchmark-engine` 任务/worker 日志 | `status=FAILED phase=EXCEPTION` 或任务失败持续出现 | 排查影子环境要求、只读约束、`benchmark_task` / `benchmark_task_report` 持久化状态和报告链 |
 | Sensitive data leak | 日志平台全文扫描 | 任意命中明文密码、Token、密钥 | 立即下线相关日志访问、轮换凭据并修复脱敏规则 |
 
 ## Current Gaps

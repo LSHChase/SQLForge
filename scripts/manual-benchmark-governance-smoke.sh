@@ -22,13 +22,16 @@ FAILURE_SUBMIT_REQUEST_ID=""
 FAILURE_STATUS_REQUEST_ID=""
 COMPENSATION_REQUEST_ID=""
 COMPENSATION_TRACE_ID=""
+SUCCESS_TASK_ID=""
+SUCCESS_REPORT_ID=""
+FAILURE_TASK_ID=""
 
 usage() {
   cat <<'EOF'
 Usage: ./scripts/manual-benchmark-governance-smoke.sh [--cleanup]
 
 Options:
-  --cleanup   Delete smoke-created audit_log and kafka_message_queue rows after verification.
+  --cleanup   Delete smoke-created benchmark_task/benchmark_task_report/audit_log/kafka_message_queue rows after verification.
 EOF
 }
 
@@ -152,6 +155,12 @@ cleanup_rows() {
     return
   fi
 
+  print_step "Cleaning up persisted benchmark report rows"
+  mysql_exec "DELETE FROM benchmark_task_report WHERE report_id IN ('${SUCCESS_REPORT_ID:-}','report-${FAILURE_TASK_ID:-}');"
+
+  print_step "Cleaning up persisted benchmark task rows"
+  mysql_exec "DELETE FROM benchmark_task WHERE task_id IN ('${SUCCESS_TASK_ID:-}','${FAILURE_TASK_ID:-}');"
+
   print_step "Cleaning up smoke queue rows"
   mysql_exec "DELETE FROM kafka_message_queue WHERE topic = 'governance.audit.event' AND (message_body LIKE '%\\\"requestId\\\":\\\"${SUCCESS_SUBMIT_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${SUCCESS_STATUS_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${SUCCESS_REPORT_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${FAILURE_SUBMIT_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${FAILURE_STATUS_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${COMPENSATION_REQUEST_ID}\\\"%');"
 
@@ -162,7 +171,8 @@ cleanup_rows() {
 main() {
   local issued_at expires_at stats_before stats_after pending_before pending_after
   local success_submit success_status success_report failure_submit failure_status compensation_status
-  local success_task_id success_report_id failure_task_id submit_row status_row report_row failed_row queue_row
+  local submit_row status_row report_row failed_row queue_row
+  local persisted_task_row persisted_report_row persisted_failed_task_row persisted_failed_report_count
   local -a success_submit_headers success_status_headers success_report_headers failure_submit_headers failure_status_headers compensation_headers stats_headers
 
   while [[ $# -gt 0 ]]; do
@@ -217,19 +227,33 @@ main() {
     "${success_submit_headers[@]}")"
   echo "${success_submit}"
   json_assert "${success_submit}" 'payload["status"] == "QUEUED"'
-  success_task_id="$(json_extract "${success_submit}" 'payload["taskId"]')"
+  SUCCESS_TASK_ID="$(json_extract "${success_submit}" 'payload["taskId"]')"
 
   print_step "Polling benchmark success task to SUCCEEDED"
-  success_status="$(poll_terminal_status "${success_task_id}" "SUCCEEDED" "${success_status_headers[@]}")"
+  success_status="$(poll_terminal_status "${SUCCESS_TASK_ID}" "SUCCEEDED" "${success_status_headers[@]}")"
   echo "${success_status}"
-  success_report_id="$(json_extract "${success_status}" 'payload["reportId"]')"
+  SUCCESS_REPORT_ID="$(json_extract "${success_status}" 'payload["reportId"]')"
 
   print_step "Reading benchmark report"
-  success_report="$(assert_get_json "${BENCHMARK_ENGINE_API_BASE_URL}/api/benchmark-engine/reports/${success_report_id}" "${success_report_headers[@]}")"
+  success_report="$(assert_get_json "${BENCHMARK_ENGINE_API_BASE_URL}/api/benchmark-engine/reports/${SUCCESS_REPORT_ID}" "${success_report_headers[@]}")"
   echo "${success_report}"
-  json_assert "${success_report}" 'payload["reportId"] == "'"${success_report_id}"'"'
+  json_assert "${success_report}" 'payload["reportId"] == "'"${SUCCESS_REPORT_ID}"'"'
   json_assert "${success_report}" 'payload["requestedFormat"] == "JSON"'
   json_assert "${success_report}" '"HETU" in payload["targetEngines"] and "HIVE" in payload["targetEngines"]'
+
+  print_step "Verifying persisted benchmark task/report rows"
+  persisted_task_row="$(mysql_exec "SELECT status, report_id FROM benchmark_task WHERE task_id = '${SUCCESS_TASK_ID}' LIMIT 1;")"
+  persisted_report_row="$(mysql_exec "SELECT task_id FROM benchmark_task_report WHERE report_id = '${SUCCESS_REPORT_ID}' LIMIT 1;")"
+  echo "${persisted_task_row}"
+  echo "${persisted_report_row}"
+  if [[ "${persisted_task_row}" != SUCCEEDED$'\t'"${SUCCESS_REPORT_ID}" ]]; then
+    echo "Expected persisted SUCCEEDED benchmark_task row for ${SUCCESS_TASK_ID}" >&2
+    exit 1
+  fi
+  if [[ "${persisted_report_row}" != "${SUCCESS_TASK_ID}" ]]; then
+    echo "Expected persisted benchmark_task_report row for ${SUCCESS_REPORT_ID}" >&2
+    exit 1
+  fi
 
   print_step "Verifying benchmark success audit rows"
   submit_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${SUCCESS_SUBMIT_REQUEST_ID}' AND service_code = 'BENCHMARK_ENGINE' AND operation_type = 'BENCHMARK_TASK_SUBMIT' ORDER BY id DESC LIMIT 1;")"
@@ -238,15 +262,15 @@ main() {
   echo "${submit_row}"
   echo "${status_row}"
   echo "${report_row}"
-  if [[ "${submit_row}" != QUEUED$'\t'"${success_task_id}" ]]; then
+  if [[ "${submit_row}" != QUEUED$'\t'"${SUCCESS_TASK_ID}" ]]; then
     echo "Expected QUEUED submit audit row for ${SUCCESS_SUBMIT_REQUEST_ID}" >&2
     exit 1
   fi
-  if [[ "${status_row}" != SUCCEEDED$'\t'"${success_task_id}" ]]; then
+  if [[ "${status_row}" != SUCCEEDED$'\t'"${SUCCESS_TASK_ID}" ]]; then
     echo "Expected SUCCEEDED status audit row for ${SUCCESS_STATUS_REQUEST_ID}" >&2
     exit 1
   fi
-  if [[ "${report_row}" != SUCCESS$'\t'"${success_report_id}" ]]; then
+  if [[ "${report_row}" != SUCCESS$'\t'"${SUCCESS_REPORT_ID}" ]]; then
     echo "Expected SUCCESS report audit row for ${SUCCESS_REPORT_REQUEST_ID}" >&2
     exit 1
   fi
@@ -257,22 +281,36 @@ main() {
     "${failure_submit_headers[@]}")"
   echo "${failure_submit}"
   json_assert "${failure_submit}" 'payload["status"] == "QUEUED"'
-  failure_task_id="$(json_extract "${failure_submit}" 'payload["taskId"]')"
+  FAILURE_TASK_ID="$(json_extract "${failure_submit}" 'payload["taskId"]')"
 
   print_step "Polling benchmark failure task to FAILED"
-  failure_status="$(poll_terminal_status "${failure_task_id}" "FAILED" "${failure_status_headers[@]}")"
+  failure_status="$(poll_terminal_status "${FAILURE_TASK_ID}" "FAILED" "${failure_status_headers[@]}")"
   echo "${failure_status}"
   json_assert "${failure_status}" 'payload["error"]["code"] == 14000'
 
+  print_step "Verifying failed task persistence and missing report write-back"
+  persisted_failed_task_row="$(mysql_exec "SELECT status FROM benchmark_task WHERE task_id = '${FAILURE_TASK_ID}' LIMIT 1;")"
+  persisted_failed_report_count="$(mysql_exec "SELECT COUNT(*) FROM benchmark_task_report WHERE task_id = '${FAILURE_TASK_ID}';")"
+  echo "${persisted_failed_task_row}"
+  echo "${persisted_failed_report_count}"
+  if [[ "${persisted_failed_task_row}" != "FAILED" ]]; then
+    echo "Expected persisted FAILED benchmark_task row for ${FAILURE_TASK_ID}" >&2
+    exit 1
+  fi
+  if (( persisted_failed_report_count != 0 )); then
+    echo "Expected no benchmark_task_report row for failed task ${FAILURE_TASK_ID}" >&2
+    exit 1
+  fi
+
   print_step "Triggering compensated failed benchmark status query"
-  compensation_status="$(assert_get_json "${BENCHMARK_ENGINE_API_BASE_URL}/api/benchmark-engine/tasks/${failure_task_id}" "${compensation_headers[@]}")"
+  compensation_status="$(assert_get_json "${BENCHMARK_ENGINE_API_BASE_URL}/api/benchmark-engine/tasks/${FAILURE_TASK_ID}" "${compensation_headers[@]}")"
   echo "${compensation_status}"
   json_assert "${compensation_status}" 'payload["status"] == "FAILED"'
 
   print_step "Verifying compensated failed audit row"
   failed_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${COMPENSATION_REQUEST_ID}' AND service_code = 'BENCHMARK_ENGINE' AND operation_type = 'BENCHMARK_TASK_STATUS_QUERY' ORDER BY id DESC LIMIT 1;")"
   echo "${failed_row}"
-  if [[ "${failed_row}" != FAILED$'\t'"${failure_task_id}" ]]; then
+  if [[ "${failed_row}" != FAILED$'\t'"${FAILURE_TASK_ID}" ]]; then
     echo "Expected FAILED benchmark status audit row for ${COMPENSATION_REQUEST_ID}" >&2
     exit 1
   fi

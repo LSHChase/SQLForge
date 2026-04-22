@@ -22,7 +22,7 @@ Last refreshed: `2026-04-21`
 - `governance/`: governance backend baseline with audit persistence chain, protected traceability persistence, and stateless auth audit hooks
 - `query-execution/`: query execution service boundary skeleton
 - `sql-optimization/`: sql optimization submit/status api skeleton
-- `benchmark-engine/`: benchmark-engine task submit/status and report query api skeleton with placeholder repository
+- `benchmark-engine/`: benchmark-engine task submit/status and report query api with MySQL task/report persistence and scheduled worker
 - `sqlforge-shared/`: shared common layer baseline including audit context, error model, and AES-256 sensitive-data protection utilities
 
 ## Docs
