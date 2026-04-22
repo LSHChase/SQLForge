@@ -3,6 +3,10 @@ package com.company.benchmarkengine.application.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
@@ -10,6 +14,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
+import com.company.benchmarkengine.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.benchmarkengine.infrastructure.repository.InMemoryBenchmarkTaskRepository;
 import com.company.sqlforge.common.exception.BizException;
 import java.time.Instant;
@@ -28,7 +33,9 @@ class BenchmarkReportApplicationServiceTest {
     void shouldRenderPdfAndHtmlPlaceholderContent() {
         BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
         InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
-        BenchmarkReportApplicationService service = new BenchmarkReportApplicationService(modelService, repository);
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        BenchmarkReportApplicationService service =
+            new BenchmarkReportApplicationService(modelService, repository, governanceCapabilityClient);
         BenchmarkReport report = storeReport(modelService, repository, "benchmark-report-001");
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -42,13 +49,16 @@ class BenchmarkReportApplicationServiceTest {
         assertEquals("text/html", html.getMediaType().toString());
         assertTrue(new String(html.getContent()).contains("SQLForge Benchmark Report"));
         assertTrue(new String(html.getContent()).contains(report.getReportId()));
+        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertTenantScope("tenant-a");
+        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).writeAudit(any());
     }
 
     @Test
     void shouldRejectUnknownFormatAndMissingReport() {
         BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
         InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
-        BenchmarkReportApplicationService service = new BenchmarkReportApplicationService(modelService, repository);
+        BenchmarkReportApplicationService service =
+            new BenchmarkReportApplicationService(modelService, repository, mockGovernanceClient());
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
         BizException invalidFormat = assertThrows(BizException.class, () -> service.parseFormat("CSV"));
@@ -88,5 +98,13 @@ class BenchmarkReportApplicationServiceTest {
         request.setSqlText("SELECT * FROM orders");
         request.setSqlFingerprint("fp-report-query");
         return request;
+    }
+
+    private GovernanceCapabilityClient mockGovernanceClient() {
+        GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
+        doNothing().when(governanceCapabilityClient).assertTenantScope(any());
+        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any());
+        doNothing().when(governanceCapabilityClient).writeAudit(any());
+        return governanceCapabilityClient;
     }
 }

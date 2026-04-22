@@ -4,13 +4,19 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.config.ServiceCodeConstants;
+import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import com.company.sqloptimization.application.controller.dto.OptimizationTaskSubmitRequest;
 import com.company.sqloptimization.application.controller.vo.OptimizationTaskStatusResponse;
 import com.company.sqloptimization.application.controller.vo.OptimizationTaskSubmitResponse;
 import com.company.sqloptimization.domain.task.OptimizationTask;
 import com.company.sqloptimization.domain.task.repository.OptimizationTaskRepository;
+import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqloptimization.infrastructure.governance.OptimizationAuditRecord;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,16 +36,20 @@ public class OptimizationTaskApplicationService {
     private static final String STATE_REQUEST_ACCEPTED = "REQUEST_ACCEPTED";
     private static final String STATE_TASK_QUEUED = "TASK_QUEUED";
     private static final long PLACEHOLDER_ESTIMATE_SECONDS = 30L;
+    private static final String RESOURCE_TYPE_TASK = "SQL_OPTIMIZATION_TASK";
 
     private final OptimizationTaskModelApplicationService optimizationTaskModelApplicationService;
     private final OptimizationTaskRepository optimizationTaskRepository;
+    private final GovernanceCapabilityClient governanceCapabilityClient;
 
     public OptimizationTaskApplicationService(
         OptimizationTaskModelApplicationService optimizationTaskModelApplicationService,
-        OptimizationTaskRepository optimizationTaskRepository
+        OptimizationTaskRepository optimizationTaskRepository,
+        GovernanceCapabilityClient governanceCapabilityClient
     ) {
         this.optimizationTaskModelApplicationService = optimizationTaskModelApplicationService;
         this.optimizationTaskRepository = optimizationTaskRepository;
+        this.governanceCapabilityClient = governanceCapabilityClient;
     }
 
     public OptimizationTaskSubmitResponse submitTask(OptimizationTaskSubmitRequest request) {
@@ -49,6 +59,8 @@ public class OptimizationTaskApplicationService {
         logSubmitStart(request, normalizedFingerprint);
         try {
             validateCallbackUrl(request);
+            governanceCapabilityClient.assertTenantScope(request.getTenantId());
+            governanceCapabilityClient.assertDatasourceAccess(request.getTenantId(), request.getDatasourceType());
             request.setSqlFingerprint(normalizedFingerprint);
             Instant submittedAt = Instant.now();
             OptimizationTask task = optimizationTaskModelApplicationService.createQueuedTask(
@@ -72,9 +84,25 @@ public class OptimizationTaskApplicationService {
                 submittedAt.plusSeconds(PLACEHOLDER_ESTIMATE_SECONDS)
             );
             logEnd(SUBMIT_OPERATION, task.getTaskId(), request.getTenantId(), start, task.getStatus().name());
+            writeAuditRecord(
+                SUBMIT_OPERATION,
+                task.getTaskId(),
+                task.getStatus().name(),
+                System.currentTimeMillis() - start,
+                buildSubmitRequestParams(request, normalizedFingerprint),
+                buildSubmitResponseSummary(response, null)
+            );
             return response;
         } catch (RuntimeException ex) {
             logFailure(SUBMIT_OPERATION, normalizedFingerprint, request.getTenantId(), start, ex);
+            writeAuditRecord(
+                SUBMIT_OPERATION,
+                normalizedFingerprint,
+                "FAILED",
+                System.currentTimeMillis() - start,
+                buildSubmitRequestParams(request, normalizedFingerprint),
+                buildSubmitResponseSummary(null, ex.getMessage())
+            );
             throw ex;
         }
     }
@@ -92,11 +120,29 @@ public class OptimizationTaskApplicationService {
                 );
             }
             verifyTenantAccess(task.getTenantId());
+            governanceCapabilityClient.assertTenantScope(task.getTenantId());
+            governanceCapabilityClient.assertDatasourceAccess(task.getTenantId(), task.getDatasourceType());
             OptimizationTaskStatusResponse response = optimizationTaskModelApplicationService.buildStatusResponse(task);
             logEnd(QUERY_OPERATION, taskId, task.getTenantId(), start, task.getStatus().name());
+            writeAuditRecord(
+                QUERY_OPERATION,
+                taskId,
+                task.getStatus().name(),
+                System.currentTimeMillis() - start,
+                buildStatusRequestParams(task),
+                buildStatusResponseSummary(response, null)
+            );
             return response;
         } catch (RuntimeException ex) {
             logFailure(QUERY_OPERATION, taskId, null, start, ex);
+            writeAuditRecord(
+                QUERY_OPERATION,
+                taskId,
+                "FAILED",
+                System.currentTimeMillis() - start,
+                buildMissingStatusRequestParams(taskId),
+                buildStatusResponseSummary(null, ex.getMessage())
+            );
             throw ex;
         }
     }
@@ -205,5 +251,72 @@ public class OptimizationTaskApplicationService {
             ex.getMessage(),
             ex
         );
+    }
+
+    private void writeAuditRecord(String operationCode,
+                                  String resourceId,
+                                  String resultStatus,
+                                  long elapsedMs,
+                                  String requestParams,
+                                  String responseSummary) {
+        governanceCapabilityClient.writeAudit(
+            new OptimizationAuditRecord(
+                operationCode,
+                RESOURCE_TYPE_TASK,
+                resourceId,
+                resultStatus,
+                elapsedMs,
+                requestParams,
+                responseSummary
+            )
+        );
+    }
+
+    private String buildSubmitRequestParams(OptimizationTaskSubmitRequest request, String sqlFingerprint) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("serviceCode", ServiceCodeConstants.SQL_OPTIMIZATION);
+        payload.put("tenantId", request.getTenantId());
+        payload.put("taskType", request.getTaskType() == null ? null : request.getTaskType().name());
+        payload.put("datasourceType", request.getDatasourceType() == null ? null : request.getDatasourceType().name());
+        payload.put("sqlFingerprint", sqlFingerprint);
+        return JsonUtils.toJson(payload);
+    }
+
+    private String buildStatusRequestParams(OptimizationTask task) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("serviceCode", ServiceCodeConstants.SQL_OPTIMIZATION);
+        payload.put("tenantId", task.getTenantId());
+        payload.put("taskId", task.getTaskId());
+        payload.put("taskType", task.getTaskType().name());
+        payload.put("datasourceType", task.getDatasourceType() == null ? null : task.getDatasourceType().name());
+        payload.put("sqlFingerprint", task.getSqlFingerprint());
+        return JsonUtils.toJson(payload);
+    }
+
+    private String buildMissingStatusRequestParams(String taskId) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("serviceCode", ServiceCodeConstants.SQL_OPTIMIZATION);
+        payload.put("tenantId", RequestContext.getTenantId());
+        payload.put("taskId", taskId);
+        return JsonUtils.toJson(payload);
+    }
+
+    private String buildSubmitResponseSummary(OptimizationTaskSubmitResponse response, String failureReason) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("resultStatus", response == null ? "FAILED" : response.getStatus().name());
+        payload.put("currentPhase", response == null ? null : response.getCurrentPhase().name());
+        payload.put("taskId", response == null ? null : response.getTaskId());
+        payload.put("failureReason", failureReason);
+        return JsonUtils.toJson(payload);
+    }
+
+    private String buildStatusResponseSummary(OptimizationTaskStatusResponse response, String failureReason) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("resultStatus", response == null ? "FAILED" : response.getStatus().name());
+        payload.put("currentPhase", response == null ? null : response.getCurrentPhase().name());
+        payload.put("taskId", response == null ? null : response.getTaskId());
+        payload.put("errorCode", response == null || response.getFailure() == null ? null : response.getFailure().getCode());
+        payload.put("failureReason", failureReason);
+        return JsonUtils.toJson(payload);
     }
 }

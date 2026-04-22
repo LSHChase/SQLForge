@@ -5,15 +5,24 @@ import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommenda
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkThresholdAssessmentVO;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkEngineProfile;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.benchmarkengine.domain.benchmark.repository.BenchmarkTaskRepository;
+import com.company.benchmarkengine.infrastructure.governance.BenchmarkAuditRecord;
+import com.company.benchmarkengine.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqlforge.common.config.ServiceCodeConstants;
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.utils.JsonUtils;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -26,25 +35,44 @@ public class BenchmarkReportApplicationService {
     private static final Logger LOGGER = LoggerFactory.getLogger(BenchmarkReportApplicationService.class);
 
     private static final String QUERY_OPERATION = "BENCHMARK_REPORT_QUERY";
+    private static final String RESOURCE_TYPE_REPORT = "BENCHMARK_ENGINE_REPORT";
 
     private final BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService;
     private final BenchmarkTaskRepository benchmarkTaskRepository;
+    private final GovernanceCapabilityClient governanceCapabilityClient;
 
     public BenchmarkReportApplicationService(BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService,
-                                             BenchmarkTaskRepository benchmarkTaskRepository) {
+                                             BenchmarkTaskRepository benchmarkTaskRepository,
+                                             GovernanceCapabilityClient governanceCapabilityClient) {
         this.benchmarkTaskModelApplicationService = benchmarkTaskModelApplicationService;
         this.benchmarkTaskRepository = benchmarkTaskRepository;
+        this.governanceCapabilityClient = governanceCapabilityClient;
     }
 
     public BenchmarkReportResponse getJsonReport(String reportId) {
         long start = System.currentTimeMillis();
         LOGGER.info("operation={} entity={} format={} status=START", QUERY_OPERATION, reportId, BenchmarkReportFormat.JSON);
         try {
-            BenchmarkReportResponse response = benchmarkTaskModelApplicationService.buildReportResponse(loadReport(reportId));
+            BenchmarkReport report = loadReport(reportId);
+            BenchmarkReportResponse response = benchmarkTaskModelApplicationService.buildReportResponse(report);
             logEnd(reportId, BenchmarkReportFormat.JSON, start);
+            writeAuditRecord(
+                reportId,
+                "SUCCESS",
+                System.currentTimeMillis() - start,
+                buildReportRequestParams(report, BenchmarkReportFormat.JSON.name()),
+                buildReportResponseSummary("SUCCESS", response.getReportId(), BenchmarkReportFormat.JSON.name(), response.getVerdict().name(), null)
+            );
             return response;
         } catch (RuntimeException ex) {
             logFailure(reportId, BenchmarkReportFormat.JSON, start, ex);
+            writeAuditRecord(
+                reportId,
+                "FAILED",
+                System.currentTimeMillis() - start,
+                buildMissingReportRequestParams(reportId, BenchmarkReportFormat.JSON.name()),
+                buildReportResponseSummary("FAILED", reportId, BenchmarkReportFormat.JSON.name(), null, ex.getMessage())
+            );
             throw ex;
         }
     }
@@ -53,11 +81,26 @@ public class BenchmarkReportApplicationService {
         long start = System.currentTimeMillis();
         LOGGER.info("operation={} entity={} format={} status=START", QUERY_OPERATION, reportId, "RAW_DATA");
         try {
-            BenchmarkReportRawDataResponse response = benchmarkTaskModelApplicationService.buildRawDataResponse(loadReport(reportId));
+            BenchmarkReport report = loadReport(reportId);
+            BenchmarkReportRawDataResponse response = benchmarkTaskModelApplicationService.buildRawDataResponse(report);
             logEnd(reportId, null, start);
+            writeAuditRecord(
+                reportId,
+                "SUCCESS",
+                System.currentTimeMillis() - start,
+                buildReportRequestParams(report, "RAW_DATA"),
+                buildReportResponseSummary("SUCCESS", response.getReportId(), "RAW_DATA", response.getVerdict().name(), null)
+            );
             return response;
         } catch (RuntimeException ex) {
             logFailure(reportId, null, start, ex);
+            writeAuditRecord(
+                reportId,
+                "FAILED",
+                System.currentTimeMillis() - start,
+                buildMissingReportRequestParams(reportId, "RAW_DATA"),
+                buildReportResponseSummary("FAILED", reportId, "RAW_DATA", null, ex.getMessage())
+            );
             throw ex;
         }
     }
@@ -66,14 +109,29 @@ public class BenchmarkReportApplicationService {
         long start = System.currentTimeMillis();
         LOGGER.info("operation={} entity={} format={} status=START", QUERY_OPERATION, reportId, format);
         try {
-            BenchmarkReportResponse response = benchmarkTaskModelApplicationService.buildReportResponse(loadReport(reportId));
+            BenchmarkReport report = loadReport(reportId);
+            BenchmarkReportResponse response = benchmarkTaskModelApplicationService.buildReportResponse(report);
             BenchmarkRenderedReport renderedReport = format == BenchmarkReportFormat.PDF
                 ? renderPdf(response)
                 : renderHtml(response);
             logEnd(reportId, format, start);
+            writeAuditRecord(
+                reportId,
+                "SUCCESS",
+                System.currentTimeMillis() - start,
+                buildReportRequestParams(report, format.name()),
+                buildReportResponseSummary("SUCCESS", response.getReportId(), format.name(), response.getVerdict().name(), null)
+            );
             return renderedReport;
         } catch (RuntimeException ex) {
             logFailure(reportId, format, start, ex);
+            writeAuditRecord(
+                reportId,
+                "FAILED",
+                System.currentTimeMillis() - start,
+                buildMissingReportRequestParams(reportId, format == null ? null : format.name()),
+                buildReportResponseSummary("FAILED", reportId, format == null ? null : format.name(), null, ex.getMessage())
+            );
             throw ex;
         }
     }
@@ -103,6 +161,8 @@ public class BenchmarkReportApplicationService {
             );
         }
         verifyTenantAccess(report.getTenantId());
+        governanceCapabilityClient.assertTenantScope(report.getTenantId());
+        assertDatasourceAccess(report);
         return report;
     }
 
@@ -117,6 +177,17 @@ public class BenchmarkReportApplicationService {
         }
         if (!contextTenantId.equals(resourceTenantId)) {
             throw new AccessDeniedException("Authenticated tenant cannot access this benchmark report");
+        }
+    }
+
+    private void assertDatasourceAccess(BenchmarkReport report) {
+        List<BenchmarkEngineProfile> engineProfiles = report.getEngineProfiles();
+        if (engineProfiles == null || engineProfiles.isEmpty()) {
+            governanceCapabilityClient.assertDatasourceAccess(report.getTenantId(), DataSourceTypeEnum.HETU);
+            return;
+        }
+        for (BenchmarkEngineProfile engineProfile : engineProfiles) {
+            governanceCapabilityClient.assertDatasourceAccess(report.getTenantId(), engineProfile.getEngine());
         }
     }
 
@@ -307,5 +378,65 @@ public class BenchmarkReportApplicationService {
             ex.getMessage(),
             ex
         );
+    }
+
+    private void writeAuditRecord(String reportId,
+                                  String resultStatus,
+                                  long elapsedMs,
+                                  String requestParams,
+                                  String responseSummary) {
+        governanceCapabilityClient.writeAudit(
+            new BenchmarkAuditRecord(
+                QUERY_OPERATION,
+                RESOURCE_TYPE_REPORT,
+                reportId,
+                resultStatus,
+                elapsedMs,
+                requestParams,
+                responseSummary
+            )
+        );
+    }
+
+    private String buildReportRequestParams(BenchmarkReport report, String format) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("serviceCode", ServiceCodeConstants.BENCHMARK_ENGINE);
+        payload.put("tenantId", report.getTenantId());
+        payload.put("reportId", report.getReportId());
+        payload.put("taskId", report.getTaskId());
+        payload.put("format", format);
+        payload.put("targetEngines", collectTargetEngines(report));
+        return JsonUtils.toJson(payload);
+    }
+
+    private String buildMissingReportRequestParams(String reportId, String format) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("serviceCode", ServiceCodeConstants.BENCHMARK_ENGINE);
+        payload.put("tenantId", RequestContext.getTenantId());
+        payload.put("reportId", reportId);
+        payload.put("format", format);
+        return JsonUtils.toJson(payload);
+    }
+
+    private List<String> collectTargetEngines(BenchmarkReport report) {
+        List<String> engines = new ArrayList<String>(report.getEngineProfiles().size());
+        for (BenchmarkEngineProfile engineProfile : report.getEngineProfiles()) {
+            engines.add(engineProfile.getEngine().name());
+        }
+        return engines;
+    }
+
+    private String buildReportResponseSummary(String resultStatus,
+                                              String reportId,
+                                              String format,
+                                              String verdict,
+                                              String failureReason) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("resultStatus", resultStatus);
+        payload.put("reportId", reportId);
+        payload.put("format", format);
+        payload.put("verdict", verdict);
+        payload.put("failureReason", failureReason);
+        return JsonUtils.toJson(payload);
     }
 }

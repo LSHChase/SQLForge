@@ -14,6 +14,8 @@
 - 健康检查：`bash scripts/health-check.sh`
 - 端口检查：`bash scripts/check-ports.sh`
 - 查询执行到治理链路 smoke：`bash scripts/manual-query-governance-smoke.sh --cleanup`
+- SQL 优化到治理链路 smoke：`bash scripts/manual-sql-optimization-governance-smoke.sh --cleanup`
+- 压测引擎到治理链路 smoke：`bash scripts/manual-benchmark-governance-smoke.sh --cleanup`
 - 消息链路 smoke：`bash scripts/manual-message-queue-smoke.sh`
 - 运行时 smoke 编排：`bash scripts/run-runtime-smoke.sh`
 
@@ -35,9 +37,9 @@
 - 前端 lint：`npm run lint`
 - Compose 语法检查：`docker compose config`
 - 运行时 smoke 门禁：`bash scripts/run-runtime-smoke.sh --compose-check`、`bash scripts/run-runtime-smoke.sh --runtime-smoke`
-  - `--runtime-smoke` 会启动本地依赖、`governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 和前端 dev server，并串联健康探针、`query-execution -> governance` 业务 smoke 与消息队列 smoke
+  - `--runtime-smoke` 会启动本地依赖、`governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 和前端 dev server，并串联健康探针、`query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 业务 smoke 与消息队列 smoke
   - 如未预先设置 `SQLFORGE_DEV_CRYPTO_KEY_BASE64`，脚本会回落到仓库测试使用的开发密钥，并向需要敏感字段加密初始化的服务注入 dev key；仅用于本地 / CI `dev` smoke
-  - 业务 smoke 会验证查询执行成功链路、超时降级恢复、治理审计写入，以及按 trace 前缀触发的审计补偿队列兜底
+  - 业务 smoke 会验证查询执行成功链路、SQL 优化任务提交/轮询、压测任务提交/报告读取、失败恢复路径、治理审计写入，以及按 trace 前缀触发的审计补偿队列兜底
 - 任务台账审计：`python3 scripts/task_audit.py --check`
 - Codex 运行态状态目录：`.codex/state/`
 - Codex 项目级 hook 编排：`.codex/hooks.json`

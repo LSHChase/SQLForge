@@ -32,6 +32,14 @@ sql-optimization:
     poll-interval-ms: 25
     queue-visibility-delay-ms: 100
     phase-delay-ms: 40
+  governance:
+    base-url: ${SQL_OPTIMIZATION_GOVERNANCE_BASE_URL:http://localhost:8080/api/governance/internal}
+    connect-timeout-ms: ${SQL_OPTIMIZATION_GOVERNANCE_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${SQL_OPTIMIZATION_GOVERNANCE_READ_TIMEOUT_MS:5000}
+    datasource-id-map:
+      AUTO: ${SQL_OPTIMIZATION_GOVERNANCE_DATASOURCE_AUTO:optimization-hetu}
+      HETU: ${SQL_OPTIMIZATION_GOVERNANCE_DATASOURCE_HETU:optimization-hetu}
+      HIVE: ${SQL_OPTIMIZATION_GOVERNANCE_DATASOURCE_HIVE:optimization-hive}
 
 auth:
   enabled: false

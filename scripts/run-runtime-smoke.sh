@@ -355,6 +355,12 @@ run_runtime_smoke() {
   print_step "Running query-execution to governance business smoke"
   bash "${REPO_ROOT}/scripts/manual-query-governance-smoke.sh" --cleanup
 
+  print_step "Running sql-optimization to governance business smoke"
+  bash "${REPO_ROOT}/scripts/manual-sql-optimization-governance-smoke.sh" --cleanup
+
+  print_step "Running benchmark-engine to governance business smoke"
+  bash "${REPO_ROOT}/scripts/manual-benchmark-governance-smoke.sh" --cleanup
+
   print_step "Running message queue smoke"
   bash "${REPO_ROOT}/scripts/manual-message-queue-smoke.sh" --cleanup
 }

@@ -49,3 +49,7 @@ governance:
         tenant-a:
           - query-hetu
           - query-hive
+          - optimization-hetu
+          - optimization-hive
+          - benchmark-hetu
+          - benchmark-hive

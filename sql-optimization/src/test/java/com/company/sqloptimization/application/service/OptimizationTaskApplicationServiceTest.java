@@ -3,6 +3,10 @@ package com.company.sqloptimization.application.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.context.RequestContext;
@@ -10,6 +14,7 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqloptimization.application.controller.dto.OptimizationTaskContextDTO;
 import com.company.sqloptimization.application.controller.dto.OptimizationTaskSubmitRequest;
 import com.company.sqloptimization.application.controller.vo.OptimizationTaskSubmitResponse;
+import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqloptimization.infrastructure.repository.InMemoryOptimizationTaskRepository;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
@@ -30,7 +35,8 @@ class OptimizationTaskApplicationServiceTest {
     void shouldLogSubmitLifecycleForQueuedSubmit(CapturedOutput output) {
         OptimizationTaskApplicationService service = new OptimizationTaskApplicationService(
             new OptimizationTaskModelApplicationService(),
-            new InMemoryOptimizationTaskRepository()
+            new InMemoryOptimizationTaskRepository(),
+            mockGovernanceClient()
         );
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -47,7 +53,8 @@ class OptimizationTaskApplicationServiceTest {
     void shouldLogExceptionForMissingTaskStatusQuery(CapturedOutput output) {
         OptimizationTaskApplicationService service = new OptimizationTaskApplicationService(
             new OptimizationTaskModelApplicationService(),
-            new InMemoryOptimizationTaskRepository()
+            new InMemoryOptimizationTaskRepository(),
+            mockGovernanceClient()
         );
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -59,6 +66,24 @@ class OptimizationTaskApplicationServiceTest {
         assertTrue(output.getOut().contains("reason=Optimization task does not exist"));
     }
 
+    @Test
+    void shouldCallGovernanceChecksAndAuditOnSubmitAndStatusQuery() {
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        OptimizationTaskApplicationService service = new OptimizationTaskApplicationService(
+            new OptimizationTaskModelApplicationService(),
+            new InMemoryOptimizationTaskRepository(),
+            governanceCapabilityClient
+        );
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+
+        OptimizationTaskSubmitResponse response = service.submitTask(baseRequest("SELECT * FROM orders"));
+        service.getTaskStatus(response.getTaskId());
+
+        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertTenantScope("tenant-a");
+        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertDatasourceAccess("tenant-a", DataSourceTypeEnum.HETU);
+        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).writeAudit(any());
+    }
+
     private OptimizationTaskSubmitRequest baseRequest(String sqlText) {
         OptimizationTaskSubmitRequest request = new OptimizationTaskSubmitRequest();
         request.setTenantId("tenant-a");
@@ -67,5 +92,13 @@ class OptimizationTaskApplicationServiceTest {
         request.setDatasourceType(DataSourceTypeEnum.HETU);
         request.setTaskContext(new OptimizationTaskContextDTO());
         return request;
+    }
+
+    private GovernanceCapabilityClient mockGovernanceClient() {
+        GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
+        doNothing().when(governanceCapabilityClient).assertTenantScope(any());
+        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any());
+        doNothing().when(governanceCapabilityClient).writeAudit(any());
+        return governanceCapabilityClient;
     }
 }

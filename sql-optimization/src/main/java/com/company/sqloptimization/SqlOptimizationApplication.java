@@ -11,7 +11,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableConfigurationProperties({
     com.company.sqloptimization.config.AuthProperties.class,
-    com.company.sqloptimization.config.OptimizationTaskExecutionProperties.class
+    com.company.sqloptimization.config.OptimizationTaskExecutionProperties.class,
+    com.company.sqloptimization.config.OptimizationGovernanceProperties.class
 })
 @SpringBootApplication(scanBasePackages = {"com.company.sqloptimization", "com.company.sqlforge.common"})
 public class SqlOptimizationApplication {

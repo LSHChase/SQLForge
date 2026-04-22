@@ -8,12 +8,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.company.sqloptimization.SqlOptimizationApplication;
+import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +29,9 @@ class OptimizationTaskControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private GovernanceCapabilityClient governanceCapabilityClient;
 
     @Test
     void shouldSubmitTaskAndPollSucceededStatus() throws Exception {

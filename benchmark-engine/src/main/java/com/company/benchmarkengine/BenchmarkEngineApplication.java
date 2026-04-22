@@ -8,7 +8,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableConfigurationProperties({
     com.company.benchmarkengine.config.AuthProperties.class,
-    com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties.class
+    com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties.class,
+    com.company.benchmarkengine.config.BenchmarkEngineGovernanceProperties.class
 })
 @SpringBootApplication(scanBasePackages = {"com.company.benchmarkengine", "com.company.sqlforge.common"})
 public class BenchmarkEngineApplication {

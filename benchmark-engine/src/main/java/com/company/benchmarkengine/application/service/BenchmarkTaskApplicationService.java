@@ -6,12 +6,20 @@ import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskSubmit
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.ShadowEnvironmentMode;
 import com.company.benchmarkengine.domain.benchmark.repository.BenchmarkTaskRepository;
+import com.company.benchmarkengine.infrastructure.governance.BenchmarkAuditRecord;
+import com.company.benchmarkengine.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqlforge.common.config.ServiceCodeConstants;
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,14 +36,18 @@ public class BenchmarkTaskApplicationService {
     private static final String STATE_REQUEST_ACCEPTED = "REQUEST_ACCEPTED";
     private static final String STATE_TASK_QUEUED = "TASK_QUEUED";
     private static final long PLACEHOLDER_ESTIMATE_SECONDS = 45L;
+    private static final String RESOURCE_TYPE_TASK = "BENCHMARK_ENGINE_TASK";
 
     private final BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService;
     private final BenchmarkTaskRepository benchmarkTaskRepository;
+    private final GovernanceCapabilityClient governanceCapabilityClient;
 
     public BenchmarkTaskApplicationService(BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService,
-                                           BenchmarkTaskRepository benchmarkTaskRepository) {
+                                           BenchmarkTaskRepository benchmarkTaskRepository,
+                                           GovernanceCapabilityClient governanceCapabilityClient) {
         this.benchmarkTaskModelApplicationService = benchmarkTaskModelApplicationService;
         this.benchmarkTaskRepository = benchmarkTaskRepository;
+        this.governanceCapabilityClient = governanceCapabilityClient;
     }
 
     public BenchmarkTaskSubmitResponse submitTask(BenchmarkTaskSubmitRequest request) {
@@ -52,6 +64,8 @@ public class BenchmarkTaskApplicationService {
                 UUID.randomUUID().toString(),
                 submittedAt
             );
+            governanceCapabilityClient.assertTenantScope(task.getTenantId());
+            assertDatasourceAccess(task.getTenantId(), task.getTargetEngines());
             benchmarkTaskRepository.saveTask(task);
             logStateChange(
                 SUBMIT_OPERATION,
@@ -68,9 +82,25 @@ public class BenchmarkTaskApplicationService {
                 submittedAt.plusSeconds(PLACEHOLDER_ESTIMATE_SECONDS)
             );
             logEnd(SUBMIT_OPERATION, task.getTaskId(), request.getTenantId(), start, task.getStatus().name());
+            writeAuditRecord(
+                SUBMIT_OPERATION,
+                task.getTaskId(),
+                task.getStatus().name(),
+                System.currentTimeMillis() - start,
+                buildTaskRequestParams(task),
+                buildSubmitResponseSummary(response, null)
+            );
             return response;
         } catch (RuntimeException ex) {
             logFailure(SUBMIT_OPERATION, normalizedFingerprint, request.getTenantId(), start, ex);
+            writeAuditRecord(
+                SUBMIT_OPERATION,
+                normalizedFingerprint,
+                "FAILED",
+                System.currentTimeMillis() - start,
+                buildMissingTaskRequestParams(normalizedFingerprint),
+                buildSubmitResponseSummary(null, ex.getMessage())
+            );
             throw ex;
         }
     }
@@ -88,11 +118,29 @@ public class BenchmarkTaskApplicationService {
                 );
             }
             verifyTenantAccess(task.getTenantId(), "Authenticated tenant cannot access this benchmark task");
+            governanceCapabilityClient.assertTenantScope(task.getTenantId());
+            assertDatasourceAccess(task.getTenantId(), task.getTargetEngines());
             BenchmarkTaskStatusResponse response = benchmarkTaskModelApplicationService.buildStatusResponse(task);
             logEnd(QUERY_OPERATION, taskId, task.getTenantId(), start, task.getStatus().name());
+            writeAuditRecord(
+                QUERY_OPERATION,
+                taskId,
+                task.getStatus().name(),
+                System.currentTimeMillis() - start,
+                buildTaskRequestParams(task),
+                buildTaskStatusResponseSummary(response, null)
+            );
             return response;
         } catch (RuntimeException ex) {
             logFailure(QUERY_OPERATION, taskId, null, start, ex);
+            writeAuditRecord(
+                QUERY_OPERATION,
+                taskId,
+                "FAILED",
+                System.currentTimeMillis() - start,
+                buildMissingTaskRequestParams(taskId),
+                buildTaskStatusResponseSummary(null, ex.getMessage())
+            );
             throw ex;
         }
     }
@@ -154,6 +202,16 @@ public class BenchmarkTaskApplicationService {
         }
     }
 
+    private void assertDatasourceAccess(String tenantId, List<DataSourceTypeEnum> targetEngines) {
+        if (targetEngines == null || targetEngines.isEmpty()) {
+            governanceCapabilityClient.assertDatasourceAccess(tenantId, DataSourceTypeEnum.HETU);
+            return;
+        }
+        for (DataSourceTypeEnum targetEngine : targetEngines) {
+            governanceCapabilityClient.assertDatasourceAccess(tenantId, targetEngine);
+        }
+    }
+
     private void logSubmitStart(BenchmarkTaskSubmitRequest request, String sqlFingerprint) {
         LOGGER.info(
             "operation={} entity={} tenantId={} taskType={} status=START",
@@ -206,5 +264,63 @@ public class BenchmarkTaskApplicationService {
             ex.getMessage(),
             ex
         );
+    }
+
+    private void writeAuditRecord(String operationCode,
+                                  String resourceId,
+                                  String resultStatus,
+                                  long elapsedMs,
+                                  String requestParams,
+                                  String responseSummary) {
+        governanceCapabilityClient.writeAudit(
+            new BenchmarkAuditRecord(
+                operationCode,
+                RESOURCE_TYPE_TASK,
+                resourceId,
+                resultStatus,
+                elapsedMs,
+                requestParams,
+                responseSummary
+            )
+        );
+    }
+
+    private String buildTaskRequestParams(BenchmarkTask task) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("serviceCode", ServiceCodeConstants.BENCHMARK_ENGINE);
+        payload.put("tenantId", task.getTenantId());
+        payload.put("taskId", task.getTaskId());
+        payload.put("taskType", task.getTaskType().name());
+        payload.put("targetEngines", task.getTargetEngines());
+        payload.put("sqlFingerprint", task.getSqlFingerprint());
+        return JsonUtils.toJson(payload);
+    }
+
+    private String buildMissingTaskRequestParams(String resourceId) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("serviceCode", ServiceCodeConstants.BENCHMARK_ENGINE);
+        payload.put("tenantId", RequestContext.getTenantId());
+        payload.put("resourceId", resourceId);
+        return JsonUtils.toJson(payload);
+    }
+
+    private String buildSubmitResponseSummary(BenchmarkTaskSubmitResponse response, String failureReason) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("resultStatus", response == null ? "FAILED" : response.getStatus().name());
+        payload.put("currentPhase", response == null ? null : response.getCurrentPhase().name());
+        payload.put("taskId", response == null ? null : response.getTaskId());
+        payload.put("failureReason", failureReason);
+        return JsonUtils.toJson(payload);
+    }
+
+    private String buildTaskStatusResponseSummary(BenchmarkTaskStatusResponse response, String failureReason) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("resultStatus", response == null ? "FAILED" : response.getStatus().name());
+        payload.put("currentPhase", response == null ? null : response.getCurrentPhase().name());
+        payload.put("taskId", response == null ? null : response.getTaskId());
+        payload.put("reportId", response == null ? null : response.getReportId());
+        payload.put("errorCode", response == null || response.getError() == null ? null : response.getError().getCode());
+        payload.put("failureReason", failureReason);
+        return JsonUtils.toJson(payload);
     }
 }
