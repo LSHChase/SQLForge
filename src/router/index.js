@@ -1,6 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import DashboardView from '../views/dashboard/DashboardView.vue'
 import RoutePlaceholder from '../views/common/RoutePlaceholder.vue'
+import SqlQueryView from '../views/query/SqlQueryView.vue'
+import AccelerationView from '../views/optimization/AccelerationView.vue'
+import BenchmarkView from '../views/benchmark/BenchmarkView.vue'
 import { deliveryProgressEnabled } from '../config/runtimeFlags'
 
 export const constantRoutes = [
@@ -21,12 +24,7 @@ export const constantRoutes = [
   {
     path: '/sql-query',
     name: 'SqlQuery',
-    component: RoutePlaceholder,
-    props: {
-      eyebrowKey: 'common.platformTagline',
-      titleKey: 'sqlQuery.title',
-      descriptionKey: 'sqlQuery.summary'
-    },
+    component: SqlQueryView,
     meta: {
       menu: true,
       titleKey: 'sqlQuery.title',
@@ -51,12 +49,7 @@ export const constantRoutes = [
   {
     path: '/benchmark',
     name: 'Benchmark',
-    component: RoutePlaceholder,
-    props: {
-      eyebrowKey: 'common.platformTagline',
-      titleKey: 'benchmark.title',
-      descriptionKey: 'benchmark.summary'
-    },
+    component: BenchmarkView,
     meta: {
       menu: true,
       titleKey: 'benchmark.title',
@@ -66,12 +59,7 @@ export const constantRoutes = [
   {
     path: '/acceleration',
     name: 'Acceleration',
-    component: RoutePlaceholder,
-    props: {
-      eyebrowKey: 'common.platformTagline',
-      titleKey: 'acceleration.title',
-      descriptionKey: 'acceleration.summary'
-    },
+    component: AccelerationView,
     meta: {
       menu: true,
       titleKey: 'acceleration.title',

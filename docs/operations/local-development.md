@@ -17,6 +17,7 @@
 - SQL 优化到治理链路 smoke：`bash scripts/manual-sql-optimization-governance-smoke.sh --cleanup`
 - 压测引擎到治理链路 smoke：`bash scripts/manual-benchmark-governance-smoke.sh --cleanup`
 - 消息链路 smoke：`bash scripts/manual-message-queue-smoke.sh`
+- 前端真实业务 smoke：`npm run smoke:frontend-runtime`
 - 运行时 smoke 编排：`bash scripts/run-runtime-smoke.sh`
 
 ## Validation Baseline
@@ -35,11 +36,13 @@
   - 尚未配置环境变量时可先执行：`bash scripts/run-sonar.sh`
 - 前端构建：`npm run build`
 - 前端 lint：`npm run lint`
+- 前端真实业务 smoke：`npm run smoke:frontend-runtime`
 - Compose 语法检查：`docker compose config`
 - 运行时 smoke 门禁：`bash scripts/run-runtime-smoke.sh --compose-check`、`bash scripts/run-runtime-smoke.sh --runtime-smoke`
-  - `--runtime-smoke` 会启动本地依赖、`governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 和前端 dev server，并串联健康探针、`query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 业务 smoke 与消息队列 smoke
+  - `--runtime-smoke` 会启动本地依赖、`governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 和前端 dev server，并串联健康探针、`query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 业务 smoke、消息队列 smoke，以及浏览器驱动的前端 `sql-query` / `acceleration` / `benchmark` 真实业务请求 smoke
   - 如未预先设置 `SQLFORGE_DEV_CRYPTO_KEY_BASE64`，脚本会回落到仓库测试使用的开发密钥，并向需要敏感字段加密初始化的服务注入 dev key；仅用于本地 / CI `dev` smoke
-  - 业务 smoke 会验证查询执行成功链路、SQL 优化任务提交/轮询、压测任务提交/报告读取、失败恢复路径、治理审计写入，以及按 trace 前缀触发的审计补偿队列兜底
+  - 业务 smoke 会验证查询执行成功链路、SQL 优化任务提交/轮询、压测任务提交/报告读取、失败恢复路径、治理审计写入、前端浏览器端真实请求，以及按 trace 前缀触发的审计补偿队列兜底
+  - 前端 smoke 优先复用系统 Chrome；如本机没有常见的 Chrome / Chromium 可执行文件，则会回退到 Playwright 默认浏览器解析逻辑
 - 任务台账审计：`python3 scripts/task_audit.py --check`
 - Codex 运行态状态目录：`.codex/state/`
 - Codex 项目级 hook 编排：`.codex/hooks.json`

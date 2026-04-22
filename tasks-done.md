@@ -4,6 +4,24 @@
 
 ## Done
 
+### F-TASK-014: 扩展前端真实业务 runtime smoke 门禁
+
+- Status: done
+- Completed at: 2026-04-21
+- Commit subject: `feat(frontend): F-TASK-014 gate browser runtime smoke`
+- Priority: 1
+- Depends on: N/A
+- Scope: 把前端可见的真实业务路径接入默认 runtime smoke / CI，验证前端发起请求后 query-execution、sql-optimization、benchmark-engine 与 governance 的关键链路能从 UI 侧跑通，并补脚本与文档证据链。
+- Validation:
+  - `python3 scripts/foreman.py validate F-TASK-014`
+- Progress log:
+  - 2026-04-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 为前端新增 sql-query、acceleration、benchmark 三个真实业务页与受保护 API client，按服务扩展 Vite proxy，新增浏览器驱动 smoke 并接入默认 runtime smoke / CI。
+  - Validation evidence: npm run lint；npm run build；bash scripts/run-runtime-smoke.sh --compose-check；bash scripts/run-runtime-smoke.sh --runtime-smoke --reuse-running-stack --keep-stack；python3 scripts/foreman.py validate F-TASK-014 --include-task-audit --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'bash scripts/run-runtime-smoke.sh --compose-check' --extra-command 'bash scripts/run-runtime-smoke.sh --runtime-smoke --reuse-running-stack --keep-stack'；python3 scripts/task_audit.py --check --phase pre-closeout；python3 scripts/task_audit.py --check --phase post-closeout。
+  - Residual risk: 前端 runtime gate 当前覆盖 3 条成功业务链路，但失败恢复 UI、审计补偿可视化和更多业务页尚未并入浏览器 smoke；sql-optimization 和 benchmark-engine 仍是占位执行器链路。
+  - Next step: 继续推进 sql-optimization / benchmark-engine 的真实持久化、调度与回调链路，并把对应失败恢复与前端可视化一并接入 runtime gate。
+
 ### F-TASK-013: 扩展优化与压测业务级 runtime smoke 门禁
 
 - Status: done

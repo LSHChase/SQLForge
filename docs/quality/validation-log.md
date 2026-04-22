@@ -369,3 +369,13 @@
 2026-04-21T22:29:34-05:00 | F-TASK-013 validate | `R-133`, `R-168` | passed | `bash scripts/run-runtime-smoke.sh --compose-check`
 2026-04-21T22:29:55-05:00 | F-TASK-013 validate | `R-133`, `R-168` | passed | `bash scripts/run-runtime-smoke.sh --runtime-smoke --reuse-running-stack --keep-stack`
 2026-04-21T22:32:07-05:00 | F-TASK-013 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T22:32:07-05:00 | F-TASK-013 closeout commit | `R-168` | passed | `4ebe0896fe8c461608e74f087d294427154f7af2`
+2026-04-21T22:32:07-05:00 | F-TASK-013 post-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
+2026-04-21T23:54:53-05:00 | F-TASK-014 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-21T23:54:53-05:00 | F-TASK-014 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T23:54:53-05:00 | F-TASK-014 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T23:54:53-05:00 | F-TASK-014 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-04-21T23:54:56-05:00 | F-TASK-014 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-04-21T23:54:56-05:00 | F-TASK-014 validate | `R-133`, `R-168` | passed | `bash scripts/run-runtime-smoke.sh --compose-check`
+2026-04-21T23:55:23-05:00 | F-TASK-014 validate | `R-133`, `R-168` | passed | `bash scripts/run-runtime-smoke.sh --runtime-smoke --reuse-running-stack --keep-stack`
+2026-04-21T23:56:33-05:00 | F-TASK-014 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`

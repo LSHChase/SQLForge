@@ -204,15 +204,25 @@ install_backend_runtime_dependencies() {
 ensure_frontend_dependencies() {
   require_command npm
 
-  if [[ -d "${REPO_ROOT}/node_modules" ]]; then
+  if [[ ! -d "${REPO_ROOT}/node_modules" ]]; then
+    print_step "Installing frontend runtime dependencies"
+    (
+      cd "${REPO_ROOT}"
+      npm install >/dev/null
+    )
     return
   fi
 
-  print_step "Installing frontend runtime dependencies"
-  (
-    cd "${REPO_ROOT}"
-    npm install >/dev/null
-  )
+  if ! (
+    cd "${REPO_ROOT}" &&
+    node -e "require.resolve('playwright')" >/dev/null 2>&1
+  ); then
+    print_step "Refreshing frontend runtime dependencies"
+    (
+      cd "${REPO_ROOT}"
+      npm install >/dev/null
+    )
+  fi
 }
 
 wait_for_http() {
@@ -363,6 +373,12 @@ run_runtime_smoke() {
 
   print_step "Running message queue smoke"
   bash "${REPO_ROOT}/scripts/manual-message-queue-smoke.sh" --cleanup
+
+  print_step "Running frontend business runtime smoke"
+  (
+    cd "${REPO_ROOT}"
+    npm run smoke:frontend-runtime
+  )
 }
 
 main() {
