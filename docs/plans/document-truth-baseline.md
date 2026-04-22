@@ -94,7 +94,7 @@
 - 当前备份恢复事实已形成统一文档落点：
   - `docs/deployments/backup-recovery-baseline.md` 已把 MySQL、审计链、导出元数据、消息兜底与密钥边界的恢复目标、责任角色和演练模板收口为正式文档
 - 当前 CI 事实已形成统一文档落点：
-  - `docs/deployments/ci-capability-baseline.md` 已把 `.github/workflows/ci.yml` 当前覆盖的 lint/build/test/scan 能力，以及尚未进入 CI 的 phase gate / task audit / runtime smoke 缺口收口为正式文档
+  - `docs/deployments/ci-capability-baseline.md` 已把 `.github/workflows/ci.yml` 当前覆盖的 lint/build/test/scan/runtime smoke 能力，以及尚未进入 CI 的 phase gate / task audit / 更广泛运行时验证缺口收口为正式文档
   - `docs/deployments/phase-gate-baseline.md` 已把 `task_audit`、`compile-governance --check`、`workflow_dispatch` phase gate 和最小 R-118 校验收口为正式文档
 - 当前已验证通过：
   - `mvn clean compile`

@@ -92,6 +92,22 @@ jobs:
             echo "pom.xml not present yet, skip Maven tests"
           fi
 
+      - name: Validate compose syntax
+        run: |
+          if [ -f docker-compose.yml ]; then
+            bash scripts/run-runtime-smoke.sh --compose-check
+          else
+            echo "docker-compose.yml not present yet, skip compose validation"
+          fi
+
+      - name: Run runtime smoke checks
+        run: |
+          if [ -f docker-compose.yml ]; then
+            bash scripts/run-runtime-smoke.sh --runtime-smoke
+          else
+            echo "docker-compose.yml not present yet, skip runtime smoke"
+          fi
+
       - name: Generate backend coverage report
         run: |
           if [ -f scripts/run-coverage.sh ]; then

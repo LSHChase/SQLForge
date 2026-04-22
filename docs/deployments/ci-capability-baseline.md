@@ -43,6 +43,7 @@
 | Java scan artifacts | workflow 会校验并上传各模块的 `target/pmd.xml`、`target/site/pmd.html`、`target/checkstyle-result.xml`、`target/site/checkstyle.html` | `.github/workflows/ci.yml`, `scripts/verify_java_quality_reports.py` |
 | Backend tests | workflow 会执行 `mvn -B test` | `.github/workflows/ci.yml` |
 | Coverage integration | 主 CI 继续调用 `bash scripts/run-coverage.sh --phase report-only` 生成覆盖率报告；阶段切换阻断改由 `Phase Gate` workflow 显式运行 `phase0|phase1plus` | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `scripts/run-coverage.sh` |
+| Runtime smoke integration | 主 CI 会显式执行 compose 语法检查、基础依赖启动、`governance` 健康探针与消息队列 smoke | `.github/workflows/ci.yml`, `scripts/run-runtime-smoke.sh`, `scripts/health-check.sh`, `scripts/manual-message-queue-smoke.sh` |
 | Sonar integration | workflow 仅在 `SONAR_HOST_URL` 与 `SONAR_TOKEN` secrets 存在时执行 `bash scripts/run-sonar.sh --require-config` | `.github/workflows/ci.yml`, `scripts/run-sonar.sh` |
 | Boundary lint | workflow 会执行 `node scripts/check-frontend-backend-separation.js` | `.github/workflows/ci.yml` |
 | Frontend lint/build | workflow 会执行 `npm install`、`npm run lint`、`npm run build` | `.github/workflows/ci.yml`, `package.json` |
@@ -59,6 +60,8 @@
 | Java static checks | Enabled | `mvn -B validate -DskipTests` + `mvn -B pmd:pmd -DskipTests` + `mvn -B checkstyle:checkstyle -DskipTests` + `mvn -B checkstyle:check -DskipTests` | 已拆分为显式步骤，便于定位失败环节 |
 | Java scan report retention | Enabled | `python3 scripts/verify_java_quality_reports.py` + `actions/upload-artifact@v4` | 保留 PMD / Checkstyle XML 与 HTML 报告，满足 `R-151` 可读报告要求 |
 | Backend unit/integration tests | Enabled | `mvn -B test` | 未按模块拆分 |
+| Compose syntax validation | Enabled | `bash scripts/run-runtime-smoke.sh --compose-check` | 通过统一脚本兼容 `docker compose` / `docker-compose` |
+| Runtime startup / health / queue smoke | Enabled | `bash scripts/run-runtime-smoke.sh --runtime-smoke` | 启动本地依赖、拉起 `governance`、执行健康探针与消息重试 smoke；脚本会为 `dev` profile 注入仓库内测试密钥以满足敏感字段加密初始化 |
 | Coverage report generation | Enabled | `bash scripts/run-coverage.sh --phase report-only` | 只生成报告，不做 phase threshold gate |
 | Optional Sonar scan | Conditional | `bash scripts/run-sonar.sh --require-config` | 依赖 secrets；缺少配置时不会运行 |
 | Frontend-backend separation | Enabled | `node scripts/check-frontend-backend-separation.js` | 已纳入 CI |
@@ -75,18 +78,17 @@
 | Phase gate coverage thresholds | `bash scripts/run-coverage.sh --phase phase0|phase1plus` | workflow 只调用了 `report-only`，未启用阈值阻断 |
 | Foreman task validation | `python3 scripts/foreman.py validate <TASK_ID>` | 当前 workflow 仍未做任务级 validate 编排 |
 | Codex runtime validation | `python3 scripts/validate_codex_runtime.py` | 当前 workflow 未调用 |
-| Compose syntax validation | `docker compose config` | 当前 workflow 未调用 |
-| Local startup / health / smoke | `bash scripts/local-start.sh`, `bash scripts/health-check.sh`, `bash scripts/manual-message-queue-smoke.sh` | 当前 workflow 未启动服务，也未做 runtime smoke |
-
+| Foreman task validation | `python3 scripts/foreman.py validate <TASK_ID>` | 当前 workflow 仍未做任务级 validate 编排 |
+| Codex runtime validation | `python3 scripts/validate_codex_runtime.py` | 当前 workflow 未调用 |
 ## Current Gaps
 
-以下缺口属于 `F-TASK-004` 盘点结论，不是“已经接入”的事实：
+以下缺口属于当前 CI 基线的残余事实，不是“已经接入”的事实：
 
 1. `R-116` / `R-117` / `R-118` 已有脚本和 `workflow_dispatch` 接线，但尚未自动绑定到阶段切换事件。
 2. 当前 workflow 仍未把 `python3 scripts/foreman.py validate <TASK>` 纳入通用 CI。
 3. `Phase Gate` 的 `phase1plus` 覆盖率阈值当前仍可能阻断，因为仓库聚合覆盖率尚未稳定达到 85%。
 4. Sonar 目前仍是“有 secrets 才能真正通过”的门禁项，不是无条件可运行。
-5. 未在 CI 中执行 `docker compose config`、本地启动、健康检查或消息链路 smoke。
+5. 当前 runtime smoke 只覆盖基础依赖、`governance` 健康探针和数据库消息队列重试链路，尚未把前端和其他后端模块的真实启动统一纳入默认 CI。
 6. 当前 workflow 使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
 
 ## Recommended Follow-Up Mapping
@@ -95,6 +97,7 @@
 |:---|:---|
 | `F-TASK-005` | 已完成：`task_audit`、`compile-governance --check` 与 `Phase Gate` workflow 已接入 |
 | `F-TASK-006` | 已完成：把 Java 静态检查拆成显式 CI 步骤，并把 PMD / Checkstyle 报告留存为 artifact |
+| `F-TASK-010` | 已完成：把 compose 校验、`governance` 启动健康检查与消息队列 smoke 接入默认 CI |
 
 ## Exit Criteria For F-TASK-004
 

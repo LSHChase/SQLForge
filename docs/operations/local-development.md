@@ -14,6 +14,7 @@
 - 健康检查：`bash scripts/health-check.sh`
 - 端口检查：`bash scripts/check-ports.sh`
 - 消息链路 smoke：`bash scripts/manual-message-queue-smoke.sh`
+- 运行时 smoke 编排：`bash scripts/run-runtime-smoke.sh`
 
 ## Validation Baseline
 
@@ -32,6 +33,8 @@
 - 前端构建：`npm run build`
 - 前端 lint：`npm run lint`
 - Compose 语法检查：`docker compose config`
+- 运行时 smoke 门禁：`bash scripts/run-runtime-smoke.sh --compose-check`、`bash scripts/run-runtime-smoke.sh --runtime-smoke`
+  - 如未预先设置 `SQLFORGE_DEV_CRYPTO_KEY_BASE64`，脚本会回落到仓库测试使用的开发密钥，只用于本地 / CI `dev` smoke
 - 任务台账审计：`python3 scripts/task_audit.py --check`
 - Codex 运行态状态目录：`.codex/state/`
 - Codex 项目级 hook 编排：`.codex/hooks.json`

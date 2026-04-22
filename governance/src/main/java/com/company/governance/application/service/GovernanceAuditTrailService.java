@@ -32,6 +32,7 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -63,6 +64,7 @@ public class GovernanceAuditTrailService {
     private final MessageProducer messageProducer;
     private final MessagingProperties messagingProperties;
 
+    @Autowired
     public GovernanceAuditTrailService(GovernanceProtectedPersistenceService governanceProtectedPersistenceService,
                                        ConfigSnapshotMapper configSnapshotMapper,
                                        ExecutionResultMapper executionResultMapper,
