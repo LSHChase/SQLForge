@@ -44,7 +44,10 @@
 - 当前 `KAFKA` 模式已接入真实 Kafka 客户端基线：
   - `KafkaMessageProducer` 使用 Kafka 客户端发送消息
   - `KafkaMessageConsumer` 使用 Kafka 客户端启动后台监听循环
-  - 当前仓库只完成代码接入与单元测试覆盖，尚未记录真实 Kafka 集群运行验证证据
+  - `MessagingConfig` 现已校验 `bootstrap-servers`、`security-protocol` 与 SASL/SSL 安全参数边界
+  - `scripts/verify_kafka_runtime_config.py` 提供独立 bootstrap/security 参数门禁
+  - `scripts/run-kafka-runtime-gate.sh` 提供真实 Kafka 连通性、成功投递、消费日志与失败回退队列验证
+  - `.github/workflows/kafka-runtime-gate.yml` 提供独立 GitHub Actions 入口，保留真实 Kafka runtime evidence
 
 ## 实现映射
 
@@ -136,12 +139,26 @@ docker compose --profile optional up -d kafka
    - `messaging.mode=KAFKA`
    - `messaging.kafka.enabled=true`
    - `messaging.kafka.bootstrap-servers=<cluster>`
+   - `messaging.kafka.security-protocol=<PLAINTEXT|SSL|SASL_PLAINTEXT|SASL_SSL>`
+   - 若使用 `SASL_*`，必须补齐 `messaging.kafka.sasl-mechanism` 与 `messaging.kafka.sasl-jaas-config`
+   - 若使用 `*SSL`，必须补齐 `messaging.kafka.ssl-truststore-location` 与 `messaging.kafka.ssl-truststore-password`
 4. 保持业务层接口不变，仅替换基础设施实现。
-5. 当前还需要补真实 Kafka 连通性与消费链路运行验证证据。
+5. 执行真实 Kafka 验证：
+
+```bash
+python3 scripts/verify_kafka_runtime_config.py
+bash scripts/run-kafka-runtime-gate.sh
+```
+
+6. 当前真实 Kafka gate 已覆盖：
+   - Topic bootstrap/connectivity
+   - `KAFKA` 模式下 `schedule/extensions` 状态
+   - `audit/write` 成功投递与消费日志
+   - Kafka 故障后的 fallback queue 恢复路径
 
 ## 维护说明
 
 - Topic 名称、消息体 JSON 结构、Headers、分区键策略和消费顺序要求，必须同步维护到对应接口契约文档。
 - 本文件负责定义全局抽象模式，不承载具体业务 Topic 细节。
-- 当前仓库已完成 `DATABASE` / `MOCK` 可运行基线，以及 `KAFKA` 代码接入基线；真实集群运行验证仍待补齐。
+- 当前仓库已完成 `DATABASE` / `MOCK` 可运行基线，以及 `KAFKA` 代码接入、真实集群 runtime gate 与安全参数校验入口。
 - 相关规则：`R-066`, `R-068`, `R-121`, `R-128`, `R-144`

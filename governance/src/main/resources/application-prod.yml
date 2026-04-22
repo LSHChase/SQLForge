@@ -14,9 +14,17 @@ messaging:
   kafka:
     enabled: true
     bootstrap-servers: ${SQLFORGE_PROD_KAFKA_BOOTSTRAP:kafka-prod-1:9092,kafka-prod-2:9092,kafka-prod-3:9092}
+    security-protocol: ${SQLFORGE_PROD_KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+    sasl-mechanism: ${SQLFORGE_PROD_KAFKA_SASL_MECHANISM:}
+    sasl-jaas-config: ${SQLFORGE_PROD_KAFKA_SASL_JAAS_CONFIG:}
+    ssl-truststore-location: ${SQLFORGE_PROD_KAFKA_SSL_TRUSTSTORE_LOCATION:}
+    ssl-truststore-password: ${SQLFORGE_PROD_KAFKA_SSL_TRUSTSTORE_PASSWORD:}
     producer:
       acks: all
       retries: 3
+      request-timeout-ms: ${SQLFORGE_PROD_KAFKA_PRODUCER_REQUEST_TIMEOUT_MS:15000}
+      delivery-timeout-ms: ${SQLFORGE_PROD_KAFKA_PRODUCER_DELIVERY_TIMEOUT_MS:30000}
+      max-block-ms: ${SQLFORGE_PROD_KAFKA_PRODUCER_MAX_BLOCK_MS:15000}
     consumer:
       group-id: ${SQLFORGE_PROD_KAFKA_GROUP_ID:sqlforge-group}
       auto-offset-reset: earliest

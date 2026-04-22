@@ -16,6 +16,11 @@ messaging:
   kafka:
     enabled: false
     # bootstrap-servers: ${SQLFORGE_DEV_KAFKA_BOOTSTRAP:localhost:9092}
+    # security-protocol: ${SQLFORGE_DEV_KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+    # sasl-mechanism: ${SQLFORGE_DEV_KAFKA_SASL_MECHANISM:}
+    # sasl-jaas-config: ${SQLFORGE_DEV_KAFKA_SASL_JAAS_CONFIG:}
+    # ssl-truststore-location: ${SQLFORGE_DEV_KAFKA_SSL_TRUSTSTORE_LOCATION:}
+    # ssl-truststore-password: ${SQLFORGE_DEV_KAFKA_SSL_TRUSTSTORE_PASSWORD:}
   database:
     enabled: true
     poll-interval: 5000

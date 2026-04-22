@@ -32,6 +32,11 @@ public class MessagingProperties {
 
         private boolean enabled;
         private String bootstrapServers;
+        private String securityProtocol = "PLAINTEXT";
+        private String saslMechanism;
+        private String saslJaasConfig;
+        private String sslTruststoreLocation;
+        private String sslTruststorePassword;
         private final ProducerProperties producer = new ProducerProperties();
         private final ConsumerProperties consumer = new ConsumerProperties();
         private final Map<String, String> properties = new LinkedHashMap<String, String>();
@@ -52,6 +57,46 @@ public class MessagingProperties {
             this.bootstrapServers = bootstrapServers;
         }
 
+        public String getSecurityProtocol() {
+            return securityProtocol;
+        }
+
+        public void setSecurityProtocol(String securityProtocol) {
+            this.securityProtocol = securityProtocol;
+        }
+
+        public String getSaslMechanism() {
+            return saslMechanism;
+        }
+
+        public void setSaslMechanism(String saslMechanism) {
+            this.saslMechanism = saslMechanism;
+        }
+
+        public String getSaslJaasConfig() {
+            return saslJaasConfig;
+        }
+
+        public void setSaslJaasConfig(String saslJaasConfig) {
+            this.saslJaasConfig = saslJaasConfig;
+        }
+
+        public String getSslTruststoreLocation() {
+            return sslTruststoreLocation;
+        }
+
+        public void setSslTruststoreLocation(String sslTruststoreLocation) {
+            this.sslTruststoreLocation = sslTruststoreLocation;
+        }
+
+        public String getSslTruststorePassword() {
+            return sslTruststorePassword;
+        }
+
+        public void setSslTruststorePassword(String sslTruststorePassword) {
+            this.sslTruststorePassword = sslTruststorePassword;
+        }
+
         public ProducerProperties getProducer() {
             return producer;
         }
@@ -70,6 +115,9 @@ public class MessagingProperties {
         private String acks = "all";
         private int retries = 3;
         private String clientId = "governance-producer";
+        private int requestTimeoutMs = 15000;
+        private int deliveryTimeoutMs = 30000;
+        private int maxBlockMs = 15000;
         private final Map<String, String> properties = new LinkedHashMap<String, String>();
 
         public String getAcks() {
@@ -94,6 +142,30 @@ public class MessagingProperties {
 
         public void setClientId(String clientId) {
             this.clientId = clientId;
+        }
+
+        public int getRequestTimeoutMs() {
+            return requestTimeoutMs;
+        }
+
+        public void setRequestTimeoutMs(int requestTimeoutMs) {
+            this.requestTimeoutMs = requestTimeoutMs;
+        }
+
+        public int getDeliveryTimeoutMs() {
+            return deliveryTimeoutMs;
+        }
+
+        public void setDeliveryTimeoutMs(int deliveryTimeoutMs) {
+            this.deliveryTimeoutMs = deliveryTimeoutMs;
+        }
+
+        public int getMaxBlockMs() {
+            return maxBlockMs;
+        }
+
+        public void setMaxBlockMs(int maxBlockMs) {
+            this.maxBlockMs = maxBlockMs;
         }
 
         public Map<String, String> getProperties() {

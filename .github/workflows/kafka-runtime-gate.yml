@@ -1,0 +1,20 @@
+name: Kafka Runtime Gate
+
+on:
+  workflow_dispatch:
+
+jobs:
+  kafka-runtime-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: Run real Kafka runtime gate
+        run: bash scripts/run-kafka-runtime-gate.sh

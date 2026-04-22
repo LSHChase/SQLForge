@@ -2,6 +2,7 @@ package com.company.governance.config;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
 
 import com.company.governance.domain.message.repository.MessageQueueRepository;
@@ -88,5 +89,53 @@ class MessagingConfigTest {
         kafkaProperties.getKafka().setEnabled(true);
 
         assertThrows(BizException.class, () -> config.messageProducer(kafkaProperties, repository, bus));
+    }
+
+    @Test
+    void shouldRejectKafkaSaslModeWithoutMechanismAndJaas() {
+        MessagingConfig config = new MessagingConfig();
+        MessageQueueRepository repository = mock(MessageQueueRepository.class);
+        InMemoryMessageBus bus = new InMemoryMessageBus();
+        MessagingProperties kafkaProperties = new MessagingProperties();
+        kafkaProperties.setMode(MessagingMode.KAFKA);
+        kafkaProperties.getKafka().setEnabled(true);
+        kafkaProperties.getKafka().setBootstrapServers("localhost:9092");
+        kafkaProperties.getKafka().setSecurityProtocol("SASL_SSL");
+
+        assertThrows(BizException.class, () -> config.messageProducer(kafkaProperties, repository, bus));
+    }
+
+    @Test
+    void shouldRejectKafkaSslModeWithoutTruststore() {
+        MessagingConfig config = new MessagingConfig();
+        MessageQueueRepository repository = mock(MessageQueueRepository.class);
+        InMemoryMessageBus bus = new InMemoryMessageBus();
+        MessagingProperties kafkaProperties = new MessagingProperties();
+        kafkaProperties.setMode(MessagingMode.KAFKA);
+        kafkaProperties.getKafka().setEnabled(true);
+        kafkaProperties.getKafka().setBootstrapServers("localhost:9092");
+        kafkaProperties.getKafka().setSecurityProtocol("SSL");
+
+        assertThrows(BizException.class, () -> config.messageProducer(kafkaProperties, repository, bus));
+    }
+
+    @Test
+    void shouldAcceptKafkaSslModeWhenSecurityParametersAreComplete() {
+        MessagingConfig config = new MessagingConfig();
+        MessageQueueRepository repository = mock(MessageQueueRepository.class);
+        InMemoryMessageBus bus = new InMemoryMessageBus();
+        MessagingProperties kafkaProperties = new MessagingProperties();
+        kafkaProperties.setMode(MessagingMode.KAFKA);
+        kafkaProperties.getKafka().setEnabled(true);
+        kafkaProperties.getKafka().setBootstrapServers("localhost:9092");
+        kafkaProperties.getKafka().setSecurityProtocol("SASL_SSL");
+        kafkaProperties.getKafka().setSaslMechanism("PLAIN");
+        kafkaProperties.getKafka().setSaslJaasConfig(
+            "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"u\" password=\"p\";"
+        );
+        kafkaProperties.getKafka().setSslTruststoreLocation("/tmp/sqlforge-kafka.truststore.jks");
+        kafkaProperties.getKafka().setSslTruststorePassword("secret");
+
+        assertDoesNotThrow(() -> config.messageProducer(kafkaProperties, repository, bus));
     }
 }

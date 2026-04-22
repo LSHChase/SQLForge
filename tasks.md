@@ -11,15 +11,6 @@
 
 ## Todo
 
-### F-TASK-026: 接入真实 Kafka 运行验证与环境安全参数门禁
-
-- Status: in_progress
-- Priority: 1
-- Depends on: N/A
-- Scope: Add Phase-F runtime verification for real Kafka mode, including bootstrap/security parameter validation, connectivity checks, failure-recovery smoke, and documented runtime-gate evidence so messaging is not only proven in DATABASE mode.
-- Validation:
-  - `python3 scripts/foreman.py validate F-TASK-026`
-
 ### F-TASK-027: 收口 Phase-F 退出门禁缺口
 
 - Status: in_progress

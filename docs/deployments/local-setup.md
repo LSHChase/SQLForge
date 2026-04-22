@@ -153,7 +153,16 @@ SELECT COUNT(*) FROM kafka_message_queue WHERE status = 'PENDING';
 1. 将 `messaging.mode` 修改为 `KAFKA`
 2. 配置 `messaging.kafka.bootstrap-servers`
 3. 按环境补齐 Kafka 安全参数与连通性验证
+   - `messaging.kafka.security-protocol`
+   - `messaging.kafka.sasl-mechanism` / `messaging.kafka.sasl-jaas-config`（`SASL_*`）
+   - `messaging.kafka.ssl-truststore-location` / `messaging.kafka.ssl-truststore-password`（`*SSL`）
 4. 使用 `docker compose --profile optional up -d kafka` 或生产编排启用 Kafka 服务
+5. 先执行参数门禁，再执行真实 Kafka runtime gate：
+
+```bash
+python3 scripts/verify_kafka_runtime_config.py
+bash scripts/run-kafka-runtime-gate.sh
+```
 
 ## 数据重置
 

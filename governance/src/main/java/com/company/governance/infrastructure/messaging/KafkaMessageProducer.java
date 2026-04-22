@@ -113,9 +113,15 @@ public class KafkaMessageProducer implements MessageProducer, org.springframewor
             properties.put(ProducerConfig.ACKS_CONFIG, messagingProperties.getKafka().getProducer().getAcks());
             properties.put(ProducerConfig.RETRIES_CONFIG, messagingProperties.getKafka().getProducer().getRetries());
             properties.put(ProducerConfig.CLIENT_ID_CONFIG, messagingProperties.getKafka().getProducer().getClientId());
+            properties.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG,
+                messagingProperties.getKafka().getProducer().getRequestTimeoutMs());
+            properties.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG,
+                messagingProperties.getKafka().getProducer().getDeliveryTimeoutMs());
+            properties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG,
+                messagingProperties.getKafka().getProducer().getMaxBlockMs());
             properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
             properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-            properties.putAll(messagingProperties.getKafka().getProperties());
+            KafkaClientPropertySupport.applyCommonKafkaProperties(properties, messagingProperties.getKafka());
             properties.putAll(messagingProperties.getKafka().getProducer().getProperties());
             return new KafkaProducer<String, String>(properties);
         }

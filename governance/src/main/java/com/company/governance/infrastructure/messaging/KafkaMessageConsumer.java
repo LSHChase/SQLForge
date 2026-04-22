@@ -196,7 +196,7 @@ public class KafkaMessageConsumer implements MessageConsumer, org.springframewor
                 messagingProperties.getKafka().getConsumer().getClientId() + "-" + topic);
             properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
             properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-            properties.putAll(messagingProperties.getKafka().getProperties());
+            KafkaClientPropertySupport.applyCommonKafkaProperties(properties, messagingProperties.getKafka());
             properties.putAll(messagingProperties.getKafka().getConsumer().getProperties());
             return new KafkaConsumer<String, String>(properties);
         }
