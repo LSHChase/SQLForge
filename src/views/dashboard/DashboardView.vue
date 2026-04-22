@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import { useTenantStore } from '../../stores'
 
 const { t, locale } = useI18n()
@@ -51,31 +52,25 @@ const quickEntries = computed(() => [
     title: t('sqlQuery.title'),
     description: t('sqlQuery.summary'),
     status: locale.value === 'zh-CN' ? '默认走 HETU 主路径，待处理慢查询 4 条' : 'HETU is primary; 4 slow queries need attention',
-    path: '/sql-query'
-  },
-  {
-    title: t('parseRecord.title'),
-    description: t('parseRecord.summary'),
-    status: locale.value === 'zh-CN' ? '最近失败样本集中在窗口函数改写' : 'Recent failures cluster around window-function rewrites',
-    path: '/parse-record'
+    path: ROUTE_PATHS.sqlQuery
   },
   {
     title: t('benchmark.title'),
     description: t('benchmark.summary'),
     status: locale.value === 'zh-CN' ? '回归基线已刷新，3 个任务待复测' : 'Regression baseline refreshed; 3 runs pending',
-    path: '/benchmark'
+    path: ROUTE_PATHS.benchmark
   },
   {
     title: t('acceleration.title'),
     description: t('acceleration.summary'),
     status: locale.value === 'zh-CN' ? '近 7 天命中率回升，冷表策略可继续扩大' : 'Hit rate recovered in 7d; cold-table policy can expand',
-    path: '/acceleration'
+    path: ROUTE_PATHS.acceleration
   },
   {
     title: t('system.title'),
     description: t('system.summary'),
     status: locale.value === 'zh-CN' ? '审计保留和默认路由策略今日有变更' : 'Audit retention and default routing changed today',
-    path: '/system'
+    path: ROUTE_PATHS.system
   }
 ])
 
@@ -89,7 +84,7 @@ const healthCards = computed(() => [
         : 'Query, parser and acceleration paths are healthy, while 3 admission runs have not written back results.',
     tone: 'warning',
     actionLabel: locale.value === 'zh-CN' ? '进入压测报告' : 'Open Benchmark',
-    path: '/benchmark'
+    path: ROUTE_PATHS.benchmark
   },
   {
     label: locale.value === 'zh-CN' ? '规则一致性' : 'Rule integrity',
@@ -100,7 +95,7 @@ const healthCards = computed(() => [
         : 'Recent rule additions are recorded and the audit path remains aligned with current constraints.',
     tone: 'success',
     actionLabel: locale.value === 'zh-CN' ? '查看系统管理' : 'Open System',
-    path: '/system'
+    path: ROUTE_PATHS.system
   },
   {
     label: locale.value === 'zh-CN' ? '待处理风险' : 'Open risk',
@@ -111,7 +106,7 @@ const healthCards = computed(() => [
         : 'Window functions and nested subqueries are the primary failure surface.',
     tone: 'danger',
     actionLabel: locale.value === 'zh-CN' ? '进入解析记录' : 'Open Parse Record',
-    path: '/parse-record'
+    path: ROUTE_PATHS.parseRecord
   }
 ])
 
@@ -155,7 +150,7 @@ const nextSteps = computed(() => [
       locale.value === 'zh-CN'
         ? '当前 benchmark pass rate 下滑主要来自 3 个未复测任务。'
         : 'The benchmark pass-rate drop is driven by 3 runs pending revalidation.',
-    path: '/benchmark'
+    path: ROUTE_PATHS.benchmark
   },
   {
     title: locale.value === 'zh-CN' ? '检查窗口函数改写失败样本' : 'Inspect parser failures around window functions',
@@ -163,7 +158,7 @@ const nextSteps = computed(() => [
       locale.value === 'zh-CN'
         ? '解析失败样本持续累积，已开始影响准入判断。'
         : 'Failure samples are accumulating and already affecting admission decisions.',
-    path: '/parse-record'
+    path: ROUTE_PATHS.parseRecord
   },
   {
     title: locale.value === 'zh-CN' ? '扩大冷表加速策略覆盖面' : 'Expand cold-table acceleration coverage',
@@ -171,7 +166,7 @@ const nextSteps = computed(() => [
       locale.value === 'zh-CN'
         ? '当前命中率回升，可继续放大已验证策略。'
         : 'Hit rate is recovering and validated policies can now expand.',
-    path: '/acceleration'
+    path: ROUTE_PATHS.acceleration
   }
 ])
 
@@ -203,10 +198,10 @@ const goTo = path => {
           </span>
         </div>
         <div class="hero-actions">
-          <el-button class="hero-action hero-action-primary" @click="goTo('/sql-query')">
+          <el-button class="hero-action hero-action-primary" @click="goTo(ROUTE_PATHS.sqlQuery)">
             {{ t('dashboard.heroPrimary') }}
           </el-button>
-          <el-button class="hero-action hero-action-secondary" @click="goTo('/benchmark')">
+          <el-button class="hero-action hero-action-secondary" @click="goTo(ROUTE_PATHS.benchmark)">
             {{ t('dashboard.heroSecondary') }}
           </el-button>
         </div>

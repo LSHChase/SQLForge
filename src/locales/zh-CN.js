@@ -6,8 +6,14 @@ export default {
     workspaceLabel: 'workspace',
     workspaceSummary: '{tenant} · 默认引擎 {engine}',
     brandSummary: '面向 SQL 查询、解析、压测、加速与审计的统一治理工作台。',
-    sidebarLabel: 'workflow entry',
+    sidebarLabel: 'navigation',
     runtimeLabel: 'runtime state',
+    navGroups: {
+      main: '主线业务',
+      governanceHistory: '治理历史',
+      governanceOps: '治理运维',
+      temporary: '临时交付'
+    },
     defaultEngine: '默认引擎',
     backupEngine: '备用引擎',
     currentTenant: '当前租户',
@@ -146,6 +152,14 @@ export default {
   auditTroubleshooting: {
     title: '故障处置',
     summary: '汇总失败类型、补偿状态、回写状态与队列影响，并给出处置动作与验收信号。'
+  },
+  runtimeGates: {
+    title: '运行时门禁',
+    summary: '汇总阶段入口、交付、合规门禁证据以及当前仍未闭口的退出阻塞项。'
+  },
+  recoveryDrill: {
+    title: '恢复演练',
+    summary: '沉淀备份范围、恢复目标、责任边界与恢复后必过验收检查。'
   },
   benchmark: {
     title: '压测报告',

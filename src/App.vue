@@ -11,7 +11,22 @@ const globalConfigStore = useGlobalConfigStore()
 const tenantStore = useTenantStore()
 const userStore = useUserStore()
 
-const menuRoutes = computed(() => constantRoutes.filter(item => item.meta?.menu))
+const navGroupOrder = ['main', 'governanceHistory', 'governanceOps', 'temporary']
+const menuSections = computed(() =>
+  navGroupOrder
+    .map(groupKey => {
+      const items = constantRoutes.filter(item => item.meta?.menu && item.meta?.navGroup === groupKey)
+      if (!items.length) {
+        return null
+      }
+      return {
+        key: groupKey,
+        label: t(`common.navGroups.${groupKey}`),
+        items
+      }
+    })
+    .filter(Boolean)
+)
 const localeLabel = computed(() => (locale.value === 'zh-CN' ? 'EN' : '中'))
 const themeLabel = computed(() =>
   globalConfigStore.theme === 'dark' ? t('common.switchToLight') : t('common.switchToDark')
@@ -82,30 +97,39 @@ onMounted(() => {
         <div class="sidebar-section">
           <p class="sidebar-section-label sqlforge-code-label">{{ t('common.sidebarLabel') }}</p>
           <el-scrollbar class="menu-scroll">
-            <el-menu :default-active="route.path" class="app-menu" router>
-              <el-menu-item
-                v-for="item in menuRoutes"
-                :key="item.path"
-                :index="item.path"
+            <div class="menu-section-stack">
+              <section
+                v-for="section in menuSections"
+                :key="section.key"
+                class="menu-section"
               >
-                <div class="menu-item-content">
-                  <span class="menu-item-label">{{ t(item.meta.titleKey) }}</span>
-                  <div
-                    v-if="buildRoutePills(item.meta).length"
-                    class="menu-item-pills"
+                <p class="menu-section-title sqlforge-code-label">{{ section.label }}</p>
+                <el-menu :default-active="route.path" class="app-menu" router>
+                  <el-menu-item
+                    v-for="item in section.items"
+                    :key="item.path"
+                    :index="item.path"
                   >
-                    <span
-                      v-for="pill in buildRoutePills(item.meta)"
-                      :key="`${item.path}-${pill.key}`"
-                      class="menu-item-pill"
-                      :class="pill.className"
-                    >
-                      {{ pill.label }}
-                    </span>
-                  </div>
-                </div>
-              </el-menu-item>
-            </el-menu>
+                    <div class="menu-item-content">
+                      <span class="menu-item-label">{{ t(item.meta.titleKey) }}</span>
+                      <div
+                        v-if="buildRoutePills(item.meta).length"
+                        class="menu-item-pills"
+                      >
+                        <span
+                          v-for="pill in buildRoutePills(item.meta)"
+                          :key="`${item.path}-${pill.key}`"
+                          class="menu-item-pill"
+                          :class="pill.className"
+                        >
+                          {{ pill.label }}
+                        </span>
+                      </div>
+                    </div>
+                  </el-menu-item>
+                </el-menu>
+              </section>
+            </div>
           </el-scrollbar>
         </div>
 
@@ -274,6 +298,17 @@ onMounted(() => {
 
 .menu-scroll {
   margin-top: 12px;
+}
+
+.menu-section-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.menu-section-title {
+  margin: 0 0 8px;
+  color: var(--sqlforge-text-muted);
 }
 
 .app-menu {

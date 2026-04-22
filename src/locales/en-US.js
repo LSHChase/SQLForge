@@ -6,8 +6,14 @@ export default {
     workspaceLabel: 'workspace',
     workspaceSummary: '{tenant} · default engine {engine}',
     brandSummary: 'A unified control surface for query, parsing, benchmarking, acceleration and audit operations.',
-    sidebarLabel: 'workflow entry',
+    sidebarLabel: 'navigation',
     runtimeLabel: 'runtime state',
+    navGroups: {
+      main: 'main workflows',
+      governanceHistory: 'governance history',
+      governanceOps: 'governance ops',
+      temporary: 'temporary delivery'
+    },
     defaultEngine: 'Default engine',
     backupEngine: 'Backup engine',
     currentTenant: 'Current tenant',
@@ -146,6 +152,14 @@ export default {
   auditTroubleshooting: {
     title: 'Audit Troubleshooting',
     summary: 'Summarize failure type, compensation state, write-back state and queue impact, then expose remediation actions and acceptance signals.'
+  },
+  runtimeGates: {
+    title: 'Runtime Gates',
+    summary: 'Consolidate phase entry, delivery, and compliance runtime-gate evidence plus the remaining exit blockers.'
+  },
+  recoveryDrill: {
+    title: 'Recovery Drill',
+    summary: 'Track backup scope, restore objectives, ownership boundaries, and mandatory post-restore acceptance checks.'
   },
   benchmark: {
     title: 'Benchmark Report',
