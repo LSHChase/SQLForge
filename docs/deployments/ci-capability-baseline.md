@@ -88,7 +88,7 @@
 2. 当前 workflow 仍未把 `python3 scripts/foreman.py validate <TASK>` 纳入通用 CI。
 3. `Phase Gate` 的 `phase1plus` 覆盖率阈值当前仍可能阻断，因为仓库聚合覆盖率尚未稳定达到 85%。
 4. Sonar 目前仍是“有 secrets 才能真正通过”的门禁项，不是无条件可运行。
-5. 当前 runtime smoke 已覆盖前端发起的 `query-execution`、`sql-optimization`、`benchmark-engine` 三条真实业务请求，但前端失败恢复路径、审计补偿可视化和更多业务页仍未进入默认浏览器 smoke。
+5. 默认 browser runtime smoke 已覆盖前端发起的 `query-execution`、`sql-optimization`、`benchmark-engine` 三条真实业务请求的成功链路、失败恢复与审计补偿可视化；剩余缺口已收敛为更多业务页尚未进入默认浏览器 smoke。
 6. 当前 workflow 继续使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
 
 ## Recommended Follow-Up Mapping

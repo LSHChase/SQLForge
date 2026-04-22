@@ -20,76 +20,134 @@ const assert = (condition, message) => {
 
 const resolveExecutablePath = () => browserCandidates.find(candidate => fs.existsSync(candidate))
 
-const expectText = async (page, testId, expectedText) => {
+const readText = async (page, testId) => {
   const locator = page.getByTestId(testId)
   await locator.waitFor({ timeout: defaultTimeoutMs })
-  const text = (await locator.textContent())?.trim() || ''
+  return (await locator.textContent())?.trim() || ''
+}
+
+const expectText = async (page, testId, expectedText) => {
+  const text = await readText(page, testId)
   assert(text.includes(expectedText), `Expected ${testId} to include "${expectedText}", got "${text}"`)
   return text
 }
+
+const expectNumber = async (page, testId) => {
+  const text = await readText(page, testId)
+  const value = Number(text)
+  assert(Number.isFinite(value), `Expected ${testId} to be numeric, got "${text}"`)
+  return value
+}
+
+const expectNumberAtLeast = async (page, testId, minimum) => {
+  const value = await expectNumber(page, testId)
+  assert(value >= minimum, `Expected ${testId} to be >= ${minimum}, got ${value}`)
+  return value
+}
+
+const waitForPost = (page, pathFragment) =>
+  page.waitForResponse(
+    response => response.url().includes(pathFragment) && response.request().method() === 'POST',
+    { timeout: defaultTimeoutMs }
+  )
+
+const waitForGet = (page, pathFragment) =>
+  page.waitForResponse(
+    response => response.url().includes(pathFragment) && response.request().method() === 'GET',
+    { timeout: defaultTimeoutMs }
+  )
 
 const runQueryFlow = async page => {
   await page.goto(`${frontendBaseUrl}/sql-query`, { waitUntil: 'networkidle' })
   await page.getByTestId('query-flow-page').waitFor({ timeout: defaultTimeoutMs })
 
-  const queryResponsePromise = page.waitForResponse(
-    response =>
-      response.url().includes('/api/query-execution/queries/execute') && response.request().method() === 'POST',
-    { timeout: defaultTimeoutMs }
-  )
-
+  const successResponsePromise = waitForPost(page, '/api/query-execution/queries/execute')
   await page.getByTestId('query-flow-submit').click()
-  const queryResponse = await queryResponsePromise
-  const queryPayload = await queryResponse.json()
+  const successResponse = await successResponsePromise
+  const successPayload = await successResponse.json()
 
-  assert(queryResponse.status() === 200, `Query flow returned HTTP ${queryResponse.status()}`)
-  assert(queryPayload.status === 'SUCCESS', `Query flow returned unexpected status ${queryPayload.status}`)
+  assert(successResponse.status() === 200, `Query success flow returned HTTP ${successResponse.status()}`)
+  assert(successPayload.status === 'SUCCESS', `Query success flow returned unexpected status ${successPayload.status}`)
 
   await expectText(page, 'query-flow-status', 'SUCCESS')
   await expectText(page, 'query-flow-engine', 'HETU')
+  await expectText(page, 'query-flow-degraded', 'false')
+
+  const recoveryResponsePromise = waitForPost(page, '/api/query-execution/queries/execute')
+  await page.getByTestId('query-flow-submit-recovery').click()
+  const recoveryResponse = await recoveryResponsePromise
+  const recoveryPayload = await recoveryResponse.json()
+
+  assert(recoveryResponse.status() === 200, `Query recovery flow returned HTTP ${recoveryResponse.status()}`)
+  assert(recoveryPayload.status === 'PARTIAL', `Query recovery flow returned unexpected status ${recoveryPayload.status}`)
+  assert(recoveryPayload.degraded === true, 'Query recovery flow did not mark degraded=true')
+  assert(recoveryPayload.metadata?.targetEngine === 'HIVE', 'Query recovery flow did not fallback to HIVE')
+  assert(
+    Array.isArray(recoveryPayload.retryPath) && recoveryPayload.retryPath.length === 2,
+    `Query recovery flow retryPath length mismatch: ${JSON.stringify(recoveryPayload.retryPath)}`
+  )
+
+  await expectText(page, 'query-flow-status', 'PARTIAL')
+  await expectText(page, 'query-flow-engine', 'HIVE')
+  await expectText(page, 'query-flow-degraded', 'true')
+  await expectText(page, 'query-flow-retry-path-size', '2')
+  await expectText(page, 'query-flow-compensation-status', 'COMPENSATED')
+  await expectNumberAtLeast(page, 'query-flow-queue-pending-delta', 1)
 }
 
 const runOptimizationFlow = async page => {
   await page.goto(`${frontendBaseUrl}/acceleration`, { waitUntil: 'networkidle' })
   await page.getByTestId('optimization-flow-page').waitFor({ timeout: defaultTimeoutMs })
 
-  const submitResponsePromise = page.waitForResponse(
-    response => response.url().includes('/api/sql-optimization/tasks') && response.request().method() === 'POST',
-    { timeout: defaultTimeoutMs }
+  const successSubmitResponsePromise = waitForPost(page, '/api/sql-optimization/tasks')
+  await page.getByTestId('optimization-flow-submit').click()
+  const successSubmitResponse = await successSubmitResponsePromise
+  const successSubmitPayload = await successSubmitResponse.json()
+
+  assert(successSubmitResponse.status() === 200, `Optimization submit returned HTTP ${successSubmitResponse.status()}`)
+  assert(
+    successSubmitPayload.status === 'QUEUED',
+    `Optimization submit returned unexpected status ${successSubmitPayload.status}`
   )
 
-  await page.getByTestId('optimization-flow-submit').click()
-  const submitResponse = await submitResponsePromise
-  const submitPayload = await submitResponse.json()
-
-  assert(submitResponse.status() === 200, `Optimization submit returned HTTP ${submitResponse.status()}`)
-  assert(submitPayload.status === 'QUEUED', `Optimization submit returned unexpected status ${submitPayload.status}`)
-
   await expectText(page, 'optimization-flow-status', 'SUCCEEDED')
-  const summaryText = await expectText(page, 'optimization-flow-summary', 'placeholder')
+  const summaryText = await readText(page, 'optimization-flow-summary')
   assert(summaryText.length > 0, 'Optimization summary should not be empty')
+
+  const failureSubmitResponsePromise = waitForPost(page, '/api/sql-optimization/tasks')
+  await page.getByTestId('optimization-flow-submit-failure').click()
+  const failureSubmitResponse = await failureSubmitResponsePromise
+  const failureSubmitPayload = await failureSubmitResponse.json()
+
+  assert(
+    failureSubmitResponse.status() === 200,
+    `Optimization failure submit returned HTTP ${failureSubmitResponse.status()}`
+  )
+  assert(
+    failureSubmitPayload.status === 'QUEUED',
+    `Optimization failure submit returned unexpected status ${failureSubmitPayload.status}`
+  )
+
+  await expectText(page, 'optimization-flow-status', 'FAILED')
+  await expectText(page, 'optimization-flow-failure-code', '13000')
+  await expectText(page, 'optimization-flow-compensation-status', 'FAILED')
+  await expectText(page, 'optimization-flow-compensation-indicator', 'COMPENSATED')
+  await expectNumberAtLeast(page, 'optimization-flow-queue-pending-delta', 1)
 }
 
 const runBenchmarkFlow = async page => {
   await page.goto(`${frontendBaseUrl}/benchmark`, { waitUntil: 'networkidle' })
   await page.getByTestId('benchmark-flow-page').waitFor({ timeout: defaultTimeoutMs })
 
-  const submitResponsePromise = page.waitForResponse(
-    response => response.url().includes('/api/benchmark-engine/tasks') && response.request().method() === 'POST',
-    { timeout: defaultTimeoutMs }
-  )
-  const reportResponsePromise = page.waitForResponse(
-    response =>
-      response.url().includes('/api/benchmark-engine/reports/') && response.request().method() === 'GET',
-    { timeout: defaultTimeoutMs }
-  )
+  const successSubmitResponsePromise = waitForPost(page, '/api/benchmark-engine/tasks')
+  const reportResponsePromise = waitForGet(page, '/api/benchmark-engine/reports/')
 
   await page.getByTestId('benchmark-flow-submit').click()
-  const submitResponse = await submitResponsePromise
-  const submitPayload = await submitResponse.json()
+  const successSubmitResponse = await successSubmitResponsePromise
+  const successSubmitPayload = await successSubmitResponse.json()
 
-  assert(submitResponse.status() === 200, `Benchmark submit returned HTTP ${submitResponse.status()}`)
-  assert(submitPayload.status === 'QUEUED', `Benchmark submit returned unexpected status ${submitPayload.status}`)
+  assert(successSubmitResponse.status() === 200, `Benchmark submit returned HTTP ${successSubmitResponse.status()}`)
+  assert(successSubmitPayload.status === 'QUEUED', `Benchmark submit returned unexpected status ${successSubmitPayload.status}`)
 
   await expectText(page, 'benchmark-flow-status', 'SUCCEEDED')
   const reportIdText = await expectText(page, 'benchmark-flow-report-id', 'report-')
@@ -101,6 +159,26 @@ const runBenchmarkFlow = async page => {
   assert(reportResponse.status() === 200, `Benchmark report returned HTTP ${reportResponse.status()}`)
   assert(reportPayload.requestedFormat === 'JSON', `Benchmark report format mismatch: ${reportPayload.requestedFormat}`)
   await page.getByTestId('benchmark-flow-report').waitFor({ timeout: defaultTimeoutMs })
+
+  const failureSubmitResponsePromise = waitForPost(page, '/api/benchmark-engine/tasks')
+  await page.getByTestId('benchmark-flow-submit-failure').click()
+  const failureSubmitResponse = await failureSubmitResponsePromise
+  const failureSubmitPayload = await failureSubmitResponse.json()
+
+  assert(
+    failureSubmitResponse.status() === 200,
+    `Benchmark failure submit returned HTTP ${failureSubmitResponse.status()}`
+  )
+  assert(
+    failureSubmitPayload.status === 'QUEUED',
+    `Benchmark failure submit returned unexpected status ${failureSubmitPayload.status}`
+  )
+
+  await expectText(page, 'benchmark-flow-status', 'FAILED')
+  await expectText(page, 'benchmark-flow-failure-code', '14000')
+  await expectText(page, 'benchmark-flow-compensation-status', 'FAILED')
+  await expectText(page, 'benchmark-flow-compensation-indicator', 'COMPENSATED')
+  await expectNumberAtLeast(page, 'benchmark-flow-queue-pending-delta', 1)
 }
 
 const main = async () => {

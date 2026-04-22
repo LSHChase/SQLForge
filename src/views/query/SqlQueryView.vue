@@ -1,7 +1,11 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { executeQuery, formatRuntimeError } from '../../services/runtimeGateApi'
+import {
+  executeQuery,
+  formatRuntimeError,
+  getGovernanceMessageStats
+} from '../../services/runtimeGateApi'
 
 const { t, locale } = useI18n()
 
@@ -14,11 +18,22 @@ const form = reactive({
 })
 
 const running = ref(false)
+const lastScenario = ref('success')
 const result = ref(null)
 const errorMessage = ref('')
+const queueStatsBefore = ref(null)
+const queueStatsAfter = ref(null)
 
 const isChinese = computed(() => locale.value === 'zh-CN')
 const previewRows = computed(() => result.value?.rows || [])
+const retryPath = computed(() => result.value?.retryPath || [])
+const queuePendingDelta = computed(() => {
+  if (!queueStatsBefore.value || !queueStatsAfter.value) {
+    return 0
+  }
+  return queueStatsAfter.value.pending - queueStatsBefore.value.pending
+})
+const compensationDetected = computed(() => queuePendingDelta.value >= 1)
 
 const datasourceOptions = computed(() => ['HETU', 'HIVE'])
 const accelerationOptions = computed(() => [
@@ -42,14 +57,62 @@ const toleranceOptions = computed(() => [
   }
 ])
 
-const runFlow = async () => {
-  running.value = true
+const resetEvidence = () => {
   result.value = null
   errorMessage.value = ''
+  queueStatsBefore.value = null
+  queueStatsAfter.value = null
+}
+
+const applySuccessPreset = () => {
+  form.sqlText = 'SELECT * FROM orders'
+  form.datasourceType = 'HETU'
+  form.accelerationPreference = 'PREFER_ACCELERATED'
+  form.faultToleranceStrategy = 'FAIL_FAST'
+}
+
+const applyRecoveryPreset = () => {
+  form.sqlText = 'SELECT * FROM orders'
+  form.datasourceType = 'HETU'
+  form.accelerationPreference = 'PREFER_ACCELERATED'
+  form.faultToleranceStrategy = 'RETRY_THEN_FALLBACK'
+}
+
+const runSuccessFlow = async () => {
+  applySuccessPreset()
+  lastScenario.value = 'success'
+  running.value = true
+  resetEvidence()
 
   try {
     result.value = await executeQuery({
       ...form
+    })
+  } catch (error) {
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    running.value = false
+  }
+}
+
+const runRecoveryFlow = async () => {
+  applyRecoveryPreset()
+  lastScenario.value = 'recovery'
+  running.value = true
+  resetEvidence()
+
+  try {
+    queueStatsBefore.value = await getGovernanceMessageStats(form.tenantId, {
+      requestPrefix: 'frontend-query-governance-stats-before'
+    })
+    result.value = await executeQuery({
+      ...form,
+      queryContext: {
+        timeoutMs: 30
+      }
+    })
+    queueStatsAfter.value = await getGovernanceMessageStats(form.tenantId, {
+      requestPrefix: 'frontend-query-governance-stats-after'
     })
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
@@ -70,8 +133,8 @@ const runFlow = async () => {
       <p class="runtime-note">
         {{
           isChinese
-            ? '该页面直接从浏览器发起真实 query-execution 请求，默认走 tenant-a 的 dev smoke 头信息。'
-            : 'This page sends a real browser-originated query-execution request using the tenant-a dev smoke headers.'
+            ? '该页面同时覆盖成功执行与降级恢复场景。补偿场景会先读取 governance 队列 stats，再触发浏览器侧真实请求并检查 pending 增量。'
+            : 'This page covers both the success path and degraded recovery. The compensation path reads governance queue stats before and after the live browser request and checks for a pending-count increase.'
         }}
       </p>
     </div>
@@ -139,14 +202,21 @@ const runFlow = async () => {
           </label>
         </div>
 
-        <div class="action-row">
+        <div class="action-row action-row-wrap">
           <el-button
             type="primary"
-            :loading="running"
+            :loading="running && lastScenario === 'success'"
             data-testid="query-flow-submit"
-            @click="runFlow"
+            @click="runSuccessFlow"
           >
-            {{ isChinese ? '触发真实执行链路' : 'Run live query flow' }}
+            {{ isChinese ? '执行成功链路' : 'Run success gate' }}
+          </el-button>
+          <el-button
+            :loading="running && lastScenario === 'recovery'"
+            data-testid="query-flow-submit-recovery"
+            @click="runRecoveryFlow"
+          >
+            {{ isChinese ? '执行降级恢复 + 补偿' : 'Run degraded recovery + compensation' }}
           </el-button>
         </div>
       </article>
@@ -164,8 +234,8 @@ const runFlow = async () => {
         <p v-if="!result && !errorMessage" class="empty-state">
           {{
             isChinese
-              ? '点击左侧按钮后，这里会显示 query-execution 的真实响应。'
-              : 'The real query-execution response will render here after the button is pressed.'
+              ? '点击左侧按钮后，这里会展示 query-execution 的真实响应，以及补偿场景的 governance 队列证据。'
+              : 'After you trigger a scenario, the live query-execution response and any governance queue compensation evidence will render here.'
           }}
         </p>
 
@@ -193,15 +263,70 @@ const runFlow = async () => {
             </div>
             <div class="evidence-item">
               <span class="evidence-label">{{ isChinese ? '降级执行' : 'Degraded' }}</span>
-              <strong>{{ result.degraded ? 'true' : 'false' }}</strong>
+              <strong data-testid="query-flow-degraded">{{ result.degraded ? 'true' : 'false' }}</strong>
+            </div>
+            <div class="evidence-item">
+              <span class="evidence-label">{{ isChinese ? '补偿重试步数' : 'Retry path size' }}</span>
+              <strong data-testid="query-flow-retry-path-size">{{ retryPath.length }}</strong>
+            </div>
+            <div class="evidence-item">
+              <span class="evidence-label">{{ isChinese ? '实现阶段' : 'Implementation stage' }}</span>
+              <strong>{{ result.implementationStage }}</strong>
+            </div>
+            <div class="evidence-item">
+              <span class="evidence-label">{{ isChinese ? '降级原因' : 'Degrade reason' }}</span>
+              <strong data-testid="query-flow-degrade-reason">{{ result.degradeReason || '-' }}</strong>
             </div>
             <div class="evidence-item">
               <span class="evidence-label">{{ isChinese ? '返回行数' : 'Rows returned' }}</span>
               <strong data-testid="query-flow-row-count">{{ previewRows.length }}</strong>
             </div>
-            <div class="evidence-item">
-              <span class="evidence-label">{{ isChinese ? '实现阶段' : 'Implementation stage' }}</span>
-              <strong>{{ result.implementationStage }}</strong>
+          </div>
+
+          <div
+            v-if="retryPath.length > 0"
+            class="trace-card"
+            data-testid="query-flow-retry-path"
+          >
+            <div
+              v-for="(step, index) in retryPath"
+              :key="`${step.engine}-${index}`"
+              class="trace-step"
+            >
+              <strong>{{ step.engine }}</strong>
+              <span>{{ step.resultStatus }}</span>
+              <span>{{ step.elapsedMs }}ms</span>
+            </div>
+          </div>
+
+          <div
+            v-if="queueStatsBefore && queueStatsAfter"
+            class="compensation-card"
+          >
+            <div class="result-banner" :class="compensationDetected ? 'result-banner-success' : 'result-banner-danger'">
+              <strong data-testid="query-flow-compensation-status">
+                {{ compensationDetected ? 'COMPENSATED' : 'NOT_COMPENSATED' }}
+              </strong>
+              <span>{{ isChinese ? 'governance queue pending' : 'governance queue pending' }}</span>
+            </div>
+
+            <div class="evidence-grid">
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '补偿前 pending' : 'Pending before' }}</span>
+                <strong data-testid="query-flow-queue-pending-before">{{ queueStatsBefore.pending }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '补偿后 pending' : 'Pending after' }}</span>
+                <strong data-testid="query-flow-queue-pending-after">{{ queueStatsAfter.pending }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? 'pending 增量' : 'Pending delta' }}</span>
+                <strong data-testid="query-flow-queue-pending-delta">{{ queuePendingDelta }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '失败消息数' : 'Failed messages' }}</span>
+                <strong>{{ queueStatsAfter.failed }}</strong>
+              </div>
             </div>
           </div>
 
@@ -262,17 +387,17 @@ const runFlow = async () => {
   line-height: 1.7;
 }
 
-.runtime-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-}
-
+.runtime-grid,
 .form-grid,
 .evidence-grid {
   display: grid;
+  gap: 24px;
+}
+
+.runtime-grid,
+.form-grid,
+.evidence-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
 }
 
 .field-block,
@@ -290,6 +415,12 @@ const runFlow = async () => {
   margin-top: 20px;
 }
 
+.action-row-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .result-banner {
   display: flex;
   justify-content: space-between;
@@ -298,10 +429,12 @@ const runFlow = async () => {
   padding: 14px 16px;
   border-radius: var(--sqlforge-radius-md);
   border: 1px solid transparent;
-  margin-bottom: 18px;
+  margin: 18px 0;
 }
 
-.result-banner-success {
+.result-banner-success,
+.compensation-card,
+.trace-card {
   border-color: rgba(62, 207, 142, 0.28);
   background: rgba(62, 207, 142, 0.1);
 }
@@ -316,20 +449,40 @@ const runFlow = async () => {
   background: rgba(232, 82, 82, 0.12);
 }
 
-.result-json {
-  margin: 18px 0 0;
-  padding: 16px;
-  overflow: auto;
+.trace-card,
+.compensation-card {
+  border: 1px solid transparent;
   border-radius: var(--sqlforge-radius-md);
-  border: 1px solid var(--sqlforge-border-default);
-  background: rgba(0, 0, 0, 0.16);
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.trace-card {
+  display: grid;
+  gap: 12px;
+}
+
+.trace-step {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
   color: var(--sqlforge-text-secondary);
+}
+
+.result-json {
+  margin: 20px 0 0;
+  padding: 16px;
+  border-radius: var(--sqlforge-radius-md);
+  background: rgba(7, 13, 28, 0.62);
+  color: var(--sqlforge-text-secondary);
+  overflow: auto;
 }
 
 @media (max-width: 960px) {
   .runtime-grid,
   .form-grid,
-  .evidence-grid {
+  .evidence-grid,
+  .trace-step {
     grid-template-columns: 1fr;
   }
 }

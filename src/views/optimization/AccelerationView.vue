@@ -3,6 +3,9 @@ import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   formatRuntimeError,
+  getGovernanceMessageStats,
+  getOptimizationTaskStatus,
+  GOVERNANCE_COMPENSATION_TRACE_PREFIX,
   submitOptimizationTask,
   waitForOptimizationTask
 } from '../../services/runtimeGateApi'
@@ -17,11 +20,22 @@ const form = reactive({
 })
 
 const running = ref(false)
+const lastScenario = ref('success')
 const submitResult = ref(null)
 const taskStatus = ref(null)
+const compensationStatus = ref(null)
+const queueStatsBefore = ref(null)
+const queueStatsAfter = ref(null)
 const errorMessage = ref('')
 
 const isChinese = computed(() => locale.value === 'zh-CN')
+const queuePendingDelta = computed(() => {
+  if (!queueStatsBefore.value || !queueStatsAfter.value) {
+    return 0
+  }
+  return queueStatsAfter.value.pending - queueStatsBefore.value.pending
+})
+const compensationDetected = computed(() => queuePendingDelta.value >= 1)
 const taskTypeOptions = computed(() => [
   {
     value: 'REWRITE',
@@ -33,11 +47,32 @@ const taskTypeOptions = computed(() => [
   }
 ])
 
-const runFlow = async () => {
-  running.value = true
+const resetEvidence = () => {
   submitResult.value = null
   taskStatus.value = null
+  compensationStatus.value = null
+  queueStatsBefore.value = null
+  queueStatsAfter.value = null
   errorMessage.value = ''
+}
+
+const applySuccessPreset = () => {
+  form.taskType = 'REWRITE'
+  form.sqlText = 'SELECT * FROM orders'
+  form.datasourceType = 'HETU'
+}
+
+const applyFailurePreset = () => {
+  form.taskType = 'ACCELERATION_SUGGESTION'
+  form.sqlText = 'SELECT * FROM orders /*FAIL_OPTIMIZATION*/'
+  form.datasourceType = 'HETU'
+}
+
+const runSuccessFlow = async () => {
+  applySuccessPreset()
+  lastScenario.value = 'success'
+  running.value = true
+  resetEvidence()
 
   try {
     submitResult.value = await submitOptimizationTask({
@@ -48,6 +83,34 @@ const runFlow = async () => {
       }
     })
     taskStatus.value = await waitForOptimizationTask(submitResult.value.taskId, form.tenantId)
+  } catch (error) {
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    running.value = false
+  }
+}
+
+const runFailureCompensationFlow = async () => {
+  applyFailurePreset()
+  lastScenario.value = 'failure'
+  running.value = true
+  resetEvidence()
+
+  try {
+    queueStatsBefore.value = await getGovernanceMessageStats(form.tenantId, {
+      requestPrefix: 'frontend-sql-optimization-governance-stats-before'
+    })
+    submitResult.value = await submitOptimizationTask({
+      ...form
+    })
+    taskStatus.value = await waitForOptimizationTask(submitResult.value.taskId, form.tenantId)
+    compensationStatus.value = await getOptimizationTaskStatus(submitResult.value.taskId, form.tenantId, {
+      requestPrefix: 'frontend-sql-optimization-compensation-status',
+      tracePrefix: GOVERNANCE_COMPENSATION_TRACE_PREFIX
+    })
+    queueStatsAfter.value = await getGovernanceMessageStats(form.tenantId, {
+      requestPrefix: 'frontend-sql-optimization-governance-stats-after'
+    })
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
@@ -67,8 +130,8 @@ const runFlow = async () => {
       <p class="runtime-note">
         {{
           isChinese
-            ? '该页把前端按钮直接接到 sql-optimization 任务提交和状态轮询，不再只展示占位信息。'
-            : 'This page wires the button directly into sql-optimization submission and terminal-status polling instead of a placeholder.'
+            ? '该页把浏览器按钮直接接到 sql-optimization 提交、终态轮询和补偿状态查询。失败场景会校验 governance 队列 pending 是否增长。'
+            : 'This page wires browser actions to sql-optimization submission, terminal polling, and compensated status queries. The failure path checks whether governance queue pending count increases.'
         }}
       </p>
     </div>
@@ -117,14 +180,21 @@ const runFlow = async () => {
           </label>
         </div>
 
-        <div class="action-row">
+        <div class="action-row action-row-wrap">
           <el-button
             type="primary"
-            :loading="running"
+            :loading="running && lastScenario === 'success'"
             data-testid="optimization-flow-submit"
-            @click="runFlow"
+            @click="runSuccessFlow"
           >
-            {{ isChinese ? '提交真实优化任务' : 'Run live optimization flow' }}
+            {{ isChinese ? '执行成功任务' : 'Run success task' }}
+          </el-button>
+          <el-button
+            :loading="running && lastScenario === 'failure'"
+            data-testid="optimization-flow-submit-failure"
+            @click="runFailureCompensationFlow"
+          >
+            {{ isChinese ? '执行失败恢复 + 补偿' : 'Run failure recovery + compensation' }}
           </el-button>
         </div>
       </article>
@@ -142,8 +212,8 @@ const runFlow = async () => {
         <p v-if="!submitResult && !errorMessage" class="empty-state">
           {{
             isChinese
-              ? '左侧提交后，这里会展示任务入队、轮询和终态结果。'
-              : 'Submitting the form will populate task queueing, polling and terminal-state evidence here.'
+              ? '左侧按钮会分别展示成功摘要，或失败终态 + 补偿队列证据。'
+              : 'The actions on the left render either the success summary or the failed terminal state plus compensation queue evidence.'
           }}
         </p>
 
@@ -196,9 +266,60 @@ const runFlow = async () => {
             {{ taskStatus.suggestion.summary }}
           </p>
 
-          <p v-else-if="taskStatus.failure" class="result-copy">
-            {{ taskStatus.failure.message }}
-          </p>
+          <div
+            v-else-if="taskStatus.failure"
+            class="trace-card"
+          >
+            <div class="evidence-grid">
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '失败码' : 'Failure code' }}</span>
+                <strong data-testid="optimization-flow-failure-code">{{ taskStatus.failure.code }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '可重试' : 'Retryable' }}</span>
+                <strong>{{ taskStatus.failure.retryable ? 'true' : 'false' }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '失败阶段' : 'Failed phase' }}</span>
+                <strong>{{ taskStatus.failure.failedPhase }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '建议动作' : 'Suggested action' }}</span>
+                <strong>{{ taskStatus.failure.suggestedAction }}</strong>
+              </div>
+            </div>
+            <p class="result-copy">{{ taskStatus.failure.message }}</p>
+          </div>
+        </template>
+
+        <template v-if="compensationStatus">
+          <div class="compensation-card">
+            <div class="result-banner" :class="compensationDetected ? 'result-banner-success' : 'result-banner-danger'">
+              <strong data-testid="optimization-flow-compensation-indicator">
+                {{ compensationDetected ? 'COMPENSATED' : 'NOT_COMPENSATED' }}
+              </strong>
+              <span data-testid="optimization-flow-compensation-status">{{ compensationStatus.status }}</span>
+            </div>
+
+            <div class="evidence-grid">
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '补偿前 pending' : 'Pending before' }}</span>
+                <strong data-testid="optimization-flow-queue-pending-before">{{ queueStatsBefore?.pending ?? 0 }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '补偿后 pending' : 'Pending after' }}</span>
+                <strong data-testid="optimization-flow-queue-pending-after">{{ queueStatsAfter?.pending ?? 0 }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? 'pending 增量' : 'Pending delta' }}</span>
+                <strong data-testid="optimization-flow-queue-pending-delta">{{ queuePendingDelta }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '补偿状态查询' : 'Compensated status query' }}</span>
+                <strong>{{ compensationStatus.currentPhase }}</strong>
+              </div>
+            </div>
+          </div>
         </template>
       </article>
     </div>
@@ -283,6 +404,12 @@ const runFlow = async () => {
   margin-top: 20px;
 }
 
+.action-row-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .result-banner {
   display: flex;
   justify-content: space-between;
@@ -294,7 +421,9 @@ const runFlow = async () => {
   margin: 18px 0;
 }
 
-.result-banner-success {
+.result-banner-success,
+.compensation-card,
+.trace-card {
   border-color: rgba(62, 207, 142, 0.28);
   background: rgba(62, 207, 142, 0.1);
 }
@@ -307,6 +436,14 @@ const runFlow = async () => {
 .result-banner-danger {
   border-color: rgba(232, 82, 82, 0.3);
   background: rgba(232, 82, 82, 0.12);
+}
+
+.trace-card,
+.compensation-card {
+  border: 1px solid transparent;
+  border-radius: var(--sqlforge-radius-md);
+  padding: 16px;
+  margin-top: 20px;
 }
 
 @media (max-width: 960px) {

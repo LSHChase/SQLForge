@@ -4,6 +4,9 @@ import { useI18n } from 'vue-i18n'
 import {
   formatRuntimeError,
   getBenchmarkReport,
+  getBenchmarkTaskStatus,
+  getGovernanceMessageStats,
+  GOVERNANCE_COMPENSATION_TRACE_PREFIX,
   submitBenchmarkTask,
   waitForBenchmarkTask
 } from '../../services/runtimeGateApi'
@@ -17,19 +20,49 @@ const form = reactive({
 })
 
 const running = ref(false)
+const lastScenario = ref('success')
 const submitResult = ref(null)
 const taskStatus = ref(null)
+const compensationStatus = ref(null)
 const report = ref(null)
+const queueStatsBefore = ref(null)
+const queueStatsAfter = ref(null)
 const errorMessage = ref('')
 
 const isChinese = computed(() => locale.value === 'zh-CN')
+const queuePendingDelta = computed(() => {
+  if (!queueStatsBefore.value || !queueStatsAfter.value) {
+    return 0
+  }
+  return queueStatsAfter.value.pending - queueStatsBefore.value.pending
+})
+const compensationDetected = computed(() => queuePendingDelta.value >= 1)
 
-const runFlow = async () => {
-  running.value = true
+const resetEvidence = () => {
   submitResult.value = null
   taskStatus.value = null
+  compensationStatus.value = null
   report.value = null
+  queueStatsBefore.value = null
+  queueStatsAfter.value = null
   errorMessage.value = ''
+}
+
+const applySuccessPreset = () => {
+  form.taskType = 'COMPARISON'
+  form.sqlText = 'SELECT * FROM orders'
+}
+
+const applyFailurePreset = () => {
+  form.taskType = 'BASELINE'
+  form.sqlText = 'SELECT * FROM orders /*FAIL_BENCHMARK*/'
+}
+
+const runSuccessFlow = async () => {
+  applySuccessPreset()
+  lastScenario.value = 'success'
+  running.value = true
+  resetEvidence()
 
   try {
     submitResult.value = await submitBenchmarkTask({
@@ -55,6 +88,34 @@ const runFlow = async () => {
     running.value = false
   }
 }
+
+const runFailureCompensationFlow = async () => {
+  applyFailurePreset()
+  lastScenario.value = 'failure'
+  running.value = true
+  resetEvidence()
+
+  try {
+    queueStatsBefore.value = await getGovernanceMessageStats(form.tenantId, {
+      requestPrefix: 'frontend-benchmark-governance-stats-before'
+    })
+    submitResult.value = await submitBenchmarkTask({
+      ...form
+    })
+    taskStatus.value = await waitForBenchmarkTask(submitResult.value.taskId, form.tenantId)
+    compensationStatus.value = await getBenchmarkTaskStatus(submitResult.value.taskId, form.tenantId, {
+      requestPrefix: 'frontend-benchmark-compensation-status',
+      tracePrefix: GOVERNANCE_COMPENSATION_TRACE_PREFIX
+    })
+    queueStatsAfter.value = await getGovernanceMessageStats(form.tenantId, {
+      requestPrefix: 'frontend-benchmark-governance-stats-after'
+    })
+  } catch (error) {
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    running.value = false
+  }
+}
 </script>
 
 <template>
@@ -68,8 +129,8 @@ const runFlow = async () => {
       <p class="runtime-note">
         {{
           isChinese
-            ? '该页从浏览器触发 benchmark-engine 任务、轮询终态，并继续读取真实 JSON 报告。'
-            : 'This page triggers benchmark-engine from the browser, polls to terminal status and then loads the real JSON report.'
+            ? '该页从浏览器触发 benchmark-engine 成功链路与失败补偿链路。成功场景继续读取真实 JSON report，失败场景则检查 governance 队列 pending 增量。'
+            : 'This page drives both the benchmark-engine success path and the failure-compensation path from the browser. The success flow reads the live JSON report, while the failure flow checks governance queue pending growth.'
         }}
       </p>
     </div>
@@ -109,19 +170,26 @@ const runFlow = async () => {
         <div class="request-note">
           {{
             isChinese
-              ? '默认固定对 HETU/HIVE 进行只读对比，shadow mode = REQUIRED。'
-              : 'The request defaults to readonly HETU/HIVE comparison with shadow mode REQUIRED.'
+              ? '成功预置固定为 HETU/HIVE 只读对比，失败预置使用 FAIL_BENCHMARK 注入 worker 失败。'
+              : 'The success preset runs readonly HETU/HIVE comparison; the failure preset injects FAIL_BENCHMARK to drive the worker failure path.'
           }}
         </div>
 
-        <div class="action-row">
+        <div class="action-row action-row-wrap">
           <el-button
             type="primary"
-            :loading="running"
+            :loading="running && lastScenario === 'success'"
             data-testid="benchmark-flow-submit"
-            @click="runFlow"
+            @click="runSuccessFlow"
           >
-            {{ isChinese ? '提交真实压测任务' : 'Run live benchmark flow' }}
+            {{ isChinese ? '执行成功任务' : 'Run success task' }}
+          </el-button>
+          <el-button
+            :loading="running && lastScenario === 'failure'"
+            data-testid="benchmark-flow-submit-failure"
+            @click="runFailureCompensationFlow"
+          >
+            {{ isChinese ? '执行失败恢复 + 补偿' : 'Run failure recovery + compensation' }}
           </el-button>
         </div>
       </article>
@@ -139,8 +207,8 @@ const runFlow = async () => {
         <p v-if="!submitResult && !errorMessage" class="empty-state">
           {{
             isChinese
-              ? '提交后会展示任务 ID、终态、reportId 和报告摘要。'
-              : 'Submitting the form will reveal the task ID, terminal status, reportId and report summary.'
+              ? '成功场景会展示 report 回写结果；失败场景会展示终态错误和审计补偿队列证据。'
+              : 'The success path shows report write-back evidence; the failure path shows terminal errors and audit-compensation queue evidence.'
           }}
         </p>
 
@@ -184,6 +252,23 @@ const runFlow = async () => {
               <strong>{{ taskStatus.readonlyRequired ? 'true' : 'false' }}</strong>
             </div>
           </div>
+
+          <div
+            v-if="taskStatus.error"
+            class="trace-card"
+          >
+            <div class="evidence-grid">
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '失败码' : 'Failure code' }}</span>
+                <strong data-testid="benchmark-flow-failure-code">{{ taskStatus.error.code }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '可重试' : 'Retryable' }}</span>
+                <strong>{{ taskStatus.error.retryable ? 'true' : 'false' }}</strong>
+              </div>
+            </div>
+            <p class="result-copy">{{ taskStatus.error.message }}</p>
+          </div>
         </template>
 
         <template v-if="report">
@@ -205,6 +290,36 @@ const runFlow = async () => {
                   : `Report ${report.reportId} was returned by the live API with formats ${report.availableFormats.join(', ')}.`
               }}
             </p>
+          </div>
+        </template>
+
+        <template v-if="compensationStatus">
+          <div class="compensation-card">
+            <div class="result-banner" :class="compensationDetected ? 'result-banner-success' : 'result-banner-danger'">
+              <strong data-testid="benchmark-flow-compensation-indicator">
+                {{ compensationDetected ? 'COMPENSATED' : 'NOT_COMPENSATED' }}
+              </strong>
+              <span data-testid="benchmark-flow-compensation-status">{{ compensationStatus.status }}</span>
+            </div>
+
+            <div class="evidence-grid">
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '补偿前 pending' : 'Pending before' }}</span>
+                <strong data-testid="benchmark-flow-queue-pending-before">{{ queueStatsBefore?.pending ?? 0 }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '补偿后 pending' : 'Pending after' }}</span>
+                <strong data-testid="benchmark-flow-queue-pending-after">{{ queueStatsAfter?.pending ?? 0 }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? 'pending 增量' : 'Pending delta' }}</span>
+                <strong data-testid="benchmark-flow-queue-pending-delta">{{ queuePendingDelta }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '补偿状态查询' : 'Compensated status query' }}</span>
+                <strong>{{ compensationStatus.currentPhase }}</strong>
+              </div>
+            </div>
           </div>
         </template>
       </article>
@@ -293,6 +408,12 @@ const runFlow = async () => {
   margin-top: 20px;
 }
 
+.action-row-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .result-banner {
   display: flex;
   justify-content: space-between;
@@ -305,7 +426,9 @@ const runFlow = async () => {
 }
 
 .result-banner-success,
-.report-card {
+.report-card,
+.compensation-card,
+.trace-card {
   border-color: rgba(62, 207, 142, 0.28);
   background: rgba(62, 207, 142, 0.1);
 }
@@ -320,7 +443,9 @@ const runFlow = async () => {
   background: rgba(232, 82, 82, 0.12);
 }
 
-.report-card {
+.report-card,
+.compensation-card,
+.trace-card {
   border: 1px solid transparent;
   border-radius: var(--sqlforge-radius-md);
   padding: 16px;
