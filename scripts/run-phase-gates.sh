@@ -5,10 +5,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GATE_MODE="entry"
 COVERAGE_PHASE="phase1plus"
 REQUIRE_SONAR="false"
+RUN_REAL_KAFKA_GATE="false"
 
 usage() {
   cat <<'EOF'
-Usage: bash scripts/run-phase-gates.sh [--gate entry|delivery|compliance|full] [--coverage-phase report-only|phase0|phase1plus] [--require-sonar]
+Usage: bash scripts/run-phase-gates.sh [--gate entry|delivery|compliance|full] [--coverage-phase report-only|phase0|phase1plus] [--require-sonar] [--run-real-kafka-gate]
 
 Options:
   --gate            Gate scope. Defaults to entry.
@@ -18,6 +19,7 @@ Options:
                     full: run entry + delivery + compliance
   --coverage-phase  Coverage mode passed to scripts/run-coverage.sh during delivery/full. Defaults to phase1plus.
   --require-sonar   Require SonarQube configuration and fail if secrets are missing.
+  --run-real-kafka-gate  Run the real Kafka runtime gate during compliance/full.
 EOF
 }
 
@@ -33,6 +35,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --require-sonar)
       REQUIRE_SONAR="true"
+      shift
+      ;;
+    --run-real-kafka-gate)
+      RUN_REAL_KAFKA_GATE="true"
       shift
       ;;
     -h|--help)
@@ -56,6 +62,7 @@ run_entry_gate() {
 
 run_delivery_gate() {
   echo "Running R-117 delivery gate checks"
+  bash scripts/verify-db-scripts.sh
   mvn -B clean install
   bash scripts/run-coverage.sh --phase "$COVERAGE_PHASE"
   if [[ "$REQUIRE_SONAR" == "true" ]]; then
@@ -71,6 +78,11 @@ run_delivery_gate() {
 run_compliance_gate() {
   echo "Running R-118 compliance gate checks"
   python3 scripts/verify_compliance_baseline.py
+  if [[ "$RUN_REAL_KAFKA_GATE" == "true" ]]; then
+    bash scripts/run-kafka-runtime-gate.sh
+  else
+    bash scripts/run-kafka-runtime-gate.sh --config-check
+  fi
 }
 
 cd "$ROOT_DIR"

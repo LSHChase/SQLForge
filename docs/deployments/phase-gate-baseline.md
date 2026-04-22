@@ -32,9 +32,10 @@
 |:---|:---|:---|
 | Main CI governance checks | 主 CI 已新增 `task_audit` 与 `foreman compile-governance --check`，让台账结构和 `.codex/policy` 漂移进入默认流水线 | `.github/workflows/ci.yml` |
 | Entry gate script | `scripts/run-phase-gates.sh --gate entry` 会执行 `task_audit`、`compile-governance --check`、`lint-repository-knowledge.js` | `scripts/run-phase-gates.sh` |
-| Delivery gate script | `scripts/run-phase-gates.sh --gate delivery` 会执行 `mvn -B clean install`、覆盖率、Sonar、前端 lint/build 和仓库知识检查 | `scripts/run-phase-gates.sh` |
-| Compliance gate script | `scripts/run-phase-gates.sh --gate compliance` 会调用 `scripts/verify_compliance_baseline.py`，对 auth/access-control、审计 schema、加密基线和备份恢复文档做最小机器校验 | `scripts/run-phase-gates.sh`, `scripts/verify_compliance_baseline.py` |
-| Manual GitHub Actions gate | 新增 `Phase Gate` workflow，可通过 `workflow_dispatch` 选择 `entry|delivery|compliance|full`，并显式指定 coverage phase 与 Sonar 是否必需 | `.github/workflows/phase-gate.yml` |
+| Delivery gate script | `scripts/run-phase-gates.sh --gate delivery` 会执行数据库脚本可执行检查、`mvn -B clean install`、覆盖率、Sonar、前端 lint/build 和仓库知识检查 | `scripts/run-phase-gates.sh`, `scripts/verify-db-scripts.sh` |
+| Compliance gate script | `scripts/run-phase-gates.sh --gate compliance` 会调用 `scripts/verify_compliance_baseline.py`，并按参数执行 Kafka 配置校验或真实 Kafka runtime gate，对 auth/access-control、审计 schema、加密基线、恢复基线和消息运行证据做机器校验 | `scripts/run-phase-gates.sh`, `scripts/verify_compliance_baseline.py`, `scripts/verify_kafka_runtime_config.py`, `scripts/run-kafka-runtime-gate.sh` |
+| Manual GitHub Actions gate | `Phase Gate` workflow 可通过 `workflow_dispatch` 选择 `entry|delivery|compliance|full`；`delivery/full` 默认强制 Sonar，`compliance/full` 可启用真实 Kafka gate | `.github/workflows/phase-gate.yml` |
+| Dedicated Kafka workflow | 新增独立 `Kafka Runtime Gate` workflow，在真实 Kafka 模式下执行 bootstrap/security 参数校验、连通性检查与恢复 smoke | `.github/workflows/kafka-runtime-gate.yml`, `scripts/run-kafka-runtime-gate.sh` |
 
 ## Gate Semantics
 
@@ -65,17 +66,17 @@
 以下缺口在 `F-TASK-005` 完成后仍然存在：
 
 1. `Phase Gate` workflow 当前是 `workflow_dispatch` 手动触发，不是自动绑定到阶段切换元数据。
-2. `R-117` 里的数据库脚本可执行检查尚未形成专用脚本步骤。
-3. `phase1plus` 覆盖率目前仍低于 85% 门槛，full delivery gate 在严格 `phase1plus` 模式下预期会阻断。
-4. Sonar 仍受 secrets 是否配置影响；若显式要求 `--require-sonar` 但 secrets 缺失，门禁会失败。
-5. `R-118` 目前是最小机器校验，不替代真实环境中的身份、授权、审计、加密、备份恢复演练。
+2. `phase1plus` 覆盖率目前仍低于 85% 门槛，full delivery gate 在严格 `phase1plus` 模式下预期会阻断。
+3. Sonar 仍受 secrets 是否配置影响；若显式要求 `--require-sonar` 但 secrets 缺失，门禁会失败。
+4. `Phase Gate` workflow 现阶段仍以 `workflow_dispatch` 为主，不会自动消费阶段切换元数据。
+5. `R-118` 虽已补入恢复基线、观测基线、Kafka gate 和脚本存在性校验，但仍不替代真实环境中的身份、授权、审计、加密、备份恢复演练。
 
 ## Follow-Up Mapping
 
 | Next task | Recommended follow-up |
 |:---|:---|
-| `F-TASK-006` | 让 Java 规范扫描在 CI 中变得更显式、可追溯，并保留扫描结果 |
-| Later hardening | 若要把 phase gate 从手动 workflow 变成自动发布阻断，需要先补齐 Sonar 配置、覆盖率阈值与数据库脚本检查 |
+| `F-TASK-027` | 已完成：数据库脚本 gate、Sonar-required delivery mode、真实 Kafka compliance gate 与 R-118 基线证据已接入 |
+| Later hardening | 若要把 phase gate 从手动 workflow 变成自动发布阻断，仍需补齐 Sonar secrets、覆盖率阈值与阶段切换元数据自动触发 |
 
 ## Related Documents
 

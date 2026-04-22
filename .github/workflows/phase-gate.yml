@@ -19,13 +19,12 @@ on:
         default: phase1plus
         type: choice
         options:
-          - report-only
           - phase0
           - phase1plus
-      require_sonar:
-        description: Require Sonar configuration
+      run_real_kafka_gate:
+        description: Run real Kafka runtime gate during compliance/full
         required: true
-        default: false
+        default: true
         type: boolean
 
 jobs:
@@ -53,7 +52,10 @@ jobs:
       - name: Run phase gate
         run: |
           ARGS=(--gate "${{ inputs.gate }}" --coverage-phase "${{ inputs.coverage_phase }}")
-          if [ "${{ inputs.require_sonar }}" = "true" ]; then
+          if [ "${{ inputs.gate }}" = "delivery" ] || [ "${{ inputs.gate }}" = "full" ]; then
             ARGS+=(--require-sonar)
+          fi
+          if [ "${{ inputs.run_real_kafka_gate }}" = "true" ] && ([ "${{ inputs.gate }}" = "compliance" ] || [ "${{ inputs.gate }}" = "full" ]); then
+            ARGS+=(--run-real-kafka-gate)
           fi
           bash scripts/run-phase-gates.sh "${ARGS[@]}"

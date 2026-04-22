@@ -11,14 +11,7 @@
 
 ## Todo
 
-### F-TASK-027: 收口 Phase-F 退出门禁缺口
-
-- Status: in_progress
-- Priority: 1
-- Depends on: F-TASK-026
-- Scope: Close the remaining Phase-F exit-gate blockers by wiring dedicated database-script executability checks, coverage-threshold enforcement, Sonar-required delivery mode, and stronger R-118 compliance evidence into the phase-gate workflow and closeout path.
-- Validation:
-  - `python3 scripts/foreman.py validate F-TASK-027`
+_No tasks._
 
 
 ## In Progress

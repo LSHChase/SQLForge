@@ -100,6 +100,14 @@ jobs:
             echo "docker-compose.yml not present yet, skip compose validation"
           fi
 
+      - name: Verify database script executability
+        run: |
+          if [ -f scripts/verify-db-scripts.sh ]; then
+            bash scripts/verify-db-scripts.sh
+          else
+            echo "database script gate not present yet, skip DB script verification"
+          fi
+
       - name: Run multi-service runtime and business smoke checks
         run: |
           if [ -f docker-compose.yml ]; then

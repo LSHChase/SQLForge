@@ -35,7 +35,7 @@
 
 | Area | Current implementation | Evidence |
 |:---|:---|:---|
-| Workflow count | 当前仓库有两个 GitHub Actions 工作流：`.github/workflows/ci.yml` 与 `.github/workflows/phase-gate.yml` | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml` |
+| Workflow count | 当前仓库有三个 GitHub Actions 工作流：`.github/workflows/ci.yml`、`.github/workflows/phase-gate.yml` 与 `.github/workflows/kafka-runtime-gate.yml` | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `.github/workflows/kafka-runtime-gate.yml` |
 | Trigger policy | 在 `main` / `master` / `develop` 的 `push` 以及所有 `pull_request` 上触发 | `.github/workflows/ci.yml` |
 | Job topology | 当前只有一个 job：`build-and-test`，运行环境为 `ubuntu-latest` | `.github/workflows/ci.yml` |
 | Runtime setup | workflow 会安装 Java 8 和 Node.js 20 | `.github/workflows/ci.yml` |
@@ -44,12 +44,14 @@
 | Backend tests | workflow 会执行 `mvn -B test` | `.github/workflows/ci.yml` |
 | Coverage integration | 主 CI 继续调用 `bash scripts/run-coverage.sh --phase report-only` 生成覆盖率报告；阶段切换阻断改由 `Phase Gate` workflow 显式运行 `phase0|phase1plus` | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `scripts/run-coverage.sh` |
 | Runtime smoke integration | 主 CI 会显式执行 compose 语法检查、基础依赖启动、`governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 与前端 dev server，并串联 `query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 业务 smoke、审计补偿验证、消息队列 smoke，以及浏览器驱动的前端真实业务请求与治理修复动作 smoke | `.github/workflows/ci.yml`, `scripts/run-runtime-smoke.sh`, `scripts/health-check.sh`, `scripts/manual-query-governance-smoke.sh`, `scripts/manual-sql-optimization-governance-smoke.sh`, `scripts/manual-benchmark-governance-smoke.sh`, `scripts/manual-message-queue-smoke.sh`, `scripts/frontend-runtime-smoke.mjs` |
+| Database script executability | 主 CI 会在干净 MySQL 上重放 `sql/init-schema.sql`、`sql/init-data.sql` 并顺序执行所有 migration，确保 schema/init/migration 组合可执行 | `.github/workflows/ci.yml`, `scripts/verify-db-scripts.sh` |
 | Sonar integration | workflow 仅在 `SONAR_HOST_URL` 与 `SONAR_TOKEN` secrets 存在时执行 `bash scripts/run-sonar.sh --require-config` | `.github/workflows/ci.yml`, `scripts/run-sonar.sh` |
 | Boundary lint | workflow 会执行 `node scripts/check-frontend-backend-separation.js` | `.github/workflows/ci.yml` |
 | Frontend lint/build | workflow 会执行 `npm install`、`npm run lint`、`npm run build` | `.github/workflows/ci.yml`, `package.json` |
 | Repository knowledge lint | workflow 会执行 `node scripts/lint-repository-knowledge.js`，并补充校验 `README.md`、`AGENTS.md`、`.gitignore`、`.editorconfig` 存在 | `.github/workflows/ci.yml` |
 | Governance gate in CI | 主 CI 已接入 `python3 scripts/task_audit.py --check` 与 `python3 scripts/foreman.py compile-governance --check` | `.github/workflows/ci.yml` |
-| Manual phase gate workflow | 新增 `Phase Gate` workflow，通过 `workflow_dispatch` 执行 `entry|delivery|compliance|full` 阶段门禁 | `.github/workflows/phase-gate.yml`, `scripts/run-phase-gates.sh` |
+| Manual phase gate workflow | `Phase Gate` workflow 通过 `workflow_dispatch` 执行 `entry|delivery|compliance|full` 阶段门禁；`delivery/full` 默认强制 Sonar，`compliance/full` 可切换真实 Kafka gate | `.github/workflows/phase-gate.yml`, `scripts/run-phase-gates.sh` |
+| Dedicated real Kafka workflow | 独立 `Kafka Runtime Gate` workflow 可显式拉起 MySQL + Kafka + governance，执行真实 Kafka 配置检查与成功/失败恢复 smoke | `.github/workflows/kafka-runtime-gate.yml`, `scripts/run-kafka-runtime-gate.sh`, `scripts/verify_kafka_runtime_config.py` |
 
 ## Current CI Coverage Matrix
 
@@ -61,6 +63,7 @@
 | Java scan report retention | Enabled | `python3 scripts/verify_java_quality_reports.py` + `actions/upload-artifact@v4` | 保留 PMD / Checkstyle XML 与 HTML 报告，满足 `R-151` 可读报告要求 |
 | Backend unit/integration tests | Enabled | `mvn -B test` | 未按模块拆分 |
 | Compose syntax validation | Enabled | `bash scripts/run-runtime-smoke.sh --compose-check` | 通过统一脚本兼容 `docker compose` / `docker-compose` |
+| Database script executability | Enabled | `bash scripts/verify-db-scripts.sh` | 在干净 MySQL 上校验 init schema、init data 与 migrations 的可执行性 |
 | Runtime startup / health / queue smoke | Enabled | `bash scripts/run-runtime-smoke.sh --runtime-smoke` | 启动本地依赖，拉起 `governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 与前端 dev server，执行多服务健康探针、`query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 成功链路、失败恢复与审计补偿 smoke、消息重试 smoke，以及浏览器驱动的前端 `sql-query` / `acceleration` / `benchmark` / `system` 真实业务请求与治理修复动作；脚本会为 `dev` profile 注入仓库内测试密钥，并为治理侧启用按 trace 前缀触发的定向审计路由失败注入，前端 smoke 优先复用系统 Chrome |
 | Coverage report generation | Enabled | `bash scripts/run-coverage.sh --phase report-only` | 只生成报告，不做 phase threshold gate |
 | Optional Sonar scan | Conditional | `bash scripts/run-sonar.sh --require-config` | 依赖 secrets；缺少配置时不会运行 |
@@ -70,14 +73,14 @@
 | Repository knowledge lint | Enabled | `node scripts/lint-repository-knowledge.js` | 已作为仓库级文档门禁 |
 | Task audit | Enabled | `python3 scripts/task_audit.py --check` | 已进入主 CI |
 | Governance compile drift check | Enabled | `python3 scripts/foreman.py compile-governance --check` | 已进入主 CI |
+| Manual phase gate workflow | Enabled | `.github/workflows/phase-gate.yml` + `scripts/run-phase-gates.sh` | `delivery/full` 默认加 `--require-sonar`，`compliance/full` 可带 `--run-real-kafka-gate` |
+| Dedicated real Kafka gate workflow | Enabled | `.github/workflows/kafka-runtime-gate.yml` + `scripts/run-kafka-runtime-gate.sh` | 真实 Kafka 模式验证与主 CI 分离，避免默认流水线强绑外部 broker |
 
 ### Available Locally But Not In CI
 
 | Capability | Current local entry point | Why it is not counted as CI coverage |
 |:---|:---|:---|
 | Phase gate coverage thresholds | `bash scripts/run-coverage.sh --phase phase0|phase1plus` | workflow 只调用了 `report-only`，未启用阈值阻断 |
-| Foreman task validation | `python3 scripts/foreman.py validate <TASK_ID>` | 当前 workflow 仍未做任务级 validate 编排 |
-| Codex runtime validation | `python3 scripts/validate_codex_runtime.py` | 当前 workflow 未调用 |
 | Foreman task validation | `python3 scripts/foreman.py validate <TASK_ID>` | 当前 workflow 仍未做任务级 validate 编排 |
 | Codex runtime validation | `python3 scripts/validate_codex_runtime.py` | 当前 workflow 未调用 |
 ## Current Gaps
@@ -88,8 +91,9 @@
 2. 当前 workflow 仍未把 `python3 scripts/foreman.py validate <TASK>` 纳入通用 CI。
 3. `Phase Gate` 的 `phase1plus` 覆盖率阈值当前仍可能阻断，因为仓库聚合覆盖率尚未稳定达到 85%。
 4. Sonar 目前仍是“有 secrets 才能真正通过”的门禁项，不是无条件可运行。
-5. 默认 browser runtime smoke 已覆盖前端 `sql-query`、`acceleration`、`benchmark` 与 `system` 页的真实业务请求、失败恢复、审计补偿可视化与治理修复动作；剩余缺口已收敛为更多业务页尚未进入默认浏览器 smoke。
-6. 当前 workflow 继续使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
+5. 默认 browser runtime smoke 已覆盖前端 `sql-query`、`acceleration`、`benchmark`、`system` 与治理历史/修复链路的真实业务请求、失败恢复、审计补偿可视化与修复动作；剩余缺口已收敛为更多历史/取证页面尚未进入默认浏览器 smoke。
+6. 真实 Kafka gate 已可运行，但仍依赖 runner 具备 Docker 资源、compose 拉镜像权限与可用端口，不属于零依赖检查。
+7. 当前 workflow 继续使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
 
 ## Recommended Follow-Up Mapping
 
