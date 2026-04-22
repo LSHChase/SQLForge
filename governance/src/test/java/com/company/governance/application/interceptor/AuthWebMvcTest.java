@@ -16,6 +16,7 @@ import com.company.governance.application.controller.TenantConfigController;
 import com.company.governance.application.controller.vo.AuditWriteResponse;
 import com.company.governance.application.controller.vo.DatasourceAccessCheckResponse;
 import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
+import com.company.governance.application.controller.vo.GovernanceTraceLookupPageVO;
 import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO;
 import com.company.governance.application.controller.vo.HealthStatusVO;
 import com.company.governance.application.controller.vo.MessageStatsVO;
@@ -182,8 +183,8 @@ class AuthWebMvcTest {
 
         when(governanceHistoryApplicationService.findRecentTraces("system", Integer.valueOf(5)))
             .thenReturn(Collections.singletonList(summary));
-        when(governanceHistoryApplicationService.lookupTraces("system", "trace-001", "task-001", "report-001", Integer.valueOf(5)))
-            .thenReturn(Collections.singletonList(summary));
+        when(governanceHistoryApplicationService.lookupTraces("system", "trace-001", "task-001", "report-001", null, Integer.valueOf(5)))
+            .thenReturn(new GovernanceTraceLookupPageVO(Collections.singletonList(summary), Boolean.FALSE, null));
         when(governanceHistoryApplicationService.findTraceDetail("system", "trace-001", Integer.valueOf(5)))
             .thenReturn(detail);
 
@@ -194,8 +195,9 @@ class AuthWebMvcTest {
 
         mockMvc.perform(addProtectedHeaders(get("/api/governance/history/lookups?limit=5&traceId=trace-001&taskId=task-001&reportId=report-001")))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].traceId").value("trace-001"))
-            .andExpect(jsonPath("$[0].latestStatus").value("PARTIAL"));
+            .andExpect(jsonPath("$.items[0].traceId").value("trace-001"))
+            .andExpect(jsonPath("$.items[0].latestStatus").value("PARTIAL"))
+            .andExpect(jsonPath("$.hasMore").value(false));
 
         mockMvc.perform(addProtectedHeaders(get("/api/governance/history/traces/trace-001?limit=5")))
             .andExpect(status().isOk())
@@ -203,7 +205,7 @@ class AuthWebMvcTest {
             .andExpect(jsonPath("$.auditEventCount").value(1));
 
         verify(governanceHistoryApplicationService).findRecentTraces("system", Integer.valueOf(5));
-        verify(governanceHistoryApplicationService).lookupTraces("system", "trace-001", "task-001", "report-001", Integer.valueOf(5));
+        verify(governanceHistoryApplicationService).lookupTraces("system", "trace-001", "task-001", "report-001", null, Integer.valueOf(5));
         verify(governanceHistoryApplicationService).findTraceDetail("system", "trace-001", Integer.valueOf(5));
     }
 

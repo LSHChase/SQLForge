@@ -1,6 +1,7 @@
 package com.company.governance.application.controller;
 
 import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
+import com.company.governance.application.controller.vo.GovernanceTraceLookupPageVO;
 import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO;
 import com.company.governance.application.service.GovernanceHistoryApplicationService;
 import com.company.sqlforge.common.context.RequestContext;
@@ -39,20 +40,22 @@ public class GovernanceHistoryController {
     }
 
     @GetMapping("/lookups")
-    public List<GovernanceTraceSummaryVO> lookupTraces(
+    public GovernanceTraceLookupPageVO lookupTraces(
         @RequestParam(value = "tenantId", required = false) String tenantId,
         @RequestParam(value = "traceId", required = false) String traceId,
         @RequestParam(value = "taskId", required = false) String taskId,
         @RequestParam(value = "reportId", required = false) String reportId,
+        @RequestParam(value = "cursor", required = false) String cursor,
         @RequestParam(value = "limit", required = false) Integer limit) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
-        LOGGER.info("Handling governance trace lookup, tenantId={}, traceId={}, taskId={}, reportId={}, requestTraceId={}",
+        LOGGER.info("Handling governance trace lookup, tenantId={}, traceId={}, taskId={}, reportId={}, cursor={}, requestTraceId={}",
             effectiveTenantId,
             traceId,
             taskId,
             reportId,
+            cursor,
             RequestContext.getTraceId());
-        return governanceHistoryApplicationService.lookupTraces(effectiveTenantId, traceId, taskId, reportId, limit);
+        return governanceHistoryApplicationService.lookupTraces(effectiveTenantId, traceId, taskId, reportId, cursor, limit);
     }
 
     @GetMapping("/traces/{traceId}")

@@ -64,6 +64,18 @@
         LIMIT #{limit}
     </select>
 
+    <select id="selectByTraceIds" resultMap="QueryHistoryResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM query_history
+        WHERE tenant_id = #{tenantId}
+          AND trace_id IN
+          <foreach collection="traceIds" item="traceId" open="(" separator="," close=")">
+              #{traceId}
+          </foreach>
+        ORDER BY create_time DESC, history_id DESC
+    </select>
+
     <insert id="insert" parameterType="com.company.governance.domain.trace.entity.QueryHistoryRecord">
         INSERT INTO query_history (
             history_id,

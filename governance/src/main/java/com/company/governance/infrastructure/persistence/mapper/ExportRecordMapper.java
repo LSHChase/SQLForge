@@ -14,5 +14,8 @@ public interface ExportRecordMapper {
                                        @Param("traceId") String traceId,
                                        @Param("limit") int limit);
 
+    List<ExportRecord> selectByTraceIds(@Param("tenantId") String tenantId,
+                                        @Param("traceIds") List<String> traceIds);
+
     int insert(ExportRecord exportRecord);
 }

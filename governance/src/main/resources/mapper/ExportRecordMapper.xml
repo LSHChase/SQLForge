@@ -72,6 +72,18 @@
         LIMIT #{limit}
     </select>
 
+    <select id="selectByTraceIds" resultMap="ExportRecordResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM export_record
+        WHERE tenant_id = #{tenantId}
+          AND trace_id IN
+          <foreach collection="traceIds" item="traceId" open="(" separator="," close=")">
+              #{traceId}
+          </foreach>
+        ORDER BY create_time DESC, export_id DESC
+    </select>
+
     <insert id="insert" parameterType="com.company.governance.domain.trace.entity.ExportRecord">
         INSERT INTO export_record (
             export_id,

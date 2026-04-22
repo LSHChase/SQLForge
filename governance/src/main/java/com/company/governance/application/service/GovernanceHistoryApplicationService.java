@@ -1,11 +1,13 @@
 package com.company.governance.application.service;
 
 import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
+import com.company.governance.application.controller.vo.GovernanceTraceLookupPageVO;
 import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO;
 import com.company.governance.domain.tenant.logic.TenantAccessLogic;
 import com.company.governance.domain.trace.entity.AuditLogRecord;
 import com.company.governance.domain.trace.entity.ExportRecord;
 import com.company.governance.domain.trace.entity.QueryHistoryRecord;
+import com.company.governance.domain.trace.entity.TraceLookupHitRecord;
 import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
@@ -23,6 +25,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -44,6 +47,14 @@ public class GovernanceHistoryApplicationService {
     private static final int LOOKUP_SOURCE_SCAN_MULTIPLIER = 8;
     private static final int MIN_LOOKUP_SOURCE_SCAN_LIMIT = 120;
     private static final int MAX_LOOKUP_SOURCE_SCAN_LIMIT = 400;
+    private static final int LOOKUP_PAGE_FETCH_OVERFLOW = 1;
+    private static final int TRACE_LOOKUP_SOURCE_LIMIT = 100;
+    private static final List<String> TASK_TARGET_TYPES = Collections.unmodifiableList(
+        java.util.Arrays.asList("TASK", "SQL_OPTIMIZATION_TASK", "BENCHMARK_ENGINE_TASK")
+    );
+    private static final List<String> REPORT_TARGET_TYPES = Collections.unmodifiableList(
+        java.util.Arrays.asList("REPORT", "BENCHMARK_ENGINE_REPORT")
+    );
     private static final TypeReference<LinkedHashMap<String, Object>> MAP_TYPE =
         new TypeReference<LinkedHashMap<String, Object>>() {
         };
@@ -92,11 +103,12 @@ public class GovernanceHistoryApplicationService {
         return summaries;
     }
 
-    public List<GovernanceTraceSummaryVO> lookupTraces(String tenantId,
-                                                       String traceId,
-                                                       String taskId,
-                                                       String reportId,
-                                                       Integer limit) {
+    public GovernanceTraceLookupPageVO lookupTraces(String tenantId,
+                                                    String traceId,
+                                                    String taskId,
+                                                    String reportId,
+                                                    String cursor,
+                                                    Integer limit) {
         String effectiveTenantId = resolveAuthorizedTenantId(tenantId);
         String normalizedTraceId = trimToNull(traceId);
         String normalizedTaskId = trimToNull(taskId);
@@ -112,28 +124,79 @@ public class GovernanceHistoryApplicationService {
         }
 
         int resolvedLimit = normalizeLimit(limit);
-        int lookupSourceScanLimit = resolveLookupSourceScanLimit(resolvedLimit);
-        List<TraceAggregate> aggregates = loadRecentAggregates(effectiveTenantId, lookupSourceScanLimit);
-        List<GovernanceTraceSummaryVO> matches = new ArrayList<GovernanceTraceSummaryVO>();
+        if (StringUtils.hasText(normalizedTraceId)) {
+            TraceAggregate aggregate = loadTraceAggregate(effectiveTenantId, normalizedTraceId, TRACE_LOOKUP_SOURCE_LIMIT);
+            List<GovernanceTraceSummaryVO> items = new ArrayList<GovernanceTraceSummaryVO>();
+            if (aggregate.shouldDisplayInRecentList()
+                && aggregate.matchesLookupCriteria(normalizedTraceId, normalizedTaskId, normalizedReportId)) {
+                items.add(aggregate.toSummaryVO());
+            }
+            LOGGER.info("Loaded governance trace lookup, tenantId={}, traceId={}, taskId={}, reportId={}, count={}, mode=TRACE",
+                effectiveTenantId,
+                normalizedTraceId,
+                StringUtils.hasText(normalizedTaskId) ? normalizedTaskId : "-",
+                StringUtils.hasText(normalizedReportId) ? normalizedReportId : "-",
+                Integer.valueOf(items.size()));
+            return new GovernanceTraceLookupPageVO(items, Boolean.FALSE, null);
+        }
+
+        LookupCursor lookupCursor = parseLookupCursor(cursor);
+        List<TraceLookupHitRecord> hits = loadIndexedTraceHits(
+            effectiveTenantId,
+            normalizedTaskId,
+            normalizedReportId,
+            lookupCursor,
+            resolvedLimit + LOOKUP_PAGE_FETCH_OVERFLOW
+        );
+        if (hits.isEmpty()) {
+            LOGGER.info("Loaded governance trace lookup, tenantId={}, traceId=-, taskId={}, reportId={}, count=0, mode=INDEXED",
+                effectiveTenantId,
+                StringUtils.hasText(normalizedTaskId) ? normalizedTaskId : "-",
+                StringUtils.hasText(normalizedReportId) ? normalizedReportId : "-");
+            return new GovernanceTraceLookupPageVO(Collections.<GovernanceTraceSummaryVO>emptyList(), Boolean.FALSE, null);
+        }
+
+        List<String> traceIds = new ArrayList<String>();
+        for (TraceLookupHitRecord hit : hits) {
+            if (StringUtils.hasText(hit.getTraceId()) && !traceIds.contains(hit.getTraceId())) {
+                traceIds.add(hit.getTraceId());
+            }
+        }
+
+        List<TraceAggregate> aggregates = loadAggregatesByTraceIds(effectiveTenantId, traceIds);
+        Map<String, TraceAggregate> aggregateByTraceId = new HashMap<String, TraceAggregate>();
         for (TraceAggregate aggregate : aggregates) {
-            if (!aggregate.shouldDisplayInRecentList()) {
+            aggregateByTraceId.put(aggregate.traceId, aggregate);
+        }
+
+        List<GovernanceTraceSummaryVO> matches = new ArrayList<GovernanceTraceSummaryVO>();
+        TraceLookupHitRecord lastReturnedHit = null;
+        boolean hasMore = false;
+        for (TraceLookupHitRecord hit : hits) {
+            TraceAggregate aggregate = aggregateByTraceId.get(hit.getTraceId());
+            if (aggregate == null || !aggregate.shouldDisplayInRecentList()) {
                 continue;
             }
-            if (!aggregate.matchesLookupCriteria(normalizedTraceId, normalizedTaskId, normalizedReportId)) {
+            if (!aggregate.matchesLookupCriteria(null, normalizedTaskId, normalizedReportId)) {
                 continue;
             }
-            matches.add(aggregate.toSummaryVO());
-            if (matches.size() >= resolvedLimit) {
+            if (matches.size() < resolvedLimit) {
+                matches.add(aggregate.toSummaryVO());
+                lastReturnedHit = hit;
+            } else {
+                hasMore = true;
                 break;
             }
         }
-        LOGGER.info("Loaded governance trace lookup, tenantId={}, traceId={}, taskId={}, reportId={}, count={}",
+
+        String nextCursorValue = hasMore ? encodeCursor(lastReturnedHit) : null;
+        LOGGER.info("Loaded governance trace lookup, tenantId={}, traceId=-, taskId={}, reportId={}, count={}, hasMore={}, mode=INDEXED",
             effectiveTenantId,
-            StringUtils.hasText(normalizedTraceId) ? normalizedTraceId : "-",
             StringUtils.hasText(normalizedTaskId) ? normalizedTaskId : "-",
             StringUtils.hasText(normalizedReportId) ? normalizedReportId : "-",
-            Integer.valueOf(matches.size()));
-        return matches;
+            Integer.valueOf(matches.size()),
+            Boolean.valueOf(hasMore));
+        return new GovernanceTraceLookupPageVO(matches, Boolean.valueOf(hasMore), nextCursorValue);
     }
 
     public GovernanceTraceDetailVO findTraceDetail(String tenantId, String traceId, Integer limit) {
@@ -338,6 +401,85 @@ public class GovernanceHistoryApplicationService {
             }
         });
         return aggregates;
+    }
+
+    private TraceAggregate loadTraceAggregate(String tenantId, String traceId, int sourceLimit) {
+        TraceAggregate aggregate = new TraceAggregate(traceId);
+        mergeAuditLogs(aggregate, auditLogMapper.selectByTraceId(tenantId, traceId, sourceLimit));
+        mergeQueryHistories(aggregate, queryHistoryMapper.selectByTraceId(tenantId, traceId, sourceLimit));
+        mergeExportRecords(aggregate, exportRecordMapper.selectByTraceId(tenantId, traceId, sourceLimit));
+        return aggregate;
+    }
+
+    private List<TraceAggregate> loadAggregatesByTraceIds(String tenantId, List<String> traceIds) {
+        if (traceIds == null || traceIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        LinkedHashMap<String, TraceAggregate> aggregateByTraceId = new LinkedHashMap<String, TraceAggregate>();
+        for (String traceId : traceIds) {
+            if (StringUtils.hasText(traceId) && !aggregateByTraceId.containsKey(traceId)) {
+                aggregateByTraceId.put(traceId, new TraceAggregate(traceId));
+            }
+        }
+        mergeAuditLogs(aggregateByTraceId, auditLogMapper.selectByTraceIds(tenantId, traceIds));
+        mergeQueryHistories(aggregateByTraceId, queryHistoryMapper.selectByTraceIds(tenantId, traceIds));
+        mergeExportRecords(aggregateByTraceId, exportRecordMapper.selectByTraceIds(tenantId, traceIds));
+        return new ArrayList<TraceAggregate>(aggregateByTraceId.values());
+    }
+
+    private List<TraceLookupHitRecord> loadIndexedTraceHits(String tenantId,
+                                                            String taskId,
+                                                            String reportId,
+                                                            LookupCursor cursor,
+                                                            int limit) {
+        if (StringUtils.hasText(taskId)) {
+            return auditLogMapper.selectTraceHitsByTargetId(
+                tenantId,
+                taskId,
+                TASK_TARGET_TYPES,
+                cursor == null ? null : cursor.getCreatedAt(),
+                cursor == null ? null : cursor.getAuditId(),
+                limit
+            );
+        }
+        return auditLogMapper.selectTraceHitsByTargetId(
+            tenantId,
+            reportId,
+            REPORT_TARGET_TYPES,
+            cursor == null ? null : cursor.getCreatedAt(),
+            cursor == null ? null : cursor.getAuditId(),
+            limit
+        );
+    }
+
+    private LookupCursor parseLookupCursor(String cursor) {
+        if (!StringUtils.hasText(cursor)) {
+            return null;
+        }
+        String[] parts = cursor.trim().split("\\|", 2);
+        if (parts.length != 2) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                "lookup cursor is invalid"
+            );
+        }
+        try {
+            return new LookupCursor(LocalDateTime.parse(parts[0]), Long.valueOf(parts[1]));
+        } catch (Exception ex) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                "lookup cursor is invalid"
+            );
+        }
+    }
+
+    private String encodeCursor(TraceLookupHitRecord hit) {
+        if (hit == null || hit.getLastSeenAt() == null || hit.getLastAuditId() == null) {
+            return null;
+        }
+        return hit.getLastSeenAt().toString() + "|" + hit.getLastAuditId();
     }
 
     private Map<String, Object> parseJsonObject(String content) {
@@ -687,6 +829,25 @@ public class GovernanceHistoryApplicationService {
 
         private static String firstNonBlank(String first, String second, String third, String fourth, String fifth) {
             return firstNonBlank(first, firstNonBlank(second, third, fourth, fifth));
+        }
+    }
+
+    private static class LookupCursor {
+
+        private final LocalDateTime createdAt;
+        private final Long auditId;
+
+        private LookupCursor(LocalDateTime createdAt, Long auditId) {
+            this.createdAt = createdAt;
+            this.auditId = auditId;
+        }
+
+        private LocalDateTime getCreatedAt() {
+            return createdAt;
+        }
+
+        private Long getAuditId() {
+            return auditId;
         }
     }
 }

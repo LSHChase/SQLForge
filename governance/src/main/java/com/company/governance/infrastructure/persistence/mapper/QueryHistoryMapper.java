@@ -14,5 +14,8 @@ public interface QueryHistoryMapper {
                                              @Param("traceId") String traceId,
                                              @Param("limit") int limit);
 
+    List<QueryHistoryRecord> selectByTraceIds(@Param("tenantId") String tenantId,
+                                              @Param("traceIds") List<String> traceIds);
+
     int insert(QueryHistoryRecord queryHistoryRecord);
 }

@@ -25,6 +25,12 @@
         <result property="createTime" column="create_time"/>
     </resultMap>
 
+    <resultMap id="TraceLookupHitResultMap" type="com.company.governance.domain.trace.entity.TraceLookupHitRecord">
+        <id property="traceId" column="trace_id"/>
+        <result property="lastSeenAt" column="last_seen_at"/>
+        <result property="lastAuditId" column="last_audit_id"/>
+    </resultMap>
+
     <sql id="BaseColumns">
         id,
         tenant_id,
@@ -79,6 +85,48 @@
         WHERE tenant_id = #{tenantId}
           AND trace_id = #{traceId}
         ORDER BY create_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectByTraceIds" resultMap="AuditLogResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM audit_log
+        WHERE tenant_id = #{tenantId}
+          AND trace_id IN
+          <foreach collection="traceIds" item="traceId" open="(" separator="," close=")">
+              #{traceId}
+          </foreach>
+        ORDER BY create_time DESC, id DESC
+    </select>
+
+    <select id="selectTraceHitsByTargetId" resultMap="TraceLookupHitResultMap">
+        SELECT
+            hits.trace_id,
+            hits.last_seen_at,
+            hits.last_audit_id
+        FROM (
+            SELECT
+                trace_id,
+                MAX(create_time) AS last_seen_at,
+                MAX(id) AS last_audit_id
+            FROM audit_log
+            WHERE tenant_id = #{tenantId}
+              AND target_id = #{targetId}
+              AND trace_id IS NOT NULL
+              <if test="targetTypes != null and targetTypes.size() &gt; 0">
+                AND target_type IN
+                <foreach collection="targetTypes" item="targetType" open="(" separator="," close=")">
+                    #{targetType}
+                </foreach>
+              </if>
+            GROUP BY trace_id
+        ) hits
+        <if test="cursorCreatedAt != null and cursorAuditId != null">
+            WHERE hits.last_seen_at &lt; #{cursorCreatedAt}
+               OR (hits.last_seen_at = #{cursorCreatedAt} AND hits.last_audit_id &lt; #{cursorAuditId})
+        </if>
+        ORDER BY hits.last_seen_at DESC, hits.last_audit_id DESC
         LIMIT #{limit}
     </select>
 

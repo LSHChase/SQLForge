@@ -6,11 +6,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
+import com.company.governance.application.controller.vo.GovernanceTraceLookupPageVO;
 import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO;
 import com.company.governance.domain.tenant.logic.TenantAccessLogic;
 import com.company.governance.domain.trace.entity.AuditLogRecord;
 import com.company.governance.domain.trace.entity.ExportRecord;
 import com.company.governance.domain.trace.entity.QueryHistoryRecord;
+import com.company.governance.domain.trace.entity.TraceLookupHitRecord;
 import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
@@ -287,7 +289,31 @@ class GovernanceHistoryApplicationServiceTest {
             200L
         );
         when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
-        when(auditLogMapper.selectRecentBusinessByTenant("tenant-a", 120)).thenReturn(Arrays.asList(
+        when(auditLogMapper.selectTraceHitsByTargetId(
+            "tenant-a",
+            "task-001",
+            Arrays.asList("TASK", "SQL_OPTIMIZATION_TASK", "BENCHMARK_ENGINE_TASK"),
+            null,
+            null,
+            11
+        )).thenReturn(Arrays.asList(
+            buildTraceHit("SMOKE-FORCE-AUDIT-FALLBACK-task-001", "2026-04-22T10:06:00", 1002L),
+            buildTraceHit("trace-opt-failed", "2026-04-22T10:05:00", 1001L)
+        ));
+        when(auditLogMapper.selectTraceHitsByTargetId(
+            "tenant-a",
+            "report-001",
+            Arrays.asList("REPORT", "BENCHMARK_ENGINE_REPORT"),
+            null,
+            null,
+            11
+        )).thenReturn(Collections.singletonList(
+            buildTraceHit("trace-benchmark-report", "2026-04-22T10:04:00", 1000L)
+        ));
+        when(auditLogMapper.selectByTraceIds("tenant-a", Arrays.asList(
+            "SMOKE-FORCE-AUDIT-FALLBACK-task-001",
+            "trace-opt-failed"
+        ))).thenReturn(Arrays.asList(
             buildAudit("SMOKE-FORCE-AUDIT-FALLBACK-task-001", "SQL_OPTIMIZATION", "FAILED",
                 "SQL_OPTIMIZATION_TASK", "task-001",
                 LocalDateTime.parse("2026-04-22T10:06:00"),
@@ -297,27 +323,165 @@ class GovernanceHistoryApplicationServiceTest {
                 "SQL_OPTIMIZATION_TASK", "task-001",
                 LocalDateTime.parse("2026-04-22T10:05:00"),
                 "{\"serviceCode\":\"SQL_OPTIMIZATION\",\"taskId\":\"task-001\"}",
-                "{\"resultStatus\":\"FAILED\",\"taskId\":\"task-001\",\"errorCode\":\"13000\"}"),
-            buildAudit("trace-benchmark-report", "BENCHMARK_ENGINE", "SUCCESS",
-                "REPORT", "report-001",
-                LocalDateTime.parse("2026-04-22T10:04:00"),
-                "{\"serviceCode\":\"BENCHMARK_ENGINE\",\"reportId\":\"report-001\"}",
-                "{\"resultStatus\":\"SUCCESS\",\"reportId\":\"report-001\"}")
+                "{\"resultStatus\":\"FAILED\",\"taskId\":\"task-001\",\"errorCode\":\"13000\"}")
         ));
-        when(queryHistoryMapper.selectRecentByTenant("tenant-a", 120)).thenReturn(Collections.emptyList());
-        when(exportRecordMapper.selectRecentByTenant("tenant-a", 120)).thenReturn(Collections.singletonList(
+        when(auditLogMapper.selectByTraceIds("tenant-a", Collections.singletonList("trace-benchmark-report"))).thenReturn(
+            Collections.singletonList(
+                buildAudit("trace-benchmark-report", "BENCHMARK_ENGINE", "SUCCESS",
+                    "REPORT", "report-001",
+                    LocalDateTime.parse("2026-04-22T10:04:00"),
+                    "{\"serviceCode\":\"BENCHMARK_ENGINE\",\"reportId\":\"report-001\"}",
+                    "{\"resultStatus\":\"SUCCESS\",\"reportId\":\"report-001\"}")
+            )
+        );
+        when(queryHistoryMapper.selectByTraceIds("tenant-a", Arrays.asList(
+            "SMOKE-FORCE-AUDIT-FALLBACK-task-001",
+            "trace-opt-failed"
+        ))).thenReturn(Collections.emptyList());
+        when(queryHistoryMapper.selectByTraceIds("tenant-a", Collections.singletonList("trace-benchmark-report")))
+            .thenReturn(Collections.emptyList());
+        when(exportRecordMapper.selectByTraceIds("tenant-a", Arrays.asList(
+            "SMOKE-FORCE-AUDIT-FALLBACK-task-001",
+            "trace-opt-failed"
+        ))).thenReturn(Collections.emptyList());
+        when(exportRecordMapper.selectByTraceIds("tenant-a", Collections.singletonList("trace-benchmark-report"))).thenReturn(Collections.singletonList(
             buildExport("trace-benchmark-report", "report-001", "SUCCESS", LocalDateTime.parse("2026-04-22T10:03:00"))
         ));
 
-        List<GovernanceTraceSummaryVO> taskMatches = service.lookupTraces("tenant-a", null, "task-001", null, Integer.valueOf(10));
-        List<GovernanceTraceSummaryVO> reportMatches = service.lookupTraces("tenant-a", null, null, "report-001", Integer.valueOf(10));
+        GovernanceTraceLookupPageVO taskMatches = service.lookupTraces("tenant-a", null, "task-001", null, null, Integer.valueOf(10));
+        GovernanceTraceLookupPageVO reportMatches = service.lookupTraces("tenant-a", null, null, "report-001", null, Integer.valueOf(10));
 
-        assertEquals(2, taskMatches.size());
-        assertEquals("SMOKE-FORCE-AUDIT-FALLBACK-task-001", taskMatches.get(0).getTraceId());
-        assertEquals("trace-opt-failed", taskMatches.get(1).getTraceId());
-        assertEquals(1, reportMatches.size());
-        assertEquals("trace-benchmark-report", reportMatches.get(0).getTraceId());
-        assertEquals("report-001", reportMatches.get(0).getReportId());
+        assertEquals(2, taskMatches.getItems().size());
+        assertEquals("SMOKE-FORCE-AUDIT-FALLBACK-task-001", taskMatches.getItems().get(0).getTraceId());
+        assertEquals("trace-opt-failed", taskMatches.getItems().get(1).getTraceId());
+        assertEquals(Boolean.FALSE, taskMatches.getHasMore());
+        assertEquals(1, reportMatches.getItems().size());
+        assertEquals("trace-benchmark-report", reportMatches.getItems().get(0).getTraceId());
+        assertEquals("report-001", reportMatches.getItems().get(0).getReportId());
+    }
+
+    @Test
+    void shouldPageIndexedTaskLookupAcrossOlderTraceHits() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(auditLogMapper.selectTraceHitsByTargetId(
+            "tenant-a",
+            "task-001",
+            Arrays.asList("TASK", "SQL_OPTIMIZATION_TASK", "BENCHMARK_ENGINE_TASK"),
+            null,
+            null,
+            2
+        )).thenReturn(Arrays.asList(
+            buildTraceHit("trace-newest", "2026-04-22T10:06:00", 1002L),
+            buildTraceHit("trace-older", "2026-04-22T10:05:00", 1001L)
+        ));
+        when(auditLogMapper.selectTraceHitsByTargetId(
+            "tenant-a",
+            "task-001",
+            Arrays.asList("TASK", "SQL_OPTIMIZATION_TASK", "BENCHMARK_ENGINE_TASK"),
+            LocalDateTime.parse("2026-04-22T10:06:00"),
+            Long.valueOf(1002L),
+            2
+        )).thenReturn(Arrays.asList(
+            buildTraceHit("trace-older", "2026-04-22T10:05:00", 1001L),
+            buildTraceHit("trace-oldest", "2026-04-22T10:04:00", 1000L)
+        ));
+        when(auditLogMapper.selectTraceHitsByTargetId(
+            "tenant-a",
+            "task-001",
+            Arrays.asList("TASK", "SQL_OPTIMIZATION_TASK", "BENCHMARK_ENGINE_TASK"),
+            LocalDateTime.parse("2026-04-22T10:05:00"),
+            Long.valueOf(1001L),
+            2
+        )).thenReturn(Collections.singletonList(
+            buildTraceHit("trace-oldest", "2026-04-22T10:04:00", 1000L)
+        ));
+        when(auditLogMapper.selectByTraceIds("tenant-a", Arrays.asList("trace-newest", "trace-older"))).thenReturn(Arrays.asList(
+            buildAudit("trace-newest", "SQL_OPTIMIZATION", "FAILED", "SQL_OPTIMIZATION_TASK", "task-001",
+                LocalDateTime.parse("2026-04-22T10:06:00"),
+                "{\"serviceCode\":\"SQL_OPTIMIZATION\",\"taskId\":\"task-001\"}",
+                "{\"resultStatus\":\"FAILED\",\"taskId\":\"task-001\",\"errorCode\":\"13000\"}"),
+            buildAudit("trace-older", "SQL_OPTIMIZATION", "FAILED", "SQL_OPTIMIZATION_TASK", "task-001",
+                LocalDateTime.parse("2026-04-22T10:05:00"),
+                "{\"serviceCode\":\"SQL_OPTIMIZATION\",\"taskId\":\"task-001\"}",
+                "{\"resultStatus\":\"FAILED\",\"taskId\":\"task-001\",\"errorCode\":\"13000\"}")
+        ));
+        when(auditLogMapper.selectByTraceIds("tenant-a", Arrays.asList("trace-older", "trace-oldest"))).thenReturn(Arrays.asList(
+            buildAudit("trace-older", "SQL_OPTIMIZATION", "FAILED", "SQL_OPTIMIZATION_TASK", "task-001",
+                LocalDateTime.parse("2026-04-22T10:05:00"),
+                "{\"serviceCode\":\"SQL_OPTIMIZATION\",\"taskId\":\"task-001\"}",
+                "{\"resultStatus\":\"FAILED\",\"taskId\":\"task-001\",\"errorCode\":\"13000\"}"),
+            buildAudit("trace-oldest", "SQL_OPTIMIZATION", "FAILED", "SQL_OPTIMIZATION_TASK", "task-001",
+                LocalDateTime.parse("2026-04-22T10:04:00"),
+                "{\"serviceCode\":\"SQL_OPTIMIZATION\",\"taskId\":\"task-001\"}",
+                "{\"resultStatus\":\"FAILED\",\"taskId\":\"task-001\",\"errorCode\":\"13000\"}")
+        ));
+        when(auditLogMapper.selectByTraceIds("tenant-a", Collections.singletonList("trace-oldest"))).thenReturn(Collections.singletonList(
+            buildAudit("trace-oldest", "SQL_OPTIMIZATION", "FAILED", "SQL_OPTIMIZATION_TASK", "task-001",
+                LocalDateTime.parse("2026-04-22T10:04:00"),
+                "{\"serviceCode\":\"SQL_OPTIMIZATION\",\"taskId\":\"task-001\"}",
+                "{\"resultStatus\":\"FAILED\",\"taskId\":\"task-001\",\"errorCode\":\"13000\"}")
+        ));
+        when(queryHistoryMapper.selectByTraceIds("tenant-a", Arrays.asList("trace-newest", "trace-older")))
+            .thenReturn(Collections.emptyList());
+        when(queryHistoryMapper.selectByTraceIds("tenant-a", Arrays.asList("trace-older", "trace-oldest")))
+            .thenReturn(Collections.emptyList());
+        when(queryHistoryMapper.selectByTraceIds("tenant-a", Collections.singletonList("trace-oldest")))
+            .thenReturn(Collections.emptyList());
+        when(exportRecordMapper.selectByTraceIds("tenant-a", Arrays.asList("trace-newest", "trace-older")))
+            .thenReturn(Collections.emptyList());
+        when(exportRecordMapper.selectByTraceIds("tenant-a", Arrays.asList("trace-older", "trace-oldest")))
+            .thenReturn(Collections.emptyList());
+        when(exportRecordMapper.selectByTraceIds("tenant-a", Collections.singletonList("trace-oldest")))
+            .thenReturn(Collections.emptyList());
+
+        GovernanceTraceLookupPageVO firstPage = service.lookupTraces("tenant-a", null, "task-001", null, null, Integer.valueOf(1));
+        GovernanceTraceLookupPageVO secondPage = service.lookupTraces(
+            "tenant-a",
+            null,
+            "task-001",
+            null,
+            firstPage.getNextCursor(),
+            Integer.valueOf(1)
+        );
+        GovernanceTraceLookupPageVO thirdPage = service.lookupTraces(
+            "tenant-a",
+            null,
+            "task-001",
+            null,
+            secondPage.getNextCursor(),
+            Integer.valueOf(1)
+        );
+
+        assertEquals(1, firstPage.getItems().size());
+        assertEquals("trace-newest", firstPage.getItems().get(0).getTraceId());
+        assertEquals(Boolean.TRUE, firstPage.getHasMore());
+        assertEquals(1, secondPage.getItems().size());
+        assertEquals("trace-older", secondPage.getItems().get(0).getTraceId());
+        assertEquals(Boolean.TRUE, secondPage.getHasMore());
+        assertEquals(1, thirdPage.getItems().size());
+        assertEquals("trace-oldest", thirdPage.getItems().get(0).getTraceId());
+        assertEquals(Boolean.FALSE, thirdPage.getHasMore());
     }
 
     @Test
@@ -347,7 +511,7 @@ class GovernanceHistoryApplicationServiceTest {
 
         BizException exception = assertThrows(
             BizException.class,
-            () -> service.lookupTraces("tenant-a", null, null, null, Integer.valueOf(10))
+            () -> service.lookupTraces("tenant-a", null, null, null, null, Integer.valueOf(10))
         );
 
         assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());
@@ -435,6 +599,14 @@ class GovernanceHistoryApplicationServiceTest {
         record.setRequestId("request-" + traceId);
         record.setCreateTime(createTime);
         record.setFinishedAt(createTime);
+        return record;
+    }
+
+    private TraceLookupHitRecord buildTraceHit(String traceId, String lastSeenAt, Long lastAuditId) {
+        TraceLookupHitRecord record = new TraceLookupHitRecord();
+        record.setTraceId(traceId);
+        record.setLastSeenAt(LocalDateTime.parse(lastSeenAt));
+        record.setLastAuditId(lastAuditId);
         return record;
     }
 }

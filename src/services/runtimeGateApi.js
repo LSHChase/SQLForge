@@ -233,6 +233,10 @@ export const lookupGovernanceTraces = (tenantId, filters = {}, limit = 12, reque
       params.set(key, value)
     }
   })
+  const cursor = String(filters?.cursor || '').trim()
+  if (cursor) {
+    params.set('cursor', cursor)
+  }
 
   return request({
     method: 'get',

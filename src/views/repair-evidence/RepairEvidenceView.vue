@@ -23,6 +23,9 @@ const loadingDetail = ref(false)
 const lookupResults = ref([])
 const detail = ref(null)
 const errorMessage = ref('')
+const hasMore = ref(false)
+const nextCursor = ref('')
+const activeFilters = ref(null)
 
 const isChinese = computed(() => locale.value === 'zh-CN')
 const activeTraceId = computed(() => detail.value?.traceId || '')
@@ -203,6 +206,25 @@ const loadTraceDetail = async traceId => {
   }
 }
 
+const normalizeFilters = () => ({
+  traceId: form.traceId,
+  taskId: form.taskId,
+  reportId: form.reportId
+})
+
+const applyLookupPage = async (pageResponse, append = false) => {
+  const items = Array.isArray(pageResponse?.items) ? pageResponse.items : []
+  lookupResults.value = append ? [...lookupResults.value, ...items] : items
+  hasMore.value = Boolean(pageResponse?.hasMore)
+  nextCursor.value = pageResponse?.nextCursor || ''
+
+  if (append) {
+    return
+  }
+
+  await loadTraceDetail(lookupResults.value[0]?.traceId || '')
+}
+
 const runLookup = async () => {
   if (!hasDisplayValue(form.traceId) && !hasDisplayValue(form.taskId) && !hasDisplayValue(form.reportId)) {
     errorMessage.value = isChinese.value
@@ -215,25 +237,51 @@ const runLookup = async () => {
 
   loadingLookup.value = true
   errorMessage.value = ''
+  activeFilters.value = normalizeFilters()
 
   try {
-    const traces = await lookupGovernanceTraces(
+    const lookupPage = await lookupGovernanceTraces(
       form.tenantId,
-      {
-        traceId: form.traceId,
-        taskId: form.taskId,
-        reportId: form.reportId
-      },
+      activeFilters.value,
       form.limit,
       {
         requestPrefix: 'frontend-repair-evidence-lookups'
       }
     )
-    lookupResults.value = Array.isArray(traces) ? traces : []
-    await loadTraceDetail(lookupResults.value[0]?.traceId || '')
+    await applyLookupPage(lookupPage, false)
   } catch (error) {
     lookupResults.value = []
     detail.value = null
+    hasMore.value = false
+    nextCursor.value = ''
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loadingLookup.value = false
+  }
+}
+
+const loadMoreResults = async () => {
+  if (!hasMore.value || !nextCursor.value || !activeFilters.value) {
+    return
+  }
+
+  loadingLookup.value = true
+  errorMessage.value = ''
+
+  try {
+    const lookupPage = await lookupGovernanceTraces(
+      form.tenantId,
+      {
+        ...activeFilters.value,
+        cursor: nextCursor.value
+      },
+      form.limit,
+      {
+        requestPrefix: 'frontend-repair-evidence-lookups-more'
+      }
+    )
+    await applyLookupPage(lookupPage, true)
+  } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
     loadingLookup.value = false
@@ -247,6 +295,9 @@ const clearLookup = () => {
   lookupResults.value = []
   detail.value = null
   errorMessage.value = ''
+  hasMore.value = false
+  nextCursor.value = ''
+  activeFilters.value = null
 }
 
 const eventHighlights = event => {
@@ -360,6 +411,14 @@ const eventHighlights = event => {
           <el-button data-testid="repair-evidence-clear-lookup" @click="clearLookup">
             {{ isChinese ? '清空条件' : 'Clear criteria' }}
           </el-button>
+          <el-button
+            v-if="hasMore"
+            :loading="loadingLookup"
+            data-testid="repair-evidence-load-more"
+            @click="loadMoreResults"
+          >
+            {{ isChinese ? '加载更早结果' : 'Load older matches' }}
+          </el-button>
         </div>
 
         <div class="lookup-chip-list">
@@ -396,6 +455,15 @@ const eventHighlights = event => {
             <span class="summary-card-label">{{ isChinese ? '异常/修复链' : 'Non-success chains' }}</span>
             <strong data-testid="repair-evidence-non-success-count">{{ nonSuccessCount }}</strong>
           </article>
+        </div>
+
+        <div
+          v-if="hasMore"
+          class="result-banner result-banner-warning"
+          data-testid="repair-evidence-has-more"
+        >
+          <strong>{{ isChinese ? '仍有更早 trace' : 'Older traces available' }}</strong>
+          <span>{{ nextCursor || '-' }}</span>
         </div>
 
         <div v-if="errorMessage" class="result-banner result-banner-danger" data-testid="repair-evidence-error">
