@@ -4,6 +4,7 @@ import RoutePlaceholder from '../views/common/RoutePlaceholder.vue'
 import SqlQueryView from '../views/query/SqlQueryView.vue'
 import AccelerationView from '../views/optimization/AccelerationView.vue'
 import BenchmarkView from '../views/benchmark/BenchmarkView.vue'
+import SystemView from '../views/system/SystemView.vue'
 import { deliveryProgressEnabled } from '../config/runtimeFlags'
 
 export const constantRoutes = [
@@ -69,12 +70,7 @@ export const constantRoutes = [
   {
     path: '/system',
     name: 'System',
-    component: RoutePlaceholder,
-    props: {
-      eyebrowKey: 'common.platformTagline',
-      titleKey: 'system.title',
-      descriptionKey: 'system.summary'
-    },
+    component: SystemView,
     meta: {
       menu: true,
       titleKey: 'system.title',

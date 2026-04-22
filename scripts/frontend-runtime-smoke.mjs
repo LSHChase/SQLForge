@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { chromium } from 'playwright'
 
 const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 'http://127.0.0.1:3000'
@@ -11,11 +12,50 @@ const browserCandidates = [
   '/usr/bin/chromium-browser',
   '/usr/bin/chromium'
 ].filter(Boolean)
+const mysqlContainer = process.env.MYSQL_CONTAINER || 'sqlforge-mysql'
+const mysqlDatabase = process.env.MYSQL_DATABASE || 'sqlforge'
+const mysqlUser = process.env.MYSQL_USER || 'sqlforge'
+const mysqlPassword = process.env.MYSQL_PASSWORD || 'sqlforge'
 
 const assert = (condition, message) => {
   if (!condition) {
     throw new Error(message)
   }
+}
+
+const sqlEscape = value => String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+
+const mysqlExec = sql =>
+  execFileSync(
+    'docker',
+    [
+      'exec',
+      mysqlContainer,
+      'sh',
+      '-lc',
+      `mysql -N -B -u${mysqlUser} -p${mysqlPassword} ${mysqlDatabase} -e "${sql.replace(/"/g, '\\"')}"`
+    ],
+    { encoding: 'utf8' }
+  ).trim()
+
+const seedFailedGovernanceMessage = () => {
+  const traceId = `frontend-system-smoke-${Date.now()}`
+  const messageBody = sqlEscape(JSON.stringify({ event: 'frontend-system-smoke', traceId }))
+  const headers = sqlEscape(JSON.stringify({ source: 'frontend-runtime-smoke', traceId }))
+  const sql =
+    `INSERT INTO kafka_message_queue (topic, partition_key, message_body, headers, status, retry_count, error_log) ` +
+    `VALUES ('manual.smoke', 'tenant-manual', '${messageBody}', '${headers}', 'FAILED', 3, 'frontend runtime smoke setup'); ` +
+    'SELECT LAST_INSERT_ID();'
+  const seededId = mysqlExec(sql).split('\n').filter(Boolean).pop()
+  assert(seededId, 'Failed to seed governance failed message')
+  return { seededId, traceId }
+}
+
+const cleanupGovernanceMessage = seededId => {
+  if (!seededId) {
+    return
+  }
+  mysqlExec(`DELETE FROM kafka_message_queue WHERE id = ${Number(seededId)};`)
 }
 
 const resolveExecutablePath = () => browserCandidates.find(candidate => fs.existsSync(candidate))
@@ -92,7 +132,7 @@ const runQueryFlow = async page => {
   await expectText(page, 'query-flow-degraded', 'true')
   await expectText(page, 'query-flow-retry-path-size', '2')
   await expectText(page, 'query-flow-compensation-status', 'COMPENSATED')
-  await expectNumberAtLeast(page, 'query-flow-queue-pending-delta', 1)
+  await expectNumberAtLeast(page, 'query-flow-queue-total-delta', 1)
 }
 
 const runOptimizationFlow = async page => {
@@ -132,7 +172,7 @@ const runOptimizationFlow = async page => {
   await expectText(page, 'optimization-flow-failure-code', '13000')
   await expectText(page, 'optimization-flow-compensation-status', 'FAILED')
   await expectText(page, 'optimization-flow-compensation-indicator', 'COMPENSATED')
-  await expectNumberAtLeast(page, 'optimization-flow-queue-pending-delta', 1)
+  await expectNumberAtLeast(page, 'optimization-flow-queue-total-delta', 1)
 }
 
 const runBenchmarkFlow = async page => {
@@ -178,7 +218,35 @@ const runBenchmarkFlow = async page => {
   await expectText(page, 'benchmark-flow-failure-code', '14000')
   await expectText(page, 'benchmark-flow-compensation-status', 'FAILED')
   await expectText(page, 'benchmark-flow-compensation-indicator', 'COMPENSATED')
-  await expectNumberAtLeast(page, 'benchmark-flow-queue-pending-delta', 1)
+  await expectNumberAtLeast(page, 'benchmark-flow-queue-total-delta', 1)
+}
+
+const runSystemFlow = async page => {
+  const { seededId } = seedFailedGovernanceMessage()
+
+  try {
+    await page.goto(`${frontendBaseUrl}/system`, { waitUntil: 'networkidle' })
+    await page.getByTestId('system-flow-page').waitFor({ timeout: defaultTimeoutMs })
+
+    await expectText(page, 'system-flow-tenant-config-status', 'system')
+    await expectText(page, 'system-flow-audit-level', 'NORMAL')
+    await expectNumberAtLeast(page, 'system-flow-queue-failed', 1)
+
+    const retryResponsePromise = waitForPost(page, '/api/governance/admin/messages/retry')
+    await page.getByTestId('system-flow-retry').click()
+    const retryResponse = await retryResponsePromise
+    const retryPayload = await retryResponse.json()
+
+    assert(retryResponse.status() === 200, `Governance retry returned HTTP ${retryResponse.status()}`)
+    assert(retryPayload.status === 'ACCEPTED', `Governance retry returned unexpected status ${retryPayload.status}`)
+    assert(retryPayload.retriedCount >= 1, `Expected retriedCount >= 1, got ${retryPayload.retriedCount}`)
+
+    await expectText(page, 'system-flow-retry-status', 'ACCEPTED')
+    await expectNumberAtLeast(page, 'system-flow-retry-count', 1)
+    await expectText(page, 'system-flow-repair-outcome', 'REPAIRED')
+  } finally {
+    cleanupGovernanceMessage(seededId)
+  }
 }
 
 const main = async () => {
@@ -198,6 +266,7 @@ const main = async () => {
     await runQueryFlow(page)
     await runOptimizationFlow(page)
     await runBenchmarkFlow(page)
+    await runSystemFlow(page)
   } finally {
     await browser.close()
   }

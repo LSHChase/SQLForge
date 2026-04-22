@@ -189,6 +189,28 @@ export const getGovernanceMessageStats = (tenantId, requestOptions = {}) =>
     }
   })
 
+export const retryGovernanceFailedMessages = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: '/api/governance/admin/messages/retry',
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-message-retry',
+      ...requestOptions
+    }
+  })
+
+export const getGovernanceTenantConfig = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/governance/tenant-config?tenantId=${encodeURIComponent(tenantId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-tenant-config',
+      ...requestOptions
+    }
+  })
+
 export const formatRuntimeError = error => {
   if (error?.response?.data) {
     const { code, message } = error.response.data
