@@ -143,6 +143,10 @@ export default {
     title: 'Audit Forensics',
     summary: 'Stitch compensation, repair, write-back and history events into a paged forensic chain.'
   },
+  auditTroubleshooting: {
+    title: 'Audit Troubleshooting',
+    summary: 'Summarize failure type, compensation state, write-back state and queue impact, then expose remediation actions and acceptance signals.'
+  },
   benchmark: {
     title: 'Benchmark Report',
     summary: 'Inspect baseline, peak latency, regression deltas and release readiness.'

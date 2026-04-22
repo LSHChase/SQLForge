@@ -4,9 +4,11 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import {
   formatRuntimeError,
+  getGovernanceMessageStats,
   getGovernanceTraceDetail,
   GOVERNANCE_COMPENSATION_TRACE_PREFIX,
-  lookupGovernanceTraces
+  lookupGovernanceTraces,
+  retryGovernanceFailedMessages
 } from '../../services/runtimeGateApi'
 
 const { t, locale } = useI18n()
@@ -15,6 +17,7 @@ const router = useRouter()
 
 const form = reactive({
   tenantId: 'tenant-a',
+  remediationTenantId: 'system',
   traceId: '',
   taskId: '',
   reportId: '',
@@ -23,8 +26,14 @@ const form = reactive({
 
 const loadingLookup = ref(false)
 const loadingDetail = ref(false)
+const loadingStats = ref(false)
+const retrying = ref(false)
 const lookupResults = ref([])
 const detail = ref(null)
+const stats = ref(null)
+const statsBeforeRetry = ref(null)
+const statsAfterRetry = ref(null)
+const retryResult = ref(null)
 const errorMessage = ref('')
 const hasMore = ref(false)
 const nextCursor = ref('')
@@ -38,9 +47,6 @@ const compensationCount = computed(() =>
 )
 const reportLinkedCount = computed(() =>
   lookupResults.value.filter(trace => hasDisplayValue(trace.reportId) || (trace.exportRecordCount || 0) > 0).length
-)
-const repairSignalCount = computed(() =>
-  lookupResults.value.filter(trace => resolveTraceRepairSignal(trace) !== 'STEADY_STATE').length
 )
 const searchCriteria = computed(() =>
   [
@@ -64,70 +70,114 @@ const searchCriteria = computed(() =>
 const selectedSummary = computed(() =>
   lookupResults.value.find(trace => trace.traceId === activeTraceId.value) || null
 )
-const detailHighlights = computed(() => {
+const failureType = computed(() => {
   if (!detail.value) {
+    return '-'
+  }
+  if (detail.value.serviceCode === 'QUERY_EXECUTION' && detail.value.degraded === true) {
+    return 'QUERY_DEGRADED_RECOVERY'
+  }
+  if (detail.value.serviceCode === 'SQL_OPTIMIZATION' && detail.value.latestStatus === 'FAILED') {
+    return 'OPTIMIZATION_FAILURE'
+  }
+  if (detail.value.serviceCode === 'BENCHMARK_ENGINE' && detail.value.latestStatus === 'FAILED') {
+    return 'BENCHMARK_FAILURE'
+  }
+  if ((detail.value.nonSuccessEventCount || 0) > 0) {
+    return 'AUDIT_FAILURE_CHAIN'
+  }
+  return 'STEADY_STATE'
+})
+const compensationState = computed(() => {
+  if (!detail.value) {
+    return '-'
+  }
+  if (isCompensationTrace(detail.value.traceId)) {
+    return 'COMPENSATION_TRACE'
+  }
+  if (compensationCount.value > 0) {
+    return 'COMPENSATED_VISIBLE'
+  }
+  return 'NOT_VISIBLE'
+})
+const writeBackState = computed(() => {
+  if (!detail.value) {
+    return '-'
+  }
+  if ((detail.value.exportRecordCount || 0) > 0 || hasDisplayValue(detail.value.reportId)) {
+    return 'WRITEBACK_VISIBLE'
+  }
+  return 'WRITEBACK_PENDING'
+})
+const queueImpact = computed(() => {
+  if (!stats.value) {
+    return '-'
+  }
+  if ((stats.value.failed || 0) > 0) {
+    return 'FAILED_BACKLOG'
+  }
+  if ((stats.value.pending || 0) > 0) {
+    return 'PENDING_BACKLOG'
+  }
+  return 'STEADY_QUEUE'
+})
+const failedDelta = computed(() => {
+  if (!statsBeforeRetry.value || !statsAfterRetry.value) {
+    return 0
+  }
+  return statsBeforeRetry.value.failed - statsAfterRetry.value.failed
+})
+const retryImproved = computed(() => failedDelta.value >= 1 || (retryResult.value?.retriedCount || 0) >= 1)
+const acceptanceState = computed(() => {
+  if (retryResult.value) {
+    return retryImproved.value ? 'REPAIRED' : 'RETRY_ACCEPTED'
+  }
+  if (compensationState.value === 'COMPENSATION_TRACE' || writeBackState.value === 'WRITEBACK_VISIBLE') {
+    return 'READY_FOR_ACCEPTANCE'
+  }
+  if (queueImpact.value === 'FAILED_BACKLOG') {
+    return 'REMEDIATION_REQUIRED'
+  }
+  return 'UNDER_INVESTIGATION'
+})
+const queueCards = computed(() => {
+  if (!stats.value) {
     return []
   }
   return [
-    {
-      key: 'taskId',
-      label: isChinese.value ? '任务 ID' : 'Task ID',
-      value: detail.value.taskId
-    },
-    {
-      key: 'reportId',
-      label: isChinese.value ? '报告 ID' : 'Report ID',
-      value: detail.value.reportId
-    },
-    {
-      key: 'sqlFingerprint',
-      label: isChinese.value ? 'SQL 指纹' : 'SQL fingerprint',
-      value: detail.value.sqlFingerprint
-    },
-    {
-      key: 'errorCode',
-      label: isChinese.value ? '错误码' : 'Error code',
-      value: detail.value.errorCode
-    },
-    {
-      key: 'targetEngine',
-      label: isChinese.value ? '目标引擎' : 'Target engine',
-      value: detail.value.targetEngine
-    },
-    {
-      key: 'degraded',
-      label: isChinese.value ? '降级执行' : 'Degraded',
-      value: typeof detail.value.degraded === 'boolean' ? String(detail.value.degraded) : ''
-    }
-  ].filter(item => displayValue(item.value) !== '-')
+    { key: 'total', label: isChinese.value ? '消息总数' : 'Total messages', value: stats.value.total },
+    { key: 'pending', label: isChinese.value ? '待补偿' : 'Pending backlog', value: stats.value.pending },
+    { key: 'failed', label: isChinese.value ? '失败待修复' : 'Failed messages', value: stats.value.failed },
+    { key: 'consumed', label: isChinese.value ? '已消费' : 'Consumed', value: stats.value.consumed }
+  ]
 })
-const selectedSignals = computed(() => {
-  if (!detail.value) {
-    return []
+const decisionCards = computed(() => [
+  {
+    key: 'failure-type',
+    label: isChinese.value ? '失败类型' : 'Failure type',
+    value: failureType.value
+  },
+  {
+    key: 'compensation-state',
+    label: isChinese.value ? '补偿状态' : 'Compensation state',
+    value: compensationState.value
+  },
+  {
+    key: 'writeback-state',
+    label: isChinese.value ? '回写状态' : 'Write-back state',
+    value: writeBackState.value
+  },
+  {
+    key: 'queue-impact',
+    label: isChinese.value ? '队列影响' : 'Queue impact',
+    value: queueImpact.value
+  },
+  {
+    key: 'acceptance-state',
+    label: isChinese.value ? '验收信号' : 'Acceptance state',
+    value: acceptanceState.value
   }
-  return [
-    {
-      key: 'lookupMode',
-      label: isChinese.value ? '命中维度' : 'Lookup match',
-      value: resolveLookupMode(detail.value)
-    },
-    {
-      key: 'repairSignal',
-      label: isChinese.value ? '修复信号' : 'Repair signal',
-      value: resolveRepairSignal(detail.value)
-    },
-    {
-      key: 'compensationTrace',
-      label: isChinese.value ? '补偿链路' : 'Compensation trace',
-      value: isCompensationTrace(detail.value.traceId) ? 'true' : 'false'
-    },
-    {
-      key: 'auditEvents',
-      label: isChinese.value ? '审计事件' : 'Audit events',
-      value: detail.value.auditEventCount
-    }
-  ].filter(item => displayValue(item.value) !== '-')
-})
+])
 
 const hasDisplayValue = value => !(value === null || value === undefined || String(value).trim() === '')
 
@@ -147,58 +197,6 @@ const formatTimestamp = value => {
 
 const isCompensationTrace = traceId => String(traceId || '').startsWith(GOVERNANCE_COMPENSATION_TRACE_PREFIX)
 
-const resolveTraceRepairSignal = trace => {
-  if (isCompensationTrace(trace.traceId)) {
-    return 'COMPENSATION_TRACE'
-  }
-  if ((trace.exportRecordCount || 0) > 0 || hasDisplayValue(trace.reportId)) {
-    return 'REPORT_WRITEBACK'
-  }
-  if (trace.degraded === true) {
-    return 'DEGRADED_RECOVERY'
-  }
-  const status = String(trace.latestStatus || '').toUpperCase()
-  if ((trace.nonSuccessEventCount || 0) > 0 || (status && status !== 'SUCCESS' && status !== 'SUCCEEDED')) {
-    return 'FAILURE_CHAIN'
-  }
-  return 'STEADY_STATE'
-}
-
-const resolveLookupMode = currentDetail => {
-  if (hasDisplayValue(form.traceId) && form.traceId.trim() === currentDetail.traceId) {
-    return 'TRACE'
-  }
-  if (hasDisplayValue(form.taskId) && form.taskId.trim() === currentDetail.taskId) {
-    return 'TASK'
-  }
-  if (hasDisplayValue(form.reportId) && form.reportId.trim() === currentDetail.reportId) {
-    return 'REPORT'
-  }
-  if (selectedSummary.value?.taskId && selectedSummary.value.taskId === currentDetail.taskId) {
-    return 'TASK'
-  }
-  if (selectedSummary.value?.reportId && selectedSummary.value.reportId === currentDetail.reportId) {
-    return 'REPORT'
-  }
-  return 'TRACE'
-}
-
-const resolveRepairSignal = currentDetail => {
-  if (isCompensationTrace(currentDetail.traceId)) {
-    return 'COMPENSATION_TRACE'
-  }
-  if ((currentDetail.exportRecordCount || 0) > 0 || hasDisplayValue(currentDetail.reportId)) {
-    return 'REPORT_WRITEBACK'
-  }
-  if (currentDetail.degraded === true) {
-    return 'DEGRADED_RECOVERY'
-  }
-  if ((currentDetail.nonSuccessEventCount || 0) > 0) {
-    return 'FAILURE_CHAIN'
-  }
-  return 'STEADY_STATE'
-}
-
 const normalizeFilters = () => ({
   traceId: String(form.traceId || '').trim(),
   taskId: String(form.taskId || '').trim(),
@@ -207,7 +205,7 @@ const normalizeFilters = () => ({
 
 const syncRouteQuery = query => {
   router.replace({
-    path: '/audit-forensics',
+    path: '/audit-troubleshooting',
     query
   })
 }
@@ -222,6 +220,7 @@ const buildDrillQuery = source => {
       }
   const query = {
     tenantId: form.tenantId,
+    remediationTenantId: form.remediationTenantId,
     limit: String(form.limit)
   }
   if (hasDisplayValue(filters?.traceId)) {
@@ -236,6 +235,19 @@ const buildDrillQuery = source => {
   return query
 }
 
+const loadQueueStats = async () => {
+  loadingStats.value = true
+  try {
+    stats.value = await getGovernanceMessageStats(form.remediationTenantId, {
+      requestPrefix: 'frontend-audit-troubleshooting-message-stats'
+    })
+  } catch (error) {
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loadingStats.value = false
+  }
+}
+
 const loadTraceDetail = async traceId => {
   if (!traceId) {
     detail.value = null
@@ -247,7 +259,7 @@ const loadTraceDetail = async traceId => {
 
   try {
     detail.value = await getGovernanceTraceDetail(form.tenantId, traceId, 20, {
-      requestPrefix: 'frontend-audit-forensics-trace-detail'
+      requestPrefix: 'frontend-audit-troubleshooting-trace-detail'
     })
   } catch (error) {
     detail.value = null
@@ -271,8 +283,8 @@ const applyLookupPage = async (pageResponse, append = false) => {
 const runLookup = async () => {
   if (!hasDisplayValue(form.traceId) && !hasDisplayValue(form.taskId) && !hasDisplayValue(form.reportId)) {
     errorMessage.value = isChinese.value
-      ? '至少输入 traceId、taskId、reportId 中的一项后再执行取证反查。'
-      : 'Enter at least one of traceId, taskId, or reportId before running the forensic lookup.'
+      ? '至少输入 traceId、taskId、reportId 中的一项后再执行处置决策反查。'
+      : 'Enter at least one of traceId, taskId, or reportId before running the remediation lookup.'
     lookupResults.value = []
     detail.value = null
     hasMore.value = false
@@ -286,15 +298,19 @@ const runLookup = async () => {
   activeFilters.value = normalizeFilters()
   syncRouteQuery({
     tenantId: form.tenantId,
+    remediationTenantId: form.remediationTenantId,
     limit: String(form.limit),
     ...activeFilters.value
   })
 
   try {
     const lookupPage = await lookupGovernanceTraces(form.tenantId, activeFilters.value, form.limit, {
-      requestPrefix: 'frontend-audit-forensics-lookups'
+      requestPrefix: 'frontend-audit-troubleshooting-lookups'
     })
-    await applyLookupPage(lookupPage, false)
+    await Promise.all([
+      applyLookupPage(lookupPage, false),
+      loadQueueStats()
+    ])
   } catch (error) {
     lookupResults.value = []
     detail.value = null
@@ -323,7 +339,7 @@ const loadMoreResults = async () => {
       },
       form.limit,
       {
-        requestPrefix: 'frontend-audit-forensics-lookups-more'
+        requestPrefix: 'frontend-audit-troubleshooting-lookups-more'
       }
     )
     await applyLookupPage(lookupPage, true)
@@ -334,7 +350,30 @@ const loadMoreResults = async () => {
   }
 }
 
-const clearLookup = () => {
+const retryFailedMessages = async () => {
+  retrying.value = true
+  errorMessage.value = ''
+  retryResult.value = null
+
+  try {
+    statsBeforeRetry.value = await getGovernanceMessageStats(form.remediationTenantId, {
+      requestPrefix: 'frontend-audit-troubleshooting-message-stats-before-retry'
+    })
+    retryResult.value = await retryGovernanceFailedMessages(form.remediationTenantId, {
+      requestPrefix: 'frontend-audit-troubleshooting-message-retry'
+    })
+    statsAfterRetry.value = await getGovernanceMessageStats(form.remediationTenantId, {
+      requestPrefix: 'frontend-audit-troubleshooting-message-stats-after-retry'
+    })
+    stats.value = statsAfterRetry.value
+  } catch (error) {
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    retrying.value = false
+  }
+}
+
+const clearLookup = async () => {
   form.traceId = ''
   form.taskId = ''
   form.reportId = ''
@@ -344,9 +383,29 @@ const clearLookup = () => {
   hasMore.value = false
   nextCursor.value = ''
   activeFilters.value = null
+  retryResult.value = null
+  statsBeforeRetry.value = null
+  statsAfterRetry.value = null
   syncRouteQuery({
     tenantId: form.tenantId,
+    remediationTenantId: form.remediationTenantId,
     limit: String(form.limit)
+  })
+  await loadQueueStats()
+}
+
+const openSystemBacklog = () => {
+  router.push('/system')
+}
+
+const openRepairEvidence = () => {
+  const source = detail.value || selectedSummary.value
+  if (!source) {
+    return
+  }
+  router.push({
+    path: '/repair-evidence',
+    query: buildDrillQuery(source)
   })
 }
 
@@ -361,61 +420,12 @@ const openParseRecord = () => {
   })
 }
 
-const openRepairEvidence = () => {
-  const source = detail.value || selectedSummary.value
-  if (!source) {
-    return
-  }
-  router.push({
-    path: '/repair-evidence',
-    query: buildDrillQuery(source)
-  })
-}
-
-const openTroubleshooting = () => {
-  const source = detail.value || selectedSummary.value
-  if (!source) {
-    return
-  }
-  router.push({
-    path: '/audit-troubleshooting',
-    query: {
-      ...buildDrillQuery(source),
-      remediationTenantId: 'system'
-    }
-  })
-}
-
-const eventHighlights = event => {
-  const request = event?.requestParams || {}
-  const response = event?.responseSummary || {}
-  return [
-    {
-      label: isChinese.value ? '任务' : 'Task',
-      value: response.taskId || request.taskId
-    },
-    {
-      label: isChinese.value ? '报告' : 'Report',
-      value: response.reportId || request.reportId
-    },
-    {
-      label: isChinese.value ? '指纹' : 'Fingerprint',
-      value: request.sqlFingerprint
-    },
-    {
-      label: isChinese.value ? '错误码' : 'Error',
-      value: response.errorCode
-    },
-    {
-      label: isChinese.value ? '目标引擎' : 'Engine',
-      value: response.targetEngine
-    }
-  ].filter(item => displayValue(item.value) !== '-')
-}
-
 onMounted(async () => {
   if (hasDisplayValue(route.query.tenantId)) {
     form.tenantId = String(route.query.tenantId)
+  }
+  if (hasDisplayValue(route.query.remediationTenantId)) {
+    form.remediationTenantId = String(route.query.remediationTenantId)
   }
   if (hasDisplayValue(route.query.limit)) {
     form.limit = Number(route.query.limit) || 12
@@ -424,6 +434,7 @@ onMounted(async () => {
   form.taskId = String(route.query.taskId || '')
   form.reportId = String(route.query.reportId || '')
 
+  await loadQueueStats()
   if (form.traceId || form.taskId || form.reportId) {
     await runLookup()
   }
@@ -431,18 +442,18 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="runtime-page" data-testid="audit-forensics-page">
+  <section class="runtime-page" data-testid="audit-troubleshooting-page">
     <div class="runtime-hero surface-card">
       <div>
         <p class="runtime-eyebrow sqlforge-code-label">frontend runtime gate</p>
-        <h1 class="runtime-title">{{ t('auditForensics.title') }}</h1>
-        <p class="runtime-summary">{{ t('auditForensics.summary') }}</p>
+        <h1 class="runtime-title">{{ t('auditTroubleshooting.title') }}</h1>
+        <p class="runtime-summary">{{ t('auditTroubleshooting.summary') }}</p>
       </div>
       <p class="runtime-note">
         {{
           isChinese
-            ? '该页把 trace、task、report 命中的失败链、补偿链、报告回写和审计事件串成可分页取证链，并支持在 parse-record 与 repair-evidence 之间做双向钻取。'
-            : 'This page stitches failure chains, compensation traces, report write-back, and audit events into a paged forensic chain across trace, task, and report lookups, with drill-through into parse-record and repair-evidence.'
+            ? '该页把 trace/task/report 取证结果与治理消息队列影响合并成处置决策视图，支持真实 retry、跳转 backlog、回到历史诊断与打开修复证据。'
+            : 'This page merges trace/task/report forensics with governance queue impact into one remediation decision view, exposing real retry, backlog drill-through, parse-record navigation, and repair evidence actions.'
         }}
       </p>
     </div>
@@ -451,37 +462,42 @@ onMounted(async () => {
       <article class="surface-card">
         <div class="section-heading">
           <div>
-            <p class="section-kicker sqlforge-code-label">forensic lookup</p>
+            <p class="section-kicker sqlforge-code-label">decision lookup</p>
             <h2 class="section-title">
-              {{ isChinese ? '取证条件与证据链命中' : 'Forensic criteria and matched evidence chains' }}
+              {{ isChinese ? '故障范围、队列影响与决策输入' : 'Failure scope, queue impact and decision inputs' }}
             </h2>
           </div>
         </div>
 
         <div class="form-grid">
           <label class="field-block">
-            <span class="field-label">{{ isChinese ? '租户上下文' : 'Tenant context' }}</span>
-            <el-input v-model="form.tenantId" data-testid="audit-forensics-tenant-id" />
+            <span class="field-label">{{ isChinese ? '业务租户' : 'Business tenant' }}</span>
+            <el-input v-model="form.tenantId" data-testid="audit-troubleshooting-tenant-id" />
+          </label>
+
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? '治理租户' : 'Governance tenant' }}</span>
+            <el-input v-model="form.remediationTenantId" data-testid="audit-troubleshooting-remediation-tenant-id" />
           </label>
 
           <label class="field-block">
             <span class="field-label">{{ isChinese ? '返回数量' : 'Lookup limit' }}</span>
-            <el-input v-model="form.limit" data-testid="audit-forensics-limit" />
+            <el-input v-model="form.limit" data-testid="audit-troubleshooting-limit" />
           </label>
 
           <label class="field-block field-block-wide">
             <span class="field-label">{{ isChinese ? 'Trace ID' : 'Trace ID' }}</span>
-            <el-input v-model="form.traceId" data-testid="audit-forensics-trace-id" />
+            <el-input v-model="form.traceId" data-testid="audit-troubleshooting-trace-id" />
           </label>
 
           <label class="field-block">
             <span class="field-label">{{ isChinese ? 'Task ID' : 'Task ID' }}</span>
-            <el-input v-model="form.taskId" data-testid="audit-forensics-task-id" />
+            <el-input v-model="form.taskId" data-testid="audit-troubleshooting-task-id" />
           </label>
 
           <label class="field-block">
             <span class="field-label">{{ isChinese ? 'Report ID' : 'Report ID' }}</span>
-            <el-input v-model="form.reportId" data-testid="audit-forensics-report-id" />
+            <el-input v-model="form.reportId" data-testid="audit-troubleshooting-report-id" />
           </label>
         </div>
 
@@ -489,18 +505,25 @@ onMounted(async () => {
           <el-button
             type="primary"
             :loading="loadingLookup"
-            data-testid="audit-forensics-run-lookup"
+            data-testid="audit-troubleshooting-run-lookup"
             @click="runLookup"
           >
-            {{ isChinese ? '执行取证反查' : 'Run forensic lookup' }}
+            {{ isChinese ? '执行处置反查' : 'Run remediation lookup' }}
           </el-button>
-          <el-button data-testid="audit-forensics-clear-lookup" @click="clearLookup">
+          <el-button
+            :loading="loadingStats"
+            data-testid="audit-troubleshooting-refresh-queue"
+            @click="loadQueueStats"
+          >
+            {{ isChinese ? '刷新队列影响' : 'Refresh queue impact' }}
+          </el-button>
+          <el-button data-testid="audit-troubleshooting-clear-lookup" @click="clearLookup">
             {{ isChinese ? '清空条件' : 'Clear criteria' }}
           </el-button>
           <el-button
             v-if="hasMore"
             :loading="loadingLookup"
-            data-testid="audit-forensics-load-more"
+            data-testid="audit-troubleshooting-load-more"
             @click="loadMoreResults"
           >
             {{ isChinese ? '加载更早证据' : 'Load older evidence' }}
@@ -518,8 +541,8 @@ onMounted(async () => {
           <span v-if="!searchCriteria.length" class="lookup-chip lookup-chip-muted">
             {{
               isChinese
-                ? '输入 trace / task / report 后执行取证反查。'
-                : 'Enter a trace, task, or report id and then run the forensic lookup.'
+                ? '输入 trace / task / report 后执行处置决策反查。'
+                : 'Enter a trace, task, or report id and then run the remediation lookup.'
             }}
           </span>
         </div>
@@ -527,40 +550,56 @@ onMounted(async () => {
         <div class="summary-card-grid">
           <article class="summary-card">
             <span class="summary-card-label">{{ isChinese ? '命中 trace' : 'Matched traces' }}</span>
-            <strong data-testid="audit-forensics-match-count">{{ matchedCount }}</strong>
+            <strong data-testid="audit-troubleshooting-match-count">{{ matchedCount }}</strong>
           </article>
           <article class="summary-card summary-card-warning">
             <span class="summary-card-label">{{ isChinese ? '补偿 trace' : 'Compensation traces' }}</span>
-            <strong data-testid="audit-forensics-compensation-count">{{ compensationCount }}</strong>
-          </article>
-          <article class="summary-card">
-            <span class="summary-card-label">{{ isChinese ? '修复信号链' : 'Repair signal chains' }}</span>
-            <strong data-testid="audit-forensics-repair-count">{{ repairSignalCount }}</strong>
+            <strong data-testid="audit-troubleshooting-compensation-count">{{ compensationCount }}</strong>
           </article>
           <article class="summary-card">
             <span class="summary-card-label">{{ isChinese ? '报告回写链' : 'Report-linked traces' }}</span>
-            <strong data-testid="audit-forensics-report-count">{{ reportLinkedCount }}</strong>
+            <strong data-testid="audit-troubleshooting-report-count">{{ reportLinkedCount }}</strong>
+          </article>
+        </div>
+
+        <div class="queue-card-grid">
+          <article
+            v-for="card in queueCards"
+            :key="card.key"
+            class="queue-card"
+          >
+            <span class="queue-card-label">{{ card.label }}</span>
+            <strong
+              class="queue-card-value"
+              :data-testid="`audit-troubleshooting-queue-${card.key}`"
+            >
+              {{ card.value }}
+            </strong>
           </article>
         </div>
 
         <div
           v-if="hasMore"
           class="result-banner result-banner-warning"
-          data-testid="audit-forensics-has-more"
+          data-testid="audit-troubleshooting-has-more"
         >
-          <strong>{{ isChinese ? '仍有更早证据链' : 'Older evidence chains available' }}</strong>
+          <strong>{{ isChinese ? '仍有更早处置链' : 'Older remediation chains available' }}</strong>
           <span>{{ nextCursor || '-' }}</span>
         </div>
 
-        <div v-if="errorMessage" class="result-banner result-banner-danger" data-testid="audit-forensics-error">
+        <div
+          v-if="errorMessage"
+          class="result-banner result-banner-danger"
+          data-testid="audit-troubleshooting-error"
+        >
           {{ errorMessage }}
         </div>
 
         <p v-else-if="!lookupResults.length" class="empty-state">
           {{
             isChinese
-              ? '命中结果会展示失败链、补偿链与报告回写证据，并支持跳回历史诊断页继续下钻。'
-              : 'Matched chains render here with failure, compensation, and report write-back evidence, plus drill-through back into the history diagnosis page.'
+              ? '命中结果会展示故障链与队列影响，并提供处置入口。'
+              : 'Matched chains render here with queue impact and remediation actions.'
           }}
         </p>
 
@@ -571,7 +610,7 @@ onMounted(async () => {
             type="button"
             class="trace-item"
             :class="{ 'trace-item-active': activeTraceId === trace.traceId }"
-            data-testid="audit-forensics-result-item"
+            data-testid="audit-troubleshooting-result-item"
             @click="loadTraceDetail(trace.traceId)"
           >
             <div class="trace-item-header">
@@ -593,24 +632,6 @@ onMounted(async () => {
             <p class="trace-item-meta">
               {{ trace.traceId }} · {{ formatTimestamp(trace.lastSeenAt) }}
             </p>
-            <div class="trace-item-tags">
-              <span
-                v-if="isCompensationTrace(trace.traceId)"
-                class="timeline-meta-pill"
-                data-testid="audit-forensics-compensation-pill"
-              >
-                {{ isChinese ? '补偿 trace' : 'Compensation trace' }}
-              </span>
-              <span class="timeline-meta-pill">
-                {{ resolveTraceRepairSignal(trace) }}
-              </span>
-              <span class="timeline-meta-pill">
-                {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(trace.taskId) }}
-              </span>
-              <span class="timeline-meta-pill">
-                {{ isChinese ? '报告' : 'Report' }}: {{ displayValue(trace.reportId) }}
-              </span>
-            </div>
           </button>
         </div>
       </article>
@@ -618,9 +639,9 @@ onMounted(async () => {
       <article class="surface-card">
         <div class="section-heading">
           <div>
-            <p class="section-kicker sqlforge-code-label">forensic pivots</p>
+            <p class="section-kicker sqlforge-code-label">remediation decision</p>
             <h2 class="section-title">
-              {{ isChinese ? '审计取证详情与跨页 pivot' : 'Forensic detail and cross-page pivots' }}
+              {{ isChinese ? '处置动作与验收信号' : 'Remediation actions and acceptance signals' }}
             </h2>
           </div>
         </div>
@@ -628,8 +649,8 @@ onMounted(async () => {
         <p v-if="!detail && !errorMessage" class="empty-state">
           {{
             isChinese
-              ? '选择左侧命中 trace 后，这里会显示取证信号、历史事件和跨页跳转动作。'
-              : 'After you select a matched trace, the forensic signals, linked history events, and cross-page actions render here.'
+              ? '选择左侧命中 trace 后，这里会显示失败类型、补偿状态、回写状态和验收信号。'
+              : 'After you select a matched trace, the failure type, compensation state, write-back state, and acceptance signals render here.'
           }}
         </p>
 
@@ -637,49 +658,67 @@ onMounted(async () => {
           <div
             class="result-banner"
             :class="
-              detail.latestStatus === 'SUCCESS' || detail.latestStatus === 'SUCCEEDED'
+              acceptanceState === 'REPAIRED' || acceptanceState === 'READY_FOR_ACCEPTANCE'
                 ? 'result-banner-success'
                 : 'result-banner-warning'
             "
           >
-            <strong data-testid="audit-forensics-detail-trace-id">{{ detail.traceId }}</strong>
-            <span data-testid="audit-forensics-detail-status">{{ detail.latestStatus || '-' }}</span>
+            <strong data-testid="audit-troubleshooting-detail-trace-id">{{ detail.traceId }}</strong>
+            <span data-testid="audit-troubleshooting-acceptance-banner">{{ acceptanceState }}</span>
+          </div>
+
+          <div class="decision-grid">
+            <article
+              v-for="card in decisionCards"
+              :key="card.key"
+              class="decision-card"
+            >
+              <span class="decision-card-label">{{ card.label }}</span>
+              <strong :data-testid="`audit-troubleshooting-${card.key}`">{{ card.value }}</strong>
+            </article>
           </div>
 
           <div class="action-row action-row-wrap">
             <el-button
               type="primary"
-              data-testid="audit-forensics-open-parse-record"
-              @click="openParseRecord"
+              :loading="retrying"
+              data-testid="audit-troubleshooting-retry"
+              @click="retryFailedMessages"
             >
-              {{ isChinese ? '跳回历史诊断' : 'Open parse record' }}
+              {{ isChinese ? '重试失败消息' : 'Retry failed messages' }}
             </el-button>
             <el-button
-              data-testid="audit-forensics-open-repair-evidence"
+              data-testid="audit-troubleshooting-open-system"
+              @click="openSystemBacklog"
+            >
+              {{ isChinese ? '打开治理 backlog' : 'Open governance backlog' }}
+            </el-button>
+            <el-button
+              data-testid="audit-troubleshooting-open-repair-evidence"
               @click="openRepairEvidence"
             >
               {{ isChinese ? '打开修复证据' : 'Open repair evidence' }}
             </el-button>
             <el-button
-              data-testid="audit-forensics-open-troubleshooting"
-              @click="openTroubleshooting"
+              data-testid="audit-troubleshooting-open-parse-record"
+              @click="openParseRecord"
             >
-              {{ isChinese ? '打开处置决策' : 'Open remediation decision' }}
+              {{ isChinese ? '回到历史诊断' : 'Back to parse record' }}
             </el-button>
           </div>
 
           <div class="evidence-grid">
             <div class="evidence-item">
               <span class="evidence-label">{{ isChinese ? '服务编码' : 'Service code' }}</span>
-              <strong data-testid="audit-forensics-detail-service-code">{{ detail.serviceCode || '-' }}</strong>
+              <strong data-testid="audit-troubleshooting-detail-service-code">{{ detail.serviceCode || '-' }}</strong>
             </div>
             <div class="evidence-item">
-              <span class="evidence-label">{{ isChinese ? '资源类型' : 'Resource type' }}</span>
-              <strong>{{ detail.resourceType || '-' }}</strong>
+              <span class="evidence-label">{{ isChinese ? '任务 ID' : 'Task ID' }}</span>
+              <strong data-testid="audit-troubleshooting-detail-task-id">{{ displayValue(detail.taskId) }}</strong>
             </div>
             <div class="evidence-item">
-              <span class="evidence-label">{{ isChinese ? '资源标识' : 'Resource id' }}</span>
-              <strong>{{ detail.resourceId || '-' }}</strong>
+              <span class="evidence-label">{{ isChinese ? '报告 ID' : 'Report ID' }}</span>
+              <strong data-testid="audit-troubleshooting-detail-report-id">{{ displayValue(detail.reportId) }}</strong>
             </div>
             <div class="evidence-item">
               <span class="evidence-label">{{ isChinese ? '最后发生时间' : 'Last seen at' }}</span>
@@ -687,68 +726,28 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div class="highlight-grid">
-            <div
-              v-for="item in detailHighlights"
-              :key="item.key"
-              class="highlight-chip"
-            >
-              <span>{{ item.label }}</span>
-              <strong>{{ displayValue(item.value) }}</strong>
-            </div>
-            <div
-              v-for="item in selectedSignals"
-              :key="item.key"
-              class="highlight-chip highlight-chip-strong"
-            >
-              <span>{{ item.label }}</span>
-              <strong :data-testid="`audit-forensics-detail-${item.key.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`)}`">
-                {{ displayValue(item.value) }}
-              </strong>
-            </div>
-          </div>
-
-          <div class="timeline-list">
-            <article
-              v-for="event in detail.auditEvents"
-              :key="event.id"
-              class="timeline-card"
-              data-testid="audit-forensics-audit-event"
-            >
-              <div class="timeline-card-header">
-                <div>
-                  <p class="timeline-card-id sqlforge-code-label">{{ event.serviceCode }}</p>
-                  <h3>{{ event.operationType }} · {{ event.targetId }}</h3>
-                </div>
-                <span
-                  class="trace-status-pill"
-                  :class="
-                    event.status === 'SUCCESS' || event.status === 'SUCCEEDED'
-                      ? 'trace-status-success'
-                      : 'trace-status-warning'
-                  "
-                >
-                  {{ event.status }}
-                </span>
+          <template v-if="retryResult">
+            <div class="retry-summary-grid">
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '重试状态' : 'Retry status' }}</span>
+                <strong data-testid="audit-troubleshooting-retry-status">{{ retryResult.status }}</strong>
               </div>
-              <p class="timeline-card-line">
-                {{ isChinese ? '请求链路' : 'Request chain' }}:
-                {{ event.requestId }} / {{ event.traceId }}
-              </p>
-              <p class="timeline-card-line timeline-card-line-muted">
-                {{ formatTimestamp(event.createTime) }} · {{ event.costMs || 0 }}ms
-              </p>
-              <div class="timeline-card-meta">
-                <span
-                  v-for="item in eventHighlights(event)"
-                  :key="`${event.id}-${item.label}`"
-                  class="timeline-meta-pill"
-                >
-                  {{ item.label }}: {{ displayValue(item.value) }}
-                </span>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '重试数量' : 'Retried count' }}</span>
+                <strong data-testid="audit-troubleshooting-retry-count">{{ retryResult.retriedCount }}</strong>
               </div>
-            </article>
-          </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? 'failed 降幅' : 'Failed delta' }}</span>
+                <strong data-testid="audit-troubleshooting-failed-delta">{{ failedDelta }}</strong>
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-label">{{ isChinese ? '修复结果' : 'Repair outcome' }}</span>
+                <strong data-testid="audit-troubleshooting-repair-outcome">
+                  {{ retryImproved ? 'REPAIRED' : 'RETRY_ACCEPTED' }}
+                </strong>
+              </div>
+            </div>
+          </template>
         </template>
       </article>
     </div>
@@ -780,8 +779,7 @@ onMounted(async () => {
 
 .runtime-eyebrow,
 .section-kicker,
-.trace-item-service,
-.timeline-card-id {
+.trace-item-service {
   margin: 0 0 8px;
   color: #0f766e;
   letter-spacing: 0.12em;
@@ -797,8 +795,6 @@ onMounted(async () => {
 .runtime-summary,
 .runtime-note,
 .trace-item-meta,
-.timeline-card-line,
-.timeline-card-line-muted,
 .empty-state {
   color: #475569;
 }
@@ -813,7 +809,7 @@ onMounted(async () => {
 
 .runtime-grid {
   display: grid;
-  grid-template-columns: minmax(320px, 0.94fr) minmax(0, 1.06fr);
+  grid-template-columns: minmax(320px, 0.96fr) minmax(0, 1.04fr);
   gap: 20px;
 }
 
@@ -830,29 +826,34 @@ onMounted(async () => {
 }
 
 .form-grid,
-.evidence-grid,
 .summary-card-grid,
-.highlight-grid {
+.queue-card-grid,
+.evidence-grid,
+.retry-summary-grid,
+.decision-grid {
   display: grid;
   gap: 14px;
 }
 
 .form-grid,
-.evidence-grid {
+.summary-card-grid,
+.queue-card-grid,
+.decision-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.summary-card-grid,
-.highlight-grid {
+.evidence-grid,
+.retry-summary-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 18px;
 }
 
 .field-block,
 .summary-card,
+.queue-card,
 .evidence-item,
-.highlight-chip,
-.trace-item,
-.timeline-card {
+.decision-card,
+.trace-item {
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   background: rgba(255, 255, 255, 0.82);
@@ -871,7 +872,9 @@ onMounted(async () => {
 
 .field-label,
 .summary-card-label,
-.evidence-label {
+.queue-card-label,
+.evidence-label,
+.decision-card-label {
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -890,27 +893,21 @@ onMounted(async () => {
 }
 
 .summary-card,
+.queue-card,
 .evidence-item,
-.highlight-chip {
+.decision-card {
   padding: 16px 18px;
 }
 
-.summary-card,
-.highlight-chip {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
 .summary-card strong,
+.queue-card strong,
 .evidence-item strong,
-.highlight-chip strong {
+.decision-card strong {
   font-size: 18px;
   color: #0f172a;
 }
 
-.summary-card-warning,
-.highlight-chip-strong {
+.summary-card-warning {
   background: rgba(255, 247, 237, 0.92);
   border-color: rgba(251, 146, 60, 0.18);
 }
@@ -922,8 +919,7 @@ onMounted(async () => {
   margin-top: 18px;
 }
 
-.lookup-chip,
-.timeline-meta-pill {
+.lookup-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -964,22 +960,17 @@ onMounted(async () => {
   color: #b91c1c;
 }
 
-.trace-list,
-.timeline-list {
+.trace-list {
   display: flex;
   flex-direction: column;
   gap: 14px;
   margin-top: 18px;
 }
 
-.trace-item,
-.timeline-card {
+.trace-item {
   width: 100%;
   text-align: left;
   padding: 16px 18px;
-}
-
-.trace-item {
   cursor: pointer;
 }
 
@@ -988,37 +979,17 @@ onMounted(async () => {
   box-shadow: 0 14px 28px rgba(14, 165, 233, 0.12);
 }
 
-.trace-item-header,
-.timeline-card-header,
-.timeline-card-meta {
+.trace-item-header {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-}
-
-.trace-item-header,
-.timeline-card-header {
   align-items: flex-start;
 }
 
-.trace-item-header h3,
-.timeline-card-header h3 {
+.trace-item-header h3 {
   margin: 0;
   color: #0f172a;
   font-size: 17px;
-}
-
-.trace-item-meta,
-.timeline-card-line {
-  margin: 10px 0 0;
-}
-
-.trace-item-tags,
-.timeline-card-meta {
-  margin-top: 12px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 .trace-status-pill {
@@ -1054,9 +1025,11 @@ onMounted(async () => {
   .runtime-grid,
   .runtime-hero,
   .form-grid,
-  .evidence-grid,
   .summary-card-grid,
-  .highlight-grid {
+  .queue-card-grid,
+  .evidence-grid,
+  .retry-summary-grid,
+  .decision-grid {
     grid-template-columns: 1fr;
   }
 

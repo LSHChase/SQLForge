@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   formatRuntimeError,
   getGovernanceTraceDetail,
@@ -11,6 +11,7 @@ import {
 
 const { t, locale } = useI18n()
 const route = useRoute()
+const router = useRouter()
 
 const form = reactive({
   tenantId: 'tenant-a',
@@ -302,6 +303,43 @@ const clearLookup = () => {
   activeFilters.value = null
 }
 
+const buildTroubleshootingQuery = source => {
+  const query = {
+    tenantId: form.tenantId,
+    remediationTenantId: 'system',
+    limit: String(form.limit)
+  }
+
+  const filters = {
+    traceId: form.traceId || source?.traceId,
+    taskId: form.taskId || source?.taskId,
+    reportId: form.reportId || source?.reportId
+  }
+
+  if (hasDisplayValue(filters.traceId)) {
+    query.traceId = String(filters.traceId).trim()
+  }
+  if (hasDisplayValue(filters.taskId)) {
+    query.taskId = String(filters.taskId).trim()
+  }
+  if (hasDisplayValue(filters.reportId)) {
+    query.reportId = String(filters.reportId).trim()
+  }
+
+  return query
+}
+
+const openTroubleshooting = () => {
+  const source = detail.value || selectedSummary.value
+  if (!source) {
+    return
+  }
+  router.push({
+    path: '/audit-troubleshooting',
+    query: buildTroubleshootingQuery(source)
+  })
+}
+
 const eventHighlights = event => {
   const request = event?.requestParams || {}
   const response = event?.responseSummary || {}
@@ -583,6 +621,16 @@ onMounted(async () => {
           >
             <strong data-testid="repair-evidence-detail-trace-id">{{ detail.traceId }}</strong>
             <span data-testid="repair-evidence-detail-status">{{ detail.latestStatus || '-' }}</span>
+          </div>
+
+          <div class="action-row action-row-wrap">
+            <el-button
+              type="primary"
+              data-testid="repair-evidence-open-troubleshooting"
+              @click="openTroubleshooting"
+            >
+              {{ isChinese ? '打开处置决策' : 'Open remediation decision' }}
+            </el-button>
           </div>
 
           <div class="evidence-grid">

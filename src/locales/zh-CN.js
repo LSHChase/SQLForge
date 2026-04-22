@@ -143,6 +143,10 @@ export default {
     title: '审计取证',
     summary: '串联补偿、修复、回写与历史事件，形成可分页的取证链路。'
   },
+  auditTroubleshooting: {
+    title: '故障处置',
+    summary: '汇总失败类型、补偿状态、回写状态与队列影响，并给出处置动作与验收信号。'
+  },
   benchmark: {
     title: '压测报告',
     summary: '查看基线、峰值延迟、回归差异与准入判断。'
