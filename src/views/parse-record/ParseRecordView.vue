@@ -1,33 +1,86 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import {
   formatRuntimeError,
   getGovernanceTraceDetail,
-  getGovernanceTraceSummaries
+  getGovernanceTraceSummaries,
+  lookupGovernanceTraces
 } from '../../services/runtimeGateApi'
 
 const { t, locale } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 const form = reactive({
   tenantId: 'tenant-a',
   traceId: '',
+  taskId: '',
+  reportId: '',
   limit: 12
 })
 
 const loadingList = ref(false)
+const loadingLookup = ref(false)
 const loadingDetail = ref(false)
 const recentTraces = ref([])
+const lookupResults = ref([])
 const detail = ref(null)
 const errorMessage = ref('')
+const hasMore = ref(false)
+const nextCursor = ref('')
+const activeFilters = ref(null)
 
 const isChinese = computed(() => locale.value === 'zh-CN')
+const displayedTraces = computed(() => (activeFilters.value ? lookupResults.value : recentTraces.value))
+const displayedCount = computed(() => displayedTraces.value.length)
 const recentCount = computed(() => recentTraces.value.length)
 const nonSuccessCount = computed(() =>
-  recentTraces.value.filter(trace => {
+  displayedTraces.value.filter(trace => {
     const status = String(trace.latestStatus || '').toUpperCase()
     return (trace.nonSuccessEventCount || 0) > 0 || (status && status !== 'SUCCESS' && status !== 'SUCCEEDED')
   }).length
+)
+const hasLookupCriteria = computed(
+  () => hasDisplayValue(form.traceId) || hasDisplayValue(form.taskId) || hasDisplayValue(form.reportId)
+)
+const pageMode = computed(() => {
+  if (!activeFilters.value) {
+    return isChinese.value ? 'RECENT' : 'RECENT'
+  }
+  if (hasDisplayValue(activeFilters.value.traceId)) {
+    return 'TRACE'
+  }
+  if (hasDisplayValue(activeFilters.value.taskId)) {
+    return 'TASK'
+  }
+  if (hasDisplayValue(activeFilters.value.reportId)) {
+    return 'REPORT'
+  }
+  return 'INDEXED'
+})
+const lookupCriteria = computed(() =>
+  [
+    {
+      key: 'traceId',
+      label: isChinese.value ? 'Trace 反查' : 'Trace lookup',
+      value: form.traceId
+    },
+    {
+      key: 'taskId',
+      label: isChinese.value ? 'Task 反查' : 'Task lookup',
+      value: form.taskId
+    },
+    {
+      key: 'reportId',
+      label: isChinese.value ? 'Report 反查' : 'Report lookup',
+      value: form.reportId
+    }
+  ].filter(item => hasDisplayValue(item.value))
+)
+const selectedSummary = computed(() =>
+  displayedTraces.value.find(trace => trace.traceId === detail.value?.traceId) || null
 )
 const detailHighlights = computed(() => {
   if (!detail.value) {
@@ -67,8 +120,10 @@ const detailHighlights = computed(() => {
   ].filter(item => displayValue(item.value) !== '-')
 })
 
+const hasDisplayValue = value => !(value === null || value === undefined || String(value).trim() === '')
+
 const displayValue = value => {
-  if (value === null || value === undefined || value === '') {
+  if (!hasDisplayValue(value)) {
     return '-'
   }
   return String(value)
@@ -81,7 +136,44 @@ const formatTimestamp = value => {
   return String(value).replace('T', ' ')
 }
 
-const loadTraceDetail = async (traceId, synchronizeInput = true) => {
+const normalizeFilters = () => ({
+  traceId: String(form.traceId || '').trim(),
+  taskId: String(form.taskId || '').trim(),
+  reportId: String(form.reportId || '').trim()
+})
+
+const syncRouteQuery = query => {
+  router.replace({
+    path: '/parse-record',
+    query
+  })
+}
+
+const buildDrillQuery = source => {
+  const filters = activeFilters.value
+    ? activeFilters.value
+    : {
+        traceId: source?.traceId,
+        taskId: source?.taskId,
+        reportId: source?.reportId
+      }
+  const query = {
+    tenantId: form.tenantId,
+    limit: String(form.limit)
+  }
+  if (hasDisplayValue(filters?.traceId)) {
+    query.traceId = String(filters.traceId)
+  }
+  if (hasDisplayValue(filters?.taskId)) {
+    query.taskId = String(filters.taskId)
+  }
+  if (hasDisplayValue(filters?.reportId)) {
+    query.reportId = String(filters.reportId)
+  }
+  return query
+}
+
+const loadTraceDetail = async (traceId, synchronizeInput = false) => {
   if (!traceId) {
     detail.value = null
     return
@@ -105,6 +197,17 @@ const loadTraceDetail = async (traceId, synchronizeInput = true) => {
   }
 }
 
+const applyLookupPage = async (pageResponse, append = false) => {
+  const items = Array.isArray(pageResponse?.items) ? pageResponse.items : []
+  lookupResults.value = append ? [...lookupResults.value, ...items] : items
+  hasMore.value = Boolean(pageResponse?.hasMore)
+  nextCursor.value = pageResponse?.nextCursor || ''
+
+  if (!append) {
+    await loadTraceDetail(lookupResults.value[0]?.traceId || '')
+  }
+}
+
 const loadRecentTraces = async (preserveSelectedTrace = false) => {
   loadingList.value = true
   errorMessage.value = ''
@@ -116,15 +219,19 @@ const loadRecentTraces = async (preserveSelectedTrace = false) => {
     })
     recentTraces.value = Array.isArray(traces) ? traces : []
 
-    const nextTraceId = form.traceId || previousTraceId || recentTraces.value[0]?.traceId || ''
-    if (nextTraceId) {
-      await loadTraceDetail(nextTraceId, !form.traceId)
-    } else {
-      detail.value = null
+    if (!activeFilters.value) {
+      const nextTraceId = previousTraceId || recentTraces.value[0]?.traceId || ''
+      if (nextTraceId) {
+        await loadTraceDetail(nextTraceId)
+      } else {
+        detail.value = null
+      }
     }
   } catch (error) {
     recentTraces.value = []
-    detail.value = null
+    if (!activeFilters.value) {
+      detail.value = null
+    }
     errorMessage.value = formatRuntimeError(error)
   } finally {
     loadingList.value = false
@@ -132,11 +239,118 @@ const loadRecentTraces = async (preserveSelectedTrace = false) => {
 }
 
 const refreshEvidence = async () => {
+  activeFilters.value = null
+  lookupResults.value = []
+  hasMore.value = false
+  nextCursor.value = ''
+  syncRouteQuery({
+    tenantId: form.tenantId,
+    limit: String(form.limit)
+  })
   await loadRecentTraces(true)
 }
 
-const openTraceFromInput = async () => {
-  await loadTraceDetail(form.traceId, true)
+const runLookup = async () => {
+  if (!hasLookupCriteria.value) {
+    errorMessage.value = isChinese.value
+      ? '至少输入 traceId、taskId、reportId 中的一项后再执行长窗口反查。'
+      : 'Enter at least one of traceId, taskId, or reportId before running the indexed lookup.'
+    lookupResults.value = []
+    detail.value = null
+    hasMore.value = false
+    nextCursor.value = ''
+    activeFilters.value = null
+    return
+  }
+
+  loadingLookup.value = true
+  errorMessage.value = ''
+  activeFilters.value = normalizeFilters()
+  syncRouteQuery({
+    tenantId: form.tenantId,
+    limit: String(form.limit),
+    ...activeFilters.value
+  })
+
+  try {
+    const lookupPage = await lookupGovernanceTraces(form.tenantId, activeFilters.value, form.limit, {
+      requestPrefix: 'frontend-parse-record-lookups'
+    })
+    await applyLookupPage(lookupPage, false)
+  } catch (error) {
+    lookupResults.value = []
+    detail.value = null
+    hasMore.value = false
+    nextCursor.value = ''
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loadingLookup.value = false
+  }
+}
+
+const loadMoreResults = async () => {
+  if (!hasMore.value || !nextCursor.value || !activeFilters.value) {
+    return
+  }
+
+  loadingLookup.value = true
+  errorMessage.value = ''
+
+  try {
+    const lookupPage = await lookupGovernanceTraces(
+      form.tenantId,
+      {
+        ...activeFilters.value,
+        cursor: nextCursor.value
+      },
+      form.limit,
+      {
+        requestPrefix: 'frontend-parse-record-lookups-more'
+      }
+    )
+    await applyLookupPage(lookupPage, true)
+  } catch (error) {
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loadingLookup.value = false
+  }
+}
+
+const clearLookup = async () => {
+  form.traceId = ''
+  form.taskId = ''
+  form.reportId = ''
+  lookupResults.value = []
+  hasMore.value = false
+  nextCursor.value = ''
+  activeFilters.value = null
+  syncRouteQuery({
+    tenantId: form.tenantId,
+    limit: String(form.limit)
+  })
+  await loadRecentTraces()
+}
+
+const openRepairEvidence = () => {
+  const source = detail.value || selectedSummary.value
+  if (!source) {
+    return
+  }
+  router.push({
+    path: '/repair-evidence',
+    query: buildDrillQuery(source)
+  })
+}
+
+const openAuditForensics = () => {
+  const source = detail.value || selectedSummary.value
+  if (!source) {
+    return
+  }
+  router.push({
+    path: '/audit-forensics',
+    query: buildDrillQuery(source)
+  })
 }
 
 const eventHighlights = event => {
@@ -170,8 +384,21 @@ const eventHighlights = event => {
   ].filter(item => displayValue(item.value) !== '-')
 }
 
-onMounted(() => {
-  loadRecentTraces()
+onMounted(async () => {
+  if (hasDisplayValue(route.query.tenantId)) {
+    form.tenantId = String(route.query.tenantId)
+  }
+  if (hasDisplayValue(route.query.limit)) {
+    form.limit = Number(route.query.limit) || 12
+  }
+  form.traceId = String(route.query.traceId || '')
+  form.taskId = String(route.query.taskId || '')
+  form.reportId = String(route.query.reportId || '')
+
+  await loadRecentTraces()
+  if (form.traceId || form.taskId || form.reportId) {
+    await runLookup()
+  }
 })
 </script>
 
@@ -186,8 +413,8 @@ onMounted(() => {
       <p class="runtime-note">
         {{
           isChinese
-            ? '该页直接读取 governance 审计追溯接口，汇总最近 trace、失败/补偿态与关联事件时间线，把 browser runtime gate 从执行页扩到历史诊断页。'
-            : 'This page reads the live governance traceability APIs and renders recent traces, failure-compensation states, and linked audit timelines so the browser gate extends into historical diagnostics.'
+            ? '该页同时展示最近历史窗口与 indexed 长窗口反查，支持按 trace、task、report 追溯更老记录，并把命中结果跳转到修复证据和审计取证页。'
+            : 'This page combines the recent history window with indexed long-window lookup so you can trace older records by trace, task, or report and jump directly into repair evidence or audit forensics.'
         }}
       </p>
     </div>
@@ -198,7 +425,7 @@ onMounted(() => {
           <div>
             <p class="section-kicker sqlforge-code-label">trace controls</p>
             <h2 class="section-title">
-              {{ isChinese ? '追溯入口与最近记录' : 'Trace entry and recent records' }}
+              {{ isChinese ? '历史入口、长窗口反查与分页命中' : 'History entry, indexed lookup and paged matches' }}
             </h2>
           </div>
         </div>
@@ -206,18 +433,38 @@ onMounted(() => {
         <div class="form-grid">
           <label class="field-block">
             <span class="field-label">{{ isChinese ? '租户上下文' : 'Tenant context' }}</span>
-            <el-input
-              v-model="form.tenantId"
-              data-testid="parse-record-tenant-id"
-            />
+            <el-input v-model="form.tenantId" data-testid="parse-record-tenant-id" />
+          </label>
+
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? '返回数量' : 'Lookup limit' }}</span>
+            <el-input v-model="form.limit" data-testid="parse-record-limit" />
           </label>
 
           <label class="field-block field-block-wide">
-            <span class="field-label">{{ isChinese ? '指定 Trace ID' : 'Trace ID lookup' }}</span>
+            <span class="field-label">{{ isChinese ? 'Trace ID' : 'Trace ID' }}</span>
             <el-input
               v-model="form.traceId"
               data-testid="parse-record-trace-id"
-              :placeholder="isChinese ? '输入 trace id 直达审计链' : 'Enter a trace id to jump to one audit chain'"
+              :placeholder="isChinese ? '输入 trace id 反查单条执行链' : 'Enter a trace id to look up one execution chain'"
+            />
+          </label>
+
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? 'Task ID' : 'Task ID' }}</span>
+            <el-input
+              v-model="form.taskId"
+              data-testid="parse-record-task-id"
+              :placeholder="isChinese ? '输入异步任务 id 追更老历史' : 'Enter an async task id to trace older history'"
+            />
+          </label>
+
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? 'Report ID' : 'Report ID' }}</span>
+            <el-input
+              v-model="form.reportId"
+              data-testid="parse-record-report-id"
+              :placeholder="isChinese ? '输入报告 id 追写回证据' : 'Enter a report id to trace write-back evidence'"
             />
           </label>
         </div>
@@ -229,18 +476,54 @@ onMounted(() => {
             data-testid="parse-record-refresh"
             @click="refreshEvidence"
           >
-            {{ isChinese ? '刷新历史证据' : 'Refresh trace evidence' }}
+            {{ isChinese ? '刷新最近历史' : 'Refresh recent traces' }}
           </el-button>
           <el-button
-            :loading="loadingDetail"
-            data-testid="parse-record-load-trace"
-            @click="openTraceFromInput"
+            :loading="loadingLookup"
+            data-testid="parse-record-run-lookup"
+            @click="runLookup"
           >
-            {{ isChinese ? '按 Trace ID 打开' : 'Open trace detail' }}
+            {{ isChinese ? '执行长窗口反查' : 'Run indexed lookup' }}
+          </el-button>
+          <el-button data-testid="parse-record-clear-lookup" @click="clearLookup">
+            {{ isChinese ? '清空条件' : 'Clear criteria' }}
+          </el-button>
+          <el-button
+            v-if="hasMore"
+            :loading="loadingLookup"
+            data-testid="parse-record-load-more"
+            @click="loadMoreResults"
+          >
+            {{ isChinese ? '加载更早结果' : 'Load older results' }}
           </el-button>
         </div>
 
+        <div class="lookup-chip-list">
+          <span class="lookup-chip">
+            {{ isChinese ? '视图模式' : 'View mode' }}:
+            <strong data-testid="parse-record-page-mode">{{ pageMode }}</strong>
+          </span>
+          <span
+            v-for="item in lookupCriteria"
+            :key="item.key"
+            class="lookup-chip"
+          >
+            {{ item.label }}: {{ item.value }}
+          </span>
+          <span v-if="!lookupCriteria.length" class="lookup-chip lookup-chip-muted">
+            {{
+              isChinese
+                ? '未输入 trace/task/report 时，左侧显示最近历史窗口。'
+                : 'Without trace, task, or report criteria the recent history window is shown.'
+            }}
+          </span>
+        </div>
+
         <div class="summary-card-grid">
+          <article class="summary-card">
+            <span class="summary-card-label">{{ isChinese ? '当前显示 trace' : 'Displayed traces' }}</span>
+            <strong data-testid="parse-record-display-count">{{ displayedCount }}</strong>
+          </article>
           <article class="summary-card">
             <span class="summary-card-label">{{ isChinese ? '最近 trace 数' : 'Recent traces' }}</span>
             <strong data-testid="parse-record-recent-count">{{ recentCount }}</strong>
@@ -251,16 +534,14 @@ onMounted(() => {
           </article>
         </div>
 
-        <p
-          v-if="!recentTraces.length && !errorMessage"
-          class="empty-state"
+        <div
+          v-if="hasMore"
+          class="result-banner result-banner-warning"
+          data-testid="parse-record-has-more"
         >
-          {{
-            isChinese
-              ? '刷新后会显示最近的 query / optimization / benchmark 治理追溯记录。'
-              : 'Refresh to load the latest query, optimization, and benchmark governance traces.'
-          }}
-        </p>
+          <strong>{{ isChinese ? '仍有更早历史' : 'Older history available' }}</strong>
+          <span>{{ nextCursor || '-' }}</span>
+        </div>
 
         <div
           v-if="errorMessage"
@@ -270,9 +551,17 @@ onMounted(() => {
           {{ errorMessage }}
         </div>
 
+        <p v-else-if="!displayedTraces.length" class="empty-state">
+          {{
+            isChinese
+              ? '刷新后会显示最近的 query / optimization / benchmark 追溯记录，或按 trace/task/report 拉取更老历史。'
+              : 'Refresh to load recent query, optimization, and benchmark traces, or search by trace, task, or report to pull older history.'
+          }}
+        </p>
+
         <div class="trace-list">
           <button
-            v-for="trace in recentTraces"
+            v-for="trace in displayedTraces"
             :key="trace.traceId"
             type="button"
             class="trace-item"
@@ -301,8 +590,8 @@ onMounted(() => {
             </p>
             <div class="trace-item-foot">
               <span>{{ isChinese ? '审计事件' : 'Audit events' }}: {{ trace.auditEventCount }}</span>
-              <span>{{ isChinese ? '历史记录' : 'History' }}: {{ trace.queryHistoryCount }}</span>
-              <span>{{ isChinese ? '导出记录' : 'Exports' }}: {{ trace.exportRecordCount }}</span>
+              <span>{{ isChinese ? '任务' : 'Task' }}: {{ displayValue(trace.taskId) }}</span>
+              <span>{{ isChinese ? '报告' : 'Report' }}: {{ displayValue(trace.reportId) }}</span>
             </div>
           </button>
         </div>
@@ -313,19 +602,16 @@ onMounted(() => {
           <div>
             <p class="section-kicker sqlforge-code-label">trace detail</p>
             <h2 class="section-title">
-              {{ isChinese ? '历史诊断与审计时间线' : 'Historical diagnosis and audit timeline' }}
+              {{ isChinese ? '历史诊断、分页跳转与审计时间线' : 'Historical diagnosis, drill-through and audit timeline' }}
             </h2>
           </div>
         </div>
 
-        <p
-          v-if="!detail && !errorMessage"
-          class="empty-state"
-        >
+        <p v-if="!detail && !errorMessage" class="empty-state">
           {{
             isChinese
-              ? '选择左侧 trace 后，这里会显示审计事件、关联任务/报告与历史链路摘要。'
-              : 'After you select a trace, the linked audit events, task/report references, and history chain summary render here.'
+              ? '选择左侧 trace 后，这里会显示审计事件、关联任务/报告，并可跳转到修复证据或审计取证页。'
+              : 'After you select a trace, the linked audit events, task/report references and drill-through actions render here.'
           }}
         </p>
 
@@ -340,6 +626,22 @@ onMounted(() => {
           >
             <strong data-testid="parse-record-detail-trace-id">{{ detail.traceId }}</strong>
             <span data-testid="parse-record-detail-status">{{ detail.latestStatus || '-' }}</span>
+          </div>
+
+          <div class="action-row action-row-wrap drill-action-row">
+            <el-button
+              type="primary"
+              data-testid="parse-record-open-repair-evidence"
+              @click="openRepairEvidence"
+            >
+              {{ isChinese ? '打开修复证据' : 'Open repair evidence' }}
+            </el-button>
+            <el-button
+              data-testid="parse-record-open-audit-forensics"
+              @click="openAuditForensics"
+            >
+              {{ isChinese ? '打开审计取证' : 'Open audit forensics' }}
+            </el-button>
           </div>
 
           <div class="evidence-grid">
@@ -526,24 +828,25 @@ onMounted(() => {
 
 .summary-card-grid,
 .highlight-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .field-block,
-.evidence-item,
 .summary-card,
+.evidence-item,
 .highlight-chip,
-.timeline-card,
-.trace-item {
-  border: 1px solid rgba(148, 163, 184, 0.2);
+.trace-item,
+.timeline-card {
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .field-block {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 14px;
 }
 
 .field-block-wide {
@@ -551,10 +854,8 @@ onMounted(() => {
 }
 
 .field-label,
-.evidence-label,
 .summary-card-label,
-.highlight-chip span {
-  display: block;
+.evidence-label {
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -564,6 +865,7 @@ onMounted(() => {
 .action-row {
   display: flex;
   gap: 12px;
+  align-items: center;
   margin-top: 18px;
 }
 
@@ -571,141 +873,174 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
+.drill-action-row {
+  margin: 18px 0;
+}
+
 .summary-card,
+.evidence-item,
 .highlight-chip {
   padding: 16px 18px;
 }
 
+.summary-card,
+.highlight-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .summary-card strong,
+.evidence-item strong,
 .highlight-chip strong {
-  display: block;
-  margin-top: 8px;
+  font-size: 18px;
   color: #0f172a;
-  word-break: break-word;
 }
 
 .summary-card-warning {
-  background: rgba(254, 243, 199, 0.72);
+  background: rgba(254, 242, 242, 0.9);
+  border-color: rgba(248, 113, 113, 0.18);
 }
 
-.trace-list,
-.timeline-list {
+.lookup-chip-list {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-top: 18px;
 }
 
-.trace-item {
-  width: 100%;
-  padding: 16px 18px;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    transform 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease;
-}
-
-.trace-item:hover,
-.trace-item-active {
-  transform: translateY(-1px);
-  border-color: rgba(15, 118, 110, 0.35);
-  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
-}
-
-.trace-item-header,
-.timeline-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.trace-item-header h3,
-.timeline-card-header h3 {
-  margin: 0;
-  color: #0f172a;
-  word-break: break-word;
-}
-
-.trace-item-foot,
-.timeline-card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  margin-top: 12px;
-  font-size: 13px;
-  color: #475569;
-}
-
-.trace-status-pill,
+.lookup-chip,
 .timeline-meta-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.trace-status-success {
-  background: rgba(187, 247, 208, 0.8);
-  color: #166534;
-}
-
-.trace-status-warning {
-  background: rgba(254, 215, 170, 0.82);
-  color: #9a3412;
-}
-
-.timeline-meta-pill {
   background: rgba(226, 232, 240, 0.9);
   color: #334155;
-  font-weight: 600;
+  font-size: 13px;
 }
 
-.timeline-card {
-  padding: 18px;
-}
-
-.timeline-card-line {
-  margin: 10px 0 0;
-}
-
-.timeline-card-line-muted {
-  margin-top: 6px;
+.lookup-chip-muted {
+  background: rgba(241, 245, 249, 0.9);
+  color: #64748b;
 }
 
 .result-banner {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  font-weight: 600;
 }
 
 .result-banner-success {
-  background: rgba(220, 252, 231, 0.92);
+  background: rgba(236, 253, 245, 0.9);
   color: #166534;
 }
 
 .result-banner-warning {
-  background: rgba(255, 237, 213, 0.92);
+  background: rgba(255, 247, 237, 0.92);
   color: #9a3412;
 }
 
 .result-banner-danger {
-  background: rgba(254, 226, 226, 0.92);
-  color: #991b1b;
+  background: rgba(254, 242, 242, 0.92);
+  color: #b91c1c;
 }
 
-@media (max-width: 960px) {
-  .runtime-hero,
+.trace-list,
+.timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.trace-item,
+.timeline-card {
+  width: 100%;
+  text-align: left;
+  padding: 16px 18px;
+}
+
+.trace-item {
+  cursor: pointer;
+}
+
+.trace-item-active {
+  border-color: rgba(14, 165, 233, 0.4);
+  box-shadow: 0 14px 28px rgba(14, 165, 233, 0.12);
+}
+
+.trace-item-header,
+.timeline-card-header,
+.trace-item-foot,
+.timeline-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.trace-item-header,
+.timeline-card-header {
+  align-items: flex-start;
+}
+
+.trace-item-header h3,
+.timeline-card-header h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 17px;
+}
+
+.trace-item-meta,
+.timeline-card-line {
+  margin: 10px 0 0;
+}
+
+.trace-item-foot,
+.timeline-card-meta {
+  margin-top: 12px;
+  flex-wrap: wrap;
+  color: #475569;
+  font-size: 13px;
+}
+
+.trace-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.trace-status-success {
+  background: rgba(220, 252, 231, 0.95);
+  color: #166534;
+}
+
+.trace-status-warning {
+  background: rgba(255, 237, 213, 0.95);
+  color: #9a3412;
+}
+
+.empty-state {
+  margin: 18px 0 0;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(241, 245, 249, 0.9);
+}
+
+@media (max-width: 1100px) {
   .runtime-grid,
+  .runtime-hero,
   .form-grid,
   .evidence-grid,
   .summary-card-grid,

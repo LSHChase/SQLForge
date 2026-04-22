@@ -139,6 +139,10 @@ export default {
     title: 'Repair Evidence',
     summary: 'Reverse lookup trace, task and report evidence to confirm compensation and repair outcomes.'
   },
+  auditForensics: {
+    title: 'Audit Forensics',
+    summary: 'Stitch compensation, repair, write-back and history events into a paged forensic chain.'
+  },
   benchmark: {
     title: 'Benchmark Report',
     summary: 'Inspect baseline, peak latency, regression deltas and release readiness.'

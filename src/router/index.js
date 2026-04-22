@@ -3,6 +3,7 @@ import DashboardView from '../views/dashboard/DashboardView.vue'
 import SqlQueryView from '../views/query/SqlQueryView.vue'
 import ParseRecordView from '../views/parse-record/ParseRecordView.vue'
 import RepairEvidenceView from '../views/repair-evidence/RepairEvidenceView.vue'
+import AuditForensicsView from '../views/audit-forensics/AuditForensicsView.vue'
 import AccelerationView from '../views/optimization/AccelerationView.vue'
 import BenchmarkView from '../views/benchmark/BenchmarkView.vue'
 import SystemView from '../views/system/SystemView.vue'
@@ -51,6 +52,16 @@ export const constantRoutes = [
       menu: true,
       titleKey: 'repairEvidence.title',
       descriptionKey: 'repairEvidence.summary'
+    }
+  },
+  {
+    path: '/audit-forensics',
+    name: 'AuditForensics',
+    component: AuditForensicsView,
+    meta: {
+      menu: true,
+      titleKey: 'auditForensics.title',
+      descriptionKey: 'auditForensics.summary'
     }
   },
   {

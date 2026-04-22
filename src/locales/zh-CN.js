@@ -139,6 +139,10 @@ export default {
     title: '修复证据',
     summary: '按 trace、task、report 反查治理链路，确认补偿与修复结果。'
   },
+  auditForensics: {
+    title: '审计取证',
+    summary: '串联补偿、修复、回写与历史事件，形成可分页的取证链路。'
+  },
   benchmark: {
     title: '压测报告',
     summary: '查看基线、峰值延迟、回归差异与准入判断。'

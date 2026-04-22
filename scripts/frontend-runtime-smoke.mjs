@@ -98,6 +98,14 @@ const expectNumber = async (page, testId) => {
   return value
 }
 
+const expectInputValue = async (page, testId, expectedText) => {
+  const locator = page.getByTestId(testId)
+  await locator.waitFor({ timeout: defaultTimeoutMs })
+  const value = await locator.inputValue()
+  assert(value.includes(expectedText), `Expected ${testId} to include "${expectedText}", got "${value}"`)
+  return value
+}
+
 const expectNumberAtLeast = async (page, testId, minimum) => {
   const startedAt = Date.now()
   let latestText = ''
@@ -301,7 +309,7 @@ const selectTraceByText = async (page, serviceCode, status) => {
   await locator.click()
 }
 
-const runParseRecordFlow = async page => {
+const runParseRecordFlow = async (page, runtimeEvidence) => {
   await page.goto(`${frontendBaseUrl}/parse-record`, { waitUntil: 'networkidle' })
   await page.getByTestId('parse-record-page').waitFor({ timeout: defaultTimeoutMs })
 
@@ -329,14 +337,57 @@ const runParseRecordFlow = async page => {
   await expectNonEmptyText(page, 'parse-record-detail-task-id')
   await page.getByTestId('parse-record-audit-event').first().waitFor({ timeout: defaultTimeoutMs })
 
+  await page.getByTestId('parse-record-limit').fill('1')
+  await page.getByTestId('parse-record-trace-id').fill('')
+  await page.getByTestId('parse-record-task-id').fill(runtimeEvidence.optimizationTaskId)
+  await page.getByTestId('parse-record-report-id').fill('')
+  await page.getByTestId('parse-record-run-lookup').click()
+
+  await expectText(page, 'parse-record-page-mode', 'TASK')
+  await expectNumberAtLeast(page, 'parse-record-display-count', 1)
+  await page.getByTestId('parse-record-has-more').waitFor({ timeout: defaultTimeoutMs })
+  await expectText(page, 'parse-record-detail-service-code', 'SQL_OPTIMIZATION')
+  await expectText(page, 'parse-record-detail-task-id', runtimeEvidence.optimizationTaskId)
+  await page.getByTestId('parse-record-load-more').click()
+  await expectNumberAtLeast(page, 'parse-record-display-count', 2)
+
+  await page.getByTestId('parse-record-open-audit-forensics').click()
+
   return {
     queryTraceId
   }
 }
 
-const runRepairEvidenceFlow = async (page, runtimeEvidence) => {
-  await page.goto(`${frontendBaseUrl}/repair-evidence`, { waitUntil: 'networkidle' })
+const runAuditForensicsFlow = async (page, runtimeEvidence) => {
+  await page.getByTestId('audit-forensics-page').waitFor({ timeout: defaultTimeoutMs })
+
+  await expectInputValue(page, 'audit-forensics-task-id', runtimeEvidence.optimizationTaskId)
+  await expectNumberAtLeast(page, 'audit-forensics-match-count', 1)
+  await page.getByTestId('audit-forensics-has-more').waitFor({ timeout: defaultTimeoutMs })
+  await expectText(page, 'audit-forensics-detail-service-code', 'SQL_OPTIMIZATION')
+  await expectText(page, 'audit-forensics-detail-status', 'FAILED')
+  await expectText(page, 'audit-forensics-detail-lookup-mode', 'TASK')
+  await expectText(page, 'audit-forensics-detail-repair-signal', 'COMPENSATION_TRACE')
+  await page.getByTestId('audit-forensics-load-more').click()
+  await expectNumberAtLeast(page, 'audit-forensics-match-count', 2)
+  await expectNumberAtLeast(page, 'audit-forensics-compensation-count', 1)
+  await page.getByTestId('audit-forensics-compensation-pill').first().waitFor({ timeout: defaultTimeoutMs })
+  await page.getByTestId('audit-forensics-open-repair-evidence').click()
+}
+
+const runRepairEvidenceFlow = async (page, runtimeEvidence, options = {}) => {
+  if (!options.alreadyOnPage) {
+    await page.goto(`${frontendBaseUrl}/repair-evidence`, { waitUntil: 'networkidle' })
+  }
   await page.getByTestId('repair-evidence-page').waitFor({ timeout: defaultTimeoutMs })
+
+  if (options.alreadyOnPage) {
+    await expectInputValue(page, 'repair-evidence-task-id', runtimeEvidence.optimizationTaskId)
+    await expectNumberAtLeast(page, 'repair-evidence-match-count', 1)
+    await expectText(page, 'repair-evidence-detail-service-code', 'SQL_OPTIMIZATION')
+    await expectText(page, 'repair-evidence-detail-status', 'FAILED')
+    await expectText(page, 'repair-evidence-detail-task-id', runtimeEvidence.optimizationTaskId)
+  }
 
   await page.getByTestId('repair-evidence-trace-id').fill(runtimeEvidence.queryTraceId)
   await page.getByTestId('repair-evidence-task-id').fill('')
@@ -400,12 +451,20 @@ const main = async () => {
     const optimizationEvidence = await runOptimizationFlow(page)
     const benchmarkEvidence = await runBenchmarkFlow(page)
     await runSystemFlow(page)
-    const parseRecordEvidence = await runParseRecordFlow(page)
+    const runtimeEvidence = {
+      optimizationTaskId: optimizationEvidence.failedTaskId,
+      benchmarkReportId: benchmarkEvidence.reportId
+    }
+    const parseRecordEvidence = await runParseRecordFlow(page, runtimeEvidence)
+    await runAuditForensicsFlow(page, {
+      ...runtimeEvidence,
+      queryTraceId: parseRecordEvidence.queryTraceId
+    })
     await runRepairEvidenceFlow(page, {
       queryTraceId: parseRecordEvidence.queryTraceId,
       optimizationTaskId: optimizationEvidence.failedTaskId,
       benchmarkReportId: benchmarkEvidence.reportId
-    })
+    }, { alreadyOnPage: true })
   } finally {
     await browser.close()
   }
