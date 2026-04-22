@@ -58,6 +58,7 @@
 - 主从或等效高可用
 - 打开备份、binlog 和恢复演练机制
 - 审计日志、历史索引和消息补偿表纳入重点恢复清单
+- 恢复目标、责任分工和演练记录模板以 `backup-recovery-baseline.md` 为准
 
 ### Redis
 
@@ -128,6 +129,8 @@ messaging:
 - 可观测：
   - 4 个后端服务的 `/actuator/prometheus` 已纳入采集
   - `logs / metrics / alerts` 基线已按 `observability-baseline.md` 接入
+- 备份恢复：
+  - 备份对象、`RPO/RTO`、责任人和演练模板已按 `backup-recovery-baseline.md` 接入
 - 基础设施：
   - Kafka、MySQL、Redis、OBS/MRS 连通
   - 端口和服务发现配置正确
@@ -162,5 +165,6 @@ messaging:
 - [local-setup.md](/models/project/codex/SQLForge/docs/deployments/local-setup.md)
 - [offline-setup.md](/models/project/codex/SQLForge/docs/deployments/offline-setup.md)
 - [observability-baseline.md](/models/project/codex/SQLForge/docs/deployments/observability-baseline.md)
+- [backup-recovery-baseline.md](/models/project/codex/SQLForge/docs/deployments/backup-recovery-baseline.md)
 - [messaging-abstraction.md](/models/project/codex/SQLForge/docs/architecture/messaging-abstraction.md)
 - [access-control-spec.md](/models/project/codex/SQLForge/docs/security/access-control-spec.md)

@@ -299,3 +299,7 @@
 2026-04-21T09:03:42-05:00 | F-TASK-007 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-04-21T09:03:42-05:00 | F-TASK-007 closeout commit | `R-168` | passed | `5666d3ce4b4567ce3c545f39c1438d3237e014f4`
 2026-04-21T09:03:42-05:00 | F-TASK-007 post-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
+2026-04-21T19:42:55-05:00 | F-TASK-008 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-21T19:42:55-05:00 | F-TASK-008 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-21T19:42:55-05:00 | F-TASK-008 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-21T19:43:53-05:00 | F-TASK-008 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`

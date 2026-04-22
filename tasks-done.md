@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-008: 补齐备份恢复策略与演练记录模板
+
+- Status: done
+- Completed at: 2026-04-21
+- Commit subject: `docs(deploy): F-TASK-008 add backup recovery baseline`
+- Priority: 1
+- Depends on: `F-TASK-007`
+- Scope: 定义 RPO/RTO/演练记录模板 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Matrix context: Phase-F / Story `F-STORY-003` 运维、审计与恢复
+- Human confirmation point: 备份恢复目标或演练频率变更需人工确认
+- Data impact: 备份元数据、演练记录
+- Rollback / recovery: 恢复旧模板并补录演练
+- Validation:
+  - 备份恢复模板可追溯
+  - `python3 scripts/foreman.py validate F-TASK-008`
+- Progress log:
+  - 2026-04-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 docs/deployments/backup-recovery-baseline.md，把 MySQL、audit_log、export_record、kafka_message_queue、system_config 密文与密钥边界的备份对象、RPO/RTO、责任角色和恢复演练模板统一收口，并同步更新 docs 入口、华为云部署引用、文档真值基线与覆盖矩阵。
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-008 --include-task-audit；node scripts/lint-repository-knowledge.js；python3 scripts/task_audit.py --check --phase pre-closeout；python3 scripts/task_audit.py --check --phase post-closeout。
+  - Residual risk: 当前仓库仍未提供 MySQL/OBS 备份自动化脚本、密钥托管与轮换校验工具、以及恢复后自动 smoke 脚本；query-execution、sql-optimization、benchmark-engine 仍无独立持久化，因此服务级恢复更多依赖健康检查与治理元数据验收。
+  - Next step: 进入 F-TASK-009 时，基于本备份恢复基线把演练记录、commit/tag、交付回写和 write-back 模板一起收口，形成阶段交付闭环。
+
 ### F-TASK-007: 补齐监控与日志规范落地清单
 
 - Status: done
