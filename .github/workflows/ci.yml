@@ -32,10 +32,61 @@ jobs:
       - name: Governance compile drift check
         run: python3 scripts/foreman.py compile-governance --check
 
+      - name: Run Maven validate
+        run: |
+          if [ -f pom.xml ]; then
+            mvn -B validate -DskipTests
+          else
+            echo "pom.xml not present yet, skip Maven validate"
+          fi
+
+      - name: Run PMD scan
+        run: |
+          if [ -f pom.xml ]; then
+            mvn -B pmd:pmd -DskipTests
+          else
+            echo "pom.xml not present yet, skip PMD scan"
+          fi
+
+      - name: Generate Checkstyle report
+        run: |
+          if [ -f pom.xml ]; then
+            mvn -B checkstyle:checkstyle -DskipTests
+          else
+            echo "pom.xml not present yet, skip Checkstyle report"
+          fi
+
+      - name: Run Checkstyle gate
+        run: |
+          if [ -f pom.xml ]; then
+            mvn -B checkstyle:check -DskipTests
+          else
+            echo "pom.xml not present yet, skip Checkstyle gate"
+          fi
+
+      - name: Verify Java quality reports
+        run: |
+          if [ -f pom.xml ]; then
+            python3 scripts/verify_java_quality_reports.py
+          else
+            echo "pom.xml not present yet, skip Java quality report verification"
+          fi
+
+      - name: Upload Java quality reports
+        if: ${{ always() && hashFiles('**/target/pmd.xml', '**/target/checkstyle-result.xml') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-quality-reports
+          path: |
+            **/target/pmd.xml
+            **/target/site/pmd.html
+            **/target/checkstyle-result.xml
+            **/target/site/checkstyle.html
+          if-no-files-found: error
+
       - name: Run Maven tests when pom exists
         run: |
           if [ -f pom.xml ]; then
-            mvn -B validate pmd:pmd checkstyle:check -DskipTests
             mvn -B test
           else
             echo "pom.xml not present yet, skip Maven tests"

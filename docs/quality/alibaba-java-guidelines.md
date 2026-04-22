@@ -78,6 +78,7 @@
 - Maven：`mvn validate`
 - PMD：`mvn pmd:pmd`
 - Checkstyle：`mvn checkstyle:check`
+- CI 追溯：`.github/workflows/ci.yml` 会分步执行 `validate`、`pmd:pmd`、`checkstyle:checkstyle`、`checkstyle:check`，并上传各模块的 PMD / Checkstyle XML 与 HTML 报告 artifact
 - 结果解释：
   - 阻塞项：必须在交付前解决
   - 高风险项：需要在本轮或紧邻轮次解决

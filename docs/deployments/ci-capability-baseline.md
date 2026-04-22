@@ -39,7 +39,8 @@
 | Trigger policy | 在 `main` / `master` / `develop` 的 `push` 以及所有 `pull_request` 上触发 | `.github/workflows/ci.yml` |
 | Job topology | 当前只有一个 job：`build-and-test`，运行环境为 `ubuntu-latest` | `.github/workflows/ci.yml` |
 | Runtime setup | workflow 会安装 Java 8 和 Node.js 20 | `.github/workflows/ci.yml` |
-| Backend static checks | workflow 会执行 `mvn -B validate pmd:pmd checkstyle:check -DskipTests` | `.github/workflows/ci.yml` |
+| Backend static checks | workflow 会分步执行 `mvn -B validate -DskipTests`、`mvn -B pmd:pmd -DskipTests`、`mvn -B checkstyle:checkstyle -DskipTests`、`mvn -B checkstyle:check -DskipTests` | `.github/workflows/ci.yml` |
+| Java scan artifacts | workflow 会校验并上传各模块的 `target/pmd.xml`、`target/site/pmd.html`、`target/checkstyle-result.xml`、`target/site/checkstyle.html` | `.github/workflows/ci.yml`, `scripts/verify_java_quality_reports.py` |
 | Backend tests | workflow 会执行 `mvn -B test` | `.github/workflows/ci.yml` |
 | Coverage integration | 主 CI 继续调用 `bash scripts/run-coverage.sh --phase report-only` 生成覆盖率报告；阶段切换阻断改由 `Phase Gate` workflow 显式运行 `phase0|phase1plus` | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `scripts/run-coverage.sh` |
 | Sonar integration | workflow 仅在 `SONAR_HOST_URL` 与 `SONAR_TOKEN` secrets 存在时执行 `bash scripts/run-sonar.sh --require-config` | `.github/workflows/ci.yml`, `scripts/run-sonar.sh` |
@@ -55,7 +56,8 @@
 
 | Capability | Current CI status | Command path | Notes |
 |:---|:---|:---|:---|
-| Java static checks | Enabled | `mvn -B validate pmd:pmd checkstyle:check -DskipTests` | 已进入单 job 主链 |
+| Java static checks | Enabled | `mvn -B validate -DskipTests` + `mvn -B pmd:pmd -DskipTests` + `mvn -B checkstyle:checkstyle -DskipTests` + `mvn -B checkstyle:check -DskipTests` | 已拆分为显式步骤，便于定位失败环节 |
+| Java scan report retention | Enabled | `python3 scripts/verify_java_quality_reports.py` + `actions/upload-artifact@v4` | 保留 PMD / Checkstyle XML 与 HTML 报告，满足 `R-151` 可读报告要求 |
 | Backend unit/integration tests | Enabled | `mvn -B test` | 未按模块拆分 |
 | Coverage report generation | Enabled | `bash scripts/run-coverage.sh --phase report-only` | 只生成报告，不做 phase threshold gate |
 | Optional Sonar scan | Conditional | `bash scripts/run-sonar.sh --require-config` | 依赖 secrets；缺少配置时不会运行 |
@@ -92,7 +94,7 @@
 | Next task | Recommended scope based on current inventory |
 |:---|:---|
 | `F-TASK-005` | 已完成：`task_audit`、`compile-governance --check` 与 `Phase Gate` workflow 已接入 |
-| `F-TASK-006` | 在现有 Maven 静态检查已入 CI 的基础上，补齐 Java 规范扫描结果的可追溯文档和门禁说明，必要时细化报告留存 |
+| `F-TASK-006` | 已完成：把 Java 静态检查拆成显式 CI 步骤，并把 PMD / Checkstyle 报告留存为 artifact |
 
 ## Exit Criteria For F-TASK-004
 

@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-006: 接入 Java 规范扫描
+
+- Status: done
+- Completed at: 2026-04-21
+- Commit subject: `ci(java): F-TASK-006 trace scan artifacts`
+- Priority: 1
+- Depends on: `F-TASK-004`
+- Scope: 让 pmd/checkstyle 进入 CI Tech: `OPS`,`JAVA-BE`. Layer: `deployments/ci/scripts`,`common`.
+- Matrix context: Phase-F / Story `F-STORY-002` CI 与质量门禁
+- Human confirmation point: 扫描阈值与工具变更需人工确认
+- Data impact: CI 质量结果、构建流程
+- Rollback / recovery: 回退扫描接入并保留报告
+- Validation:
+  - `mvn validate pmd:pmd checkstyle:check`
+  - `python3 scripts/foreman.py validate F-TASK-006`
+- Progress log:
+  - 2026-04-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 把 .github/workflows/ci.yml 中的 Java 质量检查拆成 validate、PMD、Checkstyle report、Checkstyle gate 四个显式步骤，并新增 Java 报告校验与 artifact 上传；新增 scripts/verify_java_quality_reports.py 校验各模块 PMD / Checkstyle XML 与 HTML 报告是否产出；同步更新 CI 能力基线与阿里 Java 规范落地文档。
+  - Validation evidence: mvn -B -DskipTests validate pmd:pmd checkstyle:checkstyle checkstyle:check；python3 -m py_compile scripts/verify_java_quality_reports.py；python3 scripts/verify_java_quality_reports.py；python3 scripts/foreman.py validate F-TASK-006 --include-task-audit --extra-command 'python3 -m py_compile scripts/verify_java_quality_reports.py' --extra-command 'python3 scripts/verify_java_quality_reports.py'；python3 scripts/task_audit.py --check --phase pre-closeout；python3 scripts/task_audit.py --check --phase post-closeout。
+  - Residual risk: 当前 Java 扫描已可追溯并保留 artifact，但 PMD 仍沿用现有 p3c 规则集与默认阈值，扫描本身未拆成独立 job，也未生成跨历史趋势报表；若后续要把 PMD 违规数纳入硬阻断或趋势治理，仍需单独任务确认。
+  - Next step: 优先补齐 compose/runtime smoke 与本地启动健康检查入 CI，把当前仍停留在本地脚本的运行时验证收进默认门禁。
+
 ### F-TASK-005: 接入阶段门禁脚本化验证
 
 - Status: done
