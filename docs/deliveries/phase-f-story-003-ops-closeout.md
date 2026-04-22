@@ -70,3 +70,4 @@
 
 以下区块只追加，不回写历史行。`delivery-closeout` 追加的文本必须保持单行可审计。
 
+- 2026-04-21 | task `F-TASK-009` | primary commit `2180a0424e9b17e4460c03c6e4bfcc3ed9444775` | tag `checkpoint/2026-04-21-phase-f-story-003-ops-closeout` | write-back file `docs/deliveries/phase-f-story-003-ops-closeout.md` | validation refs `tasks-done.md#F-TASK-009`, `docs/quality/validation-log.md`
