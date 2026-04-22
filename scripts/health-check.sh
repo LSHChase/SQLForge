@@ -71,6 +71,28 @@ print_result() {
   record_failure
 }
 
+check_http_ok() {
+  local url="$1"
+  local expected="${2:-}"
+  local body=""
+
+  if ! command -v curl >/dev/null 2>&1; then
+    return 1
+  fi
+
+  if [[ -z "${expected}" ]]; then
+    curl -fsS -o /dev/null "${url}" >/dev/null 2>&1
+    return $?
+  fi
+
+  body="$(curl -fsS "${url}" 2>/dev/null || true)"
+  if [[ -z "${body}" ]]; then
+    return 1
+  fi
+
+  grep -q "${expected}" <<<"${body}"
+}
+
 main() {
   local pending_count=""
   parse_args "$@"
@@ -82,6 +104,7 @@ main() {
     print_status "MySQL" "OK" "tcp://localhost:3306"
   else
     print_status "MySQL" "FAIL" "tcp://localhost:3306"
+    record_failure
   fi
 
   if docker exec sqlforge-redis redis-cli ping 2>/dev/null | grep -q '^PONG$'; then
@@ -101,26 +124,48 @@ main() {
     record_failure
   fi
 
-  if command -v curl >/dev/null 2>&1 && curl -fsS http://localhost:9000/minio/health/live >/dev/null 2>&1; then
+  if check_http_ok "http://localhost:9000/minio/health/live"; then
     print_status "MinIO" "OK" "http://localhost:9000/minio/health/live"
   else
     print_status "MinIO" "FAIL" "http://localhost:9000/minio/health/live"
     record_failure
   fi
 
-  if command -v curl >/dev/null 2>&1 && curl -fsS http://localhost:8080/api/governance/health | grep -q '"status":"UP"'; then
+  if check_http_ok "http://localhost:8080/api/governance/health" '"status":"UP"'; then
     print_status "governance" "OK" "http://localhost:8080/api/governance/health"
   else
     print_status "governance" "FAIL" "http://localhost:8080/api/governance/health"
     record_failure
   fi
 
+  if check_http_ok "http://localhost:8081/actuator/health" '"status":"UP"'; then
+    print_status "query-execution" "OK" "http://localhost:8081/actuator/health"
+  else
+    print_status "query-execution" "FAIL" "http://localhost:8081/actuator/health"
+    record_failure
+  fi
+
+  if check_http_ok "http://localhost:8082/actuator/health" '"status":"UP"'; then
+    print_status "sql-optimization" "OK" "http://localhost:8082/actuator/health"
+  else
+    print_status "sql-optimization" "FAIL" "http://localhost:8082/actuator/health"
+    record_failure
+  fi
+
+  if check_http_ok "http://localhost:8083/actuator/health" '"status":"UP"'; then
+    print_status "benchmark-engine" "OK" "http://localhost:8083/actuator/health"
+  else
+    print_status "benchmark-engine" "FAIL" "http://localhost:8083/actuator/health"
+    record_failure
+  fi
+
   if [[ "${CHECK_FRONTEND}" != "true" ]]; then
     print_status "frontend" "SKIP" "frontend probe disabled"
-  elif command -v curl >/dev/null 2>&1 && curl -fsS http://localhost:3000 >/dev/null 2>&1; then
+  elif check_http_ok "http://localhost:3000"; then
     print_status "frontend" "OK" "http://localhost:3000"
   else
-    print_status "frontend" "SKIP" "http://localhost:3000 (not running)"
+    print_status "frontend" "FAIL" "http://localhost:3000"
+    record_failure
   fi
 
   if [[ "${FAIL_ON_ERROR}" == "true" && "${FAILURES}" -gt 0 ]]; then

@@ -43,7 +43,7 @@
 | Java scan artifacts | workflow 会校验并上传各模块的 `target/pmd.xml`、`target/site/pmd.html`、`target/checkstyle-result.xml`、`target/site/checkstyle.html` | `.github/workflows/ci.yml`, `scripts/verify_java_quality_reports.py` |
 | Backend tests | workflow 会执行 `mvn -B test` | `.github/workflows/ci.yml` |
 | Coverage integration | 主 CI 继续调用 `bash scripts/run-coverage.sh --phase report-only` 生成覆盖率报告；阶段切换阻断改由 `Phase Gate` workflow 显式运行 `phase0|phase1plus` | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `scripts/run-coverage.sh` |
-| Runtime smoke integration | 主 CI 会显式执行 compose 语法检查、基础依赖启动、`governance` 健康探针与消息队列 smoke | `.github/workflows/ci.yml`, `scripts/run-runtime-smoke.sh`, `scripts/health-check.sh`, `scripts/manual-message-queue-smoke.sh` |
+| Runtime smoke integration | 主 CI 会显式执行 compose 语法检查、基础依赖启动、`governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 与前端的真实启动探针，以及消息队列 smoke | `.github/workflows/ci.yml`, `scripts/run-runtime-smoke.sh`, `scripts/health-check.sh`, `scripts/manual-message-queue-smoke.sh` |
 | Sonar integration | workflow 仅在 `SONAR_HOST_URL` 与 `SONAR_TOKEN` secrets 存在时执行 `bash scripts/run-sonar.sh --require-config` | `.github/workflows/ci.yml`, `scripts/run-sonar.sh` |
 | Boundary lint | workflow 会执行 `node scripts/check-frontend-backend-separation.js` | `.github/workflows/ci.yml` |
 | Frontend lint/build | workflow 会执行 `npm install`、`npm run lint`、`npm run build` | `.github/workflows/ci.yml`, `package.json` |
@@ -61,7 +61,7 @@
 | Java scan report retention | Enabled | `python3 scripts/verify_java_quality_reports.py` + `actions/upload-artifact@v4` | 保留 PMD / Checkstyle XML 与 HTML 报告，满足 `R-151` 可读报告要求 |
 | Backend unit/integration tests | Enabled | `mvn -B test` | 未按模块拆分 |
 | Compose syntax validation | Enabled | `bash scripts/run-runtime-smoke.sh --compose-check` | 通过统一脚本兼容 `docker compose` / `docker-compose` |
-| Runtime startup / health / queue smoke | Enabled | `bash scripts/run-runtime-smoke.sh --runtime-smoke` | 启动本地依赖、拉起 `governance`、执行健康探针与消息重试 smoke；脚本会为 `dev` profile 注入仓库内测试密钥以满足敏感字段加密初始化 |
+| Runtime startup / health / queue smoke | Enabled | `bash scripts/run-runtime-smoke.sh --runtime-smoke` | 启动本地依赖，拉起 `governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 与前端 dev server，执行多服务健康探针与消息重试 smoke；脚本会为 `dev` profile 注入仓库内测试密钥以满足敏感字段加密初始化 |
 | Coverage report generation | Enabled | `bash scripts/run-coverage.sh --phase report-only` | 只生成报告，不做 phase threshold gate |
 | Optional Sonar scan | Conditional | `bash scripts/run-sonar.sh --require-config` | 依赖 secrets；缺少配置时不会运行 |
 | Frontend-backend separation | Enabled | `node scripts/check-frontend-backend-separation.js` | 已纳入 CI |
@@ -88,8 +88,8 @@
 2. 当前 workflow 仍未把 `python3 scripts/foreman.py validate <TASK>` 纳入通用 CI。
 3. `Phase Gate` 的 `phase1plus` 覆盖率阈值当前仍可能阻断，因为仓库聚合覆盖率尚未稳定达到 85%。
 4. Sonar 目前仍是“有 secrets 才能真正通过”的门禁项，不是无条件可运行。
-5. 当前 runtime smoke 只覆盖基础依赖、`governance` 健康探针和数据库消息队列重试链路，尚未把前端和其他后端模块的真实启动统一纳入默认 CI。
-6. 当前 workflow 使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
+5. 当前 runtime smoke 已扩展为多服务启动门禁，但仍只验证服务可启动、健康探针可达与数据库消息队列 smoke；更深层业务级 runtime 回归尚未进入默认 CI。
+6. 当前 workflow 继续使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
 
 ## Recommended Follow-Up Mapping
 
@@ -98,6 +98,7 @@
 | `F-TASK-005` | 已完成：`task_audit`、`compile-governance --check` 与 `Phase Gate` workflow 已接入 |
 | `F-TASK-006` | 已完成：把 Java 静态检查拆成显式 CI 步骤，并把 PMD / Checkstyle 报告留存为 artifact |
 | `F-TASK-010` | 已完成：把 compose 校验、`governance` 启动健康检查与消息队列 smoke 接入默认 CI |
+| `F-TASK-011` | 进行中：把 `query-execution`、`sql-optimization`、`benchmark-engine` 与前端真实启动探针并入默认 runtime smoke 门禁 |
 
 ## Exit Criteria For F-TASK-004
 
