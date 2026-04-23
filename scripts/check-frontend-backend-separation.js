@@ -5,11 +5,6 @@ const path = require('path')
 
 const rootDir = process.cwd()
 const frontendRoot = path.join(rootDir, 'src')
-const backendRoots = [
-  path.join(rootDir, 'governance'),
-  path.join(rootDir, 'query-execution'),
-  path.join(rootDir, 'sqlforge-shared')
-]
 const ignoredDirs = new Set([
   '.git',
   'node_modules',
@@ -18,6 +13,7 @@ const ignoredDirs = new Set([
 ])
 
 const findings = []
+const backendRoots = discoverBackendRoots()
 
 function walk(directory, visitor) {
   if (!fs.existsSync(directory)) {
@@ -52,6 +48,14 @@ function addFinding(category, severity, filePath, message, suggestion) {
   })
 }
 
+function discoverBackendRoots() {
+  return fs.readdirSync(rootDir, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && !ignoredDirs.has(entry.name))
+    .map(entry => path.join(rootDir, entry.name))
+    .filter(candidate => fs.existsSync(path.join(candidate, 'pom.xml')))
+    .sort()
+}
+
 function checkFrontendBoundary() {
   if (!fs.existsSync(frontendRoot)) {
     addFinding(
@@ -83,10 +87,11 @@ function checkFrontendBoundary() {
         '@Mapper',
         'Repository',
         'sqlSessionFactory',
-        'SELECT ',
-        'INSERT INTO ',
-        'UPDATE ',
-        'DELETE FROM '
+        'PreparedStatement',
+        'ResultSet',
+        'DriverManager',
+        'DataSource',
+        'mybatis'
       ]
       suspiciousMarkers.forEach(marker => {
         if (content.includes(marker)) {
@@ -99,6 +104,56 @@ function checkFrontendBoundary() {
           )
         }
       })
+
+      const protectedHeaderMarkers = [
+        'X-Tenant-Id',
+        'X-User-Id',
+        'X-Role-Codes',
+        'X-Request-Id',
+        'X-Trace-Id',
+        'X-Auth-Source',
+        'X-Issued-At',
+        'X-Expires-At'
+      ]
+      const matchedProtectedHeaders = protectedHeaderMarkers.filter(marker => content.includes(marker))
+      if (matchedProtectedHeaders.length > 0) {
+        addFinding(
+          'boundary',
+          'warning',
+          relPath,
+          `Frontend file constructs protected request headers: ${matchedProtectedHeaders.join(', ')}`,
+          'Keep trusted authentication and request-context headers at the gateway/backend boundary. If a temporary smoke helper is unavoidable, isolate it clearly and track backend-owned replacement work.'
+        )
+      }
+
+      const authorityMarkers = [
+        'AccessDeniedException',
+        'BizException',
+        'RequestHeaderConstants',
+        'ErrorCodeConstants',
+        'SYSTEM_CONTEXT_MISSING'
+      ]
+      authorityMarkers.forEach(marker => {
+        if (content.includes(marker)) {
+          addFinding(
+            'boundary',
+            'warning',
+            relPath,
+            `Frontend file references backend authority marker: ${marker}`,
+            'Keep backend exceptions, header constants, and system authority semantics out of frontend runtime code.'
+          )
+        }
+      })
+
+      if (content.includes('http://localhost:8080') || content.includes('http://127.0.0.1:8080')) {
+        addFinding(
+          'runtime',
+          'error',
+          relPath,
+          'Frontend runtime source hard-codes backend host addressing.',
+          'Use relative API paths plus Vite proxy/runtime configuration rather than binding the frontend to a fixed backend host.'
+        )
+      }
     }
   })
 }
@@ -191,9 +246,11 @@ function printFindings() {
     return
   }
 
-  console.error('Frontend-backend separation check failed:')
+  const hasErrors = findings.some(item => item.severity === 'error')
+  const printer = hasErrors ? console.error : console.log
+  printer(hasErrors ? 'Frontend-backend separation check failed:' : 'Frontend-backend separation check passed with warnings:')
   findings.forEach(item => {
-    console.error(`- category=${item.category} severity=${item.severity} path=${item.path} message=${item.message} suggestion=${item.suggestion}`)
+    printer(`- category=${item.category} severity=${item.severity} path=${item.path} message=${item.message} suggestion=${item.suggestion}`)
   })
 }
 

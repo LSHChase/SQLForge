@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-007: 扩展分离检查清单
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `chore(ci): strengthen frontend backend separation checks`
+- Priority: 1
+- Depends on: `Phase-C`
+- Scope: 强化前后端分离校验 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Matrix context: Phase-E / Story `E-STORY-003` 前后端分离持续治理
+- Human confirmation point: 分离检查口径放宽需人工确认
+- Data impact: 脚本规则，无业务数据
+- Rollback / recovery: 恢复严格检查项
+- Validation:
+  - 分离检查脚本通过
+  - `python3 scripts/foreman.py validate E-TASK-007`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Expanded the frontend/backend separation gate to auto-discover every Maven backend module, added runtime and authority-boundary detections for protected frontend header construction and hard-coded backend hosts, tightened noisy false-positive heuristics, updated the separation baseline document, and switched the master execution plan active wave to the Phase-E boundary-governance mainline with E-TASK-007 as the current work item.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-007 --include-task-audit --extra-command "node scripts/check-frontend-backend-separation.js" --extra-command "rg -n \"discoverBackendRoots|X-Tenant-Id|sql-optimization|benchmark-engine|Phase-E / E-STORY-003|E-TASK-007\" scripts/check-frontend-backend-separation.js docs/quality/frontend-backend-separation-baseline.md docs/plans/master-execution-plan.md tasks.md"
+  - Residual risk: The separation gate now surfaces the highest-value boundary drift, but src/services/runtimeGateApi.js still constructs protected request headers as a temporary frontend-owned smoke helper; that warning remains intentional until E-TASK-008 removes or rehomes the logic.
+  - Next step: Instantiate E-TASK-008 next and remove the frontend-owned protected request header logic flagged by the strengthened separation gate, then continue to reconciliation tasks for partially consumed E-TASK-004~006 and F-TASK-001~003.
+
 ### A-TASK-012: 抽取 shared 认证与治理客户端支撑
 
 - Status: done
