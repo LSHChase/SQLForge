@@ -6,7 +6,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.company.sqlforge.common.context.RequestContext;
-import com.company.sqloptimization.application.context.RequestMetadataContext;
+import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqloptimization.config.OptimizationGovernanceProperties;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;

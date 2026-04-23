@@ -4,6 +4,24 @@
 
 ## Done
 
+### A-TASK-012: 抽取 shared 认证与治理客户端支撑
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `refactor(shared): extract auth and governance client support`
+- Priority: 1
+- Depends on: A-TASK-011
+- Scope: 把 query-execution、sql-optimization、benchmark-engine 重复的认证请求元数据与治理内部客户端支撑下沉到 sqlforge-shared，消除跨服务漂移并补 R-126 验证。
+- Validation:
+  - `python3 scripts/foreman.py validate A-TASK-012`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Extracted shared request-metadata context, header-auth establishment, and protected governance request helpers into sqlforge-shared; rewired query-execution, sql-optimization, and benchmark-engine interceptors plus governance clients to consume the shared support; removed duplicated per-service RequestMetadataContext implementations; updated governance regression tests; and aligned the master plan active wave plus task matrices for A-TASK-012.
+  - Validation evidence: python3 scripts/foreman.py validate A-TASK-012 --include-task-audit --extra-command "python3 scripts/foreman.py compile-governance --check" --extra-command "mvn -B -pl query-execution,sql-optimization,benchmark-engine -am test -DskipITs"
+  - Residual risk: The shared extraction currently covers header-based auth context and governance internal client support only; wider shared cleanup across other duplicated service contracts remains pending, and the next mainline still needs frontend/backend separation enforcement plus repository-truth reconciliation for partially consumed E/F tasks.
+  - Next step: Resume the recommended mainline by instantiating E-TASK-007 to strengthen frontend/backend separation checks, then E-TASK-008 and the remaining reconciliation tasks for partially consumed E-TASK-004~006 and F-TASK-001~003.
+
 ### A-TASK-011: 主计划剩余任务对齐并修复跨服务鉴权审计缺口
 
 - Status: done

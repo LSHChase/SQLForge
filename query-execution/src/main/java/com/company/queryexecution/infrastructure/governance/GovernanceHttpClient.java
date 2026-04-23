@@ -1,12 +1,11 @@
 package com.company.queryexecution.infrastructure.governance;
 
-import com.company.queryexecution.application.context.RequestMetadataContext;
 import com.company.queryexecution.config.QueryExecutionGovernanceProperties;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
-import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.governance.ProtectedGovernanceRequestSupport;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import java.time.Duration;
@@ -88,8 +87,8 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
         request.setResourceId(auditRecord.getResourceId());
         request.setResultStatus(auditRecord.getResultStatus());
         request.setElapsedMs(Long.valueOf(auditRecord.getElapsedMs()));
-        request.setSourceIp(resolveMetadata(RequestMetadataContext.getSourceIp(), "127.0.0.1"));
-        request.setUserAgent(resolveMetadata(RequestMetadataContext.getUserAgent(), "SQLForge-QueryExecution"));
+        request.setSourceIp(ProtectedGovernanceRequestSupport.resolveSourceIp("127.0.0.1"));
+        request.setUserAgent(ProtectedGovernanceRequestSupport.resolveUserAgent("SQLForge-QueryExecution"));
         request.setRequestParams(auditRecord.getRequestParams());
         request.setResponseSummary(auditRecord.getResponseSummary());
         post("/audit/write", request, Object.class);
@@ -113,32 +112,7 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
     }
 
     private HttpHeaders buildProtectedHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set(RequestHeaderConstants.TENANT_ID, requiredContextValue(RequestContext.getTenantId(), "tenantId"));
-        headers.set(RequestHeaderConstants.USER_ID, requiredContextValue(RequestContext.getUserId(), "userId"));
-        headers.set(RequestHeaderConstants.ROLE_CODES, String.join(",", RequestContext.getRoleCodes()));
-        headers.set(RequestHeaderConstants.REQUEST_ID, requiredContextValue(RequestContext.getRequestId(), "requestId"));
-        headers.set(RequestHeaderConstants.TRACE_ID, requiredContextValue(RequestContext.getTraceId(), "traceId"));
-        headers.set(RequestHeaderConstants.AUTH_SOURCE, requiredContextValue(RequestContext.getAuthSource(), "authSource"));
-        headers.set(RequestHeaderConstants.ISSUED_AT, String.valueOf(RequestContext.getIssuedAt()));
-        headers.set(RequestHeaderConstants.EXPIRES_AT, String.valueOf(RequestContext.getExpiresAt()));
-        return headers;
-    }
-
-    private String requiredContextValue(String value, String fieldName) {
-        if (!StringUtils.hasText(value)) {
-            throw new BizException(
-                ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
-                HttpStatus.UNAUTHORIZED,
-                "Missing protected request context field: " + fieldName
-            );
-        }
-        return value;
-    }
-
-    private String resolveMetadata(String currentValue, String defaultValue) {
-        return StringUtils.hasText(currentValue) ? currentValue : defaultValue;
+        return ProtectedGovernanceRequestSupport.buildProtectedHeaders();
     }
 
     private String normalizeBaseUrl() {

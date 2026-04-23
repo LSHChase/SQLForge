@@ -5,9 +5,9 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import com.company.benchmarkengine.application.context.RequestMetadataContext;
 import com.company.benchmarkengine.config.BenchmarkEngineGovernanceProperties;
 import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.context.RequestMetadataContext;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;

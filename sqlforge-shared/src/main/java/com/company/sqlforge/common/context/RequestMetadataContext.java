@@ -1,4 +1,4 @@
-package com.company.benchmarkengine.application.context;
+package com.company.sqlforge.common.context;
 
 public final class RequestMetadataContext {
 
