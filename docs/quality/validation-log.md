@@ -588,3 +588,14 @@
 2026-04-22T20:48:19-05:00 | E-TASK-007 validate | `R-133`, `R-168` | passed | `node scripts/check-frontend-backend-separation.js`
 2026-04-22T20:48:19-05:00 | E-TASK-007 validate | `R-133`, `R-168` | passed | `rg -n discoverBackendRoots|X-Tenant-Id|sql-optimization|benchmark-engine|Phase-E / E-STORY-003|E-TASK-007 scripts/check-frontend-backend-separation.js docs/quality/frontend-backend-separation-baseline.md docs/plans/master-execution-plan.md tasks.md`
 2026-04-22T20:48:45-05:00 | E-TASK-007 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-22T20:48:45-05:00 | E-TASK-007 closeout commit | `R-168` | passed | `f67136e72ac26e9e1adf59f7d353991f53d660cf`
+2026-04-22T20:48:45-05:00 | E-TASK-007 post-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
+2026-04-22T20:48:45-05:00 | E-TASK-007 post-closeout check | `R-131`, `R-133`, `R-168` | passed | `node scripts/check-frontend-backend-separation.js`
+2026-04-22T20:52:30-05:00 | E-TASK-008 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-22T20:52:30-05:00 | E-TASK-008 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-22T20:52:30-05:00 | E-TASK-008 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-22T20:52:30-05:00 | E-TASK-008 validate | `R-133`, `R-168` | passed | `node scripts/check-frontend-backend-separation.js`
+2026-04-22T20:52:30-05:00 | E-TASK-008 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-04-22T20:52:33-05:00 | E-TASK-008 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-04-22T20:52:33-05:00 | E-TASK-008 validate | `R-133`, `R-168` | passed | `rg -n X-SQLForge-Dev-|createProtectedApiProxy|X-Tenant-Id|X-User-Id|X-Role-Codes|X-Request-Id|X-Trace-Id|X-Auth-Source|X-Issued-At|X-Expires-At src/services/runtimeGateApi.js vite.config.js docs/quality/frontend-backend-separation-baseline.md docs/plans/master-execution-plan.md`
+2026-04-22T20:53:06-05:00 | E-TASK-008 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`

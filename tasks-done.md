@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-008: 清理潜在越界逻辑
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `refactor(frontend): move protected headers to dev proxy`
+- Priority: 1
+- Depends on: `E-TASK-007`
+- Scope: 清理前端中的权威业务判断 Tech: `VUE-FE`,`JAVA-BE`. Layer: `frontend/router/views/styles`,`application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-E / Story `E-STORY-003` 前后端分离持续治理
+- Human confirmation point: 若将权威逻辑重新放回前端需人工确认
+- Data impact: 前端状态和判断逻辑
+- Rollback / recovery: 恢复后端权威边界并移除越界逻辑
+- Validation:
+  - 边界抽查、build、lint
+  - `python3 scripts/foreman.py validate E-TASK-008`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Removed frontend-owned protected authentication header construction from src/services/runtimeGateApi.js, replaced it with dev-only proxy hint headers, taught vite.config.js to inject protected request context at the Vite proxy boundary for local integration, updated the separation baseline document, and advanced the master execution plan active wave to E-TASK-008 while preserving the Phase-E boundary-governance sequence.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-008 --include-task-audit --extra-command "node scripts/check-frontend-backend-separation.js" --extra-command "npm run lint" --extra-command "npm run build" --extra-command "rg -n \"X-SQLForge-Dev-|createProtectedApiProxy|X-Tenant-Id|X-User-Id|X-Role-Codes|X-Request-Id|X-Trace-Id|X-Auth-Source|X-Issued-At|X-Expires-At\" src/services/runtimeGateApi.js vite.config.js docs/quality/frontend-backend-separation-baseline.md docs/plans/master-execution-plan.md"
+  - Residual risk: Protected request-context synthesis is no longer in frontend business code, but development still depends on Vite proxy injection for local auth simulation; the next reconciliation batch must align partially consumed E-TASK-004~006 and F-TASK-001~003 with repository truth without re-implementing already landed capabilities.
+  - Next step: Instantiate the first reconciliation task for the partially consumed E-TASK-004~006 and F-TASK-001~003 batch, starting with the highest-value Phase-E archive/truth alignment item before proceeding through the remaining repository-truth closeout tasks.
+
 ### E-TASK-007: 扩展分离检查清单
 
 - Status: done

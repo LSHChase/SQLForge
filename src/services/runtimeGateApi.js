@@ -1,8 +1,5 @@
 import axios from 'axios'
 
-const DEFAULT_USER_ID = 'frontend-operator'
-const DEFAULT_ROLE_CODES = 'TENANT_ADMIN,OPERATOR'
-const DEFAULT_AUTH_SOURCE = 'header'
 const DEFAULT_TIMEOUT_MS = 30000
 const DEFAULT_POLL_INTERVAL_MS = 1000
 const DEFAULT_POLL_ATTEMPTS = 30
@@ -17,44 +14,40 @@ const httpClient = axios.create({
   timeout: DEFAULT_TIMEOUT_MS
 })
 
-let correlationSequence = 0
-
 const sleep = delayMs => new Promise(resolve => window.setTimeout(resolve, delayMs))
 
 const trimCorrelationId = value => String(value || '').slice(0, MAX_CORRELATION_ID_LENGTH)
 
-const nextCorrelationId = prefix => {
-  correlationSequence += 1
-  const suffix = `${Date.now()}-${correlationSequence}`
-  const prefixText = String(prefix || 'frontend-runtime')
-  const maxPrefixLength = Math.max(1, MAX_CORRELATION_ID_LENGTH - suffix.length - 1)
-  return `${prefixText.slice(0, maxPrefixLength)}-${suffix}`
-}
-
-const protectedHeaders = (tenantId, options = {}) => {
+const devProxyHeaders = (tenantId, options = {}) => {
   const {
     requestPrefix = 'frontend-runtime',
     tracePrefix,
-    requestId,
-    traceId
+    requestId = '',
+    traceId = ''
   } = options
-  const issuedAt = Date.now()
-  const expiresAt = issuedAt + 10 * 60 * 1000
-  const resolvedRequestId = trimCorrelationId(requestId || nextCorrelationId(requestPrefix))
-  const resolvedTraceId = trimCorrelationId(
-    traceId || (tracePrefix ? nextCorrelationId(tracePrefix) : resolvedRequestId)
-  )
 
-  return {
-    'X-Tenant-Id': tenantId,
-    'X-User-Id': DEFAULT_USER_ID,
-    'X-Role-Codes': DEFAULT_ROLE_CODES,
-    'X-Request-Id': resolvedRequestId,
-    'X-Trace-Id': resolvedTraceId,
-    'X-Auth-Source': DEFAULT_AUTH_SOURCE,
-    'X-Issued-At': String(issuedAt),
-    'X-Expires-At': String(expiresAt)
+  const headers = {
+    'X-SQLForge-Dev-Tenant-Id': String(tenantId || '')
   }
+
+  const normalizedRequestPrefix = trimCorrelationId(requestPrefix)
+  if (normalizedRequestPrefix) {
+    headers['X-SQLForge-Dev-Request-Prefix'] = normalizedRequestPrefix
+  }
+  const normalizedTracePrefix = trimCorrelationId(tracePrefix)
+  if (normalizedTracePrefix) {
+    headers['X-SQLForge-Dev-Trace-Prefix'] = normalizedTracePrefix
+  }
+  const normalizedRequestId = trimCorrelationId(requestId)
+  if (normalizedRequestId) {
+    headers['X-SQLForge-Dev-Request-Id'] = normalizedRequestId
+  }
+  const normalizedTraceId = trimCorrelationId(traceId)
+  if (normalizedTraceId) {
+    headers['X-SQLForge-Dev-Trace-Id'] = normalizedTraceId
+  }
+
+  return headers
 }
 
 const request = async ({ method, url, data, tenantId, requestOptions = {} }) => {
@@ -63,7 +56,7 @@ const request = async ({ method, url, data, tenantId, requestOptions = {} }) => 
     url,
     data,
     headers: {
-      ...protectedHeaders(tenantId, requestOptions)
+      ...devProxyHeaders(tenantId, requestOptions)
     }
   })
 
