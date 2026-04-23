@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import codexRulesMarkdown from '../../../docs/rules/codex-rules.md?raw'
+import complianceMarkdown from '../../../docs/security/compliance.md?raw'
 import { deliveryProgressAvailability } from '../../config/runtimeFlags'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import { useTenantStore } from '../../stores'
@@ -11,6 +13,7 @@ const { t, tm, locale } = useI18n()
 const router = useRouter()
 const tenantStore = useTenantStore()
 const progressSnapshot = createDeliveryProgressSnapshot()
+const ruleIdPattern = /\bR-\d+\b/g
 
 const metricCards = computed(() => [
   {
@@ -191,8 +194,40 @@ const normalizeInfoCards = path => {
 
 const panoramaCards = computed(() => normalizeInfoCards('dashboard.panorama.cards'))
 const architectureCards = computed(() => normalizeInfoCards('dashboard.architecture.cards'))
+const complianceCards = computed(() => normalizeInfoCards('dashboard.compliance.cards'))
+const rulebookCards = computed(() => normalizeInfoCards('dashboard.rulebook.cards'))
 const progressSourceFiles = computed(() => progressSnapshot.sourceFiles)
 const progressDeliveryPageVisible = computed(() => deliveryProgressAvailability.enabled)
+const extractUniqueRuleIds = markdown =>
+  Array.from(new Set(Array.from(markdown.matchAll(ruleIdPattern)).map(match => match[0]))).sort(
+    (left, right) => Number(left.slice(2)) - Number(right.slice(2))
+  )
+
+const codexRuleIds = extractUniqueRuleIds(codexRulesMarkdown)
+const complianceRuleIds = extractUniqueRuleIds(complianceMarkdown)
+const rulebookSourceFiles = computed(() => ['docs/rules/codex-rules.md', 'docs/security/compliance.md'])
+const rulebookSummaryCards = computed(() => [
+  {
+    key: 'baseline',
+    value: codexRuleIds.filter(ruleId => Number(ruleId.slice(2)) <= 115).length,
+    detail: t('dashboard.rulebook.cardsSummary.baselineDetail')
+  },
+  {
+    key: 'validation',
+    value: codexRuleIds.filter(ruleId => Number(ruleId.slice(2)) > 115).length,
+    detail: t('dashboard.rulebook.cardsSummary.validationDetail')
+  },
+  {
+    key: 'compliance',
+    value: complianceRuleIds.length,
+    detail: t('dashboard.rulebook.cardsSummary.complianceDetail')
+  },
+  {
+    key: 'sources',
+    value: rulebookSourceFiles.value.length,
+    detail: t('dashboard.rulebook.cardsSummary.sourcesDetail')
+  }
+])
 const totalTrackedTasks = computed(() =>
   Object.values(progressSnapshot.statusCounts).reduce((sum, value) => sum + value, 0)
 )
@@ -607,6 +642,99 @@ const goTo = path => {
     <section class="dashboard-section">
       <div class="section-heading">
         <div>
+          <p class="section-kicker sqlforge-code-label">{{ t('dashboard.compliance.kicker') }}</p>
+          <h2 class="sqlforge-section-title">{{ t('dashboard.compliance.title') }}</h2>
+        </div>
+        <p class="section-summary">{{ t('dashboard.compliance.summary') }}</p>
+      </div>
+      <div class="progress-source-strip">
+        <div>
+          <p class="progress-source-label sqlforge-code-label">{{ t('dashboard.compliance.sourceTitle') }}</p>
+          <p class="progress-source-summary">{{ t('dashboard.compliance.sourceSummary') }}</p>
+        </div>
+        <div class="progress-source-pills">
+          <span class="hero-pill">docs/security/compliance.md</span>
+        </div>
+      </div>
+      <div class="knowledge-grid knowledge-grid-compliance">
+        <article
+          v-for="card in complianceCards"
+          :key="card.title"
+          class="knowledge-card"
+        >
+          <p class="knowledge-card-label sqlforge-code-label">{{ card.ruleId }}</p>
+          <h3 class="knowledge-card-title">{{ card.title }}</h3>
+          <p class="knowledge-card-summary">{{ card.summary }}</p>
+          <ul class="knowledge-card-list">
+            <li
+              v-for="item in card.items"
+              :key="item"
+            >
+              {{ item }}
+            </li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="dashboard-section">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker sqlforge-code-label">{{ t('dashboard.rulebook.kicker') }}</p>
+          <h2 class="sqlforge-section-title">{{ t('dashboard.rulebook.title') }}</h2>
+        </div>
+        <p class="section-summary">{{ t('dashboard.rulebook.summary') }}</p>
+      </div>
+      <div class="progress-source-strip">
+        <div>
+          <p class="progress-source-label sqlforge-code-label">{{ t('dashboard.rulebook.sourceTitle') }}</p>
+          <p class="progress-source-summary">{{ t('dashboard.rulebook.sourceSummary') }}</p>
+        </div>
+        <div class="progress-source-pills">
+          <span
+            v-for="sourceFile in rulebookSourceFiles"
+            :key="sourceFile"
+            class="hero-pill"
+          >
+            {{ sourceFile }}
+          </span>
+        </div>
+      </div>
+      <div class="progress-summary-grid">
+        <article
+          v-for="card in rulebookSummaryCards"
+          :key="card.key"
+          class="progress-summary-card"
+        >
+          <p class="progress-summary-label">{{ t(`dashboard.rulebook.cardsSummary.${card.key}`) }}</p>
+          <strong class="progress-summary-value">{{ card.value }}</strong>
+          <p class="progress-summary-detail">{{ card.detail }}</p>
+        </article>
+      </div>
+      <div class="knowledge-grid">
+        <article
+          v-for="card in rulebookCards"
+          :key="card.title"
+          class="knowledge-card"
+        >
+          <p class="knowledge-card-label sqlforge-code-label">{{ t('dashboard.rulebook.cardLabel') }}</p>
+          <h3 class="knowledge-card-title">{{ card.title }}</h3>
+          <p class="knowledge-card-summary">{{ card.summary }}</p>
+          <ul class="knowledge-card-list">
+            <li
+              v-for="item in card.items"
+              :key="item"
+            >
+              {{ item }}
+            </li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="dashboard-section">
+      <div class="section-heading">
+        <div>
           <p class="section-kicker sqlforge-code-label">recommended next</p>
           <h2 class="sqlforge-section-title">{{ t('dashboard.nextTitle') }}</h2>
         </div>
@@ -830,6 +958,10 @@ const goTo = path => {
 }
 
 .knowledge-grid-architecture {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.knowledge-grid-compliance {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -1165,6 +1297,7 @@ const goTo = path => {
   .entry-grid,
   .knowledge-grid,
   .knowledge-grid-architecture,
+  .knowledge-grid-compliance,
   .progress-summary-grid,
   .progress-board {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1179,6 +1312,7 @@ const goTo = path => {
   .next-grid,
   .knowledge-grid,
   .knowledge-grid-architecture,
+  .knowledge-grid-compliance,
   .progress-summary-grid,
   .progress-board {
     grid-template-columns: minmax(0, 1fr);

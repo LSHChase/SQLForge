@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-003: 落地合规中心与规则库板块
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `feat(frontend): add dashboard compliance and rulebook boards`
+- Priority: 1
+- Depends on: `E-TASK-002`
+- Scope: 只读展示规则与合规信息 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-001` 研发驾驶舱
+- Human confirmation point: 若移除规则/合规展示需人工确认
+- Data impact: 前端展示数据，无后端持久化
+- Rollback / recovery: 恢复只读展示页面
+- Validation:
+  - 可见性、只读性、构建
+  - `python3 scripts/foreman.py validate E-TASK-003`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Expanded the /dashboard cockpit with explicit compliance-center and Codex-rulebook sections; added bilingual summaries for R-111 through R-115, surfaced append-only rulebook clusters, and derived rule-count summary cards from the repository truth in docs/security/compliance.md and docs/rules/codex-rules.md.
+  - Validation evidence: Validated with python3 scripts/foreman.py validate E-TASK-003 --include-task-audit --extra-command "npm run build" --extra-command "rg -n \"dashboard\\.compliance|dashboard\\.rulebook|codexRulesMarkdown|complianceMarkdown|cardsSummary\" src/views/dashboard/DashboardView.vue src/locales/zh-CN.js src/locales/en-US.js"; npm run build passed and the rulebook summary now reads directly from the repository rule and compliance markdown sources.
+  - Residual risk: The compliance and rulebook boards are still summary-only and depend on later work to connect more live operational evidence, such as audit-log query surfaces, backup-drill records, and any future machine-generated rule-growth telemetry.
+  - Next step: Move to E-TASK-004 and keep the remaining Phase-E mainline on the business-route shells so the cockpit summary can continue routing into complete, independent workflow pages.
+
 ### E-TASK-002: 落地项目全景/架构设计/进度管理板块
 
 - Status: done

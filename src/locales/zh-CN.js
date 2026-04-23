@@ -142,6 +142,85 @@ export default {
       noBlockers: '当前无显式阻塞项；如出现新的待决原因，会从最新进度日志自动浮现。',
       noDependencies: '当前活动任务未形成可展示的依赖链。'
     },
+    compliance: {
+      kicker: 'compliance center',
+      title: '合规中心',
+      summary: '把等保专项要求直接挂到驾驶舱首页，明确身份、隔离、审计、加密和备份恢复的当前基线。',
+      sourceTitle: '合规真值',
+      sourceSummary: '当前板块只读映射 `docs/security/compliance.md` 中的 `R-111`~`R-115`，不在前端维护平行规范。',
+      cards: [
+        {
+          ruleId: 'R-111',
+          title: '身份鉴别',
+          summary: '所有用户操作必须由后端完成身份校验，管理员与普通用户使用不同权限模型。',
+          items: ['HTTP/API 请求必须携带可验证身份凭证', '认证失败或未登录请求返回明确 JSON 错误', '认证失败和越权行为都必须进入审计链']
+        },
+        {
+          ruleId: 'R-112',
+          title: '访问控制',
+          summary: '系统以租户 ID 做数据隔离，路由、执行、导出和压测都要重新校验授权范围。',
+          items: ['所有核心请求显式携带租户上下文', '数据源、查询任务、审计记录和导出记录都绑定租户', '默认拒绝无授权访问，不允许隐式放行']
+        },
+        {
+          ruleId: 'R-113',
+          title: '安全审计',
+          summary: 'SQL 操作、登录登出和权限变更必须入审计日志，且至少保留 180 天、不可改删。',
+          items: ['审计记录包含时间、租户、用户、对象、结果、耗时与链路 ID', '敏感内容必须脱敏或加密后再记录', '审计日志表需独立备份并限制写后改删']
+        },
+        {
+          ruleId: 'R-114',
+          title: '加密存储',
+          summary: '数据库密码、API 密钥等敏感配置必须加密存储，禁止明文落库。',
+          items: ['持久化前统一执行 AES-256 或等效加密', '配置文件、日志、异常栈、导出文件不得泄露明文敏感数据', '密钥管理与业务数据分离，可接独立密钥服务']
+        },
+        {
+          ruleId: 'R-115',
+          title: '备份恢复',
+          summary: 'MySQL 生产环境必须具备主从或等效高可用方案，满足 RPO 与 RTO 目标并加密备份。',
+          items: ['备份至少包含全量和必要增量/binlog 策略', '审计日志和核心元数据进入优先恢复清单', '恢复演练结果需要可追溯记录']
+        }
+      ]
+    },
+    rulebook: {
+      kicker: 'codex rulebook',
+      title: 'Codex 规则库',
+      summary: '规则库板块只做只读摘要，强调 append-only、规则入库和任务审计链，不把长期约束留在 prompt 和记忆里。',
+      cardLabel: 'rule cluster',
+      sourceTitle: '规则来源',
+      sourceSummary: '规则分类、编号和扩展状态来自 `docs/rules/codex-rules.md` 与合规基线文档的当前仓库真值。',
+      cardsSummary: {
+        baseline: '基线规则',
+        baselineDetail: '基于 `R-001`~`R-115` 的架构与工程硬约束数量。',
+        validation: '扩展验证规则',
+        validationDetail: '`R-116+` 的验证、阶段门禁和治理追加规则数量。',
+        compliance: '合规规则',
+        complianceDetail: '来自安全合规文档的等保专项规则数量。',
+        sources: '来源文档',
+        sourcesDetail: '当前首页摘要直接依赖的规则/合规权威文档数量。'
+      },
+      cards: [
+        {
+          title: '文档与治理',
+          summary: '规则要求执行前先读文档、维护任务台账、记录 closeout，并通过 append-only 历史账本保存长期约束。',
+          items: ['文档优先于 prompt 和记忆', '长期规则必须入 `docs/` 和历史账本', '非 trivial 任务必须走 foreman / task audit / git 审计链']
+        },
+        {
+          title: '架构与工程',
+          summary: '前后端分离、Java 8 + Spring Boot 2.x、分层后端、MyBatis XML 和独立部署是当前工程硬边界。',
+          items: ['前端固定 Vue 3 + JavaScript + CSS', '后端固定 Java 8 + Spring Boot 2.x', '领域目录 + 分层子目录是默认后端结构']
+        },
+        {
+          title: '页面与边界',
+          summary: '首页负责摘要与建议，主流程保持独立页面；前端可预校验，但后端永远是规则与历史的权威边界。',
+          items: ['页面按上下文、状态、结果、下一步组织', '不能把多个核心流程继续堆在一个长页面', '已交付能力必须在 operator 页面可见']
+        },
+        {
+          title: '验证与扩展',
+          summary: '规则库后半段把阶段门禁、任务验证、delivery closeout 和严格模式约束继续追加为机器可审计规则。',
+          items: ['阶段入口、阶段交付和渐进等保都有验证要求', '前端 build、知识 lint、task audit 是基础收口动作', '规则新增只能追加，不能覆写历史语义']
+        }
+      ]
+    },
     nextTitle: '建议动作',
     nextSummary: '根据当前风险与运行状态，直接进入对应业务页面处理。'
   },

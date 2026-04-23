@@ -142,6 +142,85 @@ export default {
       noBlockers: 'There are no explicit blocker items right now; new pending reasons will surface automatically from the latest progress logs.',
       noDependencies: 'Active tasks do not currently expose a dependency chain worth rendering here.'
     },
+    compliance: {
+      kicker: 'compliance center',
+      title: 'Compliance Center',
+      summary: 'Expose the graded-protection baseline directly on the cockpit homepage so identity, isolation, audit, encryption and backup expectations remain visible.',
+      sourceTitle: 'Compliance truth',
+      sourceSummary: 'This section is a read-only projection of `R-111` through `R-115` from `docs/security/compliance.md`; the frontend does not maintain a parallel policy source.',
+      cards: [
+        {
+          ruleId: 'R-111',
+          title: 'Identity authentication',
+          summary: 'Every user action must be authenticated by the backend, with separate privilege models for administrators and standard users.',
+          items: ['HTTP and API requests must carry verifiable credentials', 'Unauthenticated or failed-auth requests return explicit JSON errors', 'Authentication failures and privilege abuse both enter the audit trail']
+        },
+        {
+          ruleId: 'R-112',
+          title: 'Access control',
+          summary: 'The system isolates data by tenant ID and revalidates authorization across routing, execution, export and benchmark operations.',
+          items: ['All core requests carry explicit tenant context', 'Data sources, query tasks, audit records and export records are tenant-bound', 'Unauthorized access is denied by default with no implicit allow path']
+        },
+        {
+          ruleId: 'R-113',
+          title: 'Security audit',
+          summary: 'SQL actions, sign-in or sign-out events, and permission changes must be recorded in audit logs that stay immutable for at least 180 days.',
+          items: ['Audit entries include time, tenant, user, object, result, latency and trace ID', 'Sensitive content must be masked or encrypted before logging', 'Audit storage is backed up independently and protected from direct mutation']
+        },
+        {
+          ruleId: 'R-114',
+          title: 'Encrypted storage',
+          summary: 'Database passwords, API keys and similar secrets must be encrypted at rest rather than stored in plaintext.',
+          items: ['Sensitive fields are encrypted before persistence with AES-256 or an equivalent baseline', 'Config files, logs, stack traces and exports must not leak plaintext secrets', 'Key management stays separate from business data and can integrate with a dedicated key service']
+        },
+        {
+          ruleId: 'R-115',
+          title: 'Backup & recovery',
+          summary: 'Production MySQL must use replication or an equivalent HA setup, meet the RPO/RTO targets, and keep backups encrypted.',
+          items: ['Backups include full plus required incremental or binlog strategy', 'Audit logs and core metadata sit on the priority recovery list', 'Recovery drills must leave a traceable record']
+        }
+      ]
+    },
+    rulebook: {
+      kicker: 'codex rulebook',
+      title: 'Codex Rulebook',
+      summary: 'This section stays read-only and highlights append-only rules, repository truth and the task-audit chain instead of leaving durable constraints inside prompts or memory.',
+      cardLabel: 'rule cluster',
+      sourceTitle: 'Rule sources',
+      sourceSummary: 'Rule categories, numbering and extension state are derived from the current repository truth in `docs/rules/codex-rules.md` and the compliance baseline.',
+      cardsSummary: {
+        baseline: 'Baseline rules',
+        baselineDetail: 'The count of architecture and engineering constraints rooted in `R-001` through `R-115`.',
+        validation: 'Extended validation rules',
+        validationDetail: 'The count of `R-116+` validation, phase-gate and governance-extension rules.',
+        compliance: 'Compliance rules',
+        complianceDetail: 'The count of graded-protection rules derived from the security compliance document.',
+        sources: 'Source documents',
+        sourcesDetail: 'The number of rule and compliance authority documents directly summarized on this homepage.'
+      },
+      cards: [
+        {
+          title: 'Docs & governance',
+          summary: 'Rules require document-first execution, task ledgers, closeout discipline, and append-only history so long-term constraints survive beyond chat state.',
+          items: ['Documents outrank prompt memory', 'Long-term rules must enter `docs/` and the history ledgers', 'Non-trivial work must pass through foreman, task-audit and git traceability']
+        },
+        {
+          title: 'Architecture & engineering',
+          summary: 'Frontend/backend separation, Java 8 + Spring Boot 2.x, layered backend structure, MyBatis XML and independent deployment remain hard engineering limits.',
+          items: ['Frontend stays on Vue 3 + JavaScript + CSS', 'Backend stays on Java 8 + Spring Boot 2.x', 'Domain directories plus layered subdirectories remain the default backend shape']
+        },
+        {
+          title: 'Pages & boundaries',
+          summary: 'The dashboard summarizes and routes while major workflows stay on independent pages; frontend can prevalidate, but backend remains the authority for rules and history.',
+          items: ['Pages are organized around context, state, result and next step', 'Multiple core workflows should not collapse back into one long page', 'Delivered capabilities must stay visible on operator-facing pages']
+        },
+        {
+          title: 'Validation & extension',
+          summary: 'The later part of the rulebook adds phase gates, task validation, delivery closeout and strict-mode constraints as machine-auditable rules.',
+          items: ['Phase entry, phase delivery and progressive compliance each have validation gates', 'Frontend build, knowledge lint and task-audit are part of the default closeout floor', 'New rules can only be appended, not used to overwrite historical meaning']
+        }
+      ]
+    },
     nextTitle: 'Recommended actions',
     nextSummary: 'Move directly into the page that can resolve the current risk or drift.'
   },
