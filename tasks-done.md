@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-032: 去除 Sonar fallback 的隐性自动恢复接线，并分离 provisioning / enable 语义
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `ci(gates): separate sonar provisioning from enable semantics`
+- Priority: 1
+- Depends on: `F-TASK-031`
+- Scope: 去除 release workflow 默认 `quality-gate` environment 绑定，给主 CI 增加显式 Sonar enable 条件，并同步 Sonar runbook、INBOX 与部署基线，使 provisioning 不再等于自动恢复强制 Sonar Tech: `OPS`,`DOCS`. Layer: `deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-F / Story `F-STORY-005` 发布门禁自动化与稳定性收口
+- Human confirmation point: 若要把“环境已 provision”重新视为“默认自动启用 Sonar 强制门禁”，或恢复 release workflow 的环境级默认绑定，需人工确认
+- Data impact: CI/release workflow 触发条件、Sonar enable flag、环境恢复 runbook、INBOX 语义与部署基线
+- Rollback / recovery: 恢复当前显式 enable 语义，保留 provisioning 证据与恢复入口；如要再次升级为默认强制，需拆新任务追加治理记录
+- Validation:
+  - `python3 scripts/foreman.py validate F-TASK-032`、`python3 scripts/task_audit.py --check --phase pre-closeout`、`bash scripts/run-sonar.sh`、`bash scripts/run-sonar.sh --require-config`、`node scripts/lint-repository-knowledge.js`、workflow / docs 语义核对
+  - `python3 scripts/foreman.py validate F-TASK-032`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Removed the default release quality-gate environment binding, required explicit SONAR_ENABLE_DEFAULT enablement before CI/release workflows consume provisioned Sonar config, and synchronized the Sonar runbook, INBOX, plan, and deployment baselines around provisioning-versus-enable semantics.
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-032; python3 scripts/task_audit.py --check --phase pre-closeout; bash scripts/run-sonar.sh; bash scripts/run-sonar.sh --require-config (expected failure without SONAR_HOST_URL/SONAR_TOKEN); node scripts/lint-repository-knowledge.js
+  - Residual risk: Restoring Sonar as a default hard gate still requires human-controlled provisioning plus explicit enablement or a new follow-up task; external test-environment CI/CD still lacks repo-equivalent smoke and cannot replace repo-closed gates.
+  - Next step: No repository-side follow-up remains unless humans decide to restore mandatory Sonar or reintroduce stronger environment-bound release gating.
+
 ### HARN-010: Reconcile F-TASK-031 post-closeout drift
 
 - Status: done

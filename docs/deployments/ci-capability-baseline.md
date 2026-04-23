@@ -45,14 +45,14 @@
 | Coverage integration | 主 CI 继续调用 `bash scripts/run-coverage.sh --phase report-only` 生成覆盖率报告；阶段切换阻断改由 `Phase Gate` workflow 显式运行 `phase0|phase1plus` | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `scripts/run-coverage.sh` |
 | Runtime smoke integration | 主 CI 会显式执行 compose 语法检查、基础依赖启动、`governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 与前端 dev server，并串联 `query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 业务 smoke、审计补偿验证、消息队列 smoke，以及浏览器驱动的前端真实业务请求与治理修复动作 smoke | `.github/workflows/ci.yml`, `scripts/run-runtime-smoke.sh`, `scripts/health-check.sh`, `scripts/manual-query-governance-smoke.sh`, `scripts/manual-sql-optimization-governance-smoke.sh`, `scripts/manual-benchmark-governance-smoke.sh`, `scripts/manual-message-queue-smoke.sh`, `scripts/frontend-runtime-smoke.mjs` |
 | Database script executability | 主 CI 会在干净 MySQL 上重放 `sql/init-schema.sql`、`sql/init-data.sql` 并顺序执行所有 migration，确保 schema/init/migration 组合可执行 | `.github/workflows/ci.yml`, `scripts/verify-db-scripts.sh` |
-| Sonar integration | 主 CI 在仓库 secrets 存在时执行 `bash scripts/run-sonar.sh --require-config`；`Phase Gate` workflow 保留 `require_sonar` opt-in 输入；`Release Phase Gate` 保留 Sonar 环境透传但默认不再强制 Sonar，整体语义降为 environment-backed fallback | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `.github/workflows/release-phase-gate.yml`, `scripts/run-sonar.sh`, `docs/deployments/sonar-quality-gate-provisioning.md` |
+| Sonar integration | 主 CI 仅在 `SONAR_ENABLE_DEFAULT=true` 且仓库 secrets 存在时执行 `bash scripts/run-sonar.sh --require-config`；`Phase Gate` workflow 保留 `require_sonar` opt-in 输入；`Release Phase Gate` 默认不绑定 `quality-gate` environment，并仅在显式 enable 时透传 Sonar 配置，整体语义保持为 environment-backed fallback | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `.github/workflows/release-phase-gate.yml`, `scripts/run-sonar.sh`, `docs/deployments/sonar-quality-gate-provisioning.md` |
 | Boundary lint | workflow 会执行 `node scripts/check-frontend-backend-separation.js` | `.github/workflows/ci.yml` |
 | Frontend lint/build | workflow 会执行 `npm install`、`npm run lint`、`npm run build` | `.github/workflows/ci.yml`, `package.json` |
 | Repository knowledge lint | workflow 会执行 `node scripts/lint-repository-knowledge.js`，并补充校验 `README.md`、`AGENTS.md`、`.gitignore`、`.editorconfig` 存在 | `.github/workflows/ci.yml` |
 | Governance gate in CI | 主 CI 已接入 `python3 scripts/task_audit.py --check` 与 `python3 scripts/foreman.py compile-governance --check` | `.github/workflows/ci.yml` |
 | Manual phase gate workflow | `Phase Gate` workflow 通过 `workflow_dispatch` 执行 `entry|delivery|compliance|full` 阶段门禁；默认执行 repo-closed 路径，可按输入显式开启 Sonar 或真实 Kafka fallback | `.github/workflows/phase-gate.yml`, `scripts/run-phase-gates.sh` |
 | Dedicated real Kafka workflow | 独立 `Kafka Runtime Gate` workflow 可显式拉起 MySQL + Kafka + governance，执行真实 Kafka 配置检查与成功/失败恢复 smoke | `.github/workflows/kafka-runtime-gate.yml`, `scripts/run-kafka-runtime-gate.sh`, `scripts/verify_kafka_runtime_config.py` |
-| Automated release phase gate | `Release Phase Gate` workflow 会在 `checkpoint/*` tag push 与 `release.published` 上自动执行 `bash scripts/run-phase-gates.sh --gate full --coverage-phase phase1plus`，上传 release metadata artifact，并把 Sonar / 真实 Kafka 保留为独立 fallback 入口而非默认强绑 | `.github/workflows/release-phase-gate.yml`, `scripts/run-phase-gates.sh` |
+| Automated release phase gate | `Release Phase Gate` workflow 会在 `checkpoint/*` tag push 与 `release.published` 上自动执行 `bash scripts/run-phase-gates.sh --gate full --coverage-phase phase1plus`，上传 release metadata artifact；默认不绑定 `quality-gate` environment，Sonar / 真实 Kafka 继续保留为独立 fallback 入口而非默认强绑 | `.github/workflows/release-phase-gate.yml`, `scripts/run-phase-gates.sh` |
 
 ## Current CI Coverage Matrix
 
@@ -67,7 +67,7 @@
 | Database script executability | Enabled | `bash scripts/verify-db-scripts.sh` | 在干净 MySQL 上校验 init schema、init data 与 migrations 的可执行性 |
 | Runtime startup / health / queue smoke | Enabled | `bash scripts/run-runtime-smoke.sh --runtime-smoke` | 启动本地依赖，拉起 `governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 与前端 dev server，执行多服务健康探针、`query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 成功链路、失败恢复与审计补偿 smoke、消息重试 smoke，以及浏览器驱动的前端 `sql-query` / `acceleration` / `benchmark` / `system` 真实业务请求与治理修复动作；脚本会为 `dev` profile 注入仓库内测试密钥，并为治理侧启用按 trace 前缀触发的定向审计路由失败注入，前端 smoke 优先复用系统 Chrome |
 | Coverage report generation | Enabled | `bash scripts/run-coverage.sh --phase report-only` | 只生成报告，不做 phase threshold gate |
-| Optional Sonar scan | Conditional | `bash scripts/run-sonar.sh --require-config` | 依赖 secrets；缺少配置时不会运行 |
+| Optional Sonar scan | Conditional | `bash scripts/run-sonar.sh --require-config` | 依赖 secrets + 显式 `SONAR_ENABLE_DEFAULT=true`；仅 provisioning 不会自动运行 |
 | Frontend-backend separation | Enabled | `node scripts/check-frontend-backend-separation.js` | 已纳入 CI |
 | Frontend lint | Enabled | `npm run lint` | 与 `npm install` 同步执行 |
 | Frontend build | Enabled | `npm run build` | 与 `npm install` 同步执行 |
@@ -92,7 +92,7 @@
 1. `R-116` / `R-117` / `R-118` 已自动绑定到 `checkpoint/*` tag / `release.published` 发布路径，但日常的 ad hoc 阶段切换仍主要依赖 `workflow_dispatch`。
 2. 当前 workflow 仍未把 `python3 scripts/foreman.py validate <TASK>` 纳入通用 CI。
 3. `phase1plus` 聚合覆盖率已提升到 `86.9763%`，`Release Phase Gate` 与 `Phase Gate` 的 coverage blocker 已从“真实阻断项”转为“已达标门禁项”。
-4. Sonar 已降为“仓库保留接线、外部 secrets / environment 可恢复”的 fallback 项；缺少 `SONAR_HOST_URL` / `SONAR_TOKEN` 不再构成仓库默认发布阻断，但若显式要求 `--require-config` 仍会失败并留下恢复证据。
+4. Sonar 已降为“仓库保留接线、外部 provisioning + 显式 enable 可恢复”的 fallback 项；缺少 `SONAR_HOST_URL` / `SONAR_TOKEN` 不再构成仓库默认发布阻断，且仅 provisioning 不会自动把 Sonar 升回主线阻断；若显式要求 `--require-config` 仍会失败并留下恢复证据。
 5. 默认 browser runtime smoke 已覆盖前端 `sql-query`、`acceleration`、`benchmark`、`system` 与治理历史/修复链路的真实业务请求、失败恢复、审计补偿可视化与修复动作；剩余缺口已收敛为更多历史/取证页面尚未进入默认浏览器 smoke。
 6. 真实 Kafka gate 已可运行，但仍依赖 runner 具备 Docker 资源、compose 拉镜像权限与可用端口，因此被保留为 environment-backed fallback，而不是 repo-closed 默认门禁。
 7. 仓库外测试环境虽有独立 CI/CD，但当前未提供仓库口径的 smoke / runtime gate 证据，因此不能视为完整替代仓库闭环门禁。

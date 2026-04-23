@@ -108,9 +108,9 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-F / F-STORY-005`
-- 当前活跃目标：`F-TASK-031` 已完成，当前仓库侧双层门禁语义已归档收口；剩余仅是 `INBOX-001` 中的外部环境恢复 follow-up，不构成活动中的仓库主线任务
+- 当前活跃目标：`F-TASK-032`，收口 Sonar fallback 的隐性自动恢复接线，显式分离 provisioning 与 enable 语义，避免环境一旦具备就绕回默认硬阻断
 - 当前下一条可执行主线任务：
-  - `_None in repository mainline; only environment-backed follow-up remains in INBOX-001._`
+  - `F-TASK-032`
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成归档。
@@ -118,7 +118,8 @@
   - `F-TASK-015`、`F-TASK-016` 已完成 `sql-optimization` 与 `benchmark-engine` 的持久化 carrier / scheduler 主线；`F-TASK-017` 至 `F-TASK-028` 也已把 browser runtime gate、治理历史链路、真实 Kafka gate 与 Phase-F 退出门禁推进到当前仓库真值。
   - `F-TASK-029` 已把发布链自动触发、coverage 阻断语义与 Sonar-required 失败语义写成当时仓库真值；`F-TASK-030` 已把 `phase1plus` 聚合覆盖率提升到 `86.9763%`，并保留 Sonar / release gate 接线成果。
   - `F-TASK-031` 已在不重写 `F-TASK-030` 历史完成记录的前提下吸收其 residual risk：把 Sonar 与真实 Kafka 从“默认强制门禁”降级为环境增强 fallback，并显式建立 `repo-closed` 主路径与 `environment-backed` 增强项的当前仓库真值。
-  - 当前若要继续推进，只剩 `INBOX-001` 的环境恢复项；除非人类决定恢复强制 Sonar 门禁，否则 `Phase-F / F-STORY-005` 在仓库主线路径上已无新的活动 Task。
+  - `F-TASK-032` 作为后续治理修正任务，继续收口 `F-TASK-031` 复盘中发现的隐性自动恢复接线：release workflow 的 `quality-gate` environment 默认绑定，以及主 CI 在仅有 Sonar secrets 时就自动重新强制扫描的问题。
+  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；但当前仓库主线仍以 `F-TASK-032` 完成显式 enable 语义收口为先，而不是直接恢复强制 Sonar。
 
 ## 5. Traceability Matrix
 
@@ -569,6 +570,7 @@ Tasks:
 | `F-TASK-029` | 收口 release automation 与门禁稳定性 | 稳定 coverage 入口、明确 Sonar 强制约束、把 phase gate 绑定到 release metadata 自动触发链 | `F-TASK-027`,`F-TASK-028` | release gate workflow、coverage phase gate、Sonar-required path 通过 |
 | `F-TASK-030` | 提升覆盖率并补齐 Sonar 发布环境 | phase1plus 覆盖率提升到 85%+、补齐 Sonar secrets / 发布环境接线、验证自动 release gate 可稳定放行 | `F-TASK-029` | coverage phase1plus 达标、Sonar-required path 可运行、release gate 通过 |
 | `F-TASK-031` | 将 Sonar 与环境级门禁降级为 fallback，并建立双层门禁语义 | 把仓库主线固定为 repo-closed 门禁，把 Sonar / real Kafka / 环境级发布验证重述为 environment-backed fallback，修正 workflow 默认值、R-117 和相关文档真值 | `F-TASK-030` | phase gate/release gate 默认不再强制 Sonar 或真实 Kafka，且 repo-closed 与 environment-backed 语义在脚本、workflow、文档、台账一致 |
+| `F-TASK-032` | 去除 Sonar fallback 的隐性自动恢复接线，并分离 provisioning / enable 语义 | 修正 release workflow 的默认 environment 绑定与主 CI 的 Sonar 自动触发条件，明确“环境已 provision”不等于“治理已启用强制 Sonar”，同步 runbook、INBOX 与部署基线 | `F-TASK-031` | release/CI workflow 默认不因已有 Sonar 环境自动升级为阻断；文档、INBOX、workflow 对 provisioning 与 enable 语义一致 |
 
 ## 7. Verification Matrix
 

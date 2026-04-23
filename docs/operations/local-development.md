@@ -37,7 +37,7 @@
 - SonarQube 扫描：
   - 仓库默认非阻断探测：`bash scripts/run-sonar.sh`
   - 环境恢复 / 显式强制验证：`bash scripts/run-sonar.sh --require-config`
-  - Sonar 当前属于 `environment-backed` fallback，不是本地 `repo-closed` 主路径的默认硬前提；具体恢复要求见 `docs/deployments/sonar-quality-gate-provisioning.md`
+  - Sonar 当前属于 `environment-backed` fallback，不是本地 `repo-closed` 主路径的默认硬前提；workflow 侧还要求显式 `SONAR_ENABLE_DEFAULT=true` 才会重新消费已 provision 的 Sonar 配置，具体恢复要求见 `docs/deployments/sonar-quality-gate-provisioning.md`
 - 前端构建：`npm run build`
 - 前端 lint：`npm run lint`
 - 前端真实业务 smoke：`npm run smoke:frontend-runtime`

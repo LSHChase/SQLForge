@@ -113,7 +113,7 @@
   - `backup-recovery-baseline.md`：当前备份对象、恢复目标与演练模板基线。
   - `ci-capability-baseline.md`：当前 GitHub Actions CI 覆盖、缺口与后续门禁接入映射。
   - `phase-gate-baseline.md`：当前 R-116/R-117/R-118 阶段门禁脚本、workflow 接线，以及 `repo-closed` / `environment-backed` 双层门禁语义。
-  - `sonar-quality-gate-provisioning.md`：SonarQube fallback scan 与环境恢复项 runbook，不再代表仓库默认硬阻断。
+  - `sonar-quality-gate-provisioning.md`：SonarQube fallback scan 与环境恢复项 runbook，显式区分 provisioning / enable，不再代表仓库默认硬阻断。
 - `deliveries/`
   交付记录与阶段回写。
   - `init-completion.md`：阶段 0 初始化交付记录与历史 repair 记录。

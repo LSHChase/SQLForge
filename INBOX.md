@@ -15,6 +15,6 @@
 ### INBOX-001: 恢复 Sonar 强制门禁的环境恢复项
 
 - Status: open
-- Needed decision: 若未来要把 Sonar 从当前 fallback 语义恢复为默认强制门禁，需由具备 GitHub Settings 权限的人类决定恢复路径，并补齐 `quality-gate` environment 或仓库级 Sonar secrets / vars provisioning；外部测试环境 CI/CD 因缺少仓库 smoke，不可作为替代仓库 repo-closed 门禁的理由
-- Task refs: F-TASK-030, F-TASK-031
-- Plan refs: docs/plans/master-execution-plan.md#F-TASK-030, docs/plans/master-execution-plan.md#F-TASK-031
+- Needed decision: 若未来要把 Sonar 从当前 fallback 语义恢复为默认强制门禁，需由具备 GitHub Settings 权限的人类分两步决定恢复路径：先完成 provisioning（仓库级 secrets / vars，必要时再补 `quality-gate` environment），再决定是否显式 enable `SONAR_ENABLE_DEFAULT=true` 或通过新任务恢复更严格的 release 绑定；外部测试环境 CI/CD 因缺少仓库 smoke，不可作为替代仓库 repo-closed 门禁的理由
+- Task refs: F-TASK-030, F-TASK-031, F-TASK-032
+- Plan refs: docs/plans/master-execution-plan.md#F-TASK-030, docs/plans/master-execution-plan.md#F-TASK-031, docs/plans/master-execution-plan.md#F-TASK-032

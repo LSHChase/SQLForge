@@ -128,11 +128,14 @@ jobs:
             echo "coverage script not present yet, skip coverage report"
           fi
 
-      - name: Run SonarQube scan when secrets exist
-        if: ${{ secrets.SONAR_HOST_URL != '' && secrets.SONAR_TOKEN != '' }}
+      - name: Run SonarQube scan when explicitly enabled
+        if: ${{ vars.SONAR_ENABLE_DEFAULT == 'true' && secrets.SONAR_HOST_URL != '' && secrets.SONAR_TOKEN != '' }}
         env:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+          SONAR_PROJECT_NAME: ${{ vars.SONAR_PROJECT_NAME }}
+          SONAR_QUALITY_GATE_WAIT: ${{ vars.SONAR_QUALITY_GATE_WAIT }}
         run: |
           if [ -f scripts/run-sonar.sh ]; then
             bash scripts/run-sonar.sh --require-config

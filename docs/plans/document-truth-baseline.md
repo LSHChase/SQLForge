@@ -101,7 +101,7 @@
 - 当前 CI 事实已形成统一文档落点：
   - `docs/deployments/ci-capability-baseline.md` 已把 `.github/workflows/ci.yml` 当前覆盖的 lint/build/test/scan/runtime smoke 能力，以及尚未进入 CI 的 phase gate / task audit / 更广泛运行时验证缺口收口为正式文档
   - `docs/deployments/phase-gate-baseline.md` 已把 `task_audit`、`compile-governance --check`、`workflow_dispatch` phase gate、`checkpoint/*` / `release.published` 自动 release gate，以及 `repo-closed` 主路径与 `environment-backed` fallback 的当前门禁语义收口为正式文档
-  - 当前仓库门禁主路径仍以内建的 build/test/lint、coverage、db-script、runtime smoke、knowledge lint 与 compliance baseline 为准；Sonar 与真实 Kafka gate 继续保留脚本和 workflow，但默认仅作为环境增强 fallback，不再代表仓库默认硬阻断
+  - 当前仓库门禁主路径仍以内建的 build/test/lint、coverage、db-script、runtime smoke、knowledge lint 与 compliance baseline 为准；Sonar 与真实 Kafka gate 继续保留脚本和 workflow，但默认仅作为环境增强 fallback，不再代表仓库默认硬阻断；Sonar 还额外显式分离了 provisioning 与 enable 语义，避免 secrets / environment 一就绪就自动恢复强制扫描
   - 测试环境虽已有独立 CI/CD，但因尚未提供与仓库同口径的 smoke / runtime gate 闭环证据，当前只能作为补充环境验证，不能替代仓库 `repo-closed` 主路径
 - 当前前端业务页已消费多服务治理能力：
   - `src/services/runtimeGateApi.js` 已统一承接 `query-execution` 查询执行、`sql-optimization` 任务提交/轮询、`benchmark-engine` 任务与报告查询、`governance` 的 tenant-config、message stats/retry、history summaries/lookups/detail 等 HTTP 入口
@@ -165,7 +165,7 @@
 - SQL 优化服务已建立独立模块、提交/轮询 API、MySQL `optimization_task` 任务表和 scheduled worker 基线，但外部队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
 - Phase-D 核心追溯链已在 `governance` 内完成 schema、migration、entity 与 mapper XML 固化，且 `audit/write` 与 header-based stateless auth 已接入真实 `audit_log` 落库；当前敏感字段加密基线已进入共享组件和治理受保护持久化入口，但查询执行、SQL 优化、压测引擎等其他服务的主动上报链仍待后续任务补齐。
 - 当前虽已形成 observability 文档基线，且默认 runtime smoke 已覆盖 4 个后端服务与前端的真实启动探针，并验证 `query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 的治理检查、失败恢复与审计补偿链路，但仓库内仍未实现业务级 Micrometer 指标、仓库内 PrometheusRule / Alertmanager / Grafana 配置、以及统一日志采集 pipeline 模板。
-- `Phase-F` 的自动 release gate 已接入 `checkpoint/*` tag 与 `release.published` 元数据，`phase1plus` 聚合覆盖率现已提升到 `86.9763%` 并达到 85% 门槛；当前仓库默认路径已回到 `repo-closed` 语义，Sonar 外部 secrets / GitHub Actions environment provisioning 转为 `environment-backed` fallback 恢复项，由 `INBOX-001` 跟踪。
+- `Phase-F` 的自动 release gate 已接入 `checkpoint/*` tag 与 `release.published` 元数据，`phase1plus` 聚合覆盖率现已提升到 `86.9763%` 并达到 85% 门槛；当前仓库默认路径已回到 `repo-closed` 语义，Sonar 外部 secrets / vars / 可选 GitHub Actions environment provisioning 转为 `environment-backed` fallback 恢复项，由 `INBOX-001` 跟踪，且 provisioning 本身不再等于默认自动启用 Sonar。
 - 访问控制当前仍是“最小租户校验基线”，尚未形成完整角色矩阵和数据源授权实现。
 - `KAFKA` 模式虽已接入真实客户端，但尚未沉淀真实 Kafka 集群运行验证、鉴权和安全参数配置证据；相关真实 Kafka gate 仍作为 `environment-backed` 增强项保留，不再是仓库默认闭环门禁。
 - 外部测试环境 CI/CD 仍缺少仓库主路径要求的 smoke / runtime gate，因此不能被写成完整替代仓库闭环门禁的事实。
