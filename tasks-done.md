@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-006: 深色设计系统组件化
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `docs(frontend): reconcile design system implementation truth`
+- Priority: 1
+- Depends on: `E-TASK-004`
+- Scope: 把主题 token 和组件规则转成实现 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-002` 业务页面拆分
+- Human confirmation point: 设计系统 token 删除需人工确认
+- Data impact: 前端主题变量
+- Rollback / recovery: 恢复原 token 映射
+- Validation:
+  - `token 生效、build、lint`
+  - `python3 scripts/foreman.py validate E-TASK-006`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reconciled E-TASK-006 against repository truth by recording that the current frontend already implements the SQLForge design-system token layer in src/styles/element-plus-theme.css, applies a dark-first theme through the global store and App shell, and reuses shared token semantics across dashboard, business, and governance pages; this task is therefore archived as truth closeout rather than a net-new componentization effort.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-006 --include-task-audit --extra-command "npm run lint" --extra-command "npm run build" --extra-command "rg -n \"element-plus-theme\\.css|sqlforge-color-brand|sqlforge-font-sans|sqlforge-font-mono|toggleTheme|theme: 'dark'|sqlforge-code-label|sqlforge-section-title|route-card\" src/styles/element-plus-theme.css src/stores/index.js src/App.vue src/views/dashboard/DashboardView.vue src/views/query/SqlQueryView.vue src/views/optimization/AccelerationView.vue src/views/benchmark/BenchmarkView.vue src/views/system/SystemView.vue docs/plans/document-truth-baseline.md docs/plans/master-execution-plan.md"
+  - Residual risk: Phase-E truth is now substantially aligned for route shells, live capability consumption, and tokenized theme implementation, but the remaining queue shifts to Phase-F documentation reconciliation so deployment and recovery artifacts match the already-landed repository facts with the same strictness.
+  - Next step: Instantiate F-TASK-001 next and reconcile the existing Huawei Cloud deployment documentation against repository truth before closing out F-TASK-002 and F-TASK-003.
+
 ### E-TASK-005: 接入已存在治理接口能力
 
 - Status: done

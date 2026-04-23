@@ -108,13 +108,13 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-E / E-STORY-003`
-- 当前活跃目标：按仓库真值收口已被部分消费的业务页治理接口接入与相关前端任务
+- 当前活跃目标：按仓库真值收口已被部分消费的设计系统 token 与主题实现任务
 - 当前下一条可执行主线任务：
-  - `E-TASK-005`
+  - `E-TASK-006`
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理，Phase-E 主线当前转入 repository-truth reconciliation。
-  - `E-TASK-004` 已按 repository truth 归档为“独立业务页路由骨架已落地”的事实收口；当前继续对 `E-TASK-005` 至 `E-TASK-006` 与 `F-TASK-001` 至 `F-TASK-003` 做同类归档与真值修正。
+  - `E-TASK-004`、`E-TASK-005` 已按 repository truth 归档为“独立业务页路由骨架已落地”和“已交付治理能力已被当前页面消费”的事实收口；当前继续对 `E-TASK-006` 与 `F-TASK-001` 至 `F-TASK-003` 做同类归档与真值修正。
   - `Phase-F` 运维治理加固已完成到 `F-TASK-027`/`F-TASK-028`，但其 remaining hardening 仍受覆盖率阈值、Sonar secrets 与自动 release trigger 约束。
 
 ## 5. Traceability Matrix

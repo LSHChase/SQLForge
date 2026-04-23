@@ -100,6 +100,10 @@
 - 当前前端业务页已消费多服务治理能力：
   - `src/services/runtimeGateApi.js` 已统一承接 `query-execution` 查询执行、`sql-optimization` 任务提交/轮询、`benchmark-engine` 任务与报告查询、`governance` 的 tenant-config、message stats/retry、history summaries/lookups/detail 等 HTTP 入口
   - `SqlQueryView`、`AccelerationView`、`BenchmarkView`、`SystemView`、`ParseRecordView`、`RepairEvidenceView`、`AuditForensicsView`、`AuditTroubleshootingView` 已直接消费上述已交付后端能力，而不再停留在纯展示壳层
+- 当前前端设计系统 token 与主题实现已落地到源码：
+  - `src/styles/element-plus-theme.css` 已固化 `sqlforge-*` 颜色、字体、间距、圆角、状态与 Element Plus 主题变量
+  - `useGlobalConfigStore` 与 `App.vue` 已接入 `dark/light` 主题切换，且默认运行态仍以 dark-mode-native 为主
+  - `DashboardView`、`SqlQueryView`、`AccelerationView`、`BenchmarkView`、`SystemView` 以及治理历史/运维页面已大量复用同一套 token、code-label、section-title 与 route-card 视觉语义
 - 当前已验证通过：
   - `mvn clean compile`
   - `mvn test`
