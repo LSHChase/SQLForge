@@ -97,6 +97,9 @@
 - 当前 CI 事实已形成统一文档落点：
   - `docs/deployments/ci-capability-baseline.md` 已把 `.github/workflows/ci.yml` 当前覆盖的 lint/build/test/scan/runtime smoke 能力，以及尚未进入 CI 的 phase gate / task audit / 更广泛运行时验证缺口收口为正式文档
   - `docs/deployments/phase-gate-baseline.md` 已把 `task_audit`、`compile-governance --check`、`workflow_dispatch` phase gate 和最小 R-118 校验收口为正式文档
+- 当前前端业务页已消费多服务治理能力：
+  - `src/services/runtimeGateApi.js` 已统一承接 `query-execution` 查询执行、`sql-optimization` 任务提交/轮询、`benchmark-engine` 任务与报告查询、`governance` 的 tenant-config、message stats/retry、history summaries/lookups/detail 等 HTTP 入口
+  - `SqlQueryView`、`AccelerationView`、`BenchmarkView`、`SystemView`、`ParseRecordView`、`RepairEvidenceView`、`AuditForensicsView`、`AuditTroubleshootingView` 已直接消费上述已交付后端能力，而不再停留在纯展示壳层
 - 当前已验证通过：
   - `mvn clean compile`
   - `mvn test`

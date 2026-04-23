@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-005: 接入已存在治理接口能力
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `docs(frontend): reconcile governed page capability truth`
+- Priority: 1
+- Depends on: `E-TASK-004`,`Phase-C`
+- Scope: 页面消费已交付后端能力 Tech: `VUE-FE`,`JAVA-BE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-002` 业务页面拆分
+- Human confirmation point: API 契约破坏式变化需人工确认
+- Data impact: 前端接口调用、缓存态
+- Rollback / recovery: 恢复旧 API 适配层或 mock 路径
+- Validation:
+  - `UI/API 契约、可见性`
+  - `python3 scripts/foreman.py validate E-TASK-005`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reconciled E-TASK-005 against repository truth by recording that the current business and governance pages already consume delivered backend capabilities through src/services/runtimeGateApi.js, including query execution, optimization, benchmark, tenant config, message retry/stats, and governance history lookup/detail APIs; updated the master plan active wave so this task is treated as truth closeout rather than new feature work.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-005 --include-task-audit --extra-command "npm run build" --extra-command "rg -n \"executeQuery|submitOptimizationTask|submitBenchmarkTask|getBenchmarkReport|getGovernanceTenantConfig|getGovernanceMessageStats|retryGovernanceFailedMessages|getGovernanceTraceSummaries|lookupGovernanceTraces|getGovernanceTraceDetail\" src/services/runtimeGateApi.js src/views/query/SqlQueryView.vue src/views/optimization/AccelerationView.vue src/views/benchmark/BenchmarkView.vue src/views/system/SystemView.vue src/views/parse-record/ParseRecordView.vue src/views/repair-evidence/RepairEvidenceView.vue src/views/audit-forensics/AuditForensicsView.vue src/views/audit-troubleshooting/AuditTroubleshootingView.vue docs/plans/document-truth-baseline.md docs/plans/master-execution-plan.md"
+  - Residual risk: The frontend capability truth is now aligned, but E-TASK-006 still needs to reconcile design-system and token implementation coverage so Phase-E does not overstate how much of the visual system has been fully archived against current source reality.
+  - Next step: Instantiate E-TASK-006 next and reconcile the current design-system/token implementation truth, then continue into the Phase-F documentation reconciliation batch F-TASK-001~003.
+
 ### E-TASK-004: 建立五大业务页路由骨架
 
 - Status: done
