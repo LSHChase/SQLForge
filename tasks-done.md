@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-004: 建立五大业务页路由骨架
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `docs(frontend): reconcile business route shell truth`
+- Priority: 1
+- Depends on: `E-TASK-001`
+- Scope: 建立 5 个独立业务路由 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-002` 业务页面拆分
+- Human confirmation point: 五大业务页若改为合并页需人工确认
+- Data impact: 前端路由结构
+- Rollback / recovery: 恢复独立路由和页面壳层
+- Validation:
+  - 每页独立入口、build
+  - `python3 scripts/foreman.py validate E-TASK-004`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reconciled E-TASK-004 against repository truth by updating the master execution plan active wave and the document truth baseline to reflect that the dashboard, core business routes, and governance history/ops route shells already exist in the current frontend, so this task is now an archive/truth-closeout rather than a fresh implementation batch.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-004 --include-task-audit --extra-command "npm run build" --extra-command "rg -n \"ROUTE_PATHS\\.sqlQuery|ROUTE_PATHS\\.acceleration|ROUTE_PATHS\\.benchmark|ROUTE_PATHS\\.system|ROUTE_PATHS\\.parseRecord|ROUTE_PATHS\\.repairEvidence|ROUTE_PATHS\\.auditForensics|ROUTE_PATHS\\.auditTroubleshooting|ROUTE_PATHS\\.runtimeGates|ROUTE_PATHS\\.recoveryDrill\" src/router/index.js src/config/routePaths.mjs docs/plans/document-truth-baseline.md docs/plans/master-execution-plan.md"
+  - Residual risk: The route shell truth is now aligned, but E-TASK-005 and E-TASK-006 still need to reconcile live governance capability consumption and design-system/token coverage so the frontend archive state matches the repository facts end to end.
+  - Next step: Instantiate E-TASK-005 next and reconcile which already-delivered governance capabilities are actually consumed by the current business and governance pages, without re-implementing the route shells.
+
 ### E-TASK-008: 清理潜在越界逻辑
 
 - Status: done

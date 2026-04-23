@@ -599,3 +599,12 @@
 2026-04-22T20:52:33-05:00 | E-TASK-008 validate | `R-133`, `R-168` | passed | `npm run build`
 2026-04-22T20:52:33-05:00 | E-TASK-008 validate | `R-133`, `R-168` | passed | `rg -n X-SQLForge-Dev-|createProtectedApiProxy|X-Tenant-Id|X-User-Id|X-Role-Codes|X-Request-Id|X-Trace-Id|X-Auth-Source|X-Issued-At|X-Expires-At src/services/runtimeGateApi.js vite.config.js docs/quality/frontend-backend-separation-baseline.md docs/plans/master-execution-plan.md`
 2026-04-22T20:53:06-05:00 | E-TASK-008 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-22T20:53:06-05:00 | E-TASK-008 closeout commit | `R-168` | passed | `8eb3428470e7b3ca28d3f9cb0678988cfd436367`
+2026-04-22T20:53:06-05:00 | E-TASK-008 post-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
+2026-04-22T20:53:06-05:00 | E-TASK-008 post-closeout check | `R-131`, `R-133`, `R-168` | passed | `node scripts/check-frontend-backend-separation.js`
+2026-04-22T20:56:47-05:00 | E-TASK-004 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-22T20:56:48-05:00 | E-TASK-004 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-22T20:56:48-05:00 | E-TASK-004 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-22T20:56:51-05:00 | E-TASK-004 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-04-22T20:56:51-05:00 | E-TASK-004 validate | `R-133`, `R-168` | passed | `rg -n ROUTE_PATHS\.sqlQuery|ROUTE_PATHS\.acceleration|ROUTE_PATHS\.benchmark|ROUTE_PATHS\.system|ROUTE_PATHS\.parseRecord|ROUTE_PATHS\.repairEvidence|ROUTE_PATHS\.auditForensics|ROUTE_PATHS\.auditTroubleshooting|ROUTE_PATHS\.runtimeGates|ROUTE_PATHS\.recoveryDrill src/router/index.js src/config/routePaths.mjs docs/plans/document-truth-baseline.md docs/plans/master-execution-plan.md`
+2026-04-22T20:57:36-05:00 | E-TASK-004 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`

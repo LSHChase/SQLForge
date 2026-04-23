@@ -108,13 +108,13 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-E / E-STORY-003`
-- 当前活跃目标：清理前端潜在越界逻辑并把受保护请求头回收至开发代理/网关边界
+- 当前活跃目标：按仓库真值收口已被部分消费的业务页路由骨架与相关前端任务
 - 当前下一条可执行主线任务：
-  - `E-TASK-008`
+  - `E-TASK-004`
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
-  - `E-TASK-007` 已把前后端分离检查扩展到全模块覆盖并显式标出前端受保护头拼装风险；`E-TASK-008` 负责移除该越界逻辑并保留开发联调可用性。
-  - `E-TASK-004` 至 `E-TASK-006` 与 `F-TASK-001` 至 `F-TASK-003` 已被仓库事实部分消费，`E-TASK-008` 完成后应优先进入这些任务的 reconciliation/归档收口，而不是重复实现。
+  - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理，Phase-E 主线当前转入 repository-truth reconciliation。
+  - `E-TASK-004` 至 `E-TASK-006` 与 `F-TASK-001` 至 `F-TASK-003` 已被仓库事实部分消费，当前任务顺序应按原编号逐项归档、补真值、写残余风险，而不是重复实现。
   - `Phase-F` 运维治理加固已完成到 `F-TASK-027`/`F-TASK-028`，但其 remaining hardening 仍受覆盖率阈值、Sonar secrets 与自动 release trigger 约束。
 
 ## 5. Traceability Matrix
@@ -442,6 +442,7 @@ Tasks:
 
 - 目标：保留 `SQL 查询`、`解析记录`、`压测报告`、`加速配置`、`系统管理` 独立页面。
 - 验证：不堆叠长页面，能力可见，前后端边界清晰。
+- 当前进展：仓库已经存在独立的业务页与治理扩展路由；后续任务以 repository-truth reconciliation 和能力收口为主，而不是重新造壳层。
 
 Tasks:
 
