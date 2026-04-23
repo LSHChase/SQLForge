@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-014: Capture HARN-013 post-closeout governance tail
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `fix(governance): capture HARN-013 post-closeout tail`
+- Priority: 1
+- Depends on: N/A
+- Scope: 把 HARN-013 closeout 后遗留的 .codex/policy/authority-map.json 同步件与 docs/quality/validation-log.md post-closeout 审计尾项纳入正常审计链，不扩展业务或部署文档范围。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-014`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Captured the HARN-013 post-closeout governance tail by staging the synced .codex policy authority map and append-only validation-log entries produced after the deployment-runbook closeout, without changing the completed deployment documentation scope or any business implementation.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-014 --include-task-audit --extra-command 'python3 scripts/foreman.py compile-governance --check'; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js
+  - Residual risk: The repository audit chain is clean again, but real Hetu/MRS runtime success still depends on external environment deployment, credentials, reachable orders data, and environment-owned evidence retention.
+  - Next step: Use the deployed runbook from HARN-013 to stand up governance and query-execution in the test environment, run bash scripts/run-hetu-env-smoke.sh for JDBC/REST/CLIENT evidence, and archive the returned log and response proof outside the repository.
+
 ### HARN-013: Document Hetu/MRS test-environment deployment runbook
 
 - Status: done
