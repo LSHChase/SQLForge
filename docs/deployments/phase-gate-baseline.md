@@ -109,7 +109,7 @@
 |:---|:---|
 | `F-TASK-027` | 已完成：数据库脚本 gate、coverage gate、真实 Kafka fallback 与 R-118 基线证据已接入 |
 | `F-TASK-029` | 已完成：稳定 coverage 入口、修复导致 phase gate 误报的测试稳定性问题，并把 release metadata 自动触发链接入正式发布路径 |
-| `F-TASK-031` | 当前任务：把 Sonar / 环境级门禁降级为 fallback，显式建立 repo-closed / environment-backed 双层门禁语义 |
+| `F-TASK-031` | 已完成：把 Sonar / 环境级门禁降级为 fallback，显式建立 repo-closed / environment-backed 双层门禁语义 |
 | Later hardening | 若未来要恢复 Sonar 或真实 Kafka 的默认强制语义，应通过新的环境恢复任务显式重启，不得直接覆写当前 repo-closed 真值 |
 
 ## Related Documents

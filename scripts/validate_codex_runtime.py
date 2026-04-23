@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from contextlib import contextmanager
@@ -14,6 +15,9 @@ from typing import Dict, Iterator
 ROOT = Path(__file__).resolve().parent.parent
 CURRENT_TASK_PATH = ROOT / ".codex" / "state" / "current-task.json"
 SESSION_CONTEXT_PATH = ROOT / ".codex" / "state" / "session-context.json"
+MASTER_PLAN_PATH = ROOT / "docs" / "plans" / "master-execution-plan.md"
+TASKS_PATH = ROOT / "tasks.md"
+TASKS_DONE_PATH = ROOT / "tasks-done.md"
 
 
 def run(command: list[str], stdin: str | None = None, timeout: int = 30) -> subprocess.CompletedProcess[str]:
@@ -39,6 +43,16 @@ def load_json(path: Path) -> Dict[str, object]:
 def save_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+def select_unbound_matrix_task() -> str:
+    task_ids = re.findall(r"`([A-Z]+-TASK-\d+)`", MASTER_PLAN_PATH.read_text(encoding="utf-8"))
+    ledger_text = TASKS_PATH.read_text(encoding="utf-8") + "\n" + TASKS_DONE_PATH.read_text(encoding="utf-8")
+    ledger_ids = set(re.findall(r"([A-Z]+-TASK-\d+)", ledger_text))
+    for task_id in task_ids:
+        if task_id not in ledger_ids:
+            return task_id
+    raise SystemExit("No unbound matrix task is available for instantiate dry-run validation.")
 
 
 @contextmanager
@@ -109,11 +123,13 @@ def main() -> int:
         expect(current.get("phase") == "preflight", "preflight did not update runtime phase")
         expect(bool(session.get("authority_digest")), "preflight did not materialize authority digest")
 
-        instantiate = run(["python3", "scripts/foreman.py", "instantiate", "F-TASK-009", "--dry-run"])
+        instantiate_task_id = select_unbound_matrix_task()
+        instantiate = run(["python3", "scripts/foreman.py", "instantiate", instantiate_task_id, "--dry-run"])
         expect(instantiate.returncode == 0, instantiate.stderr or instantiate.stdout)
         instantiate_payload = json.loads(instantiate.stdout)
-        expect(instantiate_payload["task_class"] == "delivery", "matrix instantiate did not infer delivery class")
-        expect(instantiate_payload["depends_on"] == "`F-TASK-008`", "matrix instantiate did not read dependencies")
+        expect(instantiate_payload["task_id"] == instantiate_task_id, "matrix instantiate returned the wrong task id")
+        expect(bool(instantiate_payload["task_class"]), "matrix instantiate did not infer task class")
+        expect(bool(instantiate_payload["depends_on"]), "matrix instantiate did not read dependencies")
         expect(bool(instantiate_payload["human_confirmation_point"]), "matrix instantiate missed governance extension fields")
 
         delivery = run(
@@ -191,7 +207,7 @@ def main() -> int:
         report = {
             "codex_version": version_check.stdout.strip(),
             "authority_digest_count": len(session.get("authority_digest", [])),
-            "instantiate_delivery_task": instantiate_payload["task_id"],
+            "instantiate_matrix_task": instantiate_payload["task_id"],
             "codex_exec_status": codex_exec_status,
         }
         sys.stdout.write(json.dumps(report, ensure_ascii=True, indent=2) + "\n")

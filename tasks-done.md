@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-010: Reconcile F-TASK-031 post-closeout drift
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `fix(governance): reconcile F-TASK-031 post-closeout drift`
+- Priority: 1
+- Depends on: F-TASK-031
+- Scope: 对齐 F-TASK-031 closeout 后遗留的 active-wave 指针、phase-gate follow-up 描述与 validation-log commit hash 证据，不改写 F-TASK-031 历史完成结论。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-010`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Aligned post-closeout governance state after F-TASK-031 by clearing stale active-wave/follow-up pointers and repairing runtime validation so it no longer hardcodes an already-archived task id.
+  - Validation evidence: python3 -m py_compile scripts/validate_codex_runtime.py; python3 scripts/foreman.py validate HARN-010; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js
+  - Residual risk: F-TASK-031 remains complete; only future human-directed environment restoration work in INBOX-001 could change default Sonar semantics.
+  - Next step: No repository-side follow-up remains for F-TASK-031; only act again if humans choose to restore mandatory Sonar or other environment-backed gates.
+
 ### F-TASK-031: 将 Sonar 与环境级门禁降级为 fallback，并建立双层门禁语义
 
 - Status: done

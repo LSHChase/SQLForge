@@ -711,3 +711,19 @@
 2026-04-23T00:24:50-05:00 | F-TASK-031 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-04-23T00:24:50-05:00 | F-TASK-031 closeout commit | `R-168` | passed | `e2b4d325f975cb2f4d56a25c2df61a4abd172789`
 2026-04-23T00:24:50-05:00 | F-TASK-031 post-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
+2026-04-23T00:40:00-05:00 | HARN-010 audit clarification | `R-140`, `R-168` | recorded | `F-TASK-031` closeout was later consolidated into a single final task commit `1d67ed8` via amend so the repository ends with one authoritative task commit; the earlier `e2b4d325f975cb2f4d56a25c2df61a4abd172789` entry is preserved append-only as the pre-amend closeout record
+2026-04-23T01:08:18-05:00 | HARN-010 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-23T01:08:18-05:00 | HARN-010 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-23T01:08:18-05:00 | HARN-010 validate | `R-133`, `R-168` | failed | `python3 scripts/validate_codex_runtime.py`
+2026-04-23T01:08:18-05:00 | HARN-010 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-23T01:08:41-05:00 | HARN-010 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-23T01:08:41-05:00 | HARN-010 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-23T01:08:41-05:00 | HARN-010 validate | `R-133`, `R-168` | failed | `python3 scripts/validate_codex_runtime.py`
+2026-04-23T01:08:41-05:00 | HARN-010 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-23T01:10:16-05:00 | HARN-010 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-23T01:10:16-05:00 | HARN-010 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-23T01:10:23-05:00 | HARN-010 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-23T01:10:24-05:00 | HARN-010 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-23T01:10:42-05:00 | HARN-010 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-23T01:10:42-05:00 | HARN-010 closeout commit | `R-168` | passed | `d5471f8927d99c6dcbe91eb1b8d61ca8d3c2b56a`
+2026-04-23T01:10:42-05:00 | HARN-010 post-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
