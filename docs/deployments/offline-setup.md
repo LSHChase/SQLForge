@@ -48,16 +48,16 @@ docker images | grep -E 'mysql|redis|bitnami/kafka|minio/minio'
 
 ## 使用本地镜像启动
 
-默认 [docker-compose.yml](/models/project/codex/SQLForge/docker-compose.yml) 使用标准镜像标签；只要离线加载后的标签保持一致，`docker-compose up -d` 就会直接使用本地镜像而不需要重新拉取。
+默认 [docker-compose.yml](/models/project/codex/SQLForge/docker-compose.yml) 使用标准镜像标签；只要离线加载后的标签保持一致，`docker compose up -d` 就会直接使用本地镜像而不需要重新拉取。
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 如果你的离线镜像标签和默认配置不一致，请修改 `docker-compose.yml` 中的 `image` 字段为本地已有标签，再执行：
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ## 简化版离线启动
@@ -65,7 +65,9 @@ docker-compose up -d
 如果当前只需要阶段 0 或阶段 1 初期开发，推荐优先使用简化版：
 
 ```bash
-docker-compose -f docker-compose-simple.yml up -d
+docker compose -f docker-compose-simple.yml up -d
 ```
 
 该方案只启动 MySQL 和 Redis，可绕过 Kafka 与 MinIO 的镜像问题。
+
+如果当前环境仍停留在旧版 Compose，也可以把上面的 `docker compose` 等价替换为 `docker-compose`。

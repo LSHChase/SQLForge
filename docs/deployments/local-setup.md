@@ -38,6 +38,8 @@ Windows PowerShell：
 docker compose up -d
 ```
 
+默认只启动 `mysql`、`redis`、`minio`；本地开发仍以 `R-144 DATABASE` 模式运行为主，Kafka 位于 `optional` profile，不会默认拉起。
+
 如果本机使用旧版 Compose，也可以执行：
 
 ```bash
@@ -244,6 +246,6 @@ docker-compose -f docker-compose-simple.yml up -d
 
 ### 前端代理失效
 
-- 确认后端已在 `localhost:8080` 启动
-- 确认 [vite.config.js](/models/project/codex/SQLForge/vite.config.js) 代理目标仍为 `http://localhost:8080`
-- 如修改端口，需同步更新前端代理与健康检查脚本
+- 确认 `governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 已分别在 `localhost:8080`、`8081`、`8082`、`8083` 启动
+- 确认 [vite.config.js](/models/project/codex/SQLForge/vite.config.js) 中四组 `/api/*` 代理目标仍与本地端口一致
+- 如修改端口，需同步更新前端代理、runtime smoke 与健康检查脚本

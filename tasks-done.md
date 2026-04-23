@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-002: 对齐 compose 与脚本说明
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `docs(deploy): reconcile compose and script guidance`
+- Priority: 1
+- Depends on: `F-TASK-001`
+- Scope: 对齐本地/离线/可选 Kafka 说明 Tech: `OPS`,`DOCS`. Layer: `deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-F / Story `F-STORY-001` 部署文档与编排
+- Human confirmation point: compose 语义破坏式变化需人工确认
+- Data impact: 编排配置、脚本入口
+- Rollback / recovery: 恢复旧 compose 语义并补兼容脚本
+- Validation:
+  - `docker compose config`、文档一致性
+  - `python3 scripts/foreman.py validate F-TASK-002`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reconciled F-TASK-002 against repository truth by aligning local and offline deployment docs with the actual docker-compose files and local-start/local-stop flow: documented that default local startup remains DATABASE-mode without automatically starting Kafka, clarified docker compose versus docker-compose fallback usage, and corrected the frontend proxy troubleshooting section to match the real 8080/8081/8082/8083 backend split.
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-002 --include-task-audit --extra-command "docker-compose config" --extra-command "rg -n \"optional profile|R-144 DATABASE|localhost:8080|8081|8082|8083|docker compose up -d|docker-compose\" docs/deployments/local-setup.md docs/deployments/offline-setup.md docs/plans/master-execution-plan.md docker-compose.yml"
+  - Residual risk: Compose and script guidance now matches repository truth, but F-TASK-003 still needs to close out the environment reminders and recovery-guidance truth so deployment docs, backup baselines, and operator warnings all read consistently.
+  - Next step: Instantiate F-TASK-003 next and reconcile environment reminders, backup/recovery guidance, and remaining operator-facing deployment caveats against the current repository documents.
+
 ### F-TASK-001: 补齐华为云部署文档
 
 - Status: done
