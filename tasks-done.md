@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-011: Reconcile F-TASK-032 post-closeout drift
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `fix(governance): reconcile F-TASK-032 post-closeout drift`
+- Priority: 1
+- Depends on: N/A
+- Scope: Clear the stale active-wave pointer to F-TASK-032 in docs/plans/master-execution-plan.md and mark F-TASK-032 as completed in docs/deployments/phase-gate-baseline.md without rewriting any historical task conclusions.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-011`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Aligned post-closeout governance state after F-TASK-032 by clearing the stale active-wave pointer in the master execution plan, marking F-TASK-032 as completed in the phase-gate follow-up mapping, and recompiling the authority-map policy to match the updated plan truth.
+  - Validation evidence: python3 scripts/foreman.py compile-governance; python3 scripts/foreman.py validate HARN-011; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: F-TASK-032 remains complete; only future human-directed Sonar environment restoration in INBOX-001 could change the current default gate semantics.
+  - Next step: No repository-side follow-up remains for the Sonar fallback governance round unless humans choose to restore mandatory Sonar or stronger environment-bound release gating.
+
 ### F-TASK-032: 去除 Sonar fallback 的隐性自动恢复接线，并分离 provisioning / enable 语义
 
 - Status: done

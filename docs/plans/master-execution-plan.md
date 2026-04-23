@@ -108,9 +108,9 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-F / F-STORY-005`
-- 当前活跃目标：`F-TASK-032`，收口 Sonar fallback 的隐性自动恢复接线，显式分离 provisioning 与 enable 语义，避免环境一旦具备就绕回默认硬阻断
+- 当前活跃目标：`F-TASK-032` 已完成；当前仓库主线已无活动中的 repository mainline task，`HARN-011` 仅用于修正 closeout 后计划/基线漂移，不改变既有 repo-closed / environment-backed 真值
 - 当前下一条可执行主线任务：
-  - `F-TASK-032`
+  - `_None in repository mainline; only environment-backed follow-up remains in INBOX-001._`
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成归档。
@@ -118,8 +118,9 @@
   - `F-TASK-015`、`F-TASK-016` 已完成 `sql-optimization` 与 `benchmark-engine` 的持久化 carrier / scheduler 主线；`F-TASK-017` 至 `F-TASK-028` 也已把 browser runtime gate、治理历史链路、真实 Kafka gate 与 Phase-F 退出门禁推进到当前仓库真值。
   - `F-TASK-029` 已把发布链自动触发、coverage 阻断语义与 Sonar-required 失败语义写成当时仓库真值；`F-TASK-030` 已把 `phase1plus` 聚合覆盖率提升到 `86.9763%`，并保留 Sonar / release gate 接线成果。
   - `F-TASK-031` 已在不重写 `F-TASK-030` 历史完成记录的前提下吸收其 residual risk：把 Sonar 与真实 Kafka 从“默认强制门禁”降级为环境增强 fallback，并显式建立 `repo-closed` 主路径与 `environment-backed` 增强项的当前仓库真值。
-  - `F-TASK-032` 作为后续治理修正任务，继续收口 `F-TASK-031` 复盘中发现的隐性自动恢复接线：release workflow 的 `quality-gate` environment 默认绑定，以及主 CI 在仅有 Sonar secrets 时就自动重新强制扫描的问题。
-  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；但当前仓库主线仍以 `F-TASK-032` 完成显式 enable 语义收口为先，而不是直接恢复强制 Sonar。
+  - `F-TASK-032` 已完成后续治理修正：收口了 `F-TASK-031` 复盘中发现的隐性自动恢复接线，包括 release workflow 的 `quality-gate` environment 默认绑定，以及主 CI 在仅有 Sonar secrets 时就自动重新强制扫描的问题。
+  - `HARN-011` 只用于修正 `F-TASK-032` closeout 后遗留的 active-wave / follow-up 措辞漂移，不改变 `F-TASK-032` 的历史完成结论，也不引入新的仓库主线实现范围。
+  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；除非人类决定恢复强制 Sonar 门禁，否则 `Phase-F / F-STORY-005` 在仓库主线路径上已无新的活动 Task。
 
 ## 5. Traceability Matrix
 
