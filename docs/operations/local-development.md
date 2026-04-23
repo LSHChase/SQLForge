@@ -10,6 +10,7 @@
 - Codex / foreman 任务 closeout：`python3 scripts/foreman.py closeout <TASK_ID> --stage-path <FILE> ...`
 - Codex / foreman delivery closeout：`python3 scripts/foreman.py delivery-closeout <TASK_ID> --tag <TAG> --writeback-file <FILE>`
 - 启动本地流程：`bash scripts/local-start.sh`
+- 启动后端四服务：`bash scripts/start-backend-services.sh`
 - 停止本地流程：`bash scripts/local-stop.sh`
 - 健康检查：`bash scripts/health-check.sh`
 - 端口检查：`bash scripts/check-ports.sh`
@@ -19,6 +20,8 @@
 - 消息链路 smoke：`bash scripts/manual-message-queue-smoke.sh`
 - 前端真实业务 smoke：`npm run smoke:frontend-runtime`
 - 运行时 smoke 编排：`bash scripts/run-runtime-smoke.sh`
+  - 如只需要后端服务，不需要前端 browser smoke，可直接使用 `bash scripts/start-backend-services.sh`
+  - 默认会准备本地依赖、执行一次后端 Maven 安装、注入 `dev` 加密密钥，并等待 `8080`~`8083` 四个健康端点全部就绪
 
 ## Validation Baseline
 

@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-GOV-002: 新增后端四服务一键启动脚本
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `ops(local): add backend four-service startup script`
+- Priority: 2
+- Depends on: N/A
+- Scope: scripts + local backend startup docs
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-GOV-002`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added scripts/start-backend-services.sh to bootstrap the local dependency stack, optionally build backend modules, inject dev crypto key defaults, start governance/query-execution/sql-optimization/benchmark-engine, and wait for the 8080-8083 health endpoints; updated local setup and operations docs so the backend-only startup path, options, log directory, and health checks match repository truth.
+  - Validation evidence: python3 scripts/foreman.py validate OPS-GOV-002
+  - Residual risk: The helper depends on local Docker, Maven, Java, and free 8080-8083 ports; startup still fails fast when prerequisite services or pid files are already present, which is expected for local runtime safety.
+  - Next step: Use bash scripts/start-backend-services.sh for backend-only local bring-up, and extend the runtime orchestration only if future tasks need tighter frontend/start-stop integration.
+
 ### F-TASK-029: 收口 release automation 与门禁稳定性
 
 - Status: done

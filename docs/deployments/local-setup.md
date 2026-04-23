@@ -46,11 +46,27 @@ docker compose up -d
 docker-compose up -d
 ```
 
-启动后端：
+一键启动后端四服务：
 
 ```bash
-cd governance
-mvn spring-boot:run
+bash scripts/start-backend-services.sh
+```
+
+脚本会复用当前仓库已经通过 runtime smoke 验证过的后端启动参数：
+
+1. 如未传 `--reuse-running-stack`，先执行 `scripts/local-start.sh`
+2. 默认执行 `mvn -B -pl governance,query-execution,sql-optimization,benchmark-engine -am install -DskipTests`
+3. 注入本地 `dev` 所需的加密密钥环境变量
+4. 依次拉起 `governance`、`query-execution`、`sql-optimization`、`benchmark-engine`
+5. 等待四个健康端点全部就绪
+6. 在 `/tmp/sqlforge-backend-runtime` 下写入日志和 `.pid` 文件
+
+常用参数：
+
+```bash
+bash scripts/start-backend-services.sh --reuse-running-stack
+bash scripts/start-backend-services.sh --skip-build
+bash scripts/start-backend-services.sh --log-dir /tmp/sqlforge-backend-custom
 ```
 
 启动前端：
@@ -90,6 +106,9 @@ PowerShell：
 - MinIO API：`http://localhost:9000`
 - MinIO Console：`http://localhost:9001`
 - Governance Service：`http://localhost:8080/api/governance/health`
+- Query Execution Service：`http://localhost:8081/actuator/health`
+- SQL Optimization Service：`http://localhost:8082/actuator/health`
+- Benchmark Engine Service：`http://localhost:8083/actuator/health`
 - Frontend：`http://localhost:3000`
 
 ## 端口占用排查
