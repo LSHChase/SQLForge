@@ -108,9 +108,9 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：`D-TASK-017` 作为新的 repository mainline task，负责把 `query-execution` 从 feature-flagged Hetu 模式链基线推进为真实 Hetu 集成，补齐 JDBC/REST/CLIENT 真实接入、严格路由与 runtime / environment-backed smoke 证据
+- 当前活跃目标：`D-TASK-017` 已完成并归档；当前仓库没有新的 repository-side mainline task 处于激活中，剩余 Hetu/MRS 真实环境验证属于 environment-backed follow-up。
 - 当前下一条可执行主线任务：
-  - `D-TASK-017` `query-execution` 真实 Hetu 集成
+  - _No repository-side mainline task is currently scheduled._
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成归档。
@@ -121,7 +121,7 @@
   - `F-TASK-032` 已完成后续治理修正：收口了 `F-TASK-031` 复盘中发现的隐性自动恢复接线，包括 release workflow 的 `quality-gate` environment 默认绑定，以及主 CI 在仅有 Sonar secrets 时就自动重新强制扫描的问题。
   - `F-TASK-033` 已补齐外部测试环境部署后的最小 smoke 入口：仓库新增环境无关的 `scripts/run-env-smoke.sh`、测试环境 smoke 基线文档，以及与 CI / phase gate / local development / truth baseline 一致的语义说明；该任务按顺延编号处理，因为 `F-TASK-032` 已被既有 Sonar 治理任务占用，不能重写历史结论。
   - `HARN-011` 只用于修正 `F-TASK-032` closeout 后遗留的 active-wave / follow-up 措辞漂移，不改变 `F-TASK-032` 的历史完成结论，也不引入新的仓库主线实现范围。
-  - `D-TASK-015` 已把 `query-execution` 推进到 feature-flagged Hetu 模式链基线；`D-TASK-016` 已完成统一授权入口收口，当前仓库主线进入 `D-TASK-017` 继续推进真实 Hetu 集成与外部环境 smoke 证据分层。
+  - `D-TASK-015` 已把 `query-execution` 推进到 feature-flagged Hetu 模式链基线；`D-TASK-016` 已完成统一授权入口收口；`D-TASK-017` 现已完成仓库侧真实 Hetu 集成与 smoke 分层，剩余 follow-up 转为外部 Hetu/MRS 环境的证据沉淀与运维参数校准。
   - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不影响当前仓库主线恢复到 `Phase-D / D-STORY-005` 执行授权矩阵任务。
 
 ## 5. Traceability Matrix

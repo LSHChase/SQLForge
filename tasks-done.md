@@ -4,6 +4,26 @@
 
 ## Done
 
+### HARN-012: Reconcile D-TASK-017 post-closeout drift
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `fix(governance): reconcile D-TASK-017 post-closeout drift`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修正 D-TASK-017 closeout 后遗留的两类治理漂移：把 docs/plans/master-execution-plan.md 的 active-wave 指针从已完成的 D-TASK-017 挪走，并将 docs/quality/validation-log.md 中未纳入提交的 post-closeout 尾项重新纳入正常审计链；不改写 D-TASK-017 的历史完成结论，也不扩展业务实现范围。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-012`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-23: confirmed the only dirty-worktree tail after D-TASK-017 closeout was append-only validation evidence in docs/quality/validation-log.md, while docs/plans/master-execution-plan.md still pointed the active wave at an already completed mainline task.
+  - 2026-04-23: updated the master execution plan so D-TASK-017 is treated as completed repository-side work and the remaining Hetu/MRS follow-up is explicitly downgraded to environment-backed evidence rather than an active mainline implementation task; recompiled governance policy files after the plan truth changed.
+- Context closeout:
+  - Completed scope: Aligned post-closeout governance state after D-TASK-017 by clearing the stale active-wave pointer in the master execution plan, capturing the previously uncommitted validation-log tail into a governed repair batch, and returning the repository audit chain to a clean state without rewriting D-TASK-017 historical conclusions.
+  - Validation evidence: Validated with python3 scripts/foreman.py validate HARN-012 --include-task-audit --extra-command "python3 scripts/foreman.py compile-governance --check" --extra-command "node scripts/lint-repository-knowledge.js"; python3 scripts/task_audit.py --check --phase pre-closeout; and python3 scripts/foreman.py compile-governance after the master-plan truth update.
+  - Residual risk: The repository-side drift is closed, but real Hetu/MRS evidence remains environment-backed and still depends on external execution of scripts/run-hetu-env-smoke.sh plus environment-specific credentials and runtime tuning.
+  - Next step: Use the now-clean repository state to coordinate external Hetu/MRS smoke execution and archive the returned JDBC/REST/CLIENT evidence; only open a new repo-side task if production-style Hetu parameter tuning or another governed follow-up is approved.
+
 ### D-TASK-017: 落实 `query-execution` 真实 Hetu 集成与 smoke 分层
 
 - Status: done

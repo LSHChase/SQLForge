@@ -770,3 +770,14 @@
 2026-04-23T04:26:44-05:00 | D-TASK-017 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/mock-hetu-server.py`
 2026-04-23T04:26:44-05:00 | D-TASK-017 validate | `R-133`, `R-168` | passed | `bash scripts/run-hetu-env-smoke.sh --help`
 2026-04-23T04:28:42-05:00 | D-TASK-017 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-23T04:28:42-05:00 | D-TASK-017 closeout commit | `R-168` | passed | `205e8b84f77008cf87670ceeb57f584d321b67c8`
+2026-04-23T04:28:42-05:00 | D-TASK-017 post-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
+2026-04-23T04:28:42-05:00 | D-TASK-017 post-closeout check | `R-131`, `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-23T05:06:30-05:00 | HARN-012 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-23T05:06:30-05:00 | HARN-012 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-23T05:06:46-05:00 | HARN-012 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-23T05:06:46-05:00 | HARN-012 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-23T05:06:46-05:00 | HARN-012 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-23T05:06:46-05:00 | HARN-012 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-23T05:06:46-05:00 | HARN-012 validate | `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-23T05:07:35-05:00 | HARN-012 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
