@@ -2,7 +2,7 @@
 
 ## Purpose
 
-本文件作为 `F-TASK-005` 的当前权威落点，用于说明 SQLForge 已经把哪些阶段门禁脚本化接入 GitHub Actions，以及哪些门禁目前仍需要显式触发或依赖环境配置才能成为真正的 release blocker。
+本文件作为 `F-TASK-005` 的当前权威落点，用于说明 SQLForge 已经把哪些阶段门禁脚本化接入 GitHub Actions，以及当前如何把门禁拆成 `repo-closed` 主路径与 `environment-backed` fallback。
 
 本文只写两类内容：
 
@@ -33,13 +33,24 @@
 |:---|:---|:---|
 | Main CI governance checks | 主 CI 已新增 `task_audit` 与 `foreman compile-governance --check`，让台账结构和 `.codex/policy` 漂移进入默认流水线 | `.github/workflows/ci.yml` |
 | Entry gate script | `scripts/run-phase-gates.sh --gate entry` 会执行 `task_audit`、`compile-governance --check`、`lint-repository-knowledge.js` | `scripts/run-phase-gates.sh` |
-| Delivery gate script | `scripts/run-phase-gates.sh --gate delivery` 会执行数据库脚本可执行检查、`mvn -B clean install`、覆盖率、Sonar、前端 lint/build 和仓库知识检查 | `scripts/run-phase-gates.sh`, `scripts/verify-db-scripts.sh` |
-| Compliance gate script | `scripts/run-phase-gates.sh --gate compliance` 会调用 `scripts/verify_compliance_baseline.py`，并按参数执行 Kafka 配置校验或真实 Kafka runtime gate，对 auth/access-control、审计 schema、加密基线、恢复基线和消息运行证据做机器校验 | `scripts/run-phase-gates.sh`, `scripts/verify_compliance_baseline.py`, `scripts/verify_kafka_runtime_config.py`, `scripts/run-kafka-runtime-gate.sh` |
-| Manual GitHub Actions gate | `Phase Gate` workflow 可通过 `workflow_dispatch` 选择 `entry|delivery|compliance|full`；`delivery/full` 默认强制 Sonar，`compliance/full` 可启用真实 Kafka gate；workflow 已把 `SONAR_*` 环境显式注入 `run-phase-gates.sh` | `.github/workflows/phase-gate.yml` |
+| Delivery gate script | `scripts/run-phase-gates.sh --gate delivery` 会执行数据库脚本可执行检查、`mvn -B clean install`、覆盖率、可选 Sonar fallback、前端 lint/build 和仓库知识检查 | `scripts/run-phase-gates.sh`, `scripts/verify-db-scripts.sh` |
+| Compliance gate script | `scripts/run-phase-gates.sh --gate compliance` 会调用 `scripts/verify_compliance_baseline.py`，默认执行 Kafka 配置校验；仅在显式传参时追加真实 Kafka runtime gate，对 auth/access-control、审计 schema、加密基线、恢复基线和消息运行证据做机器校验 | `scripts/run-phase-gates.sh`, `scripts/verify_compliance_baseline.py`, `scripts/verify_kafka_runtime_config.py`, `scripts/run-kafka-runtime-gate.sh` |
+| Manual GitHub Actions gate | `Phase Gate` workflow 可通过 `workflow_dispatch` 选择 `entry|delivery|compliance|full`；默认执行 repo-closed 路径，可按输入显式启用 Sonar 或真实 Kafka fallback；workflow 继续把 `SONAR_*` 环境注入 `run-phase-gates.sh` | `.github/workflows/phase-gate.yml` |
 | Dedicated Kafka workflow | 新增独立 `Kafka Runtime Gate` workflow，在真实 Kafka 模式下执行 bootstrap/security 参数校验、连通性检查与恢复 smoke | `.github/workflows/kafka-runtime-gate.yml`, `scripts/run-kafka-runtime-gate.sh` |
-| Automated release gate | 新增 `Release Phase Gate` workflow，在 `checkpoint/*` tag push 与 `release.published` 上自动执行 `--gate full --coverage-phase phase1plus --require-sonar --run-real-kafka-gate`，并把 release metadata 作为 artifact 留档；workflow job 绑定到 GitHub Actions environment `quality-gate` 以读取正式发布链所需 Sonar 配置 | `.github/workflows/release-phase-gate.yml`, `scripts/run-phase-gates.sh`, `docs/deployments/sonar-quality-gate-provisioning.md` |
+| Automated release gate | 新增 `Release Phase Gate` workflow，在 `checkpoint/*` tag push 与 `release.published` 上自动执行 `--gate full --coverage-phase phase1plus`，并把 release metadata 作为 artifact 留档；Sonar 与真实 Kafka 保留为独立 fallback 能力，不再作为默认附加参数 | `.github/workflows/release-phase-gate.yml`, `scripts/run-phase-gates.sh`, `docs/deployments/sonar-quality-gate-provisioning.md` |
 
 ## Gate Semantics
+
+### Dual-Layer Model
+
+当前仓库门禁分为两层：
+
+1. `repo-closed`
+   - 以仓库内可证明、可复跑的 build/test/lint、coverage、db-script、runtime smoke、knowledge lint、task audit、compliance baseline 为主路径。
+   - 这是当前 closeout 与主线发布默认依赖的门禁层。
+2. `environment-backed`
+   - 包括 Sonar、真实 Kafka gate、外部测试环境 CI/CD 等依赖外部环境或额外 provisioning 的增强项。
+   - 这些能力继续保留，但默认不替代也不阻断 `repo-closed` 主路径。
 
 ### Already Blocking In Main CI
 
@@ -56,14 +67,17 @@
 1. `R-116` 入口门禁：`--gate entry`
 2. `R-117` 交付门禁：`--gate delivery` 或 `--gate full`
 3. `R-118` 渐进等保门禁：`--gate compliance` 或 `--gate full`
+4. Sonar fallback：仅在显式要求 `require_sonar=true` 或直接传 `--require-sonar` 时启用
+5. 真实 Kafka fallback：仅在显式要求 `run_real_kafka_gate=true` 或直接传 `--run-real-kafka-gate` 时启用
 
 设计原因：
 
 - 阶段切换不是每次 push / PR 都发生。
-- 当前仓库的 `phase1plus` 覆盖率已达到 `86.9763%` 并满足 85% 门槛；当前 full delivery gate 的主要残余阻断项已收敛为 Sonar 外部 secrets / environment provisioning。
-- 但只要显式运行 `Phase Gate` workflow，当前脚本已经具备非零退出码阻断能力。
+- 当前仓库的 `phase1plus` 覆盖率已达到 `86.9763%` 并满足 85% 门槛；仓库主线阻断继续以内建 repo gate 为准。
+- Sonar 与真实 Kafka 仍可在环境具备时单独拉起，但默认不再被 workflow 自动强绑。
+- 外部测试环境 CI/CD 因缺少仓库主路径所要求的 smoke / runtime gate，不能被视为完整替代仓库闭环。
 
-### Automatically Blocking On Release Metadata
+### Automatically Replaying Repo-Closed Gate On Release Metadata
 
 以下检查会在正式 release metadata 进入仓库发布路径时自动触发：
 
@@ -72,9 +86,10 @@
 
 当前自动化语义：
 
-- 自动执行 `bash scripts/run-phase-gates.sh --gate full --coverage-phase phase1plus --require-sonar --run-real-kafka-gate`
+- 自动执行 `bash scripts/run-phase-gates.sh --gate full --coverage-phase phase1plus`
 - 自动消费 GitHub 事件中的 tag / release 元数据，并上传为 `release-phase-gate-metadata` artifact
-- 若覆盖率低于 `85%` 或 Sonar secrets 缺失，会在发布链上直接阻断，而不是留到人工提醒阶段
+- 若 repo-closed 主路径失败，会在发布链上直接阻断
+- Sonar / 真实 Kafka 是否额外执行，改由 fallback 入口和环境恢复项管理，而不是默认附带到 release metadata 路径
 
 ## Current Gaps
 
@@ -82,17 +97,20 @@
 
 1. `Release Phase Gate` 已自动绑定到 `checkpoint/*` tag / `release.published`，但 ad hoc 阶段切换仍主要依赖 `workflow_dispatch`。
 2. `phase1plus` 覆盖率当前实测为 `86.9763%`，已高于 85% 门槛，coverage blocker 不再是 release gate 的残余缺口。
-3. Sonar 仍受 secrets / environment 是否配置影响；若自动或手工门禁要求 `--require-sonar` 但 GitHub Settings 中未补齐 `SONAR_HOST_URL` / `SONAR_TOKEN`，门禁会失败。
+3. Sonar 仍受 secrets / environment 是否配置影响；但当前仅在显式要求 fallback 时才会因缺少 `SONAR_HOST_URL` / `SONAR_TOKEN` 失败。
 4. 自动 release gate 已消费发布元数据，但当前还未把 foreman 的 delivery write-back 记录直接反向注入 workflow 输入。
-5. `R-118` 虽已补入恢复基线、观测基线、Kafka gate 和脚本存在性校验，但仍不替代真实环境中的身份、授权、审计、加密、备份恢复演练。
+5. 真实 Kafka gate 仍依赖外部 broker、Docker 资源与安全参数配置，当前继续保留为 environment-backed 增强项。
+6. `R-118` 虽已补入恢复基线、观测基线、Kafka gate 和脚本存在性校验，但仍不替代真实环境中的身份、授权、审计、加密、备份恢复演练。
+7. 外部测试环境 CI/CD 仍缺少仓库主路径的 smoke / runtime gate，因此不能被记为完整替代门禁。
 
 ## Follow-Up Mapping
 
 | Next task | Recommended follow-up |
 |:---|:---|
-| `F-TASK-027` | 已完成：数据库脚本 gate、Sonar-required delivery mode、真实 Kafka compliance gate 与 R-118 基线证据已接入 |
-| `F-TASK-029` | 稳定 coverage 入口、修复导致 phase gate 误报的测试稳定性问题，并把 release metadata 自动触发链接入正式发布路径 |
-| Later hardening | 当前自动发布阻断已接入，coverage 阈值已达标；剩余硬化项收敛为 Sonar 外部 secrets / environment provisioning 与更细粒度的 delivery write-back 元数据联动 |
+| `F-TASK-027` | 已完成：数据库脚本 gate、coverage gate、真实 Kafka fallback 与 R-118 基线证据已接入 |
+| `F-TASK-029` | 已完成：稳定 coverage 入口、修复导致 phase gate 误报的测试稳定性问题，并把 release metadata 自动触发链接入正式发布路径 |
+| `F-TASK-031` | 当前任务：把 Sonar / 环境级门禁降级为 fallback，显式建立 repo-closed / environment-backed 双层门禁语义 |
+| Later hardening | 若未来要恢复 Sonar 或真实 Kafka 的默认强制语义，应通过新的环境恢复任务显式重启，不得直接覆写当前 repo-closed 真值 |
 
 ## Related Documents
 

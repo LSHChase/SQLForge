@@ -178,16 +178,19 @@
 #### R-117 阶段交付质量门禁
 
 - 触发时机：阶段结项时
-- 检查清单：
-  1. 该阶段定义的 100% 检查项已执行（见各阶段检查表）
-  2. SonarQube 零 Blocker/Critical
-  3. 单元覆盖率达到阈值（阶段 0：80%，阶段 1+：85%）
-  4. 所有服务 `mvn clean install` 通过
-  5. 前端 `npm run build` + `npm run lint` 通过
-  6. 数据库脚本可执行
-  7. `lint-repository-knowledge.js` 通过
-- 通过标准：7 项全部通过
-- 失败处置：标记阶段状态为“待修复”，输出阻塞清单
+- `repo-closed` 主路径检查清单：
+  1. 该阶段定义的 100% 仓库内检查项已执行，且不得移除 smoke / runtime gate、build/test/lint、db-script、coverage 等主路径证据
+  2. 单元覆盖率达到阈值（阶段 0：80%，阶段 1+：85%）
+  3. 所有服务 `mvn clean install` 通过
+  4. 前端 `npm run build` + `npm run lint` 通过
+  5. 数据库脚本可执行
+  6. `lint-repository-knowledge.js` 通过
+- `environment-backed` 增强项（默认非阻断）：
+  1. SonarQube 扫描保留为 fallback，可通过 `bash scripts/run-sonar.sh` 或 `bash scripts/run-sonar.sh --require-config` 执行
+  2. 真实 Kafka runtime gate 保留为 fallback，可通过 `bash scripts/run-phase-gates.sh --gate compliance --run-real-kafka-gate` 或独立 workflow 执行
+  3. 外部测试环境 CI/CD 只能作为补充环境证据；若缺少仓库内 smoke / runtime gate，不得替代 `repo-closed` 主路径
+- 通过标准：`repo-closed` 主路径全部通过；`environment-backed` 增强项仅在环境已配置或显式要求时记录 pass/fail，否则可记录为 skipped，默认不阻断阶段 closeout
+- 失败处置：主路径失败则标记阶段状态为“待修复”并输出阻塞清单；增强项失败则记录 residual risk / 恢复项，不得倒推出仓库主线未闭环
 - 关联规则：`R-040`, `R-012`
 
 #### R-118 渐进等保验证

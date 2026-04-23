@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-031: 将 Sonar 与环境级门禁降级为 fallback，并建立双层门禁语义
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `ci(gates): downgrade sonar and env gates to fallback`
+- Priority: 1
+- Depends on: `F-TASK-030`
+- Scope: 把 repo-closed 主路径与 environment-backed 增强项显式拆层，修正 Sonar / 真实 Kafka / release gate 默认语义，同时保留独立脚本与 workflow 作为 fallback 入口 Tech: `OPS`,`DOCS`. Layer: `deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-F / Story `F-STORY-005` 发布门禁自动化与稳定性收口
+- Human confirmation point: 若要把 Sonar 或真实 Kafka 再次恢复为仓库默认硬阻断，或改变 repo-closed / environment-backed 双层边界，需人工确认
+- Data impact: phase gate/release gate workflow、脚本默认值、门禁文档口径、INBOX 环境恢复项
+- Rollback / recovery: 恢复 fallback 语义、保留环境恢复 runbook 与 INBOX 追踪，必要时再拆独立任务重新升级为强制门禁
+- Validation:
+  - `python3 scripts/foreman.py validate F-TASK-031`、`bash scripts/run-phase-gates.sh --gate entry`、`bash scripts/run-phase-gates.sh --gate delivery --coverage-phase phase1plus`、`bash scripts/run-phase-gates.sh --gate compliance`、`bash scripts/run-sonar.sh`、`bash scripts/run-sonar.sh --require-config`、`node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/foreman.py validate F-TASK-031`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reframed repository governance around repo-closed primary gates plus environment-backed fallback gates, updated R-117/docs/workflows/scripts/INBOX semantics, and preserved Sonar/real Kafka entrypoints without default blocking.
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-031; python3 scripts/task_audit.py --check --phase pre-closeout; bash scripts/run-phase-gates.sh --gate entry; bash scripts/run-phase-gates.sh --gate delivery --coverage-phase phase1plus; bash scripts/run-phase-gates.sh --gate compliance; bash scripts/run-sonar.sh; bash scripts/run-sonar.sh --require-config (expected fallback failure without config); node scripts/lint-repository-knowledge.js
+  - Residual risk: Restoring Sonar or real Kafka as default hard gates still requires explicit environment provisioning and a new follow-up task; external test environment CI/CD still lacks repo-equivalent smoke and cannot replace repo-closed gates.
+  - Next step: Only if humans want to restore mandatory Sonar gating, use INBOX-001 to provision quality-gate or repo-level Sonar secrets and create a new upgrade task; otherwise current repo-closed semantics are complete.
+
 ### F-TASK-030: 提升覆盖率并补齐 Sonar 发布环境
 
 - Status: done

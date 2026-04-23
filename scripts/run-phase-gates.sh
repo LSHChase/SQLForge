@@ -14,12 +14,12 @@ Usage: bash scripts/run-phase-gates.sh [--gate entry|delivery|compliance|full] [
 Options:
   --gate            Gate scope. Defaults to entry.
                     entry: repository governance and document drift checks
-                    delivery: build/lint/test/coverage/sonar delivery gate
-                    compliance: minimal machine-checkable R-118 baseline
-                    full: run entry + delivery + compliance
+                    delivery: repo-closed build/lint/test/coverage/db-script gate; Sonar remains optional fallback
+                    compliance: repo-closed R-118 baseline; real Kafka remains optional fallback
+                    full: run entry + delivery + compliance; fallback items only run when flags are set
   --coverage-phase  Coverage mode passed to scripts/run-coverage.sh during delivery/full. Defaults to phase1plus.
-  --require-sonar   Require SonarQube configuration and fail if secrets are missing.
-  --run-real-kafka-gate  Run the real Kafka runtime gate during compliance/full.
+  --require-sonar   Require SonarQube configuration and fail if secrets are missing; otherwise Sonar stays fallback.
+  --run-real-kafka-gate  Run the real Kafka runtime gate during compliance/full; otherwise only config-check runs.
 EOF
 }
 
@@ -61,13 +61,15 @@ run_entry_gate() {
 }
 
 run_delivery_gate() {
-  echo "Running R-117 delivery gate checks"
+  echo "Running R-117 delivery gate checks (repo-closed primary path)"
   bash scripts/verify-db-scripts.sh
   mvn -B clean install
   bash scripts/run-coverage.sh --phase "$COVERAGE_PHASE"
   if [[ "$REQUIRE_SONAR" == "true" ]]; then
+    echo "Sonar fallback promoted to required for this run"
     bash scripts/run-sonar.sh --require-config
   else
+    echo "Sonar remains optional fallback for this run"
     bash scripts/run-sonar.sh
   fi
   npm run lint
@@ -76,11 +78,13 @@ run_delivery_gate() {
 }
 
 run_compliance_gate() {
-  echo "Running R-118 compliance gate checks"
+  echo "Running R-118 compliance gate checks (repo-closed baseline)"
   python3 scripts/verify_compliance_baseline.py
   if [[ "$RUN_REAL_KAFKA_GATE" == "true" ]]; then
+    echo "Real Kafka fallback promoted to required for this run"
     bash scripts/run-kafka-runtime-gate.sh
   else
+    echo "Real Kafka remains optional fallback; running config-only check"
     bash scripts/run-kafka-runtime-gate.sh --config-check
   fi
 }

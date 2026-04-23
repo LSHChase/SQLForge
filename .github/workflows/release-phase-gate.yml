@@ -72,7 +72,7 @@ jobs:
           PY
 
       - name: Run release phase gate
-        run: bash scripts/run-phase-gates.sh --gate full --coverage-phase phase1plus --require-sonar --run-real-kafka-gate
+        run: bash scripts/run-phase-gates.sh --gate full --coverage-phase phase1plus
 
       - name: Upload release gate metadata
         if: ${{ always() }}

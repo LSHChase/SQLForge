@@ -108,15 +108,16 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-F / F-STORY-005`
-- 当前活跃目标：在 `phase1plus` 覆盖率已达标后，继续收口 Sonar 发布环境接线与自动 release gate 的最后外部阻断项
+- 当前活跃目标：吸收 `F-TASK-030` 留下的外部环境 residual risk，把仓库门禁修正为 `repo-closed` 主路径 + `environment-backed` 增强项的双层语义，避免 Sonar / 环境级门禁继续被写成仓库默认硬阻断
 - 当前下一条可执行主线任务：
-  - `F-TASK-030`
+  - `F-TASK-031`
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成归档。
   - `F-TASK-001`、`F-TASK-002`、`F-TASK-003` 已完成部署文档、compose/脚本说明、环境提醒与恢复指引的真值修正。
   - `F-TASK-015`、`F-TASK-016` 已完成 `sql-optimization` 与 `benchmark-engine` 的持久化 carrier / scheduler 主线；`F-TASK-017` 至 `F-TASK-028` 也已把 browser runtime gate、治理历史链路、真实 Kafka gate 与 Phase-F 退出门禁推进到当前仓库真值。
-  - `F-TASK-029` 已把发布链自动触发、coverage 阻断语义与 Sonar-required 失败语义写成当前仓库真值；`F-TASK-030` 已把 `phase1plus` 聚合覆盖率提升到 `86.9763%`，并补上 `Phase Gate` 的 Sonar 环境注入与 `Release Phase Gate` 的 `quality-gate` environment 接线。当前剩余阻断项收敛为 GitHub 外部 secrets / environment 数据尚未在真实发布环境中完成配置。
+  - `F-TASK-029` 已把发布链自动触发、coverage 阻断语义与 Sonar-required 失败语义写成当时仓库真值；`F-TASK-030` 已把 `phase1plus` 聚合覆盖率提升到 `86.9763%`，并保留 Sonar / release gate 接线成果。
+  - `F-TASK-031` 负责在不重写 `F-TASK-030` 历史完成记录的前提下，吸收其 residual risk：把 Sonar 与真实 Kafka 从“默认强制门禁”降级为环境增强 fallback，并显式建立 `repo-closed` 主路径与 `environment-backed` 增强项的当前仓库真值。
 
 ## 5. Traceability Matrix
 
@@ -557,8 +558,8 @@ Tasks:
 
 ##### Story `F-STORY-005` 发布门禁自动化与稳定性收口
 
-- 目标：把 `F-TASK-027` closeout 后剩余的 coverage、Sonar 与 release automation follow-up 从人工注意事项收口为正式计划任务，避免发布链继续依赖手工记忆或临时说明。
-- 验证：phase gate 自动触发链、coverage 门禁入口、Sonar 必需配置约束与 release metadata 证据链一致。
+- 目标：把 `F-TASK-027` closeout 后剩余的 coverage、Sonar、release automation 与环境级门禁 follow-up 从人工注意事项收口为正式计划任务，并把仓库门禁修正为 `repo-closed` 主路径 + `environment-backed` 增强项的双层模型。
+- 验证：phase gate / release gate 默认路径、coverage 门禁入口、Sonar / 真实 Kafka fallback 入口与 release metadata 证据链一致。
 
 Tasks:
 
@@ -566,6 +567,7 @@ Tasks:
 |:---|:---|:---|:---|:---|
 | `F-TASK-029` | 收口 release automation 与门禁稳定性 | 稳定 coverage 入口、明确 Sonar 强制约束、把 phase gate 绑定到 release metadata 自动触发链 | `F-TASK-027`,`F-TASK-028` | release gate workflow、coverage phase gate、Sonar-required path 通过 |
 | `F-TASK-030` | 提升覆盖率并补齐 Sonar 发布环境 | phase1plus 覆盖率提升到 85%+、补齐 Sonar secrets / 发布环境接线、验证自动 release gate 可稳定放行 | `F-TASK-029` | coverage phase1plus 达标、Sonar-required path 可运行、release gate 通过 |
+| `F-TASK-031` | 将 Sonar 与环境级门禁降级为 fallback，并建立双层门禁语义 | 把仓库主线固定为 repo-closed 门禁，把 Sonar / real Kafka / 环境级发布验证重述为 environment-backed fallback，修正 workflow 默认值、R-117 和相关文档真值 | `F-TASK-030` | phase gate/release gate 默认不再强制 Sonar 或真实 Kafka，且 repo-closed 与 environment-backed 语义在脚本、workflow、文档、台账一致 |
 
 ## 7. Verification Matrix
 

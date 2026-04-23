@@ -35,9 +35,9 @@
   - 阶段 0：`bash scripts/run-coverage.sh --phase phase0`
   - 阶段 1+：`bash scripts/run-coverage.sh --phase phase1plus`
 - SonarQube 扫描：
-  - 本地或 CI 已配置环境变量时：`bash scripts/run-sonar.sh --require-config`
-  - 尚未配置环境变量时可先执行：`bash scripts/run-sonar.sh`
-  - GitHub Actions release 链默认从 `quality-gate` environment 读取 Sonar secrets；具体配置要求见 `docs/deployments/sonar-quality-gate-provisioning.md`
+  - 仓库默认非阻断探测：`bash scripts/run-sonar.sh`
+  - 环境恢复 / 显式强制验证：`bash scripts/run-sonar.sh --require-config`
+  - Sonar 当前属于 `environment-backed` fallback，不是本地 `repo-closed` 主路径的默认硬前提；具体恢复要求见 `docs/deployments/sonar-quality-gate-provisioning.md`
 - 前端构建：`npm run build`
 - 前端 lint：`npm run lint`
 - 前端真实业务 smoke：`npm run smoke:frontend-runtime`
@@ -59,3 +59,4 @@
 - 本地脚本和 compose 编排以仓库当前文件为准，不引入外部项目的服务顺序或端口口径
 - `docs/generated/repo-map.md` 只作为仓库结构快照，不替代源码和规范文档
 - `.codex/` 中的配置、policy 和 state 用于接线 Codex 执行流，不替代 `docs/` 真值，也不允许成为新的长期规则来源
+- 外部测试环境即使已有独立 CI/CD，只要缺少仓库口径的 smoke / runtime gate，就不能替代本仓库的 `repo-closed` 主路径

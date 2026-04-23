@@ -112,8 +112,8 @@
   - `observability-baseline.md`：当前 logs/metrics/alerts 运维落地清单与缺口基线。
   - `backup-recovery-baseline.md`：当前备份对象、恢复目标与演练模板基线。
   - `ci-capability-baseline.md`：当前 GitHub Actions CI 覆盖、缺口与后续门禁接入映射。
-  - `phase-gate-baseline.md`：当前 R-116/R-117/R-118 阶段门禁脚本、workflow 接线与阻断边界。
-  - `sonar-quality-gate-provisioning.md`：SonarQube 所需 secrets、GitHub Actions environment 与 release gate 接线 runbook。
+  - `phase-gate-baseline.md`：当前 R-116/R-117/R-118 阶段门禁脚本、workflow 接线，以及 `repo-closed` / `environment-backed` 双层门禁语义。
+  - `sonar-quality-gate-provisioning.md`：SonarQube fallback scan 与环境恢复项 runbook，不再代表仓库默认硬阻断。
 - `deliveries/`
   交付记录与阶段回写。
   - `init-completion.md`：阶段 0 初始化交付记录与历史 repair 记录。
@@ -128,6 +128,7 @@
 - AI 执行任务时默认开启严格模式，具体以 [codex-rules.md](./rules/codex-rules.md) 中的 `R-165` 为准。
 - 任何不确定、冲突、缺失或无法从当前仓库事实证明的内容，都不得擅自补写为既成事实，必须转入人工决定或补充流程。
 - 任何任务都不得以“压缩上下文”或“快速交付”为由丢失需求原文、验证证据、历史记录、任务状态或文档同步项。
+- 当前仓库门禁默认采用 `repo-closed` 主路径：build/test/lint、coverage、db-script、runtime smoke、knowledge lint 与 compliance baseline 仍是主线。Sonar、真实 Kafka 与外部测试环境 CI/CD 仅作为 `environment-backed` 增强项，不能替代仓库闭环。
 - 任务完成后的 Harness Engineering 动作以“上下文收缩 + 上下文清理”为准；`/contract`、`/clear` 若当前环境支持，可作为可选实现手段，但不是唯一工程要求，具体见 `R-168`。
 - 正式业务首页 `/dashboard` 保留为产品功能页面；若后续实现 AI 交付进度页，按 `R-166` 作为独立临时子页面处理，且生产环境默认隐藏。
 

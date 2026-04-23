@@ -12,9 +12,9 @@
 
 ## Open
 
-### INBOX-001: F-TASK-030 Sonar 外部环境补齐
+### INBOX-001: 恢复 Sonar 强制门禁的环境恢复项
 
 - Status: open
-- Needed decision: 由具备 GitHub Settings 权限的人类确认并完成 `quality-gate` environment 或仓库级 Sonar secrets / vars provisioning，使 `Phase Gate` / `Release Phase Gate` 可在真实环境中跑通 `bash scripts/run-sonar.sh --require-config`
-- Task refs: F-TASK-030
-- Plan refs: docs/plans/master-execution-plan.md#F-TASK-030
+- Needed decision: 若未来要把 Sonar 从当前 fallback 语义恢复为默认强制门禁，需由具备 GitHub Settings 权限的人类决定恢复路径，并补齐 `quality-gate` environment 或仓库级 Sonar secrets / vars provisioning；外部测试环境 CI/CD 因缺少仓库 smoke，不可作为替代仓库 repo-closed 门禁的理由
+- Task refs: F-TASK-030, F-TASK-031
+- Plan refs: docs/plans/master-execution-plan.md#F-TASK-030, docs/plans/master-execution-plan.md#F-TASK-031

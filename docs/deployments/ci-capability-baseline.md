@@ -45,14 +45,14 @@
 | Coverage integration | 主 CI 继续调用 `bash scripts/run-coverage.sh --phase report-only` 生成覆盖率报告；阶段切换阻断改由 `Phase Gate` workflow 显式运行 `phase0|phase1plus` | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `scripts/run-coverage.sh` |
 | Runtime smoke integration | 主 CI 会显式执行 compose 语法检查、基础依赖启动、`governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 与前端 dev server，并串联 `query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 业务 smoke、审计补偿验证、消息队列 smoke，以及浏览器驱动的前端真实业务请求与治理修复动作 smoke | `.github/workflows/ci.yml`, `scripts/run-runtime-smoke.sh`, `scripts/health-check.sh`, `scripts/manual-query-governance-smoke.sh`, `scripts/manual-sql-optimization-governance-smoke.sh`, `scripts/manual-benchmark-governance-smoke.sh`, `scripts/manual-message-queue-smoke.sh`, `scripts/frontend-runtime-smoke.mjs` |
 | Database script executability | 主 CI 会在干净 MySQL 上重放 `sql/init-schema.sql`、`sql/init-data.sql` 并顺序执行所有 migration，确保 schema/init/migration 组合可执行 | `.github/workflows/ci.yml`, `scripts/verify-db-scripts.sh` |
-| Sonar integration | 主 CI 在仓库 secrets 存在时执行 `bash scripts/run-sonar.sh --require-config`；`Phase Gate` workflow 会把 `SONAR_*` 环境显式注入 `run-phase-gates.sh`；`Release Phase Gate` 绑定到 `quality-gate` environment 并消费同名 Sonar 配置 | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `.github/workflows/release-phase-gate.yml`, `scripts/run-sonar.sh`, `docs/deployments/sonar-quality-gate-provisioning.md` |
+| Sonar integration | 主 CI 在仓库 secrets 存在时执行 `bash scripts/run-sonar.sh --require-config`；`Phase Gate` workflow 保留 `require_sonar` opt-in 输入；`Release Phase Gate` 保留 Sonar 环境透传但默认不再强制 Sonar，整体语义降为 environment-backed fallback | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `.github/workflows/release-phase-gate.yml`, `scripts/run-sonar.sh`, `docs/deployments/sonar-quality-gate-provisioning.md` |
 | Boundary lint | workflow 会执行 `node scripts/check-frontend-backend-separation.js` | `.github/workflows/ci.yml` |
 | Frontend lint/build | workflow 会执行 `npm install`、`npm run lint`、`npm run build` | `.github/workflows/ci.yml`, `package.json` |
 | Repository knowledge lint | workflow 会执行 `node scripts/lint-repository-knowledge.js`，并补充校验 `README.md`、`AGENTS.md`、`.gitignore`、`.editorconfig` 存在 | `.github/workflows/ci.yml` |
 | Governance gate in CI | 主 CI 已接入 `python3 scripts/task_audit.py --check` 与 `python3 scripts/foreman.py compile-governance --check` | `.github/workflows/ci.yml` |
-| Manual phase gate workflow | `Phase Gate` workflow 通过 `workflow_dispatch` 执行 `entry|delivery|compliance|full` 阶段门禁；`delivery/full` 默认强制 Sonar，`compliance/full` 可切换真实 Kafka gate | `.github/workflows/phase-gate.yml`, `scripts/run-phase-gates.sh` |
+| Manual phase gate workflow | `Phase Gate` workflow 通过 `workflow_dispatch` 执行 `entry|delivery|compliance|full` 阶段门禁；默认执行 repo-closed 路径，可按输入显式开启 Sonar 或真实 Kafka fallback | `.github/workflows/phase-gate.yml`, `scripts/run-phase-gates.sh` |
 | Dedicated real Kafka workflow | 独立 `Kafka Runtime Gate` workflow 可显式拉起 MySQL + Kafka + governance，执行真实 Kafka 配置检查与成功/失败恢复 smoke | `.github/workflows/kafka-runtime-gate.yml`, `scripts/run-kafka-runtime-gate.sh`, `scripts/verify_kafka_runtime_config.py` |
-| Automated release phase gate | `Release Phase Gate` workflow 会在 `checkpoint/*` tag push 与 `release.published` 上自动执行 `bash scripts/run-phase-gates.sh --gate full --coverage-phase phase1plus --require-sonar --run-real-kafka-gate`，并上传 release metadata artifact | `.github/workflows/release-phase-gate.yml`, `scripts/run-phase-gates.sh` |
+| Automated release phase gate | `Release Phase Gate` workflow 会在 `checkpoint/*` tag push 与 `release.published` 上自动执行 `bash scripts/run-phase-gates.sh --gate full --coverage-phase phase1plus`，上传 release metadata artifact，并把 Sonar / 真实 Kafka 保留为独立 fallback 入口而非默认强绑 | `.github/workflows/release-phase-gate.yml`, `scripts/run-phase-gates.sh` |
 
 ## Current CI Coverage Matrix
 
@@ -74,9 +74,9 @@
 | Repository knowledge lint | Enabled | `node scripts/lint-repository-knowledge.js` | 已作为仓库级文档门禁 |
 | Task audit | Enabled | `python3 scripts/task_audit.py --check` | 已进入主 CI |
 | Governance compile drift check | Enabled | `python3 scripts/foreman.py compile-governance --check` | 已进入主 CI |
-| Manual phase gate workflow | Enabled | `.github/workflows/phase-gate.yml` + `scripts/run-phase-gates.sh` | `delivery/full` 默认加 `--require-sonar`，`compliance/full` 可带 `--run-real-kafka-gate` |
+| Manual phase gate workflow | Enabled | `.github/workflows/phase-gate.yml` + `scripts/run-phase-gates.sh` | 默认执行 repo-closed 门禁；可通过 `require_sonar` / `run_real_kafka_gate` 输入显式启用 fallback |
 | Dedicated real Kafka gate workflow | Enabled | `.github/workflows/kafka-runtime-gate.yml` + `scripts/run-kafka-runtime-gate.sh` | 真实 Kafka 模式验证与主 CI 分离，避免默认流水线强绑外部 broker |
-| Automated release phase gate | Enabled | `.github/workflows/release-phase-gate.yml` + `scripts/run-phase-gates.sh --gate full --coverage-phase phase1plus --require-sonar --run-real-kafka-gate` | 发布路径会自动消费 tag / release metadata，并把 metadata 作为 artifact 留档 |
+| Automated release phase gate | Enabled | `.github/workflows/release-phase-gate.yml` + `scripts/run-phase-gates.sh --gate full --coverage-phase phase1plus` | 发布路径会自动消费 tag / release metadata，并把 metadata 作为 artifact 留档；Sonar / 真实 Kafka 不再是默认附加参数 |
 
 ### Available Locally But Not In CI
 
@@ -92,10 +92,11 @@
 1. `R-116` / `R-117` / `R-118` 已自动绑定到 `checkpoint/*` tag / `release.published` 发布路径，但日常的 ad hoc 阶段切换仍主要依赖 `workflow_dispatch`。
 2. 当前 workflow 仍未把 `python3 scripts/foreman.py validate <TASK>` 纳入通用 CI。
 3. `phase1plus` 聚合覆盖率已提升到 `86.9763%`，`Release Phase Gate` 与 `Phase Gate` 的 coverage blocker 已从“真实阻断项”转为“已达标门禁项”。
-4. Sonar 仍是“仓库已接线、外部 secrets 需人工补齐”的门禁项；release gate 已绑定 `quality-gate` environment，但若 `SONAR_HOST_URL` / `SONAR_TOKEN` 未在 GitHub Settings 中配置，发布链仍会失败。
+4. Sonar 已降为“仓库保留接线、外部 secrets / environment 可恢复”的 fallback 项；缺少 `SONAR_HOST_URL` / `SONAR_TOKEN` 不再构成仓库默认发布阻断，但若显式要求 `--require-config` 仍会失败并留下恢复证据。
 5. 默认 browser runtime smoke 已覆盖前端 `sql-query`、`acceleration`、`benchmark`、`system` 与治理历史/修复链路的真实业务请求、失败恢复、审计补偿可视化与修复动作；剩余缺口已收敛为更多历史/取证页面尚未进入默认浏览器 smoke。
-6. 真实 Kafka gate 已可运行，但仍依赖 runner 具备 Docker 资源、compose 拉镜像权限与可用端口，不属于零依赖检查。
-7. 当前 workflow 继续使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
+6. 真实 Kafka gate 已可运行，但仍依赖 runner 具备 Docker 资源、compose 拉镜像权限与可用端口，因此被保留为 environment-backed fallback，而不是 repo-closed 默认门禁。
+7. 仓库外测试环境虽有独立 CI/CD，但当前未提供仓库口径的 smoke / runtime gate 证据，因此不能视为完整替代仓库闭环门禁。
+8. 当前 workflow 继续使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
 
 ## Recommended Follow-Up Mapping
 
