@@ -781,3 +781,19 @@
 2026-04-23T05:06:46-05:00 | HARN-012 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
 2026-04-23T05:06:46-05:00 | HARN-012 validate | `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-23T05:07:35-05:00 | HARN-012 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-23T05:07:35-05:00 | HARN-012 closeout commit | `R-168` | passed | `6ce628d9dd76ea5b45df9acf9e9da33a384188e1`
+2026-04-23T05:07:35-05:00 | HARN-012 post-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
+2026-04-23T05:07:35-05:00 | HARN-012 post-closeout check | `R-131`, `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-23T05:21:51-05:00 | HARN-013 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-23T05:21:51-05:00 | HARN-013 validate | `R-131`, `R-133` | failed | `node scripts/lint-repository-knowledge.js`
+2026-04-23T05:22:15-05:00 | HARN-013 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-23T05:22:15-05:00 | HARN-013 validate | `R-133`, `R-168` | failed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-23T05:22:15-05:00 | HARN-013 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-23T05:22:15-05:00 | HARN-013 validate | `R-133`, `R-168` | passed | `bash scripts/run-hetu-env-smoke.sh --help`
+2026-04-23T05:23:03-05:00 | HARN-013 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-23T05:23:03-05:00 | HARN-013 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-23T05:23:21-05:00 | HARN-013 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-23T05:23:21-05:00 | HARN-013 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-23T05:23:21-05:00 | HARN-013 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-23T05:23:21-05:00 | HARN-013 validate | `R-133`, `R-168` | passed | `bash scripts/run-hetu-env-smoke.sh --help`
+2026-04-23T05:24:00-05:00 | HARN-013 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`

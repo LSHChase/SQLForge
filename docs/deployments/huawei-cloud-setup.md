@@ -167,6 +167,10 @@ export REQUEST_ROLE_CODES="TENANT_ADMIN,ANALYST"
 bash scripts/run-hetu-env-smoke.sh
 ```
 
+如果需要一份可直接执行的测试环境最小部署、变量模板、启动顺序和证据归档手册，使用：
+
+- [hetu-test-environment-deployment-runbook.md](/models/project/codex/SQLForge/docs/deployments/hetu-test-environment-deployment-runbook.md)
+
 该脚本会验证：
 
 - `query-execution` health 可用
@@ -184,6 +188,7 @@ bash scripts/run-hetu-env-smoke.sh
 
 - [local-setup.md](/models/project/codex/SQLForge/docs/deployments/local-setup.md)
 - [offline-setup.md](/models/project/codex/SQLForge/docs/deployments/offline-setup.md)
+- [hetu-test-environment-deployment-runbook.md](/models/project/codex/SQLForge/docs/deployments/hetu-test-environment-deployment-runbook.md)
 - [observability-baseline.md](/models/project/codex/SQLForge/docs/deployments/observability-baseline.md)
 - [backup-recovery-baseline.md](/models/project/codex/SQLForge/docs/deployments/backup-recovery-baseline.md)
 - [messaging-abstraction.md](/models/project/codex/SQLForge/docs/architecture/messaging-abstraction.md)

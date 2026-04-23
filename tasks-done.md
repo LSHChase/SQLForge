@@ -4,6 +4,26 @@
 
 ## Done
 
+### HARN-013: Document Hetu/MRS test-environment deployment runbook
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `docs(deploy): add hetu test-environment runbook`
+- Priority: 1
+- Depends on: N/A
+- Scope: 新增真实 Hetu/MRS 测试环境部署与取证 runbook，覆盖 governance/query-execution 部署清单、配置项、启动顺序、scripts/run-hetu-env-smoke.sh 执行方法、JDBC/REST/CLIENT 证据留档要求，并同步现有部署入口文档。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-013`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-23: added `docs/deployments/hetu-test-environment-deployment-runbook.md` to document the minimal governance/query-execution deployment path, exact test-environment inputs, mode-specific Hetu configuration, smoke execution, and evidence retention workflow for real Hetu/MRS validation.
+  - 2026-04-23: linked the new runbook from docs deployment entrypoints and registered it in `document-coverage-matrix.md` so repository knowledge lint and deployment truth stay aligned.
+- Context closeout:
+  - Completed scope: Added a dedicated Hetu/MRS test-environment deployment runbook for governance and query-execution, including prerequisites, build/package commands, database initialization, test-profile and prod-profile auth considerations, mode-specific JDBC/REST/CLIENT configuration, smoke execution, and evidence retention guidance; linked the runbook from deployment entrypoints and registered it in the document coverage matrix.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-013 --include-task-audit --extra-command 'bash scripts/run-hetu-env-smoke.sh --help'; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance --check
+  - Residual risk: The repository now contains an operator-ready deployment/runbook path, but real JDBC/REST/CLIENT success evidence still depends on an external Hetu/MRS environment with reachable endpoints, a queryable orders dataset, valid credentials, and environment-specific auth/network tuning.
+  - Next step: Deploy governance and query-execution to the target test environment with the documented profile and Hetu mode settings, run bash scripts/run-hetu-env-smoke.sh against the real endpoint, and archive the returned SUCCESS/HETU/HETU_REAL_INTEGRATION evidence under your environment-owned evidence store.
+
 ### HARN-012: Reconcile D-TASK-017 post-closeout drift
 
 - Status: done

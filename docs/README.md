@@ -40,6 +40,7 @@
    - [本地部署指南](./deployments/local-setup.md)
    - [离线部署指南](./deployments/offline-setup.md)
    - [华为云部署指南](./deployments/huawei-cloud-setup.md)
+   - [Hetu/MRS 测试环境部署与取证手册](./deployments/hetu-test-environment-deployment-runbook.md)
    - [测试环境 smoke 基线](./deployments/test-environment-smoke-baseline.md)
    - [可观测基线](./deployments/observability-baseline.md)
    - [备份恢复基线](./deployments/backup-recovery-baseline.md)
@@ -110,6 +111,7 @@
   Codex 项目级配置、hooks、policy 编译产物与运行态状态目录；这些文件不替代 `docs/` 真值。
 - `deployments/`
   本地与目标环境部署说明。
+  - `hetu-test-environment-deployment-runbook.md`：真实 Hetu / MRS 测试环境的最小部署、配置、启动、smoke 执行与证据留档手册。
   - `test-environment-smoke-baseline.md`：外部测试环境独立 CI/CD 的最小部署后 smoke 入口、覆盖范围与证据边界。
   - `observability-baseline.md`：当前 logs/metrics/alerts 运维落地清单与缺口基线。
   - `backup-recovery-baseline.md`：当前备份对象、恢复目标与演练模板基线。

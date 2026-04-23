@@ -138,6 +138,10 @@ export REQUEST_ROLE_CODES="TENANT_ADMIN,ANALYST"
 bash scripts/run-hetu-env-smoke.sh
 ```
 
+如果需要把 `governance` 与 `query-execution` 直接部署到测试环境并留档真实 Hetu 证据，使用：
+
+- [Hetu / MRS Test-Environment Deployment Runbook](/models/project/codex/SQLForge/docs/deployments/hetu-test-environment-deployment-runbook.md)
+
 ## Relationship To Existing Gates
 
 三者必须明确区分：
@@ -180,5 +184,6 @@ bash scripts/run-hetu-env-smoke.sh
 
 - [CI Capability Baseline](/models/project/codex/SQLForge/docs/deployments/ci-capability-baseline.md)
 - [Phase Gate Baseline](/models/project/codex/SQLForge/docs/deployments/phase-gate-baseline.md)
+- [Hetu / MRS Test-Environment Deployment Runbook](/models/project/codex/SQLForge/docs/deployments/hetu-test-environment-deployment-runbook.md)
 - [Local Development](/models/project/codex/SQLForge/docs/operations/local-development.md)
 - [Document Truth Baseline](/models/project/codex/SQLForge/docs/plans/document-truth-baseline.md)
