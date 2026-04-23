@@ -47,6 +47,101 @@ export default {
     healthSummary: 'Lead with conclusions, then route into the next action.',
     activityTitle: 'Recent activity',
     activitySummary: 'Keep a runtime timeline instead of turning the homepage into static project copy.',
+    panorama: {
+      kicker: 'project panorama',
+      title: 'Project Panorama',
+      summary: 'Keep the vision, milestones, glossary and rule index on the homepage so the cockpit does not collapse into runtime metrics only.',
+      cardLabel: 'project index',
+      cards: [
+        {
+          title: 'Vision & mission',
+          summary: 'Force every BI SQL statement through parsing, benchmarking, rewrite, routing and acceleration governance before release so performance and consistency stay predictable.',
+          items: ['One control surface for query, parser, benchmark, acceleration and audit operations', 'Backend authority, traceable history and recorded rules stay as the platform baseline', 'Start with a single region and keep room for future multi-region expansion']
+        },
+        {
+          title: 'Roadmap & milestones',
+          summary: 'Execution moves through Phase A-F, starting from document truth and then closing frontend, backend, runtime-gate and delivery gaps in order.',
+          items: ['Phase D closes the query-execution and governance mainline', 'Phase E builds the cockpit, product pages and delivery views', 'Phase F adds deployment, CI, runtime smoke and recovery governance']
+        },
+        {
+          title: 'Glossary',
+          summary: 'Normalize the project vocabulary so frontend, backend, architecture and operations do not drift on the meaning of core objects.',
+          items: ['Governance chain: query -> parse -> benchmark -> acceleration -> audit', 'Task truth: tasks.md / tasks-done.md / validation log / git', 'R&D cockpit: the official homepage summary layer, not a substitute for workflow pages']
+        },
+        {
+          title: 'Architecture rules quick reference',
+          summary: 'The rule base requires code, docs, validation and delivery write-back to remain aligned instead of leaving long-term constraints in chat context.',
+          items: ['Java 8 + Spring Boot 2.x remain hard backend constraints', 'Pages summarize and route; backend owns authority and history', 'Non-trivial work must go through foreman and task-audit governance']
+        }
+      ]
+    },
+    architecture: {
+      kicker: 'architecture design',
+      title: 'Architecture Design',
+      summary: 'The dashboard keeps a compact summary of C4, topology, contracts, data model, deployment and test design, while ADRs remain the source of change truth.',
+      cardLabel: 'architecture index',
+      cards: [
+        {
+          title: 'System shape',
+          summary: 'Use C4 Level 1-4 to organize system, container, component and key-module views while separating product paths from delivery-only paths.',
+          items: ['`/dashboard` stays the product homepage and the five main workflow pages remain independent', 'Backend keeps the controller -> service -> domain/infrastructure layering contract', 'Bounded contexts split around query governance, optimization, benchmark and system management']
+        },
+        {
+          title: 'Service topology',
+          summary: 'Frontend and backend deploy separately, with governance capabilities coordinated across query execution, parsing, optimization, benchmark, audit and system control.',
+          items: ['query-execution accepts SQL submission and orchestrates governance', 'optimization and benchmark evolve independently and join the mainline via explicit contracts', 'system, audit and delivery views cover configuration, forensics and delivery observation']
+        },
+        {
+          title: 'Contracts & data model',
+          summary: 'Important behavior enters through explicit contracts and backend validation, while history, export and audit are stitched together by traceable keys.',
+          items: ['HTTP handlers return explicit JSON errors rather than ambiguous strings', 'MySQL is the primary persistence direction for queryable and exportable history objects', 'Entities do not cross services directly; DTOs and service orchestration carry cross-domain flow']
+        },
+        {
+          title: 'Data lifecycle',
+          summary: 'Governance data is designed around hot/cold storage, immutable evidence and long-lived history rather than browser-local state.',
+          items: ['Completed results are treated as evidence and should not be rewritten casually', 'Audit logs stay queryable for at least 180 days', 'Acceleration, benchmark, repair and audit outputs can be traced through shared keys']
+        },
+        {
+          title: 'Deployment & flow',
+          summary: 'Deployment starts from a Huawei Cloud single-region topology, while business flows cover normal execution, rollback, compensation and acceleration branches.',
+          items: ['Frontend and backend must build and deploy independently on amd64 and arm64', 'The chain covers query, parse, benchmark, acceleration and audit stages', 'Operations continue to retain logs, alerts, backup and recovery evidence']
+        },
+        {
+          title: 'Test architecture',
+          summary: 'Validation spans build, layered tests, runtime smoke, task audit and delivery write-back so “implemented” is never treated as “verified”.',
+          items: ['Frontend passes build and IA structure checks at minimum', 'Backend passes module tests, contract tests and runtime smoke gates', 'Architecture changes must update ADRs, validation logs and task ledgers together']
+        }
+      ]
+    },
+    progress: {
+      kicker: 'delivery truth',
+      title: 'Progress Management',
+      badge: 'authoritative snapshot',
+      openDelivery: 'Open delivery progress',
+      deliveryHidden: 'The temporary delivery page is hidden by default in production',
+      sourceTitle: 'Truth sources',
+      sourceSummary: 'Task ledgers, validation logs and the master plan are merged into a read-only snapshot; the dashboard does not maintain a second status source.',
+      cards: {
+        active: 'Active tasks',
+        activeDetail: 'The current total of todo, in-progress, in-review and blocked items still present in `tasks.md`.',
+        done: 'Archived tasks',
+        doneDetail: 'The cumulative total derived from `tasks-done.md`, used to reflect durable delivery output.',
+        validation: 'Validation entries',
+        validationDetail: 'The validation-log total, used as a compact signal for gate activity and evidence density.',
+        completion: 'Overall completion',
+        completionDetail: 'Calculated from active plus archived tasks to show how much of the current delivery wave is actually closed.'
+      },
+      modulesTitle: 'Phase completion',
+      modulesSummary: 'Aggregate completion by execution domain so architects can see which phase is advancing and which one is still accumulating work.',
+      moduleMeta: '{total} tasks total, {done} done, {progress} in progress',
+      recentTitle: 'Recent actions',
+      recentSummary: 'Merge task progress logs, archive records and validation entries into one compact delivery timeline.',
+      dependenciesTitle: 'Blockers & dependency chains',
+      dependenciesSummary: 'Surface current blocker and pending reasons first, then show unresolved dependencies for active tasks.',
+      blockerLabel: 'Pending now',
+      noBlockers: 'There are no explicit blocker items right now; new pending reasons will surface automatically from the latest progress logs.',
+      noDependencies: 'Active tasks do not currently expose a dependency chain worth rendering here.'
+    },
     nextTitle: 'Recommended actions',
     nextSummary: 'Move directly into the page that can resolve the current risk or drift.'
   },

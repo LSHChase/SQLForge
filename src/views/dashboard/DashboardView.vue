@@ -2,12 +2,15 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { deliveryProgressAvailability } from '../../config/runtimeFlags'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import { useTenantStore } from '../../stores'
+import { createDeliveryProgressSnapshot } from '../delivery/progressSnapshot'
 
-const { t, locale } = useI18n()
+const { t, tm, locale } = useI18n()
 const router = useRouter()
 const tenantStore = useTenantStore()
+const progressSnapshot = createDeliveryProgressSnapshot()
 
 const metricCards = computed(() => [
   {
@@ -176,6 +179,58 @@ const overviewPills = computed(() => [
   locale.value === 'zh-CN' ? '审计保留 180d+' : 'Audit retention 180d+'
 ])
 
+const normalizeInfoCards = path => {
+  const cards = tm(path)
+  return Array.isArray(cards)
+    ? cards.map(card => ({
+        ...card,
+        items: Array.isArray(card.items) ? card.items : []
+      }))
+    : []
+}
+
+const panoramaCards = computed(() => normalizeInfoCards('dashboard.panorama.cards'))
+const architectureCards = computed(() => normalizeInfoCards('dashboard.architecture.cards'))
+const progressSourceFiles = computed(() => progressSnapshot.sourceFiles)
+const progressDeliveryPageVisible = computed(() => deliveryProgressAvailability.enabled)
+const totalTrackedTasks = computed(() =>
+  Object.values(progressSnapshot.statusCounts).reduce((sum, value) => sum + value, 0)
+)
+const completionRate = computed(() =>
+  totalTrackedTasks.value === 0 ? 0 : Math.round((progressSnapshot.statusCounts.done / totalTrackedTasks.value) * 100)
+)
+const progressSummaryCards = computed(() => [
+  {
+    key: 'active',
+    value: progressSnapshot.activeTasks.length,
+    detail: t('dashboard.progress.cards.activeDetail')
+  },
+  {
+    key: 'done',
+    value: progressSnapshot.statusCounts.done,
+    detail: t('dashboard.progress.cards.doneDetail')
+  },
+  {
+    key: 'validation',
+    value: progressSnapshot.validationEntries.length,
+    detail: t('dashboard.progress.cards.validationDetail')
+  },
+  {
+    key: 'completion',
+    value: `${completionRate.value}%`,
+    detail: t('dashboard.progress.cards.completionDetail')
+  }
+])
+const progressModules = computed(() => progressSnapshot.moduleProgress.slice(0, 4))
+const progressRecentChanges = computed(() => progressSnapshot.recentChanges.slice(0, 4))
+const progressBlockers = computed(() => progressSnapshot.blockerItems.slice(0, 4))
+const progressDependencies = computed(() => progressSnapshot.dependencyChains.slice(0, 3))
+
+const formatDependencySummary = dependencies =>
+  dependencies
+    .map(dependency => `${dependency.dependencyId} · ${t(`deliveryProgress.status.${dependency.statusKey}`)}`)
+    .join(' / ')
+
 const goTo = path => {
   router.push(path)
 }
@@ -325,6 +380,228 @@ const goTo = path => {
           </article>
         </div>
       </section>
+    </section>
+
+    <section class="dashboard-section">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker sqlforge-code-label">{{ t('dashboard.panorama.kicker') }}</p>
+          <h2 class="sqlforge-section-title">{{ t('dashboard.panorama.title') }}</h2>
+        </div>
+        <p class="section-summary">{{ t('dashboard.panorama.summary') }}</p>
+      </div>
+      <div class="knowledge-grid">
+        <article
+          v-for="card in panoramaCards"
+          :key="card.title"
+          class="knowledge-card"
+        >
+          <p class="knowledge-card-label sqlforge-code-label">{{ t('dashboard.panorama.cardLabel') }}</p>
+          <h3 class="knowledge-card-title">{{ card.title }}</h3>
+          <p class="knowledge-card-summary">{{ card.summary }}</p>
+          <ul class="knowledge-card-list">
+            <li
+              v-for="item in card.items"
+              :key="item"
+            >
+              {{ item }}
+            </li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="dashboard-section">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker sqlforge-code-label">{{ t('dashboard.architecture.kicker') }}</p>
+          <h2 class="sqlforge-section-title">{{ t('dashboard.architecture.title') }}</h2>
+        </div>
+        <p class="section-summary">{{ t('dashboard.architecture.summary') }}</p>
+      </div>
+      <div class="knowledge-grid knowledge-grid-architecture">
+        <article
+          v-for="card in architectureCards"
+          :key="card.title"
+          class="knowledge-card"
+        >
+          <p class="knowledge-card-label sqlforge-code-label">{{ t('dashboard.architecture.cardLabel') }}</p>
+          <h3 class="knowledge-card-title">{{ card.title }}</h3>
+          <p class="knowledge-card-summary">{{ card.summary }}</p>
+          <ul class="knowledge-card-list">
+            <li
+              v-for="item in card.items"
+              :key="item"
+            >
+              {{ item }}
+            </li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="dashboard-section">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker sqlforge-code-label">{{ t('dashboard.progress.kicker') }}</p>
+          <h2 class="sqlforge-section-title">{{ t('dashboard.progress.title') }}</h2>
+        </div>
+        <div class="section-heading-actions">
+          <span class="section-badge sqlforge-code-label">{{ t('dashboard.progress.badge') }}</span>
+          <el-button
+            v-if="progressDeliveryPageVisible"
+            text
+            class="section-link"
+            @click="goTo(ROUTE_PATHS.deliveryProgress)"
+          >
+            {{ t('dashboard.progress.openDelivery') }}
+          </el-button>
+          <p
+            v-else
+            class="section-note"
+          >
+            {{ t('dashboard.progress.deliveryHidden') }}
+          </p>
+        </div>
+      </div>
+
+      <div class="progress-source-strip">
+        <div>
+          <p class="progress-source-label sqlforge-code-label">{{ t('dashboard.progress.sourceTitle') }}</p>
+          <p class="progress-source-summary">{{ t('dashboard.progress.sourceSummary') }}</p>
+        </div>
+        <div class="progress-source-pills">
+          <span
+            v-for="sourceFile in progressSourceFiles"
+            :key="sourceFile"
+            class="hero-pill"
+          >
+            {{ sourceFile }}
+          </span>
+        </div>
+      </div>
+
+      <div class="progress-summary-grid">
+        <article
+          v-for="card in progressSummaryCards"
+          :key="card.key"
+          class="progress-summary-card"
+        >
+          <p class="progress-summary-label">{{ t(`dashboard.progress.cards.${card.key}`) }}</p>
+          <strong class="progress-summary-value">{{ card.value }}</strong>
+          <p class="progress-summary-detail">{{ card.detail }}</p>
+        </article>
+      </div>
+
+      <div class="progress-board">
+        <article class="progress-panel">
+          <div class="progress-panel-heading">
+            <div>
+              <p class="progress-panel-label sqlforge-code-label">{{ t('dashboard.progress.modulesTitle') }}</p>
+              <h3 class="progress-panel-title">{{ t('dashboard.progress.modulesTitle') }}</h3>
+            </div>
+            <p class="progress-panel-summary">{{ t('dashboard.progress.modulesSummary') }}</p>
+          </div>
+          <div class="progress-module-list">
+            <article
+              v-for="module in progressModules"
+              :key="module.moduleLabel"
+              class="progress-module-card"
+            >
+              <div class="progress-module-header">
+                <div>
+                  <p class="progress-module-label sqlforge-code-label">{{ module.moduleLabel }}</p>
+                  <p class="progress-module-meta">
+                    {{ t('dashboard.progress.moduleMeta', { total: module.total, done: module.done, progress: module.in_progress }) }}
+                  </p>
+                </div>
+                <strong class="progress-module-rate">{{ module.completionRate }}%</strong>
+              </div>
+              <div class="progress-module-bar">
+                <div
+                  class="progress-module-bar-fill"
+                  :style="{ width: `${module.completionRate}%` }"
+                />
+              </div>
+            </article>
+          </div>
+        </article>
+
+        <article class="progress-panel">
+          <div class="progress-panel-heading">
+            <div>
+              <p class="progress-panel-label sqlforge-code-label">{{ t('dashboard.progress.recentTitle') }}</p>
+              <h3 class="progress-panel-title">{{ t('dashboard.progress.recentTitle') }}</h3>
+            </div>
+            <p class="progress-panel-summary">{{ t('dashboard.progress.recentSummary') }}</p>
+          </div>
+          <div class="progress-list">
+            <article
+              v-for="item in progressRecentChanges"
+              :key="item.itemKey"
+              class="progress-list-item"
+            >
+              <p class="progress-list-meta">{{ item.timestampLabel }} · {{ item.sourceFile }}</p>
+              <h3 class="progress-list-title">{{ item.taskId }} · {{ item.title }}</h3>
+              <p class="progress-list-detail">{{ item.detail || item.auxiliary }}</p>
+            </article>
+          </div>
+        </article>
+
+        <article class="progress-panel">
+          <div class="progress-panel-heading">
+            <div>
+              <p class="progress-panel-label sqlforge-code-label">{{ t('dashboard.progress.dependenciesTitle') }}</p>
+              <h3 class="progress-panel-title">{{ t('dashboard.progress.dependenciesTitle') }}</h3>
+            </div>
+            <p class="progress-panel-summary">{{ t('dashboard.progress.dependenciesSummary') }}</p>
+          </div>
+
+          <div
+            v-if="progressBlockers.length"
+            class="progress-list"
+          >
+            <article
+              v-for="item in progressBlockers"
+              :key="`${item.taskId}-${item.reason}`"
+              class="progress-list-item progress-list-item-danger"
+            >
+              <p class="progress-list-meta">{{ t('dashboard.progress.blockerLabel') }}</p>
+              <h3 class="progress-list-title">{{ item.taskId }} · {{ item.name }}</h3>
+              <p class="progress-list-detail">{{ item.reason }}</p>
+            </article>
+          </div>
+          <p
+            v-else
+            class="progress-empty"
+          >
+            {{ t('dashboard.progress.noBlockers') }}
+          </p>
+
+          <div
+            v-if="progressDependencies.length"
+            class="progress-list"
+          >
+            <article
+              v-for="task in progressDependencies"
+              :key="task.taskId"
+              class="progress-list-item"
+            >
+              <p class="progress-list-meta">
+                {{ t('deliveryProgress.meta.unresolvedCount', { count: task.unresolvedCount }) }}
+              </p>
+              <h3 class="progress-list-title">{{ task.taskId }} · {{ task.name }}</h3>
+              <p class="progress-list-detail">{{ formatDependencySummary(task.dependencies) }}</p>
+            </article>
+          </div>
+          <p
+            v-else
+            class="progress-empty"
+          >
+            {{ t('dashboard.progress.noDependencies') }}
+          </p>
+        </article>
+      </div>
     </section>
 
     <section class="dashboard-section">
@@ -518,6 +795,197 @@ const goTo = path => {
   max-width: 480px;
 }
 
+.section-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.section-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid var(--sqlforge-border-strong);
+  border-radius: var(--sqlforge-radius-pill);
+  color: var(--sqlforge-text-muted);
+}
+
+.section-link,
+.section-note {
+  margin: 0;
+  padding: 0;
+  color: var(--sqlforge-color-link);
+}
+
+.knowledge-grid,
+.progress-summary-grid,
+.progress-board {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.knowledge-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.knowledge-grid-architecture {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.knowledge-card,
+.progress-summary-card,
+.progress-panel {
+  padding: 18px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-md);
+  background: rgba(15, 15, 15, 0.34);
+}
+
+.knowledge-card-label,
+.progress-source-label,
+.progress-panel-label,
+.progress-module-label,
+.progress-list-meta {
+  margin: 0;
+  color: var(--sqlforge-text-muted);
+}
+
+.knowledge-card-title,
+.progress-panel-title,
+.progress-list-title {
+  margin: 12px 0 0;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.knowledge-card-summary,
+.progress-source-summary,
+.progress-panel-summary,
+.progress-summary-detail,
+.progress-list-detail,
+.progress-empty {
+  margin: 10px 0 0;
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.6;
+}
+
+.knowledge-card-list {
+  margin: 16px 0 0;
+  padding-left: 18px;
+  color: var(--sqlforge-text-secondary);
+}
+
+.knowledge-card-list li + li {
+  margin-top: 8px;
+}
+
+.progress-source-strip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-md);
+  background: rgba(15, 15, 15, 0.2);
+}
+
+.progress-source-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.progress-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.progress-summary-label {
+  margin: 0;
+  color: var(--sqlforge-text-muted);
+  font-size: 12px;
+}
+
+.progress-summary-value {
+  display: block;
+  margin-top: 12px;
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.progress-board {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.progress-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.progress-panel-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.progress-module-list,
+.progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progress-module-card,
+.progress-list-item {
+  padding: 14px;
+  border: 1px solid var(--sqlforge-border-subtle);
+  border-radius: var(--sqlforge-radius-md);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.progress-list-item-danger {
+  border-color: rgba(235, 84, 84, 0.45);
+  background: linear-gradient(180deg, var(--sqlforge-status-danger), transparent 75%), rgba(255, 255, 255, 0.02);
+}
+
+.progress-module-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.progress-module-meta {
+  margin: 8px 0 0;
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.5;
+}
+
+.progress-module-rate {
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.progress-module-bar {
+  height: 8px;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: var(--sqlforge-radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.progress-module-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(62, 207, 142, 0.55), rgba(62, 207, 142, 0.92));
+}
+
 .metric-grid,
 .entry-grid,
 .next-grid {
@@ -690,5 +1158,50 @@ const goTo = path => {
   border-color: var(--sqlforge-border-default);
   background: var(--sqlforge-bg-page-deep);
   color: var(--sqlforge-text-primary);
+}
+
+@media (max-width: 1240px) {
+  .metric-grid,
+  .entry-grid,
+  .knowledge-grid,
+  .knowledge-grid-architecture,
+  .progress-summary-grid,
+  .progress-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-hero,
+  .dashboard-split,
+  .metric-grid,
+  .entry-grid,
+  .next-grid,
+  .knowledge-grid,
+  .knowledge-grid-architecture,
+  .progress-summary-grid,
+  .progress-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero-title {
+    font-size: clamp(40px, 10vw, 56px);
+  }
+
+  .section-heading,
+  .progress-source-strip {
+    flex-direction: column;
+  }
+
+  .section-heading-actions,
+  .hero-actions,
+  .progress-source-pills {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+  }
 }
 </style>

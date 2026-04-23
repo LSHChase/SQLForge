@@ -47,6 +47,101 @@ export default {
     healthSummary: '先给出结论，再给出下一步动作。',
     activityTitle: '最近活动',
     activitySummary: '保留运行时间线视角，避免首页退化成静态介绍页。',
+    panorama: {
+      kicker: 'project panorama',
+      title: '项目全景',
+      summary: '把愿景、里程碑、术语和规则速查固定在首页，避免驾驶舱只剩运行指标。',
+      cardLabel: 'project index',
+      cards: [
+        {
+          title: '项目目标',
+          summary: '让每一条 BI SQL 在上线前经过解析、压测、改写、路由与加速治理，确保性能可预期、数据一致可信赖。',
+          items: ['统一查询、解析、压测、加速与审计入口', '以后端权威校验、历史可追溯和规则入库为底座', '支持单区域起步并向多区域扩展预留']
+        },
+        {
+          title: '项目规划',
+          summary: '执行顺序按 Phase A-F 展开，先收口文档真值，再逐步补齐前后端、运行时门禁与交付闭环。',
+          items: ['Phase D 收口查询执行与治理主链路', 'Phase E 构建驾驶舱、业务页面与交付视图', 'Phase F 接入部署、CI、runtime smoke 和恢复治理']
+        },
+        {
+          title: '名词解释',
+          summary: '统一项目中的角色和对象语义，减少前后端、架构与运维之间的理解漂移。',
+          items: ['治理链路: query -> parse -> benchmark -> acceleration -> audit', '任务真值: tasks.md / tasks-done.md / validation-log / git', '研发驾驶舱: 正式首页摘要层，不替代各主业务页']
+        },
+        {
+          title: '架构原则速查',
+          summary: '规则库要求代码、文档、验证和交付回写保持同步，不允许把长期约束留在会话记忆里。',
+          items: ['Java 8 + Spring Boot 2.x 是后端硬约束', '页面负责摘要与分发，权威判断和历史由后端承担', '非 trivial 任务必须走 foreman + task audit 审计链']
+        }
+      ]
+    },
+    architecture: {
+      kicker: 'architecture design',
+      title: '架构设计',
+      summary: '首页以摘要方式固化 C4、服务拓扑、契约、数据模型、部署和测试设计，变更继续以 ADR 为准。',
+      cardLabel: 'architecture index',
+      cards: [
+        {
+          title: '总体架构',
+          summary: '以 C4 Level 1-4 组织系统、容器、组件和关键模块，区分正式产品路径与交付辅助路径。',
+          items: ['产品首页保留 `/dashboard`，五大业务页独立承载主流程', '后端坚持 controller -> service -> domain/infrastructure 分层', '领域边界以查询治理、优化、压测、系统管理等服务拆分']
+        },
+        {
+          title: '服务拓扑',
+          summary: '前后端分离部署，治理相关能力围绕查询执行、解析、优化、压测、审计与系统配置协作。',
+          items: ['query-execution 承接 SQL 提交与治理编排', 'optimization / benchmark 独立演进并通过契约接入主链路', 'system / audit / delivery 负责配置、取证和交付观察']
+        },
+        {
+          title: '接口契约与数据模型',
+          summary: '所有重要行为通过明确契约和后端校验进入系统，历史、导出和审计使用可追溯关联键串联。',
+          items: ['HTTP 返回明确 JSON 错误，不以模糊字符串替代', 'MySQL 是主持久化方向，历史对象支持查询、筛选、分页、导出', '实体不跨服务直接传输，跨域通过 DTO 和服务层编排']
+        },
+        {
+          title: '数据生命周期',
+          summary: '围绕冷热分层、不可变结果和长期历史留存设计治理数据，避免把浏览器状态当成事实来源。',
+          items: ['结果主体视为证据，不允许随意重写', '审计日志至少保留 180 天并持续可查询', '加速、压测、修复与审计结果通过统一关联键回溯']
+        },
+        {
+          title: '部署与流程',
+          summary: '部署拓扑以华为云单区域起步，业务流程覆盖正常路径、异常回滚、补偿和加速支路。',
+          items: ['前后端可独立构建与部署，路径兼容 amd64/arm64', '流程链路覆盖 query、parse、benchmark、acceleration、audit', '运维侧持续记录日志、告警、备份和恢复证据']
+        },
+        {
+          title: '测试架构',
+          summary: '验证分为构建、分层测试、runtime smoke、task audit 和交付回写，不把“已实现”当成“已验证”。',
+          items: ['前端至少通过 build 与页面结构检查', '后端通过模块测试、契约测试和运行时 smoke 门禁', '架构变更需同步 ADR、验证日志与任务台账']
+        }
+      ]
+    },
+    progress: {
+      kicker: 'delivery truth',
+      title: '进度管理',
+      badge: 'authoritative snapshot',
+      openDelivery: '进入交付进度页',
+      deliveryHidden: '临时交付页在生产环境默认隐藏',
+      sourceTitle: '真实来源',
+      sourceSummary: '任务台账、验证日志和主计划合并派生为只读快照；首页不维护第二份状态源。',
+      cards: {
+        active: '活动任务',
+        activeDetail: '当前仍在 `tasks.md` 中推进的 todo / in_progress / in_review / blocked 总量。',
+        done: '已归档任务',
+        doneDetail: '来自 `tasks-done.md` 的累计完成数，用于判断真实交付沉淀。',
+        validation: '验证记录',
+        validationDetail: '来自 `docs/quality/validation-log.md` 的最近验证累计，反映质量门禁密度。',
+        completion: '整体完成率',
+        completionDetail: '按活动任务与已归档任务合并计算，用于观察当前交付波次收口程度。'
+      },
+      modulesTitle: '阶段完成度',
+      modulesSummary: '按任务 ID 所在执行域汇总完成率，快速判断哪一阶段在推进、哪一阶段仍在堆积。',
+      moduleMeta: '共 {total} 个任务，已完成 {done}，执行中 {progress}',
+      recentTitle: '最近动作',
+      recentSummary: '合并任务进度日志、归档记录和验证日志，保留最近一次真实动作时间线。',
+      dependenciesTitle: '阻塞与依赖链',
+      dependenciesSummary: '优先展示当前阻塞/待决原因，再看活动任务未闭合的依赖链。',
+      blockerLabel: '当前待决',
+      noBlockers: '当前无显式阻塞项；如出现新的待决原因，会从最新进度日志自动浮现。',
+      noDependencies: '当前活动任务未形成可展示的依赖链。'
+    },
     nextTitle: '建议动作',
     nextSummary: '根据当前风险与运行状态，直接进入对应业务页面处理。'
   },

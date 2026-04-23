@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-002: 落地项目全景/架构设计/进度管理板块
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `feat(frontend): add dashboard architecture and progress boards`
+- Priority: 1
+- Depends on: `E-TASK-001`
+- Scope: 驾驶舱展示项目与计划信息 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-001` 研发驾驶舱
+- Human confirmation point: 若隐藏已承诺信息板块需人工确认
+- Data impact: 前端展示数据，无后端持久化
+- Rollback / recovery: 恢复板块与原信息架构
+- Validation:
+  - `页面结构与 IA 对照`
+  - `python3 scripts/foreman.py validate E-TASK-002`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Expanded the /dashboard cockpit with explicit project-panorama, architecture-design, and progress-management sections; added bilingual IA copy for vision, roadmap, glossary, rule index, architecture summaries, and wired the progress board to the authoritative delivery snapshot derived from tasks.md, tasks-done.md, validation-log, and the master execution plan.
+  - Validation evidence: Validated with python3 scripts/foreman.py validate E-TASK-002 --include-task-audit --extra-command "npm run build" --extra-command "rg -n \"dashboard\\.panorama|dashboard\\.architecture|dashboard\\.progress|createDeliveryProgressSnapshot|deliveryProgressAvailability\" src/views/dashboard/DashboardView.vue src/locales/zh-CN.js src/locales/en-US.js"; npm run build passed and the dashboard progress block is now backed by the same repository-truth snapshot used by the delivery-progress page.
+  - Residual risk: The new dashboard sections are intentionally summary-only and still depend on later Phase-E tasks to land the remaining compliance/rule-library boards and to keep business metrics aligned with future backend-delivered live data rather than curated static copy.
+  - Next step: Instantiate E-TASK-003 and land the compliance-center plus rule-library sections so the cockpit completes the remaining 10.1 information architecture promised for Phase-E.
+
 ### E-TASK-001: 建立驾驶舱路由与导航骨架
 
 - Status: done
