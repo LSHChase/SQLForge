@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-001: 补齐华为云部署文档
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `docs(deploy): reconcile huawei cloud deployment truth`
+- Priority: 1
+- Depends on: `B-TASK-005`
+- Scope: 完整描述华为云部署拓扑和生产切换 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Matrix context: Phase-F / Story `F-STORY-001` 部署文档与编排
+- Human confirmation point: 生产部署拓扑调整需人工确认
+- Data impact: 部署文档和配置模板
+- Rollback / recovery: 追加修正文档并恢复旧拓扑说明
+- Validation:
+  - 文档存在、入口索引、语义检查
+  - `python3 scripts/foreman.py validate F-TASK-001`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reconciled F-TASK-001 against repository truth by recording that the Huawei Cloud deployment document already exists, is linked from the authority stack, and covers the 4-service private-cloud topology, KAFKA production messaging mode, independent frontend/backend deployment, and backup-recovery cross references; this task is now an archive/truth-closeout rather than a missing-document implementation.
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-001 --include-task-audit --extra-command "node scripts/lint-repository-knowledge.js" --extra-command "rg -n \"华为云|4 个微服务|KAFKA|backup-recovery-baseline|local-setup|offline-setup\" docs/deployments/huawei-cloud-setup.md docs/plans/document-truth-baseline.md docs/plans/master-execution-plan.md"
+  - Residual risk: The Huawei Cloud deployment truth is now aligned, but F-TASK-002 still needs to reconcile local/offline compose and script guidance where minor wording drift remains, and F-TASK-003 must finish the environment reminder and recovery-guidance truth closeout.
+  - Next step: Instantiate F-TASK-002 next and align compose plus script documentation with the actual docker-compose files, local-start/local-stop flows, Kafka profile usage, and frontend proxy wording.
+
 ### E-TASK-006: 深色设计系统组件化
 
 - Status: done

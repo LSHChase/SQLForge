@@ -94,6 +94,9 @@
   - `docs/deployments/observability-baseline.md` 已把当前 `logs / metrics / alerts` 事实、运维落地清单和残余缺口收口为正式文档
 - 当前备份恢复事实已形成统一文档落点：
   - `docs/deployments/backup-recovery-baseline.md` 已把 MySQL、审计链、导出元数据、消息兜底与密钥边界的恢复目标、责任角色和演练模板收口为正式文档
+- 当前部署文档事实已形成统一文档落点：
+  - `docs/deployments/huawei-cloud-setup.md` 已存在并覆盖 4 微服务私有云拓扑、`KAFKA` 生产模式、独立前后端部署、基础设施依赖和恢复约束引用
+  - `docs/deployments/local-setup.md`、`docs/deployments/offline-setup.md` 已存在，用于承接本地 / 离线 compose、脚本和镜像准备说明
 - 当前 CI 事实已形成统一文档落点：
   - `docs/deployments/ci-capability-baseline.md` 已把 `.github/workflows/ci.yml` 当前覆盖的 lint/build/test/scan/runtime smoke 能力，以及尚未进入 CI 的 phase gate / task audit / 更广泛运行时验证缺口收口为正式文档
   - `docs/deployments/phase-gate-baseline.md` 已把 `task_audit`、`compile-governance --check`、`workflow_dispatch` phase gate 和最小 R-118 校验收口为正式文档
