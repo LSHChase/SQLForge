@@ -80,8 +80,13 @@ public class QueryExecutionApplicationService {
         logStart(request, sqlFingerprint);
         try {
             DataSourceTypeEnum primaryEngine = resolvePrimaryEngine(request.getDatasourceType());
-            governanceCapabilityClient.assertTenantScope(request.getTenantId());
-            governanceCapabilityClient.assertDatasourceAccess(request.getTenantId(), request.getDatasourceType());
+            governanceCapabilityClient.assertAuthorization(
+                request.getTenantId(),
+                request.getDatasourceType(),
+                RESOURCE_TYPE_QUERY,
+                sqlFingerprint,
+                OPERATION
+            );
 
             ReadonlyQueryAssessment readonlyQueryAssessment = ReadonlyQueryGuard.assess(actualSql);
             if (!readonlyQueryAssessment.isReadonly()) {

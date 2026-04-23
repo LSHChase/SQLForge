@@ -79,8 +79,20 @@ class OptimizationTaskApplicationServiceTest {
         OptimizationTaskSubmitResponse response = service.submitTask(baseRequest("SELECT * FROM orders"));
         service.getTaskStatus(response.getTaskId());
 
-        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertTenantScope("tenant-a");
-        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertDatasourceAccess("tenant-a", DataSourceTypeEnum.HETU);
+        verify(governanceCapabilityClient).assertAuthorization(
+            org.mockito.Mockito.eq("tenant-a"),
+            org.mockito.Mockito.eq(DataSourceTypeEnum.HETU),
+            org.mockito.Mockito.eq("SQL_OPTIMIZATION_TASK"),
+            org.mockito.ArgumentMatchers.anyString(),
+            org.mockito.Mockito.eq("OPTIMIZATION_TASK_SUBMIT")
+        );
+        verify(governanceCapabilityClient).assertAuthorization(
+            org.mockito.Mockito.eq("tenant-a"),
+            org.mockito.Mockito.eq(DataSourceTypeEnum.HETU),
+            org.mockito.Mockito.eq("SQL_OPTIMIZATION_TASK"),
+            org.mockito.Mockito.eq(response.getTaskId()),
+            org.mockito.Mockito.eq("OPTIMIZATION_TASK_STATUS_QUERY")
+        );
         verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).writeAudit(any());
     }
 
@@ -96,8 +108,7 @@ class OptimizationTaskApplicationServiceTest {
 
     private GovernanceCapabilityClient mockGovernanceClient() {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
-        doNothing().when(governanceCapabilityClient).assertTenantScope(any());
-        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any());
+        doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         return governanceCapabilityClient;
     }

@@ -62,9 +62,9 @@
 
 | Interaction | Transport | Contract owner | Required DTO / response baseline | Current status |
 |:---|:---|:---|:---|:---|
-| 查询执行服务 -> 公共管理服务 | HTTP | 公共管理服务 | `TenantScopeCheckRequest/Response`, `DatasourceAccessCheckRequest/Response`, `QuotaCheckRequest/Response`, `AuditWriteRequest/Response` | Partial |
-| SQL 优化服务 -> 公共管理服务 | HTTP | 公共管理服务 | `OptimizationApprovalCheckRequest/Response`, `MetadataLookupRequest/Response`, `AuditWriteRequest/Response` | Partial |
-| 压测引擎服务 -> 公共管理服务 | HTTP | 公共管理服务 | `BenchmarkAuthorizationRequest/Response`, `ShadowEnvironmentCheckRequest/Response`, `AuditWriteRequest/Response` | Partial |
+| 查询执行服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceTenantScopeCheckRequest/Response`, `GovernanceAuthorizationDecisionRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
+| SQL 优化服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceAuthorizationDecisionRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
+| 压测引擎服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceAuthorizationDecisionRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
 | 查询执行服务 -> SQL 优化服务 | HTTP / async callback | SQL 优化服务 | `OptimizationTaskSubmitRequest/Response`, `OptimizationTaskStatusResponse`, `AccelerationPlanApplyRequest/Response` | `DATABASE_SCHEDULED_WORKER_BASELINE` |
 | 压测引擎服务 -> 查询执行服务 | HTTP | 查询执行服务 | `QueryFingerprintLookupRequest/Response`, `RoutingRuleSnapshotRequest/Response` | Planned |
 
@@ -73,21 +73,25 @@
 - 所有 DTO 均为跨服务契约对象，不得复用内部 entity。
 - `sqlforge-shared` 仅承载共享契约基类、通用上下文和错误响应，不承载某一服务专属业务 DTO。
 - 若跨服务契约变化具有兼容风险，必须先更新本文件和主计划，再进入实现。
-- 当前 `governance` 已提供首轮内部契约入口：
+- 当前 `governance` 已提供内部契约入口：
   - `/api/governance/internal/tenant-scope/check`
-  - `/api/governance/internal/datasource-access/check`
+  - `/api/governance/internal/authorization/decide`
+  - `/api/governance/internal/authorization/datasource/change`
   - `/api/governance/internal/audit/write`
   - `/api/governance/internal/schedule/extensions`
-- 当前 `datasource-access` 占位实现已改为治理服务本地显式配置驱动：
-  - 治理内置数据源按角色白名单放行
-  - 其他数据源按租户绑定表放行
+- 当前授权决策已由治理服务本地矩阵配置驱动：
+  - 角色矩阵把角色映射到权限集合
+  - 资源模型把服务操作映射到所需权限与数据源动作
+  - 数据源授权矩阵把租户数据源映射到 `ACTIVE/REVOKED` 与动作集合
   - 未命中显式规则时默认拒绝
 
 治理内部契约当前收口如下：
 
 | Endpoint | Contract stage | Current implementation stage | Required baseline | Current notes |
 |:---|:---|:---|:---|:---|
-| `/api/governance/internal/datasource-access/check` | `LONG_TERM_BASELINE` | `TRANSITIONAL_SKELETON` | request: `tenantId`,`datasourceId`; response: `allowed`,`reason`,`errorCode`,`contractStage`,`implementationStage` | 长期保留为跨服务授权检查入口；当前决策仍由治理本地 placeholder 规则驱动 |
+| `/api/governance/internal/tenant-scope/check` | `LONG_TERM_BASELINE` | `AUTHORIZATION_MATRIX_BASELINE` | request: `tenantId`,`targetTenantId`; response: `tenantId`,`targetTenantId`,`allowed`,`reason` | 保留租户隔离显式检查能力，供治理和扩展链路单独复用 |
+| `/api/governance/internal/authorization/decide` | `LONG_TERM_BASELINE` | `AUTHORIZATION_MATRIX_BASELINE` | request: `serviceCode`,`tenantId`,`resourceType`,`resourceId`,`operationCode`,`datasourceId`; response: `tenantId`,`resourceType`,`resourceId`,`operationCode`,`datasourceId`,`allowed`,`reason`,`errorCode`,`contractStage`,`implementationStage` | 三个业务服务统一复用的授权决策入口；当前执行角色矩阵、资源模型和数据源动作授权 |
+| `/api/governance/internal/authorization/datasource/change` | `LONG_TERM_BASELINE` | `AUTHORIZATION_MATRIX_BASELINE` | request: `tenantId`,`datasourceId`,`state`,`actions[]`,`changeReason`; response: `tenantId`,`datasourceId`,`state`,`actions[]`,`status`,`contractStage`,`implementationStage` | 运行态更新数据源授权矩阵，并写入权限变更审计 |
 | `/api/governance/internal/audit/write` | `LONG_TERM_BASELINE` | `DATABASE_AUDIT_WRITE_BASELINE` | request: required `serviceCode`,`operationCode`,`resourceType`,`resourceId`,`resultStatus`,`elapsedMs`,`sourceIp`,`userAgent`; optional `sagaId`,`configSnapshotId`,`resultId`,`historyId`,`exportId`,`requestParams`,`responseSummary`; response: `auditId`,`status`,`messageTopic`,`deliveryMode`,`contractStage`,`implementationStage` | 长期保留为跨服务审计写入入口；当前已同步写入 `audit_log`、统一脱敏 `requestParams/responseSummary` 并保留共享消息抽象扩散 |
 
 敏感字段处理补充基线：
@@ -446,15 +450,17 @@
   - `10009` `SYSTEM_AUDIT_CONTRACT_INVALID`
   - `11002` `GOVERNANCE_SYSTEM_MESSAGE_ROUTE_INVALID`
 
-## 6. Datasource Access Contract Baseline
+## 6. Authorization Decision Contract Baseline
 
-当前治理内部 `datasource-access/check` 契约返回规则：
+当前治理内部 `authorization/decide` 契约返回规则：
 
 - `allowed=true` 时必须返回 `reason`，并显式返回 `contractStage` 与 `implementationStage`
 - `allowed=false` 时必须返回显式 `errorCode`
 - 当前失败错误码已固定：
+  - `20000` `GOVERNANCE_ACCESS_DENIED`
   - `20001` `GOVERNANCE_TENANT_ACCESS_DENIED`
   - `20002` `GOVERNANCE_DATASOURCE_ACCESS_DENIED`
+- 当前 `authorization/datasource/change` 契约必须返回 `status=UPDATED`，并把权限变更写入 `audit_log`
 
 ## 7. Related Documents
 

@@ -49,7 +49,13 @@ class BenchmarkReportApplicationServiceTest {
         assertEquals("text/html", html.getMediaType().toString());
         assertTrue(new String(html.getContent()).contains("SQLForge Benchmark Report"));
         assertTrue(new String(html.getContent()).contains(report.getReportId()));
-        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertTenantScope("tenant-a");
+        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertAuthorization(
+            org.mockito.Mockito.eq("tenant-a"),
+            org.mockito.Mockito.any(),
+            org.mockito.Mockito.eq("BENCHMARK_ENGINE_REPORT"),
+            org.mockito.Mockito.eq(report.getReportId()),
+            org.mockito.Mockito.eq("BENCHMARK_REPORT_QUERY")
+        );
         verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).writeAudit(any());
     }
 
@@ -102,8 +108,7 @@ class BenchmarkReportApplicationServiceTest {
 
     private GovernanceCapabilityClient mockGovernanceClient() {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
-        doNothing().when(governanceCapabilityClient).assertTenantScope(any());
-        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any());
+        doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         return governanceCapabilityClient;
     }

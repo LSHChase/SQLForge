@@ -161,8 +161,7 @@ public class BenchmarkReportApplicationService {
             );
         }
         verifyTenantAccess(report.getTenantId());
-        governanceCapabilityClient.assertTenantScope(report.getTenantId());
-        assertDatasourceAccess(report);
+        assertAuthorization(report);
         return report;
     }
 
@@ -180,14 +179,26 @@ public class BenchmarkReportApplicationService {
         }
     }
 
-    private void assertDatasourceAccess(BenchmarkReport report) {
+    private void assertAuthorization(BenchmarkReport report) {
         List<BenchmarkEngineProfile> engineProfiles = report.getEngineProfiles();
         if (engineProfiles == null || engineProfiles.isEmpty()) {
-            governanceCapabilityClient.assertDatasourceAccess(report.getTenantId(), DataSourceTypeEnum.HETU);
+            governanceCapabilityClient.assertAuthorization(
+                report.getTenantId(),
+                DataSourceTypeEnum.HETU,
+                RESOURCE_TYPE_REPORT,
+                report.getReportId(),
+                QUERY_OPERATION
+            );
             return;
         }
         for (BenchmarkEngineProfile engineProfile : engineProfiles) {
-            governanceCapabilityClient.assertDatasourceAccess(report.getTenantId(), engineProfile.getEngine());
+            governanceCapabilityClient.assertAuthorization(
+                report.getTenantId(),
+                engineProfile.getEngine(),
+                RESOURCE_TYPE_REPORT,
+                report.getReportId(),
+                QUERY_OPERATION
+            );
         }
     }
 

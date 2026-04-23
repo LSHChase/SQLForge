@@ -14,7 +14,7 @@ import com.company.governance.application.controller.GovernanceHistoryController
 import com.company.governance.application.controller.MessageAdminController;
 import com.company.governance.application.controller.TenantConfigController;
 import com.company.governance.application.controller.vo.AuditWriteResponse;
-import com.company.governance.application.controller.vo.DatasourceAccessCheckResponse;
+import com.company.governance.application.controller.vo.DatasourceAuthorizationChangeResponse;
 import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
 import com.company.governance.application.controller.vo.GovernanceTraceLookupPageVO;
 import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO;
@@ -22,13 +22,14 @@ import com.company.governance.application.controller.vo.HealthStatusVO;
 import com.company.governance.application.controller.vo.MessageStatsVO;
 import com.company.governance.application.controller.vo.ScheduleExtensionStatusVO;
 import com.company.governance.application.controller.vo.TenantConfigVO;
-import com.company.governance.application.controller.vo.TenantScopeCheckResponse;
 import com.company.governance.application.service.GovernanceCapabilityApplicationService;
 import com.company.governance.application.service.GovernanceAuditTrailService;
 import com.company.governance.application.service.GovernanceHistoryApplicationService;
 import com.company.governance.application.service.HealthStatusApplicationService;
 import com.company.governance.application.service.MessageAdminApplicationService;
 import com.company.governance.application.service.TenantConfigApplicationService;
+import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckResponse;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import com.company.governance.config.AuthProperties;
@@ -240,17 +241,34 @@ class AuthWebMvcTest {
 
     @Test
     void shouldProtectGovernanceInternalEndpoints() throws Exception {
+        GovernanceTenantScopeCheckResponse tenantScopeResponse = new GovernanceTenantScopeCheckResponse();
+        tenantScopeResponse.setTenantId("system");
+        tenantScopeResponse.setTargetTenantId("tenant-b");
+        tenantScopeResponse.setAllowed(false);
+        tenantScopeResponse.setReason("CROSS_TENANT_ACCESS_REQUIRES_PLATFORM_ADMIN");
+        GovernanceAuthorizationDecisionResponse authorizationResponse = new GovernanceAuthorizationDecisionResponse();
+        authorizationResponse.setTenantId("system");
+        authorizationResponse.setResourceType("QUERY_EXECUTION_QUERY");
+        authorizationResponse.setResourceId("fp-001");
+        authorizationResponse.setOperationCode("QUERY_EXECUTE_SYNC");
+        authorizationResponse.setDatasourceId("query-hetu");
+        authorizationResponse.setAllowed(true);
+        authorizationResponse.setReason("ALLOWED");
+        authorizationResponse.setContractStage("LONG_TERM_BASELINE");
+        authorizationResponse.setImplementationStage("AUTHORIZATION_MATRIX_BASELINE");
         when(governanceCapabilityApplicationService.checkTenantScope(org.mockito.ArgumentMatchers.any()))
-            .thenReturn(new TenantScopeCheckResponse("system", "tenant-b", false, "CROSS_TENANT_ACCESS_REQUIRES_PLATFORM_ADMIN"));
-        when(governanceCapabilityApplicationService.checkDatasourceAccess(org.mockito.ArgumentMatchers.any()))
-            .thenReturn(new DatasourceAccessCheckResponse(
+            .thenReturn(tenantScopeResponse);
+        when(governanceCapabilityApplicationService.decideAuthorization(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(authorizationResponse);
+        when(governanceCapabilityApplicationService.changeDatasourceAuthorization(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(new DatasourceAuthorizationChangeResponse(
                 "system",
-                "ds-01",
-                true,
-                "ALLOWED",
-                null,
+                "query-hetu",
+                "ACTIVE",
+                java.util.Collections.singletonList("USE"),
+                "UPDATED",
                 "LONG_TERM_BASELINE",
-                "TRANSITIONAL_SKELETON"
+                "AUTHORIZATION_MATRIX_BASELINE"
             ));
         when(governanceCapabilityApplicationService.publishAuditEvent(org.mockito.ArgumentMatchers.any()))
             .thenReturn(new AuditWriteResponse(
@@ -280,12 +298,23 @@ class AuthWebMvcTest {
             .andExpect(header().exists(RequestHeaderConstants.TRACE_ID))
             .andExpect(jsonPath("$.allowed").value(false));
 
-        mockMvc.perform(addProtectedHeaders(post("/api/governance/internal/datasource-access/check")
+        mockMvc.perform(addProtectedHeaders(post("/api/governance/internal/authorization/decide")
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-                .content("{\"tenantId\":\"system\",\"datasourceId\":\"ds-01\"}")))
+                .content("{\"serviceCode\":\"QUERY_EXECUTION\",\"tenantId\":\"system\","
+                    + "\"resourceType\":\"QUERY_EXECUTION_QUERY\",\"resourceId\":\"fp-001\","
+                    + "\"operationCode\":\"QUERY_EXECUTE_SYNC\",\"datasourceId\":\"query-hetu\"}")))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.allowed").value(true))
-            .andExpect(jsonPath("$.contractStage").value("LONG_TERM_BASELINE"));
+            .andExpect(jsonPath("$.contractStage").value("LONG_TERM_BASELINE"))
+            .andExpect(jsonPath("$.implementationStage").value("AUTHORIZATION_MATRIX_BASELINE"));
+
+        mockMvc.perform(addProtectedHeaders(post("/api/governance/internal/authorization/datasource/change")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"system\",\"datasourceId\":\"query-hetu\","
+                    + "\"state\":\"ACTIVE\",\"actions\":[\"USE\"],\"changeReason\":\"restore\"}")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("UPDATED"))
+            .andExpect(jsonPath("$.datasourceId").value("query-hetu"));
 
         mockMvc.perform(addProtectedHeaders(post("/api/governance/internal/audit/write")
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)

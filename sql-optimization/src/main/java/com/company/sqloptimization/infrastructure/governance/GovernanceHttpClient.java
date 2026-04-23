@@ -3,6 +3,9 @@ package com.company.sqloptimization.infrastructure.governance;
 import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
+import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
+import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.ProtectedGovernanceRequestSupport;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
@@ -36,22 +39,11 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
     }
 
     @Override
-    public void assertTenantScope(String tenantId) {
-        TenantScopeCheckRequest request = new TenantScopeCheckRequest();
-        request.setTenantId(tenantId);
-        request.setTargetTenantId(tenantId);
-        TenantScopeCheckResponse response = post("/tenant-scope/check", request, TenantScopeCheckResponse.class);
-        if (response == null || !response.isAllowed()) {
-            throw new AccessDeniedException(
-                response == null || !StringUtils.hasText(response.getReason())
-                    ? "Governance tenant-scope check denied the request"
-                    : response.getReason()
-            );
-        }
-    }
-
-    @Override
-    public void assertDatasourceAccess(String tenantId, DataSourceTypeEnum datasourceType) {
+    public void assertAuthorization(String tenantId,
+                                    DataSourceTypeEnum datasourceType,
+                                    String resourceType,
+                                    String resourceId,
+                                    String operationCode) {
         String datasourceId = governanceProperties.getDatasourceIdMap().get(
             datasourceType == null ? DataSourceTypeEnum.AUTO.name() : datasourceType.name()
         );
@@ -63,11 +55,15 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
             );
         }
 
-        DatasourceAccessCheckRequest request = new DatasourceAccessCheckRequest();
+        GovernanceAuthorizationDecisionRequest request = new GovernanceAuthorizationDecisionRequest();
+        request.setServiceCode(ServiceCodeConstants.SQL_OPTIMIZATION);
         request.setTenantId(tenantId);
+        request.setResourceType(resourceType);
+        request.setResourceId(resourceId);
+        request.setOperationCode(operationCode);
         request.setDatasourceId(datasourceId);
-        DatasourceAccessCheckResponse response =
-            post("/datasource-access/check", request, DatasourceAccessCheckResponse.class);
+        GovernanceAuthorizationDecisionResponse response =
+            post("/authorization/decide", request, GovernanceAuthorizationDecisionResponse.class);
         if (response == null || !response.isAllowed()) {
             throw new AccessDeniedException(
                 response == null || !StringUtils.hasText(response.getReason())
@@ -79,7 +75,7 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
 
     @Override
     public void writeAudit(OptimizationAuditRecord auditRecord) {
-        AuditWriteRequest request = new AuditWriteRequest();
+        GovernanceAuditWriteRequest request = new GovernanceAuditWriteRequest();
         request.setServiceCode(ServiceCodeConstants.SQL_OPTIMIZATION);
         request.setOperationCode(auditRecord.getOperationCode());
         request.setResourceType(auditRecord.getResourceType());
@@ -126,248 +122,4 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
         return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
-    public static class TenantScopeCheckRequest {
-
-        private String tenantId;
-        private String targetTenantId;
-
-        public String getTenantId() {
-            return tenantId;
-        }
-
-        public void setTenantId(String tenantId) {
-            this.tenantId = tenantId;
-        }
-
-        public String getTargetTenantId() {
-            return targetTenantId;
-        }
-
-        public void setTargetTenantId(String targetTenantId) {
-            this.targetTenantId = targetTenantId;
-        }
-    }
-
-    public static class TenantScopeCheckResponse {
-
-        private String tenantId;
-        private String targetTenantId;
-        private boolean allowed;
-        private String reason;
-
-        public String getTenantId() {
-            return tenantId;
-        }
-
-        public void setTenantId(String tenantId) {
-            this.tenantId = tenantId;
-        }
-
-        public String getTargetTenantId() {
-            return targetTenantId;
-        }
-
-        public void setTargetTenantId(String targetTenantId) {
-            this.targetTenantId = targetTenantId;
-        }
-
-        public boolean isAllowed() {
-            return allowed;
-        }
-
-        public void setAllowed(boolean allowed) {
-            this.allowed = allowed;
-        }
-
-        public String getReason() {
-            return reason;
-        }
-
-        public void setReason(String reason) {
-            this.reason = reason;
-        }
-    }
-
-    public static class DatasourceAccessCheckRequest {
-
-        private String tenantId;
-        private String datasourceId;
-
-        public String getTenantId() {
-            return tenantId;
-        }
-
-        public void setTenantId(String tenantId) {
-            this.tenantId = tenantId;
-        }
-
-        public String getDatasourceId() {
-            return datasourceId;
-        }
-
-        public void setDatasourceId(String datasourceId) {
-            this.datasourceId = datasourceId;
-        }
-    }
-
-    public static class DatasourceAccessCheckResponse {
-
-        private String tenantId;
-        private String datasourceId;
-        private boolean allowed;
-        private String reason;
-        private Integer errorCode;
-        private String contractStage;
-        private String implementationStage;
-
-        public String getTenantId() {
-            return tenantId;
-        }
-
-        public void setTenantId(String tenantId) {
-            this.tenantId = tenantId;
-        }
-
-        public String getDatasourceId() {
-            return datasourceId;
-        }
-
-        public void setDatasourceId(String datasourceId) {
-            this.datasourceId = datasourceId;
-        }
-
-        public boolean isAllowed() {
-            return allowed;
-        }
-
-        public void setAllowed(boolean allowed) {
-            this.allowed = allowed;
-        }
-
-        public String getReason() {
-            return reason;
-        }
-
-        public void setReason(String reason) {
-            this.reason = reason;
-        }
-
-        public Integer getErrorCode() {
-            return errorCode;
-        }
-
-        public void setErrorCode(Integer errorCode) {
-            this.errorCode = errorCode;
-        }
-
-        public String getContractStage() {
-            return contractStage;
-        }
-
-        public void setContractStage(String contractStage) {
-            this.contractStage = contractStage;
-        }
-
-        public String getImplementationStage() {
-            return implementationStage;
-        }
-
-        public void setImplementationStage(String implementationStage) {
-            this.implementationStage = implementationStage;
-        }
-    }
-
-    public static class AuditWriteRequest {
-
-        private String serviceCode;
-        private String operationCode;
-        private String resourceType;
-        private String resourceId;
-        private String resultStatus;
-        private Long elapsedMs;
-        private String sourceIp;
-        private String userAgent;
-        private String requestParams;
-        private String responseSummary;
-
-        public String getServiceCode() {
-            return serviceCode;
-        }
-
-        public void setServiceCode(String serviceCode) {
-            this.serviceCode = serviceCode;
-        }
-
-        public String getOperationCode() {
-            return operationCode;
-        }
-
-        public void setOperationCode(String operationCode) {
-            this.operationCode = operationCode;
-        }
-
-        public String getResourceType() {
-            return resourceType;
-        }
-
-        public void setResourceType(String resourceType) {
-            this.resourceType = resourceType;
-        }
-
-        public String getResourceId() {
-            return resourceId;
-        }
-
-        public void setResourceId(String resourceId) {
-            this.resourceId = resourceId;
-        }
-
-        public String getResultStatus() {
-            return resultStatus;
-        }
-
-        public void setResultStatus(String resultStatus) {
-            this.resultStatus = resultStatus;
-        }
-
-        public Long getElapsedMs() {
-            return elapsedMs;
-        }
-
-        public void setElapsedMs(Long elapsedMs) {
-            this.elapsedMs = elapsedMs;
-        }
-
-        public String getSourceIp() {
-            return sourceIp;
-        }
-
-        public void setSourceIp(String sourceIp) {
-            this.sourceIp = sourceIp;
-        }
-
-        public String getUserAgent() {
-            return userAgent;
-        }
-
-        public void setUserAgent(String userAgent) {
-            this.userAgent = userAgent;
-        }
-
-        public String getRequestParams() {
-            return requestParams;
-        }
-
-        public void setRequestParams(String requestParams) {
-            this.requestParams = requestParams;
-        }
-
-        public String getResponseSummary() {
-            return responseSummary;
-        }
-
-        public void setResponseSummary(String responseSummary) {
-            this.responseSummary = responseSummary;
-        }
-    }
 }

@@ -374,6 +374,9 @@ run_runtime_smoke() {
   print_step "Running health check gate"
   bash "${REPO_ROOT}/scripts/health-check.sh" --fail-on-error
 
+  print_step "Running governance authorization smoke"
+  bash "${REPO_ROOT}/scripts/manual-governance-authorization-smoke.sh" --cleanup
+
   print_step "Running query-execution to governance business smoke"
   bash "${REPO_ROOT}/scripts/manual-query-governance-smoke.sh" --cleanup
 

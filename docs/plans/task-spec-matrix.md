@@ -93,6 +93,7 @@
 | `D-TASK-013` | 落实敏感字段加密 | `ADR-009` | `R-114`,`R-128` | `Core`,`Sec`,`Deploy` | 定义并实现密码/token/key 加密策略 | `JAVA-BE`,`SQL`,`OPS` | `application(controller/service)/domain/infrastructure`,`common` | 库/日志/导出无明文 | `D-TASK-011` | test/prod |
 | `D-TASK-014` | 收口异步服务鉴权、占位执行与审计兜底 | `ADR-009`,`ADR-012`,`ADR-013` | `R-041`,`R-111`~`R-115`,`R-123`,`R-144` | `Core`,`ADR`,`Sec`,`Msg` | 为异步服务补齐鉴权、租户隔离、占位执行与治理审计兜底 | `JAVA-BE`,`SQL` | `application(controller/service)/domain/infrastructure` | sql-optimization/benchmark/governance 模块测试与 task audit | `D-TASK-013` | dev/test/prod |
 | `D-TASK-015` | 补完 `query-execution` 真实执行适配与结果聚合基线 | `ADR-004`,`ADR-005`,`ADR-012`,`ADR-013` | `R-018`,`R-020`,`R-041`,`R-042`,`R-045`,`R-121`,`R-123`,`R-126` | `Core`,`ADR`,`Sec`,`Msg` | 落实 Hetu 多模式执行适配、模式选择、结果聚合与审计证据 | `JAVA-BE` | `application(controller/service)/domain/infrastructure` | 模块测试、跨模式适配测试、runtime smoke | `D-TASK-014` | dev/test |
+| `D-TASK-016` | 收口治理授权矩阵并下沉统一授权入口 | `ADR-002`,`ADR-009`,`ADR-012`,`ADR-013` | `R-018`,`R-020`,`R-041`,`R-046`,`R-111`~`R-115`,`R-121`,`R-123`,`R-126`,`R-144` | `Core`,`ADR`,`Sec`,`Msg` | 在 governance 落地角色矩阵、资源模型、数据源授权矩阵，把真实授权决策下沉为 query/sql-optimization/benchmark 统一入口，并补齐授权成功/拒绝/跨租户/吊销后访问与权限变更审计 | `JAVA-BE`,`SQL`,`OPS`,`DOCS` | `application(controller/service)/domain/infrastructure`,`deployments/ci/scripts`,`docs` | governance/三服务模块测试、runtime smoke、task audit、契约/安全文档同步 | `D-TASK-015` | dev/test/prod |
 
 ## Phase-E
 

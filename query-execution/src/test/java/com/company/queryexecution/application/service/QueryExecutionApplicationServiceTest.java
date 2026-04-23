@@ -167,8 +167,13 @@ class QueryExecutionApplicationServiceTest {
         QueryExecuteResponse response = service.executeSynchronously(baseRequest("SELECT * FROM orders"));
 
         assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
-        verify(governanceCapabilityClient).assertTenantScope("tenant-a");
-        verify(governanceCapabilityClient).assertDatasourceAccess("tenant-a", DataSourceTypeEnum.HETU);
+        verify(governanceCapabilityClient).assertAuthorization(
+            org.mockito.Mockito.eq("tenant-a"),
+            org.mockito.Mockito.eq(DataSourceTypeEnum.HETU),
+            org.mockito.Mockito.eq("QUERY_EXECUTION_QUERY"),
+            org.mockito.ArgumentMatchers.anyString(),
+            org.mockito.Mockito.eq("QUERY_EXECUTE_SYNC")
+        );
         verify(governanceCapabilityClient).writeAudit(any());
     }
 
@@ -184,7 +189,7 @@ class QueryExecutionApplicationServiceTest {
         AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> service.executeSynchronously(request));
 
         assertEquals("Request tenantId does not match authenticated tenant context", ex.getMessage());
-        verify(governanceCapabilityClient, org.mockito.Mockito.never()).assertTenantScope(any());
+        verify(governanceCapabilityClient, org.mockito.Mockito.never()).assertAuthorization(any(), any(), any(), any(), any());
         verify(governanceCapabilityClient, org.mockito.Mockito.never()).writeAudit(any());
     }
 
@@ -204,8 +209,7 @@ class QueryExecutionApplicationServiceTest {
 
     private GovernanceCapabilityClient mockGovernanceClient() {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
-        doNothing().when(governanceCapabilityClient).assertTenantScope(any());
-        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any());
+        doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         return governanceCapabilityClient;
     }

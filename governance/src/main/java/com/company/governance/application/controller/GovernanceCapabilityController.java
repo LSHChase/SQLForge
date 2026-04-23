@@ -1,13 +1,15 @@
 package com.company.governance.application.controller;
 
 import com.company.governance.application.controller.dto.AuditWriteRequest;
-import com.company.governance.application.controller.dto.DatasourceAccessCheckRequest;
-import com.company.governance.application.controller.dto.TenantScopeCheckRequest;
+import com.company.governance.application.controller.dto.DatasourceAuthorizationChangeRequest;
 import com.company.governance.application.controller.vo.AuditWriteResponse;
-import com.company.governance.application.controller.vo.DatasourceAccessCheckResponse;
+import com.company.governance.application.controller.vo.DatasourceAuthorizationChangeResponse;
 import com.company.governance.application.controller.vo.ScheduleExtensionStatusVO;
-import com.company.governance.application.controller.vo.TenantScopeCheckResponse;
 import com.company.governance.application.service.GovernanceCapabilityApplicationService;
+import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
+import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckRequest;
+import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,13 +28,22 @@ public class GovernanceCapabilityController {
     }
 
     @PostMapping("/tenant-scope/check")
-    public TenantScopeCheckResponse checkTenantScope(@RequestBody TenantScopeCheckRequest request) {
+    public GovernanceTenantScopeCheckResponse checkTenantScope(@RequestBody GovernanceTenantScopeCheckRequest request) {
         return governanceCapabilityApplicationService.checkTenantScope(request);
     }
 
-    @PostMapping("/datasource-access/check")
-    public DatasourceAccessCheckResponse checkDatasourceAccess(@RequestBody DatasourceAccessCheckRequest request) {
-        return governanceCapabilityApplicationService.checkDatasourceAccess(request);
+    @PostMapping({"/authorization/decide", "/datasource-access/check"})
+    public GovernanceAuthorizationDecisionResponse decideAuthorization(
+        @RequestBody GovernanceAuthorizationDecisionRequest request
+    ) {
+        return governanceCapabilityApplicationService.decideAuthorization(request);
+    }
+
+    @PostMapping("/authorization/datasource/change")
+    public DatasourceAuthorizationChangeResponse changeDatasourceAuthorization(
+        @RequestBody DatasourceAuthorizationChangeRequest request
+    ) {
+        return governanceCapabilityApplicationService.changeDatasourceAuthorization(request);
     }
 
     @PostMapping("/audit/write")

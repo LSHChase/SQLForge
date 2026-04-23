@@ -181,24 +181,24 @@
 
 当前仓库现状：
 
-- `governance` 已通过 `TenantAccessLogic` 和请求上下文建立最小租户校验能力
-- 当前占位能力已改为“显式角色门禁 + 显式数据源绑定占位配置 + 默认拒绝”
-- 当前 `governance` 仅对治理内置数据源 `governance-tenant-config` 提供基线放行，且要求 `PLATFORM_ADMIN` 或 `TENANT_ADMIN`
-- 其他数据源访问在当前阶段必须通过 `governance.access-control.placeholder.tenant-datasource-bindings` 显式配置，否则拒绝
+- `governance` 已把授权真值收口到 `governance.access-control.role-matrix`、`resource-model` 与 `datasource-authorization-matrix`
+- 当前统一授权入口为 `/api/governance/internal/authorization/decide`，由 `GovernanceAuthorizationMatrixApplicationService` 执行“租户校验 -> 角色权限 -> 数据源动作”三段式决策
+- `query-execution`、`sql-optimization`、`benchmark-engine` 已统一复用上述授权入口，不再各自维护占位式 datasource check
+- 数据源授权变更通过 `/api/governance/internal/authorization/datasource/change` 在运行态更新矩阵，支持吊销/恢复验证与权限变更审计
 - 当前 header-based stateless auth 已把每次受保护请求的鉴权建立/释放记录为 `LOGIN` / `LOGOUT` 审计事件；鉴权前置失败会记录失败型 `LOGIN` 审计事件
 - 当前 `governance` 已通过共享 AES-256 基线把密码 / token / key 类字段接入统一持久化保护入口：
   - `system_config` 敏感键写入 `value_ciphertext`
   - `config_snapshot/result_payload/query_context/export_options` 的敏感叶子节点写入密文 envelope
   - `audit_log.request_params/response_summary` 与导出地址、错误文本仅保留脱敏内容
-- 当前内部 `datasource-access/check` 契约在拒绝时必须返回显式错误码：
+- 当前统一授权决策契约在拒绝时必须返回显式错误码：
+  - 角色权限不满足：`20000` `GOVERNANCE_ACCESS_DENIED`
   - 跨租户目标不匹配：`20001` `GOVERNANCE_TENANT_ACCESS_DENIED`
-  - 数据源绑定或授权拒绝：`20002` `GOVERNANCE_DATASOURCE_ACCESS_DENIED`
+  - 数据源绑定缺失、动作不允许或已吊销：`20002` `GOVERNANCE_DATASOURCE_ACCESS_DENIED`
 - 当前治理服务已固定以下失败错误码：
   - 角色不满足治理访问要求：`20000` `GOVERNANCE_ACCESS_DENIED`
   - 跨租户访问拒绝：`20001` `GOVERNANCE_TENANT_ACCESS_DENIED`
   - 数据源绑定或授权拒绝：`20002` `GOVERNANCE_DATASOURCE_ACCESS_DENIED`
-- 当前实现仍属于阶段性基线，不代表最终访问控制已完整交付
-- 当前代码重点是“后端必须建立租户上下文”，尚未完成完整角色矩阵、数据源权限矩阵和统一身份服务接入
+- 当前实现已完成角色矩阵、资源模型、数据源授权矩阵和统一授权入口基线；真实 IAM/SSO、动态持久化授权配置与更多审批流仍待后续任务补齐
 
 ## 12. Target Completion Definition
 

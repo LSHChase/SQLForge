@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-016: 收口治理授权矩阵并下沉统一授权入口
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `feat(governance): unify authorization matrix enforcement`
+- Priority: 1
+- Depends on: `D-TASK-015`
+- Scope: 在 governance 落地角色矩阵、资源模型、数据源授权矩阵，把真实授权决策下沉为 query/sql-optimization/benchmark 统一入口，并补齐授权成功/拒绝/跨租户/吊销后访问与权限变更审计 Tech: `JAVA-BE`,`SQL`,`OPS`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-005` 运行时执行链与跨服务补完
+- Human confirmation point: 若角色矩阵、资源模型或数据源授权矩阵被放宽为 fail-open，或三服务重新分叉授权入口，需人工确认
+- Data impact: governance 授权配置、跨服务授权决策、审计记录与 runtime smoke 证据
+- Rollback / recovery: 恢复统一授权入口、默认拒绝语义、被吊销访问阻断，以及权限变更审计补录
+- Validation:
+  - `governance/三服务模块测试、runtime smoke、task audit、契约/安全文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-016`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Governance role/resource/datasource matrices are active, authorization now flows through a single decision entrypoint for query-execution, sql-optimization, and benchmark-engine, and smoke/test coverage now includes allow/deny/cross-tenant/revoked cases plus permission-change auditing.
+  - Validation evidence: python3 scripts/foreman.py compile-governance --check; mvn -B -pl governance,query-execution,sql-optimization,benchmark-engine -am -DskipITs test; bash scripts/run-runtime-smoke.sh --runtime-smoke; python3 scripts/foreman.py validate D-TASK-016 --include-task-audit --extra-command ...
+  - Residual risk: Authorization matrices are still config-backed with runtime mutation held in-process; distributed persistence and external IAM synchronization remain future work.
+  - Next step: Proceed with the next priority: real Hetu integration in query-execution while keeping the unified governance authorization entrypoint unchanged.
+
 ### F-TASK-033: 补齐测试环境最小 smoke 门禁
 
 - Status: done

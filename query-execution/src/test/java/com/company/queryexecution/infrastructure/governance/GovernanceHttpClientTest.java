@@ -15,6 +15,9 @@ import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
+import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -38,16 +41,7 @@ class GovernanceHttpClientTest {
         GovernanceHttpClient client = createClient();
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
-        RequestContext.set(
-            "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
-            "request-001",
-            "trace-001",
-            "header",
-            1L,
-            System.currentTimeMillis() + 60000L
-        );
+        setProtectedRequestContext();
         RequestMetadataContext.set("10.0.0.7", "SQLForge-Query-Test-UA");
         server.expect(requestTo("http://governance.test/api/governance/internal/audit/write"))
             .andExpect(method(HttpMethod.POST))
@@ -69,55 +63,53 @@ class GovernanceHttpClientTest {
     }
 
     @Test
-    void shouldAllowTenantScopeWhenGovernanceApproves() {
+    void shouldAllowAuthorizationWhenGovernanceApproves() {
         GovernanceHttpClient client = createClient();
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         setProtectedRequestContext();
-        server.expect(requestTo("http://governance.test/api/governance/internal/tenant-scope/check"))
+        server.expect(requestTo("http://governance.test/api/governance/internal/authorization/decide"))
             .andExpect(method(HttpMethod.POST))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"tenantId\":\"tenant-a\"")))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"targetTenantId\":\"tenant-a\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"serviceCode\":\"QUERY_EXECUTION\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"resourceType\":\"QUERY_EXECUTION_QUERY\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"resourceId\":\"query-001\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"operationCode\":\"QUERY_EXECUTE_SYNC\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"datasourceId\":\"query-hetu\"")))
             .andRespond(withSuccess("{\"allowed\":true,\"reason\":\"ok\"}", MediaType.APPLICATION_JSON));
 
-        client.assertTenantScope("tenant-a");
+        client.assertAuthorization(
+            "tenant-a",
+            DataSourceTypeEnum.HETU,
+            "QUERY_EXECUTION_QUERY",
+            "query-001",
+            "QUERY_EXECUTE_SYNC"
+        );
 
         server.verify();
     }
 
     @Test
-    void shouldRejectTenantScopeWhenGovernanceDenies() {
+    void shouldRejectAuthorizationWhenGovernanceDenies() {
         GovernanceHttpClient client = createClient();
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         setProtectedRequestContext();
-        server.expect(requestTo("http://governance.test/api/governance/internal/tenant-scope/check"))
-            .andRespond(withSuccess("{\"allowed\":false,\"reason\":\"tenant scope denied\"}", MediaType.APPLICATION_JSON));
-
-        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> client.assertTenantScope("tenant-a"));
-
-        assertEquals("tenant scope denied", ex.getMessage());
-        server.verify();
-    }
-
-    @Test
-    void shouldResolveAutoDatasourceMappingAndRejectDeniedAccess() {
-        GovernanceHttpClient client = createClient();
-        RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
-        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
-        setProtectedRequestContext();
-        server.expect(requestTo("http://governance.test/api/governance/internal/datasource-access/check"))
-            .andExpect(method(HttpMethod.POST))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"datasourceId\":\"query-hetu\"")))
+        server.expect(requestTo("http://governance.test/api/governance/internal/authorization/decide"))
             .andRespond(withSuccess(
                 "{\"allowed\":false,\"reason\":\"datasource denied\",\"errorCode\":403,"
-                    + "\"contractStage\":\"LONG_TERM_BASELINE\",\"implementationStage\":\"REAL\"}",
+                    + "\"contractStage\":\"LONG_TERM_BASELINE\",\"implementationStage\":\"AUTHORIZATION_MATRIX_BASELINE\"}",
                 MediaType.APPLICATION_JSON
             ));
 
         AccessDeniedException ex = assertThrows(
             AccessDeniedException.class,
-            () -> client.assertDatasourceAccess("tenant-a", null)
+            () -> client.assertAuthorization(
+                "tenant-a",
+                null,
+                "QUERY_EXECUTION_QUERY",
+                "query-001",
+                "QUERY_EXECUTE_SYNC"
+            )
         );
 
         assertEquals("datasource denied", ex.getMessage());
@@ -132,7 +124,13 @@ class GovernanceHttpClientTest {
 
         BizException ex = assertThrows(
             BizException.class,
-            () -> client.assertDatasourceAccess("tenant-a", DataSourceTypeEnum.HIVE)
+            () -> client.assertAuthorization(
+                "tenant-a",
+                DataSourceTypeEnum.HIVE,
+                "QUERY_EXECUTION_QUERY",
+                "query-001",
+                "QUERY_EXECUTE_SYNC"
+            )
         );
 
         assertEquals(ErrorCodeConstants.SYSTEM_CONFIG_INVALID, ex.getCode());
@@ -145,10 +143,19 @@ class GovernanceHttpClientTest {
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         setProtectedRequestContext();
-        server.expect(requestTo("http://governance.test/api/governance/internal/tenant-scope/check"))
+        server.expect(requestTo("http://governance.test/api/governance/internal/authorization/decide"))
             .andRespond(withServerError());
 
-        BizException ex = assertThrows(BizException.class, () -> client.assertTenantScope("tenant-a"));
+        BizException ex = assertThrows(
+            BizException.class,
+            () -> client.assertAuthorization(
+                "tenant-a",
+                DataSourceTypeEnum.HETU,
+                "QUERY_EXECUTION_QUERY",
+                "query-001",
+                "QUERY_EXECUTE_SYNC"
+            )
+        );
 
         assertEquals(ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID, ex.getCode());
         assertEquals("Governance capability route is unavailable", ex.getMessage());
@@ -161,7 +168,16 @@ class GovernanceHttpClientTest {
         properties.setBaseUrl(" ");
         GovernanceHttpClient client = new GovernanceHttpClient(new RestTemplateBuilder(), properties);
 
-        BizException ex = assertThrows(BizException.class, () -> client.assertTenantScope("tenant-a"));
+        BizException ex = assertThrows(
+            BizException.class,
+            () -> client.assertAuthorization(
+                "tenant-a",
+                DataSourceTypeEnum.HETU,
+                "QUERY_EXECUTION_QUERY",
+                "query-001",
+                "QUERY_EXECUTE_SYNC"
+            )
+        );
 
         assertEquals(ErrorCodeConstants.SYSTEM_CONFIG_INVALID, ex.getCode());
         assertEquals("query-execution governance baseUrl is not configured", ex.getMessage());
@@ -169,47 +185,43 @@ class GovernanceHttpClientTest {
 
     @Test
     void shouldExposeGovernanceContractBeans() {
-        GovernanceHttpClient.TenantScopeCheckRequest tenantRequest = new GovernanceHttpClient.TenantScopeCheckRequest();
-        tenantRequest.setTenantId("tenant-a");
-        tenantRequest.setTargetTenantId("tenant-b");
-        assertEquals("tenant-a", tenantRequest.getTenantId());
-        assertEquals("tenant-b", tenantRequest.getTargetTenantId());
+        GovernanceAuthorizationDecisionRequest authorizationRequest = new GovernanceAuthorizationDecisionRequest();
+        authorizationRequest.setServiceCode("QUERY_EXECUTION");
+        authorizationRequest.setTenantId("tenant-a");
+        authorizationRequest.setResourceType("QUERY_EXECUTION_QUERY");
+        authorizationRequest.setResourceId("query-001");
+        authorizationRequest.setOperationCode("QUERY_EXECUTE_SYNC");
+        authorizationRequest.setDatasourceId("query-hetu");
+        assertEquals("QUERY_EXECUTION", authorizationRequest.getServiceCode());
+        assertEquals("tenant-a", authorizationRequest.getTenantId());
+        assertEquals("QUERY_EXECUTION_QUERY", authorizationRequest.getResourceType());
+        assertEquals("query-001", authorizationRequest.getResourceId());
+        assertEquals("QUERY_EXECUTE_SYNC", authorizationRequest.getOperationCode());
+        assertEquals("query-hetu", authorizationRequest.getDatasourceId());
 
-        GovernanceHttpClient.TenantScopeCheckResponse tenantResponse = new GovernanceHttpClient.TenantScopeCheckResponse();
-        tenantResponse.setTenantId("tenant-a");
-        tenantResponse.setTargetTenantId("tenant-b");
-        tenantResponse.setAllowed(true);
-        tenantResponse.setReason("ok");
-        assertEquals("tenant-a", tenantResponse.getTenantId());
-        assertEquals("tenant-b", tenantResponse.getTargetTenantId());
-        assertEquals(true, tenantResponse.isAllowed());
-        assertEquals("ok", tenantResponse.getReason());
+        GovernanceAuthorizationDecisionResponse authorizationResponse = new GovernanceAuthorizationDecisionResponse();
+        authorizationResponse.setTenantId("tenant-a");
+        authorizationResponse.setResourceType("QUERY_EXECUTION_QUERY");
+        authorizationResponse.setResourceId("query-001");
+        authorizationResponse.setOperationCode("QUERY_EXECUTE_SYNC");
+        authorizationResponse.setDatasourceId("query-hetu");
+        authorizationResponse.setAllowed(false);
+        authorizationResponse.setReason("denied");
+        authorizationResponse.setErrorCode(Integer.valueOf(403));
+        authorizationResponse.setContractStage("LONG_TERM_BASELINE");
+        authorizationResponse.setImplementationStage("AUTHORIZATION_MATRIX_BASELINE");
+        assertEquals("tenant-a", authorizationResponse.getTenantId());
+        assertEquals("QUERY_EXECUTION_QUERY", authorizationResponse.getResourceType());
+        assertEquals("query-001", authorizationResponse.getResourceId());
+        assertEquals("QUERY_EXECUTE_SYNC", authorizationResponse.getOperationCode());
+        assertEquals("query-hetu", authorizationResponse.getDatasourceId());
+        assertEquals(false, authorizationResponse.isAllowed());
+        assertEquals("denied", authorizationResponse.getReason());
+        assertEquals(Integer.valueOf(403), authorizationResponse.getErrorCode());
+        assertEquals("LONG_TERM_BASELINE", authorizationResponse.getContractStage());
+        assertEquals("AUTHORIZATION_MATRIX_BASELINE", authorizationResponse.getImplementationStage());
 
-        GovernanceHttpClient.DatasourceAccessCheckRequest datasourceRequest =
-            new GovernanceHttpClient.DatasourceAccessCheckRequest();
-        datasourceRequest.setTenantId("tenant-a");
-        datasourceRequest.setDatasourceId("query-hetu");
-        assertEquals("tenant-a", datasourceRequest.getTenantId());
-        assertEquals("query-hetu", datasourceRequest.getDatasourceId());
-
-        GovernanceHttpClient.DatasourceAccessCheckResponse datasourceResponse =
-            new GovernanceHttpClient.DatasourceAccessCheckResponse();
-        datasourceResponse.setTenantId("tenant-a");
-        datasourceResponse.setDatasourceId("query-hetu");
-        datasourceResponse.setAllowed(false);
-        datasourceResponse.setReason("denied");
-        datasourceResponse.setErrorCode(Integer.valueOf(403));
-        datasourceResponse.setContractStage("LONG_TERM_BASELINE");
-        datasourceResponse.setImplementationStage("REAL");
-        assertEquals("tenant-a", datasourceResponse.getTenantId());
-        assertEquals("query-hetu", datasourceResponse.getDatasourceId());
-        assertEquals(false, datasourceResponse.isAllowed());
-        assertEquals("denied", datasourceResponse.getReason());
-        assertEquals(Integer.valueOf(403), datasourceResponse.getErrorCode());
-        assertEquals("LONG_TERM_BASELINE", datasourceResponse.getContractStage());
-        assertEquals("REAL", datasourceResponse.getImplementationStage());
-
-        GovernanceHttpClient.AuditWriteRequest auditWriteRequest = new GovernanceHttpClient.AuditWriteRequest();
+        GovernanceAuditWriteRequest auditWriteRequest = new GovernanceAuditWriteRequest();
         auditWriteRequest.setServiceCode("QUERY_EXECUTION");
         auditWriteRequest.setOperationCode("QUERY_EXECUTE_SYNC");
         auditWriteRequest.setResourceType("QUERY");

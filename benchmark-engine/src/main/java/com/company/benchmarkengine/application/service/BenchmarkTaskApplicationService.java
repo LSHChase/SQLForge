@@ -64,8 +64,7 @@ public class BenchmarkTaskApplicationService {
                 UUID.randomUUID().toString(),
                 submittedAt
             );
-            governanceCapabilityClient.assertTenantScope(task.getTenantId());
-            assertDatasourceAccess(task.getTenantId(), task.getTargetEngines());
+            assertAuthorization(task.getTenantId(), task.getTaskId(), task.getTargetEngines(), SUBMIT_OPERATION);
             benchmarkTaskRepository.saveTask(task);
             logStateChange(
                 SUBMIT_OPERATION,
@@ -118,8 +117,7 @@ public class BenchmarkTaskApplicationService {
                 );
             }
             verifyTenantAccess(task.getTenantId(), "Authenticated tenant cannot access this benchmark task");
-            governanceCapabilityClient.assertTenantScope(task.getTenantId());
-            assertDatasourceAccess(task.getTenantId(), task.getTargetEngines());
+            assertAuthorization(task.getTenantId(), taskId, task.getTargetEngines(), QUERY_OPERATION);
             BenchmarkTaskStatusResponse response = benchmarkTaskModelApplicationService.buildStatusResponse(task);
             logEnd(QUERY_OPERATION, taskId, task.getTenantId(), start, task.getStatus().name());
             writeAuditRecord(
@@ -202,13 +200,28 @@ public class BenchmarkTaskApplicationService {
         }
     }
 
-    private void assertDatasourceAccess(String tenantId, List<DataSourceTypeEnum> targetEngines) {
+    private void assertAuthorization(String tenantId,
+                                     String resourceId,
+                                     List<DataSourceTypeEnum> targetEngines,
+                                     String operationCode) {
         if (targetEngines == null || targetEngines.isEmpty()) {
-            governanceCapabilityClient.assertDatasourceAccess(tenantId, DataSourceTypeEnum.HETU);
+            governanceCapabilityClient.assertAuthorization(
+                tenantId,
+                DataSourceTypeEnum.HETU,
+                RESOURCE_TYPE_TASK,
+                resourceId,
+                operationCode
+            );
             return;
         }
         for (DataSourceTypeEnum targetEngine : targetEngines) {
-            governanceCapabilityClient.assertDatasourceAccess(tenantId, targetEngine);
+            governanceCapabilityClient.assertAuthorization(
+                tenantId,
+                targetEngine,
+                RESOURCE_TYPE_TASK,
+                resourceId,
+                operationCode
+            );
         }
     }
 

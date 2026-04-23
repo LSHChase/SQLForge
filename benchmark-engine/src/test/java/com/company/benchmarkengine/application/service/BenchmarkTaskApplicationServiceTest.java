@@ -77,7 +77,13 @@ class BenchmarkTaskApplicationServiceTest {
         String taskId = service.submitTask(baseRequest("SELECT * FROM orders")).getTaskId();
         service.getTaskStatus(taskId);
 
-        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertTenantScope("tenant-a");
+        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertAuthorization(
+            org.mockito.Mockito.eq("tenant-a"),
+            org.mockito.Mockito.any(),
+            org.mockito.Mockito.eq("BENCHMARK_ENGINE_TASK"),
+            org.mockito.Mockito.anyString(),
+            org.mockito.Mockito.anyString()
+        );
         verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).writeAudit(any());
     }
 
@@ -92,8 +98,7 @@ class BenchmarkTaskApplicationServiceTest {
 
     private GovernanceCapabilityClient mockGovernanceClient() {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
-        doNothing().when(governanceCapabilityClient).assertTenantScope(any());
-        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any());
+        doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         return governanceCapabilityClient;
     }

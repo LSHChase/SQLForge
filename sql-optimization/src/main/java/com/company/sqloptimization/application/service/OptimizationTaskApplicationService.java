@@ -59,9 +59,14 @@ public class OptimizationTaskApplicationService {
         logSubmitStart(request, normalizedFingerprint);
         try {
             validateCallbackUrl(request);
-            governanceCapabilityClient.assertTenantScope(request.getTenantId());
-            governanceCapabilityClient.assertDatasourceAccess(request.getTenantId(), request.getDatasourceType());
             request.setSqlFingerprint(normalizedFingerprint);
+            governanceCapabilityClient.assertAuthorization(
+                request.getTenantId(),
+                request.getDatasourceType(),
+                RESOURCE_TYPE_TASK,
+                normalizedFingerprint,
+                SUBMIT_OPERATION
+            );
             Instant submittedAt = Instant.now();
             OptimizationTask task = optimizationTaskModelApplicationService.createQueuedTask(
                 request,
@@ -120,8 +125,13 @@ public class OptimizationTaskApplicationService {
                 );
             }
             verifyTenantAccess(task.getTenantId());
-            governanceCapabilityClient.assertTenantScope(task.getTenantId());
-            governanceCapabilityClient.assertDatasourceAccess(task.getTenantId(), task.getDatasourceType());
+            governanceCapabilityClient.assertAuthorization(
+                task.getTenantId(),
+                task.getDatasourceType(),
+                RESOURCE_TYPE_TASK,
+                taskId,
+                QUERY_OPERATION
+            );
             OptimizationTaskStatusResponse response = optimizationTaskModelApplicationService.buildStatusResponse(task);
             logEnd(QUERY_OPERATION, taskId, task.getTenantId(), start, task.getStatus().name());
             writeAuditRecord(
