@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-033: 补齐测试环境最小 smoke 门禁
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `ops(smoke): add minimal test-environment smoke gate`
+- Priority: 1
+- Depends on: `F-TASK-032`
+- Scope: 提供环境无关的最小 smoke 入口，供外部测试环境 CI/CD 在部署后执行四个后端 health、前端可达性、query/sql-optimization/benchmark 到 governance 的最小业务链路，以及受保护请求头有效性验证；本地 runtime smoke 契约保持不变 Tech: `OPS`,`DOCS`. Layer: `deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-F / Story `F-STORY-005` 发布门禁自动化与稳定性收口
+- Human confirmation point: 若要把测试环境 minimal smoke 升级为仓库 repo-closed 主路径替代项、重新引入对测试环境内部 DB/容器的强绑定，或要求外部环境 owner 接受新的破坏式认证/访问前提，需人工确认
+- Data impact: 环境无关 smoke 脚本、外部测试环境 CI/CD 接入方式、health/API 断言语义与部署文档真值
+- Rollback / recovery: 保留新增入口为 environment-backed 部署后验证层，回退对外部环境的强绑定假设，并继续维持本地 runtime smoke 作为 repo-closed 主路径
+- Validation:
+  - `python3 scripts/foreman.py validate F-TASK-033`、`python3 scripts/task_audit.py --check --phase pre-closeout`、`bash scripts/run-env-smoke.sh --help`、`bash scripts/run-env-smoke.sh --check-config`、`bash scripts/run-runtime-smoke.sh --compose-check`、`node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/foreman.py validate F-TASK-033`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added an environment-agnostic minimal smoke entrypoint for external test-environment CI/CD, introduced shared smoke HTTP/JSON helpers reused by the existing manual governance smokes, and synchronized plan/truth/deployment/local-development docs so test-environment minimal smoke is explicitly separated from repo-closed runtime smoke and Sonar/Kafka fallback semantics; task numbering was intentionally advanced to F-TASK-033 because historical F-TASK-032 already exists and could not be rewritten.
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-033; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js; bash scripts/run-runtime-smoke.sh --compose-check; bash scripts/run-env-smoke.sh --help; bash scripts/run-env-smoke.sh --check-config; FRONTEND_BASE_URL=http://localhost:3001 bash scripts/run-env-smoke.sh; bash -n scripts/smoke-lib.sh scripts/run-env-smoke.sh scripts/manual-query-governance-smoke.sh scripts/manual-sql-optimization-governance-smoke.sh scripts/manual-benchmark-governance-smoke.sh
+  - Residual risk: The repository now provides the minimal test-environment smoke entrypoint, but the external test environment still has an independent owner and no Codex runtime; it only gains a real deployment-after-smoke closure once that owner wires scripts/run-env-smoke.sh into its CI/CD and preserves execution evidence.
+  - Next step: Have the external test-environment owner call bash scripts/run-env-smoke.sh after deployment and archive the resulting logs/status as environment-backed smoke evidence; no repository-side mainline task remains after this closeout.
+
 ### HARN-011: Reconcile F-TASK-032 post-closeout drift
 
 - Status: done

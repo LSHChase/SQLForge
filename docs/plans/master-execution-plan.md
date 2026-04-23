@@ -108,7 +108,7 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-F / F-STORY-005`
-- 当前活跃目标：`F-TASK-032` 已完成；当前仓库主线已无活动中的 repository mainline task，`HARN-011` 仅用于修正 closeout 后计划/基线漂移，不改变既有 repo-closed / environment-backed 真值
+- 当前活跃目标：`F-TASK-033` 已完成；当前仓库主线已无活动中的 repository mainline task，`HARN-011` 仅用于修正 `F-TASK-032` closeout 后计划/基线漂移，不改变既有 repo-closed / environment-backed 真值
 - 当前下一条可执行主线任务：
   - `_None in repository mainline; only environment-backed follow-up remains in INBOX-001._`
 - 说明：
@@ -119,8 +119,9 @@
   - `F-TASK-029` 已把发布链自动触发、coverage 阻断语义与 Sonar-required 失败语义写成当时仓库真值；`F-TASK-030` 已把 `phase1plus` 聚合覆盖率提升到 `86.9763%`，并保留 Sonar / release gate 接线成果。
   - `F-TASK-031` 已在不重写 `F-TASK-030` 历史完成记录的前提下吸收其 residual risk：把 Sonar 与真实 Kafka 从“默认强制门禁”降级为环境增强 fallback，并显式建立 `repo-closed` 主路径与 `environment-backed` 增强项的当前仓库真值。
   - `F-TASK-032` 已完成后续治理修正：收口了 `F-TASK-031` 复盘中发现的隐性自动恢复接线，包括 release workflow 的 `quality-gate` environment 默认绑定，以及主 CI 在仅有 Sonar secrets 时就自动重新强制扫描的问题。
+  - `F-TASK-033` 已补齐外部测试环境部署后的最小 smoke 入口：仓库新增环境无关的 `scripts/run-env-smoke.sh`、测试环境 smoke 基线文档，以及与 CI / phase gate / local development / truth baseline 一致的语义说明；该任务按顺延编号处理，因为 `F-TASK-032` 已被既有 Sonar 治理任务占用，不能重写历史结论。
   - `HARN-011` 只用于修正 `F-TASK-032` closeout 后遗留的 active-wave / follow-up 措辞漂移，不改变 `F-TASK-032` 的历史完成结论，也不引入新的仓库主线实现范围。
-  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；除非人类决定恢复强制 Sonar 门禁，否则 `Phase-F / F-STORY-005` 在仓库主线路径上已无新的活动 Task。
+  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；当前测试环境 minimal smoke 已形成独立入口，但仍由外部环境 owner 负责接线与持续执行；除非人类决定恢复强制 Sonar 门禁或追加新的 environment-backed follow-up，否则 `Phase-F / F-STORY-005` 在仓库主线路径上已无新的活动 Task。
 
 ## 5. Traceability Matrix
 
@@ -572,6 +573,7 @@ Tasks:
 | `F-TASK-030` | 提升覆盖率并补齐 Sonar 发布环境 | phase1plus 覆盖率提升到 85%+、补齐 Sonar secrets / 发布环境接线、验证自动 release gate 可稳定放行 | `F-TASK-029` | coverage phase1plus 达标、Sonar-required path 可运行、release gate 通过 |
 | `F-TASK-031` | 将 Sonar 与环境级门禁降级为 fallback，并建立双层门禁语义 | 把仓库主线固定为 repo-closed 门禁，把 Sonar / real Kafka / 环境级发布验证重述为 environment-backed fallback，修正 workflow 默认值、R-117 和相关文档真值 | `F-TASK-030` | phase gate/release gate 默认不再强制 Sonar 或真实 Kafka，且 repo-closed 与 environment-backed 语义在脚本、workflow、文档、台账一致 |
 | `F-TASK-032` | 去除 Sonar fallback 的隐性自动恢复接线，并分离 provisioning / enable 语义 | 修正 release workflow 的默认 environment 绑定与主 CI 的 Sonar 自动触发条件，明确“环境已 provision”不等于“治理已启用强制 Sonar”，同步 runbook、INBOX 与部署基线 | `F-TASK-031` | release/CI workflow 默认不因已有 Sonar 环境自动升级为阻断；文档、INBOX、workflow 对 provisioning 与 enable 语义一致 |
+| `F-TASK-033` | 补齐测试环境最小 smoke 门禁 | 提供环境无关的最小 smoke 入口给外部测试环境 CI/CD 调用，覆盖四个后端 health、前端可达性、query/sql-optimization/benchmark 到 governance 的最小业务链路，以及受保护请求头有效性验证；保持本地 runtime smoke 不变 | `F-TASK-032` | 环境无关 smoke 脚本、帮助/参数校验、最小本地验证、repo-closed 与 test-environment smoke 文档语义一致 |
 
 ## 7. Verification Matrix
 

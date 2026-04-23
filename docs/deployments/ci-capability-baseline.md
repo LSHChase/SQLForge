@@ -18,6 +18,7 @@
 - Supporting entry points:
   - `Makefile`
   - `scripts/run-coverage.sh`
+  - `scripts/run-env-smoke.sh`
   - `scripts/run-sonar.sh`
   - `scripts/lint-repository-knowledge.js`
   - `scripts/check-frontend-backend-separation.js`
@@ -85,6 +86,7 @@
 | Phase gate coverage thresholds | `bash scripts/run-coverage.sh --phase phase0|phase1plus` | workflow 只调用了 `report-only`，未启用阈值阻断 |
 | Foreman task validation | `python3 scripts/foreman.py validate <TASK_ID>` | 当前 workflow 仍未做任务级 validate 编排 |
 | Codex runtime validation | `python3 scripts/validate_codex_runtime.py` | 当前 workflow 未调用 |
+| Test-environment minimal smoke | `bash scripts/run-env-smoke.sh` | 供外部测试环境独立 CI/CD 在部署后调用；当前仓库内 GitHub Actions 未直接触发 |
 ## Current Gaps
 
 以下缺口属于当前 CI 基线的残余事实，不是“已经接入”的事实：
@@ -95,7 +97,7 @@
 4. Sonar 已降为“仓库保留接线、外部 provisioning + 显式 enable 可恢复”的 fallback 项；缺少 `SONAR_HOST_URL` / `SONAR_TOKEN` 不再构成仓库默认发布阻断，且仅 provisioning 不会自动把 Sonar 升回主线阻断；若显式要求 `--require-config` 仍会失败并留下恢复证据。
 5. 默认 browser runtime smoke 已覆盖前端 `sql-query`、`acceleration`、`benchmark`、`system` 与治理历史/修复链路的真实业务请求、失败恢复、审计补偿可视化与修复动作；剩余缺口已收敛为更多历史/取证页面尚未进入默认浏览器 smoke。
 6. 真实 Kafka gate 已可运行，但仍依赖 runner 具备 Docker 资源、compose 拉镜像权限与可用端口，因此被保留为 environment-backed fallback，而不是 repo-closed 默认门禁。
-7. 仓库外测试环境虽有独立 CI/CD，但当前未提供仓库口径的 smoke / runtime gate 证据，因此不能视为完整替代仓库闭环门禁。
+7. 仓库已新增环境无关的 `bash scripts/run-env-smoke.sh` 作为测试环境 minimal smoke 入口，但外部测试环境 CI/CD 仍需由独立 owner 显式接入并保留执行证据；在此之前，测试环境仍不能被视为完整替代仓库闭环门禁。
 8. 当前 workflow 继续使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
 
 ## Recommended Follow-Up Mapping
@@ -109,6 +111,7 @@
 | `F-TASK-012` | 已完成：把 `query-execution -> governance` 真实业务 smoke、失败恢复路径与审计补偿验证并入默认 runtime gate |
 | `F-TASK-013` | 已完成：把 `sql-optimization -> governance`、`benchmark-engine -> governance` 真实业务 smoke、失败恢复路径与审计补偿验证并入默认 runtime gate |
 | `F-TASK-014` | 已完成：把前端 `sql-query`、`acceleration`、`benchmark` 真实业务请求与浏览器级 smoke 并入默认 runtime gate |
+| `F-TASK-033` | 已完成：新增环境无关的测试环境 minimal smoke 入口，供外部测试环境 CI/CD 在部署后调用最小 health/API/前端可达性验证 |
 
 ## Exit Criteria For F-TASK-004
 
@@ -126,3 +129,4 @@
 - [Master Execution Plan](/models/project/codex/SQLForge/docs/plans/master-execution-plan.md)
 - [Phase-F Story-003 Delivery Closeout](/models/project/codex/SQLForge/docs/deliveries/phase-f-story-003-ops-closeout.md)
 - [Sonar Quality Gate Provisioning](/models/project/codex/SQLForge/docs/deployments/sonar-quality-gate-provisioning.md)
+- [Test Environment Smoke Baseline](/models/project/codex/SQLForge/docs/deployments/test-environment-smoke-baseline.md)

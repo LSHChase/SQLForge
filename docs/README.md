@@ -40,6 +40,7 @@
    - [本地部署指南](./deployments/local-setup.md)
    - [离线部署指南](./deployments/offline-setup.md)
    - [华为云部署指南](./deployments/huawei-cloud-setup.md)
+   - [测试环境 smoke 基线](./deployments/test-environment-smoke-baseline.md)
    - [可观测基线](./deployments/observability-baseline.md)
    - [备份恢复基线](./deployments/backup-recovery-baseline.md)
    - [CI 能力基线](./deployments/ci-capability-baseline.md)
@@ -109,6 +110,7 @@
   Codex 项目级配置、hooks、policy 编译产物与运行态状态目录；这些文件不替代 `docs/` 真值。
 - `deployments/`
   本地与目标环境部署说明。
+  - `test-environment-smoke-baseline.md`：外部测试环境独立 CI/CD 的最小部署后 smoke 入口、覆盖范围与证据边界。
   - `observability-baseline.md`：当前 logs/metrics/alerts 运维落地清单与缺口基线。
   - `backup-recovery-baseline.md`：当前备份对象、恢复目标与演练模板基线。
   - `ci-capability-baseline.md`：当前 GitHub Actions CI 覆盖、缺口与后续门禁接入映射。
@@ -129,6 +131,7 @@
 - 任何不确定、冲突、缺失或无法从当前仓库事实证明的内容，都不得擅自补写为既成事实，必须转入人工决定或补充流程。
 - 任何任务都不得以“压缩上下文”或“快速交付”为由丢失需求原文、验证证据、历史记录、任务状态或文档同步项。
 - 当前仓库门禁默认采用 `repo-closed` 主路径：build/test/lint、coverage、db-script、runtime smoke、knowledge lint 与 compliance baseline 仍是主线。Sonar、真实 Kafka 与外部测试环境 CI/CD 仅作为 `environment-backed` 增强项，不能替代仓库闭环。
+- 当前已新增测试环境 minimal smoke 入口，用于外部测试环境 CI/CD 在部署后执行最小可运行验证；但它仍属于 `environment-backed` 部署后验证层，不替代仓库 `repo-closed` 主路径。
 - 任务完成后的 Harness Engineering 动作以“上下文收缩 + 上下文清理”为准；`/contract`、`/clear` 若当前环境支持，可作为可选实现手段，但不是唯一工程要求，具体见 `R-168`。
 - 正式业务首页 `/dashboard` 保留为产品功能页面；若后续实现 AI 交付进度页，按 `R-166` 作为独立临时子页面处理，且生产环境默认隐藏。
 

@@ -102,7 +102,8 @@
   - `docs/deployments/ci-capability-baseline.md` 已把 `.github/workflows/ci.yml` 当前覆盖的 lint/build/test/scan/runtime smoke 能力，以及尚未进入 CI 的 phase gate / task audit / 更广泛运行时验证缺口收口为正式文档
   - `docs/deployments/phase-gate-baseline.md` 已把 `task_audit`、`compile-governance --check`、`workflow_dispatch` phase gate、`checkpoint/*` / `release.published` 自动 release gate，以及 `repo-closed` 主路径与 `environment-backed` fallback 的当前门禁语义收口为正式文档
   - 当前仓库门禁主路径仍以内建的 build/test/lint、coverage、db-script、runtime smoke、knowledge lint 与 compliance baseline 为准；Sonar 与真实 Kafka gate 继续保留脚本和 workflow，但默认仅作为环境增强 fallback，不再代表仓库默认硬阻断；Sonar 还额外显式分离了 provisioning 与 enable 语义，避免 secrets / environment 一就绪就自动恢复强制扫描
-  - 测试环境虽已有独立 CI/CD，但因尚未提供与仓库同口径的 smoke / runtime gate 闭环证据，当前只能作为补充环境验证，不能替代仓库 `repo-closed` 主路径
+  - 仓库已新增 `scripts/run-env-smoke.sh`，用于外部测试环境 CI/CD 在部署后执行环境无关的最小 smoke；该入口覆盖 4 个后端 health、前端可达性、3 条最小业务链路与受保护请求头有效性验证，但仍属于 `environment-backed` 部署后验证层
+  - 测试环境虽已有独立 CI/CD，但只有在外部环境 owner 实际调用 `scripts/run-env-smoke.sh` 并保留证据后，才具备最小 smoke 闭环；在此之前仍不能替代仓库 `repo-closed` 主路径
 - 当前前端业务页已消费多服务治理能力：
   - `src/services/runtimeGateApi.js` 已统一承接 `query-execution` 查询执行、`sql-optimization` 任务提交/轮询、`benchmark-engine` 任务与报告查询、`governance` 的 tenant-config、message stats/retry、history summaries/lookups/detail 等 HTTP 入口
   - `SqlQueryView`、`AccelerationView`、`BenchmarkView`、`SystemView`、`ParseRecordView`、`RepairEvidenceView`、`AuditForensicsView`、`AuditTroubleshootingView` 已直接消费上述已交付后端能力，而不再停留在纯展示壳层
@@ -168,7 +169,7 @@
 - `Phase-F` 的自动 release gate 已接入 `checkpoint/*` tag 与 `release.published` 元数据，`phase1plus` 聚合覆盖率现已提升到 `86.9763%` 并达到 85% 门槛；当前仓库默认路径已回到 `repo-closed` 语义，Sonar 外部 secrets / vars / 可选 GitHub Actions environment provisioning 转为 `environment-backed` fallback 恢复项，由 `INBOX-001` 跟踪，且 provisioning 本身不再等于默认自动启用 Sonar。
 - 访问控制当前仍是“最小租户校验基线”，尚未形成完整角色矩阵和数据源授权实现。
 - `KAFKA` 模式虽已接入真实客户端，但尚未沉淀真实 Kafka 集群运行验证、鉴权和安全参数配置证据；相关真实 Kafka gate 仍作为 `environment-backed` 增强项保留，不再是仓库默认闭环门禁。
-- 外部测试环境 CI/CD 仍缺少仓库主路径要求的 smoke / runtime gate，因此不能被写成完整替代仓库闭环门禁的事实。
+- 仓库已提供环境无关的测试环境 minimal smoke 入口，但外部测试环境 CI/CD 仍需由独立 owner 接入并保留部署后执行证据；在形成该证据前，测试环境不能被写成完整替代仓库闭环门禁的事实。
 - 治理扩展点当前仍以租户范围、数据源访问、审计写入、调度状态契约为主，未演进为完整治理中心能力。
 - 前端已落成 `/dashboard` 驾驶舱、`/sql-query`、`/acceleration`、`/benchmark`、`/system` 与治理历史/治理运维扩展路由；当前剩余缺口已从“页面壳层缺失”转为“真值归档、能力收口与后续运行时覆盖补齐”。
 

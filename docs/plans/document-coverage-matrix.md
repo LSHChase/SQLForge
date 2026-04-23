@@ -28,6 +28,7 @@
 | `docs/deployments/local-setup.md` | Authority | 本地部署与健康检查 | Consumed | 本地环境、smoke、脚本说明 |
 | `docs/deployments/offline-setup.md` | Authority | 离线部署 | Consumed | 部署文档统一基线 |
 | `docs/deployments/huawei-cloud-setup.md` | Authority | 华为云私有云部署 | Consumed | 生产部署与 `KAFKA` 模式切换 |
+| `docs/deployments/test-environment-smoke-baseline.md` | Authority | 外部测试环境部署后 minimal smoke 入口、覆盖范围与证据边界 | Consumed | `F-TASK-033` 的环境无关 smoke 入口、外部 CI/CD 调用方式与 repo-closed 边界权威落点 |
 | `docs/deployments/observability-baseline.md` | Authority | 当前 logs/metrics/alerts 运维落地清单 | Consumed | `F-TASK-007` 的可观测基线、实现映射与缺口权威落点 |
 | `docs/deployments/backup-recovery-baseline.md` | Authority | 当前备份对象、恢复目标与演练模板基线 | Consumed | `F-TASK-008` 的恢复基线、责任分工与验收模板权威落点 |
 | `docs/deployments/ci-capability-baseline.md` | Authority | 当前 GitHub Actions CI 覆盖与缺口基线 | Consumed | `F-TASK-004` 的 CI 盘点、门禁缺口与后续任务范围权威落点 |

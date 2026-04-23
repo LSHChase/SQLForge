@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/smoke-lib.sh"
+
 BENCHMARK_ENGINE_API_BASE_URL="${BENCHMARK_ENGINE_API_BASE_URL:-http://localhost:8083}"
 GOVERNANCE_API_BASE_URL="${GOVERNANCE_API_BASE_URL:-http://localhost:8080}"
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-sqlforge-mysql}"
@@ -35,97 +38,10 @@ Options:
 EOF
 }
 
-require_command() {
-  if ! command -v "$1" >/dev/null 2>&1; then
-    echo "Missing required command: $1" >&2
-    exit 1
-  fi
-}
-
 mysql_exec() {
   local sql="$1"
   docker exec "${MYSQL_CONTAINER}" sh -lc \
     "mysql -N -B -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} -e \"$sql\""
-}
-
-print_step() {
-  printf '\n[%s] %s\n' "$(date '+%H:%M:%S')" "$1"
-}
-
-build_protected_headers() {
-  local request_id="$1"
-  local trace_id="$2"
-  local issued_at="$3"
-  local expires_at="$4"
-
-  printf '%s\n' \
-    "-H" "X-Tenant-Id: ${REQUEST_TENANT_ID}" \
-    "-H" "X-User-Id: ${REQUEST_USER_ID}" \
-    "-H" "X-Role-Codes: ${REQUEST_ROLE_CODES}" \
-    "-H" "X-Request-Id: ${request_id}" \
-    "-H" "X-Trace-Id: ${trace_id}" \
-    "-H" "X-Auth-Source: ${REQUEST_AUTH_SOURCE}" \
-    "-H" "X-Issued-At: ${issued_at}" \
-    "-H" "X-Expires-At: ${expires_at}" \
-    "-H" "Content-Type: application/json"
-}
-
-assert_post_json() {
-  local url="$1"
-  local body="$2"
-  shift 2
-  local status_code
-
-  status_code="$(curl -s -o /tmp/sqlforge-benchmark-smoke-response.out -w '%{http_code}' \
-    -X POST "$@" --data "${body}" "${url}")"
-  if [[ "${status_code}" != "200" ]]; then
-    echo "HTTP POST failed for ${url}, status=${status_code}" >&2
-    [[ -f /tmp/sqlforge-benchmark-smoke-response.out ]] && cat /tmp/sqlforge-benchmark-smoke-response.out >&2
-    exit 1
-  fi
-  cat /tmp/sqlforge-benchmark-smoke-response.out
-}
-
-assert_get_json() {
-  local url="$1"
-  shift
-  local status_code
-
-  status_code="$(curl -s -o /tmp/sqlforge-benchmark-smoke-response.out -w '%{http_code}' "$@" "${url}")"
-  if [[ "${status_code}" != "200" ]]; then
-    echo "HTTP GET failed for ${url}, status=${status_code}" >&2
-    [[ -f /tmp/sqlforge-benchmark-smoke-response.out ]] && cat /tmp/sqlforge-benchmark-smoke-response.out >&2
-    exit 1
-  fi
-  cat /tmp/sqlforge-benchmark-smoke-response.out
-}
-
-json_assert() {
-  local json_payload="$1"
-  local python_expr="$2"
-  JSON_PAYLOAD="${json_payload}" PYTHON_EXPR="${python_expr}" python3 - <<'PY'
-import json
-import os
-
-payload = json.loads(os.environ["JSON_PAYLOAD"])
-expression = os.environ["PYTHON_EXPR"]
-if not eval(expression, {"payload": payload}):
-    raise SystemExit(1)
-PY
-}
-
-json_extract() {
-  local json_payload="$1"
-  local python_expr="$2"
-  JSON_PAYLOAD="${json_payload}" PYTHON_EXPR="${python_expr}" python3 - <<'PY'
-import json
-import os
-
-payload = json.loads(os.environ["JSON_PAYLOAD"])
-expression = os.environ["PYTHON_EXPR"]
-value = eval(expression, {"payload": payload})
-print("" if value is None else value)
-PY
 }
 
 poll_terminal_status() {

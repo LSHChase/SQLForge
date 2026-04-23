@@ -17,6 +17,7 @@
   - `.github/workflows/release-phase-gate.yml`
 - Supporting scripts:
   - `scripts/run-phase-gates.sh`
+  - `scripts/run-env-smoke.sh`
   - `scripts/verify_compliance_baseline.py`
   - `scripts/task_audit.py`
   - `scripts/foreman.py`
@@ -49,7 +50,7 @@
    - 以仓库内可证明、可复跑的 build/test/lint、coverage、db-script、runtime smoke、knowledge lint、task audit、compliance baseline 为主路径。
    - 这是当前 closeout 与主线发布默认依赖的门禁层。
 2. `environment-backed`
-   - 包括 Sonar、真实 Kafka gate、外部测试环境 CI/CD 等依赖外部环境或额外 provisioning 的增强项。
+  - 包括 Sonar、真实 Kafka gate、外部测试环境 CI/CD 及其部署后 minimal smoke 等依赖外部环境或额外 provisioning 的增强项。
    - 这些能力继续保留，但默认不替代也不阻断 `repo-closed` 主路径；仅 provisioning 不会自动把它们升级回默认阻断。
 
 ### Already Blocking In Main CI
@@ -75,7 +76,7 @@
 - 阶段切换不是每次 push / PR 都发生。
 - 当前仓库的 `phase1plus` 覆盖率已达到 `86.9763%` 并满足 85% 门槛；仓库主线阻断继续以内建 repo gate 为准。
 - Sonar 与真实 Kafka 仍可在环境具备时单独拉起，但默认不再被 workflow 自动强绑；Sonar 还需显式 enable 才会重新进入默认 CI / release wiring。
-- 外部测试环境 CI/CD 因缺少仓库主路径所要求的 smoke / runtime gate，不能被视为完整替代仓库闭环。
+- 外部测试环境 CI/CD 即使已有独立流水线，也只能在额外调用 `bash scripts/run-env-smoke.sh` 并保留部署后证据后，才算具备最小 smoke；它仍不能替代仓库 `repo-closed` 主路径。
 
 ### Automatically Replaying Repo-Closed Gate On Release Metadata
 
@@ -101,7 +102,7 @@
 4. 自动 release gate 已消费发布元数据，但当前还未把 foreman 的 delivery write-back 记录直接反向注入 workflow 输入。
 5. 真实 Kafka gate 仍依赖外部 broker、Docker 资源与安全参数配置，当前继续保留为 environment-backed 增强项。
 6. `R-118` 虽已补入恢复基线、观测基线、Kafka gate 和脚本存在性校验，但仍不替代真实环境中的身份、授权、审计、加密、备份恢复演练。
-7. 外部测试环境 CI/CD 仍缺少仓库主路径的 smoke / runtime gate，因此不能被记为完整替代门禁。
+7. 仓库现已提供 `bash scripts/run-env-smoke.sh` 作为测试环境部署后 minimal smoke 入口，但外部测试环境 CI/CD 仍需由独立 owner 显式接入并保留证据；在此之前，不能被记为完整替代门禁。
 
 ## Follow-Up Mapping
 
@@ -111,6 +112,7 @@
 | `F-TASK-029` | 已完成：稳定 coverage 入口、修复导致 phase gate 误报的测试稳定性问题，并把 release metadata 自动触发链接入正式发布路径 |
 | `F-TASK-031` | 已完成：把 Sonar / 环境级门禁降级为 fallback，显式建立 repo-closed / environment-backed 双层门禁语义 |
 | `F-TASK-032` | 已完成：去除 Sonar fallback 的隐性自动恢复接线，显式分离 provisioning / enable 语义，避免 secrets / environment 一旦具备就自动回到默认硬阻断 |
+| `F-TASK-033` | 已完成：新增环境无关的测试环境 minimal smoke 入口，明确外部测试环境部署后验证的最小脚本入口与证据边界 |
 | Later hardening | 若未来要恢复 Sonar 或真实 Kafka 的默认强制语义，应通过新的环境恢复任务显式重启，不得直接覆写当前 repo-closed 真值 |
 
 ## Related Documents
@@ -119,3 +121,4 @@
 - [Validation Rules](/models/project/codex/SQLForge/docs/quality/validation-rules.md)
 - [Local Development](/models/project/codex/SQLForge/docs/operations/local-development.md)
 - [Sonar Quality Gate Provisioning](/models/project/codex/SQLForge/docs/deployments/sonar-quality-gate-provisioning.md)
+- [Test Environment Smoke Baseline](/models/project/codex/SQLForge/docs/deployments/test-environment-smoke-baseline.md)
