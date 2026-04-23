@@ -108,15 +108,15 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-F / F-STORY-005`
-- 当前活跃目标：`F-TASK-029` 已把 release metadata 自动门禁、coverage 阻断语义与 Sonar 必需配置约束收口为正式发布链；下一主线转为 coverage uplift / Sonar provisioning 的后续 hardening
+- 当前活跃目标：在 `phase1plus` 覆盖率已达标后，继续收口 Sonar 发布环境接线与自动 release gate 的最后外部阻断项
 - 当前下一条可执行主线任务：
-  - `待新增 follow-up task：coverage uplift / Sonar secrets provisioning`
+  - `F-TASK-030`
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成归档。
   - `F-TASK-001`、`F-TASK-002`、`F-TASK-003` 已完成部署文档、compose/脚本说明、环境提醒与恢复指引的真值修正。
   - `F-TASK-015`、`F-TASK-016` 已完成 `sql-optimization` 与 `benchmark-engine` 的持久化 carrier / scheduler 主线；`F-TASK-017` 至 `F-TASK-028` 也已把 browser runtime gate、治理历史链路、真实 Kafka gate 与 Phase-F 退出门禁推进到当前仓库真值。
-  - 当前剩余的高价值缺口不再是发布链自动化本身，而是 `phase1plus` 覆盖率从实测 `76.4047%` 提升到 `85%` 以上，以及在 CI/发布环境中补齐 Sonar secrets，使自动 release gate 从“可阻断”推进到“可稳定放行”。
+  - `F-TASK-029` 已把发布链自动触发、coverage 阻断语义与 Sonar-required 失败语义写成当前仓库真值；`F-TASK-030` 已把 `phase1plus` 聚合覆盖率提升到 `86.9763%`，并补上 `Phase Gate` 的 Sonar 环境注入与 `Release Phase Gate` 的 `quality-gate` environment 接线。当前剩余阻断项收敛为 GitHub 外部 secrets / environment 数据尚未在真实发布环境中完成配置。
 
 ## 5. Traceability Matrix
 
@@ -565,6 +565,7 @@ Tasks:
 | Task ID | Task | Scope | Dependencies | Verification |
 |:---|:---|:---|:---|:---|
 | `F-TASK-029` | 收口 release automation 与门禁稳定性 | 稳定 coverage 入口、明确 Sonar 强制约束、把 phase gate 绑定到 release metadata 自动触发链 | `F-TASK-027`,`F-TASK-028` | release gate workflow、coverage phase gate、Sonar-required path 通过 |
+| `F-TASK-030` | 提升覆盖率并补齐 Sonar 发布环境 | phase1plus 覆盖率提升到 85%+、补齐 Sonar secrets / 发布环境接线、验证自动 release gate 可稳定放行 | `F-TASK-029` | coverage phase1plus 达标、Sonar-required path 可运行、release gate 通过 |
 
 ## 7. Verification Matrix
 

@@ -163,7 +163,7 @@
 - SQL 优化服务已建立独立模块、提交/轮询 API、MySQL `optimization_task` 任务表和 scheduled worker 基线，但外部队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
 - Phase-D 核心追溯链已在 `governance` 内完成 schema、migration、entity 与 mapper XML 固化，且 `audit/write` 与 header-based stateless auth 已接入真实 `audit_log` 落库；当前敏感字段加密基线已进入共享组件和治理受保护持久化入口，但查询执行、SQL 优化、压测引擎等其他服务的主动上报链仍待后续任务补齐。
 - 当前虽已形成 observability 文档基线，且默认 runtime smoke 已覆盖 4 个后端服务与前端的真实启动探针，并验证 `query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 的治理检查、失败恢复与审计补偿链路，但仓库内仍未实现业务级 Micrometer 指标、仓库内 PrometheusRule / Alertmanager / Grafana 配置、以及统一日志采集 pipeline 模板。
-- `Phase-F` 的自动 release gate 已接入 `checkpoint/*` tag 与 `release.published` 元数据，但当前 `phase1plus` 聚合覆盖率实测仅 `76.4047%`，且 Sonar 仍依赖外部 secrets，因此正式发布链依然存在真实阻断项。
+- `Phase-F` 的自动 release gate 已接入 `checkpoint/*` tag 与 `release.published` 元数据，`phase1plus` 聚合覆盖率现已提升到 `86.9763%` 并达到 85% 门槛；当前残余阻断项主要收敛为 Sonar 外部 secrets / GitHub Actions environment provisioning。
 - 访问控制当前仍是“最小租户校验基线”，尚未形成完整角色矩阵和数据源授权实现。
 - `KAFKA` 模式虽已接入真实客户端，但尚未沉淀真实 Kafka 集群运行验证、鉴权和安全参数配置证据。
 - 治理扩展点当前仍以租户范围、数据源访问、审计写入、调度状态契约为主，未演进为完整治理中心能力。

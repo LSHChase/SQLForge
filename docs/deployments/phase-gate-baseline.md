@@ -35,9 +35,9 @@
 | Entry gate script | `scripts/run-phase-gates.sh --gate entry` 会执行 `task_audit`、`compile-governance --check`、`lint-repository-knowledge.js` | `scripts/run-phase-gates.sh` |
 | Delivery gate script | `scripts/run-phase-gates.sh --gate delivery` 会执行数据库脚本可执行检查、`mvn -B clean install`、覆盖率、Sonar、前端 lint/build 和仓库知识检查 | `scripts/run-phase-gates.sh`, `scripts/verify-db-scripts.sh` |
 | Compliance gate script | `scripts/run-phase-gates.sh --gate compliance` 会调用 `scripts/verify_compliance_baseline.py`，并按参数执行 Kafka 配置校验或真实 Kafka runtime gate，对 auth/access-control、审计 schema、加密基线、恢复基线和消息运行证据做机器校验 | `scripts/run-phase-gates.sh`, `scripts/verify_compliance_baseline.py`, `scripts/verify_kafka_runtime_config.py`, `scripts/run-kafka-runtime-gate.sh` |
-| Manual GitHub Actions gate | `Phase Gate` workflow 可通过 `workflow_dispatch` 选择 `entry|delivery|compliance|full`；`delivery/full` 默认强制 Sonar，`compliance/full` 可启用真实 Kafka gate | `.github/workflows/phase-gate.yml` |
+| Manual GitHub Actions gate | `Phase Gate` workflow 可通过 `workflow_dispatch` 选择 `entry|delivery|compliance|full`；`delivery/full` 默认强制 Sonar，`compliance/full` 可启用真实 Kafka gate；workflow 已把 `SONAR_*` 环境显式注入 `run-phase-gates.sh` | `.github/workflows/phase-gate.yml` |
 | Dedicated Kafka workflow | 新增独立 `Kafka Runtime Gate` workflow，在真实 Kafka 模式下执行 bootstrap/security 参数校验、连通性检查与恢复 smoke | `.github/workflows/kafka-runtime-gate.yml`, `scripts/run-kafka-runtime-gate.sh` |
-| Automated release gate | 新增 `Release Phase Gate` workflow，在 `checkpoint/*` tag push 与 `release.published` 上自动执行 `--gate full --coverage-phase phase1plus --require-sonar --run-real-kafka-gate`，并把 release metadata 作为 artifact 留档 | `.github/workflows/release-phase-gate.yml`, `scripts/run-phase-gates.sh` |
+| Automated release gate | 新增 `Release Phase Gate` workflow，在 `checkpoint/*` tag push 与 `release.published` 上自动执行 `--gate full --coverage-phase phase1plus --require-sonar --run-real-kafka-gate`，并把 release metadata 作为 artifact 留档；workflow job 绑定到 GitHub Actions environment `quality-gate` 以读取正式发布链所需 Sonar 配置 | `.github/workflows/release-phase-gate.yml`, `scripts/run-phase-gates.sh`, `docs/deployments/sonar-quality-gate-provisioning.md` |
 
 ## Gate Semantics
 
@@ -60,7 +60,7 @@
 设计原因：
 
 - 阶段切换不是每次 push / PR 都发生。
-- 当前仓库的 `phase1plus` 覆盖率阈值与 Sonar secrets 仍可能让 full delivery gate 失败，因此不应在未补齐前直接把所有 PR 变成常红。
+- 当前仓库的 `phase1plus` 覆盖率已达到 `86.9763%` 并满足 85% 门槛；当前 full delivery gate 的主要残余阻断项已收敛为 Sonar 外部 secrets / environment provisioning。
 - 但只要显式运行 `Phase Gate` workflow，当前脚本已经具备非零退出码阻断能力。
 
 ### Automatically Blocking On Release Metadata
@@ -81,8 +81,8 @@
 以下缺口在 `F-TASK-005` 完成后仍然存在：
 
 1. `Release Phase Gate` 已自动绑定到 `checkpoint/*` tag / `release.published`，但 ad hoc 阶段切换仍主要依赖 `workflow_dispatch`。
-2. `phase1plus` 覆盖率目前实测为 `76.4047%`，低于 85% 门槛，自动 release gate 在严格 `phase1plus` 模式下会阻断。
-3. Sonar 仍受 secrets 是否配置影响；若自动或手工门禁要求 `--require-sonar` 但 secrets 缺失，门禁会失败。
+2. `phase1plus` 覆盖率当前实测为 `86.9763%`，已高于 85% 门槛，coverage blocker 不再是 release gate 的残余缺口。
+3. Sonar 仍受 secrets / environment 是否配置影响；若自动或手工门禁要求 `--require-sonar` 但 GitHub Settings 中未补齐 `SONAR_HOST_URL` / `SONAR_TOKEN`，门禁会失败。
 4. 自动 release gate 已消费发布元数据，但当前还未把 foreman 的 delivery write-back 记录直接反向注入 workflow 输入。
 5. `R-118` 虽已补入恢复基线、观测基线、Kafka gate 和脚本存在性校验，但仍不替代真实环境中的身份、授权、审计、加密、备份恢复演练。
 
@@ -92,10 +92,11 @@
 |:---|:---|
 | `F-TASK-027` | 已完成：数据库脚本 gate、Sonar-required delivery mode、真实 Kafka compliance gate 与 R-118 基线证据已接入 |
 | `F-TASK-029` | 稳定 coverage 入口、修复导致 phase gate 误报的测试稳定性问题，并把 release metadata 自动触发链接入正式发布路径 |
-| Later hardening | 当前自动发布阻断已接入，但仍需补齐 Sonar secrets、覆盖率阈值与更细粒度的 delivery write-back 元数据联动 |
+| Later hardening | 当前自动发布阻断已接入，coverage 阈值已达标；剩余硬化项收敛为 Sonar 外部 secrets / environment provisioning 与更细粒度的 delivery write-back 元数据联动 |
 
 ## Related Documents
 
 - [CI Capability Baseline](/models/project/codex/SQLForge/docs/deployments/ci-capability-baseline.md)
 - [Validation Rules](/models/project/codex/SQLForge/docs/quality/validation-rules.md)
 - [Local Development](/models/project/codex/SQLForge/docs/operations/local-development.md)
+- [Sonar Quality Gate Provisioning](/models/project/codex/SQLForge/docs/deployments/sonar-quality-gate-provisioning.md)

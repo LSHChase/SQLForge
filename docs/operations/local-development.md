@@ -37,6 +37,7 @@
 - SonarQube 扫描：
   - 本地或 CI 已配置环境变量时：`bash scripts/run-sonar.sh --require-config`
   - 尚未配置环境变量时可先执行：`bash scripts/run-sonar.sh`
+  - GitHub Actions release 链默认从 `quality-gate` environment 读取 Sonar secrets；具体配置要求见 `docs/deployments/sonar-quality-gate-provisioning.md`
 - 前端构建：`npm run build`
 - 前端 lint：`npm run lint`
 - 前端真实业务 smoke：`npm run smoke:frontend-runtime`

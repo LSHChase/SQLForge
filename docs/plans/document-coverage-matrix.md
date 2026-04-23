@@ -32,6 +32,7 @@
 | `docs/deployments/backup-recovery-baseline.md` | Authority | 当前备份对象、恢复目标与演练模板基线 | Consumed | `F-TASK-008` 的恢复基线、责任分工与验收模板权威落点 |
 | `docs/deployments/ci-capability-baseline.md` | Authority | 当前 GitHub Actions CI 覆盖与缺口基线 | Consumed | `F-TASK-004` 的 CI 盘点、门禁缺口与后续任务范围权威落点 |
 | `docs/deployments/phase-gate-baseline.md` | Authority | 当前 R-116/R-117/R-118 阶段门禁脚本与 workflow 基线 | Consumed | `F-TASK-005` 的 phase gate 接线、阻断边界与后续缺口权威落点 |
+| `docs/deployments/sonar-quality-gate-provisioning.md` | Authority | SonarQube secrets、GitHub Actions environment 与 release gate 接线 runbook | Consumed | `F-TASK-030` 的 Sonar provisioning、release environment 接线与外部配置边界权威落点 |
 | `docs/generated/repo-map.md` | Indexed | 仓库结构导航快照 | Consumed | AI 导航、仓库结构入口与目录真值辅助说明 |
 | `docs/frontend/design-system.md` | Authority | 前端视觉与页面设计规则 | Consumed | Dashboard、业务页、主题系统 |
 | `docs/operations/README.md` | Indexed | 运维与协作索引 | Consumed | operations 文档入口 |

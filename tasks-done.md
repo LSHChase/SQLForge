@@ -4,6 +4,36 @@
 
 ## Done
 
+### F-TASK-030: 提升覆盖率并补齐 Sonar 发布环境
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `ci(sonar): uplift coverage and wire release gate config`
+- Priority: 1
+- Depends on: `F-TASK-029`
+- Scope: 把 phase1plus 聚合覆盖率提升到 85%+，补齐 Sonar 所需 secrets / 发布环境接线，并验证自动 release gate 可稳定放行 Tech: `OPS`,`DOCS`,`JAVA-BE`. Layer: `deployments/ci/scripts`,`docs`,`application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-F / Story `F-STORY-005` 发布门禁自动化与稳定性收口
+- Human confirmation point: 若 coverage 提升方案会删除既有测试、放宽 85% 门槛，或 Sonar 发布环境接线涉及敏感 secrets 管理策略调整需人工确认
+- Data impact: 覆盖率结果、CI/release 环境变量、Sonar 扫描结果与相关测试资产
+- Rollback / recovery: 恢复到当前自动阻断发布路径，保留覆盖率 / Sonar 失败证据，并回退新增测试或 workflow 环境接线
+- Next action: 在 GitHub Settings 中为正式发布链补齐 `quality-gate` environment 或仓库级 Sonar secrets / vars，然后重新触发 `Phase Gate` `delivery|full` 或 `Release Phase Gate`
+- Escalation: 需要具备仓库 Settings 权限的人类完成外部 `SONAR_HOST_URL`、`SONAR_TOKEN` 与可选 `SONAR_PROJECT_KEY` / `SONAR_PROJECT_NAME` / `SONAR_QUALITY_GATE_WAIT` 配置
+- Human decision: 确认正式发布链是否统一以 `quality-gate` environment 作为 Sonar 配置源，并完成外部 secrets / vars provisioning
+- INBOX ref: INBOX-001
+- Validation:
+  - `bash scripts/run-coverage.sh --phase phase1plus`、`bash scripts/run-sonar.sh --require-config`、release gate workflow / phase gate 验证
+  - `python3 scripts/foreman.py validate F-TASK-030`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-23: added high-leverage repository / governance client tests across `benchmark-engine`、`query-execution`、`sql-optimization`; `bash scripts/run-coverage.sh --phase phase1plus` now passes at `86.9763% (5356/6158)`.
+  - 2026-04-23: wired `Phase Gate` Sonar environment injection, bound `Release Phase Gate` to GitHub Actions environment `quality-gate`, added `docs/deployments/sonar-quality-gate-provisioning.md`, and updated deployment / truth docs.
+  - 2026-04-23: `python3 scripts/foreman.py validate F-TASK-030` passed; remaining blocker is external GitHub Settings provisioning captured in `INBOX-001`.
+- Context closeout:
+  - Completed scope: Raised repository phase1plus aggregated line coverage to 86.9763% with targeted benchmark-engine/query-execution/sql-optimization tests, wired Sonar configuration through CI, Phase Gate, and Release Phase Gate workflow paths, added the Sonar provisioning runbook, and synchronized the deployment/truth/plan documents to the repository-side release-gate baseline.
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-030; python3 scripts/task_audit.py --check; mvn -B test; bash scripts/run-coverage.sh --phase phase1plus; bash scripts/run-runtime-smoke.sh --runtime-smoke
+  - Residual risk: End-to-end Sonar-required release validation still depends on external GitHub Settings provisioning of SONAR_HOST_URL/SONAR_TOKEN and optional quality-gate vars or environment, which remain outside the repository and were intentionally not faked in local development.
+  - Next step: When GitHub Settings access and a real Sonar backend are available, provision the required Sonar secrets/vars, rerun bash scripts/run-sonar.sh --require-config plus the Phase Gate delivery/full path and Release Phase Gate, and then close the remaining external provisioning follow-up.
+
 ### OPS-GOV-002: 新增后端四服务一键启动脚本
 
 - Status: done

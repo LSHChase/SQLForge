@@ -45,7 +45,7 @@
 | Coverage integration | 主 CI 继续调用 `bash scripts/run-coverage.sh --phase report-only` 生成覆盖率报告；阶段切换阻断改由 `Phase Gate` workflow 显式运行 `phase0|phase1plus` | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `scripts/run-coverage.sh` |
 | Runtime smoke integration | 主 CI 会显式执行 compose 语法检查、基础依赖启动、`governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 与前端 dev server，并串联 `query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 业务 smoke、审计补偿验证、消息队列 smoke，以及浏览器驱动的前端真实业务请求与治理修复动作 smoke | `.github/workflows/ci.yml`, `scripts/run-runtime-smoke.sh`, `scripts/health-check.sh`, `scripts/manual-query-governance-smoke.sh`, `scripts/manual-sql-optimization-governance-smoke.sh`, `scripts/manual-benchmark-governance-smoke.sh`, `scripts/manual-message-queue-smoke.sh`, `scripts/frontend-runtime-smoke.mjs` |
 | Database script executability | 主 CI 会在干净 MySQL 上重放 `sql/init-schema.sql`、`sql/init-data.sql` 并顺序执行所有 migration，确保 schema/init/migration 组合可执行 | `.github/workflows/ci.yml`, `scripts/verify-db-scripts.sh` |
-| Sonar integration | workflow 仅在 `SONAR_HOST_URL` 与 `SONAR_TOKEN` secrets 存在时执行 `bash scripts/run-sonar.sh --require-config` | `.github/workflows/ci.yml`, `scripts/run-sonar.sh` |
+| Sonar integration | 主 CI 在仓库 secrets 存在时执行 `bash scripts/run-sonar.sh --require-config`；`Phase Gate` workflow 会把 `SONAR_*` 环境显式注入 `run-phase-gates.sh`；`Release Phase Gate` 绑定到 `quality-gate` environment 并消费同名 Sonar 配置 | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `.github/workflows/release-phase-gate.yml`, `scripts/run-sonar.sh`, `docs/deployments/sonar-quality-gate-provisioning.md` |
 | Boundary lint | workflow 会执行 `node scripts/check-frontend-backend-separation.js` | `.github/workflows/ci.yml` |
 | Frontend lint/build | workflow 会执行 `npm install`、`npm run lint`、`npm run build` | `.github/workflows/ci.yml`, `package.json` |
 | Repository knowledge lint | workflow 会执行 `node scripts/lint-repository-knowledge.js`，并补充校验 `README.md`、`AGENTS.md`、`.gitignore`、`.editorconfig` 存在 | `.github/workflows/ci.yml` |
@@ -91,8 +91,8 @@
 
 1. `R-116` / `R-117` / `R-118` 已自动绑定到 `checkpoint/*` tag / `release.published` 发布路径，但日常的 ad hoc 阶段切换仍主要依赖 `workflow_dispatch`。
 2. 当前 workflow 仍未把 `python3 scripts/foreman.py validate <TASK>` 纳入通用 CI。
-3. `Release Phase Gate` 与 `Phase Gate` 的 `phase1plus` 覆盖率阈值当前会真实阻断，因为仓库聚合 line coverage 实测为 `76.4047%`，尚未达到 `85%`。
-4. Sonar 目前仍是“有 secrets 才能真正通过”的门禁项；自动 release gate 会要求 `SONAR_HOST_URL` / `SONAR_TOKEN`，缺失时直接失败。
+3. `phase1plus` 聚合覆盖率已提升到 `86.9763%`，`Release Phase Gate` 与 `Phase Gate` 的 coverage blocker 已从“真实阻断项”转为“已达标门禁项”。
+4. Sonar 仍是“仓库已接线、外部 secrets 需人工补齐”的门禁项；release gate 已绑定 `quality-gate` environment，但若 `SONAR_HOST_URL` / `SONAR_TOKEN` 未在 GitHub Settings 中配置，发布链仍会失败。
 5. 默认 browser runtime smoke 已覆盖前端 `sql-query`、`acceleration`、`benchmark`、`system` 与治理历史/修复链路的真实业务请求、失败恢复、审计补偿可视化与修复动作；剩余缺口已收敛为更多历史/取证页面尚未进入默认浏览器 smoke。
 6. 真实 Kafka gate 已可运行，但仍依赖 runner 具备 Docker 资源、compose 拉镜像权限与可用端口，不属于零依赖检查。
 7. 当前 workflow 继续使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
@@ -124,3 +124,4 @@
 - [Validation Rules](/models/project/codex/SQLForge/docs/quality/validation-rules.md)
 - [Master Execution Plan](/models/project/codex/SQLForge/docs/plans/master-execution-plan.md)
 - [Phase-F Story-003 Delivery Closeout](/models/project/codex/SQLForge/docs/deliveries/phase-f-story-003-ops-closeout.md)
+- [Sonar Quality Gate Provisioning](/models/project/codex/SQLForge/docs/deployments/sonar-quality-gate-provisioning.md)

@@ -12,4 +12,9 @@
 
 ## Open
 
-_No items._
+### INBOX-001: F-TASK-030 Sonar 外部环境补齐
+
+- Status: open
+- Needed decision: 由具备 GitHub Settings 权限的人类确认并完成 `quality-gate` environment 或仓库级 Sonar secrets / vars provisioning，使 `Phase Gate` / `Release Phase Gate` 可在真实环境中跑通 `bash scripts/run-sonar.sh --require-config`
+- Task refs: F-TASK-030
+- Plan refs: docs/plans/master-execution-plan.md#F-TASK-030

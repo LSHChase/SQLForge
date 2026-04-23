@@ -127,6 +127,7 @@
 | `F-TASK-027` | 若 Phase-F 退出门禁再次放宽为非阻断需人工确认 | phase gate、coverage、Sonar、R-118 证据 | 恢复阻断语义并补录缺失证据 |
 | `F-TASK-028` | 若主线业务与治理运维路径重新混用需人工确认 | 前端 route namespace 与导航结构 | 恢复主业务/governance namespace 分离 |
 | `F-TASK-029` | 若 release automation 会改变 delivery tag / write-back 语义、放宽 Sonar 必需约束或把 phase gate 自动触发绑定到错误发布事件需人工确认 | workflow、release metadata、coverage / Sonar 门禁结果与相关测试稳定性 | 恢复手工 phase gate 入口、保留自动化元数据证据，并回退到上一个可追溯发布路径 |
+| `F-TASK-030` | 若 coverage 提升方案会删除既有测试、放宽 85% 门槛，或 Sonar 发布环境接线涉及敏感 secrets 管理策略调整需人工确认 | 覆盖率结果、CI/release 环境变量、Sonar 扫描结果与相关测试资产 | 恢复到当前自动阻断发布路径，保留覆盖率 / Sonar 失败证据，并回退新增测试或 workflow 环境接线 |
 
 ## Related Documents
 

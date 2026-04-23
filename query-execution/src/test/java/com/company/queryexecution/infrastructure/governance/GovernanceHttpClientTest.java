@@ -1,14 +1,14 @@
-package com.company.benchmarkengine.infrastructure.governance;
+package com.company.queryexecution.infrastructure.governance;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import com.company.benchmarkengine.config.BenchmarkEngineGovernanceProperties;
+import com.company.queryexecution.config.QueryExecutionGovernanceProperties;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
@@ -35,9 +35,7 @@ class GovernanceHttpClientTest {
 
     @Test
     void shouldWriteAuditWithRealRequestMetadata() {
-        BenchmarkEngineGovernanceProperties properties = new BenchmarkEngineGovernanceProperties();
-        properties.setBaseUrl("http://governance.test/api/governance/internal");
-        GovernanceHttpClient client = new GovernanceHttpClient(new RestTemplateBuilder(), properties);
+        GovernanceHttpClient client = createClient();
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         RequestContext.set(
@@ -50,21 +48,21 @@ class GovernanceHttpClientTest {
             1L,
             System.currentTimeMillis() + 60000L
         );
-        RequestMetadataContext.set("10.0.0.9", "SQLForge-Benchmark-Test-UA");
+        RequestMetadataContext.set("10.0.0.7", "SQLForge-Query-Test-UA");
         server.expect(requestTo("http://governance.test/api/governance/internal/audit/write"))
             .andExpect(method(HttpMethod.POST))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"sourceIp\":\"10.0.0.9\"")))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"userAgent\":\"SQLForge-Benchmark-Test-UA\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"sourceIp\":\"10.0.0.7\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"userAgent\":\"SQLForge-Query-Test-UA\"")))
             .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
 
-        client.writeAudit(new BenchmarkAuditRecord(
-            "BENCHMARK_TASK_SUBMIT",
-            "BENCHMARK_TASK",
-            "task-001",
-            "QUEUED",
-            16L,
+        client.writeAudit(new QueryExecutionAuditRecord(
+            "QUERY_EXECUTE_SYNC",
+            "QUERY",
+            "query-001",
+            "SUCCESS",
+            11L,
             "{\"tenantId\":\"tenant-a\"}",
-            "{\"resultStatus\":\"QUEUED\"}"
+            "{\"resultStatus\":\"SUCCESS\"}"
         ));
 
         server.verify();
@@ -88,14 +86,29 @@ class GovernanceHttpClientTest {
     }
 
     @Test
-    void shouldRejectDatasourceAccessWhenGovernanceDenies() {
+    void shouldRejectTenantScopeWhenGovernanceDenies() {
+        GovernanceHttpClient client = createClient();
+        RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        setProtectedRequestContext();
+        server.expect(requestTo("http://governance.test/api/governance/internal/tenant-scope/check"))
+            .andRespond(withSuccess("{\"allowed\":false,\"reason\":\"tenant scope denied\"}", MediaType.APPLICATION_JSON));
+
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> client.assertTenantScope("tenant-a"));
+
+        assertEquals("tenant scope denied", ex.getMessage());
+        server.verify();
+    }
+
+    @Test
+    void shouldResolveAutoDatasourceMappingAndRejectDeniedAccess() {
         GovernanceHttpClient client = createClient();
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         setProtectedRequestContext();
         server.expect(requestTo("http://governance.test/api/governance/internal/datasource-access/check"))
             .andExpect(method(HttpMethod.POST))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"datasourceId\":\"benchmark-hetu\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"datasourceId\":\"query-hetu\"")))
             .andRespond(withSuccess(
                 "{\"allowed\":false,\"reason\":\"datasource denied\",\"errorCode\":403,"
                     + "\"contractStage\":\"LONG_TERM_BASELINE\",\"implementationStage\":\"REAL\"}",
@@ -104,7 +117,7 @@ class GovernanceHttpClientTest {
 
         AccessDeniedException ex = assertThrows(
             AccessDeniedException.class,
-            () -> client.assertDatasourceAccess("tenant-a", DataSourceTypeEnum.HETU)
+            () -> client.assertDatasourceAccess("tenant-a", null)
         );
 
         assertEquals("datasource denied", ex.getMessage());
@@ -113,7 +126,7 @@ class GovernanceHttpClientTest {
 
     @Test
     void shouldFailFastWhenDatasourceMappingIsMissing() {
-        BenchmarkEngineGovernanceProperties properties = baseProperties();
+        QueryExecutionGovernanceProperties properties = baseProperties();
         properties.getDatasourceIdMap().clear();
         GovernanceHttpClient client = new GovernanceHttpClient(new RestTemplateBuilder(), properties);
 
@@ -144,14 +157,14 @@ class GovernanceHttpClientTest {
 
     @Test
     void shouldRequireConfiguredBaseUrl() {
-        BenchmarkEngineGovernanceProperties properties = baseProperties();
+        QueryExecutionGovernanceProperties properties = baseProperties();
         properties.setBaseUrl(" ");
         GovernanceHttpClient client = new GovernanceHttpClient(new RestTemplateBuilder(), properties);
 
         BizException ex = assertThrows(BizException.class, () -> client.assertTenantScope("tenant-a"));
 
         assertEquals(ErrorCodeConstants.SYSTEM_CONFIG_INVALID, ex.getCode());
-        assertEquals("benchmark-engine governance baseUrl is not configured", ex.getMessage());
+        assertEquals("query-execution governance baseUrl is not configured", ex.getMessage());
     }
 
     @Test
@@ -175,21 +188,21 @@ class GovernanceHttpClientTest {
         GovernanceHttpClient.DatasourceAccessCheckRequest datasourceRequest =
             new GovernanceHttpClient.DatasourceAccessCheckRequest();
         datasourceRequest.setTenantId("tenant-a");
-        datasourceRequest.setDatasourceId("benchmark-hetu");
+        datasourceRequest.setDatasourceId("query-hetu");
         assertEquals("tenant-a", datasourceRequest.getTenantId());
-        assertEquals("benchmark-hetu", datasourceRequest.getDatasourceId());
+        assertEquals("query-hetu", datasourceRequest.getDatasourceId());
 
         GovernanceHttpClient.DatasourceAccessCheckResponse datasourceResponse =
             new GovernanceHttpClient.DatasourceAccessCheckResponse();
         datasourceResponse.setTenantId("tenant-a");
-        datasourceResponse.setDatasourceId("benchmark-hetu");
+        datasourceResponse.setDatasourceId("query-hetu");
         datasourceResponse.setAllowed(false);
         datasourceResponse.setReason("denied");
         datasourceResponse.setErrorCode(Integer.valueOf(403));
         datasourceResponse.setContractStage("LONG_TERM_BASELINE");
         datasourceResponse.setImplementationStage("REAL");
         assertEquals("tenant-a", datasourceResponse.getTenantId());
-        assertEquals("benchmark-hetu", datasourceResponse.getDatasourceId());
+        assertEquals("query-hetu", datasourceResponse.getDatasourceId());
         assertEquals(false, datasourceResponse.isAllowed());
         assertEquals("denied", datasourceResponse.getReason());
         assertEquals(Integer.valueOf(403), datasourceResponse.getErrorCode());
@@ -197,34 +210,34 @@ class GovernanceHttpClientTest {
         assertEquals("REAL", datasourceResponse.getImplementationStage());
 
         GovernanceHttpClient.AuditWriteRequest auditWriteRequest = new GovernanceHttpClient.AuditWriteRequest();
-        auditWriteRequest.setServiceCode("BENCHMARK_ENGINE");
-        auditWriteRequest.setOperationCode("BENCHMARK_TASK_SUBMIT");
-        auditWriteRequest.setResourceType("BENCHMARK_TASK");
-        auditWriteRequest.setResourceId("task-001");
-        auditWriteRequest.setResultStatus("QUEUED");
-        auditWriteRequest.setElapsedMs(Long.valueOf(16));
-        auditWriteRequest.setSourceIp("10.0.0.9");
-        auditWriteRequest.setUserAgent("SQLForge-Benchmark-Test-UA");
+        auditWriteRequest.setServiceCode("QUERY_EXECUTION");
+        auditWriteRequest.setOperationCode("QUERY_EXECUTE_SYNC");
+        auditWriteRequest.setResourceType("QUERY");
+        auditWriteRequest.setResourceId("query-001");
+        auditWriteRequest.setResultStatus("SUCCESS");
+        auditWriteRequest.setElapsedMs(Long.valueOf(11));
+        auditWriteRequest.setSourceIp("10.0.0.7");
+        auditWriteRequest.setUserAgent("SQLForge-Query-Test-UA");
         auditWriteRequest.setRequestParams("{\"tenantId\":\"tenant-a\"}");
-        auditWriteRequest.setResponseSummary("{\"resultStatus\":\"QUEUED\"}");
-        assertEquals("BENCHMARK_ENGINE", auditWriteRequest.getServiceCode());
-        assertEquals("BENCHMARK_TASK_SUBMIT", auditWriteRequest.getOperationCode());
-        assertEquals("BENCHMARK_TASK", auditWriteRequest.getResourceType());
-        assertEquals("task-001", auditWriteRequest.getResourceId());
-        assertEquals("QUEUED", auditWriteRequest.getResultStatus());
-        assertEquals(Long.valueOf(16), auditWriteRequest.getElapsedMs());
-        assertEquals("10.0.0.9", auditWriteRequest.getSourceIp());
-        assertEquals("SQLForge-Benchmark-Test-UA", auditWriteRequest.getUserAgent());
+        auditWriteRequest.setResponseSummary("{\"resultStatus\":\"SUCCESS\"}");
+        assertEquals("QUERY_EXECUTION", auditWriteRequest.getServiceCode());
+        assertEquals("QUERY_EXECUTE_SYNC", auditWriteRequest.getOperationCode());
+        assertEquals("QUERY", auditWriteRequest.getResourceType());
+        assertEquals("query-001", auditWriteRequest.getResourceId());
+        assertEquals("SUCCESS", auditWriteRequest.getResultStatus());
+        assertEquals(Long.valueOf(11), auditWriteRequest.getElapsedMs());
+        assertEquals("10.0.0.7", auditWriteRequest.getSourceIp());
+        assertEquals("SQLForge-Query-Test-UA", auditWriteRequest.getUserAgent());
         assertEquals("{\"tenantId\":\"tenant-a\"}", auditWriteRequest.getRequestParams());
-        assertEquals("{\"resultStatus\":\"QUEUED\"}", auditWriteRequest.getResponseSummary());
+        assertEquals("{\"resultStatus\":\"SUCCESS\"}", auditWriteRequest.getResponseSummary());
     }
 
     private GovernanceHttpClient createClient() {
         return new GovernanceHttpClient(new RestTemplateBuilder(), baseProperties());
     }
 
-    private BenchmarkEngineGovernanceProperties baseProperties() {
-        BenchmarkEngineGovernanceProperties properties = new BenchmarkEngineGovernanceProperties();
+    private QueryExecutionGovernanceProperties baseProperties() {
+        QueryExecutionGovernanceProperties properties = new QueryExecutionGovernanceProperties();
         properties.setBaseUrl("http://governance.test/api/governance/internal");
         return properties;
     }

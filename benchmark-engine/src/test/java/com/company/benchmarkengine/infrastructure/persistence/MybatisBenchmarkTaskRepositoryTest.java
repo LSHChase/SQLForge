@@ -1,0 +1,277 @@
+package com.company.benchmarkengine.infrastructure.persistence;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkThresholdDTO;
+import com.company.benchmarkengine.application.service.BenchmarkTaskModelApplicationService;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPriority;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskStatus;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdMetric;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdOperator;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdSeverity;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdVerdict;
+import com.company.benchmarkengine.domain.benchmark.DesensitizationRequirement;
+import com.company.benchmarkengine.domain.benchmark.ShadowEnvironmentMode;
+import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkReportRecord;
+import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTaskRecord;
+import com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkReportMapper;
+import com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTaskMapper;
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.Test;
+
+class MybatisBenchmarkTaskRepositoryTest {
+
+    @Test
+    void shouldPersistAndRestoreBenchmarkTaskThroughMybatisRecordMapping() {
+        BenchmarkTaskMapper taskMapper = org.mockito.Mockito.mock(BenchmarkTaskMapper.class);
+        BenchmarkReportMapper reportMapper = org.mockito.Mockito.mock(BenchmarkReportMapper.class);
+        AtomicReference<BenchmarkTaskRecord> storedTask = new AtomicReference<BenchmarkTaskRecord>();
+        when(taskMapper.selectByTaskId("task-db-001")).thenAnswer(invocation -> storedTask.get());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            storedTask.set((BenchmarkTaskRecord) invocation.getArgument(0));
+            return Integer.valueOf(1);
+        }).when(taskMapper).insert(any(BenchmarkTaskRecord.class));
+
+        MybatisBenchmarkTaskRepository repository = new MybatisBenchmarkTaskRepository(taskMapper, reportMapper);
+        BenchmarkTask task = createQueuedTask("task-db-001", BenchmarkTaskType.COMPARISON, Instant.parse("2026-04-22T05:00:00Z"));
+        task.markRunning(Instant.parse("2026-04-22T05:00:05Z"));
+        task.advancePhase(BenchmarkTaskPhase.SHADOW_VALIDATING, 25, "BASELINE_PREPARED");
+        task.advancePhase(BenchmarkTaskPhase.WARMING_UP, 40, "SHADOW_VALIDATED");
+        task.advancePhase(BenchmarkTaskPhase.EXECUTING, 60, "WARMUP_FINISHED");
+        task.markFailed(
+            new BenchmarkTaskError(14000, "Benchmark worker failed", "Retry after worker recovery", true),
+            Instant.parse("2026-04-22T05:01:00Z")
+        );
+
+        repository.saveTask(task);
+
+        BenchmarkTaskRecord record = storedTask.get();
+        assertNotNull(record);
+        assertEquals("task-db-001", record.getTaskId());
+        assertEquals("tenant-a", record.getTenantId());
+        assertEquals("COMPARISON", record.getTaskType());
+        assertEquals("FAILED", record.getStatus());
+        assertEquals("FINISHED", record.getCurrentPhase());
+        assertEquals(Integer.valueOf(60), record.getProgressPercent());
+        assertEquals(LocalDateTime.of(2026, 4, 22, 5, 0, 0), record.getSubmittedAt());
+        assertEquals(LocalDateTime.of(2026, 4, 22, 5, 0, 5), record.getStartedAt());
+        assertEquals(LocalDateTime.of(2026, 4, 22, 5, 1, 0), record.getFinishedAt());
+        assertTrue(record.getTargetEnginesJson().contains("HETU"));
+        assertTrue(record.getThresholdsJson().contains("P99_LATENCY_MS"));
+        assertTrue(record.getStatusHistoryJson().contains("TASK_FAILED"));
+        assertEquals(Integer.valueOf(14000), record.getErrorCode());
+        assertEquals("Benchmark worker failed", record.getErrorMessage());
+        assertEquals("Retry after worker recovery", record.getErrorSuggestedAction());
+        assertEquals(Boolean.TRUE, record.getErrorRetryable());
+
+        BenchmarkTask restored = repository.findTaskByTaskId("task-db-001");
+
+        assertNotNull(restored);
+        assertEquals("task-db-001", restored.getTaskId());
+        assertEquals(BenchmarkTaskType.COMPARISON, restored.getTaskType());
+        assertEquals(BenchmarkTaskStatus.FAILED, restored.getStatus());
+        assertEquals(BenchmarkTaskPhase.FINISHED, restored.getCurrentPhase());
+        assertEquals(2, restored.getTargetEngines().size());
+        assertEquals(3, restored.getThresholds().size());
+        assertEquals(Instant.parse("2026-04-22T05:00:00Z"), restored.getSubmittedAt());
+        assertEquals(Instant.parse("2026-04-22T05:00:05Z"), restored.getStartedAt());
+        assertEquals(Instant.parse("2026-04-22T05:01:00Z"), restored.getFinishedAt());
+        assertEquals(Integer.valueOf(14000), Integer.valueOf(restored.getError().getCode()));
+        assertEquals("Retry after worker recovery", restored.getError().getSuggestedAction());
+        assertTrue(restored.getError().isRetryable());
+        assertFalse(restored.getStatusHistory().isEmpty());
+        assertEquals("TASK_FAILED", restored.getStatusHistory().get(restored.getStatusHistory().size() - 1).getNote());
+    }
+
+    @Test
+    void shouldUpdateExistingTaskAndFindQueuedTasksBeforeCutoff() {
+        BenchmarkTaskMapper taskMapper = org.mockito.Mockito.mock(BenchmarkTaskMapper.class);
+        BenchmarkReportMapper reportMapper = org.mockito.Mockito.mock(BenchmarkReportMapper.class);
+        AtomicReference<BenchmarkTaskRecord> storedTask = new AtomicReference<BenchmarkTaskRecord>();
+        when(taskMapper.selectByTaskId("task-db-002")).thenAnswer(invocation -> storedTask.get());
+        when(taskMapper.selectQueuedTasksSubmittedBefore(any(LocalDateTime.class))).thenAnswer(invocation -> {
+            BenchmarkTaskRecord value = storedTask.get();
+            return value == null ? Collections.<BenchmarkTaskRecord>emptyList() : Collections.singletonList(value);
+        });
+        org.mockito.Mockito.doAnswer(invocation -> {
+            storedTask.set((BenchmarkTaskRecord) invocation.getArgument(0));
+            return Integer.valueOf(1);
+        }).when(taskMapper).insert(any(BenchmarkTaskRecord.class));
+        org.mockito.Mockito.doAnswer(invocation -> {
+            storedTask.set((BenchmarkTaskRecord) invocation.getArgument(0));
+            return Integer.valueOf(1);
+        }).when(taskMapper).update(any(BenchmarkTaskRecord.class));
+
+        MybatisBenchmarkTaskRepository repository = new MybatisBenchmarkTaskRepository(taskMapper, reportMapper);
+        BenchmarkTask task = createQueuedTask("task-db-002", BenchmarkTaskType.BASELINE, Instant.parse("2026-04-22T04:00:00Z"));
+
+        repository.saveTask(task);
+        task.markRunning(Instant.parse("2026-04-22T04:00:10Z"));
+        repository.saveTask(task);
+
+        verify(taskMapper).insert(any(BenchmarkTaskRecord.class));
+        verify(taskMapper).update(any(BenchmarkTaskRecord.class));
+        assertTrue(repository.findQueuedTasksSubmittedBefore(null).isEmpty());
+
+        List<BenchmarkTask> queuedTasks =
+            repository.findQueuedTasksSubmittedBefore(Instant.parse("2026-04-22T05:00:00Z"));
+
+        assertEquals(1, queuedTasks.size());
+        assertEquals("task-db-002", queuedTasks.get(0).getTaskId());
+        assertEquals(BenchmarkTaskStatus.RUNNING, queuedTasks.get(0).getStatus());
+        assertEquals(Instant.parse("2026-04-22T04:00:10Z"), queuedTasks.get(0).getStartedAt());
+    }
+
+    @Test
+    void shouldPersistAndRestoreBenchmarkReportAndSupportLookupVariants() {
+        BenchmarkTaskMapper taskMapper = org.mockito.Mockito.mock(BenchmarkTaskMapper.class);
+        BenchmarkReportMapper reportMapper = org.mockito.Mockito.mock(BenchmarkReportMapper.class);
+        AtomicReference<BenchmarkReportRecord> storedReport = new AtomicReference<BenchmarkReportRecord>();
+        when(reportMapper.selectByTaskId("task-db-003")).thenAnswer(invocation -> storedReport.get());
+        when(reportMapper.selectByReportId("report-task-db-003")).thenAnswer(invocation -> storedReport.get());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            storedReport.set((BenchmarkReportRecord) invocation.getArgument(0));
+            return Integer.valueOf(1);
+        }).when(reportMapper).insert(any(BenchmarkReportRecord.class));
+        org.mockito.Mockito.doAnswer(invocation -> {
+            storedReport.set((BenchmarkReportRecord) invocation.getArgument(0));
+            return Integer.valueOf(1);
+        }).when(reportMapper).update(any(BenchmarkReportRecord.class));
+
+        MybatisBenchmarkTaskRepository repository = new MybatisBenchmarkTaskRepository(taskMapper, reportMapper);
+        BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
+        BenchmarkTask task = createQueuedTask("task-db-003", BenchmarkTaskType.REGRESSION_GUARD, Instant.parse("2026-04-22T06:00:00Z"));
+        task.markRunning(Instant.parse("2026-04-22T06:00:05Z"));
+        task.advancePhase(BenchmarkTaskPhase.EXECUTING, 75, "SHADOW_VALIDATED");
+        task.advancePhase(BenchmarkTaskPhase.THRESHOLD_EVALUATING, 90, "RUN_FINISHED");
+        task.advancePhase(BenchmarkTaskPhase.REPORTING, 95, "THRESHOLDS_EVALUATED");
+        task.markSucceeded("report-task-db-003", Instant.parse("2026-04-22T06:01:00Z"));
+        BenchmarkReport report = modelService.buildPlaceholderReport(task, Instant.parse("2026-04-22T06:01:10Z"));
+
+        repository.saveReport(report);
+        repository.saveReport(report);
+
+        BenchmarkReportRecord record = storedReport.get();
+        assertNotNull(record);
+        assertEquals("report-task-db-003", record.getReportId());
+        assertEquals("task-db-003", record.getTaskId());
+        assertEquals(LocalDateTime.of(2026, 4, 22, 6, 1, 10), record.getGeneratedAt());
+        assertTrue(record.getEngineProfilesJson().contains("HETU"));
+        assertTrue(record.getThresholdAssessmentsJson().contains("P99_LATENCY_MS"));
+        assertTrue(record.getRecommendationsJson().contains("REGRESSION_GATE"));
+        verify(reportMapper).insert(any(BenchmarkReportRecord.class));
+        verify(reportMapper).update(any(BenchmarkReportRecord.class));
+
+        BenchmarkReport byTaskId = repository.findReportByTaskId("task-db-003");
+        BenchmarkReport byReportId = repository.findReportByReportId("report-task-db-003");
+
+        assertNotNull(byTaskId);
+        assertNotNull(byReportId);
+        assertEquals(BenchmarkTaskType.REGRESSION_GUARD, byTaskId.getTaskType());
+        assertEquals(BenchmarkThresholdVerdict.FAIL, byTaskId.getVerdict());
+        assertEquals(1, byTaskId.getEngineProfiles().size());
+        assertEquals(1, byTaskId.getThresholdAssessments().size());
+        assertEquals("REGRESSION_GATE", byTaskId.getRecommendations().get(0).getCategory());
+        assertEquals(byTaskId.getReportId(), byReportId.getReportId());
+        assertNull(repository.findTaskByTaskId("missing-task"));
+        assertNull(repository.findReportByTaskId("missing-task"));
+        assertNull(repository.findReportByReportId("missing-report"));
+    }
+
+    private BenchmarkTask createQueuedTask(String taskId, BenchmarkTaskType taskType, Instant submittedAt) {
+        return new BenchmarkTaskModelApplicationService().createQueuedTask(baseRequest(taskType), taskId, submittedAt);
+    }
+
+    private BenchmarkTaskSubmitRequest baseRequest(BenchmarkTaskType taskType) {
+        BenchmarkTaskSubmitRequest request = new BenchmarkTaskSubmitRequest();
+        request.setTenantId("tenant-a");
+        request.setTaskType(taskType);
+        request.setSqlText("SELECT * FROM orders");
+        request.setSqlFingerprint("benchmark-fingerprint");
+        request.setTaskContext(new BenchmarkTaskContextDTO());
+        request.getTaskContext().setPriority(BenchmarkTaskPriority.NORMAL);
+        request.getTaskContext().setTargetEngines(Arrays.asList(DataSourceTypeEnum.HETU, DataSourceTypeEnum.HIVE));
+        request.getTaskContext().setConcurrency(Integer.valueOf(16));
+        request.getTaskContext().setDurationSeconds(Integer.valueOf(300));
+        request.getTaskContext().setRampUpSeconds(Integer.valueOf(30));
+        request.getTaskContext().setDatasetSizeLabel("TEN_GB");
+        request.getTaskContext().setReadonlyRequired(Boolean.TRUE);
+        request.getTaskContext().setShadowEnvironmentMode(ShadowEnvironmentMode.REQUIRED);
+        request.getTaskContext().setDesensitizationRequirement(DesensitizationRequirement.REQUIRED);
+        request.getTaskContext().setThresholds(
+            Arrays.asList(
+                threshold(
+                    BenchmarkThresholdMetric.QPS,
+                    BenchmarkThresholdOperator.GREATER_THAN_OR_EQUAL,
+                    "120",
+                    BenchmarkThresholdSeverity.CRITICAL,
+                    "Throughput baseline"
+                ),
+                threshold(
+                    BenchmarkThresholdMetric.P99_LATENCY_MS,
+                    BenchmarkThresholdOperator.LESS_THAN_OR_EQUAL,
+                    "90",
+                    BenchmarkThresholdSeverity.CRITICAL,
+                    "Tail latency"
+                ),
+                threshold(
+                    BenchmarkThresholdMetric.CPU_USAGE_PERCENT,
+                    BenchmarkThresholdOperator.LESS_THAN_OR_EQUAL,
+                    "50",
+                    BenchmarkThresholdSeverity.WARNING,
+                    "CPU pressure"
+                )
+            )
+        );
+        if (taskType == BenchmarkTaskType.REGRESSION_GUARD) {
+            request.getTaskContext().setTargetEngines(Collections.singletonList(DataSourceTypeEnum.HETU));
+            request.getTaskContext().setThresholds(
+                Collections.singletonList(
+                    threshold(
+                        BenchmarkThresholdMetric.P99_LATENCY_MS,
+                        BenchmarkThresholdOperator.LESS_THAN_OR_EQUAL,
+                        "70",
+                        BenchmarkThresholdSeverity.CRITICAL,
+                        "Regression gate"
+                    )
+                )
+            );
+        }
+        return request;
+    }
+
+    private BenchmarkThresholdDTO threshold(BenchmarkThresholdMetric metric,
+                                            BenchmarkThresholdOperator operator,
+                                            String targetValue,
+                                            BenchmarkThresholdSeverity severity,
+                                            String description) {
+        BenchmarkThresholdDTO item = new BenchmarkThresholdDTO();
+        item.setMetric(metric);
+        item.setOperator(operator);
+        item.setTargetValue(new BigDecimal(targetValue));
+        item.setSeverity(severity);
+        item.setDescription(description);
+        return item;
+    }
+}

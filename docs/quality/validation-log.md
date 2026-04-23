@@ -688,3 +688,19 @@
 2026-04-22T21:46:33-05:00 | OPS-GOV-002 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
 2026-04-22T21:46:33-05:00 | OPS-GOV-002 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-22T21:47:22-05:00 | OPS-GOV-002 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-22T21:47:22-05:00 | OPS-GOV-002 closeout commit | `R-168` | passed | `57db1aaa9f0926348d764dc7f90ffab95a84f34a`
+2026-04-22T21:47:22-05:00 | OPS-GOV-002 post-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
+2026-04-22T21:47:22-05:00 | OPS-GOV-002 post-closeout check | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-22T22:06:35-05:00 | F-TASK-030 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-22T22:06:35-05:00 | F-TASK-030 validate | `R-131`, `R-133` | failed | `node scripts/lint-repository-knowledge.js`
+2026-04-22T22:06:54-05:00 | F-TASK-030 validate | `R-133`, `R-168` | passed | `bash scripts/run-coverage.sh --phase phase1plus`
+2026-04-22T22:06:54-05:00 | F-TASK-030 validate | `R-133`, `R-168` | failed | `bash -lc set -euo pipefail; tmp=/tmp/tmp.SbpWjLIxeE; if bash scripts/run-sonar.sh --require-config >"" 2>&1; then cat ""; exit 1; fi; cat ""; grep -q "Missing required Sonar configuration: SONAR_HOST_URL SONAR_TOKEN" ""`
+2026-04-22T22:06:54-05:00 | F-TASK-030 validate | `R-133`, `R-168` | passed | `rg -n quality-gate|SONAR_HOST_URL|SONAR_TOKEN|SONAR_PROJECT_KEY|SONAR_QUALITY_GATE_WAIT|86\.9763% .github/workflows docs/deployments docs/operations docs/plans`
+2026-04-22T22:07:54-05:00 | F-TASK-030 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-22T22:07:54-05:00 | F-TASK-030 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-22T22:08:14-05:00 | F-TASK-030 validate | `R-133`, `R-168` | passed | `bash scripts/run-coverage.sh --phase phase1plus`
+2026-04-22T22:08:14-05:00 | F-TASK-030 validate | `R-133`, `R-168` | passed | `python3 -c import subprocess,sys; p=subprocess.run(['bash','scripts/run-sonar.sh','--require-config'],capture_output=True,text=True); out=p.stdout+p.stderr; sys.stdout.write(out); sys.exit(0 if p.returncode!=0 and 'Missing required Sonar configuration: SONAR_HOST_URL SONAR_TOKEN' in out else 1)`
+2026-04-22T22:08:14-05:00 | F-TASK-030 validate | `R-133`, `R-168` | passed | `rg -n quality-gate|SONAR_HOST_URL|SONAR_TOKEN|SONAR_PROJECT_KEY|SONAR_QUALITY_GATE_WAIT|86\.9763% .github/workflows docs/deployments docs/operations docs/plans`
+2026-04-22T22:41:42-05:00 | F-TASK-030 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-22T22:41:42-05:00 | F-TASK-030 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-22T22:44:10-05:00 | F-TASK-030 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`

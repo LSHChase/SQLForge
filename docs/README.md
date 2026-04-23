@@ -44,6 +44,7 @@
    - [备份恢复基线](./deployments/backup-recovery-baseline.md)
    - [CI 能力基线](./deployments/ci-capability-baseline.md)
    - [阶段门禁基线](./deployments/phase-gate-baseline.md)
+   - [Sonar 质量门禁配置](./deployments/sonar-quality-gate-provisioning.md)
 14. 仓库约定、任务台账与 ADR
    - 根级任务台账：`tasks.md`
    - 完成归档：`tasks-done.md`
@@ -112,6 +113,7 @@
   - `backup-recovery-baseline.md`：当前备份对象、恢复目标与演练模板基线。
   - `ci-capability-baseline.md`：当前 GitHub Actions CI 覆盖、缺口与后续门禁接入映射。
   - `phase-gate-baseline.md`：当前 R-116/R-117/R-118 阶段门禁脚本、workflow 接线与阻断边界。
+  - `sonar-quality-gate-provisioning.md`：SonarQube 所需 secrets、GitHub Actions environment 与 release gate 接线 runbook。
 - `deliveries/`
   交付记录与阶段回写。
   - `init-completion.md`：阶段 0 初始化交付记录与历史 repair 记录。
