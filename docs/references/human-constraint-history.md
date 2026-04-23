@@ -195,3 +195,15 @@
   - `docs/operations/git-and-task-closeout.md`
   - `docs/operations/human-collaboration.md`
   - `docs/README.md`
+
+## 2026-04-23T05:30:00-05:00
+
+- 事件：人类新增持久化设计约束，明确 MySQL / TDSQL 禁止外键约束。
+- 新增规则：`R-169`。
+- 约束：
+  - 面向 MySQL 8.0、TDSQL 及兼容实现时，业务表不得新增物理外键约束。
+  - 表间关系必须通过引用键、索引、应用层完整性校验和审计链维护。
+  - 历史 schema 若存在外键约束，只能通过专项治理任务清理，不能在新增变更中继续扩散。
+- 落点：
+  - `docs/rules/codex-rules.md`
+  - `docs/architecture/persistence.md`

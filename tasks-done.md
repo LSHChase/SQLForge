@@ -4,6 +4,26 @@
 
 ## Done
 
+### HARN-015: Add no-foreign-key rule for MySQL/TDSQL
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `docs(rules): add no-foreign-key mysql policy`
+- Priority: 1
+- Depends on: N/A
+- Scope: 将 MySQL/TDSQL 禁止外键约束 追加为正式仓库规则，并同步到相关持久化/实现文档与治理审计链。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-015`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-23: appended `R-169` to the rule ledger, synchronized the human constraint history, and updated the persistence baseline from “foreign-key relationships” to “reference-key relationships” for MySQL / TDSQL.
+  - 2026-04-23: documented that legacy schema-level foreign keys remain a historical implementation drift to be removed by a dedicated future schema-governance task, while prohibiting any new foreign-key expansion immediately.
+- Context closeout:
+  - Completed scope: Added the new repository rule R-169 to prohibit physical foreign-key constraints on MySQL/TDSQL, synchronized the human constraint history, and updated the persistence baseline so relationship modeling now uses reference keys, indexes, and application-level integrity instead of foreign keys; also documented that existing schema-level foreign keys are legacy drift requiring a dedicated cleanup task rather than a pattern to continue.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-015 --include-task-audit; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance; python3 scripts/foreman.py compile-governance --check
+  - Residual risk: The rule and authority documents are now aligned, but sql/init-schema.sql and historical migrations still contain legacy foreign-key constraints from before R-169. A dedicated schema-governance task is still required to remove those constraints from implemented DDL.
+  - Next step: Open a focused schema-governance follow-up to remove legacy foreign-key constraints from sql/init-schema.sql and matching migrations, replacing them with indexes and application-level integrity checks while preserving traceability and audit semantics.
+
 ### HARN-014: Capture HARN-013 post-closeout governance tail
 
 - Status: done

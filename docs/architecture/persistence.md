@@ -1,10 +1,11 @@
 # SQLForge Persistence Baseline
 
-本文件是 `R-031`、`R-055`、`R-065` 与 `R-129` 的当前权威落点，统一描述 SQLForge 的 MySQL 主持久化方向、核心追溯链、MyBatis XML 落点与增量脚本约束。
+本文件是 `R-031`、`R-055`、`R-065`、`R-129` 与 `R-169` 的当前权威落点，统一描述 SQLForge 的 MySQL 主持久化方向、核心追溯链、MyBatis XML 落点与增量脚本约束。
 
 ## Scope
 
 - 当前主持久化方向固定为 MySQL。
+- 面向 MySQL / TDSQL 时，业务表禁止新增物理外键约束；表间关系通过引用键、索引和应用层完整性校验维护。
 - 当前数据库初始化脚本固定为 `sql/init-schema.sql` 与 `sql/init-data.sql`。
 - 当前增量脚本目录固定为 `sql/migrations/`。
 - 当前 Java 持久化实现固定为 MyBatis XML，禁止在注解中写复杂 SQL。
@@ -26,7 +27,7 @@
 4. `export_record`
 5. `audit_log`
 
-主外键关系：
+主引用关系：
 
 - `execution_result.config_snapshot_id -> config_snapshot.config_snapshot_id`
 - `query_history.result_id -> execution_result.result_id`
@@ -38,6 +39,8 @@
 - `audit_log.export_id -> export_record.export_id`
 
 该链路满足 `R-034` 对 config/result/history/export/audit 可追溯关联键的要求，并为 `ADR-012` 的 saga + 本地事务补偿链预留稳定引用点。
+
+当前规则要求这些关系在 MySQL / TDSQL 上以“引用键 + 索引 + 应用层约束”表达，而不是继续依赖物理外键约束。
 
 ## Shared Trace Keys
 
@@ -89,8 +92,8 @@
 ### `audit_log`
 
 - 继续作为不可变审计证据表。
-- 在既有字段基础上追加 `service_code`、`trace_id`、`request_id`、`saga_id` 与四类追溯外键。
-- 审计记录允许引用 config/result/history/export 任意一层，但不要求每条记录都填满全部外键。
+- 在既有字段基础上追加 `service_code`、`trace_id`、`request_id`、`saga_id` 与四类追溯引用键。
+- 审计记录允许引用 config/result/history/export 任意一层，但不要求每条记录都填满全部引用键。
 - 当前已落地两类真实写入入口：
   - `POST /api/governance/internal/audit/write`
   - `governance` 的 header-based stateless auth `LOGIN` / `LOGOUT` 事件
@@ -125,17 +128,20 @@
 | `benchmark_task` | `BenchmarkTaskRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkTaskMapper.xml` |
 | `benchmark_task_report` | `BenchmarkReportRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkReportMapper.xml` |
 
-当前 mapper 只固化 `insert/selectById` 或等价最小骨架，目的是先把表结构、主外键和字段命名稳定下来，再在后续任务中接入真实 repository、事务编排和业务写入路径。当前 `governance` 已额外提供 `GovernanceProtectedPersistenceService` 作为 config/result/history/export/audit/system-config 的敏感字段保护写入入口。
+当前 mapper 只固化 `insert/selectById` 或等价最小骨架，目的是先把表结构、主引用键和字段命名稳定下来，再在后续任务中接入真实 repository、事务编排和业务写入路径。当前 `governance` 已额外提供 `GovernanceProtectedPersistenceService` 作为 config/result/history/export/audit/system-config 的敏感字段保护写入入口。
 
 ## Migration Policy
 
 - 当前不引入 Flyway。
+- MySQL / TDSQL 的初始化脚本和增量脚本不得新增物理外键约束。
 - 变更表结构时必须同时更新：
   - `sql/init-schema.sql`
   - `sql/migrations/V{date_or_version}__*.sql`
   - 对应 Entity / Mapper XML
   - 本文档中的映射与职责描述
 - 已发布环境必须优先执行增量脚本，不允许仅依赖重跑初始化脚本。
+
+当前仓库的历史 schema 仍存在已落库的外键约束，这是新规则生效前的遗留实现漂移。后续需要专门的 schema 治理任务移除，但在该任务开始前不得继续新增或扩散外键约束。
 
 当前 D-TASK-011 的增量脚本：
 
@@ -157,7 +163,8 @@
 1. 更新 `sql/init-schema.sql`
 2. 提供增量脚本
 3. 在本地 MySQL 执行脚本成功
-4. 更新 Entity 与脚本映射文档
+4. 校验本次 DDL 未新增外键约束
+5. 更新 Entity 与脚本映射文档
 
 当前仓库内的最小自动化校验为：
 
