@@ -29,9 +29,7 @@ class ClientHetuExecutionModeAdapterTest {
                         21L,
                         64L,
                         true,
-                        true,
-                        "SIMULATED",
-                        Collections.singletonList("SIMULATED")
+                        true
                     );
                 }
             }
@@ -44,6 +42,8 @@ class ClientHetuExecutionModeAdapterTest {
         assertEquals(21L, step.getElapsedMs());
         assertEquals(64L, step.getScannedRows());
         assertEquals("HETU", step.getRows().get(0).get("engine"));
+        assertEquals("PRIMARY", step.getRows().get(0).get("mode"));
+        assertEquals("CLIENT", step.getRows().get(0).get("executionMode"));
     }
 
     @Test
@@ -63,7 +63,6 @@ class ClientHetuExecutionModeAdapterTest {
 
     private static Map<String, Object> sampleRow() {
         Map<String, Object> row = new LinkedHashMap<String, Object>();
-        row.put("engine", "HETU");
         row.put("value", "ok");
         return row;
     }

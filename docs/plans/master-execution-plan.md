@@ -108,9 +108,9 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：`D-TASK-016` 作为新的 repository mainline task，负责把治理侧角色矩阵、资源模型与数据源授权矩阵收口为真实授权决策，并下沉为 `query-execution`、`sql-optimization`、`benchmark-engine` 的统一授权入口
+- 当前活跃目标：`D-TASK-017` 作为新的 repository mainline task，负责把 `query-execution` 从 feature-flagged Hetu 模式链基线推进为真实 Hetu 集成，补齐 JDBC/REST/CLIENT 真实接入、严格路由与 runtime / environment-backed smoke 证据
 - 当前下一条可执行主线任务：
-  - `D-TASK-016` 授权矩阵与统一决策入口收口
+  - `D-TASK-017` `query-execution` 真实 Hetu 集成
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成归档。
@@ -121,7 +121,7 @@
   - `F-TASK-032` 已完成后续治理修正：收口了 `F-TASK-031` 复盘中发现的隐性自动恢复接线，包括 release workflow 的 `quality-gate` environment 默认绑定，以及主 CI 在仅有 Sonar secrets 时就自动重新强制扫描的问题。
   - `F-TASK-033` 已补齐外部测试环境部署后的最小 smoke 入口：仓库新增环境无关的 `scripts/run-env-smoke.sh`、测试环境 smoke 基线文档，以及与 CI / phase gate / local development / truth baseline 一致的语义说明；该任务按顺延编号处理，因为 `F-TASK-032` 已被既有 Sonar 治理任务占用，不能重写历史结论。
   - `HARN-011` 只用于修正 `F-TASK-032` closeout 后遗留的 active-wave / follow-up 措辞漂移，不改变 `F-TASK-032` 的历史完成结论，也不引入新的仓库主线实现范围。
-  - `D-TASK-015` 已把 `query-execution` 推进到 feature-flagged Hetu 模式链基线；当前恢复 `D-TASK-016` 后，仓库主线重新回到 Phase-D 的跨服务授权收口，再继续推进后续真实 Hetu 集成。
+  - `D-TASK-015` 已把 `query-execution` 推进到 feature-flagged Hetu 模式链基线；`D-TASK-016` 已完成统一授权入口收口，当前仓库主线进入 `D-TASK-017` 继续推进真实 Hetu 集成与外部环境 smoke 证据分层。
   - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不影响当前仓库主线恢复到 `Phase-D / D-STORY-005` 执行授权矩阵任务。
 
 ## 5. Traceability Matrix
@@ -416,6 +416,7 @@ Tasks:
 | `D-TASK-014` | 收口异步服务鉴权、占位执行与审计兜底 | `sql-optimization`、`benchmark-engine`、`governance` 的跨服务运行时兜底 | `D-TASK-013` | 异步服务与治理服务模块测试、task audit 通过 |
 | `D-TASK-015` | 补完 `query-execution` 真实执行适配与结果聚合基线 | Hetu 多模式适配、执行模式选择、结果聚合与审计证据收口 | `D-TASK-014` | 模块测试、跨模式适配测试、runtime smoke 与契约文档同步 |
 | `D-TASK-016` | 收口治理授权矩阵并下沉统一授权入口 | 在 `governance` 落地可配置角色矩阵、资源模型、数据源授权矩阵，把占位式 datasource check 升级为真实授权决策，并让 `query-execution`、`sql-optimization`、`benchmark-engine` 全部复用同一授权入口；同时补齐授权成功/拒绝/跨租户/吊销后访问测试、runtime smoke，以及授权成功/失败/权限变更审计链 | `D-TASK-015` | governance/三服务模块测试、授权回归测试、runtime smoke、task audit 与契约文档同步 |
+| `D-TASK-017` | 落实 `query-execution` 真实 Hetu 集成与 smoke 分层 | 让 `query-execution` 的 HETU 主路径不再以 `SIMULATED` 冒充成功，补齐 JDBC 驱动接线、Hetu client 协议接入、REST/CLIENT 模式真实联通、运行参数/错误语义收口，并在保留统一授权入口前提下补齐本地 runtime smoke 与外部 Hetu/MRS environment-backed smoke 入口/文档 | `D-TASK-016` | query-execution 模块测试、跨模式适配测试、runtime smoke、Hetu env smoke 入口与契约文档同步 |
 
 ### Phase-E 前端驾驶舱与业务页面
 

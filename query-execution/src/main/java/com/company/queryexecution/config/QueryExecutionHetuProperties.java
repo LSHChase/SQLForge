@@ -145,6 +145,16 @@ public class QueryExecutionHetuProperties {
     public static class Client {
 
         private boolean enabled = false;
+        private String endpoint = "";
+        private String user = "";
+        private String source = "sqlforge-query-execution";
+        private String catalog = "";
+        private String schema = "";
+        private String authToken = "";
+        private int connectTimeoutMs = 3000;
+        private int readTimeoutMs = 5000;
+        private int maxRows = 200;
+        private int maxPages = 10;
 
         public boolean isEnabled() {
             return enabled;
@@ -152,6 +162,86 @@ public class QueryExecutionHetuProperties {
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+
+        public String getEndpoint() {
+            return endpoint;
+        }
+
+        public void setEndpoint(String endpoint) {
+            this.endpoint = endpoint;
+        }
+
+        public String getUser() {
+            return user;
+        }
+
+        public void setUser(String user) {
+            this.user = user;
+        }
+
+        public String getSource() {
+            return source;
+        }
+
+        public void setSource(String source) {
+            this.source = source;
+        }
+
+        public String getCatalog() {
+            return catalog;
+        }
+
+        public void setCatalog(String catalog) {
+            this.catalog = catalog;
+        }
+
+        public String getSchema() {
+            return schema;
+        }
+
+        public void setSchema(String schema) {
+            this.schema = schema;
+        }
+
+        public String getAuthToken() {
+            return authToken;
+        }
+
+        public void setAuthToken(String authToken) {
+            this.authToken = authToken;
+        }
+
+        public int getConnectTimeoutMs() {
+            return connectTimeoutMs;
+        }
+
+        public void setConnectTimeoutMs(int connectTimeoutMs) {
+            this.connectTimeoutMs = connectTimeoutMs;
+        }
+
+        public int getReadTimeoutMs() {
+            return readTimeoutMs;
+        }
+
+        public void setReadTimeoutMs(int readTimeoutMs) {
+            this.readTimeoutMs = readTimeoutMs;
+        }
+
+        public int getMaxRows() {
+            return maxRows;
+        }
+
+        public void setMaxRows(int maxRows) {
+            this.maxRows = maxRows;
+        }
+
+        public int getMaxPages() {
+            return maxPages;
+        }
+
+        public void setMaxPages(int maxPages) {
+            this.maxPages = maxPages;
         }
     }
 }

@@ -19,6 +19,8 @@ RUNTIME_SMOKE_LOG_DIR="${RUNTIME_SMOKE_LOG_DIR:-/tmp/sqlforge-runtime-smoke}"
 DEV_CRYPTO_KEY_BASE64="${SQLFORGE_DEV_CRYPTO_KEY_BASE64:-MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=}"
 SPRING_BOOT_PLUGIN_VERSION=""
 GOVERNANCE_SMOKE_TRACE_PREFIX="${SQLFORGE_GOVERNANCE_SMOKE_FORCE_TRACE_PREFIX:-SMOKE-FORCE-AUDIT-FALLBACK}"
+MOCK_HETU_PORT="${SQLFORGE_RUNTIME_MOCK_HETU_PORT:-18080}"
+MOCK_HETU_BASE_URL="${SQLFORGE_RUNTIME_MOCK_HETU_BASE_URL:-http://127.0.0.1:${MOCK_HETU_PORT}}"
 
 usage() {
   cat <<'EOF'
@@ -280,6 +282,23 @@ start_governance() {
   wait_for_http governance "http://localhost:8080/api/governance/health" "${pid}" 120
 }
 
+start_mock_hetu() {
+  local log_file="${RUNTIME_SMOKE_LOG_DIR}/mock-hetu.log"
+  local pid=""
+
+  ensure_port_free mock-hetu "${MOCK_HETU_PORT}"
+
+  print_step "Starting mock Hetu runtime"
+  : > "${log_file}"
+  (
+    cd "${REPO_ROOT}"
+    exec nohup python3 scripts/mock-hetu-server.py --port "${MOCK_HETU_PORT}" > "${log_file}" 2>&1
+  ) &
+  pid=$!
+  register_service mock-hetu "${pid}" "${log_file}"
+  wait_for_http mock-hetu "${MOCK_HETU_BASE_URL}/health" "${pid}" 30
+}
+
 start_query_execution() {
   local log_file="${RUNTIME_SMOKE_LOG_DIR}/query-execution.log"
   local pid=""
@@ -293,6 +312,17 @@ start_query_execution() {
     export SQLFORGE_SECURITY_CRYPTO_KEY_ID="${SQLFORGE_SECURITY_CRYPTO_KEY_ID:-query-execution-dev-key}"
     export SQLFORGE_SECURITY_CRYPTO_BASE64_KEY="${SQLFORGE_SECURITY_CRYPTO_BASE64_KEY:-${DEV_CRYPTO_KEY_BASE64}}"
     export SQLFORGE_SECURITY_CRYPTO_BASE64KEY="${SQLFORGE_SECURITY_CRYPTO_BASE64KEY:-${DEV_CRYPTO_KEY_BASE64}}"
+    export QUERY_EXECUTION_HETU_ENABLED="${QUERY_EXECUTION_HETU_ENABLED:-true}"
+    export QUERY_EXECUTION_HETU_ALLOWED_MODES="${QUERY_EXECUTION_HETU_ALLOWED_MODES:-CLIENT,REST}"
+    export QUERY_EXECUTION_HETU_REST_ENDPOINT="${QUERY_EXECUTION_HETU_REST_ENDPOINT:-${MOCK_HETU_BASE_URL}/query}"
+    export QUERY_EXECUTION_HETU_REST_AUTH_TOKEN="${QUERY_EXECUTION_HETU_REST_AUTH_TOKEN:-runtime-rest-token}"
+    export QUERY_EXECUTION_HETU_CLIENT_ENABLED="${QUERY_EXECUTION_HETU_CLIENT_ENABLED:-true}"
+    export QUERY_EXECUTION_HETU_CLIENT_ENDPOINT="${QUERY_EXECUTION_HETU_CLIENT_ENDPOINT:-${MOCK_HETU_BASE_URL}/v1/statement}"
+    export QUERY_EXECUTION_HETU_CLIENT_USER="${QUERY_EXECUTION_HETU_CLIENT_USER:-sqlforge-runtime-smoke}"
+    export QUERY_EXECUTION_HETU_CLIENT_SOURCE="${QUERY_EXECUTION_HETU_CLIENT_SOURCE:-sqlforge-runtime-smoke}"
+    export QUERY_EXECUTION_HETU_CLIENT_CATALOG="${QUERY_EXECUTION_HETU_CLIENT_CATALOG:-hive}"
+    export QUERY_EXECUTION_HETU_CLIENT_SCHEMA="${QUERY_EXECUTION_HETU_CLIENT_SCHEMA:-default}"
+    export QUERY_EXECUTION_HETU_CLIENT_AUTH_TOKEN="${QUERY_EXECUTION_HETU_CLIENT_AUTH_TOKEN:-runtime-client-token}"
     exec nohup mvn -B -f query-execution/pom.xml \
       "org.springframework.boot:spring-boot-maven-plugin:$(spring_boot_version):run" \
       > "${log_file}" 2>&1
@@ -366,6 +396,7 @@ run_runtime_smoke() {
   ensure_runtime_schema
   install_backend_runtime_dependencies
   start_governance
+  start_mock_hetu
   start_query_execution
   start_sql_optimization
   start_benchmark_engine

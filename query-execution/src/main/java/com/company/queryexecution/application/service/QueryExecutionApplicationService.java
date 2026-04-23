@@ -11,6 +11,7 @@ import com.company.queryexecution.domain.query.QueryExecutionStatus;
 import com.company.queryexecution.domain.query.QueryExecutionStep;
 import com.company.queryexecution.domain.query.ReadonlyQueryAssessment;
 import com.company.queryexecution.domain.query.ReadonlyQueryGuard;
+import com.company.queryexecution.infrastructure.adapter.HetuExecutionUnavailableException;
 import com.company.queryexecution.infrastructure.adapter.QueryExecutionAdapter;
 import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.queryexecution.infrastructure.governance.QueryExecutionAuditRecord;
@@ -41,7 +42,7 @@ public class QueryExecutionApplicationService {
     private static final Logger LOGGER = LoggerFactory.getLogger(QueryExecutionApplicationService.class);
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
-    private static final String IMPLEMENTATION_STAGE = "HETU_MODE_CHAIN_BASELINE";
+    private static final String IMPLEMENTATION_STAGE = "HETU_REAL_INTEGRATION";
     private static final String OPERATION = "QUERY_EXECUTE_SYNC";
     private static final String READONLY_SQL_REJECTION_MESSAGE = "当前同步查询路径仅允许只读单语句 SQL";
     private static final String ROUTE_UNAVAILABLE_MESSAGE = "当前同步查询路径尚未为目标数据源开放执行路由";
@@ -52,12 +53,14 @@ public class QueryExecutionApplicationService {
     private static final String STATE_RISK_REJECTED = "RISK_REJECTED";
     private static final String STATE_ROUTE_UNAVAILABLE = "ROUTE_UNAVAILABLE";
     private static final String STATE_PRIMARY_ROUTE_SELECTED = "PRIMARY_ROUTE_SELECTED";
+    private static final String STATE_PRIMARY_MODE_CHAIN_FAILED = "PRIMARY_MODE_CHAIN_FAILED";
     private static final String STATE_PRIMARY_TIMEOUT = "PRIMARY_TIMEOUT";
     private static final String STATE_LOCAL_ROLLBACK_MARKED = "LOCAL_ROLLBACK_MARKED";
     private static final String STATE_FALLBACK_REQUESTED = "FALLBACK_REQUESTED";
     private static final String STATE_LOCAL_COMPENSATION_MARKED = "LOCAL_COMPENSATION_MARKED";
     private static final String STATE_COMPLETED = "COMPLETED";
     private static final String MARKER_TIMEOUT_ROLLBACK = "LOCAL_TIMEOUT_ROLLBACK_MARKED";
+    private static final String MARKER_PRIMARY_ROUTE_FAILURE = "LOCAL_PRIMARY_ROUTE_FAILURE_MARKED";
     private static final String MARKER_FALLBACK_COMPENSATION = "LOCAL_FALLBACK_COMPENSATION_MARKED";
     private static final String ACTION_CLOSE_PRIMARY_ATTEMPT_CONTEXT = "CLOSE_PRIMARY_ATTEMPT_CONTEXT";
     private static final String ACTION_RECORD_DEGRADED_RESULT = "RECORD_DEGRADED_RESULT";
@@ -189,7 +192,19 @@ public class QueryExecutionApplicationService {
                 );
             }
 
-            QueryExecutionStep primaryStep = queryExecutionAdapter.execute(primaryEngine, actualSql, request, false);
+            QueryExecutionStep primaryStep;
+            try {
+                primaryStep = queryExecutionAdapter.execute(primaryEngine, actualSql, request, false);
+            } catch (HetuExecutionUnavailableException ex) {
+                return handleUnavailableHetuRoute(
+                    request,
+                    primaryEngine,
+                    actualSql,
+                    sqlFingerprint,
+                    ex,
+                    start
+                );
+            }
             if (timeoutMs != null && primaryStep.getElapsedMs() > timeoutMs.longValue()) {
                 logStateChange(
                     sqlFingerprint,
@@ -258,7 +273,9 @@ public class QueryExecutionApplicationService {
                             "Increase timeoutMs or use RETRY_THEN_FALLBACK for the current synchronous baseline.",
                             true
                         ),
-                        sqlFingerprint
+                        sqlFingerprint,
+                        primaryStep.getExecutionMode(),
+                        primaryStep.getAttemptedModes()
                     ),
                     request,
                     start
@@ -359,6 +376,87 @@ public class QueryExecutionApplicationService {
         );
     }
 
+    private QueryExecuteResponse handleUnavailableHetuRoute(QueryExecuteRequest request,
+                                                            DataSourceTypeEnum primaryEngine,
+                                                            String actualSql,
+                                                            String sqlFingerprint,
+                                                            HetuExecutionUnavailableException exception,
+                                                            long start) {
+        logStateChange(
+            sqlFingerprint,
+            request,
+            STATE_PRIMARY_ROUTE_SELECTED,
+            STATE_PRIMARY_MODE_CHAIN_FAILED,
+            primaryEngine.name(),
+            0L,
+            QueryExecutionStatus.FAILED.name(),
+            null
+        );
+        QueryRetryStepVO routeFailureStep = buildRecoveryStep(
+            primaryEngine.name(),
+            0L,
+            QueryExecutionStatus.FAILED.name(),
+            MARKER_PRIMARY_ROUTE_FAILURE,
+            ACTION_CLOSE_PRIMARY_ATTEMPT_CONTEXT
+        );
+        if (FaultToleranceStrategy.RETRY_THEN_FALLBACK == request.getFaultToleranceStrategy()
+            && resolveFallbackEngine(primaryEngine) != null) {
+            logStateChange(
+                sqlFingerprint,
+                request,
+                STATE_PRIMARY_MODE_CHAIN_FAILED,
+                STATE_FALLBACK_REQUESTED,
+                resolveFallbackEngine(primaryEngine).name(),
+                0L,
+                QueryExecutionStatus.PARTIAL.name(),
+                MARKER_PRIMARY_ROUTE_FAILURE
+            );
+            return logAndReturn(
+                buildFallbackResponse(
+                    primaryEngine,
+                    actualSql,
+                    sqlFingerprint,
+                    exception.getMessage(),
+                    Collections.singletonList(routeFailureStep),
+                    request
+                ),
+                request,
+                start
+            );
+        }
+        logStateChange(
+            sqlFingerprint,
+            request,
+            STATE_PRIMARY_MODE_CHAIN_FAILED,
+            STATE_ROUTE_UNAVAILABLE,
+            primaryEngine.name(),
+            0L,
+            QueryExecutionStatus.FAILED.name(),
+            MARKER_PRIMARY_ROUTE_FAILURE
+        );
+        return logAndReturn(
+            buildFailureResponse(
+                QueryExecutionStatus.FAILED,
+                primaryEngine.name(),
+                actualSql,
+                0L,
+                0L,
+                Collections.singletonList(routeFailureStep),
+                new QueryErrorDetailVO(
+                    ErrorCodeConstants.QUERY_EXECUTION_SYSTEM_ROUTE_UNAVAILABLE,
+                    ROUTE_UNAVAILABLE_MESSAGE,
+                    exception.getMessage(),
+                    true
+                ),
+                sqlFingerprint,
+                "NONE",
+                exception.getAttemptedModes()
+            ),
+            request,
+            start
+        );
+    }
+
     private QueryExecuteResponse buildSuccessResponse(QueryExecutionStatus status,
                                                       QueryExecutionStep executionStep,
                                                       String actualSql,
@@ -399,6 +497,30 @@ public class QueryExecutionApplicationService {
                                                       List<QueryRetryStepVO> retryPath,
                                                       QueryErrorDetailVO errorDetail,
                                                       String sqlFingerprint) {
+        return buildFailureResponse(
+            status,
+            targetEngine,
+            actualSql,
+            elapsedMs,
+            scannedRows,
+            retryPath,
+            errorDetail,
+            sqlFingerprint,
+            "NONE",
+            Collections.<String>emptyList()
+        );
+    }
+
+    private QueryExecuteResponse buildFailureResponse(QueryExecutionStatus status,
+                                                      String targetEngine,
+                                                      String actualSql,
+                                                      long elapsedMs,
+                                                      long scannedRows,
+                                                      List<QueryRetryStepVO> retryPath,
+                                                      QueryErrorDetailVO errorDetail,
+                                                      String sqlFingerprint,
+                                                      String executionMode,
+                                                      List<String> attemptedModes) {
         return new QueryExecuteResponse(
             status,
             Collections.<java.util.Map<String, Object>>emptyList(),
@@ -410,8 +532,8 @@ public class QueryExecutionApplicationService {
                 scannedRows,
                 false,
                 false,
-                "NONE",
-                Collections.<String>emptyList(),
+                executionMode,
+                attemptedModes,
                 0
             ),
             false,

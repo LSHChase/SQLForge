@@ -33,8 +33,20 @@ public class ModeRoutingQueryExecutionAdapter implements QueryExecutionAdapter {
                                       String actualSql,
                                       QueryExecuteRequest request,
                                       boolean degradedPath) {
-        if (targetEngine != DataSourceTypeEnum.HETU || !properties.isEnabled()) {
+        if (targetEngine != DataSourceTypeEnum.HETU) {
             return deterministicQueryExecutionAdapter.execute(targetEngine, actualSql, request, degradedPath);
+        }
+        if (!properties.isEnabled()) {
+            throw new HetuExecutionUnavailableException(
+                "Hetu execution chain is disabled for the current environment",
+                java.util.Collections.singletonList("CHAIN_DISABLED")
+            );
+        }
+        if (properties.getAllowedModes().isEmpty()) {
+            throw new HetuExecutionUnavailableException(
+                "No Hetu execution mode is configured for the current environment",
+                java.util.Collections.singletonList("CHAIN_UNCONFIGURED")
+            );
         }
         List<String> attemptedModes = new ArrayList<String>();
         RuntimeException lastFailure = null;
@@ -54,11 +66,15 @@ public class ModeRoutingQueryExecutionAdapter implements QueryExecutionAdapter {
             }
         }
         if (lastFailure != null) {
-            throw new IllegalStateException(
+            throw new HetuExecutionUnavailableException(
                 "No Hetu execution mode succeeded. attemptedModes=" + attemptedModes,
+                attemptedModes,
                 lastFailure
             );
         }
-        throw new IllegalStateException("No Hetu execution mode is available for the current configuration");
+        throw new HetuExecutionUnavailableException(
+            "No Hetu execution mode is available for the current configuration",
+            attemptedModes
+        );
     }
 }

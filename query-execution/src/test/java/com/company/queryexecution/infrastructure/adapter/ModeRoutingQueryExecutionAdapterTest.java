@@ -19,16 +19,61 @@ import org.junit.jupiter.api.Test;
 class ModeRoutingQueryExecutionAdapterTest {
 
     @Test
-    void shouldFallbackToDeterministicExecutionWhenHetuRealChainIsDisabled() {
+    void shouldRejectHetuRequestWhenRealChainIsDisabled() {
         QueryExecutionHetuProperties properties = new QueryExecutionHetuProperties();
         ModeRoutingQueryExecutionAdapter adapter =
             new ModeRoutingQueryExecutionAdapter(properties, Collections.<HetuExecutionModeAdapter>emptyList());
 
-        QueryExecutionStep step = adapter.execute(DataSourceTypeEnum.HETU, "SELECT 1", baseRequest(), false);
+        HetuExecutionUnavailableException ex = assertThrows(
+            HetuExecutionUnavailableException.class,
+            () -> adapter.execute(DataSourceTypeEnum.HETU, "SELECT 1", baseRequest(), false)
+        );
 
-        assertEquals("SIMULATED", step.getExecutionMode());
-        assertEquals(Collections.singletonList("SIMULATED"), step.getAttemptedModes());
+        assertEquals("Hetu execution chain is disabled for the current environment", ex.getMessage());
+        assertEquals(Collections.singletonList("CHAIN_DISABLED"), ex.getAttemptedModes());
+    }
+
+    @Test
+    void shouldKeepDeterministicExecutionForNonHetuTargets() {
+        QueryExecutionHetuProperties properties = new QueryExecutionHetuProperties();
+        ModeRoutingQueryExecutionAdapter adapter =
+            new ModeRoutingQueryExecutionAdapter(properties, Collections.<HetuExecutionModeAdapter>emptyList());
+
+        QueryExecutionStep step = adapter.execute(DataSourceTypeEnum.HIVE, "SELECT 1", baseRequest(), true);
+
+        assertEquals("HIVE_FALLBACK", step.getExecutionMode());
+        assertEquals(Collections.singletonList("HIVE_FALLBACK"), step.getAttemptedModes());
         assertFalse(step.getRows().isEmpty());
+    }
+
+    @Test
+    void shouldRejectHetuRequestWhenNoModeIsConfigured() {
+        QueryExecutionHetuProperties properties = enabledProperties();
+        ModeRoutingQueryExecutionAdapter adapter =
+            new ModeRoutingQueryExecutionAdapter(properties, Collections.<HetuExecutionModeAdapter>emptyList());
+
+        HetuExecutionUnavailableException ex = assertThrows(
+            HetuExecutionUnavailableException.class,
+            () -> adapter.execute(DataSourceTypeEnum.HETU, "SELECT 1", baseRequest(), false)
+        );
+
+        assertEquals("No Hetu execution mode is configured for the current environment", ex.getMessage());
+        assertEquals(Collections.singletonList("CHAIN_UNCONFIGURED"), ex.getAttemptedModes());
+    }
+
+    @Test
+    void shouldRejectWhenConfiguredModesResolveToNoAvailableAdapter() {
+        QueryExecutionHetuProperties properties = enabledProperties(QueryExecutionAccessMode.JDBC);
+        ModeRoutingQueryExecutionAdapter adapter =
+            new ModeRoutingQueryExecutionAdapter(properties, Collections.<HetuExecutionModeAdapter>emptyList());
+
+        HetuExecutionUnavailableException ex = assertThrows(
+            HetuExecutionUnavailableException.class,
+            () -> adapter.execute(DataSourceTypeEnum.HETU, "SELECT 1", baseRequest(), false)
+        );
+
+        assertEquals("No Hetu execution mode is available for the current configuration", ex.getMessage());
+        assertEquals(Collections.singletonList("JDBC:UNAVAILABLE"), ex.getAttemptedModes());
     }
 
     @Test
@@ -85,12 +130,13 @@ class ModeRoutingQueryExecutionAdapterTest {
             )
         );
 
-        IllegalStateException ex = assertThrows(
-            IllegalStateException.class,
+        HetuExecutionUnavailableException ex = assertThrows(
+            HetuExecutionUnavailableException.class,
             () -> adapter.execute(DataSourceTypeEnum.HETU, "SELECT 1", baseRequest(), false)
         );
 
         assertTrue(ex.getMessage().contains("attemptedModes=[JDBC, JDBC:FAILED, REST, REST:FAILED]"));
+        assertEquals(Arrays.asList("JDBC", "JDBC:FAILED", "REST", "REST:FAILED"), ex.getAttemptedModes());
     }
 
     private QueryExecutionHetuProperties enabledProperties(QueryExecutionAccessMode... modes) {

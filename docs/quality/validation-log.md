@@ -760,3 +760,13 @@
 2026-04-23T03:45:16-05:00 | D-TASK-016 validate | `R-133`, `R-168` | passed | `mvn -B -pl governance,query-execution,sql-optimization,benchmark-engine -am -DskipITs test`
 2026-04-23T03:46:09-05:00 | D-TASK-016 validate | `R-133`, `R-168` | passed | `bash scripts/run-runtime-smoke.sh --runtime-smoke`
 2026-04-23T03:48:48-05:00 | D-TASK-016 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-23T04:25:44-05:00 | D-TASK-017 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-23T04:25:44-05:00 | D-TASK-017 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-23T04:25:44-05:00 | D-TASK-017 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-23T04:25:44-05:00 | D-TASK-017 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-23T04:25:47-05:00 | D-TASK-017 validate | `R-133`, `R-168` | passed | `mvn -B -pl query-execution -am test -DskipITs`
+2026-04-23T04:26:44-05:00 | D-TASK-017 validate | `R-133`, `R-168` | passed | `bash scripts/run-runtime-smoke.sh --runtime-smoke`
+2026-04-23T04:26:44-05:00 | D-TASK-017 validate | `R-133`, `R-168` | passed | `bash -n scripts/run-runtime-smoke.sh scripts/manual-query-governance-smoke.sh scripts/run-hetu-env-smoke.sh`
+2026-04-23T04:26:44-05:00 | D-TASK-017 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/mock-hetu-server.py`
+2026-04-23T04:26:44-05:00 | D-TASK-017 validate | `R-133`, `R-168` | passed | `bash scripts/run-hetu-env-smoke.sh --help`
+2026-04-23T04:28:42-05:00 | D-TASK-017 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`

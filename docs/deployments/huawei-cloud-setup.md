@@ -154,6 +154,26 @@ messaging:
 - 检查 Hetu 对外暴露模式与 SQLForge 配置一致
 - 检查查询执行服务使用的接入模式是否正确
 
+### Hetu / MRS 环境 smoke
+
+外部测试或预发环境如果已经把 `query-execution` 配到真实 Hetu / MRS，可追加执行：
+
+```bash
+export QUERY_EXECUTION_BASE_URL="https://query-execution.example.com"
+export REQUEST_TENANT_ID="tenant-a"
+export REQUEST_USER_ID="hetu-smoke-bot"
+export REQUEST_ROLE_CODES="TENANT_ADMIN,ANALYST"
+
+bash scripts/run-hetu-env-smoke.sh
+```
+
+该脚本会验证：
+
+- `query-execution` health 可用
+- Hetu 查询返回 `SUCCESS`
+- `metadata.targetEngine == HETU`
+- `metadata.executionMode` 为 `JDBC` / `REST` / `CLIENT` 之一，而不是 `SIMULATED`
+
 ### 鉴权或租户隔离失败
 
 - 检查生产鉴权开关是否开启

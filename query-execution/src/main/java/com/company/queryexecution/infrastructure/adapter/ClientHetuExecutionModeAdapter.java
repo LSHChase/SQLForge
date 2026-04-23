@@ -4,6 +4,10 @@ import com.company.queryexecution.application.controller.dto.QueryExecuteRequest
 import com.company.queryexecution.config.QueryExecutionHetuProperties;
 import com.company.queryexecution.domain.query.QueryExecutionAccessMode;
 import com.company.queryexecution.domain.query.QueryExecutionStep;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -31,7 +35,7 @@ public class ClientHetuExecutionModeAdapter implements HetuExecutionModeAdapter 
         QueryExecutionStep step = hetuClientOperator.execute(actualSql, request, degradedPath);
         return new QueryExecutionStep(
             step.getTargetEngine(),
-            step.getRows(),
+            sanitizeRows(step.getRows(), degradedPath),
             step.getElapsedMs(),
             step.getScannedRows(),
             step.isCacheHit(),
@@ -39,5 +43,20 @@ public class ClientHetuExecutionModeAdapter implements HetuExecutionModeAdapter 
             QueryExecutionAccessMode.CLIENT.name(),
             java.util.Collections.singletonList(QueryExecutionAccessMode.CLIENT.name())
         );
+    }
+
+    private List<Map<String, Object>> sanitizeRows(List<Map<String, Object>> rows, boolean degradedPath) {
+        if (rows == null) {
+            return java.util.Collections.<Map<String, Object>>emptyList();
+        }
+        List<Map<String, Object>> sanitized = new ArrayList<Map<String, Object>>();
+        for (Map<String, Object> row : rows) {
+            Map<String, Object> copy = new LinkedHashMap<String, Object>(row);
+            copy.put("engine", "HETU");
+            copy.put("mode", degradedPath ? "FALLBACK" : "PRIMARY");
+            copy.put("executionMode", QueryExecutionAccessMode.CLIENT.name());
+            sanitized.add(copy);
+        }
+        return sanitized;
     }
 }

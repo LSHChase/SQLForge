@@ -19,6 +19,7 @@ import com.company.queryexecution.domain.query.FaultToleranceStrategy;
 import com.company.queryexecution.domain.query.QueryExecutionStep;
 import com.company.queryexecution.domain.query.QueryExecutionStatus;
 import com.company.queryexecution.infrastructure.adapter.DeterministicQueryExecutionAdapter;
+import com.company.queryexecution.infrastructure.adapter.HetuExecutionUnavailableException;
 import com.company.queryexecution.infrastructure.adapter.QueryExecutionAdapter;
 import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
@@ -52,7 +53,7 @@ class QueryExecutionApplicationServiceTest {
 
         assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
         assertEquals("HETU", response.getMetadata().getTargetEngine());
-        assertEquals("HETU_MODE_CHAIN_BASELINE", response.getImplementationStage());
+        assertEquals("HETU_REAL_INTEGRATION", response.getImplementationStage());
         assertFalse(response.isDegraded());
         assertNull(response.getError());
         assertEquals(1, response.getRows().size());
@@ -130,6 +131,64 @@ class QueryExecutionApplicationServiceTest {
         assertEquals("HIVE_FALLBACK", response.getMetadata().getAttemptedModes().get(0));
         assertEquals(1, response.getMetadata().getRowCount());
         assertNull(response.getError());
+    }
+
+    @Test
+    void shouldReturnStructuredRouteUnavailableWhenHetuChainIsNotAvailable() {
+        setRequestContext("tenant-a");
+        QueryExecutionApplicationService service =
+            new QueryExecutionApplicationService(new QueryExecutionAdapter() {
+                @Override
+                public QueryExecutionStep execute(DataSourceTypeEnum targetEngine,
+                                                  String actualSql,
+                                                  QueryExecuteRequest request,
+                                                  boolean degradedPath) {
+                    throw new HetuExecutionUnavailableException(
+                        "Hetu execution chain is disabled for the current environment",
+                        java.util.Collections.singletonList("CHAIN_DISABLED")
+                    );
+                }
+            }, mockGovernanceClient());
+
+        QueryExecuteResponse response = service.executeSynchronously(baseRequest("SELECT * FROM orders"));
+
+        assertEquals(QueryExecutionStatus.FAILED, response.getStatus());
+        assertEquals(ErrorCodeConstants.QUERY_EXECUTION_SYSTEM_ROUTE_UNAVAILABLE, response.getError().getCode());
+        assertEquals(java.util.Collections.singletonList("CHAIN_DISABLED"), response.getMetadata().getAttemptedModes());
+        assertEquals(1, response.getRetryPath().size());
+        assertEquals("LOCAL_PRIMARY_ROUTE_FAILURE_MARKED", response.getRetryPath().get(0).getLocalRecoveryMarker());
+    }
+
+    @Test
+    void shouldFallbackToHiveWhenHetuModeChainFailsAndFallbackIsEnabled() {
+        setRequestContext("tenant-a");
+        QueryExecutionApplicationService service =
+            new QueryExecutionApplicationService(new QueryExecutionAdapter() {
+                @Override
+                public QueryExecutionStep execute(DataSourceTypeEnum targetEngine,
+                                                  String actualSql,
+                                                  QueryExecuteRequest request,
+                                                  boolean degradedPath) {
+                    if (targetEngine == DataSourceTypeEnum.HIVE) {
+                        return new DeterministicQueryExecutionAdapter().execute(targetEngine, actualSql, request, degradedPath);
+                    }
+                    throw new HetuExecutionUnavailableException(
+                        "No Hetu execution mode succeeded. attemptedModes=[JDBC, JDBC:FAILED, REST, REST:FAILED]",
+                        java.util.Arrays.asList("JDBC", "JDBC:FAILED", "REST", "REST:FAILED")
+                    );
+                }
+            }, mockGovernanceClient());
+        QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
+        request.setFaultToleranceStrategy(FaultToleranceStrategy.RETRY_THEN_FALLBACK);
+
+        QueryExecuteResponse response = service.executeSynchronously(request);
+
+        assertEquals(QueryExecutionStatus.PARTIAL, response.getStatus());
+        assertTrue(response.isDegraded());
+        assertEquals("HIVE", response.getMetadata().getTargetEngine());
+        assertEquals(2, response.getRetryPath().size());
+        assertEquals("LOCAL_PRIMARY_ROUTE_FAILURE_MARKED", response.getRetryPath().get(0).getLocalRecoveryMarker());
+        assertEquals("LOCAL_FALLBACK_COMPENSATION_MARKED", response.getRetryPath().get(1).getLocalRecoveryMarker());
     }
 
     @Test

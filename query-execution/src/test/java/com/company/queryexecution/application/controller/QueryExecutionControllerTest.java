@@ -52,8 +52,8 @@ class QueryExecutionControllerTest {
                     32L,
                     false,
                     true,
-                    "SIMULATED",
-                    Arrays.asList("SIMULATED"),
+                    "CLIENT",
+                    Arrays.asList("CLIENT"),
                     1
                 ),
                 false,
@@ -62,7 +62,7 @@ class QueryExecutionControllerTest {
                 null,
                 "fingerprint-001",
                 "LONG_TERM_BASELINE",
-                "HETU_MODE_CHAIN_BASELINE"
+                "HETU_REAL_INTEGRATION"
             ));
 
         mockMvc.perform(post("/api/query-execution/queries/execute")
@@ -80,12 +80,12 @@ class QueryExecutionControllerTest {
             .andExpect(header().exists("X-Trace-Id"))
             .andExpect(jsonPath("$.status").value("SUCCESS"))
             .andExpect(jsonPath("$.metadata.targetEngine").value("HETU"))
-            .andExpect(jsonPath("$.metadata.executionMode").value("SIMULATED"))
-            .andExpect(jsonPath("$.metadata.attemptedModes[0]").value("SIMULATED"))
+            .andExpect(jsonPath("$.metadata.executionMode").value("CLIENT"))
+            .andExpect(jsonPath("$.metadata.attemptedModes[0]").value("CLIENT"))
             .andExpect(jsonPath("$.metadata.rowCount").value(1))
             .andExpect(jsonPath("$.rows[0].engine").value("HETU"))
             .andExpect(jsonPath("$.contractStage").value("LONG_TERM_BASELINE"))
-            .andExpect(jsonPath("$.implementationStage").value("HETU_MODE_CHAIN_BASELINE"));
+            .andExpect(jsonPath("$.implementationStage").value("HETU_REAL_INTEGRATION"));
 
         verify(queryExecutionApplicationService).executeSynchronously(any());
     }

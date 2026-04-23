@@ -16,6 +16,7 @@ REQUEST_USER_ID="${REQUEST_USER_ID:-analyst-001}"
 REQUEST_ROLE_CODES="${REQUEST_ROLE_CODES:-TENANT_ADMIN,ANALYST}"
 REQUEST_AUTH_SOURCE="${REQUEST_AUTH_SOURCE:-header}"
 COMPENSATION_TRACE_PREFIX="${SQLFORGE_GOVERNANCE_SMOKE_FORCE_TRACE_PREFIX:-SMOKE-FORCE-AUDIT-FALLBACK}"
+EXPECTED_QUERY_EXECUTION_MODE="${EXPECTED_QUERY_EXECUTION_MODE:-CLIENT}"
 CLEANUP=false
 
 SUCCESS_REQUEST_ID=""
@@ -106,6 +107,8 @@ main() {
   echo "${success_response}"
   json_assert "${success_response}" 'payload["status"] == "SUCCESS"'
   json_assert "${success_response}" 'payload["metadata"]["targetEngine"] == "HETU"'
+  json_assert "${success_response}" "payload['metadata']['executionMode'] == '${EXPECTED_QUERY_EXECUTION_MODE}'"
+  json_assert "${success_response}" "payload['metadata']['attemptedModes'][0] == '${EXPECTED_QUERY_EXECUTION_MODE}'"
 
   print_step "Verifying success audit row"
   success_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${SUCCESS_REQUEST_ID}' AND service_code = 'QUERY_EXECUTION' AND operation_type = 'QUERY_EXECUTE_SYNC' ORDER BY id DESC LIMIT 1;")"

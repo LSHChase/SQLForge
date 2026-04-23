@@ -42,6 +42,16 @@ query-execution:
       max-rows: ${QUERY_EXECUTION_HETU_REST_MAX_ROWS:200}
     client:
       enabled: ${QUERY_EXECUTION_HETU_CLIENT_ENABLED:false}
+      endpoint: ${QUERY_EXECUTION_HETU_CLIENT_ENDPOINT:}
+      user: ${QUERY_EXECUTION_HETU_CLIENT_USER:}
+      source: ${QUERY_EXECUTION_HETU_CLIENT_SOURCE:sqlforge-query-execution}
+      catalog: ${QUERY_EXECUTION_HETU_CLIENT_CATALOG:}
+      schema: ${QUERY_EXECUTION_HETU_CLIENT_SCHEMA:}
+      auth-token: ${QUERY_EXECUTION_HETU_CLIENT_AUTH_TOKEN:}
+      connect-timeout-ms: ${QUERY_EXECUTION_HETU_CLIENT_CONNECT_TIMEOUT_MS:3000}
+      read-timeout-ms: ${QUERY_EXECUTION_HETU_CLIENT_READ_TIMEOUT_MS:5000}
+      max-rows: ${QUERY_EXECUTION_HETU_CLIENT_MAX_ROWS:200}
+      max-pages: ${QUERY_EXECUTION_HETU_CLIENT_MAX_PAGES:10}
   acceleration:
     ownership-mode: APPLY_APPROVED_RUNTIME_CONFIG_ONLY
   governance:

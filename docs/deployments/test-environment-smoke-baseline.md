@@ -98,6 +98,12 @@ bash scripts/run-env-smoke.sh
 - 外部测试环境内部数据库直查
 - 仓库 `repo-closed` build/test/lint/coverage/db-script/runtime smoke 的替代
 
+上面这条“Hetu/MRS 真实环境 smoke”仍不属于 `run-env-smoke.sh` 的最小契约；当前仓库为它单独提供了 environment-backed 入口：
+
+- `bash scripts/run-hetu-env-smoke.sh`
+
+该脚本只验证 `query-execution` 在外部环境里是否真的返回 `JDBC` / `REST` / `CLIENT` 之一，而不是 `SIMULATED`。
+
 ## Usage Pattern For External CI/CD
 
 推荐由外部测试环境 owner 在部署完成后调用：
@@ -119,6 +125,17 @@ bash scripts/run-env-smoke.sh
 
 ```bash
 bash scripts/run-env-smoke.sh --check-config
+```
+
+如果外部测试环境还需要单独追加 Hetu / MRS 实链验证，可再执行：
+
+```bash
+export QUERY_EXECUTION_BASE_URL="https://query-execution.test.example.com"
+export REQUEST_TENANT_ID="tenant-a"
+export REQUEST_USER_ID="hetu-smoke-bot"
+export REQUEST_ROLE_CODES="TENANT_ADMIN,ANALYST"
+
+bash scripts/run-hetu-env-smoke.sh
 ```
 
 ## Relationship To Existing Gates

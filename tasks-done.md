@@ -4,6 +4,32 @@
 
 ## Done
 
+### D-TASK-017: 落实 `query-execution` 真实 Hetu 集成与 smoke 分层
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `feat(query-execution): integrate real hetu execution chain`
+- Priority: 1
+- Depends on: `D-TASK-016`
+- Scope: 让 HETU 主路径切到真实 JDBC/REST/CLIENT 接入，补齐 JDBC 驱动接线、Hetu client 协议执行、严格路由与错误语义，并提供 repo-closed runtime smoke 与 environment-backed Hetu/MRS smoke 入口 Tech: `JAVA-BE`,`OPS`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-005` 运行时执行链与跨服务补完
+- Human confirmation point: 若真实 Hetu 集成重新退回 `SIMULATED` 冒充成功、放宽只读边界、绕过统一授权入口，或在未确认外部依赖时默认启用高风险生产参数，需人工确认
+- Data impact: query-execution Hetu 连接配置、执行链路、审计记录、runtime/env smoke 证据
+- Rollback / recovery: 恢复受控模式顺序、严格 HETU 路由失败语义、统一授权前置检查，并回退到上一版受控配置与文档说明
+- Validation:
+  - `query-execution 模块测试、跨模式适配测试、runtime smoke、Hetu env smoke 脚本/文档、task audit`
+  - `python3 scripts/foreman.py validate D-TASK-017`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-23: added real Hetu integration primitives in `query-execution`, including `io.hetu.core:hetu-jdbc` wiring, strict HETU route-unavailable semantics, Hetu client protocol execution, and updated controller/service/adapter coverage.
+  - 2026-04-23: updated runtime/env smoke assets with a local mock Hetu coordinator, runtime smoke real-mode assertions, and a dedicated `scripts/run-hetu-env-smoke.sh` entry for external Hetu/MRS environments.
+  - 2026-04-23: `mvn -B -pl query-execution -am test -DskipITs`, `bash scripts/run-runtime-smoke.sh --runtime-smoke`, `bash -n scripts/run-runtime-smoke.sh scripts/manual-query-governance-smoke.sh scripts/run-hetu-env-smoke.sh`, `python3 -m py_compile scripts/mock-hetu-server.py`, and `python3 scripts/foreman.py compile-governance` passed; `python3 scripts/foreman.py compile-governance --check` passed after recompiling `.codex/policy/authority-map.json`.
+- Context closeout:
+  - Completed scope: Promoted query-execution to the real Hetu integration stage by wiring the Hetu JDBC driver, enforcing strict HETU route-unavailable semantics instead of simulated success, implementing Hetu client-protocol execution, updating runtime/env smoke assets with a mock Hetu coordinator and external Hetu smoke entry, and syncing the affected architecture/deployment truth documents.
+  - Validation evidence: Validated with python3 scripts/foreman.py validate D-TASK-017 --include-task-audit --extra-command "python3 scripts/foreman.py compile-governance --check" --extra-command "mvn -B -pl query-execution -am test -DskipITs" --extra-command "bash scripts/run-runtime-smoke.sh --runtime-smoke" --extra-command "bash -n scripts/run-runtime-smoke.sh scripts/manual-query-governance-smoke.sh scripts/run-hetu-env-smoke.sh" --extra-command "python3 -m py_compile scripts/mock-hetu-server.py" --extra-command "bash scripts/run-hetu-env-smoke.sh --help"; runtime smoke proved query-execution returned HETU_REAL_INTEGRATION with CLIENT mode on the real Hetu path.
+  - Residual risk: Repository-closed validation now covers real Hetu mode execution through the local mock coordinator and strict route semantics, but long-lived external Hetu/MRS evidence, deployment credentials, and production parameter calibration still depend on environment-backed execution of scripts/run-hetu-env-smoke.sh against a provisioned cluster.
+  - Next step: Proceed to the next governed follow-up after the external environment owner captures Hetu/MRS smoke evidence with scripts/run-hetu-env-smoke.sh, or continue with downstream query-execution production tuning if Phase-D priorities still target Hetu operations hardening.
+
 ### D-TASK-016: 收口治理授权矩阵并下沉统一授权入口
 
 - Status: done
