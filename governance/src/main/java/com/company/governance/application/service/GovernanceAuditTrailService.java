@@ -65,6 +65,7 @@ public class GovernanceAuditTrailService {
     private final MessageProducer messageProducer;
     private final MessagingProperties messagingProperties;
     private final GovernanceAuditProperties governanceAuditProperties;
+    private final GovernanceMetricsRecorder metricsRecorder;
 
     @Autowired
     public GovernanceAuditTrailService(GovernanceProtectedPersistenceService governanceProtectedPersistenceService,
@@ -75,7 +76,8 @@ public class GovernanceAuditTrailService {
                                        MessageQueueRepository messageQueueRepository,
                                        MessageProducer messageProducer,
                                        MessagingProperties messagingProperties,
-                                       GovernanceAuditProperties governanceAuditProperties) {
+                                       GovernanceAuditProperties governanceAuditProperties,
+                                       GovernanceMetricsRecorder metricsRecorder) {
         this.governanceProtectedPersistenceService = governanceProtectedPersistenceService;
         this.configSnapshotMapper = configSnapshotMapper;
         this.executionResultMapper = executionResultMapper;
@@ -85,6 +87,30 @@ public class GovernanceAuditTrailService {
         this.messageProducer = messageProducer;
         this.messagingProperties = messagingProperties;
         this.governanceAuditProperties = governanceAuditProperties;
+        this.metricsRecorder = metricsRecorder;
+    }
+
+    public GovernanceAuditTrailService(GovernanceProtectedPersistenceService governanceProtectedPersistenceService,
+                                       ConfigSnapshotMapper configSnapshotMapper,
+                                       ExecutionResultMapper executionResultMapper,
+                                       QueryHistoryMapper queryHistoryMapper,
+                                       ExportRecordMapper exportRecordMapper,
+                                       MessageQueueRepository messageQueueRepository,
+                                       MessageProducer messageProducer,
+                                       MessagingProperties messagingProperties,
+                                       GovernanceAuditProperties governanceAuditProperties) {
+        this(
+            governanceProtectedPersistenceService,
+            configSnapshotMapper,
+            executionResultMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            messageQueueRepository,
+            messageProducer,
+            messagingProperties,
+            governanceAuditProperties,
+            GovernanceMetricsRecorder.noop()
+        );
     }
 
     public GovernanceAuditTrailService(GovernanceProtectedPersistenceService governanceProtectedPersistenceService,
@@ -104,7 +130,8 @@ public class GovernanceAuditTrailService {
             null,
             messageProducer,
             messagingProperties,
-            governanceAuditProperties
+            governanceAuditProperties,
+            GovernanceMetricsRecorder.noop()
         );
     }
 
@@ -306,6 +333,7 @@ public class GovernanceAuditTrailService {
                 throw failure;
             }
             messageQueueRepository.enqueueMessage(fallbackMessage);
+            metricsRecorder.recordAuditFallback();
             LOGGER.warn("Primary audit message delivery failed, queued fallback message, tenantId={}, reason={}",
                 tenantId, failure.getMessage());
         } catch (RuntimeException fallbackEx) {

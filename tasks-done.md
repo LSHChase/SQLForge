@@ -4,6 +4,27 @@
 
 ## Done
 
+### D-TASK-019: 补齐 query-execution 执行遥测与业务指标基线
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `feat(observability): add query and governance metrics baseline`
+- Priority: 1
+- Depends on: D-TASK-018
+- Scope: 为 query-execution 与 governance 补最小业务级 Micrometer 指标与执行遥测，支撑后续 Hetu 参数调优与运行时排障；不依赖外部测试环境，不扩展业务功能。
+- Validation:
+  - `python3 scripts/foreman.py validate D-TASK-019`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-23: aligned Phase-D active-wave wording plus task/governance matrices so `D-TASK-019` becomes the repo-closed follow-up for query-execution telemetry hardening rather than external-environment tuning.
+  - 2026-04-23: added `QueryExecutionMetricsRecorder` and `GovernanceMetricsRecorder`, wiring minimal Micrometer counters/timers/gauges for query results, mode hits/attempts, timeout/fallback/route-unavailable, audit fallback, retry count, and database queue backlog.
+  - 2026-04-23: extended query-execution/governance unit coverage with prometheus metric assertions and updated observability/document-truth authority text from “no business metrics” to the new minimal implemented baseline.
+- Context closeout:
+  - Completed scope: Added minimal Micrometer business metrics for query-execution and governance, including query request/latency/mode-hit/mode-attempt/timeout/fallback/route-unavailable signals plus governance audit-fallback, message-retry, and database queue backlog meters; wired the recorders into the existing services, updated targeted unit coverage with metric assertions, and synchronized the Phase-D plan/matrix plus observability/document-truth authority docs to the new repo-closed telemetry baseline.
+  - Validation evidence: Validated with python3 scripts/foreman.py validate D-TASK-019 --include-task-audit --extra-command 'python3 scripts/foreman.py compile-governance --check' --extra-command 'mvn -B -pl query-execution,governance -am test -DskipITs -Dtest=QueryExecutionApplicationServiceTest,GovernanceAuditTrailServiceTest,MessageAdminApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false' --extra-command 'bash scripts/run-runtime-smoke.sh --runtime-smoke' --extra-command 'node scripts/lint-repository-knowledge.js'; along the way runtime smoke exposed constructor-selection regressions in governance/query-execution startup, which were fixed and then verified by a full passing runtime smoke run.
+  - Residual risk: The repository now exposes minimal tuning-oriented metrics for query-execution/governance, but external Hetu/MRS evidence, production parameter calibration, PrometheusRule/Alertmanager/Grafana assets, and broader telemetry coverage for sql-optimization/benchmark-engine still remain outside the repository-closed baseline.
+  - Next step: Use the new query-execution/governance metrics as the default repo-closed tuning baseline, and if Phase-D continues telemetry hardening, extend the same Micrometer coverage to sql-optimization and benchmark-engine before reopening external-environment parameter tuning.
+
 ### D-TASK-018: Remove legacy foreign keys and enforce traceability integrity in application
 
 - Status: done

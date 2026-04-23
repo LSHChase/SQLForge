@@ -40,6 +40,7 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.security.SensitiveDataCryptoProperties;
 import com.company.sqlforge.common.security.SensitiveDataCryptoService;
 import com.company.sqlforge.common.security.SensitiveDataProtectionService;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -310,6 +311,10 @@ class GovernanceAuditTrailServiceTest {
         AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
         MessageProducer messageProducer = mock(MessageProducer.class);
         MessageQueueRepository messageQueueRepository = mock(MessageQueueRepository.class);
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+        MessagingProperties messagingProperties = databaseMessaging();
+        GovernanceMetricsRecorder metricsRecorder =
+            new GovernanceMetricsRecorder(meterRegistry, messageQueueRepository, messagingProperties);
         GovernanceAuditTrailService service = new GovernanceAuditTrailService(
             protectedPersistenceService(auditLogMapper),
             mock(ConfigSnapshotMapper.class),
@@ -318,8 +323,9 @@ class GovernanceAuditTrailServiceTest {
             mock(ExportRecordMapper.class),
             messageQueueRepository,
             messageProducer,
-            databaseMessaging(),
-            auditProperties()
+            messagingProperties,
+            auditProperties(),
+            metricsRecorder
         );
         RequestContext.set(
             "tenant-a",
@@ -362,6 +368,9 @@ class GovernanceAuditTrailServiceTest {
 
         assertEquals(Long.valueOf(300L), response.getAuditId());
         verify(messageQueueRepository).enqueueMessage(org.mockito.ArgumentMatchers.any(MessageQueueRecord.class));
+        assertEquals(1.0D, meterRegistry.get("sqlforge.governance.audit.fallbacks").tags(
+            "messaging_mode", "DATABASE"
+        ).counter().count());
     }
 
     private MessagingProperties databaseMessaging() {

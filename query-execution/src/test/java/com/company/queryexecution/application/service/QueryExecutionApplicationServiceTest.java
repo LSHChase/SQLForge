@@ -26,6 +26,7 @@ import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -44,8 +45,9 @@ class QueryExecutionApplicationServiceTest {
     @Test
     void shouldExecuteSynchronouslyForReadonlyHetuQuery(CapturedOutput output) {
         setRequestContext("tenant-a");
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         QueryExecutionApplicationService service =
-            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient());
+            newService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient(), meterRegistry);
         QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
         request.setAccelerationPreference(AccelerationPreference.PREFER_ACCELERATED);
 
@@ -67,6 +69,20 @@ class QueryExecutionApplicationServiceTest {
         assertTrue(output.getOut().contains("to=PRIMARY_ROUTE_SELECTED"));
         assertTrue(output.getOut().contains("status=END resultStatus=SUCCESS"));
         assertFalse(output.getOut().contains("SELECT * FROM orders"));
+        assertEquals(1.0D, meterRegistry.get("sqlforge.query.execution.requests").tags(
+            "requested_datasource", "HETU",
+            "target_engine", "HETU",
+            "result_status", "SUCCESS",
+            "degraded", "false",
+            "execution_mode", "SIMULATED",
+            "fault_tolerance", "FAIL_FAST"
+        ).counter().count());
+        assertEquals(1L, meterRegistry.get("sqlforge.query.execution.latency").timer().count());
+        assertEquals(1.0D, meterRegistry.get("sqlforge.query.execution.mode.hits").tags(
+            "requested_datasource", "HETU",
+            "target_engine", "HETU",
+            "mode", "SIMULATED"
+        ).counter().count());
     }
 
     @Test
@@ -109,8 +125,9 @@ class QueryExecutionApplicationServiceTest {
     @Test
     void shouldFallbackToHiveWhenRetryThenFallbackIsEnabled() {
         setRequestContext("tenant-a");
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         QueryExecutionApplicationService service =
-            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient());
+            newService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient(), meterRegistry);
         QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
         request.setQueryContext(timeoutContext(30L));
         request.setFaultToleranceStrategy(FaultToleranceStrategy.RETRY_THEN_FALLBACK);
@@ -131,13 +148,25 @@ class QueryExecutionApplicationServiceTest {
         assertEquals("HIVE_FALLBACK", response.getMetadata().getAttemptedModes().get(0));
         assertEquals(1, response.getMetadata().getRowCount());
         assertNull(response.getError());
+        assertEquals(1.0D, meterRegistry.get("sqlforge.query.execution.fallbacks").tags(
+            "requested_datasource", "HETU",
+            "target_engine", "HIVE",
+            "fault_tolerance", "RETRY_THEN_FALLBACK",
+            "execution_mode", "HIVE_FALLBACK"
+        ).counter().count());
+        assertEquals(1.0D, meterRegistry.get("sqlforge.query.execution.timeouts").tags(
+            "requested_datasource", "HETU",
+            "target_engine", "HIVE",
+            "fault_tolerance", "RETRY_THEN_FALLBACK"
+        ).counter().count());
     }
 
     @Test
     void shouldReturnStructuredRouteUnavailableWhenHetuChainIsNotAvailable() {
         setRequestContext("tenant-a");
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         QueryExecutionApplicationService service =
-            new QueryExecutionApplicationService(new QueryExecutionAdapter() {
+            newService(new QueryExecutionAdapter() {
                 @Override
                 public QueryExecutionStep execute(DataSourceTypeEnum targetEngine,
                                                   String actualSql,
@@ -148,7 +177,7 @@ class QueryExecutionApplicationServiceTest {
                         java.util.Collections.singletonList("CHAIN_DISABLED")
                     );
                 }
-            }, mockGovernanceClient());
+            }, mockGovernanceClient(), meterRegistry);
 
         QueryExecuteResponse response = service.executeSynchronously(baseRequest("SELECT * FROM orders"));
 
@@ -157,6 +186,16 @@ class QueryExecutionApplicationServiceTest {
         assertEquals(java.util.Collections.singletonList("CHAIN_DISABLED"), response.getMetadata().getAttemptedModes());
         assertEquals(1, response.getRetryPath().size());
         assertEquals("LOCAL_PRIMARY_ROUTE_FAILURE_MARKED", response.getRetryPath().get(0).getLocalRecoveryMarker());
+        assertEquals(1.0D, meterRegistry.get("sqlforge.query.execution.route_unavailable").tags(
+            "requested_datasource", "HETU",
+            "target_engine", "HETU",
+            "fault_tolerance", "FAIL_FAST"
+        ).counter().count());
+        assertEquals(1.0D, meterRegistry.get("sqlforge.query.execution.mode.attempts").tags(
+            "requested_datasource", "HETU",
+            "mode", "CHAIN",
+            "outcome", "DISABLED"
+        ).counter().count());
     }
 
     @Test
@@ -271,6 +310,16 @@ class QueryExecutionApplicationServiceTest {
         doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         return governanceCapabilityClient;
+    }
+
+    private QueryExecutionApplicationService newService(QueryExecutionAdapter adapter,
+                                                        GovernanceCapabilityClient governanceCapabilityClient,
+                                                        SimpleMeterRegistry meterRegistry) {
+        return new QueryExecutionApplicationService(
+            adapter,
+            governanceCapabilityClient,
+            new QueryExecutionMetricsRecorder(meterRegistry)
+        );
     }
 
     private void setRequestContext(String tenantId) {

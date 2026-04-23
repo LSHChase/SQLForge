@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -68,11 +69,20 @@ public class QueryExecutionApplicationService {
 
     private final QueryExecutionAdapter queryExecutionAdapter;
     private final GovernanceCapabilityClient governanceCapabilityClient;
+    private final QueryExecutionMetricsRecorder metricsRecorder;
 
+    @Autowired
     public QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
-                                            GovernanceCapabilityClient governanceCapabilityClient) {
+                                            GovernanceCapabilityClient governanceCapabilityClient,
+                                            QueryExecutionMetricsRecorder metricsRecorder) {
         this.queryExecutionAdapter = queryExecutionAdapter;
         this.governanceCapabilityClient = governanceCapabilityClient;
+        this.metricsRecorder = metricsRecorder;
+    }
+
+    QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
+                                     GovernanceCapabilityClient governanceCapabilityClient) {
+        this(queryExecutionAdapter, governanceCapabilityClient, QueryExecutionMetricsRecorder.noop());
     }
 
     public QueryExecuteResponse executeSynchronously(QueryExecuteRequest request) {
@@ -307,6 +317,7 @@ public class QueryExecutionApplicationService {
                 ex.getMessage(),
                 ex
             );
+            metricsRecorder.recordException(request, System.currentTimeMillis() - start);
             writeAuditRecord(
                 request,
                 sqlFingerprint,
@@ -575,6 +586,7 @@ public class QueryExecutionApplicationService {
             response.getStatus(),
             response.isDegraded()
         );
+        metricsRecorder.recordResponse(request, response, costMs);
         writeAuditRecord(request, response.getSqlFingerprint(), response, response.getStatus().name(), costMs, null);
         return response;
     }

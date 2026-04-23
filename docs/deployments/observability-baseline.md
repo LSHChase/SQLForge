@@ -54,12 +54,13 @@
 | Exposed endpoints | 4 个后端服务统一暴露 `health`, `info`, `metrics`, `prometheus` | 各服务 `src/main/resources/application.yml` |
 | Health detail policy | 4 个后端服务统一配置 `management.endpoint.health.show-details=always` | 各服务 `src/main/resources/application.yml` |
 | Public health path | `governance` 额外提供 `/api/governance/health` 公开健康接口，且鉴权拦截器默认放行该路径 | `governance/src/main/java/com/company/governance/application/controller/HealthController.java`, `governance/src/main/java/com/company/governance/application/service/HealthStatusApplicationService.java`, `governance/src/main/java/com/company/governance/config/WebMvcConfig.java` |
-| Custom business metrics | 当前仓库中未发现 `MeterRegistry`、`Counter`、`Gauge`、`Timer` 或 `@Timed` 等自定义业务指标实现 | 仓库检索结果；属于基于代码扫描的当前事实判断 |
+| Query execution business metrics | `query-execution` 已补齐 `sqlforge.query.execution.requests`、`latency`、`mode.hits`、`mode.attempts`、`timeouts`、`fallbacks`、`route_unavailable`，覆盖查询结果、执行模式命中/尝试、timeout/degraded 与主路由不可用信号 | `query-execution/src/main/java/com/company/queryexecution/application/service/QueryExecutionMetricsRecorder.java`, `query-execution/src/main/java/com/company/queryexecution/application/service/QueryExecutionApplicationService.java` |
+| Governance audit / queue metrics | `governance` 已补齐 `sqlforge.governance.audit.fallbacks`、`message.retry.messages`、`message.queue.total/pending/failed`，覆盖审计消息兜底、人工重试量与数据库消息队列 backlog | `governance/src/main/java/com/company/governance/application/service/GovernanceMetricsRecorder.java`, `governance/src/main/java/com/company/governance/application/service/GovernanceAuditTrailService.java`, `governance/src/main/java/com/company/governance/application/service/MessageAdminApplicationService.java` |
 
 结论：
 
-- 当前 metrics 基线仅覆盖 Spring Boot Actuator / Micrometer 默认指标和 Prometheus 导出。
-- 业务级 backlog、鉴权失败、审计降级、异步失败等信号，目前仍主要依赖日志、管理接口或数据库查询，而非内建业务指标。
+- 当前 metrics 基线已从纯 Actuator 默认指标扩展到 `query-execution` / `governance` 的最小业务级 Micrometer 指标。
+- 查询执行 timeout / degraded、审计兜底和数据库消息队列 backlog 已可通过内建 metrics 暴露；SQL 优化、压测引擎失败与更完整的跨服务业务信号仍主要依赖日志、管理接口或数据库查询。
 
 ## Logs / Metrics / Alerts Delivery Checklist
 
@@ -93,10 +94,20 @@
    - HTTP 请求量、错误率、延迟分布
    - 每实例 scrape 成功率
 3. 将 `governance` 的 `/api/governance/health` 作为对外探活补充探针；内部实例仍以 `/actuator/health` 为准。
-4. 在外部监控系统中补齐当前仓库尚未内建的业务观测项：
-   - 审计消息兜底入队次数
-   - 数据库消息队列 `pending/failed` 数量
-   - 查询执行 timeout / degraded 事件次数
+4. 在外部监控系统中优先消费仓库已内建的业务指标：
+   - `sqlforge.query.execution.requests`
+   - `sqlforge.query.execution.latency`
+   - `sqlforge.query.execution.mode.hits`
+   - `sqlforge.query.execution.mode.attempts`
+   - `sqlforge.query.execution.timeouts`
+   - `sqlforge.query.execution.fallbacks`
+   - `sqlforge.query.execution.route_unavailable`
+   - `sqlforge.governance.audit.fallbacks`
+   - `sqlforge.governance.message.retry.messages`
+   - `sqlforge.governance.message.queue.total`
+   - `sqlforge.governance.message.queue.pending`
+   - `sqlforge.governance.message.queue.failed`
+5. 对当前仓库尚未内建的剩余业务观测项在外部平台补位：
    - SQL 优化任务失败次数
    - 压测任务失败次数
 
@@ -108,9 +119,9 @@
 |:---|:---|:---|:---|
 | Service down | `/actuator/health` 或 `governance` `/api/governance/health` | 任一实例非 `UP` 或健康探针连续失败 | 先确认实例、依赖和网络，再进入日志排障 |
 | Prometheus scrape failure | `/actuator/prometheus` | 任一服务 scrape 中断 | 检查应用暴露、鉴权、网关和抓取配置 |
-| Query execution degraded / timeout | `query-execution` 结构化状态流日志 | 出现持续的 `STATE_PRIMARY_TIMEOUT`、`degraded=true` 或 `status=FAILED phase=EXCEPTION` | 排查目标引擎、fallback、超时阈值和只读保护路径 |
-| Governance audit route fallback | `governance` warn 日志 `Primary audit message delivery failed, queued fallback message` | 任意生产出现即触发高优先级告警 | 优先检查消息主路由、Kafka/Database 模式、队列堆积和补偿路径 |
-| Database queue backlog | `MessageAdminApplicationService#getMessageStats()` 或 `kafka_message_queue` | `pendingCount` 持续增长或 `failedCount > 0` | 执行消息重试、检查消费者和下游可用性 |
+| Query execution degraded / timeout | `sqlforge.query.execution.timeouts`、`sqlforge.query.execution.fallbacks`、`sqlforge.query.execution.route_unavailable`，并辅以 `query-execution` 状态流日志 | timeout / fallback / route-unavailable 指标持续增长，或伴随 `status=FAILED phase=EXCEPTION` | 排查目标引擎、fallback、超时阈值和只读保护路径 |
+| Governance audit route fallback | `sqlforge.governance.audit.fallbacks`，并辅以 `governance` warn 日志 `Primary audit message delivery failed, queued fallback message` | 任意生产出现持续增长即触发高优先级告警 | 优先检查消息主路由、Kafka/Database 模式、队列堆积和补偿路径 |
+| Database queue backlog | `sqlforge.governance.message.queue.pending` / `failed` / `total` | `pending` 持续增长或 `failed > 0` | 执行消息重试、检查消费者和下游可用性 |
 | Authentication rejection spike | `audit_log` 中 `LOGIN` 失败事件或鉴权拒绝日志 | 失败事件异常上升 | 判断为攻击、配置错误或上游鉴权异常 |
 | SQL optimization async failure | `sql-optimization` 任务/执行器日志 | `status=FAILED phase=EXCEPTION` 或任务失败持续出现 | 排查占位执行器、回调地址、租户上下文和任务载体 |
 | Benchmark async failure | `benchmark-engine` 任务/worker 日志 | `status=FAILED phase=EXCEPTION` 或任务失败持续出现 | 排查影子环境要求、只读约束、`benchmark_task` / `benchmark_task_report` 持久化状态和报告链 |
@@ -120,11 +131,11 @@
 
 以下能力仍未在仓库内建完成，必须明确视为后续任务，而不是本任务已落地项：
 
-1. 未实现业务级 Micrometer 指标，当前没有内建 `Counter/Gauge/Timer`。
-2. 未提供仓库内的 PrometheusRule / Alertmanager / Grafana dashboard 配置文件。
-3. 未提供 ELK / Loki / OpenSearch 的日志采集清单或 pipeline 模板。
-4. 未接入 SkyWalking、OpenTelemetry 或等价链路追踪埋点。
-5. 审计留存、鉴权失败统计、消息堆积等仍依赖外部 SQL/接口采样，而非仓库内建 exporter。
+1. 未提供仓库内的 PrometheusRule / Alertmanager / Grafana dashboard 配置文件。
+2. 未提供 ELK / Loki / OpenSearch 的日志采集清单或 pipeline 模板。
+3. 未接入 SkyWalking、OpenTelemetry 或等价链路追踪埋点。
+4. SQL 优化、压测引擎和更广覆盖的跨服务业务指标仍未内建到仓库。
+5. 审计留存、鉴权失败统计与更深层历史分析仍需要日志平台、SQL 或外部管理接口联动，而不是只靠内建 metrics。
 
 ## Exit Criteria For F-TASK-007
 

@@ -11,6 +11,7 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.log.OperationLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -21,11 +22,20 @@ public class MessageAdminApplicationService {
 
     private final MessagingProperties messagingProperties;
     private final MessageQueueRepository messageQueueRepository;
+    private final GovernanceMetricsRecorder metricsRecorder;
 
+    @Autowired
     public MessageAdminApplicationService(MessagingProperties messagingProperties,
-                                          MessageQueueRepository messageQueueRepository) {
+                                          MessageQueueRepository messageQueueRepository,
+                                          GovernanceMetricsRecorder metricsRecorder) {
         this.messagingProperties = messagingProperties;
         this.messageQueueRepository = messageQueueRepository;
+        this.metricsRecorder = metricsRecorder;
+    }
+
+    MessageAdminApplicationService(MessagingProperties messagingProperties,
+                                   MessageQueueRepository messageQueueRepository) {
+        this(messagingProperties, messageQueueRepository, GovernanceMetricsRecorder.noop());
     }
 
     @OperationLog(operation = "GOVERNANCE_MESSAGE_RETRY", entity = "kafka_message_queue")
@@ -35,6 +45,7 @@ public class MessageAdminApplicationService {
             "Message retry is only supported in DATABASE messaging mode"
         );
         int retriedCount = messageQueueRepository.retryFailedMessages();
+        metricsRecorder.recordRetriedMessages(retriedCount);
         LOGGER.info("Retried failed database-queue messages, retriedCount={}", retriedCount);
         return new MessageRetryResultVO(retriedCount, "ACCEPTED");
     }
