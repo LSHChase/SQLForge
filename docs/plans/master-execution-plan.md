@@ -108,13 +108,13 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-E / E-STORY-003`
-- 当前活跃目标：按仓库真值收口 compose、脚本说明与环境文档漂移
+- 当前活跃目标：按仓库真值收口环境提醒、恢复指引与运维入口文档
 - 当前下一条可执行主线任务：
-  - `F-TASK-002`
+  - `F-TASK-003`
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理，Phase-E 主线当前转入 repository-truth reconciliation。
-  - `E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成前端路由、能力接入和设计系统三项归档；`F-TASK-001` 已确认华为云部署文档已落地，当前转入 `F-TASK-002` 的 compose/脚本说明真值修正。
+  - `E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成前端路由、能力接入和设计系统三项归档；`F-TASK-001`、`F-TASK-002` 已分别完成华为云部署文档与 compose/脚本说明真值修正，当前转入 `F-TASK-003` 的环境提醒与恢复指引收口。
   - `Phase-F` 运维治理加固已完成到 `F-TASK-027`/`F-TASK-028`，但其 remaining hardening 仍受覆盖率阈值、Sonar secrets 与自动 release trigger 约束。
 
 ## 5. Traceability Matrix

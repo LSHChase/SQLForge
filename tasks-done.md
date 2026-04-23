@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-003: 补齐环境提醒与恢复指引
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `docs(deploy): reconcile environment and recovery guidance`
+- Priority: 1
+- Depends on: `F-TASK-002`
+- Scope: 输出独立 MySQL/Kafka/恢复提醒 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Matrix context: Phase-F / Story `F-STORY-001` 部署文档与编排
+- Human confirmation point: RPO/RTO 或环境提醒口径改变需人工确认
+- Data impact: 运维文档、恢复指引
+- Rollback / recovery: 追加更正提醒
+- Validation:
+  - 文档与规则一致
+  - `python3 scripts/foreman.py validate F-TASK-003`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reconciled F-TASK-003 against repository truth by updating operator-facing deployment guidance so local setup explicitly warns that local docker compose services do not replace production independent MySQL/TDSQL, Kafka, and formal recovery arrangements; linked the formal backup/recovery baseline into the primary operator path; and aligned the master execution plan plus document truth baseline with the current environment-reminder and recovery-guidance facts.
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-003 --include-task-audit --extra-command "node scripts/lint-repository-knowledge.js" --extra-command "rg -n \"本地 .*不得替代生产独立环境|backup-recovery-baseline|RPO/RTO|verify_kafka_runtime_config|run-kafka-runtime-gate|独立 MySQL/TDSQL|恢复责任人\" docs/deployments/local-setup.md docs/deployments/huawei-cloud-setup.md docs/deployments/backup-recovery-baseline.md docs/plans/document-truth-baseline.md docs/plans/master-execution-plan.md"
+  - Residual risk: Phase-F environment and recovery reminders are now aligned at the documentation layer, but formal production recovery automation, object-storage restore scripts, and deeper release-trigger hardening remain later-phase concerns outside this 1-9 reconciliation batch.
+  - Next step: Report completion of the requested 1-9 sequence, then propose the next highest-value task beyond this batch only if the user asks for further execution.
+
 ### F-TASK-002: 对齐 compose 与脚本说明
 
 - Status: done

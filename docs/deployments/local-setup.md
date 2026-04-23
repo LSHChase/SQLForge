@@ -152,6 +152,9 @@ SELECT COUNT(*) FROM kafka_message_queue WHERE status = 'PENDING';
 
 生产环境切换到真实 Kafka 时：
 
+- 本地 `docker compose` 启动的 MySQL / Redis / MinIO 只用于开发验证，不得替代生产独立环境；生产环境应使用独立 `MySQL/TDSQL`、Redis、Kafka 与对象存储，具体拓扑以 [huawei-cloud-setup.md](/models/project/codex/SQLForge/docs/deployments/huawei-cloud-setup.md) 为准。
+- 生产恢复目标、责任分工、`RPO/RTO` 与演练模板以 [backup-recovery-baseline.md](/models/project/codex/SQLForge/docs/deployments/backup-recovery-baseline.md) 为准，不得以本地重建脚本替代正式恢复方案。
+
 1. 将 `messaging.mode` 修改为 `KAFKA`
 2. 配置 `messaging.kafka.bootstrap-servers`
 3. 按环境补齐 Kafka 安全参数与连通性验证
@@ -165,6 +168,12 @@ SELECT COUNT(*) FROM kafka_message_queue WHERE status = 'PENDING';
 python3 scripts/verify_kafka_runtime_config.py
 bash scripts/run-kafka-runtime-gate.sh
 ```
+
+完成以上切换后，还需要确认：
+
+- 生产鉴权开关、租户隔离和审计链路已按生产配置开启
+- 独立 MySQL/TDSQL 备份、binlog 与恢复责任人已经登记
+- 若启用真实 Kafka，安全参数和 broker 连通性证据已保留
 
 ## 数据重置
 
