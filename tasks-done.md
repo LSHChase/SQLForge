@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-001: 建立驾驶舱路由与导航骨架
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `docs(frontend): archive dashboard route shell baseline`
+- Priority: 1
+- Depends on: `Phase-C`
+- Scope: 建立 dashboard 主路径与导航壳层 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-001` 研发驾驶舱
+- Human confirmation point: 主路由改名或删减需人工确认
+- Data impact: 前端路由结构
+- Rollback / recovery: 恢复原导航与入口映射
+- Validation:
+  - build、路由可达、i18n
+  - `python3 scripts/foreman.py validate E-TASK-001`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Verified that the dashboard route shell baseline was already present in the frontend carrier, including the /dashboard primary route, grouped navigation shell, route metadata wiring, and zh-CN/en-US i18n labels across the app shell.
+  - Validation evidence: Validated with python3 scripts/foreman.py validate E-TASK-001 --include-task-audit --extra-command "npm run build" --extra-command "rg -n \"path: ROUTE_PATHS.dashboard|redirect: ROUTE_PATHS.dashboard|common.navGroups|dashboard.title|dashboard.summary\" src/router/index.js src/App.vue src/locales/zh-CN.js src/locales/en-US.js", covering build, route registration, navigation grouping, and i18n keys.
+  - Residual risk: The dashboard shell baseline is in place, but the content sections still need later Phase-E tasks to align with the full information architecture and keep summary data consistent with backend-delivered capabilities.
+  - Next step: Instantiate E-TASK-002 and fill the dashboard with project-overview, architecture-design, and progress-management sections on top of the validated route shell.
+
 ### D-TASK-015: 补完 `query-execution` 真实执行适配与结果聚合基线
 
 - Status: done
