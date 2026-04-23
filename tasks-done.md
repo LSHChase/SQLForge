@@ -4,6 +4,28 @@
 
 ## Done
 
+### D-TASK-018: Remove legacy foreign keys and enforce traceability integrity in application
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `feat(governance): remove traceability foreign keys`
+- Priority: 1
+- Depends on: `D-TASK-017`
+- Scope: 移除 governance 核心追溯链在 MySQL/TDSQL 上的历史外键约束，补齐引用键索引与应用层完整性校验；同步更新 init-schema、migration、映射测试、主计划/任务矩阵，以及 Hetu/MRS 测试环境部署文档为 Win10+IDEA+yml 配置读取口径，并提供待确认清单与选项。
+- Validation:
+  - `python3 scripts/foreman.py validate D-TASK-018`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-23: aligned master plan, task spec matrix, governance extension matrix, and validation baseline so `D-TASK-018` becomes the active Phase-D mainline task for foreign-key removal and application-level integrity enforcement.
+  - 2026-04-23: removed physical foreign-key constraints from `sql/init-schema.sql`, added `sql/migrations/V20260423_017__drop_traceability_foreign_keys.sql` for published environments, and updated persistence authority text from schema-level foreign keys to reference-key + application-integrity semantics.
+  - 2026-04-23: extended `GovernanceProtectedPersistenceService` to validate referenced records, tenant consistency, and traceability chain coherence before persisting `execution_result`、`query_history`、`export_record`、`audit_log`; refreshed `TraceabilitySchemaMappingTest` and `GovernanceProtectedPersistenceServiceTest` accordingly.
+  - 2026-04-23: rewrote the Hetu/MRS deployment runbook to the requested `Win10 + IDEA + yml` configuration flow, explicitly excluded Kafka validation for test env, and replaced the old smoke-first emphasis with a deployment confirmation checklist and operator options.
+- Context closeout:
+  - Completed scope: Removed physical foreign-key constraints from the governance traceability schema baseline in sql/init-schema.sql, added V20260423_017__drop_traceability_foreign_keys.sql for published environments, and shifted traceability integrity enforcement into GovernanceProtectedPersistenceService so execution_result/query_history/export_record/audit_log now validate referenced-record existence, tenant consistency, and chain coherence in application code. Also updated the Phase-D plan/matrices, persistence and validation docs, and rewrote the Hetu/MRS deployment runbook to the requested Win10 + IDEA + yml configuration flow with Kafka excluded and a confirmation-checklist-first operator path.
+  - Validation evidence: python3 scripts/foreman.py validate D-TASK-018 --include-task-audit --extra-command 'mvn -B -pl governance -am clean test -Dtest=GovernanceProtectedPersistenceServiceTest,TraceabilitySchemaMappingTest,GovernanceAuditTrailServiceTest -Dsurefire.failIfNoSpecifiedTests=false' --extra-command 'python3 scripts/foreman.py compile-governance --check'; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js; rg -n 'CONSTRAINT fk_|FOREIGN KEY' sql/init-schema.sql sql/migrations/V20260423_017__drop_traceability_foreign_keys.sql governance/src/test/java/com/company/governance/infrastructure/persistence/TraceabilitySchemaMappingTest.java
+  - Residual risk: The repository-side schema contract is now aligned with R-169, but already published databases still require the new drop-foreign-key migration to be executed, and the Win10 test-environment deployment still depends on human confirmation of Hetu mode, yml layout, auth path, and whether live evidence commands should be issued next.
+  - Next step: Confirm the deployment checklist options from the updated Hetu/MRS runbook, apply the new migration in the target test database, start governance and query-execution from IDEA with the chosen Win10 yml profile, and then decide whether to request a second-step live evidence command set for JDBC/REST/CLIENT.
+
 ### HARN-015: Add no-foreign-key rule for MySQL/TDSQL
 
 - Status: done

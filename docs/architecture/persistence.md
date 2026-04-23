@@ -130,6 +130,12 @@
 
 当前 mapper 只固化 `insert/selectById` 或等价最小骨架，目的是先把表结构、主引用键和字段命名稳定下来，再在后续任务中接入真实 repository、事务编排和业务写入路径。当前 `governance` 已额外提供 `GovernanceProtectedPersistenceService` 作为 config/result/history/export/audit/system-config 的敏感字段保护写入入口。
 
+在 `R-169` 生效后，`GovernanceProtectedPersistenceService` 同时承担核心追溯链的应用层引用完整性校验，负责在无物理外键约束前提下检查：
+
+- 被引用记录存在
+- 引用链上的 `tenant_id` 一致
+- `history -> result`、`export -> history/result`、`audit -> history/result/export` 等关系不自相矛盾
+
 ## Migration Policy
 
 - 当前不引入 Flyway。
@@ -155,6 +161,10 @@
 
 - `sql/migrations/V20260422_014__sql_optimization_task_persistence.sql`
 - `sql/migrations/V20260422_015__benchmark_engine_task_report_persistence.sql`
+
+当前 D-TASK-018 追加的增量脚本：
+
+- `sql/migrations/V20260423_017__drop_traceability_foreign_keys.sql`
 
 ## Validation Baseline
 

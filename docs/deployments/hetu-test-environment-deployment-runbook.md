@@ -2,363 +2,399 @@
 
 ## Purpose
 
-本文用于指导外部测试环境 owner 只部署 `governance` 与 `query-execution` 两个服务，并在真实 Hetu / MRS 上执行 `bash scripts/run-hetu-env-smoke.sh`，把 `JDBC` / `REST` / `CLIENT` 任一真实返回证据留档。
+本文用于指导你在 `Win10 + IDEA` 环境下，把 `governance` 与 `query-execution` 启到测试环境所需状态，并按真实 Hetu / MRS 接入方式完成配置准备。
 
-本文只覆盖当前仓库已具备的能力：
+本文按你新给出的约束重写，只采用以下口径：
 
-- `governance` 统一授权入口
-- `query-execution` 真实 Hetu `JDBC` / `REST` / `CLIENT` 接入
-- 外部环境 Hetu smoke 脚本
-- 审计链、授权矩阵和最小部署后证据保留方式
+- 部署环境：`Windows 10`
+- 启动方式：直接从 `IDEA` 启动服务
+- 测试环境：本轮不验证 `Kafka`
+- MySQL / TDSQL：优先从 `yml` 配置文件读取
+- 部署文档输出：以“你需要确认的清单和选项”为主，不把 smoke 脚本执行写成默认前置动作
 
-本文不把外部测试环境写成仓库 `repo-closed` 主路径的替代品。
+## Scope
 
-## Recommended Profile Choice
+本文只覆盖：
 
-测试环境推荐优先使用：
+- `governance`
+- `query-execution`
+- Win10 本地工作副本 / 测试机工作副本
+- IDEA Run Configuration
+- Hetu `JDBC` / `REST` / `CLIENT` 三种接入方式的 yml 配置口径
 
-- `governance`: `SPRING_PROFILES_ACTIVE=test`
-- `query-execution`: `SPRING_PROFILES_ACTIVE=test`
+本文不覆盖：
+
+- Kafka 测试验证
+- Linux systemd / nohup / shell 守护
+- CCE / K8s 编排
+- 前端部署
+
+## Fixed Constraints For This Round
+
+本轮部署文档按以下固定约束执行：
+
+1. 测试环境默认使用 `test` profile。
+2. `governance` 使用 `DATABASE` messaging mode，不要求 Kafka。
+3. MySQL / TDSQL 配置建议直接写入 yml。
+4. 服务启动建议直接从 IDEA 启动。
+5. 部署文档先输出确认清单；是否执行真实留证脚本由你后续确认。
+
+## Why `test` Profile Is Recommended
+
+推荐：
+
+- `governance`: `test`
+- `query-execution`: `test`
 
 原因：
 
-- `governance` `test` profile 默认 `messaging.mode=DATABASE`，不要求先接 Kafka
-- `governance` `test` profile 信任 `header,gateway`
-- `query-execution` `test` profile 信任 `header,gateway`
-- `run-hetu-env-smoke.sh` 默认发送 `X-Auth-Source: header`，可直接兼容
+- `governance` `test` profile 默认 `messaging.mode=DATABASE`
+- 当前测试环境不做 Kafka 验证
+- `governance` / `query-execution` `test` profile 都接受 `header`
+- 如果后续你决定执行 Hetu 留证脚本，`header` 路径最省改动
 
-只有在测试环境已经具备完整网关透传、Kafka 和生产式鉴权链时，才建议改用 `prod` profile。
+## Win10 Prerequisites
 
-## Deployment Checklist
-
-- JDK 8 运行时
+- Windows 10
+- IntelliJ IDEA
+- JDK 8
 - Maven 3.8+
 - MySQL 8.0 或兼容 TDSQL
 - Redis 7.x 或兼容实例
-- 一套真实 Hetu / MRS 可访问入口
-- `query-execution` 到 `governance` 的 HTTP 连通
-- `query-execution` 到 Hetu / MRS 的网络连通
-- 一把可用的 `SQLFORGE_TEST_CRYPTO_KEY_BASE64`
-- Hetu 侧可执行 `SELECT * FROM orders` 的测试数据
-- 为 `tenant-a` 保留默认治理授权，或提前准备你自己的租户/数据源初始化
+- 一套可访问的 Hetu / MRS
+- Maven 构建通过的本地工作副本
 
-## Current Default Assumptions
+## Build
 
-当前仓库默认 happy path 依赖以下事实：
-
-- `run-hetu-env-smoke.sh` 默认使用 `REQUEST_TENANT_ID=tenant-a`
-- `run-hetu-env-smoke.sh` 默认使用 `REQUEST_ROLE_CODES=TENANT_ADMIN,ANALYST`
-- `query-execution` 默认把 `HETU` 映射到治理数据源 `query-hetu`
-- `governance` 默认授权矩阵里 `tenant-a -> query-hetu -> USE` 为 `ACTIVE`
-- smoke SQL 固定为 `SELECT * FROM orders`
-
-如果你不使用这些默认值，必须在部署前同步修改环境变量或初始化治理矩阵。
-
-## Build Artifacts
-
-在仓库根目录执行：
+在 IDEA Terminal 或 Windows PowerShell 里于仓库根目录执行：
 
 ```bash
 mvn -B -pl governance,query-execution -am clean package -DskipTests
 ```
 
-产物默认位于：
+产物：
 
 - `governance/target/governance-0.1.0-SNAPSHOT.jar`
 - `query-execution/target/query-execution-0.1.0-SNAPSHOT.jar`
 
-建议同时记录当前部署 commit：
-
-```bash
-git rev-parse HEAD
-```
+即使你最终从 IDEA 直接启动，也建议先做一次构建，避免运行时才暴露 classpath 问题。
 
 ## Database Initialization
 
 ### Fresh Database
 
-新测试环境建议直接初始化完整最新 schema：
+新测试库执行：
 
-```bash
-mysql -h <db-host> -u <db-user> -p'<db-password>' < sql/init-schema.sql
-mysql -h <db-host> -u <db-user> -p'<db-password>' < sql/init-data.sql
+```sql
+source sql/init-schema.sql;
+source sql/init-data.sql;
 ```
 
 ### Existing Database
 
-如果测试环境数据库已存在历史数据，不要重复覆盖 `init-schema.sql`。改为按顺序补增量脚本：
+已有测试库按顺序补增量脚本：
 
-```bash
-mysql -h <db-host> -u <db-user> -p'<db-password>' < sql/migrations/V20260421_011__core_traceability_chain.sql
-mysql -h <db-host> -u <db-user> -p'<db-password>' < sql/migrations/V20260421_013__sensitive_data_encryption_baseline.sql
-mysql -h <db-host> -u <db-user> -p'<db-password>' < sql/migrations/V20260422_014__sql_optimization_task_persistence.sql
-mysql -h <db-host> -u <db-user> -p'<db-password>' < sql/migrations/V20260422_015__benchmark_engine_task_report_persistence.sql
-mysql -h <db-host> -u <db-user> -p'<db-password>' < sql/migrations/V20260422_016__governance_history_lookup_index.sql
+- `sql/migrations/V20260421_011__core_traceability_chain.sql`
+- `sql/migrations/V20260421_013__sensitive_data_encryption_baseline.sql`
+- `sql/migrations/V20260422_014__sql_optimization_task_persistence.sql`
+- `sql/migrations/V20260422_015__benchmark_engine_task_report_persistence.sql`
+- `sql/migrations/V20260422_016__governance_history_lookup_index.sql`
+- `sql/migrations/V20260423_017__drop_traceability_foreign_keys.sql`
+
+## YML Configuration Recommendation
+
+你要求 MySQL / TDSQL 在服务启动时从 yml 读取。这里给两种方式：
+
+### Option A: 直接改 `application-test.yml`
+
+适合：
+
+- 这台 Win10 测试机只有你自己使用
+- 你接受本地工作副本存在未提交的测试环境配置
+
+优点：
+
+- 最直接
+- IDEA 启动最省事
+
+代价：
+
+- 本地工作副本会变脏
+
+### Option B: 新建本地 overlay yml
+
+适合：
+
+- 你不想改仓库默认 `application-test.yml`
+- 你希望本地测试配置和仓库真值分开
+
+推荐做法：
+
+- `governance/src/main/resources/application-test-local.yml`
+- `query-execution/src/main/resources/application-test-local.yml`
+
+然后在 IDEA 里使用：
+
+- `Active profiles`: `test,test-local`
+
+本文更推荐 `Option B`。
+
+## Governance YML Example
+
+把下面内容写到你选择的测试配置文件里：
+
+```yaml
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://<db-host>:3306/sqlforge_test?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: <db-user>
+    password: <db-password>
+  redis:
+    host: <redis-host>
+    port: 6379
+
+messaging:
+  mode: DATABASE
+  kafka:
+    enabled: false
+  database:
+    enabled: true
+    poll-interval: 5000
+    max-retry: 3
+
+sqlforge:
+  security:
+    crypto:
+      algorithm: AES256_GCM
+      key-id: governance-test-key
+      base64-key: <32-byte-base64-key>
+
+auth:
+  enabled: true
+  trusted-auth-sources:
+    - header
+    - gateway
 ```
 
-## Required Environment Variables
+说明：
+
+- 本轮测试环境不验证 Kafka，所以 `messaging.mode=DATABASE`
+- `base64-key` 需要真实可用
+- 如果你最终仍要切 `prod` profile，就不能再照搬这份配置
+
+## Query-Execution YML Example
+
+同样写入测试配置文件。
+
+### Common
+
+```yaml
+query-execution:
+  hetu:
+    enabled: true
+  governance:
+    base-url: http://localhost:8080/api/governance/internal
+    connect-timeout-ms: 3000
+    read-timeout-ms: 5000
+
+auth:
+  enabled: true
+  trusted-auth-sources:
+    - header
+    - gateway
+```
+
+### JDBC Option
+
+```yaml
+query-execution:
+  hetu:
+    enabled: true
+    jdbc:
+      url: jdbc:hetu://<hetu-host>:<port>/<catalog>/<schema>
+      username: <hetu-user>
+      password: <hetu-password>
+      query-timeout-seconds: 30
+      max-rows: 200
+    rest:
+      endpoint: ""
+      auth-token: ""
+    client:
+      enabled: false
+      endpoint: ""
+```
+
+### REST Option
+
+```yaml
+query-execution:
+  hetu:
+    enabled: true
+    jdbc:
+      url: ""
+      username: ""
+      password: ""
+    rest:
+      endpoint: http://<hetu-rest-host>:<port>/query
+      auth-token: <optional-rest-token>
+      connect-timeout-ms: 3000
+      read-timeout-ms: 5000
+      max-rows: 200
+    client:
+      enabled: false
+      endpoint: ""
+```
+
+### CLIENT Option
+
+```yaml
+query-execution:
+  hetu:
+    enabled: true
+    jdbc:
+      url: ""
+      username: ""
+      password: ""
+    rest:
+      endpoint: ""
+      auth-token: ""
+    client:
+      enabled: true
+      endpoint: http://<hetu-client-host>:<port>/v1/statement
+      user: <hetu-user>
+      source: sqlforge-query-execution
+      catalog: <catalog>
+      schema: <schema>
+      auth-token: <optional-client-token>
+      connect-timeout-ms: 3000
+      read-timeout-ms: 5000
+      max-rows: 200
+      max-pages: 10
+```
+
+说明：
+
+- `query-execution` 默认会按 `JDBC -> REST -> CLIENT` 顺序尝试
+- 如果你只想证明某一个模式，其他模式字段最好清空或禁用
+
+## IDEA Startup
 
 ### Governance
 
-推荐以 `test` profile 启动：
-
-```bash
-export SPRING_PROFILES_ACTIVE=test
+IDEA Run Configuration 建议：
 
-export SQLFORGE_TEST_DB_URL='jdbc:mysql://<db-host>:3306/sqlforge_test?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai'
-export SQLFORGE_TEST_DB_USER='<db-user>'
-export SQLFORGE_TEST_DB_PASSWORD='<db-password>'
-export SQLFORGE_TEST_REDIS_HOST='<redis-host>'
-export SQLFORGE_TEST_REDIS_PORT='6379'
-export SQLFORGE_TEST_CRYPTO_KEY_ID='governance-test-key'
-export SQLFORGE_TEST_CRYPTO_KEY_BASE64='<32-byte-key-in-base64>'
-```
+- `Main class`: `com.company.governance.GovernanceApplication`
+- `Use classpath of module`: `governance`
+- `JRE`: `Java 8`
+- `Active profiles`:
+  - `test`
+  - 如果用了本地 overlay：`test,test-local`
+- `VM options`:
+  - `-Dfile.encoding=UTF-8`
 
-说明：
+启动后检查：
 
-- `SQLFORGE_TEST_CRYPTO_KEY_BASE64` 必填；缺失会影响敏感字段加密能力
-- 如果你的测试环境不是 `sqlforge_test` 库名，请同步修改 URL
-- `governance` `test` profile 默认会启用授权矩阵并接受 `header` 鉴权来源
+- `http://localhost:8080/actuator/health`
 
-### Query-Execution Common
+### Query-Execution
 
-同样推荐 `test` profile：
+IDEA Run Configuration 建议：
 
-```bash
-export SPRING_PROFILES_ACTIVE=test
+- `Main class`: `com.company.queryexecution.QueryExecutionApplication`
+- `Use classpath of module`: `query-execution`
+- `JRE`: `Java 8`
+- `Active profiles`:
+  - `test`
+  - 如果用了本地 overlay：`test,test-local`
+- `VM options`:
+  - `-Dfile.encoding=UTF-8`
 
-export QUERY_EXECUTION_GOVERNANCE_BASE_URL='http://<governance-host>:8080/api/governance/internal'
-export QUERY_EXECUTION_GOVERNANCE_CONNECT_TIMEOUT_MS='3000'
-export QUERY_EXECUTION_GOVERNANCE_READ_TIMEOUT_MS='5000'
+启动后检查：
 
-export QUERY_EXECUTION_HETU_ENABLED='true'
-```
+- `http://localhost:8081/actuator/health`
 
-说明：
+## What This Runbook Does Not Ask You To Validate
 
-- `QUERY_EXECUTION_GOVERNANCE_BASE_URL` 必须指向 `governance` 的内部能力入口，而不是网关首页
-- `QUERY_EXECUTION_HETU_ENABLED=true` 是真实 Hetu 链路前提
-- `query-execution` 默认按 `JDBC -> REST -> CLIENT` 顺序尝试
+本轮部署文档明确不要求你先做这些：
 
-### Mode-Specific Configuration
+- Kafka
+- Kafka topic / bootstrap / 安全参数
+- Linux 守护启动
+- Docker / k8s 编排
+- 一键 shell smoke
 
-#### JDBC
+这些都不是你这轮 Win10 + IDEA 测试环境部署的前置项。
 
-只保留 JDBC 所需参数，其他模式保持空值：
+## Deployment Confirmation Checklist
 
-```bash
-export QUERY_EXECUTION_HETU_JDBC_URL='jdbc:hetu://<hetu-host>:<port>/<catalog>/<schema>'
-export QUERY_EXECUTION_HETU_JDBC_USERNAME='<hetu-user>'
-export QUERY_EXECUTION_HETU_JDBC_PASSWORD='<hetu-password>'
-export QUERY_EXECUTION_HETU_JDBC_QUERY_TIMEOUT_SECONDS='30'
-export QUERY_EXECUTION_HETU_JDBC_MAX_ROWS='200'
+下面是你需要确认的清单和选项。
 
-unset QUERY_EXECUTION_HETU_REST_ENDPOINT
-unset QUERY_EXECUTION_HETU_REST_AUTH_TOKEN
-export QUERY_EXECUTION_HETU_CLIENT_ENABLED='false'
-unset QUERY_EXECUTION_HETU_CLIENT_ENDPOINT
-```
+### 1. YML 写法
 
-#### REST
+二选一：
 
-只保留 REST 所需参数，避免 JDBC 抢先成功：
+- `A`：直接修改 `application-test.yml`
+- `B`：新增 `application-test-local.yml`，IDEA 使用 `test,test-local`
 
-```bash
-unset QUERY_EXECUTION_HETU_JDBC_URL
-unset QUERY_EXECUTION_HETU_JDBC_USERNAME
-unset QUERY_EXECUTION_HETU_JDBC_PASSWORD
+推荐：`B`
 
-export QUERY_EXECUTION_HETU_REST_ENDPOINT='http://<hetu-rest-host>:<port>/query'
-export QUERY_EXECUTION_HETU_REST_AUTH_TOKEN='<optional-rest-bearer-token>'
-export QUERY_EXECUTION_HETU_REST_CONNECT_TIMEOUT_MS='3000'
-export QUERY_EXECUTION_HETU_REST_READ_TIMEOUT_MS='5000'
-export QUERY_EXECUTION_HETU_REST_MAX_ROWS='200'
+### 2. Hetu 接入方式
 
-export QUERY_EXECUTION_HETU_CLIENT_ENABLED='false'
-unset QUERY_EXECUTION_HETU_CLIENT_ENDPOINT
-```
+三选一：
 
-#### CLIENT
+- `A`：`JDBC`
+- `B`：`REST`
+- `C`：`CLIENT`
 
-CLIENT 模式必须显式打开：
+推荐：如果只是先打通第一条真实链路，优先 `JDBC`
 
-```bash
-unset QUERY_EXECUTION_HETU_JDBC_URL
-unset QUERY_EXECUTION_HETU_JDBC_USERNAME
-unset QUERY_EXECUTION_HETU_JDBC_PASSWORD
-unset QUERY_EXECUTION_HETU_REST_ENDPOINT
-unset QUERY_EXECUTION_HETU_REST_AUTH_TOKEN
+### 3. Governance / Query-Execution 运行位置
 
-export QUERY_EXECUTION_HETU_CLIENT_ENABLED='true'
-export QUERY_EXECUTION_HETU_CLIENT_ENDPOINT='http://<hetu-client-host>:<port>/v1/statement'
-export QUERY_EXECUTION_HETU_CLIENT_USER='<hetu-user>'
-export QUERY_EXECUTION_HETU_CLIENT_SOURCE='sqlforge-query-execution'
-export QUERY_EXECUTION_HETU_CLIENT_CATALOG='<catalog>'
-export QUERY_EXECUTION_HETU_CLIENT_SCHEMA='<schema>'
-export QUERY_EXECUTION_HETU_CLIENT_AUTH_TOKEN='<optional-client-bearer-token>'
-export QUERY_EXECUTION_HETU_CLIENT_CONNECT_TIMEOUT_MS='3000'
-export QUERY_EXECUTION_HETU_CLIENT_READ_TIMEOUT_MS='5000'
-export QUERY_EXECUTION_HETU_CLIENT_MAX_ROWS='200'
-export QUERY_EXECUTION_HETU_CLIENT_MAX_PAGES='10'
-```
+二选一：
 
-## Startup Order
+- `A`：两个服务都在当前 Win10 机器上由 IDEA 启动
+- `B`：服务在当前 Win10 机器上，Hetu / MRS 在远端测试集群
 
-### 1. Start Governance
+推荐：`B`
 
-建议单独 shell 加载 `governance` 变量后启动：
+### 4. 鉴权来源
 
-```bash
-nohup java -jar governance/target/governance-0.1.0-SNAPSHOT.jar \
-  > /tmp/sqlforge-governance.log 2>&1 &
-```
+二选一：
 
-健康检查：
+- `A`：`test` profile + `header`
+- `B`：`prod` profile + `gateway`
 
-```bash
-curl -fsS http://<governance-host>:8080/actuator/health
-```
+推荐：`A`
 
-### 2. Start Query-Execution
+### 5. 查询验证数据
 
-再加载 `query-execution` 变量并启动：
+二选一：
 
-```bash
-nohup java -jar query-execution/target/query-execution-0.1.0-SNAPSHOT.jar \
-  > /tmp/sqlforge-query-execution.log 2>&1 &
-```
+- `A`：Hetu 里已有 `orders` 表，可直接沿用默认查询
+- `B`：没有 `orders` 表，需要你指定一张替代表
 
-健康检查：
+如果选 `B`，后续我再给你对应的查询/留证调整口径。
 
-```bash
-curl -fsS http://<query-execution-host>:8081/actuator/health
-```
+### 6. 是否需要下一步给你真实留证命令
 
-## Smoke Execution
+二选一：
 
-### Default Command
+- `A`：先只完成部署和服务启动，我确认后再要真实留证命令
+- `B`：部署完成后立刻需要 JDBC / REST / CLIENT 的留证命令模板
 
-在仓库根目录执行：
-
-```bash
-export QUERY_EXECUTION_BASE_URL='http://<query-execution-host>:8081'
-export REQUEST_TENANT_ID='tenant-a'
-export REQUEST_USER_ID='hetu-smoke-bot'
-export REQUEST_ROLE_CODES='TENANT_ADMIN,ANALYST'
-export REQUEST_AUTH_SOURCE='header'
-export EXPECTED_QUERY_EXECUTION_MODE='JDBC'   # JDBC | REST | CLIENT | REAL
-
-mkdir -p evidence/hetu-smoke
-bash scripts/run-hetu-env-smoke.sh | tee evidence/hetu-smoke/run-$(date +%Y%m%d%H%M%S).log
-```
-
-模式说明：
-
-- 想证明“任一真实模式都可以”，用 `EXPECTED_QUERY_EXECUTION_MODE=REAL`
-- 想固化单一路径证据，分别用 `JDBC`、`REST` 或 `CLIENT`
-
-### If You Use Prod Profile
-
-如果服务使用 `prod` profile：
-
-- `governance` 和 `query-execution` 默认只信任 `gateway,token`
-- `run-hetu-env-smoke.sh` 默认发 `REQUEST_AUTH_SOURCE=header`
-
-因此必须二选一：
-
-- 通过真实网关入口执行，并让网关透传受保护请求头，同时设置 `REQUEST_AUTH_SOURCE=gateway`
-- 或者显式把测试环境的 trusted auth source 改为包含 `header`
-
-如果这一步没处理，smoke 会在鉴权阶段直接被拒绝。
-
-## Evidence Retention
-
-最少保留以下留档材料：
-
-- smoke 原始日志：`evidence/hetu-smoke/run-*.log`
-- 实际部署 commit SHA
-- 运行模式：`JDBC` / `REST` / `CLIENT`
-- 执行时间、操作者、目标 URL
-- 脱敏后的环境快照
-- 至少一段真实返回 JSON 证据，能看见：
-  - `payload.status == SUCCESS`
-  - `payload.metadata.targetEngine == HETU`
-  - `payload.metadata.executionMode == <mode>`
-  - `payload.implementationStage == HETU_REAL_INTEGRATION`
-
-建议额外生成一个摘要文件：
-
-```bash
-{
-  echo "timestamp=$(date --iso-8601=seconds)"
-  echo "operator=$(whoami)"
-  echo "commit=$(git rev-parse HEAD)"
-  echo "query_execution_base_url=${QUERY_EXECUTION_BASE_URL}"
-  echo "expected_mode=${EXPECTED_QUERY_EXECUTION_MODE}"
-} > evidence/hetu-smoke/summary-$(date +%Y%m%d%H%M%S).txt
-```
-
-脱敏环境快照示例：
-
-```bash
-env | grep -E '^(SPRING_PROFILES_ACTIVE|SQLFORGE_TEST_|QUERY_EXECUTION_|REQUEST_|EXPECTED_QUERY_EXECUTION_MODE)' \
-  | sed -E 's/(PASSWORD|TOKEN|KEY_BASE64)=.*/\\1=<redacted>/g' \
-  > evidence/hetu-smoke/env-$(date +%Y%m%d%H%M%S).txt
-```
-
-## Recommended Archive Layout
-
-```text
-evidence/hetu-smoke/
-├── run-20260423T120000.log
-├── env-20260423T120000.txt
-└── summary-20260423T120000.txt
-```
-
-## Common Failures
-
-### 401 / 403 Before Query Execution
-
-优先检查：
-
-- `REQUEST_AUTH_SOURCE` 是否与服务 profile 的 trusted auth sources 匹配
-- `REQUEST_TENANT_ID` / `REQUEST_ROLE_CODES` 是否与治理矩阵匹配
-- `query-execution` 调 `governance` 的 `QUERY_EXECUTION_GOVERNANCE_BASE_URL` 是否正确
-
-### Access Denied For Datasource
-
-优先检查：
-
-- 当前租户是否仍为 `tenant-a`
-- `query-execution` 是否仍把 `HETU` 映射到 `query-hetu`
-- `governance` 中 `tenant -> datasource -> USE` 是否为 `ACTIVE`
-
-### JDBC / REST / CLIENT Mode Mismatch
-
-优先检查：
-
-- 你是否还保留了其他模式的可用配置
-- `EXPECTED_QUERY_EXECUTION_MODE` 是否与当前配置一致
-- `query-execution` 默认会按 `JDBC -> REST -> CLIENT` 顺序尝试
-
-### Hetu Query Failed
-
-优先检查：
-
-- Hetu 侧是否真的存在 `orders` 表或等效视图
-- `catalog` / `schema` 是否与 `orders` 所在位置一致
-- JDBC URL、REST endpoint、CLIENT endpoint 是否来自同一套可用环境
-- `query-execution` 主机到 Hetu / MRS 的网络和安全组是否放通
-
-## Minimal Operator Flow
-
-1. 构建 `governance` 和 `query-execution` JAR。
-2. 初始化数据库。
-3. 用 `test` profile 启动 `governance`。
-4. 配好 Hetu 模式参数后启动 `query-execution`。
-5. 先做两个 `/actuator/health` 检查。
-6. 运行 `bash scripts/run-hetu-env-smoke.sh` 并 `tee` 到证据目录。
-7. 保存日志、commit、脱敏环境快照和模式摘要。
+推荐：先选 `A`
+
+## Recommended Minimal Flow
+
+1. 在 Win10 工作副本里完成一次 Maven 构建。
+2. 初始化或迁移测试库。
+3. 选定 yml 写法：`A` 或 `B`。
+4. 在 yml 中填好 `governance` 的 MySQL / Redis / crypto 配置。
+5. 在 yml 中填好 `query-execution` 的 governance base-url 和 Hetu 模式参数。
+6. 在 IDEA 中分别启动 `governance` 与 `query-execution`。
+7. 先只看两个 `/actuator/health`。
+8. 对照上面的 6 项确认清单，把你的选项定下来。
 
 ## Related Documents
 

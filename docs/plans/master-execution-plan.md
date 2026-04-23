@@ -108,9 +108,9 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：`D-TASK-017` 已完成并归档；当前仓库没有新的 repository-side mainline task 处于激活中，剩余 Hetu/MRS 真实环境验证属于 environment-backed follow-up。
+- 当前活跃目标：`D-TASK-018`，负责移除核心追溯链在 MySQL / TDSQL 上的历史外键约束，并把完整性校验下沉到应用层统一写入入口；同时按 Win10 + IDEA + yml 配置读取口径修正 Hetu/MRS 测试环境部署文档。
 - 当前下一条可执行主线任务：
-  - _No repository-side mainline task is currently scheduled._
+  - `D-TASK-018`
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成归档。
@@ -122,7 +122,8 @@
   - `F-TASK-033` 已补齐外部测试环境部署后的最小 smoke 入口：仓库新增环境无关的 `scripts/run-env-smoke.sh`、测试环境 smoke 基线文档，以及与 CI / phase gate / local development / truth baseline 一致的语义说明；该任务按顺延编号处理，因为 `F-TASK-032` 已被既有 Sonar 治理任务占用，不能重写历史结论。
   - `HARN-011` 只用于修正 `F-TASK-032` closeout 后遗留的 active-wave / follow-up 措辞漂移，不改变 `F-TASK-032` 的历史完成结论，也不引入新的仓库主线实现范围。
   - `D-TASK-015` 已把 `query-execution` 推进到 feature-flagged Hetu 模式链基线；`D-TASK-016` 已完成统一授权入口收口；`D-TASK-017` 现已完成仓库侧真实 Hetu 集成与 smoke 分层，剩余 follow-up 转为外部 Hetu/MRS 环境的证据沉淀与运维参数校准。
-  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不影响当前仓库主线恢复到 `Phase-D / D-STORY-005` 执行授权矩阵任务。
+  - `D-TASK-018` 承接 `R-169` 新增后的直接实现收口：移除历史 schema 外键、补齐应用层引用完整性校验，并把 Hetu/MRS 测试环境部署文档切到 Win10 + IDEA + yml 配置读取与确认清单口径。
+  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不影响当前仓库主线在 `Phase-D / D-STORY-005` 继续推进 schema 治理任务。
 
 ## 5. Traceability Matrix
 
@@ -417,6 +418,7 @@ Tasks:
 | `D-TASK-015` | 补完 `query-execution` 真实执行适配与结果聚合基线 | Hetu 多模式适配、执行模式选择、结果聚合与审计证据收口 | `D-TASK-014` | 模块测试、跨模式适配测试、runtime smoke 与契约文档同步 |
 | `D-TASK-016` | 收口治理授权矩阵并下沉统一授权入口 | 在 `governance` 落地可配置角色矩阵、资源模型、数据源授权矩阵，把占位式 datasource check 升级为真实授权决策，并让 `query-execution`、`sql-optimization`、`benchmark-engine` 全部复用同一授权入口；同时补齐授权成功/拒绝/跨租户/吊销后访问测试、runtime smoke，以及授权成功/失败/权限变更审计链 | `D-TASK-015` | governance/三服务模块测试、授权回归测试、runtime smoke、task audit 与契约文档同步 |
 | `D-TASK-017` | 落实 `query-execution` 真实 Hetu 集成与 smoke 分层 | 让 `query-execution` 的 HETU 主路径不再以 `SIMULATED` 冒充成功，补齐 JDBC 驱动接线、Hetu client 协议接入、REST/CLIENT 模式真实联通、运行参数/错误语义收口，并在保留统一授权入口前提下补齐本地 runtime smoke 与外部 Hetu/MRS environment-backed smoke 入口/文档 | `D-TASK-016` | query-execution 模块测试、跨模式适配测试、runtime smoke、Hetu env smoke 入口与契约文档同步 |
+| `D-TASK-018` | 去除核心追溯链历史外键并补齐应用层完整性校验 | 移除 `config/result/history/export/audit` 在 MySQL / TDSQL 上的历史外键约束，改为索引 + 应用层完整性校验；同步补齐 drop-foreign-key migration、schema 映射测试，以及 Win10 + IDEA + yml 配置读取口径的 Hetu/MRS 测试环境部署文档与确认清单 | `D-TASK-017` | governance 模块测试、schema/migration 映射测试、task audit、知识检查与部署文档同步 |
 
 ### Phase-E 前端驾驶舱与业务页面
 

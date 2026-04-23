@@ -4,10 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.company.governance.domain.system.entity.SystemConfigRecord;
 import com.company.governance.domain.trace.entity.AuditLogRecord;
@@ -21,6 +25,7 @@ import com.company.governance.infrastructure.persistence.mapper.ExecutionResultM
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
 import com.company.governance.infrastructure.persistence.mapper.SystemConfigMapper;
+import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.security.SensitiveDataCryptoProperties;
 import com.company.sqlforge.common.security.SensitiveDataCryptoService;
 import com.company.sqlforge.common.security.SensitiveDataProtectionService;
@@ -55,25 +60,47 @@ class GovernanceProtectedPersistenceServiceTest {
         );
 
         ConfigSnapshotRecord configSnapshotRecord = new ConfigSnapshotRecord();
+        configSnapshotRecord.setConfigSnapshotId("cfg-001");
+        configSnapshotRecord.setTenantId("tenant-a");
         configSnapshotRecord.setSnapshotPayload("{\"jdbcPassword\":\"plain-secret\",\"engine\":\"HETU\"}");
         configSnapshotRecord.setSnapshotReason("rotation token=raw-token");
 
         ExecutionResultRecord executionResultRecord = new ExecutionResultRecord();
+        executionResultRecord.setConfigSnapshotId("cfg-001");
+        executionResultRecord.setTenantId("tenant-a");
+        executionResultRecord.setResultId("res-001");
         executionResultRecord.setResultSummary("{\"apiToken\":\"secret-token\",\"rows\":10}");
         executionResultRecord.setResultPayload("{\"secretKey\":\"ak-value\",\"plan\":\"P1\"}");
         executionResultRecord.setErrorMessage("secret=raw");
 
         QueryHistoryRecord queryHistoryRecord = new QueryHistoryRecord();
+        queryHistoryRecord.setHistoryId("hist-001");
+        queryHistoryRecord.setResultId("res-001");
+        queryHistoryRecord.setTenantId("tenant-a");
         queryHistoryRecord.setQueryContext("{\"sessionToken\":\"session-secret\"}");
 
         ExportRecord exportRecord = new ExportRecord();
+        exportRecord.setExportId("exp-001");
+        exportRecord.setHistoryId("hist-001");
+        exportRecord.setResultId("res-001");
+        exportRecord.setTenantId("tenant-a");
         exportRecord.setStorageUri("https://example.test/report?token=download-secret");
         exportRecord.setExportOptions("{\"accessKey\":\"ak-001\",\"format\":\"PDF\"}");
         exportRecord.setErrorMessage("download token=oops");
 
         AuditLogRecord auditLogRecord = new AuditLogRecord();
+        auditLogRecord.setTenantId("tenant-a");
+        auditLogRecord.setConfigSnapshotId("cfg-001");
+        auditLogRecord.setResultId("res-001");
+        auditLogRecord.setHistoryId("hist-001");
+        auditLogRecord.setExportId("exp-001");
         auditLogRecord.setRequestParams("{\"password\":\"p@ssw0rd\",\"sqlFingerprint\":\"abc\"}");
         auditLogRecord.setResponseSummary("permission changed with secret=grant-token");
+
+        when(configSnapshotMapper.selectById("cfg-001")).thenReturn(configSnapshotRecord);
+        when(executionResultMapper.selectById("res-001")).thenReturn(executionResultRecord);
+        when(queryHistoryMapper.selectById("hist-001")).thenReturn(queryHistoryRecord);
+        when(exportRecordMapper.selectById("exp-001")).thenReturn(exportRecord);
 
         service.saveConfigSnapshot(configSnapshotRecord);
         service.saveExecutionResult(executionResultRecord);
@@ -165,5 +192,87 @@ class GovernanceProtectedPersistenceServiceTest {
         assertTrue(Boolean.FALSE.equals(plainStored.getSensitiveFlag()));
         assertEquals("HETU", plainStored.getConfigValue());
         assertNull(plainStored.getValueCiphertext());
+    }
+
+    @Test
+    void shouldRejectMissingOrInconsistentTraceabilityReferencesWithoutForeignKeys() {
+        ConfigSnapshotMapper configSnapshotMapper = mock(ConfigSnapshotMapper.class);
+        ExecutionResultMapper executionResultMapper = mock(ExecutionResultMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        SystemConfigMapper systemConfigMapper = mock(SystemConfigMapper.class);
+        SensitiveDataCryptoProperties cryptoProperties = new SensitiveDataCryptoProperties();
+        cryptoProperties.setBase64Key(TEST_BASE64_KEY);
+        SensitiveDataCryptoService cryptoService = new SensitiveDataCryptoService(cryptoProperties);
+        GovernanceProtectedPersistenceService service = new GovernanceProtectedPersistenceService(
+            configSnapshotMapper,
+            executionResultMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            auditLogMapper,
+            systemConfigMapper,
+            new SensitiveDataProtectionService(cryptoService),
+            cryptoService
+        );
+
+        ExecutionResultRecord executionResultRecord = new ExecutionResultRecord();
+        executionResultRecord.setConfigSnapshotId("cfg-missing");
+        executionResultRecord.setTenantId("tenant-a");
+
+        BizException missingSnapshot = assertThrows(BizException.class, () -> service.saveExecutionResult(executionResultRecord));
+        assertTrue(missingSnapshot.getMessage().contains("missing config snapshot"));
+
+        ConfigSnapshotRecord snapshotRecord = new ConfigSnapshotRecord();
+        snapshotRecord.setConfigSnapshotId("cfg-001");
+        snapshotRecord.setTenantId("tenant-a");
+        when(configSnapshotMapper.selectById("cfg-001")).thenReturn(snapshotRecord);
+
+        ExecutionResultRecord resultRecord = new ExecutionResultRecord();
+        resultRecord.setResultId("res-001");
+        resultRecord.setConfigSnapshotId("cfg-001");
+        resultRecord.setTenantId("tenant-a");
+        when(executionResultMapper.selectById("res-001")).thenReturn(resultRecord);
+
+        QueryHistoryRecord historyRecord = new QueryHistoryRecord();
+        historyRecord.setHistoryId("hist-001");
+        historyRecord.setResultId("res-001");
+        historyRecord.setTenantId("tenant-b");
+        when(queryHistoryMapper.selectById("hist-001")).thenReturn(historyRecord);
+
+        ExportRecord exportRecord = new ExportRecord();
+        exportRecord.setExportId("exp-001");
+        exportRecord.setHistoryId("hist-001");
+        exportRecord.setResultId("res-001");
+        exportRecord.setTenantId("tenant-a");
+        when(exportRecordMapper.selectById("exp-001")).thenReturn(exportRecord);
+
+        QueryHistoryRecord queryHistoryRecord = new QueryHistoryRecord();
+        queryHistoryRecord.setResultId("res-001");
+        queryHistoryRecord.setTenantId("tenant-c");
+        BizException tenantMismatch = assertThrows(BizException.class, () -> service.saveQueryHistory(queryHistoryRecord));
+        assertTrue(tenantMismatch.getMessage().contains("tenantId does not match"));
+
+        ExportRecord inconsistentExport = new ExportRecord();
+        inconsistentExport.setHistoryId("hist-001");
+        inconsistentExport.setResultId("res-001");
+        inconsistentExport.setTenantId("tenant-a");
+        BizException inconsistentHistoryTenant = assertThrows(BizException.class, () -> service.saveExportRecord(inconsistentExport));
+        assertTrue(inconsistentHistoryTenant.getMessage().contains("tenantId does not match"));
+
+        historyRecord.setTenantId("tenant-a");
+        historyRecord.setResultId("res-002");
+        AuditLogRecord auditLogRecord = new AuditLogRecord();
+        auditLogRecord.setTenantId("tenant-a");
+        auditLogRecord.setHistoryId("hist-001");
+        auditLogRecord.setResultId("res-001");
+        auditLogRecord.setExportId("exp-001");
+        BizException inconsistentAudit = assertThrows(BizException.class, () -> service.saveAuditLog(auditLogRecord));
+        assertTrue(inconsistentAudit.getMessage().contains("history/result references are inconsistent"));
+
+        verify(executionResultMapper, never()).insert(any(ExecutionResultRecord.class));
+        verify(queryHistoryMapper, never()).insert(any(QueryHistoryRecord.class));
+        verify(exportRecordMapper, never()).insert(any(ExportRecord.class));
+        verify(auditLogMapper, never()).insert(any(AuditLogRecord.class));
     }
 }

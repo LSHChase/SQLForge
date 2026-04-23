@@ -46,7 +46,7 @@
       "path": "docs/quality/validation-rules.md",
       "title": "Validation Rules",
       "excerpt": "\u672c\u6587\u4ef6\u72ec\u7acb\u6536\u5f55 `R-116` \u81f3 `R-161` \u7684\u9a8c\u8bc1\u89c4\u5219\uff0c\u5e76\u8865\u5145 `R-168` \u7684\u6267\u884c\u578b\u9a8c\u8bc1\u8854\u63a5\uff0c\u7528\u4e8e\u5feb\u901f\u67e5\u9605\u9636\u6bb5\u95e8\u7981\u3001\u4efb\u52a1\u9a8c\u8bc1\u3001\u56de\u5f52\u9a8c\u8bc1\u3001\u73af\u5883\u9a8c\u8bc1\u3001\u89c4\u5219\u81ea\u7ef4\u62a4\u3001\u81ea\u52a8\u89e6\u53d1\u9a8c\u8bc1\u89c4\u5219\u4e0e harness \u4efb\u52a1\u6cbb\u7406\u9a8c\u8bc1\u3002",
-      "sha256": "dfac1a6812a7e3a9f67ae4782abb4bb6379b64d1875cd777fdaa06734c645842"
+      "sha256": "c6e2fd3f95f772e6c81f6c984d7199bb8cba71978babfd77d92bccf9ca1c565e"
     }
   ]
 }

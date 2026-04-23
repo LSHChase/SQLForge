@@ -26,14 +26,15 @@ class TraceabilitySchemaMappingTest {
         assertContains(schema, "result_id VARCHAR(64) DEFAULT NULL");
         assertContains(schema, "history_id VARCHAR(64) DEFAULT NULL");
         assertContains(schema, "export_id VARCHAR(64) DEFAULT NULL");
-        assertContains(schema, "CONSTRAINT fk_execution_result_config_snapshot");
-        assertContains(schema, "CONSTRAINT fk_query_history_result");
-        assertContains(schema, "CONSTRAINT fk_export_record_history");
-        assertContains(schema, "CONSTRAINT fk_export_record_result");
-        assertContains(schema, "CONSTRAINT fk_audit_log_config_snapshot");
-        assertContains(schema, "CONSTRAINT fk_audit_log_result");
-        assertContains(schema, "CONSTRAINT fk_audit_log_history");
-        assertContains(schema, "CONSTRAINT fk_audit_log_export");
+        assertNotContains(schema, "CONSTRAINT fk_execution_result_config_snapshot");
+        assertNotContains(schema, "CONSTRAINT fk_query_history_result");
+        assertNotContains(schema, "CONSTRAINT fk_export_record_history");
+        assertNotContains(schema, "CONSTRAINT fk_export_record_result");
+        assertNotContains(schema, "CONSTRAINT fk_audit_log_config_snapshot");
+        assertNotContains(schema, "CONSTRAINT fk_audit_log_result");
+        assertNotContains(schema, "CONSTRAINT fk_audit_log_history");
+        assertNotContains(schema, "CONSTRAINT fk_audit_log_export");
+        assertNotContains(schema, "FOREIGN KEY");
         assertContains(schema, "sensitive_flag TINYINT(1) NOT NULL DEFAULT 0");
         assertContains(schema, "value_ciphertext TEXT DEFAULT NULL");
         assertContains(schema, "encryption_key_id VARCHAR(64) DEFAULT NULL");
@@ -48,7 +49,6 @@ class TraceabilitySchemaMappingTest {
         assertContains(migration, "CREATE TABLE IF NOT EXISTS execution_result");
         assertContains(migration, "CREATE TABLE IF NOT EXISTS query_history");
         assertContains(migration, "CREATE TABLE IF NOT EXISTS export_record");
-        assertContains(migration, "ADD CONSTRAINT fk_audit_log_export");
     }
 
     @Test
@@ -59,6 +59,18 @@ class TraceabilitySchemaMappingTest {
         assertContains(migration, "ADD COLUMN sensitive_flag");
         assertContains(migration, "ADD COLUMN value_ciphertext");
         assertContains(migration, "ADD COLUMN encryption_key_id");
+    }
+
+    @Test
+    void shouldProvideIncrementalMigrationToDropLegacyForeignKeys() throws IOException {
+        String migration = readRepositoryFile("sql/migrations/V20260423_017__drop_traceability_foreign_keys.sql");
+
+        assertContains(migration, "drop_foreign_key_if_exists");
+        assertContains(migration, "CALL drop_foreign_key_if_exists('execution_result', 'fk_execution_result_config_snapshot')");
+        assertContains(migration, "CALL drop_foreign_key_if_exists('query_history', 'fk_query_history_result')");
+        assertContains(migration, "CALL drop_foreign_key_if_exists('export_record', 'fk_export_record_history')");
+        assertContains(migration, "CALL drop_foreign_key_if_exists('export_record', 'fk_export_record_result')");
+        assertContains(migration, "CALL drop_foreign_key_if_exists('audit_log', 'fk_audit_log_export')");
     }
 
     @Test
@@ -113,5 +125,9 @@ class TraceabilitySchemaMappingTest {
 
     private static void assertContains(String content, String expected) {
         assertTrue(content.contains(expected), "missing expected fragment: " + expected);
+    }
+
+    private static void assertNotContains(String content, String unexpected) {
+        assertTrue(!content.contains(unexpected), "unexpected fragment present: " + unexpected);
     }
 }

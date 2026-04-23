@@ -215,9 +215,7 @@ CREATE TABLE IF NOT EXISTS execution_result (
   KEY idx_execution_result_task (task_id, task_type),
   KEY idx_execution_result_trace (trace_id, request_id),
   KEY idx_execution_result_status (result_status),
-  KEY idx_execution_result_config_snapshot_id (config_snapshot_id),
-  CONSTRAINT fk_execution_result_config_snapshot FOREIGN KEY (config_snapshot_id)
-    REFERENCES config_snapshot (config_snapshot_id)
+  KEY idx_execution_result_config_snapshot_id (config_snapshot_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Immutable execution and analysis results';
 
 CREATE TABLE IF NOT EXISTS query_history (
@@ -239,9 +237,7 @@ CREATE TABLE IF NOT EXISTS query_history (
   KEY idx_query_history_result_id (result_id),
   KEY idx_query_history_tenant_time (tenant_id, create_time),
   KEY idx_query_history_fingerprint (sql_fingerprint),
-  KEY idx_query_history_trace (trace_id, request_id),
-  CONSTRAINT fk_query_history_result FOREIGN KEY (result_id)
-    REFERENCES execution_result (result_id)
+  KEY idx_query_history_trace (trace_id, request_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Historical immutable query snapshots linked to execution results';
 
 CREATE TABLE IF NOT EXISTS export_record (
@@ -268,11 +264,7 @@ CREATE TABLE IF NOT EXISTS export_record (
   KEY idx_export_record_result_id (result_id),
   KEY idx_export_record_tenant_time (tenant_id, create_time),
   KEY idx_export_record_trace (trace_id, request_id),
-  KEY idx_export_record_status (export_status),
-  CONSTRAINT fk_export_record_history FOREIGN KEY (history_id)
-    REFERENCES query_history (history_id),
-  CONSTRAINT fk_export_record_result FOREIGN KEY (result_id)
-    REFERENCES execution_result (result_id)
+  KEY idx_export_record_status (export_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Export metadata and immutable render outputs';
 
 CREATE TABLE IF NOT EXISTS audit_log (
@@ -302,15 +294,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
   KEY idx_audit_log_config_snapshot_id (config_snapshot_id),
   KEY idx_audit_log_result_id (result_id),
   KEY idx_audit_log_history_id (history_id),
-  KEY idx_audit_log_export_id (export_id),
-  CONSTRAINT fk_audit_log_config_snapshot FOREIGN KEY (config_snapshot_id)
-    REFERENCES config_snapshot (config_snapshot_id),
-  CONSTRAINT fk_audit_log_result FOREIGN KEY (result_id)
-    REFERENCES execution_result (result_id),
-  CONSTRAINT fk_audit_log_history FOREIGN KEY (history_id)
-    REFERENCES query_history (history_id),
-  CONSTRAINT fk_audit_log_export FOREIGN KEY (export_id)
-    REFERENCES export_record (export_id)
+  KEY idx_audit_log_export_id (export_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Immutable audit logs, production should isolate storage strategy';
 
 CREATE TABLE IF NOT EXISTS governance_history_lookup_index (
