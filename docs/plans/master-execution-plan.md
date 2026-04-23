@@ -107,15 +107,16 @@
 
 ## 4.1 Current Active Wave
 
-- 当前运行波次：`Phase-E / E-STORY-003`
-- 当前活跃目标：按仓库真值收口环境提醒、恢复指引与运维入口文档
+- 当前运行波次：`Phase-F / F-STORY-005`
+- 当前活跃目标：`F-TASK-029` 已把 release metadata 自动门禁、coverage 阻断语义与 Sonar 必需配置约束收口为正式发布链；下一主线转为 coverage uplift / Sonar provisioning 的后续 hardening
 - 当前下一条可执行主线任务：
-  - `F-TASK-003`
+  - `待新增 follow-up task：coverage uplift / Sonar secrets provisioning`
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
-  - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理，Phase-E 主线当前转入 repository-truth reconciliation。
-  - `E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成前端路由、能力接入和设计系统三项归档；`F-TASK-001`、`F-TASK-002` 已分别完成华为云部署文档与 compose/脚本说明真值修正，当前转入 `F-TASK-003` 的环境提醒与恢复指引收口。
-  - `Phase-F` 运维治理加固已完成到 `F-TASK-027`/`F-TASK-028`，但其 remaining hardening 仍受覆盖率阈值、Sonar secrets 与自动 release trigger 约束。
+  - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成归档。
+  - `F-TASK-001`、`F-TASK-002`、`F-TASK-003` 已完成部署文档、compose/脚本说明、环境提醒与恢复指引的真值修正。
+  - `F-TASK-015`、`F-TASK-016` 已完成 `sql-optimization` 与 `benchmark-engine` 的持久化 carrier / scheduler 主线；`F-TASK-017` 至 `F-TASK-028` 也已把 browser runtime gate、治理历史链路、真实 Kafka gate 与 Phase-F 退出门禁推进到当前仓库真值。
+  - 当前剩余的高价值缺口不再是发布链自动化本身，而是 `phase1plus` 覆盖率从实测 `76.4047%` 提升到 `85%` 以上，以及在 CI/发布环境中补齐 Sonar secrets，使自动 release gate 从“可阻断”推进到“可稳定放行”。
 
 ## 5. Traceability Matrix
 
@@ -553,6 +554,17 @@ Tasks:
 | `F-TASK-026` | 接入真实 Kafka 运行验证与环境安全参数门禁 | bootstrap/security 校验、成功/恢复 smoke | `F-TASK-025` | real Kafka runtime gate 通过 |
 | `F-TASK-027` | 收口 Phase-F 退出门禁缺口 | DB script、coverage、Sonar、R-118 证据 | `F-TASK-026` | phase gate / DB / compliance baseline 通过 |
 | `F-TASK-028` | 拆分主线业务与治理运维页面路径 | `/governance/history/*` 与 `/governance/ops/*` route namespace | `F-TASK-024` | lint/build/browser routing 校验通过 |
+
+##### Story `F-STORY-005` 发布门禁自动化与稳定性收口
+
+- 目标：把 `F-TASK-027` closeout 后剩余的 coverage、Sonar 与 release automation follow-up 从人工注意事项收口为正式计划任务，避免发布链继续依赖手工记忆或临时说明。
+- 验证：phase gate 自动触发链、coverage 门禁入口、Sonar 必需配置约束与 release metadata 证据链一致。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `F-TASK-029` | 收口 release automation 与门禁稳定性 | 稳定 coverage 入口、明确 Sonar 强制约束、把 phase gate 绑定到 release metadata 自动触发链 | `F-TASK-027`,`F-TASK-028` | release gate workflow、coverage phase gate、Sonar-required path 通过 |
 
 ## 7. Verification Matrix
 

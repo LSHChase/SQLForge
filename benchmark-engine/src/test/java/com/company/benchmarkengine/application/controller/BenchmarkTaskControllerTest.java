@@ -26,7 +26,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 @SpringBootTest(classes = BenchmarkEngineApplication.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class BenchmarkTaskControllerTest {
+public class BenchmarkTaskControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

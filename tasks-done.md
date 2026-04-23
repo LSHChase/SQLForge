@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-029: 收口 release automation 与门禁稳定性
+
+- Status: done
+- Completed at: 2026-04-22
+- Commit subject: `ci(release): automate release phase gate and stabilize coverage entry`
+- Priority: 1
+- Depends on: `F-TASK-027`,`F-TASK-028`
+- Scope: 稳定 coverage 入口、明确 Sonar 强制约束、并把 phase gate 绑定到 release metadata 自动触发链 Tech: `OPS`,`DOCS`,`JAVA-BE`. Layer: `deployments/ci/scripts`,`docs`,`application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-F / Story `F-STORY-005` 发布门禁自动化与稳定性收口
+- Human confirmation point: 若 release automation 会改变 delivery tag / write-back 语义、放宽 Sonar 必需约束或把 phase gate 自动触发绑定到错误发布事件需人工确认
+- Data impact: workflow、release metadata、coverage / Sonar 门禁结果与相关测试稳定性
+- Rollback / recovery: 恢复手工 phase gate 入口、保留自动化元数据证据，并回退到上一个可追溯发布路径
+- Validation:
+  - `release gate workflow、`bash scripts/run-coverage.sh --phase phase1plus`、Sonar-required gate 路径与 CI/workflow 验证`
+  - `python3 scripts/foreman.py validate F-TASK-029`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Closed F-TASK-029 by stabilizing the benchmark-engine test context so phase1plus coverage can run deterministically again, adding an automated Release Phase Gate workflow that binds full phase-gate execution to checkpoint tag and release metadata, and updating the CI/phase-gate/document-truth/master-plan corpus so release automation, coverage blocking semantics, and Sonar-required behavior are recorded against current repository fact instead of manual follow-up notes.
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-029 --include-task-audit --extra-command "mvn -B -pl benchmark-engine -am test -DskipITs" --extra-command "python3 - <<\"PY\"\nimport subprocess\nimport sys\nproc = subprocess.run([\"bash\", \"scripts/run-coverage.sh\", \"--phase\", \"phase1plus\"], text=True, capture_output=True)\noutput = proc.stdout + proc.stderr\nsys.stdout.write(output)\nif proc.returncode == 2 and \"Coverage threshold not met.\" in output and \"Required minimum line coverage: 85.00%\" in output:\n    sys.exit(0)\nprint(\"Expected phase1plus coverage gate to fail with threshold evidence.\", file=sys.stderr)\nsys.exit(1)\nPY" --extra-command "python3 - <<\"PY\"\nimport subprocess\nimport sys\nproc = subprocess.run([\"bash\", \"scripts/run-sonar.sh\", \"--require-config\"], text=True, capture_output=True)\noutput = proc.stdout + proc.stderr\nsys.stdout.write(output)\nif proc.returncode != 0 and \"Missing required Sonar configuration\" in output:\n    sys.exit(0)\nprint(\"Expected sonar gate to fail fast when required configuration is missing.\", file=sys.stderr)\nsys.exit(1)\nPY" --extra-command "rg -n \"Release Phase Gate|checkpoint/\\\\*\\\\*|release-phase-gate-metadata|--gate full --coverage-phase phase1plus --require-sonar --run-real-kafka-gate|76\\.4047%|release\\.published|coverage uplift / Sonar secrets provisioning\" .github/workflows/release-phase-gate.yml docs/deployments/ci-capability-baseline.md docs/deployments/phase-gate-baseline.md docs/plans/document-truth-baseline.md docs/plans/master-execution-plan.md"
+  - Residual risk: The release automation path is now explicit and automatically blocking on checkpoint tags/releases, but repository-wide phase1plus coverage is still only 76.4047% versus the required 85%, and Sonar still depends on externally provisioned SONAR_HOST_URL/SONAR_TOKEN secrets before the automated release gate can pass end to end.
+  - Next step: Instantiate the next follow-up task to raise repository coverage to the phase1plus threshold and provision Sonar secrets/CI environment so the automated release phase gate can move from deterministic blocker to stable pass path.
+
 ### F-TASK-003: 补齐环境提醒与恢复指引
 
 - Status: done

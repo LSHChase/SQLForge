@@ -1,0 +1,80 @@
+name: Release Phase Gate
+
+on:
+  push:
+    tags:
+      - 'checkpoint/**'
+  release:
+    types:
+      - published
+
+concurrency:
+  group: release-phase-gate-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-phase-gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+      SONAR_PROJECT_NAME: SQLForge
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Capture release metadata
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          event_path = Path(os.environ["GITHUB_EVENT_PATH"])
+          payload = json.loads(event_path.read_text(encoding="utf-8"))
+          metadata = {
+              "event_name": os.environ.get("GITHUB_EVENT_NAME", ""),
+              "ref": os.environ.get("GITHUB_REF", ""),
+              "ref_name": os.environ.get("GITHUB_REF_NAME", ""),
+              "sha": os.environ.get("GITHUB_SHA", ""),
+              "release": {
+                  "tag_name": ((payload.get("release") or {}).get("tag_name", "")),
+                  "name": ((payload.get("release") or {}).get("name", "")),
+                  "target_commitish": ((payload.get("release") or {}).get("target_commitish", "")),
+              },
+          }
+          out_dir = Path("artifacts")
+          out_dir.mkdir(parents=True, exist_ok=True)
+          (out_dir / "release-phase-gate-metadata.json").write_text(
+              json.dumps(metadata, ensure_ascii=True, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Run release phase gate
+        run: bash scripts/run-phase-gates.sh --gate full --coverage-phase phase1plus --require-sonar --run-real-kafka-gate
+
+      - name: Upload release gate metadata
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-phase-gate-metadata
+          path: artifacts/release-phase-gate-metadata.json
+          if-no-files-found: error

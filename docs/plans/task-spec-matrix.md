@@ -140,6 +140,7 @@
 | `F-TASK-026` | 接入真实 Kafka 运行验证与环境安全参数门禁 | `ADR-012` | `R-117`,`R-118`,`R-141`,`R-144` | `Core`,`Msg`,`Deploy`,`Sec` | Kafka bootstrap/security 校验、成功/恢复 smoke | `OPS`,`JAVA-BE` | `deployments/ci/scripts`,`application(controller/service)/domain/infrastructure` | Kafka runtime gate | `F-TASK-025` | ci/dev |
 | `F-TASK-027` | 收口 Phase-F 退出门禁缺口 | `ADR-009`,`ADR-012` | `R-117`,`R-118`,`R-130`,`R-141`,`R-151` | `Core`,`Val`,`Deploy`,`Sec` | DB script、coverage、Sonar 与 R-118 证据收口 | `OPS`,`DOCS`,`JAVA-BE` | `deployments/ci/scripts`,`docs`,`common` | phase gate / DB / compliance baseline | `F-TASK-026` | ci/dev/prod-doc |
 | `F-TASK-028` | 拆分主线业务与治理运维页面路径 | N/A | `R-023`~`R-030`,`R-124`,`R-141` | `Core`,`Front` | 主业务路由与治理 history/ops namespace 拆分 | `VUE-FE` | `frontend/router/views/styles` | lint/build/browser routing | `F-TASK-024` | dev/test |
+| `F-TASK-029` | 收口 release automation 与门禁稳定性 | `ADR-009`,`ADR-012` | `R-012`,`R-075`,`R-117`,`R-118`,`R-141`,`R-151` | `Core`,`Val`,`Deploy`,`Delivery` | 稳定 coverage 入口、明确 Sonar 强制约束、并把 phase gate 绑定到 release metadata 自动触发链 | `OPS`,`DOCS`,`JAVA-BE` | `deployments/ci/scripts`,`docs`,`application(controller/service)/domain/infrastructure` | release gate workflow、`bash scripts/run-coverage.sh --phase phase1plus`、Sonar-required gate 路径与 CI/workflow 验证 | `F-TASK-027`,`F-TASK-028` | ci/dev/prod-doc |
 
 ## Completeness Statement
 

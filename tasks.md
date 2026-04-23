@@ -16,4 +16,13 @@ _No tasks._
 
 ## In Progress
 
-_No tasks._
+### OPS-GOV-002: 新增后端四服务一键启动脚本
+
+- Status: in_progress
+- Priority: 2
+- Depends on: N/A
+- Scope: scripts + local backend startup docs
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-GOV-002`
+- Progress log:
+  - 2026-04-22: instantiated from foreman CLI using repository truth and task matrices.

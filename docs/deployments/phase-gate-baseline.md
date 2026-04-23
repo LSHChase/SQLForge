@@ -14,6 +14,7 @@
 - GitHub Actions workflows:
   - `.github/workflows/ci.yml`
   - `.github/workflows/phase-gate.yml`
+  - `.github/workflows/release-phase-gate.yml`
 - Supporting scripts:
   - `scripts/run-phase-gates.sh`
   - `scripts/verify_compliance_baseline.py`
@@ -36,6 +37,7 @@
 | Compliance gate script | `scripts/run-phase-gates.sh --gate compliance` 会调用 `scripts/verify_compliance_baseline.py`，并按参数执行 Kafka 配置校验或真实 Kafka runtime gate，对 auth/access-control、审计 schema、加密基线、恢复基线和消息运行证据做机器校验 | `scripts/run-phase-gates.sh`, `scripts/verify_compliance_baseline.py`, `scripts/verify_kafka_runtime_config.py`, `scripts/run-kafka-runtime-gate.sh` |
 | Manual GitHub Actions gate | `Phase Gate` workflow 可通过 `workflow_dispatch` 选择 `entry|delivery|compliance|full`；`delivery/full` 默认强制 Sonar，`compliance/full` 可启用真实 Kafka gate | `.github/workflows/phase-gate.yml` |
 | Dedicated Kafka workflow | 新增独立 `Kafka Runtime Gate` workflow，在真实 Kafka 模式下执行 bootstrap/security 参数校验、连通性检查与恢复 smoke | `.github/workflows/kafka-runtime-gate.yml`, `scripts/run-kafka-runtime-gate.sh` |
+| Automated release gate | 新增 `Release Phase Gate` workflow，在 `checkpoint/*` tag push 与 `release.published` 上自动执行 `--gate full --coverage-phase phase1plus --require-sonar --run-real-kafka-gate`，并把 release metadata 作为 artifact 留档 | `.github/workflows/release-phase-gate.yml`, `scripts/run-phase-gates.sh` |
 
 ## Gate Semantics
 
@@ -61,14 +63,27 @@
 - 当前仓库的 `phase1plus` 覆盖率阈值与 Sonar secrets 仍可能让 full delivery gate 失败，因此不应在未补齐前直接把所有 PR 变成常红。
 - 但只要显式运行 `Phase Gate` workflow，当前脚本已经具备非零退出码阻断能力。
 
+### Automatically Blocking On Release Metadata
+
+以下检查会在正式 release metadata 进入仓库发布路径时自动触发：
+
+1. `checkpoint/*` tag push
+2. GitHub `release.published`
+
+当前自动化语义：
+
+- 自动执行 `bash scripts/run-phase-gates.sh --gate full --coverage-phase phase1plus --require-sonar --run-real-kafka-gate`
+- 自动消费 GitHub 事件中的 tag / release 元数据，并上传为 `release-phase-gate-metadata` artifact
+- 若覆盖率低于 `85%` 或 Sonar secrets 缺失，会在发布链上直接阻断，而不是留到人工提醒阶段
+
 ## Current Gaps
 
 以下缺口在 `F-TASK-005` 完成后仍然存在：
 
-1. `Phase Gate` workflow 当前是 `workflow_dispatch` 手动触发，不是自动绑定到阶段切换元数据。
-2. `phase1plus` 覆盖率目前仍低于 85% 门槛，full delivery gate 在严格 `phase1plus` 模式下预期会阻断。
-3. Sonar 仍受 secrets 是否配置影响；若显式要求 `--require-sonar` 但 secrets 缺失，门禁会失败。
-4. `Phase Gate` workflow 现阶段仍以 `workflow_dispatch` 为主，不会自动消费阶段切换元数据。
+1. `Release Phase Gate` 已自动绑定到 `checkpoint/*` tag / `release.published`，但 ad hoc 阶段切换仍主要依赖 `workflow_dispatch`。
+2. `phase1plus` 覆盖率目前实测为 `76.4047%`，低于 85% 门槛，自动 release gate 在严格 `phase1plus` 模式下会阻断。
+3. Sonar 仍受 secrets 是否配置影响；若自动或手工门禁要求 `--require-sonar` 但 secrets 缺失，门禁会失败。
+4. 自动 release gate 已消费发布元数据，但当前还未把 foreman 的 delivery write-back 记录直接反向注入 workflow 输入。
 5. `R-118` 虽已补入恢复基线、观测基线、Kafka gate 和脚本存在性校验，但仍不替代真实环境中的身份、授权、审计、加密、备份恢复演练。
 
 ## Follow-Up Mapping
@@ -76,7 +91,8 @@
 | Next task | Recommended follow-up |
 |:---|:---|
 | `F-TASK-027` | 已完成：数据库脚本 gate、Sonar-required delivery mode、真实 Kafka compliance gate 与 R-118 基线证据已接入 |
-| Later hardening | 若要把 phase gate 从手动 workflow 变成自动发布阻断，仍需补齐 Sonar secrets、覆盖率阈值与阶段切换元数据自动触发 |
+| `F-TASK-029` | 稳定 coverage 入口、修复导致 phase gate 误报的测试稳定性问题，并把 release metadata 自动触发链接入正式发布路径 |
+| Later hardening | 当前自动发布阻断已接入，但仍需补齐 Sonar secrets、覆盖率阈值与更细粒度的 delivery write-back 元数据联动 |
 
 ## Related Documents
 

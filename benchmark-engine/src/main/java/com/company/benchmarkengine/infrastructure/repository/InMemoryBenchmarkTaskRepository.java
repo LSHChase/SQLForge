@@ -14,7 +14,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@ConditionalOnProperty(prefix = "benchmark-engine.queues", name = "mode", havingValue = "local-placeholder")
+@ConditionalOnProperty(prefix = "benchmark-engine.queues", name = "mode", havingValue = "local-placeholder", matchIfMissing = true)
 public class InMemoryBenchmarkTaskRepository implements BenchmarkTaskRepository {
 
     private final Map<String, BenchmarkTask> taskStore = new ConcurrentHashMap<String, BenchmarkTask>();
