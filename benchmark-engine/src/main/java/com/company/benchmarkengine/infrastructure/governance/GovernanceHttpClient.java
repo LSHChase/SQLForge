@@ -1,5 +1,6 @@
 package com.company.benchmarkengine.infrastructure.governance;
 
+import com.company.benchmarkengine.application.context.RequestMetadataContext;
 import com.company.benchmarkengine.config.BenchmarkEngineGovernanceProperties;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.config.ServiceCodeConstants;
@@ -87,8 +88,8 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
         request.setResourceId(auditRecord.getResourceId());
         request.setResultStatus(auditRecord.getResultStatus());
         request.setElapsedMs(Long.valueOf(auditRecord.getElapsedMs()));
-        request.setSourceIp("127.0.0.1");
-        request.setUserAgent("SQLForge-BenchmarkEngine");
+        request.setSourceIp(resolveMetadata(RequestMetadataContext.getSourceIp(), "127.0.0.1"));
+        request.setUserAgent(resolveMetadata(RequestMetadataContext.getUserAgent(), "SQLForge-BenchmarkEngine"));
         request.setRequestParams(auditRecord.getRequestParams());
         request.setResponseSummary(auditRecord.getResponseSummary());
         post("/audit/write", request, Object.class);
@@ -146,6 +147,10 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
             );
         }
         return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+    }
+
+    private String resolveMetadata(String value, String fallback) {
+        return StringUtils.hasText(value) ? value : fallback;
     }
 
     public static class TenantScopeCheckRequest {

@@ -41,6 +41,7 @@
 | `A-TASK-008` | 建立冲突台账 | N/A | `R-049`,`R-050` | `Core`,`Archive` | 每个冲突具备范围/收益/破坏面/方案 | `DOCS` | `docs` | 冲突项编号和字段完整 | `A-TASK-007` | docs-only |
 | `A-TASK-009` | 固化 Harness 计划模板 | N/A | `R-007`,`R-116`,`R-136` | `Core`,`Val` | 建立 Task 10 字段标准模板 | `DOCS` | `docs` | 对照 `11.2` 字段完整性检查 | `A-TASK-007` | docs-only |
 | `A-TASK-010` | 主计划与运行台账对齐 | N/A | `R-006`,`R-007`,`R-133`,`R-156`,`R-163` | `Core`,`Val`,`Delivery`,`Archive` | 回补 post-publication 已执行任务、修正 active wave、清理已解决 INBOX | `DOCS` | `docs` | `task_audit`、knowledge lint、计划/矩阵/台账交叉检查 | `A-STORY-003` | docs-only |
+| `A-TASK-011` | 主计划剩余任务对齐并修复跨服务鉴权审计缺口 | `ADR-002`,`ADR-009`,`ADR-012`,`ADR-013` | `R-006`,`R-007`,`R-111`~`R-115`,`R-128`,`R-133`,`R-156`,`R-163` | `Core`,`Val`,`Sec`,`Archive` | 对齐 active wave、剩余任务与事实完成度，并修复跨服务鉴权、租户归一化与审计元数据高优先缺口 | `DOCS`,`JAVA-BE` | `docs`,`application(controller/service)/domain/infrastructure` | `task_audit`、knowledge lint、计划/矩阵/台账交叉检查、跨服务测试与配置断言 | `A-TASK-010` | docs/dev/test/prod-doc |
 
 ## Phase-B
 

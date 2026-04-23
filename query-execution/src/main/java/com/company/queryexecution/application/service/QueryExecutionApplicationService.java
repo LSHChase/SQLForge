@@ -17,6 +17,9 @@ import com.company.queryexecution.infrastructure.governance.QueryExecutionAuditR
 import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.exception.AccessDeniedException;
+import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import java.util.ArrayList;
@@ -26,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 /**
@@ -70,6 +74,7 @@ public class QueryExecutionApplicationService {
 
     public QueryExecuteResponse executeSynchronously(QueryExecuteRequest request) {
         long start = System.currentTimeMillis();
+        request.setTenantId(requireAuthorizedTenant(request.getTenantId()));
         String actualSql = normalizeSql(request.getSqlText());
         String sqlFingerprint = SqlFingerprintUtils.fingerprint(actualSql);
         logStart(request, sqlFingerprint);
@@ -445,6 +450,22 @@ public class QueryExecutionApplicationService {
         );
         writeAuditRecord(request, response.getSqlFingerprint(), response, response.getStatus().name(), costMs, null);
         return response;
+    }
+
+    private String requireAuthorizedTenant(String requestTenantId) {
+        String contextTenantId = RequestContext.getTenantId();
+        if (contextTenantId == null || contextTenantId.trim().isEmpty()) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
+                HttpStatus.UNAUTHORIZED,
+                "tenantId is missing from authenticated request context"
+            );
+        }
+        if (requestTenantId != null && requestTenantId.trim().length() > 0
+            && !contextTenantId.equals(requestTenantId.trim())) {
+            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+        }
+        return contextTenantId;
     }
 
     private void logStart(QueryExecuteRequest request, String sqlFingerprint) {

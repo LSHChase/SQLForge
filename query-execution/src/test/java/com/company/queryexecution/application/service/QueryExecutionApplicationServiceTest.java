@@ -23,6 +23,10 @@ import com.company.queryexecution.infrastructure.adapter.QueryExecutionAdapter;
 import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.exception.AccessDeniedException;
+import java.util.Arrays;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -31,8 +35,14 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 @ExtendWith(OutputCaptureExtension.class)
 class QueryExecutionApplicationServiceTest {
 
+    @AfterEach
+    void tearDown() {
+        RequestContext.clear();
+    }
+
     @Test
     void shouldExecuteSynchronouslyForReadonlyHetuQuery(CapturedOutput output) {
+        setRequestContext("tenant-a");
         QueryExecutionApplicationService service =
             new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient());
         QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
@@ -60,6 +70,7 @@ class QueryExecutionApplicationServiceTest {
 
     @Test
     void shouldReturnTimeoutWhenFailFastThresholdIsExceeded() {
+        setRequestContext("tenant-a");
         QueryExecutionApplicationService service =
             new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient());
         QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
@@ -80,6 +91,7 @@ class QueryExecutionApplicationServiceTest {
 
     @Test
     void shouldRejectNonReadonlySqlBeforeExecution() {
+        setRequestContext("tenant-a");
         QueryExecutionApplicationService service =
             new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient());
         QueryExecuteRequest request = baseRequest("DELETE FROM orders");
@@ -95,6 +107,7 @@ class QueryExecutionApplicationServiceTest {
 
     @Test
     void shouldFallbackToHiveWhenRetryThenFallbackIsEnabled() {
+        setRequestContext("tenant-a");
         QueryExecutionApplicationService service =
             new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient());
         QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
@@ -121,6 +134,7 @@ class QueryExecutionApplicationServiceTest {
 
     @Test
     void shouldLogExceptionWhenExecutionAdapterFails(CapturedOutput output) {
+        setRequestContext("tenant-a");
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
         QueryExecutionApplicationService service =
             new QueryExecutionApplicationService(new QueryExecutionAdapter() {
@@ -145,6 +159,7 @@ class QueryExecutionApplicationServiceTest {
 
     @Test
     void shouldCallGovernanceChecksAndAuditOnSuccessfulExecution() {
+        setRequestContext("tenant-a");
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
         QueryExecutionApplicationService service =
             new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), governanceCapabilityClient);
@@ -155,6 +170,22 @@ class QueryExecutionApplicationServiceTest {
         verify(governanceCapabilityClient).assertTenantScope("tenant-a");
         verify(governanceCapabilityClient).assertDatasourceAccess("tenant-a", DataSourceTypeEnum.HETU);
         verify(governanceCapabilityClient).writeAudit(any());
+    }
+
+    @Test
+    void shouldRejectSpoofedTenantBeforeLoggingOrGovernanceCall() {
+        setRequestContext("tenant-a");
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        QueryExecutionApplicationService service =
+            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), governanceCapabilityClient);
+        QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
+        request.setTenantId("tenant-b");
+
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> service.executeSynchronously(request));
+
+        assertEquals("Request tenantId does not match authenticated tenant context", ex.getMessage());
+        verify(governanceCapabilityClient, org.mockito.Mockito.never()).assertTenantScope(any());
+        verify(governanceCapabilityClient, org.mockito.Mockito.never()).writeAudit(any());
     }
 
     private QueryExecuteRequest baseRequest(String sqlText) {
@@ -177,5 +208,18 @@ class QueryExecutionApplicationServiceTest {
         doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         return governanceCapabilityClient;
+    }
+
+    private void setRequestContext(String tenantId) {
+        RequestContext.set(
+            tenantId,
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN"),
+            "request-001",
+            "trace-001",
+            "header",
+            1L,
+            System.currentTimeMillis() + 60000L
+        );
     }
 }

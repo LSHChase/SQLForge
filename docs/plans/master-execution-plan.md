@@ -107,14 +107,15 @@
 
 ## 4.1 Current Active Wave
 
-- 当前运行波次：`Phase-D`
-- 当前活跃目标：`query-execution` 真实执行链补完
+- 当前运行波次：`Phase-A / A-STORY-004`
+- 当前活跃目标：对齐剩余任务真值并修复跨服务鉴权、租户归一化与审计元数据高优先缺口
 - 当前下一条可执行主线任务：
-  - `D-TASK-015`
+  - `A-TASK-011`
 - 说明：
-  - `A-TASK-010` 已用于回补 `D-TASK-014`、`F-TASK-010` 至 `F-TASK-028` 与台账/矩阵漂移，使主计划重新追上 `tasks-done.md`
-  - `Phase-F` 运维治理加固已完成到 `F-TASK-027`/`F-TASK-028`，但其 remaining hardening 仍受覆盖率阈值、Sonar secrets 与自动 release trigger 约束
-  - 后续执行以 `tasks.md` 的状态流转为运行真值，以本计划保持阶段顺序、依赖和 next executable task 权威
+  - `A-TASK-010` 已用于回补 `D-TASK-014`、`F-TASK-010` 至 `F-TASK-028` 与台账/矩阵漂移，但主计划 active wave 仍停留在过期的 `Phase-D / D-TASK-015`，`A-TASK-011` 负责完成第二次对齐并给出剩余任务顺序。
+  - `D-TASK-015`、`E-TASK-001` 至 `E-TASK-003`、`F-TASK-010` 至 `F-TASK-028` 已在 `tasks-done.md` 落账；其中 `E-TASK-004` 至 `E-TASK-006` 与 `F-TASK-001` 至 `F-TASK-003` 已被仓库事实部分消费，需在 `A-TASK-011` 中判定为回补归档或残差任务，不得重复实现。
+  - `Phase-F` 运维治理加固已完成到 `F-TASK-027`/`F-TASK-028`，但其 remaining hardening 仍受覆盖率阈值、Sonar secrets 与自动 release trigger 约束。
+  - `A-TASK-011` 完成后，推荐主线切回 `Phase-E` 的边界治理收尾，优先 `E-TASK-007`、`E-TASK-008`，然后再处理回补归档和 Phase-F residual hardening。
 
 ## 5. Traceability Matrix
 
@@ -210,6 +211,7 @@ Tasks:
 | Task ID | Task | Scope | Dependencies | Verification |
 |:---|:---|:---|:---|:---|
 | `A-TASK-010` | 主计划与运行台账对齐 | 回补 post-publication 已执行任务、修正 active wave、清理已解决 INBOX | `A-STORY-003` | `task_audit`、knowledge lint、主计划/矩阵/台账交叉检查通过 |
+| `A-TASK-011` | 主计划剩余任务对齐并修复跨服务鉴权审计缺口 | 对齐 active wave、剩余任务与事实完成度，并收口跨服务鉴权、租户归一化与审计元数据高优先缺口 | `A-TASK-010` | `task_audit`、knowledge lint、主计划/矩阵/台账交叉检查、跨服务测试与配置断言通过 |
 
 ### Phase-B 阶段0修正与缺口补齐
 

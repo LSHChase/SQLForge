@@ -10,6 +10,12 @@ logging:
     root: INFO
     com.company.benchmarkengine: INFO
 
+auth:
+  enabled: true
+  trusted-auth-sources:
+    - gateway
+    - token
+
 sqlforge:
   security:
     crypto:

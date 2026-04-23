@@ -1,5 +1,6 @@
 package com.company.sqloptimization.application.interceptor;
 
+import com.company.sqloptimization.application.context.RequestMetadataContext;
 import com.company.sqloptimization.config.AuthProperties;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.context.RequestContext;
@@ -42,6 +43,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         validateNotExpired(expiresAt);
 
         RequestContext.set(tenantId, userId, roleCodes, requestId, traceId, authSource, issuedAt, expiresAt);
+        RequestMetadataContext.set(resolveSourceIp(request), resolveUserAgent(request));
         response.setHeader(RequestHeaderConstants.REQUEST_ID, requestId);
         response.setHeader(RequestHeaderConstants.TRACE_ID, traceId);
         return true;
@@ -53,6 +55,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                                 Object handler,
                                 Exception ex) {
         RequestContext.clear();
+        RequestMetadataContext.clear();
     }
 
     private String requireHeader(HttpServletRequest request, String headerName) {
@@ -103,5 +106,14 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (authProperties.isEnabled() && expiresAt < System.currentTimeMillis()) {
             throw new UnauthorizedException("Authentication context has expired");
         }
+    }
+
+    private String resolveSourceIp(HttpServletRequest request) {
+        return request == null ? "UNKNOWN" : request.getRemoteAddr();
+    }
+
+    private String resolveUserAgent(HttpServletRequest request) {
+        String userAgent = request == null ? null : request.getHeader("User-Agent");
+        return userAgent == null || userAgent.trim().isEmpty() ? "UNKNOWN" : userAgent.trim();
     }
 }
