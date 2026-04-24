@@ -188,6 +188,7 @@ public class GovernanceTraceDetailVO extends GovernanceTraceSummaryVO {
         private String submittedBy;
         private LocalDateTime submittedAt;
         private LocalDateTime createTime;
+        private Map<String, Object> queryContext;
 
         public String getHistoryId() {
             return historyId;
@@ -268,6 +269,14 @@ public class GovernanceTraceDetailVO extends GovernanceTraceSummaryVO {
         public void setCreateTime(LocalDateTime createTime) {
             this.createTime = createTime;
         }
+
+        public Map<String, Object> getQueryContext() {
+            return queryContext;
+        }
+
+        public void setQueryContext(Map<String, Object> queryContext) {
+            this.queryContext = queryContext;
+        }
     }
 
     public static class ExportRecordVO {
@@ -284,6 +293,7 @@ public class GovernanceTraceDetailVO extends GovernanceTraceSummaryVO {
         private String errorMessage;
         private LocalDateTime createTime;
         private LocalDateTime finishedAt;
+        private Map<String, Object> exportOptions;
 
         public String getExportId() {
             return exportId;
@@ -379,6 +389,14 @@ public class GovernanceTraceDetailVO extends GovernanceTraceSummaryVO {
 
         public void setFinishedAt(LocalDateTime finishedAt) {
             this.finishedAt = finishedAt;
+        }
+
+        public Map<String, Object> getExportOptions() {
+            return exportOptions;
+        }
+
+        public void setExportOptions(Map<String, Object> exportOptions) {
+            this.exportOptions = exportOptions;
         }
     }
 }

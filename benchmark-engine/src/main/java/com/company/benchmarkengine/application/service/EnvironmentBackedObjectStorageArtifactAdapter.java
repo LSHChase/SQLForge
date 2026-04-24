@@ -15,12 +15,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 
 public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkArtifactStorageAdapter {
+
+    private static final String VERIFIED = "VERIFIED";
 
     private final BenchmarkArtifactStorageProperties storageProperties;
 
@@ -68,26 +72,36 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
     }
 
     @Override
-    public BenchmarkRenderedReport load(BenchmarkReportArtifact artifact) {
+    public BenchmarkArtifactReadResult loadArtifact(BenchmarkReportArtifact artifact) {
         if (artifact == null) {
             throw new IllegalArgumentException("Benchmark artifact must not be null");
         }
         try {
             if (artifact.getContent() != null) {
-                return new BenchmarkRenderedReport(
-                    MediaType.parseMediaType(artifact.getMediaType()),
-                    artifact.getFileName(),
-                    artifact.getContent().getBytes(StandardCharsets.UTF_8)
+                return new BenchmarkArtifactReadResult(
+                    new BenchmarkRenderedReport(
+                        MediaType.parseMediaType(artifact.getMediaType()),
+                        artifact.getFileName(),
+                        artifact.getContent().getBytes(StandardCharsets.UTF_8)
+                    ),
+                    false,
+                    "INLINE_CONTENT",
+                    "INLINE_CONTENT"
                 );
             }
             if (artifact.getStorageUri() == null) {
                 throw new IllegalStateException("Benchmark artifact content and storageUri are both missing");
             }
-            byte[] bytes = loadBytesWithRecovery(artifact);
-            return new BenchmarkRenderedReport(
-                MediaType.parseMediaType(artifact.getMediaType()),
-                artifact.getFileName(),
-                bytes
+            LoadedArtifact loadedArtifact = loadBytesWithRecovery(artifact);
+            return new BenchmarkArtifactReadResult(
+                new BenchmarkRenderedReport(
+                    MediaType.parseMediaType(artifact.getMediaType()),
+                    artifact.getFileName(),
+                    loadedArtifact.bytes
+                ),
+                loadedArtifact.fallbackRecoveryUsed,
+                loadedArtifact.recoverySource,
+                loadedArtifact.readStatus
             );
         } catch (NoSuchFileException ex) {
             throw new IllegalStateException("Benchmark artifact is missing from environment-backed mirror", ex);
@@ -96,13 +110,43 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         }
     }
 
+    @Override
+    public void cleanupStaleArtifacts(BenchmarkArtifactStorageContext context, BenchmarkArtifactCleanupPlan cleanupPlan) {
+        Set<String> retainedFileNames = cleanupPlan == null
+            ? Collections.<String>emptySet()
+            : cleanupPlan.getRetainedFileNames();
+        Set<String> retainedArtifactKeys = cleanupPlan == null
+            ? Collections.<String>emptySet()
+            : cleanupPlan.getRetainedArtifactKeys();
+        Path mirrorDir = resolveMirrorReportDir(context.getReportId());
+        Set<String> staleFileNames = listStaleFileNames(mirrorDir, retainedFileNames);
+        deleteNamedFiles(mirrorDir, staleFileNames);
+        deleteStaleEvidenceManifests(resolveLiveEvidenceReportDir(context.getReportId()), retainedArtifactKeys);
+        Path externalRoot = resolveExternalWriteRoot();
+        if (externalRoot != null) {
+            deleteNamedFiles(resolveExternalWriteReportDir(externalRoot, context), staleFileNames);
+        }
+        cleanupStaleProviderObjects(resolvePrimaryProviderTarget(), context, staleFileNames);
+        cleanupStaleProviderObjects(resolveRecoveryProviderTarget(), context, staleFileNames);
+    }
+
     private Path resolveMirrorReportDir(String reportId) {
         String mirrorDir = storageProperties.getEnvironmentObjectStorage().getMirrorDir();
         return Paths.get(mirrorDir).toAbsolutePath().normalize().resolve(reportId);
     }
 
+    private Path resolveLiveEvidenceReportDir(String reportId) {
+        return Paths.get(storageProperties.getEnvironmentObjectStorage().getLiveEvidenceDir())
+            .toAbsolutePath()
+            .normalize()
+            .resolve(reportId);
+    }
+
     private String buildObjectUri(BenchmarkArtifactStorageContext context, BenchmarkReportArtifact artifact) {
-        String effectiveBucket = resolveObjectUriBucket();
+        ProviderTarget primaryProvider = resolvePrimaryProviderTarget();
+        String effectiveBucket = primaryProvider == null
+            ? resolveObjectUriBucket()
+            : trimSlashes(primaryProvider.bucket);
         String key = buildObjectKey(context, artifact);
         return "env-obj://" + effectiveBucket + "/" + key;
     }
@@ -120,22 +164,45 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         return key.toString();
     }
 
+    private String buildObjectKey(BenchmarkArtifactStorageContext context, String fileName) {
+        String keyPrefix = storageProperties.getEnvironmentObjectStorage().getKeyPrefix();
+        StringBuilder key = new StringBuilder();
+        if (StringUtils.hasText(keyPrefix)) {
+            key.append(trimSlashes(keyPrefix)).append('/');
+        }
+        if (StringUtils.hasText(context.getTenantId())) {
+            key.append(trimSlashes(context.getTenantId())).append('/');
+        }
+        key.append(trimSlashes(context.getReportId())).append('/').append(fileName);
+        return key.toString();
+    }
+
     private String buildEvidence(String objectUri,
                                  Path mirrorPath,
                                  StorageVerification verification,
                                  LiveEvidenceManifest liveEvidenceManifest) {
-        String mode = verification.describeMode();
         return "objectUri=" + objectUri
             + ";mirrorPath=" + mirrorPath.toAbsolutePath().normalize()
             + ";endpointEnv=" + storageProperties.getEnvironmentObjectStorage().getEndpointEnvName()
             + ";bucketEnv=" + storageProperties.getEnvironmentObjectStorage().getBucketEnvName()
             + ";credentialsEnv=" + storageProperties.getEnvironmentObjectStorage().getCredentialsEnvName()
             + ";externalWriteDirEnv=" + storageProperties.getEnvironmentObjectStorage().getExternalWriteDirEnvName()
-            + ";mode=" + mode
-            + ";providerEndpoint=" + verification.getProviderEndpoint()
-            + ";providerObjectUrl=" + verification.getProviderObjectUrl()
-            + ";providerWriteStatus=" + verification.getProviderWriteStatus()
-            + ";providerRecoveryStatus=" + verification.getProviderRecoveryStatus()
+            + ";mode=" + verification.describeMode()
+            + ";providerMode=" + verification.getProviderMode()
+            + ";recoveryOrder=" + verification.getRecoveryOrder()
+            + ";cleanupScope=" + verification.getCleanupScope()
+            + ";primaryProvider=" + verification.getPrimaryProviderName()
+            + ";primaryProviderContract=" + verification.getPrimaryProviderContract()
+            + ";providerEndpoint=" + verification.getPrimaryProviderEndpoint()
+            + ";providerObjectUrl=" + verification.getPrimaryProviderObjectUrl()
+            + ";providerWriteStatus=" + verification.getPrimaryProviderWriteStatus()
+            + ";providerRecoveryStatus=" + verification.getPrimaryProviderRecoveryStatus()
+            + ";recoveryProvider=" + verification.getRecoveryProviderName()
+            + ";recoveryProviderContract=" + verification.getRecoveryProviderContract()
+            + ";recoveryProviderEndpoint=" + verification.getRecoveryProviderEndpoint()
+            + ";recoveryProviderObjectUrl=" + verification.getRecoveryProviderObjectUrl()
+            + ";recoveryProviderWriteStatus=" + verification.getRecoveryProviderWriteStatus()
+            + ";recoveryProviderRecoveryStatus=" + verification.getRecoveryProviderRecoveryStatus()
             + ";externalWritePath=" + verification.getExternalWritePath()
             + ";externalWriteStatus=" + verification.getExternalWriteStatus()
             + ";recoveryVerificationStatus=" + verification.getRecoveryVerificationStatus()
@@ -148,16 +215,14 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                                                    String objectUri,
                                                    Path mirrorPath,
                                                    StorageVerification verification) throws IOException {
-        Path reportDir = Paths.get(storageProperties.getEnvironmentObjectStorage().getLiveEvidenceDir())
-            .toAbsolutePath()
-            .normalize()
-            .resolve(context.getReportId());
+        Path reportDir = resolveLiveEvidenceReportDir(context.getReportId());
         Files.createDirectories(reportDir);
         Path manifestPath = reportDir.resolve(artifact.getArtifactKey() + ".json");
         String effectiveBucket = resolveBucketValue();
         String endpoint = resolveEndpointValue();
         String credentials = resolveCredentialsValue();
-        String evidenceStatus = verification.isProviderVerified()
+        String evidenceStatus = verification.isPrimaryProviderVerified()
+            || verification.isRecoveryProviderVerified()
             ? "PROVIDER_LIVE_EVIDENCE_VERIFIED"
             : verification.isExternalWriteVerified()
             ? "EXTERNAL_WRITE_RECOVERY_VERIFIED"
@@ -173,16 +238,27 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         manifest.put("objectUri", objectUri);
         manifest.put("mirrorPath", mirrorPath.toAbsolutePath().normalize().toString());
         manifest.put("evidenceStatus", evidenceStatus);
+        manifest.put("providerMode", verification.getProviderMode());
+        manifest.put("recoveryOrder", verification.getRecoveryOrder());
+        manifest.put("cleanupScope", verification.getCleanupScope());
         manifest.put("resolvedEndpoint", endpoint);
         manifest.put("resolvedBucket", effectiveBucket);
         manifest.put("credentialsPresent", Boolean.valueOf(StringUtils.hasText(credentials)));
         manifest.put("endpointEnvName", storageProperties.getEnvironmentObjectStorage().getEndpointEnvName());
         manifest.put("bucketEnvName", storageProperties.getEnvironmentObjectStorage().getBucketEnvName());
         manifest.put("credentialsEnvName", storageProperties.getEnvironmentObjectStorage().getCredentialsEnvName());
-        manifest.put("providerEndpoint", verification.getProviderEndpoint());
-        manifest.put("providerObjectUrl", verification.getProviderObjectUrl());
-        manifest.put("providerWriteStatus", verification.getProviderWriteStatus());
-        manifest.put("providerRecoveryStatus", verification.getProviderRecoveryStatus());
+        manifest.put("primaryProvider", verification.getPrimaryProviderName());
+        manifest.put("primaryProviderContract", verification.getPrimaryProviderContract());
+        manifest.put("providerEndpoint", verification.getPrimaryProviderEndpoint());
+        manifest.put("providerObjectUrl", verification.getPrimaryProviderObjectUrl());
+        manifest.put("providerWriteStatus", verification.getPrimaryProviderWriteStatus());
+        manifest.put("providerRecoveryStatus", verification.getPrimaryProviderRecoveryStatus());
+        manifest.put("recoveryProvider", verification.getRecoveryProviderName());
+        manifest.put("recoveryProviderContract", verification.getRecoveryProviderContract());
+        manifest.put("recoveryProviderEndpoint", verification.getRecoveryProviderEndpoint());
+        manifest.put("recoveryProviderObjectUrl", verification.getRecoveryProviderObjectUrl());
+        manifest.put("recoveryProviderWriteStatus", verification.getRecoveryProviderWriteStatus());
+        manifest.put("recoveryProviderRecoveryStatus", verification.getRecoveryProviderRecoveryStatus());
         manifest.put("externalWritePath", verification.getExternalWritePath());
         manifest.put("externalWriteStatus", verification.getExternalWriteStatus());
         manifest.put("recoveryVerificationStatus", verification.getRecoveryVerificationStatus());
@@ -202,27 +278,50 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
     private StorageVerification verifyStorage(BenchmarkArtifactStorageContext context,
                                               BenchmarkReportArtifact artifact,
                                               byte[] contentBytes) throws IOException {
-        StorageVerification verification = StorageVerification.pending();
-        verification = verifyProviderBackedObject(context, artifact, contentBytes, verification);
+        StorageVerification verification = StorageVerification.pending(
+            resolveProviderMode(),
+            resolveRecoveryOrder(),
+            resolveCleanupScope()
+        );
+        verification = verifyProviderBackedObject(resolvePrimaryProviderTarget(), context, artifact, contentBytes, verification, true);
+        verification = verifyProviderBackedObject(resolveRecoveryProviderTarget(), context, artifact, contentBytes, verification, false);
         verification = verifyExternalWrite(context, artifact, contentBytes, verification);
         return verification;
     }
 
-    private StorageVerification verifyProviderBackedObject(BenchmarkArtifactStorageContext context,
+    private StorageVerification verifyProviderBackedObject(ProviderTarget providerTarget,
+                                                           BenchmarkArtifactStorageContext context,
                                                            BenchmarkReportArtifact artifact,
                                                            byte[] contentBytes,
-                                                           StorageVerification verification) throws IOException {
-        String endpoint = resolveEndpointValue();
-        if (!StringUtils.hasText(endpoint)) {
+                                                           StorageVerification verification,
+                                                           boolean primaryProvider) throws IOException {
+        if (providerTarget == null) {
             return verification;
         }
-        String providerObjectUrl = buildProviderObjectUrl(context, artifact);
-        uploadProviderObject(providerObjectUrl, contentBytes);
-        byte[] reloaded = downloadProviderObject(providerObjectUrl);
+        String providerObjectUrl = buildProviderObjectUrl(providerTarget, context, artifact.getFileName());
+        uploadProviderObject(providerObjectUrl, contentBytes, providerTarget.credentials);
+        byte[] reloaded = downloadProviderObject(providerObjectUrl, providerTarget.credentials);
         if (!Arrays.equals(contentBytes, reloaded)) {
             throw new IllegalStateException("Provider-backed object-storage verification readback mismatch");
         }
-        return verification.withProviderVerification(endpoint, providerObjectUrl, "VERIFIED", "VERIFIED");
+        if (primaryProvider) {
+            return verification.withPrimaryProviderVerification(
+                providerTarget.providerName,
+                providerTarget.providerContract,
+                providerTarget.endpoint,
+                providerObjectUrl,
+                VERIFIED,
+                VERIFIED
+            );
+        }
+        return verification.withRecoveryProviderVerification(
+            providerTarget.providerName,
+            providerTarget.providerContract,
+            providerTarget.endpoint,
+            providerObjectUrl,
+            VERIFIED,
+            VERIFIED
+        );
     }
 
     private StorageVerification verifyExternalWrite(BenchmarkArtifactStorageContext context,
@@ -246,43 +345,62 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         if (!Arrays.equals(contentBytes, reloaded)) {
             throw new IllegalStateException("External object-storage verification readback mismatch");
         }
-        return verification.withExternalVerification(externalRoot, externalPath, "VERIFIED", "VERIFIED");
+        return verification.withExternalVerification(externalRoot, externalPath, VERIFIED, VERIFIED);
     }
 
-    private byte[] loadBytesWithRecovery(BenchmarkReportArtifact artifact) throws IOException {
+    private LoadedArtifact loadBytesWithRecovery(BenchmarkReportArtifact artifact) throws IOException {
         Path mirrorPath = resolveMirrorPath(artifact);
         try {
-            return Files.readAllBytes(mirrorPath);
+            return new LoadedArtifact(Files.readAllBytes(mirrorPath), false, "REPO_LOCAL_MIRROR", "STORED_MIRROR_READ");
         } catch (NoSuchFileException mirrorMissing) {
-            String providerObjectUrl = resolveEvidenceValue(artifact.getStorageEvidence(), "providerObjectUrl");
-            String providerRecoveryStatus = resolveEvidenceValue(artifact.getStorageEvidence(), "providerRecoveryStatus");
-            if (StringUtils.hasText(providerObjectUrl) && "VERIFIED".equals(providerRecoveryStatus)) {
-                byte[] bytes = downloadProviderObject(providerObjectUrl);
-                Files.createDirectories(mirrorPath.getParent());
-                Files.write(
-                    mirrorPath,
-                    bytes,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.WRITE
-                );
-                return bytes;
+            IOException lastFailure = mirrorMissing;
+            String primaryProviderObjectUrl = resolveEvidenceValue(artifact.getStorageEvidence(), "providerObjectUrl");
+            if (StringUtils.hasText(primaryProviderObjectUrl)
+                && VERIFIED.equals(resolveEvidenceValue(artifact.getStorageEvidence(), "providerRecoveryStatus"))) {
+                try {
+                    byte[] bytes = downloadProviderObject(
+                        primaryProviderObjectUrl,
+                        resolveProviderCredentials(resolvePrimaryProviderTarget())
+                    );
+                    writeMirrorBytes(mirrorPath, bytes);
+                    return new LoadedArtifact(bytes, true, "PRIMARY_PROVIDER", "RECOVERED_FROM_PRIMARY_PROVIDER");
+                } catch (IOException ex) {
+                    lastFailure = ex;
+                }
+            }
+            String recoveryProviderObjectUrl = resolveEvidenceValue(artifact.getStorageEvidence(), "recoveryProviderObjectUrl");
+            if (StringUtils.hasText(recoveryProviderObjectUrl)
+                && VERIFIED.equals(resolveEvidenceValue(artifact.getStorageEvidence(), "recoveryProviderRecoveryStatus"))) {
+                try {
+                    byte[] bytes = downloadProviderObject(
+                        recoveryProviderObjectUrl,
+                        resolveProviderCredentials(resolveRecoveryProviderTarget())
+                    );
+                    writeMirrorBytes(mirrorPath, bytes);
+                    return new LoadedArtifact(bytes, true, "RECOVERY_PROVIDER", "RECOVERED_FROM_RECOVERY_PROVIDER");
+                } catch (IOException ex) {
+                    lastFailure = ex;
+                }
             }
             Path externalPath = resolveExternalWritePath(artifact);
-            if (externalPath == null) {
-                throw mirrorMissing;
+            if (externalPath != null && Files.exists(externalPath)) {
+                byte[] bytes = Files.readAllBytes(externalPath);
+                writeMirrorBytes(mirrorPath, bytes);
+                return new LoadedArtifact(bytes, true, "EXTERNAL_WRITE", "RECOVERED_FROM_EXTERNAL_WRITE");
             }
-            byte[] bytes = Files.readAllBytes(externalPath);
-            Files.createDirectories(mirrorPath.getParent());
-            Files.write(
-                mirrorPath,
-                bytes,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING,
-                StandardOpenOption.WRITE
-            );
-            return bytes;
+            throw lastFailure;
         }
+    }
+
+    private void writeMirrorBytes(Path mirrorPath, byte[] bytes) throws IOException {
+        Files.createDirectories(mirrorPath.getParent());
+        Files.write(
+            mirrorPath,
+            bytes,
+            StandardOpenOption.CREATE,
+            StandardOpenOption.TRUNCATE_EXISTING,
+            StandardOpenOption.WRITE
+        );
     }
 
     private Path resolveExternalWriteRoot() {
@@ -293,9 +411,27 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         return Paths.get(externalWriteDir).toAbsolutePath().normalize();
     }
 
-    private String buildProviderObjectUrl(BenchmarkArtifactStorageContext context, BenchmarkReportArtifact artifact) {
-        String endpoint = trimTrailingSlash(resolveEndpointValue());
-        return endpoint + "/" + resolveExternalBucket() + "/" + buildObjectKey(context, artifact);
+    private Path resolveExternalWriteReportDir(Path externalRoot, BenchmarkArtifactStorageContext context) {
+        String effectiveBucket = resolveExternalBucket();
+        String keyPrefix = storageProperties.getEnvironmentObjectStorage().getKeyPrefix();
+        Path reportDir = externalRoot.resolve(effectiveBucket);
+        if (StringUtils.hasText(keyPrefix)) {
+            reportDir = reportDir.resolve(trimSlashes(keyPrefix));
+        }
+        if (StringUtils.hasText(context.getTenantId())) {
+            reportDir = reportDir.resolve(trimSlashes(context.getTenantId()));
+        }
+        return reportDir.resolve(trimSlashes(context.getReportId()));
+    }
+
+    private String buildProviderObjectUrl(ProviderTarget providerTarget,
+                                          BenchmarkArtifactStorageContext context,
+                                          String fileName) {
+        return trimTrailingSlash(providerTarget.endpoint)
+            + "/"
+            + trimSlashes(providerTarget.bucket)
+            + "/"
+            + buildObjectKey(context, fileName);
     }
 
     private Path resolveExternalWritePath(Path externalRoot,
@@ -311,6 +447,46 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             return null;
         }
         return Paths.get(externalPath);
+    }
+
+    private ProviderTarget resolvePrimaryProviderTarget() {
+        String endpoint = resolveEndpointValue();
+        String bucket = resolveBucketValue();
+        if (!StringUtils.hasText(endpoint) || !StringUtils.hasText(bucket)) {
+            return null;
+        }
+        return new ProviderTarget(
+            "PRIMARY_PROVIDER",
+            firstNonBlank(storageProperties.getEnvironmentObjectStorage().getProviderName(), "GENERIC_HTTP"),
+            firstNonBlank(storageProperties.getEnvironmentObjectStorage().getProviderContract(), "HTTP_PUT_GET"),
+            endpoint.trim(),
+            bucket.trim(),
+            resolveCredentialsValue()
+        );
+    }
+
+    private ProviderTarget resolveRecoveryProviderTarget() {
+        String endpoint = storageProperties.getEnvironmentObjectStorage().getRecoveryProviderEndpoint();
+        String bucket = storageProperties.getEnvironmentObjectStorage().getRecoveryProviderBucket();
+        if (!StringUtils.hasText(endpoint)) {
+            return null;
+        }
+        String resolvedBucket = StringUtils.hasText(bucket) ? bucket.trim() : resolveBucketValue();
+        if (!StringUtils.hasText(resolvedBucket)) {
+            return null;
+        }
+        return new ProviderTarget(
+            "RECOVERY_PROVIDER",
+            firstNonBlank(storageProperties.getEnvironmentObjectStorage().getRecoveryProviderName(), "GENERIC_HTTP_RECOVERY"),
+            firstNonBlank(
+                storageProperties.getEnvironmentObjectStorage().getRecoveryProviderContract(),
+                storageProperties.getEnvironmentObjectStorage().getProviderContract(),
+                "HTTP_PUT_GET"
+            ),
+            endpoint.trim(),
+            resolvedBucket.trim(),
+            storageProperties.getEnvironmentObjectStorage().getRecoveryProviderCredentials()
+        );
     }
 
     private String resolveEndpointValue() {
@@ -376,6 +552,141 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         return null;
     }
 
+    private Set<String> listStaleFileNames(Path reportDir, Set<String> retainedFileNames) {
+        LinkedHashMap<String, Boolean> staleFileNames = new LinkedHashMap<String, Boolean>();
+        if (!Files.isDirectory(reportDir)) {
+            return staleFileNames.keySet();
+        }
+        try (java.util.stream.Stream<Path> paths = Files.list(reportDir)) {
+            paths
+                .filter(Files::isRegularFile)
+                .map(path -> path.getFileName().toString())
+                .filter(fileName -> !retainedFileNames.contains(fileName))
+                .forEach(fileName -> staleFileNames.put(fileName, Boolean.TRUE));
+            return staleFileNames.keySet();
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to inspect stale environment-backed benchmark artifacts", ex);
+        }
+    }
+
+    private void deleteNamedFiles(Path reportDir, Set<String> fileNames) {
+        if (!Files.isDirectory(reportDir)) {
+            return;
+        }
+        for (String fileName : fileNames) {
+            deleteLocalFile(reportDir.resolve(fileName));
+        }
+    }
+
+    private void deleteStaleEvidenceManifests(Path reportDir, Set<String> retainedArtifactKeys) {
+        if (!Files.isDirectory(reportDir)) {
+            return;
+        }
+        try (java.util.stream.Stream<Path> paths = Files.list(reportDir)) {
+            paths
+                .filter(Files::isRegularFile)
+                .filter(path -> path.getFileName().toString().endsWith(".json"))
+                .filter(path -> !retainedArtifactKeys.contains(stripJsonSuffix(path.getFileName().toString())))
+                .forEach(this::deleteLocalFile);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to cleanup stale environment-backed evidence manifests", ex);
+        }
+    }
+
+    private void cleanupStaleProviderObjects(ProviderTarget providerTarget,
+                                             BenchmarkArtifactStorageContext context,
+                                             Set<String> staleFileNames) {
+        if (providerTarget == null || staleFileNames == null || staleFileNames.isEmpty()) {
+            return;
+        }
+        for (String fileName : staleFileNames) {
+            deleteProviderObjectQuietly(
+                buildProviderObjectUrl(providerTarget, context, fileName),
+                providerTarget.credentials
+            );
+        }
+    }
+
+    private void deleteProviderObjectQuietly(String providerObjectUrl, String credentials) {
+        try {
+            deleteProviderObject(providerObjectUrl, credentials);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to cleanup stale provider-backed artifact " + providerObjectUrl, ex);
+        }
+    }
+
+    private void deleteProviderObject(String providerObjectUrl, String credentials) throws IOException {
+        HttpURLConnection connection = openProviderConnection(providerObjectUrl, "DELETE", credentials);
+        try {
+            connection.connect();
+            int status = connection.getResponseCode();
+            if (status == 404) {
+                return;
+            }
+            if (status < 200 || status >= 300) {
+                throw new IllegalStateException("Provider-backed object-storage delete failed with status " + status);
+            }
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    private void deleteLocalFile(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to delete stale benchmark artifact " + path, ex);
+        }
+    }
+
+    private String resolveProviderMode() {
+        ProviderTarget primary = resolvePrimaryProviderTarget();
+        ProviderTarget recovery = resolveRecoveryProviderTarget();
+        if (primary != null && recovery != null) {
+            return "PRIMARY_PLUS_RECOVERY_PROVIDER";
+        }
+        if (primary != null) {
+            return "PRIMARY_PROVIDER_ONLY";
+        }
+        if (recovery != null) {
+            return "RECOVERY_PROVIDER_ONLY";
+        }
+        if (resolveExternalWriteRoot() != null) {
+            return "EXTERNAL_WRITE_ONLY";
+        }
+        return "REPO_LOCAL_MIRROR_ONLY";
+    }
+
+    private String resolveRecoveryOrder() {
+        StringBuilder recoveryOrder = new StringBuilder("REPO_LOCAL_MIRROR");
+        if (resolvePrimaryProviderTarget() != null) {
+            recoveryOrder.append(",PRIMARY_PROVIDER");
+        }
+        if (resolveRecoveryProviderTarget() != null) {
+            recoveryOrder.append(",RECOVERY_PROVIDER");
+        }
+        if (resolveExternalWriteRoot() != null) {
+            recoveryOrder.append(",EXTERNAL_WRITE");
+        }
+        recoveryOrder.append(",REPORT_SNAPSHOT");
+        return recoveryOrder.toString();
+    }
+
+    private String resolveCleanupScope() {
+        return firstNonBlank(
+            storageProperties.getEnvironmentObjectStorage().getCleanupScope(),
+            "MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER"
+        );
+    }
+
+    private String resolveProviderCredentials(ProviderTarget providerTarget) {
+        return providerTarget == null ? null : providerTarget.credentials;
+    }
+
+    private String stripJsonSuffix(String fileName) {
+        return fileName.endsWith(".json") ? fileName.substring(0, fileName.length() - 5) : fileName;
+    }
+
     private String trimSlashes(String value) {
         if (!StringUtils.hasText(value)) {
             return "";
@@ -401,8 +712,22 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         return normalized;
     }
 
-    private void uploadProviderObject(String providerObjectUrl, byte[] contentBytes) throws IOException {
-        HttpURLConnection connection = openProviderConnection(providerObjectUrl, "PUT");
+    private String firstNonBlank(String first, String second) {
+        if (StringUtils.hasText(first)) {
+            return first.trim();
+        }
+        if (StringUtils.hasText(second)) {
+            return second.trim();
+        }
+        return null;
+    }
+
+    private String firstNonBlank(String first, String second, String third) {
+        return firstNonBlank(first, firstNonBlank(second, third));
+    }
+
+    private void uploadProviderObject(String providerObjectUrl, byte[] contentBytes, String credentials) throws IOException {
+        HttpURLConnection connection = openProviderConnection(providerObjectUrl, "PUT", credentials);
         connection.setDoOutput(true);
         connection.setRequestProperty("Content-Type", "application/octet-stream");
         connection.setFixedLengthStreamingMode(contentBytes.length);
@@ -418,8 +743,8 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         }
     }
 
-    private byte[] downloadProviderObject(String providerObjectUrl) throws IOException {
-        HttpURLConnection connection = openProviderConnection(providerObjectUrl, "GET");
+    private byte[] downloadProviderObject(String providerObjectUrl, String credentials) throws IOException {
+        HttpURLConnection connection = openProviderConnection(providerObjectUrl, "GET", credentials);
         try {
             connection.connect();
             int status = connection.getResponseCode();
@@ -432,14 +757,15 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         }
     }
 
-    private HttpURLConnection openProviderConnection(String providerObjectUrl, String method) throws IOException {
+    private HttpURLConnection openProviderConnection(String providerObjectUrl,
+                                                     String method,
+                                                     String credentials) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(providerObjectUrl).openConnection();
         connection.setRequestMethod(method);
         connection.setConnectTimeout(storageProperties.getEnvironmentObjectStorage().getProviderConnectTimeoutMs());
         connection.setReadTimeout(storageProperties.getEnvironmentObjectStorage().getProviderReadTimeoutMs());
-        String credentials = resolveCredentialsValue();
         if (StringUtils.hasText(credentials)) {
-            connection.setRequestProperty("Authorization", credentials);
+            connection.setRequestProperty("Authorization", credentials.trim());
         }
         return connection;
     }
@@ -453,6 +779,45 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                 return outputStream.toByteArray();
             }
             outputStream.write(buffer, 0, read);
+        }
+    }
+
+    private static final class LoadedArtifact {
+
+        private final byte[] bytes;
+        private final boolean fallbackRecoveryUsed;
+        private final String recoverySource;
+        private final String readStatus;
+
+        private LoadedArtifact(byte[] bytes, boolean fallbackRecoveryUsed, String recoverySource, String readStatus) {
+            this.bytes = bytes;
+            this.fallbackRecoveryUsed = fallbackRecoveryUsed;
+            this.recoverySource = recoverySource;
+            this.readStatus = readStatus;
+        }
+    }
+
+    private static final class ProviderTarget {
+
+        private final String role;
+        private final String providerName;
+        private final String providerContract;
+        private final String endpoint;
+        private final String bucket;
+        private final String credentials;
+
+        private ProviderTarget(String role,
+                               String providerName,
+                               String providerContract,
+                               String endpoint,
+                               String bucket,
+                               String credentials) {
+            this.role = role;
+            this.providerName = providerName;
+            this.providerContract = providerContract;
+            this.endpoint = endpoint;
+            this.bucket = bucket;
+            this.credentials = credentials;
         }
     }
 
@@ -477,42 +842,137 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
 
     private static final class StorageVerification {
 
-        private final String providerEndpoint;
-        private final String providerObjectUrl;
-        private final String providerWriteStatus;
-        private final String providerRecoveryStatus;
+        private final String providerMode;
+        private final String recoveryOrder;
+        private final String cleanupScope;
+        private final String primaryProviderName;
+        private final String primaryProviderContract;
+        private final String primaryProviderEndpoint;
+        private final String primaryProviderObjectUrl;
+        private final String primaryProviderWriteStatus;
+        private final String primaryProviderRecoveryStatus;
+        private final String recoveryProviderName;
+        private final String recoveryProviderContract;
+        private final String recoveryProviderEndpoint;
+        private final String recoveryProviderObjectUrl;
+        private final String recoveryProviderWriteStatus;
+        private final String recoveryProviderRecoveryStatus;
         private final String externalWritePath;
         private final String externalWriteDir;
         private final String externalWriteStatus;
         private final String recoveryVerificationStatus;
 
-        private StorageVerification(String providerEndpoint,
-                                    String providerObjectUrl,
-                                    String providerWriteStatus,
-                                    String providerRecoveryStatus,
+        private StorageVerification(String providerMode,
+                                    String recoveryOrder,
+                                    String cleanupScope,
+                                    String primaryProviderName,
+                                    String primaryProviderContract,
+                                    String primaryProviderEndpoint,
+                                    String primaryProviderObjectUrl,
+                                    String primaryProviderWriteStatus,
+                                    String primaryProviderRecoveryStatus,
+                                    String recoveryProviderName,
+                                    String recoveryProviderContract,
+                                    String recoveryProviderEndpoint,
+                                    String recoveryProviderObjectUrl,
+                                    String recoveryProviderWriteStatus,
+                                    String recoveryProviderRecoveryStatus,
                                     String externalWritePath,
                                     String externalWriteDir,
                                     String externalWriteStatus,
                                     String recoveryVerificationStatus) {
-            this.providerEndpoint = providerEndpoint;
-            this.providerObjectUrl = providerObjectUrl;
-            this.providerWriteStatus = providerWriteStatus;
-            this.providerRecoveryStatus = providerRecoveryStatus;
+            this.providerMode = providerMode;
+            this.recoveryOrder = recoveryOrder;
+            this.cleanupScope = cleanupScope;
+            this.primaryProviderName = primaryProviderName;
+            this.primaryProviderContract = primaryProviderContract;
+            this.primaryProviderEndpoint = primaryProviderEndpoint;
+            this.primaryProviderObjectUrl = primaryProviderObjectUrl;
+            this.primaryProviderWriteStatus = primaryProviderWriteStatus;
+            this.primaryProviderRecoveryStatus = primaryProviderRecoveryStatus;
+            this.recoveryProviderName = recoveryProviderName;
+            this.recoveryProviderContract = recoveryProviderContract;
+            this.recoveryProviderEndpoint = recoveryProviderEndpoint;
+            this.recoveryProviderObjectUrl = recoveryProviderObjectUrl;
+            this.recoveryProviderWriteStatus = recoveryProviderWriteStatus;
+            this.recoveryProviderRecoveryStatus = recoveryProviderRecoveryStatus;
             this.externalWritePath = externalWritePath;
             this.externalWriteDir = externalWriteDir;
             this.externalWriteStatus = externalWriteStatus;
             this.recoveryVerificationStatus = recoveryVerificationStatus;
         }
 
-        private static StorageVerification pending() {
-            return new StorageVerification(null, null, "PENDING", "PENDING", null, null, "PENDING", "PENDING");
+        private static StorageVerification pending(String providerMode, String recoveryOrder, String cleanupScope) {
+            return new StorageVerification(
+                providerMode,
+                recoveryOrder,
+                cleanupScope,
+                null,
+                null,
+                null,
+                null,
+                "PENDING",
+                "PENDING",
+                null,
+                null,
+                null,
+                null,
+                "PENDING",
+                "PENDING",
+                null,
+                null,
+                "PENDING",
+                "PENDING"
+            );
         }
 
-        private StorageVerification withProviderVerification(String providerEndpoint,
-                                                             String providerObjectUrl,
-                                                             String providerWriteStatus,
-                                                             String providerRecoveryStatus) {
+        private StorageVerification withPrimaryProviderVerification(String providerName,
+                                                                    String providerContract,
+                                                                    String providerEndpoint,
+                                                                    String providerObjectUrl,
+                                                                    String providerWriteStatus,
+                                                                    String providerRecoveryStatus) {
             return new StorageVerification(
+                providerMode,
+                recoveryOrder,
+                cleanupScope,
+                providerName,
+                providerContract,
+                providerEndpoint,
+                providerObjectUrl,
+                providerWriteStatus,
+                providerRecoveryStatus,
+                recoveryProviderName,
+                recoveryProviderContract,
+                recoveryProviderEndpoint,
+                recoveryProviderObjectUrl,
+                recoveryProviderWriteStatus,
+                recoveryProviderRecoveryStatus,
+                externalWritePath,
+                externalWriteDir,
+                externalWriteStatus,
+                recoveryVerificationStatus
+            );
+        }
+
+        private StorageVerification withRecoveryProviderVerification(String providerName,
+                                                                     String providerContract,
+                                                                     String providerEndpoint,
+                                                                     String providerObjectUrl,
+                                                                     String providerWriteStatus,
+                                                                     String providerRecoveryStatus) {
+            return new StorageVerification(
+                providerMode,
+                recoveryOrder,
+                cleanupScope,
+                primaryProviderName,
+                primaryProviderContract,
+                primaryProviderEndpoint,
+                primaryProviderObjectUrl,
+                primaryProviderWriteStatus,
+                primaryProviderRecoveryStatus,
+                providerName,
+                providerContract,
                 providerEndpoint,
                 providerObjectUrl,
                 providerWriteStatus,
@@ -529,10 +989,21 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                                                              String externalWriteStatus,
                                                              String recoveryVerificationStatus) {
             return new StorageVerification(
-                providerEndpoint,
-                providerObjectUrl,
-                providerWriteStatus,
-                providerRecoveryStatus,
+                providerMode,
+                recoveryOrder,
+                cleanupScope,
+                primaryProviderName,
+                primaryProviderContract,
+                primaryProviderEndpoint,
+                primaryProviderObjectUrl,
+                primaryProviderWriteStatus,
+                primaryProviderRecoveryStatus,
+                recoveryProviderName,
+                recoveryProviderContract,
+                recoveryProviderEndpoint,
+                recoveryProviderObjectUrl,
+                recoveryProviderWriteStatus,
+                recoveryProviderRecoveryStatus,
                 externalWritePath.toAbsolutePath().normalize().toString(),
                 externalWriteDir.toAbsolutePath().normalize().toString(),
                 externalWriteStatus,
@@ -540,41 +1011,90 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             );
         }
 
-        private boolean isProviderVerified() {
-            return "VERIFIED".equals(providerWriteStatus) && "VERIFIED".equals(providerRecoveryStatus);
+        private boolean isPrimaryProviderVerified() {
+            return VERIFIED.equals(primaryProviderWriteStatus) && VERIFIED.equals(primaryProviderRecoveryStatus);
+        }
+
+        private boolean isRecoveryProviderVerified() {
+            return VERIFIED.equals(recoveryProviderWriteStatus) && VERIFIED.equals(recoveryProviderRecoveryStatus);
         }
 
         private boolean isExternalWriteVerified() {
-            return "VERIFIED".equals(externalWriteStatus) && "VERIFIED".equals(recoveryVerificationStatus);
+            return VERIFIED.equals(externalWriteStatus) && VERIFIED.equals(recoveryVerificationStatus);
         }
 
         private String describeMode() {
-            if (isProviderVerified() && isExternalWriteVerified()) {
-                return "repo-local-mirror+provider-live-evidence-verified+external-write-verified";
+            String mode = "repo-local-mirror";
+            if (isPrimaryProviderVerified()) {
+                mode = mode + "+provider-live-evidence-verified";
             }
-            if (isProviderVerified()) {
-                return "repo-local-mirror+provider-live-evidence-verified";
+            if (isRecoveryProviderVerified()) {
+                mode = mode + "+recovery-provider-live-evidence-verified";
             }
             if (isExternalWriteVerified()) {
-                return "repo-local-mirror+external-write-verified";
+                mode = mode + "+external-write-verified";
             }
-            return "repo-local-mirror";
+            return mode;
         }
 
-        private String getProviderEndpoint() {
-            return providerEndpoint;
+        private String getProviderMode() {
+            return providerMode;
         }
 
-        private String getProviderObjectUrl() {
-            return providerObjectUrl;
+        private String getRecoveryOrder() {
+            return recoveryOrder;
         }
 
-        private String getProviderWriteStatus() {
-            return providerWriteStatus;
+        private String getCleanupScope() {
+            return cleanupScope;
         }
 
-        private String getProviderRecoveryStatus() {
-            return providerRecoveryStatus;
+        private String getPrimaryProviderName() {
+            return primaryProviderName;
+        }
+
+        private String getPrimaryProviderContract() {
+            return primaryProviderContract;
+        }
+
+        private String getPrimaryProviderEndpoint() {
+            return primaryProviderEndpoint;
+        }
+
+        private String getPrimaryProviderObjectUrl() {
+            return primaryProviderObjectUrl;
+        }
+
+        private String getPrimaryProviderWriteStatus() {
+            return primaryProviderWriteStatus;
+        }
+
+        private String getPrimaryProviderRecoveryStatus() {
+            return primaryProviderRecoveryStatus;
+        }
+
+        private String getRecoveryProviderName() {
+            return recoveryProviderName;
+        }
+
+        private String getRecoveryProviderContract() {
+            return recoveryProviderContract;
+        }
+
+        private String getRecoveryProviderEndpoint() {
+            return recoveryProviderEndpoint;
+        }
+
+        private String getRecoveryProviderObjectUrl() {
+            return recoveryProviderObjectUrl;
+        }
+
+        private String getRecoveryProviderWriteStatus() {
+            return recoveryProviderWriteStatus;
+        }
+
+        private String getRecoveryProviderRecoveryStatus() {
+            return recoveryProviderRecoveryStatus;
         }
 
         private String getExternalWritePath() {

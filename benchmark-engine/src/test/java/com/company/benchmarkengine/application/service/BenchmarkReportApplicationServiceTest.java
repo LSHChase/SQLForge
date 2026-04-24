@@ -189,6 +189,8 @@ class BenchmarkReportApplicationServiceTest {
             ArgumentCaptor.forClass(com.company.benchmarkengine.infrastructure.governance.BenchmarkAuditRecord.class);
         verify(governanceCapabilityClient).writeAudit(captor.capture());
         assertTrue(captor.getValue().getResponseSummary().contains("RECOVERED_FROM_REPORT_SNAPSHOT"));
+        assertTrue(captor.getValue().getResponseSummary().contains("artifactStorageRecoverySource\":\"REPORT_SNAPSHOT_REPLAY"));
+        assertTrue(captor.getValue().getResponseSummary().contains("artifactStorageReadStatus\":\"RECOVERED_FROM_REPORT_SNAPSHOT"));
     }
 
     private BenchmarkReport storeReport(BenchmarkTaskModelApplicationService modelService,

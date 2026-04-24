@@ -1155,3 +1155,10 @@
 2026-04-24T10:17:59-05:00 | D-TASK-027 validate | `R-133`, `R-168` | passed | `bash scripts/run-runtime-smoke.sh --compose-check`
 2026-04-24T10:17:59-05:00 | D-TASK-027 validate | `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
 2026-04-24T10:19:04-05:00 | D-TASK-027 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-24T10:19:04-05:00 | D-TASK-027 closeout commit | `R-168` | passed | `2386ff0162c5a6d2d2c3d3d897680c39511b38e1`
+2026-04-24T10:19:04-05:00 | D-TASK-027 post-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
+2026-04-24T10:19:04-05:00 | D-TASK-027 post-closeout check | `R-131`, `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-24T10:19:04-05:00 | D-TASK-027 post-closeout check | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-24T11:02:48-05:00 | D-TASK-028 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-24T11:02:48-05:00 | D-TASK-028 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-24T11:06:48-05:00 | D-TASK-028 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`

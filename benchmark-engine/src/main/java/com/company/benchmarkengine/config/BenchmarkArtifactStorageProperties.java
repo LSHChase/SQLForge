@@ -74,6 +74,14 @@ public class BenchmarkArtifactStorageProperties {
         private String externalWriteDir = "";
         private String endpoint = "";
         private String credentials = "";
+        private String providerName = "GENERIC_HTTP";
+        private String providerContract = "HTTP_PUT_GET";
+        private String recoveryProviderEndpoint = "";
+        private String recoveryProviderBucket = "";
+        private String recoveryProviderCredentials = "";
+        private String recoveryProviderName = "";
+        private String recoveryProviderContract = "";
+        private String cleanupScope = "MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER";
         private int providerConnectTimeoutMs = 5000;
         private int providerReadTimeoutMs = 5000;
         private String endpointEnvName = "BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT";
@@ -135,6 +143,70 @@ public class BenchmarkArtifactStorageProperties {
 
         public void setCredentials(String credentials) {
             this.credentials = credentials;
+        }
+
+        public String getProviderName() {
+            return providerName;
+        }
+
+        public void setProviderName(String providerName) {
+            this.providerName = providerName;
+        }
+
+        public String getProviderContract() {
+            return providerContract;
+        }
+
+        public void setProviderContract(String providerContract) {
+            this.providerContract = providerContract;
+        }
+
+        public String getRecoveryProviderEndpoint() {
+            return recoveryProviderEndpoint;
+        }
+
+        public void setRecoveryProviderEndpoint(String recoveryProviderEndpoint) {
+            this.recoveryProviderEndpoint = recoveryProviderEndpoint;
+        }
+
+        public String getRecoveryProviderBucket() {
+            return recoveryProviderBucket;
+        }
+
+        public void setRecoveryProviderBucket(String recoveryProviderBucket) {
+            this.recoveryProviderBucket = recoveryProviderBucket;
+        }
+
+        public String getRecoveryProviderCredentials() {
+            return recoveryProviderCredentials;
+        }
+
+        public void setRecoveryProviderCredentials(String recoveryProviderCredentials) {
+            this.recoveryProviderCredentials = recoveryProviderCredentials;
+        }
+
+        public String getRecoveryProviderName() {
+            return recoveryProviderName;
+        }
+
+        public void setRecoveryProviderName(String recoveryProviderName) {
+            this.recoveryProviderName = recoveryProviderName;
+        }
+
+        public String getRecoveryProviderContract() {
+            return recoveryProviderContract;
+        }
+
+        public void setRecoveryProviderContract(String recoveryProviderContract) {
+            this.recoveryProviderContract = recoveryProviderContract;
+        }
+
+        public String getCleanupScope() {
+            return cleanupScope;
+        }
+
+        public void setCleanupScope(String cleanupScope) {
+            this.cleanupScope = cleanupScope;
         }
 
         public int getProviderConnectTimeoutMs() {

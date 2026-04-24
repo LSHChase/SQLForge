@@ -8,15 +8,21 @@ public class BenchmarkArtifactLoadResult {
     private final BenchmarkReportArtifact resolvedArtifact;
     private final boolean recovered;
     private final String recoveryStatus;
+    private final String storageRecoverySource;
+    private final String storageReadStatus;
 
     public BenchmarkArtifactLoadResult(BenchmarkRenderedReport renderedReport,
                                        BenchmarkReportArtifact resolvedArtifact,
                                        boolean recovered,
-                                       String recoveryStatus) {
+                                       String recoveryStatus,
+                                       String storageRecoverySource,
+                                       String storageReadStatus) {
         this.renderedReport = renderedReport;
         this.resolvedArtifact = resolvedArtifact;
         this.recovered = recovered;
         this.recoveryStatus = recoveryStatus;
+        this.storageRecoverySource = storageRecoverySource;
+        this.storageReadStatus = storageReadStatus;
     }
 
     public BenchmarkRenderedReport getRenderedReport() {
@@ -33,5 +39,13 @@ public class BenchmarkArtifactLoadResult {
 
     public String getRecoveryStatus() {
         return recoveryStatus;
+    }
+
+    public String getStorageRecoverySource() {
+        return storageRecoverySource;
+    }
+
+    public String getStorageReadStatus() {
+        return storageReadStatus;
     }
 }

@@ -8,5 +8,7 @@ public interface BenchmarkArtifactStorageAdapter {
 
     BenchmarkReportArtifact externalize(BenchmarkArtifactStorageContext context, BenchmarkReportArtifact artifact);
 
-    BenchmarkRenderedReport load(BenchmarkReportArtifact artifact);
+    BenchmarkArtifactReadResult loadArtifact(BenchmarkReportArtifact artifact);
+
+    void cleanupStaleArtifacts(BenchmarkArtifactStorageContext context, BenchmarkArtifactCleanupPlan cleanupPlan);
 }

@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -136,6 +137,97 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals(Boolean.TRUE, detail.getDegraded());
         assertEquals(1, detail.getAuditEvents().size());
         assertEquals(1, detail.getQueryHistories().size());
+    }
+
+    @Test
+    void shouldExposeCompensationReplayAndArtifactRecoverySurfacesInTraceDetail() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("OPERATOR"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+
+        AuditLogRecord audit = buildAudit(
+            "trace-benchmark",
+            "BENCHMARK_ENGINE",
+            "SUCCESS",
+            "REPORT",
+            "report-001",
+            LocalDateTime.parse("2026-04-22T10:00:00"),
+            "{\"serviceCode\":\"BENCHMARK_ENGINE\",\"reportId\":\"report-001\"}",
+            "{\"resultStatus\":\"SUCCESS\",\"reportId\":\"report-001\",\"artifactStorageType\":\"ENVIRONMENT_OBJECT_STORAGE\","
+                + "\"artifactStorageEvidence\":\"providerMode=PRIMARY_PLUS_RECOVERY_PROVIDER;primaryProvider=PRIMARY_HTTP;"
+                + "primaryProviderContract=HTTP_PUT_GET_DELETE;recoveryProvider=RECOVERY_HTTP;"
+                + "recoveryProviderContract=HTTP_PUT_GET_DELETE;recoveryOrder=REPO_LOCAL_MIRROR,PRIMARY_PROVIDER,RECOVERY_PROVIDER,REPORT_SNAPSHOT;"
+                + "cleanupScope=MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER;providerWriteStatus=VERIFIED;providerRecoveryStatus=VERIFIED;"
+                + "recoveryProviderWriteStatus=VERIFIED;recoveryProviderRecoveryStatus=VERIFIED;providerObjectUrl=http://primary/object;"
+                + "recoveryProviderObjectUrl=http://recovery/object\",\"artifactRecoveryStatus\":\"STORED\","
+                + "\"artifactStorageRecoverySource\":\"RECOVERY_PROVIDER\",\"artifactStorageReadStatus\":\"RECOVERED_FROM_RECOVERY_PROVIDER\"}"
+        );
+        QueryHistoryRecord history = buildHistory(
+            "trace-benchmark",
+            "history-001",
+            "BENCHMARK_ENGINE",
+            "fp-001",
+            LocalDateTime.parse("2026-04-22T09:58:00")
+        );
+        history.setQueryContext(
+            "{\"reportId\":\"report-001\",\"workloadSource\":\"COMPENSATED_REPLAY\",\"backfillApplied\":true,"
+                + "\"workloadEvidence\":{\"executionMode\":\"QUERY_EXECUTION_WORKLOAD_ORCHESTRATED_REPLAY\","
+                + "\"queryExecution\":{\"implementationStage\":\"BENCHMARK_WORKLOAD_ORCHESTRATION_BASELINE\","
+                + "\"engines\":{\"HETU\":{\"compensationApplied\":true,\"compensationStrategy\":\"LATEST_SUCCESS_REPLAY\","
+                + "\"compensationSourceEngine\":\"HIVE\",\"compensationSourceWorkloadDigest\":\"digest-001\"}}}}}"
+        );
+        ExportRecord export = buildExport(
+            "trace-benchmark",
+            "export-001",
+            "SUCCESS",
+            LocalDateTime.parse("2026-04-22T09:59:00")
+        );
+        export.setExportOptions(
+            "{\"reportId\":\"report-001\",\"storageType\":\"ENVIRONMENT_OBJECT_STORAGE\","
+                + "\"storageEvidence\":{\"providerMode\":\"PRIMARY_PLUS_RECOVERY_PROVIDER\",\"primaryProvider\":\"PRIMARY_HTTP\","
+                + "\"primaryProviderContract\":\"HTTP_PUT_GET_DELETE\",\"recoveryProvider\":\"RECOVERY_HTTP\","
+                + "\"recoveryProviderContract\":\"HTTP_PUT_GET_DELETE\",\"recoveryOrder\":\"REPO_LOCAL_MIRROR,PRIMARY_PROVIDER,RECOVERY_PROVIDER,REPORT_SNAPSHOT\","
+                + "\"cleanupScope\":\"MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER\",\"providerWriteStatus\":\"VERIFIED\","
+                + "\"providerRecoveryStatus\":\"VERIFIED\",\"recoveryProviderWriteStatus\":\"VERIFIED\","
+                + "\"recoveryProviderRecoveryStatus\":\"VERIFIED\"}}"
+        );
+
+        when(auditLogMapper.selectByTraceId("tenant-a", "trace-benchmark", 5)).thenReturn(Collections.singletonList(audit));
+        when(queryHistoryMapper.selectByTraceId("tenant-a", "trace-benchmark", 5)).thenReturn(Collections.singletonList(history));
+        when(exportRecordMapper.selectByTraceId("tenant-a", "trace-benchmark", 5)).thenReturn(Collections.singletonList(export));
+
+        GovernanceTraceDetailVO detail = service.findTraceDetail("tenant-a", "trace-benchmark", Integer.valueOf(5));
+
+        assertEquals("PRIMARY_PLUS_RECOVERY_PROVIDER", detail.getArtifactStorageContract().get("providerMode"));
+        assertEquals("RECOVERY_PROVIDER", detail.getArtifactRecoverySurface().get("storageRecoverySource"));
+        assertEquals("RECOVERED_FROM_RECOVERY_PROVIDER", detail.getArtifactRecoverySurface().get("storageReadStatus"));
+        assertEquals(Boolean.TRUE, detail.getCompensationReplayEvidence().get("compensationApplied"));
+        assertEquals("LATEST_SUCCESS_REPLAY", detail.getCompensationReplayEvidence().get("compensationStrategy"));
+        assertEquals("HIVE", detail.getCompensationReplayEvidence().get("compensationSourceEngine"));
+        assertEquals("digest-001", detail.getCompensationReplayEvidence().get("compensationSourceWorkloadDigest"));
+        assertEquals("PRIMARY_PLUS_RECOVERY_PROVIDER", detail.getExportRecords().get(0).getExportOptions().get("storageEvidence") instanceof Map
+            ? ((Map) detail.getExportRecords().get(0).getExportOptions().get("storageEvidence")).get("providerMode")
+            : null);
+        assertEquals("COMPENSATED_REPLAY", detail.getQueryHistories().get(0).getQueryContext().get("workloadSource"));
     }
 
     @Test

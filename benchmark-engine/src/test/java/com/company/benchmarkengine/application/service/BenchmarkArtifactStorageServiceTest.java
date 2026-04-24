@@ -1,6 +1,7 @@
 package com.company.benchmarkengine.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -169,6 +170,7 @@ class BenchmarkArtifactStorageServiceTest {
         try {
             BenchmarkArtifactStorageProperties properties = new BenchmarkArtifactStorageProperties();
             properties.setStorageType("ENVIRONMENT_OBJECT_STORAGE");
+            properties.setTenantPolicyBackfillEnabled(false);
             properties.getEnvironmentObjectStorage().setMirrorDir(tempDir.resolve("mirror").toString());
             properties.getEnvironmentObjectStorage().setLiveEvidenceDir(tempDir.resolve("live-evidence").toString());
             properties.getEnvironmentObjectStorage().setBucket("benchmark-bucket");
@@ -199,6 +201,123 @@ class BenchmarkArtifactStorageServiceTest {
             assertEquals(1, objectStore.size());
         } finally {
             server.stop(0);
+        }
+    }
+
+    @Test
+    void shouldRecoverFromRecoveryProviderWhenPrimaryProviderIsUnavailable(@TempDir Path tempDir) throws Exception {
+        Map<String, byte[]> primaryStore = new ConcurrentHashMap<String, byte[]>();
+        Map<String, byte[]> recoveryStore = new ConcurrentHashMap<String, byte[]>();
+        HttpServer primaryServer = startObjectStoreServer(primaryStore);
+        HttpServer recoveryServer = startObjectStoreServer(recoveryStore);
+        try {
+            BenchmarkArtifactStorageProperties properties = new BenchmarkArtifactStorageProperties();
+            properties.setStorageType("ENVIRONMENT_OBJECT_STORAGE");
+            properties.setTenantPolicyBackfillEnabled(false);
+            properties.getEnvironmentObjectStorage().setMirrorDir(tempDir.resolve("mirror").toString());
+            properties.getEnvironmentObjectStorage().setLiveEvidenceDir(tempDir.resolve("live-evidence").toString());
+            properties.getEnvironmentObjectStorage().setBucket("benchmark-bucket");
+            properties.getEnvironmentObjectStorage().setKeyPrefix("tenant-artifacts");
+            properties.getEnvironmentObjectStorage().setEndpoint(
+                "http://127.0.0.1:" + primaryServer.getAddress().getPort() + "/provider"
+            );
+            properties.getEnvironmentObjectStorage().setProviderName("PRIMARY_HTTP");
+            properties.getEnvironmentObjectStorage().setProviderContract("HTTP_PUT_GET_DELETE");
+            properties.getEnvironmentObjectStorage().setRecoveryProviderEndpoint(
+                "http://127.0.0.1:" + recoveryServer.getAddress().getPort() + "/provider"
+            );
+            properties.getEnvironmentObjectStorage().setRecoveryProviderBucket("benchmark-recovery-bucket");
+            properties.getEnvironmentObjectStorage().setRecoveryProviderName("RECOVERY_HTTP");
+            properties.getEnvironmentObjectStorage().setRecoveryProviderContract("HTTP_PUT_GET_DELETE");
+            BenchmarkArtifactStorageService service = new BenchmarkArtifactStorageService(properties, null);
+
+            BenchmarkReportArtifact artifact = service.externalize(
+                "report-001",
+                "tenant-a",
+                Instant.parse("2026-04-24T00:00:00Z"),
+                artifact("pdf-export", "benchmark-report-report-001.pdf", BenchmarkReportFormat.PDF, "pdf-v1")
+            );
+            Files.delete(Paths.get(resolveEvidenceValue(artifact.getStorageEvidence(), "mirrorPath")));
+            primaryServer.stop(0);
+
+            BenchmarkArtifactLoadResult loadResult = service.loadOrRecover(
+                "report-001",
+                "tenant-a",
+                Instant.parse("2026-04-24T00:00:00Z"),
+                artifact,
+                null
+            );
+
+            assertFalse(loadResult.isRecovered());
+            assertEquals("STORED", loadResult.getRecoveryStatus());
+            assertEquals("RECOVERY_PROVIDER", loadResult.getStorageRecoverySource());
+            assertEquals("RECOVERED_FROM_RECOVERY_PROVIDER", loadResult.getStorageReadStatus());
+            assertEquals("pdf-v1", new String(loadResult.getRenderedReport().getContent()));
+            assertTrue(artifact.getStorageEvidence().contains("providerMode=PRIMARY_PLUS_RECOVERY_PROVIDER"));
+            assertTrue(artifact.getStorageEvidence().contains("recoveryProvider=RECOVERY_HTTP"));
+            assertTrue(artifact.getStorageEvidence().contains("recoveryProviderWriteStatus=VERIFIED"));
+            assertTrue(artifact.getStorageEvidence().contains("recoveryProviderRecoveryStatus=VERIFIED"));
+            assertEquals(1, recoveryStore.size());
+        } finally {
+            primaryServer.stop(0);
+            recoveryServer.stop(0);
+        }
+    }
+
+    @Test
+    void shouldCleanupStaleEnvironmentBackedArtifactsAcrossMirrorExternalEvidenceAndProviders(@TempDir Path tempDir) throws Exception {
+        Map<String, byte[]> primaryStore = new ConcurrentHashMap<String, byte[]>();
+        Map<String, byte[]> recoveryStore = new ConcurrentHashMap<String, byte[]>();
+        HttpServer primaryServer = startObjectStoreServer(primaryStore);
+        HttpServer recoveryServer = startObjectStoreServer(recoveryStore);
+        try {
+            BenchmarkArtifactStorageProperties properties = new BenchmarkArtifactStorageProperties();
+            properties.setStorageType("ENVIRONMENT_OBJECT_STORAGE");
+            properties.getEnvironmentObjectStorage().setMirrorDir(tempDir.resolve("mirror").toString());
+            properties.getEnvironmentObjectStorage().setLiveEvidenceDir(tempDir.resolve("live-evidence").toString());
+            properties.getEnvironmentObjectStorage().setExternalWriteDir(tempDir.resolve("external").toString());
+            properties.getEnvironmentObjectStorage().setBucket("benchmark-bucket");
+            properties.getEnvironmentObjectStorage().setKeyPrefix("tenant-artifacts");
+            properties.getEnvironmentObjectStorage().setEndpoint(
+                "http://127.0.0.1:" + primaryServer.getAddress().getPort() + "/provider"
+            );
+            properties.getEnvironmentObjectStorage().setProviderName("PRIMARY_HTTP");
+            properties.getEnvironmentObjectStorage().setProviderContract("HTTP_PUT_GET_DELETE");
+            properties.getEnvironmentObjectStorage().setRecoveryProviderEndpoint(
+                "http://127.0.0.1:" + recoveryServer.getAddress().getPort() + "/provider"
+            );
+            properties.getEnvironmentObjectStorage().setRecoveryProviderBucket("benchmark-recovery-bucket");
+            properties.getEnvironmentObjectStorage().setRecoveryProviderName("RECOVERY_HTTP");
+            properties.getEnvironmentObjectStorage().setRecoveryProviderContract("HTTP_PUT_GET_DELETE");
+            BenchmarkArtifactStorageService service = new BenchmarkArtifactStorageService(properties, null);
+
+            BenchmarkReportArtifact pdfArtifact = artifact("pdf-export", "benchmark-report-report-001.pdf", BenchmarkReportFormat.PDF, "pdf-v1");
+            BenchmarkReportArtifact htmlArtifact = artifact("html-export", "benchmark-report-report-001.html", BenchmarkReportFormat.HTML, "html-v1");
+            service.externalize(
+                "report-001",
+                "tenant-a",
+                Instant.parse("2026-04-24T00:00:00Z"),
+                Arrays.asList(pdfArtifact, htmlArtifact)
+            );
+
+            BenchmarkReportArtifact updatedPdfArtifact = artifact("pdf-export", "benchmark-report-report-001.pdf", BenchmarkReportFormat.PDF, "pdf-v2");
+            service.externalize(
+                "report-001",
+                "tenant-a",
+                Instant.parse("2026-04-24T00:00:00Z"),
+                Collections.singletonList(updatedPdfArtifact)
+            );
+
+            assertTrue(Files.notExists(tempDir.resolve("mirror/report-001/benchmark-report-report-001.html")));
+            assertTrue(Files.notExists(tempDir.resolve("external/benchmark-bucket/tenant-artifacts/tenant-a/report-001/benchmark-report-report-001.html")));
+            assertTrue(Files.notExists(tempDir.resolve("live-evidence/report-001/html-export.json")));
+            assertEquals(1, primaryStore.size());
+            assertEquals(1, recoveryStore.size());
+            assertFalse(primaryStore.keySet().iterator().next().contains("benchmark-report-report-001.html"));
+            assertFalse(recoveryStore.keySet().iterator().next().contains("benchmark-report-report-001.html"));
+        } finally {
+            primaryServer.stop(0);
+            recoveryServer.stop(0);
         }
     }
 
@@ -253,6 +372,12 @@ class BenchmarkArtifactStorageServiceTest {
                     byte[] bytes = objectStore.get(key);
                     exchange.sendResponseHeaders(200, bytes.length);
                     exchange.getResponseBody().write(bytes);
+                    exchange.close();
+                    return;
+                }
+                if ("DELETE".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    objectStore.remove(key);
+                    exchange.sendResponseHeaders(204, -1);
                     exchange.close();
                     return;
                 }

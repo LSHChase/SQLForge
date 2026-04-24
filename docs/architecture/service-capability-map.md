@@ -107,14 +107,15 @@
 - repo-local artifact storage 基线，以及面向 `governance` 内部受保护入口的 benchmark report trace/export orchestration；当前还会把 workload/backfill/compensation evidence 提升为治理长期追溯链中的显式结构载荷
 - 报告查询/下载审计补齐 `config/result/history/export` 链接键，以及 repo-local artifact 的 stale-file cleanup / snapshot recovery 语义
 - tenant-specific artifact retention/backfill policy：通过治理侧 `tenant_config.retention_days` 解析 retention days，并在历史 artifact 查询/恢复时回填 policy metadata
-- 显式配置的 `ENVIRONMENT_OBJECT_STORAGE` adapter：保留 repo-local lifecycle 为默认路径，同时为 object URI / repo-local mirror / env var 依赖生成 evidence，并可在配置 provider endpoint 时执行真实 provider-backed write/readback recovery verification；如同时配置 external write dir，则会叠加 external write/readback verification
+- 显式配置的 `ENVIRONMENT_OBJECT_STORAGE` adapter：保留 repo-local lifecycle 为默认路径，同时为 object URI / repo-local mirror / env var 依赖生成 evidence，并可在配置 primary/recovery provider endpoint、bucket、credentials、provider contract 与 cleanup scope 时执行真实 provider-backed write/readback recovery verification；如同时配置 external write dir，则会叠加 external write/readback verification
+- provider-specific / multi-provider contract、cleanup/recovery order 与 failure-replay 语义：当前可按 `REPO_LOCAL_MIRROR -> PRIMARY_PROVIDER -> RECOVERY_PROVIDER -> EXTERNAL_WRITE -> REPORT_SNAPSHOT` 的证据顺序恢复 artifact，并把实际 recovery source/read status 写回 benchmark 审计与治理追溯查询面
 - 只读要求、影子环境模式、脱敏要求、并发/时长/预热/数据规模等任务元数据固化
 - 阈值模型、阈值判定结果、引擎指标快照、趋势图表、优化建议和报告契约对象
 - 基础 DTO / VO、错误码区间和模型装配 service
 
 当前还未完整承载：
 
-- 更广的 environment-backed 执行证据，以及 provider-specific/multi-provider 语义、真实对象存储长期留证与跨服务恢复编排的进一步扩展
+- 更广的 environment-backed 执行证据、真实对象存储长期留证与跨服务恢复编排的进一步扩展
 - 更广的跨服务运行时留证、恢复编排与环境级操作证据
 
 ## 4. 公共管理服务
@@ -136,6 +137,7 @@
 - `POST /api/governance/internal/audit/write` 的真实落库基线，支持把 `config/result/history/export` 追溯键接入 `audit_log`
 - header-based stateless auth 的 `LOGIN` / `LOGOUT` 审计落库基线
 - 共享 AES-256 敏感字段保护基线，以及 `GovernanceProtectedPersistenceService` 对 config/result/history/export/audit/system-config 的受保护写入入口
+- governance history summaries/lookups/detail：可把 compensation-replay evidence、artifact storage contract 与 artifact recovery surface 作为显式结构字段提供给治理检索与恢复判断
 - MyBatis XML 与多环境配置基础
 
 当前还未完整承载：

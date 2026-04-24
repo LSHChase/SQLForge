@@ -10,6 +10,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Set;
 import org.springframework.http.MediaType;
 
 public class LocalFileBenchmarkArtifactStorageAdapter implements BenchmarkArtifactStorageAdapter {
@@ -56,26 +57,36 @@ public class LocalFileBenchmarkArtifactStorageAdapter implements BenchmarkArtifa
     }
 
     @Override
-    public BenchmarkRenderedReport load(BenchmarkReportArtifact artifact) {
+    public BenchmarkArtifactReadResult loadArtifact(BenchmarkReportArtifact artifact) {
         if (artifact == null) {
             throw new IllegalArgumentException("Benchmark artifact must not be null");
         }
         try {
             if (artifact.getContent() != null) {
-                return new BenchmarkRenderedReport(
-                    MediaType.parseMediaType(artifact.getMediaType()),
-                    artifact.getFileName(),
-                    artifact.getContent().getBytes(StandardCharsets.UTF_8)
+                return new BenchmarkArtifactReadResult(
+                    new BenchmarkRenderedReport(
+                        MediaType.parseMediaType(artifact.getMediaType()),
+                        artifact.getFileName(),
+                        artifact.getContent().getBytes(StandardCharsets.UTF_8)
+                    ),
+                    false,
+                    "INLINE_CONTENT",
+                    "INLINE_CONTENT"
                 );
             }
             if (artifact.getStorageUri() == null) {
                 throw new IllegalStateException("Benchmark artifact content and storageUri are both missing");
             }
             byte[] bytes = Files.readAllBytes(Paths.get(URI.create(artifact.getStorageUri())));
-            return new BenchmarkRenderedReport(
-                MediaType.parseMediaType(artifact.getMediaType()),
-                artifact.getFileName(),
-                bytes
+            return new BenchmarkArtifactReadResult(
+                new BenchmarkRenderedReport(
+                    MediaType.parseMediaType(artifact.getMediaType()),
+                    artifact.getFileName(),
+                    bytes
+                ),
+                false,
+                "LOCAL_FILE",
+                "LOCAL_FILE_READ"
             );
         } catch (NoSuchFileException ex) {
             throw new IllegalStateException("Benchmark artifact is missing from storage", ex);
@@ -84,8 +95,36 @@ public class LocalFileBenchmarkArtifactStorageAdapter implements BenchmarkArtifa
         }
     }
 
+    @Override
+    public void cleanupStaleArtifacts(BenchmarkArtifactStorageContext context, BenchmarkArtifactCleanupPlan cleanupPlan) {
+        Path reportDir = resolveReportDir(context.getReportId());
+        deleteStaleFiles(reportDir, cleanupPlan == null ? java.util.Collections.<String>emptySet() : cleanupPlan.getRetainedFileNames());
+    }
+
     private Path resolveReportDir(String reportId) {
         Path baseDir = Paths.get(storageProperties.getBaseDir()).toAbsolutePath().normalize();
         return baseDir.resolve(reportId);
+    }
+
+    private void deleteStaleFiles(Path reportDir, Set<String> retainedFileNames) {
+        if (!Files.isDirectory(reportDir)) {
+            return;
+        }
+        try (java.util.stream.Stream<Path> paths = Files.list(reportDir)) {
+            paths
+                .filter(Files::isRegularFile)
+                .filter(path -> !retainedFileNames.contains(path.getFileName().toString()))
+                .forEach(this::deleteQuietly);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to cleanup stale benchmark artifacts", ex);
+        }
+    }
+
+    private void deleteQuietly(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to delete stale benchmark artifact " + path, ex);
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.company.governance.application.controller.vo;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 public class GovernanceTraceSummaryVO {
 
@@ -22,6 +23,9 @@ public class GovernanceTraceSummaryVO {
     private String errorCode;
     private String targetEngine;
     private Boolean degraded;
+    private Map<String, Object> compensationReplayEvidence;
+    private Map<String, Object> artifactStorageContract;
+    private Map<String, Object> artifactRecoverySurface;
 
     public GovernanceTraceSummaryVO() {
     }
@@ -44,6 +48,52 @@ public class GovernanceTraceSummaryVO {
                                     String errorCode,
                                     String targetEngine,
                                     Boolean degraded) {
+        this(
+            traceId,
+            requestId,
+            serviceCode,
+            operationType,
+            resourceType,
+            resourceId,
+            latestStatus,
+            lastSeenAt,
+            auditEventCount,
+            nonSuccessEventCount,
+            queryHistoryCount,
+            exportRecordCount,
+            taskId,
+            reportId,
+            sqlFingerprint,
+            errorCode,
+            targetEngine,
+            degraded,
+            null,
+            null,
+            null
+        );
+    }
+
+    public GovernanceTraceSummaryVO(String traceId,
+                                    String requestId,
+                                    String serviceCode,
+                                    String operationType,
+                                    String resourceType,
+                                    String resourceId,
+                                    String latestStatus,
+                                    LocalDateTime lastSeenAt,
+                                    Integer auditEventCount,
+                                    Integer nonSuccessEventCount,
+                                    Integer queryHistoryCount,
+                                    Integer exportRecordCount,
+                                    String taskId,
+                                    String reportId,
+                                    String sqlFingerprint,
+                                    String errorCode,
+                                    String targetEngine,
+                                    Boolean degraded,
+                                    Map<String, Object> compensationReplayEvidence,
+                                    Map<String, Object> artifactStorageContract,
+                                    Map<String, Object> artifactRecoverySurface) {
         this.traceId = traceId;
         this.requestId = requestId;
         this.serviceCode = serviceCode;
@@ -62,6 +112,9 @@ public class GovernanceTraceSummaryVO {
         this.errorCode = errorCode;
         this.targetEngine = targetEngine;
         this.degraded = degraded;
+        this.compensationReplayEvidence = compensationReplayEvidence;
+        this.artifactStorageContract = artifactStorageContract;
+        this.artifactRecoverySurface = artifactRecoverySurface;
     }
 
     public String getTraceId() {
@@ -206,5 +259,29 @@ public class GovernanceTraceSummaryVO {
 
     public void setDegraded(Boolean degraded) {
         this.degraded = degraded;
+    }
+
+    public Map<String, Object> getCompensationReplayEvidence() {
+        return compensationReplayEvidence;
+    }
+
+    public void setCompensationReplayEvidence(Map<String, Object> compensationReplayEvidence) {
+        this.compensationReplayEvidence = compensationReplayEvidence;
+    }
+
+    public Map<String, Object> getArtifactStorageContract() {
+        return artifactStorageContract;
+    }
+
+    public void setArtifactStorageContract(Map<String, Object> artifactStorageContract) {
+        this.artifactStorageContract = artifactStorageContract;
+    }
+
+    public Map<String, Object> getArtifactRecoverySurface() {
+        return artifactRecoverySurface;
+    }
+
+    public void setArtifactRecoverySurface(Map<String, Object> artifactRecoverySurface) {
+        this.artifactRecoverySurface = artifactRecoverySurface;
     }
 }

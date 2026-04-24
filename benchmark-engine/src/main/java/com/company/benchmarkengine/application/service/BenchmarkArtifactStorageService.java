@@ -4,17 +4,12 @@ import com.company.benchmarkengine.config.BenchmarkArtifactStorageProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.infrastructure.governance.GovernanceCapabilityClient;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Supplier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -45,17 +40,13 @@ public class BenchmarkArtifactStorageService {
         BenchmarkArtifactTenantPolicy tenantPolicy = tenantPolicyResolver.resolve(tenantId, generatedAt);
         BenchmarkArtifactStorageContext context = new BenchmarkArtifactStorageContext(reportId, tenantId, generatedAt, tenantPolicy);
         List<BenchmarkReportArtifact> externalized = new ArrayList<BenchmarkReportArtifact>(artifacts.size());
-        Set<String> retainedFileNames = new LinkedHashSet<String>(artifacts.size());
         BenchmarkArtifactStorageAdapter activeAdapter = requireAdapter(storageProperties.getStorageType());
         for (BenchmarkReportArtifact artifact : artifacts) {
             BenchmarkReportArtifact externalizedArtifact = activeAdapter.externalize(context, artifact);
             externalized.add(externalizedArtifact);
-            if (externalizedArtifact != null && StringUtils.hasText(externalizedArtifact.getFileName())) {
-                retainedFileNames.add(externalizedArtifact.getFileName());
-            }
         }
         if (storageProperties.isCleanupStaleFiles()) {
-            cleanupStaleFiles(resolveCleanupDir(reportId, activeAdapter.storageType()), retainedFileNames);
+            activeAdapter.cleanupStaleArtifacts(context, new BenchmarkArtifactCleanupPlan(externalized));
         }
         return externalized;
     }
@@ -81,11 +72,14 @@ public class BenchmarkArtifactStorageService {
         BenchmarkReportArtifact resolvedArtifact = maybeBackfillPolicy(tenantId, generatedAt, artifact);
         boolean policyBackfilled = resolvedArtifact != artifact;
         try {
+            BenchmarkArtifactReadResult readResult = requireAdapter(resolveStoredType(resolvedArtifact)).loadArtifact(resolvedArtifact);
             return new BenchmarkArtifactLoadResult(
-                load(resolvedArtifact),
+                readResult.getRenderedReport(),
                 resolvedArtifact,
                 false,
-                policyBackfilled ? "STORED_POLICY_BACKFILLED" : "STORED"
+                policyBackfilled ? "STORED_POLICY_BACKFILLED" : "STORED",
+                readResult.getRecoverySource(),
+                readResult.getReadStatus()
             );
         } catch (RuntimeException ex) {
             if (!storageProperties.isRecoveryEnabled() || recoverySupplier == null) {
@@ -100,16 +94,20 @@ public class BenchmarkArtifactStorageService {
                 reExternalized = reExternalized.withExportId(artifact.getExportId());
             }
             return new BenchmarkArtifactLoadResult(
-                load(reExternalized),
+                requireAdapter(resolveStoredType(reExternalized)).loadArtifact(reExternalized).getRenderedReport(),
                 reExternalized,
                 true,
-                policyBackfilled ? "RECOVERED_FROM_REPORT_SNAPSHOT_POLICY_BACKFILLED" : "RECOVERED_FROM_REPORT_SNAPSHOT"
+                policyBackfilled ? "RECOVERED_FROM_REPORT_SNAPSHOT_POLICY_BACKFILLED" : "RECOVERED_FROM_REPORT_SNAPSHOT",
+                "REPORT_SNAPSHOT_REPLAY",
+                policyBackfilled
+                    ? "RECOVERED_FROM_REPORT_SNAPSHOT_POLICY_BACKFILLED"
+                    : "RECOVERED_FROM_REPORT_SNAPSHOT"
             );
         }
     }
 
     public BenchmarkRenderedReport load(BenchmarkReportArtifact artifact) {
-        return requireAdapter(resolveStoredType(artifact)).load(artifact);
+        return requireAdapter(resolveStoredType(artifact)).loadArtifact(artifact).getRenderedReport();
     }
 
     private BenchmarkReportArtifact maybeBackfillPolicy(String tenantId,
@@ -158,35 +156,4 @@ public class BenchmarkArtifactStorageService {
         return artifact.getStorageType();
     }
 
-    private Path resolveCleanupDir(String reportId, String storageType) {
-        if ("ENVIRONMENT_OBJECT_STORAGE".equals(storageType)) {
-            return Paths.get(storageProperties.getEnvironmentObjectStorage().getMirrorDir())
-                .toAbsolutePath()
-                .normalize()
-                .resolve(reportId);
-        }
-        return Paths.get(storageProperties.getBaseDir()).toAbsolutePath().normalize().resolve(reportId);
-    }
-
-    private void cleanupStaleFiles(Path reportDir, Set<String> retainedFileNames) {
-        if (!Files.isDirectory(reportDir)) {
-            return;
-        }
-        try (java.util.stream.Stream<Path> paths = Files.list(reportDir)) {
-            paths
-                .filter(Files::isRegularFile)
-                .filter(path -> !retainedFileNames.contains(path.getFileName().toString()))
-                .forEach(this::deleteQuietly);
-        } catch (IOException ex) {
-            throw new IllegalStateException("Failed to cleanup stale benchmark artifacts", ex);
-        }
-    }
-
-    private void deleteQuietly(Path path) {
-        try {
-            Files.deleteIfExists(path);
-        } catch (IOException ex) {
-            throw new IllegalStateException("Failed to delete stale benchmark artifact " + path, ex);
-        }
-    }
 }

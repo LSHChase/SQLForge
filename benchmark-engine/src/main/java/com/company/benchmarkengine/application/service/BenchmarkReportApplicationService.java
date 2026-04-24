@@ -72,7 +72,17 @@ public class BenchmarkReportApplicationService {
                 "SUCCESS",
                 System.currentTimeMillis() - start,
                 buildReportRequestParams(report, artifact, BenchmarkReportFormat.JSON.name()),
-                buildReportResponseSummary("SUCCESS", response.getReportId(), artifact, BenchmarkReportFormat.JSON.name(), response.getVerdict().name(), null, "STRUCTURED_RESPONSE")
+                buildReportResponseSummary(
+                    "SUCCESS",
+                    response.getReportId(),
+                    artifact,
+                    BenchmarkReportFormat.JSON.name(),
+                    response.getVerdict().name(),
+                    null,
+                    "STRUCTURED_RESPONSE",
+                    "STRUCTURED_RESPONSE",
+                    "STRUCTURED_RESPONSE"
+                )
             );
             return response;
         } catch (RuntimeException ex) {
@@ -83,7 +93,17 @@ public class BenchmarkReportApplicationService {
                 "FAILED",
                 System.currentTimeMillis() - start,
                 buildMissingReportRequestParams(reportId, BenchmarkReportFormat.JSON.name()),
-                buildReportResponseSummary("FAILED", reportId, null, BenchmarkReportFormat.JSON.name(), null, ex.getMessage(), "NOT_APPLICABLE")
+                buildReportResponseSummary(
+                    "FAILED",
+                    reportId,
+                    null,
+                    BenchmarkReportFormat.JSON.name(),
+                    null,
+                    ex.getMessage(),
+                    "NOT_APPLICABLE",
+                    "NOT_APPLICABLE",
+                    "FAILED"
+                )
             );
             throw ex;
         }
@@ -129,7 +149,9 @@ public class BenchmarkReportApplicationService {
                     "RAW_DATA",
                     report.getVerdict().name(),
                     null,
-                    loadResult.getRecoveryStatus()
+                    loadResult.getRecoveryStatus(),
+                    loadResult.getStorageRecoverySource(),
+                    loadResult.getStorageReadStatus()
                 )
             );
             return response;
@@ -141,7 +163,17 @@ public class BenchmarkReportApplicationService {
                 "FAILED",
                 System.currentTimeMillis() - start,
                 buildMissingReportRequestParams(reportId, "RAW_DATA"),
-                buildReportResponseSummary("FAILED", reportId, null, "RAW_DATA", null, ex.getMessage(), "NOT_APPLICABLE")
+                buildReportResponseSummary(
+                    "FAILED",
+                    reportId,
+                    null,
+                    "RAW_DATA",
+                    null,
+                    ex.getMessage(),
+                    "NOT_APPLICABLE",
+                    "NOT_APPLICABLE",
+                    "FAILED"
+                )
             );
             throw ex;
         }
@@ -187,7 +219,9 @@ public class BenchmarkReportApplicationService {
                     format.name(),
                     response.getVerdict().name(),
                     null,
-                    loadResult.getRecoveryStatus()
+                    loadResult.getRecoveryStatus(),
+                    loadResult.getStorageRecoverySource(),
+                    loadResult.getStorageReadStatus()
                 )
             );
             return renderedReport;
@@ -206,7 +240,9 @@ public class BenchmarkReportApplicationService {
                     format == null ? null : format.name(),
                     null,
                     ex.getMessage(),
-                    "NOT_APPLICABLE"
+                    "NOT_APPLICABLE",
+                    "NOT_APPLICABLE",
+                    "FAILED"
                 )
             );
             throw ex;
@@ -386,7 +422,9 @@ public class BenchmarkReportApplicationService {
                                               String format,
                                               String verdict,
                                               String failureReason,
-                                              String artifactRecoveryStatus) {
+                                              String artifactRecoveryStatus,
+                                              String artifactStorageRecoverySource,
+                                              String artifactStorageReadStatus) {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("resultStatus", resultStatus);
         payload.put("reportId", reportId);
@@ -400,6 +438,8 @@ public class BenchmarkReportApplicationService {
         payload.put("artifactRetentionDeleteAfter", artifact == null ? null : artifact.getRetentionDeleteAfter());
         payload.put("exportId", artifact == null ? null : artifact.getExportId());
         payload.put("artifactRecoveryStatus", artifactRecoveryStatus);
+        payload.put("artifactStorageRecoverySource", artifactStorageRecoverySource);
+        payload.put("artifactStorageReadStatus", artifactStorageReadStatus);
         payload.put("failureReason", failureReason);
         return JsonUtils.toJson(payload);
     }

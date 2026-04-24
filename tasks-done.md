@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-028: 收口 provider-specific / multi-provider object-storage contract 与 cleanup/recovery 语义，并提升 compensation-replay evidence 的治理查询/恢复面
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(benchmark-engine): add multi-provider artifact recovery surfaces`
+- Priority: 1
+- Depends on: `D-TASK-027`
+- Scope: 在保持 repo-local artifact lifecycle 与 `LOCAL_FILE` 默认主路径不变、统一授权入口、治理审计及只读/影子环境边界不变的前提下，为 benchmark-engine 收口 provider-specific / multi-provider object-storage contract、cleanup/recovery / failure-replay 语义，并把 compensation-replay 与 artifact recovery/provider evidence 提升为 governance 历史查询与恢复操作面的显式结构字段 Tech: `JAVA-BE`,`OPS`,`DOCS`. Layer: `common`,`application(controller/service)/domain/infrastructure...
+- Matrix context: Phase-D
+- Human confirmation point: 若 provider-specific / multi-provider contract 会把 provider 差异误写成统一默认能力、让 cleanup/recovery 误删仍需保留的 artifact、绕过既有只读/鉴权/审计边界，或把 provider-backed object storage 误写成仓库默认主路径，需人工确认
+- Data impact: provider-specific / multi-provider artifact contract 配置、cleanup/recovery/failure-replay 证据、benchmark/query-execution compensation-replay 结构载荷，以及 governance 历史查询/恢复面的 provider 与 recovery 留痕
+- Rollback / recovery: 保持 repo-local lifecycle 与 `LOCAL_FILE` 默认主路径，关闭新增 provider/multi-provider 默认启用，回退 cleanup/recovery/provider 语义与治理查询字段说明，并恢复到 `D-TASK-027` 已验证基线
+- Validation:
+  - `sqlforge-shared/query-execution/benchmark-engine/governance 模块测试、provider/multi-provider artifact contract 测试、governance query/detail 契约测试、runtime smoke、task audit、knowledge lint、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-028`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented provider-specific and multi-provider environment-backed artifact storage contracts, cleanup/recovery semantics, recovery-source/read-status propagation, and governance trace summary/detail surfaces for compensation replay and artifact storage/recovery evidence; synchronized repository truth docs and kept LOCAL_FILE as the default repo-side path.
+  - Validation evidence: python3 scripts/foreman.py validate D-TASK-028; python3 scripts/task_audit.py --check --phase pre-closeout; mvn -B -pl benchmark-engine,governance -am clean test -DskipITs
+  - Residual risk: The environment-backed path now covers generic HTTP primary/recovery provider verification and governance recovery surfaces, but provider-native SDK semantics, broader external cleanup orchestration, and longer-lived environment evidence retention remain follow-up work. Current plan truth therefore returns to no instantiated repo-side mainline task after this closeout.
+  - Next step: Keep no instantiated repo-side mainline task. If work continues immediately, shape D-TASK-029 around provider-native/environment-backed object-storage live evidence plus governance-triggered artifact cleanup/recovery operation surfaces before implementation.
+
 ### D-TASK-027: 收口更深层 workload compensation-replay orchestration 与 provider-backed object-storage live evidence
 
 - Status: done
