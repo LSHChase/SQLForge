@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-026: 把 workload/backfill evidence 沉淀进 governance 长期追溯链，并推进真实 external write/recovery verification
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(governance): persist benchmark workload storage evidence`
+- Priority: 1
+- Depends on: `D-TASK-025`
+- Scope: 在保持 repo-local artifact lifecycle 与 `LOCAL_FILE` 默认主路径不变、统一授权入口、治理审计及只读/影子环境边界不变的前提下，把 benchmark/query-execution 的 workload/backfill 证据提升为 governance 长期追溯链中的显式结构化字段，并把 environment-backed object-storage 从 repo-side live-evidence manifest 推进到真实 external write/readback recovery verification Tech: `JAVA-BE`,`OPS`,`DOCS`. Layer: `common`,`application(controller/service)/domain/infrastructure`,`deplo...
+- Matrix context: Phase-D
+- Human confirmation point: 若 workload/backfill evidence 的治理沉淀会弱化既有只读/鉴权/审计边界、把 synthetic backfill 冒充成真实 live capture，或把 environment-backed external write/recovery verification 误写成仓库默认主路径，需人工确认
+- Data impact: governance `config_snapshot/execution_result/query_history/export_record` 追溯载荷、benchmark/query-execution workload/backfill 证据、environment-backed object storage external write/readback evidence 与恢复留痕
+- Rollback / recovery: 保持 repo-local lifecycle 与 `LOCAL_FILE` 默认主路径，关闭 external write/recovery verification 默认启用，回退新增治理字段/adapter 语义与文档说明，并恢复到 `D-TASK-025` 已验证基线
+- Validation:
+  - `sqlforge-shared/governance/query-execution/benchmark-engine 模块测试、跨服务 workload/backfill 与 trace persistence 契约测试、artifact adapter verification 测试、runtime smoke、task audit、knowledge lint、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-026`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Persisted benchmark workload/backfill evidence into governance trace payloads, extended environment-backed artifact storage to real external write/readback recovery verification, added contract/tests, and synchronized authority docs while keeping LOCAL_FILE as the default path.
+  - Validation evidence: python3 scripts/foreman.py validate D-TASK-026 --include-task-audit --extra-command 'mvn -B -pl sqlforge-shared,governance,benchmark-engine -am test -DskipITs' --extra-command 'python3 scripts/foreman.py compile-governance --check' --extra-command 'bash scripts/run-runtime-smoke.sh --compose-check' --extra-command 'node scripts/lint-repository-knowledge.js'
+  - Residual risk: Governance trace now preserves repo-side workload/backfill and writable-dir-based external storage verification evidence, but deeper cross-service workload compensation/replay orchestration and provider-backed object storage live evidence beyond the current external write dir baseline remain follow-up work.
+  - Next step: Shape the next repo-side follow-up around deeper benchmark/query-execution workload compensation-replay orchestration plus provider-backed object-storage live evidence beyond the current writable-dir verification baseline.
+
 ### D-TASK-025: 收口 `benchmark-engine` / `query-execution` workload/backfill orchestration 与真实环境 object storage live evidence
 
 - Status: done

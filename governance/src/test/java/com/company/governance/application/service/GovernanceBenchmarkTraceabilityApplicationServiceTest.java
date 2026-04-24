@@ -18,7 +18,9 @@ import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapp
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
+import com.company.sqlforge.common.utils.JsonUtils;
 import java.util.Arrays;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -67,6 +69,12 @@ class GovernanceBenchmarkTraceabilityApplicationServiceTest {
         request.setFinishedAt("2026-04-24T10:00:05Z");
         request.setReportQueryPath("/api/benchmark-engine/reports/report-001");
         request.setRawDataDownloadPath("/api/benchmark-engine/reports/report-001/raw-data");
+        request.setWorkloadDigest("qe-digest-001");
+        request.setWorkloadSource("QUERY_EXECUTION_SYNC");
+        request.setBackfillApplied(Boolean.FALSE);
+        request.setWorkloadEvidenceJson(
+            "{\"executionMode\":\"QUERY_EXECUTION_WORKLOAD_ORCHESTRATED_REPLAY\",\"queryExecution\":{\"engines\":{\"HETU\":{\"elapsedMs\":42}}}}"
+        );
         request.setExecutionSummaryJson("{\"executionMode\":\"REPO_CLOSED_ISOLATED_EXECUTOR\"}");
         request.setTargetEngines(Arrays.asList("HETU", "HIVE"));
         request.setArtifacts(Arrays.asList(
@@ -87,18 +95,33 @@ class GovernanceBenchmarkTraceabilityApplicationServiceTest {
         ArgumentCaptor<ConfigSnapshotRecord> configCaptor = ArgumentCaptor.forClass(ConfigSnapshotRecord.class);
         verify(protectedPersistenceService).saveConfigSnapshot(configCaptor.capture());
         assertNotNull(configCaptor.getValue().getSnapshotPayload());
+        Map snapshotPayload = JsonUtils.fromJson(configCaptor.getValue().getSnapshotPayload(), Map.class);
+        assertEquals("qe-digest-001", snapshotPayload.get("workloadDigest"));
+        assertEquals("QUERY_EXECUTION_SYNC", snapshotPayload.get("workloadSource"));
+        Map workloadEvidence = (Map) snapshotPayload.get("workloadEvidence");
+        assertEquals("QUERY_EXECUTION_WORKLOAD_ORCHESTRATED_REPLAY", workloadEvidence.get("executionMode"));
 
         ArgumentCaptor<ExecutionResultRecord> resultCaptor = ArgumentCaptor.forClass(ExecutionResultRecord.class);
         verify(protectedPersistenceService).saveExecutionResult(resultCaptor.capture());
         assertEquals("task-001", resultCaptor.getValue().getTaskId());
+        Map resultSummary = JsonUtils.fromJson(resultCaptor.getValue().getResultSummary(), Map.class);
+        Map objectStorageVerification = (Map) resultSummary.get("objectStorageVerification");
+        assertEquals(Integer.valueOf(1), Integer.valueOf(((Number) objectStorageVerification.get("environmentBackedArtifactCount")).intValue()));
+        assertEquals(Integer.valueOf(1), Integer.valueOf(((Number) objectStorageVerification.get("externalWriteVerifiedCount")).intValue()));
 
         ArgumentCaptor<QueryHistoryRecord> historyCaptor = ArgumentCaptor.forClass(QueryHistoryRecord.class);
         verify(protectedPersistenceService).saveQueryHistoryWithSqlText(historyCaptor.capture(), org.mockito.Mockito.eq("SELECT * FROM orders"));
         assertEquals("BENCHMARK_REPORT_EXPORT", historyCaptor.getValue().getHistoryType());
+        Map queryContext = JsonUtils.fromJson(historyCaptor.getValue().getQueryContext(), Map.class);
+        assertEquals(Boolean.FALSE, queryContext.get("backfillApplied"));
 
         ArgumentCaptor<ExportRecord> exportCaptor = ArgumentCaptor.forClass(ExportRecord.class);
         verify(protectedPersistenceService, times(2)).saveExportRecord(exportCaptor.capture());
         assertEquals("AVAILABLE", exportCaptor.getAllValues().get(0).getExportStatus());
+        Map exportOptions = JsonUtils.fromJson(exportCaptor.getAllValues().get(0).getExportOptions(), Map.class);
+        Map storageEvidence = (Map) exportOptions.get("storageEvidence");
+        assertEquals("VERIFIED", storageEvidence.get("externalWriteStatus"));
+        assertEquals(Integer.valueOf(180), Integer.valueOf(((Number) exportOptions.get("retentionDays")).intValue()));
     }
 
     @Test
@@ -153,8 +176,16 @@ class GovernanceBenchmarkTraceabilityApplicationServiceTest {
         artifact.setFileName(key + ".json");
         artifact.setContentLength(Integer.valueOf(128));
         artifact.setChecksumSha256("abc123");
-        artifact.setStorageType("LOCAL_FILE");
+        artifact.setStorageType("pdf-export".equals(key) ? "ENVIRONMENT_OBJECT_STORAGE" : "LOCAL_FILE");
         artifact.setStorageUri(storageUri);
+        artifact.setStorageEvidence(
+            "pdf-export".equals(key)
+                ? "mode=repo-local-mirror+external-write-verified;externalWriteStatus=VERIFIED;recoveryVerificationStatus=VERIFIED"
+                : "mode=repo-local-mirror"
+        );
+        artifact.setRetentionDays(Integer.valueOf(180));
+        artifact.setRetentionPolicySource("GOVERNANCE_TENANT_CONFIG_RETENTION_DAYS");
+        artifact.setRetentionDeleteAfter("2026-10-21T00:00:00Z");
         return artifact;
     }
 }

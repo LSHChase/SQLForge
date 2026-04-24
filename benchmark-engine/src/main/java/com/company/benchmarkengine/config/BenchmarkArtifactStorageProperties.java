@@ -71,9 +71,11 @@ public class BenchmarkArtifactStorageProperties {
         private String keyPrefix = "benchmark-engine-artifacts";
         private String mirrorDir = "target/benchmark-engine-artifacts/object-storage-mirror";
         private String liveEvidenceDir = "target/benchmark-engine-artifacts/object-storage-live-evidence";
+        private String externalWriteDir = "";
         private String endpointEnvName = "BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT";
         private String bucketEnvName = "BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET";
         private String credentialsEnvName = "BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS";
+        private String externalWriteDirEnvName = "BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_EXTERNAL_WRITE_DIR";
 
         public String getBucket() {
             return bucket;
@@ -107,6 +109,14 @@ public class BenchmarkArtifactStorageProperties {
             this.liveEvidenceDir = liveEvidenceDir;
         }
 
+        public String getExternalWriteDir() {
+            return externalWriteDir;
+        }
+
+        public void setExternalWriteDir(String externalWriteDir) {
+            this.externalWriteDir = externalWriteDir;
+        }
+
         public String getEndpointEnvName() {
             return endpointEnvName;
         }
@@ -129,6 +139,14 @@ public class BenchmarkArtifactStorageProperties {
 
         public void setCredentialsEnvName(String credentialsEnvName) {
             this.credentialsEnvName = credentialsEnvName;
+        }
+
+        public String getExternalWriteDirEnvName() {
+            return externalWriteDirEnvName;
+        }
+
+        public void setExternalWriteDirEnvName(String externalWriteDirEnvName) {
+            this.externalWriteDirEnvName = externalWriteDirEnvName;
         }
     }
 }

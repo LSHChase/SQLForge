@@ -87,12 +87,12 @@
   - `GET /api/benchmark-engine/reports/{reportId}` 报告查询基线，支持 `format=JSON|PDF|HTML`；`GET /api/benchmark-engine/reports/{reportId}/raw-data` 提供 attachment download
   - `benchmark_task` / `benchmark_task_report` MySQL 载体、MyBatis XML repository、header-based 鉴权、租户隔离、scheduled worker、提交流程日志、失败路径、报告回写、报告查询和基础测试
   - 报告 `JSON/PDF/HTML` 与 raw-data snapshot 已提升为 repo-local externalized artifact storage 基线，并在 `benchmark_task_report` 中保留 artifact metadata
-  - `benchmark-engine` 已通过 `governance` 内部受保护入口写入 `config_snapshot/execution_result/query_history/export_record` 追溯链，建立报告与下载产物的 export orchestration 基线
+  - `benchmark-engine` 已通过 `governance` 内部受保护入口写入 `config_snapshot/execution_result/query_history/export_record` 追溯链；当前除报告/下载产物 export orchestration 外，还会把 workloadDigest/workloadSource/backfillApplied/workloadEvidence 作为显式结构字段沉淀到长期治理载荷
   - 报告查询与下载审计在 artifact 已具备治理追溯元数据时，会补齐 `configSnapshotId/resultId/historyId/exportId` 链接键
   - repo-local artifact lifecycle 当前固化为：保留当前 report-set、重写同一 report 时清理陈旧 sibling 文件、缺失 `PDF/HTML/raw-data` 文件时从已持久化报告快照恢复
   - artifact metadata 当前已补齐 `storageEvidence/retentionDays/retentionPolicySource/retentionDeleteAfter`；tenant-specific policy 来自 governance `tenant_config.retention_days`，缺失该元数据的历史 artifact 会在后续查询/恢复时回填
-  - `benchmark-engine` 当前会优先经 `query-execution` 内部受保护入口抓取 workload snapshot；若目标引擎路径不可用，则显式回退为 synthetic backfill evidence，并把 `workloadSource/backfillApplied/queryExecution[...]` 证据写入 benchmark execution summary
-  - `ENVIRONMENT_OBJECT_STORAGE` adapter 已形成显式配置能力：默认主路径仍是 `LOCAL_FILE`，而 environment-backed 模式会保留 object URI、repo-local mirror，以及按 artifact 写出的 live-evidence manifest（解析 endpoint/bucket/credentials env 现状与对象 URI），但不把真实外部对象存储误写成仓库默认事实
+  - `benchmark-engine` 当前会优先经 `query-execution` 内部受保护入口抓取 workload snapshot；若目标引擎路径不可用，则显式回退为 synthetic backfill evidence，并把 `workloadSource/backfillApplied/queryExecution[...]` 证据写入 benchmark execution summary 与 governance trace payload
+  - `ENVIRONMENT_OBJECT_STORAGE` adapter 已形成显式配置能力：默认主路径仍是 `LOCAL_FILE`；environment-backed 模式除保留 object URI、repo-local mirror 和 live-evidence manifest 外，还支持显式配置的 external write dir 做真实 write/readback recovery verification，并把验证状态沉淀进 artifact storage evidence / governance export trace，但不把该路径误写成仓库默认事实
   - 引擎指标快照、阈值判定结果、趋势图表、建议输出和报告实体
   - 基础模型测试、应用服务测试与控制器测试
 - 当前可观测事实已形成统一文档落点：
@@ -172,7 +172,7 @@
 
 ## Immediate Pending Gaps
 
-- 压测引擎服务已建立独立 `benchmark-engine` 模块与提交/轮询/报告查询 API、MySQL 任务/报告载体、scheduled worker、repo-closed 隔离执行链路，以及持久化 `JSON/PDF/HTML` 导出产物基线；更深层跨服务协同、外部队列/文件存储与环境级执行证据仍待 `Phase-D` 后续任务补齐。
+- 压测引擎服务已建立独立 `benchmark-engine` 模块与提交/轮询/报告查询 API、MySQL 任务/报告载体、scheduled worker、repo-closed 隔离执行链路，以及持久化 `JSON/PDF/HTML` 导出产物、governance workload/backfill 长期追溯和 writable-dir 级 external write/readback verification 基线；更深层跨服务协同、外部队列/文件存储与超出当前 writable-dir 的环境级长期证据仍待 `Phase-D` 后续任务补齐。
 - 查询执行服务已建立独立模块骨架、公共 HTTP DTO/VO/错误码、治理检查/审计写入 HTTP 基线，以及真实 Hetu `JDBC/REST/CLIENT` 多模式执行链；当前仓库已补齐 JDBC driver 接线、Hetu client 协议执行和 smoke 入口，真实集群长期证据、生产级参数校准和更完整的跨服务审计补偿仍待后续环境沉淀。
 - SQL 优化服务已建立独立模块、提交/轮询 API、MySQL `optimization_task` 任务表和 scheduled worker 基线，但外部队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
 - Phase-D 核心追溯链已在 `governance` 内完成 schema、migration、entity 与 mapper XML 固化，且 `audit/write` 与 header-based stateless auth 已接入真实 `audit_log` 落库；当前敏感字段加密基线已进入共享组件和治理受保护持久化入口，但查询执行、SQL 优化、压测引擎等其他服务的主动上报链仍待后续任务补齐。

@@ -33,3 +33,4 @@ benchmark-engine:
       key-prefix: benchmark-engine-test
       mirror-dir: target/benchmark-engine-artifacts/test-runtime-object-storage
       live-evidence-dir: target/benchmark-engine-artifacts/test-runtime-object-storage-live-evidence
+      external-write-dir: target/benchmark-engine-artifacts/test-runtime-object-storage-external

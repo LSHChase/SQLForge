@@ -108,9 +108,9 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：当前没有已实例化的 repo-side mainline task。`D-TASK-025` 已完成 `benchmark-engine` / `query-execution` workload/backfill orchestration 与 environment-backed object storage live-evidence manifest 的 repo-side 收口，同时继续保持 `LOCAL_FILE` 为默认主路径，不把 environment-backed object storage 写成仓库默认事实。
+- 当前活跃目标：当前没有已实例化的 repo-side mainline task。`D-TASK-026` 已完成 `benchmark-engine` / `query-execution` workload/backfill evidence 向 governance 长期追溯链的显式结构化沉淀，并把 environment-backed object storage 从 live-evidence manifest 推进到真实 external write/readback recovery verification；默认主路径仍保持 `LOCAL_FILE`，不得把 environment-backed object storage 写成仓库默认事实。
 - 当前下一条可执行主线任务：
-  - 当前无已实例化 mainline。推荐下一条 repo-side follow-up 聚焦 workload/backfill 结果向 governance 长期追溯面的进一步沉淀，以及 environment-backed object storage 从 live-evidence manifest 走向真实 external write/recovery verification，但在正式塑形前不得写成已实例化任务。
+  - 当前无已实例化 mainline。推荐下一条 repo-side follow-up 聚焦 benchmark/query-execution 更深层 workload/backfill compensation/replay orchestration，以及超出当前 writable-dir 基线的真实 object-storage provider / 跨环境留证，但在正式塑形前不得写成已实例化任务。
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成业务页骨架、治理接口接入与设计系统基线；`E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-009` 已补齐临时 AI 交付页与生产隐藏语义。
@@ -141,6 +141,7 @@
   - `D-TASK-023` 已完成 `D-TASK-022` residual risk 的 repo-side 收口：它把报告/下载查询审计补齐到 trace/export 级别，并把 repo-local artifact lifecycle 收口为“保留当前 report-set、重写时清理陈旧文件、缺失文件可从持久化报告快照恢复”的仓库默认基线，而不是扩写为环境级对象存储默认方案。
   - `D-TASK-024` 已完成 `D-TASK-023` residual risk 的 repo-side 收口：它把 benchmark artifact 的 tenant-specific retention/backfill policy 接到 governance `tenant_config.retention_days`，并增加显式配置的 environment-backed object-storage adapter/evidence，同时仍把 `LOCAL_FILE` 保持为当前默认主路径，不把外部对象存储误写成已落地仓库事实。
   - `D-TASK-025` 已完成 `D-TASK-024` residual risk 的 repo-side 收口：它把 `benchmark-engine` worker 接到 `query-execution` 内部 workload capture 契约，成功时写入 live workload snapshot、失败时写入显式 synthetic backfill evidence，并为 `ENVIRONMENT_OBJECT_STORAGE` 增加 live-evidence manifest；默认主路径仍保持 repo-local lifecycle 和 synthetic fallback，不把 environment-backed 路径误写成仓库默认事实。
+  - `D-TASK-026` 已完成 `D-TASK-025` residual risk 的 repo-side 收口：它把 workloadDigest/workloadSource/backfillApplied/workloadEvidence 显式沉淀进 governance `config_snapshot/execution_result/query_history/export_record` 追溯载荷，并让 `ENVIRONMENT_OBJECT_STORAGE` 在提供 external write dir 时执行真实 external write/readback recovery verification；默认主路径仍保持 `LOCAL_FILE`，不把 environment-backed 路径误写成仓库默认事实。
   - `HARN-016` 已把外部 Win10 测试环境的 Hetu/MRS 实际联通与留证动作挂起到 `INBOX-002`；它继续是 blocked 的 environment-backed follow-up，不构成当前 repo-side mainline。
   - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不改变当前仓库真值：当前没有新的已实例化 repo-side mainline，而 `HARN-016` / `INBOX-001` 仍只属于非主线的 environment-backed follow-up。
 

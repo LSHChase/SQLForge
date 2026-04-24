@@ -18,6 +18,10 @@ public class GovernanceBenchmarkReportTraceRequest {
     private String finishedAt;
     private String reportQueryPath;
     private String rawDataDownloadPath;
+    private String workloadDigest;
+    private String workloadSource;
+    private Boolean backfillApplied;
+    private String workloadEvidenceJson;
     private String executionSummaryJson;
     private List<String> targetEngines;
     private List<GovernanceBenchmarkArtifactTraceRequest> artifacts;
@@ -132,6 +136,38 @@ public class GovernanceBenchmarkReportTraceRequest {
 
     public void setRawDataDownloadPath(String rawDataDownloadPath) {
         this.rawDataDownloadPath = rawDataDownloadPath;
+    }
+
+    public String getWorkloadDigest() {
+        return workloadDigest;
+    }
+
+    public void setWorkloadDigest(String workloadDigest) {
+        this.workloadDigest = workloadDigest;
+    }
+
+    public String getWorkloadSource() {
+        return workloadSource;
+    }
+
+    public void setWorkloadSource(String workloadSource) {
+        this.workloadSource = workloadSource;
+    }
+
+    public Boolean getBackfillApplied() {
+        return backfillApplied;
+    }
+
+    public void setBackfillApplied(Boolean backfillApplied) {
+        this.backfillApplied = backfillApplied;
+    }
+
+    public String getWorkloadEvidenceJson() {
+        return workloadEvidenceJson;
+    }
+
+    public void setWorkloadEvidenceJson(String workloadEvidenceJson) {
+        this.workloadEvidenceJson = workloadEvidenceJson;
     }
 
     public String getExecutionSummaryJson() {

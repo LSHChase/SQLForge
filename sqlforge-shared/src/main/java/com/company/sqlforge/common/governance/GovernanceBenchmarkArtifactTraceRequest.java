@@ -11,6 +11,10 @@ public class GovernanceBenchmarkArtifactTraceRequest {
     private String checksumSha256;
     private String storageType;
     private String storageUri;
+    private String storageEvidence;
+    private Integer retentionDays;
+    private String retentionPolicySource;
+    private String retentionDeleteAfter;
 
     public String getArtifactKey() {
         return artifactKey;
@@ -82,5 +86,37 @@ public class GovernanceBenchmarkArtifactTraceRequest {
 
     public void setStorageUri(String storageUri) {
         this.storageUri = storageUri;
+    }
+
+    public String getStorageEvidence() {
+        return storageEvidence;
+    }
+
+    public void setStorageEvidence(String storageEvidence) {
+        this.storageEvidence = storageEvidence;
+    }
+
+    public Integer getRetentionDays() {
+        return retentionDays;
+    }
+
+    public void setRetentionDays(Integer retentionDays) {
+        this.retentionDays = retentionDays;
+    }
+
+    public String getRetentionPolicySource() {
+        return retentionPolicySource;
+    }
+
+    public void setRetentionPolicySource(String retentionPolicySource) {
+        this.retentionPolicySource = retentionPolicySource;
+    }
+
+    public String getRetentionDeleteAfter() {
+        return retentionDeleteAfter;
+    }
+
+    public void setRetentionDeleteAfter(String retentionDeleteAfter) {
+        this.retentionDeleteAfter = retentionDeleteAfter;
     }
 }

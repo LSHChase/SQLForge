@@ -17,10 +17,12 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactTraceRe
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
 import com.company.sqlforge.common.utils.JsonUtils;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -240,7 +242,12 @@ public class GovernanceBenchmarkTraceabilityApplicationService {
         payload.put("shadowEnvironmentMode", request.getShadowEnvironmentMode());
         payload.put("desensitizationRequirement", request.getDesensitizationRequirement());
         payload.put("targetEngines", request.getTargetEngines());
-        payload.put("executionSummary", request.getExecutionSummaryJson());
+        payload.put("workloadDigest", request.getWorkloadDigest());
+        payload.put("workloadSource", request.getWorkloadSource());
+        payload.put("backfillApplied", request.getBackfillApplied());
+        payload.put("workloadEvidence", parseJsonValue(request.getWorkloadEvidenceJson()));
+        payload.put("executionSummary", parseJsonValue(request.getExecutionSummaryJson()));
+        payload.put("artifactStorage", buildArtifactStorageSummaries(request.getArtifacts()));
         return JsonUtils.toJson(payload);
     }
 
@@ -250,6 +257,10 @@ public class GovernanceBenchmarkTraceabilityApplicationService {
         payload.put("resultStatus", request.getResultStatus());
         payload.put("artifactCount", Integer.valueOf(request.getArtifacts() == null ? 0 : request.getArtifacts().size()));
         payload.put("generatedAt", request.getGeneratedAt());
+        payload.put("workloadDigest", request.getWorkloadDigest());
+        payload.put("workloadSource", request.getWorkloadSource());
+        payload.put("backfillApplied", request.getBackfillApplied());
+        payload.put("objectStorageVerification", buildObjectStorageVerificationSummary(request.getArtifacts()));
         return JsonUtils.toJson(payload);
     }
 
@@ -258,8 +269,9 @@ public class GovernanceBenchmarkTraceabilityApplicationService {
         payload.put("reportQueryPath", request.getReportQueryPath());
         payload.put("rawDataDownloadPath", request.getRawDataDownloadPath());
         payload.put("targetEngines", request.getTargetEngines());
-        payload.put("artifacts", request.getArtifacts());
-        payload.put("executionSummary", request.getExecutionSummaryJson());
+        payload.put("artifacts", buildArtifactStorageSummaries(request.getArtifacts()));
+        payload.put("workloadEvidence", parseJsonValue(request.getWorkloadEvidenceJson()));
+        payload.put("executionSummary", parseJsonValue(request.getExecutionSummaryJson()));
         return JsonUtils.toJson(payload);
     }
 
@@ -269,6 +281,9 @@ public class GovernanceBenchmarkTraceabilityApplicationService {
         payload.put("reportQueryPath", request.getReportQueryPath());
         payload.put("rawDataDownloadPath", request.getRawDataDownloadPath());
         payload.put("targetEngines", request.getTargetEngines());
+        payload.put("workloadSource", request.getWorkloadSource());
+        payload.put("backfillApplied", request.getBackfillApplied());
+        payload.put("workloadEvidence", parseJsonValue(request.getWorkloadEvidenceJson()));
         return JsonUtils.toJson(payload);
     }
 
@@ -280,7 +295,105 @@ public class GovernanceBenchmarkTraceabilityApplicationService {
         payload.put("mediaType", artifact.getMediaType());
         payload.put("fileName", artifact.getFileName());
         payload.put("contentLength", artifact.getContentLength());
+        payload.put("storageType", artifact.getStorageType());
+        payload.put("storageUri", artifact.getStorageUri());
+        payload.put("storageEvidence", parseEvidenceString(artifact.getStorageEvidence()));
+        payload.put("retentionDays", artifact.getRetentionDays());
+        payload.put("retentionPolicySource", artifact.getRetentionPolicySource());
+        payload.put("retentionDeleteAfter", artifact.getRetentionDeleteAfter());
         return JsonUtils.toJson(payload);
+    }
+
+    private List<Map<String, Object>> buildArtifactStorageSummaries(List<GovernanceBenchmarkArtifactTraceRequest> artifacts) {
+        if (artifacts == null || artifacts.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> summaries = new ArrayList<Map<String, Object>>(artifacts.size());
+        for (GovernanceBenchmarkArtifactTraceRequest artifact : artifacts) {
+            Map<String, Object> summary = new LinkedHashMap<String, Object>();
+            summary.put("artifactKey", artifact.getArtifactKey());
+            summary.put("artifactKind", artifact.getArtifactKind());
+            summary.put("exportFormat", artifact.getExportFormat());
+            summary.put("storageType", artifact.getStorageType());
+            summary.put("storageUri", artifact.getStorageUri());
+            summary.put("storageEvidence", parseEvidenceString(artifact.getStorageEvidence()));
+            summary.put("retentionDays", artifact.getRetentionDays());
+            summary.put("retentionPolicySource", artifact.getRetentionPolicySource());
+            summary.put("retentionDeleteAfter", artifact.getRetentionDeleteAfter());
+            summaries.add(summary);
+        }
+        return summaries;
+    }
+
+    private Map<String, Object> buildObjectStorageVerificationSummary(List<GovernanceBenchmarkArtifactTraceRequest> artifacts) {
+        Map<String, Object> summary = new LinkedHashMap<String, Object>();
+        if (artifacts == null || artifacts.isEmpty()) {
+            summary.put("environmentBackedArtifactCount", Integer.valueOf(0));
+            summary.put("externalWriteVerifiedCount", Integer.valueOf(0));
+            summary.put("recoveryVerificationCount", Integer.valueOf(0));
+            return summary;
+        }
+        int environmentBackedArtifactCount = 0;
+        int externalWriteVerifiedCount = 0;
+        int recoveryVerificationCount = 0;
+        List<Map<String, Object>> artifactStatuses = new ArrayList<Map<String, Object>>();
+        for (GovernanceBenchmarkArtifactTraceRequest artifact : artifacts) {
+            if (!"ENVIRONMENT_OBJECT_STORAGE".equals(artifact.getStorageType())) {
+                continue;
+            }
+            environmentBackedArtifactCount++;
+            Map<String, String> evidence = parseEvidenceString(artifact.getStorageEvidence());
+            if ("VERIFIED".equals(evidence.get("externalWriteStatus"))) {
+                externalWriteVerifiedCount++;
+            }
+            if ("VERIFIED".equals(evidence.get("recoveryVerificationStatus"))) {
+                recoveryVerificationCount++;
+            }
+            Map<String, Object> artifactStatus = new LinkedHashMap<String, Object>();
+            artifactStatus.put("artifactKey", artifact.getArtifactKey());
+            artifactStatus.put("externalWriteStatus", evidence.get("externalWriteStatus"));
+            artifactStatus.put("recoveryVerificationStatus", evidence.get("recoveryVerificationStatus"));
+            artifactStatus.put("mode", evidence.get("mode"));
+            artifactStatuses.add(artifactStatus);
+        }
+        summary.put("environmentBackedArtifactCount", Integer.valueOf(environmentBackedArtifactCount));
+        summary.put("externalWriteVerifiedCount", Integer.valueOf(externalWriteVerifiedCount));
+        summary.put("recoveryVerificationCount", Integer.valueOf(recoveryVerificationCount));
+        if (!artifactStatuses.isEmpty()) {
+            summary.put("artifacts", artifactStatuses);
+        }
+        return summary;
+    }
+
+    private Object parseJsonValue(String rawJson) {
+        if (!StringUtils.hasText(rawJson)) {
+            return null;
+        }
+        try {
+            return JsonUtils.objectMapper().readValue(rawJson, Object.class);
+        } catch (IOException ex) {
+            return rawJson;
+        }
+    }
+
+    private Map<String, String> parseEvidenceString(String storageEvidence) {
+        if (!StringUtils.hasText(storageEvidence)) {
+            return Collections.emptyMap();
+        }
+        Map<String, String> evidence = new LinkedHashMap<String, String>();
+        String[] parts = storageEvidence.split(";");
+        for (String part : parts) {
+            if (!StringUtils.hasText(part)) {
+                continue;
+            }
+            int separator = part.indexOf('=');
+            if (separator <= 0) {
+                evidence.put(part.trim(), "true");
+                continue;
+            }
+            evidence.put(part.substring(0, separator).trim(), part.substring(separator + 1).trim());
+        }
+        return evidence;
     }
 
     private LocalDateTime parseDateTime(String rawValue, Instant fallback) {

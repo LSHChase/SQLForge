@@ -2,6 +2,7 @@ package com.company.benchmarkengine.application.service;
 
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkExecutionSummary;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
@@ -59,6 +60,10 @@ public class BenchmarkGovernanceTraceService {
         request.setFinishedAt(String.valueOf(task.getFinishedAt()));
         request.setReportQueryPath(reportResponse.getReportQueryPath());
         request.setRawDataDownloadPath(reportResponse.getRawDataDownloadPath());
+        request.setWorkloadDigest(report.getExecutionSummary() == null ? null : report.getExecutionSummary().getWorkloadDigest());
+        request.setWorkloadSource(resolvePhaseNoteValue(report.getExecutionSummary(), "workloadSource="));
+        request.setBackfillApplied(parseBoolean(resolvePhaseNoteValue(report.getExecutionSummary(), "backfillApplied=")));
+        request.setWorkloadEvidenceJson(buildWorkloadEvidenceJson(report.getExecutionSummary()));
         request.setExecutionSummaryJson(JsonUtils.toJson(report.getExecutionSummary()));
         request.setTargetEngines(stringifyEngines(reportResponse.getTargetEngines()));
         request.setArtifacts(toTraceArtifacts(artifacts));
@@ -119,9 +124,63 @@ public class BenchmarkGovernanceTraceService {
             traceArtifact.setChecksumSha256(artifact.getChecksumSha256());
             traceArtifact.setStorageType(artifact.getStorageType());
             traceArtifact.setStorageUri(artifact.getStorageUri());
+            traceArtifact.setStorageEvidence(artifact.getStorageEvidence());
+            traceArtifact.setRetentionDays(artifact.getRetentionDays());
+            traceArtifact.setRetentionPolicySource(artifact.getRetentionPolicySource());
+            traceArtifact.setRetentionDeleteAfter(artifact.getRetentionDeleteAfter());
             traceArtifacts.add(traceArtifact);
         }
         return traceArtifacts;
+    }
+
+    private String buildWorkloadEvidenceJson(BenchmarkExecutionSummary executionSummary) {
+        if (executionSummary == null) {
+            return null;
+        }
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("executionMode", executionSummary.getExecutionMode());
+        payload.put("isolationSummary", executionSummary.getIsolationSummary());
+        payload.put("sampleCount", executionSummary.getSampleCount());
+        payload.put("executionDurationMs", executionSummary.getExecutionDurationMs());
+        payload.put("workloadDigest", executionSummary.getWorkloadDigest());
+        payload.put("phaseNotes", executionSummary.getPhaseNotes());
+        Map<String, Object> queryExecution = new LinkedHashMap<String, Object>();
+        Map<String, Object> engineEvidence = new LinkedHashMap<String, Object>();
+        if (executionSummary.getPhaseNotes() != null) {
+            for (String note : executionSummary.getPhaseNotes()) {
+                if (!StringUtils.hasText(note)) {
+                    continue;
+                }
+                if (note.startsWith("queryExecutionWorkloadSource=")) {
+                    queryExecution.put("workloadSource", valueAfterEquals(note));
+                    continue;
+                }
+                if (note.startsWith("queryExecutionImplementationStage=")) {
+                    queryExecution.put("implementationStage", valueAfterEquals(note));
+                    continue;
+                }
+                if (note.startsWith("queryExecution[") && note.contains("]=")) {
+                    int engineStart = "queryExecution[".length();
+                    int engineEnd = note.indexOf("]=");
+                    if (engineEnd > engineStart) {
+                        String engine = note.substring(engineStart, engineEnd);
+                        String detail = note.substring(engineEnd + 2);
+                        engineEvidence.put(engine, parseCommaSeparatedValues(detail));
+                    }
+                    continue;
+                }
+                if (note.startsWith("workloadOrchestration=")) {
+                    payload.put("orchestration", parseCommaSeparatedValues(note));
+                }
+            }
+        }
+        if (!engineEvidence.isEmpty()) {
+            queryExecution.put("engines", engineEvidence);
+        }
+        if (!queryExecution.isEmpty()) {
+            payload.put("queryExecution", queryExecution);
+        }
+        return JsonUtils.toJson(payload);
     }
 
     private List<String> stringifyEngines(List<?> engines) {
@@ -133,6 +192,69 @@ public class BenchmarkGovernanceTraceService {
             values.add(String.valueOf(engine));
         }
         return values;
+    }
+
+    private String resolvePhaseNoteValue(BenchmarkExecutionSummary executionSummary, String prefix) {
+        if (executionSummary == null || executionSummary.getPhaseNotes() == null || !StringUtils.hasText(prefix)) {
+            return null;
+        }
+        for (String note : executionSummary.getPhaseNotes()) {
+            if (StringUtils.hasText(note) && note.startsWith(prefix)) {
+                return note.substring(prefix.length());
+            }
+        }
+        return null;
+    }
+
+    private Boolean parseBoolean(String rawValue) {
+        if (!StringUtils.hasText(rawValue)) {
+            return null;
+        }
+        return Boolean.valueOf(Boolean.parseBoolean(rawValue.trim()));
+    }
+
+    private Map<String, Object> parseCommaSeparatedValues(String rawValue) {
+        Map<String, Object> values = new LinkedHashMap<String, Object>();
+        if (!StringUtils.hasText(rawValue)) {
+            return values;
+        }
+        String[] parts = rawValue.split(",");
+        for (String part : parts) {
+            if (!StringUtils.hasText(part)) {
+                continue;
+            }
+            int separator = part.indexOf('=');
+            if (separator <= 0) {
+                values.put(part.trim(), Boolean.TRUE);
+                continue;
+            }
+            String key = part.substring(0, separator).trim();
+            String value = part.substring(separator + 1).trim();
+            values.put(key, coerceScalar(value));
+        }
+        return values;
+    }
+
+    private Object coerceScalar(String value) {
+        if (!StringUtils.hasText(value)) {
+            return value;
+        }
+        if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
+            return Boolean.valueOf(Boolean.parseBoolean(value));
+        }
+        if (value.matches("-?\\d+")) {
+            try {
+                return Long.valueOf(Long.parseLong(value));
+            } catch (NumberFormatException ex) {
+                return value;
+            }
+        }
+        return value;
+    }
+
+    private String valueAfterEquals(String rawValue) {
+        int separator = rawValue == null ? -1 : rawValue.indexOf('=');
+        return separator < 0 ? rawValue : rawValue.substring(separator + 1);
     }
 
     private String sanitizeKey(String rawValue) {
