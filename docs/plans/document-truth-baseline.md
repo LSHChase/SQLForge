@@ -88,6 +88,8 @@
   - `benchmark_task` / `benchmark_task_report` MySQL 载体、MyBatis XML repository、header-based 鉴权、租户隔离、scheduled worker、提交流程日志、失败路径、报告回写、报告查询和基础测试
   - 报告 `JSON/PDF/HTML` 与 raw-data snapshot 已提升为 repo-local externalized artifact storage 基线，并在 `benchmark_task_report` 中保留 artifact metadata
   - `benchmark-engine` 已通过 `governance` 内部受保护入口写入 `config_snapshot/execution_result/query_history/export_record` 追溯链，建立报告与下载产物的 export orchestration 基线
+  - 报告查询与下载审计在 artifact 已具备治理追溯元数据时，会补齐 `configSnapshotId/resultId/historyId/exportId` 链接键
+  - repo-local artifact lifecycle 当前固化为：保留当前 report-set、重写同一 report 时清理陈旧 sibling 文件、缺失 `PDF/HTML/raw-data` 文件时从已持久化报告快照恢复
   - 引擎指标快照、阈值判定结果、趋势图表、建议输出和报告实体
   - 基础模型测试、应用服务测试与控制器测试
 - 当前可观测事实已形成统一文档落点：

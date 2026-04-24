@@ -397,7 +397,9 @@
 - 当前 `readonlyRequired=false` 或 `shadowEnvironmentMode=DISABLED` 会被当前骨架拒绝，并返回 `23003`，以保持 `ADR-007` 的隔离约束不被绕过。
 - 当前模型已经把 `ADR-007` 要求的只读标记、影子环境标记和脱敏要求显式入模，避免后续执行链路绕过安全基线。
 - 当前报告模型已覆盖引擎指标快照、阈值判定、趋势图表、建议输出、执行摘要以及导出产物元数据；成功路径会生成 `JSON/PDF/HTML` 与 raw-data artifact，记录 `artifactKey/artifactKind/storageType/storageUri/exportId`，供后续查询直接复用。
-- 当前仓库已补齐 repo-closed 隔离执行、artifact externalization 与治理 trace/export orchestration 链路；后续 `Phase-D` 关注点转为 retention/backfill/cleanup 语义、环境级对象存储接线与更广的 environment-backed 执行证据。
+- 当前报告查询/下载审计会在 artifact 已具备治理追溯元数据时补齐 `configSnapshotId/resultId/historyId/exportId`；其中 `JSON` 查询绑定 `json-export`，`PDF/HTML` 查询绑定对应导出 artifact，`raw-data` 下载绑定 `raw-data` artifact。
+- 当前 repo-local artifact lifecycle 已固化为保留当前 report-set、重写时清理陈旧 sibling 文件，以及在 `PDF/HTML/raw-data` 文件缺失时从持久化报告快照恢复后再继续返回响应。
+- 当前仓库已补齐 repo-closed 隔离执行、artifact externalization、查询 audit-link enrichment 与治理 trace/export orchestration 链路；后续 `Phase-D` 关注点转为 tenant-specific retention/backfill policy、环境级对象存储接线与更广的 environment-backed 执行证据。
 
 ## 4. Event Contract Baseline
 

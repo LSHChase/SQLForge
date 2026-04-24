@@ -153,6 +153,24 @@ public class BenchmarkReport {
         );
     }
 
+    public BenchmarkReport withReplacedArtifact(BenchmarkReportArtifact updatedArtifact) {
+        if (updatedArtifact == null || exportArtifacts == null || exportArtifacts.isEmpty()) {
+            return this;
+        }
+        List<BenchmarkReportArtifact> replacedArtifacts = new ArrayList<BenchmarkReportArtifact>(exportArtifacts.size());
+        boolean replaced = false;
+        for (BenchmarkReportArtifact artifact : exportArtifacts) {
+            if (!replaced
+                && sameArtifactIdentity(artifact, updatedArtifact)) {
+                replacedArtifacts.add(updatedArtifact);
+                replaced = true;
+            } else {
+                replacedArtifacts.add(artifact);
+            }
+        }
+        return replaced ? withExportArtifacts(replacedArtifacts) : this;
+    }
+
     public BenchmarkReportArtifact findArtifact(BenchmarkReportFormat format) {
         return findArtifact(BenchmarkReportArtifactKind.REPORT_EXPORT, format);
     }
@@ -171,5 +189,21 @@ public class BenchmarkReport {
             }
         }
         return null;
+    }
+
+    private boolean sameArtifactIdentity(BenchmarkReportArtifact left, BenchmarkReportArtifact right) {
+        if (left == null || right == null) {
+            return false;
+        }
+        if (left.getArtifactKind() != right.getArtifactKind()) {
+            return false;
+        }
+        if (left.getFormat() != right.getFormat()) {
+            return false;
+        }
+        if (left.getArtifactKey() == null) {
+            return right.getArtifactKey() == null;
+        }
+        return left.getArtifactKey().equals(right.getArtifactKey());
     }
 }

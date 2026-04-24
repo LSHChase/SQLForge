@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 public class BenchmarkReportApplicationService {
@@ -35,6 +36,7 @@ public class BenchmarkReportApplicationService {
     private final BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService;
     private final BenchmarkReportExportService benchmarkReportExportService;
     private final BenchmarkArtifactStorageService benchmarkArtifactStorageService;
+    private final BenchmarkGovernanceTraceService benchmarkGovernanceTraceService;
     private final BenchmarkTaskRepository benchmarkTaskRepository;
     private final GovernanceCapabilityClient governanceCapabilityClient;
     private final BenchmarkMetricsRecorder benchmarkMetricsRecorder;
@@ -42,12 +44,14 @@ public class BenchmarkReportApplicationService {
     public BenchmarkReportApplicationService(BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService,
                                              BenchmarkReportExportService benchmarkReportExportService,
                                              BenchmarkArtifactStorageService benchmarkArtifactStorageService,
+                                             BenchmarkGovernanceTraceService benchmarkGovernanceTraceService,
                                              BenchmarkTaskRepository benchmarkTaskRepository,
                                              GovernanceCapabilityClient governanceCapabilityClient,
                                              BenchmarkMetricsRecorder benchmarkMetricsRecorder) {
         this.benchmarkTaskModelApplicationService = benchmarkTaskModelApplicationService;
         this.benchmarkReportExportService = benchmarkReportExportService;
         this.benchmarkArtifactStorageService = benchmarkArtifactStorageService;
+        this.benchmarkGovernanceTraceService = benchmarkGovernanceTraceService;
         this.benchmarkTaskRepository = benchmarkTaskRepository;
         this.governanceCapabilityClient = governanceCapabilityClient;
         this.benchmarkMetricsRecorder = benchmarkMetricsRecorder;
@@ -59,14 +63,16 @@ public class BenchmarkReportApplicationService {
         try {
             BenchmarkReport report = loadReport(reportId);
             BenchmarkReportResponse response = benchmarkTaskModelApplicationService.buildReportResponse(report);
+            BenchmarkReportArtifact artifact = report.findArtifact(BenchmarkReportFormat.JSON);
             benchmarkMetricsRecorder.recordReportResponse(BenchmarkReportFormat.JSON, System.currentTimeMillis() - start);
             logEnd(reportId, BenchmarkReportFormat.JSON, start);
             writeAuditRecord(
-                reportId,
+                report,
+                artifact,
                 "SUCCESS",
                 System.currentTimeMillis() - start,
-                buildReportRequestParams(report, BenchmarkReportFormat.JSON.name()),
-                buildReportResponseSummary("SUCCESS", response.getReportId(), BenchmarkReportFormat.JSON.name(), response.getVerdict().name(), null)
+                buildReportRequestParams(report, artifact, BenchmarkReportFormat.JSON.name()),
+                buildReportResponseSummary("SUCCESS", response.getReportId(), artifact, BenchmarkReportFormat.JSON.name(), response.getVerdict().name(), null, "STRUCTURED_RESPONSE")
             );
             return response;
         } catch (RuntimeException ex) {
@@ -77,7 +83,7 @@ public class BenchmarkReportApplicationService {
                 "FAILED",
                 System.currentTimeMillis() - start,
                 buildMissingReportRequestParams(reportId, BenchmarkReportFormat.JSON.name()),
-                buildReportResponseSummary("FAILED", reportId, BenchmarkReportFormat.JSON.name(), null, ex.getMessage())
+                buildReportResponseSummary("FAILED", reportId, null, BenchmarkReportFormat.JSON.name(), null, ex.getMessage(), "NOT_APPLICABLE")
             );
             throw ex;
         }
@@ -96,15 +102,33 @@ public class BenchmarkReportApplicationService {
                     "Benchmark raw-data artifact is missing"
                 );
             }
-            BenchmarkRenderedReport response = benchmarkArtifactStorageService.load(artifact);
+            final BenchmarkReport loadedReport = report;
+            BenchmarkArtifactLoadResult loadResult = benchmarkArtifactStorageService.loadOrRecover(
+                report.getReportId(),
+                artifact,
+                () -> benchmarkReportExportService.buildRawDataArtifact(
+                    benchmarkTaskModelApplicationService.buildRawDataResponse(loadedReport)
+                )
+            );
+            report = persistRecoveredArtifact(report, loadResult.getResolvedArtifact());
+            BenchmarkRenderedReport response = loadResult.getRenderedReport();
             benchmarkMetricsRecorder.recordReportResponse(null, System.currentTimeMillis() - start);
             logEnd(reportId, null, start);
             writeAuditRecord(
-                reportId,
+                report,
+                loadResult.getResolvedArtifact(),
                 "SUCCESS",
                 System.currentTimeMillis() - start,
-                buildReportRequestParams(report, "RAW_DATA"),
-                buildReportResponseSummary("SUCCESS", reportId, "RAW_DATA", report.getVerdict().name(), null)
+                buildReportRequestParams(report, loadResult.getResolvedArtifact(), "RAW_DATA"),
+                buildReportResponseSummary(
+                    "SUCCESS",
+                    reportId,
+                    loadResult.getResolvedArtifact(),
+                    "RAW_DATA",
+                    report.getVerdict().name(),
+                    null,
+                    loadResult.getRecoveryStatus()
+                )
             );
             return response;
         } catch (RuntimeException ex) {
@@ -115,7 +139,7 @@ public class BenchmarkReportApplicationService {
                 "FAILED",
                 System.currentTimeMillis() - start,
                 buildMissingReportRequestParams(reportId, "RAW_DATA"),
-                buildReportResponseSummary("FAILED", reportId, "RAW_DATA", null, ex.getMessage())
+                buildReportResponseSummary("FAILED", reportId, null, "RAW_DATA", null, ex.getMessage(), "NOT_APPLICABLE")
             );
             throw ex;
         }
@@ -135,15 +159,32 @@ public class BenchmarkReportApplicationService {
                     "Benchmark report export artifact is missing for format=" + format
                 );
             }
-            BenchmarkRenderedReport renderedReport = benchmarkArtifactStorageService.load(artifact);
+            final BenchmarkReport loadedReport = report;
+            final BenchmarkReportResponse loadedResponse = response;
+            BenchmarkArtifactLoadResult loadResult = benchmarkArtifactStorageService.loadOrRecover(
+                report.getReportId(),
+                artifact,
+                () -> benchmarkReportExportService.buildReportArtifact(loadedResponse, format)
+            );
+            report = persistRecoveredArtifact(report, loadResult.getResolvedArtifact());
+            BenchmarkRenderedReport renderedReport = loadResult.getRenderedReport();
             benchmarkMetricsRecorder.recordReportResponse(format, System.currentTimeMillis() - start);
             logEnd(reportId, format, start);
             writeAuditRecord(
-                reportId,
+                report,
+                loadResult.getResolvedArtifact(),
                 "SUCCESS",
                 System.currentTimeMillis() - start,
-                buildReportRequestParams(report, format.name()),
-                buildReportResponseSummary("SUCCESS", response.getReportId(), format.name(), response.getVerdict().name(), null)
+                buildReportRequestParams(report, loadResult.getResolvedArtifact(), format.name()),
+                buildReportResponseSummary(
+                    "SUCCESS",
+                    response.getReportId(),
+                    loadResult.getResolvedArtifact(),
+                    format.name(),
+                    response.getVerdict().name(),
+                    null,
+                    loadResult.getRecoveryStatus()
+                )
             );
             return renderedReport;
         } catch (RuntimeException ex) {
@@ -154,7 +195,15 @@ public class BenchmarkReportApplicationService {
                 "FAILED",
                 System.currentTimeMillis() - start,
                 buildMissingReportRequestParams(reportId, format == null ? null : format.name()),
-                buildReportResponseSummary("FAILED", reportId, format == null ? null : format.name(), null, ex.getMessage())
+                buildReportResponseSummary(
+                    "FAILED",
+                    reportId,
+                    null,
+                    format == null ? null : format.name(),
+                    null,
+                    ex.getMessage(),
+                    "NOT_APPLICABLE"
+                )
             );
             throw ex;
         }
@@ -253,20 +302,47 @@ public class BenchmarkReportApplicationService {
                                   long elapsedMs,
                                   String requestParams,
                                   String responseSummary) {
+        writeAuditRecord(null, null, reportId, resultStatus, elapsedMs, requestParams, responseSummary);
+    }
+
+    private void writeAuditRecord(BenchmarkReport report,
+                                  BenchmarkReportArtifact artifact,
+                                  String resultStatus,
+                                  long elapsedMs,
+                                  String requestParams,
+                                  String responseSummary) {
+        writeAuditRecord(report, artifact, report == null ? null : report.getReportId(), resultStatus, elapsedMs, requestParams, responseSummary);
+    }
+
+    private void writeAuditRecord(BenchmarkReport report,
+                                  BenchmarkReportArtifact artifact,
+                                  String resourceId,
+                                  String resultStatus,
+                                  long elapsedMs,
+                                  String requestParams,
+                                  String responseSummary) {
+        boolean governanceTraceAvailable = report != null
+            && artifact != null
+            && StringUtils.hasText(artifact.getExportId());
         governanceCapabilityClient.writeAudit(
             new BenchmarkAuditRecord(
                 QUERY_OPERATION,
                 RESOURCE_TYPE_REPORT,
-                reportId,
+                resourceId,
                 resultStatus,
                 elapsedMs,
+                report == null ? null : benchmarkGovernanceTraceService.resolveSagaId(report.getTaskId(), governanceTraceAvailable),
+                report == null ? null : benchmarkGovernanceTraceService.resolveConfigSnapshotId(report.getReportId(), governanceTraceAvailable),
+                report == null ? null : benchmarkGovernanceTraceService.resolveResultId(report.getReportId(), governanceTraceAvailable),
+                report == null ? null : benchmarkGovernanceTraceService.resolveHistoryId(report.getReportId(), governanceTraceAvailable),
+                artifact == null ? null : artifact.getExportId(),
                 requestParams,
                 responseSummary
             )
         );
     }
 
-    private String buildReportRequestParams(BenchmarkReport report, String format) {
+    private String buildReportRequestParams(BenchmarkReport report, BenchmarkReportArtifact artifact, String format) {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("serviceCode", ServiceCodeConstants.BENCHMARK_ENGINE);
         payload.put("tenantId", report.getTenantId());
@@ -274,6 +350,12 @@ public class BenchmarkReportApplicationService {
         payload.put("taskId", report.getTaskId());
         payload.put("format", format);
         payload.put("targetEngines", collectTargetEngines(report));
+        payload.put("artifactKey", artifact == null ? null : artifact.getArtifactKey());
+        payload.put("artifactKind", artifact == null || artifact.getArtifactKind() == null ? null : artifact.getArtifactKind().name());
+        payload.put("exportId", artifact == null ? null : artifact.getExportId());
+        payload.put("configSnapshotId", resolveAuditConfigSnapshotId(report, artifact));
+        payload.put("resultId", resolveAuditResultId(report, artifact));
+        payload.put("historyId", resolveAuditHistoryId(report, artifact));
         return JsonUtils.toJson(payload);
     }
 
@@ -296,15 +378,48 @@ public class BenchmarkReportApplicationService {
 
     private String buildReportResponseSummary(String resultStatus,
                                               String reportId,
+                                              BenchmarkReportArtifact artifact,
                                               String format,
                                               String verdict,
-                                              String failureReason) {
+                                              String failureReason,
+                                              String artifactRecoveryStatus) {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("resultStatus", resultStatus);
         payload.put("reportId", reportId);
         payload.put("format", format);
         payload.put("verdict", verdict);
+        payload.put("artifactKey", artifact == null ? null : artifact.getArtifactKey());
+        payload.put("artifactStorageType", artifact == null ? null : artifact.getStorageType());
+        payload.put("exportId", artifact == null ? null : artifact.getExportId());
+        payload.put("artifactRecoveryStatus", artifactRecoveryStatus);
         payload.put("failureReason", failureReason);
         return JsonUtils.toJson(payload);
+    }
+
+    private BenchmarkReport persistRecoveredArtifact(BenchmarkReport report, BenchmarkReportArtifact resolvedArtifact) {
+        if (report == null || resolvedArtifact == null) {
+            return report;
+        }
+        BenchmarkReport updatedReport = report.withReplacedArtifact(resolvedArtifact);
+        if (updatedReport != report) {
+            benchmarkTaskRepository.saveReport(updatedReport);
+        }
+        return updatedReport;
+    }
+
+    private String resolveAuditConfigSnapshotId(BenchmarkReport report, BenchmarkReportArtifact artifact) {
+        return benchmarkGovernanceTraceService.resolveConfigSnapshotId(report.getReportId(), hasGovernanceTrace(artifact));
+    }
+
+    private String resolveAuditResultId(BenchmarkReport report, BenchmarkReportArtifact artifact) {
+        return benchmarkGovernanceTraceService.resolveResultId(report.getReportId(), hasGovernanceTrace(artifact));
+    }
+
+    private String resolveAuditHistoryId(BenchmarkReport report, BenchmarkReportArtifact artifact) {
+        return benchmarkGovernanceTraceService.resolveHistoryId(report.getReportId(), hasGovernanceTrace(artifact));
+    }
+
+    private boolean hasGovernanceTrace(BenchmarkReportArtifact artifact) {
+        return artifact != null && StringUtils.hasText(artifact.getExportId());
     }
 }

@@ -91,6 +91,11 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
         request.setElapsedMs(Long.valueOf(auditRecord.getElapsedMs()));
         request.setSourceIp(ProtectedGovernanceRequestSupport.resolveSourceIp("127.0.0.1"));
         request.setUserAgent(ProtectedGovernanceRequestSupport.resolveUserAgent("SQLForge-BenchmarkEngine"));
+        request.setSagaId(auditRecord.getSagaId());
+        request.setConfigSnapshotId(auditRecord.getConfigSnapshotId());
+        request.setResultId(auditRecord.getResultId());
+        request.setHistoryId(auditRecord.getHistoryId());
+        request.setExportId(auditRecord.getExportId());
         request.setRequestParams(auditRecord.getRequestParams());
         request.setResponseSummary(auditRecord.getResponseSummary());
         post("/audit/write", request, Object.class);

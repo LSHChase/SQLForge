@@ -23,13 +23,10 @@ import org.springframework.stereotype.Service;
 public class BenchmarkReportExportService {
 
     public List<BenchmarkReportArtifact> buildArtifacts(BenchmarkReportResponse response) {
-        String jsonContent = JsonUtils.toJson(response);
-        String pdfContent = renderPdf(response);
-        String htmlContent = renderHtml(response);
         List<BenchmarkReportArtifact> artifacts = new ArrayList<BenchmarkReportArtifact>(3);
-        artifacts.add(buildArtifact("json-export", BenchmarkReportArtifactKind.REPORT_EXPORT, response.getReportId(), BenchmarkReportFormat.JSON, jsonContent));
-        artifacts.add(buildArtifact("pdf-export", BenchmarkReportArtifactKind.REPORT_EXPORT, response.getReportId(), BenchmarkReportFormat.PDF, pdfContent));
-        artifacts.add(buildArtifact("html-export", BenchmarkReportArtifactKind.REPORT_EXPORT, response.getReportId(), BenchmarkReportFormat.HTML, htmlContent));
+        artifacts.add(buildReportArtifact(response, BenchmarkReportFormat.JSON));
+        artifacts.add(buildReportArtifact(response, BenchmarkReportFormat.PDF));
+        artifacts.add(buildReportArtifact(response, BenchmarkReportFormat.HTML));
         return artifacts;
     }
 
@@ -41,6 +38,37 @@ public class BenchmarkReportExportService {
             BenchmarkReportFormat.JSON,
             JsonUtils.toJson(response)
         );
+    }
+
+    public BenchmarkReportArtifact buildReportArtifact(BenchmarkReportResponse response, BenchmarkReportFormat format) {
+        if (format == BenchmarkReportFormat.JSON) {
+            return buildArtifact(
+                "json-export",
+                BenchmarkReportArtifactKind.REPORT_EXPORT,
+                response.getReportId(),
+                BenchmarkReportFormat.JSON,
+                JsonUtils.toJson(response)
+            );
+        }
+        if (format == BenchmarkReportFormat.PDF) {
+            return buildArtifact(
+                "pdf-export",
+                BenchmarkReportArtifactKind.REPORT_EXPORT,
+                response.getReportId(),
+                BenchmarkReportFormat.PDF,
+                renderPdf(response)
+            );
+        }
+        if (format == BenchmarkReportFormat.HTML) {
+            return buildArtifact(
+                "html-export",
+                BenchmarkReportArtifactKind.REPORT_EXPORT,
+                response.getReportId(),
+                BenchmarkReportFormat.HTML,
+                renderHtml(response)
+            );
+        }
+        throw new IllegalArgumentException("Unsupported benchmark report format for artifact build: " + format);
     }
 
     public BenchmarkRenderedReport toRenderedReport(BenchmarkReportArtifact artifact) {

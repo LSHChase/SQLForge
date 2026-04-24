@@ -296,6 +296,11 @@ public class BenchmarkTaskApplicationService {
                 resourceId,
                 resultStatus,
                 elapsedMs,
+                null,
+                null,
+                null,
+                null,
+                null,
                 requestParams,
                 responseSummary
             )

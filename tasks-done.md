@@ -4,6 +4,32 @@
 
 ## Done
 
+### D-TASK-023: 收口 `benchmark-engine` 报告查询审计追溯增强与 artifact 生命周期基线
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(benchmark-engine): harden report audit and artifact lifecycle`
+- Priority: 1
+- Depends on: `D-TASK-022`
+- Scope: 在保留 repo-closed artifact storage、统一授权入口、治理审计与只读/影子环境边界的前提下，为 benchmark 报告/下载查询补齐 `configSnapshotId/resultId/historyId/exportId` 审计链接，并建立 repo-local artifact retention/recovery/cleanup 语义与验证基线 Tech: `JAVA-BE`,`SQL`,`OPS`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-D
+- Human confirmation point: 若查询审计追溯增强会把错误的 trace/export 键写入 `audit_log`、让 cleanup 删除仍应保留的 artifact，或把 repo-local 生命周期语义误升级为环境级对象存储默认路径，需人工确认
+- Data impact: benchmark 报告/下载审计记录、`config_snapshot/execution_result/query_history/export_record/audit_log` 链接键、repo-local artifact 文件与 recovery/cleanup 证据
+- Rollback / recovery: 恢复到上一版报告查询/下载审计基线，关闭新增 recovery/cleanup 路径，并回退 artifact lifecycle 文档与验证说明
+- Validation:
+  - `benchmark-engine/governance 模块测试、报告/下载审计契约测试、runtime smoke、task audit、schema/mapping 校验、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-023`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: enriched benchmark report/query download audits with `configSnapshotId/resultId/historyId/exportId` linkage whenever report artifacts already carry governance trace metadata.
+  - 2026-04-24: added repo-local artifact lifecycle baseline for keeping the latest report-set, pruning stale sibling files on rewrite, and recovering missing `PDF/HTML/raw-data` files from persisted report snapshots.
+  - 2026-04-24: synchronized authority docs and local benchmark governance smoke semantics to the new D-TASK-023 repository truth before standard validation and closeout.
+- Context closeout:
+  - Completed scope: Implemented trace-linked benchmark report/download audits, repo-local artifact stale-file cleanup and snapshot recovery, updated local smoke semantics, and synchronized authority docs to the new repository truth.
+  - Validation evidence: python3 scripts/foreman.py validate D-TASK-023 --include-task-audit; mvn -B -pl governance,benchmark-engine -am test -DskipITs; bash scripts/run-runtime-smoke.sh --compose-check; node scripts/lint-repository-knowledge.js; bash -n scripts/manual-benchmark-governance-smoke.sh; python3 scripts/foreman.py compile-governance --check
+  - Residual risk: Benchmark artifact lifecycle is still repo-local and report-set scoped; tenant-specific retention/backfill policy plus environment-backed object-storage adapter/evidence remain outside the default repo-side path.
+  - Next step: Shape D-TASK-024 to cover benchmark artifact tenant-specific retention/backfill policy and environment-backed object-storage evidence without replacing the repo-local default baseline.
+
 ### D-TASK-022: 推进 benchmark-engine 外部 artifact storage、raw-data download 与治理追溯编排
 
 - Status: done

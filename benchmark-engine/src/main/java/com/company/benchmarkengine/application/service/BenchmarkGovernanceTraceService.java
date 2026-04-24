@@ -17,9 +17,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 public class BenchmarkGovernanceTraceService {
+
+    private static final String CONFIG_SNAPSHOT_PREFIX = "cfg-benchmark-";
+    private static final String RESULT_PREFIX = "result-benchmark-";
+    private static final String HISTORY_PREFIX = "history-benchmark-";
+    private static final String EXPORT_PREFIX = "export-benchmark-";
+    private static final String SAGA_PREFIX = "benchmark-report-";
 
     private final GovernanceCapabilityClient governanceCapabilityClient;
 
@@ -72,6 +79,32 @@ public class BenchmarkGovernanceTraceService {
         return enriched;
     }
 
+    public String resolveConfigSnapshotId(String reportId, boolean governanceTraceAvailable) {
+        return governanceTraceAvailable ? CONFIG_SNAPSHOT_PREFIX + sanitizeKey(reportId) : null;
+    }
+
+    public String resolveResultId(String reportId, boolean governanceTraceAvailable) {
+        return governanceTraceAvailable ? RESULT_PREFIX + sanitizeKey(reportId) : null;
+    }
+
+    public String resolveHistoryId(String reportId, boolean governanceTraceAvailable) {
+        return governanceTraceAvailable ? HISTORY_PREFIX + sanitizeKey(reportId) : null;
+    }
+
+    public String resolveExportId(String reportId, String artifactKey, boolean governanceTraceAvailable) {
+        if (!governanceTraceAvailable) {
+            return null;
+        }
+        return EXPORT_PREFIX + sanitizeKey(reportId) + "-" + sanitizeKey(artifactKey);
+    }
+
+    public String resolveSagaId(String taskId, boolean governanceTraceAvailable) {
+        if (!governanceTraceAvailable || !StringUtils.hasText(taskId)) {
+            return null;
+        }
+        return SAGA_PREFIX + taskId;
+    }
+
     private List<GovernanceBenchmarkArtifactTraceRequest> toTraceArtifacts(List<BenchmarkReportArtifact> artifacts) {
         List<GovernanceBenchmarkArtifactTraceRequest> traceArtifacts =
             new ArrayList<GovernanceBenchmarkArtifactTraceRequest>(artifacts.size());
@@ -100,5 +133,12 @@ public class BenchmarkGovernanceTraceService {
             values.add(String.valueOf(engine));
         }
         return values;
+    }
+
+    private String sanitizeKey(String rawValue) {
+        if (!StringUtils.hasText(rawValue)) {
+            return "unknown";
+        }
+        return rawValue.trim().replaceAll("[^A-Za-z0-9._-]", "-");
     }
 }

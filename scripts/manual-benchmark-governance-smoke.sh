@@ -21,6 +21,7 @@ CLEANUP=false
 SUCCESS_SUBMIT_REQUEST_ID=""
 SUCCESS_STATUS_REQUEST_ID=""
 SUCCESS_REPORT_REQUEST_ID=""
+SUCCESS_RAW_REQUEST_ID=""
 FAILURE_SUBMIT_REQUEST_ID=""
 FAILURE_STATUS_REQUEST_ID=""
 COMPENSATION_REQUEST_ID=""
@@ -78,18 +79,18 @@ cleanup_rows() {
   mysql_exec "DELETE FROM benchmark_task WHERE task_id IN ('${SUCCESS_TASK_ID:-}','${FAILURE_TASK_ID:-}');"
 
   print_step "Cleaning up smoke queue rows"
-  mysql_exec "DELETE FROM kafka_message_queue WHERE topic = 'governance.audit.event' AND (message_body LIKE '%\\\"requestId\\\":\\\"${SUCCESS_SUBMIT_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${SUCCESS_STATUS_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${SUCCESS_REPORT_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${FAILURE_SUBMIT_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${FAILURE_STATUS_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${COMPENSATION_REQUEST_ID}\\\"%');"
+  mysql_exec "DELETE FROM kafka_message_queue WHERE topic = 'governance.audit.event' AND (message_body LIKE '%\\\"requestId\\\":\\\"${SUCCESS_SUBMIT_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${SUCCESS_STATUS_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${SUCCESS_REPORT_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${SUCCESS_RAW_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${FAILURE_SUBMIT_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${FAILURE_STATUS_REQUEST_ID}\\\"%' OR message_body LIKE '%\\\"requestId\\\":\\\"${COMPENSATION_REQUEST_ID}\\\"%');"
 
   print_step "Cleaning up smoke audit rows"
-  mysql_exec "DELETE FROM audit_log WHERE request_id IN ('${SUCCESS_SUBMIT_REQUEST_ID}','${SUCCESS_STATUS_REQUEST_ID}','${SUCCESS_REPORT_REQUEST_ID}','${FAILURE_SUBMIT_REQUEST_ID}','${FAILURE_STATUS_REQUEST_ID}','${COMPENSATION_REQUEST_ID}');"
+  mysql_exec "DELETE FROM audit_log WHERE request_id IN ('${SUCCESS_SUBMIT_REQUEST_ID}','${SUCCESS_STATUS_REQUEST_ID}','${SUCCESS_REPORT_REQUEST_ID}','${SUCCESS_RAW_REQUEST_ID}','${FAILURE_SUBMIT_REQUEST_ID}','${FAILURE_STATUS_REQUEST_ID}','${COMPENSATION_REQUEST_ID}');"
 }
 
 main() {
   local issued_at expires_at stats_before stats_after pending_before pending_after
-  local success_submit success_status success_report failure_submit failure_status compensation_status
-  local submit_row status_row report_row failed_row queue_row
+  local success_submit success_status success_report success_raw failure_submit failure_status compensation_status
+  local submit_row status_row report_row raw_row failed_row queue_row
   local persisted_task_row persisted_report_row persisted_failed_task_row persisted_failed_report_count
-  local -a success_submit_headers success_status_headers success_report_headers failure_submit_headers failure_status_headers compensation_headers stats_headers
+  local -a success_submit_headers success_status_headers success_report_headers success_raw_headers failure_submit_headers failure_status_headers compensation_headers stats_headers
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -119,6 +120,7 @@ main() {
   SUCCESS_SUBMIT_REQUEST_ID="benchmark-submit-success-$(date +%Y%m%d%H%M%S)"
   SUCCESS_STATUS_REQUEST_ID="benchmark-status-success-$(date +%Y%m%d%H%M%S)"
   SUCCESS_REPORT_REQUEST_ID="benchmark-report-success-$(date +%Y%m%d%H%M%S)"
+  SUCCESS_RAW_REQUEST_ID="benchmark-raw-success-$(date +%Y%m%d%H%M%S)"
   FAILURE_SUBMIT_REQUEST_ID="benchmark-submit-failure-$(date +%Y%m%d%H%M%S)"
   FAILURE_STATUS_REQUEST_ID="benchmark-status-failure-$(date +%Y%m%d%H%M%S)"
   COMPENSATION_REQUEST_ID="benchmark-status-comp-$(date +%Y%m%d%H%M%S)"
@@ -127,6 +129,7 @@ main() {
   mapfile -t success_submit_headers < <(build_protected_headers "${SUCCESS_SUBMIT_REQUEST_ID}" "${SUCCESS_SUBMIT_REQUEST_ID}" "${issued_at}" "${expires_at}")
   mapfile -t success_status_headers < <(build_protected_headers "${SUCCESS_STATUS_REQUEST_ID}" "${SUCCESS_STATUS_REQUEST_ID}" "${issued_at}" "${expires_at}")
   mapfile -t success_report_headers < <(build_protected_headers "${SUCCESS_REPORT_REQUEST_ID}" "${SUCCESS_REPORT_REQUEST_ID}" "${issued_at}" "${expires_at}")
+  mapfile -t success_raw_headers < <(build_protected_headers "${SUCCESS_RAW_REQUEST_ID}" "${SUCCESS_RAW_REQUEST_ID}" "${issued_at}" "${expires_at}")
   mapfile -t failure_submit_headers < <(build_protected_headers "${FAILURE_SUBMIT_REQUEST_ID}" "${FAILURE_SUBMIT_REQUEST_ID}" "${issued_at}" "${expires_at}")
   mapfile -t failure_status_headers < <(build_protected_headers "${FAILURE_STATUS_REQUEST_ID}" "${FAILURE_STATUS_REQUEST_ID}" "${issued_at}" "${expires_at}")
   mapfile -t compensation_headers < <(build_protected_headers "${COMPENSATION_REQUEST_ID}" "${COMPENSATION_TRACE_ID}" "${issued_at}" "${expires_at}")
@@ -157,6 +160,11 @@ main() {
   json_assert "${success_report}" 'payload["requestedFormat"] == "JSON"'
   json_assert "${success_report}" '"HETU" in payload["targetEngines"] and "HIVE" in payload["targetEngines"]'
 
+  print_step "Downloading benchmark raw-data snapshot"
+  success_raw="$(assert_get_json "${BENCHMARK_ENGINE_API_BASE_URL}/api/benchmark-engine/reports/${SUCCESS_REPORT_ID}/raw-data" "${success_raw_headers[@]}")"
+  echo "${success_raw}"
+  json_assert "${success_raw}" 'payload["reportId"] == "'"${SUCCESS_REPORT_ID}"'"'
+
   print_step "Verifying persisted benchmark task/report rows"
   persisted_task_row="$(mysql_exec "SELECT status, report_id FROM benchmark_task WHERE task_id = '${SUCCESS_TASK_ID}' LIMIT 1;")"
   persisted_report_row="$(mysql_exec "SELECT task_id FROM benchmark_task_report WHERE report_id = '${SUCCESS_REPORT_ID}' LIMIT 1;")"
@@ -174,10 +182,12 @@ main() {
   print_step "Verifying benchmark success audit rows"
   submit_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${SUCCESS_SUBMIT_REQUEST_ID}' AND service_code = 'BENCHMARK_ENGINE' AND operation_type = 'BENCHMARK_TASK_SUBMIT' ORDER BY id DESC LIMIT 1;")"
   status_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${SUCCESS_STATUS_REQUEST_ID}' AND service_code = 'BENCHMARK_ENGINE' AND operation_type = 'BENCHMARK_TASK_STATUS_QUERY' ORDER BY id DESC LIMIT 1;")"
-  report_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${SUCCESS_REPORT_REQUEST_ID}' AND service_code = 'BENCHMARK_ENGINE' AND operation_type = 'BENCHMARK_REPORT_QUERY' ORDER BY id DESC LIMIT 1;")"
+  report_row="$(mysql_exec "SELECT status, target_id, COALESCE(config_snapshot_id,''), COALESCE(result_id,''), COALESCE(history_id,''), COALESCE(export_id,'') FROM audit_log WHERE request_id = '${SUCCESS_REPORT_REQUEST_ID}' AND service_code = 'BENCHMARK_ENGINE' AND operation_type = 'BENCHMARK_REPORT_QUERY' ORDER BY id DESC LIMIT 1;")"
+  raw_row="$(mysql_exec "SELECT status, target_id, COALESCE(config_snapshot_id,''), COALESCE(result_id,''), COALESCE(history_id,''), COALESCE(export_id,'') FROM audit_log WHERE request_id = '${SUCCESS_RAW_REQUEST_ID}' AND service_code = 'BENCHMARK_ENGINE' AND operation_type = 'BENCHMARK_REPORT_QUERY' ORDER BY id DESC LIMIT 1;")"
   echo "${submit_row}"
   echo "${status_row}"
   echo "${report_row}"
+  echo "${raw_row}"
   if [[ "${submit_row}" != QUEUED$'\t'"${SUCCESS_TASK_ID}" ]]; then
     echo "Expected QUEUED submit audit row for ${SUCCESS_SUBMIT_REQUEST_ID}" >&2
     exit 1
@@ -186,8 +196,12 @@ main() {
     echo "Expected SUCCEEDED status audit row for ${SUCCESS_STATUS_REQUEST_ID}" >&2
     exit 1
   fi
-  if [[ "${report_row}" != SUCCESS$'\t'"${SUCCESS_REPORT_ID}" ]]; then
-    echo "Expected SUCCESS report audit row for ${SUCCESS_REPORT_REQUEST_ID}" >&2
+  if [[ "${report_row}" != SUCCESS$'\t'"${SUCCESS_REPORT_ID}"$'\t'"cfg-benchmark-${SUCCESS_REPORT_ID}"$'\t'"result-benchmark-${SUCCESS_REPORT_ID}"$'\t'"history-benchmark-${SUCCESS_REPORT_ID}"$'\t'"export-benchmark-${SUCCESS_REPORT_ID}-json-export" ]]; then
+    echo "Expected SUCCESS report audit row with trace/export links for ${SUCCESS_REPORT_REQUEST_ID}" >&2
+    exit 1
+  fi
+  if [[ "${raw_row}" != SUCCESS$'\t'"${SUCCESS_REPORT_ID}"$'\t'"cfg-benchmark-${SUCCESS_REPORT_ID}"$'\t'"result-benchmark-${SUCCESS_REPORT_ID}"$'\t'"history-benchmark-${SUCCESS_REPORT_ID}"$'\t'"export-benchmark-${SUCCESS_REPORT_ID}-raw-data" ]]; then
+    echo "Expected SUCCESS raw-data audit row with trace/export links for ${SUCCESS_RAW_REQUEST_ID}" >&2
     exit 1
   fi
 

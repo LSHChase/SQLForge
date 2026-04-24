@@ -25,3 +25,5 @@ benchmark-engine:
   artifact-storage:
     base-dir: target/benchmark-engine-artifacts/test-runtime
     storage-type: LOCAL_FILE
+    recovery-enabled: true
+    cleanup-stale-files: true

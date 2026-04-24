@@ -99,6 +99,7 @@
 - 当前已落地两类真实写入入口：
   - `POST /api/governance/internal/audit/write`
   - `governance` 的 header-based stateless auth `LOGIN` / `LOGOUT` 事件
+- 当前 `benchmark-engine` 的报告查询、导出查询与 raw-data 下载在 artifact 已具备治理追溯元数据时，会把 `config_snapshot_id/result_id/history_id/export_id` 一并写入对应 `audit_log`。
 - 当前 audit 真写链会在入库前统一处理 `request_params` 与 `response_summary`：
   - `request_params` 仅保留脱敏 JSON
   - `response_summary` 仅保留脱敏文本

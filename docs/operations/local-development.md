@@ -18,6 +18,7 @@
 - 查询执行到治理链路 smoke：`bash scripts/manual-query-governance-smoke.sh --cleanup`
 - SQL 优化到治理链路 smoke：`bash scripts/manual-sql-optimization-governance-smoke.sh --cleanup`
 - 压测引擎到治理链路 smoke：`bash scripts/manual-benchmark-governance-smoke.sh --cleanup`
+  - 当前会校验 benchmark 报告查询与 raw-data 下载审计已补齐 trace/export 链接键
 - 测试环境最小 smoke 入口：`bash scripts/run-env-smoke.sh`
   - 可先执行 `bash scripts/run-env-smoke.sh --check-config`
   - 该入口供外部测试环境 CI/CD 在部署后调用，不替代本地 repo-closed runtime smoke
@@ -57,7 +58,7 @@
 - 运行时 smoke 门禁：`bash scripts/run-runtime-smoke.sh --compose-check`、`bash scripts/run-runtime-smoke.sh --runtime-smoke`
   - `--runtime-smoke` 会启动本地依赖、`governance`、`query-execution`、`sql-optimization`、`benchmark-engine` 和前端 dev server，并串联健康探针、治理授权矩阵 smoke、`query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 业务 smoke、消息队列 smoke，以及浏览器驱动的前端 `sql-query` / `acceleration` / `benchmark` 真实业务请求 smoke
   - 如未预先设置 `SQLFORGE_DEV_CRYPTO_KEY_BASE64`，脚本会回落到仓库测试使用的开发密钥，并向需要敏感字段加密初始化的服务注入 dev key；仅用于本地 / CI `dev` smoke
-  - 业务 smoke 会验证治理授权成功/拒绝/跨租户/吊销后访问与权限变更审计、查询执行成功链路、SQL 优化任务提交/轮询、压测任务提交/报告读取、失败恢复路径、治理审计写入、前端浏览器端真实请求，以及按 trace 前缀触发的审计补偿队列兜底
+  - 业务 smoke 会验证治理授权成功/拒绝/跨租户/吊销后访问与权限变更审计、查询执行成功链路、SQL 优化任务提交/轮询、压测任务提交/报告读取与 raw-data 下载审计链接、失败恢复路径、治理审计写入、前端浏览器端真实请求，以及按 trace 前缀触发的审计补偿队列兜底
   - 前端 smoke 优先复用系统 Chrome；如本机没有常见的 Chrome / Chromium 可执行文件，则会回退到 Playwright 默认浏览器解析逻辑
 - 测试环境 minimal smoke：
   - `bash scripts/run-env-smoke.sh`

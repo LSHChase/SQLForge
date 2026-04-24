@@ -47,6 +47,10 @@ class GovernanceHttpClientTest {
             .andExpect(method(HttpMethod.POST))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("\"sourceIp\":\"10.0.0.9\"")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("\"userAgent\":\"SQLForge-Benchmark-Test-UA\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"configSnapshotId\":\"cfg-benchmark-report-001\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"resultId\":\"result-benchmark-report-001\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"historyId\":\"history-benchmark-report-001\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"exportId\":\"export-benchmark-report-001-pdf-export\"")))
             .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
 
         client.writeAudit(new BenchmarkAuditRecord(
@@ -55,6 +59,11 @@ class GovernanceHttpClientTest {
             "task-001",
             "QUEUED",
             16L,
+            "benchmark-report-task-001",
+            "cfg-benchmark-report-001",
+            "result-benchmark-report-001",
+            "history-benchmark-report-001",
+            "export-benchmark-report-001-pdf-export",
             "{\"tenantId\":\"tenant-a\"}",
             "{\"resultStatus\":\"QUEUED\"}"
         ));

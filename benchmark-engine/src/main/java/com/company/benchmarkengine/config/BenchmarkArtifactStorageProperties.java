@@ -7,6 +7,8 @@ public class BenchmarkArtifactStorageProperties {
 
     private String baseDir = "target/benchmark-engine-artifacts";
     private String storageType = "LOCAL_FILE";
+    private boolean recoveryEnabled = true;
+    private boolean cleanupStaleFiles = true;
 
     public String getBaseDir() {
         return baseDir;
@@ -22,5 +24,21 @@ public class BenchmarkArtifactStorageProperties {
 
     public void setStorageType(String storageType) {
         this.storageType = storageType;
+    }
+
+    public boolean isRecoveryEnabled() {
+        return recoveryEnabled;
+    }
+
+    public void setRecoveryEnabled(boolean recoveryEnabled) {
+        this.recoveryEnabled = recoveryEnabled;
+    }
+
+    public boolean isCleanupStaleFiles() {
+        return cleanupStaleFiles;
+    }
+
+    public void setCleanupStaleFiles(boolean cleanupStaleFiles) {
+        this.cleanupStaleFiles = cleanupStaleFiles;
     }
 }
