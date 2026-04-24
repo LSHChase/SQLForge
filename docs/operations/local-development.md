@@ -22,6 +22,9 @@
   - 可先执行 `bash scripts/run-env-smoke.sh --check-config`
   - 该入口供外部测试环境 CI/CD 在部署后调用，不替代本地 repo-closed runtime smoke
 - 消息链路 smoke：`bash scripts/manual-message-queue-smoke.sh`
+- 前端轻量 dev browser smoke：`npm run smoke:frontend-dev`
+  - 该入口会临时拉起本地 Vite dev server，并在浏览器侧 mock `/api/*` 以验证 history 路由、Vue SFC 页面渲染和 `X-SQLForge-Dev-*` 调试提示头语义
+  - 该入口用于本地前端基线回归，不替代 `npm run smoke:frontend-runtime` 的多服务真实业务 smoke
 - 前端真实业务 smoke：`npm run smoke:frontend-runtime`
 - 运行时 smoke 编排：`bash scripts/run-runtime-smoke.sh`
   - 如只需要后端服务，不需要前端 browser smoke，可直接使用 `bash scripts/start-backend-services.sh`
@@ -44,6 +47,9 @@
   - Sonar 当前属于 `environment-backed` fallback，不是本地 `repo-closed` 主路径的默认硬前提；workflow 侧还要求显式 `SONAR_ENABLE_DEFAULT=true` 才会重新消费已 provision 的 Sonar 配置，具体恢复要求见 `docs/deployments/sonar-quality-gate-provisioning.md`
 - 前端构建：`npm run build`
 - 前端 lint：`npm run lint`
+- 前端轻量 dev browser smoke：`npm run smoke:frontend-dev`
+  - 自动拉起本地 Vite dev server，通过浏览器拦截 mock `/api/*`，检查 `dashboard`、`sql-query`、`runtime-gates`、`recovery-drill` 的 dev 路由与请求头语义
+  - 用于快速确认当前 Vue SFC + Vite history 路由基线，不替代 full-stack runtime smoke
 - 前端真实业务 smoke：`npm run smoke:frontend-runtime`
 - Compose 语法检查：`docker compose config`
 - 运行时 smoke 门禁：`bash scripts/run-runtime-smoke.sh --compose-check`、`bash scripts/run-runtime-smoke.sh --runtime-smoke`

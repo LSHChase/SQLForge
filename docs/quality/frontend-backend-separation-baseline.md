@@ -5,6 +5,7 @@
 ## 当前结构
 
 - 前端工程位于仓库根目录，入口为 `package.json`、`vite.config.js`、`src/`。
+- 当前前端页面源码已回到 Vue SFC 形态，Vite dev server 与 portable 打包产物共同构成现行前端交付基线。
 - 后端工程位于 Maven 多模块目录，当前按根级 `pom.xml` 自动发现模块，覆盖 `sqlforge-shared/`、`governance/`、`query-execution/`、`sql-optimization/`、`benchmark-engine/` 等后端子工程。
 - 前端通过 Vite 代理访问 `http://localhost:8080`，未直接依赖后端实现类。
 
@@ -20,6 +21,7 @@
 ## 本轮结果
 
 - 已新增 `scripts/check-frontend-backend-separation.js` 作为专项检测脚本。
+- 已新增 `scripts/check-dev-frontend.mjs` 作为轻量 dev browser smoke，用浏览器侧 mock `/api/*` 校验 Vite history 路由、Vue SFC 页面渲染，以及 `X-SQLForge-Dev-*` 调试提示头仍只停留在开发态请求层。
 - 已将前后端分离检查接入 `Makefile lint` 和 CI。
 - 当前脚本会自动扫描全部 Maven 后端模块，而不再依赖手工枚举模块名。
 - 当前基线未发现以下结构性违规：
@@ -43,5 +45,6 @@
 ## 执行方式
 
 - 本地执行：`node scripts/check-frontend-backend-separation.js`
+- 本地前端 dev 基线：`npm run smoke:frontend-dev`
 - 集成执行：`make lint`
 - 持续集成：GitHub Actions `CI`

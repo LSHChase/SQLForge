@@ -4,6 +4,30 @@
 
 ## Done
 
+### E-TASK-015: 补齐前端 dev browser smoke 并清理 SFC 恢复后的当前叙事
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(frontend): add Vite dev browser smoke`
+- Priority: 1
+- Depends on: `E-TASK-014`
+- Scope: 为 Vite dev server 补齐轻量浏览器 smoke，并清理仍把 non-SFC 迁移表述成当前真值的计划/操作文档；保留现有 Vue SFC、portable 包与 full-stack runtime smoke 语义 Tech: `VUE-FE`,`OPS`,`DOCS`. Layer: `frontend/router/views/styles`,`deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-E / Story `E-STORY-005` 前端构建链迁移与便携产物治理
+- Human confirmation point: 若新增 dev browser smoke 会替代既有 full-stack runtime smoke、削弱现有 portable / 代理语义验证，或为清理叙事而改写历史任务完成记录，需人工确认
+- Data impact: Vite dev server 浏览器 smoke 覆盖、当前前端治理叙事、路由/代理语义
+- Rollback / recovery: 保留 `E-TASK-014` 已验证的 Vue SFC / portable 基线，回退高风险 dev smoke 或文档清理改动，并恢复到上一个已验证的前端交付真值
+- Validation:
+  - `npm run lint`、`npm run build`、`npm run build:portable`、toolchain/portable/dev browser smoke 检查、task audit
+  - `python3 scripts/foreman.py validate E-TASK-015`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: added a lightweight Vite dev browser smoke entrypoint that boots the dev server, validates history-route rendering plus query success/recovery flows against browser-side `/api/*` mocks, and updated operations/separation docs so current frontend truth distinguishes Vue SFC dev smoke from the heavier full-stack runtime smoke.
+- Context closeout:
+  - Completed scope: Added a lightweight Vite dev browser smoke that boots the local dev server, validates history-mode route rendering plus query success/recovery flows against browser-side /api mocks, records dev request-header semantics, and updates operations/separation docs so the current frontend truth distinguishes the restored Vue SFC dev baseline from the heavier full-stack runtime smoke.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-015 --include-task-audit --extra-command "npm run lint" --extra-command "npm run build" --extra-command "npm run build:portable" --extra-command "node scripts/check-frontend-toolchain.mjs" --extra-command "node scripts/check-portable-frontend.mjs" --extra-command "node scripts/check-dev-frontend.mjs"; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The repository now has a lightweight Vite dev browser smoke and the current SFC/dev-baseline docs are aligned, but the new smoke is intentionally browser-mocked and does not replace the existing multi-service runtime smoke; historical non-SFC task narratives remain in tasks-done by design as immutable completion records, and HARN-016 plus INBOX-001 remain unchanged environment-backed follow-ups.
+  - Next step: If frontend hardening continues, decide whether the lightweight dev browser smoke should stay as a local repo-closed baseline only or be promoted into broader CI/runtime gating alongside the existing full-stack smoke without duplicating coverage.
+
 ### HARN-020: Reconcile E-TASK-014 closeout drift and shape E-TASK-015
 
 - Status: done
