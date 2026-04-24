@@ -1,4 +1,5 @@
 import { defineConfig, loadEnv } from 'vite'
+import vue from '@vitejs/plugin-vue'
 import { createProtectedApiProxy, resolveProxyDefaults } from './scripts/frontend-proxy-shared.mjs'
 
 const resolveManualChunk = id => {
@@ -29,6 +30,7 @@ export default defineConfig(({ mode }) => {
   const isPortableBuild = mode === 'portable'
 
   return {
+    plugins: [vue()],
     base: isPortableBuild ? './' : '/',
     server: {
       host: '0.0.0.0',

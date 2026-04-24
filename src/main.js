@@ -16,7 +16,7 @@ import {
 } from 'element-plus'
 import 'element-plus/dist/index.css'
 import { createI18n } from 'vue-i18n'
-import App from './App.js'
+import App from './App.vue'
 import router from './router'
 import { pinia, useGlobalConfigStore } from './stores'
 import zhCN from './locales/zh-CN'

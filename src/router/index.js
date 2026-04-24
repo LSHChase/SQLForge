@@ -2,17 +2,17 @@ import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router
 import { deliveryProgressEnabled } from '../config/runtimeFlags'
 import { LEGACY_ROUTE_REDIRECTS, ROUTE_PATHS } from '../config/routePaths.mjs'
 
-const DashboardView = () => import('../views/dashboard/DashboardView.js')
-const SqlQueryView = () => import('../views/query/SqlQueryView.js')
-const ParseRecordView = () => import('../views/parse-record/ParseRecordView.js')
-const RepairEvidenceView = () => import('../views/repair-evidence/RepairEvidenceView.js')
-const AuditForensicsView = () => import('../views/audit-forensics/AuditForensicsView.js')
-const AuditTroubleshootingView = () => import('../views/audit-troubleshooting/AuditTroubleshootingView.js')
-const RuntimeGatesView = () => import('../views/runtime-gates/RuntimeGatesView.js')
-const RecoveryDrillView = () => import('../views/recovery-drill/RecoveryDrillView.js')
-const AccelerationView = () => import('../views/optimization/AccelerationView.js')
-const BenchmarkView = () => import('../views/benchmark/BenchmarkView.js')
-const SystemView = () => import('../views/system/SystemView.js')
+const DashboardView = () => import('../views/dashboard/DashboardView.vue')
+const SqlQueryView = () => import('../views/query/SqlQueryView.vue')
+const ParseRecordView = () => import('../views/parse-record/ParseRecordView.vue')
+const RepairEvidenceView = () => import('../views/repair-evidence/RepairEvidenceView.vue')
+const AuditForensicsView = () => import('../views/audit-forensics/AuditForensicsView.vue')
+const AuditTroubleshootingView = () => import('../views/audit-troubleshooting/AuditTroubleshootingView.vue')
+const RuntimeGatesView = () => import('../views/runtime-gates/RuntimeGatesView.vue')
+const RecoveryDrillView = () => import('../views/recovery-drill/RecoveryDrillView.vue')
+const AccelerationView = () => import('../views/optimization/AccelerationView.vue')
+const BenchmarkView = () => import('../views/benchmark/BenchmarkView.vue')
+const SystemView = () => import('../views/system/SystemView.vue')
 
 export const constantRoutes = [
   {
@@ -162,7 +162,7 @@ if (deliveryProgressEnabled) {
   constantRoutes.push({
     path: ROUTE_PATHS.deliveryProgress,
     name: 'DeliveryProgress',
-    component: () => import('../views/delivery/DeliveryProgressView.js'),
+    component: () => import('../views/delivery/DeliveryProgressView.vue'),
     meta: {
       menu: true,
       navGroup: 'temporary',

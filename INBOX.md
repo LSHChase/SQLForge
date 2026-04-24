@@ -29,5 +29,5 @@
 ### INBOX-003: 前端 Vue SFC 构建约束与依赖禁用策略冲突
 
 - Status: resolved
-- Needed decision: 人类已确认按更大范围方案推进：不保留原有 Vue SFC 架构，改为在 `E-TASK-011` 中迁移根组件、路由视图与构建链到非 `.vue` 方案，并同时交付可移植的双产物前端包；后续只剩实现与验证收尾，不再等待新的任务塑形决策。
-- Task refs: E-TASK-010, E-TASK-011
+- Needed decision: 人类已再次确认当前环境允许 `@vitejs/plugin-vue` 与 `@vue/compiler-sfc`，因此不再坚持非 SFC 架构；按 `E-TASK-014` 恢复根级前端 `.vue` 源文件与 SFC 构建链，同时保留此前已经交付的 portable 双产物、浏览器 smoke 和分包优化结果。
+- Task refs: E-TASK-010, E-TASK-011, E-TASK-014

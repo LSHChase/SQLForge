@@ -5,7 +5,9 @@ module.exports = {
     es2021: true,
     node: true
   },
-  extends: ['eslint:recommended'],
+  extends: ['eslint:recommended', 'plugin:vue/vue3-recommended'],
+  plugins: ['vue'],
+  parser: 'vue-eslint-parser',
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module'
@@ -23,6 +25,8 @@ module.exports = {
     }
   ],
   rules: {
-    'no-console': 'warn'
+    'no-console': 'warn',
+    'vue/max-attributes-per-line': 'off',
+    'vue/singleline-html-element-content-newline': 'off'
   }
 }

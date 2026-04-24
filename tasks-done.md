@@ -4,6 +4,27 @@
 
 ## Done
 
+### E-TASK-014: 恢复 Vue SFC 构建链并保留前端便携产物
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(frontend): restore Vue SFC toolchain`
+- Priority: 1
+- Depends on: E-TASK-013
+- Scope: Restore the root frontend to Vue single-file components now that @vitejs/plugin-vue and @vue/compiler-sfc are allowed again, while preserving the current frontend behavior and the portable build/package workflow.
+- Validation:
+  - `python3 scripts/foreman.py validate E-TASK-014`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: human policy changed again to allow `@vitejs/plugin-vue` and `@vue/compiler-sfc`, so the task scope was executed as a structured restoration of the Vue SFC toolchain rather than another non-SFC hardening step.
+  - 2026-04-24: restored the historical `.vue` root and route-view source files, rewired the app entry and lazy-loaded router imports back to SFC modules, reintroduced `@vitejs/plugin-vue` plus `@vue/compiler-sfc`, and removed the temporary local vue runtime shim plus generated `.js`/`.css` component artifacts.
+  - 2026-04-24: preserved the later portable build, vendor chunk split, explicit Element Plus component registration, and browser smoke workflow, then updated the frontend toolchain check and governance truth to validate the restored SFC-based contract instead of the prior dependency-ban policy.
+- Context closeout:
+  - Completed scope: Restored the root frontend back to Vue single-file components, reintroduced @vitejs/plugin-vue plus @vue/compiler-sfc, removed the temporary vue runtime shim and generated JS/CSS view artifacts, and kept the portable package plus chunk-splitting/browser-smoke workflow intact.
+  - Validation evidence: Validated with npm run lint, npm run build, npm run build:portable, node scripts/check-frontend-toolchain.mjs, node scripts/check-portable-frontend.mjs, and foreman validate including task_audit.
+  - Residual risk: The repository now again depends on the Vue SFC toolchain and still assumes Node 18.20.8 on target environments, while some local dev pages can still surface backend-driven 404/500 responses when their backing services are not running.
+  - Next step: If frontend follow-up continues, add a small browser smoke for the dev build itself and decide whether the now-restored SFC architecture should trigger any cleanup of historical non-SFC task narratives beyond the new governance truth sync.
+
 ### E-TASK-013: 补齐 portable 前端浏览器 smoke 并收口构建分包告警
 
 - Status: done
