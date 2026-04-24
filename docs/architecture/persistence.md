@@ -92,6 +92,7 @@
 - 当前 `benchmark-engine` 会为 `JSON/PDF/HTML` 报告导出与 raw-data snapshot 生成稳定 `export_record`，其 `export_id` 采用 `reportId + artifactKey` 的幂等键策略。
 - 当前 `benchmark-engine -> governance` trace 编排会把 workloadDigest/workloadSource/backfillApplied/workloadEvidence 中的 compensation-replay 结构证据，以及 artifact `storageEvidence/retention*` 中的 primary/recovery provider contract、recovery order、cleanup scope、provider/external verification 证据，一并下沉到 `config_snapshot.snapshot_payload`、`execution_result.result_summary/result_payload`、`query_history.query_context` 与 `export_record.export_options`。
 - 当前 `export_record.export_options.storageEvidence` 已成为治理查询面的结构化来源之一，供 history summary/detail 抽取 `artifactStorageContract` 与 `artifactRecoverySurface`，而不是只保留成不可复用的文本旁证。
+- 当前 `audit_log.response_summary` 还会写入 `artifactOperationSurface`，把 governance-triggered cleanup/recovery 的 `operationType/operationStatus/cleanupScope/storageRecoverySource/storageReadStatus/providerHeadStatus/providerRequestId` 直接暴露给治理 detail/query。
 
 ### `audit_log`
 
@@ -103,6 +104,7 @@
   - `governance` 的 header-based stateless auth `LOGIN` / `LOGOUT` 事件
 - 当前 `benchmark-engine` 的报告查询、导出查询与 raw-data 下载在 artifact 已具备治理追溯元数据时，会把 `config_snapshot_id/result_id/history_id/export_id` 一并写入对应 `audit_log`。
 - 当前 `benchmark-engine` 的报告查询、导出查询与 raw-data 下载还会把 artifact recovery status、storage recovery source、storage read status 与 provider/external recovery 留痕写入 `audit_log.response_summary`，供 governance history query/detail 直接复用。
+- 当前 `benchmark-engine` 新增的内部 artifact operation 会继续把 cleanup/recovery operation surface 写入 `audit_log.response_summary.artifactOperationSurface`，并复用既有 `artifactStorageEvidence`/trace keys，而不是另起不可追溯的旁路表。
 - 当前 audit 真写链会在入库前统一处理 `request_params` 与 `response_summary`：
   - `request_params` 仅保留脱敏 JSON
   - `response_summary` 仅保留脱敏文本

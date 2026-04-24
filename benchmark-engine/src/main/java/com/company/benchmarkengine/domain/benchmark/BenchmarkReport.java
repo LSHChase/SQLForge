@@ -179,6 +179,18 @@ public class BenchmarkReport {
         return findArtifact(BenchmarkReportArtifactKind.RAW_DATA_SNAPSHOT, BenchmarkReportFormat.JSON);
     }
 
+    public BenchmarkReportArtifact findArtifactByArtifactKey(String artifactKey) {
+        if (artifactKey == null || exportArtifacts == null) {
+            return null;
+        }
+        for (BenchmarkReportArtifact artifact : exportArtifacts) {
+            if (artifactKey.equals(artifact.getArtifactKey())) {
+                return artifact;
+            }
+        }
+        return null;
+    }
+
     private BenchmarkReportArtifact findArtifact(BenchmarkReportArtifactKind artifactKind, BenchmarkReportFormat format) {
         if (format == null || exportArtifacts == null) {
             return null;

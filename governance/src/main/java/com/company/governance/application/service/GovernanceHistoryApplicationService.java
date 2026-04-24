@@ -8,6 +8,7 @@ import com.company.governance.domain.trace.entity.AuditLogRecord;
 import com.company.governance.domain.trace.entity.ExportRecord;
 import com.company.governance.domain.trace.entity.QueryHistoryRecord;
 import com.company.governance.domain.trace.entity.TraceLookupHitRecord;
+import com.company.governance.infrastructure.benchmarkengine.GovernanceBenchmarkEngineClient;
 import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.GovernanceHistoryLookupIndexMapper;
@@ -16,6 +17,8 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.TenantContext;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationRequest;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
 import com.company.sqlforge.common.utils.JsonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -68,12 +71,28 @@ public class GovernanceHistoryApplicationService {
     private final QueryHistoryMapper queryHistoryMapper;
     private final ExportRecordMapper exportRecordMapper;
     private final TenantAccessLogic tenantAccessLogic;
+    private final GovernanceBenchmarkEngineClient governanceBenchmarkEngineClient;
 
     public GovernanceHistoryApplicationService(AuditLogMapper auditLogMapper,
                                                QueryHistoryMapper queryHistoryMapper,
                                                ExportRecordMapper exportRecordMapper,
                                                TenantAccessLogic tenantAccessLogic) {
-        this(auditLogMapper, null, queryHistoryMapper, exportRecordMapper, tenantAccessLogic);
+        this(auditLogMapper, null, queryHistoryMapper, exportRecordMapper, tenantAccessLogic, null);
+    }
+
+    public GovernanceHistoryApplicationService(AuditLogMapper auditLogMapper,
+                                               GovernanceHistoryLookupIndexMapper governanceHistoryLookupIndexMapper,
+                                               QueryHistoryMapper queryHistoryMapper,
+                                               ExportRecordMapper exportRecordMapper,
+                                               TenantAccessLogic tenantAccessLogic) {
+        this(
+            auditLogMapper,
+            governanceHistoryLookupIndexMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic,
+            null
+        );
     }
 
     @Autowired
@@ -81,12 +100,14 @@ public class GovernanceHistoryApplicationService {
                                                GovernanceHistoryLookupIndexMapper governanceHistoryLookupIndexMapper,
                                                QueryHistoryMapper queryHistoryMapper,
                                                ExportRecordMapper exportRecordMapper,
-                                               TenantAccessLogic tenantAccessLogic) {
+                                               TenantAccessLogic tenantAccessLogic,
+                                               GovernanceBenchmarkEngineClient governanceBenchmarkEngineClient) {
         this.auditLogMapper = auditLogMapper;
         this.governanceHistoryLookupIndexMapper = governanceHistoryLookupIndexMapper;
         this.queryHistoryMapper = queryHistoryMapper;
         this.exportRecordMapper = exportRecordMapper;
         this.tenantAccessLogic = tenantAccessLogic;
+        this.governanceBenchmarkEngineClient = governanceBenchmarkEngineClient;
     }
 
     public List<GovernanceTraceSummaryVO> findRecentTraces(String tenantId, Integer limit) {
@@ -252,6 +273,28 @@ public class GovernanceHistoryApplicationService {
         return aggregate.toDetailVO();
     }
 
+    public GovernanceBenchmarkArtifactOperationResponse operateArtifact(
+        GovernanceBenchmarkArtifactOperationRequest request
+    ) {
+        if (governanceBenchmarkEngineClient == null) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID,
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Governance benchmark-engine client is unavailable"
+            );
+        }
+        String effectiveTenantId = resolveAuthorizedTenantId(trimToNull(request == null ? null : request.getTenantId()));
+        assertArtifactOperationRole();
+        GovernanceBenchmarkArtifactOperationRequest internalRequest = new GovernanceBenchmarkArtifactOperationRequest();
+        internalRequest.setTenantId(effectiveTenantId);
+        internalRequest.setReportId(trimToNull(request == null ? null : request.getReportId()));
+        internalRequest.setArtifactKey(trimToNull(request == null ? null : request.getArtifactKey()));
+        internalRequest.setOperationType(trimToNull(request == null ? null : request.getOperationType()));
+        internalRequest.setOperationReason(trimToNull(request == null ? null : request.getOperationReason()));
+        internalRequest.setCleanupScope(trimToNull(request == null ? null : request.getCleanupScope()));
+        return governanceBenchmarkEngineClient.operateArtifact(internalRequest);
+    }
+
     private void mergeAuditLogs(Map<String, TraceAggregate> aggregateByTraceId, List<AuditLogRecord> records) {
         if (records == null) {
             return;
@@ -369,6 +412,17 @@ public class GovernanceHistoryApplicationService {
             );
         }
         return effectiveTenantId;
+    }
+
+    private void assertArtifactOperationRole() {
+        if (RequestContext.hasRole(PLATFORM_ADMIN) || RequestContext.hasRole(TENANT_ADMIN)) {
+            return;
+        }
+        throw new BizException(
+            ErrorCodeConstants.GOVERNANCE_ACCESS_DENIED,
+            HttpStatus.FORBIDDEN,
+            "current role cannot trigger artifact cleanup or recovery"
+        );
     }
 
     private int normalizeLimit(Integer limit) {
@@ -727,6 +781,19 @@ public class GovernanceHistoryApplicationService {
         return recovery.isEmpty() ? null : recovery;
     }
 
+    private static Map<String, Object> buildArtifactOperationSurface(Map<String, Object> responseSummary) {
+        if (responseSummary == null || responseSummary.isEmpty()) {
+            return null;
+        }
+        Object nested = responseSummary.get("artifactOperationSurface");
+        if (!(nested instanceof Map)) {
+            return null;
+        }
+        LinkedHashMap<String, Object> operationSurface = new LinkedHashMap<String, Object>();
+        operationSurface.putAll((Map<String, Object>) nested);
+        return operationSurface;
+    }
+
     private static Map<String, Object> mergeEvidenceMaps(Map<String, Object> first, Map<String, Object> second) {
         LinkedHashMap<String, Object> merged = new LinkedHashMap<String, Object>();
         if (first != null && !first.isEmpty()) {
@@ -772,6 +839,7 @@ public class GovernanceHistoryApplicationService {
         private Map<String, Object> compensationReplayEvidence;
         private Map<String, Object> artifactStorageContract;
         private Map<String, Object> artifactRecoverySurface;
+        private Map<String, Object> artifactOperationSurface;
         private boolean summaryUsesBusinessAudit;
         private boolean hasBusinessAudit;
         private final List<GovernanceTraceDetailVO.AuditEventVO> auditEvents;
@@ -796,6 +864,7 @@ public class GovernanceHistoryApplicationService {
             Map<String, Object> compensationEvidence = null;
             Map<String, Object> storageContract = buildArtifactStorageContract(responseSummary, null);
             Map<String, Object> recoverySurface = buildArtifactRecoverySurface(responseSummary, null);
+            Map<String, Object> operationSurface = buildArtifactOperationSurface(responseSummary);
 
             GovernanceTraceDetailVO.AuditEventVO event = new GovernanceTraceDetailVO.AuditEventVO();
             event.setId(record.getId());
@@ -837,11 +906,13 @@ public class GovernanceHistoryApplicationService {
                 this.compensationReplayEvidence = selectEvidenceMap(this.compensationReplayEvidence, compensationEvidence, true);
                 this.artifactStorageContract = selectEvidenceMap(this.artifactStorageContract, storageContract, true);
                 this.artifactRecoverySurface = selectEvidenceMap(this.artifactRecoverySurface, recoverySurface, true);
+                this.artifactOperationSurface = selectEvidenceMap(this.artifactOperationSurface, operationSurface, true);
                 this.summaryUsesBusinessAudit = businessAudit;
             } else {
                 this.compensationReplayEvidence = selectEvidenceMap(this.compensationReplayEvidence, compensationEvidence, false);
                 this.artifactStorageContract = selectEvidenceMap(this.artifactStorageContract, storageContract, false);
                 this.artifactRecoverySurface = selectEvidenceMap(this.artifactRecoverySurface, recoverySurface, false);
+                this.artifactOperationSurface = selectEvidenceMap(this.artifactOperationSurface, operationSurface, false);
             }
         }
 
@@ -1017,7 +1088,8 @@ public class GovernanceHistoryApplicationService {
                 this.degraded,
                 this.compensationReplayEvidence,
                 this.artifactStorageContract,
-                this.artifactRecoverySurface
+                this.artifactRecoverySurface,
+                this.artifactOperationSurface
             );
         }
 
@@ -1044,6 +1116,7 @@ public class GovernanceHistoryApplicationService {
             detailVO.setCompensationReplayEvidence(this.compensationReplayEvidence);
             detailVO.setArtifactStorageContract(this.artifactStorageContract);
             detailVO.setArtifactRecoverySurface(this.artifactRecoverySurface);
+            detailVO.setArtifactOperationSurface(this.artifactOperationSurface);
             detailVO.setAuditEvents(this.auditEvents);
             detailVO.setQueryHistories(this.queryHistories);
             detailVO.setExportRecords(this.exportRecords);

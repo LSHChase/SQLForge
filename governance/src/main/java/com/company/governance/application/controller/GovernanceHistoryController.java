@@ -6,12 +6,16 @@ import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO
 import com.company.governance.application.service.GovernanceHistoryApplicationService;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.TenantContext;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationRequest;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -81,5 +85,21 @@ public class GovernanceHistoryController {
             traceId,
             RequestContext.getTraceId());
         return governanceHistoryApplicationService.findTraceDetail(effectiveTenantId, traceId, limit);
+    }
+
+    @PostMapping("/artifact-operations")
+    public GovernanceBenchmarkArtifactOperationResponse operateArtifact(
+        @RequestBody GovernanceBenchmarkArtifactOperationRequest request
+    ) {
+        String effectiveTenantId = StringUtils.hasText(request == null ? null : request.getTenantId())
+            ? request.getTenantId()
+            : TenantContext.get();
+        LOGGER.info("Handling governance artifact operation, tenantId={}, reportId={}, artifactKey={}, operationType={}, requestTraceId={}",
+            effectiveTenantId,
+            request == null ? null : request.getReportId(),
+            request == null ? null : request.getArtifactKey(),
+            request == null ? null : request.getOperationType(),
+            RequestContext.getTraceId());
+        return governanceHistoryApplicationService.operateArtifact(request);
     }
 }

@@ -231,6 +231,58 @@ class GovernanceHistoryApplicationServiceTest {
     }
 
     @Test
+    void shouldExposeArtifactOperationSurfaceInTraceDetail() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "tenant-admin-001",
+            Arrays.asList("TENANT_ADMIN"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(auditLogMapper.selectByTraceId("tenant-a", "trace-artifact-op", 5)).thenReturn(Collections.singletonList(
+            buildAudit(
+                "trace-artifact-op",
+                "BENCHMARK_ENGINE",
+                "SUCCESS",
+                "BENCHMARK_ENGINE_REPORT",
+                "report-001",
+                LocalDateTime.parse("2026-04-24T10:00:00"),
+                "{\"serviceCode\":\"BENCHMARK_ENGINE\",\"reportId\":\"report-001\",\"artifactKey\":\"json-export\"}",
+                "{\"resultStatus\":\"SUCCESS\",\"reportId\":\"report-001\",\"artifactStorageType\":\"ENVIRONMENT_OBJECT_STORAGE\","
+                    + "\"artifactStorageEvidence\":\"providerMode=PRIMARY_PROVIDER_ONLY;primaryProvider=PRIMARY_HTTP;providerHeadStatus=VERIFIED;providerRequestId=request-primary;liveEvidenceStatus=PROVIDER_LIVE_EVIDENCE_VERIFIED\","
+                    + "\"artifactOperationSurface\":{\"operationType\":\"RECOVER_ARTIFACT\",\"operationStatus\":\"RECOVERY_COMPLETED\","
+                    + "\"storageRecoverySource\":\"EXTERNAL_WRITE\",\"storageReadStatus\":\"RECOVERED_FROM_EXTERNAL_WRITE\","
+                    + "\"cleanupScope\":\"MIRROR_ONLY\",\"providerHeadStatus\":\"VERIFIED\",\"providerRequestId\":\"request-primary\"}}"
+            )
+        ));
+        when(queryHistoryMapper.selectByTraceId("tenant-a", "trace-artifact-op", 5)).thenReturn(Collections.emptyList());
+        when(exportRecordMapper.selectByTraceId("tenant-a", "trace-artifact-op", 5)).thenReturn(Collections.emptyList());
+
+        GovernanceTraceDetailVO detail = service.findTraceDetail("tenant-a", "trace-artifact-op", Integer.valueOf(5));
+
+        assertEquals("RECOVER_ARTIFACT", detail.getArtifactOperationSurface().get("operationType"));
+        assertEquals("RECOVERY_COMPLETED", detail.getArtifactOperationSurface().get("operationStatus"));
+        assertEquals("EXTERNAL_WRITE", detail.getArtifactOperationSurface().get("storageRecoverySource"));
+        assertEquals("VERIFIED", detail.getArtifactOperationSurface().get("providerHeadStatus"));
+        assertEquals("request-primary", detail.getArtifactOperationSurface().get("providerRequestId"));
+    }
+
+    @Test
     void shouldScanPastGovernanceAuthNoiseWhenListingRecentTraces() {
         AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
         QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);

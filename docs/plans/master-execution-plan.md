@@ -108,10 +108,10 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：`D-TASK-028` 已完成 closeout，当前仓库重新回到“无已实例化 repo-side mainline task”的计划真值；默认主路径仍保持 `LOCAL_FILE`，不得把 environment-backed object storage 写成仓库默认事实。
+- 当前活跃目标：`D-TASK-029` 已实例化并处于 in-progress，聚焦 provider-native / environment-backed object-storage live evidence，以及 governance-triggered artifact cleanup/recovery operation surfaces；默认主路径仍保持 `LOCAL_FILE`，不得把 environment-backed object storage 写成仓库默认事实。
 - 当前下一条可执行主线任务：
-  - 当前不存在已实例化的 repo-side mainline task。
-  - 若继续推进 `benchmark-engine/query-execution/governance` 主线，推荐先塑形成 `D-TASK-029`：聚焦 provider-native / environment-backed object-storage live evidence 的进一步沉淀，以及 governance-triggered artifact cleanup/recovery operation surfaces，但在正式实例化前仍保持“无已实例化 repo-side mainline task”。
+  - 当前已实例化的 repo-side mainline task 为 `D-TASK-029`。
+  - `D-TASK-029` closeout 前，不再额外声明新的已实例化 repo-side mainline task。
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成业务页骨架、治理接口接入与设计系统基线；`E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-009` 已补齐临时 AI 交付页与生产隐藏语义。
@@ -145,6 +145,7 @@
   - `D-TASK-026` 已完成 `D-TASK-025` residual risk 的 repo-side 收口：它把 workloadDigest/workloadSource/backfillApplied/workloadEvidence 显式沉淀进 governance `config_snapshot/execution_result/query_history/export_record` 追溯载荷，并让 `ENVIRONMENT_OBJECT_STORAGE` 在提供 external write dir 时执行真实 external write/readback recovery verification；默认主路径仍保持 `LOCAL_FILE`，不把 environment-backed 路径误写成仓库默认事实。
   - `D-TASK-027` 已完成 `D-TASK-026` residual risk 的 repo-side 收口：它把 mixed live/fallback workload 收口为显式 compensation-replay evidence，并让 `ENVIRONMENT_OBJECT_STORAGE` 在提供 provider endpoint 时执行真实 provider-backed write/readback recovery verification，同时把 provider/external verification 与 compensation evidence 一并沉淀进 benchmark/governance 长期追溯链；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
   - `D-TASK-028` 已完成 `D-TASK-027` residual risk 的 repo-side 收口：它把 provider-specific / multi-provider object-storage contract、cleanup/recovery semantics，以及 compensation-replay evidence 的 governance query/recovery surfaces 收口为已验证基线；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
+  - `D-TASK-029` 已按当前人工决策实例化，继续承接 `D-TASK-028` residual risk：它聚焦 provider-native / environment-backed object-storage live evidence 的进一步沉淀，以及 governance-triggered artifact cleanup/recovery operation surfaces；在该任务 closeout 前，当前 repo-side mainline 就是 `D-TASK-029`。
   - `HARN-016` 已把外部 Win10 测试环境的 Hetu/MRS 实际联通与留证动作挂起到 `INBOX-002`；它继续是 blocked 的 environment-backed follow-up，不构成当前 repo-side mainline。
   - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不改变当前仓库真值：当前没有新的已实例化 repo-side mainline，而 `HARN-016` / `INBOX-001` 仍只属于非主线的 environment-backed follow-up。
 

@@ -26,6 +26,7 @@ public class GovernanceTraceSummaryVO {
     private Map<String, Object> compensationReplayEvidence;
     private Map<String, Object> artifactStorageContract;
     private Map<String, Object> artifactRecoverySurface;
+    private Map<String, Object> artifactOperationSurface;
 
     public GovernanceTraceSummaryVO() {
     }
@@ -69,6 +70,7 @@ public class GovernanceTraceSummaryVO {
             degraded,
             null,
             null,
+            null,
             null
         );
     }
@@ -93,7 +95,8 @@ public class GovernanceTraceSummaryVO {
                                     Boolean degraded,
                                     Map<String, Object> compensationReplayEvidence,
                                     Map<String, Object> artifactStorageContract,
-                                    Map<String, Object> artifactRecoverySurface) {
+                                    Map<String, Object> artifactRecoverySurface,
+                                    Map<String, Object> artifactOperationSurface) {
         this.traceId = traceId;
         this.requestId = requestId;
         this.serviceCode = serviceCode;
@@ -115,6 +118,7 @@ public class GovernanceTraceSummaryVO {
         this.compensationReplayEvidence = compensationReplayEvidence;
         this.artifactStorageContract = artifactStorageContract;
         this.artifactRecoverySurface = artifactRecoverySurface;
+        this.artifactOperationSurface = artifactOperationSurface;
     }
 
     public String getTraceId() {
@@ -283,5 +287,13 @@ public class GovernanceTraceSummaryVO {
 
     public void setArtifactRecoverySurface(Map<String, Object> artifactRecoverySurface) {
         this.artifactRecoverySurface = artifactRecoverySurface;
+    }
+
+    public Map<String, Object> getArtifactOperationSurface() {
+        return artifactOperationSurface;
+    }
+
+    public void setArtifactOperationSurface(Map<String, Object> artifactOperationSurface) {
+        this.artifactOperationSurface = artifactOperationSurface;
     }
 }

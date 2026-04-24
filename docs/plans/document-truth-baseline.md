@@ -57,7 +57,7 @@
   - `system_config` 已补齐 `sensitive_flag/value_ciphertext/value_mask/encryption_*` 列基线，用于密码 / token / key 类配置的密文存储
   - 数据库消息管理接口（`retry` / `stats`），并限制在 `DATABASE` 模式下使用
   - `config_snapshot` / `execution_result` / `query_history` / `export_record` / `audit_log` 的核心追溯链 schema、Entity 与 MyBatis XML 骨架
-  - governance history summaries/lookups/detail 已形成真实查询面，并把 `compensationReplayEvidence`、`artifactStorageContract`、`artifactRecoverySurface` 作为显式结构字段暴露给治理追溯查询/恢复面
+  - governance history summaries/lookups/detail 已形成真实查询面，并把 `compensationReplayEvidence`、`artifactStorageContract`、`artifactRecoverySurface`、`artifactOperationSurface` 作为显式结构字段暴露给治理追溯查询/恢复面
   - `sql/migrations/V20260421_011__core_traceability_chain.sql` 增量脚本
   - `docs/architecture/persistence.md` 持久化权威文档
   - 多环境配置

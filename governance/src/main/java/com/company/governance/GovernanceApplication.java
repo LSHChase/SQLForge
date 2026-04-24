@@ -3,6 +3,7 @@ package com.company.governance;
 import com.company.governance.config.AuthProperties;
 import com.company.governance.config.GovernanceAuditProperties;
 import com.company.governance.config.GovernanceAccessProperties;
+import com.company.governance.config.GovernanceBenchmarkEngineProperties;
 import com.company.governance.config.MessagingProperties;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
@@ -15,7 +16,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
     AuthProperties.class,
     MessagingProperties.class,
     GovernanceAccessProperties.class,
-    GovernanceAuditProperties.class
+    GovernanceAuditProperties.class,
+    GovernanceBenchmarkEngineProperties.class
 })
 @EnableScheduling
 @MapperScan("com.company.governance.infrastructure.persistence.mapper")

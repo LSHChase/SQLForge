@@ -137,7 +137,7 @@
 - `POST /api/governance/internal/audit/write` 的真实落库基线，支持把 `config/result/history/export` 追溯键接入 `audit_log`
 - header-based stateless auth 的 `LOGIN` / `LOGOUT` 审计落库基线
 - 共享 AES-256 敏感字段保护基线，以及 `GovernanceProtectedPersistenceService` 对 config/result/history/export/audit/system-config 的受保护写入入口
-- governance history summaries/lookups/detail：可把 compensation-replay evidence、artifact storage contract 与 artifact recovery surface 作为显式结构字段提供给治理检索与恢复判断
+- governance history summaries/lookups/detail：可把 compensation-replay evidence、artifact storage contract、artifact recovery surface 与 artifact operation surface 作为显式结构字段提供给治理检索、恢复判断与受控 cleanup/recovery 触发链路
 - MyBatis XML 与多环境配置基础
 
 当前还未完整承载：

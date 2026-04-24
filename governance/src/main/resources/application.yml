@@ -31,6 +31,10 @@ auth:
     - header
 
 governance:
+  benchmark-engine:
+    base-url: ${GOVERNANCE_BENCHMARK_ENGINE_BASE_URL:http://localhost:8083/api/benchmark-engine/internal}
+    connect-timeout-ms: ${GOVERNANCE_BENCHMARK_ENGINE_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${GOVERNANCE_BENCHMARK_ENGINE_READ_TIMEOUT_MS:5000}
   access-control:
     enabled: true
     deny-by-default: true

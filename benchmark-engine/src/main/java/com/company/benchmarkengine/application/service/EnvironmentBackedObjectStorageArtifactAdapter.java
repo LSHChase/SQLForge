@@ -195,14 +195,26 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             + ";primaryProviderContract=" + verification.getPrimaryProviderContract()
             + ";providerEndpoint=" + verification.getPrimaryProviderEndpoint()
             + ";providerObjectUrl=" + verification.getPrimaryProviderObjectUrl()
+            + ";providerDialect=" + verification.getPrimaryProviderDialect()
             + ";providerWriteStatus=" + verification.getPrimaryProviderWriteStatus()
             + ";providerRecoveryStatus=" + verification.getPrimaryProviderRecoveryStatus()
+            + ";providerHeadStatus=" + verification.getPrimaryProviderHeadStatus()
+            + ";providerContentLength=" + verification.getPrimaryProviderContentLength()
+            + ";providerContentType=" + verification.getPrimaryProviderContentType()
+            + ";providerEtag=" + verification.getPrimaryProviderEtag()
+            + ";providerRequestId=" + verification.getPrimaryProviderRequestId()
             + ";recoveryProvider=" + verification.getRecoveryProviderName()
             + ";recoveryProviderContract=" + verification.getRecoveryProviderContract()
             + ";recoveryProviderEndpoint=" + verification.getRecoveryProviderEndpoint()
             + ";recoveryProviderObjectUrl=" + verification.getRecoveryProviderObjectUrl()
+            + ";recoveryProviderDialect=" + verification.getRecoveryProviderDialect()
             + ";recoveryProviderWriteStatus=" + verification.getRecoveryProviderWriteStatus()
             + ";recoveryProviderRecoveryStatus=" + verification.getRecoveryProviderRecoveryStatus()
+            + ";recoveryProviderHeadStatus=" + verification.getRecoveryProviderHeadStatus()
+            + ";recoveryProviderContentLength=" + verification.getRecoveryProviderContentLength()
+            + ";recoveryProviderContentType=" + verification.getRecoveryProviderContentType()
+            + ";recoveryProviderEtag=" + verification.getRecoveryProviderEtag()
+            + ";recoveryProviderRequestId=" + verification.getRecoveryProviderRequestId()
             + ";externalWritePath=" + verification.getExternalWritePath()
             + ";externalWriteStatus=" + verification.getExternalWriteStatus()
             + ";recoveryVerificationStatus=" + verification.getRecoveryVerificationStatus()
@@ -251,14 +263,26 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         manifest.put("primaryProviderContract", verification.getPrimaryProviderContract());
         manifest.put("providerEndpoint", verification.getPrimaryProviderEndpoint());
         manifest.put("providerObjectUrl", verification.getPrimaryProviderObjectUrl());
+        manifest.put("providerDialect", verification.getPrimaryProviderDialect());
         manifest.put("providerWriteStatus", verification.getPrimaryProviderWriteStatus());
         manifest.put("providerRecoveryStatus", verification.getPrimaryProviderRecoveryStatus());
+        manifest.put("providerHeadStatus", verification.getPrimaryProviderHeadStatus());
+        manifest.put("providerContentLength", verification.getPrimaryProviderContentLength());
+        manifest.put("providerContentType", verification.getPrimaryProviderContentType());
+        manifest.put("providerEtag", verification.getPrimaryProviderEtag());
+        manifest.put("providerRequestId", verification.getPrimaryProviderRequestId());
         manifest.put("recoveryProvider", verification.getRecoveryProviderName());
         manifest.put("recoveryProviderContract", verification.getRecoveryProviderContract());
         manifest.put("recoveryProviderEndpoint", verification.getRecoveryProviderEndpoint());
         manifest.put("recoveryProviderObjectUrl", verification.getRecoveryProviderObjectUrl());
+        manifest.put("recoveryProviderDialect", verification.getRecoveryProviderDialect());
         manifest.put("recoveryProviderWriteStatus", verification.getRecoveryProviderWriteStatus());
         manifest.put("recoveryProviderRecoveryStatus", verification.getRecoveryProviderRecoveryStatus());
+        manifest.put("recoveryProviderHeadStatus", verification.getRecoveryProviderHeadStatus());
+        manifest.put("recoveryProviderContentLength", verification.getRecoveryProviderContentLength());
+        manifest.put("recoveryProviderContentType", verification.getRecoveryProviderContentType());
+        manifest.put("recoveryProviderEtag", verification.getRecoveryProviderEtag());
+        manifest.put("recoveryProviderRequestId", verification.getRecoveryProviderRequestId());
         manifest.put("externalWritePath", verification.getExternalWritePath());
         manifest.put("externalWriteStatus", verification.getExternalWriteStatus());
         manifest.put("recoveryVerificationStatus", verification.getRecoveryVerificationStatus());
@@ -304,14 +328,17 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         if (!Arrays.equals(contentBytes, reloaded)) {
             throw new IllegalStateException("Provider-backed object-storage verification readback mismatch");
         }
+        ProviderObjectMetadata metadata = headProviderObject(providerObjectUrl, providerTarget.credentials);
         if (primaryProvider) {
             return verification.withPrimaryProviderVerification(
                 providerTarget.providerName,
                 providerTarget.providerContract,
                 providerTarget.endpoint,
                 providerObjectUrl,
+                resolveProviderDialect(providerTarget),
                 VERIFIED,
-                VERIFIED
+                VERIFIED,
+                metadata
             );
         }
         return verification.withRecoveryProviderVerification(
@@ -319,8 +346,10 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             providerTarget.providerContract,
             providerTarget.endpoint,
             providerObjectUrl,
+            resolveProviderDialect(providerTarget),
             VERIFIED,
-            VERIFIED
+            VERIFIED,
+            metadata
         );
     }
 
@@ -683,6 +712,23 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         return providerTarget == null ? null : providerTarget.credentials;
     }
 
+    private String resolveProviderDialect(ProviderTarget providerTarget) {
+        if (providerTarget == null || !StringUtils.hasText(providerTarget.endpoint)) {
+            return "GENERIC_HTTP";
+        }
+        String endpoint = providerTarget.endpoint.toLowerCase();
+        if (endpoint.contains("amazonaws.com")) {
+            return "S3_COMPATIBLE";
+        }
+        if (endpoint.contains("blob.core.windows.net")) {
+            return "AZURE_BLOB";
+        }
+        if (endpoint.contains("storage.googleapis.com")) {
+            return "GCS";
+        }
+        return "GENERIC_HTTP";
+    }
+
     private String stripJsonSuffix(String fileName) {
         return fileName.endsWith(".json") ? fileName.substring(0, fileName.length() - 5) : fileName;
     }
@@ -726,6 +772,10 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         return firstNonBlank(first, firstNonBlank(second, third));
     }
 
+    private String firstNonBlank(String first, String second, String third, String fourth) {
+        return firstNonBlank(first, firstNonBlank(second, third, fourth));
+    }
+
     private void uploadProviderObject(String providerObjectUrl, byte[] contentBytes, String credentials) throws IOException {
         HttpURLConnection connection = openProviderConnection(providerObjectUrl, "PUT", credentials);
         connection.setDoOutput(true);
@@ -752,6 +802,31 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                 throw new IllegalStateException("Provider-backed object-storage read failed with status " + status);
             }
             return readAllBytes(connection.getInputStream());
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    private ProviderObjectMetadata headProviderObject(String providerObjectUrl, String credentials) throws IOException {
+        HttpURLConnection connection = openProviderConnection(providerObjectUrl, "HEAD", credentials);
+        try {
+            connection.connect();
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 300) {
+                return ProviderObjectMetadata.pending();
+            }
+            return new ProviderObjectMetadata(
+                VERIFIED,
+                connection.getHeaderField("Content-Length"),
+                firstNonBlank(connection.getContentType(), connection.getHeaderField("Content-Type")),
+                firstNonBlank(connection.getHeaderField("ETag"), connection.getHeaderField("Etag")),
+                firstNonBlank(
+                    connection.getHeaderField("x-amz-request-id"),
+                    connection.getHeaderField("x-ms-request-id"),
+                    connection.getHeaderField("x-goog-request-id"),
+                    connection.getHeaderField("X-Request-Id")
+                )
+            );
         } finally {
             connection.disconnect();
         }
@@ -849,14 +924,26 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         private final String primaryProviderContract;
         private final String primaryProviderEndpoint;
         private final String primaryProviderObjectUrl;
+        private final String primaryProviderDialect;
         private final String primaryProviderWriteStatus;
         private final String primaryProviderRecoveryStatus;
+        private final String primaryProviderHeadStatus;
+        private final String primaryProviderContentLength;
+        private final String primaryProviderContentType;
+        private final String primaryProviderEtag;
+        private final String primaryProviderRequestId;
         private final String recoveryProviderName;
         private final String recoveryProviderContract;
         private final String recoveryProviderEndpoint;
         private final String recoveryProviderObjectUrl;
+        private final String recoveryProviderDialect;
         private final String recoveryProviderWriteStatus;
         private final String recoveryProviderRecoveryStatus;
+        private final String recoveryProviderHeadStatus;
+        private final String recoveryProviderContentLength;
+        private final String recoveryProviderContentType;
+        private final String recoveryProviderEtag;
+        private final String recoveryProviderRequestId;
         private final String externalWritePath;
         private final String externalWriteDir;
         private final String externalWriteStatus;
@@ -869,14 +956,26 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                                     String primaryProviderContract,
                                     String primaryProviderEndpoint,
                                     String primaryProviderObjectUrl,
+                                    String primaryProviderDialect,
                                     String primaryProviderWriteStatus,
                                     String primaryProviderRecoveryStatus,
+                                    String primaryProviderHeadStatus,
+                                    String primaryProviderContentLength,
+                                    String primaryProviderContentType,
+                                    String primaryProviderEtag,
+                                    String primaryProviderRequestId,
                                     String recoveryProviderName,
                                     String recoveryProviderContract,
                                     String recoveryProviderEndpoint,
                                     String recoveryProviderObjectUrl,
+                                    String recoveryProviderDialect,
                                     String recoveryProviderWriteStatus,
                                     String recoveryProviderRecoveryStatus,
+                                    String recoveryProviderHeadStatus,
+                                    String recoveryProviderContentLength,
+                                    String recoveryProviderContentType,
+                                    String recoveryProviderEtag,
+                                    String recoveryProviderRequestId,
                                     String externalWritePath,
                                     String externalWriteDir,
                                     String externalWriteStatus,
@@ -888,14 +987,26 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             this.primaryProviderContract = primaryProviderContract;
             this.primaryProviderEndpoint = primaryProviderEndpoint;
             this.primaryProviderObjectUrl = primaryProviderObjectUrl;
+            this.primaryProviderDialect = primaryProviderDialect;
             this.primaryProviderWriteStatus = primaryProviderWriteStatus;
             this.primaryProviderRecoveryStatus = primaryProviderRecoveryStatus;
+            this.primaryProviderHeadStatus = primaryProviderHeadStatus;
+            this.primaryProviderContentLength = primaryProviderContentLength;
+            this.primaryProviderContentType = primaryProviderContentType;
+            this.primaryProviderEtag = primaryProviderEtag;
+            this.primaryProviderRequestId = primaryProviderRequestId;
             this.recoveryProviderName = recoveryProviderName;
             this.recoveryProviderContract = recoveryProviderContract;
             this.recoveryProviderEndpoint = recoveryProviderEndpoint;
             this.recoveryProviderObjectUrl = recoveryProviderObjectUrl;
+            this.recoveryProviderDialect = recoveryProviderDialect;
             this.recoveryProviderWriteStatus = recoveryProviderWriteStatus;
             this.recoveryProviderRecoveryStatus = recoveryProviderRecoveryStatus;
+            this.recoveryProviderHeadStatus = recoveryProviderHeadStatus;
+            this.recoveryProviderContentLength = recoveryProviderContentLength;
+            this.recoveryProviderContentType = recoveryProviderContentType;
+            this.recoveryProviderEtag = recoveryProviderEtag;
+            this.recoveryProviderRequestId = recoveryProviderRequestId;
             this.externalWritePath = externalWritePath;
             this.externalWriteDir = externalWriteDir;
             this.externalWriteStatus = externalWriteStatus;
@@ -911,14 +1022,26 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                 null,
                 null,
                 null,
+                null,
+                "PENDING",
                 "PENDING",
                 "PENDING",
                 null,
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
+                null,
+                null,
                 "PENDING",
                 "PENDING",
+                "PENDING",
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 "PENDING",
@@ -930,8 +1053,10 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                                                                     String providerContract,
                                                                     String providerEndpoint,
                                                                     String providerObjectUrl,
+                                                                    String providerDialect,
                                                                     String providerWriteStatus,
-                                                                    String providerRecoveryStatus) {
+                                                                    String providerRecoveryStatus,
+                                                                    ProviderObjectMetadata metadata) {
             return new StorageVerification(
                 providerMode,
                 recoveryOrder,
@@ -940,14 +1065,26 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                 providerContract,
                 providerEndpoint,
                 providerObjectUrl,
+                providerDialect,
                 providerWriteStatus,
                 providerRecoveryStatus,
+                metadata.getHeadStatus(),
+                metadata.getContentLength(),
+                metadata.getContentType(),
+                metadata.getEtag(),
+                metadata.getRequestId(),
                 recoveryProviderName,
                 recoveryProviderContract,
                 recoveryProviderEndpoint,
                 recoveryProviderObjectUrl,
+                recoveryProviderDialect,
                 recoveryProviderWriteStatus,
                 recoveryProviderRecoveryStatus,
+                recoveryProviderHeadStatus,
+                recoveryProviderContentLength,
+                recoveryProviderContentType,
+                recoveryProviderEtag,
+                recoveryProviderRequestId,
                 externalWritePath,
                 externalWriteDir,
                 externalWriteStatus,
@@ -959,8 +1096,10 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                                                                      String providerContract,
                                                                      String providerEndpoint,
                                                                      String providerObjectUrl,
+                                                                     String providerDialect,
                                                                      String providerWriteStatus,
-                                                                     String providerRecoveryStatus) {
+                                                                     String providerRecoveryStatus,
+                                                                     ProviderObjectMetadata metadata) {
             return new StorageVerification(
                 providerMode,
                 recoveryOrder,
@@ -969,14 +1108,26 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                 primaryProviderContract,
                 primaryProviderEndpoint,
                 primaryProviderObjectUrl,
+                primaryProviderDialect,
                 primaryProviderWriteStatus,
                 primaryProviderRecoveryStatus,
+                primaryProviderHeadStatus,
+                primaryProviderContentLength,
+                primaryProviderContentType,
+                primaryProviderEtag,
+                primaryProviderRequestId,
                 providerName,
                 providerContract,
                 providerEndpoint,
                 providerObjectUrl,
+                providerDialect,
                 providerWriteStatus,
                 providerRecoveryStatus,
+                metadata.getHeadStatus(),
+                metadata.getContentLength(),
+                metadata.getContentType(),
+                metadata.getEtag(),
+                metadata.getRequestId(),
                 externalWritePath,
                 externalWriteDir,
                 externalWriteStatus,
@@ -996,14 +1147,26 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                 primaryProviderContract,
                 primaryProviderEndpoint,
                 primaryProviderObjectUrl,
+                primaryProviderDialect,
                 primaryProviderWriteStatus,
                 primaryProviderRecoveryStatus,
+                primaryProviderHeadStatus,
+                primaryProviderContentLength,
+                primaryProviderContentType,
+                primaryProviderEtag,
+                primaryProviderRequestId,
                 recoveryProviderName,
                 recoveryProviderContract,
                 recoveryProviderEndpoint,
                 recoveryProviderObjectUrl,
+                recoveryProviderDialect,
                 recoveryProviderWriteStatus,
                 recoveryProviderRecoveryStatus,
+                recoveryProviderHeadStatus,
+                recoveryProviderContentLength,
+                recoveryProviderContentType,
+                recoveryProviderEtag,
+                recoveryProviderRequestId,
                 externalWritePath.toAbsolutePath().normalize().toString(),
                 externalWriteDir.toAbsolutePath().normalize().toString(),
                 externalWriteStatus,
@@ -1065,12 +1228,36 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             return primaryProviderObjectUrl;
         }
 
+        private String getPrimaryProviderDialect() {
+            return primaryProviderDialect;
+        }
+
         private String getPrimaryProviderWriteStatus() {
             return primaryProviderWriteStatus;
         }
 
         private String getPrimaryProviderRecoveryStatus() {
             return primaryProviderRecoveryStatus;
+        }
+
+        private String getPrimaryProviderHeadStatus() {
+            return primaryProviderHeadStatus;
+        }
+
+        private String getPrimaryProviderContentLength() {
+            return primaryProviderContentLength;
+        }
+
+        private String getPrimaryProviderContentType() {
+            return primaryProviderContentType;
+        }
+
+        private String getPrimaryProviderEtag() {
+            return primaryProviderEtag;
+        }
+
+        private String getPrimaryProviderRequestId() {
+            return primaryProviderRequestId;
         }
 
         private String getRecoveryProviderName() {
@@ -1089,12 +1276,36 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             return recoveryProviderObjectUrl;
         }
 
+        private String getRecoveryProviderDialect() {
+            return recoveryProviderDialect;
+        }
+
         private String getRecoveryProviderWriteStatus() {
             return recoveryProviderWriteStatus;
         }
 
         private String getRecoveryProviderRecoveryStatus() {
             return recoveryProviderRecoveryStatus;
+        }
+
+        private String getRecoveryProviderHeadStatus() {
+            return recoveryProviderHeadStatus;
+        }
+
+        private String getRecoveryProviderContentLength() {
+            return recoveryProviderContentLength;
+        }
+
+        private String getRecoveryProviderContentType() {
+            return recoveryProviderContentType;
+        }
+
+        private String getRecoveryProviderEtag() {
+            return recoveryProviderEtag;
+        }
+
+        private String getRecoveryProviderRequestId() {
+            return recoveryProviderRequestId;
         }
 
         private String getExternalWritePath() {
@@ -1111,6 +1322,51 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
 
         private String getRecoveryVerificationStatus() {
             return recoveryVerificationStatus;
+        }
+    }
+
+    private static final class ProviderObjectMetadata {
+
+        private final String headStatus;
+        private final String contentLength;
+        private final String contentType;
+        private final String etag;
+        private final String requestId;
+
+        private ProviderObjectMetadata(String headStatus,
+                                       String contentLength,
+                                       String contentType,
+                                       String etag,
+                                       String requestId) {
+            this.headStatus = headStatus;
+            this.contentLength = contentLength;
+            this.contentType = contentType;
+            this.etag = etag;
+            this.requestId = requestId;
+        }
+
+        private static ProviderObjectMetadata pending() {
+            return new ProviderObjectMetadata("PENDING", null, null, null, null);
+        }
+
+        private String getHeadStatus() {
+            return headStatus;
+        }
+
+        private String getContentLength() {
+            return contentLength;
+        }
+
+        private String getContentType() {
+            return contentType;
+        }
+
+        private String getEtag() {
+            return etag;
+        }
+
+        private String getRequestId() {
+            return requestId;
         }
     }
 }

@@ -29,6 +29,7 @@ import com.company.governance.application.service.HealthStatusApplicationService
 import com.company.governance.application.service.MessageAdminApplicationService;
 import com.company.governance.application.service.TenantConfigApplicationService;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckResponse;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -201,6 +202,14 @@ class AuthWebMvcTest {
             .thenReturn(new GovernanceTraceLookupPageVO(Collections.singletonList(summary), Boolean.FALSE, null));
         when(governanceHistoryApplicationService.findTraceDetail("system", "trace-001", Integer.valueOf(5)))
             .thenReturn(detail);
+        GovernanceBenchmarkArtifactOperationResponse operationResponse = new GovernanceBenchmarkArtifactOperationResponse();
+        operationResponse.setTenantId("system");
+        operationResponse.setReportId("report-001");
+        operationResponse.setArtifactKey("json-export");
+        operationResponse.setOperationType("RECOVER_ARTIFACT");
+        operationResponse.setOperationStatus("RECOVERY_COMPLETED");
+        when(governanceHistoryApplicationService.operateArtifact(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(operationResponse);
 
         mockMvc.perform(addProtectedHeaders(get("/api/governance/history/traces?limit=5")))
             .andExpect(status().isOk())
@@ -218,6 +227,13 @@ class AuthWebMvcTest {
             .andExpect(jsonPath("$.traceId").value("trace-001"))
             .andExpect(jsonPath("$.auditEventCount").value(1));
 
+        mockMvc.perform(addProtectedHeaders(post("/api/governance/history/artifact-operations")
+                .contentType("application/json")
+                .content("{\"reportId\":\"report-001\",\"artifactKey\":\"json-export\",\"operationType\":\"RECOVER_ARTIFACT\"}")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.reportId").value("report-001"))
+            .andExpect(jsonPath("$.operationStatus").value("RECOVERY_COMPLETED"));
+
         verify(governanceHistoryApplicationService).findRecentTraces("system", Integer.valueOf(5));
         verify(governanceHistoryApplicationService).lookupTraces(
             "system",
@@ -230,6 +246,7 @@ class AuthWebMvcTest {
             Integer.valueOf(5)
         );
         verify(governanceHistoryApplicationService).findTraceDetail("system", "trace-001", Integer.valueOf(5));
+        verify(governanceHistoryApplicationService).operateArtifact(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

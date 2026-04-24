@@ -194,6 +194,9 @@ class BenchmarkArtifactStorageServiceTest {
             assertEquals("pdf-v1", new String(renderedReport.getContent()));
             assertTrue(artifact.getStorageEvidence().contains("providerWriteStatus=VERIFIED"));
             assertTrue(artifact.getStorageEvidence().contains("providerRecoveryStatus=VERIFIED"));
+            assertTrue(artifact.getStorageEvidence().contains("providerHeadStatus=VERIFIED"));
+            assertTrue(artifact.getStorageEvidence().contains("providerDialect=GENERIC_HTTP"));
+            assertTrue(artifact.getStorageEvidence().contains("providerRequestId=request-primary"));
             assertTrue(artifact.getStorageEvidence().contains("mode=repo-local-mirror+provider-live-evidence-verified"));
             assertTrue(artifact.getStorageEvidence().contains("providerObjectUrl="));
             assertTrue(artifact.getStorageEvidence().contains("liveEvidenceStatus=PROVIDER_LIVE_EVIDENCE_VERIFIED"));
@@ -370,8 +373,20 @@ class BenchmarkArtifactStorageServiceTest {
                 }
                 if ("GET".equalsIgnoreCase(exchange.getRequestMethod()) && objectStore.containsKey(key)) {
                     byte[] bytes = objectStore.get(key);
+                    exchange.getResponseHeaders().add("ETag", "etag-" + key.hashCode());
+                    exchange.getResponseHeaders().add("X-Request-Id", "request-primary");
                     exchange.sendResponseHeaders(200, bytes.length);
                     exchange.getResponseBody().write(bytes);
+                    exchange.close();
+                    return;
+                }
+                if ("HEAD".equalsIgnoreCase(exchange.getRequestMethod()) && objectStore.containsKey(key)) {
+                    byte[] bytes = objectStore.get(key);
+                    exchange.getResponseHeaders().add("Content-Type", "application/octet-stream");
+                    exchange.getResponseHeaders().add("Content-Length", String.valueOf(bytes.length));
+                    exchange.getResponseHeaders().add("ETag", "etag-" + key.hashCode());
+                    exchange.getResponseHeaders().add("X-Request-Id", "request-primary");
+                    exchange.sendResponseHeaders(200, -1);
                     exchange.close();
                     return;
                 }
