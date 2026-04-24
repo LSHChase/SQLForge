@@ -1,5 +1,19 @@
 import { createApp } from 'vue'
-import ElementPlus from 'element-plus'
+import {
+  ElAside,
+  ElButton,
+  ElConfigProvider,
+  ElContainer,
+  ElHeader,
+  ElInput,
+  ElMain,
+  ElMenu,
+  ElMenuItem,
+  ElOption,
+  ElScrollbar,
+  ElSelect,
+  ElTag
+} from 'element-plus'
 import 'element-plus/dist/index.css'
 import { createI18n } from 'vue-i18n'
 import App from './App.js'
@@ -21,7 +35,23 @@ const i18n = createI18n({
 
 const app = createApp(App)
 
-app.use(ElementPlus)
+;[
+  ElAside,
+  ElButton,
+  ElConfigProvider,
+  ElContainer,
+  ElHeader,
+  ElInput,
+  ElMain,
+  ElMenu,
+  ElMenuItem,
+  ElOption,
+  ElScrollbar,
+  ElSelect,
+  ElTag
+].forEach(component => {
+  app.component(component.name, component)
+})
 app.use(pinia)
 
 const globalConfigStore = useGlobalConfigStore(pinia)

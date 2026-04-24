@@ -1,17 +1,18 @@
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
-import DashboardView from '../views/dashboard/DashboardView.js'
-import SqlQueryView from '../views/query/SqlQueryView.js'
-import ParseRecordView from '../views/parse-record/ParseRecordView.js'
-import RepairEvidenceView from '../views/repair-evidence/RepairEvidenceView.js'
-import AuditForensicsView from '../views/audit-forensics/AuditForensicsView.js'
-import AuditTroubleshootingView from '../views/audit-troubleshooting/AuditTroubleshootingView.js'
-import RuntimeGatesView from '../views/runtime-gates/RuntimeGatesView.js'
-import RecoveryDrillView from '../views/recovery-drill/RecoveryDrillView.js'
-import AccelerationView from '../views/optimization/AccelerationView.js'
-import BenchmarkView from '../views/benchmark/BenchmarkView.js'
-import SystemView from '../views/system/SystemView.js'
 import { deliveryProgressEnabled } from '../config/runtimeFlags'
 import { LEGACY_ROUTE_REDIRECTS, ROUTE_PATHS } from '../config/routePaths.mjs'
+
+const DashboardView = () => import('../views/dashboard/DashboardView.js')
+const SqlQueryView = () => import('../views/query/SqlQueryView.js')
+const ParseRecordView = () => import('../views/parse-record/ParseRecordView.js')
+const RepairEvidenceView = () => import('../views/repair-evidence/RepairEvidenceView.js')
+const AuditForensicsView = () => import('../views/audit-forensics/AuditForensicsView.js')
+const AuditTroubleshootingView = () => import('../views/audit-troubleshooting/AuditTroubleshootingView.js')
+const RuntimeGatesView = () => import('../views/runtime-gates/RuntimeGatesView.js')
+const RecoveryDrillView = () => import('../views/recovery-drill/RecoveryDrillView.js')
+const AccelerationView = () => import('../views/optimization/AccelerationView.js')
+const BenchmarkView = () => import('../views/benchmark/BenchmarkView.js')
+const SystemView = () => import('../views/system/SystemView.js')
 
 export const constantRoutes = [
   {

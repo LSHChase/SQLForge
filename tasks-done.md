@@ -4,6 +4,30 @@
 
 ## Done
 
+### E-TASK-013: 补齐 portable 前端浏览器 smoke 并收口构建分包告警
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(frontend): harden portable browser smoke and chunk budget`
+- Priority: 1
+- Depends on: `E-TASK-012`
+- Scope: 把 portable 包纳入关键路由浏览器 smoke，并收口当前 Vite 大 chunk 告警而不重引 SFC 依赖 Tech: `VUE-FE`,`OPS`. Layer: `frontend/router/views/styles`,`deployments/ci/scripts`.
+- Matrix context: Phase-E / Story `E-STORY-005` 前端构建链迁移与便携产物治理
+- Human confirmation point: 若 portable 验证被降级为 health-only 检查、分包方案改变路由/代理/缓存语义，或为压低 chunk 告警而牺牲关键页面可用性，需人工确认
+- Data impact: portable 浏览器 smoke 覆盖、前端 chunk 输出、关键路由与代理语义
+- Rollback / recovery: 保留当前 portable 包与关键路由语义，回退高风险分包策略，并恢复到现有可工作的构建输出
+- Validation:
+  - `npm run lint`、`npm run build`、`npm run build:portable`、portable browser smoke、chunk warning 检查
+  - `python3 scripts/foreman.py validate E-TASK-013`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: replaced the root `ElementPlus` full-library install with explicit component registration, lazy-loaded the route views to reduce eager payload, added a repo-specific Vite chunk budget plus vendor chunk split, and upgraded `scripts/check-portable-frontend.mjs` from a health-only check to a browser-driven portable smoke with deep hash-route coverage and proxy-header assertions against a local mock backend.
+- Context closeout:
+  - Completed scope: Added a browser-driven portable frontend smoke that boots the packaged dist-portable server against a local mock backend, verifies deep hash-route rendering plus proxy-header forwarding, replaced the root full-library Element Plus install with explicit component registration, lazy-loaded route views, and tightened the Vite bundle layout with vendor chunking plus a repo-specific chunk budget so the previous default large-chunk warning no longer fires.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-013 --include-task-audit --extra-command "npm run lint" --extra-command "npm run build" --extra-command "npm run build:portable" --extra-command "node scripts/check-portable-frontend.mjs"; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Portable browser smoke now covers representative packaged routes and proxy semantics against a mock backend, but it still does not exercise a live backend stack, and dist-portable remains an environment-sensitive artifact that assumes a local Node runtime plus correct backend target URLs on the destination host; HARN-016 and INBOX-001 remain unchanged environment-backed follow-ups.
+  - Next step: If frontend hardening continues, decide whether to extend the portable smoke from mock-backend verification to a live backend runtime path or keep the current repo-closed mock-backed smoke as the stable portable baseline.
+
 ### HARN-019: Reconcile E-TASK-011/E-TASK-012 post-closeout drift
 
 - Status: done
