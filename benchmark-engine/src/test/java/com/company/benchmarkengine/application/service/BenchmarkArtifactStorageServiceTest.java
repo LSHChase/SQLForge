@@ -12,13 +12,19 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifactKind;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.benchmarkengine.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyResponse;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
 import java.net.URI;
+import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -156,6 +162,46 @@ class BenchmarkArtifactStorageServiceTest {
         assertTrue(Files.exists(Paths.get(resolveEvidenceValue(artifact.getStorageEvidence(), "mirrorPath"))));
     }
 
+    @Test
+    void shouldCaptureProviderBackedLiveEvidenceAndRecoverFromProvider(@TempDir Path tempDir) throws Exception {
+        Map<String, byte[]> objectStore = new ConcurrentHashMap<String, byte[]>();
+        HttpServer server = startObjectStoreServer(objectStore);
+        try {
+            BenchmarkArtifactStorageProperties properties = new BenchmarkArtifactStorageProperties();
+            properties.setStorageType("ENVIRONMENT_OBJECT_STORAGE");
+            properties.getEnvironmentObjectStorage().setMirrorDir(tempDir.resolve("mirror").toString());
+            properties.getEnvironmentObjectStorage().setLiveEvidenceDir(tempDir.resolve("live-evidence").toString());
+            properties.getEnvironmentObjectStorage().setBucket("benchmark-bucket");
+            properties.getEnvironmentObjectStorage().setKeyPrefix("tenant-artifacts");
+            properties.getEnvironmentObjectStorage().setEndpoint(
+                "http://127.0.0.1:" + server.getAddress().getPort() + "/provider"
+            );
+            properties.getEnvironmentObjectStorage().setCredentials("Bearer benchmark-test-token");
+            BenchmarkArtifactStorageService service = new BenchmarkArtifactStorageService(properties, null);
+
+            BenchmarkReportArtifact artifact = service.externalize(
+                "report-001",
+                "tenant-a",
+                Instant.parse("2026-04-24T00:00:00Z"),
+                artifact("pdf-export", "benchmark-report-report-001.pdf", BenchmarkReportFormat.PDF, "pdf-v1")
+            );
+            Files.delete(Paths.get(resolveEvidenceValue(artifact.getStorageEvidence(), "mirrorPath")));
+
+            BenchmarkRenderedReport renderedReport = service.load(artifact);
+
+            assertEquals("pdf-v1", new String(renderedReport.getContent()));
+            assertTrue(artifact.getStorageEvidence().contains("providerWriteStatus=VERIFIED"));
+            assertTrue(artifact.getStorageEvidence().contains("providerRecoveryStatus=VERIFIED"));
+            assertTrue(artifact.getStorageEvidence().contains("mode=repo-local-mirror+provider-live-evidence-verified"));
+            assertTrue(artifact.getStorageEvidence().contains("providerObjectUrl="));
+            assertTrue(artifact.getStorageEvidence().contains("liveEvidenceStatus=PROVIDER_LIVE_EVIDENCE_VERIFIED"));
+            assertTrue(Files.exists(Paths.get(resolveEvidenceValue(artifact.getStorageEvidence(), "mirrorPath"))));
+            assertEquals(1, objectStore.size());
+        } finally {
+            server.stop(0);
+        }
+    }
+
     private BenchmarkReportArtifact artifact(String artifactKey,
                                              String fileName,
                                              BenchmarkReportFormat format,
@@ -183,5 +229,50 @@ class BenchmarkArtifactStorageServiceTest {
             }
         }
         return null;
+    }
+
+    private HttpServer startObjectStoreServer(Map<String, byte[]> objectStore) throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/provider", new HttpHandler() {
+            @Override
+            public void handle(HttpExchange exchange) throws java.io.IOException {
+                String path = exchange.getRequestURI().getPath();
+                if (!path.startsWith("/provider/")) {
+                    exchange.sendResponseHeaders(404, -1);
+                    exchange.close();
+                    return;
+                }
+                String key = path.substring("/provider/".length());
+                if ("PUT".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    objectStore.put(key, readBody(exchange));
+                    exchange.sendResponseHeaders(200, -1);
+                    exchange.close();
+                    return;
+                }
+                if ("GET".equalsIgnoreCase(exchange.getRequestMethod()) && objectStore.containsKey(key)) {
+                    byte[] bytes = objectStore.get(key);
+                    exchange.sendResponseHeaders(200, bytes.length);
+                    exchange.getResponseBody().write(bytes);
+                    exchange.close();
+                    return;
+                }
+                exchange.sendResponseHeaders(404, -1);
+                exchange.close();
+            }
+        });
+        server.start();
+        return server;
+    }
+
+    private byte[] readBody(HttpExchange exchange) throws java.io.IOException {
+        java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+        byte[] buffer = new byte[4096];
+        while (true) {
+            int read = exchange.getRequestBody().read(buffer);
+            if (read < 0) {
+                return outputStream.toByteArray();
+            }
+            outputStream.write(buffer, 0, read);
+        }
     }
 }

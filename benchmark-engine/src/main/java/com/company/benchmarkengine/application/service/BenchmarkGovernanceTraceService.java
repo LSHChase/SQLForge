@@ -159,6 +159,14 @@ public class BenchmarkGovernanceTraceService {
                     queryExecution.put("implementationStage", valueAfterEquals(note));
                     continue;
                 }
+                if (note.startsWith("queryExecutionCompensationApplied=")) {
+                    queryExecution.put("compensationApplied", coerceScalar(valueAfterEquals(note)));
+                    continue;
+                }
+                if (note.startsWith("queryExecutionCompensationStrategy=")) {
+                    queryExecution.put("compensationStrategy", valueAfterEquals(note));
+                    continue;
+                }
                 if (note.startsWith("queryExecution[") && note.contains("]=")) {
                     int engineStart = "queryExecution[".length();
                     int engineEnd = note.indexOf("]=");

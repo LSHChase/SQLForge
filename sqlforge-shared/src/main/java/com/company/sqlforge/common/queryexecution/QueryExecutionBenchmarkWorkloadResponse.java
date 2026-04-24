@@ -10,6 +10,8 @@ public class QueryExecutionBenchmarkWorkloadResponse {
     private String workloadDigest;
     private String workloadSource;
     private boolean backfillApplied;
+    private boolean compensationApplied;
+    private String compensationStrategy;
     private List<QueryExecutionBenchmarkWorkloadEngineSnapshot> engineSnapshots;
     private String contractStage;
     private String implementationStage;
@@ -60,6 +62,22 @@ public class QueryExecutionBenchmarkWorkloadResponse {
 
     public void setBackfillApplied(boolean backfillApplied) {
         this.backfillApplied = backfillApplied;
+    }
+
+    public boolean isCompensationApplied() {
+        return compensationApplied;
+    }
+
+    public void setCompensationApplied(boolean compensationApplied) {
+        this.compensationApplied = compensationApplied;
+    }
+
+    public String getCompensationStrategy() {
+        return compensationStrategy;
+    }
+
+    public void setCompensationStrategy(String compensationStrategy) {
+        this.compensationStrategy = compensationStrategy;
     }
 
     public List<QueryExecutionBenchmarkWorkloadEngineSnapshot> getEngineSnapshots() {

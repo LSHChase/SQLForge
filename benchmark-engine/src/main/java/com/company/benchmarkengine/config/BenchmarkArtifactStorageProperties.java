@@ -72,6 +72,10 @@ public class BenchmarkArtifactStorageProperties {
         private String mirrorDir = "target/benchmark-engine-artifacts/object-storage-mirror";
         private String liveEvidenceDir = "target/benchmark-engine-artifacts/object-storage-live-evidence";
         private String externalWriteDir = "";
+        private String endpoint = "";
+        private String credentials = "";
+        private int providerConnectTimeoutMs = 5000;
+        private int providerReadTimeoutMs = 5000;
         private String endpointEnvName = "BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT";
         private String bucketEnvName = "BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET";
         private String credentialsEnvName = "BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS";
@@ -115,6 +119,38 @@ public class BenchmarkArtifactStorageProperties {
 
         public void setExternalWriteDir(String externalWriteDir) {
             this.externalWriteDir = externalWriteDir;
+        }
+
+        public String getEndpoint() {
+            return endpoint;
+        }
+
+        public void setEndpoint(String endpoint) {
+            this.endpoint = endpoint;
+        }
+
+        public String getCredentials() {
+            return credentials;
+        }
+
+        public void setCredentials(String credentials) {
+            this.credentials = credentials;
+        }
+
+        public int getProviderConnectTimeoutMs() {
+            return providerConnectTimeoutMs;
+        }
+
+        public void setProviderConnectTimeoutMs(int providerConnectTimeoutMs) {
+            this.providerConnectTimeoutMs = providerConnectTimeoutMs;
+        }
+
+        public int getProviderReadTimeoutMs() {
+            return providerReadTimeoutMs;
+        }
+
+        public void setProviderReadTimeoutMs(int providerReadTimeoutMs) {
+            this.providerReadTimeoutMs = providerReadTimeoutMs;
         }
 
         public String getEndpointEnvName() {

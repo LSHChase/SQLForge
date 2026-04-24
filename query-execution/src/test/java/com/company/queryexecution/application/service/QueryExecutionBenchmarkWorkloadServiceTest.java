@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.company.queryexecution.application.controller.dto.QueryExecuteRequest;
 import com.company.queryexecution.application.controller.vo.QueryExecuteResponse;
 import com.company.queryexecution.application.controller.vo.QueryExecutionMetadataVO;
 import com.company.queryexecution.domain.query.QueryExecutionStatus;
@@ -62,6 +63,59 @@ class QueryExecutionBenchmarkWorkloadServiceTest {
         assertEquals("QUERY_EXECUTION_SYNC", response.getEngineSnapshots().get(0).getWorkloadSource());
         assertEquals("CLIENT", response.getEngineSnapshots().get(0).getExecutionMode());
         verify(governanceCapabilityClient).writeAudit(any(QueryExecutionAuditRecord.class));
+    }
+
+    @Test
+    void shouldCompensateReplayWhenOneEngineFallsBackButAnotherIsLive() {
+        QueryExecutionApplicationService queryExecutionApplicationService = mock(QueryExecutionApplicationService.class);
+        GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
+        when(queryExecutionApplicationService.executeSynchronously(any())).thenAnswer(invocation -> {
+            QueryExecuteRequest request = invocation.getArgument(0);
+            if (request.getDatasourceType() == DataSourceTypeEnum.HETU) {
+                return new QueryExecuteResponse(
+                    QueryExecutionStatus.SUCCESS,
+                    Collections.singletonList(Collections.<String, Object>singletonMap("id", Integer.valueOf(1))),
+                    null,
+                    new QueryExecutionMetadataVO(
+                        "HETU",
+                        "SELECT 1",
+                        48L,
+                        512L,
+                        false,
+                        false,
+                        "CLIENT",
+                        Arrays.asList("CLIENT"),
+                        1
+                    ),
+                    false,
+                    null,
+                    Collections.emptyList(),
+                    null,
+                    "fp-001",
+                    "LONG_TERM_BASELINE",
+                    "HETU_REAL_INTEGRATION"
+                );
+            }
+            throw new IllegalStateException("route unavailable");
+        });
+
+        QueryExecutionBenchmarkWorkloadService service =
+            new QueryExecutionBenchmarkWorkloadService(queryExecutionApplicationService, governanceCapabilityClient);
+
+        QueryExecutionBenchmarkWorkloadRequest request = baseRequest();
+        request.setTargetEngines(Arrays.asList(DataSourceTypeEnum.HETU, DataSourceTypeEnum.HIVE));
+        com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadResponse response =
+            service.capture(request);
+
+        assertEquals("LIVE_WITH_COMPENSATED_REPLAY", response.getWorkloadSource());
+        assertTrue(response.isBackfillApplied());
+        assertTrue(response.isCompensationApplied());
+        assertEquals("PRIMARY_LIVE_ENGINE_REPLAY", response.getCompensationStrategy());
+        assertEquals("COMPENSATED_REPLAY", response.getEngineSnapshots().get(1).getWorkloadSource());
+        assertEquals(Boolean.TRUE, response.getEngineSnapshots().get(1).getCompensationApplied());
+        assertEquals(DataSourceTypeEnum.HETU, response.getEngineSnapshots().get(1).getCompensationSourceEngine());
+        assertEquals("PRIMARY_LIVE_ENGINE_REPLAY", response.getEngineSnapshots().get(1).getCompensationStrategy());
+        assertTrue(response.getEngineSnapshots().get(1).getEvidence().contains("sourceEngine=HETU"));
     }
 
     @Test

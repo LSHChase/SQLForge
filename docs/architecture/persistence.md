@@ -90,7 +90,7 @@
 - 导出对象必须基于 `query_history` 或可复现结果，而不是浏览器瞬时状态。
 - 当前 `storage_uri` 仅允许保存脱敏后的地址摘要；`export_options` 的敏感叶子节点会在落库前加密。
 - 当前 `benchmark-engine` 会为 `JSON/PDF/HTML` 报告导出与 raw-data snapshot 生成稳定 `export_record`，其 `export_id` 采用 `reportId + artifactKey` 的幂等键策略。
-- 当前 `benchmark-engine -> governance` trace 编排会把 workloadDigest/workloadSource/backfillApplied/workloadEvidence 与 artifact `storageEvidence/retention*` 一并下沉到 `config_snapshot.snapshot_payload`、`execution_result.result_summary/result_payload`、`query_history.query_context` 与 `export_record.export_options`。
+- 当前 `benchmark-engine -> governance` trace 编排会把 workloadDigest/workloadSource/backfillApplied/workloadEvidence 中的 compensation-replay 结构证据，以及 artifact `storageEvidence/retention*` 中的 provider/external verification 证据，一并下沉到 `config_snapshot.snapshot_payload`、`execution_result.result_summary/result_payload`、`query_history.query_context` 与 `export_record.export_options`。
 
 ### `audit_log`
 

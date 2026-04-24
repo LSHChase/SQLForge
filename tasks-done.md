@@ -4,6 +4,31 @@
 
 ## Done
 
+### D-TASK-027: 收口更深层 workload compensation-replay orchestration 与 provider-backed object-storage live evidence
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(benchmark-engine): add compensation replay storage evidence`
+- Priority: 1
+- Depends on: `D-TASK-026`
+- Scope: 在保持 repo-local artifact lifecycle 与 `LOCAL_FILE` 默认主路径不变、统一授权入口、治理审计及只读/影子环境边界不变的前提下，为 benchmark-engine/query-execution 补齐更深层的 workload compensation-replay orchestration，并把 environment-backed object-storage 从 writable-dir verification 推进到 provider-backed live evidence/readback recovery verification Tech: `JAVA-BE`,`OPS`,`DOCS`. Layer: `common`,`application(controller/service)/domain/infrastruct...
+- Matrix context: Phase-D
+- Human confirmation point: 若 compensation-replay orchestration 会绕过 `query-execution` 既有只读/鉴权/审计边界、把 compensated replay 冒充成原始 live capture，或把 provider-backed object-storage live evidence 误写成仓库默认主路径，需人工确认
+- Data impact: benchmark/query-execution compensation-replay 证据、governance 长期追溯载荷、provider-backed object storage write/readback/recovery 留痕
+- Rollback / recovery: 保持 repo-local lifecycle 与 `LOCAL_FILE` 默认主路径，关闭 provider-backed live evidence 默认启用，回退新增 compensation/provider 语义与文档说明，并恢复到 `D-TASK-026` 已验证基线
+- Validation:
+  - `sqlforge-shared/query-execution/benchmark-engine/governance 模块测试、跨服务 compensation-replay 契约测试、provider-backed object-storage adapter/live-evidence 测试、runtime smoke、task audit、knowledge lint、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-027`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: completed ledger-bound implementation for query-execution compensation-replay orchestration, benchmark execution-summary/governance trace enrichment, and provider-backed object-storage live evidence/readback recovery verification while keeping `LOCAL_FILE` as the default repo-side path.
+  - 2026-04-24: verified repo-side behavior with `mvn -B -pl sqlforge-shared,query-execution,benchmark-engine,governance -am test -DskipITs`; governance persistence coverage now asserts compensation evidence and provider verification summaries.
+- Context closeout:
+  - Completed scope: Implemented benchmark/query-execution compensation-replay orchestration, persisted compensation/provider verification evidence through benchmark/governance trace payloads, added provider-backed object-storage write/readback recovery verification on the environment-backed path, expanded governance persistence coverage, and synchronized authority docs while keeping LOCAL_FILE as the default repo-side path.
+  - Validation evidence: python3 scripts/foreman.py validate D-TASK-027 --include-task-audit --extra-command 'mvn -B -pl sqlforge-shared,query-execution,benchmark-engine,governance -am test -DskipITs' --extra-command 'python3 scripts/foreman.py compile-governance --check' --extra-command 'bash scripts/run-runtime-smoke.sh --compose-check' --extra-command 'node scripts/lint-repository-knowledge.js'
+  - Residual risk: Provider-backed live evidence currently validates against the configured endpoint via generic HTTP write/readback semantics; provider-specific SDK behavior, multi-provider retention/recovery contracts, and deeper compensation-replay governance query/recovery tooling remain follow-up work. Current plan truth therefore returns to no instantiated repo-side mainline task after this closeout.
+  - Next step: Keep no instantiated repo-side mainline task. If work continues immediately, shape D-TASK-028 around provider-specific/multi-provider object-storage contract and cleanup/recovery semantics plus deeper governance query/recovery surfaces for compensation-replay evidence.
+
 ### D-TASK-026: 把 workload/backfill evidence 沉淀进 governance 长期追溯链，并推进真实 external write/recovery verification
 
 - Status: done

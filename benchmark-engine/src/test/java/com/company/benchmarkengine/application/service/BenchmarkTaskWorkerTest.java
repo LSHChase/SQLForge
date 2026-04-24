@@ -49,8 +49,10 @@ class BenchmarkTaskWorkerTest {
         engineSnapshot.setWorkloadDigest("qe-digest-001");
         QueryExecutionBenchmarkWorkloadResponse workloadResponse = new QueryExecutionBenchmarkWorkloadResponse();
         workloadResponse.setWorkloadDigest("aggregate-qe-digest");
-        workloadResponse.setWorkloadSource("QUERY_EXECUTION_SYNC");
-        workloadResponse.setBackfillApplied(false);
+        workloadResponse.setWorkloadSource("LIVE_WITH_COMPENSATED_REPLAY");
+        workloadResponse.setBackfillApplied(true);
+        workloadResponse.setCompensationApplied(true);
+        workloadResponse.setCompensationStrategy("PRIMARY_LIVE_ENGINE_REPLAY");
         workloadResponse.setImplementationStage("BENCHMARK_WORKLOAD_ORCHESTRATION_BASELINE");
         workloadResponse.setEngineSnapshots(Collections.singletonList(engineSnapshot));
         org.mockito.Mockito.when(workloadClient.captureWorkload(org.mockito.ArgumentMatchers.any())).thenReturn(workloadResponse);
@@ -79,6 +81,11 @@ class BenchmarkTaskWorkerTest {
         assertEquals(
             "aggregate-qe-digest",
             repository.findReportByTaskId("benchmark-task-async-001").getExecutionSummary().getWorkloadDigest()
+        );
+        assertEquals(
+            true,
+            repository.findReportByTaskId("benchmark-task-async-001").getExecutionSummary().getPhaseNotes()
+                .contains("queryExecutionCompensationApplied=true")
         );
         assertNotNull(repository.findReportByTaskId("benchmark-task-async-001").findArtifact(BenchmarkReportFormat.PDF));
         assertNotNull(repository.findReportByTaskId("benchmark-task-async-001").findRawDataArtifact());

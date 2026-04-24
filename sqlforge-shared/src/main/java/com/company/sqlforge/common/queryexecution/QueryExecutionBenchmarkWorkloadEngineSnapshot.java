@@ -19,6 +19,10 @@ public class QueryExecutionBenchmarkWorkloadEngineSnapshot {
     private Boolean accelerationApplied;
     private String workloadDigest;
     private String evidence;
+    private Boolean compensationApplied;
+    private String compensationStrategy;
+    private DataSourceTypeEnum compensationSourceEngine;
+    private String compensationSourceWorkloadDigest;
 
     public DataSourceTypeEnum getTargetEngine() {
         return targetEngine;
@@ -130,5 +134,37 @@ public class QueryExecutionBenchmarkWorkloadEngineSnapshot {
 
     public void setEvidence(String evidence) {
         this.evidence = evidence;
+    }
+
+    public Boolean getCompensationApplied() {
+        return compensationApplied;
+    }
+
+    public void setCompensationApplied(Boolean compensationApplied) {
+        this.compensationApplied = compensationApplied;
+    }
+
+    public String getCompensationStrategy() {
+        return compensationStrategy;
+    }
+
+    public void setCompensationStrategy(String compensationStrategy) {
+        this.compensationStrategy = compensationStrategy;
+    }
+
+    public DataSourceTypeEnum getCompensationSourceEngine() {
+        return compensationSourceEngine;
+    }
+
+    public void setCompensationSourceEngine(DataSourceTypeEnum compensationSourceEngine) {
+        this.compensationSourceEngine = compensationSourceEngine;
+    }
+
+    public String getCompensationSourceWorkloadDigest() {
+        return compensationSourceWorkloadDigest;
+    }
+
+    public void setCompensationSourceWorkloadDigest(String compensationSourceWorkloadDigest) {
+        this.compensationSourceWorkloadDigest = compensationSourceWorkloadDigest;
     }
 }

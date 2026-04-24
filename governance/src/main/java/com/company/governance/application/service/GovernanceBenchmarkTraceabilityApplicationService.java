@@ -329,11 +329,13 @@ public class GovernanceBenchmarkTraceabilityApplicationService {
         Map<String, Object> summary = new LinkedHashMap<String, Object>();
         if (artifacts == null || artifacts.isEmpty()) {
             summary.put("environmentBackedArtifactCount", Integer.valueOf(0));
+            summary.put("providerLiveEvidenceVerifiedCount", Integer.valueOf(0));
             summary.put("externalWriteVerifiedCount", Integer.valueOf(0));
             summary.put("recoveryVerificationCount", Integer.valueOf(0));
             return summary;
         }
         int environmentBackedArtifactCount = 0;
+        int providerLiveEvidenceVerifiedCount = 0;
         int externalWriteVerifiedCount = 0;
         int recoveryVerificationCount = 0;
         List<Map<String, Object>> artifactStatuses = new ArrayList<Map<String, Object>>();
@@ -343,6 +345,10 @@ public class GovernanceBenchmarkTraceabilityApplicationService {
             }
             environmentBackedArtifactCount++;
             Map<String, String> evidence = parseEvidenceString(artifact.getStorageEvidence());
+            if ("VERIFIED".equals(evidence.get("providerWriteStatus"))
+                && "VERIFIED".equals(evidence.get("providerRecoveryStatus"))) {
+                providerLiveEvidenceVerifiedCount++;
+            }
             if ("VERIFIED".equals(evidence.get("externalWriteStatus"))) {
                 externalWriteVerifiedCount++;
             }
@@ -351,12 +357,15 @@ public class GovernanceBenchmarkTraceabilityApplicationService {
             }
             Map<String, Object> artifactStatus = new LinkedHashMap<String, Object>();
             artifactStatus.put("artifactKey", artifact.getArtifactKey());
+            artifactStatus.put("providerWriteStatus", evidence.get("providerWriteStatus"));
+            artifactStatus.put("providerRecoveryStatus", evidence.get("providerRecoveryStatus"));
             artifactStatus.put("externalWriteStatus", evidence.get("externalWriteStatus"));
             artifactStatus.put("recoveryVerificationStatus", evidence.get("recoveryVerificationStatus"));
             artifactStatus.put("mode", evidence.get("mode"));
             artifactStatuses.add(artifactStatus);
         }
         summary.put("environmentBackedArtifactCount", Integer.valueOf(environmentBackedArtifactCount));
+        summary.put("providerLiveEvidenceVerifiedCount", Integer.valueOf(providerLiveEvidenceVerifiedCount));
         summary.put("externalWriteVerifiedCount", Integer.valueOf(externalWriteVerifiedCount));
         summary.put("recoveryVerificationCount", Integer.valueOf(recoveryVerificationCount));
         if (!artifactStatuses.isEmpty()) {

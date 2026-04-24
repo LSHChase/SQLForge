@@ -70,10 +70,10 @@ class GovernanceBenchmarkTraceabilityApplicationServiceTest {
         request.setReportQueryPath("/api/benchmark-engine/reports/report-001");
         request.setRawDataDownloadPath("/api/benchmark-engine/reports/report-001/raw-data");
         request.setWorkloadDigest("qe-digest-001");
-        request.setWorkloadSource("QUERY_EXECUTION_SYNC");
-        request.setBackfillApplied(Boolean.FALSE);
+        request.setWorkloadSource("LIVE_WITH_COMPENSATED_REPLAY");
+        request.setBackfillApplied(Boolean.TRUE);
         request.setWorkloadEvidenceJson(
-            "{\"executionMode\":\"QUERY_EXECUTION_WORKLOAD_ORCHESTRATED_REPLAY\",\"queryExecution\":{\"engines\":{\"HETU\":{\"elapsedMs\":42}}}}"
+            "{\"executionMode\":\"QUERY_EXECUTION_WORKLOAD_ORCHESTRATED_REPLAY\",\"queryExecution\":{\"compensationApplied\":true,\"compensationStrategy\":\"PRIMARY_LIVE_ENGINE_REPLAY\",\"engines\":{\"HETU\":{\"elapsedMs\":42},\"HIVE\":{\"elapsedMs\":45,\"compensationApplied\":true,\"compensationStrategy\":\"PRIMARY_LIVE_ENGINE_REPLAY\",\"compensationSourceEngine\":\"HETU\"}}}}"
         );
         request.setExecutionSummaryJson("{\"executionMode\":\"REPO_CLOSED_ISOLATED_EXECUTOR\"}");
         request.setTargetEngines(Arrays.asList("HETU", "HIVE"));
@@ -97,9 +97,12 @@ class GovernanceBenchmarkTraceabilityApplicationServiceTest {
         assertNotNull(configCaptor.getValue().getSnapshotPayload());
         Map snapshotPayload = JsonUtils.fromJson(configCaptor.getValue().getSnapshotPayload(), Map.class);
         assertEquals("qe-digest-001", snapshotPayload.get("workloadDigest"));
-        assertEquals("QUERY_EXECUTION_SYNC", snapshotPayload.get("workloadSource"));
+        assertEquals("LIVE_WITH_COMPENSATED_REPLAY", snapshotPayload.get("workloadSource"));
         Map workloadEvidence = (Map) snapshotPayload.get("workloadEvidence");
         assertEquals("QUERY_EXECUTION_WORKLOAD_ORCHESTRATED_REPLAY", workloadEvidence.get("executionMode"));
+        Map queryExecution = (Map) workloadEvidence.get("queryExecution");
+        assertEquals(Boolean.TRUE, queryExecution.get("compensationApplied"));
+        assertEquals("PRIMARY_LIVE_ENGINE_REPLAY", queryExecution.get("compensationStrategy"));
 
         ArgumentCaptor<ExecutionResultRecord> resultCaptor = ArgumentCaptor.forClass(ExecutionResultRecord.class);
         verify(protectedPersistenceService).saveExecutionResult(resultCaptor.capture());
@@ -107,19 +110,22 @@ class GovernanceBenchmarkTraceabilityApplicationServiceTest {
         Map resultSummary = JsonUtils.fromJson(resultCaptor.getValue().getResultSummary(), Map.class);
         Map objectStorageVerification = (Map) resultSummary.get("objectStorageVerification");
         assertEquals(Integer.valueOf(1), Integer.valueOf(((Number) objectStorageVerification.get("environmentBackedArtifactCount")).intValue()));
+        assertEquals(Integer.valueOf(1), Integer.valueOf(((Number) objectStorageVerification.get("providerLiveEvidenceVerifiedCount")).intValue()));
         assertEquals(Integer.valueOf(1), Integer.valueOf(((Number) objectStorageVerification.get("externalWriteVerifiedCount")).intValue()));
 
         ArgumentCaptor<QueryHistoryRecord> historyCaptor = ArgumentCaptor.forClass(QueryHistoryRecord.class);
         verify(protectedPersistenceService).saveQueryHistoryWithSqlText(historyCaptor.capture(), org.mockito.Mockito.eq("SELECT * FROM orders"));
         assertEquals("BENCHMARK_REPORT_EXPORT", historyCaptor.getValue().getHistoryType());
         Map queryContext = JsonUtils.fromJson(historyCaptor.getValue().getQueryContext(), Map.class);
-        assertEquals(Boolean.FALSE, queryContext.get("backfillApplied"));
+        assertEquals(Boolean.TRUE, queryContext.get("backfillApplied"));
 
         ArgumentCaptor<ExportRecord> exportCaptor = ArgumentCaptor.forClass(ExportRecord.class);
         verify(protectedPersistenceService, times(2)).saveExportRecord(exportCaptor.capture());
         assertEquals("AVAILABLE", exportCaptor.getAllValues().get(0).getExportStatus());
         Map exportOptions = JsonUtils.fromJson(exportCaptor.getAllValues().get(0).getExportOptions(), Map.class);
         Map storageEvidence = (Map) exportOptions.get("storageEvidence");
+        assertEquals("VERIFIED", storageEvidence.get("providerWriteStatus"));
+        assertEquals("VERIFIED", storageEvidence.get("providerRecoveryStatus"));
         assertEquals("VERIFIED", storageEvidence.get("externalWriteStatus"));
         assertEquals(Integer.valueOf(180), Integer.valueOf(((Number) exportOptions.get("retentionDays")).intValue()));
     }
@@ -180,7 +186,7 @@ class GovernanceBenchmarkTraceabilityApplicationServiceTest {
         artifact.setStorageUri(storageUri);
         artifact.setStorageEvidence(
             "pdf-export".equals(key)
-                ? "mode=repo-local-mirror+external-write-verified;externalWriteStatus=VERIFIED;recoveryVerificationStatus=VERIFIED"
+                ? "mode=repo-local-mirror+provider-backed-live-evidence+external-write-verified;providerWriteStatus=VERIFIED;providerRecoveryStatus=VERIFIED;externalWriteStatus=VERIFIED;recoveryVerificationStatus=VERIFIED"
                 : "mode=repo-local-mirror"
         );
         artifact.setRetentionDays(Integer.valueOf(180));

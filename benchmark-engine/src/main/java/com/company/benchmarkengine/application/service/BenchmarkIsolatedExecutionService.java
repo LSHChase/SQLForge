@@ -310,6 +310,10 @@ public class BenchmarkIsolatedExecutionService {
             List<String> evidenceNotes = new ArrayList<String>(response.getEngineSnapshots().size() + 2);
             evidenceNotes.add("queryExecutionWorkloadSource=" + response.getWorkloadSource());
             evidenceNotes.add("queryExecutionImplementationStage=" + response.getImplementationStage());
+            evidenceNotes.add("queryExecutionCompensationApplied=" + response.isCompensationApplied());
+            if (StringUtils.hasText(response.getCompensationStrategy())) {
+                evidenceNotes.add("queryExecutionCompensationStrategy=" + response.getCompensationStrategy());
+            }
             for (QueryExecutionBenchmarkWorkloadEngineSnapshot snapshot : response.getEngineSnapshots()) {
                 if (snapshot == null || snapshot.getTargetEngine() == null) {
                     continue;
@@ -322,6 +326,11 @@ public class BenchmarkIsolatedExecutionService {
                         + ",mode=" + signal.getExecutionMode()
                         + ",elapsedMs=" + signal.getElapsedMs()
                         + ",scannedRows=" + signal.getScannedRows()
+                        + ",compensationApplied=" + snapshot.getCompensationApplied()
+                        + ",compensationStrategy=" + snapshot.getCompensationStrategy()
+                        + ",compensationSourceEngine="
+                        + (snapshot.getCompensationSourceEngine() == null ? null : snapshot.getCompensationSourceEngine().name())
+                        + ",compensationSourceDigest=" + snapshot.getCompensationSourceWorkloadDigest()
                 );
             }
             if (signals.isEmpty()) {

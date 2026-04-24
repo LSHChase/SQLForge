@@ -34,3 +34,5 @@ benchmark-engine:
       mirror-dir: target/benchmark-engine-artifacts/test-runtime-object-storage
       live-evidence-dir: target/benchmark-engine-artifacts/test-runtime-object-storage-live-evidence
       external-write-dir: target/benchmark-engine-artifacts/test-runtime-object-storage-external
+      provider-connect-timeout-ms: 2000
+      provider-read-timeout-ms: 2000

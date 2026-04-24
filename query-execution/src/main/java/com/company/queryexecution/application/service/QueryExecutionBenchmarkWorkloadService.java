@@ -33,6 +33,8 @@ public class QueryExecutionBenchmarkWorkloadService {
     private static final String IMPLEMENTATION_STAGE = "BENCHMARK_WORKLOAD_ORCHESTRATION_BASELINE";
     private static final String WORKLOAD_SOURCE_LIVE = "QUERY_EXECUTION_SYNC";
     private static final String WORKLOAD_SOURCE_BACKFILL = "SYNTHETIC_BACKFILL";
+    private static final String WORKLOAD_SOURCE_COMPENSATED_REPLAY = "COMPENSATED_REPLAY";
+    private static final String COMPENSATION_STRATEGY = "PRIMARY_LIVE_ENGINE_REPLAY";
     private static final String OPERATION = "QUERY_BENCHMARK_WORKLOAD_CAPTURE";
     private static final String RESOURCE_TYPE = "QUERY_EXECUTION_BENCHMARK_WORKLOAD";
 
@@ -54,7 +56,6 @@ public class QueryExecutionBenchmarkWorkloadService {
         List<DataSourceTypeEnum> targetEngines = normalizeTargetEngines(request == null ? null : request.getTargetEngines());
         List<QueryExecutionBenchmarkWorkloadEngineSnapshot> engineSnapshots =
             new ArrayList<QueryExecutionBenchmarkWorkloadEngineSnapshot>(targetEngines.size());
-        boolean backfillApplied = false;
         for (DataSourceTypeEnum targetEngine : targetEngines) {
             QueryExecutionBenchmarkWorkloadEngineSnapshot snapshot;
             try {
@@ -75,19 +76,20 @@ public class QueryExecutionBenchmarkWorkloadService {
             } catch (RuntimeException ex) {
                 snapshot = buildBackfillSnapshot(request, normalizedSql, sqlFingerprint, targetEngine, ex.getMessage());
             }
-            if (WORKLOAD_SOURCE_BACKFILL.equals(snapshot.getWorkloadSource())) {
-                backfillApplied = true;
-            }
             engineSnapshots.add(snapshot);
         }
+        boolean backfillApplied = containsBackfill(engineSnapshots);
+        CompensationPlan compensationPlan = applyCompensationReplay(engineSnapshots, sqlFingerprint);
         QueryExecutionBenchmarkWorkloadResponse response =
             new QueryExecutionBenchmarkWorkloadResponse();
         response.setTenantId(request == null ? null : request.getTenantId());
         response.setBenchmarkTaskId(request == null ? null : request.getBenchmarkTaskId());
         response.setSqlFingerprint(sqlFingerprint);
         response.setWorkloadDigest(buildAggregateDigest(sqlFingerprint, engineSnapshots));
-        response.setWorkloadSource(backfillApplied ? "LIVE_WITH_BACKFILL" : WORKLOAD_SOURCE_LIVE);
+        response.setWorkloadSource(resolveWorkloadSource(backfillApplied, compensationPlan.isCompensationApplied()));
         response.setBackfillApplied(backfillApplied);
+        response.setCompensationApplied(compensationPlan.isCompensationApplied());
+        response.setCompensationStrategy(compensationPlan.getCompensationStrategy());
         response.setEngineSnapshots(Collections.unmodifiableList(engineSnapshots));
         response.setContractStage(CONTRACT_STAGE);
         response.setImplementationStage(IMPLEMENTATION_STAGE);
@@ -125,6 +127,7 @@ public class QueryExecutionBenchmarkWorkloadService {
         snapshot.setRowCount(Integer.valueOf(metadata.getRowCount()));
         snapshot.setCacheHit(Boolean.valueOf(metadata.isCacheHit()));
         snapshot.setAccelerationApplied(Boolean.valueOf(metadata.isAccelerationApplied()));
+        snapshot.setCompensationApplied(Boolean.FALSE);
         snapshot.setWorkloadDigest(shortDigest(
             sqlFingerprint + "|" + targetEngine.name() + "|" + metadata.getExecutionMode() + "|" + metadata.getElapsedMs()
         ));
@@ -155,6 +158,7 @@ public class QueryExecutionBenchmarkWorkloadService {
         snapshot.setRowCount(Integer.valueOf(Math.max(1, complexity % 5)));
         snapshot.setCacheHit(Boolean.FALSE);
         snapshot.setAccelerationApplied(Boolean.FALSE);
+        snapshot.setCompensationApplied(Boolean.FALSE);
         snapshot.setWorkloadDigest(shortDigest(
             sqlFingerprint + "|" + targetEngine.name() + "|SYNTHETIC_BACKFILL|" + elapsedMs + "|" + scannedRows
         ));
@@ -166,6 +170,91 @@ public class QueryExecutionBenchmarkWorkloadService {
                 + ";scannedRows=" + scannedRows
         );
         return snapshot;
+    }
+
+    private CompensationPlan applyCompensationReplay(List<QueryExecutionBenchmarkWorkloadEngineSnapshot> engineSnapshots,
+                                                     String sqlFingerprint) {
+        if (engineSnapshots == null || engineSnapshots.isEmpty()) {
+            return CompensationPlan.none();
+        }
+        QueryExecutionBenchmarkWorkloadEngineSnapshot sourceSnapshot = firstLiveSnapshot(engineSnapshots);
+        if (sourceSnapshot == null) {
+            return CompensationPlan.none();
+        }
+        boolean compensationApplied = false;
+        for (QueryExecutionBenchmarkWorkloadEngineSnapshot snapshot : engineSnapshots) {
+            if (snapshot == null || !WORKLOAD_SOURCE_BACKFILL.equals(snapshot.getWorkloadSource())) {
+                continue;
+            }
+            applyCompensatedReplaySnapshot(snapshot, sourceSnapshot, sqlFingerprint);
+            compensationApplied = true;
+        }
+        return compensationApplied ? CompensationPlan.compensated(COMPENSATION_STRATEGY) : CompensationPlan.none();
+    }
+
+    private QueryExecutionBenchmarkWorkloadEngineSnapshot firstLiveSnapshot(
+        List<QueryExecutionBenchmarkWorkloadEngineSnapshot> engineSnapshots) {
+        for (QueryExecutionBenchmarkWorkloadEngineSnapshot snapshot : engineSnapshots) {
+            if (snapshot != null && WORKLOAD_SOURCE_LIVE.equals(snapshot.getWorkloadSource())) {
+                return snapshot;
+            }
+        }
+        return null;
+    }
+
+    private void applyCompensatedReplaySnapshot(QueryExecutionBenchmarkWorkloadEngineSnapshot snapshot,
+                                                QueryExecutionBenchmarkWorkloadEngineSnapshot sourceSnapshot,
+                                                String sqlFingerprint) {
+        long sourceElapsedMs = sourceSnapshot.getElapsedMs() == null ? 24L : sourceSnapshot.getElapsedMs().longValue();
+        long sourceScannedRows = sourceSnapshot.getScannedRows() == null ? 128L : sourceSnapshot.getScannedRows().longValue();
+        int sourceRowCount = sourceSnapshot.getRowCount() == null ? 1 : sourceSnapshot.getRowCount().intValue();
+        long engineBias = snapshot.getTargetEngine() == null ? 3L : (snapshot.getTargetEngine().ordinal() + 1L) * 3L;
+        long replayElapsedMs = Math.max(10L, sourceElapsedMs + engineBias);
+        long replayScannedRows = Math.max(32L, sourceScannedRows + (engineBias * 32L));
+        String originalReason = snapshot.getBackfillReason();
+        snapshot.setResultStatus(QueryExecutionStatus.PARTIAL.name());
+        snapshot.setWorkloadSource(WORKLOAD_SOURCE_COMPENSATED_REPLAY);
+        snapshot.setBackfillSource("LIVE_WORKLOAD_COMPENSATED_REPLAY");
+        snapshot.setBackfillReason(trimReason(originalReason));
+        snapshot.setExecutionMode("COMPENSATED_REPLAY");
+        snapshot.setAttemptedModes(buildCompensatedAttemptedModes(sourceSnapshot));
+        snapshot.setElapsedMs(Long.valueOf(replayElapsedMs));
+        snapshot.setScannedRows(Long.valueOf(replayScannedRows));
+        snapshot.setRowCount(Integer.valueOf(Math.max(1, sourceRowCount)));
+        snapshot.setCacheHit(Boolean.FALSE);
+        snapshot.setAccelerationApplied(Boolean.FALSE);
+        snapshot.setCompensationApplied(Boolean.TRUE);
+        snapshot.setCompensationStrategy(COMPENSATION_STRATEGY);
+        snapshot.setCompensationSourceEngine(sourceSnapshot.getTargetEngine());
+        snapshot.setCompensationSourceWorkloadDigest(sourceSnapshot.getWorkloadDigest());
+        snapshot.setWorkloadDigest(shortDigest(
+            sqlFingerprint
+                + "|"
+                + (snapshot.getTargetEngine() == null ? "AUTO" : snapshot.getTargetEngine().name())
+                + "|COMPENSATED_REPLAY|"
+                + sourceSnapshot.getWorkloadDigest()
+        ));
+        snapshot.setEvidence(buildCompensationEvidence(snapshot, sourceSnapshot, originalReason));
+    }
+
+    private List<String> buildCompensatedAttemptedModes(QueryExecutionBenchmarkWorkloadEngineSnapshot sourceSnapshot) {
+        List<String> attemptedModes = new ArrayList<String>();
+        if (sourceSnapshot != null && sourceSnapshot.getAttemptedModes() != null) {
+            attemptedModes.addAll(sourceSnapshot.getAttemptedModes());
+        }
+        attemptedModes.add("COMPENSATED_REPLAY");
+        return Collections.unmodifiableList(attemptedModes);
+    }
+
+    private String buildCompensationEvidence(QueryExecutionBenchmarkWorkloadEngineSnapshot snapshot,
+                                             QueryExecutionBenchmarkWorkloadEngineSnapshot sourceSnapshot,
+                                             String originalReason) {
+        return "source=" + WORKLOAD_SOURCE_COMPENSATED_REPLAY
+            + ";targetEngine=" + (snapshot.getTargetEngine() == null ? "AUTO" : snapshot.getTargetEngine().name())
+            + ";strategy=" + COMPENSATION_STRATEGY
+            + ";sourceEngine=" + (sourceSnapshot.getTargetEngine() == null ? "AUTO" : sourceSnapshot.getTargetEngine().name())
+            + ";sourceWorkloadDigest=" + sourceSnapshot.getWorkloadDigest()
+            + ";originalReason=" + trimReason(originalReason);
     }
 
     private String buildLiveEvidence(DataSourceTypeEnum targetEngine, QueryExecuteResponse response) {
@@ -200,6 +289,22 @@ public class QueryExecutionBenchmarkWorkloadService {
         return targetEngines;
     }
 
+    private boolean containsBackfill(List<QueryExecutionBenchmarkWorkloadEngineSnapshot> engineSnapshots) {
+        for (QueryExecutionBenchmarkWorkloadEngineSnapshot snapshot : engineSnapshots) {
+            if (snapshot != null && WORKLOAD_SOURCE_BACKFILL.equals(snapshot.getWorkloadSource())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String resolveWorkloadSource(boolean backfillApplied, boolean compensationApplied) {
+        if (compensationApplied) {
+            return "LIVE_WITH_COMPENSATED_REPLAY";
+        }
+        return backfillApplied ? "LIVE_WITH_BACKFILL" : WORKLOAD_SOURCE_LIVE;
+    }
+
     private void writeAuditRecord(QueryExecutionBenchmarkWorkloadRequest request,
                                   QueryExecutionBenchmarkWorkloadResponse response,
                                   long elapsedMs) {
@@ -214,6 +319,8 @@ public class QueryExecutionBenchmarkWorkloadService {
         Map<String, Object> responsePayload = new LinkedHashMap<String, Object>();
         responsePayload.put("workloadSource", response == null ? null : response.getWorkloadSource());
         responsePayload.put("backfillApplied", response == null ? Boolean.FALSE : Boolean.valueOf(response.isBackfillApplied()));
+        responsePayload.put("compensationApplied", response == null ? Boolean.FALSE : Boolean.valueOf(response.isCompensationApplied()));
+        responsePayload.put("compensationStrategy", response == null ? null : response.getCompensationStrategy());
         responsePayload.put("workloadDigest", response == null ? null : response.getWorkloadDigest());
         governanceCapabilityClient.writeAudit(
             new QueryExecutionAuditRecord(
@@ -313,6 +420,33 @@ public class QueryExecutionBenchmarkWorkloadService {
             return builder.toString();
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 digest is unavailable", ex);
+        }
+    }
+
+    private static final class CompensationPlan {
+
+        private final boolean compensationApplied;
+        private final String compensationStrategy;
+
+        private CompensationPlan(boolean compensationApplied, String compensationStrategy) {
+            this.compensationApplied = compensationApplied;
+            this.compensationStrategy = compensationStrategy;
+        }
+
+        private static CompensationPlan none() {
+            return new CompensationPlan(false, null);
+        }
+
+        private static CompensationPlan compensated(String compensationStrategy) {
+            return new CompensationPlan(true, compensationStrategy);
+        }
+
+        private boolean isCompensationApplied() {
+            return compensationApplied;
+        }
+
+        private String getCompensationStrategy() {
+            return compensationStrategy;
         }
     }
 }
