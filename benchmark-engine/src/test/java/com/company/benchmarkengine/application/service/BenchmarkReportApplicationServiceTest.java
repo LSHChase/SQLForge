@@ -50,7 +50,7 @@ class BenchmarkReportApplicationServiceTest {
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         BenchmarkArtifactStorageProperties properties = new BenchmarkArtifactStorageProperties();
         properties.setBaseDir(tempDir.resolve("artifacts").toString());
-        BenchmarkArtifactStorageService storageService = new BenchmarkArtifactStorageService(properties);
+        BenchmarkArtifactStorageService storageService = new BenchmarkArtifactStorageService(properties, governanceCapabilityClient);
         BenchmarkReportApplicationService service =
             new BenchmarkReportApplicationService(
                 modelService,
@@ -109,7 +109,7 @@ class BenchmarkReportApplicationServiceTest {
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
         BenchmarkArtifactStorageProperties properties = new BenchmarkArtifactStorageProperties();
         properties.setBaseDir(tempDir.resolve("artifacts").toString());
-        BenchmarkArtifactStorageService storageService = new BenchmarkArtifactStorageService(properties);
+        BenchmarkArtifactStorageService storageService = new BenchmarkArtifactStorageService(properties, governanceCapabilityClient);
         BenchmarkReportApplicationService service =
             new BenchmarkReportApplicationService(
                 modelService,
@@ -141,7 +141,7 @@ class BenchmarkReportApplicationServiceTest {
             new BenchmarkReportApplicationService(
                 modelService,
                 new BenchmarkReportExportService(),
-                new BenchmarkArtifactStorageService(new BenchmarkArtifactStorageProperties()),
+                new BenchmarkArtifactStorageService(new BenchmarkArtifactStorageProperties(), mockGovernanceClient()),
                 new BenchmarkGovernanceTraceService(mockGovernanceClient()),
                 repository,
                 mockGovernanceClient(),
@@ -163,7 +163,7 @@ class BenchmarkReportApplicationServiceTest {
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
         BenchmarkArtifactStorageProperties properties = new BenchmarkArtifactStorageProperties();
         properties.setBaseDir(tempDir.resolve("artifacts").toString());
-        BenchmarkArtifactStorageService storageService = new BenchmarkArtifactStorageService(properties);
+        BenchmarkArtifactStorageService storageService = new BenchmarkArtifactStorageService(properties, governanceCapabilityClient);
         BenchmarkReportApplicationService service =
             new BenchmarkReportApplicationService(
                 modelService,
@@ -222,7 +222,7 @@ class BenchmarkReportApplicationServiceTest {
             new BenchmarkReportExportService().buildArtifacts(reportResponse);
         artifacts.add(new BenchmarkReportExportService().buildRawDataArtifact(rawDataResponse));
         java.util.List<com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact> externalized =
-            storageService.externalize(report.getReportId(), artifacts);
+            storageService.externalize(report.getReportId(), report.getTenantId(), report.getGeneratedAt(), artifacts);
         java.util.List<com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact> traced =
             new java.util.ArrayList<com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact>(externalized.size());
         for (com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact artifact : externalized) {

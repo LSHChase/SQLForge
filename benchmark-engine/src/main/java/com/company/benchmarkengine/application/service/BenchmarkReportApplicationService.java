@@ -105,6 +105,8 @@ public class BenchmarkReportApplicationService {
             final BenchmarkReport loadedReport = report;
             BenchmarkArtifactLoadResult loadResult = benchmarkArtifactStorageService.loadOrRecover(
                 report.getReportId(),
+                report.getTenantId(),
+                report.getGeneratedAt(),
                 artifact,
                 () -> benchmarkReportExportService.buildRawDataArtifact(
                     benchmarkTaskModelApplicationService.buildRawDataResponse(loadedReport)
@@ -163,6 +165,8 @@ public class BenchmarkReportApplicationService {
             final BenchmarkReportResponse loadedResponse = response;
             BenchmarkArtifactLoadResult loadResult = benchmarkArtifactStorageService.loadOrRecover(
                 report.getReportId(),
+                report.getTenantId(),
+                report.getGeneratedAt(),
                 artifact,
                 () -> benchmarkReportExportService.buildReportArtifact(loadedResponse, format)
             );
@@ -390,6 +394,10 @@ public class BenchmarkReportApplicationService {
         payload.put("verdict", verdict);
         payload.put("artifactKey", artifact == null ? null : artifact.getArtifactKey());
         payload.put("artifactStorageType", artifact == null ? null : artifact.getStorageType());
+        payload.put("artifactStorageEvidence", artifact == null ? null : artifact.getStorageEvidence());
+        payload.put("artifactRetentionDays", artifact == null ? null : artifact.getRetentionDays());
+        payload.put("artifactRetentionPolicySource", artifact == null ? null : artifact.getRetentionPolicySource());
+        payload.put("artifactRetentionDeleteAfter", artifact == null ? null : artifact.getRetentionDeleteAfter());
         payload.put("exportId", artifact == null ? null : artifact.getExportId());
         payload.put("artifactRecoveryStatus", artifactRecoveryStatus);
         payload.put("failureReason", failureReason);

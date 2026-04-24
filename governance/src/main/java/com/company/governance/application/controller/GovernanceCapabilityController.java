@@ -10,6 +10,8 @@ import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionReq
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
+import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
+import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckRequest;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckResponse;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -58,6 +60,13 @@ public class GovernanceCapabilityController {
         @RequestBody GovernanceBenchmarkReportTraceRequest request
     ) {
         return governanceCapabilityApplicationService.writeBenchmarkReportTrace(request);
+    }
+
+    @PostMapping("/tenant-artifact-policy/resolve")
+    public GovernanceTenantArtifactPolicyResponse resolveTenantArtifactPolicy(
+        @RequestBody GovernanceTenantArtifactPolicyRequest request
+    ) {
+        return governanceCapabilityApplicationService.resolveTenantArtifactPolicy(request);
     }
 
     @GetMapping("/schedule/extensions")

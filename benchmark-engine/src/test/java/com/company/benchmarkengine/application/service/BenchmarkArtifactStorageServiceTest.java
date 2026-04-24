@@ -2,15 +2,21 @@ package com.company.benchmarkengine.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.company.benchmarkengine.config.BenchmarkArtifactStorageProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifactKind;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
+import com.company.benchmarkengine.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyResponse;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
@@ -22,14 +28,14 @@ class BenchmarkArtifactStorageServiceTest {
     void shouldCleanupStaleFilesWhenExternalizingLatestArtifactSet(@TempDir Path tempDir) throws Exception {
         BenchmarkArtifactStorageProperties properties = new BenchmarkArtifactStorageProperties();
         properties.setBaseDir(tempDir.resolve("artifacts").toString());
-        BenchmarkArtifactStorageService service = new BenchmarkArtifactStorageService(properties);
+        BenchmarkArtifactStorageService service = new BenchmarkArtifactStorageService(properties, null);
 
         BenchmarkReportArtifact pdfArtifact = artifact("pdf-export", "benchmark-report-report-001.pdf", BenchmarkReportFormat.PDF, "pdf-v1");
         BenchmarkReportArtifact htmlArtifact = artifact("html-export", "benchmark-report-report-001.html", BenchmarkReportFormat.HTML, "html-v1");
-        service.externalize("report-001", Arrays.asList(pdfArtifact, htmlArtifact));
+        service.externalize("report-001", "tenant-a", Instant.parse("2026-04-24T00:00:00Z"), Arrays.asList(pdfArtifact, htmlArtifact));
 
         BenchmarkReportArtifact updatedPdfArtifact = artifact("pdf-export", "benchmark-report-report-001.pdf", BenchmarkReportFormat.PDF, "pdf-v2");
-        service.externalize("report-001", Collections.singletonList(updatedPdfArtifact));
+        service.externalize("report-001", "tenant-a", Instant.parse("2026-04-24T00:00:00Z"), Collections.singletonList(updatedPdfArtifact));
 
         Path pdfPath = tempDir.resolve("artifacts/report-001/benchmark-report-report-001.pdf");
         Path htmlPath = tempDir.resolve("artifacts/report-001/benchmark-report-report-001.html");
@@ -42,16 +48,20 @@ class BenchmarkArtifactStorageServiceTest {
     void shouldRecoverMissingFileFromSuppliedArtifact(@TempDir Path tempDir) throws Exception {
         BenchmarkArtifactStorageProperties properties = new BenchmarkArtifactStorageProperties();
         properties.setBaseDir(tempDir.resolve("artifacts").toString());
-        BenchmarkArtifactStorageService service = new BenchmarkArtifactStorageService(properties);
+        BenchmarkArtifactStorageService service = new BenchmarkArtifactStorageService(properties, null);
 
         BenchmarkReportArtifact persistedArtifact = service.externalize(
             "report-001",
+            "tenant-a",
+            Instant.parse("2026-04-24T00:00:00Z"),
             artifact("pdf-export", "benchmark-report-report-001.pdf", BenchmarkReportFormat.PDF, "pdf-v1")
         ).withExportId("export-benchmark-report-001-pdf-export");
         Files.delete(Paths.get(URI.create(persistedArtifact.getStorageUri())));
 
         BenchmarkArtifactLoadResult loadResult = service.loadOrRecover(
             "report-001",
+            "tenant-a",
+            Instant.parse("2026-04-24T00:00:00Z"),
             persistedArtifact,
             () -> artifact("pdf-export", "benchmark-report-report-001.pdf", BenchmarkReportFormat.PDF, "pdf-v2")
         );
@@ -60,6 +70,53 @@ class BenchmarkArtifactStorageServiceTest {
         assertEquals("RECOVERED_FROM_REPORT_SNAPSHOT", loadResult.getRecoveryStatus());
         assertEquals("export-benchmark-report-001-pdf-export", loadResult.getResolvedArtifact().getExportId());
         assertEquals("pdf-v2", new String(loadResult.getRenderedReport().getContent()));
+    }
+
+    @Test
+    void shouldBackfillTenantRetentionPolicyFromGovernance(@TempDir Path tempDir) {
+        BenchmarkArtifactStorageProperties properties = new BenchmarkArtifactStorageProperties();
+        properties.setBaseDir(tempDir.resolve("artifacts").toString());
+        GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
+        GovernanceTenantArtifactPolicyResponse response = new GovernanceTenantArtifactPolicyResponse();
+        response.setTenantId("tenant-a");
+        response.setRetentionDays(Integer.valueOf(180));
+        response.setRetentionPolicySource("GOVERNANCE_TENANT_CONFIG_RETENTION_DAYS");
+        response.setRetentionPolicyStatus("TENANT_RETENTION_ACTIVE");
+        when(governanceCapabilityClient.resolveTenantArtifactPolicy(eq("tenant-a"), eq("BENCHMARK_ARTIFACT"))).thenReturn(response);
+        BenchmarkArtifactStorageService service = new BenchmarkArtifactStorageService(properties, governanceCapabilityClient);
+
+        BenchmarkReportArtifact artifact = service.externalize(
+            "report-001",
+            "tenant-a",
+            Instant.parse("2026-04-24T00:00:00Z"),
+            artifact("pdf-export", "benchmark-report-report-001.pdf", BenchmarkReportFormat.PDF, "pdf-v1")
+        );
+
+        assertEquals(Integer.valueOf(180), artifact.getRetentionDays());
+        assertEquals("GOVERNANCE_TENANT_CONFIG_RETENTION_DAYS", artifact.getRetentionPolicySource());
+        assertEquals("2026-10-21T00:00:00Z", artifact.getRetentionDeleteAfter());
+    }
+
+    @Test
+    void shouldExternalizeToEnvironmentBackedMirrorWithObjectStorageEvidence(@TempDir Path tempDir) {
+        BenchmarkArtifactStorageProperties properties = new BenchmarkArtifactStorageProperties();
+        properties.setStorageType("ENVIRONMENT_OBJECT_STORAGE");
+        properties.getEnvironmentObjectStorage().setMirrorDir(tempDir.resolve("mirror").toString());
+        properties.getEnvironmentObjectStorage().setBucket("benchmark-bucket");
+        properties.getEnvironmentObjectStorage().setKeyPrefix("tenant-artifacts");
+        BenchmarkArtifactStorageService service = new BenchmarkArtifactStorageService(properties, null);
+
+        BenchmarkReportArtifact artifact = service.externalize(
+            "report-001",
+            "tenant-a",
+            Instant.parse("2026-04-24T00:00:00Z"),
+            artifact("pdf-export", "benchmark-report-report-001.pdf", BenchmarkReportFormat.PDF, "pdf-v1")
+        );
+
+        assertEquals("ENVIRONMENT_OBJECT_STORAGE", artifact.getStorageType());
+        assertEquals("env-obj://benchmark-bucket/tenant-artifacts/tenant-a/report-001/benchmark-report-report-001.pdf", artifact.getStorageUri());
+        assertTrue(artifact.getStorageEvidence().contains("mirrorPath="));
+        assertTrue(artifact.getStorageEvidence().contains("mode=repo-local-mirror"));
     }
 
     private BenchmarkReportArtifact artifact(String artifactKey,

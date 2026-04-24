@@ -18,6 +18,7 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyResponse;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -68,6 +69,31 @@ class GovernanceHttpClientTest {
             "{\"resultStatus\":\"QUEUED\"}"
         ));
 
+        server.verify();
+    }
+
+    @Test
+    void shouldResolveTenantArtifactPolicyWithSyntheticProtectedHeadersWhenRequestContextIsMissing() {
+        GovernanceHttpClient client = createClient();
+        RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        server.expect(requestTo("http://governance.test/api/governance/internal/tenant-artifact-policy/resolve"))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"tenantId\":\"tenant-a\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"policyScope\":\"BENCHMARK_ARTIFACT\"")))
+            .andRespond(withSuccess(
+                "{\"tenantId\":\"tenant-a\",\"retentionDays\":180,"
+                    + "\"retentionPolicySource\":\"GOVERNANCE_TENANT_CONFIG_RETENTION_DAYS\","
+                    + "\"retentionPolicyStatus\":\"TENANT_RETENTION_ACTIVE\"}",
+                MediaType.APPLICATION_JSON
+            ));
+
+        GovernanceTenantArtifactPolicyResponse response =
+            client.resolveTenantArtifactPolicy("tenant-a", "BENCHMARK_ARTIFACT");
+
+        assertEquals("tenant-a", response.getTenantId());
+        assertEquals(Integer.valueOf(180), response.getRetentionDays());
+        assertEquals("GOVERNANCE_TENANT_CONFIG_RETENTION_DAYS", response.getRetentionPolicySource());
         server.verify();
     }
 

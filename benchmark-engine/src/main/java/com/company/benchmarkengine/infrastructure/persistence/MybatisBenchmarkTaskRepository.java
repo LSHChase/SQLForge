@@ -417,7 +417,11 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
                         item.get("checksumSha256") == null ? null : String.valueOf(item.get("checksumSha256")),
                         item.get("storageType") == null ? null : String.valueOf(item.get("storageType")),
                         item.get("storageUri") == null ? null : String.valueOf(item.get("storageUri")),
+                        item.get("storageEvidence") == null ? null : String.valueOf(item.get("storageEvidence")),
                         item.get("exportId") == null ? null : String.valueOf(item.get("exportId")),
+                        item.get("retentionDays") == null ? null : Integer.valueOf(String.valueOf(item.get("retentionDays"))),
+                        item.get("retentionPolicySource") == null ? null : String.valueOf(item.get("retentionPolicySource")),
+                        item.get("retentionDeleteAfter") == null ? null : String.valueOf(item.get("retentionDeleteAfter")),
                         item.get("content") == null ? null : String.valueOf(item.get("content"))
                     )
                 );

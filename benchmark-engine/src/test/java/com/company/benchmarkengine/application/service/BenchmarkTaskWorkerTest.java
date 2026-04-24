@@ -2,6 +2,7 @@ package com.company.benchmarkengine.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
@@ -31,13 +32,14 @@ class BenchmarkTaskWorkerTest {
         properties.setIsolationSampleCount(4);
         properties.setIsolationWorkIterations(24);
         BenchmarkArtifactStorageProperties storageProperties = new BenchmarkArtifactStorageProperties();
+        GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         BenchmarkTaskWorker worker = new BenchmarkTaskWorker(
             modelService,
             new BenchmarkIsolatedExecutionService(properties, modelService),
             new BenchmarkReportExportService(),
-            new BenchmarkArtifactStorageService(storageProperties),
-            new BenchmarkGovernanceTraceService(org.mockito.Mockito.mock(GovernanceCapabilityClient.class)),
+            new BenchmarkArtifactStorageService(storageProperties, governanceCapabilityClient),
+            new BenchmarkGovernanceTraceService(governanceCapabilityClient),
             repository,
             properties,
             new BenchmarkMetricsRecorder(meterRegistry)

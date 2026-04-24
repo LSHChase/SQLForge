@@ -9,10 +9,14 @@ import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionReq
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
+import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
+import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyResponse;
 import com.company.sqlforge.common.governance.ProtectedGovernanceRequestSupport;
+import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import java.time.Duration;
+import java.util.UUID;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -81,6 +85,19 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
     }
 
     @Override
+    public GovernanceTenantArtifactPolicyResponse resolveTenantArtifactPolicy(String tenantId, String policyScope) {
+        GovernanceTenantArtifactPolicyRequest request = new GovernanceTenantArtifactPolicyRequest();
+        request.setTenantId(tenantId);
+        request.setPolicyScope(policyScope);
+        return post(
+            "/tenant-artifact-policy/resolve",
+            request,
+            GovernanceTenantArtifactPolicyResponse.class,
+            tenantId
+        );
+    }
+
+    @Override
     public void writeAudit(BenchmarkAuditRecord auditRecord) {
         GovernanceAuditWriteRequest request = new GovernanceAuditWriteRequest();
         request.setServiceCode(ServiceCodeConstants.BENCHMARK_ENGINE);
@@ -102,10 +119,14 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
     }
 
     private <T> T post(String path, Object request, Class<T> responseType) {
+        return post(path, request, responseType, null);
+    }
+
+    private <T> T post(String path, Object request, Class<T> responseType, String fallbackTenantId) {
         try {
             return restTemplate.postForObject(
                 normalizeBaseUrl() + path,
-                new HttpEntity<Object>(request, buildProtectedHeaders()),
+                new HttpEntity<Object>(request, buildProtectedHeaders(fallbackTenantId)),
                 responseType
             );
         } catch (RestClientException ex) {
@@ -118,8 +139,43 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
         }
     }
 
-    private HttpHeaders buildProtectedHeaders() {
-        return ProtectedGovernanceRequestSupport.buildProtectedHeaders();
+    private HttpHeaders buildProtectedHeaders(String fallbackTenantId) {
+        if (hasProtectedRequestContext()) {
+            return ProtectedGovernanceRequestSupport.buildProtectedHeaders();
+        }
+        if (!StringUtils.hasText(fallbackTenantId)) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
+                HttpStatus.UNAUTHORIZED,
+                "Missing protected request context field: tenantId"
+            );
+        }
+        long issuedAt = System.currentTimeMillis();
+        long expiresAt = issuedAt + 60000L;
+        String syntheticTraceId = "benchmark-engine-artifact-policy-" + UUID.randomUUID().toString();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-Tenant-Id", fallbackTenantId);
+        headers.set("X-User-Id", "benchmark-engine-service");
+        headers.set("X-Role-Codes", "SERVICE");
+        headers.set("X-Request-Id", syntheticTraceId);
+        headers.set("X-Trace-Id", syntheticTraceId);
+        headers.set("X-Auth-Source", "header");
+        headers.set("X-Issued-At", String.valueOf(issuedAt));
+        headers.set("X-Expires-At", String.valueOf(expiresAt));
+        return headers;
+    }
+
+    private boolean hasProtectedRequestContext() {
+        return StringUtils.hasText(RequestContext.getTenantId())
+            && StringUtils.hasText(RequestContext.getUserId())
+            && RequestContext.getRoleCodes() != null
+            && !RequestContext.getRoleCodes().isEmpty()
+            && StringUtils.hasText(RequestContext.getRequestId())
+            && StringUtils.hasText(RequestContext.getTraceId())
+            && StringUtils.hasText(RequestContext.getAuthSource())
+            && RequestContext.getIssuedAt() > 0L
+            && RequestContext.getExpiresAt() > 0L;
     }
 
     private String normalizeBaseUrl() {

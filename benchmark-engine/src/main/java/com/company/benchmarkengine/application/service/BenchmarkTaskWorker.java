@@ -100,7 +100,12 @@ public class BenchmarkTaskWorker {
             List<BenchmarkReportArtifact> artifacts =
                 benchmarkReportExportService.buildArtifacts(reportResponse);
             artifacts.add(benchmarkReportExportService.buildRawDataArtifact(rawDataResponse));
-            artifacts = benchmarkArtifactStorageService.externalize(report.getReportId(), artifacts);
+            artifacts = benchmarkArtifactStorageService.externalize(
+                report.getReportId(),
+                report.getTenantId(),
+                report.getGeneratedAt(),
+                artifacts
+            );
             artifacts = benchmarkGovernanceTraceService.registerTrace(task, report, reportResponse, rawDataResponse, artifacts);
             report = report.withExportArtifacts(artifacts);
             benchmarkTaskRepository.saveReport(report);

@@ -27,3 +27,8 @@ benchmark-engine:
     storage-type: LOCAL_FILE
     recovery-enabled: true
     cleanup-stale-files: true
+    tenant-policy-backfill-enabled: true
+    environment-object-storage:
+      bucket: test-bucket
+      key-prefix: benchmark-engine-test
+      mirror-dir: target/benchmark-engine-artifacts/test-runtime-object-storage

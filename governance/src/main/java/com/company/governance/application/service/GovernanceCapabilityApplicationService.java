@@ -6,6 +6,8 @@ import com.company.governance.application.controller.vo.AuditWriteResponse;
 import com.company.governance.application.controller.vo.DatasourceAuthorizationChangeResponse;
 import com.company.governance.application.controller.vo.ScheduleExtensionStatusVO;
 import com.company.governance.config.MessagingProperties;
+import com.company.governance.domain.tenant.entity.TenantConfig;
+import com.company.governance.domain.tenant.repository.TenantConfigRepository;
 import com.company.sqlforge.common.config.MessagingMode;
 import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
@@ -15,6 +17,8 @@ import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionReq
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
+import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
+import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckRequest;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckResponse;
 import org.slf4j.Logger;
@@ -29,6 +33,9 @@ public class GovernanceCapabilityApplicationService {
     private static final Logger LOGGER = LoggerFactory.getLogger(GovernanceCapabilityApplicationService.class);
     private static final String CONTRACT_STAGE_TRANSITIONAL_SKELETON = "TRANSITIONAL_SKELETON";
     private static final String IMPLEMENTATION_STAGE_TRANSITIONAL_SKELETON = "TRANSITIONAL_SKELETON";
+    private static final String CONTRACT_STAGE_LONG_TERM_BASELINE = "LONG_TERM_BASELINE";
+    private static final String IMPLEMENTATION_STAGE_TENANT_ARTIFACT_POLICY_BASELINE =
+        "TENANT_ARTIFACT_POLICY_BASELINE";
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_EXTERNALIZED = "EXTERNALIZED";
     private static final String STATUS_TEST_ONLY = "TEST_ONLY";
@@ -38,16 +45,19 @@ public class GovernanceCapabilityApplicationService {
     private final GovernanceAuditTrailService governanceAuditTrailService;
     private final GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService;
     private final MessagingProperties messagingProperties;
+    private final TenantConfigRepository tenantConfigRepository;
 
     public GovernanceCapabilityApplicationService(
                                                   GovernanceAuthorizationMatrixApplicationService governanceAuthorizationMatrixApplicationService,
                                                   GovernanceAuditTrailService governanceAuditTrailService,
                                                   GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService,
-                                                  MessagingProperties messagingProperties) {
+                                                  MessagingProperties messagingProperties,
+                                                  TenantConfigRepository tenantConfigRepository) {
         this.governanceAuthorizationMatrixApplicationService = governanceAuthorizationMatrixApplicationService;
         this.governanceAuditTrailService = governanceAuditTrailService;
         this.governanceBenchmarkTraceabilityApplicationService = governanceBenchmarkTraceabilityApplicationService;
         this.messagingProperties = messagingProperties;
+        this.tenantConfigRepository = tenantConfigRepository;
     }
 
     public GovernanceTenantScopeCheckResponse checkTenantScope(GovernanceTenantScopeCheckRequest request) {
@@ -75,6 +85,35 @@ public class GovernanceCapabilityApplicationService {
     public GovernanceBenchmarkReportTraceResponse writeBenchmarkReportTrace(GovernanceBenchmarkReportTraceRequest request) {
         requireProtectedTenantContext();
         return governanceBenchmarkTraceabilityApplicationService.writeBenchmarkReportTrace(request);
+    }
+
+    public GovernanceTenantArtifactPolicyResponse resolveTenantArtifactPolicy(
+        GovernanceTenantArtifactPolicyRequest request
+    ) {
+        requireProtectedTenantContext();
+        String tenantId = requireText(request == null ? null : request.getTenantId(), "tenantId");
+        TenantConfig tenantConfig = tenantConfigRepository.findByTenantId(tenantId).orElse(null);
+
+        GovernanceTenantArtifactPolicyResponse response = new GovernanceTenantArtifactPolicyResponse();
+        response.setTenantId(tenantId);
+        response.setPolicyScope(request == null ? null : request.getPolicyScope());
+        response.setContractStage(CONTRACT_STAGE_LONG_TERM_BASELINE);
+        response.setImplementationStage(IMPLEMENTATION_STAGE_TENANT_ARTIFACT_POLICY_BASELINE);
+        if (tenantConfig == null) {
+            response.setRetentionPolicySource("GOVERNANCE_TENANT_CONFIG_MISSING");
+            response.setRetentionPolicyStatus("LONG_TERM_DEFAULT");
+            return response;
+        }
+        Integer retentionDays = tenantConfig.getRetentionDays();
+        if (retentionDays == null || retentionDays.intValue() <= 0) {
+            response.setRetentionPolicySource("GOVERNANCE_TENANT_CONFIG_RETENTION_DAYS");
+            response.setRetentionPolicyStatus("LONG_TERM_DEFAULT");
+            return response;
+        }
+        response.setRetentionDays(retentionDays);
+        response.setRetentionPolicySource("GOVERNANCE_TENANT_CONFIG_RETENTION_DAYS");
+        response.setRetentionPolicyStatus("TENANT_RETENTION_ACTIVE");
+        return response;
     }
 
     public ScheduleExtensionStatusVO getScheduleExtensionStatus() {

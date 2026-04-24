@@ -11,7 +11,11 @@ public class BenchmarkReportArtifact {
     private final String checksumSha256;
     private final String storageType;
     private final String storageUri;
+    private final String storageEvidence;
     private final String exportId;
+    private final Integer retentionDays;
+    private final String retentionPolicySource;
+    private final String retentionDeleteAfter;
     private final String content;
 
     public BenchmarkReportArtifact(BenchmarkReportFormat format,
@@ -31,6 +35,9 @@ public class BenchmarkReportArtifact {
             null,
             null,
             null,
+            null,
+            null,
+            null,
             content
         );
     }
@@ -46,6 +53,73 @@ public class BenchmarkReportArtifact {
                                    String storageUri,
                                    String exportId,
                                    String content) {
+        this(
+            artifactKey,
+            artifactKind,
+            format,
+            fileName,
+            mediaType,
+            contentLength,
+            checksumSha256,
+            storageType,
+            storageUri,
+            null,
+            exportId,
+            null,
+            null,
+            null,
+            content
+        );
+    }
+
+    public BenchmarkReportArtifact(String artifactKey,
+                                   BenchmarkReportArtifactKind artifactKind,
+                                   BenchmarkReportFormat format,
+                                   String fileName,
+                                   String mediaType,
+                                   Integer contentLength,
+                                   String checksumSha256,
+                                   String storageType,
+                                   String storageUri,
+                                   String exportId,
+                                   Integer retentionDays,
+                                   String retentionPolicySource,
+                                   String retentionDeleteAfter,
+                                   String content) {
+        this(
+            artifactKey,
+            artifactKind,
+            format,
+            fileName,
+            mediaType,
+            contentLength,
+            checksumSha256,
+            storageType,
+            storageUri,
+            null,
+            exportId,
+            retentionDays,
+            retentionPolicySource,
+            retentionDeleteAfter,
+            content
+        );
+    }
+
+    public BenchmarkReportArtifact(String artifactKey,
+                                   BenchmarkReportArtifactKind artifactKind,
+                                   BenchmarkReportFormat format,
+                                   String fileName,
+                                   String mediaType,
+                                   Integer contentLength,
+                                   String checksumSha256,
+                                   String storageType,
+                                   String storageUri,
+                                   String storageEvidence,
+                                   String exportId,
+                                   Integer retentionDays,
+                                   String retentionPolicySource,
+                                   String retentionDeleteAfter,
+                                   String content) {
         this.artifactKey = artifactKey;
         this.artifactKind = artifactKind;
         this.format = format;
@@ -55,7 +129,11 @@ public class BenchmarkReportArtifact {
         this.checksumSha256 = checksumSha256;
         this.storageType = storageType;
         this.storageUri = storageUri;
+        this.storageEvidence = storageEvidence;
         this.exportId = exportId;
+        this.retentionDays = retentionDays;
+        this.retentionPolicySource = retentionPolicySource;
+        this.retentionDeleteAfter = retentionDeleteAfter;
         this.content = content;
     }
 
@@ -102,15 +180,36 @@ public class BenchmarkReportArtifact {
         return storageUri;
     }
 
+    public String getStorageEvidence() {
+        return storageEvidence;
+    }
+
     public String getExportId() {
         return exportId;
+    }
+
+    public Integer getRetentionDays() {
+        return retentionDays;
+    }
+
+    public String getRetentionPolicySource() {
+        return retentionPolicySource;
+    }
+
+    public String getRetentionDeleteAfter() {
+        return retentionDeleteAfter;
     }
 
     public String getContent() {
         return content;
     }
 
-    public BenchmarkReportArtifact externalized(String storageType, String storageUri) {
+    public BenchmarkReportArtifact externalized(String storageType,
+                                               String storageUri,
+                                               String storageEvidence,
+                                               Integer retentionDays,
+                                               String retentionPolicySource,
+                                               String retentionDeleteAfter) {
         return new BenchmarkReportArtifact(
             artifactKey,
             artifactKind,
@@ -121,7 +220,11 @@ public class BenchmarkReportArtifact {
             checksumSha256,
             storageType,
             storageUri,
+            storageEvidence,
             exportId,
+            retentionDays,
+            retentionPolicySource,
+            retentionDeleteAfter,
             null
         );
     }
@@ -137,8 +240,55 @@ public class BenchmarkReportArtifact {
             checksumSha256,
             storageType,
             storageUri,
+            storageEvidence,
             exportId,
+            retentionDays,
+            retentionPolicySource,
+            retentionDeleteAfter,
             content
         );
     }
+
+    public BenchmarkReportArtifact withRetentionPolicy(Integer retentionDays,
+                                                       String retentionPolicySource,
+                                                       String retentionDeleteAfter) {
+        return new BenchmarkReportArtifact(
+            artifactKey,
+            artifactKind,
+            format,
+            fileName,
+            mediaType,
+            contentLength,
+            checksumSha256,
+            storageType,
+            storageUri,
+            storageEvidence,
+            exportId,
+            retentionDays,
+            retentionPolicySource,
+            retentionDeleteAfter,
+            content
+        );
+    }
+
+    public BenchmarkReportArtifact withStorageEvidence(String storageEvidence) {
+        return new BenchmarkReportArtifact(
+            artifactKey,
+            artifactKind,
+            format,
+            fileName,
+            mediaType,
+            contentLength,
+            checksumSha256,
+            storageType,
+            storageUri,
+            storageEvidence,
+            exportId,
+            retentionDays,
+            retentionPolicySource,
+            retentionDeleteAfter,
+            content
+        );
+    }
+
 }

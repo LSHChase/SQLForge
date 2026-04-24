@@ -12,14 +12,19 @@ import com.company.governance.application.controller.vo.AuditWriteResponse;
 import com.company.governance.application.controller.vo.DatasourceAuthorizationChangeResponse;
 import com.company.governance.application.controller.vo.ScheduleExtensionStatusVO;
 import com.company.governance.config.MessagingProperties;
+import com.company.governance.domain.tenant.entity.TenantConfig;
+import com.company.governance.domain.tenant.repository.TenantConfigRepository;
 import com.company.sqlforge.common.config.MessagingMode;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
+import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckRequest;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckResponse;
+import java.util.Optional;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -38,11 +43,13 @@ class GovernanceCapabilityApplicationServiceTest {
         GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
         GovernanceBenchmarkTraceabilityApplicationService benchmarkTraceabilityApplicationService =
             mock(GovernanceBenchmarkTraceabilityApplicationService.class);
+        TenantConfigRepository tenantConfigRepository = mock(TenantConfigRepository.class);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
             matrixService,
             governanceAuditTrailService,
             benchmarkTraceabilityApplicationService,
-            databaseMessaging()
+            databaseMessaging(),
+            tenantConfigRepository
         );
         RequestContext.set(
             "tenant-a",
@@ -118,13 +125,15 @@ class GovernanceCapabilityApplicationServiceTest {
         GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
         GovernanceBenchmarkTraceabilityApplicationService benchmarkTraceabilityApplicationService =
             mock(GovernanceBenchmarkTraceabilityApplicationService.class);
+        TenantConfigRepository tenantConfigRepository = mock(TenantConfigRepository.class);
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.MOCK);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
             matrixService,
             governanceAuditTrailService,
             benchmarkTraceabilityApplicationService,
-            messagingProperties
+            messagingProperties,
+            tenantConfigRepository
         );
         RequestContext.set(
             "tenant-a",
@@ -172,7 +181,8 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAuthorizationMatrixApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
-            databaseMessaging()
+            databaseMessaging(),
+            mock(TenantConfigRepository.class)
         );
         GovernanceAuthorizationDecisionRequest request = new GovernanceAuthorizationDecisionRequest();
         request.setServiceCode("QUERY_EXECUTION");
@@ -184,6 +194,43 @@ class GovernanceCapabilityApplicationServiceTest {
         BizException ex = assertThrows(BizException.class, () -> service.decideAuthorization(request));
 
         assertEquals(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, ex.getCode());
+    }
+
+    @Test
+    void shouldResolveTenantArtifactPolicyFromTenantConfig() {
+        TenantConfigRepository tenantConfigRepository = mock(TenantConfigRepository.class);
+        GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
+            mock(GovernanceAuthorizationMatrixApplicationService.class),
+            mock(GovernanceAuditTrailService.class),
+            mock(GovernanceBenchmarkTraceabilityApplicationService.class),
+            databaseMessaging(),
+            tenantConfigRepository
+        );
+        RequestContext.set(
+            "tenant-a",
+            "service-user",
+            Arrays.asList("SERVICE"),
+            "request-020",
+            "trace-020",
+            "header",
+            100L,
+            200L
+        );
+        TenantConfig tenantConfig = new TenantConfig();
+        tenantConfig.setTenantId("tenant-a");
+        tenantConfig.setRetentionDays(Integer.valueOf(180));
+        when(tenantConfigRepository.findByTenantId("tenant-a")).thenReturn(Optional.of(tenantConfig));
+        GovernanceTenantArtifactPolicyRequest request = new GovernanceTenantArtifactPolicyRequest();
+        request.setTenantId("tenant-a");
+        request.setPolicyScope("BENCHMARK_ARTIFACT");
+
+        GovernanceTenantArtifactPolicyResponse response = service.resolveTenantArtifactPolicy(request);
+
+        assertEquals("tenant-a", response.getTenantId());
+        assertEquals(Integer.valueOf(180), response.getRetentionDays());
+        assertEquals("GOVERNANCE_TENANT_CONFIG_RETENTION_DAYS", response.getRetentionPolicySource());
+        assertEquals("TENANT_RETENTION_ACTIVE", response.getRetentionPolicyStatus());
+        verify(tenantConfigRepository).findByTenantId("tenant-a");
     }
 
     private MessagingProperties databaseMessaging() {

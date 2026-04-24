@@ -106,14 +106,16 @@
 - 持久化 `JSON/PDF/HTML` 导出产物 bundle、raw-data snapshot download，以及从已 externalize artifact 直接返回报告导出/下载的查询路径
 - repo-local artifact storage 基线，以及面向 `governance` 内部受保护入口的 benchmark report trace/export orchestration
 - 报告查询/下载审计补齐 `config/result/history/export` 链接键，以及 repo-local artifact 的 stale-file cleanup / snapshot recovery 语义
+- tenant-specific artifact retention/backfill policy：通过治理侧 `tenant_config.retention_days` 解析 retention days，并在历史 artifact 查询/恢复时回填 policy metadata
+- 显式配置的 `ENVIRONMENT_OBJECT_STORAGE` adapter：保留 repo-local lifecycle 为默认路径，同时为 object URI / repo-local mirror / env var 依赖生成 evidence
 - 只读要求、影子环境模式、脱敏要求、并发/时长/预热/数据规模等任务元数据固化
 - 阈值模型、阈值判定结果、引擎指标快照、趋势图表、优化建议和报告契约对象
 - 基础 DTO / VO、错误码区间和模型装配 service
 
 当前还未完整承载：
 
-- 环境级对象存储、tenant-specific retention/backfill policy 与更深层 environment-backed 执行证据
-- 与查询执行服务的真实 workload/backfill 协作，以及更广的跨服务运行时留证
+- 更深层 query-execution workload/backfill 协作、真实环境对象存储实存证据，以及更广的 environment-backed 执行证据
+- 更广的跨服务运行时留证、恢复编排与环境级操作证据
 
 ## 4. 公共管理服务
 

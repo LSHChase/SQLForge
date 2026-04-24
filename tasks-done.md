@@ -4,6 +4,31 @@
 
 ## Done
 
+### D-TASK-024: 收口 `benchmark-engine` artifact tenant-specific retention/backfill policy 与 environment-backed storage adapter/evidence
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(benchmark-engine): add tenant artifact policy adapter`
+- Priority: 1
+- Depends on: `D-TASK-023`
+- Scope: 在保持 repo-local artifact lifecycle 仍是默认主路径的前提下，为 benchmark artifact 增加 tenant-specific retention/backfill policy 语义，并补齐 environment-backed object-storage adapter/evidence 的明确边界、接线与验证基线 Tech: `JAVA-BE`,`SQL`,`OPS`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-D
+- Human confirmation point: 若 tenant-specific retention/backfill policy 会误删仍需保留的 artifact、让 environment-backed adapter 变成 repo-side 默认主路径、或引入未经确认的真实对象存储依赖/凭据写入，需人工确认
+- Data impact: benchmark artifact policy 配置、repo-local / environment-backed storage adapter 接线、artifact evidence 与 recovery/backfill 记录
+- Rollback / recovery: 保持 repo-local lifecycle 为默认主路径，关闭 environment-backed adapter 默认启用，回退新增 artifact policy/adapter 语义与文档说明
+- Validation:
+  - `benchmark-engine/governance 模块测试、artifact policy/adapter 契约测试、runtime smoke、task audit、schema/mapping 校验、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-024`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: implemented tenant-specific artifact retention/backfill policy resolution from governance `tenant_config.retention_days`, persisted retention metadata into benchmark artifact snapshots, and kept `LOCAL_FILE` as the default lifecycle path.
+  - 2026-04-24: added explicit `ENVIRONMENT_OBJECT_STORAGE` adapter semantics with repo-local mirror evidence, object URI metadata, and module tests covering cleanup, recovery, tenant policy backfill, governance contract resolution, and adapter selection.
+- Context closeout:
+  - Completed scope: Implemented governance-backed tenant artifact retention/backfill policy resolution, persisted retention/evidence metadata into benchmark artifacts, and added explicit ENVIRONMENT_OBJECT_STORAGE adapter semantics while keeping LOCAL_FILE as the default lifecycle path.
+  - Validation evidence: Passed foreman validate for D-TASK-024 with module tests, knowledge lint, compile-governance check, runtime smoke, and pre-closeout task audit.
+  - Residual risk: Real external object storage upload/live evidence and deeper benchmark/query-execution workload-backfill orchestration remain follow-up work; the repo-side environment-backed adapter currently preserves object URI plus repo-local mirror evidence only.
+  - Next step: Shape the next repo-side follow-up around benchmark/query-execution workload-backfill orchestration and real environment object-storage live evidence; until then, keep no instantiated mainline task.
+
 ### D-TASK-023: 收口 `benchmark-engine` 报告查询审计追溯增强与 artifact 生命周期基线
 
 - Status: done
