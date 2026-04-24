@@ -103,6 +103,7 @@
 | `E-TASK-012` | 若布局修复需要重新引入 `@vitejs/plugin-vue` / `@vue/compiler-sfc`、放弃现有设计 token，或用回退页面结构替代样式修复，需人工确认 | 前端壳层样式、设计 token、portable 产物中的页面布局表现 | 保持非 SFC 构建链不变，回退高风险样式/结构修改，并恢复到上一个已验证的布局基线 |
 | `E-TASK-013` | 若 portable 验证被降级为 health-only 检查、分包方案改变路由/代理/缓存语义，或为压低 chunk 告警而牺牲关键页面可用性，需人工确认 | portable 浏览器 smoke 覆盖、前端 chunk 输出、关键路由与代理语义 | 保留当前 portable 包与关键路由语义，回退高风险分包策略，并恢复到现有可工作的构建输出 |
 | `E-TASK-014` | 若恢复 Vue SFC 需要放弃现有 portable 包、浏览器 smoke、显式 Element Plus 注册或分包策略，或改变既有页面 IA / 代理语义，需人工确认 | 根级前端 `.vue` 源文件、Vite SFC 构建链、portable 产物、chunk 输出与路由/代理语义 | 保留 `E-TASK-013` 已验证的 portable 与分包结果，回退高风险 SFC 恢复改动，并恢复到上一个已验证的前端交付基线 |
+| `E-TASK-015` | 若新增 dev browser smoke 会替代既有 full-stack runtime smoke、削弱现有 portable / 代理语义验证，或为清理叙事而改写历史任务完成记录，需人工确认 | Vite dev server 浏览器 smoke 覆盖、当前前端治理叙事、路由/代理语义 | 保留 `E-TASK-014` 已验证的 Vue SFC / portable 基线，回退高风险 dev smoke 或文档清理改动，并恢复到上一个已验证的前端交付真值 |
 
 ## Phase-F
 

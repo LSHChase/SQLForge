@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-020: Reconcile E-TASK-014 closeout drift and shape E-TASK-015
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `fix(governance): reconcile E-TASK-014 closeout drift`
+- Priority: 1
+- Depends on: E-TASK-014
+- Scope: Align the current active wave and validation-log residue after E-TASK-014 closeout, then decide and shape the next repo-side frontend follow-up E-TASK-015 around dev browser smoke coverage and historical non-SFC narrative cleanup without changing frontend/runtime behavior or environment-backed follow-up semantics.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-020`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: reconciled the stale Phase-E active-wave pointer left behind after `E-TASK-014` closeout, kept the append-only validation-log residue inside the governed batch, and shaped `E-TASK-015` as the next repo-side frontend follow-up for lightweight Vite dev browser smoke plus current-state non-SFC narrative cleanup.
+- Context closeout:
+  - Completed scope: Aligned the Phase-E active wave away from the stale E-TASK-014 pointer, updated the Phase-E master plan plus both task matrices to shape E-TASK-015 as the next repo-side frontend follow-up, and absorbed the append-only validation-log residue into the governed batch without changing frontend/runtime behavior or environment-backed follow-up semantics.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-020 --include-task-audit --extra-command "python3 scripts/foreman.py compile-governance --check" --extra-command "node scripts/lint-repository-knowledge.js"; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The governance chain is back in sync, but E-TASK-015 is not yet instantiated, so the repository still lacks the planned lightweight Vite dev browser smoke and the current-state non-SFC narrative cleanup beyond the newly aligned plan/matrix truth; HARN-016 and INBOX-001 remain unchanged environment-backed follow-ups.
+  - Next step: Instantiate E-TASK-015 if frontend follow-up continues so the Vite dev server gains lightweight browser smoke coverage and current governance/operations docs are fully aligned with the restored Vue SFC baseline without rewriting historical task records.
+
 ### E-TASK-014: 恢复 Vue SFC 构建链并保留前端便携产物
 
 - Status: done

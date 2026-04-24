@@ -108,9 +108,9 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-E / E-STORY-005`
-- 当前活跃目标：`E-TASK-014`；在 `E-TASK-013` 已完成 portable 浏览器 smoke 与分包治理后，根据新的人工确认恢复 Vue SFC 构建链，同时保留当前 `dist-portable/` 便携前端包、显式 Element Plus 注册和分包策略。
+- 当前活跃目标：`E-TASK-015`；在 `E-TASK-014` 已恢复 Vue SFC 构建链并保留 portable 交付基线后，补齐面向 Vite dev server 的轻量浏览器 smoke，并清理仍把 non-SFC 迁移表述成当前真值的前端治理叙事。
 - 当前下一条可执行主线任务：
-  - `E-TASK-014`：恢复 Vue SFC 构建链并保留前端便携产物
+  - `E-TASK-015`：补齐前端 dev browser smoke 并清理 SFC 恢复后的当前叙事
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成业务页骨架、治理接口接入与设计系统基线；`E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-009` 已补齐临时 AI 交付页与生产隐藏语义。
@@ -119,6 +119,8 @@
   - `E-TASK-012` 已修复非 SFC 迁移后的布局回归，恢复 Element Plus 壳层布局与设计 token 基线。
   - `HARN-019` 只用于修正 `E-TASK-011`、`E-TASK-012` closeout 后遗留的 active-wave / task-matrix / validation-log 漂移，不改写两条前端任务的历史完成结论；同时把 residual risk 收口为新的 repo-closed follow-up `E-TASK-013`，而不是重新回到 `INBOX-003` 待决策状态。
   - `E-TASK-013` 已完成 portable 包关键路由浏览器 smoke、代理语义校验和 Vite 分包收口；`E-TASK-014` 则承接新的人工决策，把根级前端恢复到允许使用 `@vitejs/plugin-vue` / `@vue/compiler-sfc` 的 Vue SFC 架构，同时保留 `E-TASK-013` 已落地的 portable 与 chunk hardening 成果。
+  - `HARN-020` 只用于修正 `E-TASK-014` closeout 后遗留的 active-wave / validation-log 漂移，并把 residual risk 与 next-step 收口为新的 repo-side follow-up `E-TASK-015`；它不改写 `E-TASK-014` 的历史完成结论，也不把 full-stack runtime smoke 或 external-environment follow-up 误写成当前前端主线。
+  - `E-TASK-015` 作为新的前端主线，只补齐轻量 Vite dev browser smoke 与当前真值文档清理，不替代现有 `npm run smoke:frontend-runtime` 的多服务 runtime smoke，也不回退 `E-TASK-014` 已恢复的 Vue SFC / portable 基线。
   - `F-TASK-001`、`F-TASK-002`、`F-TASK-003` 已完成部署文档、compose/脚本说明、环境提醒与恢复指引的真值修正。
   - `F-TASK-015`、`F-TASK-016` 已完成 `sql-optimization` 与 `benchmark-engine` 的持久化 carrier / scheduler 主线；`F-TASK-017` 至 `F-TASK-028` 也已把 browser runtime gate、治理历史链路、真实 Kafka gate 与 Phase-F 退出门禁推进到当前仓库真值。
   - `F-TASK-029` 已把发布链自动触发、coverage 阻断语义与 Sonar-required 失败语义写成当时仓库真值；`F-TASK-030` 已把 `phase1plus` 聚合覆盖率提升到 `86.9763%`，并保留 Sonar / release gate 接线成果。
@@ -498,8 +500,8 @@ Tasks:
 
 ##### Story `E-STORY-005` 前端构建链迁移与便携产物治理
 
-- 目标：收口根级前端 toolchain、Vue SFC / non-SFC 架构决策、便携前端包与 portable hardening 主线，并以当前人工确认的允许 SFC 策略作为最新仓库真值。
-- 验证：toolchain 检查、`npm run lint`、`npm run build`、`npm run build:portable`、portable package 检查与关键路由 browser smoke 证据一致。
+- 目标：巩固根级前端已恢复的 Vue SFC toolchain、便携前端包与浏览器 smoke 基线，并把当前前端治理叙事从历史 non-SFC 迁移背景收口到现行 SFC 真值。
+- 验证：toolchain 检查、`npm run lint`、`npm run build`、`npm run build:portable`、portable package 检查，以及轻量 dev / portable browser smoke 证据一致。
 
 Tasks:
 
@@ -510,6 +512,7 @@ Tasks:
 | `E-TASK-012` | 修复前端非 SFC 迁移后的布局回归 | 修复迁移后 Element Plus 壳层、设计 token 和代表性页面布局回归，不回退到 SFC 构建链 | `E-TASK-011` | `npm run lint`、`npm run build`、`npm run build:portable`、浏览器布局核验 |
 | `E-TASK-013` | 补齐 portable 前端浏览器 smoke 并收口构建分包告警 | 把 portable 包纳入关键路由浏览器验证，并收口当前 Vite 大 chunk 告警，不重新引入 `@vitejs/plugin-vue` / `@vue/compiler-sfc` | `E-TASK-012` | `npm run lint`、`npm run build`、`npm run build:portable`、portable browser smoke、分包告警收口 |
 | `E-TASK-014` | 恢复 Vue SFC 构建链并保留前端便携产物 | 在允许 `@vitejs/plugin-vue` / `@vue/compiler-sfc` 的前提下恢复根级前端 `.vue` 源文件与 SFC 构建链，同时保留现有 portable 包、浏览器 smoke 和分包优化结果 | `E-TASK-013` | `npm run lint`、`npm run build`、`npm run build:portable`、toolchain/portable/browser smoke 检查 |
+| `E-TASK-015` | 补齐前端 dev browser smoke 并清理 SFC 恢复后的当前叙事 | 为 Vite dev server 补齐轻量浏览器 smoke，并清理仍把 non-SFC 迁移表述成当前真值的计划/操作文档；保留现有 Vue SFC、portable 产物与 full-stack runtime smoke 语义 | `E-TASK-014` | `npm run lint`、`npm run build`、`npm run build:portable`、toolchain/portable/dev browser smoke 检查 |
 
 ### Phase-F 部署、运维、生产就绪
 
