@@ -92,34 +92,12 @@ const expectNonEmptyText = async (page, testId) => {
   return text
 }
 
-const expectNumber = async (page, testId) => {
-  const text = await readText(page, testId)
-  const value = Number(text)
-  assert(Number.isFinite(value), `Expected ${testId} to be numeric, got "${text}"`)
-  return value
-}
-
 const expectInputValue = async (page, testId, expectedText) => {
   const locator = page.getByTestId(testId)
   await locator.waitFor({ timeout: defaultTimeoutMs })
   const value = await locator.inputValue()
   assert(value.includes(expectedText), `Expected ${testId} to include "${expectedText}", got "${value}"`)
   return value
-}
-
-const expectUrlIncludes = async (page, expectedText) => {
-  const startedAt = Date.now()
-  let currentUrl = page.url()
-
-  while (Date.now() - startedAt < defaultTimeoutMs) {
-    currentUrl = page.url()
-    if (currentUrl.includes(expectedText)) {
-      return currentUrl
-    }
-    await page.waitForTimeout(200)
-  }
-
-  throw new Error(`Expected current URL to include "${expectedText}", got "${currentUrl}"`)
 }
 
 const expectUrlQueryParam = async (page, key, expectedValue) => {

@@ -28,6 +28,6 @@
 
 ### INBOX-003: 前端 Vue SFC 构建约束与依赖禁用策略冲突
 
-- Status: open
-- Needed decision: 当前仓库前端以 `src/App.vue` 和多个路由级 `.vue` single-file components 为真值，`vite.config.js` 也直接依赖 `@vitejs/plugin-vue`；同时 `vue@3.5.13` 自身会携带 `@vue/compiler-sfc` 作为传递依赖。若环境或供应链策略确实不支持 `@vitejs/plugin-vue`，或不允许出现任何层级的 `@vue/compiler-sfc`，则需要人类决定是保留现有 Vue SFC 架构并接受例外，还是授权一个更大范围的前端迁移任务，把根组件、路由视图和构建链改成非 `.vue` 方案。
-- Task refs: E-TASK-010
+- Status: resolved
+- Needed decision: 人类已确认按更大范围方案推进：不保留原有 Vue SFC 架构，改为在 `E-TASK-011` 中迁移根组件、路由视图与构建链到非 `.vue` 方案，并同时交付可移植的双产物前端包；后续只剩实现与验证收尾，不再等待新的任务塑形决策。
+- Task refs: E-TASK-010, E-TASK-011

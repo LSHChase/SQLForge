@@ -1,0 +1,879 @@
+/* eslint-disable no-unused-vars */
+import './AuditForensicsView.css'
+
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
+import { ROUTE_PATHS } from '../../config/routePaths.mjs'
+import {
+  formatRuntimeError,
+  getGovernanceTraceDetail,
+  GOVERNANCE_COMPENSATION_TRACE_PREFIX,
+  lookupGovernanceTraces
+} from '../../services/runtimeGateApi'
+
+
+const __sfc__ = {
+  __name: 'AuditForensicsView',
+  setup(__props, { expose: __expose }) {
+  __expose();
+
+const { t, locale } = useI18n()
+const route = useRoute()
+const router = useRouter()
+
+const form = reactive({
+  tenantId: 'tenant-a',
+  traceId: '',
+  taskId: '',
+  reportId: '',
+  windowStart: '',
+  windowEnd: '',
+  limit: 12
+})
+
+const loadingLookup = ref(false)
+const loadingDetail = ref(false)
+const lookupResults = ref([])
+const detail = ref(null)
+const errorMessage = ref('')
+const hasMore = ref(false)
+const nextCursor = ref('')
+const activeFilters = ref(null)
+
+const isChinese = computed(() => locale.value === 'zh-CN')
+const activeTraceId = computed(() => detail.value?.traceId || '')
+const matchedCount = computed(() => lookupResults.value.length)
+const compensationCount = computed(() =>
+  lookupResults.value.filter(trace => isCompensationTrace(trace.traceId)).length
+)
+const reportLinkedCount = computed(() =>
+  lookupResults.value.filter(trace => hasDisplayValue(trace.reportId) || (trace.exportRecordCount || 0) > 0).length
+)
+const repairSignalCount = computed(() =>
+  lookupResults.value.filter(trace => resolveTraceRepairSignal(trace) !== 'STEADY_STATE').length
+)
+const searchCriteria = computed(() =>
+  [
+    {
+      key: 'traceId',
+      label: isChinese.value ? 'Trace 反查' : 'Trace lookup',
+      value: form.traceId
+    },
+    {
+      key: 'taskId',
+      label: isChinese.value ? 'Task 反查' : 'Task lookup',
+      value: form.taskId
+    },
+    {
+      key: 'reportId',
+      label: isChinese.value ? 'Report 反查' : 'Report lookup',
+      value: form.reportId
+    }
+  ].filter(item => hasDisplayValue(item.value))
+)
+const selectedSummary = computed(() =>
+  lookupResults.value.find(trace => trace.traceId === activeTraceId.value) || null
+)
+const detailHighlights = computed(() => {
+  if (!detail.value) {
+    return []
+  }
+  return [
+    {
+      key: 'taskId',
+      label: isChinese.value ? '任务 ID' : 'Task ID',
+      value: detail.value.taskId
+    },
+    {
+      key: 'reportId',
+      label: isChinese.value ? '报告 ID' : 'Report ID',
+      value: detail.value.reportId
+    },
+    {
+      key: 'sqlFingerprint',
+      label: isChinese.value ? 'SQL 指纹' : 'SQL fingerprint',
+      value: detail.value.sqlFingerprint
+    },
+    {
+      key: 'errorCode',
+      label: isChinese.value ? '错误码' : 'Error code',
+      value: detail.value.errorCode
+    },
+    {
+      key: 'targetEngine',
+      label: isChinese.value ? '目标引擎' : 'Target engine',
+      value: detail.value.targetEngine
+    },
+    {
+      key: 'degraded',
+      label: isChinese.value ? '降级执行' : 'Degraded',
+      value: typeof detail.value.degraded === 'boolean' ? String(detail.value.degraded) : ''
+    }
+  ].filter(item => displayValue(item.value) !== '-')
+})
+const selectedSignals = computed(() => {
+  if (!detail.value) {
+    return []
+  }
+  return [
+    {
+      key: 'lookupMode',
+      label: isChinese.value ? '命中维度' : 'Lookup match',
+      value: resolveLookupMode(detail.value)
+    },
+    {
+      key: 'repairSignal',
+      label: isChinese.value ? '修复信号' : 'Repair signal',
+      value: resolveRepairSignal(detail.value)
+    },
+    {
+      key: 'compensationTrace',
+      label: isChinese.value ? '补偿链路' : 'Compensation trace',
+      value: isCompensationTrace(detail.value.traceId) ? 'true' : 'false'
+    },
+    {
+      key: 'auditEvents',
+      label: isChinese.value ? '审计事件' : 'Audit events',
+      value: detail.value.auditEventCount
+    }
+  ].filter(item => displayValue(item.value) !== '-')
+})
+
+const hasDisplayValue = value => !(value === null || value === undefined || String(value).trim() === '')
+
+const displayValue = value => {
+  if (!hasDisplayValue(value)) {
+    return '-'
+  }
+  return String(value)
+}
+
+const formatTimestamp = value => {
+  if (!value) {
+    return '-'
+  }
+  return String(value).replace('T', ' ')
+}
+
+const isCompensationTrace = traceId => String(traceId || '').startsWith(GOVERNANCE_COMPENSATION_TRACE_PREFIX)
+
+const resolveTraceRepairSignal = trace => {
+  if (isCompensationTrace(trace.traceId)) {
+    return 'COMPENSATION_TRACE'
+  }
+  if ((trace.exportRecordCount || 0) > 0 || hasDisplayValue(trace.reportId)) {
+    return 'REPORT_WRITEBACK'
+  }
+  if (trace.degraded === true) {
+    return 'DEGRADED_RECOVERY'
+  }
+  const status = String(trace.latestStatus || '').toUpperCase()
+  if ((trace.nonSuccessEventCount || 0) > 0 || (status && status !== 'SUCCESS' && status !== 'SUCCEEDED')) {
+    return 'FAILURE_CHAIN'
+  }
+  return 'STEADY_STATE'
+}
+
+const resolveLookupMode = currentDetail => {
+  if (hasDisplayValue(form.traceId) && form.traceId.trim() === currentDetail.traceId) {
+    return 'TRACE'
+  }
+  if (hasDisplayValue(form.taskId) && form.taskId.trim() === currentDetail.taskId) {
+    return 'TASK'
+  }
+  if (hasDisplayValue(form.reportId) && form.reportId.trim() === currentDetail.reportId) {
+    return 'REPORT'
+  }
+  if (selectedSummary.value?.taskId && selectedSummary.value.taskId === currentDetail.taskId) {
+    return 'TASK'
+  }
+  if (selectedSummary.value?.reportId && selectedSummary.value.reportId === currentDetail.reportId) {
+    return 'REPORT'
+  }
+  return 'TRACE'
+}
+
+const resolveRepairSignal = currentDetail => {
+  if (isCompensationTrace(currentDetail.traceId)) {
+    return 'COMPENSATION_TRACE'
+  }
+  if ((currentDetail.exportRecordCount || 0) > 0 || hasDisplayValue(currentDetail.reportId)) {
+    return 'REPORT_WRITEBACK'
+  }
+  if (currentDetail.degraded === true) {
+    return 'DEGRADED_RECOVERY'
+  }
+  if ((currentDetail.nonSuccessEventCount || 0) > 0) {
+    return 'FAILURE_CHAIN'
+  }
+  return 'STEADY_STATE'
+}
+
+const normalizeFilters = () => ({
+  traceId: String(form.traceId || '').trim(),
+  taskId: String(form.taskId || '').trim(),
+  reportId: String(form.reportId || '').trim(),
+  windowStart: String(form.windowStart || '').trim(),
+  windowEnd: String(form.windowEnd || '').trim()
+})
+
+const syncRouteQuery = query => {
+  router.replace({
+    path: ROUTE_PATHS.auditForensics,
+    query
+  })
+}
+
+const buildDrillQuery = source => {
+  const filters = activeFilters.value
+    ? activeFilters.value
+    : {
+        traceId: source?.traceId,
+        taskId: source?.taskId,
+        reportId: source?.reportId
+      }
+  const query = {
+    tenantId: form.tenantId,
+    limit: String(form.limit)
+  }
+  if (hasDisplayValue(filters?.traceId)) {
+    query.traceId = String(filters.traceId)
+  }
+  if (hasDisplayValue(filters?.taskId)) {
+    query.taskId = String(filters.taskId)
+  }
+  if (hasDisplayValue(filters?.reportId)) {
+    query.reportId = String(filters.reportId)
+  }
+  if (hasDisplayValue(filters?.windowStart)) {
+    query.windowStart = String(filters.windowStart)
+  }
+  if (hasDisplayValue(filters?.windowEnd)) {
+    query.windowEnd = String(filters.windowEnd)
+  }
+  return query
+}
+
+const loadTraceDetail = async traceId => {
+  if (!traceId) {
+    detail.value = null
+    return
+  }
+
+  loadingDetail.value = true
+  errorMessage.value = ''
+
+  try {
+    detail.value = await getGovernanceTraceDetail(form.tenantId, traceId, 20, {
+      requestPrefix: 'frontend-audit-forensics-trace-detail'
+    })
+  } catch (error) {
+    detail.value = null
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loadingDetail.value = false
+  }
+}
+
+const applyLookupPage = async (pageResponse, append = false) => {
+  const items = Array.isArray(pageResponse?.items) ? pageResponse.items : []
+  lookupResults.value = append ? [...lookupResults.value, ...items] : items
+  hasMore.value = Boolean(pageResponse?.hasMore)
+  nextCursor.value = pageResponse?.nextCursor || ''
+
+  if (!append) {
+    await loadTraceDetail(lookupResults.value[0]?.traceId || '')
+  }
+}
+
+const runLookup = async () => {
+  if (!hasDisplayValue(form.traceId) && !hasDisplayValue(form.taskId) && !hasDisplayValue(form.reportId)) {
+    errorMessage.value = isChinese.value
+      ? '至少输入 traceId、taskId、reportId 中的一项后再执行取证反查。'
+      : 'Enter at least one of traceId, taskId, or reportId before running the forensic lookup.'
+    lookupResults.value = []
+    detail.value = null
+    hasMore.value = false
+    nextCursor.value = ''
+    activeFilters.value = null
+    return
+  }
+
+  loadingLookup.value = true
+  errorMessage.value = ''
+  activeFilters.value = normalizeFilters()
+  syncRouteQuery({
+    tenantId: form.tenantId,
+    limit: String(form.limit),
+    ...activeFilters.value
+  })
+
+  try {
+    const lookupPage = await lookupGovernanceTraces(form.tenantId, activeFilters.value, form.limit, {
+      requestPrefix: 'frontend-audit-forensics-lookups'
+    })
+    await applyLookupPage(lookupPage, false)
+  } catch (error) {
+    lookupResults.value = []
+    detail.value = null
+    hasMore.value = false
+    nextCursor.value = ''
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loadingLookup.value = false
+  }
+}
+
+const loadMoreResults = async () => {
+  if (!hasMore.value || !nextCursor.value || !activeFilters.value) {
+    return
+  }
+
+  loadingLookup.value = true
+  errorMessage.value = ''
+
+  try {
+    const lookupPage = await lookupGovernanceTraces(
+      form.tenantId,
+      {
+        ...activeFilters.value,
+        cursor: nextCursor.value
+      },
+      form.limit,
+      {
+        requestPrefix: 'frontend-audit-forensics-lookups-more'
+      }
+    )
+    await applyLookupPage(lookupPage, true)
+  } catch (error) {
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loadingLookup.value = false
+  }
+}
+
+const clearLookup = () => {
+  form.traceId = ''
+  form.taskId = ''
+  form.reportId = ''
+  form.windowStart = ''
+  form.windowEnd = ''
+  lookupResults.value = []
+  detail.value = null
+  errorMessage.value = ''
+  hasMore.value = false
+  nextCursor.value = ''
+  activeFilters.value = null
+  syncRouteQuery({
+    tenantId: form.tenantId,
+    limit: String(form.limit)
+  })
+}
+
+const openParseRecord = () => {
+  const source = detail.value || selectedSummary.value
+  if (!source) {
+    return
+  }
+  router.push({
+    path: ROUTE_PATHS.parseRecord,
+    query: buildDrillQuery(source)
+  })
+}
+
+const openRepairEvidence = () => {
+  const source = detail.value || selectedSummary.value
+  if (!source) {
+    return
+  }
+  router.push({
+    path: ROUTE_PATHS.repairEvidence,
+    query: buildDrillQuery(source)
+  })
+}
+
+const openTroubleshooting = () => {
+  const source = detail.value || selectedSummary.value
+  if (!source) {
+    return
+  }
+  router.push({
+    path: ROUTE_PATHS.auditTroubleshooting,
+    query: {
+      ...buildDrillQuery(source),
+      remediationTenantId: 'system'
+    }
+  })
+}
+
+const eventHighlights = event => {
+  const request = event?.requestParams || {}
+  const response = event?.responseSummary || {}
+  return [
+    {
+      label: isChinese.value ? '任务' : 'Task',
+      value: response.taskId || request.taskId
+    },
+    {
+      label: isChinese.value ? '报告' : 'Report',
+      value: response.reportId || request.reportId
+    },
+    {
+      label: isChinese.value ? '指纹' : 'Fingerprint',
+      value: request.sqlFingerprint
+    },
+    {
+      label: isChinese.value ? '错误码' : 'Error',
+      value: response.errorCode
+    },
+    {
+      label: isChinese.value ? '目标引擎' : 'Engine',
+      value: response.targetEngine
+    }
+  ].filter(item => displayValue(item.value) !== '-')
+}
+
+onMounted(async () => {
+  if (hasDisplayValue(route.query.tenantId)) {
+    form.tenantId = String(route.query.tenantId)
+  }
+  if (hasDisplayValue(route.query.limit)) {
+    form.limit = Number(route.query.limit) || 12
+  }
+  form.traceId = String(route.query.traceId || '')
+  form.taskId = String(route.query.taskId || '')
+  form.reportId = String(route.query.reportId || '')
+  form.windowStart = String(route.query.windowStart || '')
+  form.windowEnd = String(route.query.windowEnd || '')
+
+  if (form.traceId || form.taskId || form.reportId) {
+    await runLookup()
+  }
+})
+
+const __returned__ = { t, locale, route, router, form, loadingLookup, loadingDetail, lookupResults, detail, errorMessage, hasMore, nextCursor, activeFilters, isChinese, activeTraceId, matchedCount, compensationCount, reportLinkedCount, repairSignalCount, searchCriteria, selectedSummary, detailHighlights, selectedSignals, hasDisplayValue, displayValue, formatTimestamp, isCompensationTrace, resolveTraceRepairSignal, resolveLookupMode, resolveRepairSignal, normalizeFilters, syncRouteQuery, buildDrillQuery, loadTraceDetail, applyLookupPage, runLookup, loadMoreResults, clearLookup, openParseRecord, openRepairEvidence, openTroubleshooting, eventHighlights, computed, onMounted, reactive, ref, get useI18n() { return useI18n }, get useRoute() { return useRoute }, get useRouter() { return useRouter }, get ROUTE_PATHS() { return ROUTE_PATHS }, get formatRuntimeError() { return formatRuntimeError }, get getGovernanceTraceDetail() { return getGovernanceTraceDetail }, get GOVERNANCE_COMPENSATION_TRACE_PREFIX() { return GOVERNANCE_COMPENSATION_TRACE_PREFIX }, get lookupGovernanceTraces() { return lookupGovernanceTraces } }
+Object.defineProperty(__returned__, '__isScriptSetup', { enumerable: false, value: true })
+return __returned__
+}
+
+}
+
+import { createElementVNode as _createElementVNode, toDisplayString as _toDisplayString, resolveComponent as _resolveComponent, createVNode as _createVNode, createTextVNode as _createTextVNode, withCtx as _withCtx, openBlock as _openBlock, createBlock as _createBlock, createCommentVNode as _createCommentVNode, renderList as _renderList, Fragment as _Fragment, createElementBlock as _createElementBlock, normalizeClass as _normalizeClass } from "vue"
+
+const _hoisted_1 = {
+  class: "runtime-page",
+  "data-testid": "audit-forensics-page"
+}
+const _hoisted_2 = { class: "runtime-hero surface-card" }
+const _hoisted_3 = { class: "runtime-title" }
+const _hoisted_4 = { class: "runtime-summary" }
+const _hoisted_5 = { class: "runtime-note" }
+const _hoisted_6 = { class: "runtime-grid" }
+const _hoisted_7 = { class: "surface-card" }
+const _hoisted_8 = { class: "section-heading" }
+const _hoisted_9 = { class: "section-title" }
+const _hoisted_10 = { class: "form-grid" }
+const _hoisted_11 = { class: "field-block" }
+const _hoisted_12 = { class: "field-label" }
+const _hoisted_13 = { class: "field-block" }
+const _hoisted_14 = { class: "field-label" }
+const _hoisted_15 = { class: "field-block field-block-wide" }
+const _hoisted_16 = { class: "field-label" }
+const _hoisted_17 = { class: "field-block" }
+const _hoisted_18 = { class: "field-label" }
+const _hoisted_19 = { class: "field-block" }
+const _hoisted_20 = { class: "field-label" }
+const _hoisted_21 = { class: "action-row action-row-wrap" }
+const _hoisted_22 = { class: "lookup-chip-list" }
+const _hoisted_23 = {
+  key: 0,
+  class: "lookup-chip lookup-chip-muted"
+}
+const _hoisted_24 = { class: "summary-card-grid" }
+const _hoisted_25 = { class: "summary-card" }
+const _hoisted_26 = { class: "summary-card-label" }
+const _hoisted_27 = { "data-testid": "audit-forensics-match-count" }
+const _hoisted_28 = { class: "summary-card summary-card-warning" }
+const _hoisted_29 = { class: "summary-card-label" }
+const _hoisted_30 = { "data-testid": "audit-forensics-compensation-count" }
+const _hoisted_31 = { class: "summary-card" }
+const _hoisted_32 = { class: "summary-card-label" }
+const _hoisted_33 = { "data-testid": "audit-forensics-repair-count" }
+const _hoisted_34 = { class: "summary-card" }
+const _hoisted_35 = { class: "summary-card-label" }
+const _hoisted_36 = { "data-testid": "audit-forensics-report-count" }
+const _hoisted_37 = {
+  key: 0,
+  class: "result-banner result-banner-warning",
+  "data-testid": "audit-forensics-has-more"
+}
+const _hoisted_38 = {
+  key: 1,
+  class: "result-banner result-banner-danger",
+  "data-testid": "audit-forensics-error"
+}
+const _hoisted_39 = {
+  key: 2,
+  class: "empty-state"
+}
+const _hoisted_40 = { class: "trace-list" }
+const _hoisted_41 = ["onClick"]
+const _hoisted_42 = { class: "trace-item-header" }
+const _hoisted_43 = { class: "trace-item-service sqlforge-code-label" }
+const _hoisted_44 = { class: "trace-item-meta" }
+const _hoisted_45 = { class: "trace-item-tags" }
+const _hoisted_46 = {
+  key: 0,
+  class: "timeline-meta-pill",
+  "data-testid": "audit-forensics-compensation-pill"
+}
+const _hoisted_47 = { class: "timeline-meta-pill" }
+const _hoisted_48 = { class: "timeline-meta-pill" }
+const _hoisted_49 = { class: "timeline-meta-pill" }
+const _hoisted_50 = { class: "surface-card" }
+const _hoisted_51 = { class: "section-heading" }
+const _hoisted_52 = { class: "section-title" }
+const _hoisted_53 = {
+  key: 0,
+  class: "empty-state"
+}
+const _hoisted_54 = { "data-testid": "audit-forensics-detail-trace-id" }
+const _hoisted_55 = { "data-testid": "audit-forensics-detail-status" }
+const _hoisted_56 = { class: "action-row action-row-wrap" }
+const _hoisted_57 = { class: "evidence-grid" }
+const _hoisted_58 = { class: "evidence-item" }
+const _hoisted_59 = { class: "evidence-label" }
+const _hoisted_60 = { "data-testid": "audit-forensics-detail-service-code" }
+const _hoisted_61 = { class: "evidence-item" }
+const _hoisted_62 = { class: "evidence-label" }
+const _hoisted_63 = { class: "evidence-item" }
+const _hoisted_64 = { class: "evidence-label" }
+const _hoisted_65 = { class: "evidence-item" }
+const _hoisted_66 = { class: "evidence-label" }
+const _hoisted_67 = { class: "highlight-grid" }
+const _hoisted_68 = ["data-testid"]
+const _hoisted_69 = { class: "timeline-list" }
+const _hoisted_70 = { class: "timeline-card-header" }
+const _hoisted_71 = { class: "timeline-card-id sqlforge-code-label" }
+const _hoisted_72 = { class: "timeline-card-line" }
+const _hoisted_73 = { class: "timeline-card-line timeline-card-line-muted" }
+const _hoisted_74 = { class: "timeline-card-meta" }
+
+function render(_ctx, _cache, $props, $setup, $data, $options) {
+  const _component_el_input = _resolveComponent("el-input")
+  const _component_el_button = _resolveComponent("el-button")
+
+  return (_openBlock(), _createElementBlock("section", _hoisted_1, [
+    _createElementVNode("div", _hoisted_2, [
+      _createElementVNode("div", null, [
+        _cache[5] || (_cache[5] = _createElementVNode("p", { class: "runtime-eyebrow sqlforge-code-label" }, "frontend runtime gate", -1 /* HOISTED */)),
+        _createElementVNode("h1", _hoisted_3, _toDisplayString($setup.t('auditForensics.title')), 1 /* TEXT */),
+        _createElementVNode("p", _hoisted_4, _toDisplayString($setup.t('auditForensics.summary')), 1 /* TEXT */)
+      ]),
+      _createElementVNode("p", _hoisted_5, _toDisplayString($setup.isChinese
+            ? '该页把 trace、task、report 命中的失败链、补偿链、报告回写和审计事件串成可分页取证链，并支持在 parse-record 与 repair-evidence 之间做双向钻取。'
+            : 'This page stitches failure chains, compensation traces, report write-back, and audit events into a paged forensic chain across trace, task, and report lookups, with drill-through into parse-record and repair-evidence.'), 1 /* TEXT */)
+    ]),
+    _createElementVNode("div", _hoisted_6, [
+      _createElementVNode("article", _hoisted_7, [
+        _createElementVNode("div", _hoisted_8, [
+          _createElementVNode("div", null, [
+            _cache[6] || (_cache[6] = _createElementVNode("p", { class: "section-kicker sqlforge-code-label" }, "forensic lookup", -1 /* HOISTED */)),
+            _createElementVNode("h2", _hoisted_9, _toDisplayString($setup.isChinese ? '取证条件与证据链命中' : 'Forensic criteria and matched evidence chains'), 1 /* TEXT */)
+          ])
+        ]),
+        _createElementVNode("div", _hoisted_10, [
+          _createElementVNode("label", _hoisted_11, [
+            _createElementVNode("span", _hoisted_12, _toDisplayString($setup.isChinese ? '租户上下文' : 'Tenant context'), 1 /* TEXT */),
+            _createVNode(_component_el_input, {
+              modelValue: $setup.form.tenantId,
+              "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => (($setup.form.tenantId) = $event)),
+              "data-testid": "audit-forensics-tenant-id"
+            }, null, 8 /* PROPS */, ["modelValue"])
+          ]),
+          _createElementVNode("label", _hoisted_13, [
+            _createElementVNode("span", _hoisted_14, _toDisplayString($setup.isChinese ? '返回数量' : 'Lookup limit'), 1 /* TEXT */),
+            _createVNode(_component_el_input, {
+              modelValue: $setup.form.limit,
+              "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => (($setup.form.limit) = $event)),
+              "data-testid": "audit-forensics-limit"
+            }, null, 8 /* PROPS */, ["modelValue"])
+          ]),
+          _createElementVNode("label", _hoisted_15, [
+            _createElementVNode("span", _hoisted_16, _toDisplayString($setup.isChinese ? 'Trace ID' : 'Trace ID'), 1 /* TEXT */),
+            _createVNode(_component_el_input, {
+              modelValue: $setup.form.traceId,
+              "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => (($setup.form.traceId) = $event)),
+              "data-testid": "audit-forensics-trace-id"
+            }, null, 8 /* PROPS */, ["modelValue"])
+          ]),
+          _createElementVNode("label", _hoisted_17, [
+            _createElementVNode("span", _hoisted_18, _toDisplayString($setup.isChinese ? 'Task ID' : 'Task ID'), 1 /* TEXT */),
+            _createVNode(_component_el_input, {
+              modelValue: $setup.form.taskId,
+              "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => (($setup.form.taskId) = $event)),
+              "data-testid": "audit-forensics-task-id"
+            }, null, 8 /* PROPS */, ["modelValue"])
+          ]),
+          _createElementVNode("label", _hoisted_19, [
+            _createElementVNode("span", _hoisted_20, _toDisplayString($setup.isChinese ? 'Report ID' : 'Report ID'), 1 /* TEXT */),
+            _createVNode(_component_el_input, {
+              modelValue: $setup.form.reportId,
+              "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => (($setup.form.reportId) = $event)),
+              "data-testid": "audit-forensics-report-id"
+            }, null, 8 /* PROPS */, ["modelValue"])
+          ])
+        ]),
+        _createElementVNode("div", _hoisted_21, [
+          _createVNode(_component_el_button, {
+            type: "primary",
+            loading: $setup.loadingLookup,
+            "data-testid": "audit-forensics-run-lookup",
+            onClick: $setup.runLookup
+          }, {
+            default: _withCtx(() => [
+              _createTextVNode(_toDisplayString($setup.isChinese ? '执行取证反查' : 'Run forensic lookup'), 1 /* TEXT */)
+            ]),
+            _: 1 /* STABLE */
+          }, 8 /* PROPS */, ["loading"]),
+          _createVNode(_component_el_button, {
+            "data-testid": "audit-forensics-clear-lookup",
+            onClick: $setup.clearLookup
+          }, {
+            default: _withCtx(() => [
+              _createTextVNode(_toDisplayString($setup.isChinese ? '清空条件' : 'Clear criteria'), 1 /* TEXT */)
+            ]),
+            _: 1 /* STABLE */
+          }),
+          ($setup.hasMore)
+            ? (_openBlock(), _createBlock(_component_el_button, {
+                key: 0,
+                loading: $setup.loadingLookup,
+                "data-testid": "audit-forensics-load-more",
+                onClick: $setup.loadMoreResults
+              }, {
+                default: _withCtx(() => [
+                  _createTextVNode(_toDisplayString($setup.isChinese ? '加载更早证据' : 'Load older evidence'), 1 /* TEXT */)
+                ]),
+                _: 1 /* STABLE */
+              }, 8 /* PROPS */, ["loading"]))
+            : _createCommentVNode("v-if", true)
+        ]),
+        _createElementVNode("div", _hoisted_22, [
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList($setup.searchCriteria, (item) => {
+            return (_openBlock(), _createElementBlock("span", {
+              key: item.key,
+              class: "lookup-chip"
+            }, _toDisplayString(item.label) + ": " + _toDisplayString(item.value), 1 /* TEXT */))
+          }), 128 /* KEYED_FRAGMENT */)),
+          (!$setup.searchCriteria.length)
+            ? (_openBlock(), _createElementBlock("span", _hoisted_23, _toDisplayString($setup.isChinese
+                ? '输入 trace / task / report 后执行取证反查。'
+                : 'Enter a trace, task, or report id and then run the forensic lookup.'), 1 /* TEXT */))
+            : _createCommentVNode("v-if", true)
+        ]),
+        _createElementVNode("div", _hoisted_24, [
+          _createElementVNode("article", _hoisted_25, [
+            _createElementVNode("span", _hoisted_26, _toDisplayString($setup.isChinese ? '命中 trace' : 'Matched traces'), 1 /* TEXT */),
+            _createElementVNode("strong", _hoisted_27, _toDisplayString($setup.matchedCount), 1 /* TEXT */)
+          ]),
+          _createElementVNode("article", _hoisted_28, [
+            _createElementVNode("span", _hoisted_29, _toDisplayString($setup.isChinese ? '补偿 trace' : 'Compensation traces'), 1 /* TEXT */),
+            _createElementVNode("strong", _hoisted_30, _toDisplayString($setup.compensationCount), 1 /* TEXT */)
+          ]),
+          _createElementVNode("article", _hoisted_31, [
+            _createElementVNode("span", _hoisted_32, _toDisplayString($setup.isChinese ? '修复信号链' : 'Repair signal chains'), 1 /* TEXT */),
+            _createElementVNode("strong", _hoisted_33, _toDisplayString($setup.repairSignalCount), 1 /* TEXT */)
+          ]),
+          _createElementVNode("article", _hoisted_34, [
+            _createElementVNode("span", _hoisted_35, _toDisplayString($setup.isChinese ? '报告回写链' : 'Report-linked traces'), 1 /* TEXT */),
+            _createElementVNode("strong", _hoisted_36, _toDisplayString($setup.reportLinkedCount), 1 /* TEXT */)
+          ])
+        ]),
+        ($setup.hasMore)
+          ? (_openBlock(), _createElementBlock("div", _hoisted_37, [
+              _createElementVNode("strong", null, _toDisplayString($setup.isChinese ? '仍有更早证据链' : 'Older evidence chains available'), 1 /* TEXT */),
+              _createElementVNode("span", null, _toDisplayString($setup.nextCursor || '-'), 1 /* TEXT */)
+            ]))
+          : _createCommentVNode("v-if", true),
+        ($setup.errorMessage)
+          ? (_openBlock(), _createElementBlock("div", _hoisted_38, _toDisplayString($setup.errorMessage), 1 /* TEXT */))
+          : (!$setup.lookupResults.length)
+            ? (_openBlock(), _createElementBlock("p", _hoisted_39, _toDisplayString($setup.isChinese
+              ? '命中结果会展示失败链、补偿链与报告回写证据，并支持跳回历史诊断页继续下钻。'
+              : 'Matched chains render here with failure, compensation, and report write-back evidence, plus drill-through back into the history diagnosis page.'), 1 /* TEXT */))
+            : _createCommentVNode("v-if", true),
+        _createElementVNode("div", _hoisted_40, [
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList($setup.lookupResults, (trace) => {
+            return (_openBlock(), _createElementBlock("button", {
+              key: trace.traceId,
+              type: "button",
+              class: _normalizeClass(["trace-item", { 'trace-item-active': $setup.activeTraceId === trace.traceId }]),
+              "data-testid": "audit-forensics-result-item",
+              onClick: $event => ($setup.loadTraceDetail(trace.traceId))
+            }, [
+              _createElementVNode("div", _hoisted_42, [
+                _createElementVNode("div", null, [
+                  _createElementVNode("p", _hoisted_43, _toDisplayString(trace.serviceCode || '-'), 1 /* TEXT */),
+                  _createElementVNode("h3", null, _toDisplayString(trace.resourceId || trace.traceId), 1 /* TEXT */)
+                ]),
+                _createElementVNode("span", {
+                  class: _normalizeClass(["trace-status-pill", 
+                  trace.latestStatus === 'SUCCESS' || trace.latestStatus === 'SUCCEEDED'
+                    ? 'trace-status-success'
+                    : 'trace-status-warning'
+                ])
+                }, _toDisplayString(trace.latestStatus || '-'), 3 /* TEXT, CLASS */)
+              ]),
+              _createElementVNode("p", _hoisted_44, _toDisplayString(trace.traceId) + " · " + _toDisplayString($setup.formatTimestamp(trace.lastSeenAt)), 1 /* TEXT */),
+              _createElementVNode("div", _hoisted_45, [
+                ($setup.isCompensationTrace(trace.traceId))
+                  ? (_openBlock(), _createElementBlock("span", _hoisted_46, _toDisplayString($setup.isChinese ? '补偿 trace' : 'Compensation trace'), 1 /* TEXT */))
+                  : _createCommentVNode("v-if", true),
+                _createElementVNode("span", _hoisted_47, _toDisplayString($setup.resolveTraceRepairSignal(trace)), 1 /* TEXT */),
+                _createElementVNode("span", _hoisted_48, _toDisplayString($setup.isChinese ? '任务' : 'Task') + ": " + _toDisplayString($setup.displayValue(trace.taskId)), 1 /* TEXT */),
+                _createElementVNode("span", _hoisted_49, _toDisplayString($setup.isChinese ? '报告' : 'Report') + ": " + _toDisplayString($setup.displayValue(trace.reportId)), 1 /* TEXT */)
+              ])
+            ], 10 /* CLASS, PROPS */, _hoisted_41))
+          }), 128 /* KEYED_FRAGMENT */))
+        ])
+      ]),
+      _createElementVNode("article", _hoisted_50, [
+        _createElementVNode("div", _hoisted_51, [
+          _createElementVNode("div", null, [
+            _cache[7] || (_cache[7] = _createElementVNode("p", { class: "section-kicker sqlforge-code-label" }, "forensic pivots", -1 /* HOISTED */)),
+            _createElementVNode("h2", _hoisted_52, _toDisplayString($setup.isChinese ? '审计取证详情与跨页 pivot' : 'Forensic detail and cross-page pivots'), 1 /* TEXT */)
+          ])
+        ]),
+        (!$setup.detail && !$setup.errorMessage)
+          ? (_openBlock(), _createElementBlock("p", _hoisted_53, _toDisplayString($setup.isChinese
+              ? '选择左侧命中 trace 后，这里会显示取证信号、历史事件和跨页跳转动作。'
+              : 'After you select a matched trace, the forensic signals, linked history events, and cross-page actions render here.'), 1 /* TEXT */))
+          : _createCommentVNode("v-if", true),
+        ($setup.detail)
+          ? (_openBlock(), _createElementBlock(_Fragment, { key: 1 }, [
+              _createElementVNode("div", {
+                class: _normalizeClass(["result-banner", 
+              $setup.detail.latestStatus === 'SUCCESS' || $setup.detail.latestStatus === 'SUCCEEDED'
+                ? 'result-banner-success'
+                : 'result-banner-warning'
+            ])
+              }, [
+                _createElementVNode("strong", _hoisted_54, _toDisplayString($setup.detail.traceId), 1 /* TEXT */),
+                _createElementVNode("span", _hoisted_55, _toDisplayString($setup.detail.latestStatus || '-'), 1 /* TEXT */)
+              ], 2 /* CLASS */),
+              _createElementVNode("div", _hoisted_56, [
+                _createVNode(_component_el_button, {
+                  type: "primary",
+                  "data-testid": "audit-forensics-open-parse-record",
+                  onClick: $setup.openParseRecord
+                }, {
+                  default: _withCtx(() => [
+                    _createTextVNode(_toDisplayString($setup.isChinese ? '跳回历史诊断' : 'Open parse record'), 1 /* TEXT */)
+                  ]),
+                  _: 1 /* STABLE */
+                }),
+                _createVNode(_component_el_button, {
+                  "data-testid": "audit-forensics-open-repair-evidence",
+                  onClick: $setup.openRepairEvidence
+                }, {
+                  default: _withCtx(() => [
+                    _createTextVNode(_toDisplayString($setup.isChinese ? '打开修复证据' : 'Open repair evidence'), 1 /* TEXT */)
+                  ]),
+                  _: 1 /* STABLE */
+                }),
+                _createVNode(_component_el_button, {
+                  "data-testid": "audit-forensics-open-troubleshooting",
+                  onClick: $setup.openTroubleshooting
+                }, {
+                  default: _withCtx(() => [
+                    _createTextVNode(_toDisplayString($setup.isChinese ? '打开处置决策' : 'Open remediation decision'), 1 /* TEXT */)
+                  ]),
+                  _: 1 /* STABLE */
+                })
+              ]),
+              _createElementVNode("div", _hoisted_57, [
+                _createElementVNode("div", _hoisted_58, [
+                  _createElementVNode("span", _hoisted_59, _toDisplayString($setup.isChinese ? '服务编码' : 'Service code'), 1 /* TEXT */),
+                  _createElementVNode("strong", _hoisted_60, _toDisplayString($setup.detail.serviceCode || '-'), 1 /* TEXT */)
+                ]),
+                _createElementVNode("div", _hoisted_61, [
+                  _createElementVNode("span", _hoisted_62, _toDisplayString($setup.isChinese ? '资源类型' : 'Resource type'), 1 /* TEXT */),
+                  _createElementVNode("strong", null, _toDisplayString($setup.detail.resourceType || '-'), 1 /* TEXT */)
+                ]),
+                _createElementVNode("div", _hoisted_63, [
+                  _createElementVNode("span", _hoisted_64, _toDisplayString($setup.isChinese ? '资源标识' : 'Resource id'), 1 /* TEXT */),
+                  _createElementVNode("strong", null, _toDisplayString($setup.detail.resourceId || '-'), 1 /* TEXT */)
+                ]),
+                _createElementVNode("div", _hoisted_65, [
+                  _createElementVNode("span", _hoisted_66, _toDisplayString($setup.isChinese ? '最后发生时间' : 'Last seen at'), 1 /* TEXT */),
+                  _createElementVNode("strong", null, _toDisplayString($setup.formatTimestamp($setup.detail.lastSeenAt)), 1 /* TEXT */)
+                ])
+              ]),
+              _createElementVNode("div", _hoisted_67, [
+                (_openBlock(true), _createElementBlock(_Fragment, null, _renderList($setup.detailHighlights, (item) => {
+                  return (_openBlock(), _createElementBlock("div", {
+                    key: item.key,
+                    class: "highlight-chip"
+                  }, [
+                    _createElementVNode("span", null, _toDisplayString(item.label), 1 /* TEXT */),
+                    _createElementVNode("strong", null, _toDisplayString($setup.displayValue(item.value)), 1 /* TEXT */)
+                  ]))
+                }), 128 /* KEYED_FRAGMENT */)),
+                (_openBlock(true), _createElementBlock(_Fragment, null, _renderList($setup.selectedSignals, (item) => {
+                  return (_openBlock(), _createElementBlock("div", {
+                    key: item.key,
+                    class: "highlight-chip highlight-chip-strong"
+                  }, [
+                    _createElementVNode("span", null, _toDisplayString(item.label), 1 /* TEXT */),
+                    _createElementVNode("strong", {
+                      "data-testid": `audit-forensics-detail-${item.key.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`)}`
+                    }, _toDisplayString($setup.displayValue(item.value)), 9 /* TEXT, PROPS */, _hoisted_68)
+                  ]))
+                }), 128 /* KEYED_FRAGMENT */))
+              ]),
+              _createElementVNode("div", _hoisted_69, [
+                (_openBlock(true), _createElementBlock(_Fragment, null, _renderList($setup.detail.auditEvents, (event) => {
+                  return (_openBlock(), _createElementBlock("article", {
+                    key: event.id,
+                    class: "timeline-card",
+                    "data-testid": "audit-forensics-audit-event"
+                  }, [
+                    _createElementVNode("div", _hoisted_70, [
+                      _createElementVNode("div", null, [
+                        _createElementVNode("p", _hoisted_71, _toDisplayString(event.serviceCode), 1 /* TEXT */),
+                        _createElementVNode("h3", null, _toDisplayString(event.operationType) + " · " + _toDisplayString(event.targetId), 1 /* TEXT */)
+                      ]),
+                      _createElementVNode("span", {
+                        class: _normalizeClass(["trace-status-pill", 
+                    event.status === 'SUCCESS' || event.status === 'SUCCEEDED'
+                      ? 'trace-status-success'
+                      : 'trace-status-warning'
+                  ])
+                      }, _toDisplayString(event.status), 3 /* TEXT, CLASS */)
+                    ]),
+                    _createElementVNode("p", _hoisted_72, _toDisplayString($setup.isChinese ? '请求链路' : 'Request chain') + ": " + _toDisplayString(event.requestId) + " / " + _toDisplayString(event.traceId), 1 /* TEXT */),
+                    _createElementVNode("p", _hoisted_73, _toDisplayString($setup.formatTimestamp(event.createTime)) + " · " + _toDisplayString(event.costMs || 0) + "ms ", 1 /* TEXT */),
+                    _createElementVNode("div", _hoisted_74, [
+                      (_openBlock(true), _createElementBlock(_Fragment, null, _renderList($setup.eventHighlights(event), (item) => {
+                        return (_openBlock(), _createElementBlock("span", {
+                          key: `${event.id}-${item.label}`,
+                          class: "timeline-meta-pill"
+                        }, _toDisplayString(item.label) + ": " + _toDisplayString($setup.displayValue(item.value)), 1 /* TEXT */))
+                      }), 128 /* KEYED_FRAGMENT */))
+                    ])
+                  ]))
+                }), 128 /* KEYED_FRAGMENT */))
+              ])
+            ], 64 /* STABLE_FRAGMENT */))
+          : _createCommentVNode("v-if", true)
+      ])
+    ])
+  ]))
+}
+__sfc__.__scopeId = 'data-v-8d8f25d9'
+__sfc__.render = render
+__sfc__.__file = "src/views/audit-forensics/AuditForensicsView.js"
+
+export default __sfc__

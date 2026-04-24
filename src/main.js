@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
+import ElementPlus from 'element-plus'
 import { createI18n } from 'vue-i18n'
-import App from './App.vue'
+import App from './App.js'
 import router from './router'
 import { pinia, useGlobalConfigStore } from './stores'
 import zhCN from './locales/zh-CN'
@@ -19,6 +20,7 @@ const i18n = createI18n({
 
 const app = createApp(App)
 
+app.use(ElementPlus)
 app.use(pinia)
 
 const globalConfigStore = useGlobalConfigStore(pinia)

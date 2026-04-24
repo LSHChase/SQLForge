@@ -4,6 +4,27 @@
 
 ## Done
 
+### E-TASK-011: 去除 Vue SFC 构建链并增加双产物便携前端包
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(frontend): remove SFC pipeline and add portable package`
+- Priority: 1
+- Depends on: N/A
+- Scope: Migrate the root frontend away from Vue single-file components so the repository no longer depends on @vitejs/plugin-vue or @vue/compiler-sfc, align Node/NPM/Vite/Vue/vue-i18n versions to the requested baseline, and add both standard and portable frontend build outputs where the portable package can be copied to another host and started locally without recompilation while still proxying to real backend APIs.
+- Validation:
+  - `python3 scripts/foreman.py validate E-TASK-011`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: converted the root frontend away from `.vue` single-file components by generating plain `.js` component modules plus extracted `.css`, rewired the app entry and router imports, and removed the direct Vite SFC plugin / auto-import tooling path from the active build.
+  - 2026-04-24: aligned the frontend toolchain contract to Node `18.20.8`, npm `10.8.2`, Vite `5.4.11`, Vue runtime `3.5.13`, and `vue-i18n` `10.0.8`, then replaced the root `vue` package with a local runtime shim so the repository no longer resolves `@vue/compiler-sfc`.
+  - 2026-04-24: added a second portable frontend output in `dist-portable/` with relative assets, hash-history routing, a local proxy server, generated startup scripts, and a portable config file so the built package can be copied to another host and started without recompilation.
+- Context closeout:
+  - Completed scope: Migrated the root frontend away from Vue single-file components into plain JavaScript plus extracted CSS modules, rewired the app bootstrap and routes, and removed the active Vite SFC plugin/auto-import build path.
+  - Validation evidence: Validated with npm lint/build/build:portable, frontend toolchain checks, portable package checks, and foreman validate including task_audit.
+  - Residual risk: The portable bundle still requires a local Node 18.20.8 runtime plus correct backend target URLs, and no live browser smoke against a real backend stack was executed in this task.
+  - Next step: Run a browser smoke against the portable package with a live backend target and consider bundle splitting if transfer size becomes a deployment concern.
+
 ### E-TASK-010: 收敛前端 Node/Vite/Vue 版本并核对 Vue SFC 构建约束
 
 - Status: done

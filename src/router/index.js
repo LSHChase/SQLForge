@@ -1,15 +1,15 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import DashboardView from '../views/dashboard/DashboardView.vue'
-import SqlQueryView from '../views/query/SqlQueryView.vue'
-import ParseRecordView from '../views/parse-record/ParseRecordView.vue'
-import RepairEvidenceView from '../views/repair-evidence/RepairEvidenceView.vue'
-import AuditForensicsView from '../views/audit-forensics/AuditForensicsView.vue'
-import AuditTroubleshootingView from '../views/audit-troubleshooting/AuditTroubleshootingView.vue'
-import RuntimeGatesView from '../views/runtime-gates/RuntimeGatesView.vue'
-import RecoveryDrillView from '../views/recovery-drill/RecoveryDrillView.vue'
-import AccelerationView from '../views/optimization/AccelerationView.vue'
-import BenchmarkView from '../views/benchmark/BenchmarkView.vue'
-import SystemView from '../views/system/SystemView.vue'
+import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
+import DashboardView from '../views/dashboard/DashboardView.js'
+import SqlQueryView from '../views/query/SqlQueryView.js'
+import ParseRecordView from '../views/parse-record/ParseRecordView.js'
+import RepairEvidenceView from '../views/repair-evidence/RepairEvidenceView.js'
+import AuditForensicsView from '../views/audit-forensics/AuditForensicsView.js'
+import AuditTroubleshootingView from '../views/audit-troubleshooting/AuditTroubleshootingView.js'
+import RuntimeGatesView from '../views/runtime-gates/RuntimeGatesView.js'
+import RecoveryDrillView from '../views/recovery-drill/RecoveryDrillView.js'
+import AccelerationView from '../views/optimization/AccelerationView.js'
+import BenchmarkView from '../views/benchmark/BenchmarkView.js'
+import SystemView from '../views/system/SystemView.js'
 import { deliveryProgressEnabled } from '../config/runtimeFlags'
 import { LEGACY_ROUTE_REDIRECTS, ROUTE_PATHS } from '../config/routePaths.mjs'
 
@@ -161,7 +161,7 @@ if (deliveryProgressEnabled) {
   constantRoutes.push({
     path: ROUTE_PATHS.deliveryProgress,
     name: 'DeliveryProgress',
-    component: () => import('../views/delivery/DeliveryProgressView.vue'),
+    component: () => import('../views/delivery/DeliveryProgressView.js'),
     meta: {
       menu: true,
       navGroup: 'temporary',
@@ -173,8 +173,11 @@ if (deliveryProgressEnabled) {
   })
 }
 
+const historyFactory =
+  import.meta.env.MODE === 'portable' ? createWebHashHistory : createWebHistory
+
 const router = createRouter({
-  history: createWebHistory(),
+  history: historyFactory(import.meta.env.BASE_URL),
   routes: constantRoutes
 })
 

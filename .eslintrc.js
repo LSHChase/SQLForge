@@ -5,16 +5,15 @@ module.exports = {
     es2021: true,
     node: true
   },
-  extends: ['eslint:recommended', 'plugin:vue/vue3-recommended'],
-  parser: 'vue-eslint-parser',
+  extends: ['eslint:recommended'],
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module'
   },
-  ignorePatterns: ['dist/', 'node_modules/'],
+  ignorePatterns: ['dist/', 'dist-portable/', 'node_modules/'],
   overrides: [
     {
-      files: ['scripts/*.js'],
+      files: ['scripts/*.js', 'scripts/*.mjs'],
       env: {
         node: true
       },
@@ -24,9 +23,6 @@ module.exports = {
     }
   ],
   rules: {
-    'no-console': 'warn',
-    'vue/multi-word-component-names': 'off',
-    'vue/max-attributes-per-line': 'off',
-    'vue/singleline-html-element-content-newline': 'off'
+    'no-console': 'warn'
   }
 }
