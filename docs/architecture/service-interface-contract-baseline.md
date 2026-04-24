@@ -162,6 +162,20 @@
   - fallback: `LOCAL_FALLBACK_COMPENSATION_MARKED` + `RECORD_DEGRADED_RESULT`
 - 当前实现已具备治理检查与审计写入的跨服务 HTTP 基线、Hetu JDBC driver 接线、Hetu client 协议执行、本地 mock-Hetu runtime smoke，以及外部环境 `bash scripts/run-hetu-env-smoke.sh` 入口；真实集群长期证据、生产级参数校准和更完整的审计补偿仍待外部环境持续沉淀。
 
+## 3.1.1 Query Execution Internal Benchmark Workload Baseline
+
+当前 `query-execution` 已新增受保护内部契约，供 `benchmark-engine` 在 worker 场景下抓取 workload/backfill evidence，而不绕过既有查询执行与治理审计边界：
+
+| Endpoint | Request baseline | Response baseline | Current implementation stage |
+|:---|:---|:---|:---|
+| `/api/query-execution/internal/benchmark/workload/capture` | `QueryExecutionBenchmarkWorkloadRequest` with `tenantId`,`benchmarkTaskId`,`benchmarkTaskType`,`sqlText`,`sqlFingerprint`,`targetEngines[]`,`concurrency`,`durationSeconds`,`rampUpSeconds`,`datasetSizeLabel`,`readonlyRequired` | `QueryExecutionBenchmarkWorkloadResponse` with `tenantId`,`benchmarkTaskId`,`sqlFingerprint`,`workloadDigest`,`workloadSource`,`backfillApplied`,`engineSnapshots[]`,`contractStage`,`implementationStage`; `engineSnapshots[]` carries `targetEngine`,`resultStatus`,`workloadSource`,`backfillSource`,`backfillReason`,`executionMode`,`attemptedModes[]`,`elapsedMs`,`scannedRows`,`rowCount`,`cacheHit`,`accelerationApplied`,`workloadDigest`,`evidence` | `BENCHMARK_WORKLOAD_ORCHESTRATION_BASELINE` |
+
+说明：
+
+- 内部入口仍通过 header-based protected request context 受控访问；benchmark worker 在无前台请求上下文时，允许以 service identity 合成受保护请求头继续执行 repo-side 编排。
+- 当前实现会逐个目标引擎复用 `QueryExecutionApplicationService.executeSynchronously`；成功时返回 live workload snapshot，失败时返回显式 `SYNTHETIC_BACKFILL` 证据，而不是把失败静默折叠为 benchmark 本地无来源的 synthetic replay。
+- 当前内部入口会额外写入 `QUERY_BENCHMARK_WORKLOAD_CAPTURE` 审计摘要，用于记录 workloadSource / backfillApplied / workloadDigest 的跨服务编排结果。
+
 ## 3.2 SQL Optimization Task Contract Baseline
 
 当前 `sql-optimization` 已将异步优化任务契约接到公共 HTTP 入口，并通过 MySQL 持久化任务表与 scheduled worker 提供可测的提交、轮询与失败路径。
@@ -390,7 +404,7 @@
 
 说明：
 
-- 当前 `POST /api/benchmark-engine/tasks` 会先返回 `QUEUED / SUBMITTED` 快照，再由 `BenchmarkTaskWorker` 基于 `benchmark_task` 表推进到成功或失败，并在成功路径上执行 repo-closed 隔离执行、组装报告快照、生成导出产物、externalize 到 repo-local artifact storage、调用治理 trace/export orchestration，再把 artifact metadata 回写到 `benchmark_task_report`。
+- 当前 `POST /api/benchmark-engine/tasks` 会先返回 `QUEUED / SUBMITTED` 快照，再由 `BenchmarkTaskWorker` 基于 `benchmark_task` 表推进到成功或失败，并在成功路径上先向 `query-execution` 内部受保护入口抓取 workload/backfill snapshot，再执行 repo-closed 隔离 replay、组装报告快照、生成导出产物、externalize 到 repo-local artifact storage、调用治理 trace/export orchestration，最后把 artifact metadata 回写到 `benchmark_task_report`。
 - 当前 `GET /api/benchmark-engine/tasks/{taskId}` 已可查询最新任务状态；未知任务返回 `23001`。
 - 当前 `GET /api/benchmark-engine/reports/{reportId}` 默认返回结构化 JSON；当 `format=PDF|HTML` 时返回 externalized 持久化导出产物内容，并保留稳定的 content-type / filename 契约。
 - 当前 `GET /api/benchmark-engine/reports/{reportId}/raw-data` 返回 attachment download，并从 externalized raw-data snapshot 直接读取响应体。
@@ -400,9 +414,9 @@
 - 当前报告模型已覆盖引擎指标快照、阈值判定、趋势图表、建议输出、执行摘要以及导出产物元数据；成功路径会生成 `JSON/PDF/HTML` 与 raw-data artifact，记录 `artifactKey/artifactKind/storageType/storageUri/storageEvidence/exportId/retentionDays/retentionPolicySource/retentionDeleteAfter`，供后续查询直接复用。
 - 当前报告查询/下载审计会在 artifact 已具备治理追溯元数据时补齐 `configSnapshotId/resultId/historyId/exportId`；其中 `JSON` 查询绑定 `json-export`，`PDF/HTML` 查询绑定对应导出 artifact，`raw-data` 下载绑定 `raw-data` artifact。
 - 当前 repo-local artifact lifecycle 已固化为保留当前 report-set、重写时清理陈旧 sibling 文件，以及在 `PDF/HTML/raw-data` 文件缺失时从持久化报告快照恢复后再继续返回响应。
-- 当前仓库已补齐 repo-closed 隔离执行、artifact externalization、查询 audit-link enrichment、tenant-specific retention/backfill policy，以及治理 trace/export orchestration 链路；`LOCAL_FILE` 仍是默认主路径，而 `ENVIRONMENT_OBJECT_STORAGE` 只在显式配置时启用，并通过 repo-local mirror + object URI evidence 保留环境级对象存储接线证据。
+- 当前仓库已补齐 repo-closed 隔离执行、benchmark/query-execution workload/backfill orchestration、artifact externalization、查询 audit-link enrichment、tenant-specific retention/backfill policy，以及治理 trace/export orchestration 链路；`LOCAL_FILE` 仍是默认主路径，而 `ENVIRONMENT_OBJECT_STORAGE` 只在显式配置时启用，并通过 repo-local mirror + object URI + live-evidence manifest 保留环境级对象存储接线证据。
 - 当前 tenant-specific artifact policy 通过 `governance tenant_config.retention_days` 解析；若历史 artifact 缺少该元数据，则会在后续查询/恢复时回填 retention evidence，而不是把旧 artifact 直接写成永久缺省无策略。
-- 当前 `Phase-D` 剩余关注点已收窄为更深层 query-execution workload/backfill 协作、真实环境对象存储落地证据，以及更广的 environment-backed 执行证据。
+- 当前 `Phase-D` 剩余关注点已收窄为更广的 environment-backed 执行证据、真实外部对象存储实存证据，以及跨服务 workload/backfill 结果向长期治理追溯面的进一步沉淀。
 
 ## 4. Event Contract Baseline
 

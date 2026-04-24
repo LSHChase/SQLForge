@@ -1326,7 +1326,7 @@ SQL优化服务 → 公共管理服务（获取元数据、统计信息、写入
 - 当前 `sqlforge-shared` 已形成共享底座基线，但仍需继续保持只承载真正公共能力的边界。
 - 当前 `query-execution` 已形成查询执行服务的独立模块骨架、公共 DTO/VO/错误码、治理检查/审计写入 HTTP 基线，以及真实 Hetu `JDBC` / `REST` / `CLIENT` 多模式执行链；当前仓库已补齐 JDBC driver 接线、Hetu client 协议执行、本地 mock-Hetu runtime smoke 和外部环境 Hetu smoke 入口，后续仍需继续沉淀真实集群长期证据、生产级参数校准和更完整的跨服务审计补偿。
 - 当前 `sql-optimization` 已形成 SQL 优化服务的独立模块、提交/轮询 API、`optimization_task` MySQL 任务表、scheduled worker，以及结构化 `suggestion / failure` 输出，但外部队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
-- 当前 `benchmark-engine` 已形成压测引擎服务的独立模块、提交/轮询/报告查询 API、`benchmark_task` / `benchmark_task_report` MySQL 载体、scheduled worker、repo-closed 隔离执行链路、repo-local externalized artifact storage、raw-data download，以及经 `governance` 内部受保护入口完成的 report trace/export orchestration 基线；报告/下载查询审计现已补齐 trace/export 链接键，repo-local artifact 也已具备 stale-file cleanup、snapshot recovery、tenant-specific retention/backfill policy，以及显式配置的 environment-backed object-storage adapter/evidence 语义，但默认主路径仍保持 `LOCAL_FILE`，后续缺口收窄为更深层跨服务协同与真实环境执行证据补齐。
+- 当前 `benchmark-engine` 已形成压测引擎服务的独立模块、提交/轮询/报告查询 API、`benchmark_task` / `benchmark_task_report` MySQL 载体、scheduled worker、repo-closed 隔离执行链路、repo-local externalized artifact storage、raw-data download，以及经 `governance` 内部受保护入口完成的 report trace/export orchestration 基线；当前 worker 还会优先调用 `query-execution` 内部 workload capture 契约，把 live workload snapshot 或显式 synthetic backfill evidence 写入 benchmark execution summary。报告/下载查询审计现已补齐 trace/export 链接键，repo-local artifact 也已具备 stale-file cleanup、snapshot recovery、tenant-specific retention/backfill policy，以及显式配置的 environment-backed object-storage adapter/live-evidence manifest 语义，但默认主路径仍保持 `LOCAL_FILE`，后续缺口收窄为更广 environment-backed 执行证据与真实外部对象存储实存证据补齐。
 
 ### 19.5 复盘要求
 

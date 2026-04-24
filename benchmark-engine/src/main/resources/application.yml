@@ -49,6 +49,10 @@ benchmark-engine:
       AUTO: ${BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_AUTO:benchmark-hetu}
       HETU: ${BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_HETU:benchmark-hetu}
       HIVE: ${BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_HIVE:benchmark-hive}
+  query-execution:
+    base-url: ${BENCHMARK_ENGINE_QUERY_EXECUTION_BASE_URL:http://localhost:8081/api/query-execution/internal/benchmark}
+    connect-timeout-ms: ${BENCHMARK_ENGINE_QUERY_EXECUTION_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${BENCHMARK_ENGINE_QUERY_EXECUTION_READ_TIMEOUT_MS:5000}
   artifact-storage:
     base-dir: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_BASE_DIR:target/benchmark-engine-artifacts}
     storage-type: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_TYPE:LOCAL_FILE}
@@ -60,6 +64,7 @@ benchmark-engine:
       bucket: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET:}
       key-prefix: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_KEY_PREFIX:benchmark-engine-artifacts}
       mirror-dir: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_MIRROR_DIR:target/benchmark-engine-artifacts/object-storage-mirror}
+      live-evidence-dir: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_LIVE_EVIDENCE_DIR:target/benchmark-engine-artifacts/object-storage-live-evidence}
       endpoint-env-name: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT_ENV_NAME:BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT}
       bucket-env-name: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET_ENV_NAME:BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET}
       credentials-env-name: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS_ENV_NAME:BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS}

@@ -91,7 +91,8 @@
   - 报告查询与下载审计在 artifact 已具备治理追溯元数据时，会补齐 `configSnapshotId/resultId/historyId/exportId` 链接键
   - repo-local artifact lifecycle 当前固化为：保留当前 report-set、重写同一 report 时清理陈旧 sibling 文件、缺失 `PDF/HTML/raw-data` 文件时从已持久化报告快照恢复
   - artifact metadata 当前已补齐 `storageEvidence/retentionDays/retentionPolicySource/retentionDeleteAfter`；tenant-specific policy 来自 governance `tenant_config.retention_days`，缺失该元数据的历史 artifact 会在后续查询/恢复时回填
-  - `ENVIRONMENT_OBJECT_STORAGE` adapter 已形成显式配置能力：默认主路径仍是 `LOCAL_FILE`，而 environment-backed 模式只保留 object URI + repo-local mirror + env var dependency evidence，不把真实外部对象存储误写成仓库默认事实
+  - `benchmark-engine` 当前会优先经 `query-execution` 内部受保护入口抓取 workload snapshot；若目标引擎路径不可用，则显式回退为 synthetic backfill evidence，并把 `workloadSource/backfillApplied/queryExecution[...]` 证据写入 benchmark execution summary
+  - `ENVIRONMENT_OBJECT_STORAGE` adapter 已形成显式配置能力：默认主路径仍是 `LOCAL_FILE`，而 environment-backed 模式会保留 object URI、repo-local mirror，以及按 artifact 写出的 live-evidence manifest（解析 endpoint/bucket/credentials env 现状与对象 URI），但不把真实外部对象存储误写成仓库默认事实
   - 引擎指标快照、阈值判定结果、趋势图表、建议输出和报告实体
   - 基础模型测试、应用服务测试与控制器测试
 - 当前可观测事实已形成统一文档落点：

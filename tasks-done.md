@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-025: 收口 `benchmark-engine` / `query-execution` workload/backfill orchestration 与真实环境 object storage live evidence
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(benchmark-engine): orchestrate workload backfill evidence`
+- Priority: 1
+- Depends on: `D-TASK-024`
+- Scope: 在保持 repo-local artifact lifecycle 仍是默认主路径、统一授权入口、治理审计与只读/影子环境边界不变的前提下，为 `benchmark-engine` 补齐面向 `query-execution` 的 workload/backfill 内部编排契约，并把真实环境 object storage live evidence 沉淀为显式 environment-backed 证据而非仓库默认主路径 Tech: `JAVA-BE`,`OPS`,`DOCS`. Layer: `common`,`application(controller/service)/domain/infrastructure`,`deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-D
+- Human confirmation point: 若 workload/backfill orchestration 会绕过 `query-execution` 现有只读/鉴权/审计边界、把 synthetic evidence 冒充成真实环境 live evidence、或把 environment-backed object storage 重新写成 repo-side 默认主路径，需人工确认
+- Data impact: benchmark/query-execution 内部 workload snapshot 与 backfill 证据、跨服务执行/审计记录、environment-backed object storage live evidence 与 runbook/验证留痕
+- Rollback / recovery: 保持 repo-local lifecycle 与 synthetic fallback 为默认仓库路径，关闭新增跨服务编排或 live evidence 默认启用，回退内部契约/文档说明并恢复到 `D-TASK-024` 已验证基线
+- Validation:
+  - `sqlforge-shared/query-execution/benchmark-engine 模块测试、跨服务 workload/backfill 契约测试、runtime smoke、task audit、knowledge lint、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-025`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented benchmark/query-execution workload orchestration, explicit synthetic backfill evidence, and environment-backed object-storage live-evidence manifest while keeping LOCAL_FILE as the default artifact path.
+  - Validation evidence: python3 scripts/foreman.py validate D-TASK-025 --include-task-audit --extra-command 'mvn -B -pl sqlforge-shared,query-execution,benchmark-engine -am test -DskipITs' --extra-command 'python3 scripts/foreman.py compile-governance --check' --extra-command 'bash scripts/run-runtime-smoke.sh --compose-check' --extra-command 'node scripts/lint-repository-knowledge.js'
+  - Residual risk: Workload/backfill evidence is now repo-side orchestrated, but long-term governance persistence of that evidence and real external object-storage write/recovery proof still remain environment-backed follow-up work.
+  - Next step: Shape the next repo-side follow-up around persisting workload/backfill evidence deeper into governance traceability and extending environment-backed object-storage verification from live-evidence manifests to real external write/recovery proof.
+
 ### D-TASK-024: 收口 `benchmark-engine` artifact tenant-specific retention/backfill policy 与 environment-backed storage adapter/evidence
 
 - Status: done

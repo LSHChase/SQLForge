@@ -102,6 +102,7 @@ class BenchmarkArtifactStorageServiceTest {
         BenchmarkArtifactStorageProperties properties = new BenchmarkArtifactStorageProperties();
         properties.setStorageType("ENVIRONMENT_OBJECT_STORAGE");
         properties.getEnvironmentObjectStorage().setMirrorDir(tempDir.resolve("mirror").toString());
+        properties.getEnvironmentObjectStorage().setLiveEvidenceDir(tempDir.resolve("live-evidence").toString());
         properties.getEnvironmentObjectStorage().setBucket("benchmark-bucket");
         properties.getEnvironmentObjectStorage().setKeyPrefix("tenant-artifacts");
         BenchmarkArtifactStorageService service = new BenchmarkArtifactStorageService(properties, null);
@@ -117,6 +118,8 @@ class BenchmarkArtifactStorageServiceTest {
         assertEquals("env-obj://benchmark-bucket/tenant-artifacts/tenant-a/report-001/benchmark-report-report-001.pdf", artifact.getStorageUri());
         assertTrue(artifact.getStorageEvidence().contains("mirrorPath="));
         assertTrue(artifact.getStorageEvidence().contains("mode=repo-local-mirror"));
+        assertTrue(artifact.getStorageEvidence().contains("liveEvidencePath="));
+        assertTrue(artifact.getStorageEvidence().contains("liveEvidenceStatus=ENVIRONMENT_CONFIG_PENDING"));
     }
 
     private BenchmarkReportArtifact artifact(String artifactKey,

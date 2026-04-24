@@ -7,7 +7,11 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdAssessment;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdVerdict;
+import com.company.benchmarkengine.infrastructure.queryexecution.QueryExecutionBenchmarkWorkloadClient;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadEngineSnapshot;
+import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadResponse;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -16,28 +20,53 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 public class BenchmarkIsolatedExecutionService {
 
-    private static final String EXECUTION_MODE = "REPO_CLOSED_ISOLATED_EXECUTOR";
-    private static final String ISOLATION_SUMMARY = "shadow-only readonly benchmark replay";
+    private static final String EXECUTION_MODE_ISOLATED = "REPO_CLOSED_ISOLATED_EXECUTOR";
+    private static final String EXECUTION_MODE_ORCHESTRATED = "QUERY_EXECUTION_WORKLOAD_ORCHESTRATED_REPLAY";
+    private static final String ISOLATION_SUMMARY_ISOLATED = "shadow-only readonly benchmark replay";
+    private static final String ISOLATION_SUMMARY_ORCHESTRATED =
+        "shadow-only readonly benchmark replay with query-execution workload orchestration";
+    private static final QueryExecutionBenchmarkWorkloadClient NOOP_WORKLOAD_CLIENT =
+        new QueryExecutionBenchmarkWorkloadClient() {
+            @Override
+            public QueryExecutionBenchmarkWorkloadResponse captureWorkload(QueryExecutionBenchmarkWorkloadRequest request) {
+                return null;
+            }
+        };
 
     private final BenchmarkTaskExecutionProperties executionProperties;
     private final BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService;
+    private final QueryExecutionBenchmarkWorkloadClient queryExecutionBenchmarkWorkloadClient;
 
     public BenchmarkIsolatedExecutionService(BenchmarkTaskExecutionProperties executionProperties,
                                              BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService) {
+        this(executionProperties, benchmarkTaskModelApplicationService, NOOP_WORKLOAD_CLIENT);
+    }
+
+    @Autowired
+    public BenchmarkIsolatedExecutionService(BenchmarkTaskExecutionProperties executionProperties,
+                                             BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService,
+                                             QueryExecutionBenchmarkWorkloadClient queryExecutionBenchmarkWorkloadClient) {
         this.executionProperties = executionProperties;
         this.benchmarkTaskModelApplicationService = benchmarkTaskModelApplicationService;
+        this.queryExecutionBenchmarkWorkloadClient = queryExecutionBenchmarkWorkloadClient == null
+            ? NOOP_WORKLOAD_CLIENT
+            : queryExecutionBenchmarkWorkloadClient;
     }
 
     public BenchmarkIsolatedExecutionResult execute(BenchmarkTask task, Instant generatedAt) {
@@ -49,9 +78,11 @@ public class BenchmarkIsolatedExecutionService {
         int complexity = sqlComplexity(task);
         int datasetWeight = datasetWeight(task.getDatasetSizeLabel());
         int concurrencyWeight = concurrencyWeight(task.getConcurrency());
-        String workloadDigest = shortDigest(
+        String syntheticWorkloadDigest = shortDigest(
             task.getTaskType().name() + "|" + task.getSqlFingerprint() + "|" + task.getSqlText() + "|" + generatedAt.toEpochMilli()
         );
+        WorkloadOrchestration workloadOrchestration = resolveWorkloadOrchestration(task, targetEngines, syntheticWorkloadDigest);
+        String workloadDigest = workloadOrchestration.getWorkloadDigest();
         List<BenchmarkEngineProfile> engineProfiles = new ArrayList<BenchmarkEngineProfile>(targetEngines.size());
         long totalDurationMs = 0L;
         for (int index = 0; index < targetEngines.size(); index++) {
@@ -63,7 +94,8 @@ public class BenchmarkIsolatedExecutionService {
                 complexity,
                 datasetWeight,
                 concurrencyWeight,
-                workloadDigest
+                workloadDigest,
+                workloadOrchestration.findSignal(targetEngines.get(index))
             );
             totalDurationMs += snapshot.getExecutionDurationMs();
             engineProfiles.add(snapshot.toProfile());
@@ -74,12 +106,21 @@ public class BenchmarkIsolatedExecutionService {
         );
         return new BenchmarkIsolatedExecutionResult(
             new BenchmarkExecutionSummary(
-                EXECUTION_MODE,
-                ISOLATION_SUMMARY,
+                workloadOrchestration.getExecutionMode(),
+                workloadOrchestration.getIsolationSummary(),
                 Integer.valueOf(sampleCount),
                 Long.valueOf(totalDurationMs),
                 workloadDigest,
-                buildPhaseNotes(task, complexity, datasetWeight, concurrencyWeight, targetEngines, totalDurationMs, workloadDigest)
+                buildPhaseNotes(
+                    task,
+                    complexity,
+                    datasetWeight,
+                    concurrencyWeight,
+                    targetEngines,
+                    totalDurationMs,
+                    workloadDigest,
+                    workloadOrchestration
+                )
             ),
             engineProfiles,
             assessments,
@@ -94,7 +135,8 @@ public class BenchmarkIsolatedExecutionService {
                                                       int complexity,
                                                       int datasetWeight,
                                                       int concurrencyWeight,
-                                                      String workloadDigest) {
+                                                      String workloadDigest,
+                                                      WorkloadSignal workloadSignal) {
         long startedAt = System.nanoTime();
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
@@ -120,7 +162,7 @@ public class BenchmarkIsolatedExecutionService {
             }
             long executionDurationMs = Math.max(1L, (System.nanoTime() - startedAt) / 1_000_000L);
             return buildSnapshot(task, engine, index, complexity, datasetWeight, concurrencyWeight, sampleCount, probeToken,
-                executionDurationMs, workloadDigest);
+                executionDurationMs, workloadDigest, workloadSignal);
         } finally {
             executor.shutdownNow();
         }
@@ -135,24 +177,45 @@ public class BenchmarkIsolatedExecutionService {
                                                   int sampleCount,
                                                   long probeToken,
                                                   long executionDurationMs,
-                                                  String workloadDigest) {
+                                                  String workloadDigest,
+                                                  WorkloadSignal workloadSignal) {
         int enginePenalty = enginePenalty(engine, index);
         int taskLatencyBias = taskLatencyBias(task.getTaskType());
         int taskCpuBias = taskCpuBias(task.getTaskType());
         int taskQpsPenalty = taskQpsPenalty(task.getTaskType());
         long tokenBias = Math.abs(probeToken % 7L);
+        long workloadElapsedMs = workloadSignal == null || workloadSignal.getElapsedMs() == null
+            ? executionDurationMs
+            : workloadSignal.getElapsedMs().longValue();
+        long workloadScannedRows = workloadSignal == null || workloadSignal.getScannedRows() == null
+            ? 0L
+            : workloadSignal.getScannedRows().longValue();
+        int workloadRowCount = workloadSignal == null || workloadSignal.getRowCount() == null
+            ? 0
+            : workloadSignal.getRowCount().intValue();
+        long latencyBiasFromWorkload = Math.max(0L, workloadElapsedMs / 8L);
+        long rowBias = Math.max(0L, workloadRowCount);
 
         BigDecimal targetQps = new BigDecimal("120");
         BigDecimal actualQps = decimal(
             160L - (complexity * 3L) - datasetWeight - taskQpsPenalty - enginePenalty + concurrencyWeight - tokenBias
+                - Math.max(0L, workloadElapsedMs / 18L) + Math.min(6L, rowBias)
         );
-        BigDecimal p50LatencyMs = decimal(14L + (complexity * 2L) + datasetWeight + taskLatencyBias + (enginePenalty / 2L));
+        BigDecimal p50LatencyMs = decimal(
+            14L + (complexity * 2L) + datasetWeight + taskLatencyBias + (enginePenalty / 2L) + latencyBiasFromWorkload
+        );
         BigDecimal p95LatencyMs = decimal(asLong(p50LatencyMs) + 18L + complexity + (enginePenalty / 2L) + tokenBias);
         BigDecimal p99LatencyMs = decimal(asLong(p95LatencyMs) + 16L + (taskLatencyBias / 2L) + (enginePenalty / 2L) + tokenBias);
-        BigDecimal cpuUsagePercent = decimal(26L + (complexity * 2L) + concurrencyWeight + taskCpuBias + (enginePenalty / 2L));
-        BigDecimal memoryUsageMb = decimal(256L + (datasetWeight * 48L) + (complexity * 12L) + (enginePenalty * 8L));
+        BigDecimal cpuUsagePercent = decimal(
+            26L + (complexity * 2L) + concurrencyWeight + taskCpuBias + (enginePenalty / 2L) + Math.max(0L, workloadElapsedMs / 24L)
+        );
+        BigDecimal memoryUsageMb = decimal(
+            256L + (datasetWeight * 48L) + (complexity * 12L) + (enginePenalty * 8L) + Math.max(0L, workloadRowCount * 2L)
+        );
+        long syntheticScannedDataBytes =
+            ((long) (datasetWeight + complexity + 1L) * 33554432L) + ((long) enginePenalty * 4194304L) + (sampleCount * 1024L);
         BigDecimal scannedDataBytes = decimal(
-            ((long) (datasetWeight + complexity + 1L) * 33554432L) + ((long) enginePenalty * 4194304L) + (sampleCount * 1024L)
+            Math.max(syntheticScannedDataBytes, workloadScannedRows <= 0L ? 0L : workloadScannedRows * 4096L)
         );
         BenchmarkThresholdVerdict verdict = deriveVerdict(task, actualQps, p99LatencyMs, cpuUsagePercent, targetQps);
         return new EngineExecutionSnapshot(
@@ -167,7 +230,7 @@ public class BenchmarkIsolatedExecutionService {
                 memoryUsageMb,
                 scannedDataBytes,
                 verdict,
-                buildEngineNote(task, engine, sampleCount, executionDurationMs, workloadDigest)
+                buildEngineNote(task, engine, sampleCount, executionDurationMs, workloadDigest, workloadSignal)
             ),
             executionDurationMs
         );
@@ -196,30 +259,106 @@ public class BenchmarkIsolatedExecutionService {
                                          int concurrencyWeight,
                                          List<DataSourceTypeEnum> targetEngines,
                                          long totalDurationMs,
-                                         String workloadDigest) {
-        return Arrays.asList(
-            "executionMode=" + EXECUTION_MODE,
-            "isolation=" + ISOLATION_SUMMARY,
-            "taskType=" + task.getTaskType().name(),
-            "targetEngines=" + targetEngines,
-            "sqlComplexity=" + complexity,
-            "datasetWeight=" + datasetWeight,
-            "concurrencyWeight=" + concurrencyWeight,
-            "workloadDigest=" + workloadDigest,
-            "executionDurationMs=" + totalDurationMs
-        );
+                                         String workloadDigest,
+                                         WorkloadOrchestration workloadOrchestration) {
+        List<String> notes = new ArrayList<String>();
+        notes.add("executionMode=" + workloadOrchestration.getExecutionMode());
+        notes.add("isolation=" + workloadOrchestration.getIsolationSummary());
+        notes.add("taskType=" + task.getTaskType().name());
+        notes.add("targetEngines=" + targetEngines);
+        notes.add("sqlComplexity=" + complexity);
+        notes.add("datasetWeight=" + datasetWeight);
+        notes.add("concurrencyWeight=" + concurrencyWeight);
+        notes.add("workloadDigest=" + workloadDigest);
+        notes.add("executionDurationMs=" + totalDurationMs);
+        notes.add("workloadSource=" + workloadOrchestration.getWorkloadSource());
+        notes.add("backfillApplied=" + workloadOrchestration.isBackfillApplied());
+        notes.addAll(workloadOrchestration.getEvidenceNotes());
+        return Collections.unmodifiableList(notes);
     }
 
     private String buildEngineNote(BenchmarkTask task,
                                    DataSourceTypeEnum engine,
                                    int sampleCount,
                                    long executionDurationMs,
-                                   String workloadDigest) {
+                                   String workloadDigest,
+                                   WorkloadSignal workloadSignal) {
+        String workloadEvidence = workloadSignal == null
+            ? "source=SYNTHETIC_ONLY"
+            : "source=" + workloadSignal.getWorkloadSource()
+                + ", mode=" + workloadSignal.getExecutionMode()
+                + ", digest=" + workloadSignal.getWorkloadDigest();
         return "Isolated " + task.getTaskType().name().toLowerCase(Locale.ROOT)
             + " replay for " + engine.name()
             + " with " + sampleCount
             + " samples, durationMs=" + executionDurationMs
-            + ", digest=" + workloadDigest;
+            + ", digest=" + workloadDigest
+            + ", workload=" + workloadEvidence;
+    }
+
+    private WorkloadOrchestration resolveWorkloadOrchestration(BenchmarkTask task,
+                                                               List<DataSourceTypeEnum> targetEngines,
+                                                               String syntheticWorkloadDigest) {
+        try {
+            QueryExecutionBenchmarkWorkloadResponse response = queryExecutionBenchmarkWorkloadClient.captureWorkload(
+                buildWorkloadRequest(task, targetEngines)
+            );
+            if (response == null || response.getEngineSnapshots() == null || response.getEngineSnapshots().isEmpty()) {
+                return WorkloadOrchestration.syntheticOnly(syntheticWorkloadDigest, "workloadOrchestration=EMPTY_RESPONSE");
+            }
+            Map<DataSourceTypeEnum, WorkloadSignal> signals = new LinkedHashMap<DataSourceTypeEnum, WorkloadSignal>();
+            List<String> evidenceNotes = new ArrayList<String>(response.getEngineSnapshots().size() + 2);
+            evidenceNotes.add("queryExecutionWorkloadSource=" + response.getWorkloadSource());
+            evidenceNotes.add("queryExecutionImplementationStage=" + response.getImplementationStage());
+            for (QueryExecutionBenchmarkWorkloadEngineSnapshot snapshot : response.getEngineSnapshots()) {
+                if (snapshot == null || snapshot.getTargetEngine() == null) {
+                    continue;
+                }
+                WorkloadSignal signal = WorkloadSignal.from(snapshot);
+                signals.put(snapshot.getTargetEngine(), signal);
+                evidenceNotes.add(
+                    "queryExecution[" + snapshot.getTargetEngine().name() + "]="
+                        + signal.getWorkloadSource()
+                        + ",mode=" + signal.getExecutionMode()
+                        + ",elapsedMs=" + signal.getElapsedMs()
+                        + ",scannedRows=" + signal.getScannedRows()
+                );
+            }
+            if (signals.isEmpty()) {
+                return WorkloadOrchestration.syntheticOnly(syntheticWorkloadDigest, "workloadOrchestration=NO_VALID_ENGINE_SNAPSHOTS");
+            }
+            return new WorkloadOrchestration(
+                StringUtils.hasText(response.getWorkloadDigest()) ? response.getWorkloadDigest() : syntheticWorkloadDigest,
+                response.isBackfillApplied(),
+                StringUtils.hasText(response.getWorkloadSource()) ? response.getWorkloadSource() : "QUERY_EXECUTION_SYNC",
+                EXECUTION_MODE_ORCHESTRATED,
+                ISOLATION_SUMMARY_ORCHESTRATED,
+                signals,
+                evidenceNotes
+            );
+        } catch (RuntimeException ex) {
+            return WorkloadOrchestration.syntheticOnly(
+                syntheticWorkloadDigest,
+                "workloadOrchestration=FAILED,reason=" + trimReason(ex.getMessage())
+            );
+        }
+    }
+
+    private QueryExecutionBenchmarkWorkloadRequest buildWorkloadRequest(BenchmarkTask task,
+                                                                        List<DataSourceTypeEnum> targetEngines) {
+        QueryExecutionBenchmarkWorkloadRequest request = new QueryExecutionBenchmarkWorkloadRequest();
+        request.setTenantId(task.getTenantId());
+        request.setBenchmarkTaskId(task.getTaskId());
+        request.setBenchmarkTaskType(task.getTaskType().name());
+        request.setSqlText(task.getSqlText());
+        request.setSqlFingerprint(task.getSqlFingerprint());
+        request.setTargetEngines(targetEngines);
+        request.setConcurrency(task.getConcurrency());
+        request.setDurationSeconds(task.getDurationSeconds());
+        request.setRampUpSeconds(task.getRampUpSeconds());
+        request.setDatasetSizeLabel(task.getDatasetSizeLabel());
+        request.setReadonlyRequired(task.getReadonlyRequired());
+        return request;
     }
 
     private int normalizeSampleCount() {
@@ -334,6 +473,14 @@ public class BenchmarkIsolatedExecutionService {
         }
     }
 
+    private String trimReason(String reason) {
+        if (!StringUtils.hasText(reason)) {
+            return "unavailable";
+        }
+        String trimmed = reason.replace('\n', ' ').replace('\r', ' ').trim();
+        return trimmed.length() > 160 ? trimmed.substring(0, 160) : trimmed;
+    }
+
     private BigDecimal decimal(long value) {
         return new BigDecimal(String.valueOf(Math.max(1L, value)));
     }
@@ -406,6 +553,132 @@ public class BenchmarkIsolatedExecutionService {
 
         private long getExecutionDurationMs() {
             return executionDurationMs;
+        }
+    }
+
+    private static final class WorkloadOrchestration {
+
+        private final String workloadDigest;
+        private final boolean backfillApplied;
+        private final String workloadSource;
+        private final String executionMode;
+        private final String isolationSummary;
+        private final Map<DataSourceTypeEnum, WorkloadSignal> signals;
+        private final List<String> evidenceNotes;
+
+        private WorkloadOrchestration(String workloadDigest,
+                                      boolean backfillApplied,
+                                      String workloadSource,
+                                      String executionMode,
+                                      String isolationSummary,
+                                      Map<DataSourceTypeEnum, WorkloadSignal> signals,
+                                      List<String> evidenceNotes) {
+            this.workloadDigest = workloadDigest;
+            this.backfillApplied = backfillApplied;
+            this.workloadSource = workloadSource;
+            this.executionMode = executionMode;
+            this.isolationSummary = isolationSummary;
+            this.signals = signals == null ? Collections.<DataSourceTypeEnum, WorkloadSignal>emptyMap() : signals;
+            this.evidenceNotes = evidenceNotes == null ? Collections.<String>emptyList() : evidenceNotes;
+        }
+
+        private static WorkloadOrchestration syntheticOnly(String workloadDigest, String evidenceNote) {
+            return new WorkloadOrchestration(
+                workloadDigest,
+                true,
+                "SYNTHETIC_ONLY",
+                EXECUTION_MODE_ISOLATED,
+                ISOLATION_SUMMARY_ISOLATED,
+                Collections.<DataSourceTypeEnum, WorkloadSignal>emptyMap(),
+                Collections.singletonList(evidenceNote)
+            );
+        }
+
+        private String getWorkloadDigest() {
+            return workloadDigest;
+        }
+
+        private boolean isBackfillApplied() {
+            return backfillApplied;
+        }
+
+        private String getWorkloadSource() {
+            return workloadSource;
+        }
+
+        private String getExecutionMode() {
+            return executionMode;
+        }
+
+        private String getIsolationSummary() {
+            return isolationSummary;
+        }
+
+        private List<String> getEvidenceNotes() {
+            return evidenceNotes;
+        }
+
+        private WorkloadSignal findSignal(DataSourceTypeEnum engine) {
+            return signals.get(engine);
+        }
+    }
+
+    private static final class WorkloadSignal {
+
+        private final String workloadSource;
+        private final String executionMode;
+        private final String workloadDigest;
+        private final Long elapsedMs;
+        private final Long scannedRows;
+        private final Integer rowCount;
+
+        private WorkloadSignal(String workloadSource,
+                               String executionMode,
+                               String workloadDigest,
+                               Long elapsedMs,
+                               Long scannedRows,
+                               Integer rowCount) {
+            this.workloadSource = workloadSource;
+            this.executionMode = executionMode;
+            this.workloadDigest = workloadDigest;
+            this.elapsedMs = elapsedMs;
+            this.scannedRows = scannedRows;
+            this.rowCount = rowCount;
+        }
+
+        private static WorkloadSignal from(QueryExecutionBenchmarkWorkloadEngineSnapshot snapshot) {
+            return new WorkloadSignal(
+                snapshot.getWorkloadSource(),
+                snapshot.getExecutionMode(),
+                snapshot.getWorkloadDigest(),
+                snapshot.getElapsedMs(),
+                snapshot.getScannedRows(),
+                snapshot.getRowCount()
+            );
+        }
+
+        private String getWorkloadSource() {
+            return workloadSource;
+        }
+
+        private String getExecutionMode() {
+            return executionMode;
+        }
+
+        private String getWorkloadDigest() {
+            return workloadDigest;
+        }
+
+        private Long getElapsedMs() {
+            return elapsedMs;
+        }
+
+        private Long getScannedRows() {
+            return scannedRows;
+        }
+
+        private Integer getRowCount() {
+            return rowCount;
         }
     }
 }

@@ -70,6 +70,7 @@ public class BenchmarkArtifactStorageProperties {
         private String bucket = "";
         private String keyPrefix = "benchmark-engine-artifacts";
         private String mirrorDir = "target/benchmark-engine-artifacts/object-storage-mirror";
+        private String liveEvidenceDir = "target/benchmark-engine-artifacts/object-storage-live-evidence";
         private String endpointEnvName = "BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT";
         private String bucketEnvName = "BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET";
         private String credentialsEnvName = "BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS";
@@ -96,6 +97,14 @@ public class BenchmarkArtifactStorageProperties {
 
         public void setMirrorDir(String mirrorDir) {
             this.mirrorDir = mirrorDir;
+        }
+
+        public String getLiveEvidenceDir() {
+            return liveEvidenceDir;
+        }
+
+        public void setLiveEvidenceDir(String liveEvidenceDir) {
+            this.liveEvidenceDir = liveEvidenceDir;
         }
 
         public String getEndpointEnvName() {

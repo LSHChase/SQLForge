@@ -2,6 +2,7 @@ package com.company.benchmarkengine.application.service;
 
 import com.company.benchmarkengine.config.BenchmarkArtifactStorageProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
+import com.company.sqlforge.common.utils.JsonUtils;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -10,6 +11,8 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 
@@ -44,10 +47,11 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             );
             BenchmarkArtifactTenantPolicy tenantPolicy = context.getTenantPolicy();
             String objectUri = buildObjectUri(context, artifact);
+            LiveEvidenceManifest liveEvidenceManifest = writeLiveEvidence(context, artifact, objectUri, artifactPath);
             return artifact.externalized(
                 storageType(),
                 objectUri,
-                buildEvidence(objectUri, artifactPath),
+                buildEvidence(objectUri, artifactPath, liveEvidenceManifest),
                 tenantPolicy == null ? null : tenantPolicy.getRetentionDays(),
                 tenantPolicy == null ? null : tenantPolicy.getRetentionPolicySource(),
                 tenantPolicy == null ? null : tenantPolicy.getRetentionDeleteAfter()
@@ -107,13 +111,59 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         return "env-obj://" + effectiveBucket + "/" + key.toString();
     }
 
-    private String buildEvidence(String objectUri, Path mirrorPath) {
+    private String buildEvidence(String objectUri, Path mirrorPath, LiveEvidenceManifest liveEvidenceManifest) {
         return "objectUri=" + objectUri
             + ";mirrorPath=" + mirrorPath.toAbsolutePath().normalize()
             + ";endpointEnv=" + storageProperties.getEnvironmentObjectStorage().getEndpointEnvName()
             + ";bucketEnv=" + storageProperties.getEnvironmentObjectStorage().getBucketEnvName()
             + ";credentialsEnv=" + storageProperties.getEnvironmentObjectStorage().getCredentialsEnvName()
-            + ";mode=repo-local-mirror";
+            + ";mode=repo-local-mirror"
+            + ";liveEvidencePath=" + liveEvidenceManifest.getManifestPath()
+            + ";liveEvidenceStatus=" + liveEvidenceManifest.getEvidenceStatus();
+    }
+
+    private LiveEvidenceManifest writeLiveEvidence(BenchmarkArtifactStorageContext context,
+                                                   BenchmarkReportArtifact artifact,
+                                                   String objectUri,
+                                                   Path mirrorPath) throws IOException {
+        Path reportDir = Paths.get(storageProperties.getEnvironmentObjectStorage().getLiveEvidenceDir())
+            .toAbsolutePath()
+            .normalize()
+            .resolve(context.getReportId());
+        Files.createDirectories(reportDir);
+        Path manifestPath = reportDir.resolve(artifact.getArtifactKey() + ".json");
+        String configuredBucket = storageProperties.getEnvironmentObjectStorage().getBucket();
+        String envBucket = System.getenv(storageProperties.getEnvironmentObjectStorage().getBucketEnvName());
+        String endpoint = System.getenv(storageProperties.getEnvironmentObjectStorage().getEndpointEnvName());
+        String credentials = System.getenv(storageProperties.getEnvironmentObjectStorage().getCredentialsEnvName());
+        String effectiveBucket = StringUtils.hasText(configuredBucket) ? configuredBucket : envBucket;
+        String evidenceStatus = StringUtils.hasText(endpoint) && StringUtils.hasText(effectiveBucket)
+            ? "LIVE_ENVIRONMENT_CONFIG_CAPTURED"
+            : "ENVIRONMENT_CONFIG_PENDING";
+        Map<String, Object> manifest = new LinkedHashMap<String, Object>();
+        manifest.put("storageType", storageType());
+        manifest.put("reportId", context.getReportId());
+        manifest.put("tenantId", context.getTenantId());
+        manifest.put("artifactKey", artifact.getArtifactKey());
+        manifest.put("fileName", artifact.getFileName());
+        manifest.put("objectUri", objectUri);
+        manifest.put("mirrorPath", mirrorPath.toAbsolutePath().normalize().toString());
+        manifest.put("evidenceStatus", evidenceStatus);
+        manifest.put("resolvedEndpoint", endpoint);
+        manifest.put("resolvedBucket", effectiveBucket);
+        manifest.put("credentialsPresent", Boolean.valueOf(StringUtils.hasText(credentials)));
+        manifest.put("endpointEnvName", storageProperties.getEnvironmentObjectStorage().getEndpointEnvName());
+        manifest.put("bucketEnvName", storageProperties.getEnvironmentObjectStorage().getBucketEnvName());
+        manifest.put("credentialsEnvName", storageProperties.getEnvironmentObjectStorage().getCredentialsEnvName());
+        manifest.put("generatedAt", context.getGeneratedAt() == null ? null : context.getGeneratedAt().toString());
+        Files.write(
+            manifestPath,
+            JsonUtils.toJson(manifest).getBytes(StandardCharsets.UTF_8),
+            StandardOpenOption.CREATE,
+            StandardOpenOption.TRUNCATE_EXISTING,
+            StandardOpenOption.WRITE
+        );
+        return new LiveEvidenceManifest(manifestPath.toAbsolutePath().normalize(), evidenceStatus);
     }
 
     private Path resolveMirrorPath(BenchmarkReportArtifact artifact) {
@@ -141,5 +191,24 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             normalized = normalized.substring(0, normalized.length() - 1);
         }
         return normalized;
+    }
+
+    private static final class LiveEvidenceManifest {
+
+        private final Path manifestPath;
+        private final String evidenceStatus;
+
+        private LiveEvidenceManifest(Path manifestPath, String evidenceStatus) {
+            this.manifestPath = manifestPath;
+            this.evidenceStatus = evidenceStatus;
+        }
+
+        private String getManifestPath() {
+            return manifestPath.toString();
+        }
+
+        private String getEvidenceStatus() {
+            return evidenceStatus;
+        }
     }
 }
