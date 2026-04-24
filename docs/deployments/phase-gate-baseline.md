@@ -48,6 +48,7 @@
 
 1. `repo-closed`
    - 以仓库内可证明、可复跑的 build/test/lint、coverage、db-script、runtime smoke、knowledge lint、task audit、compliance baseline 为主路径。
+   - 前端轻量 `npm run smoke:frontend-dev` 只属于本地开发回归基线，不属于默认 phase/release runtime gate 主路径。
    - 这是当前 closeout 与主线发布默认依赖的门禁层。
 2. `environment-backed`
   - 包括 Sonar、真实 Kafka gate、外部测试环境 CI/CD 及其部署后 minimal smoke 等依赖外部环境或额外 provisioning 的增强项。
@@ -70,6 +71,7 @@
 3. `R-118` 渐进等保门禁：`--gate compliance` 或 `--gate full`
 4. Sonar fallback：仅在显式要求 `require_sonar=true` 或直接传 `--require-sonar` 时启用
 5. 真实 Kafka fallback：仅在显式要求 `run_real_kafka_gate=true` 或直接传 `--run-real-kafka-gate` 时启用
+6. 前端轻量 `npm run smoke:frontend-dev` 不进入 `Phase Gate` 或 `Release Phase Gate` 的默认 browser runtime gate；前端默认门禁继续以 full-stack `npm run smoke:frontend-runtime` 所属链路为准
 
 设计原因：
 

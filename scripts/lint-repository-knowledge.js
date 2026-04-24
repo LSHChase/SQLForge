@@ -419,6 +419,86 @@ function ensureCoverageMatrixCompleteness(errors, checks) {
   checks.push(`document-coverage-matrix.md completeness ok (${docsFiles.length} docs files)`)
 }
 
+function ensureFrontendDevSmokeBoundary(errors, checks) {
+  const localDevPath = 'docs/operations/local-development.md'
+  const ciBaselinePath = 'docs/deployments/ci-capability-baseline.md'
+  const phaseGatePath = 'docs/deployments/phase-gate-baseline.md'
+  const packageJsonPath = 'package.json'
+  const forbiddenWiringPaths = [
+    '.github/workflows/ci.yml',
+    '.github/workflows/phase-gate.yml',
+    '.github/workflows/release-phase-gate.yml',
+    'scripts/run-runtime-smoke.sh',
+    'scripts/run-phase-gates.sh'
+  ]
+
+  const missingFiles = [localDevPath, ciBaselinePath, phaseGatePath, packageJsonPath].filter(item => !pathExists(item))
+  if (missingFiles.length > 0) {
+    errors.push(`Frontend dev smoke boundary files missing:\n- ${missingFiles.join('\n- ')}`)
+    return
+  }
+
+  const packageJson = readFile(packageJsonPath)
+  if (!packageJson.includes('"smoke:frontend-dev"')) {
+    errors.push(`package.json missing smoke:frontend-dev script`)
+    return
+  }
+
+  const localDevContent = readFile(localDevPath)
+  const localDevMarkers = [
+    'npm run smoke:frontend-dev',
+    '本地 `repo-closed`',
+    '不替代 `npm run smoke:frontend-runtime`',
+    '不得被提升为默认 CI'
+  ]
+  const missingLocalDevMarkers = localDevMarkers.filter(marker => !localDevContent.includes(marker))
+  if (missingLocalDevMarkers.length > 0) {
+    errors.push(`docs/operations/local-development.md missing frontend dev smoke boundary markers:\n- ${missingLocalDevMarkers.join('\n- ')}`)
+    return
+  }
+
+  const ciBaselineContent = readFile(ciBaselinePath)
+  const ciMarkers = [
+    'Frontend dev browser smoke | Not in CI by design',
+    '只作为本地 `repo-closed` 开发回归基线',
+    '不属于默认 CI/browser runtime gate'
+  ]
+  const missingCiMarkers = ciMarkers.filter(marker => !ciBaselineContent.includes(marker))
+  if (missingCiMarkers.length > 0) {
+    errors.push(`docs/deployments/ci-capability-baseline.md missing frontend dev smoke CI-boundary markers:\n- ${missingCiMarkers.join('\n- ')}`)
+    return
+  }
+
+  const phaseGateContent = readFile(phaseGatePath)
+  const phaseGateMarkers = [
+    'npm run smoke:frontend-dev',
+    '不属于默认 phase/release runtime gate 主路径',
+    '不进入 `Phase Gate` 或 `Release Phase Gate` 的默认 browser runtime gate'
+  ]
+  const missingPhaseGateMarkers = phaseGateMarkers.filter(marker => !phaseGateContent.includes(marker))
+  if (missingPhaseGateMarkers.length > 0) {
+    errors.push(`docs/deployments/phase-gate-baseline.md missing frontend dev smoke gate-boundary markers:\n- ${missingPhaseGateMarkers.join('\n- ')}`)
+    return
+  }
+
+  const forbiddenHits = []
+  forbiddenWiringPaths.forEach(relativePath => {
+    if (!pathExists(relativePath)) {
+      return
+    }
+    const content = readFile(relativePath)
+    if (content.includes('smoke:frontend-dev') || content.includes('check-dev-frontend.mjs')) {
+      forbiddenHits.push(relativePath)
+    }
+  })
+  if (forbiddenHits.length > 0) {
+    errors.push(`Frontend dev smoke must remain local-only, but these runtime/CI entrypoints reference it:\n- ${forbiddenHits.join('\n- ')}`)
+    return
+  }
+
+  checks.push('frontend dev smoke boundary ok (docs and gate wiring keep it local-only)')
+}
+
 function main() {
   const errors = []
   const checks = []
@@ -435,6 +515,7 @@ function main() {
   ensureMessagingModeConfig(errors, checks)
   ensureMessagingSchema(errors, checks)
   ensureCoverageMatrixCompleteness(errors, checks)
+  ensureFrontendDevSmokeBoundary(errors, checks)
 
   if (errors.length > 0) {
     console.error('Repository knowledge lint failed:\n')

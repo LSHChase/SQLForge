@@ -72,6 +72,7 @@
 | Frontend-backend separation | Enabled | `node scripts/check-frontend-backend-separation.js` | 已纳入 CI |
 | Frontend lint | Enabled | `npm run lint` | 与 `npm install` 同步执行 |
 | Frontend build | Enabled | `npm run build` | 与 `npm install` 同步执行 |
+| Frontend dev browser smoke | Not in CI by design | `npm run smoke:frontend-dev` | 当前只作为本地 `repo-closed` 开发回归基线；不得替代 `npm run smoke:frontend-runtime` 或被提升为默认 CI/runtime gate |
 | Repository knowledge lint | Enabled | `node scripts/lint-repository-knowledge.js` | 已作为仓库级文档门禁 |
 | Task audit | Enabled | `python3 scripts/task_audit.py --check` | 已进入主 CI |
 | Governance compile drift check | Enabled | `python3 scripts/foreman.py compile-governance --check` | 已进入主 CI |
@@ -86,6 +87,7 @@
 | Phase gate coverage thresholds | `bash scripts/run-coverage.sh --phase phase0|phase1plus` | workflow 只调用了 `report-only`，未启用阈值阻断 |
 | Foreman task validation | `python3 scripts/foreman.py validate <TASK_ID>` | 当前 workflow 仍未做任务级 validate 编排 |
 | Codex runtime validation | `python3 scripts/validate_codex_runtime.py` | 当前 workflow 未调用 |
+| Frontend dev browser smoke | `npm run smoke:frontend-dev` | 该入口被刻意保留为本地 `repo-closed` 开发回归基线，不属于默认 CI/browser runtime gate 覆盖 |
 | Test-environment minimal smoke | `bash scripts/run-env-smoke.sh` | 供外部测试环境独立 CI/CD 在部署后调用；当前仓库内 GitHub Actions 未直接触发 |
 ## Current Gaps
 
@@ -96,9 +98,10 @@
 3. `phase1plus` 聚合覆盖率已提升到 `86.9763%`，`Release Phase Gate` 与 `Phase Gate` 的 coverage blocker 已从“真实阻断项”转为“已达标门禁项”。
 4. Sonar 已降为“仓库保留接线、外部 provisioning + 显式 enable 可恢复”的 fallback 项；缺少 `SONAR_HOST_URL` / `SONAR_TOKEN` 不再构成仓库默认发布阻断，且仅 provisioning 不会自动把 Sonar 升回主线阻断；若显式要求 `--require-config` 仍会失败并留下恢复证据。
 5. 默认 browser runtime smoke 已覆盖前端 `sql-query`、`acceleration`、`benchmark`、`system` 与治理历史/修复链路的真实业务请求、失败恢复、审计补偿可视化与修复动作；剩余缺口已收敛为更多历史/取证页面尚未进入默认浏览器 smoke。
-6. 真实 Kafka gate 已可运行，但仍依赖 runner 具备 Docker 资源、compose 拉镜像权限与可用端口，因此被保留为 environment-backed fallback，而不是 repo-closed 默认门禁。
-7. 仓库已新增环境无关的 `bash scripts/run-env-smoke.sh` 作为测试环境 minimal smoke 入口，但外部测试环境 CI/CD 仍需由独立 owner 显式接入并保留执行证据；在此之前，测试环境仍不能被视为完整替代仓库闭环门禁。
-8. 当前 workflow 继续使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
+6. `npm run smoke:frontend-dev` 当前被明确保留为本地 `repo-closed` 开发基线，不属于默认 CI/browser runtime gate，也不应被后续任务无确认地提升为 release/phase gate 入口。
+7. 真实 Kafka gate 已可运行，但仍依赖 runner 具备 Docker 资源、compose 拉镜像权限与可用端口，因此被保留为 environment-backed fallback，而不是 repo-closed 默认门禁。
+8. 仓库已新增环境无关的 `bash scripts/run-env-smoke.sh` 作为测试环境 minimal smoke 入口，但外部测试环境 CI/CD 仍需由独立 owner 显式接入并保留执行证据；在此之前，测试环境仍不能被视为完整替代仓库闭环门禁。
+9. 当前 workflow 继续使用 `npm install`，尚未固化成更严格的缓存/锁文件策略说明。
 
 ## Recommended Follow-Up Mapping
 

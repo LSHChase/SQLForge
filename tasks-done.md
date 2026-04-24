@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-016: 固化 dev browser smoke 的 local repo-closed 基线语义
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `fix(frontend): lock dev smoke to local baseline`
+- Priority: 1
+- Depends on: `E-TASK-015`
+- Scope: 明确 Vite dev browser smoke 只作为本地 repo-closed 开发验证基线，不把它升级到更广的 CI/runtime gating，并同步后续计划/操作文档保持 full-stack runtime smoke 作为多服务主路径 Tech: `VUE-FE`,`OPS`,`DOCS`. Layer: `frontend/router/views/styles`,`deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-E / Story `E-STORY-005` 前端构建链迁移与便携产物治理
+- Human confirmation point: 若把 dev browser smoke 从当前 local repo-closed 基线升级为默认 CI/runtime gate、削弱现有 full-stack runtime smoke 主路径，或通过该任务改写 `E-TASK-015` 的历史完成结论，需人工确认
+- Data impact: dev browser smoke 的边界定义、前端验证语义、CI/runtime gating 叙事与文档表述
+- Rollback / recovery: 保留 `E-TASK-015` 已验证的 local dev smoke 基线，回退高风险边界/脚本/文档改动，并恢复 full-stack runtime smoke 作为多服务主路径的既有真值
+- Validation:
+  - `npm run lint`、`npm run build`、`npm run build:portable`、`node scripts/check-dev-frontend.mjs`、`node scripts/lint-repository-knowledge.js`、task audit
+  - `python3 scripts/foreman.py validate E-TASK-016`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reinforced the frontend dev browser smoke boundary so it remains a local repo-closed baseline only, updated local-development and CI/phase-gate baseline docs to keep full-stack runtime smoke as the multi-service main path, and added repository knowledge-lint checks that fail if smoke:frontend-dev or check-dev-frontend.mjs is wired into default CI/runtime gate entrypoints.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-016 --include-task-audit --extra-command "npm run lint" --extra-command "npm run build" --extra-command "npm run build:portable" --extra-command "node scripts/check-dev-frontend.mjs" --extra-command "node scripts/lint-repository-knowledge.js"; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The local-only dev smoke boundary is now documented and lint-enforced, but the next business-facing frontend or CI task could still attempt to widen that boundary; HARN-016 and INBOX-001 remain unrelated environment-backed follow-ups, and any future promotion of dev smoke into broader gating still requires explicit human confirmation.
+  - Next step: Before implementing the next business-facing task, instantiate it explicitly and verify its contract, authority docs, validation path, and task-matrix/governance fields are complete; if the next task touches CI/runtime semantics, preserve full-stack runtime smoke as the default main path unless a new confirmed task changes that boundary.
+
 ### HARN-022: Shape E-TASK-016 from E-TASK-015 residual risk
 
 - Status: done
