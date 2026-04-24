@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-019: Reconcile E-TASK-011/E-TASK-012 post-closeout drift
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `fix(governance): reconcile frontend post-closeout drift`
+- Priority: 1
+- Depends on: E-TASK-012
+- Scope: Align current active wave, task matrices, INBOX/ledger truth, and validation-log closeout residue after E-TASK-011 and E-TASK-012 completion; decide whether the remaining frontend residual risk becomes the next repo-side hardening task without changing business code or environment-backed follow-up semantics.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-019`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: aligned the current active wave away from the stale Phase-D pointer, backfilled `E-TASK-010` through `E-TASK-012` into the Phase-E plan/matrices, and shaped the remaining portable browser-smoke plus bundle-warning residual risk into the next repo-closed frontend hardening follow-up `E-TASK-013`.
+- Context closeout:
+  - Completed scope: Aligned the current active wave away from the stale Phase-D pointer, backfilled E-TASK-010 through E-TASK-012 into the Phase-E master plan and both task matrices, and converted the remaining portable browser-smoke plus bundle-warning residual risk into the next repo-closed frontend hardening follow-up E-TASK-013 while absorbing the append-only validation-log tail into the governed batch.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-019 --include-task-audit --extra-command "python3 scripts/foreman.py compile-governance --check" --extra-command "node scripts/lint-repository-knowledge.js"; python3 scripts/task_audit.py --check --phase pre-closeout; npm run build (confirmed current Vite large-chunk warning remains as E-TASK-013 input)
+  - Residual risk: The repository plan and matrices are now back in sync, but E-TASK-013 is not yet instantiated, so the portable package still lacks dedicated browser smoke coverage and the production build still emits Vite's large-chunk warning; HARN-016 and INBOX-001 also remain unchanged environment-backed follow-ups.
+  - Next step: Instantiate E-TASK-013 if frontend hardening continues so the portable package gains browser-level smoke coverage and the current chunk warning is reduced without reintroducing the Vue SFC toolchain.
+
 ### E-TASK-012: 修复前端非 SFC 迁移后的布局回归
 
 - Status: done

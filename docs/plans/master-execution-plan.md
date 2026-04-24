@@ -107,13 +107,17 @@
 
 ## 4.1 Current Active Wave
 
-- 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：`无已实例化的 repo-side mainline task`；`D-TASK-020` 已完成，仓库当前已把 4 个后端服务的最小业务级 Micrometer 指标基线收口到 repo-closed 主路径。
+- 当前运行波次：`Phase-E / E-STORY-005`
+- 当前活跃目标：`无已实例化的 repo-side mainline task`；`E-TASK-012` 已完成，仓库当前已把根级前端从 Vue SFC 构建链迁移到非 `.vue` 方案，并补齐标准构建与 `dist-portable/` 便携前端包基线。
 - 当前下一条可执行主线任务：
-  - `待下一条受治理任务实例化；当前只保留 environment-backed / blocked follow-up`
+  - `E-TASK-013`：补齐 portable 前端浏览器 smoke 并收口构建分包告警
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
-  - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成归档。
+  - `E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成业务页骨架、治理接口接入与设计系统基线；`E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-009` 已补齐临时 AI 交付页与生产隐藏语义。
+  - `E-TASK-010` 已收敛根级前端 Node/Vite/Vue 版本并核对 Vue SFC 构建约束，把 `@vitejs/plugin-vue` / `@vue/compiler-sfc` 的策略冲突真实回写到 `INBOX-003`，不再把架构迁移误写成单纯版本调整。
+  - `E-TASK-011` 已完成后续仓库主线：把根级前端迁移到非 `.vue` 组件方案、移除活动 SFC 构建链，并新增可复制到其他主机运行的 `dist-portable/` 双产物前端包与本地代理启动脚本。
+  - `E-TASK-012` 已修复非 SFC 迁移后的布局回归，恢复 Element Plus 壳层布局与设计 token 基线，同时保持 `@vitejs/plugin-vue` 和 `@vue/compiler-sfc` 不再回到仓库依赖图。
+  - `HARN-019` 只用于修正 `E-TASK-011`、`E-TASK-012` closeout 后遗留的 active-wave / task-matrix / validation-log 漂移，不改写两条前端任务的历史完成结论；同时把 residual risk 收口为新的 repo-closed follow-up `E-TASK-013`，而不是重新回到 `INBOX-003` 待决策状态。
   - `F-TASK-001`、`F-TASK-002`、`F-TASK-003` 已完成部署文档、compose/脚本说明、环境提醒与恢复指引的真值修正。
   - `F-TASK-015`、`F-TASK-016` 已完成 `sql-optimization` 与 `benchmark-engine` 的持久化 carrier / scheduler 主线；`F-TASK-017` 至 `F-TASK-028` 也已把 browser runtime gate、治理历史链路、真实 Kafka gate 与 Phase-F 退出门禁推进到当前仓库真值。
   - `F-TASK-029` 已把发布链自动触发、coverage 阻断语义与 Sonar-required 失败语义写成当时仓库真值；`F-TASK-030` 已把 `phase1plus` 聚合覆盖率提升到 `86.9763%`，并保留 Sonar / release gate 接线成果。
@@ -490,6 +494,20 @@ Tasks:
 | Task ID | Task | Scope | Dependencies | Verification |
 |:---|:---|:---|:---|:---|
 | `E-TASK-009` | 建立临时 AI 交付进度页路由与展示骨架 | `/delivery-progress`、只读展示、非生产隐藏 | `E-TASK-001`,`E-TASK-002`,`Phase-C` | `npm run build`、非生产路由可达、生产默认隐藏、展示源仅来自权威台账 |
+
+##### Story `E-STORY-005` 前端构建链迁移与便携产物治理
+
+- 目标：在不保留 Vue SFC 构建链的前提下，收口根级前端 toolchain、便携前端包与后续 portable hardening 主线。
+- 验证：toolchain 检查、`npm run lint`、`npm run build`、`npm run build:portable`、portable package 检查与关键路由 browser smoke 证据一致。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `E-TASK-010` | 收敛前端 Node/Vite/Vue 版本并核对 Vue SFC 构建约束 | 固定 Node/Vite/Vue 版本，核对 `@vitejs/plugin-vue` / `@vue/compiler-sfc` 约束是否可在当前仓库下移除，并把无法达成的架构约束真实写回治理链 | N/A | `npm run build`、toolchain/依赖核对、知识检查 |
+| `E-TASK-011` | 去除 Vue SFC 构建链并增加双产物便携前端包 | 把根级前端迁移到非 `.vue` 方案，移除活动 SFC 构建链，补齐标准构建与 `dist-portable/` 可复制运行产物 | `E-TASK-010` | `npm run lint`、`npm run build`、`npm run build:portable`、toolchain/portable 检查 |
+| `E-TASK-012` | 修复前端非 SFC 迁移后的布局回归 | 修复迁移后 Element Plus 壳层、设计 token 和代表性页面布局回归，不回退到 SFC 构建链 | `E-TASK-011` | `npm run lint`、`npm run build`、`npm run build:portable`、浏览器布局核验 |
+| `E-TASK-013` | 补齐 portable 前端浏览器 smoke 并收口构建分包告警 | 把 portable 包纳入关键路由浏览器验证，并收口当前 Vite 大 chunk 告警，不重新引入 `@vitejs/plugin-vue` / `@vue/compiler-sfc` | `E-TASK-012` | `npm run lint`、`npm run build`、`npm run build:portable`、portable browser smoke、分包告警收口 |
 
 ### Phase-F 部署、运维、生产就绪
 
