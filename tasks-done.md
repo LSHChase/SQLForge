@@ -4,6 +4,26 @@
 
 ## Done
 
+### E-TASK-012: 修复前端非 SFC 迁移后的布局回归
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `fix(frontend): restore Element Plus layout baseline`
+- Priority: 1
+- Depends on: E-TASK-011
+- Scope: Diagnose and fix the frontend layout regressions introduced by the non-SFC migration so the app restores its intended sidebar, header, dashboard, and route-level page layouts without reintroducing @vitejs/plugin-vue or @vue/compiler-sfc.
+- Validation:
+  - `python3 scripts/foreman.py validate E-TASK-012`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: reproduced the layout regression in a browser session and confirmed the non-SFC migration had restored `app.use(ElementPlus)` but not the Element Plus base stylesheet, causing `el-container` / `el-aside` / `el-header` layout primitives to collapse into default block flow.
+  - 2026-04-24: restored `element-plus/dist/index.css`, added the missing `--sqlforge-radius-xl` design token, and revalidated dashboard plus representative route layouts together with standard and portable frontend builds.
+- Context closeout:
+  - Completed scope: Reproduced the non-SFC layout regression, restored Element Plus base CSS so container primitives render with their intended flex layout again, added the missing radius token, and refreshed the portable frontend assets to match the fixed shell styling.
+  - Validation evidence: Validated with browser-based layout checks across representative routes, npm run lint, npm run build, npm run build:portable, node scripts/check-portable-frontend.mjs, and foreman validate including task_audit.
+  - Residual risk: Representative route layout is restored, but some pages still surface backend-driven 404/500 responses in the local dev environment and the production bundle remains larger than Vite's default chunk warning threshold.
+  - Next step: If frontend hardening continues, capture a small automated browser smoke for key routes and consider bundle splitting to reduce the large-entry warning.
+
 ### E-TASK-011: 去除 Vue SFC 构建链并增加双产物便携前端包
 
 - Status: done
