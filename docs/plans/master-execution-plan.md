@@ -107,10 +107,10 @@
 
 ## 4.1 Current Active Wave
 
-- 当前运行波次：`Governance reconciliation / HARN-021`
-- 当前活跃目标：`HARN-021`；收口 `E-TASK-015` closeout 后遗留的 active-wave 漂移，移除主计划仍指向已完成前端任务的陈旧指针，并把当前仓库真值显式写回为“是否存在已实例化 repo-side mainline task”。
+- 当前运行波次：`Phase-E / E-STORY-005`
+- 当前活跃目标：`E-TASK-016`；在 `E-TASK-015` 已补齐 Vite dev browser smoke 并完成当前 SFC 真值清理后，把 residual risk 收口为显式的 local repo-closed baseline 决策，不把该 smoke 升格为更广的 CI/runtime gating，并同步清理后续计划/操作语义。
 - 当前下一条可执行主线任务：
-  - 当前无已实例化 `repo-side mainline task`；`HARN-021` 只是治理收口批次，不代表新的业务/实现主线已经塑形或入场。
+  - `E-TASK-016`：固化 dev browser smoke 的 local repo-closed 基线语义，不把它升级为 broader CI/runtime gate，并保持现有 full-stack runtime smoke 作为多服务主路径。
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成业务页骨架、治理接口接入与设计系统基线；`E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-009` 已补齐临时 AI 交付页与生产隐藏语义。
@@ -121,7 +121,8 @@
   - `E-TASK-013` 已完成 portable 包关键路由浏览器 smoke、代理语义校验和 Vite 分包收口；`E-TASK-014` 则承接新的人工决策，把根级前端恢复到允许使用 `@vitejs/plugin-vue` / `@vue/compiler-sfc` 的 Vue SFC 架构，同时保留 `E-TASK-013` 已落地的 portable 与 chunk hardening 成果。
   - `HARN-020` 只用于修正 `E-TASK-014` closeout 后遗留的 active-wave / validation-log 漂移，并把 residual risk 与 next-step 收口为新的 repo-side follow-up `E-TASK-015`；它不改写 `E-TASK-014` 的历史完成结论，也不把 full-stack runtime smoke 或 external-environment follow-up 误写成当前前端主线。
   - `E-TASK-015` 已完成前端 dev browser smoke 与当前真值文档清理；它在完成前是 Phase-E 的前端主线，但 closeout 后不应继续被写成“当前活跃目标”或“下一条可执行主线任务”。
-  - `HARN-021` 已实例化为 `E-TASK-015` closeout 后的治理收口任务；该任务只修正计划真值与 active-wave 指针，不塑形新的 repo-side mainline，也不改变既有 frontend/runtime 或 environment-backed follow-up 语义。
+  - `HARN-021` 已完成 `E-TASK-015` closeout 后的治理收口，恢复了“当前没有已实例化 repo-side mainline task”的仓库真值，并吸收了该批次的 append-only validation-log residue。
+  - `HARN-022` 只用于在 `HARN-021` 之后承接新的人工决策：把 `E-TASK-015` 的 residual risk 塑形成新的 repo-side follow-up `E-TASK-016`，并明确 dev browser smoke 只保留为 local repo-closed baseline，不进入更广的 CI/runtime gating。
   - `F-TASK-001`、`F-TASK-002`、`F-TASK-003` 已完成部署文档、compose/脚本说明、环境提醒与恢复指引的真值修正。
   - `F-TASK-015`、`F-TASK-016` 已完成 `sql-optimization` 与 `benchmark-engine` 的持久化 carrier / scheduler 主线；`F-TASK-017` 至 `F-TASK-028` 也已把 browser runtime gate、治理历史链路、真实 Kafka gate 与 Phase-F 退出门禁推进到当前仓库真值。
   - `F-TASK-029` 已把发布链自动触发、coverage 阻断语义与 Sonar-required 失败语义写成当时仓库真值；`F-TASK-030` 已把 `phase1plus` 聚合覆盖率提升到 `86.9763%`，并保留 Sonar / release gate 接线成果。
@@ -134,7 +135,7 @@
   - `D-TASK-019` 已完成 `query-execution` 与 `governance` 的最小业务指标与执行遥测收口；其 closeout 后的 active-wave 漂移由 `HARN-017` 修正，不改写 `D-TASK-019` 的历史完成结论。
   - `D-TASK-020` 已完成 `sql-optimization` 与 `benchmark-engine` 的最小业务级 Micrometer 指标、异步任务终态信号与处理延迟观测收口；其 closeout 后的 active-wave 漂移由 `HARN-018` 修正，不改写 `D-TASK-020` 的历史完成结论。
   - `HARN-016` 已把外部 Win10 测试环境的 Hetu/MRS 实际联通与留证动作挂起到 `INBOX-002`；它继续是 blocked 的 environment-backed follow-up，不构成当前 repo-side mainline。
-  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不改变当前仓库真值：现阶段没有新的已实例化 repo-side mainline，只有 `HARN-021` 这个 active governance reconciliation batch。
+  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不改变当前仓库真值：当前下一条 repo-side mainline 已被塑形为 `E-TASK-016`，但尚未实例化，而 `HARN-016` / `INBOX-001` 仍只属于非主线的 environment-backed follow-up。
 
 ## 5. Traceability Matrix
 
@@ -514,6 +515,7 @@ Tasks:
 | `E-TASK-013` | 补齐 portable 前端浏览器 smoke 并收口构建分包告警 | 把 portable 包纳入关键路由浏览器验证，并收口当前 Vite 大 chunk 告警，不重新引入 `@vitejs/plugin-vue` / `@vue/compiler-sfc` | `E-TASK-012` | `npm run lint`、`npm run build`、`npm run build:portable`、portable browser smoke、分包告警收口 |
 | `E-TASK-014` | 恢复 Vue SFC 构建链并保留前端便携产物 | 在允许 `@vitejs/plugin-vue` / `@vue/compiler-sfc` 的前提下恢复根级前端 `.vue` 源文件与 SFC 构建链，同时保留现有 portable 包、浏览器 smoke 和分包优化结果 | `E-TASK-013` | `npm run lint`、`npm run build`、`npm run build:portable`、toolchain/portable/browser smoke 检查 |
 | `E-TASK-015` | 补齐前端 dev browser smoke 并清理 SFC 恢复后的当前叙事 | 为 Vite dev server 补齐轻量浏览器 smoke，并清理仍把 non-SFC 迁移表述成当前真值的计划/操作文档；保留现有 Vue SFC、portable 产物与 full-stack runtime smoke 语义 | `E-TASK-014` | `npm run lint`、`npm run build`、`npm run build:portable`、toolchain/portable/dev browser smoke 检查 |
+| `E-TASK-016` | 固化 dev browser smoke 的 local repo-closed 基线语义 | 明确 Vite dev browser smoke 只作为本地 repo-closed 开发验证基线存在，不把它升级为更广的 CI/runtime gating，并同步后续计划/操作文档对 full-stack runtime smoke 主路径的表述 | `E-TASK-015` | `npm run lint`、`npm run build`、`npm run build:portable`、`node scripts/check-dev-frontend.mjs`、knowledge/task audit 检查 |
 
 ### Phase-F 部署、运维、生产就绪
 

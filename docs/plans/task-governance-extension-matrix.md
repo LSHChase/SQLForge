@@ -104,6 +104,7 @@
 | `E-TASK-013` | 若 portable 验证被降级为 health-only 检查、分包方案改变路由/代理/缓存语义，或为压低 chunk 告警而牺牲关键页面可用性，需人工确认 | portable 浏览器 smoke 覆盖、前端 chunk 输出、关键路由与代理语义 | 保留当前 portable 包与关键路由语义，回退高风险分包策略，并恢复到现有可工作的构建输出 |
 | `E-TASK-014` | 若恢复 Vue SFC 需要放弃现有 portable 包、浏览器 smoke、显式 Element Plus 注册或分包策略，或改变既有页面 IA / 代理语义，需人工确认 | 根级前端 `.vue` 源文件、Vite SFC 构建链、portable 产物、chunk 输出与路由/代理语义 | 保留 `E-TASK-013` 已验证的 portable 与分包结果，回退高风险 SFC 恢复改动，并恢复到上一个已验证的前端交付基线 |
 | `E-TASK-015` | 若新增 dev browser smoke 会替代既有 full-stack runtime smoke、削弱现有 portable / 代理语义验证，或为清理叙事而改写历史任务完成记录，需人工确认 | Vite dev server 浏览器 smoke 覆盖、当前前端治理叙事、路由/代理语义 | 保留 `E-TASK-014` 已验证的 Vue SFC / portable 基线，回退高风险 dev smoke 或文档清理改动，并恢复到上一个已验证的前端交付真值 |
+| `E-TASK-016` | 若把 dev browser smoke 从当前 local repo-closed 基线升级为默认 CI/runtime gate、削弱现有 full-stack runtime smoke 主路径，或通过该任务改写 `E-TASK-015` 的历史完成结论，需人工确认 | dev browser smoke 的边界定义、前端验证语义、CI/runtime gating 叙事与文档表述 | 保留 `E-TASK-015` 已验证的 local dev smoke 基线，回退高风险边界/脚本/文档改动，并恢复 full-stack runtime smoke 作为多服务主路径的既有真值 |
 
 ## Phase-F
 

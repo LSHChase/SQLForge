@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-022: Shape E-TASK-016 from E-TASK-015 residual risk
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `fix(governance): shape e-task-016 local dev smoke boundary`
+- Priority: 1
+- Depends on: HARN-021
+- Scope: Align the active-wave truth after HARN-021, capture the confirmed decision that the Vite dev browser smoke remains a local repo-closed baseline only, and shape the resulting repo-side frontend follow-up as E-TASK-016 in the master plan and task matrices without changing frontend/runtime behavior or environment-backed follow-up semantics.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-022`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: captured the explicit human decision that Vite dev browser smoke remains a local repo-closed baseline only, updated the Phase-E plan/matrices to shape the resulting follow-up as `E-TASK-016`, and repointed the active-wave truth away from the completed `HARN-021` batch to the new uninstantiated repo-side frontend mainline without changing frontend/runtime or environment-backed follow-up semantics.
+- Context closeout:
+  - Completed scope: Instantiated HARN-022, updated the Phase-E active-wave truth to point at the newly shaped follow-up E-TASK-016, added E-TASK-016 to the master plan and both task matrices, and captured the explicit decision that Vite dev browser smoke remains a local repo-closed baseline only rather than a broader CI/runtime gate without changing frontend/runtime or environment-backed follow-up semantics.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-022 --include-task-audit --extra-command "python3 scripts/foreman.py compile-governance --check" --extra-command "node scripts/lint-repository-knowledge.js"; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The new Phase-E follow-up is now shaped as E-TASK-016, but it is not yet instantiated; HARN-016 and INBOX-001 remain environment-backed follow-ups, and the dev browser smoke boundary now depends on future work continuing to preserve the local-only semantics instead of re-promoting it into broader CI/runtime gating.
+  - Next step: If frontend follow-up continues, instantiate E-TASK-016 explicitly before implementation so the local repo-closed dev-smoke boundary can be hardened without altering the existing full-stack runtime smoke main path; otherwise keep HARN-016 blocked and INBOX-001 open as non-mainline follow-ups.
+
 ### HARN-021: Reconcile E-TASK-015 post-closeout drift
 
 - Status: done
