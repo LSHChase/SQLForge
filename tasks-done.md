@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-024: 收口 D-TASK-029 closeout 后的 active-wave / validation-log 漂移
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `chore(governance): realign active wave after D-TASK-029`
+- Priority: 1
+- Depends on: D-TASK-029
+- Scope: 只修正 D-TASK-029 closeout 后遗留的计划真值与 append-only validation-log 漂移，恢复当前没有已实例化 repo-side mainline task 的仓库事实；不改写 D-TASK-029 的历史完成结论，也不实例化新的 mainline 业务任务。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-024`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Repaired the post-closeout active-wave drift left after D-TASK-029, restored the master plan truth to no instantiated repo-side mainline task, regenerated governance policy authority artifacts, and absorbed the append-only validation-log residue into a ledger-bound governance closeout.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-024; python3 scripts/task_audit.py --check --phase pre-closeout; python3 scripts/foreman.py compile-governance
+  - Residual risk: The repository is back to no instantiated repo-side mainline task, but the next Phase-D business follow-up still needs explicit shaping before implementation; no new mainline task is instantiated by this governance repair.
+  - Next step: If work continues immediately, shape a new Phase-D follow-up around provider-authenticated object-storage operations and governance-side batch retention/recovery orchestration before instantiation.
+
 ### D-TASK-029: 推进 provider-native / environment-backed object-storage live evidence 与 governance-triggered artifact cleanup/recovery operation surfaces
 
 - Status: done
