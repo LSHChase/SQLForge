@@ -107,10 +107,10 @@
 
 ## 4.1 Current Active Wave
 
-- 当前运行波次：`Phase-E / E-STORY-005`
-- 当前活跃目标：`E-TASK-016`；在 `E-TASK-015` 已补齐 Vite dev browser smoke 并完成当前 SFC 真值清理后，把 residual risk 收口为显式的 local repo-closed baseline 决策，不把该 smoke 升格为更广的 CI/runtime gating，并同步清理后续计划/操作语义。
+- 当前运行波次：`Phase-D / D-STORY-005`
+- 当前活跃目标：当前仓库没有已实例化的 repo-side mainline task；前端 dev browser smoke 继续保持 local repo-closed baseline，不进入更广的 CI/runtime gating。
 - 当前下一条可执行主线任务：
-  - `E-TASK-016`：固化 dev browser smoke 的 local repo-closed 基线语义，不把它升级为 broader CI/runtime gate，并保持现有 full-stack runtime smoke 作为多服务主路径。
+  - `D-TASK-021`（尚未实例化）：推进 `benchmark-engine` 真实隔离执行与导出链路，在保留现有 MySQL carrier / scheduled worker、统一授权入口、治理审计与 runtime smoke 语义的前提下，把 placeholder benchmark execution/export 提升为可验证的 repo-closed 后端能力。
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成业务页骨架、治理接口接入与设计系统基线；`E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-009` 已补齐临时 AI 交付页与生产隐藏语义。
@@ -123,6 +123,8 @@
   - `E-TASK-015` 已完成前端 dev browser smoke 与当前真值文档清理；它在完成前是 Phase-E 的前端主线，但 closeout 后不应继续被写成“当前活跃目标”或“下一条可执行主线任务”。
   - `HARN-021` 已完成 `E-TASK-015` closeout 后的治理收口，恢复了“当前没有已实例化 repo-side mainline task”的仓库真值，并吸收了该批次的 append-only validation-log residue。
   - `HARN-022` 只用于在 `HARN-021` 之后承接新的人工决策：把 `E-TASK-015` 的 residual risk 塑形成新的 repo-side follow-up `E-TASK-016`，并明确 dev browser smoke 只保留为 local repo-closed baseline，不进入更广的 CI/runtime gating。
+  - `E-TASK-016` 已完成 dev browser smoke local repo-closed baseline 语义固化；其 closeout 后的 active-wave 漂移由 `HARN-023` 收口，不改写 `E-TASK-016` 的历史完成结论，也不把该 smoke 提升为默认 CI/runtime gate。
+  - `HARN-023` 只用于修正 `E-TASK-016` closeout 后遗留的 active-wave 漂移，并把下一条 repo-side mainline 显式塑形为 `D-TASK-021`；它不改写前端 smoke 边界，也不改变 environment-backed follow-up 的既有语义。
   - `F-TASK-001`、`F-TASK-002`、`F-TASK-003` 已完成部署文档、compose/脚本说明、环境提醒与恢复指引的真值修正。
   - `F-TASK-015`、`F-TASK-016` 已完成 `sql-optimization` 与 `benchmark-engine` 的持久化 carrier / scheduler 主线；`F-TASK-017` 至 `F-TASK-028` 也已把 browser runtime gate、治理历史链路、真实 Kafka gate 与 Phase-F 退出门禁推进到当前仓库真值。
   - `F-TASK-029` 已把发布链自动触发、coverage 阻断语义与 Sonar-required 失败语义写成当时仓库真值；`F-TASK-030` 已把 `phase1plus` 聚合覆盖率提升到 `86.9763%`，并保留 Sonar / release gate 接线成果。
@@ -134,8 +136,9 @@
   - `D-TASK-018` 承接 `R-169` 新增后的直接实现收口：移除历史 schema 外键、补齐应用层引用完整性校验，并把 Hetu/MRS 测试环境部署文档切到 Win10 + IDEA + yml 配置读取与确认清单口径。
   - `D-TASK-019` 已完成 `query-execution` 与 `governance` 的最小业务指标与执行遥测收口；其 closeout 后的 active-wave 漂移由 `HARN-017` 修正，不改写 `D-TASK-019` 的历史完成结论。
   - `D-TASK-020` 已完成 `sql-optimization` 与 `benchmark-engine` 的最小业务级 Micrometer 指标、异步任务终态信号与处理延迟观测收口；其 closeout 后的 active-wave 漂移由 `HARN-018` 修正，不改写 `D-TASK-020` 的历史完成结论。
+  - `D-TASK-021` 已被塑形为下一条 repo-side mainline，但当前尚未实例化；它承接 `benchmark-engine` 仍未闭环的真实隔离执行链路、真实导出链路与更深层跨服务协同缺口，同时不改变 `HARN-016` / `INBOX-001` 作为 environment-backed follow-up 的语义。
   - `HARN-016` 已把外部 Win10 测试环境的 Hetu/MRS 实际联通与留证动作挂起到 `INBOX-002`；它继续是 blocked 的 environment-backed follow-up，不构成当前 repo-side mainline。
-  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不改变当前仓库真值：当前下一条 repo-side mainline 已被塑形为 `E-TASK-016`，但尚未实例化，而 `HARN-016` / `INBOX-001` 仍只属于非主线的 environment-backed follow-up。
+  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不改变当前仓库真值：当前下一条 repo-side mainline 已被塑形为 `D-TASK-021`，但尚未实例化，而 `HARN-016` / `INBOX-001` 仍只属于非主线的 environment-backed follow-up。
 
 ## 5. Traceability Matrix
 
@@ -433,6 +436,7 @@ Tasks:
 | `D-TASK-018` | 去除核心追溯链历史外键并补齐应用层完整性校验 | 移除 `config/result/history/export/audit` 在 MySQL / TDSQL 上的历史外键约束，改为索引 + 应用层完整性校验；同步补齐 drop-foreign-key migration、schema 映射测试，以及 Win10 + IDEA + yml 配置读取口径的 Hetu/MRS 测试环境部署文档与确认清单 | `D-TASK-017` | governance 模块测试、schema/migration 映射测试、task audit、知识检查与部署文档同步 |
 | `D-TASK-019` | 补齐 `query-execution` 执行遥测与业务指标基线 | 为 `query-execution` 与 `governance` 增加最小业务级 Micrometer 指标，覆盖查询执行结果、模式命中、timeout/degraded/fallback、治理审计兜底与数据库消息队列 backlog 等 repo-closed 可观测信号；同步更新 observability / truth 文档与验证基线 | `D-TASK-018` | query-execution/governance 模块测试、prometheus 指标断言、runtime smoke、task audit 与文档同步 |
 | `D-TASK-020` | 补齐异步服务执行遥测与业务指标基线 | 为 `sql-optimization` 与 `benchmark-engine` 增加最小业务级 Micrometer 指标，覆盖任务提交、终态成功/失败、worker 或报告处理延迟等 repo-closed 可观测信号；同步更新 observability / truth 文档与验证基线，并保持低基数标签约束 | `D-TASK-019` | sql-optimization/benchmark-engine 模块测试、prometheus 指标断言、runtime smoke、task audit 与文档同步 |
+| `D-TASK-021` | 推进 `benchmark-engine` 真实隔离执行与导出链路 | 在保留 `benchmark_task` / `benchmark_task_report` MySQL carrier、scheduled worker、统一授权入口和治理审计语义的前提下，把压测任务从 placeholder 执行推进到真实隔离执行链路，补齐可复现的报告快照/导出产物生成与更深层跨服务协同验证，并持续满足只读、影子环境优先与租户隔离边界 | `D-TASK-020` | benchmark-engine 模块测试、导出/报告契约测试、runtime smoke、task audit 与文档同步 |
 
 ### Phase-E 前端驾驶舱与业务页面
 

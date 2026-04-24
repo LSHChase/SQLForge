@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-023: Reconcile E-TASK-016 post-closeout drift
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `fix(governance): reconcile e-task-016 active wave`
+- Priority: 1
+- Depends on: E-TASK-016
+- Scope: Align the current active wave after E-TASK-016 closeout, remove the stale pointer to the completed frontend boundary-hardening task, and update repository truth so the next repo-side mainline is either explicitly shaped or stated as uninstantiated without changing frontend/runtime behavior or environment-backed follow-up semantics.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-023`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: repointed the master plan away from completed `E-TASK-016`, restored the repository truth that no repo-side mainline is currently instantiated, and shaped `D-TASK-021` as the next uninstantiated repo-side mainline around `benchmark-engine` real isolated execution/export follow-up without changing frontend/runtime or environment-backed follow-up semantics.
+- Context closeout:
+  - Completed scope: Reconciled the post-closeout drift left behind after E-TASK-016, repointed the master plan away from the completed frontend boundary-hardening task, restored the explicit truth that no repo-side mainline is currently instantiated, and shaped D-TASK-021 as the next formal but uninstantiated repo-side mainline around benchmark-engine real isolated execution/export follow-up without changing frontend/runtime or environment-backed follow-up semantics.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-023 --include-task-audit --extra-command "python3 scripts/foreman.py compile-governance --check" --extra-command "node scripts/lint-repository-knowledge.js"; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The active-wave truth and task matrices are back in sync, but D-TASK-021 is only shaped, not instantiated, so benchmark-engine still remains on the current persisted placeholder execution/export baseline until the next repo-side mainline is explicitly started; HARN-016 and INBOX-001 remain separate environment-backed follow-ups.
+  - Next step: Instantiate D-TASK-021 explicitly before implementation so benchmark-engine real isolated execution/export work proceeds on the now-shaped Phase-D mainline while preserving the local-only dev-smoke boundary and existing environment-backed follow-up semantics.
+
 ### E-TASK-016: 固化 dev browser smoke 的 local repo-closed 基线语义
 
 - Status: done
