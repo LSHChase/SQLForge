@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-021: Reconcile E-TASK-015 post-closeout drift
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `fix(governance): reconcile e-task-015 active wave`
+- Priority: 1
+- Depends on: E-TASK-015
+- Scope: Align the current active wave after E-TASK-015 closeout, remove the stale pointer to the completed frontend task, and make the repository truth explicit about whether any repo-side mainline is currently instantiated without changing frontend/runtime behavior or environment-backed follow-up semantics.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-021`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: updated the master execution plan current active wave after `E-TASK-015` closeout so repository truth no longer points at a completed frontend task; current state now explicitly shows no instantiated repo-side mainline task while `HARN-021` remains the active governance reconciliation batch and `HARN-016` plus `INBOX-001` stay as non-mainline environment-backed follow-ups.
+- Context closeout:
+  - Completed scope: Instantiated HARN-021, updated the master execution plan current active wave so it no longer points at completed E-TASK-015, made the repository truth explicit that no repo-side mainline task is currently instantiated, and absorbed the append-only validation-log residue for E-TASK-015/HARN-021 into the governed batch without changing frontend/runtime or environment-backed follow-up semantics.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-021 --include-task-audit --extra-command "python3 scripts/foreman.py compile-governance --check" --extra-command "node scripts/lint-repository-knowledge.js"; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The plan truth is back in sync, but the repository still has no newly instantiated repo-side mainline task; HARN-016 and INBOX-001 remain environment-backed follow-ups, and any next mainline must be explicitly shaped before reusing the active-wave block.
+  - Next step: When the next repo-side priority is chosen, instantiate it explicitly before changing the active-wave block again; until then keep HARN-016 blocked and INBOX-001 open as non-mainline follow-ups.
+
 ### E-TASK-015: 补齐前端 dev browser smoke 并清理 SFC 恢复后的当前叙事
 
 - Status: done

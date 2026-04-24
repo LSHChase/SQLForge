@@ -107,10 +107,10 @@
 
 ## 4.1 Current Active Wave
 
-- 当前运行波次：`Phase-E / E-STORY-005`
-- 当前活跃目标：`E-TASK-015`；在 `E-TASK-014` 已恢复 Vue SFC 构建链并保留 portable 交付基线后，补齐面向 Vite dev server 的轻量浏览器 smoke，并清理仍把 non-SFC 迁移表述成当前真值的前端治理叙事。
+- 当前运行波次：`Governance reconciliation / HARN-021`
+- 当前活跃目标：`HARN-021`；收口 `E-TASK-015` closeout 后遗留的 active-wave 漂移，移除主计划仍指向已完成前端任务的陈旧指针，并把当前仓库真值显式写回为“是否存在已实例化 repo-side mainline task”。
 - 当前下一条可执行主线任务：
-  - `E-TASK-015`：补齐前端 dev browser smoke 并清理 SFC 恢复后的当前叙事
+  - 当前无已实例化 `repo-side mainline task`；`HARN-021` 只是治理收口批次，不代表新的业务/实现主线已经塑形或入场。
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成业务页骨架、治理接口接入与设计系统基线；`E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-009` 已补齐临时 AI 交付页与生产隐藏语义。
@@ -120,7 +120,8 @@
   - `HARN-019` 只用于修正 `E-TASK-011`、`E-TASK-012` closeout 后遗留的 active-wave / task-matrix / validation-log 漂移，不改写两条前端任务的历史完成结论；同时把 residual risk 收口为新的 repo-closed follow-up `E-TASK-013`，而不是重新回到 `INBOX-003` 待决策状态。
   - `E-TASK-013` 已完成 portable 包关键路由浏览器 smoke、代理语义校验和 Vite 分包收口；`E-TASK-014` 则承接新的人工决策，把根级前端恢复到允许使用 `@vitejs/plugin-vue` / `@vue/compiler-sfc` 的 Vue SFC 架构，同时保留 `E-TASK-013` 已落地的 portable 与 chunk hardening 成果。
   - `HARN-020` 只用于修正 `E-TASK-014` closeout 后遗留的 active-wave / validation-log 漂移，并把 residual risk 与 next-step 收口为新的 repo-side follow-up `E-TASK-015`；它不改写 `E-TASK-014` 的历史完成结论，也不把 full-stack runtime smoke 或 external-environment follow-up 误写成当前前端主线。
-  - `E-TASK-015` 作为新的前端主线，只补齐轻量 Vite dev browser smoke 与当前真值文档清理，不替代现有 `npm run smoke:frontend-runtime` 的多服务 runtime smoke，也不回退 `E-TASK-014` 已恢复的 Vue SFC / portable 基线。
+  - `E-TASK-015` 已完成前端 dev browser smoke 与当前真值文档清理；它在完成前是 Phase-E 的前端主线，但 closeout 后不应继续被写成“当前活跃目标”或“下一条可执行主线任务”。
+  - `HARN-021` 已实例化为 `E-TASK-015` closeout 后的治理收口任务；该任务只修正计划真值与 active-wave 指针，不塑形新的 repo-side mainline，也不改变既有 frontend/runtime 或 environment-backed follow-up 语义。
   - `F-TASK-001`、`F-TASK-002`、`F-TASK-003` 已完成部署文档、compose/脚本说明、环境提醒与恢复指引的真值修正。
   - `F-TASK-015`、`F-TASK-016` 已完成 `sql-optimization` 与 `benchmark-engine` 的持久化 carrier / scheduler 主线；`F-TASK-017` 至 `F-TASK-028` 也已把 browser runtime gate、治理历史链路、真实 Kafka gate 与 Phase-F 退出门禁推进到当前仓库真值。
   - `F-TASK-029` 已把发布链自动触发、coverage 阻断语义与 Sonar-required 失败语义写成当时仓库真值；`F-TASK-030` 已把 `phase1plus` 聚合覆盖率提升到 `86.9763%`，并保留 Sonar / release gate 接线成果。
@@ -132,8 +133,8 @@
   - `D-TASK-018` 承接 `R-169` 新增后的直接实现收口：移除历史 schema 外键、补齐应用层引用完整性校验，并把 Hetu/MRS 测试环境部署文档切到 Win10 + IDEA + yml 配置读取与确认清单口径。
   - `D-TASK-019` 已完成 `query-execution` 与 `governance` 的最小业务指标与执行遥测收口；其 closeout 后的 active-wave 漂移由 `HARN-017` 修正，不改写 `D-TASK-019` 的历史完成结论。
   - `D-TASK-020` 已完成 `sql-optimization` 与 `benchmark-engine` 的最小业务级 Micrometer 指标、异步任务终态信号与处理延迟观测收口；其 closeout 后的 active-wave 漂移由 `HARN-018` 修正，不改写 `D-TASK-020` 的历史完成结论。
-  - `HARN-016` 已把外部 Win10 测试环境的 Hetu/MRS 实际联通与留证动作挂起到 `INBOX-002`；仓库侧继续按 mainline 实现推进，不把环境等待时间误记为编码阻塞。
-  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不影响当前仓库保持“无已实例化 repo-side mainline task”的真实状态，直到下一条治理任务被正式实例化。
+  - `HARN-016` 已把外部 Win10 测试环境的 Hetu/MRS 实际联通与留证动作挂起到 `INBOX-002`；它继续是 blocked 的 environment-backed follow-up，不构成当前 repo-side mainline。
+  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不改变当前仓库真值：现阶段没有新的已实例化 repo-side mainline，只有 `HARN-021` 这个 active governance reconciliation batch。
 
 ## 5. Traceability Matrix
 
