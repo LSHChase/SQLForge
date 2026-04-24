@@ -12,8 +12,13 @@ import static org.mockito.Mockito.when;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkThresholdDTO;
+import com.company.benchmarkengine.application.service.BenchmarkIsolatedExecutionResult;
+import com.company.benchmarkengine.application.service.BenchmarkIsolatedExecutionService;
+import com.company.benchmarkengine.application.service.BenchmarkReportExportService;
 import com.company.benchmarkengine.application.service.BenchmarkTaskModelApplicationService;
+import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase;
@@ -167,7 +172,7 @@ class MybatisBenchmarkTaskRepositoryTest {
         task.advancePhase(BenchmarkTaskPhase.THRESHOLD_EVALUATING, 90, "RUN_FINISHED");
         task.advancePhase(BenchmarkTaskPhase.REPORTING, 95, "THRESHOLDS_EVALUATED");
         task.markSucceeded("report-task-db-003", Instant.parse("2026-04-22T06:01:00Z"));
-        BenchmarkReport report = modelService.buildPlaceholderReport(task, Instant.parse("2026-04-22T06:01:10Z"));
+        BenchmarkReport report = createExecutedReport(modelService, task, Instant.parse("2026-04-22T06:01:10Z"));
 
         repository.saveReport(report);
         repository.saveReport(report);
@@ -180,6 +185,8 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertTrue(record.getEngineProfilesJson().contains("HETU"));
         assertTrue(record.getThresholdAssessmentsJson().contains("P99_LATENCY_MS"));
         assertTrue(record.getRecommendationsJson().contains("REGRESSION_GATE"));
+        assertTrue(record.getExecutionSummaryJson().contains("REPO_CLOSED_ISOLATED_EXECUTOR"));
+        assertTrue(record.getExportArtifactsJson().contains("\"format\":\"PDF\""));
         verify(reportMapper).insert(any(BenchmarkReportRecord.class));
         verify(reportMapper).update(any(BenchmarkReportRecord.class));
 
@@ -193,10 +200,25 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertEquals(1, byTaskId.getEngineProfiles().size());
         assertEquals(1, byTaskId.getThresholdAssessments().size());
         assertEquals("REGRESSION_GATE", byTaskId.getRecommendations().get(0).getCategory());
+        assertNotNull(byTaskId.getExecutionSummary());
+        assertEquals(3, byTaskId.getExportArtifacts().size());
+        assertEquals(BenchmarkReportFormat.HTML, byTaskId.findArtifact(BenchmarkReportFormat.HTML).getFormat());
         assertEquals(byTaskId.getReportId(), byReportId.getReportId());
         assertNull(repository.findTaskByTaskId("missing-task"));
         assertNull(repository.findReportByTaskId("missing-task"));
         assertNull(repository.findReportByReportId("missing-report"));
+    }
+
+    private BenchmarkReport createExecutedReport(BenchmarkTaskModelApplicationService modelService,
+                                                 BenchmarkTask task,
+                                                 Instant generatedAt) {
+        BenchmarkTaskExecutionProperties properties = new BenchmarkTaskExecutionProperties();
+        properties.setIsolationSampleCount(4);
+        properties.setIsolationWorkIterations(24);
+        BenchmarkIsolatedExecutionResult executionResult =
+            new BenchmarkIsolatedExecutionService(properties, modelService).execute(task, generatedAt);
+        BenchmarkReport report = modelService.buildExecutedReport(task, executionResult, generatedAt);
+        return report.withExportArtifacts(new BenchmarkReportExportService().buildArtifacts(modelService.buildReportResponse(report)));
     }
 
     private BenchmarkTask createQueuedTask(String taskId, BenchmarkTaskType taskType, Instant submittedAt) {

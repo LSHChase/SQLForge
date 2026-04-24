@@ -32,11 +32,13 @@ benchmark-engine:
     desensitization-default: REQUIRED
   task-model:
     contract-stage: LONG_TERM_BASELINE
-    implementation-stage: DATABASE_SCHEDULED_WORKER_BASELINE
+    implementation-stage: DATABASE_ISOLATED_EXECUTION_BASELINE
   task-execution:
     poll-interval-ms: 25
     queue-visibility-delay-ms: 100
     phase-delay-ms: 40
+    isolation-sample-count: 8
+    isolation-work-iterations: 96
   queues:
     mode: database-worker
   governance:

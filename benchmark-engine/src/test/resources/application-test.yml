@@ -19,3 +19,6 @@ sqlforge:
 benchmark-engine:
   queues:
     mode: local-placeholder
+  task-execution:
+    isolation-sample-count: 6
+    isolation-work-iterations: 48

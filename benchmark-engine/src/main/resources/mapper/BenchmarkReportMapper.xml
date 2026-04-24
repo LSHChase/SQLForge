@@ -15,6 +15,8 @@
         <result property="engineProfilesJson" column="engine_profiles_json"/>
         <result property="thresholdAssessmentsJson" column="threshold_assessments_json"/>
         <result property="recommendationsJson" column="recommendations_json"/>
+        <result property="executionSummaryJson" column="execution_summary_json"/>
+        <result property="exportArtifactsJson" column="export_artifacts_json"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
     </resultMap>
@@ -30,6 +32,8 @@
         engine_profiles_json,
         threshold_assessments_json,
         recommendations_json,
+        execution_summary_json,
+        export_artifacts_json,
         create_time,
         update_time
     </sql>
@@ -59,7 +63,9 @@
             verdict,
             engine_profiles_json,
             threshold_assessments_json,
-            recommendations_json
+            recommendations_json,
+            execution_summary_json,
+            export_artifacts_json
         ) VALUES (
             #{reportId},
             #{taskId},
@@ -70,7 +76,9 @@
             #{verdict},
             #{engineProfilesJson},
             #{thresholdAssessmentsJson},
-            #{recommendationsJson}
+            #{recommendationsJson},
+            #{executionSummaryJson},
+            #{exportArtifactsJson}
         )
     </insert>
 
@@ -84,7 +92,9 @@
             verdict = #{verdict},
             engine_profiles_json = #{engineProfilesJson},
             threshold_assessments_json = #{thresholdAssessmentsJson},
-            recommendations_json = #{recommendationsJson}
+            recommendations_json = #{recommendationsJson},
+            execution_summary_json = #{executionSummaryJson},
+            export_artifacts_json = #{exportArtifactsJson}
         WHERE report_id = #{reportId}
     </update>
 </mapper>

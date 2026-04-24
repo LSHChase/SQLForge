@@ -49,7 +49,7 @@ public class BenchmarkTaskControllerTest {
             .andExpect(jsonPath("$.currentPhase").value("SUBMITTED"))
             .andExpect(jsonPath("$.statusQueryPath", startsWith("/api/benchmark-engine/tasks/")))
             .andExpect(jsonPath("$.contractStage").value("LONG_TERM_BASELINE"))
-            .andExpect(jsonPath("$.implementationStage").value("DATABASE_SCHEDULED_WORKER_BASELINE"))
+            .andExpect(jsonPath("$.implementationStage").value("DATABASE_ISOLATED_EXECUTION_BASELINE"))
             .andExpect(header().exists(RequestHeaderConstants.TRACE_ID))
             .andReturn();
 
@@ -63,7 +63,7 @@ public class BenchmarkTaskControllerTest {
     }
 
     @Test
-    void shouldExposeFailedPlaceholderStatusWhenFailureMarkerIsPresent() throws Exception {
+    void shouldExposeFailedWorkerStatusWhenFailureMarkerIsPresent() throws Exception {
         MvcResult submitResult = mockMvc.perform(addProtectedHeaders(post("/api/benchmark-engine/tasks"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"tenantId\":\"tenant-a\",\"taskType\":\"BASELINE\","
@@ -133,7 +133,7 @@ public class BenchmarkTaskControllerTest {
                         .andExpect(jsonPath("$.reportId", startsWith("report-")))
                         .andExpect(jsonPath("$.targetEngines[0]").value("HETU"))
                         .andExpect(jsonPath("$.shadowEnvironmentMode").value("REQUIRED"))
-                        .andExpect(jsonPath("$.implementationStage").value("DATABASE_SCHEDULED_WORKER_BASELINE"));
+                        .andExpect(jsonPath("$.implementationStage").value("DATABASE_ISOLATED_EXECUTION_BASELINE"));
                 } else {
                     mockMvc.perform(addProtectedHeaders(get("/api/benchmark-engine/tasks/{taskId}", taskId)))
                         .andExpect(status().isOk())

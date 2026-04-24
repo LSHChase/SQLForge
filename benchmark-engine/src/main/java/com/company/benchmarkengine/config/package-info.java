@@ -1,4 +1,4 @@
 /**
- * Benchmark-engine service configuration placeholders.
+ * Benchmark-engine service configuration contracts.
  */
 package com.company.benchmarkengine.config;

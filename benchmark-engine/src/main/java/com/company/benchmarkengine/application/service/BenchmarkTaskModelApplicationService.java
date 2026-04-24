@@ -18,6 +18,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkEngineProfile;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendation;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendationRiskLevel;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskSubmission;
@@ -39,8 +40,8 @@ import org.springframework.stereotype.Service;
 public class BenchmarkTaskModelApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
-    private static final String TASK_IMPLEMENTATION_STAGE = "DATABASE_SCHEDULED_WORKER_BASELINE";
-    private static final String REPORT_IMPLEMENTATION_STAGE = "DATABASE_PERSISTED_REPORT_BASELINE";
+    private static final String TASK_IMPLEMENTATION_STAGE = "DATABASE_ISOLATED_EXECUTION_BASELINE";
+    private static final String REPORT_IMPLEMENTATION_STAGE = "DATABASE_PERSISTED_EXPORT_BASELINE";
     private static final String STATUS_QUERY_PATH_TEMPLATE = "/api/benchmark-engine/tasks/%s";
     private static final String REPORT_QUERY_PATH_TEMPLATE = "/api/benchmark-engine/reports/%s";
     private static final String RAW_DATA_PATH_TEMPLATE = "/api/benchmark-engine/reports/%s/raw-data";
@@ -103,9 +104,9 @@ public class BenchmarkTaskModelApplicationService {
         );
     }
 
-    public BenchmarkReport buildPlaceholderReport(BenchmarkTask task, Instant generatedAt) {
-        List<BenchmarkEngineProfile> engineProfiles = buildEngineProfiles(task);
-        List<BenchmarkThresholdAssessment> assessments = evaluateThresholds(task.getThresholds(), engineProfiles.get(0));
+    public BenchmarkReport buildExecutedReport(BenchmarkTask task,
+                                               BenchmarkIsolatedExecutionResult executionResult,
+                                               Instant generatedAt) {
         return new BenchmarkReport(
             "report-" + task.getTaskId(),
             task.getTaskId(),
@@ -113,9 +114,11 @@ public class BenchmarkTaskModelApplicationService {
             task.getTenantId(),
             task.getSqlFingerprint(),
             generatedAt,
-            engineProfiles,
-            assessments,
-            buildRecommendations(task.getTaskType(), assessments)
+            executionResult.getEngineProfiles(),
+            executionResult.getThresholdAssessments(),
+            executionResult.getRecommendations(),
+            executionResult.getExecutionSummary(),
+            Collections.<BenchmarkReportArtifact>emptyList()
         );
     }
 
@@ -204,7 +207,7 @@ public class BenchmarkTaskModelApplicationService {
         return Collections.unmodifiableList(thresholds);
     }
 
-    private List<BenchmarkEngineProfile> buildEngineProfiles(BenchmarkTask task) {
+    public List<BenchmarkEngineProfile> buildEngineProfiles(BenchmarkTask task) {
         List<DataSourceTypeEnum> engines = task.getTargetEngines();
         List<BenchmarkEngineProfile> profiles = new ArrayList<BenchmarkEngineProfile>(engines.size());
         for (int index = 0; index < engines.size(); index++) {
@@ -260,8 +263,8 @@ public class BenchmarkTaskModelApplicationService {
         return "Primary benchmark engine result.";
     }
 
-    private List<BenchmarkThresholdAssessment> evaluateThresholds(List<BenchmarkThreshold> thresholds,
-                                                                  BenchmarkEngineProfile primaryProfile) {
+    public List<BenchmarkThresholdAssessment> evaluateThresholds(List<BenchmarkThreshold> thresholds,
+                                                                 BenchmarkEngineProfile primaryProfile) {
         if (thresholds == null || thresholds.isEmpty()) {
             return Collections.emptyList();
         }
@@ -293,8 +296,8 @@ public class BenchmarkTaskModelApplicationService {
         }
     }
 
-    private List<BenchmarkRecommendation> buildRecommendations(BenchmarkTaskType taskType,
-                                                               List<BenchmarkThresholdAssessment> assessments) {
+    public List<BenchmarkRecommendation> buildRecommendations(BenchmarkTaskType taskType,
+                                                              List<BenchmarkThresholdAssessment> assessments) {
         BenchmarkThresholdVerdict reportVerdict = BenchmarkThresholdVerdict.PASS;
         for (BenchmarkThresholdAssessment assessment : assessments) {
             if (assessment.getVerdict() == BenchmarkThresholdVerdict.FAIL) {

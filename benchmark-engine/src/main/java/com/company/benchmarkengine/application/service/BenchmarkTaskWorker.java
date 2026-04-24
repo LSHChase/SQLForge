@@ -28,15 +28,21 @@ public class BenchmarkTaskWorker {
     private static final String FAILURE_MARKER = "FAIL_BENCHMARK";
 
     private final BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService;
+    private final BenchmarkIsolatedExecutionService benchmarkIsolatedExecutionService;
+    private final BenchmarkReportExportService benchmarkReportExportService;
     private final BenchmarkTaskRepository benchmarkTaskRepository;
     private final BenchmarkTaskExecutionProperties executionProperties;
     private final BenchmarkMetricsRecorder benchmarkMetricsRecorder;
 
     public BenchmarkTaskWorker(BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService,
+                               BenchmarkIsolatedExecutionService benchmarkIsolatedExecutionService,
+                               BenchmarkReportExportService benchmarkReportExportService,
                                BenchmarkTaskRepository benchmarkTaskRepository,
                                BenchmarkTaskExecutionProperties executionProperties,
                                BenchmarkMetricsRecorder benchmarkMetricsRecorder) {
         this.benchmarkTaskModelApplicationService = benchmarkTaskModelApplicationService;
+        this.benchmarkIsolatedExecutionService = benchmarkIsolatedExecutionService;
+        this.benchmarkReportExportService = benchmarkReportExportService;
         this.benchmarkTaskRepository = benchmarkTaskRepository;
         this.executionProperties = executionProperties;
         this.benchmarkMetricsRecorder = benchmarkMetricsRecorder;
@@ -76,7 +82,15 @@ public class BenchmarkTaskWorker {
             }
             advanceWorkerPhases(task);
             delay();
-            BenchmarkReport report = benchmarkTaskModelApplicationService.buildPlaceholderReport(task, Instant.now());
+            Instant generatedAt = Instant.now();
+            BenchmarkIsolatedExecutionResult executionResult =
+                benchmarkIsolatedExecutionService.execute(task, generatedAt);
+            BenchmarkReport report = benchmarkTaskModelApplicationService.buildExecutedReport(task, executionResult, generatedAt);
+            report = report.withExportArtifacts(
+                benchmarkReportExportService.buildArtifacts(
+                    benchmarkTaskModelApplicationService.buildReportResponse(report)
+                )
+            );
             benchmarkTaskRepository.saveReport(report);
             task.markSucceeded(report.getReportId(), Instant.now());
             benchmarkTaskRepository.saveTask(task);

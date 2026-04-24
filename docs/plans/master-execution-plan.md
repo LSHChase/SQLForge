@@ -108,9 +108,9 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：当前仓库没有已实例化的 repo-side mainline task；前端 dev browser smoke 继续保持 local repo-closed baseline，不进入更广的 CI/runtime gating。
+- 当前活跃目标：当前仓库没有已实例化的 repo-side mainline task；`D-TASK-021` 已完成 `benchmark-engine` 的 repo-closed 隔离执行与持久化导出链路收口，前端 dev browser smoke 继续保持 local repo-closed baseline，不进入更广的 CI/runtime gating。
 - 当前下一条可执行主线任务：
-  - `D-TASK-021`（尚未实例化）：推进 `benchmark-engine` 真实隔离执行与导出链路，在保留现有 MySQL carrier / scheduled worker、统一授权入口、治理审计与 runtime smoke 语义的前提下，把 placeholder benchmark execution/export 提升为可验证的 repo-closed 后端能力。
+  - 暂无新的已实例化 repo-side mainline task；若后续继续推进 `benchmark-engine`，应先把外部文件存储/原始数据下载、跨服务编排与环境级执行证据塑形成新的正式任务，再进入实现。
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成业务页骨架、治理接口接入与设计系统基线；`E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-009` 已补齐临时 AI 交付页与生产隐藏语义。
@@ -136,9 +136,9 @@
   - `D-TASK-018` 承接 `R-169` 新增后的直接实现收口：移除历史 schema 外键、补齐应用层引用完整性校验，并把 Hetu/MRS 测试环境部署文档切到 Win10 + IDEA + yml 配置读取与确认清单口径。
   - `D-TASK-019` 已完成 `query-execution` 与 `governance` 的最小业务指标与执行遥测收口；其 closeout 后的 active-wave 漂移由 `HARN-017` 修正，不改写 `D-TASK-019` 的历史完成结论。
   - `D-TASK-020` 已完成 `sql-optimization` 与 `benchmark-engine` 的最小业务级 Micrometer 指标、异步任务终态信号与处理延迟观测收口；其 closeout 后的 active-wave 漂移由 `HARN-018` 修正，不改写 `D-TASK-020` 的历史完成结论。
-  - `D-TASK-021` 已被塑形为下一条 repo-side mainline，但当前尚未实例化；它承接 `benchmark-engine` 仍未闭环的真实隔离执行链路、真实导出链路与更深层跨服务协同缺口，同时不改变 `HARN-016` / `INBOX-001` 作为 environment-backed follow-up 的语义。
+  - `D-TASK-021` 已完成 `benchmark-engine` repo-closed 隔离执行链路、执行摘要持久化与 `JSON/PDF/HTML` 导出产物落库/回放收口；剩余缺口已收窄为外部文件存储、原始数据下载、更深层跨服务编排与环境级执行证据，且这些 follow-up 尚未被塑形成新的已实例化 repo-side mainline。
   - `HARN-016` 已把外部 Win10 测试环境的 Hetu/MRS 实际联通与留证动作挂起到 `INBOX-002`；它继续是 blocked 的 environment-backed follow-up，不构成当前 repo-side mainline。
-  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不改变当前仓库真值：当前下一条 repo-side mainline 已被塑形为 `D-TASK-021`，但尚未实例化，而 `HARN-016` / `INBOX-001` 仍只属于非主线的 environment-backed follow-up。
+  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不改变当前仓库真值：当前没有新的已实例化 repo-side mainline，而 `HARN-016` / `INBOX-001` 仍只属于非主线的 environment-backed follow-up。
 
 ## 5. Traceability Matrix
 

@@ -257,13 +257,13 @@
 
 ## 3.3 Benchmark Engine Task Contract Baseline
 
-当前 `benchmark-engine` 已将压测任务与报告查询契约接到公共 HTTP + MySQL 基线，并通过 `benchmark_task` / `benchmark_task_report`、MyBatis XML repository 和 in-process scheduled worker 提供可测的提交、轮询、报告查询与失败路径。
+当前 `benchmark-engine` 已将压测任务与报告查询契约接到公共 HTTP + MySQL 基线，并通过 `benchmark_task` / `benchmark_task_report`、MyBatis XML repository、in-process scheduled worker、repo-closed 隔离执行服务和持久化导出产物提供可测的提交、轮询、报告查询与失败路径。
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
-| `POST /api/benchmark-engine/tasks` | `BenchmarkTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`taskContext` | `BenchmarkTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`contractStage`,`implementationStage` | `DATABASE_SCHEDULED_WORKER_BASELINE` |
-| `GET /api/benchmark-engine/tasks/{taskId}` | path: `taskId` | `BenchmarkTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`targetEngines`,`readonlyRequired`,`shadowEnvironmentMode`,`desensitizationRequirement`,`thresholdCount`,`reportId`,`error`,`submittedAt`,`startedAt`,`finishedAt`,`contractStage`,`implementationStage` | `DATABASE_SCHEDULED_WORKER_BASELINE` |
-| `GET /api/benchmark-engine/reports/{reportId}` | path: `reportId`, query: `format=JSON|PDF|HTML` (default `JSON`) | JSON: `BenchmarkReportResponse`; PDF/HTML: rendered placeholder report with `Content-Type` and `Content-Disposition` | `DATABASE_PERSISTED_REPORT_BASELINE` |
+| `POST /api/benchmark-engine/tasks` | `BenchmarkTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`taskContext` | `BenchmarkTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`contractStage`,`implementationStage` | `DATABASE_ISOLATED_EXECUTION_BASELINE` |
+| `GET /api/benchmark-engine/tasks/{taskId}` | path: `taskId` | `BenchmarkTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`targetEngines`,`readonlyRequired`,`shadowEnvironmentMode`,`desensitizationRequirement`,`thresholdCount`,`reportId`,`error`,`submittedAt`,`startedAt`,`finishedAt`,`contractStage`,`implementationStage` | `DATABASE_ISOLATED_EXECUTION_BASELINE` |
+| `GET /api/benchmark-engine/reports/{reportId}` | path: `reportId`, query: `format=JSON|PDF|HTML` (default `JSON`) | JSON: `BenchmarkReportResponse`; PDF/HTML: persisted export snapshot with stable `Content-Type` and `Content-Disposition` | `DATABASE_PERSISTED_EXPORT_BASELINE` |
 
 当前模型基线涉及以下契约对象：
 
@@ -386,14 +386,14 @@
 
 说明：
 
-- 当前 `POST /api/benchmark-engine/tasks` 会先返回 `QUEUED / SUBMITTED` 快照，再由 `BenchmarkTaskWorker` 基于 `benchmark_task` 表推进到成功或失败，并在成功路径上把报告回写到 `benchmark_task_report`。
+- 当前 `POST /api/benchmark-engine/tasks` 会先返回 `QUEUED / SUBMITTED` 快照，再由 `BenchmarkTaskWorker` 基于 `benchmark_task` 表推进到成功或失败，并在成功路径上执行 repo-closed 隔离执行、组装报告快照、生成导出产物并回写到 `benchmark_task_report`。
 - 当前 `GET /api/benchmark-engine/tasks/{taskId}` 已可查询最新任务状态；未知任务返回 `23001`。
-- 当前 `GET /api/benchmark-engine/reports/{reportId}` 默认返回结构化 JSON；当 `format=PDF|HTML` 时返回占位导出内容，并保留稳定的 content-type / filename 契约。
-- 当前占位失败路径通过 SQL 或指纹中的显式 `FAIL_BENCHMARK` 标记触发，用于稳定验证轮询失败场景。
+- 当前 `GET /api/benchmark-engine/reports/{reportId}` 默认返回结构化 JSON；当 `format=PDF|HTML` 时返回持久化导出产物内容，并保留稳定的 content-type / filename 契约。
+- 当前失败路径通过 SQL 或指纹中的显式 `FAIL_BENCHMARK` 标记触发，用于稳定验证 worker 失败与轮询失败场景。
 - 当前 `readonlyRequired=false` 或 `shadowEnvironmentMode=DISABLED` 会被当前骨架拒绝，并返回 `23003`，以保持 `ADR-007` 的隔离约束不被绕过。
 - 当前模型已经把 `ADR-007` 要求的只读标记、影子环境标记和脱敏要求显式入模，避免后续执行链路绕过安全基线。
-- 当前报告模型已覆盖引擎指标快照、阈值判定、趋势图表和建议输出，且成功路径已经把报告回写到 `benchmark_task_report`，供 JSON / PDF / HTML 查询直接复用。
-- 当前 `PDF / HTML` 仍是 placeholder renderer，真实模板、真实文件存储、原始数据下载接口和真实执行链路继续由后续 `Phase-D` 任务补齐。
+- 当前报告模型已覆盖引擎指标快照、阈值判定、趋势图表、建议输出、执行摘要以及导出产物元数据，且成功路径已经把报告与 `JSON/PDF/HTML` 导出 bundle 一并回写到 `benchmark_task_report`，供后续查询直接复用。
+- 当前仓库已补齐 repo-closed 隔离执行与持久化导出链路；后续 `Phase-D` 关注点转为真实模板深化、外部文件存储、原始数据下载接口、跨服务编排与环境级执行证据，而不是继续把当前实现写成 placeholder renderer。
 
 ## 4. Event Contract Baseline
 

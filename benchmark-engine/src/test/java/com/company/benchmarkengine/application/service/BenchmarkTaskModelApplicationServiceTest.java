@@ -11,6 +11,7 @@ import com.company.benchmarkengine.application.controller.dto.BenchmarkThreshold
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskStatusResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskSubmitResponse;
+import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
@@ -76,7 +77,7 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals(BenchmarkTaskPhase.BASELINE_PREPARING, submitResponse.getCurrentPhase());
         assertEquals("/api/benchmark-engine/tasks/benchmark-task-002", submitResponse.getStatusQueryPath());
         assertEquals("LONG_TERM_BASELINE", submitResponse.getContractStage());
-        assertEquals("DATABASE_SCHEDULED_WORKER_BASELINE", submitResponse.getImplementationStage());
+        assertEquals("DATABASE_ISOLATED_EXECUTION_BASELINE", submitResponse.getImplementationStage());
 
         assertEquals(BenchmarkTaskType.COMPARISON, statusResponse.getTaskType());
         assertEquals(BenchmarkTaskPriority.NORMAL, statusResponse.getPriority());
@@ -102,7 +103,7 @@ class BenchmarkTaskModelApplicationServiceTest {
         task.advancePhase(BenchmarkTaskPhase.REPORTING, 95, "THRESHOLDS_EVALUATED");
         task.markSucceeded("report-benchmark-task-003", Instant.parse("2026-04-20T00:10:10Z"));
 
-        BenchmarkReport report = service.buildPlaceholderReport(task, Instant.parse("2026-04-20T00:10:11Z"));
+        BenchmarkReport report = buildReport(service, task, Instant.parse("2026-04-20T00:10:11Z"));
         BenchmarkReportResponse response = service.buildReportResponse(report);
 
         assertEquals(BenchmarkThresholdVerdict.WARNING, response.getVerdict());
@@ -115,8 +116,10 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals("/api/benchmark-engine/reports/report-benchmark-task-003", response.getReportQueryPath());
         assertEquals("/api/benchmark-engine/reports/report-benchmark-task-003/raw-data", response.getRawDataDownloadPath());
         assertEquals("ENGINE_SELECTION", response.getRecommendations().get(0).getCategory());
-        assertEquals("DATABASE_PERSISTED_REPORT_BASELINE", response.getImplementationStage());
+        assertEquals("DATABASE_PERSISTED_EXPORT_BASELINE", response.getImplementationStage());
         assertEquals("tenant-a", report.getTenantId());
+        assertNotNull(report.getExecutionSummary());
+        assertEquals(Integer.valueOf(3), Integer.valueOf(report.getExportArtifacts().size()));
     }
 
     @Test
@@ -147,7 +150,7 @@ class BenchmarkTaskModelApplicationServiceTest {
         task.markSucceeded("report-benchmark-task-004", Instant.parse("2026-04-20T00:15:10Z"));
 
         BenchmarkReportResponse response = service.buildReportResponse(
-            service.buildPlaceholderReport(task, Instant.parse("2026-04-20T00:15:11Z"))
+            buildReport(service, task, Instant.parse("2026-04-20T00:15:11Z"))
         );
 
         assertEquals(BenchmarkThresholdVerdict.FAIL, response.getVerdict());
@@ -181,6 +184,18 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals(Integer.valueOf(14000), Integer.valueOf(response.getError().getCode()));
         assertEquals(BenchmarkTaskStatus.FAILED, response.getStatus());
         assertEquals(BenchmarkTaskPhase.FINISHED, response.getCurrentPhase());
+    }
+
+    private BenchmarkReport buildReport(BenchmarkTaskModelApplicationService service,
+                                        BenchmarkTask task,
+                                        Instant generatedAt) {
+        BenchmarkTaskExecutionProperties properties = new BenchmarkTaskExecutionProperties();
+        properties.setIsolationSampleCount(4);
+        properties.setIsolationWorkIterations(24);
+        BenchmarkIsolatedExecutionResult executionResult =
+            new BenchmarkIsolatedExecutionService(properties, service).execute(task, generatedAt);
+        BenchmarkReport report = service.buildExecutedReport(task, executionResult, generatedAt);
+        return report.withExportArtifacts(new BenchmarkReportExportService().buildArtifacts(service.buildReportResponse(report)));
     }
 
     private BenchmarkTaskSubmitRequest baseRequest(BenchmarkTaskType taskType) {

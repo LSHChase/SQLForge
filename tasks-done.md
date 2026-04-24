@@ -4,6 +4,30 @@
 
 ## Done
 
+### D-TASK-021: 推进 `benchmark-engine` 真实隔离执行与导出链路
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(benchmark-engine): add isolated execution export chain`
+- Priority: 1
+- Depends on: `D-TASK-020`
+- Scope: 把 `benchmark-engine` 从 placeholder 执行/导出基线推进到真实隔离执行、可复现报告快照与导出产物链路，保持只读、影子环境优先、统一授权入口与治理审计契约不变 Tech: `JAVA-BE`,`SQL`,`OPS`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-005` 运行时执行链与跨服务补完
+- Human confirmation point: 若真实压测执行链会放宽只读/影子环境隔离、绕过统一授权入口/治理审计、或把占位导出直接冒充为真实快照导出，需人工确认
+- Data impact: benchmark-engine 执行配置、`benchmark_task` / `benchmark_task_report` 数据、报告快照/导出产物元数据、跨服务审计与 runtime smoke 证据
+- Rollback / recovery: 关闭新增真实执行/导出路径，恢复到当前持久化 placeholder 基线，并回退到上一版报告查询契约、隔离约束与审计说明
+- Validation:
+  - `benchmark-engine 模块测试、导出/报告契约测试、runtime smoke、task audit、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-021`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: replaced the placeholder benchmark path with a repo-closed isolated execution chain, persisted `execution_summary_json` and `export_artifacts_json` on `benchmark_task_report`, and switched PDF/HTML report queries to serve the stored export bundle instead of in-method placeholder rendering.
+- Context closeout:
+  - Completed scope: Implemented repo-closed isolated benchmark execution, persisted execution summaries plus JSON/PDF/HTML export artifacts on benchmark_task_report, switched report rendering to replay stored artifacts, and synchronized benchmark-engine truth/docs/governance state.
+  - Validation evidence: python3 scripts/foreman.py validate D-TASK-021 --include-task-audit --extra-command 'mvn -B -pl benchmark-engine -am test -DskipITs' --extra-command 'bash scripts/run-runtime-smoke.sh --compose-check' --extra-command 'node scripts/lint-repository-knowledge.js'; python3 scripts/foreman.py compile-governance --check
+  - Residual risk: Benchmark-engine now has a repo-closed isolated execution/export baseline, but external file storage, raw data download, deeper cross-service orchestration, and environment-level execution evidence remain follow-up gaps; no new repo-side mainline task is instantiated yet.
+  - Next step: If benchmark-engine follow-up continues, shape and instantiate a new Phase-D task for external artifact storage/raw-data download/cross-service orchestration before further implementation; otherwise keep the repository truth explicit that no repo-side mainline is instantiated.
+
 ### HARN-023: Reconcile E-TASK-016 post-closeout drift
 
 - Status: done

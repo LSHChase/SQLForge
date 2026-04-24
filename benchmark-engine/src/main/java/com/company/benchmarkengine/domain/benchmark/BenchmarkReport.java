@@ -16,6 +16,8 @@ public class BenchmarkReport {
     private final List<BenchmarkEngineProfile> engineProfiles;
     private final List<BenchmarkThresholdAssessment> thresholdAssessments;
     private final List<BenchmarkRecommendation> recommendations;
+    private final BenchmarkExecutionSummary executionSummary;
+    private final List<BenchmarkReportArtifact> exportArtifacts;
     private final BenchmarkThresholdVerdict verdict;
 
     public BenchmarkReport(String reportId,
@@ -27,6 +29,32 @@ public class BenchmarkReport {
                            List<BenchmarkEngineProfile> engineProfiles,
                            List<BenchmarkThresholdAssessment> thresholdAssessments,
                            List<BenchmarkRecommendation> recommendations) {
+        this(
+            reportId,
+            taskId,
+            taskType,
+            tenantId,
+            sqlFingerprint,
+            generatedAt,
+            engineProfiles,
+            thresholdAssessments,
+            recommendations,
+            null,
+            Collections.<BenchmarkReportArtifact>emptyList()
+        );
+    }
+
+    public BenchmarkReport(String reportId,
+                           String taskId,
+                           BenchmarkTaskType taskType,
+                           String tenantId,
+                           String sqlFingerprint,
+                           Instant generatedAt,
+                           List<BenchmarkEngineProfile> engineProfiles,
+                           List<BenchmarkThresholdAssessment> thresholdAssessments,
+                           List<BenchmarkRecommendation> recommendations,
+                           BenchmarkExecutionSummary executionSummary,
+                           List<BenchmarkReportArtifact> exportArtifacts) {
         this.reportId = reportId;
         this.taskId = taskId;
         this.taskType = taskType;
@@ -36,6 +64,8 @@ public class BenchmarkReport {
         this.engineProfiles = immutableCopy(engineProfiles);
         this.thresholdAssessments = immutableCopy(thresholdAssessments);
         this.recommendations = immutableCopy(recommendations);
+        this.executionSummary = executionSummary;
+        this.exportArtifacts = immutableCopy(exportArtifacts);
         this.verdict = calculateVerdict(this.thresholdAssessments);
     }
 
@@ -95,7 +125,43 @@ public class BenchmarkReport {
         return recommendations;
     }
 
+    public BenchmarkExecutionSummary getExecutionSummary() {
+        return executionSummary;
+    }
+
+    public List<BenchmarkReportArtifact> getExportArtifacts() {
+        return exportArtifacts;
+    }
+
     public BenchmarkThresholdVerdict getVerdict() {
         return verdict;
+    }
+
+    public BenchmarkReport withExportArtifacts(List<BenchmarkReportArtifact> artifacts) {
+        return new BenchmarkReport(
+            reportId,
+            taskId,
+            taskType,
+            tenantId,
+            sqlFingerprint,
+            generatedAt,
+            engineProfiles,
+            thresholdAssessments,
+            recommendations,
+            executionSummary,
+            artifacts
+        );
+    }
+
+    public BenchmarkReportArtifact findArtifact(BenchmarkReportFormat format) {
+        if (format == null || exportArtifacts == null) {
+            return null;
+        }
+        for (BenchmarkReportArtifact artifact : exportArtifacts) {
+            if (artifact.getFormat() == format) {
+                return artifact;
+            }
+        }
+        return null;
     }
 }

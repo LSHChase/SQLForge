@@ -14,6 +14,8 @@ public class BenchmarkReportRecord {
     private String engineProfilesJson;
     private String thresholdAssessmentsJson;
     private String recommendationsJson;
+    private String executionSummaryJson;
+    private String exportArtifactsJson;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
@@ -95,6 +97,22 @@ public class BenchmarkReportRecord {
 
     public void setRecommendationsJson(String recommendationsJson) {
         this.recommendationsJson = recommendationsJson;
+    }
+
+    public String getExecutionSummaryJson() {
+        return executionSummaryJson;
+    }
+
+    public void setExecutionSummaryJson(String executionSummaryJson) {
+        this.executionSummaryJson = executionSummaryJson;
+    }
+
+    public String getExportArtifactsJson() {
+        return exportArtifactsJson;
+    }
+
+    public void setExportArtifactsJson(String exportArtifactsJson) {
+        this.exportArtifactsJson = exportArtifactsJson;
     }
 
     public LocalDateTime getCreateTime() {

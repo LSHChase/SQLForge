@@ -1,9 +1,12 @@
 package com.company.benchmarkengine.infrastructure.persistence;
 
 import com.company.benchmarkengine.domain.benchmark.BenchmarkEngineProfile;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkExecutionSummary;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendation;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendationRiskLevel;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase;
@@ -48,6 +51,8 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
     private static final TypeReference<List<Map<String, Object>>> LIST_OF_MAPS = new TypeReference<List<Map<String, Object>>>() {
     };
     private static final TypeReference<List<String>> LIST_OF_STRINGS = new TypeReference<List<String>>() {
+    };
+    private static final TypeReference<Map<String, Object>> MAP_OF_OBJECTS = new TypeReference<Map<String, Object>>() {
     };
 
     private final BenchmarkTaskMapper benchmarkTaskMapper;
@@ -163,6 +168,8 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
         record.setEngineProfilesJson(writeJson(report.getEngineProfiles()));
         record.setThresholdAssessmentsJson(writeJson(report.getThresholdAssessments()));
         record.setRecommendationsJson(writeJson(report.getRecommendations()));
+        record.setExecutionSummaryJson(writeJson(report.getExecutionSummary()));
+        record.setExportArtifactsJson(writeJson(report.getExportArtifacts()));
         return record;
     }
 
@@ -210,7 +217,9 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
             toInstant(record.getGeneratedAt()),
             readEngineProfiles(record.getEngineProfilesJson()),
             readThresholdAssessments(record.getThresholdAssessmentsJson()),
-            readRecommendations(record.getRecommendationsJson())
+            readRecommendations(record.getRecommendationsJson()),
+            readExecutionSummary(record.getExecutionSummaryJson()),
+            readExportArtifacts(record.getExportArtifactsJson())
         );
     }
 
@@ -367,6 +376,62 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
         } catch (Exception ex) {
             throw new IllegalArgumentException("Failed to deserialize benchmark recommendations", ex);
         }
+    }
+
+    private BenchmarkExecutionSummary readExecutionSummary(String json) {
+        if (json == null || json.trim().isEmpty() || "null".equals(json.trim())) {
+            return null;
+        }
+        try {
+            Map<String, Object> item = objectMapper.readValue(json, MAP_OF_OBJECTS);
+            return new BenchmarkExecutionSummary(
+                item.get("executionMode") == null ? null : String.valueOf(item.get("executionMode")),
+                item.get("isolationSummary") == null ? null : String.valueOf(item.get("isolationSummary")),
+                item.get("sampleCount") == null ? null : Integer.valueOf(String.valueOf(item.get("sampleCount"))),
+                item.get("executionDurationMs") == null ? null : Long.valueOf(String.valueOf(item.get("executionDurationMs"))),
+                item.get("workloadDigest") == null ? null : String.valueOf(item.get("workloadDigest")),
+                readStringList(item.get("phaseNotes"))
+            );
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Failed to deserialize benchmark execution summary", ex);
+        }
+    }
+
+    private List<BenchmarkReportArtifact> readExportArtifacts(String json) {
+        if (json == null || json.trim().isEmpty() || "null".equals(json.trim())) {
+            return Collections.emptyList();
+        }
+        try {
+            List<Map<String, Object>> items = objectMapper.readValue(json, LIST_OF_MAPS);
+            List<BenchmarkReportArtifact> artifacts = new ArrayList<BenchmarkReportArtifact>(items.size());
+            for (Map<String, Object> item : items) {
+                artifacts.add(
+                    new BenchmarkReportArtifact(
+                        readEnum(item.get("format"), BenchmarkReportFormat.class),
+                        item.get("fileName") == null ? null : String.valueOf(item.get("fileName")),
+                        item.get("mediaType") == null ? null : String.valueOf(item.get("mediaType")),
+                        item.get("contentLength") == null ? null : Integer.valueOf(String.valueOf(item.get("contentLength"))),
+                        item.get("checksumSha256") == null ? null : String.valueOf(item.get("checksumSha256")),
+                        item.get("content") == null ? null : String.valueOf(item.get("content"))
+                    )
+                );
+            }
+            return artifacts;
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Failed to deserialize benchmark export artifacts", ex);
+        }
+    }
+
+    private List<String> readStringList(Object raw) {
+        if (!(raw instanceof List<?>)) {
+            return Collections.emptyList();
+        }
+        List<?> rawItems = (List<?>) raw;
+        List<String> items = new ArrayList<String>(rawItems.size());
+        for (Object rawItem : rawItems) {
+            items.add(rawItem == null ? null : String.valueOf(rawItem));
+        }
+        return items;
     }
 
     private String writeJson(Object value) {

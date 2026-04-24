@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
+import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
@@ -31,7 +32,7 @@ class BenchmarkReportApplicationServiceTest {
     }
 
     @Test
-    void shouldRenderPdfAndHtmlPlaceholderContent() {
+    void shouldRenderPersistedPdfAndHtmlContent() {
         BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
         InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
@@ -39,6 +40,7 @@ class BenchmarkReportApplicationServiceTest {
         BenchmarkReportApplicationService service =
             new BenchmarkReportApplicationService(
                 modelService,
+                new BenchmarkReportExportService(),
                 repository,
                 governanceCapabilityClient,
                 new BenchmarkMetricsRecorder(meterRegistry)
@@ -81,6 +83,7 @@ class BenchmarkReportApplicationServiceTest {
         BenchmarkReportApplicationService service =
             new BenchmarkReportApplicationService(
                 modelService,
+                new BenchmarkReportExportService(),
                 repository,
                 mockGovernanceClient(),
                 new BenchmarkMetricsRecorder(new SimpleMeterRegistry())
@@ -112,7 +115,13 @@ class BenchmarkReportApplicationServiceTest {
         );
         task.advancePhase(com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase.REPORTING, 96, "REPORTING");
         task.markSucceeded("report-" + taskId, Instant.parse("2026-04-21T00:00:10Z"));
-        BenchmarkReport report = modelService.buildPlaceholderReport(task, Instant.parse("2026-04-21T00:00:11Z"));
+        BenchmarkTaskExecutionProperties properties = new BenchmarkTaskExecutionProperties();
+        properties.setIsolationSampleCount(4);
+        properties.setIsolationWorkIterations(24);
+        BenchmarkIsolatedExecutionResult executionResult =
+            new BenchmarkIsolatedExecutionService(properties, modelService).execute(task, Instant.parse("2026-04-21T00:00:11Z"));
+        BenchmarkReport report = modelService.buildExecutedReport(task, executionResult, Instant.parse("2026-04-21T00:00:11Z"));
+        report = report.withExportArtifacts(new BenchmarkReportExportService().buildArtifacts(modelService.buildReportResponse(report)));
         repository.saveReport(report);
         return report;
     }
