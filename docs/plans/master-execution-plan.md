@@ -108,9 +108,9 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：`D-TASK-019`，负责为 `query-execution` 与 `governance` 补最小业务级 Micrometer 指标与执行遥测，先把仓库侧参数调优观测面补齐，再进入外部环境调优闭环。
+- 当前活跃目标：`D-TASK-020`，负责把 `sql-optimization` 与 `benchmark-engine` 从“主要依赖日志和数据库查询定位问题”推进到“具备最小业务级 Micrometer 指标”的 repo-closed 可观测基线，延续 `D-TASK-019` 已完成的查询执行与治理观测收口。
 - 当前下一条可执行主线任务：
-  - `D-TASK-019`
+  - `D-TASK-020`
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成归档。
@@ -123,9 +123,10 @@
   - `HARN-011` 只用于修正 `F-TASK-032` closeout 后遗留的 active-wave / follow-up 措辞漂移，不改变 `F-TASK-032` 的历史完成结论，也不引入新的仓库主线实现范围。
   - `D-TASK-015` 已把 `query-execution` 推进到 feature-flagged Hetu 模式链基线；`D-TASK-016` 已完成统一授权入口收口；`D-TASK-017` 现已完成仓库侧真实 Hetu 集成与 smoke 分层，剩余 follow-up 转为外部 Hetu/MRS 环境的证据沉淀与运维参数校准。
   - `D-TASK-018` 承接 `R-169` 新增后的直接实现收口：移除历史 schema 外键、补齐应用层引用完整性校验，并把 Hetu/MRS 测试环境部署文档切到 Win10 + IDEA + yml 配置读取与确认清单口径。
-  - `D-TASK-019` 在不依赖外部测试环境的前提下继续当前 mainline：为 `query-execution` 和 `governance` 增加最小业务指标、执行模式命中与兜底信号，给后续 Hetu 参数调优和排障提供 repo-closed 观测基线。
+  - `D-TASK-019` 已完成 `query-execution` 与 `governance` 的最小业务指标与执行遥测收口；其 closeout 后的 active-wave 漂移由 `HARN-017` 修正，不改写 `D-TASK-019` 的历史完成结论。
+  - `D-TASK-020` 承接 `D-TASK-019` 的下一条 repo-closed mainline：为 `sql-optimization` 与 `benchmark-engine` 增加最小业务级 Micrometer 指标、异步任务终态信号与处理延迟观测，并同步 observability / truth 文档，使四个后端服务都具备最小业务观测基线。
   - `HARN-016` 已把外部 Win10 测试环境的 Hetu/MRS 实际联通与留证动作挂起到 `INBOX-002`；仓库侧继续按 mainline 实现推进，不把环境等待时间误记为编码阻塞。
-  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不影响当前仓库主线在 `Phase-D / D-STORY-005` 继续推进 schema 治理任务。
+  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不影响当前仓库主线在 `Phase-D / D-STORY-005` 继续推进 async-service observability hardening。
 
 ## 5. Traceability Matrix
 
@@ -422,6 +423,7 @@ Tasks:
 | `D-TASK-017` | 落实 `query-execution` 真实 Hetu 集成与 smoke 分层 | 让 `query-execution` 的 HETU 主路径不再以 `SIMULATED` 冒充成功，补齐 JDBC 驱动接线、Hetu client 协议接入、REST/CLIENT 模式真实联通、运行参数/错误语义收口，并在保留统一授权入口前提下补齐本地 runtime smoke 与外部 Hetu/MRS environment-backed smoke 入口/文档 | `D-TASK-016` | query-execution 模块测试、跨模式适配测试、runtime smoke、Hetu env smoke 入口与契约文档同步 |
 | `D-TASK-018` | 去除核心追溯链历史外键并补齐应用层完整性校验 | 移除 `config/result/history/export/audit` 在 MySQL / TDSQL 上的历史外键约束，改为索引 + 应用层完整性校验；同步补齐 drop-foreign-key migration、schema 映射测试，以及 Win10 + IDEA + yml 配置读取口径的 Hetu/MRS 测试环境部署文档与确认清单 | `D-TASK-017` | governance 模块测试、schema/migration 映射测试、task audit、知识检查与部署文档同步 |
 | `D-TASK-019` | 补齐 `query-execution` 执行遥测与业务指标基线 | 为 `query-execution` 与 `governance` 增加最小业务级 Micrometer 指标，覆盖查询执行结果、模式命中、timeout/degraded/fallback、治理审计兜底与数据库消息队列 backlog 等 repo-closed 可观测信号；同步更新 observability / truth 文档与验证基线 | `D-TASK-018` | query-execution/governance 模块测试、prometheus 指标断言、runtime smoke、task audit 与文档同步 |
+| `D-TASK-020` | 补齐异步服务执行遥测与业务指标基线 | 为 `sql-optimization` 与 `benchmark-engine` 增加最小业务级 Micrometer 指标，覆盖任务提交、终态成功/失败、worker 或报告处理延迟等 repo-closed 可观测信号；同步更新 observability / truth 文档与验证基线，并保持低基数标签约束 | `D-TASK-019` | sql-optimization/benchmark-engine 模块测试、prometheus 指标断言、runtime smoke、task audit 与文档同步 |
 
 ### Phase-E 前端驾驶舱与业务页面
 

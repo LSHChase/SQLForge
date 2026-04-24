@@ -83,6 +83,7 @@
 | `D-TASK-017` | 若真实 Hetu 集成重新退回 `SIMULATED` 冒充成功、放宽只读边界、绕过统一授权入口，或在未确认外部依赖时默认启用高风险生产参数，需人工确认 | query-execution Hetu 连接配置、执行链路、审计记录、runtime/env smoke 证据 | 恢复受控模式顺序、严格 HETU 路由失败语义、统一授权前置检查，并回退到上一版受控配置与文档说明 |
 | `D-TASK-018` | 若去外键改动会破坏历史追溯链、弱化租户隔离，或把 Win10/IDEA 测试环境文档重新写回 Linux/Kafka/env-var 优先口径，需人工确认 | 核心 traceability schema、应用层引用完整性校验、部署文档与测试环境配置方式 | 恢复兼容 DDL / 引用校验与旧文档版本，或拆分为独立迁移批次并补数据修复与确认记录 |
 | `D-TASK-019` | 若新增遥测暴露敏感信息、引入高基数标签导致生产指标失控，或削弱现有日志/审计语义以换取指标简化，需人工确认 | query-execution/governance 指标、执行模式信号、队列 backlog 可观测数据 | 移除高风险 meter、恢复仅日志审计语义，并回退到上一版稳定 tags 与文档说明 |
+| `D-TASK-020` | 若异步服务新增遥测暴露敏感信息、为便于排障引入 task id / tenant id 等高基数标签，或削弱既有日志/审计语义以换取指标简化，需人工确认 | sql-optimization/benchmark-engine 指标、异步任务终态信号、worker/report 延迟可观测数据 | 移除高风险 meter、恢复以日志/审计为主的既有语义，并回退到上一版稳定 tags 与文档说明 |
 
 ## Phase-E
 

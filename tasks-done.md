@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-017: Reconcile D-TASK-019 post-closeout drift
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `fix(governance): HARN-017 reconcile d-task-019 drift`
+- Priority: 1
+- Depends on: D-TASK-019
+- Scope: Align current active wave, ledgers, and plan truth after D-TASK-019 completion without changing business code or environment-backed follow-up semantics.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-017`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-23: updated the master execution plan current active wave from completed `D-TASK-019` to the new repo-closed follow-up `D-TASK-020`, and extended the task spec / governance matrices so the next async-service observability hardening step has formal scope, validation, and low-cardinality telemetry guardrails.
+- Context closeout:
+  - Completed scope: Aligned the Phase-D current active wave after D-TASK-019 closeout by moving the mainline from the completed query-execution/governance telemetry task to a new repo-closed follow-up D-TASK-020, and synchronized the master plan plus task spec/governance matrices so async-service observability hardening is now the formal next executable task without changing any business-code or environment-backed semantics.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-017 --include-task-audit --extra-command "python3 scripts/foreman.py compile-governance --check" --extra-command "node scripts/lint-repository-knowledge.js"
+  - Residual risk: The external Hetu/MRS evidence wait in HARN-016 and the Sonar environment-restoration follow-up in INBOX-001 remain unchanged environment-backed items; validation-log closeout tails also continue as append-only audit residue outside the single-task stage scope.
+  - Next step: Instantiate D-TASK-020 and implement minimal Micrometer business metrics for sql-optimization and benchmark-engine so all four backend services share a repo-closed observability baseline.
+
 ### D-TASK-019: 补齐 query-execution 执行遥测与业务指标基线
 
 - Status: done
