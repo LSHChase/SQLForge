@@ -108,9 +108,9 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：`D-TASK-020`，负责把 `sql-optimization` 与 `benchmark-engine` 从“主要依赖日志和数据库查询定位问题”推进到“具备最小业务级 Micrometer 指标”的 repo-closed 可观测基线，延续 `D-TASK-019` 已完成的查询执行与治理观测收口。
+- 当前活跃目标：`无已实例化的 repo-side mainline task`；`D-TASK-020` 已完成，仓库当前已把 4 个后端服务的最小业务级 Micrometer 指标基线收口到 repo-closed 主路径。
 - 当前下一条可执行主线任务：
-  - `D-TASK-020`
+  - `待下一条受治理任务实例化；当前只保留 environment-backed / blocked follow-up`
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成归档。
@@ -124,9 +124,9 @@
   - `D-TASK-015` 已把 `query-execution` 推进到 feature-flagged Hetu 模式链基线；`D-TASK-016` 已完成统一授权入口收口；`D-TASK-017` 现已完成仓库侧真实 Hetu 集成与 smoke 分层，剩余 follow-up 转为外部 Hetu/MRS 环境的证据沉淀与运维参数校准。
   - `D-TASK-018` 承接 `R-169` 新增后的直接实现收口：移除历史 schema 外键、补齐应用层引用完整性校验，并把 Hetu/MRS 测试环境部署文档切到 Win10 + IDEA + yml 配置读取与确认清单口径。
   - `D-TASK-019` 已完成 `query-execution` 与 `governance` 的最小业务指标与执行遥测收口；其 closeout 后的 active-wave 漂移由 `HARN-017` 修正，不改写 `D-TASK-019` 的历史完成结论。
-  - `D-TASK-020` 承接 `D-TASK-019` 的下一条 repo-closed mainline：为 `sql-optimization` 与 `benchmark-engine` 增加最小业务级 Micrometer 指标、异步任务终态信号与处理延迟观测，并同步 observability / truth 文档，使四个后端服务都具备最小业务观测基线。
+  - `D-TASK-020` 已完成 `sql-optimization` 与 `benchmark-engine` 的最小业务级 Micrometer 指标、异步任务终态信号与处理延迟观测收口；其 closeout 后的 active-wave 漂移由 `HARN-018` 修正，不改写 `D-TASK-020` 的历史完成结论。
   - `HARN-016` 已把外部 Win10 测试环境的 Hetu/MRS 实际联通与留证动作挂起到 `INBOX-002`；仓库侧继续按 mainline 实现推进，不把环境等待时间误记为编码阻塞。
-  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不影响当前仓库主线在 `Phase-D / D-STORY-005` 继续推进 async-service observability hardening。
+  - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不影响当前仓库保持“无已实例化 repo-side mainline task”的真实状态，直到下一条治理任务被正式实例化。
 
 ## 5. Traceability Matrix
 

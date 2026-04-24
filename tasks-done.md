@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-018: Reconcile D-TASK-020 post-closeout drift
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `fix(governance): HARN-018 reconcile d-task-020 drift`
+- Priority: 1
+- Depends on: D-TASK-020
+- Scope: Align current active wave and plan truth after D-TASK-020 completion without inventing a new unapproved mainline task or changing environment-backed follow-up semantics.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-018`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-23: updated the master execution plan current active wave after D-TASK-020 closeout so repository truth no longer points at a completed repo-side mainline task; current state now explicitly shows no instantiated mainline task while HARN-016 and INBOX-001 remain environment-backed follow-ups only.
+- Context closeout:
+  - Completed scope: Aligned the Phase-D current active wave after D-TASK-020 closeout by clearing the stale pointer to a completed repo-side mainline task and updating the master plan to reflect the current repository truth: no active repo-side mainline is instantiated, while HARN-016 and INBOX-001 remain external or environment-backed follow-ups.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-018 --include-task-audit --extra-command "python3 scripts/foreman.py compile-governance --check" --extra-command "node scripts/lint-repository-knowledge.js"
+  - Residual risk: The repository mainline is now truthfully idle rather than stale, but the external Hetu/MRS evidence wait in HARN-016 and the Sonar restoration decision in INBOX-001 remain unresolved; validation-log tails continue as append-only audit residue outside the single-task stage scope.
+  - Next step: When a new repo-side priority is chosen, instantiate it explicitly before changing the active-wave block again; until then keep HARN-016 blocked and INBOX-001 open as non-mainline follow-ups.
+
 ### D-TASK-020: 补齐异步服务执行遥测与业务指标基线
 
 - Status: done
