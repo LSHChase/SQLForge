@@ -4,6 +4,30 @@
 
 ## Done
 
+### D-TASK-020: 补齐异步服务执行遥测与业务指标基线
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `feat(observability): D-TASK-020 add async metrics baseline`
+- Priority: 1
+- Depends on: D-TASK-019
+- Scope: Add minimal Micrometer business metrics for sql-optimization and benchmark-engine, keep low-cardinality tags, extend tests/runtime smoke, and sync observability/document-truth docs without changing external environment-backed workflows.
+- Matrix context: Phase-D / Story `D-STORY-005` 运行时执行链与跨服务补完
+- Human confirmation point: 若异步服务新增遥测暴露敏感信息、为便于排障引入 task id / tenant id 等高基数标签，或削弱既有日志/审计语义以换取指标简化，需人工确认
+- Data impact: sql-optimization/benchmark-engine 指标、异步任务终态信号、worker/report 延迟可观测数据
+- Rollback / recovery: 移除高风险 meter、恢复以日志/审计为主的既有语义，并回退到上一版稳定 tags 与文档说明
+- Validation:
+  - `sql-optimization/benchmark-engine 模块测试、prometheus 指标断言、runtime smoke、task audit、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-020`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-23: added `OptimizationMetricsRecorder` and `BenchmarkMetricsRecorder`, wired minimal Micrometer counters/timers into async submit/worker/report paths, extended targeted unit coverage with meter assertions, and updated observability/document-truth authority text from “async services mainly rely on logs” to the new four-service minimal metrics baseline.
+- Context closeout:
+  - Completed scope: Added OptimizationMetricsRecorder and BenchmarkMetricsRecorder, wired minimal Micrometer counters/timers into sql-optimization submit/worker paths and benchmark-engine submit/worker/report paths, extended targeted unit coverage with meter assertions, recompiled authority-map policy state, and synchronized observability/document-truth docs so all four backend services now have a repo-closed minimal business metrics baseline.
+  - Validation evidence: python3 scripts/foreman.py validate D-TASK-020 --include-task-audit --extra-command "python3 scripts/foreman.py compile-governance --check" --extra-command "mvn -B -pl sql-optimization,benchmark-engine -am test -DskipITs -Dtest=OptimizationTaskApplicationServiceTest,OptimizationTaskWorkerTest,BenchmarkTaskApplicationServiceTest,BenchmarkTaskWorkerTest,BenchmarkReportApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false" --extra-command "bash scripts/run-runtime-smoke.sh --runtime-smoke" --extra-command "node scripts/lint-repository-knowledge.js"
+  - Residual risk: The repository now exposes minimal async-service metrics, but PrometheusRule/Alertmanager/Grafana assets, log-pipeline templates, tracing, and external-environment follow-ups such as HARN-016 Hetu/MRS evidence and INBOX-001 Sonar restoration remain outside this task scope; validation-log tails also continue as append-only audit residue outside the single-task stage scope.
+  - Next step: If Phase-D observability hardening continues, reconcile the current active wave after this closeout and decide whether the next repo-side task should target broader cross-service tracing/aggregated observability or another governed follow-up.
+
 ### HARN-017: Reconcile D-TASK-019 post-closeout drift
 
 - Status: done

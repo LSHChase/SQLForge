@@ -30,13 +30,16 @@ public class BenchmarkTaskWorker {
     private final BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService;
     private final BenchmarkTaskRepository benchmarkTaskRepository;
     private final BenchmarkTaskExecutionProperties executionProperties;
+    private final BenchmarkMetricsRecorder benchmarkMetricsRecorder;
 
     public BenchmarkTaskWorker(BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService,
                                BenchmarkTaskRepository benchmarkTaskRepository,
-                               BenchmarkTaskExecutionProperties executionProperties) {
+                               BenchmarkTaskExecutionProperties executionProperties,
+                               BenchmarkMetricsRecorder benchmarkMetricsRecorder) {
         this.benchmarkTaskModelApplicationService = benchmarkTaskModelApplicationService;
         this.benchmarkTaskRepository = benchmarkTaskRepository;
         this.executionProperties = executionProperties;
+        this.benchmarkMetricsRecorder = benchmarkMetricsRecorder;
     }
 
     @Scheduled(fixedDelayString = "${benchmark-engine.task-execution.poll-interval-ms:25}")
@@ -67,6 +70,7 @@ public class BenchmarkTaskWorker {
                 );
                 benchmarkTaskRepository.saveTask(task);
                 logStateChange(task, STATE_WORKER_RUNNING, STATE_WORKER_FAILED, task.getError().getMessage());
+                benchmarkMetricsRecorder.recordWorkerTerminal(task, System.currentTimeMillis() - start);
                 logEnd(task, start);
                 return;
             }
@@ -77,8 +81,11 @@ public class BenchmarkTaskWorker {
             task.markSucceeded(report.getReportId(), Instant.now());
             benchmarkTaskRepository.saveTask(task);
             logStateChange(task, STATE_WORKER_RUNNING, STATE_WORKER_SUCCEEDED, report.getReportId());
+            benchmarkMetricsRecorder.recordReportGenerated(report);
+            benchmarkMetricsRecorder.recordWorkerTerminal(task, System.currentTimeMillis() - start);
             logEnd(task, start);
         } catch (RuntimeException ex) {
+            benchmarkMetricsRecorder.recordWorkerException(task, System.currentTimeMillis() - start);
             LOGGER.error("operation={} entity={} tenantId={} costMs={} status=FAILED phase=EXCEPTION reason={}",
                 OPERATION,
                 task.getTaskId(),

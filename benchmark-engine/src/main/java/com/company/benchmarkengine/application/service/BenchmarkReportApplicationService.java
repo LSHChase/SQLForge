@@ -40,13 +40,16 @@ public class BenchmarkReportApplicationService {
     private final BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService;
     private final BenchmarkTaskRepository benchmarkTaskRepository;
     private final GovernanceCapabilityClient governanceCapabilityClient;
+    private final BenchmarkMetricsRecorder benchmarkMetricsRecorder;
 
     public BenchmarkReportApplicationService(BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService,
                                              BenchmarkTaskRepository benchmarkTaskRepository,
-                                             GovernanceCapabilityClient governanceCapabilityClient) {
+                                             GovernanceCapabilityClient governanceCapabilityClient,
+                                             BenchmarkMetricsRecorder benchmarkMetricsRecorder) {
         this.benchmarkTaskModelApplicationService = benchmarkTaskModelApplicationService;
         this.benchmarkTaskRepository = benchmarkTaskRepository;
         this.governanceCapabilityClient = governanceCapabilityClient;
+        this.benchmarkMetricsRecorder = benchmarkMetricsRecorder;
     }
 
     public BenchmarkReportResponse getJsonReport(String reportId) {
@@ -55,6 +58,7 @@ public class BenchmarkReportApplicationService {
         try {
             BenchmarkReport report = loadReport(reportId);
             BenchmarkReportResponse response = benchmarkTaskModelApplicationService.buildReportResponse(report);
+            benchmarkMetricsRecorder.recordReportResponse(BenchmarkReportFormat.JSON, System.currentTimeMillis() - start);
             logEnd(reportId, BenchmarkReportFormat.JSON, start);
             writeAuditRecord(
                 reportId,
@@ -65,6 +69,7 @@ public class BenchmarkReportApplicationService {
             );
             return response;
         } catch (RuntimeException ex) {
+            benchmarkMetricsRecorder.recordReportFailure(BenchmarkReportFormat.JSON, System.currentTimeMillis() - start);
             logFailure(reportId, BenchmarkReportFormat.JSON, start, ex);
             writeAuditRecord(
                 reportId,
@@ -83,6 +88,7 @@ public class BenchmarkReportApplicationService {
         try {
             BenchmarkReport report = loadReport(reportId);
             BenchmarkReportRawDataResponse response = benchmarkTaskModelApplicationService.buildRawDataResponse(report);
+            benchmarkMetricsRecorder.recordReportResponse(null, System.currentTimeMillis() - start);
             logEnd(reportId, null, start);
             writeAuditRecord(
                 reportId,
@@ -93,6 +99,7 @@ public class BenchmarkReportApplicationService {
             );
             return response;
         } catch (RuntimeException ex) {
+            benchmarkMetricsRecorder.recordReportFailure(null, System.currentTimeMillis() - start);
             logFailure(reportId, null, start, ex);
             writeAuditRecord(
                 reportId,
@@ -114,6 +121,7 @@ public class BenchmarkReportApplicationService {
             BenchmarkRenderedReport renderedReport = format == BenchmarkReportFormat.PDF
                 ? renderPdf(response)
                 : renderHtml(response);
+            benchmarkMetricsRecorder.recordReportResponse(format, System.currentTimeMillis() - start);
             logEnd(reportId, format, start);
             writeAuditRecord(
                 reportId,
@@ -124,6 +132,7 @@ public class BenchmarkReportApplicationService {
             );
             return renderedReport;
         } catch (RuntimeException ex) {
+            benchmarkMetricsRecorder.recordReportFailure(format, System.currentTimeMillis() - start);
             logFailure(reportId, format, start, ex);
             writeAuditRecord(
                 reportId,

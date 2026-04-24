@@ -28,11 +28,14 @@ public class OptimizationTaskWorker {
 
     private final OptimizationTaskRepository optimizationTaskRepository;
     private final OptimizationTaskExecutionProperties executionProperties;
+    private final OptimizationMetricsRecorder optimizationMetricsRecorder;
 
     public OptimizationTaskWorker(OptimizationTaskRepository optimizationTaskRepository,
-                                  OptimizationTaskExecutionProperties executionProperties) {
+                                  OptimizationTaskExecutionProperties executionProperties,
+                                  OptimizationMetricsRecorder optimizationMetricsRecorder) {
         this.optimizationTaskRepository = optimizationTaskRepository;
         this.executionProperties = executionProperties;
+        this.optimizationMetricsRecorder = optimizationMetricsRecorder;
     }
 
     @Scheduled(fixedDelayString = "${sql-optimization.task-execution.poll-interval-ms:25}")
@@ -63,6 +66,7 @@ public class OptimizationTaskWorker {
                 );
                 optimizationTaskRepository.save(task);
                 logStateChange(task, STATE_WORKER_RUNNING, STATE_WORKER_FAILED, task.getError().getMessage());
+                optimizationMetricsRecorder.recordWorkerTerminal(task, System.currentTimeMillis() - start);
                 logEnd(task, start);
                 return;
             }
@@ -71,8 +75,10 @@ public class OptimizationTaskWorker {
             task.markSucceeded(buildSummary(task), Instant.now());
             optimizationTaskRepository.save(task);
             logStateChange(task, STATE_WORKER_RUNNING, STATE_WORKER_SUCCEEDED, task.getSummary());
+            optimizationMetricsRecorder.recordWorkerTerminal(task, System.currentTimeMillis() - start);
             logEnd(task, start);
         } catch (RuntimeException ex) {
+            optimizationMetricsRecorder.recordWorkerException(task, System.currentTimeMillis() - start);
             LOGGER.error("operation={} entity={} tenantId={} costMs={} status=FAILED phase=EXCEPTION reason={}",
                 OPERATION,
                 task.getTaskId(),

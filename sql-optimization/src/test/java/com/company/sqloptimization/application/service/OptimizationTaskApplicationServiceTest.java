@@ -16,6 +16,7 @@ import com.company.sqloptimization.application.controller.dto.OptimizationTaskSu
 import com.company.sqloptimization.application.controller.vo.OptimizationTaskSubmitResponse;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqloptimization.infrastructure.repository.InMemoryOptimizationTaskRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,8 @@ class OptimizationTaskApplicationServiceTest {
         OptimizationTaskApplicationService service = new OptimizationTaskApplicationService(
             new OptimizationTaskModelApplicationService(),
             new InMemoryOptimizationTaskRepository(),
-            mockGovernanceClient()
+            mockGovernanceClient(),
+            new OptimizationMetricsRecorder(new SimpleMeterRegistry())
         );
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -54,7 +56,8 @@ class OptimizationTaskApplicationServiceTest {
         OptimizationTaskApplicationService service = new OptimizationTaskApplicationService(
             new OptimizationTaskModelApplicationService(),
             new InMemoryOptimizationTaskRepository(),
-            mockGovernanceClient()
+            mockGovernanceClient(),
+            new OptimizationMetricsRecorder(new SimpleMeterRegistry())
         );
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -72,7 +75,8 @@ class OptimizationTaskApplicationServiceTest {
         OptimizationTaskApplicationService service = new OptimizationTaskApplicationService(
             new OptimizationTaskModelApplicationService(),
             new InMemoryOptimizationTaskRepository(),
-            governanceCapabilityClient
+            governanceCapabilityClient,
+            new OptimizationMetricsRecorder(new SimpleMeterRegistry())
         );
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -94,6 +98,25 @@ class OptimizationTaskApplicationServiceTest {
             org.mockito.Mockito.eq("OPTIMIZATION_TASK_STATUS_QUERY")
         );
         verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).writeAudit(any());
+    }
+
+    @Test
+    void shouldRecordSubmittedTaskMetric() {
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+        OptimizationTaskApplicationService service = new OptimizationTaskApplicationService(
+            new OptimizationTaskModelApplicationService(),
+            new InMemoryOptimizationTaskRepository(),
+            mockGovernanceClient(),
+            new OptimizationMetricsRecorder(meterRegistry)
+        );
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+
+        service.submitTask(baseRequest("SELECT * FROM orders"));
+
+        assertEquals(1.0D, meterRegistry.get("sqlforge.sql.optimization.tasks.submitted").tags(
+            "task_type", "REWRITE",
+            "datasource_type", "HETU"
+        ).counter().count());
     }
 
     private OptimizationTaskSubmitRequest baseRequest(String sqlText) {

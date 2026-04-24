@@ -41,13 +41,16 @@ public class BenchmarkTaskApplicationService {
     private final BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService;
     private final BenchmarkTaskRepository benchmarkTaskRepository;
     private final GovernanceCapabilityClient governanceCapabilityClient;
+    private final BenchmarkMetricsRecorder benchmarkMetricsRecorder;
 
     public BenchmarkTaskApplicationService(BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService,
                                            BenchmarkTaskRepository benchmarkTaskRepository,
-                                           GovernanceCapabilityClient governanceCapabilityClient) {
+                                           GovernanceCapabilityClient governanceCapabilityClient,
+                                           BenchmarkMetricsRecorder benchmarkMetricsRecorder) {
         this.benchmarkTaskModelApplicationService = benchmarkTaskModelApplicationService;
         this.benchmarkTaskRepository = benchmarkTaskRepository;
         this.governanceCapabilityClient = governanceCapabilityClient;
+        this.benchmarkMetricsRecorder = benchmarkMetricsRecorder;
     }
 
     public BenchmarkTaskSubmitResponse submitTask(BenchmarkTaskSubmitRequest request) {
@@ -66,6 +69,7 @@ public class BenchmarkTaskApplicationService {
             );
             assertAuthorization(task.getTenantId(), task.getTaskId(), task.getTargetEngines(), SUBMIT_OPERATION);
             benchmarkTaskRepository.saveTask(task);
+            benchmarkMetricsRecorder.recordTaskSubmitted(task);
             logStateChange(
                 SUBMIT_OPERATION,
                 task.getTaskId(),

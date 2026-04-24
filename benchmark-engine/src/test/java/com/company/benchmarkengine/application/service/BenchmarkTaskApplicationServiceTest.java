@@ -15,6 +15,7 @@ import com.company.benchmarkengine.infrastructure.governance.GovernanceCapabilit
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.benchmarkengine.infrastructure.repository.InMemoryBenchmarkTaskRepository;
 import com.company.sqlforge.common.exception.BizException;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,8 @@ class BenchmarkTaskApplicationServiceTest {
         BenchmarkTaskApplicationService service = new BenchmarkTaskApplicationService(
             new BenchmarkTaskModelApplicationService(),
             new InMemoryBenchmarkTaskRepository(),
-            mockGovernanceClient()
+            mockGovernanceClient(),
+            new BenchmarkMetricsRecorder(new SimpleMeterRegistry())
         );
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -52,7 +54,8 @@ class BenchmarkTaskApplicationServiceTest {
         BenchmarkTaskApplicationService service = new BenchmarkTaskApplicationService(
             new BenchmarkTaskModelApplicationService(),
             new InMemoryBenchmarkTaskRepository(),
-            mockGovernanceClient()
+            mockGovernanceClient(),
+            new BenchmarkMetricsRecorder(new SimpleMeterRegistry())
         );
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -70,7 +73,8 @@ class BenchmarkTaskApplicationServiceTest {
         BenchmarkTaskApplicationService service = new BenchmarkTaskApplicationService(
             new BenchmarkTaskModelApplicationService(),
             new InMemoryBenchmarkTaskRepository(),
-            governanceCapabilityClient
+            governanceCapabilityClient,
+            new BenchmarkMetricsRecorder(new SimpleMeterRegistry())
         );
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -85,6 +89,24 @@ class BenchmarkTaskApplicationServiceTest {
             org.mockito.Mockito.anyString()
         );
         verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).writeAudit(any());
+    }
+
+    @Test
+    void shouldRecordSubmittedBenchmarkTaskMetric() {
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+        BenchmarkTaskApplicationService service = new BenchmarkTaskApplicationService(
+            new BenchmarkTaskModelApplicationService(),
+            new InMemoryBenchmarkTaskRepository(),
+            mockGovernanceClient(),
+            new BenchmarkMetricsRecorder(meterRegistry)
+        );
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+
+        service.submitTask(baseRequest("SELECT * FROM orders"));
+
+        assertEquals(1.0D, meterRegistry.get("sqlforge.benchmark.engine.tasks.submitted").tags(
+            "task_type", "BASELINE"
+        ).counter().count());
     }
 
     private BenchmarkTaskSubmitRequest baseRequest(String sqlText) {

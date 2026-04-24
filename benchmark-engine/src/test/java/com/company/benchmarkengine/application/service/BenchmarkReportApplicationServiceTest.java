@@ -17,6 +17,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
 import com.company.benchmarkengine.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.benchmarkengine.infrastructure.repository.InMemoryBenchmarkTaskRepository;
 import com.company.sqlforge.common.exception.BizException;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
@@ -34,8 +35,14 @@ class BenchmarkReportApplicationServiceTest {
         BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
         InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         BenchmarkReportApplicationService service =
-            new BenchmarkReportApplicationService(modelService, repository, governanceCapabilityClient);
+            new BenchmarkReportApplicationService(
+                modelService,
+                repository,
+                governanceCapabilityClient,
+                new BenchmarkMetricsRecorder(meterRegistry)
+            );
         BenchmarkReport report = storeReport(modelService, repository, "benchmark-report-001");
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -57,6 +64,14 @@ class BenchmarkReportApplicationServiceTest {
             org.mockito.Mockito.eq("BENCHMARK_REPORT_QUERY")
         );
         verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).writeAudit(any());
+        assertEquals(1.0D, meterRegistry.get("sqlforge.benchmark.engine.report.requests").tags(
+            "format", "PDF",
+            "result_status", "SUCCESS"
+        ).counter().count());
+        assertEquals(1.0D, meterRegistry.get("sqlforge.benchmark.engine.report.requests").tags(
+            "format", "HTML",
+            "result_status", "SUCCESS"
+        ).counter().count());
     }
 
     @Test
@@ -64,7 +79,12 @@ class BenchmarkReportApplicationServiceTest {
         BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
         InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
         BenchmarkReportApplicationService service =
-            new BenchmarkReportApplicationService(modelService, repository, mockGovernanceClient());
+            new BenchmarkReportApplicationService(
+                modelService,
+                repository,
+                mockGovernanceClient(),
+                new BenchmarkMetricsRecorder(new SimpleMeterRegistry())
+            );
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
         BizException invalidFormat = assertThrows(BizException.class, () -> service.parseFormat("CSV"));

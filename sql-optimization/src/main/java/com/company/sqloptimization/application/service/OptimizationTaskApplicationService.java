@@ -41,15 +41,18 @@ public class OptimizationTaskApplicationService {
     private final OptimizationTaskModelApplicationService optimizationTaskModelApplicationService;
     private final OptimizationTaskRepository optimizationTaskRepository;
     private final GovernanceCapabilityClient governanceCapabilityClient;
+    private final OptimizationMetricsRecorder optimizationMetricsRecorder;
 
     public OptimizationTaskApplicationService(
         OptimizationTaskModelApplicationService optimizationTaskModelApplicationService,
         OptimizationTaskRepository optimizationTaskRepository,
-        GovernanceCapabilityClient governanceCapabilityClient
+        GovernanceCapabilityClient governanceCapabilityClient,
+        OptimizationMetricsRecorder optimizationMetricsRecorder
     ) {
         this.optimizationTaskModelApplicationService = optimizationTaskModelApplicationService;
         this.optimizationTaskRepository = optimizationTaskRepository;
         this.governanceCapabilityClient = governanceCapabilityClient;
+        this.optimizationMetricsRecorder = optimizationMetricsRecorder;
     }
 
     public OptimizationTaskSubmitResponse submitTask(OptimizationTaskSubmitRequest request) {
@@ -74,6 +77,7 @@ public class OptimizationTaskApplicationService {
                 submittedAt
             );
             optimizationTaskRepository.save(task);
+            optimizationMetricsRecorder.recordTaskSubmitted(task);
             logStateChange(
                 SUBMIT_OPERATION,
                 task.getTaskId(),

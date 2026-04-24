@@ -8,6 +8,7 @@ import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
 import com.company.benchmarkengine.infrastructure.repository.InMemoryBenchmarkTaskRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
@@ -23,13 +24,26 @@ class BenchmarkTaskWorkerTest {
         BenchmarkTaskExecutionProperties properties = new BenchmarkTaskExecutionProperties();
         properties.setQueueVisibilityDelayMs(0L);
         properties.setPhaseDelayMs(0L);
-        BenchmarkTaskWorker worker = new BenchmarkTaskWorker(modelService, repository, properties);
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+        BenchmarkTaskWorker worker = new BenchmarkTaskWorker(
+            modelService,
+            repository,
+            properties,
+            new BenchmarkMetricsRecorder(meterRegistry)
+        );
 
         worker.processQueuedTasks();
 
         assertEquals("SUCCEEDED", repository.findTaskByTaskId("benchmark-task-async-001").getStatus().name());
         assertEquals("report-benchmark-task-async-001", repository.findTaskByTaskId("benchmark-task-async-001").getReportId());
         assertEquals("tenant-a", repository.findReportByTaskId("benchmark-task-async-001").getTenantId());
+        assertEquals(1.0D, meterRegistry.get("sqlforge.benchmark.engine.tasks.terminal").tags(
+            "task_type", "BASELINE",
+            "result_status", "SUCCEEDED"
+        ).counter().count());
+        assertEquals(1.0D, meterRegistry.get("sqlforge.benchmark.engine.reports.generated").tags(
+            "task_type", "BASELINE"
+        ).counter().count());
     }
 
     private BenchmarkTaskSubmitRequest baseRequest() {

@@ -8,6 +8,7 @@ import com.company.sqloptimization.application.controller.dto.OptimizationTaskSu
 import com.company.sqloptimization.config.OptimizationTaskExecutionProperties;
 import com.company.sqloptimization.domain.task.OptimizationTask;
 import com.company.sqloptimization.infrastructure.repository.InMemoryOptimizationTaskRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
@@ -23,11 +24,20 @@ class OptimizationTaskWorkerTest {
         OptimizationTaskExecutionProperties properties = new OptimizationTaskExecutionProperties();
         properties.setQueueVisibilityDelayMs(0L);
         properties.setPhaseDelayMs(0L);
-        OptimizationTaskWorker worker = new OptimizationTaskWorker(repository, properties);
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+        OptimizationTaskWorker worker = new OptimizationTaskWorker(
+            repository,
+            properties,
+            new OptimizationMetricsRecorder(meterRegistry)
+        );
 
         worker.processQueuedTasks();
 
         assertEquals("SUCCEEDED", repository.findByTaskId("task-async-001").getStatus().name());
+        assertEquals(1.0D, meterRegistry.get("sqlforge.sql.optimization.tasks.terminal").tags(
+            "task_type", "REWRITE",
+            "result_status", "SUCCEEDED"
+        ).counter().count());
     }
 
     private OptimizationTaskSubmitRequest baseRequest() {

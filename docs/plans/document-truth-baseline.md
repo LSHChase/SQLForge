@@ -93,6 +93,8 @@
   - 4 个后端服务都已具备 `logback-spring.xml` 日志基线，支持控制台、滚动文件、生产 JSON console 和敏感字段掩码
   - `query-execution` 已补齐最小业务级 Micrometer 指标，覆盖请求总量、端到端延迟、执行模式命中/尝试、timeout、fallback 与 route-unavailable
   - `governance` 已补齐最小业务级 Micrometer 指标，覆盖审计主路由 fallback 次数、数据库消息重试计数，以及数据库消息队列 `total/pending/failed` backlog gauges
+  - `sql-optimization` 已补齐最小业务级 Micrometer 指标，覆盖任务提交计数、worker 终态成功/失败与处理延迟
+  - `benchmark-engine` 已补齐最小业务级 Micrometer 指标，覆盖任务提交计数、worker 终态成功/失败、报告生成计数，以及报告查询/渲染延迟
   - `docs/deployments/observability-baseline.md` 已把当前 `logs / metrics / alerts` 事实、运维落地清单和残余缺口收口为正式文档
 - 当前备份恢复事实已形成统一文档落点：
   - `docs/deployments/backup-recovery-baseline.md` 已把 MySQL、审计链、导出元数据、消息兜底与密钥边界的恢复目标、责任角色和演练模板收口为正式文档
@@ -167,7 +169,7 @@
 - 查询执行服务已建立独立模块骨架、公共 HTTP DTO/VO/错误码、治理检查/审计写入 HTTP 基线，以及真实 Hetu `JDBC/REST/CLIENT` 多模式执行链；当前仓库已补齐 JDBC driver 接线、Hetu client 协议执行和 smoke 入口，真实集群长期证据、生产级参数校准和更完整的跨服务审计补偿仍待后续环境沉淀。
 - SQL 优化服务已建立独立模块、提交/轮询 API、MySQL `optimization_task` 任务表和 scheduled worker 基线，但外部队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
 - Phase-D 核心追溯链已在 `governance` 内完成 schema、migration、entity 与 mapper XML 固化，且 `audit/write` 与 header-based stateless auth 已接入真实 `audit_log` 落库；当前敏感字段加密基线已进入共享组件和治理受保护持久化入口，但查询执行、SQL 优化、压测引擎等其他服务的主动上报链仍待后续任务补齐。
-- 当前虽已形成 observability 文档基线，且默认 runtime smoke 已覆盖 4 个后端服务与前端的真实启动探针，并验证 `query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 的治理检查、失败恢复与审计补偿链路；仓库现已补齐 `query-execution` / `governance` 的最小业务级 Micrometer 指标，但仍未提供仓库内 PrometheusRule / Alertmanager / Grafana 配置、统一日志采集 pipeline 模板，以及更广覆盖的 tracing/跨服务业务指标。
+- 当前虽已形成 observability 文档基线，且默认 runtime smoke 已覆盖 4 个后端服务与前端的真实启动探针，并验证 `query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 的治理检查、失败恢复与审计补偿链路；仓库现已为 4 个后端服务补齐最小业务级 Micrometer 指标，但仍未提供仓库内 PrometheusRule / Alertmanager / Grafana 配置、统一日志采集 pipeline 模板，以及更广覆盖的 tracing/跨服务聚合业务指标。
 - `Phase-F` 的自动 release gate 已接入 `checkpoint/*` tag 与 `release.published` 元数据，`phase1plus` 聚合覆盖率现已提升到 `86.9763%` 并达到 85% 门槛；当前仓库默认路径已回到 `repo-closed` 语义，Sonar 外部 secrets / vars / 可选 GitHub Actions environment provisioning 转为 `environment-backed` fallback 恢复项，由 `INBOX-001` 跟踪，且 provisioning 本身不再等于默认自动启用 Sonar。
 - 访问控制已形成角色矩阵、资源模型、数据源授权矩阵与统一授权入口；后续关注点转为外部环境权限初始化、持续校验与变更回放证据沉淀。
 - `KAFKA` 模式虽已接入真实客户端，但尚未沉淀真实 Kafka 集群运行验证、鉴权和安全参数配置证据；相关真实 Kafka gate 仍作为 `environment-backed` 增强项保留，不再是仓库默认闭环门禁。

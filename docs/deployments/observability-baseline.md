@@ -56,11 +56,13 @@
 | Public health path | `governance` 额外提供 `/api/governance/health` 公开健康接口，且鉴权拦截器默认放行该路径 | `governance/src/main/java/com/company/governance/application/controller/HealthController.java`, `governance/src/main/java/com/company/governance/application/service/HealthStatusApplicationService.java`, `governance/src/main/java/com/company/governance/config/WebMvcConfig.java` |
 | Query execution business metrics | `query-execution` 已补齐 `sqlforge.query.execution.requests`、`latency`、`mode.hits`、`mode.attempts`、`timeouts`、`fallbacks`、`route_unavailable`，覆盖查询结果、执行模式命中/尝试、timeout/degraded 与主路由不可用信号 | `query-execution/src/main/java/com/company/queryexecution/application/service/QueryExecutionMetricsRecorder.java`, `query-execution/src/main/java/com/company/queryexecution/application/service/QueryExecutionApplicationService.java` |
 | Governance audit / queue metrics | `governance` 已补齐 `sqlforge.governance.audit.fallbacks`、`message.retry.messages`、`message.queue.total/pending/failed`，覆盖审计消息兜底、人工重试量与数据库消息队列 backlog | `governance/src/main/java/com/company/governance/application/service/GovernanceMetricsRecorder.java`, `governance/src/main/java/com/company/governance/application/service/GovernanceAuditTrailService.java`, `governance/src/main/java/com/company/governance/application/service/MessageAdminApplicationService.java` |
+| SQL optimization business metrics | `sql-optimization` 已补齐 `sqlforge.sql.optimization.tasks.submitted`、`tasks.terminal`、`worker.latency`，覆盖任务提交量、worker 终态成功/失败和处理延迟 | `sql-optimization/src/main/java/com/company/sqloptimization/application/service/OptimizationMetricsRecorder.java`, `sql-optimization/src/main/java/com/company/sqloptimization/application/service/OptimizationTaskApplicationService.java`, `sql-optimization/src/main/java/com/company/sqloptimization/application/service/OptimizationTaskWorker.java` |
+| Benchmark engine business metrics | `benchmark-engine` 已补齐 `sqlforge.benchmark.engine.tasks.submitted`、`tasks.terminal`、`reports.generated`、`worker.latency`、`report.requests`、`report.latency`，覆盖任务提交量、worker 终态成功/失败、报告生成和报告查询/渲染延迟 | `benchmark-engine/src/main/java/com/company/benchmarkengine/application/service/BenchmarkMetricsRecorder.java`, `benchmark-engine/src/main/java/com/company/benchmarkengine/application/service/BenchmarkTaskApplicationService.java`, `benchmark-engine/src/main/java/com/company/benchmarkengine/application/service/BenchmarkTaskWorker.java`, `benchmark-engine/src/main/java/com/company/benchmarkengine/application/service/BenchmarkReportApplicationService.java` |
 
 结论：
 
-- 当前 metrics 基线已从纯 Actuator 默认指标扩展到 `query-execution` / `governance` 的最小业务级 Micrometer 指标。
-- 查询执行 timeout / degraded、审计兜底和数据库消息队列 backlog 已可通过内建 metrics 暴露；SQL 优化、压测引擎失败与更完整的跨服务业务信号仍主要依赖日志、管理接口或数据库查询。
+- 当前 metrics 基线已从纯 Actuator 默认指标扩展到 4 个后端服务的最小业务级 Micrometer 指标。
+- 查询执行 timeout / degraded、审计兜底、数据库消息队列 backlog、SQL 优化异步任务终态，以及压测任务/报告处理信号都已可通过内建 metrics 暴露；更广覆盖的 tracing、跨服务聚合指标与平台侧告警资产仍是后续缺口。
 
 ## Logs / Metrics / Alerts Delivery Checklist
 
@@ -107,9 +109,18 @@
    - `sqlforge.governance.message.queue.total`
    - `sqlforge.governance.message.queue.pending`
    - `sqlforge.governance.message.queue.failed`
+   - `sqlforge.sql.optimization.tasks.submitted`
+   - `sqlforge.sql.optimization.tasks.terminal`
+   - `sqlforge.sql.optimization.worker.latency`
+   - `sqlforge.benchmark.engine.tasks.submitted`
+   - `sqlforge.benchmark.engine.tasks.terminal`
+   - `sqlforge.benchmark.engine.reports.generated`
+   - `sqlforge.benchmark.engine.worker.latency`
+   - `sqlforge.benchmark.engine.report.requests`
+   - `sqlforge.benchmark.engine.report.latency`
 5. 对当前仓库尚未内建的剩余业务观测项在外部平台补位：
-   - SQL 优化任务失败次数
-   - 压测任务失败次数
+   - 跨服务链路级聚合指标
+   - 更细粒度的治理历史/审计取证看板
 
 ### Alerts
 
@@ -123,8 +134,8 @@
 | Governance audit route fallback | `sqlforge.governance.audit.fallbacks`，并辅以 `governance` warn 日志 `Primary audit message delivery failed, queued fallback message` | 任意生产出现持续增长即触发高优先级告警 | 优先检查消息主路由、Kafka/Database 模式、队列堆积和补偿路径 |
 | Database queue backlog | `sqlforge.governance.message.queue.pending` / `failed` / `total` | `pending` 持续增长或 `failed > 0` | 执行消息重试、检查消费者和下游可用性 |
 | Authentication rejection spike | `audit_log` 中 `LOGIN` 失败事件或鉴权拒绝日志 | 失败事件异常上升 | 判断为攻击、配置错误或上游鉴权异常 |
-| SQL optimization async failure | `sql-optimization` 任务/执行器日志 | `status=FAILED phase=EXCEPTION` 或任务失败持续出现 | 排查占位执行器、回调地址、租户上下文和任务载体 |
-| Benchmark async failure | `benchmark-engine` 任务/worker 日志 | `status=FAILED phase=EXCEPTION` 或任务失败持续出现 | 排查影子环境要求、只读约束、`benchmark_task` / `benchmark_task_report` 持久化状态和报告链 |
+| SQL optimization async failure | `sqlforge.sql.optimization.tasks.terminal`、`sqlforge.sql.optimization.worker.latency`，并辅以 `sql-optimization` 任务/执行器日志 | `result_status=FAILED` 或 `FAILED_EXCEPTION` 持续增长，或 worker latency 异常上升 | 排查占位执行器、回调地址、租户上下文和任务载体 |
+| Benchmark async failure | `sqlforge.benchmark.engine.tasks.terminal`、`sqlforge.benchmark.engine.worker.latency`、`sqlforge.benchmark.engine.report.requests`，并辅以 `benchmark-engine` 日志 | `result_status=FAILED` 或 `FAILED_EXCEPTION` 持续增长，worker latency 异常上升，或报告请求失败持续出现 | 排查影子环境要求、只读约束、`benchmark_task` / `benchmark_task_report` 持久化状态和报告链 |
 | Sensitive data leak | 日志平台全文扫描 | 任意命中明文密码、Token、密钥 | 立即下线相关日志访问、轮换凭据并修复脱敏规则 |
 
 ## Current Gaps
@@ -134,7 +145,7 @@
 1. 未提供仓库内的 PrometheusRule / Alertmanager / Grafana dashboard 配置文件。
 2. 未提供 ELK / Loki / OpenSearch 的日志采集清单或 pipeline 模板。
 3. 未接入 SkyWalking、OpenTelemetry 或等价链路追踪埋点。
-4. SQL 优化、压测引擎和更广覆盖的跨服务业务指标仍未内建到仓库。
+4. 更广覆盖的跨服务聚合业务指标、告警规则模板与平台级 dashboard 资产仍未内建到仓库。
 5. 审计留存、鉴权失败统计与更深层历史分析仍需要日志平台、SQL 或外部管理接口联动，而不是只靠内建 metrics。
 
 ## Exit Criteria For F-TASK-007
