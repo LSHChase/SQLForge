@@ -6,6 +6,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendation;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendationRiskLevel;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifactKind;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
@@ -407,11 +408,16 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
             for (Map<String, Object> item : items) {
                 artifacts.add(
                     new BenchmarkReportArtifact(
+                        item.get("artifactKey") == null ? null : String.valueOf(item.get("artifactKey")),
+                        readEnum(item.get("artifactKind"), BenchmarkReportArtifactKind.class, BenchmarkReportArtifactKind.REPORT_EXPORT),
                         readEnum(item.get("format"), BenchmarkReportFormat.class),
                         item.get("fileName") == null ? null : String.valueOf(item.get("fileName")),
                         item.get("mediaType") == null ? null : String.valueOf(item.get("mediaType")),
                         item.get("contentLength") == null ? null : Integer.valueOf(String.valueOf(item.get("contentLength"))),
                         item.get("checksumSha256") == null ? null : String.valueOf(item.get("checksumSha256")),
+                        item.get("storageType") == null ? null : String.valueOf(item.get("storageType")),
+                        item.get("storageUri") == null ? null : String.valueOf(item.get("storageUri")),
+                        item.get("exportId") == null ? null : String.valueOf(item.get("exportId")),
                         item.get("content") == null ? null : String.valueOf(item.get("content"))
                     )
                 );
@@ -432,6 +438,13 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
             items.add(rawItem == null ? null : String.valueOf(rawItem));
         }
         return items;
+    }
+
+    private <T extends Enum<T>> T readEnum(Object raw, Class<T> enumType, T defaultValue) {
+        if (raw == null) {
+            return defaultValue;
+        }
+        return Enum.valueOf(enumType, String.valueOf(raw));
     }
 
     private String writeJson(Object value) {

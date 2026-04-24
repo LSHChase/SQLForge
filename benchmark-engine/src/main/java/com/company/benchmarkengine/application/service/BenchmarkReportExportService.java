@@ -3,13 +3,16 @@ package com.company.benchmarkengine.application.service;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkEngineMetricVO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommendationVO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkThresholdAssessmentVO;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifactKind;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.sqlforge.common.utils.JsonUtils;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -23,10 +26,20 @@ public class BenchmarkReportExportService {
         String jsonContent = JsonUtils.toJson(response);
         String pdfContent = renderPdf(response);
         String htmlContent = renderHtml(response);
-        return Arrays.asList(
-            buildArtifact(response, BenchmarkReportFormat.JSON, jsonContent),
-            buildArtifact(response, BenchmarkReportFormat.PDF, pdfContent),
-            buildArtifact(response, BenchmarkReportFormat.HTML, htmlContent)
+        List<BenchmarkReportArtifact> artifacts = new ArrayList<BenchmarkReportArtifact>(3);
+        artifacts.add(buildArtifact("json-export", BenchmarkReportArtifactKind.REPORT_EXPORT, response.getReportId(), BenchmarkReportFormat.JSON, jsonContent));
+        artifacts.add(buildArtifact("pdf-export", BenchmarkReportArtifactKind.REPORT_EXPORT, response.getReportId(), BenchmarkReportFormat.PDF, pdfContent));
+        artifacts.add(buildArtifact("html-export", BenchmarkReportArtifactKind.REPORT_EXPORT, response.getReportId(), BenchmarkReportFormat.HTML, htmlContent));
+        return artifacts;
+    }
+
+    public BenchmarkReportArtifact buildRawDataArtifact(BenchmarkReportRawDataResponse response) {
+        return buildArtifact(
+            "raw-data",
+            BenchmarkReportArtifactKind.RAW_DATA_SNAPSHOT,
+            response.getReportId(),
+            BenchmarkReportFormat.JSON,
+            JsonUtils.toJson(response)
         );
     }
 
@@ -38,21 +51,31 @@ public class BenchmarkReportExportService {
         );
     }
 
-    private BenchmarkReportArtifact buildArtifact(BenchmarkReportResponse response,
+    private BenchmarkReportArtifact buildArtifact(String artifactKey,
+                                                  BenchmarkReportArtifactKind artifactKind,
+                                                  String reportId,
                                                   BenchmarkReportFormat format,
                                                   String content) {
         byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
         return new BenchmarkReportArtifact(
+            artifactKey,
+            artifactKind,
             format,
-            buildFileName(response.getReportId(), format),
+            buildFileName(reportId, artifactKind, format),
             format.getContentType(),
             Integer.valueOf(bytes.length),
             sha256(bytes),
+            null,
+            null,
+            null,
             content
         );
     }
 
-    private String buildFileName(String reportId, BenchmarkReportFormat format) {
+    private String buildFileName(String reportId, BenchmarkReportArtifactKind artifactKind, BenchmarkReportFormat format) {
+        if (artifactKind == BenchmarkReportArtifactKind.RAW_DATA_SNAPSHOT) {
+            return "benchmark-raw-data-" + reportId + "." + format.getFileExtension();
+        }
         return "benchmark-report-" + reportId + "." + format.getFileExtension();
     }
 

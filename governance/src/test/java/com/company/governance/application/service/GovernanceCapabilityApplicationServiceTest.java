@@ -36,9 +36,12 @@ class GovernanceCapabilityApplicationServiceTest {
         GovernanceAuthorizationMatrixApplicationService matrixService =
             mock(GovernanceAuthorizationMatrixApplicationService.class);
         GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
+        GovernanceBenchmarkTraceabilityApplicationService benchmarkTraceabilityApplicationService =
+            mock(GovernanceBenchmarkTraceabilityApplicationService.class);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
             matrixService,
             governanceAuditTrailService,
+            benchmarkTraceabilityApplicationService,
             databaseMessaging()
         );
         RequestContext.set(
@@ -113,11 +116,14 @@ class GovernanceCapabilityApplicationServiceTest {
         GovernanceAuthorizationMatrixApplicationService matrixService =
             mock(GovernanceAuthorizationMatrixApplicationService.class);
         GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
+        GovernanceBenchmarkTraceabilityApplicationService benchmarkTraceabilityApplicationService =
+            mock(GovernanceBenchmarkTraceabilityApplicationService.class);
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.MOCK);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
             matrixService,
             governanceAuditTrailService,
+            benchmarkTraceabilityApplicationService,
             messagingProperties
         );
         RequestContext.set(
@@ -165,6 +171,7 @@ class GovernanceCapabilityApplicationServiceTest {
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
             mock(GovernanceAuthorizationMatrixApplicationService.class),
             mock(GovernanceAuditTrailService.class),
+            mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             databaseMessaging()
         );
         GovernanceAuthorizationDecisionRequest request = new GovernanceAuthorizationDecisionRequest();

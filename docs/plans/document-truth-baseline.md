@@ -84,8 +84,10 @@
   - `BASELINE` / `COMPARISON` / `REGRESSION_GUARD` 三类压测任务实体
   - 生命周期状态、处理阶段流转、影子环境模式、只读要求、脱敏要求和阈值模型
   - `POST /api/benchmark-engine/tasks` 与 `GET /api/benchmark-engine/tasks/{taskId}` 数据库 worker 基线
-  - `GET /api/benchmark-engine/reports/{reportId}` 报告查询基线，支持 `format=JSON|PDF|HTML`，并提供 `/raw-data` 查询路径
+  - `GET /api/benchmark-engine/reports/{reportId}` 报告查询基线，支持 `format=JSON|PDF|HTML`；`GET /api/benchmark-engine/reports/{reportId}/raw-data` 提供 attachment download
   - `benchmark_task` / `benchmark_task_report` MySQL 载体、MyBatis XML repository、header-based 鉴权、租户隔离、scheduled worker、提交流程日志、失败路径、报告回写、报告查询和基础测试
+  - 报告 `JSON/PDF/HTML` 与 raw-data snapshot 已提升为 repo-local externalized artifact storage 基线，并在 `benchmark_task_report` 中保留 artifact metadata
+  - `benchmark-engine` 已通过 `governance` 内部受保护入口写入 `config_snapshot/execution_result/query_history/export_record` 追溯链，建立报告与下载产物的 export orchestration 基线
   - 引擎指标快照、阈值判定结果、趋势图表、建议输出和报告实体
   - 基础模型测试、应用服务测试与控制器测试
 - 当前可观测事实已形成统一文档落点：

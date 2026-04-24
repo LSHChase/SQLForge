@@ -1,6 +1,5 @@
 package com.company.benchmarkengine.application.service;
 
-import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkEngineProfile;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
@@ -35,17 +34,20 @@ public class BenchmarkReportApplicationService {
 
     private final BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService;
     private final BenchmarkReportExportService benchmarkReportExportService;
+    private final BenchmarkArtifactStorageService benchmarkArtifactStorageService;
     private final BenchmarkTaskRepository benchmarkTaskRepository;
     private final GovernanceCapabilityClient governanceCapabilityClient;
     private final BenchmarkMetricsRecorder benchmarkMetricsRecorder;
 
     public BenchmarkReportApplicationService(BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService,
                                              BenchmarkReportExportService benchmarkReportExportService,
+                                             BenchmarkArtifactStorageService benchmarkArtifactStorageService,
                                              BenchmarkTaskRepository benchmarkTaskRepository,
                                              GovernanceCapabilityClient governanceCapabilityClient,
                                              BenchmarkMetricsRecorder benchmarkMetricsRecorder) {
         this.benchmarkTaskModelApplicationService = benchmarkTaskModelApplicationService;
         this.benchmarkReportExportService = benchmarkReportExportService;
+        this.benchmarkArtifactStorageService = benchmarkArtifactStorageService;
         this.benchmarkTaskRepository = benchmarkTaskRepository;
         this.governanceCapabilityClient = governanceCapabilityClient;
         this.benchmarkMetricsRecorder = benchmarkMetricsRecorder;
@@ -81,12 +83,20 @@ public class BenchmarkReportApplicationService {
         }
     }
 
-    public BenchmarkReportRawDataResponse getRawDataReport(String reportId) {
+    public BenchmarkRenderedReport downloadRawDataReport(String reportId) {
         long start = System.currentTimeMillis();
         LOGGER.info("operation={} entity={} format={} status=START", QUERY_OPERATION, reportId, "RAW_DATA");
         try {
             BenchmarkReport report = loadReport(reportId);
-            BenchmarkReportRawDataResponse response = benchmarkTaskModelApplicationService.buildRawDataResponse(report);
+            BenchmarkReportArtifact artifact = report.findRawDataArtifact();
+            if (artifact == null) {
+                throw new BizException(
+                    ErrorCodeConstants.BENCHMARK_ENGINE_SYSTEM_REPORT_MODEL_INVALID,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Benchmark raw-data artifact is missing"
+                );
+            }
+            BenchmarkRenderedReport response = benchmarkArtifactStorageService.load(artifact);
             benchmarkMetricsRecorder.recordReportResponse(null, System.currentTimeMillis() - start);
             logEnd(reportId, null, start);
             writeAuditRecord(
@@ -94,7 +104,7 @@ public class BenchmarkReportApplicationService {
                 "SUCCESS",
                 System.currentTimeMillis() - start,
                 buildReportRequestParams(report, "RAW_DATA"),
-                buildReportResponseSummary("SUCCESS", response.getReportId(), "RAW_DATA", response.getVerdict().name(), null)
+                buildReportResponseSummary("SUCCESS", reportId, "RAW_DATA", report.getVerdict().name(), null)
             );
             return response;
         } catch (RuntimeException ex) {
@@ -125,7 +135,7 @@ public class BenchmarkReportApplicationService {
                     "Benchmark report export artifact is missing for format=" + format
                 );
             }
-            BenchmarkRenderedReport renderedReport = benchmarkReportExportService.toRenderedReport(artifact);
+            BenchmarkRenderedReport renderedReport = benchmarkArtifactStorageService.load(artifact);
             benchmarkMetricsRecorder.recordReportResponse(format, System.currentTimeMillis() - start);
             logEnd(reportId, format, start);
             writeAuditRecord(

@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkThresholdDTO;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
 import com.company.benchmarkengine.application.service.BenchmarkIsolatedExecutionResult;
 import com.company.benchmarkengine.application.service.BenchmarkIsolatedExecutionService;
 import com.company.benchmarkengine.application.service.BenchmarkReportExportService;
@@ -201,8 +203,9 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertEquals(1, byTaskId.getThresholdAssessments().size());
         assertEquals("REGRESSION_GATE", byTaskId.getRecommendations().get(0).getCategory());
         assertNotNull(byTaskId.getExecutionSummary());
-        assertEquals(3, byTaskId.getExportArtifacts().size());
+        assertEquals(4, byTaskId.getExportArtifacts().size());
         assertEquals(BenchmarkReportFormat.HTML, byTaskId.findArtifact(BenchmarkReportFormat.HTML).getFormat());
+        assertNotNull(byTaskId.findRawDataArtifact());
         assertEquals(byTaskId.getReportId(), byReportId.getReportId());
         assertNull(repository.findTaskByTaskId("missing-task"));
         assertNull(repository.findReportByTaskId("missing-task"));
@@ -218,7 +221,12 @@ class MybatisBenchmarkTaskRepositoryTest {
         BenchmarkIsolatedExecutionResult executionResult =
             new BenchmarkIsolatedExecutionService(properties, modelService).execute(task, generatedAt);
         BenchmarkReport report = modelService.buildExecutedReport(task, executionResult, generatedAt);
-        return report.withExportArtifacts(new BenchmarkReportExportService().buildArtifacts(modelService.buildReportResponse(report)));
+        BenchmarkReportResponse reportResponse = modelService.buildReportResponse(report);
+        BenchmarkReportRawDataResponse rawDataResponse = modelService.buildRawDataResponse(report);
+        java.util.List<com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact> artifacts =
+            new BenchmarkReportExportService().buildArtifacts(reportResponse);
+        artifacts.add(new BenchmarkReportExportService().buildRawDataArtifact(rawDataResponse));
+        return report.withExportArtifacts(artifacts);
     }
 
     private BenchmarkTask createQueuedTask(String taskId, BenchmarkTaskType taskType, Instant submittedAt) {

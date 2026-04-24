@@ -15,7 +15,8 @@
 - `governance` 是当前承载事务型治理元数据的实现载体。
 - `sql-optimization` 当前已接入 MySQL `optimization_task` 任务表、MyBatis XML mapper 与 in-process scheduled worker，用于承载真实任务持久化和状态流转。
 - `benchmark-engine` 当前已接入 MySQL `benchmark_task` / `benchmark_task_report` 双表、MyBatis XML mapper 与 in-process scheduled worker，用于承载真实任务持久化、报告回写和状态流转。
-- 因此，Phase-D 的核心追溯链当前在 `governance` 内以 schema + entity + mapper XML 形式固化，同时允许 `sql-optimization` 与 `benchmark-engine` 在独立任务/报告表上落真实 carrier，避免异步任务实现继续漂移。
+- `benchmark-engine` 当前已通过 `governance` 内部 `benchmark/report-trace/write` 受保护入口，把 benchmark report artifact 的 `config_snapshot/execution_result/query_history/export_record` 编排写入接到真实追溯链。
+- 因此，Phase-D 的核心追溯链当前在 `governance` 内以 schema + entity + mapper XML 形式固化，同时允许 `sql-optimization` 与 `benchmark-engine` 在独立任务/报告表上落真实 carrier，并通过受保护入口把跨服务 trace/export 编排接回治理链，避免异步任务实现继续漂移。
 
 ## Core Traceability Chain
 
@@ -88,6 +89,7 @@
 - 保存 JSON / PDF / HTML / CSV 等导出行为的元数据与存储位置。
 - 导出对象必须基于 `query_history` 或可复现结果，而不是浏览器瞬时状态。
 - 当前 `storage_uri` 仅允许保存脱敏后的地址摘要；`export_options` 的敏感叶子节点会在落库前加密。
+- 当前 `benchmark-engine` 会为 `JSON/PDF/HTML` 报告导出与 raw-data snapshot 生成稳定 `export_record`，其 `export_id` 采用 `reportId + artifactKey` 的幂等键策略。
 
 ### `audit_log`
 
@@ -128,7 +130,7 @@
 | `benchmark_task` | `BenchmarkTaskRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkTaskMapper.xml` |
 | `benchmark_task_report` | `BenchmarkReportRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkReportMapper.xml` |
 
-当前 mapper 只固化 `insert/selectById` 或等价最小骨架，目的是先把表结构、主引用键和字段命名稳定下来，再在后续任务中接入真实 repository、事务编排和业务写入路径。当前 `governance` 已额外提供 `GovernanceProtectedPersistenceService` 作为 config/result/history/export/audit/system-config 的敏感字段保护写入入口。
+当前 mapper 只固化 `insert/selectById` 或等价最小骨架，目的是先把表结构、主引用键和字段命名稳定下来，再在后续任务中接入真实 repository、事务编排和业务写入路径。当前 `governance` 已额外提供 `GovernanceProtectedPersistenceService` 作为 config/result/history/export/audit/system-config 的敏感字段保护写入入口，并由 benchmark report trace/export orchestration 走真实写入路径验证 `config/result/history/export` 编排。
 
 在 `R-169` 生效后，`GovernanceProtectedPersistenceService` 同时承担核心追溯链的应用层引用完整性校验，负责在无物理外键约束前提下检查：
 

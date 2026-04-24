@@ -1322,11 +1322,11 @@ SQL优化服务 → 公共管理服务（获取元数据、统计信息、写入
 ### 19.4 当前实现状态提醒
 
 - 当前 `governance` 仍只是公共管理服务的阶段性实现基线。
-- 当前 `governance` 已补齐 Phase-D 核心追溯链的 schema、增量脚本、Entity 与 MyBatis XML 骨架，并已把内部 `audit/write` 与 header-based stateless auth 的 `LOGIN` / `LOGOUT` 事件接入真实 `audit_log` 写入；当前还新增了共享 AES-256 敏感字段保护能力、`system_config` 密文列基线，以及 config/result/history/export/audit 的受保护持久化入口；其他服务的主动审计上报、导出链路和跨服务持久化接入仍待后续任务补齐。
+- 当前 `governance` 已补齐 Phase-D 核心追溯链的 schema、增量脚本、Entity 与 MyBatis XML 骨架，并已把内部 `audit/write` 与 header-based stateless auth 的 `LOGIN` / `LOGOUT` 事件接入真实 `audit_log` 写入；当前还新增了共享 AES-256 敏感字段保护能力、`system_config` 密文列基线，以及 config/result/history/export/audit 的受保护持久化入口；其中 `benchmark-engine` 已通过内部 `benchmark/report-trace/write` 接口接入 config/result/history/export 追溯编排，其他服务的更广导出链路和跨服务持久化接入仍待后续任务补齐。
 - 当前 `sqlforge-shared` 已形成共享底座基线，但仍需继续保持只承载真正公共能力的边界。
 - 当前 `query-execution` 已形成查询执行服务的独立模块骨架、公共 DTO/VO/错误码、治理检查/审计写入 HTTP 基线，以及真实 Hetu `JDBC` / `REST` / `CLIENT` 多模式执行链；当前仓库已补齐 JDBC driver 接线、Hetu client 协议执行、本地 mock-Hetu runtime smoke 和外部环境 Hetu smoke 入口，后续仍需继续沉淀真实集群长期证据、生产级参数校准和更完整的跨服务审计补偿。
 - 当前 `sql-optimization` 已形成 SQL 优化服务的独立模块、提交/轮询 API、`optimization_task` MySQL 任务表、scheduled worker，以及结构化 `suggestion / failure` 输出，但外部队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
-- 当前 `benchmark-engine` 已形成压测引擎服务的独立模块、提交/轮询/报告查询 API、`benchmark_task` / `benchmark_task_report` MySQL 载体、scheduled worker、repo-closed 隔离执行链路，以及持久化 `JSON/PDF/HTML` 导出产物基线；后续缺口收窄为更深层跨服务协同、外部文件存储/原始数据下载接口与环境级执行证据补齐。
+- 当前 `benchmark-engine` 已形成压测引擎服务的独立模块、提交/轮询/报告查询 API、`benchmark_task` / `benchmark_task_report` MySQL 载体、scheduled worker、repo-closed 隔离执行链路、repo-local externalized artifact storage、raw-data download，以及经 `governance` 内部受保护入口完成的 report trace/export orchestration 基线；后续缺口收窄为 retention/backfill/cleanup 语义、更深层跨服务协同与环境级执行证据补齐。
 
 ### 19.5 复盘要求
 

@@ -4,6 +4,32 @@
 
 ## Done
 
+### D-TASK-022: 推进 benchmark-engine 外部 artifact storage、raw-data download 与治理追溯编排
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(benchmark-engine): externalize artifacts and trace exports`
+- Priority: 1
+- Depends on: D-TASK-021
+- Scope: 在保留 repo-closed 隔离执行、统一授权入口、治理审计与只读/影子环境边界的前提下，把 benchmark 报告导出与 raw-data snapshot 提升到外置 artifact storage 基线，并通过 governance 内部受保护编排把 config/result/history/export 追溯链接到 benchmark-engine 报告与下载路径。
+- Matrix context: Phase-D
+- Human confirmation point: 若外部 artifact storage 会泄露明文敏感数据、绕过 governance 追溯链/统一授权入口，或把环境级对象存储依赖误写成 repo-closed 默认主路径，需人工确认
+- Data impact: benchmark-engine artifact storage 配置、raw-data 下载快照、governance `config_snapshot/execution_result/query_history/export_record/audit_log` 追溯链、跨服务 runtime smoke 证据
+- Rollback / recovery: 关闭新增 artifact externalization / trace orchestration 路径，回退到当前 `benchmark_task_report` 持久化导出基线，并恢复上一版报告查询/下载契约与治理文档说明
+- Validation:
+  - `benchmark-engine/governance 模块测试、导出/下载契约测试、runtime smoke、task audit、schema/mapping 校验、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-022`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: implemented repo-local externalized artifact storage for benchmark `JSON/PDF/HTML` exports and raw-data snapshot download, while keeping repo-closed isolation as the default baseline.
+  - 2026-04-24: added governance internal benchmark report trace orchestration so benchmark-engine registers `config_snapshot/execution_result/query_history/export_record` links instead of bypassing governance persistence.
+  - 2026-04-24: synchronized authority docs and task ledgers to the new D-TASK-022 repository truth before standard validation and closeout.
+- Context closeout:
+  - Completed scope: Implemented repo-local benchmark artifact externalization, raw-data download, and governance trace/export orchestration; synchronized authority docs and task ledgers to the new repository truth.
+  - Validation evidence: python3 scripts/foreman.py validate D-TASK-022 --include-task-audit; mvn -B -pl governance,benchmark-engine -am test -DskipITs; bash scripts/run-runtime-smoke.sh --compose-check; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance --check
+  - Residual risk: Benchmark report/download query paths still need richer audit-link enrichment plus artifact retention/recovery/cleanup semantics; environment-backed object storage evidence remains outside the repo-closed default baseline.
+  - Next step: Shape D-TASK-023 to enrich benchmark report/download audit linkage and artifact lifecycle semantics without promoting environment-backed storage to the default repo-side path.
+
 ### D-TASK-021: 推进 `benchmark-engine` 真实隔离执行与导出链路
 
 - Status: done

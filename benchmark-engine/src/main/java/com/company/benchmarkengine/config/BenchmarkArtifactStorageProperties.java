@@ -1,0 +1,26 @@
+package com.company.benchmarkengine.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix = "benchmark-engine.artifact-storage")
+public class BenchmarkArtifactStorageProperties {
+
+    private String baseDir = "target/benchmark-engine-artifacts";
+    private String storageType = "LOCAL_FILE";
+
+    public String getBaseDir() {
+        return baseDir;
+    }
+
+    public void setBaseDir(String baseDir) {
+        this.baseDir = baseDir;
+    }
+
+    public String getStorageType() {
+        return storageType;
+    }
+
+    public void setStorageType(String storageType) {
+        this.storageType = storageType;
+    }
+}

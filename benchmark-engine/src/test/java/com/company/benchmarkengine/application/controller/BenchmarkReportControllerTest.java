@@ -51,7 +51,7 @@ public class BenchmarkReportControllerTest {
             .andExpect(jsonPath("$.trendCharts[0].chartType").value("LATENCY_DISTRIBUTION_HISTOGRAM"))
             .andExpect(jsonPath("$.reportQueryPath").value("/api/benchmark-engine/reports/" + reportId))
             .andExpect(jsonPath("$.rawDataDownloadPath").value("/api/benchmark-engine/reports/" + reportId + "/raw-data"))
-            .andExpect(jsonPath("$.implementationStage").value("DATABASE_PERSISTED_EXPORT_BASELINE"));
+            .andExpect(jsonPath("$.implementationStage").value("EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE"));
     }
 
     @Test
@@ -88,9 +88,9 @@ public class BenchmarkReportControllerTest {
 
         mockMvc.perform(addProtectedHeaders(get("/api/benchmark-engine/reports/{reportId}/raw-data", reportId)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.reportId").value(reportId))
-            .andExpect(jsonPath("$.tenantId").value("tenant-a"))
-            .andExpect(jsonPath("$.engineResults[0].engine").value("HETU"));
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(header().string("Content-Disposition", containsString("benchmark-raw-data-")))
+            .andExpect(content().string(containsString(reportId)));
 
         mockMvc.perform(addProtectedHeaders(get("/api/benchmark-engine/reports/{reportId}", reportId), "tenant-b"))
             .andExpect(status().isForbidden())

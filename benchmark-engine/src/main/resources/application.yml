@@ -32,7 +32,7 @@ benchmark-engine:
     desensitization-default: REQUIRED
   task-model:
     contract-stage: LONG_TERM_BASELINE
-    implementation-stage: DATABASE_ISOLATED_EXECUTION_BASELINE
+    implementation-stage: EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE
   task-execution:
     poll-interval-ms: 25
     queue-visibility-delay-ms: 100
@@ -49,6 +49,9 @@ benchmark-engine:
       AUTO: ${BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_AUTO:benchmark-hetu}
       HETU: ${BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_HETU:benchmark-hetu}
       HIVE: ${BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_HIVE:benchmark-hive}
+  artifact-storage:
+    base-dir: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_BASE_DIR:target/benchmark-engine-artifacts}
+    storage-type: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_TYPE:LOCAL_FILE}
 
 auth:
   enabled: false

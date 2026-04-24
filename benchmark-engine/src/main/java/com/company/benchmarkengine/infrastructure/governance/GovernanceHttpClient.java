@@ -7,6 +7,8 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
 import com.company.sqlforge.common.governance.ProtectedGovernanceRequestSupport;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
@@ -71,6 +73,11 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
                     : response.getReason()
             );
         }
+    }
+
+    @Override
+    public GovernanceBenchmarkReportTraceResponse writeBenchmarkReportTrace(GovernanceBenchmarkReportTraceRequest request) {
+        return post("/benchmark/report-trace/write", request, GovernanceBenchmarkReportTraceResponse.class);
     }
 
     @Override

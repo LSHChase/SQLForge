@@ -103,15 +103,16 @@
 - `GET /api/benchmark-engine/reports/{reportId}` 的 JSON / PDF / HTML 报告查询骨架
 - 基于 MySQL `benchmark_task` / `benchmark_task_report`、MyBatis XML repository 和 in-process scheduled worker 的提交、轮询、失败路径、报告回写、报告查询与流程日志
 - repo-closed 隔离执行 service、执行摘要和可复现 synthetic workload replay
-- 持久化 `JSON/PDF/HTML` 导出产物 bundle，以及从已存储 artifact 直接返回报告导出的查询路径
+- 持久化 `JSON/PDF/HTML` 导出产物 bundle、raw-data snapshot download，以及从已 externalize artifact 直接返回报告导出/下载的查询路径
+- repo-local artifact storage 基线，以及面向 `governance` 内部受保护入口的 benchmark report trace/export orchestration
 - 只读要求、影子环境模式、脱敏要求、并发/时长/预热/数据规模等任务元数据固化
 - 阈值模型、阈值判定结果、引擎指标快照、趋势图表、优化建议和报告契约对象
 - 基础 DTO / VO、错误码区间和模型装配 service
 
 当前还未完整承载：
 
-- 外部队列调度、外部文件存储/原始数据下载与更深层跨服务执行编排
-- 与公共管理服务、查询执行服务的真实跨服务调用
+- 环境级对象存储、retention/backfill/cleanup 语义与更深层 environment-backed 执行证据
+- 与查询执行服务的真实 workload/backfill 协作，以及更广的跨服务运行时留证
 
 ## 4. 公共管理服务
 

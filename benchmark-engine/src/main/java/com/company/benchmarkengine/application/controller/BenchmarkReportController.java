@@ -1,7 +1,6 @@
 package com.company.benchmarkengine.application.controller;
 
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
-import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
 import com.company.benchmarkengine.application.service.BenchmarkRenderedReport;
 import com.company.benchmarkengine.application.service.BenchmarkReportApplicationService;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
@@ -39,7 +38,11 @@ public class BenchmarkReportController {
     }
 
     @GetMapping("/reports/{reportId}/raw-data")
-    public BenchmarkReportRawDataResponse getRawDataReport(@PathVariable("reportId") String reportId) {
-        return benchmarkReportApplicationService.getRawDataReport(reportId);
+    public ResponseEntity<byte[]> getRawDataReport(@PathVariable("reportId") String reportId) {
+        BenchmarkRenderedReport renderedReport = benchmarkReportApplicationService.downloadRawDataReport(reportId);
+        return ResponseEntity.ok()
+            .contentType(renderedReport.getMediaType())
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + renderedReport.getFileName() + "\"")
+            .body(renderedReport.getContent());
     }
 }

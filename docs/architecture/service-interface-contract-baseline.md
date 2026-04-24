@@ -78,6 +78,7 @@
   - `/api/governance/internal/authorization/decide`
   - `/api/governance/internal/authorization/datasource/change`
   - `/api/governance/internal/audit/write`
+  - `/api/governance/internal/benchmark/report-trace/write`
   - `/api/governance/internal/schedule/extensions`
 - 当前授权决策已由治理服务本地矩阵配置驱动：
   - 角色矩阵把角色映射到权限集合
@@ -93,6 +94,8 @@
 | `/api/governance/internal/authorization/decide` | `LONG_TERM_BASELINE` | `AUTHORIZATION_MATRIX_BASELINE` | request: `serviceCode`,`tenantId`,`resourceType`,`resourceId`,`operationCode`,`datasourceId`; response: `tenantId`,`resourceType`,`resourceId`,`operationCode`,`datasourceId`,`allowed`,`reason`,`errorCode`,`contractStage`,`implementationStage` | 三个业务服务统一复用的授权决策入口；当前执行角色矩阵、资源模型和数据源动作授权 |
 | `/api/governance/internal/authorization/datasource/change` | `LONG_TERM_BASELINE` | `AUTHORIZATION_MATRIX_BASELINE` | request: `tenantId`,`datasourceId`,`state`,`actions[]`,`changeReason`; response: `tenantId`,`datasourceId`,`state`,`actions[]`,`status`,`contractStage`,`implementationStage` | 运行态更新数据源授权矩阵，并写入权限变更审计 |
 | `/api/governance/internal/audit/write` | `LONG_TERM_BASELINE` | `DATABASE_AUDIT_WRITE_BASELINE` | request: required `serviceCode`,`operationCode`,`resourceType`,`resourceId`,`resultStatus`,`elapsedMs`,`sourceIp`,`userAgent`; optional `sagaId`,`configSnapshotId`,`resultId`,`historyId`,`exportId`,`requestParams`,`responseSummary`; response: `auditId`,`status`,`messageTopic`,`deliveryMode`,`contractStage`,`implementationStage` | 长期保留为跨服务审计写入入口；当前已同步写入 `audit_log`、统一脱敏 `requestParams/responseSummary` 并保留共享消息抽象扩散 |
+| `/api/governance/internal/benchmark/report-trace/write` | `LONG_TERM_BASELINE` | `DATABASE_TRACE_EXPORT_ORCHESTRATION_BASELINE` | request: `reportId`,`taskId`,`taskType`,`sqlFingerprint`,`resultStatus`,`generatedAt`,`startedAt`,`finishedAt`,`readonlyRequired`,`shadowEnvironmentMode`,`desensitizationRequirement`,`targetEngines[]`,`sqlText`,`executionSummaryJson`,`reportQueryPath`,`rawDataDownloadPath`,`artifacts[]`; response: `configSnapshotId`,`resultId`,`historyId`,`traceId`,`requestId`,`sagaId`,`artifacts[].artifactKey`,`artifacts[].exportId`,`artifacts[].exportStatus`,`contractStage`,`implementationStage` | benchmark report/raw-data artifact 通过治理受保护编排落 `config/result/history/export` 追溯链；导出记录按 `reportId + artifactKey` 幂等生成 |
+| `/api/governance/internal/schedule/extensions` | `TRANSITIONAL_SKELETON` | `TRANSITIONAL_SKELETON` | response: `extensionPoint`,`ownerService`,`status`,`currentMode`,`contractStage`,`implementationStage` | 当前只暴露治理调度扩展状态骨架，不代表完整调度域模型已固化 |
 
 敏感字段处理补充基线：
 
@@ -100,7 +103,6 @@
 - `AuditWriteRequest.responseSummary`：只允许传入脱敏文本摘要；当前真实写入路径会再次执行敏感模式掩码
 - `system_config`：命中密码 / token / key 类键名时，当前治理持久化基线只允许写入 `value_ciphertext/value_mask/encryption_*`，不得把原值留在 `config_value`
 - `config_snapshot.snapshotPayload`、`execution_result.resultPayload`、`query_history.queryContext`、`export_record.exportOptions`：当前治理持久化基线对命中的敏感叶子节点执行 AES-256 envelope 加密
-| `/api/governance/internal/schedule/extensions` | `TRANSITIONAL_SKELETON` | `TRANSITIONAL_SKELETON` | response: `extensionPoint`,`ownerService`,`status`,`currentMode`,`contractStage`,`implementationStage` | 当前只暴露治理调度扩展状态骨架，不代表完整调度域模型已固化 |
 
 ## 3.1 Query Execution Public HTTP Baseline
 
@@ -261,9 +263,10 @@
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
-| `POST /api/benchmark-engine/tasks` | `BenchmarkTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`taskContext` | `BenchmarkTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`contractStage`,`implementationStage` | `DATABASE_ISOLATED_EXECUTION_BASELINE` |
-| `GET /api/benchmark-engine/tasks/{taskId}` | path: `taskId` | `BenchmarkTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`targetEngines`,`readonlyRequired`,`shadowEnvironmentMode`,`desensitizationRequirement`,`thresholdCount`,`reportId`,`error`,`submittedAt`,`startedAt`,`finishedAt`,`contractStage`,`implementationStage` | `DATABASE_ISOLATED_EXECUTION_BASELINE` |
-| `GET /api/benchmark-engine/reports/{reportId}` | path: `reportId`, query: `format=JSON|PDF|HTML` (default `JSON`) | JSON: `BenchmarkReportResponse`; PDF/HTML: persisted export snapshot with stable `Content-Type` and `Content-Disposition` | `DATABASE_PERSISTED_EXPORT_BASELINE` |
+| `POST /api/benchmark-engine/tasks` | `BenchmarkTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`taskContext` | `BenchmarkTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`contractStage`,`implementationStage` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
+| `GET /api/benchmark-engine/tasks/{taskId}` | path: `taskId` | `BenchmarkTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`targetEngines`,`readonlyRequired`,`shadowEnvironmentMode`,`desensitizationRequirement`,`thresholdCount`,`reportId`,`error`,`submittedAt`,`startedAt`,`finishedAt`,`contractStage`,`implementationStage` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
+| `GET /api/benchmark-engine/reports/{reportId}` | path: `reportId`, query: `format=JSON|PDF|HTML` (default `JSON`) | JSON: `BenchmarkReportResponse`; PDF/HTML: externalized persisted export snapshot with stable `Content-Type` and `Content-Disposition` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
+| `GET /api/benchmark-engine/reports/{reportId}/raw-data` | path: `reportId` | attachment download backed by persisted raw-data snapshot with stable `Content-Type` and `Content-Disposition` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
 
 当前模型基线涉及以下契约对象：
 
@@ -386,14 +389,15 @@
 
 说明：
 
-- 当前 `POST /api/benchmark-engine/tasks` 会先返回 `QUEUED / SUBMITTED` 快照，再由 `BenchmarkTaskWorker` 基于 `benchmark_task` 表推进到成功或失败，并在成功路径上执行 repo-closed 隔离执行、组装报告快照、生成导出产物并回写到 `benchmark_task_report`。
+- 当前 `POST /api/benchmark-engine/tasks` 会先返回 `QUEUED / SUBMITTED` 快照，再由 `BenchmarkTaskWorker` 基于 `benchmark_task` 表推进到成功或失败，并在成功路径上执行 repo-closed 隔离执行、组装报告快照、生成导出产物、externalize 到 repo-local artifact storage、调用治理 trace/export orchestration，再把 artifact metadata 回写到 `benchmark_task_report`。
 - 当前 `GET /api/benchmark-engine/tasks/{taskId}` 已可查询最新任务状态；未知任务返回 `23001`。
-- 当前 `GET /api/benchmark-engine/reports/{reportId}` 默认返回结构化 JSON；当 `format=PDF|HTML` 时返回持久化导出产物内容，并保留稳定的 content-type / filename 契约。
+- 当前 `GET /api/benchmark-engine/reports/{reportId}` 默认返回结构化 JSON；当 `format=PDF|HTML` 时返回 externalized 持久化导出产物内容，并保留稳定的 content-type / filename 契约。
+- 当前 `GET /api/benchmark-engine/reports/{reportId}/raw-data` 返回 attachment download，并从 externalized raw-data snapshot 直接读取响应体。
 - 当前失败路径通过 SQL 或指纹中的显式 `FAIL_BENCHMARK` 标记触发，用于稳定验证 worker 失败与轮询失败场景。
 - 当前 `readonlyRequired=false` 或 `shadowEnvironmentMode=DISABLED` 会被当前骨架拒绝，并返回 `23003`，以保持 `ADR-007` 的隔离约束不被绕过。
 - 当前模型已经把 `ADR-007` 要求的只读标记、影子环境标记和脱敏要求显式入模，避免后续执行链路绕过安全基线。
-- 当前报告模型已覆盖引擎指标快照、阈值判定、趋势图表、建议输出、执行摘要以及导出产物元数据，且成功路径已经把报告与 `JSON/PDF/HTML` 导出 bundle 一并回写到 `benchmark_task_report`，供后续查询直接复用。
-- 当前仓库已补齐 repo-closed 隔离执行与持久化导出链路；后续 `Phase-D` 关注点转为真实模板深化、外部文件存储、原始数据下载接口、跨服务编排与环境级执行证据，而不是继续把当前实现写成 placeholder renderer。
+- 当前报告模型已覆盖引擎指标快照、阈值判定、趋势图表、建议输出、执行摘要以及导出产物元数据；成功路径会生成 `JSON/PDF/HTML` 与 raw-data artifact，记录 `artifactKey/artifactKind/storageType/storageUri/exportId`，供后续查询直接复用。
+- 当前仓库已补齐 repo-closed 隔离执行、artifact externalization 与治理 trace/export orchestration 链路；后续 `Phase-D` 关注点转为 retention/backfill/cleanup 语义、环境级对象存储接线与更广的 environment-backed 执行证据。
 
 ## 4. Event Contract Baseline
 

@@ -2,11 +2,16 @@ package com.company.benchmarkengine.domain.benchmark;
 
 public class BenchmarkReportArtifact {
 
+    private final String artifactKey;
+    private final BenchmarkReportArtifactKind artifactKind;
     private final BenchmarkReportFormat format;
     private final String fileName;
     private final String mediaType;
     private final Integer contentLength;
     private final String checksumSha256;
+    private final String storageType;
+    private final String storageUri;
+    private final String exportId;
     private final String content;
 
     public BenchmarkReportArtifact(BenchmarkReportFormat format,
@@ -15,12 +20,58 @@ public class BenchmarkReportArtifact {
                                    Integer contentLength,
                                    String checksumSha256,
                                    String content) {
+        this(
+            defaultArtifactKey(BenchmarkReportArtifactKind.REPORT_EXPORT, format),
+            BenchmarkReportArtifactKind.REPORT_EXPORT,
+            format,
+            fileName,
+            mediaType,
+            contentLength,
+            checksumSha256,
+            null,
+            null,
+            null,
+            content
+        );
+    }
+
+    public BenchmarkReportArtifact(String artifactKey,
+                                   BenchmarkReportArtifactKind artifactKind,
+                                   BenchmarkReportFormat format,
+                                   String fileName,
+                                   String mediaType,
+                                   Integer contentLength,
+                                   String checksumSha256,
+                                   String storageType,
+                                   String storageUri,
+                                   String exportId,
+                                   String content) {
+        this.artifactKey = artifactKey;
+        this.artifactKind = artifactKind;
         this.format = format;
         this.fileName = fileName;
         this.mediaType = mediaType;
         this.contentLength = contentLength;
         this.checksumSha256 = checksumSha256;
+        this.storageType = storageType;
+        this.storageUri = storageUri;
+        this.exportId = exportId;
         this.content = content;
+    }
+
+    private static String defaultArtifactKey(BenchmarkReportArtifactKind artifactKind, BenchmarkReportFormat format) {
+        if (artifactKind == BenchmarkReportArtifactKind.RAW_DATA_SNAPSHOT) {
+            return "raw-data";
+        }
+        return format == null ? "artifact" : format.name().toLowerCase() + "-export";
+    }
+
+    public String getArtifactKey() {
+        return artifactKey;
+    }
+
+    public BenchmarkReportArtifactKind getArtifactKind() {
+        return artifactKind;
     }
 
     public BenchmarkReportFormat getFormat() {
@@ -43,7 +94,51 @@ public class BenchmarkReportArtifact {
         return checksumSha256;
     }
 
+    public String getStorageType() {
+        return storageType;
+    }
+
+    public String getStorageUri() {
+        return storageUri;
+    }
+
+    public String getExportId() {
+        return exportId;
+    }
+
     public String getContent() {
         return content;
+    }
+
+    public BenchmarkReportArtifact externalized(String storageType, String storageUri) {
+        return new BenchmarkReportArtifact(
+            artifactKey,
+            artifactKind,
+            format,
+            fileName,
+            mediaType,
+            contentLength,
+            checksumSha256,
+            storageType,
+            storageUri,
+            exportId,
+            null
+        );
+    }
+
+    public BenchmarkReportArtifact withExportId(String exportId) {
+        return new BenchmarkReportArtifact(
+            artifactKey,
+            artifactKind,
+            format,
+            fileName,
+            mediaType,
+            contentLength,
+            checksumSha256,
+            storageType,
+            storageUri,
+            exportId,
+            content
+        );
     }
 }

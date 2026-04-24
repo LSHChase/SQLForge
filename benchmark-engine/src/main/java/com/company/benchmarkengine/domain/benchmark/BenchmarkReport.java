@@ -154,11 +154,19 @@ public class BenchmarkReport {
     }
 
     public BenchmarkReportArtifact findArtifact(BenchmarkReportFormat format) {
+        return findArtifact(BenchmarkReportArtifactKind.REPORT_EXPORT, format);
+    }
+
+    public BenchmarkReportArtifact findRawDataArtifact() {
+        return findArtifact(BenchmarkReportArtifactKind.RAW_DATA_SNAPSHOT, BenchmarkReportFormat.JSON);
+    }
+
+    private BenchmarkReportArtifact findArtifact(BenchmarkReportArtifactKind artifactKind, BenchmarkReportFormat format) {
         if (format == null || exportArtifacts == null) {
             return null;
         }
         for (BenchmarkReportArtifact artifact : exportArtifacts) {
-            if (artifact.getFormat() == format) {
+            if (artifact.getArtifactKind() == artifactKind && artifact.getFormat() == format) {
                 return artifact;
             }
         }

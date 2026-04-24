@@ -13,6 +13,8 @@ import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckRequest;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckResponse;
 import org.slf4j.Logger;
@@ -34,14 +36,17 @@ public class GovernanceCapabilityApplicationService {
 
     private final GovernanceAuthorizationMatrixApplicationService governanceAuthorizationMatrixApplicationService;
     private final GovernanceAuditTrailService governanceAuditTrailService;
+    private final GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService;
     private final MessagingProperties messagingProperties;
 
     public GovernanceCapabilityApplicationService(
                                                   GovernanceAuthorizationMatrixApplicationService governanceAuthorizationMatrixApplicationService,
                                                   GovernanceAuditTrailService governanceAuditTrailService,
+                                                  GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService,
                                                   MessagingProperties messagingProperties) {
         this.governanceAuthorizationMatrixApplicationService = governanceAuthorizationMatrixApplicationService;
         this.governanceAuditTrailService = governanceAuditTrailService;
+        this.governanceBenchmarkTraceabilityApplicationService = governanceBenchmarkTraceabilityApplicationService;
         this.messagingProperties = messagingProperties;
     }
 
@@ -65,6 +70,11 @@ public class GovernanceCapabilityApplicationService {
     public AuditWriteResponse publishAuditEvent(AuditWriteRequest request) {
         requireProtectedTenantContext();
         return governanceAuditTrailService.writeAudit(request);
+    }
+
+    public GovernanceBenchmarkReportTraceResponse writeBenchmarkReportTrace(GovernanceBenchmarkReportTraceRequest request) {
+        requireProtectedTenantContext();
+        return governanceBenchmarkTraceabilityApplicationService.writeBenchmarkReportTrace(request);
     }
 
     public ScheduleExtensionStatusVO getScheduleExtensionStatus() {

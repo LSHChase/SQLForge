@@ -1,7 +1,10 @@
 package com.company.benchmarkengine.application.service;
 
+import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
 import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase;
@@ -30,6 +33,8 @@ public class BenchmarkTaskWorker {
     private final BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService;
     private final BenchmarkIsolatedExecutionService benchmarkIsolatedExecutionService;
     private final BenchmarkReportExportService benchmarkReportExportService;
+    private final BenchmarkArtifactStorageService benchmarkArtifactStorageService;
+    private final BenchmarkGovernanceTraceService benchmarkGovernanceTraceService;
     private final BenchmarkTaskRepository benchmarkTaskRepository;
     private final BenchmarkTaskExecutionProperties executionProperties;
     private final BenchmarkMetricsRecorder benchmarkMetricsRecorder;
@@ -37,12 +42,16 @@ public class BenchmarkTaskWorker {
     public BenchmarkTaskWorker(BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService,
                                BenchmarkIsolatedExecutionService benchmarkIsolatedExecutionService,
                                BenchmarkReportExportService benchmarkReportExportService,
+                               BenchmarkArtifactStorageService benchmarkArtifactStorageService,
+                               BenchmarkGovernanceTraceService benchmarkGovernanceTraceService,
                                BenchmarkTaskRepository benchmarkTaskRepository,
                                BenchmarkTaskExecutionProperties executionProperties,
                                BenchmarkMetricsRecorder benchmarkMetricsRecorder) {
         this.benchmarkTaskModelApplicationService = benchmarkTaskModelApplicationService;
         this.benchmarkIsolatedExecutionService = benchmarkIsolatedExecutionService;
         this.benchmarkReportExportService = benchmarkReportExportService;
+        this.benchmarkArtifactStorageService = benchmarkArtifactStorageService;
+        this.benchmarkGovernanceTraceService = benchmarkGovernanceTraceService;
         this.benchmarkTaskRepository = benchmarkTaskRepository;
         this.executionProperties = executionProperties;
         this.benchmarkMetricsRecorder = benchmarkMetricsRecorder;
@@ -86,11 +95,14 @@ public class BenchmarkTaskWorker {
             BenchmarkIsolatedExecutionResult executionResult =
                 benchmarkIsolatedExecutionService.execute(task, generatedAt);
             BenchmarkReport report = benchmarkTaskModelApplicationService.buildExecutedReport(task, executionResult, generatedAt);
-            report = report.withExportArtifacts(
-                benchmarkReportExportService.buildArtifacts(
-                    benchmarkTaskModelApplicationService.buildReportResponse(report)
-                )
-            );
+            BenchmarkReportResponse reportResponse = benchmarkTaskModelApplicationService.buildReportResponse(report);
+            BenchmarkReportRawDataResponse rawDataResponse = benchmarkTaskModelApplicationService.buildRawDataResponse(report);
+            List<BenchmarkReportArtifact> artifacts =
+                benchmarkReportExportService.buildArtifacts(reportResponse);
+            artifacts.add(benchmarkReportExportService.buildRawDataArtifact(rawDataResponse));
+            artifacts = benchmarkArtifactStorageService.externalize(report.getReportId(), artifacts);
+            artifacts = benchmarkGovernanceTraceService.registerTrace(task, report, reportResponse, rawDataResponse, artifacts);
+            report = report.withExportArtifacts(artifacts);
             benchmarkTaskRepository.saveReport(report);
             task.markSucceeded(report.getReportId(), Instant.now());
             benchmarkTaskRepository.saveTask(task);

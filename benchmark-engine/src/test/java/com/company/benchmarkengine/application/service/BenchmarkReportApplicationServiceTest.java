@@ -10,6 +10,9 @@ import static org.mockito.Mockito.verify;
 
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
+import com.company.benchmarkengine.config.BenchmarkArtifactStorageProperties;
 import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
@@ -37,15 +40,17 @@ class BenchmarkReportApplicationServiceTest {
         InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+        BenchmarkArtifactStorageService storageService = new BenchmarkArtifactStorageService(new BenchmarkArtifactStorageProperties());
         BenchmarkReportApplicationService service =
             new BenchmarkReportApplicationService(
                 modelService,
                 new BenchmarkReportExportService(),
+                storageService,
                 repository,
                 governanceCapabilityClient,
                 new BenchmarkMetricsRecorder(meterRegistry)
             );
-        BenchmarkReport report = storeReport(modelService, repository, "benchmark-report-001");
+        BenchmarkReport report = storeReport(modelService, repository, "benchmark-report-001", storageService);
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
         BenchmarkRenderedReport pdf = service.renderReport(report.getReportId(), BenchmarkReportFormat.PDF);
@@ -77,6 +82,29 @@ class BenchmarkReportApplicationServiceTest {
     }
 
     @Test
+    void shouldDownloadRawDataArtifact() {
+        BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
+        InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
+        BenchmarkArtifactStorageService storageService = new BenchmarkArtifactStorageService(new BenchmarkArtifactStorageProperties());
+        BenchmarkReportApplicationService service =
+            new BenchmarkReportApplicationService(
+                modelService,
+                new BenchmarkReportExportService(),
+                storageService,
+                repository,
+                mockGovernanceClient(),
+                new BenchmarkMetricsRecorder(new SimpleMeterRegistry())
+            );
+        BenchmarkReport report = storeReport(modelService, repository, "benchmark-report-raw-001", storageService);
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+
+        BenchmarkRenderedReport rawData = service.downloadRawDataReport(report.getReportId());
+
+        assertEquals("application/json", rawData.getMediaType().toString());
+        assertTrue(new String(rawData.getContent()).contains("\"reportId\":\"" + report.getReportId() + "\""));
+    }
+
+    @Test
     void shouldRejectUnknownFormatAndMissingReport() {
         BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
         InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
@@ -84,6 +112,7 @@ class BenchmarkReportApplicationServiceTest {
             new BenchmarkReportApplicationService(
                 modelService,
                 new BenchmarkReportExportService(),
+                new BenchmarkArtifactStorageService(new BenchmarkArtifactStorageProperties()),
                 repository,
                 mockGovernanceClient(),
                 new BenchmarkMetricsRecorder(new SimpleMeterRegistry())
@@ -99,7 +128,8 @@ class BenchmarkReportApplicationServiceTest {
 
     private BenchmarkReport storeReport(BenchmarkTaskModelApplicationService modelService,
                                         InMemoryBenchmarkTaskRepository repository,
-                                        String taskId) {
+                                        String taskId,
+                                        BenchmarkArtifactStorageService storageService) {
         BenchmarkTask task = modelService.createQueuedTask(
             baseRequest(),
             taskId,
@@ -121,7 +151,12 @@ class BenchmarkReportApplicationServiceTest {
         BenchmarkIsolatedExecutionResult executionResult =
             new BenchmarkIsolatedExecutionService(properties, modelService).execute(task, Instant.parse("2026-04-21T00:00:11Z"));
         BenchmarkReport report = modelService.buildExecutedReport(task, executionResult, Instant.parse("2026-04-21T00:00:11Z"));
-        report = report.withExportArtifacts(new BenchmarkReportExportService().buildArtifacts(modelService.buildReportResponse(report)));
+        BenchmarkReportResponse reportResponse = modelService.buildReportResponse(report);
+        BenchmarkReportRawDataResponse rawDataResponse = modelService.buildRawDataResponse(report);
+        java.util.List<com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact> artifacts =
+            new BenchmarkReportExportService().buildArtifacts(reportResponse);
+        artifacts.add(new BenchmarkReportExportService().buildRawDataArtifact(rawDataResponse));
+        report = report.withExportArtifacts(storageService.externalize(report.getReportId(), artifacts));
         repository.saveReport(report);
         return report;
     }

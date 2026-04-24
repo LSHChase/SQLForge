@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkThresholdDTO;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskStatusResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskSubmitResponse;
@@ -77,7 +78,7 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals(BenchmarkTaskPhase.BASELINE_PREPARING, submitResponse.getCurrentPhase());
         assertEquals("/api/benchmark-engine/tasks/benchmark-task-002", submitResponse.getStatusQueryPath());
         assertEquals("LONG_TERM_BASELINE", submitResponse.getContractStage());
-        assertEquals("DATABASE_ISOLATED_EXECUTION_BASELINE", submitResponse.getImplementationStage());
+        assertEquals("EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE", submitResponse.getImplementationStage());
 
         assertEquals(BenchmarkTaskType.COMPARISON, statusResponse.getTaskType());
         assertEquals(BenchmarkTaskPriority.NORMAL, statusResponse.getPriority());
@@ -116,10 +117,10 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals("/api/benchmark-engine/reports/report-benchmark-task-003", response.getReportQueryPath());
         assertEquals("/api/benchmark-engine/reports/report-benchmark-task-003/raw-data", response.getRawDataDownloadPath());
         assertEquals("ENGINE_SELECTION", response.getRecommendations().get(0).getCategory());
-        assertEquals("DATABASE_PERSISTED_EXPORT_BASELINE", response.getImplementationStage());
+        assertEquals("EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE", response.getImplementationStage());
         assertEquals("tenant-a", report.getTenantId());
         assertNotNull(report.getExecutionSummary());
-        assertEquals(Integer.valueOf(3), Integer.valueOf(report.getExportArtifacts().size()));
+        assertEquals(Integer.valueOf(4), Integer.valueOf(report.getExportArtifacts().size()));
     }
 
     @Test
@@ -195,7 +196,12 @@ class BenchmarkTaskModelApplicationServiceTest {
         BenchmarkIsolatedExecutionResult executionResult =
             new BenchmarkIsolatedExecutionService(properties, service).execute(task, generatedAt);
         BenchmarkReport report = service.buildExecutedReport(task, executionResult, generatedAt);
-        return report.withExportArtifacts(new BenchmarkReportExportService().buildArtifacts(service.buildReportResponse(report)));
+        BenchmarkReportResponse reportResponse = service.buildReportResponse(report);
+        BenchmarkReportRawDataResponse rawDataResponse = service.buildRawDataResponse(report);
+        java.util.List<com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact> artifacts =
+            new BenchmarkReportExportService().buildArtifacts(reportResponse);
+        artifacts.add(new BenchmarkReportExportService().buildRawDataArtifact(rawDataResponse));
+        return report.withExportArtifacts(artifacts);
     }
 
     private BenchmarkTaskSubmitRequest baseRequest(BenchmarkTaskType taskType) {

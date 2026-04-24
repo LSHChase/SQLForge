@@ -22,3 +22,6 @@ benchmark-engine:
   task-execution:
     isolation-sample-count: 6
     isolation-work-iterations: 48
+  artifact-storage:
+    base-dir: target/benchmark-engine-artifacts/test-runtime
+    storage-type: LOCAL_FILE

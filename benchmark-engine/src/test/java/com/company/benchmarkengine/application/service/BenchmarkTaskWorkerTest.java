@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
+import com.company.benchmarkengine.config.BenchmarkArtifactStorageProperties;
 import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
+import com.company.benchmarkengine.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.benchmarkengine.infrastructure.repository.InMemoryBenchmarkTaskRepository;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
@@ -28,11 +30,14 @@ class BenchmarkTaskWorkerTest {
         properties.setPhaseDelayMs(0L);
         properties.setIsolationSampleCount(4);
         properties.setIsolationWorkIterations(24);
+        BenchmarkArtifactStorageProperties storageProperties = new BenchmarkArtifactStorageProperties();
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         BenchmarkTaskWorker worker = new BenchmarkTaskWorker(
             modelService,
             new BenchmarkIsolatedExecutionService(properties, modelService),
             new BenchmarkReportExportService(),
+            new BenchmarkArtifactStorageService(storageProperties),
+            new BenchmarkGovernanceTraceService(org.mockito.Mockito.mock(GovernanceCapabilityClient.class)),
             repository,
             properties,
             new BenchmarkMetricsRecorder(meterRegistry)
@@ -45,6 +50,7 @@ class BenchmarkTaskWorkerTest {
         assertEquals("tenant-a", repository.findReportByTaskId("benchmark-task-async-001").getTenantId());
         assertNotNull(repository.findReportByTaskId("benchmark-task-async-001").getExecutionSummary());
         assertNotNull(repository.findReportByTaskId("benchmark-task-async-001").findArtifact(BenchmarkReportFormat.PDF));
+        assertNotNull(repository.findReportByTaskId("benchmark-task-async-001").findRawDataArtifact());
         assertEquals(1.0D, meterRegistry.get("sqlforge.benchmark.engine.tasks.terminal").tags(
             "task_type", "BASELINE",
             "result_status", "SUCCEEDED"

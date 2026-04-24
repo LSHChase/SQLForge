@@ -8,6 +8,8 @@ import com.company.governance.application.controller.vo.ScheduleExtensionStatusV
 import com.company.governance.application.service.GovernanceCapabilityApplicationService;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckRequest;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckResponse;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,6 +51,13 @@ public class GovernanceCapabilityController {
     @PostMapping("/audit/write")
     public AuditWriteResponse writeAudit(@RequestBody AuditWriteRequest request) {
         return governanceCapabilityApplicationService.publishAuditEvent(request);
+    }
+
+    @PostMapping("/benchmark/report-trace/write")
+    public GovernanceBenchmarkReportTraceResponse writeBenchmarkReportTrace(
+        @RequestBody GovernanceBenchmarkReportTraceRequest request
+    ) {
+        return governanceCapabilityApplicationService.writeBenchmarkReportTrace(request);
     }
 
     @GetMapping("/schedule/extensions")
