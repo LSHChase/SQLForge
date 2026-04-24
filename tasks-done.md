@@ -4,6 +4,31 @@
 
 ## Done
 
+### E-TASK-010: 收敛前端 Node/Vite/Vue 版本并核对 Vue SFC 构建约束
+
+- Status: done
+- Completed at: 2026-04-23
+- Commit subject: `chore(frontend): align toolchain versions and capture SFC constraint`
+- Priority: 1
+- Depends on: N/A
+- Scope: Pin the root frontend toolchain to Node 18.20.8, Vite 5.4.11, and Vue 3.5.13; inspect whether the current Vue single-file-component build can operate without @vitejs/plugin-vue and without a direct @vue/compiler-sfc dependency; apply only repository-truth-consistent changes and keep runtime smoke/build validation traceable.
+- Validation:
+  - `python3 scripts/foreman.py validate E-TASK-010`
+  - `npm run build`
+- Progress log:
+  - 2026-04-23: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-23: pinned the root frontend toolchain declarations to Node `18.20.8`, Vite `5.4.11`, and Vue `3.5.13`; removed the direct `@vue/compiler-sfc` devDependency; refreshed the npm lockfile plus GitHub Actions Node version selectors; and verified `npm run build` still passes on `vite@5.4.11`.
+  - 2026-04-23: confirmed the current frontend still imports `src/App.vue` and route/view `.vue` single-file components, `vite.config.js` still depends on `@vitejs/plugin-vue`, and `vue@3.5.13` still carries `@vue/compiler-sfc` transitively, so the requested "unsupported `@vitejs/plugin-vue` / unsupported `@vue/compiler-sfc`" state cannot be reached without a broader non-SFC frontend migration or a tooling-policy exception.
+- Next action: After human confirmation, either keep the current Vue SFC architecture and accept `@vitejs/plugin-vue` plus Vue's transitive `@vue/compiler-sfc`, or open a dedicated refactor task to migrate `src/App.vue`, router views, and the Vite transform path away from `.vue` SFC usage.
+- Escalation: If the environment policy truly bans `@vitejs/plugin-vue` or any transitive `@vue/compiler-sfc`, stop treating this as a version-only dependency change and escalate it as a scoped frontend architecture migration with explicit acceptance of rewrite cost and regression risk.
+- Human decision: Decide whether repository truth should continue using Vue SFCs with `@vitejs/plugin-vue`, or whether to authorize a broader refactor that removes `.vue` SFC usage and accepts the required build/runtime rewiring.
+- INBOX ref: INBOX-003
+- Context closeout:
+  - Completed scope: Pinned the root frontend toolchain declarations and CI workflows to Node 18.20.8, Vite 5.4.11, and Vue 3.5.13, removed the direct @vue/compiler-sfc devDependency, refreshed the npm lockfile, and recorded the remaining Vue single-file-component build constraint through the task and INBOX audit chain instead of pretending the current SFC frontend can run without its required plugin/tooling path.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-010 --include-task-audit --extra-command 'npm run build' --extra-command 'npm ls @vue/compiler-sfc'; npm ls @vitejs/plugin-vue @vue/compiler-sfc vue vite
+  - Residual risk: The repository frontend still imports src/App.vue and route-level .vue files through vite.config.js with @vitejs/plugin-vue, and vue@3.5.13 still carries @vue/compiler-sfc transitively, so a strict ban on either package still requires a broader non-SFC migration or a tooling-policy exception.
+  - Next step: Decide whether to keep the current Vue SFC architecture with its required plugin/transitive compiler path, or authorize a dedicated frontend migration task that removes .vue SFC usage before enforcing a stricter package ban.
+
 ### HARN-018: Reconcile D-TASK-020 post-closeout drift
 
 - Status: done
