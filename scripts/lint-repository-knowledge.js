@@ -35,6 +35,7 @@ const requiredDocsPaths = [
   'docs/rules/codex-rules.md',
   'docs/operations',
   'docs/operations/README.md',
+  'docs/operations/codex-mcp-playbook.md',
   'docs/operations/foreman-workflow.md',
   'docs/operations/human-collaboration.md',
   'docs/operations/local-development.md',
@@ -52,6 +53,7 @@ const requiredDocsPaths = [
   'docs/references/human-constraint-history.md',
   'docs/references/raw-requirements',
   'docs/security',
+  'docs/security/connectors.md',
   'docs/security/compliance.md',
   'docs/plans',
   'docs/plans/phase-0-plan.md',
@@ -65,6 +67,7 @@ const requiredDocsPaths = [
   '.codex/hooks/permission_request.py',
   '.codex/hooks/stop.py',
   '.codex/policy',
+  '.codex/policy/mcp-policy.json',
   '.codex/policy/current-task.schema.json',
   '.codex/state',
   '.codex/state/.gitkeep',
@@ -83,21 +86,24 @@ const requiredGovernancePaths = [
 const requiredReadmeMarkers = [
   'docs/README.md',
   'docs/operations/README.md',
+  'docs/operations/codex-mcp-playbook.md',
   'docs/architecture/init.md',
   'docs/rules/codex-rules.md',
   'docs/quality/alibaba-java-guidelines.md',
   'docs/adr/README.md',
+  'docs/security/connectors.md',
   'docs/security/compliance.md',
   'docs/plans/phase-0-plan.md',
   'docs/plans/codex-governance-integration-blueprint.md'
 ]
 
-const expectedRuleEnd = 168
+const expectedRuleEnd = 173
 const expectedValidationIndexRanges = [
   [116, 144],
   [151, 154],
   [156, 161],
-  [168, 168]
+  [168, 168],
+  [170, 173]
 ]
 const requiredMessagingConfigs = [
   'governance/src/main/resources/application-dev.yml',
@@ -332,6 +338,8 @@ function ensureDocsReadmeIndex(errors, checks) {
     './plans/document-governance-repair-retrospective-2026-04-20.md',
     './plans/task-spec-matrix.md',
     './plans/task-governance-extension-matrix.md',
+    './security/connectors.md',
+    './operations/codex-mcp-playbook.md',
     'tasks.md',
     'tasks-done.md',
     'INBOX.md'
@@ -417,6 +425,83 @@ function ensureCoverageMatrixCompleteness(errors, checks) {
   }
 
   checks.push(`document-coverage-matrix.md completeness ok (${docsFiles.length} docs files)`)
+}
+
+function ensureMcpGovernanceDocs(errors, checks) {
+  const connectorsPath = 'docs/security/connectors.md'
+  const playbookPath = 'docs/operations/codex-mcp-playbook.md'
+  const policyPath = '.codex/policy/mcp-policy.json'
+  const missingFiles = [connectorsPath, playbookPath, policyPath].filter(item => !pathExists(item))
+  if (missingFiles.length > 0) {
+    errors.push(`MCP governance baseline files missing:\n- ${missingFiles.join('\n- ')}`)
+    return
+  }
+
+  const connectorsContent = readFile(connectorsPath)
+  const connectorMarkers = [
+    '观测/日志',
+    '部署证据',
+    '对象存储元数据',
+    '外部需求/工单检索',
+    'SSH',
+    'K8s',
+    '数据库执行型',
+    'Main Foreman'
+  ]
+  const missingConnectorMarkers = connectorMarkers.filter(marker => !connectorsContent.includes(marker))
+  if (missingConnectorMarkers.length > 0) {
+    errors.push(`docs/security/connectors.md missing MCP boundary markers:\n- ${missingConnectorMarkers.join('\n- ')}`)
+    return
+  }
+
+  const playbookContent = readFile(playbookPath)
+  const playbookMarkers = [
+    '只读 MCP',
+    'docs/security/connectors.md',
+    'mcp-policy.json',
+    'Main Foreman',
+    'mcp_profile',
+    'compile-governance',
+    'validate_codex_runtime.py'
+  ]
+  const missingPlaybookMarkers = playbookMarkers.filter(marker => !playbookContent.includes(marker))
+  if (missingPlaybookMarkers.length > 0) {
+    errors.push(`docs/operations/codex-mcp-playbook.md missing MCP playbook markers:\n- ${missingPlaybookMarkers.join('\n- ')}`)
+    return
+  }
+
+  let policy
+  try {
+    policy = JSON.parse(readFile(policyPath))
+  } catch (error) {
+    errors.push(`Unable to parse ${policyPath}: ${error.message}`)
+    return
+  }
+
+  const categories = Array.isArray(policy.read_only_categories) ? policy.read_only_categories : []
+  const requiredCategoryIds = [
+    'observability_logs',
+    'deployment_evidence',
+    'object_storage_metadata',
+    'external_requirements_tickets'
+  ]
+  const missingCategoryIds = requiredCategoryIds.filter(id => !categories.some(item => item.id === id && item.scope === 'read-only'))
+  if (missingCategoryIds.length > 0) {
+    errors.push(`mcp-policy.json missing approved read-only categories:\n- ${missingCategoryIds.join('\n- ')}`)
+    return
+  }
+
+  const runtimeConstraints = policy.runtime_constraints || {}
+  if (
+    runtimeConstraints.allow_repo_tracked_mcp_profile !== false ||
+    runtimeConstraints.multi_agent_mcp_profile_enabled !== false ||
+    runtimeConstraints.main_foreman_is_only_writeback_entry !== true
+  ) {
+    errors.push('mcp-policy.json runtime constraints drifted from the HARN-034 boundary')
+    return
+  }
+
+  checks.push('MCP governance docs and compiled policy ok')
 }
 
 function ensureFrontendDevSmokeBoundary(errors, checks) {
@@ -515,6 +600,7 @@ function main() {
   ensureMessagingModeConfig(errors, checks)
   ensureMessagingSchema(errors, checks)
   ensureCoverageMatrixCompleteness(errors, checks)
+  ensureMcpGovernanceDocs(errors, checks)
   ensureFrontendDevSmokeBoundary(errors, checks)
 
   if (errors.length > 0) {

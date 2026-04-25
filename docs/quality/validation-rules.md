@@ -1,6 +1,6 @@
 # Validation Rules
 
-本文件独立收录 `R-116` 至 `R-161` 的验证规则，并补充 `R-168` 的执行型验证衔接，用于快速查阅阶段门禁、任务验证、回归验证、环境验证、规则自维护、自动触发验证规则与 harness 任务治理验证。
+本文件独立收录 `R-116` 至 `R-173` 的验证规则，并补充 `R-168` 的执行型验证衔接，用于快速查阅阶段门禁、任务验证、回归验证、环境验证、规则自维护、自动触发验证规则、harness 任务治理验证与 MCP 治理验证。
 
 ## 索引
 
@@ -44,6 +44,10 @@
 - `R-160` 任务审计脚本验证
 - `R-161` 外部规则迁移替换验证
 - `R-168` 任务收尾上下文收缩与清理验证衔接
+- `R-170` MCP 基线文档验证
+- `R-171` MCP policy 编译验证
+- `R-172` MCP runtime 配置边界验证
+- `R-173` MCP 证据与写边界验证
 
 ## 阶段质量门禁（Phase Gate）
 
@@ -522,3 +526,53 @@
 - 通过标准：4 项全部通过。
 - 失败处置：不得关闭任务或切换下一任务；先补足 closeout 记录与上下文重建动作。
 - 关联规则：`R-134`, `R-156`, `R-157`, `R-168`
+
+## MCP 治理验证（R-170 至 R-173）
+
+### R-170 MCP 基线文档验证
+
+- 触发时机：新增或修改 `docs/security/connectors.md`、`docs/operations/codex-mcp-playbook.md`、`docs/README.md` 或 `docs/operations/README.md` 中的 MCP 相关内容后。
+- 检查清单：
+  1. `docs/security/connectors.md` 已存在，并明确写出 4 个允许的只读 category
+  2. `docs/security/connectors.md` 已明确列出可写云控、SSH、K8s、数据库执行型等禁用 server 类型
+  3. `docs/operations/codex-mcp-playbook.md` 已说明本地凭据边界、自动化入口和 `mcp_profile` 延后边界
+  4. `docs/README.md` 与 `docs/operations/README.md` 已把上述文档纳入索引
+- 通过标准：4 项全部通过。
+- 失败处置：不得宣称 MCP 基线已完成；先补齐权威文档与索引。
+- 关联规则：`R-170`, `R-171`, `R-173`
+
+### R-171 MCP policy 编译验证
+
+- 触发时机：修改 `compile-governance`、MCP 治理文档、MCP 规则或 closeout 前需要确认编译产物一致性时。
+- 检查清单：
+  1. 执行 `python3 scripts/foreman.py compile-governance`
+  2. `.codex/policy/mcp-policy.json` 已生成且可解析
+  3. policy 中的 4 个 category 全部为 `read-only`
+  4. policy 中已显式冻结 `allow_repo_tracked_mcp_profile = false`、`multi_agent_mcp_profile_enabled = false` 和 Main Foreman 唯一 write-back 边界
+- 通过标准：4 项全部通过。
+- 失败处置：修复文档/脚本漂移，重新编译后再继续验证或 closeout。
+- 关联规则：`R-170`, `R-172`, `R-173`
+
+### R-172 MCP runtime 配置边界验证
+
+- 触发时机：修改 `.codex/config.toml`、`scripts/validate_codex_runtime.py`、repo-tracked Codex runtime config，或任务准备使用 MCP 本地接入前。
+- 检查清单：
+  1. 执行 `python3 scripts/validate_codex_runtime.py`
+  2. `validate_codex_runtime.py` 已加载 `.codex/policy/mcp-policy.json`
+  3. repo-tracked `.codex/config.toml` 未声明 live MCP server inventory、repo-tracked `mcp_profile` 或其他默认 MCP runtime config
+  4. repo-tracked 配置未写入 token、密码、endpoint 等 MCP secret
+- 通过标准：4 项全部通过。
+- 失败处置：立即回退 repo-tracked MCP runtime config 或 secret，恢复到 HARN-034 基线后再继续。
+- 关联规则：`R-172`, `R-173`, `R-165`
+
+### R-173 MCP 证据与写边界验证
+
+- 触发时机：任务声明会使用 MCP 外部证据，或 MCP 手册/规则/脚本发生变更后。
+- 检查清单：
+  1. 当前声明的 MCP 用途仍限定在只读证据采集，不包含远端变更
+  2. Main Foreman 仍是唯一 write-back / validate / closeout 入口
+  3. 外部 MCP 结果没有被直接写成 `docs/` 真值、closeout 结论或 Git 审计事实，而是经由任务台账、验证日志、执行计划或 INBOX 显式写回
+  4. 若需求涉及可写 MCP 或 multi-agent `mcp_profile`，已拆为新的 formal task，而不是在当前任务中隐式扩展
+- 通过标准：4 项全部通过。
+- 失败处置：停止 MCP 扩展，先回到只读基线，必要时拆新任务并追加人工确认。
+- 关联规则：`R-170`, `R-173`, `R-049`, `R-050`

@@ -3,10 +3,13 @@
 ## Current Entry Points
 
 - 查看标准命令：`make help`
+- MCP 治理手册：`docs/operations/codex-mcp-playbook.md`
 - Codex / foreman 预检：`python3 scripts/foreman.py preflight`
 - Codex / foreman 治理编译：`python3 scripts/foreman.py compile-governance`
+  - 会同步产出 `.codex/policy/mcp-policy.json`
 - Codex / foreman 审计包装：`python3 scripts/foreman.py audit --phase pre-closeout`
 - Codex / foreman 运行时验证：`python3 scripts/validate_codex_runtime.py`
+  - 当前会校验 MCP 基线文档、`mcp-policy.json` 和 repo-tracked runtime config 边界
 - Codex / foreman 任务 closeout：`python3 scripts/foreman.py closeout <TASK_ID> --stage-path <FILE> ...`
 - Codex / foreman delivery closeout：`python3 scripts/foreman.py delivery-closeout <TASK_ID> --tag <TAG> --writeback-file <FILE>`
 - 启动本地流程：`bash scripts/local-start.sh`
@@ -77,5 +80,7 @@
 - 本地脚本和 compose 编排以仓库当前文件为准，不引入外部项目的服务顺序或端口口径
 - `docs/generated/repo-map.md` 只作为仓库结构快照，不替代源码和规范文档
 - `.codex/` 中的配置、policy 和 state 用于接线 Codex 执行流，不替代 `docs/` 真值，也不允许成为新的长期规则来源
+- 当前 MCP 基线只允许 4 类只读 category：观测/日志、部署证据、对象存储元数据、外部需求/工单检索；不得在本仓库率先接入可写云控、SSH、K8s、数据库执行型 MCP
+- 真实 MCP server 凭据、token、endpoint 或 `mcp_profile` 不得在 repo-tracked 配置中落仓；如需本地使用，必须通过用户本地配置、环境变量或外部 secret store 提供
 - 外部测试环境即使已有独立 CI/CD，只要缺少仓库口径的 smoke / runtime gate，就不能替代本仓库的 `repo-closed` 主路径
 - 外部测试环境现在应调用 `bash scripts/run-env-smoke.sh` 完成最小部署后验证；若未调用并保留证据，仍不能被写成“已有 smoke 闭环”

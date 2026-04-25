@@ -31,7 +31,9 @@ SQLForge 是一个面向企业 BI 与数据中台场景的 SQL 生命周期治�
 - Java 规范治理：`docs/quality/alibaba-java-guidelines.md`
 - 前后端分离基线：`docs/quality/frontend-backend-separation-baseline.md`
 - ADR 目录：`docs/adr/README.md`
+- Connector / MCP 边界：`docs/security/connectors.md`
 - 合规说明：`docs/security/compliance.md`
+- Codex MCP 手册：`docs/operations/codex-mcp-playbook.md`
 - 华为云部署：`docs/deployments/huawei-cloud-setup.md`
 - 可观测基线：`docs/deployments/observability-baseline.md`
 - 阶段计划：`docs/plans/phase-0-plan.md`

@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-034: 落地最小可用 MCP 治理底座与只读接入边界
+
+- Status: done
+- Completed at: 2026-04-25
+- Commit subject: `feat(governance): add MCP read-only governance baseline`
+- Priority: 1
+- Depends on: `HARN-028`,`HARN-033`
+- Scope: 在 `A-STORY-008` 下新增一个治理/工具型正式任务，把 SQLForge 的最小 MCP 治理底座和第一批只读 MCP 边界收口到正式文档、规则、验证规则、治理编译和运行时校验入口中，同时保持 Main Foreman 唯一 write-back / validate / closeout 入口不变。 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Plan ref: docs/exec-plans/completed/HARN-034-full-auto-execution-plan.md
+- Matrix context: Phase-A / Story `A-STORY-008` Codex MCP 治理接入
+- Human confirmation point: 若要把本任务从只读 MCP 扩展为可写 MCP、把真实 connector 凭据或 server 配置落仓、或允许 MCP 绕过 `foreman` / `task_audit` / `closeout` 成为并行治理入口，需人工确认。
+- Data impact: 文档真值、规则账本、验证规则、治理编译产物、运行时校验脚本与 Codex 本地使用手册；不直接修改业务运行时数据。
+- Rollback / recovery: 按追加式治理回退 MCP 基线：移除本任务新增的 MCP 文档入口、规则、验证规则和自动化校验分支，恢复 `compile-governance` / `validate_codex_runtime` 的既有行为，并通过标准 validation 与 task-audit 证明仓库回到改造前治理基线。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-034、python3 scripts/validate_codex_runtime.py、python3 scripts/foreman.py compile-governance --check、node scripts/lint-repository-knowledge.js、python3 scripts/task_audit.py --check --phase pre-closeout`
+  - `python3 scripts/foreman.py validate HARN-034`
+- Progress log:
+  - 2026-04-25: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added SQLForge MCP governance baseline docs, connector/security boundary registry, MCP rule and validation-rule appendices, compiled mcp-policy.json, MCP-aware runtime validation, and local Codex MCP usage guidance while keeping Main Foreman as the only write-back/validate/closeout entry.
+  - Validation evidence: python3 scripts/foreman.py compile-governance; node scripts/lint-repository-knowledge.js; python3 scripts/validate_codex_runtime.py; python3 scripts/foreman.py validate HARN-034 --include-task-audit
+  - Residual risk: The repository now governs only the read-only MCP baseline. Live server inventory, repo-tracked runtime config, and multi-agent mcp_profile remain intentionally disabled until HARN-035 or another formal follow-up lands.
+  - Next step: Materialize and implement HARN-035 so explorer/validator can consume governed external evidence through manifest-level mcp_profile without changing Main Foreman authority.
+
 ### HARN-033: Codex template and runtime evidence production hardening
 
 - Status: done

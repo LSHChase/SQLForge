@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "blueprint_sha256": "6bbabae00413b99191b291715521e3568fe6f0a93178f48643952b9224f1b83f"
+    "blueprint_sha256": "128671263cebdacf0f4e893a75c9c737e78ce6e86ab2cf33747e0d10e93b9144"
   },
   "blueprint": "docs/plans/codex-governance-integration-blueprint.md",
   "master_execution_plan": "docs/plans/master-execution-plan.md",
@@ -14,7 +14,8 @@
     "docs/exec-plans/completed/HARN-025-semi-auto-multi-agent-foundation-plan.md",
     "docs/exec-plans/completed/HARN-026-full-auto-multi-agent-upgrade-plan.md",
     "docs/exec-plans/completed/HARN-027-requirements-to-task-governed-full-cycle-plan.md",
-    "docs/exec-plans/completed/HARN-028-governed-full-cycle-v2-hardening-plan.md"
+    "docs/exec-plans/completed/HARN-028-governed-full-cycle-v2-hardening-plan.md",
+    "docs/exec-plans/completed/HARN-034-full-auto-execution-plan.md"
   ],
   "authority_entry": [
     "docs/README.md",

@@ -7,9 +7,10 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, Iterator
+from typing import Dict, Iterator, List
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -18,6 +19,14 @@ SESSION_CONTEXT_PATH = ROOT / ".codex" / "state" / "session-context.json"
 MASTER_PLAN_PATH = ROOT / "docs" / "plans" / "master-execution-plan.md"
 TASKS_PATH = ROOT / "tasks.md"
 TASKS_DONE_PATH = ROOT / "tasks-done.md"
+CONFIG_PATH = ROOT / ".codex" / "config.toml"
+MCP_POLICY_PATH = ROOT / ".codex" / "policy" / "mcp-policy.json"
+RULES_PATH = ROOT / "docs" / "rules" / "codex-rules.md"
+VALIDATION_RULES_PATH = ROOT / "docs" / "quality" / "validation-rules.md"
+DOCS_README_PATH = ROOT / "docs" / "README.md"
+OPERATIONS_README_PATH = ROOT / "docs" / "operations" / "README.md"
+CONNECTORS_PATH = ROOT / "docs" / "security" / "connectors.md"
+MCP_PLAYBOOK_PATH = ROOT / "docs" / "operations" / "codex-mcp-playbook.md"
 
 
 def run(command: list[str], stdin: str | None = None, timeout: int = 30) -> subprocess.CompletedProcess[str]:
@@ -38,6 +47,10 @@ def expect(condition: bool, message: str) -> None:
 
 def load_json(path: Path) -> Dict[str, object]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_toml(path: Path) -> Dict[str, object]:
+    return tomllib.loads(path.read_text(encoding="utf-8"))
 
 
 def save_text(path: Path, content: str) -> None:
@@ -78,6 +91,87 @@ def run_hook(path: str, payload: Dict[str, object]) -> Dict[str, object]:
     return json.loads(output)
 
 
+def expect_markers(path: Path, markers: List[str], label: str) -> None:
+    content = path.read_text(encoding="utf-8")
+    missing = [marker for marker in markers if marker not in content]
+    expect(not missing, f"{label} missing markers: {', '.join(missing)}")
+
+
+def collect_key_paths(payload: object, prefix: str = "") -> List[str]:
+    if isinstance(payload, dict):
+        paths: List[str] = []
+        for key, value in payload.items():
+            key_path = f"{prefix}.{key}" if prefix else str(key)
+            paths.append(key_path)
+            paths.extend(collect_key_paths(value, key_path))
+        return paths
+    if isinstance(payload, list):
+        paths = []
+        for index, value in enumerate(payload):
+            key_path = f"{prefix}[{index}]"
+            paths.extend(collect_key_paths(value, key_path))
+        return paths
+    return []
+
+
+def validate_mcp_governance() -> str:
+    expect(MCP_POLICY_PATH.exists(), "compiled MCP policy is missing")
+    policy = load_json(MCP_POLICY_PATH)
+    scope = policy.get("scope", {})
+    expect(isinstance(scope, dict), "MCP policy scope is invalid")
+    profile = scope.get("profile")
+    expect(profile == "single-agent-read-only-baseline", "MCP policy profile must remain single-agent-read-only-baseline")
+
+    categories = policy.get("read_only_categories", [])
+    expect(isinstance(categories, list), "MCP policy read_only_categories must be a list")
+    expected_category_ids = {
+        "observability_logs",
+        "deployment_evidence",
+        "object_storage_metadata",
+        "external_requirements_tickets",
+    }
+    category_ids = {str(item.get("id")) for item in categories if isinstance(item, dict)}
+    expect(category_ids == expected_category_ids, "MCP policy category set drifted from the approved read-only baseline")
+    for item in categories:
+        expect(isinstance(item, dict), "MCP policy category entry is invalid")
+        expect(item.get("scope") == "read-only", f"MCP category {item.get('id')} must remain read-only")
+        expect(bool(item.get("forbidden_operations")), f"MCP category {item.get('id')} must declare forbidden operations")
+
+    runtime_constraints = policy.get("runtime_constraints", {})
+    expect(isinstance(runtime_constraints, dict), "MCP runtime constraints must be an object")
+    expect(runtime_constraints.get("allow_repo_tracked_mcp_config") is False, "repo-tracked MCP config must stay disabled")
+    expect(runtime_constraints.get("allow_repo_tracked_mcp_profile") is False, "repo-tracked MCP profile must stay disabled")
+    expect(runtime_constraints.get("allow_repo_stored_secrets") is False, "repo-stored MCP secrets must stay disabled")
+    expect(runtime_constraints.get("main_foreman_is_only_writeback_entry") is True, "Main Foreman write-back boundary drifted")
+    expect(runtime_constraints.get("multi_agent_mcp_profile_enabled") is False, "multi-agent MCP profile must stay disabled in HARN-034")
+
+    for path in [CONNECTORS_PATH, MCP_PLAYBOOK_PATH, DOCS_README_PATH, OPERATIONS_README_PATH, RULES_PATH, VALIDATION_RULES_PATH]:
+        expect(path.exists(), f"Required MCP governance document is missing: {path.relative_to(ROOT)}")
+
+    expect_markers(DOCS_README_PATH, ["./security/connectors.md", "./operations/codex-mcp-playbook.md"], "docs/README.md")
+    expect_markers(OPERATIONS_README_PATH, ["./codex-mcp-playbook.md"], "docs/operations/README.md")
+    expect_markers(RULES_PATH, ["R-170", "R-171", "R-172", "R-173"], "docs/rules/codex-rules.md")
+    expect_markers(VALIDATION_RULES_PATH, ["R-170", "R-171", "R-172", "R-173"], "docs/quality/validation-rules.md")
+    expect_markers(
+        CONNECTORS_PATH,
+        ["观测/日志", "部署证据", "对象存储元数据", "外部需求/工单检索", "Main Foreman", "mcp_profile"],
+        "docs/security/connectors.md",
+    )
+    expect_markers(
+        MCP_PLAYBOOK_PATH,
+        ["compile-governance", "validate_codex_runtime.py", "mcp-policy.json", "Main Foreman", "mcp_profile"],
+        "docs/operations/codex-mcp-playbook.md",
+    )
+
+    config = load_toml(CONFIG_PATH)
+    mcp_keys = [key for key in collect_key_paths(config) if "mcp" in key.lower()]
+    expect(
+        not mcp_keys,
+        ".codex/config.toml must not declare repo-tracked MCP runtime config during HARN-034: " + ", ".join(sorted(mcp_keys)),
+    )
+    return str(profile)
+
+
 def maybe_attempt_codex_exec() -> str:
     try:
         result = run(
@@ -105,6 +199,7 @@ def main() -> int:
     with preserved_state([CURRENT_TASK_PATH, SESSION_CONTEXT_PATH]):
         version_check = run(["codex", "--version"])
         expect(version_check.returncode == 0, version_check.stderr or "codex --version failed")
+        mcp_policy_profile = validate_mcp_governance()
 
         preflight = run(
             [
@@ -212,6 +307,7 @@ def main() -> int:
             "authority_digest_count": len(session.get("authority_digest", [])),
             "instantiate_matrix_task": instantiate_payload["task_id"],
             "codex_exec_status": codex_exec_status,
+            "mcp_policy_profile": mcp_policy_profile,
         }
         sys.stdout.write(json.dumps(report, ensure_ascii=True, indent=2) + "\n")
     return 0

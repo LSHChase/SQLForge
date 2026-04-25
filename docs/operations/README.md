@@ -10,13 +10,15 @@
    人类与 foreman 的职责边界、`stop` / `continue`、脏工作树、冲突处理和命令可用性约束。
 3. [Local Development](./local-development.md)
    当前仓库可用的本地命令、脚本、环境约束、Codex `foreman.py` 入口和验证入口。
-4. [Requirements-To-Task Playbook](./requirements-to-task-playbook.md)
+4. [Codex MCP Playbook](./codex-mcp-playbook.md)
+   SQLForge 中使用 Codex + MCP 的只读接入边界、本地凭据/配置要求、自动化入口与证据写回规则。
+5. [Requirements-To-Task Playbook](./requirements-to-task-playbook.md)
    从无 task 开始的治理自动化入口，定义 Codex 日常输入模板、template adapter、runtime dashboard、`governed_intake`、`governed_healthcheck`、requirement normalization、candidate task pack、materialization gate 与 `governed_full_cycle` 流程。
-5. [Multi-Agent Playbook](./multi-agent-playbook.md)
+6. [Multi-Agent Playbook](./multi-agent-playbook.md)
    多 agent 协作基础设施的角色边界、manifest/worktree 规则、`autoplan/full-auto/prepare/launch/collect` 脚本用法与 SQLForge demo runbook。
-6. [Git And Task Closeout](./git-and-task-closeout.md)
+7. [Git And Task Closeout](./git-and-task-closeout.md)
    根 Git 边界、单任务单 commit、task audit、上下文收缩/清理和关闭顺序。
-7. [Best Practices](./best-practices.md)
+8. [Best Practices](./best-practices.md)
    可泛化工程规则的 canonical 账本。
 
 ## 相关台账
@@ -26,4 +28,5 @@
 - 人工决策入口：`INBOX.md`
 - 机器参数：`.agent/config.json`
 - Codex 项目级配置与 hooks：`.codex/config.toml`、`.codex/hooks.json`
+- MCP 治理编译产物：`.codex/policy/mcp-policy.json`
 - 验证日志：`docs/quality/validation-log.md`

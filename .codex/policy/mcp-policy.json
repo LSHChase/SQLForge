@@ -1,0 +1,158 @@
+{
+  "metadata": {
+    "blueprint_sha256": "128671263cebdacf0f4e893a75c9c737e78ce6e86ab2cf33747e0d10e93b9144",
+    "connectors_sha256": "f7b87b312e73cb6c50f6e3a27cb42b10d661bf4d05462306ce44ff6382d54a94",
+    "playbook_sha256": "c1e29f4df564ca1baf9caa3939ecb4057ebc9fb163efa70c17abf7bd1107f55a"
+  },
+  "scope": {
+    "task_id": "HARN-034",
+    "profile": "single-agent-read-only-baseline",
+    "approved_access_mode": "read-only",
+    "external_evidence_requires_repo_writeback": true
+  },
+  "source_anchors": {
+    "policy_docs": [
+      "docs/security/connectors.md",
+      "docs/operations/codex-mcp-playbook.md",
+      "docs/README.md",
+      "docs/operations/README.md"
+    ],
+    "rulebook": "docs/rules/codex-rules.md",
+    "validation_rulebook": "docs/quality/validation-rules.md",
+    "local_runtime_config": ".codex/config.toml"
+  },
+  "rules": [
+    "R-170",
+    "R-171",
+    "R-172",
+    "R-173"
+  ],
+  "validation_rules": [
+    "R-170",
+    "R-171",
+    "R-172",
+    "R-173"
+  ],
+  "read_only_categories": [
+    {
+      "id": "observability_logs",
+      "label": "\u89c2\u6d4b/\u65e5\u5fd7",
+      "scope": "read-only",
+      "allowed_operations": [
+        "list",
+        "search",
+        "read",
+        "tail",
+        "fetch-metadata"
+      ],
+      "forbidden_operations": [
+        "ack",
+        "silence",
+        "close-alert",
+        "delete",
+        "change-retention"
+      ],
+      "evidence_examples": [
+        "\u544a\u8b66\u4e0a\u4e0b\u6587",
+        "\u65e5\u5fd7\u68c0\u7d22\u7ed3\u679c",
+        "\u6307\u6807\u5feb\u7167\u5143\u6570\u636e"
+      ]
+    },
+    {
+      "id": "deployment_evidence",
+      "label": "\u90e8\u7f72\u8bc1\u636e",
+      "scope": "read-only",
+      "allowed_operations": [
+        "list",
+        "read",
+        "inspect-status",
+        "fetch-metadata"
+      ],
+      "forbidden_operations": [
+        "deploy",
+        "rollback",
+        "approve",
+        "promote",
+        "delete"
+      ],
+      "evidence_examples": [
+        "\u53d1\u5e03\u72b6\u6001",
+        "\u6784\u5efa\u4ea7\u7269\u5143\u6570\u636e",
+        "\u53d1\u5e03\u65e5\u5fd7"
+      ]
+    },
+    {
+      "id": "object_storage_metadata",
+      "label": "\u5bf9\u8c61\u5b58\u50a8\u5143\u6570\u636e",
+      "scope": "read-only",
+      "allowed_operations": [
+        "list",
+        "head",
+        "read-metadata",
+        "inspect-version-history"
+      ],
+      "forbidden_operations": [
+        "upload",
+        "delete",
+        "restore",
+        "retag",
+        "change-retention"
+      ],
+      "evidence_examples": [
+        "bucket/prefix \u5217\u8868",
+        "object head \u5143\u6570\u636e",
+        "\u7248\u672c\u4fe1\u606f"
+      ]
+    },
+    {
+      "id": "external_requirements_tickets",
+      "label": "\u5916\u90e8\u9700\u6c42/\u5de5\u5355\u68c0\u7d22",
+      "scope": "read-only",
+      "allowed_operations": [
+        "search",
+        "list",
+        "read",
+        "download-readonly-attachment"
+      ],
+      "forbidden_operations": [
+        "create",
+        "comment",
+        "transition",
+        "assign",
+        "close"
+      ],
+      "evidence_examples": [
+        "\u9700\u6c42\u5355\u5185\u5bb9",
+        "\u5de5\u5355\u72b6\u6001",
+        "\u9644\u4ef6\u53ea\u8bfb\u526f\u672c"
+      ]
+    }
+  ],
+  "forbidden_server_types": [
+    "write-capable cloud control",
+    "ssh",
+    "k8s exec / apply / rollout control",
+    "database execution",
+    "ticket mutation / workflow transition",
+    "object upload / delete / restore"
+  ],
+  "runtime_constraints": {
+    "allow_repo_tracked_mcp_config": false,
+    "allow_repo_tracked_mcp_profile": false,
+    "allow_repo_stored_secrets": false,
+    "main_foreman_is_only_writeback_entry": true,
+    "multi_agent_mcp_profile_enabled": false
+  },
+  "automation_entrypoints": [
+    "python3 scripts/foreman.py compile-governance",
+    "python3 scripts/validate_codex_runtime.py",
+    "python3 scripts/foreman.py validate <TASK_ID>"
+  ],
+  "human_confirmation_required_for": [
+    "write-capable MCP",
+    "repo-tracked MCP server inventory",
+    "repo-tracked credentials or tokens",
+    "multi-agent mcp_profile enablement",
+    "MCP bypass of validate / closeout / write-back"
+  ]
+}

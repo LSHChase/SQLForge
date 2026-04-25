@@ -807,9 +807,50 @@ messaging:
 - `sql/init-schema.sql`、`sql/migrations/`、DDL 设计文档、持久化评审结论和后续 schema 变更任务，都不得再把外键约束作为默认设计手段。
 - 若现有历史 schema 仍残留外键约束，必须按专项任务治理移除；在完成移除前，新增或修改表结构时也不得继续扩散新的外键约束。
 
+## MCP 治理与 Connector 边界（R-170 至 R-173）
+
+### R-170 MCP 治理基线与只读起步
+
+- SQLForge 当前引入 MCP 时，必须先以治理基线方式落地，而不是先提交 live server 配置或凭据。
+- 第一批 MCP 只允许以下只读 category：
+  - 观测/日志
+  - 部署证据
+  - 对象存储元数据
+  - 外部需求/工单检索
+- 在单独 formal task 与人工确认之前，不得把可写云控、SSH、K8s、数据库执行型、工单流转型或任何远端变更型 MCP 写成当前仓库允许范围。
+- 外部 MCP 返回的数据只能作为待核对证据，不能直接替代 `docs/`、任务台账、验证日志或 Git history 成为新的长期真值。
+
+### R-171 Connector / MCP 边界登记
+
+- 每个 MCP category、server 类型或 connector onboarding，都必须先在 `docs/security/connectors.md` 中登记：
+  - category / server 名称
+  - 允许的只读操作
+  - 明确禁止的操作
+  - 证据用途与写回方式
+  - 凭据来源与责任边界
+- 若当前任务只定义 category 级边界、尚未接入具体 server，文档必须明确写出“已定义治理边界，不代表仓库已经接通 live server”。
+- 任何新增 connector / MCP 文档都不得弱化 `R-047`；它必须在 `docs/security/connectors.md` 中保留可检索的访问范围和安全边界。
+
+### R-172 MCP 本地配置与凭据边界
+
+- 真实 MCP server 的 token、密码、endpoint、租户专属配置和其他敏感信息，不得写入 repo-tracked 文件。
+- 仓库只允许保存：
+  - category 级治理规则
+  - 非 secret 占位说明
+  - 本地接入步骤
+  - 编译后的非 secret policy artifact
+- 在 `HARN-034` 基线阶段，不得把 repo-tracked `mcp_profile`、live server inventory 或 repo-owned MCP runtime config 写入 `.codex/config.toml`、manifest、模板或其他默认执行入口；若要启用，必须以单独 formal task 和人工确认推进。
+
+### R-173 MCP 自动化编译与 Main Foreman 写边界
+
+- 只要仓库声明了 MCP 治理基线，`python3 scripts/foreman.py compile-governance` 就必须编译出 `.codex/policy/mcp-policy.json`，把允许 category、禁用能力、运行时约束和自动化入口冻结为机器可检查 policy。
+- `python3 scripts/validate_codex_runtime.py` 必须校验 `mcp-policy.json`、关联文档索引和 repo-tracked runtime config 边界，防止 MCP 治理只停留在文档描述层。
+- Main Foreman 仍是唯一允许 write-back / validate / closeout / delivery-closeout 的入口；MCP 只能读取外部证据，不能绕过 `foreman`、`task_audit`、`closeout` 或直接替代人类确认与仓库审计链。
+- 任何要把 MCP 从只读提升为可写、把 `mcp_profile` 引入 multi-agent manifest、或允许外部 MCP 驱动远端状态变更的需求，都必须新开 formal task，并在规则、验证规则、playbook 与 policy artifact 中同步落地。
+
 ## Current Consumption Note (2026-04-20)
 
 - `R-001` 至 `R-115` 仍是初始化基线，语义来源保持 `docs/architecture/init.md` 不变。
-- `R-116` 至 `R-169` 是初始化后追加的验证、Java 规范与 harness 治理规则。
+- `R-116` 至 `R-173` 是初始化后追加的验证、Java 规范、harness 治理与 MCP 治理规则。
 - 当前仓库执行时，若初始化文档中的目标落点路径与真实文档路径不一致，统一按 `docs/plans/document-truth-baseline.md` 中的漂移映射消费。
 - 本说明不新增规则编号，不改变既有规则语义，只补充当前仓库的实际消费顺序。

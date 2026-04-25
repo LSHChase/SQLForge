@@ -229,6 +229,7 @@ Purpose:
 
 - compile machine-readable Codex policy artifacts from authority sources
 - detect drift between documents and generated policy files
+- when MCP governance is enabled in repo truth, emit `.codex/policy/mcp-policy.json` to freeze the approved read-only connector boundary and runtime constraints
 
 ### 8.7 `closeout`
 

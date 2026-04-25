@@ -72,6 +72,61 @@ TASK_POLICY = {
     "delivery": {"requires_ledger": True, "delivery_scope": True},
 }
 CURRENT_TASK_SCHEMA_VERSION = 2
+MCP_RULE_IDS = ["R-170", "R-171", "R-172", "R-173"]
+MCP_VALIDATION_RULE_IDS = ["R-170", "R-171", "R-172", "R-173"]
+MCP_POLICY_DOCS = [
+    "docs/security/connectors.md",
+    "docs/operations/codex-mcp-playbook.md",
+    "docs/README.md",
+    "docs/operations/README.md",
+]
+MCP_ALLOWED_CATEGORIES = [
+    {
+        "id": "observability_logs",
+        "label": "观测/日志",
+        "scope": "read-only",
+        "allowed_operations": ["list", "search", "read", "tail", "fetch-metadata"],
+        "forbidden_operations": ["ack", "silence", "close-alert", "delete", "change-retention"],
+        "evidence_examples": ["告警上下文", "日志检索结果", "指标快照元数据"],
+    },
+    {
+        "id": "deployment_evidence",
+        "label": "部署证据",
+        "scope": "read-only",
+        "allowed_operations": ["list", "read", "inspect-status", "fetch-metadata"],
+        "forbidden_operations": ["deploy", "rollback", "approve", "promote", "delete"],
+        "evidence_examples": ["发布状态", "构建产物元数据", "发布日志"],
+    },
+    {
+        "id": "object_storage_metadata",
+        "label": "对象存储元数据",
+        "scope": "read-only",
+        "allowed_operations": ["list", "head", "read-metadata", "inspect-version-history"],
+        "forbidden_operations": ["upload", "delete", "restore", "retag", "change-retention"],
+        "evidence_examples": ["bucket/prefix 列表", "object head 元数据", "版本信息"],
+    },
+    {
+        "id": "external_requirements_tickets",
+        "label": "外部需求/工单检索",
+        "scope": "read-only",
+        "allowed_operations": ["search", "list", "read", "download-readonly-attachment"],
+        "forbidden_operations": ["create", "comment", "transition", "assign", "close"],
+        "evidence_examples": ["需求单内容", "工单状态", "附件只读副本"],
+    },
+]
+MCP_FORBIDDEN_SERVER_TYPES = [
+    "write-capable cloud control",
+    "ssh",
+    "k8s exec / apply / rollout control",
+    "database execution",
+    "ticket mutation / workflow transition",
+    "object upload / delete / restore",
+]
+MCP_AUTOMATION_ENTRYPOINTS = [
+    "python3 scripts/foreman.py compile-governance",
+    "python3 scripts/validate_codex_runtime.py",
+    "python3 scripts/foreman.py validate <TASK_ID>",
+]
 
 TASK_HEADER_PATTERN = re.compile(r"^###\s+([A-Z0-9-]+):\s+(.+)$", re.MULTILINE)
 STATUS_LINE_PATTERN = re.compile(r"^- Status:\s*(.+)$", re.MULTILINE)
@@ -852,6 +907,52 @@ def current_task_schema_payload() -> Dict[str, Any]:
     }
 
 
+def mcp_policy_payload() -> Dict[str, Any]:
+    blueprint = read_text(BLUEPRINT_PATH)
+    connectors_path = DOCS_DIR / "security" / "connectors.md"
+    playbook_path = DOCS_DIR / "operations" / "codex-mcp-playbook.md"
+    connectors = read_text(connectors_path)
+    playbook = read_text(playbook_path)
+    return {
+        "metadata": {
+            "blueprint_sha256": hash_text(blueprint),
+            "connectors_sha256": hash_text(connectors),
+            "playbook_sha256": hash_text(playbook),
+        },
+        "scope": {
+            "task_id": "HARN-034",
+            "profile": "single-agent-read-only-baseline",
+            "approved_access_mode": "read-only",
+            "external_evidence_requires_repo_writeback": True,
+        },
+        "source_anchors": {
+            "policy_docs": MCP_POLICY_DOCS,
+            "rulebook": relative_path(DOCS_DIR / "rules" / "codex-rules.md"),
+            "validation_rulebook": relative_path(DOCS_DIR / "quality" / "validation-rules.md"),
+            "local_runtime_config": relative_path(CODEX_DIR / "config.toml"),
+        },
+        "rules": MCP_RULE_IDS,
+        "validation_rules": MCP_VALIDATION_RULE_IDS,
+        "read_only_categories": MCP_ALLOWED_CATEGORIES,
+        "forbidden_server_types": MCP_FORBIDDEN_SERVER_TYPES,
+        "runtime_constraints": {
+            "allow_repo_tracked_mcp_config": False,
+            "allow_repo_tracked_mcp_profile": False,
+            "allow_repo_stored_secrets": False,
+            "main_foreman_is_only_writeback_entry": True,
+            "multi_agent_mcp_profile_enabled": False,
+        },
+        "automation_entrypoints": MCP_AUTOMATION_ENTRYPOINTS,
+        "human_confirmation_required_for": [
+            "write-capable MCP",
+            "repo-tracked MCP server inventory",
+            "repo-tracked credentials or tokens",
+            "multi-agent mcp_profile enablement",
+            "MCP bypass of validate / closeout / write-back",
+        ],
+    }
+
+
 def compiled_payloads() -> Dict[str, Dict[str, Any]]:
     blueprint = read_text(BLUEPRINT_PATH)
     payloads: Dict[str, Dict[str, Any]] = {
@@ -879,6 +980,7 @@ def compiled_payloads() -> Dict[str, Dict[str, Any]]:
             "delivery_closeout_extra_steps": ["tag", "writeback_delivery_records"],
             "stage_scope_rule": "closeout requires explicit --stage-path file arguments",
         },
+        "mcp-policy.json": mcp_policy_payload(),
         "source-anchors.json": {
             "metadata": {"blueprint_sha256": hash_text(blueprint)},
             "blueprint": relative_path(BLUEPRINT_PATH),

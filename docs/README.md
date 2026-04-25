@@ -15,7 +15,7 @@
 5. [实现就绪规范](./plans/implementation-readiness.md)
    编码前文档消费顺序、主题权威来源、冲突处理方式和波次执行顺序。
 6. [运维与协作文档](./operations/README.md)
-   Foreman 工作流、人类协作、本地开发、从无 task 开始的治理自动化（含 governed intake / healthcheck）、多 agent 协作、任务关闭与 best practices。
+   Foreman 工作流、人类协作、本地开发、MCP 使用手册、从无 task 开始的治理自动化（含 governed intake / healthcheck）、多 agent 协作、任务关闭与 best practices。
 7. 产品/设计/接口文档
    [架构初始化总文档](./architecture/init.md) 仍是历史初始化基线与总览入口；当前 C4 权威更新落点以 [C4 文字总览](./architecture/c4-overview.md) 为准，当前服务边界以 [服务能力分配图](./architecture/service-capability-map.md) 为准，当前接口契约以 [服务接口契约基线](./architecture/service-interface-contract-baseline.md) 为准，后续新增文档统一补入 `docs/`。
    - [C4 文字总览](./architecture/c4-overview.md)
@@ -59,6 +59,7 @@
 15. 仓库约定与 ADR
    - [ADR 索引](./adr/README.md)
    - [ADR 模板](./adr/adr-template.md)
+   - [Connector 与 MCP 安全边界](./security/connectors.md)
    - [等保合规说明](./security/compliance.md)
    - [人类约束历史账本](./references/human-constraint-history.md)
 16. 原始需求与归档
@@ -83,6 +84,7 @@
   质量门禁、Java 规范治理与前后端分离检查基线。
 - `operations/`
   Foreman 工作流、人类协作、本地开发、任务关闭与工程规则。
+  - `codex-mcp-playbook.md`：Codex 在 SQLForge 中使用 MCP 的只读边界、自动化入口和本地接入手册。
 - `agent-prompts/`
   多 agent 协作使用的角色 prompt 模板，由 Main Foreman / launcher 读取，不替代 `docs/` 与台账真值。
   - `auto-planner.md`：把需求输入转换为 exec plan 与 manifest 的全自动规划模板。
@@ -97,6 +99,7 @@
   原始需求、历史约束与长期输入归档。
 - `security/`
   合规、安全与等保规则说明。
+  - `connectors.md`：Connector 与 MCP 的允许范围、安全边界、禁用能力和验证清单。
 - `frontend/`
   前端设计系统、组件与页面视觉规范。
 - `plans/`
@@ -182,6 +185,13 @@
 - [本轮文档治理修复复盘](./plans/document-governance-repair-retrospective-2026-04-20.md)
   本轮 7 项严格核验缺口修复的实际复盘记录。
 
+## 2026-04-25 MCP 治理增量
+
+- [Connector 与 MCP 安全边界](./security/connectors.md)
+  固化 SQLForge 当前 MCP 治理基线、第一批只读 category、禁用 server 类型和 connector intake / validation checklist。
+- [Codex MCP 使用手册](./operations/codex-mcp-playbook.md)
+  固化 SQLForge 内部使用 Codex + MCP 的本地接入方式、自动化入口、证据写回规则和 `mcp_profile` 延后边界。
+
 后续开始任何非 trivial 编码任务时，优先阅读顺序调整为：
 
 1. `docs/README.md`
@@ -195,3 +205,5 @@
 9. [Task 字段矩阵](./plans/task-spec-matrix.md)
 10. [Task 治理扩展矩阵](./plans/task-governance-extension-matrix.md)
 11. 根级任务台账与人工决策入口：`tasks.md` / `tasks-done.md` / `INBOX.md`
+
+若任务涉及 MCP / 外部 connector，还必须追加阅读 [Connector 与 MCP 安全边界](./security/connectors.md) 与 [Codex MCP 使用手册](./operations/codex-mcp-playbook.md)。

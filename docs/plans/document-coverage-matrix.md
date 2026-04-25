@@ -55,6 +55,7 @@
 | `docs/agent-prompts/ops-worker.md` | Indexed | ops worker prompt 模板 | Referenced | scripts/deployments/CI worker 的受控模板 |
 | `docs/agent-prompts/validator.md` | Indexed | validator prompt 模板 | Referenced | 默认只验证不改实现的 validator 模板 |
 | `docs/operations/README.md` | Indexed | 运维与协作索引 | Consumed | operations 文档入口 |
+| `docs/operations/codex-mcp-playbook.md` | Authority | Codex MCP 只读边界、本地接入和证据写回手册 | Consumed | `HARN-034` 的 MCP 手册、自动化入口与本地使用边界权威落点 |
 | `docs/operations/best-practices.md` | Authority | 可泛化工程规则账本 | Referenced | 复用规则、Root Cause/Cure/Generalization 沉淀 |
 | `docs/operations/foreman-workflow.md` | Authority | foreman 任务流、开发循环与上下文收缩/清理 | Consumed | 任务入口、开发循环、closeout 与上下文切换闭环 |
 | `docs/operations/git-and-task-closeout.md` | Authority | Git 边界、上下文收缩/清理与任务关闭顺序 | Consumed | 单任务关闭、审计链、commit 规则与 closeout 顺序 |
@@ -88,6 +89,7 @@
 | `docs/references/raw-requirements/alibaba-java-guidelines/source-metadata.md` | Archive | 版本、来源、校验元数据 | Archived | `R-154` 来源追溯 |
 | `docs/rules/codex-rules.md` | Authority | 仓库规则库 | Consumed | 所有实现与验证门禁 |
 | `docs/security/access-control-spec.md` | Authority | 访问控制专项规格 | Consumed | 身份、角色、资源、审计实现基线 |
+| `docs/security/connectors.md` | Authority | Connector 与 MCP 的只读 category、安全边界、禁用能力和校验清单 | Consumed | `HARN-034` 的 MCP 基线、禁用能力和 connector intake / validation 权威落点 |
 | `docs/security/compliance.md` | Authority | 等保合规说明 | Consumed | `R-111` 至 `R-115` 合规基线 |
 | `docs/adr/README.md` | Indexed | ADR 索引 | Consumed | 决策索引、编号连续性检查 |
 | `docs/adr/adr-template.md` | Indexed | ADR 模板 | Referenced | 新 ADR 继续使用该模板 |
@@ -115,6 +117,8 @@
 | `docs/exec-plans/completed/HARN-008-governance-runtime-hardening-plan.md` | Indexed | 已完成的 Codex 治理/runtime 闭口批次执行计划 | Referenced | 追溯 HARN-008 对 6 个治理闭口点的实现、验证与 closeout 顺序 |
 | `docs/exec-plans/templates/multi-agent-run.template.json` | Indexed | 多 agent run manifest 模板 | Referenced | 作为任务级 active manifest 的起始模板与字段语义基线，供 Main Foreman 复制到 `docs/exec-plans/active/` 或由 auto-planner 生成 `full-auto` manifest |
 | `docs/exec-plans/templates/candidate-task-pack.template.json` | Indexed | candidate task pack 模板 | Referenced | 作为从无 task 开始的 formal materialization 输入模板，约束 task-spec 与 governance-extension 必填字段 |
+| `docs/exec-plans/completed/HARN-034-full-auto-execution-plan.md` | Indexed | HARN-034 formalized full-auto execution plan | Consumed | 约束 HARN-034 在 formal materialization 之后的 downstream full-auto 执行边界、验证顺序与 closeout 前 write scope |
+| `docs/references/raw-requirements/generated/HARN-034-requirement.md` | Archive | HARN-034 raw requirement snapshot | Archived | 保存 formal materialization 对应的原始需求输入，供 task-shaping 与后续审计追溯 |
 
 ## Completeness Statement
 

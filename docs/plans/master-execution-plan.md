@@ -284,6 +284,17 @@ Tasks:
 | `HARN-027` | 落地从无 task 开始的 governed full-cycle 自动化 | 在不改变 `HARN-026` downstream full-auto 真值、不引入第二套长期真值的前提下，新增 requirement normalization、candidate task pack、governance gate 与 materialization 脚本/模板/手册，让 Codex 可以从“只有需求”开始先塑形 formal task，再继续交给现有 full-auto 执行链 | `HARN-026` | `python3 scripts/foreman.py validate HARN-027`、`bash scripts/requirements_to_plan.sh --help`、`bash scripts/task_materialize.sh --help`、`bash scripts/governed_full_cycle.sh --help`、requirements-to-plan dry-run、real candidate pack generation、task_materialize dry-run、governed_full_cycle dry-run、docs 索引/coverage 对齐 |
 | `HARN-028` | 加固 governed full-cycle V2 intake / healthcheck / closeout 完整性 | 在不改变 `HARN-027` no-task 起步真值、不引入第二套长期真值的前提下，补齐 governed intake/healthcheck 入口、machine-readable run summary 的 `executed_commands` 与细粒度 suggestion 字段、candidate materialization rollback，以及 closeout 后不得留下 tracked `validation-log` residue 的仓库级修复 | `HARN-027` | `python3 scripts/foreman.py validate HARN-028`、`bash scripts/governed_intake.sh --help`、`python3 scripts/governed_healthcheck.py --check`、`bash scripts/task_materialize.sh --help`、`bash -n scripts/governed_intake.sh`、`bash -n scripts/task_materialize.sh`、`python3 -m py_compile scripts/governed_v2_support.py scripts/governed_healthcheck.py`、docs 索引/手册对齐 |
 
+##### Story `A-STORY-008` Codex MCP 治理接入
+
+- 目标：在不引入第二套长期真值、不绕过现有 `foreman` / `task_audit` / `closeout` 审计链、且第一批仅允许只读 MCP 的前提下，把 Codex MCP 能力增量接入 SQLForge 的治理体系，并为后续 multi-agent 受控使用预留扩展点。
+- 验证：`docs/security/connectors.md`、MCP 规则与验证规则、`compile-governance` / `validate_codex_runtime` 的 MCP 扩展、Codex MCP 使用手册，以及 multi-agent `mcp_profile` 契约全部按 Main Foreman 唯一收口原则落入正式文档、脚本与验证链，不把外部 MCP 结果误写成仓库长期真值。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `HARN-034` | 落地最小可用 MCP 治理底座与只读接入边界 | 在不引入第二套长期真值、不绕过 `foreman` / `task_audit` / `closeout`、且第一批仅允许只读 MCP 的前提下，补齐 `docs/security/connectors.md`、MCP 规则与验证规则、`compile-governance` / `validate_codex_runtime` 的 MCP 扩展、Codex MCP 使用手册与本地入口说明；不包含 multi-agent `mcp_profile` 扩展，不包含任何可写 MCP、SSH/K8s/数据库执行型 MCP，也不把外部 MCP 结果写成仓库默认事实。 | `HARN-028`,`HARN-033` | python3 scripts/foreman.py validate HARN-034、python3 scripts/validate_codex_runtime.py、python3 scripts/foreman.py compile-governance --check、node scripts/lint-repository-knowledge.js、python3 scripts/task_audit.py --check --phase pre-closeout |
+
 ### Phase-B 阶段0修正与缺口补齐
 
 #### Epic `B-EPIC-001` 阶段0真值与强制文件修正
