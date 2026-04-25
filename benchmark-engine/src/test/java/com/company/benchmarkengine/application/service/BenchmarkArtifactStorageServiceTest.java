@@ -367,7 +367,8 @@ class BenchmarkArtifactStorageServiceTest {
                 String key = path.substring("/provider/".length());
                 if ("PUT".equalsIgnoreCase(exchange.getRequestMethod())) {
                     objectStore.put(key, readBody(exchange));
-                    exchange.sendResponseHeaders(200, -1);
+                    exchange.getResponseHeaders().add("Connection", "close");
+                    exchange.sendResponseHeaders(200, 0);
                     exchange.close();
                     return;
                 }
@@ -375,6 +376,7 @@ class BenchmarkArtifactStorageServiceTest {
                     byte[] bytes = objectStore.get(key);
                     exchange.getResponseHeaders().add("ETag", "etag-" + key.hashCode());
                     exchange.getResponseHeaders().add("X-Request-Id", "request-primary");
+                    exchange.getResponseHeaders().add("Connection", "close");
                     exchange.sendResponseHeaders(200, bytes.length);
                     exchange.getResponseBody().write(bytes);
                     exchange.close();
@@ -386,12 +388,14 @@ class BenchmarkArtifactStorageServiceTest {
                     exchange.getResponseHeaders().add("Content-Length", String.valueOf(bytes.length));
                     exchange.getResponseHeaders().add("ETag", "etag-" + key.hashCode());
                     exchange.getResponseHeaders().add("X-Request-Id", "request-primary");
+                    exchange.getResponseHeaders().add("Connection", "close");
                     exchange.sendResponseHeaders(200, -1);
                     exchange.close();
                     return;
                 }
                 if ("DELETE".equalsIgnoreCase(exchange.getRequestMethod())) {
                     objectStore.remove(key);
+                    exchange.getResponseHeaders().add("Connection", "close");
                     exchange.sendResponseHeaders(204, -1);
                     exchange.close();
                     return;

@@ -29,6 +29,7 @@ import com.company.governance.application.service.HealthStatusApplicationService
 import com.company.governance.application.service.MessageAdminApplicationService;
 import com.company.governance.application.service.TenantConfigApplicationService;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckResponse;
 import java.time.LocalDateTime;
@@ -208,8 +209,16 @@ class AuthWebMvcTest {
         operationResponse.setArtifactKey("json-export");
         operationResponse.setOperationType("RECOVER_ARTIFACT");
         operationResponse.setOperationStatus("RECOVERY_COMPLETED");
+        GovernanceBenchmarkArtifactBatchOperationResponse batchResponse = new GovernanceBenchmarkArtifactBatchOperationResponse();
+        batchResponse.setTenantId("system");
+        batchResponse.setBatchId("artifact-batch-request-001");
+        batchResponse.setOperationType("EXECUTE_RETENTION_BATCH");
+        batchResponse.setOperationStatus("BATCH_COMPLETED");
+        batchResponse.setTotalItems(Integer.valueOf(1));
         when(governanceHistoryApplicationService.operateArtifact(org.mockito.ArgumentMatchers.any()))
             .thenReturn(operationResponse);
+        when(governanceHistoryApplicationService.operateArtifactBatch(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(batchResponse);
 
         mockMvc.perform(addProtectedHeaders(get("/api/governance/history/traces?limit=5")))
             .andExpect(status().isOk())
@@ -234,6 +243,13 @@ class AuthWebMvcTest {
             .andExpect(jsonPath("$.reportId").value("report-001"))
             .andExpect(jsonPath("$.operationStatus").value("RECOVERY_COMPLETED"));
 
+        mockMvc.perform(addProtectedHeaders(post("/api/governance/history/artifact-operations/batch")
+                .contentType("application/json")
+                .content("{\"operationType\":\"EXECUTE_RETENTION_BATCH\",\"targets\":[{\"reportId\":\"report-001\",\"artifactKey\":\"json-export\"}]}")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.batchId").value("artifact-batch-request-001"))
+            .andExpect(jsonPath("$.operationStatus").value("BATCH_COMPLETED"));
+
         verify(governanceHistoryApplicationService).findRecentTraces("system", Integer.valueOf(5));
         verify(governanceHistoryApplicationService).lookupTraces(
             "system",
@@ -247,6 +263,7 @@ class AuthWebMvcTest {
         );
         verify(governanceHistoryApplicationService).findTraceDetail("system", "trace-001", Integer.valueOf(5));
         verify(governanceHistoryApplicationService).operateArtifact(org.mockito.ArgumentMatchers.any());
+        verify(governanceHistoryApplicationService).operateArtifactBatch(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

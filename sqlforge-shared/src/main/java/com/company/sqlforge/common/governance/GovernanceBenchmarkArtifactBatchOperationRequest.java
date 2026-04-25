@@ -1,17 +1,15 @@
 package com.company.sqlforge.common.governance;
 
-public class GovernanceBenchmarkArtifactOperationRequest {
+import java.util.List;
+
+public class GovernanceBenchmarkArtifactBatchOperationRequest {
 
     private String tenantId;
-    private String reportId;
-    private String artifactKey;
     private String operationType;
     private String operationReason;
     private String cleanupScope;
-    private String orchestrationType;
     private String batchId;
-    private Integer batchIndex;
-    private Integer batchSize;
+    private List<GovernanceBenchmarkArtifactBatchOperationTarget> targets;
 
     public String getTenantId() {
         return tenantId;
@@ -19,22 +17,6 @@ public class GovernanceBenchmarkArtifactOperationRequest {
 
     public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
-    }
-
-    public String getReportId() {
-        return reportId;
-    }
-
-    public void setReportId(String reportId) {
-        this.reportId = reportId;
-    }
-
-    public String getArtifactKey() {
-        return artifactKey;
-    }
-
-    public void setArtifactKey(String artifactKey) {
-        this.artifactKey = artifactKey;
     }
 
     public String getOperationType() {
@@ -61,14 +43,6 @@ public class GovernanceBenchmarkArtifactOperationRequest {
         this.cleanupScope = cleanupScope;
     }
 
-    public String getOrchestrationType() {
-        return orchestrationType;
-    }
-
-    public void setOrchestrationType(String orchestrationType) {
-        this.orchestrationType = orchestrationType;
-    }
-
     public String getBatchId() {
         return batchId;
     }
@@ -77,19 +51,11 @@ public class GovernanceBenchmarkArtifactOperationRequest {
         this.batchId = batchId;
     }
 
-    public Integer getBatchIndex() {
-        return batchIndex;
+    public List<GovernanceBenchmarkArtifactBatchOperationTarget> getTargets() {
+        return targets;
     }
 
-    public void setBatchIndex(Integer batchIndex) {
-        this.batchIndex = batchIndex;
-    }
-
-    public Integer getBatchSize() {
-        return batchSize;
-    }
-
-    public void setBatchSize(Integer batchSize) {
-        this.batchSize = batchSize;
+    public void setTargets(List<GovernanceBenchmarkArtifactBatchOperationTarget> targets) {
+        this.targets = targets;
     }
 }

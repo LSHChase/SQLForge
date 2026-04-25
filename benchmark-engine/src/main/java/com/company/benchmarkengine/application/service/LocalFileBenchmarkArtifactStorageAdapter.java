@@ -10,6 +10,8 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Set;
 import org.springframework.http.MediaType;
 
@@ -101,6 +103,29 @@ public class LocalFileBenchmarkArtifactStorageAdapter implements BenchmarkArtifa
         deleteStaleFiles(reportDir, cleanupPlan == null ? java.util.Collections.<String>emptySet() : cleanupPlan.getRetainedFileNames());
     }
 
+    @Override
+    public BenchmarkArtifactCleanupResult cleanupArtifact(BenchmarkArtifactStorageContext context,
+                                                          BenchmarkReportArtifact artifact,
+                                                          String cleanupScope) {
+        if (artifact == null || artifact.getStorageUri() == null) {
+            throw new IllegalStateException("Local benchmark artifact is missing storageUri");
+        }
+        Path artifactPath = Paths.get(URI.create(artifact.getStorageUri()));
+        boolean deleted = deleteIfExists(artifactPath);
+        LinkedHashMap<String, Object> details = new LinkedHashMap<String, Object>();
+        details.put("cleanupTargets", Collections.singletonList("localFile"));
+        details.put("localFileDeleteStatus", deleted ? "DELETED" : "MISSING");
+        details.put("providerAuthUsed", Boolean.FALSE);
+        return new BenchmarkArtifactCleanupResult(
+            "CLEANUP_COMPLETED",
+            cleanupScope,
+            "LOCAL_FILE",
+            deleted ? "LOCAL_FILE_DELETED" : "LOCAL_FILE_MISSING",
+            "localFile",
+            details
+        );
+    }
+
     private Path resolveReportDir(String reportId) {
         Path baseDir = Paths.get(storageProperties.getBaseDir()).toAbsolutePath().normalize();
         return baseDir.resolve(reportId);
@@ -125,6 +150,14 @@ public class LocalFileBenchmarkArtifactStorageAdapter implements BenchmarkArtifa
             Files.deleteIfExists(path);
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to delete stale benchmark artifact " + path, ex);
+        }
+    }
+
+    private boolean deleteIfExists(Path path) {
+        try {
+            return Files.deleteIfExists(path);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to cleanup benchmark artifact " + path, ex);
         }
     }
 }

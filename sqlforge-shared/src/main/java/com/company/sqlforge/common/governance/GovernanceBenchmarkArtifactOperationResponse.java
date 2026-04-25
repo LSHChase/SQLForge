@@ -8,6 +8,10 @@ public class GovernanceBenchmarkArtifactOperationResponse {
     private String reportId;
     private String artifactKey;
     private String operationType;
+    private String orchestrationType;
+    private String batchId;
+    private Integer batchIndex;
+    private Integer batchSize;
     private String operationStatus;
     private String storageType;
     private String storageUri;
@@ -15,6 +19,8 @@ public class GovernanceBenchmarkArtifactOperationResponse {
     private String artifactRecoveryStatus;
     private String storageRecoverySource;
     private String storageReadStatus;
+    private Integer errorCode;
+    private String errorMessage;
     private Map<String, Object> artifactOperationSurface;
 
     public String getTenantId() {
@@ -47,6 +53,38 @@ public class GovernanceBenchmarkArtifactOperationResponse {
 
     public void setOperationType(String operationType) {
         this.operationType = operationType;
+    }
+
+    public String getOrchestrationType() {
+        return orchestrationType;
+    }
+
+    public void setOrchestrationType(String orchestrationType) {
+        this.orchestrationType = orchestrationType;
+    }
+
+    public String getBatchId() {
+        return batchId;
+    }
+
+    public void setBatchId(String batchId) {
+        this.batchId = batchId;
+    }
+
+    public Integer getBatchIndex() {
+        return batchIndex;
+    }
+
+    public void setBatchIndex(Integer batchIndex) {
+        this.batchIndex = batchIndex;
+    }
+
+    public Integer getBatchSize() {
+        return batchSize;
+    }
+
+    public void setBatchSize(Integer batchSize) {
+        this.batchSize = batchSize;
     }
 
     public String getOperationStatus() {
@@ -103,6 +141,22 @@ public class GovernanceBenchmarkArtifactOperationResponse {
 
     public void setStorageReadStatus(String storageReadStatus) {
         this.storageReadStatus = storageReadStatus;
+    }
+
+    public Integer getErrorCode() {
+        return errorCode;
+    }
+
+    public void setErrorCode(Integer errorCode) {
+        this.errorCode = errorCode;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
     }
 
     public Map<String, Object> getArtifactOperationSurface() {

@@ -11,4 +11,8 @@ public interface BenchmarkArtifactStorageAdapter {
     BenchmarkArtifactReadResult loadArtifact(BenchmarkReportArtifact artifact);
 
     void cleanupStaleArtifacts(BenchmarkArtifactStorageContext context, BenchmarkArtifactCleanupPlan cleanupPlan);
+
+    BenchmarkArtifactCleanupResult cleanupArtifact(BenchmarkArtifactStorageContext context,
+                                                   BenchmarkReportArtifact artifact,
+                                                   String cleanupScope);
 }

@@ -4,6 +4,30 @@
 
 ## Done
 
+### D-TASK-030: 推进 provider-authenticated object-storage operations 与 governance-side batch retention/recovery orchestration
+
+- Status: done
+- Completed at: 2026-04-25
+- Commit subject: `feat(governance): D-TASK-030 add batch artifact retention and recovery`
+- Priority: 1
+- Depends on: `D-TASK-029`
+- Scope: 在保持 repo-local artifact lifecycle 与 `LOCAL_FILE` 默认主路径不变、统一授权入口、治理审计及只读/影子环境边界不变的前提下，为 benchmark-engine/environment-backed object storage 推进 vendor-neutral 的 provider-authenticated object-storage operations，并为 governance 补齐可审计的 artifact batch retention / batch recovery orchestration，把部分失败、回滚及 provider/recovery 证据持续沉淀进现有追溯面；不引入不受治理的 SDK 耦合或明文凭据落仓。 Tech: `JAVA-BE`,`OPS`,`DOCS`. Layer: `common`,`a...
+- Plan ref: docs/exec-plans/completed/D-TASK-030-full-auto-execution-plan.md
+- Matrix context: Phase-D / Story `D-STORY-005` 运行时执行链与跨服务补完
+- Human confirmation point: 若 provider-authenticated operations 需要引入未经确认的 provider-specific SDK/签名机制、把 environment-backed object storage 误写成仓库默认主路径，或让 batch retention/recovery 绕过既有鉴权/审计边界、删除当前仍需保留的 artifact，需人工确认
+- Data impact: provider-authenticated / environment-backed object-storage operation 请求与 live-evidence、artifact batch retention/recovery 执行摘要、失败分片、恢复来源与 governance 追溯留痕；不得落仓明文凭据，并持续保持 tenant 级隔离。
+- Rollback / recovery: 保持 repo-local lifecycle 与 `LOCAL_FILE` 默认主路径，关闭新增 provider-auth/batch orchestration 默认启用；对部分失败批次保留审计与恢复留痕，回退新增 retention/recovery/provider-auth 语义与文档说明，并恢复到 `D-TASK-029` 已验证基线。
+- Validation:
+  - `sqlforge-shared/benchmark-engine/governance 模块测试、provider-authenticated object-storage contract 与 auth failure 测试、governance-side batch retention/recovery orchestration 测试、runtime smoke、task audit、knowledge lint、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-030`
+- Progress log:
+  - 2026-04-25: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added shared artifact batch DTOs, provider-authenticated environment-backed cleanup scopes, governed benchmark artifact cleanup/recovery behavior, governance-side batch retention/recovery orchestration, focused tests, and authority doc updates for D-TASK-030.
+  - Validation evidence: python3 scripts/foreman.py validate D-TASK-030; mvn -B -pl sqlforge-shared,benchmark-engine,governance -am -Dtest=BenchmarkArtifactGovernanceOperationServiceTest,BenchmarkArtifactStorageServiceTest,GovernanceHistoryApplicationServiceTest,AuthWebMvcTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/task_audit.py --check --phase pre-closeout.
+  - Residual risk: Provider-backed object storage remains vendor-neutral HTTP contract coverage plus environment-backed follow-up; real provider-native signing/retention semantics still require external environment validation.
+  - Next step: Extend environment-backed validation against real provider endpoints when external credentials and retention controls are available.
+
 ### HARN-038: 修复 Governed Closeout Post-Closeout Healthcheck 与 Runtime Recovery 语义
 
 - Status: done

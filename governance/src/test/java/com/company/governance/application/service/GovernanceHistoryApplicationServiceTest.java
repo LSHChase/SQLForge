@@ -3,6 +3,7 @@ package com.company.governance.application.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
@@ -13,6 +14,7 @@ import com.company.governance.domain.trace.entity.AuditLogRecord;
 import com.company.governance.domain.trace.entity.ExportRecord;
 import com.company.governance.domain.trace.entity.QueryHistoryRecord;
 import com.company.governance.domain.trace.entity.TraceLookupHitRecord;
+import com.company.governance.infrastructure.benchmarkengine.GovernanceBenchmarkEngineClient;
 import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.GovernanceHistoryLookupIndexMapper;
@@ -21,6 +23,10 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.TenantContext;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationRequest;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationResponse;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationTarget;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -280,6 +286,83 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("EXTERNAL_WRITE", detail.getArtifactOperationSurface().get("storageRecoverySource"));
         assertEquals("VERIFIED", detail.getArtifactOperationSurface().get("providerHeadStatus"));
         assertEquals("request-primary", detail.getArtifactOperationSurface().get("providerRequestId"));
+    }
+
+    @Test
+    void shouldOrchestrateBatchRetentionAcrossTargetsAndKeepPartialFailureVisible() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceBenchmarkEngineClient governanceBenchmarkEngineClient = mock(GovernanceBenchmarkEngineClient.class);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            null,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic,
+            governanceBenchmarkEngineClient
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "tenant-admin-001",
+            Arrays.asList("TENANT_ADMIN"),
+            "request-001",
+            "trace-batch-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+
+        GovernanceBenchmarkArtifactOperationResponse success = new GovernanceBenchmarkArtifactOperationResponse();
+        success.setTenantId("tenant-a");
+        success.setReportId("report-001");
+        success.setArtifactKey("json-export");
+        success.setOperationType("CLEANUP_ARTIFACT");
+        success.setOperationStatus("CLEANUP_COMPLETED");
+        when(governanceBenchmarkEngineClient.operateArtifact(org.mockito.ArgumentMatchers.argThat(request ->
+            request != null
+                && "report-001".equals(request.getReportId())
+                && "json-export".equals(request.getArtifactKey())
+        ))).thenReturn(success);
+        when(governanceBenchmarkEngineClient.operateArtifact(org.mockito.ArgumentMatchers.argThat(request ->
+            request != null
+                && "report-002".equals(request.getReportId())
+                && "raw-data".equals(request.getArtifactKey())
+        ))).thenThrow(new BizException(
+            ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID,
+            org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+            "Benchmark-engine artifact operation route is unavailable"
+        ));
+
+        GovernanceBenchmarkArtifactBatchOperationRequest request = new GovernanceBenchmarkArtifactBatchOperationRequest();
+        request.setTenantId("tenant-a");
+        request.setOperationType("EXECUTE_RETENTION_BATCH");
+        request.setOperationReason("retention-window");
+        request.setTargets(Arrays.asList(
+            target("report-001", "json-export"),
+            target("report-001", "json-export"),
+            target("report-002", "raw-data")
+        ));
+
+        GovernanceBenchmarkArtifactBatchOperationResponse response = service.operateArtifactBatch(request);
+
+        assertEquals("artifact-batch-request-001", response.getBatchId());
+        assertEquals("PARTIAL_FAILURE", response.getOperationStatus());
+        assertEquals(Integer.valueOf(3), response.getTotalItems());
+        assertEquals(Integer.valueOf(1), response.getSucceededItems());
+        assertEquals(Integer.valueOf(1), response.getFailedItems());
+        assertEquals(Integer.valueOf(1), response.getSkippedItems());
+        assertEquals(Boolean.TRUE, response.getPartialFailure());
+        assertEquals("MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER", response.getBatchOperationSurface().get("cleanupScope"));
+        assertEquals("trace-batch-001", response.getBatchOperationSurface().get("traceId"));
+        assertEquals("EXECUTE_RETENTION_BATCH", response.getItems().get(0).getOrchestrationType());
+        assertEquals("SKIPPED_DUPLICATE", response.getItems().get(1).getOperationStatus());
+        assertEquals("FAILED", response.getItems().get(2).getOperationStatus());
+        assertEquals("Benchmark-engine artifact operation route is unavailable", response.getItems().get(2).getErrorMessage());
+        verify(governanceBenchmarkEngineClient, org.mockito.Mockito.times(2)).operateArtifact(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -811,6 +894,13 @@ class GovernanceHistoryApplicationServiceTest {
         record.setRequestParams(requestParams);
         record.setResponseSummary(responseSummary);
         return record;
+    }
+
+    private GovernanceBenchmarkArtifactBatchOperationTarget target(String reportId, String artifactKey) {
+        GovernanceBenchmarkArtifactBatchOperationTarget target = new GovernanceBenchmarkArtifactBatchOperationTarget();
+        target.setReportId(reportId);
+        target.setArtifactKey(artifactKey);
+        return target;
     }
 
     private QueryHistoryRecord buildHistory(String traceId,

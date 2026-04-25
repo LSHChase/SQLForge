@@ -17,6 +17,9 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.TenantContext;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationRequest;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationResponse;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationTarget;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
 import com.company.sqlforge.common.utils.JsonUtils;
@@ -26,10 +29,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +49,11 @@ public class GovernanceHistoryApplicationService {
     private static final String PLATFORM_ADMIN = "PLATFORM_ADMIN";
     private static final String TENANT_ADMIN = "TENANT_ADMIN";
     private static final String OPERATOR = "OPERATOR";
+    private static final String BATCH_OPERATION_RETENTION = "EXECUTE_RETENTION_BATCH";
+    private static final String BATCH_OPERATION_RECOVERY = "RECOVER_ARTIFACT_BATCH";
+    private static final String ITEM_OPERATION_CLEANUP = "CLEANUP_ARTIFACT";
+    private static final String ITEM_OPERATION_RECOVER = "RECOVER_ARTIFACT";
+    private static final String BATCH_DEFAULT_RETENTION_SCOPE = "MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER";
     private static final String DEFAULT_DATA_SOURCE_ID = "governance-tenant-config";
     private static final int DEFAULT_LIMIT = 12;
     private static final int MAX_LIMIT = 50;
@@ -292,7 +302,175 @@ public class GovernanceHistoryApplicationService {
         internalRequest.setOperationType(trimToNull(request == null ? null : request.getOperationType()));
         internalRequest.setOperationReason(trimToNull(request == null ? null : request.getOperationReason()));
         internalRequest.setCleanupScope(trimToNull(request == null ? null : request.getCleanupScope()));
+        internalRequest.setOrchestrationType(trimToNull(request == null ? null : request.getOrchestrationType()));
+        internalRequest.setBatchId(trimToNull(request == null ? null : request.getBatchId()));
+        internalRequest.setBatchIndex(request == null ? null : request.getBatchIndex());
+        internalRequest.setBatchSize(request == null ? null : request.getBatchSize());
         return governanceBenchmarkEngineClient.operateArtifact(internalRequest);
+    }
+
+    public GovernanceBenchmarkArtifactBatchOperationResponse operateArtifactBatch(
+        GovernanceBenchmarkArtifactBatchOperationRequest request
+    ) {
+        if (governanceBenchmarkEngineClient == null) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID,
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Governance benchmark-engine client is unavailable"
+            );
+        }
+        String effectiveTenantId = resolveAuthorizedTenantId(trimToNull(request == null ? null : request.getTenantId()));
+        assertArtifactOperationRole();
+        String batchOperationType = normalizeBatchOperationType(request == null ? null : request.getOperationType());
+        List<GovernanceBenchmarkArtifactBatchOperationTarget> targets =
+            request == null ? null : request.getTargets();
+        if (targets == null || targets.isEmpty()) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                "artifact batch operation targets must not be empty"
+            );
+        }
+
+        String batchId = resolveBatchId(request == null ? null : request.getBatchId());
+        String itemOperationType = mapBatchItemOperationType(batchOperationType);
+        String cleanupScope = resolveBatchCleanupScope(batchOperationType, request == null ? null : request.getCleanupScope());
+        List<GovernanceBenchmarkArtifactOperationResponse> items =
+            new ArrayList<GovernanceBenchmarkArtifactOperationResponse>(targets.size());
+        Set<String> seenTargets = new LinkedHashSet<String>();
+        int succeededItems = 0;
+        int failedItems = 0;
+        int skippedItems = 0;
+        int batchSize = targets.size();
+        int batchIndex = 0;
+
+        for (GovernanceBenchmarkArtifactBatchOperationTarget target : targets) {
+            batchIndex += 1;
+            String reportId = trimToNull(target == null ? null : target.getReportId());
+            String artifactKey = trimToNull(target == null ? null : target.getArtifactKey());
+            if (!StringUtils.hasText(reportId) || !StringUtils.hasText(artifactKey)) {
+                failedItems += 1;
+                items.add(buildBatchFailureItem(
+                    effectiveTenantId,
+                    reportId,
+                    artifactKey,
+                    itemOperationType,
+                    batchOperationType,
+                    batchId,
+                    batchIndex,
+                    batchSize,
+                    null,
+                    "reportId and artifactKey must not be empty"
+                ));
+                continue;
+            }
+            String dedupeKey = reportId + "::" + artifactKey;
+            if (!seenTargets.add(dedupeKey)) {
+                skippedItems += 1;
+                items.add(buildBatchSkippedItem(
+                    effectiveTenantId,
+                    reportId,
+                    artifactKey,
+                    itemOperationType,
+                    batchOperationType,
+                    batchId,
+                    batchIndex,
+                    batchSize,
+                    "Duplicate target suppressed by governance batch orchestration"
+                ));
+                continue;
+            }
+
+            GovernanceBenchmarkArtifactOperationRequest internalRequest = new GovernanceBenchmarkArtifactOperationRequest();
+            internalRequest.setTenantId(effectiveTenantId);
+            internalRequest.setReportId(reportId);
+            internalRequest.setArtifactKey(artifactKey);
+            internalRequest.setOperationType(itemOperationType);
+            internalRequest.setOperationReason(trimToNull(request == null ? null : request.getOperationReason()));
+            internalRequest.setCleanupScope(cleanupScope);
+            internalRequest.setOrchestrationType(batchOperationType);
+            internalRequest.setBatchId(batchId);
+            internalRequest.setBatchIndex(Integer.valueOf(batchIndex));
+            internalRequest.setBatchSize(Integer.valueOf(batchSize));
+            try {
+                GovernanceBenchmarkArtifactOperationResponse itemResponse =
+                    governanceBenchmarkEngineClient.operateArtifact(internalRequest);
+                if (itemResponse == null) {
+                    failedItems += 1;
+                    items.add(buildBatchFailureItem(
+                        effectiveTenantId,
+                        reportId,
+                        artifactKey,
+                        itemOperationType,
+                        batchOperationType,
+                        batchId,
+                        batchIndex,
+                        batchSize,
+                        null,
+                        "Benchmark-engine artifact operation returned no response"
+                    ));
+                    continue;
+                }
+                populateBatchMetadata(itemResponse, batchOperationType, batchId, batchIndex, batchSize);
+                items.add(itemResponse);
+                if ("FAILED".equalsIgnoreCase(itemResponse.getOperationStatus())) {
+                    failedItems += 1;
+                } else {
+                    succeededItems += 1;
+                }
+            } catch (BizException ex) {
+                failedItems += 1;
+                items.add(buildBatchFailureItem(
+                    effectiveTenantId,
+                    reportId,
+                    artifactKey,
+                    itemOperationType,
+                    batchOperationType,
+                    batchId,
+                    batchIndex,
+                    batchSize,
+                    Integer.valueOf(ex.getCode()),
+                    ex.getMessage()
+                ));
+            } catch (RuntimeException ex) {
+                failedItems += 1;
+                items.add(buildBatchFailureItem(
+                    effectiveTenantId,
+                    reportId,
+                    artifactKey,
+                    itemOperationType,
+                    batchOperationType,
+                    batchId,
+                    batchIndex,
+                    batchSize,
+                    null,
+                    ex.getMessage()
+                ));
+            }
+        }
+
+        GovernanceBenchmarkArtifactBatchOperationResponse response = new GovernanceBenchmarkArtifactBatchOperationResponse();
+        response.setTenantId(effectiveTenantId);
+        response.setBatchId(batchId);
+        response.setOperationType(batchOperationType);
+        response.setTotalItems(Integer.valueOf(targets.size()));
+        response.setSucceededItems(Integer.valueOf(succeededItems));
+        response.setFailedItems(Integer.valueOf(failedItems));
+        response.setSkippedItems(Integer.valueOf(skippedItems));
+        response.setPartialFailure(Boolean.valueOf(failedItems > 0));
+        response.setItems(items);
+        response.setOperationStatus(resolveBatchOperationStatus(succeededItems, failedItems, skippedItems));
+        response.setBatchOperationSurface(buildBatchOperationSurface(
+            batchId,
+            batchOperationType,
+            itemOperationType,
+            cleanupScope,
+            targets.size(),
+            succeededItems,
+            failedItems,
+            skippedItems
+        ));
+        return response;
     }
 
     private void mergeAuditLogs(Map<String, TraceAggregate> aggregateByTraceId, List<AuditLogRecord> records) {
@@ -621,6 +799,153 @@ public class GovernanceHistoryApplicationService {
 
     private static String trimToNull(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private String normalizeBatchOperationType(String operationType) {
+        String normalized = trimToNull(operationType);
+        if (BATCH_OPERATION_RETENTION.equalsIgnoreCase(normalized)) {
+            return BATCH_OPERATION_RETENTION;
+        }
+        if (BATCH_OPERATION_RECOVERY.equalsIgnoreCase(normalized)) {
+            return BATCH_OPERATION_RECOVERY;
+        }
+        throw new BizException(
+            ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+            HttpStatus.BAD_REQUEST,
+            "Unsupported governance artifact batch operationType: " + operationType
+        );
+    }
+
+    private String mapBatchItemOperationType(String batchOperationType) {
+        return BATCH_OPERATION_RETENTION.equals(batchOperationType) ? ITEM_OPERATION_CLEANUP : ITEM_OPERATION_RECOVER;
+    }
+
+    private String resolveBatchCleanupScope(String batchOperationType, String cleanupScope) {
+        if (BATCH_OPERATION_RETENTION.equals(batchOperationType)) {
+            return trimToNull(cleanupScope) == null ? BATCH_DEFAULT_RETENTION_SCOPE : trimToNull(cleanupScope);
+        }
+        return trimToNull(cleanupScope);
+    }
+
+    private String resolveBatchId(String requestedBatchId) {
+        String normalized = trimToNull(requestedBatchId);
+        if (normalized != null) {
+            return normalized;
+        }
+        String requestId = trimToNull(RequestContext.getRequestId());
+        String traceId = trimToNull(RequestContext.getTraceId());
+        String suffix = requestId != null ? requestId : traceId != null ? traceId : String.valueOf(System.currentTimeMillis());
+        return "artifact-batch-" + suffix;
+    }
+
+    private GovernanceBenchmarkArtifactOperationResponse buildBatchFailureItem(String tenantId,
+                                                                               String reportId,
+                                                                               String artifactKey,
+                                                                               String itemOperationType,
+                                                                               String orchestrationType,
+                                                                               String batchId,
+                                                                               int batchIndex,
+                                                                               int batchSize,
+                                                                               Integer errorCode,
+                                                                               String errorMessage) {
+        GovernanceBenchmarkArtifactOperationResponse response = new GovernanceBenchmarkArtifactOperationResponse();
+        response.setTenantId(tenantId);
+        response.setReportId(reportId);
+        response.setArtifactKey(artifactKey);
+        response.setOperationType(itemOperationType);
+        response.setOperationStatus("FAILED");
+        response.setArtifactRecoveryStatus("FAILED");
+        response.setStorageRecoverySource("FAILED");
+        response.setStorageReadStatus("FAILED");
+        response.setErrorCode(errorCode);
+        response.setErrorMessage(errorMessage);
+        populateBatchMetadata(response, orchestrationType, batchId, batchIndex, batchSize);
+        LinkedHashMap<String, Object> operationSurface = new LinkedHashMap<String, Object>();
+        operationSurface.put("operationType", itemOperationType);
+        operationSurface.put("operationStatus", "FAILED");
+        operationSurface.put("orchestrationType", orchestrationType);
+        operationSurface.put("batchId", batchId);
+        operationSurface.put("batchIndex", Integer.valueOf(batchIndex));
+        operationSurface.put("batchSize", Integer.valueOf(batchSize));
+        operationSurface.put("failureReason", errorMessage);
+        response.setArtifactOperationSurface(operationSurface);
+        return response;
+    }
+
+    private GovernanceBenchmarkArtifactOperationResponse buildBatchSkippedItem(String tenantId,
+                                                                               String reportId,
+                                                                               String artifactKey,
+                                                                               String itemOperationType,
+                                                                               String orchestrationType,
+                                                                               String batchId,
+                                                                               int batchIndex,
+                                                                               int batchSize,
+                                                                               String message) {
+        GovernanceBenchmarkArtifactOperationResponse response = new GovernanceBenchmarkArtifactOperationResponse();
+        response.setTenantId(tenantId);
+        response.setReportId(reportId);
+        response.setArtifactKey(artifactKey);
+        response.setOperationType(itemOperationType);
+        response.setOperationStatus("SKIPPED_DUPLICATE");
+        response.setErrorMessage(message);
+        populateBatchMetadata(response, orchestrationType, batchId, batchIndex, batchSize);
+        LinkedHashMap<String, Object> operationSurface = new LinkedHashMap<String, Object>();
+        operationSurface.put("operationType", itemOperationType);
+        operationSurface.put("operationStatus", "SKIPPED_DUPLICATE");
+        operationSurface.put("orchestrationType", orchestrationType);
+        operationSurface.put("batchId", batchId);
+        operationSurface.put("batchIndex", Integer.valueOf(batchIndex));
+        operationSurface.put("batchSize", Integer.valueOf(batchSize));
+        operationSurface.put("skipReason", message);
+        response.setArtifactOperationSurface(operationSurface);
+        return response;
+    }
+
+    private void populateBatchMetadata(GovernanceBenchmarkArtifactOperationResponse response,
+                                       String orchestrationType,
+                                       String batchId,
+                                       int batchIndex,
+                                       int batchSize) {
+        if (response == null) {
+            return;
+        }
+        response.setOrchestrationType(orchestrationType);
+        response.setBatchId(batchId);
+        response.setBatchIndex(Integer.valueOf(batchIndex));
+        response.setBatchSize(Integer.valueOf(batchSize));
+    }
+
+    private String resolveBatchOperationStatus(int succeededItems, int failedItems, int skippedItems) {
+        if (failedItems > 0 && succeededItems == 0 && skippedItems == 0) {
+            return "BATCH_FAILED";
+        }
+        if (failedItems > 0) {
+            return "PARTIAL_FAILURE";
+        }
+        return "BATCH_COMPLETED";
+    }
+
+    private Map<String, Object> buildBatchOperationSurface(String batchId,
+                                                           String batchOperationType,
+                                                           String itemOperationType,
+                                                           String cleanupScope,
+                                                           int totalItems,
+                                                           int succeededItems,
+                                                           int failedItems,
+                                                           int skippedItems) {
+        LinkedHashMap<String, Object> surface = new LinkedHashMap<String, Object>();
+        surface.put("batchId", batchId);
+        surface.put("requestedOperationType", batchOperationType);
+        surface.put("mappedItemOperationType", itemOperationType);
+        surface.put("cleanupScope", cleanupScope);
+        surface.put("totalItems", Integer.valueOf(totalItems));
+        surface.put("succeededItems", Integer.valueOf(succeededItems));
+        surface.put("failedItems", Integer.valueOf(failedItems));
+        surface.put("skippedItems", Integer.valueOf(skippedItems));
+        surface.put("partialFailure", Boolean.valueOf(failedItems > 0));
+        surface.put("traceId", trimToNull(RequestContext.getTraceId()));
+        surface.put("requestId", trimToNull(RequestContext.getRequestId()));
+        return surface;
     }
 
     private static String readText(Map<String, Object> payload, String key) {

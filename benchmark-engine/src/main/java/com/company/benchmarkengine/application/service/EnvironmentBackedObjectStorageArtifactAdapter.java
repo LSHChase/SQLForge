@@ -14,9 +14,11 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.http.MediaType;
@@ -128,6 +130,80 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         }
         cleanupStaleProviderObjects(resolvePrimaryProviderTarget(), context, staleFileNames);
         cleanupStaleProviderObjects(resolveRecoveryProviderTarget(), context, staleFileNames);
+    }
+
+    @Override
+    public BenchmarkArtifactCleanupResult cleanupArtifact(BenchmarkArtifactStorageContext context,
+                                                          BenchmarkReportArtifact artifact,
+                                                          String cleanupScope) {
+        CleanupIntent cleanupIntent = CleanupIntent.from(cleanupScope);
+        LinkedHashMap<String, Object> details = new LinkedHashMap<String, Object>();
+        List<String> cleanupTargets = new ArrayList<String>();
+
+        if (cleanupIntent.cleanupMirror) {
+            boolean deleted = deletePathIfExists(resolveMirrorPath(artifact));
+            cleanupTargets.add("repoLocalMirror");
+            details.put("mirrorDeleteStatus", deleted ? "DELETED" : "MISSING");
+        } else {
+            details.put("mirrorDeleteStatus", "SKIPPED");
+        }
+
+        if (cleanupIntent.cleanupLiveEvidence) {
+            Path liveEvidencePath = resolveLiveEvidencePath(artifact);
+            boolean deleted = liveEvidencePath != null && deletePathIfExists(liveEvidencePath);
+            cleanupTargets.add("liveEvidenceManifest");
+            details.put("liveEvidenceDeleteStatus", deleted ? "DELETED" : "MISSING");
+        } else {
+            details.put("liveEvidenceDeleteStatus", "SKIPPED");
+        }
+
+        if (cleanupIntent.cleanupExternalWrite) {
+            Path externalWritePath = resolveExternalWritePath(artifact);
+            boolean deleted = externalWritePath != null && deletePathIfExists(externalWritePath);
+            cleanupTargets.add("externalWrite");
+            details.put("externalWriteDeleteStatus", deleted ? "DELETED" : "MISSING");
+        } else {
+            details.put("externalWriteDeleteStatus", "SKIPPED");
+        }
+
+        boolean providerAuthUsed = false;
+        if (cleanupIntent.cleanupProvider) {
+            ProviderDeleteStatus primaryDeleteStatus = deleteProviderArtifact(
+                resolveEvidenceValue(artifact == null ? null : artifact.getStorageEvidence(), "providerObjectUrl"),
+                resolvePrimaryProviderCredentialsValue(),
+                "PRIMARY_PROVIDER"
+            );
+            if (primaryDeleteStatus.isAttempted()) {
+                cleanupTargets.add("primaryProvider");
+            }
+            details.put("primaryProviderDeleteStatus", primaryDeleteStatus.getStatus());
+            providerAuthUsed = providerAuthUsed || primaryDeleteStatus.isProviderAuthUsed();
+
+            ProviderDeleteStatus recoveryDeleteStatus = deleteProviderArtifact(
+                resolveEvidenceValue(artifact == null ? null : artifact.getStorageEvidence(), "recoveryProviderObjectUrl"),
+                resolveRecoveryProviderCredentialsValue(),
+                "RECOVERY_PROVIDER"
+            );
+            if (recoveryDeleteStatus.isAttempted()) {
+                cleanupTargets.add("recoveryProvider");
+            }
+            details.put("recoveryProviderDeleteStatus", recoveryDeleteStatus.getStatus());
+            providerAuthUsed = providerAuthUsed || recoveryDeleteStatus.isProviderAuthUsed();
+        } else {
+            details.put("primaryProviderDeleteStatus", "SKIPPED");
+            details.put("recoveryProviderDeleteStatus", "SKIPPED");
+        }
+
+        details.put("cleanupTargets", cleanupTargets);
+        details.put("providerAuthUsed", Boolean.valueOf(providerAuthUsed));
+        return new BenchmarkArtifactCleanupResult(
+            "CLEANUP_COMPLETED",
+            cleanupScope,
+            cleanupTargets.isEmpty() ? "NONE" : toCleanupSource(cleanupTargets),
+            cleanupTargets.size() <= 1 ? toCleanupReadStatus(cleanupTargets) : "CLEANUP_MULTI_TARGET_COMPLETED",
+            cleanupTargets.isEmpty() ? "none" : joinCleanupTargets(cleanupTargets),
+            details
+        );
     }
 
     private Path resolveMirrorReportDir(String reportId) {
@@ -568,6 +644,14 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         throw new IllegalStateException("Environment-backed artifact is missing mirrorPath evidence");
     }
 
+    private Path resolveLiveEvidencePath(BenchmarkReportArtifact artifact) {
+        String liveEvidencePath = resolveEvidenceValue(artifact == null ? null : artifact.getStorageEvidence(), "liveEvidencePath");
+        if (!StringUtils.hasText(liveEvidencePath)) {
+            return null;
+        }
+        return Paths.get(liveEvidencePath);
+    }
+
     private String resolveEvidenceValue(String storageEvidence, String key) {
         if (!StringUtils.hasText(storageEvidence) || !StringUtils.hasText(key)) {
             return null;
@@ -579,6 +663,17 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             }
         }
         return null;
+    }
+
+    private boolean deletePathIfExists(Path path) {
+        if (path == null) {
+            return false;
+        }
+        try {
+            return Files.deleteIfExists(path);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to cleanup benchmark artifact path " + path, ex);
+        }
     }
 
     private Set<String> listStaleFileNames(Path reportDir, Set<String> retainedFileNames) {
@@ -644,17 +739,18 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         }
     }
 
-    private void deleteProviderObject(String providerObjectUrl, String credentials) throws IOException {
+    private String deleteProviderObject(String providerObjectUrl, String credentials) throws IOException {
         HttpURLConnection connection = openProviderConnection(providerObjectUrl, "DELETE", credentials);
         try {
             connection.connect();
             int status = connection.getResponseCode();
             if (status == 404) {
-                return;
+                return "MISSING";
             }
             if (status < 200 || status >= 300) {
                 throw new IllegalStateException("Provider-backed object-storage delete failed with status " + status);
             }
+            return VERIFIED;
         } finally {
             connection.disconnect();
         }
@@ -712,6 +808,15 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         return providerTarget == null ? null : providerTarget.credentials;
     }
 
+    private String resolvePrimaryProviderCredentialsValue() {
+        return resolveCredentialsValue();
+    }
+
+    private String resolveRecoveryProviderCredentialsValue() {
+        String credentials = storageProperties.getEnvironmentObjectStorage().getRecoveryProviderCredentials();
+        return StringUtils.hasText(credentials) ? credentials.trim() : null;
+    }
+
     private String resolveProviderDialect(ProviderTarget providerTarget) {
         if (providerTarget == null || !StringUtils.hasText(providerTarget.endpoint)) {
             return "GENERIC_HTTP";
@@ -727,6 +832,82 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             return "GCS";
         }
         return "GENERIC_HTTP";
+    }
+
+    private ProviderDeleteStatus deleteProviderArtifact(String providerObjectUrl,
+                                                        String credentials,
+                                                        String providerRole) {
+        if (!StringUtils.hasText(providerObjectUrl)) {
+            return ProviderDeleteStatus.skipped();
+        }
+        if (!StringUtils.hasText(credentials)) {
+            throw new IllegalStateException(
+                "Provider-authenticated cleanup requires configured credentials for " + providerRole
+            );
+        }
+        try {
+            return ProviderDeleteStatus.attempted(deleteProviderObject(providerObjectUrl, credentials), true);
+        } catch (IOException ex) {
+            throw new IllegalStateException(
+                "Failed to cleanup provider-backed artifact from " + providerRole + " using authenticated delete",
+                ex
+            );
+        }
+    }
+
+    private String joinCleanupTargets(List<String> cleanupTargets) {
+        StringBuilder builder = new StringBuilder();
+        for (String cleanupTarget : cleanupTargets) {
+            if (!StringUtils.hasText(cleanupTarget)) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append(',');
+            }
+            builder.append(cleanupTarget);
+        }
+        return builder.toString();
+    }
+
+    private String toCleanupSource(List<String> cleanupTargets) {
+        List<String> sourceLabels = new ArrayList<String>();
+        for (String cleanupTarget : cleanupTargets) {
+            if ("repoLocalMirror".equals(cleanupTarget)) {
+                sourceLabels.add("REPO_LOCAL_MIRROR");
+            } else if ("liveEvidenceManifest".equals(cleanupTarget)) {
+                sourceLabels.add("LIVE_EVIDENCE_MANIFEST");
+            } else if ("externalWrite".equals(cleanupTarget)) {
+                sourceLabels.add("EXTERNAL_WRITE");
+            } else if ("primaryProvider".equals(cleanupTarget)) {
+                sourceLabels.add("PRIMARY_PROVIDER");
+            } else if ("recoveryProvider".equals(cleanupTarget)) {
+                sourceLabels.add("RECOVERY_PROVIDER");
+            }
+        }
+        return joinCleanupTargets(sourceLabels);
+    }
+
+    private String toCleanupReadStatus(List<String> cleanupTargets) {
+        if (cleanupTargets.isEmpty()) {
+            return "NO_TARGETS";
+        }
+        String cleanupTarget = cleanupTargets.get(0);
+        if ("repoLocalMirror".equals(cleanupTarget)) {
+            return "MIRROR_DELETED";
+        }
+        if ("liveEvidenceManifest".equals(cleanupTarget)) {
+            return "LIVE_EVIDENCE_DELETED";
+        }
+        if ("externalWrite".equals(cleanupTarget)) {
+            return "EXTERNAL_WRITE_DELETED";
+        }
+        if ("primaryProvider".equals(cleanupTarget)) {
+            return "PRIMARY_PROVIDER_DELETED";
+        }
+        if ("recoveryProvider".equals(cleanupTarget)) {
+            return "RECOVERY_PROVIDER_DELETED";
+        }
+        return "CLEANUP_COMPLETED";
     }
 
     private String stripJsonSuffix(String fileName) {
@@ -783,7 +964,10 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         connection.setFixedLengthStreamingMode(contentBytes.length);
         try {
             connection.connect();
-            connection.getOutputStream().write(contentBytes);
+            try (java.io.OutputStream outputStream = connection.getOutputStream()) {
+                outputStream.write(contentBytes);
+                outputStream.flush();
+            }
             int status = connection.getResponseCode();
             if (status < 200 || status >= 300) {
                 throw new IllegalStateException("Provider-backed object-storage write failed with status " + status);
@@ -839,6 +1023,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         connection.setRequestMethod(method);
         connection.setConnectTimeout(storageProperties.getEnvironmentObjectStorage().getProviderConnectTimeoutMs());
         connection.setReadTimeout(storageProperties.getEnvironmentObjectStorage().getProviderReadTimeoutMs());
+        connection.setRequestProperty("Connection", "close");
         if (StringUtils.hasText(credentials)) {
             connection.setRequestProperty("Authorization", credentials.trim());
         }
@@ -896,6 +1081,39 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         }
     }
 
+    private static final class ProviderDeleteStatus {
+
+        private final boolean attempted;
+        private final String status;
+        private final boolean providerAuthUsed;
+
+        private ProviderDeleteStatus(boolean attempted, String status, boolean providerAuthUsed) {
+            this.attempted = attempted;
+            this.status = status;
+            this.providerAuthUsed = providerAuthUsed;
+        }
+
+        private static ProviderDeleteStatus skipped() {
+            return new ProviderDeleteStatus(false, "SKIPPED", false);
+        }
+
+        private static ProviderDeleteStatus attempted(String status, boolean providerAuthUsed) {
+            return new ProviderDeleteStatus(true, status, providerAuthUsed);
+        }
+
+        private boolean isAttempted() {
+            return attempted;
+        }
+
+        private String getStatus() {
+            return status;
+        }
+
+        private boolean isProviderAuthUsed() {
+            return providerAuthUsed;
+        }
+    }
+
     private static final class LiveEvidenceManifest {
 
         private final Path manifestPath;
@@ -912,6 +1130,41 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
 
         private String getEvidenceStatus() {
             return evidenceStatus;
+        }
+    }
+
+    private static final class CleanupIntent {
+
+        private final boolean cleanupMirror;
+        private final boolean cleanupLiveEvidence;
+        private final boolean cleanupExternalWrite;
+        private final boolean cleanupProvider;
+
+        private CleanupIntent(boolean cleanupMirror,
+                              boolean cleanupLiveEvidence,
+                              boolean cleanupExternalWrite,
+                              boolean cleanupProvider) {
+            this.cleanupMirror = cleanupMirror;
+            this.cleanupLiveEvidence = cleanupLiveEvidence;
+            this.cleanupExternalWrite = cleanupExternalWrite;
+            this.cleanupProvider = cleanupProvider;
+        }
+
+        private static CleanupIntent from(String cleanupScope) {
+            String normalized = StringUtils.hasText(cleanupScope) ? cleanupScope.trim().toUpperCase() : "MIRROR_ONLY";
+            if ("MIRROR_ONLY".equals(normalized)) {
+                return new CleanupIntent(true, false, false, false);
+            }
+            if ("MIRROR_LIVE_EVIDENCE".equals(normalized)) {
+                return new CleanupIntent(true, true, false, false);
+            }
+            if ("MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE".equals(normalized)) {
+                return new CleanupIntent(true, true, true, false);
+            }
+            if ("MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER".equals(normalized)) {
+                return new CleanupIntent(true, true, true, true);
+            }
+            throw new IllegalStateException("Unsupported environment-backed cleanupScope: " + cleanupScope);
         }
     }
 

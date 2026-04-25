@@ -17,11 +17,6 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
 import com.company.sqlforge.common.utils.JsonUtils;
-import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -35,6 +30,10 @@ public class BenchmarkArtifactGovernanceOperationService {
     private static final String OPERATION_RECOVER = "RECOVER_ARTIFACT";
     private static final String OPERATION_CLEANUP = "CLEANUP_ARTIFACT";
     private static final String CLEANUP_SCOPE_MIRROR_ONLY = "MIRROR_ONLY";
+    private static final String CLEANUP_SCOPE_MIRROR_LIVE_EVIDENCE = "MIRROR_LIVE_EVIDENCE";
+    private static final String CLEANUP_SCOPE_MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE = "MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE";
+    private static final String CLEANUP_SCOPE_MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER =
+        "MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER";
 
     private final BenchmarkTaskRepository benchmarkTaskRepository;
     private final BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService;
@@ -106,7 +105,7 @@ public class BenchmarkArtifactGovernanceOperationService {
             loadResult.getRecoveryStatus(),
             loadResult.getStorageRecoverySource(),
             loadResult.getStorageReadStatus(),
-            request == null ? null : request.getOperationReason()
+            request
         );
         GovernanceBenchmarkArtifactOperationResponse response = new GovernanceBenchmarkArtifactOperationResponse();
         response.setTenantId(persistedReport.getTenantId());
@@ -121,6 +120,7 @@ public class BenchmarkArtifactGovernanceOperationService {
         response.setStorageRecoverySource(loadResult.getStorageRecoverySource());
         response.setStorageReadStatus(loadResult.getStorageReadStatus());
         response.setArtifactOperationSurface(operationSurface);
+        applyRequestMetadata(response, request);
         return response;
     }
 
@@ -128,7 +128,13 @@ public class BenchmarkArtifactGovernanceOperationService {
                                                                          BenchmarkReportArtifact artifact,
                                                                          GovernanceBenchmarkArtifactOperationRequest request,
                                                                          String cleanupScope) {
-        CleanupResult cleanupResult = cleanupLocalReplica(artifact, cleanupScope);
+        BenchmarkArtifactCleanupResult cleanupResult = benchmarkArtifactStorageService.cleanupArtifact(
+            report.getReportId(),
+            report.getTenantId(),
+            report.getGeneratedAt(),
+            artifact,
+            cleanupScope
+        );
         Map<String, Object> operationSurface = buildOperationSurface(
             OPERATION_CLEANUP,
             cleanupResult.getOperationStatus(),
@@ -137,9 +143,10 @@ public class BenchmarkArtifactGovernanceOperationService {
             "PENDING_RECOVERY_AFTER_CLEANUP",
             cleanupResult.getStorageRecoverySource(),
             cleanupResult.getStorageReadStatus(),
-            request == null ? null : request.getOperationReason()
+            request
         );
         operationSurface.put("cleanupTarget", cleanupResult.getCleanupTarget());
+        operationSurface.putAll(cleanupResult.getOperationDetails());
         GovernanceBenchmarkArtifactOperationResponse response = new GovernanceBenchmarkArtifactOperationResponse();
         response.setTenantId(report.getTenantId());
         response.setReportId(report.getReportId());
@@ -153,18 +160,8 @@ public class BenchmarkArtifactGovernanceOperationService {
         response.setStorageRecoverySource(cleanupResult.getStorageRecoverySource());
         response.setStorageReadStatus(cleanupResult.getStorageReadStatus());
         response.setArtifactOperationSurface(operationSurface);
+        applyRequestMetadata(response, request);
         return response;
-    }
-
-    private CleanupResult cleanupLocalReplica(BenchmarkReportArtifact artifact, String cleanupScope) {
-        if ("ENVIRONMENT_OBJECT_STORAGE".equals(artifact.getStorageType())) {
-            Path mirrorPath = resolveEnvironmentMirrorPath(artifact);
-            deleteIfExists(mirrorPath);
-            return new CleanupResult("CLEANUP_COMPLETED", cleanupScope, "REPO_LOCAL_MIRROR", "MIRROR_DELETED", "repoLocalMirror");
-        }
-        Path localPath = resolveLocalPath(artifact);
-        deleteIfExists(localPath);
-        return new CleanupResult("CLEANUP_COMPLETED", cleanupScope, "LOCAL_FILE", "LOCAL_FILE_DELETED", "localFile");
     }
 
     private BenchmarkReportArtifact rebuildArtifact(BenchmarkReport report, BenchmarkReportArtifact artifact) {
@@ -231,6 +228,10 @@ public class BenchmarkArtifactGovernanceOperationService {
         requestParams.put("operationType", response == null ? null : response.getOperationType());
         requestParams.put("operationReason", request == null ? null : request.getOperationReason());
         requestParams.put("cleanupScope", request == null ? null : normalizeCleanupScope(request.getCleanupScope()));
+        requestParams.put("orchestrationType", request == null ? null : request.getOrchestrationType());
+        requestParams.put("batchId", request == null ? null : request.getBatchId());
+        requestParams.put("batchIndex", request == null ? null : request.getBatchIndex());
+        requestParams.put("batchSize", request == null ? null : request.getBatchSize());
 
         Map<String, Object> responseSummary = new LinkedHashMap<String, Object>();
         responseSummary.put("resultStatus", resultStatus);
@@ -241,6 +242,12 @@ public class BenchmarkArtifactGovernanceOperationService {
         responseSummary.put("artifactRecoveryStatus", response == null ? null : response.getArtifactRecoveryStatus());
         responseSummary.put("artifactStorageRecoverySource", response == null ? null : response.getStorageRecoverySource());
         responseSummary.put("artifactStorageReadStatus", response == null ? null : response.getStorageReadStatus());
+        responseSummary.put("orchestrationType", response == null ? null : response.getOrchestrationType());
+        responseSummary.put("batchId", response == null ? null : response.getBatchId());
+        responseSummary.put("batchIndex", response == null ? null : response.getBatchIndex());
+        responseSummary.put("batchSize", response == null ? null : response.getBatchSize());
+        responseSummary.put("errorCode", response == null ? null : response.getErrorCode());
+        responseSummary.put("errorMessage", response == null ? null : response.getErrorMessage());
         responseSummary.put("artifactOperationSurface", response == null ? null : response.getArtifactOperationSurface());
         boolean governanceTraceAvailable = artifact != null && StringUtils.hasText(artifact.getExportId());
 
@@ -277,6 +284,11 @@ public class BenchmarkArtifactGovernanceOperationService {
         response.setArtifactRecoveryStatus("FAILED");
         response.setStorageRecoverySource("FAILED");
         response.setStorageReadStatus("FAILED");
+        if (ex instanceof BizException) {
+            response.setErrorCode(Integer.valueOf(((BizException) ex).getCode()));
+        }
+        response.setErrorMessage(ex.getMessage());
+        applyRequestMetadata(response, request);
         Map<String, Object> operationSurface = buildOperationSurface(
             operationType,
             "FAILED",
@@ -285,7 +297,7 @@ public class BenchmarkArtifactGovernanceOperationService {
             "FAILED",
             "FAILED",
             "FAILED",
-            request == null ? null : request.getOperationReason()
+            request
         );
         operationSurface.put("failureReason", ex.getMessage());
         response.setArtifactOperationSurface(operationSurface);
@@ -303,7 +315,7 @@ public class BenchmarkArtifactGovernanceOperationService {
                                                       String artifactRecoveryStatus,
                                                       String storageRecoverySource,
                                                       String storageReadStatus,
-                                                      String operationReason) {
+                                                      GovernanceBenchmarkArtifactOperationRequest request) {
         LinkedHashMap<String, Object> operationSurface = new LinkedHashMap<String, Object>();
         operationSurface.put("operationType", operationType);
         operationSurface.put("operationStatus", operationStatus);
@@ -321,34 +333,12 @@ public class BenchmarkArtifactGovernanceOperationService {
         operationSurface.put("recoveryProvider", resolveEvidenceValue(artifact == null ? null : artifact.getStorageEvidence(), "recoveryProvider"));
         operationSurface.put("recoveryProviderHeadStatus", resolveEvidenceValue(artifact == null ? null : artifact.getStorageEvidence(), "recoveryProviderHeadStatus"));
         operationSurface.put("recoveryProviderRequestId", resolveEvidenceValue(artifact == null ? null : artifact.getStorageEvidence(), "recoveryProviderRequestId"));
-        operationSurface.put("operationReason", operationReason);
+        operationSurface.put("operationReason", request == null ? null : request.getOperationReason());
+        operationSurface.put("orchestrationType", request == null ? null : request.getOrchestrationType());
+        operationSurface.put("batchId", request == null ? null : request.getBatchId());
+        operationSurface.put("batchIndex", request == null ? null : request.getBatchIndex());
+        operationSurface.put("batchSize", request == null ? null : request.getBatchSize());
         return operationSurface;
-    }
-
-    private Path resolveEnvironmentMirrorPath(BenchmarkReportArtifact artifact) {
-        String mirrorPath = resolveEvidenceValue(artifact == null ? null : artifact.getStorageEvidence(), "mirrorPath");
-        if (!StringUtils.hasText(mirrorPath)) {
-            throw new IllegalStateException("Environment-backed artifact is missing mirrorPath evidence");
-        }
-        return Paths.get(mirrorPath);
-    }
-
-    private Path resolveLocalPath(BenchmarkReportArtifact artifact) {
-        if (artifact == null || !StringUtils.hasText(artifact.getStorageUri())) {
-            throw new IllegalStateException("Local benchmark artifact is missing storageUri");
-        }
-        return Paths.get(URI.create(artifact.getStorageUri()));
-    }
-
-    private void deleteIfExists(Path path) {
-        if (path == null) {
-            return;
-        }
-        try {
-            Files.deleteIfExists(path);
-        } catch (IOException ex) {
-            throw new IllegalStateException("Failed to cleanup benchmark artifact replica " + path, ex);
-        }
     }
 
     private String resolveEvidenceValue(String storageEvidence, String key) {
@@ -381,7 +371,10 @@ public class BenchmarkArtifactGovernanceOperationService {
             return CLEANUP_SCOPE_MIRROR_ONLY;
         }
         String normalized = cleanupScope.trim().toUpperCase();
-        if (!CLEANUP_SCOPE_MIRROR_ONLY.equals(normalized)) {
+        if (!CLEANUP_SCOPE_MIRROR_ONLY.equals(normalized)
+            && !CLEANUP_SCOPE_MIRROR_LIVE_EVIDENCE.equals(normalized)
+            && !CLEANUP_SCOPE_MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE.equals(normalized)
+            && !CLEANUP_SCOPE_MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER.equals(normalized)) {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
@@ -402,44 +395,14 @@ public class BenchmarkArtifactGovernanceOperationService {
         return value;
     }
 
-    private static final class CleanupResult {
-
-        private final String operationStatus;
-        private final String cleanupScope;
-        private final String storageRecoverySource;
-        private final String storageReadStatus;
-        private final String cleanupTarget;
-
-        private CleanupResult(String operationStatus,
-                              String cleanupScope,
-                              String storageRecoverySource,
-                              String storageReadStatus,
-                              String cleanupTarget) {
-            this.operationStatus = operationStatus;
-            this.cleanupScope = cleanupScope;
-            this.storageRecoverySource = storageRecoverySource;
-            this.storageReadStatus = storageReadStatus;
-            this.cleanupTarget = cleanupTarget;
+    private void applyRequestMetadata(GovernanceBenchmarkArtifactOperationResponse response,
+                                      GovernanceBenchmarkArtifactOperationRequest request) {
+        if (response == null || request == null) {
+            return;
         }
-
-        private String getOperationStatus() {
-            return operationStatus;
-        }
-
-        private String getCleanupScope() {
-            return cleanupScope;
-        }
-
-        private String getStorageRecoverySource() {
-            return storageRecoverySource;
-        }
-
-        private String getStorageReadStatus() {
-            return storageReadStatus;
-        }
-
-        private String getCleanupTarget() {
-            return cleanupTarget;
-        }
+        response.setOrchestrationType(request.getOrchestrationType());
+        response.setBatchId(request.getBatchId());
+        response.setBatchIndex(request.getBatchIndex());
+        response.setBatchSize(request.getBatchSize());
     }
 }

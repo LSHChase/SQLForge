@@ -4,7 +4,7 @@
 
 本文件用于把 SQLForge 当前仓库中的“已实现事实”“已确认目标”“历史记录”“归档原文”和“待实现缺口”分层，避免后续编码把目标架构、初始化占位和当前实现混写成同一层事实。
 
-当前基线时间：`2026-04-24`
+当前基线时间：`2026-04-25`
 
 ## Engineering Naming Mapping
 
@@ -95,6 +95,8 @@
   - `benchmark-engine` 当前会优先经 `query-execution` 内部受保护入口抓取 workload snapshot；若目标引擎路径不可用，则显式回退为 synthetic backfill evidence；当同批次存在 live snapshot 时，会进一步把失败快照收口为 `COMPENSATED_REPLAY`，并把 `workloadSource/backfillApplied/queryExecution[...]` 与 compensation 证据写入 benchmark execution summary 与 governance trace payload
   - `ENVIRONMENT_OBJECT_STORAGE` adapter 已形成显式配置能力：默认主路径仍是 `LOCAL_FILE`；environment-backed 模式除保留 object URI、repo-local mirror 和 live-evidence manifest 外，还支持显式配置 primary/recovery provider endpoint、bucket、credentials、provider contract、cleanup scope 与 provider timeout，在有 provider endpoint 时执行真实 provider-backed write/readback recovery verification，并可与 external write dir 验证叠加沉淀到 artifact storage evidence / governance export trace，但不把该路径误写成仓库默认事实
   - environment-backed artifact 当前已补齐 provider-specific / multi-provider contract、cleanup/recovery order 与 failure-replay 留痕；当 repo-local mirror 缺失时，读取路径会按 evidence 声明在 primary provider、recovery provider、external write 与 report snapshot replay 之间恢复，并把实际 recovery source/read status 回写到 benchmark audit summary 与 governance trace 查询面
+  - governance-triggered artifact operation 当前已形成 `cleanup/recover + batch retention/recovery orchestration` 基线：`governance` 侧开放单条与 batch 受保护入口，batch 编排复用 benchmark-engine 单条内部路由，按 target 去重并保留 `orchestrationType/batchId/batchIndex/batchSize/errorCode/errorMessage`
+  - provider-authenticated object-storage cleanup 当前已纳入受治理能力面：environment-backed cleanup scope 已显式收口为 `MIRROR_ONLY`、`MIRROR_LIVE_EVIDENCE`、`MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE`、`MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER`，其中 provider delete 要求显式 credentials，并把 primary/recovery provider delete status 与 batch 编排元数据写入治理审计追溯链
   - 引擎指标快照、阈值判定结果、趋势图表、建议输出和报告实体
   - 基础模型测试、应用服务测试与控制器测试
 - 当前可观测事实已形成统一文档落点：
@@ -174,7 +176,7 @@
 
 ## Immediate Pending Gaps
 
-- 压测引擎服务已建立独立 `benchmark-engine` 模块与提交/轮询/报告查询 API、MySQL 任务/报告载体、scheduled worker、repo-closed 隔离执行链路，以及持久化 `JSON/PDF/HTML` 导出产物、governance workload/backfill/compensation 长期追溯、provider-specific / multi-provider object-storage contract、cleanup/recovery semantics 与 provider-backed object storage live evidence/readback recovery verification 基线；后续缺口已收窄为外部队列/文件存储、更深层环境级长期操作证据，以及更接近真实 provider-native 语义的环境沉淀。
+- 压测引擎服务已建立独立 `benchmark-engine` 模块与提交/轮询/报告查询 API、MySQL 任务/报告载体、scheduled worker、repo-closed 隔离执行链路，以及持久化 `JSON/PDF/HTML` 导出产物、governance workload/backfill/compensation 长期追溯、provider-specific / multi-provider object-storage contract、cleanup/recovery semantics、governance batch retention / recovery orchestration 与 provider-backed object storage live evidence/readback recovery/provider-authenticated cleanup verification 基线；后续缺口已收窄为外部队列/文件存储、更深层 environment-backed 长期操作证据，以及更接近真实 provider-native 语义的环境沉淀。
 - 查询执行服务已建立独立模块骨架、公共 HTTP DTO/VO/错误码、治理检查/审计写入 HTTP 基线，以及真实 Hetu `JDBC/REST/CLIENT` 多模式执行链；当前仓库已补齐 JDBC driver 接线、Hetu client 协议执行和 smoke 入口，真实集群长期证据、生产级参数校准和更完整的跨服务审计补偿仍待后续环境沉淀。
 - SQL 优化服务已建立独立模块、提交/轮询 API、MySQL `optimization_task` 任务表和 scheduled worker 基线，但外部队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
 - Phase-D 核心追溯链已在 `governance` 内完成 schema、migration、entity 与 mapper XML 固化，且 `audit/write` 与 header-based stateless auth 已接入真实 `audit_log` 落库；当前敏感字段加密基线已进入共享组件和治理受保护持久化入口，但查询执行、SQL 优化、压测引擎等其他服务的主动上报链仍待后续任务补齐。

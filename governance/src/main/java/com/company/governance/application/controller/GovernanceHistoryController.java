@@ -6,6 +6,8 @@ import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO
 import com.company.governance.application.service.GovernanceHistoryApplicationService;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.TenantContext;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationRequest;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
 import java.util.List;
@@ -101,5 +103,20 @@ public class GovernanceHistoryController {
             request == null ? null : request.getOperationType(),
             RequestContext.getTraceId());
         return governanceHistoryApplicationService.operateArtifact(request);
+    }
+
+    @PostMapping("/artifact-operations/batch")
+    public GovernanceBenchmarkArtifactBatchOperationResponse operateArtifactBatch(
+        @RequestBody GovernanceBenchmarkArtifactBatchOperationRequest request
+    ) {
+        String effectiveTenantId = StringUtils.hasText(request == null ? null : request.getTenantId())
+            ? request.getTenantId()
+            : TenantContext.get();
+        LOGGER.info("Handling governance artifact batch operation, tenantId={}, operationType={}, targetCount={}, requestTraceId={}",
+            effectiveTenantId,
+            request == null ? null : request.getOperationType(),
+            request == null || request.getTargets() == null ? Integer.valueOf(0) : Integer.valueOf(request.getTargets().size()),
+            RequestContext.getTraceId());
+        return governanceHistoryApplicationService.operateArtifactBatch(request);
     }
 }

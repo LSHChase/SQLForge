@@ -110,6 +110,16 @@ public class BenchmarkArtifactStorageService {
         return requireAdapter(resolveStoredType(artifact)).loadArtifact(artifact).getRenderedReport();
     }
 
+    public BenchmarkArtifactCleanupResult cleanupArtifact(String reportId,
+                                                          String tenantId,
+                                                          Instant generatedAt,
+                                                          BenchmarkReportArtifact artifact,
+                                                          String cleanupScope) {
+        BenchmarkArtifactTenantPolicy tenantPolicy = tenantPolicyResolver.resolve(tenantId, generatedAt);
+        BenchmarkArtifactStorageContext context = new BenchmarkArtifactStorageContext(reportId, tenantId, generatedAt, tenantPolicy);
+        return requireAdapter(resolveStoredType(artifact)).cleanupArtifact(context, artifact, cleanupScope);
+    }
+
     private BenchmarkReportArtifact maybeBackfillPolicy(String tenantId,
                                                         Instant generatedAt,
                                                         BenchmarkReportArtifact artifact) {
