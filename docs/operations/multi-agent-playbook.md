@@ -6,6 +6,8 @@
 
 本手册只适用于跨模块、可明确切 ownership、值得并行化的复杂任务。简单任务继续使用单 `codex` + `foreman` 工作流。
 
+若当前只有规划/需求/计划、还没有正式 task，请先使用 `docs/operations/requirements-to-task-playbook.md` 提供的 task-shaping 流程，把 candidate task pack materialize 成正式 task，再进入本手册的 `semi-auto` 或 `full-auto` 入口。
+
 ## Core Model
 
 - Main Foreman 是唯一收口点。
@@ -157,6 +159,7 @@
 
 当前模板额外支持：
 
+- `codex.bypass_approvals_and_sandbox`
 - `run_root`
 - `codex.sandbox`
 - `codex.full_auto`
@@ -186,6 +189,13 @@
 - per-agent last-message files
 - collect summary
 - autonomous Main Foreman logs
+
+子 `codex exec` 默认策略：
+
+- 自动化脚本默认按 `codex.bypass_approvals_and_sandbox = true` 生成或消费 manifest。
+- 这是为了兼容“父级执行器已由外部环境托管沙箱”的场景，避免子会话再次落入不兼容的内层 `workspace-write` 沙箱。
+- 如果运行环境支持 Codex 自带沙箱，可把 `codex.bypass_approvals_and_sandbox` 设为 `false`，再通过 `codex.full_auto` 或 `codex.sandbox` 控制子会话模式。
+- 也可以通过环境变量 `SQLFORGE_CODEX_EXEC_MODE` 强制覆盖子 `codex exec` 模式；允许值是 `bypass`、`full-auto`、`read-only`、`workspace-write`、`danger-full-access`。
 
 ## Auto-Planning Contract
 

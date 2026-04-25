@@ -10,11 +10,13 @@
    人类与 foreman 的职责边界、`stop` / `continue`、脏工作树、冲突处理和命令可用性约束。
 3. [Local Development](./local-development.md)
    当前仓库可用的本地命令、脚本、环境约束、Codex `foreman.py` 入口和验证入口。
-4. [Multi-Agent Playbook](./multi-agent-playbook.md)
+4. [Requirements-To-Task Playbook](./requirements-to-task-playbook.md)
+   从无 task 开始的治理自动化入口，定义 requirement normalization、candidate task pack、materialization gate 与 `governed_full_cycle` 流程。
+5. [Multi-Agent Playbook](./multi-agent-playbook.md)
    多 agent 协作基础设施的角色边界、manifest/worktree 规则、`autoplan/full-auto/prepare/launch/collect` 脚本用法与 SQLForge demo runbook。
-5. [Git And Task Closeout](./git-and-task-closeout.md)
+6. [Git And Task Closeout](./git-and-task-closeout.md)
    根 Git 边界、单任务单 commit、task audit、上下文收缩/清理和关闭顺序。
-6. [Best Practices](./best-practices.md)
+7. [Best Practices](./best-practices.md)
    可泛化工程规则的 canonical 账本。
 
 ## 相关台账

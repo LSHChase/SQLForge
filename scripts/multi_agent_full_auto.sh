@@ -280,6 +280,7 @@ python3 - "${REPO_ROOT}" "${TASK_ID}" "${PLAN_OUTPUT}" "${MANIFEST_OUTPUT}" "${R
 from __future__ import annotations
 
 import json
+import os
 import shlex
 import subprocess
 import sys
@@ -295,6 +296,38 @@ def resolve_repo_relative(repo_root: Path, raw: str) -> Path:
     if candidate.is_absolute():
         return candidate.resolve()
     return (repo_root / candidate).resolve()
+
+
+def codex_exec_mode() -> str:
+    mode = os.environ.get("SQLFORGE_CODEX_EXEC_MODE", "bypass").strip()
+    if mode in {"", "bypass", "full-auto", "read-only", "workspace-write", "danger-full-access"}:
+        return mode or "bypass"
+    fail(
+        "Unsupported SQLFORGE_CODEX_EXEC_MODE value: "
+        f"{mode!r}. Expected bypass, full-auto, read-only, workspace-write, or danger-full-access."
+    )
+
+
+def build_codex_command(
+    workspace: Path,
+    output_path: Path,
+    model: str,
+    profile: str,
+) -> list[str]:
+    command = ["codex", "exec", "-C", str(workspace)]
+    mode = codex_exec_mode()
+    if mode == "bypass":
+        command.append("--dangerously-bypass-approvals-and-sandbox")
+    elif mode == "full-auto":
+        command.append("--full-auto")
+    else:
+        command.extend(["--sandbox", mode])
+    command.extend(["--color", "never", "-o", str(output_path)])
+    if profile:
+        command.extend(["-p", profile])
+    if model:
+        command.extend(["-m", model])
+    return command
 
 
 repo_root = Path(sys.argv[1]).resolve()
@@ -342,11 +375,7 @@ prompt_path.write_text(rendered_prompt + "\n", encoding="utf-8")
 
 last_message_path = messages_dir / "auto-foreman.md"
 console_log_path = logs_dir / "auto-foreman.log"
-command = ["codex", "exec", "-C", str(repo_root), "--full-auto", "--color", "never", "-o", str(last_message_path)]
-if profile:
-    command.extend(["-p", profile])
-if model:
-    command.extend(["-m", model])
+command = build_codex_command(repo_root, last_message_path, model, profile)
 
 launch_script_path = commands_dir / "auto-foreman.sh"
 launch_script_path.write_text(

@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-027: 落地从无 task 开始的 governed full-cycle 自动化
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(governance): HARN-027 add no-task governed full-cycle`
+- Priority: 1
+- Depends on: `HARN-026`
+- Scope: 在不改变 `HARN-026` downstream full-auto 真值、不引入第二套长期真值的前提下，新增 requirement normalization、candidate task pack、governance gate 与 materialization 脚本/模板/手册，让 Codex 可以从“只有需求”开始先塑形 formal task，再继续交给现有 full-auto 执行链 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Plan ref: docs/exec-plans/active/HARN-027-requirements-to-task-governed-full-cycle-plan.md
+- Matrix context: Phase-A / Story `A-STORY-007` 从无 task 开始的治理自动化
+- Human confirmation point: 若要允许 candidate task 在未同步 master-execution-plan/task-spec/task-governance 矩阵前直接进入编码、自动越过 INBOX/人工确认点，或把“无 task 起步”的自动化扩展为可绕过 `preflight` / `instantiate` / `validate` / `task_audit` / `closeout` 的黑盒执行，需人工确认
+- Data impact: requirement-normalizer/plan-shaper/task-shaper/task-governance-reviewer prompt 模板、candidate task pack 模板、task-shaping 运行态、requirements-to-task/materialization/full-cycle 脚本，以及由 formal materialization 写入的 plan/matrix/ledger/exec-plan/raw-requirement 记录；不直接改变业务运行时数据
+- Rollback / recovery: 停用 governed full-cycle 脚本并回退到“人工写 plan + 人工建 task + `HARN-026` downstream full-auto”路径，保留 candidate task pack 和 review 证据作为治理记录，必要时拆出更细粒度的 task-shaping follow-up
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-027`、`bash scripts/requirements_to_plan.sh --help`、`bash scripts/task_materialize.sh --help`、`bash scripts/governed_full_cycle.sh --help`、requirements-to-plan dry-run、real candidate pack generation、task_materialize dry-run、governed_full_cycle dry-run、docs 索引与 coverage 矩阵对齐
+  - `python3 scripts/foreman.py validate HARN-027`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added governed no-task full-cycle automation on top of the existing full-auto multi-agent stack: requirement normalization, candidate execution plan shaping, candidate task pack shaping, governance-gated materialization, and end-to-end orchestrator documentation/scripts. Also hardened nested Codex execution so shaping no longer pollutes current-task state and downstream child sessions run correctly in the externally sandboxed automation environment.
+  - Validation evidence: bash -n scripts/requirements_to_plan.sh; bash -n scripts/task_materialize.sh; bash -n scripts/governed_full_cycle.sh; bash -n scripts/multi_agent_autoplan.sh; bash -n scripts/multi_agent_launch.sh; bash -n scripts/multi_agent_full_auto.sh; bash scripts/requirements_to_plan.sh --help; bash scripts/task_materialize.sh --help; bash scripts/governed_full_cycle.sh --help; bash scripts/requirements_to_plan.sh --run-id harn027-smoke4 --task-prefix HARN --prompt <smoke> ; bash scripts/task_materialize.sh --task-pack .codex/state/task-shaping/harn027-smoke4/candidate-task-pack.json --dry-run; bash scripts/governed_full_cycle.sh --run-id harn027-smoke4 --task-prefix HARN --prompt <smoke> --dry-run; bash scripts/multi_agent_autoplan.sh --task HARN-027 --prompt <dry-run> --dry-run; bash scripts/multi_agent_launch.sh --manifest .codex/state/multi-agent/HARN-026/validation/generated-manifest.json --dry-run; python3 scripts/foreman.py compile-governance; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py validate HARN-027; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Governed full-cycle still depends on Codex CLI availability and prompt quality; ambiguous raw requirements will continue to stop at the human-confirmation gate instead of auto-materializing, and downstream task execution still inherits the operational limits of the existing HARN-026 full-auto stack.
+  - Next step: Use docs/operations/requirements-to-task-playbook.md and scripts/governed_full_cycle.sh on the next governance/tooling request that starts without a formal task, then evaluate whether the shaping prompts need narrower domain-specific templates for repeated requirement classes.
+
 ### HARN-026: 把多 agent 基础设施升级为从需求到收口的全自动主路径
 
 - Status: done

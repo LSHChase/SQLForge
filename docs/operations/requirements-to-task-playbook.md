@@ -1,0 +1,259 @@
+# Requirements-To-Task Playbook
+
+## Purpose
+
+本手册定义 SQLForge 从“只有规划/需求/计划、还没有正式 task”开始的治理自动化路径。它补齐 `HARN-026` 之前的一段上游流程：
+
+- requirement normalization
+- candidate execution plan shaping
+- candidate task pack generation
+- governance gate review
+- formal materialization into plan/matrix/ledger
+- instantiate
+- handoff to existing `multi_agent_full_auto.sh`
+
+本手册的目标不是绕过治理，而是把“无 task”场景也纳入现有 `foreman` / `task_audit` / `closeout` 审计链。
+
+子 `codex exec` 的默认执行模式是 `SQLFORGE_CODEX_EXEC_MODE=bypass`。这意味着 task-shaping、governance review 和 downstream auto-foreman 会假设父级自动化已经由可信外部环境托管沙箱。如果需要强制子会话使用 Codex 自带沙箱，可改成 `full-auto`、`read-only`、`workspace-write` 或 `danger-full-access`。
+
+为了避免 candidate task id 污染主运行态，`requirements_to_plan.sh` 和 `task_materialize.sh` 内部用于 shaping/review 的子 `codex exec` 会默认禁用 `codex_hooks`。正式进入 materialization 之后，仍由 Main Foreman 重新执行标准 `preflight` / `instantiate` / `validate` / `closeout` 链。
+
+## Core Model
+
+- 从无 task 开始的自动化分为两段：
+  - `task-shaping`: 只生成候选产物，不直接编码
+  - `task-execution`: 只有正式 task materialize 并 instantiate 后才允许进入
+- `task-shaping` 的运行态文件只落在 `.codex/state/task-shaping/<RUN_ID>/`
+- 只有通过治理 gate 的 candidate task pack，才能写入：
+  - `docs/plans/master-execution-plan.md`
+  - `docs/plans/task-spec-matrix.md`
+  - `docs/plans/task-governance-extension-matrix.md`
+  - `tasks.md`
+  - `docs/exec-plans/active/<TASK_ID>-full-auto-execution-plan.md`
+- Main Foreman 仍是唯一最终收口点
+
+## Roles
+
+### Requirement Normalizer
+
+- 把原始需求整理成标准化输入
+- 输出目标、约束、验收、范围外项和推荐 task class
+- 不直接写台账
+
+### Plan Shaper
+
+- 把标准化需求映射到现有 master plan 的 phase/story/task 边界
+- 选择 story id 并生成 candidate execution plan
+- 不直接 materialize task
+
+### Task Shaper
+
+- 在固定 candidate task id 下生成 candidate task pack
+- 补齐 task-spec matrix 和 governance extension matrix 所需字段
+- 不直接修改 ledger
+
+### Task Governance Reviewer
+
+- 只读审查 candidate task pack
+- 判断是否满足 SQLForge 现有治理门禁
+- 输出 `go` / `no-go` 与 blocker 列表
+
+### Main Foreman
+
+- 唯一允许执行 formal materialization、instantiate、validate、audit 和 closeout
+- 唯一允许修改 `tasks.md` / `tasks-done.md` / `INBOX.md` / `docs/quality/validation-log.md`
+
+## Runtime Artifacts
+
+默认 run root：
+
+- `.codex/state/task-shaping/<RUN_ID>/`
+
+其中会生成：
+
+- `raw-requirement.md`
+- `normalized-requirements.json`
+- `normalized-requirements.md`
+- `candidate-execution-plan.md`
+- `candidate-task-pack.json`
+- `governance-review.json`
+- rendered prompts
+- per-step schema/log/result files
+
+这些文件是运行态证据，不是长期 authority。
+
+## Candidate Task Pack Contract
+
+模板：
+
+- `docs/exec-plans/templates/candidate-task-pack.template.json`
+
+最低字段：
+
+- `task_id`
+- `title`
+- `task_class`
+- `priority`
+- `story_id`
+- `story_title`
+- `depends_on`
+- `scope`
+- `adr_refs`
+- `rule_refs`
+- `context_aliases`
+- `contract`
+- `tech`
+- `layer`
+- `tests`
+- `env`
+- `human_confirmation_point`
+- `requires_human_decision`
+- `data_impact`
+- `rollback_recovery`
+- `task_summary`
+- `residual_risk`
+- `materialization_ready`
+
+约束：
+
+- `materialization_ready` 默认由 `task_materialize.sh` 在 gate 通过后置为 `true`
+- `requires_human_decision = true` 时，必须停止，不得自动 materialize
+- `story_id` 必须指向 `master-execution-plan.md` 中已存在的 story
+- `task_id` 在 materialize 前不得已存在于 plan/matrix/ledger
+
+## Workflow
+
+### 1. Generate Candidate Artifacts
+
+执行：
+
+```bash
+bash scripts/requirements_to_plan.sh --requirements-file <FILE>
+```
+
+或：
+
+```bash
+bash scripts/requirements_to_plan.sh --prompt "<TEXT>"
+```
+
+该步骤会：
+
+1. 规范化需求
+2. 生成 candidate execution plan
+3. 生成 candidate task pack
+
+### 2. Governance Gate And Materialization
+
+执行：
+
+```bash
+bash scripts/task_materialize.sh --task-pack .codex/state/task-shaping/<RUN_ID>/candidate-task-pack.json
+```
+
+该步骤会：
+
+1. 校验 candidate task pack 结构
+2. 审查 task id 是否冲突
+3. 审查是否触发人工确认点
+4. 调用 `task-governance-reviewer`
+5. 对 candidate task 做 `foreman.py preflight`
+6. 写入 plan/matrix/coverage/raw-requirement/final exec plan
+7. 再次 `preflight`
+8. `instantiate`
+
+### 3. End-To-End Governed Full Cycle
+
+执行：
+
+```bash
+bash scripts/governed_full_cycle.sh --requirements-file <FILE>
+```
+
+固定顺序：
+
+1. `requirements_to_plan`
+2. `task_materialize`
+3. `multi_agent_full_auto.sh --task <TASK_ID>`
+
+## Stop Points
+
+`governed_full_cycle.sh` 支持：
+
+- `--stop-after normalize`
+- `--stop-after plan`
+- `--stop-after materialize`
+- `--stop-after collect`
+- `--stop-after closeout`
+
+说明：
+
+- `normalize`: 只产出标准化需求
+- `plan`: 产出标准化需求与 candidate execution plan
+- `materialize`: 正式建 task，但不进入 execution
+- `collect`: 执行到 downstream full-auto collect
+- `closeout`: 端到端执行到最终 closeout
+
+推荐：
+
+- 在当前 SQLForge 自动化环境中，直接使用默认值即可，不需要先退出或重启 Codex。
+- 如果子会话出现 `bwrap` / `workspace-write` 相关错误，优先检查 `SQLFORGE_CODEX_EXEC_MODE` 是否被外部环境覆盖。
+
+## Governance Gate Rules
+
+以下情况必须阻断自动 materialization：
+
+- `task_id` 已存在于 plan/matrix/ledger
+- `story_id` 不存在
+- candidate task pack 缺字段
+- `requires_human_decision = true`
+- reviewer 返回 `no-go`
+- 试图绕过 `preflight` / `instantiate`
+- 试图直接让 worker 修改 ledger 或 validation log
+
+## Demo Runbook
+
+### Demo Input
+
+```bash
+bash scripts/requirements_to_plan.sh \
+  --prompt "Create a governance/tooling task that standardizes a new repository verification helper under existing SQLForge audit rules."
+```
+
+### Demo Review
+
+```bash
+bash scripts/task_materialize.sh \
+  --task-pack .codex/state/task-shaping/<RUN_ID>/candidate-task-pack.json \
+  --dry-run
+```
+
+### Demo End-To-End Dry-Run
+
+```bash
+bash scripts/governed_full_cycle.sh \
+  --prompt "Create a governance/tooling task that standardizes a new repository verification helper under existing SQLForge audit rules." \
+  --dry-run
+```
+
+## Failure Handling
+
+### Candidate Task Id Conflict
+
+- `task_materialize.sh` 直接失败
+- 重新运行 `requirements_to_plan.sh` 生成新的 candidate task id
+
+### Human Decision Required
+
+- 输出 blocker
+- 停止，不写 ledger
+
+### Reviewer Returned No-Go
+
+- 输出 blocker 和建议
+- 停止，不写 ledger
+
+### Materialization Succeeded, Downstream Full-Auto Failed
+
+- 保留 formal task、exec plan 和 task-shaping 运行态证据
+- 回到 Main Foreman 手工或半自动路径继续推进

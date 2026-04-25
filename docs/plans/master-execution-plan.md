@@ -108,7 +108,7 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：当前没有已实例化的 repo-side mainline task；`D-TASK-029` 已完成 closeout，默认主路径仍保持 `LOCAL_FILE`，不得把 environment-backed object storage 写成仓库默认事实。当前另有独立治理/工具任务 `HARN-026` 用于把多 agent 能力从半自动升级到“需求输入 -> plan/manifest 生成 -> launch/collect -> autonomous Main Foreman 收口”的全自动主路径，但它不改变“当前无 repo-side business mainline”的仓库真值。
+- 当前活跃目标：当前没有已实例化的 repo-side mainline task；`D-TASK-029` 已完成 closeout，默认主路径仍保持 `LOCAL_FILE`，不得把 environment-backed object storage 写成仓库默认事实。当前另有独立治理/工具任务 `HARN-027` 用于把自动化起点从“已有 task 的 full-auto”继续前移到“只有规划/需求/计划、尚无 formal task 的 governed full-cycle”，但它不改变“当前无 repo-side business mainline”的仓库真值。
 - 当前下一条可执行主线任务：
   - 当前没有已实例化的 repo-side mainline task。
   - 如继续推进 Phase-D，下一条候选任务应先塑形为新的未实例化 follow-up，而不是把任何候选直接写成已运行主线。
@@ -147,7 +147,8 @@
   - `D-TASK-028` 已完成 `D-TASK-027` residual risk 的 repo-side 收口：它把 provider-specific / multi-provider object-storage contract、cleanup/recovery semantics，以及 compensation-replay evidence 的 governance query/recovery surfaces 收口为已验证基线；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
   - `D-TASK-029` 已完成 `D-TASK-028` residual risk 的 repo-side 收口：它把 provider-native / environment-backed object-storage live evidence 进一步沉淀到 provider header/request-id 级别，并补齐 governance-triggered artifact cleanup/recovery operation surfaces；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
   - `HARN-025` 已把“半自动多 agent 协作基础设施（C 方案）”正式落为独立治理/工具能力：Main Foreman 唯一收口、多 `codex exec` 会话替代隐式 subagent、多 `git worktree` 隔离、manifest 驱动、prompt 模板化，以及最终仍走 `foreman validate` / `task_audit` / `closeout`；它不混入业务主线功能，也不改变当前 repo-side business mainline 为空的事实。
-  - `HARN-026` 用于把多 agent 能力从“Main Foreman 手工写 plan/manifest 再启动”升级到“从需求输入开始，由 codex 自动生成 exec plan、manifest，并驱动 prepare/launch/collect，再由 autonomous Main Foreman 继续 fan-in / validate / closeout”的全自动主路径；它仍保持 Main Foreman 唯一收口，不引入第二套长期真值，也不混入业务主线功能。
+  - `HARN-026` 已完成 closeout：它把多 agent 能力从“Main Foreman 手工写 plan/manifest 再启动”升级到“从需求输入开始，由 codex 自动生成 exec plan、manifest，并驱动 prepare/launch/collect，再由 autonomous Main Foreman 继续 fan-in / validate / closeout”的全自动主路径；它仍保持 Main Foreman 唯一收口，不引入第二套长期真值，也不混入业务主线功能。
+  - `HARN-027` 用于在 `HARN-026` 之上补齐“从无 task 开始”的上游治理自动化：先做 requirement normalization、candidate execution plan shaping、candidate task pack 与 governance gate，再 formal materialize 成正式 task，最后 handoff 给现有 `HARN-026` full-auto 执行链；它仍保持 Main Foreman 唯一收口，不绕过 `preflight` / `instantiate` / `validate` / `task_audit` / `closeout`。
   - `HARN-016` 已把外部 Win10 测试环境的 Hetu/MRS 实际联通与留证动作挂起到 `INBOX-002`；它继续是 blocked 的 environment-backed follow-up，不构成当前 repo-side mainline。
   - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不改变当前仓库真值：当前没有新的已实例化 repo-side mainline，而 `HARN-016` / `INBOX-001` 仍只属于非主线的 environment-backed follow-up。
 
@@ -269,6 +270,17 @@ Tasks:
 | Task ID | Task | Scope | Dependencies | Verification |
 |:---|:---|:---|:---|:---|
 | `HARN-026` | 把多 agent 基础设施升级为从需求到收口的全自动主路径 | 在保留 `HARN-025` 半自动能力、Main Foreman 唯一收口、多 `codex exec` 会话、多 worktree 隔离和既有 `foreman` / `task_audit` / `closeout` 链不变的前提下，新增 requirement-driven auto-planner / auto-foreman prompt 模板与 autoplan/full-auto orchestration 脚本，让既有 multi-agent 流程可以从 codex 读取需求并自动生成 exec plan、manifest、launch/collect 和最终 autonomous 收口 | `HARN-025` | `python3 scripts/foreman.py validate HARN-026`、`bash scripts/multi_agent_autoplan.sh --help`、`bash scripts/multi_agent_full_auto.sh --help`、autoplan dry-run、自生成 manifest 的 prepare/launch dry-run、docs 索引/coverage 对齐 |
+
+##### Story `A-STORY-007` 从无 task 开始的治理自动化
+
+- 目标：把 SQLForge 的自动化起点从“已有 formal task 的 full-auto 执行”前移到“只有规划/需求/计划、还没有正式 task”的场景，同时不绕过现有审计链。
+- 验证：requirement-normalizer/plan-shaper/task-shaper/task-governance-reviewer prompt 模板、requirements-to-task playbook、candidate task pack 模板，以及 `requirements_to_plan/task_materialize/governed_full_cycle` 脚本全部对齐；candidate task 只有在 gate 通过后才会写入 plan/matrix/ledger，并继续 handoff 给既有 `HARN-026` full-auto。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `HARN-027` | 落地从无 task 开始的 governed full-cycle 自动化 | 在不改变 `HARN-026` downstream full-auto 真值、不引入第二套长期真值的前提下，新增 requirement normalization、candidate task pack、governance gate 与 materialization 脚本/模板/手册，让 Codex 可以从“只有需求”开始先塑形 formal task，再继续交给现有 full-auto 执行链 | `HARN-026` | `python3 scripts/foreman.py validate HARN-027`、`bash scripts/requirements_to_plan.sh --help`、`bash scripts/task_materialize.sh --help`、`bash scripts/governed_full_cycle.sh --help`、requirements-to-plan dry-run、real candidate pack generation、task_materialize dry-run、governed_full_cycle dry-run、docs 索引/coverage 对齐 |
 
 ### Phase-B 阶段0修正与缺口补齐
 

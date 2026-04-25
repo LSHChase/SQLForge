@@ -6,8 +6,9 @@
   "requirements_artifact": "",
   "generated_plan": "",
   "codex": {
+    "bypass_approvals_and_sandbox": true,
     "sandbox": "workspace-write",
-    "full_auto": true,
+    "full_auto": false,
     "color": "never",
     "extra_args": []
   },

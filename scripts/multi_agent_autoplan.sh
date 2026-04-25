@@ -96,6 +96,7 @@ python3 - "${REPO_ROOT}" "${TASK_ID}" "${REQUIREMENTS_FILE}" "${PROMPT_TEXT}" "$
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -147,6 +148,44 @@ def extract_section(content: str, heading: str) -> str:
     if end == -1:
         end = len(content)
     return content[start:end]
+
+
+def codex_exec_mode() -> str:
+    mode = os.environ.get("SQLFORGE_CODEX_EXEC_MODE", "bypass").strip()
+    if mode in {"", "bypass", "full-auto", "read-only", "workspace-write", "danger-full-access"}:
+        return mode or "bypass"
+    fail(
+        "Unsupported SQLFORGE_CODEX_EXEC_MODE value: "
+        f"{mode!r}. Expected bypass, full-auto, read-only, workspace-write, or danger-full-access."
+    )
+
+
+def build_codex_command(
+    workspace: Path,
+    *,
+    schema_path: Path | None = None,
+    result_path: Path | None = None,
+    model: str = "",
+    profile: str = "",
+) -> list[str]:
+    command = ["codex", "exec", "-C", str(workspace)]
+    mode = codex_exec_mode()
+    if mode == "bypass":
+        command.append("--dangerously-bypass-approvals-and-sandbox")
+    elif mode == "full-auto":
+        command.append("--full-auto")
+    else:
+        command.extend(["--sandbox", mode])
+    command.extend(["--color", "never"])
+    if schema_path is not None:
+        command.extend(["--output-schema", str(schema_path)])
+    if result_path is not None:
+        command.extend(["-o", str(result_path)])
+    if profile:
+        command.extend(["-p", profile])
+    if model:
+        command.extend(["-m", model])
+    return command
 
 
 def normalize_pattern(raw: str) -> str:
@@ -263,7 +302,8 @@ def normalize_manifest(repo_root: Path, task_id: str, manifest: dict) -> dict:
     )
     codex_settings = dict(normalized.get("codex", {}))
     codex_settings.setdefault("sandbox", "workspace-write")
-    codex_settings.setdefault("full_auto", True)
+    codex_settings.setdefault("full_auto", False)
+    codex_settings.setdefault("bypass_approvals_and_sandbox", True)
     codex_settings.setdefault("color", "never")
     codex_settings.setdefault("extra_args", [])
     normalized["codex"] = codex_settings
@@ -419,11 +459,13 @@ result_path = autoplan_root / "auto-planner-result.json"
 console_log_path = logs_dir / "auto-planner.log"
 build_schema(schema_path)
 
-command = ["codex", "exec", "-C", str(repo_root), "--full-auto", "--color", "never", "--output-schema", str(schema_path), "-o", str(result_path)]
-if profile:
-    command.extend(["-p", profile])
-if model:
-    command.extend(["-m", model])
+command = build_codex_command(
+    repo_root,
+    schema_path=schema_path,
+    result_path=result_path,
+    model=model,
+    profile=profile,
+)
 
 metadata = {
     "task_id": task_id,

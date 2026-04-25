@@ -39,6 +39,10 @@
 | `docs/frontend/design-system.md` | Authority | 前端视觉与页面设计规则 | Consumed | Dashboard、业务页、主题系统 |
 | `docs/agent-prompts/auto-planner.md` | Indexed | requirement-driven auto planner prompt 模板 | Referenced | 约束 full-auto 模式下的 exec plan 与 manifest 自动生成，不允许绕过 Main Foreman 治理链 |
 | `docs/agent-prompts/auto-foreman.md` | Indexed | autonomous Main Foreman prompt 模板 | Referenced | 约束 full-auto 模式下 collect 之后的 fan-in、验证与 closeout 收口行为 |
+| `docs/agent-prompts/requirement-normalizer.md` | Indexed | requirement normalization prompt 模板 | Referenced | 约束从无 task 开始时的需求标准化输出，不允许把推断写成正式治理事实 |
+| `docs/agent-prompts/plan-shaper.md` | Indexed | candidate execution plan shaper prompt 模板 | Referenced | 约束 candidate execution plan 必须映射到已存在的 master plan story，而不是发明新治理真值 |
+| `docs/agent-prompts/task-shaper.md` | Indexed | candidate task pack shaper prompt 模板 | Referenced | 约束 candidate task pack 覆盖 task-spec 和 governance-extension 字段，但不直接落 ledger |
+| `docs/agent-prompts/task-governance-reviewer.md` | Indexed | candidate task pack governance reviewer prompt 模板 | Referenced | 约束 formal materialization 之前的 go/no-go 审查，不允许绕过 human-confirmation 或审计链 |
 | `docs/agent-prompts/main-foreman.md` | Indexed | Main Foreman 多 agent 收口 prompt 模板 | Referenced | 统一收口、fan-in、验证与 closeout 的角色模板 |
 | `docs/agent-prompts/truth-explorer.md` | Indexed | truth explorer prompt 模板 | Referenced | 只读事实盘点、真值核对与证据提炼模板 |
 | `docs/agent-prompts/boundary-explorer.md` | Indexed | boundary explorer prompt 模板 | Referenced | 路径边界、ownership 和冲突扫描模板 |
@@ -57,6 +61,7 @@
 | `docs/operations/human-collaboration.md` | Authority | 人机协作边界、命令可用性与脏工作树处理 | Consumed | stop/continue、冲突与 `/contract` / `/clear` 可用性约束 |
 | `docs/operations/local-development.md` | Authority | 本地命令、脚本与环境入口 | Referenced | 本地开发验证与环境约束 |
 | `docs/operations/multi-agent-playbook.md` | Authority | 多 agent 协作手册与 SQLForge demo runbook | Consumed | Main Foreman、worktree、manifest、prompt 模板，以及 autoplan/full-auto/prepare/launch/collect 与最终 validate/closeout 的权威操作落点 |
+| `docs/operations/requirements-to-task-playbook.md` | Authority | 从无 task 开始的治理自动化手册 | Consumed | 定义 requirement normalization、candidate task pack、materialization gate 与 governed full-cycle 的权威操作落点 |
 | `docs/plans/README.md` | Indexed | 计划导航 | Consumed | 计划入口与附录说明 |
 | `docs/plans/master-execution-plan.md` | Authority | 当前主执行计划 | Consumed | 主控文档 |
 | `docs/plans/phase-0-plan.md` | Indexed | 阶段0历史计划 | Consumed | 阶段0真值修正 |
@@ -100,6 +105,7 @@
 | `docs/adr/ADR-012-saga-plus-local-transaction.md` | Authority | Saga + 本地事务 | Referenced | 跨服务事务编排 |
 | `docs/adr/ADR-013-acceleration-service-and-materialized-view-strategy.md` | Authority | 加速与物化视图策略 | Consumed | SQL 优化服务设计 |
 | `docs/exec-plans/active/.gitkeep` | Indexed | 活动执行计划目录占位文件 | Referenced | 保持活动执行计划目录可追踪 |
+| `docs/exec-plans/completed/HARN-027-requirements-to-task-governed-full-cycle-plan.md` | Indexed | HARN-027 从无 task 开始的治理自动化执行计划 | Consumed | 约束 HARN-027 的 task-shaping/materialization/full-cycle 交付边界、验证顺序与 closeout 前 write scope |
 | `docs/exec-plans/completed/HARN-026-full-auto-multi-agent-upgrade-plan.md` | Indexed | HARN-026 全自动多 agent 升级执行计划 | Consumed | 约束 HARN-026 的 full-auto 交付边界、验证顺序与 closeout 前 write scope |
 | `docs/exec-plans/completed/HARN-025-semi-auto-multi-agent-foundation-plan.md` | Indexed | HARN-025 半自动多 agent 基础设施执行计划 | Referenced | 约束 HARN-025 的交付边界、验证顺序与 closeout 前 write scope |
 | `docs/exec-plans/completed/.gitkeep` | Indexed | 完成执行计划目录占位文件 | Referenced | 保持完成执行计划目录可追踪 |
@@ -107,6 +113,7 @@
 | `docs/exec-plans/completed/HARN-007-codex-runtime-integration-plan.md` | Indexed | 已完成的 Codex 运行时集成治理批次执行计划 | Referenced | 追溯 HARN-007 的原始批次目标、交付件与验证顺序 |
 | `docs/exec-plans/completed/HARN-008-governance-runtime-hardening-plan.md` | Indexed | 已完成的 Codex 治理/runtime 闭口批次执行计划 | Referenced | 追溯 HARN-008 对 6 个治理闭口点的实现、验证与 closeout 顺序 |
 | `docs/exec-plans/templates/multi-agent-run.template.json` | Indexed | 多 agent run manifest 模板 | Referenced | 作为任务级 active manifest 的起始模板与字段语义基线，供 Main Foreman 复制到 `docs/exec-plans/active/` 或由 auto-planner 生成 `full-auto` manifest |
+| `docs/exec-plans/templates/candidate-task-pack.template.json` | Indexed | candidate task pack 模板 | Referenced | 作为从无 task 开始的 formal materialization 输入模板，约束 task-spec 与 governance-extension 必填字段 |
 
 ## Completeness Statement
 

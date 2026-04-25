@@ -128,7 +128,8 @@ for directory in [run_root, prompts_dir, logs_dir, messages_dir, commands_dir, m
 codex_settings = manifest.get("codex", {})
 default_sandbox = str(codex_settings.get("sandbox", "workspace-write"))
 default_color = str(codex_settings.get("color", "never"))
-default_full_auto = bool(codex_settings.get("full_auto", True))
+default_full_auto = bool(codex_settings.get("full_auto", False))
+default_bypass = bool(codex_settings.get("bypass_approvals_and_sandbox", True))
 default_extra_args = list(codex_settings.get("extra_args", []))
 
 index_payload = {
@@ -177,7 +178,9 @@ for agent in selected_agents:
     meta_path = meta_dir / f"{name}.json"
 
     command = ["codex", "exec", "-C", str(worktree), "--json", "--color", default_color, "-o", str(last_message_path)]
-    if default_full_auto:
+    if default_bypass:
+        command.append("--dangerously-bypass-approvals-and-sandbox")
+    elif default_full_auto:
         command.append("--full-auto")
     else:
         command.extend(["--sandbox", default_sandbox])

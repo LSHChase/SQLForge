@@ -12,7 +12,8 @@
     "docs/exec-plans/completed/HARN-008-governance-runtime-hardening-plan.md",
     "docs/exec-plans/completed/HARN-009-closeout-boundary-repair-plan.md",
     "docs/exec-plans/completed/HARN-025-semi-auto-multi-agent-foundation-plan.md",
-    "docs/exec-plans/completed/HARN-026-full-auto-multi-agent-upgrade-plan.md"
+    "docs/exec-plans/completed/HARN-026-full-auto-multi-agent-upgrade-plan.md",
+    "docs/exec-plans/completed/HARN-027-requirements-to-task-governed-full-cycle-plan.md"
   ],
   "authority_entry": [
     "docs/README.md",

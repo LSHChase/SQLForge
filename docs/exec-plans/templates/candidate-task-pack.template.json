@@ -1,0 +1,52 @@
+{
+  "task_id": "HARN-XXX",
+  "title": "Task title",
+  "task_class": "standard",
+  "priority": "1",
+  "story_id": "A-STORY-007",
+  "story_title": "从无 task 开始的治理自动化",
+  "depends_on": [
+    "HARN-026"
+  ],
+  "scope": "Summarize the task scope, tech and layer without overstating implemented facts.",
+  "adr_refs": [
+    "N/A"
+  ],
+  "rule_refs": [
+    "R-006",
+    "R-007",
+    "R-116",
+    "R-133",
+    "R-156",
+    "R-157",
+    "R-160",
+    "R-168"
+  ],
+  "context_aliases": [
+    "Core",
+    "Val",
+    "Deploy"
+  ],
+  "contract": "Describe the task contract in one sentence.",
+  "tech": [
+    "DOCS",
+    "OPS"
+  ],
+  "layer": [
+    "docs",
+    "deployments/ci/scripts"
+  ],
+  "tests": [
+    "python3 scripts/foreman.py validate HARN-XXX"
+  ],
+  "env": "docs/dev",
+  "human_confirmation_point": "If the task would weaken governance boundaries or bypass the audit chain, human confirmation is required.",
+  "requires_human_decision": false,
+  "data_impact": "Describe document/runtime/metadata impact only.",
+  "rollback_recovery": "Describe rollback or recovery in append-only terms.",
+  "task_summary": "One-line summary for prompts and preflight.",
+  "residual_risk": [
+    "List any expected follow-up risk."
+  ],
+  "materialization_ready": false
+}
