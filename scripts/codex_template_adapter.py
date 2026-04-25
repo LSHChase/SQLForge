@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,27 +18,51 @@ if str(ROOT) not in sys.path:
 
 from scripts.governed_v2_support import INTAKE_DIR, compact, now_iso, relative_to_root, write_json
 
-FIELD_PATTERN = re.compile(r"^(需求|治理需求|实现任务|实现治理任务|输出物|限制)：\s*(.*)$")
+SCHEMA_VERSION = 2
+FIELD_PATTERN = re.compile(r"^(需求|治理需求|实现任务|实现治理任务|输出物|限制)\s*[：:]\s*(.*)$")
 TASK_ID_PATTERN = re.compile(r"^[A-Z]+-[0-9]{3}$")
+FIELD_ALIASES = {
+    "需求": "business_requirement",
+    "治理需求": "governance_requirement",
+    "实现任务": "existing_task",
+    "实现治理任务": "existing_governance_task",
+}
+
+
+def parse_fields(text: str) -> dict[str, str]:
+    fields: dict[str, list[str]] = {}
+    current_key = ""
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
+        if not line.strip():
+            if current_key:
+                fields[current_key].append("")
+            continue
+        match = FIELD_PATTERN.match(line.strip())
+        if match:
+            current_key = match.group(1)
+            fields.setdefault(current_key, [])
+            first_value = match.group(2).strip()
+            if first_value:
+                fields[current_key].append(first_value)
+            continue
+        if current_key:
+            fields[current_key].append(line.strip())
+    return {key: "\n".join(value).strip() for key, value in fields.items()}
 
 
 def parse_template(text: str) -> dict[str, Any]:
-    fields: dict[str, str] = {}
-    for raw_line in text.splitlines():
-        line = raw_line.strip()
-        match = FIELD_PATTERN.match(line)
-        if match:
-            fields[match.group(1)] = match.group(2).strip()
-
+    fields = parse_fields(text)
     task_key = "实现治理任务" if "实现治理任务" in fields else "实现任务" if "实现任务" in fields else ""
     requirement_key = "治理需求" if "治理需求" in fields else "需求" if "需求" in fields else ""
     output = fields.get("输出物", "").strip()
     constraints = fields.get("限制", "").strip()
 
     if task_key:
-        task_id = fields[task_key].strip()
+        task_id = fields[task_key].strip().splitlines()[0].strip()
         if not TASK_ID_PATTERN.match(task_id):
             raise SystemExit(f"Invalid task id in {task_key}: {task_id}")
+        template_kind = FIELD_ALIASES[task_key]
         path_selected = "existing-task"
         command = ["bash", "scripts/governed_intake.sh", "--task", task_id]
         prompt = ""
@@ -45,6 +70,7 @@ def parse_template(text: str) -> dict[str, Any]:
         requirement = fields[requirement_key].strip()
         if not requirement:
             raise SystemExit(f"Missing content for {requirement_key}.")
+        template_kind = FIELD_ALIASES[requirement_key]
         path_selected = "no-task-shaping"
         prompt_parts = [f"{requirement_key}：{requirement}"]
         if output:
@@ -59,6 +85,8 @@ def parse_template(text: str) -> dict[str, Any]:
         raise SystemExit("Template must contain one of: 需求：, 治理需求：, 实现任务：, 实现治理任务：")
 
     return {
+        "schema_version": SCHEMA_VERSION,
+        "template_kind": template_kind,
         "path_selected": path_selected,
         "task_id": task_id,
         "prompt": prompt,
@@ -93,15 +121,14 @@ def main() -> int:
             "run_id": run_id,
             "raw_template": template_text,
             "summary": compact(template_text, 500),
-            "execution_state": "executed" if args.execute else "previewed",
+            "execution_state": "executing" if args.execute else "previewed",
             "executed_at": now_iso(),
+            "summary_ref": relative_to_root(summary_path),
         }
     )
     write_json(summary_path, payload)
 
     if args.execute:
-        import subprocess
-
         result = subprocess.run(payload["governed_intake_command"], cwd=ROOT, text=True)
         payload["governed_intake_exit_code"] = result.returncode
         payload["execution_state"] = "completed"
@@ -109,7 +136,7 @@ def main() -> int:
         print(relative_to_root(summary_path))
         return result.returncode
 
-    print(json.dumps({**payload, "summary_ref": relative_to_root(summary_path)}, ensure_ascii=False, indent=2))
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0
 
 

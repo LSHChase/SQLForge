@@ -18,6 +18,7 @@ TASK_RESERVATION_DIR = STATE_DIR / "task-id-reservations"
 INTAKE_DIR = STATE_DIR / "intake"
 TASK_SHAPING_DIR = STATE_DIR / "task-shaping"
 CLOSEOUT_DIR = STATE_DIR / "closeout"
+MULTI_AGENT_DIR = STATE_DIR / "multi-agent"
 CURRENT_TASK_PATH = STATE_DIR / "current-task.json"
 MASTER_PLAN_PATH = ROOT / "docs" / "plans" / "master-execution-plan.md"
 TASK_SPEC_PATH = ROOT / "docs" / "plans" / "task-spec-matrix.md"
@@ -281,10 +282,18 @@ def runtime_dashboard() -> dict[str, Any]:
             return 0
         return sum(1 for child in path.iterdir() if child.is_dir())
 
+    closeout_statuses: dict[str, int] = {}
+    if CLOSEOUT_DIR.exists():
+        for evidence_path in CLOSEOUT_DIR.glob("*/post-closeout-actual.json"):
+            status = str(read_json(evidence_path, {}).get("final_status", "unknown")) or "unknown"
+            closeout_statuses[status] = closeout_statuses.get(status, 0) + 1
+
     return {
         "intake_runs": count_dirs(INTAKE_DIR),
         "task_shaping_runs": count_dirs(TASK_SHAPING_DIR),
+        "multi_agent_runs": count_dirs(MULTI_AGENT_DIR),
         "closeout_evidence_runs": count_dirs(CLOSEOUT_DIR),
+        "closeout_evidence_by_status": closeout_statuses,
         "reservation_files": len(reservation_paths),
         "reservations_by_status": reservations_by_status,
     }

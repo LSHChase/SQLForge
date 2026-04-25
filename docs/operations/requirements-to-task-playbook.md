@@ -85,7 +85,7 @@ Codex 给出模板后，人类可以回复：
 python3 scripts/codex_template_adapter.py --template-text '<TEMPLATE>'
 ```
 
-该 adapter 只生成 `template-adapter-summary.json` 与推荐的 `governed_intake.sh` 命令；加 `--execute` 才会实际调用 intake。
+该 adapter 只生成 `template-adapter-summary.json` 与推荐的 `governed_intake.sh` 命令；加 `--execute` 才会实际调用 intake。`HARN-033` 之后，adapter 输出稳定 `schema_version=2`，支持中文/英文冒号、多行需求正文、业务/治理/已有任务/已有治理任务四类模板。
 
 子 `codex exec` 的默认执行模式是 `SQLFORGE_CODEX_EXEC_MODE=bypass`。这意味着 task-shaping、governance review 和 downstream auto-foreman 会假设父级自动化已经由可信外部环境托管沙箱。如果需要强制子会话使用 Codex 自带沙箱，可改成 `full-auto`、`read-only`、`workspace-write` 或 `danger-full-access`。
 
@@ -416,4 +416,6 @@ python3 scripts/governed_healthcheck.py --check
 - 若提示 `closeout_tail_drift`，先修正 tracked residue，再继续新的 closeout
 - `HARN-031` 之后，closeout 证据采用 precommit projected log + post-commit actual audit/check 的组合；projected 证据只能表示“预期将在 commit 后执行”，不得在真实 post-closeout 执行前写成 `passed`
 - `HARN-032` 之后，真实 post-closeout audit/check 结果写入 `.codex/state/closeout/<TASK_ID>/post-closeout-actual.json`，记录 commit sha、命令、exit code、stdout/stderr 摘要与最终状态；该文件是 runtime evidence，不写入 tracked commit
-- `python3 scripts/governed_healthcheck.py --check --cleanup-dry-run` 会预览 stale reservation 与未关联 intake/task-shaping runtime 证据；`--cleanup-stale` 只释放可安全判定的 stale reservation，不直接删除人工可能仍需审查的 runtime evidence
+- `HARN-033` 之后，`governed_healthcheck.py` 会汇总近期 closeout actual evidence；`final_status` 非 `passed` 的 HARN-032 之后 evidence 会成为 blocker，旧任务缺失 runtime evidence 只作为可见状态记录
+- `python3 scripts/governed_healthcheck.py --check --cleanup-dry-run` 会预览 stale reservation 与未关联 intake/task-shaping runtime 证据；存在 preview 且无 blocker 时，`final_outcome=cleanup_preview_found`
+- `python3 scripts/governed_runtime_dashboard.py --json` 汇总 intake、reservation、task-shaping、multi-agent、closeout evidence；默认只预览，只有显式 `--release-stale-reservations` 或 `--archive-reviewed-runtime-evidence` 才会改变 `.codex/state`

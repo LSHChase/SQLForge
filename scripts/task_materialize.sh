@@ -88,6 +88,7 @@ from pathlib import Path
 
 from scripts.governed_v2_support import (
     append_executed_command,
+    authority_field_hints,
     build_suggestion,
     command_to_text,
     release_reservation,
@@ -357,6 +358,9 @@ skip_review = sys.argv[7].lower() == "true"
 dry_run = sys.argv[8].lower() == "true"
 
 task_pack = load_json(task_pack_path)
+if "authority_fields_to_confirm" not in task_pack:
+    human_confirmation_point = str(task_pack.get("human_confirmation_point", ""))
+    task_pack["authority_fields_to_confirm"] = authority_field_hints(human_confirmation_point) if human_confirmation_point else []
 for field, expected_type in REQUIRED_FIELDS.items():
     if field not in task_pack:
         fail(f"Candidate task pack is missing field: {field}")

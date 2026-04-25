@@ -1274,3 +1274,32 @@
 2026-04-25T03:33:14-05:00 | HARN-032 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-04-25T03:33:14-05:00 | HARN-032 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`
 2026-04-25T03:33:14-05:00 | HARN-032 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-04-25T03:56:31-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-25T03:56:31-05:00 | HARN-033 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-25T03:56:31-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-25T03:56:31-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-25T03:56:31-05:00 | HARN-033 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-25T03:56:31-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/codex_template_adapter.py scripts/governed_healthcheck.py scripts/governed_v2_support.py scripts/governed_runtime_dashboard.py`
+2026-04-25T03:56:31-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `bash -n scripts/task_materialize.sh scripts/requirements_to_plan.sh scripts/governed_intake.sh scripts/governed_full_cycle.sh`
+2026-04-25T03:56:32-05:00 | HARN-033 validate | `R-133`, `R-168` | failed | `python3 scripts/codex_template_adapter.py --run-id harn033-template-business-validate --template-text 需求: 多行需求smoke`
+2026-04-25T03:56:32-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 scripts/codex_template_adapter.py --run-id harn033-template-governance-validate --template-text 治理需求：治理入口smoke`
+2026-04-25T03:56:32-05:00 | HARN-033 validate | `R-133`, `R-168` | failed | `python3 scripts/codex_template_adapter.py --run-id harn033-template-existing-validate --template-text 实现任务: HARN-032`
+2026-04-25T03:56:32-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 scripts/codex_template_adapter.py --run-id harn033-template-existing-gov-validate --template-text 实现治理任务：HARN-033`
+2026-04-25T03:56:32-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 scripts/governed_runtime_dashboard.py --json`
+2026-04-25T03:56:55-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-25T03:56:55-05:00 | HARN-033 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-25T03:56:56-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-25T03:56:56-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-25T03:56:56-05:00 | HARN-033 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-25T03:56:56-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/codex_template_adapter.py scripts/governed_healthcheck.py scripts/governed_v2_support.py scripts/governed_runtime_dashboard.py`
+2026-04-25T03:56:56-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `bash -n scripts/task_materialize.sh scripts/requirements_to_plan.sh scripts/governed_intake.sh scripts/governed_full_cycle.sh`
+2026-04-25T03:56:56-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 scripts/codex_template_adapter.py --run-id harn033-template-business-validate2 --template-text 需求: 多行需求smoke`
+2026-04-25T03:56:56-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 scripts/codex_template_adapter.py --run-id harn033-template-governance-validate2 --template-text 治理需求：治理入口smoke`
+2026-04-25T03:56:56-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 scripts/codex_template_adapter.py --run-id harn033-template-existing-validate2 --template-text 实现任务: HARN-032`
+2026-04-25T03:56:56-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 scripts/codex_template_adapter.py --run-id harn033-template-existing-gov-validate2 --template-text 实现治理任务：HARN-033`
+2026-04-25T03:56:56-05:00 | HARN-033 validate | `R-133`, `R-168` | passed | `python3 scripts/governed_runtime_dashboard.py --json`
+2026-04-25T03:57:21-05:00 | HARN-033 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-25T03:57:21-05:00 | HARN-033 closeout commit | `R-168` | projected | `git commit -m 'feat(governance): harden codex template runtime production path' (projected-precommit)`
+2026-04-25T03:57:21-05:00 | HARN-033 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-25T03:57:21-05:00 | HARN-033 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`
+2026-04-25T03:57:21-05:00 | HARN-033 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`

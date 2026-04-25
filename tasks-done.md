@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-033: Codex template and runtime evidence production hardening
+
+- Status: done
+- Completed at: 2026-04-25
+- Commit subject: `feat(governance): harden codex template runtime production path`
+- Priority: 1
+- Depends on: HARN-032
+- Scope: Productionize the HARN-032 Codex natural template and governed full-cycle runtime lifecycle by adding legacy candidate-pack compatibility, closeout actual-evidence health checks, stronger template parsing/schema/smoke coverage, cleanup preview semantics, and a runtime dashboard/cleanup command.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-033`
+- Progress log:
+  - 2026-04-25: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-25: implemented legacy candidate-pack compatibility, closeout actual evidence health reporting, template adapter schema/parser hardening, cleanup preview outcome semantics, and governed runtime dashboard/cleanup preview support.
+- Context closeout:
+  - Completed scope: Productionized the HARN-032 Codex template and governed runtime path by adding legacy candidate-pack authority field compatibility, closeout actual-evidence health reporting, schema-versioned natural template parsing for business/governance/existing-task inputs, cleanup preview outcome semantics, and a governed runtime dashboard/cleanup command.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-033 --include-task-audit with focused py_compile, shell syntax, four template adapter smoke cases, and runtime dashboard smoke; python3 -m py_compile scripts/codex_template_adapter.py scripts/governed_healthcheck.py scripts/governed_v2_support.py scripts/governed_runtime_dashboard.py; bash -n scripts/task_materialize.sh scripts/requirements_to_plan.sh scripts/governed_intake.sh scripts/governed_full_cycle.sh; bash scripts/task_materialize.sh --task-pack .codex/state/task-shaping/harn028-smoke/candidate-task-pack.json --dry-run; python3 scripts/governed_healthcheck.py --check --cleanup-dry-run --run-id harn033-cleanup-preview; python3 scripts/task_audit.py --check --phase pre-closeout; python3 scripts/foreman.py compile-governance --check; node scripts/lint-repository-knowledge.js
+  - Residual risk: Runtime .codex/state evidence remains untracked by design, and cleanup/archive actions remain explicit human-reviewed operations. Live Codex execution availability is still environment-dependent and validate_codex_runtime may report skipped-timeout rather than proving live multi-agent availability.
+  - Next step: Use codex_template_adapter.py schema_version=2 and governed_runtime_dashboard.py for future natural-template entry and runtime evidence review; consider hook-level template detection only if humans want Codex prompts to invoke the adapter automatically.
+
 ### HARN-032: Governed full-cycle V4 entrypoint and evidence hardening
 
 - Status: done

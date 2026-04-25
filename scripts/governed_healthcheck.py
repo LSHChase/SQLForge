@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.governed_v2_support import (
+    CLOSEOUT_DIR,
     CURRENT_TASK_PATH,
     INTAKE_DIR,
     TASKS_DONE_PATH,
@@ -51,6 +52,44 @@ REQUIRED_TASK_PACK_FIELDS = {
 
 def default_run_id() -> str:
     return "healthcheck-" + datetime.now(timezone.utc).astimezone().strftime("%Y%m%d%H%M%S")
+
+
+def done_task_ids(limit: int = 5) -> list[str]:
+    ids: list[str] = []
+    for line in read_text(TASKS_DONE_PATH).splitlines():
+        if line.startswith("### "):
+            task_id = line.split(":", 1)[0].replace("###", "").strip()
+            ids.append(task_id)
+        if len(ids) >= limit:
+            break
+    return ids
+
+
+def closeout_actual_evidence_status(task_ids: list[str]) -> list[dict]:
+    statuses: list[dict] = []
+    for task_id in task_ids:
+        evidence_path = CLOSEOUT_DIR / task_id / "post-closeout-actual.json"
+        if not evidence_path.exists():
+            statuses.append(
+                {
+                    "task_id": task_id,
+                    "path": relative_to_root(evidence_path),
+                    "exists": False,
+                    "final_status": "missing",
+                }
+            )
+            continue
+        payload = read_json(evidence_path, {})
+        statuses.append(
+            {
+                "task_id": task_id,
+                "path": relative_to_root(evidence_path),
+                "exists": True,
+                "final_status": payload.get("final_status", "unknown"),
+                "commit_sha": payload.get("commit_sha", ""),
+            }
+        )
+    return statuses
 
 
 def issue_payload(issue_key: str, summary: str, human_confirmation_point: str = "") -> dict:
@@ -229,6 +268,17 @@ def main() -> int:
                     }
                 )
 
+    closeout_actual_evidence = closeout_actual_evidence_status(done_task_ids())
+    for evidence in closeout_actual_evidence:
+        task_id = str(evidence.get("task_id", ""))
+        if task_id >= "HARN-032" and evidence.get("final_status") != "passed":
+            issues.append(
+                issue_payload(
+                    "closeout_actual_evidence_failed",
+                    f"post-closeout actual evidence for {task_id} is {evidence.get('final_status')}: {evidence.get('path')}",
+                )
+            )
+
     if args.task_pack:
         task_pack_path = Path(args.task_pack)
         if not task_pack_path.is_absolute():
@@ -252,20 +302,28 @@ def main() -> int:
                 )
             )
 
+    final_outcome = "issues_found" if issues else "cleanup_preview_found" if cleanup_preview else "healthy"
+    recommended_next_step = (
+        "Apply the suggested integrity checks, then rerun the governed command."
+        if issues
+        else "Review cleanup_preview before running cleanup/archive commands."
+        if cleanup_preview
+        else "No blocking governance/runtime issue detected."
+    )
+
     summary = {
         **read_json(summary_path),
         "execution_state": "completed",
-        "final_outcome": "issues_found" if issues else "healthy",
+        "final_outcome": final_outcome,
         "issues": issues,
         "blockers": [item["summary"] for item in issues],
         "suggestions": [item["suggestion"] for item in issues],
         "tracked_status": tracked_status,
         "cleanup_preview": cleanup_preview,
+        "closeout_actual_evidence": closeout_actual_evidence,
         "runtime_dashboard": runtime_dashboard(),
         "current_task_state_ref": relative_to_root(CURRENT_TASK_PATH),
-        "recommended_next_step": "Apply the suggested integrity checks, then rerun the governed command."
-        if issues
-        else "No blocking governance/runtime issue detected.",
+        "recommended_next_step": recommended_next_step,
         "updated_at": now_iso(),
     }
     write_run_summary(summary_path, summary)
@@ -286,7 +344,10 @@ def main() -> int:
         print(f"summary: {relative_to_root(summary_path)}")
         return 1
 
-    print("Governed healthcheck passed.")
+    if cleanup_preview:
+        print("Governed healthcheck found cleanup preview items.")
+    else:
+        print("Governed healthcheck passed.")
     print(f"summary: {relative_to_root(summary_path)}")
     return 0
 
