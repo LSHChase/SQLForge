@@ -15,7 +15,7 @@
 5. [实现就绪规范](./plans/implementation-readiness.md)
    编码前文档消费顺序、主题权威来源、冲突处理方式和波次执行顺序。
 6. [运维与协作文档](./operations/README.md)
-   Foreman 工作流、人类协作、本地开发、半自动多 agent 协作、任务关闭与 best practices。
+   Foreman 工作流、人类协作、本地开发、多 agent 协作、任务关闭与 best practices。
 7. 产品/设计/接口文档
    [架构初始化总文档](./architecture/init.md) 仍是历史初始化基线与总览入口；当前 C4 权威更新落点以 [C4 文字总览](./architecture/c4-overview.md) 为准，当前服务边界以 [服务能力分配图](./architecture/service-capability-map.md) 为准，当前接口契约以 [服务接口契约基线](./architecture/service-interface-contract-baseline.md) 为准，后续新增文档统一补入 `docs/`。
    - [C4 文字总览](./architecture/c4-overview.md)
@@ -85,6 +85,8 @@
   Foreman 工作流、人类协作、本地开发、任务关闭与工程规则。
 - `agent-prompts/`
   多 agent 协作使用的角色 prompt 模板，由 Main Foreman / launcher 读取，不替代 `docs/` 与台账真值。
+  - `auto-planner.md`：把需求输入转换为 exec plan 与 manifest 的全自动规划模板。
+  - `auto-foreman.md`：从 collect summary 继续 fan-in / validate / closeout 的 autonomous Main Foreman 模板。
 - `adr/`
   架构决策记录与模板。
 - `references/`
@@ -161,8 +163,8 @@
   把当前 `.github/workflows/ci.yml` 已覆盖项、本地未入 CI 的命令，以及后续 phase gate / Java 扫描接入缺口收口到一处，避免 CI 口径继续漂移。
 - [阶段门禁基线](./deployments/phase-gate-baseline.md)
   把当前 `R-116` / `R-117` / `R-118` 的脚本入口、GitHub Actions 接线和阻断边界收口到一处，避免“已接线”与“已自动阻断”继续混写。
-- [半自动多 agent 协作手册](./operations/multi-agent-playbook.md)
-  定义 Main Foreman、manifest、worktree、prompt 模板与 prepare/launch/collect 脚本的治理边界、运行顺序和 SQLForge demo runbook。
+- [多 agent 协作手册](./operations/multi-agent-playbook.md)
+  定义 Main Foreman、manifest、worktree、prompt 模板，以及 `autoplan/full-auto/prepare/launch/collect` 脚本的治理边界、运行顺序和 SQLForge demo runbook。
 - [文档缺口矩阵](./plans/document-gap-matrix.md)
   把冲突、漂移、缺失项和残余实现缺口显式矩阵化。
 - [阶段前置条件矩阵](./plans/phase-prerequisite-matrix.md)

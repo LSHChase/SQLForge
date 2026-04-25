@@ -108,7 +108,7 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：当前没有已实例化的 repo-side mainline task；`D-TASK-029` 已完成 closeout，默认主路径仍保持 `LOCAL_FILE`，不得把 environment-backed object storage 写成仓库默认事实。当前另有独立治理/工具任务 `HARN-025` 用于落地半自动多 agent 协作基础设施，但它不改变“当前无 repo-side business mainline”的仓库真值。
+- 当前活跃目标：当前没有已实例化的 repo-side mainline task；`D-TASK-029` 已完成 closeout，默认主路径仍保持 `LOCAL_FILE`，不得把 environment-backed object storage 写成仓库默认事实。当前另有独立治理/工具任务 `HARN-026` 用于把多 agent 能力从半自动升级到“需求输入 -> plan/manifest 生成 -> launch/collect -> autonomous Main Foreman 收口”的全自动主路径，但它不改变“当前无 repo-side business mainline”的仓库真值。
 - 当前下一条可执行主线任务：
   - 当前没有已实例化的 repo-side mainline task。
   - 如继续推进 Phase-D，下一条候选任务应先塑形为新的未实例化 follow-up，而不是把任何候选直接写成已运行主线。
@@ -146,7 +146,8 @@
   - `D-TASK-027` 已完成 `D-TASK-026` residual risk 的 repo-side 收口：它把 mixed live/fallback workload 收口为显式 compensation-replay evidence，并让 `ENVIRONMENT_OBJECT_STORAGE` 在提供 provider endpoint 时执行真实 provider-backed write/readback recovery verification，同时把 provider/external verification 与 compensation evidence 一并沉淀进 benchmark/governance 长期追溯链；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
   - `D-TASK-028` 已完成 `D-TASK-027` residual risk 的 repo-side 收口：它把 provider-specific / multi-provider object-storage contract、cleanup/recovery semantics，以及 compensation-replay evidence 的 governance query/recovery surfaces 收口为已验证基线；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
   - `D-TASK-029` 已完成 `D-TASK-028` residual risk 的 repo-side 收口：它把 provider-native / environment-backed object-storage live evidence 进一步沉淀到 provider header/request-id 级别，并补齐 governance-triggered artifact cleanup/recovery operation surfaces；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
-  - `HARN-025` 用于把“半自动多 agent 协作基础设施（C 方案）”正式落为独立治理/工具能力：Main Foreman 唯一收口、多 `codex exec` 会话替代隐式 subagent、多 `git worktree` 隔离、manifest 驱动、prompt 模板化，以及最终仍走 `foreman validate` / `task_audit` / `closeout`；它不混入业务主线功能，也不改变当前 repo-side business mainline 为空的事实。
+  - `HARN-025` 已把“半自动多 agent 协作基础设施（C 方案）”正式落为独立治理/工具能力：Main Foreman 唯一收口、多 `codex exec` 会话替代隐式 subagent、多 `git worktree` 隔离、manifest 驱动、prompt 模板化，以及最终仍走 `foreman validate` / `task_audit` / `closeout`；它不混入业务主线功能，也不改变当前 repo-side business mainline 为空的事实。
+  - `HARN-026` 用于把多 agent 能力从“Main Foreman 手工写 plan/manifest 再启动”升级到“从需求输入开始，由 codex 自动生成 exec plan、manifest，并驱动 prepare/launch/collect，再由 autonomous Main Foreman 继续 fan-in / validate / closeout”的全自动主路径；它仍保持 Main Foreman 唯一收口，不引入第二套长期真值，也不混入业务主线功能。
   - `HARN-016` 已把外部 Win10 测试环境的 Hetu/MRS 实际联通与留证动作挂起到 `INBOX-002`；它继续是 blocked 的 environment-backed follow-up，不构成当前 repo-side mainline。
   - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不改变当前仓库真值：当前没有新的已实例化 repo-side mainline，而 `HARN-016` / `INBOX-001` 仍只属于非主线的 environment-backed follow-up。
 
@@ -257,6 +258,17 @@ Tasks:
 | Task ID | Task | Scope | Dependencies | Verification |
 |:---|:---|:---|:---|:---|
 | `HARN-025` | 落地半自动多 agent 协作基础设施（C方案） | 以 Main Foreman 唯一收口、多 `codex exec` worker/explorer/validator 会话、多 worktree 隔离、manifest 编排、prompt 模板化和 worker 禁改台账/closeout 文档为前提，新增 multi-agent playbook、agent prompt 模板、prepare/launch/collect 脚本、manifest 模板与 SQLForge demo runbook，并保持最终验证/审计/closeout 仍走 `foreman.py` 标准动作 | `HARN-024` | `python3 scripts/foreman.py validate HARN-025`、`python3 scripts/task_audit.py --check --phase pre-closeout`、docs 索引/coverage 对齐、multi-agent 脚本 help 与 dry-run 自检通过 |
+
+##### Story `A-STORY-006` 全自动多 agent 协作编排
+
+- 目标：在不改变 `HARN-025` 既有半自动真值的前提下，补齐“需求输入 -> plan/manifest 自动生成 -> prepare/launch/collect -> autonomous Main Foreman 收口”的全自动主路径。
+- 验证：auto-planner/auto-foreman prompt 模板、autoplan/full-auto 脚本、playbook 的 full-auto 章节和索引都对齐，且自动生成仍只通过 Main Foreman 落入 `docs/`、台账和 closeout 链。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `HARN-026` | 把多 agent 基础设施升级为从需求到收口的全自动主路径 | 在保留 `HARN-025` 半自动能力、Main Foreman 唯一收口、多 `codex exec` 会话、多 worktree 隔离和既有 `foreman` / `task_audit` / `closeout` 链不变的前提下，新增 requirement-driven auto-planner / auto-foreman prompt 模板与 autoplan/full-auto orchestration 脚本，让既有 multi-agent 流程可以从 codex 读取需求并自动生成 exec plan、manifest、launch/collect 和最终 autonomous 收口 | `HARN-025` | `python3 scripts/foreman.py validate HARN-026`、`bash scripts/multi_agent_autoplan.sh --help`、`bash scripts/multi_agent_full_auto.sh --help`、autoplan dry-run、自生成 manifest 的 prepare/launch dry-run、docs 索引/coverage 对齐 |
 
 ### Phase-B 阶段0修正与缺口补齐
 

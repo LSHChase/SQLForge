@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-026: 把多 agent 基础设施升级为从需求到收口的全自动主路径
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(governance): HARN-026 add full-auto multi-agent orchestration`
+- Priority: 1
+- Depends on: `HARN-025`
+- Scope: 在不改变 `HARN-025` 半自动真值、不引入第二套长期真值的前提下，新增 requirement-driven auto-planner / auto-foreman prompt 模板与 autoplan/full-auto orchestration 脚本，让 codex 可以从需求输入自动生成 exec plan、manifest，并驱动 prepare/launch/collect 与最终 autonomous Main Foreman 收口 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Plan ref: docs/exec-plans/active/HARN-026-full-auto-multi-agent-upgrade-plan.md
+- Matrix context: Phase-A / Story `A-STORY-006` 全自动多 agent 协作编排
+- Human confirmation point: 若要把全自动路径升级为“无任务治理前置、无 Main Foreman 收口、可绕过 `foreman validate/task_audit/closeout` 的黑盒自动执行”，或允许 auto-planner / auto-foreman 直接改写台账真值而不经过仓库审计链，需人工确认
+- Data impact: auto-planner / auto-foreman prompt 模板、requirement-driven exec plan 与 manifest 生成脚本、`.codex/state` 下的 full-auto 运行态产物，以及由 autonomous Main Foreman 落地到 `docs/` / 台账的最终收口记录；不直接改变业务运行时数据
+- Rollback / recovery: 停用 full-auto 脚本并回退到 `HARN-025` 半自动模式，保留需求输入、生成的 plan/manifest 和失败日志作为治理证据，必要时拆出更细粒度的 auto-planning/closeout follow-up
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-026`、`bash scripts/multi_agent_autoplan.sh --help`、`bash scripts/multi_agent_full_auto.sh --help`、autoplan dry-run、自生成 manifest 的 prepare/launch dry-run、docs 索引与 coverage 矩阵对齐
+  - `python3 scripts/foreman.py validate HARN-026`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added full-auto multi-agent governance capability on top of HARN-025, including auto-planner and auto-foreman prompt templates, full-auto orchestration scripts, manifest contract updates, and playbook/index/coverage synchronization without changing business functionality.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-026; bash scripts/multi_agent_autoplan.sh --help; bash scripts/multi_agent_full_auto.sh --help; real autoplan generation to .codex/state/multi-agent/HARN-026/validation/generated-plan.md and generated-manifest.json; bash scripts/multi_agent_prepare.sh --task HARN-026 --manifest .codex/state/multi-agent/HARN-026/validation/generated-manifest.json --dry-run; bash scripts/multi_agent_launch.sh --manifest .codex/state/multi-agent/HARN-026/validation/generated-manifest.json --dry-run; node scripts/lint-repository-knowledge.js
+  - Residual risk: The autonomous Main Foreman path has dry-run and integration proof but still depends on live codex exec stability and longer end-to-end smoke should remain a follow-up if orchestration semantics change again.
+  - Next step: Use HARN-026 as the downstream execution substrate for HARN-027 so requirement-to-task automation can hand off only after a formal task has been materialized and instantiated.
+
 ### HARN-025: 落地半自动多 agent 协作基础设施（C方案）
 
 - Status: done

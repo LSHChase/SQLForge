@@ -87,6 +87,7 @@ REQUIRED_FORBIDDEN = {
     "docs/quality/validation-log.md",
 }
 VALID_ROLES = {"explorer", "worker", "validator"}
+VALID_MODES = {"semi-auto", "full-auto"}
 
 
 def fail(message: str) -> None:
@@ -192,8 +193,12 @@ def validate_manifest_shape(manifest: dict, task_id: str) -> list[dict]:
             fail(f"Manifest is missing top-level field: {field}")
     if manifest["task_id"] != task_id:
         fail(f"Manifest task_id {manifest['task_id']} does not match --task {task_id}")
-    if manifest["mode"] != "semi-auto":
-        fail(f"Manifest mode must be 'semi-auto', got {manifest['mode']!r}")
+    if manifest["mode"] not in VALID_MODES:
+        fail(
+            "Manifest mode must be one of "
+            + ", ".join(sorted(repr(item) for item in VALID_MODES))
+            + f", got {manifest['mode']!r}"
+        )
     agents = manifest["agents"]
     if not isinstance(agents, list) or not agents:
         fail("Manifest agents must be a non-empty array.")

@@ -11,7 +11,7 @@
 3. [Local Development](./local-development.md)
    当前仓库可用的本地命令、脚本、环境约束、Codex `foreman.py` 入口和验证入口。
 4. [Multi-Agent Playbook](./multi-agent-playbook.md)
-   半自动多 agent 协作基础设施的角色边界、manifest/worktree 规则、脚本用法与 SQLForge demo runbook。
+   多 agent 协作基础设施的角色边界、manifest/worktree 规则、`autoplan/full-auto/prepare/launch/collect` 脚本用法与 SQLForge demo runbook。
 5. [Git And Task Closeout](./git-and-task-closeout.md)
    根 Git 边界、单任务单 commit、task audit、上下文收缩/清理和关闭顺序。
 6. [Best Practices](./best-practices.md)

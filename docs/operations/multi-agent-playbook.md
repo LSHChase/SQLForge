@@ -1,8 +1,8 @@
-# Semi-Auto Multi-Agent Playbook
+# Multi-Agent Playbook
 
 ## Purpose
 
-本手册定义 SQLForge 的半自动多 agent 协作基础设施。目标是在不引入第二套长期真值、不依赖隐式 subagent、不破坏既有 `foreman` / `task_audit` / `closeout` 审计链的前提下，让 Main Foreman 可以通过多个 `codex exec` 会话和多个 `git worktree` 并行推进复杂任务。
+本手册定义 SQLForge 的多 agent 协作基础设施，覆盖 `semi-auto` 与 `full-auto` 两条路径。目标是在不引入第二套长期真值、不依赖隐式 subagent、不破坏既有 `foreman` / `task_audit` / `closeout` 审计链的前提下，让 Main Foreman 通过多个 `codex exec` 会话和多个 `git worktree` 并行推进复杂任务。
 
 本手册只适用于跨模块、可明确切 ownership、值得并行化的复杂任务。简单任务继续使用单 `codex` + `foreman` 工作流。
 
@@ -14,6 +14,22 @@
 - 整轮协作由一个 manifest 驱动。
 - prompt 通过 `docs/agent-prompts/*.md` 模板化，不依赖每轮手工拼 prompt。
 - worker 只交变更文件列表、实现摘要、已执行验证、residual risk；最终 fan-in、validate、audit、closeout 都由 Main Foreman 完成。
+- `full-auto` 只是把“需求输入 -> exec plan/manifest 生成 -> 多 agent 协作 -> autonomous Main Foreman 收口”自动化；它不改变 Main Foreman 唯一收口、`foreman validate` / `task_audit` / `closeout` 仍然强制的治理事实。
+
+## Modes
+
+### Semi-Auto
+
+- Main Foreman 手工编写 active exec plan 与 manifest。
+- 然后执行 `prepare -> launch -> collect -> fan-in -> validate -> closeout`。
+- 适合需求已经拆清、只需要标准化并行执行的任务。
+
+### Full-Auto
+
+- Main Foreman 先给出需求输入。
+- `multi_agent_autoplan.sh` 调用 `auto-planner` 自动生成 exec plan 与 manifest。
+- `multi_agent_full_auto.sh` 继续驱动 `prepare -> launch -> wait -> collect -> autonomous Main Foreman`。
+- autonomous Main Foreman 仍只能在主 worktree 内做 fan-in、验证、台账更新和 closeout。
 
 ## Roles
 
@@ -32,6 +48,12 @@
   - `python3 scripts/foreman.py closeout <TASK_ID>`
   - `python3 scripts/task_audit.py --check --phase post-closeout`
 
+### Auto Planner
+
+- 只负责把需求输入转换为任务级 exec plan 与 manifest。
+- 不直接修改台账，不直接 closeout。
+- 必须复用现有 prompt 模板、ownership 规则和 forbidden paths 规则。
+
 ### Explorer
 
 - 只读，不改文件。
@@ -48,6 +70,12 @@
 
 - 默认只验证，不主动改实现。
 - 如验证暴露实现问题，只输出失败点、证据和建议，不直接修代码，除非 Main Foreman 重新分派为 worker。
+
+### Auto Foreman
+
+- 是 `full-auto` 模式下的 autonomous Main Foreman。
+- 读取需求、自动生成的 exec plan、manifest、collect summary 与仓库真值后继续做 fan-in、验证与 closeout。
+- 仍然只能按 Main Foreman 规则行动，不能绕过治理链。
 
 ## Non-Negotiable Rules
 
@@ -66,6 +94,7 @@
 - explorer 若产生文件改动，视为越界。
 - validator 若主动改实现，视为越界。
 - `.codex/` 下的多 agent 运行态文件仅是 runtime artifact，不是长期真值。
+- `full-auto` 不得绕过 task shaping、preflight、instantiate、validate、task audit 或 closeout。
 
 ## Ownership Guidance
 
@@ -121,6 +150,11 @@
 - `forbidden_paths`
 - `validation_scope`
 
+允许的 `mode`：
+
+- `semi-auto`
+- `full-auto`
+
 当前模板额外支持：
 
 - `run_root`
@@ -133,17 +167,40 @@
 - per-agent `extra_args`
 - per-agent `notes`
 
+`full-auto` 推荐额外写入：
+
+- `requirements_artifact`
+- `generated_plan`
+
 运行态输出目录默认是：
 
 - `.codex/state/multi-agent/<TASK_ID>/`
 
 其中会生成：
 
+- requirements snapshot
+- autoplan prompt/schema/result
 - rendered prompts
 - launch scripts
 - per-agent stdout/stderr logs
 - per-agent last-message files
 - collect summary
+- autonomous Main Foreman logs
+
+## Auto-Planning Contract
+
+`multi_agent_autoplan.sh` 负责从需求输入生成：
+
+- `docs/exec-plans/active/<TASK_ID>-full-auto-execution-plan.md`
+- `docs/exec-plans/active/<TASK_ID>-multi-agent-run.json`
+
+auto-planner 的输出必须满足：
+
+- 只生成任务级 plan 与 manifest，不直接改台账。
+- manifest 必须复用现有 prompt 模板。
+- worker forbidden paths 必须覆盖治理禁区。
+- worker ownership 不得重叠。
+- 生成结果只落在 `docs/exec-plans/active/` 与 `.codex/state/multi-agent/<TASK_ID>/`。
 
 ## Workflow
 
@@ -152,9 +209,44 @@
 1. `python3 scripts/foreman.py preflight`
 2. 确认任务已进入主计划、task-spec matrix、task-governance matrix。
 3. `python3 scripts/foreman.py instantiate <TASK_ID>`
-4. Main Foreman 编写 active manifest，并为每个 agent 划定 ownership / forbidden paths / validation scope。
+4. 选择 `semi-auto` 或 `full-auto` 入口。
 
-### 2. Prepare
+### 2. Semi-Auto Entry
+
+Main Foreman 手工编写 active manifest，然后执行：
+
+```bash
+bash scripts/multi_agent_prepare.sh --task <TASK_ID> --manifest "$TASK_MANIFEST"
+bash scripts/multi_agent_launch.sh --manifest "$TASK_MANIFEST"
+bash scripts/multi_agent_collect.sh --manifest "$TASK_MANIFEST"
+```
+
+### 3. Full-Auto Entry
+
+需求驱动入口：
+
+```bash
+bash scripts/multi_agent_autoplan.sh --task <TASK_ID> --requirements-file docs/references/raw-requirements/<file>.md
+```
+
+端到端入口：
+
+```bash
+bash scripts/multi_agent_full_auto.sh --task <TASK_ID> --requirements-file docs/references/raw-requirements/<file>.md
+```
+
+`multi_agent_full_auto.sh` 固定做以下动作：
+
+1. 执行 `foreman.py preflight`
+2. 必要时 instantiate 目标 task
+3. 生成 exec plan 与 manifest
+4. 执行 prepare
+5. 执行 launch
+6. 等待 worker/explorer/validator 停止
+7. 执行 collect
+8. 启动 autonomous Main Foreman 收口
+
+### 4. Prepare
 
 执行：
 
@@ -167,6 +259,7 @@ prepare 必须检查：
 - 当前 task 已绑定 preflight
 - 任务已 instantiate 且仍在 `tasks.md`
 - manifest `task_id` 与当前任务一致
+- manifest `mode` 属于 `semi-auto` 或 `full-auto`
 - 当前无其他 active repo-side mainline 污染本轮
 - ownership 不重叠
 - worker 的 forbidden paths 覆盖治理禁区
@@ -174,7 +267,7 @@ prepare 必须检查：
 - 需要隔离的 worker 不复用主 worktree
 - 目标 worktree 不会吸入无关脏改动
 
-### 3. Launch
+### 5. Launch
 
 执行：
 
@@ -196,7 +289,7 @@ launch 会：
 - 调用 `codex exec -C <worktree> ...`
 - 记录 agent 名称、角色、worktree、日志路径、last-message 路径和 pid
 
-### 4. Collect
+### 6. Collect
 
 执行：
 
@@ -211,14 +304,14 @@ collect 会：
 - 检查 ownership / forbidden path 越界
 - 输出 `acceptable patches`、`rejected patches`、冲突列表和建议 Main Foreman 下一步动作
 
-### 5. Fan-In
+### 7. Fan-In
 
 Main Foreman 按 collect 输出执行：
 
 1. 接收 explorer 结论
 2. 审核 worker changed files 和 last message
 3. 拒收越界 patch
-4. 手工集成可接收 patch
+4. 手工或 autonomous fan-in 吸收可接收 patch
 5. 统一更新任务文档与必要索引
 6. 统一执行验证与 closeout
 
@@ -269,6 +362,11 @@ python3 scripts/task_audit.py --check --phase post-closeout
 - collect 标记为 `running`。
 - Main Foreman 可以继续等待，也可以只收已完成 agent 的结果。
 
+### Autoplan Produced Bad Manifest
+
+- prepare 直接失败或 collect 出现大面积 reject。
+- Main Foreman 必须修正 prompt/requirements 或手工回退到 semi-auto manifest。
+
 ### Need To Abort Multi-Agent Mode
 
 - 停止继续 launch 新 agent。
@@ -287,77 +385,54 @@ python3 scripts/task_audit.py --check --phase post-closeout
 
 ### Scenario
 
-目标：为一个跨 `benchmark-engine` / `governance` 的治理型任务并行安排 3 个角色：
+目标：为一个治理/工具任务自动生成多 agent 计划，并让 Main Foreman 在 `docs/scripts` 范围内驱动并行实现。
 
-- `benchmark-worker`
+推荐角色：
+
+- `truth-explorer`
 - `governance-worker`
+- `ops-worker`
 - `validator`
 
-### Example Manifest
+### Requirements File Example
 
 路径：
 
-- `docs/exec-plans/active/HARN-025-multi-agent-run.json`
+- `docs/references/raw-requirements/multi-agent-demo.md`
 
-示例结构：
+建议内容：
 
-```json
-{
-  "task_id": "HARN-025",
-  "mode": "semi-auto",
-  "main_worktree": ".",
-  "run_root": ".codex/state/multi-agent/HARN-025-demo",
-  "codex": {
-    "sandbox": "workspace-write",
-    "full_auto": true,
-    "color": "never",
-    "extra_args": []
-  },
-  "agents": [
-    {
-      "name": "benchmark-worker",
-      "role": "worker",
-      "worktree": "../sqlforge-harn025-benchmark",
-      "prompt_file": "docs/agent-prompts/benchmark-worker.md",
-      "ownership": ["benchmark-engine/**"],
-      "forbidden_paths": ["tasks.md", "tasks-done.md", "INBOX.md", "docs/quality/validation-log.md"],
-      "validation_scope": ["benchmark-engine module tests", "changed-file self-check"]
-    },
-    {
-      "name": "governance-worker",
-      "role": "worker",
-      "worktree": "../sqlforge-harn025-governance",
-      "prompt_file": "docs/agent-prompts/governance-worker.md",
-      "ownership": ["docs/operations/**", "docs/agent-prompts/**", "docs/exec-plans/templates/**", "scripts/multi_agent_*.sh"],
-      "forbidden_paths": ["tasks.md", "tasks-done.md", "INBOX.md", "docs/quality/validation-log.md"],
-      "validation_scope": ["docs consistency", "script help/dry-run"]
-    },
-    {
-      "name": "validator",
-      "role": "validator",
-      "worktree": ".",
-      "prompt_file": "docs/agent-prompts/validator.md",
-      "ownership": [],
-      "forbidden_paths": ["tasks.md", "tasks-done.md", "INBOX.md", "docs/quality/validation-log.md"],
-      "validation_scope": ["prepare/launch/collect usage", "risk review"]
-    }
-  ]
-}
+```md
+# Requirement
+
+为 SQLForge 新增一轮治理工具增强：
+- 更新 docs/operations 和 docs/agent-prompts
+- 新增一个 scripts 工具脚本
+- 保持 Main Foreman 唯一收口
+- worker 不得修改 tasks.md/tasks-done.md/INBOX.md/docs/quality/validation-log.md
+- 最终仍走 foreman validate/task_audit/closeout
 ```
 
-### Demo Command Sequence
+### Full-Auto Command Sequence
 
 ```bash
-python3 scripts/foreman.py preflight --task HARN-025 --task-class standard --prompt "Land the semi-automated multi-agent collaboration foundation under SQLForge governance."
-bash scripts/multi_agent_prepare.sh --task HARN-025 --manifest docs/exec-plans/active/HARN-025-multi-agent-run.json
-bash scripts/multi_agent_launch.sh --manifest docs/exec-plans/active/HARN-025-multi-agent-run.json --dry-run
-bash scripts/multi_agent_launch.sh --manifest docs/exec-plans/active/HARN-025-multi-agent-run.json
-bash scripts/multi_agent_collect.sh --manifest docs/exec-plans/active/HARN-025-multi-agent-run.json
+python3 scripts/foreman.py preflight --task HARN-026 --task-class standard --prompt "Requirement-driven full-auto multi-agent orchestration demo."
+bash scripts/multi_agent_autoplan.sh --task HARN-026 --requirements-file docs/references/raw-requirements/multi-agent-demo.md
+bash scripts/multi_agent_prepare.sh --task HARN-026 --manifest docs/exec-plans/active/HARN-026-multi-agent-run.json
+bash scripts/multi_agent_launch.sh --manifest docs/exec-plans/active/HARN-026-multi-agent-run.json --dry-run
+bash scripts/multi_agent_full_auto.sh --task HARN-026 --requirements-file docs/references/raw-requirements/multi-agent-demo.md --stop-after collect
 ```
+
+### Expected Generated Artifacts
+
+- `docs/exec-plans/active/HARN-026-full-auto-execution-plan.md`
+- `docs/exec-plans/active/HARN-026-multi-agent-run.json`
+- `.codex/state/multi-agent/HARN-026/requirements.md`
+- `.codex/state/multi-agent/HARN-026/collect-summary.md`
 
 ### Demo Fan-In Rule
 
 - Main Foreman 只接收 collect 标记为 acceptable 的 patch。
-- 对 `benchmark-worker` 和 `governance-worker` 的结果分开审查。
+- `governance-worker` 与 `ops-worker` 必须拥有不重叠的 write scope。
 - `validator` 只输出验证建议，不直接改代码。
 - 最终仍由 Main Foreman 统一执行 validate、audit 和 closeout。

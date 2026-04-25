@@ -3,6 +3,8 @@
   "mode": "semi-auto",
   "main_worktree": ".",
   "run_root": ".codex/state/multi-agent/TASK-ID",
+  "requirements_artifact": "",
+  "generated_plan": "",
   "codex": {
     "sandbox": "workspace-write",
     "full_auto": true,
