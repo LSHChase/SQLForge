@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-038: 修复 Governed Closeout Post-Closeout Healthcheck 与 Runtime Recovery 语义
+
+- Status: done
+- Completed at: 2026-04-25
+- Commit subject: `fix(governance): repair closeout healthcheck recovery semantics`
+- Priority: 1
+- Depends on: `HARN-033`
+- Scope: 在不改变 `HARN-031` / `HARN-032` / `HARN-033` 已落地治理真值、不引入第二套长期真值的前提下，修复 governed closeout 后置 healthcheck 的自引用误判，并把 commit-succeeded / post-check-failed 的 runtime repair 收口为可审计的标准路径；不得削弱 Main Foreman 唯一 write-back / validate / closeout 入口、不得静默删除失败证据、不得放宽 implementation-time dirty-worktree 阻断。 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Plan ref: docs/exec-plans/completed/HARN-038-full-auto-execution-plan.md
+- Matrix context: Phase-A / Story `A-STORY-007` 从无 task 开始的治理自动化
+- Human confirmation point: 若要把 runtime repair 扩展为自动抹除失败 evidence、放宽 implementation-time dirty-worktree healthcheck 阻断、或绕过 Main Foreman / task_audit 的既有收口链，需人工确认。
+- Data impact: governed closeout / post-closeout runtime state、healthcheck/evidence 判定、执行计划与运行手册文档、以及验证日志与 closeout actual evidence 的治理语义；不修改业务运行时数据，不引入 repo 外第二真值。
+- Rollback / recovery: 回退 closeout/healthcheck/runtime repair 语义修复：恢复此前的 governed closeout / post-closeout 判定与 runtime cleanup 行为，保留失败 evidence 与 validation-log 审计链，通过标准 validation 与 task-audit 证明仓库仍保持 Main Foreman 唯一收口和 implementation-time dirty-worktree 阻断边界。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-038、python3 -m py_compile scripts/foreman.py scripts/governed_healthcheck.py scripts/governed_v2_support.py、python3 scripts/governed_healthcheck.py --check、python3 scripts/foreman.py compile-governance --check、node scripts/lint-repository-knowledge.js、python3 scripts/task_audit.py --check --phase pre-closeout、python3 scripts/task_audit.py --check --phase post-closeout`
+  - `python3 scripts/foreman.py validate HARN-038`
+- Progress log:
+  - 2026-04-25: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Normalized closeout post-check healthcheck context, added standard closeout-repair recovery flow, and aligned governance docs for post-closeout runtime recovery.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-038; python3 -m py_compile scripts/foreman.py scripts/governed_healthcheck.py scripts/governed_v2_support.py; python3 scripts/foreman.py compile-governance --check; node scripts/lint-repository-knowledge.js; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Closeout-repair now covers the standard commit-succeeded/post-check-failed path, but broader synthetic fault-injection coverage for arbitrary post-check failures is still limited to real command reuse.
+  - Next step: Use foreman closeout post-checks for governed healthcheck, and run foreman closeout-repair if commit succeeds but a post-check later fails.
+
 ### HARN-037: 补齐只读 MCP onboarding / doctor 与治理定位手册
 
 - Status: done

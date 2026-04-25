@@ -25,6 +25,12 @@
 10. 立即重新运行 `python3 scripts/task_audit.py --check --phase post-closeout` 及必要知识校验，确认当前任务的 `Commit subject` 已进入 Git history
 11. 确认工作树没有新的 tracked residue 后，再完成上下文清理并进入下一任务
 
+若 post-closeout 检查在 commit 成功后失败：
+
+- 不得回退已生成的任务 commit，也不得手工改写 `.codex/state/closeout/<TASK_ID>/post-closeout-actual.json`
+- 先修复真正的 blocker，再执行 `python3 scripts/foreman.py closeout-repair <TASK_ID>`
+- 若修复路径里需要再次运行 `governed_healthcheck.py --check`，closeout/repair 会自动注入 `--post-closeout-task <TASK_ID>` 语境，避免对当前任务 own actual evidence 的自引用误判
+
 ## Context Contraction And Cleanup
 
 - “上下文收缩”至少要把以下内容回写到权威来源：

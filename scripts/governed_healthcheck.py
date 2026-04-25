@@ -65,7 +65,7 @@ def done_task_ids(limit: int = 5) -> list[str]:
     return ids
 
 
-def closeout_actual_evidence_status(task_ids: list[str]) -> list[dict]:
+def closeout_actual_evidence_status(task_ids: list[str], exempt_task_id: str = "") -> list[dict]:
     statuses: list[dict] = []
     for task_id in task_ids:
         evidence_path = CLOSEOUT_DIR / task_id / "post-closeout-actual.json"
@@ -76,6 +76,7 @@ def closeout_actual_evidence_status(task_ids: list[str]) -> list[dict]:
                     "path": relative_to_root(evidence_path),
                     "exists": False,
                     "final_status": "missing",
+                    "context_exempted": task_id == exempt_task_id,
                 }
             )
             continue
@@ -87,6 +88,7 @@ def closeout_actual_evidence_status(task_ids: list[str]) -> list[dict]:
                 "exists": True,
                 "final_status": payload.get("final_status", "unknown"),
                 "commit_sha": payload.get("commit_sha", ""),
+                "context_exempted": task_id == exempt_task_id,
             }
         )
     return statuses
@@ -129,6 +131,11 @@ def main() -> int:
     parser.add_argument("--run-id", default="", help="Stable run id for summary output.")
     parser.add_argument("--cleanup-stale", action="store_true", help="Release stale runtime reservations that are safe to abandon.")
     parser.add_argument("--cleanup-dry-run", action="store_true", help="Preview stale runtime cleanup without writing state.")
+    parser.add_argument(
+        "--post-closeout-task",
+        default="",
+        help="When running inside closeout post-checks, exempt the specified task from self-referential closeout-actual-evidence blocking.",
+    )
     parser.add_argument("--json", action="store_true", help="Print the machine-readable summary path only.")
     args = parser.parse_args()
 
@@ -268,9 +275,12 @@ def main() -> int:
                     }
                 )
 
-    closeout_actual_evidence = closeout_actual_evidence_status(done_task_ids())
+    post_closeout_task = args.post_closeout_task.strip()
+    closeout_actual_evidence = closeout_actual_evidence_status(done_task_ids(), exempt_task_id=post_closeout_task)
     for evidence in closeout_actual_evidence:
         task_id = str(evidence.get("task_id", ""))
+        if evidence.get("context_exempted"):
+            continue
         if task_id >= "HARN-032" and evidence.get("final_status") != "passed":
             issues.append(
                 issue_payload(
@@ -321,6 +331,7 @@ def main() -> int:
         "tracked_status": tracked_status,
         "cleanup_preview": cleanup_preview,
         "closeout_actual_evidence": closeout_actual_evidence,
+        "post_closeout_task_context": post_closeout_task,
         "runtime_dashboard": runtime_dashboard(),
         "current_task_state_ref": relative_to_root(CURRENT_TASK_PATH),
         "recommended_next_step": recommended_next_step,

@@ -39,6 +39,12 @@ Foreman 接手任务前按以下顺序建立上下文：
 9. 只通过显式文件路径 stage 当前任务相关文件并创建单任务 commit；不得使用会吸入其他脏改动的目录级或全量 stage 方式
 10. commit 完成后立即运行 `python3 scripts/task_audit.py --check --phase post-closeout` 与必要知识校验，确认当前任务的 `Commit subject` 已进入 Git history，再执行“上下文清理”后进入下一任务；若当前 Codex 运行环境支持 `/contract`、`/clear` 或等价命令，可以使用，但它们只是可选实现方式，不是唯一规范动作
 
+若 closeout commit 已成功但 post-closeout check 失败：
+
+- 保留失败 evidence，不得手工编辑 `.codex/state/closeout/<TASK_ID>/post-closeout-actual.json`
+- 修复 blocker 后执行 `python3 scripts/foreman.py closeout-repair <TASK_ID>`
+- `closeout-repair` 只重跑 post-closeout actual checks 和 runtime cleanup；它不重新 archive task，也不重新创建 commit
+
 ## Context Hygiene
 
 - Harness Engineering 要求的是“上下文收缩”和“上下文清理”的结果，不是强绑定某个客户端斜杠命令。

@@ -1246,6 +1246,22 @@ def projected_closeout_command(subject: str) -> str:
     return f"git commit -m {shlex.quote(subject)}"
 
 
+def normalize_post_check_commands(task_id: str, post_checks: Sequence[str]) -> List[str]:
+    normalized: List[str] = []
+    for command_text in post_checks:
+        tokens = shlex.split(command_text)
+        if (
+            len(tokens) >= 2
+            and tokens[0] == "python3"
+            and tokens[1] == "scripts/governed_healthcheck.py"
+            and "--check" in tokens
+            and "--post-closeout-task" not in tokens
+        ):
+            tokens.extend(["--post-closeout-task", task_id])
+        normalized.append(shlex.join(tokens) if tokens else command_text)
+    return normalized
+
+
 def append_projected_closeout_logs(task_id: str, commit_subject: str, post_checks: Sequence[str]) -> None:
     append_validation_log(
         f"{task_id} closeout commit",
@@ -1292,6 +1308,7 @@ def write_post_closeout_actual_evidence(
     commit_subject: str,
     results: List[Dict[str, Any]],
     final_status: str,
+    post_check_commands: Sequence[str],
 ) -> str:
     evidence_path = CLOSEOUT_DIR / task_id / "post-closeout-actual.json"
     write_json(
@@ -1302,6 +1319,7 @@ def write_post_closeout_actual_evidence(
             "commit_subject": commit_subject,
             "evidence_kind": "post-closeout-actual",
             "final_status": final_status,
+            "post_check_commands": list(post_check_commands),
             "commands": results,
             "recorded_at": now_iso(),
         },
@@ -1325,12 +1343,63 @@ def run_post_closeout_actual_checks(
         result = run(command)
         results.append(command_result_payload(command, result, label))
         if result.code != 0:
-            evidence_ref = write_post_closeout_actual_evidence(task_id, commit_sha, commit_subject, results, "failed")
+            evidence_ref = write_post_closeout_actual_evidence(
+                task_id,
+                commit_sha,
+                commit_subject,
+                results,
+                "failed",
+                post_checks,
+            )
             raise SystemExit(
                 f"post-closeout actual check failed; evidence: {evidence_ref}\n"
                 + (result.stderr.strip() or result.stdout.strip() or "command failed")
             )
-    return write_post_closeout_actual_evidence(task_id, commit_sha, commit_subject, results, "passed")
+    return write_post_closeout_actual_evidence(
+        task_id,
+        commit_sha,
+        commit_subject,
+        results,
+        "passed",
+        post_checks,
+    )
+
+
+def closeout_commit_metadata(task_id: str) -> tuple[str, str]:
+    evidence_path = CLOSEOUT_DIR / task_id / "post-closeout-actual.json"
+    payload = read_json(evidence_path, {})
+    commit_sha = str(payload.get("commit_sha", "")).strip()
+    commit_subject = str(payload.get("commit_subject", "")).strip()
+    if not commit_subject:
+        block = find_task_block(TASKS_DONE_PATH, task_id)
+        if block is not None:
+            commit_subject = commit_subject_of(block["body"]) or ""
+    if not commit_sha:
+        raise SystemExit(f"closeout-repair requires commit_sha in {relative_path(evidence_path)}.")
+    if not commit_subject:
+        raise SystemExit(f"closeout-repair requires commit_subject in {relative_path(evidence_path)} or tasks-done.md.")
+    return commit_sha, commit_subject
+
+
+def maybe_clear_runtime_after_closeout(
+    task_id: str,
+    task_class: str,
+    commit_subject: str,
+    commit_sha: str,
+    plan_ref: str,
+) -> None:
+    state = read_json(CURRENT_TASK_PATH, default=idle_current_task_state())
+    if state.get("task_id") not in {"", task_id} and state.get("phase") not in {"idle", "closeout"}:
+        return
+    clear_runtime_after_closeout(
+        task_id,
+        task_class if task_class in TASK_CLASSES else "standard",
+        commit_subject,
+        commit_sha,
+        f"tasks-done.md#{task_id}",
+        plan_ref,
+        delivery_writeback_completed=False,
+    )
 
 
 def command_closeout(args: argparse.Namespace) -> int:
@@ -1363,7 +1432,8 @@ def command_closeout(args: argparse.Namespace) -> int:
         write_runtime_state(state)
 
     commit_subject = commit_subject_of(archived_body)
-    append_projected_closeout_logs(args.task, commit_subject, args.post_check)
+    normalized_post_checks = normalize_post_check_commands(args.task, args.post_check)
+    append_projected_closeout_logs(args.task, commit_subject, normalized_post_checks)
 
     stage_paths = list(validated_stage_paths) + [tasks_ref, done_ref, relative_path(VALIDATION_LOG_PATH)]
     if moved_plan is not None:
@@ -1372,7 +1442,21 @@ def command_closeout(args: argparse.Namespace) -> int:
     git_add_paths(deduped_stage_paths)
 
     commit_sha = git_commit_subject(commit_subject)
-    post_closeout_actual_ref = run_post_closeout_actual_checks(args.task, commit_sha, commit_subject, args.post_check)
+    final_plan_ref = moved_plan[1] if moved_plan is not None else resolved_completed_plan_ref(args.task, state.get("plan_ref", ""))
+    try:
+        post_closeout_actual_ref = run_post_closeout_actual_checks(args.task, commit_sha, commit_subject, normalized_post_checks)
+    except SystemExit as exc:
+        maybe_clear_runtime_after_closeout(
+            args.task,
+            task_class if task_class in TASK_CLASSES else "standard",
+            commit_subject,
+            commit_sha,
+            final_plan_ref,
+        )
+        raise SystemExit(
+            str(exc).rstrip()
+            + f"\nRecovery: python3 scripts/foreman.py closeout-repair {args.task}"
+        )
 
     residue = tracked_status_short()
     if residue:
@@ -1380,7 +1464,6 @@ def command_closeout(args: argparse.Namespace) -> int:
             "closeout left tracked residue after commit:\n" + "\n".join(f"- {line}" for line in residue)
         )
 
-    final_plan_ref = moved_plan[1] if moved_plan is not None else resolved_completed_plan_ref(args.task, state.get("plan_ref", ""))
     clear_runtime_after_closeout(
         args.task,
         task_class if task_class in TASK_CLASSES else "standard",
@@ -1391,6 +1474,29 @@ def command_closeout(args: argparse.Namespace) -> int:
         delivery_writeback_completed=False,
     )
     print(f"Closeout completed for {args.task} at {commit_sha}")
+    print(f"post_closeout_actual_evidence: {post_closeout_actual_ref}")
+    return 0
+
+
+def command_closeout_repair(args: argparse.Namespace) -> int:
+    evidence_path = CLOSEOUT_DIR / args.task / "post-closeout-actual.json"
+    if not evidence_path.exists():
+        raise SystemExit(f"closeout-repair requires existing evidence: {relative_path(evidence_path)}")
+    evidence = read_json(evidence_path, {})
+    stored_post_checks = [str(item).strip() for item in evidence.get("post_check_commands", []) if str(item).strip()]
+    requested_post_checks = list(args.post_check) if args.post_check else stored_post_checks
+    if not requested_post_checks:
+        raise SystemExit(
+            "closeout-repair requires --post-check or previously recorded post_check_commands in post-closeout actual evidence."
+        )
+
+    commit_sha, commit_subject = closeout_commit_metadata(args.task)
+    normalized_post_checks = normalize_post_check_commands(args.task, requested_post_checks)
+    post_closeout_actual_ref = run_post_closeout_actual_checks(args.task, commit_sha, commit_subject, normalized_post_checks)
+
+    final_plan_ref = resolved_completed_plan_ref(args.task, "")
+    maybe_clear_runtime_after_closeout(args.task, "standard", commit_subject, commit_sha, final_plan_ref)
+    print(f"Closeout repair completed for {args.task} at {commit_sha}")
     print(f"post_closeout_actual_evidence: {post_closeout_actual_ref}")
     return 0
 
@@ -1491,6 +1597,11 @@ def build_parser() -> argparse.ArgumentParser:
     closeout.add_argument("--stage-path", action="append", default=[])
     closeout.add_argument("--post-check", action="append", default=[])
     closeout.set_defaults(func=command_closeout)
+
+    closeout_repair = subparsers.add_parser("closeout-repair")
+    closeout_repair.add_argument("task")
+    closeout_repair.add_argument("--post-check", action="append", default=[])
+    closeout_repair.set_defaults(func=command_closeout_repair)
 
     delivery_closeout = subparsers.add_parser("delivery-closeout")
     delivery_closeout.add_argument("target")

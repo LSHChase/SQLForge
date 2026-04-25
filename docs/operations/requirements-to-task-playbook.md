@@ -482,5 +482,7 @@ python3 scripts/governed_healthcheck.py --check
 - `HARN-031` 之后，closeout 证据采用 precommit projected log + post-commit actual audit/check 的组合；projected 证据只能表示“预期将在 commit 后执行”，不得在真实 post-closeout 执行前写成 `passed`
 - `HARN-032` 之后，真实 post-closeout audit/check 结果写入 `.codex/state/closeout/<TASK_ID>/post-closeout-actual.json`，记录 commit sha、命令、exit code、stdout/stderr 摘要与最终状态；该文件是 runtime evidence，不写入 tracked commit
 - `HARN-033` 之后，`governed_healthcheck.py` 会汇总近期 closeout actual evidence；`final_status` 非 `passed` 的 HARN-032 之后 evidence 会成为 blocker，旧任务缺失 runtime evidence 只作为可见状态记录
+- `HARN-038` 之后，如果要把 `python3 scripts/governed_healthcheck.py --check` 用作 closeout 的 post-check，必须带 `--post-closeout-task <TASK_ID>` 上下文；通过 `python3 scripts/foreman.py closeout ... --post-check "python3 scripts/governed_healthcheck.py --check"` 进入时，Foreman 会自动补上该上下文，避免对当前刚归档任务的 own actual evidence 产生自引用误判
+- `HARN-038` 之后，若 commit 已成功但 post-closeout check 失败，标准恢复入口是 `python3 scripts/foreman.py closeout-repair <TASK_ID>`；它会复用失败 evidence 中记录的 `post_check_commands` 重跑 post-closeout actual checks，并在成功后恢复 runtime 到可继续执行的新任务状态；不得再手工拼接 JSON 修复 `.codex/state`
 - `python3 scripts/governed_healthcheck.py --check --cleanup-dry-run` 会预览 stale reservation 与未关联 intake/task-shaping runtime 证据；存在 preview 且无 blocker 时，`final_outcome=cleanup_preview_found`
 - `python3 scripts/governed_runtime_dashboard.py --json` 汇总 intake、reservation、task-shaping、multi-agent、closeout evidence；默认只预览，只有显式 `--release-stale-reservations` 或 `--archive-reviewed-runtime-evidence` 才会改变 `.codex/state`
