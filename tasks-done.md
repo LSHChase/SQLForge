@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-028: 加固 governed full-cycle V2 intake / healthcheck / closeout 完整性
+
+- Status: done
+- Completed at: 2026-04-24
+- Commit subject: `feat(governance): HARN-028 harden governed full-cycle v2`
+- Priority: 1
+- Depends on: `HARN-027`
+- Scope: 在不改变 `HARN-027` no-task 起步真值、不引入第二套长期真值的前提下，补齐 governed intake/healthcheck 入口、machine-readable run summary 的 `executed_commands` 与细粒度 suggestion 字段、candidate materialization rollback，以及 closeout 后不得留下 tracked `validation-log` residue 的仓库级修复 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Plan ref: docs/exec-plans/active/HARN-028-governed-full-cycle-v2-hardening-plan.md
+- Matrix context: Phase-A / Story `A-STORY-007` 从无 task 开始的治理自动化
+- Human confirmation point: 若要把 governed intake/healthcheck 升级为跳过确认直接改写台账真值、让 healthcheck 自动回滚或重写 closeout 记录，或允许 closeout 修复继续回到提交后追加 tracked `validation-log` 的模式，需人工确认
+- Data impact: governed intake/healthcheck 入口、run summary/建议字段、candidate materialization rollback、reservation 状态，以及 closeout 与 validation-log 的仓库级治理语义；不直接改变业务运行时数据
+- Rollback / recovery: 停用 intake/healthcheck 入口并回退到 `HARN-027` 的 requirements-to-plan / task-materialize 手工组合路径，保留 run summary / healthcheck 证据与回滚记录，必要时拆出更细粒度的 runtime hardening follow-up
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-028`、`bash scripts/governed_intake.sh --help`、`python3 scripts/governed_healthcheck.py --check`、`bash scripts/task_materialize.sh --help`、`bash -n scripts/governed_intake.sh`、`bash -n scripts/task_materialize.sh`、`python3 -m py_compile scripts/governed_v2_support.py scripts/governed_healthcheck.py`、docs 索引/手册对齐
+  - `python3 scripts/foreman.py validate HARN-028`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added governed_full_cycle V2 hardening on top of HARN-027: governed intake and healthcheck entrypoints, machine-readable summaries with executed_commands and granular suggestions, task materialization rollback/reservation handling, closeout validation-log residue repair, and aligned docs/plan coverage updates without changing business functionality.
+  - Validation evidence: bash -n scripts/requirements_to_plan.sh; bash -n scripts/task_materialize.sh; bash -n scripts/governed_intake.sh; python3 -m py_compile scripts/governed_v2_support.py scripts/governed_healthcheck.py scripts/foreman.py; bash scripts/governed_intake.sh --help; python3 scripts/governed_healthcheck.py --check; bash scripts/requirements_to_plan.sh --run-id harn028-smoke --task-prefix HARN --prompt <smoke>; bash scripts/task_materialize.sh --task-pack .codex/state/task-shaping/harn028-smoke/candidate-task-pack.json --dry-run; bash scripts/governed_intake.sh --run-id harn028-intake-smoke --task HARN-028; bash scripts/governed_intake.sh --run-id harn028-intake-no-task --prompt <smoke>; bash scripts/governed_intake.sh --confirm-run harn028-intake-no-task --dry-run; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance; python3 scripts/foreman.py validate HARN-028; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Governed no-task intake still depends on Codex shaping latency and prompt quality; candidate packs can legitimately stop at human-confirmation boundaries, and future hardening may still be needed if summary/intake contracts expand beyond the current CLI + task-materialization surfaces.
+  - Next step: Use governed_intake.sh for future short-input governance or business-task shaping, and if repeated runs show the same human-confirmation ambiguity, split narrower domain-specific shaper prompts instead of weakening the confirmation gate.
+
 ### HARN-027: 落地从无 task 开始的 governed full-cycle 自动化
 
 - Status: done

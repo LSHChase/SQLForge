@@ -108,6 +108,7 @@
 | `docs/exec-plans/completed/HARN-027-requirements-to-task-governed-full-cycle-plan.md` | Indexed | HARN-027 从无 task 开始的治理自动化执行计划 | Consumed | 约束 HARN-027 的 task-shaping/materialization/full-cycle 交付边界、验证顺序与 closeout 前 write scope |
 | `docs/exec-plans/completed/HARN-026-full-auto-multi-agent-upgrade-plan.md` | Indexed | HARN-026 全自动多 agent 升级执行计划 | Consumed | 约束 HARN-026 的 full-auto 交付边界、验证顺序与 closeout 前 write scope |
 | `docs/exec-plans/completed/HARN-025-semi-auto-multi-agent-foundation-plan.md` | Indexed | HARN-025 半自动多 agent 基础设施执行计划 | Referenced | 约束 HARN-025 的交付边界、验证顺序与 closeout 前 write scope |
+| `docs/exec-plans/completed/HARN-028-governed-full-cycle-v2-hardening-plan.md` | Indexed | HARN-028 governed full-cycle V2 加固执行计划 | Consumed | 约束 HARN-028 的 intake/healthcheck、run summary、materialization rollback 与 closeout residue 修复边界、验证顺序和 closeout 前 write scope |
 | `docs/exec-plans/completed/.gitkeep` | Indexed | 完成执行计划目录占位文件 | Referenced | 保持完成执行计划目录可追踪 |
 | `docs/exec-plans/completed/HARN-009-closeout-boundary-repair-plan.md` | Indexed | 当前 closeout 边界与完成台账结构修复批次执行计划 | Consumed | 收口 HARN-008 复盘中发现的归档边界和 done-ledger 结构校验缺口 |
 | `docs/exec-plans/completed/HARN-007-codex-runtime-integration-plan.md` | Indexed | 已完成的 Codex 运行时集成治理批次执行计划 | Referenced | 追溯 HARN-007 的原始批次目标、交付件与验证顺序 |

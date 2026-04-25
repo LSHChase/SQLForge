@@ -15,7 +15,7 @@
 5. [实现就绪规范](./plans/implementation-readiness.md)
    编码前文档消费顺序、主题权威来源、冲突处理方式和波次执行顺序。
 6. [运维与协作文档](./operations/README.md)
-   Foreman 工作流、人类协作、本地开发、从无 task 开始的治理自动化、多 agent 协作、任务关闭与 best practices。
+   Foreman 工作流、人类协作、本地开发、从无 task 开始的治理自动化（含 governed intake / healthcheck）、多 agent 协作、任务关闭与 best practices。
 7. 产品/设计/接口文档
    [架构初始化总文档](./architecture/init.md) 仍是历史初始化基线与总览入口；当前 C4 权威更新落点以 [C4 文字总览](./architecture/c4-overview.md) 为准，当前服务边界以 [服务能力分配图](./architecture/service-capability-map.md) 为准，当前接口契约以 [服务接口契约基线](./architecture/service-interface-contract-baseline.md) 为准，后续新增文档统一补入 `docs/`。
    - [C4 文字总览](./architecture/c4-overview.md)

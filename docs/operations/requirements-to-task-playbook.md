@@ -14,6 +14,14 @@
 
 本手册的目标不是绕过治理，而是把“无 task”场景也纳入现有 `foreman` / `task_audit` / `closeout` 审计链。
 
+`HARN-028` 之后，日常入口优先使用：
+
+- `bash scripts/governed_intake.sh --prompt "<TEXT>"`
+- `bash scripts/governed_intake.sh --requirements-file <FILE>`
+- `bash scripts/governed_intake.sh --task <TASK_ID>`
+
+该入口会先生成 brief / machine-readable summary，等待显式 `--confirm-run`，而不是在第一次输入后立即落仓执行。
+
 子 `codex exec` 的默认执行模式是 `SQLFORGE_CODEX_EXEC_MODE=bypass`。这意味着 task-shaping、governance review 和 downstream auto-foreman 会假设父级自动化已经由可信外部环境托管沙箱。如果需要强制子会话使用 Codex 自带沙箱，可改成 `full-auto`、`read-only`、`workspace-write` 或 `danger-full-access`。
 
 为了避免 candidate task id 污染主运行态，`requirements_to_plan.sh` 和 `task_materialize.sh` 内部用于 shaping/review 的子 `codex exec` 会默认禁用 `codex_hooks`。正式进入 materialization 之后，仍由 Main Foreman 重新执行标准 `preflight` / `instantiate` / `validate` / `closeout` 链。
@@ -77,10 +85,32 @@
 - `candidate-execution-plan.md`
 - `candidate-task-pack.json`
 - `governance-review.json`
+- `run-summary.json`
+- `materialization-summary.json`
 - rendered prompts
 - per-step schema/log/result files
 
+此外，`governed_intake.sh` 会在 `.codex/state/intake/<RUN_ID>/` 下生成：
+
+- `intake-summary.json`
+- `healthcheck-summary.json`（若调用 `python3 scripts/governed_healthcheck.py --check`）
+
 这些文件是运行态证据，不是长期 authority。
+
+## Machine-Readable Summary Contract
+
+关键 summary 文件至少包含：
+
+- `executed_commands`
+- `suggestions`
+- `authority_fields_to_confirm`
+- `suggested_integrity_checks`
+
+说明：
+
+- `executed_commands` 用于审计本轮自动化实际调用了哪些命令。
+- `authority_fields_to_confirm` 用于把“要确认哪些权限/权威字段”结构化暴露给人类。
+- `suggested_integrity_checks` 用于把建议重跑的完整性检查命令写回 summary，而不是只留在终端文本里。
 
 ## Candidate Task Pack Contract
 
@@ -123,7 +153,40 @@
 
 ## Workflow
 
-### 1. Generate Candidate Artifacts
+### 1. Preferred Intake Entry
+
+执行：
+
+```bash
+bash scripts/governed_intake.sh --prompt "<TEXT>"
+```
+
+或：
+
+```bash
+bash scripts/governed_intake.sh --requirements-file <FILE>
+```
+
+或对已有 formal task：
+
+```bash
+bash scripts/governed_intake.sh --task <TASK_ID>
+```
+
+该步骤会：
+
+1. 选择 `existing-task` 或 `no-task-shaping` 路径
+2. 生成 `intake-summary.json`
+3. 保留 `confirmation_state=awaiting-confirmation`
+4. 要求显式执行 `--confirm-run <RUN_ID>`
+
+确认执行：
+
+```bash
+bash scripts/governed_intake.sh --confirm-run <RUN_ID>
+```
+
+### 2. Generate Candidate Artifacts Directly
 
 执行：
 
@@ -143,7 +206,7 @@ bash scripts/requirements_to_plan.sh --prompt "<TEXT>"
 2. 生成 candidate execution plan
 3. 生成 candidate task pack
 
-### 2. Governance Gate And Materialization
+### 3. Governance Gate And Materialization
 
 执行：
 
@@ -162,7 +225,7 @@ bash scripts/task_materialize.sh --task-pack .codex/state/task-shaping/<RUN_ID>/
 7. 再次 `preflight`
 8. `instantiate`
 
-### 3. End-To-End Governed Full Cycle
+### 4. End-To-End Governed Full Cycle
 
 执行：
 
@@ -211,29 +274,52 @@ bash scripts/governed_full_cycle.sh --requirements-file <FILE>
 - 试图绕过 `preflight` / `instantiate`
 - 试图直接让 worker 修改 ledger 或 validation log
 
+## Healthcheck
+
+执行：
+
+```bash
+python3 scripts/governed_healthcheck.py --check
+```
+
+可选附带 candidate task pack：
+
+```bash
+python3 scripts/governed_healthcheck.py --check \
+  --task-pack .codex/state/task-shaping/<RUN_ID>/candidate-task-pack.json
+```
+
+用途：
+
+- 发现 reservation 冲突
+- 发现 `current-task` 与 ledger 不一致
+- 发现 `validation-log` closeout tail drift
+- 发现 candidate task pack 缺字段或仍卡在 human-confirmation gate
+
+若 healthcheck 失败，summary 会给出：
+
+- `authority_fields_to_confirm`
+- `suggested_integrity_checks`
+
 ## Demo Runbook
 
 ### Demo Input
 
 ```bash
-bash scripts/requirements_to_plan.sh \
+bash scripts/governed_intake.sh \
   --prompt "Create a governance/tooling task that standardizes a new repository verification helper under existing SQLForge audit rules."
 ```
 
 ### Demo Review
 
 ```bash
-bash scripts/task_materialize.sh \
-  --task-pack .codex/state/task-shaping/<RUN_ID>/candidate-task-pack.json \
-  --dry-run
+bash scripts/governed_intake.sh --confirm-run <RUN_ID> --dry-run
 ```
 
 ### Demo End-To-End Dry-Run
 
 ```bash
-bash scripts/governed_full_cycle.sh \
-  --prompt "Create a governance/tooling task that standardizes a new repository verification helper under existing SQLForge audit rules." \
-  --dry-run
+python3 scripts/governed_healthcheck.py --check
 ```
 
 ## Failure Handling
@@ -257,3 +343,9 @@ bash scripts/governed_full_cycle.sh \
 
 - 保留 formal task、exec plan 和 task-shaping 运行态证据
 - 回到 Main Foreman 手工或半自动路径继续推进
+
+### Closeout Tail Drift
+
+- 先执行 `python3 scripts/governed_healthcheck.py --check`
+- 若提示 `closeout_tail_drift`，先修正 tracked residue，再继续新的 closeout
+- `HARN-028` 之后，closeout 证据采用 precommit projected log + post-commit actual audit/check 的组合，避免再次在 commit 之后追加 tracked `validation-log` 残留

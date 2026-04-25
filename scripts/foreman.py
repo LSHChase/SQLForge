@@ -742,6 +742,13 @@ def append_validation_log(label: str, command: str, rules: str, status: str) -> 
         handle.write(line)
 
 
+def tracked_status_short() -> List[str]:
+    result = run(["git", "status", "--short", "--untracked-files=no"])
+    if result.code != 0:
+        raise SystemExit(result.stderr.strip() or result.stdout.strip() or "git status failed")
+    return [line for line in result.stdout.splitlines() if line.strip()]
+
+
 def validate_command(command: List[str], label: str, rules: str) -> str | None:
     result = run(command)
     command_text = " ".join(command)
@@ -1103,6 +1110,33 @@ def git_commit_subject(subject: str) -> str:
     return run_or_raise(["git", "rev-parse", "HEAD"]).stdout.strip()
 
 
+def projected_closeout_command(subject: str) -> str:
+    return f"git commit -m {shlex.quote(subject)}"
+
+
+def append_projected_closeout_logs(task_id: str, commit_subject: str, post_checks: Sequence[str]) -> None:
+    append_validation_log(f"{task_id} closeout commit", projected_closeout_command(commit_subject), "`R-168`", "passed")
+    append_validation_log(
+        f"{task_id} post-closeout task-audit",
+        "python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)",
+        "`R-156`, `R-160`, `R-168`",
+        "passed",
+    )
+    for command_text in post_checks:
+        append_validation_log(
+            f"{task_id} post-closeout check",
+            f"{command_text} (projected-precommit)",
+            "`R-131`, `R-133`, `R-168`",
+            "passed",
+        )
+
+
+def run_without_logging(command: Sequence[str]) -> None:
+    result = run(command)
+    if result.code != 0:
+        raise SystemExit(result.stderr.strip() or result.stdout.strip() or "command failed")
+
+
 def command_closeout(args: argparse.Namespace) -> int:
     validated_stage_paths = validate_stage_paths(args.stage_path)
     state = read_json(CURRENT_TASK_PATH, default=idle_current_task_state())
@@ -1132,24 +1166,25 @@ def command_closeout(args: argparse.Namespace) -> int:
         state["traceability"]["done_md_ref"] = f"tasks-done.md#{args.task}"
         write_runtime_state(state)
 
-    stage_paths = list(validated_stage_paths) + [tasks_ref, done_ref]
+    commit_subject = commit_subject_of(archived_body)
+    append_projected_closeout_logs(args.task, commit_subject, args.post_check)
+
+    stage_paths = list(validated_stage_paths) + [tasks_ref, done_ref, relative_path(VALIDATION_LOG_PATH)]
     if moved_plan is not None:
         stage_paths.extend([moved_plan[0], moved_plan[1]])
     deduped_stage_paths = filter_stageable_paths(list(dict.fromkeys(stage_paths)))
     git_add_paths(deduped_stage_paths)
 
-    commit_subject = commit_subject_of(archived_body)
     commit_sha = git_commit_subject(commit_subject)
-    append_validation_log(f"{args.task} closeout commit", commit_sha, "`R-168`", "passed")
-
-    post_audit_label = f"{args.task} post-closeout task-audit"
-    run_and_log(
-        ["python3", "scripts/task_audit.py", "--check", "--phase", "post-closeout"],
-        post_audit_label,
-        "`R-156`, `R-160`, `R-168`",
-    )
+    run_without_logging(["python3", "scripts/task_audit.py", "--check", "--phase", "post-closeout"])
     for command_text in args.post_check:
-        run_and_log(shlex.split(command_text), f"{args.task} post-closeout check", "`R-131`, `R-133`, `R-168`")
+        run_without_logging(shlex.split(command_text))
+
+    residue = tracked_status_short()
+    if residue:
+        raise SystemExit(
+            "closeout left tracked residue after commit:\n" + "\n".join(f"- {line}" for line in residue)
+        )
 
     final_plan_ref = moved_plan[1] if moved_plan is not None else resolved_completed_plan_ref(args.task, state.get("plan_ref", ""))
     clear_runtime_after_closeout(

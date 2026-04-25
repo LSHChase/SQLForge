@@ -108,7 +108,7 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：当前没有已实例化的 repo-side mainline task；`D-TASK-029` 已完成 closeout，默认主路径仍保持 `LOCAL_FILE`，不得把 environment-backed object storage 写成仓库默认事实。当前另有独立治理/工具任务 `HARN-027` 用于把自动化起点从“已有 task 的 full-auto”继续前移到“只有规划/需求/计划、尚无 formal task 的 governed full-cycle”，但它不改变“当前无 repo-side business mainline”的仓库真值。
+- 当前活跃目标：当前没有已实例化的 repo-side mainline task；`D-TASK-029` 已完成 closeout，默认主路径仍保持 `LOCAL_FILE`，不得把 environment-backed object storage 写成仓库默认事实。当前另有独立治理/工具任务 `HARN-027` 与 `HARN-028`：前者把自动化起点从“已有 task 的 full-auto”继续前移到“只有规划/需求/计划、尚无 formal task 的 governed full-cycle”，后者继续对这条 no-task 起步链做 V2 加固，包括 intake/healthcheck、machine-readable run summary 细化、materialization rollback 与 closeout residue 修复；两者都不改变“当前无 repo-side business mainline”的仓库真值。
 - 当前下一条可执行主线任务：
   - 当前没有已实例化的 repo-side mainline task。
   - 如继续推进 Phase-D，下一条候选任务应先塑形为新的未实例化 follow-up，而不是把任何候选直接写成已运行主线。
@@ -149,6 +149,7 @@
   - `HARN-025` 已把“半自动多 agent 协作基础设施（C 方案）”正式落为独立治理/工具能力：Main Foreman 唯一收口、多 `codex exec` 会话替代隐式 subagent、多 `git worktree` 隔离、manifest 驱动、prompt 模板化，以及最终仍走 `foreman validate` / `task_audit` / `closeout`；它不混入业务主线功能，也不改变当前 repo-side business mainline 为空的事实。
   - `HARN-026` 已完成 closeout：它把多 agent 能力从“Main Foreman 手工写 plan/manifest 再启动”升级到“从需求输入开始，由 codex 自动生成 exec plan、manifest，并驱动 prepare/launch/collect，再由 autonomous Main Foreman 继续 fan-in / validate / closeout”的全自动主路径；它仍保持 Main Foreman 唯一收口，不引入第二套长期真值，也不混入业务主线功能。
   - `HARN-027` 用于在 `HARN-026` 之上补齐“从无 task 开始”的上游治理自动化：先做 requirement normalization、candidate execution plan shaping、candidate task pack 与 governance gate，再 formal materialize 成正式 task，最后 handoff 给现有 `HARN-026` full-auto 执行链；它仍保持 Main Foreman 唯一收口，不绕过 `preflight` / `instantiate` / `validate` / `task_audit` / `closeout`。
+  - `HARN-028` 用于继续加固 `HARN-027`：补齐 governed intake/healthcheck 入口、`executed_commands` 与细粒度 suggestion 输出、candidate materialization rollback，以及 closeout 后不得留下 `validation-log` tracked residue 的仓库级修复；它仍保持 Main Foreman 唯一收口，不引入第二套长期真值，也不绕过既有 `foreman` / `task_audit` / `closeout` 链。
   - `HARN-016` 已把外部 Win10 测试环境的 Hetu/MRS 实际联通与留证动作挂起到 `INBOX-002`；它继续是 blocked 的 environment-backed follow-up，不构成当前 repo-side mainline。
   - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不改变当前仓库真值：当前没有新的已实例化 repo-side mainline，而 `HARN-016` / `INBOX-001` 仍只属于非主线的 environment-backed follow-up。
 
@@ -281,6 +282,7 @@ Tasks:
 | Task ID | Task | Scope | Dependencies | Verification |
 |:---|:---|:---|:---|:---|
 | `HARN-027` | 落地从无 task 开始的 governed full-cycle 自动化 | 在不改变 `HARN-026` downstream full-auto 真值、不引入第二套长期真值的前提下，新增 requirement normalization、candidate task pack、governance gate 与 materialization 脚本/模板/手册，让 Codex 可以从“只有需求”开始先塑形 formal task，再继续交给现有 full-auto 执行链 | `HARN-026` | `python3 scripts/foreman.py validate HARN-027`、`bash scripts/requirements_to_plan.sh --help`、`bash scripts/task_materialize.sh --help`、`bash scripts/governed_full_cycle.sh --help`、requirements-to-plan dry-run、real candidate pack generation、task_materialize dry-run、governed_full_cycle dry-run、docs 索引/coverage 对齐 |
+| `HARN-028` | 加固 governed full-cycle V2 intake / healthcheck / closeout 完整性 | 在不改变 `HARN-027` no-task 起步真值、不引入第二套长期真值的前提下，补齐 governed intake/healthcheck 入口、machine-readable run summary 的 `executed_commands` 与细粒度 suggestion 字段、candidate materialization rollback，以及 closeout 后不得留下 tracked `validation-log` residue 的仓库级修复 | `HARN-027` | `python3 scripts/foreman.py validate HARN-028`、`bash scripts/governed_intake.sh --help`、`python3 scripts/governed_healthcheck.py --check`、`bash scripts/task_materialize.sh --help`、`bash -n scripts/governed_intake.sh`、`bash -n scripts/task_materialize.sh`、`python3 -m py_compile scripts/governed_v2_support.py scripts/governed_healthcheck.py`、docs 索引/手册对齐 |
 
 ### Phase-B 阶段0修正与缺口补齐
 

@@ -107,6 +107,16 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from scripts.governed_v2_support import (
+    append_executed_command,
+    build_suggestion,
+    command_to_text,
+    relative_to_root,
+    reserve_task_id,
+    update_reservation,
+    write_run_summary,
+)
+
 
 NORMALIZE_SCHEMA = {
     "type": "object",
@@ -401,7 +411,8 @@ raw_requirement_path = run_root / "raw-requirement.md"
 raw_requirement_path.write_text(raw_requirement + "\n", encoding="utf-8")
 
 story_catalog = collect_story_catalog((repo_root / "docs" / "plans" / "master-execution-plan.md").read_text(encoding="utf-8"))
-candidate_task_id = next_task_id(repo_root, task_prefix)
+candidate_task_id, reservation_path = reserve_task_id(task_prefix, run_id)
+run_summary_path = run_root / "run-summary.json"
 
 normalize_result_path = outputs_dir / "normalized-requirements.json"
 normalize_log_path = logs_dir / "requirement-normalizer.log"
@@ -426,6 +437,37 @@ normalize_prompt = (
 normalize_prompt_path = prompts_dir / "requirement-normalizer.md"
 normalize_prompt_path.write_text(normalize_prompt, encoding="utf-8")
 
+write_run_summary(
+    run_summary_path,
+    {
+        "run_id": run_id,
+        "path_selected": "no-task-shaping",
+        "task_id": "",
+        "candidate_task_id": candidate_task_id,
+        "confirmation_state": "not-required",
+        "execution_state": "planning",
+        "truth_sources": [
+            "docs/README.md",
+            "docs/plans/document-truth-baseline.md",
+            "docs/architecture/init.md",
+            "docs/rules/codex-rules.md",
+            "docs/quality/validation-rules.md",
+            "docs/plans/master-execution-plan.md",
+            "docs/plans/task-spec-matrix.md",
+            "docs/plans/task-governance-extension-matrix.md",
+            "tasks.md",
+            "tasks-done.md",
+            "INBOX.md",
+        ],
+        "blockers": [],
+        "executed_commands": [],
+        "final_outcome": "in_progress",
+        "recommended_next_step": "Continue shaping, then review the candidate task pack before materialization.",
+        "reservation_ref": relative_to_root(reservation_path),
+        "suggestions": [],
+    },
+)
+
 if dry_run:
     print(f"[dry-run] run_id: {run_id}")
     print(f"[dry-run] raw requirement: {raw_requirement_path}")
@@ -433,6 +475,7 @@ if dry_run:
     print(f"[dry-run] candidate execution plan: {candidate_plan_path}")
     print(f"[dry-run] candidate task pack: {candidate_task_pack_path}")
     print(f"[dry-run] candidate task id: {candidate_task_id}")
+    print(f"[dry-run] reservation ref: {relative_to_root(reservation_path)}")
     print(f"[dry-run] stop-after: {stop_after}")
     raise SystemExit(0)
 
@@ -444,6 +487,12 @@ normalized_payload = run_codex(
     normalize_log_path,
     model,
     profile,
+)
+append_executed_command(
+    run_summary_path,
+    command_to_text(build_codex_command(repo_root, normalize_result_path.with_suffix(".schema.json"), normalize_result_path, model, profile)),
+    "passed",
+    "requirement-normalizer",
 )
 normalized_markdown = render_normalized_markdown(normalized_payload)
 normalized_markdown_path.write_text(normalized_markdown, encoding="utf-8")
@@ -479,6 +528,12 @@ plan_payload = run_codex(
     plan_log_path,
     model,
     profile,
+)
+append_executed_command(
+    run_summary_path,
+    command_to_text(build_codex_command(repo_root, plan_result_path.with_suffix(".schema.json"), plan_result_path, model, profile)),
+    "passed",
+    "plan-shaper",
 )
 
 catalog_entry = next((item for item in story_catalog if item["story_id"] == plan_payload["story_id"]), None)
@@ -520,6 +575,12 @@ task_payload = run_codex(
     model,
     profile,
 )
+append_executed_command(
+    run_summary_path,
+    command_to_text(build_codex_command(repo_root, task_result_path.with_suffix(".schema.json"), task_result_path, model, profile)),
+    "passed",
+    "task-shaper",
+)
 
 candidate_pack = {
     "task_id": candidate_task_id,
@@ -545,8 +606,26 @@ candidate_pack = {
     "task_summary": task_payload["task_summary"],
     "residual_risk": task_payload["residual_risk"],
     "materialization_ready": False,
+    "reservation_ref": relative_to_root(reservation_path),
 }
 write_json(candidate_task_pack_path, candidate_pack)
+update_reservation(
+    reservation_path,
+    "candidate_ready",
+    candidate_task_pack=relative_to_root(candidate_task_pack_path),
+    candidate_execution_plan=relative_to_root(candidate_plan_path),
+)
+suggestions = []
+if task_payload["human_confirmation_point"]:
+    suggestions.append(
+        build_suggestion(
+            issue_key="materialization_blocked" if task_payload["requires_human_decision"] else "reservation_conflict",
+            summary="Candidate task pack includes a human-confirmation boundary that must be reviewed before formal materialization."
+            if task_payload["requires_human_decision"]
+            else "Candidate task pack should be reviewed against the recorded human-confirmation boundary before confirm-run.",
+            human_confirmation_point=task_payload["human_confirmation_point"],
+        )
+    )
 write_json(
     run_root / "shaping-summary.json",
     {
@@ -560,6 +639,23 @@ write_json(
         "normalized_requirements_json": str(normalize_result_path),
         "candidate_execution_plan": str(candidate_plan_path),
         "candidate_task_pack": str(candidate_task_pack_path),
+        "reservation_ref": relative_to_root(reservation_path),
+        "suggestions": suggestions,
+        "executed_commands": [
+            command_to_text(build_codex_command(repo_root, normalize_result_path.with_suffix(".schema.json"), normalize_result_path, model, profile)),
+            command_to_text(build_codex_command(repo_root, plan_result_path.with_suffix(".schema.json"), plan_result_path, model, profile)),
+            command_to_text(build_codex_command(repo_root, task_result_path.with_suffix(".schema.json"), task_result_path, model, profile)),
+        ],
+    },
+)
+write_run_summary(
+    run_summary_path,
+    {
+        **json.loads(run_summary_path.read_text(encoding="utf-8")),
+        "execution_state": "completed",
+        "final_outcome": "candidate_artifacts_ready",
+        "recommended_next_step": f"Review {relative_to_root(candidate_task_pack_path)} and then run task_materialize.sh or governed_intake confirmation.",
+        "suggestions": suggestions,
     },
 )
 

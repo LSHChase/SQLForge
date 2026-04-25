@@ -86,6 +86,15 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts.governed_v2_support import (
+    append_executed_command,
+    build_suggestion,
+    command_to_text,
+    relative_to_root,
+    update_reservation,
+    write_run_summary,
+)
+
 
 REVIEW_SCHEMA = {
     "type": "object",
@@ -367,6 +376,7 @@ if not requirements_source_path.exists():
     fail(f"Requirements source does not exist: {requirements_source_path}")
 
 run_root = task_pack_path.parent
+run_summary_path = run_root / "materialization-summary.json"
 review_prompt_path = run_root / "prompts" / "task-governance-reviewer.md"
 review_result_path = run_root / "governance-review.json"
 review_log_path = run_root / "logs" / "task-governance-reviewer.log"
@@ -377,12 +387,76 @@ master_plan_path = repo_root / "docs" / "plans" / "master-execution-plan.md"
 task_spec_path = repo_root / "docs" / "plans" / "task-spec-matrix.md"
 task_gov_path = repo_root / "docs" / "plans" / "task-governance-extension-matrix.md"
 coverage_path = repo_root / "docs" / "plans" / "document-coverage-matrix.md"
+tasks_path = repo_root / "tasks.md"
 story_catalog = collect_story_catalog(master_plan_path.read_text(encoding="utf-8"))
 
+reservation_ref = str(task_pack.get("reservation_ref", "")).strip()
+reservation_path = resolve_repo_relative(repo_root, reservation_ref) if reservation_ref else None
+
+write_run_summary(
+    run_summary_path,
+    {
+        "task_id": task_id,
+        "path_selected": "task-materialization",
+        "execution_state": "planning",
+        "final_outcome": "in_progress",
+        "candidate_task_pack": relative_to_root(task_pack_path),
+        "candidate_execution_plan": relative_to_root(candidate_plan_path),
+        "requirements_source": relative_to_root(requirements_source_path),
+        "reservation_ref": reservation_ref,
+        "blockers": [],
+        "executed_commands": [],
+        "suggestions": [],
+        "recommended_next_step": "Run governance review and formal materialization.",
+    },
+)
+
+
+def finish_and_fail(message: str, *, issue_key: str = "materialization_blocked") -> None:
+    existing = load_json(run_summary_path)
+    suggestions = list(existing.get("suggestions", []))
+    suggestions.append(
+        build_suggestion(
+            issue_key=issue_key,
+            summary=message,
+            human_confirmation_point=task_pack.get("human_confirmation_point", ""),
+        )
+    )
+    write_run_summary(
+        run_summary_path,
+        {
+            **existing,
+            "execution_state": "completed",
+            "final_outcome": "blocked",
+            "blockers": list(dict.fromkeys([*existing.get("blockers", []), message])),
+            "suggestions": suggestions,
+            "recommended_next_step": "Resolve the blocker, then rerun task_materialize.sh or governed_healthcheck.py.",
+        },
+    )
+    if reservation_path is not None and reservation_path.exists():
+        update_reservation(reservation_path, "blocked", blocker=message)
+    fail(message)
+
+
+def snapshot_file(path: Path, snapshots: dict[Path, str | None]) -> None:
+    target = path.resolve()
+    if target not in snapshots:
+        snapshots[target] = target.read_text(encoding="utf-8") if target.exists() else None
+
+
+def rollback_snapshots(snapshots: dict[Path, str | None]) -> None:
+    for path, original in reversed(list(snapshots.items())):
+        if original is None:
+            path.unlink(missing_ok=True)
+            continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(original, encoding="utf-8")
+
+
 if task_exists_anywhere(repo_root, task_id):
-    fail(f"Task {task_id} already exists in plan, matrix, or ledgers.")
+    finish_and_fail(f"Task {task_id} already exists in plan, matrix, or ledgers.", issue_key="reservation_conflict")
 if task_pack["story_id"] not in story_catalog:
-    fail(f"story id {task_pack['story_id']} does not exist in master-execution-plan.md")
+    finish_and_fail(f"story id {task_pack['story_id']} does not exist in master-execution-plan.md")
 
 dry_run_blockers: list[str] = []
 if task_pack["requires_human_decision"]:
@@ -393,11 +467,20 @@ if task_pack["requires_human_decision"]:
     if dry_run:
         dry_run_blockers.append(blocker)
     else:
-        fail(blocker)
+        finish_and_fail(blocker)
 
 plan_markdown = candidate_plan_path.read_text(encoding="utf-8")
 review_payload = {"go_no_go": "go", "blockers": [], "notes": ["Skipped reviewer; deterministic gate checks only."]}
+review_command_text = ""
 if not skip_review and not dry_run:
+    review_command = build_codex_command(
+        repo_root,
+        review_result_path.with_suffix(".schema.json"),
+        review_result_path,
+        review_model,
+        review_profile,
+    )
+    review_command_text = command_to_text(review_command)
     review_payload = review_candidate_task(
         repo_root,
         task_pack,
@@ -409,13 +492,14 @@ if not skip_review and not dry_run:
         review_model,
         review_profile,
     )
+    append_executed_command(run_summary_path, review_command_text, "passed", "task-governance-reviewer")
 elif skip_review:
     write_json(review_result_path, review_payload)
 
 if review_payload["go_no_go"] != "go" or review_payload["blockers"]:
-    fail(
-        f"Task governance review blocked materialization for {task_id}:\n- "
-        + "\n- ".join(review_payload["blockers"] or ["review returned no-go"])
+    finish_and_fail(
+        f"Task governance review blocked materialization for {task_id}: "
+        + "; ".join(review_payload["blockers"] or ["review returned no-go"])
     )
 
 phase = story_catalog[task_pack["story_id"]]["phase"]
@@ -439,8 +523,32 @@ gov_row = (
 
 plan_ref = f"docs/exec-plans/active/{task_id}-full-auto-execution-plan.md"
 requirements_archive_ref = f"docs/references/raw-requirements/generated/{task_id}-requirement.md"
+suggestions = []
+if task_pack["human_confirmation_point"]:
+    suggestions.append(
+        build_suggestion(
+            issue_key="materialization_blocked" if task_pack["requires_human_decision"] else "reservation_conflict",
+            summary="Review the recorded human-confirmation boundary before allowing formal materialization.",
+            human_confirmation_point=task_pack["human_confirmation_point"],
+        )
+    )
 
 if dry_run:
+    write_run_summary(
+        run_summary_path,
+        {
+            **load_json(run_summary_path),
+            "execution_state": "completed",
+            "final_outcome": "dry_run_ready",
+            "phase": phase,
+            "story_id": task_pack["story_id"],
+            "formal_plan_ref": plan_ref,
+            "requirements_archive_ref": requirements_archive_ref,
+            "blockers": dry_run_blockers,
+            "suggestions": suggestions,
+            "recommended_next_step": "If the preview looks correct, rerun without --dry-run or use governed_intake.sh --confirm-run.",
+        },
+    )
     print(f"[dry-run] task_id: {task_id}")
     print(f"[dry-run] story_id: {task_pack['story_id']}")
     print(f"[dry-run] phase: {phase}")
@@ -468,63 +576,121 @@ preflight_command = [
     "--prompt",
     summary_prompt,
 ]
-run_or_fail(preflight_command, repo_root)
-
-master_plan_content = master_plan_path.read_text(encoding="utf-8")
-master_plan_content = insert_after_table_header(
-    master_plan_content,
-    rf"^##### Story `{re.escape(task_pack['story_id'])}`\s+.+$",
-    master_row,
-)
-master_plan_path.write_text(master_plan_content, encoding="utf-8")
-
-task_spec_content = task_spec_path.read_text(encoding="utf-8")
-task_spec_content = insert_phase_matrix_row(task_spec_content, phase, spec_row)
-task_spec_path.write_text(task_spec_content, encoding="utf-8")
-
-task_gov_content = task_gov_path.read_text(encoding="utf-8")
-task_gov_content = insert_phase_matrix_row(task_gov_content, phase, gov_row)
-task_gov_path.write_text(task_gov_content, encoding="utf-8")
-
-requirements_archive_path = repo_root / requirements_archive_ref
-requirements_archive_path.parent.mkdir(parents=True, exist_ok=True)
-requirements_archive_path.write_text(requirements_source_path.read_text(encoding="utf-8"), encoding="utf-8")
-
-final_plan_path = repo_root / plan_ref
-final_plan_path.parent.mkdir(parents=True, exist_ok=True)
-final_plan_path.write_text(plan_markdown.rstrip() + "\n", encoding="utf-8")
-
-coverage_content = coverage_path.read_text(encoding="utf-8")
-coverage_content = ensure_coverage_row(
-    coverage_content,
-    plan_ref,
-    f"| `{plan_ref}` | Indexed | {task_id} formalized full-auto execution plan | Consumed | 约束 {task_id} 在 formal materialization 之后的 downstream full-auto 执行边界、验证顺序与 closeout 前 write scope |",
-)
-coverage_content = ensure_coverage_row(
-    coverage_content,
-    requirements_archive_ref,
-    f"| `{requirements_archive_ref}` | Archive | {task_id} raw requirement snapshot | Archived | 保存 formal materialization 对应的原始需求输入，供 task-shaping 与后续审计追溯 |",
-)
-coverage_path.write_text(coverage_content, encoding="utf-8")
-
-task_pack["materialization_ready"] = True
-task_pack["formal_plan_ref"] = plan_ref
-task_pack["requirements_archive_ref"] = requirements_archive_ref
-write_json(task_pack_path, task_pack)
-
-run_or_fail(preflight_command, repo_root)
 instantiate_command = ["python3", "scripts/foreman.py", "instantiate", task_id]
-run_or_fail(instantiate_command, repo_root)
+tracked_snapshots: dict[Path, str | None] = {}
 
-write_json(
-    run_root / "materialization-summary.json",
+try:
+    if reservation_path is not None and reservation_path.exists():
+        update_reservation(reservation_path, "materializing", task_id=task_id)
+
+    run_or_fail(preflight_command, repo_root)
+    append_executed_command(run_summary_path, command_to_text(preflight_command), "passed", "candidate-preflight")
+
+    snapshot_file(master_plan_path, tracked_snapshots)
+    master_plan_content = master_plan_path.read_text(encoding="utf-8")
+    master_plan_content = insert_after_table_header(
+        master_plan_content,
+        rf"^##### Story `{re.escape(task_pack['story_id'])}`\s+.+$",
+        master_row,
+    )
+    master_plan_path.write_text(master_plan_content, encoding="utf-8")
+
+    snapshot_file(task_spec_path, tracked_snapshots)
+    task_spec_content = task_spec_path.read_text(encoding="utf-8")
+    task_spec_content = insert_phase_matrix_row(task_spec_content, phase, spec_row)
+    task_spec_path.write_text(task_spec_content, encoding="utf-8")
+
+    snapshot_file(task_gov_path, tracked_snapshots)
+    task_gov_content = task_gov_path.read_text(encoding="utf-8")
+    task_gov_content = insert_phase_matrix_row(task_gov_content, phase, gov_row)
+    task_gov_path.write_text(task_gov_content, encoding="utf-8")
+
+    requirements_archive_path = repo_root / requirements_archive_ref
+    snapshot_file(requirements_archive_path, tracked_snapshots)
+    requirements_archive_path.parent.mkdir(parents=True, exist_ok=True)
+    requirements_archive_path.write_text(requirements_source_path.read_text(encoding="utf-8"), encoding="utf-8")
+
+    final_plan_path = repo_root / plan_ref
+    snapshot_file(final_plan_path, tracked_snapshots)
+    final_plan_path.parent.mkdir(parents=True, exist_ok=True)
+    final_plan_path.write_text(plan_markdown.rstrip() + "\n", encoding="utf-8")
+
+    snapshot_file(coverage_path, tracked_snapshots)
+    coverage_content = coverage_path.read_text(encoding="utf-8")
+    coverage_content = ensure_coverage_row(
+        coverage_content,
+        plan_ref,
+        f"| `{plan_ref}` | Indexed | {task_id} formalized full-auto execution plan | Consumed | 约束 {task_id} 在 formal materialization 之后的 downstream full-auto 执行边界、验证顺序与 closeout 前 write scope |",
+    )
+    coverage_content = ensure_coverage_row(
+        coverage_content,
+        requirements_archive_ref,
+        f"| `{requirements_archive_ref}` | Archive | {task_id} raw requirement snapshot | Archived | 保存 formal materialization 对应的原始需求输入，供 task-shaping 与后续审计追溯 |",
+    )
+    coverage_path.write_text(coverage_content, encoding="utf-8")
+
+    task_pack["materialization_ready"] = True
+    task_pack["formal_plan_ref"] = plan_ref
+    task_pack["requirements_archive_ref"] = requirements_archive_ref
+    write_json(task_pack_path, task_pack)
+
+    run_or_fail(preflight_command, repo_root)
+    append_executed_command(run_summary_path, command_to_text(preflight_command), "passed", "formal-preflight")
+
+    snapshot_file(tasks_path, tracked_snapshots)
+    run_or_fail(instantiate_command, repo_root)
+    append_executed_command(run_summary_path, command_to_text(instantiate_command), "passed", "instantiate")
+except BaseException as exc:
+    rollback_snapshots(tracked_snapshots)
+    message = str(exc).strip() or "task materialization failed"
+    write_run_summary(
+        run_summary_path,
+        {
+            **load_json(run_summary_path),
+            "execution_state": "completed",
+            "final_outcome": "failed",
+            "phase": phase,
+            "story_id": task_pack["story_id"],
+            "formal_plan_ref": plan_ref,
+            "requirements_archive_ref": requirements_archive_ref,
+            "blockers": [message],
+            "suggestions": suggestions
+            + [
+                build_suggestion(
+                    issue_key="materialization_blocked",
+                    summary=message,
+                    human_confirmation_point=task_pack.get("human_confirmation_point", ""),
+                )
+            ],
+            "recommended_next_step": "Inspect the blocker, run governed_healthcheck.py if needed, then retry materialization.",
+        },
+    )
+    if reservation_path is not None and reservation_path.exists():
+        update_reservation(reservation_path, "failed", failure=message)
+    raise
+
+if reservation_path is not None and reservation_path.exists():
+    update_reservation(
+        reservation_path,
+        "materialized",
+        task_id=task_id,
+        formal_plan_ref=plan_ref,
+        requirements_archive_ref=requirements_archive_ref,
+    )
+
+write_run_summary(
+    run_summary_path,
     {
-        "task_id": task_id,
+        **load_json(run_summary_path),
+        "execution_state": "completed",
+        "final_outcome": "materialized",
         "phase": phase,
         "story_id": task_pack["story_id"],
         "formal_plan_ref": plan_ref,
         "requirements_archive_ref": requirements_archive_ref,
         "review_result": review_payload,
+        "suggestions": suggestions,
+        "recommended_next_step": f"Run bash scripts/multi_agent_full_auto.sh --task {task_id} or continue via governed_intake.sh --confirm-run.",
     },
 )
 

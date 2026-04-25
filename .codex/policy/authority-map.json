@@ -22,7 +22,7 @@
       "path": "docs/README.md",
       "title": "SQLForge Docs",
       "excerpt": "\u672c\u76ee\u5f55\u662f SQLForge \u7684\u552f\u4e00\u957f\u671f\u77e5\u8bc6\u5165\u53e3\uff0c\u9075\u5faa Harness Engineering \u4e0e `R-006` \u7684\u6587\u6863\u4f18\u5148\u987a\u5e8f\u3002",
-      "sha256": "1e23553ce8b8b527313e4037c1a0d23073b6e4629b92b4927451ec660b8d8c3f"
+      "sha256": "dcffa701a73a42437b0c65814b16e5c8b64f5f61f6acd7f07d198c2fc4c9904d"
     },
     {
       "path": "docs/plans/document-truth-baseline.md",
