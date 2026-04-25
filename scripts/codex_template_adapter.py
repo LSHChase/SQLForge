@@ -16,10 +16,17 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.governed_v2_support import INTAKE_DIR, compact, now_iso, relative_to_root, write_json
+from scripts.governed_v2_support import (
+    INTAKE_DIR,
+    compact,
+    detect_template_kind,
+    now_iso,
+    parse_template_fields,
+    relative_to_root,
+    write_json,
+)
 
 SCHEMA_VERSION = 2
-FIELD_PATTERN = re.compile(r"^(需求|治理需求|实现任务|实现治理任务|输出物|限制)\s*[：:]\s*(.*)$")
 TASK_ID_PATTERN = re.compile(r"^[A-Z]+-[0-9]{3}$")
 FIELD_ALIASES = {
     "需求": "business_requirement",
@@ -29,30 +36,9 @@ FIELD_ALIASES = {
 }
 
 
-def parse_fields(text: str) -> dict[str, str]:
-    fields: dict[str, list[str]] = {}
-    current_key = ""
-    for raw_line in text.splitlines():
-        line = raw_line.rstrip()
-        if not line.strip():
-            if current_key:
-                fields[current_key].append("")
-            continue
-        match = FIELD_PATTERN.match(line.strip())
-        if match:
-            current_key = match.group(1)
-            fields.setdefault(current_key, [])
-            first_value = match.group(2).strip()
-            if first_value:
-                fields[current_key].append(first_value)
-            continue
-        if current_key:
-            fields[current_key].append(line.strip())
-    return {key: "\n".join(value).strip() for key, value in fields.items()}
-
-
 def parse_template(text: str) -> dict[str, Any]:
-    fields = parse_fields(text)
+    fields = parse_template_fields(text)
+    template_kind = detect_template_kind(text)
     task_key = "实现治理任务" if "实现治理任务" in fields else "实现任务" if "实现任务" in fields else ""
     requirement_key = "治理需求" if "治理需求" in fields else "需求" if "需求" in fields else ""
     output = fields.get("输出物", "").strip()
@@ -62,15 +48,12 @@ def parse_template(text: str) -> dict[str, Any]:
         task_id = fields[task_key].strip().splitlines()[0].strip()
         if not TASK_ID_PATTERN.match(task_id):
             raise SystemExit(f"Invalid task id in {task_key}: {task_id}")
-        template_kind = FIELD_ALIASES[task_key]
         path_selected = "existing-task"
-        command = ["bash", "scripts/governed_intake.sh", "--task", task_id]
         prompt = ""
     elif requirement_key:
         requirement = fields[requirement_key].strip()
         if not requirement:
             raise SystemExit(f"Missing content for {requirement_key}.")
-        template_kind = FIELD_ALIASES[requirement_key]
         path_selected = "no-task-shaping"
         prompt_parts = [f"{requirement_key}：{requirement}"]
         if output:
@@ -79,7 +62,6 @@ def parse_template(text: str) -> dict[str, Any]:
             prompt_parts.append(f"限制：{constraints}")
         prompt_parts.append("先生成执行模板给我确认，不要直接执行。")
         prompt = "\n".join(prompt_parts)
-        command = ["bash", "scripts/governed_intake.sh", "--prompt", prompt]
         task_id = ""
     else:
         raise SystemExit("Template must contain one of: 需求：, 治理需求：, 实现任务：, 实现治理任务：")
@@ -93,13 +75,27 @@ def parse_template(text: str) -> dict[str, Any]:
         "output": output,
         "constraints": constraints,
         "template_fields": fields,
-        "governed_intake_command": command,
         "recommended_next_step": "Run the governed intake command, review the generated summary/template, then confirm explicitly.",
     }
 
 
 def default_run_id() -> str:
     return "template-adapter-" + datetime.now(timezone.utc).astimezone().strftime("%Y%m%d%H%M%S")
+
+
+def build_governed_intake_command(payload: dict[str, Any], run_id: str) -> list[str]:
+    command = ["bash", "scripts/governed_intake.sh", "--run-id", run_id]
+    if payload["path_selected"] == "existing-task":
+        command.extend(["--task", str(payload["task_id"])])
+    else:
+        command.extend(["--prompt", str(payload["prompt"])])
+    if payload.get("template_kind"):
+        command.extend(["--template-kind", str(payload["template_kind"])])
+    if payload.get("output"):
+        command.extend(["--output", str(payload["output"])])
+    if payload.get("constraints"):
+        command.extend(["--constraints", str(payload["constraints"])])
+    return command
 
 
 def main() -> int:
@@ -116,6 +112,7 @@ def main() -> int:
     run_id = args.run_id.strip() or default_run_id()
     run_root = INTAKE_DIR / run_id
     summary_path = run_root / "template-adapter-summary.json"
+    payload["governed_intake_command"] = build_governed_intake_command(payload, run_id)
     payload.update(
         {
             "run_id": run_id,
@@ -129,8 +126,10 @@ def main() -> int:
     write_json(summary_path, payload)
 
     if args.execute:
-        result = subprocess.run(payload["governed_intake_command"], cwd=ROOT, text=True)
+        result = subprocess.run(payload["governed_intake_command"], cwd=ROOT, capture_output=True, text=True)
         payload["governed_intake_exit_code"] = result.returncode
+        payload["governed_intake_stdout"] = result.stdout.strip()
+        payload["governed_intake_stderr"] = result.stderr.strip()
         payload["execution_state"] = "completed"
         write_json(summary_path, payload)
         print(relative_to_root(summary_path))

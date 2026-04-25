@@ -119,6 +119,8 @@ MANIFEST_OUTPUT="docs/exec-plans/active/${TASK_ID}-multi-agent-run.json"
 if [[ "${DRY_RUN}" == "true" ]]; then
   echo "[dry-run] python3 scripts/foreman.py preflight --task ${TASK_ID} --task-class standard --prompt \"Full-auto multi-agent orchestration for ${TASK_ID}.\""
   echo "[dry-run] instantiate ${TASK_ID} if it is not already active"
+  echo "[dry-run] python3 scripts/foreman.py compile-governance"
+  echo "[dry-run] python3 scripts/validate_codex_runtime.py"
   echo "[dry-run] bash scripts/multi_agent_autoplan.sh --task ${TASK_ID} --requirements-file|--prompt ..."
   echo "[dry-run] bash scripts/multi_agent_prepare.sh --task ${TASK_ID} --manifest ${MANIFEST_OUTPUT}"
   echo "[dry-run] bash scripts/multi_agent_launch.sh --manifest ${MANIFEST_OUTPUT}"
@@ -172,6 +174,9 @@ if [[ "${TASK_ACTIVE}" != "yes" ]]; then
   python3 scripts/foreman.py instantiate "${TASK_ID}"
   python3 scripts/foreman.py preflight --task "${TASK_ID}" --task-class standard --prompt "${PREFLIGHT_PROMPT}"
 fi
+
+python3 scripts/foreman.py compile-governance
+python3 scripts/validate_codex_runtime.py
 
 AUTOPLAN_CMD=(bash scripts/multi_agent_autoplan.sh --task "${TASK_ID}")
 if [[ -n "${REQUIREMENTS_FILE}" ]]; then

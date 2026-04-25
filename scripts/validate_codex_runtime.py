@@ -16,6 +16,7 @@ from typing import Dict, Iterator, List
 ROOT = Path(__file__).resolve().parent.parent
 CURRENT_TASK_PATH = ROOT / ".codex" / "state" / "current-task.json"
 SESSION_CONTEXT_PATH = ROOT / ".codex" / "state" / "session-context.json"
+CHAT_ROUTER_STATE_PATH = ROOT / ".codex" / "state" / "intake" / "chat-router-state.json"
 MASTER_PLAN_PATH = ROOT / "docs" / "plans" / "master-execution-plan.md"
 TASKS_PATH = ROOT / "tasks.md"
 TASKS_DONE_PATH = ROOT / "tasks-done.md"
@@ -33,6 +34,8 @@ PREPARE_SCRIPT_PATH = ROOT / "scripts" / "multi_agent_prepare.sh"
 LAUNCH_SCRIPT_PATH = ROOT / "scripts" / "multi_agent_launch.sh"
 COLLECT_SCRIPT_PATH = ROOT / "scripts" / "multi_agent_collect.sh"
 AUTOPLAN_SCRIPT_PATH = ROOT / "scripts" / "multi_agent_autoplan.sh"
+CHAT_ROUTER_SCRIPT_PATH = ROOT / "scripts" / "chat_native_router.py"
+GOVERNED_INTAKE_SCRIPT_PATH = ROOT / "scripts" / "governed_intake.sh"
 
 
 def run(command: list[str], stdin: str | None = None, timeout: int = 30) -> subprocess.CompletedProcess[str]:
@@ -248,7 +251,7 @@ def maybe_attempt_codex_exec() -> str:
 
 
 def main() -> int:
-    with preserved_state([CURRENT_TASK_PATH, SESSION_CONTEXT_PATH]):
+    with preserved_state([CURRENT_TASK_PATH, SESSION_CONTEXT_PATH, CHAT_ROUTER_STATE_PATH]):
         version_check = run(["codex", "--version"])
         expect(version_check.returncode == 0, version_check.stderr or "codex --version failed")
         mcp_policy_profile = validate_mcp_governance()
@@ -310,6 +313,62 @@ def main() -> int:
             bool(user_prompt_payload["hookSpecificOutput"].get("additionalContext")),
             "UserPromptSubmit hook did not emit additionalContext",
         )
+
+        expect(CHAT_ROUTER_SCRIPT_PATH.exists(), "chat-native router script is missing")
+        expect(GOVERNED_INTAKE_SCRIPT_PATH.exists(), "governed_intake.sh is missing")
+
+        router_preview = run(
+            [
+                "python3",
+                "scripts/chat_native_router.py",
+                "--prompt-text",
+                "实现治理任务：HARN-036\n输出物：脚本 / 文档 / 模板\n先生成执行模板给我确认，不要直接执行。",
+                "--run-id",
+                "runtime-router-validate",
+                "--json",
+            ]
+        )
+        expect(router_preview.returncode == 0, router_preview.stderr or router_preview.stdout)
+        router_preview_payload = json.loads(router_preview.stdout)
+        expect(router_preview_payload.get("handled") is True, "chat-native router did not handle governed template input")
+        expect(router_preview_payload.get("route") == "template-preview", "chat-native router did not select template-preview route")
+        intake_summary_path = ROOT / ".codex" / "state" / "intake" / "runtime-router-validate" / "intake-summary.json"
+        intake_summary = load_json(intake_summary_path)
+        expect(intake_summary.get("path_selected") == "existing-task", "existing-task template did not stay on existing-task path")
+        expect(bool(intake_summary.get("requirements_artifact_ref")), "existing-task intake did not generate a requirements artifact")
+        expect(bool(intake_summary.get("execution_preview_ref")), "governed intake did not persist execution preview json")
+        expect(bool(intake_summary.get("execution_preview_markdown_ref")), "governed intake did not persist execution preview markdown")
+        expect(intake_summary.get("execution_mode") == "single-agent", "existing-task intake should default to single-agent routing")
+        expect(intake_summary.get("output") == "脚本 / 文档 / 模板", "template output field was not propagated into intake summary")
+
+        router_confirm = run(
+            [
+                "python3",
+                "scripts/chat_native_router.py",
+                "--prompt-text",
+                "确认没问题，开始执行。\n限制：优先补测试；不要引入可写 MCP。",
+                "--confirm-dry-run",
+                "--json",
+            ]
+        )
+        expect(router_confirm.returncode == 0, router_confirm.stderr or router_confirm.stdout)
+        router_confirm_payload = json.loads(router_confirm.stdout)
+        expect(router_confirm_payload.get("handled") is True, "chat-native router did not handle confirmation input")
+        expect(router_confirm_payload.get("route") == "confirmation", "chat-native router did not select confirmation route")
+        intake_summary = load_json(intake_summary_path)
+        expect(intake_summary.get("final_outcome") == "dry_run_ready", "dry-run confirmation did not preserve dry_run_ready outcome")
+        expect("不要引入可写 MCP。" in str(intake_summary.get("constraints", "")), "confirmation constraints were not merged into intake summary")
+
+        routed_hook_payload = run_hook(
+            ".codex/hooks/user_prompt_submit.py",
+            {
+                "hook_event_name": "UserPromptSubmit",
+                "prompt": "实现治理任务：HARN-036\n输出物：脚本 / 文档 / 模板\n先生成执行模板给我确认，不要直接执行。",
+            },
+        )
+        expect("hookSpecificOutput" in routed_hook_payload, "UserPromptSubmit template route missing hookSpecificOutput")
+        routed_context = str(routed_hook_payload["hookSpecificOutput"].get("additionalContext", ""))
+        expect("execution preview" in routed_context.lower(), "UserPromptSubmit did not expose chat-native router preview context")
 
         pre_tool_payload = run_hook(
             ".codex/hooks/pre_tool_use.py",

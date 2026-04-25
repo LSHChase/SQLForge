@@ -87,6 +87,22 @@ python3 scripts/codex_template_adapter.py --template-text '<TEMPLATE>'
 
 该 adapter 只生成 `template-adapter-summary.json` 与推荐的 `governed_intake.sh` 命令；加 `--execute` 才会实际调用 intake。`HARN-033` 之后，adapter 输出稳定 `schema_version=2`，支持中文/英文冒号、多行需求正文、业务/治理/已有任务/已有治理任务四类模板。
 
+若希望把这条入口收敛成 chat-native router，使用：
+
+```bash
+python3 scripts/chat_native_router.py --prompt-text '<TEMPLATE>' --json
+```
+
+`HARN-036` 之后，`chat_native_router.py` 与 `UserPromptSubmit` hook 会优先识别：
+
+- `需求：...`
+- `治理需求：...`
+- `实现任务：...`
+- `实现治理任务：...`
+- `确认没问题，开始执行。`
+
+router 会自动记住 `run_id`，先调用 `codex_template_adapter.py` 与 `governed_intake.sh` 生成统一 execution preview；只有收到显式确认后，才会进入 `--confirm-run`。若确认句带 `限制：...`，约束会并入 intake summary、execution preview 与 requirements artifact。
+
 子 `codex exec` 的默认执行模式是 `SQLFORGE_CODEX_EXEC_MODE=bypass`。这意味着 task-shaping、governance review 和 downstream auto-foreman 会假设父级自动化已经由可信外部环境托管沙箱。如果需要强制子会话使用 Codex 自带沙箱，可改成 `full-auto`、`read-only`、`workspace-write` 或 `danger-full-access`。
 
 为了避免 candidate task id 污染主运行态，`requirements_to_plan.sh` 和 `task_materialize.sh` 内部用于 shaping/review 的子 `codex exec` 会默认禁用 `codex_hooks`。正式进入 materialization 之后，仍由 Main Foreman 重新执行标准 `preflight` / `instantiate` / `validate` / `closeout` 链。
@@ -158,7 +174,11 @@ python3 scripts/codex_template_adapter.py --template-text '<TEMPLATE>'
 此外，`governed_intake.sh` 会在 `.codex/state/intake/<RUN_ID>/` 下生成：
 
 - `intake-summary.json`
+- `execution-preview.json`
+- `execution-preview.md`
+- `requirements-artifact.md`（`existing-task` 路径强制生成；`no-task-shaping` 路径在 preview 中先引用 `raw-requirement.md`）
 - `healthcheck-summary.json`（若调用 `python3 scripts/governed_healthcheck.py --check`）
+- `template-adapter-summary.json`（若从 template adapter / chat-native router 进入）
 
 这些文件是运行态证据，不是长期 authority。
 
@@ -176,6 +196,41 @@ python3 scripts/codex_template_adapter.py --template-text '<TEMPLATE>'
 - `executed_commands` 用于审计本轮自动化实际调用了哪些命令。
 - `authority_fields_to_confirm` 用于把“要确认哪些权限/权威字段”结构化暴露给人类。
 - `suggested_integrity_checks` 用于把建议重跑的完整性检查命令写回 summary，而不是只留在终端文本里。
+
+## Unified Execution Preview Contract
+
+`HARN-036` 之后，intake preview 的固定字段至少包含：
+
+- `task_type`
+- `path_selected`
+- `execution_mode`
+- `formal_task_id`
+- `candidate_task_id`
+- `outputs`
+- `constraints`
+- `planned_agents`
+- `mcp`
+- `requirements_artifact_ref`
+- `validation_path`
+- `closeout_path`
+- `risks`
+- `confirm_run_command`
+- `wait_for_confirmation_text`
+
+execution preview 是确认前唯一标准界面；router、`governed_intake.sh` 与 downstream routing 都必须复用它，而不是各自输出不同格式的人类摘要。
+
+## Execution Mode Router
+
+`HARN-036` 之后，`governed_intake.sh` 会先决定 execution mode，再允许确认执行：
+
+- `single-agent`
+  - 默认路径，尤其适用于治理/脚本/文档类任务和 ownership 不值得切分的任务。
+  - `existing-task` 确认后不再强制进入 `multi_agent_full_auto.sh`；而是绑定 Main Foreman 当前会话，继续单 agent 实施。
+- `multi-agent-full-auto`
+  - 只在 routed input 明确要求 multi-agent，或边界明确可并行切 ownership 时启用。
+  - 进入该路径前，必须已有 requirements artifact。
+- `preview-only`
+  - 当 ownership / scope / routing signal 仍不清晰时，只生成 preview，不自动 materialize 或启动 execution。
 
 ## Candidate Task Pack Contract
 
@@ -241,15 +296,23 @@ bash scripts/governed_intake.sh --task <TASK_ID>
 该步骤会：
 
 1. 选择 `existing-task` 或 `no-task-shaping` 路径
-2. 生成 `intake-summary.json`
-3. 保留 `confirmation_state=awaiting-confirmation`
-4. 要求显式执行 `--confirm-run <RUN_ID>`
-5. 真实 `--confirm-run` 会先运行 `python3 scripts/governed_healthcheck.py --check`；若存在 tracked dirty、stale/conflict reservation 或 closeout tail drift，会直接停止
+2. 生成 `intake-summary.json`、`execution-preview.json`、`execution-preview.md`
+3. 对 `existing-task` 路径强制先生成 `requirements-artifact.md`，不得直接把 `--task` 透传给 `multi_agent_full_auto.sh`
+4. 决定 `single-agent` / `multi-agent-full-auto` / `preview-only`
+5. 保留 `confirmation_state=awaiting-confirmation`
+6. 要求显式执行 `--confirm-run <RUN_ID>`
+7. 真实 `--confirm-run` 会先运行 `python3 scripts/governed_healthcheck.py --check`；若存在 tracked dirty、stale/conflict reservation 或 closeout tail drift，会直接停止
 
 确认执行：
 
 ```bash
 bash scripts/governed_intake.sh --confirm-run <RUN_ID>
+```
+
+带追加约束的确认：
+
+```bash
+bash scripts/governed_intake.sh --confirm-run <RUN_ID> --constraints "优先补测试；不要引入可写 MCP。"
 ```
 
 ### 2. Generate Candidate Artifacts Directly
@@ -303,7 +366,9 @@ bash scripts/governed_full_cycle.sh --requirements-file <FILE>
 
 1. `requirements_to_plan`
 2. `task_materialize`
-3. `multi_agent_full_auto.sh --task <TASK_ID>`
+3. 根据 execution mode 进入：
+   - `single-agent` Main Foreman continuation
+   - 或 `multi_agent_full_auto.sh --task <TASK_ID> --requirements-file <ARTIFACT>`
 
 ## Stop Points
 

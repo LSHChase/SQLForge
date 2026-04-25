@@ -1327,3 +1327,16 @@
 2026-04-25T06:37:51-05:00 | HARN-035 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-04-25T06:37:51-05:00 | HARN-035 closeout commit | `R-168` | projected | `git commit -m 'feat(governance): add multi-agent read-only MCP profiles' (projected-precommit)`
 2026-04-25T06:37:51-05:00 | HARN-035 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-25T08:56:48-05:00 | HARN-036 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-25T08:56:48-05:00 | HARN-036 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-25T08:56:49-05:00 | HARN-036 validate | `R-133`, `R-168` | failed | `python3 scripts/validate_codex_runtime.py`
+2026-04-25T08:56:49-05:00 | HARN-036 validate | `R-133`, `R-168` | failed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-25T09:00:38-05:00 | HARN-036 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-25T09:00:38-05:00 | HARN-036 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-25T09:01:04-05:00 | HARN-036 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-25T09:01:04-05:00 | HARN-036 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-25T09:49:12-05:00 | HARN-036 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-25T09:49:12-05:00 | HARN-036 closeout commit | `R-168` | projected | `git commit -m 'feat(governance): harden governed intake execution routing' (projected-precommit)`
+2026-04-25T09:49:12-05:00 | HARN-036 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-25T09:49:12-05:00 | HARN-036 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`
+2026-04-25T09:49:12-05:00 | HARN-036 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/validate_codex_runtime.py (projected-precommit)`

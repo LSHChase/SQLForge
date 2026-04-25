@@ -13,7 +13,7 @@
 4. [Codex MCP Playbook](./codex-mcp-playbook.md)
    SQLForge 中使用 Codex + MCP 的只读接入边界、本地凭据/配置要求、manifest-level `mcp_profile` 约束、自动化入口与证据写回规则。
 5. [Requirements-To-Task Playbook](./requirements-to-task-playbook.md)
-   从无 task 开始的治理自动化入口，定义 Codex 日常输入模板、template adapter、runtime dashboard、`governed_intake`、`governed_healthcheck`、requirement normalization、candidate task pack、materialization gate 与 `governed_full_cycle` 流程。
+   从无 task 开始的治理自动化入口，定义 Codex 日常输入模板、chat-native router、template adapter、统一 execution preview、`governed_intake`、`governed_healthcheck`、requirement normalization、candidate task pack、materialization gate 与 `governed_full_cycle` 流程。
 6. [Multi-Agent Playbook](./multi-agent-playbook.md)
    多 agent 协作基础设施的角色边界、`mcp_profiles` / `mcp_profile` manifest 契约、manifest/worktree 规则、`autoplan/full-auto/prepare/launch/collect` 脚本用法与 SQLForge demo runbook。
 7. [Git And Task Closeout](./git-and-task-closeout.md)

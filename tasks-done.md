@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-036: 修复 governed intake / full-auto 入口治理与统一 execution preview 合同
+
+- Status: done
+- Completed at: 2026-04-25
+- Commit subject: `feat(governance): harden governed intake execution routing`
+- Priority: 1
+- Depends on: `HARN-028`,`HARN-035`
+- Scope: 在 `A-STORY-007` 下新增一个治理/工具 follow-up 任务，为 SQLForge 的 governed intake / full-auto 入口补齐 requirements artifact gate、统一 execution preview 合同、chat-native router 与 execution mode router，并把 `compile-governance` / `validate_codex_runtime` 提升为 full-auto 主路径硬门禁；不得让 router 在未显式确认前直接触发 `--confirm-run`，不得把 simple task 默认强制路由到 multi-agent，不得削弱 Main Foreman 唯一收口和现有只读 MCP 边界。 Tech: `DOCS`,`OPS`. Layer: `docs`,...
+- Plan ref: docs/exec-plans/completed/HARN-036-full-auto-execution-plan.md
+- Matrix context: Phase-A / Story `A-STORY-007` 从无 task 开始的治理自动化
+- Human confirmation point: 若要让 chat-native router 在未显式确认前直接触发 `--confirm-run`、把 simple task 默认强制路由到 multi-agent、弱化 execution preview 固定字段合同，或削弱 Main Foreman 唯一 write-back / validate / closeout 边界，需人工确认。
+- Data impact: governed intake / full-auto 入口脚本、template adapter / hook / router 运行态、execution preview 合同、run_id/confirmation 元数据、验证规则与相关文档索引；不直接修改业务运行时数据。
+- Rollback / recovery: 回退 requirements artifact gate、execution preview/router 与 full-auto 硬门禁改造：恢复 `HARN-028` / `HARN-035` 之前的 intake/full-auto 行为，移除新增 preview/router 合同与强制校验分支，并通过标准 validation 与 task-audit 证明 Main Foreman 唯一收口、只读 MCP 边界和审计链未被削弱。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-036、bash scripts/governed_intake.sh --help、bash scripts/multi_agent_full_auto.sh --help、bash -n scripts/governed_intake.sh、bash -n scripts/multi_agent_full_auto.sh、python3 -m py_compile scripts/codex_template_adapter.py .codex/hooks/user_prompt_submit.py scripts/validate_codex_runtime.py、python3 scripts/validate_codex_runtime.py、python3 scripts/task_audit.py --check --phase pre-closeout`
+  - `python3 scripts/foreman.py validate HARN-036`
+- Progress log:
+  - 2026-04-25: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added chat-native governed intake routing, unified execution preview, existing-task requirements artifact gating, execution-mode routing, and full-auto governance hard gates; aligned runtime validation and playbooks.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-036; python3 scripts/validate_codex_runtime.py; bash -n scripts/governed_intake.sh; bash -n scripts/multi_agent_full_auto.sh; node scripts/lint-repository-knowledge.js.
+  - Residual risk: HARN-037 read-only MCP onboarding/doctor changes still need to be restored and closed out separately; HARN-038 is not formalized in repo truth.
+  - Next step: Restore HARN-037 changes, revalidate, and close out under its own task boundary.
+
 ### HARN-035: 扩展 multi-agent 受控 mcp_profile 只读证据接入
 
 - Status: done
