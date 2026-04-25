@@ -227,19 +227,18 @@ def collect_story_catalog(master_plan: str) -> dict[str, dict]:
 
 
 def task_exists_anywhere(repo_root: Path, task_id: str) -> bool:
-    paths = [
-        repo_root / "docs" / "plans" / "master-execution-plan.md",
-        repo_root / "docs" / "plans" / "task-spec-matrix.md",
-        repo_root / "docs" / "plans" / "task-governance-extension-matrix.md",
-        repo_root / "tasks.md",
-        repo_root / "tasks-done.md",
-    ]
-    needle = f"`{task_id}`"
-    for path in paths:
+    patterns = {
+        repo_root / "docs" / "plans" / "master-execution-plan.md": rf"^\|\s*`{re.escape(task_id)}`\s*\|",
+        repo_root / "docs" / "plans" / "task-spec-matrix.md": rf"^\|\s*`{re.escape(task_id)}`\s*\|",
+        repo_root / "docs" / "plans" / "task-governance-extension-matrix.md": rf"^\|\s*`{re.escape(task_id)}`\s*\|",
+        repo_root / "tasks.md": rf"^###\s+{re.escape(task_id)}:",
+        repo_root / "tasks-done.md": rf"^###\s+{re.escape(task_id)}:",
+    }
+    for path, pattern in patterns.items():
         if not path.exists():
             continue
         text = path.read_text(encoding="utf-8")
-        if task_id in text or needle in text:
+        if re.search(pattern, text, re.MULTILINE):
             return True
     return False
 

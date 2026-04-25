@@ -31,6 +31,7 @@
 ## Validation Expectations
 
 - 仅执行只读命令
+- 若 runtime assignment 提供 `mcp_profile`，只允许读取外部只读证据，不得把 MCP 结果直接写成仓库真值
 - 若发现需要验证的实现缺口，只报告，不修复
 
 ## Collaboration Rule

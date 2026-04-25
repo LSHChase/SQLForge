@@ -84,7 +84,7 @@
   质量门禁、Java 规范治理与前后端分离检查基线。
 - `operations/`
   Foreman 工作流、人类协作、本地开发、任务关闭与工程规则。
-  - `codex-mcp-playbook.md`：Codex 在 SQLForge 中使用 MCP 的只读边界、自动化入口和本地接入手册。
+  - `codex-mcp-playbook.md`：Codex 在 SQLForge 中使用 MCP 的只读边界、manifest-level `mcp_profile` 约束、自动化入口和本地接入手册。
 - `agent-prompts/`
   多 agent 协作使用的角色 prompt 模板，由 Main Foreman / launcher 读取，不替代 `docs/` 与台账真值。
   - `auto-planner.md`：把需求输入转换为 exec plan 与 manifest 的全自动规划模板。
@@ -188,9 +188,11 @@
 ## 2026-04-25 MCP 治理增量
 
 - [Connector 与 MCP 安全边界](./security/connectors.md)
-  固化 SQLForge 当前 MCP 治理基线、第一批只读 category、禁用 server 类型和 connector intake / validation checklist。
+  固化 SQLForge 当前 MCP 治理基线、第一批只读 category、禁用 server 类型、manifest-level `mcp_profile` 角色边界和 connector intake / validation checklist。
 - [Codex MCP 使用手册](./operations/codex-mcp-playbook.md)
-  固化 SQLForge 内部使用 Codex + MCP 的本地接入方式、自动化入口、证据写回规则和 `mcp_profile` 延后边界。
+  固化 SQLForge 内部使用 Codex + MCP 的本地接入方式、自动化入口、证据写回规则，以及单 agent / multi-agent `mcp_profile` 的当前边界。
+- [多 agent 协作手册](./operations/multi-agent-playbook.md)
+  固化 `mcp_profiles` / `mcp_profile` manifest 契约、`explorer / validator` 的只读证据边界，以及 `prepare/launch/collect/full-auto` 的治理约束。
 
 后续开始任何非 trivial 编码任务时，优先阅读顺序调整为：
 
@@ -206,4 +208,4 @@
 10. [Task 治理扩展矩阵](./plans/task-governance-extension-matrix.md)
 11. 根级任务台账与人工决策入口：`tasks.md` / `tasks-done.md` / `INBOX.md`
 
-若任务涉及 MCP / 外部 connector，还必须追加阅读 [Connector 与 MCP 安全边界](./security/connectors.md) 与 [Codex MCP 使用手册](./operations/codex-mcp-playbook.md)。
+若任务涉及 MCP / 外部 connector，还必须追加阅读 [Connector 与 MCP 安全边界](./security/connectors.md) 与 [Codex MCP 使用手册](./operations/codex-mcp-playbook.md)；若同时涉及 multi-agent `mcp_profile`，再追加阅读 [多 agent 协作手册](./operations/multi-agent-playbook.md)。

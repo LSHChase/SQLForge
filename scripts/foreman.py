@@ -72,11 +72,12 @@ TASK_POLICY = {
     "delivery": {"requires_ledger": True, "delivery_scope": True},
 }
 CURRENT_TASK_SCHEMA_VERSION = 2
-MCP_RULE_IDS = ["R-170", "R-171", "R-172", "R-173"]
-MCP_VALIDATION_RULE_IDS = ["R-170", "R-171", "R-172", "R-173"]
+MCP_RULE_IDS = ["R-170", "R-171", "R-172", "R-173", "R-174", "R-175", "R-176"]
+MCP_VALIDATION_RULE_IDS = ["R-170", "R-171", "R-172", "R-173", "R-174", "R-175", "R-176"]
 MCP_POLICY_DOCS = [
     "docs/security/connectors.md",
     "docs/operations/codex-mcp-playbook.md",
+    "docs/operations/multi-agent-playbook.md",
     "docs/README.md",
     "docs/operations/README.md",
 ]
@@ -126,6 +127,9 @@ MCP_AUTOMATION_ENTRYPOINTS = [
     "python3 scripts/foreman.py compile-governance",
     "python3 scripts/validate_codex_runtime.py",
     "python3 scripts/foreman.py validate <TASK_ID>",
+    "bash scripts/multi_agent_prepare.sh --task <TASK_ID> --manifest <FILE>",
+    "bash scripts/multi_agent_launch.sh --manifest <FILE>",
+    "bash scripts/multi_agent_collect.sh --manifest <FILE>",
 ]
 
 TASK_HEADER_PATTERN = re.compile(r"^###\s+([A-Z0-9-]+):\s+(.+)$", re.MULTILINE)
@@ -911,17 +915,20 @@ def mcp_policy_payload() -> Dict[str, Any]:
     blueprint = read_text(BLUEPRINT_PATH)
     connectors_path = DOCS_DIR / "security" / "connectors.md"
     playbook_path = DOCS_DIR / "operations" / "codex-mcp-playbook.md"
+    multi_agent_playbook_path = DOCS_DIR / "operations" / "multi-agent-playbook.md"
     connectors = read_text(connectors_path)
     playbook = read_text(playbook_path)
+    multi_agent_playbook = read_text(multi_agent_playbook_path)
     return {
         "metadata": {
             "blueprint_sha256": hash_text(blueprint),
             "connectors_sha256": hash_text(connectors),
             "playbook_sha256": hash_text(playbook),
+            "multi_agent_playbook_sha256": hash_text(multi_agent_playbook),
         },
         "scope": {
-            "task_id": "HARN-034",
-            "profile": "single-agent-read-only-baseline",
+            "task_id": "HARN-035",
+            "profile": "multi-agent-read-only-evidence",
             "approved_access_mode": "read-only",
             "external_evidence_requires_repo_writeback": True,
         },
@@ -930,6 +937,7 @@ def mcp_policy_payload() -> Dict[str, Any]:
             "rulebook": relative_path(DOCS_DIR / "rules" / "codex-rules.md"),
             "validation_rulebook": relative_path(DOCS_DIR / "quality" / "validation-rules.md"),
             "local_runtime_config": relative_path(CODEX_DIR / "config.toml"),
+            "multi_agent_manifest_template": relative_path(DOCS_DIR / "exec-plans" / "templates" / "multi-agent-run.template.json"),
         },
         "rules": MCP_RULE_IDS,
         "validation_rules": MCP_VALIDATION_RULE_IDS,
@@ -937,17 +945,26 @@ def mcp_policy_payload() -> Dict[str, Any]:
         "forbidden_server_types": MCP_FORBIDDEN_SERVER_TYPES,
         "runtime_constraints": {
             "allow_repo_tracked_mcp_config": False,
-            "allow_repo_tracked_mcp_profile": False,
+            "allow_repo_tracked_mcp_profile": True,
+            "allow_repo_tracked_server_inventory": False,
             "allow_repo_stored_secrets": False,
             "main_foreman_is_only_writeback_entry": True,
-            "multi_agent_mcp_profile_enabled": False,
+            "multi_agent_mcp_profile_enabled": True,
+        },
+        "multi_agent_contract": {
+            "manifest_registry_key": "mcp_profiles",
+            "per_agent_profile_key": "mcp_profile",
+            "allowed_roles": ["explorer", "validator"],
+            "disallowed_roles": ["worker"],
+            "allowed_profile_sources": ["local-user-config", "env", "external-secret-store"],
+            "local_profile_resolution_order": ["agent.profile", "agent.mcp_profile"],
         },
         "automation_entrypoints": MCP_AUTOMATION_ENTRYPOINTS,
         "human_confirmation_required_for": [
             "write-capable MCP",
             "repo-tracked MCP server inventory",
             "repo-tracked credentials or tokens",
-            "multi-agent mcp_profile enablement",
+            "worker or Main Foreman MCP execution",
             "MCP bypass of validate / closeout / write-back",
         ],
     }

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-本手册定义 SQLForge 的多 agent 协作基础设施，覆盖 `semi-auto` 与 `full-auto` 两条路径。目标是在不引入第二套长期真值、不依赖隐式 subagent、不破坏既有 `foreman` / `task_audit` / `closeout` 审计链的前提下，让 Main Foreman 通过多个 `codex exec` 会话和多个 `git worktree` 并行推进复杂任务。
+本手册定义 SQLForge 的多 agent 协作基础设施，覆盖 `semi-auto` 与 `full-auto` 两条路径。目标是在不引入第二套长期真值、不依赖隐式 subagent、不破坏既有 `foreman` / `task_audit` / `closeout` 审计链的前提下，让 Main Foreman 通过多个 `codex exec` 会话和多个 `git worktree` 并行推进复杂任务，并在 `HARN-035` 之后为 `explorer / validator` 提供受控 `mcp_profile` 只读证据能力。
 
 本手册只适用于跨模块、可明确切 ownership、值得并行化的复杂任务。简单任务继续使用单 `codex` + `foreman` 工作流。
 
@@ -14,6 +14,7 @@
 - 多 agent 的默认技术载体是多个 `codex exec` 会话，不依赖隐式 subagent。
 - 可写 agent 使用独立 `git worktree`；只读 explorer 可复用主 worktree。
 - 整轮协作由一个 manifest 驱动。
+- manifest 可以声明 top-level `mcp_profiles` registry，并且只允许 `explorer / validator` 通过 per-agent `mcp_profile` 读取只读外部证据。
 - prompt 通过 `docs/agent-prompts/*.md` 模板化，不依赖每轮手工拼 prompt。
 - worker 只交变更文件列表、实现摘要、已执行验证、residual risk；最终 fan-in、validate、audit、closeout 都由 Main Foreman 完成。
 - `full-auto` 只是把“需求输入 -> exec plan/manifest 生成 -> 多 agent 协作 -> autonomous Main Foreman 收口”自动化；它不改变 Main Foreman 唯一收口、`foreman validate` / `task_audit` / `closeout` 仍然强制的治理事实。
@@ -38,6 +39,7 @@
 ### Main Foreman
 
 - 负责 task shaping、manifest 审核、ownership 分配、冲突处理、fan-in、最终验证、台账更新和 closeout。
+- 不得在 manifest 中声明或消费 `mcp_profile`。
 - 唯一允许修改：
   - `tasks.md`
   - `tasks-done.md`
@@ -61,16 +63,19 @@
 - 只读，不改文件。
 - 输出事实核对、边界盘点、验证建议或 residual risk。
 - 默认可复用主 worktree。
+- 可以声明 `mcp_profile`，但只能读取 manifest 允许的只读外部证据 category。
 
 ### Worker
 
 - 只在 manifest 指定的 ownership 内改动。
+- 不得声明 `mcp_profile`。
 - 不得修改台账、validation log 或 closeout 文档。
 - 不得自行 closeout、归档、宣告任务单独完成。
 
 ### Validator
 
 - 默认只验证，不主动改实现。
+- 可以声明 `mcp_profile`，但只能读取 manifest 允许的只读外部证据 category。
 - 如验证暴露实现问题，只输出失败点、证据和建议，不直接修代码，除非 Main Foreman 重新分派为 worker。
 
 ### Auto Foreman
@@ -78,11 +83,14 @@
 - 是 `full-auto` 模式下的 autonomous Main Foreman。
 - 读取需求、自动生成的 exec plan、manifest、collect summary 与仓库真值后继续做 fan-in、验证与 closeout。
 - 仍然只能按 Main Foreman 规则行动，不能绕过治理链。
+- 不得在 manifest 中声明或消费 `mcp_profile`。
 
 ## Non-Negotiable Rules
 
 - worker 必须有明确 ownership。
 - 两个 worker 的 ownership 不允许重叠。
+- 只有 `explorer / validator` 可以声明 `mcp_profile`；`worker`、Main Foreman 和 Auto Foreman 一律不得声明。
+- `mcp_profiles` 只能保存符号化元数据，不得包含 live server inventory、token、endpoint 或其他 secret。
 - forbidden paths 至少包含：
   - `tasks.md`
   - `tasks-done.md`
@@ -95,6 +103,7 @@
   - residual risk
 - explorer 若产生文件改动，视为越界。
 - validator 若主动改实现，视为越界。
+- collect 若发现非 `explorer / validator` 角色声明 `mcp_profile`，必须直接 reject。
 - `.codex/` 下的多 agent 运行态文件仅是 runtime artifact，不是长期真值。
 - `full-auto` 不得绕过 task shaping、preflight、instantiate、validate、task audit 或 closeout。
 
@@ -143,11 +152,13 @@
 - `task_id`
 - `mode`
 - `main_worktree`
+- `mcp_profiles`
 - `agents`
 - `name`
 - `role`
 - `worktree`
 - `prompt_file`
+- `mcp_profile`
 - `ownership`
 - `forbidden_paths`
 - `validation_scope`
@@ -169,6 +180,29 @@
 - per-agent `profile`
 - per-agent `extra_args`
 - per-agent `notes`
+
+### MCP Extension
+
+当 manifest 需要受控 MCP 只读证据面时，必须遵守以下合同：
+
+- top-level `mcp_profiles` 是 registry，而不是 live server inventory。
+- 每个 profile 只允许声明：
+  - `source`
+  - `allowed_roles`
+  - `allowed_categories`
+  - `notes`
+- `source` 只能是：
+  - `local-user-config`
+  - `env`
+  - `external-secret-store`
+- `allowed_categories` 只能来自当前 4 个只读 category：
+  - `observability_logs`
+  - `deployment_evidence`
+  - `object_storage_metadata`
+  - `external_requirements_tickets`
+- per-agent `mcp_profile` 只能分配给 `explorer / validator`。
+- `worker` 不得声明 `mcp_profile`，也不得通过 `profile` 字段伪装成 MCP 写角色。
+- launcher 解析 Codex profile 时，优先使用 `agent.profile`；若未声明，再回退到 `agent.mcp_profile`。
 
 `full-auto` 推荐额外写入：
 
@@ -208,6 +242,8 @@ auto-planner 的输出必须满足：
 
 - 只生成任务级 plan 与 manifest，不直接改台账。
 - manifest 必须复用现有 prompt 模板。
+- 若生成 `mcp_profiles` / `mcp_profile`，只能输出符号化只读 metadata，不得输出 live servers 或 secrets。
+- `worker` 不得被分配 `mcp_profile`，且 `explorer / validator` 的 `mcp_profile` 必须引用已声明 registry。
 - worker forbidden paths 必须覆盖治理禁区。
 - worker ownership 不得重叠。
 - 生成结果只落在 `docs/exec-plans/active/` 与 `.codex/state/multi-agent/<TASK_ID>/`。
@@ -270,6 +306,7 @@ prepare 必须检查：
 - 任务已 instantiate 且仍在 `tasks.md`
 - manifest `task_id` 与当前任务一致
 - manifest `mode` 属于 `semi-auto` 或 `full-auto`
+- 若声明 `mcp_profiles` / `mcp_profile`，其结构、角色和 category 必须满足只读合同
 - 当前无其他 active repo-side mainline 污染本轮
 - ownership 不重叠
 - worker 的 forbidden paths 覆盖治理禁区
@@ -297,6 +334,8 @@ launch 会：
 - 按模板渲染 prompt
 - 为每个 agent 生成可复跑的 launch script
 - 调用 `codex exec -C <worktree> ...`
+- 把 `mcp_profile`、source、allowed categories 和只读边界写入 runtime assignment
+- 按 `agent.profile -> agent.mcp_profile` 顺序解析子会话 profile
 - 记录 agent 名称、角色、worktree、日志路径、last-message 路径和 pid
 
 ### 6. Collect
@@ -312,6 +351,8 @@ collect 会：
 - 汇总每个 agent 的状态
 - 读取各 worktree changed files
 - 检查 ownership / forbidden path 越界
+- 记录每个 agent 的 `mcp_profile`
+- 拒收任何非 `explorer / validator` 的 MCP 越界
 - 输出 `acceptable patches`、`rejected patches`、冲突列表和建议 Main Foreman 下一步动作
 
 ### 7. Fan-In
@@ -331,6 +372,8 @@ Main Foreman 按 collect 输出执行：
 
 ```bash
 python3 scripts/foreman.py preflight
+python3 scripts/foreman.py compile-governance
+python3 scripts/validate_codex_runtime.py
 bash scripts/multi_agent_prepare.sh --task <TASK_ID> --manifest "$TASK_MANIFEST"
 bash scripts/multi_agent_launch.sh --manifest "$TASK_MANIFEST"
 bash scripts/multi_agent_collect.sh --manifest "$TASK_MANIFEST"
@@ -366,6 +409,16 @@ python3 scripts/task_audit.py --check --phase post-closeout
 
 - collect 标记为 reject。
 - Main Foreman 不得直接吸收该 patch。
+
+### Invalid MCP Profile Contract
+
+- prepare 直接失败。
+- Main Foreman 必须先修正 `mcp_profiles` / `mcp_profile`，再重跑 prepare。
+
+### MCP Boundary Violation
+
+- collect 标记为 reject。
+- Main Foreman 必须移除错误角色的 `mcp_profile` 或回退 manifest，再重新 launch / collect。
 
 ### Agent Still Running
 

@@ -39,6 +39,8 @@
 - 生成的 worker ownership 不得重叠
 - `prompt_file` 必须引用仓库内已存在的模板
 - `mode` 必须是 `full-auto`
+- 只有 `explorer` / `validator` 可以声明 `mcp_profile`
+- 若 manifest 使用 MCP，必须同时返回顶层 `mcp_profiles` registry，且只允许 symbolic profile 名称、允许 category 和 source，不能包含 live server 或 secret
 
 ## Collaboration Rule
 

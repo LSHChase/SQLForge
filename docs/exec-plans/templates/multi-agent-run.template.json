@@ -12,12 +12,29 @@
     "color": "never",
     "extra_args": []
   },
+  "mcp_profiles": {
+    "readonly-evidence": {
+      "source": "local-user-config",
+      "allowed_roles": [
+        "explorer",
+        "validator"
+      ],
+      "allowed_categories": [
+        "observability_logs",
+        "deployment_evidence",
+        "object_storage_metadata",
+        "external_requirements_tickets"
+      ],
+      "notes": "Symbolic profile only. Resolve live servers and secrets outside the repository."
+    }
+  },
   "agents": [
     {
       "name": "truth-explorer",
       "role": "explorer",
       "worktree": ".",
       "prompt_file": "docs/agent-prompts/truth-explorer.md",
+      "mcp_profile": "readonly-evidence",
       "ownership": [],
       "forbidden_paths": [
         "tasks.md",
@@ -58,6 +75,7 @@
       "role": "validator",
       "worktree": ".",
       "prompt_file": "docs/agent-prompts/validator.md",
+      "mcp_profile": "readonly-evidence",
       "ownership": [],
       "forbidden_paths": [
         "tasks.md",

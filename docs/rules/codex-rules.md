@@ -807,7 +807,7 @@ messaging:
 - `sql/init-schema.sql`、`sql/migrations/`、DDL 设计文档、持久化评审结论和后续 schema 变更任务，都不得再把外键约束作为默认设计手段。
 - 若现有历史 schema 仍残留外键约束，必须按专项任务治理移除；在完成移除前，新增或修改表结构时也不得继续扩散新的外键约束。
 
-## MCP 治理与 Connector 边界（R-170 至 R-173）
+## MCP 治理与 Connector 边界（R-170 至 R-176）
 
 ### R-170 MCP 治理基线与只读起步
 
@@ -839,18 +839,46 @@ messaging:
   - 非 secret 占位说明
   - 本地接入步骤
   - 编译后的非 secret policy artifact
-- 在 `HARN-034` 基线阶段，不得把 repo-tracked `mcp_profile`、live server inventory 或 repo-owned MCP runtime config 写入 `.codex/config.toml`、manifest、模板或其他默认执行入口；若要启用，必须以单独 formal task 和人工确认推进。
+- `HARN-035` 之后，repo-tracked manifest/template 可以声明符号化 `mcp_profiles` / `mcp_profile`，但仅限：
+  - `explorer / validator`
+  - 只读 category
+  - 非 secret metadata
+- `.codex/config.toml`、repo-tracked runtime config 与 manifest/template 仍不得保存 live server inventory、token、endpoint、tenant-specific secret 或其他 repo-owned MCP runtime config。
 
 ### R-173 MCP 自动化编译与 Main Foreman 写边界
 
 - 只要仓库声明了 MCP 治理基线，`python3 scripts/foreman.py compile-governance` 就必须编译出 `.codex/policy/mcp-policy.json`，把允许 category、禁用能力、运行时约束和自动化入口冻结为机器可检查 policy。
 - `python3 scripts/validate_codex_runtime.py` 必须校验 `mcp-policy.json`、关联文档索引和 repo-tracked runtime config 边界，防止 MCP 治理只停留在文档描述层。
 - Main Foreman 仍是唯一允许 write-back / validate / closeout / delivery-closeout 的入口；MCP 只能读取外部证据，不能绕过 `foreman`、`task_audit`、`closeout` 或直接替代人类确认与仓库审计链。
-- 任何要把 MCP 从只读提升为可写、把 `mcp_profile` 引入 multi-agent manifest、或允许外部 MCP 驱动远端状态变更的需求，都必须新开 formal task，并在规则、验证规则、playbook 与 policy artifact 中同步落地。
+- 任何要把 MCP 从只读提升为可写、把 `mcp_profile` 扩展到 `worker` / Main Foreman / Auto Foreman、允许 repo-tracked live server inventory、或允许外部 MCP 驱动远端状态变更的需求，都必须新开 formal task，并在规则、验证规则、playbook 与 policy artifact 中同步落地。
+
+### R-174 Multi-Agent `mcp_profiles` / `mcp_profile` Manifest 合同
+
+- multi-agent manifest 若声明 MCP，只允许通过 top-level `mcp_profiles` registry 和 per-agent `mcp_profile` 表达。
+- `mcp_profiles` 只能保存符号化 metadata：
+  - `source`
+  - `allowed_roles`
+  - `allowed_categories`
+  - `notes`
+- `mcp_profiles.allowed_roles` 只允许 `explorer`、`validator`；`worker` 不得声明 `mcp_profile`。
+- `mcp_profiles.allowed_categories` 只允许当前已批准的 4 个只读 category；不得通过 manifest 隐式增加第五类 category 或写能力。
+
+### R-175 Multi-Agent `prepare` / `launch` / `collect` MCP 边界
+
+- `multi_agent_prepare.sh` 必须校验 `mcp_profiles` / `mcp_profile` 的结构、角色与 category，并在 `worker` 或其他越界角色声明 `mcp_profile` 时直接失败。
+- `multi_agent_launch.sh` 只能把 `mcp_profile` 作为只读外部证据 metadata 注入 runtime assignment；不得借此为子会话写入 repo-owned live server inventory 或 secret。
+- `multi_agent_collect.sh` 必须记录 agent 的 `mcp_profile`，并对非 `explorer / validator` 的 MCP 使用、explorer/validator 的文件改动或其他边界违规做 reject。
+- Main Foreman 只能基于 collect summary 决定 fan-in；不得把 explorer/validator 的 MCP 结果直接视为仓库真值。
+
+### R-176 Auto-Planner / Full-Auto MCP 合同
+
+- `multi_agent_autoplan.sh` 若生成 MCP 相关 manifest 字段，只能生成符合 `R-174` 的符号化 `mcp_profiles` / `mcp_profile`，不得输出 live server inventory、secret 或写能力。
+- auto-planner 不得把 `mcp_profile` 分配给 `worker`，也不得绕过 forbidden paths、ownership 或 Main Foreman 唯一收口边界。
+- `multi_agent_full_auto.sh` 与 Auto Foreman 只能在 collect 之后消费 MCP 元数据与证据摘要；validate、task-audit、closeout、commit 仍只能由 Main Foreman 主链执行。
 
 ## Current Consumption Note (2026-04-20)
 
 - `R-001` 至 `R-115` 仍是初始化基线，语义来源保持 `docs/architecture/init.md` 不变。
-- `R-116` 至 `R-173` 是初始化后追加的验证、Java 规范、harness 治理与 MCP 治理规则。
+- `R-116` 至 `R-176` 是初始化后追加的验证、Java 规范、harness 治理与 MCP 治理规则。
 - 当前仓库执行时，若初始化文档中的目标落点路径与真实文档路径不一致，统一按 `docs/plans/document-truth-baseline.md` 中的漂移映射消费。
 - 本说明不新增规则编号，不改变既有规则语义，只补充当前仓库的实际消费顺序。

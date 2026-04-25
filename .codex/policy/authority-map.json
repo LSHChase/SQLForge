@@ -22,7 +22,7 @@
       "path": "docs/README.md",
       "title": "SQLForge Docs",
       "excerpt": "\u672c\u76ee\u5f55\u662f SQLForge \u7684\u552f\u4e00\u957f\u671f\u77e5\u8bc6\u5165\u53e3\uff0c\u9075\u5faa Harness Engineering \u4e0e `R-006` \u7684\u6587\u6863\u4f18\u5148\u987a\u5e8f\u3002",
-      "sha256": "1a49f7e4256b2ea57fd9398b94e522355cdbee3c17b6acee8b7d80e5eb1fe6f6"
+      "sha256": "ee2bcb9f7d75741e0b242224a0b1b0ae90e3845720acd483ad4df6644edfdeff"
     },
     {
       "path": "docs/plans/document-truth-baseline.md",
@@ -40,13 +40,13 @@
       "path": "docs/rules/codex-rules.md",
       "title": "Codex Rules",
       "excerpt": "\u672c\u6587\u4ef6\u4e3a append-only \u89c4\u5219\u8d26\u672c\uff0c\u57fa\u7ebf\u6765\u6e90\u4e3a `docs/architecture/init.md` \u7684 `R-001` \u81f3 `R-115`\uff0c\u540e\u7eed\u89c4\u5219\u6309\u8ffd\u52a0\u65b9\u5f0f\u6269\u5c55\u5230\u5f53\u524d\u7248\u672c\u3002",
-      "sha256": "3e9840d4295acfdea654794b4a900d08e11d94ee16827cf5e6a89b27a8583af6"
+      "sha256": "ad4f5a1e6f24ac3338a19f18978f16e3eebd167ed02458fc4dbd4498d47aee23"
     },
     {
       "path": "docs/quality/validation-rules.md",
       "title": "Validation Rules",
-      "excerpt": "\u672c\u6587\u4ef6\u72ec\u7acb\u6536\u5f55 `R-116` \u81f3 `R-173` \u7684\u9a8c\u8bc1\u89c4\u5219\uff0c\u5e76\u8865\u5145 `R-168` \u7684\u6267\u884c\u578b\u9a8c\u8bc1\u8854\u63a5\uff0c\u7528\u4e8e\u5feb\u901f\u67e5\u9605\u9636\u6bb5\u95e8\u7981\u3001\u4efb\u52a1\u9a8c\u8bc1\u3001\u56de\u5f52\u9a8c\u8bc1\u3001\u73af\u5883\u9a8c\u8bc1\u3001\u89c4\u5219\u81ea\u7ef4\u62a4\u3001\u81ea\u52a8\u89e6\u53d1\u9a8c\u8bc1\u89c4\u5219\u3001harness \u4efb\u52a1\u6cbb\u7406\u9a8c\u8bc1\u4e0e MCP \u6cbb\u7406\u9a8c\u8bc1\u3002",
-      "sha256": "281a072f7b729181022f7e6239eda3d43a23c27666fd0191bc86c4ef00a12337"
+      "excerpt": "\u672c\u6587\u4ef6\u72ec\u7acb\u6536\u5f55 `R-116` \u81f3 `R-176` \u7684\u9a8c\u8bc1\u89c4\u5219\uff0c\u5e76\u8865\u5145 `R-168` \u7684\u6267\u884c\u578b\u9a8c\u8bc1\u8854\u63a5\uff0c\u7528\u4e8e\u5feb\u901f\u67e5\u9605\u9636\u6bb5\u95e8\u7981\u3001\u4efb\u52a1\u9a8c\u8bc1\u3001\u56de\u5f52\u9a8c\u8bc1\u3001\u73af\u5883\u9a8c\u8bc1\u3001\u89c4\u5219\u81ea\u7ef4\u62a4\u3001\u81ea\u52a8\u89e6\u53d1\u9a8c\u8bc1\u89c4\u5219\u3001harness \u4efb\u52a1\u6cbb\u7406\u9a8c\u8bc1\u4e0e MCP \u6cbb\u7406\u9a8c\u8bc1\u3002",
+      "sha256": "66b2e574919955be05ca97b4ffcf077aa901d7ae5d68cbbdb0777182e5ed71a3"
     }
   ]
 }

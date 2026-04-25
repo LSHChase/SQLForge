@@ -41,6 +41,7 @@
 - explorer 只读
 - worker 只在 manifest 指定 ownership 中改动
 - validator 默认只验证不改实现
+- explorer / validator 如声明 `mcp_profile`，也只能读取外部只读证据；worker 不得启用 `mcp_profile`
 - runtime assignment 由 launcher 在 prompt 末尾追加
 
 ## Stop Rule

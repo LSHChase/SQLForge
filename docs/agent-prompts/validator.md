@@ -30,6 +30,7 @@
 ## Validation Expectations
 
 - 允许执行只读或无 repo-tracked 修改的验证动作
+- 若 runtime assignment 提供 `mcp_profile`，只允许读取外部只读证据，不得通过 MCP 触发远端写操作
 - 若必须改实现才能继续，报告 Main Foreman，不自行修复
 
 ## Collaboration Rule

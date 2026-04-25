@@ -1314,3 +1314,16 @@
 2026-04-25T05:28:25-05:00 | HARN-034 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`
 2026-04-25T05:28:25-05:00 | HARN-034 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
 2026-04-25T05:28:25-05:00 | HARN-034 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/validate_codex_runtime.py (projected-precommit)`
+2026-04-25T06:26:46-05:00 | HARN-035 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-25T06:26:46-05:00 | HARN-035 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-25T06:27:31-05:00 | HARN-035 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-25T06:27:31-05:00 | HARN-035 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-25T06:27:31-05:00 | HARN-035 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-25T06:35:09-05:00 | HARN-035 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-25T06:35:09-05:00 | HARN-035 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-25T06:35:54-05:00 | HARN-035 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-25T06:35:54-05:00 | HARN-035 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-25T06:35:54-05:00 | HARN-035 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-25T06:37:51-05:00 | HARN-035 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-25T06:37:51-05:00 | HARN-035 closeout commit | `R-168` | projected | `git commit -m 'feat(governance): add multi-agent read-only MCP profiles' (projected-precommit)`
+2026-04-25T06:37:51-05:00 | HARN-035 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

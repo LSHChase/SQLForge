@@ -368,6 +368,7 @@ rendered_prompt = (
     + f"- Collect summary: `{collect_summary.relative_to(repo_root).as_posix()}`\n"
     + f"- Collect json: `{collect_json.relative_to(repo_root).as_posix()}`\n"
     + "- Acceptance rule: only absorb patches that collect marked acceptable.\n"
+    + "- MCP rule: only explorer / validator may consume manifest-declared read-only mcp_profile evidence; worker must stay MCP-disabled.\n"
     + "- Closeout rule: you must still run foreman validate, pre-closeout audit, foreman closeout, and post-closeout audit.\n"
 )
 prompt_path = prompts_dir / "auto-foreman.md"

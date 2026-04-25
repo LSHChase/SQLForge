@@ -4,6 +4,39 @@
 
 ## Done
 
+### HARN-035: 扩展 multi-agent 受控 mcp_profile 只读证据接入
+
+- Status: done
+- Completed at: 2026-04-25
+- Commit subject: `feat(governance): add multi-agent read-only MCP profiles`
+- Priority: 1
+- Depends on: `HARN-034`
+- Scope: 在 `A-STORY-008` 下新增一个 follow-up 治理/工具任务，为 SQLForge multi-agent 基础设施增加受控 `mcp_profile` 只读证据接入能力，同时严格保持 Main Foreman 唯一收口、worker 禁改台账/closeout 文档和现有 worktree/ownership 审计边界不变。 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Plan ref: docs/exec-plans/completed/HARN-035-full-auto-execution-plan.md
+- Matrix context: Phase-A / Story `A-STORY-008` Codex MCP 治理接入
+- Human confirmation point: 若要把 `mcp_profile` 从 explorer / validator 的只读证据面扩展到 worker、允许任何角色通过 MCP 执行可写操作，或削弱 Main Foreman 唯一 write-back / validate / closeout 边界，需人工确认。
+- Data impact: multi-agent playbook、prompt 模板、manifest 契约、编排脚本与 `.codex/` 运行态元数据；不直接修改业务运行时数据。
+- Rollback / recovery: 回退 `mcp_profile` 合同改造：移除 multi-agent 文档、模板和脚本中的 MCP profile 字段与处理分支，恢复无 MCP profile 的现有 multi-agent 基线，并通过标准 validation 与 task-audit 证明收口链未被削弱。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-035 --include-task-audit`
+  - `python3 scripts/foreman.py compile-governance --check`
+  - `bash scripts/multi_agent_prepare.sh --help`
+  - `bash scripts/multi_agent_launch.sh --help`
+  - `bash scripts/multi_agent_collect.sh --help`
+  - `bash scripts/multi_agent_autoplan.sh --help`
+  - `bash scripts/multi_agent_full_auto.sh --help`
+  - `python3 scripts/validate_codex_runtime.py`
+  - `node scripts/lint-repository-knowledge.js`
+- Progress log:
+  - 2026-04-25: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-25: aligned MCP governance docs, rules, validation rules and playbooks with the `mcp_profiles` / `mcp_profile` multi-agent read-only evidence contract.
+  - 2026-04-25: compiled governance policy, passed multi-agent script syntax/help checks, passed `validate_codex_runtime.py`, and passed `python3 scripts/foreman.py validate HARN-035 --include-task-audit`.
+- Context closeout:
+  - Completed scope: Extended SQLForge MCP governance from the HARN-034 baseline to a governed multi-agent mcp_profiles/mcp_profile contract, updated docs, rules, playbooks, prompt templates, manifest template, orchestration scripts, compiled policy artifacts, and runtime validation so explorer/validator can consume read-only external evidence without weakening Main Foreman authority.
+  - Validation evidence: python3 scripts/foreman.py compile-governance; bash -n scripts/multi_agent_prepare.sh scripts/multi_agent_launch.sh scripts/multi_agent_collect.sh scripts/multi_agent_autoplan.sh scripts/multi_agent_full_auto.sh scripts/task_materialize.sh; python3 -m py_compile scripts/foreman.py scripts/validate_codex_runtime.py; bash scripts/multi_agent_prepare.sh --help; bash scripts/multi_agent_launch.sh --help; bash scripts/multi_agent_collect.sh --help; bash scripts/multi_agent_autoplan.sh --help; bash scripts/multi_agent_full_auto.sh --help; node scripts/lint-repository-knowledge.js; python3 scripts/validate_codex_runtime.py; python3 scripts/foreman.py validate HARN-035 --include-task-audit
+  - Residual risk: The repository still does not track live MCP servers, credentials, or writable MCP flows. worker/Main Foreman/Auto Foreman MCP execution remains intentionally disabled, and real codex exec availability can still depend on local authentication or environment readiness.
+  - Next step: Use the readonly-evidence manifest profile only for explorer/validator and keep real server resolution in local user config, env vars, or an external secret store; any writable or worker-facing MCP expansion requires a new formal task.
+
 ### HARN-034: 落地最小可用 MCP 治理底座与只读接入边界
 
 - Status: done

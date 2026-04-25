@@ -106,6 +106,11 @@ if not task_id:
 agents = manifest.get("agents")
 if not isinstance(agents, list) or not agents:
     fail("Manifest agents must be a non-empty array.")
+mcp_profiles = manifest.get("mcp_profiles", {})
+if mcp_profiles is None:
+    mcp_profiles = {}
+if not isinstance(mcp_profiles, dict):
+    fail("Manifest mcp_profiles must be an object when provided.")
 
 selected_agents = []
 for agent in agents:
@@ -146,6 +151,8 @@ for agent in selected_agents:
     role = str(agent["role"])
     worktree = resolve_repo_relative(repo_root, str(agent["worktree"]))
     prompt_file = resolve_repo_relative(repo_root, str(agent["prompt_file"]))
+    agent_mcp_profile = str(agent.get("mcp_profile", "")).strip()
+    mcp_profile_meta = mcp_profiles.get(agent_mcp_profile, {}) if agent_mcp_profile else {}
     if not prompt_file.exists():
         fail(f"Prompt template does not exist for {name}: {prompt_file}")
     if not dry_run and not worktree.exists():
@@ -162,6 +169,10 @@ for agent in selected_agents:
         + f"- Ownership: {json.dumps(agent.get('ownership', []), ensure_ascii=True)}\n"
         + f"- Forbidden Paths: {json.dumps(agent.get('forbidden_paths', []), ensure_ascii=True)}\n"
         + f"- Validation Scope: {json.dumps(agent.get('validation_scope', []), ensure_ascii=True)}\n"
+        + f"- MCP Profile: {json.dumps(agent_mcp_profile or 'none', ensure_ascii=True)}\n"
+        + f"- MCP Profile Source: {json.dumps(mcp_profile_meta.get('source', 'none'), ensure_ascii=True)}\n"
+        + f"- MCP Allowed Categories: {json.dumps(mcp_profile_meta.get('allowed_categories', []), ensure_ascii=True)}\n"
+        + "- MCP Boundary: read-only external evidence only; no remote mutation and no repo write-back.\n"
         + f"- Notes: {json.dumps(agent.get('notes', ''), ensure_ascii=True)}\n"
         + "- Required final format:\n"
         + "  - Changed files\n"
@@ -185,8 +196,11 @@ for agent in selected_agents:
     else:
         command.extend(["--sandbox", default_sandbox])
     command.extend(default_extra_args)
-    if agent.get("profile"):
-        command.extend(["-p", str(agent["profile"])])
+    effective_profile = str(agent.get("profile", "")).strip()
+    if effective_profile:
+        command.extend(["-p", effective_profile])
+    elif agent_mcp_profile:
+        command.extend(["-p", agent_mcp_profile])
     if agent.get("model"):
         command.extend(["-m", str(agent["model"])])
     if agent.get("extra_args"):
@@ -209,6 +223,10 @@ for agent in selected_agents:
         "console_log_path": str(console_log_path),
         "launch_script_path": str(launch_script_path),
         "command": command,
+        "mcp_profile": agent_mcp_profile,
+        "mcp_allowed_categories": list(mcp_profile_meta.get("allowed_categories", [])),
+        "mcp_source": str(mcp_profile_meta.get("source", "")),
+        "effective_codex_profile": effective_profile or agent_mcp_profile,
         "launched_at": now_iso(),
         "dry_run": dry_run,
     }

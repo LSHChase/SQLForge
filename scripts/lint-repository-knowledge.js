@@ -97,13 +97,13 @@ const requiredReadmeMarkers = [
   'docs/plans/codex-governance-integration-blueprint.md'
 ]
 
-const expectedRuleEnd = 173
+const expectedRuleEnd = 176
 const expectedValidationIndexRanges = [
   [116, 144],
   [151, 154],
   [156, 161],
   [168, 168],
-  [170, 173]
+  [170, 176]
 ]
 const requiredMessagingConfigs = [
   'governance/src/main/resources/application-dev.yml',
@@ -431,6 +431,8 @@ function ensureMcpGovernanceDocs(errors, checks) {
   const connectorsPath = 'docs/security/connectors.md'
   const playbookPath = 'docs/operations/codex-mcp-playbook.md'
   const policyPath = '.codex/policy/mcp-policy.json'
+  const manifestTemplatePath = 'docs/exec-plans/templates/multi-agent-run.template.json'
+  const multiAgentPlaybookPath = 'docs/operations/multi-agent-playbook.md'
   const missingFiles = [connectorsPath, playbookPath, policyPath].filter(item => !pathExists(item))
   if (missingFiles.length > 0) {
     errors.push(`MCP governance baseline files missing:\n- ${missingFiles.join('\n- ')}`)
@@ -446,7 +448,8 @@ function ensureMcpGovernanceDocs(errors, checks) {
     'SSH',
     'K8s',
     '数据库执行型',
-    'Main Foreman'
+    'Main Foreman',
+    'explorer / validator'
   ]
   const missingConnectorMarkers = connectorMarkers.filter(marker => !connectorsContent.includes(marker))
   if (missingConnectorMarkers.length > 0) {
@@ -461,6 +464,7 @@ function ensureMcpGovernanceDocs(errors, checks) {
     'mcp-policy.json',
     'Main Foreman',
     'mcp_profile',
+    'explorer/validator',
     'compile-governance',
     'validate_codex_runtime.py'
   ]
@@ -493,11 +497,69 @@ function ensureMcpGovernanceDocs(errors, checks) {
 
   const runtimeConstraints = policy.runtime_constraints || {}
   if (
-    runtimeConstraints.allow_repo_tracked_mcp_profile !== false ||
-    runtimeConstraints.multi_agent_mcp_profile_enabled !== false ||
+    runtimeConstraints.allow_repo_tracked_mcp_profile !== true ||
+    runtimeConstraints.allow_repo_tracked_mcp_config !== false ||
+    runtimeConstraints.allow_repo_tracked_server_inventory !== false ||
+    runtimeConstraints.allow_repo_stored_secrets !== false ||
+    runtimeConstraints.multi_agent_mcp_profile_enabled !== true ||
     runtimeConstraints.main_foreman_is_only_writeback_entry !== true
   ) {
-    errors.push('mcp-policy.json runtime constraints drifted from the HARN-034 boundary')
+    errors.push('mcp-policy.json runtime constraints drifted from the HARN-035 read-only multi-agent boundary')
+    return
+  }
+
+  if (policy.scope?.profile !== 'multi-agent-read-only-evidence') {
+    errors.push('mcp-policy.json scope.profile must remain multi-agent-read-only-evidence')
+    return
+  }
+
+  const missingMultiAgentFiles = [manifestTemplatePath, multiAgentPlaybookPath].filter(item => !pathExists(item))
+  if (missingMultiAgentFiles.length > 0) {
+    errors.push(`Multi-agent MCP contract files missing:\n- ${missingMultiAgentFiles.join('\n- ')}`)
+    return
+  }
+
+  const multiAgentPlaybook = readFile(multiAgentPlaybookPath)
+  const multiAgentMarkers = ['mcp_profile', 'mcp_profiles', 'explorer / validator', 'worker']
+  const missingMultiAgentMarkers = multiAgentMarkers.filter(marker => !multiAgentPlaybook.includes(marker))
+  if (missingMultiAgentMarkers.length > 0) {
+    errors.push(`docs/operations/multi-agent-playbook.md missing MCP multi-agent markers:\n- ${missingMultiAgentMarkers.join('\n- ')}`)
+    return
+  }
+
+  let manifestTemplate
+  try {
+    manifestTemplate = JSON.parse(readFile(manifestTemplatePath))
+  } catch (error) {
+    errors.push(`Unable to parse ${manifestTemplatePath}: ${error.message}`)
+    return
+  }
+
+  const templateProfiles = manifestTemplate.mcp_profiles || {}
+  const readonlyTemplate = templateProfiles['readonly-evidence']
+  if (!readonlyTemplate) {
+    errors.push('multi-agent-run.template.json missing readonly-evidence mcp_profiles entry')
+    return
+  }
+  if (JSON.stringify(readonlyTemplate.allowed_roles || []) !== JSON.stringify(['explorer', 'validator'])) {
+    errors.push('multi-agent-run.template.json readonly-evidence allowed_roles must stay [explorer, validator]')
+    return
+  }
+
+  const templateAgents = Array.isArray(manifestTemplate.agents) ? manifestTemplate.agents : []
+  const truthExplorer = templateAgents.find(item => item.name === 'truth-explorer')
+  const validator = templateAgents.find(item => item.name === 'validator')
+  const worker = templateAgents.find(item => item.name === 'worker-name')
+  if (!truthExplorer || truthExplorer.mcp_profile !== 'readonly-evidence') {
+    errors.push('multi-agent-run.template.json truth-explorer must use mcp_profile=readonly-evidence')
+    return
+  }
+  if (!validator || validator.mcp_profile !== 'readonly-evidence') {
+    errors.push('multi-agent-run.template.json validator must use mcp_profile=readonly-evidence')
+    return
+  }
+  if (worker && Object.prototype.hasOwnProperty.call(worker, 'mcp_profile')) {
+    errors.push('multi-agent-run.template.json worker-name must not declare mcp_profile')
     return
   }
 

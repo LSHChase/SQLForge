@@ -88,6 +88,14 @@ REQUIRED_FORBIDDEN = {
 }
 VALID_ROLES = {"explorer", "worker", "validator"}
 VALID_MODES = {"semi-auto", "full-auto"}
+VALID_MCP_PROFILE_ROLES = {"explorer", "validator"}
+VALID_MCP_CATEGORIES = {
+    "observability_logs",
+    "deployment_evidence",
+    "object_storage_metadata",
+    "external_requirements_tickets",
+}
+VALID_MCP_SOURCES = {"local-user-config", "env", "external-secret-store"}
 
 
 def fail(message: str) -> None:
@@ -227,6 +235,74 @@ def validate_manifest_shape(manifest: dict, task_id: str) -> list[dict]:
     return agents
 
 
+def validate_mcp_profiles(manifest: dict, agents: list[dict]) -> dict[str, dict]:
+    raw_profiles = manifest.get("mcp_profiles", {})
+    if raw_profiles in ({}, None):
+        for agent in agents:
+            if str(agent.get("mcp_profile", "")).strip():
+                fail(
+                    f"Agent {agent['name']} declares mcp_profile={agent.get('mcp_profile')!r} "
+                    "but manifest is missing the top-level mcp_profiles registry."
+                )
+        return {}
+    if not isinstance(raw_profiles, dict):
+        fail("Manifest mcp_profiles must be an object when provided.")
+
+    normalized: dict[str, dict] = {}
+    for profile_name, payload in raw_profiles.items():
+        if not isinstance(payload, dict):
+            fail(f"mcp_profiles.{profile_name} must be an object.")
+        allowed_roles = payload.get("allowed_roles")
+        allowed_categories = payload.get("allowed_categories")
+        if not isinstance(allowed_roles, list) or not allowed_roles:
+            fail(f"mcp_profiles.{profile_name}.allowed_roles must be a non-empty array.")
+        invalid_roles = sorted({str(item) for item in allowed_roles} - VALID_MCP_PROFILE_ROLES)
+        if invalid_roles:
+            fail(
+                f"mcp_profiles.{profile_name}.allowed_roles contains unsupported roles: "
+                + ", ".join(invalid_roles)
+            )
+        if not isinstance(allowed_categories, list) or not allowed_categories:
+            fail(f"mcp_profiles.{profile_name}.allowed_categories must be a non-empty array.")
+        invalid_categories = sorted({str(item) for item in allowed_categories} - VALID_MCP_CATEGORIES)
+        if invalid_categories:
+            fail(
+                f"mcp_profiles.{profile_name}.allowed_categories contains unsupported categories: "
+                + ", ".join(invalid_categories)
+            )
+        source = str(payload.get("source", "")).strip()
+        if source and source not in VALID_MCP_SOURCES:
+            fail(
+                f"mcp_profiles.{profile_name}.source must be one of "
+                + ", ".join(sorted(VALID_MCP_SOURCES))
+            )
+        if payload.get("write_capable") is True:
+            fail(f"mcp_profiles.{profile_name} must remain read-only and cannot declare write_capable=true.")
+        normalized[str(profile_name)] = {
+            "source": source or "local-user-config",
+            "allowed_roles": [str(item) for item in allowed_roles],
+            "allowed_categories": [str(item) for item in allowed_categories],
+            "notes": str(payload.get("notes", "")).strip(),
+        }
+
+    for agent in agents:
+        mcp_profile = str(agent.get("mcp_profile", "")).strip()
+        if not mcp_profile:
+            continue
+        if mcp_profile not in normalized:
+            fail(f"Agent {agent['name']} references undefined mcp_profile: {mcp_profile}")
+        role = str(agent["role"])
+        if role not in VALID_MCP_PROFILE_ROLES:
+            fail(f"Agent {agent['name']} role {role} may not declare mcp_profile.")
+        if role not in normalized[mcp_profile]["allowed_roles"]:
+            fail(
+                f"Agent {agent['name']} role {role} is not allowed by "
+                f"mcp_profiles.{mcp_profile}.allowed_roles."
+            )
+
+    return normalized
+
+
 def validate_ownership_conflicts(agents: list[dict]) -> None:
     workers = [agent for agent in agents if agent["role"] == "worker"]
     for index, left in enumerate(workers):
@@ -289,6 +365,7 @@ ensure_task_binding(repo_root, task_id)
 
 manifest = load_json(manifest_path)
 agents = validate_manifest_shape(manifest, task_id)
+mcp_profiles = validate_mcp_profiles(manifest, agents)
 validate_ownership_conflicts(agents)
 
 main_worktree = resolve_repo_relative(repo_root, str(manifest["main_worktree"]))
@@ -311,6 +388,7 @@ for agent in agents:
             "role": agent["role"],
             "worktree": str(worktree_path),
             "action": action,
+            "mcp_profile": str(agent.get("mcp_profile", "")).strip(),
         }
     )
 
@@ -318,6 +396,7 @@ summary = {
     "task_id": task_id,
     "manifest": str(manifest_path),
     "dry_run": dry_run,
+    "mcp_profiles": mcp_profiles,
     "main_worktree": str(main_worktree),
     "run_root": str(run_root),
     "agents": agent_actions,

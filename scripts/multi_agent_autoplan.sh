@@ -110,6 +110,14 @@ REQUIRED_FORBIDDEN = {
     "docs/quality/validation-log.md",
 }
 VALID_ROLES = {"explorer", "worker", "validator"}
+VALID_MCP_PROFILE_ROLES = {"explorer", "validator"}
+VALID_MCP_CATEGORIES = {
+    "observability_logs",
+    "deployment_evidence",
+    "object_storage_metadata",
+    "external_requirements_tickets",
+}
+VALID_MCP_SOURCES = {"local-user-config", "env", "external-secret-store"}
 
 
 def fail(message: str) -> None:
@@ -242,6 +250,34 @@ def build_schema(path: Path) -> None:
                 "additionalProperties": False,
                 "required": ["agents"],
                 "properties": {
+                    "mcp_profiles": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "required": ["source", "allowed_roles", "allowed_categories"],
+                            "properties": {
+                                "source": {"type": "string"},
+                                "allowed_roles": {
+                                    "type": "array",
+                                    "items": {"type": "string", "enum": ["explorer", "validator"]},
+                                },
+                                "allowed_categories": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "enum": [
+                                            "observability_logs",
+                                            "deployment_evidence",
+                                            "object_storage_metadata",
+                                            "external_requirements_tickets",
+                                        ],
+                                    },
+                                },
+                                "notes": {"type": "string"},
+                            },
+                        },
+                    },
                     "agents": {
                         "type": "array",
                         "items": {
@@ -264,6 +300,7 @@ def build_schema(path: Path) -> None:
                                 },
                                 "worktree": {"type": "string"},
                                 "prompt_file": {"type": "string"},
+                                "mcp_profile": {"type": "string"},
                                 "ownership": {
                                     "type": "array",
                                     "items": {"type": "string"},
@@ -307,6 +344,44 @@ def normalize_manifest(repo_root: Path, task_id: str, manifest: dict) -> dict:
     codex_settings.setdefault("color", "never")
     codex_settings.setdefault("extra_args", [])
     normalized["codex"] = codex_settings
+    raw_mcp_profiles = normalized.get("mcp_profiles", {})
+    if raw_mcp_profiles in ({}, None):
+        normalized_mcp_profiles: dict[str, dict] = {}
+    else:
+        if not isinstance(raw_mcp_profiles, dict):
+            fail("Auto-planner returned invalid mcp_profiles; expected an object.")
+        normalized_mcp_profiles = {}
+        for profile_name, payload in raw_mcp_profiles.items():
+            if not isinstance(payload, dict):
+                fail(f"Auto-planner returned invalid mcp_profiles.{profile_name}; expected an object.")
+            source = str(payload.get("source", "")).strip()
+            if source and source not in VALID_MCP_SOURCES:
+                fail(f"Auto-planner returned unsupported mcp_profiles.{profile_name}.source: {source!r}")
+            allowed_roles = payload.get("allowed_roles", [])
+            allowed_categories = payload.get("allowed_categories", [])
+            if not isinstance(allowed_roles, list) or not allowed_roles:
+                fail(f"Auto-planner returned invalid mcp_profiles.{profile_name}.allowed_roles")
+            if not isinstance(allowed_categories, list) or not allowed_categories:
+                fail(f"Auto-planner returned invalid mcp_profiles.{profile_name}.allowed_categories")
+            invalid_roles = sorted({str(item) for item in allowed_roles} - VALID_MCP_PROFILE_ROLES)
+            if invalid_roles:
+                fail(
+                    f"Auto-planner returned unsupported mcp role(s) for {profile_name}: "
+                    + ", ".join(invalid_roles)
+                )
+            invalid_categories = sorted({str(item) for item in allowed_categories} - VALID_MCP_CATEGORIES)
+            if invalid_categories:
+                fail(
+                    f"Auto-planner returned unsupported mcp category id(s) for {profile_name}: "
+                    + ", ".join(invalid_categories)
+                )
+            normalized_mcp_profiles[str(profile_name)] = {
+                "source": source or "local-user-config",
+                "allowed_roles": [str(item) for item in allowed_roles],
+                "allowed_categories": [str(item) for item in allowed_categories],
+                "notes": str(payload.get("notes", "")).strip(),
+            }
+    normalized["mcp_profiles"] = normalized_mcp_profiles
 
     agents = normalized.get("agents")
     if not isinstance(agents, list) or not agents:
@@ -336,10 +411,19 @@ def normalize_manifest(repo_root: Path, task_id: str, manifest: dict) -> dict:
         validation_scope = current.get("validation_scope", [])
         if not isinstance(ownership, list) or not isinstance(forbidden_paths, list) or not isinstance(validation_scope, list):
             fail(f"Auto-planner returned invalid list fields for {name}")
+        mcp_profile = str(current.get("mcp_profile", "")).strip()
         if role == "worker":
             for item in sorted(REQUIRED_FORBIDDEN):
                 if item not in forbidden_paths:
                     forbidden_paths.append(item)
+            if mcp_profile:
+                fail(f"Auto-planner assigned mcp_profile to worker {name}, which is forbidden.")
+        elif mcp_profile:
+            if mcp_profile not in normalized_mcp_profiles:
+                fail(f"Auto-planner referenced undefined mcp_profile for {name}: {mcp_profile}")
+            allowed_roles = normalized_mcp_profiles[mcp_profile]["allowed_roles"]
+            if role not in allowed_roles:
+                fail(f"Auto-planner assigned mcp_profile {mcp_profile} to unsupported role {role} for {name}")
         worktree = str(current.get("worktree", "")).strip()
         if not worktree:
             if role == "worker":
@@ -353,6 +437,7 @@ def normalize_manifest(repo_root: Path, task_id: str, manifest: dict) -> dict:
                 "role": role,
                 "worktree": worktree,
                 "prompt_file": prompt_file,
+                **({"mcp_profile": mcp_profile} if mcp_profile else {}),
                 "ownership": ownership,
                 "forbidden_paths": forbidden_paths,
                 "validation_scope": validation_scope,
@@ -441,6 +526,8 @@ rendered_prompt = (
     + "  - `task_id` must match the provided task id\n"
     + "  - `mode` must be `full-auto`\n"
     + "  - `main_worktree` must point at the primary repository worktree\n"
+    + "  - only `explorer` / `validator` may declare `mcp_profile`; `worker` must not\n"
+    + "  - if manifest uses MCP, return top-level `mcp_profiles` registry with symbolic profile names only and no live servers/secrets\n"
     + "  - worker forbidden paths must include `tasks.md`, `tasks-done.md`, `INBOX.md`, `docs/quality/validation-log.md`\n"
     + "  - worker ownership must not overlap\n"
     + "  - use isolated worktrees for workers\n"

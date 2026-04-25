@@ -120,6 +120,11 @@ manifest = load_json(manifest_path)
 task_id = manifest.get("task_id")
 if not task_id:
     fail("Manifest is missing task_id.")
+mcp_profiles = manifest.get("mcp_profiles", {})
+if mcp_profiles is None:
+    mcp_profiles = {}
+if not isinstance(mcp_profiles, dict):
+    fail("Manifest mcp_profiles must be an object when provided.")
 
 run_root = resolve_repo_relative(repo_root, str(manifest.get("run_root", f".codex/state/multi-agent/{task_id}")))
 meta_dir = run_root / "meta"
@@ -137,6 +142,8 @@ for agent in manifest.get("agents", []):
     name = str(agent["name"])
     role = str(agent["role"])
     worktree = resolve_repo_relative(repo_root, str(agent["worktree"]))
+    agent_mcp_profile = str(agent.get("mcp_profile", "")).strip()
+    mcp_profile_meta = mcp_profiles.get(agent_mcp_profile, {}) if agent_mcp_profile else {}
     meta_path = meta_dir / f"{name}.json"
     meta = load_json(meta_path) if meta_path.exists() else {}
     changed_files = git_changed_files(worktree)
@@ -153,11 +160,12 @@ for agent in manifest.get("agents", []):
         ]
     else:
         out_of_scope = changed_files if changed_files else []
+    mcp_boundary_violation = bool(agent_mcp_profile) and role not in {"explorer", "validator"}
 
     status = "acceptable"
     if role in {"explorer", "validator"} and changed_files:
         status = "rejected"
-    if forbidden_hits or out_of_scope:
+    if forbidden_hits or out_of_scope or mcp_boundary_violation:
         status = "rejected"
     if not changed_files:
         status = "no_patch" if role == "worker" else "read_only"
@@ -173,6 +181,9 @@ for agent in manifest.get("agents", []):
         "worktree": str(worktree),
         "status": status,
         "runtime_state": runtime_state,
+        "mcp_profile": agent_mcp_profile,
+        "mcp_allowed_categories": list(mcp_profile_meta.get("allowed_categories", [])),
+        "mcp_boundary_violation": mcp_boundary_violation,
         "changed_files": changed_files,
         "forbidden_hits": forbidden_hits,
         "out_of_scope": out_of_scope,
@@ -190,6 +201,7 @@ for agent in manifest.get("agents", []):
                 "changed_files": changed_files,
                 "forbidden_hits": forbidden_hits,
                 "out_of_scope": out_of_scope,
+                "mcp_boundary_violation": mcp_boundary_violation,
             }
         )
 
@@ -207,6 +219,8 @@ if conflicts:
     next_steps.append("Resolve file-level conflicts before fan-in.")
 if rejected:
     next_steps.append("Reject or manually repair out-of-scope / forbidden-path patches.")
+if any(item["mcp_boundary_violation"] for item in agent_summaries):
+    next_steps.append("Remove invalid worker/non-read-only MCP assignments before the next launch.")
 if any(item["runtime_state"] == "running" for item in agent_summaries):
     next_steps.append("Wait for running agents or collect them again later.")
 if not next_steps:
@@ -227,6 +241,9 @@ for item in agent_summaries:
     markdown_lines.append(f"- Collect status: `{item['status']}`")
     markdown_lines.append(f"- Runtime state: `{item['runtime_state']}`")
     markdown_lines.append(f"- Worktree: `{item['worktree']}`")
+    markdown_lines.append(f"- MCP profile: `{item['mcp_profile'] or 'none'}`")
+    markdown_lines.append(f"- MCP allowed categories: {json.dumps(item['mcp_allowed_categories'], ensure_ascii=True)}")
+    markdown_lines.append(f"- MCP boundary violation: `{item['mcp_boundary_violation']}`")
     markdown_lines.append(f"- Changed files: {json.dumps(item['changed_files'], ensure_ascii=True)}")
     markdown_lines.append(f"- Forbidden hits: {json.dumps(item['forbidden_hits'], ensure_ascii=True)}")
     markdown_lines.append(f"- Out of scope: {json.dumps(item['out_of_scope'], ensure_ascii=True)}")
@@ -246,7 +263,8 @@ if rejected:
         markdown_lines.append(
             f"- {item['agent']}: changed={json.dumps(item['changed_files'], ensure_ascii=True)} "
             f"forbidden={json.dumps(item['forbidden_hits'], ensure_ascii=True)} "
-            f"out_of_scope={json.dumps(item['out_of_scope'], ensure_ascii=True)}"
+            f"out_of_scope={json.dumps(item['out_of_scope'], ensure_ascii=True)} "
+            f"mcp_boundary_violation={json.dumps(item['mcp_boundary_violation'], ensure_ascii=True)}"
         )
 else:
     markdown_lines.append("- None")
@@ -269,6 +287,7 @@ json_summary_path.write_text(
             "task_id": task_id,
             "manifest": str(manifest_path),
             "run_root": str(run_root),
+            "mcp_profiles": mcp_profiles,
             "agents": agent_summaries,
             "acceptable_patches": accepted,
             "rejected_patches": rejected,

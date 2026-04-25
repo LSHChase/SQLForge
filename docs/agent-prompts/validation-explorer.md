@@ -28,6 +28,7 @@
 ## Validation Expectations
 
 - 允许执行只读或无 repo-tracked 变更的检查
+- 若 runtime assignment 提供 `mcp_profile`，只允许把外部只读证据用作验证建议输入
 - 不主动修实现
 
 ## Collaboration Rule

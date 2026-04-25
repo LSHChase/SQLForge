@@ -27,6 +27,12 @@ DOCS_README_PATH = ROOT / "docs" / "README.md"
 OPERATIONS_README_PATH = ROOT / "docs" / "operations" / "README.md"
 CONNECTORS_PATH = ROOT / "docs" / "security" / "connectors.md"
 MCP_PLAYBOOK_PATH = ROOT / "docs" / "operations" / "codex-mcp-playbook.md"
+MULTI_AGENT_PLAYBOOK_PATH = ROOT / "docs" / "operations" / "multi-agent-playbook.md"
+MANIFEST_TEMPLATE_PATH = ROOT / "docs" / "exec-plans" / "templates" / "multi-agent-run.template.json"
+PREPARE_SCRIPT_PATH = ROOT / "scripts" / "multi_agent_prepare.sh"
+LAUNCH_SCRIPT_PATH = ROOT / "scripts" / "multi_agent_launch.sh"
+COLLECT_SCRIPT_PATH = ROOT / "scripts" / "multi_agent_collect.sh"
+AUTOPLAN_SCRIPT_PATH = ROOT / "scripts" / "multi_agent_autoplan.sh"
 
 
 def run(command: list[str], stdin: str | None = None, timeout: int = 30) -> subprocess.CompletedProcess[str]:
@@ -120,7 +126,12 @@ def validate_mcp_governance() -> str:
     scope = policy.get("scope", {})
     expect(isinstance(scope, dict), "MCP policy scope is invalid")
     profile = scope.get("profile")
-    expect(profile == "single-agent-read-only-baseline", "MCP policy profile must remain single-agent-read-only-baseline")
+    expect(profile == "multi-agent-read-only-evidence", "MCP policy profile must remain multi-agent-read-only-evidence")
+    expect(policy.get("rules") == ["R-170", "R-171", "R-172", "R-173", "R-174", "R-175", "R-176"], "MCP policy rule set drifted")
+    expect(
+        policy.get("validation_rules") == ["R-170", "R-171", "R-172", "R-173", "R-174", "R-175", "R-176"],
+        "MCP policy validation-rule set drifted",
+    )
 
     categories = policy.get("read_only_categories", [])
     expect(isinstance(categories, list), "MCP policy read_only_categories must be a list")
@@ -140,34 +151,75 @@ def validate_mcp_governance() -> str:
     runtime_constraints = policy.get("runtime_constraints", {})
     expect(isinstance(runtime_constraints, dict), "MCP runtime constraints must be an object")
     expect(runtime_constraints.get("allow_repo_tracked_mcp_config") is False, "repo-tracked MCP config must stay disabled")
-    expect(runtime_constraints.get("allow_repo_tracked_mcp_profile") is False, "repo-tracked MCP profile must stay disabled")
+    expect(runtime_constraints.get("allow_repo_tracked_mcp_profile") is True, "manifest-level MCP profile must stay enabled for HARN-035")
+    expect(runtime_constraints.get("allow_repo_tracked_server_inventory") is False, "repo-tracked MCP server inventory must stay disabled")
     expect(runtime_constraints.get("allow_repo_stored_secrets") is False, "repo-stored MCP secrets must stay disabled")
     expect(runtime_constraints.get("main_foreman_is_only_writeback_entry") is True, "Main Foreman write-back boundary drifted")
-    expect(runtime_constraints.get("multi_agent_mcp_profile_enabled") is False, "multi-agent MCP profile must stay disabled in HARN-034")
+    expect(runtime_constraints.get("multi_agent_mcp_profile_enabled") is True, "multi-agent MCP profile must stay enabled in HARN-035")
 
-    for path in [CONNECTORS_PATH, MCP_PLAYBOOK_PATH, DOCS_README_PATH, OPERATIONS_README_PATH, RULES_PATH, VALIDATION_RULES_PATH]:
+    multi_agent_contract = policy.get("multi_agent_contract", {})
+    expect(isinstance(multi_agent_contract, dict), "MCP multi-agent contract must be an object")
+    expect(multi_agent_contract.get("manifest_registry_key") == "mcp_profiles", "MCP manifest registry key drifted")
+    expect(multi_agent_contract.get("per_agent_profile_key") == "mcp_profile", "MCP per-agent profile key drifted")
+    expect(multi_agent_contract.get("allowed_roles") == ["explorer", "validator"], "MCP allowed roles drifted")
+    expect(multi_agent_contract.get("disallowed_roles") == ["worker"], "MCP disallowed roles drifted")
+
+    for path in [
+        CONNECTORS_PATH,
+        MCP_PLAYBOOK_PATH,
+        MULTI_AGENT_PLAYBOOK_PATH,
+        DOCS_README_PATH,
+        OPERATIONS_README_PATH,
+        RULES_PATH,
+        VALIDATION_RULES_PATH,
+        MANIFEST_TEMPLATE_PATH,
+    ]:
         expect(path.exists(), f"Required MCP governance document is missing: {path.relative_to(ROOT)}")
 
     expect_markers(DOCS_README_PATH, ["./security/connectors.md", "./operations/codex-mcp-playbook.md"], "docs/README.md")
     expect_markers(OPERATIONS_README_PATH, ["./codex-mcp-playbook.md"], "docs/operations/README.md")
-    expect_markers(RULES_PATH, ["R-170", "R-171", "R-172", "R-173"], "docs/rules/codex-rules.md")
-    expect_markers(VALIDATION_RULES_PATH, ["R-170", "R-171", "R-172", "R-173"], "docs/quality/validation-rules.md")
+    expect_markers(RULES_PATH, ["R-170", "R-171", "R-172", "R-173", "R-174", "R-175", "R-176"], "docs/rules/codex-rules.md")
+    expect_markers(
+        VALIDATION_RULES_PATH,
+        ["R-170", "R-171", "R-172", "R-173", "R-174", "R-175", "R-176"],
+        "docs/quality/validation-rules.md",
+    )
     expect_markers(
         CONNECTORS_PATH,
-        ["观测/日志", "部署证据", "对象存储元数据", "外部需求/工单检索", "Main Foreman", "mcp_profile"],
+        ["观测/日志", "部署证据", "对象存储元数据", "外部需求/工单检索", "Main Foreman", "explorer / validator"],
         "docs/security/connectors.md",
     )
     expect_markers(
         MCP_PLAYBOOK_PATH,
-        ["compile-governance", "validate_codex_runtime.py", "mcp-policy.json", "Main Foreman", "mcp_profile"],
+        ["compile-governance", "validate_codex_runtime.py", "mcp-policy.json", "Main Foreman", "mcp_profile", "explorer/validator"],
         "docs/operations/codex-mcp-playbook.md",
     )
+    expect_markers(
+        MULTI_AGENT_PLAYBOOK_PATH,
+        ["mcp_profile", "mcp_profiles", "explorer / validator", "worker", "Main Foreman"],
+        "docs/operations/multi-agent-playbook.md",
+    )
+    expect_markers(PREPARE_SCRIPT_PATH, ["mcp_profiles", "mcp_profile"], "scripts/multi_agent_prepare.sh")
+    expect_markers(LAUNCH_SCRIPT_PATH, ["mcp_profiles", "mcp_profile"], "scripts/multi_agent_launch.sh")
+    expect_markers(COLLECT_SCRIPT_PATH, ["mcp_profiles", "mcp_profile"], "scripts/multi_agent_collect.sh")
+    expect_markers(AUTOPLAN_SCRIPT_PATH, ["mcp_profiles", "mcp_profile"], "scripts/multi_agent_autoplan.sh")
+
+    manifest_template = load_json(MANIFEST_TEMPLATE_PATH)
+    template_profiles = manifest_template.get("mcp_profiles", {})
+    expect(isinstance(template_profiles, dict) and "readonly-evidence" in template_profiles, "Manifest template is missing readonly-evidence mcp profile")
+    readonly_profile = template_profiles["readonly-evidence"]
+    expect(readonly_profile.get("allowed_roles") == ["explorer", "validator"], "Manifest template MCP roles drifted")
+    template_agents = manifest_template.get("agents", [])
+    template_agent_profiles = {str(agent.get("name")): str(agent.get("mcp_profile", "")) for agent in template_agents if isinstance(agent, dict)}
+    expect(template_agent_profiles.get("truth-explorer") == "readonly-evidence", "truth-explorer template MCP profile drifted")
+    expect(template_agent_profiles.get("validator") == "readonly-evidence", "validator template MCP profile drifted")
+    expect(template_agent_profiles.get("worker-name", "") == "", "worker template must not declare mcp_profile")
 
     config = load_toml(CONFIG_PATH)
     mcp_keys = [key for key in collect_key_paths(config) if "mcp" in key.lower()]
     expect(
         not mcp_keys,
-        ".codex/config.toml must not declare repo-tracked MCP runtime config during HARN-034: " + ", ".join(sorted(mcp_keys)),
+        ".codex/config.toml must not declare repo-tracked live MCP runtime config: " + ", ".join(sorted(mcp_keys)),
     )
     return str(profile)
 

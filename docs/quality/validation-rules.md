@@ -1,6 +1,6 @@
 # Validation Rules
 
-本文件独立收录 `R-116` 至 `R-173` 的验证规则，并补充 `R-168` 的执行型验证衔接，用于快速查阅阶段门禁、任务验证、回归验证、环境验证、规则自维护、自动触发验证规则、harness 任务治理验证与 MCP 治理验证。
+本文件独立收录 `R-116` 至 `R-176` 的验证规则，并补充 `R-168` 的执行型验证衔接，用于快速查阅阶段门禁、任务验证、回归验证、环境验证、规则自维护、自动触发验证规则、harness 任务治理验证与 MCP 治理验证。
 
 ## 索引
 
@@ -48,6 +48,9 @@
 - `R-171` MCP policy 编译验证
 - `R-172` MCP runtime 配置边界验证
 - `R-173` MCP 证据与写边界验证
+- `R-174` Multi-agent MCP manifest 合同验证
+- `R-175` Multi-agent prepare / launch / collect MCP 验证
+- `R-176` Auto-planner / full-auto MCP 合同验证
 
 ## 阶段质量门禁（Phase Gate）
 
@@ -527,7 +530,7 @@
 - 失败处置：不得关闭任务或切换下一任务；先补足 closeout 记录与上下文重建动作。
 - 关联规则：`R-134`, `R-156`, `R-157`, `R-168`
 
-## MCP 治理验证（R-170 至 R-173）
+## MCP 治理验证（R-170 至 R-176）
 
 ### R-170 MCP 基线文档验证
 
@@ -535,11 +538,11 @@
 - 检查清单：
   1. `docs/security/connectors.md` 已存在，并明确写出 4 个允许的只读 category
   2. `docs/security/connectors.md` 已明确列出可写云控、SSH、K8s、数据库执行型等禁用 server 类型
-  3. `docs/operations/codex-mcp-playbook.md` 已说明本地凭据边界、自动化入口和 `mcp_profile` 延后边界
-  4. `docs/README.md` 与 `docs/operations/README.md` 已把上述文档纳入索引
+  3. `docs/operations/codex-mcp-playbook.md` 已说明本地凭据边界、自动化入口，以及 `explorer/validator` 的 manifest-level `mcp_profile` 当前边界
+  4. `docs/README.md`、`docs/operations/README.md` 与 `docs/operations/multi-agent-playbook.md` 已把上述文档纳入索引并说明多 agent 契约
 - 通过标准：4 项全部通过。
 - 失败处置：不得宣称 MCP 基线已完成；先补齐权威文档与索引。
-- 关联规则：`R-170`, `R-171`, `R-173`
+- 关联规则：`R-170`, `R-171`, `R-173`, `R-174`
 
 ### R-171 MCP policy 编译验证
 
@@ -548,10 +551,10 @@
   1. 执行 `python3 scripts/foreman.py compile-governance`
   2. `.codex/policy/mcp-policy.json` 已生成且可解析
   3. policy 中的 4 个 category 全部为 `read-only`
-  4. policy 中已显式冻结 `allow_repo_tracked_mcp_profile = false`、`multi_agent_mcp_profile_enabled = false` 和 Main Foreman 唯一 write-back 边界
+  4. policy 中已显式冻结 manifest-level `mcp_profile`、`multi_agent_mcp_profile_enabled = true`、`allowed_roles = [explorer, validator]` 与 Main Foreman 唯一 write-back 边界
 - 通过标准：4 项全部通过。
 - 失败处置：修复文档/脚本漂移，重新编译后再继续验证或 closeout。
-- 关联规则：`R-170`, `R-172`, `R-173`
+- 关联规则：`R-170`, `R-171`, `R-174`, `R-175`
 
 ### R-172 MCP runtime 配置边界验证
 
@@ -559,11 +562,11 @@
 - 检查清单：
   1. 执行 `python3 scripts/validate_codex_runtime.py`
   2. `validate_codex_runtime.py` 已加载 `.codex/policy/mcp-policy.json`
-  3. repo-tracked `.codex/config.toml` 未声明 live MCP server inventory、repo-tracked `mcp_profile` 或其他默认 MCP runtime config
-  4. repo-tracked 配置未写入 token、密码、endpoint 等 MCP secret
+  3. repo-tracked `.codex/config.toml` 未声明 live MCP server inventory、token、endpoint 或其他默认 MCP runtime config
+  4. repo-tracked manifest/template 若声明 `mcp_profiles` / `mcp_profile`，也仅包含符号化 metadata，而不包含 token、密码、endpoint 等 MCP secret
 - 通过标准：4 项全部通过。
 - 失败处置：立即回退 repo-tracked MCP runtime config 或 secret，恢复到 HARN-034 基线后再继续。
-- 关联规则：`R-172`, `R-173`, `R-165`
+- 关联规则：`R-172`, `R-174`, `R-175`, `R-165`
 
 ### R-173 MCP 证据与写边界验证
 
@@ -572,7 +575,43 @@
   1. 当前声明的 MCP 用途仍限定在只读证据采集，不包含远端变更
   2. Main Foreman 仍是唯一 write-back / validate / closeout 入口
   3. 外部 MCP 结果没有被直接写成 `docs/` 真值、closeout 结论或 Git 审计事实，而是经由任务台账、验证日志、执行计划或 INBOX 显式写回
-  4. 若需求涉及可写 MCP 或 multi-agent `mcp_profile`，已拆为新的 formal task，而不是在当前任务中隐式扩展
+  4. 若当前任务使用 multi-agent `mcp_profile`，其角色仍限定为 `explorer / validator`，且未削弱 Main Foreman 唯一收口边界
 - 通过标准：4 项全部通过。
 - 失败处置：停止 MCP 扩展，先回到只读基线，必要时拆新任务并追加人工确认。
-- 关联规则：`R-170`, `R-173`, `R-049`, `R-050`
+- 关联规则：`R-170`, `R-173`, `R-175`, `R-176`, `R-049`, `R-050`
+
+### R-174 Multi-Agent MCP manifest 合同验证
+
+- 触发时机：修改 `docs/operations/multi-agent-playbook.md`、`docs/exec-plans/templates/multi-agent-run.template.json`、multi-agent manifest schema 或 prompt 模板中的 MCP 相关内容后。
+- 检查清单：
+  1. manifest template 已声明 top-level `mcp_profiles`
+  2. template 中 `truth-explorer` 与 `validator` 已声明 `mcp_profile`
+  3. template 中 `worker` 未声明 `mcp_profile`
+  4. playbook 已说明 `mcp_profiles` / `mcp_profile` 只允许符号化只读 metadata，且角色仅限 `explorer / validator`
+- 通过标准：4 项全部通过。
+- 失败处置：回退模板或文档漂移，恢复受控只读 contract 后再继续。
+- 关联规则：`R-174`, `R-175`, `R-176`
+
+### R-175 Multi-Agent prepare / launch / collect MCP 验证
+
+- 触发时机：修改 `scripts/multi_agent_prepare.sh`、`scripts/multi_agent_launch.sh`、`scripts/multi_agent_collect.sh` 或对应 playbook 后。
+- 检查清单：
+  1. `multi_agent_prepare.sh` 已校验 `mcp_profiles` / `mcp_profile` 结构、category 与角色边界，并拒绝 `worker` 使用 `mcp_profile`
+  2. `multi_agent_launch.sh` 已把 `mcp_profile`、source 与 allowed categories 注入 runtime assignment，并保持只读证据边界
+  3. `multi_agent_collect.sh` 已记录 agent `mcp_profile`，并对非 `explorer / validator` 的 MCP 使用做 reject
+  4. 帮助命令、语法检查或最小 dry-run 已证明三条脚本仍可执行
+- 通过标准：4 项全部通过。
+- 失败处置：停止使用 multi-agent MCP contract，先修复脚本后再重试。
+- 关联规则：`R-174`, `R-175`, `R-173`
+
+### R-176 Auto-planner / full-auto MCP 合同验证
+
+- 触发时机：修改 `scripts/multi_agent_autoplan.sh`、`scripts/multi_agent_full_auto.sh`、`docs/agent-prompts/auto-planner.md` 或 `docs/agent-prompts/auto-foreman.md` 中的 MCP 相关内容后。
+- 检查清单：
+  1. auto-planner schema 与 normalize 流程已支持 `mcp_profiles` / `mcp_profile`
+  2. auto-planner 会拒绝把 `mcp_profile` 分配给 `worker`，也会拒绝未声明 registry 或超出允许 category 的 MCP 配置
+  3. full-auto 提示词与 orchestration 已明确 Main Foreman 仍是唯一 write-back / validate / closeout 入口
+  4. 帮助命令、语法检查或最小 dry-run 已证明 autoplan/full-auto 入口仍可执行
+- 通过标准：4 项全部通过。
+- 失败处置：停用 MCP 自动规划路径，回退到 semi-auto manifest 或手工 Main Foreman 审核路径。
+- 关联规则：`R-174`, `R-175`, `R-176`

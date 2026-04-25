@@ -294,6 +294,7 @@ Tasks:
 | Task ID | Task | Scope | Dependencies | Verification |
 |:---|:---|:---|:---|:---|
 | `HARN-034` | 落地最小可用 MCP 治理底座与只读接入边界 | 在不引入第二套长期真值、不绕过 `foreman` / `task_audit` / `closeout`、且第一批仅允许只读 MCP 的前提下，补齐 `docs/security/connectors.md`、MCP 规则与验证规则、`compile-governance` / `validate_codex_runtime` 的 MCP 扩展、Codex MCP 使用手册与本地入口说明；不包含 multi-agent `mcp_profile` 扩展，不包含任何可写 MCP、SSH/K8s/数据库执行型 MCP，也不把外部 MCP 结果写成仓库默认事实。 | `HARN-028`,`HARN-033` | python3 scripts/foreman.py validate HARN-034、python3 scripts/validate_codex_runtime.py、python3 scripts/foreman.py compile-governance --check、node scripts/lint-repository-knowledge.js、python3 scripts/task_audit.py --check --phase pre-closeout |
+| `HARN-035` | 扩展 multi-agent 受控 mcp_profile 只读证据接入 | 在 `HARN-034` 已建立 MCP 治理底座的前提下，扩展 multi-agent playbook、agent prompt 模板、manifest 模板和 `prepare` / `launch` / `collect` / `autoplan` / `full-auto` 脚本的 `mcp_profile` 契约，让 explorer / validator 可以读取外部只读证据，同时保持 Main Foreman 仍是唯一 write-back / validate / closeout 入口。不得把可写 MCP 引入默认主路径，不得允许 worker 通过 MCP 修改台账、validation log、closeout 文档或业务数据。 | `HARN-034` | python3 scripts/foreman.py validate HARN-035、python3 scripts/foreman.py compile-governance --check、bash scripts/multi_agent_prepare.sh --help、bash scripts/multi_agent_launch.sh --help、bash scripts/multi_agent_collect.sh --help、bash scripts/multi_agent_autoplan.sh --help、bash scripts/multi_agent_full_auto.sh --help、python3 scripts/validate_codex_runtime.py、node scripts/lint-repository-knowledge.js |
 
 ### Phase-B 阶段0修正与缺口补齐
 
