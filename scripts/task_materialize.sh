@@ -90,6 +90,7 @@ from scripts.governed_v2_support import (
     append_executed_command,
     build_suggestion,
     command_to_text,
+    release_reservation,
     relative_to_root,
     update_reservation,
     write_run_summary,
@@ -534,6 +535,8 @@ if task_pack["human_confirmation_point"]:
     )
 
 if dry_run:
+    if reservation_path is not None and reservation_path.exists():
+        release_reservation(reservation_path, "task-materialize dry-run completed", task_id=task_id, dry_run=True)
     write_run_summary(
         run_summary_path,
         {

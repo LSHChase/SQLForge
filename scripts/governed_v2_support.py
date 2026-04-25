@@ -190,6 +190,10 @@ def update_reservation(path: Path, status: str, **extra: Any) -> dict[str, Any]:
     return payload
 
 
+def release_reservation(path: Path, reason: str, **extra: Any) -> dict[str, Any]:
+    return update_reservation(path, "released", release_reason=reason, released_at=now_iso(), **extra)
+
+
 def list_reservation_paths() -> list[Path]:
     if not TASK_RESERVATION_DIR.exists():
         return []
@@ -222,6 +226,8 @@ def authority_field_hints(text: str) -> list[str]:
 
 
 def integrity_check_suggestions(issue_key: str) -> list[str]:
+    if issue_key == "tracked_dirty_worktree":
+        return ["git status --short --untracked-files=no", "git diff -- <TRACKED_PATH>"]
     if issue_key == "closeout_tail_drift":
         return [
             "python3 scripts/task_audit.py --check --phase post-closeout",
@@ -230,7 +236,10 @@ def integrity_check_suggestions(issue_key: str) -> list[str]:
     if issue_key == "runtime_task_mismatch":
         return ["python3 scripts/foreman.py preflight --task <TASK_ID> --task-class standard --prompt '<PROMPT>'"]
     if issue_key == "reservation_conflict":
-        return ["python3 scripts/governed_healthcheck.py --check", "bash scripts/requirements_to_plan.sh --prompt '<PROMPT>'"]
+        return [
+            "python3 scripts/governed_healthcheck.py --check",
+            "release stale/abandoned reservations with governed cleanup before retrying",
+        ]
     if issue_key == "materialization_blocked":
         return [
             "bash scripts/task_materialize.sh --task-pack <TASK_PACK> --dry-run",

@@ -948,7 +948,17 @@ def ensure_context_closeout(body: str, args: argparse.Namespace) -> str:
     return body.rstrip() + "\n"
 
 
-def archive_task_block(task_id: str, args: argparse.Namespace) -> tuple[str, str, str]:
+def rewrite_plan_ref(body: str, move_from: str, move_to: str) -> str:
+    if not move_from or not move_to:
+        return body
+    return body.replace(f"- Plan ref: {move_from}", f"- Plan ref: {move_to}")
+
+
+def archive_task_block(
+    task_id: str,
+    args: argparse.Namespace,
+    plan_ref_move: tuple[str, str] | None = None,
+) -> tuple[str, str, str]:
     tasks_content = read_text(TASKS_PATH)
     block = find_task_block(TASKS_PATH, task_id)
     if block is None:
@@ -963,6 +973,8 @@ def archive_task_block(task_id: str, args: argparse.Namespace) -> tuple[str, str
     ensure_single_line_field(lines, "- Completed at:", f"- Completed at: {today_iso()}", ["- Depends on:", "- Priority:", "- Status:"])
     ensure_single_line_field(lines, "- Commit subject:", f"- Commit subject: `{commit_subject}`", ["- Completed at:"])
     archived_body = ensure_context_closeout("\n".join(lines).rstrip() + "\n", args)
+    if plan_ref_move is not None:
+        archived_body = rewrite_plan_ref(archived_body, plan_ref_move[0], plan_ref_move[1])
 
     new_tasks_content = tasks_content[: block["start"]] + tasks_content[block["end"] :]
     new_tasks_content = normalize_tasks_md(new_tasks_content)
@@ -1115,19 +1127,24 @@ def projected_closeout_command(subject: str) -> str:
 
 
 def append_projected_closeout_logs(task_id: str, commit_subject: str, post_checks: Sequence[str]) -> None:
-    append_validation_log(f"{task_id} closeout commit", projected_closeout_command(commit_subject), "`R-168`", "passed")
+    append_validation_log(
+        f"{task_id} closeout commit",
+        projected_closeout_command(commit_subject) + " (projected-precommit)",
+        "`R-168`",
+        "projected",
+    )
     append_validation_log(
         f"{task_id} post-closeout task-audit",
         "python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)",
         "`R-156`, `R-160`, `R-168`",
-        "passed",
+        "projected",
     )
     for command_text in post_checks:
         append_validation_log(
             f"{task_id} post-closeout check",
             f"{command_text} (projected-precommit)",
             "`R-131`, `R-133`, `R-168`",
-            "passed",
+            "projected",
         )
 
 
@@ -1147,8 +1164,8 @@ def command_closeout(args: argparse.Namespace) -> int:
         state["closeout"]["done_ready"] = True
         write_runtime_state(state)
 
-    archived_body, tasks_ref, done_ref = archive_task_block(args.task, args)
     moved_plan = move_active_plan_to_completed(args.task)
+    archived_body, tasks_ref, done_ref = archive_task_block(args.task, args, moved_plan)
     if moved_plan is not None:
         command_compile_governance(argparse.Namespace(check=False))
     pre_audit_label = f"{args.task} closeout task-audit pre"

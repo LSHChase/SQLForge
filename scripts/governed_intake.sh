@@ -183,10 +183,12 @@ write_run_summary(
     {
         **read_json(summary_path),
         "requirements_archive_ref": requirements_archive_ref,
-        "confirmation_state": "executed",
+        "confirmation_state": "dry_run_previewed" if dry_run else "executed",
         "execution_state": "completed",
         "final_outcome": "executed" if not dry_run else "dry_run_ready",
-        "recommended_next_step": "Continue with validate/closeout evidence from the downstream task workflow.",
+        "recommended_next_step": "Review the dry-run preview, then rerun confirm-run without --dry-run to execute."
+        if dry_run
+        else "Continue with validate/closeout evidence from the downstream task workflow.",
     },
 )
 PY

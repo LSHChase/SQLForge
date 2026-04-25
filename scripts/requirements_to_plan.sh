@@ -111,6 +111,7 @@ from scripts.governed_v2_support import (
     append_executed_command,
     build_suggestion,
     command_to_text,
+    release_reservation,
     relative_to_root,
     reserve_task_id,
     update_reservation,
@@ -469,6 +470,16 @@ write_run_summary(
 )
 
 if dry_run:
+    release_reservation(reservation_path, "requirements-to-plan dry-run completed", dry_run=True)
+    write_run_summary(
+        run_summary_path,
+        {
+            **json.loads(run_summary_path.read_text(encoding="utf-8")),
+            "execution_state": "completed",
+            "final_outcome": "dry_run_released",
+            "recommended_next_step": "Rerun without --dry-run to create candidate artifacts and an active reservation.",
+        },
+    )
     print(f"[dry-run] run_id: {run_id}")
     print(f"[dry-run] raw requirement: {raw_requirement_path}")
     print(f"[dry-run] normalized requirement json: {normalize_result_path}")

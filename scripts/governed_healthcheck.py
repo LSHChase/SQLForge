@@ -28,6 +28,7 @@ from scripts.governed_v2_support import (
     read_json,
     read_text,
     relative_to_root,
+    release_reservation,
     reservation_is_stale,
     task_exists_anywhere,
     write_run_summary,
@@ -66,6 +67,7 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="Run the health-check suite.")
     parser.add_argument("--task-pack", help="Optional candidate task pack to validate.")
     parser.add_argument("--run-id", default="", help="Stable run id for summary output.")
+    parser.add_argument("--cleanup-stale", action="store_true", help="Release stale runtime reservations that are safe to abandon.")
     parser.add_argument("--json", action="store_true", help="Print the machine-readable summary path only.")
     args = parser.parse_args()
 
@@ -109,6 +111,15 @@ def main() -> int:
         "validation-log drift check",
     )
 
+    if tracked_status:
+        issues.append(
+            issue_payload(
+                "tracked_dirty_worktree",
+                "tracked worktree contains uncommitted changes; governed automation must not continue until tracked residue is resolved: "
+                + "; ".join(tracked_status[:8]),
+            )
+        )
+
     if validation_diff and ("closeout commit" in validation_diff or "post-closeout task-audit" in validation_diff):
         issues.append(
             issue_payload(
@@ -135,6 +146,20 @@ def main() -> int:
         if not task_id:
             continue
         if reservation_is_stale(payload, reservation_path) and not task_exists_anywhere(task_id):
+            if args.cleanup_stale:
+                release_reservation(
+                    reservation_path,
+                    "governed healthcheck stale cleanup",
+                    task_id=task_id,
+                    previous_status=payload.get("status", ""),
+                )
+                append_executed_command(
+                    summary_path,
+                    f"release stale reservation {relative_to_root(reservation_path)}",
+                    "passed",
+                    "cleanup-stale",
+                )
+                continue
             issues.append(
                 issue_payload(
                     "reservation_conflict",
@@ -142,7 +167,7 @@ def main() -> int:
                 )
             )
             continue
-        if task_exists_anywhere(task_id) and payload.get("status") not in {"materialized", "released"}:
+        if task_exists_anywhere(task_id) and payload.get("status") not in {"materialized", "released", "abandoned"}:
             issues.append(
                 issue_payload(
                     "reservation_conflict",

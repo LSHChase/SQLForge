@@ -22,6 +22,63 @@
 
 该入口会先生成 brief / machine-readable summary，等待显式 `--confirm-run`，而不是在第一次输入后立即落仓执行。
 
+## Codex 日常输入模板
+
+面向新手的 Codex 入口优先使用自然语言模板。Codex 收到模板后，只能先生成执行/任务模板给人类确认；在收到确认语句前，不得进入 materialization、编码实现或台账落仓。
+
+### 最简业务功能输入模板
+
+适用于“已有功能需求，想直接做实现”。
+
+```text
+需求：<一句话功能需求>
+输出物：代码 / 测试 / 文档
+先生成执行模板给我确认，不要直接执行。
+```
+
+如果已有任务号，进一步简化为：
+
+```text
+实现任务：<TASK_ID>
+输出物：代码 / 测试 / 文档
+先生成执行模板给我确认，不要直接执行。
+```
+
+### 最简治理任务输入模板
+
+适用于“脚本、流程、文档、编排、质量门禁、治理能力”这类任务。
+
+```text
+治理需求：<一句话治理目标>
+输出物：脚本 / 文档 / 模板
+先生成任务模板给我确认，不要直接执行。
+```
+
+如果已有任务号：
+
+```text
+实现治理任务：<TASK_ID>
+输出物：脚本 / 文档 / 模板
+先生成执行模板给我确认，不要直接执行。
+```
+
+### 确认后执行模板
+
+Codex 给出模板后，人类可以回复：
+
+```text
+确认没问题，开始执行。
+```
+
+如果要加限制：
+
+```text
+确认没问题，开始执行。
+限制：不要改前端；不要动数据库；优先补测试。
+```
+
+自然语言确认句等价于进入 governed confirmation gate；Codex 仍必须遵守 `preflight`、`governed_healthcheck`、`instantiate`、`validate`、`task_audit`、`closeout`，不得把确认句解释为跳过仓库治理。`限制：...` 必须写入 candidate pack / execution plan 的 constraints、out-of-scope、validation focus 或 human confirmation point，保证后续实现和验证可追溯。
+
 子 `codex exec` 的默认执行模式是 `SQLFORGE_CODEX_EXEC_MODE=bypass`。这意味着 task-shaping、governance review 和 downstream auto-foreman 会假设父级自动化已经由可信外部环境托管沙箱。如果需要强制子会话使用 Codex 自带沙箱，可改成 `full-auto`、`read-only`、`workspace-write` 或 `danger-full-access`。
 
 为了避免 candidate task id 污染主运行态，`requirements_to_plan.sh` 和 `task_materialize.sh` 内部用于 shaping/review 的子 `codex exec` 会默认禁用 `codex_hooks`。正式进入 materialization 之后，仍由 Main Foreman 重新执行标准 `preflight` / `instantiate` / `validate` / `closeout` 链。
@@ -348,4 +405,4 @@ python3 scripts/governed_healthcheck.py --check
 
 - 先执行 `python3 scripts/governed_healthcheck.py --check`
 - 若提示 `closeout_tail_drift`，先修正 tracked residue，再继续新的 closeout
-- `HARN-028` 之后，closeout 证据采用 precommit projected log + post-commit actual audit/check 的组合，避免再次在 commit 之后追加 tracked `validation-log` 残留
+- `HARN-031` 之后，closeout 证据采用 precommit projected log + post-commit actual audit/check 的组合；projected 证据只能表示“预期将在 commit 后执行”，不得在真实 post-closeout 执行前写成 `passed`

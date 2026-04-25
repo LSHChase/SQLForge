@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-031: HARN-028 governed full-cycle V3 audit-hardening repair
+
+- Status: done
+- Completed at: 2026-04-25
+- Commit subject: `fix(governance): HARN-028 V3 audit hardening`
+- Priority: 1
+- Depends on: HARN-028
+- Scope: Repair HARN-028 governed full-cycle V2 audit semantics, archived Plan refs, healthcheck dirty detection, dry-run state semantics, runtime state cleanup, and Codex newcomer task-entry docs.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-031`
+- Progress log:
+  - 2026-04-25: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-25: implemented V3 governance repairs for closeout projected evidence semantics, archived Plan ref rewriting/audit, healthcheck tracked-dirty blocking, intake dry-run state naming, reservation release/cleanup lifecycle, and Codex newcomer templates.
+- Context closeout:
+  - Completed scope: Repaired HARN-028 governed full-cycle V2 hardening gaps by separating projected closeout evidence from actual pass semantics, rewriting archived Plan refs to completed paths, blocking tracked dirty worktrees in healthcheck, correcting intake dry-run confirmation state, adding reservation release/cleanup lifecycle support, and documenting Codex newcomer entry templates.
+  - Validation evidence: python3 -m py_compile scripts/foreman.py scripts/task_audit.py scripts/governed_healthcheck.py scripts/governed_v2_support.py; bash -n scripts/governed_intake.sh scripts/requirements_to_plan.sh scripts/task_materialize.sh; python3 scripts/task_audit.py --check --phase pre-closeout; python3 scripts/foreman.py compile-governance --check; node scripts/lint-repository-knowledge.js; bash scripts/requirements_to_plan.sh --run-id harn031-requirements-dry-run --task-prefix HARN --prompt <smoke> --dry-run; bash scripts/governed_intake.sh --confirm-run harn028-intake-no-task --dry-run; python3 scripts/governed_healthcheck.py --check --run-id harn031-dirty-check; python3 scripts/foreman.py validate HARN-031 --include-task-audit --extra-command <focused script checks>
+  - Residual risk: Healthcheck now intentionally blocks tracked dirty implementation states, so implementation-time healthcheck runs are expected to report tracked_dirty_worktree until closeout commits the tracked patch. Existing untracked .codex runtime evidence remains non-authoritative runtime state and should be cleaned with governed cleanup when stale.
+  - Next step: Use the new Codex daily input templates and HARN-031 audit gates on the next governed full-cycle request; monitor whether authority_fields_to_confirm needs a later structured schema upgrade.
+
 ### HARN-028: 加固 governed full-cycle V2 intake / healthcheck / closeout 完整性
 
 - Status: done
@@ -12,7 +31,7 @@
 - Priority: 1
 - Depends on: `HARN-027`
 - Scope: 在不改变 `HARN-027` no-task 起步真值、不引入第二套长期真值的前提下，补齐 governed intake/healthcheck 入口、machine-readable run summary 的 `executed_commands` 与细粒度 suggestion 字段、candidate materialization rollback，以及 closeout 后不得留下 tracked `validation-log` residue 的仓库级修复 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
-- Plan ref: docs/exec-plans/active/HARN-028-governed-full-cycle-v2-hardening-plan.md
+- Plan ref: docs/exec-plans/completed/HARN-028-governed-full-cycle-v2-hardening-plan.md
 - Matrix context: Phase-A / Story `A-STORY-007` 从无 task 开始的治理自动化
 - Human confirmation point: 若要把 governed intake/healthcheck 升级为跳过确认直接改写台账真值、让 healthcheck 自动回滚或重写 closeout 记录，或允许 closeout 修复继续回到提交后追加 tracked `validation-log` 的模式，需人工确认
 - Data impact: governed intake/healthcheck 入口、run summary/建议字段、candidate materialization rollback、reservation 状态，以及 closeout 与 validation-log 的仓库级治理语义；不直接改变业务运行时数据
@@ -36,7 +55,7 @@
 - Priority: 1
 - Depends on: `HARN-026`
 - Scope: 在不改变 `HARN-026` downstream full-auto 真值、不引入第二套长期真值的前提下，新增 requirement normalization、candidate task pack、governance gate 与 materialization 脚本/模板/手册，让 Codex 可以从“只有需求”开始先塑形 formal task，再继续交给现有 full-auto 执行链 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
-- Plan ref: docs/exec-plans/active/HARN-027-requirements-to-task-governed-full-cycle-plan.md
+- Plan ref: docs/exec-plans/completed/HARN-027-requirements-to-task-governed-full-cycle-plan.md
 - Matrix context: Phase-A / Story `A-STORY-007` 从无 task 开始的治理自动化
 - Human confirmation point: 若要允许 candidate task 在未同步 master-execution-plan/task-spec/task-governance 矩阵前直接进入编码、自动越过 INBOX/人工确认点，或把“无 task 起步”的自动化扩展为可绕过 `preflight` / `instantiate` / `validate` / `task_audit` / `closeout` 的黑盒执行，需人工确认
 - Data impact: requirement-normalizer/plan-shaper/task-shaper/task-governance-reviewer prompt 模板、candidate task pack 模板、task-shaping 运行态、requirements-to-task/materialization/full-cycle 脚本，以及由 formal materialization 写入的 plan/matrix/ledger/exec-plan/raw-requirement 记录；不直接改变业务运行时数据
@@ -60,7 +79,7 @@
 - Priority: 1
 - Depends on: `HARN-025`
 - Scope: 在不改变 `HARN-025` 半自动真值、不引入第二套长期真值的前提下，新增 requirement-driven auto-planner / auto-foreman prompt 模板与 autoplan/full-auto orchestration 脚本，让 codex 可以从需求输入自动生成 exec plan、manifest，并驱动 prepare/launch/collect 与最终 autonomous Main Foreman 收口 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
-- Plan ref: docs/exec-plans/active/HARN-026-full-auto-multi-agent-upgrade-plan.md
+- Plan ref: docs/exec-plans/completed/HARN-026-full-auto-multi-agent-upgrade-plan.md
 - Matrix context: Phase-A / Story `A-STORY-006` 全自动多 agent 协作编排
 - Human confirmation point: 若要把全自动路径升级为“无任务治理前置、无 Main Foreman 收口、可绕过 `foreman validate/task_audit/closeout` 的黑盒自动执行”，或允许 auto-planner / auto-foreman 直接改写台账真值而不经过仓库审计链，需人工确认
 - Data impact: auto-planner / auto-foreman prompt 模板、requirement-driven exec plan 与 manifest 生成脚本、`.codex/state` 下的 full-auto 运行态产物，以及由 autonomous Main Foreman 落地到 `docs/` / 台账的最终收口记录；不直接改变业务运行时数据
@@ -83,7 +102,7 @@
 - Priority: 1
 - Depends on: `HARN-024`
 - Scope: 在不改变业务主线事实、不引入第二套长期真值的前提下，新增 multi-agent playbook、agent prompt 模板、manifest 模板，以及基于多 `codex exec` / 多 `git worktree` 的 prepare/launch/collect 半自动编排脚本，保持 Main Foreman 唯一 validate/closeout/commit Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
-- Plan ref: docs/exec-plans/active/HARN-025-semi-auto-multi-agent-foundation-plan.md
+- Plan ref: docs/exec-plans/completed/HARN-025-semi-auto-multi-agent-foundation-plan.md
 - Matrix context: Phase-A / Story `A-STORY-005` 半自动多 agent 协作治理基础设施
 - Human confirmation point: 若要把半自动多 agent 提升为默认自动执行路径、弱化 Main Foreman 唯一收口、允许 worker 修改台账/validation-log/closeout 文档，或用隐式 subagent 取代显式 `codex exec` + worktree 编排，需人工确认
 - Data impact: 文档真值、运行期 prompt 模板、manifest 编排、worktree orchestration 脚本，以及 `.codex/` 下的运行态 multi-agent 会话元数据；不影响业务运行时数据

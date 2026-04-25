@@ -23,6 +23,7 @@ PROGRESS_LOG_DATE_PATTERN = re.compile(r"^\s*-\s+(\d{4}-\d{2}-\d{2}):", re.MULTI
 INBOX_REF_PATTERN = re.compile(r"^- INBOX ref:\s*(.+)$", re.MULTILINE)
 TASK_REFS_PATTERN = re.compile(r"^- Task refs:\s*(.+)$", re.MULTILINE)
 PLAN_REFS_PATTERN = re.compile(r"^- Plan refs:\s*(.+)$", re.MULTILINE)
+PLAN_REF_PATTERN = re.compile(r"^- Plan ref:\s*(.+)$", re.MULTILINE)
 NEEDED_DECISION_PATTERN = re.compile(r"^- Needed decision:\s*(.+)$", re.MULTILINE)
 R168_EFFECTIVE_DATE = "2026-04-21"
 REQUIRED_CONTEXT_CLOSEOUT_MARKERS = [
@@ -160,6 +161,11 @@ def plan_refs_of(block: Dict[str, str]) -> List[str]:
     return [item.strip() for item in match.group(1).split(",") if item.strip()]
 
 
+def plan_ref_of(block: Dict[str, str]) -> str:
+    match = PLAN_REF_PATTERN.search(block["body"])
+    return match.group(1).strip() if match else ""
+
+
 def needed_decision_of(block: Dict[str, str]) -> str:
     match = NEEDED_DECISION_PATTERN.search(block["body"])
     return match.group(1).strip() if match else ""
@@ -224,6 +230,19 @@ def validate_done_ledger_structure(done_content: str, errors: List[str]) -> None
     if leftover_lines:
         preview = "\n- ".join(line.strip() for line in leftover_lines[:5])
         errors.append("tasks-done.md contains non-task stray content inside the done section:\n- " + preview)
+
+
+def validate_done_plan_ref(block: Dict[str, str], errors: List[str]) -> None:
+    plan_ref = plan_ref_of(block)
+    if not plan_ref:
+        return
+    if plan_ref.startswith("docs/exec-plans/active/"):
+        errors.append(
+            f"{block['task_id']} in tasks-done.md has archived Plan ref pointing at active exec plans: {plan_ref}"
+        )
+        return
+    if plan_ref.startswith("docs/exec-plans/completed/") and not (ROOT / plan_ref).exists():
+        errors.append(f"{block['task_id']} in tasks-done.md has missing completed Plan ref: {plan_ref}")
 
 
 def git_subjects() -> List[str]:
@@ -467,6 +486,7 @@ def audit(phase: str) -> List[str]:
             errors.append(f"{block['task_id']} commit subject not found in git history: {subject}")
         if requires_context_closeout(block, done_ledger=True):
             validate_context_closeout(block, errors)
+        validate_done_plan_ref(block, errors)
 
     return errors
 
@@ -504,6 +524,7 @@ def main() -> int:
         print("- tasks-done commit subjects all exist in git history")
     print("- tasks-done ordering is newest-first for closeout evaluation")
     print("- R-168 Context closeout markers exist for applicable in-review/done tasks")
+    print("- archived done-task Plan refs do not point at active exec plans")
     return 0
 
 
