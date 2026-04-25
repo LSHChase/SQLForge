@@ -120,6 +120,10 @@ PY
     exit 1
   fi
 
+  if [[ "${DRY_RUN}" != "true" ]]; then
+    python3 scripts/governed_healthcheck.py --check --run-id "${CONFIRM_RUN}-pre-confirm-health"
+  fi
+
   if [[ "${PATH_SELECTED}" == "existing-task" ]]; then
     CMD=(bash scripts/multi_agent_full_auto.sh --task "${TASK_ID}")
     if [[ "${DRY_RUN}" == "true" ]]; then

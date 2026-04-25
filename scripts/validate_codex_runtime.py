@@ -79,18 +79,21 @@ def run_hook(path: str, payload: Dict[str, object]) -> Dict[str, object]:
 
 
 def maybe_attempt_codex_exec() -> str:
-    result = run(
-        [
-            "codex",
-            "exec",
-            "--json",
-            "--sandbox",
-            "read-only",
-            "--skip-git-repo-check",
-            "Reply with OK only.",
-        ],
-        timeout=45,
-    )
+    try:
+        result = run(
+            [
+                "codex",
+                "exec",
+                "--json",
+                "--sandbox",
+                "read-only",
+                "--skip-git-repo-check",
+                "Reply with OK only.",
+            ],
+            timeout=45,
+        )
+    except subprocess.TimeoutExpired:
+        return "skipped-timeout"
     if result.returncode == 0:
         return "passed"
     if any(token in (result.stderr + result.stdout).lower() for token in ("login", "auth", "credential", "unauthorized")):

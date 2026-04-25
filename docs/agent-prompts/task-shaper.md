@@ -37,6 +37,7 @@
 - env
 - human_confirmation_point
 - requires_human_decision
+- authority_fields_to_confirm
 - data_impact
 - rollback_recovery
 - task_summary
@@ -46,6 +47,7 @@
 
 - 输出必须覆盖 formal materialization 所需字段
 - `requires_human_decision` 必须真实反映风险，不得一律写 false
+- `authority_fields_to_confirm` 必须显式列出需要人类确认的权威字段、文档入口、边界或权限点；若无需确认则返回空数组
 - 不得把 authority 变更风险隐藏进普通 scope 描述
 - 不得调用工具或自行读取仓库；只基于给定的 normalized requirement、candidate plan 和固定 task/story 信息生成 task pack
 

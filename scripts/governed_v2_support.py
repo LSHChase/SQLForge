@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parent.parent
 STATE_DIR = ROOT / ".codex" / "state"
 TASK_RESERVATION_DIR = STATE_DIR / "task-id-reservations"
 INTAKE_DIR = STATE_DIR / "intake"
+TASK_SHAPING_DIR = STATE_DIR / "task-shaping"
+CLOSEOUT_DIR = STATE_DIR / "closeout"
 CURRENT_TASK_PATH = STATE_DIR / "current-task.json"
 MASTER_PLAN_PATH = ROOT / "docs" / "plans" / "master-execution-plan.md"
 TASK_SPEC_PATH = ROOT / "docs" / "plans" / "task-spec-matrix.md"
@@ -253,13 +255,38 @@ def build_suggestion(
     issue_key: str,
     summary: str,
     human_confirmation_point: str = "",
+    authority_fields_to_confirm: list[str] | None = None,
     command_overrides: list[str] | None = None,
 ) -> dict[str, Any]:
+    authority_fields = authority_fields_to_confirm
+    if authority_fields is None:
+        authority_fields = authority_field_hints(human_confirmation_point) if human_confirmation_point else []
     return {
         "issue_key": issue_key,
         "summary": summary,
-        "authority_fields_to_confirm": authority_field_hints(human_confirmation_point) if human_confirmation_point else [],
+        "authority_fields_to_confirm": authority_fields,
         "suggested_integrity_checks": command_overrides or integrity_check_suggestions(issue_key),
+    }
+
+
+def runtime_dashboard() -> dict[str, Any]:
+    reservation_paths = list_reservation_paths()
+    reservations_by_status: dict[str, int] = {}
+    for path in reservation_paths:
+        status = str(read_json(path, {}).get("status", "unknown")) or "unknown"
+        reservations_by_status[status] = reservations_by_status.get(status, 0) + 1
+
+    def count_dirs(path: Path) -> int:
+        if not path.exists():
+            return 0
+        return sum(1 for child in path.iterdir() if child.is_dir())
+
+    return {
+        "intake_runs": count_dirs(INTAKE_DIR),
+        "task_shaping_runs": count_dirs(TASK_SHAPING_DIR),
+        "closeout_evidence_runs": count_dirs(CLOSEOUT_DIR),
+        "reservation_files": len(reservation_paths),
+        "reservations_by_status": reservations_by_status,
     }
 
 

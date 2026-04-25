@@ -79,6 +79,14 @@ Codex 给出模板后，人类可以回复：
 
 自然语言确认句等价于进入 governed confirmation gate；Codex 仍必须遵守 `preflight`、`governed_healthcheck`、`instantiate`、`validate`、`task_audit`、`closeout`，不得把确认句解释为跳过仓库治理。`限制：...` 必须写入 candidate pack / execution plan 的 constraints、out-of-scope、validation focus 或 human confirmation point，保证后续实现和验证可追溯。
 
+若需要把自然语言模板先转成机器可读入口，使用：
+
+```bash
+python3 scripts/codex_template_adapter.py --template-text '<TEMPLATE>'
+```
+
+该 adapter 只生成 `template-adapter-summary.json` 与推荐的 `governed_intake.sh` 命令；加 `--execute` 才会实际调用 intake。
+
 子 `codex exec` 的默认执行模式是 `SQLFORGE_CODEX_EXEC_MODE=bypass`。这意味着 task-shaping、governance review 和 downstream auto-foreman 会假设父级自动化已经由可信外部环境托管沙箱。如果需要强制子会话使用 Codex 自带沙箱，可改成 `full-auto`、`read-only`、`workspace-write` 或 `danger-full-access`。
 
 为了避免 candidate task id 污染主运行态，`requirements_to_plan.sh` 和 `task_materialize.sh` 内部用于 shaping/review 的子 `codex exec` 会默认禁用 `codex_hooks`。正式进入 materialization 之后，仍由 Main Foreman 重新执行标准 `preflight` / `instantiate` / `validate` / `closeout` 链。
@@ -236,6 +244,7 @@ bash scripts/governed_intake.sh --task <TASK_ID>
 2. 生成 `intake-summary.json`
 3. 保留 `confirmation_state=awaiting-confirmation`
 4. 要求显式执行 `--confirm-run <RUN_ID>`
+5. 真实 `--confirm-run` 会先运行 `python3 scripts/governed_healthcheck.py --check`；若存在 tracked dirty、stale/conflict reservation 或 closeout tail drift，会直接停止
 
 确认执行：
 
@@ -406,3 +415,5 @@ python3 scripts/governed_healthcheck.py --check
 - 先执行 `python3 scripts/governed_healthcheck.py --check`
 - 若提示 `closeout_tail_drift`，先修正 tracked residue，再继续新的 closeout
 - `HARN-031` 之后，closeout 证据采用 precommit projected log + post-commit actual audit/check 的组合；projected 证据只能表示“预期将在 commit 后执行”，不得在真实 post-closeout 执行前写成 `passed`
+- `HARN-032` 之后，真实 post-closeout audit/check 结果写入 `.codex/state/closeout/<TASK_ID>/post-closeout-actual.json`，记录 commit sha、命令、exit code、stdout/stderr 摘要与最终状态；该文件是 runtime evidence，不写入 tracked commit
+- `python3 scripts/governed_healthcheck.py --check --cleanup-dry-run` 会预览 stale reservation 与未关联 intake/task-shaping runtime 证据；`--cleanup-stale` 只释放可安全判定的 stale reservation，不直接删除人工可能仍需审查的 runtime evidence

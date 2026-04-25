@@ -185,6 +185,7 @@ TASK_SCHEMA = {
         "env",
         "human_confirmation_point",
         "requires_human_decision",
+        "authority_fields_to_confirm",
         "data_impact",
         "rollback_recovery",
         "task_summary",
@@ -209,6 +210,7 @@ TASK_SCHEMA = {
         "env": {"type": "string"},
         "human_confirmation_point": {"type": "string"},
         "requires_human_decision": {"type": "boolean"},
+        "authority_fields_to_confirm": {"type": "array", "items": {"type": "string"}},
         "data_impact": {"type": "string"},
         "rollback_recovery": {"type": "string"},
         "task_summary": {"type": "string"},
@@ -612,6 +614,7 @@ candidate_pack = {
     "env": task_payload["env"],
     "human_confirmation_point": task_payload["human_confirmation_point"],
     "requires_human_decision": task_payload["requires_human_decision"],
+    "authority_fields_to_confirm": task_payload["authority_fields_to_confirm"],
     "data_impact": task_payload["data_impact"],
     "rollback_recovery": task_payload["rollback_recovery"],
     "task_summary": task_payload["task_summary"],
@@ -635,6 +638,7 @@ if task_payload["human_confirmation_point"]:
             if task_payload["requires_human_decision"]
             else "Candidate task pack should be reviewed against the recorded human-confirmation boundary before confirm-run.",
             human_confirmation_point=task_payload["human_confirmation_point"],
+            authority_fields_to_confirm=task_payload["authority_fields_to_confirm"],
         )
     )
 write_json(

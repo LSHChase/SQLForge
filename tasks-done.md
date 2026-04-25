@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-032: Governed full-cycle V4 entrypoint and evidence hardening
+
+- Status: done
+- Completed at: 2026-04-25
+- Commit subject: `feat(governance): harden governed full-cycle v4 entrypoints`
+- Priority: 1
+- Depends on: HARN-031
+- Scope: Harden HARN-031 follow-up gaps by enforcing healthcheck gates before real governed execution, writing post-closeout actual runtime evidence, adding Codex natural template adaptation, extending runtime cleanup/retention, and covering the template path with smoke validation.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-032`
+- Progress log:
+  - 2026-04-25: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-25: implemented mandatory pre-execution health gates, post-closeout actual runtime evidence, Codex natural template adapter, cleanup preview/dashboard fields, and explicit authority_fields_to_confirm plumbing.
+- Context closeout:
+  - Completed scope: Hardened governed full-cycle V4 entrypoints by enforcing pre-execution healthcheck gates before real governed_intake/governed_full_cycle execution, adding post-closeout actual runtime evidence, introducing a Codex natural template adapter, extending cleanup preview/dashboard runtime summaries, and plumbing explicit authority_fields_to_confirm through candidate packs and suggestions.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-032 --include-task-audit --extra-command <py_compile/governed shell syntax/template adapter smoke/healthcheck help>; python3 scripts/task_audit.py --check --phase pre-closeout; python3 scripts/foreman.py compile-governance --check; node scripts/lint-repository-knowledge.js; python3 scripts/codex_template_adapter.py --run-id harn032-template-smoke --template-text <治理需求 smoke>; python3 scripts/governed_healthcheck.py --check --cleanup-dry-run --run-id harn032-cleanup-preview
+  - Residual risk: Real governed execution is now gated by healthcheck, so active implementation dirty state intentionally blocks confirm/full-cycle runs until committed. Runtime .codex evidence remains untracked by design; cleanup-dry-run previews intake/task-shaping evidence but only releases safe stale reservations automatically.
+  - Next step: Use codex_template_adapter.py for natural template entry and inspect .codex/state/closeout/<TASK_ID>/post-closeout-actual.json after closeout; consider a later task for fully automated deletion of reviewed runtime evidence if desired.
+
 ### HARN-031: HARN-028 governed full-cycle V3 audit-hardening repair
 
 - Status: done

@@ -1251,3 +1251,26 @@
 2026-04-25T00:44:15-05:00 | HARN-031 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-04-25T00:44:15-05:00 | HARN-031 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`
 2026-04-25T00:44:15-05:00 | HARN-031 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-04-25T03:30:07-05:00 | HARN-032 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-25T03:30:07-05:00 | HARN-032 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-25T03:30:53-05:00 | HARN-032 validate | `R-133`, `R-168` | failed | `python3 scripts/validate_codex_runtime.py`
+2026-04-25T03:30:53-05:00 | HARN-032 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-25T03:30:53-05:00 | HARN-032 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-25T03:30:53-05:00 | HARN-032 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/governed_healthcheck.py scripts/governed_v2_support.py scripts/codex_template_adapter.py`
+2026-04-25T03:30:53-05:00 | HARN-032 validate | `R-133`, `R-168` | passed | `bash -n scripts/governed_intake.sh scripts/governed_full_cycle.sh scripts/requirements_to_plan.sh scripts/task_materialize.sh`
+2026-04-25T03:30:53-05:00 | HARN-032 validate | `R-133`, `R-168` | passed | `python3 scripts/codex_template_adapter.py --run-id harn032-template-smoke-validate --template-text 治理需求：新增治理入口smoke`
+2026-04-25T03:30:53-05:00 | HARN-032 validate | `R-133`, `R-168` | passed | `python3 scripts/governed_healthcheck.py --help`
+2026-04-25T03:31:52-05:00 | HARN-032 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-25T03:31:52-05:00 | HARN-032 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-25T03:32:38-05:00 | HARN-032 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-25T03:32:38-05:00 | HARN-032 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-25T03:32:38-05:00 | HARN-032 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-25T03:32:38-05:00 | HARN-032 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/governed_healthcheck.py scripts/governed_v2_support.py scripts/codex_template_adapter.py scripts/validate_codex_runtime.py`
+2026-04-25T03:32:38-05:00 | HARN-032 validate | `R-133`, `R-168` | passed | `bash -n scripts/governed_intake.sh scripts/governed_full_cycle.sh scripts/requirements_to_plan.sh scripts/task_materialize.sh`
+2026-04-25T03:32:38-05:00 | HARN-032 validate | `R-133`, `R-168` | passed | `python3 scripts/codex_template_adapter.py --run-id harn032-template-smoke-validate2 --template-text 治理需求：新增治理入口smoke`
+2026-04-25T03:32:38-05:00 | HARN-032 validate | `R-133`, `R-168` | passed | `python3 scripts/governed_healthcheck.py --help`
+2026-04-25T03:33:14-05:00 | HARN-032 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-25T03:33:14-05:00 | HARN-032 closeout commit | `R-168` | projected | `git commit -m 'feat(governance): harden governed full-cycle v4 entrypoints' (projected-precommit)`
+2026-04-25T03:33:14-05:00 | HARN-032 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-25T03:33:14-05:00 | HARN-032 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`
+2026-04-25T03:33:14-05:00 | HARN-032 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`

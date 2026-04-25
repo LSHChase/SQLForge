@@ -127,6 +127,7 @@ REQUIRED_FIELDS = {
     "env": str,
     "human_confirmation_point": str,
     "requires_human_decision": bool,
+    "authority_fields_to_confirm": list,
     "data_impact": str,
     "rollback_recovery": str,
     "task_summary": str,
@@ -421,6 +422,7 @@ def finish_and_fail(message: str, *, issue_key: str = "materialization_blocked")
             issue_key=issue_key,
             summary=message,
             human_confirmation_point=task_pack.get("human_confirmation_point", ""),
+            authority_fields_to_confirm=task_pack.get("authority_fields_to_confirm", []),
         )
     )
     write_run_summary(
@@ -531,6 +533,7 @@ if task_pack["human_confirmation_point"]:
             issue_key="materialization_blocked" if task_pack["requires_human_decision"] else "reservation_conflict",
             summary="Review the recorded human-confirmation boundary before allowing formal materialization.",
             human_confirmation_point=task_pack["human_confirmation_point"],
+            authority_fields_to_confirm=task_pack.get("authority_fields_to_confirm", []),
         )
     )
 
@@ -663,6 +666,7 @@ except BaseException as exc:
                     issue_key="materialization_blocked",
                     summary=message,
                     human_confirmation_point=task_pack.get("human_confirmation_point", ""),
+                    authority_fields_to_confirm=task_pack.get("authority_fields_to_confirm", []),
                 )
             ],
             "recommended_next_step": "Inspect the blocker, run governed_healthcheck.py if needed, then retry materialization.",

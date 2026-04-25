@@ -20,6 +20,7 @@ DOCS_DIR = ROOT / "docs"
 CODEX_DIR = ROOT / ".codex"
 POLICY_DIR = CODEX_DIR / "policy"
 STATE_DIR = CODEX_DIR / "state"
+CLOSEOUT_DIR = STATE_DIR / "closeout"
 TASKS_PATH = ROOT / "tasks.md"
 TASKS_DONE_PATH = ROOT / "tasks-done.md"
 INBOX_PATH = ROOT / "INBOX.md"
@@ -1154,6 +1155,65 @@ def run_without_logging(command: Sequence[str]) -> None:
         raise SystemExit(result.stderr.strip() or result.stdout.strip() or "command failed")
 
 
+def command_result_payload(command: Sequence[str], result: CommandResult, label: str) -> Dict[str, Any]:
+    return {
+        "label": label,
+        "command": " ".join(command),
+        "exit_code": result.code,
+        "status": "passed" if result.code == 0 else "failed",
+        "stdout": result.stdout[-20000:],
+        "stderr": result.stderr[-20000:],
+        "completed_at": now_iso(),
+    }
+
+
+def write_post_closeout_actual_evidence(
+    task_id: str,
+    commit_sha: str,
+    commit_subject: str,
+    results: List[Dict[str, Any]],
+    final_status: str,
+) -> str:
+    evidence_path = CLOSEOUT_DIR / task_id / "post-closeout-actual.json"
+    write_json(
+        evidence_path,
+        {
+            "task_id": task_id,
+            "commit_sha": commit_sha,
+            "commit_subject": commit_subject,
+            "evidence_kind": "post-closeout-actual",
+            "final_status": final_status,
+            "commands": results,
+            "recorded_at": now_iso(),
+        },
+    )
+    return relative_path(evidence_path)
+
+
+def run_post_closeout_actual_checks(
+    task_id: str,
+    commit_sha: str,
+    commit_subject: str,
+    post_checks: Sequence[str],
+) -> str:
+    results: List[Dict[str, Any]] = []
+    commands: List[tuple[str, List[str]]] = [
+        ("post-closeout task-audit", ["python3", "scripts/task_audit.py", "--check", "--phase", "post-closeout"]),
+    ]
+    commands.extend(("post-closeout check", shlex.split(command_text)) for command_text in post_checks)
+
+    for label, command in commands:
+        result = run(command)
+        results.append(command_result_payload(command, result, label))
+        if result.code != 0:
+            evidence_ref = write_post_closeout_actual_evidence(task_id, commit_sha, commit_subject, results, "failed")
+            raise SystemExit(
+                f"post-closeout actual check failed; evidence: {evidence_ref}\n"
+                + (result.stderr.strip() or result.stdout.strip() or "command failed")
+            )
+    return write_post_closeout_actual_evidence(task_id, commit_sha, commit_subject, results, "passed")
+
+
 def command_closeout(args: argparse.Namespace) -> int:
     validated_stage_paths = validate_stage_paths(args.stage_path)
     state = read_json(CURRENT_TASK_PATH, default=idle_current_task_state())
@@ -1193,9 +1253,7 @@ def command_closeout(args: argparse.Namespace) -> int:
     git_add_paths(deduped_stage_paths)
 
     commit_sha = git_commit_subject(commit_subject)
-    run_without_logging(["python3", "scripts/task_audit.py", "--check", "--phase", "post-closeout"])
-    for command_text in args.post_check:
-        run_without_logging(shlex.split(command_text))
+    post_closeout_actual_ref = run_post_closeout_actual_checks(args.task, commit_sha, commit_subject, args.post_check)
 
     residue = tracked_status_short()
     if residue:
@@ -1214,6 +1272,7 @@ def command_closeout(args: argparse.Namespace) -> int:
         delivery_writeback_completed=False,
     )
     print(f"Closeout completed for {args.task} at {commit_sha}")
+    print(f"post_closeout_actual_evidence: {post_closeout_actual_ref}")
     return 0
 
 

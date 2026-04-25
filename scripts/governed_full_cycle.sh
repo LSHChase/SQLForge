@@ -144,6 +144,8 @@ if [[ "${DRY_RUN}" == "true" ]]; then
   exit 0
 fi
 
+python3 scripts/governed_healthcheck.py --check --run-id "${RUN_ID}-pre-full-cycle-health"
+
 REQ_CMD=(bash scripts/requirements_to_plan.sh --run-id "${RUN_ID}" --task-prefix "${TASK_PREFIX}")
 if [[ -n "${REQUIREMENTS_FILE}" ]]; then
   REQ_CMD+=(--requirements-file "${REQUIREMENTS_FILE}")
