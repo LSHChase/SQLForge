@@ -1,0 +1,72 @@
+{
+  "task_id": "TASK-ID",
+  "mode": "semi-auto",
+  "main_worktree": ".",
+  "run_root": ".codex/state/multi-agent/TASK-ID",
+  "codex": {
+    "sandbox": "workspace-write",
+    "full_auto": true,
+    "color": "never",
+    "extra_args": []
+  },
+  "agents": [
+    {
+      "name": "truth-explorer",
+      "role": "explorer",
+      "worktree": ".",
+      "prompt_file": "docs/agent-prompts/truth-explorer.md",
+      "ownership": [],
+      "forbidden_paths": [
+        "tasks.md",
+        "tasks-done.md",
+        "INBOX.md",
+        "docs/quality/validation-log.md"
+      ],
+      "validation_scope": [
+        "repository truth survey"
+      ],
+      "notes": "Reuse the main worktree only for read-only exploration."
+    },
+    {
+      "name": "worker-name",
+      "role": "worker",
+      "worktree": "../sqlforge-TASK-ID-worker-name",
+      "prompt_file": "docs/agent-prompts/governance-worker.md",
+      "ownership": [
+        "docs/operations/**",
+        "docs/agent-prompts/**",
+        "docs/exec-plans/templates/**",
+        "scripts/multi_agent_*.sh"
+      ],
+      "forbidden_paths": [
+        "tasks.md",
+        "tasks-done.md",
+        "INBOX.md",
+        "docs/quality/validation-log.md"
+      ],
+      "validation_scope": [
+        "script help",
+        "dry-run"
+      ],
+      "notes": "Workers must use isolated worktrees and must not touch ledgers."
+    },
+    {
+      "name": "validator",
+      "role": "validator",
+      "worktree": ".",
+      "prompt_file": "docs/agent-prompts/validator.md",
+      "ownership": [],
+      "forbidden_paths": [
+        "tasks.md",
+        "tasks-done.md",
+        "INBOX.md",
+        "docs/quality/validation-log.md"
+      ],
+      "validation_scope": [
+        "ownership review",
+        "launch/collect review"
+      ],
+      "notes": "Validator should not modify implementation by default."
+    }
+  ]
+}

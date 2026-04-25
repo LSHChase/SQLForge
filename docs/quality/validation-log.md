@@ -1178,3 +1178,24 @@
 2026-04-24T12:03:31-05:00 | HARN-024 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
 2026-04-24T12:03:31-05:00 | HARN-024 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
 2026-04-24T12:05:03-05:00 | HARN-024 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-24T12:05:03-05:00 | HARN-024 closeout commit | `R-168` | passed | `3c8d74ea2cac41ed2280c5563cd3612dfda97980`
+2026-04-24T12:05:03-05:00 | HARN-024 post-closeout task-audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
+2026-04-24T19:39:51-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-24T19:39:51-05:00 | HARN-025 validate | `R-131`, `R-133` | failed | `node scripts/lint-repository-knowledge.js`
+2026-04-24T19:40:06-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-24T19:40:06-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-24T19:40:06-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `bash scripts/multi_agent_prepare.sh --help`
+2026-04-24T19:40:06-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `bash scripts/multi_agent_launch.sh --help`
+2026-04-24T19:40:06-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `bash scripts/multi_agent_collect.sh --help`
+2026-04-24T19:40:06-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `bash scripts/multi_agent_prepare.sh --task HARN-025 --manifest .codex/state/multi-agent/HARN-025-dry-run.json --bootstrap-if-missing --dry-run`
+2026-04-24T19:40:06-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `bash scripts/multi_agent_launch.sh --manifest .codex/state/multi-agent/HARN-025-dry-run.json --dry-run`
+2026-04-24T19:41:42-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-24T19:41:42-05:00 | HARN-025 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-24T19:41:57-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-24T19:41:57-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-24T19:41:57-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `bash scripts/multi_agent_prepare.sh --help`
+2026-04-24T19:41:57-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `bash scripts/multi_agent_launch.sh --help`
+2026-04-24T19:41:57-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `bash scripts/multi_agent_collect.sh --help`
+2026-04-24T19:41:57-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `bash scripts/multi_agent_prepare.sh --task HARN-025 --manifest .codex/state/multi-agent/HARN-025-dry-run.json --bootstrap-if-missing --dry-run`
+2026-04-24T19:41:57-05:00 | HARN-025 validate | `R-133`, `R-168` | passed | `bash scripts/multi_agent_launch.sh --manifest .codex/state/multi-agent/HARN-025-dry-run.json --dry-run`
+2026-04-24T19:44:10-05:00 | HARN-025 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`

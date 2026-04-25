@@ -108,7 +108,7 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：当前没有已实例化的 repo-side mainline task；`D-TASK-029` 已完成 closeout，默认主路径仍保持 `LOCAL_FILE`，不得把 environment-backed object storage 写成仓库默认事实。
+- 当前活跃目标：当前没有已实例化的 repo-side mainline task；`D-TASK-029` 已完成 closeout，默认主路径仍保持 `LOCAL_FILE`，不得把 environment-backed object storage 写成仓库默认事实。当前另有独立治理/工具任务 `HARN-025` 用于落地半自动多 agent 协作基础设施，但它不改变“当前无 repo-side business mainline”的仓库真值。
 - 当前下一条可执行主线任务：
   - 当前没有已实例化的 repo-side mainline task。
   - 如继续推进 Phase-D，下一条候选任务应先塑形为新的未实例化 follow-up，而不是把任何候选直接写成已运行主线。
@@ -146,6 +146,7 @@
   - `D-TASK-027` 已完成 `D-TASK-026` residual risk 的 repo-side 收口：它把 mixed live/fallback workload 收口为显式 compensation-replay evidence，并让 `ENVIRONMENT_OBJECT_STORAGE` 在提供 provider endpoint 时执行真实 provider-backed write/readback recovery verification，同时把 provider/external verification 与 compensation evidence 一并沉淀进 benchmark/governance 长期追溯链；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
   - `D-TASK-028` 已完成 `D-TASK-027` residual risk 的 repo-side 收口：它把 provider-specific / multi-provider object-storage contract、cleanup/recovery semantics，以及 compensation-replay evidence 的 governance query/recovery surfaces 收口为已验证基线；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
   - `D-TASK-029` 已完成 `D-TASK-028` residual risk 的 repo-side 收口：它把 provider-native / environment-backed object-storage live evidence 进一步沉淀到 provider header/request-id 级别，并补齐 governance-triggered artifact cleanup/recovery operation surfaces；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
+  - `HARN-025` 用于把“半自动多 agent 协作基础设施（C 方案）”正式落为独立治理/工具能力：Main Foreman 唯一收口、多 `codex exec` 会话替代隐式 subagent、多 `git worktree` 隔离、manifest 驱动、prompt 模板化，以及最终仍走 `foreman validate` / `task_audit` / `closeout`；它不混入业务主线功能，也不改变当前 repo-side business mainline 为空的事实。
   - `HARN-016` 已把外部 Win10 测试环境的 Hetu/MRS 实际联通与留证动作挂起到 `INBOX-002`；它继续是 blocked 的 environment-backed follow-up，不构成当前 repo-side mainline。
   - `INBOX-001` 继续保留为未来恢复 Sonar 强制门禁的环境恢复项；它仍是独立的 environment-backed follow-up，不改变当前仓库真值：当前没有新的已实例化 repo-side mainline，而 `HARN-016` / `INBOX-001` 仍只属于非主线的 environment-backed follow-up。
 
@@ -245,6 +246,17 @@ Tasks:
 | `A-TASK-010` | 主计划与运行台账对齐 | 回补 post-publication 已执行任务、修正 active wave、清理已解决 INBOX | `A-STORY-003` | `task_audit`、knowledge lint、主计划/矩阵/台账交叉检查通过 |
 | `A-TASK-011` | 主计划剩余任务对齐并修复跨服务鉴权审计缺口 | 对齐 active wave、剩余任务与事实完成度，并收口跨服务鉴权、租户归一化与审计元数据高优先缺口 | `A-TASK-010` | `task_audit`、knowledge lint、主计划/矩阵/台账交叉检查、跨服务测试与配置断言通过 |
 | `A-TASK-012` | 抽取 shared 认证与治理客户端支撑 | 把 query-execution、sql-optimization、benchmark-engine 重复的认证请求元数据与治理内部客户端支撑下沉到 `sqlforge-shared`，消除跨服务漂移并补 `R-126` 验证 | `A-TASK-011` | `task_audit`、knowledge lint、共享层编译回归、跨服务治理客户端与请求上下文测试通过 |
+
+##### Story `A-STORY-005` 半自动多 agent 协作治理基础设施
+
+- 目标：把 Main Foreman 唯一收口、多 `codex exec` 会话、多 `git worktree`、manifest 驱动和 prompt 模板化正式沉淀为仓库治理/工具能力，不混入业务主线功能。
+- 验证：文档、模板、脚本、manifest 模板、SQLForge demo runbook、docs 索引和 closeout 审计链全部对齐，且不绕过现有 `foreman` / `task_audit` 流程。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `HARN-025` | 落地半自动多 agent 协作基础设施（C方案） | 以 Main Foreman 唯一收口、多 `codex exec` worker/explorer/validator 会话、多 worktree 隔离、manifest 编排、prompt 模板化和 worker 禁改台账/closeout 文档为前提，新增 multi-agent playbook、agent prompt 模板、prepare/launch/collect 脚本、manifest 模板与 SQLForge demo runbook，并保持最终验证/审计/closeout 仍走 `foreman.py` 标准动作 | `HARN-024` | `python3 scripts/foreman.py validate HARN-025`、`python3 scripts/task_audit.py --check --phase pre-closeout`、docs 索引/coverage 对齐、multi-agent 脚本 help 与 dry-run 自检通过 |
 
 ### Phase-B 阶段0修正与缺口补齐
 

@@ -4,6 +4,34 @@
 
 ## Done
 
+### HARN-025: 落地半自动多 agent 协作基础设施（C方案）
+
+- Status: done
+- Completed at: 2026-04-24
+- Priority: 1
+- Depends on: `HARN-024`
+- Scope: 在不改变业务主线事实、不引入第二套长期真值的前提下，新增 multi-agent playbook、agent prompt 模板、manifest 模板，以及基于多 `codex exec` / 多 `git worktree` 的 prepare/launch/collect 半自动编排脚本，保持 Main Foreman 唯一 validate/closeout/commit Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Plan ref: docs/exec-plans/active/HARN-025-semi-auto-multi-agent-foundation-plan.md
+- Matrix context: Phase-A / Story `A-STORY-005` 半自动多 agent 协作治理基础设施
+- Human confirmation point: 若要把半自动多 agent 提升为默认自动执行路径、弱化 Main Foreman 唯一收口、允许 worker 修改台账/validation-log/closeout 文档，或用隐式 subagent 取代显式 `codex exec` + worktree 编排，需人工确认
+- Data impact: 文档真值、运行期 prompt 模板、manifest 编排、worktree orchestration 脚本，以及 `.codex/` 下的运行态 multi-agent 会话元数据；不影响业务运行时数据
+- Rollback / recovery: 停用 multi-agent 脚本与运行态目录，回退新增 docs/模板/脚本到单 agent `foreman` 路径，并保留 prompt/manifest 作为历史治理记录或拆出兼容改造任务
+- Commit subject: `feat(governance): HARN-025 add semi-auto multi-agent foundation`
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-025`、`bash scripts/multi_agent_prepare.sh --help`、`bash scripts/multi_agent_launch.sh --help`、`bash scripts/multi_agent_collect.sh --help`、docs 索引与 coverage 矩阵对齐
+  - `python3 scripts/foreman.py validate HARN-025`
+- Progress log:
+  - 2026-04-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-24: added `HARN-025` to the master execution plan, task-spec matrix, task-governance extension matrix, docs coverage matrix, and an active exec plan so the semi-auto multi-agent foundation is a formal governance/tooling task instead of an ad-hoc script change.
+  - 2026-04-24: added `docs/operations/multi-agent-playbook.md`, the `docs/agent-prompts/*.md` role templates, and `docs/exec-plans/templates/multi-agent-run.template.json`; also updated `docs/README.md` and `docs/operations/README.md` so the new workflow is indexed and documented as first-class repository truth.
+  - 2026-04-24: implemented `scripts/multi_agent_prepare.sh`, `scripts/multi_agent_launch.sh`, and `scripts/multi_agent_collect.sh`, keeping runtime metadata under `.codex/state/multi-agent/`, then verified help output, prepare/launch dry-run, collect smoke, `python3 scripts/foreman.py compile-governance`, and `python3 scripts/foreman.py validate HARN-025`.
+  - 2026-04-24: the first validation run exposed a repository-knowledge lint failure because a placeholder active-manifest path was rendered as a nonexistent docs path; updated the playbook and coverage wording to describe the naming convention without introducing a dead docs link, then reran validation successfully.
+- Context closeout:
+  - Completed scope: Instantiated HARN-025 as a formal governance/tooling task, added the semi-auto multi-agent playbook, role prompt templates, manifest template, and active exec plan, implemented prepare/launch/collect orchestration scripts with runtime state under .codex/state/multi-agent, updated docs indexes and coverage, and kept Main Foreman as the only validate/closeout/commit entrypoint without mixing business functionality.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-025; bash scripts/multi_agent_prepare.sh --task HARN-025 --manifest .codex/state/multi-agent/HARN-025-dry-run.json --bootstrap-if-missing --dry-run; bash scripts/multi_agent_launch.sh --manifest .codex/state/multi-agent/HARN-025-dry-run.json --dry-run; bash scripts/multi_agent_collect.sh --manifest .codex/state/multi-agent/HARN-025-collect-smoke.json; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The new capability is intentionally semi-auto: Main Foreman still has to write task-specific manifests, review fan-in, and choose the final validation chain manually; successful real-world use also still depends on clean worktrees, clear ownership boundaries, and local Codex CLI/auth availability. The validation log also contained a pre-existing append-only HARN-024 closeout tail before this task started, and the first failed HARN-025 lint attempt is intentionally preserved as audit evidence.
+  - Next step: For the next complex cross-module task, copy the manifest template into docs/exec-plans/active/, fill task-specific ownership/worktree rules, and run prepare/launch/collect before deciding whether more automation is justified.
+
 ### HARN-024: 收口 D-TASK-029 closeout 后的 active-wave / validation-log 漂移
 
 - Status: done

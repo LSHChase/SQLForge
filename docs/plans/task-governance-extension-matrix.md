@@ -29,6 +29,7 @@
 | `A-TASK-010` | 若 active wave 恢复点或已执行任务归属需要改写历史语义则需人工确认 | 无运行时数据；主计划、矩阵、台账与 INBOX 对齐 | 追加 reconciliation 记录并修正矩阵/索引，不删除历史归档块 |
 | `A-TASK-011` | 若剩余任务对齐需要把既有已完成事实重新归类、或修复动作会改变鉴权/租户/审计语义边界，则需人工确认 | 主计划、矩阵、台账、配置、日志与审计语义 | 追加 reconciliation 记录并恢复旧鉴权/审计路径或拆出兼容残差任务 |
 | `A-TASK-012` | 若 shared 抽取会改变 header 鉴权、请求上下文或治理内调契约语义，则需人工确认 | 公共上下文、跨服务治理客户端、审计元数据透传链路 | 恢复服务本地实现或增加兼容包装层，并保留 shared 抽取后的回归测试 |
+| `HARN-025` | 若要把半自动多 agent 提升为默认自动执行路径、弱化 Main Foreman 唯一收口、允许 worker 修改台账/validation-log/closeout 文档，或用隐式 subagent 取代显式 `codex exec` + worktree 编排，需人工确认 | 文档真值、运行期 prompt 模板、manifest 编排、worktree orchestration 脚本，以及 `.codex/` 下的运行态 multi-agent 会话元数据；不影响业务运行时数据 | 停用 multi-agent 脚本与运行态目录，回退新增 docs/模板/脚本到单 agent `foreman` 路径，并保留 prompt/manifest 作为历史治理记录或拆出兼容改造任务 |
 
 ## Phase-B
 
