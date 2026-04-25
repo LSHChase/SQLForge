@@ -1,9 +1,9 @@
 {
   "metadata": {
     "blueprint_sha256": "128671263cebdacf0f4e893a75c9c737e78ce6e86ab2cf33747e0d10e93b9144",
-    "connectors_sha256": "d4719f20775c586a9cb755a02949dd967a8f03a492fbb6d6b2f182ee2cae4c61",
-    "playbook_sha256": "2173f3106e30f223f759546e1e3035b37cdba47d71e608f6c099ccc9c9e13d32",
-    "multi_agent_playbook_sha256": "bfc3e79f91079e37b20213f4e0359dfbd4306f75665ff85e6d7f71cb04169307"
+    "connectors_sha256": "f4e46e21e0b7d54d27471e66bfbc2142b5902e60229e8241a1d6b78e74b44368",
+    "playbook_sha256": "407ea9b9b3e6d7abd599d1890469fd77db7bb4c714d45da07d920b21dba6173b",
+    "multi_agent_playbook_sha256": "02a49839ea998cc029d8b97d9d9643231244ab73b493776dabe12a095fb1108f"
   },
   "scope": {
     "task_id": "HARN-035",

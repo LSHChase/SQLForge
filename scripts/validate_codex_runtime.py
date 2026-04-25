@@ -36,6 +36,7 @@ COLLECT_SCRIPT_PATH = ROOT / "scripts" / "multi_agent_collect.sh"
 AUTOPLAN_SCRIPT_PATH = ROOT / "scripts" / "multi_agent_autoplan.sh"
 CHAT_ROUTER_SCRIPT_PATH = ROOT / "scripts" / "chat_native_router.py"
 GOVERNED_INTAKE_SCRIPT_PATH = ROOT / "scripts" / "governed_intake.sh"
+MCP_DOCTOR_SCRIPT_PATH = ROOT / "scripts" / "mcp_doctor.py"
 
 
 def run(command: list[str], stdin: str | None = None, timeout: int = 30) -> subprocess.CompletedProcess[str]:
@@ -176,6 +177,7 @@ def validate_mcp_governance() -> str:
         RULES_PATH,
         VALIDATION_RULES_PATH,
         MANIFEST_TEMPLATE_PATH,
+        MCP_DOCTOR_SCRIPT_PATH,
     ]:
         expect(path.exists(), f"Required MCP governance document is missing: {path.relative_to(ROOT)}")
 
@@ -189,19 +191,56 @@ def validate_mcp_governance() -> str:
     )
     expect_markers(
         CONNECTORS_PATH,
-        ["观测/日志", "部署证据", "对象存储元数据", "外部需求/工单检索", "Main Foreman", "explorer / validator"],
+        [
+            "观测/日志",
+            "部署证据",
+            "对象存储元数据",
+            "外部需求/工单检索",
+            "Main Foreman",
+            "explorer / validator",
+            "受治理的只读证据增强",
+            "不是远端自动运维",
+            "不是可写控制面",
+            "python3 scripts/mcp_doctor.py --check",
+            "### 观测/日志 Onboarding",
+            "### 部署证据 Onboarding",
+            "### 对象存储元数据 Onboarding",
+            "### 外部需求/工单检索 Onboarding",
+        ],
         "docs/security/connectors.md",
     )
     expect_markers(
         MCP_PLAYBOOK_PATH,
-        ["compile-governance", "validate_codex_runtime.py", "mcp-policy.json", "Main Foreman", "mcp_profile", "explorer/validator"],
+        [
+            "compile-governance",
+            "validate_codex_runtime.py",
+            "mcp-policy.json",
+            "Main Foreman",
+            "mcp_profile",
+            "explorer/validator",
+            "python3 scripts/mcp_doctor.py --check",
+            "受治理的只读证据增强",
+            "不是远端自动运维",
+            "Evidence write-back target",
+        ],
         "docs/operations/codex-mcp-playbook.md",
     )
     expect_markers(
         MULTI_AGENT_PLAYBOOK_PATH,
-        ["mcp_profile", "mcp_profiles", "explorer / validator", "worker", "Main Foreman"],
+        [
+            "mcp_profile",
+            "mcp_profiles",
+            "explorer / validator",
+            "worker",
+            "Main Foreman",
+            "python3 scripts/mcp_doctor.py --check",
+            "受治理的只读证据增强",
+            "不是远端自动运维",
+        ],
         "docs/operations/multi-agent-playbook.md",
     )
+    expect_markers(DOCS_README_PATH, ["受治理的只读证据增强", "mcp_doctor.py --check"], "docs/README.md")
+    expect_markers(OPERATIONS_README_PATH, ["mcp_doctor.py --check", "doctor"], "docs/operations/README.md")
     expect_markers(PREPARE_SCRIPT_PATH, ["mcp_profiles", "mcp_profile"], "scripts/multi_agent_prepare.sh")
     expect_markers(LAUNCH_SCRIPT_PATH, ["mcp_profiles", "mcp_profile"], "scripts/multi_agent_launch.sh")
     expect_markers(COLLECT_SCRIPT_PATH, ["mcp_profiles", "mcp_profile"], "scripts/multi_agent_collect.sh")
@@ -224,6 +263,11 @@ def validate_mcp_governance() -> str:
         not mcp_keys,
         ".codex/config.toml must not declare repo-tracked live MCP runtime config: " + ", ".join(sorted(mcp_keys)),
     )
+
+    doctor = run(["python3", "scripts/mcp_doctor.py", "--check", "--json"])
+    expect(doctor.returncode == 0, doctor.stderr or doctor.stdout)
+    doctor_payload = json.loads(doctor.stdout)
+    expect(doctor_payload.get("status") == "passed", "mcp_doctor.py did not report passed status")
     return str(profile)
 
 

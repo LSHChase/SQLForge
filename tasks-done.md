@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-037: 补齐只读 MCP onboarding / doctor 与治理定位手册
+
+- Status: done
+- Completed at: 2026-04-25
+- Commit subject: `feat(governance): add read-only MCP doctor and onboarding`
+- Priority: 1
+- Depends on: `HARN-035`
+- Scope: 在 `A-STORY-008` 下新增一个 follow-up 治理/工具任务，把现有只读 MCP 基线从“有规则”推进到“可落地可诊断可上手”：补齐按 category 的本地 onboarding、doctor/healthcheck 和 evidence 写回说明，统一单 agent 本地 MCP 与 multi-agent `mcp_profile` 的只读边界口径，并把禁止可写 MCP、SSH、K8s、数据库执行型 server、repo 落 secret/live inventory 的约束落实到文档、脚本与验证链；Main Foreman 仍是唯一 write-back / validate / closeout 入口。 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Plan ref: docs/exec-plans/completed/HARN-037-full-auto-execution-plan.md
+- Matrix context: Phase-A / Story `A-STORY-008` Codex MCP 治理接入
+- Human confirmation point: 若要把 MCP doctor/healthcheck 扩展为远端自动运维、可写控制面、repo 落 secret/live inventory，或允许 multi-agent 中除 explorer/validator 外的角色消费 manifest-level `mcp_profile`，需人工确认。
+- Data impact: MCP 治理文档、onboarding/doctor/healthcheck 脚本或校验分支、compile/validate/runtime 入口、只读 evidence 写回说明，以及相关 runtime 元数据；不直接修改业务运行时数据，不得把 secret、token、endpoint 或 live server inventory 写入 repo-tracked 文件。
+- Rollback / recovery: 回退只读 MCP onboarding / doctor 改造：移除新增的 category onboarding、doctor/healthcheck、evidence 写回说明与定位文案，恢复 `HARN-034` / `HARN-035` 既有只读 MCP 基线，并通过标准 validation 与 task-audit 证明仓库仍保持 Main Foreman 唯一收口、只读 MCP 边界和无 secret/live inventory 落仓语义。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-037、python3 scripts/validate_codex_runtime.py、python3 scripts/foreman.py compile-governance --check、python3 scripts/governed_healthcheck.py --check、node scripts/lint-repository-knowledge.js、python3 scripts/task_audit.py --check --phase pre-closeout、python3 scripts/task_audit.py --check --phase post-closeout`
+  - `python3 scripts/foreman.py validate HARN-037`
+- Progress log:
+  - 2026-04-25: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added local-only read-only MCP doctor checks, category onboarding guidance, evidence write-back targets, and consistent product positioning across MCP docs, lint, compiled policy, and runtime validation.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-037; python3 scripts/mcp_doctor.py --check --json; python3 scripts/foreman.py compile-governance --check; python3 scripts/validate_codex_runtime.py; node scripts/lint-repository-knowledge.js; python3 scripts/task_audit.py --check --phase pre-closeout.
+  - Residual risk: HARN-038 is still not formalized in repo truth, and governed_healthcheck remains intentionally strict about tracked dirty worktrees during in-flight task execution.
+  - Next step: Do not execute HARN-038 until it is formalized into the master plan, task matrices, and ledger via the governed shaping/materialization path.
+
 ### HARN-036: 修复 governed intake / full-auto 入口治理与统一 execution preview 合同
 
 - Status: done

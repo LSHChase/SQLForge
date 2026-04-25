@@ -123,6 +123,8 @@
 | `docs/references/raw-requirements/generated/HARN-035-requirement.md` | Archive | HARN-035 raw requirement snapshot | Archived | 保存 formal materialization 对应的原始需求输入，供 task-shaping 与后续审计追溯 |
 | `docs/exec-plans/completed/HARN-036-full-auto-execution-plan.md` | Indexed | HARN-036 formalized full-auto execution plan | Consumed | 约束 HARN-036 在 formal materialization 之后的 downstream full-auto 执行边界、验证顺序与 closeout 前 write scope |
 | `docs/references/raw-requirements/generated/HARN-036-requirement.md` | Archive | HARN-036 raw requirement snapshot | Archived | 保存 formal materialization 对应的原始需求输入，供 task-shaping 与后续审计追溯 |
+| `docs/exec-plans/completed/HARN-037-full-auto-execution-plan.md` | Indexed | HARN-037 formalized full-auto execution plan | Consumed | 约束 HARN-037 在 formal materialization 之后的 downstream full-auto 执行边界、验证顺序与 closeout 前 write scope |
+| `docs/references/raw-requirements/generated/HARN-037-requirement.md` | Archive | HARN-037 raw requirement snapshot | Archived | 保存 formal materialization 对应的原始需求输入，供 task-shaping 与后续审计追溯 |
 
 ## Completeness Statement
 

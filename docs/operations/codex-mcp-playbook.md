@@ -12,6 +12,13 @@
 - 外部证据如何写回仓库真值
 - manifest-level `mcp_profile` 的当前允许范围
 
+## Product Positioning
+
+- SQLForge 当前对 MCP 的定位是受治理的只读证据增强。
+- MCP 不是远端自动运维。
+- MCP 不是可写控制面。
+- 无论单 agent 还是 multi-agent，`Main Foreman` 仍是唯一 write-back / validate / closeout 入口。
+
 ## Current Boundary
 
 - 只读 MCP 仅限 4 个 category：
@@ -25,6 +32,22 @@
 - 当前允许的 repo-tracked `mcp_profile` 仅限 multi-agent manifest/template 中的符号化字段，且只能分配给 `explorer/validator`。
 - `worker`、Main Foreman 和 Auto Foreman 不得声明或消费 manifest-declared `mcp_profile`。
 - `.codex/policy/mcp-policy.json` 是编译后的 MCP 机器策略，不是新的长期真值。
+
+## MCP Doctor
+
+在尝试任何本地 MCP onboarding、multi-agent `mcp_profile` 试用或运行时诊断前，先执行：
+
+```bash
+python3 scripts/mcp_doctor.py --check
+```
+
+该 doctor 只检查本地治理边界、文档完备性、manifest/template 合同和 repo-tracked 配置红线；不会连接远端系统，也不会执行远端操作。repo 级运行态健康仍由：
+
+```bash
+python3 scripts/governed_healthcheck.py --check
+```
+
+负责。
 
 ## Local Connection Model
 
@@ -46,8 +69,9 @@
 开始任何 MCP 相关任务前，至少执行：
 
 1. `python3 scripts/foreman.py preflight --task <TASK_ID> --task-class standard --prompt "<PROMPT>"`
-2. `python3 scripts/foreman.py compile-governance`
-3. `python3 scripts/validate_codex_runtime.py`
+2. `python3 scripts/mcp_doctor.py --check`
+3. `python3 scripts/foreman.py compile-governance`
+4. `python3 scripts/validate_codex_runtime.py`
 
 若本轮要使用 multi-agent `mcp_profile`，还必须让 manifest 链路经过：
 
@@ -64,16 +88,33 @@
 ## Execution Flow
 
 1. 先确认当前需求属于允许的只读 category，而且使用角色仍在 `explorer/validator` 范围内。
-2. 在本地运行 `compile-governance` 和 `validate_codex_runtime.py`，确认 `mcp-policy.json` 与 repo-tracked config 边界正常。
+2. 在本地运行 `python3 scripts/mcp_doctor.py --check`、`compile-governance` 和 `validate_codex_runtime.py`，确认 onboarding 文档、`mcp-policy.json` 与 repo-tracked config 边界正常。
 3. 若是单 agent 路径，用用户本地配置接入只读 MCP；若是 multi-agent 路径，只允许在 manifest 中声明 top-level `mcp_profiles` registry 和 `explorer/validator` 的 `mcp_profile`。
 4. 用用户本地配置、环境变量或外部 secret store 解析真实 MCP 连接，采集外部证据。
-5. 把需要长期保留的内容写回 SQLForge 审计链：
+5. 把需要长期保留的内容写回 SQLForge 审计链。Evidence write-back target 只允许落到：
    - `tasks.md` / `tasks-done.md`
    - `docs/quality/validation-log.md`
    - 执行计划
    - `INBOX.md`
    - 权威文档
 6. 仍由 Main Foreman 完成 validate、closeout 和单任务提交。
+
+## Category Onboarding Quickstart
+
+- `observability_logs`
+  - Local prerequisites: 用户本地只读日志/指标查询配置已就绪。
+  - Evidence write-back target: 执行计划、验证日志、任务台账。
+- `deployment_evidence`
+  - Local prerequisites: 用户本地只读发布/构建证据访问已就绪。
+  - Evidence write-back target: 执行计划、验证日志、任务台账。
+- `object_storage_metadata`
+  - Local prerequisites: 用户本地 object metadata 只读访问已就绪。
+  - Evidence write-back target: 执行计划、验证日志、相关权威文档。
+- `external_requirements_tickets`
+  - Local prerequisites: 用户本地需求/工单系统只读检索已就绪。
+  - Evidence write-back target: 任务台账、INBOX、执行计划、验证日志。
+
+更细的 Allowed read operations、Explicitly forbidden operations 与 Local runtime location，统一以 [docs/security/connectors.md](../security/connectors.md) 为准。
 
 ## MCP Intake Mini Template
 
@@ -100,6 +141,7 @@
 - 给 `worker`、Main Foreman 或 Auto Foreman 分配 `mcp_profile`
 - 用外部 MCP 结果直接宣布 task 完成
 - 让 `mcp_profile` 绕过 `prepare/launch/collect` 的 manifest 校验与 Main Foreman 写回链
+- 把 `mcp_doctor.py` 包装成远端自动运维或远端探测入口
 
 ## Current Multi-Agent Extension
 

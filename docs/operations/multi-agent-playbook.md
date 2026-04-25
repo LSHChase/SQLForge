@@ -8,6 +8,8 @@
 
 若当前只有规划/需求/计划、还没有正式 task，请先使用 `docs/operations/requirements-to-task-playbook.md` 提供的 task-shaping 流程，把 candidate task pack materialize 成正式 task，再进入本手册的 `semi-auto` 或 `full-auto` 入口。
 
+对 MCP 的定位仍然固定为受治理的只读证据增强，而不是远端自动运维或可写控制面。
+
 ## Core Model
 
 - Main Foreman 是唯一收口点。
@@ -91,6 +93,7 @@
 - 两个 worker 的 ownership 不允许重叠。
 - 只有 `explorer / validator` 可以声明 `mcp_profile`；`worker`、Main Foreman 和 Auto Foreman 一律不得声明。
 - `mcp_profiles` 只能保存符号化元数据，不得包含 live server inventory、token、endpoint 或其他 secret。
+- 在任何使用 `mcp_profile` 的 multi-agent 轮次前，先运行 `python3 scripts/mcp_doctor.py --check`。
 - forbidden paths 至少包含：
   - `tasks.md`
   - `tasks-done.md`
@@ -255,7 +258,8 @@ auto-planner 的输出必须满足：
 1. `python3 scripts/foreman.py preflight`
 2. 确认任务已进入主计划、task-spec matrix、task-governance matrix。
 3. `python3 scripts/foreman.py instantiate <TASK_ID>`
-4. 选择 `semi-auto` 或 `full-auto` 入口。
+4. 若涉及 `mcp_profile`，先执行 `python3 scripts/mcp_doctor.py --check`。
+5. 选择 `semi-auto` 或 `full-auto` 入口。
 
 ### 2. Semi-Auto Entry
 

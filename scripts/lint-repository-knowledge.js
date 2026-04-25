@@ -79,6 +79,7 @@ const requiredGovernancePaths = [
   'tasks-done.md',
   'INBOX.md',
   '.agent/config.json',
+  'scripts/mcp_doctor.py',
   'scripts/task_audit.py',
   'scripts/foreman.py'
 ]
@@ -445,11 +446,19 @@ function ensureMcpGovernanceDocs(errors, checks) {
     '部署证据',
     '对象存储元数据',
     '外部需求/工单检索',
+    '受治理的只读证据增强',
+    '不是远端自动运维',
+    '不是可写控制面',
+    'python3 scripts/mcp_doctor.py --check',
     'SSH',
     'K8s',
     '数据库执行型',
     'Main Foreman',
-    'explorer / validator'
+    'explorer / validator',
+    '### 观测/日志 Onboarding',
+    '### 部署证据 Onboarding',
+    '### 对象存储元数据 Onboarding',
+    '### 外部需求/工单检索 Onboarding'
   ]
   const missingConnectorMarkers = connectorMarkers.filter(marker => !connectorsContent.includes(marker))
   if (missingConnectorMarkers.length > 0) {
@@ -466,7 +475,11 @@ function ensureMcpGovernanceDocs(errors, checks) {
     'mcp_profile',
     'explorer/validator',
     'compile-governance',
-    'validate_codex_runtime.py'
+    'validate_codex_runtime.py',
+    'python3 scripts/mcp_doctor.py --check',
+    '受治理的只读证据增强',
+    '不是远端自动运维',
+    'Evidence write-back target'
   ]
   const missingPlaybookMarkers = playbookMarkers.filter(marker => !playbookContent.includes(marker))
   if (missingPlaybookMarkers.length > 0) {
@@ -520,7 +533,7 @@ function ensureMcpGovernanceDocs(errors, checks) {
   }
 
   const multiAgentPlaybook = readFile(multiAgentPlaybookPath)
-  const multiAgentMarkers = ['mcp_profile', 'mcp_profiles', 'explorer / validator', 'worker']
+  const multiAgentMarkers = ['mcp_profile', 'mcp_profiles', 'explorer / validator', 'worker', 'python3 scripts/mcp_doctor.py --check', '受治理的只读证据增强']
   const missingMultiAgentMarkers = multiAgentMarkers.filter(marker => !multiAgentPlaybook.includes(marker))
   if (missingMultiAgentMarkers.length > 0) {
     errors.push(`docs/operations/multi-agent-playbook.md missing MCP multi-agent markers:\n- ${missingMultiAgentMarkers.join('\n- ')}`)

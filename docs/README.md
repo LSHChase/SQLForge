@@ -188,11 +188,13 @@
 ## 2026-04-25 MCP 治理增量
 
 - [Connector 与 MCP 安全边界](./security/connectors.md)
-  固化 SQLForge 当前 MCP 治理基线、第一批只读 category、禁用 server 类型、manifest-level `mcp_profile` 角色边界和 connector intake / validation checklist。
+  固化 SQLForge 当前 MCP 治理基线、第一批只读 category、禁用 server 类型、manifest-level `mcp_profile` 角色边界、category onboarding、`mcp_doctor.py --check` 与 connector intake / validation checklist。
 - [Codex MCP 使用手册](./operations/codex-mcp-playbook.md)
-  固化 SQLForge 内部使用 Codex + MCP 的本地接入方式、自动化入口、证据写回规则，以及单 agent / multi-agent `mcp_profile` 的当前边界。
+  固化 SQLForge 内部使用 Codex + MCP 的本地接入方式、自动化入口、`mcp_doctor.py --check`、证据写回规则，以及单 agent / multi-agent `mcp_profile` 的当前边界。
 - [多 agent 协作手册](./operations/multi-agent-playbook.md)
   固化 `mcp_profiles` / `mcp_profile` manifest 契约、`explorer / validator` 的只读证据边界，以及 `prepare/launch/collect/full-auto` 的治理约束。
+
+当前对 MCP 的产品定位固定为“受治理的只读证据增强”；它不是远端自动运维，也不是可写控制面。
 
 后续开始任何非 trivial 编码任务时，优先阅读顺序调整为：
 

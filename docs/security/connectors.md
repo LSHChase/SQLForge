@@ -12,6 +12,13 @@
 - 凭据和本地配置边界
 - 证据如何写回仓库真值
 
+## Product Positioning
+
+- MCP 在 SQLForge 当前产品定位下，不是远端自动运维。
+- MCP 不是可写控制面。
+- MCP 只是受治理的只读证据增强。
+- 即使接入了本地 MCP，也不能绕过 `Main Foreman` 的 write-back / validate / closeout 边界。
+
 ## Current Baseline
 
 - `HARN-034` 建立了只读 MCP 治理基线，`HARN-035` 把该基线扩展到 multi-agent manifest 的受控 `mcp_profile` 只读证据面。
@@ -25,6 +32,22 @@
 - 当前允许的 repo-tracked `mcp_profile` 仅限 multi-agent manifest/template 中的符号化声明，且只能分配给 `explorer / validator`。
 - `worker`、Main Foreman 和 Auto Foreman 不得在 manifest 中声明或消费 `mcp_profile`。
 - Main Foreman 仍是唯一 write-back / validate / closeout 入口。
+
+## MCP Doctor Entry
+
+在开始任何本地 MCP onboarding 或 multi-agent `mcp_profile` 试用前，先运行：
+
+```bash
+python3 scripts/mcp_doctor.py --check
+```
+
+该 doctor 只检查 repo 内治理边界、文档完备性、manifest/template 合同和本地配置红线；它不会连接远端系统，也不会执行任何远端操作。仓库级 runtime 健康仍由：
+
+```bash
+python3 scripts/governed_healthcheck.py --check
+```
+
+负责。
 
 ## Approved First-Batch Read-Only Categories
 
@@ -48,6 +71,40 @@
 
 若需求要扩展到上述能力，必须新开 formal task，并同步更新规则、验证规则、playbook 与 compiled policy。
 
+## Category Onboarding Baseline
+
+### 观测/日志 Onboarding
+
+- Local prerequisites: 本地 Codex 或外部 MCP 客户端已由用户配置好只读日志/指标查询能力；repo 内不保存 token、endpoint 或租户配置。
+- Local runtime location: 用户本地 Codex 配置、环境变量或外部 secret store。
+- Evidence write-back target: `docs/quality/validation-log.md`、活动执行计划、`tasks.md` / `tasks-done.md`、`INBOX.md`。
+- Allowed read focus: 异常日志片段、指标快照、告警上下文、只读元数据。
+- Explicitly forbidden operations: ack / silence / close alert、删除日志、修改 retention、任何写操作。
+
+### 部署证据 Onboarding
+
+- Local prerequisites: 本地只读发布状态/构建证据访问已由用户配置；repo 内只记录 category 边界，不记录 live inventory。
+- Local runtime location: 用户本地配置、环境变量或外部 secret store。
+- Evidence write-back target: 活动执行计划、`docs/quality/validation-log.md`、`tasks.md` / `tasks-done.md`。
+- Allowed read focus: release state、构建产物 metadata、rollout evidence、变更只读状态。
+- Explicitly forbidden operations: deploy、rollback、approve、promote、delete、任何远端变更。
+
+### 对象存储元数据 Onboarding
+
+- Local prerequisites: 用户本地已具备 bucket/object metadata 的只读访问，不得把 bucket inventory、credential 或 endpoint 落仓。
+- Local runtime location: 用户本地配置、环境变量或外部 secret store。
+- Evidence write-back target: 活动执行计划、`docs/quality/validation-log.md`、相关权威文档。
+- Allowed read focus: object head、etag/version、retention metadata、prefix 列表。
+- Explicitly forbidden operations: upload、delete、restore、retag、change retention、任何对象变更。
+
+### 外部需求/工单检索 Onboarding
+
+- Local prerequisites: 用户本地已配置需求/工单系统的只读检索；repo 只允许保留 non-secret onboarding 文案。
+- Local runtime location: 用户本地配置、环境变量或外部 secret store。
+- Evidence write-back target: `tasks.md` / `tasks-done.md`、`INBOX.md`、活动执行计划、`docs/quality/validation-log.md`。
+- Allowed read focus: requirement/ticket 内容、只读附件副本、状态检索、上下文搜索。
+- Explicitly forbidden operations: create、comment、assign、transition、close、任何状态流转。
+
 ## Global Controls
 
 - 外部 MCP 证据不是仓库长期真值。
@@ -56,6 +113,7 @@
   - token、密码、endpoint、租户配置、临时 session 信息必须来自用户本地配置、环境变量或外部 secret store。
 - `python3 scripts/foreman.py compile-governance` 必须生成 `.codex/policy/mcp-policy.json`。
 - `python3 scripts/validate_codex_runtime.py` 必须验证 `mcp-policy.json`、索引文档和 repo-tracked runtime config 边界。
+- `python3 scripts/mcp_doctor.py --check` 必须验证 onboarding 文档、产品定位、manifest/template 合同和 repo-tracked 本地配置红线是否齐备。
 - repo-tracked multi-agent manifest/template 可以声明 top-level `mcp_profiles` registry 与 per-agent `mcp_profile`，但它们必须保持符号化：
   - 只允许 `source`、`allowed_roles`、`allowed_categories`、`notes` 这类非 secret 元数据
   - 不得包含 live server inventory、endpoint、token、tenant config 或其他 secret
@@ -83,8 +141,9 @@
 3. `docs/quality/validation-rules.md` 已包含对应 MCP 验证规则。
 4. `docs/operations/multi-agent-playbook.md` 与 multi-agent manifest/template 已同步 `mcp_profiles` / `mcp_profile` 合同。
 5. `python3 scripts/foreman.py compile-governance` 已生成 `.codex/policy/mcp-policy.json`。
-6. `python3 scripts/validate_codex_runtime.py` 已通过，并确认 repo-tracked `.codex/config.toml` 未启用 live MCP runtime config 或 secret。
-7. 若任务真的消费了外部 MCP 证据，证据已通过任务台账、执行计划、验证日志或 INBOX 写回仓库审计链。
+6. `python3 scripts/mcp_doctor.py --check` 已通过，且定位仍是“受治理的只读证据增强”，不是远端自动运维或可写控制面。
+7. `python3 scripts/validate_codex_runtime.py` 已通过，并确认 repo-tracked `.codex/config.toml` 未启用 live MCP runtime config 或 secret。
+8. 若任务真的消费了外部 MCP 证据，证据已通过任务台账、执行计划、验证日志或 INBOX 写回仓库审计链。
 
 ## Current Repository Position
 
@@ -92,5 +151,6 @@
 
 - 先做治理，再做接入。
 - 先做只读 category，再做具体 server。
+- 当前仓库对 MCP 的公开定位是“受治理的只读证据增强”，不是远端自动运维，也不是可写控制面。
 - 当前已允许 multi-agent 以受控 `mcp_profile` 方式让 `explorer / validator` 读取只读外部证据，但不允许 `worker`、Main Foreman 或任何写角色消费 MCP。
 - Main Foreman 继续保持唯一写边界；multi-agent MCP 只用于外部证据读取，不改变 validate / closeout / commit 主链。
