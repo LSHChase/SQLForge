@@ -60,6 +60,7 @@ class BenchmarkGovernanceTraceServiceTest {
                 "queryExecutionImplementationStage=BENCHMARK_WORKLOAD_ORCHESTRATION_BASELINE",
                 "queryExecution[HETU]=QUERY_EXECUTION_SYNC,mode=CLIENT,elapsedMs=42,scannedRows=1024,cacheHit=true,"
                     + "cacheGovernanceStatus=HIT,cacheGovernanceEvidence=policyId:cache-policy-001|status:HIT|schemaVersion:schema-v1"
+                    + "|evictionReason:CAPACITY_EVICTED|evictedEntryCount:1|maxEntriesPerPolicy:2|policyCachedEntryCount:2|ttlSeconds:60"
             )
         );
         BenchmarkReport report = new BenchmarkReport(
@@ -128,6 +129,11 @@ class BenchmarkGovernanceTraceServiceTest {
         Map engines = (Map) queryExecution.get("engines");
         assertNotNull(engines.get("HETU"));
         assertEquals("HIT", ((Map) engines.get("HETU")).get("cacheGovernanceStatus"));
+        assertEquals(
+            "policyId:cache-policy-001|status:HIT|schemaVersion:schema-v1"
+                + "|evictionReason:CAPACITY_EVICTED|evictedEntryCount:1|maxEntriesPerPolicy:2|policyCachedEntryCount:2|ttlSeconds:60",
+            ((Map) engines.get("HETU")).get("cacheGovernanceEvidence")
+        );
         assertEquals("VERIFIED", request.getArtifacts().get(0).getStorageEvidence().split(";")[1].split("=")[1]);
         assertEquals(Integer.valueOf(180), request.getArtifacts().get(0).getRetentionDays());
     }

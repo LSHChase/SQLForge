@@ -14,7 +14,9 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyRespo
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyVerifyRequest;
 import com.company.sqlforge.common.utils.JsonUtils;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,21 +40,45 @@ public class QueryExecutionCacheGovernanceRuntimeService {
     private static final String RISK_SESSION_BYPASS = "SESSION_VARIABLE_BYPASS";
     private static final String RISK_BACKEND_UNAVAILABLE = "DISTRIBUTED_BACKEND_UNAVAILABLE";
     private static final String RISK_BACKEND_WRITE_FAILED = "DISTRIBUTED_BACKEND_WRITE_FAILED";
+    private static final String EVICTION_TTL_EXPIRED = "TTL_EXPIRED";
+    private static final String EVICTION_CAPACITY_EVICTED = "CAPACITY_EVICTED";
+    private static final String EVICTION_MANUAL_INVALIDATED = "MANUAL_INVALIDATED";
+    private static final String EVICTION_SCHEMA_VERSION_MISMATCH = "SCHEMA_VERSION_MISMATCH";
 
     private final Map<String, CachePolicyBinding> bindings = new ConcurrentHashMap<String, CachePolicyBinding>();
+    private final Map<String, CacheEntryMetadata> entryMetadata = new ConcurrentHashMap<String, CacheEntryMetadata>();
+    private final Map<String, EvictionSummary> evictionSummaries = new ConcurrentHashMap<String, EvictionSummary>();
     private final QueryExecutionResultCacheBackend cacheBackend;
+    private final int defaultMaxEntriesPerTenant;
+    private final int defaultMaxEntriesPerPolicy;
+    private final long defaultTtlSeconds;
 
     public QueryExecutionCacheGovernanceRuntimeService() {
-        this(new InMemoryQueryExecutionResultCacheBackend());
+        this(new InMemoryQueryExecutionResultCacheBackend(), 1024, 128, 0L);
     }
 
     @Autowired
     public QueryExecutionCacheGovernanceRuntimeService(QueryExecutionCacheBackendProperties properties) {
-        this(createBackend(properties));
+        this(
+            createBackend(properties),
+            normalizePositive(properties == null ? 1024 : properties.getDefaultMaxEntriesPerTenant(), 1024),
+            normalizePositive(properties == null ? 128 : properties.getDefaultMaxEntriesPerPolicy(), 128),
+            normalizeNonNegative(properties == null ? 0L : properties.getDefaultTtlSeconds())
+        );
     }
 
     QueryExecutionCacheGovernanceRuntimeService(QueryExecutionResultCacheBackend cacheBackend) {
+        this(cacheBackend, 1024, 128, 0L);
+    }
+
+    QueryExecutionCacheGovernanceRuntimeService(QueryExecutionResultCacheBackend cacheBackend,
+                                                int defaultMaxEntriesPerTenant,
+                                                int defaultMaxEntriesPerPolicy,
+                                                long defaultTtlSeconds) {
         this.cacheBackend = cacheBackend == null ? new InMemoryQueryExecutionResultCacheBackend() : cacheBackend;
+        this.defaultMaxEntriesPerTenant = normalizePositive(defaultMaxEntriesPerTenant, 1024);
+        this.defaultMaxEntriesPerPolicy = normalizePositive(defaultMaxEntriesPerPolicy, 128);
+        this.defaultTtlSeconds = normalizeNonNegative(defaultTtlSeconds);
     }
 
     public QueryExecutionCachePolicyResponse apply(QueryExecutionCachePolicyApplyRequest request) {
@@ -79,6 +105,8 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             schemaVersion,
             trimToNull(request.getSourcePlanId()),
             trimToNull(request.getPolicyReason()),
+            normalizeMaxEntries(request.getMaxEntries()),
+            normalizeTtlSeconds(request.getTtlSeconds()),
             Instant.now()
         );
         bindings.put(bindingKey, binding);
@@ -86,7 +114,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             binding,
             "APPLIED",
             true,
-            "Governed cache policy is now active for result-cache eligibility, backend validation, and version checks.",
+            "Governed cache policy is now active for result-cache eligibility, backend validation, capacity limits, TTL, and version checks.",
             countEntries(binding)
         );
     }
@@ -109,7 +137,8 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             response.setPolicySummary("No governed cache policy is currently active for runtime verification.");
             response.setRuntimeDetailsJson(JsonUtils.toJson(withBackendDetails(details(
                 "bindingState", "MISSING",
-                "cachedEntryCount", Integer.valueOf(0)
+                "cachedEntryCount", Integer.valueOf(0),
+                "capacitySummary", "NO_ACTIVE_POLICY"
             ), cacheBackend.verify().getProviderEvidence())));
             response.setContractStage(CONTRACT_STAGE);
             response.setImplementationStage(IMPLEMENTATION_STAGE);
@@ -119,7 +148,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             binding,
             "VERIFIED",
             true,
-            "Governed cache policy remains active with version-aware runtime checks and backend verification.",
+            "Governed cache policy remains active with version-aware runtime checks, capacity limits, TTL, and backend verification.",
             countEntries(binding)
         );
     }
@@ -134,7 +163,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
         QueryExecutionResultCacheBackend.CacheEntryInvalidateResult invalidation =
             binding == null || !policyId.equals(binding.getPolicyId())
                 ? QueryExecutionResultCacheBackend.CacheEntryInvalidateResult.completed(0, "providerInvalidateStatus=SKIPPED")
-                : invalidateEntries(binding);
+                : invalidateEntries(binding, EVICTION_MANUAL_INVALIDATED);
         int invalidatedEntries = invalidation.getInvalidatedCount();
         QueryExecutionCachePolicyResponse response = new QueryExecutionCachePolicyResponse();
         response.setTenantId(tenantId);
@@ -156,7 +185,8 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                     "invalidateReason", trimToNull(request.getInvalidateReason()),
                     "invalidatedEntryCount", Integer.valueOf(invalidatedEntries),
                     "backendOperationStatus", invalidation.isCompleted() ? "COMPLETED" : "FAILED",
-                    "backendFailureReason", invalidation.getFailureReason()
+                    "backendFailureReason", invalidation.getFailureReason(),
+                    "evictionReason", EVICTION_MANUAL_INVALIDATED
                     ),
                     invalidation.getProviderEvidence()
                 )
@@ -198,7 +228,8 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             );
         }
         if (!binding.getSchemaVersion().equals(schemaVersion)) {
-            QueryExecutionResultCacheBackend.CacheEntryInvalidateResult invalidation = invalidateEntries(binding);
+            QueryExecutionResultCacheBackend.CacheEntryInvalidateResult invalidation =
+                invalidateEntries(binding, EVICTION_SCHEMA_VERSION_MISMATCH);
             CachePolicyBinding refreshedBinding = binding.withSchemaVersion(schemaVersion);
             bindings.put(bindingKey(tenantId, sqlFingerprint, datasourceType), refreshedBinding);
             return CacheResolution.invalidated(
@@ -207,10 +238,21 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                 cacheKey(tenantId, sqlFingerprint, datasourceType, schemaVersion),
                 invalidation.getInvalidatedCount(),
                 "Schema version changed from governed baseline " + binding.getSchemaVersion() + ".",
-                backendEvidence(invalidation.getProviderEvidence())
+                backendEvidence(invalidation.getProviderEvidence()) + ";evictionReason=" + EVICTION_SCHEMA_VERSION_MISMATCH
             );
         }
         String cacheKey = cacheKey(tenantId, sqlFingerprint, datasourceType, schemaVersion);
+        TtlEvictionResult ttlEviction = evictExpiredEntry(binding, cacheKey, Instant.now());
+        if (ttlEviction.isEvicted()) {
+            return CacheResolution.miss(
+                binding,
+                schemaVersion,
+                cacheKey,
+                backendEvidence(ttlEviction.getProviderEvidence())
+                    + ";evictionReason=" + EVICTION_TTL_EXPIRED
+                    + ";evictedEntryCount=1"
+            );
+        }
         QueryExecutionResultCacheBackend.CacheEntryReadResult readResult = cacheBackend.read(cacheKey);
         if (!readResult.isAvailable()) {
             return CacheResolution.bypassed(
@@ -222,9 +264,21 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             );
         }
         if (readResult.getStep() == null) {
-            return CacheResolution.miss(binding, schemaVersion, cacheKey, backendEvidence(readResult.getProviderEvidence()));
+            return CacheResolution.miss(
+                binding,
+                schemaVersion,
+                cacheKey,
+                backendEvidence(readResult.getProviderEvidence()) + capacityEvidence(binding)
+            );
         }
-        return CacheResolution.hit(binding, schemaVersion, cacheKey, readResult.getStep(), backendEvidence(readResult.getProviderEvidence()));
+        touchMetadata(cacheKey);
+        return CacheResolution.hit(
+            binding,
+            schemaVersion,
+            cacheKey,
+            readResult.getStep(),
+            backendEvidence(readResult.getProviderEvidence()) + capacityEvidence(binding)
+        );
     }
 
     public QueryExecutionStep buildCacheHitStep(CacheResolution resolution) {
@@ -245,6 +299,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
         if (!resolution.shouldStore()) {
             return step.withCacheGovernance(false, resolution.getStatus(), resolution.buildEvidence(false, null));
         }
+        CapacityEvictionResult capacityEviction = evictForCapacity(resolution.getBinding(), resolution.getCacheKey(), Instant.now());
         QueryExecutionStep cacheableStep = step.withCacheGovernance(false, resolution.getStatus(), resolution.buildEvidence(false, null));
         QueryExecutionResultCacheBackend.CacheEntryWriteResult writeResult =
             cacheBackend.write(resolution.getCacheKey(), cacheableStep);
@@ -256,23 +311,213 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             );
             return step.withCacheGovernance(false, STATUS_BYPASSED, failedResolution.buildEvidence(false, "BACKFILL_FAILED"));
         }
-        CacheResolution storedResolution = resolution.withBackendEvidence(backendEvidence(writeResult.getProviderEvidence()));
+        storeMetadata(resolution.getBinding(), resolution.getCacheKey(), Instant.now());
+        CacheResolution storedResolution = resolution.withBackendEvidence(
+            backendEvidence(writeResult.getProviderEvidence())
+                + capacityEvidence(resolution.getBinding())
+                + capacityEviction.evidence()
+        );
         return step.withCacheGovernance(false, STATUS_BACKFILLED, storedResolution.buildEvidence(true, "REFRESHED"));
     }
 
-    private QueryExecutionResultCacheBackend.CacheEntryInvalidateResult invalidateEntries(CachePolicyBinding binding) {
+    private QueryExecutionResultCacheBackend.CacheEntryInvalidateResult invalidateEntries(CachePolicyBinding binding,
+                                                                                        String evictionReason) {
         if (binding == null) {
             return QueryExecutionResultCacheBackend.CacheEntryInvalidateResult.completed(0, "providerInvalidateStatus=SKIPPED");
         }
-        return cacheBackend.invalidateByPrefix(entryPrefix(binding));
+        QueryExecutionResultCacheBackend.CacheEntryInvalidateResult result = cacheBackend.invalidateByPrefix(entryPrefix(binding));
+        int metadataInvalidated = removeMetadataByPrefix(binding, entryPrefix(binding), evictionReason);
+        int invalidatedCount = Math.max(result.getInvalidatedCount(), metadataInvalidated);
+        recordEviction(binding, evictionReason, invalidatedCount);
+        String evidence = result.getProviderEvidence()
+            + ";evictionReason=" + evictionReason
+            + ";evictedEntryCount=" + invalidatedCount;
+        return result.isCompleted()
+            ? QueryExecutionResultCacheBackend.CacheEntryInvalidateResult.completed(invalidatedCount, evidence)
+            : QueryExecutionResultCacheBackend.CacheEntryInvalidateResult.failed(evidence, result.getFailureReason());
     }
 
     private int countEntries(CachePolicyBinding binding) {
         if (binding == null) {
             return 0;
         }
+        evictExpiredEntries(binding, Instant.now());
         QueryExecutionResultCacheBackend.CacheEntryCountResult result = cacheBackend.countByPrefix(entryPrefix(binding));
-        return result.isCompleted() ? result.getCount() : 0;
+        int metadataCount = countPolicyMetadata(binding);
+        return result.isCompleted() ? Math.max(result.getCount(), metadataCount) : metadataCount;
+    }
+
+    private int countTenantEntries(String tenantId) {
+        int count = 0;
+        for (CacheEntryMetadata metadata : entryMetadata.values()) {
+            if (metadata != null && metadata.getTenantId().equals(tenantId)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private int countPolicyMetadata(CachePolicyBinding binding) {
+        int count = 0;
+        String bindingKey = bindingKey(binding.getTenantId(), binding.getSqlFingerprint(), binding.getDatasourceType());
+        for (CacheEntryMetadata metadata : entryMetadata.values()) {
+            if (metadata != null && metadata.getBindingKey().equals(bindingKey)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private TtlEvictionResult evictExpiredEntry(CachePolicyBinding binding, String cacheKey, Instant now) {
+        CacheEntryMetadata metadata = entryMetadata.get(cacheKey);
+        if (metadata == null || !metadata.isExpired(now)) {
+            return TtlEvictionResult.notEvicted();
+        }
+        QueryExecutionResultCacheBackend.CacheEntryInvalidateResult result = cacheBackend.invalidateByPrefix(cacheKey);
+        entryMetadata.remove(cacheKey);
+        recordEviction(binding, EVICTION_TTL_EXPIRED, 1);
+        return new TtlEvictionResult(
+            true,
+            result.getProviderEvidence() + ";providerInvalidateStatus=TTL_EVICTED"
+        );
+    }
+
+    private void evictExpiredEntries(CachePolicyBinding binding, Instant now) {
+        String prefix = entryPrefix(binding);
+        for (String cacheKey : new ArrayList<String>(entryMetadata.keySet())) {
+            CacheEntryMetadata metadata = entryMetadata.get(cacheKey);
+            if (metadata != null && cacheKey.startsWith(prefix) && metadata.isExpired(now)) {
+                cacheBackend.invalidateByPrefix(cacheKey);
+                entryMetadata.remove(cacheKey);
+                recordEviction(binding, EVICTION_TTL_EXPIRED, 1);
+            }
+        }
+    }
+
+    private CapacityEvictionResult evictForCapacity(CachePolicyBinding binding, String incomingCacheKey, Instant now) {
+        if (binding == null) {
+            return CapacityEvictionResult.none();
+        }
+        evictExpiredEntries(binding, now);
+        int evicted = 0;
+        List<String> evictedKeys = new ArrayList<String>();
+        while (countPolicyMetadata(binding) >= binding.getMaxEntries()) {
+            String oldest = oldestPolicyKey(binding, incomingCacheKey);
+            if (!StringUtils.hasText(oldest)) {
+                break;
+            }
+            evictKey(binding, oldest, EVICTION_CAPACITY_EVICTED);
+            evicted++;
+            evictedKeys.add(oldest);
+        }
+        while (countTenantEntries(binding.getTenantId()) >= defaultMaxEntriesPerTenant) {
+            String oldest = oldestTenantKey(binding.getTenantId(), incomingCacheKey);
+            if (!StringUtils.hasText(oldest)) {
+                break;
+            }
+            CacheEntryMetadata metadata = entryMetadata.get(oldest);
+            CachePolicyBinding evictionBinding = metadata == null ? binding : metadata.toBindingSnapshot(binding);
+            evictKey(evictionBinding, oldest, EVICTION_CAPACITY_EVICTED);
+            evicted++;
+            evictedKeys.add(oldest);
+        }
+        if (evicted == 0) {
+            return CapacityEvictionResult.none();
+        }
+        recordEviction(binding, EVICTION_CAPACITY_EVICTED, evicted);
+        return new CapacityEvictionResult(evicted, evictedKeys);
+    }
+
+    private void evictKey(CachePolicyBinding binding, String cacheKey, String evictionReason) {
+        cacheBackend.invalidateByPrefix(cacheKey);
+        entryMetadata.remove(cacheKey);
+        recordEviction(binding, evictionReason, 1);
+    }
+
+    private String oldestPolicyKey(CachePolicyBinding binding, String excludeCacheKey) {
+        String bindingKey = bindingKey(binding.getTenantId(), binding.getSqlFingerprint(), binding.getDatasourceType());
+        return oldestKey(bindingKey, binding.getTenantId(), excludeCacheKey, true);
+    }
+
+    private String oldestTenantKey(String tenantId, String excludeCacheKey) {
+        return oldestKey(null, tenantId, excludeCacheKey, false);
+    }
+
+    private String oldestKey(String bindingKey, String tenantId, String excludeCacheKey, boolean policyScoped) {
+        String oldestKey = null;
+        Instant oldestAccess = null;
+        for (Map.Entry<String, CacheEntryMetadata> entry : entryMetadata.entrySet()) {
+            CacheEntryMetadata metadata = entry.getValue();
+            if (metadata == null || entry.getKey().equals(excludeCacheKey)) {
+                continue;
+            }
+            if (policyScoped && !metadata.getBindingKey().equals(bindingKey)) {
+                continue;
+            }
+            if (!policyScoped && !metadata.getTenantId().equals(tenantId)) {
+                continue;
+            }
+            if (oldestAccess == null || metadata.getLastAccessAt().isBefore(oldestAccess)) {
+                oldestAccess = metadata.getLastAccessAt();
+                oldestKey = entry.getKey();
+            }
+        }
+        return oldestKey;
+    }
+
+    private void storeMetadata(CachePolicyBinding binding, String cacheKey, Instant now) {
+        if (binding == null || !StringUtils.hasText(cacheKey)) {
+            return;
+        }
+        entryMetadata.put(cacheKey, CacheEntryMetadata.from(binding, cacheKey, now));
+    }
+
+    private void touchMetadata(String cacheKey) {
+        CacheEntryMetadata metadata = entryMetadata.get(cacheKey);
+        if (metadata != null) {
+            entryMetadata.put(cacheKey, metadata.touch(Instant.now()));
+        }
+    }
+
+    private int removeMetadataByPrefix(CachePolicyBinding binding, String prefix, String evictionReason) {
+        int removed = 0;
+        for (String cacheKey : new ArrayList<String>(entryMetadata.keySet())) {
+            if (cacheKey.startsWith(prefix) && entryMetadata.remove(cacheKey) != null) {
+                removed++;
+            }
+        }
+        if (removed > 0) {
+            recordEviction(binding, evictionReason, removed);
+        }
+        return removed;
+    }
+
+    private void recordEviction(CachePolicyBinding binding, String evictionReason, int count) {
+        if (binding == null || count <= 0 || !StringUtils.hasText(evictionReason)) {
+            return;
+        }
+        String bindingKey = bindingKey(binding.getTenantId(), binding.getSqlFingerprint(), binding.getDatasourceType());
+        EvictionSummary current = evictionSummaries.get(bindingKey);
+        evictionSummaries.put(bindingKey, EvictionSummary.record(current, evictionReason, count));
+    }
+
+    private Map<String, Object> evictionSummary(CachePolicyBinding binding) {
+        String bindingKey = bindingKey(binding.getTenantId(), binding.getSqlFingerprint(), binding.getDatasourceType());
+        EvictionSummary summary = evictionSummaries.get(bindingKey);
+        return summary == null ? null : summary.toMap();
+    }
+
+    private String capacityEvidence(CachePolicyBinding binding) {
+        if (binding == null) {
+            return "";
+        }
+        int policyCount = countPolicyMetadata(binding);
+        int tenantCount = countTenantEntries(binding.getTenantId());
+        return ";maxEntriesPerPolicy=" + binding.getMaxEntries()
+            + ";maxEntriesPerTenant=" + defaultMaxEntriesPerTenant
+            + ";policyCachedEntryCount=" + policyCount
+            + ";tenantCachedEntryCount=" + tenantCount
+            + ";ttlSeconds=" + binding.getTtlSeconds();
     }
 
     private QueryExecutionCachePolicyResponse responseFrom(CachePolicyBinding binding,
@@ -296,6 +541,13 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                     details(
                     "bindingState", active ? "ACTIVE" : "INACTIVE",
                     "cachedEntryCount", Integer.valueOf(cachedEntryCount),
+                    "tenantCachedEntryCount", Integer.valueOf(countTenantEntries(binding.getTenantId())),
+                    "maxEntriesPerPolicy", Integer.valueOf(binding.getMaxEntries()),
+                    "maxEntriesPerTenant", Integer.valueOf(defaultMaxEntriesPerTenant),
+                    "ttlSeconds", Long.valueOf(binding.getTtlSeconds()),
+                    "capacityRemainingForPolicy", Integer.valueOf(Math.max(0, binding.getMaxEntries() - cachedEntryCount)),
+                    "capacityRemainingForTenant", Integer.valueOf(Math.max(0, defaultMaxEntriesPerTenant - countTenantEntries(binding.getTenantId()))),
+                    "evictionSummary", evictionSummary(binding),
                     "appliedAt", binding.getAppliedAt().toString(),
                     "policyReason", binding.getPolicyReason()
                     ),
@@ -354,6 +606,34 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             evidence.append(";").append(providerEvidence);
         }
         return evidence.toString();
+    }
+
+    private int normalizeMaxEntries(Integer requestedMaxEntries) {
+        if (requestedMaxEntries == null || requestedMaxEntries.intValue() <= 0) {
+            return defaultMaxEntriesPerPolicy;
+        }
+        return Math.min(defaultMaxEntriesPerPolicy, requestedMaxEntries.intValue());
+    }
+
+    private long normalizeTtlSeconds(Long requestedTtlSeconds) {
+        if (requestedTtlSeconds == null || requestedTtlSeconds.longValue() < 0L) {
+            return defaultTtlSeconds;
+        }
+        if (defaultTtlSeconds <= 0L) {
+            return requestedTtlSeconds.longValue();
+        }
+        if (requestedTtlSeconds.longValue() <= 0L) {
+            return defaultTtlSeconds;
+        }
+        return Math.min(defaultTtlSeconds, requestedTtlSeconds.longValue());
+    }
+
+    private static int normalizePositive(int value, int fallback) {
+        return value <= 0 ? fallback : value;
+    }
+
+    private static long normalizeNonNegative(long value) {
+        return Math.max(0L, value);
     }
 
     private static QueryExecutionResultCacheBackend createBackend(QueryExecutionCacheBackendProperties properties) {
@@ -489,6 +769,10 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             return binding != null;
         }
 
+        CachePolicyBinding getBinding() {
+            return binding;
+        }
+
         boolean shouldStore() {
             return binding != null
                 && StringUtils.hasText(cacheKey)
@@ -536,7 +820,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                 riskCode,
                 reason,
                 invalidatedEntryCount,
-                newProviderEvidence
+                appendEvidence(providerEvidence, newProviderEvidence)
             );
         }
 
@@ -550,8 +834,18 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                 newRiskCode,
                 newReason,
                 invalidatedEntryCount,
-                newProviderEvidence
+                appendEvidence(providerEvidence, newProviderEvidence)
             );
+        }
+
+        private String appendEvidence(String currentEvidence, String newEvidence) {
+            if (!StringUtils.hasText(currentEvidence)) {
+                return newEvidence;
+            }
+            if (!StringUtils.hasText(newEvidence)) {
+                return currentEvidence;
+            }
+            return currentEvidence + ";" + newEvidence;
         }
 
         String getStatus() {
@@ -576,6 +870,8 @@ public class QueryExecutionCacheGovernanceRuntimeService {
         private final String schemaVersion;
         private final String sourcePlanId;
         private final String policyReason;
+        private final int maxEntries;
+        private final long ttlSeconds;
         private final Instant appliedAt;
 
         private CachePolicyBinding(String tenantId,
@@ -585,6 +881,8 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                                    String schemaVersion,
                                    String sourcePlanId,
                                    String policyReason,
+                                   int maxEntries,
+                                   long ttlSeconds,
                                    Instant appliedAt) {
             this.tenantId = tenantId;
             this.policyId = policyId;
@@ -593,6 +891,8 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             this.schemaVersion = schemaVersion;
             this.sourcePlanId = sourcePlanId;
             this.policyReason = policyReason;
+            this.maxEntries = maxEntries;
+            this.ttlSeconds = ttlSeconds;
             this.appliedAt = appliedAt;
         }
 
@@ -624,6 +924,14 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             return policyReason;
         }
 
+        private int getMaxEntries() {
+            return maxEntries;
+        }
+
+        private long getTtlSeconds() {
+            return ttlSeconds;
+        }
+
         private Instant getAppliedAt() {
             return appliedAt;
         }
@@ -637,8 +945,182 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                 newSchemaVersion,
                 sourcePlanId,
                 policyReason,
+                maxEntries,
+                ttlSeconds,
                 appliedAt
             );
+        }
+    }
+
+    private static final class CacheEntryMetadata {
+
+        private final String cacheKey;
+        private final String bindingKey;
+        private final String tenantId;
+        private final String policyId;
+        private final String sqlFingerprint;
+        private final String datasourceType;
+        private final String schemaVersion;
+        private final Instant createdAt;
+        private final Instant lastAccessAt;
+        private final Instant expiresAt;
+
+        private CacheEntryMetadata(String cacheKey,
+                                   String bindingKey,
+                                   String tenantId,
+                                   String policyId,
+                                   String sqlFingerprint,
+                                   String datasourceType,
+                                   String schemaVersion,
+                                   Instant createdAt,
+                                   Instant lastAccessAt,
+                                   Instant expiresAt) {
+            this.cacheKey = cacheKey;
+            this.bindingKey = bindingKey;
+            this.tenantId = tenantId;
+            this.policyId = policyId;
+            this.sqlFingerprint = sqlFingerprint;
+            this.datasourceType = datasourceType;
+            this.schemaVersion = schemaVersion;
+            this.createdAt = createdAt;
+            this.lastAccessAt = lastAccessAt;
+            this.expiresAt = expiresAt;
+        }
+
+        static CacheEntryMetadata from(CachePolicyBinding binding, String cacheKey, Instant now) {
+            Instant expiresAt = binding.getTtlSeconds() <= 0L ? null : now.plusSeconds(binding.getTtlSeconds());
+            return new CacheEntryMetadata(
+                cacheKey,
+                CacheKeyConstants.QUERY_RESULT_CACHE_POLICY_PREFIX
+                    + binding.getTenantId() + ":" + binding.getDatasourceType() + ":" + binding.getSqlFingerprint(),
+                binding.getTenantId(),
+                binding.getPolicyId(),
+                binding.getSqlFingerprint(),
+                binding.getDatasourceType(),
+                binding.getSchemaVersion(),
+                now,
+                now,
+                expiresAt
+            );
+        }
+
+        boolean isExpired(Instant now) {
+            return expiresAt != null && !expiresAt.isAfter(now);
+        }
+
+        CacheEntryMetadata touch(Instant now) {
+            return new CacheEntryMetadata(
+                cacheKey,
+                bindingKey,
+                tenantId,
+                policyId,
+                sqlFingerprint,
+                datasourceType,
+                schemaVersion,
+                createdAt,
+                now,
+                expiresAt
+            );
+        }
+
+        CachePolicyBinding toBindingSnapshot(CachePolicyBinding fallback) {
+            return new CachePolicyBinding(
+                tenantId,
+                policyId,
+                sqlFingerprint,
+                datasourceType,
+                schemaVersion,
+                fallback == null ? null : fallback.getSourcePlanId(),
+                fallback == null ? null : fallback.getPolicyReason(),
+                fallback == null ? 1 : fallback.getMaxEntries(),
+                fallback == null ? 0L : fallback.getTtlSeconds(),
+                fallback == null ? createdAt : fallback.getAppliedAt()
+            );
+        }
+
+        String getBindingKey() {
+            return bindingKey;
+        }
+
+        String getTenantId() {
+            return tenantId;
+        }
+
+        Instant getLastAccessAt() {
+            return lastAccessAt;
+        }
+    }
+
+    private static final class EvictionSummary {
+
+        private final String lastEvictionReason;
+        private final int totalEvictedEntries;
+        private final Instant lastEvictedAt;
+
+        private EvictionSummary(String lastEvictionReason, int totalEvictedEntries, Instant lastEvictedAt) {
+            this.lastEvictionReason = lastEvictionReason;
+            this.totalEvictedEntries = totalEvictedEntries;
+            this.lastEvictedAt = lastEvictedAt;
+        }
+
+        static EvictionSummary record(EvictionSummary current, String reason, int count) {
+            int existing = current == null ? 0 : current.totalEvictedEntries;
+            return new EvictionSummary(reason, existing + count, Instant.now());
+        }
+
+        Map<String, Object> toMap() {
+            Map<String, Object> summary = new LinkedHashMap<String, Object>();
+            summary.put("lastEvictionReason", lastEvictionReason);
+            summary.put("totalEvictedEntries", Integer.valueOf(totalEvictedEntries));
+            summary.put("lastEvictedAt", lastEvictedAt.toString());
+            return summary;
+        }
+    }
+
+    private static final class CapacityEvictionResult {
+
+        private final int evictedCount;
+        private final List<String> evictedKeys;
+
+        private CapacityEvictionResult(int evictedCount, List<String> evictedKeys) {
+            this.evictedCount = evictedCount;
+            this.evictedKeys = evictedKeys;
+        }
+
+        static CapacityEvictionResult none() {
+            return new CapacityEvictionResult(0, new ArrayList<String>());
+        }
+
+        String evidence() {
+            if (evictedCount <= 0) {
+                return "";
+            }
+            return ";evictionReason=" + EVICTION_CAPACITY_EVICTED
+                + ";evictedEntryCount=" + evictedCount
+                + ";evictedKeySample=" + (evictedKeys.isEmpty() ? null : evictedKeys.get(0));
+        }
+    }
+
+    private static final class TtlEvictionResult {
+
+        private final boolean evicted;
+        private final String providerEvidence;
+
+        private TtlEvictionResult(boolean evicted, String providerEvidence) {
+            this.evicted = evicted;
+            this.providerEvidence = providerEvidence;
+        }
+
+        static TtlEvictionResult notEvicted() {
+            return new TtlEvictionResult(false, null);
+        }
+
+        boolean isEvicted() {
+            return evicted;
+        }
+
+        String getProviderEvidence() {
+            return providerEvidence;
         }
     }
 

@@ -285,6 +285,11 @@ public class QueryExecutionBenchmarkWorkloadService {
         appendEvidenceValue(summary, rawEvidence, "schemaVersion");
         appendEvidenceValue(summary, rawEvidence, "riskCode");
         appendEvidenceValue(summary, rawEvidence, "entryState");
+        appendEvidenceValue(summary, rawEvidence, "evictionReason");
+        appendEvidenceValue(summary, rawEvidence, "evictedEntryCount");
+        appendEvidenceValue(summary, rawEvidence, "maxEntriesPerPolicy");
+        appendEvidenceValue(summary, rawEvidence, "policyCachedEntryCount");
+        appendEvidenceValue(summary, rawEvidence, "ttlSeconds");
         return summary.length() == 0 ? null : summary.toString();
     }
 

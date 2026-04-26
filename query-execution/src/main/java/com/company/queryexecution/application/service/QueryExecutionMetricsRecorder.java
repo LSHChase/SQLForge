@@ -26,6 +26,7 @@ public class QueryExecutionMetricsRecorder {
     private static final String METRIC_TIMEOUTS = "sqlforge.query.execution.timeouts";
     private static final String METRIC_FALLBACKS = "sqlforge.query.execution.fallbacks";
     private static final String METRIC_ROUTE_UNAVAILABLE = "sqlforge.query.execution.route_unavailable";
+    private static final String METRIC_CACHE_GOVERNANCE = "sqlforge.query.execution.cache.governance";
     private static final String UNKNOWN_VALUE = "UNKNOWN";
     private static final String NONE_VALUE = "NONE";
 
@@ -84,6 +85,7 @@ public class QueryExecutionMetricsRecorder {
             .increment();
 
         recordAttemptedModes(requestedDatasource, attemptedModes(response));
+        recordCacheGovernance(targetEngine, response);
 
         QueryErrorDetailVO error = response == null ? null : response.getError();
         if (isTimeoutResponse(response)) {
@@ -146,6 +148,93 @@ public class QueryExecutionMetricsRecorder {
             )
             .register(meterRegistry)
             .record(costMs, TimeUnit.MILLISECONDS);
+    }
+
+    private void recordCacheGovernance(String targetEngine, QueryExecuteResponse response) {
+        QueryExecutionMetadataVO metadata = response == null ? null : response.getMetadata();
+        if (metadata == null || metadata.getCacheGovernanceStatus() == null) {
+            return;
+        }
+        String status = normalizeTag(metadata.getCacheGovernanceStatus());
+        String evidence = metadata.getCacheGovernanceEvidence();
+        recordCacheEvent(targetEngine, status, cacheEvent(status, evidence), riskCode(evidence), evictionReason(evidence));
+        if ("BACKFILLED".equals(status) && containsEvidence(evidence, "providerReadStatus=MISS")) {
+            recordCacheEvent(targetEngine, status, "MISS", riskCode(evidence), evictionReason(evidence));
+        }
+        if (containsEvidence(evidence, "invalidatedEntryCount=")) {
+            recordCacheEvent(targetEngine, status, "INVALIDATE", riskCode(evidence), evictionReason(evidence));
+        }
+        if (containsEvidence(evidence, "riskCode=DISTRIBUTED_BACKEND_UNAVAILABLE")) {
+            recordCacheEvent(targetEngine, status, "BACKEND_UNAVAILABLE", "DISTRIBUTED_BACKEND_UNAVAILABLE", evictionReason(evidence));
+        }
+    }
+
+    private void recordCacheEvent(String targetEngine,
+                                  String status,
+                                  String event,
+                                  String riskCode,
+                                  String evictionReason) {
+        Counter.builder(METRIC_CACHE_GOVERNANCE)
+            .description("Governed query result-cache events.")
+            .tags(
+                "target_engine", targetEngine == null ? NONE_VALUE : targetEngine,
+                "status", normalizeTag(status),
+                "event", normalizeTag(event),
+                "risk_code", normalizeTag(riskCode),
+                "eviction_reason", normalizeTag(evictionReason)
+            )
+            .register(meterRegistry)
+            .increment();
+    }
+
+    private String cacheEvent(String status, String evidence) {
+        if ("HIT".equals(status)) {
+            return "HIT";
+        }
+        if ("BYPASSED".equals(status)) {
+            return "BYPASS";
+        }
+        if ("BACKFILLED".equals(status)) {
+            return "BACKFILL";
+        }
+        if ("INVALIDATED".equals(status) || containsEvidence(evidence, "invalidatedEntryCount=")) {
+            return "INVALIDATE";
+        }
+        return status;
+    }
+
+    private boolean containsEvidence(String evidence, String pattern) {
+        return evidence != null && evidence.contains(pattern);
+    }
+
+    private String riskCode(String evidence) {
+        return evidenceValue(evidence, "riskCode");
+    }
+
+    private String evictionReason(String evidence) {
+        return evidenceValue(evidence, "evictionReason");
+    }
+
+    private String evidenceValue(String evidence, String key) {
+        if (evidence == null || key == null) {
+            return NONE_VALUE;
+        }
+        String prefix = key + "=";
+        String[] parts = evidence.split(";");
+        for (String part : parts) {
+            if (part != null && part.startsWith(prefix)) {
+                String value = part.substring(prefix.length()).trim();
+                return value.isEmpty() ? NONE_VALUE : value;
+            }
+        }
+        return NONE_VALUE;
+    }
+
+    private String normalizeTag(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return NONE_VALUE;
+        }
+        return value.trim().toUpperCase();
     }
 
     private void recordAttemptedModes(String requestedDatasource, List<String> attemptedModes) {

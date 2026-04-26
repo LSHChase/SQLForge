@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-037: 收口 cache capacity / eviction / metrics governance baseline
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(query-execution): close D-TASK-037 cache capacity governance`
+- Priority: 1
+- Depends on: `D-TASK-036`
+- Scope: 在保持 D-TASK-036 provider-neutral cache backend、默认 repo-closed 主路径、统一授权入口、治理审计、缓存一致性与只读边界不变的前提下，为 cache governance 补齐 per-tenant / per-policy capacity limit、TTL 与 capacity/manual/schema eviction reason evidence、cache hit/miss/bypass/backfill/invalidate/backend-unavailable metrics、policy verify capacity/backend health summary，并让 benchmark/governance 继续透出 eviction/capacity evidence；真实 Redis 集群长跑和恢复...
+- Matrix context: Phase-D / Story `D-STORY-005` 运行时执行链与跨服务补完
+- Human confirmation point: 若 cache capacity / eviction / metrics governance 会放宽缓存新鲜度边界、让过期或被驱逐 entry 继续命中、引入高基数指标标签、绕过统一授权入口或治理审计、或把真实 Redis 长跑环境写成仓库默认事实，需人工确认
+- Data impact: cache policy capacity/ttl 配置、tenant/policy capacity counters、eviction reason evidence、cache governance metrics、policy verify runtime summary、benchmark/governance cache surface
+- Rollback / recovery: 保持 D-TASK-036 repo-closed 默认主路径和 fail-closed 语义，关闭高风险 capacity/ttl 配置或 metrics 标签，回退新增 eviction/capacity/metrics 语义与文档说明，并恢复到 `D-TASK-036` 已验证基线
+- Validation:
+  - `sqlforge-shared/query-execution/benchmark-engine/governance 模块测试、cache capacity/eviction 契约测试、cache governance metrics 断言、policy verify summary 测试、task audit、knowledge lint、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-037`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented repo-side cache capacity / eviction / metrics governance baseline: policy maxEntries/ttlSeconds, per-tenant/per-policy capacity evidence, TTL/CAPACITY/MANUAL/SCHEMA eviction reasons, low-cardinality cache governance metrics, verify runtime capacity/backend health summary, and benchmark/governance evidence propagation.
+  - Validation evidence: mvn -B -pl query-execution -am test -DskipITs -Dtest=QueryExecutionCacheGovernanceRuntimeServiceTest,QueryExecutionApplicationServiceTest,QueryExecutionBenchmarkWorkloadServiceTest -Dsurefire.failIfNoSpecifiedTests=false; mvn -B -pl query-execution,benchmark-engine,governance -am test -DskipITs -Dtest=QueryExecutionCacheGovernanceRuntimeServiceTest,QueryExecutionApplicationServiceTest,QueryExecutionInternalControllerTest,QueryExecutionBenchmarkWorkloadServiceTest,BenchmarkGovernanceTraceServiceTest,GovernanceHistoryApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false; python3 scripts/foreman.py validate D-TASK-037; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js
+  - Residual risk: Real Redis cluster long-run evidence and cross-node recovery drills remain environment-backed follow-up; default repo path remains IN_MEMORY/fail-closed and does not enable provider cache by default.
+  - Next step: Shape the next repo-side Phase-D follow-up from current repository truth, or run environment-backed Redis long-run/recovery validation outside the default repo path when the environment is available.
+
 ### HARN-039: Reconcile D-TASK-036 post-closeout plan truth
 
 - Status: done

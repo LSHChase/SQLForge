@@ -108,11 +108,11 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：`D-TASK-031` 至 `D-TASK-036` 已全部完成 closeout，分别把 `sql-optimization` 真实 parse/rewrite/acceleration suggestion 链、acceleration plan 治理闭环、`query-execution` 生产级 Hetu 路由校准证据、`benchmark-engine` 外部队列/provider-native 语义、真正的 cache governance 闭环，以及 provider-neutral distributed cache backend baseline 推进到当前仓库真值。默认主路径仍保持 repo-closed，不得把 environment-backed provider、object storage 或 distributed cache 写成仓库默认事实。
+- 当前活跃目标：`D-TASK-031` 至 `D-TASK-037` 已全部完成 closeout，分别把 `sql-optimization` 真实 parse/rewrite/acceleration suggestion 链、acceleration plan 治理闭环、`query-execution` 生产级 Hetu 路由校准证据、`benchmark-engine` 外部队列/provider-native 语义、真正的 cache governance 闭环、provider-neutral distributed cache backend baseline，以及 cache capacity / eviction / metrics governance baseline 推进到当前仓库真值。默认主路径仍保持 repo-closed，不得把 environment-backed provider、object storage、distributed cache 或真实 Redis 长跑/恢复演练写成仓库默认事实。
 - 当前下一条可执行主线任务：
   - 当前没有新的已实例化 repo-side mainline task。
-  - `D-TASK-036` 已完成 closeout，不再作为下一条候选任务。
-  - 如继续 Phase-D 主线，必须先按当前仓库真值重新塑形新的正式任务。
+  - `D-TASK-036` 与 `D-TASK-037` 均已完成 closeout，不再作为下一条候选任务。
+  - 若继续 Phase-D 主线，应先基于最新 repository truth 重新塑形下一条 repo-side follow-up；真实 Redis 集群长跑和恢复演练仍属于 environment-backed follow-up，不应被 foreman 当成默认仓库主线。
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成业务页骨架、治理接口接入与设计系统基线；`E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-009` 已补齐临时 AI 交付页与生产隐藏语义。
@@ -149,7 +149,8 @@
   - `D-TASK-029` 已完成 `D-TASK-028` residual risk 的 repo-side 收口：它把 provider-native / environment-backed object-storage live evidence 进一步沉淀到 provider header/request-id 级别，并补齐 governance-triggered artifact cleanup/recovery operation surfaces；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
   - `D-TASK-030` 已完成 `D-TASK-029` residual risk 的 repo-side 收口：它把 provider-authenticated object-storage operations 与 governance-side batch retention/recovery orchestration 推进到当前仓库真值；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
   - `D-TASK-031` 至 `D-TASK-035` 已按新的业务主线全部完成 closeout：`D-TASK-031` 负责 `sql-optimization` 真实 parse/rewrite/acceleration suggestion 链，`D-TASK-032` 负责 acceleration plan 治理闭环，`D-TASK-033` 负责 query-execution 的生产级 Hetu 集群证据与路由参数校准，`D-TASK-034` 负责 benchmark-engine 的外部队列/文件存储与 provider-native 语义，`D-TASK-035` 负责真正的缓存治理能力；其后续 residual risk 已由 `D-TASK-036` 收口，把 cache governance 从 repo-closed in-memory baseline 推进到 provider-native distributed backend baseline。
-  - `D-TASK-036` 已完成 closeout：它为 `query-execution` 补齐 provider-neutral cache backend contract、默认 in-memory backend、显式 Redis RESP provider adapter、backend/provider evidence 与 fail-closed bypass 语义；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
+  - `D-TASK-036` 已完成 closeout：它为 `query-execution` 补齐 provider-neutral cache backend contract、默认 in-memory backend、显式 Redis RESP provider adapter、backend/provider evidence 与 fail-closed bypass 语义。
+  - `D-TASK-037` 已完成 closeout：它在不要求真实 Redis 集群长跑和恢复演练的前提下，收口 per-tenant / per-policy capacity limit、TTL/capacity/manual/schema eviction reason evidence、cache governance metrics、policy verify capacity/backend health summary，以及 benchmark/governance 对 eviction/capacity evidence 的延续透出；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
   - `HARN-025` 已把“半自动多 agent 协作基础设施（C 方案）”正式落为独立治理/工具能力：Main Foreman 唯一收口、多 `codex exec` 会话替代隐式 subagent、多 `git worktree` 隔离、manifest 驱动、prompt 模板化，以及最终仍走 `foreman validate` / `task_audit` / `closeout`；它不混入业务主线功能，也不改变当前 repo-side business mainline 为空的事实。
   - `HARN-026` 已完成 closeout：它把多 agent 能力从“Main Foreman 手工写 plan/manifest 再启动”升级到“从需求输入开始，由 codex 自动生成 exec plan、manifest，并驱动 prepare/launch/collect，再由 autonomous Main Foreman 继续 fan-in / validate / closeout”的全自动主路径；它仍保持 Main Foreman 唯一收口，不引入第二套长期真值，也不混入业务主线功能。
   - `HARN-027` 用于在 `HARN-026` 之上补齐“从无 task 开始”的上游治理自动化：先做 requirement normalization、candidate execution plan shaping、candidate task pack 与 governance gate，再 formal materialize 成正式 task，最后 handoff 给现有 `HARN-026` full-auto 执行链；它仍保持 Main Foreman 唯一收口，不绕过 `preflight` / `instantiate` / `validate` / `task_audit` / `closeout`。
@@ -518,6 +519,7 @@ Tasks:
 | `D-TASK-034` | 收口 `benchmark-engine` 外部队列/文件存储与 provider-native 语义 | 在保持 repo-local artifact lifecycle 与 `LOCAL_FILE` 默认主路径、统一授权入口、治理审计及只读/影子环境边界不变的前提下，为 `benchmark-engine` 补齐外部队列 carrier、文件存储编排与 provider-native 语义边界，把 provider-backed write/readback/cleanup/recovery 证据推进到更接近真实运行形态的基线 | `D-TASK-033` | sqlforge-shared/benchmark-engine/governance 模块测试、external queue/storage/provider-native 契约测试、runtime smoke、task audit、knowledge lint、文档同步 |
 | `D-TASK-035` | 收口真正的缓存治理能力 | 在保持查询执行主路径、统一授权入口、治理审计、缓存一致性与只读边界不变的前提下，建立可审计的 cache governance 模型、命中/失效/旁路/回填/风险标记语义，以及与 query-execution/sql-optimization/benchmark 的最小联动闭环，不把缓存元数据占位误写成已治理完成 | `D-TASK-034` | sqlforge-shared/query-execution/sql-optimization/governance 模块测试、cache governance 契约测试、runtime smoke、task audit、knowledge lint、文档同步 |
 | `D-TASK-036` | 推进 provider-native distributed cache governance backend | 在保持 repo-closed in-memory cache governance baseline、统一授权入口、治理审计、缓存一致性与只读边界不变的前提下，为 `query-execution` 补齐 provider-neutral distributed cache backend contract、environment-backed carrier 语义、provider-native evidence、失败降级与可审计读写校验；默认仍不启用外部 provider，不把 Redis/provider cache 写成仓库默认事实 | `D-TASK-035` | sqlforge-shared/query-execution/governance 模块测试、distributed cache backend contract 测试、cache policy apply/verify/invalidate backend 证据测试、runtime smoke、task audit、knowledge lint、文档同步 |
+| `D-TASK-037` | 收口 cache capacity / eviction / metrics governance baseline | 在保持 D-TASK-036 provider-neutral cache backend、默认 repo-closed 主路径、统一授权入口、治理审计、缓存一致性与只读边界不变的前提下，为 cache governance 补齐 per-tenant / per-policy capacity limit、TTL 与 capacity/manual/schema eviction reason evidence、cache hit/miss/bypass/backfill/invalidate/backend-unavailable metrics、policy verify capacity/backend health summary，并让 benchmark/governance 继续透出 eviction/capacity evidence；真实 Redis 集群长跑和恢复演练仍是 environment-backed follow-up | `D-TASK-036` | sqlforge-shared/query-execution/benchmark-engine/governance 模块测试、cache capacity/eviction 契约测试、cache governance metrics 断言、policy verify summary 测试、task audit、knowledge lint、文档同步 |
 
 ### Phase-E 前端驾驶舱与业务页面
 

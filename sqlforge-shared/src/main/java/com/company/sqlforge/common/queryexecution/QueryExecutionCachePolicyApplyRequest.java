@@ -9,6 +9,8 @@ public class QueryExecutionCachePolicyApplyRequest {
     private String schemaVersion;
     private String sourcePlanId;
     private String policyReason;
+    private Integer maxEntries;
+    private Long ttlSeconds;
 
     public String getTenantId() {
         return tenantId;
@@ -64,5 +66,21 @@ public class QueryExecutionCachePolicyApplyRequest {
 
     public void setPolicyReason(String policyReason) {
         this.policyReason = policyReason;
+    }
+
+    public Integer getMaxEntries() {
+        return maxEntries;
+    }
+
+    public void setMaxEntries(Integer maxEntries) {
+        this.maxEntries = maxEntries;
+    }
+
+    public Long getTtlSeconds() {
+        return ttlSeconds;
+    }
+
+    public void setTtlSeconds(Long ttlSeconds) {
+        this.ttlSeconds = ttlSeconds;
     }
 }

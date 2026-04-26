@@ -41,13 +41,13 @@
 - 只读优先、开源 parser 复用、已批准加速配置运行时应用的策略声明
 - 受保护内部 Hetu route calibration / cluster evidence 快照入口，以及 ready/unready / priority / failure-layer 证据模型
 - 受保护内部 acceleration-plan apply / verify / rollback runtime gating 入口，以及按 `tenantId + sqlFingerprint + datasourceType` 收口的 approved binding registry
-- 受保护内部 cache policy apply / verify / invalidate runtime surface，以及按 `tenantId + sqlFingerprint + datasourceType + schemaVersion` 收口的 result-cache hit / bypass / invalidate / backfill 证据模型；当前还具备 provider-neutral cache backend contract、默认 in-memory backend 与显式配置的 Redis RESP provider adapter，backend descriptor/provider evidence 会进入 policy response 与 cache governance evidence
+- 受保护内部 cache policy apply / verify / invalidate runtime surface，以及按 `tenantId + sqlFingerprint + datasourceType + schemaVersion` 收口的 result-cache hit / bypass / invalidate / backfill 证据模型；当前还具备 provider-neutral cache backend contract、默认 in-memory backend、显式配置的 Redis RESP provider adapter、per-tenant/per-policy capacity limit、TTL/manual/capacity/schema eviction reason evidence、policy verify capacity/backend health summary，以及低基数 cache governance metrics
 - 与 `governance` 的租户范围检查、数据源访问检查和审计写入 HTTP 调用基线
 
 当前还未完整承载：
 
 - 外部 Win10 + Hetu/MRS live smoke 的长期归档留证与环境 owner 执行窗口
-- 分布式 cache provider 的真实环境长期运行证据、跨节点恢复演练与更完整的 eviction/容量治理
+- 分布式 cache provider 的真实环境长期运行证据与跨节点恢复演练；真实 Redis 集群长跑/恢复演练仍是 environment-backed follow-up
 - 更完整的跨服务审计补偿与持久化追溯收口
 
 ## 2. SQL 优化服务
@@ -110,7 +110,7 @@
 - `GET /api/benchmark-engine/reports/{reportId}` 的 JSON / PDF / HTML 报告查询骨架
 - 基于 MySQL `benchmark_task` / `benchmark_task_report`、MyBatis XML repository 和 in-process scheduled worker 的提交、轮询、失败路径、报告回写、报告查询与流程日志；当前还支持显式配置的 `external-file-queue` carrier，并把 `queueMode/queueEvidence` 回写到任务状态与审计载荷
 - repo-closed 隔离执行 service、执行摘要，以及优先复用 `query-execution` 内部 workload capture、失败时显式 synthetic backfill、同批次 mixed live/fallback 时的 compensation-replay 可复现 orchestration
-- benchmark workload 与 execution summary 已保留 query-execution cache governance status/evidence，可把 cache hit/bypass/backfill/invalidation 证据继续写入 governance trace payload
+- benchmark workload 与 execution summary 已保留 query-execution cache governance status/evidence，可把 cache hit/bypass/backfill/invalidation 以及 eviction/capacity 证据继续写入 governance trace payload
 - 持久化 `JSON/PDF/HTML` 导出产物 bundle、raw-data snapshot download，以及从已 externalize artifact 直接返回报告导出/下载的查询路径
 - repo-local artifact storage 基线，以及面向 `governance` 内部受保护入口的 benchmark report trace/export orchestration；当前还会把 workload/backfill/compensation evidence 提升为治理长期追溯链中的显式结构载荷
 - 报告查询/下载审计补齐 `config/result/history/export` 链接键，以及 repo-local artifact 的 stale-file cleanup / snapshot recovery 语义
@@ -147,7 +147,7 @@
 - `POST /api/governance/internal/acceleration-plan/trace/write` 的真实落库基线，支持把 acceleration plan 生命周期回写到 `config_snapshot/execution_result/query_history`
 - header-based stateless auth 的 `LOGIN` / `LOGOUT` 审计落库基线
 - 共享 AES-256 敏感字段保护基线，以及 `GovernanceProtectedPersistenceService` 对 config/result/history/export/audit/system-config 的受保护写入入口
-- governance history summaries/lookups/detail：可把 cache governance surface、compensation-replay evidence、artifact storage contract、artifact recovery surface 与 artifact operation surface 作为显式结构字段提供给治理检索、恢复判断与受控 cleanup/recovery 触发链路
+- governance history summaries/lookups/detail：可把 cache governance surface（含 eviction/capacity evidence）、compensation-replay evidence、artifact storage contract、artifact recovery surface 与 artifact operation surface 作为显式结构字段提供给治理检索、恢复判断与受控 cleanup/recovery 触发链路
 - MyBatis XML 与多环境配置基础
 
 当前还未完整承载：

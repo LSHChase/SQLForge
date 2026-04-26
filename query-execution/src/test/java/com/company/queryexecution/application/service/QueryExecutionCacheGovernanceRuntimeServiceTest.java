@@ -10,6 +10,7 @@ import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyApplyRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyResponse;
+import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyVerifyRequest;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import java.util.Collections;
 import java.util.Map;
@@ -89,14 +90,105 @@ class QueryExecutionCacheGovernanceRuntimeServiceTest {
         assertTrue(step.getCacheGovernanceEvidence().contains("providerReadStatus=UNAVAILABLE"));
     }
 
+    @Test
+    void shouldEvictExpiredEntriesAndExposeTtlEvidence() throws Exception {
+        RequestContext.set(
+            "tenant-a",
+            "user-a",
+            Collections.singletonList("TENANT_ADMIN"),
+            "request-001",
+            "trace-001",
+            "unit-test",
+            1L,
+            2L
+        );
+        QueryExecutionCacheGovernanceRuntimeService service =
+            new QueryExecutionCacheGovernanceRuntimeService(new FakeDistributedBackend(false), 10, 10, 0L);
+        QueryExecutionCachePolicyApplyRequest policy = cachePolicy();
+        policy.setTtlSeconds(Long.valueOf(1L));
+        service.apply(policy);
+        QueryContextDTO queryContext = new QueryContextDTO();
+        queryContext.setSchemaVersion("schema-v1");
+        QueryExecutionCacheGovernanceRuntimeService.CacheResolution miss =
+            service.resolve("tenant-a", SqlFingerprintUtils.fingerprint("SELECT * FROM orders"), "HETU", queryContext);
+        service.finalizeSuccessfulExecution(miss, queryStep());
+
+        Thread.sleep(1100L);
+
+        QueryExecutionCacheGovernanceRuntimeService.CacheResolution expired =
+            service.resolve("tenant-a", SqlFingerprintUtils.fingerprint("SELECT * FROM orders"), "HETU", queryContext);
+        QueryExecutionStep refreshed = service.finalizeSuccessfulExecution(expired, queryStep());
+
+        assertEquals("BACKFILLED", refreshed.getCacheGovernanceStatus());
+        assertTrue(refreshed.getCacheGovernanceEvidence().contains("evictionReason=TTL_EXPIRED"));
+        assertTrue(refreshed.getCacheGovernanceEvidence().contains("ttlSeconds=1"));
+    }
+
+    @Test
+    void shouldEvictOldestTenantEntryWhenTenantCapacityIsExceeded() {
+        RequestContext.set(
+            "tenant-a",
+            "user-a",
+            Collections.singletonList("TENANT_ADMIN"),
+            "request-001",
+            "trace-001",
+            "unit-test",
+            1L,
+            2L
+        );
+        QueryExecutionCacheGovernanceRuntimeService service =
+            new QueryExecutionCacheGovernanceRuntimeService(new FakeDistributedBackend(false), 1, 10, 0L);
+        service.apply(cachePolicy());
+        QueryExecutionCachePolicyApplyRequest secondPolicy = cachePolicy("cache-policy-002", "SELECT * FROM customers");
+        service.apply(secondPolicy);
+        QueryContextDTO queryContext = new QueryContextDTO();
+        queryContext.setSchemaVersion("schema-v1");
+        QueryExecutionCacheGovernanceRuntimeService.CacheResolution firstMiss =
+            service.resolve("tenant-a", SqlFingerprintUtils.fingerprint("SELECT * FROM orders"), "HETU", queryContext);
+        service.finalizeSuccessfulExecution(firstMiss, queryStep());
+
+        QueryExecutionCacheGovernanceRuntimeService.CacheResolution secondMiss =
+            service.resolve("tenant-a", SqlFingerprintUtils.fingerprint("SELECT * FROM customers"), "HETU", queryContext);
+        QueryExecutionStep secondBackfill = service.finalizeSuccessfulExecution(secondMiss, queryStep());
+
+        QueryExecutionCacheGovernanceRuntimeService.CacheResolution evictedFirst =
+            service.resolve("tenant-a", SqlFingerprintUtils.fingerprint("SELECT * FROM orders"), "HETU", queryContext);
+        QueryExecutionStep refreshedFirst = service.finalizeSuccessfulExecution(evictedFirst, queryStep());
+        QueryExecutionCachePolicyResponse verifyResponse =
+            service.verify(cachePolicyVerify("cache-policy-002", "SELECT * FROM customers"));
+
+        assertTrue(secondBackfill.getCacheGovernanceEvidence().contains("evictionReason=CAPACITY_EVICTED"));
+        assertTrue(secondBackfill.getCacheGovernanceEvidence().contains("maxEntriesPerTenant=1"));
+        assertEquals("BACKFILLED", refreshedFirst.getCacheGovernanceStatus());
+        assertTrue(refreshedFirst.getCacheGovernanceEvidence().contains("providerReadStatus=MISS"));
+        assertTrue(verifyResponse.getRuntimeDetailsJson().contains("\"maxEntriesPerPolicy\":10"));
+        assertTrue(verifyResponse.getRuntimeDetailsJson().contains("\"maxEntriesPerTenant\":1"));
+        assertTrue(verifyResponse.getRuntimeDetailsJson().contains("\"capacityRemainingForTenant\":0"));
+        assertTrue(verifyResponse.getRuntimeDetailsJson().contains("\"evictionSummary\""));
+        assertTrue(verifyResponse.getRuntimeDetailsJson().contains("\"cacheBackendType\":\"REDIS\""));
+    }
+
     private QueryExecutionCachePolicyApplyRequest cachePolicy() {
+        return cachePolicy("cache-policy-001", "SELECT * FROM orders");
+    }
+
+    private QueryExecutionCachePolicyApplyRequest cachePolicy(String policyId, String sqlText) {
         QueryExecutionCachePolicyApplyRequest request = new QueryExecutionCachePolicyApplyRequest();
         request.setTenantId("tenant-a");
-        request.setPolicyId("cache-policy-001");
-        request.setSqlFingerprint(SqlFingerprintUtils.fingerprint("SELECT * FROM orders"));
+        request.setPolicyId(policyId);
+        request.setSqlFingerprint(SqlFingerprintUtils.fingerprint(sqlText));
         request.setDatasourceType("HETU");
         request.setSchemaVersion("schema-v1");
         request.setPolicyReason("distributed cache governance test");
+        return request;
+    }
+
+    private QueryExecutionCachePolicyVerifyRequest cachePolicyVerify(String policyId, String sqlText) {
+        QueryExecutionCachePolicyVerifyRequest request = new QueryExecutionCachePolicyVerifyRequest();
+        request.setTenantId("tenant-a");
+        request.setPolicyId(policyId);
+        request.setSqlFingerprint(SqlFingerprintUtils.fingerprint(sqlText));
+        request.setDatasourceType("HETU");
         return request;
     }
 

@@ -128,7 +128,8 @@ class GovernanceHistoryApplicationServiceTest {
                 "{\"resultStatus\":\"PARTIAL\",\"targetEngine\":\"HIVE\",\"degraded\":true,\"errorCode\":\"12000\","
                     + "\"cacheHit\":false,\"cacheGovernanceStatus\":\"BYPASSED\","
                     + "\"cacheGovernanceEvidence\":\"policyId=cache-policy-001;status=BYPASSED;schemaVersion=schema-v1;"
-                    + "riskCode=SCHEMA_VERSION_MISSING\"}")
+                    + "riskCode=SCHEMA_VERSION_MISSING;evictionReason=SCHEMA_VERSION_MISMATCH;evictedEntryCount=1;"
+                    + "maxEntriesPerPolicy=2;policyCachedEntryCount=0;ttlSeconds=60\"}")
         ));
         when(queryHistoryMapper.selectByTraceId("tenant-a", "trace-query", 5)).thenReturn(Collections.singletonList(
             buildHistory("trace-query", "history-001", "QUERY_EXECUTION", "fp-001", LocalDateTime.parse("2026-04-22T09:58:00"))
@@ -145,6 +146,8 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("HIVE", detail.getTargetEngine());
         assertEquals(Boolean.TRUE, detail.getDegraded());
         assertEquals("BYPASSED", detail.getCacheGovernanceSurface().get("cacheGovernanceStatus"));
+        assertEquals("SCHEMA_VERSION_MISMATCH", ((Map) detail.getCacheGovernanceSurface().get("cacheGovernanceEvidence")).get("evictionReason"));
+        assertEquals("2", ((Map) detail.getCacheGovernanceSurface().get("cacheGovernanceEvidence")).get("maxEntriesPerPolicy"));
         assertEquals(1, detail.getAuditEvents().size());
         assertEquals(1, detail.getQueryHistories().size());
     }
@@ -206,7 +209,9 @@ class GovernanceHistoryApplicationServiceTest {
                 + "\"engines\":{\"HETU\":{\"compensationApplied\":true,\"compensationStrategy\":\"LATEST_SUCCESS_REPLAY\","
                 + "\"compensationSourceEngine\":\"HIVE\",\"compensationSourceWorkloadDigest\":\"digest-001\","
                 + "\"cacheHit\":true,\"cacheGovernanceStatus\":\"HIT\","
-                + "\"cacheGovernanceEvidence\":{\"policyId\":\"cache-policy-001\",\"schemaVersion\":\"schema-v1\"}}}}}}"
+                + "\"cacheGovernanceEvidence\":{\"policyId\":\"cache-policy-001\",\"schemaVersion\":\"schema-v1\","
+                + "\"evictionReason\":\"CAPACITY_EVICTED\",\"maxEntriesPerPolicy\":2,"
+                + "\"policyCachedEntryCount\":2,\"ttlSeconds\":60}}}}}}"
         );
         ExportRecord export = buildExport(
             "trace-benchmark",
@@ -238,6 +243,9 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("HIVE", detail.getCompensationReplayEvidence().get("compensationSourceEngine"));
         assertEquals("digest-001", detail.getCompensationReplayEvidence().get("compensationSourceWorkloadDigest"));
         assertEquals("HIT", ((Map) ((Map) detail.getCacheGovernanceSurface().get("engines")).get("HETU")).get("cacheGovernanceStatus"));
+        Map cacheEvidence = (Map) ((Map) ((Map) detail.getCacheGovernanceSurface().get("engines")).get("HETU")).get("cacheGovernanceEvidence");
+        assertEquals("CAPACITY_EVICTED", cacheEvidence.get("evictionReason"));
+        assertEquals(Integer.valueOf(2), cacheEvidence.get("maxEntriesPerPolicy"));
         assertEquals("PRIMARY_PLUS_RECOVERY_PROVIDER", detail.getExportRecords().get(0).getExportOptions().get("storageEvidence") instanceof Map
             ? ((Map) detail.getExportRecords().get(0).getExportOptions().get("storageEvidence")).get("providerMode")
             : null);

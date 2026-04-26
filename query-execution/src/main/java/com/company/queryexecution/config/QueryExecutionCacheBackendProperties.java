@@ -8,6 +8,9 @@ public class QueryExecutionCacheBackendProperties {
     private String type = "IN_MEMORY";
     private String providerName = "REPO_CLOSED_IN_MEMORY";
     private String environmentLabel = "repo-default";
+    private int defaultMaxEntriesPerTenant = 1024;
+    private int defaultMaxEntriesPerPolicy = 128;
+    private long defaultTtlSeconds = 0L;
     private Redis redis = new Redis();
 
     public String getType() {
@@ -32,6 +35,30 @@ public class QueryExecutionCacheBackendProperties {
 
     public void setEnvironmentLabel(String environmentLabel) {
         this.environmentLabel = environmentLabel;
+    }
+
+    public int getDefaultMaxEntriesPerTenant() {
+        return defaultMaxEntriesPerTenant;
+    }
+
+    public void setDefaultMaxEntriesPerTenant(int defaultMaxEntriesPerTenant) {
+        this.defaultMaxEntriesPerTenant = defaultMaxEntriesPerTenant;
+    }
+
+    public int getDefaultMaxEntriesPerPolicy() {
+        return defaultMaxEntriesPerPolicy;
+    }
+
+    public void setDefaultMaxEntriesPerPolicy(int defaultMaxEntriesPerPolicy) {
+        this.defaultMaxEntriesPerPolicy = defaultMaxEntriesPerPolicy;
+    }
+
+    public long getDefaultTtlSeconds() {
+        return defaultTtlSeconds;
+    }
+
+    public void setDefaultTtlSeconds(long defaultTtlSeconds) {
+        this.defaultTtlSeconds = defaultTtlSeconds;
     }
 
     public Redis getRedis() {

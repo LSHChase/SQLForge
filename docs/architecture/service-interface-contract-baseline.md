@@ -226,7 +226,7 @@
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
-| `/api/query-execution/internal/cache-policies/apply` | `QueryExecutionCachePolicyApplyRequest` with `tenantId`,`policyId`,`sqlFingerprint`,`datasourceType`,`schemaVersion`,`sourcePlanId`,`policyReason` | `QueryExecutionCachePolicyResponse` with `tenantId`,`policyId`,`sqlFingerprint`,`targetEngine`,`schemaVersion`,`sourcePlanId`,`active`,`status`,`policySummary`,`runtimeDetailsJson`,`contractStage`,`implementationStage`; `runtimeDetailsJson` carries `cacheBackendType/cacheBackendProvider/cacheBackendCarrier/cacheBackendDistributed/cacheBackendEnvironment/providerEvidence` | `CACHE_GOVERNANCE_RUNTIME_BASELINE` |
+| `/api/query-execution/internal/cache-policies/apply` | `QueryExecutionCachePolicyApplyRequest` with `tenantId`,`policyId`,`sqlFingerprint`,`datasourceType`,`schemaVersion`,`sourcePlanId`,`policyReason`,`maxEntries`,`ttlSeconds` | `QueryExecutionCachePolicyResponse` with `tenantId`,`policyId`,`sqlFingerprint`,`targetEngine`,`schemaVersion`,`sourcePlanId`,`active`,`status`,`policySummary`,`runtimeDetailsJson`,`contractStage`,`implementationStage`; `runtimeDetailsJson` carries `cacheBackendType/cacheBackendProvider/cacheBackendCarrier/cacheBackendDistributed/cacheBackendEnvironment/providerEvidence`, policy/tenant capacity counters, TTL, eviction summary and backend health evidence | `CACHE_GOVERNANCE_RUNTIME_BASELINE` |
 | `/api/query-execution/internal/cache-policies/verify` | `QueryExecutionCachePolicyVerifyRequest` with `tenantId`,`policyId`,`sqlFingerprint`,`datasourceType`,`schemaVersion` | `QueryExecutionCachePolicyResponse` | `CACHE_GOVERNANCE_RUNTIME_BASELINE` |
 | `/api/query-execution/internal/cache-policies/invalidate` | `QueryExecutionCachePolicyInvalidateRequest` with `tenantId`,`policyId`,`sqlFingerprint`,`datasourceType`,`schemaVersion`,`invalidateReason` | `QueryExecutionCachePolicyResponse` | `CACHE_GOVERNANCE_RUNTIME_BASELINE` |
 
@@ -235,9 +235,12 @@
 - cache policy runtime surface 仍通过 header-based protected request context 受控访问，默认无 policy 时返回 `UNGOVERNED`，不把普通执行结果伪装成受治理缓存。
 - result-cache key 采用 `tenantId + datasourceType + sqlFingerprint + schemaVersion`；`schemaVersion` 来自 `queryContext.schemaVersion`，对齐 ADR-011 的 Hudi timestamp / schema consistency token 口径。
 - `schemaVersion` 缺失会标记 `BYPASSED / SCHEMA_VERSION_MISSING`；session variable `sqlforge.cache.bypass=true` 会标记 `BYPASSED / SESSION_VARIABLE_BYPASS`；版本变更会先失效旧 entry，再以新版本回填，并在 evidence 中保留 `SCHEMA_VERSION_MISMATCH` 与 invalidated count。
+- 当前 cache policy 已支持 per-policy `maxEntries` 与 `ttlSeconds`，并由 runtime 默认值收口 per-tenant capacity 上限；超过 policy/tenant 容量时按最旧访问 entry 驱逐，过期 entry 在读取/计数/回填前失效。
+- cache governance evidence 固定保留 `TTL_EXPIRED`、`CAPACITY_EVICTED`、`MANUAL_INVALIDATED`、`SCHEMA_VERSION_MISMATCH` 四类 eviction reason，以及 `evictedEntryCount`、`maxEntriesPerPolicy`、`maxEntriesPerTenant`、`policyCachedEntryCount`、`tenantCachedEntryCount`、`ttlSeconds` 等容量证据。
 - 当前 runtime 已抽象为 provider-neutral backend contract。默认 backend 仍是 repo-closed `IN_MEMORY / LOCAL_PROCESS`；只有显式设置 `query-execution.cache.backend.type=REDIS` 或 `PROVIDER_NATIVE_REDIS` 且提供 Redis endpoint 时，才走低层 RESP provider adapter。
 - distributed backend 不可用或写入失败时会 fail-closed 为 `BYPASSED`，并在 `cacheGovernanceEvidence` 中保留 `DISTRIBUTED_BACKEND_UNAVAILABLE` 或 `DISTRIBUTED_BACKEND_WRITE_FAILED`、backend descriptor 与 provider command evidence；不允许 provider 故障时伪造 cache hit。
-- 该能力代表 query-execution 已具备 provider-native distributed cache backend baseline 与可审计读写/失效/验证证据，不代表仓库默认启用 Redis/provider cache，也不代表引擎侧缓存已投产。
+- policy verify 会返回 capacity remaining、tenant/policy cached count、eviction summary 与 backend descriptor/provider verify evidence；查询执行指标新增低基数 `sqlforge.query.execution.cache.governance`，按 `target_engine/status/event/risk_code/eviction_reason` 统计 hit、miss、bypass、backfill、invalidate 与 backend-unavailable，不把 tenant/policy/cache key 写进指标标签。
+- 该能力代表 query-execution 已具备 provider-native distributed cache backend baseline 与可审计读写/失效/验证证据，以及 repo-side capacity/eviction/metrics governance baseline；不代表仓库默认启用 Redis/provider cache，也不代表真实 Redis 集群长跑、跨节点恢复演练或引擎侧缓存已投产。真实 Redis 长跑和恢复演练仍是 environment-backed follow-up。
 
 ## 3.2 SQL Optimization Task Contract Baseline
 

@@ -122,6 +122,7 @@ class QueryExecutionApplicationServiceTest {
     void shouldReturnGovernedCacheHitAfterBackfillUnderSameSchemaVersion() {
         setRequestContext("tenant-a");
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         QueryExecutionCacheGovernanceRuntimeService cacheRuntimeService = new QueryExecutionCacheGovernanceRuntimeService();
         QueryExecutionCachePolicyApplyRequest applyRequest = new QueryExecutionCachePolicyApplyRequest();
         applyRequest.setTenantId("tenant-a");
@@ -135,7 +136,7 @@ class QueryExecutionApplicationServiceTest {
         QueryExecutionApplicationService service = new QueryExecutionApplicationService(
             new DeterministicQueryExecutionAdapter(),
             governanceCapabilityClient,
-            QueryExecutionMetricsRecorder.noop(),
+            new QueryExecutionMetricsRecorder(meterRegistry),
             new QueryExecutionAccelerationRuntimeService(),
             cacheRuntimeService
         );
@@ -153,6 +154,27 @@ class QueryExecutionApplicationServiceTest {
         assertEquals("HIT", secondResponse.getMetadata().getCacheGovernanceStatus());
         assertTrue(secondResponse.getMetadata().isCacheHit());
         assertTrue(secondResponse.getMetadata().getCacheGovernanceEvidence().contains("schemaVersion=schema-v1"));
+        assertEquals(1.0D, meterRegistry.get("sqlforge.query.execution.cache.governance").tags(
+            "target_engine", "HETU",
+            "status", "BACKFILLED",
+            "event", "BACKFILL",
+            "risk_code", "NONE",
+            "eviction_reason", "NONE"
+        ).counter().count());
+        assertEquals(1.0D, meterRegistry.get("sqlforge.query.execution.cache.governance").tags(
+            "target_engine", "HETU",
+            "status", "BACKFILLED",
+            "event", "MISS",
+            "risk_code", "NONE",
+            "eviction_reason", "NONE"
+        ).counter().count());
+        assertEquals(1.0D, meterRegistry.get("sqlforge.query.execution.cache.governance").tags(
+            "target_engine", "HETU",
+            "status", "HIT",
+            "event", "HIT",
+            "risk_code", "NONE",
+            "eviction_reason", "NONE"
+        ).counter().count());
     }
 
     @Test
