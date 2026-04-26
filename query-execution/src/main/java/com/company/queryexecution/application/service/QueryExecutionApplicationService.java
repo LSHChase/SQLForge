@@ -6,6 +6,7 @@ import com.company.queryexecution.application.controller.vo.QueryErrorDetailVO;
 import com.company.queryexecution.application.controller.vo.QueryExecuteResponse;
 import com.company.queryexecution.application.controller.vo.QueryExecutionMetadataVO;
 import com.company.queryexecution.application.controller.vo.QueryRetryStepVO;
+import com.company.queryexecution.domain.query.ApprovedAccelerationBinding;
 import com.company.queryexecution.domain.query.FaultToleranceStrategy;
 import com.company.queryexecution.domain.query.QueryExecutionStatus;
 import com.company.queryexecution.domain.query.QueryExecutionStep;
@@ -70,19 +71,38 @@ public class QueryExecutionApplicationService {
     private final QueryExecutionAdapter queryExecutionAdapter;
     private final GovernanceCapabilityClient governanceCapabilityClient;
     private final QueryExecutionMetricsRecorder metricsRecorder;
+    private final QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService;
 
     @Autowired
     public QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
                                             GovernanceCapabilityClient governanceCapabilityClient,
-                                            QueryExecutionMetricsRecorder metricsRecorder) {
+                                            QueryExecutionMetricsRecorder metricsRecorder,
+                                            QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService) {
         this.queryExecutionAdapter = queryExecutionAdapter;
         this.governanceCapabilityClient = governanceCapabilityClient;
         this.metricsRecorder = metricsRecorder;
+        this.queryExecutionAccelerationRuntimeService = queryExecutionAccelerationRuntimeService;
     }
 
     QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
                                      GovernanceCapabilityClient governanceCapabilityClient) {
-        this(queryExecutionAdapter, governanceCapabilityClient, QueryExecutionMetricsRecorder.noop());
+        this(
+            queryExecutionAdapter,
+            governanceCapabilityClient,
+            QueryExecutionMetricsRecorder.noop(),
+            new QueryExecutionAccelerationRuntimeService()
+        );
+    }
+
+    QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
+                                     GovernanceCapabilityClient governanceCapabilityClient,
+                                     QueryExecutionMetricsRecorder metricsRecorder) {
+        this(
+            queryExecutionAdapter,
+            governanceCapabilityClient,
+            metricsRecorder,
+            new QueryExecutionAccelerationRuntimeService()
+        );
     }
 
     public QueryExecuteResponse executeSynchronously(QueryExecuteRequest request) {
@@ -202,9 +222,15 @@ public class QueryExecutionApplicationService {
                 );
             }
 
+            ApprovedAccelerationBinding approvedAccelerationBinding = resolveApprovedAccelerationBinding(
+                request,
+                sqlFingerprint,
+                primaryEngine
+            );
+            QueryExecuteRequest executionRequest = normalizeAccelerationRequest(request, approvedAccelerationBinding != null);
             QueryExecutionStep primaryStep;
             try {
-                primaryStep = queryExecutionAdapter.execute(primaryEngine, actualSql, request, false);
+                primaryStep = queryExecutionAdapter.execute(primaryEngine, actualSql, executionRequest, false);
             } catch (HetuExecutionUnavailableException ex) {
                 return handleUnavailableHetuRoute(
                     request,
@@ -724,10 +750,43 @@ public class QueryExecutionApplicationService {
         payload.put("targetEngine", response == null || response.getMetadata() == null
             ? null
             : response.getMetadata().getTargetEngine());
+        payload.put("accelerationApplied", response != null
+            && response.getMetadata() != null
+            && response.getMetadata().isAccelerationApplied());
         payload.put("degraded", response != null && response.isDegraded());
         payload.put("retryPathSize", response == null || response.getRetryPath() == null ? 0 : response.getRetryPath().size());
         payload.put("errorCode", response == null || response.getError() == null ? null : response.getError().getCode());
         payload.put("failureReason", failureReason);
         return JsonUtils.toJson(payload);
+    }
+
+    private ApprovedAccelerationBinding resolveApprovedAccelerationBinding(QueryExecuteRequest request,
+                                                                           String sqlFingerprint,
+                                                                           DataSourceTypeEnum primaryEngine) {
+        if (request.getAccelerationPreference() != com.company.queryexecution.domain.query.AccelerationPreference.PREFER_ACCELERATED) {
+            return null;
+        }
+        if (primaryEngine == null) {
+            return null;
+        }
+        return queryExecutionAccelerationRuntimeService.resolveActiveBinding(
+            request.getTenantId(),
+            sqlFingerprint,
+            primaryEngine.name()
+        );
+    }
+
+    private QueryExecuteRequest normalizeAccelerationRequest(QueryExecuteRequest request, boolean accelerationAllowed) {
+        if (accelerationAllowed) {
+            return request;
+        }
+        QueryExecuteRequest normalized = new QueryExecuteRequest();
+        normalized.setSqlText(request.getSqlText());
+        normalized.setTenantId(request.getTenantId());
+        normalized.setDatasourceType(request.getDatasourceType());
+        normalized.setQueryContext(request.getQueryContext());
+        normalized.setFaultToleranceStrategy(request.getFaultToleranceStrategy());
+        normalized.setAccelerationPreference(com.company.queryexecution.domain.query.AccelerationPreference.NONE);
+        return normalized;
     }
 }

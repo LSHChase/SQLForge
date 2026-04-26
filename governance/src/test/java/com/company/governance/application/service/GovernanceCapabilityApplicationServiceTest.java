@@ -18,6 +18,8 @@ import com.company.sqlforge.common.config.MessagingMode;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceRequest;
+import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
@@ -43,11 +45,14 @@ class GovernanceCapabilityApplicationServiceTest {
         GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
         GovernanceBenchmarkTraceabilityApplicationService benchmarkTraceabilityApplicationService =
             mock(GovernanceBenchmarkTraceabilityApplicationService.class);
+        GovernanceAccelerationPlanTraceabilityApplicationService accelerationPlanTraceabilityApplicationService =
+            mock(GovernanceAccelerationPlanTraceabilityApplicationService.class);
         TenantConfigRepository tenantConfigRepository = mock(TenantConfigRepository.class);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
             matrixService,
             governanceAuditTrailService,
             benchmarkTraceabilityApplicationService,
+            accelerationPlanTraceabilityApplicationService,
             databaseMessaging(),
             tenantConfigRepository
         );
@@ -125,6 +130,8 @@ class GovernanceCapabilityApplicationServiceTest {
         GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
         GovernanceBenchmarkTraceabilityApplicationService benchmarkTraceabilityApplicationService =
             mock(GovernanceBenchmarkTraceabilityApplicationService.class);
+        GovernanceAccelerationPlanTraceabilityApplicationService accelerationPlanTraceabilityApplicationService =
+            mock(GovernanceAccelerationPlanTraceabilityApplicationService.class);
         TenantConfigRepository tenantConfigRepository = mock(TenantConfigRepository.class);
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.MOCK);
@@ -132,6 +139,7 @@ class GovernanceCapabilityApplicationServiceTest {
             matrixService,
             governanceAuditTrailService,
             benchmarkTraceabilityApplicationService,
+            accelerationPlanTraceabilityApplicationService,
             messagingProperties,
             tenantConfigRepository
         );
@@ -181,6 +189,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAuthorizationMatrixApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
+            mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             databaseMessaging(),
             mock(TenantConfigRepository.class)
         );
@@ -203,6 +212,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAuthorizationMatrixApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
+            mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             databaseMessaging(),
             tenantConfigRepository
         );
@@ -231,6 +241,44 @@ class GovernanceCapabilityApplicationServiceTest {
         assertEquals("GOVERNANCE_TENANT_CONFIG_RETENTION_DAYS", response.getRetentionPolicySource());
         assertEquals("TENANT_RETENTION_ACTIVE", response.getRetentionPolicyStatus());
         verify(tenantConfigRepository).findByTenantId("tenant-a");
+    }
+
+    @Test
+    void shouldDelegateAccelerationPlanTraceWrite() {
+        GovernanceAccelerationPlanTraceabilityApplicationService accelerationPlanTraceabilityApplicationService =
+            mock(GovernanceAccelerationPlanTraceabilityApplicationService.class);
+        GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
+            mock(GovernanceAuthorizationMatrixApplicationService.class),
+            mock(GovernanceAuditTrailService.class),
+            mock(GovernanceBenchmarkTraceabilityApplicationService.class),
+            accelerationPlanTraceabilityApplicationService,
+            databaseMessaging(),
+            mock(TenantConfigRepository.class)
+        );
+        RequestContext.set(
+            "tenant-a",
+            "service-user",
+            Arrays.asList("SERVICE"),
+            "request-030",
+            "trace-030",
+            "header",
+            100L,
+            200L
+        );
+        GovernanceAccelerationPlanTraceRequest request = new GovernanceAccelerationPlanTraceRequest();
+        request.setPlanId("plan-001");
+        request.setSourceTaskId("task-001");
+        request.setSqlFingerprint("fp-001");
+        request.setDatasourceType("HETU");
+        request.setPlanStatus("PENDING_APPROVAL");
+        GovernanceAccelerationPlanTraceResponse traceResponse = new GovernanceAccelerationPlanTraceResponse();
+        traceResponse.setConfigSnapshotId("cfg-acceleration-plan-plan-001");
+        when(accelerationPlanTraceabilityApplicationService.writeAccelerationPlanTrace(request)).thenReturn(traceResponse);
+
+        GovernanceAccelerationPlanTraceResponse response = service.writeAccelerationPlanTrace(request);
+
+        assertEquals("cfg-acceleration-plan-plan-001", response.getConfigSnapshotId());
+        verify(accelerationPlanTraceabilityApplicationService).writeAccelerationPlanTrace(request);
     }
 
     private MessagingProperties databaseMessaging() {

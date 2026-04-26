@@ -13,6 +13,8 @@ import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceRequest;
+import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
@@ -44,6 +46,7 @@ public class GovernanceCapabilityApplicationService {
     private final GovernanceAuthorizationMatrixApplicationService governanceAuthorizationMatrixApplicationService;
     private final GovernanceAuditTrailService governanceAuditTrailService;
     private final GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService;
+    private final GovernanceAccelerationPlanTraceabilityApplicationService governanceAccelerationPlanTraceabilityApplicationService;
     private final MessagingProperties messagingProperties;
     private final TenantConfigRepository tenantConfigRepository;
 
@@ -51,11 +54,13 @@ public class GovernanceCapabilityApplicationService {
                                                   GovernanceAuthorizationMatrixApplicationService governanceAuthorizationMatrixApplicationService,
                                                   GovernanceAuditTrailService governanceAuditTrailService,
                                                   GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService,
+                                                  GovernanceAccelerationPlanTraceabilityApplicationService governanceAccelerationPlanTraceabilityApplicationService,
                                                   MessagingProperties messagingProperties,
                                                   TenantConfigRepository tenantConfigRepository) {
         this.governanceAuthorizationMatrixApplicationService = governanceAuthorizationMatrixApplicationService;
         this.governanceAuditTrailService = governanceAuditTrailService;
         this.governanceBenchmarkTraceabilityApplicationService = governanceBenchmarkTraceabilityApplicationService;
+        this.governanceAccelerationPlanTraceabilityApplicationService = governanceAccelerationPlanTraceabilityApplicationService;
         this.messagingProperties = messagingProperties;
         this.tenantConfigRepository = tenantConfigRepository;
     }
@@ -85,6 +90,13 @@ public class GovernanceCapabilityApplicationService {
     public GovernanceBenchmarkReportTraceResponse writeBenchmarkReportTrace(GovernanceBenchmarkReportTraceRequest request) {
         requireProtectedTenantContext();
         return governanceBenchmarkTraceabilityApplicationService.writeBenchmarkReportTrace(request);
+    }
+
+    public GovernanceAccelerationPlanTraceResponse writeAccelerationPlanTrace(
+        GovernanceAccelerationPlanTraceRequest request
+    ) {
+        requireProtectedTenantContext();
+        return governanceAccelerationPlanTraceabilityApplicationService.writeAccelerationPlanTrace(request);
     }
 
     public GovernanceTenantArtifactPolicyResponse resolveTenantArtifactPolicy(

@@ -72,7 +72,7 @@ class OptimizationTaskModelApplicationServiceTest {
         assertEquals(OptimizationTaskPhase.DEEP_PARSING, submitResponse.getCurrentPhase());
         assertEquals("/api/sql-optimization/tasks/task-002", submitResponse.getStatusQueryPath());
         assertEquals("LONG_TERM_BASELINE", submitResponse.getContractStage());
-        assertEquals("REAL_PARSE_REWRITE_ACCELERATION_BASELINE", submitResponse.getImplementationStage());
+        assertEquals("ACCELERATION_PLAN_GOVERNANCE_BASELINE", submitResponse.getImplementationStage());
 
         assertEquals(OptimizationTaskType.REWRITE, statusResponse.getTaskType());
         assertEquals(OptimizationTaskPriority.NORMAL, statusResponse.getPriority());

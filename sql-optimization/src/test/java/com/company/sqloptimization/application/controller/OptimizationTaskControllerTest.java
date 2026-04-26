@@ -43,7 +43,7 @@ class OptimizationTaskControllerTest {
             .andExpect(jsonPath("$.status").value("QUEUED"))
             .andExpect(jsonPath("$.currentPhase").value("SUBMITTED"))
             .andExpect(jsonPath("$.contractStage").value("LONG_TERM_BASELINE"))
-            .andExpect(jsonPath("$.implementationStage").value("REAL_PARSE_REWRITE_ACCELERATION_BASELINE"))
+            .andExpect(jsonPath("$.implementationStage").value("ACCELERATION_PLAN_GOVERNANCE_BASELINE"))
             .andExpect(header().exists(RequestHeaderConstants.TRACE_ID))
             .andReturn();
 

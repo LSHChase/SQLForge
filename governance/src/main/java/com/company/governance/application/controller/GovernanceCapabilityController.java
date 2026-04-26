@@ -6,6 +6,8 @@ import com.company.governance.application.controller.vo.AuditWriteResponse;
 import com.company.governance.application.controller.vo.DatasourceAuthorizationChangeResponse;
 import com.company.governance.application.controller.vo.ScheduleExtensionStatusVO;
 import com.company.governance.application.service.GovernanceCapabilityApplicationService;
+import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceRequest;
+import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
@@ -60,6 +62,13 @@ public class GovernanceCapabilityController {
         @RequestBody GovernanceBenchmarkReportTraceRequest request
     ) {
         return governanceCapabilityApplicationService.writeBenchmarkReportTrace(request);
+    }
+
+    @PostMapping("/acceleration-plan/trace/write")
+    public GovernanceAccelerationPlanTraceResponse writeAccelerationPlanTrace(
+        @RequestBody GovernanceAccelerationPlanTraceRequest request
+    ) {
+        return governanceCapabilityApplicationService.writeAccelerationPlanTrace(request);
     }
 
     @PostMapping("/tenant-artifact-policy/resolve")

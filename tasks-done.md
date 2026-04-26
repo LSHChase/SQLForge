@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-032: 收口 acceleration plan 治理闭环
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): close D-TASK-032 acceleration plan loop`
+- Priority: 1
+- Depends on: `D-TASK-031`
+- Scope: 在保持统一授权入口、治理审计、tenant 隔离与 `sql-optimization` suggestion 链不变的前提下，补齐 acceleration plan 的提交、审批/确认、应用、验证、回滚与长期追溯闭环，使 acceleration 不再只是建议元数据而成为受治理的正式对象 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `common`,`application(controller/service)/domain/infrastructure`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-005` 运行时执行链与跨服务补完
+- Human confirmation point: 若 acceleration plan 治理闭环会放宽审批/确认边界、绕过统一授权入口与治理审计、允许 fail-open 应用或省略回滚/验证证据，需人工确认
+- Data impact: acceleration plan / apply / verify / rollback 状态、跨服务治理记录、授权与审计证据、相关 schema 与契约载荷
+- Rollback / recovery: 保持 suggestion-only 默认边界，关闭 plan apply 默认启用，回退新增 acceleration governance 字段、状态机与文档说明，并恢复到 `D-TASK-031` 已验证基线
+- Validation:
+  - `sqlforge-shared/sql-optimization/query-execution/governance 模块测试、跨服务 acceleration plan 契约测试、runtime smoke、task audit、knowledge lint、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-032`
+- Progress log:
+  - 2026-04-25: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added governed acceleration-plan submit/approve/apply/verify/rollback flow across sql-optimization, query-execution, governance, shared contracts, schema, tests, and authority docs while preserving authorization, audit, tenant isolation, and suggestion-first defaults.
+  - Validation evidence: python3 scripts/foreman.py validate D-TASK-032; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js
+  - Residual risk: Production-grade live Hetu evidence, route calibration, and broader environment-backed acceleration execution proof remain follow-up work; suggestion-first remains the safe default when governed apply prerequisites are unavailable.
+  - Next step: Proceed to D-TASK-033 to collect production-grade Hetu cluster evidence and route calibration on top of the new governed acceleration-plan baseline.
+
 ### D-TASK-031: 推进 `sql-optimization` 真实 parse/rewrite/acceleration suggestion 链
 
 - Status: done

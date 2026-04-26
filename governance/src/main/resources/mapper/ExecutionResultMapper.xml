@@ -90,4 +90,19 @@
             #{createTime}
         )
     </insert>
+
+    <update id="updateById" parameterType="com.company.governance.domain.trace.entity.ExecutionResultRecord">
+        UPDATE execution_result
+        SET result_status = #{resultStatus},
+            trace_id = #{traceId},
+            request_id = #{requestId},
+            saga_id = #{sagaId},
+            result_summary = #{resultSummary},
+            result_payload = #{resultPayload},
+            error_code = #{errorCode},
+            error_message = #{errorMessage},
+            started_at = #{startedAt},
+            finished_at = #{finishedAt}
+        WHERE result_id = #{resultId}
+    </update>
 </mapper>

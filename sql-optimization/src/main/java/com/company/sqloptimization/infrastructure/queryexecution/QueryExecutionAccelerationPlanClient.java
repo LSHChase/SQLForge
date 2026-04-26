@@ -1,0 +1,15 @@
+package com.company.sqloptimization.infrastructure.queryexecution;
+
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanApplyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanResponse;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanRollbackRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanVerifyRequest;
+
+public interface QueryExecutionAccelerationPlanClient {
+
+    QueryExecutionAccelerationPlanResponse apply(QueryExecutionAccelerationPlanApplyRequest request);
+
+    QueryExecutionAccelerationPlanResponse verify(QueryExecutionAccelerationPlanVerifyRequest request);
+
+    QueryExecutionAccelerationPlanResponse rollback(QueryExecutionAccelerationPlanRollbackRequest request);
+}

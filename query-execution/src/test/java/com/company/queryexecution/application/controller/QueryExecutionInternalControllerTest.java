@@ -9,10 +9,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.company.queryexecution.application.interceptor.AuthInterceptor;
+import com.company.queryexecution.application.service.QueryExecutionAccelerationRuntimeService;
 import com.company.queryexecution.application.service.QueryExecutionBenchmarkWorkloadService;
 import com.company.queryexecution.config.AuthProperties;
 import com.company.queryexecution.config.WebMvcConfig;
 import com.company.sqlforge.common.exception.GlobalExceptionHandler;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadEngineSnapshot;
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadResponse;
 import java.util.Collections;
@@ -40,6 +42,9 @@ class QueryExecutionInternalControllerTest {
 
     @MockBean
     private QueryExecutionBenchmarkWorkloadService queryExecutionBenchmarkWorkloadService;
+
+    @MockBean
+    private QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService;
 
     @Test
     void shouldReturnBenchmarkWorkloadSnapshot() throws Exception {
@@ -78,6 +83,40 @@ class QueryExecutionInternalControllerTest {
             .andExpect(jsonPath("$.implementationStage").value("BENCHMARK_WORKLOAD_ORCHESTRATION_BASELINE"));
 
         verify(queryExecutionBenchmarkWorkloadService).capture(any());
+    }
+
+    @Test
+    void shouldApplyAccelerationPlanThroughInternalEndpoint() throws Exception {
+        QueryExecutionAccelerationPlanResponse response = new QueryExecutionAccelerationPlanResponse();
+        response.setTenantId("tenant-a");
+        response.setPlanId("plan-001");
+        response.setSqlFingerprint("fp-001");
+        response.setTargetEngine("HETU");
+        response.setActive(true);
+        response.setStatus("APPLIED");
+        response.setRuntimeSummary("Approved acceleration plan is now active for runtime preference gating.");
+        response.setRuntimeDetailsJson("{\"bindingState\":\"ACTIVE\"}");
+        response.setContractStage("LONG_TERM_BASELINE");
+        response.setImplementationStage("APPROVED_ACCELERATION_RUNTIME_BASELINE");
+        when(queryExecutionAccelerationRuntimeService.apply(any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/query-execution/internal/acceleration-plans/apply")
+                .header("X-Tenant-Id", "tenant-a")
+                .header("X-User-Id", "service-user")
+                .header("X-Role-Codes", "SERVICE")
+                .header("X-Request-Id", "request-002")
+                .header("X-Trace-Id", "trace-002")
+                .header("X-Auth-Source", "header")
+                .header("X-Issued-At", "1713700000000")
+                .header("X-Expires-At", "2713700000000")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"planId\":\"plan-001\",\"sqlFingerprint\":\"fp-001\",\"datasourceType\":\"HETU\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("APPLIED"))
+            .andExpect(jsonPath("$.active").value(true))
+            .andExpect(jsonPath("$.implementationStage").value("APPROVED_ACCELERATION_RUNTIME_BASELINE"));
+
+        verify(queryExecutionAccelerationRuntimeService).apply(any());
     }
 
     @TestConfiguration

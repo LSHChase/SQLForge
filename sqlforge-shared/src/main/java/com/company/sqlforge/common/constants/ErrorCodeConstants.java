@@ -30,6 +30,10 @@ public final class ErrorCodeConstants {
     public static final int SQL_OPTIMIZATION_SYSTEM_PARSER_FAILURE = 13003;
     public static final int SQL_OPTIMIZATION_SYSTEM_REWRITE_FAILURE = 13004;
     public static final int SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLANNING_FAILURE = 13005;
+    public static final int SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_TRACE_FAILURE = 13006;
+    public static final int SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_APPLY_FAILURE = 13007;
+    public static final int SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_VERIFY_FAILURE = 13008;
+    public static final int SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_ROLLBACK_FAILURE = 13009;
     public static final int BENCHMARK_ENGINE_SYSTEM_PIPELINE_NOT_READY = 14000;
     public static final int BENCHMARK_ENGINE_SYSTEM_STATE_TRANSITION_INVALID = 14001;
     public static final int BENCHMARK_ENGINE_SYSTEM_REPORT_MODEL_INVALID = 14002;
@@ -48,6 +52,9 @@ public final class ErrorCodeConstants {
     public static final int SQL_OPTIMIZATION_TASK_NOT_FOUND = 22001;
     public static final int SQL_OPTIMIZATION_TASK_ALREADY_FINISHED = 22002;
     public static final int SQL_OPTIMIZATION_SUGGESTION_NOT_READY = 22003;
+    public static final int SQL_OPTIMIZATION_ACCELERATION_PLAN_INVALID = 22004;
+    public static final int SQL_OPTIMIZATION_ACCELERATION_PLAN_NOT_FOUND = 22005;
+    public static final int SQL_OPTIMIZATION_ACCELERATION_PLAN_STATE_INVALID = 22006;
     public static final int BENCHMARK_TASK_INVALID = 23000;
     public static final int BENCHMARK_TASK_NOT_FOUND = 23001;
     public static final int BENCHMARK_REPORT_NOT_FOUND = 23002;

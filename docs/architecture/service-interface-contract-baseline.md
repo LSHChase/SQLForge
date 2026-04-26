@@ -65,7 +65,8 @@
 | 查询执行服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceTenantScopeCheckRequest/Response`, `GovernanceAuthorizationDecisionRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
 | SQL 优化服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceAuthorizationDecisionRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
 | 压测引擎服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceAuthorizationDecisionRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
-| 查询执行服务 -> SQL 优化服务 | HTTP / async callback | SQL 优化服务 | `OptimizationTaskSubmitRequest/Response`, `OptimizationTaskStatusResponse`, `AccelerationPlanApplyRequest/Response` | `REAL_PARSE_REWRITE_ACCELERATION_BASELINE` |
+| 查询执行服务 -> SQL 优化服务 | HTTP / async callback | SQL 优化服务 | `OptimizationTaskSubmitRequest/Response`, `OptimizationTaskStatusResponse` | `ACCELERATION_PLAN_GOVERNANCE_BASELINE` |
+| SQL 优化服务 -> 查询执行服务 | HTTP | 查询执行服务 | `QueryExecutionAccelerationPlanApplyRequest`, `QueryExecutionAccelerationPlanVerifyRequest`, `QueryExecutionAccelerationPlanRollbackRequest`, `QueryExecutionAccelerationPlanResponse` | `ACCELERATION_PLAN_GOVERNANCE_BASELINE` |
 | 压测引擎服务 -> 查询执行服务 | HTTP | 查询执行服务 | `QueryFingerprintLookupRequest/Response`, `RoutingRuleSnapshotRequest/Response` | Planned |
 
 规则：
@@ -78,6 +79,7 @@
   - `/api/governance/internal/authorization/decide`
   - `/api/governance/internal/authorization/datasource/change`
   - `/api/governance/internal/audit/write`
+  - `/api/governance/internal/acceleration-plan/trace/write`
   - `/api/governance/internal/benchmark/report-trace/write`
   - `/api/governance/internal/schedule/extensions`
 - 当前授权决策已由治理服务本地矩阵配置驱动：
@@ -94,6 +96,7 @@
 | `/api/governance/internal/authorization/decide` | `LONG_TERM_BASELINE` | `AUTHORIZATION_MATRIX_BASELINE` | request: `serviceCode`,`tenantId`,`resourceType`,`resourceId`,`operationCode`,`datasourceId`; response: `tenantId`,`resourceType`,`resourceId`,`operationCode`,`datasourceId`,`allowed`,`reason`,`errorCode`,`contractStage`,`implementationStage` | 三个业务服务统一复用的授权决策入口；当前执行角色矩阵、资源模型和数据源动作授权 |
 | `/api/governance/internal/authorization/datasource/change` | `LONG_TERM_BASELINE` | `AUTHORIZATION_MATRIX_BASELINE` | request: `tenantId`,`datasourceId`,`state`,`actions[]`,`changeReason`; response: `tenantId`,`datasourceId`,`state`,`actions[]`,`status`,`contractStage`,`implementationStage` | 运行态更新数据源授权矩阵，并写入权限变更审计 |
 | `/api/governance/internal/audit/write` | `LONG_TERM_BASELINE` | `DATABASE_AUDIT_WRITE_BASELINE` | request: required `serviceCode`,`operationCode`,`resourceType`,`resourceId`,`resultStatus`,`elapsedMs`,`sourceIp`,`userAgent`; optional `sagaId`,`configSnapshotId`,`resultId`,`historyId`,`exportId`,`requestParams`,`responseSummary`; response: `auditId`,`status`,`messageTopic`,`deliveryMode`,`contractStage`,`implementationStage` | 长期保留为跨服务审计写入入口；当前已同步写入 `audit_log`、统一脱敏 `requestParams/responseSummary` 并保留共享消息抽象扩散 |
+| `/api/governance/internal/acceleration-plan/trace/write` | `LONG_TERM_BASELINE` | `ACCELERATION_PLAN_TRACEABILITY_BASELINE` | request: `planId`,`sourceTaskId`,`sqlFingerprint`,`datasourceType`,`sqlText`,`planStatus`,`snapshotPayloadJson`,`resultSummaryJson`,`resultPayloadJson`,`queryContextJson`,`createdAt`,`updatedAt`,`errorCode`,`errorMessage`; response: `configSnapshotId`,`resultId`,`historyId`,`traceId`,`requestId`,`sagaId`,`contractStage`,`implementationStage` | acceleration plan 生命周期通过治理受保护入口落 `config/result/history` 追溯链；当前 `config_snapshot` 与 `query_history` 幂等创建，`execution_result` 随 apply/verify/rollback 状态更新 |
 | `/api/governance/internal/benchmark/report-trace/write` | `LONG_TERM_BASELINE` | `DATABASE_TRACE_EXPORT_ORCHESTRATION_BASELINE` | request: `reportId`,`taskId`,`taskType`,`sqlFingerprint`,`resultStatus`,`generatedAt`,`startedAt`,`finishedAt`,`readonlyRequired`,`shadowEnvironmentMode`,`desensitizationRequirement`,`targetEngines[]`,`sqlText`,`workloadDigest`,`workloadSource`,`backfillApplied`,`workloadEvidenceJson`,`executionSummaryJson`,`reportQueryPath`,`rawDataDownloadPath`,`artifacts[].artifactKey/artifactKind/exportFormat/mediaType/fileName/contentLength/checksumSha256/storageType/storageUri/storageEvidence/retentionDays/retentionPolicySource/retentionDeleteAfter`; response: `configSnapshotId`,`resultId`,`historyId`,`traceId`,`requestId`,`sagaId`,`artifacts[].artifactKey`,`artifacts[].exportId`,`artifacts[].exportStatus`,`contractStage`,`implementationStage` | benchmark report/raw-data artifact 通过治理受保护编排落 `config/result/history/export` 追溯链；当前同时持久化 workload/backfill/compensation 结构证据，以及带 primary/recovery provider、recovery order、cleanup scope、provider/external verification + retention 的 artifact storage evidence，导出记录按 `reportId + artifactKey` 幂等生成 |
 | `/api/governance/internal/tenant-artifact-policy/resolve` | `LONG_TERM_BASELINE` | `TENANT_ARTIFACT_POLICY_BASELINE` | request: `tenantId`,`policyScope`; response: `tenantId`,`retentionDays`,`retentionPolicySource`,`retentionPolicyStatus`,`policyScope`,`contractStage`,`implementationStage` | 为业务服务解析 tenant-specific artifact retention policy；当前 benchmark-engine 使用 `tenant_config.retention_days` 回填 retention/backfill metadata，但不把真实外部对象存储写成仓库默认事实 |
 | `/api/governance/internal/schedule/extensions` | `TRANSITIONAL_SKELETON` | `TRANSITIONAL_SKELETON` | response: `extensionPoint`,`ownerService`,`status`,`currentMode`,`contractStage`,`implementationStage` | 当前只暴露治理调度扩展状态骨架，不代表完整调度域模型已固化 |
@@ -176,14 +179,31 @@
 - 当前实现会逐个目标引擎复用 `QueryExecutionApplicationService.executeSynchronously`；成功时返回 live workload snapshot，失败时返回显式 `SYNTHETIC_BACKFILL` 证据；若同批次至少有一个 live snapshot，则会把失败快照进一步收口为 `COMPENSATED_REPLAY`，显式保留 source engine / source workload digest / strategy，而不是把失败静默折叠为 benchmark 本地无来源的 synthetic replay。
 - 当前内部入口会额外写入 `QUERY_BENCHMARK_WORKLOAD_CAPTURE` 审计摘要，用于记录 workloadSource / backfillApplied / compensationApplied / compensationStrategy / workloadDigest 的跨服务编排结果。
 
+## 3.1.2 Query Execution Internal Acceleration Plan Runtime Baseline
+
+当前 `query-execution` 已新增受保护内部契约，供 `sql-optimization` 在审批通过后把 acceleration plan 收口到 runtime gating 闭环，而不是让 `PREFER_ACCELERATED` 默认 fail-open：
+
+| Endpoint | Request baseline | Response baseline | Current implementation stage |
+|:---|:---|:---|:---|
+| `/api/query-execution/internal/acceleration-plans/apply` | `QueryExecutionAccelerationPlanApplyRequest` with `tenantId`,`planId`,`sqlFingerprint`,`datasourceType`,`selectedSuggestionTypes[]`,`planSummary`,`primaryRecommendation` | `QueryExecutionAccelerationPlanResponse` with `tenantId`,`planId`,`sqlFingerprint`,`targetEngine`,`active`,`status`,`runtimeSummary`,`runtimeDetailsJson`,`contractStage`,`implementationStage` | `APPROVED_ACCELERATION_RUNTIME_BASELINE` |
+| `/api/query-execution/internal/acceleration-plans/verify` | `QueryExecutionAccelerationPlanVerifyRequest` with `tenantId`,`planId`,`sqlFingerprint` | `QueryExecutionAccelerationPlanResponse` | `APPROVED_ACCELERATION_RUNTIME_BASELINE` |
+| `/api/query-execution/internal/acceleration-plans/rollback` | `QueryExecutionAccelerationPlanRollbackRequest` with `tenantId`,`planId`,`sqlFingerprint` | `QueryExecutionAccelerationPlanResponse` | `APPROVED_ACCELERATION_RUNTIME_BASELINE` |
+
+说明：
+
+- 当前 internal runtime surface 仍通过 header-based protected request context 受控访问，保持统一授权入口与 tenant 隔离不变。
+- 当前实现把 approved binding 收口为 `tenantId + sqlFingerprint + datasourceType` 维度的内存注册表，并对同一 fingerprint 的并发 plan 激活做冲突拒绝。
+- 当前 `QueryExecutionApplicationService` 不再因为调用方声明 `PREFER_ACCELERATED` 就直接标记 `accelerationApplied=true`；只有存在 approved binding 时才允许 runtime gating 命中。
+- 当前该闭环只解决“受治理激活/验证/回滚”和 no-fail-open runtime gating，不代表物理物化视图、provider-native cache 或引擎侧加速已自动编排完成。
+
 ## 3.2 SQL Optimization Task Contract Baseline
 
 当前 `sql-optimization` 已将异步优化任务契约接到公共 HTTP 入口，并通过 MySQL 持久化任务表与 scheduled worker 提供可测的提交、轮询、真实 parse/rewrite/acceleration suggestion 与失败路径。
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
-| `POST /api/sql-optimization/tasks` | `OptimizationTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`datasourceType`,`taskContext` | `OptimizationTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`contractStage`,`implementationStage` | `REAL_PARSE_REWRITE_ACCELERATION_BASELINE` |
-| `GET /api/sql-optimization/tasks/{taskId}` | path: `taskId` | `OptimizationTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`requestedSuggestionTypes`,`suggestion`,`failure`,`submittedAt`,`startedAt`,`finishedAt`,`statusHistory`,`contractStage`,`implementationStage` | `REAL_PARSE_REWRITE_ACCELERATION_BASELINE` |
+| `POST /api/sql-optimization/tasks` | `OptimizationTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`datasourceType`,`taskContext` | `OptimizationTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`contractStage`,`implementationStage` | `ACCELERATION_PLAN_GOVERNANCE_BASELINE` |
+| `GET /api/sql-optimization/tasks/{taskId}` | path: `taskId` | `OptimizationTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`requestedSuggestionTypes`,`suggestion`,`failure`,`submittedAt`,`startedAt`,`finishedAt`,`statusHistory`,`contractStage`,`implementationStage` | `ACCELERATION_PLAN_GOVERNANCE_BASELINE` |
 
 当前 `OptimizationTaskSubmitRequest` 基线字段如下：
 
@@ -257,10 +277,17 @@
 - `13003` `SQL_OPTIMIZATION_SYSTEM_PARSER_FAILURE`
 - `13004` `SQL_OPTIMIZATION_SYSTEM_REWRITE_FAILURE`
 - `13005` `SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLANNING_FAILURE`
+- `13006` `SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_TRACE_FAILURE`
+- `13007` `SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_APPLY_FAILURE`
+- `13008` `SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_VERIFY_FAILURE`
+- `13009` `SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_ROLLBACK_FAILURE`
 - `22000` `SQL_OPTIMIZATION_TASK_INVALID`
 - `22001` `SQL_OPTIMIZATION_TASK_NOT_FOUND`
 - `22002` `SQL_OPTIMIZATION_TASK_ALREADY_FINISHED`
 - `22003` `SQL_OPTIMIZATION_SUGGESTION_NOT_READY`
+- `22004` `SQL_OPTIMIZATION_ACCELERATION_PLAN_INVALID`
+- `22005` `SQL_OPTIMIZATION_ACCELERATION_PLAN_NOT_FOUND`
+- `22006` `SQL_OPTIMIZATION_ACCELERATION_PLAN_STATE_INVALID`
 
 说明：
 
@@ -273,7 +300,39 @@
   - `ACCELERATION_SUGGESTION`：偏向 acceleration plan、shape signal、延迟/扫描收益、存储与治理成本
 - 当前失败结果统一输出到 `failure`，保留错误码、重试语义、失败阶段与风险说明。
 - 当前 placeholder 失败路径通过 SQL 或指纹中的显式 `FAIL_OPTIMIZATION` 标记触发，用于稳定验证轮询失败场景。
-- 当前真实结果会以 `summary` + `suggestion_payload_json` 落仓，失败链路会额外沉淀 `failed_phase` 与 `error_risks_json`；外部队列调度、事件回调和 acceleration plan 治理闭环继续由后续 `Phase-D` 任务补齐。
+- 当前真实结果会以 `summary` + `suggestion_payload_json` 落仓，失败链路会额外沉淀 `failed_phase` 与 `error_risks_json`；acceleration suggestion 仍保持“给出建议”边界，而后续 apply/verify/rollback 需要经 governed acceleration plan 对象显式审批后才能进入 runtime。
+
+## 3.2.1 SQL Optimization Acceleration Plan Governance Baseline
+
+当前 `sql-optimization` 已把 acceleration plan 从 suggestion artifact 收口为受治理正式对象，并通过独立 MySQL carrier、governance traceability 与 query-execution runtime gating 形成 submit/approve/apply/verify/rollback 闭环：
+
+| Endpoint | Request baseline | Response baseline | Current implementation stage |
+|:---|:---|:---|:---|
+| `POST /api/sql-optimization/acceleration-plans` | `AccelerationPlanSubmitRequest` with `tenantId`,`sourceTaskId`,`selectedSuggestionTypes[]` | `AccelerationPlanSubmitResponse` with `planId`,`status`,`statusQueryPath`,`contractStage`,`implementationStage` | `ACCELERATION_PLAN_GOVERNANCE_BASELINE` |
+| `GET /api/sql-optimization/acceleration-plans/{planId}` | path: `planId` | `AccelerationPlanStatusResponse` with `planId`,`sourceTaskId`,`status`,`datasourceType`,`sqlFingerprint`,`selectedSuggestionTypes`,`planSummary`,`primaryRecommendation`,`planPayloadJson`,`benefits`,`costs`,`risks`,`reviewNote`,`approvedBy`,`approvedAt`,`rejectedBy`,`rejectedAt`,`lastErrorCode`,`lastErrorMessage`,`runtimeBindingJson`,`runtimeBindingAt`,`runtimeBindingBy`,`verificationEvidenceJson`,`verifiedAt`,`verifiedBy`,`rollbackEvidenceJson`,`rolledBackAt`,`rolledBackBy`,`configSnapshotId`,`resultId`,`historyId`,`createdAt`,`updatedAt`,`statusHistory`,`contractStage`,`implementationStage` | `ACCELERATION_PLAN_GOVERNANCE_BASELINE` |
+| `POST /api/sql-optimization/acceleration-plans/{planId}/approval` | `AccelerationPlanApprovalRequest` with `approve`,`reviewNote` | `AccelerationPlanStatusResponse` | `ACCELERATION_PLAN_GOVERNANCE_BASELINE` |
+| `POST /api/sql-optimization/acceleration-plans/{planId}/apply` | optional `AccelerationPlanActionRequest` with `reason` | `AccelerationPlanStatusResponse` | `ACCELERATION_PLAN_GOVERNANCE_BASELINE` |
+| `POST /api/sql-optimization/acceleration-plans/{planId}/verify` | optional `AccelerationPlanActionRequest` with `reason` | `AccelerationPlanStatusResponse` | `ACCELERATION_PLAN_GOVERNANCE_BASELINE` |
+| `POST /api/sql-optimization/acceleration-plans/{planId}/rollback` | optional `AccelerationPlanActionRequest` with `reason` | `AccelerationPlanStatusResponse` | `ACCELERATION_PLAN_GOVERNANCE_BASELINE` |
+
+当前 acceleration plan 生命周期与状态基线如下：
+
+- `PENDING_APPROVAL`
+- `APPROVED`
+- `REJECTED`
+- `APPLY_FAILED`
+- `APPLIED`
+- `VERIFY_FAILED`
+- `VERIFIED`
+- `ROLLBACK_FAILED`
+- `ROLLED_BACK`
+
+说明：
+
+- acceleration plan 只能从 `SUCCEEDED` 的 `ACCELERATION_SUGGESTION` 任务派生；若请求了原建议中不存在的 suggestion type，返回 `22004`。
+- `apply` / `verify` / `rollback` 都要求 request tenant 与 authenticated tenant 一致，且先经过治理授权，再做 plan 状态校验；非法状态返回 `22006`，不会先去调用 runtime。
+- 当前治理 trace 会为每个 acceleration plan 生成稳定的 `configSnapshotId/resultId/historyId/sagaId`，并在后续 lifecycle 变更时更新 `execution_result`，保持长期追溯链一致。
+- 当前 runtime 闭环仍聚焦“已批准计划的激活/验证/回滚证据”和 `PREFER_ACCELERATED` gating；它不等价于自动创建物化视图、provider-native cache 或引擎侧真实加速对象。
 
 ## 3.3 Benchmark Engine Task Contract Baseline
 

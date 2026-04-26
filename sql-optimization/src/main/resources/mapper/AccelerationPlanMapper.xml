@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.AccelerationPlanMapper">
+
+    <resultMap id="AccelerationPlanRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationPlanRecord">
+        <id property="planId" column="plan_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="sourceTaskId" column="source_task_id"/>
+        <result property="sqlText" column="sql_text"/>
+        <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <result property="datasourceType" column="datasource_type"/>
+        <result property="selectedSuggestionTypesJson" column="selected_suggestion_types_json"/>
+        <result property="planStatus" column="plan_status"/>
+        <result property="planSummary" column="plan_summary"/>
+        <result property="primaryRecommendation" column="primary_recommendation"/>
+        <result property="planPayloadJson" column="plan_payload_json"/>
+        <result property="benefitsJson" column="benefits_json"/>
+        <result property="costsJson" column="costs_json"/>
+        <result property="risksJson" column="risks_json"/>
+        <result property="configSnapshotId" column="config_snapshot_id"/>
+        <result property="resultId" column="result_id"/>
+        <result property="historyId" column="history_id"/>
+        <result property="reviewNote" column="review_note"/>
+        <result property="approvedBy" column="approved_by"/>
+        <result property="approvedAt" column="approved_at"/>
+        <result property="rejectedBy" column="rejected_by"/>
+        <result property="rejectedAt" column="rejected_at"/>
+        <result property="lastErrorCode" column="last_error_code"/>
+        <result property="lastErrorMessage" column="last_error_message"/>
+        <result property="runtimeBindingJson" column="runtime_binding_json"/>
+        <result property="runtimeBindingAt" column="runtime_binding_at"/>
+        <result property="runtimeBindingBy" column="runtime_binding_by"/>
+        <result property="verificationEvidenceJson" column="verification_evidence_json"/>
+        <result property="verifiedAt" column="verified_at"/>
+        <result property="verifiedBy" column="verified_by"/>
+        <result property="rollbackEvidenceJson" column="rollback_evidence_json"/>
+        <result property="rolledBackAt" column="rolled_back_at"/>
+        <result property="rolledBackBy" column="rolled_back_by"/>
+        <result property="statusHistoryJson" column="status_history_json"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        plan_id,
+        tenant_id,
+        source_task_id,
+        sql_text,
+        sql_fingerprint,
+        datasource_type,
+        selected_suggestion_types_json,
+        plan_status,
+        plan_summary,
+        primary_recommendation,
+        plan_payload_json,
+        benefits_json,
+        costs_json,
+        risks_json,
+        config_snapshot_id,
+        result_id,
+        history_id,
+        review_note,
+        approved_by,
+        approved_at,
+        rejected_by,
+        rejected_at,
+        last_error_code,
+        last_error_message,
+        runtime_binding_json,
+        runtime_binding_at,
+        runtime_binding_by,
+        verification_evidence_json,
+        verified_at,
+        verified_by,
+        rollback_evidence_json,
+        rolled_back_at,
+        rolled_back_by,
+        status_history_json,
+        created_at,
+        updated_at
+    </sql>
+
+    <select id="selectByPlanId" resultMap="AccelerationPlanRecordMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM acceleration_plan
+        WHERE plan_id = #{planId}
+    </select>
+
+    <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationPlanRecord">
+        INSERT INTO acceleration_plan (
+            plan_id,
+            tenant_id,
+            source_task_id,
+            sql_text,
+            sql_fingerprint,
+            datasource_type,
+            selected_suggestion_types_json,
+            plan_status,
+            plan_summary,
+            primary_recommendation,
+            plan_payload_json,
+            benefits_json,
+            costs_json,
+            risks_json,
+            config_snapshot_id,
+            result_id,
+            history_id,
+            review_note,
+            approved_by,
+            approved_at,
+            rejected_by,
+            rejected_at,
+            last_error_code,
+            last_error_message,
+            runtime_binding_json,
+            runtime_binding_at,
+            runtime_binding_by,
+            verification_evidence_json,
+            verified_at,
+            verified_by,
+            rollback_evidence_json,
+            rolled_back_at,
+            rolled_back_by,
+            status_history_json,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{planId},
+            #{tenantId},
+            #{sourceTaskId},
+            #{sqlText},
+            #{sqlFingerprint},
+            #{datasourceType},
+            #{selectedSuggestionTypesJson},
+            #{planStatus},
+            #{planSummary},
+            #{primaryRecommendation},
+            #{planPayloadJson},
+            #{benefitsJson},
+            #{costsJson},
+            #{risksJson},
+            #{configSnapshotId},
+            #{resultId},
+            #{historyId},
+            #{reviewNote},
+            #{approvedBy},
+            #{approvedAt},
+            #{rejectedBy},
+            #{rejectedAt},
+            #{lastErrorCode},
+            #{lastErrorMessage},
+            #{runtimeBindingJson},
+            #{runtimeBindingAt},
+            #{runtimeBindingBy},
+            #{verificationEvidenceJson},
+            #{verifiedAt},
+            #{verifiedBy},
+            #{rollbackEvidenceJson},
+            #{rolledBackAt},
+            #{rolledBackBy},
+            #{statusHistoryJson},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationPlanRecord">
+        UPDATE acceleration_plan
+        SET tenant_id = #{tenantId},
+            source_task_id = #{sourceTaskId},
+            sql_text = #{sqlText},
+            sql_fingerprint = #{sqlFingerprint},
+            datasource_type = #{datasourceType},
+            selected_suggestion_types_json = #{selectedSuggestionTypesJson},
+            plan_status = #{planStatus},
+            plan_summary = #{planSummary},
+            primary_recommendation = #{primaryRecommendation},
+            plan_payload_json = #{planPayloadJson},
+            benefits_json = #{benefitsJson},
+            costs_json = #{costsJson},
+            risks_json = #{risksJson},
+            config_snapshot_id = #{configSnapshotId},
+            result_id = #{resultId},
+            history_id = #{historyId},
+            review_note = #{reviewNote},
+            approved_by = #{approvedBy},
+            approved_at = #{approvedAt},
+            rejected_by = #{rejectedBy},
+            rejected_at = #{rejectedAt},
+            last_error_code = #{lastErrorCode},
+            last_error_message = #{lastErrorMessage},
+            runtime_binding_json = #{runtimeBindingJson},
+            runtime_binding_at = #{runtimeBindingAt},
+            runtime_binding_by = #{runtimeBindingBy},
+            verification_evidence_json = #{verificationEvidenceJson},
+            verified_at = #{verifiedAt},
+            verified_by = #{verifiedBy},
+            rollback_evidence_json = #{rollbackEvidenceJson},
+            rolled_back_at = #{rolledBackAt},
+            rolled_back_by = #{rolledBackBy},
+            status_history_json = #{statusHistoryJson},
+            created_at = #{createdAt},
+            updated_at = #{updatedAt}
+        WHERE plan_id = #{planId}
+    </update>
+</mapper>

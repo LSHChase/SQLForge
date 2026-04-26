@@ -13,9 +13,10 @@
 ## Current Carrier
 
 - `governance` 是当前承载事务型治理元数据的实现载体。
-- `sql-optimization` 当前已接入 MySQL `optimization_task` 任务表、MyBatis XML mapper 与 in-process scheduled worker，用于承载真实任务持久化、状态流转，以及结构化 suggestion/failure payload 的落仓。
+- `sql-optimization` 当前已接入 MySQL `optimization_task` 与 `acceleration_plan` 双表、MyBatis XML mapper 与 in-process scheduled worker，用于承载真实任务持久化、状态流转、结构化 suggestion/failure payload，以及 governed acceleration plan lifecycle 的落仓。
 - `benchmark-engine` 当前已接入 MySQL `benchmark_task` / `benchmark_task_report` 双表、MyBatis XML mapper 与 in-process scheduled worker，用于承载真实任务持久化、报告回写和状态流转。
 - `benchmark-engine` 当前已通过 `governance` 内部 `benchmark/report-trace/write` 受保护入口，把 benchmark report artifact 的 `config_snapshot/execution_result/query_history/export_record` 编排写入接到真实追溯链。
+- `sql-optimization` 当前也已通过 `governance` 内部 `acceleration-plan/trace/write` 受保护入口，把 acceleration plan 的 `config_snapshot/execution_result/query_history` 编排写入接到真实追溯链。
 - 因此，Phase-D 的核心追溯链当前在 `governance` 内以 schema + entity + mapper XML 形式固化，同时允许 `sql-optimization` 与 `benchmark-engine` 在独立任务/报告表上落真实 carrier，并通过受保护入口把跨服务 trace/export 编排接回治理链，避免异步任务实现继续漂移。
 
 ## Core Traceability Chain
@@ -133,6 +134,7 @@
 | `audit_log` | `AuditLogRecord` | `governance/src/main/resources/mapper/AuditLogMapper.xml` |
 | `system_config` | `SystemConfigRecord` | `governance/src/main/resources/mapper/SystemConfigMapper.xml` |
 | `optimization_task` | `OptimizationTaskRecord` | `sql-optimization/src/main/resources/mapper/OptimizationTaskMapper.xml` |
+| `acceleration_plan` | `AccelerationPlanRecord` | `sql-optimization/src/main/resources/mapper/AccelerationPlanMapper.xml` |
 | `benchmark_task` | `BenchmarkTaskRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkTaskMapper.xml` |
 | `benchmark_task_report` | `BenchmarkReportRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkReportMapper.xml` |
 
@@ -173,6 +175,10 @@
 当前 D-TASK-031 追加的增量脚本：
 
 - `sql/migrations/V20260425_001__sql_optimization_task_real_pipeline_payloads.sql`
+
+当前 D-TASK-032 追加的增量脚本：
+
+- `sql/migrations/V20260425_002__acceleration_plan_governance.sql`
 
 当前 D-TASK-018 追加的增量脚本：
 

@@ -16,12 +16,14 @@ import com.company.queryexecution.application.controller.dto.QueryExecuteRequest
 import com.company.queryexecution.application.controller.vo.QueryExecuteResponse;
 import com.company.queryexecution.domain.query.AccelerationPreference;
 import com.company.queryexecution.domain.query.FaultToleranceStrategy;
+import com.company.queryexecution.domain.query.ApprovedAccelerationBinding;
 import com.company.queryexecution.domain.query.QueryExecutionStep;
 import com.company.queryexecution.domain.query.QueryExecutionStatus;
 import com.company.queryexecution.infrastructure.adapter.DeterministicQueryExecutionAdapter;
 import com.company.queryexecution.infrastructure.adapter.HetuExecutionUnavailableException;
 import com.company.queryexecution.infrastructure.adapter.QueryExecutionAdapter;
 import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanApplyRequest;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
@@ -59,7 +61,7 @@ class QueryExecutionApplicationServiceTest {
         assertFalse(response.isDegraded());
         assertNull(response.getError());
         assertEquals(1, response.getRows().size());
-        assertTrue(response.getMetadata().isAccelerationApplied());
+        assertFalse(response.getMetadata().isAccelerationApplied());
         assertEquals("SIMULATED", response.getMetadata().getExecutionMode());
         assertEquals(1, response.getMetadata().getAttemptedModes().size());
         assertEquals("SIMULATED", response.getMetadata().getAttemptedModes().get(0));
@@ -83,6 +85,36 @@ class QueryExecutionApplicationServiceTest {
             "target_engine", "HETU",
             "mode", "SIMULATED"
         ).counter().count());
+    }
+
+    @Test
+    void shouldApplyAccelerationOnlyWhenApprovedBindingExists() {
+        setRequestContext("tenant-a");
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        QueryExecutionAccelerationRuntimeService runtimeService = new QueryExecutionAccelerationRuntimeService();
+        QueryExecutionAccelerationPlanApplyRequest applyRequest = new QueryExecutionAccelerationPlanApplyRequest();
+        applyRequest.setTenantId("tenant-a");
+        applyRequest.setPlanId("plan-001");
+        applyRequest.setSqlFingerprint(com.company.sqlforge.common.utils.SqlFingerprintUtils.fingerprint("SELECT * FROM orders"));
+        applyRequest.setDatasourceType("HETU");
+        applyRequest.setSelectedSuggestionTypes(java.util.Collections.singletonList("PRECOMPUTE"));
+        applyRequest.setPlanSummary("approved plan");
+        applyRequest.setPrimaryRecommendation("use approved runtime config");
+        runtimeService.apply(applyRequest);
+
+        QueryExecutionApplicationService service = new QueryExecutionApplicationService(
+            new DeterministicQueryExecutionAdapter(),
+            governanceCapabilityClient,
+            QueryExecutionMetricsRecorder.noop(),
+            runtimeService
+        );
+        QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
+        request.setAccelerationPreference(AccelerationPreference.PREFER_ACCELERATED);
+
+        QueryExecuteResponse response = service.executeSynchronously(request);
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        assertTrue(response.getMetadata().isAccelerationApplied());
     }
 
     @Test
@@ -318,7 +350,8 @@ class QueryExecutionApplicationServiceTest {
         return new QueryExecutionApplicationService(
             adapter,
             governanceCapabilityClient,
-            new QueryExecutionMetricsRecorder(meterRegistry)
+            new QueryExecutionMetricsRecorder(meterRegistry),
+            new QueryExecutionAccelerationRuntimeService()
         );
     }
 

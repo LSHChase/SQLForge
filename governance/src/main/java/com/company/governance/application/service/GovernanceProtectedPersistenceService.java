@@ -62,6 +62,12 @@ public class GovernanceProtectedPersistenceService {
         return executionResultMapper.insert(record);
     }
 
+    public int updateExecutionResult(ExecutionResultRecord record) {
+        validateExecutionResultReference(record);
+        protectExecutionResult(record);
+        return executionResultMapper.updateById(record);
+    }
+
     public int saveQueryHistory(QueryHistoryRecord record) {
         validateQueryHistoryReference(record);
         protectQueryHistory(record);

@@ -39,6 +39,7 @@
 - 查询执行服务的不可变边界定义，显式收口到路由、执行控制、轻量解析、轻量改写和已批准加速配置应用
 - `JDBC` / `REST` / `CLIENT` 三种 Hetu 访问模式的边界声明，以及真实模式选择、严格路由失败语义与结果聚合实现
 - 只读优先、开源 parser 复用、已批准加速配置运行时应用的策略声明
+- 受保护内部 acceleration-plan apply / verify / rollback runtime gating 入口，以及按 `tenantId + sqlFingerprint + datasourceType` 收口的 approved binding registry
 - 与 `governance` 的租户范围检查、数据源访问检查和审计写入 HTTP 调用基线
 
 当前还未完整承载：
@@ -68,16 +69,18 @@
 - `PARSE` / `REWRITE` / `ACCELERATION_SUGGESTION` 三类异步优化任务模型
 - `QUEUED` / `RUNNING` / `SUCCEEDED` / `FAILED` / `CANCELLED` 生命周期状态与类型感知的处理阶段流转
 - `POST /api/sql-optimization/tasks` 和 `GET /api/sql-optimization/tasks/{taskId}` 的受保护异步入口
-- 基于 MySQL `optimization_task` 任务表、MyBatis XML repository 和 in-process scheduled worker 的提交、轮询、失败路径与流程日志
+- `POST /api/sql-optimization/acceleration-plans`、`GET /api/sql-optimization/acceleration-plans/{planId}`、`approval/apply/verify/rollback` 的受保护治理入口
+- 基于 MySQL `optimization_task` / `acceleration_plan` 双表、MyBatis XML repository 和 in-process scheduled worker 的提交、轮询、失败路径与流程日志
 - 基础 DTO / VO 与错误码区间固化
 - 真实 SQL parser / AST analysis / conservative rewrite rule / acceleration suggestion pipeline
 - 结构化 `suggestion / failure` 输出，覆盖收益、成本、风险、失败阶段与任务类型差异
+- acceleration plan 通过 `governance` 受保护 trace 入口回写 `config/result/history` 追溯链，并通过 `query-execution` internal runtime surface 收口 apply/verify/rollback 闭环
 - 与 `governance` 的租户/数据源检查、审计写入、失败恢复与补偿 queue smoke
 
 当前还未完整承载：
 
 - 外部队列调度、回调通知
-- acceleration plan 审批协同、自动应用与物化视图治理
+- 更接近 engine-native / materialized-view 的物理加速编排与长期运行证据
 
 ## 3. 压测引擎服务
 
@@ -136,6 +139,7 @@
 - 消息重试与管理入口骨架
 - 核心追溯链表结构基线：`config_snapshot`、`execution_result`、`query_history`、`export_record` 与扩展后的 `audit_log`
 - `POST /api/governance/internal/audit/write` 的真实落库基线，支持把 `config/result/history/export` 追溯键接入 `audit_log`
+- `POST /api/governance/internal/acceleration-plan/trace/write` 的真实落库基线，支持把 acceleration plan 生命周期回写到 `config_snapshot/execution_result/query_history`
 - header-based stateless auth 的 `LOGIN` / `LOGOUT` 审计落库基线
 - 共享 AES-256 敏感字段保护基线，以及 `GovernanceProtectedPersistenceService` 对 config/result/history/export/audit/system-config 的受保护写入入口
 - governance history summaries/lookups/detail：可把 compensation-replay evidence、artifact storage contract、artifact recovery surface 与 artifact operation surface 作为显式结构字段提供给治理检索、恢复判断与受控 cleanup/recovery 触发链路

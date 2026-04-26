@@ -3,6 +3,8 @@ package com.company.sqloptimization.infrastructure.governance;
 import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
+import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceRequest;
+import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
@@ -74,6 +76,11 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
     }
 
     @Override
+    public GovernanceAccelerationPlanTraceResponse writeAccelerationPlanTrace(GovernanceAccelerationPlanTraceRequest request) {
+        return post("/acceleration-plan/trace/write", request, GovernanceAccelerationPlanTraceResponse.class);
+    }
+
+    @Override
     public void writeAudit(OptimizationAuditRecord auditRecord) {
         GovernanceAuditWriteRequest request = new GovernanceAuditWriteRequest();
         request.setServiceCode(ServiceCodeConstants.SQL_OPTIMIZATION);
@@ -82,6 +89,10 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
         request.setResourceId(auditRecord.getResourceId());
         request.setResultStatus(auditRecord.getResultStatus());
         request.setElapsedMs(Long.valueOf(auditRecord.getElapsedMs()));
+        request.setSagaId(auditRecord.getSagaId());
+        request.setConfigSnapshotId(auditRecord.getConfigSnapshotId());
+        request.setResultId(auditRecord.getResultId());
+        request.setHistoryId(auditRecord.getHistoryId());
         request.setSourceIp(ProtectedGovernanceRequestSupport.resolveSourceIp("127.0.0.1"));
         request.setUserAgent(ProtectedGovernanceRequestSupport.resolveUserAgent("SQLForge-SqlOptimization"));
         request.setRequestParams(auditRecord.getRequestParams());

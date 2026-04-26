@@ -7,4 +7,6 @@ public interface ExecutionResultMapper {
     ExecutionResultRecord selectById(String resultId);
 
     int insert(ExecutionResultRecord executionResultRecord);
+
+    int updateById(ExecutionResultRecord executionResultRecord);
 }
