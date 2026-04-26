@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-047: 落地业务逻辑视图目录与映射
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(governance): add business logical view catalog`
+- Priority: 1
+- Depends on: `D-TASK-046`
+- Scope: governance 中的 business logical view 目录、映射、物理表关联与查询面 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-008` 逻辑视图与 DB View 治理
+- Human confirmation point: 若业务逻辑视图目录与映射会引入未确认业务口径、删除既有物理映射或放宽租户隔离，需人工确认
+- Data impact: logic view 目录、映射表与相关治理查询
+- Rollback / recovery: 恢复原目录/映射快照，关闭高风险对象或映射规则
+- Validation:
+  - `repository/controller 测试`
+  - `python3 scripts/foreman.py validate D-TASK-047`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added governance-side business logical view catalog and logical object mapping persistence surfaces, exposed /api/governance/logical-views list/detail endpoints, and wired schema/migration plus repository/service/controller tests for the new directory and mapping query face.
+  - Validation evidence: mvn -pl governance -am -Dtest=TraceabilitySchemaMappingTest,LogicalViewCatalogApplicationServiceTest,LogicalViewCatalogControllerTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-047; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The catalog currently serves governance-owned directory records only; parser-driven DB_VIEW dependency population and unified history/query display alignment remain for D-TASK-048 and D-TASK-049.
+  - Next step: Instantiate D-TASK-048 to recognize DB_VIEW dependencies in the parse chain and connect those hits to the new logical view catalog surfaces.
+
 ### D-TASK-046: 建立逻辑对象统一模型
 
 - Status: done

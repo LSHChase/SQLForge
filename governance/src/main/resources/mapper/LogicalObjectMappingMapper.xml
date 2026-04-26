@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.LogicalObjectMappingMapper">
+
+    <resultMap id="LogicalObjectMappingResultMap" type="com.company.governance.domain.logicalview.entity.LogicalObjectMapping">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="logicalViewId" column="logical_view_id"/>
+        <result property="targetObjectType" column="target_object_type"/>
+        <result property="targetObjectKey" column="target_object_key"/>
+        <result property="targetObjectName" column="target_object_name"/>
+        <result property="mappingRole" column="mapping_role"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectByTenantAndLogicalViewId" resultMap="LogicalObjectMappingResultMap">
+        SELECT
+            id,
+            tenant_id,
+            logical_view_id,
+            target_object_type,
+            target_object_key,
+            target_object_name,
+            mapping_role,
+            create_time,
+            update_time
+        FROM logical_object_mapping
+        WHERE tenant_id = #{tenantId}
+          AND logical_view_id = #{logicalViewId}
+        ORDER BY target_object_type ASC, target_object_key ASC
+    </select>
+</mapper>

@@ -494,6 +494,41 @@ BEGIN
 END$$
 DELIMITER ;
 
+CREATE TABLE IF NOT EXISTS business_logical_view (
+  id VARCHAR(64) NOT NULL COMMENT 'Business logical view identifier',
+  tenant_id VARCHAR(64) NOT NULL COMMENT 'Owning tenant identifier',
+  view_code VARCHAR(128) NOT NULL COMMENT 'Stable logical view code',
+  view_name VARCHAR(255) NOT NULL COMMENT 'Logical view display name',
+  datasource_code VARCHAR(128) NOT NULL COMMENT 'Default datasource for the logical view',
+  subject_area VARCHAR(128) DEFAULT NULL COMMENT 'Business subject area',
+  owner_user VARCHAR(128) DEFAULT NULL COMMENT 'Logical view owner',
+  freshness_status VARCHAR(32) DEFAULT NULL COMMENT 'Latest freshness status',
+  sla_status VARCHAR(32) DEFAULT NULL COMMENT 'Latest SLA status',
+  queryable TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Whether the logical view is queryable',
+  latest_refresh_time DATETIME DEFAULT NULL COMMENT 'Latest successful refresh timestamp',
+  description TEXT DEFAULT NULL COMMENT 'Logical view description',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_business_logical_view_tenant_code (tenant_id, view_code),
+  KEY idx_business_logical_view_tenant_datasource (tenant_id, datasource_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Business logical view catalog';
+
+CREATE TABLE IF NOT EXISTS logical_object_mapping (
+  id VARCHAR(64) NOT NULL COMMENT 'Logical object mapping identifier',
+  tenant_id VARCHAR(64) NOT NULL COMMENT 'Owning tenant identifier',
+  logical_view_id VARCHAR(64) NOT NULL COMMENT 'Business logical view identifier',
+  target_object_type VARCHAR(32) NOT NULL COMMENT 'Mapped object type',
+  target_object_key VARCHAR(255) NOT NULL COMMENT 'Canonical mapped object key',
+  target_object_name VARCHAR(255) NOT NULL COMMENT 'Mapped object display name',
+  mapping_role VARCHAR(64) DEFAULT NULL COMMENT 'Mapping role such as SOURCE or SERVING',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+  PRIMARY KEY (id),
+  KEY idx_logical_object_mapping_view (tenant_id, logical_view_id),
+  KEY idx_logical_object_mapping_target (tenant_id, target_object_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Business logical view to physical object mapping';
+
 CREATE TABLE IF NOT EXISTS system_config (
   config_key VARCHAR(128) NOT NULL COMMENT 'System configuration key',
   config_value VARCHAR(512) DEFAULT NULL COMMENT 'Non-sensitive system configuration value only',

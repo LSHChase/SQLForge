@@ -31,6 +31,9 @@ class TraceabilitySchemaMappingTest {
         assertContains(schema, "binding_render_status VARCHAR(16) DEFAULT NULL");
         assertContains(schema, "comment_context JSON DEFAULT NULL");
         assertContains(schema, "logical_object_hits JSON DEFAULT NULL");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS business_logical_view");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS logical_object_mapping");
+        assertContains(schema, "target_object_key VARCHAR(255) NOT NULL");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS export_record");
         assertContains(schema, "config_snapshot_id VARCHAR(64) DEFAULT NULL");
         assertContains(schema, "result_id VARCHAR(64) DEFAULT NULL");
@@ -89,6 +92,16 @@ class TraceabilitySchemaMappingTest {
     }
 
     @Test
+    void shouldProvideIncrementalMigrationForBusinessLogicalViewCatalog() throws IOException {
+        String migration = readRepositoryFile("sql/migrations/V20260426_002__business_logical_view_catalog.sql");
+
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS business_logical_view");
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS logical_object_mapping");
+        assertContains(migration, "target_object_type VARCHAR(32) NOT NULL");
+        assertContains(migration, "target_object_key VARCHAR(255) NOT NULL");
+    }
+
+    @Test
     void shouldProvideIncrementalMigrationToDropLegacyForeignKeys() throws IOException {
         String migration = readRepositoryFile("sql/migrations/V20260423_017__drop_traceability_foreign_keys.sql");
 
@@ -108,6 +121,10 @@ class TraceabilitySchemaMappingTest {
         assertContains(readMapper("mapper/ExecutionResultMapper.xml"), "config_snapshot_id");
         assertContains(readMapper("mapper/ExecutionResultMapper.xml"), "access_channel");
         assertContains(readMapper("mapper/ExecutionResultMapper.xml"), "route_summary");
+        assertContains(readMapper("mapper/BusinessLogicalViewMapper.xml"), "FROM business_logical_view");
+        assertContains(readMapper("mapper/BusinessLogicalViewMapper.xml"), "view_code");
+        assertContains(readMapper("mapper/LogicalObjectMappingMapper.xml"), "FROM logical_object_mapping");
+        assertContains(readMapper("mapper/LogicalObjectMappingMapper.xml"), "target_object_key");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "FROM query_history");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "result_id");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "sql_template_cipher");
