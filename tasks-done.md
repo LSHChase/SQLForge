@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-040: 落地 SQL 历史列表与详情查询面
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(governance): add query history list and detail surfaces`
+- Priority: 1
+- Depends on: `D-TASK-039`
+- Scope: 为历史列表、详情、筛选、分类、route/parse/recommendation/benchmark drill-through 建立治理查询面 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-006` 查询历史与执行取证闭环
+- Human confirmation point: 若历史查询面会引入越权钻取、跨租户可见性扩大或破坏已存在分页/审计约束，需人工确认
+- Data impact: governance 历史查询、详情、关联 drill-through 与索引
+- Rollback / recovery: 回退新增筛选/详情能力，恢复原历史查询面并保留新索引/字段供后续受控启用
+- Validation:
+  - `governance history list/detail 测试`
+  - `python3 scripts/foreman.py validate D-TASK-040`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added governance query-history list/detail APIs, mapper projections, classification summary, and trace drill-through coverage for SQL history surfaces.
+  - Validation evidence: mvn -pl governance -Dtest=GovernanceHistoryApplicationServiceTest,AuthWebMvcTest,TraceabilitySchemaMappingTest test; python3 scripts/foreman.py validate D-TASK-040; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Classification summaries are page-scoped; history export and dedicated evidentiary export surfaces remain in D-TASK-041.
+  - Next step: Instantiate and implement D-TASK-041 to add SQL history export and evidentiary view completion.
+
 ### D-TASK-038: 扩展 query-history / execution-result 追溯字段
 
 - Status: done

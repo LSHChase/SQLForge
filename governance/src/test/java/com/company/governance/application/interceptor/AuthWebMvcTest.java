@@ -11,10 +11,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.company.governance.application.controller.HealthController;
 import com.company.governance.application.controller.GovernanceCapabilityController;
 import com.company.governance.application.controller.GovernanceHistoryController;
+import com.company.governance.application.controller.GovernanceQueryHistoryController;
 import com.company.governance.application.controller.MessageAdminController;
 import com.company.governance.application.controller.TenantConfigController;
 import com.company.governance.application.controller.vo.AuditWriteResponse;
 import com.company.governance.application.controller.vo.DatasourceAuthorizationChangeResponse;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryDetailVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryPageVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistorySummaryVO;
 import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
 import com.company.governance.application.controller.vo.GovernanceTraceLookupPageVO;
 import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO;
@@ -61,6 +65,7 @@ import org.springframework.beans.factory.annotation.Autowired;
     TenantConfigController.class,
     MessageAdminController.class,
     GovernanceHistoryController.class,
+    GovernanceQueryHistoryController.class,
     GovernanceCapabilityController.class
 })
 @Import({WebMvcConfig.class, AuthInterceptor.class})
@@ -187,6 +192,14 @@ class AuthWebMvcTest {
         detail.setAuditEvents(Collections.<GovernanceTraceDetailVO.AuditEventVO>emptyList());
         detail.setQueryHistories(Collections.<GovernanceTraceDetailVO.QueryHistoryVO>emptyList());
         detail.setExportRecords(Collections.<GovernanceTraceDetailVO.ExportRecordVO>emptyList());
+        GovernanceQueryHistorySummaryVO historySummary = new GovernanceQueryHistorySummaryVO();
+        historySummary.setHistoryId("history-001");
+        historySummary.setTraceId("trace-001");
+        historySummary.setResultStatus("PARTIAL");
+        GovernanceQueryHistoryDetailVO historyDetail = new GovernanceQueryHistoryDetailVO();
+        historyDetail.setHistoryId("history-001");
+        historyDetail.setTraceId("trace-001");
+        historyDetail.setTraceDetail(detail);
 
         when(governanceHistoryApplicationService.findRecentTraces("system", Integer.valueOf(5)))
             .thenReturn(Collections.singletonList(summary));
@@ -203,6 +216,38 @@ class AuthWebMvcTest {
             .thenReturn(new GovernanceTraceLookupPageVO(Collections.singletonList(summary), Boolean.FALSE, null));
         when(governanceHistoryApplicationService.findTraceDetail("system", "trace-001", Integer.valueOf(5)))
             .thenReturn(detail);
+        when(governanceHistoryApplicationService.findQueryHistoryPage(
+            "system",
+            "RPT_SALES_DAILY",
+            "hetu_main",
+            "PROD",
+            null,
+            null,
+            null,
+            "PARTIAL",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            Integer.valueOf(1),
+            Integer.valueOf(5)
+        )).thenReturn(new GovernanceQueryHistoryPageVO(
+            Collections.singletonList(historySummary),
+            Integer.valueOf(1),
+            Integer.valueOf(5),
+            Boolean.FALSE,
+            Collections.<String, Object>emptyMap()
+        ));
+        when(governanceHistoryApplicationService.findQueryHistoryDetail("system", "history-001"))
+            .thenReturn(historyDetail);
         GovernanceBenchmarkArtifactOperationResponse operationResponse = new GovernanceBenchmarkArtifactOperationResponse();
         operationResponse.setTenantId("system");
         operationResponse.setReportId("report-001");
@@ -236,6 +281,17 @@ class AuthWebMvcTest {
             .andExpect(jsonPath("$.traceId").value("trace-001"))
             .andExpect(jsonPath("$.auditEventCount").value(1));
 
+        mockMvc.perform(addProtectedHeaders(get("/api/governance/query-history?pageNo=1&pageSize=5&reportCode=RPT_SALES_DAILY&datasourceCode=hetu_main&stage=PROD&status=PARTIAL")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].historyId").value("history-001"))
+            .andExpect(jsonPath("$.items[0].traceId").value("trace-001"))
+            .andExpect(jsonPath("$.hasMore").value(false));
+
+        mockMvc.perform(addProtectedHeaders(get("/api/governance/query-history/history-001")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.historyId").value("history-001"))
+            .andExpect(jsonPath("$.traceDetail.traceId").value("trace-001"));
+
         mockMvc.perform(addProtectedHeaders(post("/api/governance/history/artifact-operations")
                 .contentType("application/json")
                 .content("{\"reportId\":\"report-001\",\"artifactKey\":\"json-export\",\"operationType\":\"RECOVER_ARTIFACT\"}")))
@@ -262,6 +318,31 @@ class AuthWebMvcTest {
             Integer.valueOf(5)
         );
         verify(governanceHistoryApplicationService).findTraceDetail("system", "trace-001", Integer.valueOf(5));
+        verify(governanceHistoryApplicationService).findQueryHistoryPage(
+            "system",
+            "RPT_SALES_DAILY",
+            "hetu_main",
+            "PROD",
+            null,
+            null,
+            null,
+            "PARTIAL",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            Integer.valueOf(1),
+            Integer.valueOf(5)
+        );
+        verify(governanceHistoryApplicationService).findQueryHistoryDetail("system", "history-001");
         verify(governanceHistoryApplicationService).operateArtifact(org.mockito.ArgumentMatchers.any());
         verify(governanceHistoryApplicationService).operateArtifactBatch(org.mockito.ArgumentMatchers.any());
     }

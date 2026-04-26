@@ -1,0 +1,102 @@
+package com.company.governance.application.controller;
+
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryDetailVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryPageVO;
+import com.company.governance.application.service.GovernanceHistoryApplicationService;
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.context.TenantContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/governance/query-history")
+public class GovernanceQueryHistoryController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GovernanceQueryHistoryController.class);
+
+    private final GovernanceHistoryApplicationService governanceHistoryApplicationService;
+
+    public GovernanceQueryHistoryController(GovernanceHistoryApplicationService governanceHistoryApplicationService) {
+        this.governanceHistoryApplicationService = governanceHistoryApplicationService;
+    }
+
+    @GetMapping
+    public GovernanceQueryHistoryPageVO getQueryHistoryPage(
+        @RequestParam(value = "tenantId", required = false) String tenantId,
+        @RequestParam(value = "reportCode", required = false) String reportCode,
+        @RequestParam(value = "datasourceCode", required = false) String datasourceCode,
+        @RequestParam(value = "stage", required = false) String stage,
+        @RequestParam(value = "bizDate", required = false) String bizDate,
+        @RequestParam(value = "queryDateStart", required = false) String queryDateStart,
+        @RequestParam(value = "queryDateEnd", required = false) String queryDateEnd,
+        @RequestParam(value = "status", required = false) String status,
+        @RequestParam(value = "cacheHit", required = false) Boolean cacheHit,
+        @RequestParam(value = "rewriteApplied", required = false) Boolean rewriteApplied,
+        @RequestParam(value = "accelerationApplied", required = false) Boolean accelerationApplied,
+        @RequestParam(value = "parameterizedSql", required = false) Boolean parameterizedSql,
+        @RequestParam(value = "logicalObjectType", required = false) String logicalObjectType,
+        @RequestParam(value = "accessChannel", required = false) String accessChannel,
+        @RequestParam(value = "engine", required = false) String engine,
+        @RequestParam(value = "submittedBy", required = false) String submittedBy,
+        @RequestParam(value = "submittedStart", required = false) String submittedStart,
+        @RequestParam(value = "submittedEnd", required = false) String submittedEnd,
+        @RequestParam(value = "sortBy", required = false) String sortBy,
+        @RequestParam(value = "sortOrder", required = false) String sortOrder,
+        @RequestParam(value = "pageNo", required = false) Integer pageNo,
+        @RequestParam(value = "pageSize", required = false) Integer pageSize) {
+        String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
+        LOGGER.info(
+            "Handling governance query-history page, tenantId={}, reportCode={}, datasourceCode={}, stage={}, status={}, requestTraceId={}",
+            effectiveTenantId,
+            reportCode,
+            datasourceCode,
+            stage,
+            status,
+            RequestContext.getTraceId()
+        );
+        return governanceHistoryApplicationService.findQueryHistoryPage(
+            effectiveTenantId,
+            reportCode,
+            datasourceCode,
+            stage,
+            bizDate,
+            queryDateStart,
+            queryDateEnd,
+            status,
+            cacheHit,
+            rewriteApplied,
+            accelerationApplied,
+            parameterizedSql,
+            logicalObjectType,
+            accessChannel,
+            engine,
+            submittedBy,
+            submittedStart,
+            submittedEnd,
+            sortBy,
+            sortOrder,
+            pageNo,
+            pageSize
+        );
+    }
+
+    @GetMapping("/{historyId}")
+    public GovernanceQueryHistoryDetailVO getQueryHistoryDetail(
+        @PathVariable("historyId") String historyId,
+        @RequestParam(value = "tenantId", required = false) String tenantId) {
+        String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
+        LOGGER.info(
+            "Handling governance query-history detail, tenantId={}, historyId={}, requestTraceId={}",
+            effectiveTenantId,
+            historyId,
+            RequestContext.getTraceId()
+        );
+        return governanceHistoryApplicationService.findQueryHistoryDetail(effectiveTenantId, historyId);
+    }
+}

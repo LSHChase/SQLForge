@@ -1,11 +1,15 @@
 package com.company.governance.application.service;
 
 import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryDetailVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryPageVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistorySummaryVO;
 import com.company.governance.application.controller.vo.GovernanceTraceLookupPageVO;
 import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO;
 import com.company.governance.domain.tenant.logic.TenantAccessLogic;
 import com.company.governance.domain.trace.entity.AuditLogRecord;
 import com.company.governance.domain.trace.entity.ExportRecord;
+import com.company.governance.domain.trace.entity.GovernanceQueryHistoryProjection;
 import com.company.governance.domain.trace.entity.QueryHistoryRecord;
 import com.company.governance.domain.trace.entity.TraceLookupHitRecord;
 import com.company.governance.infrastructure.benchmarkengine.GovernanceBenchmarkEngineClient;
@@ -26,6 +30,7 @@ import com.company.sqlforge.common.utils.JsonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -57,6 +62,7 @@ public class GovernanceHistoryApplicationService {
     private static final String DEFAULT_DATA_SOURCE_ID = "governance-tenant-config";
     private static final int DEFAULT_LIMIT = 12;
     private static final int MAX_LIMIT = 50;
+    private static final int DEFAULT_PAGE_NO = 1;
     private static final int RECENT_SOURCE_SCAN_MULTIPLIER = 5;
     private static final int MAX_RECENT_SOURCE_SCAN_LIMIT = 200;
     private static final int LOOKUP_SOURCE_SCAN_MULTIPLIER = 8;
@@ -147,6 +153,97 @@ public class GovernanceHistoryApplicationService {
             Integer.valueOf(summaries.size()),
             summaries.isEmpty() ? "-" : summaries.get(0).getTraceId());
         return summaries;
+    }
+
+    public GovernanceQueryHistoryPageVO findQueryHistoryPage(String tenantId,
+                                                             String reportCode,
+                                                             String datasourceCode,
+                                                             String stageCode,
+                                                             String bizDate,
+                                                             String queryDateStart,
+                                                             String queryDateEnd,
+                                                             String status,
+                                                             Boolean cacheHit,
+                                                             Boolean rewriteApplied,
+                                                             Boolean accelerationApplied,
+                                                             Boolean parameterizedSql,
+                                                             String logicalObjectType,
+                                                             String accessChannel,
+                                                             String engine,
+                                                             String submittedBy,
+                                                             String submittedStart,
+                                                             String submittedEnd,
+                                                             String sortBy,
+                                                             String sortOrder,
+                                                             Integer pageNo,
+                                                             Integer pageSize) {
+        String effectiveTenantId = resolveAuthorizedTenantId(tenantId);
+        int resolvedPageNo = normalizePageNo(pageNo);
+        int resolvedPageSize = normalizeLimit(pageSize);
+        int offset = (resolvedPageNo - 1) * resolvedPageSize;
+        List<GovernanceQueryHistoryProjection> rows = queryHistoryMapper.selectHistoryPage(
+            effectiveTenantId,
+            trimToNull(reportCode),
+            trimToNull(datasourceCode),
+            trimToNull(stageCode),
+            parseDateValue(bizDate, "bizDate"),
+            parseDateValue(queryDateStart, "queryDateStart"),
+            parseDateValue(queryDateEnd, "queryDateEnd"),
+            trimToNull(status),
+            cacheHit,
+            rewriteApplied,
+            accelerationApplied,
+            parameterizedSql,
+            trimToNull(logicalObjectType),
+            trimToNull(accessChannel),
+            trimToNull(engine),
+            trimToNull(submittedBy),
+            parseWindowValue(submittedStart, "submittedStart"),
+            parseWindowValue(submittedEnd, "submittedEnd"),
+            resolveHistoryOrderBy(sortBy, sortOrder),
+            offset,
+            resolvedPageSize + LOOKUP_PAGE_FETCH_OVERFLOW
+        );
+        boolean hasMore = rows.size() > resolvedPageSize;
+        if (hasMore) {
+            rows = new ArrayList<GovernanceQueryHistoryProjection>(rows.subList(0, resolvedPageSize));
+        }
+        List<GovernanceQueryHistorySummaryVO> items = new ArrayList<GovernanceQueryHistorySummaryVO>(rows.size());
+        for (GovernanceQueryHistoryProjection row : rows) {
+            items.add(toQueryHistorySummary(row));
+        }
+        return new GovernanceQueryHistoryPageVO(
+            items,
+            Integer.valueOf(resolvedPageNo),
+            Integer.valueOf(resolvedPageSize),
+            Boolean.valueOf(hasMore),
+            buildHistoryClassificationSummary(items)
+        );
+    }
+
+    public GovernanceQueryHistoryDetailVO findQueryHistoryDetail(String tenantId, String historyId) {
+        String effectiveTenantId = resolveAuthorizedTenantId(tenantId);
+        if (!StringUtils.hasText(historyId)) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                "historyId must not be empty"
+            );
+        }
+        GovernanceQueryHistoryProjection row =
+            queryHistoryMapper.selectHistoryDetail(effectiveTenantId, historyId.trim());
+        if (row == null) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.NOT_FOUND,
+                "query history record does not exist"
+            );
+        }
+        GovernanceQueryHistoryDetailVO detailVO = toQueryHistoryDetail(row);
+        if (StringUtils.hasText(row.getTraceId())) {
+            detailVO.setTraceDetail(findTraceDetail(effectiveTenantId, row.getTraceId(), Integer.valueOf(10)));
+        }
+        return detailVO;
     }
 
     public GovernanceTraceLookupPageVO lookupTraces(String tenantId,
@@ -610,6 +707,13 @@ public class GovernanceHistoryApplicationService {
         return Math.min(MAX_LIMIT, limit.intValue());
     }
 
+    private int normalizePageNo(Integer pageNo) {
+        if (pageNo == null || pageNo.intValue() <= 0) {
+            return DEFAULT_PAGE_NO;
+        }
+        return pageNo.intValue();
+    }
+
     private int resolveRecentSourceScanLimit(int resolvedLimit) {
         int scaledLimit = resolvedLimit * RECENT_SOURCE_SCAN_MULTIPLIER;
         if (scaledLimit < resolvedLimit) {
@@ -753,6 +857,43 @@ public class GovernanceHistoryApplicationService {
         }
     }
 
+    private LocalDate parseDateValue(String value, String fieldName) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(value.trim());
+        } catch (Exception ex) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                fieldName + " is invalid"
+            );
+        }
+    }
+
+    private String resolveHistoryOrderBy(String sortBy, String sortOrder) {
+        String normalizedSortBy = trimToNull(sortBy);
+        String normalizedSortOrder = trimToNull(sortOrder);
+        String direction = "ASC".equalsIgnoreCase(normalizedSortOrder) ? "ASC" : "DESC";
+        if (!StringUtils.hasText(normalizedSortBy) || "submittedAt".equalsIgnoreCase(normalizedSortBy)) {
+            return "qh.submitted_at " + direction + ", qh.history_id DESC";
+        }
+        if ("createTime".equalsIgnoreCase(normalizedSortBy)) {
+            return "qh.create_time " + direction + ", qh.history_id DESC";
+        }
+        if ("rowCount".equalsIgnoreCase(normalizedSortBy) || "returnedRowCount".equalsIgnoreCase(normalizedSortBy)) {
+            return "er.returned_row_count " + direction + ", qh.history_id DESC";
+        }
+        if ("finishedAt".equalsIgnoreCase(normalizedSortBy)) {
+            return "er.finished_at " + direction + ", qh.history_id DESC";
+        }
+        if ("status".equalsIgnoreCase(normalizedSortBy)) {
+            return "er.result_status " + direction + ", qh.history_id DESC";
+        }
+        return "qh.submitted_at DESC, qh.history_id DESC";
+    }
+
     private LookupCursor parseLookupCursor(String cursor) {
         if (!StringUtils.hasText(cursor)) {
             return null;
@@ -806,6 +947,189 @@ public class GovernanceHistoryApplicationService {
         } catch (Exception ex) {
             return content;
         }
+    }
+
+    private GovernanceQueryHistorySummaryVO toQueryHistorySummary(GovernanceQueryHistoryProjection row) {
+        GovernanceQueryHistorySummaryVO item = new GovernanceQueryHistorySummaryVO();
+        item.setHistoryId(row.getHistoryId());
+        item.setResultId(row.getResultId());
+        item.setTraceId(row.getTraceId());
+        item.setHistoryType(row.getHistoryType());
+        item.setReportCode(row.getReportCode());
+        item.setDatasourceCode(row.getDatasourceCode());
+        item.setDatasourceType(row.getDatasourceType());
+        item.setStageCode(row.getStageCode());
+        item.setBizDate(row.getBizDate());
+        item.setQueryDateStart(row.getQueryDateStart());
+        item.setQueryDateEnd(row.getQueryDateEnd());
+        item.setQueryDateStatus(row.getQueryDateStatus());
+        item.setAccessChannel(row.getAccessChannel());
+        item.setParameterizedSqlFlag(row.getParameterizedSqlFlag());
+        item.setBindingMode(row.getBindingMode());
+        item.setBindingRenderStatus(row.getBindingRenderStatus());
+        item.setSqlFingerprint(row.getSqlFingerprint());
+        item.setSqlTemplateFingerprint(row.getSqlTemplateFingerprint());
+        item.setBoundSqlFingerprint(row.getBoundSqlFingerprint());
+        item.setResultStatus(row.getResultStatus());
+        item.setTargetEngine(row.getTargetEngine());
+        item.setReturnedRowCount(row.getReturnedRowCount());
+        item.setCacheHit(row.getCacheHit());
+        item.setRewriteApplied(row.getRewriteApplied());
+        item.setAccelerationApplied(row.getAccelerationApplied());
+        item.setSubmittedBy(row.getSubmittedBy());
+        item.setSubmittedAt(row.getSubmittedAt() == null ? row.getCreateTime() : row.getSubmittedAt());
+        item.setErrorCode(row.getErrorCode());
+        item.setLogicalObjectTypes(extractLogicalObjectTypes(row.getLogicalObjectHits()));
+        return item;
+    }
+
+    private GovernanceQueryHistoryDetailVO toQueryHistoryDetail(GovernanceQueryHistoryProjection row) {
+        GovernanceQueryHistoryDetailVO detail = new GovernanceQueryHistoryDetailVO();
+        detail.setHistoryId(row.getHistoryId());
+        detail.setResultId(row.getResultId());
+        detail.setTraceId(row.getTraceId());
+        detail.setHistoryType(row.getHistoryType());
+        detail.setReportCode(row.getReportCode());
+        detail.setDatasourceCode(row.getDatasourceCode());
+        detail.setDatasourceType(row.getDatasourceType());
+        detail.setStageCode(row.getStageCode());
+        detail.setBizDate(row.getBizDate());
+        detail.setSqlState(buildSqlState(row));
+        detail.setCommentContext(parseJsonObject(row.getCommentContext()));
+        detail.setQueryDateSummary(buildQueryDateSummary(row));
+        detail.setLogicalObjectHits(parseJsonValue(row.getLogicalObjectHits()));
+        detail.setExecutionSummary(buildExecutionSummary(row));
+        detail.setStructureParseSummary(buildParseSummary(parseJsonObject(row.getQueryContext()), "structureParseSummary"));
+        detail.setAccessParseSummary(buildParseSummary(parseJsonObject(row.getQueryContext()), "accessParseSummary"));
+        detail.setRouteDecision(selectFirstNonEmptyMap(parseJsonObject(row.getRouteSummary()), parseJsonObject(row.getResultSummary()), "routeSummary"));
+        detail.setCacheSummary(selectFirstNonEmptyMap(parseJsonObject(row.getCacheSummary()), parseJsonObject(row.getResultSummary()), "cacheSummary"));
+        detail.setBindingSummary(selectFirstNonEmptyMap(parseJsonObject(row.getBindingSummary()), parseJsonObject(row.getQueryContext()), "bindingSummary"));
+        detail.setQueryContext(parseJsonObject(row.getQueryContext()));
+        detail.setSubmittedAt(row.getSubmittedAt() == null ? row.getCreateTime() : row.getSubmittedAt());
+        detail.setSubmittedBy(row.getSubmittedBy());
+        return detail;
+    }
+
+    private Map<String, Object> buildHistoryClassificationSummary(List<GovernanceQueryHistorySummaryVO> items) {
+        LinkedHashMap<String, Object> summary = new LinkedHashMap<String, Object>();
+        summary.put("totalItems", Integer.valueOf(items == null ? 0 : items.size()));
+        summary.put("statusCounts", bucketCount(items, "status"));
+        summary.put("historyTypeCounts", bucketCount(items, "historyType"));
+        summary.put("accessChannelCounts", bucketCount(items, "accessChannel"));
+        return summary;
+    }
+
+    private Map<String, Integer> bucketCount(List<GovernanceQueryHistorySummaryVO> items, String bucketType) {
+        LinkedHashMap<String, Integer> counts = new LinkedHashMap<String, Integer>();
+        if (items == null) {
+            return counts;
+        }
+        for (GovernanceQueryHistorySummaryVO item : items) {
+            String key;
+            if ("status".equals(bucketType)) {
+                key = firstNonBlank(item.getResultStatus(), "UNKNOWN");
+            } else if ("accessChannel".equals(bucketType)) {
+                key = firstNonBlank(item.getAccessChannel(), "UNKNOWN");
+            } else {
+                key = firstNonBlank(item.getHistoryType(), "UNKNOWN");
+            }
+            Integer count = counts.get(key);
+            counts.put(key, Integer.valueOf(count == null ? 1 : count.intValue() + 1));
+        }
+        return counts;
+    }
+
+    private List<String> extractLogicalObjectTypes(String logicalObjectHitsJson) {
+        Object parsed = parseJsonValue(logicalObjectHitsJson);
+        LinkedHashSet<String> types = new LinkedHashSet<String>();
+        collectLogicalObjectTypes(parsed, types);
+        return new ArrayList<String>(types);
+    }
+
+    private void collectLogicalObjectTypes(Object parsed, Set<String> types) {
+        if (parsed == null || types == null) {
+            return;
+        }
+        if (parsed instanceof List) {
+            for (Object item : (List<?>) parsed) {
+                collectLogicalObjectTypes(item, types);
+            }
+            return;
+        }
+        if (parsed instanceof Map) {
+            Object type = ((Map<?, ?>) parsed).get("type");
+            if (type != null) {
+                types.add(String.valueOf(type));
+            }
+            return;
+        }
+        String raw = String.valueOf(parsed);
+        if (raw.contains("BUSINESS_VIEW")) {
+            types.add("BUSINESS_VIEW");
+        }
+        if (raw.contains("DB_VIEW")) {
+            types.add("DB_VIEW");
+        }
+        if (raw.contains("TABLE")) {
+            types.add("TABLE");
+        }
+        if (types.isEmpty() && StringUtils.hasText(raw)) {
+            types.add("RAW");
+        }
+    }
+
+    private Map<String, Object> buildSqlState(GovernanceQueryHistoryProjection row) {
+        LinkedHashMap<String, Object> sqlState = new LinkedHashMap<String, Object>();
+        sqlState.put("sqlFingerprint", row.getSqlFingerprint());
+        sqlState.put("sqlTemplateFingerprint", row.getSqlTemplateFingerprint());
+        sqlState.put("boundSqlFingerprint", row.getBoundSqlFingerprint());
+        sqlState.put("parameterizedSqlFlag", row.getParameterizedSqlFlag());
+        sqlState.put("bindingMode", row.getBindingMode());
+        sqlState.put("bindingRenderStatus", row.getBindingRenderStatus());
+        return sqlState;
+    }
+
+    private Map<String, Object> buildQueryDateSummary(GovernanceQueryHistoryProjection row) {
+        LinkedHashMap<String, Object> summary = new LinkedHashMap<String, Object>();
+        summary.put("bizDate", row.getBizDate());
+        summary.put("queryDateStart", row.getQueryDateStart());
+        summary.put("queryDateEnd", row.getQueryDateEnd());
+        summary.put("queryDateStatus", row.getQueryDateStatus());
+        return summary;
+    }
+
+    private Map<String, Object> buildExecutionSummary(GovernanceQueryHistoryProjection row) {
+        LinkedHashMap<String, Object> summary = new LinkedHashMap<String, Object>();
+        summary.put("status", row.getResultStatus());
+        summary.put("targetEngine", row.getTargetEngine());
+        summary.put("returnedRowCount", row.getReturnedRowCount());
+        summary.put("cacheHit", row.getCacheHit());
+        summary.put("rewriteApplied", row.getRewriteApplied());
+        summary.put("accelerationApplied", row.getAccelerationApplied());
+        summary.put("hitTableSummary", parseJsonValue(row.getHitTableSummary()));
+        summary.put("resultSummary", parseJsonObject(row.getResultSummary()));
+        summary.put("errorCode", row.getErrorCode());
+        summary.put("errorMessage", row.getErrorMessage());
+        summary.put("startedAt", row.getStartedAt());
+        summary.put("finishedAt", row.getFinishedAt());
+        return summary;
+    }
+
+    private Map<String, Object> buildParseSummary(Map<String, Object> queryContext, String key) {
+        return selectFirstNonEmptyMap(Collections.<String, Object>emptyMap(), queryContext, key);
+    }
+
+    private Map<String, Object> selectFirstNonEmptyMap(Map<String, Object> primary, Map<String, Object> secondary, String nestedKey) {
+        if (primary != null && !primary.isEmpty()) {
+            return primary;
+        }
+        if (secondary != null) {
+            Map<String, Object> nested = readNestedMap(secondary, nestedKey);
+            if (!nested.isEmpty()) {
+                return nested;
+            }
+        }
+        return Collections.emptyMap();
     }
 
     private static String trimToNull(String value) {
@@ -1218,6 +1542,16 @@ public class GovernanceHistoryApplicationService {
 
     private static Object firstNonNull(Object first, Object second) {
         return first != null ? first : second;
+    }
+
+    private static String firstNonBlank(String first, String second) {
+        if (StringUtils.hasText(first)) {
+            return first.trim();
+        }
+        if (StringUtils.hasText(second)) {
+            return second.trim();
+        }
+        return null;
     }
 
     private static void putIfPresent(Map<String, Object> target, String key, Object value) {

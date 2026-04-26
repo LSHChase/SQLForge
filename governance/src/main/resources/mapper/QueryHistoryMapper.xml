@@ -4,6 +4,52 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper">
 
+    <resultMap id="GovernanceQueryHistoryProjectionMap" type="com.company.governance.domain.trace.entity.GovernanceQueryHistoryProjection">
+        <id property="historyId" column="history_id"/>
+        <result property="resultId" column="result_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="historyType" column="history_type"/>
+        <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <result property="sqlTemplateFingerprint" column="sql_template_fingerprint"/>
+        <result property="boundSqlFingerprint" column="bound_sql_fingerprint"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="datasourceType" column="datasource_type"/>
+        <result property="reportCode" column="report_code"/>
+        <result property="stageCode" column="stage_code"/>
+        <result property="bizDate" column="biz_date"/>
+        <result property="queryDateStart" column="query_date_start"/>
+        <result property="queryDateEnd" column="query_date_end"/>
+        <result property="queryDateStatus" column="query_date_status"/>
+        <result property="accessChannel" column="access_channel"/>
+        <result property="parameterizedSqlFlag" column="parameterized_sql_flag"/>
+        <result property="bindingMode" column="binding_mode"/>
+        <result property="bindingRenderStatus" column="binding_render_status"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="requestId" column="request_id"/>
+        <result property="sagaId" column="saga_id"/>
+        <result property="commentContext" column="comment_context"/>
+        <result property="bindingSummary" column="binding_summary"/>
+        <result property="logicalObjectHits" column="logical_object_hits"/>
+        <result property="routeSummary" column="history_route_summary"/>
+        <result property="cacheSummary" column="history_cache_summary"/>
+        <result property="queryContext" column="query_context"/>
+        <result property="submittedBy" column="submitted_by"/>
+        <result property="submittedAt" column="submitted_at"/>
+        <result property="createTime" column="create_time"/>
+        <result property="resultStatus" column="result_status"/>
+        <result property="targetEngine" column="target_engine"/>
+        <result property="returnedRowCount" column="returned_row_count"/>
+        <result property="cacheHit" column="cache_hit"/>
+        <result property="rewriteApplied" column="rewrite_applied"/>
+        <result property="accelerationApplied" column="acceleration_applied"/>
+        <result property="hitTableSummary" column="hit_table_summary"/>
+        <result property="resultSummary" column="result_summary"/>
+        <result property="errorCode" column="error_code"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="startedAt" column="started_at"/>
+        <result property="finishedAt" column="finished_at"/>
+    </resultMap>
+
     <resultMap id="QueryHistoryResultMap" type="com.company.governance.domain.trace.entity.QueryHistoryRecord">
         <id property="historyId" column="history_id"/>
         <result property="resultId" column="result_id"/>
@@ -78,6 +124,52 @@
         create_time
     </sql>
 
+    <sql id="HistoryProjectionColumns">
+        qh.history_id,
+        qh.result_id,
+        qh.tenant_id,
+        qh.history_type,
+        qh.sql_fingerprint,
+        qh.sql_template_fingerprint,
+        qh.bound_sql_fingerprint,
+        qh.datasource_code,
+        qh.datasource_type,
+        qh.report_code,
+        qh.stage_code,
+        qh.biz_date,
+        qh.query_date_start,
+        qh.query_date_end,
+        qh.query_date_status,
+        qh.access_channel,
+        qh.parameterized_sql_flag,
+        qh.binding_mode,
+        qh.binding_render_status,
+        qh.trace_id,
+        qh.request_id,
+        qh.saga_id,
+        qh.comment_context,
+        qh.binding_summary,
+        qh.logical_object_hits,
+        qh.route_summary AS history_route_summary,
+        qh.cache_summary AS history_cache_summary,
+        qh.query_context,
+        qh.submitted_by,
+        qh.submitted_at,
+        qh.create_time,
+        er.result_status,
+        er.target_engine,
+        er.returned_row_count,
+        er.cache_hit,
+        er.rewrite_applied,
+        er.acceleration_applied,
+        er.hit_table_summary,
+        er.result_summary,
+        er.error_code,
+        er.error_message,
+        er.started_at,
+        er.finished_at
+    </sql>
+
     <select id="selectById" resultMap="QueryHistoryResultMap">
         SELECT
         <include refid="BaseColumns"/>
@@ -114,6 +206,76 @@
               #{traceId}
           </foreach>
         ORDER BY create_time DESC, history_id DESC
+    </select>
+
+    <select id="selectHistoryPage" resultMap="GovernanceQueryHistoryProjectionMap">
+        SELECT
+        <include refid="HistoryProjectionColumns"/>
+        FROM query_history qh
+        LEFT JOIN execution_result er ON er.result_id = qh.result_id
+        WHERE qh.tenant_id = #{tenantId}
+        <if test="reportCode != null and reportCode != ''">
+            AND qh.report_code = #{reportCode}
+        </if>
+        <if test="datasourceCode != null and datasourceCode != ''">
+            AND qh.datasource_code = #{datasourceCode}
+        </if>
+        <if test="stageCode != null and stageCode != ''">
+            AND qh.stage_code = #{stageCode}
+        </if>
+        <if test="bizDate != null">
+            AND qh.biz_date = #{bizDate}
+        </if>
+        <if test="queryDateStart != null">
+            AND qh.query_date_start &gt;= #{queryDateStart}
+        </if>
+        <if test="queryDateEnd != null">
+            AND qh.query_date_end &lt;= #{queryDateEnd}
+        </if>
+        <if test="status != null and status != ''">
+            AND er.result_status = #{status}
+        </if>
+        <if test="cacheHit != null">
+            AND er.cache_hit = #{cacheHit}
+        </if>
+        <if test="rewriteApplied != null">
+            AND er.rewrite_applied = #{rewriteApplied}
+        </if>
+        <if test="accelerationApplied != null">
+            AND er.acceleration_applied = #{accelerationApplied}
+        </if>
+        <if test="parameterizedSql != null">
+            AND qh.parameterized_sql_flag = #{parameterizedSql}
+        </if>
+        <if test="logicalObjectType != null and logicalObjectType != ''">
+            AND qh.logical_object_hits LIKE CONCAT('%', #{logicalObjectType}, '%')
+        </if>
+        <if test="accessChannel != null and accessChannel != ''">
+            AND qh.access_channel = #{accessChannel}
+        </if>
+        <if test="engine != null and engine != ''">
+            AND er.target_engine = #{engine}
+        </if>
+        <if test="submittedBy != null and submittedBy != ''">
+            AND qh.submitted_by = #{submittedBy}
+        </if>
+        <if test="submittedStart != null">
+            AND qh.submitted_at &gt;= #{submittedStart}
+        </if>
+        <if test="submittedEnd != null">
+            AND qh.submitted_at &lt;= #{submittedEnd}
+        </if>
+        ORDER BY ${orderByClause}
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectHistoryDetail" resultMap="GovernanceQueryHistoryProjectionMap">
+        SELECT
+        <include refid="HistoryProjectionColumns"/>
+        FROM query_history qh
+        LEFT JOIN execution_result er ON er.result_id = qh.result_id
+        WHERE qh.tenant_id = #{tenantId}
+          AND qh.history_id = #{historyId}
     </select>
 
     <insert id="insert" parameterType="com.company.governance.domain.trace.entity.QueryHistoryRecord">

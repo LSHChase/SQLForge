@@ -1,17 +1,21 @@
 package com.company.governance.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryDetailVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryPageVO;
 import com.company.governance.application.controller.vo.GovernanceTraceLookupPageVO;
 import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO;
 import com.company.governance.domain.tenant.logic.TenantAccessLogic;
 import com.company.governance.domain.trace.entity.AuditLogRecord;
 import com.company.governance.domain.trace.entity.ExportRecord;
+import com.company.governance.domain.trace.entity.GovernanceQueryHistoryProjection;
 import com.company.governance.domain.trace.entity.QueryHistoryRecord;
 import com.company.governance.domain.trace.entity.TraceLookupHitRecord;
 import com.company.governance.infrastructure.benchmarkengine.GovernanceBenchmarkEngineClient;
@@ -158,6 +162,138 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("POSITIONAL", detail.getQueryHistories().get(0).getBindingMode());
         assertEquals(Boolean.TRUE, detail.getQueryHistories().get(0).getParameterizedSqlFlag());
         assertEquals("route-001", detail.getQueryHistories().get(0).getRouteSummary().get("ruleId"));
+    }
+
+    @Test
+    void shouldReturnQueryHistoryPageWithFiltersAndClassificationSummary() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(queryHistoryMapper.selectHistoryPage(
+            "tenant-a",
+            "RPT_SALES_DAILY",
+            "hetu_main",
+            "PROD",
+            LocalDate.parse("2026-04-25"),
+            LocalDate.parse("2026-04-24"),
+            LocalDate.parse("2026-04-25"),
+            "PARTIAL",
+            Boolean.TRUE,
+            Boolean.TRUE,
+            Boolean.FALSE,
+            Boolean.TRUE,
+            "BUSINESS_VIEW",
+            "PAGE",
+            "HETU",
+            "analyst-001",
+            LocalDateTime.parse("2026-04-25T00:00:00"),
+            LocalDateTime.parse("2026-04-25T23:59:59"),
+            "qh.submitted_at DESC, qh.history_id DESC",
+            0,
+            3
+        )).thenReturn(Arrays.asList(
+            buildHistoryProjection("history-001", "trace-001", "PARTIAL", "PAGE"),
+            buildHistoryProjection("history-002", "trace-002", "SUCCEEDED", "API"),
+            buildHistoryProjection("history-003", "trace-003", "FAILED", "API")
+        ));
+
+        GovernanceQueryHistoryPageVO page = service.findQueryHistoryPage(
+            "tenant-a",
+            "RPT_SALES_DAILY",
+            "hetu_main",
+            "PROD",
+            "2026-04-25",
+            "2026-04-24",
+            "2026-04-25",
+            "PARTIAL",
+            Boolean.TRUE,
+            Boolean.TRUE,
+            Boolean.FALSE,
+            Boolean.TRUE,
+            "BUSINESS_VIEW",
+            "PAGE",
+            "HETU",
+            "analyst-001",
+            "2026-04-25T00:00:00",
+            "2026-04-25T23:59:59",
+            "submittedAt",
+            "DESC",
+            Integer.valueOf(1),
+            Integer.valueOf(2)
+        );
+
+        assertEquals(2, page.getItems().size());
+        assertEquals(Boolean.TRUE, page.getHasMore());
+        assertEquals("history-001", page.getItems().get(0).getHistoryId());
+        assertEquals("PARTIAL", page.getItems().get(0).getResultStatus());
+        assertEquals(Integer.valueOf(1), ((Map<String, Integer>) page.getClassificationSummary().get("statusCounts")).get("PARTIAL"));
+    }
+
+    @Test
+    void shouldReturnQueryHistoryDetailWithTraceDrillThrough() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(queryHistoryMapper.selectHistoryDetail("tenant-a", "history-001"))
+            .thenReturn(buildHistoryProjection("history-001", "trace-query", "PARTIAL", "PAGE"));
+        when(auditLogMapper.selectByTraceId("tenant-a", "trace-query", 10)).thenReturn(Collections.singletonList(
+            buildAudit("trace-query", "QUERY_EXECUTION", "PARTIAL", "QUERY", "fp-001",
+                LocalDateTime.parse("2026-04-22T10:00:00"),
+                "{\"serviceCode\":\"QUERY_EXECUTION\",\"sqlFingerprint\":\"fp-001\"}",
+                "{\"resultStatus\":\"PARTIAL\",\"targetEngine\":\"HIVE\"}")
+        ));
+        when(queryHistoryMapper.selectByTraceId("tenant-a", "trace-query", 10)).thenReturn(Collections.singletonList(
+            buildHistory("trace-query", "history-001", "QUERY_EXECUTION", "fp-001", LocalDateTime.parse("2026-04-22T09:58:00"))
+        ));
+        when(exportRecordMapper.selectByTraceId("tenant-a", "trace-query", 10)).thenReturn(Collections.emptyList());
+
+        GovernanceQueryHistoryDetailVO detail = service.findQueryHistoryDetail("tenant-a", "history-001");
+
+        assertEquals("history-001", detail.getHistoryId());
+        assertEquals("RPT_SALES_DAILY", detail.getReportCode());
+        assertEquals("POSITIONAL", detail.getSqlState().get("bindingMode"));
+        assertEquals("RESOLVED", detail.getQueryDateSummary().get("queryDateStatus"));
+        assertEquals("HETU", detail.getExecutionSummary().get("targetEngine"));
+        assertNotNull(detail.getTraceDetail());
+        assertEquals("trace-query", detail.getTraceDetail().getTraceId());
     }
 
     @Test
@@ -960,6 +1096,54 @@ class GovernanceHistoryApplicationServiceTest {
         record.setCreateTime(createTime);
         record.setSubmittedAt(createTime);
         return record;
+    }
+
+    private GovernanceQueryHistoryProjection buildHistoryProjection(String historyId,
+                                                                    String traceId,
+                                                                    String resultStatus,
+                                                                    String accessChannel) {
+        GovernanceQueryHistoryProjection row = new GovernanceQueryHistoryProjection();
+        row.setHistoryId(historyId);
+        row.setResultId("result-" + historyId);
+        row.setTraceId(traceId);
+        row.setHistoryType("QUERY_EXECUTION");
+        row.setReportCode("RPT_SALES_DAILY");
+        row.setDatasourceCode("hetu_main");
+        row.setDatasourceType("HETU");
+        row.setStageCode("PROD");
+        row.setBizDate(LocalDate.parse("2026-04-25"));
+        row.setQueryDateStart(LocalDate.parse("2026-04-24"));
+        row.setQueryDateEnd(LocalDate.parse("2026-04-25"));
+        row.setQueryDateStatus("RESOLVED");
+        row.setAccessChannel(accessChannel);
+        row.setParameterizedSqlFlag(Boolean.TRUE);
+        row.setBindingMode("POSITIONAL");
+        row.setBindingRenderStatus("SUCCESS");
+        row.setSqlFingerprint("fp-001");
+        row.setSqlTemplateFingerprint("tmpl-fp");
+        row.setBoundSqlFingerprint("bound-fp");
+        row.setCommentContext("{\"report_code\":\"RPT_SALES_DAILY\"}");
+        row.setBindingSummary("{\"bindingMode\":\"POSITIONAL\"}");
+        row.setLogicalObjectHits("[{\"type\":\"BUSINESS_VIEW\",\"name\":\"vw_sales_daily\"}]");
+        row.setRouteSummary("{\"selectedEngine\":\"HETU\",\"ruleId\":\"route-001\"}");
+        row.setCacheSummary("{\"cacheHit\":true}");
+        row.setQueryContext("{\"structureParseSummary\":{\"syntaxStatus\":\"VALID\"},\"accessParseSummary\":{\"serviceStatus\":\"AVAILABLE\"}}");
+        row.setSubmittedBy("analyst-001");
+        row.setSubmittedAt(LocalDateTime.parse("2026-04-25T12:00:00"));
+        row.setCreateTime(LocalDateTime.parse("2026-04-25T12:00:00"));
+        row.setResultStatus(resultStatus);
+        row.setTargetEngine("HETU");
+        row.setReturnedRowCount(Long.valueOf(10L));
+        row.setCacheHit(Boolean.TRUE);
+        row.setRewriteApplied(Boolean.TRUE);
+        row.setAccelerationApplied(Boolean.FALSE);
+        row.setHitTableSummary("[\"sales.orders\"]");
+        row.setResultSummary("{\"cacheSummary\":{\"cacheHit\":true},\"routeSummary\":{\"selectedEngine\":\"HETU\"}}");
+        row.setErrorCode("12000");
+        row.setErrorMessage("degraded");
+        row.setStartedAt(LocalDateTime.parse("2026-04-25T12:00:00"));
+        row.setFinishedAt(LocalDateTime.parse("2026-04-25T12:00:02"));
+        return row;
     }
 
     private ExportRecord buildExport(String traceId,
