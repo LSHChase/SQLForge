@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-038: 扩展 query-history / execution-result 追溯字段
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(governance): extend query history traceability surfaces`
+- Priority: 1
+- Depends on: `D-TASK-037`
+- Scope: 为 comment context、report/stage/biz-date、query-date、SQL 三态、逻辑对象命中、access channel 与 route/cache summary 补齐持久化与查询字段 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-006` 查询历史与执行取证闭环
+- Human confirmation point: 若历史追溯字段扩展会改变既有审计语义、删除已存证的 SQL/route/cache/trace 信息，或把未确认字段写成强制事实，需人工确认
+- Data impact: `query_history`、`execution_result`、导出/取证查询字段与索引
+- Rollback / recovery: 保留既有追溯链并以追加字段方式扩展；必要时通过视图/兼容 DTO 回退查询面
+- Validation:
+  - `governance/query-execution schema 与 mapping 测试、history persistence 测试`
+  - `python3 scripts/foreman.py validate D-TASK-038`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Expanded query_history and execution_result persistence baselines with structured traceability fields for comment context, datasource/report/stage dates, access channel, SQL tri-state evidence, logical object hits, and route/cache summaries; projected legacy queryContext/resultSummary JSON into the new columns; exposed the new history evidence surface through governance trace detail VO mappings; added incremental migration coverage and schema/persistence/history tests for the expanded traceability contract.
+  - Validation evidence: mvn -pl governance -Dtest=TraceabilitySchemaMappingTest,GovernanceProtectedPersistenceServiceTest,GovernanceHistoryApplicationServiceTest test; python3 scripts/foreman.py validate D-TASK-038; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Current writer call sites still populate most new fields through JSON projection rather than explicit DTO fields, so D-TASK-037 and later query-execution/sql-optimization contract tasks still need to supply first-class values for full fidelity and broader history filters.
+  - Next step: Instantiate and implement the next Wave 1 baseline task that adds the query-execution side contract surface, then continue with single-query structure parsing and access-parse orchestration tasks on top of the expanded history substrate.
+
 ### HARN-043: 修复 SQL 治理规格包 follow-up 真值缺口并启动 Wave 1
 
 - Status: done

@@ -797,6 +797,17 @@ public class GovernanceHistoryApplicationService {
         }
     }
 
+    private static Object parseJsonValue(String content) {
+        if (!StringUtils.hasText(content)) {
+            return null;
+        }
+        try {
+            return JsonUtils.objectMapper().readValue(content, Object.class);
+        } catch (Exception ex) {
+            return content;
+        }
+    }
+
     private static String trimToNull(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
     }
@@ -1332,13 +1343,31 @@ public class GovernanceHistoryApplicationService {
             historyVO.setHistoryId(record.getHistoryId());
             historyVO.setResultId(record.getResultId());
             historyVO.setHistoryType(record.getHistoryType());
+            historyVO.setDatasourceCode(record.getDatasourceCode());
             historyVO.setDatasourceType(record.getDatasourceType());
+            historyVO.setReportCode(record.getReportCode());
+            historyVO.setStageCode(record.getStageCode());
+            historyVO.setBizDate(record.getBizDate());
+            historyVO.setQueryDateStart(record.getQueryDateStart());
+            historyVO.setQueryDateEnd(record.getQueryDateEnd());
+            historyVO.setQueryDateStatus(record.getQueryDateStatus());
+            historyVO.setAccessChannel(record.getAccessChannel());
+            historyVO.setParameterizedSqlFlag(record.getParameterizedSqlFlag());
+            historyVO.setBindingMode(record.getBindingMode());
+            historyVO.setBindingRenderStatus(record.getBindingRenderStatus());
+            historyVO.setSqlTemplateFingerprint(record.getSqlTemplateFingerprint());
+            historyVO.setBoundSqlFingerprint(record.getBoundSqlFingerprint());
             historyVO.setSqlFingerprint(record.getSqlFingerprint());
             historyVO.setRequestId(record.getRequestId());
             historyVO.setSagaId(record.getSagaId());
             historyVO.setSubmittedBy(record.getSubmittedBy());
             historyVO.setSubmittedAt(record.getSubmittedAt());
             historyVO.setCreateTime(record.getCreateTime());
+            historyVO.setCommentContext(parseJsonObject(record.getCommentContext()));
+            historyVO.setBindingSummary(parseJsonObject(record.getBindingSummary()));
+            historyVO.setLogicalObjectHits(parseJsonValue(record.getLogicalObjectHits()));
+            historyVO.setRouteSummary(parseJsonObject(record.getRouteSummary()));
+            historyVO.setCacheSummary(parseJsonObject(record.getCacheSummary()));
             historyVO.setQueryContext(queryContext);
             this.queryHistories.add(historyVO);
             this.queryHistoryCount += 1;

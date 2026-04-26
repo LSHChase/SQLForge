@@ -27,6 +27,7 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOp
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationTarget;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -150,6 +151,13 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("2", ((Map) detail.getCacheGovernanceSurface().get("cacheGovernanceEvidence")).get("maxEntriesPerPolicy"));
         assertEquals(1, detail.getAuditEvents().size());
         assertEquals(1, detail.getQueryHistories().size());
+        assertEquals("RPT_SALES_DAILY", detail.getQueryHistories().get(0).getReportCode());
+        assertEquals("PROD", detail.getQueryHistories().get(0).getStageCode());
+        assertEquals(LocalDate.parse("2026-04-25"), detail.getQueryHistories().get(0).getBizDate());
+        assertEquals("PAGE", detail.getQueryHistories().get(0).getAccessChannel());
+        assertEquals("POSITIONAL", detail.getQueryHistories().get(0).getBindingMode());
+        assertEquals(Boolean.TRUE, detail.getQueryHistories().get(0).getParameterizedSqlFlag());
+        assertEquals("route-001", detail.getQueryHistories().get(0).getRouteSummary().get("ruleId"));
     }
 
     @Test
@@ -929,7 +937,26 @@ class GovernanceHistoryApplicationServiceTest {
         record.setHistoryId(historyId);
         record.setHistoryType(historyType);
         record.setSqlFingerprint(sqlFingerprint);
+        record.setDatasourceCode("hetu_main");
+        record.setReportCode("RPT_SALES_DAILY");
+        record.setStageCode("PROD");
+        record.setBizDate(LocalDate.parse("2026-04-25"));
+        record.setQueryDateStart(LocalDate.parse("2026-04-24"));
+        record.setQueryDateEnd(LocalDate.parse("2026-04-25"));
+        record.setQueryDateStatus("RESOLVED");
+        record.setAccessChannel("PAGE");
+        record.setParameterizedSqlFlag(Boolean.TRUE);
+        record.setBindingMode("POSITIONAL");
+        record.setBindingRenderStatus("SUCCESS");
+        record.setSqlTemplateFingerprint("tmpl-fp");
+        record.setBoundSqlFingerprint("bound-fp");
+        record.setCommentContext("{\"report_code\":\"RPT_SALES_DAILY\",\"stage\":\"PROD\",\"biz_date\":\"2026-04-25\"}");
+        record.setBindingSummary("{\"bindingMode\":\"POSITIONAL\",\"parameterizedSqlFlag\":true}");
+        record.setLogicalObjectHits("[\"vw_sales_daily\",\"sales.orders\"]");
+        record.setRouteSummary("{\"ruleId\":\"route-001\",\"selectedEngine\":\"HETU\"}");
+        record.setCacheSummary("{\"cacheHit\":false}");
         record.setRequestId("request-" + traceId);
+        record.setQueryContext("{\"workloadSource\":\"STANDARD\"}");
         record.setCreateTime(createTime);
         record.setSubmittedAt(createTime);
         return record;

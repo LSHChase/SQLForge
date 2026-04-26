@@ -252,6 +252,15 @@ CREATE TABLE IF NOT EXISTS execution_result (
   trace_id VARCHAR(64) DEFAULT NULL COMMENT 'Trace identifier',
   request_id VARCHAR(64) DEFAULT NULL COMMENT 'Request identifier',
   saga_id VARCHAR(64) DEFAULT NULL COMMENT 'Saga identifier',
+  access_channel VARCHAR(32) DEFAULT NULL COMMENT 'Access channel such as PAGE/API/JDBC_AGENT/SDK/CLIENT',
+  target_engine VARCHAR(64) DEFAULT NULL COMMENT 'Selected execution engine or routed engine',
+  returned_row_count BIGINT DEFAULT NULL COMMENT 'Returned row count when known',
+  cache_hit TINYINT(1) DEFAULT NULL COMMENT 'Whether cache was hit',
+  rewrite_applied TINYINT(1) DEFAULT NULL COMMENT 'Whether lightweight rewrite was applied',
+  acceleration_applied TINYINT(1) DEFAULT NULL COMMENT 'Whether acceleration path was applied',
+  hit_table_summary JSON DEFAULT NULL COMMENT 'Structured hit table summary JSON',
+  route_summary JSON DEFAULT NULL COMMENT 'Structured route summary JSON',
+  cache_summary JSON DEFAULT NULL COMMENT 'Structured cache summary JSON',
   result_summary JSON DEFAULT NULL COMMENT 'Structured summary without sensitive data',
   result_payload JSON DEFAULT NULL COMMENT 'Structured result payload with sensitive leaves encrypted',
   error_code VARCHAR(32) DEFAULT NULL COMMENT 'Error code when failed',
@@ -264,7 +273,10 @@ CREATE TABLE IF NOT EXISTS execution_result (
   KEY idx_execution_result_task (task_id, task_type),
   KEY idx_execution_result_trace (trace_id, request_id),
   KEY idx_execution_result_status (result_status),
-  KEY idx_execution_result_config_snapshot_id (config_snapshot_id)
+  KEY idx_execution_result_config_snapshot_id (config_snapshot_id),
+  KEY idx_execution_result_access_channel (tenant_id, access_channel, create_time),
+  KEY idx_execution_result_target_engine (tenant_id, target_engine, create_time),
+  KEY idx_execution_result_cache_hit (tenant_id, cache_hit, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Immutable execution and analysis results';
 
 CREATE TABLE IF NOT EXISTS query_history (
@@ -274,10 +286,30 @@ CREATE TABLE IF NOT EXISTS query_history (
   history_type VARCHAR(32) NOT NULL COMMENT 'History type such as QUERY_EXECUTION/SQL_OPTIMIZATION/BENCHMARK',
   sql_fingerprint CHAR(32) NOT NULL COMMENT 'Normalized SQL fingerprint',
   sql_text_cipher MEDIUMBLOB DEFAULT NULL COMMENT 'Encrypted SQL text payload, ciphertext only',
+  sql_template_cipher MEDIUMBLOB DEFAULT NULL COMMENT 'Encrypted template SQL payload for parameterized queries',
+  bound_sql_text_cipher MEDIUMBLOB DEFAULT NULL COMMENT 'Encrypted bound SQL payload after parameter binding',
+  datasource_code VARCHAR(128) DEFAULT NULL COMMENT 'Datasource business identifier or alias',
   datasource_type VARCHAR(32) DEFAULT NULL COMMENT 'Datasource type',
+  report_code VARCHAR(128) DEFAULT NULL COMMENT 'Report code parsed from SQL comment context',
+  stage_code VARCHAR(32) DEFAULT NULL COMMENT 'Execution stage parsed from SQL comment context',
+  biz_date DATE DEFAULT NULL COMMENT 'Execution date parsed from SQL comment context',
+  query_date_start DATE DEFAULT NULL COMMENT 'Query date lower bound parsed from SQL body',
+  query_date_end DATE DEFAULT NULL COMMENT 'Query date upper bound parsed from SQL body',
+  query_date_status VARCHAR(32) DEFAULT NULL COMMENT 'Query date extraction status such as RESOLVED/UNRESOLVED/PARTIAL',
+  access_channel VARCHAR(32) DEFAULT NULL COMMENT 'Access channel such as PAGE/API/JDBC_AGENT/SDK/CLIENT',
+  parameterized_sql_flag TINYINT(1) DEFAULT NULL COMMENT 'Whether the SQL was parameterized before binding',
+  binding_mode VARCHAR(16) DEFAULT NULL COMMENT 'Binding mode such as POSITIONAL/NAMED',
+  binding_render_status VARCHAR(16) DEFAULT NULL COMMENT 'Binding render status such as SUCCESS/PARTIAL/FAILED/MASKED',
+  sql_template_fingerprint CHAR(32) DEFAULT NULL COMMENT 'Template SQL fingerprint before binding',
+  bound_sql_fingerprint CHAR(32) DEFAULT NULL COMMENT 'Bound SQL fingerprint after binding',
   trace_id VARCHAR(64) DEFAULT NULL COMMENT 'Trace identifier',
   request_id VARCHAR(64) DEFAULT NULL COMMENT 'Request identifier',
   saga_id VARCHAR(64) DEFAULT NULL COMMENT 'Saga identifier',
+  comment_context JSON DEFAULT NULL COMMENT 'Structured SQL comment context JSON',
+  binding_summary JSON DEFAULT NULL COMMENT 'Structured parameter binding summary JSON',
+  logical_object_hits JSON DEFAULT NULL COMMENT 'Structured logical object and table hit summary JSON',
+  route_summary JSON DEFAULT NULL COMMENT 'Structured route decision summary JSON',
+  cache_summary JSON DEFAULT NULL COMMENT 'Structured cache decision summary JSON',
   query_context JSON DEFAULT NULL COMMENT 'Structured query context with sensitive leaves encrypted',
   submitted_by VARCHAR(64) DEFAULT NULL COMMENT 'Operator identifier',
   submitted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Submitted timestamp',
@@ -286,7 +318,12 @@ CREATE TABLE IF NOT EXISTS query_history (
   KEY idx_query_history_result_id (result_id),
   KEY idx_query_history_tenant_time (tenant_id, create_time),
   KEY idx_query_history_fingerprint (sql_fingerprint),
-  KEY idx_query_history_trace (trace_id, request_id)
+  KEY idx_query_history_trace (trace_id, request_id),
+  KEY idx_query_history_report_stage_date (tenant_id, report_code, stage_code, biz_date),
+  KEY idx_query_history_query_date (tenant_id, query_date_start, query_date_end),
+  KEY idx_query_history_datasource_code (tenant_id, datasource_code, create_time),
+  KEY idx_query_history_access_channel (tenant_id, access_channel, create_time),
+  KEY idx_query_history_binding_mode (tenant_id, binding_mode, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Historical immutable query snapshots linked to execution results';
 
 CREATE TABLE IF NOT EXISTS export_record (

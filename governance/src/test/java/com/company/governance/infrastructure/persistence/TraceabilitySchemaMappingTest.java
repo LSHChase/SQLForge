@@ -21,6 +21,16 @@ class TraceabilitySchemaMappingTest {
         assertContains(schema, "CREATE TABLE IF NOT EXISTS config_snapshot");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS execution_result");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS query_history");
+        assertContains(schema, "access_channel VARCHAR(32) DEFAULT NULL");
+        assertContains(schema, "target_engine VARCHAR(64) DEFAULT NULL");
+        assertContains(schema, "cache_summary JSON DEFAULT NULL");
+        assertContains(schema, "sql_template_cipher MEDIUMBLOB DEFAULT NULL");
+        assertContains(schema, "bound_sql_text_cipher MEDIUMBLOB DEFAULT NULL");
+        assertContains(schema, "report_code VARCHAR(128) DEFAULT NULL");
+        assertContains(schema, "query_date_status VARCHAR(32) DEFAULT NULL");
+        assertContains(schema, "binding_render_status VARCHAR(16) DEFAULT NULL");
+        assertContains(schema, "comment_context JSON DEFAULT NULL");
+        assertContains(schema, "logical_object_hits JSON DEFAULT NULL");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS export_record");
         assertContains(schema, "config_snapshot_id VARCHAR(64) DEFAULT NULL");
         assertContains(schema, "result_id VARCHAR(64) DEFAULT NULL");
@@ -62,6 +72,23 @@ class TraceabilitySchemaMappingTest {
     }
 
     @Test
+    void shouldProvideIncrementalMigrationForExpandedHistoryAndExecutionEvidence() throws IOException {
+        String migration = readRepositoryFile("sql/migrations/V20260426_001__query_history_execution_result_expansion.sql");
+
+        assertContains(migration, "ALTER TABLE execution_result");
+        assertContains(migration, "ADD COLUMN access_channel VARCHAR(32) DEFAULT NULL");
+        assertContains(migration, "ADD COLUMN target_engine VARCHAR(64) DEFAULT NULL");
+        assertContains(migration, "ADD COLUMN cache_summary JSON DEFAULT NULL");
+        assertContains(migration, "ALTER TABLE query_history");
+        assertContains(migration, "ADD COLUMN sql_template_cipher MEDIUMBLOB DEFAULT NULL");
+        assertContains(migration, "ADD COLUMN report_code VARCHAR(128) DEFAULT NULL");
+        assertContains(migration, "ADD COLUMN query_date_status VARCHAR(32) DEFAULT NULL");
+        assertContains(migration, "ADD COLUMN binding_render_status VARCHAR(16) DEFAULT NULL");
+        assertContains(migration, "ADD COLUMN comment_context JSON DEFAULT NULL");
+        assertContains(migration, "ADD COLUMN logical_object_hits JSON DEFAULT NULL");
+    }
+
+    @Test
     void shouldProvideIncrementalMigrationToDropLegacyForeignKeys() throws IOException {
         String migration = readRepositoryFile("sql/migrations/V20260423_017__drop_traceability_foreign_keys.sql");
 
@@ -79,8 +106,13 @@ class TraceabilitySchemaMappingTest {
         assertContains(readMapper("mapper/ConfigSnapshotMapper.xml"), "config_snapshot_id");
         assertContains(readMapper("mapper/ExecutionResultMapper.xml"), "FROM execution_result");
         assertContains(readMapper("mapper/ExecutionResultMapper.xml"), "config_snapshot_id");
+        assertContains(readMapper("mapper/ExecutionResultMapper.xml"), "access_channel");
+        assertContains(readMapper("mapper/ExecutionResultMapper.xml"), "route_summary");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "FROM query_history");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "result_id");
+        assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "sql_template_cipher");
+        assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "comment_context");
+        assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "binding_render_status");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "trace_id = #{traceId}");
         assertContains(readMapper("mapper/ExportRecordMapper.xml"), "FROM export_record");
         assertContains(readMapper("mapper/ExportRecordMapper.xml"), "history_id");

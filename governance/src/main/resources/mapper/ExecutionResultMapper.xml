@@ -15,6 +15,15 @@
         <result property="traceId" column="trace_id"/>
         <result property="requestId" column="request_id"/>
         <result property="sagaId" column="saga_id"/>
+        <result property="accessChannel" column="access_channel"/>
+        <result property="targetEngine" column="target_engine"/>
+        <result property="returnedRowCount" column="returned_row_count"/>
+        <result property="cacheHit" column="cache_hit"/>
+        <result property="rewriteApplied" column="rewrite_applied"/>
+        <result property="accelerationApplied" column="acceleration_applied"/>
+        <result property="hitTableSummary" column="hit_table_summary"/>
+        <result property="routeSummary" column="route_summary"/>
+        <result property="cacheSummary" column="cache_summary"/>
         <result property="resultSummary" column="result_summary"/>
         <result property="resultPayload" column="result_payload"/>
         <result property="errorCode" column="error_code"/>
@@ -35,6 +44,15 @@
         trace_id,
         request_id,
         saga_id,
+        access_channel,
+        target_engine,
+        returned_row_count,
+        cache_hit,
+        rewrite_applied,
+        acceleration_applied,
+        hit_table_summary,
+        route_summary,
+        cache_summary,
         result_summary,
         result_payload,
         error_code,
@@ -63,6 +81,15 @@
             trace_id,
             request_id,
             saga_id,
+            access_channel,
+            target_engine,
+            returned_row_count,
+            cache_hit,
+            rewrite_applied,
+            acceleration_applied,
+            hit_table_summary,
+            route_summary,
+            cache_summary,
             result_summary,
             result_payload,
             error_code,
@@ -81,6 +108,15 @@
             #{traceId},
             #{requestId},
             #{sagaId},
+            #{accessChannel},
+            #{targetEngine},
+            #{returnedRowCount},
+            #{cacheHit},
+            #{rewriteApplied},
+            #{accelerationApplied},
+            #{hitTableSummary},
+            #{routeSummary},
+            #{cacheSummary},
             #{resultSummary},
             #{resultPayload},
             #{errorCode},
@@ -97,6 +133,15 @@
             trace_id = #{traceId},
             request_id = #{requestId},
             saga_id = #{sagaId},
+            access_channel = #{accessChannel},
+            target_engine = #{targetEngine},
+            returned_row_count = #{returnedRowCount},
+            cache_hit = #{cacheHit},
+            rewrite_applied = #{rewriteApplied},
+            acceleration_applied = #{accelerationApplied},
+            hit_table_summary = #{hitTableSummary},
+            route_summary = #{routeSummary},
+            cache_summary = #{cacheSummary},
             result_summary = #{resultSummary},
             result_payload = #{resultPayload},
             error_code = #{errorCode},

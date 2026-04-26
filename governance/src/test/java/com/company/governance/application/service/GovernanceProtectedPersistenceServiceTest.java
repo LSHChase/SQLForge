@@ -69,15 +69,32 @@ class GovernanceProtectedPersistenceServiceTest {
         executionResultRecord.setConfigSnapshotId("cfg-001");
         executionResultRecord.setTenantId("tenant-a");
         executionResultRecord.setResultId("res-001");
-        executionResultRecord.setResultSummary("{\"apiToken\":\"secret-token\",\"rows\":10}");
-        executionResultRecord.setResultPayload("{\"secretKey\":\"ak-value\",\"plan\":\"P1\"}");
+        executionResultRecord.setResultSummary(
+            "{\"apiToken\":\"secret-token\",\"rows\":10,\"accessChannel\":\"PAGE\",\"targetEngine\":\"HETU\","
+                + "\"cacheHit\":true,\"rewriteApplied\":true,\"accelerationApplied\":false,"
+                + "\"cacheGovernanceStatus\":\"HIT\",\"cacheGovernanceEvidence\":{\"policyId\":\"cache-1\"}}"
+        );
+        executionResultRecord.setResultPayload(
+            "{\"secretKey\":\"ak-value\",\"plan\":\"P1\",\"hitTables\":[\"sales.orders\"],"
+                + "\"routeSummary\":{\"selectedEngine\":\"HETU\",\"ruleId\":\"route-001\"}}"
+        );
         executionResultRecord.setErrorMessage("secret=raw");
 
         QueryHistoryRecord queryHistoryRecord = new QueryHistoryRecord();
         queryHistoryRecord.setHistoryId("hist-001");
         queryHistoryRecord.setResultId("res-001");
         queryHistoryRecord.setTenantId("tenant-a");
-        queryHistoryRecord.setQueryContext("{\"sessionToken\":\"session-secret\"}");
+        queryHistoryRecord.setQueryContext(
+            "{\"sessionToken\":\"session-secret\",\"accessChannel\":\"PAGE\",\"queryDateStart\":\"2026-04-24\","
+                + "\"queryDateEnd\":\"2026-04-25\",\"queryDateStatus\":\"RESOLVED\","
+                + "\"commentContext\":{\"report_code\":\"RPT_SALES_DAILY\",\"stage\":\"PROD\",\"biz_date\":\"2026-04-25\","
+                + "\"datasource\":\"hetu_main\"},\"bindingSummary\":{\"parameterizedSqlFlag\":true,"
+                + "\"bindingMode\":\"POSITIONAL\",\"bindingRenderStatus\":\"SUCCESS\","
+                + "\"sqlTemplateFingerprint\":\"tmpl-fp\",\"boundSqlFingerprint\":\"bound-fp\"},"
+                + "\"logicalObjectHits\":[\"vw_sales_daily\",\"sales.orders\"],"
+                + "\"routeSummary\":{\"selectedEngine\":\"HETU\"},"
+                + "\"cacheSummary\":{\"cacheHit\":true}}"
+        );
 
         ExportRecord exportRecord = new ExportRecord();
         exportRecord.setExportId("exp-001");
@@ -116,6 +133,15 @@ class GovernanceProtectedPersistenceServiceTest {
 
         ArgumentCaptor<ExecutionResultRecord> executionCaptor = ArgumentCaptor.forClass(ExecutionResultRecord.class);
         verify(executionResultMapper).insert(executionCaptor.capture());
+        assertEquals("PAGE", executionCaptor.getValue().getAccessChannel());
+        assertEquals("HETU", executionCaptor.getValue().getTargetEngine());
+        assertEquals(Long.valueOf(10L), executionCaptor.getValue().getReturnedRowCount());
+        assertEquals(Boolean.TRUE, executionCaptor.getValue().getCacheHit());
+        assertEquals(Boolean.TRUE, executionCaptor.getValue().getRewriteApplied());
+        assertEquals(Boolean.FALSE, executionCaptor.getValue().getAccelerationApplied());
+        assertTrue(executionCaptor.getValue().getHitTableSummary().contains("sales.orders"));
+        assertTrue(executionCaptor.getValue().getRouteSummary().contains("selectedEngine"));
+        assertTrue(executionCaptor.getValue().getCacheSummary().contains("cacheGovernanceStatus"));
         assertTrue(executionCaptor.getValue().getResultSummary().contains("***"));
         assertFalse(executionCaptor.getValue().getResultSummary().contains("secret-token"));
         assertTrue(executionCaptor.getValue().getResultPayload().contains("\"ciphertext\":\"ENC::AES256_GCM::"));
@@ -129,6 +155,19 @@ class GovernanceProtectedPersistenceServiceTest {
             "select * from secret_table",
             new String(cryptoService.decryptBytes(historyCaptor.getValue().getSqlTextCipher()), StandardCharsets.UTF_8)
         );
+        assertEquals("hetu_main", historyCaptor.getValue().getDatasourceCode());
+        assertEquals("RPT_SALES_DAILY", historyCaptor.getValue().getReportCode());
+        assertEquals("PROD", historyCaptor.getValue().getStageCode());
+        assertEquals("RESOLVED", historyCaptor.getValue().getQueryDateStatus());
+        assertEquals("PAGE", historyCaptor.getValue().getAccessChannel());
+        assertEquals(Boolean.TRUE, historyCaptor.getValue().getParameterizedSqlFlag());
+        assertEquals("POSITIONAL", historyCaptor.getValue().getBindingMode());
+        assertEquals("SUCCESS", historyCaptor.getValue().getBindingRenderStatus());
+        assertEquals("tmpl-fp", historyCaptor.getValue().getSqlTemplateFingerprint());
+        assertEquals("bound-fp", historyCaptor.getValue().getBoundSqlFingerprint());
+        assertTrue(historyCaptor.getValue().getCommentContext().contains("RPT_SALES_DAILY"));
+        assertTrue(historyCaptor.getValue().getBindingSummary().contains("POSITIONAL"));
+        assertTrue(historyCaptor.getValue().getLogicalObjectHits().contains("vw_sales_daily"));
         assertTrue(historyCaptor.getValue().getQueryContext().contains("\"ciphertext\":\"ENC::AES256_GCM::"));
 
         ArgumentCaptor<ExportRecord> exportCaptor = ArgumentCaptor.forClass(ExportRecord.class);

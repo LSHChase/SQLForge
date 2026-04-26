@@ -11,10 +11,30 @@
         <result property="historyType" column="history_type"/>
         <result property="sqlFingerprint" column="sql_fingerprint"/>
         <result property="sqlTextCipher" column="sql_text_cipher"/>
+        <result property="sqlTemplateCipher" column="sql_template_cipher"/>
+        <result property="boundSqlTextCipher" column="bound_sql_text_cipher"/>
+        <result property="datasourceCode" column="datasource_code"/>
         <result property="datasourceType" column="datasource_type"/>
+        <result property="reportCode" column="report_code"/>
+        <result property="stageCode" column="stage_code"/>
+        <result property="bizDate" column="biz_date"/>
+        <result property="queryDateStart" column="query_date_start"/>
+        <result property="queryDateEnd" column="query_date_end"/>
+        <result property="queryDateStatus" column="query_date_status"/>
+        <result property="accessChannel" column="access_channel"/>
+        <result property="parameterizedSqlFlag" column="parameterized_sql_flag"/>
+        <result property="bindingMode" column="binding_mode"/>
+        <result property="bindingRenderStatus" column="binding_render_status"/>
+        <result property="sqlTemplateFingerprint" column="sql_template_fingerprint"/>
+        <result property="boundSqlFingerprint" column="bound_sql_fingerprint"/>
         <result property="traceId" column="trace_id"/>
         <result property="requestId" column="request_id"/>
         <result property="sagaId" column="saga_id"/>
+        <result property="commentContext" column="comment_context"/>
+        <result property="bindingSummary" column="binding_summary"/>
+        <result property="logicalObjectHits" column="logical_object_hits"/>
+        <result property="routeSummary" column="route_summary"/>
+        <result property="cacheSummary" column="cache_summary"/>
         <result property="queryContext" column="query_context"/>
         <result property="submittedBy" column="submitted_by"/>
         <result property="submittedAt" column="submitted_at"/>
@@ -28,10 +48,30 @@
         history_type,
         sql_fingerprint,
         sql_text_cipher,
+        sql_template_cipher,
+        bound_sql_text_cipher,
+        datasource_code,
         datasource_type,
+        report_code,
+        stage_code,
+        biz_date,
+        query_date_start,
+        query_date_end,
+        query_date_status,
+        access_channel,
+        parameterized_sql_flag,
+        binding_mode,
+        binding_render_status,
+        sql_template_fingerprint,
+        bound_sql_fingerprint,
         trace_id,
         request_id,
         saga_id,
+        comment_context,
+        binding_summary,
+        logical_object_hits,
+        route_summary,
+        cache_summary,
         query_context,
         submitted_by,
         submitted_at,
@@ -84,10 +124,30 @@
             history_type,
             sql_fingerprint,
             sql_text_cipher,
+            sql_template_cipher,
+            bound_sql_text_cipher,
+            datasource_code,
             datasource_type,
+            report_code,
+            stage_code,
+            biz_date,
+            query_date_start,
+            query_date_end,
+            query_date_status,
+            access_channel,
+            parameterized_sql_flag,
+            binding_mode,
+            binding_render_status,
+            sql_template_fingerprint,
+            bound_sql_fingerprint,
             trace_id,
             request_id,
             saga_id,
+            comment_context,
+            binding_summary,
+            logical_object_hits,
+            route_summary,
+            cache_summary,
             query_context,
             submitted_by,
             submitted_at,
@@ -99,10 +159,30 @@
             #{historyType},
             #{sqlFingerprint},
             #{sqlTextCipher},
+            #{sqlTemplateCipher},
+            #{boundSqlTextCipher},
+            #{datasourceCode},
             #{datasourceType},
+            #{reportCode},
+            #{stageCode},
+            #{bizDate},
+            #{queryDateStart},
+            #{queryDateEnd},
+            #{queryDateStatus},
+            #{accessChannel},
+            #{parameterizedSqlFlag},
+            #{bindingMode},
+            #{bindingRenderStatus},
+            #{sqlTemplateFingerprint},
+            #{boundSqlFingerprint},
             #{traceId},
             #{requestId},
             #{sagaId},
+            #{commentContext},
+            #{bindingSummary},
+            #{logicalObjectHits},
+            #{routeSummary},
+            #{cacheSummary},
             #{queryContext},
             #{submittedBy},
             #{submittedAt},

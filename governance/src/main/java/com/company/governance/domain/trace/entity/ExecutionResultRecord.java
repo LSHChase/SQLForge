@@ -14,6 +14,15 @@ public class ExecutionResultRecord {
     private String traceId;
     private String requestId;
     private String sagaId;
+    private String accessChannel;
+    private String targetEngine;
+    private Long returnedRowCount;
+    private Boolean cacheHit;
+    private Boolean rewriteApplied;
+    private Boolean accelerationApplied;
+    private String hitTableSummary;
+    private String routeSummary;
+    private String cacheSummary;
     private String resultSummary;
     private String resultPayload;
     private String errorCode;
@@ -100,6 +109,78 @@ public class ExecutionResultRecord {
 
     public void setSagaId(String sagaId) {
         this.sagaId = sagaId;
+    }
+
+    public String getAccessChannel() {
+        return accessChannel;
+    }
+
+    public void setAccessChannel(String accessChannel) {
+        this.accessChannel = accessChannel;
+    }
+
+    public String getTargetEngine() {
+        return targetEngine;
+    }
+
+    public void setTargetEngine(String targetEngine) {
+        this.targetEngine = targetEngine;
+    }
+
+    public Long getReturnedRowCount() {
+        return returnedRowCount;
+    }
+
+    public void setReturnedRowCount(Long returnedRowCount) {
+        this.returnedRowCount = returnedRowCount;
+    }
+
+    public Boolean getCacheHit() {
+        return cacheHit;
+    }
+
+    public void setCacheHit(Boolean cacheHit) {
+        this.cacheHit = cacheHit;
+    }
+
+    public Boolean getRewriteApplied() {
+        return rewriteApplied;
+    }
+
+    public void setRewriteApplied(Boolean rewriteApplied) {
+        this.rewriteApplied = rewriteApplied;
+    }
+
+    public Boolean getAccelerationApplied() {
+        return accelerationApplied;
+    }
+
+    public void setAccelerationApplied(Boolean accelerationApplied) {
+        this.accelerationApplied = accelerationApplied;
+    }
+
+    public String getHitTableSummary() {
+        return hitTableSummary;
+    }
+
+    public void setHitTableSummary(String hitTableSummary) {
+        this.hitTableSummary = hitTableSummary;
+    }
+
+    public String getRouteSummary() {
+        return routeSummary;
+    }
+
+    public void setRouteSummary(String routeSummary) {
+        this.routeSummary = routeSummary;
+    }
+
+    public String getCacheSummary() {
+        return cacheSummary;
+    }
+
+    public void setCacheSummary(String cacheSummary) {
+        this.cacheSummary = cacheSummary;
     }
 
     public String getResultSummary() {
