@@ -136,6 +136,10 @@
 - `metadata.executionMode`
 - `metadata.attemptedModes[]`
 - `metadata.rowCount`
+- `metadata.routeProfile`
+- `metadata.routeOrder[]`
+- `metadata.routeEvidenceSource`
+- `metadata.routeVerificationStatus`
 - `retryPath[].engine`
 - `retryPath[].elapsedMs`
 - `retryPath[].resultStatus`
@@ -158,14 +162,29 @@
 
 说明：
 
-- 当前实现已提供真实 Hetu 多模式执行链：只读单语句 SQL 守卫、`AUTO/HETU -> HETU` 的主路由、`HETU -> HIVE` 的受控 fallback，以及 `JDBC` / `REST` / `CLIENT` 三种 Hetu 接入模式的顺序选择与 attempted-modes 结果收口。
+- 当前实现已提供真实 Hetu 多模式执行链：只读单语句 SQL 守卫、`AUTO/HETU -> HETU` 的主路由、`HETU -> HIVE` 的受控 fallback，以及 `JDBC` / `REST` / `CLIENT` 三种 Hetu 接入模式的顺序选择、route calibration 元数据与 attempted-modes 结果收口。
 - 当 `query-execution.hetu.enabled=false` 或 Hetu 模式链全部失败时，`HETU` 请求会返回结构化 `QUERY_EXECUTION_SYSTEM_ROUTE_UNAVAILABLE`，或在 `RETRY_THEN_FALLBACK` 下受控降级到 `HIVE`；确定性 `SIMULATED` 结果只保留给非 Hetu 路由与测试桩。
+- 当前 `attemptedModes[]` 会显式区分 `CHAIN_DISABLED`、`CHAIN_UNCONFIGURED`、`<MODE>:SKIPPED_*` 与 `<MODE>:FAILED_*`，用于保留 mode priority、ready/unready 判定和失败分层证据。
 - 当前实现已补齐入口/出口/异常/状态变更日志，并在 timeout/fallback 路径上输出本地回滚/补偿标记：
   - timeout: `LOCAL_TIMEOUT_ROLLBACK_MARKED` + `CLOSE_PRIMARY_ATTEMPT_CONTEXT`
   - fallback: `LOCAL_FALLBACK_COMPENSATION_MARKED` + `RECORD_DEGRADED_RESULT`
-- 当前实现已具备治理检查与审计写入的跨服务 HTTP 基线、Hetu JDBC driver 接线、Hetu client 协议执行、本地 mock-Hetu runtime smoke，以及外部环境 `bash scripts/run-hetu-env-smoke.sh` 入口；真实集群长期证据、生产级参数校准和更完整的审计补偿仍待外部环境持续沉淀。
+- 当前实现已具备治理检查与审计写入的跨服务 HTTP 基线、Hetu JDBC driver 接线、Hetu client 协议执行、本地 mock-Hetu runtime smoke，以及受保护 `GET /api/query-execution/internal/hetu/route-calibration` 快照与外部环境 `bash scripts/run-hetu-env-smoke.sh` 结构化证据入口；真实 Win10 环境窗口下的 live smoke 日志归档仍由 `HARN-016` / `INBOX-002` 继续跟踪。
 
-## 3.1.1 Query Execution Internal Benchmark Workload Baseline
+## 3.1.1 Query Execution Internal Hetu Route Calibration Baseline
+
+当前 `query-execution` 已新增受保护内部只读契约，供运维/测试环境在不改写 repo-closed 默认事实的前提下读取当前 Hetu route calibration、cluster evidence 与 ready/unready 分层快照：
+
+| Endpoint | Request baseline | Response baseline | Current implementation stage |
+|:---|:---|:---|:---|
+| `/api/query-execution/internal/hetu/route-calibration` | `GET`, no request body, protected headers required | `HetuRouteCalibrationResponse` with `hetuEnabled`,`routeProfile`,`declaredAllowedModes[]`,`effectiveRouteOrder[]`,`skipUnreadyModes`,`evidenceSource`,`liveVerificationStatus`,`readonlyBoundary`,`summary`,`clusterEvidence`,`modeCalibrations[]`,`contractStage`,`implementationStage`; `clusterEvidence` carries `evidenceSource`,`environmentLabel`,`clusterName`,`coordinatorEndpoint`,`runbookRef`,`evidenceRef`,`readonlyBoundary`,`liveVerificationStatus`,`operatorNotes`; `modeCalibrations[]` carries `mode`,`priority`,`allowed`,`calibrationPreferred`,`adapterAvailable`,`configured`,`ready`,`willAttemptInCurrentPolicy`,`readinessStatus`,`readinessReason`,`routeParameters` | `HETU_ROUTE_CALIBRATION_BASELINE` |
+
+说明：
+
+- internal snapshot 仍通过 header-based protected request context 受控访问，不绕过统一授权入口或只读/影子环境边界。
+- `effectiveRouteOrder[]` 先遵循 `query-execution.hetu.calibration.route-order`，再回补 `allowed-modes` 中未显式排序的模式；calibration 只能重排已允许模式，不能借此启用未允许模式。
+- `skipUnreadyModes=true` 时，未 ready 的模式不会被实际调用，而会在 `attemptedModes[]` 中落成 `SKIPPED_*` 证据；`clusterEvidence.liveVerificationStatus` 默认仍是 `PENDING_ENV_WINDOW`，只表示仓库侧校准状态，不把外部 Win10/Hetu live 结果写成当前仓库默认事实。
+
+## 3.1.2 Query Execution Internal Benchmark Workload Baseline
 
 当前 `query-execution` 已新增受保护内部契约，供 `benchmark-engine` 在 worker 场景下抓取 workload/backfill evidence，而不绕过既有查询执行与治理审计边界：
 
@@ -176,10 +195,10 @@
 说明：
 
 - 内部入口仍通过 header-based protected request context 受控访问；benchmark worker 在无前台请求上下文时，允许以 service identity 合成受保护请求头继续执行 repo-side 编排。
-- 当前实现会逐个目标引擎复用 `QueryExecutionApplicationService.executeSynchronously`；成功时返回 live workload snapshot，失败时返回显式 `SYNTHETIC_BACKFILL` 证据；若同批次至少有一个 live snapshot，则会把失败快照进一步收口为 `COMPENSATED_REPLAY`，显式保留 source engine / source workload digest / strategy，而不是把失败静默折叠为 benchmark 本地无来源的 synthetic replay。
+- 当前实现会逐个目标引擎复用 `QueryExecutionApplicationService.executeSynchronously`；成功时返回 live workload snapshot，失败时返回显式 `SYNTHETIC_BACKFILL` 证据；若同批次至少有一个 live snapshot，则会把失败快照进一步收口为 `COMPENSATED_REPLAY`，显式保留 source engine / source workload digest / strategy，而不是把失败静默折叠为 benchmark 本地无来源的 synthetic replay。live workload evidence 现在也会带出 `routeProfile` / `routeOrder` 片段，便于和 Hetu route calibration 快照做交叉审计。
 - 当前内部入口会额外写入 `QUERY_BENCHMARK_WORKLOAD_CAPTURE` 审计摘要，用于记录 workloadSource / backfillApplied / compensationApplied / compensationStrategy / workloadDigest 的跨服务编排结果。
 
-## 3.1.2 Query Execution Internal Acceleration Plan Runtime Baseline
+## 3.1.3 Query Execution Internal Acceleration Plan Runtime Baseline
 
 当前 `query-execution` 已新增受保护内部契约，供 `sql-optimization` 在审批通过后把 acceleration plan 收口到 runtime gating 闭环，而不是让 `PREFER_ACCELERATED` 默认 fail-open：
 

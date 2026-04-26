@@ -14,6 +14,10 @@ public class QueryExecutionMetadataVO {
     private final String executionMode;
     private final List<String> attemptedModes;
     private final int rowCount;
+    private final String routeProfile;
+    private final List<String> routeOrder;
+    private final String routeEvidenceSource;
+    private final String routeVerificationStatus;
 
     public QueryExecutionMetadataVO(String targetEngine,
                                     String actualSql,
@@ -30,7 +34,11 @@ public class QueryExecutionMetadataVO {
             accelerationApplied,
             "SIMULATED",
             Collections.singletonList("SIMULATED"),
-            0
+            0,
+            null,
+            Collections.<String>emptyList(),
+            null,
+            null
         );
     }
 
@@ -43,6 +51,36 @@ public class QueryExecutionMetadataVO {
                                     String executionMode,
                                     List<String> attemptedModes,
                                     int rowCount) {
+        this(
+            targetEngine,
+            actualSql,
+            elapsedMs,
+            scannedRows,
+            cacheHit,
+            accelerationApplied,
+            executionMode,
+            attemptedModes,
+            rowCount,
+            null,
+            Collections.<String>emptyList(),
+            null,
+            null
+        );
+    }
+
+    public QueryExecutionMetadataVO(String targetEngine,
+                                    String actualSql,
+                                    long elapsedMs,
+                                    long scannedRows,
+                                    boolean cacheHit,
+                                    boolean accelerationApplied,
+                                    String executionMode,
+                                    List<String> attemptedModes,
+                                    int rowCount,
+                                    String routeProfile,
+                                    List<String> routeOrder,
+                                    String routeEvidenceSource,
+                                    String routeVerificationStatus) {
         this.targetEngine = targetEngine;
         this.actualSql = actualSql;
         this.elapsedMs = elapsedMs;
@@ -52,6 +90,10 @@ public class QueryExecutionMetadataVO {
         this.executionMode = executionMode;
         this.attemptedModes = attemptedModes == null ? Collections.<String>emptyList() : attemptedModes;
         this.rowCount = rowCount;
+        this.routeProfile = routeProfile;
+        this.routeOrder = routeOrder == null ? Collections.<String>emptyList() : routeOrder;
+        this.routeEvidenceSource = routeEvidenceSource;
+        this.routeVerificationStatus = routeVerificationStatus;
     }
 
     public String getTargetEngine() {
@@ -88,5 +130,21 @@ public class QueryExecutionMetadataVO {
 
     public int getRowCount() {
         return rowCount;
+    }
+
+    public String getRouteProfile() {
+        return routeProfile;
+    }
+
+    public List<String> getRouteOrder() {
+        return routeOrder;
+    }
+
+    public String getRouteEvidenceSource() {
+        return routeEvidenceSource;
+    }
+
+    public String getRouteVerificationStatus() {
+        return routeVerificationStatus;
     }
 }

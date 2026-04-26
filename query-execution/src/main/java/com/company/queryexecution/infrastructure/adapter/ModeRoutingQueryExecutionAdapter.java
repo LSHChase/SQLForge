@@ -1,7 +1,10 @@
 package com.company.queryexecution.infrastructure.adapter;
 
 import com.company.queryexecution.application.controller.dto.QueryExecuteRequest;
+import com.company.queryexecution.application.service.HetuRouteCalibrationService;
 import com.company.queryexecution.config.QueryExecutionHetuProperties;
+import com.company.queryexecution.domain.query.HetuRouteCalibrationModeSnapshot;
+import com.company.queryexecution.domain.query.HetuRouteCalibrationSnapshot;
 import com.company.queryexecution.domain.query.QueryExecutionAccessMode;
 import com.company.queryexecution.domain.query.QueryExecutionStep;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
@@ -14,13 +17,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class ModeRoutingQueryExecutionAdapter implements QueryExecutionAdapter {
 
-    private final QueryExecutionHetuProperties properties;
+    private final HetuRouteCalibrationService hetuRouteCalibrationService;
     private final DeterministicQueryExecutionAdapter deterministicQueryExecutionAdapter;
     private final Map<QueryExecutionAccessMode, HetuExecutionModeAdapter> modeAdapters;
 
     public ModeRoutingQueryExecutionAdapter(QueryExecutionHetuProperties properties,
+                                            HetuRouteCalibrationService hetuRouteCalibrationService,
                                             List<HetuExecutionModeAdapter> adapters) {
-        this.properties = properties;
+        this.hetuRouteCalibrationService = hetuRouteCalibrationService;
         this.deterministicQueryExecutionAdapter = new DeterministicQueryExecutionAdapter();
         this.modeAdapters = new LinkedHashMap<QueryExecutionAccessMode, HetuExecutionModeAdapter>();
         for (HetuExecutionModeAdapter adapter : adapters) {
@@ -36,45 +40,72 @@ public class ModeRoutingQueryExecutionAdapter implements QueryExecutionAdapter {
         if (targetEngine != DataSourceTypeEnum.HETU) {
             return deterministicQueryExecutionAdapter.execute(targetEngine, actualSql, request, degradedPath);
         }
-        if (!properties.isEnabled()) {
+        HetuRouteCalibrationSnapshot calibrationSnapshot = hetuRouteCalibrationService.currentSnapshot();
+        if (!calibrationSnapshot.isEnabled()) {
             throw new HetuExecutionUnavailableException(
                 "Hetu execution chain is disabled for the current environment",
-                java.util.Collections.singletonList("CHAIN_DISABLED")
+                java.util.Collections.singletonList("CHAIN_DISABLED"),
+                calibrationSnapshot.getRouteProfile(),
+                calibrationSnapshot.routeOrderNames(),
+                calibrationSnapshot.getEvidenceSource(),
+                calibrationSnapshot.getLiveVerificationStatus()
             );
         }
-        if (properties.getAllowedModes().isEmpty()) {
+        if (calibrationSnapshot.getEffectiveRouteOrder().isEmpty()) {
             throw new HetuExecutionUnavailableException(
                 "No Hetu execution mode is configured for the current environment",
-                java.util.Collections.singletonList("CHAIN_UNCONFIGURED")
+                java.util.Collections.singletonList("CHAIN_UNCONFIGURED"),
+                calibrationSnapshot.getRouteProfile(),
+                calibrationSnapshot.routeOrderNames(),
+                calibrationSnapshot.getEvidenceSource(),
+                calibrationSnapshot.getLiveVerificationStatus()
             );
         }
         List<String> attemptedModes = new ArrayList<String>();
         RuntimeException lastFailure = null;
-        for (QueryExecutionAccessMode mode : properties.getAllowedModes()) {
+        for (QueryExecutionAccessMode mode : calibrationSnapshot.getEffectiveRouteOrder()) {
+            HetuRouteCalibrationModeSnapshot modeSnapshot = calibrationSnapshot.getModeSnapshot(mode);
+            if (modeSnapshot != null && !modeSnapshot.isWillAttemptInCurrentPolicy()) {
+                attemptedModes.add(mode.name() + ":SKIPPED_" + modeSnapshot.getReadinessStatus());
+                continue;
+            }
             HetuExecutionModeAdapter adapter = modeAdapters.get(mode);
             if (adapter == null) {
-                attemptedModes.add(mode.name() + ":UNAVAILABLE");
+                attemptedModes.add(mode.name() + ":SKIPPED_ADAPTER_UNAVAILABLE");
                 continue;
             }
             try {
                 attemptedModes.add(mode.name());
                 QueryExecutionStep step = adapter.execute(actualSql, request, degradedPath);
-                return step.withAttemptedModes(new ArrayList<String>(attemptedModes));
+                return step.withAttemptedModes(new ArrayList<String>(attemptedModes)).withRouteCalibration(
+                    calibrationSnapshot.getRouteProfile(),
+                    calibrationSnapshot.routeOrderNames(),
+                    calibrationSnapshot.getEvidenceSource(),
+                    calibrationSnapshot.getLiveVerificationStatus()
+                );
             } catch (RuntimeException ex) {
-                attemptedModes.add(mode.name() + ":FAILED");
+                attemptedModes.add(mode.name() + ":" + hetuRouteCalibrationService.classifyFailure(ex));
                 lastFailure = ex;
             }
         }
         if (lastFailure != null) {
             throw new HetuExecutionUnavailableException(
-                "No Hetu execution mode succeeded. attemptedModes=" + attemptedModes,
+                "No calibrated Hetu execution mode succeeded. attemptedModes=" + attemptedModes,
                 attemptedModes,
-                lastFailure
+                lastFailure,
+                calibrationSnapshot.getRouteProfile(),
+                calibrationSnapshot.routeOrderNames(),
+                calibrationSnapshot.getEvidenceSource(),
+                calibrationSnapshot.getLiveVerificationStatus()
             );
         }
         throw new HetuExecutionUnavailableException(
-            "No Hetu execution mode is available for the current configuration",
-            attemptedModes
+            "No calibrated Hetu execution mode is currently routable",
+            attemptedModes,
+            calibrationSnapshot.getRouteProfile(),
+            calibrationSnapshot.routeOrderNames(),
+            calibrationSnapshot.getEvidenceSource(),
+            calibrationSnapshot.getLiveVerificationStatus()
         );
     }
 }

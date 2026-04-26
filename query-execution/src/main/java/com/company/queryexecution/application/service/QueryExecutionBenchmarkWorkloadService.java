@@ -263,6 +263,8 @@ public class QueryExecutionBenchmarkWorkloadService {
             + ";targetEngine=" + targetEngine.name()
             + ";executionMode=" + metadata.getExecutionMode()
             + ";attemptedModes=" + metadata.getAttemptedModes()
+            + ";routeProfile=" + metadata.getRouteProfile()
+            + ";routeOrder=" + metadata.getRouteOrder()
             + ";elapsedMs=" + metadata.getElapsedMs()
             + ";scannedRows=" + metadata.getScannedRows()
             + ";rowCount=" + metadata.getRowCount()

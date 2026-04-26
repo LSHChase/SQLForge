@@ -3,20 +3,27 @@ package com.company.queryexecution.application.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.company.queryexecution.application.interceptor.AuthInterceptor;
+import com.company.queryexecution.application.service.HetuRouteCalibrationService;
 import com.company.queryexecution.application.service.QueryExecutionAccelerationRuntimeService;
 import com.company.queryexecution.application.service.QueryExecutionBenchmarkWorkloadService;
 import com.company.queryexecution.config.AuthProperties;
 import com.company.queryexecution.config.WebMvcConfig;
+import com.company.queryexecution.domain.query.HetuClusterEvidenceSnapshot;
+import com.company.queryexecution.domain.query.HetuRouteCalibrationModeSnapshot;
+import com.company.queryexecution.domain.query.HetuRouteCalibrationSnapshot;
+import com.company.queryexecution.domain.query.QueryExecutionAccessMode;
 import com.company.sqlforge.common.exception.GlobalExceptionHandler;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadEngineSnapshot;
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadResponse;
+import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +52,9 @@ class QueryExecutionInternalControllerTest {
 
     @MockBean
     private QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService;
+
+    @MockBean
+    private HetuRouteCalibrationService hetuRouteCalibrationService;
 
     @Test
     void shouldReturnBenchmarkWorkloadSnapshot() throws Exception {
@@ -83,6 +93,68 @@ class QueryExecutionInternalControllerTest {
             .andExpect(jsonPath("$.implementationStage").value("BENCHMARK_WORKLOAD_ORCHESTRATION_BASELINE"));
 
         verify(queryExecutionBenchmarkWorkloadService).capture(any());
+    }
+
+    @Test
+    void shouldReturnHetuRouteCalibrationSnapshot() throws Exception {
+        HetuClusterEvidenceSnapshot clusterEvidence = new HetuClusterEvidenceSnapshot(
+            "REPO_CLOSED_CONFIGURATION",
+            "repo-default",
+            "UNSPECIFIED",
+            "",
+            "docs/deployments/hetu-test-environment-deployment-runbook.md",
+            "HARN-016/INBOX-002",
+            "REPO_CLOSED_DEFAULT",
+            "PENDING_ENV_WINDOW",
+            ""
+        );
+        HetuRouteCalibrationModeSnapshot clientMode = new HetuRouteCalibrationModeSnapshot(
+            QueryExecutionAccessMode.CLIENT,
+            1,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            "READY",
+            "Mode is ready for calibrated routing.",
+            Collections.<String, Object>singletonMap("clientEnabled", Boolean.TRUE)
+        );
+        when(hetuRouteCalibrationService.currentSnapshot()).thenReturn(
+            new HetuRouteCalibrationSnapshot(
+                true,
+                "REPO_CLOSED_BASELINE",
+                Arrays.asList(QueryExecutionAccessMode.JDBC, QueryExecutionAccessMode.CLIENT),
+                Arrays.asList(QueryExecutionAccessMode.CLIENT, QueryExecutionAccessMode.JDBC),
+                true,
+                "REPO_CLOSED_CONFIGURATION",
+                "PENDING_ENV_WINDOW",
+                "REPO_CLOSED_DEFAULT",
+                "summary",
+                clusterEvidence,
+                Collections.singletonList(clientMode)
+            )
+        );
+
+        mockMvc.perform(get("/api/query-execution/internal/hetu/route-calibration")
+                .header("X-Tenant-Id", "tenant-a")
+                .header("X-User-Id", "service-user")
+                .header("X-Role-Codes", "SERVICE")
+                .header("X-Request-Id", "request-003")
+                .header("X-Trace-Id", "trace-003")
+                .header("X-Auth-Source", "header")
+                .header("X-Issued-At", "1713700000000")
+                .header("X-Expires-At", "2713700000000"))
+            .andExpect(status().isOk())
+            .andExpect(header().exists("X-Trace-Id"))
+            .andExpect(jsonPath("$.routeProfile").value("REPO_CLOSED_BASELINE"))
+            .andExpect(jsonPath("$.effectiveRouteOrder[0]").value("CLIENT"))
+            .andExpect(jsonPath("$.clusterEvidence.evidenceSource").value("REPO_CLOSED_CONFIGURATION"))
+            .andExpect(jsonPath("$.modeCalibrations[0].mode").value("CLIENT"))
+            .andExpect(jsonPath("$.implementationStage").value("HETU_ROUTE_CALIBRATION_BASELINE"));
+
+        verify(hetuRouteCalibrationService).currentSnapshot();
     }
 
     @Test

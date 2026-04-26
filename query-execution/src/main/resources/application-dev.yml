@@ -1,6 +1,13 @@
 query-execution:
   hetu:
     enabled: false
+    calibration:
+      profile: REPO_CLOSED_BASELINE
+      route-order:
+        - JDBC
+        - REST
+        - CLIENT
+      skip-unready-modes: true
     allowed-modes:
       - JDBC
       - REST

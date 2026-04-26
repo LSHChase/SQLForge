@@ -18,6 +18,10 @@ public class QueryExecutionStep {
     private final boolean accelerationApplied;
     private final String executionMode;
     private final List<String> attemptedModes;
+    private final String routeProfile;
+    private final List<String> routeOrder;
+    private final String routeEvidenceSource;
+    private final String routeVerificationStatus;
 
     public QueryExecutionStep(DataSourceTypeEnum targetEngine,
                               List<Map<String, Object>> rows,
@@ -33,7 +37,11 @@ public class QueryExecutionStep {
             cacheHit,
             accelerationApplied,
             "SIMULATED",
-            Collections.singletonList("SIMULATED")
+            Collections.singletonList("SIMULATED"),
+            null,
+            Collections.<String>emptyList(),
+            null,
+            null
         );
     }
 
@@ -45,6 +53,34 @@ public class QueryExecutionStep {
                               boolean accelerationApplied,
                               String executionMode,
                               List<String> attemptedModes) {
+        this(
+            targetEngine,
+            rows,
+            elapsedMs,
+            scannedRows,
+            cacheHit,
+            accelerationApplied,
+            executionMode,
+            attemptedModes,
+            null,
+            Collections.<String>emptyList(),
+            null,
+            null
+        );
+    }
+
+    public QueryExecutionStep(DataSourceTypeEnum targetEngine,
+                              List<Map<String, Object>> rows,
+                              long elapsedMs,
+                              long scannedRows,
+                              boolean cacheHit,
+                              boolean accelerationApplied,
+                              String executionMode,
+                              List<String> attemptedModes,
+                              String routeProfile,
+                              List<String> routeOrder,
+                              String routeEvidenceSource,
+                              String routeVerificationStatus) {
         this.targetEngine = targetEngine;
         this.rows = rows;
         this.elapsedMs = elapsedMs;
@@ -53,6 +89,10 @@ public class QueryExecutionStep {
         this.accelerationApplied = accelerationApplied;
         this.executionMode = executionMode;
         this.attemptedModes = attemptedModes == null ? Collections.<String>emptyList() : attemptedModes;
+        this.routeProfile = routeProfile;
+        this.routeOrder = routeOrder == null ? Collections.<String>emptyList() : routeOrder;
+        this.routeEvidenceSource = routeEvidenceSource;
+        this.routeVerificationStatus = routeVerificationStatus;
     }
 
     public DataSourceTypeEnum getTargetEngine() {
@@ -87,6 +127,22 @@ public class QueryExecutionStep {
         return attemptedModes;
     }
 
+    public String getRouteProfile() {
+        return routeProfile;
+    }
+
+    public List<String> getRouteOrder() {
+        return routeOrder;
+    }
+
+    public String getRouteEvidenceSource() {
+        return routeEvidenceSource;
+    }
+
+    public String getRouteVerificationStatus() {
+        return routeVerificationStatus;
+    }
+
     public QueryExecutionStep withAttemptedModes(List<String> newAttemptedModes) {
         return new QueryExecutionStep(
             targetEngine,
@@ -96,7 +152,31 @@ public class QueryExecutionStep {
             cacheHit,
             accelerationApplied,
             executionMode,
-            newAttemptedModes
+            newAttemptedModes,
+            routeProfile,
+            routeOrder,
+            routeEvidenceSource,
+            routeVerificationStatus
+        );
+    }
+
+    public QueryExecutionStep withRouteCalibration(String newRouteProfile,
+                                                   List<String> newRouteOrder,
+                                                   String newRouteEvidenceSource,
+                                                   String newRouteVerificationStatus) {
+        return new QueryExecutionStep(
+            targetEngine,
+            rows,
+            elapsedMs,
+            scannedRows,
+            cacheHit,
+            accelerationApplied,
+            executionMode,
+            attemptedModes,
+            newRouteProfile,
+            newRouteOrder,
+            newRouteEvidenceSource,
+            newRouteVerificationStatus
         );
     }
 }

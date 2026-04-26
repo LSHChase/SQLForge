@@ -206,7 +206,11 @@ class QueryExecutionApplicationServiceTest {
                                                   boolean degradedPath) {
                     throw new HetuExecutionUnavailableException(
                         "Hetu execution chain is disabled for the current environment",
-                        java.util.Collections.singletonList("CHAIN_DISABLED")
+                        java.util.Collections.singletonList("CHAIN_DISABLED"),
+                        "REPO_CLOSED_BASELINE",
+                        java.util.Arrays.asList("JDBC", "REST", "CLIENT"),
+                        "REPO_CLOSED_CONFIGURATION",
+                        "PENDING_ENV_WINDOW"
                     );
                 }
             }, mockGovernanceClient(), meterRegistry);
@@ -216,6 +220,9 @@ class QueryExecutionApplicationServiceTest {
         assertEquals(QueryExecutionStatus.FAILED, response.getStatus());
         assertEquals(ErrorCodeConstants.QUERY_EXECUTION_SYSTEM_ROUTE_UNAVAILABLE, response.getError().getCode());
         assertEquals(java.util.Collections.singletonList("CHAIN_DISABLED"), response.getMetadata().getAttemptedModes());
+        assertEquals("REPO_CLOSED_BASELINE", response.getMetadata().getRouteProfile());
+        assertEquals(java.util.Arrays.asList("JDBC", "REST", "CLIENT"), response.getMetadata().getRouteOrder());
+        assertEquals("REPO_CLOSED_CONFIGURATION", response.getMetadata().getRouteEvidenceSource());
         assertEquals(1, response.getRetryPath().size());
         assertEquals("LOCAL_PRIMARY_ROUTE_FAILURE_MARKED", response.getRetryPath().get(0).getLocalRecoveryMarker());
         assertEquals(1.0D, meterRegistry.get("sqlforge.query.execution.route_unavailable").tags(
@@ -244,8 +251,12 @@ class QueryExecutionApplicationServiceTest {
                         return new DeterministicQueryExecutionAdapter().execute(targetEngine, actualSql, request, degradedPath);
                     }
                     throw new HetuExecutionUnavailableException(
-                        "No Hetu execution mode succeeded. attemptedModes=[JDBC, JDBC:FAILED, REST, REST:FAILED]",
-                        java.util.Arrays.asList("JDBC", "JDBC:FAILED", "REST", "REST:FAILED")
+                        "No calibrated Hetu execution mode succeeded. attemptedModes=[JDBC, JDBC:FAILED_EXECUTION, REST, REST:FAILED_EXECUTION]",
+                        java.util.Arrays.asList("JDBC", "JDBC:FAILED_EXECUTION", "REST", "REST:FAILED_EXECUTION"),
+                        "REPO_CLOSED_BASELINE",
+                        java.util.Arrays.asList("JDBC", "REST"),
+                        "REPO_CLOSED_CONFIGURATION",
+                        "PENDING_ENV_WINDOW"
                     );
                 }
             }, mockGovernanceClient());

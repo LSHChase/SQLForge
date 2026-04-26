@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.queryexecution.application.controller.dto.QueryExecuteRequest;
+import com.company.queryexecution.application.service.HetuRouteCalibrationService;
 import com.company.queryexecution.config.QueryExecutionHetuProperties;
 import com.company.queryexecution.domain.query.QueryExecutionAccessMode;
 import com.company.queryexecution.domain.query.QueryExecutionStep;
@@ -21,8 +22,7 @@ class ModeRoutingQueryExecutionAdapterTest {
     @Test
     void shouldRejectHetuRequestWhenRealChainIsDisabled() {
         QueryExecutionHetuProperties properties = new QueryExecutionHetuProperties();
-        ModeRoutingQueryExecutionAdapter adapter =
-            new ModeRoutingQueryExecutionAdapter(properties, Collections.<HetuExecutionModeAdapter>emptyList());
+        ModeRoutingQueryExecutionAdapter adapter = newAdapter(properties, Collections.<HetuExecutionModeAdapter>emptyList());
 
         HetuExecutionUnavailableException ex = assertThrows(
             HetuExecutionUnavailableException.class,
@@ -31,13 +31,13 @@ class ModeRoutingQueryExecutionAdapterTest {
 
         assertEquals("Hetu execution chain is disabled for the current environment", ex.getMessage());
         assertEquals(Collections.singletonList("CHAIN_DISABLED"), ex.getAttemptedModes());
+        assertEquals("REPO_CLOSED_BASELINE", ex.getRouteProfile());
     }
 
     @Test
     void shouldKeepDeterministicExecutionForNonHetuTargets() {
         QueryExecutionHetuProperties properties = new QueryExecutionHetuProperties();
-        ModeRoutingQueryExecutionAdapter adapter =
-            new ModeRoutingQueryExecutionAdapter(properties, Collections.<HetuExecutionModeAdapter>emptyList());
+        ModeRoutingQueryExecutionAdapter adapter = newAdapter(properties, Collections.<HetuExecutionModeAdapter>emptyList());
 
         QueryExecutionStep step = adapter.execute(DataSourceTypeEnum.HIVE, "SELECT 1", baseRequest(), true);
 
@@ -49,8 +49,7 @@ class ModeRoutingQueryExecutionAdapterTest {
     @Test
     void shouldRejectHetuRequestWhenNoModeIsConfigured() {
         QueryExecutionHetuProperties properties = enabledProperties();
-        ModeRoutingQueryExecutionAdapter adapter =
-            new ModeRoutingQueryExecutionAdapter(properties, Collections.<HetuExecutionModeAdapter>emptyList());
+        ModeRoutingQueryExecutionAdapter adapter = newAdapter(properties, Collections.<HetuExecutionModeAdapter>emptyList());
 
         HetuExecutionUnavailableException ex = assertThrows(
             HetuExecutionUnavailableException.class,
@@ -64,16 +63,15 @@ class ModeRoutingQueryExecutionAdapterTest {
     @Test
     void shouldRejectWhenConfiguredModesResolveToNoAvailableAdapter() {
         QueryExecutionHetuProperties properties = enabledProperties(QueryExecutionAccessMode.JDBC);
-        ModeRoutingQueryExecutionAdapter adapter =
-            new ModeRoutingQueryExecutionAdapter(properties, Collections.<HetuExecutionModeAdapter>emptyList());
+        ModeRoutingQueryExecutionAdapter adapter = newAdapter(properties, Collections.<HetuExecutionModeAdapter>emptyList());
 
         HetuExecutionUnavailableException ex = assertThrows(
             HetuExecutionUnavailableException.class,
             () -> adapter.execute(DataSourceTypeEnum.HETU, "SELECT 1", baseRequest(), false)
         );
 
-        assertEquals("No Hetu execution mode is available for the current configuration", ex.getMessage());
-        assertEquals(Collections.singletonList("JDBC:UNAVAILABLE"), ex.getAttemptedModes());
+        assertEquals("No calibrated Hetu execution mode is currently routable", ex.getMessage());
+        assertEquals(Collections.singletonList("JDBC:SKIPPED_ADAPTER_UNAVAILABLE"), ex.getAttemptedModes());
     }
 
     @Test
@@ -82,7 +80,9 @@ class ModeRoutingQueryExecutionAdapterTest {
             QueryExecutionAccessMode.JDBC,
             QueryExecutionAccessMode.REST
         );
-        ModeRoutingQueryExecutionAdapter adapter = new ModeRoutingQueryExecutionAdapter(
+        configureJdbc(properties);
+        configureRest(properties);
+        ModeRoutingQueryExecutionAdapter adapter = newAdapter(
             properties,
             Arrays.<HetuExecutionModeAdapter>asList(
                 failingAdapter(QueryExecutionAccessMode.JDBC, "jdbc failed"),
@@ -93,8 +93,10 @@ class ModeRoutingQueryExecutionAdapterTest {
         QueryExecutionStep step = adapter.execute(DataSourceTypeEnum.HETU, "SELECT 1", baseRequest(), false);
 
         assertEquals("REST", step.getExecutionMode());
-        assertEquals(Arrays.asList("JDBC", "JDBC:FAILED", "REST"), step.getAttemptedModes());
+        assertEquals(Arrays.asList("JDBC", "JDBC:FAILED_EXECUTION", "REST"), step.getAttemptedModes());
         assertEquals("REST", step.getRows().get(0).get("executionMode"));
+        assertEquals("REPO_CLOSED_BASELINE", step.getRouteProfile());
+        assertEquals(Arrays.asList("JDBC", "REST"), step.getRouteOrder());
     }
 
     @Test
@@ -103,7 +105,8 @@ class ModeRoutingQueryExecutionAdapterTest {
             QueryExecutionAccessMode.JDBC,
             QueryExecutionAccessMode.CLIENT
         );
-        ModeRoutingQueryExecutionAdapter adapter = new ModeRoutingQueryExecutionAdapter(
+        configureClient(properties);
+        ModeRoutingQueryExecutionAdapter adapter = newAdapter(
             properties,
             Collections.<HetuExecutionModeAdapter>singletonList(
                 successfulAdapter(QueryExecutionAccessMode.CLIENT, sampleStep("CLIENT"))
@@ -113,7 +116,7 @@ class ModeRoutingQueryExecutionAdapterTest {
         QueryExecutionStep step = adapter.execute(DataSourceTypeEnum.HETU, "SELECT 1", baseRequest(), false);
 
         assertEquals("CLIENT", step.getExecutionMode());
-        assertEquals(Arrays.asList("JDBC:UNAVAILABLE", "CLIENT"), step.getAttemptedModes());
+        assertEquals(Arrays.asList("JDBC:SKIPPED_ADAPTER_UNAVAILABLE", "CLIENT"), step.getAttemptedModes());
     }
 
     @Test
@@ -122,7 +125,9 @@ class ModeRoutingQueryExecutionAdapterTest {
             QueryExecutionAccessMode.JDBC,
             QueryExecutionAccessMode.REST
         );
-        ModeRoutingQueryExecutionAdapter adapter = new ModeRoutingQueryExecutionAdapter(
+        configureJdbc(properties);
+        configureRest(properties);
+        ModeRoutingQueryExecutionAdapter adapter = newAdapter(
             properties,
             Arrays.<HetuExecutionModeAdapter>asList(
                 failingAdapter(QueryExecutionAccessMode.JDBC, "jdbc failed"),
@@ -135,8 +140,9 @@ class ModeRoutingQueryExecutionAdapterTest {
             () -> adapter.execute(DataSourceTypeEnum.HETU, "SELECT 1", baseRequest(), false)
         );
 
-        assertTrue(ex.getMessage().contains("attemptedModes=[JDBC, JDBC:FAILED, REST, REST:FAILED]"));
-        assertEquals(Arrays.asList("JDBC", "JDBC:FAILED", "REST", "REST:FAILED"), ex.getAttemptedModes());
+        assertTrue(ex.getMessage().contains("attemptedModes=[JDBC, JDBC:FAILED_EXECUTION, REST, REST:FAILED_EXECUTION]"));
+        assertEquals(Arrays.asList("JDBC", "JDBC:FAILED_EXECUTION", "REST", "REST:FAILED_EXECUTION"), ex.getAttemptedModes());
+        assertEquals(Arrays.asList("JDBC", "REST"), ex.getRouteOrder());
     }
 
     private QueryExecutionHetuProperties enabledProperties(QueryExecutionAccessMode... modes) {
@@ -144,7 +150,32 @@ class ModeRoutingQueryExecutionAdapterTest {
         properties.setEnabled(true);
         properties.getAllowedModes().clear();
         properties.getAllowedModes().addAll(Arrays.asList(modes));
+        properties.getCalibration().getRouteOrder().clear();
+        properties.getCalibration().getRouteOrder().addAll(Arrays.asList(modes));
         return properties;
+    }
+
+    private ModeRoutingQueryExecutionAdapter newAdapter(QueryExecutionHetuProperties properties,
+                                                        java.util.List<HetuExecutionModeAdapter> adapters) {
+        return new ModeRoutingQueryExecutionAdapter(
+            properties,
+            new HetuRouteCalibrationService(properties, adapters),
+            adapters
+        );
+    }
+
+    private void configureJdbc(QueryExecutionHetuProperties properties) {
+        properties.getJdbc().setUrl("jdbc:hetu://localhost:28088/hive/default");
+    }
+
+    private void configureRest(QueryExecutionHetuProperties properties) {
+        properties.getRest().setEndpoint("http://localhost:28089/v1/query");
+    }
+
+    private void configureClient(QueryExecutionHetuProperties properties) {
+        properties.getClient().setEnabled(true);
+        properties.getClient().setEndpoint("http://localhost:28090/v1/statement");
+        properties.getClient().setUser("hetu-user");
     }
 
     private QueryExecuteRequest baseRequest() {

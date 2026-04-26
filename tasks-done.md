@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-033: 收口 `query-execution` 生产级 Hetu 集群证据与路由参数校准
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(query-execution): close D-TASK-033 hetu route calibration`
+- Priority: 1
+- Depends on: `D-TASK-032`
+- Scope: 在保留 repo-closed Hetu 多模式执行链、统一授权入口、只读/影子环境边界与结构化失败语义不变的前提下，补齐生产级 Hetu/MRS 集群证据、路由参数校准、模式优先级与失败分层证据沉淀，不把外部测试环境依赖误写成仓库默认主路径 Tech: `JAVA-BE`,`OPS`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-005` 运行时执行链与跨服务补完
+- Human confirmation point: 若 Hetu 集群证据与路由参数校准会放宽只读/影子环境边界、把外部测试环境结果误写成 repo-closed 默认事实、或降低当前结构化失败语义，需人工确认
+- Data impact: Hetu/MRS route calibration 参数、mode priority、env smoke/test-env evidence、执行与审计记录
+- Rollback / recovery: 保持 repo-closed Hetu 主路径与当前失败语义不变，关闭高风险校准默认启用，回退新增 calibration/live-evidence 文档与配置说明，并恢复到 `D-TASK-032` 已验证基线
+- Validation:
+  - `query-execution 模块测试、route calibration 契约测试、runtime smoke、Hetu env smoke/test-env evidence、task audit、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-033`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added governed Hetu route calibration and cluster-evidence snapshots for query-execution, calibrated mode priority/readiness/failure-layer routing, public route metadata, env-smoke evidence bundling, focused tests, and authority-doc updates while preserving repo-closed defaults and structured route failures.
+  - Validation evidence: mvn -B -pl query-execution -am test -DskipITs; python3 scripts/foreman.py validate D-TASK-033 --include-task-audit with focused module/script checks; bash scripts/run-runtime-smoke.sh --compose-check; bash scripts/run-hetu-env-smoke.sh --help; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: External Win10/Hetu live evidence capture and long-term archived smoke logs remain environment-backed follow-up work under HARN-016 / INBOX-002; broader cross-service audit compensation still remains beyond this task scope.
+  - Next step: Proceed to D-TASK-034 to close benchmark-engine external queue/storage provider-native semantics on top of the stabilized query-execution route-calibration baseline.
+
 ### D-TASK-032: 收口 acceleration plan 治理闭环
 
 - Status: done

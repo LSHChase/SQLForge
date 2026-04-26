@@ -28,6 +28,19 @@ query-execution:
     strategy: OPEN_SOURCE_ABSTRACTION_FOR_LIGHTWEIGHT_PATH
   hetu:
     enabled: ${QUERY_EXECUTION_HETU_ENABLED:false}
+    calibration:
+      profile: ${QUERY_EXECUTION_HETU_CALIBRATION_PROFILE:REPO_CLOSED_BASELINE}
+      skip-unready-modes: ${QUERY_EXECUTION_HETU_SKIP_UNREADY_MODES:true}
+    cluster-evidence:
+      evidence-source: ${QUERY_EXECUTION_HETU_EVIDENCE_SOURCE:REPO_CLOSED_CONFIGURATION}
+      environment-label: ${QUERY_EXECUTION_HETU_ENVIRONMENT_LABEL:repo-default}
+      cluster-name: ${QUERY_EXECUTION_HETU_CLUSTER_NAME:UNSPECIFIED}
+      coordinator-endpoint: ${QUERY_EXECUTION_HETU_COORDINATOR_ENDPOINT:}
+      runbook-ref: ${QUERY_EXECUTION_HETU_RUNBOOK_REF:docs/deployments/hetu-test-environment-deployment-runbook.md}
+      evidence-ref: ${QUERY_EXECUTION_HETU_EVIDENCE_REF:HARN-016/INBOX-002}
+      readonly-boundary: ${QUERY_EXECUTION_HETU_READONLY_BOUNDARY:REPO_CLOSED_DEFAULT}
+      live-verification-status: ${QUERY_EXECUTION_HETU_LIVE_VERIFICATION_STATUS:PENDING_ENV_WINDOW}
+      operator-notes: ${QUERY_EXECUTION_HETU_OPERATOR_NOTES:}
     jdbc:
       url: ${QUERY_EXECUTION_HETU_JDBC_URL:}
       username: ${QUERY_EXECUTION_HETU_JDBC_USERNAME:}

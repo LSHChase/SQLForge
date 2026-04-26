@@ -1,6 +1,13 @@
 query-execution:
   hetu:
     enabled: true
+    calibration:
+      profile: PRODUCTION_CANDIDATE_BASELINE
+      route-order:
+        - JDBC
+        - REST
+        - CLIENT
+      skip-unready-modes: true
     allowed-modes:
       - JDBC
       - REST

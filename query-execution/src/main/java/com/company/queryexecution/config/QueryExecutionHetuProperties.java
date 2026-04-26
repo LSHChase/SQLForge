@@ -10,6 +10,8 @@ public class QueryExecutionHetuProperties {
 
     private boolean enabled = false;
     private final List<QueryExecutionAccessMode> allowedModes = new ArrayList<QueryExecutionAccessMode>();
+    private final Calibration calibration = new Calibration();
+    private final ClusterEvidence clusterEvidence = new ClusterEvidence();
     private final Jdbc jdbc = new Jdbc();
     private final Rest rest = new Rest();
     private final Client client = new Client();
@@ -34,6 +36,14 @@ public class QueryExecutionHetuProperties {
 
     public Jdbc getJdbc() {
         return jdbc;
+    }
+
+    public Calibration getCalibration() {
+        return calibration;
+    }
+
+    public ClusterEvidence getClusterEvidence() {
+        return clusterEvidence;
     }
 
     public Rest getRest() {
@@ -90,6 +100,124 @@ public class QueryExecutionHetuProperties {
 
         public void setMaxRows(int maxRows) {
             this.maxRows = maxRows;
+        }
+    }
+
+    public static class Calibration {
+
+        private String profile = "REPO_CLOSED_BASELINE";
+        private final List<QueryExecutionAccessMode> routeOrder = new ArrayList<QueryExecutionAccessMode>();
+        private boolean skipUnreadyModes = true;
+
+        public Calibration() {
+            routeOrder.add(QueryExecutionAccessMode.JDBC);
+            routeOrder.add(QueryExecutionAccessMode.REST);
+            routeOrder.add(QueryExecutionAccessMode.CLIENT);
+        }
+
+        public String getProfile() {
+            return profile;
+        }
+
+        public void setProfile(String profile) {
+            this.profile = profile;
+        }
+
+        public List<QueryExecutionAccessMode> getRouteOrder() {
+            return routeOrder;
+        }
+
+        public boolean isSkipUnreadyModes() {
+            return skipUnreadyModes;
+        }
+
+        public void setSkipUnreadyModes(boolean skipUnreadyModes) {
+            this.skipUnreadyModes = skipUnreadyModes;
+        }
+    }
+
+    public static class ClusterEvidence {
+
+        private String evidenceSource = "REPO_CLOSED_CONFIGURATION";
+        private String environmentLabel = "repo-default";
+        private String clusterName = "UNSPECIFIED";
+        private String coordinatorEndpoint = "";
+        private String runbookRef = "docs/deployments/hetu-test-environment-deployment-runbook.md";
+        private String evidenceRef = "HARN-016/INBOX-002";
+        private String readonlyBoundary = "REPO_CLOSED_DEFAULT";
+        private String liveVerificationStatus = "PENDING_ENV_WINDOW";
+        private String operatorNotes = "";
+
+        public String getEvidenceSource() {
+            return evidenceSource;
+        }
+
+        public void setEvidenceSource(String evidenceSource) {
+            this.evidenceSource = evidenceSource;
+        }
+
+        public String getEnvironmentLabel() {
+            return environmentLabel;
+        }
+
+        public void setEnvironmentLabel(String environmentLabel) {
+            this.environmentLabel = environmentLabel;
+        }
+
+        public String getClusterName() {
+            return clusterName;
+        }
+
+        public void setClusterName(String clusterName) {
+            this.clusterName = clusterName;
+        }
+
+        public String getCoordinatorEndpoint() {
+            return coordinatorEndpoint;
+        }
+
+        public void setCoordinatorEndpoint(String coordinatorEndpoint) {
+            this.coordinatorEndpoint = coordinatorEndpoint;
+        }
+
+        public String getRunbookRef() {
+            return runbookRef;
+        }
+
+        public void setRunbookRef(String runbookRef) {
+            this.runbookRef = runbookRef;
+        }
+
+        public String getEvidenceRef() {
+            return evidenceRef;
+        }
+
+        public void setEvidenceRef(String evidenceRef) {
+            this.evidenceRef = evidenceRef;
+        }
+
+        public String getReadonlyBoundary() {
+            return readonlyBoundary;
+        }
+
+        public void setReadonlyBoundary(String readonlyBoundary) {
+            this.readonlyBoundary = readonlyBoundary;
+        }
+
+        public String getLiveVerificationStatus() {
+            return liveVerificationStatus;
+        }
+
+        public void setLiveVerificationStatus(String liveVerificationStatus) {
+            this.liveVerificationStatus = liveVerificationStatus;
+        }
+
+        public String getOperatorNotes() {
+            return operatorNotes;
+        }
+
+        public void setOperatorNotes(String operatorNotes) {
+            this.operatorNotes = operatorNotes;
         }
     }
 

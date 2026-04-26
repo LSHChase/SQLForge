@@ -37,14 +37,15 @@
 - Spring Boot 应用入口和独立 Maven 模块
 - `application` / `domain` / `infrastructure` / `config` 分层骨架
 - 查询执行服务的不可变边界定义，显式收口到路由、执行控制、轻量解析、轻量改写和已批准加速配置应用
-- `JDBC` / `REST` / `CLIENT` 三种 Hetu 访问模式的边界声明，以及真实模式选择、严格路由失败语义与结果聚合实现
+- `JDBC` / `REST` / `CLIENT` 三种 Hetu 访问模式的边界声明，以及真实模式选择、route calibration、严格路由失败语义与结果聚合实现
 - 只读优先、开源 parser 复用、已批准加速配置运行时应用的策略声明
+- 受保护内部 Hetu route calibration / cluster evidence 快照入口，以及 ready/unready / priority / failure-layer 证据模型
 - 受保护内部 acceleration-plan apply / verify / rollback runtime gating 入口，以及按 `tenantId + sqlFingerprint + datasourceType` 收口的 approved binding registry
 - 与 `governance` 的租户范围检查、数据源访问检查和审计写入 HTTP 调用基线
 
 当前还未完整承载：
 
-- 真实 Hetu / MRS 长期环境证据与生产级运行参数校准沉淀
+- 外部 Win10 + Hetu/MRS live smoke 的长期归档留证与环境 owner 执行窗口
 - 更完整的跨服务审计补偿与持久化追溯收口
 
 ## 2. SQL 优化服务

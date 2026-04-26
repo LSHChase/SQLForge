@@ -311,7 +311,11 @@ public class QueryExecutionApplicationService {
                         ),
                         sqlFingerprint,
                         primaryStep.getExecutionMode(),
-                        primaryStep.getAttemptedModes()
+                        primaryStep.getAttemptedModes(),
+                        primaryStep.getRouteProfile(),
+                        primaryStep.getRouteOrder(),
+                        primaryStep.getRouteEvidenceSource(),
+                        primaryStep.getRouteVerificationStatus()
                     ),
                     request,
                     start
@@ -487,7 +491,11 @@ public class QueryExecutionApplicationService {
                 ),
                 sqlFingerprint,
                 "NONE",
-                exception.getAttemptedModes()
+                exception.getAttemptedModes(),
+                exception.getRouteProfile(),
+                exception.getRouteOrder(),
+                exception.getRouteEvidenceSource(),
+                exception.getRouteVerificationStatus()
             ),
             request,
             start
@@ -514,7 +522,11 @@ public class QueryExecutionApplicationService {
                 executionStep.isAccelerationApplied(),
                 executionStep.getExecutionMode(),
                 executionStep.getAttemptedModes(),
-                executionStep.getRows() == null ? 0 : executionStep.getRows().size()
+                executionStep.getRows() == null ? 0 : executionStep.getRows().size(),
+                executionStep.getRouteProfile(),
+                executionStep.getRouteOrder(),
+                executionStep.getRouteEvidenceSource(),
+                executionStep.getRouteVerificationStatus()
             ),
             degraded,
             degradeReason,
@@ -544,7 +556,11 @@ public class QueryExecutionApplicationService {
             errorDetail,
             sqlFingerprint,
             "NONE",
-            Collections.<String>emptyList()
+            Collections.<String>emptyList(),
+            null,
+            Collections.<String>emptyList(),
+            null,
+            null
         );
     }
 
@@ -558,6 +574,38 @@ public class QueryExecutionApplicationService {
                                                       String sqlFingerprint,
                                                       String executionMode,
                                                       List<String> attemptedModes) {
+        return buildFailureResponse(
+            status,
+            targetEngine,
+            actualSql,
+            elapsedMs,
+            scannedRows,
+            retryPath,
+            errorDetail,
+            sqlFingerprint,
+            executionMode,
+            attemptedModes,
+            null,
+            Collections.<String>emptyList(),
+            null,
+            null
+        );
+    }
+
+    private QueryExecuteResponse buildFailureResponse(QueryExecutionStatus status,
+                                                      String targetEngine,
+                                                      String actualSql,
+                                                      long elapsedMs,
+                                                      long scannedRows,
+                                                      List<QueryRetryStepVO> retryPath,
+                                                      QueryErrorDetailVO errorDetail,
+                                                      String sqlFingerprint,
+                                                      String executionMode,
+                                                      List<String> attemptedModes,
+                                                      String routeProfile,
+                                                      List<String> routeOrder,
+                                                      String routeEvidenceSource,
+                                                      String routeVerificationStatus) {
         return new QueryExecuteResponse(
             status,
             Collections.<java.util.Map<String, Object>>emptyList(),
@@ -571,7 +619,11 @@ public class QueryExecutionApplicationService {
                 false,
                 executionMode,
                 attemptedModes,
-                0
+                0,
+                routeProfile,
+                routeOrder,
+                routeEvidenceSource,
+                routeVerificationStatus
             ),
             false,
             null,

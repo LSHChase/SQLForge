@@ -193,6 +193,22 @@ auth:
 query-execution:
   hetu:
     enabled: true
+    calibration:
+      profile: TEST_ENV_CANDIDATE
+      route-order:
+        - JDBC
+        - REST
+        - CLIENT
+      skip-unready-modes: true
+    cluster-evidence:
+      evidence-source: ENVIRONMENT_SMOKE_CANDIDATE
+      environment-label: win10-test-env
+      cluster-name: <hetu-or-mrs-cluster-name>
+      coordinator-endpoint: http://<hetu-host>:<port>
+      runbook-ref: docs/deployments/hetu-test-environment-deployment-runbook.md
+      evidence-ref: HARN-016/INBOX-002
+      readonly-boundary: REPO_CLOSED_DEFAULT
+      live-verification-status: READY_FOR_ENV_SMOKE
   governance:
     base-url: http://localhost:8080/api/governance/internal
     connect-timeout-ms: 3000
@@ -275,8 +291,9 @@ query-execution:
 
 说明：
 
-- `query-execution` 默认会按 `JDBC -> REST -> CLIENT` 顺序尝试
+- `query-execution` 默认会按 `hetu.calibration.route-order` 先排序，再回补 `allowed-modes` 中未显式列出的模式；仓库默认基线仍是 `JDBC -> REST -> CLIENT`
 - 如果你只想证明某一个模式，其他模式字段最好清空或禁用
+- `cluster-evidence.*` 只用于描述当前环境候选事实和留证位置，不应把这组值提交成仓库默认真值
 
 ## IDEA Startup
 
@@ -395,6 +412,28 @@ IDEA Run Configuration 建议：
 6. 在 IDEA 中分别启动 `governance` 与 `query-execution`。
 7. 先只看两个 `/actuator/health`。
 8. 对照上面的 6 项确认清单，把你的选项定下来。
+
+## Route Calibration And Evidence Capture
+
+完成服务启动后，可先读取只读 calibration 快照，再执行真实 Hetu smoke：
+
+```bash
+export QUERY_EXECUTION_BASE_URL=http://localhost:8081
+export EXPECTED_QUERY_EXECUTION_MODE=REAL
+export EXPECTED_HETU_ROUTE_PROFILE=TEST_ENV_CANDIDATE
+export EXPECTED_HETU_ROUTE_ORDER=JDBC,REST,CLIENT
+export EXPECTED_HETU_EVIDENCE_SOURCE=ENVIRONMENT_SMOKE_CANDIDATE
+export EXPECTED_HETU_LIVE_VERIFICATION_STATUS=READY_FOR_ENV_SMOKE
+export HETU_ENV_EVIDENCE_OUTPUT_PATH=./hetu-env-evidence.json
+bash scripts/run-hetu-env-smoke.sh
+```
+
+脚本会先读取 `GET /api/query-execution/internal/hetu/route-calibration`，再执行一次真实 `POST /api/query-execution/queries/execute`，并在设置 `HETU_ENV_EVIDENCE_OUTPUT_PATH` 时输出结构化证据包：
+
+- `routeCalibration`: 当前 route profile / mode priority / ready-unready / cluster evidence 快照
+- `executionResponse`: 真实查询执行返回，含 `executionMode`、`attemptedModes[]`、`routeProfile`、`routeOrder[]`
+
+该证据文件属于 environment-backed 证据，默认不入仓；请按你们的测试环境归档规则保存在外部证据位置。
 
 ## Related Documents
 
