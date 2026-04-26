@@ -1436,3 +1436,16 @@
 2026-04-26T07:39:27-05:00 | D-TASK-037 closeout commit | `R-168` | projected | `git commit -m 'feat(query-execution): close D-TASK-037 cache capacity governance' (projected-precommit)`
 2026-04-26T07:39:27-05:00 | D-TASK-037 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-04-26T07:39:27-05:00 | D-TASK-037 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-26T08:01:23-05:00 | HARN-041 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-26T08:01:23-05:00 | HARN-041 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-26T08:02:09-05:00 | HARN-041 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-26T08:02:09-05:00 | HARN-041 validate | `R-133`, `R-168` | failed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-26T08:02:46-05:00 | HARN-041 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-26T08:02:46-05:00 | HARN-041 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-26T08:03:32-05:00 | HARN-041 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-26T08:03:32-05:00 | HARN-041 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-26T08:04:45-05:00 | HARN-041 closeout task-audit pre | `R-156`, `R-160`, `R-168` | failed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-26T08:07:25-05:00 | HARN-041 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-26T08:07:25-05:00 | HARN-041 closeout commit | `R-168` | projected | `git commit -m 'feat(governance): close HARN-041 reservation lifecycle governance' (projected-precommit)`
+2026-04-26T08:07:25-05:00 | HARN-041 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-26T08:07:25-05:00 | HARN-041 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/governed_healthcheck.py --check --post-closeout-task HARN-041 (projected-precommit)`

@@ -107,6 +107,20 @@ router 会自动记住 `run_id`，先调用 `codex_template_adapter.py` 与 `gov
 
 为了避免 candidate task id 污染主运行态，`requirements_to_plan.sh` 和 `task_materialize.sh` 内部用于 shaping/review 的子 `codex exec` 会默认禁用 `codex_hooks`。正式进入 materialization 之后，仍由 Main Foreman 重新执行标准 `preflight` / `instantiate` / `validate` / `closeout` 链。
 
+`HARN-041` 之后，candidate reservation 额外支持以下审计状态：
+
+- `paused`
+  - 候选包与 shaping 证据继续保留，但不得继续 `confirm-run` 或 `task_materialize`
+  - 仅当 authority 边界未变化、candidate pack 仍然有效时，才允许 `--resume-candidate`
+- `archived`
+  - 保留为历史候选/模板证据，不再视为可直接恢复的 active candidate
+  - 若需求要重新进入，必须重新走 governed intake/shaping，生成新的 candidate 包
+- `abandoned`
+  - 明确放弃该候选，保留历史证据但不再继续当前 candidate id 的实现路径
+  - 若需求重启，同样必须重新塑形
+
+上述状态变更统一通过 `python3 scripts/governed_runtime_dashboard.py` 执行，不得手工删除 `.codex/state/task-id-reservations/*.json` 掩盖问题。
+
 ## Core Model
 
 - 从无 task 开始的自动化分为两段：
@@ -427,6 +441,15 @@ python3 scripts/governed_healthcheck.py --check \
 - 发现 `validation-log` closeout tail drift
 - 发现 candidate task pack 缺字段或仍卡在 human-confirmation gate
 
+`HARN-041` 之后，healthcheck 对 candidate reservation 的语义如下：
+
+- `reserved` / `candidate_ready` / `blocked` / `failed` / `materializing`
+  - 仍视为 active candidate reservation；stale 且无 repo truth 时会继续阻断 confirm-run，直到显式 cleanup 或状态决策完成
+- `paused` / `archived` / `abandoned`
+  - 视为已明确治理决策，不再触发 `reservation_conflict`
+- `released`
+  - 若只是旧 dry-run/cleanup 残留，也不再直接阻断 healthcheck；但应进一步归档为历史候选证据，而不是继续保留为可恢复 candidate
+
 若 healthcheck 失败，summary 会给出：
 
 - `authority_fields_to_confirm`
@@ -459,6 +482,48 @@ python3 scripts/governed_healthcheck.py --check
 
 - `task_materialize.sh` 直接失败
 - 重新运行 `requirements_to_plan.sh` 生成新的 candidate task id
+
+### Candidate Pause / Resume / Re-entry
+
+暂停候选：
+
+```bash
+python3 scripts/governed_runtime_dashboard.py \
+  --pause-candidate <TASK_ID> \
+  --reason "<WHY>"
+```
+
+归档候选模板：
+
+```bash
+python3 scripts/governed_runtime_dashboard.py \
+  --archive-candidate <TASK_ID> \
+  --reason "<WHY>"
+```
+
+明确放弃候选：
+
+```bash
+python3 scripts/governed_runtime_dashboard.py \
+  --abandon-candidate <TASK_ID> \
+  --reason "<WHY>"
+```
+
+恢复暂停候选：
+
+```bash
+python3 scripts/governed_runtime_dashboard.py \
+  --resume-candidate <TASK_ID> \
+  --reason "<WHY>"
+```
+
+规则：
+
+- 只有 `paused` candidate 可以原地恢复到 `candidate_ready`
+- `archived` / `abandoned` / released dry-run candidate 一律视为“保留证据但必须重新塑形”
+- candidate 一旦被暂停/归档/放弃，`task_materialize.sh` 不得继续把它 materialize 成正式 task
+- HARN-040 这类“保留后续恢复入口但当前不继续 confirm-run”的候选，应使用 `paused`，而不是继续维持 `candidate_ready`
+- HARN-029 / HARN-030 这类 dry-run shaping 证据，应归档保留，不应继续充当 active reservation
 
 ### Human Decision Required
 

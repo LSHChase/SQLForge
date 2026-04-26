@@ -4,6 +4,35 @@
 
 ## Done
 
+### HARN-041: Runtime Reservation Pause/Cleanup and Demand Re-entry Governance
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(governance): close HARN-041 reservation lifecycle governance`
+- Priority: 1
+- Depends on: `HARN-028`,`HARN-036`,`HARN-038`
+- Scope: 为 SQLForge governed intake/task-shaping reservation 增加 paused/archived/abandoned 生命周期语义，并把 healthcheck、runtime dashboard、cleanup 与 playbook 的判定对齐到同一治理模型。保留 HARN-029/HARN-030 的 shaping 证据但不把它们转成正式实现任务；将 HARN-040 停留在暂停候选/未确认状态，不继续 confirm-run。完成后必须能让新的 requirement 重新进入 governed intake/shaping，同时保持现有 preflight/instantiate/task_audit/closeout 边界不变。 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Plan ref: docs/exec-plans/completed/HARN-041-full-auto-execution-plan.md
+- Matrix context: Phase-A / Story `A-STORY-007` 从无 task 开始的治理自动化
+- Human confirmation point: 若要把 paused/archived/abandoned 语义扩展为自动重写台账真值、静默删除 runtime evidence、或允许未确认 candidate 继续 confirm-run，则必须先人工确认；本任务仅允许在现有 governed intake/runtime 边界内补齐可审计状态与恢复入口。
+- Data impact: 仅修改 governed runtime reservation/intake/task-shaping 状态语义、文档与运行时清理逻辑；不直接修改业务运行时数据，不把候选证据写成仓库长期真值。
+- Rollback / recovery: 若新增 reservation 生命周期语义导致 confirm-run、healthcheck 或 cleanup 行为异常，回退相关脚本与文档改动，并将受影响 reservation 状态恢复到先前的 released/candidate_ready/materialized 语义；历史 shaping evidence 保留在 .codex/state 下，不删除现有证据文件。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-041`
+  - `python3 -m py_compile scripts/governed_v2_support.py scripts/governed_healthcheck.py scripts/governed_runtime_dashboard.py`
+  - `python3 scripts/governed_healthcheck.py --check`
+  - `python3 scripts/governed_runtime_dashboard.py --json`
+  - `python3 scripts/task_audit.py --check --phase pre-closeout`
+  - `node scripts/lint-repository-knowledge.js`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-26: implemented auditable reservation lifecycle states, healthcheck/dashboard gating, and candidate pause/archive semantics; archived HARN-029/HARN-030 and paused HARN-040 through governed runtime tooling.
+- Context closeout:
+  - Completed scope: Implemented auditable paused/archived/abandoned reservation lifecycle semantics; updated governed healthcheck/runtime dashboard/materialize behavior; archived HARN-029/HARN-030 dry-run candidates; paused HARN-040; documented candidate pause/resume/re-entry governance.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-041; python3 -m py_compile scripts/governed_v2_support.py scripts/governed_healthcheck.py scripts/governed_runtime_dashboard.py; python3 scripts/governed_runtime_dashboard.py --json; node scripts/lint-repository-knowledge.js; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Older released reservations such as HARN-032 and HARN-039 still appear in runtime dashboard archive preview and may need a follow-up archival sweep, but they no longer block governed healthcheck.
+  - Next step: Use governed_runtime_dashboard.py lifecycle actions for future candidate pause/archive/resume decisions and rerun governed intake/shaping when archived candidates need fresh task packs.
+
 ### D-TASK-037: 收口 cache capacity / eviction / metrics governance baseline
 
 - Status: done

@@ -42,6 +42,10 @@ FIELD_ALIASES = {
 MODE_SINGLE_AGENT = "single-agent"
 MODE_MULTI_AGENT = "multi-agent-full-auto"
 MODE_PREVIEW_ONLY = "preview-only"
+RESERVATION_ACTIVE_STATUSES = {"reserved", "candidate_ready", "blocked", "failed", "materializing"}
+RESERVATION_NON_BLOCKING_STATUSES = {"materialized", "released", "paused", "archived", "abandoned"}
+RESERVATION_RESUMABLE_STATUSES = {"paused"}
+RESERVATION_RESHAPING_REQUIRED_STATUSES = {"released", "archived", "abandoned"}
 
 
 def now_iso() -> str:
@@ -155,6 +159,75 @@ def task_exists_anywhere(task_id: str) -> bool:
     return False
 
 
+def reservation_status(payload: dict[str, Any]) -> str:
+    return str(payload.get("status", "")).strip() or "unknown"
+
+
+def reservation_is_active(payload: dict[str, Any]) -> bool:
+    return reservation_status(payload) in RESERVATION_ACTIVE_STATUSES
+
+
+def reservation_is_non_blocking(payload: dict[str, Any]) -> bool:
+    return reservation_status(payload) in RESERVATION_NON_BLOCKING_STATUSES
+
+
+def reservation_requires_reshaping(payload: dict[str, Any]) -> bool:
+    return reservation_status(payload) in RESERVATION_RESHAPING_REQUIRED_STATUSES or bool(payload.get("dry_run"))
+
+
+def reservation_may_resume(payload: dict[str, Any]) -> bool:
+    return reservation_status(payload) in RESERVATION_RESUMABLE_STATUSES
+
+
+def reservation_runtime_summary_paths(payload: dict[str, Any]) -> list[Path]:
+    run_id = str(payload.get("run_id", "")).strip()
+    if not run_id:
+        return []
+    return [
+        INTAKE_DIR / run_id / "intake-summary.json",
+        TASK_SHAPING_DIR / run_id / "run-summary.json",
+    ]
+
+
+def sync_candidate_runtime_state(payload: dict[str, Any], status: str, reason: str = "") -> None:
+    status_meta = {
+        "paused": {
+            "confirmation_state": "paused",
+            "final_outcome": "candidate_paused",
+            "recommended_next_step": "Resume the paused candidate with governed_runtime_dashboard.py --resume-candidate, or reshape a new candidate package if the authority boundary changed.",
+        },
+        "archived": {
+            "confirmation_state": "archived",
+            "final_outcome": "candidate_archived",
+            "recommended_next_step": "Preserve the archived candidate as evidence and rerun governed intake/shaping to create a fresh candidate package if work should resume.",
+        },
+        "abandoned": {
+            "confirmation_state": "abandoned",
+            "final_outcome": "candidate_abandoned",
+            "recommended_next_step": "Keep the abandoned candidate as historical evidence only; rerun governed intake/shaping if the demand needs to re-enter.",
+        },
+        "candidate_ready": {
+            "confirmation_state": "awaiting-confirmation",
+            "final_outcome": "candidate_ready",
+            "recommended_next_step": "Review the candidate package and use governed_intake.sh --confirm-run only when the candidate is explicitly resumed and still authoritative.",
+        },
+    }
+    meta = status_meta.get(status)
+    if meta is None:
+        return
+    for summary_path in reservation_runtime_summary_paths(payload):
+        if not summary_path.exists():
+            continue
+        summary = read_json(summary_path, {})
+        summary["execution_state"] = "completed"
+        summary["confirmation_state"] = meta["confirmation_state"]
+        summary["final_outcome"] = meta["final_outcome"]
+        summary["recommended_next_step"] = meta["recommended_next_step"]
+        if reason:
+            summary[f"{status}_reason"] = reason
+        write_run_summary(summary_path, summary)
+
+
 def reservation_is_stale(payload: dict[str, Any], path: Path) -> bool:
     created_raw = str(payload.get("created_at", "")).strip()
     if created_raw:
@@ -200,9 +273,21 @@ def reserve_task_id(prefix: str, run_id: str) -> tuple[str, Path]:
 
 def update_reservation(path: Path, status: str, **extra: Any) -> dict[str, Any]:
     payload = read_json(path)
+    previous_status = reservation_status(payload)
+    history = list(payload.get("status_history", []))
     payload["status"] = status
     payload["updated_at"] = now_iso()
     payload.update(extra)
+    if previous_status != status or extra:
+        history.append(
+            {
+                "from_status": previous_status,
+                "to_status": status,
+                "changed_at": payload["updated_at"],
+                "details": {key: value for key, value in extra.items() if key != "status_history"},
+            }
+        )
+        payload["status_history"] = history
     write_json(path, payload)
     return payload
 
@@ -211,10 +296,42 @@ def release_reservation(path: Path, reason: str, **extra: Any) -> dict[str, Any]
     return update_reservation(path, "released", release_reason=reason, released_at=now_iso(), **extra)
 
 
+def pause_reservation(path: Path, reason: str, **extra: Any) -> dict[str, Any]:
+    payload = update_reservation(path, "paused", pause_reason=reason, paused_at=now_iso(), **extra)
+    sync_candidate_runtime_state(payload, "paused", reason)
+    return payload
+
+
+def archive_reservation(path: Path, reason: str, **extra: Any) -> dict[str, Any]:
+    payload = update_reservation(path, "archived", archive_reason=reason, archived_at=now_iso(), **extra)
+    sync_candidate_runtime_state(payload, "archived", reason)
+    return payload
+
+
+def abandon_reservation(path: Path, reason: str, **extra: Any) -> dict[str, Any]:
+    payload = update_reservation(path, "abandoned", abandon_reason=reason, abandoned_at=now_iso(), **extra)
+    sync_candidate_runtime_state(payload, "abandoned", reason)
+    return payload
+
+
+def resume_reservation(path: Path, reason: str, **extra: Any) -> dict[str, Any]:
+    payload = update_reservation(path, "candidate_ready", resume_reason=reason, resumed_at=now_iso(), **extra)
+    sync_candidate_runtime_state(payload, "candidate_ready", reason)
+    return payload
+
+
 def list_reservation_paths() -> list[Path]:
     if not TASK_RESERVATION_DIR.exists():
         return []
     return sorted(TASK_RESERVATION_DIR.glob("*.json"))
+
+
+def find_reservation_path(task_id: str) -> Path | None:
+    normalized = task_id.strip()
+    if not normalized:
+        return None
+    path = TASK_RESERVATION_DIR / f"{normalized}.json"
+    return path if path.exists() else None
 
 
 def authority_field_hints(text: str) -> list[str]:
@@ -255,7 +372,7 @@ def integrity_check_suggestions(issue_key: str) -> list[str]:
     if issue_key == "reservation_conflict":
         return [
             "python3 scripts/governed_healthcheck.py --check",
-            "release stale/abandoned reservations with governed cleanup before retrying",
+            "use governed_runtime_dashboard.py to pause/archive/abandon stale candidates before retrying",
         ]
     if issue_key == "materialization_blocked":
         return [
@@ -287,9 +404,16 @@ def build_suggestion(
 def runtime_dashboard() -> dict[str, Any]:
     reservation_paths = list_reservation_paths()
     reservations_by_status: dict[str, int] = {}
+    active_reservations = 0
+    non_blocking_reservations = 0
     for path in reservation_paths:
-        status = str(read_json(path, {}).get("status", "unknown")) or "unknown"
+        payload = read_json(path, {})
+        status = reservation_status(payload)
         reservations_by_status[status] = reservations_by_status.get(status, 0) + 1
+        if reservation_is_active(payload):
+            active_reservations += 1
+        if reservation_is_non_blocking(payload):
+            non_blocking_reservations += 1
 
     def count_dirs(path: Path) -> int:
         if not path.exists():
@@ -310,6 +434,8 @@ def runtime_dashboard() -> dict[str, Any]:
         "closeout_evidence_by_status": closeout_statuses,
         "reservation_files": len(reservation_paths),
         "reservations_by_status": reservations_by_status,
+        "active_reservations": active_reservations,
+        "non_blocking_reservations": non_blocking_reservations,
     }
 
 

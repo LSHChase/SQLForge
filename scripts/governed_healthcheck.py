@@ -32,6 +32,10 @@ from scripts.governed_v2_support import (
     read_text,
     relative_to_root,
     release_reservation,
+    reservation_is_active,
+    reservation_is_non_blocking,
+    reservation_requires_reshaping,
+    reservation_status,
     reservation_is_stale,
     runtime_dashboard,
     task_exists_anywhere,
@@ -212,14 +216,15 @@ def main() -> int:
     for reservation_path in list_reservation_paths():
         payload = read_json(reservation_path, {})
         task_id = str(payload.get("task_id", "")).strip()
+        status = reservation_status(payload)
         if not task_id:
             continue
-        if reservation_is_stale(payload, reservation_path) and not task_exists_anywhere(task_id):
+        if reservation_is_stale(payload, reservation_path) and not task_exists_anywhere(task_id) and reservation_is_active(payload):
             cleanup_item = {
                 "kind": "reservation",
                 "path": relative_to_root(reservation_path),
                 "task_id": task_id,
-                "current_status": payload.get("status", ""),
+                "current_status": status,
                 "action": "release",
             }
             cleanup_preview.append(cleanup_item)
@@ -230,7 +235,7 @@ def main() -> int:
                     reservation_path,
                     "governed healthcheck stale cleanup",
                     task_id=task_id,
-                    previous_status=payload.get("status", ""),
+                    previous_status=status,
                 )
                 append_executed_command(
                     summary_path,
@@ -246,7 +251,18 @@ def main() -> int:
                 )
             )
             continue
-        if task_exists_anywhere(task_id) and payload.get("status") not in {"materialized", "released", "abandoned"}:
+        if reservation_is_stale(payload, reservation_path) and status == "released" and reservation_requires_reshaping(payload):
+            cleanup_preview.append(
+                {
+                    "kind": "reservation",
+                    "path": relative_to_root(reservation_path),
+                    "task_id": task_id,
+                    "current_status": status,
+                    "action": "archive",
+                }
+            )
+            continue
+        if task_exists_anywhere(task_id) and not reservation_is_non_blocking(payload):
             issues.append(
                 issue_payload(
                     "reservation_conflict",
@@ -311,6 +327,20 @@ def main() -> int:
                     list(payload.get("authority_fields_to_confirm", [])),
                 )
             )
+        else:
+            reservation_ref = str(payload.get("reservation_ref", "")).strip()
+            if reservation_ref:
+                reservation_payload = read_json(ROOT / reservation_ref, {})
+                reservation_state = reservation_status(reservation_payload)
+                if reservation_state in {"paused", "archived", "abandoned", "released"}:
+                    issues.append(
+                        issue_payload_with_authority(
+                            "materialization_blocked",
+                            f"{payload.get('task_id', 'candidate task')} reservation is {reservation_state}; resume or reshape before materialization.",
+                            str(payload.get("human_confirmation_point", "")),
+                            list(payload.get("authority_fields_to_confirm", [])),
+                        )
+                    )
 
     final_outcome = "issues_found" if issues else "cleanup_preview_found" if cleanup_preview else "healthy"
     recommended_next_step = (

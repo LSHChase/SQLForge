@@ -92,6 +92,8 @@ from scripts.governed_v2_support import (
     build_suggestion,
     command_to_text,
     release_reservation,
+    reservation_requires_reshaping,
+    reservation_status,
     relative_to_root,
     update_reservation,
     write_run_summary,
@@ -397,6 +399,7 @@ story_catalog = collect_story_catalog(master_plan_path.read_text(encoding="utf-8
 
 reservation_ref = str(task_pack.get("reservation_ref", "")).strip()
 reservation_path = resolve_repo_relative(repo_root, reservation_ref) if reservation_ref else None
+reservation_payload = load_json(reservation_path) if reservation_path is not None and reservation_path.exists() else {}
 
 write_run_summary(
     run_summary_path,
@@ -463,6 +466,18 @@ if task_exists_anywhere(repo_root, task_id):
     finish_and_fail(f"Task {task_id} already exists in plan, matrix, or ledgers.", issue_key="reservation_conflict")
 if task_pack["story_id"] not in story_catalog:
     finish_and_fail(f"story id {task_pack['story_id']} does not exist in master-execution-plan.md")
+if reservation_payload:
+    current_reservation_status = reservation_status(reservation_payload)
+    if current_reservation_status in {"paused", "archived", "abandoned"}:
+        finish_and_fail(
+            f"Task {task_id} reservation is {current_reservation_status}; resume or reshape before materialization.",
+            issue_key="materialization_blocked",
+        )
+    if current_reservation_status == "released" and reservation_requires_reshaping(reservation_payload):
+        finish_and_fail(
+            f"Task {task_id} reservation is released from a prior dry-run/archive path; rerun shaping to create a fresh candidate package.",
+            issue_key="materialization_blocked",
+        )
 
 dry_run_blockers: list[str] = []
 if task_pack["requires_human_decision"]:
