@@ -1,7 +1,9 @@
 package com.company.governance.application.service;
 
+import com.company.governance.application.controller.dto.GovernanceQueryHistoryExportRequest;
 import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryDetailVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryExportVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryPageVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistorySummaryVO;
 import com.company.governance.application.controller.vo.GovernanceTraceLookupPageVO;
@@ -17,6 +19,7 @@ import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.GovernanceHistoryLookupIndexMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
+import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.TenantContext;
@@ -26,6 +29,8 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOp
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationTarget;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
+import com.company.sqlforge.common.security.SensitiveDataCryptoService;
+import com.company.sqlforge.common.utils.DateUtils;
 import com.company.sqlforge.common.utils.JsonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +66,10 @@ public class GovernanceHistoryApplicationService {
     private static final String ITEM_OPERATION_RECOVER = "RECOVER_ARTIFACT";
     private static final String BATCH_DEFAULT_RETENTION_SCOPE = "MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER";
     private static final String DEFAULT_DATA_SOURCE_ID = "governance-tenant-config";
+    private static final String DEFAULT_EXPORT_STATUS = "GENERATED";
+    private static final String DEFAULT_EXPORT_STORAGE_TYPE = "INLINE_RESPONSE";
+    private static final String OPERATION_QUERY_HISTORY_EXPORT = "QUERY_HISTORY_EXPORT";
+    private static final String TARGET_QUERY_HISTORY = "QUERY_HISTORY";
     private static final int DEFAULT_LIMIT = 12;
     private static final int MAX_LIMIT = 50;
     private static final int DEFAULT_PAGE_NO = 1;
@@ -88,12 +98,14 @@ public class GovernanceHistoryApplicationService {
     private final ExportRecordMapper exportRecordMapper;
     private final TenantAccessLogic tenantAccessLogic;
     private final GovernanceBenchmarkEngineClient governanceBenchmarkEngineClient;
+    private final GovernanceProtectedPersistenceService governanceProtectedPersistenceService;
+    private final SensitiveDataCryptoService sensitiveDataCryptoService;
 
     public GovernanceHistoryApplicationService(AuditLogMapper auditLogMapper,
                                                QueryHistoryMapper queryHistoryMapper,
                                                ExportRecordMapper exportRecordMapper,
                                                TenantAccessLogic tenantAccessLogic) {
-        this(auditLogMapper, null, queryHistoryMapper, exportRecordMapper, tenantAccessLogic, null);
+        this(auditLogMapper, null, queryHistoryMapper, exportRecordMapper, tenantAccessLogic, null, null, null);
     }
 
     public GovernanceHistoryApplicationService(AuditLogMapper auditLogMapper,
@@ -107,6 +119,26 @@ public class GovernanceHistoryApplicationService {
             queryHistoryMapper,
             exportRecordMapper,
             tenantAccessLogic,
+            null,
+            null,
+            null
+        );
+    }
+
+    public GovernanceHistoryApplicationService(AuditLogMapper auditLogMapper,
+                                               GovernanceHistoryLookupIndexMapper governanceHistoryLookupIndexMapper,
+                                               QueryHistoryMapper queryHistoryMapper,
+                                               ExportRecordMapper exportRecordMapper,
+                                               TenantAccessLogic tenantAccessLogic,
+                                               GovernanceBenchmarkEngineClient governanceBenchmarkEngineClient) {
+        this(
+            auditLogMapper,
+            governanceHistoryLookupIndexMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic,
+            governanceBenchmarkEngineClient,
+            null,
             null
         );
     }
@@ -117,13 +149,17 @@ public class GovernanceHistoryApplicationService {
                                                QueryHistoryMapper queryHistoryMapper,
                                                ExportRecordMapper exportRecordMapper,
                                                TenantAccessLogic tenantAccessLogic,
-                                               GovernanceBenchmarkEngineClient governanceBenchmarkEngineClient) {
+                                               GovernanceBenchmarkEngineClient governanceBenchmarkEngineClient,
+                                               GovernanceProtectedPersistenceService governanceProtectedPersistenceService,
+                                               SensitiveDataCryptoService sensitiveDataCryptoService) {
         this.auditLogMapper = auditLogMapper;
         this.governanceHistoryLookupIndexMapper = governanceHistoryLookupIndexMapper;
         this.queryHistoryMapper = queryHistoryMapper;
         this.exportRecordMapper = exportRecordMapper;
         this.tenantAccessLogic = tenantAccessLogic;
         this.governanceBenchmarkEngineClient = governanceBenchmarkEngineClient;
+        this.governanceProtectedPersistenceService = governanceProtectedPersistenceService;
+        this.sensitiveDataCryptoService = sensitiveDataCryptoService;
     }
 
     public List<GovernanceTraceSummaryVO> findRecentTraces(String tenantId, Integer limit) {
@@ -239,11 +275,76 @@ public class GovernanceHistoryApplicationService {
                 "query history record does not exist"
             );
         }
-        GovernanceQueryHistoryDetailVO detailVO = toQueryHistoryDetail(row);
+        QueryHistoryRecord historyRecord = queryHistoryMapper.selectById(historyId.trim());
+        GovernanceQueryHistoryDetailVO detailVO = toQueryHistoryDetail(row, historyRecord);
         if (StringUtils.hasText(row.getTraceId())) {
             detailVO.setTraceDetail(findTraceDetail(effectiveTenantId, row.getTraceId(), Integer.valueOf(10)));
         }
+        populateReferenceSurfaces(detailVO);
         return detailVO;
+    }
+
+    public GovernanceQueryHistoryExportVO exportQueryHistory(String tenantId, GovernanceQueryHistoryExportRequest request) {
+        String effectiveTenantId = resolveAuthorizedTenantId(tenantId);
+        String historyId = trimToNull(request == null ? null : request.getHistoryId());
+        if (!StringUtils.hasText(historyId)) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                "historyId must not be empty"
+            );
+        }
+        String exportFormat = requireSupportedExportFormat(request == null ? null : request.getExportFormat());
+        GovernanceQueryHistoryProjection row = queryHistoryMapper.selectHistoryDetail(effectiveTenantId, historyId);
+        if (row == null) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.NOT_FOUND,
+                "query history record does not exist"
+            );
+        }
+        QueryHistoryRecord historyRecord = queryHistoryMapper.selectById(historyId);
+        GovernanceQueryHistoryDetailVO detail = toQueryHistoryDetail(row, historyRecord);
+        if (Boolean.TRUE.equals(request == null ? null : request.getIncludeTraceDetail()) && StringUtils.hasText(row.getTraceId())) {
+            detail.setTraceDetail(findTraceDetail(effectiveTenantId, row.getTraceId(), Integer.valueOf(10)));
+        }
+        populateReferenceSurfaces(detail);
+
+        String payload = renderExportPayload(exportFormat, detail);
+        LocalDateTime exportedAt = DateUtils.now();
+        String exportId = "query-history-export-" + historyId + "-" + UUID.randomUUID().toString().replace("-", "");
+        String fileName = buildExportFileName(historyId, exportFormat);
+        String contentType = resolveExportContentType(exportFormat);
+        String storageUri = "inline://governance/query-history/" + exportId;
+
+        persistExportRecord(
+            exportId,
+            effectiveTenantId,
+            row,
+            request,
+            exportFormat,
+            fileName,
+            contentType,
+            storageUri,
+            exportedAt
+        );
+        persistExportAudit(exportId, row, effectiveTenantId, request, exportFormat, fileName, contentType, exportedAt);
+
+        GovernanceQueryHistoryExportVO response = new GovernanceQueryHistoryExportVO();
+        response.setExportId(exportId);
+        response.setHistoryId(row.getHistoryId());
+        response.setResultId(row.getResultId());
+        response.setTraceId(row.getTraceId());
+        response.setExportFormat(exportFormat);
+        response.setExportStatus(DEFAULT_EXPORT_STATUS);
+        response.setFileName(fileName);
+        response.setContentType(contentType);
+        response.setStorageType(DEFAULT_EXPORT_STORAGE_TYPE);
+        response.setStorageUri(storageUri);
+        response.setExportedAt(exportedAt);
+        response.setAuditReference(buildAuditReference(exportId, row, exportFormat, exportedAt));
+        response.setPayload(payload);
+        return response;
     }
 
     public GovernanceTraceLookupPageVO lookupTraces(String tenantId,
@@ -983,7 +1084,8 @@ public class GovernanceHistoryApplicationService {
         return item;
     }
 
-    private GovernanceQueryHistoryDetailVO toQueryHistoryDetail(GovernanceQueryHistoryProjection row) {
+    private GovernanceQueryHistoryDetailVO toQueryHistoryDetail(GovernanceQueryHistoryProjection row,
+                                                                QueryHistoryRecord historyRecord) {
         GovernanceQueryHistoryDetailVO detail = new GovernanceQueryHistoryDetailVO();
         detail.setHistoryId(row.getHistoryId());
         detail.setResultId(row.getResultId());
@@ -994,6 +1096,9 @@ public class GovernanceHistoryApplicationService {
         detail.setDatasourceType(row.getDatasourceType());
         detail.setStageCode(row.getStageCode());
         detail.setBizDate(row.getBizDate());
+        detail.setSqlText(decryptSqlText(historyRecord == null ? null : historyRecord.getSqlTextCipher()));
+        detail.setSqlTemplateText(decryptSqlText(historyRecord == null ? null : historyRecord.getSqlTemplateCipher()));
+        detail.setBoundSqlText(decryptSqlText(historyRecord == null ? null : historyRecord.getBoundSqlTextCipher()));
         detail.setSqlState(buildSqlState(row));
         detail.setCommentContext(parseJsonObject(row.getCommentContext()));
         detail.setQueryDateSummary(buildQueryDateSummary(row));
@@ -1005,9 +1110,29 @@ public class GovernanceHistoryApplicationService {
         detail.setCacheSummary(selectFirstNonEmptyMap(parseJsonObject(row.getCacheSummary()), parseJsonObject(row.getResultSummary()), "cacheSummary"));
         detail.setBindingSummary(selectFirstNonEmptyMap(parseJsonObject(row.getBindingSummary()), parseJsonObject(row.getQueryContext()), "bindingSummary"));
         detail.setQueryContext(parseJsonObject(row.getQueryContext()));
+        detail.setRecommendationRefs(readNestedList(detail.getQueryContext(), "recommendationRefs"));
+        detail.setBenchmarkRefs(readNestedList(detail.getQueryContext(), "benchmarkRefs"));
+        detail.setAuditRefs(Collections.<Map<String, Object>>emptyList());
+        detail.setAlertRefs(readNestedList(detail.getQueryContext(), "alertRefs"));
         detail.setSubmittedAt(row.getSubmittedAt() == null ? row.getCreateTime() : row.getSubmittedAt());
         detail.setSubmittedBy(row.getSubmittedBy());
         return detail;
+    }
+
+    private void populateReferenceSurfaces(GovernanceQueryHistoryDetailVO detail) {
+        if (detail == null) {
+            return;
+        }
+        detail.setAuditRefs(buildAuditRefs(detail.getTraceDetail()));
+        if ((detail.getBenchmarkRefs() == null || detail.getBenchmarkRefs().isEmpty()) && detail.getTraceDetail() != null) {
+            detail.setBenchmarkRefs(buildBenchmarkRefs(detail.getTraceDetail()));
+        }
+        if (detail.getRecommendationRefs() == null) {
+            detail.setRecommendationRefs(Collections.<Map<String, Object>>emptyList());
+        }
+        if (detail.getAlertRefs() == null) {
+            detail.setAlertRefs(Collections.<Map<String, Object>>emptyList());
+        }
     }
 
     private Map<String, Object> buildHistoryClassificationSummary(List<GovernanceQueryHistorySummaryVO> items) {
@@ -1113,6 +1238,296 @@ public class GovernanceHistoryApplicationService {
         summary.put("startedAt", row.getStartedAt());
         summary.put("finishedAt", row.getFinishedAt());
         return summary;
+    }
+
+    private List<Map<String, Object>> buildAuditRefs(GovernanceTraceDetailVO traceDetail) {
+        if (traceDetail == null || traceDetail.getAuditEvents() == null) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> refs = new ArrayList<Map<String, Object>>();
+        for (GovernanceTraceDetailVO.AuditEventVO auditEvent : traceDetail.getAuditEvents()) {
+            LinkedHashMap<String, Object> ref = new LinkedHashMap<String, Object>();
+            ref.put("auditId", auditEvent.getId());
+            ref.put("serviceCode", auditEvent.getServiceCode());
+            ref.put("operationType", auditEvent.getOperationType());
+            ref.put("status", auditEvent.getStatus());
+            ref.put("createTime", auditEvent.getCreateTime());
+            ref.put("exportId", auditEvent.getExportId());
+            refs.add(ref);
+        }
+        return refs;
+    }
+
+    private List<Map<String, Object>> buildBenchmarkRefs(GovernanceTraceDetailVO traceDetail) {
+        if (traceDetail == null || traceDetail.getExportRecords() == null) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> refs = new ArrayList<Map<String, Object>>();
+        for (GovernanceTraceDetailVO.ExportRecordVO exportRecordVO : traceDetail.getExportRecords()) {
+            LinkedHashMap<String, Object> ref = new LinkedHashMap<String, Object>();
+            ref.put("exportId", exportRecordVO.getExportId());
+            ref.put("exportFormat", exportRecordVO.getExportFormat());
+            ref.put("exportStatus", exportRecordVO.getExportStatus());
+            ref.put("storageType", exportRecordVO.getStorageType());
+            ref.put("createTime", exportRecordVO.getCreateTime());
+            refs.add(ref);
+        }
+        return refs;
+    }
+
+    private List<Map<String, Object>> readNestedList(Map<String, Object> source, String key) {
+        if (source == null || source.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Object value = source.get(key);
+        if (!(value instanceof List)) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> refs = new ArrayList<Map<String, Object>>();
+        for (Object item : (List<?>) value) {
+            if (item instanceof Map) {
+                refs.add(new LinkedHashMap<String, Object>((Map<String, Object>) item));
+            }
+        }
+        return refs;
+    }
+
+    private String decryptSqlText(byte[] cipher) {
+        if (cipher == null || cipher.length == 0 || sensitiveDataCryptoService == null) {
+            return null;
+        }
+        return new String(sensitiveDataCryptoService.decryptBytes(cipher), java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private String requireSupportedExportFormat(String exportFormat) {
+        String normalized = trimToNull(exportFormat);
+        if (!StringUtils.hasText(normalized)) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                "exportFormat must not be empty"
+            );
+        }
+        if ("CSV".equalsIgnoreCase(normalized)
+            || "EXCEL".equalsIgnoreCase(normalized)
+            || "JSON".equalsIgnoreCase(normalized)
+            || "SQL_TEXT".equalsIgnoreCase(normalized)
+            || "PDF_REPORT".equalsIgnoreCase(normalized)) {
+            return normalized.toUpperCase();
+        }
+        throw new BizException(
+            ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+            HttpStatus.BAD_REQUEST,
+            "unsupported exportFormat"
+        );
+    }
+
+    private String renderExportPayload(String exportFormat, GovernanceQueryHistoryDetailVO detail) {
+        if ("JSON".equals(exportFormat)) {
+            return JsonUtils.toJson(detail);
+        }
+        if ("SQL_TEXT".equals(exportFormat)) {
+            StringBuilder builder = new StringBuilder();
+            builder.append("-- history_id=").append(detail.getHistoryId()).append('\n');
+            builder.append("-- report_code=").append(firstNonBlank(detail.getReportCode(), "-")).append('\n');
+            builder.append("-- datasource=").append(firstNonBlank(detail.getDatasourceCode(), "-")).append('\n');
+            builder.append('\n').append("-- sql_text").append('\n').append(firstNonBlank(detail.getSqlText(), "-- unavailable"));
+            builder.append('\n').append('\n').append("-- sql_template_text").append('\n')
+                .append(firstNonBlank(detail.getSqlTemplateText(), "-- unavailable"));
+            builder.append('\n').append('\n').append("-- bound_sql_text").append('\n')
+                .append(firstNonBlank(detail.getBoundSqlText(), "-- unavailable"));
+            return builder.toString();
+        }
+        if ("CSV".equals(exportFormat)) {
+            return "historyId,reportCode,datasourceCode,stageCode,resultStatus,targetEngine,returnedRowCount,cacheHit,rewriteApplied,accelerationApplied\n"
+                + csvCell(detail.getHistoryId()) + ","
+                + csvCell(detail.getReportCode()) + ","
+                + csvCell(detail.getDatasourceCode()) + ","
+                + csvCell(detail.getStageCode()) + ","
+                + csvCell(String.valueOf(detail.getExecutionSummary().get("status"))) + ","
+                + csvCell(String.valueOf(detail.getExecutionSummary().get("targetEngine"))) + ","
+                + csvCell(String.valueOf(detail.getExecutionSummary().get("returnedRowCount"))) + ","
+                + csvCell(String.valueOf(detail.getExecutionSummary().get("cacheHit"))) + ","
+                + csvCell(String.valueOf(detail.getExecutionSummary().get("rewriteApplied"))) + ","
+                + csvCell(String.valueOf(detail.getExecutionSummary().get("accelerationApplied")));
+        }
+        if ("EXCEL".equals(exportFormat)) {
+            return "historyId\treportCode\tdatasourceCode\tstageCode\tresultStatus\ttargetEngine\treturnedRowCount\tcacheHit\trewriteApplied\taccelerationApplied\n"
+                + firstNonBlank(detail.getHistoryId(), "") + "\t"
+                + firstNonBlank(detail.getReportCode(), "") + "\t"
+                + firstNonBlank(detail.getDatasourceCode(), "") + "\t"
+                + firstNonBlank(detail.getStageCode(), "") + "\t"
+                + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("status")), "") + "\t"
+                + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("targetEngine")), "") + "\t"
+                + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("returnedRowCount")), "") + "\t"
+                + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("cacheHit")), "") + "\t"
+                + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("rewriteApplied")), "") + "\t"
+                + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("accelerationApplied")), "");
+        }
+        return "SQL History Evidentiary Report\n"
+            + "historyId: " + firstNonBlank(detail.getHistoryId(), "-") + "\n"
+            + "reportCode: " + firstNonBlank(detail.getReportCode(), "-") + "\n"
+            + "datasourceCode: " + firstNonBlank(detail.getDatasourceCode(), "-") + "\n"
+            + "resultStatus: " + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("status")), "-") + "\n"
+            + "targetEngine: " + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("targetEngine")), "-") + "\n"
+            + "queryDateStatus: " + firstNonBlank(String.valueOf(detail.getQueryDateSummary().get("queryDateStatus")), "-") + "\n"
+            + "note: PDF baseline is emitted as an inline textual evidence payload in phase 1.\n";
+    }
+
+    private String csvCell(String value) {
+        String normalized = value == null ? "" : value;
+        return "\"" + normalized.replace("\"", "\"\"") + "\"";
+    }
+
+    private String buildExportFileName(String historyId, String exportFormat) {
+        if ("EXCEL".equals(exportFormat)) {
+            return historyId + ".xlsx";
+        }
+        if ("JSON".equals(exportFormat)) {
+            return historyId + ".json";
+        }
+        if ("SQL_TEXT".equals(exportFormat)) {
+            return historyId + ".sql";
+        }
+        if ("PDF_REPORT".equals(exportFormat)) {
+            return historyId + ".pdf";
+        }
+        return historyId + ".csv";
+    }
+
+    private String resolveExportContentType(String exportFormat) {
+        if ("EXCEL".equals(exportFormat)) {
+            return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        }
+        if ("JSON".equals(exportFormat)) {
+            return "application/json";
+        }
+        if ("SQL_TEXT".equals(exportFormat)) {
+            return "text/sql";
+        }
+        if ("PDF_REPORT".equals(exportFormat)) {
+            return "application/pdf";
+        }
+        return "text/csv";
+    }
+
+    private void persistExportRecord(String exportId,
+                                     String tenantId,
+                                     GovernanceQueryHistoryProjection row,
+                                     GovernanceQueryHistoryExportRequest request,
+                                     String exportFormat,
+                                     String fileName,
+                                     String contentType,
+                                     String storageUri,
+                                     LocalDateTime exportedAt) {
+        if (governanceProtectedPersistenceService == null) {
+            return;
+        }
+        ExportRecord exportRecord = new ExportRecord();
+        exportRecord.setExportId(exportId);
+        exportRecord.setHistoryId(row.getHistoryId());
+        exportRecord.setResultId(row.getResultId());
+        exportRecord.setTenantId(tenantId);
+        exportRecord.setExportFormat(exportFormat);
+        exportRecord.setExportStatus(DEFAULT_EXPORT_STATUS);
+        exportRecord.setTraceId(row.getTraceId());
+        exportRecord.setRequestId(RequestContext.getRequestId());
+        exportRecord.setSagaId(RequestContext.getRequestId());
+        exportRecord.setStorageType(DEFAULT_EXPORT_STORAGE_TYPE);
+        exportRecord.setStorageUri(storageUri);
+        exportRecord.setExportOptions(JsonUtils.toJson(buildExportOptions(request, exportFormat, fileName, contentType)));
+        exportRecord.setCreatedBy(RequestContext.getUserId());
+        exportRecord.setCreateTime(exportedAt);
+        exportRecord.setFinishedAt(exportedAt);
+        governanceProtectedPersistenceService.saveExportRecord(exportRecord);
+    }
+
+    private Map<String, Object> buildExportOptions(GovernanceQueryHistoryExportRequest request,
+                                                   String exportFormat,
+                                                   String fileName,
+                                                   String contentType) {
+        LinkedHashMap<String, Object> options = new LinkedHashMap<String, Object>();
+        options.put("fileName", fileName);
+        options.put("contentType", contentType);
+        options.put("includeTraceDetail", Boolean.valueOf(Boolean.TRUE.equals(request == null ? null : request.getIncludeTraceDetail())));
+        options.put("exportReason", trimToNull(request == null ? null : request.getExportReason()));
+        options.put("inline", Boolean.TRUE);
+        options.put("renderMode", "PDF_REPORT".equals(exportFormat) ? "SIMULATED_TEXTUAL_PDF_BASELINE" : "INLINE_BASELINE");
+        return options;
+    }
+
+    private void persistExportAudit(String exportId,
+                                    GovernanceQueryHistoryProjection row,
+                                    String tenantId,
+                                    GovernanceQueryHistoryExportRequest request,
+                                    String exportFormat,
+                                    String fileName,
+                                    String contentType,
+                                    LocalDateTime exportedAt) {
+        if (governanceProtectedPersistenceService == null) {
+            return;
+        }
+        AuditLogRecord auditLogRecord = new AuditLogRecord();
+        auditLogRecord.setTenantId(tenantId);
+        auditLogRecord.setServiceCode(ServiceCodeConstants.GOVERNANCE);
+        auditLogRecord.setOperationType(OPERATION_QUERY_HISTORY_EXPORT);
+        auditLogRecord.setTargetType(TARGET_QUERY_HISTORY);
+        auditLogRecord.setTargetId(row.getHistoryId());
+        auditLogRecord.setRequestId(RequestContext.getRequestId());
+        auditLogRecord.setTraceId(firstNonBlank(row.getTraceId(), RequestContext.getTraceId()));
+        auditLogRecord.setSagaId(RequestContext.getRequestId());
+        auditLogRecord.setResultId(row.getResultId());
+        auditLogRecord.setHistoryId(row.getHistoryId());
+        auditLogRecord.setExportId(exportId);
+        auditLogRecord.setRequestParams(JsonUtils.toJson(buildExportAuditRequestParams(request, exportFormat)));
+        auditLogRecord.setResponseSummary(JsonUtils.toJson(buildAuditReference(exportId, row, exportFormat, exportedAt, fileName, contentType)));
+        auditLogRecord.setStatus(DEFAULT_EXPORT_STATUS);
+        auditLogRecord.setCostMs(Long.valueOf(0L));
+        auditLogRecord.setCreateTime(exportedAt);
+        governanceProtectedPersistenceService.saveAuditLog(auditLogRecord);
+    }
+
+    private Map<String, Object> buildExportAuditRequestParams(GovernanceQueryHistoryExportRequest request,
+                                                              String exportFormat) {
+        LinkedHashMap<String, Object> params = new LinkedHashMap<String, Object>();
+        params.put("historyId", request == null ? null : request.getHistoryId());
+        params.put("exportFormat", exportFormat);
+        params.put("includeTraceDetail", request == null ? null : request.getIncludeTraceDetail());
+        params.put("exportReason", request == null ? null : request.getExportReason());
+        return params;
+    }
+
+    private Map<String, Object> buildAuditReference(String exportId,
+                                                    GovernanceQueryHistoryProjection row,
+                                                    String exportFormat,
+                                                    LocalDateTime exportedAt) {
+        return buildAuditReference(exportId, row, exportFormat, exportedAt, null, null);
+    }
+
+    private Map<String, Object> buildAuditReference(String exportId,
+                                                    GovernanceQueryHistoryProjection row,
+                                                    String exportFormat,
+                                                    LocalDateTime exportedAt,
+                                                    String fileName,
+                                                    String contentType) {
+        LinkedHashMap<String, Object> auditReference = new LinkedHashMap<String, Object>();
+        auditReference.put("serviceCode", ServiceCodeConstants.GOVERNANCE);
+        auditReference.put("operationType", OPERATION_QUERY_HISTORY_EXPORT);
+        auditReference.put("historyId", row.getHistoryId());
+        auditReference.put("resultId", row.getResultId());
+        auditReference.put("traceId", row.getTraceId());
+        auditReference.put("requestId", RequestContext.getRequestId());
+        auditReference.put("exportId", exportId);
+        auditReference.put("exportFormat", exportFormat);
+        auditReference.put("status", DEFAULT_EXPORT_STATUS);
+        auditReference.put("exportedAt", exportedAt);
+        if (fileName != null) {
+            auditReference.put("fileName", fileName);
+        }
+        if (contentType != null) {
+            auditReference.put("contentType", contentType);
+        }
+        return auditReference;
     }
 
     private Map<String, Object> buildParseSummary(Map<String, Object> queryContext, String key) {

@@ -1,6 +1,8 @@
 package com.company.governance.application.controller;
 
+import com.company.governance.application.controller.dto.GovernanceQueryHistoryExportRequest;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryDetailVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryExportVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryPageVO;
 import com.company.governance.application.service.GovernanceHistoryApplicationService;
 import com.company.sqlforge.common.context.RequestContext;
@@ -10,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -98,5 +102,20 @@ public class GovernanceQueryHistoryController {
             RequestContext.getTraceId()
         );
         return governanceHistoryApplicationService.findQueryHistoryDetail(effectiveTenantId, historyId);
+    }
+
+    @PostMapping("/export")
+    public GovernanceQueryHistoryExportVO exportQueryHistory(
+        @RequestParam(value = "tenantId", required = false) String tenantId,
+        @RequestBody GovernanceQueryHistoryExportRequest request) {
+        String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
+        LOGGER.info(
+            "Handling governance query-history export, tenantId={}, historyId={}, exportFormat={}, requestTraceId={}",
+            effectiveTenantId,
+            request == null ? null : request.getHistoryId(),
+            request == null ? null : request.getExportFormat(),
+            RequestContext.getTraceId()
+        );
+        return governanceHistoryApplicationService.exportQueryHistory(effectiveTenantId, request);
     }
 }

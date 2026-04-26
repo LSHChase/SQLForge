@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-041: 补齐 SQL 历史导出与取证视图
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(governance): add query history export baseline`
+- Priority: 1
+- Depends on: `D-TASK-040`
+- Scope: 为 `CSV/EXCEL/JSON/SQL/PDF` 导出、单次执行取证字段与审计链接补齐基线 Tech: `JAVA-BE`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-006` 查询历史与执行取证闭环
+- Human confirmation point: 若导出/取证视图会放宽敏感字段输出、破坏脱敏语义或把 PDF/SQL 导出写成默认生产事实，需人工确认
+- Data impact: 导出记录、取证视图、导出载荷与审计链
+- Rollback / recovery: 恢复原导出白名单与脱敏策略，禁用高风险格式并保留导出审计记录
+- Validation:
+  - `export 契约测试、审计联动测试`
+  - `python3 scripts/foreman.py validate D-TASK-041`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added query-history export endpoint, SQL tri-state evidentiary detail fields, inline export formats, and export_record plus audit_log linkage for history forensics.
+  - Validation evidence: mvn -pl governance -Dtest=GovernanceHistoryApplicationServiceTest,AuthWebMvcTest,TraceabilitySchemaMappingTest test; python3 scripts/foreman.py validate D-TASK-041; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: CSV/EXCEL/PDF exports are inline evidentiary baselines in phase 1 rather than binary file rendering; broader parse/recommendation source refs remain to be populated by downstream tasks.
+  - Next step: Instantiate and implement D-TASK-042 to freeze structure-parse contracts and issue taxonomy on top of the history evidentiary surfaces.
+
 ### D-TASK-040: 落地 SQL 历史列表与详情查询面
 
 - Status: done

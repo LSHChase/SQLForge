@@ -3,12 +3,15 @@ package com.company.governance.application.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.company.governance.application.controller.dto.GovernanceQueryHistoryExportRequest;
 import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryDetailVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryExportVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryPageVO;
 import com.company.governance.application.controller.vo.GovernanceTraceLookupPageVO;
 import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO;
@@ -31,6 +34,8 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOp
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationTarget;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
+import com.company.sqlforge.common.security.SensitiveDataCryptoProperties;
+import com.company.sqlforge.common.security.SensitiveDataCryptoService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -42,6 +47,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 class GovernanceHistoryApplicationServiceTest {
+
+    private static final String TEST_BASE64_KEY = "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=";
 
     @AfterEach
     void tearDown() {
@@ -55,11 +62,18 @@ class GovernanceHistoryApplicationServiceTest {
         QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
         ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        SensitiveDataCryptoProperties cryptoProperties = new SensitiveDataCryptoProperties();
+        cryptoProperties.setBase64Key(TEST_BASE64_KEY);
+        SensitiveDataCryptoService cryptoService = new SensitiveDataCryptoService(cryptoProperties);
         GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
             auditLogMapper,
+            null,
             queryHistoryMapper,
             exportRecordMapper,
-            tenantAccessLogic
+            tenantAccessLogic,
+            null,
+            null,
+            cryptoService
         );
 
         RequestContext.set(
@@ -254,11 +268,18 @@ class GovernanceHistoryApplicationServiceTest {
         QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
         ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        SensitiveDataCryptoProperties cryptoProperties = new SensitiveDataCryptoProperties();
+        cryptoProperties.setBase64Key(TEST_BASE64_KEY);
+        SensitiveDataCryptoService cryptoService = new SensitiveDataCryptoService(cryptoProperties);
         GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
             auditLogMapper,
+            null,
             queryHistoryMapper,
             exportRecordMapper,
-            tenantAccessLogic
+            tenantAccessLogic,
+            null,
+            null,
+            cryptoService
         );
 
         RequestContext.set(
@@ -274,6 +295,8 @@ class GovernanceHistoryApplicationServiceTest {
         when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
         when(queryHistoryMapper.selectHistoryDetail("tenant-a", "history-001"))
             .thenReturn(buildHistoryProjection("history-001", "trace-query", "PARTIAL", "PAGE"));
+        when(queryHistoryMapper.selectById("history-001"))
+            .thenReturn(buildHistoryRecord("history-001", "result-history-001", "tenant-a"));
         when(auditLogMapper.selectByTraceId("tenant-a", "trace-query", 10)).thenReturn(Collections.singletonList(
             buildAudit("trace-query", "QUERY_EXECUTION", "PARTIAL", "QUERY", "fp-001",
                 LocalDateTime.parse("2026-04-22T10:00:00"),
@@ -289,11 +312,79 @@ class GovernanceHistoryApplicationServiceTest {
 
         assertEquals("history-001", detail.getHistoryId());
         assertEquals("RPT_SALES_DAILY", detail.getReportCode());
+        assertEquals("SELECT * FROM sales.orders", detail.getSqlText());
+        assertEquals("SELECT * FROM sales.orders WHERE dt = ?", detail.getSqlTemplateText());
+        assertEquals("SELECT * FROM sales.orders WHERE dt = '2026-04-25'", detail.getBoundSqlText());
         assertEquals("POSITIONAL", detail.getSqlState().get("bindingMode"));
         assertEquals("RESOLVED", detail.getQueryDateSummary().get("queryDateStatus"));
         assertEquals("HETU", detail.getExecutionSummary().get("targetEngine"));
         assertNotNull(detail.getTraceDetail());
+        assertEquals(1, detail.getAuditRefs().size());
         assertEquals("trace-query", detail.getTraceDetail().getTraceId());
+    }
+
+    @Test
+    void shouldExportQueryHistoryWithAuditLinkAndInlinePayload() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceProtectedPersistenceService protectedPersistenceService = mock(GovernanceProtectedPersistenceService.class);
+        SensitiveDataCryptoProperties cryptoProperties = new SensitiveDataCryptoProperties();
+        cryptoProperties.setBase64Key(TEST_BASE64_KEY);
+        SensitiveDataCryptoService cryptoService = new SensitiveDataCryptoService(cryptoProperties);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            null,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic,
+            null,
+            protectedPersistenceService,
+            cryptoService
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(queryHistoryMapper.selectHistoryDetail("tenant-a", "history-001"))
+            .thenReturn(buildHistoryProjection("history-001", "trace-query", "PARTIAL", "PAGE"));
+        when(queryHistoryMapper.selectById("history-001"))
+            .thenReturn(buildHistoryRecord("history-001", "result-history-001", "tenant-a"));
+        when(auditLogMapper.selectByTraceId("tenant-a", "trace-query", 10)).thenReturn(Collections.singletonList(
+            buildAudit("trace-query", "QUERY_EXECUTION", "PARTIAL", "QUERY", "fp-001",
+                LocalDateTime.parse("2026-04-22T10:00:00"),
+                "{\"serviceCode\":\"QUERY_EXECUTION\",\"sqlFingerprint\":\"fp-001\"}",
+                "{\"resultStatus\":\"PARTIAL\",\"targetEngine\":\"HIVE\"}")
+        ));
+        when(queryHistoryMapper.selectByTraceId("tenant-a", "trace-query", 10)).thenReturn(Collections.singletonList(
+            buildHistory("trace-query", "history-001", "QUERY_EXECUTION", "fp-001", LocalDateTime.parse("2026-04-22T09:58:00"))
+        ));
+        when(exportRecordMapper.selectByTraceId("tenant-a", "trace-query", 10)).thenReturn(Collections.emptyList());
+
+        GovernanceQueryHistoryExportRequest request = new GovernanceQueryHistoryExportRequest();
+        request.setHistoryId("history-001");
+        request.setExportFormat("SQL_TEXT");
+        request.setIncludeTraceDetail(Boolean.TRUE);
+        request.setExportReason("forensics");
+
+        GovernanceQueryHistoryExportVO response = service.exportQueryHistory("tenant-a", request);
+
+        assertEquals("history-001", response.getHistoryId());
+        assertEquals("SQL_TEXT", response.getExportFormat());
+        assertEquals("GENERATED", response.getExportStatus());
+        assertEquals("text/sql", response.getContentType());
+        assertEquals(Boolean.TRUE, response.getPayload().contains("SELECT * FROM sales.orders"));
+        verify(protectedPersistenceService).saveExportRecord(any(ExportRecord.class));
+        verify(protectedPersistenceService).saveAuditLog(any(AuditLogRecord.class));
     }
 
     @Test
@@ -1144,6 +1235,20 @@ class GovernanceHistoryApplicationServiceTest {
         row.setStartedAt(LocalDateTime.parse("2026-04-25T12:00:00"));
         row.setFinishedAt(LocalDateTime.parse("2026-04-25T12:00:02"));
         return row;
+    }
+
+    private QueryHistoryRecord buildHistoryRecord(String historyId, String resultId, String tenantId) {
+        SensitiveDataCryptoProperties cryptoProperties = new SensitiveDataCryptoProperties();
+        cryptoProperties.setBase64Key(TEST_BASE64_KEY);
+        SensitiveDataCryptoService cryptoService = new SensitiveDataCryptoService(cryptoProperties);
+        QueryHistoryRecord record = new QueryHistoryRecord();
+        record.setHistoryId(historyId);
+        record.setResultId(resultId);
+        record.setTenantId(tenantId);
+        record.setSqlTextCipher(cryptoService.encryptBytes("SELECT * FROM sales.orders".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        record.setSqlTemplateCipher(cryptoService.encryptBytes("SELECT * FROM sales.orders WHERE dt = ?".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        record.setBoundSqlTextCipher(cryptoService.encryptBytes("SELECT * FROM sales.orders WHERE dt = '2026-04-25'".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        return record;
     }
 
     private ExportRecord buildExport(String traceId,

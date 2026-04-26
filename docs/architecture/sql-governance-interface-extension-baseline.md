@@ -125,6 +125,9 @@
 
 返回区块：
 
+- `sqlText`
+- `sqlTemplateText`
+- `boundSqlText`
 - `sqlState`
 - `commentContext`
 - `queryDateSummary`
@@ -142,6 +145,13 @@
 
 - `POST /api/governance/query-history/export`
 
+请求：
+
+- `historyId`
+- `exportFormat`
+- `includeTraceDetail`
+- `exportReason`
+
 导出格式：
 
 - `CSV`
@@ -149,6 +159,11 @@
 - `JSON`
 - `SQL_TEXT`
 - `PDF_REPORT`
+
+说明：
+
+- 一期所有导出格式统一落到 `inline evidentiary export` 基线
+- `PDF_REPORT` 一期返回 textual evidence payload，并同步写入 `export_record + audit_log`
 
 ## 4. Parse Contracts
 

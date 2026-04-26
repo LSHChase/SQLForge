@@ -12,11 +12,13 @@ import com.company.governance.application.controller.HealthController;
 import com.company.governance.application.controller.GovernanceCapabilityController;
 import com.company.governance.application.controller.GovernanceHistoryController;
 import com.company.governance.application.controller.GovernanceQueryHistoryController;
+import com.company.governance.application.controller.dto.GovernanceQueryHistoryExportRequest;
 import com.company.governance.application.controller.MessageAdminController;
 import com.company.governance.application.controller.TenantConfigController;
 import com.company.governance.application.controller.vo.AuditWriteResponse;
 import com.company.governance.application.controller.vo.DatasourceAuthorizationChangeResponse;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryDetailVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryExportVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryPageVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistorySummaryVO;
 import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
@@ -200,6 +202,13 @@ class AuthWebMvcTest {
         historyDetail.setHistoryId("history-001");
         historyDetail.setTraceId("trace-001");
         historyDetail.setTraceDetail(detail);
+        GovernanceQueryHistoryExportVO exportVO = new GovernanceQueryHistoryExportVO();
+        exportVO.setExportId("export-history-001");
+        exportVO.setHistoryId("history-001");
+        exportVO.setTraceId("trace-001");
+        exportVO.setExportFormat("JSON");
+        exportVO.setExportStatus("GENERATED");
+        exportVO.setPayload("{\"historyId\":\"history-001\"}");
 
         when(governanceHistoryApplicationService.findRecentTraces("system", Integer.valueOf(5)))
             .thenReturn(Collections.singletonList(summary));
@@ -248,6 +257,8 @@ class AuthWebMvcTest {
         ));
         when(governanceHistoryApplicationService.findQueryHistoryDetail("system", "history-001"))
             .thenReturn(historyDetail);
+        when(governanceHistoryApplicationService.exportQueryHistory(org.mockito.ArgumentMatchers.eq("system"), org.mockito.ArgumentMatchers.any(GovernanceQueryHistoryExportRequest.class)))
+            .thenReturn(exportVO);
         GovernanceBenchmarkArtifactOperationResponse operationResponse = new GovernanceBenchmarkArtifactOperationResponse();
         operationResponse.setTenantId("system");
         operationResponse.setReportId("report-001");
@@ -291,6 +302,13 @@ class AuthWebMvcTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.historyId").value("history-001"))
             .andExpect(jsonPath("$.traceDetail.traceId").value("trace-001"));
+
+        mockMvc.perform(addProtectedHeaders(post("/api/governance/query-history/export")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"historyId\":\"history-001\",\"exportFormat\":\"JSON\",\"includeTraceDetail\":true}")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.exportId").value("export-history-001"))
+            .andExpect(jsonPath("$.payload").value("{\"historyId\":\"history-001\"}"));
 
         mockMvc.perform(addProtectedHeaders(post("/api/governance/history/artifact-operations")
                 .contentType("application/json")
@@ -343,6 +361,10 @@ class AuthWebMvcTest {
             Integer.valueOf(5)
         );
         verify(governanceHistoryApplicationService).findQueryHistoryDetail("system", "history-001");
+        verify(governanceHistoryApplicationService).exportQueryHistory(
+            org.mockito.ArgumentMatchers.eq("system"),
+            org.mockito.ArgumentMatchers.any(GovernanceQueryHistoryExportRequest.class)
+        );
         verify(governanceHistoryApplicationService).operateArtifact(org.mockito.ArgumentMatchers.any());
         verify(governanceHistoryApplicationService).operateArtifactBatch(org.mockito.ArgumentMatchers.any());
     }

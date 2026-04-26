@@ -2,6 +2,7 @@ package com.company.governance.application.controller.vo;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 public class GovernanceQueryHistoryDetailVO {
@@ -15,6 +16,9 @@ public class GovernanceQueryHistoryDetailVO {
     private String datasourceType;
     private String stageCode;
     private LocalDate bizDate;
+    private String sqlText;
+    private String sqlTemplateText;
+    private String boundSqlText;
     private Map<String, Object> sqlState;
     private Map<String, Object> commentContext;
     private Map<String, Object> queryDateSummary;
@@ -26,6 +30,10 @@ public class GovernanceQueryHistoryDetailVO {
     private Map<String, Object> cacheSummary;
     private Map<String, Object> bindingSummary;
     private Map<String, Object> queryContext;
+    private List<Map<String, Object>> recommendationRefs;
+    private List<Map<String, Object>> benchmarkRefs;
+    private List<Map<String, Object>> auditRefs;
+    private List<Map<String, Object>> alertRefs;
     private LocalDateTime submittedAt;
     private String submittedBy;
     private GovernanceTraceDetailVO traceDetail;
@@ -100,6 +108,30 @@ public class GovernanceQueryHistoryDetailVO {
 
     public void setBizDate(LocalDate bizDate) {
         this.bizDate = bizDate;
+    }
+
+    public String getSqlText() {
+        return sqlText;
+    }
+
+    public void setSqlText(String sqlText) {
+        this.sqlText = sqlText;
+    }
+
+    public String getSqlTemplateText() {
+        return sqlTemplateText;
+    }
+
+    public void setSqlTemplateText(String sqlTemplateText) {
+        this.sqlTemplateText = sqlTemplateText;
+    }
+
+    public String getBoundSqlText() {
+        return boundSqlText;
+    }
+
+    public void setBoundSqlText(String boundSqlText) {
+        this.boundSqlText = boundSqlText;
     }
 
     public Map<String, Object> getSqlState() {
@@ -188,6 +220,38 @@ public class GovernanceQueryHistoryDetailVO {
 
     public void setQueryContext(Map<String, Object> queryContext) {
         this.queryContext = queryContext;
+    }
+
+    public List<Map<String, Object>> getRecommendationRefs() {
+        return recommendationRefs;
+    }
+
+    public void setRecommendationRefs(List<Map<String, Object>> recommendationRefs) {
+        this.recommendationRefs = recommendationRefs;
+    }
+
+    public List<Map<String, Object>> getBenchmarkRefs() {
+        return benchmarkRefs;
+    }
+
+    public void setBenchmarkRefs(List<Map<String, Object>> benchmarkRefs) {
+        this.benchmarkRefs = benchmarkRefs;
+    }
+
+    public List<Map<String, Object>> getAuditRefs() {
+        return auditRefs;
+    }
+
+    public void setAuditRefs(List<Map<String, Object>> auditRefs) {
+        this.auditRefs = auditRefs;
+    }
+
+    public List<Map<String, Object>> getAlertRefs() {
+        return alertRefs;
+    }
+
+    public void setAlertRefs(List<Map<String, Object>> alertRefs) {
+        this.alertRefs = alertRefs;
     }
 
     public LocalDateTime getSubmittedAt() {

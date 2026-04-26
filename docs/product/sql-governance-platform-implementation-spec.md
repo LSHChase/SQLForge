@@ -171,6 +171,9 @@
   - 模板 SQL
   - 绑定参数
   - 绑定后 SQL
+  - `sqlText`
+  - `sqlTemplateText`
+  - `boundSqlText`
   - 注释上下文
   - `query_date`
   - 命中对象
@@ -183,6 +186,10 @@
   - 导出记录
   - 审计记录
   - 告警记录
+  - `recommendationRefs`
+  - `benchmarkRefs`
+  - `auditRefs`
+  - `alertRefs`
 
 ### 4.4 解析与加速
 
@@ -278,6 +285,17 @@
   - 目标引擎
   - 适用对象
   - 是否需装数协同
+
+### 4.5 SQL 历史导出与取证
+
+- `POST /api/governance/query-history/export` 负责单次 history 的取证导出基线
+- 支持格式：
+  - `CSV`
+  - `EXCEL`
+  - `JSON`
+  - `SQL_TEXT`
+  - `PDF_REPORT`
+- 一期 `PDF_REPORT` 以 inline textual evidence payload 返回，并同步写入 `export_record + audit_log`
   - 治理事件状态
 
 ### 4.5 路由治理
