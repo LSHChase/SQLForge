@@ -51,6 +51,9 @@ class AccessParseControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("ACCESS_PARSING"))
             .andExpect(jsonPath("$.structureParse.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.conclusion.overallStatus").value("WAITING"))
+            .andExpect(jsonPath("$.statusHistory[0].status").value("STRUCTURE_SUCCEEDED"))
+            .andExpect(jsonPath("$.statusHistory[1].status").value("ACCESS_PARSING"))
             .andReturn();
 
         String parseTaskId = JsonTestUtils.readValue(submitResult.getResponse().getContentAsString(), "$.parseTaskId");
@@ -67,14 +70,46 @@ class AccessParseControllerTest {
             if (expectedStatus.equals(status)) {
                 mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse/{parseTaskId}", parseTaskId)))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.conclusion.overallStatus").value("SUCCESS"))
                     .andExpect(jsonPath("$.accessParse.parseType").value("ACCESS"))
                     .andExpect(jsonPath("$.accessParse.serviceStatus").value("AVAILABLE"))
-                    .andExpect(jsonPath("$.accessParse.connectionStatus").value("CONNECTED"));
+                    .andExpect(jsonPath("$.accessParse.connectionStatus").value("CONNECTED"))
+                    .andExpect(jsonPath("$.statusHistory[2].status").value("ACCESS_SUCCEEDED"));
                 return;
             }
             Thread.sleep(40L);
         }
         throw new AssertionError("Combined parse did not reach expected status " + expectedStatus);
+    }
+
+    @Test
+    void shouldExposePartialSuccessWhenAccessParseIsUnavailable() throws Exception {
+        MvcResult submitResult = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/combined"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT * FROM orders WHERE dt = '2026-04-01'\",\"connectionRequired\":true}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("ACCESS_PARSING"))
+            .andReturn();
+
+        String parseTaskId = JsonTestUtils.readValue(submitResult.getResponse().getContentAsString(), "$.parseTaskId");
+
+        for (int attempt = 0; attempt < 20; attempt++) {
+            MvcResult result = mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse/{parseTaskId}", parseTaskId)))
+                .andExpect(status().isOk())
+                .andReturn();
+            String status = JsonTestUtils.readValue(result.getResponse().getContentAsString(), "$.status");
+            if ("PARTIAL_SUCCEEDED".equals(status)) {
+                mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse/{parseTaskId}", parseTaskId)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.conclusion.overallStatus").value("PARTIAL_SUCCESS"))
+                    .andExpect(jsonPath("$.accessParse.serviceStatus").value("UNAVAILABLE"))
+                    .andExpect(jsonPath("$.degradeReason").value("DATASOURCE_CODE_MISSING"))
+                    .andExpect(jsonPath("$.statusHistory[2].status").value("PARTIAL_SUCCEEDED"));
+                return;
+            }
+            Thread.sleep(40L);
+        }
+        throw new AssertionError("Combined parse did not reach expected status PARTIAL_SUCCEEDED");
     }
 
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {

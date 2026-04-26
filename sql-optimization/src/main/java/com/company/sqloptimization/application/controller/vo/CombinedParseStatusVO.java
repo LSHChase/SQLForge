@@ -6,6 +6,8 @@ public class CombinedParseStatusVO {
     private String status;
     private StructureParseResponseVO structureParse;
     private AccessParseResponseVO accessParse;
+    private CombinedParseConclusionVO conclusion;
+    private java.util.List<CombinedParseStatusHistoryVO> statusHistory;
     private String degradeReason;
 
     public String getParseTaskId() {
@@ -38,6 +40,22 @@ public class CombinedParseStatusVO {
 
     public void setAccessParse(AccessParseResponseVO accessParse) {
         this.accessParse = accessParse;
+    }
+
+    public CombinedParseConclusionVO getConclusion() {
+        return conclusion;
+    }
+
+    public void setConclusion(CombinedParseConclusionVO conclusion) {
+        this.conclusion = conclusion;
+    }
+
+    public java.util.List<CombinedParseStatusHistoryVO> getStatusHistory() {
+        return statusHistory;
+    }
+
+    public void setStatusHistory(java.util.List<CombinedParseStatusHistoryVO> statusHistory) {
+        this.statusHistory = statusHistory;
     }
 
     public String getDegradeReason() {

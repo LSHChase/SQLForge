@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-045: 补齐解析综合结论与 partial-success 追溯
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): add combined parse conclusion traceability`
+- Priority: 1
+- Depends on: `D-TASK-044`
+- Scope: 统一结构解析成功 + access parse 失败时的综合状态、查询面与历史追溯 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-007` 结构解析与数据访问解析双轨闭环
+- Human confirmation point: 若综合结论会隐藏 partial success、抹平结构与 access parse 的状态差异，或删除 failure evidence，需人工确认
+- Data impact: parse task 总状态、历史详情与统计聚合
+- Rollback / recovery: 恢复双轨状态分开展示，保留 partial success 证据与失败原因
+- Validation:
+  - `state machine 与 history/detail 测试`
+  - `python3 scripts/foreman.py validate D-TASK-045`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added combined parse conclusion and status-history surfaces, preserved partial-success evidence when access parse degrades, and extended controller tests for waiting/success/partial-success query flows.
+  - Validation evidence: mvn -pl sql-optimization -Dtest=AccessParseControllerTest,StructureParseControllerTest,StructureParseContractTest,StructureParsePriorityScorerTest,StructureParseResultTest test; python3 scripts/foreman.py validate D-TASK-045; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Combined parse state is still in-memory and not persisted; history/detail propagation remains for later governance tasks.
+  - Next step: Instantiate D-TASK-046 to unify logic-object contracts and continue the repo-side Wave 1/Wave 2 parsing chain.
+
 ### D-TASK-044: 落地数据访问解析入口与异步补跑语义
 
 - Status: done
