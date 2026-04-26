@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-039: Reconcile D-TASK-036 post-closeout plan truth
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `fix(governance): reconcile D-TASK-036 plan truth`
+- Priority: 1
+- Depends on: D-TASK-036
+- Scope: 修正 D-TASK-036 closeout 后 master-execution-plan 当前波次仍把 D-TASK-036 写成下一条候选任务的文档真值漂移；只更新计划叙事与运行台账，不改业务代码，不塑形新的业务任务。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-039`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reconciled the master execution plan after D-TASK-036 closeout so the current active wave no longer points at D-TASK-036 as the next candidate task, records D-TASK-036 as completed, and restores the repo-side mainline state to no instantiated task.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-039; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance --check
+  - Residual risk: No business implementation changed; future Phase-D work still requires explicit shaping and instantiation before execution.
+  - Next step: When the next repo-side priority is chosen, shape a new formal task from current repository truth instead of reusing completed D-TASK-036.
+
 ### D-TASK-036: 推进 provider-native distributed cache governance backend
 
 - Status: done

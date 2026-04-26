@@ -108,11 +108,11 @@
 ## 4.1 Current Active Wave
 
 - 当前运行波次：`Phase-D / D-STORY-005`
-- 当前活跃目标：`D-TASK-031` 至 `D-TASK-035` 已全部完成 closeout，分别把 `sql-optimization` 真实 parse/rewrite/acceleration suggestion 链、acceleration plan 治理闭环、`query-execution` 生产级 Hetu 路由校准证据、`benchmark-engine` 外部队列/provider-native 语义，以及真正的 cache governance 闭环推进到当前仓库真值。默认主路径仍保持 repo-closed，不得把 environment-backed provider、object storage 或 distributed cache 写成仓库默认事实。
+- 当前活跃目标：`D-TASK-031` 至 `D-TASK-036` 已全部完成 closeout，分别把 `sql-optimization` 真实 parse/rewrite/acceleration suggestion 链、acceleration plan 治理闭环、`query-execution` 生产级 Hetu 路由校准证据、`benchmark-engine` 外部队列/provider-native 语义、真正的 cache governance 闭环，以及 provider-neutral distributed cache backend baseline 推进到当前仓库真值。默认主路径仍保持 repo-closed，不得把 environment-backed provider、object storage 或 distributed cache 写成仓库默认事实。
 - 当前下一条可执行主线任务：
   - 当前没有新的已实例化 repo-side mainline task。
-  - 已塑形下一条 repo-side follow-up 为 `D-TASK-036`。
-  - 如继续 Phase-D 主线，下一条候选任务应为 `D-TASK-036`。
+  - `D-TASK-036` 已完成 closeout，不再作为下一条候选任务。
+  - 如继续 Phase-D 主线，必须先按当前仓库真值重新塑形新的正式任务。
 - 说明：
   - `A-TASK-011`、`A-TASK-012` 已完成 active wave 对齐、跨服务鉴权/审计高优先缺口收口，以及 shared 认证与治理客户端支撑下沉。
   - `E-TASK-004`、`E-TASK-005`、`E-TASK-006` 已按 repository truth 完成业务页骨架、治理接口接入与设计系统基线；`E-TASK-007`、`E-TASK-008` 已完成前后端分离检查加固与前端受保护请求头清理；`E-TASK-009` 已补齐临时 AI 交付页与生产隐藏语义。
@@ -148,7 +148,8 @@
   - `D-TASK-028` 已完成 `D-TASK-027` residual risk 的 repo-side 收口：它把 provider-specific / multi-provider object-storage contract、cleanup/recovery semantics，以及 compensation-replay evidence 的 governance query/recovery surfaces 收口为已验证基线；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
   - `D-TASK-029` 已完成 `D-TASK-028` residual risk 的 repo-side 收口：它把 provider-native / environment-backed object-storage live evidence 进一步沉淀到 provider header/request-id 级别，并补齐 governance-triggered artifact cleanup/recovery operation surfaces；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
   - `D-TASK-030` 已完成 `D-TASK-029` residual risk 的 repo-side 收口：它把 provider-authenticated object-storage operations 与 governance-side batch retention/recovery orchestration 推进到当前仓库真值；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
-  - `D-TASK-031` 至 `D-TASK-035` 已按新的业务主线全部完成 closeout：`D-TASK-031` 负责 `sql-optimization` 真实 parse/rewrite/acceleration suggestion 链，`D-TASK-032` 负责 acceleration plan 治理闭环，`D-TASK-033` 负责 query-execution 的生产级 Hetu 集群证据与路由参数校准，`D-TASK-034` 负责 benchmark-engine 的外部队列/文件存储与 provider-native 语义，`D-TASK-035` 负责真正的缓存治理能力；其后续 residual risk 收口为新的 `D-TASK-036`，用于把 cache governance 从 repo-closed in-memory baseline 推进到 provider-native distributed backend baseline。
+  - `D-TASK-031` 至 `D-TASK-035` 已按新的业务主线全部完成 closeout：`D-TASK-031` 负责 `sql-optimization` 真实 parse/rewrite/acceleration suggestion 链，`D-TASK-032` 负责 acceleration plan 治理闭环，`D-TASK-033` 负责 query-execution 的生产级 Hetu 集群证据与路由参数校准，`D-TASK-034` 负责 benchmark-engine 的外部队列/文件存储与 provider-native 语义，`D-TASK-035` 负责真正的缓存治理能力；其后续 residual risk 已由 `D-TASK-036` 收口，把 cache governance 从 repo-closed in-memory baseline 推进到 provider-native distributed backend baseline。
+  - `D-TASK-036` 已完成 closeout：它为 `query-execution` 补齐 provider-neutral cache backend contract、默认 in-memory backend、显式 Redis RESP provider adapter、backend/provider evidence 与 fail-closed bypass 语义；closeout 后当前重新回到“无已实例化 repo-side mainline task”的计划真值。
   - `HARN-025` 已把“半自动多 agent 协作基础设施（C 方案）”正式落为独立治理/工具能力：Main Foreman 唯一收口、多 `codex exec` 会话替代隐式 subagent、多 `git worktree` 隔离、manifest 驱动、prompt 模板化，以及最终仍走 `foreman validate` / `task_audit` / `closeout`；它不混入业务主线功能，也不改变当前 repo-side business mainline 为空的事实。
   - `HARN-026` 已完成 closeout：它把多 agent 能力从“Main Foreman 手工写 plan/manifest 再启动”升级到“从需求输入开始，由 codex 自动生成 exec plan、manifest，并驱动 prepare/launch/collect，再由 autonomous Main Foreman 继续 fan-in / validate / closeout”的全自动主路径；它仍保持 Main Foreman 唯一收口，不引入第二套长期真值，也不混入业务主线功能。
   - `HARN-027` 用于在 `HARN-026` 之上补齐“从无 task 开始”的上游治理自动化：先做 requirement normalization、candidate execution plan shaping、candidate task pack 与 governance gate，再 formal materialize 成正式 task，最后 handoff 给现有 `HARN-026` full-auto 执行链；它仍保持 Main Foreman 唯一收口，不绕过 `preflight` / `instantiate` / `validate` / `task_audit` / `closeout`。
