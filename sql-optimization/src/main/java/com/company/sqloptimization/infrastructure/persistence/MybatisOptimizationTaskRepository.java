@@ -8,9 +8,11 @@ import com.company.sqloptimization.domain.task.OptimizationTask;
 import com.company.sqloptimization.domain.task.OptimizationTaskError;
 import com.company.sqloptimization.domain.task.OptimizationTaskPhase;
 import com.company.sqloptimization.domain.task.OptimizationTaskPriority;
+import com.company.sqloptimization.domain.task.OptimizationTaskRisk;
 import com.company.sqloptimization.domain.task.OptimizationTaskStatus;
 import com.company.sqloptimization.domain.task.OptimizationTaskStatusTransition;
 import com.company.sqloptimization.domain.task.OptimizationTaskSubmission;
+import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import com.company.sqloptimization.domain.task.OptimizationTaskType;
 import com.company.sqloptimization.domain.task.repository.OptimizationTaskRepository;
 import com.company.sqloptimization.infrastructure.persistence.entity.OptimizationTaskRecord;
@@ -36,6 +38,8 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
     private static final TypeReference<List<Map<String, Object>>> LIST_OF_MAPS = new TypeReference<List<Map<String, Object>>>() {
     };
     private static final TypeReference<List<String>> LIST_OF_STRINGS = new TypeReference<List<String>>() {
+    };
+    private static final TypeReference<List<OptimizationTaskRisk>> LIST_OF_RISKS = new TypeReference<List<OptimizationTaskRisk>>() {
     };
 
     private final OptimizationTaskMapper optimizationTaskMapper;
@@ -96,11 +100,14 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
         record.setCurrentPhase(task.getCurrentPhase().name());
         record.setProgressPercent(task.getProgressPercent());
         record.setSummary(task.getSummary());
+        record.setSuggestionPayloadJson(writeJson(task.getSuggestion()));
         if (task.getError() != null) {
             record.setErrorCode(Integer.valueOf(task.getError().getCode()));
             record.setErrorMessage(task.getError().getMessage());
             record.setErrorSuggestedAction(task.getError().getSuggestedAction());
             record.setErrorRetryable(Boolean.valueOf(task.getError().isRetryable()));
+            record.setFailedPhase(task.getError().getFailedPhase() == null ? null : task.getError().getFailedPhase().name());
+            record.setErrorRisksJson(writeJson(task.getError().getRisks()));
         }
         record.setStatusHistoryJson(writeJson(task.getStatusHistory()));
         record.setSubmittedAt(toLocalDateTime(task.getSubmittedAt()));
@@ -132,6 +139,7 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
             toInstant(record.getStartedAt()),
             toInstant(record.getFinishedAt()),
             record.getSummary(),
+            readSuggestion(record.getSuggestionPayloadJson()),
             toError(record)
         );
     }
@@ -144,8 +152,21 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
             record.getErrorCode().intValue(),
             record.getErrorMessage(),
             record.getErrorSuggestedAction(),
-            Boolean.TRUE.equals(record.getErrorRetryable())
+            Boolean.TRUE.equals(record.getErrorRetryable()),
+            readFailedPhase(record.getFailedPhase()),
+            readRisks(record.getErrorRisksJson())
         );
+    }
+
+    private OptimizationTaskSuggestion readSuggestion(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(json, OptimizationTaskSuggestion.class);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Failed to deserialize optimization suggestion payload", ex);
+        }
     }
 
     private List<AccelerationSuggestionType> readSuggestionTypes(String json) {
@@ -186,6 +207,24 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
             return history;
         } catch (Exception ex) {
             throw new IllegalArgumentException("Failed to deserialize optimization task status history", ex);
+        }
+    }
+
+    private OptimizationTaskPhase readFailedPhase(String failedPhase) {
+        if (failedPhase == null || failedPhase.trim().isEmpty()) {
+            return null;
+        }
+        return OptimizationTaskPhase.valueOf(failedPhase);
+    }
+
+    private List<OptimizationTaskRisk> readRisks(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(json, LIST_OF_RISKS);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Failed to deserialize optimization task risks", ex);
         }
     }
 

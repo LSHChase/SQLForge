@@ -65,7 +65,7 @@
 | 查询执行服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceTenantScopeCheckRequest/Response`, `GovernanceAuthorizationDecisionRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
 | SQL 优化服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceAuthorizationDecisionRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
 | 压测引擎服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceAuthorizationDecisionRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
-| 查询执行服务 -> SQL 优化服务 | HTTP / async callback | SQL 优化服务 | `OptimizationTaskSubmitRequest/Response`, `OptimizationTaskStatusResponse`, `AccelerationPlanApplyRequest/Response` | `DATABASE_SCHEDULED_WORKER_BASELINE` |
+| 查询执行服务 -> SQL 优化服务 | HTTP / async callback | SQL 优化服务 | `OptimizationTaskSubmitRequest/Response`, `OptimizationTaskStatusResponse`, `AccelerationPlanApplyRequest/Response` | `REAL_PARSE_REWRITE_ACCELERATION_BASELINE` |
 | 压测引擎服务 -> 查询执行服务 | HTTP | 查询执行服务 | `QueryFingerprintLookupRequest/Response`, `RoutingRuleSnapshotRequest/Response` | Planned |
 
 规则：
@@ -178,12 +178,12 @@
 
 ## 3.2 SQL Optimization Task Contract Baseline
 
-当前 `sql-optimization` 已将异步优化任务契约接到公共 HTTP 入口，并通过 MySQL 持久化任务表与 scheduled worker 提供可测的提交、轮询与失败路径。
+当前 `sql-optimization` 已将异步优化任务契约接到公共 HTTP 入口，并通过 MySQL 持久化任务表与 scheduled worker 提供可测的提交、轮询、真实 parse/rewrite/acceleration suggestion 与失败路径。
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
-| `POST /api/sql-optimization/tasks` | `OptimizationTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`datasourceType`,`taskContext` | `OptimizationTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`contractStage`,`implementationStage` | `DATABASE_SCHEDULED_WORKER_BASELINE` |
-| `GET /api/sql-optimization/tasks/{taskId}` | path: `taskId` | `OptimizationTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`requestedSuggestionTypes`,`suggestion`,`failure`,`submittedAt`,`startedAt`,`finishedAt`,`statusHistory`,`contractStage`,`implementationStage` | `DATABASE_SCHEDULED_WORKER_BASELINE` |
+| `POST /api/sql-optimization/tasks` | `OptimizationTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`datasourceType`,`taskContext` | `OptimizationTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`contractStage`,`implementationStage` | `REAL_PARSE_REWRITE_ACCELERATION_BASELINE` |
+| `GET /api/sql-optimization/tasks/{taskId}` | path: `taskId` | `OptimizationTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`requestedSuggestionTypes`,`suggestion`,`failure`,`submittedAt`,`startedAt`,`finishedAt`,`statusHistory`,`contractStage`,`implementationStage` | `REAL_PARSE_REWRITE_ACCELERATION_BASELINE` |
 
 当前 `OptimizationTaskSubmitRequest` 基线字段如下：
 
@@ -254,6 +254,9 @@
 - `13000` `SQL_OPTIMIZATION_SYSTEM_PIPELINE_NOT_READY`
 - `13001` `SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID`
 - `13002` `SQL_OPTIMIZATION_SYSTEM_CALLBACK_CONTRACT_INVALID`
+- `13003` `SQL_OPTIMIZATION_SYSTEM_PARSER_FAILURE`
+- `13004` `SQL_OPTIMIZATION_SYSTEM_REWRITE_FAILURE`
+- `13005` `SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLANNING_FAILURE`
 - `22000` `SQL_OPTIMIZATION_TASK_INVALID`
 - `22001` `SQL_OPTIMIZATION_TASK_NOT_FOUND`
 - `22002` `SQL_OPTIMIZATION_TASK_ALREADY_FINISHED`
@@ -261,16 +264,16 @@
 
 说明：
 
-- 当前 `POST /api/sql-optimization/tasks` 会先返回 `QUEUED / SUBMITTED` 快照，再由占位处理链立即推进到成功或失败，以保持异步接口语义和稳定测试行为。
-- 当前 `GET /api/sql-optimization/tasks/{taskId}` 已可查询占位 repository 中的最新任务状态；未知任务返回 `22001`。
+- 当前 `POST /api/sql-optimization/tasks` 会先返回 `QUEUED / SUBMITTED` 快照，再由 MySQL carrier + scheduled worker 异步推进真实 parse/rewrite/acceleration suggestion 链。
+- 当前 `GET /api/sql-optimization/tasks/{taskId}` 已可查询 MySQL repository 中的最新任务状态；未知任务返回 `22001`。
 - 当前模型已显式区分“外部生命周期状态”和“内部处理阶段”，避免把 parse / rewrite / acceleration suggestion 三类任务混成单一线性状态。
 - 当前成功结果统一输出到 `suggestion`，并按三类任务给出结构化 `artifacts / benefits / costs / risks`：
-  - `PARSE`：偏向 AST 摘要、血缘提示、分析收益和解析适配风险
-  - `REWRITE`：偏向候选 SQL、规则轨迹、延迟/扫描收益、语义漂移风险
-  - `ACCELERATION_SUGGESTION`：偏向加速计划、物化视图/分区策略、延迟/扫描收益、存储与新鲜度成本
-- 当前失败结果统一输出到 `failure`，保留错误码和重试语义，并附失败阶段与风险说明。
+  - `PARSE`：偏向 AST profile、表/谓词/聚合信号、热点风险
+  - `REWRITE`：偏向候选 SQL、规则轨迹、计划简化收益与语义校验风险
+  - `ACCELERATION_SUGGESTION`：偏向 acceleration plan、shape signal、延迟/扫描收益、存储与治理成本
+- 当前失败结果统一输出到 `failure`，保留错误码、重试语义、失败阶段与风险说明。
 - 当前 placeholder 失败路径通过 SQL 或指纹中的显式 `FAIL_OPTIMIZATION` 标记触发，用于稳定验证轮询失败场景。
-- 当前实现已接入 MySQL `optimization_task` 任务表、MyBatis XML repository 和 in-process scheduled worker；外部队列调度、事件回调和建议结果明细输出继续由后续 `Phase-D` 任务补齐。
+- 当前真实结果会以 `summary` + `suggestion_payload_json` 落仓，失败链路会额外沉淀 `failed_phase` 与 `error_risks_json`；外部队列调度、事件回调和 acceleration plan 治理闭环继续由后续 `Phase-D` 任务补齐。
 
 ## 3.3 Benchmark Engine Task Contract Baseline
 

@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-031: 推进 `sql-optimization` 真实 parse/rewrite/acceleration suggestion 链
+
+- Status: done
+- Completed at: 2026-04-25
+- Commit subject: `feat(sql-optimization): D-TASK-031 add real parse rewrite pipeline`
+- Priority: 1
+- Depends on: `D-TASK-030`
+- Scope: 在保留 MySQL `optimization_task` carrier、scheduled worker、统一授权入口与异步任务契约不变的前提下，把 `sql-optimization` 从 placeholder suggestion 推进到真实 SQL parser / AST analysis / rewrite rule / acceleration suggestion pipeline，输出可执行的 rewrite candidate、结构化 parse artifact、加速建议工件与失败阶段证据，不提前引入跨服务自动应用或审批旁路 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-005` 运行时执行链与跨服务补完
+- Human confirmation point: 若真实 parse/rewrite/acceleration suggestion 链会绕过统一授权入口、把高风险 rewrite 直接自动应用、对不支持方言假装解析成功，或把 placeholder 工件继续冒充真实结果，需人工确认
+- Data impact: `optimization_task` 任务数据、parse/rewrite/acceleration artifact、失败阶段与风险说明、schema/migration 与 runtime smoke 证据
+- Rollback / recovery: 保持 MySQL carrier 与 async 契约不变，关闭高风险 rewrite 规则或自动应用分支，回退新增 parser/rewriter/acceleration pipeline 与持久化字段说明，并恢复到 `D-TASK-030` 之后的已验证基线
+- Validation:
+  - `sql-optimization 模块测试、parse/rewrite/acceleration pipeline 测试、persistence/schema/mapping 校验、runtime smoke、task audit、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-031`
+- Progress log:
+  - 2026-04-25: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added a JSQLParser-backed sql-optimization pipeline with real AST analysis, conservative rewrite rules, acceleration suggestion generation, structured suggestion/failure persistence, schema/mapping updates, focused tests, and authority-doc synchronization for D-TASK-031.
+  - Validation evidence: mvn -B -pl sql-optimization -am test -DskipITs; python3 scripts/foreman.py validate D-TASK-031; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js
+  - Residual risk: Rewrite coverage remains intentionally conservative, external queue/callback and acceleration-plan apply governance are still pending, and fingerprint-only submissions can be accepted by contract but will terminate failed because the real parser pipeline requires sqlText.
+  - Next step: Proceed to D-TASK-032 to close the governed acceleration-plan apply/verify/rollback loop on top of the new real sql-optimization suggestion baseline.
+
 ### D-TASK-030: 推进 provider-authenticated object-storage operations 与 governance-side batch retention/recovery orchestration
 
 - Status: done

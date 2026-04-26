@@ -28,12 +28,14 @@ class OptimizationTaskWorkerTest {
         OptimizationTaskWorker worker = new OptimizationTaskWorker(
             repository,
             properties,
-            new OptimizationMetricsRecorder(meterRegistry)
+            new OptimizationMetricsRecorder(meterRegistry),
+            new SqlOptimizationPipelineService()
         );
 
         worker.processQueuedTasks();
 
         assertEquals("SUCCEEDED", repository.findByTaskId("task-async-001").getStatus().name());
+        assertEquals("REWRITTEN_SQL", repository.findByTaskId("task-async-001").getSuggestion().getArtifacts().get(0).getCategory());
         assertEquals(1.0D, meterRegistry.get("sqlforge.sql.optimization.tasks.terminal").tags(
             "task_type", "REWRITE",
             "result_status", "SUCCEEDED"

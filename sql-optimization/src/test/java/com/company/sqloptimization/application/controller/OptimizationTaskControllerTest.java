@@ -43,7 +43,7 @@ class OptimizationTaskControllerTest {
             .andExpect(jsonPath("$.status").value("QUEUED"))
             .andExpect(jsonPath("$.currentPhase").value("SUBMITTED"))
             .andExpect(jsonPath("$.contractStage").value("LONG_TERM_BASELINE"))
-            .andExpect(jsonPath("$.implementationStage").value("DATABASE_SCHEDULED_WORKER_BASELINE"))
+            .andExpect(jsonPath("$.implementationStage").value("REAL_PARSE_REWRITE_ACCELERATION_BASELINE"))
             .andExpect(header().exists(RequestHeaderConstants.TRACE_ID))
             .andReturn();
 
@@ -125,11 +125,12 @@ class OptimizationTaskControllerTest {
                         .andExpect(jsonPath("$.taskId").value(taskId))
                         .andExpect(jsonPath("$.status").value("SUCCEEDED"))
                         .andExpect(jsonPath("$.currentPhase").value("FINISHED"))
-                        .andExpect(jsonPath("$.suggestion.summary", containsString("Rewrite suggestion placeholder completed")))
-                        .andExpect(jsonPath("$.suggestion.primaryRecommendation", containsString("rewritten statement")))
-                        .andExpect(jsonPath("$.suggestion.benefits[0].category").value("LATENCY"))
+                        .andExpect(jsonPath("$.suggestion.summary", containsString("Parsed the statement successfully")))
+                        .andExpect(jsonPath("$.suggestion.primaryRecommendation", containsString("parse artifact")))
+                        .andExpect(jsonPath("$.suggestion.artifacts[0].category").value("REWRITTEN_SQL"))
+                        .andExpect(jsonPath("$.suggestion.benefits[0].category").value("PLAN_SIMPLIFICATION"))
                         .andExpect(jsonPath("$.suggestion.costs[0].category").value("VALIDATION"))
-                        .andExpect(jsonPath("$.suggestion.risks[0].category").value("SEMANTIC_DRIFT"))
+                        .andExpect(jsonPath("$.suggestion.risks[0].category").value("SELECT_STAR"))
                         .andExpect(jsonPath("$.statusHistory[0].note").value("TASK_SUBMITTED"))
                         .andExpect(jsonPath("$.statusHistory[1].note").value("TASK_STARTED"));
                 } else {
@@ -139,6 +140,7 @@ class OptimizationTaskControllerTest {
                         .andExpect(jsonPath("$.currentPhase").value("FINISHED"))
                         .andExpect(jsonPath("$.failure.code").value(13000))
                         .andExpect(jsonPath("$.failure.retryable").value(true))
+                        .andExpect(jsonPath("$.failure.failedPhase").value("DEEP_PARSING"))
                         .andExpect(jsonPath("$.failure.risks[0].category").value("PIPELINE_READINESS"));
                 }
                 return;

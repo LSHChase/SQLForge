@@ -18,10 +18,13 @@ public class OptimizationTaskRecord {
     private String currentPhase;
     private Integer progressPercent;
     private String summary;
+    private String suggestionPayloadJson;
     private Integer errorCode;
     private String errorMessage;
     private String errorSuggestedAction;
     private Boolean errorRetryable;
+    private String failedPhase;
+    private String errorRisksJson;
     private String statusHistoryJson;
     private LocalDateTime submittedAt;
     private LocalDateTime startedAt;
@@ -141,6 +144,14 @@ public class OptimizationTaskRecord {
         this.summary = summary;
     }
 
+    public String getSuggestionPayloadJson() {
+        return suggestionPayloadJson;
+    }
+
+    public void setSuggestionPayloadJson(String suggestionPayloadJson) {
+        this.suggestionPayloadJson = suggestionPayloadJson;
+    }
+
     public Integer getErrorCode() {
         return errorCode;
     }
@@ -171,6 +182,22 @@ public class OptimizationTaskRecord {
 
     public void setErrorRetryable(Boolean errorRetryable) {
         this.errorRetryable = errorRetryable;
+    }
+
+    public String getFailedPhase() {
+        return failedPhase;
+    }
+
+    public void setFailedPhase(String failedPhase) {
+        this.failedPhase = failedPhase;
+    }
+
+    public String getErrorRisksJson() {
+        return errorRisksJson;
+    }
+
+    public void setErrorRisksJson(String errorRisksJson) {
+        this.errorRisksJson = errorRisksJson;
     }
 
     public String getStatusHistoryJson() {

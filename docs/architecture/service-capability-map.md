@@ -67,16 +67,17 @@
 - `application` / `domain` / `infrastructure` / `config` 分层骨架
 - `PARSE` / `REWRITE` / `ACCELERATION_SUGGESTION` 三类异步优化任务模型
 - `QUEUED` / `RUNNING` / `SUCCEEDED` / `FAILED` / `CANCELLED` 生命周期状态与类型感知的处理阶段流转
-- `POST /api/sql-optimization/tasks` 和 `GET /api/sql-optimization/tasks/{taskId}` 的过渡骨架
+- `POST /api/sql-optimization/tasks` 和 `GET /api/sql-optimization/tasks/{taskId}` 的受保护异步入口
 - 基于 MySQL `optimization_task` 任务表、MyBatis XML repository 和 in-process scheduled worker 的提交、轮询、失败路径与流程日志
 - 基础 DTO / VO 与错误码区间固化
-- 结构化 `suggestion / failure` 输出，覆盖收益、成本、风险与任务类型差异
+- 真实 SQL parser / AST analysis / conservative rewrite rule / acceleration suggestion pipeline
+- 结构化 `suggestion / failure` 输出，覆盖收益、成本、风险、失败阶段与任务类型差异
 - 与 `governance` 的租户/数据源检查、审计写入、失败恢复与补偿 queue smoke
 
 当前还未完整承载：
 
 - 外部队列调度、回调通知
-- 建议结果明细、审批协同与物化视图治理
+- acceleration plan 审批协同、自动应用与物化视图治理
 
 ## 3. 压测引擎服务
 

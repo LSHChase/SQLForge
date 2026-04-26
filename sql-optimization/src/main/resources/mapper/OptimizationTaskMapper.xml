@@ -19,10 +19,13 @@
         <result property="currentPhase" column="current_phase"/>
         <result property="progressPercent" column="progress_percent"/>
         <result property="summary" column="summary"/>
+        <result property="suggestionPayloadJson" column="suggestion_payload_json"/>
         <result property="errorCode" column="error_code"/>
         <result property="errorMessage" column="error_message"/>
         <result property="errorSuggestedAction" column="error_suggested_action"/>
         <result property="errorRetryable" column="error_retryable"/>
+        <result property="failedPhase" column="failed_phase"/>
+        <result property="errorRisksJson" column="error_risks_json"/>
         <result property="statusHistoryJson" column="status_history_json"/>
         <result property="submittedAt" column="submitted_at"/>
         <result property="startedAt" column="started_at"/>
@@ -46,10 +49,13 @@
         current_phase,
         progress_percent,
         summary,
+        suggestion_payload_json,
         error_code,
         error_message,
         error_suggested_action,
         error_retryable,
+        failed_phase,
+        error_risks_json,
         status_history_json,
         submitted_at,
         started_at,
@@ -90,10 +96,13 @@
             current_phase,
             progress_percent,
             summary,
+            suggestion_payload_json,
             error_code,
             error_message,
             error_suggested_action,
             error_retryable,
+            failed_phase,
+            error_risks_json,
             status_history_json,
             submitted_at,
             started_at,
@@ -113,10 +122,13 @@
             #{currentPhase},
             #{progressPercent},
             #{summary},
+            #{suggestionPayloadJson},
             #{errorCode},
             #{errorMessage},
             #{errorSuggestedAction},
             #{errorRetryable},
+            #{failedPhase},
+            #{errorRisksJson},
             #{statusHistoryJson},
             #{submittedAt},
             #{startedAt},
@@ -139,10 +151,13 @@
             current_phase = #{currentPhase},
             progress_percent = #{progressPercent},
             summary = #{summary},
+            suggestion_payload_json = #{suggestionPayloadJson},
             error_code = #{errorCode},
             error_message = #{errorMessage},
             error_suggested_action = #{errorSuggestedAction},
             error_retryable = #{errorRetryable},
+            failed_phase = #{failedPhase},
+            error_risks_json = #{errorRisksJson},
             status_history_json = #{statusHistoryJson},
             submitted_at = #{submittedAt},
             started_at = #{startedAt},

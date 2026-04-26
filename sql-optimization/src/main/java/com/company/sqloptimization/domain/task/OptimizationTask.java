@@ -30,6 +30,7 @@ public class OptimizationTask {
     private Instant startedAt;
     private Instant finishedAt;
     private String summary;
+    private OptimizationTaskSuggestion suggestion;
     private OptimizationTaskError error;
 
     private OptimizationTask(String taskId,
@@ -63,6 +64,7 @@ public class OptimizationTask {
                              Instant startedAt,
                              Instant finishedAt,
                              String summary,
+                             OptimizationTaskSuggestion suggestion,
                              OptimizationTaskError error) {
         this.taskId = taskId;
         this.tenantId = submission.getTenantId();
@@ -84,6 +86,7 @@ public class OptimizationTask {
         this.startedAt = startedAt;
         this.finishedAt = finishedAt;
         this.summary = summary;
+        this.suggestion = suggestion;
         this.error = error;
     }
 
@@ -112,6 +115,7 @@ public class OptimizationTask {
                                            Instant startedAt,
                                            Instant finishedAt,
                                            String summary,
+                                           OptimizationTaskSuggestion suggestion,
                                            OptimizationTaskError error) {
         return new OptimizationTask(
             taskId,
@@ -124,6 +128,7 @@ public class OptimizationTask {
             startedAt,
             finishedAt,
             summary,
+            suggestion,
             error
         );
     }
@@ -145,14 +150,15 @@ public class OptimizationTask {
         this.progressPercent = Integer.valueOf(normalizeProgress(nextProgressPercent));
     }
 
-    public void markSucceeded(String actualSummary, Instant actualFinishedAt) {
+    public void markSucceeded(OptimizationTaskSuggestion actualSuggestion, Instant actualFinishedAt) {
         OptimizationTaskStateFlow.validateCompletion(taskType, status, currentPhase);
         recordTransition(OptimizationTaskStatus.SUCCEEDED, OptimizationTaskPhase.FINISHED, actualFinishedAt, "TASK_SUCCEEDED");
         this.status = OptimizationTaskStatus.SUCCEEDED;
         this.currentPhase = OptimizationTaskPhase.FINISHED;
         this.finishedAt = actualFinishedAt;
         this.progressPercent = Integer.valueOf(100);
-        this.summary = actualSummary;
+        this.summary = actualSuggestion == null ? null : actualSuggestion.getSummary();
+        this.suggestion = actualSuggestion;
         this.error = null;
     }
 
@@ -162,6 +168,7 @@ public class OptimizationTask {
         this.status = OptimizationTaskStatus.FAILED;
         this.currentPhase = OptimizationTaskPhase.FINISHED;
         this.finishedAt = actualFinishedAt;
+        this.suggestion = null;
         this.error = actualError;
     }
 
@@ -171,6 +178,7 @@ public class OptimizationTask {
         this.status = OptimizationTaskStatus.CANCELLED;
         this.currentPhase = OptimizationTaskPhase.FINISHED;
         this.finishedAt = actualFinishedAt;
+        this.suggestion = null;
     }
 
     private void recordTransition(OptimizationTaskStatus nextStatus,
@@ -265,6 +273,10 @@ public class OptimizationTask {
 
     public String getSummary() {
         return summary;
+    }
+
+    public OptimizationTaskSuggestion getSuggestion() {
+        return suggestion;
     }
 
     public OptimizationTaskError getError() {

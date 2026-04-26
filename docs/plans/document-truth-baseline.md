@@ -78,7 +78,8 @@
   - 生命周期状态、处理阶段流转、优先级、解析深度和加速建议类型的领域模型
   - `POST /api/sql-optimization/tasks` 与 `GET /api/sql-optimization/tasks/{taskId}` HTTP 契约
   - `optimization_task` MySQL 任务表、MyBatis XML repository、header-based 鉴权、租户隔离、scheduled worker、提交流程日志、失败路径和基础测试
-  - `suggestion / failure` 结构化输出，当前已覆盖收益、成本、风险和任务类型差异
+  - 真实 SQL parser / AST analysis / conservative rewrite rule / acceleration suggestion pipeline
+  - `suggestion / failure` 结构化输出，当前已覆盖收益、成本、风险、失败阶段和任务类型差异
 - `benchmark-engine/` 已具备压测任务、报告查询与数据库持久化基线：
   - Spring Boot 应用入口与独立 Maven 模块
   - `application` 包域下的 controller / DTO / VO / service 与 `domain` / `infrastructure` / `config` 分层骨架
@@ -178,7 +179,7 @@
 
 - 压测引擎服务已建立独立 `benchmark-engine` 模块与提交/轮询/报告查询 API、MySQL 任务/报告载体、scheduled worker、repo-closed 隔离执行链路，以及持久化 `JSON/PDF/HTML` 导出产物、governance workload/backfill/compensation 长期追溯、provider-specific / multi-provider object-storage contract、cleanup/recovery semantics、governance batch retention / recovery orchestration 与 provider-backed object storage live evidence/readback recovery/provider-authenticated cleanup verification 基线；后续缺口已收窄为外部队列/文件存储、更深层 environment-backed 长期操作证据，以及更接近真实 provider-native 语义的环境沉淀。
 - 查询执行服务已建立独立模块骨架、公共 HTTP DTO/VO/错误码、治理检查/审计写入 HTTP 基线，以及真实 Hetu `JDBC/REST/CLIENT` 多模式执行链；当前仓库已补齐 JDBC driver 接线、Hetu client 协议执行和 smoke 入口，真实集群长期证据、生产级参数校准和更完整的跨服务审计补偿仍待后续环境沉淀。
-- SQL 优化服务已建立独立模块、提交/轮询 API、MySQL `optimization_task` 任务表和 scheduled worker 基线，但外部队列调度、回调通知和建议结果明细仍待 `Phase-D` 后续任务补齐。
+- SQL 优化服务已建立独立模块、提交/轮询 API、MySQL `optimization_task` 任务表、scheduled worker，以及真实 SQL parser / AST analysis / conservative rewrite / acceleration suggestion pipeline；外部队列调度、回调通知和 acceleration plan 治理闭环仍待 `Phase-D` 后续任务补齐。
 - Phase-D 核心追溯链已在 `governance` 内完成 schema、migration、entity 与 mapper XML 固化，且 `audit/write` 与 header-based stateless auth 已接入真实 `audit_log` 落库；当前敏感字段加密基线已进入共享组件和治理受保护持久化入口，但查询执行、SQL 优化、压测引擎等其他服务的主动上报链仍待后续任务补齐。
 - 当前虽已形成 observability 文档基线，且默认 runtime smoke 已覆盖 4 个后端服务与前端的真实启动探针，并验证 `query-execution -> governance`、`sql-optimization -> governance`、`benchmark-engine -> governance` 的治理检查、失败恢复与审计补偿链路；仓库现已为 4 个后端服务补齐最小业务级 Micrometer 指标，但仍未提供仓库内 PrometheusRule / Alertmanager / Grafana 配置、统一日志采集 pipeline 模板，以及更广覆盖的 tracing/跨服务聚合业务指标。
 - `Phase-F` 的自动 release gate 已接入 `checkpoint/*` tag 与 `release.published` 元数据，`phase1plus` 聚合覆盖率现已提升到 `86.9763%` 并达到 85% 门槛；当前仓库默认路径已回到 `repo-closed` 语义，Sonar 外部 secrets / vars / 可选 GitHub Actions environment provisioning 转为 `environment-backed` fallback 恢复项，由 `INBOX-001` 跟踪，且 provisioning 本身不再等于默认自动启用 Sonar。

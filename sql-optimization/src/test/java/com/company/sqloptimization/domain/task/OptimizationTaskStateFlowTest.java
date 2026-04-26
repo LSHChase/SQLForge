@@ -7,6 +7,7 @@ import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 
 class OptimizationTaskStateFlowTest {
@@ -32,7 +33,18 @@ class OptimizationTaskStateFlowTest {
         task.markRunning(Instant.parse("2026-04-20T00:00:05Z"));
         task.advancePhase(OptimizationTaskPhase.SQL_REWRITING, 45, "REWRITE_RULES_APPLIED");
         task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "RESULT_MERGED");
-        task.markSucceeded("rewrite suggestion ready", Instant.parse("2026-04-20T00:00:15Z"));
+        task.markSucceeded(
+            new OptimizationTaskSuggestion(
+                "rewrite suggestion ready",
+                "validate rewritten sql",
+                Integer.valueOf(80),
+                Collections.<OptimizationTaskArtifact>emptyList(),
+                Collections.<OptimizationTaskBenefit>emptyList(),
+                Collections.<OptimizationTaskCost>emptyList(),
+                Collections.<OptimizationTaskRisk>emptyList()
+            ),
+            Instant.parse("2026-04-20T00:00:15Z")
+        );
 
         assertEquals(OptimizationTaskStatus.SUCCEEDED, task.getStatus());
         assertEquals(OptimizationTaskPhase.FINISHED, task.getCurrentPhase());

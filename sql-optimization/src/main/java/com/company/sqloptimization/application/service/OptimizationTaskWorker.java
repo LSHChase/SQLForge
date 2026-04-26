@@ -5,9 +5,12 @@ import com.company.sqloptimization.config.OptimizationTaskExecutionProperties;
 import com.company.sqloptimization.domain.task.OptimizationTask;
 import com.company.sqloptimization.domain.task.OptimizationTaskError;
 import com.company.sqloptimization.domain.task.OptimizationTaskPhase;
+import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import com.company.sqloptimization.domain.task.OptimizationTaskType;
+import com.company.sqloptimization.domain.task.OptimizationTaskRisk;
 import com.company.sqloptimization.domain.task.repository.OptimizationTaskRepository;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,13 +32,16 @@ public class OptimizationTaskWorker {
     private final OptimizationTaskRepository optimizationTaskRepository;
     private final OptimizationTaskExecutionProperties executionProperties;
     private final OptimizationMetricsRecorder optimizationMetricsRecorder;
+    private final SqlOptimizationPipelineService sqlOptimizationPipelineService;
 
     public OptimizationTaskWorker(OptimizationTaskRepository optimizationTaskRepository,
                                   OptimizationTaskExecutionProperties executionProperties,
-                                  OptimizationMetricsRecorder optimizationMetricsRecorder) {
+                                  OptimizationMetricsRecorder optimizationMetricsRecorder,
+                                  SqlOptimizationPipelineService sqlOptimizationPipelineService) {
         this.optimizationTaskRepository = optimizationTaskRepository;
         this.executionProperties = executionProperties;
         this.optimizationMetricsRecorder = optimizationMetricsRecorder;
+        this.sqlOptimizationPipelineService = sqlOptimizationPipelineService;
     }
 
     @Scheduled(fixedDelayString = "${sql-optimization.task-execution.poll-interval-ms:25}")
@@ -60,7 +66,16 @@ public class OptimizationTaskWorker {
                         ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_PIPELINE_NOT_READY,
                         "SQL optimization worker failed before producing a suggestion payload",
                         "Inspect the database-backed worker pipeline and retry after the carrier is healthy.",
-                        true
+                        true,
+                        task.getCurrentPhase(),
+                        Collections.singletonList(
+                            new OptimizationTaskRisk(
+                                "MEDIUM",
+                                "PIPELINE_READINESS",
+                                "Suggestion output is unavailable because the worker was forced into the failure path before real execution.",
+                                "Inspect the worker carrier and retry only after the async pipeline is healthy."
+                            )
+                        )
                     ),
                     Instant.now()
                 );
@@ -70,11 +85,27 @@ public class OptimizationTaskWorker {
                 logEnd(task, start);
                 return;
             }
-            advancePhases(task);
+            OptimizationTaskSuggestion suggestion = executeTask(task);
             delay();
-            task.markSucceeded(buildSummary(task), Instant.now());
+            task.markSucceeded(suggestion, Instant.now());
             optimizationTaskRepository.save(task);
             logStateChange(task, STATE_WORKER_RUNNING, STATE_WORKER_SUCCEEDED, task.getSummary());
+            optimizationMetricsRecorder.recordWorkerTerminal(task, System.currentTimeMillis() - start);
+            logEnd(task, start);
+        } catch (SqlOptimizationPipelineService.SqlOptimizationExecutionException ex) {
+            task.markFailed(
+                new OptimizationTaskError(
+                    ex.getCode(),
+                    ex.getMessage(),
+                    ex.getSuggestedAction(),
+                    ex.isRetryable(),
+                    ex.getFailedPhase(),
+                    ex.getRisks()
+                ),
+                Instant.now()
+            );
+            optimizationTaskRepository.save(task);
+            logStateChange(task, STATE_WORKER_RUNNING, STATE_WORKER_FAILED, ex.getMessage());
             optimizationMetricsRecorder.recordWorkerTerminal(task, System.currentTimeMillis() - start);
             logEnd(task, start);
         } catch (RuntimeException ex) {
@@ -90,41 +121,41 @@ public class OptimizationTaskWorker {
         }
     }
 
-    private void advancePhases(OptimizationTask task) {
+    private OptimizationTaskSuggestion executeTask(OptimizationTask task) {
+        SqlOptimizationPipelineService.ParsedSqlProfile parsedSqlProfile =
+            sqlOptimizationPipelineService.analyze(task.getSqlText(), task.getDatasourceType());
         if (task.getTaskType() == OptimizationTaskType.PARSE) {
             delay();
-            task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "WORKER_PARSE_SUMMARY_READY");
+            task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "WORKER_PARSE_ARTIFACTS_READY");
             optimizationTaskRepository.save(task);
-            return;
+            return sqlOptimizationPipelineService.buildParseSuggestion(parsedSqlProfile);
         }
         if (task.getTaskType() == OptimizationTaskType.REWRITE) {
             delay();
             task.advancePhase(OptimizationTaskPhase.SQL_REWRITING, 45, "WORKER_REWRITE_RULES_APPLIED");
             optimizationTaskRepository.save(task);
+            OptimizationTaskSuggestion rewriteSuggestion =
+                sqlOptimizationPipelineService.buildRewriteSuggestion(parsedSqlProfile);
             delay();
-            task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "WORKER_REWRITE_SUMMARY_READY");
+            task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "WORKER_REWRITE_ARTIFACTS_READY");
             optimizationTaskRepository.save(task);
-            return;
+            return rewriteSuggestion;
         }
         delay();
-        task.advancePhase(OptimizationTaskPhase.COST_ESTIMATING, 35, "WORKER_COST_BASELINE_READY");
+        task.advancePhase(OptimizationTaskPhase.COST_ESTIMATING, 35, "WORKER_COST_SIGNALS_READY");
         optimizationTaskRepository.save(task);
         delay();
         task.advancePhase(OptimizationTaskPhase.ACCELERATION_PLANNING, 70, "WORKER_ACCELERATION_PLAN_READY");
         optimizationTaskRepository.save(task);
+        OptimizationTaskSuggestion accelerationSuggestion =
+            sqlOptimizationPipelineService.buildAccelerationSuggestion(
+                parsedSqlProfile,
+                task.getRequestedSuggestionTypes()
+            );
         delay();
-        task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 90, "WORKER_ACCELERATION_SUMMARY_READY");
+        task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 90, "WORKER_ACCELERATION_ARTIFACTS_READY");
         optimizationTaskRepository.save(task);
-    }
-
-    private String buildSummary(OptimizationTask task) {
-        if (task.getTaskType() == OptimizationTaskType.PARSE) {
-            return "Deep parse placeholder completed for sqlFingerprint=" + task.getSqlFingerprint();
-        }
-        if (task.getTaskType() == OptimizationTaskType.REWRITE) {
-            return "Rewrite suggestion placeholder completed for sqlFingerprint=" + task.getSqlFingerprint();
-        }
-        return "Acceleration suggestion placeholder completed for sqlFingerprint=" + task.getSqlFingerprint();
+        return accelerationSuggestion;
     }
 
     private boolean shouldForceFailure(OptimizationTask task) {

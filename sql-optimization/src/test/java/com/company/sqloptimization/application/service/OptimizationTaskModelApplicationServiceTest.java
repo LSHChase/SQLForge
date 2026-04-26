@@ -12,12 +12,18 @@ import com.company.sqloptimization.application.controller.vo.OptimizationTaskSta
 import com.company.sqloptimization.application.controller.vo.OptimizationTaskSubmitResponse;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTask;
+import com.company.sqloptimization.domain.task.OptimizationTaskArtifact;
+import com.company.sqloptimization.domain.task.OptimizationTaskBenefit;
+import com.company.sqloptimization.domain.task.OptimizationTaskCost;
 import com.company.sqloptimization.domain.task.OptimizationTaskPhase;
 import com.company.sqloptimization.domain.task.OptimizationTaskPriority;
+import com.company.sqloptimization.domain.task.OptimizationTaskRisk;
 import com.company.sqloptimization.domain.task.OptimizationTaskStatus;
+import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import com.company.sqloptimization.domain.task.OptimizationTaskType;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 
 class OptimizationTaskModelApplicationServiceTest {
@@ -66,7 +72,7 @@ class OptimizationTaskModelApplicationServiceTest {
         assertEquals(OptimizationTaskPhase.DEEP_PARSING, submitResponse.getCurrentPhase());
         assertEquals("/api/sql-optimization/tasks/task-002", submitResponse.getStatusQueryPath());
         assertEquals("LONG_TERM_BASELINE", submitResponse.getContractStage());
-        assertEquals("DATABASE_SCHEDULED_WORKER_BASELINE", submitResponse.getImplementationStage());
+        assertEquals("REAL_PARSE_REWRITE_ACCELERATION_BASELINE", submitResponse.getImplementationStage());
 
         assertEquals(OptimizationTaskType.REWRITE, statusResponse.getTaskType());
         assertEquals(OptimizationTaskPriority.NORMAL, statusResponse.getPriority());
@@ -101,17 +107,35 @@ class OptimizationTaskModelApplicationServiceTest {
         );
         task.markRunning(Instant.parse("2026-04-20T00:12:01Z"));
         task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "PLACEHOLDER_PARSE_SUMMARY_READY");
-        task.markSucceeded("Deep parse placeholder completed for sqlFingerprint=fp-parse", Instant.parse("2026-04-20T00:12:05Z"));
+        task.markSucceeded(
+            new OptimizationTaskSuggestion(
+                "parsed real sql",
+                "use ast profile",
+                Integer.valueOf(88),
+                Collections.singletonList(
+                    new OptimizationTaskArtifact("AST_PROFILE", "astProfile", "{\"tables\":[\"orders\"]}")
+                ),
+                Collections.singletonList(
+                    new OptimizationTaskBenefit("REWRITE_READINESS", Integer.valueOf(60), "rewrite is ready")
+                ),
+                Collections.singletonList(
+                    new OptimizationTaskCost("PARSER_OVERHEAD", "LOW", "offline only")
+                ),
+                Collections.singletonList(
+                    new OptimizationTaskRisk("LOW", "SELECT_STAR", "wide projection", "project columns explicitly")
+                )
+            ),
+            Instant.parse("2026-04-20T00:12:05Z")
+        );
 
         OptimizationTaskStatusResponse response = service.buildStatusResponse(task);
 
         assertNotNull(response.getSuggestion());
-        assertEquals("Use the deep-parse output to confirm source tables, expression hotspots, and rewrite readiness.",
-            response.getSuggestion().getPrimaryRecommendation());
-        assertEquals("AST_SUMMARY", response.getSuggestion().getArtifacts().get(0).getCategory());
-        assertEquals("ANALYSIS_CONFIDENCE", response.getSuggestion().getBenefits().get(0).getCategory());
-        assertEquals("CPU_TIME", response.getSuggestion().getCosts().get(0).getCategory());
-        assertEquals("PARSER_ABSTRACTION", response.getSuggestion().getRisks().get(0).getCategory());
+        assertEquals("use ast profile", response.getSuggestion().getPrimaryRecommendation());
+        assertEquals("AST_PROFILE", response.getSuggestion().getArtifacts().get(0).getCategory());
+        assertEquals("REWRITE_READINESS", response.getSuggestion().getBenefits().get(0).getCategory());
+        assertEquals("PARSER_OVERHEAD", response.getSuggestion().getCosts().get(0).getCategory());
+        assertEquals("SELECT_STAR", response.getSuggestion().getRisks().get(0).getCategory());
     }
 
     @Test
@@ -128,7 +152,11 @@ class OptimizationTaskModelApplicationServiceTest {
                 13000,
                 "SQL optimization worker failed before producing a suggestion payload",
                 "retry later",
-                true
+                true,
+                OptimizationTaskPhase.ACCELERATION_PLANNING,
+                Collections.singletonList(
+                    new OptimizationTaskRisk("MEDIUM", "PIPELINE_READINESS", "task carrier unhealthy", "retry later")
+                )
             ),
             Instant.parse("2026-04-20T00:15:05Z")
         );
@@ -137,7 +165,7 @@ class OptimizationTaskModelApplicationServiceTest {
 
         assertNotNull(response.getFailure());
         assertEquals(Integer.valueOf(13000), Integer.valueOf(response.getFailure().getCode()));
-        assertEquals("FINISHED", response.getFailure().getFailedPhase());
+        assertEquals("ACCELERATION_PLANNING", response.getFailure().getFailedPhase());
         assertEquals("PIPELINE_READINESS", response.getFailure().getRisks().get(0).getCategory());
         assertNull(response.getSuggestion());
     }
