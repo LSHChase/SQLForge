@@ -4,6 +4,29 @@
 
 ## Done
 
+### HARN-043: 修复 SQL 治理规格包 follow-up 真值缺口并启动 Wave 1
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `docs(plans): reconcile sql governance spec gaps and wave1 start`
+- Priority: 1
+- Depends on: `HARN-042`
+- Scope: 在不新增微服务、不改写 `HARN-042` 历史完成语义、不引入第二套长期真值的前提下，修复 `HARN-042` closeout 后主计划 active-wave 漂移，补齐接口/枚举/只读执行边界与数据模型漏项，并新增数据源/数据资产/系统管理的缺失 Story/Task inventory；随后以当前仓库真值启动 Wave 1 首个 repo-side mainline task。 Tech: `DOCS`,`OPS`. Layer: `docs`,`deployments/ci/scripts`.
+- Matrix context: Phase-A / Story `A-STORY-009` SQL 治理实施规格与任务塑形
+- Human confirmation point: 若要借本任务改变 `HARN-042` 已归档历史、扩大“不新增微服务”边界、把接口/枚举/只读执行限制以外的实现内容偷渡进来，或跳过 Wave 1 任务正常 instantiate 流程，需人工确认。
+- Data impact: 修复 `HARN-042` follow-up 真值缺口的规格/计划/矩阵文本、补充的数据源/系统管理 Story/Task inventory，以及 Wave 1 启动前的治理收口；不直接修改业务运行时数据。
+- Rollback / recovery: 回退时仅回退 `HARN-043` 新增的规格/计划/矩阵修补与 inventory 增量，恢复到 `HARN-042` closeout 后状态；若 Wave 1 已实例化，则通过追加治理修正保留既有 task evidence。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-043`、`python3 scripts/foreman.py compile-governance --check`、`node scripts/lint-repository-knowledge.js`、`python3 scripts/task_audit.py --check --phase pre-closeout`、规格包/计划/矩阵交叉检查
+  - `python3 scripts/foreman.py validate HARN-043`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reconciled the SQL governance spec pack after HARN-042 by fixing active-wave truth, tightening read-only execution and interface/state contracts, filling missing data model objects, and adding missing datasource/data-asset/system-management Story-Task inventory needed before Wave 1 implementation.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-043; python3 scripts/foreman.py compile-governance --check; node scripts/lint-repository-knowledge.js; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Wave 1 business tasks remain uninstantiated until the first repo-side mainline task is materialized; current runtime state directories are still untracked operational residue and are intentionally excluded from closeout.
+  - Next step: Instantiate D-TASK-038 as the first Wave 1 repo-side mainline task, then implement query-history and execution-result trace-field persistence in dependency order.
+
 ### HARN-042: 落地 SQL 治理实施规格包与完整任务清单
 
 - Status: done

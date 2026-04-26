@@ -109,9 +109,11 @@
 
 - 当前运行波次：`Phase-D / D-STORY-005`
 - 当前活跃目标：`D-TASK-031` 至 `D-TASK-037` 已全部完成 closeout，分别把 `sql-optimization` 真实 parse/rewrite/acceleration suggestion 链、acceleration plan 治理闭环、`query-execution` 生产级 Hetu 路由校准证据、`benchmark-engine` 外部队列/provider-native 语义、真正的 cache governance 闭环、provider-neutral distributed cache backend baseline，以及 cache capacity / eviction / metrics governance baseline 推进到当前仓库真值。默认主路径仍保持 repo-closed，不得把 environment-backed provider、object storage、distributed cache 或真实 Redis 长跑/恢复演练写成仓库默认事实。
-- 当前治理任务：`HARN-042` 已实例化，目标是在不新增微服务的前提下，把 SQL 治理平台实施规格包与后续 D/E/F 全量 Story / Task inventory 一次性写入仓库真值；该任务属于治理收口，不改变“当前没有新的已实例化 repo-side business mainline task”的事实。
+- `HARN-042` 已完成 closeout：SQL 治理平台实施规格包与 D/E/F 全量 Story / Task inventory 已写入仓库真值。
+- 当前治理任务：当前没有新的已实例化治理收口任务。
 - 当前下一条可执行主线任务：
   - 当前没有新的已实例化 repo-side mainline task。
+  - 下一条 repo-side Wave 1 候选任务应从 `D-TASK-038` 启动。
   - `D-TASK-036` 与 `D-TASK-037` 均已完成 closeout，不再作为下一条候选任务。
   - 若继续 Phase-D 主线，应先基于最新 repository truth 重新塑形下一条 repo-side follow-up；真实 Redis 集群长跑和恢复演练仍属于 environment-backed follow-up，不应被 foreman 当成默认仓库主线。
 - 说明：
@@ -316,6 +318,7 @@ Tasks:
 | Task ID | Task | Scope | Dependencies | Verification |
 |:---|:---|:---|:---|:---|
 | `HARN-042` | 落地 SQL 治理实施规格包与完整任务清单 | 在不新增微服务、不绕过 `foreman` / `task_audit` / `closeout`、不引入第二套长期真值的前提下，新增 SQL 治理平台实施规格、接口扩展基线、数据模型扩展与降级矩阵，并把后续 `D-STORY-006` 至 `D-STORY-012`、`E-STORY-007` 至 `E-STORY-012`、`F-STORY-010` 与 `F-STORY-011` 一次性写入主计划与两张任务矩阵；本任务不直接实现业务代码、不接真实外部服务，只负责把已确认需求固化为可执行工程输入。 | `HARN-041` | `python3 scripts/foreman.py validate HARN-042`、`python3 scripts/foreman.py compile-governance --check`、`node scripts/lint-repository-knowledge.js`、`python3 scripts/task_audit.py --check --phase pre-closeout` |
+| `HARN-043` | 修复 SQL 治理规格包 follow-up 真值缺口并启动 Wave 1 | 在不新增微服务、不改写 `HARN-042` 历史完成语义、不引入第二套长期真值的前提下，修复 `HARN-042` closeout 后主计划 active-wave 漂移、补齐接口/枚举/只读执行边界与数据模型漏项，并为数据源/数据资产/系统管理补充缺失的 D/E Story inventory；随后以当前仓库真值启动 Wave 1 的首个 repo-side mainline task。 | `HARN-042` | `python3 scripts/foreman.py validate HARN-043`、`python3 scripts/foreman.py compile-governance --check`、`node scripts/lint-repository-knowledge.js`、`python3 scripts/task_audit.py --check --phase pre-closeout` |
 
 ### Phase-B 阶段0修正与缺口补齐
 
@@ -635,6 +638,20 @@ Tasks:
 | `D-TASK-067` | 扩展 JDBC Agent `Local Rewrite + Direct JDBC` | 本地轻量改写 / 路由后直连目标 JDBC | `D-TASK-066` | local rewrite/direct JDBC 测试 |
 | `D-TASK-068` | 落地 Java SDK 首版 | 鉴权、trace/requestId、typed clients、重试基线 | `D-TASK-067` | SDK 测试 |
 
+##### Story `D-STORY-013` 数据源与数据资产治理增强
+
+- 目标：补齐数据源管理、元数据快照、数据到位/SLA/上下游状态与系统管理后端接口，使数据资产页和系统管理页具备完整后端支撑。
+- 验证：数据源配置、健康检查、metadata snapshot、freshness/SLA、报表接口/Redis 规则源/装数协同配置查询面可测。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `D-TASK-069` | 固化数据源连接配置与健康检查契约 | JDBC/API/Client/Gateway 连接信息、凭证方式、测试连接、健康状态与失败原因字段基线 | `D-TASK-049` | datasource contract 与 health-check 测试 |
+| `D-TASK-070` | 建立 `MetadataSnapshot` 与数据到位/SLA/上下游状态模型 | metadata snapshot、freshness、SLA、upstream/downstream/queryability 语义和追溯字段 | `D-TASK-069` | metadata model 与 snapshot query 测试 |
+| `D-TASK-071` | 落地数据资产与数据源治理查询/详情接口 | datasource/schema/table/logical-view/db-view 列表、详情、metadata snapshot 查询面 | `D-TASK-070` | data-asset API 与 detail query 测试 |
+| `D-TASK-072` | 落地系统管理配置接口基线 | 报表接口配置、Redis 规则源、装数协同策略和相关治理查询面 | `D-TASK-071` | config/query API 测试 |
+
 ### Phase-E 前端驾驶舱与业务页面
 
 #### Epic `E-EPIC-001` Frontend Information Architecture
@@ -791,6 +808,18 @@ Tasks:
 |:---|:---|:---|:---|:---|
 | `E-TASK-029` | 落地 Dashboard KPI、分布与待办区块 | 核心 KPI、问题分布、接入分布与待处理清单卡片 | `E-TASK-028`,`F-TASK-037` | `npm run lint`、`npm run build`、dashboard contract 测试 |
 | `E-TASK-030` | 落地告警中心与通知状态视图 | 告警列表、详情、ACK、notify simulated 状态展示 | `E-TASK-029`,`F-TASK-037` | `npm run lint`、`npm run build`、alert page contract 测试 |
+
+##### Story `E-STORY-013` 系统管理与数据源治理页
+
+- 目标：补齐系统管理模块中的数据源管理、报表接口、Redis 规则源、装数协同配置与系统参数消费页。
+- 验证：系统管理页面能消费 `D-STORY-013` 后端契约并通过前端构建/契约校验。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `E-TASK-031` | 落地系统管理中的数据源与报表接口页 | datasource 管理、测试连接、报表接口配置与健康状态页 | `E-TASK-024`,`D-TASK-072` | `npm run lint`、`npm run build`、system-management datasource contract 测试 |
+| `E-TASK-032` | 落地 Redis 规则源、装数协同与系统参数页 | Redis rule source、dispatch policy、系统参数与权限审计展示 | `E-TASK-031`,`D-TASK-072` | `npm run lint`、`npm run build`、system-management config contract 测试 |
 
 ### Phase-F 部署、运维、生产就绪
 

@@ -29,22 +29,29 @@
 
 ## 2. New / Extended Domain Objects
 
+- `Datasource`
 - `QueryExecution`
 - `QueryHistoryView`
+- `CommentContext`
 - `SqlBindingSnapshot`
+- `MetadataSnapshot`
 - `BusinessLogicalView`
 - `DatabaseViewRef`
 - `LogicalObjectMapping`
 - `ParseTask`
 - `ParseIssue`
 - `ParseBatch`
+- `ParseStatistic`
 - `ReportResolveRecord`
 - `RoutingRule`
 - `RoutingDecision`
 - `AccelerationRecommendation`
 - `DispatchEvent`
+- `BenchmarkTask`
 - `BenchmarkTemplate`
 - `BenchmarkTestSet`
+- `BenchmarkReport`
+- `AccessChannel`
 - `AccessPolicy`
 - `AccessAudit`
 - `AlertEvent`
@@ -96,8 +103,10 @@
 
 建议优先扩展现有：
 
+- `datasource_config`
 - `query_history`
 - `execution_result`
+- `metadata_snapshot`
 - `config_snapshot`
 - `export_record`
 - `audit_log`
@@ -141,6 +150,11 @@
 - `access_channel`
 - `recommendation_type`
 - `dispatch_status`
+- `binding_mode`
+- `binding_render_status`
+- `query_date_status`
+- `connection_status`
+- `service_status`
 
 建议 JSON 的字段：
 

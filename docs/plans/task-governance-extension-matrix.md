@@ -40,6 +40,7 @@
 | `HARN-038` | 若要把 runtime repair 扩展为自动抹除失败 evidence、放宽 implementation-time dirty-worktree healthcheck 阻断、或绕过 Main Foreman / task_audit 的既有收口链，需人工确认。 | governed closeout / post-closeout runtime state、healthcheck/evidence 判定、执行计划与运行手册文档、以及验证日志与 closeout actual evidence 的治理语义；不修改业务运行时数据，不引入 repo 外第二真值。 | 回退 closeout/healthcheck/runtime repair 语义修复：恢复此前的 governed closeout / post-closeout 判定与 runtime cleanup 行为，保留失败 evidence 与 validation-log 审计链，通过标准 validation 与 task-audit 证明仓库仍保持 Main Foreman 唯一收口和 implementation-time dirty-worktree 阻断边界。 |
 | `HARN-041` | 若要把 paused/archived/abandoned 语义扩展为自动重写台账真值、静默删除 runtime evidence、或允许未确认 candidate 继续 confirm-run，则必须先人工确认；本任务仅允许在现有 governed intake/runtime 边界内补齐可审计状态与恢复入口。 | 仅修改 governed runtime reservation/intake/task-shaping 状态语义、文档与运行时清理逻辑；不直接修改业务运行时数据，不把候选证据写成仓库长期真值。 | 若新增 reservation 生命周期语义导致 confirm-run、healthcheck 或 cleanup 行为异常，回退相关脚本与文档改动，并将受影响 reservation 状态恢复到先前的 released/candidate_ready/materialized 语义；历史 shaping evidence 保留在 .codex/state 下，不删除现有证据文件。 |
 | `HARN-042` | 若要借本任务改变“不新增微服务”的既定边界、把 mock/日志模拟/抽象阶段误写为真实外部联通事实、跳过主计划/矩阵同步直接批量 materialize 业务任务、或削弱 Main Foreman 唯一 write-back / validate / closeout 入口，需人工确认。 | SQL 治理产品实施规格包、主计划与两张任务矩阵、后续 Story/Task inventory 与由此衍生的 shaped execution evidence；不直接修改业务运行时数据，不接真实外部服务。 | 回退本任务时，仅回退新增规格包、计划与矩阵增量，恢复到 `HARN-041` 后的治理基线；若后续业务任务已 materialize，则以追加 reconciliation 任务修正，不删除既有 task evidence。 |
+| `HARN-043` | 若要借本任务改变 `HARN-042` 已归档历史、扩大“不新增微服务”边界、把接口/枚举/只读执行限制以外的实现内容偷渡进来，或跳过 Wave 1 任务正常 instantiate 流程，需人工确认。 | 修复 `HARN-042` follow-up 真值缺口的规格/计划/矩阵文本、补充的数据源/系统管理 Story/Task inventory，以及 Wave 1 启动前的治理收口；不直接修改业务运行时数据。 | 回退时仅回退 `HARN-043` 新增的规格/计划/矩阵修补与 inventory 增量，恢复到 `HARN-042` closeout 后状态；若 Wave 1 已实例化，则通过追加治理修正保留既有 task evidence。 |
 
 ## Phase-B
 
@@ -143,6 +144,10 @@
 | `D-TASK-066` | 若 JDBC Agent `Governed Execute` 会在平台不可用时无回退策略、或默认强制所有 SQL 走平台，需人工确认 | Agent 执行模式、fallback 策略、平台调用链 | 恢复租户/数据源级可切换边界和 fallback 语义 |
 | `D-TASK-067` | 若 JDBC Agent `Local Rewrite + Direct JDBC` 会静默改写 SQL、绕过审计或改变查询语义，需人工确认 | 本地改写规则、direct JDBC 路径与上报链 | 回退为原 SQL 或 observe-only，保留改写失败记录 |
 | `D-TASK-068` | 若 Java SDK 会把未稳定契约写成强依赖、绕过统一 request/trace 语义或暴露敏感配置，需人工确认 | SDK client、配置、请求重试与接入文档 | 回退 SDK 到最小 typed client 基线，并保留 HTTP API 主路径 |
+| `D-TASK-069` | 若数据源连接配置与健康检查会落明文凭据、放宽租户隔离或把环境级 endpoint/secret 写入仓库真值，需人工确认 | datasource 配置、测试连接、健康状态与失败原因查询面 | 回退到只读 datasource 查询基线，移除高风险配置字段与敏感信息暴露 |
+| `D-TASK-070` | 若 metadata snapshot / freshness / SLA / upstream-downstream 状态会把无证据数据写成确定事实，需人工确认 | metadata snapshot、freshness/SLA/queryability/upstream/downstream 追溯面 | 恢复未知/未采集默认语义，保留证据来源与回退字段 |
+| `D-TASK-071` | 若数据资产接口会扩大跨租户可见范围、暴露未授权对象详情或破坏现有查询性能边界，需人工确认 | datasource/schema/table/logical-view/db-view 查询面与详情接口 | 回退高风险详情字段与筛选面，恢复基础受保护查询 |
+| `D-TASK-072` | 若系统管理配置接口会把 mock/config abstraction 误写成真实外部联通、或允许未经审批的配置生效，需人工确认 | 报表接口配置、Redis 规则源、装数协同策略与治理查询面 | 回退到查询/模拟基线，保留抽象配置但禁用高风险生效路径 |
 
 ## Phase-E
 
@@ -178,6 +183,8 @@
 | `E-TASK-028` | 若开放接入页会把 JDBC Agent 全模式、SDK 或真实接口联通写成既有事实，需人工确认 | 开放接入页、接入策略和文案 | 恢复到契约/规划态展示，明确当前落地阶段 |
 | `E-TASK-029` | 若 Dashboard KPI 与待办会聚合不存在的数据、放大 environment-backed 指标权重或引入未审计来源，需人工确认 | Dashboard 聚合指标、卡片与待办清单 | 恢复基于治理查询面的 KPI，移除无证据来源聚合 |
 | `E-TASK-030` | 若告警中心页会把模拟邮件写成真实通知成功、或隐藏 dedupe / ACK 语义，需人工确认 | 告警列表、详情、ACK 和通知状态展示 | 恢复 simulated 状态文案与完整事件状态链 |
+| `E-TASK-031` | 若系统管理数据源/报表接口页会暴露敏感连接信息、误导用户认为真实外部接口已默认联通，需人工确认 | 系统管理中的 datasource、health-check、report-interface 展示面 | 恢复脱敏与 mock/config 标识，关闭高风险编辑入口 |
+| `E-TASK-032` | 若 Redis 规则源、装数协同与系统参数页会把 environment-backed 配置写成默认已启用事实，需人工确认 | rule-source、dispatch policy、system-param/permission 展示面 | 恢复到查询/模拟状态展示，保留 simulated 或未联通提示 |
 
 ## Phase-F
 

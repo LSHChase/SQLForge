@@ -30,6 +30,8 @@
 - `sqlTemplateText`
 - `bindParameters`
 - `bindingMode`
+  - `POSITIONAL`
+  - `NAMED`
 - `datasourceCode`
 - `catalog`
 - `schemaName`
@@ -50,6 +52,11 @@
 - `commentContext`
 - `queryDateSummary`
 - `bindingSummary`
+  - `bindingRenderStatus`
+    - `SUCCESS`
+    - `PARTIAL`
+    - `FAILED`
+    - `MASKED`
 - `logicalObjectHits`
 - `cacheSummary`
 - `routeSummary`
@@ -200,11 +207,21 @@
 
 ### 4.3 Combined Parse Status
 
+- `POST /api/sql-optimization/parse/combined`
 - `GET /api/sql-optimization/parse/{parseTaskId}`
+
+`POST /parse/combined` 必须表达：
+
+- 先执行结构解析
+- 若连接可用则自动触发 access parse
+- 返回统一 `parseTaskId` 与初始结构解析结果
 
 必须能表达：
 
+- `CREATED`
+- `STRUCTURE_PARSING`
 - `STRUCTURE_SUCCEEDED`
+- `ACCESS_PARSING`
 - `ACCESS_SUCCEEDED`
 - `PARTIAL_SUCCEEDED`
 - `FAILED`
@@ -238,7 +255,17 @@
 - 报表统计
 - 失败记录
 
-### 5.3 Report Batch Import
+### 5.3 Retry Access Parse for Batch
+
+- `POST /api/sql-optimization/parse-batches/{batchId}/retry-access`
+
+字段：
+
+- `failureFilter`
+- `datasourceCode`
+- `forceRecheckAvailability`
+
+### 5.4 Report Batch Import
 
 - `POST /api/sql-optimization/report-batches/import`
 
@@ -251,7 +278,7 @@
 - `stage`
 - `priority`
 
-### 5.4 Resolve Report SQLs
+### 5.5 Resolve Report SQLs
 
 - `POST /api/sql-optimization/report-batches/{batchId}/resolve-sqls`
 
@@ -299,10 +326,22 @@
 ## 9. Data Asset Contracts
 
 - `GET /api/governance/datasources`
+- `GET /api/governance/datasources/{datasourceId}`
+- `POST /api/governance/datasources`
+- `PUT /api/governance/datasources/{datasourceId}`
+- `POST /api/governance/datasources/{datasourceId}/test-connection`
 - `GET /api/governance/metadata/schemas`
 - `GET /api/governance/metadata/tables`
+- `GET /api/governance/metadata/snapshots`
 - `GET /api/governance/logical-views`
 - `GET /api/governance/db-views`
+
+数据源与元数据管理至少要覆盖：
+
+- JDBC / API / Client / Gateway / Proxy 连接方式
+- 凭证与安全配置
+- 健康状态与最近失败原因
+- `freshness / SLA / upstream / downstream / queryability` 快照查询
 
 ## 10. Benchmark Contracts
 
@@ -335,7 +374,25 @@
 - `GET /api/governance/alerts`
 - `GET /api/governance/alerts/{alertId}`
 - `POST /api/governance/alerts/{alertId}/ack`
-- `POST /api/governance/alert-policies`
+- `POST /api/governance/alerts/policies`
+
+## 13. System Management Contracts
+
+- `GET /api/governance/report-interfaces`
+- `POST /api/governance/report-interfaces`
+- `PUT /api/governance/report-interfaces/{interfaceId}`
+- `GET /api/governance/redis-rule-sources`
+- `POST /api/governance/redis-rule-sources`
+- `PUT /api/governance/redis-rule-sources/{sourceId}`
+- `GET /api/governance/dispatch-policies`
+- `POST /api/governance/dispatch-policies`
+
+系统管理配置至少要支持：
+
+- 报表接口配置
+- Redis 规则源配置
+- 装数协同策略配置
+- 数据源健康检查入口
 
 ## Related Documents
 
