@@ -1,10 +1,11 @@
-package com.company.sqloptimization.application.controller.vo;
+package com.company.sqlforge.common.logicalobject;
 
 import java.util.List;
+import java.util.Locale;
 
-public class StructureParseLogicalObjectHitVO {
+public class LogicalObjectRef {
 
-    private String objectType;
+    private LogicalObjectType objectType;
     private String objectKey;
     private String objectName;
     private String catalogName;
@@ -13,11 +14,17 @@ public class StructureParseLogicalObjectHitVO {
     private Boolean resolved;
     private List<String> mappedPhysicalTargets;
 
-    public String getObjectType() {
+    public static String buildObjectKey(LogicalObjectType objectType, String objectName) {
+        String type = objectType == null ? "UNKNOWN" : objectType.name();
+        String normalizedName = objectName == null ? "" : objectName.trim().toLowerCase(Locale.ROOT);
+        return type + ":" + normalizedName;
+    }
+
+    public LogicalObjectType getObjectType() {
         return objectType;
     }
 
-    public void setObjectType(String objectType) {
+    public void setObjectType(LogicalObjectType objectType) {
         this.objectType = objectType;
     }
 

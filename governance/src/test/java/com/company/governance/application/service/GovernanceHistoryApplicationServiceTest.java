@@ -259,6 +259,7 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals(Boolean.TRUE, page.getHasMore());
         assertEquals("history-001", page.getItems().get(0).getHistoryId());
         assertEquals("PARTIAL", page.getItems().get(0).getResultStatus());
+        assertEquals(Collections.singletonList("BUSINESS_VIEW"), page.getItems().get(0).getLogicalObjectTypes());
         assertEquals(Integer.valueOf(1), ((Map<String, Integer>) page.getClassificationSummary().get("statusCounts")).get("PARTIAL"));
     }
 
@@ -1215,7 +1216,7 @@ class GovernanceHistoryApplicationServiceTest {
         row.setBoundSqlFingerprint("bound-fp");
         row.setCommentContext("{\"report_code\":\"RPT_SALES_DAILY\"}");
         row.setBindingSummary("{\"bindingMode\":\"POSITIONAL\"}");
-        row.setLogicalObjectHits("[{\"type\":\"BUSINESS_VIEW\",\"name\":\"vw_sales_daily\"}]");
+        row.setLogicalObjectHits("[{\"objectType\":\"BUSINESS_VIEW\",\"objectKey\":\"BUSINESS_VIEW:vw_sales_daily\",\"objectName\":\"vw_sales_daily\"}]");
         row.setRouteSummary("{\"selectedEngine\":\"HETU\",\"ruleId\":\"route-001\"}");
         row.setCacheSummary("{\"cacheHit\":true}");
         row.setQueryContext("{\"structureParseSummary\":{\"syntaxStatus\":\"VALID\"},\"accessParseSummary\":{\"serviceStatus\":\"AVAILABLE\"}}");

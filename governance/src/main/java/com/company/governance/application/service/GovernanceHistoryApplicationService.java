@@ -29,6 +29,7 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOp
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationTarget;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
+import com.company.sqlforge.common.logicalobject.LogicalObjectType;
 import com.company.sqlforge.common.security.SensitiveDataCryptoService;
 import com.company.sqlforge.common.utils.DateUtils;
 import com.company.sqlforge.common.utils.JsonUtils;
@@ -1183,20 +1184,23 @@ public class GovernanceHistoryApplicationService {
         }
         if (parsed instanceof Map) {
             Object type = ((Map<?, ?>) parsed).get("type");
+            if (type == null) {
+                type = ((Map<?, ?>) parsed).get("objectType");
+            }
             if (type != null) {
                 types.add(String.valueOf(type));
             }
             return;
         }
         String raw = String.valueOf(parsed);
-        if (raw.contains("BUSINESS_VIEW")) {
-            types.add("BUSINESS_VIEW");
+        if (raw.contains(LogicalObjectType.BUSINESS_VIEW.name())) {
+            types.add(LogicalObjectType.BUSINESS_VIEW.name());
         }
-        if (raw.contains("DB_VIEW")) {
-            types.add("DB_VIEW");
+        if (raw.contains(LogicalObjectType.DB_VIEW.name())) {
+            types.add(LogicalObjectType.DB_VIEW.name());
         }
-        if (raw.contains("TABLE")) {
-            types.add("TABLE");
+        if (raw.contains(LogicalObjectType.TABLE.name())) {
+            types.add(LogicalObjectType.TABLE.name());
         }
         if (types.isEmpty() && StringUtils.hasText(raw)) {
             types.add("RAW");

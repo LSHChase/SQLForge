@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-046: 建立逻辑对象统一模型
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(shared): unify logical object reference contract`
+- Priority: 1
+- Depends on: `D-TASK-045`
+- Scope: 建立 `BUSINESS_VIEW/DB_VIEW/TABLE` 的统一对象契约与跨服务引用字段 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-008` 逻辑视图与 DB View 治理
+- Human confirmation point: 若统一逻辑对象模型会混淆 `BUSINESS_VIEW` 与 `DB_VIEW` 语义、扩大对象默认可见范围，需人工确认
+- Data impact: 逻辑对象目录、引用键、跨服务 DTO
+- Rollback / recovery: 通过兼容视图恢复双模对象边界，并保留已落库对象数据
+- Validation:
+  - `contract 与 DTO 测试`
+  - `python3 scripts/foreman.py validate D-TASK-046`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added a shared logical object reference contract in sqlforge-shared, enriched structure parse logical object hits with objectKey/catalog/schema fields, aligned governance history type extraction with the unified objectType key, and updated interface/data-model docs for the canonical logical object reference surface.
+  - Validation evidence: mvn -pl sql-optimization,governance -am -Dtest=StructureParseContractTest,StructureParseControllerTest,GovernanceHistoryApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-046; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Only structure-parse and governance-history consumers are wired to the shared logical object contract so far; query-execution and richer history/detail display alignment remain for D-TASK-047 and later tasks.
+  - Next step: Instantiate D-TASK-047 to extend business logical view directory and mapping persistence against the new shared logical object reference contract.
+
 ### D-TASK-045: 补齐解析综合结论与 partial-success 追溯
 
 - Status: done

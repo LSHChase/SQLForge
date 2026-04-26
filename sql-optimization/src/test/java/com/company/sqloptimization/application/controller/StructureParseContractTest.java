@@ -2,13 +2,14 @@ package com.company.sqloptimization.application.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
+import com.company.sqlforge.common.logicalobject.LogicalObjectType;
 import com.company.sqloptimization.application.controller.vo.StructureParseIssueVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseLogicalObjectHitVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseQueryDateSummaryVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseResponseVO;
 import com.company.sqloptimization.domain.parse.StructureParseComplexityLevel;
 import com.company.sqloptimization.domain.parse.StructureParseIssueDomain;
-import com.company.sqloptimization.domain.parse.StructureLogicalObjectType;
 import com.company.sqloptimization.domain.parse.StructureParseQueryDateStatus;
 import com.company.sqloptimization.domain.parse.StructureParseIssueSeverity;
 import com.company.sqloptimization.domain.parse.StructureParsePriorityLevel;
@@ -37,8 +38,10 @@ class StructureParseContractTest {
         queryDateSummary.setQueryDateStatus(StructureParseQueryDateStatus.RESOLVED.name());
 
         StructureParseLogicalObjectHitVO logicalObjectHit = new StructureParseLogicalObjectHitVO();
-        logicalObjectHit.setObjectType(StructureLogicalObjectType.BUSINESS_VIEW.name());
+        logicalObjectHit.setObjectType(LogicalObjectType.BUSINESS_VIEW.name());
+        logicalObjectHit.setObjectKey(LogicalObjectRef.buildObjectKey(LogicalObjectType.BUSINESS_VIEW, "sales_daily_view"));
         logicalObjectHit.setObjectName("sales_daily_view");
+        logicalObjectHit.setSchemaName("sales");
         logicalObjectHit.setMatchSource("COMMENT_CONTEXT");
         logicalObjectHit.setResolved(Boolean.TRUE);
         logicalObjectHit.setMappedPhysicalTargets(Collections.singletonList("dw.sales_daily"));
@@ -63,6 +66,7 @@ class StructureParseContractTest {
         assertEquals("Add a partition predicate on the partition key.", response.getIssues().get(0).getSuggestedAction());
         assertEquals("RESOLVED", response.getQueryDateSummary().getQueryDateStatus());
         assertEquals("BUSINESS_VIEW", response.getLogicalObjectHits().get(0).getObjectType());
+        assertEquals("BUSINESS_VIEW:sales_daily_view", response.getLogicalObjectHits().get(0).getObjectKey());
         assertEquals("P2", response.getPriorityLevel());
     }
 }

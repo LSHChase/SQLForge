@@ -37,6 +37,7 @@
 - `MetadataSnapshot`
 - `BusinessLogicalView`
 - `DatabaseViewRef`
+- `LogicalObjectRef`
 - `LogicalObjectMapping`
 - `ParseTask`
 - `ParseIssue`
@@ -167,6 +168,23 @@
 - `dispatch_payload_json`
 - `detail_json`
 - `threshold_json`
+
+逻辑对象统一引用字段至少包括：
+
+- `object_type`
+- `object_key`
+- `object_name`
+- `catalog_name`
+- `schema_name`
+- `match_source`
+- `resolved`
+- `mapped_physical_targets_json`
+
+其中：
+
+- `object_type` 枚举固定为 `BUSINESS_VIEW / DB_VIEW / TABLE`
+- `object_key` 固定为 `TYPE:qualified_object_name_lowercase`
+- `logical_object_hits_json` 中若对象以 JSON 形式落库，也必须沿用同一字段命名，不再混用 `type/objectType`
 
 ## Related Documents
 

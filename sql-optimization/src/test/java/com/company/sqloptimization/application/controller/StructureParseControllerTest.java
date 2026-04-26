@@ -45,6 +45,7 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.queryDateSummary.queryDateStart").value("2026-04-01"))
             .andExpect(jsonPath("$.queryDateSummary.queryDateStatus").value("RESOLVED"))
             .andExpect(jsonPath("$.logicalObjectHits[0].objectType").value("DB_VIEW"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].objectKey").value("DB_VIEW:vw_sales_daily"))
             .andExpect(jsonPath("$.riskTags[0]").value("SELECT_STAR"))
             .andExpect(jsonPath("$.rewriteCandidates[0]").value("DEDUPLICATE_WHERE_PREDICATES"))
             .andExpect(jsonPath("$.issues[0].issueCode").value("SELECT_STAR"))

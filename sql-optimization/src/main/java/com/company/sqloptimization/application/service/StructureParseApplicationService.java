@@ -1,13 +1,14 @@
 package com.company.sqloptimization.application.service;
 
-import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
+import com.company.sqlforge.common.logicalobject.LogicalObjectType;
 import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
 import com.company.sqloptimization.application.controller.vo.StructureParseIssueVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseLogicalObjectHitVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseQueryDateSummaryVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseResponseVO;
-import com.company.sqloptimization.domain.parse.StructureLogicalObjectType;
 import com.company.sqloptimization.domain.parse.StructureParseComplexityLevel;
 import com.company.sqloptimization.domain.parse.StructureParseIssue;
 import com.company.sqloptimization.domain.parse.StructureParseIssueDomain;
@@ -252,17 +253,46 @@ public class StructureParseApplicationService {
             hit.setObjectName(table);
             hit.setMappedPhysicalTargets(Collections.singletonList(table));
             if (isDbViewHeuristic(table)) {
-                hit.setObjectType(StructureLogicalObjectType.DB_VIEW);
+                hit.setObjectType(LogicalObjectType.DB_VIEW);
                 hit.setMatchSource(MATCH_SOURCE_HEURISTIC);
                 hit.setResolved(Boolean.FALSE);
             } else {
-                hit.setObjectType(StructureLogicalObjectType.TABLE);
+                hit.setObjectType(LogicalObjectType.TABLE);
                 hit.setMatchSource(MATCH_SOURCE_SQL);
                 hit.setResolved(Boolean.TRUE);
             }
+            fillLogicalObjectReferenceFields(hit);
             hits.add(hit);
         }
         return hits;
+    }
+
+    private void fillLogicalObjectReferenceFields(StructureParseLogicalObjectHit hit) {
+        if (hit == null) {
+            return;
+        }
+        hit.setObjectKey(LogicalObjectRef.buildObjectKey(hit.getObjectType(), hit.getObjectName()));
+        String[] parts = splitQualifiedName(hit.getObjectName());
+        if (parts.length == 3) {
+            hit.setCatalogName(parts[0]);
+            hit.setSchemaName(parts[1]);
+        } else if (parts.length == 2) {
+            hit.setSchemaName(parts[0]);
+        }
+    }
+
+    private String[] splitQualifiedName(String objectName) {
+        if (!StringUtils.hasText(objectName)) {
+            return new String[0];
+        }
+        String[] parts = objectName.split("\\.");
+        if (parts.length >= 3) {
+            return new String[] {parts[0], parts[1], parts[2]};
+        }
+        if (parts.length == 2) {
+            return new String[] {parts[0], parts[1]};
+        }
+        return new String[] {parts[0]};
     }
 
     private boolean isDbViewHeuristic(String objectName) {
@@ -330,7 +360,10 @@ public class StructureParseApplicationService {
         for (StructureParseLogicalObjectHit hit : hits) {
             StructureParseLogicalObjectHitVO vo = new StructureParseLogicalObjectHitVO();
             vo.setObjectType(hit.getObjectType().name());
+            vo.setObjectKey(hit.getObjectKey());
             vo.setObjectName(hit.getObjectName());
+            vo.setCatalogName(hit.getCatalogName());
+            vo.setSchemaName(hit.getSchemaName());
             vo.setMatchSource(hit.getMatchSource());
             vo.setResolved(hit.getResolved());
             vo.setMappedPhysicalTargets(hit.getMappedPhysicalTargets());

@@ -213,7 +213,10 @@
 `logicalObjectHits[]` 子字段：
 
 - `objectType`
+- `objectKey`
 - `objectName`
+- `catalogName`
+- `schemaName`
 - `matchSource`
 - `resolved`
 - `mappedPhysicalTargets`
@@ -223,6 +226,12 @@
 - `BUSINESS_VIEW`
 - `DB_VIEW`
 - `TABLE`
+
+`objectKey` 规则：
+
+- `TYPE:qualified_object_name_lowercase`
+- 例如 `DB_VIEW:analytics.vw_sales_daily`
+- 作为查询、历史、解析、路由之间的统一引用键
 
 `issues[]` 子字段：
 
