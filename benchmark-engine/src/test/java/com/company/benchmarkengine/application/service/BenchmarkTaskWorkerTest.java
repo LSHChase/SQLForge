@@ -8,6 +8,7 @@ import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskConte
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
 import com.company.benchmarkengine.config.BenchmarkArtifactStorageProperties;
 import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
+import com.company.benchmarkengine.config.BenchmarkTaskQueueProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
@@ -18,9 +19,12 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloa
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadResponse;
 import com.company.benchmarkengine.infrastructure.repository.InMemoryBenchmarkTaskRepository;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class BenchmarkTaskWorkerTest {
 
@@ -57,6 +61,11 @@ class BenchmarkTaskWorkerTest {
         workloadResponse.setEngineSnapshots(Collections.singletonList(engineSnapshot));
         org.mockito.Mockito.when(workloadClient.captureWorkload(org.mockito.ArgumentMatchers.any())).thenReturn(workloadResponse);
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+        BenchmarkTaskQueueService queueService = new BenchmarkTaskQueueService(
+            repository,
+            new BenchmarkTaskQueueProperties(),
+            properties
+        );
         BenchmarkTaskWorker worker = new BenchmarkTaskWorker(
             modelService,
             new BenchmarkIsolatedExecutionService(properties, modelService, workloadClient),
@@ -65,7 +74,8 @@ class BenchmarkTaskWorkerTest {
             new BenchmarkGovernanceTraceService(governanceCapabilityClient),
             repository,
             properties,
-            new BenchmarkMetricsRecorder(meterRegistry)
+            new BenchmarkMetricsRecorder(meterRegistry),
+            queueService
         );
 
         worker.processQueuedTasks();
@@ -96,6 +106,57 @@ class BenchmarkTaskWorkerTest {
         assertEquals(1.0D, meterRegistry.get("sqlforge.benchmark.engine.reports.generated").tags(
             "task_type", "BASELINE"
         ).counter().count());
+    }
+
+    @Test
+    void shouldConsumeExternalFileQueueAndCleanupCarrierMessage(@TempDir Path tempDir) throws Exception {
+        InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
+        BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
+        BenchmarkTask task = modelService.createQueuedTask(baseRequest(), "benchmark-task-async-queue-001", Instant.now().minusSeconds(1L));
+        repository.saveTask(task);
+
+        BenchmarkTaskExecutionProperties properties = new BenchmarkTaskExecutionProperties();
+        properties.setQueueVisibilityDelayMs(0L);
+        properties.setPhaseDelayMs(0L);
+        properties.setIsolationSampleCount(4);
+        properties.setIsolationWorkIterations(24);
+        BenchmarkTaskQueueProperties queueProperties = new BenchmarkTaskQueueProperties();
+        queueProperties.setMode("external-file-queue");
+        queueProperties.setExternalFileQueueDir(tempDir.resolve("external-file-queue").toString());
+        BenchmarkTaskQueueService queueService = new BenchmarkTaskQueueService(repository, queueProperties, properties);
+        queueService.dispatch(task);
+
+        BenchmarkArtifactStorageProperties storageProperties = new BenchmarkArtifactStorageProperties();
+        GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
+        QueryExecutionBenchmarkWorkloadClient workloadClient = mock(QueryExecutionBenchmarkWorkloadClient.class);
+        QueryExecutionBenchmarkWorkloadResponse workloadResponse = new QueryExecutionBenchmarkWorkloadResponse();
+        workloadResponse.setWorkloadDigest("aggregate-qe-digest");
+        workloadResponse.setWorkloadSource("LIVE_WITH_COMPENSATED_REPLAY");
+        workloadResponse.setImplementationStage("BENCHMARK_WORKLOAD_ORCHESTRATION_BASELINE");
+        workloadResponse.setEngineSnapshots(Collections.<QueryExecutionBenchmarkWorkloadEngineSnapshot>emptyList());
+        org.mockito.Mockito.when(workloadClient.captureWorkload(org.mockito.ArgumentMatchers.any())).thenReturn(workloadResponse);
+        BenchmarkTaskWorker worker = new BenchmarkTaskWorker(
+            modelService,
+            new BenchmarkIsolatedExecutionService(properties, modelService, workloadClient),
+            new BenchmarkReportExportService(),
+            new BenchmarkArtifactStorageService(storageProperties, governanceCapabilityClient),
+            new BenchmarkGovernanceTraceService(governanceCapabilityClient),
+            repository,
+            properties,
+            new BenchmarkMetricsRecorder(new SimpleMeterRegistry()),
+            queueService
+        );
+
+        worker.processQueuedTasks();
+
+        assertEquals("SUCCEEDED", repository.findTaskByTaskId("benchmark-task-async-queue-001").getStatus().name());
+        assertEquals(0L, Files.list(tempDir.resolve("external-file-queue")).count());
+        assertEquals(
+            "external-file-queue",
+            BenchmarkTaskQueueService.resolveQueueEvidence(
+                repository.findTaskByTaskId("benchmark-task-async-queue-001")
+            ).getQueueMode()
+        );
     }
 
     private BenchmarkTaskSubmitRequest baseRequest() {

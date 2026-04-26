@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableConfigurationProperties({
     com.company.benchmarkengine.config.AuthProperties.class,
     com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties.class,
+    com.company.benchmarkengine.config.BenchmarkTaskQueueProperties.class,
     com.company.benchmarkengine.config.BenchmarkEngineGovernanceProperties.class,
     com.company.benchmarkengine.config.BenchmarkArtifactStorageProperties.class,
     com.company.benchmarkengine.config.BenchmarkEngineQueryExecutionProperties.class

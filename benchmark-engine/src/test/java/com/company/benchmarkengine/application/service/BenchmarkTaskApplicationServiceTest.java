@@ -10,21 +10,29 @@ import static org.mockito.Mockito.verify;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
+import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
+import com.company.benchmarkengine.config.BenchmarkTaskQueueProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
 import com.company.benchmarkengine.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.benchmarkengine.infrastructure.repository.InMemoryBenchmarkTaskRepository;
 import com.company.sqlforge.common.exception.BizException;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 
 @ExtendWith(OutputCaptureExtension.class)
 class BenchmarkTaskApplicationServiceTest {
+
+    @TempDir
+    Path tempDir;
 
     @AfterEach
     void tearDown() {
@@ -33,11 +41,13 @@ class BenchmarkTaskApplicationServiceTest {
 
     @Test
     void shouldLogSubmitLifecycleForQueuedSubmit(CapturedOutput output) {
+        InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
         BenchmarkTaskApplicationService service = new BenchmarkTaskApplicationService(
             new BenchmarkTaskModelApplicationService(),
-            new InMemoryBenchmarkTaskRepository(),
+            repository,
             mockGovernanceClient(),
-            new BenchmarkMetricsRecorder(new SimpleMeterRegistry())
+            new BenchmarkMetricsRecorder(new SimpleMeterRegistry()),
+            queueService(repository)
         );
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -51,11 +61,13 @@ class BenchmarkTaskApplicationServiceTest {
 
     @Test
     void shouldLogExceptionForMissingTaskStatusQuery(CapturedOutput output) {
+        InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
         BenchmarkTaskApplicationService service = new BenchmarkTaskApplicationService(
             new BenchmarkTaskModelApplicationService(),
-            new InMemoryBenchmarkTaskRepository(),
+            repository,
             mockGovernanceClient(),
-            new BenchmarkMetricsRecorder(new SimpleMeterRegistry())
+            new BenchmarkMetricsRecorder(new SimpleMeterRegistry()),
+            queueService(repository)
         );
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -70,11 +82,13 @@ class BenchmarkTaskApplicationServiceTest {
     @Test
     void shouldCallGovernanceChecksAndAuditOnSubmitAndStatusQuery() {
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
         BenchmarkTaskApplicationService service = new BenchmarkTaskApplicationService(
             new BenchmarkTaskModelApplicationService(),
-            new InMemoryBenchmarkTaskRepository(),
+            repository,
             governanceCapabilityClient,
-            new BenchmarkMetricsRecorder(new SimpleMeterRegistry())
+            new BenchmarkMetricsRecorder(new SimpleMeterRegistry()),
+            queueService(repository)
         );
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -94,11 +108,13 @@ class BenchmarkTaskApplicationServiceTest {
     @Test
     void shouldRecordSubmittedBenchmarkTaskMetric() {
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+        InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
         BenchmarkTaskApplicationService service = new BenchmarkTaskApplicationService(
             new BenchmarkTaskModelApplicationService(),
-            new InMemoryBenchmarkTaskRepository(),
+            repository,
             mockGovernanceClient(),
-            new BenchmarkMetricsRecorder(meterRegistry)
+            new BenchmarkMetricsRecorder(meterRegistry),
+            queueService(repository)
         );
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
 
@@ -107,6 +123,32 @@ class BenchmarkTaskApplicationServiceTest {
         assertEquals(1.0D, meterRegistry.get("sqlforge.benchmark.engine.tasks.submitted").tags(
             "task_type", "BASELINE"
         ).counter().count());
+    }
+
+    @Test
+    void shouldDispatchQueuedTaskToExternalFileQueueAndExposeQueueEvidence() throws Exception {
+        InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        BenchmarkTaskQueueProperties queueProperties = new BenchmarkTaskQueueProperties();
+        queueProperties.setMode("external-file-queue");
+        queueProperties.setExternalFileQueueDir(tempDir.resolve("external-file-queue").toString());
+        BenchmarkTaskExecutionProperties executionProperties = new BenchmarkTaskExecutionProperties();
+        executionProperties.setQueueVisibilityDelayMs(0L);
+        BenchmarkTaskApplicationService service = new BenchmarkTaskApplicationService(
+            new BenchmarkTaskModelApplicationService(),
+            repository,
+            governanceCapabilityClient,
+            new BenchmarkMetricsRecorder(new SimpleMeterRegistry()),
+            new BenchmarkTaskQueueService(repository, queueProperties, executionProperties)
+        );
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+
+        String taskId = service.submitTask(baseRequest("SELECT * FROM orders")).getTaskId();
+
+        assertEquals("external-file-queue", service.getTaskStatus(taskId).getQueueMode());
+        assertTrue(service.getTaskStatus(taskId).getQueueEvidence().contains("queueMessagePath="));
+        assertEquals(1L, Files.list(tempDir.resolve("external-file-queue")).count());
+        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).writeAudit(any());
     }
 
     private BenchmarkTaskSubmitRequest baseRequest(String sqlText) {
@@ -123,5 +165,12 @@ class BenchmarkTaskApplicationServiceTest {
         doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         return governanceCapabilityClient;
+    }
+
+    private BenchmarkTaskQueueService queueService(InMemoryBenchmarkTaskRepository repository) {
+        BenchmarkTaskQueueProperties queueProperties = new BenchmarkTaskQueueProperties();
+        BenchmarkTaskExecutionProperties executionProperties = new BenchmarkTaskExecutionProperties();
+        executionProperties.setQueueVisibilityDelayMs(0L);
+        return new BenchmarkTaskQueueService(repository, queueProperties, executionProperties);
     }
 }

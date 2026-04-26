@@ -355,14 +355,14 @@
 
 ## 3.3 Benchmark Engine Task Contract Baseline
 
-当前 `benchmark-engine` 已将压测任务与报告查询契约接到公共 HTTP + MySQL 基线，并通过 `benchmark_task` / `benchmark_task_report`、MyBatis XML repository、in-process scheduled worker、repo-closed 隔离执行服务和持久化导出产物提供可测的提交、轮询、报告查询与失败路径。
+当前 `benchmark-engine` 已将压测任务与报告查询契约接到公共 HTTP + MySQL 基线，并通过 `benchmark_task` / `benchmark_task_report`、MyBatis XML repository、in-process scheduled worker、repo-closed 隔离执行服务和持久化导出产物提供可测的提交、轮询、报告查询与失败路径；当前任务队列 carrier 支持默认 `database-worker` 与显式启用的 `external-file-queue`，并把 carrier evidence 暴露到任务响应与审计载荷。
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
-| `POST /api/benchmark-engine/tasks` | `BenchmarkTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`taskContext` | `BenchmarkTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`contractStage`,`implementationStage` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
-| `GET /api/benchmark-engine/tasks/{taskId}` | path: `taskId` | `BenchmarkTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`targetEngines`,`readonlyRequired`,`shadowEnvironmentMode`,`desensitizationRequirement`,`thresholdCount`,`reportId`,`error`,`submittedAt`,`startedAt`,`finishedAt`,`contractStage`,`implementationStage` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
-| `GET /api/benchmark-engine/reports/{reportId}` | path: `reportId`, query: `format=JSON|PDF|HTML` (default `JSON`) | JSON: `BenchmarkReportResponse`; PDF/HTML: externalized persisted export snapshot with stable `Content-Type` and `Content-Disposition` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
-| `GET /api/benchmark-engine/reports/{reportId}/raw-data` | path: `reportId` | attachment download backed by persisted raw-data snapshot with stable `Content-Type` and `Content-Disposition` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
+| `POST /api/benchmark-engine/tasks` | `BenchmarkTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`taskContext` | `BenchmarkTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`queueMode`,`queueEvidence`,`contractStage`,`implementationStage` | `EXTERNAL_QUEUE_PROVIDER_NATIVE_STORAGE_BASELINE` |
+| `GET /api/benchmark-engine/tasks/{taskId}` | path: `taskId` | `BenchmarkTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`targetEngines`,`readonlyRequired`,`shadowEnvironmentMode`,`desensitizationRequirement`,`thresholdCount`,`reportId`,`error`,`submittedAt`,`startedAt`,`finishedAt`,`queueMode`,`queueEvidence`,`contractStage`,`implementationStage` | `EXTERNAL_QUEUE_PROVIDER_NATIVE_STORAGE_BASELINE` |
+| `GET /api/benchmark-engine/reports/{reportId}` | path: `reportId`, query: `format=JSON|PDF|HTML` (default `JSON`) | JSON: `BenchmarkReportResponse`; PDF/HTML: externalized persisted export snapshot with stable `Content-Type` and `Content-Disposition` | `EXTERNAL_QUEUE_PROVIDER_NATIVE_STORAGE_BASELINE` |
+| `GET /api/benchmark-engine/reports/{reportId}/raw-data` | path: `reportId` | attachment download backed by persisted raw-data snapshot with stable `Content-Type` and `Content-Disposition` | `EXTERNAL_QUEUE_PROVIDER_NATIVE_STORAGE_BASELINE` |
 
 当前模型基线涉及以下契约对象：
 
@@ -485,8 +485,8 @@
 
 说明：
 
-- 当前 `POST /api/benchmark-engine/tasks` 会先返回 `QUEUED / SUBMITTED` 快照，再由 `BenchmarkTaskWorker` 基于 `benchmark_task` 表推进到成功或失败，并在成功路径上先向 `query-execution` 内部受保护入口抓取 workload/backfill snapshot，再执行 repo-closed 隔离 replay、组装报告快照、生成导出产物、externalize 到 artifact storage、调用治理 trace/export orchestration，最后把 artifact metadata 回写到 `benchmark_task_report`。
-- 当前 `GET /api/benchmark-engine/tasks/{taskId}` 已可查询最新任务状态；未知任务返回 `23001`。
+- 当前 `POST /api/benchmark-engine/tasks` 会先返回 `QUEUED / SUBMITTED` 快照，再由 `BenchmarkTaskWorker` 基于 `benchmark_task` 表推进到成功或失败，并在成功路径上先向 `query-execution` 内部受保护入口抓取 workload/backfill snapshot，再执行 repo-closed 隔离 replay、组装报告快照、生成导出产物、externalize 到 artifact storage、调用治理 trace/export orchestration，最后把 artifact metadata 回写到 `benchmark_task_report`；当 `benchmark-engine.queues.mode=external-file-queue` 时，提交流程会先把最小 envelope 写入外部文件队列，并把 `queueMessagePath` 等 evidence 回写到任务状态历史与审计面。
+- 当前 `GET /api/benchmark-engine/tasks/{taskId}` 已可查询最新任务状态，并返回 `queueMode/queueEvidence` 以标记当前任务使用的 queue carrier；未知任务返回 `23001`。
 - 当前 `GET /api/benchmark-engine/reports/{reportId}` 默认返回结构化 JSON；当 `format=PDF|HTML` 时返回 externalized 持久化导出产物内容，并保留稳定的 content-type / filename 契约。
 - 当前 `GET /api/benchmark-engine/reports/{reportId}/raw-data` 返回 attachment download，并从 externalized raw-data snapshot 直接读取响应体。
 - 当前失败路径通过 SQL 或指纹中的显式 `FAIL_BENCHMARK` 标记触发，用于稳定验证 worker 失败与轮询失败场景。
@@ -495,12 +495,12 @@
 - 当前报告模型已覆盖引擎指标快照、阈值判定、趋势图表、建议输出、执行摘要以及导出产物元数据；成功路径会生成 `JSON/PDF/HTML` 与 raw-data artifact，记录 `artifactKey/artifactKind/storageType/storageUri/storageEvidence/exportId/retentionDays/retentionPolicySource/retentionDeleteAfter`，并把 workload/backfill/compensation 结构证据、provider-specific / multi-provider object-storage contract、cleanup/recovery order 与 object-storage provider/external verification 证据同步写入 governance trace payload，供后续查询直接复用。
 - 当前报告查询/下载审计会在 artifact 已具备治理追溯元数据时补齐 `configSnapshotId/resultId/historyId/exportId`；其中 `JSON` 查询绑定 `json-export`，`PDF/HTML` 查询绑定对应导出 artifact，`raw-data` 下载绑定 `raw-data` artifact。
 - 当前 repo-local artifact lifecycle 已固化为保留当前 report-set、重写时清理陈旧 sibling 文件，以及在 `PDF/HTML/raw-data` 文件缺失时从持久化报告快照恢复后再继续返回响应。
-- 当前仓库已补齐 repo-closed 隔离执行、benchmark/query-execution workload/backfill/compensation orchestration、artifact externalization、查询 audit-link enrichment、tenant-specific retention/backfill policy，以及治理 trace/export orchestration 链路；`LOCAL_FILE` 仍是默认主路径，而 `ENVIRONMENT_OBJECT_STORAGE` 只在显式配置时启用，并通过 repo-local mirror + object URI + live-evidence manifest 保留环境级对象存储接线证据，在提供 primary/recovery provider endpoint 时还会执行真实 provider-backed write/readback verification，并把实际 recovery source/read status 作为治理查询面的显式字段暴露。
+- 当前仓库已补齐 repo-closed 隔离执行、benchmark/query-execution workload/backfill/compensation orchestration、artifact externalization、查询 audit-link enrichment、tenant-specific retention/backfill policy、外部文件队列 carrier，以及治理 trace/export orchestration 链路；`LOCAL_FILE` 仍是默认主路径，而 `ENVIRONMENT_OBJECT_STORAGE` 只在显式配置时启用，并通过 repo-local mirror + object URI + live-evidence manifest 保留环境级对象存储接线证据，在提供 primary/recovery provider endpoint 时还会执行真实 provider-backed write/readback/head verification，并把实际 recovery source/read status 与 provider-native live evidence 作为治理查询面的显式字段暴露。
 - 当前 tenant-specific artifact policy 通过 `governance tenant_config.retention_days` 解析；若历史 artifact 缺少该元数据，则会在后续查询/恢复时回填 retention evidence，而不是把旧 artifact 直接写成永久缺省无策略。
 - 当前 governance history summaries/lookups/detail 已把 `compensationReplayEvidence`、`artifactStorageContract`、`artifactRecoverySurface`、`artifactOperationSurface` 作为显式结构字段返回，其中 `artifactStorageContract` 至少覆盖 `storageType/providerMode/primaryProvider/recoveryProvider/recoveryOrder/cleanupScope/retention*`，`artifactRecoverySurface` 至少覆盖 `artifactRecoveryStatus/storageRecoverySource/storageReadStatus/provider*/externalWrite*`，而 `artifactOperationSurface` 至少覆盖 `operationType/operationStatus/cleanupScope/storageRecoverySource/storageReadStatus/providerHeadStatus/providerRequestId/orchestrationType/batchId/batchIndex/batchSize/errorCode/errorMessage`。
 - 当前新增 `POST /api/governance/history/artifact-operations` 与 `POST /api/governance/history/artifact-operations/batch` 两个公共受保护入口，并与 `POST /api/benchmark-engine/internal/artifact-operations` 内部受保护入口组成 governance-triggered cleanup/recovery operation contract；当前只开放 tenant/platform admin 触发，batch retention 默认 cleanup scope 为 `MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER`，并通过 governance 侧编排复用 benchmark-engine 单条 artifact operation 路由，不把 provider-backed object storage 写成仓库默认主路径。
 - 当前环境级 artifact cleanup scope 已显式收口为 `MIRROR_ONLY`、`MIRROR_LIVE_EVIDENCE`、`MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE`、`MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER`；其中 provider cleanup/delete 属于受治理的 provider-authenticated operation，要求显式配置 credentials，且会把 primary/recovery provider delete status 连同 batch/orchestration 元数据一并写入治理审计面。
-- 当前 `Phase-D` 剩余关注点已收窄为更广的 environment-backed 执行证据、真实 provider-native 长期对象存储语义，以及跨服务 workload compensation/recovery 结果向长期治理追溯面的进一步沉淀。
+- 当前 `Phase-D` 剩余关注点已收窄为真正的缓存治理能力，以及更广的 environment-backed 执行证据、跨服务 workload compensation/recovery 结果向长期治理追溯面的进一步沉淀。
 
 ## 4. Event Contract Baseline
 

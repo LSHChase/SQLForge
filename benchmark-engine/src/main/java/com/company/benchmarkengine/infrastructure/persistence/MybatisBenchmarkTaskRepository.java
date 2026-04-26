@@ -41,11 +41,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@ConditionalOnProperty(prefix = "benchmark-engine.queues", name = "mode", havingValue = "database-worker")
+@ConditionalOnExpression("'${benchmark-engine.queues.mode:database-worker}' != 'local-placeholder'")
 public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
 
     private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;

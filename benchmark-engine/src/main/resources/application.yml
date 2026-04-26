@@ -41,6 +41,9 @@ benchmark-engine:
     isolation-work-iterations: 96
   queues:
     mode: database-worker
+    external-file-queue-dir: ${BENCHMARK_ENGINE_EXTERNAL_QUEUE_DIR:target/benchmark-engine-queue/external-file-spool}
+    cleanup-consumed-files: ${BENCHMARK_ENGINE_EXTERNAL_QUEUE_CLEANUP_CONSUMED_FILES:true}
+    acquire-batch-size: ${BENCHMARK_ENGINE_EXTERNAL_QUEUE_ACQUIRE_BATCH_SIZE:32}
   governance:
     base-url: ${BENCHMARK_ENGINE_GOVERNANCE_BASE_URL:http://localhost:8080/api/governance/internal}
     connect-timeout-ms: ${BENCHMARK_ENGINE_GOVERNANCE_CONNECT_TIMEOUT_MS:3000}

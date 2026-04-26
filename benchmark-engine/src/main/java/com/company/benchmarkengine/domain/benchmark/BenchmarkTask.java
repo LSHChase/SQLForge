@@ -185,6 +185,22 @@ public class BenchmarkTask {
         this.finishedAt = actualFinishedAt;
     }
 
+    public void appendOperationalNote(String note) {
+        if (note == null || note.trim().isEmpty()) {
+            return;
+        }
+        statusHistory.add(
+            new BenchmarkTaskStatusTransition(
+                status,
+                status,
+                currentPhase,
+                currentPhase,
+                Instant.now(),
+                note
+            )
+        );
+    }
+
     private void recordTransition(BenchmarkTaskStatus nextStatus,
                                   BenchmarkTaskPhase nextPhase,
                                   Instant occurredAt,

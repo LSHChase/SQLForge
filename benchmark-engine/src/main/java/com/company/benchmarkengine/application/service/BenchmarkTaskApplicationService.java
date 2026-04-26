@@ -42,15 +42,18 @@ public class BenchmarkTaskApplicationService {
     private final BenchmarkTaskRepository benchmarkTaskRepository;
     private final GovernanceCapabilityClient governanceCapabilityClient;
     private final BenchmarkMetricsRecorder benchmarkMetricsRecorder;
+    private final BenchmarkTaskQueueService benchmarkTaskQueueService;
 
     public BenchmarkTaskApplicationService(BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService,
                                            BenchmarkTaskRepository benchmarkTaskRepository,
                                            GovernanceCapabilityClient governanceCapabilityClient,
-                                           BenchmarkMetricsRecorder benchmarkMetricsRecorder) {
+                                           BenchmarkMetricsRecorder benchmarkMetricsRecorder,
+                                           BenchmarkTaskQueueService benchmarkTaskQueueService) {
         this.benchmarkTaskModelApplicationService = benchmarkTaskModelApplicationService;
         this.benchmarkTaskRepository = benchmarkTaskRepository;
         this.governanceCapabilityClient = governanceCapabilityClient;
         this.benchmarkMetricsRecorder = benchmarkMetricsRecorder;
+        this.benchmarkTaskQueueService = benchmarkTaskQueueService;
     }
 
     public BenchmarkTaskSubmitResponse submitTask(BenchmarkTaskSubmitRequest request) {
@@ -69,6 +72,7 @@ public class BenchmarkTaskApplicationService {
             );
             assertAuthorization(task.getTenantId(), task.getTaskId(), task.getTargetEngines(), SUBMIT_OPERATION);
             benchmarkTaskRepository.saveTask(task);
+            BenchmarkTaskQueueService.BenchmarkQueueDispatch queueDispatch = benchmarkTaskQueueService.dispatch(task);
             benchmarkMetricsRecorder.recordTaskSubmitted(task);
             logStateChange(
                 SUBMIT_OPERATION,
@@ -78,7 +82,7 @@ public class BenchmarkTaskApplicationService {
                 STATE_REQUEST_ACCEPTED,
                 STATE_TASK_QUEUED,
                 task.getStatus().name(),
-                null
+                queueDispatch.getQueueEvidence()
             );
             BenchmarkTaskSubmitResponse response = benchmarkTaskModelApplicationService.buildSubmitResponse(
                 task,
@@ -331,6 +335,8 @@ public class BenchmarkTaskApplicationService {
         payload.put("resultStatus", response == null ? "FAILED" : response.getStatus().name());
         payload.put("currentPhase", response == null ? null : response.getCurrentPhase().name());
         payload.put("taskId", response == null ? null : response.getTaskId());
+        payload.put("queueMode", response == null ? null : response.getQueueMode());
+        payload.put("queueEvidence", response == null ? null : response.getQueueEvidence());
         payload.put("failureReason", failureReason);
         return JsonUtils.toJson(payload);
     }
@@ -341,6 +347,8 @@ public class BenchmarkTaskApplicationService {
         payload.put("currentPhase", response == null ? null : response.getCurrentPhase().name());
         payload.put("taskId", response == null ? null : response.getTaskId());
         payload.put("reportId", response == null ? null : response.getReportId());
+        payload.put("queueMode", response == null ? null : response.getQueueMode());
+        payload.put("queueEvidence", response == null ? null : response.getQueueEvidence());
         payload.put("errorCode", response == null || response.getError() == null ? null : response.getError().getCode());
         payload.put("failureReason", failureReason);
         return JsonUtils.toJson(payload);

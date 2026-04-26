@@ -106,7 +106,7 @@
 - `QUEUED` / `RUNNING` / `SUCCEEDED` / `FAILED` / `CANCELLED` 生命周期状态与任务类型感知的阶段流转
 - `POST /api/benchmark-engine/tasks` 和 `GET /api/benchmark-engine/tasks/{taskId}` 的过渡骨架
 - `GET /api/benchmark-engine/reports/{reportId}` 的 JSON / PDF / HTML 报告查询骨架
-- 基于 MySQL `benchmark_task` / `benchmark_task_report`、MyBatis XML repository 和 in-process scheduled worker 的提交、轮询、失败路径、报告回写、报告查询与流程日志
+- 基于 MySQL `benchmark_task` / `benchmark_task_report`、MyBatis XML repository 和 in-process scheduled worker 的提交、轮询、失败路径、报告回写、报告查询与流程日志；当前还支持显式配置的 `external-file-queue` carrier，并把 `queueMode/queueEvidence` 回写到任务状态与审计载荷
 - repo-closed 隔离执行 service、执行摘要，以及优先复用 `query-execution` 内部 workload capture、失败时显式 synthetic backfill、同批次 mixed live/fallback 时的 compensation-replay 可复现 orchestration
 - 持久化 `JSON/PDF/HTML` 导出产物 bundle、raw-data snapshot download，以及从已 externalize artifact 直接返回报告导出/下载的查询路径
 - repo-local artifact storage 基线，以及面向 `governance` 内部受保护入口的 benchmark report trace/export orchestration；当前还会把 workload/backfill/compensation evidence 提升为治理长期追溯链中的显式结构载荷
@@ -114,6 +114,7 @@
 - tenant-specific artifact retention/backfill policy：通过治理侧 `tenant_config.retention_days` 解析 retention days，并在历史 artifact 查询/恢复时回填 policy metadata
 - 显式配置的 `ENVIRONMENT_OBJECT_STORAGE` adapter：保留 repo-local lifecycle 为默认路径，同时为 object URI / repo-local mirror / env var 依赖生成 evidence，并可在配置 primary/recovery provider endpoint、bucket、credentials、provider contract 与 cleanup scope 时执行真实 provider-backed write/readback recovery verification；如同时配置 external write dir，则会叠加 external write/readback verification
 - provider-specific / multi-provider contract、cleanup/recovery order 与 failure-replay 语义：当前可按 `REPO_LOCAL_MIRROR -> PRIMARY_PROVIDER -> RECOVERY_PROVIDER -> EXTERNAL_WRITE -> REPORT_SNAPSHOT` 的证据顺序恢复 artifact，并把实际 recovery source/read status 写回 benchmark 审计与治理追溯查询面
+- provider-native 运行语义：当前 live-evidence manifest 与 storage evidence 会显式沉淀 `providerContract/providerDialect/providerHeadStatus/providerContent*/providerEtag/providerRequestId`，并保留 provider-authenticated cleanup/recovery 边界，而不把环境级对象存储改写成仓库默认主路径
 - 只读要求、影子环境模式、脱敏要求、并发/时长/预热/数据规模等任务元数据固化
 - 阈值模型、阈值判定结果、引擎指标快照、趋势图表、优化建议和报告契约对象
 - 基础 DTO / VO、错误码区间和模型装配 service

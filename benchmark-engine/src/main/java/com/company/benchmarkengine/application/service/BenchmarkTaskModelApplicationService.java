@@ -40,8 +40,8 @@ import org.springframework.stereotype.Service;
 public class BenchmarkTaskModelApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
-    private static final String TASK_IMPLEMENTATION_STAGE = "EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE";
-    private static final String REPORT_IMPLEMENTATION_STAGE = "EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE";
+    private static final String TASK_IMPLEMENTATION_STAGE = "EXTERNAL_QUEUE_PROVIDER_NATIVE_STORAGE_BASELINE";
+    private static final String REPORT_IMPLEMENTATION_STAGE = "EXTERNAL_QUEUE_PROVIDER_NATIVE_STORAGE_BASELINE";
     private static final String STATUS_QUERY_PATH_TEMPLATE = "/api/benchmark-engine/tasks/%s";
     private static final String REPORT_QUERY_PATH_TEMPLATE = "/api/benchmark-engine/reports/%s";
     private static final String RAW_DATA_PATH_TEMPLATE = "/api/benchmark-engine/reports/%s/raw-data";
@@ -70,18 +70,22 @@ public class BenchmarkTaskModelApplicationService {
     }
 
     public BenchmarkTaskSubmitResponse buildSubmitResponse(BenchmarkTask task, Instant estimatedReadyAt) {
+        BenchmarkTaskQueueService.QueueEvidence queueEvidence = BenchmarkTaskQueueService.resolveQueueEvidence(task);
         return new BenchmarkTaskSubmitResponse(
             task.getTaskId(),
             task.getStatus(),
             task.getCurrentPhase(),
             estimatedReadyAt,
             buildStatusQueryPath(task.getTaskId()),
+            queueEvidence.getQueueMode(),
+            queueEvidence.getQueueEvidence(),
             CONTRACT_STAGE,
             TASK_IMPLEMENTATION_STAGE
         );
     }
 
     public BenchmarkTaskStatusResponse buildStatusResponse(BenchmarkTask task) {
+        BenchmarkTaskQueueService.QueueEvidence queueEvidence = BenchmarkTaskQueueService.resolveQueueEvidence(task);
         return new BenchmarkTaskStatusResponse(
             task.getTaskId(),
             task.getTaskType(),
@@ -99,6 +103,8 @@ public class BenchmarkTaskModelApplicationService {
             task.getSubmittedAt(),
             task.getStartedAt(),
             task.getFinishedAt(),
+            queueEvidence.getQueueMode(),
+            queueEvidence.getQueueEvidence(),
             CONTRACT_STAGE,
             TASK_IMPLEMENTATION_STAGE
         );

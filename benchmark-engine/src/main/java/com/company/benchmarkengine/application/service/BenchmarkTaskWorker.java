@@ -38,6 +38,7 @@ public class BenchmarkTaskWorker {
     private final BenchmarkTaskRepository benchmarkTaskRepository;
     private final BenchmarkTaskExecutionProperties executionProperties;
     private final BenchmarkMetricsRecorder benchmarkMetricsRecorder;
+    private final BenchmarkTaskQueueService benchmarkTaskQueueService;
 
     public BenchmarkTaskWorker(BenchmarkTaskModelApplicationService benchmarkTaskModelApplicationService,
                                BenchmarkIsolatedExecutionService benchmarkIsolatedExecutionService,
@@ -46,7 +47,8 @@ public class BenchmarkTaskWorker {
                                BenchmarkGovernanceTraceService benchmarkGovernanceTraceService,
                                BenchmarkTaskRepository benchmarkTaskRepository,
                                BenchmarkTaskExecutionProperties executionProperties,
-                               BenchmarkMetricsRecorder benchmarkMetricsRecorder) {
+                               BenchmarkMetricsRecorder benchmarkMetricsRecorder,
+                               BenchmarkTaskQueueService benchmarkTaskQueueService) {
         this.benchmarkTaskModelApplicationService = benchmarkTaskModelApplicationService;
         this.benchmarkIsolatedExecutionService = benchmarkIsolatedExecutionService;
         this.benchmarkReportExportService = benchmarkReportExportService;
@@ -55,23 +57,36 @@ public class BenchmarkTaskWorker {
         this.benchmarkTaskRepository = benchmarkTaskRepository;
         this.executionProperties = executionProperties;
         this.benchmarkMetricsRecorder = benchmarkMetricsRecorder;
+        this.benchmarkTaskQueueService = benchmarkTaskQueueService;
     }
 
     @Scheduled(fixedDelayString = "${benchmark-engine.task-execution.poll-interval-ms:25}")
     public void processQueuedTasks() {
         Instant visibleBefore = Instant.now().minusMillis(executionProperties.getQueueVisibilityDelayMs());
-        List<BenchmarkTask> queuedTasks = benchmarkTaskRepository.findQueuedTasksSubmittedBefore(visibleBefore);
-        for (BenchmarkTask task : queuedTasks) {
-            processTask(task);
+        List<BenchmarkTaskQueueService.BenchmarkTaskQueueLease> queuedTasks =
+            benchmarkTaskQueueService.acquireVisibleTasks(visibleBefore);
+        for (BenchmarkTaskQueueService.BenchmarkTaskQueueLease lease : queuedTasks) {
+            try {
+                processTask(lease.getTask(), lease.getQueueEvidence());
+                lease.acknowledgeSuccess();
+            } catch (RuntimeException ex) {
+                lease.acknowledgeFailure(ex);
+                throw ex;
+            }
         }
     }
 
-    private void processTask(BenchmarkTask task) {
+    private void processTask(BenchmarkTask task, String queueEvidence) {
         long start = System.currentTimeMillis();
         try {
             task.markRunning(Instant.now());
             benchmarkTaskRepository.saveTask(task);
-            logStateChange(task, STATE_TASK_QUEUED, STATE_WORKER_RUNNING, task.getCurrentPhase().name());
+            logStateChange(
+                task,
+                STATE_TASK_QUEUED,
+                STATE_WORKER_RUNNING,
+                queueEvidence == null ? task.getCurrentPhase().name() : task.getCurrentPhase().name() + ";" + queueEvidence
+            );
             if (shouldForceFailure(task)) {
                 delay();
                 task.markFailed(

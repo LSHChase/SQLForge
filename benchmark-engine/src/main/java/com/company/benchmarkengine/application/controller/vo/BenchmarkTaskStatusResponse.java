@@ -28,6 +28,8 @@ public class BenchmarkTaskStatusResponse {
     private final Instant submittedAt;
     private final Instant startedAt;
     private final Instant finishedAt;
+    private final String queueMode;
+    private final String queueEvidence;
     private final String contractStage;
     private final String implementationStage;
 
@@ -47,6 +49,8 @@ public class BenchmarkTaskStatusResponse {
                                        Instant submittedAt,
                                        Instant startedAt,
                                        Instant finishedAt,
+                                       String queueMode,
+                                       String queueEvidence,
                                        String contractStage,
                                        String implementationStage) {
         this.taskId = taskId;
@@ -65,6 +69,8 @@ public class BenchmarkTaskStatusResponse {
         this.submittedAt = submittedAt;
         this.startedAt = startedAt;
         this.finishedAt = finishedAt;
+        this.queueMode = queueMode;
+        this.queueEvidence = queueEvidence;
         this.contractStage = contractStage;
         this.implementationStage = implementationStage;
     }
@@ -131,6 +137,14 @@ public class BenchmarkTaskStatusResponse {
 
     public Instant getFinishedAt() {
         return finishedAt;
+    }
+
+    public String getQueueMode() {
+        return queueMode;
+    }
+
+    public String getQueueEvidence() {
+        return queueEvidence;
     }
 
     public String getContractStage() {

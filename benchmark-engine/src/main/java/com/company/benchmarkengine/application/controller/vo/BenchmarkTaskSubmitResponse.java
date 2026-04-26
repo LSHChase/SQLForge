@@ -11,6 +11,8 @@ public class BenchmarkTaskSubmitResponse {
     private final BenchmarkTaskPhase currentPhase;
     private final Instant estimatedReadyAt;
     private final String statusQueryPath;
+    private final String queueMode;
+    private final String queueEvidence;
     private final String contractStage;
     private final String implementationStage;
 
@@ -19,6 +21,8 @@ public class BenchmarkTaskSubmitResponse {
                                        BenchmarkTaskPhase currentPhase,
                                        Instant estimatedReadyAt,
                                        String statusQueryPath,
+                                       String queueMode,
+                                       String queueEvidence,
                                        String contractStage,
                                        String implementationStage) {
         this.taskId = taskId;
@@ -26,6 +30,8 @@ public class BenchmarkTaskSubmitResponse {
         this.currentPhase = currentPhase;
         this.estimatedReadyAt = estimatedReadyAt;
         this.statusQueryPath = statusQueryPath;
+        this.queueMode = queueMode;
+        this.queueEvidence = queueEvidence;
         this.contractStage = contractStage;
         this.implementationStage = implementationStage;
     }
@@ -48,6 +54,14 @@ public class BenchmarkTaskSubmitResponse {
 
     public String getStatusQueryPath() {
         return statusQueryPath;
+    }
+
+    public String getQueueMode() {
+        return queueMode;
+    }
+
+    public String getQueueEvidence() {
+        return queueEvidence;
     }
 
     public String getContractStage() {

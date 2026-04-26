@@ -19,6 +19,9 @@ sqlforge:
 benchmark-engine:
   queues:
     mode: local-placeholder
+    external-file-queue-dir: target/benchmark-engine-queue/test-external-file-spool
+    cleanup-consumed-files: true
+    acquire-batch-size: 8
   task-execution:
     isolation-sample-count: 6
     isolation-work-iterations: 48

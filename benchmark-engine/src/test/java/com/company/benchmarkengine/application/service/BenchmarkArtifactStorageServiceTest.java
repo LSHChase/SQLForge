@@ -200,6 +200,13 @@ class BenchmarkArtifactStorageServiceTest {
             assertTrue(artifact.getStorageEvidence().contains("mode=repo-local-mirror+provider-live-evidence-verified"));
             assertTrue(artifact.getStorageEvidence().contains("providerObjectUrl="));
             assertTrue(artifact.getStorageEvidence().contains("liveEvidenceStatus=PROVIDER_LIVE_EVIDENCE_VERIFIED"));
+            String liveEvidencePayload = new String(
+                Files.readAllBytes(Paths.get(resolveEvidenceValue(artifact.getStorageEvidence(), "liveEvidencePath"))),
+                java.nio.charset.StandardCharsets.UTF_8
+            );
+            assertTrue(liveEvidencePayload.contains("\"providerHeadStatus\":\"VERIFIED\""));
+            assertTrue(liveEvidencePayload.contains("\"providerDialect\":\"GENERIC_HTTP\""));
+            assertTrue(liveEvidencePayload.contains("\"credentialsPresent\":true"));
             assertTrue(Files.exists(Paths.get(resolveEvidenceValue(artifact.getStorageEvidence(), "mirrorPath"))));
             assertEquals(1, objectStore.size());
         } finally {

@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-034: 收口 `benchmark-engine` 外部队列/文件存储与 provider-native 语义
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(benchmark-engine): close D-TASK-034 external queue carrier`
+- Priority: 1
+- Depends on: `D-TASK-033`
+- Scope: 在保持 repo-local artifact lifecycle 与 `LOCAL_FILE` 默认主路径、统一授权入口、治理审计及只读/影子环境边界不变的前提下，为 `benchmark-engine` 补齐外部队列 carrier、文件存储编排与 provider-native 语义边界，把 provider-backed write/readback/cleanup/recovery 证据推进到更接近真实运行形态的基线 Tech: `JAVA-BE`,`OPS`,`DOCS`. Layer: `common`,`application(controller/service)/domain/infrastructure`,`deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-005` 运行时执行链与跨服务补完
+- Human confirmation point: 若 benchmark-engine 的外部队列/文件存储/provider-native 语义会让 environment-backed path 误写成仓库默认主路径、引入未经确认的 provider SDK/凭据写入、或绕过既有鉴权/审计边界，需人工确认
+- Data impact: external queue/storage/provider-native 配置与运行摘要、artifact cleanup/recovery/write/readback 证据、跨服务追溯与审计留痕
+- Rollback / recovery: 保持 repo-local lifecycle 与 `LOCAL_FILE` 默认主路径，关闭外部队列/provider-native 默认启用，回退新增 queue/storage/provider 语义与文档说明，并恢复到 `D-TASK-033` 已验证基线
+- Validation:
+  - `sqlforge-shared/benchmark-engine/governance 模块测试、external queue/storage/provider-native 契约测试、runtime smoke、task audit、knowledge lint、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-034`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: benchmark-engine external queue carrier, task queue evidence surface, provider-native artifact evidence assertions, and benchmark architecture/contract docs
+  - Validation evidence: python3 scripts/foreman.py validate D-TASK-034; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js; mvn -B -pl benchmark-engine -am test -DskipITs -Dtest=BenchmarkTaskApplicationServiceTest,BenchmarkTaskWorkerTest,BenchmarkArtifactStorageServiceTest,BenchmarkArtifactGovernanceOperationServiceTest -Dsurefire.failIfNoSpecifiedTests=false
+  - Residual risk: external-file-queue remains repo-closed file-spool evidence, not a provider-native message broker or cross-host distributed queue
+  - Next step: D-TASK-035 cache governance baseline across query-execution/sql-optimization/benchmark/governance
+
 ### D-TASK-033: 收口 `query-execution` 生产级 Hetu 集群证据与路由参数校准
 
 - Status: done
