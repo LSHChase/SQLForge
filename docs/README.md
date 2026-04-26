@@ -18,11 +18,15 @@
    Foreman 工作流、人类协作、本地开发、MCP 使用手册、从无 task 开始的治理自动化（含 governed intake / healthcheck）、多 agent 协作、任务关闭与 best practices。
 7. 产品/设计/接口文档
    [架构初始化总文档](./architecture/init.md) 仍是历史初始化基线与总览入口；当前 C4 权威更新落点以 [C4 文字总览](./architecture/c4-overview.md) 为准，当前服务边界以 [服务能力分配图](./architecture/service-capability-map.md) 为准，当前接口契约以 [服务接口契约基线](./architecture/service-interface-contract-baseline.md) 为准，后续新增文档统一补入 `docs/`。
+   - [SQL 治理平台实施规格](./product/sql-governance-platform-implementation-spec.md)
    - [C4 文字总览](./architecture/c4-overview.md)
    - [持久化基线](./architecture/persistence.md)
    - [消息抽象说明](./architecture/messaging-abstraction.md)
    - [服务能力分配图](./architecture/service-capability-map.md)
    - [服务接口契约基线](./architecture/service-interface-contract-baseline.md)
+   - [SQL 治理接口扩展基线](./architecture/sql-governance-interface-extension-baseline.md)
+   - [SQL 治理数据模型扩展](./architecture/sql-governance-data-model-extension.md)
+   - [SQL 治理降级矩阵](./operations/sql-governance-degradation-matrix.md)
    - [前端设计系统](./frontend/design-system.md)
    - [阿里 Java 规范适配](./quality/alibaba-java-guidelines.md)
    - [前后端分离基线检查](./quality/frontend-backend-separation-baseline.md)
@@ -78,6 +82,11 @@
   - `persistence.md`：MySQL 主持久化、核心追溯链、MyBatis XML 与增量脚本权威基线。
   - `messaging-abstraction.md`：Kafka 与消息能力的本地开发抽象模式、切换方式和契约约束。
   - `service-interface-contract-baseline.md`：4 微服务统一身份、错误码、DTO/事件和审计契约基线。
+  - `sql-governance-interface-extension-baseline.md`：SQL 治理产品线新增的查询、解析、批量解析、推荐协同、开放接入与告警接口扩展基线。
+  - `sql-governance-data-model-extension.md`：SQL 治理产品线新增对象、扩表现状、JSON/结构化字段取舍与落表策略。
+- `product/`
+  产品实施规格与页面、流程、角色、分期设计权威入口。
+  - `sql-governance-platform-implementation-spec.md`：SQL 治理中后台 + 开放接入平台实施规格。
 - `rules/`
   规则库与可执行约束。
 - `quality/`
@@ -85,6 +94,7 @@
 - `operations/`
   Foreman 工作流、人类协作、本地开发、任务关闭与工程规则。
   - `codex-mcp-playbook.md`：Codex 在 SQLForge 中使用 MCP 的只读边界、manifest-level `mcp_profile` 约束、自动化入口和本地接入手册。
+  - `sql-governance-degradation-matrix.md`：SQL 治理产品线在数据库、报表接口、Redis、外部装数与通知能力不可用时的降级矩阵。
 - `agent-prompts/`
   多 agent 协作使用的角色 prompt 模板，由 Main Foreman / launcher 读取，不替代 `docs/` 与台账真值。
   - `auto-planner.md`：把需求输入转换为 exec plan 与 manifest 的全自动规划模板。

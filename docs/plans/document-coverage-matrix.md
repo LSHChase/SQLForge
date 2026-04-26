@@ -23,6 +23,8 @@
 | `docs/architecture/messaging-abstraction.md` | Authority | `R-144` 消息抽象模式 | Consumed | 配置、消息实现、部署切换 |
 | `docs/architecture/service-capability-map.md` | Authority | 4 微服务与当前仓库模块的能力映射 | Consumed | 服务拆分、common 边界、`governance` 过渡约束 |
 | `docs/architecture/service-interface-contract-baseline.md` | Authority | 统一身份、错误码、DTO/事件和审计契约基线 | Consumed | 服务实现前的接口级约束 |
+| `docs/architecture/sql-governance-interface-extension-baseline.md` | Authority | SQL 治理产品线的查询、历史、解析、推荐、压测、开放接入与告警接口扩展基线 | Consumed | `HARN-042` 与后续 D/E/F Story 的接口契约权威落点 |
+| `docs/architecture/sql-governance-data-model-extension.md` | Authority | SQL 治理产品线新增对象、扩表现状、落表策略与追溯键基线 | Consumed | `HARN-042` 与后续 D/E/F Story 的数据模型与持久化权威落点 |
 | `docs/deliveries/init-completion.md` | Indexed | 阶段0交付记录 | Consumed | 阶段0真值、tag 回写、交付闭环 |
 | `docs/deliveries/phase-f-story-003-ops-closeout.md` | Indexed | Phase-F Story-003 运维、审计与恢复交付记录 | Consumed | `F-TASK-009` 的 commit/tag/write-back 闭环与模板权威落点 |
 | `docs/deployments/local-setup.md` | Authority | 本地部署与健康检查 | Consumed | 本地环境、smoke、脚本说明 |
@@ -37,6 +39,7 @@
 | `docs/deployments/sonar-quality-gate-provisioning.md` | Authority | SonarQube secrets、GitHub Actions environment 与 release gate 接线 runbook | Consumed | `F-TASK-030` 的 Sonar provisioning、release environment 接线与外部配置边界权威落点 |
 | `docs/generated/repo-map.md` | Indexed | 仓库结构导航快照 | Consumed | AI 导航、仓库结构入口与目录真值辅助说明 |
 | `docs/frontend/design-system.md` | Authority | 前端视觉与页面设计规则 | Consumed | Dashboard、业务页、主题系统 |
+| `docs/product/sql-governance-platform-implementation-spec.md` | Authority | SQL 治理中后台 + 开放接入平台产品实施规格 | Consumed | `HARN-042` 与后续 D/E/F Story 的产品目标、页面与流程权威落点 |
 | `docs/agent-prompts/auto-planner.md` | Indexed | requirement-driven auto planner prompt 模板 | Referenced | 约束 full-auto 模式下的 exec plan 与 manifest 自动生成，不允许绕过 Main Foreman 治理链 |
 | `docs/agent-prompts/auto-foreman.md` | Indexed | autonomous Main Foreman prompt 模板 | Referenced | 约束 full-auto 模式下 collect 之后的 fan-in、验证与 closeout 收口行为 |
 | `docs/agent-prompts/requirement-normalizer.md` | Indexed | requirement normalization prompt 模板 | Referenced | 约束从无 task 开始时的需求标准化输出，不允许把推断写成正式治理事实 |
@@ -63,6 +66,7 @@
 | `docs/operations/local-development.md` | Authority | 本地命令、脚本与环境入口 | Referenced | 本地开发验证与环境约束 |
 | `docs/operations/multi-agent-playbook.md` | Authority | 多 agent 协作手册、`mcp_profiles` / `mcp_profile` 合同与 SQLForge demo runbook | Consumed | Main Foreman、worktree、manifest、prompt 模板，以及 autoplan/full-auto/prepare/launch/collect 与最终 validate/closeout 的权威操作落点；同时约束 `explorer / validator` 的只读 MCP 证据边界 |
 | `docs/operations/requirements-to-task-playbook.md` | Authority | 从无 task 开始的治理自动化手册 | Consumed | 定义 requirement normalization、candidate task pack、materialization gate 与 governed full-cycle 的权威操作落点 |
+| `docs/operations/sql-governance-degradation-matrix.md` | Authority | SQL 治理产品线在数据库、报表接口、Redis、装数协同、邮件通道与开放接入不可用时的降级矩阵 | Consumed | `HARN-042` 与后续 D/E/F Story 的降级与 environment-backed 边界权威落点 |
 | `docs/plans/README.md` | Indexed | 计划导航 | Consumed | 计划入口与附录说明 |
 | `docs/plans/master-execution-plan.md` | Authority | 当前主执行计划 | Consumed | 主控文档 |
 | `docs/plans/phase-0-plan.md` | Indexed | 阶段0历史计划 | Consumed | 阶段0真值修正 |

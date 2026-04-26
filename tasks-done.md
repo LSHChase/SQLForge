@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-042: 落地 SQL 治理实施规格包与完整任务清单
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `docs(plans): land sql governance spec pack and task inventory`
+- Priority: 1
+- Depends on: HARN-041
+- Scope: Add the SQL governance implementation specification pack and write the full downstream Story/Task inventory into the master execution plan, task-spec matrix, and governance extension matrix without implementing business code.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-042`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Landed the SQL governance implementation spec pack, interface/data/degradation baselines, and the full D/E/F story-task inventory into the execution plan and governance matrices without changing runtime business code.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-042; python3 scripts/task_audit.py --check --phase pre-closeout; python3 scripts/foreman.py compile-governance --check; node scripts/lint-repository-knowledge.js
+  - Residual risk: Follow-on business tasks are not yet instantiated, so the new plan remains design-time truth until Wave 1 implementation begins; environment-backed integrations such as real report APIs, mail delivery, and loader consumers remain intentionally mocked or abstracted.
+  - Next step: Materialize Wave 1 repo-side tasks for query history, execution traceability, and dual-track parse foundations, then implement them in dependency order.
+
 ### HARN-041: Runtime Reservation Pause/Cleanup and Demand Re-entry Governance
 
 - Status: done

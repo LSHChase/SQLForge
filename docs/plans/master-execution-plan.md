@@ -109,6 +109,7 @@
 
 - 当前运行波次：`Phase-D / D-STORY-005`
 - 当前活跃目标：`D-TASK-031` 至 `D-TASK-037` 已全部完成 closeout，分别把 `sql-optimization` 真实 parse/rewrite/acceleration suggestion 链、acceleration plan 治理闭环、`query-execution` 生产级 Hetu 路由校准证据、`benchmark-engine` 外部队列/provider-native 语义、真正的 cache governance 闭环、provider-neutral distributed cache backend baseline，以及 cache capacity / eviction / metrics governance baseline 推进到当前仓库真值。默认主路径仍保持 repo-closed，不得把 environment-backed provider、object storage、distributed cache 或真实 Redis 长跑/恢复演练写成仓库默认事实。
+- 当前治理任务：`HARN-042` 已实例化，目标是在不新增微服务的前提下，把 SQL 治理平台实施规格包与后续 D/E/F 全量 Story / Task inventory 一次性写入仓库真值；该任务属于治理收口，不改变“当前没有新的已实例化 repo-side business mainline task”的事实。
 - 当前下一条可执行主线任务：
   - 当前没有新的已实例化 repo-side mainline task。
   - `D-TASK-036` 与 `D-TASK-037` 均已完成 closeout，不再作为下一条候选任务。
@@ -304,6 +305,17 @@ Tasks:
 | `HARN-034` | 落地最小可用 MCP 治理底座与只读接入边界 | 在不引入第二套长期真值、不绕过 `foreman` / `task_audit` / `closeout`、且第一批仅允许只读 MCP 的前提下，补齐 `docs/security/connectors.md`、MCP 规则与验证规则、`compile-governance` / `validate_codex_runtime` 的 MCP 扩展、Codex MCP 使用手册与本地入口说明；不包含 multi-agent `mcp_profile` 扩展，不包含任何可写 MCP、SSH/K8s/数据库执行型 MCP，也不把外部 MCP 结果写成仓库默认事实。 | `HARN-028`,`HARN-033` | python3 scripts/foreman.py validate HARN-034、python3 scripts/validate_codex_runtime.py、python3 scripts/foreman.py compile-governance --check、node scripts/lint-repository-knowledge.js、python3 scripts/task_audit.py --check --phase pre-closeout |
 | `HARN-035` | 扩展 multi-agent 受控 mcp_profile 只读证据接入 | 在 `HARN-034` 已建立 MCP 治理底座的前提下，扩展 multi-agent playbook、agent prompt 模板、manifest 模板和 `prepare` / `launch` / `collect` / `autoplan` / `full-auto` 脚本的 `mcp_profile` 契约，让 explorer / validator 可以读取外部只读证据，同时保持 Main Foreman 仍是唯一 write-back / validate / closeout 入口。不得把可写 MCP 引入默认主路径，不得允许 worker 通过 MCP 修改台账、validation log、closeout 文档或业务数据。 | `HARN-034` | python3 scripts/foreman.py validate HARN-035、python3 scripts/foreman.py compile-governance --check、bash scripts/multi_agent_prepare.sh --help、bash scripts/multi_agent_launch.sh --help、bash scripts/multi_agent_collect.sh --help、bash scripts/multi_agent_autoplan.sh --help、bash scripts/multi_agent_full_auto.sh --help、python3 scripts/validate_codex_runtime.py、node scripts/lint-repository-knowledge.js |
 | `HARN-037` | 补齐只读 MCP onboarding / doctor 与治理定位手册 | 在 `HARN-034` / `HARN-035` 已建立只读 MCP 治理基线与 multi-agent `mcp_profile` 契约的前提下，补齐每个允许 category 的本地 onboarding 指南、MCP doctor/healthcheck、evidence 写回位置说明，以及 `docs/security/connectors.md`、`docs/operations/codex-mcp-playbook.md`、`docs/operations/multi-agent-playbook.md`、`docs/README.md`、`docs/operations/README.md` 和 compile/validate/runtime 入口的治理定位对齐；保持产品定位为“受治理的只读证据增强”，不得扩展为远端自动运维、可写控制面或第二套长期真值。 | `HARN-035` | python3 scripts/foreman.py validate HARN-037、python3 scripts/validate_codex_runtime.py、python3 scripts/foreman.py compile-governance --check、python3 scripts/governed_healthcheck.py --check、node scripts/lint-repository-knowledge.js、python3 scripts/task_audit.py --check --phase pre-closeout、python3 scripts/task_audit.py --check --phase post-closeout |
+
+##### Story `A-STORY-009` SQL 治理实施规格与任务塑形
+
+- 目标：把 SQL 治理中后台 + 开放接入平台的完整需求一次性落成事实规格包，并同步塑形成 D/E/F 主线 Story / Task inventory，作为后续 materialize / instantiate 的唯一权威输入。
+- 验证：规格包、主计划、task-spec 矩阵与 task-governance 扩展矩阵同步完成，且不丢失已确认需求。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `HARN-042` | 落地 SQL 治理实施规格包与完整任务清单 | 在不新增微服务、不绕过 `foreman` / `task_audit` / `closeout`、不引入第二套长期真值的前提下，新增 SQL 治理平台实施规格、接口扩展基线、数据模型扩展与降级矩阵，并把后续 `D-STORY-006` 至 `D-STORY-012`、`E-STORY-007` 至 `E-STORY-012`、`F-STORY-010` 与 `F-STORY-011` 一次性写入主计划与两张任务矩阵；本任务不直接实现业务代码、不接真实外部服务，只负责把已确认需求固化为可执行工程输入。 | `HARN-041` | `python3 scripts/foreman.py validate HARN-042`、`python3 scripts/foreman.py compile-governance --check`、`node scripts/lint-repository-knowledge.js`、`python3 scripts/task_audit.py --check --phase pre-closeout` |
 
 ### Phase-B 阶段0修正与缺口补齐
 
@@ -522,6 +534,107 @@ Tasks:
 | `D-TASK-036` | 推进 provider-native distributed cache governance backend | 在保持 repo-closed in-memory cache governance baseline、统一授权入口、治理审计、缓存一致性与只读边界不变的前提下，为 `query-execution` 补齐 provider-neutral distributed cache backend contract、environment-backed carrier 语义、provider-native evidence、失败降级与可审计读写校验；默认仍不启用外部 provider，不把 Redis/provider cache 写成仓库默认事实 | `D-TASK-035` | sqlforge-shared/query-execution/governance 模块测试、distributed cache backend contract 测试、cache policy apply/verify/invalidate backend 证据测试、runtime smoke、task audit、knowledge lint、文档同步 |
 | `D-TASK-037` | 收口 cache capacity / eviction / metrics governance baseline | 在保持 D-TASK-036 provider-neutral cache backend、默认 repo-closed 主路径、统一授权入口、治理审计、缓存一致性与只读边界不变的前提下，为 cache governance 补齐 per-tenant / per-policy capacity limit、TTL 与 capacity/manual/schema eviction reason evidence、cache hit/miss/bypass/backfill/invalidate/backend-unavailable metrics、policy verify capacity/backend health summary，并让 benchmark/governance 继续透出 eviction/capacity evidence；真实 Redis 集群长跑和恢复演练仍是 environment-backed follow-up | `D-TASK-036` | sqlforge-shared/query-execution/benchmark-engine/governance 模块测试、cache capacity/eviction 契约测试、cache governance metrics 断言、policy verify summary 测试、task audit、knowledge lint、文档同步 |
 
+##### Story `D-STORY-006` 查询历史与执行取证闭环
+
+- 目标：补齐 SQL 查询执行主链的历史、取证、绑定 SQL、注释上下文、命中对象和导出基线，为解析、推荐、压测与审计提供统一追溯入口。
+- 验证：执行详情、历史列表、详情查询、导出与追溯键可测。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `D-TASK-038` | 扩展 query-history / execution-result 追溯字段 | 为注释上下文、绑定 SQL、query-date、逻辑对象命中、接入来源与路由摘要补齐持久化与查询字段 | `D-TASK-037` | schema/mapping 测试、history trace persistence 测试 |
+| `D-TASK-039` | 扩展 SQL 查询执行摘要契约 | 查询执行返回 comment context、binding summary、logical object hits、route/cache summary | `D-TASK-038` | query-execution controller/service 契约测试 |
+| `D-TASK-040` | 落地 SQL 历史列表与详情查询面 | 历史过滤、分类、详情 drill-through、执行链路与关联记录查询 | `D-TASK-039` | governance history list/detail 测试 |
+| `D-TASK-041` | 补齐 SQL 历史导出与取证视图 | `CSV/EXCEL/JSON/SQL/PDF` 导出基线与取证页字段收口 | `D-TASK-040` | export 测试、审计联动测试 |
+
+##### Story `D-STORY-007` 结构解析与数据访问解析双轨闭环
+
+- 目标：在 `sql-optimization` 中建立单条 SQL 的结构解析、数据访问解析、异步补跑与 partial success 语义。
+- 验证：结构解析、access parse、异步补跑、服务不可用降级与综合状态机可测。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `D-TASK-042` | 固化结构解析契约与问题分类模型 | `StructureParseResult`、问题域、场景、severity、priority 评分基线 | `D-TASK-041` | parser/domain 契约测试 |
+| `D-TASK-043` | 落地单条结构解析入口 | 不连库的 SQL 结构解析、query-date 提取、逻辑对象命中与基础风险识别 | `D-TASK-042` | parse structure controller/service 测试 |
+| `D-TASK-044` | 落地数据访问解析入口与异步补跑语义 | 结构解析成功后自动异步补跑 access parse，并保留 unavailable / skipped / failed 语义 | `D-TASK-043` | async parse flow 测试、降级测试 |
+| `D-TASK-045` | 补齐解析综合结论与 partial-success 追溯 | 统一展示结构解析成功 / access parse 失败的综合结论与追溯字段 | `D-TASK-044` | state machine 与 history/detail 测试 |
+
+##### Story `D-STORY-008` 逻辑视图与 DB View 治理
+
+- 目标：同时支持 `BUSINESS_VIEW` 与 `DB_VIEW`，并让查询、历史、解析、路由共用统一逻辑对象语义。
+- 验证：对象目录、映射、识别、展示与关联查询可测。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `D-TASK-046` | 建立逻辑对象统一模型 | `BUSINESS_VIEW/DB_VIEW/TABLE` 统一对象契约与跨服务引用字段 | `D-TASK-045` | contract 与 DTO 测试 |
+| `D-TASK-047` | 落地业务逻辑视图目录与映射 | governance 目录、映射、物理表关系和基础查询面 | `D-TASK-046` | repository/controller 测试 |
+| `D-TASK-048` | 落地 DB View 识别与依赖展示 | 解析链识别数据库 View，沉淀依赖和命中明细 | `D-TASK-047` | parser/integration 测试 |
+| `D-TASK-049` | 统一逻辑对象在查询/历史/解析中的展示契约 | 跨服务 DTO/VO 对齐，统一 detail/list/export surfaces | `D-TASK-048` | cross-service contract 测试 |
+
+##### Story `D-STORY-009` 批量解析与报表清单解析
+
+- 目标：提供批量 SQL 解析、表格导入、报表清单解析与 mock/真实接口抽象。
+- 验证：稳定文件格式导入、兼容格式降级、报表清单 mock 与接口抽象可测。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `D-TASK-050` | 建立批量解析批次模型与模板契约 | `ParseBatch`、模板列、导入模式、批次状态基线 | `D-TASK-049` | batch contract 测试 |
+| `D-TASK-051` | 落地 SQL/表格批量导入解析 | 稳定支持 `xlsx/csv/txt/sql` 的结构解析与 access parse 编排 | `D-TASK-050` | import parsing 测试 |
+| `D-TASK-052` | 扩展 `xls/et` 兼容导入与失败语义 | 二级兼容格式支持与推荐使用稳定格式的失败提示 | `D-TASK-051` | compatibility 测试 |
+| `D-TASK-053` | 落地报表清单解析文件模拟入口 | 以 `report_code` 为主键，从 txt/mock source 获取 SQL 再解析 | `D-TASK-052` | mock resolve 测试 |
+| `D-TASK-054` | 接入报表接口配置与真实拉取抽象 | governance 配置接口，sql-optimization 通过统一抽象调用 | `D-TASK-053` | config/client abstraction 测试 |
+
+##### Story `D-STORY-010` 解析统计与优先级分层
+
+- 目标：将解析结果收口为按 SQL、问题场景、报表与优先级可消费的统计面。
+- 验证：统计聚合、占比、重要/紧急清单与优先级矩阵可测。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `D-TASK-055` | 固化解析统计口径与优先级评分 | scene/domain/severity/priority/important/urgent 评分规则 | `D-TASK-054` | scoring rule 测试 |
+| `D-TASK-056` | 落地按 SQL 与问题场景统计 | parse overview、scene aggregation、single-SQL issue 汇总 | `D-TASK-055` | statistics API 测试 |
+| `D-TASK-057` | 落地按报表统计与占比分析 | report dimension aggregation、报表问题数量与占比计算 | `D-TASK-056` | report aggregation 测试 |
+| `D-TASK-058` | 落地重要/紧急清单与优先级矩阵 | priority matrix、important/urgent view 和 drill-through | `D-TASK-057` | matrix/list 测试 |
+
+##### Story `D-STORY-011` 推荐 SQL、加速建议与装数协同事件
+
+- 目标：将推荐改写、加速建议与装数协同收口为治理对象和可追溯事件，而不承担真实装数。
+- 验证：推荐对象、事件状态机、追溯链与“只治理不装数”边界可测。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `D-TASK-059` | 扩展推荐对象类型与收益/风险模型 | `REWRITE/ACCELERATION/CREATE_TABLE/PREWARM/MAINTENANCE` 建模 | `D-TASK-058` | recommendation domain 测试 |
+| `D-TASK-060` | 落地推荐治理事件创建与状态机 | `DispatchEvent` 创建、published/pulled/acked/failed 状态语义 | `D-TASK-059` | event state 测试 |
+| `D-TASK-061` | 打通推荐与历史/解析/路由的关联追溯 | recommendation 对应 history、parse、route、alert 关联键 | `D-TASK-060` | traceability 测试 |
+| `D-TASK-062` | 固化“只管理不装数”的协同契约 | 外部拉取事件、非主动装数、回执与审计边界 | `D-TASK-061` | dispatch contract 测试 |
+
+##### Story `D-STORY-012` 开放接入与 JDBC Agent
+
+- 目标：把 API、JDBC Agent、Java SDK 与 direct client mode 统一纳入治理主链。
+- 验证：接入来源、审计、Agent 三模式与 Java SDK 契约可测。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `D-TASK-063` | 固化接入来源模型与统一审计契约 | `PAGE/API/JDBC_AGENT/SDK/CLIENT` 与 access audit 模型 | `D-TASK-062` | access contract 测试 |
+| `D-TASK-064` | 落地 HTTP API 接入基线 | query/parse/history/recommendation 等 API 入口对外基线 | `D-TASK-063` | API integration 测试 |
+| `D-TASK-065` | 落地 JDBC Agent 首版 `Observe` | JAR 采集、注释解析、上报与不接管执行 | `D-TASK-064` | JDBC agent sample/integration 测试 |
+| `D-TASK-066` | 扩展 JDBC Agent `Governed Execute` | 通过平台执行 SQL、保留 fallback 语义 | `D-TASK-065` | governed-execute 测试 |
+| `D-TASK-067` | 扩展 JDBC Agent `Local Rewrite + Direct JDBC` | 本地轻量改写 / 路由后直连目标 JDBC | `D-TASK-066` | local rewrite/direct JDBC 测试 |
+| `D-TASK-068` | 落地 Java SDK 首版 | 鉴权、trace/requestId、typed clients、重试基线 | `D-TASK-067` | SDK 测试 |
+
 ### Phase-E 前端驾驶舱与业务页面
 
 #### Epic `E-EPIC-001` Frontend Information Architecture
@@ -604,6 +717,80 @@ Tasks:
 | `E-TASK-014` | 恢复 Vue SFC 构建链并保留前端便携产物 | 在允许 `@vitejs/plugin-vue` / `@vue/compiler-sfc` 的前提下恢复根级前端 `.vue` 源文件与 SFC 构建链，同时保留现有 portable 包、浏览器 smoke 和分包优化结果 | `E-TASK-013` | `npm run lint`、`npm run build`、`npm run build:portable`、toolchain/portable/browser smoke 检查 |
 | `E-TASK-015` | 补齐前端 dev browser smoke 并清理 SFC 恢复后的当前叙事 | 为 Vite dev server 补齐轻量浏览器 smoke，并清理仍把 non-SFC 迁移表述成当前真值的计划/操作文档；保留现有 Vue SFC、portable 产物与 full-stack runtime smoke 语义 | `E-TASK-014` | `npm run lint`、`npm run build`、`npm run build:portable`、toolchain/portable/dev browser smoke 检查 |
 | `E-TASK-016` | 固化 dev browser smoke 的 local repo-closed 基线语义 | 明确 Vite dev browser smoke 只作为本地 repo-closed 开发验证基线存在，不把它升级为更广的 CI/runtime gating，并同步后续计划/操作文档对 full-stack runtime smoke 主路径的表述 | `E-TASK-015` | `npm run lint`、`npm run build`、`npm run build:portable`、`node scripts/check-dev-frontend.mjs`、knowledge/task audit 检查 |
+
+##### Story `E-STORY-007` SQL 查询与历史前端增强
+
+- 目标：让前端完整承载 SQL 查询、结果、历史列表、历史详情与取证 drill-through。
+- 验证：查询工作台、结果页签、历史列表与详情可消费后端契约。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `E-TASK-017` | 扩展 SQL 查询工作台三栏布局与执行摘要 | 数据源树、SQL 编辑器、参数输入、右侧治理摘要与结果页签 | `E-TASK-016`,`D-TASK-039` | `npm run lint`、`npm run build`、frontend contract 测试 |
+| `E-TASK-018` | 落地 SQL 历史列表筛选与分类面 | 历史过滤、分类、排序、分页与列表列渲染 | `E-TASK-017`,`D-TASK-040` | `npm run lint`、`npm run build`、history page contract 测试 |
+| `E-TASK-019` | 落地 SQL 历史详情与取证视图 | SQL 三态、注释上下文、结构/访问解析、route/recommendation/alert/benchmark 关联取证视图 | `E-TASK-018`,`D-TASK-041` | `npm run lint`、`npm run build`、detail page contract 测试 |
+
+##### Story `E-STORY-008` 解析工作台与批量解析中心
+
+- 目标：交付单条解析、双轨结果展示、批量导入、报表清单解析与解析结果中心前端。
+- 验证：结构解析 / access parse 卡片、批次页、统计页可消费后端契约。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `E-TASK-020` | 落地解析工作台双卡结果布局 | 单条 SQL 解析输入、结构解析卡、access parse 卡和综合结论 | `E-TASK-019`,`D-TASK-045` | `npm run lint`、`npm run build`、parse workbench contract 测试 |
+| `E-TASK-021` | 落地批量解析中心与报表清单导入页 | 模板下载、上传、批次列表、批次详情与失败记录展示 | `E-TASK-020`,`D-TASK-054` | `npm run lint`、`npm run build`、batch import contract 测试 |
+| `E-TASK-022` | 落地解析结果中心与优先级矩阵 | 解析统计、问题分布、priority matrix、important/urgent 清单 | `E-TASK-021`,`D-TASK-058` | `npm run lint`、`npm run build`、statistics page contract 测试 |
+
+##### Story `E-STORY-009` 数据资产与逻辑视图
+
+- 目标：交付数据源、Schema、表、业务逻辑视图和 DB View 的前端浏览与详情页。
+- 验证：列表、详情、映射关系与使用热度展示可消费治理契约。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `E-TASK-023` | 落地数据资产目录与对象详情页 | datasource/schema/table/logical-view/db-view 列表与详情页 | `E-TASK-022`,`D-TASK-049` | `npm run lint`、`npm run build`、asset page contract 测试 |
+| `E-TASK-024` | 落地逻辑视图映射、数据到位与热度视图 | 逻辑对象映射、freshness/SLA/usage heat 与相关 SQL 展示 | `E-TASK-023`,`D-TASK-049` | `npm run lint`、`npm run build`、logical object contract 测试 |
+
+##### Story `E-STORY-010` 路由治理与推荐中心
+
+- 目标：交付路由规则、历史决策、推荐 SQL 与治理事件状态的前端消费面。
+- 验证：路由规则、历史决策、推荐详情与 dispatch 状态可视化可用。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `E-TASK-025` | 落地路由治理页与历史决策详情 | 当前规则、决策样例、历史记录、注释协议说明与路由详情页 | `E-TASK-024`,`D-TASK-061` | `npm run lint`、`npm run build`、routing page contract 测试 |
+| `E-TASK-026` | 落地推荐与加速中心页 | 推荐分类、详情、收益/风险、dispatch 状态与关联追溯页 | `E-TASK-025`,`D-TASK-062` | `npm run lint`、`npm run build`、recommendation page contract 测试 |
+
+##### Story `E-STORY-011` 压测中心与开放接入页
+
+- 目标：交付压测任务、模板、测试集、报告，以及开放接入说明和策略展示页。
+- 验证：压测中心与开放接入页可消费后端契约。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `E-TASK-027` | 落地压测任务、模板、测试集与报告页 | 任务列表、模板详情、测试集、报告对比和回归结果页 | `E-TASK-026`,`F-TASK-042` | `npm run lint`、`npm run build`、benchmark page contract 测试 |
+| `E-TASK-028` | 落地开放接入页与 JDBC Agent / SDK 展示 | API、JDBC Agent、SDK、接入策略和接入审计展示页 | `E-TASK-027`,`D-TASK-068` | `npm run lint`、`npm run build`、access page contract 测试 |
+
+##### Story `E-STORY-012` Dashboard 与告警中心
+
+- 目标：交付多角色总览驾驶舱与告警中心前端。
+- 验证：总览 KPI、待办与告警中心可消费治理契约。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `E-TASK-029` | 落地 Dashboard KPI、分布与待办区块 | 核心 KPI、问题分布、接入分布与待处理清单卡片 | `E-TASK-028`,`F-TASK-037` | `npm run lint`、`npm run build`、dashboard contract 测试 |
+| `E-TASK-030` | 落地告警中心与通知状态视图 | 告警列表、详情、ACK、notify simulated 状态展示 | `E-TASK-029`,`F-TASK-037` | `npm run lint`、`npm run build`、alert page contract 测试 |
 
 ### Phase-F 部署、运维、生产就绪
 
@@ -698,6 +885,35 @@ Tasks:
 | `F-TASK-031` | 将 Sonar 与环境级门禁降级为 fallback，并建立双层门禁语义 | 把仓库主线固定为 repo-closed 门禁，把 Sonar / real Kafka / 环境级发布验证重述为 environment-backed fallback，修正 workflow 默认值、R-117 和相关文档真值 | `F-TASK-030` | phase gate/release gate 默认不再强制 Sonar 或真实 Kafka，且 repo-closed 与 environment-backed 语义在脚本、workflow、文档、台账一致 |
 | `F-TASK-032` | 去除 Sonar fallback 的隐性自动恢复接线，并分离 provisioning / enable 语义 | 修正 release workflow 的默认 environment 绑定与主 CI 的 Sonar 自动触发条件，明确“环境已 provision”不等于“治理已启用强制 Sonar”，同步 runbook、INBOX 与部署基线 | `F-TASK-031` | release/CI workflow 默认不因已有 Sonar 环境自动升级为阻断；文档、INBOX、workflow 对 provisioning 与 enable 语义一致 |
 | `F-TASK-033` | 补齐测试环境最小 smoke 门禁 | 提供环境无关的最小 smoke 入口给外部测试环境 CI/CD 调用，覆盖四个后端 health、前端可达性、query/sql-optimization/benchmark 到 governance 的最小业务链路，以及受保护请求头有效性验证；保持本地 runtime smoke 不变 | `F-TASK-032` | 环境无关 smoke 脚本、帮助/参数校验、最小本地验证、repo-closed 与 test-environment smoke 文档语义一致 |
+
+##### Story `F-STORY-010` 告警中心与模拟邮件
+
+- 目标：补齐 SQL 治理产品线的关键事件判定、告警去重、ACK 与模拟邮件日志。
+- 验证：告警类型、等级、查询、ACK 与模拟通知链可测。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `F-TASK-034` | 固化告警事件类型与等级模型 | 定义 alert type、level、dedup key、notify status 和规则基线 | `F-TASK-033`,`D-TASK-062` | domain/model 测试 |
+| `F-TASK-035` | 落地关键事件告警判定 | mass failure、service unavailable、report resolve failure、Redis unavailable、dispatch failure 等告警判定 | `F-TASK-034` | alert rule 测试 |
+| `F-TASK-036` | 落地告警去重与模拟邮件日志 | dedupe、notify simulated、日志模板与审计留痕 | `F-TASK-035` | notification/dedup 测试 |
+| `F-TASK-037` | 落地告警查询与 ACK 接口 | alert list/detail/ack API 与治理查询面 | `F-TASK-036` | governance alert API 测试 |
+
+##### Story `F-STORY-011` 压测模板、测试集与解析联动
+
+- 目标：让 benchmark-engine 支持模板、测试集、批量导入以及从解析/推荐结果衍生压测对象。
+- 验证：模板、测试集、联动生成与回归守护可测。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `F-TASK-038` | 固化压测模板与测试集契约 | 模板类型、阈值、测试集来源与标签模型 | `F-TASK-037`,`D-TASK-068` | contract/domain 测试 |
+| `F-TASK-039` | 落地批量测试集导入 | 从文件导入 test set 与 case 字段映射 | `F-TASK-038` | import 测试 |
+| `F-TASK-040` | 打通解析结果到测试集一键生成 | parse issue / report / SQL 结果生成 benchmark test set | `F-TASK-039`,`D-TASK-058` | parse-to-benchmark 测试 |
+| `F-TASK-041` | 打通推荐 SQL 到对比压测 | recommendation -> comparison benchmark 契约与编排 | `F-TASK-040`,`D-TASK-062` | recommendation-to-benchmark 测试 |
+| `F-TASK-042` | 落地回归守护统计与告警 | regression summary、threshold hit 与 alert linkage | `F-TASK-041`,`F-TASK-037` | regression/alert linkage 测试 |
 
 ## 7. Verification Matrix
 

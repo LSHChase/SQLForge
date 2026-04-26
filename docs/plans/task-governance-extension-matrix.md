@@ -39,6 +39,7 @@
 | `HARN-037` | 若要把 MCP doctor/healthcheck 扩展为远端自动运维、可写控制面、repo 落 secret/live inventory，或允许 multi-agent 中除 explorer/validator 外的角色消费 manifest-level `mcp_profile`，需人工确认。 | MCP 治理文档、onboarding/doctor/healthcheck 脚本或校验分支、compile/validate/runtime 入口、只读 evidence 写回说明，以及相关 runtime 元数据；不直接修改业务运行时数据，不得把 secret、token、endpoint 或 live server inventory 写入 repo-tracked 文件。 | 回退只读 MCP onboarding / doctor 改造：移除新增的 category onboarding、doctor/healthcheck、evidence 写回说明与定位文案，恢复 `HARN-034` / `HARN-035` 既有只读 MCP 基线，并通过标准 validation 与 task-audit 证明仓库仍保持 Main Foreman 唯一收口、只读 MCP 边界和无 secret/live inventory 落仓语义。 |
 | `HARN-038` | 若要把 runtime repair 扩展为自动抹除失败 evidence、放宽 implementation-time dirty-worktree healthcheck 阻断、或绕过 Main Foreman / task_audit 的既有收口链，需人工确认。 | governed closeout / post-closeout runtime state、healthcheck/evidence 判定、执行计划与运行手册文档、以及验证日志与 closeout actual evidence 的治理语义；不修改业务运行时数据，不引入 repo 外第二真值。 | 回退 closeout/healthcheck/runtime repair 语义修复：恢复此前的 governed closeout / post-closeout 判定与 runtime cleanup 行为，保留失败 evidence 与 validation-log 审计链，通过标准 validation 与 task-audit 证明仓库仍保持 Main Foreman 唯一收口和 implementation-time dirty-worktree 阻断边界。 |
 | `HARN-041` | 若要把 paused/archived/abandoned 语义扩展为自动重写台账真值、静默删除 runtime evidence、或允许未确认 candidate 继续 confirm-run，则必须先人工确认；本任务仅允许在现有 governed intake/runtime 边界内补齐可审计状态与恢复入口。 | 仅修改 governed runtime reservation/intake/task-shaping 状态语义、文档与运行时清理逻辑；不直接修改业务运行时数据，不把候选证据写成仓库长期真值。 | 若新增 reservation 生命周期语义导致 confirm-run、healthcheck 或 cleanup 行为异常，回退相关脚本与文档改动，并将受影响 reservation 状态恢复到先前的 released/candidate_ready/materialized 语义；历史 shaping evidence 保留在 .codex/state 下，不删除现有证据文件。 |
+| `HARN-042` | 若要借本任务改变“不新增微服务”的既定边界、把 mock/日志模拟/抽象阶段误写为真实外部联通事实、跳过主计划/矩阵同步直接批量 materialize 业务任务、或削弱 Main Foreman 唯一 write-back / validate / closeout 入口，需人工确认。 | SQL 治理产品实施规格包、主计划与两张任务矩阵、后续 Story/Task inventory 与由此衍生的 shaped execution evidence；不直接修改业务运行时数据，不接真实外部服务。 | 回退本任务时，仅回退新增规格包、计划与矩阵增量，恢复到 `HARN-041` 后的治理基线；若后续业务任务已 materialize，则以追加 reconciliation 任务修正，不删除既有 task evidence。 |
 
 ## Phase-B
 
@@ -111,6 +112,37 @@
 | `D-TASK-035` | 若缓存治理能力会放宽数据新鲜度/一致性边界、让缓存旁路/回填绕过授权或审计、把元数据占位误写成真实 cache governance，需人工确认 | cache policy、命中/失效/旁路/回填/风险标记数据、跨服务治理与审计证据、相关 schema 与运行文档 | 保持当前无强治理缓存默认边界，关闭高风险 cache policy 默认启用，回退新增 cache governance 字段、策略与文档说明，并恢复到 `D-TASK-034` 已验证基线 |
 | `D-TASK-036` | 若 distributed cache backend 会放宽数据新鲜度/一致性边界、绕过统一授权入口或治理审计、把 provider/Redis 依赖写成仓库默认主路径、引入明文凭据或 fail-open 命中语义，需人工确认 | cache backend 配置、provider-native 读写/校验证据、cache policy apply/verify/invalidate 证据、命中/旁路/回填/失效数据、跨服务审计记录 | 保持 repo-closed in-memory cache governance baseline 为默认主路径，关闭 environment-backed distributed provider 默认启用，回退新增 backend contract/provider evidence/降级语义与文档说明，并恢复到 `D-TASK-035` 已验证基线 |
 | `D-TASK-037` | 若 cache capacity / eviction / metrics governance 会放宽缓存新鲜度边界、让过期或被驱逐 entry 继续命中、引入高基数指标标签、绕过统一授权入口或治理审计、或把真实 Redis 长跑环境写成仓库默认事实，需人工确认 | cache policy capacity/ttl 配置、tenant/policy capacity counters、eviction reason evidence、cache governance metrics、policy verify runtime summary、benchmark/governance cache surface | 保持 D-TASK-036 repo-closed 默认主路径和 fail-closed 语义，关闭高风险 capacity/ttl 配置或 metrics 标签，回退新增 eviction/capacity/metrics 语义与文档说明，并恢复到 `D-TASK-036` 已验证基线 |
+| `D-TASK-038` | 若历史追溯字段扩展会改变既有审计语义、删除已存证的 SQL/route/cache/trace 信息，或把未确认字段写成强制事实，需人工确认 | `query_history`、`execution_result`、导出/取证查询字段与索引 | 保留既有追溯链并以追加字段方式扩展；必要时通过视图/兼容 DTO 回退查询面 |
+| `D-TASK-039` | 若查询执行摘要契约会改变既有受保护请求、失败语义或让 comment/binding/logical-object 信息在未校验时对外暴露，需人工确认 | 查询执行响应、审计摘要、前后端契约 | 保留原执行与错误响应路径，新增字段可降级为空，不删除旧字段 |
+| `D-TASK-040` | 若历史查询面会引入越权钻取、跨租户可见性扩大或破坏已存在分页/审计约束，需人工确认 | governance 历史查询、详情、关联 drill-through 与索引 | 回退新增筛选/详情能力，恢复原历史查询面并保留新索引/字段供后续受控启用 |
+| `D-TASK-041` | 若导出/取证视图会放宽敏感字段输出、破坏脱敏语义或把 PDF/SQL 导出写成默认生产事实，需人工确认 | 导出记录、取证视图、导出载荷与审计链 | 恢复原导出白名单与脱敏策略，禁用高风险格式并保留导出审计记录 |
+| `D-TASK-042` | 若结构解析契约会把未实现的语义分析写成既成事实、删减问题分类维度或改变严重度/优先级口径，需人工确认 | 解析响应、问题分类、统计口径与文档基线 | 恢复上一版问题分类与评分字段，保留新增字段为可选扩展 |
+| `D-TASK-043` | 若结构解析入口引入数据库依赖、阻断查询主路径或把低置信度结果伪装成高置信度，需人工确认 | structure parse 任务、结构化问题、query-date 与逻辑对象命中证据 | 关闭高成本分析支路，保留基础语法/结构解析与低置信度标识 |
+| `D-TASK-044` | 若数据访问解析会阻断结构解析返回、把外部服务不可用误写成整体成功，或引入未确认的默认重试策略，需人工确认 | access parse 任务、服务状态、可达性/计划/分区/SLA 证据 | 恢复结构解析先返回、access parse 独立失败的既定语义，停用自动补跑 |
+| `D-TASK-045` | 若综合结论会隐藏 partial success、抹平结构与 access parse 的状态差异，或删除 failure evidence，需人工确认 | parse task 总状态、历史详情与统计聚合 | 恢复双轨状态分开展示，保留 partial success 证据与失败原因 |
+| `D-TASK-046` | 若统一逻辑对象模型会混淆 `BUSINESS_VIEW` 与 `DB_VIEW` 语义、扩大对象默认可见范围，需人工确认 | 逻辑对象目录、引用键、跨服务 DTO | 通过兼容视图恢复双模对象边界，并保留已落库对象数据 |
+| `D-TASK-047` | 若业务逻辑视图目录与映射会引入未确认业务口径、删除既有物理映射或放宽租户隔离，需人工确认 | logic view 目录、映射表与相关治理查询 | 恢复原目录/映射快照，关闭高风险对象或映射规则 |
+| `D-TASK-048` | 若 DB View 识别会误把复杂对象链写成确定事实、放宽跨源依赖边界，需人工确认 | DB view 依赖解析与展示数据 | 保留已识别依赖为 evidence，回退高风险展开逻辑为摘要模式 |
+| `D-TASK-049` | 若逻辑对象统一展示会破坏现有 query/history/parse 契约兼容性，需人工确认 | 跨服务 DTO/VO 与前端消费面 | 保留旧 DTO/VO 兼容层，并回退统一对象字段为可选扩展 |
+| `D-TASK-050` | 若批量解析批次模型与模板契约会把兼容格式、mock source 或未校验列写成正式运行时默认，需人工确认 | batch/task metadata、模板列、导入状态与批次统计 | 保留稳定格式优先与 mock 边界，回退高风险模板/状态语义 |
+| `D-TASK-051` | 若稳定格式导入解析会在失败时丢失原始记录、绕过审计或把 access parse 强制为同步阻断，需人工确认 | 批量导入记录、parse task 批次编排与失败记录 | 恢复结构解析优先与失败留痕，不删除原始批次记录 |
+| `D-TASK-052` | 若 `xls/et` 兼容支持会拖累主线、把兼容失败误写为平台故障，需人工确认 | 兼容格式解析逻辑与失败提示 | 回退兼容扩展到稳定格式基线，并保留失败原因说明 |
+| `D-TASK-053` | 若报表清单 mock 入口会被写成真实接口联通事实、或改变 `report_code` 唯一键语义，需人工确认 | report batch 记录、mock source 解析与报表- SQL 映射 | 恢复 txt/mock 语义与 `report_code` 主键边界 |
+| `D-TASK-054` | 若报表接口抽象会直接绑定真实外部接口、落 secret/live inventory 或破坏 mock 可回退路径，需人工确认 | 接口配置、client 抽象、报表 SQL 解析来源 | 回退到 mock 路径并移除高风险外部绑定 |
+| `D-TASK-055` | 若统计口径与优先级评分改变已确认的 severity/priority/important/urgent 语义，需人工确认 | 评分规则、统计口径与相关查询面 | 保留旧评分/口径并追加新规则，不覆盖历史结果 |
+| `D-TASK-056` | 若按 SQL / 场景统计会引入高成本查询、错误聚合或隐藏问题样本，需人工确认 | 统计聚合、样本明细、索引与缓存面 | 回退高成本聚合，恢复基础统计和样本可追溯性 |
+| `D-TASK-057` | 若按报表统计会放大不可靠 mock 数据、或把失败解析也计入成功占比，需人工确认 | 报表聚合、占比计算与报表问题清单 | 恢复成功/失败分层与 mock 标识，纠正聚合口径 |
+| `D-TASK-058` | 若重要/紧急矩阵会隐藏判定依据或用于替代原始 issue 结果，需人工确认 | priority matrix、important/urgent 视图与排序逻辑 | 恢复 issue 原始结果优先，矩阵仅作为派生视图 |
+| `D-TASK-059` | 若推荐对象扩展会把“建议”写成“已执行结果”、或削弱收益/风险边界，需人工确认 | recommendation 对象、类型、收益/风险与状态字段 | 恢复 recommendation 只读建议语义，保留新增字段为未执行状态 |
+| `D-TASK-060` | 若治理事件状态机会绕过外部拉取模式、自动推送真实装数、或删除失败/待拉取状态，需人工确认 | dispatch event、状态机、审计与回执链 | 恢复 pull-based 协同边界，保留全部事件状态证据 |
+| `D-TASK-061` | 若推荐关联追溯会跨租户串链、暴露不应展示的 route/parse/history 关系，需人工确认 | recommendation trace keys、治理查询面与关联视图 | 回退跨链关联字段，恢复受保护的最小追溯面 |
+| `D-TASK-062` | 若“只管理不装数”契约被扩展成直接执行装数、主动推送生产消息或默认联通外部模块，需人工确认 | recommendation 协同契约、dispatch 行为、文档真值 | 恢复 pull-only 与非执行边界，保留协同事件审计 |
+| `D-TASK-063` | 若接入来源模型会让未受管入口绕过审计或混淆真实访问来源，需人工确认 | access channel、access audit 与相关 headers/metadata | 恢复显式来源分类与统一审计，关闭不明来源入口 |
+| `D-TASK-064` | 若 HTTP API 接入会绕过统一鉴权/审计、扩大对外暴露面或删改既有契约，需人工确认 | 外部 API、认证上下文、审计记录与错误响应 | 回退对外入口到受保护最小基线，并保留现有内部契约 |
+| `D-TASK-065` | 若 JDBC Agent `Observe` 会接管执行、写入敏感信息或在规则源失败时影响业务查询，需人工确认 | Agent JAR、采集上报、access audit 与 Redis 依赖 | 恢复 observe-only 语义，禁用高风险上报或敏感字段透出 |
+| `D-TASK-066` | 若 JDBC Agent `Governed Execute` 会在平台不可用时无回退策略、或默认强制所有 SQL 走平台，需人工确认 | Agent 执行模式、fallback 策略、平台调用链 | 恢复租户/数据源级可切换边界和 fallback 语义 |
+| `D-TASK-067` | 若 JDBC Agent `Local Rewrite + Direct JDBC` 会静默改写 SQL、绕过审计或改变查询语义，需人工确认 | 本地改写规则、direct JDBC 路径与上报链 | 回退为原 SQL 或 observe-only，保留改写失败记录 |
+| `D-TASK-068` | 若 Java SDK 会把未稳定契约写成强依赖、绕过统一 request/trace 语义或暴露敏感配置，需人工确认 | SDK client、配置、请求重试与接入文档 | 回退 SDK 到最小 typed client 基线，并保留 HTTP API 主路径 |
 
 ## Phase-E
 
@@ -132,6 +164,20 @@
 | `E-TASK-014` | 若恢复 Vue SFC 需要放弃现有 portable 包、浏览器 smoke、显式 Element Plus 注册或分包策略，或改变既有页面 IA / 代理语义，需人工确认 | 根级前端 `.vue` 源文件、Vite SFC 构建链、portable 产物、chunk 输出与路由/代理语义 | 保留 `E-TASK-013` 已验证的 portable 与分包结果，回退高风险 SFC 恢复改动，并恢复到上一个已验证的前端交付基线 |
 | `E-TASK-015` | 若新增 dev browser smoke 会替代既有 full-stack runtime smoke、削弱现有 portable / 代理语义验证，或为清理叙事而改写历史任务完成记录，需人工确认 | Vite dev server 浏览器 smoke 覆盖、当前前端治理叙事、路由/代理语义 | 保留 `E-TASK-014` 已验证的 Vue SFC / portable 基线，回退高风险 dev smoke 或文档清理改动，并恢复到上一个已验证的前端交付真值 |
 | `E-TASK-016` | 若把 dev browser smoke 从当前 local repo-closed 基线升级为默认 CI/runtime gate、削弱现有 full-stack runtime smoke 主路径，或通过该任务改写 `E-TASK-015` 的历史完成结论，需人工确认 | dev browser smoke 的边界定义、前端验证语义、CI/runtime gating 叙事与文档表述 | 保留 `E-TASK-015` 已验证的 local dev smoke 基线，回退高风险边界/脚本/文档改动，并恢复 full-stack runtime smoke 作为多服务主路径的既有真值 |
+| `E-TASK-017` | 若查询工作台增强会在前端复刻后端权威逻辑、引入越权字段展示或改变既有执行入口语义，需人工确认 | 查询页布局、状态编排与前端消费字段 | 保留后端权威，回退高风险前端判断逻辑，仅保留展示/编排层 |
+| `E-TASK-018` | 若历史列表筛选会暴露未授权字段、跨租户可见数据或破坏分页性能边界，需人工确认 | 历史列表、筛选状态与前端缓存态 | 回退敏感筛选/列，恢复基础列表视图与分页 |
+| `E-TASK-019` | 若取证详情会暴露未脱敏参数、内部错误栈或隐藏部分失败证据，需人工确认 | 历史详情页、SQL 三态和关联取证展示 | 恢复脱敏与失败证据显示边界，关闭高风险详情块 |
+| `E-TASK-020` | 若解析工作台把 access parse 不可用伪装成结构解析成功、或在前端合并双轨语义导致用户误解，需人工确认 | 解析工作台页面状态、双卡展示与提示文案 | 恢复结构/访问解析分开展示与 unavailable 提示 |
+| `E-TASK-021` | 若批量解析页会把兼容格式失败误写成产品故障、或把 mock 报表清单写成真实接口联通，需人工确认 | 批次页、导入模板、报表清单 UI 语义 | 保留稳定格式优先与 mock 标识，回退高风险文案/行为 |
+| `E-TASK-022` | 若解析统计页会改变 severity/priority 口径、隐藏 important/urgent 判定依据，需人工确认 | 统计图表、矩阵与 drill-through 页 | 恢复既定统计口径与标签，保留新增展示为附加视图 |
+| `E-TASK-023` | 若数据资产页会混淆业务逻辑视图与 DB View、暴露未授权对象详情，需人工确认 | 资产目录、对象详情、导航结构 | 恢复对象类型区分与权限控制，关闭高风险详情区域 |
+| `E-TASK-024` | 若逻辑视图映射页会把数据到位状态、SLA 或热度写成确定事实而无证据来源，需人工确认 | 逻辑对象映射、freshness/SLA/heat 展示 | 恢复字段证据标识与默认未知状态 |
+| `E-TASK-025` | 若路由治理页会暴露内部策略细节、误导用户把 environment-backed 证据写成默认事实，需人工确认 | 路由规则、决策详情与说明文案 | 回退高风险字段，恢复基于仓库真值的路由展示 |
+| `E-TASK-026` | 若推荐中心会把“推荐”误写成“已执行装数”、或隐藏 dispatch 失败状态，需人工确认 | 推荐中心、dispatch 状态与说明文案 | 恢复 recommendation / dispatch 分离展示，保留失败/待拉取状态 |
+| `E-TASK-027` | 若压测中心页会把模板/测试集能力写成已默认启用的真实运行时基线、或混淆回归与对比模式，需人工确认 | benchmark 页面、模板/TestSet UI 与报告对比面 | 恢复模板/测试集/报告分区，保留模式差异与未实现能力标识 |
+| `E-TASK-028` | 若开放接入页会把 JDBC Agent 全模式、SDK 或真实接口联通写成既有事实，需人工确认 | 开放接入页、接入策略和文案 | 恢复到契约/规划态展示，明确当前落地阶段 |
+| `E-TASK-029` | 若 Dashboard KPI 与待办会聚合不存在的数据、放大 environment-backed 指标权重或引入未审计来源，需人工确认 | Dashboard 聚合指标、卡片与待办清单 | 恢复基于治理查询面的 KPI，移除无证据来源聚合 |
+| `E-TASK-030` | 若告警中心页会把模拟邮件写成真实通知成功、或隐藏 dedupe / ACK 语义，需人工确认 | 告警列表、详情、ACK 和通知状态展示 | 恢复 simulated 状态文案与完整事件状态链 |
 
 ## Phase-F
 
@@ -170,6 +216,15 @@
 | `F-TASK-031` | 若要把 Sonar 或真实 Kafka 再次恢复为仓库默认硬阻断，或改变 repo-closed / environment-backed 双层边界，需人工确认 | phase gate/release gate workflow、脚本默认值、门禁文档口径、INBOX 环境恢复项 | 恢复 fallback 语义、保留环境恢复 runbook 与 INBOX 追踪，必要时再拆独立任务重新升级为强制门禁 |
 | `F-TASK-032` | 若要把“环境已 provision”重新视为“默认自动启用 Sonar 强制门禁”，或恢复 release workflow 的环境级默认绑定，需人工确认 | CI/release workflow 触发条件、Sonar enable flag、环境恢复 runbook、INBOX 语义与部署基线 | 恢复当前显式 enable 语义，保留 provisioning 证据与恢复入口；如要再次升级为默认强制，需拆新任务追加治理记录 |
 | `F-TASK-033` | 若要把测试环境 minimal smoke 升级为仓库 repo-closed 主路径替代项、重新引入对测试环境内部 DB/容器的强绑定，或要求外部环境 owner 接受新的破坏式认证/访问前提，需人工确认 | 环境无关 smoke 脚本、外部测试环境 CI/CD 接入方式、health/API 断言语义与部署文档真值 | 保留新增入口为 environment-backed 部署后验证层，回退对外部环境的强绑定假设，并继续维持本地 runtime smoke 作为 repo-closed 主路径 |
+| `F-TASK-034` | 若告警模型会弱化当前审计与去重边界、删除关键事件等级或改变责任人语义，需人工确认 | alert event/policy 数据模型与治理查询面 | 恢复既有告警分类与审计语义，保留新增字段为附加扩展 |
+| `F-TASK-035` | 若关键事件判定会引入过度噪声、漏报关键故障或把 environment-backed 故障写成 repo 默认事实，需人工确认 | 告警判定规则、阈值与事件生成逻辑 | 回退高风险规则，恢复基础关键事件集 |
+| `F-TASK-036` | 若模拟邮件日志会被误写成真实通知、或 dedupe 策略导致关键事件被静默丢弃，需人工确认 | 通知日志、dedupe 状态与告警审计链 | 恢复 simulated-only 语义与原始事件保留 |
+| `F-TASK-037` | 若告警查询与 ACK 接口会破坏只读/确认边界、引入跨租户可见性扩大，需人工确认 | governance alert list/detail/ack 接口与数据可见范围 | 回退 ACK/查询粒度，恢复最小可见范围 |
+| `F-TASK-038` | 若 benchmark template/test-set 契约会削弱只读、影子环境或阈值边界，需人工确认 | 模板/TestSet 数据模型、阈值与来源语义 | 恢复原 benchmark safety 语义，停用高风险模板字段 |
+| `F-TASK-039` | 若批量测试集导入会把未校验 SQL、报表或参数直接提升为可信数据，需人工确认 | test set 导入记录、批次与成员清单 | 恢复严格校验和失败记录，保留导入 evidence |
+| `F-TASK-040` | 若 parse-to-benchmark 联动会把解析问题自动视为可直接压测对象、绕过安全边界，需人工确认 | 解析结果到 test set 的联动对象与过滤规则 | 回退自动生成范围，保留人工筛选入口 |
+| `F-TASK-041` | 若 recommendation-to-benchmark 会把推荐 SQL 自动执行为压测任务、绕过审批与安全边界，需人工确认 | 推荐对象与对比压测联动链路 | 恢复 recommendation 与 benchmark 的显式确认边界 |
+| `F-TASK-042` | 若回归守护统计与告警会把实验性 benchmark 结果提升为默认生产风险判定，需人工确认 | regression summary、threshold hit 与 alert linkage | 恢复为显式模板/测试集范围内的回归守护，不扩大默认告警面 |
 
 ## Related Documents
 
