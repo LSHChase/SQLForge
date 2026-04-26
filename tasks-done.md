@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-043: 落地单条结构解析入口
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): add structure parse endpoint baseline`
+- Priority: 1
+- Depends on: `D-TASK-042`
+- Scope: 不依赖数据库的结构解析、query-date 提取、逻辑对象命中与 rewrite candidate 输出 Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-007` 结构解析与数据访问解析双轨闭环
+- Human confirmation point: 若结构解析入口引入数据库依赖、阻断查询主路径或把低置信度结果伪装成高置信度，需人工确认
+- Data impact: structure parse 任务、结构化问题、query-date 与逻辑对象命中证据
+- Rollback / recovery: 关闭高成本分析支路，保留基础语法/结构解析与低置信度标识
+- Validation:
+  - `parse structure controller/service 测试`
+  - `python3 scripts/foreman.py validate D-TASK-043`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added the first synchronous structure parse endpoint, request/response contract wiring, query-date extraction, logical-object hits, rewrite candidate projection, and INVALID degradation behavior without database dependencies.
+  - Validation evidence: mvn -pl sql-optimization -Dtest=StructureParseControllerTest,StructureParseContractTest,StructureParsePriorityScorerTest,StructureParseResultTest test; python3 scripts/foreman.py validate D-TASK-043; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Structure parse currently infers DB_VIEW hits heuristically and does not yet use governed logical-view catalogs or access parse evidence; D-TASK-044 will add access-parse semantics and D-STORY-008 will enrich object resolution.
+  - Next step: Instantiate D-TASK-044 to add access-parse entry semantics and asynchronous follow-up on top of the new structure parse baseline.
+
 ### D-TASK-042: 固化结构解析契约与问题分类模型
 
 - Status: done

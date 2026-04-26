@@ -72,6 +72,7 @@
   - `affectedReportCount`
   - `priorityScore`
   - `priorityLevel`
+- 语法不可解析时也要返回结构解析结果，并通过 `syntaxStatus=INVALID` 与问题清单显式标识，不阻断页面显示。
 - 数据访问解析依赖数据库、引擎或元数据服务，可失败、可跳过、可异步补跑，但不能阻断结构解析结果返回。
 - 默认执行策略：
   - 先执行结构解析

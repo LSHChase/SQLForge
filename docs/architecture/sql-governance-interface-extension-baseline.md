@@ -277,6 +277,12 @@
 - `VALID`
 - `INVALID`
 
+说明：
+
+- 结构解析入口为同步接口
+- 语法不可解析时仍返回 `200 OK + syntaxStatus=INVALID`
+- 不因 parser failure 阻断结构解析证据面返回
+
 ### 4.2 Access Parse
 
 - `POST /api/sql-optimization/parse/access`

@@ -276,6 +276,14 @@ public class SqlOptimizationPipelineService {
         );
     }
 
+    public List<String> deriveRewriteCandidateRules(ParsedSqlProfile profile) {
+        if (profile == null) {
+            return Collections.emptyList();
+        }
+        RewriteOutcome outcome = applyRewriteRules(profile.selectStatement);
+        return outcome.appliedRules;
+    }
+
     private void analyzeSelectBody(SelectBody selectBody, ParsedSqlProfile profile) {
         if (selectBody == null) {
             return;
@@ -841,6 +849,38 @@ public class SqlOptimizationPipelineService {
             payload.put("selectStar", Boolean.valueOf(selectStar));
             payload.put("warnings", warnings);
             return payload;
+        }
+
+        public List<String> getTables() {
+            return new ArrayList<String>(tables);
+        }
+
+        public Set<String> getAggregateFunctions() {
+            return new LinkedHashSet<String>(aggregateFunctions);
+        }
+
+        public Set<String> getDatePredicateColumns() {
+            return new LinkedHashSet<String>(datePredicateColumns);
+        }
+
+        public List<String> getWarnings() {
+            return new ArrayList<String>(warnings);
+        }
+
+        public int getPredicateCount() {
+            return predicateCount;
+        }
+
+        public int getJoinCount() {
+            return joinCount;
+        }
+
+        public int getGroupByCount() {
+            return groupByCount;
+        }
+
+        public boolean isSetOperation() {
+            return setOperation;
         }
     }
 
