@@ -307,6 +307,26 @@
 - `availabilityWarning`
 - `degradeReason`
 
+`serviceStatus` 枚举：
+
+- `AVAILABLE`
+- `UNAVAILABLE`
+- `SKIPPED`
+
+`connectionStatus` 枚举：
+
+- `CONNECTED`
+- `FAILED`
+- `UNAVAILABLE`
+- `SKIPPED`
+
+`objectResolutionStatus` 枚举：
+
+- `RESOLVED`
+- `PARTIAL`
+- `UNAVAILABLE`
+- `SKIPPED`
+
 ### 4.3 Combined Parse Status
 
 - `POST /api/sql-optimization/parse/combined`
@@ -317,6 +337,7 @@
 - 先执行结构解析
 - 若连接可用则自动触发 access parse
 - 返回统一 `parseTaskId` 与初始结构解析结果
+- 初始同步返回应保留 `ACCESS_PARSING` 过渡态
 
 必须能表达：
 

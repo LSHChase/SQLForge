@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-044: 落地数据访问解析入口与异步补跑语义
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): add access parse async follow-up baseline`
+- Priority: 1
+- Depends on: `D-TASK-043`
+- Scope: 结构解析成功后自动异步补跑 access parse，保留 unavailable/skipped/failed 语义与服务状态 Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-007` 结构解析与数据访问解析双轨闭环
+- Human confirmation point: 若数据访问解析会阻断结构解析返回、把外部服务不可用误写成整体成功，或引入未确认的默认重试策略，需人工确认
+- Data impact: access parse 任务、服务状态、可达性/计划/分区/SLA 证据
+- Rollback / recovery: 恢复结构解析先返回、access parse 独立失败的既定语义，停用自动补跑
+- Validation:
+  - `async parse flow 测试、降级测试`
+  - `python3 scripts/foreman.py validate D-TASK-044`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added access-parse endpoint semantics, combined parse submission/poll endpoints, in-memory async follow-up flow, and unavailable/skipped/failed service-state handling on top of the structure parse baseline.
+  - Validation evidence: mvn -pl sql-optimization -Dtest=AccessParseControllerTest,StructureParseControllerTest,StructureParseContractTest,StructureParsePriorityScorerTest,StructureParseResultTest test; python3 scripts/foreman.py validate D-TASK-044; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Combined parse state is still in-memory and not persisted; object resolution remains provider-light and SLA/freshness stay conservative UNKNOWN until D-TASK-045 and later governance metadata work.
+  - Next step: Instantiate D-TASK-045 to unify partial-success status, add richer combined parse query surfaces, and prepare history/persistence handoff for later waves.
+
 ### D-TASK-043: 落地单条结构解析入口
 
 - Status: done
