@@ -191,10 +191,91 @@
 - `logicalObjectHits`
 - `riskTags`
 - `rewriteCandidates`
+- `issues`
 - `priorityScore`
 - `priorityLevel`
 - `important`
 - `urgent`
+
+`queryDateSummary` 子字段：
+
+- `queryDateStart`
+- `queryDateEnd`
+- `queryDateFields`
+- `queryDateStatus`
+
+`queryDateStatus` 枚举：
+
+- `RESOLVED`
+- `PARTIAL`
+- `UNRESOLVED`
+
+`logicalObjectHits[]` 子字段：
+
+- `objectType`
+- `objectName`
+- `matchSource`
+- `resolved`
+- `mappedPhysicalTargets`
+
+`objectType` 枚举：
+
+- `BUSINESS_VIEW`
+- `DB_VIEW`
+- `TABLE`
+
+`issues[]` 子字段：
+
+- `issueCode`
+- `issueDomain`
+- `issueScene`
+- `severity`
+- `summary`
+- `detail`
+- `suggestedAction`
+- `important`
+- `urgent`
+- `affectedSqlCount`
+- `affectedReportCount`
+- `priorityScore`
+- `priorityLevel`
+
+结构解析问题域：
+
+- `STRUCTURE`
+- `PERFORMANCE`
+- `DATA`
+- `ROUTING`
+- `COMPATIBILITY`
+- `CONVENTION`
+- `GOVERNANCE`
+
+结构解析严重度：
+
+- `INFO`
+- `LOW`
+- `MEDIUM`
+- `HIGH`
+- `CRITICAL`
+
+结构解析优先级：
+
+- `P1`
+- `P2`
+- `P3`
+- `P4`
+
+结构解析复杂度：
+
+- `SIMPLE`
+- `MODERATE`
+- `COMPLEX`
+- `EXTREME`
+
+结构解析语法状态：
+
+- `VALID`
+- `INVALID`
 
 ### 4.2 Access Parse
 

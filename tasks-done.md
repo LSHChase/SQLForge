@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-042: 固化结构解析契约与问题分类模型
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): freeze structure parse contract baseline`
+- Priority: 1
+- Depends on: `D-TASK-041`
+- Scope: 定义结构解析响应、问题域/场景、severity/priority/important/urgent 评分基线 Tech: `JAVA-BE`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-007` 结构解析与数据访问解析双轨闭环
+- Human confirmation point: 若结构解析契约会把未实现的语义分析写成既成事实、删减问题分类维度或改变严重度/优先级口径，需人工确认
+- Data impact: 解析响应、问题分类、统计口径与文档基线
+- Rollback / recovery: 恢复上一版问题分类与评分字段，保留新增字段为可选扩展
+- Validation:
+  - `parser/domain 契约测试`
+  - `python3 scripts/foreman.py validate D-TASK-042`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Defined structure parse domain/result contract, issue taxonomy, aggregate priority scoring baseline, typed response VOs, and synced interface/product specs for D-STORY-007.
+  - Validation evidence: mvn -pl sql-optimization -Dtest=StructureParsePriorityScorerTest,StructureParseResultTest,StructureParseContractTest test; python3 scripts/foreman.py validate D-TASK-042; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: No structure parse controller or parser implementation yet; D-TASK-043 will bind these contracts to the actual parse endpoint and extraction logic.
+  - Next step: Instantiate and implement D-TASK-043 using the frozen structure parse contract for the first repo-side structure parse endpoint.
+
 ### D-TASK-041: 补齐 SQL 历史导出与取证视图
 
 - Status: done

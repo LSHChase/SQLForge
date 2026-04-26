@@ -47,6 +47,31 @@
   - `结构解析`
   - `数据访问解析`
 - 结构解析不依赖数据库连接，必须可稳定返回。
+- 结构解析结果至少包含：
+  - `syntaxStatus`
+  - `complexityLevel`
+  - `sqlType`
+  - `queryDateSummary`
+  - `logicalObjectHits`
+  - `riskTags`
+  - `rewriteCandidates`
+  - `issues`
+  - `priorityScore`
+  - `priorityLevel`
+  - `important`
+  - `urgent`
+- `issues` 至少包含：
+  - `issueCode`
+  - `issueDomain`
+  - `issueScene`
+  - `severity`
+  - `summary`
+  - `detail`
+  - `suggestedAction`
+  - `affectedSqlCount`
+  - `affectedReportCount`
+  - `priorityScore`
+  - `priorityLevel`
 - 数据访问解析依赖数据库、引擎或元数据服务，可失败、可跳过、可异步补跑，但不能阻断结构解析结果返回。
 - 默认执行策略：
   - 先执行结构解析
@@ -267,6 +292,11 @@
   - `P2`
   - `P3`
   - `P4`
+- 结构解析复杂度：
+  - `SIMPLE`
+  - `MODERATE`
+  - `COMPLEX`
+  - `EXTREME`
 
 #### 4.4.4 加速与改写中心
 
