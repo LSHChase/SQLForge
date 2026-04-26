@@ -41,13 +41,13 @@
 - 只读优先、开源 parser 复用、已批准加速配置运行时应用的策略声明
 - 受保护内部 Hetu route calibration / cluster evidence 快照入口，以及 ready/unready / priority / failure-layer 证据模型
 - 受保护内部 acceleration-plan apply / verify / rollback runtime gating 入口，以及按 `tenantId + sqlFingerprint + datasourceType` 收口的 approved binding registry
-- 受保护内部 cache policy apply / verify / invalidate runtime surface，以及按 `tenantId + sqlFingerprint + datasourceType + schemaVersion` 收口的 result-cache hit / bypass / invalidate / backfill 证据模型
+- 受保护内部 cache policy apply / verify / invalidate runtime surface，以及按 `tenantId + sqlFingerprint + datasourceType + schemaVersion` 收口的 result-cache hit / bypass / invalidate / backfill 证据模型；当前还具备 provider-neutral cache backend contract、默认 in-memory backend 与显式配置的 Redis RESP provider adapter，backend descriptor/provider evidence 会进入 policy response 与 cache governance evidence
 - 与 `governance` 的租户范围检查、数据源访问检查和审计写入 HTTP 调用基线
 
 当前还未完整承载：
 
 - 外部 Win10 + Hetu/MRS live smoke 的长期归档留证与环境 owner 执行窗口
-- 分布式 cache provider、Redis/provider-native cache adapter 与跨节点一致性恢复
+- 分布式 cache provider 的真实环境长期运行证据、跨节点恢复演练与更完整的 eviction/容量治理
 - 更完整的跨服务审计补偿与持久化追溯收口
 
 ## 2. SQL 优化服务

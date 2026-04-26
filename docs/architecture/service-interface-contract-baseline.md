@@ -226,7 +226,7 @@
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
-| `/api/query-execution/internal/cache-policies/apply` | `QueryExecutionCachePolicyApplyRequest` with `tenantId`,`policyId`,`sqlFingerprint`,`datasourceType`,`schemaVersion`,`sourcePlanId`,`policyReason` | `QueryExecutionCachePolicyResponse` with `tenantId`,`policyId`,`sqlFingerprint`,`targetEngine`,`schemaVersion`,`sourcePlanId`,`active`,`status`,`policySummary`,`runtimeDetailsJson`,`contractStage`,`implementationStage` | `CACHE_GOVERNANCE_RUNTIME_BASELINE` |
+| `/api/query-execution/internal/cache-policies/apply` | `QueryExecutionCachePolicyApplyRequest` with `tenantId`,`policyId`,`sqlFingerprint`,`datasourceType`,`schemaVersion`,`sourcePlanId`,`policyReason` | `QueryExecutionCachePolicyResponse` with `tenantId`,`policyId`,`sqlFingerprint`,`targetEngine`,`schemaVersion`,`sourcePlanId`,`active`,`status`,`policySummary`,`runtimeDetailsJson`,`contractStage`,`implementationStage`; `runtimeDetailsJson` carries `cacheBackendType/cacheBackendProvider/cacheBackendCarrier/cacheBackendDistributed/cacheBackendEnvironment/providerEvidence` | `CACHE_GOVERNANCE_RUNTIME_BASELINE` |
 | `/api/query-execution/internal/cache-policies/verify` | `QueryExecutionCachePolicyVerifyRequest` with `tenantId`,`policyId`,`sqlFingerprint`,`datasourceType`,`schemaVersion` | `QueryExecutionCachePolicyResponse` | `CACHE_GOVERNANCE_RUNTIME_BASELINE` |
 | `/api/query-execution/internal/cache-policies/invalidate` | `QueryExecutionCachePolicyInvalidateRequest` with `tenantId`,`policyId`,`sqlFingerprint`,`datasourceType`,`schemaVersion`,`invalidateReason` | `QueryExecutionCachePolicyResponse` | `CACHE_GOVERNANCE_RUNTIME_BASELINE` |
 
@@ -235,7 +235,9 @@
 - cache policy runtime surface 仍通过 header-based protected request context 受控访问，默认无 policy 时返回 `UNGOVERNED`，不把普通执行结果伪装成受治理缓存。
 - result-cache key 采用 `tenantId + datasourceType + sqlFingerprint + schemaVersion`；`schemaVersion` 来自 `queryContext.schemaVersion`，对齐 ADR-011 的 Hudi timestamp / schema consistency token 口径。
 - `schemaVersion` 缺失会标记 `BYPASSED / SCHEMA_VERSION_MISSING`；session variable `sqlforge.cache.bypass=true` 会标记 `BYPASSED / SESSION_VARIABLE_BYPASS`；版本变更会先失效旧 entry，再以新版本回填，并在 evidence 中保留 `SCHEMA_VERSION_MISMATCH` 与 invalidated count。
-- 当前 runtime 是 repo-closed in-memory baseline，用于证明 submit/apply/verify/invalidate 与 hit/backfill/bypass/invalidate 的治理闭环；它不等价于跨节点分布式 cache、Redis provider-native cache 或引擎侧缓存已经投产。
+- 当前 runtime 已抽象为 provider-neutral backend contract。默认 backend 仍是 repo-closed `IN_MEMORY / LOCAL_PROCESS`；只有显式设置 `query-execution.cache.backend.type=REDIS` 或 `PROVIDER_NATIVE_REDIS` 且提供 Redis endpoint 时，才走低层 RESP provider adapter。
+- distributed backend 不可用或写入失败时会 fail-closed 为 `BYPASSED`，并在 `cacheGovernanceEvidence` 中保留 `DISTRIBUTED_BACKEND_UNAVAILABLE` 或 `DISTRIBUTED_BACKEND_WRITE_FAILED`、backend descriptor 与 provider command evidence；不允许 provider 故障时伪造 cache hit。
+- 该能力代表 query-execution 已具备 provider-native distributed cache backend baseline 与可审计读写/失效/验证证据，不代表仓库默认启用 Redis/provider cache，也不代表引擎侧缓存已投产。
 
 ## 3.2 SQL Optimization Task Contract Baseline
 

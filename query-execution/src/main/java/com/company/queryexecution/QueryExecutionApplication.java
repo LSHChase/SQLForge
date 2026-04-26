@@ -10,7 +10,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @EnableConfigurationProperties({
     com.company.queryexecution.config.AuthProperties.class,
     com.company.queryexecution.config.QueryExecutionGovernanceProperties.class,
-    com.company.queryexecution.config.QueryExecutionHetuProperties.class
+    com.company.queryexecution.config.QueryExecutionHetuProperties.class,
+    com.company.queryexecution.config.QueryExecutionCacheBackendProperties.class
 })
 @SpringBootApplication(scanBasePackages = {"com.company.queryexecution", "com.company.sqlforge.common"})
 public class QueryExecutionApplication {

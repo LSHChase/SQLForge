@@ -67,6 +67,18 @@ query-execution:
       max-pages: ${QUERY_EXECUTION_HETU_CLIENT_MAX_PAGES:10}
   acceleration:
     ownership-mode: APPLY_APPROVED_RUNTIME_CONFIG_ONLY
+  cache:
+    backend:
+      type: ${QUERY_EXECUTION_CACHE_BACKEND_TYPE:IN_MEMORY}
+      provider-name: ${QUERY_EXECUTION_CACHE_BACKEND_PROVIDER:REPO_CLOSED_IN_MEMORY}
+      environment-label: ${QUERY_EXECUTION_CACHE_BACKEND_ENVIRONMENT:repo-default}
+      redis:
+        host: ${QUERY_EXECUTION_CACHE_REDIS_HOST:}
+        port: ${QUERY_EXECUTION_CACHE_REDIS_PORT:6379}
+        password: ${QUERY_EXECUTION_CACHE_REDIS_PASSWORD:}
+        database: ${QUERY_EXECUTION_CACHE_REDIS_DATABASE:0}
+        connect-timeout-ms: ${QUERY_EXECUTION_CACHE_REDIS_CONNECT_TIMEOUT_MS:1000}
+        read-timeout-ms: ${QUERY_EXECUTION_CACHE_REDIS_READ_TIMEOUT_MS:1000}
   governance:
     base-url: ${QUERY_EXECUTION_GOVERNANCE_BASE_URL:http://localhost:8080/api/governance/internal}
     connect-timeout-ms: ${QUERY_EXECUTION_GOVERNANCE_CONNECT_TIMEOUT_MS:3000}

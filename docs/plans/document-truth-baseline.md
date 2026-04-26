@@ -70,7 +70,7 @@
   - `JDBC` / `REST` / `CLIENT` 三种 Hetu 访问模式的承载边界，以及 feature-flagged 的真实模式路由与结果聚合基线
   - 与 `governance` 的租户范围校验、数据源访问检查和审计写入 HTTP 客户端基线
   - 受保护内部 `/api/query-execution/internal/acceleration-plans/apply|verify|rollback` 契约，以及按 approved binding 控制 `PREFER_ACCELERATED` 的 no-fail-open runtime gating
-  - 受保护内部 `/api/query-execution/internal/cache-policies/apply|verify|invalidate` 契约，以及按 `queryContext.schemaVersion` 控制的 result-cache hit / bypass / invalidate / backfill 治理证据
+  - 受保护内部 `/api/query-execution/internal/cache-policies/apply|verify|invalidate` 契约，以及按 `queryContext.schemaVersion` 控制的 result-cache hit / bypass / invalidate / backfill 治理证据；cache runtime 已具备 provider-neutral backend contract、默认 `IN_MEMORY` backend 与显式配置的 Redis RESP provider adapter，backend/provider evidence 会进入 policy response 与 cache governance evidence，且 provider 不可用时 fail-closed 为 bypass
   - `START / STATE_CHANGE / END / FAILED` 流程日志与 timeout / fallback 本地恢复标记
   - 独立多环境配置与日志配置骨架
   - 基础单元测试

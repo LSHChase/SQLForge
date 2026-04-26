@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-036: 推进 provider-native distributed cache governance backend
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(query-execution): close D-TASK-036 cache backend`
+- Priority: 1
+- Depends on: `D-TASK-035`
+- Scope: 在保持 repo-closed in-memory cache governance baseline、统一授权入口、治理审计、缓存一致性与只读边界不变的前提下，为 `query-execution` 补齐 provider-neutral distributed cache backend contract、environment-backed carrier 语义、provider-native evidence、失败降级与可审计读写校验；默认仍不启用外部 provider，不把 Redis/provider cache 写成仓库默认事实 Tech: `JAVA-BE`,`SQL`,`OPS`,`DOCS`. Layer: `common`,`application(controller/service)/domain/infrastructure`,`deployments/c...
+- Matrix context: Phase-D / Story `D-STORY-005` 运行时执行链与跨服务补完
+- Human confirmation point: 若 distributed cache backend 会放宽数据新鲜度/一致性边界、绕过统一授权入口或治理审计、把 provider/Redis 依赖写成仓库默认主路径、引入明文凭据或 fail-open 命中语义，需人工确认
+- Data impact: cache backend 配置、provider-native 读写/校验证据、cache policy apply/verify/invalidate 证据、命中/旁路/回填/失效数据、跨服务审计记录
+- Rollback / recovery: 保持 repo-closed in-memory cache governance baseline 为默认主路径，关闭 environment-backed distributed provider 默认启用，回退新增 backend contract/provider evidence/降级语义与文档说明，并恢复到 `D-TASK-035` 已验证基线
+- Validation:
+  - `sqlforge-shared/query-execution/governance 模块测试、distributed cache backend contract 测试、cache policy apply/verify/invalidate backend 证据测试、runtime smoke、task audit、knowledge lint、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-036`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Synced Phase-D plan truth after D-TASK-035, shaped D-TASK-036, and implemented provider-neutral cache backend governance for query-execution with default in-memory backend, explicit Redis RESP provider adapter, backend/provider evidence, fail-closed bypass semantics, focused tests, and documentation updates.
+  - Validation evidence: mvn -B -pl query-execution,governance -am test -DskipITs -Dtest=QueryExecutionCacheGovernanceRuntimeServiceTest,QueryExecutionApplicationServiceTest,QueryExecutionInternalControllerTest,QueryExecutionBenchmarkWorkloadServiceTest,GovernanceHistoryApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false; python3 scripts/foreman.py validate D-TASK-036; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js
+  - Residual risk: Redis/provider backend remains explicitly configured environment-backed path; live multi-node Redis recovery, eviction, capacity governance, and long-running provider evidence remain future hardening.
+  - Next step: Add environment-backed Redis smoke and eviction/capacity governance once a real distributed cache environment is available.
+
 ### D-TASK-035: 收口真正的缓存治理能力
 
 - Status: done

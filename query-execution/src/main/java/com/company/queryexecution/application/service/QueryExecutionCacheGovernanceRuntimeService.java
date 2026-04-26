@@ -1,6 +1,7 @@
 package com.company.queryexecution.application.service;
 
 import com.company.queryexecution.application.controller.dto.QueryContextDTO;
+import com.company.queryexecution.config.QueryExecutionCacheBackendProperties;
 import com.company.queryexecution.domain.query.QueryExecutionStep;
 import com.company.sqlforge.common.constants.CacheKeyConstants;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
@@ -13,10 +14,10 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyRespo
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyVerifyRequest;
 import com.company.sqlforge.common.utils.JsonUtils;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -35,9 +36,24 @@ public class QueryExecutionCacheGovernanceRuntimeService {
     private static final String RISK_SCHEMA_VERSION_MISSING = "SCHEMA_VERSION_MISSING";
     private static final String RISK_SCHEMA_VERSION_MISMATCH = "SCHEMA_VERSION_MISMATCH";
     private static final String RISK_SESSION_BYPASS = "SESSION_VARIABLE_BYPASS";
+    private static final String RISK_BACKEND_UNAVAILABLE = "DISTRIBUTED_BACKEND_UNAVAILABLE";
+    private static final String RISK_BACKEND_WRITE_FAILED = "DISTRIBUTED_BACKEND_WRITE_FAILED";
 
     private final Map<String, CachePolicyBinding> bindings = new ConcurrentHashMap<String, CachePolicyBinding>();
-    private final Map<String, CacheEntry> cacheEntries = new ConcurrentHashMap<String, CacheEntry>();
+    private final QueryExecutionResultCacheBackend cacheBackend;
+
+    public QueryExecutionCacheGovernanceRuntimeService() {
+        this(new InMemoryQueryExecutionResultCacheBackend());
+    }
+
+    @Autowired
+    public QueryExecutionCacheGovernanceRuntimeService(QueryExecutionCacheBackendProperties properties) {
+        this(createBackend(properties));
+    }
+
+    QueryExecutionCacheGovernanceRuntimeService(QueryExecutionResultCacheBackend cacheBackend) {
+        this.cacheBackend = cacheBackend == null ? new InMemoryQueryExecutionResultCacheBackend() : cacheBackend;
+    }
 
     public QueryExecutionCachePolicyResponse apply(QueryExecutionCachePolicyApplyRequest request) {
         requireProtectedTenant(request == null ? null : request.getTenantId());
@@ -70,7 +86,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             binding,
             "APPLIED",
             true,
-            "Governed cache policy is now active for result-cache eligibility and version validation.",
+            "Governed cache policy is now active for result-cache eligibility, backend validation, and version checks.",
             countEntries(binding)
         );
     }
@@ -91,7 +107,10 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             response.setActive(false);
             response.setStatus("MISSING");
             response.setPolicySummary("No governed cache policy is currently active for runtime verification.");
-            response.setRuntimeDetailsJson(JsonUtils.toJson(details("bindingState", "MISSING", "cachedEntryCount", Integer.valueOf(0))));
+            response.setRuntimeDetailsJson(JsonUtils.toJson(withBackendDetails(details(
+                "bindingState", "MISSING",
+                "cachedEntryCount", Integer.valueOf(0)
+            ), cacheBackend.verify().getProviderEvidence())));
             response.setContractStage(CONTRACT_STAGE);
             response.setImplementationStage(IMPLEMENTATION_STAGE);
             return response;
@@ -100,7 +119,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             binding,
             "VERIFIED",
             true,
-            "Governed cache policy remains active with version-aware runtime checks.",
+            "Governed cache policy remains active with version-aware runtime checks and backend verification.",
             countEntries(binding)
         );
     }
@@ -112,7 +131,11 @@ public class QueryExecutionCacheGovernanceRuntimeService {
         String sqlFingerprint = requireText(request.getSqlFingerprint(), "sqlFingerprint");
         String datasourceType = requireText(request.getDatasourceType(), "datasourceType");
         CachePolicyBinding binding = bindings.get(bindingKey(tenantId, sqlFingerprint, datasourceType));
-        int invalidatedEntries = binding == null || !policyId.equals(binding.getPolicyId()) ? 0 : invalidateEntries(binding);
+        QueryExecutionResultCacheBackend.CacheEntryInvalidateResult invalidation =
+            binding == null || !policyId.equals(binding.getPolicyId())
+                ? QueryExecutionResultCacheBackend.CacheEntryInvalidateResult.completed(0, "providerInvalidateStatus=SKIPPED")
+                : invalidateEntries(binding);
+        int invalidatedEntries = invalidation.getInvalidatedCount();
         QueryExecutionCachePolicyResponse response = new QueryExecutionCachePolicyResponse();
         response.setTenantId(tenantId);
         response.setPolicyId(policyId);
@@ -127,10 +150,15 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             : "No governed cache entries were present, so invalidation completed idempotently.");
         response.setRuntimeDetailsJson(
             JsonUtils.toJson(
-                details(
+                withBackendDetails(
+                    details(
                     "bindingState", response.isActive() ? "ACTIVE" : "ABSENT",
                     "invalidateReason", trimToNull(request.getInvalidateReason()),
-                    "invalidatedEntryCount", Integer.valueOf(invalidatedEntries)
+                    "invalidatedEntryCount", Integer.valueOf(invalidatedEntries),
+                    "backendOperationStatus", invalidation.isCompleted() ? "COMPLETED" : "FAILED",
+                    "backendFailureReason", invalidation.getFailureReason()
+                    ),
+                    invalidation.getProviderEvidence()
                 )
             )
         );
@@ -152,42 +180,58 @@ public class QueryExecutionCacheGovernanceRuntimeService {
         }
         String schemaVersion = trimToNull(queryContext == null ? null : queryContext.getSchemaVersion());
         if (isSessionBypassRequested(queryContext)) {
-            return CacheResolution.bypassed(binding, schemaVersion, RISK_SESSION_BYPASS, "Session variable requested cache bypass.");
+            return CacheResolution.bypassed(
+                binding,
+                schemaVersion,
+                RISK_SESSION_BYPASS,
+                "Session variable requested cache bypass.",
+                backendEvidence("providerReadStatus=SKIPPED")
+            );
         }
         if (!StringUtils.hasText(schemaVersion)) {
             return CacheResolution.bypassed(
                 binding,
                 null,
                 RISK_SCHEMA_VERSION_MISSING,
-                "queryContext.schemaVersion is required for governed cache hits."
+                "queryContext.schemaVersion is required for governed cache hits.",
+                backendEvidence("providerReadStatus=SKIPPED")
             );
         }
         if (!binding.getSchemaVersion().equals(schemaVersion)) {
-            int invalidatedEntries = invalidateEntries(binding);
+            QueryExecutionResultCacheBackend.CacheEntryInvalidateResult invalidation = invalidateEntries(binding);
             CachePolicyBinding refreshedBinding = binding.withSchemaVersion(schemaVersion);
             bindings.put(bindingKey(tenantId, sqlFingerprint, datasourceType), refreshedBinding);
             return CacheResolution.invalidated(
                 refreshedBinding,
                 schemaVersion,
                 cacheKey(tenantId, sqlFingerprint, datasourceType, schemaVersion),
-                invalidatedEntries,
-                "Schema version changed from governed baseline " + binding.getSchemaVersion() + "."
+                invalidation.getInvalidatedCount(),
+                "Schema version changed from governed baseline " + binding.getSchemaVersion() + ".",
+                backendEvidence(invalidation.getProviderEvidence())
             );
         }
         String cacheKey = cacheKey(tenantId, sqlFingerprint, datasourceType, schemaVersion);
-        CacheEntry cacheEntry = cacheEntries.get(cacheKey);
-        if (cacheEntry == null) {
-            return CacheResolution.miss(binding, schemaVersion, cacheKey);
+        QueryExecutionResultCacheBackend.CacheEntryReadResult readResult = cacheBackend.read(cacheKey);
+        if (!readResult.isAvailable()) {
+            return CacheResolution.bypassed(
+                binding,
+                schemaVersion,
+                RISK_BACKEND_UNAVAILABLE,
+                "Distributed cache backend is unavailable: " + readResult.getFailureReason(),
+                backendEvidence(readResult.getProviderEvidence())
+            );
         }
-        return CacheResolution.hit(binding, schemaVersion, cacheKey, cacheEntry);
+        if (readResult.getStep() == null) {
+            return CacheResolution.miss(binding, schemaVersion, cacheKey, backendEvidence(readResult.getProviderEvidence()));
+        }
+        return CacheResolution.hit(binding, schemaVersion, cacheKey, readResult.getStep(), backendEvidence(readResult.getProviderEvidence()));
     }
 
     public QueryExecutionStep buildCacheHitStep(CacheResolution resolution) {
-        if (resolution == null || resolution.getCacheEntry() == null || resolution.getCacheEntry().getStep() == null) {
+        if (resolution == null || resolution.getCacheEntry() == null) {
             return null;
         }
         return resolution.getCacheEntry()
-            .getStep()
             .withCacheGovernance(true, STATUS_HIT, resolution.buildEvidence(false, "HIT"));
     }
 
@@ -202,41 +246,33 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             return step.withCacheGovernance(false, resolution.getStatus(), resolution.buildEvidence(false, null));
         }
         QueryExecutionStep cacheableStep = step.withCacheGovernance(false, resolution.getStatus(), resolution.buildEvidence(false, null));
-        cacheEntries.put(
-            resolution.getCacheKey(),
-            new CacheEntry(cacheableStep)
-        );
-        return step.withCacheGovernance(false, STATUS_BACKFILLED, resolution.buildEvidence(true, "REFRESHED"));
+        QueryExecutionResultCacheBackend.CacheEntryWriteResult writeResult =
+            cacheBackend.write(resolution.getCacheKey(), cacheableStep);
+        if (!writeResult.isWritten()) {
+            CacheResolution failedResolution = resolution.withBackendFailure(
+                RISK_BACKEND_WRITE_FAILED,
+                "Distributed cache backend write failed: " + writeResult.getFailureReason(),
+                backendEvidence(writeResult.getProviderEvidence())
+            );
+            return step.withCacheGovernance(false, STATUS_BYPASSED, failedResolution.buildEvidence(false, "BACKFILL_FAILED"));
+        }
+        CacheResolution storedResolution = resolution.withBackendEvidence(backendEvidence(writeResult.getProviderEvidence()));
+        return step.withCacheGovernance(false, STATUS_BACKFILLED, storedResolution.buildEvidence(true, "REFRESHED"));
     }
 
-    private int invalidateEntries(CachePolicyBinding binding) {
+    private QueryExecutionResultCacheBackend.CacheEntryInvalidateResult invalidateEntries(CachePolicyBinding binding) {
         if (binding == null) {
-            return 0;
+            return QueryExecutionResultCacheBackend.CacheEntryInvalidateResult.completed(0, "providerInvalidateStatus=SKIPPED");
         }
-        int invalidated = 0;
-        String prefix = CacheKeyConstants.QUERY_RESULT_CACHE_ENTRY_PREFIX
-            + binding.getTenantId() + ":" + binding.getDatasourceType() + ":" + binding.getSqlFingerprint() + ":";
-        for (String cacheKey : new ArrayList<String>(cacheEntries.keySet())) {
-            if (cacheKey.startsWith(prefix) && cacheEntries.remove(cacheKey) != null) {
-                invalidated++;
-            }
-        }
-        return invalidated;
+        return cacheBackend.invalidateByPrefix(entryPrefix(binding));
     }
 
     private int countEntries(CachePolicyBinding binding) {
         if (binding == null) {
             return 0;
         }
-        int count = 0;
-        String prefix = CacheKeyConstants.QUERY_RESULT_CACHE_ENTRY_PREFIX
-            + binding.getTenantId() + ":" + binding.getDatasourceType() + ":" + binding.getSqlFingerprint() + ":";
-        for (String cacheKey : cacheEntries.keySet()) {
-            if (cacheKey.startsWith(prefix)) {
-                count++;
-            }
-        }
-        return count;
+        QueryExecutionResultCacheBackend.CacheEntryCountResult result = cacheBackend.countByPrefix(entryPrefix(binding));
+        return result.isCompleted() ? result.getCount() : 0;
     }
 
     private QueryExecutionCachePolicyResponse responseFrom(CachePolicyBinding binding,
@@ -256,11 +292,14 @@ public class QueryExecutionCacheGovernanceRuntimeService {
         response.setPolicySummary(summary);
         response.setRuntimeDetailsJson(
             JsonUtils.toJson(
-                details(
+                withBackendDetails(
+                    details(
                     "bindingState", active ? "ACTIVE" : "INACTIVE",
                     "cachedEntryCount", Integer.valueOf(cachedEntryCount),
                     "appliedAt", binding.getAppliedAt().toString(),
                     "policyReason", binding.getPolicyReason()
+                    ),
+                    cacheBackend.verify().getProviderEvidence()
                 )
             )
         );
@@ -285,6 +324,47 @@ public class QueryExecutionCacheGovernanceRuntimeService {
     private String cacheKey(String tenantId, String sqlFingerprint, String datasourceType, String schemaVersion) {
         return CacheKeyConstants.QUERY_RESULT_CACHE_ENTRY_PREFIX
             + tenantId.trim() + ":" + datasourceType.trim() + ":" + sqlFingerprint.trim() + ":" + schemaVersion.trim();
+    }
+
+    private String entryPrefix(CachePolicyBinding binding) {
+        return CacheKeyConstants.QUERY_RESULT_CACHE_ENTRY_PREFIX
+            + binding.getTenantId() + ":" + binding.getDatasourceType() + ":" + binding.getSqlFingerprint() + ":";
+    }
+
+    private Map<String, Object> withBackendDetails(Map<String, Object> details, String providerEvidence) {
+        QueryExecutionResultCacheBackend.BackendDescriptor descriptor = cacheBackend.descriptor();
+        details.put("cacheBackendType", descriptor.getBackendType());
+        details.put("cacheBackendProvider", descriptor.getProviderName());
+        details.put("cacheBackendCarrier", descriptor.getCarrierMode());
+        details.put("cacheBackendDistributed", Boolean.valueOf(descriptor.isDistributed()));
+        details.put("cacheBackendEnvironment", descriptor.getEnvironmentLabel());
+        details.put("providerEvidence", providerEvidence);
+        return details;
+    }
+
+    private String backendEvidence(String providerEvidence) {
+        QueryExecutionResultCacheBackend.BackendDescriptor descriptor = cacheBackend.descriptor();
+        StringBuilder evidence = new StringBuilder();
+        evidence.append("cacheBackendType=").append(descriptor.getBackendType())
+            .append(";cacheBackendProvider=").append(descriptor.getProviderName())
+            .append(";cacheBackendCarrier=").append(descriptor.getCarrierMode())
+            .append(";cacheBackendDistributed=").append(descriptor.isDistributed())
+            .append(";cacheBackendEnvironment=").append(descriptor.getEnvironmentLabel());
+        if (StringUtils.hasText(providerEvidence)) {
+            evidence.append(";").append(providerEvidence);
+        }
+        return evidence.toString();
+    }
+
+    private static QueryExecutionResultCacheBackend createBackend(QueryExecutionCacheBackendProperties properties) {
+        if (properties == null || !StringUtils.hasText(properties.getType())) {
+            return new InMemoryQueryExecutionResultCacheBackend();
+        }
+        String type = properties.getType().trim();
+        if ("REDIS".equalsIgnoreCase(type) || "PROVIDER_NATIVE_REDIS".equalsIgnoreCase(type)) {
+            return new RedisProtocolQueryExecutionResultCacheBackend(properties);
+        }
+        return new InMemoryQueryExecutionResultCacheBackend(properties.getProviderName(), properties.getEnvironmentLabel());
     }
 
     private void requireProtectedTenant(String tenantId) {
@@ -332,19 +412,21 @@ public class QueryExecutionCacheGovernanceRuntimeService {
         private final String status;
         private final String schemaVersion;
         private final String cacheKey;
-        private final CacheEntry cacheEntry;
+        private final QueryExecutionStep cacheEntry;
         private final String riskCode;
         private final String reason;
         private final Integer invalidatedEntryCount;
+        private final String providerEvidence;
 
         private CacheResolution(CachePolicyBinding binding,
                                 String status,
                                 String schemaVersion,
                                 String cacheKey,
-                                CacheEntry cacheEntry,
+                                QueryExecutionStep cacheEntry,
                                 String riskCode,
                                 String reason,
-                                Integer invalidatedEntryCount) {
+                                Integer invalidatedEntryCount,
+                                String providerEvidence) {
             this.binding = binding;
             this.status = status;
             this.schemaVersion = schemaVersion;
@@ -353,21 +435,31 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             this.riskCode = riskCode;
             this.reason = reason;
             this.invalidatedEntryCount = invalidatedEntryCount;
+            this.providerEvidence = providerEvidence;
         }
 
         static CacheResolution ungoverned() {
-            return new CacheResolution(null, STATUS_UNGOVERNED, null, null, null, null, null, null);
+            return new CacheResolution(null, STATUS_UNGOVERNED, null, null, null, null, null, null, null);
         }
 
         static CacheResolution bypassed(CachePolicyBinding binding, String schemaVersion, String riskCode, String reason) {
-            return new CacheResolution(binding, STATUS_BYPASSED, schemaVersion, null, null, riskCode, reason, null);
+            return bypassed(binding, schemaVersion, riskCode, reason, null);
+        }
+
+        static CacheResolution bypassed(CachePolicyBinding binding,
+                                        String schemaVersion,
+                                        String riskCode,
+                                        String reason,
+                                        String providerEvidence) {
+            return new CacheResolution(binding, STATUS_BYPASSED, schemaVersion, null, null, riskCode, reason, null, providerEvidence);
         }
 
         static CacheResolution invalidated(CachePolicyBinding binding,
                                            String schemaVersion,
                                            String cacheKey,
                                            int invalidatedEntryCount,
-                                           String reason) {
+                                           String reason,
+                                           String providerEvidence) {
             return new CacheResolution(
                 binding,
                 STATUS_INVALIDATED,
@@ -376,16 +468,21 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                 null,
                 RISK_SCHEMA_VERSION_MISMATCH,
                 reason,
-                Integer.valueOf(invalidatedEntryCount)
+                Integer.valueOf(invalidatedEntryCount),
+                providerEvidence
             );
         }
 
-        static CacheResolution miss(CachePolicyBinding binding, String schemaVersion, String cacheKey) {
-            return new CacheResolution(binding, STATUS_BACKFILLED, schemaVersion, cacheKey, null, null, null, null);
+        static CacheResolution miss(CachePolicyBinding binding, String schemaVersion, String cacheKey, String providerEvidence) {
+            return new CacheResolution(binding, STATUS_BACKFILLED, schemaVersion, cacheKey, null, null, null, null, providerEvidence);
         }
 
-        static CacheResolution hit(CachePolicyBinding binding, String schemaVersion, String cacheKey, CacheEntry cacheEntry) {
-            return new CacheResolution(binding, STATUS_HIT, schemaVersion, cacheKey, cacheEntry, null, null, null);
+        static CacheResolution hit(CachePolicyBinding binding,
+                                   String schemaVersion,
+                                   String cacheKey,
+                                   QueryExecutionStep cacheEntry,
+                                   String providerEvidence) {
+            return new CacheResolution(binding, STATUS_HIT, schemaVersion, cacheKey, cacheEntry, null, null, null, providerEvidence);
         }
 
         boolean isGoverned() {
@@ -395,8 +492,8 @@ public class QueryExecutionCacheGovernanceRuntimeService {
         boolean shouldStore() {
             return binding != null
                 && StringUtils.hasText(cacheKey)
-                && STATUS_HIT != status
-                && STATUS_BYPASSED != status;
+                && !STATUS_HIT.equals(status)
+                && !STATUS_BYPASSED.equals(status);
         }
 
         String buildEvidence(boolean backfillApplied, String entryState) {
@@ -423,7 +520,38 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             if (invalidatedEntryCount != null) {
                 evidence.append(";invalidatedEntryCount=").append(invalidatedEntryCount.intValue());
             }
+            if (StringUtils.hasText(providerEvidence)) {
+                evidence.append(";").append(providerEvidence.replace('\n', ' ').replace('\r', ' '));
+            }
             return evidence.toString();
+        }
+
+        CacheResolution withBackendEvidence(String newProviderEvidence) {
+            return new CacheResolution(
+                binding,
+                status,
+                schemaVersion,
+                cacheKey,
+                cacheEntry,
+                riskCode,
+                reason,
+                invalidatedEntryCount,
+                newProviderEvidence
+            );
+        }
+
+        CacheResolution withBackendFailure(String newRiskCode, String newReason, String newProviderEvidence) {
+            return new CacheResolution(
+                binding,
+                STATUS_BYPASSED,
+                schemaVersion,
+                cacheKey,
+                cacheEntry,
+                newRiskCode,
+                newReason,
+                invalidatedEntryCount,
+                newProviderEvidence
+            );
         }
 
         String getStatus() {
@@ -434,7 +562,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             return cacheKey;
         }
 
-        CacheEntry getCacheEntry() {
+        QueryExecutionStep getCacheEntry() {
             return cacheEntry;
         }
     }
@@ -514,16 +642,4 @@ public class QueryExecutionCacheGovernanceRuntimeService {
         }
     }
 
-    private static final class CacheEntry {
-
-        private final QueryExecutionStep step;
-
-        private CacheEntry(QueryExecutionStep step) {
-            this.step = step;
-        }
-
-        private QueryExecutionStep getStep() {
-            return step;
-        }
-    }
 }
