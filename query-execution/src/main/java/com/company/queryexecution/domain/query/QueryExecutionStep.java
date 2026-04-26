@@ -22,6 +22,8 @@ public class QueryExecutionStep {
     private final List<String> routeOrder;
     private final String routeEvidenceSource;
     private final String routeVerificationStatus;
+    private final String cacheGovernanceStatus;
+    private final String cacheGovernanceEvidence;
 
     public QueryExecutionStep(DataSourceTypeEnum targetEngine,
                               List<Map<String, Object>> rows,
@@ -40,6 +42,8 @@ public class QueryExecutionStep {
             Collections.singletonList("SIMULATED"),
             null,
             Collections.<String>emptyList(),
+            null,
+            null,
             null,
             null
         );
@@ -65,6 +69,8 @@ public class QueryExecutionStep {
             null,
             Collections.<String>emptyList(),
             null,
+            null,
+            null,
             null
         );
     }
@@ -80,7 +86,9 @@ public class QueryExecutionStep {
                               String routeProfile,
                               List<String> routeOrder,
                               String routeEvidenceSource,
-                              String routeVerificationStatus) {
+                              String routeVerificationStatus,
+                              String cacheGovernanceStatus,
+                              String cacheGovernanceEvidence) {
         this.targetEngine = targetEngine;
         this.rows = rows;
         this.elapsedMs = elapsedMs;
@@ -93,6 +101,8 @@ public class QueryExecutionStep {
         this.routeOrder = routeOrder == null ? Collections.<String>emptyList() : routeOrder;
         this.routeEvidenceSource = routeEvidenceSource;
         this.routeVerificationStatus = routeVerificationStatus;
+        this.cacheGovernanceStatus = cacheGovernanceStatus;
+        this.cacheGovernanceEvidence = cacheGovernanceEvidence;
     }
 
     public DataSourceTypeEnum getTargetEngine() {
@@ -143,6 +153,14 @@ public class QueryExecutionStep {
         return routeVerificationStatus;
     }
 
+    public String getCacheGovernanceStatus() {
+        return cacheGovernanceStatus;
+    }
+
+    public String getCacheGovernanceEvidence() {
+        return cacheGovernanceEvidence;
+    }
+
     public QueryExecutionStep withAttemptedModes(List<String> newAttemptedModes) {
         return new QueryExecutionStep(
             targetEngine,
@@ -156,7 +174,9 @@ public class QueryExecutionStep {
             routeProfile,
             routeOrder,
             routeEvidenceSource,
-            routeVerificationStatus
+            routeVerificationStatus,
+            cacheGovernanceStatus,
+            cacheGovernanceEvidence
         );
     }
 
@@ -176,7 +196,30 @@ public class QueryExecutionStep {
             newRouteProfile,
             newRouteOrder,
             newRouteEvidenceSource,
-            newRouteVerificationStatus
+            newRouteVerificationStatus,
+            cacheGovernanceStatus,
+            cacheGovernanceEvidence
+        );
+    }
+
+    public QueryExecutionStep withCacheGovernance(boolean newCacheHit,
+                                                  String newCacheGovernanceStatus,
+                                                  String newCacheGovernanceEvidence) {
+        return new QueryExecutionStep(
+            targetEngine,
+            rows,
+            elapsedMs,
+            scannedRows,
+            newCacheHit,
+            accelerationApplied,
+            executionMode,
+            attemptedModes,
+            routeProfile,
+            routeOrder,
+            routeEvidenceSource,
+            routeVerificationStatus,
+            newCacheGovernanceStatus,
+            newCacheGovernanceEvidence
         );
     }
 }

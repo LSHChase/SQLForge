@@ -72,16 +72,19 @@ public class QueryExecutionApplicationService {
     private final GovernanceCapabilityClient governanceCapabilityClient;
     private final QueryExecutionMetricsRecorder metricsRecorder;
     private final QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService;
+    private final QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService;
 
     @Autowired
     public QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
                                             GovernanceCapabilityClient governanceCapabilityClient,
                                             QueryExecutionMetricsRecorder metricsRecorder,
-                                            QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService) {
+                                            QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService,
+                                            QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService) {
         this.queryExecutionAdapter = queryExecutionAdapter;
         this.governanceCapabilityClient = governanceCapabilityClient;
         this.metricsRecorder = metricsRecorder;
         this.queryExecutionAccelerationRuntimeService = queryExecutionAccelerationRuntimeService;
+        this.queryExecutionCacheGovernanceRuntimeService = queryExecutionCacheGovernanceRuntimeService;
     }
 
     QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
@@ -90,7 +93,8 @@ public class QueryExecutionApplicationService {
             queryExecutionAdapter,
             governanceCapabilityClient,
             QueryExecutionMetricsRecorder.noop(),
-            new QueryExecutionAccelerationRuntimeService()
+            new QueryExecutionAccelerationRuntimeService(),
+            new QueryExecutionCacheGovernanceRuntimeService()
         );
     }
 
@@ -101,7 +105,21 @@ public class QueryExecutionApplicationService {
             queryExecutionAdapter,
             governanceCapabilityClient,
             metricsRecorder,
-            new QueryExecutionAccelerationRuntimeService()
+            new QueryExecutionAccelerationRuntimeService(),
+            new QueryExecutionCacheGovernanceRuntimeService()
+        );
+    }
+
+    QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
+                                     GovernanceCapabilityClient governanceCapabilityClient,
+                                     QueryExecutionMetricsRecorder metricsRecorder,
+                                     QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService) {
+        this(
+            queryExecutionAdapter,
+            governanceCapabilityClient,
+            metricsRecorder,
+            queryExecutionAccelerationRuntimeService,
+            new QueryExecutionCacheGovernanceRuntimeService()
         );
     }
 
@@ -227,6 +245,29 @@ public class QueryExecutionApplicationService {
                 sqlFingerprint,
                 primaryEngine
             );
+            QueryExecutionCacheGovernanceRuntimeService.CacheResolution cacheResolution =
+                queryExecutionCacheGovernanceRuntimeService.resolve(
+                    request.getTenantId(),
+                    sqlFingerprint,
+                    primaryEngine.name(),
+                    request.getQueryContext()
+                );
+            QueryExecutionStep cachedStep = queryExecutionCacheGovernanceRuntimeService.buildCacheHitStep(cacheResolution);
+            if (cachedStep != null) {
+                return logAndReturn(
+                    buildSuccessResponse(
+                        QueryExecutionStatus.SUCCESS,
+                        cachedStep,
+                        actualSql,
+                        sqlFingerprint,
+                        false,
+                        null,
+                        Collections.<QueryRetryStepVO>emptyList()
+                    ),
+                    request,
+                    start
+                );
+            }
             QueryExecuteRequest executionRequest = normalizeAccelerationRequest(request, approvedAccelerationBinding != null);
             QueryExecutionStep primaryStep;
             try {
@@ -238,9 +279,11 @@ public class QueryExecutionApplicationService {
                     actualSql,
                     sqlFingerprint,
                     ex,
-                    start
+                    start,
+                    cacheResolution
                 );
             }
+            primaryStep = queryExecutionCacheGovernanceRuntimeService.finalizeSuccessfulExecution(cacheResolution, primaryStep);
             if (timeoutMs != null && primaryStep.getElapsedMs() > timeoutMs.longValue()) {
                 logStateChange(
                     sqlFingerprint,
@@ -315,7 +358,9 @@ public class QueryExecutionApplicationService {
                         primaryStep.getRouteProfile(),
                         primaryStep.getRouteOrder(),
                         primaryStep.getRouteEvidenceSource(),
-                        primaryStep.getRouteVerificationStatus()
+                        primaryStep.getRouteVerificationStatus(),
+                        primaryStep.getCacheGovernanceStatus(),
+                        primaryStep.getCacheGovernanceEvidence()
                     ),
                     request,
                     start
@@ -387,6 +432,10 @@ public class QueryExecutionApplicationService {
 
         QueryExecutionStep fallbackStep =
             queryExecutionAdapter.execute(fallbackEngine, actualSql, null, true);
+        fallbackStep = queryExecutionCacheGovernanceRuntimeService.finalizeSuccessfulExecution(
+            QueryExecutionCacheGovernanceRuntimeService.CacheResolution.ungoverned(),
+            fallbackStep
+        );
         List<QueryRetryStepVO> retryPath = new ArrayList<QueryRetryStepVO>(recoverySteps);
         QueryRetryStepVO compensationStep = buildRecoveryStep(
             fallbackEngine.name(),
@@ -422,7 +471,8 @@ public class QueryExecutionApplicationService {
                                                             String actualSql,
                                                             String sqlFingerprint,
                                                             HetuExecutionUnavailableException exception,
-                                                            long start) {
+                                                            long start,
+                                                            QueryExecutionCacheGovernanceRuntimeService.CacheResolution cacheResolution) {
         logStateChange(
             sqlFingerprint,
             request,
@@ -495,7 +545,9 @@ public class QueryExecutionApplicationService {
                 exception.getRouteProfile(),
                 exception.getRouteOrder(),
                 exception.getRouteEvidenceSource(),
-                exception.getRouteVerificationStatus()
+                exception.getRouteVerificationStatus(),
+                cacheResolution == null ? null : cacheResolution.getStatus(),
+                cacheResolution == null ? null : cacheResolution.buildEvidence(false, null)
             ),
             request,
             start
@@ -526,7 +578,9 @@ public class QueryExecutionApplicationService {
                 executionStep.getRouteProfile(),
                 executionStep.getRouteOrder(),
                 executionStep.getRouteEvidenceSource(),
-                executionStep.getRouteVerificationStatus()
+                executionStep.getRouteVerificationStatus(),
+                executionStep.getCacheGovernanceStatus(),
+                executionStep.getCacheGovernanceEvidence()
             ),
             degraded,
             degradeReason,
@@ -560,6 +614,8 @@ public class QueryExecutionApplicationService {
             null,
             Collections.<String>emptyList(),
             null,
+            null,
+            null,
             null
         );
     }
@@ -588,6 +644,8 @@ public class QueryExecutionApplicationService {
             null,
             Collections.<String>emptyList(),
             null,
+            null,
+            null,
             null
         );
     }
@@ -605,7 +663,9 @@ public class QueryExecutionApplicationService {
                                                       String routeProfile,
                                                       List<String> routeOrder,
                                                       String routeEvidenceSource,
-                                                      String routeVerificationStatus) {
+                                                      String routeVerificationStatus,
+                                                      String cacheGovernanceStatus,
+                                                      String cacheGovernanceEvidence) {
         return new QueryExecuteResponse(
             status,
             Collections.<java.util.Map<String, Object>>emptyList(),
@@ -623,7 +683,9 @@ public class QueryExecutionApplicationService {
                 routeProfile,
                 routeOrder,
                 routeEvidenceSource,
-                routeVerificationStatus
+                routeVerificationStatus,
+                cacheGovernanceStatus,
+                cacheGovernanceEvidence
             ),
             false,
             null,
@@ -805,6 +867,15 @@ public class QueryExecutionApplicationService {
         payload.put("accelerationApplied", response != null
             && response.getMetadata() != null
             && response.getMetadata().isAccelerationApplied());
+        payload.put("cacheHit", response != null
+            && response.getMetadata() != null
+            && response.getMetadata().isCacheHit());
+        payload.put("cacheGovernanceStatus", response == null || response.getMetadata() == null
+            ? null
+            : response.getMetadata().getCacheGovernanceStatus());
+        payload.put("cacheGovernanceEvidence", response == null || response.getMetadata() == null
+            ? null
+            : response.getMetadata().getCacheGovernanceEvidence());
         payload.put("degraded", response != null && response.isDegraded());
         payload.put("retryPathSize", response == null || response.getRetryPath() == null ? 0 : response.getRetryPath().size());
         payload.put("errorCode", response == null || response.getError() == null ? null : response.getError().getCode());

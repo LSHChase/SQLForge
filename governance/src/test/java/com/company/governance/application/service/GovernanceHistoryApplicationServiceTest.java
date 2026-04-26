@@ -125,7 +125,10 @@ class GovernanceHistoryApplicationServiceTest {
             buildAudit("trace-query", "QUERY_EXECUTION", "PARTIAL", "QUERY", "fp-001",
                 LocalDateTime.parse("2026-04-22T10:00:00"),
                 "{\"serviceCode\":\"QUERY_EXECUTION\",\"sqlFingerprint\":\"fp-001\"}",
-                "{\"resultStatus\":\"PARTIAL\",\"targetEngine\":\"HIVE\",\"degraded\":true,\"errorCode\":\"12000\"}")
+                "{\"resultStatus\":\"PARTIAL\",\"targetEngine\":\"HIVE\",\"degraded\":true,\"errorCode\":\"12000\","
+                    + "\"cacheHit\":false,\"cacheGovernanceStatus\":\"BYPASSED\","
+                    + "\"cacheGovernanceEvidence\":\"policyId=cache-policy-001;status=BYPASSED;schemaVersion=schema-v1;"
+                    + "riskCode=SCHEMA_VERSION_MISSING\"}")
         ));
         when(queryHistoryMapper.selectByTraceId("tenant-a", "trace-query", 5)).thenReturn(Collections.singletonList(
             buildHistory("trace-query", "history-001", "QUERY_EXECUTION", "fp-001", LocalDateTime.parse("2026-04-22T09:58:00"))
@@ -141,6 +144,7 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("fp-001", detail.getSqlFingerprint());
         assertEquals("HIVE", detail.getTargetEngine());
         assertEquals(Boolean.TRUE, detail.getDegraded());
+        assertEquals("BYPASSED", detail.getCacheGovernanceSurface().get("cacheGovernanceStatus"));
         assertEquals(1, detail.getAuditEvents().size());
         assertEquals(1, detail.getQueryHistories().size());
     }
@@ -198,8 +202,11 @@ class GovernanceHistoryApplicationServiceTest {
             "{\"reportId\":\"report-001\",\"workloadSource\":\"COMPENSATED_REPLAY\",\"backfillApplied\":true,"
                 + "\"workloadEvidence\":{\"executionMode\":\"QUERY_EXECUTION_WORKLOAD_ORCHESTRATED_REPLAY\","
                 + "\"queryExecution\":{\"implementationStage\":\"BENCHMARK_WORKLOAD_ORCHESTRATION_BASELINE\","
+                + "\"compensationApplied\":true,\"compensationStrategy\":\"LATEST_SUCCESS_REPLAY\","
                 + "\"engines\":{\"HETU\":{\"compensationApplied\":true,\"compensationStrategy\":\"LATEST_SUCCESS_REPLAY\","
-                + "\"compensationSourceEngine\":\"HIVE\",\"compensationSourceWorkloadDigest\":\"digest-001\"}}}}}"
+                + "\"compensationSourceEngine\":\"HIVE\",\"compensationSourceWorkloadDigest\":\"digest-001\","
+                + "\"cacheHit\":true,\"cacheGovernanceStatus\":\"HIT\","
+                + "\"cacheGovernanceEvidence\":{\"policyId\":\"cache-policy-001\",\"schemaVersion\":\"schema-v1\"}}}}}}"
         );
         ExportRecord export = buildExport(
             "trace-benchmark",
@@ -230,6 +237,7 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("LATEST_SUCCESS_REPLAY", detail.getCompensationReplayEvidence().get("compensationStrategy"));
         assertEquals("HIVE", detail.getCompensationReplayEvidence().get("compensationSourceEngine"));
         assertEquals("digest-001", detail.getCompensationReplayEvidence().get("compensationSourceWorkloadDigest"));
+        assertEquals("HIT", ((Map) ((Map) detail.getCacheGovernanceSurface().get("engines")).get("HETU")).get("cacheGovernanceStatus"));
         assertEquals("PRIMARY_PLUS_RECOVERY_PROVIDER", detail.getExportRecords().get(0).getExportOptions().get("storageEvidence") instanceof Map
             ? ((Map) detail.getExportRecords().get(0).getExportOptions().get("storageEvidence")).get("providerMode")
             : null);

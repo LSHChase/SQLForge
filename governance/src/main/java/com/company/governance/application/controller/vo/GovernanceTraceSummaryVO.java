@@ -24,6 +24,7 @@ public class GovernanceTraceSummaryVO {
     private String targetEngine;
     private Boolean degraded;
     private Map<String, Object> compensationReplayEvidence;
+    private Map<String, Object> cacheGovernanceSurface;
     private Map<String, Object> artifactStorageContract;
     private Map<String, Object> artifactRecoverySurface;
     private Map<String, Object> artifactOperationSurface;
@@ -71,6 +72,7 @@ public class GovernanceTraceSummaryVO {
             null,
             null,
             null,
+            null,
             null
         );
     }
@@ -94,6 +96,7 @@ public class GovernanceTraceSummaryVO {
                                     String targetEngine,
                                     Boolean degraded,
                                     Map<String, Object> compensationReplayEvidence,
+                                    Map<String, Object> cacheGovernanceSurface,
                                     Map<String, Object> artifactStorageContract,
                                     Map<String, Object> artifactRecoverySurface,
                                     Map<String, Object> artifactOperationSurface) {
@@ -116,6 +119,7 @@ public class GovernanceTraceSummaryVO {
         this.targetEngine = targetEngine;
         this.degraded = degraded;
         this.compensationReplayEvidence = compensationReplayEvidence;
+        this.cacheGovernanceSurface = cacheGovernanceSurface;
         this.artifactStorageContract = artifactStorageContract;
         this.artifactRecoverySurface = artifactRecoverySurface;
         this.artifactOperationSurface = artifactOperationSurface;
@@ -271,6 +275,14 @@ public class GovernanceTraceSummaryVO {
 
     public void setCompensationReplayEvidence(Map<String, Object> compensationReplayEvidence) {
         this.compensationReplayEvidence = compensationReplayEvidence;
+    }
+
+    public Map<String, Object> getCacheGovernanceSurface() {
+        return cacheGovernanceSurface;
+    }
+
+    public void setCacheGovernanceSurface(Map<String, Object> cacheGovernanceSurface) {
+        this.cacheGovernanceSurface = cacheGovernanceSurface;
     }
 
     public Map<String, Object> getArtifactStorageContract() {

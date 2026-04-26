@@ -18,6 +18,8 @@ public class QueryExecutionMetadataVO {
     private final List<String> routeOrder;
     private final String routeEvidenceSource;
     private final String routeVerificationStatus;
+    private final String cacheGovernanceStatus;
+    private final String cacheGovernanceEvidence;
 
     public QueryExecutionMetadataVO(String targetEngine,
                                     String actualSql,
@@ -37,6 +39,8 @@ public class QueryExecutionMetadataVO {
             0,
             null,
             Collections.<String>emptyList(),
+            null,
+            null,
             null,
             null
         );
@@ -64,6 +68,8 @@ public class QueryExecutionMetadataVO {
             null,
             Collections.<String>emptyList(),
             null,
+            null,
+            null,
             null
         );
     }
@@ -80,7 +86,9 @@ public class QueryExecutionMetadataVO {
                                     String routeProfile,
                                     List<String> routeOrder,
                                     String routeEvidenceSource,
-                                    String routeVerificationStatus) {
+                                    String routeVerificationStatus,
+                                    String cacheGovernanceStatus,
+                                    String cacheGovernanceEvidence) {
         this.targetEngine = targetEngine;
         this.actualSql = actualSql;
         this.elapsedMs = elapsedMs;
@@ -94,6 +102,8 @@ public class QueryExecutionMetadataVO {
         this.routeOrder = routeOrder == null ? Collections.<String>emptyList() : routeOrder;
         this.routeEvidenceSource = routeEvidenceSource;
         this.routeVerificationStatus = routeVerificationStatus;
+        this.cacheGovernanceStatus = cacheGovernanceStatus;
+        this.cacheGovernanceEvidence = cacheGovernanceEvidence;
     }
 
     public String getTargetEngine() {
@@ -146,5 +156,13 @@ public class QueryExecutionMetadataVO {
 
     public String getRouteVerificationStatus() {
         return routeVerificationStatus;
+    }
+
+    public String getCacheGovernanceStatus() {
+        return cacheGovernanceStatus;
+    }
+
+    public String getCacheGovernanceEvidence() {
+        return cacheGovernanceEvidence;
     }
 }

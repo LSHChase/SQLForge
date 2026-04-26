@@ -70,6 +70,7 @@
   - `JDBC` / `REST` / `CLIENT` 三种 Hetu 访问模式的承载边界，以及 feature-flagged 的真实模式路由与结果聚合基线
   - 与 `governance` 的租户范围校验、数据源访问检查和审计写入 HTTP 客户端基线
   - 受保护内部 `/api/query-execution/internal/acceleration-plans/apply|verify|rollback` 契约，以及按 approved binding 控制 `PREFER_ACCELERATED` 的 no-fail-open runtime gating
+  - 受保护内部 `/api/query-execution/internal/cache-policies/apply|verify|invalidate` 契约，以及按 `queryContext.schemaVersion` 控制的 result-cache hit / bypass / invalidate / backfill 治理证据
   - `START / STATE_CHANGE / END / FAILED` 流程日志与 timeout / fallback 本地恢复标记
   - 独立多环境配置与日志配置骨架
   - 基础单元测试
@@ -97,7 +98,7 @@
   - 报告查询与下载审计在 artifact 已具备治理追溯元数据时，会补齐 `configSnapshotId/resultId/historyId/exportId` 链接键
   - repo-local artifact lifecycle 当前固化为：保留当前 report-set、重写同一 report 时清理陈旧 sibling 文件、缺失 `PDF/HTML/raw-data` 文件时从已持久化报告快照恢复
   - artifact metadata 当前已补齐 `storageEvidence/retentionDays/retentionPolicySource/retentionDeleteAfter`；tenant-specific policy 来自 governance `tenant_config.retention_days`，缺失该元数据的历史 artifact 会在后续查询/恢复时回填
-  - `benchmark-engine` 当前会优先经 `query-execution` 内部受保护入口抓取 workload snapshot；若目标引擎路径不可用，则显式回退为 synthetic backfill evidence；当同批次存在 live snapshot 时，会进一步把失败快照收口为 `COMPENSATED_REPLAY`，并把 `workloadSource/backfillApplied/queryExecution[...]` 与 compensation 证据写入 benchmark execution summary 与 governance trace payload
+  - `benchmark-engine` 当前会优先经 `query-execution` 内部受保护入口抓取 workload snapshot；若目标引擎路径不可用，则显式回退为 synthetic backfill evidence；当同批次存在 live snapshot 时，会进一步把失败快照收口为 `COMPENSATED_REPLAY`，并把 `workloadSource/backfillApplied/queryExecution[...]`、cache governance 与 compensation 证据写入 benchmark execution summary 与 governance trace payload
   - `ENVIRONMENT_OBJECT_STORAGE` adapter 已形成显式配置能力：默认主路径仍是 `LOCAL_FILE`；environment-backed 模式除保留 object URI、repo-local mirror 和 live-evidence manifest 外，还支持显式配置 primary/recovery provider endpoint、bucket、credentials、provider contract、cleanup scope 与 provider timeout，在有 provider endpoint 时执行真实 provider-backed write/readback recovery verification，并可与 external write dir 验证叠加沉淀到 artifact storage evidence / governance export trace，但不把该路径误写成仓库默认事实
   - environment-backed artifact 当前已补齐 provider-specific / multi-provider contract、cleanup/recovery order 与 failure-replay 留痕；当 repo-local mirror 缺失时，读取路径会按 evidence 声明在 primary provider、recovery provider、external write 与 report snapshot replay 之间恢复，并把实际 recovery source/read status 回写到 benchmark audit summary 与 governance trace 查询面
   - governance-triggered artifact operation 当前已形成 `cleanup/recover + batch retention/recovery orchestration` 基线：`governance` 侧开放单条与 batch 受保护入口，batch 编排复用 benchmark-engine 单条内部路由，按 target 去重并保留 `orchestrationType/batchId/batchIndex/batchSize/errorCode/errorMessage`

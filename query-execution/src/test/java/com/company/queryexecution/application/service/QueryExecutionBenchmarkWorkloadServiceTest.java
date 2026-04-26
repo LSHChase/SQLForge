@@ -40,7 +40,13 @@ class QueryExecutionBenchmarkWorkloadServiceTest {
                     false,
                     "CLIENT",
                     Arrays.asList("CLIENT"),
-                    1
+                    1,
+                    null,
+                    Collections.<String>emptyList(),
+                    null,
+                    null,
+                    "BACKFILLED",
+                    "policyId=cache-policy-001;status=BACKFILLED;schemaVersion=schema-v1;entryState=REFRESHED"
                 ),
                 false,
                 null,
@@ -62,6 +68,8 @@ class QueryExecutionBenchmarkWorkloadServiceTest {
         assertEquals(1, response.getEngineSnapshots().size());
         assertEquals("QUERY_EXECUTION_SYNC", response.getEngineSnapshots().get(0).getWorkloadSource());
         assertEquals("CLIENT", response.getEngineSnapshots().get(0).getExecutionMode());
+        assertEquals("BACKFILLED", response.getEngineSnapshots().get(0).getCacheGovernanceStatus());
+        assertTrue(response.getEngineSnapshots().get(0).getEvidence().contains("cacheGovernanceStatus=BACKFILLED"));
         verify(governanceCapabilityClient).writeAudit(any(QueryExecutionAuditRecord.class));
     }
 
@@ -82,11 +90,17 @@ class QueryExecutionBenchmarkWorkloadServiceTest {
                         48L,
                         512L,
                         false,
-                        false,
-                        "CLIENT",
-                        Arrays.asList("CLIENT"),
-                        1
-                    ),
+                    false,
+                    "CLIENT",
+                    Arrays.asList("CLIENT"),
+                    1,
+                    null,
+                    Collections.<String>emptyList(),
+                    null,
+                    null,
+                    "BACKFILLED",
+                    "policyId=cache-policy-001;status=BACKFILLED;schemaVersion=schema-v1;entryState=REFRESHED"
+                ),
                     false,
                     null,
                     Collections.emptyList(),

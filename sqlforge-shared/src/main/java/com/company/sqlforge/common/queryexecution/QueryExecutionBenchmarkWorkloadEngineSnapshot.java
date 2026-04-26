@@ -16,6 +16,8 @@ public class QueryExecutionBenchmarkWorkloadEngineSnapshot {
     private Long scannedRows;
     private Integer rowCount;
     private Boolean cacheHit;
+    private String cacheGovernanceStatus;
+    private String cacheGovernanceEvidence;
     private Boolean accelerationApplied;
     private String workloadDigest;
     private String evidence;
@@ -110,6 +112,22 @@ public class QueryExecutionBenchmarkWorkloadEngineSnapshot {
 
     public void setCacheHit(Boolean cacheHit) {
         this.cacheHit = cacheHit;
+    }
+
+    public String getCacheGovernanceStatus() {
+        return cacheGovernanceStatus;
+    }
+
+    public void setCacheGovernanceStatus(String cacheGovernanceStatus) {
+        this.cacheGovernanceStatus = cacheGovernanceStatus;
+    }
+
+    public String getCacheGovernanceEvidence() {
+        return cacheGovernanceEvidence;
+    }
+
+    public void setCacheGovernanceEvidence(String cacheGovernanceEvidence) {
+        this.cacheGovernanceEvidence = cacheGovernanceEvidence;
     }
 
     public Boolean getAccelerationApplied() {

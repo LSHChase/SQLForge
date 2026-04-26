@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-035: 收口真正的缓存治理能力
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(query-execution): close D-TASK-035 cache governance`
+- Priority: 1
+- Depends on: `D-TASK-034`
+- Scope: 在保持查询执行主路径、统一授权入口、治理审计、缓存一致性与只读边界不变的前提下，建立可审计的 cache governance 模型、命中/失效/旁路/回填/风险标记语义，以及与 query-execution/sql-optimization/benchmark 的最小联动闭环，不把缓存元数据占位误写成已治理完成 Tech: `JAVA-BE`,`SQL`,`OPS`,`DOCS`. Layer: `common`,`application(controller/service)/domain/infrastructure`,`deployments/ci/scripts`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-005` 运行时执行链与跨服务补完
+- Human confirmation point: 若缓存治理能力会放宽数据新鲜度/一致性边界、让缓存旁路/回填绕过授权或审计、把元数据占位误写成真实 cache governance，需人工确认
+- Data impact: cache policy、命中/失效/旁路/回填/风险标记数据、跨服务治理与审计证据、相关 schema 与运行文档
+- Rollback / recovery: 保持当前无强治理缓存默认边界，关闭高风险 cache policy 默认启用，回退新增 cache governance 字段、策略与文档说明，并恢复到 `D-TASK-034` 已验证基线
+- Validation:
+  - `sqlforge-shared/query-execution/sql-optimization/governance 模块测试、cache governance 契约测试、runtime smoke、task audit、knowledge lint、文档同步`
+  - `python3 scripts/foreman.py validate D-TASK-035`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented governed result-cache apply/verify/invalidate runtime, schemaVersion-aware hit/backfill/bypass/invalidation semantics, query-execution metadata/audit evidence, benchmark evidence propagation, governance cacheGovernanceSurface aggregation, focused tests, and architecture docs.
+  - Validation evidence: mvn -B -pl query-execution,benchmark-engine,governance -am test -DskipITs -Dtest=QueryExecutionApplicationServiceTest,QueryExecutionInternalControllerTest,QueryExecutionBenchmarkWorkloadServiceTest,BenchmarkGovernanceTraceServiceTest,GovernanceHistoryApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false; python3 scripts/foreman.py validate D-TASK-035; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js
+  - Residual risk: Cache runtime is repository-closed in-memory baseline; distributed provider-native cache backing remains a future hardening step.
+  - Next step: Evaluate provider-native distributed cache backing and cache eviction/observability integration after governed semantics stabilize.
+
 ### D-TASK-034: 收口 `benchmark-engine` 外部队列/文件存储与 provider-native 语义
 
 - Status: done

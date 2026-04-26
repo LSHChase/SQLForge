@@ -1020,39 +1020,114 @@ public class GovernanceHistoryApplicationService {
         putIfPresent(evidence, "backfillApplied", queryContext.get("backfillApplied"));
         putIfPresent(evidence, "executionMode", workloadEvidence.get("executionMode"));
         putIfPresent(evidence, "implementationStage", queryExecution.get("implementationStage"));
-        Object compensationApplied = queryExecution.get("compensationApplied");
-        Object compensationStrategy = queryExecution.get("compensationStrategy");
-        if (compensationApplied == null || compensationStrategy == null) {
-            for (Map.Entry<String, Object> entry : engines.entrySet()) {
-                if (!(entry.getValue() instanceof Map)) {
-                    continue;
-                }
-                Map<String, Object> engineEvidence = new LinkedHashMap<String, Object>();
-                engineEvidence.putAll((Map<String, Object>) entry.getValue());
-                if (compensationApplied == null && engineEvidence.get("compensationApplied") != null) {
-                    compensationApplied = engineEvidence.get("compensationApplied");
-                }
-                if (compensationStrategy == null && engineEvidence.get("compensationStrategy") != null) {
-                    compensationStrategy = engineEvidence.get("compensationStrategy");
-                }
-                if (engineEvidence.get("compensationSourceEngine") != null) {
-                    evidence.put("compensationSourceEngine", engineEvidence.get("compensationSourceEngine"));
-                }
-                Object sourceDigest = firstNonNull(
-                    engineEvidence.get("compensationSourceWorkloadDigest"),
-                    engineEvidence.get("compensationSourceDigest")
-                );
-                if (sourceDigest != null) {
-                    evidence.put("compensationSourceWorkloadDigest", sourceDigest);
-                }
+        Object compensationApplied = firstNonNull(queryExecution.get("compensationApplied"), queryContext.get("compensationApplied"));
+        Object compensationStrategy = firstNonNull(queryExecution.get("compensationStrategy"), queryContext.get("compensationStrategy"));
+        Object compensationSourceEngine = queryContext.get("compensationSourceEngine");
+        Object compensationSourceWorkloadDigest = firstNonNull(
+            queryContext.get("compensationSourceWorkloadDigest"),
+            queryContext.get("compensationSourceDigest")
+        );
+        for (Map.Entry<String, Object> entry : engines.entrySet()) {
+            if (!(entry.getValue() instanceof Map)) {
+                continue;
+            }
+            Map<String, Object> engineEvidence = new LinkedHashMap<String, Object>();
+            engineEvidence.putAll((Map<String, Object>) entry.getValue());
+            if (compensationApplied == null && engineEvidence.get("compensationApplied") != null) {
+                compensationApplied = engineEvidence.get("compensationApplied");
+            }
+            if (compensationStrategy == null && engineEvidence.get("compensationStrategy") != null) {
+                compensationStrategy = engineEvidence.get("compensationStrategy");
+            }
+            if (compensationSourceEngine == null && engineEvidence.get("compensationSourceEngine") != null) {
+                compensationSourceEngine = engineEvidence.get("compensationSourceEngine");
+            }
+            Object sourceDigest = firstNonNull(
+                engineEvidence.get("compensationSourceWorkloadDigest"),
+                engineEvidence.get("compensationSourceDigest")
+            );
+            if (compensationSourceWorkloadDigest == null && sourceDigest != null) {
+                compensationSourceWorkloadDigest = sourceDigest;
             }
         }
         putIfPresent(evidence, "compensationApplied", compensationApplied);
         putIfPresent(evidence, "compensationStrategy", compensationStrategy);
+        putIfPresent(evidence, "compensationSourceEngine", compensationSourceEngine);
+        putIfPresent(evidence, "compensationSourceWorkloadDigest", compensationSourceWorkloadDigest);
         if (!engines.isEmpty()) {
             evidence.put("engines", engines);
         }
         return evidence.isEmpty() ? null : evidence;
+    }
+
+    private static Map<String, Object> buildCacheGovernanceSurface(Map<String, Object> responseSummary,
+                                                                   Map<String, Object> queryContext) {
+        LinkedHashMap<String, Object> surface = new LinkedHashMap<String, Object>();
+        putIfPresent(surface, "cacheHit", responseSummary == null ? null : responseSummary.get("cacheHit"));
+        putIfPresent(surface, "cacheGovernanceStatus", responseSummary == null ? null : responseSummary.get("cacheGovernanceStatus"));
+        Map<String, Object> auditEvidence = readEvidenceMap(responseSummary == null ? null : responseSummary.get("cacheGovernanceEvidence"));
+        if (!auditEvidence.isEmpty()) {
+            surface.put("cacheGovernanceEvidence", auditEvidence);
+        }
+
+        Map<String, Object> workloadEvidence = readNestedMap(queryContext, "workloadEvidence");
+        Map<String, Object> queryExecution = readNestedMap(workloadEvidence, "queryExecution");
+        Map<String, Object> engines = readNestedMap(queryExecution, "engines");
+        LinkedHashMap<String, Object> engineSurfaces = new LinkedHashMap<String, Object>();
+        for (Map.Entry<String, Object> entry : engines.entrySet()) {
+            if (!(entry.getValue() instanceof Map)) {
+                continue;
+            }
+            Map<String, Object> engineEvidence = new LinkedHashMap<String, Object>();
+            engineEvidence.putAll((Map<String, Object>) entry.getValue());
+            Object cacheStatus = engineEvidence.get("cacheGovernanceStatus");
+            Object cacheHit = engineEvidence.get("cacheHit");
+            Object cacheEvidence = engineEvidence.get("cacheGovernanceEvidence");
+            if (cacheStatus == null && cacheHit == null && cacheEvidence == null) {
+                continue;
+            }
+            LinkedHashMap<String, Object> engineSurface = new LinkedHashMap<String, Object>();
+            putIfPresent(engineSurface, "cacheHit", cacheHit);
+            putIfPresent(engineSurface, "cacheGovernanceStatus", cacheStatus);
+            if (cacheEvidence != null) {
+                engineSurface.put("cacheGovernanceEvidence", normalizeCacheGovernanceEvidence(cacheEvidence));
+            }
+            engineSurfaces.put(entry.getKey(), engineSurface);
+        }
+        if (!engineSurfaces.isEmpty()) {
+            surface.put("engines", engineSurfaces);
+        }
+        return surface.isEmpty() ? null : surface;
+    }
+
+    private static Object normalizeCacheGovernanceEvidence(Object value) {
+        if (value instanceof Map) {
+            return value;
+        }
+        if (!(value instanceof String) || !StringUtils.hasText((String) value)) {
+            return value;
+        }
+        String rawValue = ((String) value).trim();
+        if (rawValue.indexOf(';') >= 0 && rawValue.indexOf('=') >= 0) {
+            return readEvidenceMap(rawValue);
+        }
+        if (rawValue.indexOf('|') >= 0 && rawValue.indexOf(':') >= 0) {
+            LinkedHashMap<String, Object> evidence = new LinkedHashMap<String, Object>();
+            String[] parts = rawValue.split("\\|");
+            for (String part : parts) {
+                if (!StringUtils.hasText(part)) {
+                    continue;
+                }
+                int separator = part.indexOf(':');
+                if (separator <= 0) {
+                    evidence.put(part.trim(), Boolean.TRUE);
+                    continue;
+                }
+                evidence.put(part.substring(0, separator).trim(), part.substring(separator + 1).trim());
+            }
+            return evidence;
+        }
+        return rawValue;
     }
 
     private static Map<String, Object> buildArtifactStorageContract(Map<String, Object> responseSummary,
@@ -1162,6 +1237,7 @@ public class GovernanceHistoryApplicationService {
         private String targetEngine;
         private Boolean degraded;
         private Map<String, Object> compensationReplayEvidence;
+        private Map<String, Object> cacheGovernanceSurface;
         private Map<String, Object> artifactStorageContract;
         private Map<String, Object> artifactRecoverySurface;
         private Map<String, Object> artifactOperationSurface;
@@ -1187,6 +1263,7 @@ public class GovernanceHistoryApplicationService {
                 this.hasBusinessAudit = true;
             }
             Map<String, Object> compensationEvidence = null;
+            Map<String, Object> cacheGovernanceSurface = buildCacheGovernanceSurface(responseSummary, null);
             Map<String, Object> storageContract = buildArtifactStorageContract(responseSummary, null);
             Map<String, Object> recoverySurface = buildArtifactRecoverySurface(responseSummary, null);
             Map<String, Object> operationSurface = buildArtifactOperationSurface(responseSummary);
@@ -1229,12 +1306,14 @@ public class GovernanceHistoryApplicationService {
                 this.targetEngine = firstNonBlank(readText(responseSummary, "targetEngine"), this.targetEngine);
                 this.degraded = firstNonNull(readBoolean(responseSummary, "degraded"), this.degraded);
                 this.compensationReplayEvidence = selectEvidenceMap(this.compensationReplayEvidence, compensationEvidence, true);
+                this.cacheGovernanceSurface = selectEvidenceMap(this.cacheGovernanceSurface, cacheGovernanceSurface, true);
                 this.artifactStorageContract = selectEvidenceMap(this.artifactStorageContract, storageContract, true);
                 this.artifactRecoverySurface = selectEvidenceMap(this.artifactRecoverySurface, recoverySurface, true);
                 this.artifactOperationSurface = selectEvidenceMap(this.artifactOperationSurface, operationSurface, true);
                 this.summaryUsesBusinessAudit = businessAudit;
             } else {
                 this.compensationReplayEvidence = selectEvidenceMap(this.compensationReplayEvidence, compensationEvidence, false);
+                this.cacheGovernanceSurface = selectEvidenceMap(this.cacheGovernanceSurface, cacheGovernanceSurface, false);
                 this.artifactStorageContract = selectEvidenceMap(this.artifactStorageContract, storageContract, false);
                 this.artifactRecoverySurface = selectEvidenceMap(this.artifactRecoverySurface, recoverySurface, false);
                 this.artifactOperationSurface = selectEvidenceMap(this.artifactOperationSurface, operationSurface, false);
@@ -1247,6 +1326,7 @@ public class GovernanceHistoryApplicationService {
             }
             Map<String, Object> queryContext = parseJsonObject(record.getQueryContext());
             Map<String, Object> compensationEvidence = buildCompensationReplayEvidence(queryContext);
+            Map<String, Object> cacheGovernanceSurface = buildCacheGovernanceSurface(null, queryContext);
 
             GovernanceTraceDetailVO.QueryHistoryVO historyVO = new GovernanceTraceDetailVO.QueryHistoryVO();
             historyVO.setHistoryId(record.getHistoryId());
@@ -1274,9 +1354,11 @@ public class GovernanceHistoryApplicationService {
                 this.lastSeenAt = firstNonNull(historyTime, this.lastSeenAt);
                 this.sqlFingerprint = firstNonBlank(record.getSqlFingerprint(), this.sqlFingerprint);
                 this.compensationReplayEvidence = selectEvidenceMap(this.compensationReplayEvidence, compensationEvidence, true);
+                this.cacheGovernanceSurface = selectEvidenceMap(this.cacheGovernanceSurface, cacheGovernanceSurface, true);
                 this.summaryUsesBusinessAudit = false;
             } else {
                 this.compensationReplayEvidence = selectEvidenceMap(this.compensationReplayEvidence, compensationEvidence, false);
+                this.cacheGovernanceSurface = selectEvidenceMap(this.cacheGovernanceSurface, cacheGovernanceSurface, false);
             }
         }
 
@@ -1412,6 +1494,7 @@ public class GovernanceHistoryApplicationService {
                 this.targetEngine,
                 this.degraded,
                 this.compensationReplayEvidence,
+                this.cacheGovernanceSurface,
                 this.artifactStorageContract,
                 this.artifactRecoverySurface,
                 this.artifactOperationSurface
@@ -1439,6 +1522,7 @@ public class GovernanceHistoryApplicationService {
             detailVO.setTargetEngine(this.targetEngine);
             detailVO.setDegraded(this.degraded);
             detailVO.setCompensationReplayEvidence(this.compensationReplayEvidence);
+            detailVO.setCacheGovernanceSurface(this.cacheGovernanceSurface);
             detailVO.setArtifactStorageContract(this.artifactStorageContract);
             detailVO.setArtifactRecoverySurface(this.artifactRecoverySurface);
             detailVO.setArtifactOperationSurface(this.artifactOperationSurface);

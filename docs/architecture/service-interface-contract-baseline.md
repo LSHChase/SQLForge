@@ -122,6 +122,7 @@
 - `tenantId`：必填
 - `datasourceType`：必填，当前使用共享枚举 `HETU` / `HIVE` / `SPARK` / `CLICKHOUSE` / `GAUSSDB` / `AUTO`
 - `queryContext.timeoutMs`：若提供则必须大于 `0`
+- `queryContext.schemaVersion`：当命中受治理 result-cache policy 时作为一致性 token；缺失时只允许执行但会标记 cache bypass 风险，不允许伪造 cache hit
 - `accelerationPreference`：`PREFER_ACCELERATED` / `PREFER_FRESH` / `NONE`
 - `faultToleranceStrategy`：`RETRY_THEN_FALLBACK` / `FAIL_FAST` / `FALLBACK_IMMEDIATE`
 
@@ -132,6 +133,8 @@
 - `metadata.elapsedMs`
 - `metadata.scannedRows`
 - `metadata.cacheHit`
+- `metadata.cacheGovernanceStatus`
+- `metadata.cacheGovernanceEvidence`
 - `metadata.accelerationApplied`
 - `metadata.executionMode`
 - `metadata.attemptedModes[]`
@@ -169,6 +172,7 @@
   - timeout: `LOCAL_TIMEOUT_ROLLBACK_MARKED` + `CLOSE_PRIMARY_ATTEMPT_CONTEXT`
   - fallback: `LOCAL_FALLBACK_COMPENSATION_MARKED` + `RECORD_DEGRADED_RESULT`
 - 当前实现已具备治理检查与审计写入的跨服务 HTTP 基线、Hetu JDBC driver 接线、Hetu client 协议执行、本地 mock-Hetu runtime smoke，以及受保护 `GET /api/query-execution/internal/hetu/route-calibration` 快照与外部环境 `bash scripts/run-hetu-env-smoke.sh` 结构化证据入口；真实 Win10 环境窗口下的 live smoke 日志归档仍由 `HARN-016` / `INBOX-002` 继续跟踪。
+- 当前实现已补齐受治理 result-cache runtime：只有内部 cache policy 明确 apply 后，才会基于 `tenantId + sqlFingerprint + datasourceType + queryContext.schemaVersion` 尝试命中；命中、旁路、失效、回填和风险原因会进入 `metadata.cacheGovernanceStatus/cacheGovernanceEvidence` 与审计 `responseSummary`。
 
 ## 3.1.1 Query Execution Internal Hetu Route Calibration Baseline
 
@@ -190,12 +194,13 @@
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
-| `/api/query-execution/internal/benchmark/workload/capture` | `QueryExecutionBenchmarkWorkloadRequest` with `tenantId`,`benchmarkTaskId`,`benchmarkTaskType`,`sqlText`,`sqlFingerprint`,`targetEngines[]`,`concurrency`,`durationSeconds`,`rampUpSeconds`,`datasetSizeLabel`,`readonlyRequired` | `QueryExecutionBenchmarkWorkloadResponse` with `tenantId`,`benchmarkTaskId`,`sqlFingerprint`,`workloadDigest`,`workloadSource`,`backfillApplied`,`compensationApplied`,`compensationStrategy`,`engineSnapshots[]`,`contractStage`,`implementationStage`; `engineSnapshots[]` carries `targetEngine`,`resultStatus`,`workloadSource`,`backfillSource`,`backfillReason`,`executionMode`,`attemptedModes[]`,`elapsedMs`,`scannedRows`,`rowCount`,`cacheHit`,`accelerationApplied`,`workloadDigest`,`evidence`,`compensationApplied`,`compensationStrategy`,`compensationSourceEngine`,`compensationSourceWorkloadDigest` | `BENCHMARK_WORKLOAD_ORCHESTRATION_BASELINE` |
+| `/api/query-execution/internal/benchmark/workload/capture` | `QueryExecutionBenchmarkWorkloadRequest` with `tenantId`,`benchmarkTaskId`,`benchmarkTaskType`,`sqlText`,`sqlFingerprint`,`targetEngines[]`,`concurrency`,`durationSeconds`,`rampUpSeconds`,`datasetSizeLabel`,`readonlyRequired` | `QueryExecutionBenchmarkWorkloadResponse` with `tenantId`,`benchmarkTaskId`,`sqlFingerprint`,`workloadDigest`,`workloadSource`,`backfillApplied`,`compensationApplied`,`compensationStrategy`,`engineSnapshots[]`,`contractStage`,`implementationStage`; `engineSnapshots[]` carries `targetEngine`,`resultStatus`,`workloadSource`,`backfillSource`,`backfillReason`,`executionMode`,`attemptedModes[]`,`elapsedMs`,`scannedRows`,`rowCount`,`cacheHit`,`cacheGovernanceStatus`,`cacheGovernanceEvidence`,`accelerationApplied`,`workloadDigest`,`evidence`,`compensationApplied`,`compensationStrategy`,`compensationSourceEngine`,`compensationSourceWorkloadDigest` | `BENCHMARK_WORKLOAD_ORCHESTRATION_BASELINE` |
 
 说明：
 
 - 内部入口仍通过 header-based protected request context 受控访问；benchmark worker 在无前台请求上下文时，允许以 service identity 合成受保护请求头继续执行 repo-side 编排。
 - 当前实现会逐个目标引擎复用 `QueryExecutionApplicationService.executeSynchronously`；成功时返回 live workload snapshot，失败时返回显式 `SYNTHETIC_BACKFILL` 证据；若同批次至少有一个 live snapshot，则会把失败快照进一步收口为 `COMPENSATED_REPLAY`，显式保留 source engine / source workload digest / strategy，而不是把失败静默折叠为 benchmark 本地无来源的 synthetic replay。live workload evidence 现在也会带出 `routeProfile` / `routeOrder` 片段，便于和 Hetu route calibration 快照做交叉审计。
+- live workload snapshot 也会带出 cache governance status/evidence，benchmark execution summary 中的 `queryExecution[...]` note 与 governance `workloadEvidenceJson` 会继续保留这些字段，便于治理历史从 workload 侧还原 cache hit / bypass / invalidation / backfill 证据。
 - 当前内部入口会额外写入 `QUERY_BENCHMARK_WORKLOAD_CAPTURE` 审计摘要，用于记录 workloadSource / backfillApplied / compensationApplied / compensationStrategy / workloadDigest 的跨服务编排结果。
 
 ## 3.1.3 Query Execution Internal Acceleration Plan Runtime Baseline
@@ -214,6 +219,23 @@
 - 当前实现把 approved binding 收口为 `tenantId + sqlFingerprint + datasourceType` 维度的内存注册表，并对同一 fingerprint 的并发 plan 激活做冲突拒绝。
 - 当前 `QueryExecutionApplicationService` 不再因为调用方声明 `PREFER_ACCELERATED` 就直接标记 `accelerationApplied=true`；只有存在 approved binding 时才允许 runtime gating 命中。
 - 当前该闭环只解决“受治理激活/验证/回滚”和 no-fail-open runtime gating，不代表物理物化视图、provider-native cache 或引擎侧加速已自动编排完成。
+
+## 3.1.4 Query Execution Internal Cache Governance Runtime Baseline
+
+当前 `query-execution` 已新增受保护内部契约，供治理或已审批流程把 result-cache policy 从元数据占位收口到可审计 runtime 行为：
+
+| Endpoint | Request baseline | Response baseline | Current implementation stage |
+|:---|:---|:---|:---|
+| `/api/query-execution/internal/cache-policies/apply` | `QueryExecutionCachePolicyApplyRequest` with `tenantId`,`policyId`,`sqlFingerprint`,`datasourceType`,`schemaVersion`,`sourcePlanId`,`policyReason` | `QueryExecutionCachePolicyResponse` with `tenantId`,`policyId`,`sqlFingerprint`,`targetEngine`,`schemaVersion`,`sourcePlanId`,`active`,`status`,`policySummary`,`runtimeDetailsJson`,`contractStage`,`implementationStage` | `CACHE_GOVERNANCE_RUNTIME_BASELINE` |
+| `/api/query-execution/internal/cache-policies/verify` | `QueryExecutionCachePolicyVerifyRequest` with `tenantId`,`policyId`,`sqlFingerprint`,`datasourceType`,`schemaVersion` | `QueryExecutionCachePolicyResponse` | `CACHE_GOVERNANCE_RUNTIME_BASELINE` |
+| `/api/query-execution/internal/cache-policies/invalidate` | `QueryExecutionCachePolicyInvalidateRequest` with `tenantId`,`policyId`,`sqlFingerprint`,`datasourceType`,`schemaVersion`,`invalidateReason` | `QueryExecutionCachePolicyResponse` | `CACHE_GOVERNANCE_RUNTIME_BASELINE` |
+
+说明：
+
+- cache policy runtime surface 仍通过 header-based protected request context 受控访问，默认无 policy 时返回 `UNGOVERNED`，不把普通执行结果伪装成受治理缓存。
+- result-cache key 采用 `tenantId + datasourceType + sqlFingerprint + schemaVersion`；`schemaVersion` 来自 `queryContext.schemaVersion`，对齐 ADR-011 的 Hudi timestamp / schema consistency token 口径。
+- `schemaVersion` 缺失会标记 `BYPASSED / SCHEMA_VERSION_MISSING`；session variable `sqlforge.cache.bypass=true` 会标记 `BYPASSED / SESSION_VARIABLE_BYPASS`；版本变更会先失效旧 entry，再以新版本回填，并在 evidence 中保留 `SCHEMA_VERSION_MISMATCH` 与 invalidated count。
+- 当前 runtime 是 repo-closed in-memory baseline，用于证明 submit/apply/verify/invalidate 与 hit/backfill/bypass/invalidate 的治理闭环；它不等价于跨节点分布式 cache、Redis provider-native cache 或引擎侧缓存已经投产。
 
 ## 3.2 SQL Optimization Task Contract Baseline
 

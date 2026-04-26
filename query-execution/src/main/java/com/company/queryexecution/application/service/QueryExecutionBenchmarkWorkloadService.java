@@ -126,6 +126,8 @@ public class QueryExecutionBenchmarkWorkloadService {
         snapshot.setScannedRows(Long.valueOf(metadata.getScannedRows()));
         snapshot.setRowCount(Integer.valueOf(metadata.getRowCount()));
         snapshot.setCacheHit(Boolean.valueOf(metadata.isCacheHit()));
+        snapshot.setCacheGovernanceStatus(metadata.getCacheGovernanceStatus());
+        snapshot.setCacheGovernanceEvidence(metadata.getCacheGovernanceEvidence());
         snapshot.setAccelerationApplied(Boolean.valueOf(metadata.isAccelerationApplied()));
         snapshot.setCompensationApplied(Boolean.FALSE);
         snapshot.setWorkloadDigest(shortDigest(
@@ -268,7 +270,50 @@ public class QueryExecutionBenchmarkWorkloadService {
             + ";elapsedMs=" + metadata.getElapsedMs()
             + ";scannedRows=" + metadata.getScannedRows()
             + ";rowCount=" + metadata.getRowCount()
+            + ";cacheGovernanceStatus=" + metadata.getCacheGovernanceStatus()
+            + ";cacheGovernanceEvidence=" + summarizeCacheEvidence(metadata.getCacheGovernanceEvidence())
             + ";degraded=" + response.isDegraded();
+    }
+
+    private String summarizeCacheEvidence(String rawEvidence) {
+        if (!StringUtils.hasText(rawEvidence)) {
+            return null;
+        }
+        StringBuilder summary = new StringBuilder();
+        appendEvidenceValue(summary, rawEvidence, "policyId");
+        appendEvidenceValue(summary, rawEvidence, "status");
+        appendEvidenceValue(summary, rawEvidence, "schemaVersion");
+        appendEvidenceValue(summary, rawEvidence, "riskCode");
+        appendEvidenceValue(summary, rawEvidence, "entryState");
+        return summary.length() == 0 ? null : summary.toString();
+    }
+
+    private void appendEvidenceValue(StringBuilder summary, String rawEvidence, String key) {
+        String value = resolveEvidenceValue(rawEvidence, key);
+        if (!StringUtils.hasText(value)) {
+            return;
+        }
+        if (summary.length() > 0) {
+            summary.append(',');
+        }
+        summary.append(key).append('=').append(value);
+    }
+
+    private String resolveEvidenceValue(String rawEvidence, String key) {
+        if (!StringUtils.hasText(rawEvidence) || !StringUtils.hasText(key)) {
+            return null;
+        }
+        String[] parts = rawEvidence.split(";");
+        for (String part : parts) {
+            int separator = part.indexOf('=');
+            if (separator <= 0) {
+                continue;
+            }
+            if (key.equals(part.substring(0, separator).trim())) {
+                return part.substring(separator + 1).trim();
+            }
+        }
+        return null;
     }
 
     private String buildAggregateDigest(String sqlFingerprint,

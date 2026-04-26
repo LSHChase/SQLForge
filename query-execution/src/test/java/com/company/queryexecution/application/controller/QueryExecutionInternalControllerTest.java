@@ -13,6 +13,7 @@ import com.company.queryexecution.application.interceptor.AuthInterceptor;
 import com.company.queryexecution.application.service.HetuRouteCalibrationService;
 import com.company.queryexecution.application.service.QueryExecutionAccelerationRuntimeService;
 import com.company.queryexecution.application.service.QueryExecutionBenchmarkWorkloadService;
+import com.company.queryexecution.application.service.QueryExecutionCacheGovernanceRuntimeService;
 import com.company.queryexecution.config.AuthProperties;
 import com.company.queryexecution.config.WebMvcConfig;
 import com.company.queryexecution.domain.query.HetuClusterEvidenceSnapshot;
@@ -23,6 +24,7 @@ import com.company.sqlforge.common.exception.GlobalExceptionHandler;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadEngineSnapshot;
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadResponse;
+import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyResponse;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
@@ -52,6 +54,9 @@ class QueryExecutionInternalControllerTest {
 
     @MockBean
     private QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService;
+
+    @MockBean
+    private QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService;
 
     @MockBean
     private HetuRouteCalibrationService hetuRouteCalibrationService;
@@ -189,6 +194,106 @@ class QueryExecutionInternalControllerTest {
             .andExpect(jsonPath("$.implementationStage").value("APPROVED_ACCELERATION_RUNTIME_BASELINE"));
 
         verify(queryExecutionAccelerationRuntimeService).apply(any());
+    }
+
+    @Test
+    void shouldApplyCachePolicyThroughInternalEndpoint() throws Exception {
+        QueryExecutionCachePolicyResponse response = new QueryExecutionCachePolicyResponse();
+        response.setTenantId("tenant-a");
+        response.setPolicyId("cache-policy-001");
+        response.setSqlFingerprint("fp-001");
+        response.setTargetEngine("HETU");
+        response.setSchemaVersion("schema-v1");
+        response.setActive(true);
+        response.setStatus("APPLIED");
+        response.setPolicySummary("Governed cache policy is now active for result-cache eligibility and version validation.");
+        response.setRuntimeDetailsJson("{\"bindingState\":\"ACTIVE\"}");
+        response.setContractStage("LONG_TERM_BASELINE");
+        response.setImplementationStage("CACHE_GOVERNANCE_RUNTIME_BASELINE");
+        when(queryExecutionCacheGovernanceRuntimeService.apply(any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/query-execution/internal/cache-policies/apply")
+                .header("X-Tenant-Id", "tenant-a")
+                .header("X-User-Id", "service-user")
+                .header("X-Role-Codes", "SERVICE")
+                .header("X-Request-Id", "request-004")
+                .header("X-Trace-Id", "trace-004")
+                .header("X-Auth-Source", "header")
+                .header("X-Issued-At", "1713700000000")
+                .header("X-Expires-At", "2713700000000")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"policyId\":\"cache-policy-001\",\"sqlFingerprint\":\"fp-001\",\"datasourceType\":\"HETU\",\"schemaVersion\":\"schema-v1\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("APPLIED"))
+            .andExpect(jsonPath("$.active").value(true))
+            .andExpect(jsonPath("$.schemaVersion").value("schema-v1"))
+            .andExpect(jsonPath("$.implementationStage").value("CACHE_GOVERNANCE_RUNTIME_BASELINE"));
+
+        verify(queryExecutionCacheGovernanceRuntimeService).apply(any());
+    }
+
+    @Test
+    void shouldVerifyAndInvalidateCachePolicyThroughInternalEndpoints() throws Exception {
+        QueryExecutionCachePolicyResponse verifyResponse = new QueryExecutionCachePolicyResponse();
+        verifyResponse.setTenantId("tenant-a");
+        verifyResponse.setPolicyId("cache-policy-001");
+        verifyResponse.setSqlFingerprint("fp-001");
+        verifyResponse.setTargetEngine("HETU");
+        verifyResponse.setSchemaVersion("schema-v1");
+        verifyResponse.setActive(true);
+        verifyResponse.setStatus("VERIFIED");
+        verifyResponse.setPolicySummary("Governed cache policy remains active with version-aware runtime checks.");
+        verifyResponse.setRuntimeDetailsJson("{\"bindingState\":\"ACTIVE\"}");
+        verifyResponse.setContractStage("LONG_TERM_BASELINE");
+        verifyResponse.setImplementationStage("CACHE_GOVERNANCE_RUNTIME_BASELINE");
+        when(queryExecutionCacheGovernanceRuntimeService.verify(any())).thenReturn(verifyResponse);
+
+        QueryExecutionCachePolicyResponse invalidateResponse = new QueryExecutionCachePolicyResponse();
+        invalidateResponse.setTenantId("tenant-a");
+        invalidateResponse.setPolicyId("cache-policy-001");
+        invalidateResponse.setSqlFingerprint("fp-001");
+        invalidateResponse.setTargetEngine("HETU");
+        invalidateResponse.setSchemaVersion("schema-v1");
+        invalidateResponse.setActive(true);
+        invalidateResponse.setStatus("INVALIDATED");
+        invalidateResponse.setPolicySummary("Governed cache entries were invalidated and will require backfill on the next eligible execution.");
+        invalidateResponse.setRuntimeDetailsJson("{\"invalidatedEntryCount\":1}");
+        invalidateResponse.setContractStage("LONG_TERM_BASELINE");
+        invalidateResponse.setImplementationStage("CACHE_GOVERNANCE_RUNTIME_BASELINE");
+        when(queryExecutionCacheGovernanceRuntimeService.invalidate(any())).thenReturn(invalidateResponse);
+
+        mockMvc.perform(post("/api/query-execution/internal/cache-policies/verify")
+                .header("X-Tenant-Id", "tenant-a")
+                .header("X-User-Id", "service-user")
+                .header("X-Role-Codes", "SERVICE")
+                .header("X-Request-Id", "request-005")
+                .header("X-Trace-Id", "trace-005")
+                .header("X-Auth-Source", "header")
+                .header("X-Issued-At", "1713700000000")
+                .header("X-Expires-At", "2713700000000")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"policyId\":\"cache-policy-001\",\"sqlFingerprint\":\"fp-001\",\"datasourceType\":\"HETU\",\"schemaVersion\":\"schema-v1\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("VERIFIED"))
+            .andExpect(jsonPath("$.active").value(true));
+
+        mockMvc.perform(post("/api/query-execution/internal/cache-policies/invalidate")
+                .header("X-Tenant-Id", "tenant-a")
+                .header("X-User-Id", "service-user")
+                .header("X-Role-Codes", "SERVICE")
+                .header("X-Request-Id", "request-006")
+                .header("X-Trace-Id", "trace-006")
+                .header("X-Auth-Source", "header")
+                .header("X-Issued-At", "1713700000000")
+                .header("X-Expires-At", "2713700000000")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"policyId\":\"cache-policy-001\",\"sqlFingerprint\":\"fp-001\",\"datasourceType\":\"HETU\",\"schemaVersion\":\"schema-v1\",\"invalidateReason\":\"schema refresh\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("INVALIDATED"))
+            .andExpect(jsonPath("$.active").value(true));
+
+        verify(queryExecutionCacheGovernanceRuntimeService).verify(any());
+        verify(queryExecutionCacheGovernanceRuntimeService).invalidate(any());
     }
 
     @TestConfiguration

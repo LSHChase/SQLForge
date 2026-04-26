@@ -24,6 +24,7 @@ import com.company.queryexecution.infrastructure.adapter.HetuExecutionUnavailabl
 import com.company.queryexecution.infrastructure.adapter.QueryExecutionAdapter;
 import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanApplyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyApplyRequest;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
@@ -115,6 +116,84 @@ class QueryExecutionApplicationServiceTest {
 
         assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
         assertTrue(response.getMetadata().isAccelerationApplied());
+    }
+
+    @Test
+    void shouldReturnGovernedCacheHitAfterBackfillUnderSameSchemaVersion() {
+        setRequestContext("tenant-a");
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        QueryExecutionCacheGovernanceRuntimeService cacheRuntimeService = new QueryExecutionCacheGovernanceRuntimeService();
+        QueryExecutionCachePolicyApplyRequest applyRequest = new QueryExecutionCachePolicyApplyRequest();
+        applyRequest.setTenantId("tenant-a");
+        applyRequest.setPolicyId("cache-policy-001");
+        applyRequest.setSqlFingerprint(com.company.sqlforge.common.utils.SqlFingerprintUtils.fingerprint("SELECT * FROM orders"));
+        applyRequest.setDatasourceType("HETU");
+        applyRequest.setSchemaVersion("schema-v1");
+        applyRequest.setPolicyReason("approved governed cache");
+        cacheRuntimeService.apply(applyRequest);
+
+        QueryExecutionApplicationService service = new QueryExecutionApplicationService(
+            new DeterministicQueryExecutionAdapter(),
+            governanceCapabilityClient,
+            QueryExecutionMetricsRecorder.noop(),
+            new QueryExecutionAccelerationRuntimeService(),
+            cacheRuntimeService
+        );
+
+        QueryExecuteRequest firstRequest = baseRequest("SELECT * FROM orders");
+        firstRequest.setQueryContext(schemaVersionContext("schema-v1"));
+        QueryExecuteResponse firstResponse = service.executeSynchronously(firstRequest);
+
+        QueryExecuteRequest secondRequest = baseRequest("SELECT * FROM orders");
+        secondRequest.setQueryContext(schemaVersionContext("schema-v1"));
+        QueryExecuteResponse secondResponse = service.executeSynchronously(secondRequest);
+
+        assertEquals("BACKFILLED", firstResponse.getMetadata().getCacheGovernanceStatus());
+        assertFalse(firstResponse.getMetadata().isCacheHit());
+        assertEquals("HIT", secondResponse.getMetadata().getCacheGovernanceStatus());
+        assertTrue(secondResponse.getMetadata().isCacheHit());
+        assertTrue(secondResponse.getMetadata().getCacheGovernanceEvidence().contains("schemaVersion=schema-v1"));
+    }
+
+    @Test
+    void shouldBypassThenInvalidateGovernedCacheWhenSchemaVersionChanges() {
+        setRequestContext("tenant-a");
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        QueryExecutionCacheGovernanceRuntimeService cacheRuntimeService = new QueryExecutionCacheGovernanceRuntimeService();
+        QueryExecutionCachePolicyApplyRequest applyRequest = new QueryExecutionCachePolicyApplyRequest();
+        applyRequest.setTenantId("tenant-a");
+        applyRequest.setPolicyId("cache-policy-001");
+        applyRequest.setSqlFingerprint(com.company.sqlforge.common.utils.SqlFingerprintUtils.fingerprint("SELECT * FROM orders"));
+        applyRequest.setDatasourceType("HETU");
+        applyRequest.setSchemaVersion("schema-v1");
+        cacheRuntimeService.apply(applyRequest);
+
+        QueryExecutionApplicationService service = new QueryExecutionApplicationService(
+            new DeterministicQueryExecutionAdapter(),
+            governanceCapabilityClient,
+            QueryExecutionMetricsRecorder.noop(),
+            new QueryExecutionAccelerationRuntimeService(),
+            cacheRuntimeService
+        );
+
+        QueryExecuteRequest missingSchemaRequest = baseRequest("SELECT * FROM orders");
+        missingSchemaRequest.setQueryContext(new QueryContextDTO());
+        QueryExecuteResponse bypassResponse = service.executeSynchronously(missingSchemaRequest);
+
+        QueryExecuteRequest versionOneRequest = baseRequest("SELECT * FROM orders");
+        versionOneRequest.setQueryContext(schemaVersionContext("schema-v1"));
+        QueryExecuteResponse firstVersionedResponse = service.executeSynchronously(versionOneRequest);
+
+        QueryExecuteRequest versionTwoRequest = baseRequest("SELECT * FROM orders");
+        versionTwoRequest.setQueryContext(schemaVersionContext("schema-v2"));
+        QueryExecuteResponse invalidatedResponse = service.executeSynchronously(versionTwoRequest);
+
+        assertEquals("BYPASSED", bypassResponse.getMetadata().getCacheGovernanceStatus());
+        assertTrue(bypassResponse.getMetadata().getCacheGovernanceEvidence().contains("riskCode=SCHEMA_VERSION_MISSING"));
+        assertEquals("BACKFILLED", firstVersionedResponse.getMetadata().getCacheGovernanceStatus());
+        assertEquals("BACKFILLED", invalidatedResponse.getMetadata().getCacheGovernanceStatus());
+        assertTrue(invalidatedResponse.getMetadata().getCacheGovernanceEvidence().contains("riskCode=SCHEMA_VERSION_MISMATCH"));
+        assertTrue(invalidatedResponse.getMetadata().getCacheGovernanceEvidence().contains("schemaVersion=schema-v2"));
     }
 
     @Test
@@ -345,6 +424,12 @@ class QueryExecutionApplicationServiceTest {
     private QueryContextDTO timeoutContext(Long timeoutMs) {
         QueryContextDTO queryContext = new QueryContextDTO();
         queryContext.setTimeoutMs(timeoutMs);
+        return queryContext;
+    }
+
+    private QueryContextDTO schemaVersionContext(String schemaVersion) {
+        QueryContextDTO queryContext = new QueryContextDTO();
+        queryContext.setSchemaVersion(schemaVersion);
         return queryContext;
     }
 
