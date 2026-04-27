@@ -158,6 +158,16 @@
   - 结构化字段：`source_type`,`endpoint_name`,`base_url`,`path_template`,`http_method`,`report_code_param_name`,`sql_json_path`,`auth_mode`,`timeout_ms`,`enabled`,`updated_at`
   - 安全边界：不在 repo 固化真实 endpoint secret；真实密钥后续进入受保护配置源
 
+领域值对象：
+
+- `StructureParseIssueScenario`
+  - 所属服务：`sql-optimization`
+  - 用途：统一 `issue_scene -> issue_domain/default_severity/default_important/default_urgent/scene_weight`
+  - 消费方：结构解析响应、批量解析统计、后续按 SQL/报表/场景统计
+- `StructureParseIssueScoringSnapshot`
+  - 所属服务：`sql-optimization`
+  - 用途：为统计聚合提供稳定快照字段：`issue_scene`,`issue_domain`,`severity`,`priority_level`,`priority_score`,`important`,`urgent`
+
 ## 5. Traceability Keys
 
 所有新增对象至少应支持以下关联键中的适用子集：

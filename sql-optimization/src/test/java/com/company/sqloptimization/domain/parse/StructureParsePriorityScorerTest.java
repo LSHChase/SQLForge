@@ -1,6 +1,7 @@
 package com.company.sqloptimization.domain.parse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
@@ -9,55 +10,60 @@ import org.junit.jupiter.api.Test;
 class StructureParsePriorityScorerTest {
 
     @Test
-    void shouldElevateCriticalImportantUrgentIssuesToP1() {
+    void shouldApplyScenarioDefaultsWhenIssueOnlyHasScene() {
         StructureParseIssue issue = new StructureParseIssue();
-        issue.setSeverity(StructureParseIssueSeverity.CRITICAL);
-        issue.setImportant(Boolean.TRUE);
-        issue.setUrgent(Boolean.TRUE);
-        issue.setAffectedReportCount(Integer.valueOf(8));
-        issue.setAffectedSqlCount(Integer.valueOf(4));
+        issue.setIssueScene("ROUTE_HINT_CONFLICT");
 
         StructureParsePriorityAssessment assessment = StructureParsePriorityScorer.assess(issue);
 
+        assertEquals(StructureParseIssueDomain.ROUTING, issue.getIssueDomain());
+        assertEquals(StructureParseIssueSeverity.HIGH, issue.getSeverity());
+        assertTrue(issue.getImportant());
+        assertTrue(issue.getUrgent());
         assertEquals(StructureParsePriorityLevel.P1, assessment.getPriorityLevel());
-        assertTrue(assessment.getPriorityScore() >= 90);
-        assertTrue(assessment.isImportant());
-        assertTrue(assessment.isUrgent());
-        assertEquals(Integer.valueOf(100), issue.getPriorityScore());
-        assertEquals(StructureParsePriorityLevel.P1, issue.getPriorityLevel());
     }
 
     @Test
-    void shouldKeepLowSignalIssuesAtP4() {
+    void shouldKeepExplicitFlagsOverScenarioDefaults() {
         StructureParseIssue issue = new StructureParseIssue();
-        issue.setSeverity(StructureParseIssueSeverity.INFO);
+        issue.setIssueScene("MISSING_FILTER");
         issue.setImportant(Boolean.FALSE);
         issue.setUrgent(Boolean.FALSE);
 
         StructureParsePriorityAssessment assessment = StructureParsePriorityScorer.assess(issue);
 
-        assertEquals(StructureParsePriorityLevel.P4, assessment.getPriorityLevel());
-        assertEquals(10, assessment.getPriorityScore());
+        assertFalse(assessment.isImportant());
+        assertFalse(assessment.isUrgent());
+        assertEquals(StructureParsePriorityLevel.P2, assessment.getPriorityLevel());
     }
 
     @Test
-    void shouldPromoteAggregateAssessmentToHighestIssuePriority() {
-        StructureParseIssue highImpact = new StructureParseIssue();
-        highImpact.setSeverity(StructureParseIssueSeverity.HIGH);
-        highImpact.setImportant(Boolean.TRUE);
-        highImpact.setUrgent(Boolean.FALSE);
-        highImpact.setAffectedReportCount(Integer.valueOf(6));
+    void shouldUseHighestScoredIssueForBatchAssessment() {
+        StructureParseIssue low = new StructureParseIssue();
+        low.setIssueScene("GENERAL_WARNING");
+        StructureParseIssue high = new StructureParseIssue();
+        high.setIssueScene("MISSING_FILTER");
+        high.setAffectedReportCount(Integer.valueOf(5));
 
-        StructureParseIssue lowImpact = new StructureParseIssue();
-        lowImpact.setSeverity(StructureParseIssueSeverity.LOW);
-        lowImpact.setImportant(Boolean.FALSE);
-        lowImpact.setUrgent(Boolean.FALSE);
+        StructureParsePriorityAssessment assessment = StructureParsePriorityScorer.assessAll(Arrays.asList(low, high));
 
-        StructureParsePriorityAssessment assessment =
-            StructureParsePriorityScorer.assessAll(Arrays.asList(lowImpact, highImpact));
-
-        assertEquals(StructureParsePriorityLevel.P2, assessment.getPriorityLevel());
-        assertTrue(assessment.getPriorityScore() >= 80);
+        assertEquals(StructureParsePriorityLevel.P1, assessment.getPriorityLevel());
         assertTrue(assessment.isImportant());
+        assertTrue(assessment.isUrgent());
+    }
+
+    @Test
+    void shouldExposeStableScoringSnapshotForStatistics() {
+        StructureParseIssue issue = new StructureParseIssue();
+        issue.setIssueScene("QUERY_DATE_UNRESOLVED");
+
+        StructureParseIssueScoringSnapshot snapshot = StructureParsePriorityScorer.snapshot(issue);
+
+        assertEquals("QUERY_DATE_UNRESOLVED", snapshot.getIssueScene());
+        assertEquals(StructureParseIssueDomain.DATA, snapshot.getIssueDomain());
+        assertEquals(StructureParseIssueSeverity.MEDIUM, snapshot.getSeverity());
+        assertEquals(StructureParsePriorityLevel.P3, snapshot.getPriorityLevel());
+        assertTrue(snapshot.isImportant());
+        assertFalse(snapshot.isUrgent());
     }
 }

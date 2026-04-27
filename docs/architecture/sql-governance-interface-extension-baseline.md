@@ -259,6 +259,31 @@
 - `CONVENTION`
 - `GOVERNANCE`
 
+结构解析统计评分口径：
+
+- `severity`: `INFO | LOW | MEDIUM | HIGH | CRITICAL`
+- `priorityLevel`: `P1 | P2 | P3 | P4`
+- `important` 表示影响治理决策或后续改写/加速判断
+- `urgent` 表示可能影响在线执行、路由或大面积失败风险
+- 评分基础来自 `severity`，再叠加场景权重、important、urgent、受影响 SQL 数和受影响报表数
+- `P1`: 分数大于等于 90，或 important + urgent 且分数大于等于 80
+- `P2`: 分数大于等于 70
+- `P3`: 分数大于等于 40
+- `P4`: 其余
+
+首版问题场景目录：
+
+- `PARSER_FAILURE`: 结构问题，高严重度，important
+- `WIDE_PROJECTION`: 治理问题，中严重度，important
+- `MISSING_FILTER`: 性能问题，高严重度，important + urgent
+- `UNBOUNDED_SORT`: 性能问题，中严重度
+- `MULTI_JOIN_COMPLEXITY`: 结构问题，中严重度，important
+- `QUERY_DATE_UNRESOLVED`: 数据问题，中严重度，important
+- `ROUTE_HINT_CONFLICT`: 路由问题，高严重度，important + urgent
+- `DIALECT_INCOMPATIBLE`: 兼容问题，高严重度，important
+- `PARAMETER_BINDING_RISK`: 结构问题，中严重度，important
+- `GENERAL_WARNING`: 规范问题，低严重度
+
 结构解析严重度：
 
 - `INFO`

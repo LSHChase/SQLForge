@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-055: 固化解析统计口径与优先级评分
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): codify parse priority scoring`
+- Priority: 1
+- Depends on: `D-TASK-054`
+- Scope: scene/domain/severity/priority/important/urgent 评分与聚合口径 Tech: `JAVA-BE`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-010` 解析统计与优先级分层
+- Human confirmation point: 若统计口径与优先级评分改变已确认的 severity/priority/important/urgent 语义，需人工确认
+- Data impact: 评分规则、统计口径与相关查询面
+- Rollback / recovery: 保留旧评分/口径并追加新规则，不覆盖历史结果
+- Validation:
+  - `scoring rule 测试`
+  - `python3 scripts/foreman.py validate D-TASK-055`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented structure parse issue scenario catalog, scoring snapshot, default domain/severity/important/urgent normalization, documented scoring thresholds and scenario taxonomy, and added scoring regression coverage.
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=StructureParsePriorityScorerTest,StructureParseControllerTest,ReportBatchApplicationServiceTest,ParseBatchControllerTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-055; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: D-TASK-055 establishes scoring policy only; API-level parse statistics aggregation is intentionally deferred to D-TASK-056 and later report aggregation tasks.
+  - Next step: Instantiate D-TASK-056 to expose parse overview, issue-scene aggregation, and single-SQL statistics surfaces.
+
 ### D-TASK-054: 接入报表接口配置与真实拉取抽象
 
 - Status: done

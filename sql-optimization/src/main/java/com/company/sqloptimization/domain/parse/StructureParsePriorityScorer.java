@@ -8,12 +8,17 @@ public final class StructureParsePriorityScorer {
     }
 
     public static StructureParsePriorityAssessment assess(StructureParseIssue issue) {
+        StructureParseIssueScenario scenario = resolveScenario(issue);
         StructureParseIssueSeverity severity = issue == null || issue.getSeverity() == null
-            ? StructureParseIssueSeverity.INFO
+            ? scenario.getDefaultSeverity()
             : issue.getSeverity();
-        boolean important = issue != null && Boolean.TRUE.equals(issue.getImportant());
-        boolean urgent = issue != null && Boolean.TRUE.equals(issue.getUrgent());
-        int score = baseScore(severity);
+        boolean important = issue != null && issue.getImportant() != null
+            ? Boolean.TRUE.equals(issue.getImportant())
+            : scenario.isDefaultImportant();
+        boolean urgent = issue != null && issue.getUrgent() != null
+            ? Boolean.TRUE.equals(issue.getUrgent())
+            : scenario.isDefaultUrgent();
+        int score = baseScore(severity) + scenario.getSceneWeight();
         if (important) {
             score += 10;
         }
@@ -28,10 +33,25 @@ public final class StructureParsePriorityScorer {
         StructureParsePriorityAssessment assessment =
             new StructureParsePriorityAssessment(score, resolvePriorityLevel(score, important, urgent), important, urgent);
         if (issue != null) {
+            normalizeIssue(issue, scenario, severity, important, urgent);
             issue.setPriorityScore(Integer.valueOf(assessment.getPriorityScore()));
             issue.setPriorityLevel(assessment.getPriorityLevel());
         }
         return assessment;
+    }
+
+    public static StructureParseIssueScoringSnapshot snapshot(StructureParseIssue issue) {
+        StructureParsePriorityAssessment assessment = assess(issue);
+        StructureParseIssueScenario scenario = resolveScenario(issue);
+        return new StructureParseIssueScoringSnapshot(
+            issue == null || issue.getIssueScene() == null ? scenario.getIssueScene() : issue.getIssueScene(),
+            issue == null || issue.getIssueDomain() == null ? scenario.getDefaultDomain() : issue.getIssueDomain(),
+            issue == null || issue.getSeverity() == null ? scenario.getDefaultSeverity() : issue.getSeverity(),
+            assessment.getPriorityLevel(),
+            assessment.getPriorityScore(),
+            assessment.isImportant(),
+            assessment.isUrgent()
+        );
     }
 
     public static StructureParsePriorityAssessment assessAll(List<StructureParseIssue> issues) {
@@ -75,6 +95,32 @@ public final class StructureParsePriorityScorer {
             return 0;
         }
         return Math.min(impact.intValue(), 10);
+    }
+
+    private static StructureParseIssueScenario resolveScenario(StructureParseIssue issue) {
+        return StructureParseIssueScenario.resolve(issue == null ? null : issue.getIssueScene());
+    }
+
+    private static void normalizeIssue(StructureParseIssue issue,
+                                       StructureParseIssueScenario scenario,
+                                       StructureParseIssueSeverity severity,
+                                       boolean important,
+                                       boolean urgent) {
+        if (issue.getIssueScene() == null) {
+            issue.setIssueScene(scenario.getIssueScene());
+        }
+        if (issue.getIssueDomain() == null) {
+            issue.setIssueDomain(scenario.getDefaultDomain());
+        }
+        if (issue.getSeverity() == null) {
+            issue.setSeverity(severity);
+        }
+        if (issue.getImportant() == null) {
+            issue.setImportant(Boolean.valueOf(important));
+        }
+        if (issue.getUrgent() == null) {
+            issue.setUrgent(Boolean.valueOf(urgent));
+        }
     }
 
     private static StructureParsePriorityLevel resolvePriorityLevel(int score, boolean important, boolean urgent) {
