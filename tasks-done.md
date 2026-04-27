@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-069: 固化数据源连接配置与健康检查契约
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(governance): add datasource config baseline`
+- Priority: 1
+- Depends on: `D-TASK-049`
+- Scope: JDBC/API/Client/Gateway 连接方式、凭证、安全、测试连接、健康状态与失败原因契约 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-013` 数据源与数据资产治理增强
+- Human confirmation point: 若数据源连接配置与健康检查会落明文凭据、放宽租户隔离或把环境级 endpoint/secret 写入仓库真值，需人工确认
+- Data impact: datasource 配置、测试连接、健康状态与失败原因查询面
+- Rollback / recovery: 回退到只读 datasource 查询基线，移除高风险配置字段与敏感信息暴露
+- Validation:
+  - `datasource contract 与 health-check 测试`
+  - `python3 scripts/foreman.py validate D-TASK-069`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added datasource configuration CRUD, connection-mode specific contract fields, masked credential handling, and baseline connection health-check responses for governance APIs.
+  - Validation evidence: mvn -pl governance -am clean -Dtest=DatasourceConfigApplicationServiceTest,DatasourceConfigControllerTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-069
+  - Residual risk: Health-check behavior is simulated baseline logic without live external connectivity; metadata snapshot and asset evidence remain governed separately under D-TASK-070 and D-TASK-071.
+  - Next step: Close out D-TASK-070 metadata snapshot baselines, then finish the Java SDK baseline under D-TASK-068.
+
 ### D-TASK-071: 落地数据资产与数据源治理查询/详情接口
 
 - Status: done

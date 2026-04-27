@@ -32,22 +32,6 @@ _No tasks._
 - Progress log:
   - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
 
-### D-TASK-069: 固化数据源连接配置与健康检查契约
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `D-TASK-049`
-- Scope: JDBC/API/Client/Gateway 连接方式、凭证、安全、测试连接、健康状态与失败原因契约 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
-- Matrix context: Phase-D / Story `D-STORY-013` 数据源与数据资产治理增强
-- Human confirmation point: 若数据源连接配置与健康检查会落明文凭据、放宽租户隔离或把环境级 endpoint/secret 写入仓库真值，需人工确认
-- Data impact: datasource 配置、测试连接、健康状态与失败原因查询面
-- Rollback / recovery: 回退到只读 datasource 查询基线，移除高风险配置字段与敏感信息暴露
-- Validation:
-  - `datasource contract 与 health-check 测试`
-  - `python3 scripts/foreman.py validate D-TASK-069`
-- Progress log:
-  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
-
 ### D-TASK-068: 落地 Java SDK 首版
 
 - Status: in_progress
