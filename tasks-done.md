@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-072: 落地系统管理配置接口基线
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(governance): add system management config baselines`
+- Priority: 1
+- Depends on: `D-TASK-071`
+- Scope: 报表接口配置、Redis 规则源、装数协同策略与相关治理查询接口基线 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-013` 数据源与数据资产治理增强
+- Human confirmation point: 若系统管理配置接口会把 mock/config abstraction 误写成真实外部联通、或允许未经审批的配置生效，需人工确认
+- Data impact: 报表接口配置、Redis 规则源、装数协同策略与治理查询面
+- Rollback / recovery: 回退到查询/模拟基线，保留抽象配置但禁用高风险生效路径
+- Validation:
+  - `system-management config/query 测试`
+  - `python3 scripts/foreman.py validate D-TASK-072`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added governed system-management configuration baselines for report interfaces, Redis rule sources, and dispatch policies, including alias endpoints, update support, config-only enforcement semantics, and focused service/controller tests without claiming live external activation.
+  - Validation evidence: mvn -pl governance -am clean -Dtest=ReportInterfaceConfigApplicationServiceTest,ReportInterfaceConfigControllerTest,RedisRuleSourceApplicationServiceTest,DispatchPolicyApplicationServiceTest,SystemManagementConfigControllerTest,DatasourceConfigApplicationServiceTest,MetadataSnapshotApplicationServiceTest,MetadataAssetCatalogApplicationServiceTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-072; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Datasource/metadata governance tasks remain active in the workspace, and Redis/dispatch paths intentionally stay at config-only or simulated status until later environment-backed integration work.
+  - Next step: Close out the remaining datasource/metadata governance tasks separately, then resume the open-access SDK delivery under D-TASK-068.
+
 ### D-TASK-067: 扩展 JDBC Agent `Local Rewrite + Direct JDBC`
 
 - Status: done

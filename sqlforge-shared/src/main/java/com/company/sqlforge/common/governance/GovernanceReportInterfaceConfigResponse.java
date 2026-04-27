@@ -2,6 +2,7 @@ package com.company.sqlforge.common.governance;
 
 public class GovernanceReportInterfaceConfigResponse {
 
+    private String configId;
     private String tenantId;
     private String datasourceCode;
     private String stage;
@@ -20,6 +21,14 @@ public class GovernanceReportInterfaceConfigResponse {
     private String unavailableReason;
     private String contractStage;
     private String implementationStage;
+
+    public String getConfigId() {
+        return configId;
+    }
+
+    public void setConfigId(String configId) {
+        this.configId = configId;
+    }
 
     public String getTenantId() {
         return tenantId;

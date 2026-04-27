@@ -51,6 +51,30 @@ class ReportInterfaceConfigApplicationServiceTest {
     }
 
     @Test
+    void shouldUpdateExistingReportInterfaceConfig() {
+        RequestContext.set("tenant-a", "admin-003", Arrays.asList("TENANT_ADMIN"), "request-003", "trace-003", "header", 1L, 2L);
+        ReportInterfaceConfigApplicationService service =
+            new ReportInterfaceConfigApplicationService(new InMemoryReportInterfaceConfigRepository());
+
+        ReportInterfaceConfigUpsertRequest upsertRequest = new ReportInterfaceConfigUpsertRequest();
+        upsertRequest.setTenantId("tenant-a");
+        upsertRequest.setEndpointCode("report-api-main");
+        upsertRequest.setBaseUrl("http://report-api.local");
+        GovernanceReportInterfaceConfigResponse created = service.upsert(upsertRequest);
+
+        ReportInterfaceConfigUpsertRequest updateRequest = new ReportInterfaceConfigUpsertRequest();
+        updateRequest.setTenantId("tenant-a");
+        updateRequest.setEndpointCode("report-api-main");
+        updateRequest.setEndpointName("Report SQL API");
+        updateRequest.setBaseUrl("http://report-api-v2.local");
+        GovernanceReportInterfaceConfigResponse updated = service.update(created.getConfigId(), updateRequest);
+
+        assertEquals(created.getConfigId(), updated.getConfigId());
+        assertEquals("Report SQL API", updated.getEndpointName());
+        assertEquals("http://report-api-v2.local", updated.getBaseUrl());
+    }
+
+    @Test
     void shouldReturnMockFallbackWhenNoConfigExists() {
         RequestContext.set("tenant-a", "admin-001", Arrays.asList("TENANT_ADMIN"), "request-002", "trace-002", "header", 1L, 2L);
         ReportInterfaceConfigApplicationService service =

@@ -23,6 +23,15 @@ public class InMemoryReportInterfaceConfigRepository implements ReportInterfaceC
     }
 
     @Override
+    public Optional<ReportInterfaceConfig> findByTenantIdAndConfigId(String tenantId, String configId) {
+        ReportInterfaceConfig config = configs.get(configId);
+        if (config == null || !tenantId.equals(config.getTenantId())) {
+            return Optional.empty();
+        }
+        return Optional.of(config);
+    }
+
+    @Override
     public Optional<ReportInterfaceConfig> findBestMatch(String tenantId, String datasourceCode, String stage) {
         List<ReportInterfaceConfig> candidates = findByTenantId(tenantId);
         candidates.sort(Comparator.comparingInt(config -> -score(config, datasourceCode, stage)));

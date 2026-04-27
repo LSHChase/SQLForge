@@ -32,28 +32,11 @@ public class ReportInterfaceConfigApplicationService {
     }
 
     public GovernanceReportInterfaceConfigResponse upsert(ReportInterfaceConfigUpsertRequest request) {
-        String tenantId = requireTenant(request == null ? null : request.getTenantId());
-        ReportInterfaceConfig config = new ReportInterfaceConfig(
-            UUID.randomUUID().toString(),
-            tenantId,
-            trimToNull(request == null ? null : request.getDatasourceCode()),
-            trimToNull(request == null ? null : request.getStage()),
-            firstNonBlank(request == null ? null : request.getSourceType(), "HTTP_API").toUpperCase(Locale.ROOT),
-            requireText(request == null ? null : request.getEndpointCode(), "endpointCode"),
-            firstNonBlank(request == null ? null : request.getEndpointName(), request == null ? null : request.getEndpointCode()),
-            trimToNull(request == null ? null : request.getBaseUrl()),
-            firstNonBlank(request == null ? null : request.getPathTemplate(), "/reports/sql"),
-            firstNonBlank(request == null ? null : request.getHttpMethod(), "GET").toUpperCase(Locale.ROOT),
-            firstNonBlank(request == null ? null : request.getReportCodeParamName(), "report_code"),
-            firstNonBlank(request == null ? null : request.getSqlJsonPath(), "$.sql"),
-            firstNonBlank(request == null ? null : request.getAuthMode(), "NONE"),
-            normalizeTimeout(request == null ? null : request.getTimeoutMs()),
-            request == null || request.getEnabled() == null || request.getEnabled().booleanValue(),
-            Instant.now()
-        );
-        validateConfig(config);
-        reportInterfaceConfigRepository.save(config);
-        return toResponse(config, "ACTIVE", null);
+        return save(null, request);
+    }
+
+    public GovernanceReportInterfaceConfigResponse update(String interfaceId, ReportInterfaceConfigUpsertRequest request) {
+        return save(requireText(interfaceId, "interfaceId"), request);
     }
 
     public List<GovernanceReportInterfaceConfigResponse> list(String tenantId) {
@@ -88,6 +71,41 @@ public class ReportInterfaceConfigApplicationService {
             config.isEnabled() ? null : "REPORT_INTERFACE_CONFIG_DISABLED");
     }
 
+    private GovernanceReportInterfaceConfigResponse save(String interfaceId, ReportInterfaceConfigUpsertRequest request) {
+        String tenantId = requireTenant(request == null ? null : request.getTenantId());
+        String configId = interfaceId;
+        if (StringUtils.hasText(interfaceId)) {
+            reportInterfaceConfigRepository.findByTenantIdAndConfigId(tenantId, interfaceId).orElseThrow(() -> new BizException(
+                ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
+                HttpStatus.NOT_FOUND,
+                "Report interface config not found: " + interfaceId
+            ));
+        } else {
+            configId = UUID.randomUUID().toString();
+        }
+        ReportInterfaceConfig config = new ReportInterfaceConfig(
+            configId,
+            tenantId,
+            trimToNull(request == null ? null : request.getDatasourceCode()),
+            trimToNull(request == null ? null : request.getStage()),
+            firstNonBlank(request == null ? null : request.getSourceType(), "HTTP_API").toUpperCase(Locale.ROOT),
+            requireText(request == null ? null : request.getEndpointCode(), "endpointCode"),
+            firstNonBlank(request == null ? null : request.getEndpointName(), request == null ? null : request.getEndpointCode()),
+            trimToNull(request == null ? null : request.getBaseUrl()),
+            firstNonBlank(request == null ? null : request.getPathTemplate(), "/reports/sql"),
+            firstNonBlank(request == null ? null : request.getHttpMethod(), "GET").toUpperCase(Locale.ROOT),
+            firstNonBlank(request == null ? null : request.getReportCodeParamName(), "report_code"),
+            firstNonBlank(request == null ? null : request.getSqlJsonPath(), "$.sql"),
+            firstNonBlank(request == null ? null : request.getAuthMode(), "NONE"),
+            normalizeTimeout(request == null ? null : request.getTimeoutMs()),
+            request == null || request.getEnabled() == null || request.getEnabled().booleanValue(),
+            Instant.now()
+        );
+        validateConfig(config);
+        reportInterfaceConfigRepository.save(config);
+        return toResponse(config, "ACTIVE", null);
+    }
+
     private void validateConfig(ReportInterfaceConfig config) {
         if ("HTTP_API".equals(config.getSourceType()) && !StringUtils.hasText(config.getBaseUrl())) {
             throw invalidArgument("baseUrl", "baseUrl is required for HTTP_API report interface config");
@@ -101,6 +119,7 @@ public class ReportInterfaceConfigApplicationService {
                                                                String resolverStatus,
                                                                String unavailableReason) {
         GovernanceReportInterfaceConfigResponse response = new GovernanceReportInterfaceConfigResponse();
+        response.setConfigId(config.getConfigId());
         response.setTenantId(config.getTenantId());
         response.setDatasourceCode(config.getDatasourceCode());
         response.setStage(config.getStage());
