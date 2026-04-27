@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-024: 落地逻辑视图映射、数据到位与热度视图
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): extend logical object evidence view`
+- Priority: 1
+- Depends on: `E-TASK-023`,`D-TASK-071`
+- Scope: 逻辑对象映射、freshness/SLA/usage heat 与相关 SQL 展示 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-009` 数据资产与逻辑视图
+- Human confirmation point: 若逻辑视图映射页会把数据到位状态、SLA 或热度写成确定事实而无证据来源，需人工确认
+- Data impact: 逻辑对象映射、freshness/SLA/heat 展示
+- Rollback / recovery: 恢复字段证据标识与默认未知状态
+- Validation:
+  - `npm run lint`、`npm run build`、logical object contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-024`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Extended the asset catalog with freshness and SLA evidence cards, usage-heat proxy rendering, logical-object mapping emphasis, and related SQL candidates aligned from parse statistics.
+  - Validation evidence: npm run lint; npm run build; node scripts/check-logical-object-contract.mjs; python3 scripts/foreman.py validate E-TASK-024 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-logical-object-contract.mjs'
+  - Residual risk: Usage heat is intentionally labeled as an evidence-derived proxy because the repo-side baseline does not expose a dedicated live heat endpoint yet; related SQL is only aligned for logical views via reportCode.
+  - Next step: Continue with E-TASK-025 to build the routing governance page and decision detail flow on top of route and history contracts.
+
 ### E-TASK-023: 落地数据资产目录与对象详情页
 
 - Status: done

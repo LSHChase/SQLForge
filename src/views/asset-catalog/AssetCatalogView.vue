@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   formatRuntimeError,
+  getParseStatisticsBySql,
   getDatabaseViewDetail,
   getDatabaseViews,
   getGovernanceDatasourceDetail,
@@ -33,6 +34,7 @@ const activeTab = ref('datasources')
 const selectedItemKey = ref('')
 const selectedDetail = ref(null)
 const selectedSnapshots = ref([])
+const parseSqlStats = ref([])
 const errorMessage = ref('')
 
 const datasources = ref([])
@@ -188,6 +190,58 @@ const snapshotSummary = computed(() => {
   ]
 })
 
+const usageHeatModel = computed(() => {
+  const detail = selectedDetail.value
+  if (!detail || !['tables', 'logicalViews', 'databaseViews'].includes(activeTab.value)) {
+    return null
+  }
+  const upstream = Number(detail.upstreamCount || 0)
+  const downstream = Number(detail.downstreamCount || 0)
+  const snapshots = selectedSnapshots.value.length
+  const queryableBoost = detail.queryable ? 10 : 0
+  const score = Math.min(100, upstream * 18 + downstream * 22 + snapshots * 8 + queryableBoost)
+  let level = 'COLD'
+  if (score >= 70) {
+    level = 'HOT'
+  } else if (score >= 35) {
+    level = 'WARM'
+  }
+  return {
+    score,
+    level,
+    source: isChinese.value
+      ? '依据上/下游计数、snapshot 覆盖和 queryable 状态计算的 proxy，不代表真实运行热度。'
+      : 'A proxy derived from upstream/downstream counts, snapshot coverage, and queryable state rather than live runtime heat.'
+  }
+})
+
+const healthSignalCards = computed(() => {
+  const detail = selectedDetail.value
+  if (!detail) {
+    return []
+  }
+  return [
+    {
+      key: 'freshness',
+      label: isChinese.value ? 'Freshness' : 'Freshness',
+      value: detail.freshnessStatus || summarizeDistinct(selectedSnapshots.value.map(item => item.freshnessStatus)),
+      evidence: isChinese.value ? 'metadata snapshot 聚合' : 'metadata snapshot aggregate'
+    },
+    {
+      key: 'sla',
+      label: 'SLA',
+      value: detail.slaStatus || summarizeDistinct(selectedSnapshots.value.map(item => item.slaStatus)),
+      evidence: isChinese.value ? 'metadata snapshot 聚合' : 'metadata snapshot aggregate'
+    },
+    {
+      key: 'queryability',
+      label: isChinese.value ? 'Queryability' : 'Queryability',
+      value: detail.queryabilityStatus || summarizeDistinct(selectedSnapshots.value.map(item => item.queryabilityStatus)),
+      evidence: isChinese.value ? '详情字段 + snapshot' : 'detail field + snapshots'
+    }
+  ]
+})
+
 const detailAuxGroups = computed(() => {
   const detail = selectedDetail.value
   if (!detail) {
@@ -226,6 +280,18 @@ const detailAuxGroups = computed(() => {
     ]
   }
   return []
+})
+
+const relatedSqlCandidates = computed(() => {
+  const detail = selectedDetail.value
+  if (!detail || activeTab.value !== 'logicalViews') {
+    return []
+  }
+  const reportCode = String(detail.viewCode || '').trim()
+  if (!reportCode) {
+    return []
+  }
+  return parseSqlStats.value.filter(item => String(item.reportCode || '').trim() === reportCode).slice(0, 6)
 })
 
 function field(key, label, value) {
@@ -355,18 +421,20 @@ async function refreshLists() {
     const tenantId = filterForm.tenantId
     const datasourceCode = filterForm.datasourceCode
     const schemaName = filterForm.schemaName
-    const [nextDatasources, nextSchemas, nextTables, nextLogicalViews, nextDatabaseViews] = await Promise.all([
+    const [nextDatasources, nextSchemas, nextTables, nextLogicalViews, nextDatabaseViews, nextParseSqlStats] = await Promise.all([
       getGovernanceDatasources(tenantId),
       getMetadataSchemas(tenantId, datasourceCode),
       getMetadataTables(tenantId, datasourceCode, schemaName),
       getLogicalViews(tenantId, datasourceCode),
-      getDatabaseViews(tenantId, datasourceCode)
+      getDatabaseViews(tenantId, datasourceCode),
+      getParseStatisticsBySql(tenantId)
     ])
     datasources.value = Array.isArray(nextDatasources) ? nextDatasources : []
     schemas.value = Array.isArray(nextSchemas) ? nextSchemas : []
     tables.value = Array.isArray(nextTables) ? nextTables : []
     logicalViews.value = Array.isArray(nextLogicalViews) ? nextLogicalViews : []
     databaseViews.value = Array.isArray(nextDatabaseViews) ? nextDatabaseViews : []
+    parseSqlStats.value = Array.isArray(nextParseSqlStats) ? nextParseSqlStats : []
 
     if (!filterForm.datasourceCode && datasources.value.length > 0) {
       filterForm.datasourceCode = datasources.value[0].datasourceCode || ''
@@ -622,6 +690,31 @@ onMounted(async () => {
           <div class="evidence-card">
             <div class="section-heading">
               <div>
+                <p class="section-kicker sqlforge-code-label">freshness / sla / heat</p>
+                <h3 class="detail-subtitle">{{ isChinese ? '数据到位与热度 proxy' : 'Freshness, SLA, and heat proxy' }}</h3>
+              </div>
+            </div>
+            <div class="summary-card-grid">
+              <article
+                v-for="item in healthSignalCards"
+                :key="item.key"
+                class="summary-card"
+              >
+                <span class="summary-card-label">{{ item.label }}</span>
+                <strong>{{ item.value || '-' }}</strong>
+                <small class="summary-evidence">{{ item.evidence }}</small>
+              </article>
+              <article v-if="usageHeatModel" class="summary-card" data-testid="logical-object-usage-heat">
+                <span class="summary-card-label">{{ isChinese ? 'Usage heat proxy' : 'Usage heat proxy' }}</span>
+                <strong>{{ usageHeatModel.level }} / {{ usageHeatModel.score }}</strong>
+                <small class="summary-evidence">{{ usageHeatModel.source }}</small>
+              </article>
+            </div>
+          </div>
+
+          <div class="evidence-card">
+            <div class="section-heading">
+              <div>
                 <p class="section-kicker sqlforge-code-label">snapshot evidence</p>
                 <h3 class="detail-subtitle">{{ isChinese ? 'Metadata Snapshot 旁证' : 'Metadata snapshot evidence' }}</h3>
               </div>
@@ -647,6 +740,42 @@ onMounted(async () => {
                 <span>{{ snapshot.freshnessStatus || '-' }} / {{ snapshot.slaStatus || '-' }} / {{ snapshot.queryabilityStatus || '-' }}</span>
               </div>
             </div>
+          </div>
+
+          <div
+            v-if="activeTab === 'logicalViews'"
+            class="evidence-card"
+            data-testid="logical-object-related-sql"
+          >
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker sqlforge-code-label">related sql</p>
+                <h3 class="detail-subtitle">
+                  {{ isChinese ? '相关 SQL 候选' : 'Related SQL candidates' }}
+                </h3>
+              </div>
+            </div>
+            <p class="detail-copy">
+              {{
+                isChinese
+                  ? '当前 repo-side 没有 logical-object -> SQL 的独立查询接口，这里按 logical view `viewCode` 与 parse statistics `reportCode` 对齐展示候选。'
+                  : 'The current repo-side baseline has no dedicated logical-object to SQL endpoint, so candidates are aligned by logical-view `viewCode` and parse-statistics `reportCode`.'
+              }}
+            </p>
+            <div class="snapshot-list">
+              <div
+                v-for="item in relatedSqlCandidates"
+                :key="item.itemId || item.parseTaskId"
+                class="snapshot-item"
+              >
+                <strong>{{ item.reportCode || item.itemId }}</strong>
+                <span>{{ item.highestPriorityLevel || '-' }} / {{ item.highestPriorityScore || '-' }}</span>
+                <span>{{ item.datasourceCode || '-' }} · {{ item.issueScenes?.join(', ') || '-' }}</span>
+              </div>
+            </div>
+            <p v-if="!relatedSqlCandidates.length" class="empty-state">
+              {{ isChinese ? '当前 logical view 还没有匹配到 related SQL 候选。' : 'No related SQL candidates matched this logical view yet.' }}
+            </p>
           </div>
 
           <div
@@ -808,6 +937,12 @@ onMounted(async () => {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #475569;
+}
+
+.summary-evidence {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .detail-rail,
