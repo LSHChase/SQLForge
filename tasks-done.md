@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-070: 建立 `MetadataSnapshot` 与数据到位状态模型
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(governance): add metadata snapshot baseline`
+- Priority: 1
+- Depends on: `D-TASK-069`
+- Scope: metadata snapshot、freshness、SLA、upstream/downstream/queryability 的模型与追溯键 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-013` 数据源与数据资产治理增强
+- Human confirmation point: 若 metadata snapshot / freshness / SLA / upstream-downstream 状态会把无证据数据写成确定事实，需人工确认
+- Data impact: metadata snapshot、freshness/SLA/queryability/upstream/downstream 追溯面
+- Rollback / recovery: 恢复未知/未采集默认语义，保留证据来源与回退字段
+- Validation:
+  - `metadata model 与 snapshot query 测试`
+  - `python3 scripts/foreman.py validate D-TASK-070`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added metadata snapshot query APIs, lineage/evidence response models, in-memory snapshot repository, and default UNKNOWN or UNCOLLECTED status semantics for governance metadata evidence.
+  - Validation evidence: mvn -pl governance -am clean -Dtest=MetadataSnapshotApplicationServiceTest,MetadataSnapshotControllerTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-070
+  - Residual risk: Snapshot evidence remains baseline repository data rather than live collection jobs, and the Java SDK baseline under D-TASK-068 is still open.
+  - Next step: Finish the Java SDK baseline under D-TASK-068 and then continue the remaining open-access follow-up tasks.
+
 ### D-TASK-069: 固化数据源连接配置与健康检查契约
 
 - Status: done

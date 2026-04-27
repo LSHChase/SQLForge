@@ -16,22 +16,6 @@ _No tasks._
 
 ## In Progress
 
-### D-TASK-070: 建立 `MetadataSnapshot` 与数据到位状态模型
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `D-TASK-069`
-- Scope: metadata snapshot、freshness、SLA、upstream/downstream/queryability 的模型与追溯键 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
-- Matrix context: Phase-D / Story `D-STORY-013` 数据源与数据资产治理增强
-- Human confirmation point: 若 metadata snapshot / freshness / SLA / upstream-downstream 状态会把无证据数据写成确定事实，需人工确认
-- Data impact: metadata snapshot、freshness/SLA/queryability/upstream/downstream 追溯面
-- Rollback / recovery: 恢复未知/未采集默认语义，保留证据来源与回退字段
-- Validation:
-  - `metadata model 与 snapshot query 测试`
-  - `python3 scripts/foreman.py validate D-TASK-070`
-- Progress log:
-  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
-
 ### D-TASK-068: 落地 Java SDK 首版
 
 - Status: in_progress
