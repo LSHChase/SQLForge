@@ -112,22 +112,6 @@ _No tasks._
 - Progress log:
   - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
 
-### E-TASK-026: 落地推荐与加速中心页
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `E-TASK-025`,`D-TASK-062`
-- Scope: 推荐分类、详情、收益/风险、dispatch 状态与关联追溯页 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
-- Matrix context: Phase-E / Story `E-STORY-010` 路由治理与推荐中心
-- Human confirmation point: 若推荐中心会把“推荐”误写成“已执行装数”、或隐藏 dispatch 失败状态，需人工确认
-- Data impact: 推荐中心、dispatch 状态与说明文案
-- Rollback / recovery: 恢复 recommendation / dispatch 分离展示，保留失败/待拉取状态
-- Validation:
-  - `npm run lint`、`npm run build`、recommendation page contract 测试
-  - `python3 scripts/foreman.py validate E-TASK-026`
-- Progress log:
-  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
-
 
 ## Blocked
 
