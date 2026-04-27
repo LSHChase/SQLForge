@@ -94,21 +94,21 @@ const parameterRows = ref([
   { id: 3, key: 'biz_date', value: '2026-04-27' }
 ])
 
+const selectedDatasourceId = ref('hetu-main')
+const activeExplorerTab = ref('objects')
+const activeResultTab = ref('rows')
 const running = ref(false)
 const result = ref(null)
 const errorMessage = ref('')
 const queueStatsBefore = ref(null)
 const queueStatsAfter = ref(null)
-const selectedDatasourceId = ref('hetu-main')
-const selectedExplorerTab = ref('objects')
-const activeResultTab = ref('rows')
 const showTemplateDialog = ref(false)
 const showLibraryDialog = ref(false)
-const showBoundPreviewDialog = ref(false)
+const showBoundPreviewDrawer = ref(false)
 const showGovernanceDrawer = ref(false)
 const showExplainDialog = ref(false)
-const nextParameterId = ref(4)
 const executionHistory = ref([])
+const nextParameterId = ref(4)
 
 const isChinese = computed(() => locale.value === 'zh-CN')
 const previewRows = computed(() => result.value?.rows || [])
@@ -116,17 +116,6 @@ const resultColumns = computed(() => {
   const firstRow = previewRows.value[0]
   return firstRow ? Object.keys(firstRow) : []
 })
-const parameterSnapshot = computed(() => {
-  const snapshot = {}
-  for (const item of parameterRows.value) {
-    const key = String(item.key || '').trim()
-    if (key) {
-      snapshot[key] = item.value
-    }
-  }
-  return snapshot
-})
-const queryDateValue = computed(() => parameterSnapshot.value.query_date || parameterSnapshot.value.biz_date || '-')
 const selectedDatasource = computed(() => {
   for (const group of datasourceTree) {
     for (const item of group.children || []) {
@@ -146,6 +135,18 @@ const toleranceOptions = computed(() => [
   { value: 'FAIL_FAST', label: isChinese.value ? '快速失败' : 'Fail fast' },
   { value: 'RETRY_THEN_FALLBACK', label: isChinese.value ? '重试后回退' : 'Retry then fallback' }
 ])
+const recentLibraryEntries = computed(() => sqlLibrary.filter(item => item.type === 'recent'))
+const favoriteLibraryEntries = computed(() => sqlLibrary.filter(item => item.type === 'favorite'))
+const parameterSnapshot = computed(() => {
+  const snapshot = {}
+  for (const item of parameterRows.value) {
+    const key = String(item.key || '').trim()
+    if (key) {
+      snapshot[key] = item.value
+    }
+  }
+  return snapshot
+})
 const boundSqlPreview = computed(() => {
   let preview = form.sqlText
   for (const [key, value] of Object.entries(parameterSnapshot.value)) {
@@ -153,65 +154,84 @@ const boundSqlPreview = computed(() => {
   }
   return preview
 })
-const governanceSummary = computed(() => {
-  const metadata = result.value?.metadata || {}
-  return [
-    { label: isChinese.value ? '数据源' : 'Datasource', value: selectedDatasource.value.label },
-    { label: isChinese.value ? '执行模式' : 'Execution mode', value: metadata.executionMode || '-' },
-    { label: isChinese.value ? '目标引擎' : 'Target engine', value: metadata.targetEngine || form.datasourceType },
-    { label: isChinese.value ? '路由配置' : 'Route profile', value: metadata.routeProfile || '-' },
-    { label: isChinese.value ? '缓存状态' : 'Cache status', value: metadata.cacheGovernanceStatus || '-' },
-    { label: isChinese.value ? 'SQL 指纹' : 'SQL fingerprint', value: result.value?.sqlFingerprint || '-' },
-    { label: isChinese.value ? '耗时' : 'Elapsed', value: metadata.elapsedMs == null ? '-' : `${metadata.elapsedMs}ms` },
-    { label: isChinese.value ? 'query_date' : 'query_date', value: queryDateValue.value }
-  ]
-})
 const validationTips = computed(() => {
   const tips = []
   if (!String(form.sqlText || '').includes('--report_code=')) {
     tips.push(isChinese.value ? '缺少 --report_code 注释。' : 'Missing --report_code annotation.')
   }
-  if (!String(form.sqlText || '').toUpperCase().includes('SELECT')) {
-    tips.push(isChinese.value ? '当前示例更适合 SELECT/EXPLAIN 查询。' : 'The current workbench is optimized for SELECT or EXPLAIN flows.')
+  if (!String(form.sqlText || '').toUpperCase().includes('SELECT') && !String(form.sqlText || '').toUpperCase().includes('EXPLAIN')) {
+    tips.push(isChinese.value ? '当前工作台更适合 SELECT / EXPLAIN。' : 'The current workbench is optimized for SELECT or EXPLAIN.')
   }
   if (!parameterSnapshot.value.query_date) {
     tips.push(isChinese.value ? '建议补充 query_date 参数。' : 'Add a query_date binding for audited execution.')
   }
   return tips
 })
-const structureSummary = computed(() => {
+const summaryRows = computed(() => {
+  const metadata = result.value?.metadata || {}
+  return [
+    { label: isChinese.value ? '数据源对象' : 'Datasource object', value: selectedDatasource.value.label },
+    { label: isChinese.value ? '执行模式' : 'Execution mode', value: metadata.executionMode || '-' },
+    { label: isChinese.value ? '目标引擎' : 'Target engine', value: metadata.targetEngine || form.datasourceType },
+    { label: isChinese.value ? '路由配置' : 'Route profile', value: metadata.routeProfile || '-' },
+    { label: isChinese.value ? '缓存状态' : 'Cache status', value: metadata.cacheGovernanceStatus || '-' },
+    { label: isChinese.value ? 'SQL 指纹' : 'SQL fingerprint', value: result.value?.sqlFingerprint || '-' },
+    { label: isChinese.value ? '耗时' : 'Elapsed', value: metadata.elapsedMs == null ? '-' : `${metadata.elapsedMs}ms` }
+  ]
+})
+const structureRows = computed(() => {
+  const sqlText = String(form.sqlText || '').toUpperCase()
   const riskTags = []
-  if (String(form.sqlText).toUpperCase().includes('JOIN')) {
+  if (sqlText.includes('JOIN')) {
     riskTags.push('JOIN')
   }
-  if (String(form.sqlText).toUpperCase().includes('GROUP BY')) {
+  if (sqlText.includes('GROUP BY')) {
     riskTags.push('AGGREGATION')
   }
-  if (String(form.sqlText).toUpperCase().includes('OVER')) {
+  if (sqlText.includes('OVER')) {
     riskTags.push('WINDOW')
   }
-  return {
-    syntaxStatus: validationTips.value.length ? 'REVIEW' : 'VALID',
-    sqlType: String(form.sqlText).trim().toUpperCase().startsWith('EXPLAIN') ? 'EXPLAIN' : 'SELECT',
-    complexityLevel: riskTags.length >= 2 ? 'COMPLEX' : 'MODERATE',
-    queryDateSummary: queryDateValue.value,
-    riskTags: riskTags.length ? riskTags : ['NONE']
-  }
+  return [
+    { label: isChinese.value ? '语法状态' : 'Syntax status', value: validationTips.value.length ? 'REVIEW' : 'VALID' },
+    { label: isChinese.value ? 'SQL 类型' : 'SQL type', value: sqlText.trim().startsWith('EXPLAIN') ? 'EXPLAIN' : 'SELECT' },
+    { label: isChinese.value ? '复杂度' : 'Complexity', value: riskTags.length >= 2 ? 'COMPLEX' : 'MODERATE' },
+    { label: isChinese.value ? '风险标签' : 'Risk tags', value: riskTags.length ? riskTags.join(', ') : 'NONE' }
+  ]
+})
+const routingRows = computed(() => {
+  const metadata = result.value?.metadata || {}
+  return [
+    { label: 'routeProfile', value: metadata.routeProfile || '-' },
+    { label: 'attemptedModes', value: listText(metadata.attemptedModes) },
+    { label: isChinese.value ? '回退策略' : 'Fallback strategy', value: form.faultToleranceStrategy },
+    { label: isChinese.value ? '加速偏好' : 'Acceleration preference', value: form.accelerationPreference }
+  ]
+})
+const recommendationRows = computed(() => {
+  const metadata = result.value?.metadata || {}
+  return [
+    {
+      label: isChinese.value ? '推荐动作' : 'Recommended action',
+      value: metadata.cacheGovernanceStatus === 'HIT' ? (isChinese.value ? '继续复用缓存链路' : 'Keep the cached route') : (isChinese.value ? '优先验证推荐中心结果' : 'Validate recommendation-center output')
+    },
+    {
+      label: isChinese.value ? '下一步' : 'Next step',
+      value: isChinese.value ? '如需长文本说明，打开 explain 或治理抽屉。' : 'Use the explain dialog or governance drawer for long-form evidence.'
+    }
+  ]
 })
 const explainSteps = computed(() => [
   {
     label: isChinese.value ? '输入规范化' : 'Input normalization',
-    detail: isChinese.value
-      ? '应用注释模板和绑定参数后生成 bound SQL。'
-      : 'Generate bound SQL after applying annotations and bindings.'
+    detail: isChinese.value ? '应用注释和参数绑定后生成 bound SQL。' : 'Generate bound SQL after annotations and parameter bindings are applied.'
   },
   {
     label: isChinese.value ? '路由判断' : 'Routing decision',
-    detail: result.value?.metadata?.routeProfile || (isChinese.value ? '尚未执行，暂无 route profile。' : 'No route profile until execution runs.')
+    detail: result.value?.metadata?.routeProfile || (isChinese.value ? '执行后会回填 route profile。' : 'The route profile is populated after execution.')
   },
   {
-    label: isChinese.value ? '治理输出' : 'Governance output',
-    detail: result.value?.metadata?.executionMode || (isChinese.value ? '执行后回填 execution mode。' : 'Execution mode is populated after execution.')
+    label: isChinese.value ? '治理写回' : 'Governance write-back',
+    detail: result.value?.metadata?.executionMode || (isChinese.value ? '执行完成后回填 execution mode。' : 'The execution mode is populated after execution completes.')
   }
 ])
 
@@ -221,14 +241,6 @@ const syncDatasourceSelection = datasource => {
   }
   selectedDatasourceId.value = datasource.id
   form.datasourceType = datasource.datasourceType
-}
-
-const resetEvidence = () => {
-  result.value = null
-  errorMessage.value = ''
-  queueStatsBefore.value = null
-  queueStatsAfter.value = null
-  activeResultTab.value = 'rows'
 }
 
 const addParameter = () => {
@@ -250,7 +262,7 @@ const removeParameter = rowId => {
 }
 
 const applyTemplate = template => {
-  form.sqlText = `${template.content}${boundSqlPreview.value.includes('SELECT') ? '' : 'SELECT * FROM orders LIMIT 100'}`
+  form.sqlText = `${template.content}SELECT * FROM orders WHERE query_date = :query_date LIMIT :limit`
   showTemplateDialog.value = false
 }
 
@@ -265,6 +277,14 @@ const formatSql = () => {
     .map(line => line.trimEnd())
     .join('\n')
     .trim()
+}
+
+const resetEvidence = () => {
+  result.value = null
+  errorMessage.value = ''
+  queueStatsBefore.value = null
+  queueStatsAfter.value = null
+  activeResultTab.value = 'rows'
 }
 
 const runQuery = async scenario => {
@@ -315,87 +335,65 @@ const runQuery = async scenario => {
   }
 }
 
+const displayValue = value => {
+  if (value === null || value === undefined || String(value).trim() === '') {
+    return '-'
+  }
+  return String(value)
+}
+
+const listText = value => {
+  if (Array.isArray(value)) {
+    return value.length ? value.join(' / ') : '-'
+  }
+  return displayValue(value)
+}
+
 const formatJson = value => JSON.stringify(value, null, 2)
 </script>
 
 <template>
   <section class="query-workbench" data-testid="query-flow-page">
-    <header class="query-workbench__hero surface-card">
-      <div>
-        <p class="runtime-eyebrow sqlforge-code-label">{{ isChinese ? '执行前准备' : 'Execution setup' }}</p>
-        <h2 class="runtime-title">{{ isChinese ? '模板、收藏 SQL 与治理辅助' : 'Templates, saved SQL, and governance helpers' }}</h2>
-        <p class="runtime-summary">
-          {{
-            isChinese
-              ? '主工作区只保留输入、结果和右侧摘要；辅助信息通过弹窗与抽屉展开。'
-              : 'The main stage stays focused on input, results, and the runtime rail. Supporting information expands through dialogs and drawers.'
-          }}
-        </p>
-      </div>
-      <div class="hero-actions">
-        <el-button class="hero-button" @click="showTemplateDialog = true">
-          {{ isChinese ? '注释模板' : 'Annotation template' }}
-        </el-button>
-        <el-button class="hero-button" @click="showLibraryDialog = true">
-          {{ isChinese ? '最近 / 收藏 SQL' : 'Recent / Favorite SQL' }}
-        </el-button>
-        <el-button class="hero-button" @click="showGovernanceDrawer = true">
-          {{ isChinese ? '治理抽屉' : 'Governance drawer' }}
-        </el-button>
-      </div>
-    </header>
-
     <div class="query-workbench__grid">
       <aside class="query-rail surface-card">
-        <div class="section-heading">
+        <div class="panel-heading">
           <div>
-            <p class="section-kicker sqlforge-code-label">datasource tree</p>
-            <h2 class="section-title">{{ isChinese ? '数据源 / 对象' : 'Datasources and objects' }}</h2>
+            <p class="section-kicker sqlforge-code-label">{{ isChinese ? '对象与收藏' : 'Objects and favorites' }}</p>
+            <h2 class="section-title">{{ isChinese ? '对象树、收藏与最近 SQL' : 'Object tree, favorites, and recent SQL' }}</h2>
+          </div>
+          <div class="utility-actions">
+            <el-button text @click="showTemplateDialog = true">{{ isChinese ? '模板' : 'Templates' }}</el-button>
+            <el-button text @click="showLibraryDialog = true">{{ isChinese ? 'SQL 库' : 'SQL library' }}</el-button>
           </div>
         </div>
 
-        <el-tree
-          class="datasource-tree"
-          :data="datasourceTree"
-          node-key="id"
-          default-expand-all
-          :expand-on-click-node="false"
-          highlight-current
-          :current-node-key="selectedDatasourceId"
-          @current-change="syncDatasourceSelection"
-        >
-          <template #default="slotProps">
-            <div class="tree-node">
-              <span>{{ slotProps?.data?.label || '-' }}</span>
-              <span
-                v-if="slotProps?.data?.datasourceType"
-                class="tree-node__badge"
-              >
-                {{ slotProps.data.datasourceType }}
-              </span>
-            </div>
-          </template>
-        </el-tree>
-
-        <el-tabs v-model="selectedExplorerTab" class="rail-tabs">
-          <el-tab-pane :label="isChinese ? '最近' : 'Recent'" name="recent">
+        <el-tabs v-model="activeExplorerTab">
+          <el-tab-pane :label="isChinese ? '对象' : 'Objects'" name="objects">
+            <el-tree
+              :data="datasourceTree"
+              node-key="id"
+              default-expand-all
+              @node-click="syncDatasourceSelection"
+            />
+          </el-tab-pane>
+          <el-tab-pane :label="isChinese ? '收藏' : 'Favorites'" name="favorites">
             <button
-              v-for="entry in sqlLibrary.filter(item => item.type === 'recent')"
+              v-for="entry in favoriteLibraryEntries"
               :key="entry.key"
               type="button"
-              class="rail-list-item"
+              class="library-item"
               @click="loadLibrarySql(entry)"
             >
               <strong>{{ entry.title }}</strong>
               <span>{{ entry.summary }}</span>
             </button>
           </el-tab-pane>
-          <el-tab-pane :label="isChinese ? '收藏' : 'Favorites'" name="favorites">
+          <el-tab-pane :label="isChinese ? '最近 SQL' : 'Recent SQL'" name="recent">
             <button
-              v-for="entry in sqlLibrary.filter(item => item.type === 'favorite')"
+              v-for="entry in recentLibraryEntries"
               :key="entry.key"
               type="button"
-              class="rail-list-item"
+              class="library-item"
               @click="loadLibrarySql(entry)"
             >
               <strong>{{ entry.title }}</strong>
@@ -405,363 +403,309 @@ const formatJson = value => JSON.stringify(value, null, 2)
         </el-tabs>
       </aside>
 
-      <main class="editor-rail">
-        <article class="surface-card editor-card">
-          <div class="section-heading">
-            <div>
-              <p class="section-kicker sqlforge-code-label">sql editor</p>
-              <h2 class="section-title">{{ isChinese ? '查询输入与执行' : 'Query input and execution' }}</h2>
-            </div>
-            <div class="toolbar-actions">
-              <el-button text @click="formatSql">{{ isChinese ? '格式化' : 'Format' }}</el-button>
-              <el-button text @click="showBoundPreviewDialog = true">Bound SQL preview</el-button>
-              <el-button text @click="showExplainDialog = true">Explain</el-button>
-            </div>
+      <section class="editor-rail surface-card">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker sqlforge-code-label">{{ isChinese ? '查询工作台' : 'Query workbench' }}</p>
+            <h2 class="section-title">{{ isChinese ? 'SQL 编辑、参数绑定与执行动作' : 'SQL editing, bindings, and execution' }}</h2>
           </div>
-
-          <div class="editor-form-grid">
-            <label class="field-block">
-              <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
-              <el-input v-model="form.tenantId" />
-            </label>
-            <label class="field-block">
-              <span class="field-label">{{ isChinese ? '引擎' : 'Engine' }}</span>
-              <el-select v-model="form.datasourceType">
-                <el-option
-                  v-for="option in datasourceOptions"
-                  :key="option"
-                  :label="option"
-                  :value="option"
-                />
-              </el-select>
-            </label>
-            <label class="field-block">
-              <span class="field-label">{{ isChinese ? '加速偏好' : 'Acceleration preference' }}</span>
-              <el-select v-model="form.accelerationPreference">
-                <el-option
-                  v-for="option in accelerationOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                />
-              </el-select>
-            </label>
-            <label class="field-block">
-              <span class="field-label">{{ isChinese ? '容错策略' : 'Fault tolerance' }}</span>
-              <el-select v-model="form.faultToleranceStrategy">
-                <el-option
-                  v-for="option in toleranceOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                />
-              </el-select>
-            </label>
+          <div class="utility-actions">
+            <el-button text @click="formatSql">{{ isChinese ? '格式化' : 'Format SQL' }}</el-button>
+            <el-button text @click="showExplainDialog = true">{{ isChinese ? 'Explain 说明' : 'Explain guide' }}</el-button>
           </div>
+        </div>
 
-          <label class="field-block field-block-wide">
-            <span class="field-label">SQL</span>
-            <el-input
-              v-model="form.sqlText"
-              type="textarea"
-              :rows="14"
-            />
+        <div v-if="errorMessage" class="inline-banner inline-banner-danger">
+          {{ errorMessage }}
+        </div>
+        <div v-else-if="validationTips.length" class="inline-banner">
+          {{ validationTips[0] }}
+        </div>
+
+        <div class="field-grid">
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+            <el-input v-model="form.tenantId" />
           </label>
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? '目标引擎' : 'Target engine' }}</span>
+            <el-select v-model="form.datasourceType">
+              <el-option
+                v-for="item in datasourceOptions"
+                :key="item"
+                :label="item"
+                :value="item"
+              />
+            </el-select>
+          </label>
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? '加速偏好' : 'Acceleration preference' }}</span>
+            <el-select v-model="form.accelerationPreference">
+              <el-option
+                v-for="item in accelerationOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </label>
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? '容错策略' : 'Fault tolerance' }}</span>
+            <el-select v-model="form.faultToleranceStrategy">
+              <el-option
+                v-for="item in toleranceOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </label>
+        </div>
 
-          <div class="editor-actions">
-            <el-button
-              type="primary"
-              :loading="running"
-              data-testid="query-flow-submit"
-              @click="runQuery('standard')"
-            >
-              {{ isChinese ? '执行查询' : 'Execute query' }}
-            </el-button>
-            <el-button
-              :loading="running"
-              data-testid="query-flow-submit-recovery"
-              @click="runQuery('recovery')"
-            >
-              {{ isChinese ? '执行恢复路径' : 'Run recovery path' }}
-            </el-button>
-          </div>
+        <label class="editor-block">
+          <span class="field-label">{{ isChinese ? 'SQL 编辑器' : 'SQL editor' }}</span>
+          <el-input
+            v-model="form.sqlText"
+            type="textarea"
+            :rows="14"
+          />
+        </label>
 
-          <div v-if="validationTips.length" class="tip-strip">
-            <span
-              v-for="tip in validationTips"
-              :key="tip"
-              class="tip-pill"
-            >
-              {{ tip }}
-            </span>
-          </div>
-        </article>
-
-        <article class="surface-card editor-card">
-          <div class="section-heading">
+        <div class="parameter-panel">
+          <div class="parameter-panel__header">
             <div>
-              <p class="section-kicker sqlforge-code-label">parameter inputs</p>
-              <h2 class="section-title">{{ isChinese ? '参数输入' : 'Parameter input' }}</h2>
+              <p class="section-kicker sqlforge-code-label">{{ isChinese ? '参数绑定' : 'Parameter bindings' }}</p>
+              <h3 class="parameter-panel__title">{{ isChinese ? '紧凑表格式输入' : 'Compact tabular bindings' }}</h3>
             </div>
             <el-button text @click="addParameter">{{ isChinese ? '新增参数' : 'Add parameter' }}</el-button>
           </div>
 
           <div class="parameter-table">
+            <div class="parameter-table__head">
+              <span>{{ isChinese ? '参数名' : 'Key' }}</span>
+              <span>{{ isChinese ? '参数值' : 'Value' }}</span>
+              <span>{{ isChinese ? '操作' : 'Action' }}</span>
+            </div>
             <div
-              v-for="item in parameterRows"
-              :key="item.id"
-              class="parameter-row"
+              v-for="row in parameterRows"
+              :key="row.id"
+              class="parameter-table__row"
             >
-              <el-input v-model="item.key" :placeholder="isChinese ? '参数名' : 'Name'" />
-              <el-input v-model="item.value" :placeholder="isChinese ? '参数值' : 'Value'" />
-              <el-button text @click="removeParameter(item.id)">{{ isChinese ? '移除' : 'Remove' }}</el-button>
+              <el-input v-model="row.key" />
+              <el-input v-model="row.value" />
+              <el-button text @click="removeParameter(row.id)">{{ isChinese ? '删除' : 'Remove' }}</el-button>
             </div>
           </div>
-        </article>
+        </div>
 
-        <article class="surface-card results-card">
-          <div class="section-heading">
-            <div>
-              <p class="section-kicker sqlforge-code-label">result tabs</p>
-              <h2 class="section-title">{{ isChinese ? '结果与治理输出' : 'Results and governance output' }}</h2>
-            </div>
+        <div class="submit-row">
+          <el-button
+            type="primary"
+            :loading="running"
+            data-testid="query-flow-submit"
+            @click="runQuery('default')"
+          >
+            {{ isChinese ? '执行 SQL' : 'Run SQL' }}
+          </el-button>
+          <el-button
+            :loading="running"
+            data-testid="query-flow-submit-recovery"
+            @click="runQuery('recovery')"
+          >
+            {{ isChinese ? '恢复执行' : 'Recovery run' }}
+          </el-button>
+          <div class="submit-row__helpers">
+            <el-button text @click="showBoundPreviewDrawer = true">{{ isChinese ? '查看 Bound SQL' : 'View bound SQL' }}</el-button>
+            <el-button text @click="showGovernanceDrawer = true">{{ isChinese ? '治理摘要' : 'Governance summary' }}</el-button>
           </div>
+        </div>
+      </section>
 
-          <el-tabs v-model="activeResultTab">
-            <el-tab-pane :label="isChinese ? '执行结果' : 'Execution results'" name="rows">
-              <div
-                v-if="errorMessage"
-                class="result-banner result-banner-danger"
-                data-testid="query-flow-error"
-              >
-                {{ errorMessage }}
-              </div>
-              <p v-else-if="!previewRows.length" class="empty-state">
-                {{ isChinese ? '执行后在这里查看结果集。' : 'Run the query to inspect returned rows here.' }}
-              </p>
-              <template v-else>
-                <div class="result-inline-meta">
-                  <span><strong data-testid="query-flow-row-count">{{ previewRows.length }}</strong> rows</span>
-                  <span><strong data-testid="query-flow-status">{{ result?.status || '-' }}</strong></span>
-                  <span><strong data-testid="query-flow-engine">{{ result?.metadata?.targetEngine || '-' }}</strong></span>
-                </div>
-                <el-table :data="previewRows.slice(0, 20)" size="small">
-                  <el-table-column
-                    v-for="column in resultColumns"
-                    :key="column"
-                    :prop="column"
-                    :label="column"
-                    min-width="140"
-                  />
-                </el-table>
-              </template>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '执行摘要' : 'Execution summary'" name="summary">
-              <div class="summary-grid">
-                <article
-                  v-for="item in governanceSummary"
-                  :key="item.label"
-                  class="summary-tile"
-                >
-                  <span>{{ item.label }}</span>
-                  <strong>{{ item.value }}</strong>
-                </article>
-              </div>
-              <div class="summary-grid summary-grid-compact">
-                <article class="summary-tile">
-                  <span>{{ isChinese ? '补偿前 pending' : 'Pending before retry' }}</span>
-                  <strong>{{ queueStatsBefore?.pending ?? '-' }}</strong>
-                </article>
-                <article class="summary-tile">
-                  <span>{{ isChinese ? '补偿后 pending' : 'Pending after retry' }}</span>
-                  <strong>{{ queueStatsAfter?.pending ?? '-' }}</strong>
-                </article>
-              </div>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '结构解析' : 'Structure parse'" name="structure">
-              <div class="summary-grid">
-                <article class="summary-tile">
-                  <span>syntaxStatus</span>
-                  <strong>{{ structureSummary.syntaxStatus }}</strong>
-                </article>
-                <article class="summary-tile">
-                  <span>sqlType</span>
-                  <strong>{{ structureSummary.sqlType }}</strong>
-                </article>
-                <article class="summary-tile">
-                  <span>complexityLevel</span>
-                  <strong>{{ structureSummary.complexityLevel }}</strong>
-                </article>
-                <article class="summary-tile">
-                  <span>queryDateSummary</span>
-                  <strong>{{ structureSummary.queryDateSummary }}</strong>
-                </article>
-              </div>
-              <div class="tag-row">
-                <span
-                  v-for="tag in structureSummary.riskTags"
-                  :key="tag"
-                  class="tip-pill"
-                >
-                  {{ tag }}
-                </span>
-              </div>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '数据访问解析' : 'Access parse'" name="access">
-              <p class="empty-state">
-                {{
-                  isChinese
-                    ? '当前执行页先展示执行路径、目标引擎和补偿信号；更深的数据访问解析建议从“解析工作台”继续下钻。'
-                    : 'This page exposes execution mode, target engine, and compensation signals first. Use the dedicated parsing workspace for deeper access-parse drill-through.'
-                }}
-              </p>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '路由详情' : 'Routing detail'" name="route">
-              <pre class="result-json">{{ formatJson(result?.metadata || {}) }}</pre>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '历史关联' : 'History links'" name="history">
-              <div class="history-list">
-                <article
-                  v-for="entry in executionHistory"
-                  :key="entry.id"
-                  class="history-item"
-                >
-                  <strong>{{ entry.title }}</strong>
-                  <span>{{ entry.status }} · {{ entry.mode }}</span>
-                </article>
-              </div>
-            </el-tab-pane>
-          </el-tabs>
-        </article>
-      </main>
-
-      <aside class="result-rail">
-        <article class="surface-card summary-card">
-          <div class="section-heading">
-            <div>
-              <p class="section-kicker sqlforge-code-label">governance summary</p>
-              <h2 class="section-title">{{ isChinese ? '运行摘要' : 'Runtime summary' }}</h2>
-            </div>
+      <aside class="result-rail surface-card">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker sqlforge-code-label">governance summary</p>
+            <h2 class="section-title">{{ isChinese ? '当前执行摘要' : 'Current execution summary' }}</h2>
           </div>
+        </div>
 
-          <div class="summary-grid summary-grid-compact">
-            <article
-              v-for="item in governanceSummary.slice(0, 4)"
-              :key="item.label"
-              class="summary-tile"
-            >
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-            </article>
-          </div>
-
-          <div class="shortcut-list">
-            <button class="rail-list-item" type="button" @click="showBoundPreviewDialog = true">
-              <strong>Bound SQL preview</strong>
-              <span>{{ isChinese ? '查看绑定后 SQL' : 'Inspect bound SQL text' }}</span>
-            </button>
-            <button class="rail-list-item" type="button" @click="showExplainDialog = true">
-              <strong>Explain</strong>
-              <span>{{ isChinese ? '查看执行步骤' : 'Inspect execution steps' }}</span>
-            </button>
-            <button class="rail-list-item" type="button" @click="showGovernanceDrawer = true">
-              <strong>{{ isChinese ? '治理抽屉' : 'Governance drawer' }}</strong>
-              <span>{{ isChinese ? '查看治理证据与原始元数据' : 'Open detailed governance evidence and raw metadata.' }}</span>
-            </button>
-          </div>
-        </article>
-      </aside>
-    </div>
-
-    <el-dialog
-      v-model="showTemplateDialog"
-      :title="isChinese ? '注释模板' : 'Annotation templates'"
-      width="760px"
-    >
-      <div class="dialog-list">
-        <button
-          v-for="item in sqlTemplates"
-          :key="item.key"
-          type="button"
-          class="dialog-card"
-          @click="applyTemplate(item)"
-        >
-          <strong>{{ item.label }}</strong>
-          <pre class="result-json result-json-compact">{{ item.content }}</pre>
-        </button>
-      </div>
-    </el-dialog>
-
-    <el-dialog
-      v-model="showLibraryDialog"
-      :title="isChinese ? '最近与收藏 SQL' : 'Recent and favorite SQL'"
-      width="760px"
-    >
-      <div class="dialog-list">
-        <button
-          v-for="entry in sqlLibrary"
-          :key="entry.key"
-          type="button"
-          class="dialog-card"
-          @click="loadLibrarySql(entry)"
-        >
-          <strong>{{ entry.title }}</strong>
-          <span>{{ entry.summary }}</span>
-          <pre class="result-json result-json-compact">{{ entry.sqlText }}</pre>
-        </button>
-      </div>
-    </el-dialog>
-
-    <el-dialog
-      v-model="showBoundPreviewDialog"
-      title="Bound SQL preview"
-      width="760px"
-    >
-      <pre class="result-json">{{ boundSqlPreview }}</pre>
-    </el-dialog>
-
-    <el-dialog
-      v-model="showExplainDialog"
-      title="Explain"
-      width="680px"
-    >
-      <div class="explain-steps">
-        <article
-          v-for="step in explainSteps"
-          :key="step.label"
-          class="summary-tile"
-        >
-          <span>{{ step.label }}</span>
-          <strong>{{ step.detail }}</strong>
-        </article>
-      </div>
-    </el-dialog>
-
-    <el-drawer
-      v-model="showGovernanceDrawer"
-      :title="isChinese ? '治理证据抽屉' : 'Governance evidence drawer'"
-      size="42%"
-    >
-      <div class="drawer-section">
-        <div class="summary-grid">
-          <article
-            v-for="item in governanceSummary"
+        <div class="summary-list">
+          <div
+            v-for="item in summaryRows"
             :key="item.label"
-            class="summary-tile"
+            class="summary-list__item"
           >
             <span>{{ item.label }}</span>
             <strong>{{ item.value }}</strong>
-          </article>
+          </div>
+        </div>
+
+        <div class="history-panel">
+          <p class="section-kicker sqlforge-code-label">{{ isChinese ? '最近执行' : 'Recent runs' }}</p>
+          <p v-if="!executionHistory.length" class="muted-copy">
+            {{ isChinese ? '执行后会在这里保留最近 6 条记录。' : 'The last six runs are listed here after execution.' }}
+          </p>
+          <div v-else class="history-list">
+            <div
+              v-for="item in executionHistory"
+              :key="item.id"
+              class="history-list__item"
+            >
+              <strong>{{ item.title }}</strong>
+              <span>{{ item.status }} · {{ item.mode }}</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <section class="surface-card results-stage">
+      <div class="panel-heading">
+        <div>
+          <p class="section-kicker sqlforge-code-label">result tabs</p>
+          <h2 class="section-title">{{ isChinese ? '结果、摘要、结构解析、路由与推荐' : 'Results, summary, structure, routing, and recommendation' }}</h2>
         </div>
       </div>
-      <div class="drawer-section">
-        <p class="section-kicker sqlforge-code-label">{{ isChinese ? '原始元数据' : 'Raw metadata' }}</p>
-        <pre class="result-json">{{ formatJson(result || {}) }}</pre>
+
+      <el-tabs v-model="activeResultTab">
+        <el-tab-pane :label="isChinese ? '结果' : 'Rows'" name="rows">
+          <div v-if="previewRows.length" class="table-shell">
+            <el-table :data="previewRows" border>
+              <el-table-column
+                v-for="column in resultColumns"
+                :key="column"
+                :prop="column"
+                :label="column"
+                min-width="150"
+              />
+            </el-table>
+          </div>
+          <p v-else class="empty-copy">{{ isChinese ? '默认先展示结果表，执行后可直接查看返回行。' : 'The result table is the default landing state once execution completes.' }}</p>
+        </el-tab-pane>
+
+        <el-tab-pane :label="isChinese ? '执行摘要' : 'Execution summary'" name="summary">
+          <div class="detail-grid">
+            <div
+              v-for="item in summaryRows"
+              :key="item.label"
+              class="detail-grid__item"
+            >
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="isChinese ? '结构解析' : 'Structure parse'" name="structure">
+          <div class="detail-grid">
+            <div
+              v-for="item in structureRows"
+              :key="item.label"
+              class="detail-grid__item"
+            >
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="isChinese ? '路由' : 'Routing'" name="routing">
+          <div class="detail-grid">
+            <div
+              v-for="item in routingRows"
+              :key="item.label"
+              class="detail-grid__item"
+            >
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="isChinese ? '推荐' : 'Recommendation'" name="recommendation">
+          <div class="detail-grid">
+            <div
+              v-for="item in recommendationRows"
+              :key="item.label"
+              class="detail-grid__item"
+            >
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+    </section>
+
+    <el-dialog v-model="showTemplateDialog" :title="isChinese ? '注释模板' : 'Annotation templates'" width="720px">
+      <div class="dialog-list">
+        <article
+          v-for="template in sqlTemplates"
+          :key="template.key"
+          class="dialog-card"
+        >
+          <div class="dialog-card__header">
+            <strong>{{ template.label }}</strong>
+            <el-button text @click="applyTemplate(template)">{{ isChinese ? '应用' : 'Apply' }}</el-button>
+          </div>
+          <pre class="code-block">{{ template.content }}</pre>
+        </article>
+      </div>
+    </el-dialog>
+
+    <el-dialog v-model="showLibraryDialog" :title="isChinese ? 'SQL Library' : 'SQL library'" width="720px">
+      <div class="dialog-list">
+        <article
+          v-for="entry in sqlLibrary"
+          :key="entry.key"
+          class="dialog-card"
+        >
+          <div class="dialog-card__header">
+            <div>
+              <strong>{{ entry.title }}</strong>
+              <p class="muted-copy">{{ entry.summary }}</p>
+            </div>
+            <el-button text @click="loadLibrarySql(entry)">{{ isChinese ? '加载' : 'Load' }}</el-button>
+          </div>
+          <pre class="code-block">{{ entry.sqlText }}</pre>
+        </article>
+      </div>
+    </el-dialog>
+
+    <el-dialog v-model="showExplainDialog" :title="isChinese ? 'Explain 说明' : 'Explain guide'" width="640px">
+      <div class="dialog-list">
+        <article
+          v-for="item in explainSteps"
+          :key="item.label"
+          class="dialog-card"
+        >
+          <strong>{{ item.label }}</strong>
+          <p class="muted-copy">{{ item.detail }}</p>
+        </article>
+      </div>
+    </el-dialog>
+
+    <el-drawer v-model="showBoundPreviewDrawer" :title="isChinese ? 'Bound SQL preview' : 'Bound SQL preview'" size="48%">
+      <pre class="code-block">{{ boundSqlPreview }}</pre>
+    </el-drawer>
+
+    <el-drawer v-model="showGovernanceDrawer" :title="isChinese ? '治理摘要' : 'Governance summary'" size="42%">
+      <div class="drawer-stack">
+        <div class="detail-grid">
+          <div
+            v-for="item in summaryRows"
+            :key="item.label"
+            class="detail-grid__item"
+          >
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+        </div>
+
+        <div v-if="queueStatsBefore || queueStatsAfter" class="dialog-card">
+          <strong>{{ isChinese ? '补偿队列快照' : 'Compensation queue snapshots' }}</strong>
+          <pre class="code-block">{{ formatJson({ before: queueStatsBefore, after: queueStatsAfter }) }}</pre>
+        </div>
       </div>
     </el-drawer>
   </section>
@@ -771,230 +715,215 @@ const formatJson = value => JSON.stringify(value, null, 2)
 .query-workbench {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-}
-
-.surface-card,
-.summary-tile,
-.history-item,
-.rail-list-item,
-.dialog-card {
-  border: 1px solid var(--sqlforge-border-default);
-  background: var(--sqlforge-surface-2);
-}
-
-.surface-card {
-  border-radius: 16px;
-  padding: 20px;
-}
-
-.query-workbench__hero,
-.query-workbench__grid,
-.editor-form-grid,
-.summary-grid,
-.parameter-table {
-  display: grid;
-  gap: 16px;
-}
-
-.query-workbench__hero,
-.section-heading,
-.hero-actions,
-.toolbar-actions,
-.editor-actions,
-.result-inline-meta,
-.tag-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.query-workbench__hero,
-.section-heading {
-  justify-content: space-between;
+  gap: 20px;
 }
 
 .query-workbench__grid {
-  grid-template-columns: 280px minmax(0, 1fr) 280px;
-  align-items: start;
+  display: grid;
+  grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.6fr) minmax(260px, 0.95fr);
+  gap: 20px;
 }
 
-.editor-rail {
+.surface-card {
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 34%),
+    var(--sqlforge-surface-2);
+}
+
+.query-rail,
+.editor-rail,
+.result-rail,
+.results-stage {
+  padding: 20px;
+}
+
+.panel-heading,
+.parameter-panel__header,
+.submit-row {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.runtime-eyebrow,
 .section-kicker,
-.field-label,
-.summary-tile span {
-  margin: 0;
+.field-label {
+  margin: 0 0 6px;
   color: var(--sqlforge-text-muted);
 }
 
-.runtime-title,
-.section-title {
-  margin: 8px 0 0;
-  font-weight: 400;
-  color: var(--sqlforge-text-primary);
-}
-
-.runtime-title {
-  font-size: 28px;
-  line-height: 1.2;
-}
-
-.runtime-summary,
-.empty-state,
-.rail-list-item span,
-.history-item span {
+.section-title,
+.parameter-panel__title {
   margin: 0;
-  color: var(--sqlforge-text-secondary);
-  line-height: 1.6;
-}
-
-.hero-button,
-.tip-pill {
-  border-radius: 999px;
-}
-
-.hero-button {
-  border-color: var(--sqlforge-border-default);
-  background: var(--sqlforge-bg-page-deep);
   color: var(--sqlforge-text-primary);
 }
 
-.tree-node {
+.utility-actions,
+.submit-row__helpers {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.tree-node__badge,
-.tip-pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  padding: 0 10px;
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: 999px;
-  background: var(--sqlforge-bg-page-deep);
-  color: var(--sqlforge-text-secondary);
-  font-size: 12px;
-}
-
-.rail-tabs {
-  margin-top: 12px;
-}
-
-.rail-list-item,
+.inline-banner,
+.field-block,
+.editor-block,
+.parameter-panel,
+.summary-list__item,
+.history-list__item,
+.detail-grid__item,
+.library-item,
 .dialog-card {
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 16px;
+  background: rgba(20, 24, 31, 0.82);
+}
+
+.inline-banner {
+  padding: 10px 12px;
+  color: var(--sqlforge-text-secondary);
+}
+
+.inline-banner-danger {
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fecaca;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.field-block,
+.editor-block {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: 100%;
   padding: 14px;
-  border-radius: 14px;
+}
+
+.editor-block {
+  margin-top: 16px;
+}
+
+.parameter-panel {
+  margin-top: 16px;
+  padding: 14px;
+}
+
+.parameter-table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.parameter-table__head,
+.parameter-table__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 92px;
+  gap: 10px;
+  align-items: center;
+}
+
+.parameter-table__head {
+  color: var(--sqlforge-text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.submit-row {
+  margin-top: 18px;
+  align-items: center;
+}
+
+.summary-list,
+.history-list,
+.dialog-list,
+.drawer-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-list {
+  margin-top: 16px;
+}
+
+.summary-list__item,
+.history-list__item,
+.detail-grid__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.summary-list__item span,
+.detail-grid__item span,
+.muted-copy {
+  color: var(--sqlforge-text-secondary);
+}
+
+.history-panel {
+  margin-top: 18px;
+}
+
+.library-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  color: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.dialog-list,
-.shortcut-list,
-.history-list,
-.explain-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.editor-form-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.field-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.field-block-wide {
-  grid-column: 1 / -1;
-}
-
-.parameter-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  gap: 12px;
-}
-
-.tip-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.summary-grid {
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-}
-
-.summary-grid-compact {
-  grid-template-columns: 1fr;
-}
-
-.summary-tile {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-  border-radius: 14px;
-}
-
-.summary-tile strong,
-.history-item strong {
-  color: var(--sqlforge-text-primary);
-  font-weight: 500;
-}
-
-.result-inline-meta {
-  margin-bottom: 12px;
+.library-item span {
   color: var(--sqlforge-text-secondary);
 }
 
-.result-banner {
-  padding: 12px 14px;
-  border-radius: 14px;
+.results-stage {
+  min-height: 320px;
 }
 
-.result-banner-danger {
-  border: 1px solid rgba(212, 96, 96, 0.35);
-  background: rgba(120, 28, 28, 0.18);
-  color: #ffd6d6;
-}
-
-.result-json {
-  margin: 0;
-  padding: 14px;
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: 14px;
-  background: var(--sqlforge-bg-page-deep);
-  color: var(--sqlforge-text-primary);
+.table-shell {
   overflow: auto;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.empty-copy {
+  color: var(--sqlforge-text-secondary);
+}
+
+.dialog-card {
+  padding: 14px;
+}
+
+.dialog-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.code-block {
+  margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-}
-
-.result-json-compact {
-  padding: 10px;
-  font-size: 12px;
-}
-
-.drawer-section + .drawer-section {
-  margin-top: 20px;
+  color: var(--sqlforge-text-primary);
 }
 
 @media (max-width: 1280px) {
@@ -1002,8 +931,9 @@ const formatJson = value => JSON.stringify(value, null, 2)
     grid-template-columns: 1fr;
   }
 
-  .editor-form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .field-grid,
+  .detail-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

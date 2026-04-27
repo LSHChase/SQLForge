@@ -18,24 +18,20 @@ const navigationTree = computed(() => [
   {
     key: 'dashboard',
     label: { zh: 'Dashboard', en: 'Dashboard' },
-    sections: [
-      {
-        key: 'overview',
-        label: { zh: '总览', en: 'Overview' },
-        items: [{ path: ROUTE_PATHS.dashboard, titleKey: 'dashboard.title', menuLabel: { zh: '总览首页', en: 'Overview home' } }]
-      }
-    ]
+    directItem: {
+      path: ROUTE_PATHS.dashboard,
+      titleKey: 'dashboard.title',
+      menuLabel: { zh: '总览首页', en: 'Overview home' }
+    }
   },
   {
     key: 'sql-query',
     label: { zh: 'SQL 查询', en: 'SQL Query' },
-    sections: [
-      {
-        key: 'workbench',
-        label: { zh: '查询工作台', en: 'Query workbench' },
-        items: [{ path: ROUTE_PATHS.sqlQuery, titleKey: 'sqlQuery.title', menuLabel: { zh: '工作台', en: 'Workbench' } }]
-      }
-    ]
+    directItem: {
+      path: ROUTE_PATHS.sqlQuery,
+      titleKey: 'sqlQuery.title',
+      menuLabel: { zh: '查询工作台', en: 'SQL workbench' }
+    }
   },
   {
     key: 'sql-history',
@@ -48,7 +44,7 @@ const navigationTree = computed(() => [
       },
       {
         key: 'forensics',
-        label: { zh: '明细与取证', en: 'Detail and forensics' },
+        label: { zh: '取证与修复', en: 'Forensics and repair' },
         items: [
           { path: ROUTE_PATHS.repairEvidence, titleKey: 'repairEvidence.title', menuLabel: { zh: '修复证据', en: 'Repair evidence' } },
           { path: ROUTE_PATHS.auditForensics, titleKey: 'auditForensics.title', menuLabel: { zh: '审计取证', en: 'Audit forensics' } }
@@ -79,35 +75,29 @@ const navigationTree = computed(() => [
   {
     key: 'routing',
     label: { zh: '路由治理', en: 'Routing Governance' },
-    sections: [
-      {
-        key: 'routing-policy',
-        label: { zh: '策略与历史决策', en: 'Policy and decision history' },
-        items: [{ path: ROUTE_PATHS.routingGovernance, titleKey: 'routingGovernance.title', menuLabel: { zh: '路由策略', en: 'Routing policy' } }]
-      }
-    ]
+    directItem: {
+      path: ROUTE_PATHS.routingGovernance,
+      titleKey: 'routingGovernance.title',
+      menuLabel: { zh: '路由治理', en: 'Routing governance' }
+    }
   },
   {
     key: 'assets',
     label: { zh: '数据资产', en: 'Data Assets' },
-    sections: [
-      {
-        key: 'catalog',
-        label: { zh: '资产目录', en: 'Asset catalog' },
-        items: [{ path: ROUTE_PATHS.assetCatalog, titleKey: 'assetCatalog.title', menuLabel: { zh: '资产目录', en: 'Asset catalog' } }]
-      }
-    ]
+    directItem: {
+      path: ROUTE_PATHS.assetCatalog,
+      titleKey: 'assetCatalog.title',
+      menuLabel: { zh: '资产目录', en: 'Asset catalog' }
+    }
   },
   {
     key: 'benchmark',
     label: { zh: '压测中心', en: 'Benchmark Center' },
-    sections: [
-      {
-        key: 'benchmark-workspace',
-        label: { zh: '任务、测试集与报告', en: 'Tasks, suites, and reports' },
-        items: [{ path: ROUTE_PATHS.benchmark, titleKey: 'benchmark.title', menuLabel: { zh: '压测工作台', en: 'Benchmark workbench' } }]
-      }
-    ]
+    directItem: {
+      path: ROUTE_PATHS.benchmark,
+      titleKey: 'benchmark.title',
+      menuLabel: { zh: '压测工作台', en: 'Benchmark workbench' }
+    }
   },
   {
     key: 'system',
@@ -115,8 +105,8 @@ const navigationTree = computed(() => [
     sections: [
       {
         key: 'config',
-        label: { zh: '配置与数据源', en: 'Config and datasources' },
-        items: [{ path: ROUTE_PATHS.system, titleKey: 'system.title', menuLabel: { zh: '配置中心', en: 'Config center' } }]
+        label: { zh: '数据源与接口', en: 'Datasources and interfaces' },
+        items: [{ path: ROUTE_PATHS.system, titleKey: 'system.title', menuLabel: { zh: '系统管理', en: 'System management' } }]
       },
       {
         key: 'alerts',
@@ -139,34 +129,45 @@ const navigationTree = computed(() => [
   {
     key: 'access',
     label: { zh: '开放接入', en: 'Open Access' },
-    sections: [
-      {
-        key: 'access-overview',
-        label: { zh: '接入总览与策略', en: 'Access overview and policy' },
-        items: [{ path: ROUTE_PATHS.accessCenter, titleKey: 'accessCenter.title', menuLabel: { zh: '接入总览', en: 'Access overview' } }]
-      }
-    ]
+    directItem: {
+      path: ROUTE_PATHS.accessCenter,
+      titleKey: 'accessCenter.title',
+      menuLabel: { zh: '开放接入', en: 'Open access' }
+    }
   }
 ])
 
 const flattenNavItems = tree =>
-  tree.flatMap(module =>
-    module.sections.flatMap(section =>
+  tree.flatMap(module => {
+    if (module.directItem) {
+      return [
+        {
+          ...module.directItem,
+          moduleKey: module.key,
+          moduleLabel: module.label,
+          sectionKey: '',
+          sectionLabel: null,
+          depth: 2
+        }
+      ]
+    }
+    return module.sections.flatMap(section =>
       section.items.map(item => ({
         ...item,
         moduleKey: module.key,
         moduleLabel: module.label,
         sectionKey: section.key,
-        sectionLabel: section.label
+        sectionLabel: section.label,
+        depth: 3
       }))
     )
-  )
+  })
 
 const activeNavItem = computed(() =>
   flattenNavItems(navigationTree.value).find(item => item.path === route.path) || null
 )
 const defaultOpeneds = computed(() => {
-  if (!activeNavItem.value) {
+  if (!activeNavItem.value?.sectionKey) {
     return []
   }
   return [activeNavItem.value.moduleKey, `${activeNavItem.value.moduleKey}:${activeNavItem.value.sectionKey}`]
@@ -183,7 +184,12 @@ const breadcrumbText = computed(() => {
   if (!activeNavItem.value) {
     return []
   }
-  return [navLabel(activeNavItem.value.moduleLabel), navLabel(activeNavItem.value.sectionLabel), itemLabel(activeNavItem.value)]
+  const parts = [navLabel(activeNavItem.value.moduleLabel)]
+  if (activeNavItem.value.sectionLabel) {
+    parts.push(navLabel(activeNavItem.value.sectionLabel))
+  }
+  parts.push(itemLabel(activeNavItem.value))
+  return parts
 })
 
 const handleLocaleToggle = () => {
@@ -214,7 +220,7 @@ onMounted(() => {
         </div>
 
         <div class="sidebar-section">
-          <p class="sidebar-section-label sqlforge-code-label">{{ locale === 'zh-CN' ? '三级导航' : 'Three-level navigation' }}</p>
+          <p class="sidebar-section-label sqlforge-code-label">{{ locale === 'zh-CN' ? '按需导航' : 'Adaptive navigation' }}</p>
           <el-scrollbar class="menu-scroll">
             <el-menu
               :default-active="route.path"
@@ -222,34 +228,46 @@ onMounted(() => {
               class="app-menu"
               router
             >
-              <el-sub-menu
-                v-for="module in navigationTree"
-                :key="module.key"
-                :index="module.key"
-                class="menu-module"
-              >
-                <template #title>
-                  <span class="menu-module-title">{{ navLabel(module.label) }}</span>
-                </template>
+              <template v-for="module in navigationTree" :key="module.key">
+                <el-menu-item
+                  v-if="module.directItem"
+                  :index="module.directItem.path"
+                  class="menu-module-item"
+                >
+                  <div class="menu-item-content">
+                    <span class="menu-module-title">{{ navLabel(module.label) }}</span>
+                    <span class="menu-item-caption">{{ itemLabel(module.directItem) }}</span>
+                  </div>
+                </el-menu-item>
+
                 <el-sub-menu
-                  v-for="section in module.sections"
-                  :key="`${module.key}:${section.key}`"
-                  :index="`${module.key}:${section.key}`"
-                  class="menu-section"
+                  v-else
+                  :index="module.key"
+                  class="menu-module"
                 >
                   <template #title>
-                    <span class="menu-section-title">{{ navLabel(section.label) }}</span>
+                    <span class="menu-module-title">{{ navLabel(module.label) }}</span>
                   </template>
-                  <el-menu-item
-                    v-for="item in section.items"
-                    :key="item.path"
-                    :index="item.path"
-                    class="menu-leaf"
+                  <el-sub-menu
+                    v-for="section in module.sections"
+                    :key="`${module.key}:${section.key}`"
+                    :index="`${module.key}:${section.key}`"
+                    class="menu-section"
                   >
-                    <span class="menu-item-label">{{ itemLabel(item) }}</span>
-                  </el-menu-item>
+                    <template #title>
+                      <span class="menu-section-title">{{ navLabel(section.label) }}</span>
+                    </template>
+                    <el-menu-item
+                      v-for="item in section.items"
+                      :key="item.path"
+                      :index="item.path"
+                      class="menu-leaf"
+                    >
+                      <span class="menu-item-label">{{ itemLabel(item) }}</span>
+                    </el-menu-item>
+                  </el-sub-menu>
                 </el-sub-menu>
-              </el-sub-menu>
+              </template>
             </el-menu>
           </el-scrollbar>
         </div>
@@ -448,18 +466,28 @@ onMounted(() => {
   color: var(--sqlforge-text-primary);
 }
 
+.menu-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .menu-module-title {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .menu-section-title {
   font-size: 13px;
 }
 
-.menu-item-label {
-  font-size: 14px;
-  font-weight: 500;
+.menu-item-label,
+.menu-item-caption {
+  font-size: 13px;
+}
+
+.menu-item-caption {
+  color: var(--sqlforge-text-muted);
 }
 
 .sidebar-runtime {
@@ -555,5 +583,16 @@ onMounted(() => {
 .fade-slide-leave-to {
   opacity: 0;
   transform: translateY(8px);
+}
+
+@media (max-width: 1200px) {
+  .app-header {
+    flex-direction: column;
+  }
+
+  .workspace-card {
+    min-width: 0;
+    width: 100%;
+  }
 }
 </style>

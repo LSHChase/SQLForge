@@ -9,16 +9,16 @@ const requiredTokens = [
   'data-testid="parse-record-page"',
   'data-testid="parse-record-refresh"',
   'data-testid="parse-record-run-lookup"',
-  'data-testid="parse-record-load-more"',
   'data-testid="parse-record-filter-select"',
   'data-testid="parse-record-sort-select"',
   'data-testid="parse-record-status-filter"',
-  'data-testid="parse-record-sort-mode"',
   'data-testid="parse-record-page-mode"',
   'data-testid="parse-record-trace-item"',
   'data-testid="parse-record-detail-trace-id"',
   'History classification',
-  'Sort mode'
+  'Sort mode',
+  'query history table',
+  'query history workbench'
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))

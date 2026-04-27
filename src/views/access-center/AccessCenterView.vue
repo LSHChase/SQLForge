@@ -19,16 +19,15 @@ const loading = reactive({
   detail: false
 })
 
-const activeTab = ref('overview')
+const activeTab = ref('audit')
 const policyDialogVisible = ref(false)
-const auditDrawerVisible = ref(false)
+const detailDialogVisible = ref(false)
+const rawDrawerVisible = ref(false)
 const accessAuditPage = ref(null)
-const selectedHistoryId = ref('')
 const selectedHistoryDetail = ref(null)
 const errorMessage = ref('')
 
 const isChinese = computed(() => locale.value === 'zh-CN')
-
 const accessChannelCards = computed(() => [
   channelCard('PAGE', isChinese.value ? '页面入口' : 'Page entry', isChinese.value ? '前端控制台与浏览器发起查询。' : 'Frontend console and browser-launched queries.'),
   channelCard('API', 'HTTP API', isChinese.value ? '受保护接口默认入口。' : 'Protected HTTP API baseline.'),
@@ -36,7 +35,6 @@ const accessChannelCards = computed(() => [
   channelCard('SDK', 'Java SDK', isChinese.value ? 'typed client + retry + access audit。' : 'Typed client + retry + access audit.'),
   channelCard('CLIENT', 'Direct Client', isChinese.value ? '保留 vocabulary，但不宣称独立 client SDK 已全面落地。' : 'Vocabulary is preserved without claiming a separate client SDK is fully rolled out.')
 ])
-
 const jdbcAgentModes = computed(() => [
   {
     mode: 'OBSERVE',
@@ -60,7 +58,6 @@ const jdbcAgentModes = computed(() => [
       : 'Performs lightweight local rewrite and routing before direct JDBC; rewrite failures must not silently mutate SQL.'
   }
 ])
-
 const jdbcPolicyFields = computed(() => [
   field('agentMode', 'agentMode', 'OBSERVE'),
   field('redisEndpoints', 'redisEndpoints', isChinese.value ? '规则源可配置，但不把外部 Redis 写成默认事实。' : 'Rule-source endpoints are configurable without claiming external Redis is the default fact.'),
@@ -72,7 +69,6 @@ const jdbcPolicyFields = computed(() => [
   field('fallbackStrategy', 'fallbackStrategy', 'DIRECT_JDBC | ORIGINAL_SQL | FAIL_CLOSED'),
   field('historyReportEnabled', 'historyReportEnabled', 'true')
 ])
-
 const sdkCards = computed(() => [
   field('accessChannel', 'accessChannel', 'SDK'),
   field('operationCode', 'operationCode', 'SDK_QUERY_EXECUTE'),
@@ -81,7 +77,6 @@ const sdkCards = computed(() => [
   field('auditWrite', isChinese.value ? '审计写回' : 'Audit write', isChinese.value ? '成功/失败都写 access audit 摘要。' : 'Writes access-audit summaries on both success and failure.'),
   field('routeProfile', isChinese.value ? '成功摘要' : 'Success summary', isChinese.value ? '会回写 routeProfile 与 executionMode。' : 'Persists routeProfile and executionMode in the success summary.')
 ])
-
 const auditItems = computed(() => accessAuditPage.value?.items || [])
 const classificationSummary = computed(() => accessAuditPage.value?.classificationSummary || {})
 
@@ -102,35 +97,27 @@ const refreshAudit = async () => {
         requestPrefix: 'frontend-access-center-audit-page'
       }
     )
-    const firstHistoryId = accessAuditPage.value?.items?.[0]?.historyId || ''
-    if (firstHistoryId) {
-      await loadAuditDetail(firstHistoryId)
-    } else {
-      selectedHistoryId.value = ''
-      selectedHistoryDetail.value = null
-    }
   } catch (error) {
+    accessAuditPage.value = null
     errorMessage.value = formatRuntimeError(error)
   } finally {
     loading.page = false
   }
 }
 
-const loadAuditDetail = async historyId => {
+const openAuditDetail = async historyId => {
   if (!historyId) {
-    selectedHistoryId.value = ''
-    selectedHistoryDetail.value = null
     return
   }
   loading.detail = true
   errorMessage.value = ''
-  selectedHistoryId.value = historyId
   try {
     selectedHistoryDetail.value = await getGovernanceQueryHistoryDetail(form.tenantId, historyId, {
       requestPrefix: 'frontend-access-center-audit-detail'
     })
-    auditDrawerVisible.value = true
+    detailDialogVisible.value = true
   } catch (error) {
+    selectedHistoryDetail.value = null
     errorMessage.value = formatRuntimeError(error)
   } finally {
     loading.detail = false
@@ -156,6 +143,7 @@ const displayValue = value => {
 }
 
 const formatJson = value => JSON.stringify(value, null, 2)
+const formatTimestamp = value => (value ? String(value).replace('T', ' ').slice(0, 19) : '-')
 
 onMounted(() => {
   refreshAudit()
@@ -164,208 +152,198 @@ onMounted(() => {
 
 <template>
   <section class="access-page" data-testid="access-page">
-    <header class="page-hero shell-panel">
+    <header class="surface-card page-shell">
       <div>
-        <p class="section-kicker sqlforge-code-label">{{ isChinese ? '接入筛选' : 'Access filters' }}</p>
-        <h2>{{ isChinese ? '租户、来源与接入审计抽样' : 'Tenant, channel, and sampled access audits' }}</h2>
-        <p class="hero-summary">
+        <p class="section-kicker sqlforge-code-label">{{ isChinese ? '接入工作台' : 'Access workbench' }}</p>
+        <h1 class="section-title">{{ isChinese ? '开放接入与审计样例' : 'Open access and audit samples' }}</h1>
+        <p class="section-summary">
           {{
             isChinese
-              ? '主页面只保留筛选、总览和样例；原始证据进入抽屉，不再直接堆在首页。'
-              : 'The main page stays limited to filters, overview, and samples. Raw evidence lives in drawers instead of the first screen.'
+              ? '默认首页展示接入审计表格，其余通道策略放到次级 tab。'
+              : 'The landing tab focuses on access-audit tables, while channel policies stay in secondary tabs.'
           }}
         </p>
       </div>
-      <div class="hero-actions">
-        <label class="field-label">
-          <span>{{ isChinese ? '租户' : 'Tenant' }}</span>
-          <input v-model.trim="form.tenantId" class="text-input">
+      <div class="action-row">
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+          <el-input v-model="form.tenantId" />
         </label>
-        <label class="field-label">
-          <span>{{ isChinese ? '接入来源' : 'Access channel' }}</span>
-          <select v-model="form.accessChannel" class="text-input">
-            <option value="ALL">ALL</option>
-            <option value="PAGE">PAGE</option>
-            <option value="API">API</option>
-            <option value="JDBC_AGENT">JDBC_AGENT</option>
-            <option value="SDK">SDK</option>
-            <option value="CLIENT">CLIENT</option>
-          </select>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '接入渠道' : 'Access channel' }}</span>
+          <el-select v-model="form.accessChannel">
+            <el-option label="ALL" value="ALL" />
+            <el-option label="PAGE" value="PAGE" />
+            <el-option label="API" value="API" />
+            <el-option label="JDBC_AGENT" value="JDBC_AGENT" />
+            <el-option label="SDK" value="SDK" />
+            <el-option label="CLIENT" value="CLIENT" />
+          </el-select>
         </label>
-        <button class="primary-button" data-testid="access-refresh" @click="refreshAudit">
+        <el-button type="primary" :loading="loading.page" data-testid="access-refresh" @click="refreshAudit">
           {{ isChinese ? '刷新接入证据' : 'Refresh access evidence' }}
-        </button>
+        </el-button>
+        <el-button @click="policyDialogVisible = true">{{ isChinese ? '边界说明' : 'Boundary help' }}</el-button>
       </div>
     </header>
 
-    <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
+    <div v-if="errorMessage" class="inline-banner inline-banner-danger">{{ errorMessage }}</div>
 
-    <main class="shell-panel workspace-panel">
+    <section class="summary-grid">
+      <article
+        v-for="item in accessChannelCards"
+        :key="item.channel"
+        class="summary-card"
+        data-testid="access-channel-card"
+      >
+        <span class="summary-card-label">{{ item.channel }}</span>
+        <strong>{{ item.title }}</strong>
+        <p>{{ item.summary }}</p>
+      </article>
+    </section>
+
+    <section class="surface-card tab-stage">
       <el-tabs v-model="activeTab">
-        <el-tab-pane :label="isChinese ? '接入总览' : 'Access overview'" name="overview">
-          <div class="tab-stack">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">access channels</p>
-                <h2>{{ isChinese ? '接入渠道基线' : 'Access-channel baseline' }}</h2>
-              </div>
-              <button class="ghost-button" @click="policyDialogVisible = true">
-                {{ isChinese ? '查看边界说明' : 'View policy boundary' }}
-              </button>
+        <el-tab-pane :label="isChinese ? '接入审计' : 'Access audit'" name="audit">
+          <div class="table-heading">
+            <div>
+              <p class="section-kicker sqlforge-code-label">access audit sample</p>
+              <h2 class="section-title">{{ isChinese ? '接入审计样例' : 'Access-audit samples' }}</h2>
             </div>
-            <div class="card-grid">
-              <article
-                v-for="item in accessChannelCards"
-                :key="item.channel"
-                class="info-card"
-                data-testid="access-channel-card"
+            <div class="chip-row">
+              <span
+                v-for="(value, key) in classificationSummary"
+                :key="key"
+                class="chip"
               >
-                <div class="info-card-header">
-                  <div>
-                    <p class="section-kicker sqlforge-code-label">{{ item.channel }}</p>
-                    <h3>{{ item.title }}</h3>
-                  </div>
-                </div>
-                <p class="hero-summary">{{ item.summary }}</p>
-              </article>
+                {{ key }}: {{ typeof value === 'object' ? Object.keys(value).length : value }}
+              </span>
             </div>
           </div>
+
+          <p class="section-summary">
+            {{
+              isChinese
+                ? '当前仓库还没有独立开放给前端的 `GET /api/governance/access-audit` 控制器，因此这里先用 query-history 的 `accessChannel` 过滤面呈现审计样例。'
+                : 'The repository does not yet expose a dedicated frontend controller for `GET /api/governance/access-audit`, so this page currently renders audit samples through the query-history surface filtered by `accessChannel`.'
+            }}
+          </p>
+
+          <el-table :data="auditItems" border>
+            <el-table-column :label="isChinese ? 'History / Report' : 'History / Report'" min-width="220">
+              <template #default="{ row }">
+                <button
+                  type="button"
+                  class="table-link"
+                  data-testid="access-audit-item"
+                  @click="openAuditDetail(row.historyId)"
+                >
+                  {{ row.reportCode || row.historyId }}
+                </button>
+                <div class="cell-subline">{{ row.historyId }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="accessChannel" :label="isChinese ? '接入渠道' : 'Access channel'" min-width="130" />
+            <el-table-column prop="resultStatus" :label="isChinese ? '状态' : 'Status'" min-width="120" />
+            <el-table-column prop="targetEngine" :label="isChinese ? '目标引擎' : 'Target engine'" min-width="120" />
+            <el-table-column prop="submittedBy" :label="isChinese ? '提交人' : 'Submitted by'" min-width="140" />
+            <el-table-column :label="isChinese ? '提交时间' : 'Submitted at'" min-width="170">
+              <template #default="{ row }">{{ formatTimestamp(row.submittedAt) }}</template>
+            </el-table-column>
+          </el-table>
         </el-tab-pane>
 
         <el-tab-pane :label="isChinese ? 'JDBC Agent' : 'JDBC Agent'" name="jdbc">
-          <div class="tab-stack">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">jdbc agent</p>
-                <h2>{{ isChinese ? 'JDBC Agent 策略' : 'JDBC Agent strategy' }}</h2>
-              </div>
-            </div>
+          <el-table :data="jdbcAgentModes" border>
+            <el-table-column prop="mode" label="Mode" min-width="180">
+              <template #default="{ row }">
+                <span data-testid="access-jdbc-agent-mode">{{ row.mode }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="title" :label="isChinese ? '标题' : 'Title'" min-width="160" />
+            <el-table-column prop="summary" :label="isChinese ? '说明' : 'Summary'" min-width="320" />
+          </el-table>
 
-            <div class="card-grid">
-              <article
-                v-for="item in jdbcAgentModes"
-                :key="item.mode"
-                class="info-card"
-                data-testid="access-jdbc-agent-mode"
-              >
-                <div class="info-card-header">
-                  <div>
-                    <p class="section-kicker sqlforge-code-label">{{ item.mode }}</p>
-                    <h3>{{ item.title }}</h3>
-                  </div>
-                </div>
-                <p class="hero-summary">{{ item.summary }}</p>
-              </article>
-            </div>
-
-            <div class="summary-grid">
-              <article v-for="item in jdbcPolicyFields" :key="item.key" class="summary-card">
-                <span class="summary-card-label">{{ item.label }}</span>
-                <strong>{{ displayValue(item.value) }}</strong>
-              </article>
+          <div class="detail-grid">
+            <div
+              v-for="item in jdbcPolicyFields"
+              :key="item.key"
+              class="detail-grid__item"
+            >
+              <span>{{ item.label }}</span>
+              <strong>{{ displayValue(item.value) }}</strong>
             </div>
           </div>
         </el-tab-pane>
 
         <el-tab-pane :label="isChinese ? 'SDK / Client' : 'SDK / Client'" name="sdk">
-          <div class="tab-stack">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">java sdk</p>
-                <h2>{{ isChinese ? 'Java SDK 基线' : 'Java SDK baseline' }}</h2>
-              </div>
-            </div>
-            <div class="summary-grid">
-              <article v-for="item in sdkCards" :key="item.key" class="summary-card" data-testid="access-sdk-card">
-                <span class="summary-card-label">{{ item.label }}</span>
-                <strong>{{ displayValue(item.value) }}</strong>
-              </article>
-            </div>
-          </div>
-        </el-tab-pane>
-
-        <el-tab-pane :label="isChinese ? '接入审计' : 'Access audit'" name="audit">
-          <div class="tab-stack">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">access audit sample</p>
-                <h2>{{ isChinese ? '接入审计样例' : 'Access-audit samples' }}</h2>
-              </div>
-              <span class="section-badge">{{ auditItems.length }}</span>
-            </div>
-
-            <p class="hero-summary">
-              {{
-                isChinese
-                  ? '当前仓库还没有独立开放给前端的 `GET /api/governance/access-audit` 控制器，因此这里先用 query-history 的 `accessChannel` 过滤面呈现审计样例。'
-                  : 'The repository does not yet expose a dedicated frontend controller for `GET /api/governance/access-audit`, so this page currently renders audit samples through the query-history surface filtered by `accessChannel`.'
-              }}
-            </p>
-
-            <div class="pill-row">
-              <span
-                v-for="(value, key) in classificationSummary"
-                :key="key"
-                class="section-badge"
-              >
-                {{ key }}: {{ value }}
-              </span>
-            </div>
-
-            <div class="audit-list">
-              <button
-                v-for="item in auditItems"
-                :key="item.historyId"
-                type="button"
-                class="audit-item"
-                :class="{ 'audit-item-active': selectedHistoryId === item.historyId }"
-                data-testid="access-audit-item"
-                @click="loadAuditDetail(item.historyId)"
-              >
-                <div class="info-card-header">
-                  <div>
-                    <p class="section-kicker sqlforge-code-label">{{ item.accessChannel || 'UNKNOWN' }}</p>
-                    <h3>{{ item.reportCode || item.historyId }}</h3>
-                  </div>
-                  <span class="section-badge">{{ item.resultStatus || '-' }}</span>
-                </div>
-                <p class="hero-summary">
-                  {{ item.targetEngine || '-' }} · {{ item.datasourceCode || item.datasourceType || '-' }} · {{ item.submittedBy || '-' }}
-                </p>
-              </button>
+          <div class="detail-grid">
+            <div
+              v-for="item in sdkCards"
+              :key="item.key"
+              class="detail-grid__item"
+              data-testid="access-sdk-card"
+            >
+              <span>{{ item.label }}</span>
+              <strong>{{ displayValue(item.value) }}</strong>
             </div>
           </div>
         </el-tab-pane>
       </el-tabs>
-    </main>
+    </section>
 
-    <el-dialog v-model="policyDialogVisible" :title="isChinese ? '接入边界说明' : 'Access boundary policy'" width="760px">
-      <div class="summary-grid">
-        <article v-for="item in jdbcPolicyFields.slice(0, 5)" :key="item.key" class="summary-card">
-          <span class="summary-card-label">{{ item.label }}</span>
-          <strong>{{ displayValue(item.value) }}</strong>
-        </article>
+    <el-dialog v-model="detailDialogVisible" :title="selectedHistoryDetail?.reportCode || selectedHistoryDetail?.historyId || 'access audit detail'" width="760px">
+      <div v-if="selectedHistoryDetail" class="detail-grid" data-testid="access-audit-detail">
+        <div class="detail-grid__item">
+          <span>History ID</span>
+          <strong>{{ displayValue(selectedHistoryDetail.historyId) }}</strong>
+        </div>
+        <div class="detail-grid__item">
+          <span>Trace ID</span>
+          <strong>{{ displayValue(selectedHistoryDetail.traceId) }}</strong>
+        </div>
+        <div class="detail-grid__item">
+          <span>{{ isChinese ? '接入渠道' : 'Access channel' }}</span>
+          <strong>{{ displayValue(selectedHistoryDetail.accessChannel) }}</strong>
+        </div>
+        <div class="detail-grid__item">
+          <span>{{ isChinese ? '目标引擎' : 'Target engine' }}</span>
+          <strong>{{ displayValue(selectedHistoryDetail.targetEngine) }}</strong>
+        </div>
+        <div class="detail-grid__item">
+          <span>{{ isChinese ? '结果状态' : 'Result status' }}</span>
+          <strong>{{ displayValue(selectedHistoryDetail.resultStatus) }}</strong>
+        </div>
+        <div class="detail-grid__item">
+          <span>{{ isChinese ? '报表编码' : 'Report code' }}</span>
+          <strong>{{ displayValue(selectedHistoryDetail.reportCode) }}</strong>
+        </div>
       </div>
-      <p class="hero-summary">
-        {{
-          isChinese
-            ? '开放接入页只展示仓库已证实的模式、字段和审计语义，不把真实外部连通或未实现 controller 直接写成事实。'
-            : 'The access page only presents modes, fields, and audit semantics that are evidenced in the repository. It does not present live external connectivity or unimplemented controllers as facts.'
-        }}
-      </p>
+      <template #footer>
+        <el-button @click="rawDrawerVisible = true">{{ isChinese ? '查看原始证据' : 'View raw evidence' }}</el-button>
+      </template>
     </el-dialog>
 
-    <el-drawer
-      v-model="auditDrawerVisible"
-      :title="isChinese ? 'Access Audit 详情' : 'Access audit detail'"
-      size="40%"
-      data-testid="access-audit-detail"
-    >
-      <p v-if="loading.detail" class="hero-summary">
-        {{ isChinese ? '正在加载 access audit 详情…' : 'Loading access-audit detail…' }}
-      </p>
-      <pre v-else class="code-block">{{ formatJson(selectedHistoryDetail || {}) }}</pre>
+    <el-drawer v-model="rawDrawerVisible" :title="isChinese ? '接入原始证据' : 'Raw access evidence'" size="42%">
+      <pre class="code-block">{{ formatJson(selectedHistoryDetail || {}) }}</pre>
     </el-drawer>
+
+    <el-dialog v-model="policyDialogVisible" :title="isChinese ? '接入边界说明' : 'Access boundary guide'" width="680px">
+      <div class="detail-grid">
+        <div class="detail-grid__item">
+          <span>GET /api/governance/access-audit</span>
+          <strong>query-history fallback</strong>
+        </div>
+        <div class="detail-grid__item">
+          <span>JDBC_AGENT</span>
+          <strong>OBSERVE / GOVERNED_EXECUTE / LOCAL_REWRITE_DIRECT_JDBC</strong>
+        </div>
+        <div class="detail-grid__item">
+          <span>SDK_QUERY_EXECUTE</span>
+          <strong>typed client + access audit</strong>
+        </div>
+      </div>
+    </el-dialog>
   </section>
 </template>
 
@@ -376,157 +354,151 @@ onMounted(() => {
   gap: 20px;
 }
 
-.shell-panel,
-.info-card,
+.surface-card,
 .summary-card,
-.audit-item {
+.field-block,
+.detail-grid__item {
   border: 1px solid var(--sqlforge-border-default);
-  border-radius: 18px;
-  background: var(--sqlforge-surface-2);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 34%),
+    var(--sqlforge-surface-2);
 }
 
-.page-hero,
-.hero-actions,
-.workspace-panel,
-.tab-stack,
-.card-grid,
+.page-shell,
+.tab-stage {
+  padding: 20px;
+}
+
+.page-shell,
+.action-row,
 .summary-grid,
-.pill-row,
-.audit-list {
-  display: grid;
+.chip-row {
+  display: flex;
   gap: 12px;
 }
 
-.page-hero {
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
-  padding: 20px;
+.page-shell {
+  align-items: flex-start;
+  justify-content: space-between;
 }
 
-.hero-summary,
-.field-label {
+.section-kicker,
+.field-label,
+.summary-card-label {
+  margin: 0 0 6px;
+  color: var(--sqlforge-text-muted);
+}
+
+.section-title,
+.section-summary,
+.summary-card p {
   margin: 0;
+}
+
+.section-summary,
+.summary-card p,
+.cell-subline {
   color: var(--sqlforge-text-secondary);
-  line-height: 1.6;
 }
 
-.hero-actions {
-  align-content: start;
+.inline-banner {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--sqlforge-border-default);
+  background: rgba(20, 24, 31, 0.82);
+  color: var(--sqlforge-text-secondary);
 }
 
-.field-label {
+.inline-banner-danger {
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fecaca;
+}
+
+.action-row,
+.summary-grid,
+.chip-row {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.field-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
+  gap: 8px;
+  padding: 14px;
+  min-width: 210px;
 }
 
-.text-input,
-.primary-button,
-.ghost-button {
-  min-height: 42px;
-  padding: 10px 12px;
+.summary-card {
+  padding: 14px;
+  min-width: 180px;
+  flex: 1 1 180px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid var(--sqlforge-border-default);
-  background: var(--sqlforge-bg-page-deep);
-  color: var(--sqlforge-text-primary);
+  background: rgba(20, 24, 31, 0.82);
+  color: var(--sqlforge-text-secondary);
+  font-size: 12px;
 }
 
-.primary-button,
-.ghost-button {
-  cursor: pointer;
-}
-
-.primary-button {
-  border-color: var(--sqlforge-text-primary);
-}
-
-.workspace-panel {
-  padding: 20px;
-}
-
-.card-grid {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.summary-grid {
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-}
-
-.info-card,
-.summary-card,
-.audit-item {
-  padding: 16px;
-}
-
-.info-card-header,
-.section-heading {
+.table-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: 14px;
 }
 
-.summary-card-label {
-  display: inline-flex;
-  margin-bottom: 8px;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--sqlforge-text-muted);
-}
-
-.pill-row {
-  grid-template-columns: repeat(auto-fit, minmax(120px, max-content));
-}
-
-.section-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 28px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid var(--sqlforge-border-default);
-  background: var(--sqlforge-bg-page-deep);
-  color: var(--sqlforge-text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.audit-item {
-  text-align: left;
+.table-link {
+  border: none;
+  background: transparent;
+  color: var(--sqlforge-color-brand);
+  padding: 0;
   cursor: pointer;
 }
 
-.audit-item-active {
-  border-color: var(--sqlforge-color-brand-border);
+.cell-subline {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.detail-grid__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.detail-grid__item span {
+  color: var(--sqlforge-text-secondary);
 }
 
 .code-block {
   margin: 0;
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid var(--sqlforge-border-default);
-  background: var(--sqlforge-bg-page-deep);
-  color: var(--sqlforge-text-primary);
-  overflow: auto;
-  font-size: 12px;
-  line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-.error-banner {
-  margin: 0;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: rgba(120, 28, 28, 0.18);
-  border: 1px solid rgba(212, 96, 96, 0.35);
-  color: #ffd6d6;
-}
+@media (max-width: 1280px) {
+  .page-shell,
+  .table-heading {
+    flex-direction: column;
+  }
 
-@media (max-width: 1100px) {
-  .page-hero {
+  .detail-grid {
     grid-template-columns: 1fr;
   }
 }

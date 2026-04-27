@@ -11,7 +11,7 @@ import {
   getParseStatisticsPriorityMatrix
 } from '../../services/runtimeGateApi'
 
-const { t, locale } = useI18n()
+const { locale } = useI18n()
 
 const form = reactive({
   tenantId: 'tenant-a'
@@ -20,9 +20,10 @@ const form = reactive({
 const loading = ref(false)
 const errorMessage = ref('')
 const activeTab = ref('issue')
+const detailDialogVisible = ref(false)
 const detailDrawerVisible = ref(false)
-const detailDrawerTitle = ref('')
-const detailDrawerPayload = ref(null)
+const detailTitle = ref('')
+const detailPayload = ref(null)
 const overview = ref(null)
 const issueScenes = ref([])
 const sqlStats = ref([])
@@ -42,7 +43,7 @@ const overviewCards = computed(() => {
     card(isChinese.value ? '问题场景数' : 'Issue scenes', overview.value.issueSceneCount),
     card(isChinese.value ? 'Important SQL' : 'Important SQL', overview.value.importantSqlCount),
     card(isChinese.value ? 'Urgent SQL' : 'Urgent SQL', overview.value.urgentSqlCount)
-  ]
+  ].slice(0, 6)
 })
 const priorityDistribution = computed(() => Object.entries(overview.value?.priorityDistribution || {}))
 
@@ -62,9 +63,13 @@ const boolText = value => {
   return value ? 'true' : 'false'
 }
 
-const openDetailDrawer = (title, payload) => {
-  detailDrawerTitle.value = title
-  detailDrawerPayload.value = payload
+const openDetailDialog = (title, payload) => {
+  detailTitle.value = title
+  detailPayload.value = payload
+  detailDialogVisible.value = true
+}
+
+const openDetailDrawer = () => {
   detailDrawerVisible.value = true
 }
 
@@ -107,12 +112,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="runtime-page statistics-page" data-testid="statistics-page">
-    <header class="page-hero shell-panel">
+  <section class="statistics-page" data-testid="statistics-page">
+    <header class="page-shell">
       <div>
-        <p class="runtime-eyebrow sqlforge-code-label">parse statistics center</p>
-        <h1 class="runtime-title">{{ t('parseStatisticsCenter.title') }}</h1>
-        <p class="runtime-summary">{{ t('parseStatisticsCenter.summary') }}</p>
+        <p class="section-kicker sqlforge-code-label">parse statistics center</p>
+        <h1 class="section-title">{{ isChinese ? '解析结果中心' : 'Parse result center' }}</h1>
+        <p class="section-summary">{{ isChinese ? '顶部保留概览，明细统一进入表格与弹层。' : 'Top-level KPIs stay lightweight while detailed evidence moves into tables and overlays.' }}</p>
       </div>
       <div class="hero-actions">
         <label class="field-block">
@@ -132,7 +137,7 @@ onMounted(async () => {
 
     <div
       v-if="errorMessage"
-      class="result-banner result-banner-danger"
+      class="inline-banner inline-banner-danger"
       data-testid="statistics-error"
     >
       {{ errorMessage }}
@@ -146,218 +151,244 @@ onMounted(async () => {
     </section>
 
     <div class="workspace-grid">
-      <aside class="shell-panel insight-rail">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">Parse overview</p>
-            <h2 class="section-title">{{ isChinese ? '解析总览' : 'Parse overview' }}</h2>
-          </div>
-        </div>
-
-        <div class="distribution-list">
-          <div
-            v-for="[priority, count] in priorityDistribution"
-            :key="priority"
-            class="distribution-item"
-          >
-            <span>{{ priority }}</span>
-            <strong>{{ count }}</strong>
-          </div>
-        </div>
-
-        <section class="detail-card">
-          <div class="section-heading">
+      <aside class="overview-rail">
+        <section class="surface-card">
+          <div class="panel-heading">
             <div>
-              <p class="section-kicker sqlforge-code-label">Priority matrix</p>
-              <h3 class="detail-title">{{ isChinese ? '优先级矩阵' : 'Priority matrix' }}</h3>
+              <p class="section-kicker sqlforge-code-label">Parse overview</p>
+              <h2 class="section-title">{{ isChinese ? '解析总览' : 'Parse overview' }}</h2>
             </div>
           </div>
+
+          <div class="distribution-list">
+            <div
+              v-for="[priority, count] in priorityDistribution"
+              :key="priority"
+              class="distribution-item"
+            >
+              <span>{{ priority }}</span>
+              <strong>{{ count }}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="surface-card">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker sqlforge-code-label">Priority matrix</p>
+              <h2 class="section-title">{{ isChinese ? '优先级矩阵' : 'Priority matrix' }}</h2>
+            </div>
+          </div>
+
           <div class="matrix-list" data-testid="statistics-priority-matrix">
             <button
               v-for="item in priorityMatrix"
               :key="`${item.priorityLevel}-${item.urgencyBucket}`"
               type="button"
               class="matrix-item"
-              @click="openDetailDrawer(`${item.priorityLevel} / ${item.urgencyBucket}`, item)"
+              @click="openDetailDialog(`${item.priorityLevel} / ${item.urgencyBucket}`, item)"
             >
               <strong>{{ item.priorityLevel }} / {{ item.urgencyBucket }}</strong>
               <span>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues</span>
-              <p>{{ item.reportCount }} reports</p>
+              <span>{{ item.reportCount }} reports</span>
             </button>
           </div>
         </section>
       </aside>
 
-      <main class="shell-panel result-stage">
+      <section class="surface-card result-stage">
         <el-tabs v-model="activeTab">
           <el-tab-pane :label="isChinese ? '问题分布' : 'Issue distribution'" name="issue">
-            <div class="table-header">
+            <div class="table-heading">
               <div>
                 <p class="section-kicker sqlforge-code-label">Issue distribution</p>
                 <h2 class="section-title">{{ isChinese ? '问题分布' : 'Issue distribution' }}</h2>
               </div>
             </div>
-            <div class="list-grid">
-              <button
-                v-for="item in issueScenes"
-                :key="item.issueScene"
-                type="button"
-                class="list-row"
-                data-testid="statistics-issue-scene"
-                @click="openDetailDrawer(item.issueScene, item)"
-              >
-                <strong>{{ item.issueScene }}</strong>
-                <span>{{ item.issueDomain }} · {{ item.severity }}</span>
-                <span>{{ item.priorityLevel }} / {{ item.priorityScore }}</span>
-                <span>{{ item.affectedSqlCount }} SQL · {{ item.affectedIssueCount }} issues</span>
-                <span>{{ formatRate(item.sqlRatio) }}</span>
-                <span>{{ boolText(item.important) }} / {{ boolText(item.urgent) }}</span>
-              </button>
-            </div>
+            <el-table :data="issueScenes" border>
+              <el-table-column prop="issueScene" :label="isChinese ? '问题场景' : 'Issue scene'" min-width="180">
+                <template #default="{ row }">
+                  <button
+                    type="button"
+                    class="table-link"
+                    data-testid="statistics-issue-scene"
+                    @click="openDetailDialog(row.issueScene, row)"
+                  >
+                    {{ row.issueScene }}
+                  </button>
+                </template>
+              </el-table-column>
+              <el-table-column prop="issueDomain" :label="isChinese ? '领域' : 'Domain'" min-width="120" />
+              <el-table-column prop="severity" :label="isChinese ? '严重度' : 'Severity'" min-width="120" />
+              <el-table-column prop="priorityLevel" :label="isChinese ? '优先级' : 'Priority'" min-width="120" />
+              <el-table-column prop="affectedSqlCount" :label="isChinese ? '影响 SQL' : 'Affected SQL'" min-width="120" />
+              <el-table-column prop="affectedIssueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="100" />
+              <el-table-column :label="isChinese ? '占比' : 'Ratio'" min-width="100">
+                <template #default="{ row }">{{ formatRate(row.sqlRatio) }}</template>
+              </el-table-column>
+            </el-table>
           </el-tab-pane>
 
           <el-tab-pane :label="isChinese ? '重要/紧急' : 'Important or urgent list'" name="important">
-            <div class="table-header">
+            <div class="table-heading">
               <div>
                 <p class="section-kicker sqlforge-code-label">Important or urgent list</p>
                 <h2 class="section-title">{{ isChinese ? 'Important / Urgent 清单' : 'Important or urgent list' }}</h2>
               </div>
             </div>
-            <div class="list-grid">
-              <button
-                v-for="item in importantUrgent"
-                :key="item.itemId || item.parseTaskId"
-                type="button"
-                class="list-row"
-                data-testid="statistics-important-urgent"
-                @click="openDetailDrawer(item.reportCode || item.itemId || 'important', item)"
-              >
-                <strong>{{ item.reportCode || item.itemId }}</strong>
-                <span>{{ item.highestPriorityLevel }} / {{ item.highestPriorityScore }}</span>
-                <span>{{ item.datasourceCode || '-' }} · {{ item.stage || '-' }}</span>
-                <span>{{ item.issueScenes?.join(', ') || '-' }}</span>
-              </button>
-            </div>
+            <el-table :data="importantUrgent" border>
+              <el-table-column :label="isChinese ? '对象' : 'Item'" min-width="180">
+                <template #default="{ row }">
+                  <button
+                    type="button"
+                    class="table-link"
+                    data-testid="statistics-important-urgent"
+                    @click="openDetailDialog(row.reportCode || row.itemId || row.parseTaskId || 'important', row)"
+                  >
+                    {{ row.reportCode || row.itemId || row.parseTaskId || '-' }}
+                  </button>
+                </template>
+              </el-table-column>
+              <el-table-column :label="isChinese ? '最高优先级' : 'Highest priority'" min-width="150">
+                <template #default="{ row }">{{ row.highestPriorityLevel }} / {{ row.highestPriorityScore }}</template>
+              </el-table-column>
+              <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
+              <el-table-column prop="stage" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
+              <el-table-column :label="isChinese ? '问题场景' : 'Issue scenes'" min-width="220">
+                <template #default="{ row }">{{ row.issueScenes?.join(', ') || '-' }}</template>
+              </el-table-column>
+            </el-table>
           </el-tab-pane>
 
           <el-tab-pane :label="isChinese ? '报表视角' : 'By report'" name="report">
-            <div class="table-header">
+            <div class="table-heading">
               <div>
                 <p class="section-kicker sqlforge-code-label">By report</p>
                 <h2 class="section-title">{{ isChinese ? '报表视角' : 'By report' }}</h2>
               </div>
             </div>
-            <div class="list-grid">
-              <button
-                v-for="item in reportStats"
-                :key="item.reportCode"
-                type="button"
-                class="list-row"
-                @click="openDetailDrawer(item.reportCode, item)"
-              >
-                <strong>{{ item.reportCode }}</strong>
-                <span>{{ item.sqlCount }} SQL</span>
-                <span>{{ item.issueCount }} issues</span>
-                <span>{{ item.highestPriorityLevel }} / {{ item.highestPriorityScore }}</span>
-                <span>{{ boolText(item.important) }} / {{ boolText(item.urgent) }}</span>
-              </button>
-            </div>
+            <el-table :data="reportStats" border>
+              <el-table-column prop="reportCode" :label="isChinese ? '报表编码' : 'Report code'" min-width="180">
+                <template #default="{ row }">
+                  <button type="button" class="table-link" @click="openDetailDialog(row.reportCode, row)">
+                    {{ row.reportCode }}
+                  </button>
+                </template>
+              </el-table-column>
+              <el-table-column prop="sqlCount" :label="isChinese ? 'SQL 数' : 'SQL count'" min-width="120" />
+              <el-table-column prop="issueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="120" />
+              <el-table-column :label="isChinese ? '最高优先级' : 'Highest priority'" min-width="150">
+                <template #default="{ row }">{{ row.highestPriorityLevel }} / {{ row.highestPriorityScore }}</template>
+              </el-table-column>
+              <el-table-column :label="isChinese ? '重要 / 紧急' : 'Important / urgent'" min-width="130">
+                <template #default="{ row }">{{ boolText(row.important) }} / {{ boolText(row.urgent) }}</template>
+              </el-table-column>
+            </el-table>
           </el-tab-pane>
 
           <el-tab-pane :label="isChinese ? 'SQL 清单' : 'By SQL'" name="sql">
-            <div class="table-header">
+            <div class="table-heading">
               <div>
                 <p class="section-kicker sqlforge-code-label">By SQL</p>
                 <h2 class="section-title">{{ isChinese ? 'SQL 清单' : 'By SQL' }}</h2>
               </div>
             </div>
-            <div class="list-grid">
-              <button
-                v-for="item in sqlStats"
-                :key="item.itemId || item.parseTaskId"
-                type="button"
-                class="list-row"
-                @click="openDetailDrawer(item.reportCode || item.itemId || 'sql', item)"
-              >
-                <strong>{{ item.reportCode || item.itemId }}</strong>
-                <span>{{ item.highestPriorityLevel }} / {{ item.highestPriorityScore }}</span>
-                <span>{{ item.datasourceCode || '-' }} · {{ item.stage || '-' }}</span>
-                <span>{{ item.issueCount }} issues</span>
-                <span>{{ item.issueScenes?.join(', ') || '-' }}</span>
-              </button>
-            </div>
+            <el-table :data="sqlStats" border>
+              <el-table-column :label="isChinese ? '对象' : 'Item'" min-width="180">
+                <template #default="{ row }">
+                  <button type="button" class="table-link" @click="openDetailDialog(row.reportCode || row.itemId || row.parseTaskId || 'sql', row)">
+                    {{ row.reportCode || row.itemId || row.parseTaskId || '-' }}
+                  </button>
+                </template>
+              </el-table-column>
+              <el-table-column :label="isChinese ? '优先级' : 'Priority'" min-width="150">
+                <template #default="{ row }">{{ row.highestPriorityLevel }} / {{ row.highestPriorityScore }}</template>
+              </el-table-column>
+              <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
+              <el-table-column prop="stage" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
+              <el-table-column prop="issueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="110" />
+              <el-table-column :label="isChinese ? '问题场景' : 'Issue scenes'" min-width="220">
+                <template #default="{ row }">{{ row.issueScenes?.join(', ') || '-' }}</template>
+              </el-table-column>
+            </el-table>
           </el-tab-pane>
         </el-tabs>
-      </main>
+      </section>
     </div>
 
-    <el-drawer v-model="detailDrawerVisible" :title="detailDrawerTitle" size="40%">
-      <pre class="code-block">{{ JSON.stringify(detailDrawerPayload || {}, null, 2) }}</pre>
+    <el-dialog v-model="detailDialogVisible" :title="detailTitle" width="760px">
+      <div class="detail-grid">
+        <div
+          v-for="[key, value] in Object.entries(detailPayload || {})"
+          :key="key"
+          class="detail-grid__item"
+        >
+          <span>{{ key }}</span>
+          <strong>{{ Array.isArray(value) ? value.join(', ') : String(value) }}</strong>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="openDetailDrawer">{{ isChinese ? '查看原始 JSON' : 'View raw JSON' }}</el-button>
+      </template>
+    </el-dialog>
+
+    <el-drawer v-model="detailDrawerVisible" :title="detailTitle" size="42%">
+      <pre class="code-block">{{ JSON.stringify(detailPayload || {}, null, 2) }}</pre>
     </el-drawer>
   </section>
 </template>
 
 <style scoped>
-.runtime-page {
+.statistics-page {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.shell-panel,
+.page-shell,
+.surface-card,
 .summary-card,
 .distribution-item,
-.detail-card,
 .matrix-item,
-.list-row {
+.detail-grid__item {
   border: 1px solid var(--sqlforge-border-default);
-  border-radius: 18px;
-  background: var(--sqlforge-surface-2);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 34%),
+    var(--sqlforge-surface-2);
 }
 
-.page-hero,
-.hero-actions,
+.page-shell,
+.surface-card {
+  padding: 20px;
+}
+
+.page-shell,
 .workspace-grid,
 .summary-grid,
-.section-heading,
-.distribution-list,
-.matrix-list,
-.list-grid {
+.panel-heading,
+.hero-actions {
   display: grid;
   gap: 12px;
 }
 
-.page-hero {
+.page-shell {
   grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
-  padding: 20px;
 }
 
-.hero-actions {
-  align-content: start;
+.section-kicker,
+.field-label {
+  margin: 0 0 6px;
+  color: var(--sqlforge-text-muted);
 }
 
-.runtime-eyebrow,
-.section-kicker {
-  margin: 0 0 8px;
-  color: var(--sqlforge-color-brand-text);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-size: 12px;
-}
-
-.runtime-title,
 .section-title,
-.detail-title {
+.section-summary {
   margin: 0;
-  color: var(--sqlforge-text-primary);
 }
 
-.runtime-summary,
-.field-label,
-.list-row span,
-.list-row p {
+.section-summary {
   color: var(--sqlforge-text-secondary);
-  line-height: 1.6;
 }
 
 .field-block {
@@ -366,92 +397,113 @@ onMounted(async () => {
   gap: 8px;
 }
 
+.inline-banner {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--sqlforge-border-default);
+  background: rgba(20, 24, 31, 0.82);
+  color: var(--sqlforge-text-secondary);
+}
+
+.inline-banner-danger {
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fecaca;
+}
+
 .summary-grid {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
-.summary-card,
-.distribution-item,
-.detail-card,
-.matrix-item,
-.list-row {
-  padding: 14px 16px;
+.summary-card {
+  padding: 16px;
 }
 
-.summary-card-label,
-.field-label {
+.summary-card-label {
   display: block;
   margin-bottom: 8px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--sqlforge-text-muted);
+  color: var(--sqlforge-text-secondary);
 }
 
 .workspace-grid {
-  grid-template-columns: minmax(290px, 0.82fr) minmax(0, 1.18fr);
+  grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
 }
 
-.insight-rail,
-.result-stage {
-  padding: 20px;
+.overview-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.distribution-list,
+.matrix-list {
+  display: grid;
+  gap: 10px;
 }
 
 .distribution-item,
-.matrix-item,
-.list-row {
-  text-align: left;
+.matrix-item {
+  padding: 12px 14px;
 }
 
-.distribution-item {
+.matrix-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
 }
 
-.matrix-item,
-.list-row {
-  width: 100%;
+.result-stage {
+  min-width: 0;
 }
 
-.matrix-item strong,
-.list-row strong {
-  color: var(--sqlforge-text-primary);
+.table-heading {
+  margin-bottom: 14px;
 }
 
-.list-grid {
-  margin-top: 8px;
+.table-link {
+  border: none;
+  background: transparent;
+  color: var(--sqlforge-color-brand);
+  cursor: pointer;
+  padding: 0;
 }
 
-.table-header {
-  margin-bottom: 12px;
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.result-banner {
-  border-radius: 16px;
-  padding: 14px 16px;
+.detail-grid__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
 }
 
-.result-banner-danger {
-  background: rgba(120, 28, 28, 0.18);
-  color: #ffd6d6;
+.detail-grid__item span {
+  color: var(--sqlforge-text-secondary);
 }
 
 .code-block {
   margin: 0;
-  padding: 14px;
-  border-radius: 16px;
-  border: 1px solid var(--sqlforge-border-default);
-  background: var(--sqlforge-bg-page-deep);
-  color: var(--sqlforge-text-primary);
-  overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-@media (max-width: 1100px) {
-  .page-hero,
+@media (max-width: 1280px) {
+  .page-shell,
   .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detail-grid {
     grid-template-columns: 1fr;
   }
 }

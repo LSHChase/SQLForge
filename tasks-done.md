@@ -4,6 +4,24 @@
 
 ## Done
 
+### E-TASK-037: 收口前端二次复盘的导航与工作台交互
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): refine navigation and workbench interaction model`
+- Priority: 1
+- Depends on: E-TASK-036
+- Scope: 按二次复盘要求重构前端导航层级、SQL 查询工作台，以及 SQL 历史 / 解析结果中心 / 路由治理 / 系统管理 / 开放接入页面的表格、弹窗和抽屉交互；补齐必要的页面一致性与验证脚本。 Tech: VUE-FE. Layer: frontend/router/views/styles/scripts.
+- Validation:
+  - `python3 scripts/foreman.py validate E-TASK-037`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reworked the frontend shell and primary governance workbenches around mixed-depth navigation plus filter/table/dialog/drawer patterns; tightened SQL query, SQL history, parse statistics, routing governance, access center, and system management so first-screen focus stays on the operator task instead of inline evidence dumps.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-037 --include-task-audit --extra-command "npm run lint" --extra-command "npm run build" --extra-command "node scripts/check-navigation-shell-contract.mjs" --extra-command "node scripts/check-query-workbench-contract.mjs" --extra-command "node scripts/check-history-page-contract.mjs" --extra-command "node scripts/check-history-detail-contract.mjs" --extra-command "node scripts/check-statistics-page-contract.mjs" --extra-command "node scripts/check-access-page-contract.mjs" --extra-command "node scripts/check-routing-page-contract.mjs" --extra-command "node scripts/check-system-config-contract.mjs"
+  - Residual risk: The refactor still relies on repository sample data and existing query-history surfaces, so sparse local datasets can make some tables look thinner than production; audit-event counts also remain absent from query-history page rows until the backend page projection exposes them directly.
+  - Next step: If richer governance write-back fixtures are added later, re-run the same contract checks and browser smoke against non-empty datasets to verify density and scanability under production-like states.
+
 ### E-TASK-036: 基于联调复盘修正前端页面实现偏差
 
 - Status: done
