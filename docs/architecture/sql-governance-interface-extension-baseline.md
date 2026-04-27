@@ -586,6 +586,11 @@ repo-side 基线：
 - `GET /api/sql-optimization/recommendations`
 - `GET /api/sql-optimization/recommendations/{recommendationId}`
 - `POST /api/sql-optimization/recommendations/{recommendationId}/dispatch`
+- `GET /api/sql-optimization/dispatch-events`
+- `GET /api/sql-optimization/dispatch-events/{dispatchEventId}`
+- `POST /api/sql-optimization/dispatch-events/{dispatchEventId}/pull`
+- `POST /api/sql-optimization/dispatch-events/{dispatchEventId}/ack`
+- `POST /api/sql-optimization/dispatch-events/{dispatchEventId}/fail`
 
 `Recommendation` 查询对象至少返回：
 
@@ -628,6 +633,38 @@ repo-side 基线：
 - `relatedReportCode`
 - `relatedLogicalObject`
 - `expectedEffect`
+
+`DispatchEvent` 状态机：
+
+- `CREATED -> PUBLISHED -> PULLED -> ACKED`
+- `CREATED -> PUBLISHED -> PULLED -> FAILED`
+- `PUBLISHED` 表示可被外部装数/预热模块拉取，不表示已主动推送或已执行。
+- `PULLED` 表示外部模块已拉取事件，但还未回执成功或失败。
+- `ACKED` / `FAILED` 仅表达外部回执状态，本项目不直接装数、不直接执行推荐 SQL。
+
+`DispatchEvent` 查询对象至少返回：
+
+- `dispatchEventId`
+- `tenantId`
+- `recommendationId`
+- `dispatchType`
+- `dispatchPayloadJson`
+- `targetEngine`
+- `targetDatasource`
+- `reportCode`
+- `logicalObjectKey`
+- `status`
+- `pulledBy`
+- `pulledAt`
+- `ackedBy`
+- `ackedAt`
+- `failedBy`
+- `failedAt`
+- `resultMessage`
+- `statusHistory`
+- `createdBy`
+- `createdAt`
+- `updatedAt`
 
 ## 8. Routing Contracts
 

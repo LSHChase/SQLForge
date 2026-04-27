@@ -156,6 +156,13 @@
   - 大文本字段：`source_sql_text`,`recommended_sql_text`,`reason`,`risk_summary`
   - 追溯键：`tenant_id`,`recommendation_id`,`source_sql_id`,`sql_fingerprint`,`report_code`,`logical_object_key`
   - 状态边界：仅允许 `RECOMMENDED`、`REVIEWING`、`DISPATCH_READY`、`CANCELLED`；不得在本对象内表达 `EXECUTED`，避免把推荐误写成真实装数或执行结果
+- `dispatch_event`
+  - 所属服务：`sql-optimization`
+  - 主键：`dispatch_event_id`
+  - 结构化字段：`tenant_id`,`recommendation_id`,`dispatch_type`,`target_engine`,`target_datasource`,`report_code`,`logical_object_key`,`status`,`pulled_by`,`pulled_at`,`acked_by`,`acked_at`,`failed_by`,`failed_at`,`result_message`,`created_by`,`created_at`,`updated_at`
+  - JSON 字段：`dispatch_payload_json`,`status_history_json`
+  - 追溯键：`tenant_id`,`dispatch_event_id`,`recommendation_id`,`report_code`,`logical_object_key`
+  - 状态边界：`CREATED -> PUBLISHED -> PULLED -> ACKED|FAILED`；`PUBLISHED` 仅表示可拉取，不表示主动推送或已装数
 
 配置对象：
 

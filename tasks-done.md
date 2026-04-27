@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-060: 落地推荐治理事件创建与状态机
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): add dispatch event state machine`
+- Priority: 1
+- Depends on: `D-TASK-059`
+- Scope: `DispatchEvent` create/publish/pull/ack/fail 状态机与审计链 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-011` 推荐 SQL、加速建议与装数协同事件
+- Human confirmation point: 若治理事件状态机会绕过外部拉取模式、自动推送真实装数、或删除失败/待拉取状态，需人工确认
+- Data impact: dispatch event、状态机、审计与回执链
+- Rollback / recovery: 恢复 pull-based 协同边界，保留全部事件状态证据
+- Validation:
+  - `event state 测试`
+  - `python3 scripts/foreman.py validate D-TASK-060`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented pull-based DispatchEvent lifecycle for recommendation dispatch, including CREATED/PUBLISHED/PULLED/ACKED/FAILED state transitions, recommendation dispatch endpoint, event list/detail and pull/ack/fail endpoints, in-memory and database repository baselines, SQL schema/migration, interface/data-model documentation, and focused tests.
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=DispatchEventApplicationServiceTest,DispatchEventControllerTest,ParseBatchPersistenceSchemaMappingTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-060; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: D-TASK-061 will add cross-object trace keys and history/parse/route linkage; this task only covers dispatch event lifecycle and pull-based state semantics.
+  - Next step: Instantiate D-TASK-061 to connect recommendation traceability with history, parse, route, alert, and batch surfaces.
+
 ### D-TASK-059: 扩展推荐对象类型与收益/风险模型
 
 - Status: done

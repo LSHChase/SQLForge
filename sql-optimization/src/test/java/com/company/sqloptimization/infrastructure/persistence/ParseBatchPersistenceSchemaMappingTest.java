@@ -85,6 +85,22 @@ class ParseBatchPersistenceSchemaMappingTest {
     }
 
     @Test
+    void shouldKeepDispatchEventSchemaAndMigrationAligned() throws IOException {
+        String schema = readRepositoryFile("sql/init-schema.sql");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS dispatch_event");
+        assertContains(schema, "dispatch_payload_json JSON NOT NULL");
+        assertContains(schema, "status_history_json JSON NOT NULL");
+        assertContains(schema, "CREATED/PUBLISHED/PULLED/ACKED/FAILED");
+        String migration = readRepositoryFile("sql/migrations/V20260426_008__dispatch_event_state_machine.sql");
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS dispatch_event");
+        assertContains(migration, "idx_dispatch_event_tenant_status_created");
+        String mapper = readMapper("mapper/DispatchEventMapper.xml");
+        assertContains(mapper, "FROM dispatch_event");
+        assertContains(mapper, "selectByTenantIdAndStatus");
+        assertContains(mapper, "status_history_json");
+    }
+
+    @Test
     void shouldKeepMapperXmlAlignedWithParseBatchTable() throws IOException {
         String mapper = readMapper("mapper/ParseBatchMapper.xml");
         assertContains(mapper, "FROM parse_batch");

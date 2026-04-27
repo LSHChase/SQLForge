@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.DispatchEventMapper">
+
+    <resultMap id="DispatchEventRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.DispatchEventRecord">
+        <id property="dispatchEventId" column="dispatch_event_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="recommendationId" column="recommendation_id"/>
+        <result property="dispatchType" column="dispatch_type"/>
+        <result property="dispatchPayloadJson" column="dispatch_payload_json"/>
+        <result property="targetEngine" column="target_engine"/>
+        <result property="targetDatasource" column="target_datasource"/>
+        <result property="reportCode" column="report_code"/>
+        <result property="logicalObjectKey" column="logical_object_key"/>
+        <result property="status" column="status"/>
+        <result property="pulledBy" column="pulled_by"/>
+        <result property="pulledAt" column="pulled_at"/>
+        <result property="ackedBy" column="acked_by"/>
+        <result property="ackedAt" column="acked_at"/>
+        <result property="failedBy" column="failed_by"/>
+        <result property="failedAt" column="failed_at"/>
+        <result property="resultMessage" column="result_message"/>
+        <result property="statusHistoryJson" column="status_history_json"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        dispatch_event_id, tenant_id, recommendation_id, dispatch_type, dispatch_payload_json,
+        target_engine, target_datasource, report_code, logical_object_key, status, pulled_by,
+        pulled_at, acked_by, acked_at, failed_by, failed_at, result_message, status_history_json,
+        created_by, created_at, updated_at
+    </sql>
+
+    <select id="selectByDispatchEventId" resultMap="DispatchEventRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM dispatch_event
+        WHERE dispatch_event_id = #{dispatchEventId}
+    </select>
+
+    <select id="selectByTenantId" resultMap="DispatchEventRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM dispatch_event
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByTenantIdAndStatus" resultMap="DispatchEventRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM dispatch_event
+        WHERE tenant_id = #{tenantId}
+          AND status = #{status}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.DispatchEventRecord">
+        INSERT INTO dispatch_event (
+            dispatch_event_id, tenant_id, recommendation_id, dispatch_type, dispatch_payload_json,
+            target_engine, target_datasource, report_code, logical_object_key, status, pulled_by,
+            pulled_at, acked_by, acked_at, failed_by, failed_at, result_message, status_history_json,
+            created_by, created_at, updated_at
+        ) VALUES (
+            #{dispatchEventId}, #{tenantId}, #{recommendationId}, #{dispatchType}, #{dispatchPayloadJson},
+            #{targetEngine}, #{targetDatasource}, #{reportCode}, #{logicalObjectKey}, #{status}, #{pulledBy},
+            #{pulledAt}, #{ackedBy}, #{ackedAt}, #{failedBy}, #{failedAt}, #{resultMessage}, #{statusHistoryJson},
+            #{createdBy}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.DispatchEventRecord">
+        UPDATE dispatch_event
+        SET tenant_id = #{tenantId},
+            recommendation_id = #{recommendationId},
+            dispatch_type = #{dispatchType},
+            dispatch_payload_json = #{dispatchPayloadJson},
+            target_engine = #{targetEngine},
+            target_datasource = #{targetDatasource},
+            report_code = #{reportCode},
+            logical_object_key = #{logicalObjectKey},
+            status = #{status},
+            pulled_by = #{pulledBy},
+            pulled_at = #{pulledAt},
+            acked_by = #{ackedBy},
+            acked_at = #{ackedAt},
+            failed_by = #{failedBy},
+            failed_at = #{failedAt},
+            result_message = #{resultMessage},
+            status_history_json = #{statusHistoryJson},
+            created_by = #{createdBy},
+            created_at = #{createdAt},
+            updated_at = #{updatedAt}
+        WHERE dispatch_event_id = #{dispatchEventId}
+    </update>
+</mapper>
