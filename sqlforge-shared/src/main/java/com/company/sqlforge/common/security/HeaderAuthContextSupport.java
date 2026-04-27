@@ -35,7 +35,11 @@ public class HeaderAuthContextSupport {
         validateNotExpired(authEnabled, expiresAt);
 
         RequestContext.set(tenantId, userId, roleCodes, requestId, traceId, authSource, issuedAt, expiresAt);
-        RequestMetadataContext.set(resolveSourceIp(request), resolveUserAgent(request));
+        RequestMetadataContext.set(
+            resolveSourceIp(request),
+            resolveUserAgent(request),
+            resolveAccessChannel(request)
+        );
         response.setHeader(RequestHeaderConstants.REQUEST_ID, requestId);
         response.setHeader(RequestHeaderConstants.TRACE_ID, traceId);
     }
@@ -101,5 +105,10 @@ public class HeaderAuthContextSupport {
     private String resolveUserAgent(HttpServletRequest request) {
         String userAgent = request == null ? null : request.getHeader("User-Agent");
         return userAgent == null || userAgent.trim().isEmpty() ? "UNKNOWN" : userAgent.trim();
+    }
+
+    private String resolveAccessChannel(HttpServletRequest request) {
+        String accessChannel = request == null ? null : request.getHeader(RequestHeaderConstants.ACCESS_CHANNEL);
+        return accessChannel == null || accessChannel.trim().isEmpty() ? null : accessChannel.trim();
     }
 }

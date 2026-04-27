@@ -24,6 +24,9 @@ public final class ProtectedGovernanceRequestSupport {
         headers.set(RequestHeaderConstants.REQUEST_ID, requiredContextValue(RequestContext.getRequestId(), "requestId"));
         headers.set(RequestHeaderConstants.TRACE_ID, requiredContextValue(RequestContext.getTraceId(), "traceId"));
         headers.set(RequestHeaderConstants.AUTH_SOURCE, requiredContextValue(RequestContext.getAuthSource(), "authSource"));
+        if (StringUtils.hasText(RequestMetadataContext.getAccessChannel())) {
+            headers.set(RequestHeaderConstants.ACCESS_CHANNEL, RequestMetadataContext.getAccessChannel());
+        }
         headers.set(RequestHeaderConstants.ISSUED_AT, String.valueOf(RequestContext.getIssuedAt()));
         headers.set(RequestHeaderConstants.EXPIRES_AT, String.valueOf(RequestContext.getExpiresAt()));
         return headers;
@@ -35,6 +38,10 @@ public final class ProtectedGovernanceRequestSupport {
 
     public static String resolveUserAgent(String fallback) {
         return resolveMetadata(RequestMetadataContext.getUserAgent(), fallback);
+    }
+
+    public static String resolveAccessChannel(String fallback) {
+        return resolveMetadata(RequestMetadataContext.getAccessChannel(), fallback);
     }
 
     public static String requiredContextValue(String value, String fieldName) {

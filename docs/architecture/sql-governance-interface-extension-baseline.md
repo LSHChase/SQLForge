@@ -768,3 +768,8 @@ repo-side 基线：
 - `docs/product/sql-governance-platform-implementation-spec.md`
 - `docs/architecture/service-interface-contract-baseline.md`
 - `docs/architecture/sql-governance-data-model-extension.md`
+补充规则：
+
+- 跨服务写治理审计时必须透传规范化 `accessChannel`
+- 推荐通过 `X-Access-Channel` 头在入口链路显式传递
+- 历史兼容调用若未显式声明，则治理侧按 `API` 回填，但未知值必须拒绝

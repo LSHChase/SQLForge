@@ -11,6 +11,7 @@ public final class RequestHeaderConstants {
     public static final String REQUEST_ID = "X-Request-Id";
     public static final String TRACE_ID = "X-Trace-Id";
     public static final String AUTH_SOURCE = "X-Auth-Source";
+    public static final String ACCESS_CHANNEL = "X-Access-Channel";
     public static final String ISSUED_AT = "X-Issued-At";
     public static final String EXPIRES_AT = "X-Expires-At";
 

@@ -17,6 +17,8 @@ import com.company.governance.infrastructure.persistence.mapper.ConfigSnapshotMa
 import com.company.governance.infrastructure.persistence.mapper.ExecutionResultMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
+import com.company.sqlforge.common.access.AccessAuditContract;
+import com.company.sqlforge.common.access.AccessChannel;
 import com.company.sqlforge.common.audit.AuditContext;
 import com.company.sqlforge.common.audit.AuditEvent;
 import com.company.sqlforge.common.config.MessagingMode;
@@ -24,10 +26,13 @@ import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.utils.DateUtils;
 import com.company.sqlforge.common.utils.JsonUtils;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
@@ -140,6 +145,7 @@ public class GovernanceAuditTrailService {
         String userId = requireContextValue(RequestContext.getUserId(), "userId");
         String requestId = requireContextValue(RequestContext.getRequestId(), "requestId");
         String traceId = requireContextValue(RequestContext.getTraceId(), "traceId");
+        AccessAuditContract accessAuditContract = resolveAccessAuditContract(request);
 
         String serviceCode = requireAuditText(request == null ? null : request.getServiceCode(), "serviceCode");
         String operationCode = requireAuditText(request == null ? null : request.getOperationCode(), "operationCode");
@@ -165,14 +171,15 @@ public class GovernanceAuditTrailService {
             request == null ? null : request.getResultId(),
             request == null ? null : request.getHistoryId(),
             request == null ? null : request.getExportId(),
-            request == null ? null : request.getRequestParams(),
+            mergeRequestParams(request == null ? null : request.getRequestParams(), accessAuditContract),
             request == null ? null : request.getResponseSummary(),
             resultStatus,
             elapsedMs
         );
         governanceProtectedPersistenceService.saveAuditLog(auditLogRecord);
         publishAuditEvent(tenantId, userId, requestId, traceId, serviceCode, operationCode, resourceType, resourceId,
-            resultStatus, elapsedMs, sourceIp, userAgent);
+            resultStatus, elapsedMs, accessAuditContract.getAccessChannel().name(), accessAuditContract.getAuthSource(),
+            sourceIp, userAgent);
         LOGGER.info("Persisted governance audit record, auditId={}, serviceCode={}, operationCode={}, status={}",
             auditLogRecord.getId(), serviceCode, operationCode, resultStatus);
         return new AuditWriteResponse(
@@ -214,11 +221,13 @@ public class GovernanceAuditTrailService {
         String traceId = firstNonBlank(RequestContext.getTraceId(), trimToNull(headerValue(request, RequestHeaderConstants.TRACE_ID)), generateFallbackCorrelationId("trace"));
         String roleCodes = trimToNull(headerValue(request, RequestHeaderConstants.ROLE_CODES));
         String authSource = trimToNull(headerValue(request, RequestHeaderConstants.AUTH_SOURCE));
+        AccessChannel accessChannel = resolveAccessChannel(trimToNull(headerValue(request, RequestHeaderConstants.ACCESS_CHANNEL)), authSource);
         String requestUri = request == null ? UNKNOWN_VALUE : request.getRequestURI();
         String userId = firstNonBlank(RequestContext.getUserId(), trimToNull(headerValue(request, RequestHeaderConstants.USER_ID)), UNKNOWN_VALUE);
         Map<String, String> authPayload = new HashMap<String, String>();
         authPayload.put("uri", requestUri);
         authPayload.put("method", request == null ? UNKNOWN_VALUE : request.getMethod());
+        authPayload.put("accessChannel", accessChannel.name());
         authPayload.put("authSource", firstNonBlank(authSource, UNKNOWN_VALUE));
         authPayload.put("roleCodes", firstNonBlank(roleCodes, UNKNOWN_VALUE));
         authPayload.put("sourceIp", resolveSourceIp(request));
@@ -258,6 +267,8 @@ public class GovernanceAuditTrailService {
             0L,
             traceId,
             requestId,
+            accessChannel.name(),
+            firstNonBlank(authSource, UNKNOWN_VALUE),
             resolveSourceIp(request),
             resolveUserAgent(request)
         ));
@@ -275,6 +286,8 @@ public class GovernanceAuditTrailService {
                                    String resourceId,
                                    String resultStatus,
                                    long elapsedMs,
+                                   String accessChannel,
+                                   String authSource,
                                    String sourceIp,
                                    String userAgent) {
         AuditEvent auditEvent = new AuditEvent(
@@ -289,6 +302,8 @@ public class GovernanceAuditTrailService {
             elapsedMs,
             traceId,
             requestId,
+            accessChannel,
+            authSource,
             sourceIp,
             userAgent
         );
@@ -374,6 +389,72 @@ public class GovernanceAuditTrailService {
                 throw invalidAuditReference("exportId", request.getExportId());
             }
         }
+    }
+
+    private AccessAuditContract resolveAccessAuditContract(AuditWriteRequest request) {
+        AccessAuditContract baseline = AccessAuditContract.capture();
+        AccessChannel accessChannel = resolveAccessChannel(
+            request == null ? null : request.getAccessChannel(),
+            request == null ? null : request.getAuthSource()
+        );
+        return new AccessAuditContractView(
+            accessChannel,
+            trimToNull(request == null ? null : request.getAuthSource()),
+            baseline
+        ).toContract();
+    }
+
+    private AccessChannel resolveAccessChannel(String requestAccessChannel, String requestAuthSource) {
+        AccessChannel accessChannel = AccessChannel.fromWireValue(requestAccessChannel);
+        if (accessChannel != null) {
+            return accessChannel;
+        }
+        if (StringUtils.hasText(requestAccessChannel)) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID,
+                HttpStatus.BAD_REQUEST,
+                "accessChannel must be one of PAGE/API/JDBC_AGENT/SDK/CLIENT"
+            );
+        }
+        accessChannel = AccessChannel.fromWireValue(RequestMetadataContext.getAccessChannel());
+        if (accessChannel != null) {
+            return accessChannel;
+        }
+        String authSource = firstNonBlank(trimToNull(requestAuthSource), trimToNull(RequestContext.getAuthSource()), null);
+        return StringUtils.hasText(authSource) ? AccessChannel.API : AccessChannel.API;
+    }
+
+    private String mergeRequestParams(String rawRequestParams, AccessAuditContract accessAuditContract) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("accessChannel", accessAuditContract.getAccessChannel().name());
+        payload.put("authSource", accessAuditContract.getAuthSource());
+        payload.put("tenantId", accessAuditContract.getTenantId());
+        payload.put("userId", accessAuditContract.getUserId());
+        payload.put("roleCodes", accessAuditContract.getRoleCodes());
+        payload.put("requestId", accessAuditContract.getRequestId());
+        payload.put("traceId", accessAuditContract.getTraceId());
+        payload.put("sourceIp", accessAuditContract.getSourceIp());
+        payload.put("userAgent", accessAuditContract.getUserAgent());
+        if (!StringUtils.hasText(rawRequestParams)) {
+            return JsonUtils.toJson(payload);
+        }
+        Map<?, ?> existing = null;
+        try {
+            existing = JsonUtils.fromJson(rawRequestParams, Map.class);
+        } catch (IllegalArgumentException ex) {
+            payload.put("requestPayload", rawRequestParams);
+            return JsonUtils.toJson(payload);
+        }
+        if (existing == null) {
+            payload.put("requestPayload", rawRequestParams);
+            return JsonUtils.toJson(payload);
+        }
+        for (Map.Entry<?, ?> entry : existing.entrySet()) {
+            if (entry.getKey() != null && !payload.containsKey(String.valueOf(entry.getKey()))) {
+                payload.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+        }
+        return JsonUtils.toJson(payload);
     }
 
     private AuditLogRecord buildAuditLogRecord(String tenantId,
@@ -502,5 +583,32 @@ public class GovernanceAuditTrailService {
 
     private String firstNonBlank(String first, String second) {
         return firstNonBlank(first, second, second);
+    }
+
+    private static final class AccessAuditContractView {
+
+        private final AccessChannel accessChannel;
+        private final String authSource;
+        private final AccessAuditContract baseline;
+
+        private AccessAuditContractView(AccessChannel accessChannel, String authSource, AccessAuditContract baseline) {
+            this.accessChannel = accessChannel;
+            this.authSource = authSource;
+            this.baseline = baseline;
+        }
+
+        private AccessAuditContract toContract() {
+            return new AccessAuditContract(
+                accessChannel,
+                StringUtils.hasText(authSource) ? authSource : baseline.getAuthSource(),
+                baseline.getTenantId(),
+                baseline.getUserId(),
+                baseline.getRoleCodes() == null ? Collections.<String>emptyList() : baseline.getRoleCodes(),
+                baseline.getRequestId(),
+                baseline.getTraceId(),
+                baseline.getSourceIp(),
+                baseline.getUserAgent()
+            );
+        }
     }
 }

@@ -16,6 +16,8 @@ public final class AuditEvent {
     private final long elapsedMs;
     private final String traceId;
     private final String requestId;
+    private final String accessChannel;
+    private final String authSource;
     private final String sourceIp;
     private final String userAgent;
 
@@ -30,6 +32,8 @@ public final class AuditEvent {
                       long elapsedMs,
                       String traceId,
                       String requestId,
+                      String accessChannel,
+                      String authSource,
                       String sourceIp,
                       String userAgent) {
         this.occurredAt = occurredAt;
@@ -43,6 +47,8 @@ public final class AuditEvent {
         this.elapsedMs = elapsedMs;
         this.traceId = traceId;
         this.requestId = requestId;
+        this.accessChannel = accessChannel;
+        this.authSource = authSource;
         this.sourceIp = sourceIp;
         this.userAgent = userAgent;
     }
@@ -89,6 +95,14 @@ public final class AuditEvent {
 
     public String getRequestId() {
         return requestId;
+    }
+
+    public String getAccessChannel() {
+        return accessChannel;
+    }
+
+    public String getAuthSource() {
+        return authSource;
     }
 
     public String getSourceIp() {

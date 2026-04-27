@@ -2,6 +2,8 @@ package com.company.sqlforge.common.governance;
 
 public class GovernanceAuditWriteRequest {
 
+    private String accessChannel;
+    private String authSource;
     private String serviceCode;
     private String operationCode;
     private String resourceType;
@@ -17,6 +19,22 @@ public class GovernanceAuditWriteRequest {
     private String exportId;
     private String requestParams;
     private String responseSummary;
+
+    public String getAccessChannel() {
+        return accessChannel;
+    }
+
+    public void setAccessChannel(String accessChannel) {
+        this.accessChannel = accessChannel;
+    }
+
+    public String getAuthSource() {
+        return authSource;
+    }
+
+    public void setAuthSource(String authSource) {
+        this.authSource = authSource;
+    }
 
     public String getServiceCode() {
         return serviceCode;

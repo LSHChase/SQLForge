@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-063: 固化接入来源模型与统一审计契约
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(governance): codify access audit channel contract`
+- Priority: 1
+- Depends on: `D-TASK-062`
+- Scope: `PAGE/API/JDBC_AGENT/SDK/CLIENT` 模型与 access audit 字段统一 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-012` 开放接入与 JDBC Agent
+- Human confirmation point: 若接入来源模型会让未受管入口绕过审计或混淆真实访问来源，需人工确认
+- Data impact: access channel、access audit 与相关 headers/metadata
+- Rollback / recovery: 恢复显式来源分类与统一审计，关闭不明来源入口
+- Validation:
+  - `access contract 测试`
+  - `python3 scripts/foreman.py validate D-TASK-063`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added shared access channel model, propagated X-Access-Channel through protected governance calls, and enforced canonical accessChannel handling in governance audit writes.
+  - Validation evidence: mvn -pl governance -am -Dtest=GovernanceAuditTrailServiceTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl query-execution,sql-optimization -am -DskipTests compile; python3 scripts/foreman.py validate D-TASK-063
+  - Residual risk: Upstream entrypoints still need broader adoption of X-Access-Channel headers to distinguish PAGE/JDBC/SDK/CLIENT beyond the API fallback path.
+  - Next step: Proceed to D-TASK-064 to wire HTTP API baseline around the shared access audit contract.
+
 ### D-TASK-062: 固化“只管理不装数”的协同契约
 
 - Status: done

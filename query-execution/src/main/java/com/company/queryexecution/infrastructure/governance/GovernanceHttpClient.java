@@ -1,6 +1,7 @@
 package com.company.queryexecution.infrastructure.governance;
 
 import com.company.queryexecution.config.QueryExecutionGovernanceProperties;
+import com.company.sqlforge.common.access.AccessAuditContract;
 import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
@@ -75,7 +76,10 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
 
     @Override
     public void writeAudit(QueryExecutionAuditRecord auditRecord) {
+        AccessAuditContract accessAuditContract = AccessAuditContract.capture();
         GovernanceAuditWriteRequest request = new GovernanceAuditWriteRequest();
+        request.setAccessChannel(accessAuditContract.getAccessChannel().name());
+        request.setAuthSource(accessAuditContract.getAuthSource());
         request.setServiceCode(ServiceCodeConstants.QUERY_EXECUTION);
         request.setOperationCode(auditRecord.getOperationCode());
         request.setResourceType(auditRecord.getResourceType());

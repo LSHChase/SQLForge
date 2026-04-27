@@ -36,6 +36,7 @@ import com.company.sqlforge.common.config.MessagingMode;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.security.SensitiveDataCryptoProperties;
 import com.company.sqlforge.common.security.SensitiveDataCryptoService;
@@ -55,6 +56,7 @@ class GovernanceAuditTrailServiceTest {
     void tearDown() {
         AuditContext.clear();
         RequestContext.clear();
+        RequestMetadataContext.clear();
     }
 
     @Test
@@ -88,6 +90,7 @@ class GovernanceAuditTrailServiceTest {
             100L,
             200L
         );
+        RequestMetadataContext.set("127.0.0.1", "JUnit", "jdbc_agent");
         when(configSnapshotMapper.selectById("cfg-001")).thenReturn(new ConfigSnapshotRecord());
         when(executionResultMapper.selectById("res-001")).thenReturn(new ExecutionResultRecord());
         when(queryHistoryMapper.selectById("hist-001")).thenReturn(new QueryHistoryRecord());
@@ -105,6 +108,8 @@ class GovernanceAuditTrailServiceTest {
         request.setResourceId("query-001");
         request.setResultStatus("SUCCESS");
         request.setElapsedMs(42L);
+        request.setAccessChannel("JDBC_AGENT");
+        request.setAuthSource("header");
         request.setSourceIp("127.0.0.1");
         request.setUserAgent("JUnit");
         request.setSagaId("saga-001");
@@ -122,7 +127,7 @@ class GovernanceAuditTrailServiceTest {
         verify(messageProducer).send(
             eq(GovernanceMessagingTopics.AUDIT_EVENT),
             eq("tenant-a"),
-            contains("\"operationCode\":\"QUERY_EXECUTE_SYNC\""),
+            contains("\"accessChannel\":\"JDBC_AGENT\""),
             anyMap()
         );
         ArgumentCaptor<AuditLogRecord> captor = ArgumentCaptor.forClass(AuditLogRecord.class);
@@ -133,6 +138,7 @@ class GovernanceAuditTrailServiceTest {
         assertEquals("hist-001", inserted.getHistoryId());
         assertEquals("exp-001", inserted.getExportId());
         assertEquals("QUERY_EXECUTE_SYNC", inserted.getOperationType());
+        org.junit.jupiter.api.Assertions.assertTrue(inserted.getRequestParams().contains("\"accessChannel\":\"JDBC_AGENT\""));
         org.junit.jupiter.api.Assertions.assertFalse(inserted.getRequestParams().contains("secret-token"));
         org.junit.jupiter.api.Assertions.assertTrue(inserted.getRequestParams().contains("***"));
         org.junit.jupiter.api.Assertions.assertFalse(inserted.getResponseSummary().contains("abc123"));
@@ -222,6 +228,46 @@ class GovernanceAuditTrailServiceTest {
         request.setSourceIp("127.0.0.1");
         request.setUserAgent("JUnit");
         request.setConfigSnapshotId("missing-cfg");
+
+        BizException ex = assertThrows(BizException.class, () -> service.writeAudit(request));
+
+        assertEquals(ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID, ex.getCode());
+    }
+
+    @Test
+    void shouldRejectUnknownAccessChannel() {
+        GovernanceAuditTrailService service = new GovernanceAuditTrailService(
+            protectedPersistenceService(mock(AuditLogMapper.class)),
+            mock(ConfigSnapshotMapper.class),
+            mock(ExecutionResultMapper.class),
+            mock(QueryHistoryMapper.class),
+            mock(ExportRecordMapper.class),
+            mock(MessageQueueRepository.class),
+            mock(MessageProducer.class),
+            databaseMessaging(),
+            auditProperties()
+        );
+        RequestContext.set(
+            "tenant-a",
+            "user-01",
+            Arrays.asList("TENANT_ADMIN"),
+            "request-012",
+            "trace-012",
+            "header",
+            100L,
+            200L
+        );
+
+        AuditWriteRequest request = new AuditWriteRequest();
+        request.setAccessChannel("BATCH_JOB");
+        request.setServiceCode("QUERY_EXECUTION");
+        request.setOperationCode("QUERY_EXECUTE_SYNC");
+        request.setResourceType("SQL_QUERY");
+        request.setResourceId("query-002");
+        request.setResultStatus("FAILED");
+        request.setElapsedMs(7L);
+        request.setSourceIp("127.0.0.1");
+        request.setUserAgent("JUnit");
 
         BizException ex = assertThrows(BizException.class, () -> service.writeAudit(request));
 

@@ -5,6 +5,7 @@ import com.company.governance.application.service.GovernanceAuditTrailService;
 import com.company.sqlforge.common.audit.AuditContext;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.UnauthorizedException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,6 +53,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             validateNotExpired(expiresAt);
 
             RequestContext.set(tenantId, userId, roleCodes, requestId, traceId, authSource, issuedAt, expiresAt);
+            RequestMetadataContext.set(resolveSourceIp(request), resolveUserAgent(request), resolveAccessChannel(request));
             response.setHeader(RequestHeaderConstants.REQUEST_ID, requestId);
             response.setHeader(RequestHeaderConstants.TRACE_ID, traceId);
 
@@ -67,10 +69,12 @@ public class AuthInterceptor implements HandlerInterceptor {
                 governanceAuditTrailService.recordAuthenticationRejected(request, ex);
             } catch (RuntimeException auditEx) {
                 RequestContext.clear();
+                RequestMetadataContext.clear();
                 AuditContext.clear();
                 throw auditEx;
             }
             RequestContext.clear();
+            RequestMetadataContext.clear();
             AuditContext.clear();
             throw ex;
         }
@@ -78,6 +82,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             governanceAuditTrailService.recordAuthenticationAccepted(request);
         } catch (RuntimeException ex) {
             RequestContext.clear();
+            RequestMetadataContext.clear();
             AuditContext.clear();
             throw ex;
         }
@@ -101,6 +106,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             governanceAuditTrailService.recordAuthenticationReleased(request, ex);
         }
         RequestContext.clear();
+        RequestMetadataContext.clear();
         AuditContext.clear();
     }
 
@@ -152,5 +158,19 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (authProperties.isEnabled() && expiresAt < System.currentTimeMillis()) {
             throw new UnauthorizedException("Authentication context has expired");
         }
+    }
+
+    private String resolveSourceIp(HttpServletRequest request) {
+        return request == null ? "UNKNOWN" : request.getRemoteAddr();
+    }
+
+    private String resolveUserAgent(HttpServletRequest request) {
+        String userAgent = request == null ? null : request.getHeader("User-Agent");
+        return userAgent == null || userAgent.trim().isEmpty() ? "UNKNOWN" : userAgent.trim();
+    }
+
+    private String resolveAccessChannel(HttpServletRequest request) {
+        String accessChannel = request == null ? null : request.getHeader(RequestHeaderConstants.ACCESS_CHANNEL);
+        return accessChannel == null || accessChannel.trim().isEmpty() ? null : accessChannel.trim();
     }
 }

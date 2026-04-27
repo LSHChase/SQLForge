@@ -8,7 +8,11 @@ public final class RequestMetadataContext {
     }
 
     public static void set(String sourceIp, String userAgent) {
-        HOLDER.set(new RequestMetadata(sourceIp, userAgent));
+        set(sourceIp, userAgent, null);
+    }
+
+    public static void set(String sourceIp, String userAgent, String accessChannel) {
+        HOLDER.set(new RequestMetadata(sourceIp, userAgent, accessChannel));
     }
 
     public static String getSourceIp() {
@@ -21,6 +25,11 @@ public final class RequestMetadataContext {
         return metadata == null ? null : metadata.getUserAgent();
     }
 
+    public static String getAccessChannel() {
+        RequestMetadata metadata = HOLDER.get();
+        return metadata == null ? null : metadata.getAccessChannel();
+    }
+
     public static void clear() {
         HOLDER.remove();
     }
@@ -29,10 +38,12 @@ public final class RequestMetadataContext {
 
         private final String sourceIp;
         private final String userAgent;
+        private final String accessChannel;
 
-        private RequestMetadata(String sourceIp, String userAgent) {
+        private RequestMetadata(String sourceIp, String userAgent, String accessChannel) {
             this.sourceIp = sourceIp;
             this.userAgent = userAgent;
+            this.accessChannel = accessChannel;
         }
 
         private String getSourceIp() {
@@ -41,6 +52,10 @@ public final class RequestMetadataContext {
 
         private String getUserAgent() {
             return userAgent;
+        }
+
+        private String getAccessChannel() {
+            return accessChannel;
         }
     }
 }
