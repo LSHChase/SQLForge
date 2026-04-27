@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-028: 落地开放接入页与 JDBC Agent / SDK 展示
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): add access governance center`
+- Priority: 1
+- Depends on: `E-TASK-027`,`D-TASK-068`
+- Scope: API、JDBC Agent、SDK、接入策略和接入审计展示页 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-011` 压测中心与开放接入页
+- Human confirmation point: 若开放接入页会把 JDBC Agent 全模式、SDK 或真实接口联通写成既有事实，需人工确认
+- Data impact: 开放接入页、接入策略和文案
+- Rollback / recovery: 恢复到契约/规划态展示，明确当前落地阶段
+- Validation:
+  - `npm run lint`、`npm run build`、access page contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-028`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added the open-access governance page with API, JDBC Agent, Java SDK, and access-audit sample views.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-028 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-access-page-contract.mjs'
+  - Residual risk: The page still marks dedicated access-audit controller support as absent and relies on query-history samples for audit evidence.
+  - Next step: Close out the remaining dashboard, alert, and system tasks.
+
 ### E-TASK-027: 落地压测任务、模板、测试集与报告页
 
 - Status: done
