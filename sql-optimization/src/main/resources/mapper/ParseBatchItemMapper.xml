@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.ParseBatchItemMapper">
+
+    <resultMap id="ParseBatchItemRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ParseBatchItemRecord">
+        <id property="itemId" column="item_id"/>
+        <result property="batchId" column="batch_id"/>
+        <result property="sequenceNumber" column="sequence_number"/>
+        <result property="reportCode" column="report_code"/>
+        <result property="reportName" column="report_name"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="stage" column="stage"/>
+        <result property="bizDate" column="biz_date"/>
+        <result property="priority" column="priority"/>
+        <result property="owner" column="owner"/>
+        <result property="tags" column="tags"/>
+        <result property="sqlText" column="sql_text"/>
+        <result property="sqlTemplateText" column="sql_template_text"/>
+        <result property="bindParametersJson" column="bind_parameters_json"/>
+        <result property="bindingMode" column="binding_mode"/>
+        <result property="status" column="status"/>
+        <result property="parseTaskId" column="parse_task_id"/>
+        <result property="structureSyntaxStatus" column="structure_syntax_status"/>
+        <result property="accessServiceStatus" column="access_service_status"/>
+        <result property="accessConnectionStatus" column="access_connection_status"/>
+        <result property="failureReason" column="failure_reason"/>
+        <result property="issueScenesJson" column="issue_scenes_json"/>
+        <result property="logicalObjectKeysJson" column="logical_object_keys_json"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        item_id,
+        batch_id,
+        sequence_number,
+        report_code,
+        report_name,
+        datasource_code,
+        stage,
+        biz_date,
+        priority,
+        owner,
+        tags,
+        sql_text,
+        sql_template_text,
+        bind_parameters_json,
+        binding_mode,
+        status,
+        parse_task_id,
+        structure_syntax_status,
+        access_service_status,
+        access_connection_status,
+        failure_reason,
+        issue_scenes_json,
+        logical_object_keys_json,
+        created_at,
+        updated_at
+    </sql>
+
+    <select id="selectByItemId" resultMap="ParseBatchItemRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM parse_batch_item
+        WHERE item_id = #{itemId}
+    </select>
+
+    <select id="selectByBatchId" resultMap="ParseBatchItemRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM parse_batch_item
+        WHERE batch_id = #{batchId}
+        ORDER BY sequence_number ASC
+    </select>
+
+    <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ParseBatchItemRecord">
+        INSERT INTO parse_batch_item (
+            item_id, batch_id, sequence_number, report_code, report_name, datasource_code,
+            stage, biz_date, priority, owner, tags, sql_text, sql_template_text,
+            bind_parameters_json, binding_mode, status, parse_task_id, structure_syntax_status,
+            access_service_status, access_connection_status, failure_reason, issue_scenes_json,
+            logical_object_keys_json, created_at, updated_at
+        ) VALUES (
+            #{itemId}, #{batchId}, #{sequenceNumber}, #{reportCode}, #{reportName}, #{datasourceCode},
+            #{stage}, #{bizDate}, #{priority}, #{owner}, #{tags}, #{sqlText}, #{sqlTemplateText},
+            #{bindParametersJson}, #{bindingMode}, #{status}, #{parseTaskId}, #{structureSyntaxStatus},
+            #{accessServiceStatus}, #{accessConnectionStatus}, #{failureReason}, #{issueScenesJson},
+            #{logicalObjectKeysJson}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ParseBatchItemRecord">
+        UPDATE parse_batch_item
+        SET batch_id = #{batchId},
+            sequence_number = #{sequenceNumber},
+            report_code = #{reportCode},
+            report_name = #{reportName},
+            datasource_code = #{datasourceCode},
+            stage = #{stage},
+            biz_date = #{bizDate},
+            priority = #{priority},
+            owner = #{owner},
+            tags = #{tags},
+            sql_text = #{sqlText},
+            sql_template_text = #{sqlTemplateText},
+            bind_parameters_json = #{bindParametersJson},
+            binding_mode = #{bindingMode},
+            status = #{status},
+            parse_task_id = #{parseTaskId},
+            structure_syntax_status = #{structureSyntaxStatus},
+            access_service_status = #{accessServiceStatus},
+            access_connection_status = #{accessConnectionStatus},
+            failure_reason = #{failureReason},
+            issue_scenes_json = #{issueScenesJson},
+            logical_object_keys_json = #{logicalObjectKeysJson},
+            created_at = #{createdAt},
+            updated_at = #{updatedAt}
+        WHERE item_id = #{itemId}
+    </update>
+</mapper>

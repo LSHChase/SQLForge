@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-051: 落地 SQL/表格批量导入解析
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): add stable batch parse ingestion`
+- Priority: 1
+- Depends on: `D-TASK-050`
+- Scope: 稳定支持 `xlsx/csv/txt/sql` 导入与结构解析/access parse 编排 Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-009` 批量解析与报表清单解析
+- Human confirmation point: 若稳定格式导入解析会在失败时丢失原始记录、绕过审计或把 access parse 强制为同步阻断，需人工确认
+- Data impact: 批量导入记录、parse task 批次编排与失败记录
+- Rollback / recovery: 恢复结构解析优先与失败留痕，不删除原始批次记录
+- Validation:
+  - `import parsing 测试`
+  - `python3 scripts/foreman.py validate D-TASK-051`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented stable xlsx/csv/txt/sql batch ingestion with parse_batch_item persistence, structure/access orchestration, retry-access baseline, and batch detail statistics.
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=ParseBatchApplicationServiceTest,ParseBatchControllerTest,ParseBatchPersistenceSchemaMappingTest,AccessParseControllerTest,StructureParseControllerTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-051; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: XLS/ET compatibility and report-catalog resolution remain in later tasks; current ingest path assumes header-based tabular payloads and Base64 submission.
+  - Next step: Instantiate D-TASK-052 to extend xls/et compatibility and stable failure guidance.
+
 ### D-TASK-050: 建立批量解析批次模型与模板契约
 
 - Status: done

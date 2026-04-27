@@ -586,6 +586,38 @@ CREATE TABLE IF NOT EXISTS parse_batch (
   KEY idx_parse_batch_tenant_mode (tenant_id, import_mode, file_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Bulk parse batch contract baseline';
 
+CREATE TABLE IF NOT EXISTS parse_batch_item (
+  item_id VARCHAR(64) NOT NULL COMMENT 'Parse batch item identifier',
+  batch_id VARCHAR(64) NOT NULL COMMENT 'Owning parse batch identifier',
+  sequence_number INT NOT NULL COMMENT '1-based sequence number inside the uploaded batch',
+  report_code VARCHAR(128) DEFAULT NULL COMMENT 'Optional report code carried into governance context',
+  report_name VARCHAR(255) DEFAULT NULL COMMENT 'Optional report display name',
+  datasource_code VARCHAR(128) DEFAULT NULL COMMENT 'Datasource code resolved for this row',
+  stage VARCHAR(32) DEFAULT NULL COMMENT 'Stage metadata such as DEV/UAT/PROD',
+  biz_date VARCHAR(32) DEFAULT NULL COMMENT 'Execution date metadata',
+  priority VARCHAR(32) DEFAULT NULL COMMENT 'Priority hint',
+  owner VARCHAR(128) DEFAULT NULL COMMENT 'Owner metadata',
+  tags VARCHAR(255) DEFAULT NULL COMMENT 'Free-form tags',
+  sql_text MEDIUMTEXT NOT NULL COMMENT 'Resolved SQL text',
+  sql_template_text MEDIUMTEXT DEFAULT NULL COMMENT 'Prepared SQL template text',
+  bind_parameters_json JSON DEFAULT NULL COMMENT 'Masked bind parameter payload',
+  binding_mode VARCHAR(32) DEFAULT NULL COMMENT 'Binding mode such as POSITIONAL/NAMED',
+  status VARCHAR(32) NOT NULL COMMENT 'Terminal item status',
+  parse_task_id VARCHAR(64) DEFAULT NULL COMMENT 'Structure/access parse task identifier',
+  structure_syntax_status VARCHAR(32) DEFAULT NULL COMMENT 'Structure parse syntax status',
+  access_service_status VARCHAR(32) DEFAULT NULL COMMENT 'Access parse provider status',
+  access_connection_status VARCHAR(32) DEFAULT NULL COMMENT 'Access parse connection status',
+  failure_reason VARCHAR(128) DEFAULT NULL COMMENT 'Failure or degrade reason',
+  issue_scenes_json JSON DEFAULT NULL COMMENT 'Issue scene summary payload',
+  logical_object_keys_json JSON DEFAULT NULL COMMENT 'Logical object hit summary payload',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+  PRIMARY KEY (item_id),
+  KEY idx_parse_batch_item_batch_seq (batch_id, sequence_number),
+  KEY idx_parse_batch_item_batch_status (batch_id, status),
+  KEY idx_parse_batch_item_report (batch_id, report_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Bulk parse batch imported records and parse evidence';
+
 CREATE TABLE IF NOT EXISTS system_config (
   config_key VARCHAR(128) NOT NULL COMMENT 'System configuration key',
   config_value VARCHAR(512) DEFAULT NULL COMMENT 'Non-sensitive system configuration value only',

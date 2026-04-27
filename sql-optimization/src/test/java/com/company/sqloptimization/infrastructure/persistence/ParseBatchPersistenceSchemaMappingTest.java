@@ -33,6 +33,21 @@ class ParseBatchPersistenceSchemaMappingTest {
     }
 
     @Test
+    void shouldKeepParseBatchItemSchemaAndMigrationAligned() throws IOException {
+        String schema = readRepositoryFile("sql/init-schema.sql");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS parse_batch_item");
+        assertContains(schema, "sequence_number INT NOT NULL");
+        assertContains(schema, "issue_scenes_json JSON");
+        String migration = readRepositoryFile("sql/migrations/V20260426_005__parse_batch_ingestion.sql");
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS parse_batch_item");
+        assertContains(migration, "logical_object_keys_json JSON");
+        String mapper = readMapper("mapper/ParseBatchItemMapper.xml");
+        assertContains(mapper, "FROM parse_batch_item");
+        assertContains(mapper, "sequence_number");
+        assertContains(mapper, "access_service_status");
+    }
+
+    @Test
     void shouldKeepMapperXmlAlignedWithParseBatchTable() throws IOException {
         String mapper = readMapper("mapper/ParseBatchMapper.xml");
         assertContains(mapper, "FROM parse_batch");

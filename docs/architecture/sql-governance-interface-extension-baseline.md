@@ -406,7 +406,25 @@
 - `createdAt`
 - `updatedAt`
 
-### 5.2 Parse Batch Detail
+### 5.2 Ingest Parse Batch Payload
+
+- `POST /api/sql-optimization/parse-batches/{batchId}/ingest`
+
+字段：
+
+- `fileName`
+- `contentBase64`
+- `charset`
+
+当前 repo-side 基线：
+
+- 稳定支持 `xlsx/csv/txt/sql`
+- `contentBase64` 由接入方自行编码
+- `SQL_FILE` 模式按 SQL 语句切分
+- `TABULAR_FILE` 模式要求提供表头并至少包含 `sql_text`
+- 结构解析先跑；当 `structureParseOnly=false` 时再编排 access parse
+
+### 5.3 Parse Batch Detail
 
 - `GET /api/sql-optimization/parse-batches/{batchId}`
 
@@ -422,11 +440,11 @@
 
 当前 repo-side 基线至少冻结：
 
-- `UPLOADED -> VALIDATING -> READY` 状态链
+- `UPLOADED -> VALIDATING -> READY -> RUNNING_STRUCTURE -> RUNNING_ACCESS -> COMPLETED | PARTIAL_COMPLETED | FAILED` 状态链
 - 模板列契约
 - 支持文件类型矩阵
 
-### 5.3 Retry Access Parse for Batch
+### 5.4 Retry Access Parse for Batch
 
 - `POST /api/sql-optimization/parse-batches/{batchId}/retry-access`
 
@@ -436,7 +454,13 @@
 - `datasourceCode`
 - `forceRecheckAvailability`
 
-### 5.4 Report Batch Import
+当前 repo-side 基线：
+
+- 默认仅重试 `PARTIAL_SUCCESS` 的批次记录
+- `failureFilter` 支持 `ALL | UNAVAILABLE | FAILED`
+- `datasourceCode` 可覆盖原批次行上的 datasource 进行补跑
+
+### 5.5 Report Batch Import
 
 - `POST /api/sql-optimization/report-batches/import`
 

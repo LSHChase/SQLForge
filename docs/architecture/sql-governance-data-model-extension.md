@@ -126,6 +126,14 @@
   - 结构化字段：`tenant_id`,`batch_name`,`import_mode`,`source_type`,`file_type`,`template_version`,`datasource_code`,`structure_parse_only`,`status`,`total_records`,`success_records`,`partial_success_records`,`failed_records`,`structure_parse_success_rate`,`access_parse_success_rate`,`created_by`,`created_at`,`updated_at`
   - JSON 字段：`status_history_json`
   - 追溯键：`tenant_id`,`batch_id`,`report_code`,`datasource_code`
+- `parse_batch_item`
+  - 所属服务：`sql-optimization`
+  - 主键：`item_id`
+  - 外键语义：`batch_id -> parse_batch.batch_id`
+  - 结构化字段：`batch_id`,`sequence_number`,`report_code`,`report_name`,`datasource_code`,`stage`,`biz_date`,`priority`,`owner`,`tags`,`status`,`parse_task_id`,`structure_syntax_status`,`access_service_status`,`access_connection_status`,`failure_reason`,`binding_mode`,`created_at`,`updated_at`
+  - 大文本字段：`sql_text`,`sql_template_text`
+  - JSON 字段：`bind_parameters_json`,`issue_scenes_json`,`logical_object_keys_json`
+  - 追溯键：`tenant_id(经 batch 间接关联)`,`batch_id`,`item_id`,`report_code`,`parse_task_id`,`datasource_code`
 
 ## 5. Traceability Keys
 

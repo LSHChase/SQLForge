@@ -141,6 +141,24 @@ public class ParseBatch {
         this.statusHistory.add(new ParseBatchStatusTransition(previous, nextStatus, occurredAt, note));
     }
 
+    public void applyRunSummary(int totalRecords,
+                                int successRecords,
+                                int partialSuccessRecords,
+                                int failedRecords,
+                                Double structureParseSuccessRate,
+                                Double accessParseSuccessRate,
+                                ParseBatchStatus terminalStatus,
+                                Instant occurredAt,
+                                String note) {
+        this.totalRecords = totalRecords;
+        this.successRecords = successRecords;
+        this.partialSuccessRecords = partialSuccessRecords;
+        this.failedRecords = failedRecords;
+        this.structureParseSuccessRate = structureParseSuccessRate;
+        this.accessParseSuccessRate = accessParseSuccessRate;
+        transitionTo(terminalStatus, occurredAt, note);
+    }
+
     public String getBatchId() { return batchId; }
     public String getTenantId() { return tenantId; }
     public String getBatchName() { return batchName; }

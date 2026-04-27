@@ -24,6 +24,12 @@ public class ParseBatchStatusResponse {
     private List<String> supportedFileTypes;
     private List<ParseBatchTemplateColumnVO> templateColumns;
     private List<ParseBatchStatusHistoryVO> statusHistory;
+    private List<ParseBatchItemVO> importedRecords;
+    private List<ParseBatchItemVO> failureRecords;
+    private ParseBatchStageStatisticsVO structureParseStatistics;
+    private ParseBatchStageStatisticsVO accessParseStatistics;
+    private List<ParseBatchIssueStatisticVO> issueStatistics;
+    private List<ParseBatchReportStatisticVO> reportStatistics;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -65,6 +71,18 @@ public class ParseBatchStatusResponse {
     public void setTemplateColumns(List<ParseBatchTemplateColumnVO> templateColumns) { this.templateColumns = templateColumns; }
     public List<ParseBatchStatusHistoryVO> getStatusHistory() { return statusHistory; }
     public void setStatusHistory(List<ParseBatchStatusHistoryVO> statusHistory) { this.statusHistory = statusHistory; }
+    public List<ParseBatchItemVO> getImportedRecords() { return importedRecords; }
+    public void setImportedRecords(List<ParseBatchItemVO> importedRecords) { this.importedRecords = importedRecords; }
+    public List<ParseBatchItemVO> getFailureRecords() { return failureRecords; }
+    public void setFailureRecords(List<ParseBatchItemVO> failureRecords) { this.failureRecords = failureRecords; }
+    public ParseBatchStageStatisticsVO getStructureParseStatistics() { return structureParseStatistics; }
+    public void setStructureParseStatistics(ParseBatchStageStatisticsVO structureParseStatistics) { this.structureParseStatistics = structureParseStatistics; }
+    public ParseBatchStageStatisticsVO getAccessParseStatistics() { return accessParseStatistics; }
+    public void setAccessParseStatistics(ParseBatchStageStatisticsVO accessParseStatistics) { this.accessParseStatistics = accessParseStatistics; }
+    public List<ParseBatchIssueStatisticVO> getIssueStatistics() { return issueStatistics; }
+    public void setIssueStatistics(List<ParseBatchIssueStatisticVO> issueStatistics) { this.issueStatistics = issueStatistics; }
+    public List<ParseBatchReportStatisticVO> getReportStatistics() { return reportStatistics; }
+    public void setReportStatistics(List<ParseBatchReportStatisticVO> reportStatistics) { this.reportStatistics = reportStatistics; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

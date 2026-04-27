@@ -262,6 +262,12 @@
 - 报表 SQL 获取策略：
   - 一期：从 txt / mock source 模拟
   - 后续：由 `governance` 配置接口，`sql-optimization` 调用
+- repo-side 稳定导入执行链：
+  - 先创建批次元数据
+  - 再提交 `contentBase64` 批次载荷
+  - 系统生成导入记录与失败记录
+  - 结构解析优先执行
+  - 若 `structureParseOnly=false`，再编排数据访问解析
 
 #### 4.4.3 解析结果中心
 

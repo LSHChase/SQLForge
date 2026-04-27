@@ -1,6 +1,8 @@
 package com.company.sqloptimization.application.controller;
 
 import com.company.sqloptimization.application.controller.dto.ParseBatchCreateRequest;
+import com.company.sqloptimization.application.controller.dto.ParseBatchIngestRequest;
+import com.company.sqloptimization.application.controller.dto.ParseBatchRetryAccessRequest;
 import com.company.sqloptimization.application.controller.vo.ParseBatchStatusResponse;
 import com.company.sqloptimization.application.service.ParseBatchApplicationService;
 import javax.validation.Valid;
@@ -26,8 +28,20 @@ public class ParseBatchController {
         return parseBatchApplicationService.createBatch(request);
     }
 
+    @PostMapping("/{batchId}/ingest")
+    public ParseBatchStatusResponse ingestBatch(@PathVariable("batchId") String batchId,
+                                                @Valid @RequestBody ParseBatchIngestRequest request) {
+        return parseBatchApplicationService.ingestBatch(batchId, request);
+    }
+
     @GetMapping("/{batchId}")
     public ParseBatchStatusResponse getBatch(@PathVariable("batchId") String batchId) {
         return parseBatchApplicationService.getBatch(batchId);
+    }
+
+    @PostMapping("/{batchId}/retry-access")
+    public ParseBatchStatusResponse retryAccess(@PathVariable("batchId") String batchId,
+                                                @RequestBody(required = false) ParseBatchRetryAccessRequest request) {
+        return parseBatchApplicationService.retryAccess(batchId, request);
     }
 }
