@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
+import CapabilityPlaceholderDialog from '../common/CapabilityPlaceholderDialog.vue'
 import {
   formatRuntimeError,
   getGovernanceQueryHistoryDetail,
@@ -31,6 +32,13 @@ const traceDetail = ref(null)
 const historyDetail = ref(null)
 const detailDialogVisible = ref(false)
 const rawDrawerVisible = ref(false)
+const placeholderDialogVisible = ref(false)
+const placeholderPayload = ref({
+  title: '',
+  capability: '',
+  reason: '',
+  nextStep: ''
+})
 
 const isChinese = computed(() => locale.value === 'zh-CN')
 const policyCards = computed(() => {
@@ -121,6 +129,32 @@ const refreshPage = async () => {
   }
 }
 
+const openPlaceholderAction = actionType => {
+  const config = actionType === 'create'
+    ? {
+        title: isChinese.value ? '新增规则暂不可写' : 'Create-rule action is not writable yet',
+        capability: isChinese.value ? '新增路由规则' : 'Create routing rule',
+        reason: isChinese.value
+          ? '当前仓库仅开放 route-calibration 与 query-history.routeDecision 的只读证据查看，尚未提供路由规则写接口。'
+          : 'The current repository only exposes read-only route-calibration and query-history.routeDecision evidence. No writable routing-rule API is available yet.',
+        nextStep: isChinese.value
+          ? '需要后端新增规则写接口后，再把表单接入该证据页。'
+          : 'Add a backend routing-rule write API before connecting a form here.'
+      }
+    : {
+        title: isChinese.value ? '修改规则暂不可写' : 'Edit-rule action is not writable yet',
+        capability: isChinese.value ? '修改路由规则' : 'Edit routing rule',
+        reason: isChinese.value
+          ? '当前页的职责是执行证据展示，不是前端配置中心；仓库真值也没有提供规则更新接口。'
+          : 'This page is an execution-evidence surface rather than a frontend control plane, and the repository truth does not expose a rule-update API.',
+        nextStep: isChinese.value
+          ? '若后续开放写接口，应先补契约和审计链，再接入编辑动作。'
+          : 'If a writable API is introduced later, wire contract and audit coverage before adding edit actions.'
+      }
+  placeholderPayload.value = config
+  placeholderDialogVisible.value = true
+}
+
 const openDecisionDetail = async traceId => {
   if (!traceId) {
     return
@@ -145,6 +179,10 @@ const openDecisionDetail = async traceId => {
   } finally {
     loading.detail = false
   }
+}
+
+const openEvidenceDetail = () => {
+  rawDrawerVisible.value = true
 }
 
 const openParseRecord = () => {
@@ -216,13 +254,13 @@ onMounted(() => {
   <section class="routing-page" data-testid="routing-page">
     <header class="surface-card page-shell">
       <div>
-        <p class="section-kicker sqlforge-code-label">routing governance</p>
-        <h1 class="section-title">{{ isChinese ? '路由治理与历史决策' : 'Routing governance and decision history' }}</h1>
+        <p class="section-kicker sqlforge-code-label">routing execution evidence</p>
+        <h1 class="section-title">{{ isChinese ? '路由执行证据与历史决策' : 'Routing execution evidence and decision history' }}</h1>
         <p class="section-summary">
           {{
             isChinese
-              ? '首屏保留 calibration 摘要和决策表格，routeDecision 长 JSON 通过弹层下钻。'
-              : 'The landing state keeps calibration summaries and decision tables, while long routeDecision evidence drills down through overlays.'
+              ? '当前页只消费 route-calibration 与 query-history.routeDecision 的只读证据，不再伪装成规则配置中心。'
+              : 'This page only consumes read-only route-calibration and query-history.routeDecision evidence instead of pretending to be a rule-configuration center.'
           }}
         </p>
       </div>
@@ -238,6 +276,15 @@ onMounted(() => {
         <el-button type="primary" :loading="loading.page" data-testid="routing-refresh" @click="refreshPage">
           {{ isChinese ? '刷新路由证据' : 'Refresh routing evidence' }}
         </el-button>
+        <el-button @click="openEvidenceDetail">
+          {{ isChinese ? '查看当前策略来源' : 'View current policy source' }}
+        </el-button>
+        <el-button @click="openPlaceholderAction('create')">
+          {{ isChinese ? '新增规则' : 'Create rule' }}
+        </el-button>
+        <el-button @click="openPlaceholderAction('edit')">
+          {{ isChinese ? '修改规则' : 'Edit rule' }}
+        </el-button>
       </div>
     </header>
 
@@ -248,7 +295,7 @@ onMounted(() => {
         <div class="table-heading" data-testid="routing-current-policy">
           <div>
             <p class="section-kicker sqlforge-code-label">current policy</p>
-            <h2 class="section-title">{{ isChinese ? '当前路由策略' : 'Current routing policy' }}</h2>
+            <h2 class="section-title">{{ isChinese ? '当前策略快照' : 'Current policy snapshot' }}</h2>
           </div>
         </div>
         <div class="detail-grid">
@@ -267,7 +314,7 @@ onMounted(() => {
         <div class="table-heading">
           <div>
             <p class="section-kicker sqlforge-code-label">comment protocol</p>
-            <h2 class="section-title">{{ isChinese ? '注释协议' : 'Comment protocol' }}</h2>
+            <h2 class="section-title">{{ isChinese ? '注释协议摘要' : 'Comment protocol summary' }}</h2>
           </div>
         </div>
         <div class="detail-grid">
@@ -288,7 +335,7 @@ onMounted(() => {
       <div class="table-heading">
         <div>
           <p class="section-kicker sqlforge-code-label">routing-route-decision</p>
-          <h2 class="section-title">{{ isChinese ? '历史决策列表' : 'Decision history table' }}</h2>
+          <h2 class="section-title">{{ isChinese ? '路由决策历史' : 'Routing decision history' }}</h2>
         </div>
       </div>
 
@@ -364,6 +411,14 @@ onMounted(() => {
         </div>
       </div>
     </el-drawer>
+
+    <CapabilityPlaceholderDialog
+      v-model="placeholderDialogVisible"
+      :title="placeholderPayload.title"
+      :capability="placeholderPayload.capability"
+      :reason="placeholderPayload.reason"
+      :next-step="placeholderPayload.nextStep"
+    />
   </section>
 </template>
 

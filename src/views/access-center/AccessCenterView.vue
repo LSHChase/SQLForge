@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import CapabilityPlaceholderDialog from '../common/CapabilityPlaceholderDialog.vue'
 import {
   formatRuntimeError,
   getGovernanceQueryHistoryDetail,
@@ -23,9 +24,16 @@ const activeTab = ref('audit')
 const policyDialogVisible = ref(false)
 const detailDialogVisible = ref(false)
 const rawDrawerVisible = ref(false)
+const placeholderDialogVisible = ref(false)
 const accessAuditPage = ref(null)
 const selectedHistoryDetail = ref(null)
 const errorMessage = ref('')
+const placeholderPayload = ref({
+  title: '',
+  capability: '',
+  reason: '',
+  nextStep: ''
+})
 
 const isChinese = computed(() => locale.value === 'zh-CN')
 const accessChannelCards = computed(() => [
@@ -79,6 +87,32 @@ const sdkCards = computed(() => [
 ])
 const auditItems = computed(() => accessAuditPage.value?.items || [])
 const classificationSummary = computed(() => accessAuditPage.value?.classificationSummary || {})
+
+const openPlaceholderAction = actionType => {
+  const config = actionType === 'create'
+    ? {
+        title: isChinese.value ? '新增接入策略暂不可写' : 'Create access strategy is not writable yet',
+        capability: isChinese.value ? '新增接入策略' : 'Create access strategy',
+        reason: isChinese.value
+          ? '当前仓库对开放接入页只暴露 query-history 视角和渠道说明，没有对应的接入策略写接口。'
+          : 'The repository currently exposes only query-history evidence and channel guidance for the access page, without a writable access-strategy API.',
+        nextStep: isChinese.value
+          ? '如需真实新增能力，先补后端策略写接口和审计契约。'
+          : 'Add a backend policy-write API and audit contract before enabling a real create flow.'
+      }
+    : {
+        title: isChinese.value ? '修改策略暂不可写' : 'Edit access strategy is not writable yet',
+        capability: isChinese.value ? '修改接入策略' : 'Edit access strategy',
+        reason: isChinese.value
+          ? '当前页仍以接入证据和渠道语义为主，没有可提交的策略更新后端落点。'
+          : 'This page remains an evidence-first access surface and has no backend destination for submitted strategy updates.',
+        nextStep: isChinese.value
+          ? '后续开放写接口时，再把表单和列表明细接入这里。'
+          : 'Connect forms and row-level editing here only after a writable API is introduced.'
+      }
+  placeholderPayload.value = config
+  placeholderDialogVisible.value = true
+}
 
 const refreshAudit = async () => {
   loading.page = true
@@ -182,6 +216,12 @@ onMounted(() => {
         </label>
         <el-button type="primary" :loading="loading.page" data-testid="access-refresh" @click="refreshAudit">
           {{ isChinese ? '刷新接入证据' : 'Refresh access evidence' }}
+        </el-button>
+        <el-button @click="openPlaceholderAction('create')">
+          {{ isChinese ? '新增接入策略' : 'Create access strategy' }}
+        </el-button>
+        <el-button @click="openPlaceholderAction('edit')">
+          {{ isChinese ? '修改策略' : 'Edit strategy' }}
         </el-button>
         <el-button @click="policyDialogVisible = true">{{ isChinese ? '边界说明' : 'Boundary help' }}</el-button>
       </div>
@@ -344,6 +384,14 @@ onMounted(() => {
         </div>
       </div>
     </el-dialog>
+
+    <CapabilityPlaceholderDialog
+      v-model="placeholderDialogVisible"
+      :title="placeholderPayload.title"
+      :capability="placeholderPayload.capability"
+      :reason="placeholderPayload.reason"
+      :next-step="placeholderPayload.nextStep"
+    />
   </section>
 </template>
 

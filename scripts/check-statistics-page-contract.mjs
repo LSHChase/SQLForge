@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const root = process.cwd()
-const viewPath = path.join(root, 'src/views/parse-statistics/ParseStatisticsCenterView.vue')
+const viewPath = path.join(root, 'src/views/optimization/AccelerationView.vue')
 const source = fs.readFileSync(viewPath, 'utf8')
 
 const requiredTokens = [

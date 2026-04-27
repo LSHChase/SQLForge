@@ -8,12 +8,16 @@ const targets = [
       'data-testid="routing-current-policy"',
       'routing-route-decision',
       'data-testid="routing-comment-protocol"',
+      'routing execution evidence',
       'engineHint',
       'effectiveRouteOrder',
       'readonlyBoundary',
       'routeDecision',
       'recommendationRefs',
-      'Open parse-record page'
+      'Open parse-record page',
+      'View current policy source',
+      'Create rule',
+      'Edit rule'
     ]
   },
   {

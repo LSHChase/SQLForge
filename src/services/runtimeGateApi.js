@@ -607,6 +607,30 @@ export const getGovernanceDatasources = (tenantId, requestOptions = {}) =>
     }
   })
 
+export const createGovernanceDatasource = (payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: '/api/governance/datasources',
+    data: payload,
+    tenantId: payload.tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-datasource-create',
+      ...requestOptions
+    }
+  })
+
+export const updateGovernanceDatasource = (datasourceId, payload, requestOptions = {}) =>
+  request({
+    method: 'put',
+    url: `/api/governance/datasources/${encodeURIComponent(datasourceId)}`,
+    data: payload,
+    tenantId: payload.tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-datasource-update',
+      ...requestOptions
+    }
+  })
+
 export const getGovernanceDatasourceDetail = (tenantId, datasourceId, requestOptions = {}) =>
   request({
     method: 'get',
@@ -644,6 +668,30 @@ export const getGovernanceReportInterfaces = (tenantId, requestOptions = {}) =>
     }
   })
 
+export const createGovernanceReportInterface = (payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: '/api/governance/report-interfaces',
+    data: payload,
+    tenantId: payload.tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-report-interface-create',
+      ...requestOptions
+    }
+  })
+
+export const updateGovernanceReportInterface = (interfaceId, payload, requestOptions = {}) =>
+  request({
+    method: 'put',
+    url: `/api/governance/report-interfaces/${encodeURIComponent(interfaceId)}`,
+    data: payload,
+    tenantId: payload.tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-report-interface-update',
+      ...requestOptions
+    }
+  })
+
 export const getGovernanceRedisRuleSources = (tenantId, requestOptions = {}) =>
   request({
     method: 'get',
@@ -655,6 +703,30 @@ export const getGovernanceRedisRuleSources = (tenantId, requestOptions = {}) =>
     }
   })
 
+export const createGovernanceRedisRuleSource = (payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: '/api/governance/redis-rule-sources',
+    data: payload,
+    tenantId: payload.tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-redis-rule-source-create',
+      ...requestOptions
+    }
+  })
+
+export const updateGovernanceRedisRuleSource = (sourceId, payload, requestOptions = {}) =>
+  request({
+    method: 'put',
+    url: `/api/governance/redis-rule-sources/${encodeURIComponent(sourceId)}`,
+    data: payload,
+    tenantId: payload.tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-redis-rule-source-update',
+      ...requestOptions
+    }
+  })
+
 export const getGovernanceDispatchPolicies = (tenantId, requestOptions = {}) =>
   request({
     method: 'get',
@@ -662,6 +734,18 @@ export const getGovernanceDispatchPolicies = (tenantId, requestOptions = {}) =>
     tenantId,
     requestOptions: {
       requestPrefix: 'frontend-governance-dispatch-policies',
+      ...requestOptions
+    }
+  })
+
+export const createGovernanceDispatchPolicy = (payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: '/api/governance/dispatch-policies',
+    data: payload,
+    tenantId: payload.tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-dispatch-policy-create',
       ...requestOptions
     }
   })

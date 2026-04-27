@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { ROUTE_PATHS } from './config/routePaths.mjs'
+import { deliveryProgressEnabled } from './config/runtimeFlags'
 import { useGlobalConfigStore, useTenantStore, useUserStore } from './stores'
 
 const route = useRoute()
@@ -13,129 +14,145 @@ const userStore = useUserStore()
 
 const navLabel = value => (locale.value === 'zh-CN' ? value.zh : value.en)
 const itemLabel = item => navLabel(item.menuLabel || { zh: t(item.titleKey), en: t(item.titleKey) })
-
-const navigationTree = computed(() => [
-  {
-    key: 'dashboard',
-    label: { zh: 'Dashboard', en: 'Dashboard' },
-    directItem: {
-      path: ROUTE_PATHS.dashboard,
-      titleKey: 'dashboard.title',
-      menuLabel: { zh: '总览首页', en: 'Overview home' }
-    }
-  },
-  {
-    key: 'sql-query',
-    label: { zh: 'SQL 查询', en: 'SQL Query' },
-    directItem: {
-      path: ROUTE_PATHS.sqlQuery,
-      titleKey: 'sqlQuery.title',
-      menuLabel: { zh: '查询工作台', en: 'SQL workbench' }
-    }
-  },
-  {
-    key: 'sql-history',
-    label: { zh: 'SQL 历史', en: 'SQL History' },
-    sections: [
-      {
-        key: 'history',
-        label: { zh: '历史列表', en: 'History list' },
-        items: [{ path: ROUTE_PATHS.parseRecord, titleKey: 'parseRecord.title', menuLabel: { zh: '历史列表', en: 'History list' } }]
-      },
-      {
-        key: 'forensics',
-        label: { zh: '取证与修复', en: 'Forensics and repair' },
-        items: [
-          { path: ROUTE_PATHS.repairEvidence, titleKey: 'repairEvidence.title', menuLabel: { zh: '修复证据', en: 'Repair evidence' } },
-          { path: ROUTE_PATHS.auditForensics, titleKey: 'auditForensics.title', menuLabel: { zh: '审计取证', en: 'Audit forensics' } }
-        ]
-      }
-    ]
-  },
-  {
-    key: 'parse-acceleration',
-    label: { zh: '解析与加速', en: 'Parsing and Acceleration' },
-    sections: [
-      {
-        key: 'parse',
-        label: { zh: '解析工作流', en: 'Parsing workflow' },
-        items: [
-          { path: ROUTE_PATHS.acceleration, titleKey: 'acceleration.title', menuLabel: { zh: '解析工作台', en: 'Parse workbench' } },
-          { path: ROUTE_PATHS.parseBatchCenter, titleKey: 'parseBatchCenter.title', menuLabel: { zh: '批量解析', en: 'Batch parsing' } },
-          { path: ROUTE_PATHS.parseStatisticsCenter, titleKey: 'parseStatisticsCenter.title', menuLabel: { zh: '结果中心', en: 'Result center' } }
-        ]
-      },
-      {
-        key: 'rewrite',
-        label: { zh: '改写与推荐', en: 'Rewrite and recommendation' },
-        items: [{ path: ROUTE_PATHS.recommendationCenter, titleKey: 'recommendationCenter.title', menuLabel: { zh: '推荐中心', en: 'Recommendation center' } }]
-      }
-    ]
-  },
-  {
-    key: 'routing',
-    label: { zh: '路由治理', en: 'Routing Governance' },
-    directItem: {
-      path: ROUTE_PATHS.routingGovernance,
-      titleKey: 'routingGovernance.title',
-      menuLabel: { zh: '路由治理', en: 'Routing governance' }
-    }
-  },
-  {
-    key: 'assets',
-    label: { zh: '数据资产', en: 'Data Assets' },
-    directItem: {
-      path: ROUTE_PATHS.assetCatalog,
-      titleKey: 'assetCatalog.title',
-      menuLabel: { zh: '资产目录', en: 'Asset catalog' }
-    }
-  },
-  {
-    key: 'benchmark',
-    label: { zh: '压测中心', en: 'Benchmark Center' },
-    directItem: {
-      path: ROUTE_PATHS.benchmark,
-      titleKey: 'benchmark.title',
-      menuLabel: { zh: '压测工作台', en: 'Benchmark workbench' }
-    }
-  },
-  {
-    key: 'system',
-    label: { zh: '系统管理', en: 'System Management' },
-    sections: [
-      {
-        key: 'config',
-        label: { zh: '数据源与接口', en: 'Datasources and interfaces' },
-        items: [{ path: ROUTE_PATHS.system, titleKey: 'system.title', menuLabel: { zh: '系统管理', en: 'System management' } }]
-      },
-      {
-        key: 'alerts',
-        label: { zh: '告警与处置', en: 'Alerts and remediation' },
-        items: [
-          { path: ROUTE_PATHS.alertCenter, titleKey: 'alertCenter.title', menuLabel: { zh: '告警中心', en: 'Alert center' } },
-          { path: ROUTE_PATHS.auditTroubleshooting, titleKey: 'auditTroubleshooting.title', menuLabel: { zh: '故障处置', en: 'Troubleshooting' } }
-        ]
-      },
-      {
-        key: 'runtime',
-        label: { zh: '运行治理', en: 'Runtime governance' },
-        items: [
-          { path: ROUTE_PATHS.runtimeGates, titleKey: 'runtimeGates.title', menuLabel: { zh: '运行时门禁', en: 'Runtime gates' } },
-          { path: ROUTE_PATHS.recoveryDrill, titleKey: 'recoveryDrill.title', menuLabel: { zh: '恢复演练', en: 'Recovery drill' } }
-        ]
-      }
-    ]
-  },
-  {
-    key: 'access',
-    label: { zh: '开放接入', en: 'Open Access' },
-    directItem: {
-      path: ROUTE_PATHS.accessCenter,
-      titleKey: 'accessCenter.title',
-      menuLabel: { zh: '开放接入', en: 'Open access' }
-    }
+const itemBadgeLabel = item => {
+  if (!item?.badge) {
+    return ''
   }
-])
+  return locale.value === 'zh-CN' ? item.badge.zh : item.badge.en
+}
+
+const navigationTree = computed(() => {
+  const tree = [
+    {
+      key: 'dashboard',
+      label: { zh: 'Dashboard', en: 'Dashboard' },
+      directItem: {
+        path: ROUTE_PATHS.dashboard,
+        titleKey: 'dashboard.title',
+        menuLabel: { zh: '总览首页', en: 'Overview home' }
+      }
+    },
+    {
+      key: 'delivery-progress',
+      label: { zh: 'AI 交付', en: 'AI Delivery' },
+      directItem: {
+        path: ROUTE_PATHS.deliveryProgress,
+        titleKey: 'deliveryProgress.title',
+        menuLabel: { zh: 'AI 交付工作台', en: 'AI delivery workbench' },
+        badge: { zh: '临时', en: 'R&D' }
+      }
+    },
+    {
+      key: 'sql-query',
+      label: { zh: 'SQL 查询', en: 'SQL Query' },
+      directItem: {
+        path: ROUTE_PATHS.sqlQuery,
+        titleKey: 'sqlQuery.title',
+        menuLabel: { zh: '查询工作台', en: 'SQL workbench' }
+      }
+    },
+    {
+      key: 'sql-history',
+      label: { zh: 'SQL 历史', en: 'SQL History' },
+      sections: [
+        {
+          key: 'history',
+          label: { zh: '历史列表', en: 'History list' },
+          items: [{ path: ROUTE_PATHS.parseRecord, titleKey: 'parseRecord.title', menuLabel: { zh: '历史列表', en: 'History list' } }]
+        },
+        {
+          key: 'forensics',
+          label: { zh: '取证与修复', en: 'Forensics and repair' },
+          items: [
+            { path: ROUTE_PATHS.repairEvidence, titleKey: 'repairEvidence.title', menuLabel: { zh: '修复证据', en: 'Repair evidence' } },
+            { path: ROUTE_PATHS.auditForensics, titleKey: 'auditForensics.title', menuLabel: { zh: '审计取证', en: 'Audit forensics' } }
+          ]
+        }
+      ]
+    },
+    {
+      key: 'parse-acceleration',
+      label: { zh: '解析与加速', en: 'Parsing and Acceleration' },
+      sections: [
+        {
+          key: 'parse',
+          label: { zh: '解析主链', en: 'Parsing mainline' },
+          items: [{ path: ROUTE_PATHS.acceleration, titleKey: 'acceleration.title', menuLabel: { zh: '解析工作台', en: 'Parse workbench' } }]
+        },
+        {
+          key: 'rewrite',
+          label: { zh: '改写与推荐', en: 'Rewrite and recommendation' },
+          items: [{ path: ROUTE_PATHS.recommendationCenter, titleKey: 'recommendationCenter.title', menuLabel: { zh: '推荐中心', en: 'Recommendation center' } }]
+        }
+      ]
+    },
+    {
+      key: 'routing',
+      label: { zh: '路由证据', en: 'Routing Evidence' },
+      directItem: {
+        path: ROUTE_PATHS.routingGovernance,
+        titleKey: 'routingGovernance.title',
+        menuLabel: { zh: '路由执行证据', en: 'Routing execution evidence' }
+      }
+    },
+    {
+      key: 'assets',
+      label: { zh: '数据资产', en: 'Data Assets' },
+      directItem: {
+        path: ROUTE_PATHS.assetCatalog,
+        titleKey: 'assetCatalog.title',
+        menuLabel: { zh: '资产目录', en: 'Asset catalog' }
+      }
+    },
+    {
+      key: 'benchmark',
+      label: { zh: '压测中心', en: 'Benchmark Center' },
+      directItem: {
+        path: ROUTE_PATHS.benchmark,
+        titleKey: 'benchmark.title',
+        menuLabel: { zh: '压测工作台', en: 'Benchmark workbench' }
+      }
+    },
+    {
+      key: 'system',
+      label: { zh: '系统管理', en: 'System Management' },
+      sections: [
+        {
+          key: 'config',
+          label: { zh: '数据源与接口', en: 'Datasources and interfaces' },
+          items: [{ path: ROUTE_PATHS.system, titleKey: 'system.title', menuLabel: { zh: '系统管理', en: 'System management' } }]
+        },
+        {
+          key: 'alerts',
+          label: { zh: '告警与处置', en: 'Alerts and remediation' },
+          items: [
+            { path: ROUTE_PATHS.alertCenter, titleKey: 'alertCenter.title', menuLabel: { zh: '告警中心', en: 'Alert center' } },
+            { path: ROUTE_PATHS.auditTroubleshooting, titleKey: 'auditTroubleshooting.title', menuLabel: { zh: '故障处置', en: 'Troubleshooting' } }
+          ]
+        },
+        {
+          key: 'runtime',
+          label: { zh: '运行治理', en: 'Runtime governance' },
+          items: [
+            { path: ROUTE_PATHS.runtimeGates, titleKey: 'runtimeGates.title', menuLabel: { zh: '运行时门禁', en: 'Runtime gates' } },
+            { path: ROUTE_PATHS.recoveryDrill, titleKey: 'recoveryDrill.title', menuLabel: { zh: '恢复演练', en: 'Recovery drill' } }
+          ]
+        }
+      ]
+    },
+    {
+      key: 'access',
+      label: { zh: '开放接入', en: 'Open Access' },
+      directItem: {
+        path: ROUTE_PATHS.accessCenter,
+        titleKey: 'accessCenter.title',
+        menuLabel: { zh: '开放接入', en: 'Open access' }
+      }
+    }
+  ]
+
+  return deliveryProgressEnabled ? tree : tree.filter(item => item.key !== 'delivery-progress')
+})
 
 const flattenNavItems = tree =>
   tree.flatMap(module => {
@@ -235,7 +252,10 @@ onMounted(() => {
                   class="menu-module-item"
                 >
                   <div class="menu-item-content">
-                    <span class="menu-module-title">{{ navLabel(module.label) }}</span>
+                    <span class="menu-module-title">
+                      {{ navLabel(module.label) }}
+                      <span v-if="itemBadgeLabel(module.directItem)" class="menu-item-badge">{{ itemBadgeLabel(module.directItem) }}</span>
+                    </span>
                     <span class="menu-item-caption">{{ itemLabel(module.directItem) }}</span>
                   </div>
                 </el-menu-item>
@@ -263,7 +283,10 @@ onMounted(() => {
                       :index="item.path"
                       class="menu-leaf"
                     >
-                      <span class="menu-item-label">{{ itemLabel(item) }}</span>
+                      <span class="menu-item-label">
+                        {{ itemLabel(item) }}
+                        <span v-if="itemBadgeLabel(item)" class="menu-item-badge">{{ itemBadgeLabel(item) }}</span>
+                      </span>
                     </el-menu-item>
                   </el-sub-menu>
                 </el-sub-menu>
@@ -473,6 +496,9 @@ onMounted(() => {
 }
 
 .menu-module-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 14px;
   font-weight: 600;
 }
@@ -488,6 +514,19 @@ onMounted(() => {
 
 .menu-item-caption {
   color: var(--sqlforge-text-muted);
+}
+
+.menu-item-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(244, 114, 182, 0.14);
+  color: #f9a8d4;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 .sidebar-runtime {

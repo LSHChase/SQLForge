@@ -340,20 +340,20 @@ export default {
     summary: 'Inspect baseline, peak latency, regression deltas and release readiness.'
   },
   parseBatchCenter: {
-    title: 'Batch Parse Center',
-    summary: 'Download templates, upload SQL or report catalogs, and inspect batch detail, failures, and retry results.'
+    title: 'Batch Parsing Compatibility Entry',
+    summary: 'This route is kept only as a compatibility redirect and lands back on the parse workbench batch dialog.'
   },
   parseStatisticsCenter: {
-    title: 'Parse Result Center',
-    summary: 'Inspect parse statistics, issue distribution, the priority matrix, and important or urgent SQL lists.'
+    title: 'Parse Statistics Compatibility Entry',
+    summary: 'This route is kept only as a compatibility redirect and lands back on the parse workbench statistics views.'
   },
   assetCatalog: {
     title: 'Data Asset Catalog',
     summary: 'Browse datasource, schema, table, logical-view, and db-view lists with detail evidence.'
   },
   routingGovernance: {
-    title: 'Routing Governance',
-    summary: 'Review the current routing calibration, historical decision samples, and the comment protocol baseline.'
+    title: 'Routing Execution Evidence',
+    summary: 'Review routing calibration, historical decisions, and comment-protocol summaries through a read-only evidence surface.'
   },
   recommendationCenter: {
     title: 'Recommendation Center',
@@ -369,10 +369,10 @@ export default {
   },
   acceleration: {
     title: 'Parse Workbench',
-    summary: 'Run structure parse, access parse and combined conclusion review for a single SQL statement.'
+    summary: 'Handle single-SQL parsing, batch parsing, statistics views, and parse-history drill-downs in one route.'
   },
   system: {
     title: 'System Management',
-    summary: 'Control tenants, routing defaults, audit retention and global governance settings.'
+    summary: 'Inspect and manage datasources, report interfaces, Redis rule sources, Dispatch policies, and system evidence.'
   }
 }

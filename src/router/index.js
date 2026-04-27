@@ -5,8 +5,6 @@ import { LEGACY_ROUTE_REDIRECTS, ROUTE_PATHS } from '../config/routePaths.mjs'
 const DashboardView = () => import('../views/dashboard/DashboardView.vue')
 const SqlQueryView = () => import('../views/query/SqlQueryView.vue')
 const ParseRecordView = () => import('../views/parse-record/ParseRecordView.vue')
-const ParseBatchCenterView = () => import('../views/parse-batch/ParseBatchCenterView.vue')
-const ParseStatisticsCenterView = () => import('../views/parse-statistics/ParseStatisticsCenterView.vue')
 const AssetCatalogView = () => import('../views/asset-catalog/AssetCatalogView.vue')
 const RepairEvidenceView = () => import('../views/repair-evidence/RepairEvidenceView.vue')
 const AuditForensicsView = () => import('../views/audit-forensics/AuditForensicsView.vue')
@@ -154,31 +152,24 @@ export const constantRoutes = [
   },
   {
     path: ROUTE_PATHS.parseBatchCenter,
-    name: 'ParseBatchCenter',
-    component: ParseBatchCenterView,
-    meta: {
-      menu: true,
-      navGroup: 'main',
-      module: 'parse-acceleration',
-      submodule: 'parse',
-      pageKind: 'batch',
-      titleKey: 'parseBatchCenter.title',
-      descriptionKey: 'parseBatchCenter.summary'
-    }
+    redirect: to => ({
+      path: ROUTE_PATHS.acceleration,
+      query: {
+        ...to.query,
+        workspace: 'batch'
+      }
+    })
   },
   {
     path: ROUTE_PATHS.parseStatisticsCenter,
-    name: 'ParseStatisticsCenter',
-    component: ParseStatisticsCenterView,
-    meta: {
-      menu: true,
-      navGroup: 'main',
-      module: 'parse-acceleration',
-      submodule: 'parse',
-      pageKind: 'statistics',
-      titleKey: 'parseStatisticsCenter.title',
-      descriptionKey: 'parseStatisticsCenter.summary'
-    }
+    redirect: to => ({
+      path: ROUTE_PATHS.acceleration,
+      query: {
+        ...to.query,
+        workspace: 'statistics',
+        analytics: String(to.query.analytics || 'issue')
+      }
+    })
   },
   {
     path: ROUTE_PATHS.assetCatalog,
@@ -296,11 +287,24 @@ export const constantRoutes = [
   },
   {
     path: LEGACY_ROUTE_REDIRECTS.parseBatchCenter,
-    redirect: ROUTE_PATHS.parseBatchCenter
+    redirect: to => ({
+      path: ROUTE_PATHS.acceleration,
+      query: {
+        ...to.query,
+        workspace: 'batch'
+      }
+    })
   },
   {
     path: LEGACY_ROUTE_REDIRECTS.parseStatisticsCenter,
-    redirect: ROUTE_PATHS.parseStatisticsCenter
+    redirect: to => ({
+      path: ROUTE_PATHS.acceleration,
+      query: {
+        ...to.query,
+        workspace: 'statistics',
+        analytics: String(to.query.analytics || 'issue')
+      }
+    })
   },
   {
     path: LEGACY_ROUTE_REDIRECTS.assetCatalog,

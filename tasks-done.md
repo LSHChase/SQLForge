@@ -4,6 +4,27 @@
 
 ## Done
 
+### U-TASK-001: 前端三轮复盘与交互重构落地
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): consolidate parse workbench flows`
+- Priority: 1
+- Depends on: E-TASK-020,E-TASK-025,E-TASK-028,E-TASK-030,E-TASK-031,E-TASK-032
+- Scope: Implement the SQLForge frontend information-architecture and interaction refactor: consolidate parse workbench, batch parsing, statistics, and history into one main route; convert routing governance into read-only routing evidence; restore delivery progress in primary navigation with temporary labeling; add real system-management write actions for datasource/report/redis/dispatch create-update surfaces where backend APIs exist; add explicit placeholder dialogs for access and alert actions without write APIs; preserve compatibility redirects for /parse-batches and /parse-statistics; update contracts and validation coverage.
+- Validation:
+  - `python3 scripts/foreman.py validate U-TASK-001`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-27: refactored the frontend shell and routing so parse workbench became the single parse entry, delivery progress returned to primary navigation, and routing governance shifted to routing-evidence semantics.
+  - 2026-04-27: merged single-parse, batch parsing, statistics, and parse-history workflows into the main parse workbench; added real system-management write actions and placeholder capability dialogs on pages without write APIs.
+  - 2026-04-27: validation passed via `python3 scripts/foreman.py validate U-TASK-001 --include-task-audit --extra-command "npm run lint" --extra-command "npm run build" --extra-command "node scripts/check-navigation-shell-contract.mjs" --extra-command "node scripts/check-parse-workbench-contract.mjs" --extra-command "node scripts/check-batch-import-contract.mjs" --extra-command "node scripts/check-statistics-page-contract.mjs" --extra-command "node scripts/check-routing-page-contract.mjs" --extra-command "node scripts/check-system-config-contract.mjs" --extra-command "node scripts/check-access-page-contract.mjs" --extra-command "node scripts/check-alert-page-contract.mjs"`; `python3 scripts/task_audit.py --check --phase post-closeout` also passed.
+- Context closeout:
+  - Completed scope: Consolidated the parse mainline into one workbench route, restored delivery progress navigation, converted routing governance into read-only routing evidence, added real system-management create or update actions where backend APIs exist, and added explicit placeholder dialogs on access or alert surfaces without write APIs.
+  - Validation evidence: python3 scripts/foreman.py validate U-TASK-001 --include-task-audit --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-navigation-shell-contract.mjs' --extra-command 'node scripts/check-parse-workbench-contract.mjs' --extra-command 'node scripts/check-batch-import-contract.mjs' --extra-command 'node scripts/check-statistics-page-contract.mjs' --extra-command 'node scripts/check-routing-page-contract.mjs' --extra-command 'node scripts/check-system-config-contract.mjs' --extra-command 'node scripts/check-access-page-contract.mjs' --extra-command 'node scripts/check-alert-page-contract.mjs'; python3 scripts/task_audit.py --check --phase post-closeout
+  - Residual risk: Dispatch policy edit remains a placeholder because the repository exposes create but not update APIs; routing-rule, access-strategy, and alert-rule writes also remain intentionally read-only or placeholder-only until backend contracts exist.
+  - Next step: If backend update APIs are added for dispatch or governance policy editing, replace the placeholder dialogs with real editable flows and extend the contract checks accordingly.
+
 ### E-TASK-037: 收口前端二次复盘的导航与工作台交互
 
 - Status: done

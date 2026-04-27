@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import CapabilityPlaceholderDialog from '../common/CapabilityPlaceholderDialog.vue'
 import {
   formatRuntimeError,
   getDispatchEvents,
@@ -26,6 +27,13 @@ const importantUrgentItems = ref([])
 const selectedAlertId = ref('')
 const acknowledgedIds = ref([])
 const errorMessage = ref('')
+const placeholderDialogVisible = ref(false)
+const placeholderPayload = ref({
+  title: '',
+  capability: '',
+  reason: '',
+  nextStep: ''
+})
 
 const isChinese = computed(() => locale.value === 'zh-CN')
 
@@ -124,6 +132,32 @@ const selectedAlert = computed(() =>
   derivedAlerts.value.find(item => item.alertId === selectedAlertId.value) || null
 )
 
+const openPlaceholderAction = actionType => {
+  const config = actionType === 'create'
+    ? {
+        title: isChinese.value ? '新增告警规则暂不可写' : 'Create alert rule is not writable yet',
+        capability: isChinese.value ? '新增告警规则' : 'Create alert rule',
+        reason: isChinese.value
+          ? '当前仓库没有独立的告警规则写接口，这一页仍然基于 backlog、dispatch 和 important/urgent SQL 派生证据。'
+          : 'The repository does not expose a dedicated alert-rule write API, and this page still derives evidence from backlog, dispatch, and important-or-urgent SQL.',
+        nextStep: isChinese.value
+          ? '后续若补告警配置后端，再把新增表单接到这里。'
+          : 'If alert-configuration APIs are added later, connect the create form here.'
+      }
+    : {
+        title: isChinese.value ? '修改通知策略暂不可写' : 'Edit notification strategy is not writable yet',
+        capability: isChinese.value ? '修改通知策略' : 'Edit notification strategy',
+        reason: isChinese.value
+          ? '当前页面的 ACK / notify 明确是 simulated，不应伪装成已经接通的真实通知控制面。'
+          : 'ACK and notify are explicitly simulated on this page and should not pretend to be a live notification control plane.',
+        nextStep: isChinese.value
+          ? '需要真实通知接口和审计链后，再接入编辑动作。'
+          : 'Introduce real notification APIs and audit coverage before wiring editing actions.'
+      }
+  placeholderPayload.value = config
+  placeholderDialogVisible.value = true
+}
+
 const refreshAlerts = async () => {
   loading.page = true
   errorMessage.value = ''
@@ -211,6 +245,12 @@ onMounted(() => {
         </label>
         <button class="primary-button" data-testid="alert-refresh" @click="refreshAlerts">
           {{ isChinese ? '刷新告警' : 'Refresh alerts' }}
+        </button>
+        <button class="secondary-button" type="button" @click="openPlaceholderAction('create')">
+          {{ isChinese ? '新增告警规则' : 'Create alert rule' }}
+        </button>
+        <button class="secondary-button" type="button" @click="openPlaceholderAction('edit')">
+          {{ isChinese ? '修改通知策略' : 'Edit notify strategy' }}
         </button>
       </div>
     </header>
@@ -320,6 +360,14 @@ onMounted(() => {
         </template>
       </article>
     </div>
+
+    <CapabilityPlaceholderDialog
+      v-model="placeholderDialogVisible"
+      :title="placeholderPayload.title"
+      :capability="placeholderPayload.capability"
+      :reason="placeholderPayload.reason"
+      :next-step="placeholderPayload.nextStep"
+    />
   </section>
 </template>
 

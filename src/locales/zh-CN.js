@@ -340,20 +340,20 @@ export default {
     summary: '查看基线、峰值延迟、回归差异与准入判断。'
   },
   parseBatchCenter: {
-    title: '批量解析中心',
-    summary: '下载模板、上传 SQL/报表清单，并查看批次详情、失败记录与补跑结果。'
+    title: '批量解析兼容入口',
+    summary: '该路径保留为兼容跳转入口，打开后会回到解析工作台并定位到批量解析弹窗。'
   },
   parseStatisticsCenter: {
-    title: '解析结果中心',
-    summary: '查看解析统计、问题分布、优先级矩阵以及 important/urgent 清单。'
+    title: '解析统计兼容入口',
+    summary: '该路径保留为兼容跳转入口，打开后会回到解析工作台并定位到统计视角。'
   },
   assetCatalog: {
     title: '数据资产目录',
     summary: '查看 datasource、schema、table、logical view 与 db view 的列表和详情证据。'
   },
   routingGovernance: {
-    title: '路由治理',
-    summary: '查看当前路由校准、历史决策样例与注释协议说明。'
+    title: '路由执行证据',
+    summary: '查看当前路由校准、历史决策与注释协议摘要；当前仅支持只读证据查看。'
   },
   recommendationCenter: {
     title: '推荐与加速中心',
@@ -369,10 +369,10 @@ export default {
   },
   acceleration: {
     title: '解析工作台',
-    summary: '对单条 SQL 执行结构解析、access parse 和综合结论判定。'
+    summary: '在同一路由内完成单条解析、批量解析、统计视角与解析历史下钻。'
   },
   system: {
     title: '系统管理',
-    summary: '维护租户、路由默认值、审计保留与全局控制项。'
+    summary: '查看并维护数据源、报表接口、Redis 规则源、Dispatch 策略与系统证据。'
   }
 }
