@@ -16,21 +16,7 @@ _No tasks._
 
 ## In Progress
 
-### E-TASK-032: 落地 Redis 规则源、装数协同与系统参数页
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `E-TASK-031`,`D-TASK-072`
-- Scope: Redis rule source、dispatch policy、系统参数与权限审计展示 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
-- Matrix context: Phase-E / Story `E-STORY-013` 系统管理与数据源治理页
-- Human confirmation point: 若 Redis 规则源、装数协同与系统参数页会把 environment-backed 配置写成默认已启用事实，需人工确认
-- Data impact: rule-source、dispatch policy、system-param/permission 展示面
-- Rollback / recovery: 恢复到查询/模拟状态展示，保留 simulated 或未联通提示
-- Validation:
-  - `npm run lint`、`npm run build`、system-management config contract 测试
-  - `python3 scripts/foreman.py validate E-TASK-032`
-- Progress log:
-  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+_No tasks._
 
 
 ## Blocked
