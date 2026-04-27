@@ -347,6 +347,10 @@ export default {
     title: 'Parse Result Center',
     summary: 'Inspect parse statistics, issue distribution, the priority matrix, and important or urgent SQL lists.'
   },
+  assetCatalog: {
+    title: 'Data Asset Catalog',
+    summary: 'Browse datasource, schema, table, logical-view, and db-view lists with detail evidence.'
+  },
   acceleration: {
     title: 'Parse Workbench',
     summary: 'Run structure parse, access parse and combined conclusion review for a single SQL statement.'

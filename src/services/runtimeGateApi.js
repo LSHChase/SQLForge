@@ -470,6 +470,172 @@ export const getParseStatisticsImportantUrgent = (tenantId, requestOptions = {})
     }
   })
 
+export const getGovernanceDatasources = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/governance/datasources?tenantId=${encodeURIComponent(tenantId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-datasources',
+      ...requestOptions
+    }
+  })
+
+export const getGovernanceDatasourceDetail = (tenantId, datasourceId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/governance/datasources/${encodeURIComponent(datasourceId)}?tenantId=${encodeURIComponent(tenantId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-datasource-detail',
+      ...requestOptions
+    }
+  })
+
+export const getMetadataSnapshots = (filters = {}, requestOptions = {}) => {
+  const params = new URLSearchParams()
+  const tenantId = String(filters.tenantId || '').trim()
+  ;['tenantId', 'datasourceCode', 'objectType', 'objectKey', 'freshnessStatus', 'slaStatus', 'queryabilityStatus', 'evidenceStatus']
+    .forEach(key => {
+      const value = String(filters?.[key] || '').trim()
+      if (value) {
+        params.set(key, value)
+      }
+    })
+  const query = params.toString()
+  return request({
+    method: 'get',
+    url: `/api/governance/metadata/snapshots${query ? `?${query}` : ''}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-metadata-snapshots',
+      ...requestOptions
+    }
+  })
+}
+
+export const getMetadataSchemas = (tenantId, datasourceCode, requestOptions = {}) => {
+  const params = new URLSearchParams()
+  params.set('tenantId', tenantId)
+  if (String(datasourceCode || '').trim()) {
+    params.set('datasourceCode', datasourceCode)
+  }
+  return request({
+    method: 'get',
+    url: `/api/governance/metadata/schemas?${params.toString()}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-metadata-schemas',
+      ...requestOptions
+    }
+  })
+}
+
+export const getMetadataSchemaDetail = (tenantId, datasourceCode, schemaName, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url:
+      `/api/governance/metadata/schemas/${encodeURIComponent(schemaName)}` +
+      `?tenantId=${encodeURIComponent(tenantId)}&datasourceCode=${encodeURIComponent(datasourceCode)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-metadata-schema-detail',
+      ...requestOptions
+    }
+  })
+
+export const getMetadataTables = (tenantId, datasourceCode, schemaName = '', requestOptions = {}) => {
+  const params = new URLSearchParams()
+  params.set('tenantId', tenantId)
+  if (String(datasourceCode || '').trim()) {
+    params.set('datasourceCode', datasourceCode)
+  }
+  if (String(schemaName || '').trim()) {
+    params.set('schemaName', schemaName)
+  }
+  return request({
+    method: 'get',
+    url: `/api/governance/metadata/tables?${params.toString()}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-metadata-tables',
+      ...requestOptions
+    }
+  })
+}
+
+export const getMetadataTableDetail = (tenantId, datasourceCode, schemaName, tableName, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url:
+      `/api/governance/metadata/tables/${encodeURIComponent(tableName)}` +
+      `?tenantId=${encodeURIComponent(tenantId)}&datasourceCode=${encodeURIComponent(datasourceCode)}` +
+      `&schemaName=${encodeURIComponent(schemaName)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-metadata-table-detail',
+      ...requestOptions
+    }
+  })
+
+export const getLogicalViews = (tenantId, datasourceCode = '', requestOptions = {}) => {
+  const params = new URLSearchParams()
+  params.set('tenantId', tenantId)
+  if (String(datasourceCode || '').trim()) {
+    params.set('datasourceCode', datasourceCode)
+  }
+  return request({
+    method: 'get',
+    url: `/api/governance/logical-views?${params.toString()}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-logical-views',
+      ...requestOptions
+    }
+  })
+}
+
+export const getLogicalViewDetail = (tenantId, viewCode, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/governance/logical-views/${encodeURIComponent(viewCode)}?tenantId=${encodeURIComponent(tenantId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-logical-view-detail',
+      ...requestOptions
+    }
+  })
+
+export const getDatabaseViews = (tenantId, datasourceCode = '', requestOptions = {}) => {
+  const params = new URLSearchParams()
+  params.set('tenantId', tenantId)
+  if (String(datasourceCode || '').trim()) {
+    params.set('datasourceCode', datasourceCode)
+  }
+  return request({
+    method: 'get',
+    url: `/api/governance/db-views?${params.toString()}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-db-views',
+      ...requestOptions
+    }
+  })
+}
+
+export const getDatabaseViewDetail = (tenantId, datasourceCode, viewName, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url:
+      `/api/governance/db-views/${encodeURIComponent(viewName)}` +
+      `?tenantId=${encodeURIComponent(tenantId)}&datasourceCode=${encodeURIComponent(datasourceCode)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-db-view-detail',
+      ...requestOptions
+    }
+  })
+
 export const formatRuntimeError = error => {
   if (error?.response?.data) {
     const { code, message } = error.response.data

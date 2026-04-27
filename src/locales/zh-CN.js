@@ -347,6 +347,10 @@ export default {
     title: '解析结果中心',
     summary: '查看解析统计、问题分布、优先级矩阵以及 important/urgent 清单。'
   },
+  assetCatalog: {
+    title: '数据资产目录',
+    summary: '查看 datasource、schema、table、logical view 与 db view 的列表和详情证据。'
+  },
   acceleration: {
     title: '解析工作台',
     summary: '对单条 SQL 执行结构解析、access parse 和综合结论判定。'

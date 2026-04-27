@@ -7,6 +7,7 @@ const SqlQueryView = () => import('../views/query/SqlQueryView.vue')
 const ParseRecordView = () => import('../views/parse-record/ParseRecordView.vue')
 const ParseBatchCenterView = () => import('../views/parse-batch/ParseBatchCenterView.vue')
 const ParseStatisticsCenterView = () => import('../views/parse-statistics/ParseStatisticsCenterView.vue')
+const AssetCatalogView = () => import('../views/asset-catalog/AssetCatalogView.vue')
 const RepairEvidenceView = () => import('../views/repair-evidence/RepairEvidenceView.vue')
 const AuditForensicsView = () => import('../views/audit-forensics/AuditForensicsView.vue')
 const AuditTroubleshootingView = () => import('../views/audit-troubleshooting/AuditTroubleshootingView.vue')
@@ -99,6 +100,17 @@ export const constantRoutes = [
     }
   },
   {
+    path: ROUTE_PATHS.assetCatalog,
+    name: 'AssetCatalog',
+    component: AssetCatalogView,
+    meta: {
+      menu: true,
+      navGroup: 'main',
+      titleKey: 'assetCatalog.title',
+      descriptionKey: 'assetCatalog.summary'
+    }
+  },
+  {
     path: ROUTE_PATHS.parseRecord,
     name: 'ParseRecord',
     component: ParseRecordView,
@@ -171,6 +183,10 @@ export const constantRoutes = [
   {
     path: LEGACY_ROUTE_REDIRECTS.parseStatisticsCenter,
     redirect: ROUTE_PATHS.parseStatisticsCenter
+  },
+  {
+    path: LEGACY_ROUTE_REDIRECTS.assetCatalog,
+    redirect: ROUTE_PATHS.assetCatalog
   },
   {
     path: LEGACY_ROUTE_REDIRECTS.parseRecord,

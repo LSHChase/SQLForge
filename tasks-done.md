@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-023: 落地数据资产目录与对象详情页
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): add data asset catalog view`
+- Priority: 1
+- Depends on: `E-TASK-022`,`D-TASK-071`
+- Scope: datasource/schema/table/logical-view/db-view 列表与详情页 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-009` 数据资产与逻辑视图
+- Human confirmation point: 若数据资产页会混淆业务逻辑视图与 DB View、暴露未授权对象详情，需人工确认
+- Data impact: 资产目录、对象详情、导航结构
+- Rollback / recovery: 恢复对象类型区分与权限控制，关闭高风险详情区域
+- Validation:
+  - `npm run lint`、`npm run build`、asset page contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-023`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added a dedicated data asset catalog route with datasource, schema, table, logical-view, and db-view lists plus detail panels and metadata snapshot evidence.
+  - Validation evidence: npm run lint; npm run build; node scripts/check-asset-page-contract.mjs; python3 scripts/foreman.py validate E-TASK-023 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-asset-page-contract.mjs'
+  - Residual risk: Schema-level evidence currently falls back to datasource-scoped metadata snapshots because the repo-side snapshot query surface does not expose schemaName filters yet.
+  - Next step: Instantiate E-TASK-024 to extend the asset experience with logical mappings, freshness/SLA emphasis, usage heat signals, and related SQL context.
+
 ### E-TASK-022: 落地解析结果中心与优先级矩阵
 
 - Status: done
