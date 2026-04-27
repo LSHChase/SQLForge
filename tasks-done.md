@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-027: 落地压测任务、模板、测试集与报告页
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): expand benchmark governance center`
+- Priority: 1
+- Depends on: `E-TASK-026`,`F-TASK-042`
+- Scope: 任务列表、模板详情、测试集、报告对比和回归结果页 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-011` 压测中心与开放接入页
+- Human confirmation point: 若压测中心页会把模板/测试集能力写成已默认启用的真实运行时基线、或混淆回归与对比模式，需人工确认
+- Data impact: benchmark 页面、模板/TestSet UI 与报告对比面
+- Rollback / recovery: 恢复模板/测试集/报告分区，保留模式差异与未实现能力标识
+- Validation:
+  - `npm run lint`、`npm run build`、benchmark page contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-027`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Expanded the benchmark page with template, test-set, session-task, comparison, and regression reporting sections.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-027 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-benchmark-page-contract.mjs'
+  - Residual risk: The page stays within current benchmark-engine capabilities and does not claim unsupported template execution paths.
+  - Next step: Close out the remaining Phase-E governance pages.
+
 ### E-TASK-026: 落地推荐与加速中心页
 
 - Status: done
