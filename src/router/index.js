@@ -15,6 +15,10 @@ const RuntimeGatesView = () => import('../views/runtime-gates/RuntimeGatesView.v
 const RecoveryDrillView = () => import('../views/recovery-drill/RecoveryDrillView.vue')
 const AccelerationView = () => import('../views/optimization/AccelerationView.vue')
 const BenchmarkView = () => import('../views/benchmark/BenchmarkView.vue')
+const RoutingGovernanceView = () => import('../views/routing-governance/RoutingGovernanceView.vue')
+const RecommendationCenterView = () => import('../views/recommendation-center/RecommendationCenterView.vue')
+const AccessCenterView = () => import('../views/access-center/AccessCenterView.vue')
+const AlertCenterView = () => import('../views/alert-center/AlertCenterView.vue')
 const SystemView = () => import('../views/system/SystemView.vue')
 
 export const constantRoutes = [
@@ -64,6 +68,50 @@ export const constantRoutes = [
       navGroup: 'main',
       titleKey: 'benchmark.title',
       descriptionKey: 'benchmark.summary'
+    }
+  },
+  {
+    path: ROUTE_PATHS.routingGovernance,
+    name: 'RoutingGovernance',
+    component: RoutingGovernanceView,
+    meta: {
+      menu: true,
+      navGroup: 'main',
+      titleKey: 'routingGovernance.title',
+      descriptionKey: 'routingGovernance.summary'
+    }
+  },
+  {
+    path: ROUTE_PATHS.recommendationCenter,
+    name: 'RecommendationCenter',
+    component: RecommendationCenterView,
+    meta: {
+      menu: true,
+      navGroup: 'main',
+      titleKey: 'recommendationCenter.title',
+      descriptionKey: 'recommendationCenter.summary'
+    }
+  },
+  {
+    path: ROUTE_PATHS.accessCenter,
+    name: 'AccessCenter',
+    component: AccessCenterView,
+    meta: {
+      menu: true,
+      navGroup: 'main',
+      titleKey: 'accessCenter.title',
+      descriptionKey: 'accessCenter.summary'
+    }
+  },
+  {
+    path: ROUTE_PATHS.alertCenter,
+    name: 'AlertCenter',
+    component: AlertCenterView,
+    meta: {
+      menu: true,
+      navGroup: 'main',
+      titleKey: 'alertCenter.title',
+      descriptionKey: 'alertCenter.summary'
     }
   },
   {
@@ -175,6 +223,22 @@ export const constantRoutes = [
       titleKey: 'recoveryDrill.title',
       descriptionKey: 'recoveryDrill.summary'
     }
+  },
+  {
+    path: LEGACY_ROUTE_REDIRECTS.routingGovernance,
+    redirect: ROUTE_PATHS.routingGovernance
+  },
+  {
+    path: LEGACY_ROUTE_REDIRECTS.recommendationCenter,
+    redirect: ROUTE_PATHS.recommendationCenter
+  },
+  {
+    path: LEGACY_ROUTE_REDIRECTS.accessCenter,
+    redirect: ROUTE_PATHS.accessCenter
+  },
+  {
+    path: LEGACY_ROUTE_REDIRECTS.alertCenter,
+    redirect: ROUTE_PATHS.alertCenter
   },
   {
     path: LEGACY_ROUTE_REDIRECTS.parseBatchCenter,

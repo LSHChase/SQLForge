@@ -351,6 +351,22 @@ export default {
     title: '数据资产目录',
     summary: '查看 datasource、schema、table、logical view 与 db view 的列表和详情证据。'
   },
+  routingGovernance: {
+    title: '路由治理',
+    summary: '查看当前路由校准、历史决策样例与注释协议说明。'
+  },
+  recommendationCenter: {
+    title: '推荐与加速中心',
+    summary: '查看 recommendation 分类、收益风险、dispatch 状态与追溯关联。'
+  },
+  accessCenter: {
+    title: '开放接入',
+    summary: '查看 API、JDBC Agent、Java SDK、接入策略与 access audit 样例。'
+  },
+  alertCenter: {
+    title: '告警中心',
+    summary: '查看派生告警、ACK 模拟状态与 notify simulated 结果。'
+  },
   acceleration: {
     title: '解析工作台',
     summary: '对单条 SQL 执行结构解析、access parse 和综合结论判定。'

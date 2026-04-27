@@ -32,22 +32,6 @@ _No tasks._
 - Progress log:
   - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
 
-### E-TASK-030: 落地告警中心与通知状态视图
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `E-TASK-029`,`F-TASK-037`
-- Scope: 告警列表、详情、ACK、notify simulated 状态展示 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
-- Matrix context: Phase-E / Story `E-STORY-012` Dashboard 与告警中心
-- Human confirmation point: 若告警中心页会把模拟邮件写成真实通知成功、或隐藏 dedupe / ACK 语义，需人工确认
-- Data impact: 告警列表、详情、ACK 和通知状态展示
-- Rollback / recovery: 恢复 simulated 状态文案与完整事件状态链
-- Validation:
-  - `npm run lint`、`npm run build`、alert page contract 测试
-  - `python3 scripts/foreman.py validate E-TASK-030`
-- Progress log:
-  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
-
 ### E-TASK-031: 落地系统管理中的数据源与报表接口页
 
 - Status: in_progress

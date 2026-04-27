@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-030: 落地告警中心与通知状态视图
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): add alert center with simulated ack`
+- Priority: 1
+- Depends on: `E-TASK-029`,`F-TASK-037`
+- Scope: 告警列表、详情、ACK、notify simulated 状态展示 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-012` Dashboard 与告警中心
+- Human confirmation point: 若告警中心页会把模拟邮件写成真实通知成功、或隐藏 dedupe / ACK 语义，需人工确认
+- Data impact: 告警列表、详情、ACK 和通知状态展示
+- Rollback / recovery: 恢复 simulated 状态文案与完整事件状态链
+- Validation:
+  - `npm run lint`、`npm run build`、alert page contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-030`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added the alert center with derived alerts, detail drill-down, simulated ACK, and simulated notify status handling.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-030 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-alert-page-contract.mjs'
+  - Residual risk: Dedicated backend alert APIs are still absent, so the page remains explicit about derived alerts and frontend-simulated ACK or notify semantics.
+  - Next step: Close out system management datasource and config tasks.
+
 ### E-TASK-029: 落地 Dashboard KPI、分布与待办区块
 
 - Status: done

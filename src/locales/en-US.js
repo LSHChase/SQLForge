@@ -351,6 +351,22 @@ export default {
     title: 'Data Asset Catalog',
     summary: 'Browse datasource, schema, table, logical-view, and db-view lists with detail evidence.'
   },
+  routingGovernance: {
+    title: 'Routing Governance',
+    summary: 'Review the current routing calibration, historical decision samples, and the comment protocol baseline.'
+  },
+  recommendationCenter: {
+    title: 'Recommendation Center',
+    summary: 'Review recommendation categories, benefit or risk, dispatch status, and traceability links.'
+  },
+  accessCenter: {
+    title: 'Open Access',
+    summary: 'Review API, JDBC Agent, Java SDK, access strategies, and access-audit samples.'
+  },
+  alertCenter: {
+    title: 'Alert Center',
+    summary: 'Review derived alerts, simulated ACK state, and notify-simulated outcomes.'
+  },
   acceleration: {
     title: 'Parse Workbench',
     summary: 'Run structure parse, access parse and combined conclusion review for a single SQL statement.'
