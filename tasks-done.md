@@ -4,6 +4,24 @@
 
 ## Done
 
+### U-TASK-003: 扁平化前端导航并补齐解析历史缺项
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): flatten navigation and backfill parse history`
+- Priority: 1
+- Depends on: U-TASK-001,E-TASK-018,E-TASK-022,E-TASK-033,E-TASK-037
+- Scope: Flatten the frontend sidebar from three levels to module-plus-leaf navigation for SQL history and parse mainline, promote third-level pages into second-level entries, and backfill the parse and history surfaces that regressed during consolidation: add missing parse-statistics dimensions, align history filters with current backend contract, and update routing plus contract checks accordingly. Tech: VUE-FE. Layer: frontend/router/views/styles/scripts.
+- Validation:
+  - `python3 scripts/foreman.py validate U-TASK-003`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Flattened the SQL history and parsing sidebar modules to module-plus-leaf navigation, restored missing parse-statistics dimensions with sampled severity/priority/logical-object/status views, and aligned history workbenches with the current backend filter and export contracts.
+  - Validation evidence: python3 scripts/foreman.py validate U-TASK-003 --include-task-audit --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-navigation-shell-contract.mjs' --extra-command 'node scripts/check-parse-workbench-contract.mjs' --extra-command 'node scripts/check-statistics-page-contract.mjs' --extra-command 'node scripts/check-history-page-contract.mjs' --extra-command 'node scripts/check-history-detail-contract.mjs'; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The new logical-object and parse-status tabs are sampled frontend aggregations over current history windows because the repository still lacks dedicated backend summary endpoints for tenant-wide logical-object and structure/access-status rollups.
+  - Next step: If the backend later exposes first-class parse-statistics endpoints for logical objects or structure-versus-access status, replace the current sampled frontend aggregations with direct contract-backed views and extend the statistics contract again.
+
 ### U-TASK-002: 恢复首页总揽与前端合同护栏
 
 - Status: done

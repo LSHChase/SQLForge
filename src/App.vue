@@ -54,36 +54,18 @@ const navigationTree = computed(() => {
     {
       key: 'sql-history',
       label: { zh: 'SQL 历史', en: 'SQL History' },
-      sections: [
-        {
-          key: 'history',
-          label: { zh: '历史列表', en: 'History list' },
-          items: [{ path: ROUTE_PATHS.parseRecord, titleKey: 'parseRecord.title', menuLabel: { zh: '历史列表', en: 'History list' } }]
-        },
-        {
-          key: 'forensics',
-          label: { zh: '取证与修复', en: 'Forensics and repair' },
-          items: [
-            { path: ROUTE_PATHS.repairEvidence, titleKey: 'repairEvidence.title', menuLabel: { zh: '修复证据', en: 'Repair evidence' } },
-            { path: ROUTE_PATHS.auditForensics, titleKey: 'auditForensics.title', menuLabel: { zh: '审计取证', en: 'Audit forensics' } }
-          ]
-        }
+      items: [
+        { path: ROUTE_PATHS.parseRecord, titleKey: 'parseRecord.title', menuLabel: { zh: '历史列表', en: 'History list' } },
+        { path: ROUTE_PATHS.repairEvidence, titleKey: 'repairEvidence.title', menuLabel: { zh: '修复证据', en: 'Repair evidence' } },
+        { path: ROUTE_PATHS.auditForensics, titleKey: 'auditForensics.title', menuLabel: { zh: '审计取证', en: 'Audit forensics' } }
       ]
     },
     {
       key: 'parse-acceleration',
       label: { zh: '解析与加速', en: 'Parsing and Acceleration' },
-      sections: [
-        {
-          key: 'parse',
-          label: { zh: '解析主链', en: 'Parsing mainline' },
-          items: [{ path: ROUTE_PATHS.acceleration, titleKey: 'acceleration.title', menuLabel: { zh: '解析工作台', en: 'Parse workbench' } }]
-        },
-        {
-          key: 'rewrite',
-          label: { zh: '改写与推荐', en: 'Rewrite and recommendation' },
-          items: [{ path: ROUTE_PATHS.recommendationCenter, titleKey: 'recommendationCenter.title', menuLabel: { zh: '推荐中心', en: 'Recommendation center' } }]
-        }
+      items: [
+        { path: ROUTE_PATHS.acceleration, titleKey: 'acceleration.title', menuLabel: { zh: '解析工作台', en: 'Parse workbench' } },
+        { path: ROUTE_PATHS.recommendationCenter, titleKey: 'recommendationCenter.title', menuLabel: { zh: '推荐中心', en: 'Recommendation center' } }
       ]
     },
     {
@@ -164,9 +146,21 @@ const flattenNavItems = tree =>
           moduleLabel: module.label,
           sectionKey: '',
           sectionLabel: null,
-          depth: 2
+          depth: 2,
+          moduleHasChildren: false
         }
       ]
+    }
+    if (Array.isArray(module.items)) {
+      return module.items.map(item => ({
+        ...item,
+        moduleKey: module.key,
+        moduleLabel: module.label,
+        sectionKey: '',
+        sectionLabel: null,
+        depth: 2,
+        moduleHasChildren: true
+      }))
     }
     return module.sections.flatMap(section =>
       section.items.map(item => ({
@@ -175,7 +169,8 @@ const flattenNavItems = tree =>
         moduleLabel: module.label,
         sectionKey: section.key,
         sectionLabel: section.label,
-        depth: 3
+        depth: 3,
+        moduleHasChildren: true
       }))
     )
   })
@@ -184,10 +179,16 @@ const activeNavItem = computed(() =>
   flattenNavItems(navigationTree.value).find(item => item.path === route.path) || null
 )
 const defaultOpeneds = computed(() => {
-  if (!activeNavItem.value?.sectionKey) {
+  if (!activeNavItem.value) {
     return []
   }
-  return [activeNavItem.value.moduleKey, `${activeNavItem.value.moduleKey}:${activeNavItem.value.sectionKey}`]
+  if (activeNavItem.value.sectionKey) {
+    return [activeNavItem.value.moduleKey, `${activeNavItem.value.moduleKey}:${activeNavItem.value.sectionKey}`]
+  }
+  if (activeNavItem.value.moduleHasChildren) {
+    return [activeNavItem.value.moduleKey]
+  }
+  return []
 })
 const localeLabel = computed(() => (locale.value === 'zh-CN' ? 'EN' : '中'))
 const workspaceSummary = computed(() =>
@@ -268,17 +269,9 @@ onMounted(() => {
                   <template #title>
                     <span class="menu-module-title">{{ navLabel(module.label) }}</span>
                   </template>
-                  <el-sub-menu
-                    v-for="section in module.sections"
-                    :key="`${module.key}:${section.key}`"
-                    :index="`${module.key}:${section.key}`"
-                    class="menu-section"
-                  >
-                    <template #title>
-                      <span class="menu-section-title">{{ navLabel(section.label) }}</span>
-                    </template>
+                  <template v-if="Array.isArray(module.items)">
                     <el-menu-item
-                      v-for="item in section.items"
+                      v-for="item in module.items"
                       :key="item.path"
                       :index="item.path"
                       class="menu-leaf"
@@ -288,7 +281,30 @@ onMounted(() => {
                         <span v-if="itemBadgeLabel(item)" class="menu-item-badge">{{ itemBadgeLabel(item) }}</span>
                       </span>
                     </el-menu-item>
-                  </el-sub-menu>
+                  </template>
+                  <template v-else>
+                    <el-sub-menu
+                      v-for="section in module.sections"
+                      :key="`${module.key}:${section.key}`"
+                      :index="`${module.key}:${section.key}`"
+                      class="menu-section"
+                    >
+                      <template #title>
+                        <span class="menu-section-title">{{ navLabel(section.label) }}</span>
+                      </template>
+                      <el-menu-item
+                        v-for="item in section.items"
+                        :key="item.path"
+                        :index="item.path"
+                        class="menu-leaf"
+                      >
+                        <span class="menu-item-label">
+                          {{ itemLabel(item) }}
+                          <span v-if="itemBadgeLabel(item)" class="menu-item-badge">{{ itemBadgeLabel(item) }}</span>
+                        </span>
+                      </el-menu-item>
+                    </el-sub-menu>
+                  </template>
                 </el-sub-menu>
               </template>
             </el-menu>

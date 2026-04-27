@@ -17,7 +17,11 @@ const requiredTokens = [
   'Priority matrix',
   'Important or urgent list',
   'By report',
-  'By SQL'
+  'By SQL',
+  'Severity view',
+  'Priority view',
+  'Logical object view',
+  'Parse status samples'
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))

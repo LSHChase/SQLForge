@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import {
+  exportGovernanceQueryHistory,
   formatRuntimeError,
   getGovernanceQueryHistoryDetail,
   getGovernanceQueryHistoryPage,
@@ -18,9 +19,22 @@ const router = useRouter()
 const form = reactive({
   tenantId: 'tenant-a',
   reportCode: '',
+  datasourceCode: '',
+  stage: '',
+  bizDate: '',
+  queryDateStart: '',
+  queryDateEnd: '',
   accessChannel: '',
   status: '',
+  logicalObjectType: '',
   engine: '',
+  submittedBy: '',
+  cacheHit: '',
+  rewriteApplied: '',
+  accelerationApplied: '',
+  parameterizedSql: '',
+  sortBy: 'submittedAt',
+  sortOrder: 'DESC',
   submittedStart: '',
   submittedEnd: '',
   traceId: '',
@@ -31,7 +45,8 @@ const form = reactive({
 const loading = reactive({
   page: false,
   detail: false,
-  lookup: false
+  lookup: false,
+  export: false
 })
 
 const page = ref(null)
@@ -41,6 +56,13 @@ const evidenceDrawerVisible = ref(false)
 const activeDialogTab = ref('overview')
 const selectedHistoryDetail = ref(null)
 const errorMessage = ref('')
+const exportDialogVisible = ref(false)
+const exportResult = ref(null)
+const exportForm = reactive({
+  exportFormat: 'JSON',
+  includeTraceDetail: true,
+  exportReason: 'frontend-history-forensics'
+})
 
 const isChinese = computed(() => locale.value === 'zh-CN')
 const rows = computed(() => page.value?.items || [])
@@ -130,13 +152,24 @@ const loadPage = async () => {
       {
         tenantId: form.tenantId,
         reportCode: form.reportCode,
+        datasourceCode: form.datasourceCode,
+        stage: form.stage,
+        bizDate: form.bizDate,
+        queryDateStart: form.queryDateStart,
+        queryDateEnd: form.queryDateEnd,
         accessChannel: form.accessChannel,
         status: form.status,
+        logicalObjectType: form.logicalObjectType,
         engine: form.engine,
+        submittedBy: form.submittedBy,
+        cacheHit: parseBooleanFilter(form.cacheHit),
+        rewriteApplied: parseBooleanFilter(form.rewriteApplied),
+        accelerationApplied: parseBooleanFilter(form.accelerationApplied),
+        parameterizedSql: parseBooleanFilter(form.parameterizedSql),
         submittedStart: form.submittedStart,
         submittedEnd: form.submittedEnd,
-        sortBy: 'submittedAt',
-        sortOrder: 'DESC',
+        sortBy: form.sortBy,
+        sortOrder: form.sortOrder,
         pageNo: 1,
         pageSize: 10
       },
@@ -222,15 +255,63 @@ const runIndexedLookup = async () => {
 
 const clearFilters = async () => {
   form.reportCode = ''
+  form.datasourceCode = ''
+  form.stage = ''
+  form.bizDate = ''
+  form.queryDateStart = ''
+  form.queryDateEnd = ''
   form.accessChannel = ''
   form.status = ''
+  form.logicalObjectType = ''
   form.engine = ''
+  form.submittedBy = ''
+  form.cacheHit = ''
+  form.rewriteApplied = ''
+  form.accelerationApplied = ''
+  form.parameterizedSql = ''
+  form.sortBy = 'submittedAt'
+  form.sortOrder = 'DESC'
   form.submittedStart = ''
   form.submittedEnd = ''
   form.traceId = ''
   form.taskId = ''
   form.reportId = ''
   await loadPage()
+}
+
+const openExportDialog = () => {
+  if (!selectedHistoryDetail.value?.historyId) {
+    return
+  }
+  exportResult.value = null
+  exportDialogVisible.value = true
+}
+
+const runExport = async () => {
+  if (!selectedHistoryDetail.value?.historyId) {
+    return
+  }
+  loading.export = true
+  errorMessage.value = ''
+  try {
+    exportResult.value = await exportGovernanceQueryHistory(
+      form.tenantId,
+      {
+        historyId: selectedHistoryDetail.value.historyId,
+        exportFormat: exportForm.exportFormat,
+        includeTraceDetail: exportForm.includeTraceDetail,
+        exportReason: exportForm.exportReason
+      },
+      {
+        requestPrefix: 'frontend-parse-record-export'
+      }
+    )
+  } catch (error) {
+    exportResult.value = null
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.export = false
+  }
 }
 
 const openRepairEvidence = () => {
@@ -270,6 +351,16 @@ const statusClass = value => {
     return 'pill pill-warning'
   }
   return 'pill pill-danger'
+}
+
+const parseBooleanFilter = value => {
+  if (value === 'true') {
+    return true
+  }
+  if (value === 'false') {
+    return false
+  }
+  return undefined
 }
 
 const formatTimestamp = value => {
@@ -371,6 +462,26 @@ onMounted(async () => {
           <el-input v-model="form.reportCode" />
         </label>
         <label class="field-block">
+          <span class="field-label">{{ isChinese ? '数据源' : 'Datasource' }}</span>
+          <el-input v-model="form.datasourceCode" data-testid="parse-record-datasource-filter" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '阶段' : 'Stage' }}</span>
+          <el-input v-model="form.stage" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '业务日期' : 'Biz date' }}</span>
+          <el-input v-model="form.bizDate" placeholder="2026-04-27" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '查询日期起点' : 'Query date start' }}</span>
+          <el-input v-model="form.queryDateStart" placeholder="2026-04-01" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '查询日期终点' : 'Query date end' }}</span>
+          <el-input v-model="form.queryDateEnd" placeholder="2026-04-27" />
+        </label>
+        <label class="field-block">
           <span class="field-label">{{ isChinese ? '结果状态' : 'Status' }}</span>
           <el-select v-model="form.status" data-testid="parse-record-filter-select">
             <el-option label="ALL" value="" />
@@ -391,11 +502,55 @@ onMounted(async () => {
           </el-select>
         </label>
         <label class="field-block">
+          <span class="field-label">{{ isChinese ? '逻辑对象类型' : 'Logical object type' }}</span>
+          <el-select v-model="form.logicalObjectType">
+            <el-option label="ALL" value="" />
+            <el-option label="BUSINESS_VIEW" value="BUSINESS_VIEW" />
+            <el-option label="DB_VIEW" value="DB_VIEW" />
+          </el-select>
+        </label>
+        <label class="field-block">
           <span class="field-label">{{ isChinese ? '目标引擎' : 'Target engine' }}</span>
           <el-select v-model="form.engine" data-testid="parse-record-sort-select">
             <el-option label="ALL" value="" />
             <el-option label="HETU" value="HETU" />
             <el-option label="HIVE" value="HIVE" />
+          </el-select>
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '提交人' : 'Submitted by' }}</span>
+          <el-input v-model="form.submittedBy" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '缓存命中' : 'Cache hit' }}</span>
+          <el-select v-model="form.cacheHit" data-testid="parse-record-bool-filter">
+            <el-option label="ALL" value="" />
+            <el-option label="true" value="true" />
+            <el-option label="false" value="false" />
+          </el-select>
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '轻量改写' : 'Rewrite applied' }}</span>
+          <el-select v-model="form.rewriteApplied">
+            <el-option label="ALL" value="" />
+            <el-option label="true" value="true" />
+            <el-option label="false" value="false" />
+          </el-select>
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '加速命中' : 'Acceleration applied' }}</span>
+          <el-select v-model="form.accelerationApplied">
+            <el-option label="ALL" value="" />
+            <el-option label="true" value="true" />
+            <el-option label="false" value="false" />
+          </el-select>
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '参数化 SQL' : 'Parameterized SQL' }}</span>
+          <el-select v-model="form.parameterizedSql">
+            <el-option label="ALL" value="" />
+            <el-option label="true" value="true" />
+            <el-option label="false" value="false" />
           </el-select>
         </label>
         <label class="field-block">
@@ -405,6 +560,22 @@ onMounted(async () => {
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '提交终点' : 'Submitted end' }}</span>
           <el-input v-model="form.submittedEnd" placeholder="2026-04-27T23:59:59" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '排序字段' : 'Sort by' }}</span>
+          <el-select v-model="form.sortBy">
+            <el-option label="submittedAt" value="submittedAt" />
+            <el-option label="reportCode" value="reportCode" />
+            <el-option label="datasourceCode" value="datasourceCode" />
+            <el-option label="targetEngine" value="targetEngine" />
+          </el-select>
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '排序方向' : 'Sort order' }}</span>
+          <el-select v-model="form.sortOrder">
+            <el-option label="DESC" value="DESC" />
+            <el-option label="ASC" value="ASC" />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? 'Trace ID' : 'Trace ID' }}</span>
@@ -422,7 +593,7 @@ onMounted(async () => {
 
       <div class="chip-row">
         <span class="chip">{{ isChinese ? 'History classification' : 'History classification' }}</span>
-        <span class="chip">{{ isChinese ? 'Sort mode' : 'Sort mode' }}: submittedAt DESC</span>
+        <span class="chip">{{ isChinese ? 'Sort mode' : 'Sort mode' }}: {{ form.sortBy }} {{ form.sortOrder }}</span>
         <span class="chip" data-testid="parse-record-page-mode">{{ hasLookupCriteria ? 'INDEXED' : 'PAGE' }}</span>
       </div>
     </section>
@@ -469,6 +640,8 @@ onMounted(async () => {
             <div class="cell-subline">{{ row.historyId }}</div>
           </template>
         </el-table-column>
+        <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
+        <el-table-column prop="stageCode" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
         <el-table-column :label="isChinese ? '服务编码' : 'Service code'" min-width="150">
           <template #default="{ row }">{{ row.historyType || '-' }}</template>
         </el-table-column>
@@ -478,6 +651,14 @@ onMounted(async () => {
           </template>
         </el-table-column>
         <el-table-column prop="accessChannel" :label="isChinese ? '接入渠道' : 'Access channel'" min-width="130" />
+        <el-table-column :label="isChinese ? '逻辑对象类型' : 'Logical objects'" min-width="160">
+          <template #default="{ row }">{{ row.logicalObjectTypes?.join(', ') || '-' }}</template>
+        </el-table-column>
+        <el-table-column :label="isChinese ? '治理命中' : 'Governance hits'" min-width="170">
+          <template #default="{ row }">
+            {{ `cache:${row.cacheHit === true ? 'Y' : row.cacheHit === false ? 'N' : '-'} / rewrite:${row.rewriteApplied === true ? 'Y' : row.rewriteApplied === false ? 'N' : '-'} / accel:${row.accelerationApplied === true ? 'Y' : row.accelerationApplied === false ? 'N' : '-'}` }}
+          </template>
+        </el-table-column>
         <el-table-column prop="targetEngine" :label="isChinese ? '目标引擎' : 'Target engine'" min-width="120" />
         <el-table-column prop="submittedAt" :label="isChinese ? '提交时间' : 'Submitted at'" min-width="170">
           <template #default="{ row }">{{ formatTimestamp(row.submittedAt) }}</template>
@@ -502,6 +683,7 @@ onMounted(async () => {
           <div class="dialog-actions">
             <el-button type="primary" @click="openRepairEvidence">{{ isChinese ? '打开修复证据' : 'Open repair evidence' }}</el-button>
             <el-button @click="openAuditForensics">{{ isChinese ? '打开审计取证' : 'Open audit forensics' }}</el-button>
+            <el-button :loading="loading.export" data-testid="parse-record-export" @click="openExportDialog">{{ isChinese ? '导出取证' : 'Export evidence' }}</el-button>
             <el-button @click="evidenceDrawerVisible = true">{{ isChinese ? '查看原始证据' : 'View raw evidence' }}</el-button>
           </div>
         </div>
@@ -636,6 +818,42 @@ onMounted(async () => {
     <el-drawer v-model="evidenceDrawerVisible" :title="isChinese ? '原始证据' : 'Raw evidence'" size="44%">
       <pre class="code-block">{{ formatJson(selectedHistoryDetail || {}) }}</pre>
     </el-drawer>
+
+    <el-dialog v-model="exportDialogVisible" :title="isChinese ? '导出取证' : 'Export evidence'" width="720px">
+      <div class="dialog-stack">
+        <div class="field-grid">
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? '导出格式' : 'Export format' }}</span>
+            <el-select v-model="exportForm.exportFormat">
+              <el-option label="JSON" value="JSON" />
+              <el-option label="CSV" value="CSV" />
+              <el-option label="EXCEL" value="EXCEL" />
+              <el-option label="SQL_TEXT" value="SQL_TEXT" />
+              <el-option label="PDF_REPORT" value="PDF_REPORT" />
+            </el-select>
+          </label>
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? '导出原因' : 'Export reason' }}</span>
+            <el-input v-model="exportForm.exportReason" />
+          </label>
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? '携带 Trace 明细' : 'Include trace detail' }}</span>
+            <el-switch v-model="exportForm.includeTraceDetail" />
+          </label>
+        </div>
+        <div class="dialog-actions">
+          <el-button type="primary" :loading="loading.export" @click="runExport">{{ isChinese ? '执行导出' : 'Run export' }}</el-button>
+        </div>
+        <div v-if="exportResult" class="code-grid">
+          <article class="code-card">
+            <div class="code-card__header">
+              <span>{{ isChinese ? '导出摘要' : 'Export summary' }}</span>
+            </div>
+            <pre class="code-block" data-testid="parse-record-export-result">{{ formatJson(exportResult) }}</pre>
+          </article>
+        </div>
+      </div>
+    </el-dialog>
   </section>
 </template>
 

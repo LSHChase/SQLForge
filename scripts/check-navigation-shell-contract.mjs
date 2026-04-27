@@ -14,7 +14,6 @@ const requiredTokens = [
   'menu-item-badge',
   'menu-module-item',
   'menu-item-caption',
-  'sectionLabel',
   'breadcrumbText'
 ]
 
@@ -26,6 +25,26 @@ if (missing.length > 0) {
     console.error(`- missing token: ${token}`)
   }
   process.exit(1)
+}
+
+const flatModuleChecks = [
+  {
+    key: 'sql-history',
+    label: 'SQL history'
+  },
+  {
+    key: 'parse-acceleration',
+    label: 'Parsing and acceleration'
+  }
+]
+
+for (const moduleCheck of flatModuleChecks) {
+  const itemsPattern = new RegExp(`key: '${moduleCheck.key}'[\\s\\S]{0,700}?items: \\[`)
+  const sectionsPattern = new RegExp(`key: '${moduleCheck.key}'[\\s\\S]{0,700}?sections:`)
+  if (!itemsPattern.test(source) || sectionsPattern.test(source)) {
+    console.error(`Navigation shell contract check failed: ${moduleCheck.label} must flatten directly to module items.`)
+    process.exit(1)
+  }
 }
 
 console.log('navigation shell contract ok')

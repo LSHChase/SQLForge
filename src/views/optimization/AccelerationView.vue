@@ -79,9 +79,22 @@ const reportBatchForm = reactive({
 const historyForm = reactive({
   tenantId: 'tenant-a',
   reportCode: '',
+  datasourceCode: '',
+  stage: '',
+  bizDate: '',
+  queryDateStart: '',
+  queryDateEnd: '',
   accessChannel: '',
   status: '',
+  logicalObjectType: '',
   engine: '',
+  submittedBy: '',
+  cacheHit: '',
+  rewriteApplied: '',
+  accelerationApplied: '',
+  parameterizedSql: '',
+  sortBy: 'submittedAt',
+  sortOrder: 'DESC',
   submittedStart: '',
   submittedEnd: '',
   traceId: '',
@@ -309,6 +322,99 @@ const pageSummaryCards = computed(() => [
   card(isChinese.value ? '接入渠道' : 'Access channels', Object.keys(historyClassificationSummary.value.accessChannelCounts || {}).length)
 ])
 
+const severityStats = computed(() => {
+  const groups = new Map()
+  issueScenes.value.forEach(item => {
+    const key = String(item.severity || 'UNKNOWN')
+    const current = groups.get(key) || {
+      severity: key,
+      issueSceneCount: 0,
+      affectedSqlCount: 0,
+      affectedIssueCount: 0,
+      urgentCount: 0
+    }
+    current.issueSceneCount += 1
+    current.affectedSqlCount += Number(item.affectedSqlCount || 0)
+    current.affectedIssueCount += Number(item.affectedIssueCount || 0)
+    if (item.urgent === true) {
+      current.urgentCount += 1
+    }
+    groups.set(key, current)
+  })
+  return Array.from(groups.values()).sort((left, right) => right.affectedSqlCount - left.affectedSqlCount)
+})
+
+const priorityStats = computed(() => {
+  const groups = new Map()
+  issueScenes.value.forEach(item => {
+    const key = String(item.priorityLevel || 'UNKNOWN')
+    const current = groups.get(key) || {
+      priorityLevel: key,
+      issueSceneCount: 0,
+      affectedSqlCount: 0,
+      affectedIssueCount: 0,
+      highestPriorityScore: 0
+    }
+    current.issueSceneCount += 1
+    current.affectedSqlCount += Number(item.affectedSqlCount || 0)
+    current.affectedIssueCount += Number(item.affectedIssueCount || 0)
+    current.highestPriorityScore = Math.max(current.highestPriorityScore, Number(item.priorityScore || 0))
+    groups.set(key, current)
+  })
+  return Array.from(groups.values()).sort((left, right) => right.affectedSqlCount - left.affectedSqlCount)
+})
+
+const logicalObjectStats = computed(() => {
+  const groups = new Map()
+  historyRows.value.forEach(row => {
+    const typedHits = [
+      ...(Array.isArray(row.logicalObjectTypes) ? row.logicalObjectTypes.map(type => ({ key: type, type })) : []),
+      ...(Array.isArray(row.logicalObjectHits)
+        ? row.logicalObjectHits.map(hit => ({
+            key: hit.objectKey || hit.logicalObjectKey || hit.objectName || hit.objectType || hit.logicalObjectType || 'OBJECT',
+            type: hit.objectType || hit.logicalObjectType || 'OBJECT'
+          }))
+        : [])
+    ]
+    typedHits.forEach(hit => {
+      const current = groups.get(hit.key) || {
+        logicalObjectKey: hit.key,
+        logicalObjectType: hit.type,
+        sampleCount: 0
+      }
+      current.sampleCount += 1
+      groups.set(hit.key, current)
+    })
+  })
+  return Array.from(groups.values()).sort((left, right) => right.sampleCount - left.sampleCount)
+})
+
+const parseStatusStats = computed(() => {
+  const groups = new Map()
+  historyRows.value.forEach(row => {
+    const key = String(row.resultStatus || 'UNKNOWN')
+    const current = groups.get(key) || {
+      resultStatus: key,
+      sampleCount: 0,
+      cacheHitCount: 0,
+      rewriteCount: 0,
+      accelerationCount: 0
+    }
+    current.sampleCount += 1
+    if (row.cacheHit === true) {
+      current.cacheHitCount += 1
+    }
+    if (row.rewriteApplied === true) {
+      current.rewriteCount += 1
+    }
+    if (row.accelerationApplied === true) {
+      current.accelerationCount += 1
+    }
+    groups.set(key, current)
+  })
+  return Array.from(groups.values()).sort((left, right) => right.sampleCount - left.sampleCount)
+})
+
 const detailSummaryCards = computed(() => {
   if (!selectedHistoryDetail.value) {
     return []
@@ -407,6 +513,16 @@ function booleanLabel(value) {
     return ''
   }
   return value ? 'true' : 'false'
+}
+
+function parseBooleanFilter(value) {
+  if (value === 'true') {
+    return true
+  }
+  if (value === 'false') {
+    return false
+  }
+  return undefined
 }
 
 function formatNumber(value) {
@@ -961,13 +1077,24 @@ async function loadHistoryPage() {
       {
         tenantId: historyForm.tenantId,
         reportCode: historyForm.reportCode,
+        datasourceCode: historyForm.datasourceCode,
+        stage: historyForm.stage,
+        bizDate: historyForm.bizDate,
+        queryDateStart: historyForm.queryDateStart,
+        queryDateEnd: historyForm.queryDateEnd,
         accessChannel: historyForm.accessChannel,
         status: historyForm.status,
+        logicalObjectType: historyForm.logicalObjectType,
         engine: historyForm.engine,
+        submittedBy: historyForm.submittedBy,
+        cacheHit: parseBooleanFilter(historyForm.cacheHit),
+        rewriteApplied: parseBooleanFilter(historyForm.rewriteApplied),
+        accelerationApplied: parseBooleanFilter(historyForm.accelerationApplied),
+        parameterizedSql: parseBooleanFilter(historyForm.parameterizedSql),
         submittedStart: historyForm.submittedStart,
         submittedEnd: historyForm.submittedEnd,
-        sortBy: 'submittedAt',
-        sortOrder: 'DESC',
+        sortBy: historyForm.sortBy,
+        sortOrder: historyForm.sortOrder,
         pageNo: 1,
         pageSize: 10
       },
@@ -1055,9 +1182,22 @@ async function runIndexedLookup() {
 
 async function clearHistoryFilters() {
   historyForm.reportCode = ''
+  historyForm.datasourceCode = ''
+  historyForm.stage = ''
+  historyForm.bizDate = ''
+  historyForm.queryDateStart = ''
+  historyForm.queryDateEnd = ''
   historyForm.accessChannel = ''
   historyForm.status = ''
+  historyForm.logicalObjectType = ''
   historyForm.engine = ''
+  historyForm.submittedBy = ''
+  historyForm.cacheHit = ''
+  historyForm.rewriteApplied = ''
+  historyForm.accelerationApplied = ''
+  historyForm.parameterizedSql = ''
+  historyForm.sortBy = 'submittedAt'
+  historyForm.sortOrder = 'DESC'
   historyForm.submittedStart = ''
   historyForm.submittedEnd = ''
   historyForm.traceId = ''
@@ -1672,6 +1812,68 @@ watch(
               </el-table>
             </el-tab-pane>
 
+            <el-tab-pane :label="isChinese ? '严重度视角' : 'By severity'" name="severity">
+              <div class="table-heading">
+                <div>
+                  <p class="section-kicker sqlforge-code-label">Severity view</p>
+                  <h3 class="detail-title">{{ isChinese ? '严重度视角' : 'By severity' }}</h3>
+                </div>
+              </div>
+              <el-table :data="severityStats" border>
+                <el-table-column prop="severity" :label="isChinese ? '严重度' : 'Severity'" min-width="140" />
+                <el-table-column prop="issueSceneCount" :label="isChinese ? '问题场景数' : 'Issue scenes'" min-width="140" />
+                <el-table-column prop="affectedSqlCount" :label="isChinese ? '影响 SQL' : 'Affected SQL'" min-width="140" />
+                <el-table-column prop="affectedIssueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="120" />
+                <el-table-column prop="urgentCount" :label="isChinese ? '紧急场景' : 'Urgent scenes'" min-width="140" />
+              </el-table>
+            </el-tab-pane>
+
+            <el-tab-pane :label="isChinese ? '优先级视角' : 'By priority'" name="priority">
+              <div class="table-heading">
+                <div>
+                  <p class="section-kicker sqlforge-code-label">Priority view</p>
+                  <h3 class="detail-title">{{ isChinese ? '优先级视角' : 'By priority' }}</h3>
+                </div>
+              </div>
+              <el-table :data="priorityStats" border>
+                <el-table-column prop="priorityLevel" :label="isChinese ? '优先级' : 'Priority'" min-width="140" />
+                <el-table-column prop="issueSceneCount" :label="isChinese ? '问题场景数' : 'Issue scenes'" min-width="140" />
+                <el-table-column prop="affectedSqlCount" :label="isChinese ? '影响 SQL' : 'Affected SQL'" min-width="140" />
+                <el-table-column prop="affectedIssueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="120" />
+                <el-table-column prop="highestPriorityScore" :label="isChinese ? '最高分' : 'Highest score'" min-width="140" />
+              </el-table>
+            </el-tab-pane>
+
+            <el-tab-pane :label="isChinese ? '逻辑对象视角' : 'Logical object view'" name="logical-object">
+              <div class="table-heading">
+                <div>
+                  <p class="section-kicker sqlforge-code-label">Logical object view</p>
+                  <h3 class="detail-title">{{ isChinese ? '逻辑对象视角' : 'Logical object view' }}</h3>
+                </div>
+              </div>
+              <el-table :data="logicalObjectStats" border>
+                <el-table-column prop="logicalObjectType" :label="isChinese ? '对象类型' : 'Type'" min-width="150" />
+                <el-table-column prop="logicalObjectKey" :label="isChinese ? '对象标识' : 'Object key'" min-width="240" />
+                <el-table-column prop="sampleCount" :label="isChinese ? '命中样本' : 'Samples'" min-width="120" />
+              </el-table>
+            </el-tab-pane>
+
+            <el-tab-pane :label="isChinese ? '解析状态样本' : 'Parse status samples'" name="parse-status">
+              <div class="table-heading">
+                <div>
+                  <p class="section-kicker sqlforge-code-label">Parse status samples</p>
+                  <h3 class="detail-title">{{ isChinese ? '解析状态样本' : 'Parse status samples' }}</h3>
+                </div>
+              </div>
+              <el-table :data="parseStatusStats" border>
+                <el-table-column prop="resultStatus" :label="isChinese ? '结果状态' : 'Result status'" min-width="150" />
+                <el-table-column prop="sampleCount" :label="isChinese ? '样本数' : 'Samples'" min-width="120" />
+                <el-table-column prop="cacheHitCount" :label="isChinese ? '缓存命中' : 'Cache hit'" min-width="120" />
+                <el-table-column prop="rewriteCount" :label="isChinese ? '轻量改写' : 'Rewrite'" min-width="120" />
+                <el-table-column prop="accelerationCount" :label="isChinese ? '加速命中' : 'Acceleration'" min-width="130" />
+              </el-table>
+            </el-tab-pane>
+
             <el-tab-pane :label="isChinese ? '解析历史' : 'Parse history'" name="history">
               <div class="history-stack">
                 <div class="table-heading">
@@ -1697,6 +1899,26 @@ watch(
                     <el-input v-model="historyForm.reportCode" />
                   </label>
                   <label class="field-block">
+                    <span class="field-label">{{ isChinese ? '数据源' : 'Datasource' }}</span>
+                    <el-input v-model="historyForm.datasourceCode" />
+                  </label>
+                  <label class="field-block">
+                    <span class="field-label">{{ isChinese ? '阶段' : 'Stage' }}</span>
+                    <el-input v-model="historyForm.stage" />
+                  </label>
+                  <label class="field-block">
+                    <span class="field-label">{{ isChinese ? '业务日期' : 'Biz date' }}</span>
+                    <el-input v-model="historyForm.bizDate" placeholder="2026-04-27" />
+                  </label>
+                  <label class="field-block">
+                    <span class="field-label">{{ isChinese ? '查询日期起点' : 'Query date start' }}</span>
+                    <el-input v-model="historyForm.queryDateStart" placeholder="2026-04-01" />
+                  </label>
+                  <label class="field-block">
+                    <span class="field-label">{{ isChinese ? '查询日期终点' : 'Query date end' }}</span>
+                    <el-input v-model="historyForm.queryDateEnd" placeholder="2026-04-27" />
+                  </label>
+                  <label class="field-block">
                     <span class="field-label">{{ isChinese ? '结果状态' : 'Status' }}</span>
                     <el-select v-model="historyForm.status" data-testid="parse-record-filter-select">
                       <el-option label="ALL" value="" />
@@ -1717,11 +1939,55 @@ watch(
                     </el-select>
                   </label>
                   <label class="field-block">
+                    <span class="field-label">{{ isChinese ? '逻辑对象类型' : 'Logical object type' }}</span>
+                    <el-select v-model="historyForm.logicalObjectType">
+                      <el-option label="ALL" value="" />
+                      <el-option label="BUSINESS_VIEW" value="BUSINESS_VIEW" />
+                      <el-option label="DB_VIEW" value="DB_VIEW" />
+                    </el-select>
+                  </label>
+                  <label class="field-block">
                     <span class="field-label">{{ isChinese ? '目标引擎' : 'Target engine' }}</span>
                     <el-select v-model="historyForm.engine" data-testid="parse-record-sort-select">
                       <el-option label="ALL" value="" />
                       <el-option label="HETU" value="HETU" />
                       <el-option label="HIVE" value="HIVE" />
+                    </el-select>
+                  </label>
+                  <label class="field-block">
+                    <span class="field-label">{{ isChinese ? '提交人' : 'Submitted by' }}</span>
+                    <el-input v-model="historyForm.submittedBy" />
+                  </label>
+                  <label class="field-block">
+                    <span class="field-label">{{ isChinese ? '缓存命中' : 'Cache hit' }}</span>
+                    <el-select v-model="historyForm.cacheHit">
+                      <el-option label="ALL" value="" />
+                      <el-option label="true" value="true" />
+                      <el-option label="false" value="false" />
+                    </el-select>
+                  </label>
+                  <label class="field-block">
+                    <span class="field-label">{{ isChinese ? '轻量改写' : 'Rewrite applied' }}</span>
+                    <el-select v-model="historyForm.rewriteApplied">
+                      <el-option label="ALL" value="" />
+                      <el-option label="true" value="true" />
+                      <el-option label="false" value="false" />
+                    </el-select>
+                  </label>
+                  <label class="field-block">
+                    <span class="field-label">{{ isChinese ? '加速命中' : 'Acceleration applied' }}</span>
+                    <el-select v-model="historyForm.accelerationApplied">
+                      <el-option label="ALL" value="" />
+                      <el-option label="true" value="true" />
+                      <el-option label="false" value="false" />
+                    </el-select>
+                  </label>
+                  <label class="field-block">
+                    <span class="field-label">{{ isChinese ? '参数化 SQL' : 'Parameterized SQL' }}</span>
+                    <el-select v-model="historyForm.parameterizedSql">
+                      <el-option label="ALL" value="" />
+                      <el-option label="true" value="true" />
+                      <el-option label="false" value="false" />
                     </el-select>
                   </label>
                   <label class="field-block">
@@ -1731,6 +1997,22 @@ watch(
                   <label class="field-block">
                     <span class="field-label">{{ isChinese ? '提交终点' : 'Submitted end' }}</span>
                     <el-input v-model="historyForm.submittedEnd" placeholder="2026-04-27T23:59:59" />
+                  </label>
+                  <label class="field-block">
+                    <span class="field-label">{{ isChinese ? '排序字段' : 'Sort by' }}</span>
+                    <el-select v-model="historyForm.sortBy">
+                      <el-option label="submittedAt" value="submittedAt" />
+                      <el-option label="reportCode" value="reportCode" />
+                      <el-option label="datasourceCode" value="datasourceCode" />
+                      <el-option label="targetEngine" value="targetEngine" />
+                    </el-select>
+                  </label>
+                  <label class="field-block">
+                    <span class="field-label">{{ isChinese ? '排序方向' : 'Sort order' }}</span>
+                    <el-select v-model="historyForm.sortOrder">
+                      <el-option label="DESC" value="DESC" />
+                      <el-option label="ASC" value="ASC" />
+                    </el-select>
                   </label>
                   <label class="field-block">
                     <span class="field-label">Trace ID</span>
@@ -1748,7 +2030,7 @@ watch(
 
                 <div class="summary-chip-row">
                   <span class="summary-chip">{{ isChinese ? 'History classification' : 'History classification' }}</span>
-                  <span class="summary-chip">{{ isChinese ? 'Sort mode' : 'Sort mode' }}: submittedAt DESC</span>
+                  <span class="summary-chip">{{ isChinese ? 'Sort mode' : 'Sort mode' }}: {{ historyForm.sortBy }} {{ historyForm.sortOrder }}</span>
                   <span class="summary-chip" data-testid="parse-record-page-mode">{{ hasLookupCriteria ? 'INDEXED' : 'PAGE' }}</span>
                 </div>
 
@@ -1773,6 +2055,8 @@ watch(
                       <div class="cell-subline">{{ row.historyId }}</div>
                     </template>
                   </el-table-column>
+                  <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
+                  <el-table-column prop="stageCode" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
                   <el-table-column :label="isChinese ? '服务编码' : 'Service code'" min-width="150">
                     <template #default="{ row }">{{ row.historyType || '-' }}</template>
                   </el-table-column>
@@ -1782,6 +2066,9 @@ watch(
                     </template>
                   </el-table-column>
                   <el-table-column prop="accessChannel" :label="isChinese ? '接入渠道' : 'Access channel'" min-width="130" />
+                  <el-table-column :label="isChinese ? '逻辑对象类型' : 'Logical objects'" min-width="160">
+                    <template #default="{ row }">{{ row.logicalObjectTypes?.join(', ') || '-' }}</template>
+                  </el-table-column>
                   <el-table-column prop="targetEngine" :label="isChinese ? '目标引擎' : 'Target engine'" min-width="120" />
                   <el-table-column prop="submittedAt" :label="isChinese ? '提交时间' : 'Submitted at'" min-width="170">
                     <template #default="{ row }">{{ formatTimestamp(row.submittedAt) }}</template>

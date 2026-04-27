@@ -323,6 +323,18 @@ export const getGovernanceQueryHistoryDetail = (tenantId, historyId, requestOpti
     }
   })
 
+export const exportGovernanceQueryHistory = (tenantId, payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/governance/query-history/export?tenantId=${encodeURIComponent(tenantId)}`,
+    data: payload,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-query-history-export',
+      ...requestOptions
+    }
+  })
+
 export const getGovernanceQueryHistoryPage = (filters = {}, requestOptions = {}) => {
   const params = new URLSearchParams()
   const tenantId = String(filters.tenantId || '').trim()

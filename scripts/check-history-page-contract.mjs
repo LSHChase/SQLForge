@@ -12,13 +12,20 @@ const requiredTokens = [
   'data-testid="parse-record-filter-select"',
   'data-testid="parse-record-sort-select"',
   'data-testid="parse-record-status-filter"',
+  'data-testid="parse-record-datasource-filter"',
+  'data-testid="parse-record-bool-filter"',
   'data-testid="parse-record-page-mode"',
   'data-testid="parse-record-trace-item"',
   'data-testid="parse-record-detail-trace-id"',
+  'data-testid="parse-record-export"',
+  'data-testid="parse-record-export-result"',
   'History classification',
   'Sort mode',
   'query history table',
-  'query history workbench'
+  'query history workbench',
+  'Export evidence',
+  'Logical objects',
+  'Governance hits'
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))
