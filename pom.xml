@@ -40,6 +40,7 @@
         <maven.pmd.plugin.version>3.21.2</maven.pmd.plugin.version>
         <maven.checkstyle.plugin.version>3.3.1</maven.checkstyle.plugin.version>
         <maven.surefire.plugin.version>3.2.5</maven.surefire.plugin.version>
+        <spring.boot.starter.test.version>${spring.boot.version}</spring.boot.starter.test.version>
     </properties>
 
     <dependencyManagement>
@@ -107,6 +108,12 @@
                 <groupId>com.xuxueli</groupId>
                 <artifactId>xxl-job-core</artifactId>
                 <version>${xxl.job.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-test</artifactId>
+                <version>${spring.boot.starter.test.version}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

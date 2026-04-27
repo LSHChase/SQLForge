@@ -16,7 +16,21 @@ _No tasks._
 
 ## In Progress
 
-_No tasks._
+### D-TASK-065: 落地 JDBC Agent 首版 `Observe`
+
+- Status: in_progress
+- Priority: 1
+- Depends on: `D-TASK-064`
+- Scope: JAR 采集 SQL、注释解析、上报 access audit，不接管执行 Tech: `JAVA-BE`,`OPS`. Layer: `common`,`deployments/ci/scripts`.
+- Matrix context: Phase-D / Story `D-STORY-012` 开放接入与 JDBC Agent
+- Human confirmation point: 若 JDBC Agent `Observe` 会接管执行、写入敏感信息或在规则源失败时影响业务查询，需人工确认
+- Data impact: Agent JAR、采集上报、access audit 与 Redis 依赖
+- Rollback / recovery: 恢复 observe-only 语义，禁用高风险上报或敏感字段透出
+- Validation:
+  - `JDBC agent sample/integration 测试`
+  - `python3 scripts/foreman.py validate D-TASK-065`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
 
 
 ## Blocked

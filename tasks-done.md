@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-067: 扩展 JDBC Agent `Local Rewrite + Direct JDBC`
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(jdbc-agent): add local rewrite direct jdbc mode`
+- Priority: 1
+- Depends on: `D-TASK-066`
+- Scope: 本地轻量改写/路由后直连目标 JDBC，保留审计与失败回退 Tech: `JAVA-BE`,`OPS`. Layer: `common`,`deployments/ci/scripts`.
+- Matrix context: Phase-D / Story `D-STORY-012` 开放接入与 JDBC Agent
+- Human confirmation point: 若 JDBC Agent `Local Rewrite + Direct JDBC` 会静默改写 SQL、绕过审计或改变查询语义，需人工确认
+- Data impact: 本地改写规则、direct JDBC 路径与上报链
+- Rollback / recovery: 回退为原 SQL 或 observe-only，保留改写失败记录
+- Validation:
+  - `local rewrite/direct JDBC 测试`
+  - `python3 scripts/foreman.py validate D-TASK-067`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added JDBC Agent shared runtime for observe/governed/local-rewrite flows, including SQL comment/query-date observation, Redis-backed lightweight rewrite routing, direct JDBC fallback semantics, shared open-access HTTP clients, and focused JDBC agent tests/script for the local rewrite + direct JDBC baseline.
+  - Validation evidence: scripts/run-open-access-tests.sh; python3 scripts/foreman.py validate D-TASK-067; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Redis-backed rewrite rules remain intentionally lightweight and repo-closed; real driver weaving and live datasource integration still require later environment-backed verification.
+  - Next step: Close out D-TASK-065/D-TASK-066 against the shared agent baseline, then finish the Java SDK delivery under D-TASK-068.
+
 ### D-TASK-064: 落地 HTTP API 接入基线
 
 - Status: done

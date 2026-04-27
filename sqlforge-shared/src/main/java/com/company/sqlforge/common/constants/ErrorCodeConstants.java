@@ -15,6 +15,7 @@ public final class ErrorCodeConstants {
     public static final int SYSTEM_CONFIG_INVALID = 10007;
     public static final int SYSTEM_MESSAGE_MODE_INVALID = 10008;
     public static final int SYSTEM_AUDIT_CONTRACT_INVALID = 10009;
+    public static final int SYSTEM_OPEN_ACCESS_ROUTE_INVALID = 10010;
 
     public static final int GOVERNANCE_SYSTEM_AUTH_INVALID = 11000;
     public static final int GOVERNANCE_SYSTEM_TENANT_CONTEXT_INVALID = 11001;
