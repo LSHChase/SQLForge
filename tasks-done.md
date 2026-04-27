@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-018: 落地 SQL 历史列表筛选与分类面
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): add history page filters and sorting`
+- Priority: 1
+- Depends on: `E-TASK-017`,`D-TASK-040`
+- Scope: 历史过滤、分类、排序、分页与列表列渲染 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-007` SQL 查询与历史前端增强
+- Human confirmation point: 若历史列表筛选会暴露未授权字段、跨租户可见数据或破坏分页性能边界，需人工确认
+- Data impact: 历史列表、筛选状态与前端缓存态
+- Rollback / recovery: 回退敏感筛选/列，恢复基础列表视图与分页
+- Validation:
+  - `npm run lint`、`npm run build`、history page contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-018`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Extended the SQL history page with explicit history classification filters, sort modes, and richer lookup-state display while preserving existing lookup, pagination, and trace-detail drill-through behavior.
+  - Validation evidence: npm run lint; npm run build; node scripts/check-history-page-contract.mjs; python3 scripts/foreman.py validate E-TASK-018 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-history-page-contract.mjs'
+  - Residual risk: The history page now exposes filtering and sorting, but the deeper forensic SQL tri-state and related-object drill-through views still belong to E-TASK-019.
+  - Next step: Proceed to E-TASK-019 to build the detailed SQL tri-state, comment context, structure/access parse, and related route/recommendation/alert/benchmark forensics view.
+
 ### E-TASK-017: 扩展 SQL 查询工作台三栏布局与执行摘要
 
 - Status: done

@@ -34,15 +34,50 @@ const errorMessage = ref('')
 const hasMore = ref(false)
 const nextCursor = ref('')
 const activeFilters = ref(null)
+const viewOptions = reactive({
+  statusFilter: 'ALL',
+  sortMode: 'LAST_SEEN_DESC'
+})
 
 const isChinese = computed(() => locale.value === 'zh-CN')
-const displayedTraces = computed(() => (activeFilters.value ? lookupResults.value : recentTraces.value))
+const baseTraces = computed(() => (activeFilters.value ? lookupResults.value : recentTraces.value))
+const statusBuckets = computed(() => {
+  const counts = {
+    ALL: baseTraces.value.length,
+    NON_SUCCESS: 0,
+    SUCCESS: 0,
+    QUERY: 0,
+    OPTIMIZATION: 0,
+    BENCHMARK: 0
+  }
+  for (const trace of baseTraces.value) {
+    if (isNonSuccessTrace(trace)) {
+      counts.NON_SUCCESS += 1
+    } else {
+      counts.SUCCESS += 1
+    }
+    const serviceCode = String(trace.serviceCode || '').toUpperCase()
+    if (serviceCode.includes('QUERY')) {
+      counts.QUERY += 1
+    } else if (serviceCode.includes('OPTIMIZATION')) {
+      counts.OPTIMIZATION += 1
+    } else if (serviceCode.includes('BENCHMARK')) {
+      counts.BENCHMARK += 1
+    }
+  }
+  return counts
+})
+const displayedTraces = computed(() => {
+  const filtered = baseTraces.value.filter(trace => matchesStatusFilter(trace, viewOptions.statusFilter))
+  const sorted = [...filtered]
+  sorted.sort((left, right) => compareTrace(left, right, viewOptions.sortMode))
+  return sorted
+})
 const displayedCount = computed(() => displayedTraces.value.length)
 const recentCount = computed(() => recentTraces.value.length)
 const nonSuccessCount = computed(() =>
   displayedTraces.value.filter(trace => {
-    const status = String(trace.latestStatus || '').toUpperCase()
-    return (trace.nonSuccessEventCount || 0) > 0 || (status && status !== 'SUCCESS' && status !== 'SUCCEEDED')
+    return isNonSuccessTrace(trace)
   }).length
 )
 const hasLookupCriteria = computed(
@@ -82,6 +117,56 @@ const lookupCriteria = computed(() =>
     }
   ].filter(item => hasDisplayValue(item.value))
 )
+const filterOptions = computed(() => [
+  {
+    value: 'ALL',
+    label: isChinese.value ? `全部 (${statusBuckets.value.ALL})` : `All (${statusBuckets.value.ALL})`
+  },
+  {
+    value: 'NON_SUCCESS',
+    label: isChinese.value
+      ? `异常/补偿 (${statusBuckets.value.NON_SUCCESS})`
+      : `Non-success (${statusBuckets.value.NON_SUCCESS})`
+  },
+  {
+    value: 'SUCCESS',
+    label: isChinese.value ? `成功 (${statusBuckets.value.SUCCESS})` : `Success (${statusBuckets.value.SUCCESS})`
+  },
+  {
+    value: 'QUERY',
+    label: isChinese.value ? `查询 (${statusBuckets.value.QUERY})` : `Query (${statusBuckets.value.QUERY})`
+  },
+  {
+    value: 'OPTIMIZATION',
+    label: isChinese.value
+      ? `优化 (${statusBuckets.value.OPTIMIZATION})`
+      : `Optimization (${statusBuckets.value.OPTIMIZATION})`
+  },
+  {
+    value: 'BENCHMARK',
+    label: isChinese.value
+      ? `压测 (${statusBuckets.value.BENCHMARK})`
+      : `Benchmark (${statusBuckets.value.BENCHMARK})`
+  }
+])
+const sortOptions = computed(() => [
+  {
+    value: 'LAST_SEEN_DESC',
+    label: isChinese.value ? '最近时间优先' : 'Newest first'
+  },
+  {
+    value: 'LAST_SEEN_ASC',
+    label: isChinese.value ? '最早时间优先' : 'Oldest first'
+  },
+  {
+    value: 'STATUS_RISK',
+    label: isChinese.value ? '异常优先' : 'Risk first'
+  },
+  {
+    value: 'AUDIT_EVENTS_DESC',
+    label: isChinese.value ? '审计事件数优先' : 'Audit events first'
+  }
+])
 const selectedSummary = computed(() =>
   displayedTraces.value.find(trace => trace.traceId === detail.value?.traceId) || null
 )
@@ -137,6 +222,54 @@ const formatTimestamp = value => {
     return '-'
   }
   return String(value).replace('T', ' ')
+}
+
+const parseTime = value => {
+  if (!hasDisplayValue(value)) {
+    return 0
+  }
+  const parsed = Date.parse(String(value))
+  return Number.isNaN(parsed) ? 0 : parsed
+}
+
+const isNonSuccessTrace = trace => {
+  const status = String(trace?.latestStatus || '').toUpperCase()
+  return (trace?.nonSuccessEventCount || 0) > 0 || (status && status !== 'SUCCESS' && status !== 'SUCCEEDED')
+}
+
+const matchesStatusFilter = (trace, filter) => {
+  if (filter === 'ALL') {
+    return true
+  }
+  if (filter === 'NON_SUCCESS') {
+    return isNonSuccessTrace(trace)
+  }
+  if (filter === 'SUCCESS') {
+    return !isNonSuccessTrace(trace)
+  }
+  const serviceCode = String(trace?.serviceCode || '').toUpperCase()
+  return serviceCode.includes(filter)
+}
+
+const compareTrace = (left, right, sortMode) => {
+  if (sortMode === 'LAST_SEEN_ASC') {
+    return parseTime(left.lastSeenAt) - parseTime(right.lastSeenAt)
+  }
+  if (sortMode === 'STATUS_RISK') {
+    const riskDelta = Number(isNonSuccessTrace(right)) - Number(isNonSuccessTrace(left))
+    if (riskDelta !== 0) {
+      return riskDelta
+    }
+    return parseTime(right.lastSeenAt) - parseTime(left.lastSeenAt)
+  }
+  if (sortMode === 'AUDIT_EVENTS_DESC') {
+    const eventDelta = (right.auditEventCount || 0) - (left.auditEventCount || 0)
+    if (eventDelta !== 0) {
+      return eventDelta
+    }
+    return parseTime(right.lastSeenAt) - parseTime(left.lastSeenAt)
+  }
+  return parseTime(right.lastSeenAt) - parseTime(left.lastSeenAt)
 }
 
 const normalizeFilters = () => ({
@@ -532,6 +665,14 @@ onMounted(async () => {
         </div>
 
         <div class="lookup-chip-list">
+          <span class="lookup-chip lookup-chip-strong">
+            {{ isChinese ? '筛选' : 'Filter' }}:
+            <strong data-testid="parse-record-status-filter">{{ viewOptions.statusFilter }}</strong>
+          </span>
+          <span class="lookup-chip lookup-chip-strong">
+            {{ isChinese ? '排序' : 'Sort' }}:
+            <strong data-testid="parse-record-sort-mode">{{ viewOptions.sortMode }}</strong>
+          </span>
           <span class="lookup-chip">
             {{ isChinese ? '视图模式' : 'View mode' }}:
             <strong data-testid="parse-record-page-mode">{{ pageMode }}</strong>
@@ -550,6 +691,31 @@ onMounted(async () => {
                 : 'Without trace, task, or report criteria the recent history window is shown.'
             }}
           </span>
+        </div>
+
+        <div class="view-controls">
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? '历史分类' : 'History classification' }}</span>
+            <el-select v-model="viewOptions.statusFilter" data-testid="parse-record-filter-select">
+              <el-option
+                v-for="option in filterOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+          </label>
+          <label class="field-block">
+            <span class="field-label">{{ isChinese ? '排序方式' : 'Sort mode' }}</span>
+            <el-select v-model="viewOptions.sortMode" data-testid="parse-record-sort-select">
+              <el-option
+                v-for="option in sortOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+          </label>
         </div>
 
         <div class="summary-card-grid">
@@ -954,6 +1120,18 @@ onMounted(async () => {
   font-size: 13px;
 }
 
+.lookup-chip-strong {
+  background: rgba(186, 230, 253, 0.85);
+  color: #0f172a;
+}
+
+.view-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
 .lookup-chip-muted {
   background: rgba(241, 245, 249, 0.9);
   color: #64748b;
@@ -1077,6 +1255,7 @@ onMounted(async () => {
   .form-grid,
   .evidence-grid,
   .summary-card-grid,
+  .view-controls,
   .highlight-grid {
     grid-template-columns: 1fr;
   }
