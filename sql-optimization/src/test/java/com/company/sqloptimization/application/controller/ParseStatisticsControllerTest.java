@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
+import com.company.sqloptimization.application.controller.vo.ParsePriorityMatrixCellVO;
 import com.company.sqloptimization.application.controller.vo.ParseReportStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseStatisticsOverviewVO;
 import com.company.sqloptimization.application.service.ParseStatisticsApplicationService;
@@ -62,6 +63,27 @@ class ParseStatisticsControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].reportCode").value("RPT_A"))
             .andExpect(jsonPath("$[0].issueSqlRatio").value(0.5D));
+    }
+
+    @Test
+    void shouldExposePriorityMatrixAndImportantUrgentEndpoints() throws Exception {
+        ParsePriorityMatrixCellVO cell = new ParsePriorityMatrixCellVO();
+        cell.setPriorityLevel("P1");
+        cell.setUrgencyBucket("IMPORTANT_URGENT");
+        cell.setSqlCount(Integer.valueOf(1));
+        cell.setIssueCount(Integer.valueOf(2));
+        cell.setReportCount(Integer.valueOf(1));
+        when(parseStatisticsApplicationService.priorityMatrix()).thenReturn(Collections.singletonList(cell));
+        when(parseStatisticsApplicationService.importantUrgentList()).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse-statistics/priority-matrix")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].priorityLevel").value("P1"))
+            .andExpect(jsonPath("$[0].urgencyBucket").value("IMPORTANT_URGENT"));
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse-statistics/important-urgent")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(0));
     }
 
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {

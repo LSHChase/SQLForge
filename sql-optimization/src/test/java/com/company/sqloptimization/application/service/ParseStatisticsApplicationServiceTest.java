@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqloptimization.application.controller.vo.ParseIssueSceneStatisticVO;
+import com.company.sqloptimization.application.controller.vo.ParsePriorityMatrixCellVO;
 import com.company.sqloptimization.application.controller.vo.ParseReportStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseSqlIssueStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseStatisticsOverviewVO;
@@ -72,6 +73,8 @@ class ParseStatisticsApplicationServiceTest {
         List<ParseIssueSceneStatisticVO> byScene = service.byIssueScene();
         List<ParseSqlIssueStatisticVO> bySql = service.bySql();
         List<ParseReportStatisticVO> byReport = service.byReport();
+        List<ParsePriorityMatrixCellVO> matrix = service.priorityMatrix();
+        List<ParseSqlIssueStatisticVO> importantUrgent = service.importantUrgentList();
 
         assertEquals(Integer.valueOf(3), overview.getTotalSqlCount());
         assertEquals(Integer.valueOf(3), overview.getTotalIssueCount());
@@ -85,6 +88,9 @@ class ParseStatisticsApplicationServiceTest {
         assertEquals(Integer.valueOf(2), byReport.get(0).getSqlCount());
         assertEquals(Integer.valueOf(1), byReport.get(0).getIssueSqlCount());
         assertEquals(Double.valueOf(0.5D), byReport.get(0).getIssueSqlRatio());
+        assertEquals("P1", matrix.get(0).getPriorityLevel());
+        assertEquals("IMPORTANT_URGENT", matrix.get(0).getUrgencyBucket());
+        assertEquals("item-a1", importantUrgent.get(0).getItemId());
     }
 
     private ParseBatchItem item(String itemId,

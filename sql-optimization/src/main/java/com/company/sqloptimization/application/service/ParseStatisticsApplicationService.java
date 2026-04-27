@@ -4,6 +4,7 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqloptimization.application.controller.vo.ParseIssueSceneStatisticVO;
+import com.company.sqloptimization.application.controller.vo.ParsePriorityMatrixCellVO;
 import com.company.sqloptimization.application.controller.vo.ParseReportStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseSqlIssueStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseStatisticsOverviewVO;
@@ -192,6 +193,52 @@ public class ParseStatisticsApplicationService {
         return result;
     }
 
+    public List<ParsePriorityMatrixCellVO> priorityMatrix() {
+        Map<String, MatrixAccumulator> matrix = new LinkedHashMap<String, MatrixAccumulator>();
+        for (ParseBatchItem item : tenantItems()) {
+            SqlIssueAssessment assessment = assessItem(item);
+            String priorityLevel = assessment.highestPriorityLevel == null
+                ? StructureParsePriorityLevel.P4.name()
+                : assessment.highestPriorityLevel;
+            String bucket = urgencyBucket(assessment.important, assessment.urgent);
+            String key = priorityLevel + "|" + bucket;
+            MatrixAccumulator accumulator = matrix.get(key);
+            if (accumulator == null) {
+                accumulator = new MatrixAccumulator(priorityLevel, bucket);
+                matrix.put(key, accumulator);
+            }
+            accumulator.sqlCount++;
+            accumulator.issueCount += assessment.issueCount;
+            if (StringUtils.hasText(item.getReportCode())) {
+                accumulator.reportCodes.add(item.getReportCode());
+            }
+        }
+        List<ParsePriorityMatrixCellVO> result = new ArrayList<ParsePriorityMatrixCellVO>(matrix.size());
+        for (MatrixAccumulator accumulator : matrix.values()) {
+            ParsePriorityMatrixCellVO vo = new ParsePriorityMatrixCellVO();
+            vo.setPriorityLevel(accumulator.priorityLevel);
+            vo.setUrgencyBucket(accumulator.urgencyBucket);
+            vo.setSqlCount(Integer.valueOf(accumulator.sqlCount));
+            vo.setIssueCount(Integer.valueOf(accumulator.issueCount));
+            vo.setReportCount(Integer.valueOf(accumulator.reportCodes.size()));
+            result.add(vo);
+        }
+        result.sort(Comparator
+            .comparing(ParsePriorityMatrixCellVO::getPriorityLevel)
+            .thenComparing(ParsePriorityMatrixCellVO::getUrgencyBucket));
+        return result;
+    }
+
+    public List<ParseSqlIssueStatisticVO> importantUrgentList() {
+        List<ParseSqlIssueStatisticVO> result = new ArrayList<ParseSqlIssueStatisticVO>();
+        for (ParseSqlIssueStatisticVO sqlStatistic : bySql()) {
+            if (Boolean.TRUE.equals(sqlStatistic.getImportant()) || Boolean.TRUE.equals(sqlStatistic.getUrgent())) {
+                result.add(sqlStatistic);
+            }
+        }
+        return result;
+    }
+
     private List<ParseBatchItem> tenantItems() {
         String tenantId = RequestContext.getTenantId();
         if (!StringUtils.hasText(tenantId)) {
@@ -250,6 +297,19 @@ public class ParseStatisticsApplicationService {
         return normalized.length() <= 120 ? normalized : normalized.substring(0, 120);
     }
 
+    private String urgencyBucket(boolean important, boolean urgent) {
+        if (important && urgent) {
+            return "IMPORTANT_URGENT";
+        }
+        if (important) {
+            return "IMPORTANT";
+        }
+        if (urgent) {
+            return "URGENT";
+        }
+        return "NORMAL";
+    }
+
     private static final class SceneAccumulator {
         private final StructureParseIssueScoringSnapshot snapshot;
         private int affectedSqlCount;
@@ -293,6 +353,19 @@ public class ParseStatisticsApplicationService {
 
         private ReportAccumulator(String reportCode) {
             this.reportCode = reportCode;
+        }
+    }
+
+    private static final class MatrixAccumulator {
+        private final String priorityLevel;
+        private final String urgencyBucket;
+        private int sqlCount;
+        private int issueCount;
+        private final Set<String> reportCodes = new LinkedHashSet<String>();
+
+        private MatrixAccumulator(String priorityLevel, String urgencyBucket) {
+            this.priorityLevel = priorityLevel;
+            this.urgencyBucket = urgencyBucket;
         }
     }
 }

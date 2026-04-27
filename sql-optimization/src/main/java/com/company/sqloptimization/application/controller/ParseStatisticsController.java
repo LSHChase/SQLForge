@@ -1,6 +1,7 @@
 package com.company.sqloptimization.application.controller;
 
 import com.company.sqloptimization.application.controller.vo.ParseIssueSceneStatisticVO;
+import com.company.sqloptimization.application.controller.vo.ParsePriorityMatrixCellVO;
 import com.company.sqloptimization.application.controller.vo.ParseReportStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseSqlIssueStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseStatisticsOverviewVO;
@@ -38,5 +39,15 @@ public class ParseStatisticsController {
     @GetMapping("/by-report")
     public List<ParseReportStatisticVO> byReport() {
         return parseStatisticsApplicationService.byReport();
+    }
+
+    @GetMapping("/priority-matrix")
+    public List<ParsePriorityMatrixCellVO> priorityMatrix() {
+        return parseStatisticsApplicationService.priorityMatrix();
+    }
+
+    @GetMapping("/important-urgent")
+    public List<ParseSqlIssueStatisticVO> importantUrgent() {
+        return parseStatisticsApplicationService.importantUrgentList();
     }
 }

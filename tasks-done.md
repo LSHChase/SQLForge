@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-058: 落地重要/紧急清单与优先级矩阵
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): add parse priority matrix`
+- Priority: 1
+- Depends on: `D-TASK-057`
+- Scope: priority matrix、important/urgent list 与 drill-through Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-010` 解析统计与优先级分层
+- Human confirmation point: 若重要/紧急矩阵会隐藏判定依据或用于替代原始 issue 结果，需人工确认
+- Data impact: priority matrix、important/urgent 视图与排序逻辑
+- Rollback / recovery: 恢复 issue 原始结果优先，矩阵仅作为派生视图
+- Validation:
+  - `matrix/list 测试`
+  - `python3 scripts/foreman.py validate D-TASK-058`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented tenant-scoped parse priority matrix and important/urgent drill-through surfaces, including urgency buckets, SQL/issue/report counts, controller endpoints, tests, and interface documentation.
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=ParseStatisticsApplicationServiceTest,ParseStatisticsControllerTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-058; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Recommendation domain modeling starts in D-TASK-059; this task only exposes parse-statistics drill-through.
+  - Next step: Instantiate D-TASK-059 to extend recommendation object types and benefit/risk model.
+
 ### D-TASK-057: 落地按报表统计与占比分析
 
 - Status: done
