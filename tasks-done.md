@@ -4,6 +4,24 @@
 
 ## Done
 
+### E-TASK-034: 重构SQL查询与解析中心交互工作流
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): rebuild query and parsing workbench flows`
+- Priority: 1
+- Depends on: E-TASK-033,E-TASK-022
+- Scope: 重构 SQL 查询、解析工作台、批量解析中心与解析结果中心，改为查询条件+结果区+必要弹窗/抽屉模式，补齐单条/多条输入和 drill-through 交互。 Tech: VUE-FE. Layer: frontend/router/views/styles.
+- Validation:
+  - `python3 scripts/foreman.py validate E-TASK-034`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 重构 SQL 查询、批量解析中心与解析结果中心，统一为条件栏 + 结果区 + 弹窗/抽屉工作流，并补齐多条 SQL 直接输入和统计 drill-down。
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-034 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-query-workbench-contract.mjs' --extra-command 'node scripts/check-batch-import-contract.mjs' --extra-command 'node scripts/check-statistics-page-contract.mjs'
+  - Residual risk: 解析工作流里的 datasource/object tree 仍以仓库内模拟对象树承载，没有接实时 catalog。
+  - Next step: 将新工作流继续对齐到后续实时 catalog 与 explain 数据源。
+
 ### E-TASK-033: 重构导航信息架构与深色主题壳层
 
 - Status: done

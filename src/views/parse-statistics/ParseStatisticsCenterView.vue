@@ -19,6 +19,10 @@ const form = reactive({
 
 const loading = ref(false)
 const errorMessage = ref('')
+const activeTab = ref('issue')
+const detailDrawerVisible = ref(false)
+const detailDrawerTitle = ref('')
+const detailDrawerPayload = ref(null)
 const overview = ref(null)
 const issueScenes = ref([])
 const sqlStats = ref([])
@@ -32,33 +36,17 @@ const overviewCards = computed(() => {
     return []
   }
   return [
-    {
-      label: isChinese.value ? 'SQL 总数' : 'Total SQL',
-      value: overview.value.totalSqlCount
-    },
-    {
-      label: isChinese.value ? '问题 SQL' : 'Issue SQL',
-      value: overview.value.issueSqlCount
-    },
-    {
-      label: isChinese.value ? '问题总数' : 'Total issues',
-      value: overview.value.totalIssueCount
-    },
-    {
-      label: isChinese.value ? '问题场景数' : 'Issue scenes',
-      value: overview.value.issueSceneCount
-    },
-    {
-      label: isChinese.value ? 'Important SQL' : 'Important SQL',
-      value: overview.value.importantSqlCount
-    },
-    {
-      label: isChinese.value ? 'Urgent SQL' : 'Urgent SQL',
-      value: overview.value.urgentSqlCount
-    }
+    card(isChinese.value ? 'SQL 总数' : 'Total SQL', overview.value.totalSqlCount),
+    card(isChinese.value ? '问题 SQL' : 'Issue SQL', overview.value.issueSqlCount),
+    card(isChinese.value ? '问题总数' : 'Total issues', overview.value.totalIssueCount),
+    card(isChinese.value ? '问题场景数' : 'Issue scenes', overview.value.issueSceneCount),
+    card(isChinese.value ? 'Important SQL' : 'Important SQL', overview.value.importantSqlCount),
+    card(isChinese.value ? 'Urgent SQL' : 'Urgent SQL', overview.value.urgentSqlCount)
   ]
 })
 const priorityDistribution = computed(() => Object.entries(overview.value?.priorityDistribution || {}))
+
+const card = (label, value) => ({ label, value })
 
 const formatRate = value => {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -72,6 +60,12 @@ const boolText = value => {
     return '-'
   }
   return value ? 'true' : 'false'
+}
+
+const openDetailDrawer = (title, payload) => {
+  detailDrawerTitle.value = title
+  detailDrawerPayload.value = payload
+  detailDrawerVisible.value = true
 }
 
 const loadStatistics = async () => {
@@ -114,29 +108,13 @@ onMounted(async () => {
 
 <template>
   <section class="runtime-page statistics-page" data-testid="statistics-page">
-    <div class="runtime-hero surface-card">
+    <header class="page-hero shell-panel">
       <div>
         <p class="runtime-eyebrow sqlforge-code-label">parse statistics center</p>
         <h1 class="runtime-title">{{ t('parseStatisticsCenter.title') }}</h1>
         <p class="runtime-summary">{{ t('parseStatisticsCenter.summary') }}</p>
       </div>
-      <p class="runtime-note">
-        {{
-          isChinese
-            ? '该页直接聚合 parse-statistics 的 overview、issue scene、priority matrix 和 important/urgent 清单，避免在前端重算优先级。'
-            : 'This page aggregates parse-statistics overview, issue-scene distribution, the priority matrix, and important or urgent lists directly from the backend instead of recomputing priority client-side.'
-        }}
-      </p>
-    </div>
-
-    <article class="surface-card control-card">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">statistics controls</p>
-          <h2 class="section-title">{{ isChinese ? '统计刷新入口' : 'Statistics refresh' }}</h2>
-        </div>
-      </div>
-      <div class="action-row">
+      <div class="hero-actions">
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
           <el-input v-model="form.tenantId" />
@@ -150,7 +128,7 @@ onMounted(async () => {
           {{ isChinese ? '刷新统计' : 'Refresh statistics' }}
         </el-button>
       </div>
-    </article>
+    </header>
 
     <div
       v-if="errorMessage"
@@ -160,155 +138,162 @@ onMounted(async () => {
       {{ errorMessage }}
     </div>
 
-    <div class="statistics-grid">
-      <article class="surface-card">
+    <section class="summary-grid">
+      <article v-for="item in overviewCards" :key="item.label" class="summary-card">
+        <span class="summary-card-label">{{ item.label }}</span>
+        <strong>{{ item.value ?? 0 }}</strong>
+      </article>
+    </section>
+
+    <div class="workspace-grid">
+      <aside class="shell-panel insight-rail">
         <div class="section-heading">
           <div>
-            <p class="section-kicker sqlforge-code-label">overview</p>
+            <p class="section-kicker sqlforge-code-label">Parse overview</p>
             <h2 class="section-title">{{ isChinese ? '解析总览' : 'Parse overview' }}</h2>
           </div>
         </div>
 
-        <div class="summary-card-grid">
-          <article
-            v-for="item in overviewCards"
-            :key="item.label"
-            class="summary-card"
-          >
-            <span class="summary-card-label">{{ item.label }}</span>
-            <strong>{{ item.value ?? 0 }}</strong>
-          </article>
-        </div>
-
-        <div class="matrix-grid">
-          <article
+        <div class="distribution-list">
+          <div
             v-for="[priority, count] in priorityDistribution"
             :key="priority"
-            class="matrix-cell"
+            class="distribution-item"
           >
-            <span class="summary-card-label">{{ priority }}</span>
+            <span>{{ priority }}</span>
             <strong>{{ count }}</strong>
-          </article>
-        </div>
-      </article>
-
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">priority matrix</p>
-            <h2 class="section-title">{{ isChinese ? '优先级矩阵' : 'Priority matrix' }}</h2>
           </div>
         </div>
 
-        <div class="matrix-grid" data-testid="statistics-priority-matrix">
-          <article
-            v-for="item in priorityMatrix"
-            :key="`${item.priorityLevel}-${item.urgencyBucket}`"
-            class="matrix-cell"
-          >
-            <span class="summary-card-label">{{ item.priorityLevel }} / {{ item.urgencyBucket }}</span>
-            <strong>{{ item.sqlCount }} SQL</strong>
-            <span>{{ item.issueCount }} issues</span>
-            <span>{{ item.reportCount }} reports</span>
-          </article>
-        </div>
-      </article>
-
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">issue distribution</p>
-            <h2 class="section-title">{{ isChinese ? '问题分布' : 'Issue distribution' }}</h2>
+        <section class="detail-card">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker sqlforge-code-label">Priority matrix</p>
+              <h3 class="detail-title">{{ isChinese ? '优先级矩阵' : 'Priority matrix' }}</h3>
+            </div>
           </div>
-        </div>
-
-        <div class="list-grid">
-          <div
-            v-for="item in issueScenes"
-            :key="item.issueScene"
-            class="list-row"
-            data-testid="statistics-issue-scene"
-          >
-            <strong>{{ item.issueScene }}</strong>
-            <span>{{ item.issueDomain }} · {{ item.severity }}</span>
-            <span>{{ item.priorityLevel }} / {{ item.priorityScore }}</span>
-            <span>{{ item.affectedSqlCount }} SQL · {{ item.affectedIssueCount }} issues</span>
-            <span>{{ formatRate(item.sqlRatio) }}</span>
-            <span>{{ boolText(item.important) }} / {{ boolText(item.urgent) }}</span>
+          <div class="matrix-list" data-testid="statistics-priority-matrix">
+            <button
+              v-for="item in priorityMatrix"
+              :key="`${item.priorityLevel}-${item.urgencyBucket}`"
+              type="button"
+              class="matrix-item"
+              @click="openDetailDrawer(`${item.priorityLevel} / ${item.urgencyBucket}`, item)"
+            >
+              <strong>{{ item.priorityLevel }} / {{ item.urgencyBucket }}</strong>
+              <span>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues</span>
+              <p>{{ item.reportCount }} reports</p>
+            </button>
           </div>
-        </div>
-      </article>
+        </section>
+      </aside>
 
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">important urgent</p>
-            <h2 class="section-title">{{ isChinese ? 'Important / Urgent 清单' : 'Important or urgent list' }}</h2>
-          </div>
-        </div>
+      <main class="shell-panel result-stage">
+        <el-tabs v-model="activeTab">
+          <el-tab-pane :label="isChinese ? '问题分布' : 'Issue distribution'" name="issue">
+            <div class="table-header">
+              <div>
+                <p class="section-kicker sqlforge-code-label">Issue distribution</p>
+                <h2 class="section-title">{{ isChinese ? '问题分布' : 'Issue distribution' }}</h2>
+              </div>
+            </div>
+            <div class="list-grid">
+              <button
+                v-for="item in issueScenes"
+                :key="item.issueScene"
+                type="button"
+                class="list-row"
+                data-testid="statistics-issue-scene"
+                @click="openDetailDrawer(item.issueScene, item)"
+              >
+                <strong>{{ item.issueScene }}</strong>
+                <span>{{ item.issueDomain }} · {{ item.severity }}</span>
+                <span>{{ item.priorityLevel }} / {{ item.priorityScore }}</span>
+                <span>{{ item.affectedSqlCount }} SQL · {{ item.affectedIssueCount }} issues</span>
+                <span>{{ formatRate(item.sqlRatio) }}</span>
+                <span>{{ boolText(item.important) }} / {{ boolText(item.urgent) }}</span>
+              </button>
+            </div>
+          </el-tab-pane>
 
-        <div class="list-grid">
-          <div
-            v-for="item in importantUrgent"
-            :key="item.itemId || item.parseTaskId"
-            class="list-row"
-            data-testid="statistics-important-urgent"
-          >
-            <strong>{{ item.reportCode || item.itemId }}</strong>
-            <span>{{ item.highestPriorityLevel }} / {{ item.highestPriorityScore }}</span>
-            <span>{{ item.datasourceCode || '-' }} · {{ item.stage || '-' }}</span>
-            <span>{{ item.issueScenes?.join(', ') || '-' }}</span>
-            <span>{{ boolText(item.important) }} / {{ boolText(item.urgent) }}</span>
-          </div>
-        </div>
-      </article>
+          <el-tab-pane :label="isChinese ? '重要/紧急' : 'Important or urgent list'" name="important">
+            <div class="table-header">
+              <div>
+                <p class="section-kicker sqlforge-code-label">Important or urgent list</p>
+                <h2 class="section-title">{{ isChinese ? 'Important / Urgent 清单' : 'Important or urgent list' }}</h2>
+              </div>
+            </div>
+            <div class="list-grid">
+              <button
+                v-for="item in importantUrgent"
+                :key="item.itemId || item.parseTaskId"
+                type="button"
+                class="list-row"
+                data-testid="statistics-important-urgent"
+                @click="openDetailDrawer(item.reportCode || item.itemId || 'important', item)"
+              >
+                <strong>{{ item.reportCode || item.itemId }}</strong>
+                <span>{{ item.highestPriorityLevel }} / {{ item.highestPriorityScore }}</span>
+                <span>{{ item.datasourceCode || '-' }} · {{ item.stage || '-' }}</span>
+                <span>{{ item.issueScenes?.join(', ') || '-' }}</span>
+              </button>
+            </div>
+          </el-tab-pane>
 
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">by report</p>
-            <h2 class="section-title">{{ isChinese ? '报表视角' : 'By report' }}</h2>
-          </div>
-        </div>
+          <el-tab-pane :label="isChinese ? '报表视角' : 'By report'" name="report">
+            <div class="table-header">
+              <div>
+                <p class="section-kicker sqlforge-code-label">By report</p>
+                <h2 class="section-title">{{ isChinese ? '报表视角' : 'By report' }}</h2>
+              </div>
+            </div>
+            <div class="list-grid">
+              <button
+                v-for="item in reportStats"
+                :key="item.reportCode"
+                type="button"
+                class="list-row"
+                @click="openDetailDrawer(item.reportCode, item)"
+              >
+                <strong>{{ item.reportCode }}</strong>
+                <span>{{ item.sqlCount }} SQL</span>
+                <span>{{ item.issueCount }} issues</span>
+                <span>{{ item.highestPriorityLevel }} / {{ item.highestPriorityScore }}</span>
+                <span>{{ boolText(item.important) }} / {{ boolText(item.urgent) }}</span>
+              </button>
+            </div>
+          </el-tab-pane>
 
-        <div class="list-grid">
-          <div
-            v-for="item in reportStats"
-            :key="item.reportCode"
-            class="list-row"
-          >
-            <strong>{{ item.reportCode }}</strong>
-            <span>{{ item.sqlCount }} SQL</span>
-            <span>{{ item.issueCount }} issues</span>
-            <span>{{ item.highestPriorityLevel }} / {{ item.highestPriorityScore }}</span>
-            <span>{{ boolText(item.important) }} / {{ boolText(item.urgent) }}</span>
-          </div>
-        </div>
-      </article>
-
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">by sql</p>
-            <h2 class="section-title">{{ isChinese ? 'SQL 清单' : 'By SQL' }}</h2>
-          </div>
-        </div>
-
-        <div class="list-grid">
-          <div
-            v-for="item in sqlStats"
-            :key="item.itemId || item.parseTaskId"
-            class="list-row"
-          >
-            <strong>{{ item.reportCode || item.itemId }}</strong>
-            <span>{{ item.highestPriorityLevel }} / {{ item.highestPriorityScore }}</span>
-            <span>{{ item.datasourceCode || '-' }} · {{ item.stage || '-' }}</span>
-            <span>{{ item.issueCount }} issues</span>
-            <span>{{ item.issueScenes?.join(', ') || '-' }}</span>
-          </div>
-        </div>
-      </article>
+          <el-tab-pane :label="isChinese ? 'SQL 清单' : 'By SQL'" name="sql">
+            <div class="table-header">
+              <div>
+                <p class="section-kicker sqlforge-code-label">By SQL</p>
+                <h2 class="section-title">{{ isChinese ? 'SQL 清单' : 'By SQL' }}</h2>
+              </div>
+            </div>
+            <div class="list-grid">
+              <button
+                v-for="item in sqlStats"
+                :key="item.itemId || item.parseTaskId"
+                type="button"
+                class="list-row"
+                @click="openDetailDrawer(item.reportCode || item.itemId || 'sql', item)"
+              >
+                <strong>{{ item.reportCode || item.itemId }}</strong>
+                <span>{{ item.highestPriorityLevel }} / {{ item.highestPriorityScore }}</span>
+                <span>{{ item.datasourceCode || '-' }} · {{ item.stage || '-' }}</span>
+                <span>{{ item.issueCount }} issues</span>
+                <span>{{ item.issueScenes?.join(', ') || '-' }}</span>
+              </button>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
+      </main>
     </div>
+
+    <el-drawer v-model="detailDrawerVisible" :title="detailDrawerTitle" size="40%">
+      <pre class="code-block">{{ JSON.stringify(detailDrawerPayload || {}, null, 2) }}</pre>
+    </el-drawer>
   </section>
 </template>
 
@@ -316,125 +301,158 @@ onMounted(async () => {
 .runtime-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
-.surface-card {
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 28px;
-  background:
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.09), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.94));
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+.shell-panel,
+.summary-card,
+.distribution-item,
+.detail-card,
+.matrix-item,
+.list-row {
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 18px;
+  background: var(--sqlforge-surface-2);
 }
 
-.runtime-hero,
-.control-card,
-.statistics-grid > article {
-  padding: 24px;
-}
-
-.runtime-hero {
+.page-hero,
+.hero-actions,
+.workspace-grid,
+.summary-grid,
+.section-heading,
+.distribution-list,
+.matrix-list,
+.list-grid {
   display: grid;
-  gap: 14px;
+  gap: 12px;
+}
+
+.page-hero {
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+  padding: 20px;
+}
+
+.hero-actions {
+  align-content: start;
 }
 
 .runtime-eyebrow,
 .section-kicker {
   margin: 0 0 8px;
-  font-size: 12px;
-  letter-spacing: 0.16em;
+  color: var(--sqlforge-color-brand-text);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #0369a1;
+  font-size: 12px;
 }
 
 .runtime-title,
-.section-title {
+.section-title,
+.detail-title {
   margin: 0;
-  color: #0f172a;
+  color: var(--sqlforge-text-primary);
 }
 
 .runtime-summary,
-.runtime-note,
 .field-label,
-.list-row span {
-  color: #334155;
-}
-
-.action-row,
-.section-heading {
-  display: flex;
-  gap: 16px;
-  align-items: end;
-  justify-content: space-between;
+.list-row span,
+.list-row p {
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.6;
 }
 
 .field-block {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-width: 220px;
 }
 
-.statistics-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-}
-
-.summary-card-grid,
-.matrix-grid,
-.list-grid {
-  display: grid;
-  gap: 12px;
-}
-
-.summary-card-grid,
-.matrix-grid {
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+.summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .summary-card,
-.matrix-cell,
+.distribution-item,
+.detail-card,
+.matrix-item,
 .list-row {
-  border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255, 255, 255, 0.88);
   padding: 14px 16px;
 }
 
-.summary-card-label {
+.summary-card-label,
+.field-label {
   display: block;
   margin-bottom: 8px;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #475569;
+  color: var(--sqlforge-text-muted);
 }
 
+.workspace-grid {
+  grid-template-columns: minmax(290px, 0.82fr) minmax(0, 1.18fr);
+}
+
+.insight-rail,
+.result-stage {
+  padding: 20px;
+}
+
+.distribution-item,
+.matrix-item,
 .list-row {
-  display: grid;
-  gap: 6px;
+  text-align: left;
+}
+
+.distribution-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.matrix-item,
+.list-row {
+  width: 100%;
+}
+
+.matrix-item strong,
+.list-row strong {
+  color: var(--sqlforge-text-primary);
+}
+
+.list-grid {
+  margin-top: 8px;
+}
+
+.table-header {
+  margin-bottom: 12px;
 }
 
 .result-banner {
-  border-radius: 18px;
+  border-radius: 16px;
   padding: 14px 16px;
 }
 
 .result-banner-danger {
-  background: rgba(239, 68, 68, 0.14);
-  color: #b91c1c;
+  background: rgba(120, 28, 28, 0.18);
+  color: #ffd6d6;
 }
 
-@media (max-width: 1080px) {
-  .statistics-grid {
-    grid-template-columns: 1fr;
-  }
+.code-block {
+  margin: 0;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--sqlforge-border-default);
+  background: var(--sqlforge-bg-page-deep);
+  color: var(--sqlforge-text-primary);
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
-  .action-row {
-    flex-direction: column;
-    align-items: stretch;
+@media (max-width: 1100px) {
+  .page-hero,
+  .workspace-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

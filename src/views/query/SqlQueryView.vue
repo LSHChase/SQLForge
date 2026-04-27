@@ -11,51 +11,87 @@ const { t, locale } = useI18n()
 
 const datasourceTree = [
   {
-    id: 'engine-hetu',
-    label: 'Hetu clusters',
+    id: 'favorites',
+    label: 'Favorites',
     children: [
-      {
-        id: 'hetu-main',
-        label: 'hetu_main',
-        caption: 'Primary governed engine',
-        datasourceType: 'HETU',
-        subject: 'sales / governed execute'
-      },
-      {
-        id: 'hetu-shadow',
-        label: 'hetu_shadow',
-        caption: 'Shadow validation lane',
-        datasourceType: 'HETU',
-        subject: 'route verification'
-      }
+      { id: 'fav-biz-view', label: 'BUSINESS_VIEW.order_daily_rollup', datasourceType: 'HETU' },
+      { id: 'fav-db-view', label: 'DB_VIEW.vw_sales_summary', datasourceType: 'HETU' }
     ]
   },
   {
-    id: 'engine-hive',
-    label: 'Hive datasets',
+    id: 'hetu-clusters',
+    label: 'Hetu Clusters',
     children: [
-      {
-        id: 'hive-lakehouse',
-        label: 'hive_lakehouse',
-        caption: 'Cold-path warehouse lane',
-        datasourceType: 'HIVE',
-        subject: 'batch / fallback'
-      }
+      { id: 'hetu-main', label: 'hetu_main.sales.orders', datasourceType: 'HETU' },
+      { id: 'hetu-main-logic', label: 'hetu_main.logic.customer_360', datasourceType: 'HETU' },
+      { id: 'hetu-shadow', label: 'hetu_shadow.audit.query_history', datasourceType: 'HETU' }
     ]
+  },
+  {
+    id: 'hive-datasets',
+    label: 'Hive Datasets',
+    children: [
+      { id: 'hive-lakehouse', label: 'hive_lakehouse.dw.fact_orders', datasourceType: 'HIVE' },
+      { id: 'hive-views', label: 'hive_lakehouse.view.revenue_monthly', datasourceType: 'HIVE' }
+    ]
+  }
+]
+
+const sqlTemplates = [
+  {
+    key: 'report',
+    label: '--report_code + biz_date',
+    content: '--report_code=RPT_SALES_DAILY\n--stage=PROD\n--biz_date=2026-04-27\n--tenant_id=tenant-a\n--datasource=hetu_main\n--engine_hint=HETU\n--priority=high\n'
+  },
+  {
+    key: 'explain',
+    label: 'Explain template',
+    content: '--report_code=RPT_EXPLAIN_SAMPLE\n--stage=PROD\n--tenant_id=tenant-a\nEXPLAIN SELECT * FROM orders WHERE query_date = :query_date\n'
+  },
+  {
+    key: 'fallback',
+    label: 'Recovery template',
+    content: '--report_code=RPT_RECOVERY_CHECK\n--stage=PROD\n--tenant_id=tenant-a\n--datasource=hive_lakehouse\nSELECT count(1) FROM orders WHERE query_date = :query_date\n'
+  }
+]
+
+const sqlLibrary = [
+  {
+    key: 'recent-1',
+    type: 'recent',
+    title: 'Recent · sales daily',
+    summary: 'Revenue rollup with query_date binding',
+    sqlText: "--report_code=RPT_SALES_DAILY\nSELECT order_id, revenue FROM orders WHERE query_date = :query_date LIMIT :limit"
+  },
+  {
+    key: 'recent-2',
+    type: 'recent',
+    title: 'Recent · logic view',
+    summary: 'Business view sample',
+    sqlText: '--report_code=RPT_CUSTOMER_360\nSELECT * FROM customer_360 WHERE biz_date = :biz_date LIMIT 50'
+  },
+  {
+    key: 'favorite-1',
+    type: 'favorite',
+    title: 'Favorite · benchmark candidate',
+    summary: 'Candidate SQL for benchmark and explain',
+    sqlText: '--report_code=RPT_BENCHMARK_SAMPLE\nSELECT region, sum(revenue) FROM orders GROUP BY region'
   }
 ]
 
 const form = reactive({
   tenantId: 'tenant-a',
-  sqlText: '--report_code=RPT_SALES_DAILY\nSELECT * FROM orders WHERE query_date = :query_date LIMIT 100',
+  sqlText:
+    '--report_code=RPT_SALES_DAILY\n--stage=PROD\n--biz_date=2026-04-27\n--tenant_id=tenant-a\n--datasource=hetu_main\nSELECT * FROM orders WHERE query_date = :query_date LIMIT :limit',
   datasourceType: 'HETU',
   accelerationPreference: 'PREFER_ACCELERATED',
   faultToleranceStrategy: 'FAIL_FAST'
 })
 
 const parameterRows = ref([
-  { id: 1, key: 'query_date', value: '2026-04-26' },
-  { id: 2, key: 'limit', value: '100' }
+  { id: 1, key: 'query_date', value: '2026-04-27' },
+  { id: 2, key: 'limit', value: '100' },
+  { id: 3, key: 'biz_date', value: '2026-04-27' }
 ])
 
 const running = ref(false)
@@ -63,41 +99,23 @@ const result = ref(null)
 const errorMessage = ref('')
 const queueStatsBefore = ref(null)
 const queueStatsAfter = ref(null)
-const selectedScenario = ref('standard')
 const selectedDatasourceId = ref('hetu-main')
+const selectedExplorerTab = ref('objects')
 const activeResultTab = ref('rows')
-const nextParameterId = ref(3)
+const showTemplateDialog = ref(false)
+const showLibraryDialog = ref(false)
+const showBoundPreviewDialog = ref(false)
+const showGovernanceDrawer = ref(false)
+const showExplainDialog = ref(false)
+const nextParameterId = ref(4)
+const executionHistory = ref([])
 
 const isChinese = computed(() => locale.value === 'zh-CN')
-const selectedDatasource = computed(() => {
-  for (const group of datasourceTree) {
-    for (const item of group.children || []) {
-      if (item.id === selectedDatasourceId.value) {
-        return item
-      }
-    }
-  }
-  return datasourceTree[0].children[0]
-})
 const previewRows = computed(() => result.value?.rows || [])
 const resultColumns = computed(() => {
   const firstRow = previewRows.value[0]
   return firstRow ? Object.keys(firstRow) : []
 })
-const retryPath = computed(() => result.value?.retryPath || [])
-const queuePendingDelta = computed(() => {
-  if (!queueStatsBefore.value || !queueStatsAfter.value) {
-    return 0
-  }
-  return queueStatsAfter.value.pending - queueStatsBefore.value.pending
-})
-const queueTotalDelta = computed(() => {
-  if (!queueStatsBefore.value || !queueStatsAfter.value) {
-    return 0
-  }
-  return queueStatsAfter.value.total - queueStatsBefore.value.total
-})
-const compensationDetected = computed(() => queuePendingDelta.value >= 1 || queueTotalDelta.value >= 1)
 const parameterSnapshot = computed(() => {
   const snapshot = {}
   for (const item of parameterRows.value) {
@@ -108,27 +126,25 @@ const parameterSnapshot = computed(() => {
   }
   return snapshot
 })
-const parameterCount = computed(() => Object.keys(parameterSnapshot.value).length)
+const queryDateValue = computed(() => parameterSnapshot.value.query_date || parameterSnapshot.value.biz_date || '-')
+const selectedDatasource = computed(() => {
+  for (const group of datasourceTree) {
+    for (const item of group.children || []) {
+      if (item.id === selectedDatasourceId.value) {
+        return item
+      }
+    }
+  }
+  return datasourceTree[1].children[0]
+})
 const datasourceOptions = computed(() => ['HETU', 'HIVE'])
 const accelerationOptions = computed(() => [
-  {
-    value: 'NONE',
-    label: isChinese.value ? '不偏好加速' : 'No acceleration preference'
-  },
-  {
-    value: 'PREFER_ACCELERATED',
-    label: isChinese.value ? '优先加速链路' : 'Prefer accelerated path'
-  }
+  { value: 'NONE', label: isChinese.value ? '不偏好加速' : 'No acceleration preference' },
+  { value: 'PREFER_ACCELERATED', label: isChinese.value ? '优先加速链路' : 'Prefer accelerated path' }
 ])
 const toleranceOptions = computed(() => [
-  {
-    value: 'FAIL_FAST',
-    label: isChinese.value ? '快速失败' : 'Fail fast'
-  },
-  {
-    value: 'RETRY_THEN_FALLBACK',
-    label: isChinese.value ? '重试后回退' : 'Retry then fallback'
-  }
+  { value: 'FAIL_FAST', label: isChinese.value ? '快速失败' : 'Fail fast' },
+  { value: 'RETRY_THEN_FALLBACK', label: isChinese.value ? '重试后回退' : 'Retry then fallback' }
 ])
 const boundSqlPreview = computed(() => {
   let preview = form.sqlText
@@ -140,53 +156,64 @@ const boundSqlPreview = computed(() => {
 const governanceSummary = computed(() => {
   const metadata = result.value?.metadata || {}
   return [
-    {
-      label: isChinese.value ? '数据源' : 'Datasource',
-      value: selectedDatasource.value.label
-    },
-    {
-      label: isChinese.value ? '执行模式' : 'Execution mode',
-      value: metadata.executionMode || '-'
-    },
-    {
-      label: isChinese.value ? '目标引擎' : 'Target engine',
-      value: metadata.targetEngine || form.datasourceType
-    },
-    {
-      label: isChinese.value ? '路由配置' : 'Route profile',
-      value: metadata.routeProfile || '-'
-    },
-    {
-      label: isChinese.value ? '缓存状态' : 'Cache governance',
-      value: metadata.cacheGovernanceStatus || '-'
-    },
-    {
-      label: isChinese.value ? 'SQL 指纹' : 'SQL fingerprint',
-      value: result.value?.sqlFingerprint || '-'
-    },
-    {
-      label: isChinese.value ? '耗时' : 'Elapsed',
-      value: metadata.elapsedMs == null ? '-' : `${metadata.elapsedMs}ms`
-    },
-    {
-      label: isChinese.value ? '参数数' : 'Params',
-      value: String(parameterCount.value)
-    }
+    { label: isChinese.value ? '数据源' : 'Datasource', value: selectedDatasource.value.label },
+    { label: isChinese.value ? '执行模式' : 'Execution mode', value: metadata.executionMode || '-' },
+    { label: isChinese.value ? '目标引擎' : 'Target engine', value: metadata.targetEngine || form.datasourceType },
+    { label: isChinese.value ? '路由配置' : 'Route profile', value: metadata.routeProfile || '-' },
+    { label: isChinese.value ? '缓存状态' : 'Cache status', value: metadata.cacheGovernanceStatus || '-' },
+    { label: isChinese.value ? 'SQL 指纹' : 'SQL fingerprint', value: result.value?.sqlFingerprint || '-' },
+    { label: isChinese.value ? '耗时' : 'Elapsed', value: metadata.elapsedMs == null ? '-' : `${metadata.elapsedMs}ms` },
+    { label: isChinese.value ? 'query_date' : 'query_date', value: queryDateValue.value }
   ]
 })
-const workbenchNote = computed(() =>
-  isChinese.value
-    ? '左侧聚焦数据源与执行策略，中间用于编辑 SQL 与参数，右侧持续展示治理摘要、执行结果和降级证据。'
-    : 'Use the left rail for datasource context, the center rail for SQL and parameters, and the right rail for governance summary, result tabs, and degraded evidence.'
-)
-
-const resetEvidence = () => {
-  result.value = null
-  errorMessage.value = ''
-  queueStatsBefore.value = null
-  queueStatsAfter.value = null
-  activeResultTab.value = 'rows'
-}
+const validationTips = computed(() => {
+  const tips = []
+  if (!String(form.sqlText || '').includes('--report_code=')) {
+    tips.push(isChinese.value ? '缺少 --report_code 注释。' : 'Missing --report_code annotation.')
+  }
+  if (!String(form.sqlText || '').toUpperCase().includes('SELECT')) {
+    tips.push(isChinese.value ? '当前示例更适合 SELECT/EXPLAIN 查询。' : 'The current workbench is optimized for SELECT or EXPLAIN flows.')
+  }
+  if (!parameterSnapshot.value.query_date) {
+    tips.push(isChinese.value ? '建议补充 query_date 参数。' : 'Add a query_date binding for audited execution.')
+  }
+  return tips
+})
+const structureSummary = computed(() => {
+  const riskTags = []
+  if (String(form.sqlText).toUpperCase().includes('JOIN')) {
+    riskTags.push('JOIN')
+  }
+  if (String(form.sqlText).toUpperCase().includes('GROUP BY')) {
+    riskTags.push('AGGREGATION')
+  }
+  if (String(form.sqlText).toUpperCase().includes('OVER')) {
+    riskTags.push('WINDOW')
+  }
+  return {
+    syntaxStatus: validationTips.value.length ? 'REVIEW' : 'VALID',
+    sqlType: String(form.sqlText).trim().toUpperCase().startsWith('EXPLAIN') ? 'EXPLAIN' : 'SELECT',
+    complexityLevel: riskTags.length >= 2 ? 'COMPLEX' : 'MODERATE',
+    queryDateSummary: queryDateValue.value,
+    riskTags: riskTags.length ? riskTags : ['NONE']
+  }
+})
+const explainSteps = computed(() => [
+  {
+    label: isChinese.value ? '输入规范化' : 'Input normalization',
+    detail: isChinese.value
+      ? '应用注释模板和绑定参数后生成 bound SQL。'
+      : 'Generate bound SQL after applying annotations and bindings.'
+  },
+  {
+    label: isChinese.value ? '路由判断' : 'Routing decision',
+    detail: result.value?.metadata?.routeProfile || (isChinese.value ? '尚未执行，暂无 route profile。' : 'No route profile until execution runs.')
+  },
+  {
+    label: isChinese.value ? '治理输出' : 'Governance output',
+    detail: result.value?.metadata?.executionMode || (isChinese.value ? '执行后回填 execution mode。' : 'Execution mode is populated after execution.')
+  }
+])
 
 const syncDatasourceSelection = datasource => {
   if (!datasource?.datasourceType) {
@@ -194,6 +221,14 @@ const syncDatasourceSelection = datasource => {
   }
   selectedDatasourceId.value = datasource.id
   form.datasourceType = datasource.datasourceType
+}
+
+const resetEvidence = () => {
+  result.value = null
+  errorMessage.value = ''
+  queueStatsBefore.value = null
+  queueStatsAfter.value = null
+  activeResultTab.value = 'rows'
 }
 
 const addParameter = () => {
@@ -214,8 +249,25 @@ const removeParameter = rowId => {
   parameterRows.value = parameterRows.value.filter(item => item.id !== rowId)
 }
 
+const applyTemplate = template => {
+  form.sqlText = `${template.content}${boundSqlPreview.value.includes('SELECT') ? '' : 'SELECT * FROM orders LIMIT 100'}`
+  showTemplateDialog.value = false
+}
+
+const loadLibrarySql = entry => {
+  form.sqlText = entry.sqlText
+  showLibraryDialog.value = false
+}
+
+const formatSql = () => {
+  form.sqlText = String(form.sqlText || '')
+    .split('\n')
+    .map(line => line.trimEnd())
+    .join('\n')
+    .trim()
+}
+
 const runQuery = async scenario => {
-  selectedScenario.value = scenario
   running.value = true
   resetEvidence()
 
@@ -227,20 +279,29 @@ const runQuery = async scenario => {
       })
     }
 
-    const payload = {
+    result.value = await executeQuery({
       tenantId: form.tenantId,
       sqlText: boundSqlPreview.value,
       datasourceType: form.datasourceType,
       accelerationPreference: form.accelerationPreference,
-      faultToleranceStrategy: form.faultToleranceStrategy
-    }
-    if (scenario === 'recovery') {
-      payload.queryContext = {
-        timeoutMs: 30
-      }
-    }
+      faultToleranceStrategy: form.faultToleranceStrategy,
+      queryContext:
+        scenario === 'recovery'
+          ? {
+              timeoutMs: 30
+            }
+          : undefined
+    })
 
-    result.value = await executeQuery(payload)
+    executionHistory.value = [
+      {
+        id: `${Date.now()}`,
+        title: result.value?.sqlFingerprint || selectedDatasource.value.label,
+        status: result.value?.status || 'UNKNOWN',
+        mode: result.value?.metadata?.executionMode || '-'
+      },
+      ...executionHistory.value
+    ].slice(0, 6)
 
     if (scenario === 'recovery') {
       queueStatsAfter.value = await getGovernanceMessageStats(form.tenantId, {
@@ -253,25 +314,37 @@ const runQuery = async scenario => {
     running.value = false
   }
 }
+
+const formatJson = value => JSON.stringify(value, null, 2)
 </script>
 
 <template>
   <section class="query-workbench" data-testid="query-flow-page">
-    <div class="query-workbench__hero surface-card">
+    <header class="query-workbench__hero surface-card">
       <div>
         <p class="runtime-eyebrow sqlforge-code-label">sql workbench</p>
         <h1 class="runtime-title">{{ t('sqlQuery.title') }}</h1>
         <p class="runtime-summary">{{ t('sqlQuery.summary') }}</p>
       </div>
-      <p class="runtime-note">{{ workbenchNote }}</p>
-    </div>
+      <div class="hero-actions">
+        <el-button class="hero-button" @click="showTemplateDialog = true">
+          {{ isChinese ? '注释模板' : 'Annotation template' }}
+        </el-button>
+        <el-button class="hero-button" @click="showLibraryDialog = true">
+          {{ isChinese ? '最近 / 收藏 SQL' : 'Recent / Favorite SQL' }}
+        </el-button>
+        <el-button class="hero-button" @click="showGovernanceDrawer = true">
+          {{ isChinese ? '治理抽屉' : 'Governance drawer' }}
+        </el-button>
+      </div>
+    </header>
 
     <div class="query-workbench__grid">
       <aside class="query-rail surface-card">
         <div class="section-heading">
           <div>
             <p class="section-kicker sqlforge-code-label">datasource tree</p>
-            <h2 class="section-title">{{ isChinese ? '数据源与执行场景' : 'Datasource context' }}</h2>
+            <h2 class="section-title">{{ isChinese ? '数据源 / 对象' : 'Datasources and objects' }}</h2>
           </div>
         </div>
 
@@ -279,49 +352,46 @@ const runQuery = async scenario => {
           class="datasource-tree"
           :data="datasourceTree"
           node-key="id"
-          :expand-on-click-node="false"
           default-expand-all
+          :expand-on-click-node="false"
           highlight-current
           :current-node-key="selectedDatasourceId"
           @current-change="syncDatasourceSelection"
         >
           <template #default="{ data }">
-            <div class="tree-node" :class="{ 'tree-node--leaf': !data.children }">
-              <div>
-                <strong>{{ data.label }}</strong>
-                <p v-if="data.caption" class="tree-node__caption">{{ data.caption }}</p>
-              </div>
+            <div class="tree-node">
+              <span>{{ data.label }}</span>
               <span v-if="data.datasourceType" class="tree-node__badge">{{ data.datasourceType }}</span>
             </div>
           </template>
         </el-tree>
 
-        <div class="selection-card">
-          <p class="selection-card__label">{{ isChinese ? '当前选择' : 'Selected lane' }}</p>
-          <h3>{{ selectedDatasource.label }}</h3>
-          <p>{{ selectedDatasource.subject }}</p>
-        </div>
-
-        <div class="scenario-stack">
-          <button
-            class="scenario-card"
-            :class="{ 'scenario-card--active': selectedScenario === 'standard' }"
-            type="button"
-            @click="selectedScenario = 'standard'"
-          >
-            <strong>{{ isChinese ? '标准执行' : 'Standard execute' }}</strong>
-            <span>{{ isChinese ? '聚焦正常结果与治理摘要' : 'Focus on the default result and governance summary.' }}</span>
-          </button>
-          <button
-            class="scenario-card"
-            :class="{ 'scenario-card--active': selectedScenario === 'recovery' }"
-            type="button"
-            @click="selectedScenario = 'recovery'"
-          >
-            <strong>{{ isChinese ? '降级恢复' : 'Degraded recovery' }}</strong>
-            <span>{{ isChinese ? '同时观测 retry path 与 governance queue 补偿信号' : 'Inspect retry-path and governance queue compensation evidence.' }}</span>
-          </button>
-        </div>
+        <el-tabs v-model="selectedExplorerTab" class="rail-tabs">
+          <el-tab-pane :label="isChinese ? '最近' : 'Recent'" name="recent">
+            <button
+              v-for="entry in sqlLibrary.filter(item => item.type === 'recent')"
+              :key="entry.key"
+              type="button"
+              class="rail-list-item"
+              @click="loadLibrarySql(entry)"
+            >
+              <strong>{{ entry.title }}</strong>
+              <span>{{ entry.summary }}</span>
+            </button>
+          </el-tab-pane>
+          <el-tab-pane :label="isChinese ? '收藏' : 'Favorites'" name="favorites">
+            <button
+              v-for="entry in sqlLibrary.filter(item => item.type === 'favorite')"
+              :key="entry.key"
+              type="button"
+              class="rail-list-item"
+              @click="loadLibrarySql(entry)"
+            >
+              <strong>{{ entry.title }}</strong>
+              <span>{{ entry.summary }}</span>
+            </button>
+          </el-tab-pane>
+        </el-tabs>
       </aside>
 
       <main class="editor-rail">
@@ -329,18 +399,22 @@ const runQuery = async scenario => {
           <div class="section-heading">
             <div>
               <p class="section-kicker sqlforge-code-label">sql editor</p>
-              <h2 class="section-title">{{ isChinese ? 'SQL 与执行策略' : 'SQL and execution policy' }}</h2>
+              <h2 class="section-title">{{ isChinese ? '查询输入与执行' : 'Query input and execution' }}</h2>
+            </div>
+            <div class="toolbar-actions">
+              <el-button text @click="formatSql">{{ isChinese ? '格式化' : 'Format' }}</el-button>
+              <el-button text @click="showBoundPreviewDialog = true">Bound SQL preview</el-button>
+              <el-button text @click="showExplainDialog = true">Explain</el-button>
             </div>
           </div>
 
-          <div class="form-grid">
+          <div class="editor-form-grid">
             <label class="field-block">
               <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
               <el-input v-model="form.tenantId" />
             </label>
-
             <label class="field-block">
-              <span class="field-label">{{ isChinese ? '目标引擎' : 'Target engine' }}</span>
+              <span class="field-label">{{ isChinese ? '引擎' : 'Engine' }}</span>
               <el-select v-model="form.datasourceType">
                 <el-option
                   v-for="option in datasourceOptions"
@@ -350,7 +424,6 @@ const runQuery = async scenario => {
                 />
               </el-select>
             </label>
-
             <label class="field-block">
               <span class="field-label">{{ isChinese ? '加速偏好' : 'Acceleration preference' }}</span>
               <el-select v-model="form.accelerationPreference">
@@ -362,7 +435,6 @@ const runQuery = async scenario => {
                 />
               </el-select>
             </label>
-
             <label class="field-block">
               <span class="field-label">{{ isChinese ? '容错策略' : 'Fault tolerance' }}</span>
               <el-select v-model="form.faultToleranceStrategy">
@@ -381,26 +453,36 @@ const runQuery = async scenario => {
             <el-input
               v-model="form.sqlText"
               type="textarea"
-              :rows="10"
+              :rows="14"
             />
           </label>
 
-          <div class="action-row action-row-wrap">
+          <div class="editor-actions">
             <el-button
               type="primary"
-              :loading="running && selectedScenario === 'standard'"
+              :loading="running"
               data-testid="query-flow-submit"
               @click="runQuery('standard')"
             >
               {{ isChinese ? '执行查询' : 'Execute query' }}
             </el-button>
             <el-button
-              :loading="running && selectedScenario === 'recovery'"
+              :loading="running"
               data-testid="query-flow-submit-recovery"
               @click="runQuery('recovery')"
             >
-              {{ isChinese ? '执行降级恢复' : 'Run degraded recovery' }}
+              {{ isChinese ? '执行恢复路径' : 'Run recovery path' }}
             </el-button>
+          </div>
+
+          <div v-if="validationTips.length" class="tip-strip">
+            <span
+              v-for="tip in validationTips"
+              :key="tip"
+              class="tip-pill"
+            >
+              {{ tip }}
+            </span>
           </div>
         </article>
 
@@ -408,14 +490,12 @@ const runQuery = async scenario => {
           <div class="section-heading">
             <div>
               <p class="section-kicker sqlforge-code-label">parameter inputs</p>
-              <h2 class="section-title">{{ isChinese ? '参数输入与绑定预览' : 'Parameters and bound preview' }}</h2>
+              <h2 class="section-title">{{ isChinese ? '参数输入' : 'Parameter input' }}</h2>
             </div>
-            <el-button text @click="addParameter">
-              {{ isChinese ? '新增参数' : 'Add param' }}
-            </el-button>
+            <el-button text @click="addParameter">{{ isChinese ? '新增参数' : 'Add parameter' }}</el-button>
           </div>
 
-          <div class="parameter-list">
+          <div class="parameter-table">
             <div
               v-for="item in parameterRows"
               :key="item.id"
@@ -423,16 +503,129 @@ const runQuery = async scenario => {
             >
               <el-input v-model="item.key" :placeholder="isChinese ? '参数名' : 'Name'" />
               <el-input v-model="item.value" :placeholder="isChinese ? '参数值' : 'Value'" />
-              <el-button text @click="removeParameter(item.id)">
-                {{ isChinese ? '移除' : 'Remove' }}
-              </el-button>
+              <el-button text @click="removeParameter(item.id)">{{ isChinese ? '移除' : 'Remove' }}</el-button>
+            </div>
+          </div>
+        </article>
+
+        <article class="surface-card results-card">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker sqlforge-code-label">result tabs</p>
+              <h2 class="section-title">{{ isChinese ? '结果与治理输出' : 'Results and governance output' }}</h2>
             </div>
           </div>
 
-          <div class="bound-preview">
-            <p class="bound-preview__label">{{ isChinese ? '绑定后 SQL 预览' : 'Bound SQL preview' }}</p>
-            <pre class="result-json">{{ boundSqlPreview }}</pre>
-          </div>
+          <el-tabs v-model="activeResultTab">
+            <el-tab-pane :label="isChinese ? '执行结果' : 'Execution results'" name="rows">
+              <div
+                v-if="errorMessage"
+                class="result-banner result-banner-danger"
+                data-testid="query-flow-error"
+              >
+                {{ errorMessage }}
+              </div>
+              <p v-else-if="!previewRows.length" class="empty-state">
+                {{ isChinese ? '执行后在这里查看结果集。' : 'Run the query to inspect returned rows here.' }}
+              </p>
+              <template v-else>
+                <div class="result-inline-meta">
+                  <span><strong data-testid="query-flow-row-count">{{ previewRows.length }}</strong> rows</span>
+                  <span><strong data-testid="query-flow-status">{{ result?.status || '-' }}</strong></span>
+                  <span><strong data-testid="query-flow-engine">{{ result?.metadata?.targetEngine || '-' }}</strong></span>
+                </div>
+                <el-table :data="previewRows.slice(0, 20)" size="small">
+                  <el-table-column
+                    v-for="column in resultColumns"
+                    :key="column"
+                    :prop="column"
+                    :label="column"
+                    min-width="140"
+                  />
+                </el-table>
+              </template>
+            </el-tab-pane>
+
+            <el-tab-pane :label="isChinese ? '执行摘要' : 'Execution summary'" name="summary">
+              <div class="summary-grid">
+                <article
+                  v-for="item in governanceSummary"
+                  :key="item.label"
+                  class="summary-tile"
+                >
+                  <span>{{ item.label }}</span>
+                  <strong>{{ item.value }}</strong>
+                </article>
+              </div>
+              <div class="summary-grid summary-grid-compact">
+                <article class="summary-tile">
+                  <span>{{ isChinese ? '补偿前 pending' : 'Pending before retry' }}</span>
+                  <strong>{{ queueStatsBefore?.pending ?? '-' }}</strong>
+                </article>
+                <article class="summary-tile">
+                  <span>{{ isChinese ? '补偿后 pending' : 'Pending after retry' }}</span>
+                  <strong>{{ queueStatsAfter?.pending ?? '-' }}</strong>
+                </article>
+              </div>
+            </el-tab-pane>
+
+            <el-tab-pane :label="isChinese ? '结构解析' : 'Structure parse'" name="structure">
+              <div class="summary-grid">
+                <article class="summary-tile">
+                  <span>syntaxStatus</span>
+                  <strong>{{ structureSummary.syntaxStatus }}</strong>
+                </article>
+                <article class="summary-tile">
+                  <span>sqlType</span>
+                  <strong>{{ structureSummary.sqlType }}</strong>
+                </article>
+                <article class="summary-tile">
+                  <span>complexityLevel</span>
+                  <strong>{{ structureSummary.complexityLevel }}</strong>
+                </article>
+                <article class="summary-tile">
+                  <span>queryDateSummary</span>
+                  <strong>{{ structureSummary.queryDateSummary }}</strong>
+                </article>
+              </div>
+              <div class="tag-row">
+                <span
+                  v-for="tag in structureSummary.riskTags"
+                  :key="tag"
+                  class="tip-pill"
+                >
+                  {{ tag }}
+                </span>
+              </div>
+            </el-tab-pane>
+
+            <el-tab-pane :label="isChinese ? '数据访问解析' : 'Access parse'" name="access">
+              <p class="empty-state">
+                {{
+                  isChinese
+                    ? '当前执行页先展示执行路径、目标引擎和补偿信号；更深的数据访问解析建议从“解析工作台”继续下钻。'
+                    : 'This page exposes execution mode, target engine, and compensation signals first. Use the dedicated parsing workspace for deeper access-parse drill-through.'
+                }}
+              </p>
+            </el-tab-pane>
+
+            <el-tab-pane :label="isChinese ? '路由详情' : 'Routing detail'" name="route">
+              <pre class="result-json">{{ formatJson(result?.metadata || {}) }}</pre>
+            </el-tab-pane>
+
+            <el-tab-pane :label="isChinese ? '历史关联' : 'History links'" name="history">
+              <div class="history-list">
+                <article
+                  v-for="entry in executionHistory"
+                  :key="entry.id"
+                  class="history-item"
+                >
+                  <strong>{{ entry.title }}</strong>
+                  <span>{{ entry.status }} · {{ entry.mode }}</span>
+                </article>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
         </article>
       </main>
 
@@ -441,154 +634,125 @@ const runQuery = async scenario => {
           <div class="section-heading">
             <div>
               <p class="section-kicker sqlforge-code-label">governance summary</p>
-              <h2 class="section-title">{{ isChinese ? '治理摘要' : 'Governance summary' }}</h2>
+              <h2 class="section-title">{{ isChinese ? '运行摘要' : 'Runtime summary' }}</h2>
             </div>
           </div>
 
-          <div class="evidence-grid">
-            <div
-              v-for="item in governanceSummary"
+          <div class="summary-grid summary-grid-compact">
+            <article
+              v-for="item in governanceSummary.slice(0, 4)"
               :key="item.label"
-              class="evidence-item"
+              class="summary-tile"
             >
-              <span class="evidence-label">{{ item.label }}</span>
+              <span>{{ item.label }}</span>
               <strong>{{ item.value }}</strong>
-            </div>
+            </article>
           </div>
 
-          <div
-            v-if="errorMessage"
-            class="result-banner result-banner-danger"
-            data-testid="query-flow-error"
-          >
-            {{ errorMessage }}
+          <div class="shortcut-list">
+            <button class="rail-list-item" type="button" @click="showBoundPreviewDialog = true">
+              <strong>Bound SQL preview</strong>
+              <span>{{ isChinese ? '查看绑定后 SQL' : 'Inspect bound SQL text' }}</span>
+            </button>
+            <button class="rail-list-item" type="button" @click="showExplainDialog = true">
+              <strong>Explain</strong>
+              <span>{{ isChinese ? '查看执行步骤' : 'Inspect execution steps' }}</span>
+            </button>
+            <button class="rail-list-item" type="button" @click="showGovernanceDrawer = true">
+              <strong>{{ isChinese ? '治理抽屉' : 'Governance drawer' }}</strong>
+              <span>{{ isChinese ? '查看治理证据与原始元数据' : 'Open detailed governance evidence and raw metadata.' }}</span>
+            </button>
           </div>
-
-          <div
-            v-else-if="result"
-            class="result-banner"
-            :class="result.status === 'SUCCESS' ? 'result-banner-success' : 'result-banner-warning'"
-          >
-            <strong data-testid="query-flow-status">{{ result.status }}</strong>
-            <span data-testid="query-flow-engine">{{ result.metadata?.targetEngine || '-' }}</span>
-          </div>
-
-          <p v-else class="empty-state">
-            {{
-              isChinese
-                ? '执行查询后，这里会持续刷新 SQL 指纹、执行模式、缓存与路由摘要。'
-                : 'Run the query to populate SQL fingerprint, execution mode, cache signals, and route evidence.'
-            }}
-          </p>
-        </article>
-
-        <article class="surface-card results-card">
-          <div class="section-heading">
-            <div>
-              <p class="section-kicker sqlforge-code-label">result tabs</p>
-              <h2 class="section-title">{{ isChinese ? '结果与证据' : 'Results and evidence' }}</h2>
-            </div>
-          </div>
-
-          <el-tabs v-model="activeResultTab">
-            <el-tab-pane :label="isChinese ? '结果预览' : 'Preview rows'" name="rows">
-              <p v-if="!previewRows.length" class="empty-state">
-                {{ isChinese ? '暂无结果行。' : 'No result rows yet.' }}
-              </p>
-              <template v-else>
-                <div class="mini-metrics">
-                  <span><strong data-testid="query-flow-row-count">{{ previewRows.length }}</strong> {{ isChinese ? '行预览' : 'rows previewed' }}</span>
-                  <span><strong data-testid="query-flow-degraded">{{ result?.degraded ? 'true' : 'false' }}</strong> {{ isChinese ? '降级' : 'degraded' }}</span>
-                </div>
-                <el-table :data="previewRows.slice(0, 20)" size="small">
-                  <el-table-column
-                    v-for="column in resultColumns"
-                    :key="column"
-                    :prop="column"
-                    :label="column"
-                    min-width="120"
-                  />
-                </el-table>
-              </template>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '执行摘要' : 'Execution summary'" name="summary">
-              <div class="evidence-grid">
-                <div class="evidence-item">
-                  <span class="evidence-label">{{ isChinese ? '重试步数' : 'Retry path size' }}</span>
-                  <strong data-testid="query-flow-retry-path-size">{{ retryPath.length }}</strong>
-                </div>
-                <div class="evidence-item">
-                  <span class="evidence-label">{{ isChinese ? '实现阶段' : 'Implementation stage' }}</span>
-                  <strong>{{ result?.implementationStage || '-' }}</strong>
-                </div>
-                <div class="evidence-item">
-                  <span class="evidence-label">{{ isChinese ? '降级原因' : 'Degrade reason' }}</span>
-                  <strong data-testid="query-flow-degrade-reason">{{ result?.degradeReason || '-' }}</strong>
-                </div>
-                <div class="evidence-item">
-                  <span class="evidence-label">{{ isChinese ? '契约阶段' : 'Contract stage' }}</span>
-                  <strong>{{ result?.contractStage || '-' }}</strong>
-                </div>
-              </div>
-
-              <div v-if="retryPath.length" class="trace-card" data-testid="query-flow-retry-path">
-                <div
-                  v-for="(step, index) in retryPath"
-                  :key="`${step.engine}-${index}`"
-                  class="trace-step"
-                >
-                  <strong>{{ step.engine }}</strong>
-                  <span>{{ step.resultStatus }}</span>
-                  <span>{{ step.elapsedMs }}ms</span>
-                </div>
-              </div>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '恢复证据' : 'Recovery evidence'" name="recovery">
-              <p v-if="!queueStatsBefore || !queueStatsAfter" class="empty-state">
-                {{
-                  isChinese
-                    ? '切到“执行降级恢复”后，这里会展示 governance queue 补偿前后对比。'
-                    : 'Run the degraded recovery scenario to render before/after governance queue evidence.'
-                }}
-              </p>
-              <template v-else>
-                <div class="result-banner" :class="compensationDetected ? 'result-banner-success' : 'result-banner-danger'">
-                  <strong data-testid="query-flow-compensation-status">
-                    {{ compensationDetected ? 'COMPENSATED' : 'NOT_COMPENSATED' }}
-                  </strong>
-                  <span>{{ isChinese ? 'governance queue pending' : 'governance queue pending' }}</span>
-                </div>
-
-                <div class="evidence-grid">
-                  <div class="evidence-item">
-                    <span class="evidence-label">{{ isChinese ? '补偿前 pending' : 'Pending before' }}</span>
-                    <strong data-testid="query-flow-queue-pending-before">{{ queueStatsBefore.pending }}</strong>
-                  </div>
-                  <div class="evidence-item">
-                    <span class="evidence-label">{{ isChinese ? '补偿后 pending' : 'Pending after' }}</span>
-                    <strong data-testid="query-flow-queue-pending-after">{{ queueStatsAfter.pending }}</strong>
-                  </div>
-                  <div class="evidence-item">
-                    <span class="evidence-label">{{ isChinese ? 'pending 增量' : 'Pending delta' }}</span>
-                    <strong data-testid="query-flow-queue-pending-delta">{{ queuePendingDelta }}</strong>
-                  </div>
-                  <div class="evidence-item">
-                    <span class="evidence-label">{{ isChinese ? 'total 增量' : 'Total delta' }}</span>
-                    <strong data-testid="query-flow-queue-total-delta">{{ queueTotalDelta }}</strong>
-                  </div>
-                </div>
-              </template>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '原始 JSON' : 'Raw JSON'" name="json">
-              <pre class="result-json">{{ JSON.stringify(result, null, 2) }}</pre>
-            </el-tab-pane>
-          </el-tabs>
         </article>
       </aside>
     </div>
+
+    <el-dialog
+      v-model="showTemplateDialog"
+      :title="isChinese ? '注释模板' : 'Annotation templates'"
+      width="760px"
+    >
+      <div class="dialog-list">
+        <button
+          v-for="item in sqlTemplates"
+          :key="item.key"
+          type="button"
+          class="dialog-card"
+          @click="applyTemplate(item)"
+        >
+          <strong>{{ item.label }}</strong>
+          <pre class="result-json result-json-compact">{{ item.content }}</pre>
+        </button>
+      </div>
+    </el-dialog>
+
+    <el-dialog
+      v-model="showLibraryDialog"
+      :title="isChinese ? '最近与收藏 SQL' : 'Recent and favorite SQL'"
+      width="760px"
+    >
+      <div class="dialog-list">
+        <button
+          v-for="entry in sqlLibrary"
+          :key="entry.key"
+          type="button"
+          class="dialog-card"
+          @click="loadLibrarySql(entry)"
+        >
+          <strong>{{ entry.title }}</strong>
+          <span>{{ entry.summary }}</span>
+          <pre class="result-json result-json-compact">{{ entry.sqlText }}</pre>
+        </button>
+      </div>
+    </el-dialog>
+
+    <el-dialog
+      v-model="showBoundPreviewDialog"
+      title="Bound SQL preview"
+      width="760px"
+    >
+      <pre class="result-json">{{ boundSqlPreview }}</pre>
+    </el-dialog>
+
+    <el-dialog
+      v-model="showExplainDialog"
+      title="Explain"
+      width="680px"
+    >
+      <div class="explain-steps">
+        <article
+          v-for="step in explainSteps"
+          :key="step.label"
+          class="summary-tile"
+        >
+          <span>{{ step.label }}</span>
+          <strong>{{ step.detail }}</strong>
+        </article>
+      </div>
+    </el-dialog>
+
+    <el-drawer
+      v-model="showGovernanceDrawer"
+      :title="isChinese ? '治理证据抽屉' : 'Governance evidence drawer'"
+      size="42%"
+    >
+      <div class="drawer-section">
+        <div class="summary-grid">
+          <article
+            v-for="item in governanceSummary"
+            :key="item.label"
+            class="summary-tile"
+          >
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </article>
+        </div>
+      </div>
+      <div class="drawer-section">
+        <p class="section-kicker sqlforge-code-label">{{ isChinese ? '原始元数据' : 'Raw metadata' }}</p>
+        <pre class="result-json">{{ formatJson(result || {}) }}</pre>
+      </div>
+    </el-drawer>
   </section>
 </template>
 
@@ -599,47 +763,62 @@ const runQuery = async scenario => {
   gap: 24px;
 }
 
-.surface-card {
+.surface-card,
+.summary-tile,
+.history-item,
+.rail-list-item,
+.dialog-card {
   border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-lg);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 48%),
-    var(--sqlforge-surface-2);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
+  background: var(--sqlforge-surface-2);
+}
+
+.surface-card {
+  border-radius: 16px;
+  padding: 20px;
 }
 
 .query-workbench__hero,
-.query-rail,
-.editor-card,
-.summary-card,
-.results-card {
-  padding: 24px;
-}
-
-.query-workbench__hero {
+.query-workbench__grid,
+.editor-form-grid,
+.summary-grid,
+.parameter-table {
   display: grid;
   gap: 16px;
-  align-items: start;
+}
+
+.query-workbench__hero,
+.section-heading,
+.hero-actions,
+.toolbar-actions,
+.editor-actions,
+.result-inline-meta,
+.tag-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.query-workbench__hero,
+.section-heading {
+  justify-content: space-between;
 }
 
 .query-workbench__grid {
-  display: grid;
-  gap: 20px;
-  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) minmax(340px, 420px);
+  grid-template-columns: 280px minmax(0, 1fr) 280px;
   align-items: start;
 }
 
-.query-rail,
-.editor-rail,
-.result-rail {
-  display: grid;
-  gap: 20px;
+.editor-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .runtime-eyebrow,
 .section-kicker,
-.evidence-label,
-.field-label {
+.field-label,
+.summary-tile span {
   margin: 0;
   color: var(--sqlforge-text-muted);
 }
@@ -647,212 +826,173 @@ const runQuery = async scenario => {
 .runtime-title,
 .section-title {
   margin: 8px 0 0;
-  font-size: 28px;
-  line-height: 1.1;
+  font-weight: 400;
+  color: var(--sqlforge-text-primary);
+}
+
+.runtime-title {
+  font-size: 38px;
+  line-height: 1.05;
 }
 
 .runtime-summary,
-.runtime-note,
-.empty-state {
+.empty-state,
+.rail-list-item span,
+.history-item span {
   margin: 0;
   color: var(--sqlforge-text-secondary);
-  line-height: 1.7;
+  line-height: 1.6;
 }
 
-.section-heading,
-.action-row-wrap,
-.mini-metrics {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
+.hero-button,
+.tip-pill {
+  border-radius: 999px;
 }
 
-.datasource-tree {
-  margin-top: 18px;
+.hero-button {
+  border-color: var(--sqlforge-border-default);
+  background: var(--sqlforge-bg-page-deep);
+  color: var(--sqlforge-text-primary);
 }
 
 .tree-node {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: start;
   gap: 12px;
   width: 100%;
-  padding: 6px 0;
 }
 
-.tree-node__caption {
-  margin: 4px 0 0;
-  color: var(--sqlforge-text-muted);
-  font-size: 12px;
-}
-
-.tree-node__badge {
-  padding: 4px 8px;
+.tree-node__badge,
+.tip-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--sqlforge-border-default);
   border-radius: 999px;
-  background: rgba(90, 185, 255, 0.12);
-  color: var(--sqlforge-accent-primary);
+  background: var(--sqlforge-bg-page-deep);
+  color: var(--sqlforge-text-secondary);
   font-size: 12px;
 }
 
-.selection-card,
-.scenario-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--sqlforge-radius-md);
-  padding: 16px;
-  background: rgba(7, 13, 28, 0.38);
+.rail-tabs {
+  margin-top: 12px;
 }
 
-.selection-card {
-  margin-top: 18px;
-}
-
-.selection-card__label {
-  margin: 0 0 8px;
-  color: var(--sqlforge-text-muted);
-}
-
-.selection-card h3,
-.selection-card p {
-  margin: 0;
-}
-
-.selection-card p {
-  margin-top: 8px;
-  color: var(--sqlforge-text-secondary);
-}
-
-.scenario-stack {
-  display: grid;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.scenario-card {
-  display: grid;
-  gap: 6px;
+.rail-list-item,
+.dialog-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
   text-align: left;
-  color: var(--sqlforge-text-primary);
   cursor: pointer;
 }
 
-.scenario-card span {
-  color: var(--sqlforge-text-secondary);
+.dialog-list,
+.shortcut-list,
+.history-list,
+.explain-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.scenario-card--active {
-  border-color: rgba(90, 185, 255, 0.42);
-  background: rgba(90, 185, 255, 0.12);
+.editor-form-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.form-grid,
-.evidence-grid {
-  display: grid;
-  gap: 18px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.field-block,
-.evidence-item {
+.field-block {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.field-block-wide,
-.bound-preview {
-  margin-top: 20px;
-}
-
-.parameter-list {
-  display: grid;
-  gap: 12px;
+.field-block-wide {
+  grid-column: 1 / -1;
 }
 
 .parameter-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: 12px;
-  align-items: center;
 }
 
-.bound-preview__label {
-  margin: 0 0 10px;
-  color: var(--sqlforge-text-muted);
+.tip-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.summary-grid-compact {
+  grid-template-columns: 1fr;
+}
+
+.summary-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 14px;
+}
+
+.summary-tile strong,
+.history-item strong {
+  color: var(--sqlforge-text-primary);
+  font-weight: 500;
+}
+
+.result-inline-meta {
+  margin-bottom: 12px;
+  color: var(--sqlforge-text-secondary);
 }
 
 .result-banner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: var(--sqlforge-radius-md);
-  border: 1px solid transparent;
-  margin-top: 18px;
-}
-
-.result-banner-success,
-.trace-card {
-  border-color: rgba(62, 207, 142, 0.28);
-  background: rgba(62, 207, 142, 0.1);
-}
-
-.result-banner-warning {
-  border-color: rgba(214, 179, 48, 0.28);
-  background: rgba(214, 179, 48, 0.12);
+  padding: 12px 14px;
+  border-radius: 14px;
 }
 
 .result-banner-danger {
-  border-color: rgba(232, 82, 82, 0.3);
-  background: rgba(232, 82, 82, 0.12);
-}
-
-.trace-card {
-  border: 1px solid transparent;
-  border-radius: var(--sqlforge-radius-md);
-  padding: 16px;
-  margin-top: 18px;
-  display: grid;
-  gap: 12px;
-}
-
-.trace-step {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  color: var(--sqlforge-text-secondary);
-}
-
-.mini-metrics {
-  margin-bottom: 14px;
-  color: var(--sqlforge-text-secondary);
-  flex-wrap: wrap;
+  border: 1px solid rgba(212, 96, 96, 0.35);
+  background: rgba(120, 28, 28, 0.18);
+  color: #ffd6d6;
 }
 
 .result-json {
   margin: 0;
-  padding: 16px;
-  border-radius: var(--sqlforge-radius-md);
-  background: rgba(7, 13, 28, 0.62);
-  color: var(--sqlforge-text-secondary);
+  padding: 14px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 14px;
+  background: var(--sqlforge-bg-page-deep);
+  color: var(--sqlforge-text-primary);
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-@media (max-width: 1200px) {
+.result-json-compact {
+  padding: 10px;
+  font-size: 12px;
+}
+
+.drawer-section + .drawer-section {
+  margin-top: 20px;
+}
+
+@media (max-width: 1280px) {
   .query-workbench__grid {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 720px) {
-  .form-grid,
-  .evidence-grid,
-  .parameter-row,
-  .trace-step {
-    grid-template-columns: 1fr;
+  .editor-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>
