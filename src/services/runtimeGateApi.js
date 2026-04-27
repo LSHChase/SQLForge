@@ -261,6 +261,17 @@ export const getGovernanceTraceDetail = (tenantId, traceId, limit = 20, requestO
     }
   })
 
+export const getGovernanceQueryHistoryDetail = (tenantId, historyId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/governance/query-history/${encodeURIComponent(historyId)}?tenantId=${encodeURIComponent(tenantId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-query-history-detail',
+      ...requestOptions
+    }
+  })
+
 export const formatRuntimeError = error => {
   if (error?.response?.data) {
     const { code, message } = error.response.data

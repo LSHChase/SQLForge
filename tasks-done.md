@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-019: 落地 SQL 历史详情与取证视图
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): add sql history forensic detail view`
+- Priority: 1
+- Depends on: `E-TASK-018`,`D-TASK-041`
+- Scope: SQL 三态、注释上下文、结构/访问解析、route/recommendation/alert/benchmark 关联取证视图 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-007` SQL 查询与历史前端增强
+- Human confirmation point: 若取证详情会暴露未脱敏参数、内部错误栈或隐藏部分失败证据，需人工确认
+- Data impact: 历史详情页、SQL 三态和关联取证展示
+- Rollback / recovery: 恢复脱敏与失败证据显示边界，关闭高风险详情块
+- Validation:
+  - `npm run lint`、`npm run build`、detail page contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-019`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Connected parse-record history detail to query-history for SQL tri-state, parse summaries, route/cache/binding evidence, and related recommendation/benchmark/alert/audit references.
+  - Validation evidence: npm run lint; npm run build; node scripts/check-history-detail-contract.mjs; python3 scripts/foreman.py validate E-TASK-019 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-history-detail-contract.mjs'
+  - Residual risk: The page renders backend forensic payloads as formatted JSON blocks; future backend shape changes will need matching frontend grouping updates.
+  - Next step: Instantiate E-TASK-020 to build the parse workbench dual-card result layout on top of the detail/forensics baseline.
+
 ### E-TASK-018: 落地 SQL 历史列表筛选与分类面
 
 - Status: done

@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import {
   formatRuntimeError,
+  getGovernanceQueryHistoryDetail,
   getGovernanceTraceDetail,
   getGovernanceTraceSummaries,
   lookupGovernanceTraces
@@ -27,9 +28,11 @@ const form = reactive({
 const loadingList = ref(false)
 const loadingLookup = ref(false)
 const loadingDetail = ref(false)
+const loadingHistoryDetail = ref(false)
 const recentTraces = ref([])
 const lookupResults = ref([])
 const detail = ref(null)
+const historyDetail = ref(null)
 const errorMessage = ref('')
 const hasMore = ref(false)
 const nextCursor = ref('')
@@ -170,6 +173,12 @@ const sortOptions = computed(() => [
 const selectedSummary = computed(() =>
   displayedTraces.value.find(trace => trace.traceId === detail.value?.traceId) || null
 )
+const selectedHistorySummary = computed(() => {
+  if (!historyDetail.value?.historyId) {
+    return detail.value?.queryHistories?.[0] || null
+  }
+  return (detail.value?.queryHistories || []).find(item => item.historyId === historyDetail.value.historyId) || null
+})
 const detailHighlights = computed(() => {
   if (!detail.value) {
     return []
@@ -207,6 +216,173 @@ const detailHighlights = computed(() => {
     }
   ].filter(item => displayValue(item.value) !== '-')
 })
+const sqlStateHighlights = computed(() => {
+  if (!historyDetail.value?.sqlState) {
+    return []
+  }
+  return [
+    {
+      key: 'sqlFingerprint',
+      label: isChinese.value ? '执行指纹' : 'SQL fingerprint',
+      value: historyDetail.value.sqlState.sqlFingerprint
+    },
+    {
+      key: 'sqlTemplateFingerprint',
+      label: isChinese.value ? '模板指纹' : 'Template fingerprint',
+      value: historyDetail.value.sqlState.sqlTemplateFingerprint
+    },
+    {
+      key: 'boundSqlFingerprint',
+      label: isChinese.value ? '绑定指纹' : 'Bound fingerprint',
+      value: historyDetail.value.sqlState.boundSqlFingerprint
+    },
+    {
+      key: 'bindingMode',
+      label: isChinese.value ? '绑定模式' : 'Binding mode',
+      value: historyDetail.value.sqlState.bindingMode
+    },
+    {
+      key: 'bindingRenderStatus',
+      label: isChinese.value ? '渲染状态' : 'Binding render',
+      value: historyDetail.value.sqlState.bindingRenderStatus
+    },
+    {
+      key: 'parameterizedSqlFlag',
+      label: isChinese.value ? '参数化' : 'Parameterized',
+      value: typeof historyDetail.value.sqlState.parameterizedSqlFlag === 'boolean'
+        ? String(historyDetail.value.sqlState.parameterizedSqlFlag)
+        : ''
+    }
+  ].filter(item => displayValue(item.value) !== '-')
+})
+const queryHistorySummaryCards = computed(() => {
+  if (!historyDetail.value) {
+    return []
+  }
+  return [
+    {
+      label: isChinese.value ? 'History ID' : 'History ID',
+      value: historyDetail.value.historyId
+    },
+    {
+      label: isChinese.value ? '结果 ID' : 'Result ID',
+      value: historyDetail.value.resultId
+    },
+    {
+      label: isChinese.value ? '数据源' : 'Datasource',
+      value: historyDetail.value.datasourceCode || historyDetail.value.datasourceType
+    },
+    {
+      label: isChinese.value ? '报表编码' : 'Report code',
+      value: historyDetail.value.reportCode
+    },
+    {
+      label: isChinese.value ? '提交人' : 'Submitted by',
+      value: historyDetail.value.submittedBy
+    },
+    {
+      label: isChinese.value ? '提交时间' : 'Submitted at',
+      value: formatTimestamp(historyDetail.value.submittedAt)
+    }
+  ].filter(item => displayValue(item.value) !== '-')
+})
+const sqlVariants = computed(() => {
+  if (!historyDetail.value) {
+    return []
+  }
+  return [
+    {
+      key: 'sqlText',
+      label: isChinese.value ? '原始 SQL' : 'Original SQL',
+      value: historyDetail.value.sqlText
+    },
+    {
+      key: 'sqlTemplateText',
+      label: isChinese.value ? '模板 SQL' : 'Template SQL',
+      value: historyDetail.value.sqlTemplateText
+    },
+    {
+      key: 'boundSqlText',
+      label: isChinese.value ? '绑定 SQL' : 'Bound SQL',
+      value: historyDetail.value.boundSqlText
+    }
+  ].filter(item => hasDisplayValue(item.value))
+})
+const queryHistorySignalGroups = computed(() => {
+  if (!historyDetail.value) {
+    return []
+  }
+  return [
+    {
+      key: 'commentContext',
+      title: isChinese.value ? '注释上下文' : 'Comment context',
+      payload: historyDetail.value.commentContext
+    },
+    {
+      key: 'queryDateSummary',
+      title: isChinese.value ? '查询日期摘要' : 'Query-date summary',
+      payload: historyDetail.value.queryDateSummary
+    },
+    {
+      key: 'executionSummary',
+      title: isChinese.value ? '执行摘要' : 'Execution summary',
+      payload: historyDetail.value.executionSummary
+    },
+    {
+      key: 'structureParseSummary',
+      title: isChinese.value ? '结构解析' : 'Structure parse',
+      payload: historyDetail.value.structureParseSummary
+    },
+    {
+      key: 'accessParseSummary',
+      title: isChinese.value ? '访问解析' : 'Access parse',
+      payload: historyDetail.value.accessParseSummary
+    },
+    {
+      key: 'routeDecision',
+      title: isChinese.value ? '路由决策' : 'Route decision',
+      payload: historyDetail.value.routeDecision
+    },
+    {
+      key: 'cacheSummary',
+      title: isChinese.value ? '缓存摘要' : 'Cache summary',
+      payload: historyDetail.value.cacheSummary
+    },
+    {
+      key: 'bindingSummary',
+      title: isChinese.value ? '绑定摘要' : 'Binding summary',
+      payload: historyDetail.value.bindingSummary
+    }
+  ].filter(group => isNonEmptyObject(group.payload))
+})
+const referenceGroups = computed(() => {
+  if (!historyDetail.value) {
+    return []
+  }
+  return [
+    {
+      key: 'recommendationRefs',
+      title: isChinese.value ? '推荐关联' : 'Recommendation refs',
+      items: historyDetail.value.recommendationRefs || []
+    },
+    {
+      key: 'benchmarkRefs',
+      title: isChinese.value ? '压测关联' : 'Benchmark refs',
+      items: historyDetail.value.benchmarkRefs || []
+    },
+    {
+      key: 'alertRefs',
+      title: isChinese.value ? '告警关联' : 'Alert refs',
+      items: historyDetail.value.alertRefs || []
+    },
+    {
+      key: 'auditRefs',
+      title: isChinese.value ? '审计关联' : 'Audit refs',
+      items: historyDetail.value.auditRefs || []
+    }
+  ].filter(group => Array.isArray(group.items) && group.items.length > 0)
+})
+const historyLogicalObjectHits = computed(() => historyDetail.value?.logicalObjectHits || [])
 
 const hasDisplayValue = value => !(value === null || value === undefined || String(value).trim() === '')
 
@@ -216,6 +392,10 @@ const displayValue = value => {
   }
   return String(value)
 }
+
+const isNonEmptyObject = value => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0
+
+const formatJson = value => JSON.stringify(value, null, 2)
 
 const formatTimestamp = value => {
   if (!value) {
@@ -333,11 +513,37 @@ const loadTraceDetail = async (traceId, synchronizeInput = false) => {
     detail.value = await getGovernanceTraceDetail(form.tenantId, traceId, 20, {
       requestPrefix: 'frontend-parse-record-trace-detail'
     })
+    const firstHistoryId = detail.value?.queryHistories?.[0]?.historyId || ''
+    if (firstHistoryId) {
+      await loadQueryHistoryDetail(firstHistoryId)
+    } else {
+      historyDetail.value = null
+    }
   } catch (error) {
     detail.value = null
+    historyDetail.value = null
     errorMessage.value = formatRuntimeError(error)
   } finally {
     loadingDetail.value = false
+  }
+}
+
+const loadQueryHistoryDetail = async historyId => {
+  if (!historyId) {
+    historyDetail.value = null
+    return
+  }
+  loadingHistoryDetail.value = true
+  errorMessage.value = ''
+  try {
+    historyDetail.value = await getGovernanceQueryHistoryDetail(form.tenantId, historyId, {
+      requestPrefix: 'frontend-parse-record-query-history-detail'
+    })
+  } catch (error) {
+    historyDetail.value = null
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loadingHistoryDetail.value = false
   }
 }
 
@@ -470,6 +676,7 @@ const clearLookup = async () => {
   hasMore.value = false
   nextCursor.value = ''
   activeFilters.value = null
+  historyDetail.value = null
   syncRouteQuery({
     tenantId: form.tenantId,
     limit: String(form.limit)
@@ -891,6 +1098,133 @@ onMounted(async () => {
             </div>
           </div>
 
+          <div class="history-detail-panel">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker sqlforge-code-label">query history detail</p>
+                <h3 class="detail-subtitle">
+                  {{ isChinese ? 'SQL 三态、解析结果与关联取证' : 'SQL tri-state, parse signals, and related forensics' }}
+                </h3>
+              </div>
+            </div>
+
+            <p v-if="!detail.queryHistories?.length" class="empty-state">
+              {{ isChinese ? '当前 trace 没有 query history 详情。' : 'No query-history detail is linked to this trace yet.' }}
+            </p>
+
+            <template v-else>
+              <div class="query-history-list">
+                <button
+                  v-for="history in detail.queryHistories"
+                  :key="history.historyId"
+                  type="button"
+                  class="history-pill"
+                  :class="{ 'history-pill-active': selectedHistorySummary?.historyId === history.historyId }"
+                  :data-testid="`parse-record-history-${history.historyId}`"
+                  @click="loadQueryHistoryDetail(history.historyId)"
+                >
+                  <strong>{{ history.reportCode || history.historyId }}</strong>
+                  <span>{{ history.historyType || '-' }} · {{ history.datasourceCode || history.datasourceType || '-' }}</span>
+                </button>
+              </div>
+
+              <p v-if="loadingHistoryDetail" class="empty-state">
+                {{ isChinese ? '正在加载 query history 详情…' : 'Loading query-history detail…' }}
+              </p>
+
+              <template v-else-if="historyDetail">
+                <div class="summary-card-grid history-summary-grid">
+                  <article
+                    v-for="item in queryHistorySummaryCards"
+                    :key="item.label"
+                    class="summary-card"
+                  >
+                    <span class="summary-card-label">{{ item.label }}</span>
+                    <strong>{{ item.value }}</strong>
+                  </article>
+                </div>
+
+                <div class="highlight-grid history-sql-state-grid">
+                  <div
+                    v-for="item in sqlStateHighlights"
+                    :key="item.key"
+                    class="highlight-chip"
+                  >
+                    <span>{{ item.label }}</span>
+                    <strong :data-testid="`parse-record-history-${item.key.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`)}`">
+                      {{ displayValue(item.value) }}
+                    </strong>
+                  </div>
+                </div>
+
+                <div class="sql-variant-list">
+                  <article
+                    v-for="item in sqlVariants"
+                    :key="item.key"
+                    class="sql-variant-card"
+                  >
+                    <div class="sql-variant-card__header">
+                      <span class="summary-card-label">{{ item.label }}</span>
+                    </div>
+                    <pre class="code-block" :data-testid="`parse-record-${item.key}`">{{ item.value }}</pre>
+                  </article>
+                </div>
+
+                <div v-if="historyLogicalObjectHits.length" class="reference-group">
+                  <div class="section-heading">
+                    <div>
+                      <p class="section-kicker sqlforge-code-label">logical objects</p>
+                      <h3 class="detail-subtitle">{{ isChinese ? '逻辑对象命中' : 'Logical object hits' }}</h3>
+                    </div>
+                  </div>
+                  <div class="timeline-card-meta">
+                    <span
+                      v-for="(item, index) in historyLogicalObjectHits"
+                      :key="`${item.objectKey || item.logicalObjectKey || item.objectName || 'logical'}-${index}`"
+                      class="timeline-meta-pill"
+                    >
+                      {{ item.objectType || item.logicalObjectType || 'OBJECT' }}:
+                      {{ item.objectKey || item.logicalObjectKey || item.objectName || '-' }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="signal-grid">
+                  <article
+                    v-for="group in queryHistorySignalGroups"
+                    :key="group.key"
+                    class="signal-card"
+                  >
+                    <div class="signal-card__header">
+                      <span class="summary-card-label">{{ group.title }}</span>
+                    </div>
+                    <pre class="code-block" :data-testid="`parse-record-${group.key}`">{{ formatJson(group.payload) }}</pre>
+                  </article>
+                </div>
+
+                <div v-if="referenceGroups.length" class="reference-grid">
+                  <article
+                    v-for="group in referenceGroups"
+                    :key="group.key"
+                    class="reference-group"
+                  >
+                    <div class="signal-card__header">
+                      <span class="summary-card-label">{{ group.title }}</span>
+                    </div>
+                    <div class="reference-list">
+                      <pre
+                        v-for="(item, index) in group.items"
+                        :key="`${group.key}-${index}`"
+                        class="code-block code-block-compact"
+                        :data-testid="`parse-record-${group.key}-${index}`"
+                      >{{ formatJson(item) }}</pre>
+                    </div>
+                  </article>
+                </div>
+              </template>
+            </template>
+          </div>
+
           <div class="timeline-list">
             <article
               v-for="event in detail.auditEvents"
@@ -1163,11 +1497,102 @@ onMounted(async () => {
 }
 
 .trace-list,
-.timeline-list {
+.timeline-list,
+.signal-grid,
+.reference-grid {
   display: flex;
   flex-direction: column;
   gap: 14px;
   margin-top: 18px;
+}
+
+.history-detail-panel {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.detail-subtitle {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.query-history-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.history-pill {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+}
+
+.history-pill span {
+  color: #475569;
+  font-size: 13px;
+}
+
+.history-pill-active {
+  border-color: rgba(14, 165, 233, 0.4);
+  box-shadow: 0 14px 28px rgba(14, 165, 233, 0.12);
+}
+
+.history-summary-grid,
+.history-sql-state-grid,
+.sql-variant-list {
+  margin-top: 18px;
+}
+
+.sql-variant-list {
+  display: grid;
+  gap: 14px;
+}
+
+.sql-variant-card,
+.signal-card,
+.reference-group {
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.82);
+  padding: 16px 18px;
+}
+
+.signal-grid,
+.reference-grid {
+  display: grid;
+}
+
+.signal-card__header,
+.sql-variant-card__header {
+  margin-bottom: 10px;
+}
+
+.code-block {
+  margin: 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #dbeafe;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.code-block-compact {
+  font-size: 12px;
+}
+
+.reference-list {
+  display: grid;
+  gap: 10px;
 }
 
 .trace-item,
