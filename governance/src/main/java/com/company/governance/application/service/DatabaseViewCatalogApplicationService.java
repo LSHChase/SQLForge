@@ -6,6 +6,8 @@ import com.company.governance.domain.dbview.entity.DatabaseViewDependency;
 import com.company.governance.domain.dbview.entity.DatabaseViewRef;
 import com.company.governance.domain.dbview.repository.DatabaseViewDependencyRepository;
 import com.company.governance.domain.dbview.repository.DatabaseViewRepository;
+import com.company.governance.domain.metadata.entity.MetadataSnapshot;
+import com.company.governance.domain.metadata.repository.MetadataSnapshotRepository;
 import com.company.governance.domain.tenant.logic.TenantAccessLogic;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
@@ -31,13 +33,16 @@ public class DatabaseViewCatalogApplicationService {
 
     private final DatabaseViewRepository databaseViewRepository;
     private final DatabaseViewDependencyRepository databaseViewDependencyRepository;
+    private final MetadataSnapshotRepository metadataSnapshotRepository;
     private final TenantAccessLogic tenantAccessLogic;
 
     public DatabaseViewCatalogApplicationService(DatabaseViewRepository databaseViewRepository,
                                                  DatabaseViewDependencyRepository databaseViewDependencyRepository,
+                                                 MetadataSnapshotRepository metadataSnapshotRepository,
                                                  TenantAccessLogic tenantAccessLogic) {
         this.databaseViewRepository = databaseViewRepository;
         this.databaseViewDependencyRepository = databaseViewDependencyRepository;
+        this.metadataSnapshotRepository = metadataSnapshotRepository;
         this.tenantAccessLogic = tenantAccessLogic;
     }
 
@@ -129,8 +134,26 @@ public class DatabaseViewCatalogApplicationService {
         vo.setCatalogName(ref.getCatalogName());
         vo.setOwnerUser(ref.getOwnerUser());
         vo.setQueryable(ref.getQueryable());
+        applySnapshotSummary(vo, ref.getTenantId(), ref.getObjectKey());
         vo.setDependencies(toDependencies(ref.getTenantId(), ref.getId()));
         return vo;
+    }
+
+    private void applySnapshotSummary(DatabaseViewRefVO vo, String tenantId, String objectKey) {
+        MetadataSnapshot snapshot = metadataSnapshotRepository.findByTenantAndObjectKey(tenantId, objectKey).orElse(null);
+        if (snapshot == null) {
+            return;
+        }
+        vo.setFreshnessStatus(firstNonBlank(snapshot.getFreshnessStatus(), "UNKNOWN"));
+        vo.setSlaStatus(firstNonBlank(snapshot.getSlaStatus(), "UNKNOWN"));
+        vo.setQueryabilityStatus(firstNonBlank(snapshot.getQueryabilityStatus(),
+            vo.getQueryable() != null && vo.getQueryable().booleanValue() ? "QUERYABLE" : "UNKNOWN"));
+        vo.setEvidenceStatus(firstNonBlank(snapshot.getEvidenceStatus(), "UNCOLLECTED"));
+        vo.setQueryable(Boolean.valueOf("QUERYABLE".equalsIgnoreCase(vo.getQueryabilityStatus())));
+        vo.setLatestRefreshTime(snapshot.getLatestRefreshTime() == null ? null : snapshot.getLatestRefreshTime().toString());
+        vo.setSnapshotTime(snapshot.getSnapshotTime() == null ? null : snapshot.getSnapshotTime().toString());
+        vo.setUpstreamCount(Integer.valueOf(snapshot.getUpstreamRefs() == null ? 0 : snapshot.getUpstreamRefs().size()));
+        vo.setDownstreamCount(Integer.valueOf(snapshot.getDownstreamRefs() == null ? 0 : snapshot.getDownstreamRefs().size()));
     }
 
     private List<DatabaseViewDependencyVO> toDependencies(String tenantId, String dbViewId) {
@@ -168,5 +191,17 @@ public class DatabaseViewCatalogApplicationService {
 
     private String trimToNull(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (StringUtils.hasText(value)) {
+                return value;
+            }
+        }
+        return null;
     }
 }

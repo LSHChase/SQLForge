@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-071: 落地数据资产与数据源治理查询/详情接口
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(governance): add metadata asset catalog endpoints`
+- Priority: 1
+- Depends on: `D-TASK-070`
+- Scope: datasource/schema/table/logical-view/db-view 列表、详情与 metadata snapshot 查询面 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-013` 数据源与数据资产治理增强
+- Human confirmation point: 若数据资产接口会扩大跨租户可见范围、暴露未授权对象详情或破坏现有查询性能边界，需人工确认
+- Data impact: datasource/schema/table/logical-view/db-view 查询面与详情接口
+- Rollback / recovery: 回退高风险详情字段与筛选面，恢复基础受保护查询
+- Validation:
+  - `data-asset API 与 detail query 测试`
+  - `python3 scripts/foreman.py validate D-TASK-071`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added schema/table catalog and detail endpoints, and enriched logical-view/db-view responses with metadata snapshot evidence fields under the governance baseline.
+  - Validation evidence: mvn -pl governance -am clean -Dtest=MetadataAssetCatalogApplicationServiceTest,MetadataAssetCatalogControllerTest,LogicalViewCatalogApplicationServiceTest,DatabaseViewCatalogApplicationServiceTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-071
+  - Residual risk: Datasource configuration and standalone metadata snapshot ledgers remain open under D-TASK-069 and D-TASK-070; current asset evidence is baseline in-memory data rather than live external collection.
+  - Next step: Close out D-TASK-069 and D-TASK-070, then finish the Java SDK baseline under D-TASK-068.
+
 ### D-TASK-072: 落地系统管理配置接口基线
 
 - Status: done

@@ -10,6 +10,7 @@ import com.company.governance.domain.logicalview.entity.BusinessLogicalView;
 import com.company.governance.domain.logicalview.entity.LogicalObjectMapping;
 import com.company.governance.domain.logicalview.repository.BusinessLogicalViewRepository;
 import com.company.governance.domain.logicalview.repository.LogicalObjectMappingRepository;
+import com.company.governance.infrastructure.repository.InMemoryMetadataSnapshotRepository;
 import com.company.governance.domain.tenant.logic.TenantAccessLogic;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.TenantContext;
@@ -37,6 +38,7 @@ class LogicalViewCatalogApplicationServiceTest {
         LogicalViewCatalogApplicationService service = new LogicalViewCatalogApplicationService(
             viewRepository,
             mappingRepository,
+            new InMemoryMetadataSnapshotRepository(),
             tenantAccessLogic
         );
 
@@ -51,6 +53,8 @@ class LogicalViewCatalogApplicationServiceTest {
 
         assertEquals(1, views.size());
         assertEquals("RPT_SALES_DAILY", views.get(0).getViewCode());
+        assertEquals("LOGICAL_VIEW:RPT_SALES_DAILY", views.get(0).getObjectKey());
+        assertEquals(Integer.valueOf(1), views.get(0).getUpstreamCount());
         assertEquals("TABLE:sales.orders", views.get(0).getPhysicalTargets().get(0).getTargetObjectKey());
     }
 
@@ -62,6 +66,7 @@ class LogicalViewCatalogApplicationServiceTest {
         LogicalViewCatalogApplicationService service = new LogicalViewCatalogApplicationService(
             viewRepository,
             mappingRepository,
+            new InMemoryMetadataSnapshotRepository(),
             tenantAccessLogic
         );
 

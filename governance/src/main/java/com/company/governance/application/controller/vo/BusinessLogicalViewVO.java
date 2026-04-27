@@ -7,14 +7,20 @@ public class BusinessLogicalViewVO {
     private String viewId;
     private String tenantId;
     private String viewCode;
+    private String objectKey;
     private String viewName;
     private String datasourceCode;
     private String subjectArea;
     private String ownerUser;
     private String freshnessStatus;
     private String slaStatus;
+    private String queryabilityStatus;
+    private String evidenceStatus;
     private Boolean queryable;
     private String latestRefreshTime;
+    private String snapshotTime;
+    private Integer upstreamCount;
+    private Integer downstreamCount;
     private String description;
     private List<LogicalObjectMappingVO> physicalTargets;
 
@@ -40,6 +46,14 @@ public class BusinessLogicalViewVO {
 
     public void setViewCode(String viewCode) {
         this.viewCode = viewCode;
+    }
+
+    public String getObjectKey() {
+        return objectKey;
+    }
+
+    public void setObjectKey(String objectKey) {
+        this.objectKey = objectKey;
     }
 
     public String getViewName() {
@@ -90,6 +104,22 @@ public class BusinessLogicalViewVO {
         this.slaStatus = slaStatus;
     }
 
+    public String getQueryabilityStatus() {
+        return queryabilityStatus;
+    }
+
+    public void setQueryabilityStatus(String queryabilityStatus) {
+        this.queryabilityStatus = queryabilityStatus;
+    }
+
+    public String getEvidenceStatus() {
+        return evidenceStatus;
+    }
+
+    public void setEvidenceStatus(String evidenceStatus) {
+        this.evidenceStatus = evidenceStatus;
+    }
+
     public Boolean getQueryable() {
         return queryable;
     }
@@ -104,6 +134,30 @@ public class BusinessLogicalViewVO {
 
     public void setLatestRefreshTime(String latestRefreshTime) {
         this.latestRefreshTime = latestRefreshTime;
+    }
+
+    public String getSnapshotTime() {
+        return snapshotTime;
+    }
+
+    public void setSnapshotTime(String snapshotTime) {
+        this.snapshotTime = snapshotTime;
+    }
+
+    public Integer getUpstreamCount() {
+        return upstreamCount;
+    }
+
+    public void setUpstreamCount(Integer upstreamCount) {
+        this.upstreamCount = upstreamCount;
+    }
+
+    public Integer getDownstreamCount() {
+        return downstreamCount;
+    }
+
+    public void setDownstreamCount(Integer downstreamCount) {
+        this.downstreamCount = downstreamCount;
     }
 
     public String getDescription() {

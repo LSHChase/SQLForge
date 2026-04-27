@@ -6,6 +6,8 @@ import com.company.governance.domain.logicalview.entity.BusinessLogicalView;
 import com.company.governance.domain.logicalview.entity.LogicalObjectMapping;
 import com.company.governance.domain.logicalview.repository.BusinessLogicalViewRepository;
 import com.company.governance.domain.logicalview.repository.LogicalObjectMappingRepository;
+import com.company.governance.domain.metadata.entity.MetadataSnapshot;
+import com.company.governance.domain.metadata.repository.MetadataSnapshotRepository;
 import com.company.governance.domain.tenant.logic.TenantAccessLogic;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
@@ -29,13 +31,16 @@ public class LogicalViewCatalogApplicationService {
 
     private final BusinessLogicalViewRepository businessLogicalViewRepository;
     private final LogicalObjectMappingRepository logicalObjectMappingRepository;
+    private final MetadataSnapshotRepository metadataSnapshotRepository;
     private final TenantAccessLogic tenantAccessLogic;
 
     public LogicalViewCatalogApplicationService(BusinessLogicalViewRepository businessLogicalViewRepository,
                                                 LogicalObjectMappingRepository logicalObjectMappingRepository,
+                                                MetadataSnapshotRepository metadataSnapshotRepository,
                                                 TenantAccessLogic tenantAccessLogic) {
         this.businessLogicalViewRepository = businessLogicalViewRepository;
         this.logicalObjectMappingRepository = logicalObjectMappingRepository;
+        this.metadataSnapshotRepository = metadataSnapshotRepository;
         this.tenantAccessLogic = tenantAccessLogic;
     }
 
@@ -113,6 +118,7 @@ public class LogicalViewCatalogApplicationService {
         vo.setViewId(record.getId());
         vo.setTenantId(record.getTenantId());
         vo.setViewCode(record.getViewCode());
+        vo.setObjectKey("LOGICAL_VIEW:" + record.getViewCode());
         vo.setViewName(record.getViewName());
         vo.setDatasourceCode(record.getDatasourceCode());
         vo.setSubjectArea(record.getSubjectArea());
@@ -120,12 +126,46 @@ public class LogicalViewCatalogApplicationService {
         vo.setFreshnessStatus(record.getFreshnessStatus());
         vo.setSlaStatus(record.getSlaStatus());
         vo.setQueryable(record.getQueryable());
+        vo.setQueryabilityStatus(record.getQueryable() == null ? null : (record.getQueryable().booleanValue() ? "QUERYABLE" : "BLOCKED"));
         vo.setLatestRefreshTime(record.getLatestRefreshTime() == null
             ? null
             : record.getLatestRefreshTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        applySnapshotSummary(vo, record.getTenantId(), vo.getObjectKey());
         vo.setDescription(record.getDescription());
         vo.setPhysicalTargets(toMappings(record.getTenantId(), record.getId()));
         return vo;
+    }
+
+    private void applySnapshotSummary(BusinessLogicalViewVO vo, String tenantId, String objectKey) {
+        MetadataSnapshot snapshot = metadataSnapshotRepository.findByTenantAndObjectKey(tenantId, objectKey).orElse(null);
+        if (snapshot == null) {
+            return;
+        }
+        vo.setFreshnessStatus(firstNonBlank(snapshot.getFreshnessStatus(), vo.getFreshnessStatus(), "UNKNOWN"));
+        vo.setSlaStatus(firstNonBlank(snapshot.getSlaStatus(), vo.getSlaStatus(), "UNKNOWN"));
+        vo.setQueryabilityStatus(firstNonBlank(snapshot.getQueryabilityStatus(), vo.getQueryabilityStatus(), "UNKNOWN"));
+        vo.setEvidenceStatus(firstNonBlank(snapshot.getEvidenceStatus(), "UNCOLLECTED"));
+        vo.setQueryable(Boolean.valueOf("QUERYABLE".equalsIgnoreCase(vo.getQueryabilityStatus())));
+        if (snapshot.getLatestRefreshTime() != null) {
+            vo.setLatestRefreshTime(snapshot.getLatestRefreshTime().toString());
+        }
+        if (snapshot.getSnapshotTime() != null) {
+            vo.setSnapshotTime(snapshot.getSnapshotTime().toString());
+        }
+        vo.setUpstreamCount(Integer.valueOf(snapshot.getUpstreamRefs() == null ? 0 : snapshot.getUpstreamRefs().size()));
+        vo.setDownstreamCount(Integer.valueOf(snapshot.getDownstreamRefs() == null ? 0 : snapshot.getDownstreamRefs().size()));
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (StringUtils.hasText(value)) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private List<LogicalObjectMappingVO> toMappings(String tenantId, String logicalViewId) {

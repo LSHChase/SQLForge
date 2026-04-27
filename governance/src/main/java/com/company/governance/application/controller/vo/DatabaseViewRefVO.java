@@ -12,7 +12,15 @@ public class DatabaseViewRefVO {
     private String schemaName;
     private String catalogName;
     private String ownerUser;
+    private String freshnessStatus;
+    private String slaStatus;
+    private String queryabilityStatus;
+    private String evidenceStatus;
     private Boolean queryable;
+    private String latestRefreshTime;
+    private String snapshotTime;
+    private Integer upstreamCount;
+    private Integer downstreamCount;
     private List<DatabaseViewDependencyVO> dependencies;
 
     public String getViewId() {
@@ -79,12 +87,76 @@ public class DatabaseViewRefVO {
         this.ownerUser = ownerUser;
     }
 
+    public String getFreshnessStatus() {
+        return freshnessStatus;
+    }
+
+    public void setFreshnessStatus(String freshnessStatus) {
+        this.freshnessStatus = freshnessStatus;
+    }
+
+    public String getSlaStatus() {
+        return slaStatus;
+    }
+
+    public void setSlaStatus(String slaStatus) {
+        this.slaStatus = slaStatus;
+    }
+
+    public String getQueryabilityStatus() {
+        return queryabilityStatus;
+    }
+
+    public void setQueryabilityStatus(String queryabilityStatus) {
+        this.queryabilityStatus = queryabilityStatus;
+    }
+
+    public String getEvidenceStatus() {
+        return evidenceStatus;
+    }
+
+    public void setEvidenceStatus(String evidenceStatus) {
+        this.evidenceStatus = evidenceStatus;
+    }
+
     public Boolean getQueryable() {
         return queryable;
     }
 
     public void setQueryable(Boolean queryable) {
         this.queryable = queryable;
+    }
+
+    public String getLatestRefreshTime() {
+        return latestRefreshTime;
+    }
+
+    public void setLatestRefreshTime(String latestRefreshTime) {
+        this.latestRefreshTime = latestRefreshTime;
+    }
+
+    public String getSnapshotTime() {
+        return snapshotTime;
+    }
+
+    public void setSnapshotTime(String snapshotTime) {
+        this.snapshotTime = snapshotTime;
+    }
+
+    public Integer getUpstreamCount() {
+        return upstreamCount;
+    }
+
+    public void setUpstreamCount(Integer upstreamCount) {
+        this.upstreamCount = upstreamCount;
+    }
+
+    public Integer getDownstreamCount() {
+        return downstreamCount;
+    }
+
+    public void setDownstreamCount(Integer downstreamCount) {
+        this.downstreamCount = downstreamCount;
     }
 
     public List<DatabaseViewDependencyVO> getDependencies() {

@@ -9,6 +9,7 @@ import com.company.governance.domain.dbview.entity.DatabaseViewRef;
 import com.company.governance.domain.dbview.repository.DatabaseViewDependencyRepository;
 import com.company.governance.domain.dbview.repository.DatabaseViewRepository;
 import com.company.governance.domain.tenant.logic.TenantAccessLogic;
+import com.company.governance.infrastructure.repository.InMemoryMetadataSnapshotRepository;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
@@ -33,6 +34,7 @@ class DatabaseViewCatalogApplicationServiceTest {
         DatabaseViewCatalogApplicationService service = new DatabaseViewCatalogApplicationService(
             databaseViewRepository,
             databaseViewDependencyRepository,
+            new InMemoryMetadataSnapshotRepository(),
             tenantAccessLogic
         );
         RequestContext.set("tenant-a", "service-user", Arrays.asList("SERVICE"), "req-1", "trace-1", "header", 1L, 2L);
@@ -56,6 +58,7 @@ class DatabaseViewCatalogApplicationServiceTest {
         DatabaseViewCatalogApplicationService service = new DatabaseViewCatalogApplicationService(
             mock(DatabaseViewRepository.class),
             mock(DatabaseViewDependencyRepository.class),
+            new InMemoryMetadataSnapshotRepository(),
             mock(TenantAccessLogic.class)
         );
         RequestContext.set("tenant-a", "service-user", Arrays.asList("SERVICE"), "req-1", "trace-1", "header", 1L, 2L);

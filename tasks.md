@@ -16,22 +16,6 @@ _No tasks._
 
 ## In Progress
 
-### D-TASK-071: 落地数据资产与数据源治理查询/详情接口
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `D-TASK-070`
-- Scope: datasource/schema/table/logical-view/db-view 列表、详情与 metadata snapshot 查询面 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
-- Matrix context: Phase-D / Story `D-STORY-013` 数据源与数据资产治理增强
-- Human confirmation point: 若数据资产接口会扩大跨租户可见范围、暴露未授权对象详情或破坏现有查询性能边界，需人工确认
-- Data impact: datasource/schema/table/logical-view/db-view 查询面与详情接口
-- Rollback / recovery: 回退高风险详情字段与筛选面，恢复基础受保护查询
-- Validation:
-  - `data-asset API 与 detail query 测试`
-  - `python3 scripts/foreman.py validate D-TASK-071`
-- Progress log:
-  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
-
 ### D-TASK-070: 建立 `MetadataSnapshot` 与数据到位状态模型
 
 - Status: in_progress
