@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.ParseBatchMapper">
+
+    <resultMap id="ParseBatchRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ParseBatchRecord">
+        <id property="batchId" column="batch_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="batchName" column="batch_name"/>
+        <result property="importMode" column="import_mode"/>
+        <result property="sourceType" column="source_type"/>
+        <result property="fileType" column="file_type"/>
+        <result property="templateVersion" column="template_version"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="structureParseOnly" column="structure_parse_only"/>
+        <result property="status" column="status"/>
+        <result property="totalRecords" column="total_records"/>
+        <result property="successRecords" column="success_records"/>
+        <result property="partialSuccessRecords" column="partial_success_records"/>
+        <result property="failedRecords" column="failed_records"/>
+        <result property="structureParseSuccessRate" column="structure_parse_success_rate"/>
+        <result property="accessParseSuccessRate" column="access_parse_success_rate"/>
+        <result property="statusHistoryJson" column="status_history_json"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        batch_id,
+        tenant_id,
+        batch_name,
+        import_mode,
+        source_type,
+        file_type,
+        template_version,
+        datasource_code,
+        structure_parse_only,
+        status,
+        total_records,
+        success_records,
+        partial_success_records,
+        failed_records,
+        structure_parse_success_rate,
+        access_parse_success_rate,
+        status_history_json,
+        created_by,
+        created_at,
+        updated_at
+    </sql>
+
+    <select id="selectByBatchId" resultMap="ParseBatchRecordMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM parse_batch
+        WHERE batch_id = #{batchId}
+    </select>
+
+    <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ParseBatchRecord">
+        INSERT INTO parse_batch (
+            batch_id,
+            tenant_id,
+            batch_name,
+            import_mode,
+            source_type,
+            file_type,
+            template_version,
+            datasource_code,
+            structure_parse_only,
+            status,
+            total_records,
+            success_records,
+            partial_success_records,
+            failed_records,
+            structure_parse_success_rate,
+            access_parse_success_rate,
+            status_history_json,
+            created_by,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{batchId},
+            #{tenantId},
+            #{batchName},
+            #{importMode},
+            #{sourceType},
+            #{fileType},
+            #{templateVersion},
+            #{datasourceCode},
+            #{structureParseOnly},
+            #{status},
+            #{totalRecords},
+            #{successRecords},
+            #{partialSuccessRecords},
+            #{failedRecords},
+            #{structureParseSuccessRate},
+            #{accessParseSuccessRate},
+            #{statusHistoryJson},
+            #{createdBy},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ParseBatchRecord">
+        UPDATE parse_batch
+        SET tenant_id = #{tenantId},
+            batch_name = #{batchName},
+            import_mode = #{importMode},
+            source_type = #{sourceType},
+            file_type = #{fileType},
+            template_version = #{templateVersion},
+            datasource_code = #{datasourceCode},
+            structure_parse_only = #{structureParseOnly},
+            status = #{status},
+            total_records = #{totalRecords},
+            success_records = #{successRecords},
+            partial_success_records = #{partialSuccessRecords},
+            failed_records = #{failedRecords},
+            structure_parse_success_rate = #{structureParseSuccessRate},
+            access_parse_success_rate = #{accessParseSuccessRate},
+            status_history_json = #{statusHistoryJson},
+            created_by = #{createdBy},
+            created_at = #{createdAt},
+            updated_at = #{updatedAt}
+        WHERE batch_id = #{batchId}
+    </update>
+</mapper>

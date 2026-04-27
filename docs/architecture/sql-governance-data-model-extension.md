@@ -118,6 +118,15 @@
 - `tenant_config`
 - `system_config`
 
+建议新增：
+
+- `parse_batch`
+  - 所属服务：`sql-optimization`
+  - 主键：`batch_id`
+  - 结构化字段：`tenant_id`,`batch_name`,`import_mode`,`source_type`,`file_type`,`template_version`,`datasource_code`,`structure_parse_only`,`status`,`total_records`,`success_records`,`partial_success_records`,`failed_records`,`structure_parse_success_rate`,`access_parse_success_rate`,`created_by`,`created_at`,`updated_at`
+  - JSON 字段：`status_history_json`
+  - 追溯键：`tenant_id`,`batch_id`,`report_code`,`datasource_code`
+
 ## 5. Traceability Keys
 
 所有新增对象至少应支持以下关联键中的适用子集：

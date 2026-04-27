@@ -373,6 +373,39 @@
 - `datasourceCode`
 - `structureParseOnly`
 
+`importMode` 枚举：
+
+- `SQL_FILE`
+- `TABULAR_FILE`
+- `REPORT_CATALOG`
+
+`fileType` 枚举：
+
+- `XLS`
+- `XLSX`
+- `ET`
+- `CSV`
+- `TXT`
+- `SQL`
+
+返回基线：
+
+- `batchId`
+- `tenantId`
+- `batchName`
+- `importMode`
+- `sourceType`
+- `fileType`
+- `templateVersion`
+- `datasourceCode`
+- `structureParseOnly`
+- `status`
+- `supportedFileTypes`
+- `templateColumns`
+- `statusHistory`
+- `createdAt`
+- `updatedAt`
+
 ### 5.2 Parse Batch Detail
 
 - `GET /api/sql-optimization/parse-batches/{batchId}`
@@ -386,6 +419,12 @@
 - 问题统计
 - 报表统计
 - 失败记录
+
+当前 repo-side 基线至少冻结：
+
+- `UPLOADED -> VALIDATING -> READY` 状态链
+- 模板列契约
+- 支持文件类型矩阵
 
 ### 5.3 Retry Access Parse for Batch
 

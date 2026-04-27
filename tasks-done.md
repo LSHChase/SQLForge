@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-050: 建立批量解析批次模型与模板契约
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): add parse batch contract baseline`
+- Priority: 1
+- Depends on: `D-TASK-049`
+- Scope: `ParseBatch`、模板列、导入模式和批次状态机基线 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-009` 批量解析与报表清单解析
+- Human confirmation point: 若批量解析批次模型与模板契约会把兼容格式、mock source 或未校验列写成正式运行时默认，需人工确认
+- Data impact: batch/task metadata、模板列、导入状态与批次统计
+- Rollback / recovery: 保留稳定格式优先与 mock 边界，回退高风险模板/状态语义
+- Validation:
+  - `batch contract 测试`
+  - `python3 scripts/foreman.py validate D-TASK-050`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added ParseBatch domain/model persistence, create/detail parse-batch APIs, template-column and supported-file-type contracts, status-history baseline, schema/migration coverage, and matching interface/data-model documentation updates.
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=ParseBatchApplicationServiceTest,ParseBatchControllerTest,ParseBatchPersistenceSchemaMappingTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-050; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Batch creation currently establishes only the contract baseline and READY state; actual file ingestion, batch listing, retry-access orchestration, and report catalog resolution remain for D-TASK-051 and later tasks.
+  - Next step: Instantiate D-TASK-051 to add real SQL/tabular import ingestion and structure/access parse orchestration on top of the ParseBatch contract baseline.
+
 ### D-TASK-049: 统一逻辑对象在查询/历史/解析中的展示契约
 
 - Status: done

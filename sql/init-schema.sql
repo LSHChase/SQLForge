@@ -560,6 +560,32 @@ CREATE TABLE IF NOT EXISTS database_view_dependency (
   KEY idx_database_view_dependency_key (tenant_id, dependency_object_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Database view dependency catalog';
 
+CREATE TABLE IF NOT EXISTS parse_batch (
+  batch_id VARCHAR(64) NOT NULL COMMENT 'Parse batch identifier',
+  tenant_id VARCHAR(64) NOT NULL COMMENT 'Owning tenant identifier',
+  batch_name VARCHAR(255) NOT NULL COMMENT 'Batch display name',
+  import_mode VARCHAR(32) NOT NULL COMMENT 'Import mode such as SQL_FILE/TABULAR_FILE/REPORT_CATALOG',
+  source_type VARCHAR(32) NOT NULL COMMENT 'Source type such as FILE_UPLOAD/REPORT_CATALOG_IMPORT',
+  file_type VARCHAR(16) NOT NULL COMMENT 'Uploaded file type',
+  template_version VARCHAR(32) DEFAULT NULL COMMENT 'Template version',
+  datasource_code VARCHAR(128) DEFAULT NULL COMMENT 'Datasource code override',
+  structure_parse_only TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Whether batch only runs structure parse',
+  status VARCHAR(32) NOT NULL COMMENT 'Current batch status',
+  total_records INT NOT NULL DEFAULT 0 COMMENT 'Imported record count',
+  success_records INT NOT NULL DEFAULT 0 COMMENT 'Succeeded record count',
+  partial_success_records INT NOT NULL DEFAULT 0 COMMENT 'Partial success record count',
+  failed_records INT NOT NULL DEFAULT 0 COMMENT 'Failed record count',
+  structure_parse_success_rate DECIMAL(6,2) DEFAULT NULL COMMENT 'Structure parse success rate percentage',
+  access_parse_success_rate DECIMAL(6,2) DEFAULT NULL COMMENT 'Access parse success rate percentage',
+  status_history_json JSON NOT NULL COMMENT 'Batch status history payload',
+  created_by VARCHAR(64) DEFAULT NULL COMMENT 'Batch creator',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+  PRIMARY KEY (batch_id),
+  KEY idx_parse_batch_tenant_status_created (tenant_id, status, created_at),
+  KEY idx_parse_batch_tenant_mode (tenant_id, import_mode, file_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Bulk parse batch contract baseline';
+
 CREATE TABLE IF NOT EXISTS system_config (
   config_key VARCHAR(128) NOT NULL COMMENT 'System configuration key',
   config_value VARCHAR(512) DEFAULT NULL COMMENT 'Non-sensitive system configuration value only',
