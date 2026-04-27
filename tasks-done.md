@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-031: 落地系统管理中的数据源与报表接口页
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): add system datasource governance page`
+- Priority: 1
+- Depends on: `E-TASK-024`,`D-TASK-072`
+- Scope: datasource 管理、测试连接、报表接口配置与健康状态页 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-013` 系统管理与数据源治理页
+- Human confirmation point: 若系统管理数据源/报表接口页会暴露敏感连接信息、误导用户认为真实外部接口已默认联通，需人工确认
+- Data impact: 系统管理中的 datasource、health-check、report-interface 展示面
+- Rollback / recovery: 恢复脱敏与 mock/config 标识，关闭高风险编辑入口
+- Validation:
+  - `npm run lint`、`npm run build`、system-management datasource contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-031`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added the unified system management page with datasource inventory, connection tests, report-interface visibility, and governance remediation evidence.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-031 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-system-datasource-contract.mjs'
+  - Residual risk: Datasource and report-interface management remain read-oriented and avoid exposing raw credentials or implying default external connectivity.
+  - Next step: Close out the remaining system config task and verify the worktree is clean.
+
 ### E-TASK-030: 落地告警中心与通知状态视图
 
 - Status: done

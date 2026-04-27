@@ -3,34 +3,72 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   formatRuntimeError,
+  getGovernanceDatasourceDetail,
+  getGovernanceDatasources,
+  getGovernanceDispatchPolicies,
   getGovernanceMessageStats,
+  getGovernanceRedisRuleSources,
+  getGovernanceReportInterfaces,
   getGovernanceTenantConfig,
-  retryGovernanceFailedMessages
+  retryGovernanceFailedMessages,
+  testGovernanceDatasourceConnection
 } from '../../services/runtimeGateApi'
 
-const { t, locale } = useI18n()
+const { locale } = useI18n()
 
 const form = reactive({
   tenantId: 'system'
 })
 
-const loading = ref(false)
-const retrying = ref(false)
+const loading = reactive({
+  page: false,
+  datasourceDetail: false,
+  datasourceTest: false,
+  retry: false
+})
+
+const errorMessage = ref('')
 const tenantConfig = ref(null)
 const stats = ref(null)
+const datasources = ref([])
+const selectedDatasourceId = ref('')
+const selectedDatasourceDetail = ref(null)
+const datasourceTestResult = ref(null)
+const reportInterfaces = ref([])
+const redisRuleSources = ref([])
+const dispatchPolicies = ref([])
 const retryResult = ref(null)
-const statsBeforeRetry = ref(null)
-const statsAfterRetry = ref(null)
-const errorMessage = ref('')
 
 const isChinese = computed(() => locale.value === 'zh-CN')
-const failedDelta = computed(() => {
-  if (!statsBeforeRetry.value || !statsAfterRetry.value) {
-    return 0
+const selectedDatasource = computed(() =>
+  selectedDatasourceDetail.value ||
+  datasources.value.find(item => item.datasourceId === selectedDatasourceId.value) ||
+  null
+)
+
+const summaryCards = computed(() => [
+  {
+    key: 'datasources',
+    label: isChinese.value ? '数据源' : 'Datasources',
+    value: datasources.value.length
+  },
+  {
+    key: 'report-interfaces',
+    label: isChinese.value ? '报表接口' : 'Report interfaces',
+    value: reportInterfaces.value.length
+  },
+  {
+    key: 'redis-rule-sources',
+    label: isChinese.value ? 'Redis 规则源' : 'Redis rule sources',
+    value: redisRuleSources.value.length
+  },
+  {
+    key: 'dispatch-policies',
+    label: isChinese.value ? 'Dispatch 策略' : 'Dispatch policies',
+    value: dispatchPolicies.value.length
   }
-  return statsBeforeRetry.value.failed - statsAfterRetry.value.failed
-})
-const retryImproved = computed(() => failedDelta.value >= 1 || (retryResult.value?.retriedCount || 0) >= 1)
+])
+
 const queueCards = computed(() => {
   if (!stats.value) {
     return []
@@ -43,364 +81,618 @@ const queueCards = computed(() => {
   ]
 })
 
-const loadEvidence = async () => {
-  loading.value = true
-  retryResult.value = null
-  statsBeforeRetry.value = null
-  statsAfterRetry.value = null
-  errorMessage.value = ''
+const tenantParamCards = computed(() => {
+  if (!tenantConfig.value) {
+    return []
+  }
+  return [
+    field('tenantId', 'tenantId', tenantConfig.value.tenantId),
+    field('defaultEngine', 'defaultEngine', tenantConfig.value.defaultEngine),
+    field('backupEngine', 'backupEngine', tenantConfig.value.backupEngine),
+    field('auditLevel', 'auditLevel', tenantConfig.value.auditLevel),
+    field('retentionDays', 'retentionDays', tenantConfig.value.retentionDays),
+    field('quotaConcurrent', 'quotaConcurrent', tenantConfig.value.quotaConcurrent),
+    field('accelerationQuota', 'accelerationQuota', tenantConfig.value.accelerationQuota)
+  ]
+})
 
+const permissionAuditCards = computed(() => [
+  field(
+    'datasourceBoundary',
+    isChinese.value ? '数据源边界' : 'Datasource boundary',
+    isChinese.value ? '只读展示 + test-connection；不暴露原始凭证。' : 'Read-only rendering plus test-connection; raw credentials stay hidden.'
+  ),
+  field(
+    'reportInterfaceBoundary',
+    isChinese.value ? '报表接口边界' : 'Report-interface boundary',
+    isChinese.value ? '展示 resolverStatus / unavailableReason，不把外部 API 默认写成已联通。' : 'Expose resolverStatus and unavailableReason without claiming live external connectivity by default.'
+  ),
+  field(
+    'redisBoundary',
+    isChinese.value ? 'Redis 规则源边界' : 'Redis rule-source boundary',
+    isChinese.value ? '仅展示 CONFIG_ONLY / SIMULATED_READY 证据。' : 'Only exposes CONFIG_ONLY and SIMULATED_READY evidence.'
+  ),
+  field(
+    'dispatchBoundary',
+    isChinese.value ? 'Dispatch 边界' : 'Dispatch boundary',
+    isChinese.value ? '显示 EXTERNAL_MODULE_REQUIRED，不把装数协同写成浏览器内已执行。' : 'Shows EXTERNAL_MODULE_REQUIRED instead of pretending dispatch is executed inside the browser.'
+  )
+])
+
+const loadSystemEvidence = async () => {
+  loading.page = true
+  errorMessage.value = ''
+  retryResult.value = null
+  datasourceTestResult.value = null
   try {
-    const [tenantConfigResponse, statsResponse] = await Promise.all([
-      getGovernanceTenantConfig(form.tenantId, {
-        requestPrefix: 'frontend-system-tenant-config'
-      }),
-      getGovernanceMessageStats(form.tenantId, {
-        requestPrefix: 'frontend-system-message-stats'
-      })
+    const tenantId = form.tenantId
+    const [
+      nextTenantConfig,
+      nextStats,
+      nextDatasources,
+      nextReportInterfaces,
+      nextRedisRuleSources,
+      nextDispatchPolicies
+    ] = await Promise.all([
+      getGovernanceTenantConfig(tenantId, { requestPrefix: 'frontend-system-tenant-config' }),
+      getGovernanceMessageStats(tenantId, { requestPrefix: 'frontend-system-message-stats' }),
+      getGovernanceDatasources(tenantId, { requestPrefix: 'frontend-system-datasources' }),
+      getGovernanceReportInterfaces(tenantId, { requestPrefix: 'frontend-system-report-interfaces' }),
+      getGovernanceRedisRuleSources(tenantId, { requestPrefix: 'frontend-system-redis-rule-sources' }),
+      getGovernanceDispatchPolicies(tenantId, { requestPrefix: 'frontend-system-dispatch-policies' })
     ])
-    tenantConfig.value = tenantConfigResponse
-    stats.value = statsResponse
+    tenantConfig.value = nextTenantConfig
+    stats.value = nextStats
+    datasources.value = Array.isArray(nextDatasources) ? nextDatasources : []
+    reportInterfaces.value = Array.isArray(nextReportInterfaces) ? nextReportInterfaces : []
+    redisRuleSources.value = Array.isArray(nextRedisRuleSources) ? nextRedisRuleSources : []
+    dispatchPolicies.value = Array.isArray(nextDispatchPolicies) ? nextDispatchPolicies : []
+
+    const firstDatasourceId = selectedDatasourceId.value || datasources.value[0]?.datasourceId || ''
+    if (firstDatasourceId) {
+      await loadDatasourceDetail(firstDatasourceId)
+    } else {
+      selectedDatasourceId.value = ''
+      selectedDatasourceDetail.value = null
+    }
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
-    loading.value = false
+    loading.page = false
+  }
+}
+
+const loadDatasourceDetail = async datasourceId => {
+  if (!datasourceId) {
+    selectedDatasourceId.value = ''
+    selectedDatasourceDetail.value = null
+    return
+  }
+
+  loading.datasourceDetail = true
+  errorMessage.value = ''
+  selectedDatasourceId.value = datasourceId
+  try {
+    selectedDatasourceDetail.value = await getGovernanceDatasourceDetail(form.tenantId, datasourceId, {
+      requestPrefix: 'frontend-system-datasource-detail'
+    })
+  } catch (error) {
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.datasourceDetail = false
+  }
+}
+
+const runDatasourceTest = async () => {
+  if (!selectedDatasourceId.value) {
+    return
+  }
+  loading.datasourceTest = true
+  errorMessage.value = ''
+  try {
+    datasourceTestResult.value = await testGovernanceDatasourceConnection(
+      selectedDatasourceId.value,
+      form.tenantId,
+      {},
+      {
+        requestPrefix: 'frontend-system-datasource-test'
+      }
+    )
+  } catch (error) {
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.datasourceTest = false
   }
 }
 
 const retryFailedMessages = async () => {
-  retrying.value = true
+  loading.retry = true
   errorMessage.value = ''
-  retryResult.value = null
-
   try {
-    statsBeforeRetry.value = await getGovernanceMessageStats(form.tenantId, {
-      requestPrefix: 'frontend-system-message-stats-before-retry'
-    })
     retryResult.value = await retryGovernanceFailedMessages(form.tenantId, {
       requestPrefix: 'frontend-system-message-retry'
     })
-    statsAfterRetry.value = await getGovernanceMessageStats(form.tenantId, {
+    stats.value = await getGovernanceMessageStats(form.tenantId, {
       requestPrefix: 'frontend-system-message-stats-after-retry'
     })
-    stats.value = statsAfterRetry.value
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
-    retrying.value = false
+    loading.retry = false
   }
 }
 
+const displayValue = value => {
+  if (value === null || value === undefined || String(value).trim() === '') {
+    return '-'
+  }
+  if (Array.isArray(value)) {
+    return value.length ? value.join(', ') : '-'
+  }
+  return String(value)
+}
+
+const maskValue = value => {
+  const text = String(value || '').trim()
+  if (!text) {
+    return '-'
+  }
+  return text
+    .replace(/\/\/([^/@]+)@/g, '//***@')
+    .replace(/(jdbc:[^:]+:\/\/[^/]+\/).+/i, '$1***')
+}
+
+const formatTimestamp = value => {
+  if (!value) {
+    return '-'
+  }
+  return String(value).replace('T', ' ').slice(0, 19)
+}
+
+const field = (key, label, value) => ({ key, label, value })
+
 onMounted(() => {
-  loadEvidence()
+  loadSystemEvidence()
 })
 </script>
 
 <template>
-  <section class="runtime-page" data-testid="system-flow-page">
-    <div class="runtime-hero surface-card">
+  <section class="system-page" data-testid="system-management-page">
+    <header class="system-hero sqlforge-panel">
       <div>
-        <p class="runtime-eyebrow sqlforge-code-label">frontend runtime gate</p>
-        <h1 class="runtime-title">{{ t('system.title') }}</h1>
-        <p class="runtime-summary">{{ t('system.summary') }}</p>
-      </div>
-      <p class="runtime-note">
-        {{
-          isChinese
-            ? '该页直接调用 governance 管理接口，展示租户配置、消息 backlog 和失败消息 retry 修复结果，用于把浏览器门禁继续扩到治理修复动作。'
-            : 'This page calls the live governance admin APIs and renders tenant config, message backlog, and failed-message retry evidence so the browser gate can cover governance remediation actions.'
-        }}
-      </p>
-    </div>
-
-    <div class="runtime-grid">
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">governance admin</p>
-            <h2 class="section-title">
-              {{ isChinese ? '治理管理动作' : 'Governance admin actions' }}
-            </h2>
-          </div>
-        </div>
-
-        <div class="form-grid">
-          <label class="field-block">
-            <span class="field-label">{{ isChinese ? '租户上下文' : 'Tenant context' }}</span>
-            <el-input
-              v-model="form.tenantId"
-              data-testid="system-flow-tenant-id"
-            />
-          </label>
-        </div>
-
-        <div class="action-row action-row-wrap">
-          <el-button
-            type="primary"
-            :loading="loading"
-            data-testid="system-flow-refresh"
-            @click="loadEvidence"
-          >
-            {{ isChinese ? '刷新治理证据' : 'Refresh governance evidence' }}
-          </el-button>
-          <el-button
-            :loading="retrying"
-            data-testid="system-flow-retry"
-            @click="retryFailedMessages"
-          >
-            {{ isChinese ? '重试失败消息' : 'Retry failed messages' }}
-          </el-button>
-        </div>
-
-        <div class="remediation-card">
-          <p class="remediation-title">{{ isChinese ? '修复动作说明' : 'Remediation guidance' }}</p>
-          <p class="remediation-copy">
-            {{
-              isChinese
-                ? '当 failed > 0 时，先确认 backlog 归因，再执行 retry。若 retriedCount 增加且 failed 降低，即视为补偿修复动作真实生效。'
-                : 'When failed > 0, confirm the backlog source and then run retry. If retriedCount increases and failed decreases, the compensation repair action is considered effective.'
-            }}
-          </p>
-        </div>
-      </article>
-
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">runtime evidence</p>
-            <h2 class="section-title">
-              {{ isChinese ? '治理与修复证据' : 'Governance and remediation evidence' }}
-            </h2>
-          </div>
-        </div>
-
-        <p v-if="!tenantConfig && !stats && !errorMessage" class="empty-state">
+        <p class="section-kicker sqlforge-code-label">system management</p>
+        <h1 class="page-title">{{ isChinese ? '系统管理与治理配置中心' : 'System management and governance config center' }}</h1>
+        <p class="page-summary">
           {{
             isChinese
-              ? '页面会自动加载治理租户配置与消息队列统计。'
-              : 'The page automatically loads the governance tenant config and message queue stats.'
+              ? '当前页把 datasource、report-interface、Redis rule source、dispatch policy、tenant 参数与 message retry 修复动作统一到一个只读治理中心。'
+              : 'This page consolidates datasource, report-interface, Redis rule source, dispatch policy, tenant parameters, and message-retry remediation into one read-oriented governance center.'
           }}
         </p>
+      </div>
+      <div class="hero-actions">
+        <label class="field-label">
+          <span>{{ isChinese ? '租户' : 'Tenant' }}</span>
+          <input
+            v-model.trim="form.tenantId"
+            class="text-input"
+            data-testid="system-tenant-input"
+          >
+        </label>
+        <button class="pill-button pill-button-primary" data-testid="system-refresh" @click="loadSystemEvidence">
+          {{ isChinese ? '刷新系统证据' : 'Refresh system evidence' }}
+        </button>
+      </div>
+    </header>
 
-        <div
-          v-if="errorMessage"
-          class="result-banner result-banner-danger"
-          data-testid="system-flow-error"
-        >
-          {{ errorMessage }}
+    <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
+
+    <section class="summary-grid">
+      <article
+        v-for="item in summaryCards"
+        :key="item.key"
+        class="summary-card"
+      >
+        <span class="summary-label">{{ item.label }}</span>
+        <strong class="summary-value">{{ item.value }}</strong>
+      </article>
+    </section>
+
+    <section class="section-grid">
+      <article class="sqlforge-panel">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker sqlforge-code-label">datasource management</p>
+            <h2 class="section-title">{{ isChinese ? '数据源与连接测试' : 'Datasource and connection tests' }}</h2>
+          </div>
+          <button
+            class="pill-button"
+            :disabled="loading.datasourceTest || !selectedDatasourceId"
+            data-testid="system-datasource-test"
+            @click="runDatasourceTest"
+          >
+            {{ isChinese ? '测试连接' : 'Test connection' }}
+          </button>
         </div>
 
-        <template v-if="tenantConfig">
-          <div class="result-banner result-banner-success">
-            <strong data-testid="system-flow-tenant-config-status">{{ tenantConfig.tenantId }}</strong>
-            <span>{{ tenantConfig.defaultEngine }} / {{ tenantConfig.backupEngine }}</span>
-          </div>
+        <div class="inventory-grid">
+          <button
+            v-for="item in datasources"
+            :key="item.datasourceId"
+            type="button"
+            class="inventory-card"
+            :class="{ 'inventory-card-active': item.datasourceId === selectedDatasourceId }"
+            data-testid="system-datasource-card"
+            @click="loadDatasourceDetail(item.datasourceId)"
+          >
+            <p class="summary-label sqlforge-code-label">{{ item.datasourceCode }}</p>
+            <h3 class="inventory-title">{{ item.datasourceName || item.datasourceCode }}</h3>
+            <p class="inventory-meta">{{ item.connectionMode }} · {{ item.healthStatus || 'UNKNOWN' }}</p>
+          </button>
+        </div>
 
-          <div class="evidence-grid">
-            <div class="evidence-item">
-              <span class="evidence-label">{{ isChinese ? '审计级别' : 'Audit level' }}</span>
-              <strong data-testid="system-flow-audit-level">{{ tenantConfig.auditLevel }}</strong>
-            </div>
-            <div class="evidence-item">
-              <span class="evidence-label">{{ isChinese ? '保留天数' : 'Retention days' }}</span>
-              <strong>{{ tenantConfig.retentionDays }}</strong>
-            </div>
-            <div class="evidence-item">
-              <span class="evidence-label">{{ isChinese ? '并发配额' : 'Concurrency quota' }}</span>
-              <strong>{{ tenantConfig.quotaConcurrent }}</strong>
-            </div>
-            <div class="evidence-item">
-              <span class="evidence-label">{{ isChinese ? '加速配额' : 'Acceleration quota' }}</span>
-              <strong>{{ tenantConfig.accelerationQuota }}</strong>
-            </div>
-          </div>
-        </template>
-
-        <template v-if="stats">
-          <div class="queue-card-grid">
-            <article
-              v-for="card in queueCards"
-              :key="card.key"
-              class="queue-card"
-            >
-              <span class="queue-card-label">{{ card.label }}</span>
-              <strong
-                class="queue-card-value"
-                :data-testid="`system-flow-queue-${card.key}`"
-              >
-                {{ card.value }}
-              </strong>
+        <div v-if="selectedDatasource" class="detail-panel" data-testid="system-datasource-detail">
+          <div class="detail-grid">
+            <article class="detail-card">
+              <span class="summary-label">{{ isChinese ? '连接模式' : 'Connection mode' }}</span>
+              <strong>{{ displayValue(selectedDatasource.connectionMode) }}</strong>
+            </article>
+            <article class="detail-card">
+              <span class="summary-label">{{ isChinese ? '阶段' : 'Stage' }}</span>
+              <strong>{{ displayValue(selectedDatasource.stage) }}</strong>
+            </article>
+            <article class="detail-card">
+              <span class="summary-label">{{ isChinese ? 'JDBC URL' : 'JDBC URL' }}</span>
+              <strong>{{ maskValue(selectedDatasource.jdbcUrl) }}</strong>
+            </article>
+            <article class="detail-card">
+              <span class="summary-label">{{ isChinese ? 'API Base URL' : 'API Base URL' }}</span>
+              <strong>{{ maskValue(selectedDatasource.apiBaseUrl) }}</strong>
+            </article>
+            <article class="detail-card">
+              <span class="summary-label">{{ isChinese ? '凭证模式' : 'Credential mode' }}</span>
+              <strong>{{ displayValue(selectedDatasource.credentialMode) }}</strong>
+            </article>
+            <article class="detail-card">
+              <span class="summary-label">{{ isChinese ? '凭证掩码' : 'Credential mask' }}</span>
+              <strong>{{ displayValue(selectedDatasource.credentialMask) }}</strong>
+            </article>
+            <article class="detail-card">
+              <span class="summary-label">readonly</span>
+              <strong>{{ displayValue(selectedDatasource.readonly) }}</strong>
+            </article>
+            <article class="detail-card">
+              <span class="summary-label">{{ isChinese ? '实现阶段' : 'Implementation stage' }}</span>
+              <strong>{{ displayValue(selectedDatasource.implementationStage) }}</strong>
             </article>
           </div>
-        </template>
+        </div>
 
-        <template v-if="retryResult">
-          <div class="compensation-card">
-            <div class="result-banner" :class="retryImproved ? 'result-banner-success' : 'result-banner-warning'">
-              <strong data-testid="system-flow-retry-status">{{ retryResult.status }}</strong>
-              <span data-testid="system-flow-retry-count">{{ retryResult.retriedCount }}</span>
-            </div>
-
-            <div class="evidence-grid">
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? '重试前 failed' : 'Failed before retry' }}</span>
-                <strong data-testid="system-flow-failed-before-retry">{{ statsBeforeRetry?.failed ?? 0 }}</strong>
-              </div>
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? '重试后 failed' : 'Failed after retry' }}</span>
-                <strong data-testid="system-flow-failed-after-retry">{{ statsAfterRetry?.failed ?? 0 }}</strong>
-              </div>
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? 'failed 降幅' : 'Failed delta' }}</span>
-                <strong data-testid="system-flow-failed-delta">{{ failedDelta }}</strong>
-              </div>
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? '修复结论' : 'Repair outcome' }}</span>
-                <strong data-testid="system-flow-repair-outcome">
-                  {{ retryImproved ? 'REPAIRED' : 'RETRY_ACCEPTED' }}
-                </strong>
-              </div>
-            </div>
+        <div v-if="datasourceTestResult" class="result-panel" data-testid="system-datasource-test-result">
+          <div class="detail-grid">
+            <article class="detail-card">
+              <span class="summary-label">{{ isChinese ? '连接状态' : 'Connection status' }}</span>
+              <strong>{{ displayValue(datasourceTestResult.connectionStatus) }}</strong>
+            </article>
+            <article class="detail-card">
+              <span class="summary-label">{{ isChinese ? '健康状态' : 'Health status' }}</span>
+              <strong>{{ displayValue(datasourceTestResult.healthStatus) }}</strong>
+            </article>
+            <article class="detail-card">
+              <span class="summary-label">readonlyBoundary</span>
+              <strong>{{ displayValue(datasourceTestResult.readonlyBoundary) }}</strong>
+            </article>
+            <article class="detail-card">
+              <span class="summary-label">{{ isChinese ? '检查时间' : 'Checked at' }}</span>
+              <strong>{{ formatTimestamp(datasourceTestResult.checkedAt) }}</strong>
+            </article>
           </div>
-        </template>
+        </div>
       </article>
-    </div>
+
+      <article class="sqlforge-panel">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker sqlforge-code-label">report interfaces</p>
+            <h2 class="section-title">{{ isChinese ? '报表接口配置' : 'Report-interface config' }}</h2>
+          </div>
+        </div>
+        <div class="inventory-grid">
+          <article
+            v-for="item in reportInterfaces"
+            :key="item.configId || item.endpointCode"
+            class="detail-card"
+            data-testid="system-report-interface-card"
+          >
+            <span class="summary-label sqlforge-code-label">{{ item.endpointCode }}</span>
+            <strong>{{ item.endpointName || item.endpointCode }}</strong>
+            <p class="inventory-meta">{{ displayValue(item.sourceType) }} · {{ displayValue(item.httpMethod) }}</p>
+            <p class="inventory-meta">{{ maskValue(item.baseUrl) }}{{ item.pathTemplate || '' }}</p>
+            <p class="inventory-meta">{{ displayValue(item.resolverStatus) }} · {{ displayValue(item.unavailableReason) }}</p>
+          </article>
+        </div>
+      </article>
+    </section>
+
+    <section class="section-grid">
+      <article class="sqlforge-panel" data-testid="system-redis-rule-sources">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker sqlforge-code-label">redis rule sources</p>
+            <h2 class="section-title">{{ isChinese ? 'Redis 规则源' : 'Redis rule sources' }}</h2>
+          </div>
+        </div>
+        <div class="inventory-grid">
+          <article
+            v-for="item in redisRuleSources"
+            :key="item.sourceId"
+            class="detail-card"
+            data-testid="system-redis-rule-source-card"
+          >
+            <span class="summary-label sqlforge-code-label">{{ item.sourceName }}</span>
+            <strong>{{ displayValue(item.activationMode) }}</strong>
+            <p class="inventory-meta">{{ maskValue(item.redisEndpoints) }}</p>
+            <p class="inventory-meta">{{ displayValue(item.redisNamespace) }} · {{ displayValue(item.keyPattern) }}</p>
+            <p class="inventory-meta">{{ displayValue(item.healthStatus) }} · {{ displayValue(item.unavailableReason) }}</p>
+          </article>
+        </div>
+      </article>
+
+      <article class="sqlforge-panel" data-testid="system-dispatch-policies">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker sqlforge-code-label">dispatch policies</p>
+            <h2 class="section-title">{{ isChinese ? '装数协同策略' : 'Dispatch policies' }}</h2>
+          </div>
+        </div>
+        <div class="inventory-grid">
+          <article
+            v-for="item in dispatchPolicies"
+            :key="item.policyId"
+            class="detail-card"
+            data-testid="system-dispatch-policy-card"
+          >
+            <span class="summary-label sqlforge-code-label">{{ item.policyName }}</span>
+            <strong>{{ displayValue(item.dispatchType) }}</strong>
+            <p class="inventory-meta">{{ displayValue(item.targetEngine) }} · {{ displayValue(item.targetDatasource) }}</p>
+            <p class="inventory-meta">{{ displayValue(item.ackMode) }} · {{ displayValue(item.retryStrategy) }}</p>
+            <p class="inventory-meta">{{ displayValue(item.executionBoundary) }} · {{ displayValue(item.enforcementStatus) }}</p>
+          </article>
+        </div>
+      </article>
+    </section>
+
+    <section class="section-grid">
+      <article class="sqlforge-panel">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker sqlforge-code-label">tenant parameters</p>
+            <h2 class="section-title">{{ isChinese ? '系统参数快照' : 'System parameter snapshot' }}</h2>
+          </div>
+        </div>
+        <div class="detail-grid" data-testid="system-tenant-params">
+          <article
+            v-for="item in tenantParamCards"
+            :key="item.key"
+            class="detail-card"
+          >
+            <span class="summary-label">{{ item.label }}</span>
+            <strong>{{ displayValue(item.value) }}</strong>
+          </article>
+        </div>
+      </article>
+
+      <article class="sqlforge-panel" data-testid="system-permission-audit">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker sqlforge-code-label">permission audit</p>
+            <h2 class="section-title">{{ isChinese ? '权限与边界审计' : 'Permission and boundary audit' }}</h2>
+          </div>
+        </div>
+        <div class="detail-grid">
+          <article
+            v-for="item in permissionAuditCards"
+            :key="item.key"
+            class="detail-card"
+          >
+            <span class="summary-label">{{ item.label }}</span>
+            <strong>{{ displayValue(item.value) }}</strong>
+          </article>
+        </div>
+      </article>
+    </section>
+
+    <section class="section-grid">
+      <article class="sqlforge-panel">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker sqlforge-code-label">message remediation</p>
+            <h2 class="section-title">{{ isChinese ? '消息补偿与重试' : 'Message remediation and retry' }}</h2>
+          </div>
+          <button class="pill-button" :disabled="loading.retry" data-testid="system-message-retry" @click="retryFailedMessages">
+            {{ isChinese ? '重试失败消息' : 'Retry failed messages' }}
+          </button>
+        </div>
+        <div class="detail-grid">
+          <article
+            v-for="card in queueCards"
+            :key="card.key"
+            class="detail-card"
+          >
+            <span class="summary-label">{{ card.label }}</span>
+            <strong>{{ card.value }}</strong>
+          </article>
+        </div>
+        <div v-if="retryResult" class="result-panel">
+          <div class="detail-grid">
+            <article class="detail-card">
+              <span class="summary-label">{{ isChinese ? '重试状态' : 'Retry status' }}</span>
+              <strong>{{ displayValue(retryResult.status) }}</strong>
+            </article>
+            <article class="detail-card">
+              <span class="summary-label">{{ isChinese ? '重试数量' : 'Retried count' }}</span>
+              <strong>{{ displayValue(retryResult.retriedCount) }}</strong>
+            </article>
+          </div>
+        </div>
+      </article>
+    </section>
   </section>
 </template>
 
 <style scoped>
-.runtime-page {
+.system-page {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-.surface-card {
+.sqlforge-panel,
+.summary-card,
+.inventory-card,
+.detail-card,
+.result-panel {
   border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-lg);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 48%),
-    var(--sqlforge-surface-2);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
+  border-radius: 16px;
+  background: var(--sqlforge-surface-2);
 }
 
-.runtime-hero,
-.runtime-grid > article {
+.sqlforge-panel {
   padding: 24px;
 }
 
-.runtime-hero {
+.system-hero,
+.section-grid,
+.summary-grid,
+.inventory-grid,
+.detail-grid {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
-.runtime-eyebrow,
+.system-hero,
+.section-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.inventory-grid,
+.detail-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.page-title,
+.section-title,
+.inventory-title {
+  margin: 0;
+  font-weight: 400;
+  color: var(--sqlforge-text-primary);
+}
+
+.page-title {
+  font-size: clamp(34px, 5vw, 54px);
+  line-height: 1.02;
+}
+
+.page-summary,
+.inventory-meta,
+.error-banner {
+  margin: 0;
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.6;
+}
+
 .section-kicker,
-.evidence-label,
-.field-label,
-.queue-card-label {
+.summary-label,
+.field-label span {
   margin: 0;
   color: var(--sqlforge-text-muted);
 }
 
-.runtime-title,
-.section-title {
-  margin: 8px 0 0;
-  font-size: 28px;
-  line-height: 1.1;
+.hero-actions,
+.section-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.runtime-summary,
-.runtime-note,
-.empty-state,
-.remediation-copy {
-  margin: 0;
-  color: var(--sqlforge-text-secondary);
-  line-height: 1.7;
+.hero-actions {
+  flex-direction: column;
 }
 
-.runtime-grid,
-.form-grid,
-.evidence-grid,
-.queue-card-grid {
-  display: grid;
-  gap: 24px;
-}
-
-.runtime-grid,
-.evidence-grid,
-.queue-card-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.field-block,
-.evidence-item,
-.queue-card {
+.field-label {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
-.queue-card,
-.remediation-card,
-.compensation-card {
-  border: 1px solid transparent;
-  border-radius: var(--sqlforge-radius-md);
-  padding: 16px;
+.text-input,
+.pill-button {
+  min-height: 42px;
+  border-radius: 999px;
 }
 
-.queue-card,
-.remediation-card {
-  border-color: rgba(78, 143, 255, 0.28);
-  background: rgba(78, 143, 255, 0.1);
-}
-
-.queue-card-value,
-.remediation-title {
+.text-input {
+  padding: 0 14px;
+  border: 1px solid var(--sqlforge-border-default);
+  background: var(--sqlforge-bg-page-deep);
   color: var(--sqlforge-text-primary);
 }
 
-.action-row {
-  margin-top: 20px;
+.pill-button {
+  cursor: pointer;
+  padding: 0 18px;
+  border: 1px solid var(--sqlforge-border-default);
+  background: var(--sqlforge-bg-page-deep);
+  color: var(--sqlforge-text-primary);
 }
 
-.action-row-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+.pill-button-primary {
+  border-color: var(--sqlforge-text-primary);
 }
 
-.result-banner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
+.summary-card,
+.inventory-card,
+.detail-card,
+.result-panel {
+  padding: 18px;
+}
+
+.summary-value {
+  font-size: 28px;
+  line-height: 1;
+  color: var(--sqlforge-text-primary);
+}
+
+.inventory-card {
+  text-align: left;
+  cursor: pointer;
+}
+
+.inventory-card-active {
+  border-color: var(--sqlforge-color-brand-border);
+}
+
+.detail-panel,
+.result-panel {
+  margin-top: 18px;
+}
+
+.error-banner {
   padding: 14px 16px;
-  border-radius: var(--sqlforge-radius-md);
-  border: 1px solid transparent;
-  margin: 18px 0;
+  border: 1px solid rgba(212, 96, 96, 0.35);
+  border-radius: 14px;
+  background: rgba(120, 28, 28, 0.18);
+  color: #ffd6d6;
 }
 
-.result-banner-success,
-.compensation-card {
-  border-color: rgba(62, 207, 142, 0.28);
-  background: rgba(62, 207, 142, 0.1);
-}
-
-.result-banner-warning {
-  border-color: rgba(214, 179, 48, 0.28);
-  background: rgba(214, 179, 48, 0.12);
-}
-
-.result-banner-danger {
-  border-color: rgba(232, 82, 82, 0.3);
-  background: rgba(232, 82, 82, 0.12);
-}
-
-@media (max-width: 960px) {
-  .runtime-grid,
-  .evidence-grid,
-  .queue-card-grid {
+@media (max-width: 1100px) {
+  .system-hero,
+  .section-grid {
     grid-template-columns: 1fr;
   }
 }

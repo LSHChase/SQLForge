@@ -323,6 +323,132 @@ export const getGovernanceQueryHistoryDetail = (tenantId, historyId, requestOpti
     }
   })
 
+export const getGovernanceQueryHistoryPage = (filters = {}, requestOptions = {}) => {
+  const params = new URLSearchParams()
+  const tenantId = String(filters.tenantId || '').trim()
+  const pageNo = Number(filters.pageNo || 1)
+  const pageSize = Number(filters.pageSize || 8)
+  params.set('tenantId', tenantId)
+  params.set('pageNo', String(pageNo))
+  params.set('pageSize', String(pageSize))
+  ;[
+    'reportCode',
+    'datasourceCode',
+    'stage',
+    'bizDate',
+    'queryDateStart',
+    'queryDateEnd',
+    'status',
+    'logicalObjectType',
+    'accessChannel',
+    'engine',
+    'submittedBy',
+    'submittedStart',
+    'submittedEnd',
+    'sortBy',
+    'sortOrder'
+  ].forEach(key => {
+    const value = String(filters?.[key] || '').trim()
+    if (value) {
+      params.set(key, value)
+    }
+  })
+  ;['cacheHit', 'rewriteApplied', 'accelerationApplied', 'parameterizedSql'].forEach(key => {
+    if (typeof filters?.[key] === 'boolean') {
+      params.set(key, String(filters[key]))
+    }
+  })
+
+  return request({
+    method: 'get',
+    url: `/api/governance/query-history?${params.toString()}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-query-history-page',
+      ...requestOptions
+    }
+  })
+}
+
+export const getHetuRouteCalibration = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: '/api/query-execution/internal/hetu/route-calibration',
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-route-calibration',
+      ...requestOptions
+    }
+  })
+
+export const getRecommendations = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: '/api/sql-optimization/recommendations',
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-recommendations-list',
+      ...requestOptions
+    }
+  })
+
+export const getRecommendationDetail = (tenantId, recommendationId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/recommendations/${encodeURIComponent(recommendationId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-recommendation-detail',
+      ...requestOptions
+    }
+  })
+
+export const getRecommendationTrace = (tenantId, recommendationId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/recommendations/${encodeURIComponent(recommendationId)}/trace`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-recommendation-trace',
+      ...requestOptions
+    }
+  })
+
+export const getDispatchEvents = (tenantId, status = '', requestOptions = {}) => {
+  const query = String(status || '').trim() ? `?status=${encodeURIComponent(status)}` : ''
+  return request({
+    method: 'get',
+    url: `/api/sql-optimization/dispatch-events${query}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-dispatch-events',
+      ...requestOptions
+    }
+  })
+}
+
+export const getDispatchEventDetail = (tenantId, dispatchEventId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/dispatch-events/${encodeURIComponent(dispatchEventId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-dispatch-event-detail',
+      ...requestOptions
+    }
+  })
+
+export const getDispatchContract = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: '/api/sql-optimization/dispatch-contract',
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-dispatch-contract',
+      ...requestOptions
+    }
+  })
+
 export const createParseBatch = (payload, requestOptions = {}) =>
   request({
     method: 'post',
@@ -488,6 +614,54 @@ export const getGovernanceDatasourceDetail = (tenantId, datasourceId, requestOpt
     tenantId,
     requestOptions: {
       requestPrefix: 'frontend-governance-datasource-detail',
+      ...requestOptions
+    }
+  })
+
+export const testGovernanceDatasourceConnection = (datasourceId, tenantId, payload = {}, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/governance/datasources/${encodeURIComponent(datasourceId)}/test-connection`,
+    data: {
+      tenantId,
+      ...payload
+    },
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-datasource-test-connection',
+      ...requestOptions
+    }
+  })
+
+export const getGovernanceReportInterfaces = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/governance/report-interfaces?tenantId=${encodeURIComponent(tenantId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-report-interfaces',
+      ...requestOptions
+    }
+  })
+
+export const getGovernanceRedisRuleSources = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/governance/redis-rule-sources?tenantId=${encodeURIComponent(tenantId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-redis-rule-sources',
+      ...requestOptions
+    }
+  })
+
+export const getGovernanceDispatchPolicies = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/governance/dispatch-policies?tenantId=${encodeURIComponent(tenantId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-dispatch-policies',
       ...requestOptions
     }
   })
