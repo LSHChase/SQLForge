@@ -529,6 +529,37 @@ CREATE TABLE IF NOT EXISTS logical_object_mapping (
   KEY idx_logical_object_mapping_target (tenant_id, target_object_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Business logical view to physical object mapping';
 
+CREATE TABLE IF NOT EXISTS database_view_ref (
+  id VARCHAR(64) NOT NULL COMMENT 'Database view identifier',
+  tenant_id VARCHAR(64) NOT NULL COMMENT 'Owning tenant identifier',
+  datasource_code VARCHAR(128) NOT NULL COMMENT 'Datasource code',
+  view_name VARCHAR(255) NOT NULL COMMENT 'Database view name',
+  object_key VARCHAR(255) NOT NULL COMMENT 'Canonical DB view object key',
+  schema_name VARCHAR(128) DEFAULT NULL COMMENT 'Schema name',
+  catalog_name VARCHAR(128) DEFAULT NULL COMMENT 'Catalog name',
+  owner_user VARCHAR(128) DEFAULT NULL COMMENT 'DB view owner',
+  queryable TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Whether the DB view is queryable',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_database_view_ref_lookup (tenant_id, datasource_code, view_name),
+  KEY idx_database_view_ref_key (tenant_id, object_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Database view catalog';
+
+CREATE TABLE IF NOT EXISTS database_view_dependency (
+  id VARCHAR(64) NOT NULL COMMENT 'Database view dependency identifier',
+  tenant_id VARCHAR(64) NOT NULL COMMENT 'Owning tenant identifier',
+  db_view_id VARCHAR(64) NOT NULL COMMENT 'Database view identifier',
+  dependency_object_type VARCHAR(32) NOT NULL COMMENT 'Dependency object type',
+  dependency_object_key VARCHAR(255) NOT NULL COMMENT 'Dependency object key',
+  dependency_object_name VARCHAR(255) NOT NULL COMMENT 'Dependency object name',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+  PRIMARY KEY (id),
+  KEY idx_database_view_dependency_view (tenant_id, db_view_id),
+  KEY idx_database_view_dependency_key (tenant_id, dependency_object_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Database view dependency catalog';
+
 CREATE TABLE IF NOT EXISTS system_config (
   config_key VARCHAR(128) NOT NULL COMMENT 'System configuration key',
   config_value VARCHAR(512) DEFAULT NULL COMMENT 'Non-sensitive system configuration value only',

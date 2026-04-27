@@ -34,6 +34,8 @@ class TraceabilitySchemaMappingTest {
         assertContains(schema, "CREATE TABLE IF NOT EXISTS business_logical_view");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS logical_object_mapping");
         assertContains(schema, "target_object_key VARCHAR(255) NOT NULL");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS database_view_ref");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS database_view_dependency");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS export_record");
         assertContains(schema, "config_snapshot_id VARCHAR(64) DEFAULT NULL");
         assertContains(schema, "result_id VARCHAR(64) DEFAULT NULL");
@@ -102,6 +104,15 @@ class TraceabilitySchemaMappingTest {
     }
 
     @Test
+    void shouldProvideIncrementalMigrationForDatabaseViewCatalog() throws IOException {
+        String migration = readRepositoryFile("sql/migrations/V20260426_003__database_view_catalog.sql");
+
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS database_view_ref");
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS database_view_dependency");
+        assertContains(migration, "dependency_object_key VARCHAR(255) NOT NULL");
+    }
+
+    @Test
     void shouldProvideIncrementalMigrationToDropLegacyForeignKeys() throws IOException {
         String migration = readRepositoryFile("sql/migrations/V20260423_017__drop_traceability_foreign_keys.sql");
 
@@ -125,6 +136,8 @@ class TraceabilitySchemaMappingTest {
         assertContains(readMapper("mapper/BusinessLogicalViewMapper.xml"), "view_code");
         assertContains(readMapper("mapper/LogicalObjectMappingMapper.xml"), "FROM logical_object_mapping");
         assertContains(readMapper("mapper/LogicalObjectMappingMapper.xml"), "target_object_key");
+        assertContains(readMapper("mapper/DatabaseViewMapper.xml"), "FROM database_view_ref");
+        assertContains(readMapper("mapper/DatabaseViewDependencyMapper.xml"), "FROM database_view_dependency");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "FROM query_history");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "result_id");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "sql_template_cipher");

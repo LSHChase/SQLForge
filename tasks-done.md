@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-048: 落地 DB View 识别与依赖展示
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(governance): add db view dependency resolution`
+- Priority: 1
+- Depends on: `D-TASK-047`
+- Scope: 结构解析与历史追溯识别 DB View，并展示依赖对象 Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-008` 逻辑视图与 DB View 治理
+- Human confirmation point: 若 DB View 识别会误把复杂对象链写成确定事实、放宽跨源依赖边界，需人工确认
+- Data impact: DB view 依赖解析与展示数据
+- Rollback / recovery: 保留已识别依赖为 evidence，回退高风险展开逻辑为摘要模式
+- Validation:
+  - `parser/integration 测试`
+  - `python3 scripts/foreman.py validate D-TASK-048`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added governance-backed DB view catalog and dependency resolution, exposed public and internal db-view endpoints, and enriched structure-parse DB_VIEW hits with resolved dependency evidence for history/traceability consumers.
+  - Validation evidence: mvn -pl sql-optimization,governance -am -Dtest=StructureParseControllerTest,GovernanceCapabilityApplicationServiceTest,DatabaseViewCatalogApplicationServiceTest,DatabaseViewCatalogControllerTest,TraceabilitySchemaMappingTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-048; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: History and export surfaces still need a unified logical-object display contract so DB_VIEW dependency evidence renders consistently across query/history/parse views; that alignment remains for D-TASK-049.
+  - Next step: Instantiate D-TASK-049 to unify logical object display contracts across query, history, parse, and export surfaces.
+
 ### D-TASK-047: 落地业务逻辑视图目录与映射
 
 - Status: done

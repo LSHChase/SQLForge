@@ -8,6 +8,8 @@ import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceRes
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqlforge.common.governance.ProtectedGovernanceRequestSupport;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
@@ -78,6 +80,11 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
     @Override
     public GovernanceAccelerationPlanTraceResponse writeAccelerationPlanTrace(GovernanceAccelerationPlanTraceRequest request) {
         return post("/acceleration-plan/trace/write", request, GovernanceAccelerationPlanTraceResponse.class);
+    }
+
+    @Override
+    public GovernanceDbViewResolveResponse resolveDbView(GovernanceDbViewResolveRequest request) {
+        return post("/db-views/resolve", request, GovernanceDbViewResolveResponse.class);
     }
 
     @Override

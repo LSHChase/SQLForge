@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.DatabaseViewDependencyMapper">
+
+    <resultMap id="DatabaseViewDependencyResultMap" type="com.company.governance.domain.dbview.entity.DatabaseViewDependency">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="dbViewId" column="db_view_id"/>
+        <result property="dependencyObjectType" column="dependency_object_type"/>
+        <result property="dependencyObjectKey" column="dependency_object_key"/>
+        <result property="dependencyObjectName" column="dependency_object_name"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectByTenantAndDbViewId" resultMap="DatabaseViewDependencyResultMap">
+        SELECT
+            id,
+            tenant_id,
+            db_view_id,
+            dependency_object_type,
+            dependency_object_key,
+            dependency_object_name,
+            create_time,
+            update_time
+        FROM database_view_dependency
+        WHERE tenant_id = #{tenantId}
+          AND db_view_id = #{dbViewId}
+        ORDER BY dependency_object_type ASC, dependency_object_key ASC
+    </select>
+</mapper>

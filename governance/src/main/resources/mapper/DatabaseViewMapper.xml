@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.DatabaseViewMapper">
+
+    <resultMap id="DatabaseViewResultMap" type="com.company.governance.domain.dbview.entity.DatabaseViewRef">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="viewName" column="view_name"/>
+        <result property="objectKey" column="object_key"/>
+        <result property="schemaName" column="schema_name"/>
+        <result property="catalogName" column="catalog_name"/>
+        <result property="ownerUser" column="owner_user"/>
+        <result property="queryable" column="queryable"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        id,
+        tenant_id,
+        datasource_code,
+        view_name,
+        object_key,
+        schema_name,
+        catalog_name,
+        owner_user,
+        queryable,
+        create_time,
+        update_time
+    </sql>
+
+    <select id="selectByTenantDatasourceAndViewName" resultMap="DatabaseViewResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM database_view_ref
+        WHERE tenant_id = #{tenantId}
+          AND datasource_code = #{datasourceCode}
+          AND view_name = #{viewName}
+    </select>
+
+    <select id="selectByTenantAndDatasource" resultMap="DatabaseViewResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM database_view_ref
+        WHERE tenant_id = #{tenantId}
+        <if test="datasourceCode != null and datasourceCode != ''">
+          AND datasource_code = #{datasourceCode}
+        </if>
+        ORDER BY view_name ASC
+    </select>
+</mapper>

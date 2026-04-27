@@ -7,8 +7,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
+import com.company.sqlforge.common.governance.GovernanceDbViewDependencyRef;
+import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqloptimization.SqlOptimizationApplication;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,6 +21,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = SqlOptimizationApplication.class)
 @AutoConfigureMockMvc
@@ -32,6 +37,15 @@ class StructureParseControllerTest {
 
     @Test
     void shouldReturnStructureParseResultForValidReadSql() throws Exception {
+        GovernanceDbViewDependencyRef dependency = new GovernanceDbViewDependencyRef();
+        dependency.setObjectType("TABLE");
+        dependency.setObjectKey("TABLE:sales.orders");
+        dependency.setObjectName("sales.orders");
+        GovernanceDbViewResolveResponse resolveResponse = new GovernanceDbViewResolveResponse();
+        resolveResponse.setResolved(Boolean.TRUE);
+        resolveResponse.setObjectKey("DB_VIEW:vw_sales_daily");
+        resolveResponse.setDependencies(Collections.singletonList(dependency));
+        when(governanceCapabilityClient.resolveDbView(any())).thenReturn(resolveResponse);
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"sqlText\":\"SELECT * FROM vw_sales_daily WHERE dt = '2026-04-01' AND dt = '2026-04-01' ORDER BY id\","
@@ -46,6 +60,8 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.queryDateSummary.queryDateStatus").value("RESOLVED"))
             .andExpect(jsonPath("$.logicalObjectHits[0].objectType").value("DB_VIEW"))
             .andExpect(jsonPath("$.logicalObjectHits[0].objectKey").value("DB_VIEW:vw_sales_daily"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].resolved").value(true))
+            .andExpect(jsonPath("$.logicalObjectHits[0].mappedPhysicalTargets[0]").value("TABLE:sales.orders"))
             .andExpect(jsonPath("$.riskTags[0]").value("SELECT_STAR"))
             .andExpect(jsonPath("$.rewriteCandidates[0]").value("DEDUPLICATE_WHERE_PREDICATES"))
             .andExpect(jsonPath("$.issues[0].issueCode").value("SELECT_STAR"))

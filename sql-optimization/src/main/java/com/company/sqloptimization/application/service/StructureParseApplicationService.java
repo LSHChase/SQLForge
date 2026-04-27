@@ -2,6 +2,9 @@ package com.company.sqloptimization.application.service;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.governance.GovernanceDbViewDependencyRef;
+import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
 import com.company.sqlforge.common.logicalobject.LogicalObjectType;
 import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
@@ -39,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 
 @Service
 public class StructureParseApplicationService {
@@ -50,9 +54,12 @@ public class StructureParseApplicationService {
     private static final String MATCH_SOURCE_HEURISTIC = "NAME_HEURISTIC";
 
     private final SqlOptimizationPipelineService sqlOptimizationPipelineService;
+    private final GovernanceCapabilityClient governanceCapabilityClient;
 
-    public StructureParseApplicationService(SqlOptimizationPipelineService sqlOptimizationPipelineService) {
+    public StructureParseApplicationService(SqlOptimizationPipelineService sqlOptimizationPipelineService,
+                                            GovernanceCapabilityClient governanceCapabilityClient) {
         this.sqlOptimizationPipelineService = sqlOptimizationPipelineService;
+        this.governanceCapabilityClient = governanceCapabilityClient;
     }
 
     public StructureParseResponseVO parse(StructureParseRequest request) {
@@ -76,7 +83,7 @@ public class StructureParseApplicationService {
             result.setComplexityLevel(resolveComplexity(profile));
             result.setSqlType("SELECT");
             result.setQueryDateSummary(extractQueryDateSummary(request.getSqlText(), profile));
-            result.setLogicalObjectHits(buildLogicalObjectHits(profile));
+            result.setLogicalObjectHits(buildLogicalObjectHits(profile, tenantId, datasourceCode));
             result.setRiskTags(new ArrayList<String>(profile.getWarnings()));
             result.setRewriteCandidates(sqlOptimizationPipelineService.deriveRewriteCandidateRules(profile));
             result.setIssues(buildIssues(profile));
@@ -246,7 +253,9 @@ public class StructureParseApplicationService {
         }
     }
 
-    private List<StructureParseLogicalObjectHit> buildLogicalObjectHits(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+    private List<StructureParseLogicalObjectHit> buildLogicalObjectHits(SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                                                       String tenantId,
+                                                                       String datasourceCode) {
         List<StructureParseLogicalObjectHit> hits = new ArrayList<StructureParseLogicalObjectHit>();
         for (String table : profile.getTables()) {
             StructureParseLogicalObjectHit hit = new StructureParseLogicalObjectHit();
@@ -262,9 +271,58 @@ public class StructureParseApplicationService {
                 hit.setResolved(Boolean.TRUE);
             }
             fillLogicalObjectReferenceFields(hit);
+            enrichDbViewDependencyEvidence(hit, tenantId, datasourceCode);
             hits.add(hit);
         }
         return hits;
+    }
+
+    private void enrichDbViewDependencyEvidence(StructureParseLogicalObjectHit hit, String tenantId, String datasourceCode) {
+        if (hit == null || hit.getObjectType() != LogicalObjectType.DB_VIEW || !StringUtils.hasText(datasourceCode)) {
+            return;
+        }
+        try {
+            GovernanceDbViewResolveRequest request = new GovernanceDbViewResolveRequest();
+            request.setTenantId(tenantId);
+            request.setDatasourceCode(datasourceCode);
+            request.setViewName(hit.getObjectName());
+            GovernanceDbViewResolveResponse response = governanceCapabilityClient.resolveDbView(request);
+            if (response == null) {
+                return;
+            }
+            if (Boolean.TRUE.equals(response.getResolved())) {
+                hit.setResolved(Boolean.TRUE);
+            }
+            if (StringUtils.hasText(response.getObjectKey())) {
+                hit.setObjectKey(response.getObjectKey());
+            }
+            if (response.getDependencies() != null && !response.getDependencies().isEmpty()) {
+                List<String> targets = new ArrayList<String>();
+                for (GovernanceDbViewDependencyRef dependency : response.getDependencies()) {
+                    if (dependency == null) {
+                        continue;
+                    }
+                    String key = StringUtils.hasText(dependency.getObjectKey())
+                        ? dependency.getObjectKey()
+                        : dependency.getObjectName();
+                    if (StringUtils.hasText(key)) {
+                        targets.add(key);
+                    }
+                }
+                if (!targets.isEmpty()) {
+                    hit.setMappedPhysicalTargets(targets);
+                }
+            }
+        } catch (Exception ex) {
+            LOGGER.warn(
+                "operation=STRUCTURE_PARSE_DB_VIEW_ENRICH entity={} tenantId={} datasourceCode={} viewName={} status=DEGRADED reason={}",
+                hit.getObjectKey(),
+                tenantId,
+                datasourceCode,
+                hit.getObjectName(),
+                ex.getMessage()
+            );
+        }
     }
 
     private void fillLogicalObjectReferenceFields(StructureParseLogicalObjectHit hit) {

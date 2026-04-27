@@ -22,6 +22,8 @@ import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceReq
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckRequest;
@@ -47,12 +49,15 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceBenchmarkTraceabilityApplicationService.class);
         GovernanceAccelerationPlanTraceabilityApplicationService accelerationPlanTraceabilityApplicationService =
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class);
+        DatabaseViewCatalogApplicationService databaseViewCatalogApplicationService =
+            mock(DatabaseViewCatalogApplicationService.class);
         TenantConfigRepository tenantConfigRepository = mock(TenantConfigRepository.class);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
             matrixService,
             governanceAuditTrailService,
             benchmarkTraceabilityApplicationService,
             accelerationPlanTraceabilityApplicationService,
+            databaseViewCatalogApplicationService,
             databaseMessaging(),
             tenantConfigRepository
         );
@@ -132,6 +137,8 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceBenchmarkTraceabilityApplicationService.class);
         GovernanceAccelerationPlanTraceabilityApplicationService accelerationPlanTraceabilityApplicationService =
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class);
+        DatabaseViewCatalogApplicationService databaseViewCatalogApplicationService =
+            mock(DatabaseViewCatalogApplicationService.class);
         TenantConfigRepository tenantConfigRepository = mock(TenantConfigRepository.class);
         MessagingProperties messagingProperties = new MessagingProperties();
         messagingProperties.setMode(MessagingMode.MOCK);
@@ -140,6 +147,7 @@ class GovernanceCapabilityApplicationServiceTest {
             governanceAuditTrailService,
             benchmarkTraceabilityApplicationService,
             accelerationPlanTraceabilityApplicationService,
+            databaseViewCatalogApplicationService,
             messagingProperties,
             tenantConfigRepository
         );
@@ -190,6 +198,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
+            mock(DatabaseViewCatalogApplicationService.class),
             databaseMessaging(),
             mock(TenantConfigRepository.class)
         );
@@ -213,6 +222,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
+            mock(DatabaseViewCatalogApplicationService.class),
             databaseMessaging(),
             tenantConfigRepository
         );
@@ -252,6 +262,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             accelerationPlanTraceabilityApplicationService,
+            mock(DatabaseViewCatalogApplicationService.class),
             databaseMessaging(),
             mock(TenantConfigRepository.class)
         );
@@ -279,6 +290,43 @@ class GovernanceCapabilityApplicationServiceTest {
 
         assertEquals("cfg-acceleration-plan-plan-001", response.getConfigSnapshotId());
         verify(accelerationPlanTraceabilityApplicationService).writeAccelerationPlanTrace(request);
+    }
+
+    @Test
+    void shouldDelegateDbViewResolution() {
+        DatabaseViewCatalogApplicationService databaseViewCatalogApplicationService =
+            mock(DatabaseViewCatalogApplicationService.class);
+        GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
+            mock(GovernanceAuthorizationMatrixApplicationService.class),
+            mock(GovernanceAuditTrailService.class),
+            mock(GovernanceBenchmarkTraceabilityApplicationService.class),
+            mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
+            databaseViewCatalogApplicationService,
+            databaseMessaging(),
+            mock(TenantConfigRepository.class)
+        );
+        RequestContext.set(
+            "tenant-a",
+            "service-user",
+            Arrays.asList("SERVICE"),
+            "request-040",
+            "trace-040",
+            "header",
+            100L,
+            200L
+        );
+        GovernanceDbViewResolveRequest request = new GovernanceDbViewResolveRequest();
+        request.setTenantId("tenant-a");
+        request.setDatasourceCode("hetu_main");
+        request.setViewName("vw_sales_daily");
+        GovernanceDbViewResolveResponse resolveResponse = new GovernanceDbViewResolveResponse();
+        resolveResponse.setResolved(Boolean.TRUE);
+        when(databaseViewCatalogApplicationService.resolveDbView(request)).thenReturn(resolveResponse);
+
+        GovernanceDbViewResolveResponse response = service.resolveDbView(request);
+
+        assertEquals(Boolean.TRUE, response.getResolved());
+        verify(databaseViewCatalogApplicationService).resolveDbView(request);
     }
 
     private MessagingProperties databaseMessaging() {
