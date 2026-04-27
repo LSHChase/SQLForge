@@ -1,0 +1,26 @@
+package com.company.sqloptimization.infrastructure.repository;
+
+import com.company.sqloptimization.domain.reportbatch.ReportBatch;
+import com.company.sqloptimization.domain.reportbatch.repository.ReportBatchRepository;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Repository;
+
+@Repository
+@Primary
+public class InMemoryReportBatchRepository implements ReportBatchRepository {
+
+    private final Map<String, ReportBatch> batches = new ConcurrentHashMap<String, ReportBatch>();
+
+    @Override
+    public ReportBatch save(ReportBatch batch) {
+        batches.put(batch.getBatchId(), batch);
+        return batch;
+    }
+
+    @Override
+    public ReportBatch findByBatchId(String batchId) {
+        return batches.get(batchId);
+    }
+}

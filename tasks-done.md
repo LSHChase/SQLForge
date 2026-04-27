@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-053: 落地报表清单解析文件模拟入口
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): add report batch mock resolution`
+- Priority: 1
+- Depends on: `D-TASK-052`
+- Scope: 以 `report_code` 为主键，从 txt/mock source 获取 SQL 再解析 Tech: `JAVA-BE`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-009` 批量解析与报表清单解析
+- Human confirmation point: 若报表清单 mock 入口会被写成真实接口联通事实、或改变 `report_code` 唯一键语义，需人工确认
+- Data impact: report batch 记录、mock source 解析与报表- SQL 映射
+- Rollback / recovery: 恢复 txt/mock 语义与 `report_code` 主键边界
+- Validation:
+  - `mock resolve 测试`
+  - `python3 scripts/foreman.py validate D-TASK-053`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented TXT/mock report catalog import keyed by report_code, report batch/item domain and persistence, resolve-sqls mock SQL generation, structure/access parse orchestration, and report batch detail APIs.
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=ReportBatchApplicationServiceTest,ReportBatchControllerTest,ParseBatchPersistenceSchemaMappingTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-053; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Real report API configuration and remote SQL fetching remain in the follow-up report interface task; current implementation is explicitly TXT/mock source only.
+  - Next step: Instantiate the next report interface task to add governance-backed report endpoint configuration and resolver abstraction.
+
 ### D-TASK-052: 扩展 `xls/et` 兼容导入与失败语义
 
 - Status: done

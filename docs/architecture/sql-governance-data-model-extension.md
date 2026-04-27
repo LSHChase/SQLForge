@@ -134,6 +134,19 @@
   - 大文本字段：`sql_text`,`sql_template_text`
   - JSON 字段：`bind_parameters_json`,`issue_scenes_json`,`logical_object_keys_json`
   - 追溯键：`tenant_id(经 batch 间接关联)`,`batch_id`,`item_id`,`report_code`,`parse_task_id`,`datasource_code`
+- `report_batch`
+  - 所属服务：`sql-optimization`
+  - 主键：`batch_id`
+  - 结构化字段：`tenant_id`,`batch_name`,`file_type`,`report_code_field`,`datasource_code`,`stage`,`priority`,`source_type`,`status`,`total_reports`,`resolved_reports`,`failed_reports`,`created_by`,`created_at`,`updated_at`
+  - JSON 字段：`status_history_json`
+  - 追溯键：`tenant_id`,`batch_id`,`report_code_field`,`datasource_code`
+- `report_batch_item`
+  - 所属服务：`sql-optimization`
+  - 主键：`item_id`
+  - 外键语义：`batch_id -> report_batch.batch_id`
+  - 结构化字段：`batch_id`,`sequence_number`,`report_code`,`report_name`,`datasource_code`,`stage`,`priority`,`source_file_line`,`sql_text`,`parse_task_id`,`structure_syntax_status`,`access_service_status`,`access_connection_status`,`failure_reason`,`status`,`created_at`,`updated_at`
+  - JSON 字段：`issue_scenes_json`,`logical_object_keys_json`
+  - 追溯键：`tenant_id(经 batch 间接关联)`,`batch_id`,`item_id`,`report_code`,`parse_task_id`,`datasource_code`
 
 ## 5. Traceability Keys
 

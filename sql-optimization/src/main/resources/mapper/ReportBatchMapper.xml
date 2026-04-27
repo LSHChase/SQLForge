@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.ReportBatchMapper">
+
+    <resultMap id="ReportBatchRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchRecord">
+        <id property="batchId" column="batch_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="batchName" column="batch_name"/>
+        <result property="fileType" column="file_type"/>
+        <result property="reportCodeField" column="report_code_field"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="stage" column="stage"/>
+        <result property="priority" column="priority"/>
+        <result property="sourceType" column="source_type"/>
+        <result property="status" column="status"/>
+        <result property="totalReports" column="total_reports"/>
+        <result property="resolvedReports" column="resolved_reports"/>
+        <result property="failedReports" column="failed_reports"/>
+        <result property="statusHistoryJson" column="status_history_json"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        batch_id, tenant_id, batch_name, file_type, report_code_field, datasource_code, stage, priority,
+        source_type, status, total_reports, resolved_reports, failed_reports, status_history_json,
+        created_by, created_at, updated_at
+    </sql>
+
+    <select id="selectByBatchId" resultMap="ReportBatchRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM report_batch
+        WHERE batch_id = #{batchId}
+    </select>
+
+    <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchRecord">
+        INSERT INTO report_batch (
+            batch_id, tenant_id, batch_name, file_type, report_code_field, datasource_code, stage, priority,
+            source_type, status, total_reports, resolved_reports, failed_reports, status_history_json,
+            created_by, created_at, updated_at
+        ) VALUES (
+            #{batchId}, #{tenantId}, #{batchName}, #{fileType}, #{reportCodeField}, #{datasourceCode}, #{stage}, #{priority},
+            #{sourceType}, #{status}, #{totalReports}, #{resolvedReports}, #{failedReports}, #{statusHistoryJson},
+            #{createdBy}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchRecord">
+        UPDATE report_batch
+        SET tenant_id = #{tenantId},
+            batch_name = #{batchName},
+            file_type = #{fileType},
+            report_code_field = #{reportCodeField},
+            datasource_code = #{datasourceCode},
+            stage = #{stage},
+            priority = #{priority},
+            source_type = #{sourceType},
+            status = #{status},
+            total_reports = #{totalReports},
+            resolved_reports = #{resolvedReports},
+            failed_reports = #{failedReports},
+            status_history_json = #{statusHistoryJson},
+            created_by = #{createdBy},
+            created_at = #{createdAt},
+            updated_at = #{updatedAt}
+        WHERE batch_id = #{batchId}
+    </update>
+</mapper>

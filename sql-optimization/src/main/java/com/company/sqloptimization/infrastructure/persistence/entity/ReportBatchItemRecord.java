@@ -1,0 +1,68 @@
+package com.company.sqloptimization.infrastructure.persistence.entity;
+
+import java.time.LocalDateTime;
+
+public class ReportBatchItemRecord {
+
+    private String itemId;
+    private String batchId;
+    private Integer sequenceNumber;
+    private String reportCode;
+    private String reportName;
+    private String datasourceCode;
+    private String stage;
+    private String priority;
+    private String sourceFileLine;
+    private String sqlText;
+    private String parseTaskId;
+    private String structureSyntaxStatus;
+    private String accessServiceStatus;
+    private String accessConnectionStatus;
+    private String failureReason;
+    private String status;
+    private String issueScenesJson;
+    private String logicalObjectKeysJson;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    public String getItemId() { return itemId; }
+    public void setItemId(String itemId) { this.itemId = itemId; }
+    public String getBatchId() { return batchId; }
+    public void setBatchId(String batchId) { this.batchId = batchId; }
+    public Integer getSequenceNumber() { return sequenceNumber; }
+    public void setSequenceNumber(Integer sequenceNumber) { this.sequenceNumber = sequenceNumber; }
+    public String getReportCode() { return reportCode; }
+    public void setReportCode(String reportCode) { this.reportCode = reportCode; }
+    public String getReportName() { return reportName; }
+    public void setReportName(String reportName) { this.reportName = reportName; }
+    public String getDatasourceCode() { return datasourceCode; }
+    public void setDatasourceCode(String datasourceCode) { this.datasourceCode = datasourceCode; }
+    public String getStage() { return stage; }
+    public void setStage(String stage) { this.stage = stage; }
+    public String getPriority() { return priority; }
+    public void setPriority(String priority) { this.priority = priority; }
+    public String getSourceFileLine() { return sourceFileLine; }
+    public void setSourceFileLine(String sourceFileLine) { this.sourceFileLine = sourceFileLine; }
+    public String getSqlText() { return sqlText; }
+    public void setSqlText(String sqlText) { this.sqlText = sqlText; }
+    public String getParseTaskId() { return parseTaskId; }
+    public void setParseTaskId(String parseTaskId) { this.parseTaskId = parseTaskId; }
+    public String getStructureSyntaxStatus() { return structureSyntaxStatus; }
+    public void setStructureSyntaxStatus(String structureSyntaxStatus) { this.structureSyntaxStatus = structureSyntaxStatus; }
+    public String getAccessServiceStatus() { return accessServiceStatus; }
+    public void setAccessServiceStatus(String accessServiceStatus) { this.accessServiceStatus = accessServiceStatus; }
+    public String getAccessConnectionStatus() { return accessConnectionStatus; }
+    public void setAccessConnectionStatus(String accessConnectionStatus) { this.accessConnectionStatus = accessConnectionStatus; }
+    public String getFailureReason() { return failureReason; }
+    public void setFailureReason(String failureReason) { this.failureReason = failureReason; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public String getIssueScenesJson() { return issueScenesJson; }
+    public void setIssueScenesJson(String issueScenesJson) { this.issueScenesJson = issueScenesJson; }
+    public String getLogicalObjectKeysJson() { return logicalObjectKeysJson; }
+    public void setLogicalObjectKeysJson(String logicalObjectKeysJson) { this.logicalObjectKeysJson = logicalObjectKeysJson; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+}

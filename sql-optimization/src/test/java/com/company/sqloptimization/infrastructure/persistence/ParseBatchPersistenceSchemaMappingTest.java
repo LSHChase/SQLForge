@@ -48,6 +48,23 @@ class ParseBatchPersistenceSchemaMappingTest {
     }
 
     @Test
+    void shouldKeepReportBatchSchemaAndMigrationAligned() throws IOException {
+        String schema = readRepositoryFile("sql/init-schema.sql");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch");
+        assertContains(schema, "report_code_field VARCHAR(128) NOT NULL");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_item");
+        assertContains(schema, "source_file_line VARCHAR(512)");
+        String migration = readRepositoryFile("sql/migrations/V20260426_006__report_batch_catalog.sql");
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS report_batch");
+        assertContains(migration, "report_batch_item");
+        String mapper = readMapper("mapper/ReportBatchMapper.xml");
+        assertContains(mapper, "FROM report_batch");
+        String itemMapper = readMapper("mapper/ReportBatchItemMapper.xml");
+        assertContains(itemMapper, "FROM report_batch_item");
+        assertContains(itemMapper, "structure_syntax_status");
+    }
+
+    @Test
     void shouldKeepMapperXmlAlignedWithParseBatchTable() throws IOException {
         String mapper = readMapper("mapper/ParseBatchMapper.xml");
         assertContains(mapper, "FROM parse_batch");

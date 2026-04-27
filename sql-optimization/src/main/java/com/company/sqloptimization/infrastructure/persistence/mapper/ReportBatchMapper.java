@@ -1,0 +1,15 @@
+package com.company.sqloptimization.infrastructure.persistence.mapper;
+
+import com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchRecord;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface ReportBatchMapper {
+
+    void insert(ReportBatchRecord record);
+
+    void update(ReportBatchRecord record);
+
+    ReportBatchRecord selectByBatchId(@Param("batchId") String batchId);
+}

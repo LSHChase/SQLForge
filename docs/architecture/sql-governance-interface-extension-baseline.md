@@ -474,6 +474,8 @@
 - `datasourceCode`
 - `stage`
 - `priority`
+- `contentBase64`
+- `charset`
 
 ### 5.5 Resolve Report SQLs
 
@@ -487,6 +489,19 @@
 
 - 由 `governance` 配置接口信息
 - `sql-optimization` 调用
+
+### 5.6 Report Batch Detail
+
+- `GET /api/sql-optimization/report-batches/{batchId}`
+
+返回：
+
+- 批次摘要
+- 导入记录
+- 解析后的 SQL 列表
+- 结构解析统计
+- 数据访问解析统计
+- 失败记录
 
 ## 6. Parse Statistics Contracts
 
