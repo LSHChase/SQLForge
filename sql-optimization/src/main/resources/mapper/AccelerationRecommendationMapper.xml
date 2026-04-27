@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.AccelerationRecommendationMapper">
+
+    <resultMap id="AccelerationRecommendationRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationRecommendationRecord">
+        <id property="recommendationId" column="recommendation_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="recommendationType" column="recommendation_type"/>
+        <result property="sourceSqlId" column="source_sql_id"/>
+        <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <result property="sourceSqlText" column="source_sql_text"/>
+        <result property="recommendedSqlText" column="recommended_sql_text"/>
+        <result property="targetEngine" column="target_engine"/>
+        <result property="targetDatasource" column="target_datasource"/>
+        <result property="reportCode" column="report_code"/>
+        <result property="logicalObjectKey" column="logical_object_key"/>
+        <result property="summary" column="summary"/>
+        <result property="reason" column="reason"/>
+        <result property="expectedGain" column="expected_gain"/>
+        <result property="benefitLevel" column="benefit_level"/>
+        <result property="riskLevel" column="risk_level"/>
+        <result property="riskSummary" column="risk_summary"/>
+        <result property="requiresDispatch" column="requires_dispatch"/>
+        <result property="status" column="status"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        recommendation_id, tenant_id, recommendation_type, source_sql_id, sql_fingerprint,
+        source_sql_text, recommended_sql_text, target_engine, target_datasource, report_code,
+        logical_object_key, summary, reason, expected_gain, benefit_level, risk_level,
+        risk_summary, requires_dispatch, status, created_by, created_at, updated_at
+    </sql>
+
+    <select id="selectByRecommendationId" resultMap="AccelerationRecommendationRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM acceleration_recommendation
+        WHERE recommendation_id = #{recommendationId}
+    </select>
+
+    <select id="selectByTenantId" resultMap="AccelerationRecommendationRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM acceleration_recommendation
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationRecommendationRecord">
+        INSERT INTO acceleration_recommendation (
+            recommendation_id, tenant_id, recommendation_type, source_sql_id, sql_fingerprint,
+            source_sql_text, recommended_sql_text, target_engine, target_datasource, report_code,
+            logical_object_key, summary, reason, expected_gain, benefit_level, risk_level,
+            risk_summary, requires_dispatch, status, created_by, created_at, updated_at
+        ) VALUES (
+            #{recommendationId}, #{tenantId}, #{recommendationType}, #{sourceSqlId}, #{sqlFingerprint},
+            #{sourceSqlText}, #{recommendedSqlText}, #{targetEngine}, #{targetDatasource}, #{reportCode},
+            #{logicalObjectKey}, #{summary}, #{reason}, #{expectedGain}, #{benefitLevel}, #{riskLevel},
+            #{riskSummary}, #{requiresDispatch}, #{status}, #{createdBy}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationRecommendationRecord">
+        UPDATE acceleration_recommendation
+        SET tenant_id = #{tenantId},
+            recommendation_type = #{recommendationType},
+            source_sql_id = #{sourceSqlId},
+            sql_fingerprint = #{sqlFingerprint},
+            source_sql_text = #{sourceSqlText},
+            recommended_sql_text = #{recommendedSqlText},
+            target_engine = #{targetEngine},
+            target_datasource = #{targetDatasource},
+            report_code = #{reportCode},
+            logical_object_key = #{logicalObjectKey},
+            summary = #{summary},
+            reason = #{reason},
+            expected_gain = #{expectedGain},
+            benefit_level = #{benefitLevel},
+            risk_level = #{riskLevel},
+            risk_summary = #{riskSummary},
+            requires_dispatch = #{requiresDispatch},
+            status = #{status},
+            created_by = #{createdBy},
+            created_at = #{createdAt},
+            updated_at = #{updatedAt}
+        WHERE recommendation_id = #{recommendationId}
+    </update>
+</mapper>

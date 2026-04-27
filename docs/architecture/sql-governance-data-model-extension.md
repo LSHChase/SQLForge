@@ -149,6 +149,13 @@
   - 结构化字段：`batch_id`,`sequence_number`,`report_code`,`report_name`,`datasource_code`,`stage`,`priority`,`source_file_line`,`sql_text`,`parse_task_id`,`structure_syntax_status`,`access_service_status`,`access_connection_status`,`failure_reason`,`status`,`created_at`,`updated_at`
   - JSON 字段：`issue_scenes_json`,`logical_object_keys_json`
   - 追溯键：`tenant_id(经 batch 间接关联)`,`batch_id`,`item_id`,`report_code`,`parse_task_id`,`datasource_code`
+- `acceleration_recommendation`
+  - 所属服务：`sql-optimization`
+  - 主键：`recommendation_id`
+  - 结构化字段：`tenant_id`,`recommendation_type`,`source_sql_id`,`sql_fingerprint`,`target_engine`,`target_datasource`,`report_code`,`logical_object_key`,`summary`,`expected_gain`,`benefit_level`,`risk_level`,`requires_dispatch`,`status`,`created_by`,`created_at`,`updated_at`
+  - 大文本字段：`source_sql_text`,`recommended_sql_text`,`reason`,`risk_summary`
+  - 追溯键：`tenant_id`,`recommendation_id`,`source_sql_id`,`sql_fingerprint`,`report_code`,`logical_object_key`
+  - 状态边界：仅允许 `RECOMMENDED`、`REVIEWING`、`DISPATCH_READY`、`CANCELLED`；不得在本对象内表达 `EXECUTED`，避免把推荐误写成真实装数或执行结果
 
 配置对象：
 
@@ -200,6 +207,9 @@
 - `urgent_flag`
 - `access_channel`
 - `recommendation_type`
+- `benefit_level`
+- `risk_level`
+- `requires_dispatch`
 - `dispatch_status`
 - `binding_mode`
 - `binding_render_status`

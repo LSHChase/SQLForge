@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-059: 扩展推荐对象类型与收益/风险模型
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): add recommendation benefit risk model`
+- Priority: 1
+- Depends on: `D-TASK-058`
+- Scope: 建模 `REWRITE/ACCELERATION/CREATE_TABLE/PREWARM/MAINTENANCE` 推荐类型与收益/风险字段 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-011` 推荐 SQL、加速建议与装数协同事件
+- Human confirmation point: 若推荐对象扩展会把“建议”写成“已执行结果”、或削弱收益/风险边界，需人工确认
+- Data impact: recommendation 对象、类型、收益/风险与状态字段
+- Rollback / recovery: 恢复 recommendation 只读建议语义，保留新增字段为未执行状态
+- Validation:
+  - `recommendation domain 测试`
+  - `python3 scripts/foreman.py validate D-TASK-059`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented read-only acceleration recommendation modeling with REWRITE/ACCELERATION/CREATE_TABLE/PREWARM/MAINTENANCE types, benefit/risk/status fields, tenant-scoped list/detail APIs, in-memory and database repository baselines, SQL schema/migration, interface/data-model documentation, and focused tests.
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=AccelerationRecommendationApplicationServiceTest,AccelerationRecommendationControllerTest,ParseBatchPersistenceSchemaMappingTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-059; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Dispatch event state machine and external pull coordination start in D-TASK-060; recommendation objects remain advisory and non-executing.
+  - Next step: Instantiate D-TASK-060 to implement DispatchEvent creation and lifecycle state semantics.
+
 ### D-TASK-058: 落地重要/紧急清单与优先级矩阵
 
 - Status: done

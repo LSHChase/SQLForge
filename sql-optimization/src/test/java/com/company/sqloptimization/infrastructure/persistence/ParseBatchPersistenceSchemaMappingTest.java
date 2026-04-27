@@ -67,6 +67,24 @@ class ParseBatchPersistenceSchemaMappingTest {
     }
 
     @Test
+    void shouldKeepAccelerationRecommendationSchemaAndMigrationAligned() throws IOException {
+        String schema = readRepositoryFile("sql/init-schema.sql");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS acceleration_recommendation");
+        assertContains(schema, "recommendation_type VARCHAR(32) NOT NULL");
+        assertContains(schema, "recommended_sql_text MEDIUMTEXT NOT NULL");
+        assertContains(schema, "benefit_level VARCHAR(32) NOT NULL DEFAULT 'UNKNOWN'");
+        assertContains(schema, "risk_level VARCHAR(32) NOT NULL DEFAULT 'UNKNOWN'");
+        assertContains(schema, "no executed state in SQLForge");
+        String migration = readRepositoryFile("sql/migrations/V20260426_007__acceleration_recommendation_catalog.sql");
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS acceleration_recommendation");
+        assertContains(migration, "idx_acc_reco_tenant_type_created");
+        String mapper = readMapper("mapper/AccelerationRecommendationMapper.xml");
+        assertContains(mapper, "FROM acceleration_recommendation");
+        assertContains(mapper, "selectByTenantId");
+        assertContains(mapper, "requires_dispatch");
+    }
+
+    @Test
     void shouldKeepMapperXmlAlignedWithParseBatchTable() throws IOException {
         String mapper = readMapper("mapper/ParseBatchMapper.xml");
         assertContains(mapper, "FROM parse_batch");
