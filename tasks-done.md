@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-025: 落地路由治理页与历史决策详情
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): add routing governance page`
+- Priority: 1
+- Depends on: `E-TASK-024`,`D-TASK-061`
+- Scope: 当前规则、决策样例、历史记录、注释协议说明与路由详情页 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-010` 路由治理与推荐中心
+- Human confirmation point: 若路由治理页会暴露内部策略细节、误导用户把 environment-backed 证据写成默认事实，需人工确认
+- Data impact: 路由规则、决策详情与说明文案
+- Rollback / recovery: 回退高风险字段，恢复基于仓库真值的路由展示
+- Validation:
+  - `npm run lint`、`npm run build`、routing page contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-025`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added the routing governance page with route-calibration, trace/history evidence, and comment protocol guidance.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-025 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-routing-page-contract.mjs'
+  - Residual risk: The page remains read-only and depends on backend evidence availability; no routing-rule editing surface is exposed.
+  - Next step: Close out the remaining governance pages in Phase E.
+
 ### E-TASK-024: 落地逻辑视图映射、数据到位与热度视图
 
 - Status: done
