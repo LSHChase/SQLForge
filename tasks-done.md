@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-020: 落地解析工作台双卡结果布局
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): add parse workbench dual-card layout`
+- Priority: 1
+- Depends on: `E-TASK-019`,`D-TASK-045`
+- Scope: 单条 SQL 解析输入、结构解析卡、access parse 卡和综合结论 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-008` 解析工作台与批量解析中心
+- Human confirmation point: 若解析工作台把 access parse 不可用伪装成结构解析成功、或在前端合并双轨语义导致用户误解，需人工确认
+- Data impact: 解析工作台页面状态、双卡展示与提示文案
+- Rollback / recovery: 恢复结构/访问解析分开展示与 unavailable 提示
+- Validation:
+  - `npm run lint`、`npm run build`、parse workbench contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-020`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reworked the acceleration route into a parse workbench backed by structure/combined parse APIs, with single-SQL input, combined conclusion, structure/access dual cards, state history, and structure-only preview.
+  - Validation evidence: npm run lint; npm run build; node scripts/check-parse-workbench-contract.mjs; python3 scripts/foreman.py validate E-TASK-020 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-parse-workbench-contract.mjs'
+  - Residual risk: The parse workbench currently visualizes parse-batch and benchmark journeys elsewhere; this page focuses on single-SQL parse contracts only.
+  - Next step: Instantiate E-TASK-021 to build the batch-parse center and report-catalog import workflow on top of parse-batches contracts.
+
 ### E-TASK-019: 落地 SQL 历史详情与取证视图
 
 - Status: done

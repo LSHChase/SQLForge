@@ -340,8 +340,8 @@ export default {
     summary: 'Inspect baseline, peak latency, regression deltas and release readiness.'
   },
   acceleration: {
-    title: 'Acceleration',
-    summary: 'Manage acceleration policy, materialized view guidance and hit performance.'
+    title: 'Parse Workbench',
+    summary: 'Run structure parse, access parse and combined conclusion review for a single SQL statement.'
   },
   system: {
     title: 'System Management',

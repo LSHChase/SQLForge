@@ -340,8 +340,8 @@ export default {
     summary: '查看基线、峰值延迟、回归差异与准入判断。'
   },
   acceleration: {
-    title: '加速配置',
-    summary: '管理加速策略、物化视图建议与命中表现。'
+    title: '解析工作台',
+    summary: '对单条 SQL 执行结构解析、access parse 和综合结论判定。'
   },
   system: {
     title: '系统管理',

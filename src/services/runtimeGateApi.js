@@ -9,6 +9,7 @@ const DEFAULT_COMPENSATION_TRACE_PREFIX =
 
 const optimizationTerminalStates = new Set(['SUCCEEDED', 'FAILED'])
 const benchmarkTerminalStates = new Set(['SUCCEEDED', 'FAILED'])
+const combinedParseTerminalStates = new Set(['ACCESS_SUCCEEDED', 'PARTIAL_SUCCEEDED', 'FAILED'])
 
 const httpClient = axios.create({
   timeout: DEFAULT_TIMEOUT_MS
@@ -169,6 +170,56 @@ export const getBenchmarkReport = (reportId, tenantId, requestOptions = {}) =>
       requestPrefix: 'frontend-benchmark-report',
       ...requestOptions
     }
+  })
+
+export const parseStructureSql = (payload, requestOptions = {}) => {
+  const { tenantId, ...data } = payload
+  delete data.connectionRequired
+  return request({
+    method: 'post',
+    url: '/api/sql-optimization/parse/structure',
+    data,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-structure-submit',
+      ...requestOptions
+    }
+  })
+}
+
+export const submitCombinedParse = (payload, requestOptions = {}) => {
+  const { tenantId, ...data } = payload
+  return request({
+    method: 'post',
+    url: '/api/sql-optimization/parse/combined',
+    data,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-combined-submit',
+      ...requestOptions
+    }
+  })
+}
+
+export const getCombinedParseStatus = (parseTaskId, tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/parse/${encodeURIComponent(parseTaskId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-combined-status',
+      ...requestOptions
+    }
+  })
+
+export const waitForCombinedParse = (parseTaskId, tenantId, requestOptions = {}) =>
+  pollUntilTerminal({
+    fetcher: getCombinedParseStatus,
+    taskId: parseTaskId,
+    tenantId,
+    requestPrefix: 'frontend-parse-combined',
+    terminalStates: combinedParseTerminalStates,
+    requestOptions
   })
 
 export const getGovernanceMessageStats = (tenantId, requestOptions = {}) =>
