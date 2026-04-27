@@ -2,7 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import { constantRoutes } from './router'
+import { ROUTE_PATHS } from './config/routePaths.mjs'
 import { useGlobalConfigStore, useTenantStore, useUserStore } from './stores'
 
 const route = useRoute()
@@ -11,29 +11,166 @@ const globalConfigStore = useGlobalConfigStore()
 const tenantStore = useTenantStore()
 const userStore = useUserStore()
 
-const navGroupOrder = ['main', 'governanceHistory', 'governanceOps', 'temporary']
-const menuSections = computed(() =>
-  navGroupOrder
-    .map(groupKey => {
-      const items = constantRoutes.filter(item => item.meta?.menu && item.meta?.navGroup === groupKey)
-      if (!items.length) {
-        return null
+const navLabel = value => (locale.value === 'zh-CN' ? value.zh : value.en)
+
+const navigationTree = computed(() => [
+  {
+    key: 'dashboard',
+    label: { zh: 'Dashboard', en: 'Dashboard' },
+    sections: [
+      {
+        key: 'overview',
+        label: { zh: '总览驾驶舱', en: 'Overview cockpit' },
+        items: [{ path: ROUTE_PATHS.dashboard, titleKey: 'dashboard.title' }]
       }
-      return {
-        key: groupKey,
-        label: t(`common.navGroups.${groupKey}`),
-        items
+    ]
+  },
+  {
+    key: 'sql-query',
+    label: { zh: 'SQL 查询', en: 'SQL Query' },
+    sections: [
+      {
+        key: 'workbench',
+        label: { zh: '查询工作台', en: 'Query workbench' },
+        items: [{ path: ROUTE_PATHS.sqlQuery, titleKey: 'sqlQuery.title' }]
       }
-    })
-    .filter(Boolean)
+    ]
+  },
+  {
+    key: 'sql-history',
+    label: { zh: 'SQL 历史', en: 'SQL History' },
+    sections: [
+      {
+        key: 'history',
+        label: { zh: '历史列表', en: 'History list' },
+        items: [{ path: ROUTE_PATHS.parseRecord, titleKey: 'parseRecord.title' }]
+      },
+      {
+        key: 'forensics',
+        label: { zh: '取证与修复', en: 'Forensics and repair' },
+        items: [
+          { path: ROUTE_PATHS.repairEvidence, titleKey: 'repairEvidence.title' },
+          { path: ROUTE_PATHS.auditForensics, titleKey: 'auditForensics.title' }
+        ]
+      }
+    ]
+  },
+  {
+    key: 'parse-acceleration',
+    label: { zh: '解析与加速', en: 'Parsing and Acceleration' },
+    sections: [
+      {
+        key: 'parse',
+        label: { zh: '解析工作流', en: 'Parsing workflow' },
+        items: [
+          { path: ROUTE_PATHS.acceleration, titleKey: 'acceleration.title' },
+          { path: ROUTE_PATHS.parseBatchCenter, titleKey: 'parseBatchCenter.title' },
+          { path: ROUTE_PATHS.parseStatisticsCenter, titleKey: 'parseStatisticsCenter.title' }
+        ]
+      },
+      {
+        key: 'rewrite',
+        label: { zh: '改写与推荐', en: 'Rewrite and Recommendation' },
+        items: [{ path: ROUTE_PATHS.recommendationCenter, titleKey: 'recommendationCenter.title' }]
+      }
+    ]
+  },
+  {
+    key: 'routing',
+    label: { zh: '路由治理', en: 'Routing Governance' },
+    sections: [
+      {
+        key: 'routing-policy',
+        label: { zh: '当前策略与历史', en: 'Policy and history' },
+        items: [{ path: ROUTE_PATHS.routingGovernance, titleKey: 'routingGovernance.title' }]
+      }
+    ]
+  },
+  {
+    key: 'assets',
+    label: { zh: '数据资产', en: 'Data Assets' },
+    sections: [
+      {
+        key: 'catalog',
+        label: { zh: '资产目录', en: 'Asset catalog' },
+        items: [{ path: ROUTE_PATHS.assetCatalog, titleKey: 'assetCatalog.title' }]
+      }
+    ]
+  },
+  {
+    key: 'benchmark',
+    label: { zh: '压测中心', en: 'Benchmark Center' },
+    sections: [
+      {
+        key: 'benchmark-workspace',
+        label: { zh: '任务与报告', en: 'Tasks and reports' },
+        items: [{ path: ROUTE_PATHS.benchmark, titleKey: 'benchmark.title' }]
+      }
+    ]
+  },
+  {
+    key: 'system',
+    label: { zh: '系统管理', en: 'System Management' },
+    sections: [
+      {
+        key: 'config',
+        label: { zh: '配置与接入', en: 'Config and integration' },
+        items: [{ path: ROUTE_PATHS.system, titleKey: 'system.title' }]
+      },
+      {
+        key: 'alerts',
+        label: { zh: '告警与处置', en: 'Alerts and Remediation' },
+        items: [
+          { path: ROUTE_PATHS.alertCenter, titleKey: 'alertCenter.title' },
+          { path: ROUTE_PATHS.auditTroubleshooting, titleKey: 'auditTroubleshooting.title' }
+        ]
+      },
+      {
+        key: 'runtime',
+        label: { zh: '运行治理', en: 'Runtime Governance' },
+        items: [
+          { path: ROUTE_PATHS.runtimeGates, titleKey: 'runtimeGates.title' },
+          { path: ROUTE_PATHS.recoveryDrill, titleKey: 'recoveryDrill.title' }
+        ]
+      }
+    ]
+  },
+  {
+    key: 'access',
+    label: { zh: '开放接入', en: 'Open Access' },
+    sections: [
+      {
+        key: 'access-overview',
+        label: { zh: '接入总览与策略', en: 'Access overview and policy' },
+        items: [{ path: ROUTE_PATHS.accessCenter, titleKey: 'accessCenter.title' }]
+      }
+    ]
+  }
+])
+
+const flattenNavItems = tree =>
+  tree.flatMap(module =>
+    module.sections.flatMap(section =>
+      section.items.map(item => ({
+        ...item,
+        moduleKey: module.key,
+        moduleLabel: module.label,
+        sectionKey: section.key,
+        sectionLabel: section.label
+      }))
+    )
+  )
+
+const activeNavItem = computed(() =>
+  flattenNavItems(navigationTree.value).find(item => item.path === route.path) || null
 )
+const defaultOpeneds = computed(() => {
+  if (!activeNavItem.value) {
+    return []
+  }
+  return [activeNavItem.value.moduleKey, `${activeNavItem.value.moduleKey}:${activeNavItem.value.sectionKey}`]
+})
 const localeLabel = computed(() => (locale.value === 'zh-CN' ? 'EN' : '中'))
-const themeLabel = computed(() =>
-  globalConfigStore.theme === 'dark' ? t('common.switchToLight') : t('common.switchToDark')
-)
-const pageDescription = computed(() =>
-  route.meta?.descriptionKey ? t(route.meta.descriptionKey) : t('dashboard.summary')
-)
 const workspaceSummary = computed(() =>
   t('common.workspaceSummary', {
     tenant: tenantStore.tenantName,
@@ -41,32 +178,15 @@ const workspaceSummary = computed(() =>
   })
 )
 const userBadge = computed(() => `${userStore.displayName} · ${userStore.role}`)
-const buildRoutePills = meta => {
-  const pills = []
-
-  if (meta?.temporary) {
-    pills.push({
-      key: 'temporary',
-      label: t('common.temporaryPage'),
-      className: 'status-pill-temporary'
-    })
+const pageDescription = computed(() =>
+  route.meta?.descriptionKey ? t(route.meta.descriptionKey) : t('dashboard.summary')
+)
+const breadcrumbText = computed(() => {
+  if (!activeNavItem.value) {
+    return []
   }
-
-  if (meta?.envLimited) {
-    pills.push({
-      key: 'envLimited',
-      label: t('common.nonProductionOnly'),
-      className: 'status-pill-muted'
-    })
-  }
-
-  return pills
-}
-const activeRoutePills = computed(() => buildRoutePills(route.meta))
-
-const handleThemeToggle = () => {
-  globalConfigStore.toggleTheme()
-}
+  return [navLabel(activeNavItem.value.moduleLabel), navLabel(activeNavItem.value.sectionLabel), t(activeNavItem.value.titleKey)]
+})
 
 const handleLocaleToggle = () => {
   const nextLocale = locale.value === 'zh-CN' ? 'en-US' : 'zh-CN'
@@ -75,6 +195,7 @@ const handleLocaleToggle = () => {
 }
 
 onMounted(() => {
+  globalConfigStore.setTheme('dark')
   globalConfigStore.applyTheme()
   locale.value = globalConfigStore.locale
 })
@@ -83,9 +204,9 @@ onMounted(() => {
 <template>
   <el-config-provider>
     <el-container class="app-shell">
-      <el-aside class="app-sidebar" width="280px">
+      <el-aside class="app-sidebar" width="308px">
         <div class="brand-panel">
-          <p class="brand-kicker">{{ t('common.platformTagline') }}</p>
+          <p class="brand-kicker sqlforge-code-label">{{ t('common.platformTagline') }}</p>
           <h1 class="brand-title">{{ t('common.appName') }}</h1>
           <p class="brand-summary">{{ t('common.brandSummary') }}</p>
           <div class="brand-meta">
@@ -95,41 +216,43 @@ onMounted(() => {
         </div>
 
         <div class="sidebar-section">
-          <p class="sidebar-section-label sqlforge-code-label">{{ t('common.sidebarLabel') }}</p>
+          <p class="sidebar-section-label sqlforge-code-label">{{ locale === 'zh-CN' ? '三级导航' : 'Three-level navigation' }}</p>
           <el-scrollbar class="menu-scroll">
-            <div class="menu-section-stack">
-              <section
-                v-for="section in menuSections"
-                :key="section.key"
-                class="menu-section"
+            <el-menu
+              :default-active="route.path"
+              :default-openeds="defaultOpeneds"
+              class="app-menu"
+              router
+            >
+              <el-sub-menu
+                v-for="module in navigationTree"
+                :key="module.key"
+                :index="module.key"
+                class="menu-module"
               >
-                <p class="menu-section-title sqlforge-code-label">{{ section.label }}</p>
-                <el-menu :default-active="route.path" class="app-menu" router>
+                <template #title>
+                  <span class="menu-module-title">{{ navLabel(module.label) }}</span>
+                </template>
+                <el-sub-menu
+                  v-for="section in module.sections"
+                  :key="`${module.key}:${section.key}`"
+                  :index="`${module.key}:${section.key}`"
+                  class="menu-section"
+                >
+                  <template #title>
+                    <span class="menu-section-title">{{ navLabel(section.label) }}</span>
+                  </template>
                   <el-menu-item
                     v-for="item in section.items"
                     :key="item.path"
                     :index="item.path"
+                    class="menu-leaf"
                   >
-                    <div class="menu-item-content">
-                      <span class="menu-item-label">{{ t(item.meta.titleKey) }}</span>
-                      <div
-                        v-if="buildRoutePills(item.meta).length"
-                        class="menu-item-pills"
-                      >
-                        <span
-                          v-for="pill in buildRoutePills(item.meta)"
-                          :key="`${item.path}-${pill.key}`"
-                          class="menu-item-pill"
-                          :class="pill.className"
-                        >
-                          {{ pill.label }}
-                        </span>
-                      </div>
-                    </div>
+                    <span class="menu-item-label">{{ t(item.titleKey) }}</span>
                   </el-menu-item>
-                </el-menu>
-              </section>
-            </div>
+                </el-sub-menu>
+              </el-sub-menu>
+            </el-menu>
           </el-scrollbar>
         </div>
 
@@ -155,20 +278,16 @@ onMounted(() => {
       <el-container class="app-main">
         <el-header class="app-header">
           <div class="page-heading">
-            <p class="page-kicker">{{ t('common.currentWorkspace') }}</p>
-            <div class="page-title-row">
-              <h2 class="page-title">{{ t(route.meta.titleKey || 'dashboard.title') }}</h2>
-              <div class="page-title-pills">
-                <span class="page-status-pill">{{ t('common.desktopMode') }}</span>
-                <span
-                  v-for="pill in activeRoutePills"
-                  :key="pill.key"
-                  class="page-status-pill"
-                  :class="pill.className"
-                >
-                  {{ pill.label }}
-                </span>
-              </div>
+            <p class="page-kicker sqlforge-code-label">{{ locale === 'zh-CN' ? '当前工作区' : 'Current workspace' }}</p>
+            <h2 class="page-title">{{ t(route.meta.titleKey || 'dashboard.title') }}</h2>
+            <div class="breadcrumb-strip">
+              <span
+                v-for="pill in breadcrumbText"
+                :key="pill"
+                class="page-status-pill"
+              >
+                {{ pill }}
+              </span>
             </div>
             <p class="page-summary">{{ pageDescription }}</p>
           </div>
@@ -180,9 +299,6 @@ onMounted(() => {
             </div>
             <el-button text class="header-action" @click="handleLocaleToggle">
               {{ localeLabel }}
-            </el-button>
-            <el-button class="header-action header-action-outline" @click="handleThemeToggle">
-              {{ themeLabel }}
             </el-button>
           </div>
         </el-header>
@@ -204,7 +320,7 @@ onMounted(() => {
   min-height: 100vh;
   background:
     radial-gradient(circle at top right, rgba(62, 207, 142, 0.08), transparent 22%),
-    radial-gradient(circle at top left, rgba(67, 67, 67, 0.32), transparent 26%),
+    radial-gradient(circle at top left, rgba(67, 67, 67, 0.24), transparent 26%),
     linear-gradient(180deg, var(--sqlforge-bg-page) 0%, var(--sqlforge-bg-page-deep) 100%);
   color: var(--sqlforge-text-primary);
 }
@@ -221,7 +337,8 @@ onMounted(() => {
 }
 
 .brand-panel,
-.runtime-card {
+.runtime-card,
+.workspace-card {
   border: 1px solid var(--sqlforge-border-default);
   border-radius: var(--sqlforge-radius-lg);
   background:
@@ -254,10 +371,14 @@ onMounted(() => {
   line-height: 1.6;
 }
 
-.brand-meta {
+.brand-meta,
+.breadcrumb-strip {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.brand-meta {
   margin-top: 18px;
 }
 
@@ -268,27 +389,15 @@ onMounted(() => {
   gap: 6px;
   padding: 6px 12px;
   border-radius: var(--sqlforge-radius-pill);
-  border: 1px solid var(--sqlforge-color-brand-border);
-  background: rgba(62, 207, 142, 0.08);
-  color: var(--sqlforge-text-primary);
+  border: 1px solid var(--sqlforge-border-default);
+  background: var(--sqlforge-bg-page-deep);
+  color: var(--sqlforge-text-secondary);
   font-size: 12px;
 }
 
 .brand-pill-muted {
   border-color: var(--sqlforge-border-strong);
   background: transparent;
-  color: var(--sqlforge-text-secondary);
-}
-
-.status-pill-temporary {
-  border-color: rgba(214, 179, 48, 0.28);
-  background: rgba(214, 179, 48, 0.12);
-}
-
-.status-pill-muted {
-  border-color: var(--sqlforge-border-default);
-  background: transparent;
-  color: var(--sqlforge-text-secondary);
 }
 
 .sidebar-section {
@@ -300,36 +409,36 @@ onMounted(() => {
   margin-top: 12px;
 }
 
-.menu-section-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.menu-section-title {
-  margin: 0 0 8px;
-  color: var(--sqlforge-text-muted);
-}
-
 .app-menu {
   border-right: none;
   background: transparent;
 }
 
+:deep(.app-menu .el-sub-menu__title),
 :deep(.app-menu .el-menu-item) {
-  height: auto;
-  margin-bottom: 8px;
-  padding: 12px 14px;
-  border: 1px solid transparent;
   border-radius: var(--sqlforge-radius-sm);
   color: var(--sqlforge-text-secondary);
-  line-height: 1.3;
 }
 
+:deep(.app-menu .el-sub-menu__title) {
+  height: auto;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+}
+
+:deep(.app-menu .el-sub-menu .el-sub-menu__title:hover),
 :deep(.app-menu .el-menu-item:hover) {
   background: var(--sqlforge-surface-2);
   border-color: var(--sqlforge-border-default);
   color: var(--sqlforge-text-primary);
+}
+
+:deep(.app-menu .el-menu-item) {
+  height: auto;
+  margin: 6px 0;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  line-height: 1.35;
 }
 
 :deep(.app-menu .el-menu-item.is-active) {
@@ -338,43 +447,26 @@ onMounted(() => {
   color: var(--sqlforge-text-primary);
 }
 
-.menu-item-label {
+.menu-module-title {
   font-size: 14px;
   font-weight: 500;
 }
 
-.menu-item-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
+.menu-section-title {
+  font-size: 13px;
 }
 
-.menu-item-pills,
-.page-title-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.menu-item-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-pill);
-  color: var(--sqlforge-text-muted);
-  font-size: 11px;
-  line-height: 1.4;
+.menu-item-label {
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .sidebar-runtime {
   padding-top: 4px;
 }
 
-.runtime-card {
-  margin-top: 12px;
+.runtime-card,
+.workspace-card {
   padding: 16px;
 }
 
@@ -392,7 +484,8 @@ onMounted(() => {
   border-top: 1px solid var(--sqlforge-border-subtle);
 }
 
-.runtime-row strong {
+.runtime-row strong,
+.workspace-summary {
   color: var(--sqlforge-text-primary);
   font-weight: 500;
 }
@@ -414,22 +507,19 @@ onMounted(() => {
   max-width: 760px;
 }
 
-.page-title-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 8px;
-}
-
 .page-title {
-  margin: 0;
-  font-size: 36px;
+  margin: 10px 0 0;
+  font-size: 40px;
   font-weight: 400;
-  line-height: 1.1;
+  line-height: 1.04;
 }
 
-.page-summary {
+.breadcrumb-strip {
+  margin-top: 12px;
+}
+
+.page-summary,
+.workspace-summary {
   margin: 12px 0 0;
   color: var(--sqlforge-text-secondary);
   line-height: 1.6;
@@ -443,17 +533,6 @@ onMounted(() => {
 
 .workspace-card {
   min-width: 280px;
-  padding: 12px 14px;
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-md);
-  background: var(--sqlforge-surface-3);
-}
-
-.workspace-summary {
-  margin: 8px 0 0;
-  color: var(--sqlforge-text-primary);
-  font-size: 14px;
-  line-height: 1.4;
 }
 
 .header-action {
@@ -461,11 +540,6 @@ onMounted(() => {
   padding: 0 18px;
   border-radius: var(--sqlforge-radius-pill);
   color: var(--sqlforge-text-primary);
-}
-
-.header-action-outline {
-  border-color: var(--sqlforge-border-default);
-  background: var(--sqlforge-bg-page-deep);
 }
 
 .page-container {

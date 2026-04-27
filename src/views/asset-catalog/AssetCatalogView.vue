@@ -815,12 +815,12 @@ onMounted(async () => {
 }
 
 .surface-card {
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  border: 1px solid var(--sqlforge-border-default);
   border-radius: 28px;
   background:
     radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.94));
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+    var(--sqlforge-surface-2);
+  box-shadow: none;
 }
 
 .runtime-hero,
@@ -847,7 +847,7 @@ onMounted(async () => {
 .section-title,
 .detail-subtitle {
   margin: 0;
-  color: #0f172a;
+  color: var(--sqlforge-text-primary);
 }
 
 .runtime-summary,
@@ -855,7 +855,7 @@ onMounted(async () => {
 .empty-state,
 .detail-copy p {
   margin: 0;
-  color: #334155;
+  color: var(--sqlforge-text-secondary);
   line-height: 1.6;
 }
 
@@ -900,8 +900,8 @@ onMounted(async () => {
 .summary-card,
 .evidence-card {
   border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--sqlforge-border-default);
+  background: rgba(35, 35, 35, 0.92);
   padding: 14px 16px;
 }
 

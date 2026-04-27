@@ -16,7 +16,27 @@ _No tasks._
 
 ## In Progress
 
-_No tasks._
+### E-TASK-034: 重构SQL查询与解析中心交互工作流
+
+- Status: in_progress
+- Priority: 1
+- Depends on: E-TASK-033,E-TASK-022
+- Scope: 重构 SQL 查询、解析工作台、批量解析中心与解析结果中心，改为查询条件+结果区+必要弹窗/抽屉模式，补齐单条/多条输入和 drill-through 交互。 Tech: VUE-FE. Layer: frontend/router/views/styles.
+- Validation:
+  - `python3 scripts/foreman.py validate E-TASK-034`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+
+### E-TASK-035: 收口治理管理与开放接入页面体验
+
+- Status: in_progress
+- Priority: 1
+- Depends on: E-TASK-034,E-TASK-032
+- Scope: 重构 Dashboard、告警中心、路由治理、推荐中心、压测中心、系统管理与开放接入页面，去除无关信息与卡片堆叠，改为概览+列表/表格+抽屉/弹窗的治理工作台模式。 Tech: VUE-FE. Layer: frontend/router/views/styles.
+- Validation:
+  - `python3 scripts/foreman.py validate E-TASK-035`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
 
 
 ## Blocked

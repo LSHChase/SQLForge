@@ -155,12 +155,12 @@ const checklistItems = computed(() => [
 }
 
 .surface-card {
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--sqlforge-border-default);
   border-radius: 24px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96)),
-    radial-gradient(circle at top right, rgba(234, 88, 12, 0.12), transparent 45%);
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+    radial-gradient(circle at top right, rgba(234, 88, 12, 0.08), transparent 45%),
+    var(--sqlforge-surface-2);
+  box-shadow: none;
   padding: 24px;
 }
 
@@ -197,7 +197,7 @@ const checklistItems = computed(() => [
 .section-title {
   margin: 0;
   font-size: 28px;
-  color: #0f172a;
+  color: var(--sqlforge-text-primary);
 }
 
 .section-title {
@@ -208,7 +208,7 @@ const checklistItems = computed(() => [
 .runtime-note,
 .section-summary {
   margin: 12px 0 0;
-  color: #475569;
+  color: var(--sqlforge-text-secondary);
   line-height: 1.65;
 }
 
@@ -226,7 +226,7 @@ const checklistItems = computed(() => [
   padding: 12px 10px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.24);
   text-align: left;
-  color: #334155;
+  color: var(--sqlforge-text-secondary);
 }
 
 .objective-table th {

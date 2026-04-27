@@ -174,12 +174,12 @@ const evidenceRows = computed(() => [
 }
 
 .surface-card {
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--sqlforge-border-default);
   border-radius: 24px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96)),
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 45%);
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 45%),
+    var(--sqlforge-surface-2);
+  box-shadow: none;
   padding: 24px;
 }
 
@@ -216,7 +216,7 @@ const evidenceRows = computed(() => [
 .section-title {
   margin: 0;
   font-size: 28px;
-  color: #0f172a;
+  color: var(--sqlforge-text-primary);
 }
 
 .section-title {
@@ -227,7 +227,7 @@ const evidenceRows = computed(() => [
 .runtime-note,
 .section-summary {
   margin: 12px 0 0;
-  color: #475569;
+  color: var(--sqlforge-text-secondary);
   line-height: 1.65;
 }
 
@@ -241,8 +241,8 @@ const evidenceRows = computed(() => [
 .check-pill {
   border-radius: 999px;
   padding: 8px 12px;
-  background: rgba(15, 118, 110, 0.08);
-  color: #0f172a;
+  background: var(--sqlforge-bg-page-deep);
+  color: var(--sqlforge-text-primary);
   font-size: 13px;
 }
 
@@ -255,8 +255,8 @@ const evidenceRows = computed(() => [
 .evidence-item {
   border-radius: 18px;
   padding: 18px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(35, 35, 35, 0.92);
+  border: 1px solid var(--sqlforge-border-default);
 }
 
 .evidence-label {
@@ -271,7 +271,7 @@ const evidenceRows = computed(() => [
 .bullet-list {
   margin: 0;
   padding-left: 18px;
-  color: #334155;
+  color: var(--sqlforge-text-secondary);
   line-height: 1.7;
 }
 

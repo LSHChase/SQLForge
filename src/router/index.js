@@ -33,6 +33,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'main',
+      module: 'dashboard',
+      submodule: 'overview',
+      pageKind: 'overview',
       titleKey: 'dashboard.title',
       descriptionKey: 'dashboard.summary'
     }
@@ -44,6 +47,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'main',
+      module: 'sql-query',
+      submodule: 'workbench',
+      pageKind: 'workbench',
       titleKey: 'sqlQuery.title',
       descriptionKey: 'sqlQuery.summary'
     }
@@ -55,6 +61,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'main',
+      module: 'parse-acceleration',
+      submodule: 'parse',
+      pageKind: 'workbench',
       titleKey: 'acceleration.title',
       descriptionKey: 'acceleration.summary'
     }
@@ -66,6 +75,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'main',
+      module: 'benchmark',
+      submodule: 'benchmark-workspace',
+      pageKind: 'workspace',
       titleKey: 'benchmark.title',
       descriptionKey: 'benchmark.summary'
     }
@@ -77,6 +89,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'main',
+      module: 'routing',
+      submodule: 'routing-policy',
+      pageKind: 'governance',
       titleKey: 'routingGovernance.title',
       descriptionKey: 'routingGovernance.summary'
     }
@@ -88,6 +103,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'main',
+      module: 'parse-acceleration',
+      submodule: 'rewrite',
+      pageKind: 'governance',
       titleKey: 'recommendationCenter.title',
       descriptionKey: 'recommendationCenter.summary'
     }
@@ -99,6 +117,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'main',
+      module: 'access',
+      submodule: 'access-overview',
+      pageKind: 'governance',
       titleKey: 'accessCenter.title',
       descriptionKey: 'accessCenter.summary'
     }
@@ -110,6 +131,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'main',
+      module: 'system',
+      submodule: 'alerts',
+      pageKind: 'operations',
       titleKey: 'alertCenter.title',
       descriptionKey: 'alertCenter.summary'
     }
@@ -121,6 +145,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'main',
+      module: 'system',
+      submodule: 'config',
+      pageKind: 'management',
       titleKey: 'system.title',
       descriptionKey: 'system.summary'
     }
@@ -132,6 +159,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'main',
+      module: 'parse-acceleration',
+      submodule: 'parse',
+      pageKind: 'batch',
       titleKey: 'parseBatchCenter.title',
       descriptionKey: 'parseBatchCenter.summary'
     }
@@ -143,6 +173,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'main',
+      module: 'parse-acceleration',
+      submodule: 'parse',
+      pageKind: 'statistics',
       titleKey: 'parseStatisticsCenter.title',
       descriptionKey: 'parseStatisticsCenter.summary'
     }
@@ -154,6 +187,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'main',
+      module: 'assets',
+      submodule: 'catalog',
+      pageKind: 'catalog',
       titleKey: 'assetCatalog.title',
       descriptionKey: 'assetCatalog.summary'
     }
@@ -165,6 +201,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'governanceHistory',
+      module: 'sql-history',
+      submodule: 'history',
+      pageKind: 'history',
       titleKey: 'parseRecord.title',
       descriptionKey: 'parseRecord.summary'
     }
@@ -176,6 +215,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'governanceHistory',
+      module: 'sql-history',
+      submodule: 'forensics',
+      pageKind: 'repair',
       titleKey: 'repairEvidence.title',
       descriptionKey: 'repairEvidence.summary'
     }
@@ -187,6 +229,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'governanceHistory',
+      module: 'sql-history',
+      submodule: 'forensics',
+      pageKind: 'forensics',
       titleKey: 'auditForensics.title',
       descriptionKey: 'auditForensics.summary'
     }
@@ -198,6 +243,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'governanceOps',
+      module: 'system',
+      submodule: 'alerts',
+      pageKind: 'remediation',
       titleKey: 'auditTroubleshooting.title',
       descriptionKey: 'auditTroubleshooting.summary'
     }
@@ -209,6 +257,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'governanceOps',
+      module: 'system',
+      submodule: 'runtime',
+      pageKind: 'gates',
       titleKey: 'runtimeGates.title',
       descriptionKey: 'runtimeGates.summary'
     }
@@ -220,6 +271,9 @@ export const constantRoutes = [
     meta: {
       menu: true,
       navGroup: 'governanceOps',
+      module: 'system',
+      submodule: 'runtime',
+      pageKind: 'drill',
       titleKey: 'recoveryDrill.title',
       descriptionKey: 'recoveryDrill.summary'
     }

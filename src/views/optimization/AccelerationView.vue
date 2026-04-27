@@ -740,12 +740,12 @@ const refreshParseStatus = async () => {
 }
 
 .surface-card {
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  border: 1px solid var(--sqlforge-border-default);
   border-radius: 28px;
   background:
-    radial-gradient(circle at top right, rgba(56, 189, 248, 0.1), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(241, 245, 249, 0.92));
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 38%),
+    var(--sqlforge-surface-2);
+  box-shadow: none;
 }
 
 .runtime-hero,
@@ -771,7 +771,7 @@ const refreshParseStatus = async () => {
 .section-title,
 .detail-title {
   margin: 0;
-  color: #0f172a;
+  color: var(--sqlforge-text-primary);
 }
 
 .runtime-summary,
@@ -781,7 +781,7 @@ const refreshParseStatus = async () => {
 .issue-card__detail,
 .history-item p {
   margin: 0;
-  color: #334155;
+  color: var(--sqlforge-text-secondary);
   line-height: 1.6;
 }
 
@@ -857,8 +857,8 @@ const refreshParseStatus = async () => {
   align-items: center;
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(226, 232, 240, 0.9);
-  color: #0f172a;
+  background: var(--sqlforge-bg-page-deep);
+  color: var(--sqlforge-text-primary);
   font-size: 12px;
 }
 
@@ -875,8 +875,8 @@ const refreshParseStatus = async () => {
 .history-panel,
 .parse-card {
   border-radius: 22px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--sqlforge-border-default);
+  background: rgba(35, 35, 35, 0.92);
   padding: 18px;
 }
 
@@ -900,8 +900,8 @@ const refreshParseStatus = async () => {
 .history-item,
 .issue-card {
   border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(248, 250, 252, 0.94);
+  border: 1px solid var(--sqlforge-border-default);
+  background: rgba(35, 35, 35, 0.92);
   padding: 14px 16px;
 }
 

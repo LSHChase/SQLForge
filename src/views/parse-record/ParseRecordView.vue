@@ -1280,12 +1280,12 @@ onMounted(async () => {
 }
 
 .surface-card {
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--sqlforge-border-default);
   border-radius: 24px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96)),
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 45%);
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 45%),
+    var(--sqlforge-surface-2);
+  box-shadow: none;
 }
 
 .runtime-hero {
@@ -1308,7 +1308,7 @@ onMounted(async () => {
 .runtime-title,
 .section-title {
   margin: 0;
-  color: #0f172a;
+  color: var(--sqlforge-text-primary);
 }
 
 .runtime-summary,
@@ -1317,14 +1317,14 @@ onMounted(async () => {
 .timeline-card-line,
 .timeline-card-line-muted,
 .empty-state {
-  color: #475569;
+  color: var(--sqlforge-text-secondary);
 }
 
 .runtime-note {
   margin: 0;
   padding: 18px 20px;
   border-radius: 18px;
-  background: rgba(226, 232, 240, 0.7);
+  background: rgba(35, 35, 35, 0.9);
   line-height: 1.6;
 }
 
@@ -1371,8 +1371,8 @@ onMounted(async () => {
 .trace-item,
 .timeline-card {
   border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--sqlforge-border-default);
+  background: rgba(35, 35, 35, 0.92);
 }
 
 .field-block {
@@ -1530,8 +1530,8 @@ onMounted(async () => {
   text-align: left;
   padding: 12px 14px;
   border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--sqlforge-border-default);
+  background: rgba(35, 35, 35, 0.92);
   cursor: pointer;
 }
 
@@ -1560,8 +1560,8 @@ onMounted(async () => {
 .signal-card,
 .reference-group {
   border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--sqlforge-border-default);
+  background: rgba(35, 35, 35, 0.92);
   padding: 16px 18px;
 }
 

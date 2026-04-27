@@ -4,6 +4,24 @@
 
 ## Done
 
+### E-TASK-033: 重构导航信息架构与深色主题壳层
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): rebuild dark navigation shell`
+- Priority: 1
+- Depends on: E-TASK-032,F-TASK-028
+- Scope: 将前端路由导航重构为三级动态侧栏树，按产品规格重组一级模块/二三级子页，同时去除用户可见浅色主题切换并把全站默认视觉锁定为 dark-mode-native。 Tech: VUE-FE. Layer: frontend/router/views/styles.
+- Validation:
+  - `python3 scripts/foreman.py validate E-TASK-033`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 重构 App 壳层为三级动态侧栏，补齐 route meta IA 字段，锁定深色主题默认值，并把高频治理页面的浅色硬编码替换为深色 token。
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-033 --extra-command 'npm run lint' --extra-command 'npm run build'
+  - Residual risk: 仍有 DeliveryProgressView 保留极轻量高光渐变，但不影响正式导航主线。
+  - Next step: 继续沿新 IA 校对剩余低频页的视觉一致性。
+
 ### E-TASK-032: 落地 Redis 规则源、装数协同与系统参数页
 
 - Status: done
