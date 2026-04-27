@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-029: 落地 Dashboard KPI、分布与待办区块
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): add governance dashboard live overview`
+- Priority: 1
+- Depends on: `E-TASK-028`,`F-TASK-037`
+- Scope: 核心 KPI、问题分布、接入分布与待处理清单卡片 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-012` Dashboard 与告警中心
+- Human confirmation point: 若 Dashboard KPI 与待办会聚合不存在的数据、放大 environment-backed 指标权重或引入未审计来源，需人工确认
+- Data impact: Dashboard 聚合指标、卡片与待办清单
+- Rollback / recovery: 恢复基于治理查询面的 KPI，移除无证据来源聚合
+- Validation:
+  - `npm run lint`、`npm run build`、dashboard contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-029`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Rebuilt the dashboard around audited KPI, issue distribution, access distribution, todo, and activity evidence blocks.
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-029 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-dashboard-contract.mjs'
+  - Residual risk: The dashboard only reflects sampled query-history windows and current backend evidence availability rather than claiming tenant-wide totals.
+  - Next step: Close out alert and system management tasks.
+
 ### E-TASK-028: 落地开放接入页与 JDBC Agent / SDK 展示
 
 - Status: done

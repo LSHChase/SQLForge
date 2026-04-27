@@ -64,22 +64,6 @@ _No tasks._
 - Progress log:
   - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
 
-### E-TASK-029: 落地 Dashboard KPI、分布与待办区块
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `E-TASK-028`,`F-TASK-037`
-- Scope: 核心 KPI、问题分布、接入分布与待处理清单卡片 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
-- Matrix context: Phase-E / Story `E-STORY-012` Dashboard 与告警中心
-- Human confirmation point: 若 Dashboard KPI 与待办会聚合不存在的数据、放大 environment-backed 指标权重或引入未审计来源，需人工确认
-- Data impact: Dashboard 聚合指标、卡片与待办清单
-- Rollback / recovery: 恢复基于治理查询面的 KPI，移除无证据来源聚合
-- Validation:
-  - `npm run lint`、`npm run build`、dashboard contract 测试
-  - `python3 scripts/foreman.py validate E-TASK-029`
-- Progress log:
-  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
-
 
 ## Blocked
 

@@ -1,283 +1,294 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import codexRulesMarkdown from '../../../docs/rules/codex-rules.md?raw'
-import complianceMarkdown from '../../../docs/security/compliance.md?raw'
-import { deliveryProgressAvailability } from '../../config/runtimeFlags'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import { useTenantStore } from '../../stores'
-import { createDeliveryProgressSnapshot } from '../delivery/progressSnapshot'
+import {
+  formatRuntimeError,
+  getDispatchEvents,
+  getGovernanceMessageStats,
+  getGovernanceQueryHistoryPage,
+  getParseStatisticsByIssueScene,
+  getParseStatisticsImportantUrgent,
+  getParseStatisticsOverview
+} from '../../services/runtimeGateApi'
 
-const { t, tm, locale } = useI18n()
+const { locale } = useI18n()
 const router = useRouter()
 const tenantStore = useTenantStore()
-const progressSnapshot = createDeliveryProgressSnapshot()
-const ruleIdPattern = /\bR-\d+\b/g
 
-const metricCards = computed(() => [
-  {
-    key: 'queryVolume',
-    value: '14.8M',
-    detail: locale.value === 'zh-CN' ? '近 24 小时查询负载，主租户流量稳定' : '24h workload with stable traffic on the primary tenant',
-    trend: '+8.4%',
-    tone: 'neutral'
-  },
-  {
-    key: 'parseSuccess',
-    value: '98.6%',
-    detail: locale.value === 'zh-CN' ? '改写失败样本下降，语法漂移可控' : 'Rewrite failures are down and syntax drift is contained',
-    trend: '+1.2%',
-    tone: 'success'
-  },
-  {
-    key: 'benchmarkPass',
-    value: '93.1%',
-    detail: locale.value === 'zh-CN' ? '准入任务仍有 3 个待复测' : 'Three admission runs still require revalidation',
-    trend: '-0.7%',
-    tone: 'warning'
-  },
-  {
-    key: 'accelerationHit',
-    value: '76.4%',
-    detail: locale.value === 'zh-CN' ? '冷表命中提升，热链路仍有优化空间' : 'Cold tables improved while hot paths still need tuning',
-    trend: '+3.9%',
-    tone: 'success'
-  },
-  {
-    key: 'auditSignal',
-    value: '12',
-    detail: locale.value === 'zh-CN' ? '近 24 小时出现 12 条高优先级审计/异常信号' : 'Twelve high-priority audit or anomaly signals in the last 24h',
-    trend: 'P1',
-    tone: 'danger'
-  }
+const form = reactive({
+  tenantId: tenantStore.tenantId || 'tenant-a'
+})
+
+const loading = ref(false)
+const errorMessage = ref('')
+const overview = ref(null)
+const issueScenes = ref([])
+const importantUrgent = ref([])
+const messageStats = ref(null)
+const queryHistoryPage = ref(null)
+const dispatchEvents = ref([])
+
+const isChinese = computed(() => locale.value === 'zh-CN')
+const historyItems = computed(() => queryHistoryPage.value?.items || [])
+const accessCounts = computed(() => queryHistoryPage.value?.classificationSummary?.accessChannelCounts || {})
+const dispatchFailures = computed(() =>
+  dispatchEvents.value.filter(item => String(item.status || '').toUpperCase() === 'FAILED')
+)
+const openRiskCount = computed(() => {
+  const failed = Number(messageStats.value?.failed || 0)
+  const urgent = importantUrgent.value.filter(item => item.urgent === true).length
+  return failed + urgent + dispatchFailures.value.length
+})
+
+const overviewPills = computed(() => [
+  form.tenantId,
+  tenantStore.defaultEngine || 'HETU',
+  isChinese.value ? 'audited sources only' : 'audited sources only'
 ])
+
+const metricCards = computed(() => {
+  const totalSqlCount = Number(overview.value?.totalSqlCount || 0)
+  const issueSqlCount = Number(overview.value?.issueSqlCount || 0)
+  const issueRate = totalSqlCount > 0 ? `${((issueSqlCount / totalSqlCount) * 100).toFixed(1)}%` : '0.0%'
+  const backlogCount = Number(messageStats.value?.pending || 0) + Number(messageStats.value?.failed || 0)
+  const recentTotal = Number(queryHistoryPage.value?.classificationSummary?.totalItems || historyItems.value.length || 0)
+  return [
+    {
+      key: 'issue-sql',
+      label: isChinese.value ? '问题 SQL' : 'Issue SQL',
+      value: issueSqlCount,
+      trend: issueRate,
+      detail: isChinese.value
+        ? '来自 parse-statistics overview 的问题 SQL 占比。'
+        : 'Issue SQL ratio from parse-statistics overview.',
+      tone: issueSqlCount > 0 ? 'warning' : 'success'
+    },
+    {
+      key: 'priority-alerts',
+      label: isChinese.value ? '重要 / 紧急' : 'Important / urgent',
+      value: importantUrgent.value.length,
+      trend: `${importantUrgent.value.filter(item => item.urgent === true).length} urgent`,
+      detail: isChinese.value
+        ? '直接来自 important-urgent 聚合，不在前端重算优先级。'
+        : 'Comes directly from the important-urgent aggregation without client-side reprioritization.',
+      tone: importantUrgent.value.length > 0 ? 'danger' : 'success'
+    },
+    {
+      key: 'governance-backlog',
+      label: isChinese.value ? '治理 backlog' : 'Governance backlog',
+      value: backlogCount,
+      trend: `${messageStats.value?.failed || 0} failed`,
+      detail: isChinese.value
+        ? '基于 governance admin message stats 的 pending + failed。'
+        : 'Based on governance admin message stats pending + failed.',
+      tone: backlogCount > 0 ? 'warning' : 'success'
+    },
+    {
+      key: 'recent-audit',
+      label: isChinese.value ? '最近审计样本' : 'Recent audit samples',
+      value: recentTotal,
+      trend: `${Object.keys(accessCounts.value).length} channels`,
+      detail: isChinese.value
+        ? '来自 query-history 当前页分类摘要，不夸大为全量历史。'
+        : 'Taken from the current query-history page summary rather than overstated as full history.',
+      tone: recentTotal > 0 ? 'neutral' : 'warning'
+    }
+  ]
+})
 
 const quickEntries = computed(() => [
   {
-    title: t('sqlQuery.title'),
-    description: t('sqlQuery.summary'),
-    status: locale.value === 'zh-CN' ? '默认走 HETU 主路径，待处理慢查询 4 条' : 'HETU is primary; 4 slow queries need attention',
+    title: isChinese.value ? '查询工作台' : 'Query workbench',
+    description: isChinese.value ? '从 SQL 输入直达治理执行与结果面。' : 'Launch governed execution from SQL input to result evidence.',
+    status: isChinese.value
+      ? `最近样本 ${historyItems.value.length} 条`
+      : `${historyItems.value.length} recent history samples`,
     path: ROUTE_PATHS.sqlQuery
   },
   {
-    title: t('benchmark.title'),
-    description: t('benchmark.summary'),
-    status: locale.value === 'zh-CN' ? '回归基线已刷新，3 个任务待复测' : 'Regression baseline refreshed; 3 runs pending',
-    path: ROUTE_PATHS.benchmark
+    title: isChinese.value ? '解析统计' : 'Parse statistics',
+    description: isChinese.value ? '查看问题 SQL、issue scene 和优先级矩阵。' : 'Inspect issue SQL, issue scenes, and priority matrices.',
+    status: isChinese.value
+      ? `${issueScenes.value.length} 个 issue scene`
+      : `${issueScenes.value.length} issue scenes`,
+    path: ROUTE_PATHS.parseStatisticsCenter
   },
   {
-    title: t('acceleration.title'),
-    description: t('acceleration.summary'),
-    status: locale.value === 'zh-CN' ? '近 7 天命中率回升，冷表策略可继续扩大' : 'Hit rate recovered in 7d; cold-table policy can expand',
-    path: ROUTE_PATHS.acceleration
+    title: isChinese.value ? '告警中心' : 'Alert center',
+    description: isChinese.value ? '查看 derived alert、ACK 和 simulated notify。' : 'Inspect derived alerts, ACK state, and simulated notify flows.',
+    status: isChinese.value
+      ? `${openRiskCount.value} 个开放风险`
+      : `${openRiskCount.value} open risks`,
+    path: ROUTE_PATHS.alertCenter
   },
   {
-    title: t('system.title'),
-    description: t('system.summary'),
-    status: locale.value === 'zh-CN' ? '审计保留和默认路由策略今日有变更' : 'Audit retention and default routing changed today',
+    title: isChinese.value ? '系统管理' : 'System management',
+    description: isChinese.value ? '查看 datasource、report-interface、rule-source 和 dispatch policy。' : 'Review datasource, report-interface, rule-source, and dispatch policy baselines.',
+    status: isChinese.value
+      ? `${messageStats.value?.failed || 0} failed message`
+      : `${messageStats.value?.failed || 0} failed messages`,
     path: ROUTE_PATHS.system
   }
 ])
 
-const healthCards = computed(() => [
-  {
-    label: locale.value === 'zh-CN' ? '服务健康' : 'Service health',
-    title: locale.value === 'zh-CN' ? '治理链路整体可用，但压测准入仍有缺口' : 'Governance path is available, but benchmark admission still has gaps',
-    description:
-      locale.value === 'zh-CN'
-        ? '查询、解析、加速链路正常，压测准入链路中 3 个任务仍未回写结果。'
-        : 'Query, parser and acceleration paths are healthy, while 3 admission runs have not written back results.',
-    tone: 'warning',
-    actionLabel: locale.value === 'zh-CN' ? '进入压测报告' : 'Open Benchmark',
-    path: ROUTE_PATHS.benchmark
-  },
-  {
-    label: locale.value === 'zh-CN' ? '规则一致性' : 'Rule integrity',
-    title: locale.value === 'zh-CN' ? '规则与运行假设一致，未发现越权路径漂移' : 'Rules and runtime assumptions align with no detected access-control drift',
-    description:
-      locale.value === 'zh-CN'
-        ? '最近规则追加已入账，审计链路仍满足当前约束。'
-        : 'Recent rule additions are recorded and the audit path remains aligned with current constraints.',
-    tone: 'success',
-    actionLabel: locale.value === 'zh-CN' ? '查看系统管理' : 'Open System',
-    path: ROUTE_PATHS.system
-  },
-  {
-    label: locale.value === 'zh-CN' ? '待处理风险' : 'Open risk',
-    title: locale.value === 'zh-CN' ? '解析失败样本正在积累，需要尽快下钻' : 'Parser failure samples are accumulating and need drill-down now',
-    description:
-      locale.value === 'zh-CN'
-        ? '窗口函数与多层子查询是当前主要故障面。'
-        : 'Window functions and nested subqueries are the primary failure surface.',
-    tone: 'danger',
-    actionLabel: locale.value === 'zh-CN' ? '进入解析记录' : 'Open Parse Record',
-    path: ROUTE_PATHS.parseRecord
+const issueDistributionCards = computed(() =>
+  issueScenes.value.slice(0, 4).map(item => ({
+    key: item.issueScene || item.sceneCode || item.issueCategory || 'UNKNOWN',
+    label: item.issueScene || item.sceneCode || item.issueCategory || 'UNKNOWN',
+    value: Number(item.sqlCount || item.issueSqlCount || 0),
+    description: isChinese.value
+      ? `${Number(item.issueCount || 0)} 个 issue / ${Number(item.reportCount || 0)} 个报表`
+      : `${Number(item.issueCount || 0)} issues / ${Number(item.reportCount || 0)} reports`
+  }))
+)
+
+const accessDistributionCards = computed(() =>
+  Object.entries(accessCounts.value)
+    .slice(0, 5)
+    .map(([channel, count]) => ({
+      key: channel,
+      label: channel,
+      value: Number(count || 0),
+      description: isChinese.value
+        ? '来自 query-history accessChannelCounts'
+        : 'Derived from query-history accessChannelCounts'
+    }))
+)
+
+const todoItems = computed(() => {
+  const items = []
+  if (Number(messageStats.value?.failed || 0) > 0) {
+    items.push({
+      key: 'failed-messages',
+      tone: 'danger',
+      title: isChinese.value ? '处理失败消息补偿' : 'Repair failed-message compensation',
+      description: isChinese.value
+        ? `当前 failed=${messageStats.value?.failed || 0}，先进入系统管理确认 retry 影响面。`
+        : `Current failed=${messageStats.value?.failed || 0}; verify retry scope from system management first.`,
+      path: ROUTE_PATHS.system
+    })
   }
-])
-
-const activities = computed(() => [
-  {
-    type: locale.value === 'zh-CN' ? 'SQL Query' : 'SQL Query',
-    target: 'tenant/system/order_revenue_rollup',
-    time: locale.value === 'zh-CN' ? '09:12' : '09:12',
-    status: locale.value === 'zh-CN' ? '已进入治理链路' : 'Entered governance flow'
-  },
-  {
-    type: locale.value === 'zh-CN' ? 'Parse Record' : 'Parse Record',
-    target: 'rewrite/window_rank_daily',
-    time: locale.value === 'zh-CN' ? '08:47' : '08:47',
-    status: locale.value === 'zh-CN' ? '改写失败，待人工分析' : 'Rewrite failed, awaiting review'
-  },
-  {
-    type: locale.value === 'zh-CN' ? 'Benchmark' : 'Benchmark',
-    target: 'campaign/bi-p99-regression',
-    time: locale.value === 'zh-CN' ? '08:21' : '08:21',
-    status: locale.value === 'zh-CN' ? '基线回写完成' : 'Baseline write-back finished'
-  },
-  {
-    type: locale.value === 'zh-CN' ? 'Acceleration' : 'Acceleration',
-    target: 'policy/materialized_mv_customer',
-    time: locale.value === 'zh-CN' ? '07:58' : '07:58',
-    status: locale.value === 'zh-CN' ? '命中率提升至 81%' : 'Hit rate increased to 81%'
-  },
-  {
-    type: locale.value === 'zh-CN' ? 'System' : 'System',
-    target: 'audit/retention-policy',
-    time: locale.value === 'zh-CN' ? '07:16' : '07:16',
-    status: locale.value === 'zh-CN' ? '保留策略已更新' : 'Retention policy updated'
+  if (dispatchFailures.value.length > 0) {
+    items.push({
+      key: 'dispatch-failures',
+      tone: 'warning',
+      title: isChinese.value ? '复核 dispatch failure' : 'Review dispatch failures',
+      description: isChinese.value
+        ? `${dispatchFailures.value.length} 条 dispatch event 失败或待修复。`
+        : `${dispatchFailures.value.length} dispatch events failed or need follow-up.`,
+      path: ROUTE_PATHS.recommendationCenter
+    })
   }
-])
-
-const nextSteps = computed(() => [
-  {
-    title: locale.value === 'zh-CN' ? '优先复测未回写的压测任务' : 'Re-run admission tasks missing write-back',
-    description:
-      locale.value === 'zh-CN'
-        ? '当前 benchmark pass rate 下滑主要来自 3 个未复测任务。'
-        : 'The benchmark pass-rate drop is driven by 3 runs pending revalidation.',
-    path: ROUTE_PATHS.benchmark
-  },
-  {
-    title: locale.value === 'zh-CN' ? '检查窗口函数改写失败样本' : 'Inspect parser failures around window functions',
-    description:
-      locale.value === 'zh-CN'
-        ? '解析失败样本持续累积，已开始影响准入判断。'
-        : 'Failure samples are accumulating and already affecting admission decisions.',
-    path: ROUTE_PATHS.parseRecord
-  },
-  {
-    title: locale.value === 'zh-CN' ? '扩大冷表加速策略覆盖面' : 'Expand cold-table acceleration coverage',
-    description:
-      locale.value === 'zh-CN'
-        ? '当前命中率回升，可继续放大已验证策略。'
-        : 'Hit rate is recovering and validated policies can now expand.',
-    path: ROUTE_PATHS.acceleration
+  importantUrgent.value.slice(0, 2).forEach((item, index) => {
+    items.push({
+      key: `important-${index}`,
+      tone: item.urgent ? 'danger' : 'neutral',
+      title: isChinese.value ? '下钻重要 / 紧急 SQL' : 'Drill into important or urgent SQL',
+      description: `${item.reportCode || '-'} · ${item.highestPriorityLevel || '-'} · ${Number(item.issueCount || 0)} issues`,
+      path: ROUTE_PATHS.parseStatisticsCenter
+    })
+  })
+  if (items.length === 0) {
+    items.push({
+      key: 'no-open-items',
+      tone: 'success',
+      title: isChinese.value ? '当前待办为空' : 'No open todo items',
+      description: isChinese.value
+        ? '当前聚合证据里没有 backlog、dispatch failure 或重要紧急 SQL。'
+        : 'No backlog, dispatch failures, or important-or-urgent SQL were found in the current evidence set.',
+      path: ROUTE_PATHS.parseStatisticsCenter
+    })
   }
-])
+  return items.slice(0, 4)
+})
 
-const overviewPills = computed(() => [
-  tenantStore.tenantName,
-  tenantStore.defaultEngine,
-  locale.value === 'zh-CN' ? '审计保留 180d+' : 'Audit retention 180d+'
-])
+const activityItems = computed(() =>
+  historyItems.value.slice(0, 6).map(item => ({
+    key: item.historyId,
+    type: item.accessChannel || 'UNKNOWN',
+    target: item.reportCode || item.datasourceCode || item.traceId || item.historyId,
+    status: item.resultStatus || 'UNKNOWN',
+    time: formatTimestamp(item.submittedAt),
+    engine: item.targetEngine || '-'
+  }))
+)
 
-const normalizeInfoCards = path => {
-  const cards = tm(path)
-  return Array.isArray(cards)
-    ? cards.map(card => ({
-        ...card,
-        items: Array.isArray(card.items) ? card.items : []
-      }))
-    : []
+const loadDashboardEvidence = async () => {
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    const tenantId = form.tenantId
+    const [
+      nextOverview,
+      nextIssueScenes,
+      nextImportantUrgent,
+      nextMessageStats,
+      nextQueryHistoryPage,
+      nextDispatchEvents
+    ] = await Promise.all([
+      getParseStatisticsOverview(tenantId, { requestPrefix: 'frontend-dashboard-overview' }),
+      getParseStatisticsByIssueScene(tenantId, { requestPrefix: 'frontend-dashboard-issue-scene' }),
+      getParseStatisticsImportantUrgent(tenantId, { requestPrefix: 'frontend-dashboard-important-urgent' }),
+      getGovernanceMessageStats(tenantId, { requestPrefix: 'frontend-dashboard-message-stats' }),
+      getGovernanceQueryHistoryPage(
+        {
+          tenantId,
+          pageNo: 1,
+          pageSize: 8,
+          sortBy: 'submittedAt',
+          sortOrder: 'DESC'
+        },
+        {
+          requestPrefix: 'frontend-dashboard-query-history'
+        }
+      ),
+      getDispatchEvents(tenantId, '', { requestPrefix: 'frontend-dashboard-dispatch-events' })
+    ])
+    overview.value = nextOverview
+    issueScenes.value = Array.isArray(nextIssueScenes) ? nextIssueScenes : []
+    importantUrgent.value = Array.isArray(nextImportantUrgent) ? nextImportantUrgent : []
+    messageStats.value = nextMessageStats
+    queryHistoryPage.value = nextQueryHistoryPage
+    dispatchEvents.value = Array.isArray(nextDispatchEvents) ? nextDispatchEvents : []
+  } catch (error) {
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.value = false
+  }
 }
-
-const panoramaCards = computed(() => normalizeInfoCards('dashboard.panorama.cards'))
-const architectureCards = computed(() => normalizeInfoCards('dashboard.architecture.cards'))
-const complianceCards = computed(() => normalizeInfoCards('dashboard.compliance.cards'))
-const rulebookCards = computed(() => normalizeInfoCards('dashboard.rulebook.cards'))
-const progressSourceFiles = computed(() => progressSnapshot.sourceFiles)
-const progressDeliveryPageVisible = computed(() => deliveryProgressAvailability.enabled)
-const extractUniqueRuleIds = markdown =>
-  Array.from(new Set(Array.from(markdown.matchAll(ruleIdPattern)).map(match => match[0]))).sort(
-    (left, right) => Number(left.slice(2)) - Number(right.slice(2))
-  )
-
-const codexRuleIds = extractUniqueRuleIds(codexRulesMarkdown)
-const complianceRuleIds = extractUniqueRuleIds(complianceMarkdown)
-const rulebookSourceFiles = computed(() => ['docs/rules/codex-rules.md', 'docs/security/compliance.md'])
-const rulebookSummaryCards = computed(() => [
-  {
-    key: 'baseline',
-    value: codexRuleIds.filter(ruleId => Number(ruleId.slice(2)) <= 115).length,
-    detail: t('dashboard.rulebook.cardsSummary.baselineDetail')
-  },
-  {
-    key: 'validation',
-    value: codexRuleIds.filter(ruleId => Number(ruleId.slice(2)) > 115).length,
-    detail: t('dashboard.rulebook.cardsSummary.validationDetail')
-  },
-  {
-    key: 'compliance',
-    value: complianceRuleIds.length,
-    detail: t('dashboard.rulebook.cardsSummary.complianceDetail')
-  },
-  {
-    key: 'sources',
-    value: rulebookSourceFiles.value.length,
-    detail: t('dashboard.rulebook.cardsSummary.sourcesDetail')
-  }
-])
-const totalTrackedTasks = computed(() =>
-  Object.values(progressSnapshot.statusCounts).reduce((sum, value) => sum + value, 0)
-)
-const completionRate = computed(() =>
-  totalTrackedTasks.value === 0 ? 0 : Math.round((progressSnapshot.statusCounts.done / totalTrackedTasks.value) * 100)
-)
-const progressSummaryCards = computed(() => [
-  {
-    key: 'active',
-    value: progressSnapshot.activeTasks.length,
-    detail: t('dashboard.progress.cards.activeDetail')
-  },
-  {
-    key: 'done',
-    value: progressSnapshot.statusCounts.done,
-    detail: t('dashboard.progress.cards.doneDetail')
-  },
-  {
-    key: 'validation',
-    value: progressSnapshot.validationEntries.length,
-    detail: t('dashboard.progress.cards.validationDetail')
-  },
-  {
-    key: 'completion',
-    value: `${completionRate.value}%`,
-    detail: t('dashboard.progress.cards.completionDetail')
-  }
-])
-const progressModules = computed(() => progressSnapshot.moduleProgress.slice(0, 4))
-const progressRecentChanges = computed(() => progressSnapshot.recentChanges.slice(0, 4))
-const progressBlockers = computed(() => progressSnapshot.blockerItems.slice(0, 4))
-const progressDependencies = computed(() => progressSnapshot.dependencyChains.slice(0, 3))
-
-const formatDependencySummary = dependencies =>
-  dependencies
-    .map(dependency => `${dependency.dependencyId} · ${t(`deliveryProgress.status.${dependency.statusKey}`)}`)
-    .join(' / ')
 
 const goTo = path => {
   router.push(path)
 }
+
+const formatTimestamp = value => {
+  if (!value) {
+    return '-'
+  }
+  return String(value).replace('T', ' ').slice(0, 16)
+}
+
+onMounted(() => {
+  loadDashboardEvidence()
+})
 </script>
 
 <template>
-  <section class="dashboard-page">
-    <section class="dashboard-hero">
+  <section class="dashboard-page" data-testid="dashboard-page">
+    <section class="dashboard-hero sqlforge-panel">
       <div class="hero-copy">
-        <p class="hero-eyebrow sqlforge-code-label">{{ t('dashboard.eyebrow') }}</p>
-        <h1 class="hero-title">{{ t('dashboard.heroTitle') }}</h1>
-        <p class="hero-summary">{{ t('dashboard.heroSummary') }}</p>
+        <p class="hero-eyebrow sqlforge-code-label">governance cockpit</p>
+        <h1 class="hero-title">{{ isChinese ? '首页总览与待办态势' : 'Overview and action cockpit' }}</h1>
+        <p class="hero-summary">
+          {{
+            isChinese
+              ? '首页 KPI、分布和待办只聚合已审计查询面：parse-statistics、governance history、dispatch events 与 message stats。'
+              : 'The dashboard only aggregates audited surfaces for KPI, distribution, and todo blocks: parse-statistics, governance history, dispatch events, and message stats.'
+          }}
+        </p>
         <div class="hero-pills">
           <span
             v-for="pill in overviewPills"
@@ -288,40 +299,56 @@ const goTo = path => {
           </span>
         </div>
         <div class="hero-actions">
-          <el-button class="hero-action hero-action-primary" @click="goTo(ROUTE_PATHS.sqlQuery)">
-            {{ t('dashboard.heroPrimary') }}
-          </el-button>
-          <el-button class="hero-action hero-action-secondary" @click="goTo(ROUTE_PATHS.benchmark)">
-            {{ t('dashboard.heroSecondary') }}
-          </el-button>
+          <button class="pill-button pill-button-primary" @click="goTo(ROUTE_PATHS.sqlQuery)">
+            {{ isChinese ? '进入查询工作台' : 'Open query workbench' }}
+          </button>
+          <button class="pill-button" @click="goTo(ROUTE_PATHS.alertCenter)">
+            {{ isChinese ? '打开告警中心' : 'Open alert center' }}
+          </button>
         </div>
       </div>
 
-      <div class="hero-aside">
-        <div class="hero-aside-card">
-          <p class="hero-aside-label sqlforge-code-label">{{ t('dashboard.heroFootnote') }}</p>
-          <div class="hero-signal">
-            <span class="hero-signal-value">03</span>
-            <div>
-              <h2>{{ locale === 'zh-CN' ? '关键风险待处置' : 'Critical risks open' }}</h2>
-              <p>
-                {{
-                  locale === 'zh-CN'
-                    ? '压测准入、解析失败样本和审计异常是当前首页最需要处理的三个信号。'
-                    : 'Benchmark admission, parser failures and audit anomalies are the three signals needing action now.'
-                }}
-              </p>
-            </div>
+      <aside class="hero-aside sqlforge-subpanel">
+        <p class="hero-aside-label sqlforge-code-label">risk focus</p>
+        <div class="hero-signal">
+          <span class="hero-signal-value">{{ openRiskCount }}</span>
+          <div>
+            <h2>{{ isChinese ? '开放风险' : 'Open risks' }}</h2>
+            <p>
+              {{
+                isChinese
+                  ? '由 failed message、dispatch failure 和 urgent SQL 样本共同构成。'
+                  : 'Derived from failed messages, dispatch failures, and urgent SQL samples.'
+              }}
+            </p>
           </div>
         </div>
-      </div>
+        <label class="field-label">
+          <span>{{ isChinese ? '租户' : 'Tenant' }}</span>
+          <input
+            v-model.trim="form.tenantId"
+            class="text-input"
+            data-testid="dashboard-tenant-input"
+          >
+        </label>
+        <button
+          class="pill-button pill-button-primary"
+          :disabled="loading"
+          data-testid="dashboard-refresh"
+          @click="loadDashboardEvidence"
+        >
+          {{ isChinese ? '刷新总览' : 'Refresh overview' }}
+        </button>
+      </aside>
     </section>
+
+    <p v-if="errorMessage" class="error-banner" data-testid="dashboard-error">{{ errorMessage }}</p>
 
     <section class="dashboard-section">
       <div class="section-heading">
         <div>
-          <p class="section-kicker sqlforge-code-label">{{ t('dashboard.metricLabel') }}</p>
-          <h2 class="sqlforge-section-title">{{ t('dashboard.metricLabel') }}</h2>
+          <p class="section-kicker sqlforge-code-label">kpi</p>
+          <h2 class="section-title">{{ isChinese ? '核心 KPI' : 'Core KPI' }}</h2>
         </div>
       </div>
       <div class="metric-grid">
@@ -330,8 +357,9 @@ const goTo = path => {
           :key="metric.key"
           class="metric-card"
           :class="`metric-card-${metric.tone}`"
+          data-testid="dashboard-kpi-card"
         >
-          <p class="metric-label">{{ t(`dashboard.metrics.${metric.key}`) }}</p>
+          <p class="metric-label">{{ metric.label }}</p>
           <div class="metric-value-row">
             <strong class="metric-value">{{ metric.value }}</strong>
             <span class="metric-trend">{{ metric.trend }}</span>
@@ -345,9 +373,8 @@ const goTo = path => {
       <div class="section-heading">
         <div>
           <p class="section-kicker sqlforge-code-label">workflow entry</p>
-          <h2 class="sqlforge-section-title">{{ t('dashboard.quickEntryTitle') }}</h2>
+          <h2 class="section-title">{{ isChinese ? '工作台入口' : 'Workbench entry' }}</h2>
         </div>
-        <p class="section-summary">{{ t('dashboard.quickEntrySummary') }}</p>
       </div>
       <div class="entry-grid">
         <article
@@ -359,400 +386,105 @@ const goTo = path => {
           <h3 class="entry-title">{{ entry.title }}</h3>
           <p class="entry-description">{{ entry.description }}</p>
           <p class="entry-status">{{ entry.status }}</p>
-          <el-button text class="entry-action" @click="goTo(entry.path)">
-            {{ locale === 'zh-CN' ? '进入' : 'Open' }}
-          </el-button>
+          <button class="link-button" @click="goTo(entry.path)">
+            {{ isChinese ? '进入' : 'Open' }}
+          </button>
         </article>
       </div>
     </section>
 
     <section class="dashboard-split">
-      <section class="dashboard-section">
+      <article class="dashboard-section sqlforge-panel" data-testid="dashboard-issue-distribution">
         <div class="section-heading">
           <div>
-            <p class="section-kicker sqlforge-code-label">risk & health</p>
-            <h2 class="sqlforge-section-title">{{ t('dashboard.healthTitle') }}</h2>
+            <p class="section-kicker sqlforge-code-label">issue distribution</p>
+            <h2 class="section-title">{{ isChinese ? '问题分布' : 'Issue distribution' }}</h2>
           </div>
-          <p class="section-summary">{{ t('dashboard.healthSummary') }}</p>
         </div>
-        <div class="health-list">
+        <div class="distribution-grid">
           <article
-            v-for="item in healthCards"
-            :key="item.title"
-            class="health-card"
-            :class="`health-card-${item.tone}`"
+            v-for="item in issueDistributionCards"
+            :key="item.key"
+            class="distribution-card"
           >
-            <p class="health-label sqlforge-code-label">{{ item.label }}</p>
-            <h3 class="health-title">{{ item.title }}</h3>
-            <p class="health-description">{{ item.description }}</p>
-            <el-button text class="health-action" @click="goTo(item.path)">
-              {{ item.actionLabel }}
-            </el-button>
+            <span class="distribution-label">{{ item.label }}</span>
+            <strong class="distribution-value">{{ item.value }}</strong>
+            <p class="distribution-description">{{ item.description }}</p>
           </article>
         </div>
-      </section>
+      </article>
 
-      <section class="dashboard-section">
+      <article class="dashboard-section sqlforge-panel" data-testid="dashboard-access-distribution">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker sqlforge-code-label">access distribution</p>
+            <h2 class="section-title">{{ isChinese ? '接入分布' : 'Access distribution' }}</h2>
+          </div>
+        </div>
+        <div class="distribution-grid">
+          <article
+            v-for="item in accessDistributionCards"
+            :key="item.key"
+            class="distribution-card"
+          >
+            <span class="distribution-label">{{ item.label }}</span>
+            <strong class="distribution-value">{{ item.value }}</strong>
+            <p class="distribution-description">{{ item.description }}</p>
+          </article>
+        </div>
+      </article>
+    </section>
+
+    <section class="dashboard-split">
+      <article class="dashboard-section sqlforge-panel">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker sqlforge-code-label">todo</p>
+            <h2 class="section-title">{{ isChinese ? '待处理清单' : 'Todo queue' }}</h2>
+          </div>
+        </div>
+        <div class="todo-list">
+          <article
+            v-for="item in todoItems"
+            :key="item.key"
+            class="todo-item"
+            :class="`todo-item-${item.tone}`"
+            data-testid="dashboard-todo-item"
+          >
+            <div>
+              <h3 class="todo-title">{{ item.title }}</h3>
+              <p class="todo-description">{{ item.description }}</p>
+            </div>
+            <button class="link-button" @click="goTo(item.path)">
+              {{ isChinese ? '处理' : 'Open' }}
+            </button>
+          </article>
+        </div>
+      </article>
+
+      <article class="dashboard-section sqlforge-panel">
         <div class="section-heading">
           <div>
             <p class="section-kicker sqlforge-code-label">activity stream</p>
-            <h2 class="sqlforge-section-title">{{ t('dashboard.activityTitle') }}</h2>
+            <h2 class="section-title">{{ isChinese ? '最近活动' : 'Recent activity' }}</h2>
           </div>
-          <p class="section-summary">{{ t('dashboard.activitySummary') }}</p>
         </div>
         <div class="activity-list">
           <article
-            v-for="item in activities"
-            :key="`${item.type}-${item.target}`"
+            v-for="item in activityItems"
+            :key="item.key"
             class="activity-item"
+            data-testid="dashboard-activity-item"
           >
             <div>
               <p class="activity-type">{{ item.type }}</p>
               <strong class="activity-target">{{ item.target }}</strong>
-              <p class="activity-status">{{ item.status }}</p>
+              <p class="activity-status">{{ item.status }} · {{ item.engine }}</p>
             </div>
             <span class="activity-time">{{ item.time }}</span>
           </article>
         </div>
-      </section>
-    </section>
-
-    <section class="dashboard-section">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">{{ t('dashboard.panorama.kicker') }}</p>
-          <h2 class="sqlforge-section-title">{{ t('dashboard.panorama.title') }}</h2>
-        </div>
-        <p class="section-summary">{{ t('dashboard.panorama.summary') }}</p>
-      </div>
-      <div class="knowledge-grid">
-        <article
-          v-for="card in panoramaCards"
-          :key="card.title"
-          class="knowledge-card"
-        >
-          <p class="knowledge-card-label sqlforge-code-label">{{ t('dashboard.panorama.cardLabel') }}</p>
-          <h3 class="knowledge-card-title">{{ card.title }}</h3>
-          <p class="knowledge-card-summary">{{ card.summary }}</p>
-          <ul class="knowledge-card-list">
-            <li
-              v-for="item in card.items"
-              :key="item"
-            >
-              {{ item }}
-            </li>
-          </ul>
-        </article>
-      </div>
-    </section>
-
-    <section class="dashboard-section">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">{{ t('dashboard.architecture.kicker') }}</p>
-          <h2 class="sqlforge-section-title">{{ t('dashboard.architecture.title') }}</h2>
-        </div>
-        <p class="section-summary">{{ t('dashboard.architecture.summary') }}</p>
-      </div>
-      <div class="knowledge-grid knowledge-grid-architecture">
-        <article
-          v-for="card in architectureCards"
-          :key="card.title"
-          class="knowledge-card"
-        >
-          <p class="knowledge-card-label sqlforge-code-label">{{ t('dashboard.architecture.cardLabel') }}</p>
-          <h3 class="knowledge-card-title">{{ card.title }}</h3>
-          <p class="knowledge-card-summary">{{ card.summary }}</p>
-          <ul class="knowledge-card-list">
-            <li
-              v-for="item in card.items"
-              :key="item"
-            >
-              {{ item }}
-            </li>
-          </ul>
-        </article>
-      </div>
-    </section>
-
-    <section class="dashboard-section">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">{{ t('dashboard.progress.kicker') }}</p>
-          <h2 class="sqlforge-section-title">{{ t('dashboard.progress.title') }}</h2>
-        </div>
-        <div class="section-heading-actions">
-          <span class="section-badge sqlforge-code-label">{{ t('dashboard.progress.badge') }}</span>
-          <el-button
-            v-if="progressDeliveryPageVisible"
-            text
-            class="section-link"
-            @click="goTo(ROUTE_PATHS.deliveryProgress)"
-          >
-            {{ t('dashboard.progress.openDelivery') }}
-          </el-button>
-          <p
-            v-else
-            class="section-note"
-          >
-            {{ t('dashboard.progress.deliveryHidden') }}
-          </p>
-        </div>
-      </div>
-
-      <div class="progress-source-strip">
-        <div>
-          <p class="progress-source-label sqlforge-code-label">{{ t('dashboard.progress.sourceTitle') }}</p>
-          <p class="progress-source-summary">{{ t('dashboard.progress.sourceSummary') }}</p>
-        </div>
-        <div class="progress-source-pills">
-          <span
-            v-for="sourceFile in progressSourceFiles"
-            :key="sourceFile"
-            class="hero-pill"
-          >
-            {{ sourceFile }}
-          </span>
-        </div>
-      </div>
-
-      <div class="progress-summary-grid">
-        <article
-          v-for="card in progressSummaryCards"
-          :key="card.key"
-          class="progress-summary-card"
-        >
-          <p class="progress-summary-label">{{ t(`dashboard.progress.cards.${card.key}`) }}</p>
-          <strong class="progress-summary-value">{{ card.value }}</strong>
-          <p class="progress-summary-detail">{{ card.detail }}</p>
-        </article>
-      </div>
-
-      <div class="progress-board">
-        <article class="progress-panel">
-          <div class="progress-panel-heading">
-            <div>
-              <p class="progress-panel-label sqlforge-code-label">{{ t('dashboard.progress.modulesTitle') }}</p>
-              <h3 class="progress-panel-title">{{ t('dashboard.progress.modulesTitle') }}</h3>
-            </div>
-            <p class="progress-panel-summary">{{ t('dashboard.progress.modulesSummary') }}</p>
-          </div>
-          <div class="progress-module-list">
-            <article
-              v-for="module in progressModules"
-              :key="module.moduleLabel"
-              class="progress-module-card"
-            >
-              <div class="progress-module-header">
-                <div>
-                  <p class="progress-module-label sqlforge-code-label">{{ module.moduleLabel }}</p>
-                  <p class="progress-module-meta">
-                    {{ t('dashboard.progress.moduleMeta', { total: module.total, done: module.done, progress: module.in_progress }) }}
-                  </p>
-                </div>
-                <strong class="progress-module-rate">{{ module.completionRate }}%</strong>
-              </div>
-              <div class="progress-module-bar">
-                <div
-                  class="progress-module-bar-fill"
-                  :style="{ width: `${module.completionRate}%` }"
-                />
-              </div>
-            </article>
-          </div>
-        </article>
-
-        <article class="progress-panel">
-          <div class="progress-panel-heading">
-            <div>
-              <p class="progress-panel-label sqlforge-code-label">{{ t('dashboard.progress.recentTitle') }}</p>
-              <h3 class="progress-panel-title">{{ t('dashboard.progress.recentTitle') }}</h3>
-            </div>
-            <p class="progress-panel-summary">{{ t('dashboard.progress.recentSummary') }}</p>
-          </div>
-          <div class="progress-list">
-            <article
-              v-for="item in progressRecentChanges"
-              :key="item.itemKey"
-              class="progress-list-item"
-            >
-              <p class="progress-list-meta">{{ item.timestampLabel }} · {{ item.sourceFile }}</p>
-              <h3 class="progress-list-title">{{ item.taskId }} · {{ item.title }}</h3>
-              <p class="progress-list-detail">{{ item.detail || item.auxiliary }}</p>
-            </article>
-          </div>
-        </article>
-
-        <article class="progress-panel">
-          <div class="progress-panel-heading">
-            <div>
-              <p class="progress-panel-label sqlforge-code-label">{{ t('dashboard.progress.dependenciesTitle') }}</p>
-              <h3 class="progress-panel-title">{{ t('dashboard.progress.dependenciesTitle') }}</h3>
-            </div>
-            <p class="progress-panel-summary">{{ t('dashboard.progress.dependenciesSummary') }}</p>
-          </div>
-
-          <div
-            v-if="progressBlockers.length"
-            class="progress-list"
-          >
-            <article
-              v-for="item in progressBlockers"
-              :key="`${item.taskId}-${item.reason}`"
-              class="progress-list-item progress-list-item-danger"
-            >
-              <p class="progress-list-meta">{{ t('dashboard.progress.blockerLabel') }}</p>
-              <h3 class="progress-list-title">{{ item.taskId }} · {{ item.name }}</h3>
-              <p class="progress-list-detail">{{ item.reason }}</p>
-            </article>
-          </div>
-          <p
-            v-else
-            class="progress-empty"
-          >
-            {{ t('dashboard.progress.noBlockers') }}
-          </p>
-
-          <div
-            v-if="progressDependencies.length"
-            class="progress-list"
-          >
-            <article
-              v-for="task in progressDependencies"
-              :key="task.taskId"
-              class="progress-list-item"
-            >
-              <p class="progress-list-meta">
-                {{ t('deliveryProgress.meta.unresolvedCount', { count: task.unresolvedCount }) }}
-              </p>
-              <h3 class="progress-list-title">{{ task.taskId }} · {{ task.name }}</h3>
-              <p class="progress-list-detail">{{ formatDependencySummary(task.dependencies) }}</p>
-            </article>
-          </div>
-          <p
-            v-else
-            class="progress-empty"
-          >
-            {{ t('dashboard.progress.noDependencies') }}
-          </p>
-        </article>
-      </div>
-    </section>
-
-    <section class="dashboard-section">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">{{ t('dashboard.compliance.kicker') }}</p>
-          <h2 class="sqlforge-section-title">{{ t('dashboard.compliance.title') }}</h2>
-        </div>
-        <p class="section-summary">{{ t('dashboard.compliance.summary') }}</p>
-      </div>
-      <div class="progress-source-strip">
-        <div>
-          <p class="progress-source-label sqlforge-code-label">{{ t('dashboard.compliance.sourceTitle') }}</p>
-          <p class="progress-source-summary">{{ t('dashboard.compliance.sourceSummary') }}</p>
-        </div>
-        <div class="progress-source-pills">
-          <span class="hero-pill">docs/security/compliance.md</span>
-        </div>
-      </div>
-      <div class="knowledge-grid knowledge-grid-compliance">
-        <article
-          v-for="card in complianceCards"
-          :key="card.title"
-          class="knowledge-card"
-        >
-          <p class="knowledge-card-label sqlforge-code-label">{{ card.ruleId }}</p>
-          <h3 class="knowledge-card-title">{{ card.title }}</h3>
-          <p class="knowledge-card-summary">{{ card.summary }}</p>
-          <ul class="knowledge-card-list">
-            <li
-              v-for="item in card.items"
-              :key="item"
-            >
-              {{ item }}
-            </li>
-          </ul>
-        </article>
-      </div>
-    </section>
-
-    <section class="dashboard-section">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">{{ t('dashboard.rulebook.kicker') }}</p>
-          <h2 class="sqlforge-section-title">{{ t('dashboard.rulebook.title') }}</h2>
-        </div>
-        <p class="section-summary">{{ t('dashboard.rulebook.summary') }}</p>
-      </div>
-      <div class="progress-source-strip">
-        <div>
-          <p class="progress-source-label sqlforge-code-label">{{ t('dashboard.rulebook.sourceTitle') }}</p>
-          <p class="progress-source-summary">{{ t('dashboard.rulebook.sourceSummary') }}</p>
-        </div>
-        <div class="progress-source-pills">
-          <span
-            v-for="sourceFile in rulebookSourceFiles"
-            :key="sourceFile"
-            class="hero-pill"
-          >
-            {{ sourceFile }}
-          </span>
-        </div>
-      </div>
-      <div class="progress-summary-grid">
-        <article
-          v-for="card in rulebookSummaryCards"
-          :key="card.key"
-          class="progress-summary-card"
-        >
-          <p class="progress-summary-label">{{ t(`dashboard.rulebook.cardsSummary.${card.key}`) }}</p>
-          <strong class="progress-summary-value">{{ card.value }}</strong>
-          <p class="progress-summary-detail">{{ card.detail }}</p>
-        </article>
-      </div>
-      <div class="knowledge-grid">
-        <article
-          v-for="card in rulebookCards"
-          :key="card.title"
-          class="knowledge-card"
-        >
-          <p class="knowledge-card-label sqlforge-code-label">{{ t('dashboard.rulebook.cardLabel') }}</p>
-          <h3 class="knowledge-card-title">{{ card.title }}</h3>
-          <p class="knowledge-card-summary">{{ card.summary }}</p>
-          <ul class="knowledge-card-list">
-            <li
-              v-for="item in card.items"
-              :key="item"
-            >
-              {{ item }}
-            </li>
-          </ul>
-        </article>
-      </div>
-    </section>
-
-    <section class="dashboard-section">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">recommended next</p>
-          <h2 class="sqlforge-section-title">{{ t('dashboard.nextTitle') }}</h2>
-        </div>
-        <p class="section-summary">{{ t('dashboard.nextSummary') }}</p>
-      </div>
-      <div class="next-grid">
-        <article
-          v-for="step in nextSteps"
-          :key="step.title"
-          class="next-card"
-        >
-          <h3 class="next-title">{{ step.title }}</h3>
-          <p class="next-description">{{ step.description }}</p>
-          <el-button class="next-action" @click="goTo(step.path)">
-            {{ locale === 'zh-CN' ? '立即处理' : 'Take action' }}
-          </el-button>
-        </article>
-      </div>
+      </article>
     </section>
   </section>
 </template>
@@ -761,581 +493,295 @@ const goTo = path => {
 .dashboard-page {
   display: flex;
   flex-direction: column;
-  gap: var(--sqlforge-space-7);
+  gap: 24px;
+}
+
+.sqlforge-panel,
+.sqlforge-subpanel,
+.metric-card,
+.entry-card,
+.distribution-card,
+.todo-item,
+.activity-item,
+.progress-card,
+.blocker-item {
+  border: 1px solid var(--sqlforge-border-default);
+  background: var(--sqlforge-surface-2);
+}
+
+.sqlforge-panel {
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.sqlforge-subpanel {
+  border-radius: 14px;
+  padding: 18px;
+  background: rgba(41, 41, 41, 0.84);
 }
 
 .dashboard-hero,
-.dashboard-section,
-.health-card,
-.activity-list,
-.next-card {
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-lg);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 30%),
-    var(--sqlforge-surface-3);
+.dashboard-split,
+.metric-grid,
+.entry-grid,
+.distribution-grid {
+  display: grid;
+  gap: 18px;
 }
 
-.dashboard-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.9fr);
-  gap: var(--sqlforge-space-6);
-  padding: 28px;
+.dashboard-hero,
+.dashboard-split {
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
+}
+
+.hero-copy,
+.hero-aside,
+.todo-list,
+.activity-list,
+.blocker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .hero-eyebrow,
-.section-kicker {
+.hero-aside-label,
+.section-kicker,
+.metric-label,
+.distribution-label,
+.field-label span,
+.activity-type {
   margin: 0;
   color: var(--sqlforge-text-muted);
 }
 
 .hero-title {
-  max-width: 760px;
-  margin: 12px 0 0;
-  font-size: clamp(64px, 5vw, 72px);
-  font-weight: 400;
+  margin: 0;
+  font-size: clamp(40px, 6vw, 68px);
   line-height: 1;
-  letter-spacing: -0.02em;
+  font-weight: 400;
+  color: var(--sqlforge-text-primary);
 }
 
-.hero-summary {
-  max-width: 760px;
-  margin: 16px 0 0;
+.hero-summary,
+.distribution-description,
+.todo-description,
+.metric-detail,
+.entry-description,
+.entry-status,
+.activity-status {
+  margin: 0;
   color: var(--sqlforge-text-secondary);
-  font-size: 16px;
   line-height: 1.6;
 }
 
-.hero-pills {
+.hero-pills,
+.hero-actions,
+.section-heading,
+.metric-value-row {
   display: flex;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 20px;
 }
 
-.hero-pill {
+.hero-pill,
+.metric-trend,
+.status-pill {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
-  border: 1px solid var(--sqlforge-border-strong);
-  border-radius: var(--sqlforge-radius-pill);
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--sqlforge-border-default);
+  background: var(--sqlforge-bg-page-deep);
   color: var(--sqlforge-text-secondary);
   font-size: 12px;
 }
 
-.hero-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.hero-action {
+.pill-button,
+.link-button,
+.text-input {
   min-height: 42px;
-  padding: 0 24px;
+  border-radius: 999px;
 }
 
-.hero-action-primary {
-  border-color: #fafafa;
-  background: var(--sqlforge-bg-page-deep);
-  color: #fafafa;
+.pill-button,
+.link-button {
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
 
-.hero-action-secondary {
-  border-color: var(--sqlforge-border-default);
-  background: transparent;
-  color: var(--sqlforge-text-primary);
-}
-
-.hero-aside {
-  display: flex;
-}
-
-.hero-aside-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 100%;
-  padding: 20px;
+.pill-button {
+  padding: 0 20px;
   border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-lg);
-  background: rgba(15, 15, 15, 0.48);
-}
-
-.hero-aside-label {
-  margin: 0;
-  color: var(--sqlforge-text-muted);
-}
-
-.hero-signal {
-  display: flex;
-  gap: 18px;
-  margin-top: 24px;
-}
-
-.hero-signal-value {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 72px;
-  height: 72px;
-  border: 1px solid var(--sqlforge-color-brand-border);
-  border-radius: var(--sqlforge-radius-pill);
-  background: rgba(62, 207, 142, 0.08);
+  background: var(--sqlforge-bg-page-deep);
   color: var(--sqlforge-text-primary);
-  font-size: 28px;
-  line-height: 1;
 }
 
-.hero-signal h2,
-.entry-title,
-.health-title,
-.next-title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 400;
-  line-height: 1.2;
-  letter-spacing: -0.16px;
+.pill-button-primary {
+  border-color: var(--sqlforge-text-primary);
 }
 
-.hero-signal p,
-.section-summary,
-.entry-description,
-.entry-status,
-.health-description,
-.next-description {
-  margin: 10px 0 0;
-  color: var(--sqlforge-text-secondary);
-  line-height: 1.6;
+.pill-button:hover,
+.link-button:hover {
+  border-color: var(--sqlforge-color-brand-border);
+  color: var(--sqlforge-color-brand);
 }
 
-.dashboard-section {
-  padding: 24px;
-}
-
-.section-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-}
-
-.section-summary {
-  max-width: 480px;
-}
-
-.section-heading-actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.section-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  border: 1px solid var(--sqlforge-border-strong);
-  border-radius: var(--sqlforge-radius-pill);
-  color: var(--sqlforge-text-muted);
-}
-
-.section-link,
-.section-note {
-  margin: 0;
+.link-button {
+  width: fit-content;
+  min-height: auto;
   padding: 0;
+  border: none;
+  background: transparent;
   color: var(--sqlforge-color-link);
 }
 
-.knowledge-grid,
-.progress-summary-grid,
-.progress-board {
+.hero-signal {
   display: grid;
+  grid-template-columns: auto 1fr;
   gap: 16px;
-  margin-top: 20px;
+  align-items: start;
 }
 
-.knowledge-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.knowledge-grid-architecture {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.knowledge-grid-compliance {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.knowledge-card,
-.progress-summary-card,
-.progress-panel {
-  padding: 18px;
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-md);
-  background: rgba(15, 15, 15, 0.34);
-}
-
-.knowledge-card-label,
-.progress-source-label,
-.progress-panel-label,
-.progress-module-label,
-.progress-list-meta {
+.hero-signal h2,
+.section-title,
+.entry-title,
+.todo-title {
   margin: 0;
-  color: var(--sqlforge-text-muted);
-}
-
-.knowledge-card-title,
-.progress-panel-title,
-.progress-list-title {
-  margin: 12px 0 0;
-  font-size: 22px;
   font-weight: 400;
-  line-height: 1.25;
+  color: var(--sqlforge-text-primary);
 }
 
-.knowledge-card-summary,
-.progress-source-summary,
-.progress-panel-summary,
-.progress-summary-detail,
-.progress-list-detail,
-.progress-empty {
-  margin: 10px 0 0;
+.hero-signal p {
+  margin: 6px 0 0;
   color: var(--sqlforge-text-secondary);
   line-height: 1.6;
 }
 
-.knowledge-card-list {
-  margin: 16px 0 0;
-  padding-left: 18px;
-  color: var(--sqlforge-text-secondary);
-}
-
-.knowledge-card-list li + li {
-  margin-top: 8px;
-}
-
-.progress-source-strip {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-  margin-top: 20px;
-  padding: 18px;
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-md);
-  background: rgba(15, 15, 15, 0.2);
-}
-
-.progress-source-pills {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.progress-summary-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.progress-summary-label {
-  margin: 0;
-  color: var(--sqlforge-text-muted);
-  font-size: 12px;
-}
-
-.progress-summary-value {
-  display: block;
-  margin-top: 12px;
-  font-size: 30px;
-  font-weight: 400;
+.hero-signal-value {
+  font-size: 42px;
   line-height: 1;
+  color: var(--sqlforge-color-brand);
 }
 
-.progress-board {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.progress-panel {
+.text-input {
+  padding: 0 14px;
+  border: 1px solid var(--sqlforge-border-default);
+  background: var(--sqlforge-bg-page-deep);
+  color: var(--sqlforge-text-primary);
+}
+
+.error-banner {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(212, 96, 96, 0.35);
+  border-radius: 14px;
+  background: rgba(120, 28, 28, 0.18);
+  color: #ffd6d6;
+}
+
+.dashboard-section {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
-.progress-panel-heading {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.progress-module-list,
-.progress-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.progress-module-card,
-.progress-list-item {
-  padding: 14px;
-  border: 1px solid var(--sqlforge-border-subtle);
-  border-radius: var(--sqlforge-radius-md);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.progress-list-item-danger {
-  border-color: rgba(235, 84, 84, 0.45);
-  background: linear-gradient(180deg, var(--sqlforge-status-danger), transparent 75%), rgba(255, 255, 255, 0.02);
-}
-
-.progress-module-header {
-  display: flex;
-  align-items: flex-start;
+.section-heading {
   justify-content: space-between;
-  gap: 16px;
 }
 
-.progress-module-meta {
-  margin: 8px 0 0;
-  color: var(--sqlforge-text-secondary);
-  line-height: 1.5;
-}
-
-.progress-module-rate {
-  font-size: 24px;
-  font-weight: 400;
-}
-
-.progress-module-bar {
-  height: 8px;
-  margin-top: 14px;
-  overflow: hidden;
-  border-radius: var(--sqlforge-radius-pill);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.progress-module-bar-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, rgba(62, 207, 142, 0.55), rgba(62, 207, 142, 0.92));
+.section-title {
+  font-size: 28px;
+  line-height: 1.1;
 }
 
 .metric-grid,
 .entry-grid,
-.next-grid {
-  display: grid;
-  gap: 16px;
-  margin-top: 20px;
-}
-
-.metric-grid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-.entry-grid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-.next-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.distribution-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .metric-card,
 .entry-card,
-.next-card {
+.distribution-card {
+  border-radius: 14px;
   padding: 18px;
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-md);
-  background: rgba(15, 15, 15, 0.34);
+}
+
+.metric-card-danger {
+  border-color: rgba(212, 96, 96, 0.35);
+}
+
+.metric-card-warning {
+  border-color: rgba(207, 166, 62, 0.32);
 }
 
 .metric-card-success {
   border-color: var(--sqlforge-color-brand-border);
 }
 
-.metric-card-warning {
-  background: linear-gradient(180deg, var(--sqlforge-status-warning), transparent 68%), rgba(15, 15, 15, 0.34);
-}
-
-.metric-card-danger {
-  background: linear-gradient(180deg, var(--sqlforge-status-danger), transparent 68%), rgba(15, 15, 15, 0.34);
-}
-
-.metric-label {
-  margin: 0;
-  color: var(--sqlforge-text-muted);
-  font-size: 12px;
-}
-
-.metric-value-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 12px;
-}
-
 .metric-value {
-  font-size: 30px;
-  font-weight: 400;
+  font-size: 34px;
   line-height: 1;
-}
-
-.metric-trend {
-  color: var(--sqlforge-text-secondary);
-  font-family: var(--sqlforge-font-mono);
-  font-size: 12px;
-  letter-spacing: 1.2px;
-}
-
-.metric-detail {
-  margin: 14px 0 0;
-  color: var(--sqlforge-text-secondary);
-  font-size: 14px;
-  line-height: 1.55;
+  font-weight: 400;
+  color: var(--sqlforge-text-primary);
 }
 
 .entry-label,
-.health-label {
-  margin: 0;
+.activity-time {
   color: var(--sqlforge-text-muted);
 }
 
-.entry-title,
-.health-title,
-.next-title {
-  margin-top: 12px;
+.entry-title {
+  font-size: 22px;
+  line-height: 1.2;
 }
 
-.entry-action,
-.health-action {
-  margin-top: 14px;
-  padding: 0;
-  color: var(--sqlforge-color-link);
+.distribution-value,
+.activity-target {
+  color: var(--sqlforge-text-primary);
 }
 
-.dashboard-split {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.9fr);
-  gap: 24px;
+.distribution-value {
+  font-size: 26px;
+  line-height: 1.1;
+  font-weight: 400;
 }
 
-.health-list,
-.activity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 20px;
-}
-
-.health-card {
+.todo-item,
+.activity-item {
+  border-radius: 14px;
   padding: 18px;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
 }
 
-.health-card-success {
+.todo-item-danger {
+  border-color: rgba(212, 96, 96, 0.35);
+}
+
+.todo-item-warning {
+  border-color: rgba(207, 166, 62, 0.32);
+}
+
+.todo-item-success {
   border-color: var(--sqlforge-color-brand-border);
 }
 
-.health-card-warning {
-  background: linear-gradient(180deg, var(--sqlforge-status-warning), transparent 70%), var(--sqlforge-surface-3);
-}
-
-.health-card-danger {
-  background: linear-gradient(180deg, var(--sqlforge-status-danger), transparent 70%), var(--sqlforge-surface-3);
-}
-
-.activity-list {
-  padding: 0;
-  overflow: hidden;
-}
-
-.activity-item {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 18px;
-}
-
-.activity-item + .activity-item {
-  border-top: 1px solid var(--sqlforge-border-subtle);
-}
-
-.activity-type,
-.activity-status,
-.activity-time {
-  margin: 0;
-  color: var(--sqlforge-text-muted);
-  font-size: 12px;
-}
-
-.activity-target {
-  display: block;
-  margin-top: 8px;
-  color: var(--sqlforge-text-primary);
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.45;
-}
-
-.activity-status {
-  margin-top: 8px;
-  color: var(--sqlforge-text-secondary);
-  line-height: 1.5;
-}
-
-.next-action {
-  margin-top: 18px;
-  min-height: 40px;
-  padding: 0 18px;
-  border-radius: var(--sqlforge-radius-pill);
-  border-color: var(--sqlforge-border-default);
-  background: var(--sqlforge-bg-page-deep);
-  color: var(--sqlforge-text-primary);
-}
-
-@media (max-width: 1240px) {
-  .metric-grid,
-  .entry-grid,
-  .knowledge-grid,
-  .knowledge-grid-architecture,
-  .knowledge-grid-compliance,
-  .progress-summary-grid,
-  .progress-board {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 900px) {
+@media (max-width: 1080px) {
   .dashboard-hero,
-  .dashboard-split,
-  .metric-grid,
-  .entry-grid,
-  .next-grid,
-  .knowledge-grid,
-  .knowledge-grid-architecture,
-  .knowledge-grid-compliance,
-  .progress-summary-grid,
-  .progress-board {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .hero-title {
-    font-size: clamp(40px, 10vw, 56px);
-  }
-
-  .section-heading,
-  .progress-source-strip {
-    flex-direction: column;
-  }
-
-  .section-heading-actions,
-  .hero-actions,
-  .progress-source-pills {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .hero-actions {
-    flex-direction: column;
+  .dashboard-split {
+    grid-template-columns: 1fr;
   }
 }
 </style>
