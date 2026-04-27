@@ -28,12 +28,14 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyApply
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 
@@ -43,6 +45,7 @@ class QueryExecutionApplicationServiceTest {
     @AfterEach
     void tearDown() {
         RequestContext.clear();
+        RequestMetadataContext.clear();
     }
 
     @Test
@@ -417,6 +420,23 @@ class QueryExecutionApplicationServiceTest {
             org.mockito.Mockito.eq("QUERY_EXECUTE_SYNC")
         );
         verify(governanceCapabilityClient).writeAudit(any());
+    }
+
+    @Test
+    void shouldIncludeAccessChannelInAuditRequestParams() {
+        setRequestContext("tenant-a");
+        RequestMetadataContext.set("127.0.0.1", "JUnit", "api");
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        QueryExecutionApplicationService service =
+            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), governanceCapabilityClient);
+
+        service.executeSynchronously(baseRequest("SELECT * FROM orders"));
+
+        ArgumentCaptor<com.company.queryexecution.infrastructure.governance.QueryExecutionAuditRecord> captor =
+            ArgumentCaptor.forClass(com.company.queryexecution.infrastructure.governance.QueryExecutionAuditRecord.class);
+        verify(governanceCapabilityClient).writeAudit(captor.capture());
+        assertTrue(captor.getValue().getRequestParams().contains("\"accessChannel\":\"API\""));
+        assertTrue(captor.getValue().getRequestParams().contains("\"authSource\":\"header\""));
     }
 
     @Test

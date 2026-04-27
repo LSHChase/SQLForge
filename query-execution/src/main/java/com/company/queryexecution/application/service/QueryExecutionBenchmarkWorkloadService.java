@@ -8,6 +8,7 @@ import com.company.queryexecution.domain.query.FaultToleranceStrategy;
 import com.company.queryexecution.domain.query.QueryExecutionStatus;
 import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.queryexecution.infrastructure.governance.QueryExecutionAuditRecord;
+import com.company.sqlforge.common.access.AccessAuditContract;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadEngineSnapshot;
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadRequest;
@@ -360,7 +361,10 @@ public class QueryExecutionBenchmarkWorkloadService {
     private void writeAuditRecord(QueryExecutionBenchmarkWorkloadRequest request,
                                   QueryExecutionBenchmarkWorkloadResponse response,
                                   long elapsedMs) {
+        AccessAuditContract accessAuditContract = AccessAuditContract.capture();
         Map<String, Object> requestPayload = new LinkedHashMap<String, Object>();
+        requestPayload.put("accessChannel", accessAuditContract.getAccessChannel().name());
+        requestPayload.put("authSource", accessAuditContract.getAuthSource());
         requestPayload.put("benchmarkTaskId", request == null ? null : request.getBenchmarkTaskId());
         requestPayload.put("benchmarkTaskType", request == null ? null : request.getBenchmarkTaskType());
         requestPayload.put("tenantId", request == null ? null : request.getTenantId());

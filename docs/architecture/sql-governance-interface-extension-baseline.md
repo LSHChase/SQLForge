@@ -773,3 +773,14 @@ repo-side 基线：
 - 跨服务写治理审计时必须透传规范化 `accessChannel`
 - 推荐通过 `X-Access-Channel` 头在入口链路显式传递
 - 历史兼容调用若未显式声明，则治理侧按 `API` 回填，但未知值必须拒绝
+
+对外 HTTP API 入口基线：
+
+- 受保护入口必须携带 `X-Tenant-Id`
+- 受保护入口必须携带 `X-User-Id`
+- 受保护入口必须携带 `X-Role-Codes`
+- 受保护入口必须携带 `X-Request-Id`
+- 受保护入口必须携带 `X-Trace-Id`
+- 受保护入口必须携带 `X-Auth-Source`
+- 受保护入口建议显式携带 `X-Access-Channel`
+- `X-Access-Channel` 支持 `page/api/jdbc/jdbc_agent/sdk/client` 大小写兼容输入，治理侧统一标准化

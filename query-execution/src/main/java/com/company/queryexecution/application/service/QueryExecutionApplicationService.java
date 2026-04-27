@@ -16,6 +16,7 @@ import com.company.queryexecution.infrastructure.adapter.HetuExecutionUnavailabl
 import com.company.queryexecution.infrastructure.adapter.QueryExecutionAdapter;
 import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.queryexecution.infrastructure.governance.QueryExecutionAuditRecord;
+import com.company.sqlforge.common.access.AccessAuditContract;
 import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
@@ -844,7 +845,10 @@ public class QueryExecutionApplicationService {
     }
 
     private String buildRequestParams(QueryExecuteRequest request, String sqlFingerprint) {
+        AccessAuditContract accessAuditContract = AccessAuditContract.capture();
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("accessChannel", accessAuditContract.getAccessChannel().name());
+        payload.put("authSource", accessAuditContract.getAuthSource());
         payload.put("serviceCode", ServiceCodeConstants.QUERY_EXECUTION);
         payload.put("tenantId", request.getTenantId());
         payload.put("datasourceType", request.getDatasourceType() == null ? null : request.getDatasourceType().name());

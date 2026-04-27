@@ -42,9 +42,10 @@ class GovernanceHttpClientTest {
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         setProtectedRequestContext();
-        RequestMetadataContext.set("10.0.0.8", "SQLForge-Test-UA");
+        RequestMetadataContext.set("10.0.0.8", "SQLForge-Test-UA", "api");
         server.expect(requestTo("http://governance.test/api/governance/internal/audit/write"))
             .andExpect(method(HttpMethod.POST))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"accessChannel\":\"API\"")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("\"sourceIp\":\"10.0.0.8\"")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("\"userAgent\":\"SQLForge-Test-UA\"")))
             .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));

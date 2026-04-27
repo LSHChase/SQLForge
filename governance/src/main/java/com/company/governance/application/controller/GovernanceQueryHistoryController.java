@@ -5,10 +5,14 @@ import com.company.governance.application.controller.vo.GovernanceQueryHistoryDe
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryExportVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryPageVO;
 import com.company.governance.application.service.GovernanceHistoryApplicationService;
+import com.company.sqlforge.common.access.AccessChannel;
+import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.TenantContext;
+import com.company.sqlforge.common.exception.BizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -78,7 +82,7 @@ public class GovernanceQueryHistoryController {
             accelerationApplied,
             parameterizedSql,
             logicalObjectType,
-            accessChannel,
+            normalizeAccessChannelFilter(accessChannel),
             engine,
             submittedBy,
             submittedStart,
@@ -117,5 +121,20 @@ public class GovernanceQueryHistoryController {
             RequestContext.getTraceId()
         );
         return governanceHistoryApplicationService.exportQueryHistory(effectiveTenantId, request);
+    }
+
+    private String normalizeAccessChannelFilter(String accessChannel) {
+        if (!StringUtils.hasText(accessChannel)) {
+            return null;
+        }
+        AccessChannel normalized = AccessChannel.fromWireValue(accessChannel);
+        if (normalized == null) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                "accessChannel must be one of PAGE/API/JDBC_AGENT/SDK/CLIENT"
+            );
+        }
+        return normalized.name();
     }
 }

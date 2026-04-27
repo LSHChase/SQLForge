@@ -62,6 +62,7 @@ class AccelerationRecommendationControllerTest {
             .header(RequestHeaderConstants.REQUEST_ID, "request-001")
             .header(RequestHeaderConstants.TRACE_ID, "trace-001")
             .header(RequestHeaderConstants.AUTH_SOURCE, AuthSourceConstants.HEADER)
+            .header(RequestHeaderConstants.ACCESS_CHANNEL, "api")
             .header(RequestHeaderConstants.ISSUED_AT, String.valueOf(now - 1000L))
             .header(RequestHeaderConstants.EXPIRES_AT, String.valueOf(now + 60000L));
     }

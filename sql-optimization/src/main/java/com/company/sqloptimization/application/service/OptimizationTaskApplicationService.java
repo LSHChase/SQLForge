@@ -1,5 +1,6 @@
 package com.company.sqloptimization.application.service;
 
+import com.company.sqlforge.common.access.AccessAuditContract;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
@@ -287,7 +288,10 @@ public class OptimizationTaskApplicationService {
     }
 
     private String buildSubmitRequestParams(OptimizationTaskSubmitRequest request, String sqlFingerprint) {
+        AccessAuditContract accessAuditContract = AccessAuditContract.capture();
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("accessChannel", accessAuditContract.getAccessChannel().name());
+        payload.put("authSource", accessAuditContract.getAuthSource());
         payload.put("serviceCode", ServiceCodeConstants.SQL_OPTIMIZATION);
         payload.put("tenantId", request.getTenantId());
         payload.put("taskType", request.getTaskType() == null ? null : request.getTaskType().name());
@@ -297,7 +301,10 @@ public class OptimizationTaskApplicationService {
     }
 
     private String buildStatusRequestParams(OptimizationTask task) {
+        AccessAuditContract accessAuditContract = AccessAuditContract.capture();
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("accessChannel", accessAuditContract.getAccessChannel().name());
+        payload.put("authSource", accessAuditContract.getAuthSource());
         payload.put("serviceCode", ServiceCodeConstants.SQL_OPTIMIZATION);
         payload.put("tenantId", task.getTenantId());
         payload.put("taskId", task.getTaskId());
@@ -308,7 +315,10 @@ public class OptimizationTaskApplicationService {
     }
 
     private String buildMissingStatusRequestParams(String taskId) {
+        AccessAuditContract accessAuditContract = AccessAuditContract.capture();
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("accessChannel", accessAuditContract.getAccessChannel().name());
+        payload.put("authSource", accessAuditContract.getAuthSource());
         payload.put("serviceCode", ServiceCodeConstants.SQL_OPTIMIZATION);
         payload.put("tenantId", RequestContext.getTenantId());
         payload.put("taskId", taskId);

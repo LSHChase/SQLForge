@@ -10,17 +10,20 @@ import static org.mockito.Mockito.verify;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqloptimization.application.controller.dto.OptimizationTaskContextDTO;
 import com.company.sqloptimization.application.controller.dto.OptimizationTaskSubmitRequest;
 import com.company.sqloptimization.application.controller.vo.OptimizationTaskSubmitResponse;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqloptimization.infrastructure.governance.OptimizationAuditRecord;
 import com.company.sqloptimization.infrastructure.repository.InMemoryOptimizationTaskRepository;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 
@@ -30,6 +33,7 @@ class OptimizationTaskApplicationServiceTest {
     @AfterEach
     void tearDown() {
         RequestContext.clear();
+        RequestMetadataContext.clear();
     }
 
     @Test
@@ -98,6 +102,26 @@ class OptimizationTaskApplicationServiceTest {
             org.mockito.Mockito.eq("OPTIMIZATION_TASK_STATUS_QUERY")
         );
         verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).writeAudit(any());
+    }
+
+    @Test
+    void shouldIncludeAccessChannelInOptimizationAuditPayload() {
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        OptimizationTaskApplicationService service = new OptimizationTaskApplicationService(
+            new OptimizationTaskModelApplicationService(),
+            new InMemoryOptimizationTaskRepository(),
+            governanceCapabilityClient,
+            new OptimizationMetricsRecorder(new SimpleMeterRegistry())
+        );
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestMetadataContext.set("127.0.0.1", "JUnit", "api");
+
+        service.submitTask(baseRequest("SELECT * FROM orders"));
+
+        ArgumentCaptor<OptimizationAuditRecord> captor = ArgumentCaptor.forClass(OptimizationAuditRecord.class);
+        verify(governanceCapabilityClient).writeAudit(captor.capture());
+        assertTrue(captor.getValue().getRequestParams().contains("\"accessChannel\":\"API\""));
+        assertTrue(captor.getValue().getRequestParams().contains("\"authSource\":\"header\""));
     }
 
     @Test

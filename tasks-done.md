@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-064: 落地 HTTP API 接入基线
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(api): baseline protected access-channel handling`
+- Priority: 1
+- Depends on: `D-TASK-063`
+- Scope: 对外 query/parse/history/recommendation API 入口基线 Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-012` 开放接入与 JDBC Agent
+- Human confirmation point: 若 HTTP API 接入会绕过统一鉴权/审计、扩大对外暴露面或删改既有契约，需人工确认
+- Data impact: 外部 API、认证上下文、审计记录与错误响应
+- Rollback / recovery: 回退对外入口到受保护最小基线，并保留现有内部契约
+- Validation:
+  - `API integration 测试`
+  - `python3 scripts/foreman.py validate D-TASK-064`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Extended HTTP API baseline so protected query/optimization entrypoints capture accessChannel/authSource in governance request payloads, and governance query-history normalizes accessChannel filters for external API callers.
+  - Validation evidence: mvn -pl governance -am -Dtest=GovernanceAuditTrailServiceTest,GovernanceQueryHistoryControllerTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl query-execution -am -Dtest=QueryExecutionControllerTest,GovernanceHttpClientTest,QueryExecutionApplicationServiceTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl sql-optimization -am -Dtest=StructureParseControllerTest,AccelerationRecommendationControllerTest,GovernanceHttpClientTest,OptimizationTaskApplicationServiceTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-064
+  - Residual risk: Recommendation list/detail APIs are protected and baseline-compatible, but richer access policy/audit query endpoints remain for later tasks.
+  - Next step: Proceed to D-TASK-065 for the JDBC Agent Observe delivery after the protected HTTP API baseline is stable.
+
 ### D-TASK-063: 固化接入来源模型与统一审计契约
 
 - Status: done
