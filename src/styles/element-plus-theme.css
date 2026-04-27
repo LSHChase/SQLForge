@@ -74,14 +74,34 @@
   --el-text-color-primary: var(--sqlforge-text-primary);
   --el-text-color-regular: var(--sqlforge-text-secondary);
   --el-text-color-secondary: var(--sqlforge-text-muted);
+  --el-text-color-placeholder: #747474;
+  --el-text-color-disabled: #666;
   --el-bg-color: var(--sqlforge-surface-1);
   --el-bg-color-page: var(--sqlforge-bg-page);
   --el-bg-color-overlay: var(--sqlforge-surface-3);
+  --el-fill-color: var(--sqlforge-surface-2);
   --el-fill-color-light: var(--sqlforge-surface-2);
+  --el-fill-color-lighter: #202020;
+  --el-fill-color-extra-light: #242424;
+  --el-fill-color-dark: #1a1a1a;
+  --el-fill-color-darker: #171717;
+  --el-fill-color-blank: var(--sqlforge-bg-page-deep);
   --el-border-color: var(--sqlforge-border-default);
   --el-border-color-light: var(--sqlforge-border-subtle);
+  --el-border-color-lighter: #353535;
+  --el-border-color-extra-light: #2a2a2a;
+  --el-border-color-dark: #3b3b3b;
+  --el-border-color-darker: #414141;
+  --el-disabled-bg-color: #181818;
+  --el-disabled-text-color: #666;
+  --el-disabled-border-color: #2b2b2b;
   --el-border-radius-base: var(--sqlforge-radius-xs);
   --el-mask-color: rgba(17, 17, 17, 0.66);
+  --el-mask-color-extra-light: rgba(17, 17, 17, 0.42);
+  --el-box-shadow: none;
+  --el-box-shadow-light: none;
+  --el-box-shadow-lighter: none;
+  --el-box-shadow-dark: none;
 }
 
 html {
@@ -184,4 +204,118 @@ select {
 
 .el-button:focus-visible {
   box-shadow: var(--sqlforge-shadow-focus);
+}
+
+.el-button:not(.is-text) {
+  background: var(--sqlforge-bg-page-deep);
+  border-color: var(--sqlforge-border-default);
+  color: var(--sqlforge-text-primary);
+}
+
+.el-button:not(.is-text):hover {
+  background: var(--sqlforge-surface-2);
+  border-color: var(--sqlforge-border-strong);
+  color: var(--sqlforge-text-primary);
+}
+
+.el-button--primary {
+  background: var(--sqlforge-color-brand) !important;
+  border-color: var(--sqlforge-color-brand) !important;
+  color: var(--sqlforge-text-on-brand) !important;
+}
+
+.el-button--primary:hover {
+  background: #57d89c !important;
+  border-color: #57d89c !important;
+}
+
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper {
+  background: var(--sqlforge-bg-page-deep) !important;
+  box-shadow: 0 0 0 1px var(--sqlforge-border-default) inset !important;
+  color: var(--sqlforge-text-primary) !important;
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused,
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--sqlforge-color-brand-border) inset !important;
+}
+
+.el-input__inner,
+.el-textarea__inner {
+  color: var(--sqlforge-text-primary) !important;
+}
+
+.el-textarea__inner::placeholder,
+.el-input__inner::placeholder {
+  color: var(--el-text-color-placeholder);
+}
+
+.el-select-dropdown,
+.el-popper,
+.el-dialog,
+.el-drawer {
+  background: var(--sqlforge-surface-2) !important;
+  color: var(--sqlforge-text-primary) !important;
+  border-color: var(--sqlforge-border-default) !important;
+}
+
+.el-dialog__header,
+.el-dialog__body,
+.el-drawer__header,
+.el-drawer__body {
+  color: var(--sqlforge-text-primary);
+}
+
+.el-tree {
+  background: transparent !important;
+  color: var(--sqlforge-text-secondary);
+}
+
+.el-tree-node:focus > .el-tree-node__content,
+.el-tree-node__content:hover {
+  background: var(--sqlforge-surface-2) !important;
+  color: var(--sqlforge-text-primary);
+}
+
+.el-tree--highlight-current .el-tree-node.is-current > .el-tree-node__content {
+  background: rgba(62, 207, 142, 0.08) !important;
+  color: var(--sqlforge-text-primary);
+}
+
+.el-table,
+.el-table tr,
+.el-table th.el-table__cell,
+.el-table td.el-table__cell,
+.el-table__inner-wrapper::before {
+  background: var(--sqlforge-surface-2) !important;
+  color: var(--sqlforge-text-primary);
+}
+
+.el-table th.el-table__cell {
+  background: #202020 !important;
+}
+
+.el-table td.el-table__cell,
+.el-table th.el-table__cell {
+  border-bottom-color: var(--sqlforge-border-subtle) !important;
+}
+
+.el-tabs__item {
+  color: var(--sqlforge-text-secondary);
+}
+
+.el-tabs__item.is-active,
+.el-tabs__item:hover {
+  color: var(--sqlforge-text-primary);
+}
+
+.el-tabs__active-bar {
+  background-color: var(--sqlforge-color-brand);
+}
+
+.el-tabs__nav-wrap::after {
+  background-color: var(--sqlforge-border-subtle);
 }

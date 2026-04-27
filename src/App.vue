@@ -12,6 +12,7 @@ const tenantStore = useTenantStore()
 const userStore = useUserStore()
 
 const navLabel = value => (locale.value === 'zh-CN' ? value.zh : value.en)
+const itemLabel = item => navLabel(item.menuLabel || { zh: t(item.titleKey), en: t(item.titleKey) })
 
 const navigationTree = computed(() => [
   {
@@ -20,8 +21,8 @@ const navigationTree = computed(() => [
     sections: [
       {
         key: 'overview',
-        label: { zh: '总览驾驶舱', en: 'Overview cockpit' },
-        items: [{ path: ROUTE_PATHS.dashboard, titleKey: 'dashboard.title' }]
+        label: { zh: '总览', en: 'Overview' },
+        items: [{ path: ROUTE_PATHS.dashboard, titleKey: 'dashboard.title', menuLabel: { zh: '总览首页', en: 'Overview home' } }]
       }
     ]
   },
@@ -32,7 +33,7 @@ const navigationTree = computed(() => [
       {
         key: 'workbench',
         label: { zh: '查询工作台', en: 'Query workbench' },
-        items: [{ path: ROUTE_PATHS.sqlQuery, titleKey: 'sqlQuery.title' }]
+        items: [{ path: ROUTE_PATHS.sqlQuery, titleKey: 'sqlQuery.title', menuLabel: { zh: '工作台', en: 'Workbench' } }]
       }
     ]
   },
@@ -43,14 +44,14 @@ const navigationTree = computed(() => [
       {
         key: 'history',
         label: { zh: '历史列表', en: 'History list' },
-        items: [{ path: ROUTE_PATHS.parseRecord, titleKey: 'parseRecord.title' }]
+        items: [{ path: ROUTE_PATHS.parseRecord, titleKey: 'parseRecord.title', menuLabel: { zh: '历史列表', en: 'History list' } }]
       },
       {
         key: 'forensics',
-        label: { zh: '取证与修复', en: 'Forensics and repair' },
+        label: { zh: '明细与取证', en: 'Detail and forensics' },
         items: [
-          { path: ROUTE_PATHS.repairEvidence, titleKey: 'repairEvidence.title' },
-          { path: ROUTE_PATHS.auditForensics, titleKey: 'auditForensics.title' }
+          { path: ROUTE_PATHS.repairEvidence, titleKey: 'repairEvidence.title', menuLabel: { zh: '修复证据', en: 'Repair evidence' } },
+          { path: ROUTE_PATHS.auditForensics, titleKey: 'auditForensics.title', menuLabel: { zh: '审计取证', en: 'Audit forensics' } }
         ]
       }
     ]
@@ -63,15 +64,15 @@ const navigationTree = computed(() => [
         key: 'parse',
         label: { zh: '解析工作流', en: 'Parsing workflow' },
         items: [
-          { path: ROUTE_PATHS.acceleration, titleKey: 'acceleration.title' },
-          { path: ROUTE_PATHS.parseBatchCenter, titleKey: 'parseBatchCenter.title' },
-          { path: ROUTE_PATHS.parseStatisticsCenter, titleKey: 'parseStatisticsCenter.title' }
+          { path: ROUTE_PATHS.acceleration, titleKey: 'acceleration.title', menuLabel: { zh: '解析工作台', en: 'Parse workbench' } },
+          { path: ROUTE_PATHS.parseBatchCenter, titleKey: 'parseBatchCenter.title', menuLabel: { zh: '批量解析', en: 'Batch parsing' } },
+          { path: ROUTE_PATHS.parseStatisticsCenter, titleKey: 'parseStatisticsCenter.title', menuLabel: { zh: '结果中心', en: 'Result center' } }
         ]
       },
       {
         key: 'rewrite',
-        label: { zh: '改写与推荐', en: 'Rewrite and Recommendation' },
-        items: [{ path: ROUTE_PATHS.recommendationCenter, titleKey: 'recommendationCenter.title' }]
+        label: { zh: '改写与推荐', en: 'Rewrite and recommendation' },
+        items: [{ path: ROUTE_PATHS.recommendationCenter, titleKey: 'recommendationCenter.title', menuLabel: { zh: '推荐中心', en: 'Recommendation center' } }]
       }
     ]
   },
@@ -81,8 +82,8 @@ const navigationTree = computed(() => [
     sections: [
       {
         key: 'routing-policy',
-        label: { zh: '当前策略与历史', en: 'Policy and history' },
-        items: [{ path: ROUTE_PATHS.routingGovernance, titleKey: 'routingGovernance.title' }]
+        label: { zh: '策略与历史决策', en: 'Policy and decision history' },
+        items: [{ path: ROUTE_PATHS.routingGovernance, titleKey: 'routingGovernance.title', menuLabel: { zh: '路由策略', en: 'Routing policy' } }]
       }
     ]
   },
@@ -93,7 +94,7 @@ const navigationTree = computed(() => [
       {
         key: 'catalog',
         label: { zh: '资产目录', en: 'Asset catalog' },
-        items: [{ path: ROUTE_PATHS.assetCatalog, titleKey: 'assetCatalog.title' }]
+        items: [{ path: ROUTE_PATHS.assetCatalog, titleKey: 'assetCatalog.title', menuLabel: { zh: '资产目录', en: 'Asset catalog' } }]
       }
     ]
   },
@@ -103,8 +104,8 @@ const navigationTree = computed(() => [
     sections: [
       {
         key: 'benchmark-workspace',
-        label: { zh: '任务与报告', en: 'Tasks and reports' },
-        items: [{ path: ROUTE_PATHS.benchmark, titleKey: 'benchmark.title' }]
+        label: { zh: '任务、测试集与报告', en: 'Tasks, suites, and reports' },
+        items: [{ path: ROUTE_PATHS.benchmark, titleKey: 'benchmark.title', menuLabel: { zh: '压测工作台', en: 'Benchmark workbench' } }]
       }
     ]
   },
@@ -114,23 +115,23 @@ const navigationTree = computed(() => [
     sections: [
       {
         key: 'config',
-        label: { zh: '配置与接入', en: 'Config and integration' },
-        items: [{ path: ROUTE_PATHS.system, titleKey: 'system.title' }]
+        label: { zh: '配置与数据源', en: 'Config and datasources' },
+        items: [{ path: ROUTE_PATHS.system, titleKey: 'system.title', menuLabel: { zh: '配置中心', en: 'Config center' } }]
       },
       {
         key: 'alerts',
-        label: { zh: '告警与处置', en: 'Alerts and Remediation' },
+        label: { zh: '告警与处置', en: 'Alerts and remediation' },
         items: [
-          { path: ROUTE_PATHS.alertCenter, titleKey: 'alertCenter.title' },
-          { path: ROUTE_PATHS.auditTroubleshooting, titleKey: 'auditTroubleshooting.title' }
+          { path: ROUTE_PATHS.alertCenter, titleKey: 'alertCenter.title', menuLabel: { zh: '告警中心', en: 'Alert center' } },
+          { path: ROUTE_PATHS.auditTroubleshooting, titleKey: 'auditTroubleshooting.title', menuLabel: { zh: '故障处置', en: 'Troubleshooting' } }
         ]
       },
       {
         key: 'runtime',
-        label: { zh: '运行治理', en: 'Runtime Governance' },
+        label: { zh: '运行治理', en: 'Runtime governance' },
         items: [
-          { path: ROUTE_PATHS.runtimeGates, titleKey: 'runtimeGates.title' },
-          { path: ROUTE_PATHS.recoveryDrill, titleKey: 'recoveryDrill.title' }
+          { path: ROUTE_PATHS.runtimeGates, titleKey: 'runtimeGates.title', menuLabel: { zh: '运行时门禁', en: 'Runtime gates' } },
+          { path: ROUTE_PATHS.recoveryDrill, titleKey: 'recoveryDrill.title', menuLabel: { zh: '恢复演练', en: 'Recovery drill' } }
         ]
       }
     ]
@@ -142,7 +143,7 @@ const navigationTree = computed(() => [
       {
         key: 'access-overview',
         label: { zh: '接入总览与策略', en: 'Access overview and policy' },
-        items: [{ path: ROUTE_PATHS.accessCenter, titleKey: 'accessCenter.title' }]
+        items: [{ path: ROUTE_PATHS.accessCenter, titleKey: 'accessCenter.title', menuLabel: { zh: '接入总览', en: 'Access overview' } }]
       }
     ]
   }
@@ -178,14 +179,11 @@ const workspaceSummary = computed(() =>
   })
 )
 const userBadge = computed(() => `${userStore.displayName} · ${userStore.role}`)
-const pageDescription = computed(() =>
-  route.meta?.descriptionKey ? t(route.meta.descriptionKey) : t('dashboard.summary')
-)
 const breadcrumbText = computed(() => {
   if (!activeNavItem.value) {
     return []
   }
-  return [navLabel(activeNavItem.value.moduleLabel), navLabel(activeNavItem.value.sectionLabel), t(activeNavItem.value.titleKey)]
+  return [navLabel(activeNavItem.value.moduleLabel), navLabel(activeNavItem.value.sectionLabel), itemLabel(activeNavItem.value)]
 })
 
 const handleLocaleToggle = () => {
@@ -207,7 +205,7 @@ onMounted(() => {
       <el-aside class="app-sidebar" width="308px">
         <div class="brand-panel">
           <p class="brand-kicker sqlforge-code-label">{{ t('common.platformTagline') }}</p>
-          <h1 class="brand-title">{{ t('common.appName') }}</h1>
+          <p class="brand-title">{{ t('common.appName') }}</p>
           <p class="brand-summary">{{ t('common.brandSummary') }}</p>
           <div class="brand-meta">
             <span class="brand-pill">{{ tenantStore.tenantName }}</span>
@@ -248,7 +246,7 @@ onMounted(() => {
                     :index="item.path"
                     class="menu-leaf"
                   >
-                    <span class="menu-item-label">{{ t(item.titleKey) }}</span>
+                    <span class="menu-item-label">{{ itemLabel(item) }}</span>
                   </el-menu-item>
                 </el-sub-menu>
               </el-sub-menu>
@@ -279,7 +277,7 @@ onMounted(() => {
         <el-header class="app-header">
           <div class="page-heading">
             <p class="page-kicker sqlforge-code-label">{{ locale === 'zh-CN' ? '当前工作区' : 'Current workspace' }}</p>
-            <h2 class="page-title">{{ t(route.meta.titleKey || 'dashboard.title') }}</h2>
+            <h1 class="page-title">{{ t(route.meta.titleKey || 'dashboard.title') }}</h1>
             <div class="breadcrumb-strip">
               <span
                 v-for="pill in breadcrumbText"
@@ -289,7 +287,6 @@ onMounted(() => {
                 {{ pill }}
               </span>
             </div>
-            <p class="page-summary">{{ pageDescription }}</p>
           </div>
 
           <div class="header-actions">
@@ -414,6 +411,10 @@ onMounted(() => {
   background: transparent;
 }
 
+:deep(.app-menu .el-menu) {
+  background: transparent;
+}
+
 :deep(.app-menu .el-sub-menu__title),
 :deep(.app-menu .el-menu-item) {
   border-radius: var(--sqlforge-radius-sm);
@@ -509,7 +510,7 @@ onMounted(() => {
 
 .page-title {
   margin: 10px 0 0;
-  font-size: 40px;
+  font-size: 34px;
   font-weight: 400;
   line-height: 1.04;
 }
@@ -518,7 +519,6 @@ onMounted(() => {
   margin-top: 12px;
 }
 
-.page-summary,
 .workspace-summary {
   margin: 12px 0 0;
   color: var(--sqlforge-text-secondary);

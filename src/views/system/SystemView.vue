@@ -274,13 +274,13 @@ onMounted(() => {
   <section class="system-page" data-testid="system-management-page">
     <header class="page-hero shell-panel">
       <div>
-        <p class="section-kicker sqlforge-code-label">system management</p>
-        <h1 class="page-title">{{ isChinese ? '系统管理与治理配置中心' : 'System management and governance config center' }}</h1>
+        <p class="section-kicker sqlforge-code-label">{{ isChinese ? '配置筛选' : 'Config filters' }}</p>
+        <h2 class="page-title">{{ isChinese ? '租户配置、数据源与消息补偿入口' : 'Tenant config, datasources, and remediation entry' }}</h2>
         <p class="page-summary">
           {{
             isChinese
-              ? '这里保留真正的管理工作流：筛选、列表、详情抽屉、连接测试和消息补偿；边界说明降为证据卡，不再占主操作区。'
-              : 'This page keeps the actual management workflow: filtering, lists, detail drawers, connection tests, and message remediation. Boundary statements are reduced to evidence cards instead of occupying the main task area.'
+              ? '首屏只保留筛选和摘要，具体详情通过 tab、抽屉和测试结果弹窗展开。'
+              : 'The first screen is limited to filters and summary cards. Detailed evidence expands through tabs, drawers, and test-result dialogs.'
           }}
         </p>
       </div>

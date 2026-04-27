@@ -7,7 +7,7 @@ import {
   getGovernanceMessageStats
 } from '../../services/runtimeGateApi'
 
-const { t, locale } = useI18n()
+const { locale } = useI18n()
 
 const datasourceTree = [
   {
@@ -322,9 +322,15 @@ const formatJson = value => JSON.stringify(value, null, 2)
   <section class="query-workbench" data-testid="query-flow-page">
     <header class="query-workbench__hero surface-card">
       <div>
-        <p class="runtime-eyebrow sqlforge-code-label">sql workbench</p>
-        <h1 class="runtime-title">{{ t('sqlQuery.title') }}</h1>
-        <p class="runtime-summary">{{ t('sqlQuery.summary') }}</p>
+        <p class="runtime-eyebrow sqlforge-code-label">{{ isChinese ? '执行前准备' : 'Execution setup' }}</p>
+        <h2 class="runtime-title">{{ isChinese ? '模板、收藏 SQL 与治理辅助' : 'Templates, saved SQL, and governance helpers' }}</h2>
+        <p class="runtime-summary">
+          {{
+            isChinese
+              ? '主工作区只保留输入、结果和右侧摘要；辅助信息通过弹窗与抽屉展开。'
+              : 'The main stage stays focused on input, results, and the runtime rail. Supporting information expands through dialogs and drawers.'
+          }}
+        </p>
       </div>
       <div class="hero-actions">
         <el-button class="hero-button" @click="showTemplateDialog = true">
@@ -358,10 +364,15 @@ const formatJson = value => JSON.stringify(value, null, 2)
           :current-node-key="selectedDatasourceId"
           @current-change="syncDatasourceSelection"
         >
-          <template #default="{ data }">
+          <template #default="slotProps">
             <div class="tree-node">
-              <span>{{ data.label }}</span>
-              <span v-if="data.datasourceType" class="tree-node__badge">{{ data.datasourceType }}</span>
+              <span>{{ slotProps?.data?.label || '-' }}</span>
+              <span
+                v-if="slotProps?.data?.datasourceType"
+                class="tree-node__badge"
+              >
+                {{ slotProps.data.datasourceType }}
+              </span>
             </div>
           </template>
         </el-tree>
@@ -831,8 +842,8 @@ const formatJson = value => JSON.stringify(value, null, 2)
 }
 
 .runtime-title {
-  font-size: 38px;
-  line-height: 1.05;
+  font-size: 28px;
+  line-height: 1.2;
 }
 
 .runtime-summary,

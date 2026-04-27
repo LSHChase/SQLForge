@@ -92,6 +92,20 @@ class QueryExecutionApplicationServiceTest {
     }
 
     @Test
+    void shouldExecuteSynchronouslyForReadonlyHetuQueryWithLeadingComments() {
+        setRequestContext("tenant-a");
+        QueryExecutionApplicationService service =
+            newService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient(), new SimpleMeterRegistry());
+        QueryExecuteRequest request = baseRequest("--report_code=RPT_SQL_QUERY\n--stage=PROD\nSELECT * FROM orders");
+
+        QueryExecuteResponse response = service.executeSynchronously(request);
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        assertNull(response.getError());
+        assertEquals("SIMULATED", response.getMetadata().getExecutionMode());
+    }
+
+    @Test
     void shouldApplyAccelerationOnlyWhenApprovedBindingExists() {
         setRequestContext("tenant-a");
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();

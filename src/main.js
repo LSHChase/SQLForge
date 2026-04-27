@@ -4,6 +4,8 @@ import {
   ElButton,
   ElConfigProvider,
   ElContainer,
+  ElDialog,
+  ElDrawer,
   ElHeader,
   ElInput,
   ElMain,
@@ -12,7 +14,15 @@ import {
   ElOption,
   ElScrollbar,
   ElSelect,
+  ElSubMenu,
+  ElSwitch,
   ElTag
+  ,
+  ElTabPane,
+  ElTable,
+  ElTableColumn,
+  ElTabs,
+  ElTree
 } from 'element-plus'
 import 'element-plus/dist/index.css'
 import { createI18n } from 'vue-i18n'
@@ -40,6 +50,8 @@ const app = createApp(App)
   ElButton,
   ElConfigProvider,
   ElContainer,
+  ElDialog,
+  ElDrawer,
   ElHeader,
   ElInput,
   ElMain,
@@ -48,7 +60,14 @@ const app = createApp(App)
   ElOption,
   ElScrollbar,
   ElSelect,
-  ElTag
+  ElSubMenu,
+  ElSwitch,
+  ElTabPane,
+  ElTable,
+  ElTableColumn,
+  ElTabs,
+  ElTag,
+  ElTree
 ].forEach(component => {
   app.component(component.name, component)
 })

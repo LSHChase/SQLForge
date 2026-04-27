@@ -36,7 +36,7 @@ public final class ReadonlyQueryGuard {
     }
 
     public static ReadonlyQueryAssessment assess(String actualSql) {
-        String normalized = actualSql == null ? "" : actualSql.trim();
+        String normalized = stripLeadingComments(actualSql == null ? "" : actualSql.trim());
         if (normalized.isEmpty()) {
             return ReadonlyQueryAssessment.reject("Submit a non-empty read-only SQL statement.");
         }
@@ -67,5 +67,29 @@ public final class ReadonlyQueryGuard {
             }
         }
         return false;
+    }
+
+    private static String stripLeadingComments(String normalized) {
+        String remaining = normalized;
+        boolean stripped = true;
+        while (stripped) {
+            stripped = false;
+            remaining = remaining.trim();
+            if (remaining.startsWith("--")) {
+                int lineBreak = remaining.indexOf('\n');
+                remaining = lineBreak >= 0 ? remaining.substring(lineBreak + 1) : "";
+                stripped = true;
+                continue;
+            }
+            if (remaining.startsWith("/*")) {
+                int commentEnd = remaining.indexOf("*/");
+                if (commentEnd < 0) {
+                    return "";
+                }
+                remaining = remaining.substring(commentEnd + 2);
+                stripped = true;
+            }
+        }
+        return remaining.trim();
     }
 }

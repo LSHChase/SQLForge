@@ -166,13 +166,13 @@ onMounted(() => {
   <section class="access-page" data-testid="access-page">
     <header class="page-hero shell-panel">
       <div>
-        <p class="section-kicker sqlforge-code-label">open access</p>
-        <h1>{{ isChinese ? '开放接入与 access audit' : 'Open access and access audit' }}</h1>
+        <p class="section-kicker sqlforge-code-label">{{ isChinese ? '接入筛选' : 'Access filters' }}</p>
+        <h2>{{ isChinese ? '租户、来源与接入审计抽样' : 'Tenant, channel, and sampled access audits' }}</h2>
         <p class="hero-summary">
           {{
             isChinese
-              ? '页面只保留接入总览、策略参数和审计样例三层信息；真实原始证据放到抽屉，不在主区直接铺开。'
-              : 'The page now keeps only three layers: access overview, policy parameters, and audit samples. Raw evidence moves into drawers instead of living in the main stage.'
+              ? '主页面只保留筛选、总览和样例；原始证据进入抽屉，不再直接堆在首页。'
+              : 'The main page stays limited to filters, overview, and samples. Raw evidence lives in drawers instead of the first screen.'
           }}
         </p>
       </div>

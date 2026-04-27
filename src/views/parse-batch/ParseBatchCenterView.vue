@@ -12,7 +12,7 @@ import {
   retryParseBatchAccess
 } from '../../services/runtimeGateApi'
 
-const { t, locale } = useI18n()
+const { locale } = useI18n()
 
 const activeWorkspace = ref('parse')
 const parseUploadFile = ref(null)
@@ -479,9 +479,15 @@ const openReportSession = async batchId => {
   <section class="runtime-page batch-import-page" data-testid="batch-import-page">
     <header class="page-hero shell-panel">
       <div>
-        <p class="runtime-eyebrow sqlforge-code-label">parse batch center</p>
-        <h1 class="runtime-title">{{ t('parseBatchCenter.title') }}</h1>
-        <p class="runtime-summary">{{ t('parseBatchCenter.summary') }}</p>
+        <p class="runtime-eyebrow sqlforge-code-label">{{ isChinese ? '批次筛选' : 'Batch filters' }}</p>
+        <h2 class="runtime-title">{{ isChinese ? '创建批次、导入内容与查看结果' : 'Create batches, ingest content, and inspect results' }}</h2>
+        <p class="runtime-summary">
+          {{
+            isChinese
+              ? '首屏只保留批次入口与当前结果区；模板、导入和详情都转入弹窗或抽屉。'
+              : 'The first screen stays focused on batch entry points and the current result stage. Templates, imports, and details move into dialogs or drawers.'
+          }}
+        </p>
       </div>
       <div class="hero-inline">
         <span class="hero-pill">{{ parseSessionsSummary }}</span>

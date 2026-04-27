@@ -4,6 +4,24 @@
 
 ## Done
 
+### E-TASK-036: 基于联调复盘修正前端页面实现偏差
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `fix(frontend): align runtime pages with joint-review findings`
+- Priority: 1
+- Depends on: E-TASK-035
+- Scope: 基于真实前后端联调，对导航、SQL查询、解析、系统管理、开放接入等页面按用户反馈重新复盘，修复与本轮需求不符的交互、信息架构和视觉实现偏差。 Tech: VUE-FE+SPRING. Layer: frontend/backend/runtime.
+- Validation:
+  - `python3 scripts/foreman.py validate E-TASK-036`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Restored missing Element Plus runtime components, rebuilt dark-mode component theming, tightened three-level navigation labels, reduced redundant page hero content, upgraded local governance dev schemas, and fixed query-execution readonly guard so annotated SELECT statements execute successfully in live frontend/backend joint debugging.
+  - Validation evidence: npm run lint; npm run build; mvn -pl query-execution -Dtest=QueryExecutionApplicationServiceTest,ReadonlyQueryGuardTest test; python3 scripts/foreman.py validate E-TASK-036; real joint-debug screenshots for sql-query/access/system/parse-batches; live /api/query-execution/queries/execute success with annotated SELECT against mock Hetu.
+  - Residual risk: System management and access pages still show sparse datasets in local dev because governance datasource/config sample records are not populated; query-history sample evidence remains thin until a fuller governance write-back dataset is seeded.
+  - Next step: Seed richer governance datasource/query-history sample data so system-management and access-audit pages can be reviewed against non-empty production-like states.
+
 ### E-TASK-035: 收口治理管理与开放接入页面体验
 
 - Status: done
