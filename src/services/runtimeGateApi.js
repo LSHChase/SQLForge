@@ -404,6 +404,72 @@ export const getReportBatch = (batchId, tenantId, requestOptions = {}) =>
     }
   })
 
+export const getParseStatisticsOverview = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: '/api/sql-optimization/parse-statistics/overview',
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-statistics-overview',
+      ...requestOptions
+    }
+  })
+
+export const getParseStatisticsByIssueScene = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: '/api/sql-optimization/parse-statistics/by-issue-scene',
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-statistics-issue-scene',
+      ...requestOptions
+    }
+  })
+
+export const getParseStatisticsBySql = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: '/api/sql-optimization/parse-statistics/by-sql',
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-statistics-by-sql',
+      ...requestOptions
+    }
+  })
+
+export const getParseStatisticsByReport = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: '/api/sql-optimization/parse-statistics/by-report',
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-statistics-by-report',
+      ...requestOptions
+    }
+  })
+
+export const getParseStatisticsPriorityMatrix = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: '/api/sql-optimization/parse-statistics/priority-matrix',
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-statistics-priority-matrix',
+      ...requestOptions
+    }
+  })
+
+export const getParseStatisticsImportantUrgent = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: '/api/sql-optimization/parse-statistics/important-urgent',
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-statistics-important-urgent',
+      ...requestOptions
+    }
+  })
+
 export const formatRuntimeError = error => {
   if (error?.response?.data) {
     const { code, message } = error.response.data

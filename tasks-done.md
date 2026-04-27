@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-022: 落地解析结果中心与优先级矩阵
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): add parse statistics center`
+- Priority: 1
+- Depends on: `E-TASK-021`,`D-TASK-058`
+- Scope: 解析统计、问题分布、priority matrix、important/urgent 清单 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-008` 解析工作台与批量解析中心
+- Human confirmation point: 若解析统计页会改变 severity/priority 口径、隐藏 important/urgent 判定依据，需人工确认
+- Data impact: 统计图表、矩阵与 drill-through 页
+- Rollback / recovery: 恢复既定统计口径与标签，保留新增展示为附加视图
+- Validation:
+  - `npm run lint`、`npm run build`、statistics page contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-022`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added a dedicated parse-statistics route that consumes overview, issue-scene, by-sql, by-report, priority-matrix, and important-urgent endpoints to render KPI cards, issue distribution, and urgency matrices.
+  - Validation evidence: npm run lint; npm run build; node scripts/check-statistics-page-contract.mjs; python3 scripts/foreman.py validate E-TASK-022 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-statistics-page-contract.mjs'
+  - Residual risk: The page currently projects backend aggregates read-only; drill-through from matrix cells to history or batch detail is still deferred to later frontend tasks.
+  - Next step: Continue with E-TASK-023 to build the data asset catalog and object detail views on top of governance metadata contracts.
+
 ### E-TASK-021: 落地批量解析中心与报表清单导入页
 
 - Status: done

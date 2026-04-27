@@ -343,6 +343,10 @@ export default {
     title: '批量解析中心',
     summary: '下载模板、上传 SQL/报表清单，并查看批次详情、失败记录与补跑结果。'
   },
+  parseStatisticsCenter: {
+    title: '解析结果中心',
+    summary: '查看解析统计、问题分布、优先级矩阵以及 important/urgent 清单。'
+  },
   acceleration: {
     title: '解析工作台',
     summary: '对单条 SQL 执行结构解析、access parse 和综合结论判定。'

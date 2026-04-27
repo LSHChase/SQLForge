@@ -343,6 +343,10 @@ export default {
     title: 'Batch Parse Center',
     summary: 'Download templates, upload SQL or report catalogs, and inspect batch detail, failures, and retry results.'
   },
+  parseStatisticsCenter: {
+    title: 'Parse Result Center',
+    summary: 'Inspect parse statistics, issue distribution, the priority matrix, and important or urgent SQL lists.'
+  },
   acceleration: {
     title: 'Parse Workbench',
     summary: 'Run structure parse, access parse and combined conclusion review for a single SQL statement.'
