@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-054: 接入报表接口配置与真实拉取抽象
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(governance): add report interface config resolver`
+- Priority: 1
+- Depends on: `D-TASK-053`
+- Scope: governance 配置报表接口，sql-optimization 通过统一抽象调用；保留 mock 路径 Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-009` 批量解析与报表清单解析
+- Human confirmation point: 若报表接口抽象会直接绑定真实外部接口、落 secret/live inventory 或破坏 mock 可回退路径，需人工确认
+- Data impact: 接口配置、client 抽象、报表 SQL 解析来源
+- Rollback / recovery: 回退到 mock 路径并移除高风险外部绑定
+- Validation:
+  - `config/client abstraction 测试`
+  - `python3 scripts/foreman.py validate D-TASK-054`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented governance-backed report interface configuration, internal resolve contract, sql-optimization ReportSqlResolver abstraction, HTTP API fetch client, and mock fallback preservation for report batch SQL resolution.
+  - Validation evidence: mvn -pl sql-optimization,governance -am -Dtest=ReportBatchApplicationServiceTest,ReportBatchControllerTest,GovernanceBackedReportSqlResolverTest,ReportInterfaceConfigApplicationServiceTest,GovernanceCapabilityApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-054; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The HTTP fetch abstraction intentionally supports only GET plus a configured JSON SQL field in this task; real endpoint secrets and live inventory remain out of repo scope and must be supplied through protected configuration later.
+  - Next step: Instantiate D-TASK-055 to solidify parse issue scoring and priority taxonomy for statistics.
+
 ### D-TASK-053: 落地报表清单解析文件模拟入口
 
 - Status: done

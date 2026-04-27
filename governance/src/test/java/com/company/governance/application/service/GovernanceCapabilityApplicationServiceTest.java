@@ -24,6 +24,8 @@ import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionReq
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
+import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckRequest;
@@ -58,6 +60,7 @@ class GovernanceCapabilityApplicationServiceTest {
             benchmarkTraceabilityApplicationService,
             accelerationPlanTraceabilityApplicationService,
             databaseViewCatalogApplicationService,
+            mock(ReportInterfaceConfigApplicationService.class),
             databaseMessaging(),
             tenantConfigRepository
         );
@@ -148,6 +151,7 @@ class GovernanceCapabilityApplicationServiceTest {
             benchmarkTraceabilityApplicationService,
             accelerationPlanTraceabilityApplicationService,
             databaseViewCatalogApplicationService,
+            mock(ReportInterfaceConfigApplicationService.class),
             messagingProperties,
             tenantConfigRepository
         );
@@ -199,6 +203,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
+            mock(ReportInterfaceConfigApplicationService.class),
             databaseMessaging(),
             mock(TenantConfigRepository.class)
         );
@@ -223,6 +228,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
+            mock(ReportInterfaceConfigApplicationService.class),
             databaseMessaging(),
             tenantConfigRepository
         );
@@ -263,6 +269,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             accelerationPlanTraceabilityApplicationService,
             mock(DatabaseViewCatalogApplicationService.class),
+            mock(ReportInterfaceConfigApplicationService.class),
             databaseMessaging(),
             mock(TenantConfigRepository.class)
         );
@@ -302,6 +309,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             databaseViewCatalogApplicationService,
+            mock(ReportInterfaceConfigApplicationService.class),
             databaseMessaging(),
             mock(TenantConfigRepository.class)
         );
@@ -327,6 +335,44 @@ class GovernanceCapabilityApplicationServiceTest {
 
         assertEquals(Boolean.TRUE, response.getResolved());
         verify(databaseViewCatalogApplicationService).resolveDbView(request);
+    }
+
+    @Test
+    void shouldDelegateReportInterfaceConfigResolution() {
+        ReportInterfaceConfigApplicationService reportInterfaceConfigApplicationService =
+            mock(ReportInterfaceConfigApplicationService.class);
+        GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
+            mock(GovernanceAuthorizationMatrixApplicationService.class),
+            mock(GovernanceAuditTrailService.class),
+            mock(GovernanceBenchmarkTraceabilityApplicationService.class),
+            mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
+            mock(DatabaseViewCatalogApplicationService.class),
+            reportInterfaceConfigApplicationService,
+            databaseMessaging(),
+            mock(TenantConfigRepository.class)
+        );
+        RequestContext.set(
+            "tenant-a",
+            "service-user",
+            Arrays.asList("SERVICE"),
+            "request-050",
+            "trace-050",
+            "header",
+            100L,
+            200L
+        );
+        GovernanceReportInterfaceConfigRequest request = new GovernanceReportInterfaceConfigRequest();
+        request.setTenantId("tenant-a");
+        request.setDatasourceCode("hetu_main");
+        request.setStage("PROD");
+        GovernanceReportInterfaceConfigResponse resolveResponse = new GovernanceReportInterfaceConfigResponse();
+        resolveResponse.setResolverStatus("ACTIVE");
+        when(reportInterfaceConfigApplicationService.resolve(request)).thenReturn(resolveResponse);
+
+        GovernanceReportInterfaceConfigResponse response = service.resolveReportInterfaceConfig(request);
+
+        assertEquals("ACTIVE", response.getResolverStatus());
+        verify(reportInterfaceConfigApplicationService).resolve(request);
     }
 
     private MessagingProperties databaseMessaging() {

@@ -477,20 +477,54 @@
 - `contentBase64`
 - `charset`
 
-### 5.5 Resolve Report SQLs
+### 5.6 Resolve Report SQLs
 
 - `POST /api/sql-optimization/report-batches/{batchId}/resolve-sqls`
 
-一期：
+repo-side 基线：
 
-- 从 txt/mock source 读取
+- `sql-optimization` 通过统一 `ReportSqlResolver` 获取报表 SQL
+- 当 governance 配置不可用、未配置、禁用或远端拉取失败时，保留 txt/mock source 回退路径
+- 回退不阻断结构解析和数据访问解析编排
 
-后续：
+### 5.7 Report Interface Config
 
-- 由 `governance` 配置接口信息
-- `sql-optimization` 调用
+- `POST /api/governance/report-interface-configs`
+- `GET /api/governance/report-interface-configs?tenantId={tenantId}`
+- `POST /api/governance/internal/report-interface-configs/resolve`
 
-### 5.6 Report Batch Detail
+配置字段：
+
+- `tenantId`
+- `datasourceCode`
+- `stage`
+- `sourceType`
+- `endpointCode`
+- `endpointName`
+- `baseUrl`
+- `pathTemplate`
+- `httpMethod`
+- `reportCodeParamName`
+- `sqlJsonPath`
+- `authMode`
+- `timeoutMs`
+- `enabled`
+
+解析返回：
+
+- `resolverStatus`: `ACTIVE | DISABLED | MOCK_FALLBACK`
+- `sourceType`: `HTTP_API | TXT_MOCK_SOURCE`
+- `unavailableReason`
+- `contractStage`
+- `implementationStage`
+
+约束：
+
+- 首版真实拉取抽象只实现 `HTTP_API + GET + JSON sql field`
+- 不在 repo 中绑定真实外部 endpoint、secret 或 live inventory
+- 未命中配置时返回 `TXT_MOCK_SOURCE` / `MOCK_FALLBACK`
+
+### 5.8 Report Batch Detail
 
 - `GET /api/sql-optimization/report-batches/{batchId}`
 

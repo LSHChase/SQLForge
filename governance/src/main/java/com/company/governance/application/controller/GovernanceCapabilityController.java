@@ -14,6 +14,8 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequ
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
+import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckRequest;
@@ -83,6 +85,13 @@ public class GovernanceCapabilityController {
         @RequestBody GovernanceTenantArtifactPolicyRequest request
     ) {
         return governanceCapabilityApplicationService.resolveTenantArtifactPolicy(request);
+    }
+
+    @PostMapping("/report-interface-configs/resolve")
+    public GovernanceReportInterfaceConfigResponse resolveReportInterfaceConfig(
+        @RequestBody GovernanceReportInterfaceConfigRequest request
+    ) {
+        return governanceCapabilityApplicationService.resolveReportInterfaceConfig(request);
     }
 
     @GetMapping("/schedule/extensions")

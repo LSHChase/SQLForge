@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusResponse;
+import com.company.sqloptimization.application.service.report.MockReportSqlFactory;
 import com.company.sqloptimization.infrastructure.repository.InMemoryReportBatchItemRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemoryReportBatchRepository;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
@@ -63,7 +64,8 @@ class ReportBatchApplicationServiceTest {
             new InMemoryReportBatchRepository(),
             new InMemoryReportBatchItemRepository(),
             structureService,
-            accessService
+            accessService,
+            request -> MockReportSqlFactory.resolve(request, "UNIT_TEST_MOCK_SOURCE")
         );
     }
 }

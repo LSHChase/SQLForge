@@ -117,6 +117,8 @@
 - `benchmark_task_report`
 - `tenant_config`
 - `system_config`
+- `report_interface_config`
+  - repo-side 当前实现为 governance 内存配置对象，后续可落到 `system_config` 或独立表
 
 建议新增：
 
@@ -147,6 +149,14 @@
   - 结构化字段：`batch_id`,`sequence_number`,`report_code`,`report_name`,`datasource_code`,`stage`,`priority`,`source_file_line`,`sql_text`,`parse_task_id`,`structure_syntax_status`,`access_service_status`,`access_connection_status`,`failure_reason`,`status`,`created_at`,`updated_at`
   - JSON 字段：`issue_scenes_json`,`logical_object_keys_json`
   - 追溯键：`tenant_id(经 batch 间接关联)`,`batch_id`,`item_id`,`report_code`,`parse_task_id`,`datasource_code`
+
+配置对象：
+
+- `ReportInterfaceConfig`
+  - 所属服务：`governance`
+  - 配置键：`tenant_id`,`datasource_code`,`stage`,`endpoint_code`
+  - 结构化字段：`source_type`,`endpoint_name`,`base_url`,`path_template`,`http_method`,`report_code_param_name`,`sql_json_path`,`auth_mode`,`timeout_ms`,`enabled`,`updated_at`
+  - 安全边界：不在 repo 固化真实 endpoint secret；真实密钥后续进入受保护配置源
 
 ## 5. Traceability Keys
 

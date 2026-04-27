@@ -10,6 +10,8 @@ import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionReq
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
+import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
 import com.company.sqlforge.common.governance.ProtectedGovernanceRequestSupport;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
@@ -85,6 +87,13 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
     @Override
     public GovernanceDbViewResolveResponse resolveDbView(GovernanceDbViewResolveRequest request) {
         return post("/db-views/resolve", request, GovernanceDbViewResolveResponse.class);
+    }
+
+    @Override
+    public GovernanceReportInterfaceConfigResponse resolveReportInterfaceConfig(
+        GovernanceReportInterfaceConfigRequest request
+    ) {
+        return post("/report-interface-configs/resolve", request, GovernanceReportInterfaceConfigResponse.class);
     }
 
     @Override

@@ -13,6 +13,9 @@ import com.company.sqloptimization.application.controller.vo.ReportBatchStatusHi
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusResponse;
 import com.company.sqloptimization.application.controller.vo.StructureParseIssueVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseResponseVO;
+import com.company.sqloptimization.application.service.report.ReportSqlResolveRequest;
+import com.company.sqloptimization.application.service.report.ReportSqlResolveResult;
+import com.company.sqloptimization.application.service.report.ReportSqlResolver;
 import com.company.sqloptimization.domain.reportbatch.ReportBatch;
 import com.company.sqloptimization.domain.reportbatch.ReportBatchItem;
 import com.company.sqloptimization.domain.reportbatch.ReportBatchStatusTransition;
@@ -48,15 +51,18 @@ public class ReportBatchApplicationService {
     private final ReportBatchItemRepository reportBatchItemRepository;
     private final StructureParseApplicationService structureParseApplicationService;
     private final AccessParseApplicationService accessParseApplicationService;
+    private final ReportSqlResolver reportSqlResolver;
 
     public ReportBatchApplicationService(ReportBatchRepository reportBatchRepository,
                                          ReportBatchItemRepository reportBatchItemRepository,
                                          StructureParseApplicationService structureParseApplicationService,
-                                         AccessParseApplicationService accessParseApplicationService) {
+                                         AccessParseApplicationService accessParseApplicationService,
+                                         ReportSqlResolver reportSqlResolver) {
         this.reportBatchRepository = reportBatchRepository;
         this.reportBatchItemRepository = reportBatchItemRepository;
         this.structureParseApplicationService = structureParseApplicationService;
         this.accessParseApplicationService = accessParseApplicationService;
+        this.reportSqlResolver = reportSqlResolver;
     }
 
     public ReportBatchStatusResponse importBatch(ReportBatchImportRequest request) {
@@ -104,15 +110,15 @@ public class ReportBatchApplicationService {
         batch.transitionTo(ReportBatch.ParseStatus.RESOLVING_SQLS, now, "REPORT_SQL_RESOLUTION_STARTED");
         List<ReportBatchItem> resolvedItems = new ArrayList<ReportBatchItem>(items.size());
         for (ReportBatchItem item : items) {
-            String resolvedSql = buildMockSql(item);
+            ReportSqlResolveResult resolvedSql = reportSqlResolver.resolve(buildReportSqlResolveRequest(batch, item));
             Map<String, Object> commentContext = buildCommentContext(batch, item);
-            StructureParseResponseVO structureParse = parseStructure(resolvedSql, batch, commentContext);
+            StructureParseResponseVO structureParse = parseStructure(resolvedSql.getSqlText(), batch, commentContext);
             List<String> issueScenes = extractIssueScenes(structureParse.getIssues());
             List<String> logicalObjectKeys = extractLogicalObjectKeys(structureParse.getLogicalObjectHits());
-            AccessParseResponseVO accessParse = parseAccessIfPossible(resolvedSql, batch, commentContext, structureParse.getParseTaskId());
+            AccessParseResponseVO accessParse = parseAccessIfPossible(resolvedSql.getSqlText(), batch, commentContext, structureParse.getParseTaskId());
             ReportBatchItem.Status status = resolveStatus(structureParse, accessParse);
             item.complete(
-                resolvedSql,
+                resolvedSql.getSqlText(),
                 structureParse.getParseTaskId(),
                 structureParse.getSyntaxStatus(),
                 accessParse == null ? "SKIPPED" : accessParse.getServiceStatus(),
@@ -311,26 +317,8 @@ public class ReportBatchApplicationService {
         }
     }
 
-    private String buildMockSql(ReportBatchItem item) {
-        String reportCode = firstNonBlank(item.getReportCode(), "UNSPECIFIED_REPORT");
-        String normalizedStage = firstNonBlank(item.getStage(), "PROD");
-        return "SELECT '"
-            + escapeSqlLiteral(reportCode)
-            + "' AS report_code, '"
-            + escapeSqlLiteral(normalizedStage)
-            + "' AS stage, dt, COUNT(*) AS metric_value FROM mock_report_source WHERE report_code = '"
-            + escapeSqlLiteral(reportCode)
-            + "' AND dt = '"
-            + escapeSqlLiteral(resolveMockBizDate())
-            + "' GROUP BY dt";
-    }
-
     private String resolveMockBizDate() {
         return java.time.LocalDate.now().toString();
-    }
-
-    private String escapeSqlLiteral(String value) {
-        return value == null ? "" : value.replace("'", "''");
     }
 
     private Map<String, Object> buildCommentContext(ReportBatch batch, ReportBatchItem item) {
@@ -342,6 +330,16 @@ public class ReportBatchApplicationService {
         putIfPresent(context, "datasource", firstNonBlank(item.getDatasourceCode(), batch.getDatasourceCode()));
         putIfPresent(context, "priority", firstNonBlank(item.getPriority(), batch.getPriority()));
         return context;
+    }
+
+    private ReportSqlResolveRequest buildReportSqlResolveRequest(ReportBatch batch, ReportBatchItem item) {
+        return new ReportSqlResolveRequest(
+            batch.getTenantId(),
+            firstNonBlank(item.getDatasourceCode(), batch.getDatasourceCode()),
+            firstNonBlank(item.getStage(), batch.getStage()),
+            firstNonBlank(item.getPriority(), batch.getPriority()),
+            item.getReportCode()
+        );
     }
 
     private List<String> extractIssueScenes(List<StructureParseIssueVO> issues) {
