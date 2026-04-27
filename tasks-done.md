@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-068: 落地 Java SDK 首版
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(open-access): add java sdk client baseline`
+- Priority: 1
+- Depends on: `D-TASK-067`
+- Scope: 提供鉴权、trace/requestId、typed client 与 retry 基线 Tech: `JAVA-BE`,`OPS`. Layer: `common`,`deployments/ci/scripts`.
+- Matrix context: Phase-D / Story `D-STORY-012` 开放接入与 JDBC Agent
+- Human confirmation point: 若 Java SDK 会把未稳定契约写成强依赖、绕过统一 request/trace 语义或暴露敏感配置，需人工确认
+- Data impact: SDK client、配置、请求重试与接入文档
+- Rollback / recovery: 回退 SDK 到最小 typed client 基线，并保留 HTTP API 主路径
+- Validation:
+  - `SDK 测试`
+  - `python3 scripts/foreman.py validate D-TASK-068`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added the Java SDK typed client wrapper that forces SDK access-channel context, delegates query execution, and writes governance audit summaries for success and failure paths.
+  - Validation evidence: mvn -pl sqlforge-shared -am clean -Dtest=SqlForgeJavaSdkClientTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-068
+  - Residual risk: The SDK baseline is still a thin wrapper over the HTTP query execution and audit clients, so future tasks may still expand configuration surfacing or richer typed APIs without changing this audited request path.
+  - Next step: Resume D-TASK-065 and D-TASK-066 follow-up work, then continue the remaining implementation-spec tasks beyond the current workspace residue.
+
 ### D-TASK-070: 建立 `MetadataSnapshot` 与数据到位状态模型
 
 - Status: done

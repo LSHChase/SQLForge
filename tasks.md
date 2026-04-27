@@ -16,22 +16,6 @@ _No tasks._
 
 ## In Progress
 
-### D-TASK-068: 落地 Java SDK 首版
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `D-TASK-067`
-- Scope: 提供鉴权、trace/requestId、typed client 与 retry 基线 Tech: `JAVA-BE`,`OPS`. Layer: `common`,`deployments/ci/scripts`.
-- Matrix context: Phase-D / Story `D-STORY-012` 开放接入与 JDBC Agent
-- Human confirmation point: 若 Java SDK 会把未稳定契约写成强依赖、绕过统一 request/trace 语义或暴露敏感配置，需人工确认
-- Data impact: SDK client、配置、请求重试与接入文档
-- Rollback / recovery: 回退 SDK 到最小 typed client 基线，并保留 HTTP API 主路径
-- Validation:
-  - `SDK 测试`
-  - `python3 scripts/foreman.py validate D-TASK-068`
-- Progress log:
-  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
-
 ### D-TASK-066: 扩展 JDBC Agent `Governed Execute`
 
 - Status: in_progress
