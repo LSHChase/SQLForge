@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-062: 固化“只管理不装数”的协同契约
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): codify dispatch collaboration contract`
+- Priority: 1
+- Depends on: `D-TASK-061`
+- Scope: 外部拉取事件、非主动装数、回执与审计边界；不接真实装数执行 Tech: `JAVA-BE`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`docs`.
+- Matrix context: Phase-D / Story `D-STORY-011` 推荐 SQL、加速建议与装数协同事件
+- Human confirmation point: 若“只管理不装数”契约被扩展成直接执行装数、主动推送生产消息或默认联通外部模块，需人工确认
+- Data impact: recommendation 协同契约、dispatch 行为、文档真值
+- Rollback / recovery: 恢复 pull-only 与非执行边界，保留协同事件审计
+- Validation:
+  - `dispatch contract 测试`
+  - `python3 scripts/foreman.py validate D-TASK-062`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented dispatch collaboration contract endpoint and service surface enforcing PULL_ONLY semantics, no SQL execution, no data loading, no active external push, and external pull requirement; updated controller/service tests plus interface and product documentation.
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=DispatchEventApplicationServiceTest,DispatchEventControllerTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-062; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: System-management configuration for dispatch policy surfaces is scheduled under D-TASK-072; this task fixes the runtime collaboration boundary.
+  - Next step: Instantiate D-TASK-063 to codify access source model and unified audit contract.
+
 ### D-TASK-061: 打通推荐与历史/解析/路由的关联追溯
 
 - Status: done

@@ -7,6 +7,7 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqloptimization.application.controller.dto.DispatchEventActionRequest;
 import com.company.sqloptimization.application.controller.dto.DispatchRecommendationRequest;
+import com.company.sqloptimization.application.controller.vo.DispatchCollaborationContractVO;
 import com.company.sqloptimization.application.controller.vo.DispatchEventStatusHistoryVO;
 import com.company.sqloptimization.application.controller.vo.DispatchEventVO;
 import com.company.sqloptimization.domain.dispatch.DispatchEvent;
@@ -18,6 +19,7 @@ import com.company.sqloptimization.domain.recommendation.AccelerationRecommendat
 import com.company.sqloptimization.domain.recommendation.repository.AccelerationRecommendationRepository;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +63,26 @@ public class DispatchEventApplicationService {
         event.publish(now, RequestContext.getUserId());
         dispatchEventRepository.save(event);
         return toVo(event);
+    }
+
+    public DispatchCollaborationContractVO getCollaborationContract() {
+        DispatchCollaborationContractVO contract = new DispatchCollaborationContractVO();
+        contract.setCoordinationMode("PULL_ONLY");
+        contract.setSqlExecutionAllowed(Boolean.FALSE);
+        contract.setDataLoadingAllowed(Boolean.FALSE);
+        contract.setActiveExternalPushAllowed(Boolean.FALSE);
+        contract.setExternalPullRequired(Boolean.TRUE);
+        contract.setAllowedEventStatuses(Arrays.asList("CREATED", "PUBLISHED", "PULLED", "ACKED", "FAILED"));
+        contract.setAllowedDispatchTypes(Arrays.asList(
+            "REWRITE_SQL",
+            "ACCELERATION_SQL",
+            "CREATE_TABLE_SQL",
+            "PREWARM_SQL",
+            "MAINTENANCE_SQL"
+        ));
+        contract.setAuditBoundary("SQLForge creates and tracks recommendation dispatch events only; external modules pull events and return ACK/FAILED evidence.");
+        contract.setResidualOwner("External loading or data-cluster execution module owns real data loading, prewarm execution, and storage changes.");
+        return contract;
     }
 
     public List<DispatchEventVO> listEvents(DispatchEventStatus status) {

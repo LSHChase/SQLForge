@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqloptimization.application.controller.dto.DispatchEventActionRequest;
+import com.company.sqloptimization.application.controller.vo.DispatchCollaborationContractVO;
 import com.company.sqloptimization.application.controller.vo.DispatchEventVO;
 import com.company.sqloptimization.domain.dispatch.DispatchEventStatus;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
@@ -59,6 +60,22 @@ class DispatchEventApplicationServiceTest {
         DispatchEventVO published = service.dispatchRecommendation("rec-002", null);
 
         assertThrows(IllegalStateException.class, () -> service.ack(published.getDispatchEventId(), null));
+    }
+
+    @Test
+    void shouldExposePullOnlyNonExecutingCollaborationContract() {
+        DispatchEventApplicationService service = new DispatchEventApplicationService(
+            new InMemoryAccelerationRecommendationRepository(),
+            new InMemoryDispatchEventRepository()
+        );
+
+        DispatchCollaborationContractVO contract = service.getCollaborationContract();
+
+        assertEquals("PULL_ONLY", contract.getCoordinationMode());
+        assertEquals(Boolean.FALSE, contract.getSqlExecutionAllowed());
+        assertEquals(Boolean.FALSE, contract.getDataLoadingAllowed());
+        assertEquals(Boolean.FALSE, contract.getActiveExternalPushAllowed());
+        assertEquals(Boolean.TRUE, contract.getExternalPullRequired());
     }
 
     private AccelerationRecommendation recommendation(String recommendationId, RecommendationType type) {

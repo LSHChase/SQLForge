@@ -2,6 +2,7 @@ package com.company.sqloptimization.application.controller;
 
 import com.company.sqloptimization.application.controller.dto.DispatchEventActionRequest;
 import com.company.sqloptimization.application.controller.dto.DispatchRecommendationRequest;
+import com.company.sqloptimization.application.controller.vo.DispatchCollaborationContractVO;
 import com.company.sqloptimization.application.controller.vo.DispatchEventVO;
 import com.company.sqloptimization.application.service.DispatchEventApplicationService;
 import com.company.sqloptimization.domain.dispatch.DispatchEventStatus;
@@ -33,6 +34,11 @@ public class DispatchEventController {
     @GetMapping("/dispatch-events")
     public List<DispatchEventVO> listDispatchEvents(@RequestParam(value = "status", required = false) DispatchEventStatus status) {
         return dispatchEventApplicationService.listEvents(status);
+    }
+
+    @GetMapping("/dispatch-contract")
+    public DispatchCollaborationContractVO getDispatchContract() {
+        return dispatchEventApplicationService.getCollaborationContract();
     }
 
     @GetMapping("/dispatch-events/{dispatchEventId}")

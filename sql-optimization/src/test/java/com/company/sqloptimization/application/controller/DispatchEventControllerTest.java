@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
+import com.company.sqloptimization.application.controller.vo.DispatchCollaborationContractVO;
 import com.company.sqloptimization.application.controller.vo.DispatchEventVO;
 import com.company.sqloptimization.application.service.DispatchEventApplicationService;
 import com.company.sqloptimization.domain.dispatch.DispatchEventStatus;
@@ -38,6 +39,13 @@ class DispatchEventControllerTest {
         when(dispatchEventApplicationService.getEvent("dispatch-001")).thenReturn(event);
         when(dispatchEventApplicationService.markPulled("dispatch-001")).thenReturn(pulled);
         when(dispatchEventApplicationService.ack("dispatch-001", null)).thenReturn(acked);
+        DispatchCollaborationContractVO contract = new DispatchCollaborationContractVO();
+        contract.setCoordinationMode("PULL_ONLY");
+        contract.setSqlExecutionAllowed(Boolean.FALSE);
+        contract.setDataLoadingAllowed(Boolean.FALSE);
+        contract.setActiveExternalPushAllowed(Boolean.FALSE);
+        contract.setExternalPullRequired(Boolean.TRUE);
+        when(dispatchEventApplicationService.getCollaborationContract()).thenReturn(contract);
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/recommendations/rec-001/dispatch")))
             .andExpect(status().isOk())
@@ -58,6 +66,13 @@ class DispatchEventControllerTest {
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/dispatch-events/dispatch-001/ack")))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("ACKED"));
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/dispatch-contract")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.coordinationMode").value("PULL_ONLY"))
+            .andExpect(jsonPath("$.sqlExecutionAllowed").value(false))
+            .andExpect(jsonPath("$.dataLoadingAllowed").value(false))
+            .andExpect(jsonPath("$.activeExternalPushAllowed").value(false));
     }
 
     private DispatchEventVO event(String eventId, String status) {
