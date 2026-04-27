@@ -3,6 +3,7 @@ export const ROUTE_PATHS = {
   sqlQuery: '/sql-query',
   acceleration: '/acceleration',
   benchmark: '/benchmark',
+  parseBatchCenter: '/governance/parse/batches',
   system: '/system',
   parseRecord: '/governance/history/parse-record',
   repairEvidence: '/governance/history/repair-evidence',
@@ -15,6 +16,7 @@ export const ROUTE_PATHS = {
 
 export const LEGACY_ROUTE_REDIRECTS = {
   parseRecord: '/parse-record',
+  parseBatchCenter: '/parse-batches',
   repairEvidence: '/repair-evidence',
   auditForensics: '/audit-forensics',
   auditTroubleshooting: '/audit-troubleshooting'

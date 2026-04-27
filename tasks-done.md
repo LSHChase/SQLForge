@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-021: 落地批量解析中心与报表清单导入页
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): add batch parse and report import center`
+- Priority: 1
+- Depends on: `E-TASK-020`,`D-TASK-054`
+- Scope: 模板下载、上传、批次列表、批次详情与失败记录展示 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-008` 解析工作台与批量解析中心
+- Human confirmation point: 若批量解析页会把兼容格式失败误写成产品故障、或把 mock 报表清单写成真实接口联通，需人工确认
+- Data impact: 批次页、导入模板、报表清单 UI 语义
+- Rollback / recovery: 保留稳定格式优先与 mock 标识，回退高风险文案/行为
+- Validation:
+  - `npm run lint`、`npm run build`、batch import contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-021`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added a dedicated batch parse center route with parse-batch creation, template download, upload/ingest, retry-access, report-catalog import, resolve-sqls, and session-local batch detail views.
+  - Validation evidence: npm run lint; npm run build; node scripts/check-batch-import-contract.mjs; python3 scripts/foreman.py validate E-TASK-021 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-batch-import-contract.mjs'
+  - Residual risk: The UI keeps a session-local list of created/imported batches because the repo-side baseline exposes detail endpoints but no dedicated list endpoint yet.
+  - Next step: Instantiate E-TASK-022 to build the parse-statistics center and priority matrix on top of parse-statistics contracts.
+
 ### E-TASK-020: 落地解析工作台双卡结果布局
 
 - Status: done

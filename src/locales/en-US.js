@@ -339,6 +339,10 @@ export default {
     title: 'Benchmark Report',
     summary: 'Inspect baseline, peak latency, regression deltas and release readiness.'
   },
+  parseBatchCenter: {
+    title: 'Batch Parse Center',
+    summary: 'Download templates, upload SQL or report catalogs, and inspect batch detail, failures, and retry results.'
+  },
   acceleration: {
     title: 'Parse Workbench',
     summary: 'Run structure parse, access parse and combined conclusion review for a single SQL statement.'

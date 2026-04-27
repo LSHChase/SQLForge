@@ -5,6 +5,7 @@ import { LEGACY_ROUTE_REDIRECTS, ROUTE_PATHS } from '../config/routePaths.mjs'
 const DashboardView = () => import('../views/dashboard/DashboardView.vue')
 const SqlQueryView = () => import('../views/query/SqlQueryView.vue')
 const ParseRecordView = () => import('../views/parse-record/ParseRecordView.vue')
+const ParseBatchCenterView = () => import('../views/parse-batch/ParseBatchCenterView.vue')
 const RepairEvidenceView = () => import('../views/repair-evidence/RepairEvidenceView.vue')
 const AuditForensicsView = () => import('../views/audit-forensics/AuditForensicsView.vue')
 const AuditTroubleshootingView = () => import('../views/audit-troubleshooting/AuditTroubleshootingView.vue')
@@ -75,6 +76,17 @@ export const constantRoutes = [
     }
   },
   {
+    path: ROUTE_PATHS.parseBatchCenter,
+    name: 'ParseBatchCenter',
+    component: ParseBatchCenterView,
+    meta: {
+      menu: true,
+      navGroup: 'main',
+      titleKey: 'parseBatchCenter.title',
+      descriptionKey: 'parseBatchCenter.summary'
+    }
+  },
+  {
     path: ROUTE_PATHS.parseRecord,
     name: 'ParseRecord',
     component: ParseRecordView,
@@ -139,6 +151,10 @@ export const constantRoutes = [
       titleKey: 'recoveryDrill.title',
       descriptionKey: 'recoveryDrill.summary'
     }
+  },
+  {
+    path: LEGACY_ROUTE_REDIRECTS.parseBatchCenter,
+    redirect: ROUTE_PATHS.parseBatchCenter
   },
   {
     path: LEGACY_ROUTE_REDIRECTS.parseRecord,

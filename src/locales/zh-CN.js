@@ -339,6 +339,10 @@ export default {
     title: '压测报告',
     summary: '查看基线、峰值延迟、回归差异与准入判断。'
   },
+  parseBatchCenter: {
+    title: '批量解析中心',
+    summary: '下载模板、上传 SQL/报表清单，并查看批次详情、失败记录与补跑结果。'
+  },
   acceleration: {
     title: '解析工作台',
     summary: '对单条 SQL 执行结构解析、access parse 和综合结论判定。'

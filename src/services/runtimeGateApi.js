@@ -323,6 +323,87 @@ export const getGovernanceQueryHistoryDetail = (tenantId, historyId, requestOpti
     }
   })
 
+export const createParseBatch = (payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: '/api/sql-optimization/parse-batches',
+    data: payload,
+    tenantId: payload.tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-batch-create',
+      ...requestOptions
+    }
+  })
+
+export const ingestParseBatch = (batchId, tenantId, payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/parse-batches/${encodeURIComponent(batchId)}/ingest`,
+    data: payload,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-batch-ingest',
+      ...requestOptions
+    }
+  })
+
+export const getParseBatch = (batchId, tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/parse-batches/${encodeURIComponent(batchId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-batch-detail',
+      ...requestOptions
+    }
+  })
+
+export const retryParseBatchAccess = (batchId, tenantId, payload = {}, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/parse-batches/${encodeURIComponent(batchId)}/retry-access`,
+    data: payload,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-batch-retry-access',
+      ...requestOptions
+    }
+  })
+
+export const importReportBatch = (payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: '/api/sql-optimization/report-batches/import',
+    data: payload,
+    tenantId: payload.tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-report-batch-import',
+      ...requestOptions
+    }
+  })
+
+export const resolveReportBatchSqls = (batchId, tenantId, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/report-batches/${encodeURIComponent(batchId)}/resolve-sqls`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-report-batch-resolve',
+      ...requestOptions
+    }
+  })
+
+export const getReportBatch = (batchId, tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/report-batches/${encodeURIComponent(batchId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-report-batch-detail',
+      ...requestOptions
+    }
+  })
+
 export const formatRuntimeError = error => {
   if (error?.response?.data) {
     const { code, message } = error.response.data
