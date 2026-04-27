@@ -60,6 +60,11 @@ public class MybatisDispatchEventRepository implements DispatchEventRepository {
         return toDomains(dispatchEventMapper.selectByTenantIdAndStatus(tenantId, status.name()));
     }
 
+    @Override
+    public List<DispatchEvent> findByTenantIdAndRecommendationId(String tenantId, String recommendationId) {
+        return toDomains(dispatchEventMapper.selectByTenantIdAndRecommendationId(tenantId, recommendationId));
+    }
+
     private List<DispatchEvent> toDomains(List<DispatchEventRecord> records) {
         List<DispatchEvent> events = new ArrayList<DispatchEvent>();
         for (DispatchEventRecord record : records) {

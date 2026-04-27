@@ -16,6 +16,11 @@ public class AccelerationRecommendationCreateRequest {
     private RecommendationType recommendationType;
 
     private String sourceSqlId;
+    private String historyId;
+    private String parseTaskId;
+    private String batchId;
+    private String routeDecisionId;
+    private String alertId;
     private String sqlFingerprint;
     private String sourceSqlText;
 
@@ -41,6 +46,16 @@ public class AccelerationRecommendationCreateRequest {
     public void setRecommendationType(RecommendationType recommendationType) { this.recommendationType = recommendationType; }
     public String getSourceSqlId() { return sourceSqlId; }
     public void setSourceSqlId(String sourceSqlId) { this.sourceSqlId = sourceSqlId; }
+    public String getHistoryId() { return historyId; }
+    public void setHistoryId(String historyId) { this.historyId = historyId; }
+    public String getParseTaskId() { return parseTaskId; }
+    public void setParseTaskId(String parseTaskId) { this.parseTaskId = parseTaskId; }
+    public String getBatchId() { return batchId; }
+    public void setBatchId(String batchId) { this.batchId = batchId; }
+    public String getRouteDecisionId() { return routeDecisionId; }
+    public void setRouteDecisionId(String routeDecisionId) { this.routeDecisionId = routeDecisionId; }
+    public String getAlertId() { return alertId; }
+    public void setAlertId(String alertId) { this.alertId = alertId; }
     public String getSqlFingerprint() { return sqlFingerprint; }
     public void setSqlFingerprint(String sqlFingerprint) { this.sqlFingerprint = sqlFingerprint; }
     public String getSourceSqlText() { return sourceSqlText; }

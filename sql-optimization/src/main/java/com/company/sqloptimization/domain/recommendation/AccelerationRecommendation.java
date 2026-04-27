@@ -8,6 +8,11 @@ public class AccelerationRecommendation {
     private final String tenantId;
     private final RecommendationType recommendationType;
     private final String sourceSqlId;
+    private final String historyId;
+    private final String parseTaskId;
+    private final String batchId;
+    private final String routeDecisionId;
+    private final String alertId;
     private final String sqlFingerprint;
     private final String sourceSqlText;
     private final String recommendedSqlText;
@@ -32,6 +37,11 @@ public class AccelerationRecommendation {
         this.tenantId = builder.tenantId;
         this.recommendationType = builder.recommendationType;
         this.sourceSqlId = builder.sourceSqlId;
+        this.historyId = builder.historyId;
+        this.parseTaskId = builder.parseTaskId;
+        this.batchId = builder.batchId;
+        this.routeDecisionId = builder.routeDecisionId;
+        this.alertId = builder.alertId;
         this.sqlFingerprint = builder.sqlFingerprint;
         this.sourceSqlText = builder.sourceSqlText;
         this.recommendedSqlText = builder.recommendedSqlText;
@@ -79,6 +89,11 @@ public class AccelerationRecommendation {
     public String getTenantId() { return tenantId; }
     public RecommendationType getRecommendationType() { return recommendationType; }
     public String getSourceSqlId() { return sourceSqlId; }
+    public String getHistoryId() { return historyId; }
+    public String getParseTaskId() { return parseTaskId; }
+    public String getBatchId() { return batchId; }
+    public String getRouteDecisionId() { return routeDecisionId; }
+    public String getAlertId() { return alertId; }
     public String getSqlFingerprint() { return sqlFingerprint; }
     public String getSourceSqlText() { return sourceSqlText; }
     public String getRecommendedSqlText() { return recommendedSqlText; }
@@ -133,6 +148,11 @@ public class AccelerationRecommendation {
         private String tenantId;
         private RecommendationType recommendationType;
         private String sourceSqlId;
+        private String historyId;
+        private String parseTaskId;
+        private String batchId;
+        private String routeDecisionId;
+        private String alertId;
         private String sqlFingerprint;
         private String sourceSqlText;
         private String recommendedSqlText;
@@ -159,6 +179,11 @@ public class AccelerationRecommendation {
         public Builder tenantId(String tenantId) { this.tenantId = tenantId; return this; }
         public Builder recommendationType(RecommendationType recommendationType) { this.recommendationType = recommendationType; return this; }
         public Builder sourceSqlId(String sourceSqlId) { this.sourceSqlId = sourceSqlId; return this; }
+        public Builder historyId(String historyId) { this.historyId = historyId; return this; }
+        public Builder parseTaskId(String parseTaskId) { this.parseTaskId = parseTaskId; return this; }
+        public Builder batchId(String batchId) { this.batchId = batchId; return this; }
+        public Builder routeDecisionId(String routeDecisionId) { this.routeDecisionId = routeDecisionId; return this; }
+        public Builder alertId(String alertId) { this.alertId = alertId; return this; }
         public Builder sqlFingerprint(String sqlFingerprint) { this.sqlFingerprint = sqlFingerprint; return this; }
         public Builder sourceSqlText(String sourceSqlText) { this.sourceSqlText = sourceSqlText; return this; }
         public Builder recommendedSqlText(String recommendedSqlText) { this.recommendedSqlText = recommendedSqlText; return this; }

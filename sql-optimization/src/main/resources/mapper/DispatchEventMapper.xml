@@ -56,6 +56,14 @@
         ORDER BY created_at DESC
     </select>
 
+    <select id="selectByTenantIdAndRecommendationId" resultMap="DispatchEventRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM dispatch_event
+        WHERE tenant_id = #{tenantId}
+          AND recommendation_id = #{recommendationId}
+        ORDER BY created_at DESC
+    </select>
+
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.DispatchEventRecord">
         INSERT INTO dispatch_event (
             dispatch_event_id, tenant_id, recommendation_id, dispatch_type, dispatch_payload_json,

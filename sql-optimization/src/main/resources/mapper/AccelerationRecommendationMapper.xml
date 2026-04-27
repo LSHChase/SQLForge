@@ -9,6 +9,11 @@
         <result property="tenantId" column="tenant_id"/>
         <result property="recommendationType" column="recommendation_type"/>
         <result property="sourceSqlId" column="source_sql_id"/>
+        <result property="historyId" column="history_id"/>
+        <result property="parseTaskId" column="parse_task_id"/>
+        <result property="batchId" column="batch_id"/>
+        <result property="routeDecisionId" column="route_decision_id"/>
+        <result property="alertId" column="alert_id"/>
         <result property="sqlFingerprint" column="sql_fingerprint"/>
         <result property="sourceSqlText" column="source_sql_text"/>
         <result property="recommendedSqlText" column="recommended_sql_text"/>
@@ -30,7 +35,8 @@
     </resultMap>
 
     <sql id="BaseColumns">
-        recommendation_id, tenant_id, recommendation_type, source_sql_id, sql_fingerprint,
+        recommendation_id, tenant_id, recommendation_type, source_sql_id, history_id, parse_task_id,
+        batch_id, route_decision_id, alert_id, sql_fingerprint,
         source_sql_text, recommended_sql_text, target_engine, target_datasource, report_code,
         logical_object_key, summary, reason, expected_gain, benefit_level, risk_level,
         risk_summary, requires_dispatch, status, created_by, created_at, updated_at
@@ -51,12 +57,14 @@
 
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationRecommendationRecord">
         INSERT INTO acceleration_recommendation (
-            recommendation_id, tenant_id, recommendation_type, source_sql_id, sql_fingerprint,
+            recommendation_id, tenant_id, recommendation_type, source_sql_id, history_id, parse_task_id,
+            batch_id, route_decision_id, alert_id, sql_fingerprint,
             source_sql_text, recommended_sql_text, target_engine, target_datasource, report_code,
             logical_object_key, summary, reason, expected_gain, benefit_level, risk_level,
             risk_summary, requires_dispatch, status, created_by, created_at, updated_at
         ) VALUES (
-            #{recommendationId}, #{tenantId}, #{recommendationType}, #{sourceSqlId}, #{sqlFingerprint},
+            #{recommendationId}, #{tenantId}, #{recommendationType}, #{sourceSqlId}, #{historyId}, #{parseTaskId},
+            #{batchId}, #{routeDecisionId}, #{alertId}, #{sqlFingerprint},
             #{sourceSqlText}, #{recommendedSqlText}, #{targetEngine}, #{targetDatasource}, #{reportCode},
             #{logicalObjectKey}, #{summary}, #{reason}, #{expectedGain}, #{benefitLevel}, #{riskLevel},
             #{riskSummary}, #{requiresDispatch}, #{status}, #{createdBy}, #{createdAt}, #{updatedAt}
@@ -68,6 +76,11 @@
         SET tenant_id = #{tenantId},
             recommendation_type = #{recommendationType},
             source_sql_id = #{sourceSqlId},
+            history_id = #{historyId},
+            parse_task_id = #{parseTaskId},
+            batch_id = #{batchId},
+            route_decision_id = #{routeDecisionId},
+            alert_id = #{alertId},
             sql_fingerprint = #{sqlFingerprint},
             source_sql_text = #{sourceSqlText},
             recommended_sql_text = #{recommendedSqlText},

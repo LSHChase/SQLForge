@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-061: 打通推荐与历史/解析/路由的关联追溯
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): add recommendation traceability`
+- Priority: 1
+- Depends on: `D-TASK-060`
+- Scope: recommendation 与 history/parse/route/alert/batch 的 traceability keys Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-011` 推荐 SQL、加速建议与装数协同事件
+- Human confirmation point: 若推荐关联追溯会跨租户串链、暴露不应展示的 route/parse/history 关系，需人工确认
+- Data impact: recommendation trace keys、治理查询面与关联视图
+- Rollback / recovery: 回退跨链关联字段，恢复受保护的最小追溯面
+- Validation:
+  - `traceability 测试`
+  - `python3 scripts/foreman.py validate D-TASK-061`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented recommendation traceability keys for history, parse task, batch, route decision, alert, SQL fingerprint, report, and logical object references; added tenant-scoped recommendation trace endpoint with related dispatch events; updated mapper/schema/migration/docs and traceability tests.
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=AccelerationRecommendationApplicationServiceTest,RecommendationTraceApplicationServiceTest,RecommendationTraceControllerTest,ParseBatchPersistenceSchemaMappingTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-061; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: D-TASK-062 will formalize the non-loading dispatch collaboration contract; this task returns reference keys only and does not hydrate external service details.
+  - Next step: Instantiate D-TASK-062 to document and enforce the pull-only, non-executing dispatch contract.
+
 ### D-TASK-060: 落地推荐治理事件创建与状态机
 
 - Status: done

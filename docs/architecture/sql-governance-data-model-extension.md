@@ -152,9 +152,9 @@
 - `acceleration_recommendation`
   - 所属服务：`sql-optimization`
   - 主键：`recommendation_id`
-  - 结构化字段：`tenant_id`,`recommendation_type`,`source_sql_id`,`sql_fingerprint`,`target_engine`,`target_datasource`,`report_code`,`logical_object_key`,`summary`,`expected_gain`,`benefit_level`,`risk_level`,`requires_dispatch`,`status`,`created_by`,`created_at`,`updated_at`
+  - 结构化字段：`tenant_id`,`recommendation_type`,`source_sql_id`,`history_id`,`parse_task_id`,`batch_id`,`route_decision_id`,`alert_id`,`sql_fingerprint`,`target_engine`,`target_datasource`,`report_code`,`logical_object_key`,`summary`,`expected_gain`,`benefit_level`,`risk_level`,`requires_dispatch`,`status`,`created_by`,`created_at`,`updated_at`
   - 大文本字段：`source_sql_text`,`recommended_sql_text`,`reason`,`risk_summary`
-  - 追溯键：`tenant_id`,`recommendation_id`,`source_sql_id`,`sql_fingerprint`,`report_code`,`logical_object_key`
+  - 追溯键：`tenant_id`,`recommendation_id`,`source_sql_id`,`history_id`,`parse_task_id`,`batch_id`,`route_decision_id`,`alert_id`,`sql_fingerprint`,`report_code`,`logical_object_key`
   - 状态边界：仅允许 `RECOMMENDED`、`REVIEWING`、`DISPATCH_READY`、`CANCELLED`；不得在本对象内表达 `EXECUTED`，避免把推荐误写成真实装数或执行结果
 - `dispatch_event`
   - 所属服务：`sql-optimization`

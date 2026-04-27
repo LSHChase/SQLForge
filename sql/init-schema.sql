@@ -673,6 +673,11 @@ CREATE TABLE IF NOT EXISTS acceleration_recommendation (
   tenant_id VARCHAR(64) NOT NULL COMMENT 'Owning tenant identifier',
   recommendation_type VARCHAR(32) NOT NULL COMMENT 'REWRITE/ACCELERATION/CREATE_TABLE/PREWARM/MAINTENANCE',
   source_sql_id VARCHAR(64) DEFAULT NULL COMMENT 'Source SQL, parse item, history, or task identifier',
+  history_id VARCHAR(64) DEFAULT NULL COMMENT 'Related query history identifier',
+  parse_task_id VARCHAR(64) DEFAULT NULL COMMENT 'Related parse task identifier',
+  batch_id VARCHAR(64) DEFAULT NULL COMMENT 'Related parse/report batch identifier',
+  route_decision_id VARCHAR(64) DEFAULT NULL COMMENT 'Related route decision identifier',
+  alert_id VARCHAR(64) DEFAULT NULL COMMENT 'Related alert identifier',
   sql_fingerprint VARCHAR(128) DEFAULT NULL COMMENT 'Normalized SQL fingerprint',
   source_sql_text MEDIUMTEXT DEFAULT NULL COMMENT 'Original SQL text or template',
   recommended_sql_text MEDIUMTEXT NOT NULL COMMENT 'Recommended SQL, create table SQL, prewarm SQL, or maintenance SQL',
@@ -695,7 +700,12 @@ CREATE TABLE IF NOT EXISTS acceleration_recommendation (
   KEY idx_acc_reco_tenant_type_created (tenant_id, recommendation_type, created_at),
   KEY idx_acc_reco_tenant_status_created (tenant_id, status, created_at),
   KEY idx_acc_reco_sql_fingerprint (tenant_id, sql_fingerprint),
-  KEY idx_acc_reco_report_code (tenant_id, report_code)
+  KEY idx_acc_reco_report_code (tenant_id, report_code),
+  KEY idx_acc_reco_history (tenant_id, history_id),
+  KEY idx_acc_reco_parse_task (tenant_id, parse_task_id),
+  KEY idx_acc_reco_batch (tenant_id, batch_id),
+  KEY idx_acc_reco_route (tenant_id, route_decision_id),
+  KEY idx_acc_reco_alert (tenant_id, alert_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Read-only SQL acceleration and rewrite recommendation catalog';
 
 CREATE TABLE IF NOT EXISTS dispatch_event (

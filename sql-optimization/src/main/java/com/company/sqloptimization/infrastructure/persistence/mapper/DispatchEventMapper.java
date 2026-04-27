@@ -15,6 +15,9 @@ public interface DispatchEventMapper {
     List<DispatchEventRecord> selectByTenantIdAndStatus(@Param("tenantId") String tenantId,
                                                         @Param("status") String status);
 
+    List<DispatchEventRecord> selectByTenantIdAndRecommendationId(@Param("tenantId") String tenantId,
+                                                                  @Param("recommendationId") String recommendationId);
+
     int insert(DispatchEventRecord record);
 
     int update(DispatchEventRecord record);

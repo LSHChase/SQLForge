@@ -38,6 +38,17 @@ public class InMemoryDispatchEventRepository implements DispatchEventRepository 
         return sort(filter(tenantId, status));
     }
 
+    @Override
+    public List<DispatchEvent> findByTenantIdAndRecommendationId(String tenantId, String recommendationId) {
+        List<DispatchEvent> result = new ArrayList<DispatchEvent>();
+        for (DispatchEvent event : events.values()) {
+            if (event.getTenantId().equals(tenantId) && event.getRecommendationId().equals(recommendationId)) {
+                result.add(event);
+            }
+        }
+        return sort(result);
+    }
+
     private List<DispatchEvent> filter(String tenantId, DispatchEventStatus status) {
         List<DispatchEvent> result = new ArrayList<DispatchEvent>();
         for (DispatchEvent event : events.values()) {

@@ -35,6 +35,11 @@ class AccelerationRecommendationApplicationServiceTest {
         request.setTenantId("tenant-a");
         request.setRecommendationType(RecommendationType.CREATE_TABLE);
         request.setSourceSqlId("parse-item-001");
+        request.setHistoryId("history-001");
+        request.setParseTaskId("parse-task-001");
+        request.setBatchId("batch-001");
+        request.setRouteDecisionId("route-001");
+        request.setAlertId("alert-001");
         request.setSqlFingerprint("fp-001");
         request.setRecommendedSqlText("CREATE TABLE agg_sales AS SELECT * FROM sales");
         request.setTargetEngine("trino");
@@ -53,6 +58,11 @@ class AccelerationRecommendationApplicationServiceTest {
         assertEquals("CREATE_TABLE", created.getRecommendationType());
         assertEquals("HIGH", created.getBenefitLevel());
         assertEquals("MEDIUM", created.getRiskLevel());
+        assertEquals("history-001", created.getHistoryId());
+        assertEquals("parse-task-001", created.getParseTaskId());
+        assertEquals("batch-001", created.getBatchId());
+        assertEquals("route-001", created.getRouteDecisionId());
+        assertEquals("alert-001", created.getAlertId());
         assertEquals(Boolean.TRUE, created.getRequiresDispatch());
         assertEquals("RECOMMENDED", created.getStatus());
         assertEquals(1, list.size());

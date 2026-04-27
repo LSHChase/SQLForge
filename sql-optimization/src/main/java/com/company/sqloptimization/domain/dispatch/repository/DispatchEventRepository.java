@@ -13,4 +13,6 @@ public interface DispatchEventRepository {
     List<DispatchEvent> findByTenantId(String tenantId);
 
     List<DispatchEvent> findByTenantIdAndStatus(String tenantId, DispatchEventStatus status);
+
+    List<DispatchEvent> findByTenantIdAndRecommendationId(String tenantId, String recommendationId);
 }

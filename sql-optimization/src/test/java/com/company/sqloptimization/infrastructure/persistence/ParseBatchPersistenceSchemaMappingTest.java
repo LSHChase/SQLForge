@@ -72,6 +72,9 @@ class ParseBatchPersistenceSchemaMappingTest {
         assertContains(schema, "CREATE TABLE IF NOT EXISTS acceleration_recommendation");
         assertContains(schema, "recommendation_type VARCHAR(32) NOT NULL");
         assertContains(schema, "recommended_sql_text MEDIUMTEXT NOT NULL");
+        assertContains(schema, "history_id VARCHAR(64)");
+        assertContains(schema, "parse_task_id VARCHAR(64)");
+        assertContains(schema, "route_decision_id VARCHAR(64)");
         assertContains(schema, "benefit_level VARCHAR(32) NOT NULL DEFAULT 'UNKNOWN'");
         assertContains(schema, "risk_level VARCHAR(32) NOT NULL DEFAULT 'UNKNOWN'");
         assertContains(schema, "no executed state in SQLForge");
@@ -82,6 +85,9 @@ class ParseBatchPersistenceSchemaMappingTest {
         assertContains(mapper, "FROM acceleration_recommendation");
         assertContains(mapper, "selectByTenantId");
         assertContains(mapper, "requires_dispatch");
+        String traceMigration = readRepositoryFile("sql/migrations/V20260426_009__recommendation_traceability_keys.sql");
+        assertContains(traceMigration, "ADD COLUMN history_id");
+        assertContains(traceMigration, "idx_acc_reco_parse_task");
     }
 
     @Test
@@ -97,6 +103,7 @@ class ParseBatchPersistenceSchemaMappingTest {
         String mapper = readMapper("mapper/DispatchEventMapper.xml");
         assertContains(mapper, "FROM dispatch_event");
         assertContains(mapper, "selectByTenantIdAndStatus");
+        assertContains(mapper, "selectByTenantIdAndRecommendationId");
         assertContains(mapper, "status_history_json");
     }
 

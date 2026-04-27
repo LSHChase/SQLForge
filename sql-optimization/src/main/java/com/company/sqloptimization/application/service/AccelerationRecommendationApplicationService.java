@@ -39,6 +39,11 @@ public class AccelerationRecommendationApplicationService {
             .tenantId(tenantId)
             .recommendationType(request.getRecommendationType())
             .sourceSqlId(trimToNull(request.getSourceSqlId()))
+            .historyId(trimToNull(request.getHistoryId()))
+            .parseTaskId(trimToNull(request.getParseTaskId()))
+            .batchId(trimToNull(request.getBatchId()))
+            .routeDecisionId(trimToNull(request.getRouteDecisionId()))
+            .alertId(trimToNull(request.getAlertId()))
             .sqlFingerprint(trimToNull(request.getSqlFingerprint()))
             .sourceSqlText(trimToNull(request.getSourceSqlText()))
             .recommendedSqlText(request.getRecommendedSqlText().trim())
@@ -90,6 +95,11 @@ public class AccelerationRecommendationApplicationService {
         vo.setTenantId(recommendation.getTenantId());
         vo.setRecommendationType(recommendation.getRecommendationType().name());
         vo.setSourceSqlId(recommendation.getSourceSqlId());
+        vo.setHistoryId(recommendation.getHistoryId());
+        vo.setParseTaskId(recommendation.getParseTaskId());
+        vo.setBatchId(recommendation.getBatchId());
+        vo.setRouteDecisionId(recommendation.getRouteDecisionId());
+        vo.setAlertId(recommendation.getAlertId());
         vo.setSqlFingerprint(recommendation.getSqlFingerprint());
         vo.setSourceSqlText(recommendation.getSourceSqlText());
         vo.setRecommendedSqlText(recommendation.getRecommendedSqlText());

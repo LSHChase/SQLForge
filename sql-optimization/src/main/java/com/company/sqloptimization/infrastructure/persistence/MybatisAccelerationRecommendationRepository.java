@@ -61,6 +61,11 @@ public class MybatisAccelerationRecommendationRepository implements Acceleration
         record.setTenantId(recommendation.getTenantId());
         record.setRecommendationType(recommendation.getRecommendationType().name());
         record.setSourceSqlId(recommendation.getSourceSqlId());
+        record.setHistoryId(recommendation.getHistoryId());
+        record.setParseTaskId(recommendation.getParseTaskId());
+        record.setBatchId(recommendation.getBatchId());
+        record.setRouteDecisionId(recommendation.getRouteDecisionId());
+        record.setAlertId(recommendation.getAlertId());
         record.setSqlFingerprint(recommendation.getSqlFingerprint());
         record.setSourceSqlText(recommendation.getSourceSqlText());
         record.setRecommendedSqlText(recommendation.getRecommendedSqlText());
@@ -88,6 +93,11 @@ public class MybatisAccelerationRecommendationRepository implements Acceleration
             .tenantId(record.getTenantId())
             .recommendationType(RecommendationType.valueOf(record.getRecommendationType()))
             .sourceSqlId(record.getSourceSqlId())
+            .historyId(record.getHistoryId())
+            .parseTaskId(record.getParseTaskId())
+            .batchId(record.getBatchId())
+            .routeDecisionId(record.getRouteDecisionId())
+            .alertId(record.getAlertId())
             .sqlFingerprint(record.getSqlFingerprint())
             .sourceSqlText(record.getSourceSqlText())
             .recommendedSqlText(record.getRecommendedSqlText())

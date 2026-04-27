@@ -585,6 +585,7 @@ repo-side 基线：
 
 - `GET /api/sql-optimization/recommendations`
 - `GET /api/sql-optimization/recommendations/{recommendationId}`
+- `GET /api/sql-optimization/recommendations/{recommendationId}/trace`
 - `POST /api/sql-optimization/recommendations/{recommendationId}/dispatch`
 - `GET /api/sql-optimization/dispatch-events`
 - `GET /api/sql-optimization/dispatch-events/{dispatchEventId}`
@@ -598,6 +599,11 @@ repo-side 基线：
 - `tenantId`
 - `recommendationType`: `REWRITE`,`ACCELERATION`,`CREATE_TABLE`,`PREWARM`,`MAINTENANCE`
 - `sourceSqlId`
+- `historyId`
+- `parseTaskId`
+- `batchId`
+- `routeDecisionId`
+- `alertId`
 - `sqlFingerprint`
 - `sourceSqlText`
 - `recommendedSqlText`
@@ -622,6 +628,7 @@ repo-side 基线：
 - 推荐对象只表达建议、收益、风险、目标 SQL 与是否需要装数协同。
 - SQLForge 不在 recommendation status 中提供 `EXECUTED` 状态；执行与装数回执由后续 `DispatchEvent` 承载。
 - `requiresDispatch=true` 只表示需要外部装数/预热协同，不表示本项目已执行装数。
+- trace 查询只返回同租户 `historyId/parseTaskId/batchId/routeDecisionId/alertId/sqlFingerprint/reportCode/logicalObjectKey` 等引用键，以及同租户 dispatch event；跨服务详情由各自受权接口查询。
 
 治理事件载荷至少包括：
 
