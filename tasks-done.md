@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-056: 落地按 SQL 与问题场景统计
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): add parse statistics APIs`
+- Priority: 1
+- Depends on: `D-TASK-055`
+- Scope: parse overview、scene aggregation、single-SQL issue 统计 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-010` 解析统计与优先级分层
+- Human confirmation point: 若按 SQL / 场景统计会引入高成本查询、错误聚合或隐藏问题样本，需人工确认
+- Data impact: 统计聚合、样本明细、索引与缓存面
+- Rollback / recovery: 回退高成本聚合，恢复基础统计和样本可追溯性
+- Validation:
+  - `statistics API 测试`
+  - `python3 scripts/foreman.py validate D-TASK-056`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented parse statistics overview, issue-scene aggregation, single-SQL issue statistics, tenant-scoped aggregation over parse batch items, repository findAll support, mapper coverage, and API contract documentation.
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=ParseStatisticsApplicationServiceTest,ParseStatisticsControllerTest,StructureParsePriorityScorerTest,ParseBatchPersistenceSchemaMappingTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-056; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Report-dimension aggregation and priority matrix/list views remain deferred to D-TASK-057 and D-TASK-058 as planned.
+  - Next step: Instantiate D-TASK-057 to add report-dimension parse aggregation and ratio metrics.
+
 ### D-TASK-055: 固化解析统计口径与优先级评分
 
 - Status: done

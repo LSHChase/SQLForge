@@ -570,6 +570,14 @@ repo-side 基线：
 - `GET /api/sql-optimization/parse-statistics/by-report`
 - `GET /api/sql-optimization/parse-statistics/priority-matrix`
 
+当前 repo-side 基线：
+
+- `overview`: `totalSqlCount`,`issueSqlCount`,`totalIssueCount`,`issueSceneCount`,`importantSqlCount`,`urgentSqlCount`,`priorityDistribution`
+- `by-issue-scene`: `issueScene`,`issueDomain`,`severity`,`priorityLevel`,`priorityScore`,`affectedSqlCount`,`affectedIssueCount`,`sqlRatio`,`important`,`urgent`
+- `by-sql`: `itemId`,`batchId`,`parseTaskId`,`reportCode`,`datasourceCode`,`stage`,`sqlDigest`,`issueCount`,`highestPriorityLevel`,`highestPriorityScore`,`important`,`urgent`,`issueScenes`
+- 当前按 `RequestContext.tenantId` 过滤批量解析记录，避免跨租户聚合
+- `by-report` 与 `priority-matrix` 在后续任务扩展
+
 ## 7. Recommendation and Dispatch Contracts
 
 - `GET /api/sql-optimization/recommendations`

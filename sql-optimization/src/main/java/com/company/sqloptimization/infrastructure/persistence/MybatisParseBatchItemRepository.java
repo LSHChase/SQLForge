@@ -56,6 +56,16 @@ public class MybatisParseBatchItemRepository implements ParseBatchItemRepository
         return record == null ? null : toDomain(record);
     }
 
+    @Override
+    public List<ParseBatchItem> findAll() {
+        List<ParseBatchItemRecord> records = parseBatchItemMapper.selectAll();
+        java.util.ArrayList<ParseBatchItem> items = new java.util.ArrayList<ParseBatchItem>(records.size());
+        for (ParseBatchItemRecord record : records) {
+            items.add(toDomain(record));
+        }
+        return items;
+    }
+
     private ParseBatchItemRecord toRecord(ParseBatchItem item) {
         ParseBatchItemRecord record = new ParseBatchItemRecord();
         record.setItemId(item.getItemId());

@@ -45,6 +45,8 @@ class ParseBatchPersistenceSchemaMappingTest {
         assertContains(mapper, "FROM parse_batch_item");
         assertContains(mapper, "sequence_number");
         assertContains(mapper, "access_service_status");
+        assertContains(mapper, "selectAll");
+        assertContains(mapper, "ORDER BY batch_id ASC, sequence_number ASC");
     }
 
     @Test

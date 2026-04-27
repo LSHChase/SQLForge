@@ -10,4 +10,6 @@ public interface ParseBatchItemRepository {
     List<ParseBatchItem> findByBatchId(String batchId);
 
     ParseBatchItem findByItemId(String itemId);
+
+    List<ParseBatchItem> findAll();
 }

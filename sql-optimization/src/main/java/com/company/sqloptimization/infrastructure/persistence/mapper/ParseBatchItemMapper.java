@@ -15,4 +15,6 @@ public interface ParseBatchItemMapper {
     ParseBatchItemRecord selectByItemId(@Param("itemId") String itemId);
 
     List<ParseBatchItemRecord> selectByBatchId(@Param("batchId") String batchId);
+
+    List<ParseBatchItemRecord> selectAll();
 }

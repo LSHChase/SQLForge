@@ -38,4 +38,11 @@ public class InMemoryParseBatchItemRepository implements ParseBatchItemRepositor
     public ParseBatchItem findByItemId(String itemId) {
         return items.get(itemId);
     }
+
+    @Override
+    public List<ParseBatchItem> findAll() {
+        List<ParseBatchItem> result = new ArrayList<ParseBatchItem>(items.values());
+        result.sort(Comparator.comparing(ParseBatchItem::getBatchId).thenComparingInt(ParseBatchItem::getSequenceNumber));
+        return result;
+    }
 }
