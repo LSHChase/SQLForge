@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-065: 落地 JDBC Agent 首版 `Observe`
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(jdbc-agent): harden observe-only coverage`
+- Priority: 1
+- Depends on: `D-TASK-064`
+- Scope: JAR 采集 SQL、注释解析、上报 access audit，不接管执行 Tech: `JAVA-BE`,`OPS`. Layer: `common`,`deployments/ci/scripts`.
+- Matrix context: Phase-D / Story `D-STORY-012` 开放接入与 JDBC Agent
+- Human confirmation point: 若 JDBC Agent `Observe` 会接管执行、写入敏感信息或在规则源失败时影响业务查询，需人工确认
+- Data impact: Agent JAR、采集上报、access audit 与 Redis 依赖
+- Rollback / recovery: 恢复 observe-only 语义，禁用高风险上报或敏感字段透出
+- Validation:
+  - `JDBC agent sample/integration 测试`
+  - `python3 scripts/foreman.py validate D-TASK-065`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Hardened JDBC Agent observe-mode comment parsing to ignore malformed leading comments, and added dedicated observe-only tests plus a focused validation script for audit reporting, fail-open behavior, and non-takeover execution.
+  - Validation evidence: bash scripts/run-jdbc-agent-observe-tests.sh; python3 scripts/foreman.py validate D-TASK-065 --extra-command 'bash scripts/run-jdbc-agent-observe-tests.sh'
+  - Residual risk: The shared JDBC agent baseline for governed execution and local rewrite still lives in the common agent implementation, and governed-execute closeout remains pending under D-TASK-066.
+  - Next step: Close out D-TASK-066 with its dedicated governed-execute validation coverage, then resume the remaining implementation-spec tasks.
+
 ### D-TASK-068: 落地 Java SDK 首版
 
 - Status: done

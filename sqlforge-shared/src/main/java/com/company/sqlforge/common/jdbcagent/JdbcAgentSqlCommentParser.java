@@ -21,9 +21,12 @@ public final class JdbcAgentSqlCommentParser {
                 break;
             }
             String payload = trimmed.substring(2).trim();
+            if (!StringUtils.hasText(payload)) {
+                continue;
+            }
             int separator = payload.indexOf('=');
             if (separator <= 0 || separator >= payload.length() - 1) {
-                break;
+                continue;
             }
             String key = payload.substring(0, separator).trim();
             String value = payload.substring(separator + 1).trim();
