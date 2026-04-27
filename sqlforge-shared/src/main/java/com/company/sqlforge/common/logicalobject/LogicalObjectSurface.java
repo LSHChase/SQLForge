@@ -1,8 +1,8 @@
-package com.company.sqloptimization.application.controller.vo;
+package com.company.sqlforge.common.logicalobject;
 
 import java.util.List;
 
-public class StructureParseLogicalObjectHitVO {
+public class LogicalObjectSurface {
 
     private String objectType;
     private String objectKey;

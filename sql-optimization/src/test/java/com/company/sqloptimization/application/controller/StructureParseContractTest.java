@@ -3,9 +3,9 @@ package com.company.sqloptimization.application.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import com.company.sqlforge.common.logicalobject.LogicalObjectType;
 import com.company.sqloptimization.application.controller.vo.StructureParseIssueVO;
-import com.company.sqloptimization.application.controller.vo.StructureParseLogicalObjectHitVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseQueryDateSummaryVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseResponseVO;
 import com.company.sqloptimization.domain.parse.StructureParseComplexityLevel;
@@ -37,7 +37,7 @@ class StructureParseContractTest {
         queryDateSummary.setQueryDateFields(Collections.singletonList("dt"));
         queryDateSummary.setQueryDateStatus(StructureParseQueryDateStatus.RESOLVED.name());
 
-        StructureParseLogicalObjectHitVO logicalObjectHit = new StructureParseLogicalObjectHitVO();
+        LogicalObjectSurface logicalObjectHit = new LogicalObjectSurface();
         logicalObjectHit.setObjectType(LogicalObjectType.BUSINESS_VIEW.name());
         logicalObjectHit.setObjectKey(LogicalObjectRef.buildObjectKey(LogicalObjectType.BUSINESS_VIEW, "sales_daily_view"));
         logicalObjectHit.setObjectName("sales_daily_view");

@@ -1,5 +1,6 @@
 package com.company.governance.application.controller.vo;
 
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,6 +36,7 @@ public class GovernanceQueryHistorySummaryVO {
     private LocalDateTime submittedAt;
     private String errorCode;
     private List<String> logicalObjectTypes;
+    private List<LogicalObjectSurface> logicalObjectHits;
 
     public String getHistoryId() {
         return historyId;
@@ -266,5 +268,13 @@ public class GovernanceQueryHistorySummaryVO {
 
     public void setLogicalObjectTypes(List<String> logicalObjectTypes) {
         this.logicalObjectTypes = logicalObjectTypes;
+    }
+
+    public List<LogicalObjectSurface> getLogicalObjectHits() {
+        return logicalObjectHits;
+    }
+
+    public void setLogicalObjectHits(List<LogicalObjectSurface> logicalObjectHits) {
+        this.logicalObjectHits = logicalObjectHits;
     }
 }

@@ -1,5 +1,6 @@
 package com.company.sqloptimization.application.controller.vo;
 
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import java.util.List;
 
 public class StructureParseResponseVO {
@@ -10,7 +11,7 @@ public class StructureParseResponseVO {
     private String complexityLevel;
     private String sqlType;
     private StructureParseQueryDateSummaryVO queryDateSummary;
-    private List<StructureParseLogicalObjectHitVO> logicalObjectHits;
+    private List<LogicalObjectSurface> logicalObjectHits;
     private List<String> riskTags;
     private List<String> rewriteCandidates;
     private List<StructureParseIssueVO> issues;
@@ -67,11 +68,11 @@ public class StructureParseResponseVO {
         this.queryDateSummary = queryDateSummary;
     }
 
-    public List<StructureParseLogicalObjectHitVO> getLogicalObjectHits() {
+    public List<LogicalObjectSurface> getLogicalObjectHits() {
         return logicalObjectHits;
     }
 
-    public void setLogicalObjectHits(List<StructureParseLogicalObjectHitVO> logicalObjectHits) {
+    public void setLogicalObjectHits(List<LogicalObjectSurface> logicalObjectHits) {
         this.logicalObjectHits = logicalObjectHits;
     }
 

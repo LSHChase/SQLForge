@@ -6,10 +6,10 @@ import com.company.sqlforge.common.governance.GovernanceDbViewDependencyRef;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import com.company.sqlforge.common.logicalobject.LogicalObjectType;
 import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
 import com.company.sqloptimization.application.controller.vo.StructureParseIssueVO;
-import com.company.sqloptimization.application.controller.vo.StructureParseLogicalObjectHitVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseQueryDateSummaryVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseResponseVO;
 import com.company.sqloptimization.domain.parse.StructureParseComplexityLevel;
@@ -410,13 +410,13 @@ public class StructureParseApplicationService {
         return vo;
     }
 
-    private List<StructureParseLogicalObjectHitVO> toLogicalObjectHitVOs(List<StructureParseLogicalObjectHit> hits) {
+    private List<LogicalObjectSurface> toLogicalObjectHitVOs(List<StructureParseLogicalObjectHit> hits) {
         if (hits == null || hits.isEmpty()) {
             return Collections.emptyList();
         }
-        List<StructureParseLogicalObjectHitVO> vos = new ArrayList<StructureParseLogicalObjectHitVO>();
+        List<LogicalObjectSurface> vos = new ArrayList<LogicalObjectSurface>();
         for (StructureParseLogicalObjectHit hit : hits) {
-            StructureParseLogicalObjectHitVO vo = new StructureParseLogicalObjectHitVO();
+            LogicalObjectSurface vo = new LogicalObjectSurface();
             vo.setObjectType(hit.getObjectType().name());
             vo.setObjectKey(hit.getObjectKey());
             vo.setObjectName(hit.getObjectName());

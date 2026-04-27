@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-049: 统一逻辑对象在查询/历史/解析中的展示契约
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(governance): unify logical object evidence surfaces`
+- Priority: 1
+- Depends on: `D-TASK-048`
+- Scope: 统一查询、历史、解析、路由消费的 logical object DTO/VO 与 detail/list/export surfaces Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-008` 逻辑视图与 DB View 治理
+- Human confirmation point: 若逻辑对象统一展示会破坏现有 query/history/parse 契约兼容性，需人工确认
+- Data impact: 跨服务 DTO/VO 与前端消费面
+- Rollback / recovery: 保留旧 DTO/VO 兼容层，并回退统一对象字段为可选扩展
+- Validation:
+  - `cross-service contract 测试`
+  - `python3 scripts/foreman.py validate D-TASK-049`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Unified logical object DTO and evidence rendering across structure-parse, query-history list/detail, trace detail, and export payload surfaces while preserving legacy logical-object evidence compatibility.
+  - Validation evidence: mvn -pl governance,sql-optimization -am -Dtest=StructureParseContractTest,StructureParseControllerTest,GovernanceHistoryApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-049; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Query-execution runtime responses still need to emit the same shared logical-object surface once execution endpoints are materialized; current unification covers parse and governance consumption surfaces.
+  - Next step: Instantiate D-TASK-050 to establish ParseBatch, import template, and batch-state contracts for the bulk parse workflow.
+
 ### D-TASK-048: 落地 DB View 识别与依赖展示
 
 - Status: done

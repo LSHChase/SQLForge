@@ -1,5 +1,6 @@
 package com.company.governance.application.controller.vo;
 
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,7 +23,7 @@ public class GovernanceQueryHistoryDetailVO {
     private Map<String, Object> sqlState;
     private Map<String, Object> commentContext;
     private Map<String, Object> queryDateSummary;
-    private Object logicalObjectHits;
+    private List<LogicalObjectSurface> logicalObjectHits;
     private Map<String, Object> executionSummary;
     private Map<String, Object> structureParseSummary;
     private Map<String, Object> accessParseSummary;
@@ -158,11 +159,11 @@ public class GovernanceQueryHistoryDetailVO {
         this.queryDateSummary = queryDateSummary;
     }
 
-    public Object getLogicalObjectHits() {
+    public List<LogicalObjectSurface> getLogicalObjectHits() {
         return logicalObjectHits;
     }
 
-    public void setLogicalObjectHits(Object logicalObjectHits) {
+    public void setLogicalObjectHits(List<LogicalObjectSurface> logicalObjectHits) {
         this.logicalObjectHits = logicalObjectHits;
     }
 

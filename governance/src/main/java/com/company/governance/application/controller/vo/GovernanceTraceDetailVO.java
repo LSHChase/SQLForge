@@ -1,5 +1,6 @@
 package com.company.governance.application.controller.vo;
 
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -204,7 +205,7 @@ public class GovernanceTraceDetailVO extends GovernanceTraceSummaryVO {
         private LocalDateTime createTime;
         private Map<String, Object> commentContext;
         private Map<String, Object> bindingSummary;
-        private Object logicalObjectHits;
+        private List<LogicalObjectSurface> logicalObjectHits;
         private Map<String, Object> routeSummary;
         private Map<String, Object> cacheSummary;
         private Map<String, Object> queryContext;
@@ -409,11 +410,11 @@ public class GovernanceTraceDetailVO extends GovernanceTraceSummaryVO {
             this.bindingSummary = bindingSummary;
         }
 
-        public Object getLogicalObjectHits() {
+        public List<LogicalObjectSurface> getLogicalObjectHits() {
             return logicalObjectHits;
         }
 
-        public void setLogicalObjectHits(Object logicalObjectHits) {
+        public void setLogicalObjectHits(List<LogicalObjectSurface> logicalObjectHits) {
             this.logicalObjectHits = logicalObjectHits;
         }
 

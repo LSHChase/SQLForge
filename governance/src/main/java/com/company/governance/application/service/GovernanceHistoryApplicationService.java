@@ -29,6 +29,8 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOp
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationTarget;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
+import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import com.company.sqlforge.common.logicalobject.LogicalObjectType;
 import com.company.sqlforge.common.security.SensitiveDataCryptoService;
 import com.company.sqlforge.common.utils.DateUtils;
@@ -1081,7 +1083,9 @@ public class GovernanceHistoryApplicationService {
         item.setSubmittedBy(row.getSubmittedBy());
         item.setSubmittedAt(row.getSubmittedAt() == null ? row.getCreateTime() : row.getSubmittedAt());
         item.setErrorCode(row.getErrorCode());
-        item.setLogicalObjectTypes(extractLogicalObjectTypes(row.getLogicalObjectHits()));
+        List<LogicalObjectSurface> logicalObjectHits = normalizeLogicalObjectHits(row.getLogicalObjectHits());
+        item.setLogicalObjectHits(logicalObjectHits);
+        item.setLogicalObjectTypes(extractLogicalObjectTypes(logicalObjectHits));
         return item;
     }
 
@@ -1103,7 +1107,7 @@ public class GovernanceHistoryApplicationService {
         detail.setSqlState(buildSqlState(row));
         detail.setCommentContext(parseJsonObject(row.getCommentContext()));
         detail.setQueryDateSummary(buildQueryDateSummary(row));
-        detail.setLogicalObjectHits(parseJsonValue(row.getLogicalObjectHits()));
+        detail.setLogicalObjectHits(normalizeLogicalObjectHits(row.getLogicalObjectHits()));
         detail.setExecutionSummary(buildExecutionSummary(row));
         detail.setStructureParseSummary(buildParseSummary(parseJsonObject(row.getQueryContext()), "structureParseSummary"));
         detail.setAccessParseSummary(buildParseSummary(parseJsonObject(row.getQueryContext()), "accessParseSummary"));
@@ -1165,10 +1169,9 @@ public class GovernanceHistoryApplicationService {
         return counts;
     }
 
-    private List<String> extractLogicalObjectTypes(String logicalObjectHitsJson) {
-        Object parsed = parseJsonValue(logicalObjectHitsJson);
+    private List<String> extractLogicalObjectTypes(List<LogicalObjectSurface> logicalObjectHits) {
         LinkedHashSet<String> types = new LinkedHashSet<String>();
-        collectLogicalObjectTypes(parsed, types);
+        collectLogicalObjectTypes(logicalObjectHits, types);
         return new ArrayList<String>(types);
     }
 
@@ -1179,6 +1182,13 @@ public class GovernanceHistoryApplicationService {
         if (parsed instanceof List) {
             for (Object item : (List<?>) parsed) {
                 collectLogicalObjectTypes(item, types);
+            }
+            return;
+        }
+        if (parsed instanceof LogicalObjectSurface) {
+            String type = ((LogicalObjectSurface) parsed).getObjectType();
+            if (StringUtils.hasText(type)) {
+                types.add(type);
             }
             return;
         }
@@ -1205,6 +1215,218 @@ public class GovernanceHistoryApplicationService {
         if (types.isEmpty() && StringUtils.hasText(raw)) {
             types.add("RAW");
         }
+    }
+
+    private static List<LogicalObjectSurface> normalizeLogicalObjectHits(String logicalObjectHitsJson) {
+        return normalizeLogicalObjectHits(parseJsonValue(logicalObjectHitsJson));
+    }
+
+    private static List<LogicalObjectSurface> normalizeLogicalObjectHits(Object logicalObjectHits) {
+        if (logicalObjectHits == null) {
+            return Collections.emptyList();
+        }
+        List<LogicalObjectSurface> surfaces = new ArrayList<LogicalObjectSurface>();
+        collectLogicalObjectSurfaces(logicalObjectHits, surfaces);
+        return surfaces;
+    }
+
+    private static void collectLogicalObjectSurfaces(Object rawValue, List<LogicalObjectSurface> surfaces) {
+        if (rawValue == null || surfaces == null) {
+            return;
+        }
+        if (rawValue instanceof List) {
+            for (Object item : (List<?>) rawValue) {
+                collectLogicalObjectSurfaces(item, surfaces);
+            }
+            return;
+        }
+        if (rawValue instanceof Map) {
+            LogicalObjectSurface surface = toLogicalObjectSurface((Map<?, ?>) rawValue);
+            if (surface != null) {
+                surfaces.add(surface);
+            }
+            return;
+        }
+        LogicalObjectSurface surface = fromRawLogicalObject(String.valueOf(rawValue));
+        if (surface != null) {
+            surfaces.add(surface);
+        }
+    }
+
+    private static LogicalObjectSurface toLogicalObjectSurface(Map<?, ?> rawMap) {
+        if (rawMap == null || rawMap.isEmpty()) {
+            return null;
+        }
+        LogicalObjectSurface surface = new LogicalObjectSurface();
+        String objectType = firstText(rawMap.get("objectType"), rawMap.get("type"));
+        String objectKey = firstText(rawMap.get("objectKey"), rawMap.get("key"));
+        String objectName = firstText(rawMap.get("objectName"), rawMap.get("name"));
+        String catalogName = firstText(rawMap.get("catalogName"), rawMap.get("catalog"));
+        String schemaName = firstText(rawMap.get("schemaName"), rawMap.get("schema"));
+        String matchSource = firstText(rawMap.get("matchSource"), rawMap.get("source"));
+        Boolean resolved = toBooleanValue(rawMap.get("resolved"));
+        List<String> mappedTargets = normalizeMappedPhysicalTargets(rawMap.get("mappedPhysicalTargets"));
+        if (mappedTargets.isEmpty()) {
+            mappedTargets = normalizeMappedPhysicalTargets(rawMap.get("physicalTargets"));
+        }
+
+        if (!StringUtils.hasText(objectType) && StringUtils.hasText(objectKey)) {
+            objectType = extractLogicalObjectType(objectKey);
+        }
+        if (!StringUtils.hasText(objectKey) && StringUtils.hasText(objectType) && StringUtils.hasText(objectName)) {
+            LogicalObjectType logicalObjectType = resolveLogicalObjectType(objectType);
+            if (logicalObjectType != null) {
+                objectKey = LogicalObjectRef.buildObjectKey(logicalObjectType, objectName);
+            }
+        }
+        if (!StringUtils.hasText(objectName) && StringUtils.hasText(objectKey) && objectKey.contains(":")) {
+            objectName = objectKey.substring(objectKey.indexOf(':') + 1);
+        }
+
+        surface.setObjectType(StringUtils.hasText(objectType) ? objectType : "RAW");
+        surface.setObjectKey(objectKey);
+        surface.setObjectName(objectName);
+        surface.setCatalogName(catalogName);
+        surface.setSchemaName(schemaName);
+        surface.setMatchSource(matchSource);
+        surface.setResolved(resolved);
+        surface.setMappedPhysicalTargets(mappedTargets);
+        return surface;
+    }
+
+    private static LogicalObjectSurface fromRawLogicalObject(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return null;
+        }
+        String normalizedRaw = raw.trim();
+        LogicalObjectSurface surface = new LogicalObjectSurface();
+        String objectType = extractLogicalObjectType(normalizedRaw);
+        surface.setObjectType(StringUtils.hasText(objectType) ? objectType : "RAW");
+        if (StringUtils.hasText(objectType)) {
+            surface.setObjectKey(normalizedRaw);
+            surface.setObjectName(normalizedRaw.contains(":") ? normalizedRaw.substring(normalizedRaw.indexOf(':') + 1) : normalizedRaw);
+        } else {
+            surface.setObjectName(normalizedRaw);
+            LogicalObjectType fallbackType = inferLogicalObjectTypeFromName(normalizedRaw);
+            if (fallbackType != null) {
+                surface.setObjectType(fallbackType.name());
+                surface.setObjectKey(LogicalObjectRef.buildObjectKey(fallbackType, normalizedRaw));
+            }
+        }
+        surface.setResolved(Boolean.FALSE);
+        surface.setMappedPhysicalTargets(Collections.<String>emptyList());
+        return surface;
+    }
+
+    private static List<String> normalizeMappedPhysicalTargets(Object rawTargets) {
+        if (rawTargets == null) {
+            return Collections.emptyList();
+        }
+        List<String> targets = new ArrayList<String>();
+        if (rawTargets instanceof List) {
+            for (Object item : (List<?>) rawTargets) {
+                String normalized = normalizeTargetEntry(item);
+                if (StringUtils.hasText(normalized)) {
+                    targets.add(normalized);
+                }
+            }
+            return targets;
+        }
+        String normalized = normalizeTargetEntry(rawTargets);
+        if (StringUtils.hasText(normalized)) {
+            targets.add(normalized);
+        }
+        return targets;
+    }
+
+    private static String normalizeTargetEntry(Object rawTarget) {
+        if (rawTarget == null) {
+            return null;
+        }
+        if (rawTarget instanceof Map) {
+            Map<?, ?> rawMap = (Map<?, ?>) rawTarget;
+            return firstText(rawMap.get("targetObjectKey"), rawMap.get("objectKey"), rawMap.get("name"));
+        }
+        return trimToNull(String.valueOf(rawTarget));
+    }
+
+    private static String firstText(Object... values) {
+        if (values == null) {
+            return null;
+        }
+        for (Object value : values) {
+            String normalized = trimToNull(value == null ? null : String.valueOf(value));
+            if (StringUtils.hasText(normalized)) {
+                return normalized;
+            }
+        }
+        return null;
+    }
+
+    private static Boolean toBooleanValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        return Boolean.valueOf(String.valueOf(value));
+    }
+
+    private static String extractLogicalObjectType(String value) {
+        String normalized = trimToNull(value);
+        if (!StringUtils.hasText(normalized)) {
+            return null;
+        }
+        for (LogicalObjectType type : LogicalObjectType.values()) {
+            if (normalized.startsWith(type.name() + ":") || normalized.equals(type.name())) {
+                return type.name();
+            }
+        }
+        return null;
+    }
+
+    private static LogicalObjectType resolveLogicalObjectType(String value) {
+        String normalized = trimToNull(value);
+        if (!StringUtils.hasText(normalized)) {
+            return null;
+        }
+        try {
+            return LogicalObjectType.valueOf(normalized);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private static LogicalObjectType inferLogicalObjectTypeFromName(String value) {
+        String normalized = trimToNull(value);
+        if (!StringUtils.hasText(normalized)) {
+            return null;
+        }
+        if (normalized.startsWith("vw_") || normalized.contains(" view")) {
+            return LogicalObjectType.DB_VIEW;
+        }
+        if (normalized.contains(".")) {
+            return LogicalObjectType.TABLE;
+        }
+        return null;
+    }
+
+    private static String joinLogicalObjectKeys(List<LogicalObjectSurface> logicalObjectHits) {
+        if (logicalObjectHits == null || logicalObjectHits.isEmpty()) {
+            return null;
+        }
+        List<String> objectKeys = new ArrayList<String>();
+        for (LogicalObjectSurface hit : logicalObjectHits) {
+            if (hit == null) {
+                continue;
+            }
+            String value = firstNonBlank(hit.getObjectKey(), hit.getObjectName());
+            if (StringUtils.hasText(value) && !objectKeys.contains(value)) {
+                objectKeys.add(value);
+            }
+        }
+        return objectKeys.isEmpty() ? null : String.join("|", objectKeys);
     }
 
     private Map<String, Object> buildSqlState(GovernanceQueryHistoryProjection row) {
@@ -1327,6 +1549,7 @@ public class GovernanceHistoryApplicationService {
     }
 
     private String renderExportPayload(String exportFormat, GovernanceQueryHistoryDetailVO detail) {
+        String logicalObjectSummary = joinLogicalObjectKeys(detail.getLogicalObjectHits());
         if ("JSON".equals(exportFormat)) {
             return JsonUtils.toJson(detail);
         }
@@ -1335,6 +1558,7 @@ public class GovernanceHistoryApplicationService {
             builder.append("-- history_id=").append(detail.getHistoryId()).append('\n');
             builder.append("-- report_code=").append(firstNonBlank(detail.getReportCode(), "-")).append('\n');
             builder.append("-- datasource=").append(firstNonBlank(detail.getDatasourceCode(), "-")).append('\n');
+            builder.append("-- logical_object_keys=").append(firstNonBlank(logicalObjectSummary, "-")).append('\n');
             builder.append('\n').append("-- sql_text").append('\n').append(firstNonBlank(detail.getSqlText(), "-- unavailable"));
             builder.append('\n').append('\n').append("-- sql_template_text").append('\n')
                 .append(firstNonBlank(detail.getSqlTemplateText(), "-- unavailable"));
@@ -1343,7 +1567,7 @@ public class GovernanceHistoryApplicationService {
             return builder.toString();
         }
         if ("CSV".equals(exportFormat)) {
-            return "historyId,reportCode,datasourceCode,stageCode,resultStatus,targetEngine,returnedRowCount,cacheHit,rewriteApplied,accelerationApplied\n"
+            return "historyId,reportCode,datasourceCode,stageCode,resultStatus,targetEngine,returnedRowCount,cacheHit,rewriteApplied,accelerationApplied,logicalObjectKeys\n"
                 + csvCell(detail.getHistoryId()) + ","
                 + csvCell(detail.getReportCode()) + ","
                 + csvCell(detail.getDatasourceCode()) + ","
@@ -1353,10 +1577,11 @@ public class GovernanceHistoryApplicationService {
                 + csvCell(String.valueOf(detail.getExecutionSummary().get("returnedRowCount"))) + ","
                 + csvCell(String.valueOf(detail.getExecutionSummary().get("cacheHit"))) + ","
                 + csvCell(String.valueOf(detail.getExecutionSummary().get("rewriteApplied"))) + ","
-                + csvCell(String.valueOf(detail.getExecutionSummary().get("accelerationApplied")));
+                + csvCell(String.valueOf(detail.getExecutionSummary().get("accelerationApplied"))) + ","
+                + csvCell(logicalObjectSummary);
         }
         if ("EXCEL".equals(exportFormat)) {
-            return "historyId\treportCode\tdatasourceCode\tstageCode\tresultStatus\ttargetEngine\treturnedRowCount\tcacheHit\trewriteApplied\taccelerationApplied\n"
+            return "historyId\treportCode\tdatasourceCode\tstageCode\tresultStatus\ttargetEngine\treturnedRowCount\tcacheHit\trewriteApplied\taccelerationApplied\tlogicalObjectKeys\n"
                 + firstNonBlank(detail.getHistoryId(), "") + "\t"
                 + firstNonBlank(detail.getReportCode(), "") + "\t"
                 + firstNonBlank(detail.getDatasourceCode(), "") + "\t"
@@ -1366,7 +1591,8 @@ public class GovernanceHistoryApplicationService {
                 + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("returnedRowCount")), "") + "\t"
                 + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("cacheHit")), "") + "\t"
                 + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("rewriteApplied")), "") + "\t"
-                + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("accelerationApplied")), "");
+                + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("accelerationApplied")), "") + "\t"
+                + firstNonBlank(logicalObjectSummary, "");
         }
         return "SQL History Evidentiary Report\n"
             + "historyId: " + firstNonBlank(detail.getHistoryId(), "-") + "\n"
@@ -1374,6 +1600,7 @@ public class GovernanceHistoryApplicationService {
             + "datasourceCode: " + firstNonBlank(detail.getDatasourceCode(), "-") + "\n"
             + "resultStatus: " + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("status")), "-") + "\n"
             + "targetEngine: " + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("targetEngine")), "-") + "\n"
+            + "logicalObjectKeys: " + firstNonBlank(logicalObjectSummary, "-") + "\n"
             + "queryDateStatus: " + firstNonBlank(String.valueOf(detail.getQueryDateSummary().get("queryDateStatus")), "-") + "\n"
             + "note: PDF baseline is emitted as an inline textual evidence payload in phase 1.\n";
     }
@@ -2118,7 +2345,7 @@ public class GovernanceHistoryApplicationService {
             historyVO.setCreateTime(record.getCreateTime());
             historyVO.setCommentContext(parseJsonObject(record.getCommentContext()));
             historyVO.setBindingSummary(parseJsonObject(record.getBindingSummary()));
-            historyVO.setLogicalObjectHits(parseJsonValue(record.getLogicalObjectHits()));
+            historyVO.setLogicalObjectHits(normalizeLogicalObjectHits(record.getLogicalObjectHits()));
             historyVO.setRouteSummary(parseJsonObject(record.getRouteSummary()));
             historyVO.setCacheSummary(parseJsonObject(record.getCacheSummary()));
             historyVO.setQueryContext(queryContext);

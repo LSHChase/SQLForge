@@ -34,6 +34,7 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOp
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationTarget;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import com.company.sqlforge.common.security.SensitiveDataCryptoProperties;
 import com.company.sqlforge.common.security.SensitiveDataCryptoService;
 import java.time.LocalDate;
@@ -175,6 +176,7 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("PAGE", detail.getQueryHistories().get(0).getAccessChannel());
         assertEquals("POSITIONAL", detail.getQueryHistories().get(0).getBindingMode());
         assertEquals(Boolean.TRUE, detail.getQueryHistories().get(0).getParameterizedSqlFlag());
+        assertEquals("TABLE:sales.orders", detail.getQueryHistories().get(0).getLogicalObjectHits().get(1).getObjectKey());
         assertEquals("route-001", detail.getQueryHistories().get(0).getRouteSummary().get("ruleId"));
     }
 
@@ -260,6 +262,7 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("history-001", page.getItems().get(0).getHistoryId());
         assertEquals("PARTIAL", page.getItems().get(0).getResultStatus());
         assertEquals(Collections.singletonList("BUSINESS_VIEW"), page.getItems().get(0).getLogicalObjectTypes());
+        assertEquals("BUSINESS_VIEW:vw_sales_daily", page.getItems().get(0).getLogicalObjectHits().get(0).getObjectKey());
         assertEquals(Integer.valueOf(1), ((Map<String, Integer>) page.getClassificationSummary().get("statusCounts")).get("PARTIAL"));
     }
 
@@ -319,6 +322,8 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("POSITIONAL", detail.getSqlState().get("bindingMode"));
         assertEquals("RESOLVED", detail.getQueryDateSummary().get("queryDateStatus"));
         assertEquals("HETU", detail.getExecutionSummary().get("targetEngine"));
+        assertEquals("BUSINESS_VIEW", detail.getLogicalObjectHits().get(0).getObjectType());
+        assertEquals("BUSINESS_VIEW:vw_sales_daily", detail.getLogicalObjectHits().get(0).getObjectKey());
         assertNotNull(detail.getTraceDetail());
         assertEquals(1, detail.getAuditRefs().size());
         assertEquals("trace-query", detail.getTraceDetail().getTraceId());
@@ -384,8 +389,59 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("GENERATED", response.getExportStatus());
         assertEquals("text/sql", response.getContentType());
         assertEquals(Boolean.TRUE, response.getPayload().contains("SELECT * FROM sales.orders"));
+        assertEquals(Boolean.TRUE, response.getPayload().contains("logical_object_keys=BUSINESS_VIEW:vw_sales_daily"));
         verify(protectedPersistenceService).saveExportRecord(any(ExportRecord.class));
         verify(protectedPersistenceService).saveAuditLog(any(AuditLogRecord.class));
+    }
+
+    @Test
+    void shouldNormalizeLegacyLogicalObjectEvidenceIntoSharedSurface() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        SensitiveDataCryptoProperties cryptoProperties = new SensitiveDataCryptoProperties();
+        cryptoProperties.setBase64Key(TEST_BASE64_KEY);
+        SensitiveDataCryptoService cryptoService = new SensitiveDataCryptoService(cryptoProperties);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            null,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic,
+            null,
+            null,
+            cryptoService
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        GovernanceQueryHistoryProjection row = buildHistoryProjection("history-legacy", "trace-legacy", "SUCCESS", "PAGE");
+        row.setLogicalObjectHits("[\"vw_sales_daily\",\"sales.orders\"]");
+        when(queryHistoryMapper.selectHistoryDetail("tenant-a", "history-legacy")).thenReturn(row);
+        when(queryHistoryMapper.selectById("history-legacy")).thenReturn(buildHistoryRecord("history-legacy", "result-history-legacy", "tenant-a"));
+        when(auditLogMapper.selectByTraceId("tenant-a", "trace-legacy", 10)).thenReturn(Collections.emptyList());
+        when(queryHistoryMapper.selectByTraceId("tenant-a", "trace-legacy", 10)).thenReturn(Collections.emptyList());
+        when(exportRecordMapper.selectByTraceId("tenant-a", "trace-legacy", 10)).thenReturn(Collections.emptyList());
+
+        GovernanceQueryHistoryDetailVO detail = service.findQueryHistoryDetail("tenant-a", "history-legacy");
+
+        assertEquals(2, detail.getLogicalObjectHits().size());
+        LogicalObjectSurface first = detail.getLogicalObjectHits().get(0);
+        LogicalObjectSurface second = detail.getLogicalObjectHits().get(1);
+        assertEquals("DB_VIEW", first.getObjectType());
+        assertEquals("DB_VIEW:vw_sales_daily", first.getObjectKey());
+        assertEquals("TABLE", second.getObjectType());
+        assertEquals("TABLE:sales.orders", second.getObjectKey());
     }
 
     @Test
