@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-066: 扩展 JDBC Agent `Governed Execute`
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `test(jdbc-agent): add governed execute coverage`
+- Priority: 1
+- Depends on: `D-TASK-065`
+- Scope: 通过平台 API 执行 SQL，并保留 fallback 语义 Tech: `JAVA-BE`,`OPS`. Layer: `common`,`deployments/ci/scripts`.
+- Matrix context: Phase-D / Story `D-STORY-012` 开放接入与 JDBC Agent
+- Human confirmation point: 若 JDBC Agent `Governed Execute` 会在平台不可用时无回退策略、或默认强制所有 SQL 走平台，需人工确认
+- Data impact: Agent 执行模式、fallback 策略、平台调用链
+- Rollback / recovery: 恢复租户/数据源级可切换边界和 fallback 语义
+- Validation:
+  - `governed-execute 测试`
+  - `python3 scripts/foreman.py validate D-TASK-066`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added dedicated governed-execute validation coverage for JDBC Agent platform execution, direct-JDBC fallback, and fail-closed behavior, plus a focused validation script for the governed-execute contract.
+  - Validation evidence: bash scripts/run-jdbc-agent-governed-execute-tests.sh; python3 scripts/foreman.py validate D-TASK-066 --extra-command 'bash scripts/run-jdbc-agent-governed-execute-tests.sh'
+  - Residual risk: The shared JDBC agent implementation was introduced earlier together with local-rewrite support, so this task closes with focused governed-execute contract coverage rather than a fresh codepath split.
+  - Next step: Rebind to the next active implementation-spec task after D-STORY-012, because the current tasks.md queue is now cleared for JDBC Agent and Java SDK follow-ups.
+
 ### D-TASK-065: 落地 JDBC Agent 首版 `Observe`
 
 - Status: done

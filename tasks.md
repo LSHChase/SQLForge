@@ -16,21 +16,7 @@ _No tasks._
 
 ## In Progress
 
-### D-TASK-066: 扩展 JDBC Agent `Governed Execute`
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `D-TASK-065`
-- Scope: 通过平台 API 执行 SQL，并保留 fallback 语义 Tech: `JAVA-BE`,`OPS`. Layer: `common`,`deployments/ci/scripts`.
-- Matrix context: Phase-D / Story `D-STORY-012` 开放接入与 JDBC Agent
-- Human confirmation point: 若 JDBC Agent `Governed Execute` 会在平台不可用时无回退策略、或默认强制所有 SQL 走平台，需人工确认
-- Data impact: Agent 执行模式、fallback 策略、平台调用链
-- Rollback / recovery: 恢复租户/数据源级可切换边界和 fallback 语义
-- Validation:
-  - `governed-execute 测试`
-  - `python3 scripts/foreman.py validate D-TASK-066`
-- Progress log:
-  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+_No tasks._
 
 
 ## Blocked
