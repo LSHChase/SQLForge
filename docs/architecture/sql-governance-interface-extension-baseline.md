@@ -419,6 +419,8 @@
 当前 repo-side 基线：
 
 - 稳定支持 `xlsx/csv/txt/sql`
+- 二级兼容支持 `xls`
+- `et` 若无法按 workbook 兼容解析，必须返回“请改用 XLSX/CSV”的显式失败提示
 - `contentBase64` 由接入方自行编码
 - `SQL_FILE` 模式按 SQL 语句切分
 - `TABULAR_FILE` 模式要求提供表头并至少包含 `sql_text`

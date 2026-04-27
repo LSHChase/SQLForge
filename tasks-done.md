@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-052: 扩展 `xls/et` 兼容导入与失败语义
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): add xls/et compatibility guidance for parse batches`
+- Priority: 1
+- Depends on: `D-TASK-051`
+- Scope: 兼容 `xls/et`，失败时显式提示建议改用稳定格式 Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-009` 批量解析与报表清单解析
+- Human confirmation point: 若 `xls/et` 兼容支持会拖累主线、把兼容失败误写为平台故障，需人工确认
+- Data impact: 兼容格式解析逻辑与失败提示
+- Rollback / recovery: 回退兼容扩展到稳定格式基线，并保留失败原因说明
+- Validation:
+  - `compatibility 测试`
+  - `python3 scripts/foreman.py validate D-TASK-052`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Extended batch ingestion to accept xls workbook payloads, preserved stable xlsx/csv/txt/sql import behavior, and added explicit ET failure guidance that recommends converting to XLSX or CSV.
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=ParseBatchApplicationServiceTest,ParseBatchControllerTest,ParseBatchPersistenceSchemaMappingTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-052; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: ET support remains compatibility-oriented and may still require conversion guidance depending on provider payload shape; report-catalog resolution still belongs to the next task.
+  - Next step: Instantiate D-TASK-053 to add the report catalog mock resolution path and SQL lookup orchestration.
+
 ### D-TASK-051: 落地 SQL/表格批量导入解析
 
 - Status: done

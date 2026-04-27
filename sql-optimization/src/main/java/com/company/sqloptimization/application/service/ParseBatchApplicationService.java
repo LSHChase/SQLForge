@@ -663,8 +663,10 @@ public class ParseBatchApplicationService {
         if (batch.getImportMode() == ParseBatchImportMode.SQL_FILE) {
             return parseSqlFile(batch, content, request == null ? null : request.getCharset());
         }
-        if (batch.getFileType() == ParseBatchFileType.XLSX) {
-            return parseXlsxRows(content);
+        if (batch.getFileType() == ParseBatchFileType.XLSX
+            || batch.getFileType() == ParseBatchFileType.XLS
+            || batch.getFileType() == ParseBatchFileType.ET) {
+            return parseWorkbookRows(content, batch.getFileType());
         }
         return parseDelimitedRows(content, request == null ? null : request.getCharset(), batch.getFileType());
     }
@@ -716,7 +718,7 @@ public class ParseBatchApplicationService {
         }
     }
 
-    private List<ImportedBatchRow> parseXlsxRows(byte[] content) {
+    private List<ImportedBatchRow> parseWorkbookRows(byte[] content, ParseBatchFileType fileType) {
         try {
             Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(content));
             Sheet sheet = workbook.getNumberOfSheets() == 0 ? null : workbook.getSheetAt(0);
@@ -759,7 +761,13 @@ public class ParseBatchApplicationService {
             workbook.close();
             return rows;
         } catch (Exception ex) {
-            throw invalidArgument("contentBase64", "Failed to parse XLSX batch payload: " + ex.getMessage());
+            if (fileType == ParseBatchFileType.ET) {
+                throw invalidArgument(
+                    "contentBase64",
+                    "Failed to parse ET batch payload; please convert the file to XLSX or CSV before retrying."
+                );
+            }
+            throw invalidArgument("contentBase64", "Failed to parse " + fileType.name() + " batch payload: " + ex.getMessage());
         }
     }
 

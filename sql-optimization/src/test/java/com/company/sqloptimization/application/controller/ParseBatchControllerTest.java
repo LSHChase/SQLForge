@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -109,6 +110,45 @@ class ParseBatchControllerTest {
             .andExpect(jsonPath("$.importedRecords[0].reportCode").value("RPT_XLSX"));
     }
 
+    @Test
+    void shouldIngestXlsBatchAsCompatibilityFormat() throws Exception {
+        MvcResult createResult = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse-batches"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"batchName\":\"batch-xls\",\"importMode\":\"TABULAR_FILE\","
+                    + "\"fileType\":\"XLS\",\"templateVersion\":\"v1\",\"datasourceCode\":\"hetu_main\","
+                    + "\"structureParseOnly\":true}"))
+            .andExpect(status().isOk())
+            .andReturn();
+        String batchId = JsonTestUtils.readValue(createResult.getResponse().getContentAsString(), "$.batchId");
+        String encoded = Base64.getEncoder().encodeToString(buildXlsPayload());
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse-batches/{batchId}/ingest", batchId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"contentBase64\":\"" + encoded + "\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("COMPLETED"))
+            .andExpect(jsonPath("$.importedRecords[0].reportCode").value("RPT_XLS"));
+    }
+
+    @Test
+    void shouldExposeStableFormatGuidanceWhenEtPayloadCannotBeParsed() throws Exception {
+        MvcResult createResult = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse-batches"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"batchName\":\"batch-et\",\"importMode\":\"TABULAR_FILE\","
+                    + "\"fileType\":\"ET\",\"templateVersion\":\"v1\",\"datasourceCode\":\"hetu_main\","
+                    + "\"structureParseOnly\":true}"))
+            .andExpect(status().isOk())
+            .andReturn();
+        String batchId = JsonTestUtils.readValue(createResult.getResponse().getContentAsString(), "$.batchId");
+        String encoded = Base64.getEncoder().encodeToString("not-a-workbook".getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse-batches/{batchId}/ingest", batchId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"contentBase64\":\"" + encoded + "\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("convert the file to XLSX or CSV")));
+    }
+
     private byte[] buildXlsxPayload() throws Exception {
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("batch");
@@ -118,6 +158,21 @@ class ParseBatchControllerTest {
         Row row = sheet.createRow(1);
         row.createCell(0).setCellValue("RPT_XLSX");
         row.createCell(1).setCellValue("SELECT * FROM orders WHERE dt = '2026-04-03'");
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        workbook.write(outputStream);
+        workbook.close();
+        return outputStream.toByteArray();
+    }
+
+    private byte[] buildXlsPayload() throws Exception {
+        HSSFWorkbook workbook = new HSSFWorkbook();
+        Sheet sheet = workbook.createSheet("batch");
+        Row header = sheet.createRow(0);
+        header.createCell(0).setCellValue("report_code");
+        header.createCell(1).setCellValue("sql_text");
+        Row row = sheet.createRow(1);
+        row.createCell(0).setCellValue("RPT_XLS");
+        row.createCell(1).setCellValue("SELECT * FROM orders WHERE dt = '2026-04-04'");
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         workbook.write(outputStream);
         workbook.close();
