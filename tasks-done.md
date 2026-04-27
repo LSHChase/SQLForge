@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-057: 落地按报表统计与占比分析
+
+- Status: done
+- Completed at: 2026-04-26
+- Commit subject: `feat(sql-optimization): add report parse statistics`
+- Priority: 1
+- Depends on: `D-TASK-056`
+- Scope: report dimension aggregation、影响报表数量与占比计算 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-010` 解析统计与优先级分层
+- Human confirmation point: 若按报表统计会放大不可靠 mock 数据、或把失败解析也计入成功占比，需人工确认
+- Data impact: 报表聚合、占比计算与报表问题清单
+- Rollback / recovery: 恢复成功/失败分层与 mock 标识，纠正聚合口径
+- Validation:
+  - `report aggregation 测试`
+  - `python3 scripts/foreman.py validate D-TASK-057`
+- Progress log:
+  - 2026-04-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented by-report parse statistics with report-level SQL count, issue SQL count, issue count, ratios, highest priority, important/urgent flags, issue scenes, controller endpoint, tests, and interface documentation.
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=ParseStatisticsApplicationServiceTest,ParseStatisticsControllerTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate D-TASK-057; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Priority matrix and important/urgent drill-through remain in D-TASK-058.
+  - Next step: Instantiate D-TASK-058 to add priority matrix and important/urgent list surfaces.
+
 ### D-TASK-056: 落地按 SQL 与问题场景统计
 
 - Status: done

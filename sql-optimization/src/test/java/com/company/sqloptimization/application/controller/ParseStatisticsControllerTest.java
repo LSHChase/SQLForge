@@ -7,8 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
+import com.company.sqloptimization.application.controller.vo.ParseReportStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseStatisticsOverviewVO;
 import com.company.sqloptimization.application.service.ParseStatisticsApplicationService;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +46,22 @@ class ParseStatisticsControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.totalSqlCount").value(2))
             .andExpect(jsonPath("$.priorityDistribution.P1").value(1));
+    }
+
+    @Test
+    void shouldExposeParseStatisticsByReportEndpoint() throws Exception {
+        ParseReportStatisticVO report = new ParseReportStatisticVO();
+        report.setReportCode("RPT_A");
+        report.setSqlCount(Integer.valueOf(2));
+        report.setIssueSqlCount(Integer.valueOf(1));
+        report.setIssueSqlRatio(Double.valueOf(0.5D));
+        report.setHighestPriorityLevel("P1");
+        when(parseStatisticsApplicationService.byReport()).thenReturn(Collections.singletonList(report));
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse-statistics/by-report")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].reportCode").value("RPT_A"))
+            .andExpect(jsonPath("$[0].issueSqlRatio").value(0.5D));
     }
 
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {

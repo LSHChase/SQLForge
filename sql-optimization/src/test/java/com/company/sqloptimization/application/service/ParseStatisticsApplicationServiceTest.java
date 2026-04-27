@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqloptimization.application.controller.vo.ParseIssueSceneStatisticVO;
+import com.company.sqloptimization.application.controller.vo.ParseReportStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseSqlIssueStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseStatisticsOverviewVO;
 import com.company.sqloptimization.domain.batch.ParseBatch;
@@ -62,6 +63,7 @@ class ParseStatisticsApplicationServiceTest {
         batchRepository.save(otherTenantBatch);
         itemRepository.save(item("item-a1", "batch-a", 1, "RPT_A", Arrays.asList("MISSING_FILTER", "WIDE_PROJECTION"), now));
         itemRepository.save(item("item-a2", "batch-a", 2, "RPT_B", Arrays.asList("GENERAL_WARNING"), now));
+        itemRepository.save(item("item-a3", "batch-a", 3, "RPT_A", java.util.Collections.<String>emptyList(), now));
         itemRepository.save(item("item-b1", "batch-b", 1, "RPT_C", Arrays.asList("ROUTE_HINT_CONFLICT"), now));
 
         ParseStatisticsApplicationService service = new ParseStatisticsApplicationService(batchRepository, itemRepository);
@@ -69,8 +71,9 @@ class ParseStatisticsApplicationServiceTest {
         ParseStatisticsOverviewVO overview = service.overview();
         List<ParseIssueSceneStatisticVO> byScene = service.byIssueScene();
         List<ParseSqlIssueStatisticVO> bySql = service.bySql();
+        List<ParseReportStatisticVO> byReport = service.byReport();
 
-        assertEquals(Integer.valueOf(2), overview.getTotalSqlCount());
+        assertEquals(Integer.valueOf(3), overview.getTotalSqlCount());
         assertEquals(Integer.valueOf(3), overview.getTotalIssueCount());
         assertEquals(Integer.valueOf(2), overview.getIssueSqlCount());
         assertEquals(Integer.valueOf(1), overview.getUrgentSqlCount());
@@ -78,6 +81,10 @@ class ParseStatisticsApplicationServiceTest {
         assertEquals(Integer.valueOf(1), byScene.get(0).getAffectedSqlCount());
         assertEquals("item-a1", bySql.get(0).getItemId());
         assertEquals("P1", bySql.get(0).getHighestPriorityLevel());
+        assertEquals("RPT_A", byReport.get(0).getReportCode());
+        assertEquals(Integer.valueOf(2), byReport.get(0).getSqlCount());
+        assertEquals(Integer.valueOf(1), byReport.get(0).getIssueSqlCount());
+        assertEquals(Double.valueOf(0.5D), byReport.get(0).getIssueSqlRatio());
     }
 
     private ParseBatchItem item(String itemId,

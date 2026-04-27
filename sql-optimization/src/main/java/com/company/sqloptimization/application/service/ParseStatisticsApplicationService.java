@@ -4,6 +4,7 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqloptimization.application.controller.vo.ParseIssueSceneStatisticVO;
+import com.company.sqloptimization.application.controller.vo.ParseReportStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseSqlIssueStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseStatisticsOverviewVO;
 import com.company.sqloptimization.domain.batch.ParseBatch;
@@ -145,6 +146,52 @@ public class ParseStatisticsApplicationService {
         return result;
     }
 
+    public List<ParseReportStatisticVO> byReport() {
+        List<ParseBatchItem> items = tenantItems();
+        Map<String, ReportAccumulator> accumulators = new LinkedHashMap<String, ReportAccumulator>();
+        for (ParseBatchItem item : items) {
+            String reportCode = StringUtils.hasText(item.getReportCode()) ? item.getReportCode() : "UNSPECIFIED_REPORT";
+            ReportAccumulator accumulator = accumulators.get(reportCode);
+            if (accumulator == null) {
+                accumulator = new ReportAccumulator(reportCode);
+                accumulators.put(reportCode, accumulator);
+            }
+            accumulator.sqlCount++;
+            SqlIssueAssessment assessment = assessItem(item);
+            accumulator.issueCount += assessment.issueCount;
+            if (assessment.issueCount > 0) {
+                accumulator.issueSqlCount++;
+            }
+            if (assessment.highestPriorityScore > accumulator.highestPriorityScore) {
+                accumulator.highestPriorityScore = assessment.highestPriorityScore;
+                accumulator.highestPriorityLevel = assessment.highestPriorityLevel;
+            }
+            accumulator.important = accumulator.important || assessment.important;
+            accumulator.urgent = accumulator.urgent || assessment.urgent;
+            accumulator.issueScenes.addAll(item.getIssueScenes());
+        }
+        List<ParseReportStatisticVO> result = new ArrayList<ParseReportStatisticVO>(accumulators.size());
+        for (ReportAccumulator accumulator : accumulators.values()) {
+            ParseReportStatisticVO vo = new ParseReportStatisticVO();
+            vo.setReportCode(accumulator.reportCode);
+            vo.setSqlCount(Integer.valueOf(accumulator.sqlCount));
+            vo.setIssueSqlCount(Integer.valueOf(accumulator.issueSqlCount));
+            vo.setIssueCount(Integer.valueOf(accumulator.issueCount));
+            vo.setIssueSqlRatio(Double.valueOf(accumulator.sqlCount == 0 ? 0D : (double) accumulator.issueSqlCount / accumulator.sqlCount));
+            vo.setHighestPriorityLevel(accumulator.highestPriorityLevel);
+            vo.setHighestPriorityScore(Integer.valueOf(accumulator.highestPriorityScore));
+            vo.setImportant(Boolean.valueOf(accumulator.important));
+            vo.setUrgent(Boolean.valueOf(accumulator.urgent));
+            vo.setIssueScenes(new ArrayList<String>(accumulator.issueScenes));
+            result.add(vo);
+        }
+        result.sort(Comparator
+            .comparing(ParseReportStatisticVO::getIssueSqlCount, Comparator.reverseOrder())
+            .thenComparing(ParseReportStatisticVO::getHighestPriorityScore, Comparator.reverseOrder())
+            .thenComparing(ParseReportStatisticVO::getReportCode));
+        return result;
+    }
+
     private List<ParseBatchItem> tenantItems() {
         String tenantId = RequestContext.getTenantId();
         if (!StringUtils.hasText(tenantId)) {
@@ -230,6 +277,22 @@ public class ParseStatisticsApplicationService {
             this.highestPriorityLevel = highestPriorityLevel;
             this.important = important;
             this.urgent = urgent;
+        }
+    }
+
+    private static final class ReportAccumulator {
+        private final String reportCode;
+        private int sqlCount;
+        private int issueSqlCount;
+        private int issueCount;
+        private int highestPriorityScore;
+        private String highestPriorityLevel = StructureParsePriorityLevel.P4.name();
+        private boolean important;
+        private boolean urgent;
+        private final Set<String> issueScenes = new LinkedHashSet<String>();
+
+        private ReportAccumulator(String reportCode) {
+            this.reportCode = reportCode;
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.company.sqloptimization.application.controller;
 
 import com.company.sqloptimization.application.controller.vo.ParseIssueSceneStatisticVO;
+import com.company.sqloptimization.application.controller.vo.ParseReportStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseSqlIssueStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseStatisticsOverviewVO;
 import com.company.sqloptimization.application.service.ParseStatisticsApplicationService;
@@ -32,5 +33,10 @@ public class ParseStatisticsController {
     @GetMapping("/by-sql")
     public List<ParseSqlIssueStatisticVO> bySql() {
         return parseStatisticsApplicationService.bySql();
+    }
+
+    @GetMapping("/by-report")
+    public List<ParseReportStatisticVO> byReport() {
+        return parseStatisticsApplicationService.byReport();
     }
 }
