@@ -16,16 +16,7 @@ _No tasks._
 
 ## In Progress
 
-### E-TASK-035: 收口治理管理与开放接入页面体验
-
-- Status: in_progress
-- Priority: 1
-- Depends on: E-TASK-034,E-TASK-032
-- Scope: 重构 Dashboard、告警中心、路由治理、推荐中心、压测中心、系统管理与开放接入页面，去除无关信息与卡片堆叠，改为概览+列表/表格+抽屉/弹窗的治理工作台模式。 Tech: VUE-FE. Layer: frontend/router/views/styles.
-- Validation:
-  - `python3 scripts/foreman.py validate E-TASK-035`
-- Progress log:
-  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+_No tasks._
 
 
 ## Blocked

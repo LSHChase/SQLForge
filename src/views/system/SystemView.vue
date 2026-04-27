@@ -27,16 +27,25 @@ const loading = reactive({
   retry: false
 })
 
+const activeTab = ref('datasource')
 const errorMessage = ref('')
 const tenantConfig = ref(null)
 const stats = ref(null)
 const datasources = ref([])
 const selectedDatasourceId = ref('')
 const selectedDatasourceDetail = ref(null)
+const datasourceDetailDrawerVisible = ref(false)
 const datasourceTestResult = ref(null)
+const datasourceTestDialogVisible = ref(false)
 const reportInterfaces = ref([])
+const reportInterfaceDrawerVisible = ref(false)
+const selectedReportInterface = ref(null)
 const redisRuleSources = ref([])
+const redisRuleDrawerVisible = ref(false)
+const selectedRedisRuleSource = ref(null)
 const dispatchPolicies = ref([])
+const dispatchPolicyDrawerVisible = ref(false)
+const selectedDispatchPolicy = ref(null)
 const retryResult = ref(null)
 
 const isChinese = computed(() => locale.value === 'zh-CN')
@@ -47,26 +56,10 @@ const selectedDatasource = computed(() =>
 )
 
 const summaryCards = computed(() => [
-  {
-    key: 'datasources',
-    label: isChinese.value ? '数据源' : 'Datasources',
-    value: datasources.value.length
-  },
-  {
-    key: 'report-interfaces',
-    label: isChinese.value ? '报表接口' : 'Report interfaces',
-    value: reportInterfaces.value.length
-  },
-  {
-    key: 'redis-rule-sources',
-    label: isChinese.value ? 'Redis 规则源' : 'Redis rule sources',
-    value: redisRuleSources.value.length
-  },
-  {
-    key: 'dispatch-policies',
-    label: isChinese.value ? 'Dispatch 策略' : 'Dispatch policies',
-    value: dispatchPolicies.value.length
-  }
+  card('datasources', isChinese.value ? '数据源' : 'Datasources', datasources.value.length),
+  card('report-interfaces', isChinese.value ? '报表接口' : 'Report interfaces', reportInterfaces.value.length),
+  card('redis-rule-sources', isChinese.value ? 'Redis 规则源' : 'Redis rule sources', redisRuleSources.value.length),
+  card('dispatch-policies', isChinese.value ? 'Dispatch 策略' : 'Dispatch policies', dispatchPolicies.value.length)
 ])
 
 const queueCards = computed(() => {
@@ -74,10 +67,10 @@ const queueCards = computed(() => {
     return []
   }
   return [
-    { key: 'total', label: isChinese.value ? '消息总数' : 'Total messages', value: stats.value.total },
-    { key: 'pending', label: isChinese.value ? '待补偿' : 'Pending backlog', value: stats.value.pending },
-    { key: 'failed', label: isChinese.value ? '失败待修复' : 'Failed messages', value: stats.value.failed },
-    { key: 'consumed', label: isChinese.value ? '已消费' : 'Consumed', value: stats.value.consumed }
+    card('total', isChinese.value ? '消息总数' : 'Total messages', stats.value.total),
+    card('pending', isChinese.value ? '待补偿' : 'Pending backlog', stats.value.pending),
+    card('failed', isChinese.value ? '失败待修复' : 'Failed messages', stats.value.failed),
+    card('consumed', isChinese.value ? '已消费' : 'Consumed', stats.value.consumed)
   ]
 })
 
@@ -118,6 +111,9 @@ const permissionAuditCards = computed(() => [
     isChinese.value ? '显示 EXTERNAL_MODULE_REQUIRED，不把装数协同写成浏览器内已执行。' : 'Shows EXTERNAL_MODULE_REQUIRED instead of pretending dispatch is executed inside the browser.'
   )
 ])
+
+const card = (key, label, value) => ({ key, label, value })
+const field = (key, label, value) => ({ key, label, value })
 
 const loadSystemEvidence = async () => {
   loading.page = true
@@ -168,7 +164,6 @@ const loadDatasourceDetail = async datasourceId => {
     selectedDatasourceDetail.value = null
     return
   }
-
   loading.datasourceDetail = true
   errorMessage.value = ''
   selectedDatasourceId.value = datasourceId
@@ -181,6 +176,11 @@ const loadDatasourceDetail = async datasourceId => {
   } finally {
     loading.datasourceDetail = false
   }
+}
+
+const openDatasourceDetail = async datasourceId => {
+  await loadDatasourceDetail(datasourceId)
+  datasourceDetailDrawerVisible.value = true
 }
 
 const runDatasourceTest = async () => {
@@ -198,6 +198,7 @@ const runDatasourceTest = async () => {
         requestPrefix: 'frontend-system-datasource-test'
       }
     )
+    datasourceTestDialogVisible.value = true
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
@@ -249,7 +250,20 @@ const formatTimestamp = value => {
   return String(value).replace('T', ' ').slice(0, 19)
 }
 
-const field = (key, label, value) => ({ key, label, value })
+const openReportInterface = item => {
+  selectedReportInterface.value = item
+  reportInterfaceDrawerVisible.value = true
+}
+
+const openRedisRuleSource = item => {
+  selectedRedisRuleSource.value = item
+  redisRuleDrawerVisible.value = true
+}
+
+const openDispatchPolicy = item => {
+  selectedDispatchPolicy.value = item
+  dispatchPolicyDrawerVisible.value = true
+}
 
 onMounted(() => {
   loadSystemEvidence()
@@ -258,21 +272,21 @@ onMounted(() => {
 
 <template>
   <section class="system-page" data-testid="system-management-page">
-    <header class="system-hero sqlforge-panel">
+    <header class="page-hero shell-panel">
       <div>
         <p class="section-kicker sqlforge-code-label">system management</p>
         <h1 class="page-title">{{ isChinese ? '系统管理与治理配置中心' : 'System management and governance config center' }}</h1>
         <p class="page-summary">
           {{
             isChinese
-              ? '当前页把 datasource、report-interface、Redis rule source、dispatch policy、tenant 参数与 message retry 修复动作统一到一个只读治理中心。'
-              : 'This page consolidates datasource, report-interface, Redis rule source, dispatch policy, tenant parameters, and message-retry remediation into one read-oriented governance center.'
+              ? '这里保留真正的管理工作流：筛选、列表、详情抽屉、连接测试和消息补偿；边界说明降为证据卡，不再占主操作区。'
+              : 'This page keeps the actual management workflow: filtering, lists, detail drawers, connection tests, and message remediation. Boundary statements are reduced to evidence cards instead of occupying the main task area.'
           }}
         </p>
       </div>
       <div class="hero-actions">
-        <label class="field-label">
-          <span>{{ isChinese ? '租户' : 'Tenant' }}</span>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
           <input
             v-model.trim="form.tenantId"
             class="text-input"
@@ -298,245 +312,347 @@ onMounted(() => {
       </article>
     </section>
 
-    <section class="section-grid">
-      <article class="sqlforge-panel">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">datasource management</p>
-            <h2 class="section-title">{{ isChinese ? '数据源与连接测试' : 'Datasource and connection tests' }}</h2>
-          </div>
-          <button
-            class="pill-button"
-            :disabled="loading.datasourceTest || !selectedDatasourceId"
-            data-testid="system-datasource-test"
-            @click="runDatasourceTest"
-          >
-            {{ isChinese ? '测试连接' : 'Test connection' }}
-          </button>
-        </div>
+    <main class="shell-panel workspace-panel">
+      <el-tabs v-model="activeTab">
+        <el-tab-pane :label="isChinese ? '数据源管理' : 'Datasource management'" name="datasource">
+          <div class="workspace-grid">
+            <aside class="rail-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="section-kicker sqlforge-code-label">datasource management</p>
+                  <h2 class="section-title">{{ isChinese ? '数据源与连接测试' : 'Datasource and connection tests' }}</h2>
+                </div>
+                <button
+                  class="pill-button"
+                  :disabled="loading.datasourceTest || !selectedDatasourceId"
+                  data-testid="system-datasource-test"
+                  @click="runDatasourceTest"
+                >
+                  {{ isChinese ? '测试连接' : 'Test connection' }}
+                </button>
+              </div>
 
-        <div class="inventory-grid">
-          <button
-            v-for="item in datasources"
-            :key="item.datasourceId"
-            type="button"
-            class="inventory-card"
-            :class="{ 'inventory-card-active': item.datasourceId === selectedDatasourceId }"
-            data-testid="system-datasource-card"
-            @click="loadDatasourceDetail(item.datasourceId)"
-          >
-            <p class="summary-label sqlforge-code-label">{{ item.datasourceCode }}</p>
-            <h3 class="inventory-title">{{ item.datasourceName || item.datasourceCode }}</h3>
-            <p class="inventory-meta">{{ item.connectionMode }} · {{ item.healthStatus || 'UNKNOWN' }}</p>
-          </button>
-        </div>
+              <div class="inventory-grid">
+                <button
+                  v-for="item in datasources"
+                  :key="item.datasourceId"
+                  type="button"
+                  class="inventory-card"
+                  :class="{ 'inventory-card-active': item.datasourceId === selectedDatasourceId }"
+                  data-testid="system-datasource-card"
+                  @click="openDatasourceDetail(item.datasourceId)"
+                >
+                  <p class="summary-label sqlforge-code-label">{{ item.datasourceCode }}</p>
+                  <h3 class="inventory-title">{{ item.datasourceName || item.datasourceCode }}</h3>
+                  <p class="inventory-meta">{{ item.connectionMode }} · {{ item.healthStatus || 'UNKNOWN' }}</p>
+                </button>
+              </div>
+            </aside>
 
-        <div v-if="selectedDatasource" class="detail-panel" data-testid="system-datasource-detail">
-          <div class="detail-grid">
-            <article class="detail-card">
-              <span class="summary-label">{{ isChinese ? '连接模式' : 'Connection mode' }}</span>
-              <strong>{{ displayValue(selectedDatasource.connectionMode) }}</strong>
-            </article>
-            <article class="detail-card">
-              <span class="summary-label">{{ isChinese ? '阶段' : 'Stage' }}</span>
-              <strong>{{ displayValue(selectedDatasource.stage) }}</strong>
-            </article>
-            <article class="detail-card">
-              <span class="summary-label">{{ isChinese ? 'JDBC URL' : 'JDBC URL' }}</span>
-              <strong>{{ maskValue(selectedDatasource.jdbcUrl) }}</strong>
-            </article>
-            <article class="detail-card">
-              <span class="summary-label">{{ isChinese ? 'API Base URL' : 'API Base URL' }}</span>
-              <strong>{{ maskValue(selectedDatasource.apiBaseUrl) }}</strong>
-            </article>
-            <article class="detail-card">
-              <span class="summary-label">{{ isChinese ? '凭证模式' : 'Credential mode' }}</span>
-              <strong>{{ displayValue(selectedDatasource.credentialMode) }}</strong>
-            </article>
-            <article class="detail-card">
-              <span class="summary-label">{{ isChinese ? '凭证掩码' : 'Credential mask' }}</span>
-              <strong>{{ displayValue(selectedDatasource.credentialMask) }}</strong>
-            </article>
-            <article class="detail-card">
-              <span class="summary-label">readonly</span>
-              <strong>{{ displayValue(selectedDatasource.readonly) }}</strong>
-            </article>
-            <article class="detail-card">
-              <span class="summary-label">{{ isChinese ? '实现阶段' : 'Implementation stage' }}</span>
-              <strong>{{ displayValue(selectedDatasource.implementationStage) }}</strong>
-            </article>
-          </div>
-        </div>
+            <section class="detail-stage">
+              <div class="section-heading">
+                <div>
+                  <p class="section-kicker sqlforge-code-label">selected datasource</p>
+                  <h2 class="section-title">{{ isChinese ? '当前数据源摘要' : 'Selected datasource summary' }}</h2>
+                </div>
+              </div>
 
-        <div v-if="datasourceTestResult" class="result-panel" data-testid="system-datasource-test-result">
-          <div class="detail-grid">
-            <article class="detail-card">
-              <span class="summary-label">{{ isChinese ? '连接状态' : 'Connection status' }}</span>
-              <strong>{{ displayValue(datasourceTestResult.connectionStatus) }}</strong>
+              <div v-if="selectedDatasource" class="detail-grid">
+                <article class="detail-card">
+                  <span class="summary-label">{{ isChinese ? '连接模式' : 'Connection mode' }}</span>
+                  <strong>{{ displayValue(selectedDatasource.connectionMode) }}</strong>
+                </article>
+                <article class="detail-card">
+                  <span class="summary-label">{{ isChinese ? '阶段' : 'Stage' }}</span>
+                  <strong>{{ displayValue(selectedDatasource.stage) }}</strong>
+                </article>
+                <article class="detail-card">
+                  <span class="summary-label">readonly</span>
+                  <strong>{{ displayValue(selectedDatasource.readonly) }}</strong>
+                </article>
+                <article class="detail-card">
+                  <span class="summary-label">{{ isChinese ? '实现阶段' : 'Implementation stage' }}</span>
+                  <strong>{{ displayValue(selectedDatasource.implementationStage) }}</strong>
+                </article>
+              </div>
+              <div v-else class="empty-state">
+                {{ isChinese ? '请选择一个数据源查看详情。' : 'Select a datasource to inspect details.' }}
+              </div>
+            </section>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="isChinese ? '接口与规则源' : 'Interfaces and rule sources'" name="interfaces">
+          <div class="stack-grid">
+            <section class="inner-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="section-kicker sqlforge-code-label">report interfaces</p>
+                  <h2 class="section-title">{{ isChinese ? '报表接口配置' : 'Report-interface config' }}</h2>
+                </div>
+              </div>
+              <div class="inventory-grid">
+                <button
+                  v-for="item in reportInterfaces"
+                  :key="item.configId || item.endpointCode"
+                  type="button"
+                  class="detail-card detail-card-button"
+                  data-testid="system-report-interface-card"
+                  @click="openReportInterface(item)"
+                >
+                  <span class="summary-label sqlforge-code-label">{{ item.endpointCode }}</span>
+                  <strong>{{ item.endpointName || item.endpointCode }}</strong>
+                  <p class="inventory-meta">{{ displayValue(item.sourceType) }} · {{ displayValue(item.httpMethod) }}</p>
+                  <p class="inventory-meta">{{ displayValue(item.resolverStatus) }} · {{ displayValue(item.unavailableReason) }}</p>
+                </button>
+              </div>
+            </section>
+
+            <section class="workspace-grid compact-grid">
+              <article class="inner-panel" data-testid="system-redis-rule-sources">
+                <div class="section-heading">
+                  <div>
+                    <p class="section-kicker sqlforge-code-label">redis rule sources</p>
+                    <h2 class="section-title">{{ isChinese ? 'Redis 规则源' : 'Redis rule sources' }}</h2>
+                  </div>
+                </div>
+                <div class="inventory-grid">
+                  <button
+                    v-for="item in redisRuleSources"
+                    :key="item.sourceId"
+                    type="button"
+                    class="detail-card detail-card-button"
+                    data-testid="system-redis-rule-source-card"
+                    @click="openRedisRuleSource(item)"
+                  >
+                    <span class="summary-label sqlforge-code-label">{{ item.sourceName }}</span>
+                    <strong>{{ displayValue(item.activationMode) }}</strong>
+                    <p class="inventory-meta">{{ displayValue(item.healthStatus) }} · {{ displayValue(item.unavailableReason) }}</p>
+                  </button>
+                </div>
+              </article>
+
+              <article class="inner-panel" data-testid="system-dispatch-policies">
+                <div class="section-heading">
+                  <div>
+                    <p class="section-kicker sqlforge-code-label">dispatch policies</p>
+                    <h2 class="section-title">{{ isChinese ? '装数协同策略' : 'Dispatch policies' }}</h2>
+                  </div>
+                </div>
+                <div class="inventory-grid">
+                  <button
+                    v-for="item in dispatchPolicies"
+                    :key="item.policyId"
+                    type="button"
+                    class="detail-card detail-card-button"
+                    data-testid="system-dispatch-policy-card"
+                    @click="openDispatchPolicy(item)"
+                  >
+                    <span class="summary-label sqlforge-code-label">{{ item.policyName }}</span>
+                    <strong>{{ displayValue(item.dispatchType) }}</strong>
+                    <p class="inventory-meta">{{ displayValue(item.targetEngine) }} · {{ displayValue(item.targetDatasource) }}</p>
+                    <p class="inventory-meta">{{ displayValue(item.executionBoundary) }} · {{ displayValue(item.enforcementStatus) }}</p>
+                  </button>
+                </div>
+              </article>
+            </section>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="isChinese ? '参数与审计' : 'Parameters and audit'" name="config">
+          <div class="workspace-grid compact-grid">
+            <article class="inner-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="section-kicker sqlforge-code-label">tenant parameters</p>
+                  <h2 class="section-title">{{ isChinese ? '系统参数快照' : 'System parameter snapshot' }}</h2>
+                </div>
+              </div>
+              <div class="detail-grid" data-testid="system-tenant-params">
+                <article
+                  v-for="item in tenantParamCards"
+                  :key="item.key"
+                  class="detail-card"
+                >
+                  <span class="summary-label">{{ item.label }}</span>
+                  <strong>{{ displayValue(item.value) }}</strong>
+                </article>
+              </div>
             </article>
-            <article class="detail-card">
-              <span class="summary-label">{{ isChinese ? '健康状态' : 'Health status' }}</span>
-              <strong>{{ displayValue(datasourceTestResult.healthStatus) }}</strong>
-            </article>
-            <article class="detail-card">
-              <span class="summary-label">readonlyBoundary</span>
-              <strong>{{ displayValue(datasourceTestResult.readonlyBoundary) }}</strong>
-            </article>
-            <article class="detail-card">
-              <span class="summary-label">{{ isChinese ? '检查时间' : 'Checked at' }}</span>
-              <strong>{{ formatTimestamp(datasourceTestResult.checkedAt) }}</strong>
-            </article>
-          </div>
-        </div>
-      </article>
 
-      <article class="sqlforge-panel">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">report interfaces</p>
-            <h2 class="section-title">{{ isChinese ? '报表接口配置' : 'Report-interface config' }}</h2>
-          </div>
-        </div>
-        <div class="inventory-grid">
-          <article
-            v-for="item in reportInterfaces"
-            :key="item.configId || item.endpointCode"
-            class="detail-card"
-            data-testid="system-report-interface-card"
-          >
-            <span class="summary-label sqlforge-code-label">{{ item.endpointCode }}</span>
-            <strong>{{ item.endpointName || item.endpointCode }}</strong>
-            <p class="inventory-meta">{{ displayValue(item.sourceType) }} · {{ displayValue(item.httpMethod) }}</p>
-            <p class="inventory-meta">{{ maskValue(item.baseUrl) }}{{ item.pathTemplate || '' }}</p>
-            <p class="inventory-meta">{{ displayValue(item.resolverStatus) }} · {{ displayValue(item.unavailableReason) }}</p>
-          </article>
-        </div>
-      </article>
-    </section>
-
-    <section class="section-grid">
-      <article class="sqlforge-panel" data-testid="system-redis-rule-sources">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">redis rule sources</p>
-            <h2 class="section-title">{{ isChinese ? 'Redis 规则源' : 'Redis rule sources' }}</h2>
-          </div>
-        </div>
-        <div class="inventory-grid">
-          <article
-            v-for="item in redisRuleSources"
-            :key="item.sourceId"
-            class="detail-card"
-            data-testid="system-redis-rule-source-card"
-          >
-            <span class="summary-label sqlforge-code-label">{{ item.sourceName }}</span>
-            <strong>{{ displayValue(item.activationMode) }}</strong>
-            <p class="inventory-meta">{{ maskValue(item.redisEndpoints) }}</p>
-            <p class="inventory-meta">{{ displayValue(item.redisNamespace) }} · {{ displayValue(item.keyPattern) }}</p>
-            <p class="inventory-meta">{{ displayValue(item.healthStatus) }} · {{ displayValue(item.unavailableReason) }}</p>
-          </article>
-        </div>
-      </article>
-
-      <article class="sqlforge-panel" data-testid="system-dispatch-policies">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">dispatch policies</p>
-            <h2 class="section-title">{{ isChinese ? '装数协同策略' : 'Dispatch policies' }}</h2>
-          </div>
-        </div>
-        <div class="inventory-grid">
-          <article
-            v-for="item in dispatchPolicies"
-            :key="item.policyId"
-            class="detail-card"
-            data-testid="system-dispatch-policy-card"
-          >
-            <span class="summary-label sqlforge-code-label">{{ item.policyName }}</span>
-            <strong>{{ displayValue(item.dispatchType) }}</strong>
-            <p class="inventory-meta">{{ displayValue(item.targetEngine) }} · {{ displayValue(item.targetDatasource) }}</p>
-            <p class="inventory-meta">{{ displayValue(item.ackMode) }} · {{ displayValue(item.retryStrategy) }}</p>
-            <p class="inventory-meta">{{ displayValue(item.executionBoundary) }} · {{ displayValue(item.enforcementStatus) }}</p>
-          </article>
-        </div>
-      </article>
-    </section>
-
-    <section class="section-grid">
-      <article class="sqlforge-panel">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">tenant parameters</p>
-            <h2 class="section-title">{{ isChinese ? '系统参数快照' : 'System parameter snapshot' }}</h2>
-          </div>
-        </div>
-        <div class="detail-grid" data-testid="system-tenant-params">
-          <article
-            v-for="item in tenantParamCards"
-            :key="item.key"
-            class="detail-card"
-          >
-            <span class="summary-label">{{ item.label }}</span>
-            <strong>{{ displayValue(item.value) }}</strong>
-          </article>
-        </div>
-      </article>
-
-      <article class="sqlforge-panel" data-testid="system-permission-audit">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">permission audit</p>
-            <h2 class="section-title">{{ isChinese ? '权限与边界审计' : 'Permission and boundary audit' }}</h2>
-          </div>
-        </div>
-        <div class="detail-grid">
-          <article
-            v-for="item in permissionAuditCards"
-            :key="item.key"
-            class="detail-card"
-          >
-            <span class="summary-label">{{ item.label }}</span>
-            <strong>{{ displayValue(item.value) }}</strong>
-          </article>
-        </div>
-      </article>
-    </section>
-
-    <section class="section-grid">
-      <article class="sqlforge-panel">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">message remediation</p>
-            <h2 class="section-title">{{ isChinese ? '消息补偿与重试' : 'Message remediation and retry' }}</h2>
-          </div>
-          <button class="pill-button" :disabled="loading.retry" data-testid="system-message-retry" @click="retryFailedMessages">
-            {{ isChinese ? '重试失败消息' : 'Retry failed messages' }}
-          </button>
-        </div>
-        <div class="detail-grid">
-          <article
-            v-for="card in queueCards"
-            :key="card.key"
-            class="detail-card"
-          >
-            <span class="summary-label">{{ card.label }}</span>
-            <strong>{{ card.value }}</strong>
-          </article>
-        </div>
-        <div v-if="retryResult" class="result-panel">
-          <div class="detail-grid">
-            <article class="detail-card">
-              <span class="summary-label">{{ isChinese ? '重试状态' : 'Retry status' }}</span>
-              <strong>{{ displayValue(retryResult.status) }}</strong>
-            </article>
-            <article class="detail-card">
-              <span class="summary-label">{{ isChinese ? '重试数量' : 'Retried count' }}</span>
-              <strong>{{ displayValue(retryResult.retriedCount) }}</strong>
+            <article class="inner-panel" data-testid="system-permission-audit">
+              <div class="section-heading">
+                <div>
+                  <p class="section-kicker sqlforge-code-label">permission audit</p>
+                  <h2 class="section-title">{{ isChinese ? '权限与边界审计' : 'Permission and boundary audit' }}</h2>
+                </div>
+              </div>
+              <div class="detail-grid">
+                <article
+                  v-for="item in permissionAuditCards"
+                  :key="item.key"
+                  class="detail-card"
+                >
+                  <span class="summary-label">{{ item.label }}</span>
+                  <strong>{{ displayValue(item.value) }}</strong>
+                </article>
+              </div>
             </article>
           </div>
-        </div>
-      </article>
-    </section>
+        </el-tab-pane>
+
+        <el-tab-pane :label="isChinese ? '消息补偿' : 'Message remediation'" name="queue">
+          <section class="inner-panel">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker sqlforge-code-label">message remediation</p>
+                <h2 class="section-title">{{ isChinese ? '消息补偿与重试' : 'Message remediation and retry' }}</h2>
+              </div>
+              <button class="pill-button" :disabled="loading.retry" data-testid="system-message-retry" @click="retryFailedMessages">
+                {{ isChinese ? '重试失败消息' : 'Retry failed messages' }}
+              </button>
+            </div>
+            <div class="detail-grid">
+              <article
+                v-for="queueItem in queueCards"
+                :key="queueItem.key"
+                class="detail-card"
+              >
+                <span class="summary-label">{{ queueItem.label }}</span>
+                <strong>{{ queueItem.value }}</strong>
+              </article>
+            </div>
+            <div v-if="retryResult" class="result-panel">
+              <div class="detail-grid">
+                <article class="detail-card">
+                  <span class="summary-label">{{ isChinese ? '重试状态' : 'Retry status' }}</span>
+                  <strong>{{ displayValue(retryResult.status) }}</strong>
+                </article>
+                <article class="detail-card">
+                  <span class="summary-label">{{ isChinese ? '重试数量' : 'Retried count' }}</span>
+                  <strong>{{ displayValue(retryResult.retriedCount) }}</strong>
+                </article>
+              </div>
+            </div>
+          </section>
+        </el-tab-pane>
+      </el-tabs>
+    </main>
+
+    <el-drawer
+      v-model="datasourceDetailDrawerVisible"
+      :title="isChinese ? '数据源详情' : 'Datasource detail'"
+      size="40%"
+      data-testid="system-datasource-detail"
+    >
+      <div v-if="selectedDatasource" class="detail-grid">
+        <article class="detail-card">
+          <span class="summary-label">{{ isChinese ? 'JDBC URL' : 'JDBC URL' }}</span>
+          <strong>{{ maskValue(selectedDatasource.jdbcUrl) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">{{ isChinese ? 'API Base URL' : 'API Base URL' }}</span>
+          <strong>{{ maskValue(selectedDatasource.apiBaseUrl) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">{{ isChinese ? '凭证模式' : 'Credential mode' }}</span>
+          <strong>{{ displayValue(selectedDatasource.credentialMode) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">{{ isChinese ? '凭证掩码' : 'Credential mask' }}</span>
+          <strong>{{ displayValue(selectedDatasource.credentialMask) }}</strong>
+        </article>
+      </div>
+    </el-drawer>
+
+    <el-dialog
+      v-model="datasourceTestDialogVisible"
+      :title="isChinese ? '连接测试结果' : 'Connection test result'"
+      width="680px"
+      data-testid="system-datasource-test-result"
+    >
+      <div class="detail-grid">
+        <article class="detail-card">
+          <span class="summary-label">{{ isChinese ? '连接状态' : 'Connection status' }}</span>
+          <strong>{{ displayValue(datasourceTestResult?.connectionStatus) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">{{ isChinese ? '健康状态' : 'Health status' }}</span>
+          <strong>{{ displayValue(datasourceTestResult?.healthStatus) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">readonlyBoundary</span>
+          <strong>{{ displayValue(datasourceTestResult?.readonlyBoundary) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">{{ isChinese ? '检查时间' : 'Checked at' }}</span>
+          <strong>{{ formatTimestamp(datasourceTestResult?.checkedAt) }}</strong>
+        </article>
+      </div>
+    </el-dialog>
+
+    <el-drawer v-model="reportInterfaceDrawerVisible" :title="isChinese ? '报表接口详情' : 'Report-interface detail'" size="36%">
+      <div class="detail-grid">
+        <article class="detail-card">
+          <span class="summary-label">endpointCode</span>
+          <strong>{{ displayValue(selectedReportInterface?.endpointCode) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">resolverStatus</span>
+          <strong>{{ displayValue(selectedReportInterface?.resolverStatus) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">baseUrl</span>
+          <strong>{{ maskValue(selectedReportInterface?.baseUrl) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">pathTemplate</span>
+          <strong>{{ displayValue(selectedReportInterface?.pathTemplate) }}</strong>
+        </article>
+      </div>
+    </el-drawer>
+
+    <el-drawer v-model="redisRuleDrawerVisible" :title="isChinese ? 'Redis 规则源详情' : 'Redis rule source detail'" size="36%">
+      <div class="detail-grid">
+        <article class="detail-card">
+          <span class="summary-label">redisEndpoints</span>
+          <strong>{{ maskValue(selectedRedisRuleSource?.redisEndpoints) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">redisNamespace</span>
+          <strong>{{ displayValue(selectedRedisRuleSource?.redisNamespace) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">keyPattern</span>
+          <strong>{{ displayValue(selectedRedisRuleSource?.keyPattern) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">activationMode</span>
+          <strong>{{ displayValue(selectedRedisRuleSource?.activationMode) }}</strong>
+        </article>
+      </div>
+    </el-drawer>
+
+    <el-drawer v-model="dispatchPolicyDrawerVisible" :title="isChinese ? 'Dispatch 策略详情' : 'Dispatch policy detail'" size="36%">
+      <div class="detail-grid">
+        <article class="detail-card">
+          <span class="summary-label">targetEngine</span>
+          <strong>{{ displayValue(selectedDispatchPolicy?.targetEngine) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">targetDatasource</span>
+          <strong>{{ displayValue(selectedDispatchPolicy?.targetDatasource) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">ackMode</span>
+          <strong>{{ displayValue(selectedDispatchPolicy?.ackMode) }}</strong>
+        </article>
+        <article class="detail-card">
+          <span class="summary-label">retryStrategy</span>
+          <strong>{{ displayValue(selectedDispatchPolicy?.retryStrategy) }}</strong>
+        </article>
+      </div>
+    </el-drawer>
   </section>
 </template>
 
@@ -544,155 +660,170 @@ onMounted(() => {
 .system-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
-.sqlforge-panel,
+.shell-panel,
 .summary-card,
-.inventory-card,
+.inner-panel,
+.rail-panel,
 .detail-card,
+.inventory-card,
 .result-panel {
   border: 1px solid var(--sqlforge-border-default);
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--sqlforge-surface-2);
 }
 
-.sqlforge-panel {
-  padding: 24px;
-}
-
-.system-hero,
-.section-grid,
+.page-hero,
+.hero-actions,
 .summary-grid,
+.workspace-grid,
+.stack-grid,
+.compact-grid,
+.detail-grid,
 .inventory-grid,
-.detail-grid {
+.section-heading {
   display: grid;
-  gap: 18px;
+  gap: 12px;
 }
 
-.system-hero,
-.section-grid {
+.page-hero {
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+  padding: 20px;
+}
+
+.hero-actions {
+  align-content: start;
+}
+
+.workspace-panel,
+.inner-panel,
+.rail-panel {
+  padding: 20px;
+}
+
+.workspace-grid {
+  grid-template-columns: minmax(280px, 0.88fr) minmax(0, 1.12fr);
+}
+
+.compact-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.summary-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+.section-kicker,
+.summary-label {
+  color: var(--sqlforge-color-brand-text);
 }
 
-.inventory-grid,
-.detail-grid {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+.section-kicker {
+  margin: 0 0 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 12px;
 }
 
 .page-title,
 .section-title,
 .inventory-title {
   margin: 0;
-  font-weight: 400;
   color: var(--sqlforge-text-primary);
-}
-
-.page-title {
-  font-size: clamp(34px, 5vw, 54px);
-  line-height: 1.02;
 }
 
 .page-summary,
 .inventory-meta,
-.error-banner {
+.empty-state {
   margin: 0;
   color: var(--sqlforge-text-secondary);
   line-height: 1.6;
 }
 
-.section-kicker,
-.summary-label,
-.field-label span {
-  margin: 0;
-  color: var(--sqlforge-text-muted);
-}
-
-.hero-actions,
-.section-heading {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.hero-actions {
-  flex-direction: column;
-}
-
-.field-label {
+.field-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-.text-input,
-.pill-button {
-  min-height: 42px;
-  border-radius: 999px;
+.field-label,
+.summary-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .text-input {
-  padding: 0 14px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 999px;
   border: 1px solid var(--sqlforge-border-default);
   background: var(--sqlforge-bg-page-deep);
   color: var(--sqlforge-text-primary);
 }
 
 .pill-button {
-  cursor: pointer;
-  padding: 0 18px;
-  border: 1px solid var(--sqlforge-border-default);
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--sqlforge-text-primary);
   background: var(--sqlforge-bg-page-deep);
   color: var(--sqlforge-text-primary);
+  cursor: pointer;
 }
 
 .pill-button-primary {
-  border-color: var(--sqlforge-text-primary);
+  border-color: var(--sqlforge-color-brand-border);
+}
+
+.summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 .summary-card,
-.inventory-card,
 .detail-card,
-.result-panel {
-  padding: 18px;
-}
-
-.summary-value {
-  font-size: 28px;
-  line-height: 1;
-  color: var(--sqlforge-text-primary);
-}
-
 .inventory-card {
+  padding: 14px 16px;
+}
+
+.inventory-card,
+.detail-card-button {
   text-align: left;
   cursor: pointer;
 }
 
 .inventory-card-active {
   border-color: var(--sqlforge-color-brand-border);
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.25);
 }
 
-.detail-panel,
+.detail-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
 .result-panel {
-  margin-top: 18px;
+  padding: 16px;
 }
 
 .error-banner {
-  padding: 14px 16px;
-  border: 1px solid rgba(212, 96, 96, 0.35);
+  margin: 0;
+  padding: 12px 14px;
   border-radius: 14px;
   background: rgba(120, 28, 28, 0.18);
+  border: 1px solid rgba(212, 96, 96, 0.35);
   color: #ffd6d6;
 }
 
 @media (max-width: 1100px) {
-  .system-hero,
-  .section-grid {
+  .page-hero,
+  .workspace-grid,
+  .compact-grid {
     grid-template-columns: 1fr;
   }
 }

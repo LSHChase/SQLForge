@@ -4,6 +4,24 @@
 
 ## Done
 
+### E-TASK-035: 收口治理管理与开放接入页面体验
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): streamline management and access workbenches`
+- Priority: 1
+- Depends on: E-TASK-034,E-TASK-032
+- Scope: 重构 Dashboard、告警中心、路由治理、推荐中心、压测中心、系统管理与开放接入页面，去除无关信息与卡片堆叠，改为概览+列表/表格+抽屉/弹窗的治理工作台模式。 Tech: VUE-FE. Layer: frontend/router/views/styles.
+- Validation:
+  - `python3 scripts/foreman.py validate E-TASK-035`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 重构系统管理与开放接入页面，改为总览 + 列表 + 抽屉/弹窗的治理工作台，移除主区无关信息堆叠。
+  - Validation evidence: python3 scripts/foreman.py validate E-TASK-035 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-access-page-contract.mjs'
+  - Residual risk: 系统管理和接入页仍依赖 query-history / governance mock surface，没有新增独立 access-audit controller。
+  - Next step: 继续把低频治理页收敛到相同的表格与抽屉语言。
+
 ### E-TASK-034: 重构SQL查询与解析中心交互工作流
 
 - Status: done
