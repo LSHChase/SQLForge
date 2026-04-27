@@ -4,6 +4,24 @@
 
 ## Done
 
+### U-TASK-002: 恢复首页总揽与前端合同护栏
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): restore dashboard operator overview`
+- Priority: 1
+- Depends on: U-TASK-001,E-TASK-029
+- Scope: Rebuild the dashboard overview into a complete operator home: restore richer KPI cards, five primary workbench entries, health-and-risk plus next-step sections, and a broader recent-activity slice using existing audited frontend evidence. Strengthen dashboard contract coverage so KPI density, entry completeness, and section completeness regressions fail validation. Tech: VUE-FE. Layer: frontend/router/views/styles/scripts.
+- Validation:
+  - `python3 scripts/foreman.py validate U-TASK-002`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Rebuilt the dashboard into a fuller operator homepage with richer KPI coverage, five primary workbench entries, a dedicated health-and-risk section, broader recent activity, and recommended next-step actions driven by existing audited evidence surfaces.
+  - Validation evidence: python3 scripts/foreman.py validate U-TASK-002 --include-task-audit --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-dashboard-contract.mjs'; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Global benchmark pass-rate and tenant-wide adoption-rate KPIs remain intentionally absent because the repository still lacks audited global benchmark-task and recommendation-adoption summary contracts; the homepage stays explicit about session-only or sampled evidence where needed.
+  - Next step: Instantiate the follow-up navigation and parse-history completion task so sidebar depth, parse-statistics missing dimensions, and history-page gaps can be corrected under a separate audited commit.
+
 ### U-TASK-001: 前端三轮复盘与交互重构落地
 
 - Status: done
