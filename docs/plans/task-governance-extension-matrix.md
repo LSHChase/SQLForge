@@ -185,6 +185,7 @@
 | `E-TASK-030` | 若告警中心页会把模拟邮件写成真实通知成功、或隐藏 dedupe / ACK 语义，需人工确认 | 告警列表、详情、ACK 和通知状态展示 | 恢复 simulated 状态文案与完整事件状态链 |
 | `E-TASK-031` | 若系统管理数据源/报表接口页会暴露敏感连接信息、误导用户认为真实外部接口已默认联通，需人工确认 | 系统管理中的 datasource、health-check、report-interface 展示面 | 恢复脱敏与 mock/config 标识，关闭高风险编辑入口 |
 | `E-TASK-032` | 若 Redis 规则源、装数协同与系统参数页会把 environment-backed 配置写成默认已启用事实，需人工确认 | rule-source、dispatch policy、system-param/permission 展示面 | 恢复到查询/模拟状态展示，保留 simulated 或未联通提示 |
+| `U-TASK-004` | 若实现会移除既有承诺路由、把样本化 KPI 写成全租户事实，或把无写 API 的治理页改成伪可写能力，需人工确认。 | 前端导航、解析工作区入口、Dashboard 指标表达、规格补充文档与验证脚本；不改写后端业务数据或外部系统状态。 | 回退到当前导航与 Dashboard 表达，保留 read-only、sampled、simulated 等边界文案，不新增对外部环境的强依赖。 |
 
 ## Phase-F
 

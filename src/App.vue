@@ -14,6 +14,23 @@ const userStore = useUserStore()
 
 const navLabel = value => (locale.value === 'zh-CN' ? value.zh : value.en)
 const itemLabel = item => navLabel(item.menuLabel || { zh: t(item.titleKey), en: t(item.titleKey) })
+const normalizeNavQuery = query =>
+  Object.entries(query || {})
+    .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+const buildNavKey = (path, query = {}) => {
+  const params = new URLSearchParams()
+  normalizeNavQuery(query).forEach(([key, value]) => {
+    params.set(key, String(value))
+  })
+  const queryText = params.toString()
+  return queryText ? `${path}?${queryText}` : path
+}
+const buildNavTarget = (path, query = {}) => ({
+  path,
+  query,
+  menuKey: buildNavKey(path, query)
+})
 const itemBadgeLabel = item => {
   if (!item?.badge) {
     return ''
@@ -27,7 +44,7 @@ const navigationTree = computed(() => {
       key: 'dashboard',
       label: { zh: 'Dashboard', en: 'Dashboard' },
       directItem: {
-        path: ROUTE_PATHS.dashboard,
+        ...buildNavTarget(ROUTE_PATHS.dashboard),
         titleKey: 'dashboard.title',
         menuLabel: { zh: '总览首页', en: 'Overview home' }
       }
@@ -36,7 +53,7 @@ const navigationTree = computed(() => {
       key: 'delivery-progress',
       label: { zh: 'AI 交付', en: 'AI Delivery' },
       directItem: {
-        path: ROUTE_PATHS.deliveryProgress,
+        ...buildNavTarget(ROUTE_PATHS.deliveryProgress),
         titleKey: 'deliveryProgress.title',
         menuLabel: { zh: 'AI 交付工作台', en: 'AI delivery workbench' },
         badge: { zh: '临时', en: 'R&D' }
@@ -46,7 +63,7 @@ const navigationTree = computed(() => {
       key: 'sql-query',
       label: { zh: 'SQL 查询', en: 'SQL Query' },
       directItem: {
-        path: ROUTE_PATHS.sqlQuery,
+        ...buildNavTarget(ROUTE_PATHS.sqlQuery),
         titleKey: 'sqlQuery.title',
         menuLabel: { zh: '查询工作台', en: 'SQL workbench' }
       }
@@ -55,24 +72,42 @@ const navigationTree = computed(() => {
       key: 'sql-history',
       label: { zh: 'SQL 历史', en: 'SQL History' },
       items: [
-        { path: ROUTE_PATHS.parseRecord, titleKey: 'parseRecord.title', menuLabel: { zh: '历史列表', en: 'History list' } },
-        { path: ROUTE_PATHS.repairEvidence, titleKey: 'repairEvidence.title', menuLabel: { zh: '修复证据', en: 'Repair evidence' } },
-        { path: ROUTE_PATHS.auditForensics, titleKey: 'auditForensics.title', menuLabel: { zh: '审计取证', en: 'Audit forensics' } }
+        { ...buildNavTarget(ROUTE_PATHS.parseRecord), titleKey: 'parseRecord.title', menuLabel: { zh: '历史列表', en: 'History list' } },
+        { ...buildNavTarget(ROUTE_PATHS.repairEvidence), titleKey: 'repairEvidence.title', menuLabel: { zh: '修复证据', en: 'Repair evidence' } },
+        { ...buildNavTarget(ROUTE_PATHS.auditForensics), titleKey: 'auditForensics.title', menuLabel: { zh: '审计取证', en: 'Audit forensics' } }
       ]
     },
     {
       key: 'parse-acceleration',
       label: { zh: '解析与加速', en: 'Parsing and Acceleration' },
       items: [
-        { path: ROUTE_PATHS.acceleration, titleKey: 'acceleration.title', menuLabel: { zh: '解析工作台', en: 'Parse workbench' } },
-        { path: ROUTE_PATHS.recommendationCenter, titleKey: 'recommendationCenter.title', menuLabel: { zh: '推荐中心', en: 'Recommendation center' } }
+        {
+          ...buildNavTarget(ROUTE_PATHS.acceleration),
+          titleKey: 'acceleration.title',
+          menuLabel: { zh: '解析工作台', en: 'Parse workbench' }
+        },
+        {
+          ...buildNavTarget(ROUTE_PATHS.acceleration, { workspace: 'batch' }),
+          titleKey: 'acceleration.title',
+          menuLabel: { zh: '批量解析中心', en: 'Batch parse center' }
+        },
+        {
+          ...buildNavTarget(ROUTE_PATHS.acceleration, { workspace: 'statistics', analytics: 'issue' }),
+          titleKey: 'acceleration.title',
+          menuLabel: { zh: '解析结果中心', en: 'Parse result center' }
+        },
+        {
+          ...buildNavTarget(ROUTE_PATHS.recommendationCenter),
+          titleKey: 'recommendationCenter.title',
+          menuLabel: { zh: '加速与改写中心', en: 'Acceleration and rewrite center' }
+        }
       ]
     },
     {
       key: 'routing',
-      label: { zh: '路由证据', en: 'Routing Evidence' },
+      label: { zh: '路由治理', en: 'Routing Governance' },
       directItem: {
-        path: ROUTE_PATHS.routingGovernance,
+        ...buildNavTarget(ROUTE_PATHS.routingGovernance),
         titleKey: 'routingGovernance.title',
         menuLabel: { zh: '路由执行证据', en: 'Routing execution evidence' }
       }
@@ -81,7 +116,7 @@ const navigationTree = computed(() => {
       key: 'assets',
       label: { zh: '数据资产', en: 'Data Assets' },
       directItem: {
-        path: ROUTE_PATHS.assetCatalog,
+        ...buildNavTarget(ROUTE_PATHS.assetCatalog),
         titleKey: 'assetCatalog.title',
         menuLabel: { zh: '资产目录', en: 'Asset catalog' }
       }
@@ -90,7 +125,7 @@ const navigationTree = computed(() => {
       key: 'benchmark',
       label: { zh: '压测中心', en: 'Benchmark Center' },
       directItem: {
-        path: ROUTE_PATHS.benchmark,
+        ...buildNavTarget(ROUTE_PATHS.benchmark),
         titleKey: 'benchmark.title',
         menuLabel: { zh: '压测工作台', en: 'Benchmark workbench' }
       }
@@ -102,22 +137,22 @@ const navigationTree = computed(() => {
         {
           key: 'config',
           label: { zh: '数据源与接口', en: 'Datasources and interfaces' },
-          items: [{ path: ROUTE_PATHS.system, titleKey: 'system.title', menuLabel: { zh: '系统管理', en: 'System management' } }]
+          items: [{ ...buildNavTarget(ROUTE_PATHS.system), titleKey: 'system.title', menuLabel: { zh: '系统管理', en: 'System management' } }]
         },
         {
           key: 'alerts',
           label: { zh: '告警与处置', en: 'Alerts and remediation' },
           items: [
-            { path: ROUTE_PATHS.alertCenter, titleKey: 'alertCenter.title', menuLabel: { zh: '告警中心', en: 'Alert center' } },
-            { path: ROUTE_PATHS.auditTroubleshooting, titleKey: 'auditTroubleshooting.title', menuLabel: { zh: '故障处置', en: 'Troubleshooting' } }
+            { ...buildNavTarget(ROUTE_PATHS.alertCenter), titleKey: 'alertCenter.title', menuLabel: { zh: '告警中心', en: 'Alert center' } },
+            { ...buildNavTarget(ROUTE_PATHS.auditTroubleshooting), titleKey: 'auditTroubleshooting.title', menuLabel: { zh: '故障处置', en: 'Troubleshooting' } }
           ]
         },
         {
           key: 'runtime',
           label: { zh: '运行治理', en: 'Runtime governance' },
           items: [
-            { path: ROUTE_PATHS.runtimeGates, titleKey: 'runtimeGates.title', menuLabel: { zh: '运行时门禁', en: 'Runtime gates' } },
-            { path: ROUTE_PATHS.recoveryDrill, titleKey: 'recoveryDrill.title', menuLabel: { zh: '恢复演练', en: 'Recovery drill' } }
+            { ...buildNavTarget(ROUTE_PATHS.runtimeGates), titleKey: 'runtimeGates.title', menuLabel: { zh: '运行时门禁', en: 'Runtime gates' } },
+            { ...buildNavTarget(ROUTE_PATHS.recoveryDrill), titleKey: 'recoveryDrill.title', menuLabel: { zh: '恢复演练', en: 'Recovery drill' } }
           ]
         }
       ]
@@ -126,7 +161,7 @@ const navigationTree = computed(() => {
       key: 'access',
       label: { zh: '开放接入', en: 'Open Access' },
       directItem: {
-        path: ROUTE_PATHS.accessCenter,
+        ...buildNavTarget(ROUTE_PATHS.accessCenter),
         titleKey: 'accessCenter.title',
         menuLabel: { zh: '开放接入', en: 'Open access' }
       }
@@ -175,9 +210,20 @@ const flattenNavItems = tree =>
     )
   })
 
-const activeNavItem = computed(() =>
-  flattenNavItems(navigationTree.value).find(item => item.path === route.path) || null
-)
+const navItemMatchesRoute = (item, currentRoute) => {
+  if (item.path !== currentRoute.path) {
+    return false
+  }
+  return normalizeNavQuery(item.query).every(([key, value]) => String(currentRoute.query?.[key] ?? '') === String(value))
+}
+
+const activeNavItem = computed(() => {
+  const items = flattenNavItems(navigationTree.value).sort(
+    (left, right) => normalizeNavQuery(right.query).length - normalizeNavQuery(left.query).length
+  )
+  return items.find(item => navItemMatchesRoute(item, route)) || null
+})
+const activeMenuKey = computed(() => activeNavItem.value?.menuKey || buildNavKey(route.path, route.query))
 const defaultOpeneds = computed(() => {
   if (!activeNavItem.value) {
     return []
@@ -241,7 +287,7 @@ onMounted(() => {
           <p class="sidebar-section-label sqlforge-code-label">{{ locale === 'zh-CN' ? '按需导航' : 'Adaptive navigation' }}</p>
           <el-scrollbar class="menu-scroll">
             <el-menu
-              :default-active="route.path"
+              :default-active="activeMenuKey"
               :default-openeds="defaultOpeneds"
               class="app-menu"
               router
@@ -249,7 +295,7 @@ onMounted(() => {
               <template v-for="module in navigationTree" :key="module.key">
                 <el-menu-item
                   v-if="module.directItem"
-                  :index="module.directItem.path"
+                  :index="module.directItem.menuKey"
                   class="menu-module-item"
                 >
                   <div class="menu-item-content">
@@ -272,8 +318,8 @@ onMounted(() => {
                   <template v-if="Array.isArray(module.items)">
                     <el-menu-item
                       v-for="item in module.items"
-                      :key="item.path"
-                      :index="item.path"
+                      :key="item.menuKey"
+                      :index="item.menuKey"
                       class="menu-leaf"
                     >
                       <span class="menu-item-label">
@@ -294,8 +340,8 @@ onMounted(() => {
                       </template>
                       <el-menu-item
                         v-for="item in section.items"
-                        :key="item.path"
-                        :index="item.path"
+                        :key="item.menuKey"
+                        :index="item.menuKey"
                         class="menu-leaf"
                       >
                         <span class="menu-item-label">

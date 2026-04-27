@@ -231,9 +231,48 @@ const requestSummary = computed(() => [
 ])
 
 const parseWorkbenchSummary = computed(() => [
-  { label: isChinese.value ? '批量入口' : 'Batch entry', value: isChinese.value ? '弹窗工作区' : 'Dialog workspace' },
-  { label: isChinese.value ? '统计视角' : 'Statistics views', value: 4 },
+  { label: isChinese.value ? '显式二级入口' : 'Explicit secondary entries', value: 4 },
+  { label: isChinese.value ? '统计视角' : 'Statistics views', value: 8 },
   { label: isChinese.value ? '历史模式' : 'History mode', value: hasLookupCriteria.value ? 'INDEXED' : 'PAGE' }
+])
+
+const workspaceEntries = computed(() => [
+  {
+    key: 'parse',
+    eyebrow: isChinese.value ? '解析工作台' : 'Parse workbench',
+    title: isChinese.value ? '单条 SQL 解析' : 'Single SQL parsing',
+    description: isChinese.value
+      ? '结构解析、Access Parse 和综合结论保持在主工作区。'
+      : 'Keep structure parsing, access parsing, and the overall verdict in the main workspace.',
+    route: { path: ROUTE_PATHS.acceleration }
+  },
+  {
+    key: 'batch',
+    eyebrow: isChinese.value ? '批量解析中心' : 'Batch parse center',
+    title: isChinese.value ? '批次导入与补跑' : 'Batch import and recovery',
+    description: isChinese.value
+      ? '通过显式二级入口直达批量解析弹窗与报表清单导入。'
+      : 'Jump directly into the batch dialog and report-catalog import workspace.',
+    route: { path: ROUTE_PATHS.acceleration, query: { workspace: 'batch' } }
+  },
+  {
+    key: 'statistics',
+    eyebrow: isChinese.value ? '解析结果中心' : 'Parse result center',
+    title: isChinese.value ? '统计与问题分布' : 'Statistics and issue distribution',
+    description: isChinese.value
+      ? '从问题分布、优先级、逻辑对象和历史样本直达结果视角。'
+      : 'Move straight into issue, priority, logical-object, and history views.',
+    route: { path: ROUTE_PATHS.acceleration, query: { workspace: 'statistics', analytics: 'issue' } }
+  },
+  {
+    key: 'rewrite',
+    eyebrow: isChinese.value ? '加速与改写中心' : 'Acceleration and rewrite center',
+    title: isChinese.value ? '推荐、收益与协同' : 'Recommendations, benefit, and dispatch',
+    description: isChinese.value
+      ? '继续在推荐中心查看改写建议、收益风险和 dispatch 状态。'
+      : 'Use the recommendation center for rewrite advice, benefit or risk, and dispatch status.',
+    route: { path: ROUTE_PATHS.recommendationCenter }
+  }
 ])
 
 const parseBatchStatusCards = computed(() => {
@@ -1234,10 +1273,15 @@ function openAuditForensics() {
   })
 }
 
+function openParseWorkspace(routeLocation) {
+  router.push(routeLocation)
+}
+
 function applyRouteWorkspace() {
   const workspace = String(route.query.workspace || '').trim()
+  batchDialogVisible.value = workspace === 'batch'
   if (workspace === 'batch') {
-    batchDialogVisible.value = true
+    activeBatchWorkspace.value = String(route.query.batchMode || 'parse')
   }
   if (workspace === 'statistics') {
     activeAnalyticsTab.value = String(route.query.analytics || 'issue')
@@ -1299,10 +1343,10 @@ watch(
           </span>
         </div>
         <div class="action-row action-row-wrap">
-          <el-button type="primary" @click="batchDialogVisible = true">
+          <el-button type="primary" @click="openParseWorkspace({ path: ROUTE_PATHS.acceleration, query: { workspace: 'batch' } })">
             {{ isChinese ? '打开批量解析' : 'Open batch parsing' }}
           </el-button>
-          <el-button @click="activeAnalyticsTab = 'history'">
+          <el-button @click="openParseWorkspace({ path: ROUTE_PATHS.acceleration, query: { workspace: 'history' } })">
             {{ isChinese ? '跳到解析历史' : 'Jump to history' }}
           </el-button>
           <el-button @click="loadAnalytics">
@@ -1311,6 +1355,22 @@ watch(
         </div>
       </div>
     </div>
+
+    <section class="workspace-entry-grid">
+      <article
+        v-for="entry in workspaceEntries"
+        :key="entry.key"
+        class="surface-card workspace-entry-card"
+        data-testid="parse-workspace-entry"
+      >
+        <p class="section-kicker sqlforge-code-label">{{ entry.eyebrow }}</p>
+        <h2 class="workspace-entry-title">{{ entry.title }}</h2>
+        <p class="section-summary">{{ entry.description }}</p>
+        <el-button text @click="openParseWorkspace(entry.route)">
+          {{ isChinese ? '进入该入口' : 'Open this entry' }}
+        </el-button>
+      </article>
+    </section>
 
     <div class="parse-workbench__grid">
       <article class="surface-card composer-rail">
@@ -2093,8 +2153,8 @@ watch(
             <p class="section-summary">
               {{
                 isChinese
-                  ? '批量解析不再占独立主导航；创建批次、导入内容、失败重试和报表导入都收进同一弹窗工作区。'
-                  : 'Batch parsing no longer occupies a separate navigation entry; batch creation, content import, failure retries, and report import stay in one dialog workspace.'
+                  ? '批量解析已恢复为显式二级入口；创建批次、导入内容、失败重试和报表导入仍统一收进同一工作区。'
+                  : 'Batch parsing is exposed again as an explicit secondary entry while creation, import, retries, and report ingestion still stay in one workspace.'
               }}
             </p>
           </div>
@@ -2700,6 +2760,24 @@ watch(
   display: grid;
   gap: 24px;
   grid-template-columns: minmax(320px, 1.05fr) minmax(360px, 1.35fr);
+}
+
+.workspace-entry-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.workspace-entry-card {
+  display: grid;
+  gap: 10px;
+}
+
+.workspace-entry-title {
+  margin: 0;
+  color: var(--sqlforge-text-primary);
+  font-size: 20px;
+  font-weight: 400;
 }
 
 .analytics-grid,

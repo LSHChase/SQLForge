@@ -15,13 +15,18 @@ const targets = [
       'data-testid="dashboard-next-step-item"',
       'data-testid="dashboard-activity-item"',
       "key: 'total-sql'",
+      "key: 'success-rate'",
+      "key: 'failure-rate'",
+      "key: 'cache-hit-rate'",
+      "key: 'rewrite-hit-rate'",
+      "key: 'acceleration-hit-rate'",
       "key: 'issue-sql'",
       "key: 'important-urgent'",
       "key: 'governance-backlog'",
-      "key: 'requires-dispatch'",
-      "key: 'dispatch-failures'",
-      "key: 'high-benefit'",
-      "key: 'recent-audit'",
+      "key: 'deep-recommendations'",
+      "key: 'coordination-mode'",
+      "key: 'open-alert-sample'",
+      "key: 'access-channel-sample'",
       "key: 'route-engine-sample'",
       'path: ROUTE_PATHS.sqlQuery',
       'path: ROUTE_PATHS.acceleration',
@@ -31,7 +36,8 @@ const targets = [
       'query-history',
       'dispatch events',
       'message stats',
-      'recommendations'
+      'recommendations',
+      'frontend-dashboard-dispatch-contract'
     ]
   },
   {
@@ -41,6 +47,7 @@ const targets = [
       'getParseStatisticsByIssueScene',
       'getParseStatisticsImportantUrgent',
       'getGovernanceMessageStats',
+      'getDispatchContract',
       'getGovernanceQueryHistoryPage',
       'getDispatchEvents',
       'getRecommendations'

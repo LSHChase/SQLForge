@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import { useTenantStore } from '../../stores'
 import {
+  getDispatchContract,
   formatRuntimeError,
   getDispatchEvents,
   getGovernanceMessageStats,
@@ -29,6 +30,7 @@ const overview = ref(null)
 const issueScenes = ref([])
 const importantUrgent = ref([])
 const messageStats = ref(null)
+const dispatchContract = ref(null)
 const queryHistoryPage = ref(null)
 const dispatchEvents = ref([])
 const recommendations = ref([])
@@ -36,13 +38,43 @@ const recommendations = ref([])
 const isChinese = computed(() => locale.value === 'zh-CN')
 const historyItems = computed(() => queryHistoryPage.value?.items || [])
 const accessCounts = computed(() => queryHistoryPage.value?.classificationSummary?.accessChannelCounts || {})
+const historyWindowStats = computed(() => {
+  const stats = {
+    total: historyItems.value.length,
+    success: 0,
+    failure: 0,
+    partial: 0,
+    cacheHit: 0,
+    rewriteHit: 0,
+    accelerationHit: 0
+  }
+  historyItems.value.forEach(item => {
+    const status = String(item.resultStatus || '').toUpperCase()
+    if (['SUCCESS', 'SUCCEEDED'].includes(status)) {
+      stats.success += 1
+    } else if (['FAILED', 'FAIL'].includes(status)) {
+      stats.failure += 1
+    } else if (status) {
+      stats.partial += 1
+    }
+    if (item.cacheHit === true) {
+      stats.cacheHit += 1
+    }
+    if (item.rewriteApplied === true) {
+      stats.rewriteHit += 1
+    }
+    if (item.accelerationApplied === true) {
+      stats.accelerationHit += 1
+    }
+  })
+  return stats
+})
 
 const recommendationStats = computed(() => {
   const stats = {
     total: recommendations.value.length,
     requiresDispatch: 0,
     dispatchReady: 0,
-    highBenefit: 0,
     highRisk: 0
   }
   recommendations.value.forEach(item => {
@@ -51,9 +83,6 @@ const recommendationStats = computed(() => {
     }
     if (String(item.status || '').toUpperCase() === 'DISPATCH_READY') {
       stats.dispatchReady += 1
-    }
-    if (String(item.benefitLevel || '').toUpperCase() === 'HIGH') {
-      stats.highBenefit += 1
     }
     if (['HIGH', 'CRITICAL'].includes(String(item.riskLevel || '').toUpperCase())) {
       stats.highRisk += 1
@@ -72,6 +101,9 @@ const openRiskCount = computed(() => {
   return failed + urgent + dispatchFailures.value.length + recommendationStats.value.highRisk
 })
 
+const historyWindowRate = value =>
+  historyWindowStats.value.total > 0 ? `${((Number(value || 0) / historyWindowStats.value.total) * 100).toFixed(1)}%` : '0.0%'
+
 const topEngineSample = computed(() => {
   const counts = {}
   historyItems.value.forEach(item => {
@@ -88,6 +120,15 @@ const topEngineSample = computed(() => {
   }
 })
 
+const topAccessChannelSample = computed(() => {
+  const [channel, count] =
+    Object.entries(accessCounts.value).sort((left, right) => Number(right[1]) - Number(left[1]))[0] || []
+  return {
+    channel: channel || '-',
+    count: Number(count || 0)
+  }
+})
+
 const overviewPills = computed(() => [
   form.tenantId,
   tenantStore.defaultEngine || 'HETU',
@@ -99,7 +140,6 @@ const metricCards = computed(() => {
   const issueSqlCount = Number(overview.value?.issueSqlCount || 0)
   const issueRate = totalSqlCount > 0 ? `${((issueSqlCount / totalSqlCount) * 100).toFixed(1)}%` : '0.0%'
   const governanceBacklog = Number(messageStats.value?.pending || 0) + Number(messageStats.value?.failed || 0)
-  const recentSampleCount = Number(queryHistoryPage.value?.classificationSummary?.totalItems || historyItems.value.length || 0)
   return [
     {
       key: 'total-sql',
@@ -110,6 +150,56 @@ const metricCards = computed(() => {
         ? '来自 parse-statistics overview 的当前总览样本。'
         : 'Taken from the current parse-statistics overview evidence window.',
       tone: totalSqlCount > 0 ? 'success' : 'neutral'
+    },
+    {
+      key: 'success-rate',
+      label: isChinese.value ? '成功率样本' : 'Success-rate sample',
+      value: historyWindowRate(historyWindowStats.value.success),
+      trend: `${historyWindowStats.value.success}/${historyWindowStats.value.total || 0}`,
+      detail: isChinese.value
+        ? '来自当前 query-history 窗口，而不是租户全量历史。'
+        : 'Derived from the current query-history window rather than full-tenant history.',
+      tone: historyWindowStats.value.failure > 0 ? 'warning' : 'success'
+    },
+    {
+      key: 'failure-rate',
+      label: isChinese.value ? '失败率样本' : 'Failure-rate sample',
+      value: historyWindowRate(historyWindowStats.value.failure),
+      trend: `${historyWindowStats.value.failure}/${historyWindowStats.value.total || 0}`,
+      detail: isChinese.value
+        ? '只基于当前窗口结果状态，不夸大为完整失败总量。'
+        : 'Calculated only from the visible result-status window, not a global failure total.',
+      tone: historyWindowStats.value.failure > 0 ? 'danger' : 'success'
+    },
+    {
+      key: 'cache-hit-rate',
+      label: isChinese.value ? '缓存命中样本' : 'Cache-hit sample',
+      value: historyWindowRate(historyWindowStats.value.cacheHit),
+      trend: `${historyWindowStats.value.cacheHit}/${historyWindowStats.value.total || 0}`,
+      detail: isChinese.value
+        ? '只消费当前历史窗口中的 cacheHit 字段。'
+        : 'Uses only the cacheHit field inside the current history window.',
+      tone: historyWindowStats.value.cacheHit > 0 ? 'success' : 'neutral'
+    },
+    {
+      key: 'rewrite-hit-rate',
+      label: isChinese.value ? '轻量改写样本' : 'Rewrite-hit sample',
+      value: historyWindowRate(historyWindowStats.value.rewriteHit),
+      trend: `${historyWindowStats.value.rewriteHit}/${historyWindowStats.value.total || 0}`,
+      detail: isChinese.value
+        ? '当前窗口里已应用 rewrite 的 SQL 样本占比。'
+        : 'Sample ratio of rows that already applied rewrite inside the visible window.',
+      tone: historyWindowStats.value.rewriteHit > 0 ? 'success' : 'neutral'
+    },
+    {
+      key: 'acceleration-hit-rate',
+      label: isChinese.value ? '加速命中样本' : 'Acceleration-hit sample',
+      value: historyWindowRate(historyWindowStats.value.accelerationHit),
+      trend: `${historyWindowStats.value.accelerationHit}/${historyWindowStats.value.total || 0}`,
+      detail: isChinese.value
+        ? '当前窗口里 accelerationApplied=true 的样本比例。'
+        : 'Sample ratio of rows marked with accelerationApplied=true.',
+      tone: historyWindowStats.value.accelerationHit > 0 ? 'success' : 'neutral'
     },
     {
       key: 'issue-sql',
@@ -142,44 +232,44 @@ const metricCards = computed(() => {
       tone: governanceBacklog > 0 ? 'warning' : 'success'
     },
     {
-      key: 'requires-dispatch',
-      label: isChinese.value ? '待协同推荐' : 'Recommendations needing dispatch',
-      value: recommendationStats.value.requiresDispatch,
+      key: 'deep-recommendations',
+      label: isChinese.value ? '深度建议样本' : 'Deep recommendation sample',
+      value: recommendationStats.value.total,
       trend: `${recommendationStats.value.dispatchReady} ready`,
       detail: isChinese.value
-        ? '来自 recommendation list 的协同需求统计。'
-        : 'Derived from the recommendation list requires-dispatch status.',
-      tone: recommendationStats.value.requiresDispatch > 0 ? 'warning' : 'neutral'
+        ? '当前可见 recommendation 数量已知，但采纳率仍缺专用后端聚合。'
+        : 'Visible recommendation volume is known, while adoption rate still lacks a dedicated backend aggregate.',
+      tone: recommendationStats.value.total > 0 ? 'success' : 'neutral'
     },
     {
-      key: 'dispatch-failures',
-      label: isChinese.value ? 'Dispatch 失败' : 'Dispatch failures',
-      value: dispatchFailures.value.length,
-      trend: `${dispatchEvents.value.length} events`,
+      key: 'coordination-mode',
+      label: isChinese.value ? '装数协同状态' : 'Dispatch coordination',
+      value: dispatchContract.value?.coordinationMode || 'PULL_ONLY',
+      trend: dispatchContract.value?.externalPullRequired === true ? 'external pull' : 'repo-side',
       detail: isChinese.value
-        ? '调度事件失败需要回到推荐/协同链复核。'
-        : 'Failed dispatch events need follow-up in the recommendation flow.',
-      tone: dispatchFailures.value.length > 0 ? 'danger' : 'success'
+        ? '当前仓库只承诺 PULL_ONLY 协同，不伪装主动推送或真实装数。'
+        : 'The repository only commits to PULL_ONLY coordination without pretending active push or live data loading exists.',
+      tone: 'neutral'
     },
     {
-      key: 'high-benefit',
-      label: isChinese.value ? '高收益建议' : 'High-benefit recommendations',
-      value: recommendationStats.value.highBenefit,
-      trend: `${recommendationStats.value.highRisk} high risk`,
+      key: 'open-alert-sample',
+      label: isChinese.value ? '告警样本' : 'Alert sample',
+      value: openRiskCount.value,
+      trend: `${dispatchFailures.value.length} dispatch failures`,
       detail: isChinese.value
-        ? '收益与风险都来自 recommendation evidence，不把采纳率写成已知事实。'
-        : 'Benefit and risk come from recommendation evidence without pretending adoption rates exist.',
-      tone: recommendationStats.value.highBenefit > 0 ? 'success' : 'neutral'
+        ? '由 failed message、dispatch failure、urgent SQL 和高风险建议派生。'
+        : 'Derived from failed messages, dispatch failures, urgent SQL, and high-risk recommendations.',
+      tone: openRiskCount.value > 0 ? 'danger' : 'success'
     },
     {
-      key: 'recent-audit',
-      label: isChinese.value ? '最近审计样本' : 'Recent audit samples',
-      value: recentSampleCount,
-      trend: `${Object.keys(accessCounts.value).length} channels`,
+      key: 'access-channel-sample',
+      label: isChinese.value ? '接入方式样本' : 'Access-channel sample',
+      value: topAccessChannelSample.value.channel,
+      trend: `${topAccessChannelSample.value.count} hits`,
       detail: isChinese.value
-        ? '来自 query-history 当前页分类摘要，不夸大为全量历史。'
-        : 'Taken from the current query-history page summary rather than full-history claims.',
-      tone: recentSampleCount > 0 ? 'neutral' : 'warning'
+        ? '来自 query-history 当前窗口的 accessChannel 分布样本。'
+        : 'Taken from accessChannel distribution inside the current query-history window.',
+      tone: topAccessChannelSample.value.count > 0 ? 'neutral' : 'warning'
     },
     {
       key: 'route-engine-sample',
@@ -205,9 +295,15 @@ const quickEntries = computed(() => [
   {
     key: 'parse',
     title: isChinese.value ? '解析工作台' : 'Parse workbench',
-    description: isChinese.value ? '单条解析、批量解析、统计视角和历史回查统一入口。' : 'One route for single parse, batch parse, statistics views, and history drill-through.',
+    description: isChinese.value ? '显式开放解析工作台、批量解析中心、解析结果中心和加速与改写中心。' : 'Expose parse workbench, batch parse, parse result, and acceleration-rewrite entries explicitly.',
     status: isChinese.value ? `${Number(overview.value?.issueSceneCount || 0)} 个问题场景` : `${Number(overview.value?.issueSceneCount || 0)} issue scenes`,
-    path: ROUTE_PATHS.acceleration
+    path: {
+      path: ROUTE_PATHS.acceleration,
+      query: {
+        workspace: 'statistics',
+        analytics: 'issue'
+      }
+    }
   },
   {
     key: 'history',
@@ -331,7 +427,13 @@ const nextStepItems = computed(() => {
       tone: item.urgent ? 'danger' : 'neutral',
       title: isChinese.value ? '下钻重要 / 紧急 SQL' : 'Drill into important or urgent SQL',
       description: `${item.reportCode || '-'} · ${item.highestPriorityLevel || '-'} · ${Number(item.issueCount || 0)} issues`,
-      path: ROUTE_PATHS.acceleration
+      path: {
+        path: ROUTE_PATHS.acceleration,
+        query: {
+          workspace: 'statistics',
+          analytics: 'important'
+        }
+      }
     })
   })
   if (items.length === 0) {
@@ -382,6 +484,7 @@ const loadDashboardEvidence = async () => {
       nextIssueScenes,
       nextImportantUrgent,
       nextMessageStats,
+      nextDispatchContract,
       nextQueryHistoryPage,
       nextDispatchEvents,
       nextRecommendations
@@ -390,6 +493,7 @@ const loadDashboardEvidence = async () => {
       getParseStatisticsByIssueScene(tenantId, { requestPrefix: 'frontend-dashboard-issue-scene' }),
       getParseStatisticsImportantUrgent(tenantId, { requestPrefix: 'frontend-dashboard-important-urgent' }),
       getGovernanceMessageStats(tenantId, { requestPrefix: 'frontend-dashboard-message-stats' }),
+      getDispatchContract(tenantId, { requestPrefix: 'frontend-dashboard-dispatch-contract' }),
       getGovernanceQueryHistoryPage(
         {
           tenantId,
@@ -409,6 +513,7 @@ const loadDashboardEvidence = async () => {
     issueScenes.value = Array.isArray(nextIssueScenes) ? nextIssueScenes : []
     importantUrgent.value = Array.isArray(nextImportantUrgent) ? nextImportantUrgent : []
     messageStats.value = nextMessageStats
+    dispatchContract.value = nextDispatchContract
     queryHistoryPage.value = nextQueryHistoryPage
     dispatchEvents.value = Array.isArray(nextDispatchEvents) ? nextDispatchEvents : []
     recommendations.value = Array.isArray(nextRecommendations) ? nextRecommendations : []

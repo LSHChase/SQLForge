@@ -4,17 +4,27 @@ const source = readFileSync(new URL('../src/App.vue', import.meta.url), 'utf8')
 
 const requiredTokens = [
   'Adaptive navigation',
+  'buildNavKey',
   "directItem: {",
   "key: 'dashboard'",
   "key: 'delivery-progress'",
   "key: 'sql-query'",
+  "key: 'parse-acceleration'",
   "key: 'routing'",
   "key: 'access'",
   'AI delivery workbench',
+  'Batch parse center',
+  'Parse result center',
+  'Acceleration and rewrite center',
+  "workspace: 'batch'",
+  "workspace: 'statistics'",
+  "analytics: 'issue'",
+  'Routing Governance',
   'menu-item-badge',
   'menu-module-item',
   'menu-item-caption',
-  'breadcrumbText'
+  'breadcrumbText',
+  'activeMenuKey'
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))

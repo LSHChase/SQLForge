@@ -7,7 +7,12 @@ const source = fs.readFileSync(viewPath, 'utf8')
 
 const requiredTokens = [
   'data-testid="parse-workbench-page"',
+  'data-testid="parse-workspace-entry"',
   'class="parse-workbench__grid"',
+  'Explicit secondary entries',
+  'Batch parse center',
+  'Parse result center',
+  'Acceleration and rewrite center',
   'single sql input',
   'combined conclusion',
   'Batch parsing dialog',

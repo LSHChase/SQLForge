@@ -1928,3 +1928,25 @@
 2026-04-27T11:53:18-05:00 | U-TASK-003 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-04-27T11:53:18-05:00 | U-TASK-003 closeout commit | `R-168` | projected | `git commit -m 'feat(frontend): flatten navigation and backfill parse history' (projected-precommit)`
 2026-04-27T11:53:18-05:00 | U-TASK-003 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-27T12:28:44-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-27T12:28:44-05:00 | U-TASK-004 validate | `R-131`, `R-133` | failed | `node scripts/lint-repository-knowledge.js`
+2026-04-27T12:28:44-05:00 | U-TASK-004 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-27T12:28:45-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-04-27T12:28:49-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-04-27T12:28:49-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `node scripts/check-navigation-shell-contract.mjs`
+2026-04-27T12:28:49-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `node scripts/check-parse-workbench-contract.mjs`
+2026-04-27T12:28:49-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `node scripts/check-dashboard-contract.mjs`
+2026-04-27T12:28:49-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `node scripts/check-frontend-gap-closure-doc.mjs`
+2026-04-27T12:29:07-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-27T12:29:07-05:00 | U-TASK-004 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-27T12:29:07-05:00 | U-TASK-004 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-27T12:29:08-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-04-27T12:29:12-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-04-27T12:29:12-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `node scripts/check-navigation-shell-contract.mjs`
+2026-04-27T12:29:12-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `node scripts/check-parse-workbench-contract.mjs`
+2026-04-27T12:29:12-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `node scripts/check-dashboard-contract.mjs`
+2026-04-27T12:29:12-05:00 | U-TASK-004 validate | `R-133`, `R-168` | passed | `node scripts/check-frontend-gap-closure-doc.mjs`
+2026-04-27T12:30:34-05:00 | U-TASK-004 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-27T12:30:34-05:00 | U-TASK-004 closeout commit | `R-168` | projected | `git commit -m 'feat(frontend): restore spec-aligned workspace coverage' (projected-precommit)`
+2026-04-27T12:30:34-05:00 | U-TASK-004 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-27T12:30:34-05:00 | U-TASK-004 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`

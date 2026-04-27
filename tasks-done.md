@@ -4,6 +4,31 @@
 
 ## Done
 
+### U-TASK-004: 前端复盘补漏并恢复规格直达能力
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): restore spec-aligned workspace coverage`
+- Priority: 1
+- Depends on: `U-TASK-003`,`U-TASK-002`,`U-TASK-001`
+- Scope: 以前端与实施规格差距为基线，补齐解析导航直达能力、Dashboard 规格覆盖、相关文档与 contract guard，不把缺失后端能力伪装成已实现事实。 Tech: `VUE-FE`,`DOCS`. Layer: `frontend/router/views/styles/scripts`,`docs`.
+- Plan ref: docs/exec-plans/completed/U-TASK-004-full-auto-execution-plan.md
+- Matrix context: Phase-E / Story `E-STORY-003` 前后端分离持续治理
+- Human confirmation point: 若实现会移除既有承诺路由、把样本化 KPI 写成全租户事实，或把无写 API 的治理页改成伪可写能力，需人工确认。
+- Data impact: 前端导航、解析工作区入口、Dashboard 指标表达、规格补充文档与验证脚本；不改写后端业务数据或外部系统状态。
+- Rollback / recovery: 回退到当前导航与 Dashboard 表达，保留 read-only、sampled、simulated 等边界文案，不新增对外部环境的强依赖。
+- Validation:
+  - `python3 scripts/foreman.py validate U-TASK-004`
+  - `python3 scripts/foreman.py validate U-TASK-004`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-27: audited `App.vue`, `DashboardView.vue`, `AccelerationView.vue`, product spec, and current contract guards; closed repo-side gaps by restoring explicit parse secondary entries with query-aware navigation, aligning the routing-governance module label with the implementation spec while preserving evidence-first semantics, expanding dashboard sample KPI coverage plus dispatch-coordination status, and adding `docs/product/frontend-retrospective-gap-closure-baseline.md` with matching validation guards. Validation passed via `python3 scripts/foreman.py validate U-TASK-004 --include-task-audit --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-navigation-shell-contract.mjs' --extra-command 'node scripts/check-parse-workbench-contract.mjs' --extra-command 'node scripts/check-dashboard-contract.mjs' --extra-command 'node scripts/check-frontend-gap-closure-doc.mjs'`.
+- Context closeout:
+  - Completed scope: Audited the frontend against the SQL governance implementation spec, restored explicit parse secondary entry coverage through query-aware navigation and in-page workspace cards, realigned the routing-governance shell label with the spec while preserving evidence-first semantics, expanded dashboard sample KPIs plus dispatch-coordination visibility, and added a frontend retrospective gap-closure baseline with matching contract guards.
+  - Validation evidence: python3 scripts/foreman.py validate U-TASK-004 --include-task-audit --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-navigation-shell-contract.mjs' --extra-command 'node scripts/check-parse-workbench-contract.mjs' --extra-command 'node scripts/check-dashboard-contract.mjs' --extra-command 'node scripts/check-frontend-gap-closure-doc.mjs'; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Dashboard still relies on current-window samples for success, cache, rewrite, acceleration, and access-channel ratios until dedicated backend aggregates exist.
+  - Next step: If backend aggregates or writable governance APIs are added later, replace sample-only homepage metrics and placeholder-only actions with direct contract-backed flows.
+
 ### U-TASK-003: 扁平化前端导航并补齐解析历史缺项
 
 - Status: done

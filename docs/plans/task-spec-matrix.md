@@ -199,6 +199,7 @@
 | `E-TASK-030` | 落地告警中心与通知状态视图 | N/A | `R-015`,`R-023`~`R-030`,`R-028`,`R-124`,`R-141` | `Core`,`Front`,`Val` | 告警列表、详情、ACK、notify simulated 状态展示 | `VUE-FE` | `frontend/router/views/styles` | `npm run lint`、`npm run build`、alert page contract 测试 | `E-TASK-029`,`F-TASK-037` | dev/test |
 | `E-TASK-031` | 落地系统管理中的数据源与报表接口页 | N/A | `R-015`,`R-023`~`R-030`,`R-028`,`R-124`,`R-141` | `Core`,`Front`,`Val` | datasource 管理、测试连接、报表接口配置与健康状态页 | `VUE-FE` | `frontend/router/views/styles` | `npm run lint`、`npm run build`、system-management datasource contract 测试 | `E-TASK-024`,`D-TASK-072` | dev/test |
 | `E-TASK-032` | 落地 Redis 规则源、装数协同与系统参数页 | N/A | `R-015`,`R-023`~`R-030`,`R-028`,`R-124`,`R-141` | `Core`,`Front`,`Val` | Redis rule source、dispatch policy、系统参数与权限审计展示 | `VUE-FE` | `frontend/router/views/styles` | `npm run lint`、`npm run build`、system-management config contract 测试 | `E-TASK-031`,`D-TASK-072` | dev/test |
+| `U-TASK-004` | 前端复盘补漏并恢复规格直达能力 | `N/A` | `R-015`,`R-023`,`R-024`,`R-025`,`R-026`,`R-027`,`R-028`,`R-029`,`R-030`,`R-124`,`R-141`,`R-166` | `Core`,`Front`,`Val`,`Docs` | 以前端与实施规格差距为基线，补齐解析导航直达能力、Dashboard 规格覆盖、相关文档与 contract guard，不把缺失后端能力伪装成已实现事实。 | `VUE-FE`,`DOCS` | `frontend/router/views/styles/scripts`,`docs` | python3 scripts/foreman.py validate U-TASK-004 | `U-TASK-003`,`U-TASK-002`,`U-TASK-001` | dev/test |
 
 ## Phase-F
 

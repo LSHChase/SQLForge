@@ -19,6 +19,7 @@
 7. 产品/设计/接口文档
    [架构初始化总文档](./architecture/init.md) 仍是历史初始化基线与总览入口；当前 C4 权威更新落点以 [C4 文字总览](./architecture/c4-overview.md) 为准，当前服务边界以 [服务能力分配图](./architecture/service-capability-map.md) 为准，当前接口契约以 [服务接口契约基线](./architecture/service-interface-contract-baseline.md) 为准，后续新增文档统一补入 `docs/`。
    - [SQL 治理平台实施规格](./product/sql-governance-platform-implementation-spec.md)
+   - [前端复盘补漏基线](./product/frontend-retrospective-gap-closure-baseline.md)
    - [C4 文字总览](./architecture/c4-overview.md)
    - [持久化基线](./architecture/persistence.md)
    - [消息抽象说明](./architecture/messaging-abstraction.md)
@@ -87,6 +88,7 @@
 - `product/`
   产品实施规格与页面、流程、角色、分期设计权威入口。
   - `sql-governance-platform-implementation-spec.md`：SQL 治理中后台 + 开放接入平台实施规格。
+  - `frontend-retrospective-gap-closure-baseline.md`：前端复盘、规格补漏与 repo-closed 边界基线。
 - `rules/`
   规则库与可执行约束。
 - `quality/`

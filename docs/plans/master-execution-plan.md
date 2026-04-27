@@ -706,6 +706,7 @@ Tasks:
 |:---|:---|:---|:---|:---|
 | `E-TASK-007` | 扩展分离检查清单 | 文档+脚本 | `Phase-C` | 分离检查脚本通过 |
 | `E-TASK-008` | 清理潜在越界逻辑 | 只处理边界问题 | `E-TASK-007` | 前端仅保留编排/预校验/展示 |
+| `U-TASK-004` | 前端复盘补漏并恢复规格直达能力 | 基于 SQL 治理产品规格与当前仓库前端实现，完成一次可审计的 repo-side gap closure：复盘页面设计、导航与信息架构缺口；恢复解析与加速模块对批量解析/解析结果/历史视角的显式直达能力；扩展 Dashboard 的规格覆盖与样本化 KPI 表达；补齐与上述实现对应的规格包说明、验证脚本与治理记录。Tech: VUE-FE,DOCS. Layer: frontend/router/views/styles/scripts/docs. | `U-TASK-003`,`U-TASK-002`,`U-TASK-001` | python3 scripts/foreman.py validate U-TASK-004 |
 
 ##### Story `E-STORY-004` 临时 AI 交付进度页
 
