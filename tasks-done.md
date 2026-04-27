@@ -4,6 +4,29 @@
 
 ## Done
 
+### E-TASK-017: 扩展 SQL 查询工作台三栏布局与执行摘要
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(frontend): redesign sql query workbench`
+- Priority: 1
+- Depends on: `E-TASK-016`,`D-TASK-039`
+- Scope: 数据源树、SQL 编辑器、参数输入、右侧治理摘要与结果页签，消费查询执行扩展契约 Tech: `VUE-FE`. Layer: `frontend/router/views/styles`.
+- Matrix context: Phase-E / Story `E-STORY-007` SQL 查询与历史前端增强
+- Human confirmation point: 若查询工作台增强会在前端复刻后端权威逻辑、引入越权字段展示或改变既有执行入口语义，需人工确认
+- Data impact: 查询页布局、状态编排与前端消费字段
+- Rollback / recovery: 保留后端权威，回退高风险前端判断逻辑，仅保留展示/编排层
+- Validation:
+  - `npm run lint`、`npm run build`、frontend contract 测试
+  - `python3 scripts/foreman.py validate E-TASK-017`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reworked the SQL query page into a three-rail workbench with datasource tree context, SQL editor plus parameter inputs, and right-side governance summary with result tabs, while preserving live query execution and degraded recovery evidence flows.
+  - Validation evidence: npm run lint; npm run build; node scripts/check-query-workbench-contract.mjs; python3 scripts/foreman.py validate E-TASK-017 --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'node scripts/check-query-workbench-contract.mjs'
+  - Residual risk: The page still relies on static datasource tree context and does not yet implement the downstream history list/detail surfaces that arrive in E-TASK-018 and E-TASK-019.
+  - Next step: Proceed to E-TASK-018 to build the SQL history filter, classification, sorting, and pagination view against the history backend contracts.
+
 ### D-TASK-066: 扩展 JDBC Agent `Governed Execute`
 
 - Status: done
