@@ -148,6 +148,7 @@
 | `D-TASK-070` | 若 metadata snapshot / freshness / SLA / upstream-downstream 状态会把无证据数据写成确定事实，需人工确认 | metadata snapshot、freshness/SLA/queryability/upstream/downstream 追溯面 | 恢复未知/未采集默认语义，保留证据来源与回退字段 |
 | `D-TASK-071` | 若数据资产接口会扩大跨租户可见范围、暴露未授权对象详情或破坏现有查询性能边界，需人工确认 | datasource/schema/table/logical-view/db-view 查询面与详情接口 | 回退高风险详情字段与筛选面，恢复基础受保护查询 |
 | `D-TASK-072` | 若系统管理配置接口会把 mock/config abstraction 误写成真实外部联通、或允许未经审批的配置生效，需人工确认 | 报表接口配置、Redis 规则源、装数协同策略与治理查询面 | 回退到查询/模拟基线，保留抽象配置但禁用高风险生效路径 |
+| `D-TASK-073` | 若 Trino parser 依赖引入导致许可证、包冲突或大规模迁移，或查询意图理解会破坏旧结构解析响应、执行 SQL、访问生产数据、把启发式资源估算写成真实执行计划结论，需人工确认。 | 预期不变更持久化数据模型；影响结构解析 API 响应字段、前端展示契约、解析规则与文档说明。若实现需要新增数据库字段或改变 access parse 权限/元数据行为，必须升级为人类确认点后再推进。 | 回退新增 parser adapter、查询意图字段、风险/资源估算规则和前端展示块，恢复 D-TASK-045 / E-TASK-020 既有结构解析响应与解析工作台展示基线；保留文档更正记录与测试证据。 |
 
 ## Phase-E
 

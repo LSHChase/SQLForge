@@ -8,17 +8,21 @@ import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
 import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import com.company.sqlforge.common.logicalobject.LogicalObjectType;
+import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
+import com.company.sqloptimization.application.controller.vo.StructureParseFeatureSummaryVO;
+import com.company.sqloptimization.application.controller.vo.StructureParseIntentProfileVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseIssueVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseQueryDateSummaryVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseResponseVO;
+import com.company.sqloptimization.application.controller.vo.StructureParseResourceEstimateVO;
+import com.company.sqloptimization.application.controller.vo.StructureParseRiskVO;
 import com.company.sqloptimization.domain.parse.StructureParseComplexityLevel;
 import com.company.sqloptimization.domain.parse.StructureParseIssue;
 import com.company.sqloptimization.domain.parse.StructureParseIssueDomain;
 import com.company.sqloptimization.domain.parse.StructureParseIssueSeverity;
 import com.company.sqloptimization.domain.parse.StructureParseLogicalObjectHit;
 import com.company.sqloptimization.domain.parse.StructureParsePriorityAssessment;
-import com.company.sqloptimization.domain.parse.StructureParsePriorityLevel;
 import com.company.sqloptimization.domain.parse.StructureParsePriorityScorer;
 import com.company.sqloptimization.domain.parse.StructureParseQueryDateStatus;
 import com.company.sqloptimization.domain.parse.StructureParseQueryDateSummary;
@@ -28,12 +32,12 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -74,9 +78,9 @@ public class StructureParseApplicationService {
             datasourceCode
         );
         StructureParseResult result;
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = null;
         try {
-            SqlOptimizationPipelineService.ParsedSqlProfile profile =
-                sqlOptimizationPipelineService.analyze(request.getSqlText(), DataSourceTypeEnum.AUTO);
+            profile = sqlOptimizationPipelineService.analyze(request.getSqlText(), DataSourceTypeEnum.AUTO);
             result = new StructureParseResult();
             result.setParseTaskId(parseTaskId);
             result.setSyntaxStatus(StructureParseSyntaxStatus.VALID);
@@ -109,7 +113,9 @@ public class StructureParseApplicationService {
                 ex.getMessage()
             );
         }
-        return toResponse(result);
+        StructureParseResponseVO response = toResponse(result);
+        enrichQueryIntent(response, request.getSqlText(), profile);
+        return response;
     }
 
     private StructureParseResult buildInvalidResult(String parseTaskId,
@@ -192,6 +198,36 @@ public class StructureParseApplicationService {
             issue.setSuggestedAction("Review join graph, key selectivity, and acceleration opportunities.");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.FALSE);
+        } else if ("LARGE_JOIN_PAIR_RISK".equals(warning)) {
+            issue.setIssueCode("LARGE_JOIN_PAIR_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
+            issue.setSeverity(StructureParseIssueSeverity.HIGH);
+            issue.setSummary("The statement joins multiple datasets with limited static join-selectivity evidence.");
+            issue.setDetail("Without metadata, the structure parser treats this as a conservative large-table join risk.");
+            issue.setSuggestedAction("Confirm join keys and filter placement in access parse or benchmark before online use.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.TRUE);
+        } else if ("REPEATED_EXPRESSION_COMPUTE".equals(warning)) {
+            issue.setIssueCode("REPEATED_EXPRESSION_COMPUTE");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("GENERAL_WARNING");
+            issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
+            issue.setSummary("The statement repeats expression fragments that may be computed more than once.");
+            issue.setDetail("Repeated projection, filter, grouping, or ordering expressions can increase CPU cost.");
+            issue.setSuggestedAction("Deduplicate expressions or move shared calculations into a CTE or serving object.");
+            issue.setImportant(Boolean.FALSE);
+            issue.setUrgent(Boolean.FALSE);
+        } else if ("LARGE_RESULT_SET_RISK".equals(warning)) {
+            issue.setIssueCode("LARGE_RESULT_SET_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("WIDE_PROJECTION");
+            issue.setSeverity(StructureParseIssueSeverity.HIGH);
+            issue.setSummary("The statement may return an oversized result set.");
+            issue.setDetail("Wide projection or missing LIMIT/filter evidence can produce too much data for interactive use.");
+            issue.setSuggestedAction("Add explicit projection, filters, or LIMIT before using the query in an interactive path.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.TRUE);
         } else {
             issue.setIssueCode(warning);
             issue.setIssueDomain(StructureParseIssueDomain.CONVENTION);
@@ -377,6 +413,261 @@ public class StructureParseApplicationService {
             return StructureParseComplexityLevel.MODERATE;
         }
         return StructureParseComplexityLevel.SIMPLE;
+    }
+
+    private void enrichQueryIntent(StructureParseResponseVO response,
+                                   String sqlText,
+                                   SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+        response.setSqlFingerprint(SqlFingerprintUtils.fingerprint(sqlText));
+        if (profile == null) {
+            response.setIntentProfile(unknownIntentProfile());
+            response.setFeatureSummary(unknownFeatureSummary());
+            response.setEstimatedResourceCost(unknownResourceEstimate());
+            response.setRiskChecklist(Collections.<StructureParseRiskVO>emptyList());
+            return;
+        }
+        String scanMode = resolveScanMode(profile);
+        String joinType = resolveJoinType(profile);
+        String computeDensity = resolveComputeDensity(profile);
+        String resourceType = resolveResourceType(profile, scanMode, computeDensity);
+        String slaLevel = resolveSlaLevel(profile, scanMode, computeDensity);
+        List<StructureParseRiskVO> risks = buildRiskChecklist(profile);
+
+        StructureParseIntentProfileVO intentProfile = new StructureParseIntentProfileVO();
+        intentProfile.setScanMode(scanMode);
+        intentProfile.setJoinType(joinType);
+        intentProfile.setComputeDensity(computeDensity);
+        intentProfile.setResourceType(resourceType);
+        intentProfile.setSlaLevel(slaLevel);
+        intentProfile.setConfidence(profile.getParserEngine().equals("TRINO") ? "MEDIUM" : "HIGH");
+        intentProfile.setClassificationLabels(buildClassificationLabels(scanMode, joinType, computeDensity, resourceType, slaLevel));
+        response.setIntentProfile(intentProfile);
+
+        StructureParseFeatureSummaryVO featureSummary = new StructureParseFeatureSummaryVO();
+        featureSummary.setParserEngine(profile.getParserEngine());
+        featureSummary.setScanMode(scanMode);
+        featureSummary.setJoinType(joinType);
+        featureSummary.setComputeDensity(computeDensity);
+        featureSummary.setResourceType(resourceType);
+        featureSummary.setSlaLevel(slaLevel);
+        featureSummary.setTableCount(Integer.valueOf(profile.getTables().size()));
+        featureSummary.setJoinCount(Integer.valueOf(profile.getJoinCount()));
+        featureSummary.setPredicateCount(Integer.valueOf(profile.getPredicateCount()));
+        featureSummary.setWindowFunctionCount(Integer.valueOf(profile.getWindowFunctionCount()));
+        featureSummary.setUdfFunctionCount(Integer.valueOf(profile.getUdfFunctionCount()));
+        featureSummary.setRepeatedExpressionCount(Integer.valueOf(profile.getRepeatedExpressionCount()));
+        featureSummary.setEvidence(buildFeatureEvidence(profile));
+        response.setFeatureSummary(featureSummary);
+        response.setRiskChecklist(risks);
+        response.setEstimatedResourceCost(buildResourceEstimate(profile, risks));
+    }
+
+    private StructureParseIntentProfileVO unknownIntentProfile() {
+        StructureParseIntentProfileVO profile = new StructureParseIntentProfileVO();
+        profile.setClassificationLabels(Collections.singletonList("UNSUPPORTED_SQL"));
+        profile.setScanMode("UNKNOWN");
+        profile.setJoinType("UNKNOWN");
+        profile.setComputeDensity("UNKNOWN");
+        profile.setResourceType("UNKNOWN");
+        profile.setSlaLevel("UNKNOWN");
+        profile.setConfidence("LOW");
+        return profile;
+    }
+
+    private StructureParseFeatureSummaryVO unknownFeatureSummary() {
+        StructureParseFeatureSummaryVO summary = new StructureParseFeatureSummaryVO();
+        summary.setParserEngine("UNKNOWN");
+        summary.setScanMode("UNKNOWN");
+        summary.setJoinType("UNKNOWN");
+        summary.setComputeDensity("UNKNOWN");
+        summary.setResourceType("UNKNOWN");
+        summary.setSlaLevel("UNKNOWN");
+        summary.setEvidence(Collections.singletonList("Parser could not produce a supported AST profile."));
+        return summary;
+    }
+
+    private StructureParseResourceEstimateVO unknownResourceEstimate() {
+        StructureParseResourceEstimateVO estimate = new StructureParseResourceEstimateVO();
+        estimate.setOverall("UNKNOWN");
+        estimate.setCpu("UNKNOWN");
+        estimate.setIo("UNKNOWN");
+        estimate.setMemory("UNKNOWN");
+        estimate.setNetwork("UNKNOWN");
+        estimate.setResultSize("UNKNOWN");
+        estimate.setEvidence(Collections.singletonList("Resource estimate is unavailable for invalid SQL."));
+        return estimate;
+    }
+
+    private String resolveScanMode(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+        if (profile.getPredicateCount() == 0) {
+            return "FULL_TABLE_SCAN";
+        }
+        if (profile.getDatePredicateColumns().isEmpty()) {
+            return profile.isLimitPresent() && profile.getPredicateCount() == 1 ? "POINT_LOOKUP" : "CROSS_PARTITION_SCAN";
+        }
+        return profile.getPredicateCount() == 1 ? "RANGE_SCAN" : "PARTITION_RANGE_SCAN";
+    }
+
+    private String resolveJoinType(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+        if (profile.getJoinCount() == 0) {
+            return "NONE";
+        }
+        if (profile.getJoinCount() == 1) {
+            return "CHAIN";
+        }
+        if (profile.getJoinCriteriaCount() <= profile.getJoinCount()) {
+            return "MANY_TO_MANY";
+        }
+        return profile.getJoinCount() >= 3 ? "SNOWFLAKE" : "STAR";
+    }
+
+    private String resolveComputeDensity(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+        if (profile.getWindowFunctionCount() > 0) {
+            return "WINDOW";
+        }
+        if (profile.getUdfFunctionCount() > 0) {
+            return "UDF";
+        }
+        if (profile.getAggregateFunctions().size() + profile.getGroupByCount() + profile.getOrderByCount() >= 3
+            || profile.getJoinCount() >= 3) {
+            return "HEAVY";
+        }
+        return "LIGHT";
+    }
+
+    private String resolveResourceType(SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                       String scanMode,
+                                       String computeDensity) {
+        if (profile.getJoinCount() > 0 || profile.isSetOperation()) {
+            return "NETWORK_MIXED";
+        }
+        if ("FULL_TABLE_SCAN".equals(scanMode) || "CROSS_PARTITION_SCAN".equals(scanMode)) {
+            return "IO";
+        }
+        if ("WINDOW".equals(computeDensity) || profile.getOrderByCount() > 0) {
+            return "MEMORY";
+        }
+        if ("HEAVY".equals(computeDensity) || "UDF".equals(computeDensity)) {
+            return "CPU";
+        }
+        return "CPU_IO_MIXED";
+    }
+
+    private String resolveSlaLevel(SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                   String scanMode,
+                                   String computeDensity) {
+        if ("FULL_TABLE_SCAN".equals(scanMode)
+            || "CROSS_PARTITION_SCAN".equals(scanMode)
+            || "WINDOW".equals(computeDensity)
+            || "HEAVY".equals(computeDensity)
+            || profile.getJoinCount() >= 2) {
+            return "REPORT_LT_30S";
+        }
+        return "INTERACTIVE_LT_3S";
+    }
+
+    private List<String> buildClassificationLabels(String scanMode,
+                                                   String joinType,
+                                                   String computeDensity,
+                                                   String resourceType,
+                                                   String slaLevel) {
+        return Arrays.asList(scanMode, joinType, computeDensity, resourceType, slaLevel);
+    }
+
+    private List<String> buildFeatureEvidence(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+        List<String> evidence = new ArrayList<String>();
+        evidence.add("parser=" + profile.getParserEngine());
+        evidence.add("tables=" + profile.getTables().size());
+        evidence.add("predicates=" + profile.getPredicateCount());
+        evidence.add("joins=" + profile.getJoinCount());
+        evidence.add("aggregates=" + profile.getAggregateFunctions().size());
+        evidence.add("windows=" + profile.getWindowFunctionCount());
+        evidence.add("repeatedExpressions=" + profile.getRepeatedExpressionCount());
+        return evidence;
+    }
+
+    private List<StructureParseRiskVO> buildRiskChecklist(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+        List<StructureParseRiskVO> risks = new ArrayList<StructureParseRiskVO>();
+        Set<String> emitted = new LinkedHashSet<String>();
+        for (String warning : profile.getWarnings()) {
+            if ("NO_PREDICATE".equals(warning)) {
+                addRisk(risks, emitted, risk("FULL_TABLE_SCAN_RISK", "HIGH", "Full table scan risk",
+                    "predicateCount=0", "Add tenant, time, partition, or business-key predicates."));
+            } else if ("LARGE_JOIN_PAIR_RISK".equals(warning) || "HEAVY_JOIN_GRAPH".equals(warning)) {
+                addRisk(risks, emitted, risk("LARGE_TABLE_JOIN_RISK", "HIGH", "Large table join risk",
+                    "joinCount=" + profile.getJoinCount(), "Confirm join keys and data volume with access parse or benchmark."));
+            } else if ("ORDER_BY_WITHOUT_LIMIT".equals(warning)) {
+                addRisk(risks, emitted, risk("UNNECESSARY_SORT_RISK", "MEDIUM", "Potentially unnecessary sort",
+                    "orderByCount=" + profile.getOrderByCount() + ", limitPresent=false", "Add LIMIT or move ordering to a serving object."));
+            } else if ("REPEATED_EXPRESSION_COMPUTE".equals(warning)) {
+                addRisk(risks, emitted, risk("REPEATED_EXPRESSION_RISK", "MEDIUM", "Repeated expression computation",
+                    "repeatedExpressionCount=" + profile.getRepeatedExpressionCount(), "Deduplicate or materialize shared expressions."));
+            } else if ("LARGE_RESULT_SET_RISK".equals(warning) || "SELECT_STAR".equals(warning)) {
+                addRisk(risks, emitted, risk("LARGE_RESULT_SET_RISK", "HIGH", "Oversized result set risk",
+                    "selectStar=" + profile.isSelectStar() + ", limitPresent=" + profile.isLimitPresent(),
+                    "Use explicit columns, filters, or LIMIT for interactive paths."));
+            }
+        }
+        return risks;
+    }
+
+    private void addRisk(List<StructureParseRiskVO> risks, Set<String> emitted, StructureParseRiskVO risk) {
+        if (risk != null && emitted.add(risk.getRiskCode())) {
+            risks.add(risk);
+        }
+    }
+
+    private StructureParseRiskVO risk(String code,
+                                      String severity,
+                                      String summary,
+                                      String evidence,
+                                      String suggestedAction) {
+        StructureParseRiskVO risk = new StructureParseRiskVO();
+        risk.setRiskCode(code);
+        risk.setSeverity(severity);
+        risk.setSummary(summary);
+        risk.setEvidence(evidence);
+        risk.setSuggestedAction(suggestedAction);
+        return risk;
+    }
+
+    private StructureParseResourceEstimateVO buildResourceEstimate(SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                                                   List<StructureParseRiskVO> risks) {
+        StructureParseResourceEstimateVO estimate = new StructureParseResourceEstimateVO();
+        estimate.setCpu(level(profile.getAggregateFunctions().size() + profile.getUdfFunctionCount()
+            + profile.getRepeatedExpressionCount()));
+        estimate.setIo(profile.getPredicateCount() == 0 ? "HIGH" : "MEDIUM");
+        estimate.setMemory(profile.getOrderByCount() + profile.getWindowFunctionCount() > 0 ? "HIGH" : "LOW");
+        estimate.setNetwork(profile.getJoinCount() > 0 || profile.isSetOperation() ? "HIGH" : "LOW");
+        estimate.setResultSize(profile.isSelectStar() || !profile.isLimitPresent() ? "HIGH" : "MEDIUM");
+        estimate.setOverall(resolveOverallEstimate(estimate, risks));
+        estimate.setEvidence(buildFeatureEvidence(profile));
+        return estimate;
+    }
+
+    private String level(int score) {
+        if (score >= 3) {
+            return "HIGH";
+        }
+        if (score > 0) {
+            return "MEDIUM";
+        }
+        return "LOW";
+    }
+
+    private String resolveOverallEstimate(StructureParseResourceEstimateVO estimate, List<StructureParseRiskVO> risks) {
+        if (!risks.isEmpty()
+            || "HIGH".equals(estimate.getCpu())
+            || "HIGH".equals(estimate.getIo())
+            || "HIGH".equals(estimate.getMemory())
+            || "HIGH".equals(estimate.getNetwork())
+            || "HIGH".equals(estimate.getResultSize())) {
+            return "HIGH";
+        }
+        if ("MEDIUM".equals(estimate.getCpu()) || "MEDIUM".equals(estimate.getIo())) {
+            return "MEDIUM";
+        }
+        return "LOW";
     }
 
     private StructureParseResponseVO toResponse(StructureParseResult result) {

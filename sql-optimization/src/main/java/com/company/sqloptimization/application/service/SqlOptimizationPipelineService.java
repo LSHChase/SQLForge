@@ -10,6 +10,18 @@ import com.company.sqloptimization.domain.task.OptimizationTaskCost;
 import com.company.sqloptimization.domain.task.OptimizationTaskPhase;
 import com.company.sqloptimization.domain.task.OptimizationTaskRisk;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
+import io.trino.sql.parser.ParsingOptions;
+import io.trino.sql.parser.SqlParser;
+import io.trino.sql.tree.AstVisitor;
+import io.trino.sql.tree.DereferenceExpression;
+import io.trino.sql.tree.FunctionCall;
+import io.trino.sql.tree.JoinCriteria;
+import io.trino.sql.tree.Node;
+import io.trino.sql.tree.QualifiedName;
+import io.trino.sql.tree.Query;
+import io.trino.sql.tree.QuerySpecification;
+import io.trino.sql.tree.SingleColumn;
+import io.trino.sql.tree.Table;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -23,6 +35,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.expression.AnalyticExpression;
 import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.DateValue;
 import net.sf.jsqlparser.expression.DoubleValue;
@@ -34,7 +47,6 @@ import net.sf.jsqlparser.expression.Parenthesis;
 import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.TimestampValue;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.Statement;
@@ -53,6 +65,7 @@ import net.sf.jsqlparser.statement.select.SubSelect;
 import net.sf.jsqlparser.statement.select.WithItem;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class SqlOptimizationPipelineService {
@@ -61,6 +74,11 @@ public class SqlOptimizationPipelineService {
         Pattern.compile("([A-Z0-9_\\.]*?(DATE|TIME|DT|DAY))[\\s]*(=|>|<|BETWEEN|IN)");
     private static final Set<String> AGGREGATE_FUNCTIONS =
         new LinkedHashSet<String>(Arrays.asList("COUNT", "SUM", "AVG", "MIN", "MAX", "APPROX_DISTINCT"));
+    private static final Set<String> BUILT_IN_SCALAR_FUNCTIONS =
+        new LinkedHashSet<String>(Arrays.asList("DATE_TRUNC", "CAST", "COALESCE", "IF", "NULLIF", "LOWER", "UPPER"));
+
+    @Value("${sql-optimization.parser.strategy:JSQLPARSER}")
+    private String parserStrategy = "JSQLPARSER";
 
     public ParsedSqlProfile analyze(String sqlText, DataSourceTypeEnum datasourceType) {
         String normalizedSql = normalizeSql(sqlText);
@@ -70,6 +88,21 @@ public class SqlOptimizationPipelineService {
                 "Submit the original SQL text so parser, rewrite, and acceleration analysis can run."
             );
         }
+        String strategy = parserStrategy == null ? "JSQLPARSER" : parserStrategy.trim().toUpperCase(Locale.ROOT);
+        if ("TRINO".equals(strategy) || "TRINO_ONLY".equals(strategy)) {
+            return analyzeWithTrinoParser(normalizedSql, datasourceType);
+        }
+        if ("DUAL".equals(strategy) || "AUTO".equals(strategy)) {
+            try {
+                return analyzeWithJsqlParser(normalizedSql, datasourceType);
+            } catch (SqlOptimizationExecutionException ex) {
+                return analyzeWithTrinoParser(normalizedSql, datasourceType);
+            }
+        }
+        return analyzeWithJsqlParser(normalizedSql, datasourceType);
+    }
+
+    private ParsedSqlProfile analyzeWithJsqlParser(String normalizedSql, DataSourceTypeEnum datasourceType) {
         Statement statement;
         try {
             statement = CCJSqlParserUtil.parse(normalizedSql);
@@ -89,7 +122,7 @@ public class SqlOptimizationPipelineService {
                 ex
             );
         }
-        if (!(statement instanceof Select)) {
+        if (!(statement instanceof net.sf.jsqlparser.statement.select.Select)) {
             throw invalidTask(
                 "Real optimization currently supports SELECT/WITH statements only.",
                 "Submit a read-oriented SELECT statement for parse, rewrite, or acceleration analysis."
@@ -97,6 +130,7 @@ public class SqlOptimizationPipelineService {
         }
         Select select = (Select) statement;
         ParsedSqlProfile profile = new ParsedSqlProfile(normalizedSql, select);
+        profile.parserEngine = "JSQLPARSER";
         profile.tables.addAll(deduplicate(new TablesNamesFinder().getTableList(statement)));
         if (select.getWithItemsList() != null) {
             for (WithItem withItem : select.getWithItemsList()) {
@@ -106,6 +140,38 @@ public class SqlOptimizationPipelineService {
             }
         }
         analyzeSelectBody(select.getSelectBody(), profile);
+        finalizeWarnings(profile);
+        return profile;
+    }
+
+    private ParsedSqlProfile analyzeWithTrinoParser(String normalizedSql, DataSourceTypeEnum datasourceType) {
+        io.trino.sql.tree.Statement statement;
+        try {
+            statement = new SqlParser().createStatement(normalizedSql, new ParsingOptions());
+        } catch (RuntimeException ex) {
+            throw parserFailure(
+                "Trino parser could not build an AST for the submitted statement.",
+                "Submit a single supported SELECT/WITH query or keep the parser strategy on JSQLPARSER for this datasource.",
+                Collections.singletonList(
+                    new OptimizationTaskRisk(
+                        "HIGH",
+                        "UNSUPPORTED_TRINO_DIALECT",
+                        "The submitted SQL could not be parsed by the Trino parser adapter.",
+                        "Use a supported Trino SELECT query or keep the existing JSQLParser strategy."
+                    )
+                ),
+                ex
+            );
+        }
+        if (!(statement instanceof Query)) {
+            throw invalidTask(
+                "Trino parser adapter currently supports SELECT/WITH statements only.",
+                "Submit a read-oriented SELECT statement for query-intent analysis."
+            );
+        }
+        ParsedSqlProfile profile = new ParsedSqlProfile(normalizedSql, null);
+        profile.parserEngine = "TRINO";
+        new TrinoProfileVisitor().process(statement, profile);
         finalizeWarnings(profile);
         return profile;
     }
@@ -326,21 +392,26 @@ public class SqlOptimizationPipelineService {
                 }
                 if (selectItem instanceof SelectExpressionItem) {
                     Expression expression = ((SelectExpressionItem) selectItem).getExpression();
-                    collectExpressionSignals(expression, profile.projectedColumns, profile.aggregateFunctions);
+                    profile.recordExpression(expression);
+                    collectExpressionSignals(expression, profile.projectedColumns, profile.aggregateFunctions, profile);
                 }
             }
         }
         if (plainSelect.getJoins() != null) {
             profile.joinCount += plainSelect.getJoins().size();
             for (Join join : plainSelect.getJoins()) {
+                profile.joinTypes.add(join.isInner() ? "INNER" : join.toString().split("\\s+")[0].toUpperCase(Locale.ROOT));
                 if (join.getOnExpression() != null) {
                     profile.predicateCount += countPredicates(join.getOnExpression());
-                    collectExpressionSignals(join.getOnExpression(), null, null);
+                    profile.joinCriteriaCount += countPredicates(join.getOnExpression());
+                    profile.recordExpression(join.getOnExpression());
+                    collectExpressionSignals(join.getOnExpression(), null, null, profile);
                 }
             }
         }
         if (plainSelect.getWhere() != null) {
             profile.predicateCount += countPredicates(plainSelect.getWhere());
+            profile.recordExpression(plainSelect.getWhere());
             profile.datePredicateColumns.addAll(extractDatePredicateColumns(plainSelect.getWhere()));
         }
         if (plainSelect.getHaving() != null) {
@@ -349,11 +420,15 @@ public class SqlOptimizationPipelineService {
         if (plainSelect.getGroupBy() != null && plainSelect.getGroupBy().getGroupByExpressions() != null) {
             profile.groupByCount += plainSelect.getGroupBy().getGroupByExpressions().size();
             for (Expression expression : plainSelect.getGroupBy().getGroupByExpressions()) {
-                collectExpressionSignals(expression, null, profile.aggregateFunctions);
+                profile.recordExpression(expression);
+                collectExpressionSignals(expression, null, profile.aggregateFunctions, profile);
             }
         }
         if (plainSelect.getOrderByElements() != null) {
             profile.orderByCount += plainSelect.getOrderByElements().size();
+            for (OrderByElement orderByElement : plainSelect.getOrderByElements()) {
+                profile.recordExpression(orderByElement);
+            }
         }
         if (plainSelect.getLimit() != null) {
             profile.limitPresent = true;
@@ -362,11 +437,15 @@ public class SqlOptimizationPipelineService {
             profile.distinctPresent = true;
         }
         if (plainSelect.getFromItem() instanceof SubSelect) {
+            profile.subqueryCount++;
             analyzeSelectBody(((SubSelect) plainSelect.getFromItem()).getSelectBody(), profile);
         }
     }
 
-    private void collectExpressionSignals(Expression expression, Set<String> projectedColumns, Set<String> aggregateFunctions) {
+    private void collectExpressionSignals(Expression expression,
+                                          Set<String> projectedColumns,
+                                          Set<String> aggregateFunctions,
+                                          ParsedSqlProfile profile) {
         if (expression == null) {
             return;
         }
@@ -383,22 +462,29 @@ public class SqlOptimizationPipelineService {
                 if (aggregateFunctions != null && AGGREGATE_FUNCTIONS.contains(upperName)) {
                     aggregateFunctions.add(upperName);
                 }
+                if (!AGGREGATE_FUNCTIONS.contains(upperName) && !BUILT_IN_SCALAR_FUNCTIONS.contains(upperName)) {
+                    profile.udfFunctions.add(upperName);
+                }
             }
             if (function.getParameters() != null && function.getParameters().getExpressions() != null) {
                 for (Expression parameter : function.getParameters().getExpressions()) {
-                    collectExpressionSignals(parameter, projectedColumns, aggregateFunctions);
+                    collectExpressionSignals(parameter, projectedColumns, aggregateFunctions, profile);
                 }
             }
             return;
         }
+        if (expression instanceof AnalyticExpression) {
+            profile.windowFunctionCount++;
+            return;
+        }
         if (expression instanceof BinaryExpression) {
             BinaryExpression binaryExpression = (BinaryExpression) expression;
-            collectExpressionSignals(binaryExpression.getLeftExpression(), projectedColumns, aggregateFunctions);
-            collectExpressionSignals(binaryExpression.getRightExpression(), projectedColumns, aggregateFunctions);
+            collectExpressionSignals(binaryExpression.getLeftExpression(), projectedColumns, aggregateFunctions, profile);
+            collectExpressionSignals(binaryExpression.getRightExpression(), projectedColumns, aggregateFunctions, profile);
             return;
         }
         if (expression instanceof Parenthesis) {
-            collectExpressionSignals(((Parenthesis) expression).getExpression(), projectedColumns, aggregateFunctions);
+            collectExpressionSignals(((Parenthesis) expression).getExpression(), projectedColumns, aggregateFunctions, profile);
         }
     }
 
@@ -429,6 +515,7 @@ public class SqlOptimizationPipelineService {
     }
 
     private void finalizeWarnings(ParsedSqlProfile profile) {
+        profile.recalculateRepeatedExpressions();
         if (profile.selectStar) {
             profile.warnings.add("SELECT_STAR");
         }
@@ -441,10 +528,22 @@ public class SqlOptimizationPipelineService {
         if (profile.joinCount >= 3) {
             profile.warnings.add("HEAVY_JOIN_GRAPH");
         }
+        if (profile.joinCount >= 2 && profile.joinCriteriaCount <= profile.joinCount) {
+            profile.warnings.add("LARGE_JOIN_PAIR_RISK");
+        }
+        if (profile.repeatedExpressionCount > 0) {
+            profile.warnings.add("REPEATED_EXPRESSION_COMPUTE");
+        }
+        if (!profile.limitPresent && (profile.selectStar || profile.predicateCount == 0)) {
+            profile.warnings.add("LARGE_RESULT_SET_RISK");
+        }
     }
 
     private RewriteOutcome applyRewriteRules(Select select) {
         LinkedHashSet<String> appliedRules = new LinkedHashSet<String>();
+        if (select == null) {
+            return new RewriteOutcome("", new ArrayList<String>(appliedRules));
+        }
         if (select.getWithItemsList() != null) {
             for (WithItem withItem : select.getWithItemsList()) {
                 if (withItem.getSubSelect() != null) {
@@ -795,6 +894,159 @@ public class SqlOptimizationPipelineService {
         return value;
     }
 
+    private static final class TrinoProfileVisitor extends AstVisitor<Void, ParsedSqlProfile> {
+
+        @Override
+        protected Void visitNode(Node node, ParsedSqlProfile profile) {
+            for (Node child : node.getChildren()) {
+                process(child, profile);
+            }
+            return null;
+        }
+
+        @Override
+        protected Void visitQuery(Query node, ParsedSqlProfile profile) {
+            if (node.getWith().isPresent()) {
+                process(node.getWith().get(), profile);
+            }
+            process(node.getQueryBody(), profile);
+            if (node.getOrderBy().isPresent()) {
+                profile.orderByCount += node.getOrderBy().get().getSortItems().size();
+                profile.recordExpression(node.getOrderBy().get());
+            }
+            if (node.getLimit().isPresent()) {
+                profile.limitPresent = true;
+            }
+            return null;
+        }
+
+        @Override
+        protected Void visitQuerySpecification(QuerySpecification node, ParsedSqlProfile profile) {
+            profile.projectionCount += node.getSelect().getSelectItems().size();
+            process(node.getSelect(), profile);
+            if (node.getFrom().isPresent()) {
+                process(node.getFrom().get(), profile);
+            }
+            if (node.getWhere().isPresent()) {
+                String whereSql = node.getWhere().get().toString();
+                profile.predicateCount += countTrinoPredicates(whereSql);
+                profile.datePredicateColumns.addAll(extractTrinoDatePredicateColumns(whereSql));
+                profile.recordExpression(whereSql);
+                process(node.getWhere().get(), profile);
+            }
+            if (node.getGroupBy().isPresent()) {
+                profile.groupByCount++;
+                profile.recordExpression(node.getGroupBy().get());
+                process(node.getGroupBy().get(), profile);
+            }
+            if (node.getHaving().isPresent()) {
+                profile.predicateCount += countTrinoPredicates(node.getHaving().get().toString());
+                profile.recordExpression(node.getHaving().get());
+                process(node.getHaving().get(), profile);
+            }
+            if (node.getOrderBy().isPresent()) {
+                profile.orderByCount += node.getOrderBy().get().getSortItems().size();
+                profile.recordExpression(node.getOrderBy().get());
+                process(node.getOrderBy().get(), profile);
+            }
+            if (node.getLimit().isPresent()) {
+                profile.limitPresent = true;
+            }
+            return null;
+        }
+
+        @Override
+        protected Void visitTable(Table node, ParsedSqlProfile profile) {
+            profile.tables.add(node.getName().toString());
+            return null;
+        }
+
+        @Override
+        protected Void visitJoin(io.trino.sql.tree.Join node, ParsedSqlProfile profile) {
+            profile.joinCount++;
+            profile.joinTypes.add(node.getType().name());
+            if (node.getCriteria().isPresent()) {
+                JoinCriteria criteria = node.getCriteria().get();
+                String criteriaSql = criteria.toString();
+                int predicateCount = countTrinoPredicates(criteriaSql);
+                profile.predicateCount += predicateCount;
+                profile.joinCriteriaCount += predicateCount;
+                profile.recordExpression(criteriaSql);
+            }
+            process(node.getLeft(), profile);
+            process(node.getRight(), profile);
+            return null;
+        }
+
+        @Override
+        protected Void visitSingleColumn(SingleColumn node, ParsedSqlProfile profile) {
+            profile.recordExpression(node.getExpression());
+            process(node.getExpression(), profile);
+            return null;
+        }
+
+        @Override
+        protected Void visitAllColumns(io.trino.sql.tree.AllColumns node, ParsedSqlProfile profile) {
+            profile.selectStar = true;
+            return null;
+        }
+
+        @Override
+        protected Void visitFunctionCall(FunctionCall node, ParsedSqlProfile profile) {
+            QualifiedName name = node.getName();
+            String functionName = name == null ? "" : name.toString().toUpperCase(Locale.ROOT);
+            if (AGGREGATE_FUNCTIONS.contains(functionName)) {
+                profile.aggregateFunctions.add(functionName);
+            } else if (!BUILT_IN_SCALAR_FUNCTIONS.contains(functionName)) {
+                profile.udfFunctions.add(functionName);
+            }
+            if (node.getWindow().isPresent()) {
+                profile.windowFunctionCount++;
+            }
+            for (io.trino.sql.tree.Expression argument : node.getArguments()) {
+                process(argument, profile);
+            }
+            return null;
+        }
+
+        @Override
+        protected Void visitDereferenceExpression(DereferenceExpression node, ParsedSqlProfile profile) {
+            profile.projectedColumns.add(node.toString());
+            return null;
+        }
+
+        @Override
+        protected Void visitSubqueryExpression(io.trino.sql.tree.SubqueryExpression node, ParsedSqlProfile profile) {
+            profile.subqueryCount++;
+            return visitNode(node, profile);
+        }
+
+        private static int countTrinoPredicates(String expressionSql) {
+            if (expressionSql == null || expressionSql.trim().isEmpty()) {
+                return 0;
+            }
+            String normalized = expressionSql.toUpperCase(Locale.ROOT);
+            int count = 1;
+            Matcher matcher = Pattern.compile("\\bAND\\b|\\bOR\\b").matcher(normalized);
+            while (matcher.find()) {
+                count++;
+            }
+            return count;
+        }
+
+        private static List<String> extractTrinoDatePredicateColumns(String expressionSql) {
+            if (expressionSql == null) {
+                return Collections.emptyList();
+            }
+            LinkedHashSet<String> columns = new LinkedHashSet<String>();
+            Matcher matcher = DATE_PREDICATE_PATTERN.matcher(expressionSql.toUpperCase(Locale.ROOT));
+            while (matcher.find()) {
+                columns.add(matcher.group(1));
+            }
+            return new ArrayList<String>(columns);
+        }
+    }
+
     public static final class ParsedSqlProfile {
 
         private final String normalizedSql;
@@ -802,13 +1054,21 @@ public class SqlOptimizationPipelineService {
         private final List<String> tables = new ArrayList<String>();
         private final Set<String> projectedColumns = new LinkedHashSet<String>();
         private final Set<String> aggregateFunctions = new LinkedHashSet<String>();
+        private final Set<String> udfFunctions = new LinkedHashSet<String>();
         private final Set<String> datePredicateColumns = new LinkedHashSet<String>();
+        private final Set<String> joinTypes = new LinkedHashSet<String>();
         private final List<String> warnings = new ArrayList<String>();
+        private final LinkedHashMap<String, Integer> expressionFrequency = new LinkedHashMap<String, Integer>();
+        private String parserEngine = "JSQLPARSER";
         private int projectionCount;
         private int predicateCount;
         private int joinCount;
+        private int joinCriteriaCount;
         private int groupByCount;
         private int orderByCount;
+        private int windowFunctionCount;
+        private int subqueryCount;
+        private int repeatedExpressionCount;
         private boolean selectStar;
         private boolean limitPresent;
         private boolean distinctPresent;
@@ -822,13 +1082,19 @@ public class SqlOptimizationPipelineService {
         private Map<String, Object> toAstProfile() {
             LinkedHashMap<String, Object> payload = new LinkedHashMap<String, Object>();
             payload.put("statementType", "SELECT");
+            payload.put("parserEngine", parserEngine);
             payload.put("tables", tables);
             payload.put("projectionCount", Integer.valueOf(projectionCount));
             payload.put("projectedColumns", new ArrayList<String>(projectedColumns));
             payload.put("predicateCount", Integer.valueOf(predicateCount));
             payload.put("joinCount", Integer.valueOf(joinCount));
+            payload.put("joinTypes", new ArrayList<String>(joinTypes));
             payload.put("groupByCount", Integer.valueOf(groupByCount));
             payload.put("orderByCount", Integer.valueOf(orderByCount));
+            payload.put("windowFunctionCount", Integer.valueOf(windowFunctionCount));
+            payload.put("udfFunctions", new ArrayList<String>(udfFunctions));
+            payload.put("subqueryCount", Integer.valueOf(subqueryCount));
+            payload.put("repeatedExpressionCount", Integer.valueOf(repeatedExpressionCount));
             payload.put("aggregateFunctions", new ArrayList<String>(aggregateFunctions));
             payload.put("datePredicateColumns", new ArrayList<String>(datePredicateColumns));
             payload.put("selectStar", Boolean.valueOf(selectStar));
@@ -841,9 +1107,12 @@ public class SqlOptimizationPipelineService {
         private Map<String, Object> toAccelerationSignalProfile() {
             LinkedHashMap<String, Object> payload = new LinkedHashMap<String, Object>();
             payload.put("tables", tables);
+            payload.put("parserEngine", parserEngine);
             payload.put("joinCount", Integer.valueOf(joinCount));
             payload.put("predicateCount", Integer.valueOf(predicateCount));
             payload.put("groupByCount", Integer.valueOf(groupByCount));
+            payload.put("windowFunctionCount", Integer.valueOf(windowFunctionCount));
+            payload.put("udfFunctions", new ArrayList<String>(udfFunctions));
             payload.put("aggregateFunctions", new ArrayList<String>(aggregateFunctions));
             payload.put("datePredicateColumns", new ArrayList<String>(datePredicateColumns));
             payload.put("selectStar", Boolean.valueOf(selectStar));
@@ -853,6 +1122,10 @@ public class SqlOptimizationPipelineService {
 
         public List<String> getTables() {
             return new ArrayList<String>(tables);
+        }
+
+        public String getParserEngine() {
+            return parserEngine;
         }
 
         public Set<String> getAggregateFunctions() {
@@ -867,6 +1140,10 @@ public class SqlOptimizationPipelineService {
             return new ArrayList<String>(warnings);
         }
 
+        public int getProjectionCount() {
+            return projectionCount;
+        }
+
         public int getPredicateCount() {
             return predicateCount;
         }
@@ -875,12 +1152,70 @@ public class SqlOptimizationPipelineService {
             return joinCount;
         }
 
+        public int getJoinCriteriaCount() {
+            return joinCriteriaCount;
+        }
+
         public int getGroupByCount() {
             return groupByCount;
         }
 
+        public int getOrderByCount() {
+            return orderByCount;
+        }
+
+        public int getWindowFunctionCount() {
+            return windowFunctionCount;
+        }
+
+        public int getUdfFunctionCount() {
+            return udfFunctions.size();
+        }
+
+        public int getSubqueryCount() {
+            return subqueryCount;
+        }
+
+        public int getRepeatedExpressionCount() {
+            return repeatedExpressionCount;
+        }
+
+        public boolean isSelectStar() {
+            return selectStar;
+        }
+
+        public boolean isLimitPresent() {
+            return limitPresent;
+        }
+
         public boolean isSetOperation() {
             return setOperation;
+        }
+
+        public List<String> getJoinTypes() {
+            return new ArrayList<String>(joinTypes);
+        }
+
+        private void recordExpression(Object expression) {
+            if (expression == null) {
+                return;
+            }
+            String key = expression.toString().trim().toUpperCase(Locale.ROOT);
+            if (key.length() < 4) {
+                return;
+            }
+            Integer current = expressionFrequency.get(key);
+            expressionFrequency.put(key, Integer.valueOf(current == null ? 1 : current.intValue() + 1));
+        }
+
+        private void recalculateRepeatedExpressions() {
+            int repeated = 0;
+            for (Integer count : expressionFrequency.values()) {
+                if (count != null && count.intValue() > 1) {
+                    repeated += count.intValue() - 1;
+                }
+            }
+            repeatedExpressionCount = repeated;
         }
     }
 

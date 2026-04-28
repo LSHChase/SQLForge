@@ -4,6 +4,30 @@
 
 ## Done
 
+### D-TASK-073: 升级结构解析查询意图理解与双 parser 抽象
+
+- Status: done
+- Completed at: 2026-04-28
+- Commit subject: `feat(sql-optimization): D-TASK-073 add query intent parsing`
+- Priority: 1
+- Depends on: `D-TASK-045`,`D-TASK-051`,`E-TASK-020`
+- Scope: 结构解析在原有字段兼容基础上输出 SQL 指纹、查询意图标签、多维特征、风险清单与启发式资源估算，底层 parser 通过 adapter 抽象可配置选择，不执行 SQL 或访问生产数据。 Tech: `JAVA-BE`,`VUE-FE`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`frontend/router/views/styles`,`docs`.
+- Plan ref: docs/exec-plans/completed/D-TASK-073-full-auto-execution-plan.md
+- Matrix context: Phase-D / Story `D-STORY-007` 结构解析与数据访问解析双轨闭环
+- Human confirmation point: 若 Trino parser 依赖引入导致许可证、包冲突或大规模迁移，或查询意图理解会破坏旧结构解析响应、执行 SQL、访问生产数据、把启发式资源估算写成真实执行计划结论，需人工确认。
+- Data impact: 预期不变更持久化数据模型；影响结构解析 API 响应字段、前端展示契约、解析规则与文档说明。若实现需要新增数据库字段或改变 access parse 权限/元数据行为，必须升级为人类确认点后再推进。
+- Rollback / recovery: 回退新增 parser adapter、查询意图字段、风险/资源估算规则和前端展示块，恢复 D-TASK-045 / E-TASK-020 既有结构解析响应与解析工作台展示基线；保留文档更正记录与测试证据。
+- Validation:
+  - `sql-optimization 模块测试、structure parse contract/controller 测试、parse workbench contract 测试、npm run build、npm run lint、task audit、knowledge lint`
+  - `python3 scripts/foreman.py validate D-TASK-073`
+- Progress log:
+  - 2026-04-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added structure-parse query intent outputs, SQL fingerprint, feature summary, structured risk checklist, heuristic resource estimate, configurable JSQLParser/Trino parser adapter path, parse workbench display, contract tests, parser tests, frontend contract checks, and product documentation.
+  - Validation evidence: mvn -B -pl sql-optimization -am test -DskipITs; node scripts/check-parse-workbench-contract.mjs; npm run lint; npm run build; mvn -B -pl sql-optimization -am validate pmd:pmd checkstyle:check -DskipTests; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py validate D-TASK-073; python3 scripts/task_audit.py --check --phase pre-closeout.
+  - Residual risk: Trino parser adapter is covered by repo-local samples and should gain more dialect fixtures over time; resource cost remains static heuristic evidence, not a real execution plan; NL2SQL remains a future task.
+  - Next step: Use the new intent profile as the backend contract for future NL2SQL and recommendation work without moving metadata or permissions into structure parse.
+
 ### HARN-047: 修复日期区间选择器页面不可用
 
 - Status: done

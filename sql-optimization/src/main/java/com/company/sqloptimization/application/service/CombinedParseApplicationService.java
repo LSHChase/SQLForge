@@ -8,7 +8,6 @@ import com.company.sqloptimization.application.controller.vo.CombinedParseStatus
 import com.company.sqloptimization.application.controller.vo.CombinedParseStatusVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseResponseVO;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;

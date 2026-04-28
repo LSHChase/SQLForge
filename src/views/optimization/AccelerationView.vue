@@ -174,6 +174,8 @@ const accessParse = computed(() => parseResult.value?.accessParse || null)
 const statusHistory = computed(() => parseResult.value?.statusHistory || [])
 const logicalObjectHits = computed(() => structureParse.value?.logicalObjectHits || [])
 const structureIssues = computed(() => structureParse.value?.issues || [])
+const structureIntentLabels = computed(() => structureParse.value?.intentProfile?.classificationLabels || [])
+const structureRiskChecklist = computed(() => structureParse.value?.riskChecklist || [])
 
 const structureHighlights = computed(() => {
   if (!structureParse.value) {
@@ -181,6 +183,7 @@ const structureHighlights = computed(() => {
   }
   return [
     { key: 'parseTaskId', label: isChinese.value ? 'Parse Task' : 'Parse task', value: structureParse.value.parseTaskId },
+    { key: 'sqlFingerprint', label: isChinese.value ? 'SQL 指纹' : 'SQL fingerprint', value: structureParse.value.sqlFingerprint },
     { key: 'syntaxStatus', label: isChinese.value ? '语法状态' : 'Syntax status', value: structureParse.value.syntaxStatus },
     { key: 'complexityLevel', label: isChinese.value ? '复杂度' : 'Complexity', value: structureParse.value.complexityLevel },
     { key: 'sqlType', label: isChinese.value ? 'SQL 类型' : 'SQL type', value: structureParse.value.sqlType },
@@ -188,6 +191,41 @@ const structureHighlights = computed(() => {
     { key: 'priorityScore', label: isChinese.value ? '评分' : 'Score', value: structureParse.value.priorityScore },
     { key: 'important', label: isChinese.value ? '重要' : 'Important', value: booleanLabel(structureParse.value.important) },
     { key: 'urgent', label: isChinese.value ? '紧急' : 'Urgent', value: booleanLabel(structureParse.value.urgent) }
+  ].filter(item => hasDisplayValue(item.value))
+})
+
+const structureFeatureHighlights = computed(() => {
+  const feature = structureParse.value?.featureSummary
+  if (!feature) {
+    return []
+  }
+  return [
+    { key: 'parserEngine', label: isChinese.value ? 'Parser' : 'Parser', value: feature.parserEngine },
+    { key: 'scanMode', label: isChinese.value ? '扫描模式' : 'Scan mode', value: feature.scanMode },
+    { key: 'joinType', label: isChinese.value ? 'Join 类型' : 'Join type', value: feature.joinType },
+    { key: 'computeDensity', label: isChinese.value ? '计算密度' : 'Compute density', value: feature.computeDensity },
+    { key: 'resourceType', label: isChinese.value ? '资源类型' : 'Resource type', value: feature.resourceType },
+    { key: 'slaLevel', label: isChinese.value ? 'SLA 等级' : 'SLA level', value: feature.slaLevel },
+    { key: 'tableCount', label: isChinese.value ? '表数量' : 'Tables', value: feature.tableCount },
+    { key: 'joinCount', label: isChinese.value ? 'Join 数' : 'Joins', value: feature.joinCount },
+    { key: 'predicateCount', label: isChinese.value ? '谓词数' : 'Predicates', value: feature.predicateCount },
+    { key: 'windowFunctionCount', label: isChinese.value ? '窗口函数' : 'Windows', value: feature.windowFunctionCount },
+    { key: 'repeatedExpressionCount', label: isChinese.value ? '重复表达式' : 'Repeated expressions', value: feature.repeatedExpressionCount }
+  ].filter(item => hasDisplayValue(item.value))
+})
+
+const structureResourceHighlights = computed(() => {
+  const estimate = structureParse.value?.estimatedResourceCost
+  if (!estimate) {
+    return []
+  }
+  return [
+    { key: 'overall', label: isChinese.value ? '总体' : 'Overall', value: estimate.overall },
+    { key: 'cpu', label: 'CPU', value: estimate.cpu },
+    { key: 'io', label: 'IO', value: estimate.io },
+    { key: 'memory', label: isChinese.value ? '内存' : 'Memory', value: estimate.memory },
+    { key: 'network', label: isChinese.value ? '网络' : 'Network', value: estimate.network },
+    { key: 'resultSize', label: isChinese.value ? '结果集' : 'Result size', value: estimate.resultSize }
   ].filter(item => hasDisplayValue(item.value))
 })
 
@@ -1549,6 +1587,51 @@ watch(
                   </div>
                 </div>
 
+                <div class="mini-section" data-testid="parse-workbench-query-intent">
+                  <span class="summary-card-label">{{ isChinese ? '查询意图标签' : 'Query intent labels' }}</span>
+                  <div v-if="structureIntentLabels.length" class="pill-grid">
+                    <span
+                      v-for="item in structureIntentLabels"
+                      :key="`intent-${item}`"
+                      class="summary-chip summary-chip-success"
+                    >
+                      {{ item }}
+                    </span>
+                  </div>
+                  <p v-else class="empty-inline">
+                    {{ isChinese ? '暂无查询意图标签。' : 'No query-intent labels yet.' }}
+                  </p>
+                </div>
+
+                <div class="mini-section" data-testid="parse-workbench-feature-summary">
+                  <span class="summary-card-label">{{ isChinese ? '多维特征' : 'Feature dimensions' }}</span>
+                  <div v-if="structureFeatureHighlights.length" class="highlight-grid highlight-grid-compact">
+                    <div v-for="item in structureFeatureHighlights" :key="item.key" class="highlight-chip">
+                      <span>{{ item.label }}</span>
+                      <strong>{{ item.value }}</strong>
+                    </div>
+                  </div>
+                  <p v-else class="empty-inline">
+                    {{ isChinese ? '暂无多维特征。' : 'No feature summary yet.' }}
+                  </p>
+                </div>
+
+                <div class="mini-section" data-testid="parse-workbench-resource-estimate">
+                  <span class="summary-card-label">{{ isChinese ? '预估资源消耗' : 'Estimated resource cost' }}</span>
+                  <div v-if="structureResourceHighlights.length" class="summary-chip-row">
+                    <span
+                      v-for="item in structureResourceHighlights"
+                      :key="`resource-${item.key}`"
+                      class="summary-chip"
+                    >
+                      {{ item.label }}: <strong>{{ item.value }}</strong>
+                    </span>
+                  </div>
+                  <p v-else class="empty-inline">
+                    {{ isChinese ? '暂无资源估算。' : 'No resource estimate yet.' }}
+                  </p>
+                </div>
+
                 <div class="mini-section">
                   <span class="summary-card-label">{{ isChinese ? '查询日期摘要' : 'Query-date summary' }}</span>
                   <div class="summary-chip-row">
@@ -1594,6 +1677,29 @@ watch(
                       {{ item }}
                     </span>
                   </div>
+                </div>
+
+                <div class="mini-section" data-testid="parse-workbench-risk-checklist">
+                  <span class="summary-card-label">{{ isChinese ? '风险清单' : 'Risk checklist' }}</span>
+                  <div v-if="structureRiskChecklist.length" class="issue-list issue-list-compact">
+                    <article
+                      v-for="(risk, index) in structureRiskChecklist"
+                      :key="`${risk.riskCode || 'risk'}-${index}`"
+                      class="issue-card"
+                      data-testid="parse-workbench-risk"
+                    >
+                      <div class="issue-card__header">
+                        <strong>{{ risk.riskCode }}</strong>
+                        <span>{{ risk.severity }}</span>
+                      </div>
+                      <p class="issue-card__summary">{{ risk.summary }}</p>
+                      <p class="issue-card__detail">{{ risk.evidence }}</p>
+                      <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ risk.suggestedAction }}</p>
+                    </article>
+                  </div>
+                  <p v-else class="empty-inline">
+                    {{ isChinese ? '未识别高风险项。' : 'No high-risk items were detected.' }}
+                  </p>
                 </div>
 
                 <div class="issue-list">

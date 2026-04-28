@@ -17,7 +17,6 @@ import com.company.sqloptimization.domain.parse.StructureParseIssueScoringSnapsh
 import com.company.sqloptimization.domain.parse.StructureParsePriorityLevel;
 import com.company.sqloptimization.domain.parse.StructureParsePriorityScorer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;

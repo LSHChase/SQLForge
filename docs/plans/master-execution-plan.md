@@ -564,6 +564,7 @@ Tasks:
 | `D-TASK-043` | 落地单条结构解析入口 | 不连库的 SQL 结构解析、query-date 提取、逻辑对象命中与基础风险识别 | `D-TASK-042` | parse structure controller/service 测试 |
 | `D-TASK-044` | 落地数据访问解析入口与异步补跑语义 | 结构解析成功后自动异步补跑 access parse，并保留 unavailable / skipped / failed 语义 | `D-TASK-043` | async parse flow 测试、降级测试 |
 | `D-TASK-045` | 补齐解析综合结论与 partial-success 追溯 | 统一展示结构解析成功 / access parse 失败的综合结论与追溯字段 | `D-TASK-044` | state machine 与 history/detail 测试 |
+| `D-TASK-073` | 升级结构解析查询意图理解与双 parser 抽象 | 在保持结构解析不依赖数据库、旧响应兼容和 access parse 独立失败语义不变的前提下，为 sql-optimization 结构解析新增查询意图理解、多维特征、结构化风险、启发式资源估算、SQL 指纹与双 parser adapter 抽象，并让解析工作台展示新增字段。 Tech: `JAVA-BE`,`VUE-FE`,`DOCS`. Layer: `application(controller/service)/domain/infrastructure`,`frontend/router/views/styles`,`docs`. | `D-TASK-045`,`D-TASK-051`,`E-TASK-020` | sql-optimization 模块测试、structure parse contract/controller 测试、parse workbench contract 测试、npm run build、npm run lint、task audit、knowledge lint |
 
 ##### Story `D-STORY-008` 逻辑视图与 DB View 治理
 

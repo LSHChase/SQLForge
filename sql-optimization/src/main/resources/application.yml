@@ -27,7 +27,7 @@ mybatis:
 
 sql-optimization:
   parser:
-    strategy: OPEN_SOURCE_ABSTRACTION_FOR_DEEP_OPTIMIZATION
+    strategy: ${SQL_OPTIMIZATION_PARSER_STRATEGY:JSQLPARSER}
   task-model:
     isolated-queue: true
     contract-stage: LONG_TERM_BASELINE

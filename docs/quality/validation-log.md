@@ -2040,3 +2040,9 @@
 2026-04-28T10:15:17-05:00 | HARN-047 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-04-28T10:15:17-05:00 | HARN-047 closeout commit | `R-168` | projected | `git commit -m 'fix(frontend): register semantic date components' (projected-precommit)`
 2026-04-28T10:15:17-05:00 | HARN-047 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-28T11:42:47-05:00 | D-TASK-073 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-28T11:42:47-05:00 | D-TASK-073 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-28T11:43:58-05:00 | D-TASK-073 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-28T11:43:58-05:00 | D-TASK-073 closeout commit | `R-168` | projected | `git commit -m 'feat(sql-optimization): D-TASK-073 add query intent parsing' (projected-precommit)`
+2026-04-28T11:43:58-05:00 | D-TASK-073 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-28T11:43:58-05:00 | D-TASK-073 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`

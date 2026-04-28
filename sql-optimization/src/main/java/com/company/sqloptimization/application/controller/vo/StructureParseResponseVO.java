@@ -10,6 +10,11 @@ public class StructureParseResponseVO {
     private String syntaxStatus;
     private String complexityLevel;
     private String sqlType;
+    private String sqlFingerprint;
+    private StructureParseIntentProfileVO intentProfile;
+    private StructureParseFeatureSummaryVO featureSummary;
+    private StructureParseResourceEstimateVO estimatedResourceCost;
+    private List<StructureParseRiskVO> riskChecklist;
     private StructureParseQueryDateSummaryVO queryDateSummary;
     private List<LogicalObjectSurface> logicalObjectHits;
     private List<String> riskTags;
@@ -58,6 +63,46 @@ public class StructureParseResponseVO {
 
     public void setSqlType(String sqlType) {
         this.sqlType = sqlType;
+    }
+
+    public String getSqlFingerprint() {
+        return sqlFingerprint;
+    }
+
+    public void setSqlFingerprint(String sqlFingerprint) {
+        this.sqlFingerprint = sqlFingerprint;
+    }
+
+    public StructureParseIntentProfileVO getIntentProfile() {
+        return intentProfile;
+    }
+
+    public void setIntentProfile(StructureParseIntentProfileVO intentProfile) {
+        this.intentProfile = intentProfile;
+    }
+
+    public StructureParseFeatureSummaryVO getFeatureSummary() {
+        return featureSummary;
+    }
+
+    public void setFeatureSummary(StructureParseFeatureSummaryVO featureSummary) {
+        this.featureSummary = featureSummary;
+    }
+
+    public StructureParseResourceEstimateVO getEstimatedResourceCost() {
+        return estimatedResourceCost;
+    }
+
+    public void setEstimatedResourceCost(StructureParseResourceEstimateVO estimatedResourceCost) {
+        this.estimatedResourceCost = estimatedResourceCost;
+    }
+
+    public List<StructureParseRiskVO> getRiskChecklist() {
+        return riskChecklist;
+    }
+
+    public void setRiskChecklist(List<StructureParseRiskVO> riskChecklist) {
+        this.riskChecklist = riskChecklist;
     }
 
     public StructureParseQueryDateSummaryVO getQueryDateSummary() {

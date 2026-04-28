@@ -11,7 +11,6 @@ import com.company.sqloptimization.application.controller.dto.OptimizationTaskSu
 import com.company.sqloptimization.application.controller.vo.OptimizationTaskStatusHistoryVO;
 import com.company.sqloptimization.application.controller.vo.OptimizationTaskStatusResponse;
 import com.company.sqloptimization.application.controller.vo.OptimizationTaskSubmitResponse;
-import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTask;
 import com.company.sqloptimization.domain.task.OptimizationTaskArtifact;
 import com.company.sqloptimization.domain.task.OptimizationTaskBenefit;
@@ -22,10 +21,8 @@ import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import com.company.sqloptimization.domain.task.OptimizationTaskStatus;
 import com.company.sqloptimization.domain.task.OptimizationTaskStatusTransition;
 import com.company.sqloptimization.domain.task.OptimizationTaskSubmission;
-import com.company.sqloptimization.domain.task.OptimizationTaskType;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.springframework.stereotype.Service;

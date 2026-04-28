@@ -27,12 +27,22 @@ const requiredTokens = [
   'data-testid="parse-workbench-status"',
   'data-testid="parse-workbench-overall-status"',
   'data-testid="parse-workbench-structure-card"',
+  'data-testid="parse-workbench-query-intent"',
+  'data-testid="parse-workbench-feature-summary"',
+  'data-testid="parse-workbench-resource-estimate"',
+  'data-testid="parse-workbench-risk-checklist"',
+  'data-testid="parse-workbench-risk"',
   'data-testid="parse-workbench-access-card"',
   'data-testid="parse-workbench-history-entry"',
   'data-testid="parse-workbench-issue"',
   'Logical object hits',
   'Access parse card',
-  'Structure parse card'
+  'Structure parse card',
+  'Query intent labels',
+  'Feature dimensions',
+  'Estimated resource cost',
+  'Risk checklist',
+  'SQL fingerprint'
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))

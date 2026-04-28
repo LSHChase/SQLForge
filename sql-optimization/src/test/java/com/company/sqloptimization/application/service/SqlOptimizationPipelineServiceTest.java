@@ -8,6 +8,7 @@ import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class SqlOptimizationPipelineServiceTest {
 
@@ -67,5 +68,22 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(accelerationPlan.contains("PRECOMPUTE"));
         assertTrue(accelerationPlan.contains("PARTITION"));
         assertTrue(suggestion.getSummary().contains("acceleration recommendation"));
+    }
+
+    @Test
+    void shouldAnalyzeQueryShapeWithTrinoParserAdapter() {
+        SqlOptimizationPipelineService trinoService = new SqlOptimizationPipelineService();
+        ReflectionTestUtils.setField(trinoService, "parserStrategy", "TRINO");
+
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = trinoService.analyze(
+            "SELECT customer_id, sum(amount) OVER (PARTITION BY customer_id) total_amount "
+                + "FROM hive.sales.orders WHERE dt >= DATE '2026-04-01' LIMIT 10",
+            DataSourceTypeEnum.HETU
+        );
+
+        assertEquals("TRINO", profile.getParserEngine());
+        assertEquals(1, profile.getTables().size());
+        assertEquals(1, profile.getWindowFunctionCount());
+        assertTrue(profile.isLimitPresent());
     }
 }

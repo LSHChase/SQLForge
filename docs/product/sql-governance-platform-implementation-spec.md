@@ -487,6 +487,21 @@ SELECT ...
   - 风险标签
   - 优先级建议
 
+`D-TASK-073` 之后，结构解析在保持上述旧字段兼容的基础上升级为查询意图理解输出：
+
+- `sqlFingerprint`：标准化 SQL 指纹，用于 SQL 级追溯、聚合和后续 NL2SQL/推荐消费。
+- `intentProfile`：静态查询意图标签，覆盖扫描模式、Join 类型、计算密度、资源类型、SLA 等级和置信度。
+- `featureSummary`：parser 引擎、表数量、Join 数、谓词数、窗口函数、UDF 和重复表达式等多维结构证据。
+- `riskChecklist`：结构化风险清单，至少覆盖全表扫描、大表 Join、非必要排序、重复表达式计算和结果集过大。
+- `estimatedResourceCost`：CPU / IO / 内存 / 网络 / 结果集的等级化启发式估算，只能作为结构解析阶段的治理提示，不能写成真实执行计划或生产资源承诺。
+
+Parser 边界：
+
+- 默认保留现有 JSQLParser 路径。
+- 新增 Trino parser adapter，必须通过统一 AST profile 输出结构信号，不允许业务层直接依赖单一 parser API。
+- Parser adapter 失败必须降级为结构解析问题，不得阻断页面展示或改变 access parse 独立失败语义。
+- NL2SQL 本阶段只预留消费字段，不实现自然语言生成 SQL。
+
 ### 6.3 Access Parse
 
 - 依赖数据库 / 引擎 / 元数据

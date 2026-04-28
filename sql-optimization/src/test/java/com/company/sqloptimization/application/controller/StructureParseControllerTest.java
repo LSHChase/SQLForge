@@ -62,10 +62,16 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.logicalObjectHits[0].objectKey").value("DB_VIEW:vw_sales_daily"))
             .andExpect(jsonPath("$.logicalObjectHits[0].resolved").value(true))
             .andExpect(jsonPath("$.logicalObjectHits[0].mappedPhysicalTargets[0]").value("TABLE:sales.orders"))
+            .andExpect(jsonPath("$.sqlFingerprint").isNotEmpty())
+            .andExpect(jsonPath("$.intentProfile.scanMode").value("PARTITION_RANGE_SCAN"))
+            .andExpect(jsonPath("$.intentProfile.computeDensity").value("LIGHT"))
+            .andExpect(jsonPath("$.featureSummary.parserEngine").value("JSQLPARSER"))
+            .andExpect(jsonPath("$.estimatedResourceCost.overall").value("HIGH"))
+            .andExpect(jsonPath("$.riskChecklist[0].riskCode").value("LARGE_RESULT_SET_RISK"))
             .andExpect(jsonPath("$.riskTags[0]").value("SELECT_STAR"))
             .andExpect(jsonPath("$.rewriteCandidates[0]").value("DEDUPLICATE_WHERE_PREDICATES"))
             .andExpect(jsonPath("$.issues[0].issueCode").value("SELECT_STAR"))
-            .andExpect(jsonPath("$.priorityLevel").value("P3"));
+            .andExpect(jsonPath("$.priorityLevel").value("P1"));
     }
 
     @Test
@@ -79,6 +85,8 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.sqlType").value("UNKNOWN"))
             .andExpect(jsonPath("$.issues[0].issueCode").value("SQL_SYNTAX_INVALID"))
             .andExpect(jsonPath("$.issues[0].issueDomain").value("STRUCTURE"))
+            .andExpect(jsonPath("$.intentProfile.confidence").value("LOW"))
+            .andExpect(jsonPath("$.estimatedResourceCost.overall").value("UNKNOWN"))
             .andExpect(jsonPath("$.queryDateSummary.queryDateStatus").value("UNRESOLVED"))
             .andExpect(jsonPath("$.rewriteCandidates").isEmpty());
     }

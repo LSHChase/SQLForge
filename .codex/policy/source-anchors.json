@@ -9,6 +9,7 @@
   "active_exec_plans": [],
   "completed_exec_plans": [
     "docs/exec-plans/completed/D-TASK-030-full-auto-execution-plan.md",
+    "docs/exec-plans/completed/D-TASK-073-full-auto-execution-plan.md",
     "docs/exec-plans/completed/HARN-007-codex-runtime-integration-plan.md",
     "docs/exec-plans/completed/HARN-008-governance-runtime-hardening-plan.md",
     "docs/exec-plans/completed/HARN-009-closeout-boundary-repair-plan.md",
