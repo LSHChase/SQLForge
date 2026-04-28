@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-046: 修正 HARN-045 日期区间组件治理
+
+- Status: done
+- Completed at: 2026-04-28
+- Commit subject: `fix(frontend): use range pickers for history dates`
+- Priority: 1
+- Depends on: HARN-045
+- Scope: 修正 HARN-045 后续缺陷：分析已改页面日期字段语义，将需要范围筛选的日期改为日期区间/日期时间区间组件，保持 API 字段名和提交格式兼容；更新测试与文档。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-046`
+- Progress log:
+  - 2026-04-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修正 HARN-045 日期组件治理：ParseRecordView 的 queryDateStart/queryDateEnd 改为日期区间，submittedStart/submittedEnd 改为日期时间区间；提交前仍拆回原 API 字段；保留 bizDate 单日业务日选择；同步静态验证和表单治理文档。
+  - Validation evidence: npm run test:form-governance; npm run lint; npm run build; python3 scripts/foreman.py validate HARN-046; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 仅修正 HARN-045 已改的 ParseRecordView 日期字段；其他页面日期字段如需继续区间化，应按表单治理文档另行分批处理。
+  - Next step: 如需要继续治理 AccelerationView 中同类历史筛选日期字段，建议按 HARN-046 的区间映射规则单独开 follow-up。
+
 ### HARN-045: HARN-045 页面组件语义治理执行模板
 
 - Status: done

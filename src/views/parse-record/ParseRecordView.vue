@@ -54,6 +54,8 @@ const loading = reactive({
 const page = ref(null)
 const datasourceOptions = ref([])
 const datasourceOptionsLoadFailed = ref(false)
+const queryDateRange = ref([])
+const submittedAtRange = ref([])
 const selectedHistoryId = ref('')
 const detailDialogVisible = ref(false)
 const evidenceDrawerVisible = ref(false)
@@ -162,7 +164,17 @@ const loadDatasourceOptions = async () => {
   }
 }
 
+const syncDateRangeFields = () => {
+  const [queryStart = '', queryEnd = ''] = Array.isArray(queryDateRange.value) ? queryDateRange.value : []
+  const [submittedStart = '', submittedEnd = ''] = Array.isArray(submittedAtRange.value) ? submittedAtRange.value : []
+  form.queryDateStart = queryStart || ''
+  form.queryDateEnd = queryEnd || ''
+  form.submittedStart = submittedStart || ''
+  form.submittedEnd = submittedEnd || ''
+}
+
 const loadPage = async () => {
+  syncDateRangeFields()
   loading.page = true
   errorMessage.value = ''
   try {
@@ -282,6 +294,7 @@ const clearFilters = async () => {
   form.bizDate = ''
   form.queryDateStart = ''
   form.queryDateEnd = ''
+  queryDateRange.value = []
   form.accessChannel = ''
   form.status = ''
   form.logicalObjectType = ''
@@ -295,6 +308,7 @@ const clearFilters = async () => {
   form.sortOrder = 'DESC'
   form.submittedStart = ''
   form.submittedEnd = ''
+  submittedAtRange.value = []
   form.traceId = ''
   form.taskId = ''
   form.reportId = ''
@@ -515,24 +529,18 @@ onMounted(async () => {
           <span class="field-label">{{ isChinese ? '业务日期' : 'Biz date' }}</span>
           <el-date-picker v-model="form.bizDate" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" placeholder="2026-04-27" />
         </label>
-        <label class="field-block">
-          <span class="field-label">{{ isChinese ? '查询日期起点' : 'Query date start' }}</span>
+        <label class="field-block field-block-wide">
+          <span class="field-label">{{ isChinese ? '查询日期区间' : 'Query date range' }}</span>
           <el-date-picker
-            v-model="form.queryDateStart"
-            type="date"
+            v-model="queryDateRange"
+            type="daterange"
             value-format="YYYY-MM-DD"
             format="YYYY-MM-DD"
-            placeholder="2026-04-01"
-          />
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ isChinese ? '查询日期终点' : 'Query date end' }}</span>
-          <el-date-picker
-            v-model="form.queryDateEnd"
-            type="date"
-            value-format="YYYY-MM-DD"
-            format="YYYY-MM-DD"
-            placeholder="2026-04-27"
+            unlink-panels
+            :range-separator="isChinese ? '至' : 'to'"
+            :start-placeholder="isChinese ? '开始日期' : 'Start date'"
+            :end-placeholder="isChinese ? '结束日期' : 'End date'"
+            data-testid="parse-record-query-date-range"
           />
         </label>
         <label class="field-block">
@@ -607,24 +615,18 @@ onMounted(async () => {
             <el-option label="false" value="false" />
           </el-select>
         </label>
-        <label class="field-block">
-          <span class="field-label">{{ isChinese ? '提交起点' : 'Submitted start' }}</span>
+        <label class="field-block field-block-wide">
+          <span class="field-label">{{ isChinese ? '提交时间区间' : 'Submitted time range' }}</span>
           <el-date-picker
-            v-model="form.submittedStart"
-            type="datetime"
+            v-model="submittedAtRange"
+            type="datetimerange"
             value-format="YYYY-MM-DD[T]HH:mm:ss"
             format="YYYY-MM-DD HH:mm:ss"
-            placeholder="2026-04-25T00:00:00"
-          />
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ isChinese ? '提交终点' : 'Submitted end' }}</span>
-          <el-date-picker
-            v-model="form.submittedEnd"
-            type="datetime"
-            value-format="YYYY-MM-DD[T]HH:mm:ss"
-            format="YYYY-MM-DD HH:mm:ss"
-            placeholder="2026-04-27T23:59:59"
+            unlink-panels
+            :range-separator="isChinese ? '至' : 'to'"
+            :start-placeholder="isChinese ? '开始时间' : 'Start time'"
+            :end-placeholder="isChinese ? '结束时间' : 'End time'"
+            data-testid="parse-record-submitted-at-range"
           />
         </label>
         <label class="field-block">
@@ -1016,6 +1018,10 @@ onMounted(async () => {
   padding: 14px;
   min-width: 210px;
   flex: 1 1 210px;
+}
+
+.field-block-wide {
+  flex-basis: 430px;
 }
 
 .field-block :deep(.el-select),

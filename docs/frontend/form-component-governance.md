@@ -5,8 +5,9 @@
 ## Principles
 
 - 自由文本继续使用 `el-input`，例如名称、编码、路径模板、JSONPath、trace/task/report id。
-- 日期字段使用 `el-date-picker type="date"`，提交格式保持 `YYYY-MM-DD`。
-- 日期时间字段使用 `el-date-picker type="datetime"`，提交格式保持 `YYYY-MM-DDTHH:mm:ss`。
+- 单点业务日字段使用 `el-date-picker type="date"`，提交格式保持 `YYYY-MM-DD`。
+- 起止日期筛选必须优先合并为 `el-date-picker type="daterange"`，提交前拆回既有 `*Start` / `*End` 字段，格式保持 `YYYY-MM-DD`。
+- 起止日期时间筛选必须优先合并为 `el-date-picker type="datetimerange"`，提交前拆回既有 `*Start` / `*End` 字段，格式保持 `YYYY-MM-DDTHH:mm:ss`。
 - 受控候选字段使用 `el-select`；候选值来自现有接口、当前页面已加载数据或仓库已验证的静态枚举。
 - 租户和数据源字段在候选值不可见或加载失败时使用 `filterable allow-create`，保留原有手动值输入能力，避免破坏权限不可见或环境缺数据场景。
 - 布尔字段使用 `el-switch`。
@@ -25,8 +26,9 @@
 | `SystemView` | credentialSecret | password `el-input` | 仅提交临时 secret，不回显原始凭证 |
 | `ParseRecordView` | tenantId | `el-select filterable allow-create` | 默认租户、当前值、查询结果中的 `tenantId` |
 | `ParseRecordView` | datasourceCode | `el-select filterable allow-create` | `getGovernanceDatasources(tenantId)`，失败时保留手动值 |
-| `ParseRecordView` | bizDate、queryDateStart、queryDateEnd | `el-date-picker type="date"` | `YYYY-MM-DD` |
-| `ParseRecordView` | submittedStart、submittedEnd | `el-date-picker type="datetime"` | `YYYY-MM-DDTHH:mm:ss` |
+| `ParseRecordView` | bizDate | `el-date-picker type="date"` | 单个业务日，现有 API 只有 `bizDate` 单字段 |
+| `ParseRecordView` | queryDateStart、queryDateEnd | `el-date-picker type="daterange"` | UI 选择日期区间，提交前拆回 `YYYY-MM-DD` 起止字段 |
+| `ParseRecordView` | submittedStart、submittedEnd | `el-date-picker type="datetimerange"` | UI 选择提交时间区间，提交前拆回 `YYYY-MM-DDTHH:mm:ss` 起止字段 |
 
 ## Validation
 
@@ -36,4 +38,6 @@
 
 ## Conservative Boundary
 
-HARN-045 未改写无法从代码或文档确认语义的自由文本字段，例如 SQL 文本、报表编码、路径模板、JSONPath、schemaName、traceId、taskId 和 reportId。后续若需要把这些字段升级为搜索选择或关联资源组件，必须先确认候选值权威来源和权限过滤契约。
+HARN-046 修正了 HARN-045 中把 `queryDateStart/queryDateEnd` 和 `submittedStart/submittedEnd` 拆成两个单点日期组件的问题。后续日期治理默认判断顺序为：已有 start/end 字段的筛选项先做区间；只有单字段且业务语义明确为某一天时才保留单点日期。
+
+HARN-045 / HARN-046 未改写无法从代码或文档确认语义的自由文本字段，例如 SQL 文本、报表编码、路径模板、JSONPath、schemaName、traceId、taskId 和 reportId。后续若需要把这些字段升级为搜索选择或关联资源组件，必须先确认候选值权威来源和权限过滤契约。

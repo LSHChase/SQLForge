@@ -25,16 +25,20 @@ const checks = [
       'data-testid="parse-record-tenant-select"',
       'data-testid="parse-record-datasource-filter"',
       'v-model="form.bizDate" type="date"',
-      'v-model="form.queryDateStart"',
-      'v-model="form.submittedStart"',
-      'type="datetime"',
+      'v-model="queryDateRange"',
+      'type="daterange"',
+      'data-testid="parse-record-query-date-range"',
+      'v-model="submittedAtRange"',
+      'type="datetimerange"',
+      'data-testid="parse-record-submitted-at-range"',
       'value-format="YYYY-MM-DD[T]HH:mm:ss"',
       'data-testid="parse-record-datasource-options-fallback"'
     ],
     forbidden: [
       '<el-input v-model="form.bizDate"',
       '<el-input v-model="form.queryDateStart"',
-      '<el-input v-model="form.submittedStart"'
+      '<el-input v-model="form.submittedStart"',
+      'type="datetime"'
     ]
   },
   {
