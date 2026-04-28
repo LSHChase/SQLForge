@@ -1,5 +1,6 @@
 package com.company.sqloptimization.application.controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,6 +21,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -89,6 +91,29 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.estimatedResourceCost.overall").value("UNKNOWN"))
             .andExpect(jsonPath("$.queryDateSummary.queryDateStatus").value("UNRESOLVED"))
             .andExpect(jsonPath("$.rewriteCandidates").isEmpty());
+    }
+
+    @Test
+    void shouldReturnStableFingerprintForCommentedAndParameterizedEquivalentSql() throws Exception {
+        MvcResult first = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"--report_code=RPT_A\\nSELECT * FROM orders "
+                    + "WHERE dt = DATE '2026-04-01' AND tenant_id = 7\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andReturn();
+        MvcResult second = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"/* imported */ select * from orders "
+                    + "where dt = DATE '2026-04-02' and tenant_id = 8;\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andReturn();
+
+        assertEquals(
+            JsonTestUtils.readValue(first.getResponse().getContentAsString(), "$.sqlFingerprint"),
+            JsonTestUtils.readValue(second.getResponse().getContentAsString(), "$.sqlFingerprint")
+        );
     }
 
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {

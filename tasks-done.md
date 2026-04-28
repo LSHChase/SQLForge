@@ -4,6 +4,30 @@
 
 ## Done
 
+### D-TASK-074: 补齐结构解析 SQL 指纹前处理契约
+
+- Status: done
+- Completed at: 2026-04-28
+- Commit subject: `fix(sql-optimization): D-TASK-074 stabilize SQL fingerprints`
+- Priority: 1
+- Depends on: `D-TASK-073`
+- Scope: 结构解析 sqlFingerprint 必须基于去注释、字面量参数化、大小写和空白标准化后的 SQL 形态生成；该指纹用于治理聚合提示，不代表 SQL 语义等价证明。 Tech: `JAVA-BE`,`DOCS`. Layer: `shared/utils`,`application(controller/service)`,`docs`.
+- Plan ref: docs/exec-plans/completed/D-TASK-074-full-auto-execution-plan.md
+- Matrix context: Phase-D / Story `D-STORY-007` 结构解析与数据访问解析双轨闭环
+- Human confirmation point: 若修复需要历史 SQL 指纹回填、跨服务缓存迁移、数据库字段变更或把 fingerprint 解释为严格 SQL 语义等价证明，必须暂停并由人工确认。
+- Data impact: 不变更持久化模型；新请求生成的 sqlFingerprint 会对注释和字面量变化更稳定。历史已落库指纹不在本任务中回填或迁移。
+- Rollback / recovery: 回退 SqlFingerprintUtils 前处理增强、相关测试和文档补充，恢复 D-TASK-073 后的指纹行为；不触碰历史数据。
+- Validation:
+  - `sqlforge-shared utility tests、structure parse controller regression、sql-optimization module tests、task audit、knowledge lint`
+  - `python3 scripts/foreman.py validate D-TASK-074`
+- Progress log:
+  - 2026-04-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 复盘 D-TASK-073 后补齐 SQL 指纹前处理契约：共享 fingerprint 工具现在去除 SQL 注释、参数化字符串/数字/命名参数字面量、折叠空白、统一大小写并忽略末尾分号；结构解析接口回归验证注释和字面量变化不会改变 sqlFingerprint；产品规格明确该指纹只用于治理聚合，不代表完整 SQL 语义等价。
+  - Validation evidence: mvn -B -pl sqlforge-shared -Dtest=SqlFingerprintUtilsTest test; mvn -B -pl sql-optimization -am -Dtest=StructureParseControllerTest -Dsurefire.failIfNoSpecifiedTests=false test -DskipITs; mvn -B -pl sql-optimization -am test -DskipITs; mvn -B -pl sql-optimization -am validate pmd:pmd checkstyle:check -DskipTests; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py validate D-TASK-074; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: SQL 指纹仍是静态文本级治理聚合，不代表完整 SQL 语义等价；历史已生成 fingerprint 不在本任务中回填；方言特有字面量后续可继续补样本。
+  - Next step: 如后续需要跨服务缓存迁移或历史 fingerprint 重算，应单独任务化并评估数据迁移与回滚策略。
+
 ### D-TASK-073: 升级结构解析查询意图理解与双 parser 抽象
 
 - Status: done
