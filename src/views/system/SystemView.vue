@@ -3,6 +3,21 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import CapabilityPlaceholderDialog from '../common/CapabilityPlaceholderDialog.vue'
 import {
+  ackModeOptions,
+  authModeOptions,
+  buildDatasourceOptions,
+  buildTenantOptions,
+  connectionModeOptions,
+  credentialModeOptions,
+  dispatchTypeOptions,
+  engineOptions,
+  httpMethodOptions,
+  retryStrategyOptions,
+  sourceTypeOptions,
+  stageOptions,
+  withCurrentOption
+} from '../common/formComponentGovernance'
+import {
   createGovernanceDatasource,
   createGovernanceDispatchPolicy,
   createGovernanceRedisRuleSource,
@@ -77,6 +92,17 @@ const redisForm = reactive(buildRedisForm())
 const dispatchForm = reactive(buildDispatchForm())
 
 const isChinese = computed(() => locale.value === 'zh-CN')
+const tenantOptions = computed(() =>
+  buildTenantOptions(
+    form.tenantId,
+    tenantConfig.value,
+    datasources.value,
+    reportInterfaces.value,
+    redisRuleSources.value,
+    dispatchPolicies.value
+  )
+)
+const datasourceOptions = computed(() => buildDatasourceOptions(datasources.value))
 const summaryCards = computed(() => [
   card('datasources', isChinese.value ? '数据源' : 'Datasources', datasources.value.length),
   card('report-interfaces', isChinese.value ? '报表接口' : 'Report interfaces', reportInterfaces.value.length),
@@ -569,7 +595,15 @@ onMounted(() => {
       <div class="action-row">
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
-          <el-input v-model="form.tenantId" data-testid="system-tenant-input" />
+          <el-select
+            v-model="form.tenantId"
+            filterable
+            allow-create
+            default-first-option
+            data-testid="system-tenant-select"
+          >
+            <el-option v-for="item in tenantOptions" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
         </label>
         <el-button type="primary" :loading="loading.page" data-testid="system-refresh" @click="loadSystemEvidence">
           {{ isChinese ? '刷新系统证据' : 'Refresh system evidence' }}
@@ -755,7 +789,14 @@ onMounted(() => {
       <div class="form-grid">
         <label class="field-block">
           <span class="field-label">tenantId</span>
-          <el-input v-model="datasourceForm.tenantId" />
+          <el-select v-model="datasourceForm.tenantId" filterable allow-create default-first-option>
+            <el-option
+              v-for="item in withCurrentOption(tenantOptions, datasourceForm.tenantId)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '编码' : 'Code' }}</span>
@@ -767,15 +808,29 @@ onMounted(() => {
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '连接模式' : 'Connection mode' }}</span>
-          <el-input v-model="datasourceForm.connectionMode" />
+          <el-select v-model="datasourceForm.connectionMode">
+            <el-option
+              v-for="item in withCurrentOption(connectionModeOptions, datasourceForm.connectionMode)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">Stage</span>
-          <el-input v-model="datasourceForm.stage" />
+          <el-select v-model="datasourceForm.stage">
+            <el-option
+              v-for="item in withCurrentOption(stageOptions, datasourceForm.stage)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">timeoutMs</span>
-          <el-input v-model="datasourceForm.timeoutMs" />
+          <el-input-number v-model="datasourceForm.timeoutMs" :min="100" :step="100" controls-position="right" />
         </label>
         <label class="field-block field-block-wide">
           <span class="field-label">jdbcUrl</span>
@@ -791,7 +846,37 @@ onMounted(() => {
         </label>
         <label class="field-block">
           <span class="field-label">credentialSecret</span>
-          <el-input v-model="datasourceForm.credentialSecret" />
+          <el-input v-model="datasourceForm.credentialSecret" type="password" show-password autocomplete="new-password" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">authMode</span>
+          <el-select v-model="datasourceForm.authMode">
+            <el-option
+              v-for="item in withCurrentOption(authModeOptions, datasourceForm.authMode)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </label>
+        <label class="field-block">
+          <span class="field-label">credentialMode</span>
+          <el-select v-model="datasourceForm.credentialMode">
+            <el-option
+              v-for="item in withCurrentOption(credentialModeOptions, datasourceForm.credentialMode)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </label>
+        <label class="field-block field-block-toggle">
+          <span class="field-label">tlsEnabled</span>
+          <el-switch v-model="datasourceForm.tlsEnabled" />
+        </label>
+        <label class="field-block field-block-toggle">
+          <span class="field-label">verifyPeer</span>
+          <el-switch v-model="datasourceForm.verifyPeer" />
         </label>
         <label class="field-block field-block-toggle">
           <span class="field-label">readonly</span>
@@ -814,11 +899,25 @@ onMounted(() => {
       <div class="form-grid">
         <label class="field-block">
           <span class="field-label">tenantId</span>
-          <el-input v-model="reportForm.tenantId" />
+          <el-select v-model="reportForm.tenantId" filterable allow-create default-first-option>
+            <el-option
+              v-for="item in withCurrentOption(tenantOptions, reportForm.tenantId)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">datasourceCode</span>
-          <el-input v-model="reportForm.datasourceCode" />
+          <el-select v-model="reportForm.datasourceCode" filterable allow-create default-first-option data-testid="system-report-datasource-select">
+            <el-option
+              v-for="item in withCurrentOption(datasourceOptions, reportForm.datasourceCode)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">endpointCode</span>
@@ -829,12 +928,37 @@ onMounted(() => {
           <el-input v-model="reportForm.endpointName" />
         </label>
         <label class="field-block">
+          <span class="field-label">stage</span>
+          <el-select v-model="reportForm.stage">
+            <el-option
+              v-for="item in withCurrentOption(stageOptions, reportForm.stage)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </label>
+        <label class="field-block">
           <span class="field-label">sourceType</span>
-          <el-input v-model="reportForm.sourceType" />
+          <el-select v-model="reportForm.sourceType">
+            <el-option
+              v-for="item in withCurrentOption(sourceTypeOptions, reportForm.sourceType)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">httpMethod</span>
-          <el-input v-model="reportForm.httpMethod" />
+          <el-select v-model="reportForm.httpMethod">
+            <el-option
+              v-for="item in withCurrentOption(httpMethodOptions, reportForm.httpMethod)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block field-block-wide">
           <span class="field-label">baseUrl</span>
@@ -852,6 +976,25 @@ onMounted(() => {
           <span class="field-label">sqlJsonPath</span>
           <el-input v-model="reportForm.sqlJsonPath" />
         </label>
+        <label class="field-block">
+          <span class="field-label">timeoutMs</span>
+          <el-input-number v-model="reportForm.timeoutMs" :min="100" :step="100" controls-position="right" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">authMode</span>
+          <el-select v-model="reportForm.authMode">
+            <el-option
+              v-for="item in withCurrentOption(authModeOptions, reportForm.authMode)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </label>
+        <label class="field-block field-block-toggle">
+          <span class="field-label">enabled</span>
+          <el-switch v-model="reportForm.enabled" />
+        </label>
       </div>
       <template #footer>
         <el-button @click="reportDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>
@@ -865,7 +1008,14 @@ onMounted(() => {
       <div class="form-grid">
         <label class="field-block">
           <span class="field-label">tenantId</span>
-          <el-input v-model="redisForm.tenantId" />
+          <el-select v-model="redisForm.tenantId" filterable allow-create default-first-option>
+            <el-option
+              v-for="item in withCurrentOption(tenantOptions, redisForm.tenantId)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">sourceName</span>
@@ -885,7 +1035,14 @@ onMounted(() => {
         </label>
         <label class="field-block">
           <span class="field-label">authMode</span>
-          <el-input v-model="redisForm.authMode" />
+          <el-select v-model="redisForm.authMode">
+            <el-option
+              v-for="item in withCurrentOption(authModeOptions, redisForm.authMode)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">credentialRef</span>
@@ -894,6 +1051,10 @@ onMounted(() => {
         <label class="field-block field-block-toggle">
           <span class="field-label">bypassOnUnavailable</span>
           <el-switch v-model="redisForm.bypassOnUnavailable" />
+        </label>
+        <label class="field-block field-block-toggle">
+          <span class="field-label">enabled</span>
+          <el-switch v-model="redisForm.enabled" />
         </label>
       </div>
       <template #footer>
@@ -908,7 +1069,14 @@ onMounted(() => {
       <div class="form-grid">
         <label class="field-block">
           <span class="field-label">tenantId</span>
-          <el-input v-model="dispatchForm.tenantId" />
+          <el-select v-model="dispatchForm.tenantId" filterable allow-create default-first-option>
+            <el-option
+              v-for="item in withCurrentOption(tenantOptions, dispatchForm.tenantId)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">policyName</span>
@@ -916,31 +1084,66 @@ onMounted(() => {
         </label>
         <label class="field-block">
           <span class="field-label">dispatchType</span>
-          <el-input v-model="dispatchForm.dispatchType" />
+          <el-select v-model="dispatchForm.dispatchType">
+            <el-option
+              v-for="item in withCurrentOption(dispatchTypeOptions, dispatchForm.dispatchType)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">targetEngine</span>
-          <el-input v-model="dispatchForm.targetEngine" />
+          <el-select v-model="dispatchForm.targetEngine">
+            <el-option
+              v-for="item in withCurrentOption(engineOptions, dispatchForm.targetEngine)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">targetDatasource</span>
-          <el-input v-model="dispatchForm.targetDatasource" />
+          <el-select v-model="dispatchForm.targetDatasource" filterable allow-create default-first-option>
+            <el-option
+              v-for="item in withCurrentOption(datasourceOptions, dispatchForm.targetDatasource)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">ackMode</span>
-          <el-input v-model="dispatchForm.ackMode" />
+          <el-select v-model="dispatchForm.ackMode">
+            <el-option
+              v-for="item in withCurrentOption(ackModeOptions, dispatchForm.ackMode)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">pullWindowSeconds</span>
-          <el-input v-model="dispatchForm.pullWindowSeconds" />
+          <el-input-number v-model="dispatchForm.pullWindowSeconds" :min="1" :step="10" controls-position="right" />
         </label>
         <label class="field-block">
           <span class="field-label">maxBatchSize</span>
-          <el-input v-model="dispatchForm.maxBatchSize" />
+          <el-input-number v-model="dispatchForm.maxBatchSize" :min="1" :step="10" controls-position="right" />
         </label>
         <label class="field-block">
           <span class="field-label">retryStrategy</span>
-          <el-input v-model="dispatchForm.retryStrategy" />
+          <el-select v-model="dispatchForm.retryStrategy">
+            <el-option
+              v-for="item in withCurrentOption(retryStrategyOptions, dispatchForm.retryStrategy)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block field-block-toggle">
           <span class="field-label">enabled</span>
@@ -1051,6 +1254,11 @@ onMounted(() => {
   gap: 8px;
   padding: 14px;
   min-width: 210px;
+}
+
+.field-block :deep(.el-select),
+.field-block :deep(.el-input-number) {
+  width: 100%;
 }
 
 .summary-card {

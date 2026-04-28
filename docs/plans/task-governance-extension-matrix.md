@@ -186,6 +186,7 @@
 | `E-TASK-031` | 若系统管理数据源/报表接口页会暴露敏感连接信息、误导用户认为真实外部接口已默认联通，需人工确认 | 系统管理中的 datasource、health-check、report-interface 展示面 | 恢复脱敏与 mock/config 标识，关闭高风险编辑入口 |
 | `E-TASK-032` | 若 Redis 规则源、装数协同与系统参数页会把 environment-backed 配置写成默认已启用事实，需人工确认 | rule-source、dispatch policy、system-param/permission 展示面 | 恢复到查询/模拟状态展示，保留 simulated 或未联通提示 |
 | `U-TASK-004` | 若实现会移除既有承诺路由、把样本化 KPI 写成全租户事实，或把无写 API 的治理页改成伪可写能力，需人工确认。 | 前端导航、解析工作区入口、Dashboard 指标表达、规格补充文档与验证脚本；不改写后端业务数据或外部系统状态。 | 回退到当前导航与 Dashboard 表达，保留 read-only、sampled、simulated 等边界文案，不新增对外部环境的强依赖。 |
+| `HARN-045` | 用户已在 2026-04-28 对 HARN-045 执行模板、任务边界、输出物要求以及 Main Foreman 创建正式任务并进入实现流程作出明确确认。实现过程中若字段语义、候选值来源、权限边界或提交格式无法从权威材料确认，必须暂停请用户再次确认。 | 预期不变更持久化数据模型和后端接口契约；风险集中在前端表单提交格式、默认值、回显、校验和候选值过滤。若实现需要改变 API contract、数据格式或权限行为，必须升级为人类确认点后再推进。 | 普通 standard 任务按单任务单 commit 管理。若组件替换造成行为回归，优先通过该任务 commit 回退或在同一治理链路内做最小修复；文档和测试变更需与代码回退保持一致。不得使用 git reset --hard、git add .、git add -A、git commit -a 等破坏审计链的命令。 |
 
 ## Phase-F
 

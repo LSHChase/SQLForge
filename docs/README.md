@@ -31,6 +31,7 @@
    - [SQL 治理数据模型扩展](./architecture/sql-governance-data-model-extension.md)
    - [SQL 治理降级矩阵](./operations/sql-governance-degradation-matrix.md)
    - [前端设计系统](./frontend/design-system.md)
+   - [前端表单组件治理](./frontend/form-component-governance.md)
    - [阿里 Java 规范适配](./quality/alibaba-java-guidelines.md)
    - [前后端分离基线检查](./quality/frontend-backend-separation-baseline.md)
 8. [计划索引](./plans/README.md)
@@ -117,6 +118,7 @@
   - `connectors.md`：Connector 与 MCP 的允许范围、安全边界、禁用能力和验证清单。
 - `frontend/`
   前端设计系统、组件与页面视觉规范。
+  - `form-component-governance.md`：页面表单字段到日期时间、下拉、开关、数值、密码等组件的治理映射。
 - `plans/`
   计划索引、主执行计划与分阶段执行计划。
   - `document-truth-baseline.md`：当前仓库事实、历史记录、目标边界与工程命名映射的真值分层。

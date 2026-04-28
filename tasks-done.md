@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-045: HARN-045 页面组件语义治理执行模板
+
+- Status: done
+- Completed at: 2026-04-28
+- Commit subject: `feat(frontend): govern semantic form components`
+- Priority: 1
+- Depends on: `N/A`
+- Scope: 用户已确认执行模板，Main Foreman 可 materialize HARN-045 并进入实现流程。后续实现必须先执行 preflight，再通过 foreman instantiate/validate/closeout 与 task_audit pre-closeout/post-closeout 完成治理链路。输出物必须包含代码、测试、文档；不得破坏既有业务流程、数据提交格式、默认值、回显、校验行为和权限边界。 Tech: `Frontend form components`,`DateTime picker`,`Select / searchable select`,`Switch / checkbox`,`Number input`,`Form validation`,`API schema alignment`,`Automated UI/form tests`,...
+- Plan ref: docs/exec-plans/completed/HARN-045-full-auto-execution-plan.md
+- Matrix context: Phase-E / Story `E-STORY-003` 前后端分离持续治理
+- Human confirmation point: 用户已在 2026-04-28 对 HARN-045 执行模板、任务边界、输出物要求以及 Main Foreman 创建正式任务并进入实现流程作出明确确认。实现过程中若字段语义、候选值来源、权限边界或提交格式无法从权威材料确认，必须暂停请用户再次确认。
+- Data impact: 预期不变更持久化数据模型和后端接口契约；风险集中在前端表单提交格式、默认值、回显、校验和候选值过滤。若实现需要改变 API contract、数据格式或权限行为，必须升级为人类确认点后再推进。
+- Rollback / recovery: 普通 standard 任务按单任务单 commit 管理。若组件替换造成行为回归，优先通过该任务 commit 回退或在同一治理链路内做最小修复；文档和测试变更需与代码回退保持一致。不得使用 git reset --hard、git add .、git add -A、git commit -a 等破坏审计链的命令。
+- Validation:
+  - 覆盖日期时间组件选择、默认值、回显和提交格式、覆盖租户、数据源等受控候选字段的选择、候选值加载和提交、覆盖布尔、数值、枚举、关联资源等字段的关键交互与边界输入、覆盖表单加载、编辑、校验、提交、回显的主流程、覆盖候选值加载失败或权限不可见时的保守行为，若仓库现有测试体系支持
+  - `python3 scripts/foreman.py validate HARN-045`
+- Progress log:
+  - 2026-04-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: SystemView 与 ParseRecordView 页面表单组件语义治理：租户/数据源下拉、日期/日期时间选择、枚举 select、数值 input-number、布尔 switch、敏感凭证 password input，并新增表单治理文档与静态验证脚本。
+  - Validation evidence: npm run test:form-governance; npm run lint; npm run build; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py validate HARN-045; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: HARN-045 未改写无法从代码或文档确认语义的自由文本字段；数据源候选加载失败时保留 allow-create 手动值以避免权限不可见场景回归。
+  - Next step: 如需继续治理 AccelerationView、ParseBatchCenterView 等剩余页面，按同一文档基线另开任务分批处理。
+
 ### D-TASK-039: 扩展 SQL 查询执行摘要契约
 
 - Status: done

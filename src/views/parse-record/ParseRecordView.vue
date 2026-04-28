@@ -6,11 +6,13 @@ import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import {
   exportGovernanceQueryHistory,
   formatRuntimeError,
+  getGovernanceDatasources,
   getGovernanceQueryHistoryDetail,
   getGovernanceQueryHistoryPage,
   getGovernanceTraceDetail,
   lookupGovernanceTraces
 } from '../../services/runtimeGateApi'
+import { buildDatasourceOptions, buildTenantOptions, withCurrentOption } from '../common/formComponentGovernance'
 
 const { locale } = useI18n()
 const route = useRoute()
@@ -50,6 +52,8 @@ const loading = reactive({
 })
 
 const page = ref(null)
+const datasourceOptions = ref([])
+const datasourceOptionsLoadFailed = ref(false)
 const selectedHistoryId = ref('')
 const detailDialogVisible = ref(false)
 const evidenceDrawerVisible = ref(false)
@@ -64,8 +68,9 @@ const exportForm = reactive({
   exportReason: 'frontend-history-forensics'
 })
 
-const isChinese = computed(() => locale.value === 'zh-CN')
 const rows = computed(() => page.value?.items || [])
+const isChinese = computed(() => locale.value === 'zh-CN')
+const tenantOptions = computed(() => buildTenantOptions(form.tenantId, rows.value))
 const classificationSummary = computed(() => page.value?.classificationSummary || {})
 const pageSummaryCards = computed(() => [
   { label: isChinese.value ? '当前页记录' : 'Current page', value: rows.value.length },
@@ -144,6 +149,19 @@ const hasLookupCriteria = computed(() =>
   hasDisplayValue(form.traceId) || hasDisplayValue(form.taskId) || hasDisplayValue(form.reportId)
 )
 
+const loadDatasourceOptions = async () => {
+  datasourceOptionsLoadFailed.value = false
+  try {
+    const nextDatasources = await getGovernanceDatasources(form.tenantId, {
+      requestPrefix: 'frontend-parse-record-datasource-options'
+    })
+    datasourceOptions.value = buildDatasourceOptions(nextDatasources)
+  } catch {
+    datasourceOptions.value = withCurrentOption([], form.datasourceCode)
+    datasourceOptionsLoadFailed.value = true
+  }
+}
+
 const loadPage = async () => {
   loading.page = true
   errorMessage.value = ''
@@ -183,6 +201,10 @@ const loadPage = async () => {
   } finally {
     loading.page = false
   }
+}
+
+const refreshWorkbench = async () => {
+  await Promise.all([loadDatasourceOptions(), loadPage()])
 }
 
 const openHistoryDetail = async (historyId, preloadedTraceDetail = null) => {
@@ -276,7 +298,7 @@ const clearFilters = async () => {
   form.traceId = ''
   form.taskId = ''
   form.reportId = ''
-  await loadPage()
+  await refreshWorkbench()
 }
 
 const openExportDialog = () => {
@@ -419,7 +441,7 @@ onMounted(async () => {
   if (hasDisplayValue(route.query.reportId)) {
     form.reportId = String(route.query.reportId)
   }
-  await loadPage()
+  await refreshWorkbench()
   if (hasLookupCriteria.value) {
     await runIndexedLookup()
   }
@@ -437,7 +459,7 @@ onMounted(async () => {
         </p>
       </div>
       <div class="action-row">
-        <el-button type="primary" :loading="loading.page" data-testid="parse-record-refresh" @click="loadPage">
+        <el-button type="primary" :loading="loading.page" data-testid="parse-record-refresh" @click="refreshWorkbench">
           {{ isChinese ? '刷新列表' : 'Refresh list' }}
         </el-button>
         <el-button :loading="loading.lookup" data-testid="parse-record-run-lookup" @click="runIndexedLookup">
@@ -455,7 +477,14 @@ onMounted(async () => {
       <div class="field-grid">
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
-          <el-input v-model="form.tenantId" />
+          <el-select v-model="form.tenantId" filterable allow-create default-first-option data-testid="parse-record-tenant-select">
+            <el-option
+              v-for="item in withCurrentOption(tenantOptions, form.tenantId)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '报表编码' : 'Report code' }}</span>
@@ -463,7 +492,20 @@ onMounted(async () => {
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '数据源' : 'Datasource' }}</span>
-          <el-input v-model="form.datasourceCode" data-testid="parse-record-datasource-filter" />
+          <el-select
+            v-model="form.datasourceCode"
+            filterable
+            allow-create
+            default-first-option
+            data-testid="parse-record-datasource-filter"
+          >
+            <el-option
+              v-for="item in withCurrentOption(datasourceOptions, form.datasourceCode)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '阶段' : 'Stage' }}</span>
@@ -471,15 +513,27 @@ onMounted(async () => {
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '业务日期' : 'Biz date' }}</span>
-          <el-input v-model="form.bizDate" placeholder="2026-04-27" />
+          <el-date-picker v-model="form.bizDate" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" placeholder="2026-04-27" />
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '查询日期起点' : 'Query date start' }}</span>
-          <el-input v-model="form.queryDateStart" placeholder="2026-04-01" />
+          <el-date-picker
+            v-model="form.queryDateStart"
+            type="date"
+            value-format="YYYY-MM-DD"
+            format="YYYY-MM-DD"
+            placeholder="2026-04-01"
+          />
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '查询日期终点' : 'Query date end' }}</span>
-          <el-input v-model="form.queryDateEnd" placeholder="2026-04-27" />
+          <el-date-picker
+            v-model="form.queryDateEnd"
+            type="date"
+            value-format="YYYY-MM-DD"
+            format="YYYY-MM-DD"
+            placeholder="2026-04-27"
+          />
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '结果状态' : 'Status' }}</span>
@@ -555,11 +609,23 @@ onMounted(async () => {
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '提交起点' : 'Submitted start' }}</span>
-          <el-input v-model="form.submittedStart" placeholder="2026-04-25T00:00:00" />
+          <el-date-picker
+            v-model="form.submittedStart"
+            type="datetime"
+            value-format="YYYY-MM-DD[T]HH:mm:ss"
+            format="YYYY-MM-DD HH:mm:ss"
+            placeholder="2026-04-25T00:00:00"
+          />
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '提交终点' : 'Submitted end' }}</span>
-          <el-input v-model="form.submittedEnd" placeholder="2026-04-27T23:59:59" />
+          <el-date-picker
+            v-model="form.submittedEnd"
+            type="datetime"
+            value-format="YYYY-MM-DD[T]HH:mm:ss"
+            format="YYYY-MM-DD HH:mm:ss"
+            placeholder="2026-04-27T23:59:59"
+          />
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '排序字段' : 'Sort by' }}</span>
@@ -595,6 +661,9 @@ onMounted(async () => {
         <span class="chip">{{ isChinese ? 'History classification' : 'History classification' }}</span>
         <span class="chip">{{ isChinese ? 'Sort mode' : 'Sort mode' }}: {{ form.sortBy }} {{ form.sortOrder }}</span>
         <span class="chip" data-testid="parse-record-page-mode">{{ hasLookupCriteria ? 'INDEXED' : 'PAGE' }}</span>
+        <span v-if="datasourceOptionsLoadFailed" class="chip chip-warning" data-testid="parse-record-datasource-options-fallback">
+          {{ isChinese ? '数据源候选加载失败，保留手动输入' : 'Datasource options unavailable; manual value allowed' }}
+        </span>
       </div>
     </section>
 
@@ -949,6 +1018,11 @@ onMounted(async () => {
   flex: 1 1 210px;
 }
 
+.field-block :deep(.el-select),
+.field-block :deep(.el-date-editor) {
+  width: 100%;
+}
+
 .chip-row {
   margin-top: 14px;
   flex-wrap: wrap;
@@ -963,6 +1037,11 @@ onMounted(async () => {
   background: rgba(20, 24, 31, 0.82);
   color: var(--sqlforge-text-secondary);
   font-size: 12px;
+}
+
+.chip-warning {
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #fbbf24;
 }
 
 .summary-grid {

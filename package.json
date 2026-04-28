@@ -13,6 +13,7 @@
     "build:portable": "vite build --mode portable && node scripts/package-portable-frontend.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "lint": "eslint . --ext .js,.mjs,.vue --max-warnings=0",
+    "test:form-governance": "node scripts/validate-form-component-governance.mjs",
     "portable:start": "node dist-portable/portable-server.mjs --config dist-portable/portable-config.json",
     "smoke:frontend-dev": "node scripts/check-dev-frontend.mjs",
     "smoke:portable-frontend": "node scripts/check-portable-frontend.mjs",

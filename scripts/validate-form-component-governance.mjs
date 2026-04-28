@@ -1,0 +1,74 @@
+import { readFileSync } from 'node:fs'
+
+const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+
+const checks = [
+  {
+    path: 'src/views/system/SystemView.vue',
+    required: [
+      'data-testid="system-tenant-select"',
+      'v-model="datasourceForm.connectionMode"',
+      '<el-input-number v-model="datasourceForm.timeoutMs"',
+      'v-model="reportForm.datasourceCode"',
+      'data-testid="system-report-datasource-select"',
+      'v-model="redisForm.authMode"',
+      'v-model="dispatchForm.targetDatasource"',
+      '<el-input-number v-model="dispatchForm.maxBatchSize"',
+      'type="password" show-password'
+    ],
+    forbidden: ['data-testid="system-tenant-input"']
+  },
+  {
+    path: 'src/views/parse-record/ParseRecordView.vue',
+    required: [
+      'getGovernanceDatasources',
+      'data-testid="parse-record-tenant-select"',
+      'data-testid="parse-record-datasource-filter"',
+      'v-model="form.bizDate" type="date"',
+      'v-model="form.queryDateStart"',
+      'v-model="form.submittedStart"',
+      'type="datetime"',
+      'value-format="YYYY-MM-DD[T]HH:mm:ss"',
+      'data-testid="parse-record-datasource-options-fallback"'
+    ],
+    forbidden: [
+      '<el-input v-model="form.bizDate"',
+      '<el-input v-model="form.queryDateStart"',
+      '<el-input v-model="form.submittedStart"'
+    ]
+  },
+  {
+    path: 'src/views/common/formComponentGovernance.js',
+    required: [
+      'export const buildTenantOptions',
+      'export const buildDatasourceOptions',
+      'export const withCurrentOption',
+      'connectionModeOptions',
+      'stageOptions'
+    ],
+    forbidden: []
+  }
+]
+
+const failures = []
+
+for (const check of checks) {
+  const content = read(check.path)
+  for (const snippet of check.required) {
+    if (!content.includes(snippet)) {
+      failures.push(`${check.path} missing required component marker: ${snippet}`)
+    }
+  }
+  for (const snippet of check.forbidden) {
+    if (content.includes(snippet)) {
+      failures.push(`${check.path} still contains forbidden input marker: ${snippet}`)
+    }
+  }
+}
+
+if (failures.length > 0) {
+  console.error(failures.join('\n'))
+  process.exit(1)
+}
+
+console.log('form component governance markers passed')
