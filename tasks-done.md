@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-038: 固化压测模板与测试集契约
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(benchmark): solidify template and test-set contract`
+- Priority: 1
+- Depends on: `F-TASK-037`,`D-TASK-068`
+- Scope: 模板类型、阈值、测试集来源与标签模型 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-F / Story `F-STORY-011` 压测模板、测试集与解析联动
+- Human confirmation point: 若 benchmark template/test-set 契约会削弱只读、影子环境或阈值边界，需人工确认
+- Data impact: 模板/TestSet 数据模型、阈值与来源语义
+- Rollback / recovery: 恢复原 benchmark safety 语义，停用高风险模板字段
+- Validation:
+  - `contract/domain 测试`
+  - `python3 scripts/foreman.py validate F-TASK-038`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Solidified benchmark task contract fields for template identity, template type/version, test-set source, labels, and source references; persisted the new contract through DTO/domain/repository/SQL migration layers; aligned implementation-stage reporting with the externalized artifact governance baseline and updated benchmark contract documentation.
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-038 --extra-command "mvn -pl benchmark-engine -Dtest=BenchmarkTaskStateFlowTest,BenchmarkTaskModelApplicationServiceTest,BenchmarkTaskControllerTest,MybatisBenchmarkTaskRepositoryTest,BenchmarkPersistenceRecordTest test"
+  - Residual risk: This task freezes the benchmark task contract and persistence baseline, but dedicated template/test-set CRUD and import/generate orchestration remain for F-TASK-039 through F-TASK-041.
+  - Next step: Proceed to F-TASK-039 to materialize batch test-set import on top of the frozen template/test-set contract.
+
 ### F-TASK-037: 落地告警查询与 ACK 接口
 
 - Status: done

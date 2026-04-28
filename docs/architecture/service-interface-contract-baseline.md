@@ -386,9 +386,9 @@
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
-| `POST /api/benchmark-engine/tasks` | `BenchmarkTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`taskContext` | `BenchmarkTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`queueMode`,`queueEvidence`,`contractStage`,`implementationStage` | `EXTERNAL_QUEUE_PROVIDER_NATIVE_STORAGE_BASELINE` |
-| `GET /api/benchmark-engine/tasks/{taskId}` | path: `taskId` | `BenchmarkTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`targetEngines`,`readonlyRequired`,`shadowEnvironmentMode`,`desensitizationRequirement`,`thresholdCount`,`reportId`,`error`,`submittedAt`,`startedAt`,`finishedAt`,`queueMode`,`queueEvidence`,`contractStage`,`implementationStage` | `EXTERNAL_QUEUE_PROVIDER_NATIVE_STORAGE_BASELINE` |
-| `GET /api/benchmark-engine/reports/{reportId}` | path: `reportId`, query: `format=JSON|PDF|HTML` (default `JSON`) | JSON: `BenchmarkReportResponse`; PDF/HTML: externalized persisted export snapshot with stable `Content-Type` and `Content-Disposition` | `EXTERNAL_QUEUE_PROVIDER_NATIVE_STORAGE_BASELINE` |
+| `POST /api/benchmark-engine/tasks` | `BenchmarkTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`taskContext` | `BenchmarkTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`queueMode`,`queueEvidence`,`contractStage`,`implementationStage` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
+| `GET /api/benchmark-engine/tasks/{taskId}` | path: `taskId` | `BenchmarkTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`targetEngines`,`templateId`,`templateType`,`templateVersion`,`testSetId`,`testSetSource`,`testSetLabels[]`,`testSetSourceRefs[]`,`readonlyRequired`,`shadowEnvironmentMode`,`desensitizationRequirement`,`thresholdCount`,`reportId`,`error`,`submittedAt`,`startedAt`,`finishedAt`,`queueMode`,`queueEvidence`,`contractStage`,`implementationStage` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
+| `GET /api/benchmark-engine/reports/{reportId}` | path: `reportId`, query: `format=JSON|PDF|HTML` (default `JSON`) | JSON: `BenchmarkReportResponse`; PDF/HTML: externalized persisted export snapshot with stable `Content-Type` and `Content-Disposition` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
 | `GET /api/benchmark-engine/reports/{reportId}/raw-data` | path: `reportId` | attachment download backed by persisted raw-data snapshot with stable `Content-Type` and `Content-Disposition` | `EXTERNAL_QUEUE_PROVIDER_NATIVE_STORAGE_BASELINE` |
 
 当前模型基线涉及以下契约对象：
@@ -409,6 +409,13 @@
 - `taskContext.durationSeconds`：压测持续时长，默认 `300`
 - `taskContext.rampUpSeconds`：预热时长，默认 `30`
 - `taskContext.datasetSizeLabel`：数据规模标签，默认 `UNSPECIFIED`
+- `taskContext.templateId`：可选模板标识；当前 repo-side baseline 用它固化前端 catalog / SDK / future import flow 的稳定主键
+- `taskContext.templateType`：`BASELINE_SNAPSHOT` / `CROSS_ENGINE_COMPARISON` / `REGRESSION_GUARD`，并与 `taskType` 一一对应
+- `taskContext.templateVersion`：模板契约版本，当前默认 `v1`
+- `taskContext.testSetId`：可选测试集标识
+- `taskContext.testSetSource`：`MANUAL_CURATION` / `BATCH_IMPORT` / `PARSE_RESULT_GENERATION` / `RECOMMENDATION_GENERATION`
+- `taskContext.testSetLabels[]`：测试集标签模型，元素字段为 `type`、`value`；当前 `type` 支持 `SCENARIO` / `DOMAIN` / `SOURCE` / `RISK`
+- `taskContext.testSetSourceRefs[]`：测试集来源引用，元素字段为 `type`、`referenceId`；当前 `type` 支持 `IMPORT_BATCH` / `PARSE_TASK` / `QUERY_HISTORY` / `REPORT` / `RECOMMENDATION` / `SQL_FINGERPRINT`
 - `taskContext.readonlyRequired`：默认 `true`
 - `taskContext.shadowEnvironmentMode`：`REQUIRED` / `PREFERRED` / `DISABLED`，默认 `REQUIRED`
 - `taskContext.desensitizationRequirement`：`REQUIRED` / `OPTIONAL`，默认 `REQUIRED`
@@ -433,6 +440,15 @@
 - `priority`
 - `progressPercent`
 - `targetEngines`
+- `templateId`
+- `templateType`
+- `templateVersion`
+- `testSetId`
+- `testSetSource`
+- `testSetLabels[].type`
+- `testSetLabels[].value`
+- `testSetSourceRefs[].type`
+- `testSetSourceRefs[].referenceId`
 - `readonlyRequired`
 - `shadowEnvironmentMode`
 - `desensitizationRequirement`

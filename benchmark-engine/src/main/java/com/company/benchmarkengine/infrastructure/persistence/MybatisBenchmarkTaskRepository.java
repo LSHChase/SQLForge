@@ -8,6 +8,8 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifactKind;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReferenceType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase;
@@ -16,6 +18,10 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskStatus;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskStatusTransition;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskSubmission;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTemplateType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetLabel;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetLabelType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetSource;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThreshold;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdAssessment;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdMetric;
@@ -136,6 +142,13 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
         record.setDurationSeconds(task.getDurationSeconds());
         record.setRampUpSeconds(task.getRampUpSeconds());
         record.setDatasetSizeLabel(task.getDatasetSizeLabel());
+        record.setTemplateId(task.getTemplateId());
+        record.setTemplateType(task.getTemplateType() == null ? null : task.getTemplateType().name());
+        record.setTemplateVersion(task.getTemplateVersion());
+        record.setTestSetId(task.getTestSetId());
+        record.setTestSetSource(task.getTestSetSource() == null ? null : task.getTestSetSource().name());
+        record.setTestSetLabelsJson(writeJson(task.getTestSetLabels()));
+        record.setTestSetSourceRefsJson(writeJson(task.getTestSetSourceRefs()));
         record.setReadonlyRequired(task.getReadonlyRequired());
         record.setShadowEnvironmentMode(task.getShadowEnvironmentMode().name());
         record.setDesensitizationRequirement(task.getDesensitizationRequirement().name());
@@ -186,6 +199,13 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
             record.getDurationSeconds(),
             record.getRampUpSeconds(),
             record.getDatasetSizeLabel(),
+            record.getTemplateId(),
+            record.getTemplateType() == null ? null : BenchmarkTemplateType.valueOf(record.getTemplateType()),
+            record.getTemplateVersion(),
+            record.getTestSetId(),
+            record.getTestSetSource() == null ? null : BenchmarkTestSetSource.valueOf(record.getTestSetSource()),
+            readTestSetLabels(record.getTestSetLabelsJson()),
+            readSourceReferences(record.getTestSetSourceRefsJson()),
             record.getReadonlyRequired(),
             record.getShadowEnvironmentMode() == null ? null : ShadowEnvironmentMode.valueOf(record.getShadowEnvironmentMode()),
             record.getDesensitizationRequirement() == null
@@ -273,6 +293,48 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
             return thresholds;
         } catch (Exception ex) {
             throw new IllegalArgumentException("Failed to deserialize benchmark thresholds", ex);
+        }
+    }
+
+    private List<BenchmarkTestSetLabel> readTestSetLabels(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            List<Map<String, Object>> items = objectMapper.readValue(json, LIST_OF_MAPS);
+            List<BenchmarkTestSetLabel> labels = new ArrayList<BenchmarkTestSetLabel>(items.size());
+            for (Map<String, Object> item : items) {
+                labels.add(
+                    new BenchmarkTestSetLabel(
+                        readEnum(item.get("type"), BenchmarkTestSetLabelType.class),
+                        item.get("value") == null ? null : String.valueOf(item.get("value"))
+                    )
+                );
+            }
+            return labels;
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Failed to deserialize benchmark test-set labels", ex);
+        }
+    }
+
+    private List<BenchmarkSourceReference> readSourceReferences(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            List<Map<String, Object>> items = objectMapper.readValue(json, LIST_OF_MAPS);
+            List<BenchmarkSourceReference> refs = new ArrayList<BenchmarkSourceReference>(items.size());
+            for (Map<String, Object> item : items) {
+                refs.add(
+                    new BenchmarkSourceReference(
+                        readEnum(item.get("type"), BenchmarkSourceReferenceType.class),
+                        item.get("referenceId") == null ? null : String.valueOf(item.get("referenceId"))
+                    )
+                );
+            }
+            return refs;
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Failed to deserialize benchmark source references", ex);
         }
     }
 

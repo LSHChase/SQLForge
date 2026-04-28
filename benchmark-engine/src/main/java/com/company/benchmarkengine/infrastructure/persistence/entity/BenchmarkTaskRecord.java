@@ -15,6 +15,13 @@ public class BenchmarkTaskRecord {
     private Integer durationSeconds;
     private Integer rampUpSeconds;
     private String datasetSizeLabel;
+    private String templateId;
+    private String templateType;
+    private String templateVersion;
+    private String testSetId;
+    private String testSetSource;
+    private String testSetLabelsJson;
+    private String testSetSourceRefsJson;
     private Boolean readonlyRequired;
     private String shadowEnvironmentMode;
     private String desensitizationRequirement;
@@ -120,6 +127,62 @@ public class BenchmarkTaskRecord {
 
     public void setDatasetSizeLabel(String datasetSizeLabel) {
         this.datasetSizeLabel = datasetSizeLabel;
+    }
+
+    public String getTemplateId() {
+        return templateId;
+    }
+
+    public void setTemplateId(String templateId) {
+        this.templateId = templateId;
+    }
+
+    public String getTemplateType() {
+        return templateType;
+    }
+
+    public void setTemplateType(String templateType) {
+        this.templateType = templateType;
+    }
+
+    public String getTemplateVersion() {
+        return templateVersion;
+    }
+
+    public void setTemplateVersion(String templateVersion) {
+        this.templateVersion = templateVersion;
+    }
+
+    public String getTestSetId() {
+        return testSetId;
+    }
+
+    public void setTestSetId(String testSetId) {
+        this.testSetId = testSetId;
+    }
+
+    public String getTestSetSource() {
+        return testSetSource;
+    }
+
+    public void setTestSetSource(String testSetSource) {
+        this.testSetSource = testSetSource;
+    }
+
+    public String getTestSetLabelsJson() {
+        return testSetLabelsJson;
+    }
+
+    public void setTestSetLabelsJson(String testSetLabelsJson) {
+        this.testSetLabelsJson = testSetLabelsJson;
+    }
+
+    public String getTestSetSourceRefsJson() {
+        return testSetSourceRefsJson;
+    }
+
+    public void setTestSetSourceRefsJson(String testSetSourceRefsJson) {
+        this.testSetSourceRefsJson = testSetSourceRefsJson;
     }
 
     public Boolean getReadonlyRequired() {

@@ -1,7 +1,9 @@
 package com.company.benchmarkengine.application.service;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkTestSetLabelDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkThresholdDTO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkEngineMetricVO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommendationVO;
@@ -19,10 +21,12 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendation;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendationRiskLevel;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskSubmission;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetLabel;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThreshold;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdAssessment;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdMetric;
@@ -40,8 +44,8 @@ import org.springframework.stereotype.Service;
 public class BenchmarkTaskModelApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
-    private static final String TASK_IMPLEMENTATION_STAGE = "EXTERNAL_QUEUE_PROVIDER_NATIVE_STORAGE_BASELINE";
-    private static final String REPORT_IMPLEMENTATION_STAGE = "EXTERNAL_QUEUE_PROVIDER_NATIVE_STORAGE_BASELINE";
+    private static final String TASK_IMPLEMENTATION_STAGE = "EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE";
+    private static final String REPORT_IMPLEMENTATION_STAGE = "EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE";
     private static final String STATUS_QUERY_PATH_TEMPLATE = "/api/benchmark-engine/tasks/%s";
     private static final String REPORT_QUERY_PATH_TEMPLATE = "/api/benchmark-engine/reports/%s";
     private static final String RAW_DATA_PATH_TEMPLATE = "/api/benchmark-engine/reports/%s/raw-data";
@@ -61,6 +65,13 @@ public class BenchmarkTaskModelApplicationService {
             taskContext.getDurationSeconds(),
             taskContext.getRampUpSeconds(),
             taskContext.getDatasetSizeLabel(),
+            taskContext.getTemplateId(),
+            taskContext.getTemplateType(),
+            taskContext.getTemplateVersion(),
+            taskContext.getTestSetId(),
+            taskContext.getTestSetSource(),
+            toTestSetLabels(taskContext.getTestSetLabels()),
+            toSourceReferences(taskContext.getTestSetSourceRefs()),
             taskContext.getReadonlyRequired(),
             taskContext.getShadowEnvironmentMode(),
             taskContext.getDesensitizationRequirement(),
@@ -94,6 +105,13 @@ public class BenchmarkTaskModelApplicationService {
             task.getPriority(),
             task.getProgressPercent(),
             task.getTargetEngines(),
+            task.getTemplateId(),
+            task.getTemplateType(),
+            task.getTemplateVersion(),
+            task.getTestSetId(),
+            task.getTestSetSource(),
+            task.getTestSetLabels(),
+            task.getTestSetSourceRefs(),
             task.getReadonlyRequired(),
             task.getShadowEnvironmentMode(),
             task.getDesensitizationRequirement(),
@@ -211,6 +229,28 @@ public class BenchmarkTaskModelApplicationService {
             );
         }
         return Collections.unmodifiableList(thresholds);
+    }
+
+    private List<BenchmarkTestSetLabel> toTestSetLabels(List<BenchmarkTestSetLabelDTO> labelDtos) {
+        if (labelDtos == null || labelDtos.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<BenchmarkTestSetLabel> labels = new ArrayList<BenchmarkTestSetLabel>(labelDtos.size());
+        for (BenchmarkTestSetLabelDTO item : labelDtos) {
+            labels.add(new BenchmarkTestSetLabel(item.getType(), item.getValue()));
+        }
+        return Collections.unmodifiableList(labels);
+    }
+
+    private List<BenchmarkSourceReference> toSourceReferences(List<BenchmarkSourceReferenceDTO> referenceDtos) {
+        if (referenceDtos == null || referenceDtos.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<BenchmarkSourceReference> refs = new ArrayList<BenchmarkSourceReference>(referenceDtos.size());
+        for (BenchmarkSourceReferenceDTO item : referenceDtos) {
+            refs.add(new BenchmarkSourceReference(item.getType(), item.getReferenceId()));
+        }
+        return Collections.unmodifiableList(refs);
     }
 
     public List<BenchmarkEngineProfile> buildEngineProfiles(BenchmarkTask task) {

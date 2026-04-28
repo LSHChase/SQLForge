@@ -16,6 +16,13 @@
         <result property="durationSeconds" column="duration_seconds"/>
         <result property="rampUpSeconds" column="ramp_up_seconds"/>
         <result property="datasetSizeLabel" column="dataset_size_label"/>
+        <result property="templateId" column="template_id"/>
+        <result property="templateType" column="template_type"/>
+        <result property="templateVersion" column="template_version"/>
+        <result property="testSetId" column="test_set_id"/>
+        <result property="testSetSource" column="test_set_source"/>
+        <result property="testSetLabelsJson" column="test_set_labels_json"/>
+        <result property="testSetSourceRefsJson" column="test_set_source_refs_json"/>
         <result property="readonlyRequired" column="readonly_required"/>
         <result property="shadowEnvironmentMode" column="shadow_environment_mode"/>
         <result property="desensitizationRequirement" column="desensitization_requirement"/>
@@ -48,6 +55,13 @@
         duration_seconds,
         ramp_up_seconds,
         dataset_size_label,
+        template_id,
+        template_type,
+        template_version,
+        test_set_id,
+        test_set_source,
+        test_set_labels_json,
+        test_set_source_refs_json,
         readonly_required,
         shadow_environment_mode,
         desensitization_requirement,
@@ -97,6 +111,13 @@
             duration_seconds,
             ramp_up_seconds,
             dataset_size_label,
+            template_id,
+            template_type,
+            template_version,
+            test_set_id,
+            test_set_source,
+            test_set_labels_json,
+            test_set_source_refs_json,
             readonly_required,
             shadow_environment_mode,
             desensitization_requirement,
@@ -125,6 +146,13 @@
             #{durationSeconds},
             #{rampUpSeconds},
             #{datasetSizeLabel},
+            #{templateId},
+            #{templateType},
+            #{templateVersion},
+            #{testSetId},
+            #{testSetSource},
+            #{testSetLabelsJson},
+            #{testSetSourceRefsJson},
             #{readonlyRequired},
             #{shadowEnvironmentMode},
             #{desensitizationRequirement},
@@ -156,6 +184,13 @@
             duration_seconds = #{durationSeconds},
             ramp_up_seconds = #{rampUpSeconds},
             dataset_size_label = #{datasetSizeLabel},
+            template_id = #{templateId},
+            template_type = #{templateType},
+            template_version = #{templateVersion},
+            test_set_id = #{testSetId},
+            test_set_source = #{testSetSource},
+            test_set_labels_json = #{testSetLabelsJson},
+            test_set_source_refs_json = #{testSetSourceRefsJson},
             readonly_required = #{readonlyRequired},
             shadow_environment_mode = #{shadowEnvironmentMode},
             desensitization_requirement = #{desensitizationRequirement},

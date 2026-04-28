@@ -41,6 +41,13 @@ public class BenchmarkTaskControllerTest {
                 .content("{\"tenantId\":\"tenant-a\",\"taskType\":\"COMPARISON\",\"sqlText\":\"SELECT * FROM orders\","
                     + "\"taskContext\":{\"priority\":\"HIGH\",\"targetEngines\":[\"HETU\",\"HIVE\"],"
                     + "\"concurrency\":16,\"durationSeconds\":300,\"rampUpSeconds\":30,"
+                    + "\"templateId\":\"comparison-dual-engine\",\"templateType\":\"CROSS_ENGINE_COMPARISON\","
+                    + "\"templateVersion\":\"v2026.04\",\"testSetId\":\"set-route-comparison\","
+                    + "\"testSetSource\":\"RECOMMENDATION_GENERATION\","
+                    + "\"testSetLabels\":[{\"type\":\"SCENARIO\",\"value\":\"COMPARISON\"},"
+                    + "{\"type\":\"DOMAIN\",\"value\":\"ROUTE_GOVERNANCE\"}],"
+                    + "\"testSetSourceRefs\":[{\"type\":\"RECOMMENDATION\",\"referenceId\":\"rec-001\"},"
+                    + "{\"type\":\"SQL_FINGERPRINT\",\"referenceId\":\"fp-001\"}],"
                     + "\"readonlyRequired\":true,\"shadowEnvironmentMode\":\"REQUIRED\","
                     + "\"thresholds\":[{\"metric\":\"QPS\",\"operator\":\"GREATER_THAN_OR_EQUAL\",\"targetValue\":120,"
                     + "\"severity\":\"CRITICAL\",\"description\":\"throughput\"}]}}"))
@@ -94,6 +101,16 @@ public class BenchmarkTaskControllerTest {
     }
 
     @Test
+    void shouldRejectMismatchedTemplateContract() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/benchmark-engine/tasks"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"taskType\":\"BASELINE\",\"sqlText\":\"SELECT 1\","
+                    + "\"taskContext\":{\"templateType\":\"CROSS_ENGINE_COMPARISON\","
+                    + "\"targetEngines\":[\"HETU\"]}}"))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void shouldRejectMissingProtectedHeaders() throws Exception {
         mockMvc.perform(post("/api/benchmark-engine/tasks")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -132,6 +149,12 @@ public class BenchmarkTaskControllerTest {
                         .andExpect(jsonPath("$.currentPhase").value("FINISHED"))
                         .andExpect(jsonPath("$.reportId", startsWith("report-")))
                         .andExpect(jsonPath("$.targetEngines[0]").value("HETU"))
+                        .andExpect(jsonPath("$.templateId").value("comparison-dual-engine"))
+                        .andExpect(jsonPath("$.templateType").value("CROSS_ENGINE_COMPARISON"))
+                        .andExpect(jsonPath("$.testSetId").value("set-route-comparison"))
+                        .andExpect(jsonPath("$.testSetSource").value("RECOMMENDATION_GENERATION"))
+                        .andExpect(jsonPath("$.testSetLabels[0].type").value("SCENARIO"))
+                        .andExpect(jsonPath("$.testSetSourceRefs[0].type").value("RECOMMENDATION"))
                         .andExpect(jsonPath("$.shadowEnvironmentMode").value("REQUIRED"))
                         .andExpect(jsonPath("$.implementationStage").value("EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE"));
                 } else {

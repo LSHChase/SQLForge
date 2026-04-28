@@ -24,6 +24,13 @@ class BenchmarkPersistenceRecordTest {
         record.setDurationSeconds(Integer.valueOf(300));
         record.setRampUpSeconds(Integer.valueOf(30));
         record.setDatasetSizeLabel("TEN_GB");
+        record.setTemplateId("comparison-dual-engine");
+        record.setTemplateType("CROSS_ENGINE_COMPARISON");
+        record.setTemplateVersion("v2026.04");
+        record.setTestSetId("set-route-comparison");
+        record.setTestSetSource("RECOMMENDATION_GENERATION");
+        record.setTestSetLabelsJson("[{\"type\":\"DOMAIN\",\"value\":\"ROUTE_GOVERNANCE\"}]");
+        record.setTestSetSourceRefsJson("[{\"type\":\"RECOMMENDATION\",\"referenceId\":\"rec-001\"}]");
         record.setReadonlyRequired(Boolean.TRUE);
         record.setShadowEnvironmentMode("REQUIRED");
         record.setDesensitizationRequirement("REQUIRED");
@@ -54,6 +61,13 @@ class BenchmarkPersistenceRecordTest {
         assertEquals(Integer.valueOf(300), record.getDurationSeconds());
         assertEquals(Integer.valueOf(30), record.getRampUpSeconds());
         assertEquals("TEN_GB", record.getDatasetSizeLabel());
+        assertEquals("comparison-dual-engine", record.getTemplateId());
+        assertEquals("CROSS_ENGINE_COMPARISON", record.getTemplateType());
+        assertEquals("v2026.04", record.getTemplateVersion());
+        assertEquals("set-route-comparison", record.getTestSetId());
+        assertEquals("RECOMMENDATION_GENERATION", record.getTestSetSource());
+        assertEquals("[{\"type\":\"DOMAIN\",\"value\":\"ROUTE_GOVERNANCE\"}]", record.getTestSetLabelsJson());
+        assertEquals("[{\"type\":\"RECOMMENDATION\",\"referenceId\":\"rec-001\"}]", record.getTestSetSourceRefsJson());
         assertEquals(Boolean.TRUE, record.getReadonlyRequired());
         assertEquals("REQUIRED", record.getShadowEnvironmentMode());
         assertEquals("REQUIRED", record.getDesensitizationRequirement());

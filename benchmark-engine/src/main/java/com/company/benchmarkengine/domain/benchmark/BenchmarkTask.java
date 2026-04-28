@@ -19,6 +19,13 @@ public class BenchmarkTask {
     private final Integer durationSeconds;
     private final Integer rampUpSeconds;
     private final String datasetSizeLabel;
+    private final String templateId;
+    private final BenchmarkTemplateType templateType;
+    private final String templateVersion;
+    private final String testSetId;
+    private final BenchmarkTestSetSource testSetSource;
+    private final List<BenchmarkTestSetLabel> testSetLabels;
+    private final List<BenchmarkSourceReference> testSetSourceRefs;
     private final Boolean readonlyRequired;
     private final ShadowEnvironmentMode shadowEnvironmentMode;
     private final DesensitizationRequirement desensitizationRequirement;
@@ -49,6 +56,13 @@ public class BenchmarkTask {
         this.durationSeconds = submission.getDurationSeconds();
         this.rampUpSeconds = submission.getRampUpSeconds();
         this.datasetSizeLabel = submission.getDatasetSizeLabel();
+        this.templateId = submission.getTemplateId();
+        this.templateType = submission.getTemplateType();
+        this.templateVersion = submission.getTemplateVersion();
+        this.testSetId = submission.getTestSetId();
+        this.testSetSource = submission.getTestSetSource();
+        this.testSetLabels = submission.getTestSetLabels();
+        this.testSetSourceRefs = submission.getTestSetSourceRefs();
         this.readonlyRequired = submission.getReadonlyRequired();
         this.shadowEnvironmentMode = submission.getShadowEnvironmentMode();
         this.desensitizationRequirement = submission.getDesensitizationRequirement();
@@ -82,6 +96,13 @@ public class BenchmarkTask {
         this.durationSeconds = submission.getDurationSeconds();
         this.rampUpSeconds = submission.getRampUpSeconds();
         this.datasetSizeLabel = submission.getDatasetSizeLabel();
+        this.templateId = submission.getTemplateId();
+        this.templateType = submission.getTemplateType();
+        this.templateVersion = submission.getTemplateVersion();
+        this.testSetId = submission.getTestSetId();
+        this.testSetSource = submission.getTestSetSource();
+        this.testSetLabels = submission.getTestSetLabels();
+        this.testSetSourceRefs = submission.getTestSetSourceRefs();
         this.readonlyRequired = submission.getReadonlyRequired();
         this.shadowEnvironmentMode = submission.getShadowEnvironmentMode();
         this.desensitizationRequirement = submission.getDesensitizationRequirement();
@@ -269,6 +290,34 @@ public class BenchmarkTask {
 
     public String getDatasetSizeLabel() {
         return datasetSizeLabel;
+    }
+
+    public String getTemplateId() {
+        return templateId;
+    }
+
+    public BenchmarkTemplateType getTemplateType() {
+        return templateType;
+    }
+
+    public String getTemplateVersion() {
+        return templateVersion;
+    }
+
+    public String getTestSetId() {
+        return testSetId;
+    }
+
+    public BenchmarkTestSetSource getTestSetSource() {
+        return testSetSource;
+    }
+
+    public List<BenchmarkTestSetLabel> getTestSetLabels() {
+        return testSetLabels;
+    }
+
+    public List<BenchmarkSourceReference> getTestSetSourceRefs() {
+        return testSetSourceRefs;
     }
 
     public Boolean getReadonlyRequired() {

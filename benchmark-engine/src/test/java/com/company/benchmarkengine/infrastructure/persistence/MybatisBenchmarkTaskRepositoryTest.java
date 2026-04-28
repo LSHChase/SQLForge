@@ -10,7 +10,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkTestSetLabelDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkThresholdDTO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
@@ -27,6 +29,10 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPriority;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskStatus;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReferenceType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTemplateType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetLabelType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetSource;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdMetric;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdOperator;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdSeverity;
@@ -86,6 +92,11 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertEquals(LocalDateTime.of(2026, 4, 22, 5, 1, 0), record.getFinishedAt());
         assertTrue(record.getTargetEnginesJson().contains("HETU"));
         assertTrue(record.getThresholdsJson().contains("P99_LATENCY_MS"));
+        assertEquals("comparison-dual-engine", record.getTemplateId());
+        assertEquals("CROSS_ENGINE_COMPARISON", record.getTemplateType());
+        assertEquals("RECOMMENDATION_GENERATION", record.getTestSetSource());
+        assertTrue(record.getTestSetLabelsJson().contains("ROUTE_GOVERNANCE"));
+        assertTrue(record.getTestSetSourceRefsJson().contains("RECOMMENDATION"));
         assertTrue(record.getStatusHistoryJson().contains("TASK_FAILED"));
         assertEquals(Integer.valueOf(14000), record.getErrorCode());
         assertEquals("Benchmark worker failed", record.getErrorMessage());
@@ -100,6 +111,10 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertEquals(BenchmarkTaskStatus.FAILED, restored.getStatus());
         assertEquals(BenchmarkTaskPhase.FINISHED, restored.getCurrentPhase());
         assertEquals(2, restored.getTargetEngines().size());
+        assertEquals(BenchmarkTemplateType.CROSS_ENGINE_COMPARISON, restored.getTemplateType());
+        assertEquals(BenchmarkTestSetSource.RECOMMENDATION_GENERATION, restored.getTestSetSource());
+        assertEquals(2, restored.getTestSetLabels().size());
+        assertEquals(2, restored.getTestSetSourceRefs().size());
         assertEquals(3, restored.getThresholds().size());
         assertEquals(Instant.parse("2026-04-22T05:00:00Z"), restored.getSubmittedAt());
         assertEquals(Instant.parse("2026-04-22T05:00:05Z"), restored.getStartedAt());
@@ -246,6 +261,18 @@ class MybatisBenchmarkTaskRepositoryTest {
         request.getTaskContext().setDurationSeconds(Integer.valueOf(300));
         request.getTaskContext().setRampUpSeconds(Integer.valueOf(30));
         request.getTaskContext().setDatasetSizeLabel("TEN_GB");
+        request.getTaskContext().setTemplateId(templateId(taskType));
+        request.getTaskContext().setTemplateType(templateType(taskType));
+        request.getTaskContext().setTemplateVersion("v2026.04");
+        request.getTaskContext().setTestSetId(testSetId(taskType));
+        request.getTaskContext().setTestSetSource(testSetSource(taskType));
+        request.getTaskContext().setTestSetLabels(
+            Arrays.asList(
+                label(BenchmarkTestSetLabelType.SCENARIO, taskType.name()),
+                label(BenchmarkTestSetLabelType.DOMAIN, taskType == BenchmarkTaskType.COMPARISON ? "ROUTE_GOVERNANCE" : "REGRESSION")
+            )
+        );
+        request.getTaskContext().setTestSetSourceRefs(testSetSourceRefs(taskType));
         request.getTaskContext().setReadonlyRequired(Boolean.TRUE);
         request.getTaskContext().setShadowEnvironmentMode(ShadowEnvironmentMode.REQUIRED);
         request.getTaskContext().setDesensitizationRequirement(DesensitizationRequirement.REQUIRED);
@@ -289,6 +316,88 @@ class MybatisBenchmarkTaskRepositoryTest {
             );
         }
         return request;
+    }
+
+    private BenchmarkTestSetLabelDTO label(BenchmarkTestSetLabelType type, String value) {
+        BenchmarkTestSetLabelDTO item = new BenchmarkTestSetLabelDTO();
+        item.setType(type);
+        item.setValue(value);
+        return item;
+    }
+
+    private List<BenchmarkSourceReferenceDTO> testSetSourceRefs(BenchmarkTaskType taskType) {
+        if (taskType == BenchmarkTaskType.COMPARISON) {
+            return Arrays.asList(
+                sourceRef(BenchmarkSourceReferenceType.RECOMMENDATION, "rec-001"),
+                sourceRef(BenchmarkSourceReferenceType.SQL_FINGERPRINT, "benchmark-fingerprint")
+            );
+        }
+        if (taskType == BenchmarkTaskType.BASELINE) {
+            return Arrays.asList(sourceRef(BenchmarkSourceReferenceType.IMPORT_BATCH, "batch-001"));
+        }
+        return Arrays.asList(
+            sourceRef(BenchmarkSourceReferenceType.QUERY_HISTORY, "history-001"),
+            sourceRef(BenchmarkSourceReferenceType.REPORT, "report-001")
+        );
+    }
+
+    private BenchmarkSourceReferenceDTO sourceRef(BenchmarkSourceReferenceType type, String referenceId) {
+        BenchmarkSourceReferenceDTO item = new BenchmarkSourceReferenceDTO();
+        item.setType(type);
+        item.setReferenceId(referenceId);
+        return item;
+    }
+
+    private String templateId(BenchmarkTaskType taskType) {
+        switch (taskType) {
+            case BASELINE:
+                return "baseline-snapshot";
+            case COMPARISON:
+                return "comparison-dual-engine";
+            case REGRESSION_GUARD:
+                return "regression-guard";
+            default:
+                return "baseline-snapshot";
+        }
+    }
+
+    private BenchmarkTemplateType templateType(BenchmarkTaskType taskType) {
+        switch (taskType) {
+            case BASELINE:
+                return BenchmarkTemplateType.BASELINE_SNAPSHOT;
+            case COMPARISON:
+                return BenchmarkTemplateType.CROSS_ENGINE_COMPARISON;
+            case REGRESSION_GUARD:
+                return BenchmarkTemplateType.REGRESSION_GUARD;
+            default:
+                return BenchmarkTemplateType.BASELINE_SNAPSHOT;
+        }
+    }
+
+    private String testSetId(BenchmarkTaskType taskType) {
+        switch (taskType) {
+            case BASELINE:
+                return "set-baseline-capture";
+            case COMPARISON:
+                return "set-route-comparison";
+            case REGRESSION_GUARD:
+                return "set-regression-gate";
+            default:
+                return "set-baseline-capture";
+        }
+    }
+
+    private BenchmarkTestSetSource testSetSource(BenchmarkTaskType taskType) {
+        switch (taskType) {
+            case BASELINE:
+                return BenchmarkTestSetSource.BATCH_IMPORT;
+            case COMPARISON:
+                return BenchmarkTestSetSource.RECOMMENDATION_GENERATION;
+            case REGRESSION_GUARD:
+                return BenchmarkTestSetSource.PARSE_RESULT_GENERATION;
+            default:
+                return BenchmarkTestSetSource.MANUAL_CURATION;
+        }
     }
 
     private BenchmarkThresholdDTO threshold(BenchmarkThresholdMetric metric,

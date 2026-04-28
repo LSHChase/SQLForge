@@ -319,6 +319,10 @@ public class BenchmarkTaskApplicationService {
         payload.put("taskType", task.getTaskType().name());
         payload.put("targetEngines", task.getTargetEngines());
         payload.put("sqlFingerprint", task.getSqlFingerprint());
+        payload.put("templateId", task.getTemplateId());
+        payload.put("templateType", task.getTemplateType() == null ? null : task.getTemplateType().name());
+        payload.put("testSetId", task.getTestSetId());
+        payload.put("testSetSource", task.getTestSetSource() == null ? null : task.getTestSetSource().name());
         return JsonUtils.toJson(payload);
     }
 
@@ -349,6 +353,8 @@ public class BenchmarkTaskApplicationService {
         payload.put("reportId", response == null ? null : response.getReportId());
         payload.put("queueMode", response == null ? null : response.getQueueMode());
         payload.put("queueEvidence", response == null ? null : response.getQueueEvidence());
+        payload.put("templateId", response == null ? null : response.getTemplateId());
+        payload.put("testSetId", response == null ? null : response.getTestSetId());
         payload.put("errorCode", response == null || response.getError() == null ? null : response.getError().getCode());
         payload.put("failureReason", failureReason);
         return JsonUtils.toJson(payload);

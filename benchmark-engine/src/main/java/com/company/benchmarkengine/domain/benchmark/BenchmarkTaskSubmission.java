@@ -17,6 +17,13 @@ public class BenchmarkTaskSubmission {
     private final Integer durationSeconds;
     private final Integer rampUpSeconds;
     private final String datasetSizeLabel;
+    private final String templateId;
+    private final BenchmarkTemplateType templateType;
+    private final String templateVersion;
+    private final String testSetId;
+    private final BenchmarkTestSetSource testSetSource;
+    private final List<BenchmarkTestSetLabel> testSetLabels;
+    private final List<BenchmarkSourceReference> testSetSourceRefs;
     private final Boolean readonlyRequired;
     private final ShadowEnvironmentMode shadowEnvironmentMode;
     private final DesensitizationRequirement desensitizationRequirement;
@@ -32,6 +39,13 @@ public class BenchmarkTaskSubmission {
                                    Integer durationSeconds,
                                    Integer rampUpSeconds,
                                    String datasetSizeLabel,
+                                   String templateId,
+                                   BenchmarkTemplateType templateType,
+                                   String templateVersion,
+                                   String testSetId,
+                                   BenchmarkTestSetSource testSetSource,
+                                   List<BenchmarkTestSetLabel> testSetLabels,
+                                   List<BenchmarkSourceReference> testSetSourceRefs,
                                    Boolean readonlyRequired,
                                    ShadowEnvironmentMode shadowEnvironmentMode,
                                    DesensitizationRequirement desensitizationRequirement,
@@ -46,6 +60,15 @@ public class BenchmarkTaskSubmission {
         this.durationSeconds = durationSeconds == null ? Integer.valueOf(300) : durationSeconds;
         this.rampUpSeconds = rampUpSeconds == null ? Integer.valueOf(30) : rampUpSeconds;
         this.datasetSizeLabel = datasetSizeLabel == null ? "UNSPECIFIED" : datasetSizeLabel;
+        this.templateId = normalizeText(templateId);
+        this.templateType = templateType;
+        this.templateVersion = templateType == null
+            ? normalizeText(templateVersion)
+            : normalizeText(templateVersion) == null ? "v1" : normalizeText(templateVersion);
+        this.testSetId = normalizeText(testSetId);
+        this.testSetSource = testSetSource;
+        this.testSetLabels = normalizeTestSetLabels(testSetLabels);
+        this.testSetSourceRefs = normalizeSourceRefs(testSetSourceRefs);
         this.readonlyRequired = readonlyRequired == null ? Boolean.TRUE : readonlyRequired;
         this.shadowEnvironmentMode = shadowEnvironmentMode == null
             ? ShadowEnvironmentMode.REQUIRED
@@ -68,6 +91,28 @@ public class BenchmarkTaskSubmission {
             return Collections.emptyList();
         }
         return Collections.unmodifiableList(new ArrayList<BenchmarkThreshold>(requestedThresholds));
+    }
+
+    private List<BenchmarkTestSetLabel> normalizeTestSetLabels(List<BenchmarkTestSetLabel> requestedLabels) {
+        if (requestedLabels == null || requestedLabels.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return Collections.unmodifiableList(new ArrayList<BenchmarkTestSetLabel>(requestedLabels));
+    }
+
+    private List<BenchmarkSourceReference> normalizeSourceRefs(List<BenchmarkSourceReference> requestedRefs) {
+        if (requestedRefs == null || requestedRefs.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return Collections.unmodifiableList(new ArrayList<BenchmarkSourceReference>(requestedRefs));
+    }
+
+    private String normalizeText(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     public String getTenantId() {
@@ -108,6 +153,34 @@ public class BenchmarkTaskSubmission {
 
     public String getDatasetSizeLabel() {
         return datasetSizeLabel;
+    }
+
+    public String getTemplateId() {
+        return templateId;
+    }
+
+    public BenchmarkTemplateType getTemplateType() {
+        return templateType;
+    }
+
+    public String getTemplateVersion() {
+        return templateVersion;
+    }
+
+    public String getTestSetId() {
+        return testSetId;
+    }
+
+    public BenchmarkTestSetSource getTestSetSource() {
+        return testSetSource;
+    }
+
+    public List<BenchmarkTestSetLabel> getTestSetLabels() {
+        return testSetLabels;
+    }
+
+    public List<BenchmarkSourceReference> getTestSetSourceRefs() {
+        return testSetSourceRefs;
     }
 
     public Boolean getReadonlyRequired() {

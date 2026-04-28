@@ -6,12 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkTestSetLabelDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkThresholdDTO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskStatusResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskSubmitResponse;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReferenceType;
 import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
@@ -19,7 +22,10 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPriority;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskStatus;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTemplateType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetLabelType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetSource;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdMetric;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdOperator;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdSeverity;
@@ -55,6 +61,8 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertTrue(task.getReadonlyRequired().booleanValue());
         assertEquals(1, task.getTargetEngines().size());
         assertEquals(DataSourceTypeEnum.HETU, task.getTargetEngines().get(0));
+        assertNull(task.getTemplateId());
+        assertNull(task.getTestSetSource());
     }
 
     @Test
@@ -83,6 +91,12 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals(BenchmarkTaskType.COMPARISON, statusResponse.getTaskType());
         assertEquals(BenchmarkTaskPriority.NORMAL, statusResponse.getPriority());
         assertEquals(Integer.valueOf(2), Integer.valueOf(statusResponse.getTargetEngines().size()));
+        assertEquals("comparison-dual-engine", statusResponse.getTemplateId());
+        assertEquals(BenchmarkTemplateType.CROSS_ENGINE_COMPARISON, statusResponse.getTemplateType());
+        assertEquals("set-route-comparison", statusResponse.getTestSetId());
+        assertEquals(BenchmarkTestSetSource.RECOMMENDATION_GENERATION, statusResponse.getTestSetSource());
+        assertEquals(2, statusResponse.getTestSetLabels().size());
+        assertEquals(2, statusResponse.getTestSetSourceRefs().size());
         assertEquals(Integer.valueOf(3), statusResponse.getThresholdCount());
         assertNull(statusResponse.getError());
         assertNotNull(statusResponse.getStartedAt());
@@ -217,6 +231,18 @@ class BenchmarkTaskModelApplicationServiceTest {
         request.getTaskContext().setDurationSeconds(Integer.valueOf(300));
         request.getTaskContext().setRampUpSeconds(Integer.valueOf(30));
         request.getTaskContext().setDatasetSizeLabel("TEN_GB");
+        request.getTaskContext().setTemplateId(templateId(taskType));
+        request.getTaskContext().setTemplateType(templateType(taskType));
+        request.getTaskContext().setTemplateVersion("v2026.04");
+        request.getTaskContext().setTestSetId(testSetId(taskType));
+        request.getTaskContext().setTestSetSource(testSetSource(taskType));
+        request.getTaskContext().setTestSetLabels(
+            Arrays.asList(
+                label(BenchmarkTestSetLabelType.SCENARIO, taskType.name()),
+                label(BenchmarkTestSetLabelType.DOMAIN, taskType == BenchmarkTaskType.COMPARISON ? "ROUTE_GOVERNANCE" : "REGRESSION")
+            )
+        );
+        request.getTaskContext().setTestSetSourceRefs(testSetSourceRefs(taskType));
         request.getTaskContext().setReadonlyRequired(Boolean.TRUE);
         request.getTaskContext().setShadowEnvironmentMode(ShadowEnvironmentMode.REQUIRED);
         request.getTaskContext().setDesensitizationRequirement(DesensitizationRequirement.REQUIRED);
@@ -246,6 +272,88 @@ class BenchmarkTaskModelApplicationServiceTest {
             )
         );
         return request;
+    }
+
+    private BenchmarkTestSetLabelDTO label(BenchmarkTestSetLabelType type, String value) {
+        BenchmarkTestSetLabelDTO item = new BenchmarkTestSetLabelDTO();
+        item.setType(type);
+        item.setValue(value);
+        return item;
+    }
+
+    private java.util.List<BenchmarkSourceReferenceDTO> testSetSourceRefs(BenchmarkTaskType taskType) {
+        if (taskType == BenchmarkTaskType.COMPARISON) {
+            return Arrays.asList(
+                sourceRef(BenchmarkSourceReferenceType.RECOMMENDATION, "rec-001"),
+                sourceRef(BenchmarkSourceReferenceType.SQL_FINGERPRINT, "fp-benchmark-base")
+            );
+        }
+        if (taskType == BenchmarkTaskType.BASELINE) {
+            return Arrays.asList(sourceRef(BenchmarkSourceReferenceType.IMPORT_BATCH, "batch-001"));
+        }
+        return Arrays.asList(
+            sourceRef(BenchmarkSourceReferenceType.QUERY_HISTORY, "history-001"),
+            sourceRef(BenchmarkSourceReferenceType.REPORT, "report-guard-001")
+        );
+    }
+
+    private BenchmarkSourceReferenceDTO sourceRef(BenchmarkSourceReferenceType type, String referenceId) {
+        BenchmarkSourceReferenceDTO item = new BenchmarkSourceReferenceDTO();
+        item.setType(type);
+        item.setReferenceId(referenceId);
+        return item;
+    }
+
+    private String templateId(BenchmarkTaskType taskType) {
+        switch (taskType) {
+            case BASELINE:
+                return "baseline-snapshot";
+            case COMPARISON:
+                return "comparison-dual-engine";
+            case REGRESSION_GUARD:
+                return "regression-guard";
+            default:
+                return "baseline-snapshot";
+        }
+    }
+
+    private BenchmarkTemplateType templateType(BenchmarkTaskType taskType) {
+        switch (taskType) {
+            case BASELINE:
+                return BenchmarkTemplateType.BASELINE_SNAPSHOT;
+            case COMPARISON:
+                return BenchmarkTemplateType.CROSS_ENGINE_COMPARISON;
+            case REGRESSION_GUARD:
+                return BenchmarkTemplateType.REGRESSION_GUARD;
+            default:
+                return BenchmarkTemplateType.BASELINE_SNAPSHOT;
+        }
+    }
+
+    private String testSetId(BenchmarkTaskType taskType) {
+        switch (taskType) {
+            case BASELINE:
+                return "set-baseline-capture";
+            case COMPARISON:
+                return "set-route-comparison";
+            case REGRESSION_GUARD:
+                return "set-regression-gate";
+            default:
+                return "set-baseline-capture";
+        }
+    }
+
+    private BenchmarkTestSetSource testSetSource(BenchmarkTaskType taskType) {
+        switch (taskType) {
+            case BASELINE:
+                return BenchmarkTestSetSource.BATCH_IMPORT;
+            case COMPARISON:
+                return BenchmarkTestSetSource.RECOMMENDATION_GENERATION;
+            case REGRESSION_GUARD:
+                return BenchmarkTestSetSource.PARSE_RESULT_GENERATION;
+            default:
+                return BenchmarkTestSetSource.MANUAL_CURATION;
+        }
     }
 
     private BenchmarkThresholdDTO threshold(BenchmarkThresholdMetric metric,

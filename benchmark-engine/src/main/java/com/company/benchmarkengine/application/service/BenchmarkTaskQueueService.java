@@ -193,6 +193,10 @@ public class BenchmarkTaskQueueService {
         envelope.put("queueMode", MODE_EXTERNAL_FILE_QUEUE);
         envelope.put("queueVisibilityDelayMs", Long.valueOf(executionProperties.getQueueVisibilityDelayMs()));
         envelope.put("readonlyRequired", task.getReadonlyRequired());
+        envelope.put("templateId", task.getTemplateId());
+        envelope.put("templateType", task.getTemplateType() == null ? null : task.getTemplateType().name());
+        envelope.put("testSetId", task.getTestSetId());
+        envelope.put("testSetSource", task.getTestSetSource() == null ? null : task.getTestSetSource().name());
         envelope.put(
             "shadowEnvironmentMode",
             task.getShadowEnvironmentMode() == null ? null : task.getShadowEnvironmentMode().name()

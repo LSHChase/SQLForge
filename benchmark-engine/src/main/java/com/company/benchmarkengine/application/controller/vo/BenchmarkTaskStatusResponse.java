@@ -1,9 +1,13 @@
 package com.company.benchmarkengine.application.controller.vo;
 
+import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPriority;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskStatus;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTemplateType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetLabel;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetSource;
 import com.company.benchmarkengine.domain.benchmark.DesensitizationRequirement;
 import com.company.benchmarkengine.domain.benchmark.ShadowEnvironmentMode;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
@@ -19,6 +23,13 @@ public class BenchmarkTaskStatusResponse {
     private final BenchmarkTaskPriority priority;
     private final Integer progressPercent;
     private final List<DataSourceTypeEnum> targetEngines;
+    private final String templateId;
+    private final BenchmarkTemplateType templateType;
+    private final String templateVersion;
+    private final String testSetId;
+    private final BenchmarkTestSetSource testSetSource;
+    private final List<BenchmarkTestSetLabel> testSetLabels;
+    private final List<BenchmarkSourceReference> testSetSourceRefs;
     private final Boolean readonlyRequired;
     private final ShadowEnvironmentMode shadowEnvironmentMode;
     private final DesensitizationRequirement desensitizationRequirement;
@@ -40,6 +51,13 @@ public class BenchmarkTaskStatusResponse {
                                        BenchmarkTaskPriority priority,
                                        Integer progressPercent,
                                        List<DataSourceTypeEnum> targetEngines,
+                                       String templateId,
+                                       BenchmarkTemplateType templateType,
+                                       String templateVersion,
+                                       String testSetId,
+                                       BenchmarkTestSetSource testSetSource,
+                                       List<BenchmarkTestSetLabel> testSetLabels,
+                                       List<BenchmarkSourceReference> testSetSourceRefs,
                                        Boolean readonlyRequired,
                                        ShadowEnvironmentMode shadowEnvironmentMode,
                                        DesensitizationRequirement desensitizationRequirement,
@@ -60,6 +78,13 @@ public class BenchmarkTaskStatusResponse {
         this.priority = priority;
         this.progressPercent = progressPercent;
         this.targetEngines = targetEngines;
+        this.templateId = templateId;
+        this.templateType = templateType;
+        this.templateVersion = templateVersion;
+        this.testSetId = testSetId;
+        this.testSetSource = testSetSource;
+        this.testSetLabels = testSetLabels;
+        this.testSetSourceRefs = testSetSourceRefs;
         this.readonlyRequired = readonlyRequired;
         this.shadowEnvironmentMode = shadowEnvironmentMode;
         this.desensitizationRequirement = desensitizationRequirement;
@@ -101,6 +126,34 @@ public class BenchmarkTaskStatusResponse {
 
     public List<DataSourceTypeEnum> getTargetEngines() {
         return targetEngines;
+    }
+
+    public String getTemplateId() {
+        return templateId;
+    }
+
+    public BenchmarkTemplateType getTemplateType() {
+        return templateType;
+    }
+
+    public String getTemplateVersion() {
+        return templateVersion;
+    }
+
+    public String getTestSetId() {
+        return testSetId;
+    }
+
+    public BenchmarkTestSetSource getTestSetSource() {
+        return testSetSource;
+    }
+
+    public List<BenchmarkTestSetLabel> getTestSetLabels() {
+        return testSetLabels;
+    }
+
+    public List<BenchmarkSourceReference> getTestSetSourceRefs() {
+        return testSetSourceRefs;
     }
 
     public Boolean getReadonlyRequired() {
