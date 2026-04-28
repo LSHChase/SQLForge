@@ -15,9 +15,11 @@ import com.company.queryexecution.application.service.QueryExecutionApplicationS
 import com.company.queryexecution.config.AuthProperties;
 import com.company.queryexecution.config.WebMvcConfig;
 import com.company.queryexecution.domain.query.QueryExecutionStatus;
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import com.company.sqlforge.common.exception.GlobalExceptionHandler;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -40,6 +42,10 @@ class QueryExecutionControllerTest {
 
     @Test
     void shouldReturnSynchronousQueryResponse() throws Exception {
+        LogicalObjectSurface logicalObjectSurface = new LogicalObjectSurface();
+        logicalObjectSurface.setObjectType("TABLE");
+        logicalObjectSurface.setObjectKey("TABLE:orders");
+        logicalObjectSurface.setObjectName("orders");
         when(queryExecutionApplicationService.executeSynchronously(any()))
             .thenReturn(new QueryExecuteResponse(
                 QueryExecutionStatus.SUCCESS,
@@ -60,6 +66,31 @@ class QueryExecutionControllerTest {
                 null,
                 Collections.emptyList(),
                 null,
+                Collections.singletonMap("report_code", "RPT_SALES_DAILY"),
+                new LinkedHashMap<String, Object>() {{
+                    put("queryDateStart", "2026-04-27");
+                    put("queryDateEnd", "2026-04-27");
+                    put("queryDateFields", Collections.singletonList("query_date"));
+                    put("queryDateStatus", "RESOLVED");
+                }},
+                new LinkedHashMap<String, Object>() {{
+                    put("parameterizedSqlFlag", Boolean.FALSE);
+                    put("bindingMode", "NONE");
+                    put("bindingRenderStatus", "SUCCESS");
+                }},
+                Collections.singletonList(logicalObjectSurface),
+                new LinkedHashMap<String, Object>() {{
+                    put("selectedEngine", "HETU");
+                    put("executionMode", "CLIENT");
+                }},
+                new LinkedHashMap<String, Object>() {{
+                    put("cacheHit", Boolean.FALSE);
+                    put("cacheGovernanceStatus", "BYPASSED");
+                }},
+                new LinkedHashMap<String, Object>() {{
+                    put("sqlType", "SELECT");
+                    put("syntaxStatus", "VALID");
+                }},
                 "fingerprint-001",
                 "LONG_TERM_BASELINE",
                 "HETU_REAL_INTEGRATION"
@@ -85,6 +116,13 @@ class QueryExecutionControllerTest {
             .andExpect(jsonPath("$.metadata.attemptedModes[0]").value("CLIENT"))
             .andExpect(jsonPath("$.metadata.rowCount").value(1))
             .andExpect(jsonPath("$.rows[0].engine").value("HETU"))
+            .andExpect(jsonPath("$.commentContext.report_code").value("RPT_SALES_DAILY"))
+            .andExpect(jsonPath("$.queryDateSummary.queryDateStatus").value("RESOLVED"))
+            .andExpect(jsonPath("$.bindingSummary.bindingRenderStatus").value("SUCCESS"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].objectKey").value("TABLE:orders"))
+            .andExpect(jsonPath("$.routeSummary.selectedEngine").value("HETU"))
+            .andExpect(jsonPath("$.cacheSummary.cacheHit").value(false))
+            .andExpect(jsonPath("$.lightweightParseSummary.sqlType").value("SELECT"))
             .andExpect(jsonPath("$.contractStage").value("LONG_TERM_BASELINE"))
             .andExpect(jsonPath("$.implementationStage").value("HETU_REAL_INTEGRATION"));
 

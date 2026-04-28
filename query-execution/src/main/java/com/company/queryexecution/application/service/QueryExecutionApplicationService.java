@@ -23,18 +23,31 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.jdbcagent.JdbcAgentSqlCommentParser;
+import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
+import com.company.sqlforge.common.logicalobject.LogicalObjectType;
 import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 /**
  * Executes the minimal synchronous query loop while preserving the public HTTP contract.
@@ -68,6 +81,11 @@ public class QueryExecutionApplicationService {
     private static final String ACTION_CLOSE_PRIMARY_ATTEMPT_CONTEXT = "CLOSE_PRIMARY_ATTEMPT_CONTEXT";
     private static final String ACTION_RECORD_DEGRADED_RESULT = "RECORD_DEGRADED_RESULT";
     private static final String RESOURCE_TYPE_QUERY = "QUERY_EXECUTION_QUERY";
+    private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
+    private static final Pattern ISO_DATE_PATTERN = Pattern.compile("(\\d{4}-\\d{2}-\\d{2})");
+    private static final Pattern NAMED_BINDING_PATTERN = Pattern.compile(":[A-Za-z][A-Za-z0-9_]*");
+    private static final Pattern POSITIONAL_BINDING_PATTERN = Pattern.compile("\\?");
+    private static final Pattern LOGICAL_OBJECT_PATTERN = Pattern.compile("(?i)\\b(?:from|join|into|update)\\s+([A-Za-z0-9_$.]+)");
 
     private final QueryExecutionAdapter queryExecutionAdapter;
     private final GovernanceCapabilityClient governanceCapabilityClient;
@@ -587,6 +605,26 @@ public class QueryExecutionApplicationService {
             degradeReason,
             retryPath,
             null,
+            buildCommentContext(actualSql),
+            buildQueryDateSummary(actualSql),
+            buildBindingSummary(actualSql, sqlFingerprint),
+            buildLogicalObjectHits(actualSql),
+            buildRouteSummary(
+                executionStep.getTargetEngine() == null ? null : executionStep.getTargetEngine().name(),
+                executionStep.getExecutionMode(),
+                executionStep.getRouteProfile(),
+                executionStep.getRouteOrder(),
+                executionStep.getRouteEvidenceSource(),
+                executionStep.getRouteVerificationStatus(),
+                degraded,
+                degradeReason
+            ),
+            buildCacheSummary(
+                executionStep.isCacheHit(),
+                executionStep.getCacheGovernanceStatus(),
+                executionStep.getCacheGovernanceEvidence()
+            ),
+            buildLightweightParseSummary(actualSql, status, null),
             sqlFingerprint,
             CONTRACT_STAGE,
             IMPLEMENTATION_STAGE
@@ -692,6 +730,22 @@ public class QueryExecutionApplicationService {
             null,
             retryPath,
             errorDetail,
+            buildCommentContext(actualSql),
+            buildQueryDateSummary(actualSql),
+            buildBindingSummary(actualSql, sqlFingerprint),
+            buildLogicalObjectHits(actualSql),
+            buildRouteSummary(
+                targetEngine,
+                executionMode,
+                routeProfile,
+                routeOrder,
+                routeEvidenceSource,
+                routeVerificationStatus,
+                false,
+                null
+            ),
+            buildCacheSummary(false, cacheGovernanceStatus, cacheGovernanceEvidence),
+            buildLightweightParseSummary(actualSql, status, errorDetail),
             sqlFingerprint,
             CONTRACT_STAGE,
             IMPLEMENTATION_STAGE
@@ -883,8 +937,334 @@ public class QueryExecutionApplicationService {
         payload.put("degraded", response != null && response.isDegraded());
         payload.put("retryPathSize", response == null || response.getRetryPath() == null ? 0 : response.getRetryPath().size());
         payload.put("errorCode", response == null || response.getError() == null ? null : response.getError().getCode());
+        payload.put("queryDateStatus", response == null || response.getQueryDateSummary() == null
+            ? null
+            : response.getQueryDateSummary().get("queryDateStatus"));
+        payload.put("logicalObjectHitCount", response == null || response.getLogicalObjectHits() == null
+            ? Integer.valueOf(0)
+            : Integer.valueOf(response.getLogicalObjectHits().size()));
         payload.put("failureReason", failureReason);
         return JsonUtils.toJson(payload);
+    }
+
+    private Map<String, String> buildCommentContext(String sqlText) {
+        return JdbcAgentSqlCommentParser.parseLeadingComments(sqlText);
+    }
+
+    private Map<String, Object> buildQueryDateSummary(String sqlText) {
+        Map<String, Object> summary = new LinkedHashMap<String, Object>();
+        if (!StringUtils.hasText(sqlText)) {
+            summary.put("queryDateFields", Collections.<String>emptyList());
+            summary.put("queryDateStatus", "UNRESOLVED");
+            return summary;
+        }
+        List<LocalDate> dates = new ArrayList<LocalDate>();
+        Matcher matcher = ISO_DATE_PATTERN.matcher(sqlText);
+        while (matcher.find()) {
+            LocalDate parsed = tryParseDate(matcher.group(1));
+            if (parsed != null) {
+                dates.add(parsed);
+            }
+        }
+        List<String> fields = detectQueryDateFields(sqlText);
+        summary.put("queryDateFields", fields);
+        if (!dates.isEmpty()) {
+            dates.sort(Comparator.naturalOrder());
+            summary.put("queryDateStart", dates.get(0).format(ISO_DATE));
+            summary.put("queryDateEnd", dates.get(dates.size() - 1).format(ISO_DATE));
+            summary.put("queryDateStatus", "RESOLVED");
+            return summary;
+        }
+        summary.put("queryDateStatus", fields.isEmpty() ? "UNRESOLVED" : "PARTIAL");
+        return summary;
+    }
+
+    private Map<String, Object> buildBindingSummary(String sqlText, String sqlFingerprint) {
+        Map<String, Object> summary = new LinkedHashMap<String, Object>();
+        int namedBindings = countMatches(NAMED_BINDING_PATTERN, sqlText);
+        int positionalBindings = countMatches(POSITIONAL_BINDING_PATTERN, sqlText);
+        boolean parameterized = namedBindings > 0 || positionalBindings > 0;
+        summary.put("parameterizedSqlFlag", Boolean.valueOf(parameterized));
+        if (namedBindings > 0) {
+            summary.put("bindingMode", "NAMED");
+        } else if (positionalBindings > 0) {
+            summary.put("bindingMode", "POSITIONAL");
+        } else {
+            summary.put("bindingMode", "NONE");
+        }
+        summary.put("bindingRenderStatus", parameterized ? "PARTIAL" : "SUCCESS");
+        summary.put("bindingParameterCount", Integer.valueOf(namedBindings + positionalBindings));
+        summary.put("sqlTemplateFingerprint", sqlFingerprint);
+        summary.put("boundSqlFingerprint", parameterized ? null : sqlFingerprint);
+        return summary;
+    }
+
+    private List<LogicalObjectSurface> buildLogicalObjectHits(String sqlText) {
+        if (!StringUtils.hasText(sqlText)) {
+            return Collections.emptyList();
+        }
+        List<LogicalObjectSurface> hits = new ArrayList<LogicalObjectSurface>();
+        List<String> seenKeys = new ArrayList<String>();
+        Matcher matcher = LOGICAL_OBJECT_PATTERN.matcher(sqlText);
+        while (matcher.find()) {
+            String rawReference = sanitizeObjectReference(matcher.group(1));
+            if (!StringUtils.hasText(rawReference)) {
+                continue;
+            }
+            LogicalObjectSurface hit = toLogicalObjectSurface(rawReference);
+            if (hit.getObjectKey() == null || seenKeys.contains(hit.getObjectKey())) {
+                continue;
+            }
+            seenKeys.add(hit.getObjectKey());
+            hits.add(hit);
+        }
+        return hits;
+    }
+
+    private Map<String, Object> buildRouteSummary(String selectedEngine,
+                                                  String executionMode,
+                                                  String routeProfile,
+                                                  List<String> routeOrder,
+                                                  String routeEvidenceSource,
+                                                  String routeVerificationStatus,
+                                                  boolean degraded,
+                                                  String degradeReason) {
+        Map<String, Object> summary = new LinkedHashMap<String, Object>();
+        summary.put("selectedEngine", selectedEngine);
+        summary.put("executionMode", executionMode);
+        summary.put("routeProfile", routeProfile);
+        summary.put("routeOrder", routeOrder == null ? Collections.<String>emptyList() : routeOrder);
+        summary.put("routeEvidenceSource", routeEvidenceSource);
+        summary.put("routeVerificationStatus", routeVerificationStatus);
+        summary.put("degraded", Boolean.valueOf(degraded));
+        if (StringUtils.hasText(degradeReason)) {
+            summary.put("degradeReason", degradeReason);
+        }
+        return summary;
+    }
+
+    private Map<String, Object> buildCacheSummary(boolean cacheHit,
+                                                  String cacheGovernanceStatus,
+                                                  String cacheGovernanceEvidence) {
+        Map<String, Object> summary = new LinkedHashMap<String, Object>();
+        summary.put("cacheHit", Boolean.valueOf(cacheHit));
+        summary.put("cacheGovernanceStatus", cacheGovernanceStatus);
+        summary.put("cacheGovernanceEvidence", cacheGovernanceEvidence);
+        return summary;
+    }
+
+    private Map<String, Object> buildLightweightParseSummary(String sqlText,
+                                                             QueryExecutionStatus status,
+                                                             QueryErrorDetailVO errorDetail) {
+        Map<String, Object> summary = new LinkedHashMap<String, Object>();
+        String normalized = sqlText == null ? "" : sqlText.trim();
+        ReadonlyQueryAssessment assessment = ReadonlyQueryGuard.assess(normalized);
+        String sqlType = resolveSqlType(normalized);
+        List<String> riskTags = detectRiskTags(normalized);
+        List<String> rewriteCandidates = detectRewriteCandidates(riskTags, buildQueryDateSummary(normalized));
+        List<String> issueCodes = new ArrayList<String>();
+        if (!assessment.isReadonly()) {
+            issueCodes.add("NON_READONLY_STATEMENT");
+        }
+        if (errorDetail != null && errorDetail.getCode() == ErrorCodeConstants.QUERY_EXECUTION_RISK_REJECTED
+            && !issueCodes.contains("NON_READONLY_STATEMENT")) {
+            issueCodes.add("NON_READONLY_STATEMENT");
+        }
+        summary.put("syntaxStatus", issueCodes.isEmpty() ? "VALID" : "INVALID");
+        summary.put("sqlType", sqlType);
+        summary.put("readonly", Boolean.valueOf(assessment.isReadonly()));
+        summary.put("complexityLevel", resolveComplexityLevel(riskTags));
+        summary.put("riskTags", riskTags);
+        summary.put("rewriteCandidates", rewriteCandidates);
+        summary.put("issueCodes", issueCodes);
+        summary.put("issueCount", Integer.valueOf(issueCodes.size()));
+        summary.put("resultStatus", status == null ? null : status.name());
+        return summary;
+    }
+
+    private List<String> detectQueryDateFields(String sqlText) {
+        if (!StringUtils.hasText(sqlText)) {
+            return Collections.emptyList();
+        }
+        String lower = sqlText.toLowerCase(Locale.ROOT);
+        List<String> hits = new ArrayList<String>();
+        if (lower.contains("query_date")) {
+            hits.add("query_date");
+        }
+        if (lower.contains("biz_date")) {
+            hits.add("biz_date");
+        }
+        if (lower.contains(" dt ") || lower.contains(".dt") || lower.contains("dt=")) {
+            hits.add("dt");
+        }
+        if (hits.isEmpty() && (lower.contains(" date ") || lower.contains(".date") || lower.contains("date="))) {
+            hits.add("date");
+        }
+        return hits;
+    }
+
+    private LocalDate tryParseDate(String candidate) {
+        if (!StringUtils.hasText(candidate)) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(candidate, ISO_DATE);
+        } catch (DateTimeParseException ex) {
+            return null;
+        }
+    }
+
+    private int countMatches(Pattern pattern, String sqlText) {
+        if (pattern == null || !StringUtils.hasText(sqlText)) {
+            return 0;
+        }
+        int count = 0;
+        Matcher matcher = pattern.matcher(sqlText);
+        while (matcher.find()) {
+            count += 1;
+        }
+        return count;
+    }
+
+    private String sanitizeObjectReference(String rawReference) {
+        if (!StringUtils.hasText(rawReference)) {
+            return null;
+        }
+        String sanitized = rawReference.trim();
+        while (sanitized.endsWith(",") || sanitized.endsWith(")") || sanitized.endsWith(";")) {
+            sanitized = sanitized.substring(0, sanitized.length() - 1).trim();
+        }
+        return sanitized;
+    }
+
+    private LogicalObjectSurface toLogicalObjectSurface(String objectReference) {
+        LogicalObjectType objectType = resolveLogicalObjectType(objectReference);
+        String[] parts = objectReference.split("\\.");
+        String objectName = parts.length == 0 ? objectReference : parts[parts.length - 1];
+        LogicalObjectSurface surface = new LogicalObjectSurface();
+        surface.setObjectType(objectType.name());
+        surface.setObjectName(objectName);
+        surface.setObjectKey(LogicalObjectRef.buildObjectKey(objectType, objectName));
+        if (parts.length >= 3) {
+            surface.setCatalogName(parts[0]);
+            surface.setSchemaName(parts[1]);
+        } else if (parts.length == 2) {
+            surface.setSchemaName(parts[0]);
+        }
+        surface.setMatchSource("SQL_TOKEN");
+        surface.setResolved(Boolean.TRUE);
+        surface.setMappedPhysicalTargets(Collections.<String>emptyList());
+        return surface;
+    }
+
+    private LogicalObjectType resolveLogicalObjectType(String objectReference) {
+        String lower = objectReference == null ? "" : objectReference.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("business_view")
+            || lower.contains(".business_view.")
+            || lower.endsWith("_logic")
+            || lower.contains("customer_360")) {
+            return LogicalObjectType.BUSINESS_VIEW;
+        }
+        if (lower.contains("vw_") || lower.endsWith("_view") || lower.contains(".view.")) {
+            return LogicalObjectType.DB_VIEW;
+        }
+        return LogicalObjectType.TABLE;
+    }
+
+    private String resolveSqlType(String sqlText) {
+        if (!StringUtils.hasText(sqlText)) {
+            return "UNKNOWN";
+        }
+        String upper = stripLeadingComments(sqlText).toUpperCase(Locale.ROOT);
+        if (upper.startsWith("EXPLAIN")) {
+            return "EXPLAIN";
+        }
+        if (upper.startsWith("WITH")) {
+            return "WITH";
+        }
+        if (upper.startsWith("SELECT")) {
+            return "SELECT";
+        }
+        if (upper.startsWith("INSERT")) {
+            return "INSERT";
+        }
+        if (upper.startsWith("UPDATE")) {
+            return "UPDATE";
+        }
+        if (upper.startsWith("DELETE")) {
+            return "DELETE";
+        }
+        return "UNKNOWN";
+    }
+
+    private String stripLeadingComments(String sqlText) {
+        if (!StringUtils.hasText(sqlText)) {
+            return "";
+        }
+        String[] lines = sqlText.replace("\r\n", "\n").replace('\r', '\n').split("\n");
+        StringBuilder builder = new StringBuilder();
+        boolean copying = false;
+        for (String line : lines) {
+            String trimmed = line == null ? "" : line.trim();
+            if (!copying && trimmed.startsWith("--")) {
+                continue;
+            }
+            copying = true;
+            if (builder.length() > 0) {
+                builder.append('\n');
+            }
+            builder.append(trimmed);
+        }
+        return builder.toString().trim();
+    }
+
+    private List<String> detectRiskTags(String sqlText) {
+        if (!StringUtils.hasText(sqlText)) {
+            return Collections.emptyList();
+        }
+        String lower = sqlText.toLowerCase(Locale.ROOT);
+        List<String> riskTags = new ArrayList<String>();
+        if (lower.contains("select *")) {
+            riskTags.add("SELECT_STAR");
+        }
+        if (lower.contains(" join ")) {
+            riskTags.add("JOIN");
+        }
+        if (lower.contains(" group by ")) {
+            riskTags.add("AGGREGATION");
+        }
+        if (lower.contains(" over ")) {
+            riskTags.add("WINDOW");
+        }
+        if (lower.contains(" limit ")) {
+            riskTags.add("LIMIT");
+        }
+        return riskTags;
+    }
+
+    private List<String> detectRewriteCandidates(List<String> riskTags, Map<String, Object> queryDateSummary) {
+        List<String> rewriteCandidates = new ArrayList<String>();
+        if (riskTags.contains("SELECT_STAR")) {
+            rewriteCandidates.add("NARROW_SELECT_COLUMNS");
+        }
+        if (riskTags.contains("JOIN")) {
+            rewriteCandidates.add("VALIDATE_JOIN_FILTERS");
+        }
+        Object queryDateStatus = queryDateSummary == null ? null : queryDateSummary.get("queryDateStatus");
+        if ("PARTIAL".equals(queryDateStatus)) {
+            rewriteCandidates.add("RESOLVE_QUERY_DATE_BINDINGS");
+        }
+        return rewriteCandidates;
+    }
+
+    private String resolveComplexityLevel(List<String> riskTags) {
+        if (riskTags == null || riskTags.isEmpty()) {
+            return "SIMPLE";
+        }
+        if (riskTags.size() >= 3 || riskTags.contains("WINDOW")) {
+            return "COMPLEX";
+        }
+        return "MODERATE";
     }
 
     private ApprovedAccelerationBinding resolveApprovedAccelerationBinding(QueryExecuteRequest request,

@@ -32,6 +32,7 @@ import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Arrays;
+import java.util.Collections;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -96,13 +97,45 @@ class QueryExecutionApplicationServiceTest {
         setRequestContext("tenant-a");
         QueryExecutionApplicationService service =
             newService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient(), new SimpleMeterRegistry());
-        QueryExecuteRequest request = baseRequest("--report_code=RPT_SQL_QUERY\n--stage=PROD\nSELECT * FROM orders");
+        QueryExecuteRequest request = baseRequest(
+            "--report_code=RPT_SQL_QUERY\n--stage=PROD\nSELECT * FROM orders WHERE query_date = '2026-04-27'"
+        );
 
         QueryExecuteResponse response = service.executeSynchronously(request);
 
         assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
         assertNull(response.getError());
         assertEquals("SIMULATED", response.getMetadata().getExecutionMode());
+        assertEquals("RPT_SQL_QUERY", response.getCommentContext().get("report_code"));
+        assertEquals("PROD", response.getCommentContext().get("stage"));
+        assertEquals("RESOLVED", response.getQueryDateSummary().get("queryDateStatus"));
+        assertEquals("2026-04-27", response.getQueryDateSummary().get("queryDateStart"));
+        assertEquals("SUCCESS", response.getBindingSummary().get("bindingRenderStatus"));
+        assertEquals("TABLE:orders", response.getLogicalObjectHits().get(0).getObjectKey());
+        assertEquals("HETU", response.getRouteSummary().get("selectedEngine"));
+        assertEquals(Boolean.FALSE, response.getCacheSummary().get("cacheHit"));
+        assertEquals("SELECT", response.getLightweightParseSummary().get("sqlType"));
+        assertEquals("VALID", response.getLightweightParseSummary().get("syntaxStatus"));
+    }
+
+    @Test
+    void shouldExposePartialBindingAndQueryDateSummariesForParameterizedSql() {
+        setRequestContext("tenant-a");
+        QueryExecutionApplicationService service =
+            newService(new DeterministicQueryExecutionAdapter(), mockGovernanceClient(), new SimpleMeterRegistry());
+        QueryExecuteRequest request = baseRequest("SELECT * FROM orders WHERE query_date = :query_date LIMIT :limit");
+
+        QueryExecuteResponse response = service.executeSynchronously(request);
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        assertEquals(Boolean.TRUE, response.getBindingSummary().get("parameterizedSqlFlag"));
+        assertEquals("NAMED", response.getBindingSummary().get("bindingMode"));
+        assertEquals("PARTIAL", response.getBindingSummary().get("bindingRenderStatus"));
+        assertEquals("PARTIAL", response.getQueryDateSummary().get("queryDateStatus"));
+        assertEquals(Collections.singletonList("query_date"), response.getQueryDateSummary().get("queryDateFields"));
+        assertEquals("MODERATE", response.getLightweightParseSummary().get("complexityLevel"));
+        assertEquals(Boolean.TRUE, ((java.util.List<?>) response.getLightweightParseSummary().get("rewriteCandidates"))
+            .contains("RESOLVE_QUERY_DATE_BINDINGS"));
     }
 
     @Test

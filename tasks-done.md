@@ -4,6 +4,29 @@
 
 ## Done
 
+### D-TASK-039: 扩展 SQL 查询执行摘要契约
+
+- Status: done
+- Completed at: 2026-04-28
+- Commit subject: `feat(query-execution): complete D-TASK-039 summary contract`
+- Priority: 1
+- Depends on: `D-TASK-038`
+- Scope: 查询执行返回 comment context、binding summary、query-date、logical object hits、route/cache summary 与 lightweight parse summary Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-D / Story `D-STORY-006` 查询历史与执行取证闭环
+- Human confirmation point: 若查询执行摘要契约会改变既有受保护请求、失败语义或让 comment/binding/logical-object 信息在未校验时对外暴露，需人工确认
+- Data impact: 查询执行响应、审计摘要、前后端契约
+- Rollback / recovery: 保留原执行与错误响应路径，新增字段可降级为空，不删除旧字段
+- Validation:
+  - `query-execution controller/service 契约测试`
+  - `python3 scripts/foreman.py validate D-TASK-039`
+- Progress log:
+  - 2026-04-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Extended query-execution synchronous responses with comment context, binding summary, query-date summary, logical object hits, route/cache summaries, and lightweight parse summary surfaces; added deterministic application-layer summary builders and locked the contract with controller/service tests.
+  - Validation evidence: python3 scripts/foreman.py validate D-TASK-039 --include-task-audit --extra-command 'mvn -pl query-execution -Dtest=QueryExecutionApplicationServiceTest,QueryExecutionControllerTest,QueryExecutionBenchmarkWorkloadServiceTest test'; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Logical-object and lightweight-parse summaries are intentionally lightweight SQL-token heuristics for the synchronous query path; deeper parser-grade semantics remain owned by the sql-optimization parse surfaces and follow-on query/history work.
+  - Next step: Instantiate D-TASK-040 next so governance history list/detail surfaces consume the now-exposed query execution summary contract end to end.
+
 ### F-TASK-042: 落地回归守护统计与告警
 
 - Status: done
