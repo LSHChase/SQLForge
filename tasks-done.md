@@ -4,6 +4,30 @@
 
 ## Done
 
+### F-TASK-035: 落地关键事件告警判定
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(governance): add alert rule evaluation`
+- Priority: 1
+- Depends on: `F-TASK-034`
+- Scope: mass failure、service unavailable、report resolve failure、Redis unavailable、dispatch failure 等告警判定 Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-F / Story `F-STORY-010` 告警中心与模拟邮件
+- Human confirmation point: 若关键事件判定会引入过度噪声、漏报关键故障或把 environment-backed 故障写成 repo 默认事实，需人工确认
+- Data impact: 告警判定规则、阈值与事件生成逻辑
+- Rollback / recovery: 回退高风险规则，恢复基础关键事件集
+- Validation:
+  - `alert rule 测试`
+  - `python3 scripts/foreman.py validate F-TASK-035`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-27: implemented a repo-closed alert rule evaluation layer that turns mass-failure, datasource/service outage, report-resolve fallback, Redis rule source degradation, dispatch failure/staleness, and audit-write failure signals into normalized `AlertEvent` outputs with baseline policies, dedupe-ready identifiers, and structured evidence payloads.
+- Context closeout:
+  - Completed scope: Added a repo-closed alert rule evaluation layer that converts mass-failure, datasource/service outage, report-resolve fallback, Redis rule-source degradation, dispatch failure or staleness, and audit-write failure signals into normalized AlertEvent outputs with baseline policy severity, notify defaults, and structured evidence payloads.
+  - Validation evidence: mvn -pl governance -Dtest=AlertEventTest,AlertPolicyBaselineTest,AlertSchemaMappingTest,AlertRuleApplicationServiceTest test; python3 scripts/foreman.py validate F-TASK-035
+  - Residual risk: The repository can now evaluate critical alert signals into normalized events, but it still does not persist emitted alerts as a deduped history, record simulated notification logs, or expose query/detail/ack APIs; those remain in F-TASK-036 and F-TASK-037.
+  - Next step: Proceed to F-TASK-036 to persist deduped alert emissions and simulated notification logs on top of the current alert rule evaluation layer.
+
 ### F-TASK-034: 固化告警事件类型与等级模型
 
 - Status: done

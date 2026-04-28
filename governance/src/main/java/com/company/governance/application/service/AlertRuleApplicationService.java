@@ -1,0 +1,418 @@
+package com.company.governance.application.service;
+
+import com.company.governance.domain.alert.AlertEvent;
+import com.company.governance.domain.alert.AlertPolicy;
+import com.company.governance.domain.alert.AlertPolicyBaseline;
+import com.company.governance.domain.alert.AlertSignalSnapshot;
+import com.company.sqlforge.common.utils.JsonUtils;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import org.springframework.stereotype.Service;
+
+@Service
+public class AlertRuleApplicationService {
+
+    private static final String DEFAULT_OPERATOR = "alert-rule-engine";
+
+    public List<AlertEvent> evaluate(AlertSignalSnapshot snapshot) {
+        return evaluate(snapshot, null, DEFAULT_OPERATOR, Instant.now());
+    }
+
+    public List<AlertEvent> evaluate(AlertSignalSnapshot snapshot,
+                                     List<AlertPolicy> policies,
+                                     String operator,
+                                     Instant evaluatedAt) {
+        requireSnapshot(snapshot);
+        String effectiveOperator = normalize(operator, DEFAULT_OPERATOR);
+        Instant effectiveEvaluatedAt = evaluatedAt == null ? Instant.now() : evaluatedAt;
+        List<AlertPolicy> effectivePolicies = (policies == null || policies.isEmpty())
+            ? AlertPolicyBaseline.defaultPoliciesForTenant(snapshot.getTenantId(), effectiveOperator, effectiveEvaluatedAt)
+            : policies;
+        Map<String, AlertEvent> alerts = new LinkedHashMap<String, AlertEvent>();
+        evaluateMassFailures(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
+        evaluateDatasourceAvailability(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
+        evaluateServiceAvailability(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
+        evaluateReportResolve(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
+        evaluateRedisAvailability(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
+        evaluateDispatchCoordination(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
+        evaluateAuditWrites(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
+        return new ArrayList<AlertEvent>(alerts.values());
+    }
+
+    private void evaluateMassFailures(AlertSignalSnapshot snapshot,
+                                      List<AlertPolicy> policies,
+                                      String operator,
+                                      Instant evaluatedAt,
+                                      Map<String, AlertEvent> alerts) {
+        for (AlertSignalSnapshot.MassFailureSignal signal : snapshot.getMassFailureSignals()) {
+            if (!signal.shouldAlert()) {
+                continue;
+            }
+            Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+            evidence.put("sourceService", signal.getSourceService());
+            evidence.put("windowLabel", signal.getWindowLabel());
+            evidence.put("totalCount", Long.valueOf(signal.getTotalCount()));
+            evidence.put("failedCount", Long.valueOf(signal.getFailedCount()));
+            evidence.put("failureRateThreshold", Double.valueOf(signal.getFailureRateThreshold()));
+            recordAlert(alerts, buildAlert(
+                snapshot.getTenantId(),
+                policies,
+                AlertEvent.AlertType.SQL_EXECUTION_MASS_FAILURE,
+                operator,
+                evaluatedAt,
+                signal.getSourceService(),
+                "Mass failure detected for "
+                    + normalize(signal.getSourceService(), "query-execution")
+                    + " in " + normalize(signal.getWindowLabel(), "current-window")
+                    + ": failed=" + signal.getFailedCount()
+                    + "/" + signal.getTotalCount(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                signal.getSourceService(),
+                null,
+                JsonUtils.toJson(evidence)
+            ));
+        }
+    }
+
+    private void evaluateDatasourceAvailability(AlertSignalSnapshot snapshot,
+                                                List<AlertPolicy> policies,
+                                                String operator,
+                                                Instant evaluatedAt,
+                                                Map<String, AlertEvent> alerts) {
+        for (AlertSignalSnapshot.DatasourceAvailabilitySignal signal : snapshot.getDatasourceAvailabilitySignals()) {
+            if (!signal.shouldAlert()) {
+                continue;
+            }
+            Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+            evidence.put("datasourceId", signal.getDatasourceId());
+            evidence.put("datasourceCode", signal.getDatasourceCode());
+            evidence.put("healthStatus", signal.getHealthStatus());
+            evidence.put("failureReason", signal.getFailureReason());
+            recordAlert(alerts, buildAlert(
+                snapshot.getTenantId(),
+                policies,
+                AlertEvent.AlertType.DATASOURCE_UNAVAILABLE,
+                operator,
+                evaluatedAt,
+                "governance-datasource",
+                "Datasource unavailable: "
+                    + normalize(signal.getDatasourceCode(), normalize(signal.getDatasourceId(), "unknown-datasource"))
+                    + " status=" + normalize(signal.getHealthStatus(), "UNKNOWN"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                signal.getDatasourceId(),
+                null,
+                null,
+                JsonUtils.toJson(evidence)
+            ));
+        }
+    }
+
+    private void evaluateServiceAvailability(AlertSignalSnapshot snapshot,
+                                             List<AlertPolicy> policies,
+                                             String operator,
+                                             Instant evaluatedAt,
+                                             Map<String, AlertEvent> alerts) {
+        for (AlertSignalSnapshot.ServiceAvailabilitySignal signal : snapshot.getServiceAvailabilitySignals()) {
+            if (signal.isAvailable()) {
+                continue;
+            }
+            Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+            evidence.put("serviceCode", signal.getServiceCode());
+            evidence.put("componentCode", signal.getComponentCode());
+            evidence.put("unavailableReason", signal.getUnavailableReason());
+            AlertEvent.AlertType alertType = signal.resolveAlertType();
+            recordAlert(alerts, buildAlert(
+                snapshot.getTenantId(),
+                policies,
+                alertType,
+                operator,
+                evaluatedAt,
+                normalize(signal.getServiceCode(), "governance"),
+                "Service unavailable: "
+                    + normalize(signal.getComponentCode(), normalize(signal.getServiceCode(), "dependency"))
+                    + " reason=" + normalize(signal.getUnavailableReason(), "UNKNOWN"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                JsonUtils.toJson(evidence)
+            ));
+        }
+    }
+
+    private void evaluateReportResolve(AlertSignalSnapshot snapshot,
+                                       List<AlertPolicy> policies,
+                                       String operator,
+                                       Instant evaluatedAt,
+                                       Map<String, AlertEvent> alerts) {
+        for (AlertSignalSnapshot.ReportResolveSignal signal : snapshot.getReportResolveSignals()) {
+            if (!signal.shouldAlert()) {
+                continue;
+            }
+            Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+            evidence.put("configId", signal.getConfigId());
+            evidence.put("datasourceCode", signal.getDatasourceCode());
+            evidence.put("stage", signal.getStage());
+            evidence.put("resolverStatus", signal.getResolverStatus());
+            evidence.put("unavailableReason", signal.getUnavailableReason());
+            recordAlert(alerts, buildAlert(
+                snapshot.getTenantId(),
+                policies,
+                AlertEvent.AlertType.REPORT_SQL_RESOLVE_FAILURE,
+                operator,
+                evaluatedAt,
+                "report-interface",
+                "Report SQL resolve failure: datasource="
+                    + normalize(signal.getDatasourceCode(), "unknown")
+                    + ", stage=" + normalize(signal.getStage(), "UNKNOWN")
+                    + ", status=" + normalize(signal.getResolverStatus(), "UNKNOWN"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                signal.getDatasourceCode(),
+                null,
+                null,
+                JsonUtils.toJson(evidence)
+            ));
+        }
+    }
+
+    private void evaluateRedisAvailability(AlertSignalSnapshot snapshot,
+                                           List<AlertPolicy> policies,
+                                           String operator,
+                                           Instant evaluatedAt,
+                                           Map<String, AlertEvent> alerts) {
+        for (AlertSignalSnapshot.RedisRuleAvailabilitySignal signal : snapshot.getRedisRuleAvailabilitySignals()) {
+            if (!signal.shouldAlert()) {
+                continue;
+            }
+            Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+            evidence.put("sourceId", signal.getSourceId());
+            evidence.put("sourceName", signal.getSourceName());
+            evidence.put("healthStatus", signal.getHealthStatus());
+            evidence.put("unavailableReason", signal.getUnavailableReason());
+            evidence.put("bypassOnUnavailable", Boolean.valueOf(signal.isBypassOnUnavailable()));
+            recordAlert(alerts, buildAlert(
+                snapshot.getTenantId(),
+                policies,
+                AlertEvent.AlertType.REDIS_RULE_SOURCE_UNAVAILABLE,
+                operator,
+                evaluatedAt,
+                "redis-rule-source",
+                "Redis rule source unavailable: "
+                    + normalize(signal.getSourceName(), normalize(signal.getSourceId(), "rule-source"))
+                    + " status=" + normalize(signal.getHealthStatus(), "UNKNOWN"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                JsonUtils.toJson(evidence)
+            ));
+        }
+    }
+
+    private void evaluateDispatchCoordination(AlertSignalSnapshot snapshot,
+                                              List<AlertPolicy> policies,
+                                              String operator,
+                                              Instant evaluatedAt,
+                                              Map<String, AlertEvent> alerts) {
+        for (AlertSignalSnapshot.DispatchCoordinationSignal signal : snapshot.getDispatchCoordinationSignals()) {
+            if (!signal.shouldAlert()) {
+                continue;
+            }
+            Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+            evidence.put("dispatchEventId", signal.getDispatchEventId());
+            evidence.put("dispatchStatus", signal.getDispatchStatus());
+            evidence.put("targetDatasource", signal.getTargetDatasource());
+            evidence.put("resultMessage", signal.getResultMessage());
+            evidence.put("staleMinutes", Long.valueOf(signal.getStaleMinutes()));
+            evidence.put("staleThresholdMinutes", Long.valueOf(signal.getStaleThresholdMinutes()));
+            recordAlert(alerts, buildAlert(
+                snapshot.getTenantId(),
+                policies,
+                AlertEvent.AlertType.DISPATCH_COORDINATION_FAILED,
+                operator,
+                evaluatedAt,
+                "dispatch-event",
+                "Dispatch coordination failure: event="
+                    + normalize(signal.getDispatchEventId(), "unknown-dispatch")
+                    + ", status=" + normalize(signal.getDispatchStatus(), "UNKNOWN"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                signal.getDispatchEventId(),
+                signal.getTargetDatasource(),
+                null,
+                null,
+                JsonUtils.toJson(evidence)
+            ));
+        }
+    }
+
+    private void evaluateAuditWrites(AlertSignalSnapshot snapshot,
+                                     List<AlertPolicy> policies,
+                                     String operator,
+                                     Instant evaluatedAt,
+                                     Map<String, AlertEvent> alerts) {
+        for (AlertSignalSnapshot.AuditWriteSignal signal : snapshot.getAuditWriteSignals()) {
+            if (!signal.shouldAlert()) {
+                continue;
+            }
+            Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+            evidence.put("sourceService", signal.getSourceService());
+            evidence.put("failedCount", Long.valueOf(signal.getFailedCount()));
+            evidence.put("pendingCount", Long.valueOf(signal.getPendingCount()));
+            recordAlert(alerts, buildAlert(
+                snapshot.getTenantId(),
+                policies,
+                AlertEvent.AlertType.AUDIT_WRITE_EXCEPTION,
+                operator,
+                evaluatedAt,
+                normalize(signal.getSourceService(), "audit-log"),
+                "Audit write exception detected: failed="
+                    + signal.getFailedCount()
+                    + ", pending=" + signal.getPendingCount(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                JsonUtils.toJson(evidence)
+            ));
+        }
+    }
+
+    private void recordAlert(Map<String, AlertEvent> alerts, AlertEvent alertEvent) {
+        alerts.putIfAbsent(alertEvent.getDedupeKey(), alertEvent);
+    }
+
+    private AlertEvent buildAlert(String tenantId,
+                                  List<AlertPolicy> policies,
+                                  AlertEvent.AlertType alertType,
+                                  String operator,
+                                  Instant evaluatedAt,
+                                  String sourceService,
+                                  String summary,
+                                  String historyId,
+                                  String parseTaskId,
+                                  String batchId,
+                                  String routeDecisionId,
+                                  String recommendationId,
+                                  String dispatchEventId,
+                                  String datasourceId,
+                                  String reportCode,
+                                  String logicalObjectKey,
+                                  String evidenceJson) {
+        AlertPolicy policy = findPolicy(policies, tenantId, alertType);
+        AlertEvent event = AlertEvent.builder()
+            .alertId(buildAlertId(tenantId, alertType, summary, dispatchEventId, datasourceId, reportCode, logicalObjectKey))
+            .tenantId(tenantId)
+            .alertType(alertType)
+            .alertLevel(policy == null ? null : policy.getDefaultLevel())
+            .policyId(policy == null ? null : policy.getPolicyId())
+            .sourceService(sourceService)
+            .summary(summary)
+            .historyId(historyId)
+            .parseTaskId(parseTaskId)
+            .batchId(batchId)
+            .routeDecisionId(routeDecisionId)
+            .recommendationId(recommendationId)
+            .dispatchEventId(dispatchEventId)
+            .reportCode(reportCode)
+            .logicalObjectKey(logicalObjectKey)
+            .datasourceId(datasourceId)
+            .evidenceJson(evidenceJson)
+            .createdBy(operator)
+            .createdAt(evaluatedAt)
+            .notifyStatus(policy == null ? null : policy.getInitialNotifyStatus())
+            .build();
+        return event;
+    }
+
+    private AlertPolicy findPolicy(List<AlertPolicy> policies, String tenantId, AlertEvent.AlertType alertType) {
+        if (policies == null) {
+            return null;
+        }
+        for (AlertPolicy policy : policies) {
+            if (policy != null
+                && policy.isEnabled()
+                && tenantId.equals(policy.getTenantId())
+                && alertType == policy.getAlertType()) {
+                return policy;
+            }
+        }
+        return null;
+    }
+
+    private String buildAlertId(String tenantId,
+                                AlertEvent.AlertType alertType,
+                                String summary,
+                                String dispatchEventId,
+                                String datasourceId,
+                                String reportCode,
+                                String logicalObjectKey) {
+        String seed = normalize(tenantId, "tenant")
+            + "|"
+            + alertType.name()
+            + "|"
+            + normalize(dispatchEventId, "")
+            + "|"
+            + normalize(datasourceId, "")
+            + "|"
+            + normalize(reportCode, "")
+            + "|"
+            + normalize(logicalObjectKey, "")
+            + "|"
+            + normalize(summary, "");
+        int hash = Math.abs(seed.hashCode());
+        return "alert-" + alertType.name().toLowerCase(Locale.ROOT).replace('_', '-') + "-" + Integer.toHexString(hash);
+    }
+
+    private void requireSnapshot(AlertSignalSnapshot snapshot) {
+        if (snapshot == null) {
+            throw new IllegalArgumentException("snapshot is required");
+        }
+    }
+
+    private String normalize(String value, String fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        String normalized = value.trim();
+        return normalized.isEmpty() ? fallback : normalized;
+    }
+}
