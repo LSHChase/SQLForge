@@ -93,6 +93,7 @@
 | `docs/references/raw-requirements/alibaba-java-guidelines/license.txt` | Archive | 原始资料许可证 | Archived | 归档保留，不作为执行基线 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/source-metadata.md` | Archive | 版本、来源、校验元数据 | Archived | `R-154` 来源追溯 |
 | `docs/rules/codex-rules.md` | Authority | 仓库规则库 | Consumed | 所有实现与验证门禁 |
+| `docs/rules/karpathy-guidelines.md` | Authority | Karpathy 风格 AI 编码行为完整说明 | Consumed | AI 编码行为说明、原则与 SQLForge 落点 |
 | `docs/security/access-control-spec.md` | Authority | 访问控制专项规格 | Consumed | 身份、角色、资源、审计实现基线 |
 | `docs/security/connectors.md` | Authority | Connector 与 MCP 的只读 category、安全边界、`mcp_profile` 角色约束和校验清单 | Consumed | `HARN-034` / `HARN-035` 的 MCP 基线、禁用能力、`explorer / validator` 角色边界和 connector intake / validation 权威落点 |
 | `docs/security/compliance.md` | Authority | 等保合规说明 | Consumed | `R-111` 至 `R-115` 合规基线 |

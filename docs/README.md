@@ -10,13 +10,15 @@
    入口总览，包含初始化规则基线、来源服务职责映射、13 项 ADR、4 阶段里程碑、等保规则、加速服务与异常回滚设计；后续追加规则以规则库为准，最终服务口径以已确认的 4 微服务目标为准。
 3. [规则库](./rules/codex-rules.md)
    Codex 执行和仓库落地的 append-only 规则索引，按连续编号维护。
-4. [验证规则](./quality/validation-rules.md)
+4. [Karpathy 行为准则](./rules/karpathy-guidelines.md)
+   Karpathy 风格 AI 编码行为的完整说明，保留四原则、适用形态和 SQLForge 落点。
+5. [验证规则](./quality/validation-rules.md)
    阶段门禁、任务验证、自动阻断、Java 规范和 harness 任务治理验证的快速索引。
-5. [实现就绪规范](./plans/implementation-readiness.md)
+6. [实现就绪规范](./plans/implementation-readiness.md)
    编码前文档消费顺序、主题权威来源、冲突处理方式和波次执行顺序。
-6. [运维与协作文档](./operations/README.md)
+7. [运维与协作文档](./operations/README.md)
    Foreman 工作流、人类协作、本地开发、MCP 使用手册、从无 task 开始的治理自动化（含 governed intake / healthcheck）、多 agent 协作、任务关闭与 best practices。
-7. 产品/设计/接口文档
+8. 产品/设计/接口文档
    [架构初始化总文档](./architecture/init.md) 仍是历史初始化基线与总览入口；当前 C4 权威更新落点以 [C4 文字总览](./architecture/c4-overview.md) 为准，当前服务边界以 [服务能力分配图](./architecture/service-capability-map.md) 为准，当前接口契约以 [服务接口契约基线](./architecture/service-interface-contract-baseline.md) 为准，后续新增文档统一补入 `docs/`。
    - [SQL 治理平台实施规格](./product/sql-governance-platform-implementation-spec.md)
    - [前端复盘补漏基线](./product/frontend-retrospective-gap-closure-baseline.md)
@@ -91,6 +93,7 @@
   - `frontend-retrospective-gap-closure-baseline.md`：前端复盘、规格补漏与 repo-closed 边界基线。
 - `rules/`
   规则库与可执行约束。
+  - `karpathy-guidelines.md`：Karpathy 风格 AI 编码行为的完整说明，保留四原则、适用形态与 SQLForge 落点。
 - `quality/`
   质量门禁、Java 规范治理与前后端分离检查基线。
 - `operations/`
@@ -214,12 +217,13 @@
 2. `docs/plans/document-truth-baseline.md`
 3. `docs/architecture/init.md`
 4. `docs/rules/codex-rules.md`
-5. `docs/quality/validation-rules.md`
-6. 对应专项文档
-7. `docs/plans/master-execution-plan.md`
-8. [阶段前置条件矩阵](./plans/phase-prerequisite-matrix.md)
-9. [Task 字段矩阵](./plans/task-spec-matrix.md)
-10. [Task 治理扩展矩阵](./plans/task-governance-extension-matrix.md)
-11. 根级任务台账与人工决策入口：`tasks.md` / `tasks-done.md` / `INBOX.md`
+5. `docs/rules/karpathy-guidelines.md`
+6. `docs/quality/validation-rules.md`
+7. 对应专项文档
+8. `docs/plans/master-execution-plan.md`
+9. [阶段前置条件矩阵](./plans/phase-prerequisite-matrix.md)
+10. [Task 字段矩阵](./plans/task-spec-matrix.md)
+11. [Task 治理扩展矩阵](./plans/task-governance-extension-matrix.md)
+12. 根级任务台账与人工决策入口：`tasks.md` / `tasks-done.md` / `INBOX.md`
 
 若任务涉及 MCP / 外部 connector，还必须追加阅读 [Connector 与 MCP 安全边界](./security/connectors.md) 与 [Codex MCP 使用手册](./operations/codex-mcp-playbook.md)；若同时涉及 multi-agent `mcp_profile`，再追加阅读 [多 agent 协作手册](./operations/multi-agent-playbook.md)。
