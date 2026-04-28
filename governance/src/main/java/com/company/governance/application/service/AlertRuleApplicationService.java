@@ -40,6 +40,7 @@ public class AlertRuleApplicationService {
         evaluateRedisAvailability(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
         evaluateDispatchCoordination(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
         evaluateAuditWrites(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
+        evaluateBenchmarkRegression(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
         return new ArrayList<AlertEvent>(alerts.values());
     }
 
@@ -77,7 +78,8 @@ public class AlertRuleApplicationService {
                 null,
                 null,
                 null,
-                signal.getSourceService(),
+                null,
+                null,
                 null,
                 JsonUtils.toJson(evidence)
             ));
@@ -117,6 +119,7 @@ public class AlertRuleApplicationService {
                 signal.getDatasourceId(),
                 null,
                 null,
+                null,
                 JsonUtils.toJson(evidence)
             ));
         }
@@ -146,6 +149,7 @@ public class AlertRuleApplicationService {
                 "Service unavailable: "
                     + normalize(signal.getComponentCode(), normalize(signal.getServiceCode(), "dependency"))
                     + " reason=" + normalize(signal.getUnavailableReason(), "UNKNOWN"),
+                null,
                 null,
                 null,
                 null,
@@ -195,6 +199,7 @@ public class AlertRuleApplicationService {
                 signal.getDatasourceCode(),
                 null,
                 null,
+                null,
                 JsonUtils.toJson(evidence)
             ));
         }
@@ -225,6 +230,7 @@ public class AlertRuleApplicationService {
                 "Redis rule source unavailable: "
                     + normalize(signal.getSourceName(), normalize(signal.getSourceId(), "rule-source"))
                     + " status=" + normalize(signal.getHealthStatus(), "UNKNOWN"),
+                null,
                 null,
                 null,
                 null,
@@ -274,6 +280,7 @@ public class AlertRuleApplicationService {
                 signal.getTargetDatasource(),
                 null,
                 null,
+                null,
                 JsonUtils.toJson(evidence)
             ));
         }
@@ -311,6 +318,52 @@ public class AlertRuleApplicationService {
                 null,
                 null,
                 null,
+                null,
+                JsonUtils.toJson(evidence)
+            ));
+        }
+    }
+
+    private void evaluateBenchmarkRegression(AlertSignalSnapshot snapshot,
+                                             List<AlertPolicy> policies,
+                                             String operator,
+                                             Instant evaluatedAt,
+                                             Map<String, AlertEvent> alerts) {
+        for (AlertSignalSnapshot.BenchmarkRegressionSignal signal : snapshot.getBenchmarkRegressionSignals()) {
+            if (!signal.shouldAlert()) {
+                continue;
+            }
+            Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+            evidence.put("reportId", signal.getReportId());
+            evidence.put("taskId", signal.getTaskId());
+            evidence.put("historyId", signal.getHistoryId());
+            evidence.put("sqlFingerprint", signal.getSqlFingerprint());
+            evidence.put("verdict", signal.getVerdict());
+            evidence.put("thresholdHitCount", Integer.valueOf(signal.getThresholdHitCount()));
+            evidence.put("failedThresholdCount", Integer.valueOf(signal.getFailedThresholdCount()));
+            evidence.put("warningThresholdCount", Integer.valueOf(signal.getWarningThresholdCount()));
+            evidence.put("reportQueryPath", signal.getReportQueryPath());
+            evidence.put("rawDataDownloadPath", signal.getRawDataDownloadPath());
+            evidence.put("thresholdAssessmentsJson", signal.getThresholdAssessmentsJson());
+            evidence.put("executionSummaryJson", signal.getExecutionSummaryJson());
+            recordAlert(alerts, buildAlert(
+                snapshot.getTenantId(),
+                policies,
+                AlertEvent.AlertType.BENCHMARK_REGRESSION_FAILED,
+                operator,
+                evaluatedAt,
+                "benchmark-engine",
+                normalize(signal.getSummary(), "Benchmark regression failed"),
+                signal.getHistoryId(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                signal.getReportId(),
+                signal.getSqlFingerprint(),
                 JsonUtils.toJson(evidence)
             ));
         }
@@ -336,6 +389,7 @@ public class AlertRuleApplicationService {
                                   String datasourceId,
                                   String reportCode,
                                   String logicalObjectKey,
+                                  String sqlFingerprint,
                                   String evidenceJson) {
         AlertPolicy policy = findPolicy(policies, tenantId, alertType);
         AlertEvent event = AlertEvent.builder()
@@ -355,6 +409,7 @@ public class AlertRuleApplicationService {
             .reportCode(reportCode)
             .logicalObjectKey(logicalObjectKey)
             .datasourceId(datasourceId)
+            .sqlFingerprint(sqlFingerprint)
             .evidenceJson(evidenceJson)
             .createdBy(operator)
             .createdAt(evaluatedAt)

@@ -22,6 +22,8 @@ import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceReq
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertRequest;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
@@ -58,6 +60,7 @@ class GovernanceCapabilityApplicationServiceTest {
             matrixService,
             governanceAuditTrailService,
             benchmarkTraceabilityApplicationService,
+            mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             accelerationPlanTraceabilityApplicationService,
             databaseViewCatalogApplicationService,
             mock(ReportInterfaceConfigApplicationService.class),
@@ -149,6 +152,7 @@ class GovernanceCapabilityApplicationServiceTest {
             matrixService,
             governanceAuditTrailService,
             benchmarkTraceabilityApplicationService,
+            mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             accelerationPlanTraceabilityApplicationService,
             databaseViewCatalogApplicationService,
             mock(ReportInterfaceConfigApplicationService.class),
@@ -201,6 +205,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAuthorizationMatrixApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
+            mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
             mock(ReportInterfaceConfigApplicationService.class),
@@ -226,6 +231,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAuthorizationMatrixApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
+            mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
             mock(ReportInterfaceConfigApplicationService.class),
@@ -267,6 +273,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAuthorizationMatrixApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
+            mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             accelerationPlanTraceabilityApplicationService,
             mock(DatabaseViewCatalogApplicationService.class),
             mock(ReportInterfaceConfigApplicationService.class),
@@ -307,6 +314,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAuthorizationMatrixApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
+            mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             databaseViewCatalogApplicationService,
             mock(ReportInterfaceConfigApplicationService.class),
@@ -345,6 +353,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAuthorizationMatrixApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
+            mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
             reportInterfaceConfigApplicationService,
@@ -373,6 +382,45 @@ class GovernanceCapabilityApplicationServiceTest {
 
         assertEquals("ACTIVE", response.getResolverStatus());
         verify(reportInterfaceConfigApplicationService).resolve(request);
+    }
+
+    @Test
+    void shouldDelegateBenchmarkRegressionAlertEmission() {
+        GovernanceBenchmarkRegressionAlertApplicationService regressionAlertApplicationService =
+            mock(GovernanceBenchmarkRegressionAlertApplicationService.class);
+        GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
+            mock(GovernanceAuthorizationMatrixApplicationService.class),
+            mock(GovernanceAuditTrailService.class),
+            mock(GovernanceBenchmarkTraceabilityApplicationService.class),
+            regressionAlertApplicationService,
+            mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
+            mock(DatabaseViewCatalogApplicationService.class),
+            mock(ReportInterfaceConfigApplicationService.class),
+            databaseMessaging(),
+            mock(TenantConfigRepository.class)
+        );
+        RequestContext.set(
+            "tenant-a",
+            "service-user",
+            Arrays.asList("SERVICE"),
+            "request-060",
+            "trace-060",
+            "header",
+            100L,
+            200L
+        );
+        GovernanceBenchmarkRegressionAlertRequest request = new GovernanceBenchmarkRegressionAlertRequest();
+        request.setTenantId("tenant-a");
+        request.setReportId("report-001");
+        request.setTaskId("task-001");
+        GovernanceBenchmarkRegressionAlertResponse resolveResponse = new GovernanceBenchmarkRegressionAlertResponse();
+        resolveResponse.setAlertTriggered(Boolean.TRUE);
+        when(regressionAlertApplicationService.emit(request)).thenReturn(resolveResponse);
+
+        GovernanceBenchmarkRegressionAlertResponse response = service.emitBenchmarkRegressionAlert(request);
+
+        assertEquals(Boolean.TRUE, response.getAlertTriggered());
+        verify(regressionAlertApplicationService).emit(request);
     }
 
     private MessagingProperties databaseMessaging() {

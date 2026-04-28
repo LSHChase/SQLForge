@@ -17,6 +17,8 @@ import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceReq
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertRequest;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
@@ -50,6 +52,7 @@ public class GovernanceCapabilityApplicationService {
     private final GovernanceAuthorizationMatrixApplicationService governanceAuthorizationMatrixApplicationService;
     private final GovernanceAuditTrailService governanceAuditTrailService;
     private final GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService;
+    private final GovernanceBenchmarkRegressionAlertApplicationService governanceBenchmarkRegressionAlertApplicationService;
     private final GovernanceAccelerationPlanTraceabilityApplicationService governanceAccelerationPlanTraceabilityApplicationService;
     private final DatabaseViewCatalogApplicationService databaseViewCatalogApplicationService;
     private final ReportInterfaceConfigApplicationService reportInterfaceConfigApplicationService;
@@ -60,6 +63,7 @@ public class GovernanceCapabilityApplicationService {
                                                   GovernanceAuthorizationMatrixApplicationService governanceAuthorizationMatrixApplicationService,
                                                   GovernanceAuditTrailService governanceAuditTrailService,
                                                   GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService,
+                                                  GovernanceBenchmarkRegressionAlertApplicationService governanceBenchmarkRegressionAlertApplicationService,
                                                   GovernanceAccelerationPlanTraceabilityApplicationService governanceAccelerationPlanTraceabilityApplicationService,
                                                   DatabaseViewCatalogApplicationService databaseViewCatalogApplicationService,
                                                   ReportInterfaceConfigApplicationService reportInterfaceConfigApplicationService,
@@ -68,6 +72,7 @@ public class GovernanceCapabilityApplicationService {
         this.governanceAuthorizationMatrixApplicationService = governanceAuthorizationMatrixApplicationService;
         this.governanceAuditTrailService = governanceAuditTrailService;
         this.governanceBenchmarkTraceabilityApplicationService = governanceBenchmarkTraceabilityApplicationService;
+        this.governanceBenchmarkRegressionAlertApplicationService = governanceBenchmarkRegressionAlertApplicationService;
         this.governanceAccelerationPlanTraceabilityApplicationService = governanceAccelerationPlanTraceabilityApplicationService;
         this.databaseViewCatalogApplicationService = databaseViewCatalogApplicationService;
         this.reportInterfaceConfigApplicationService = reportInterfaceConfigApplicationService;
@@ -100,6 +105,13 @@ public class GovernanceCapabilityApplicationService {
     public GovernanceBenchmarkReportTraceResponse writeBenchmarkReportTrace(GovernanceBenchmarkReportTraceRequest request) {
         requireProtectedTenantContext();
         return governanceBenchmarkTraceabilityApplicationService.writeBenchmarkReportTrace(request);
+    }
+
+    public GovernanceBenchmarkRegressionAlertResponse emitBenchmarkRegressionAlert(
+        GovernanceBenchmarkRegressionAlertRequest request
+    ) {
+        requireProtectedTenantContext();
+        return governanceBenchmarkRegressionAlertApplicationService.emit(request);
     }
 
     public GovernanceAccelerationPlanTraceResponse writeAccelerationPlanTrace(

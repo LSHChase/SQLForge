@@ -170,6 +170,10 @@ class BenchmarkTaskModelApplicationServiceTest {
 
         assertEquals(BenchmarkThresholdVerdict.FAIL, response.getVerdict());
         assertEquals(BenchmarkThresholdVerdict.FAIL, response.getThresholdAssessments().get(0).getVerdict());
+        assertNotNull(response.getRegressionSummary());
+        assertEquals(Integer.valueOf(1), response.getRegressionSummary().getThresholdHitCount());
+        assertEquals(Integer.valueOf(1), response.getRegressionSummary().getFailedThresholdCount());
+        assertEquals(Boolean.TRUE, response.getRegressionSummary().getAlertRequired());
         assertEquals("RESOURCE_USAGE_CURVE", response.getTrendCharts().get(2).getChartType());
         assertEquals("REGRESSION_GATE", response.getRecommendations().get(0).getCategory());
     }

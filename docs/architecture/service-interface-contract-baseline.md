@@ -81,6 +81,7 @@
   - `/api/governance/internal/audit/write`
   - `/api/governance/internal/acceleration-plan/trace/write`
   - `/api/governance/internal/benchmark/report-trace/write`
+  - `/api/governance/internal/alerts/benchmark-regression/emit`
   - `/api/governance/internal/schedule/extensions`
 - 当前授权决策已由治理服务本地矩阵配置驱动：
   - 角色矩阵把角色映射到权限集合
@@ -98,6 +99,7 @@
 | `/api/governance/internal/audit/write` | `LONG_TERM_BASELINE` | `DATABASE_AUDIT_WRITE_BASELINE` | request: required `serviceCode`,`operationCode`,`resourceType`,`resourceId`,`resultStatus`,`elapsedMs`,`sourceIp`,`userAgent`; optional `sagaId`,`configSnapshotId`,`resultId`,`historyId`,`exportId`,`requestParams`,`responseSummary`; response: `auditId`,`status`,`messageTopic`,`deliveryMode`,`contractStage`,`implementationStage` | 长期保留为跨服务审计写入入口；当前已同步写入 `audit_log`、统一脱敏 `requestParams/responseSummary` 并保留共享消息抽象扩散 |
 | `/api/governance/internal/acceleration-plan/trace/write` | `LONG_TERM_BASELINE` | `ACCELERATION_PLAN_TRACEABILITY_BASELINE` | request: `planId`,`sourceTaskId`,`sqlFingerprint`,`datasourceType`,`sqlText`,`planStatus`,`snapshotPayloadJson`,`resultSummaryJson`,`resultPayloadJson`,`queryContextJson`,`createdAt`,`updatedAt`,`errorCode`,`errorMessage`; response: `configSnapshotId`,`resultId`,`historyId`,`traceId`,`requestId`,`sagaId`,`contractStage`,`implementationStage` | acceleration plan 生命周期通过治理受保护入口落 `config/result/history` 追溯链；当前 `config_snapshot` 与 `query_history` 幂等创建，`execution_result` 随 apply/verify/rollback 状态更新 |
 | `/api/governance/internal/benchmark/report-trace/write` | `LONG_TERM_BASELINE` | `DATABASE_TRACE_EXPORT_ORCHESTRATION_BASELINE` | request: `reportId`,`taskId`,`taskType`,`sqlFingerprint`,`resultStatus`,`generatedAt`,`startedAt`,`finishedAt`,`readonlyRequired`,`shadowEnvironmentMode`,`desensitizationRequirement`,`targetEngines[]`,`sqlText`,`workloadDigest`,`workloadSource`,`backfillApplied`,`workloadEvidenceJson`,`executionSummaryJson`,`reportQueryPath`,`rawDataDownloadPath`,`artifacts[].artifactKey/artifactKind/exportFormat/mediaType/fileName/contentLength/checksumSha256/storageType/storageUri/storageEvidence/retentionDays/retentionPolicySource/retentionDeleteAfter`; response: `configSnapshotId`,`resultId`,`historyId`,`traceId`,`requestId`,`sagaId`,`artifacts[].artifactKey`,`artifacts[].exportId`,`artifacts[].exportStatus`,`contractStage`,`implementationStage` | benchmark report/raw-data artifact 通过治理受保护编排落 `config/result/history/export` 追溯链；当前同时持久化 workload/backfill/compensation 结构证据，以及带 primary/recovery provider、recovery order、cleanup scope、provider/external verification + retention 的 artifact storage evidence，导出记录按 `reportId + artifactKey` 幂等生成 |
+| `/api/governance/internal/alerts/benchmark-regression/emit` | `LONG_TERM_BASELINE` | `REGRESSION_ALERT_LINKAGE_BASELINE` | request: `tenantId`,`reportId`,`taskId`,`historyId`,`sqlFingerprint`,`verdict`,`thresholdHitCount`,`failedThresholdCount`,`warningThresholdCount`,`summary`,`reportQueryPath`,`rawDataDownloadPath`,`thresholdAssessmentsJson`,`executionSummaryJson`; response: `reportId`,`taskId`,`alertTriggered`,`alertLinkages[].alertId/alertType/alertLevel/alertStatus/notifyStatus/summary/detailPath/linkageMode/notificationLogId`,`contractStage`,`implementationStage` | 为 `REGRESSION_GUARD` 报告生成治理告警 linkage；当前仅在 failed threshold count 大于 0 时发出 `BENCHMARK_REGRESSION_FAILED`，dedupe suppressed 时回链既有 alert，而不会把所有 benchmark 结果默认升级为生产风险判定 |
 | `/api/governance/internal/tenant-artifact-policy/resolve` | `LONG_TERM_BASELINE` | `TENANT_ARTIFACT_POLICY_BASELINE` | request: `tenantId`,`policyScope`; response: `tenantId`,`retentionDays`,`retentionPolicySource`,`retentionPolicyStatus`,`policyScope`,`contractStage`,`implementationStage` | 为业务服务解析 tenant-specific artifact retention policy；当前 benchmark-engine 使用 `tenant_config.retention_days` 回填 retention/backfill metadata，但不把真实外部对象存储写成仓库默认事实 |
 | `/api/governance/internal/schedule/extensions` | `TRANSITIONAL_SKELETON` | `TRANSITIONAL_SKELETON` | response: `extensionPoint`,`ownerService`,`status`,`currentMode`,`contractStage`,`implementationStage` | 当前只暴露治理调度扩展状态骨架，不代表完整调度域模型已固化 |
 
@@ -534,6 +536,20 @@
 - `thresholdAssessments[].actualValue`
 - `thresholdAssessments[].targetValue`
 - `thresholdAssessments[].summary`
+- `regressionSummary.thresholdHitCount`
+- `regressionSummary.failedThresholdCount`
+- `regressionSummary.warningThresholdCount`
+- `regressionSummary.alertRequired`
+- `regressionSummary.summary`
+- `alertLinkages[].alertId`
+- `alertLinkages[].alertType`
+- `alertLinkages[].alertLevel`
+- `alertLinkages[].alertStatus`
+- `alertLinkages[].notifyStatus`
+- `alertLinkages[].summary`
+- `alertLinkages[].detailPath`
+- `alertLinkages[].linkageMode`
+- `alertLinkages[].notificationLogId`
 - `trendCharts[].chartType`
 - `trendCharts[].title`
 - `trendCharts[].xAxisLabel`
@@ -584,7 +600,8 @@
 - 当前失败路径通过 SQL 或指纹中的显式 `FAIL_BENCHMARK` 标记触发，用于稳定验证 worker 失败与轮询失败场景。
 - 当前 `readonlyRequired=false` 或 `shadowEnvironmentMode=DISABLED` 会被当前骨架拒绝，并返回 `23003`，以保持 `ADR-007` 的隔离约束不被绕过。
 - 当前模型已经把 `ADR-007` 要求的只读标记、影子环境标记和脱敏要求显式入模，避免后续执行链路绕过安全基线。
-- 当前报告模型已覆盖引擎指标快照、阈值判定、趋势图表、建议输出、执行摘要以及导出产物元数据；成功路径会生成 `JSON/PDF/HTML` 与 raw-data artifact，记录 `artifactKey/artifactKind/storageType/storageUri/storageEvidence/exportId/retentionDays/retentionPolicySource/retentionDeleteAfter`，并把 workload/backfill/compensation 结构证据、provider-specific / multi-provider object-storage contract、cleanup/recovery order 与 object-storage provider/external verification 证据同步写入 governance trace payload，供后续查询直接复用。
+- 当前报告模型已覆盖引擎指标快照、阈值判定、回归守护摘要、治理告警 linkage、趋势图表、建议输出、执行摘要以及导出产物元数据；成功路径会生成 `JSON/PDF/HTML` 与 raw-data artifact，记录 `artifactKey/artifactKind/storageType/storageUri/storageEvidence/exportId/retentionDays/retentionPolicySource/retentionDeleteAfter`，并把 workload/backfill/compensation 结构证据、provider-specific / multi-provider object-storage contract、cleanup/recovery order 与 object-storage provider/external verification 证据同步写入 governance trace payload，供后续查询直接复用。
+- 当前 `REGRESSION_GUARD` 在治理 trace 完成后，会把 failed threshold count 汇总为 `regressionSummary`，并通过治理内部 `alerts/benchmark-regression/emit` 入口生成或回链 `BENCHMARK_REGRESSION_FAILED`；warning-only 场景保留在报告里，但不会默认扩大到治理告警面。
 - 当前报告查询/下载审计会在 artifact 已具备治理追溯元数据时补齐 `configSnapshotId/resultId/historyId/exportId`；其中 `JSON` 查询绑定 `json-export`，`PDF/HTML` 查询绑定对应导出 artifact，`raw-data` 下载绑定 `raw-data` artifact。
 - 当前 repo-local artifact lifecycle 已固化为保留当前 report-set、重写时清理陈旧 sibling 文件，以及在 `PDF/HTML/raw-data` 文件缺失时从持久化报告快照恢复后再继续返回响应。
 - 当前仓库已补齐 repo-closed 隔离执行、benchmark/query-execution workload/backfill/compensation orchestration、artifact externalization、查询 audit-link enrichment、tenant-specific retention/backfill policy、外部文件队列 carrier，以及治理 trace/export orchestration 链路；`LOCAL_FILE` 仍是默认主路径，而 `ENVIRONMENT_OBJECT_STORAGE` 只在显式配置时启用，并通过 repo-local mirror + object URI + live-evidence manifest 保留环境级对象存储接线证据，在提供 primary/recovery provider endpoint 时还会执行真实 provider-backed write/readback/head verification，并把实际 recovery source/read status 与 provider-native live evidence 作为治理查询面的显式字段暴露。

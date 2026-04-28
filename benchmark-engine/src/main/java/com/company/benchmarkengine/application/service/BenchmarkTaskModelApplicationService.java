@@ -6,9 +6,11 @@ import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmi
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTestSetLabelDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkThresholdDTO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkEngineMetricVO;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkAlertLinkageVO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommendationVO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportRawDataResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResponse;
+import com.company.benchmarkengine.application.controller.vo.BenchmarkRegressionSummaryVO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskErrorVO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskStatusResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskSubmitResponse;
@@ -17,8 +19,10 @@ import com.company.benchmarkengine.application.controller.vo.BenchmarkTrendPoint
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTrendSeriesVO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkThresholdAssessmentVO;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkEngineProfile;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkAlertLinkage;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendation;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendationRiskLevel;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkRegressionSummary;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
@@ -142,6 +146,8 @@ public class BenchmarkTaskModelApplicationService {
             executionResult.getThresholdAssessments(),
             executionResult.getRecommendations(),
             executionResult.getExecutionSummary(),
+            buildRegressionSummary(task.getTaskType(), executionResult.getThresholdAssessments()),
+            Collections.<BenchmarkAlertLinkage>emptyList(),
             Collections.<BenchmarkReportArtifact>emptyList()
         );
     }
@@ -157,6 +163,8 @@ public class BenchmarkTaskModelApplicationService {
             toTargetEngines(report.getEngineProfiles()),
             toEngineMetricVOs(report.getEngineProfiles()),
             toThresholdAssessmentVOs(report.getThresholdAssessments()),
+            toRegressionSummaryVO(report.getRegressionSummary()),
+            toAlertLinkageVOs(report.getAlertLinkages()),
             buildTrendCharts(report.getEngineProfiles()),
             toRecommendationVOs(report.getRecommendations()),
             "JSON",
@@ -180,6 +188,8 @@ public class BenchmarkTaskModelApplicationService {
             toTargetEngines(report.getEngineProfiles()),
             toEngineMetricVOs(report.getEngineProfiles()),
             toThresholdAssessmentVOs(report.getThresholdAssessments()),
+            toRegressionSummaryVO(report.getRegressionSummary()),
+            toAlertLinkageVOs(report.getAlertLinkages()),
             buildTrendCharts(report.getEngineProfiles()),
             toRecommendationVOs(report.getRecommendations()),
             buildReportQueryPath(report.getReportId()),
@@ -412,6 +422,40 @@ public class BenchmarkTaskModelApplicationService {
         );
     }
 
+    private BenchmarkRegressionSummary buildRegressionSummary(BenchmarkTaskType taskType,
+                                                              List<BenchmarkThresholdAssessment> assessments) {
+        if (taskType != BenchmarkTaskType.REGRESSION_GUARD) {
+            return null;
+        }
+        int hitCount = 0;
+        int failedCount = 0;
+        int warningCount = 0;
+        if (assessments != null) {
+            for (BenchmarkThresholdAssessment assessment : assessments) {
+                if (assessment.getVerdict() == BenchmarkThresholdVerdict.FAIL) {
+                    hitCount++;
+                    failedCount++;
+                    continue;
+                }
+                if (assessment.getVerdict() == BenchmarkThresholdVerdict.WARNING) {
+                    hitCount++;
+                    warningCount++;
+                }
+            }
+        }
+        boolean alertRequired = failedCount > 0;
+        String summary = hitCount == 0
+            ? "Regression guard stayed within the configured thresholds."
+            : "Regression guard hit " + hitCount + " threshold(s): failed=" + failedCount + ", warning=" + warningCount + ".";
+        return new BenchmarkRegressionSummary(
+            Integer.valueOf(hitCount),
+            Integer.valueOf(failedCount),
+            Integer.valueOf(warningCount),
+            Boolean.valueOf(alertRequired),
+            summary
+        );
+    }
+
     private List<BenchmarkEngineMetricVO> toEngineMetricVOs(List<BenchmarkEngineProfile> engineProfiles) {
         if (engineProfiles == null || engineProfiles.isEmpty()) {
             return Collections.emptyList();
@@ -452,6 +496,42 @@ public class BenchmarkTaskModelApplicationService {
                     assessment.getActualValue(),
                     assessment.getTargetValue(),
                     assessment.getSummary()
+                )
+            );
+        }
+        return Collections.unmodifiableList(items);
+    }
+
+    private BenchmarkRegressionSummaryVO toRegressionSummaryVO(BenchmarkRegressionSummary summary) {
+        if (summary == null) {
+            return null;
+        }
+        return new BenchmarkRegressionSummaryVO(
+            summary.getThresholdHitCount(),
+            summary.getFailedThresholdCount(),
+            summary.getWarningThresholdCount(),
+            summary.getAlertRequired(),
+            summary.getSummary()
+        );
+    }
+
+    private List<BenchmarkAlertLinkageVO> toAlertLinkageVOs(List<BenchmarkAlertLinkage> linkages) {
+        if (linkages == null || linkages.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<BenchmarkAlertLinkageVO> items = new ArrayList<BenchmarkAlertLinkageVO>(linkages.size());
+        for (BenchmarkAlertLinkage linkage : linkages) {
+            items.add(
+                new BenchmarkAlertLinkageVO(
+                    linkage.getAlertId(),
+                    linkage.getAlertType(),
+                    linkage.getAlertLevel(),
+                    linkage.getAlertStatus(),
+                    linkage.getNotifyStatus(),
+                    linkage.getSummary(),
+                    linkage.getDetailPath(),
+                    linkage.getLinkageMode(),
+                    linkage.getNotificationLogId()
                 )
             );
         }

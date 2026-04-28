@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-042: 落地回归守护统计与告警
+
+- Status: done
+- Completed at: 2026-04-28
+- Commit subject: `feat(benchmark): add regression guard alert linkage`
+- Priority: 1
+- Depends on: `F-TASK-041`,`F-TASK-037`
+- Scope: regression summary、threshold hit 与 alert linkage Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-F / Story `E-STORY-011` 压测中心与开放接入页
+- Human confirmation point: 若回归守护统计与告警会把实验性 benchmark 结果提升为默认生产风险判定，需人工确认
+- Data impact: regression summary、threshold hit 与 alert linkage
+- Rollback / recovery: 恢复为显式模板/测试集范围内的回归守护，不扩大默认告警面
+- Validation:
+  - `regression/alert linkage 测试`
+  - `python3 scripts/foreman.py validate F-TASK-042`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Extended benchmark report/domain/persistence contracts with regression summaries and governance alert linkages; added the governance internal benchmark-regression alert emit endpoint and failed-threshold-only regression guard emission flow; updated benchmark/governance tests, schema migration, and contract baseline documentation.
+  - Validation evidence: mvn -pl benchmark-engine -am -DskipITs -Dtest=BenchmarkTaskModelApplicationServiceTest,BenchmarkRegressionAlertServiceTest,BenchmarkTaskWorkerTest,MybatisBenchmarkTaskRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl governance -am -DskipITs -Dtest=AlertRuleApplicationServiceTest,AlertEmissionApplicationServiceTest,GovernanceBenchmarkRegressionAlertApplicationServiceTest,GovernanceCapabilityApplicationServiceTest,AuthWebMvcTest -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl benchmark-engine,governance -am test -DskipITs；python3 scripts/foreman.py validate F-TASK-042 --extra-command "mvn -pl benchmark-engine,governance -am test -DskipITs"；python3 scripts/task_audit.py --check --phase pre-closeout；python3 scripts/task_audit.py --check --phase post-closeout。
+  - Residual risk: Benchmark regression alerts are intentionally limited to failed-threshold REGRESSION_GUARD reports; if warning-only guards or broader benchmark verdicts must trigger default governance risk handling later, that scope still needs an explicit follow-up decision.
+  - Next step: Phase-F benchmark backend tasks are complete; the next dependent implementation is E-TASK-027 to consume regression summary and alert linkage contracts in the frontend benchmark pages.
+
 ### F-TASK-041: 打通推荐 SQL 到对比压测
 
 - Status: done

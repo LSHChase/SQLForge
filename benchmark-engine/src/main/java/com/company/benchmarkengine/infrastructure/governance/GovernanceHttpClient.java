@@ -7,6 +7,8 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertRequest;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
@@ -82,6 +84,17 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
     @Override
     public GovernanceBenchmarkReportTraceResponse writeBenchmarkReportTrace(GovernanceBenchmarkReportTraceRequest request) {
         return post("/benchmark/report-trace/write", request, GovernanceBenchmarkReportTraceResponse.class);
+    }
+
+    @Override
+    public GovernanceBenchmarkRegressionAlertResponse emitBenchmarkRegressionAlert(
+        GovernanceBenchmarkRegressionAlertRequest request
+    ) {
+        return post(
+            "/alerts/benchmark-regression/emit",
+            request,
+            GovernanceBenchmarkRegressionAlertResponse.class
+        );
     }
 
     @Override

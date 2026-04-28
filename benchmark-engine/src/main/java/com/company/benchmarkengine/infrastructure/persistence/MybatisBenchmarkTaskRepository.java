@@ -2,8 +2,10 @@ package com.company.benchmarkengine.infrastructure.persistence;
 
 import com.company.benchmarkengine.domain.benchmark.BenchmarkEngineProfile;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkExecutionSummary;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkAlertLinkage;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendation;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendationRiskLevel;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkRegressionSummary;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifactKind;
@@ -270,6 +272,8 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
         record.setThresholdAssessmentsJson(writeJson(report.getThresholdAssessments()));
         record.setRecommendationsJson(writeJson(report.getRecommendations()));
         record.setExecutionSummaryJson(writeJson(report.getExecutionSummary()));
+        record.setRegressionSummaryJson(writeJson(report.getRegressionSummary()));
+        record.setAlertLinkagesJson(writeJson(report.getAlertLinkages()));
         record.setExportArtifactsJson(writeJson(report.getExportArtifacts()));
         return record;
     }
@@ -327,6 +331,8 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             readThresholdAssessments(record.getThresholdAssessmentsJson()),
             readRecommendations(record.getRecommendationsJson()),
             readExecutionSummary(record.getExecutionSummaryJson()),
+            readRegressionSummary(record.getRegressionSummaryJson()),
+            readAlertLinkages(record.getAlertLinkagesJson()),
             readExportArtifacts(record.getExportArtifactsJson())
         );
     }
@@ -653,6 +659,52 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             return artifacts;
         } catch (Exception ex) {
             throw new IllegalArgumentException("Failed to deserialize benchmark export artifacts", ex);
+        }
+    }
+
+    private BenchmarkRegressionSummary readRegressionSummary(String json) {
+        if (json == null || json.trim().isEmpty() || "null".equals(json.trim())) {
+            return null;
+        }
+        try {
+            Map<String, Object> item = objectMapper.readValue(json, MAP_OF_OBJECTS);
+            return new BenchmarkRegressionSummary(
+                item.get("thresholdHitCount") == null ? null : Integer.valueOf(String.valueOf(item.get("thresholdHitCount"))),
+                item.get("failedThresholdCount") == null ? null : Integer.valueOf(String.valueOf(item.get("failedThresholdCount"))),
+                item.get("warningThresholdCount") == null ? null : Integer.valueOf(String.valueOf(item.get("warningThresholdCount"))),
+                item.get("alertRequired") == null ? null : Boolean.valueOf(String.valueOf(item.get("alertRequired"))),
+                item.get("summary") == null ? null : String.valueOf(item.get("summary"))
+            );
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Failed to deserialize benchmark regression summary", ex);
+        }
+    }
+
+    private List<BenchmarkAlertLinkage> readAlertLinkages(String json) {
+        if (json == null || json.trim().isEmpty() || "null".equals(json.trim())) {
+            return Collections.emptyList();
+        }
+        try {
+            List<Map<String, Object>> items = objectMapper.readValue(json, LIST_OF_MAPS);
+            List<BenchmarkAlertLinkage> linkages = new ArrayList<BenchmarkAlertLinkage>(items.size());
+            for (Map<String, Object> item : items) {
+                linkages.add(
+                    new BenchmarkAlertLinkage(
+                        item.get("alertId") == null ? null : String.valueOf(item.get("alertId")),
+                        item.get("alertType") == null ? null : String.valueOf(item.get("alertType")),
+                        item.get("alertLevel") == null ? null : String.valueOf(item.get("alertLevel")),
+                        item.get("alertStatus") == null ? null : String.valueOf(item.get("alertStatus")),
+                        item.get("notifyStatus") == null ? null : String.valueOf(item.get("notifyStatus")),
+                        item.get("summary") == null ? null : String.valueOf(item.get("summary")),
+                        item.get("detailPath") == null ? null : String.valueOf(item.get("detailPath")),
+                        item.get("linkageMode") == null ? null : String.valueOf(item.get("linkageMode")),
+                        item.get("notificationLogId") == null ? null : String.valueOf(item.get("notificationLogId"))
+                    )
+                );
+            }
+            return linkages;
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Failed to deserialize benchmark alert linkages", ex);
         }
     }
 

@@ -17,6 +17,8 @@ public class BenchmarkReport {
     private final List<BenchmarkThresholdAssessment> thresholdAssessments;
     private final List<BenchmarkRecommendation> recommendations;
     private final BenchmarkExecutionSummary executionSummary;
+    private final BenchmarkRegressionSummary regressionSummary;
+    private final List<BenchmarkAlertLinkage> alertLinkages;
     private final List<BenchmarkReportArtifact> exportArtifacts;
     private final BenchmarkThresholdVerdict verdict;
 
@@ -40,6 +42,8 @@ public class BenchmarkReport {
             thresholdAssessments,
             recommendations,
             null,
+            null,
+            Collections.<BenchmarkAlertLinkage>emptyList(),
             Collections.<BenchmarkReportArtifact>emptyList()
         );
     }
@@ -55,6 +59,36 @@ public class BenchmarkReport {
                            List<BenchmarkRecommendation> recommendations,
                            BenchmarkExecutionSummary executionSummary,
                            List<BenchmarkReportArtifact> exportArtifacts) {
+        this(
+            reportId,
+            taskId,
+            taskType,
+            tenantId,
+            sqlFingerprint,
+            generatedAt,
+            engineProfiles,
+            thresholdAssessments,
+            recommendations,
+            executionSummary,
+            null,
+            Collections.<BenchmarkAlertLinkage>emptyList(),
+            exportArtifacts
+        );
+    }
+
+    public BenchmarkReport(String reportId,
+                           String taskId,
+                           BenchmarkTaskType taskType,
+                           String tenantId,
+                           String sqlFingerprint,
+                           Instant generatedAt,
+                           List<BenchmarkEngineProfile> engineProfiles,
+                           List<BenchmarkThresholdAssessment> thresholdAssessments,
+                           List<BenchmarkRecommendation> recommendations,
+                           BenchmarkExecutionSummary executionSummary,
+                           BenchmarkRegressionSummary regressionSummary,
+                           List<BenchmarkAlertLinkage> alertLinkages,
+                           List<BenchmarkReportArtifact> exportArtifacts) {
         this.reportId = reportId;
         this.taskId = taskId;
         this.taskType = taskType;
@@ -65,6 +99,8 @@ public class BenchmarkReport {
         this.thresholdAssessments = immutableCopy(thresholdAssessments);
         this.recommendations = immutableCopy(recommendations);
         this.executionSummary = executionSummary;
+        this.regressionSummary = regressionSummary;
+        this.alertLinkages = immutableCopy(alertLinkages);
         this.exportArtifacts = immutableCopy(exportArtifacts);
         this.verdict = calculateVerdict(this.thresholdAssessments);
     }
@@ -129,6 +165,14 @@ public class BenchmarkReport {
         return executionSummary;
     }
 
+    public BenchmarkRegressionSummary getRegressionSummary() {
+        return regressionSummary;
+    }
+
+    public List<BenchmarkAlertLinkage> getAlertLinkages() {
+        return alertLinkages;
+    }
+
     public List<BenchmarkReportArtifact> getExportArtifacts() {
         return exportArtifacts;
     }
@@ -149,7 +193,27 @@ public class BenchmarkReport {
             thresholdAssessments,
             recommendations,
             executionSummary,
+            regressionSummary,
+            alertLinkages,
             artifacts
+        );
+    }
+
+    public BenchmarkReport withAlertLinkages(List<BenchmarkAlertLinkage> linkages) {
+        return new BenchmarkReport(
+            reportId,
+            taskId,
+            taskType,
+            tenantId,
+            sqlFingerprint,
+            generatedAt,
+            engineProfiles,
+            thresholdAssessments,
+            recommendations,
+            executionSummary,
+            regressionSummary,
+            linkages,
+            exportArtifacts
         );
     }
 

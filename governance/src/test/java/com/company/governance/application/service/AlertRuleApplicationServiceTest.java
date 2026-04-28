@@ -77,6 +77,37 @@ class AlertRuleApplicationServiceTest {
         assertEquals(AlertEvent.NotifyStatus.SIMULATED_PENDING_NOTIFY, alerts.get(0).getNotifyStatus());
     }
 
+    @Test
+    void shouldCreateBenchmarkRegressionAlert() {
+        AlertSignalSnapshot snapshot = AlertSignalSnapshot.builder()
+            .tenantId("tenant-a")
+            .addBenchmarkRegressionSignal(
+                new AlertSignalSnapshot.BenchmarkRegressionSignal(
+                    "report-001",
+                    "task-001",
+                    "history-001",
+                    "fp-001",
+                    "FAIL",
+                    1,
+                    1,
+                    0,
+                    "Regression guard hit 1 threshold(s): failed=1, warning=0.",
+                    "/api/benchmark-engine/reports/report-001",
+                    "/api/benchmark-engine/reports/report-001/raw-data",
+                    "{\"metric\":\"P99_LATENCY_MS\"}",
+                    "{\"executionMode\":\"QUERY_EXECUTION_WORKLOAD_ORCHESTRATED_REPLAY\"}"
+                )
+            )
+            .build();
+
+        List<AlertEvent> alerts = service.evaluate(snapshot, null, "operator-001", Instant.parse("2026-04-27T14:20:00Z"));
+
+        assertEquals(1, alerts.size());
+        assertEquals(AlertEvent.AlertType.BENCHMARK_REGRESSION_FAILED, alerts.get(0).getAlertType());
+        assertEquals("history-001", alerts.get(0).getHistoryId());
+        assertEquals("fp-001", alerts.get(0).getSqlFingerprint());
+    }
+
     private void assertHasType(List<AlertEvent> alerts, AlertEvent.AlertType type) {
         for (AlertEvent event : alerts) {
             if (event.getAlertType() == type) {

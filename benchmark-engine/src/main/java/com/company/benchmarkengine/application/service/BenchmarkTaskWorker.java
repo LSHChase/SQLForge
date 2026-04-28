@@ -35,6 +35,7 @@ public class BenchmarkTaskWorker {
     private final BenchmarkReportExportService benchmarkReportExportService;
     private final BenchmarkArtifactStorageService benchmarkArtifactStorageService;
     private final BenchmarkGovernanceTraceService benchmarkGovernanceTraceService;
+    private final BenchmarkRegressionAlertService benchmarkRegressionAlertService;
     private final BenchmarkTaskRepository benchmarkTaskRepository;
     private final BenchmarkTaskExecutionProperties executionProperties;
     private final BenchmarkMetricsRecorder benchmarkMetricsRecorder;
@@ -45,6 +46,7 @@ public class BenchmarkTaskWorker {
                                BenchmarkReportExportService benchmarkReportExportService,
                                BenchmarkArtifactStorageService benchmarkArtifactStorageService,
                                BenchmarkGovernanceTraceService benchmarkGovernanceTraceService,
+                               BenchmarkRegressionAlertService benchmarkRegressionAlertService,
                                BenchmarkTaskRepository benchmarkTaskRepository,
                                BenchmarkTaskExecutionProperties executionProperties,
                                BenchmarkMetricsRecorder benchmarkMetricsRecorder,
@@ -54,6 +56,7 @@ public class BenchmarkTaskWorker {
         this.benchmarkReportExportService = benchmarkReportExportService;
         this.benchmarkArtifactStorageService = benchmarkArtifactStorageService;
         this.benchmarkGovernanceTraceService = benchmarkGovernanceTraceService;
+        this.benchmarkRegressionAlertService = benchmarkRegressionAlertService;
         this.benchmarkTaskRepository = benchmarkTaskRepository;
         this.executionProperties = executionProperties;
         this.benchmarkMetricsRecorder = benchmarkMetricsRecorder;
@@ -123,6 +126,12 @@ public class BenchmarkTaskWorker {
             );
             artifacts = benchmarkGovernanceTraceService.registerTrace(task, report, reportResponse, rawDataResponse, artifacts);
             report = report.withExportArtifacts(artifacts);
+            report = benchmarkRegressionAlertService.attachAlertLinkage(
+                task,
+                report,
+                reportResponse,
+                benchmarkGovernanceTraceService.resolveHistoryId(report.getReportId(), !artifacts.isEmpty())
+            );
             benchmarkTaskRepository.saveReport(report);
             task.markSucceeded(report.getReportId(), Instant.now());
             benchmarkTaskRepository.saveTask(task);

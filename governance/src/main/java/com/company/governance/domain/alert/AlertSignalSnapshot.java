@@ -14,6 +14,7 @@ public class AlertSignalSnapshot {
     private final List<RedisRuleAvailabilitySignal> redisRuleAvailabilitySignals;
     private final List<DispatchCoordinationSignal> dispatchCoordinationSignals;
     private final List<AuditWriteSignal> auditWriteSignals;
+    private final List<BenchmarkRegressionSignal> benchmarkRegressionSignals;
 
     private AlertSignalSnapshot(Builder builder) {
         this.tenantId = builder.tenantId;
@@ -24,6 +25,7 @@ public class AlertSignalSnapshot {
         this.redisRuleAvailabilitySignals = immutableCopy(builder.redisRuleAvailabilitySignals);
         this.dispatchCoordinationSignals = immutableCopy(builder.dispatchCoordinationSignals);
         this.auditWriteSignals = immutableCopy(builder.auditWriteSignals);
+        this.benchmarkRegressionSignals = immutableCopy(builder.benchmarkRegressionSignals);
         validate();
     }
 
@@ -52,6 +54,7 @@ public class AlertSignalSnapshot {
     public List<RedisRuleAvailabilitySignal> getRedisRuleAvailabilitySignals() { return redisRuleAvailabilitySignals; }
     public List<DispatchCoordinationSignal> getDispatchCoordinationSignals() { return dispatchCoordinationSignals; }
     public List<AuditWriteSignal> getAuditWriteSignals() { return auditWriteSignals; }
+    public List<BenchmarkRegressionSignal> getBenchmarkRegressionSignals() { return benchmarkRegressionSignals; }
 
     public static final class Builder {
         private String tenantId;
@@ -62,6 +65,7 @@ public class AlertSignalSnapshot {
         private final List<RedisRuleAvailabilitySignal> redisRuleAvailabilitySignals = new ArrayList<RedisRuleAvailabilitySignal>();
         private final List<DispatchCoordinationSignal> dispatchCoordinationSignals = new ArrayList<DispatchCoordinationSignal>();
         private final List<AuditWriteSignal> auditWriteSignals = new ArrayList<AuditWriteSignal>();
+        private final List<BenchmarkRegressionSignal> benchmarkRegressionSignals = new ArrayList<BenchmarkRegressionSignal>();
 
         private Builder() {
         }
@@ -74,6 +78,7 @@ public class AlertSignalSnapshot {
         public Builder addRedisRuleAvailabilitySignal(RedisRuleAvailabilitySignal signal) { if (signal != null) { this.redisRuleAvailabilitySignals.add(signal); } return this; }
         public Builder addDispatchCoordinationSignal(DispatchCoordinationSignal signal) { if (signal != null) { this.dispatchCoordinationSignals.add(signal); } return this; }
         public Builder addAuditWriteSignal(AuditWriteSignal signal) { if (signal != null) { this.auditWriteSignals.add(signal); } return this; }
+        public Builder addBenchmarkRegressionSignal(BenchmarkRegressionSignal signal) { if (signal != null) { this.benchmarkRegressionSignals.add(signal); } return this; }
 
         public AlertSignalSnapshot build() {
             return new AlertSignalSnapshot(this);
@@ -294,6 +299,68 @@ public class AlertSignalSnapshot {
         public long getPendingCount() { return pendingCount; }
         public boolean shouldAlert() {
             return failedCount > 0;
+        }
+    }
+
+    public static final class BenchmarkRegressionSignal {
+        private final String reportId;
+        private final String taskId;
+        private final String historyId;
+        private final String sqlFingerprint;
+        private final String verdict;
+        private final int thresholdHitCount;
+        private final int failedThresholdCount;
+        private final int warningThresholdCount;
+        private final String summary;
+        private final String reportQueryPath;
+        private final String rawDataDownloadPath;
+        private final String thresholdAssessmentsJson;
+        private final String executionSummaryJson;
+
+        public BenchmarkRegressionSignal(String reportId,
+                                         String taskId,
+                                         String historyId,
+                                         String sqlFingerprint,
+                                         String verdict,
+                                         int thresholdHitCount,
+                                         int failedThresholdCount,
+                                         int warningThresholdCount,
+                                         String summary,
+                                         String reportQueryPath,
+                                         String rawDataDownloadPath,
+                                         String thresholdAssessmentsJson,
+                                         String executionSummaryJson) {
+            this.reportId = reportId;
+            this.taskId = taskId;
+            this.historyId = historyId;
+            this.sqlFingerprint = sqlFingerprint;
+            this.verdict = verdict;
+            this.thresholdHitCount = thresholdHitCount;
+            this.failedThresholdCount = failedThresholdCount;
+            this.warningThresholdCount = warningThresholdCount;
+            this.summary = summary;
+            this.reportQueryPath = reportQueryPath;
+            this.rawDataDownloadPath = rawDataDownloadPath;
+            this.thresholdAssessmentsJson = thresholdAssessmentsJson;
+            this.executionSummaryJson = executionSummaryJson;
+        }
+
+        public String getReportId() { return reportId; }
+        public String getTaskId() { return taskId; }
+        public String getHistoryId() { return historyId; }
+        public String getSqlFingerprint() { return sqlFingerprint; }
+        public String getVerdict() { return verdict; }
+        public int getThresholdHitCount() { return thresholdHitCount; }
+        public int getFailedThresholdCount() { return failedThresholdCount; }
+        public int getWarningThresholdCount() { return warningThresholdCount; }
+        public String getSummary() { return summary; }
+        public String getReportQueryPath() { return reportQueryPath; }
+        public String getRawDataDownloadPath() { return rawDataDownloadPath; }
+        public String getThresholdAssessmentsJson() { return thresholdAssessmentsJson; }
+        public String getExecutionSummaryJson() { return executionSummaryJson; }
+        public boolean shouldAlert() {
+            return failedThresholdCount > 0
+                || ("FAIL".equalsIgnoreCase(verdict) && thresholdHitCount > 0);
         }
     }
 }

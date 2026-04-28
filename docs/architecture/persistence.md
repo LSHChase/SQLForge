@@ -15,7 +15,7 @@
 - `governance` 是当前承载事务型治理元数据的实现载体。
 - `sql-optimization` 当前已接入 MySQL `optimization_task` 与 `acceleration_plan` 双表、MyBatis XML mapper 与 in-process scheduled worker，用于承载真实任务持久化、状态流转、结构化 suggestion/failure payload，以及 governed acceleration plan lifecycle 的落仓。
 - `benchmark-engine` 当前已接入 MySQL `benchmark_task` / `benchmark_task_report` 双表、MyBatis XML mapper 与 in-process scheduled worker，用于承载真实任务持久化、报告回写和状态流转；在此基础上，任务分发 carrier 已支持默认 `database-worker` 与显式启用的 `external-file-queue` 两种模式，但持久化真值仍固定落在 MySQL 表与审计链上。
-- `benchmark-engine` 当前已通过 `governance` 内部 `benchmark/report-trace/write` 受保护入口，把 benchmark report artifact 的 `config_snapshot/execution_result/query_history/export_record` 编排写入接到真实追溯链。
+- `benchmark-engine` 当前已通过 `governance` 内部 `benchmark/report-trace/write` 与 `alerts/benchmark-regression/emit` 受保护入口，把 benchmark report artifact 的 `config_snapshot/execution_result/query_history/export_record` 编排写入接到真实追溯链，并在 `REGRESSION_GUARD` 失败阈值场景下把治理告警 linkage 回写到 `benchmark_task_report`。
 - `sql-optimization` 当前也已通过 `governance` 内部 `acceleration-plan/trace/write` 受保护入口，把 acceleration plan 的 `config_snapshot/execution_result/query_history` 编排写入接到真实追溯链。
 - 因此，Phase-D 的核心追溯链当前在 `governance` 内以 schema + entity + mapper XML 形式固化，同时允许 `sql-optimization` 与 `benchmark-engine` 在独立任务/报告表上落真实 carrier，并通过受保护入口把跨服务 trace/export 编排接回治理链，避免异步任务实现继续漂移。
 
@@ -140,6 +140,7 @@
 | `acceleration_plan` | `AccelerationPlanRecord` | `sql-optimization/src/main/resources/mapper/AccelerationPlanMapper.xml` |
 | `benchmark_task` | `BenchmarkTaskRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkTaskMapper.xml` |
 | `benchmark_task_report` | `BenchmarkReportRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkReportMapper.xml` |
+当前 `benchmark_task_report` 除 `engine/threshold/recommendation/executionSummary/exportArtifacts` JSON 外，还显式持久化 `regression_summary_json` 与 `alert_linkages_json`，用来承载 `REGRESSION_GUARD` 的 threshold hit 汇总和治理告警回链结果。
 
 当前 mapper 只固化 `insert/selectById` 或等价最小骨架，目的是先把表结构、主引用键和字段命名稳定下来，再在后续任务中接入真实 repository、事务编排和业务写入路径。当前 `governance` 已额外提供 `GovernanceProtectedPersistenceService` 作为 config/result/history/export/audit/system-config 的敏感字段保护写入入口，并由 benchmark report trace/export orchestration 走真实写入路径验证 `config/result/history/export` 编排；`AlertEmissionApplicationService` 则在告警侧编排 `alert_policy`、`alert_event`、`alert_notification_log` 与 `audit_log`，把规则判定后的 simulated notify、dedupe suppressed 和审计留痕闭合到同一事务链。
 

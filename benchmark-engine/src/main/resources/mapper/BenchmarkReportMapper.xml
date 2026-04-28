@@ -16,6 +16,8 @@
         <result property="thresholdAssessmentsJson" column="threshold_assessments_json"/>
         <result property="recommendationsJson" column="recommendations_json"/>
         <result property="executionSummaryJson" column="execution_summary_json"/>
+        <result property="regressionSummaryJson" column="regression_summary_json"/>
+        <result property="alertLinkagesJson" column="alert_linkages_json"/>
         <result property="exportArtifactsJson" column="export_artifacts_json"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
@@ -33,6 +35,8 @@
         threshold_assessments_json,
         recommendations_json,
         execution_summary_json,
+        regression_summary_json,
+        alert_linkages_json,
         export_artifacts_json,
         create_time,
         update_time
@@ -65,6 +69,8 @@
             threshold_assessments_json,
             recommendations_json,
             execution_summary_json,
+            regression_summary_json,
+            alert_linkages_json,
             export_artifacts_json
         ) VALUES (
             #{reportId},
@@ -78,6 +84,8 @@
             #{thresholdAssessmentsJson},
             #{recommendationsJson},
             #{executionSummaryJson},
+            #{regressionSummaryJson},
+            #{alertLinkagesJson},
             #{exportArtifactsJson}
         )
     </insert>
@@ -94,6 +102,8 @@
             threshold_assessments_json = #{thresholdAssessmentsJson},
             recommendations_json = #{recommendationsJson},
             execution_summary_json = #{executionSummaryJson},
+            regression_summary_json = #{regressionSummaryJson},
+            alert_linkages_json = #{alertLinkagesJson},
             export_artifacts_json = #{exportArtifactsJson}
         WHERE report_id = #{reportId}
     </update>

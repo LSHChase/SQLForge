@@ -43,10 +43,17 @@ import java.util.Collections;
 import com.company.governance.config.AuthProperties;
 import com.company.governance.config.WebMvcConfig;
 import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
+import com.company.governance.infrastructure.persistence.mapper.AlertEventMapper;
+import com.company.governance.infrastructure.persistence.mapper.AlertNotificationLogMapper;
+import com.company.governance.infrastructure.persistence.mapper.AlertPolicyMapper;
 import com.company.governance.infrastructure.persistence.mapper.ConfigSnapshotMapper;
+import com.company.governance.infrastructure.persistence.mapper.BusinessLogicalViewMapper;
+import com.company.governance.infrastructure.persistence.mapper.DatabaseViewDependencyMapper;
+import com.company.governance.infrastructure.persistence.mapper.DatabaseViewMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExecutionResultMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.GovernanceHistoryLookupIndexMapper;
+import com.company.governance.infrastructure.persistence.mapper.LogicalObjectMappingMapper;
 import com.company.governance.infrastructure.persistence.mapper.MessageQueueMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
 import com.company.governance.infrastructure.persistence.mapper.SystemConfigMapper;
@@ -117,6 +124,27 @@ class AuthWebMvcTest {
 
     @MockBean
     private AuditLogMapper auditLogMapper;
+
+    @MockBean
+    private AlertEventMapper alertEventMapper;
+
+    @MockBean
+    private AlertNotificationLogMapper alertNotificationLogMapper;
+
+    @MockBean
+    private AlertPolicyMapper alertPolicyMapper;
+
+    @MockBean
+    private BusinessLogicalViewMapper businessLogicalViewMapper;
+
+    @MockBean
+    private DatabaseViewDependencyMapper databaseViewDependencyMapper;
+
+    @MockBean
+    private DatabaseViewMapper databaseViewMapper;
+
+    @MockBean
+    private LogicalObjectMappingMapper logicalObjectMappingMapper;
 
     @MockBean
     private SystemConfigMapper systemConfigMapper;

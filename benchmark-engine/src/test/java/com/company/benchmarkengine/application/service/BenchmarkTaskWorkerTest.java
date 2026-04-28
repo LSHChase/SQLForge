@@ -6,12 +6,16 @@ import static org.mockito.Mockito.mock;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkThresholdDTO;
 import com.company.benchmarkengine.config.BenchmarkArtifactStorageProperties;
 import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
 import com.company.benchmarkengine.config.BenchmarkTaskQueueProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdMetric;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdOperator;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdSeverity;
 import com.company.benchmarkengine.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.benchmarkengine.infrastructure.queryexecution.QueryExecutionBenchmarkWorkloadClient;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
@@ -19,12 +23,16 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloa
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadResponse;
 import com.company.benchmarkengine.infrastructure.repository.InMemoryBenchmarkTaskRepository;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertLinkage;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertResponse;
 
 class BenchmarkTaskWorkerTest {
 
@@ -72,6 +80,7 @@ class BenchmarkTaskWorkerTest {
             new BenchmarkReportExportService(),
             new BenchmarkArtifactStorageService(storageProperties, governanceCapabilityClient),
             new BenchmarkGovernanceTraceService(governanceCapabilityClient),
+            new BenchmarkRegressionAlertService(governanceCapabilityClient),
             repository,
             properties,
             new BenchmarkMetricsRecorder(meterRegistry),
@@ -141,6 +150,7 @@ class BenchmarkTaskWorkerTest {
             new BenchmarkReportExportService(),
             new BenchmarkArtifactStorageService(storageProperties, governanceCapabilityClient),
             new BenchmarkGovernanceTraceService(governanceCapabilityClient),
+            new BenchmarkRegressionAlertService(governanceCapabilityClient),
             repository,
             properties,
             new BenchmarkMetricsRecorder(new SimpleMeterRegistry()),
@@ -159,6 +169,75 @@ class BenchmarkTaskWorkerTest {
         );
     }
 
+    @Test
+    void shouldAttachRegressionAlertLinkageForFailedGuard() {
+        InMemoryBenchmarkTaskRepository repository = new InMemoryBenchmarkTaskRepository();
+        BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
+        BenchmarkTaskSubmitRequest request = baseRequest();
+        request.setTaskType(BenchmarkTaskType.REGRESSION_GUARD);
+        request.getTaskContext().setTargetEngines(Collections.singletonList(DataSourceTypeEnum.HETU));
+        request.getTaskContext().setThresholds(Arrays.asList(
+            threshold(
+                BenchmarkThresholdMetric.P99_LATENCY_MS,
+                BenchmarkThresholdOperator.LESS_THAN_OR_EQUAL,
+                "70",
+                BenchmarkThresholdSeverity.CRITICAL,
+                "P99 regression gate"
+            )
+        ));
+        BenchmarkTask task = modelService.createQueuedTask(request, "benchmark-task-regression-001", Instant.now().minusSeconds(1L));
+        repository.saveTask(task);
+
+        BenchmarkTaskExecutionProperties properties = new BenchmarkTaskExecutionProperties();
+        properties.setQueueVisibilityDelayMs(0L);
+        properties.setPhaseDelayMs(0L);
+        properties.setIsolationSampleCount(4);
+        properties.setIsolationWorkIterations(24);
+        BenchmarkArtifactStorageProperties storageProperties = new BenchmarkArtifactStorageProperties();
+        GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
+        GovernanceBenchmarkRegressionAlertResponse alertResponse = new GovernanceBenchmarkRegressionAlertResponse();
+        GovernanceBenchmarkRegressionAlertLinkage linkage = new GovernanceBenchmarkRegressionAlertLinkage();
+        linkage.setAlertId("alert-benchmark-regression-001");
+        linkage.setAlertType("BENCHMARK_REGRESSION_FAILED");
+        linkage.setAlertLevel("HIGH");
+        linkage.setAlertStatus("OPEN");
+        linkage.setNotifyStatus("SIMULATED_NOTIFIED");
+        linkage.setSummary("Regression guard hit 1 threshold(s): failed=1, warning=0.");
+        linkage.setDetailPath("/api/governance/alerts/alert-benchmark-regression-001");
+        linkage.setLinkageMode("EMITTED");
+        alertResponse.setAlertTriggered(Boolean.TRUE);
+        alertResponse.setAlertLinkages(Collections.singletonList(linkage));
+        org.mockito.Mockito.when(
+            governanceCapabilityClient.emitBenchmarkRegressionAlert(org.mockito.ArgumentMatchers.any())
+        ).thenReturn(alertResponse);
+        BenchmarkTaskQueueService queueService = new BenchmarkTaskQueueService(
+            repository,
+            new BenchmarkTaskQueueProperties(),
+            properties
+        );
+        BenchmarkTaskWorker worker = new BenchmarkTaskWorker(
+            modelService,
+            new BenchmarkIsolatedExecutionService(properties, modelService),
+            new BenchmarkReportExportService(),
+            new BenchmarkArtifactStorageService(storageProperties, governanceCapabilityClient),
+            new BenchmarkGovernanceTraceService(governanceCapabilityClient),
+            new BenchmarkRegressionAlertService(governanceCapabilityClient),
+            repository,
+            properties,
+            new BenchmarkMetricsRecorder(new SimpleMeterRegistry()),
+            queueService
+        );
+
+        worker.processQueuedTasks();
+
+        assertEquals("SUCCEEDED", repository.findTaskByTaskId("benchmark-task-regression-001").getStatus().name());
+        assertEquals(1, repository.findReportByTaskId("benchmark-task-regression-001").getAlertLinkages().size());
+        assertEquals(
+            "alert-benchmark-regression-001",
+            repository.findReportByTaskId("benchmark-task-regression-001").getAlertLinkages().get(0).getAlertId()
+        );
+    }
+
     private BenchmarkTaskSubmitRequest baseRequest() {
         BenchmarkTaskSubmitRequest request = new BenchmarkTaskSubmitRequest();
         request.setTenantId("tenant-a");
@@ -166,5 +245,19 @@ class BenchmarkTaskWorkerTest {
         request.setSqlText("SELECT * FROM orders");
         request.setTaskContext(new BenchmarkTaskContextDTO());
         return request;
+    }
+
+    private BenchmarkThresholdDTO threshold(BenchmarkThresholdMetric metric,
+                                            BenchmarkThresholdOperator operator,
+                                            String targetValue,
+                                            BenchmarkThresholdSeverity severity,
+                                            String description) {
+        BenchmarkThresholdDTO threshold = new BenchmarkThresholdDTO();
+        threshold.setMetric(metric);
+        threshold.setOperator(operator);
+        threshold.setTargetValue(new BigDecimal(targetValue));
+        threshold.setSeverity(severity);
+        threshold.setDescription(description);
+        return threshold;
     }
 }

@@ -17,6 +17,8 @@ public class BenchmarkReportResponse {
     private final List<DataSourceTypeEnum> targetEngines;
     private final List<BenchmarkEngineMetricVO> engineResults;
     private final List<BenchmarkThresholdAssessmentVO> thresholdAssessments;
+    private final BenchmarkRegressionSummaryVO regressionSummary;
+    private final List<BenchmarkAlertLinkageVO> alertLinkages;
     private final List<BenchmarkTrendChartVO> trendCharts;
     private final List<BenchmarkRecommendationVO> recommendations;
     private final String requestedFormat;
@@ -43,6 +45,48 @@ public class BenchmarkReportResponse {
                                    String rawDataDownloadPath,
                                    String contractStage,
                                    String implementationStage) {
+        this(
+            reportId,
+            taskId,
+            taskType,
+            sqlFingerprint,
+            verdict,
+            generatedAt,
+            targetEngines,
+            engineResults,
+            thresholdAssessments,
+            null,
+            java.util.Collections.<BenchmarkAlertLinkageVO>emptyList(),
+            trendCharts,
+            recommendations,
+            requestedFormat,
+            availableFormats,
+            reportQueryPath,
+            rawDataDownloadPath,
+            contractStage,
+            implementationStage
+        );
+    }
+
+    public BenchmarkReportResponse(String reportId,
+                                   String taskId,
+                                   BenchmarkTaskType taskType,
+                                   String sqlFingerprint,
+                                   BenchmarkThresholdVerdict verdict,
+                                   Instant generatedAt,
+                                   List<DataSourceTypeEnum> targetEngines,
+                                   List<BenchmarkEngineMetricVO> engineResults,
+                                   List<BenchmarkThresholdAssessmentVO> thresholdAssessments,
+                                   BenchmarkRegressionSummaryVO regressionSummary,
+                                   List<BenchmarkAlertLinkageVO> alertLinkages,
+                                   List<BenchmarkTrendChartVO> trendCharts,
+                                   List<BenchmarkRecommendationVO> recommendations,
+                                   String requestedFormat,
+                                   List<String> availableFormats,
+                                   String reportQueryPath,
+                                   String rawDataDownloadPath,
+                                   String contractStage,
+                                   String implementationStage) {
         this.reportId = reportId;
         this.taskId = taskId;
         this.taskType = taskType;
@@ -52,6 +96,8 @@ public class BenchmarkReportResponse {
         this.targetEngines = targetEngines;
         this.engineResults = engineResults;
         this.thresholdAssessments = thresholdAssessments;
+        this.regressionSummary = regressionSummary;
+        this.alertLinkages = alertLinkages;
         this.trendCharts = trendCharts;
         this.recommendations = recommendations;
         this.requestedFormat = requestedFormat;
@@ -96,6 +142,14 @@ public class BenchmarkReportResponse {
 
     public List<BenchmarkThresholdAssessmentVO> getThresholdAssessments() {
         return thresholdAssessments;
+    }
+
+    public BenchmarkRegressionSummaryVO getRegressionSummary() {
+        return regressionSummary;
+    }
+
+    public List<BenchmarkAlertLinkageVO> getAlertLinkages() {
+        return alertLinkages;
     }
 
     public List<BenchmarkTrendChartVO> getTrendCharts() {

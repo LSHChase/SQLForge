@@ -15,6 +15,8 @@ public class BenchmarkReportRecord {
     private String thresholdAssessmentsJson;
     private String recommendationsJson;
     private String executionSummaryJson;
+    private String regressionSummaryJson;
+    private String alertLinkagesJson;
     private String exportArtifactsJson;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
@@ -105,6 +107,22 @@ public class BenchmarkReportRecord {
 
     public void setExecutionSummaryJson(String executionSummaryJson) {
         this.executionSummaryJson = executionSummaryJson;
+    }
+
+    public String getRegressionSummaryJson() {
+        return regressionSummaryJson;
+    }
+
+    public void setRegressionSummaryJson(String regressionSummaryJson) {
+        this.regressionSummaryJson = regressionSummaryJson;
+    }
+
+    public String getAlertLinkagesJson() {
+        return alertLinkagesJson;
+    }
+
+    public void setAlertLinkagesJson(String alertLinkagesJson) {
+        this.alertLinkagesJson = alertLinkagesJson;
     }
 
     public String getExportArtifactsJson() {

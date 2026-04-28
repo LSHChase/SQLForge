@@ -119,6 +119,8 @@ CREATE TABLE IF NOT EXISTS benchmark_task_report (
   threshold_assessments_json JSON NOT NULL COMMENT 'Threshold assessment JSON',
   recommendations_json JSON NOT NULL COMMENT 'Recommendation list JSON',
   execution_summary_json JSON DEFAULT NULL COMMENT 'Isolated execution summary JSON',
+  regression_summary_json JSON DEFAULT NULL COMMENT 'Regression summary JSON',
+  alert_linkages_json JSON DEFAULT NULL COMMENT 'Governance alert linkage JSON',
   export_artifacts_json JSON DEFAULT NULL COMMENT 'Persisted export artifact metadata and content JSON',
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',

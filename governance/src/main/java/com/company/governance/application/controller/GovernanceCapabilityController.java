@@ -10,6 +10,8 @@ import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceReq
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertRequest;
+import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
@@ -66,6 +68,13 @@ public class GovernanceCapabilityController {
         @RequestBody GovernanceBenchmarkReportTraceRequest request
     ) {
         return governanceCapabilityApplicationService.writeBenchmarkReportTrace(request);
+    }
+
+    @PostMapping("/alerts/benchmark-regression/emit")
+    public GovernanceBenchmarkRegressionAlertResponse emitBenchmarkRegressionAlert(
+        @RequestBody GovernanceBenchmarkRegressionAlertRequest request
+    ) {
+        return governanceCapabilityApplicationService.emitBenchmarkRegressionAlert(request);
     }
 
     @PostMapping("/acceleration-plan/trace/write")
