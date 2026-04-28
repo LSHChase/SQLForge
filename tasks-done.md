@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-037: 落地告警查询与 ACK 接口
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(governance): add alert query and ack api`
+- Priority: 1
+- Depends on: `F-TASK-036`
+- Scope: alert list/detail/ack API 与治理查询面 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-F / Story `E-STORY-012` Dashboard 与告警中心
+- Human confirmation point: 若告警查询与 ACK 接口会破坏只读/确认边界、引入跨租户可见性扩大，需人工确认
+- Data impact: governance alert list/detail/ack 接口与数据可见范围
+- Rollback / recovery: 回退 ACK/查询粒度，恢复最小可见范围
+- Validation:
+  - `governance alert API 测试`
+  - `python3 scripts/foreman.py validate F-TASK-037`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added governance alert list/detail/ack APIs on top of the persisted alert event and simulated notification-log baseline, including tenant-scoped filtering, detail hydration, ACK state transition plus audit logging, and a frontend truth-text correction now that the backend controller exists.
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-037; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Alert center reads and ACKs are now real repo-side APIs, but policy-write endpoints and frontend controller wiring still remain outside this task, so notify strategy editing and end-user alert-page integration stay simulated until follow-up frontend work lands.
+  - Next step: Proceed to the next dependency-ready Phase-F mainline; the alert-center frontend can now switch from derived evidence to the new governance alert APIs when its follow-up task is scheduled.
+
 ### F-TASK-036: 落地告警去重与模拟邮件日志
 
 - Status: done

@@ -12,6 +12,11 @@ public interface AlertEventMapper {
 
     AlertEventRecord selectByAlertId(@Param("alertId") String alertId);
 
+    List<AlertEventRecord> selectByTenantIdFiltered(@Param("tenantId") String tenantId,
+                                                    @Param("alertStatus") String alertStatus,
+                                                    @Param("alertType") String alertType,
+                                                    @Param("notifyStatus") String notifyStatus);
+
     List<AlertEventRecord> selectOpenByTenantId(@Param("tenantId") String tenantId);
 
     List<AlertEventRecord> selectByTenantIdAndDedupeKey(@Param("tenantId") String tenantId,

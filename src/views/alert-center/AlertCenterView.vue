@@ -233,8 +233,8 @@ onMounted(() => {
         <p class="hero-summary">
           {{
             isChinese
-              ? '当前仓库还没有独立 `GET /api/governance/alerts` 控制器，因此本页先基于 backlog、dispatch event 和 important/urgent SQL 派生告警，并把 ACK / notify 明确标成 simulated。'
-              : 'The repository does not yet expose a dedicated `GET /api/governance/alerts` controller, so this page derives alerts from backlog, dispatch events, and important-or-urgent SQL while marking ACK and notify as simulated.'
+              ? '后端已经有独立 `GET /api/governance/alerts` / `POST /api/governance/alerts/{alertId}/ack` 基线，但当前页面在正式接线前仍先基于 backlog、dispatch event 和 important/urgent SQL 派生告警，并把 ACK / notify 明确标成 simulated。'
+              : 'The backend now exposes baseline `GET /api/governance/alerts` and `POST /api/governance/alerts/{alertId}/ack` endpoints, but this page still derives alerts from backlog, dispatch events, and important-or-urgent SQL while keeping ACK and notify explicitly simulated until the dedicated read path is wired.'
           }}
         </p>
       </div>

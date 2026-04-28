@@ -195,6 +195,50 @@
         ORDER BY created_at DESC
     </select>
 
+    <select id="selectByTenantIdFiltered" resultMap="AlertEventRecordResultMap">
+        SELECT
+            alert_id,
+            tenant_id,
+            alert_type,
+            alert_level,
+            alert_status,
+            notify_status,
+            policy_id,
+            dedupe_key,
+            source_service,
+            summary,
+            history_id,
+            parse_task_id,
+            batch_id,
+            route_decision_id,
+            recommendation_id,
+            dispatch_event_id,
+            report_code,
+            logical_object_key,
+            datasource_id,
+            sql_fingerprint,
+            evidence_json,
+            notify_message,
+            notified_at,
+            acked_by,
+            acked_at,
+            created_by,
+            created_at,
+            updated_at
+        FROM alert_event
+        WHERE tenant_id = #{tenantId}
+        <if test="alertStatus != null and alertStatus != ''">
+          AND alert_status = #{alertStatus}
+        </if>
+        <if test="alertType != null and alertType != ''">
+          AND alert_type = #{alertType}
+        </if>
+        <if test="notifyStatus != null and notifyStatus != ''">
+          AND notify_status = #{notifyStatus}
+        </if>
+        ORDER BY created_at DESC, alert_id DESC
+    </select>
+
     <select id="selectByTenantIdAndDedupeKey" resultMap="AlertEventRecordResultMap">
         SELECT
             alert_id,
