@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.AlertPolicyMapper">
+
+    <resultMap id="AlertPolicyRecordResultMap" type="com.company.governance.infrastructure.persistence.entity.AlertPolicyRecord">
+        <id property="policyId" column="policy_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="policyName" column="policy_name"/>
+        <result property="alertType" column="alert_type"/>
+        <result property="defaultLevel" column="default_level"/>
+        <result property="dedupeStrategy" column="dedupe_strategy"/>
+        <result property="dedupeWindowSeconds" column="dedupe_window_seconds"/>
+        <result property="notifyChannel" column="notify_channel"/>
+        <result property="initialNotifyStatus" column="initial_notify_status"/>
+        <result property="ownerRole" column="owner_role"/>
+        <result property="enabled" column="enabled"/>
+        <result property="ruleConfigJson" column="rule_config_json"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.company.governance.infrastructure.persistence.entity.AlertPolicyRecord">
+        INSERT INTO alert_policy (
+            policy_id,
+            tenant_id,
+            policy_name,
+            alert_type,
+            default_level,
+            dedupe_strategy,
+            dedupe_window_seconds,
+            notify_channel,
+            initial_notify_status,
+            owner_role,
+            enabled,
+            rule_config_json,
+            created_by,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{policyId},
+            #{tenantId},
+            #{policyName},
+            #{alertType},
+            #{defaultLevel},
+            #{dedupeStrategy},
+            #{dedupeWindowSeconds},
+            #{notifyChannel},
+            #{initialNotifyStatus},
+            #{ownerRole},
+            #{enabled},
+            #{ruleConfigJson},
+            #{createdBy},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.governance.infrastructure.persistence.entity.AlertPolicyRecord">
+        UPDATE alert_policy
+        SET policy_name = #{policyName},
+            default_level = #{defaultLevel},
+            dedupe_strategy = #{dedupeStrategy},
+            dedupe_window_seconds = #{dedupeWindowSeconds},
+            notify_channel = #{notifyChannel},
+            initial_notify_status = #{initialNotifyStatus},
+            owner_role = #{ownerRole},
+            enabled = #{enabled},
+            rule_config_json = #{ruleConfigJson},
+            updated_at = #{updatedAt}
+        WHERE policy_id = #{policyId}
+    </update>
+
+    <select id="selectByPolicyId" resultMap="AlertPolicyRecordResultMap">
+        SELECT
+            policy_id,
+            tenant_id,
+            policy_name,
+            alert_type,
+            default_level,
+            dedupe_strategy,
+            dedupe_window_seconds,
+            notify_channel,
+            initial_notify_status,
+            owner_role,
+            enabled,
+            rule_config_json,
+            created_by,
+            created_at,
+            updated_at
+        FROM alert_policy
+        WHERE policy_id = #{policyId}
+    </select>
+
+    <select id="selectByTenantId" resultMap="AlertPolicyRecordResultMap">
+        SELECT
+            policy_id,
+            tenant_id,
+            policy_name,
+            alert_type,
+            default_level,
+            dedupe_strategy,
+            dedupe_window_seconds,
+            notify_channel,
+            initial_notify_status,
+            owner_role,
+            enabled,
+            rule_config_json,
+            created_by,
+            created_at,
+            updated_at
+        FROM alert_policy
+        WHERE tenant_id = #{tenantId}
+        ORDER BY alert_type ASC
+    </select>
+
+    <select id="selectEnabledByTenantId" resultMap="AlertPolicyRecordResultMap">
+        SELECT
+            policy_id,
+            tenant_id,
+            policy_name,
+            alert_type,
+            default_level,
+            dedupe_strategy,
+            dedupe_window_seconds,
+            notify_channel,
+            initial_notify_status,
+            owner_role,
+            enabled,
+            rule_config_json,
+            created_by,
+            created_at,
+            updated_at
+        FROM alert_policy
+        WHERE tenant_id = #{tenantId}
+          AND enabled = 1
+        ORDER BY alert_type ASC
+    </select>
+</mapper>

@@ -4,6 +4,30 @@
 
 ## Done
 
+### F-TASK-034: 固化告警事件类型与等级模型
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(governance): add alert baseline model`
+- Priority: 1
+- Depends on: `F-TASK-033`,`D-TASK-062`
+- Scope: 定义 alert type、level、dedup key、notify status 与策略模型 Tech: `JAVA-BE`,`SQL`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-F / Story `F-STORY-010` 告警中心与模拟邮件
+- Human confirmation point: 若告警模型会弱化当前审计与去重边界、删除关键事件等级或改变责任人语义，需人工确认
+- Data impact: alert event/policy 数据模型与治理查询面
+- Rollback / recovery: 恢复既有告警分类与审计语义，保留新增字段为附加扩展
+- Validation:
+  - `domain/model 测试`
+  - `python3 scripts/foreman.py validate F-TASK-034`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-27: added governance alert domain baselines for event type/level, dedupe key, simulated notify status, and policy defaults; backfilled init schema, incremental migration, and mapper/schema tests for alert policy/event persistence.
+- Context closeout:
+  - Completed scope: Added governance alert domain baselines for event type/level, dedupe keys, simulated notify status, policy defaults, and alert policy/event persistence scaffolding in init schema plus incremental migration.
+  - Validation evidence: mvn -pl governance -Dtest=AlertEventTest,AlertPolicyBaselineTest,AlertSchemaMappingTest test; python3 scripts/foreman.py validate F-TASK-034
+  - Residual risk: The repository now fixes alert types, levels, dedupe keys, and simulated notify defaults, but it still does not emit rule-driven alert events, record simulated email logs, or expose alert query/ack APIs; those remain in F-TASK-035 through F-TASK-037.
+  - Next step: Proceed to F-TASK-035 to implement alert rule evaluation on top of the persisted alert type/policy baseline.
+
 ### U-TASK-004: 前端复盘补漏并恢复规格直达能力
 
 - Status: done

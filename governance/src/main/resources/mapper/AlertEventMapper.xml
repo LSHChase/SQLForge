@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.AlertEventMapper">
+
+    <resultMap id="AlertEventRecordResultMap" type="com.company.governance.infrastructure.persistence.entity.AlertEventRecord">
+        <id property="alertId" column="alert_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="alertType" column="alert_type"/>
+        <result property="alertLevel" column="alert_level"/>
+        <result property="alertStatus" column="alert_status"/>
+        <result property="notifyStatus" column="notify_status"/>
+        <result property="policyId" column="policy_id"/>
+        <result property="dedupeKey" column="dedupe_key"/>
+        <result property="sourceService" column="source_service"/>
+        <result property="summary" column="summary"/>
+        <result property="historyId" column="history_id"/>
+        <result property="parseTaskId" column="parse_task_id"/>
+        <result property="batchId" column="batch_id"/>
+        <result property="routeDecisionId" column="route_decision_id"/>
+        <result property="recommendationId" column="recommendation_id"/>
+        <result property="dispatchEventId" column="dispatch_event_id"/>
+        <result property="reportCode" column="report_code"/>
+        <result property="logicalObjectKey" column="logical_object_key"/>
+        <result property="datasourceId" column="datasource_id"/>
+        <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <result property="evidenceJson" column="evidence_json"/>
+        <result property="notifyMessage" column="notify_message"/>
+        <result property="notifiedAt" column="notified_at"/>
+        <result property="ackedBy" column="acked_by"/>
+        <result property="ackedAt" column="acked_at"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.company.governance.infrastructure.persistence.entity.AlertEventRecord">
+        INSERT INTO alert_event (
+            alert_id,
+            tenant_id,
+            alert_type,
+            alert_level,
+            alert_status,
+            notify_status,
+            policy_id,
+            dedupe_key,
+            source_service,
+            summary,
+            history_id,
+            parse_task_id,
+            batch_id,
+            route_decision_id,
+            recommendation_id,
+            dispatch_event_id,
+            report_code,
+            logical_object_key,
+            datasource_id,
+            sql_fingerprint,
+            evidence_json,
+            notify_message,
+            notified_at,
+            acked_by,
+            acked_at,
+            created_by,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{alertId},
+            #{tenantId},
+            #{alertType},
+            #{alertLevel},
+            #{alertStatus},
+            #{notifyStatus},
+            #{policyId},
+            #{dedupeKey},
+            #{sourceService},
+            #{summary},
+            #{historyId},
+            #{parseTaskId},
+            #{batchId},
+            #{routeDecisionId},
+            #{recommendationId},
+            #{dispatchEventId},
+            #{reportCode},
+            #{logicalObjectKey},
+            #{datasourceId},
+            #{sqlFingerprint},
+            #{evidenceJson},
+            #{notifyMessage},
+            #{notifiedAt},
+            #{ackedBy},
+            #{ackedAt},
+            #{createdBy},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.governance.infrastructure.persistence.entity.AlertEventRecord">
+        UPDATE alert_event
+        SET alert_level = #{alertLevel},
+            alert_status = #{alertStatus},
+            notify_status = #{notifyStatus},
+            policy_id = #{policyId},
+            dedupe_key = #{dedupeKey},
+            source_service = #{sourceService},
+            summary = #{summary},
+            history_id = #{historyId},
+            parse_task_id = #{parseTaskId},
+            batch_id = #{batchId},
+            route_decision_id = #{routeDecisionId},
+            recommendation_id = #{recommendationId},
+            dispatch_event_id = #{dispatchEventId},
+            report_code = #{reportCode},
+            logical_object_key = #{logicalObjectKey},
+            datasource_id = #{datasourceId},
+            sql_fingerprint = #{sqlFingerprint},
+            evidence_json = #{evidenceJson},
+            notify_message = #{notifyMessage},
+            notified_at = #{notifiedAt},
+            acked_by = #{ackedBy},
+            acked_at = #{ackedAt},
+            updated_at = #{updatedAt}
+        WHERE alert_id = #{alertId}
+    </update>
+
+    <select id="selectByAlertId" resultMap="AlertEventRecordResultMap">
+        SELECT
+            alert_id,
+            tenant_id,
+            alert_type,
+            alert_level,
+            alert_status,
+            notify_status,
+            policy_id,
+            dedupe_key,
+            source_service,
+            summary,
+            history_id,
+            parse_task_id,
+            batch_id,
+            route_decision_id,
+            recommendation_id,
+            dispatch_event_id,
+            report_code,
+            logical_object_key,
+            datasource_id,
+            sql_fingerprint,
+            evidence_json,
+            notify_message,
+            notified_at,
+            acked_by,
+            acked_at,
+            created_by,
+            created_at,
+            updated_at
+        FROM alert_event
+        WHERE alert_id = #{alertId}
+    </select>
+
+    <select id="selectOpenByTenantId" resultMap="AlertEventRecordResultMap">
+        SELECT
+            alert_id,
+            tenant_id,
+            alert_type,
+            alert_level,
+            alert_status,
+            notify_status,
+            policy_id,
+            dedupe_key,
+            source_service,
+            summary,
+            history_id,
+            parse_task_id,
+            batch_id,
+            route_decision_id,
+            recommendation_id,
+            dispatch_event_id,
+            report_code,
+            logical_object_key,
+            datasource_id,
+            sql_fingerprint,
+            evidence_json,
+            notify_message,
+            notified_at,
+            acked_by,
+            acked_at,
+            created_by,
+            created_at,
+            updated_at
+        FROM alert_event
+        WHERE tenant_id = #{tenantId}
+          AND alert_status = 'OPEN'
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByTenantIdAndDedupeKey" resultMap="AlertEventRecordResultMap">
+        SELECT
+            alert_id,
+            tenant_id,
+            alert_type,
+            alert_level,
+            alert_status,
+            notify_status,
+            policy_id,
+            dedupe_key,
+            source_service,
+            summary,
+            history_id,
+            parse_task_id,
+            batch_id,
+            route_decision_id,
+            recommendation_id,
+            dispatch_event_id,
+            report_code,
+            logical_object_key,
+            datasource_id,
+            sql_fingerprint,
+            evidence_json,
+            notify_message,
+            notified_at,
+            acked_by,
+            acked_at,
+            created_by,
+            created_at,
+            updated_at
+        FROM alert_event
+        WHERE tenant_id = #{tenantId}
+          AND dedupe_key = #{dedupeKey}
+        ORDER BY created_at DESC
+    </select>
+</mapper>
