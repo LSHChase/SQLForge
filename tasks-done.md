@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-039: 落地批量测试集导入
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(benchmark): import benchmark test sets with row evidence`
+- Priority: 1
+- Depends on: `F-TASK-038`
+- Scope: 从文件导入 test set 与 case 字段映射 Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-F / Story `F-STORY-011` 压测模板、测试集与解析联动
+- Human confirmation point: 若批量测试集导入会把未校验 SQL、报表或参数直接提升为可信数据，需人工确认
+- Data impact: test set 导入记录、批次与成员清单
+- Rollback / recovery: 恢复严格校验和失败记录，保留导入 evidence
+- Validation:
+  - `import 测试`
+  - `python3 scripts/foreman.py validate F-TASK-039`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added benchmark test-set import API, domain model, persistence tables, MyBatis mapping, row-level readonly validation, rejected-row evidence retention, and benchmark-engine test coverage for batch-import test sets.
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-039 --extra-command "mvn -pl benchmark-engine test"
+  - Residual risk: Current benchmark test sets are stored and queryable, but downstream parse-to-benchmark and recommendation-to-benchmark generation flows still arrive in F-TASK-040 and F-TASK-041.
+  - Next step: Proceed to F-TASK-040 to generate benchmark test sets from parse results on top of the imported test-set baseline.
+
 ### F-TASK-038: 固化压测模板与测试集契约
 
 - Status: done

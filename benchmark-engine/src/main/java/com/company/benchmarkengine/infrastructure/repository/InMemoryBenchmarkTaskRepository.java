@@ -3,7 +3,9 @@ package com.company.benchmarkengine.infrastructure.repository;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskStatus;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSet;
 import com.company.benchmarkengine.domain.benchmark.repository.BenchmarkTaskRepository;
+import com.company.benchmarkengine.domain.benchmark.repository.BenchmarkTestSetRepository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,11 +17,12 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @ConditionalOnProperty(prefix = "benchmark-engine.queues", name = "mode", havingValue = "local-placeholder", matchIfMissing = true)
-public class InMemoryBenchmarkTaskRepository implements BenchmarkTaskRepository {
+public class InMemoryBenchmarkTaskRepository implements BenchmarkTaskRepository, BenchmarkTestSetRepository {
 
     private final Map<String, BenchmarkTask> taskStore = new ConcurrentHashMap<String, BenchmarkTask>();
     private final Map<String, BenchmarkReport> reportByTaskStore = new ConcurrentHashMap<String, BenchmarkReport>();
     private final Map<String, BenchmarkReport> reportByReportIdStore = new ConcurrentHashMap<String, BenchmarkReport>();
+    private final Map<String, BenchmarkTestSet> testSetStore = new ConcurrentHashMap<String, BenchmarkTestSet>();
 
     @Override
     public BenchmarkTask saveTask(BenchmarkTask task) {
@@ -61,5 +64,16 @@ public class InMemoryBenchmarkTaskRepository implements BenchmarkTaskRepository 
             }
         }
         return tasks;
+    }
+
+    @Override
+    public BenchmarkTestSet saveTestSet(BenchmarkTestSet testSet) {
+        testSetStore.put(testSet.getTestSetId(), testSet);
+        return testSet;
+    }
+
+    @Override
+    public BenchmarkTestSet findTestSetByTestSetId(String testSetId) {
+        return testSetStore.get(testSetId);
     }
 }

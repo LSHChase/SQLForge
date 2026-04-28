@@ -163,6 +163,21 @@
   - JSON 字段：`dispatch_payload_json`,`status_history_json`
   - 追溯键：`tenant_id`,`dispatch_event_id`,`recommendation_id`,`report_code`,`logical_object_key`
   - 状态边界：`CREATED -> PUBLISHED -> PULLED -> ACKED|FAILED`；`PUBLISHED` 仅表示可拉取，不表示主动推送或已装数
+- `benchmark_test_set`
+  - 所属服务：`benchmark-engine`
+  - 主键：`test_set_id`
+  - 结构化字段：`tenant_id`,`test_set_name`,`template_id`,`template_type`,`template_version`,`test_set_source`,`status`,`total_cases`,`accepted_cases`,`rejected_cases`,`file_type`,`file_name`,`import_batch_id`,`created_by`,`created_at`,`updated_at`
+  - JSON 字段：`field_mappings_json`,`test_set_labels_json`,`test_set_source_refs_json`
+  - 追溯键：`tenant_id`,`test_set_id`,`import_batch_id`,`template_id`
+  - 状态边界：`READY` / `PARTIAL_READY` / `FAILED`；`FAILED` 仍保留 rejected-row evidence，不把导入失败静默丢弃
+- `benchmark_test_set_case`
+  - 所属服务：`benchmark-engine`
+  - 主键：`case_id`
+  - 外键语义：`test_set_id -> benchmark_test_set.test_set_id`
+  - 结构化字段：`test_set_id`,`sequence_number`,`source_line_number`,`case_name`,`sql_fingerprint`,`datasource_code`,`report_code`,`status`,`rejection_reason`
+  - 大文本字段：`sql_text`
+  - JSON 字段：`tags_json`,`bind_parameters_json`,`raw_case_data_json`
+  - 追溯键：`tenant_id(经 test set 间接关联)`,`test_set_id`,`case_id`,`report_code`,`sql_fingerprint`,`import_batch_id(经 test set 间接关联)`
 
 配置对象：
 

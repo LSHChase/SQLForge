@@ -382,12 +382,14 @@
 
 ## 3.3 Benchmark Engine Task Contract Baseline
 
-当前 `benchmark-engine` 已将压测任务与报告查询契约接到公共 HTTP + MySQL 基线，并通过 `benchmark_task` / `benchmark_task_report`、MyBatis XML repository、in-process scheduled worker、repo-closed 隔离执行服务和持久化导出产物提供可测的提交、轮询、报告查询与失败路径；当前任务队列 carrier 支持默认 `database-worker` 与显式启用的 `external-file-queue`，并把 carrier evidence 暴露到任务响应与审计载荷。
+当前 `benchmark-engine` 已将压测任务、测试集导入与报告查询契约接到公共 HTTP + MySQL 基线，并通过 `benchmark_task` / `benchmark_task_report` / `benchmark_test_set` / `benchmark_test_set_case`、MyBatis XML repository、in-process scheduled worker、repo-closed 隔离执行服务和持久化导出产物提供可测的提交、轮询、测试集导入、报告查询与失败路径；当前任务队列 carrier 支持默认 `database-worker` 与显式启用的 `external-file-queue`，并把 carrier evidence 暴露到任务响应与审计载荷。
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
 | `POST /api/benchmark-engine/tasks` | `BenchmarkTaskSubmitRequest` with `tenantId`,`taskType`,`sqlText/sqlFingerprint`,`taskContext` | `BenchmarkTaskSubmitResponse` with `taskId`,`status`,`currentPhase`,`estimatedReadyAt`,`statusQueryPath`,`queueMode`,`queueEvidence`,`contractStage`,`implementationStage` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
 | `GET /api/benchmark-engine/tasks/{taskId}` | path: `taskId` | `BenchmarkTaskStatusResponse` with `taskId`,`taskType`,`status`,`currentPhase`,`priority`,`progressPercent`,`targetEngines`,`templateId`,`templateType`,`templateVersion`,`testSetId`,`testSetSource`,`testSetLabels[]`,`testSetSourceRefs[]`,`readonlyRequired`,`shadowEnvironmentMode`,`desensitizationRequirement`,`thresholdCount`,`reportId`,`error`,`submittedAt`,`startedAt`,`finishedAt`,`queueMode`,`queueEvidence`,`contractStage`,`implementationStage` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
+| `POST /api/benchmark-engine/test-sets` | `BenchmarkTestSetCreateRequest` with `tenantId`,`testSetName`,`templateId`,`templateType`,`templateVersion`,`testSetSource`,`testSetLabels[]`,`testSetSourceRefs[]`,`importRequest` | `BenchmarkTestSetResponse` with `testSetId`,`tenantId`,`testSetName`,`templateId`,`templateType`,`templateVersion`,`testSetSource`,`status`,`totalCases`,`acceptedCases`,`rejectedCases`,`fileType`,`fileName`,`importBatchId`,`fieldMappings[]`,`testSetLabels[]`,`testSetSourceRefs[]`,`cases[]`,`createdAt`,`updatedAt`,`contractStage`,`implementationStage` | `BATCH_IMPORT_BASELINE` |
+| `GET /api/benchmark-engine/test-sets/{testSetId}` | path: `testSetId` | `BenchmarkTestSetResponse` | `BATCH_IMPORT_BASELINE` |
 | `GET /api/benchmark-engine/reports/{reportId}` | path: `reportId`, query: `format=JSON|PDF|HTML` (default `JSON`) | JSON: `BenchmarkReportResponse`; PDF/HTML: externalized persisted export snapshot with stable `Content-Type` and `Content-Disposition` | `EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE` |
 | `GET /api/benchmark-engine/reports/{reportId}/raw-data` | path: `reportId` | attachment download backed by persisted raw-data snapshot with stable `Content-Type` and `Content-Disposition` | `EXTERNAL_QUEUE_PROVIDER_NATIVE_STORAGE_BASELINE` |
 
@@ -396,6 +398,8 @@
 - `BenchmarkTaskSubmitRequest`
 - `BenchmarkTaskSubmitResponse`
 - `BenchmarkTaskStatusResponse`
+- `BenchmarkTestSetCreateRequest`
+- `BenchmarkTestSetResponse`
 - `BenchmarkReportResponse`
 
 当前 `BenchmarkTaskSubmitRequest` 基线字段如下：
@@ -464,6 +468,45 @@
 - `contractStage`
 - `implementationStage`
 
+当前 `BenchmarkTestSetCreateRequest` / `BenchmarkTestSetResponse` 基线字段如下：
+
+- `tenantId`：必填
+- `testSetName`：必填
+- `templateId` / `templateType` / `templateVersion`：可选；当前用于把导入测试集与 template contract 显式关联
+- `testSetSource`：当前只开放 `BATCH_IMPORT`
+- `testSetLabels[]`：标签模型，沿用 `type` / `value`
+- `testSetSourceRefs[]`：额外来源引用；当前导入链路会补充 `IMPORT_BATCH`
+- `importRequest.fileType`：当前支持 `CSV` / `TXT` / `XLSX` / `XLS`
+- `importRequest.fileName`
+- `importRequest.contentBase64`
+- `importRequest.charset`：可选，默认 `UTF-8`
+- `importRequest.delimiter`：可选，`TXT` 默认 `TAB`，其余默认 `,`
+- `importRequest.fieldMappings[].field`：当前支持 `CASE_NAME` / `SQL_TEXT` / `SQL_FINGERPRINT` / `DATASOURCE_CODE` / `REPORT_CODE` / `TAGS` / `BIND_PARAMETERS_JSON`
+- `importRequest.fieldMappings[].columnName`
+- `response.status`：`READY` / `PARTIAL_READY` / `FAILED`
+- `response.totalCases` / `acceptedCases` / `rejectedCases`
+- `response.importBatchId`
+- `response.fieldMappings[]`
+- `response.testSetLabels[]`
+- `response.testSetSourceRefs[]`
+- `response.cases[].caseId`
+- `response.cases[].sequenceNumber`
+- `response.cases[].sourceLineNumber`
+- `response.cases[].caseName`
+- `response.cases[].sqlText`
+- `response.cases[].sqlFingerprint`
+- `response.cases[].datasourceCode`
+- `response.cases[].reportCode`
+- `response.cases[].tags[]`
+- `response.cases[].bindParametersJson`
+- `response.cases[].status`
+- `response.cases[].rejectionReason`
+- `response.cases[].rawCaseDataJson`
+- `response.createdAt`
+- `response.updatedAt`
+- `response.contractStage`
+- `response.implementationStage`
+
 当前 `BenchmarkReportResponse` 基线字段如下：
 
 - `reportId`
@@ -530,6 +573,8 @@
 
 - 当前 `POST /api/benchmark-engine/tasks` 会先返回 `QUEUED / SUBMITTED` 快照，再由 `BenchmarkTaskWorker` 基于 `benchmark_task` 表推进到成功或失败，并在成功路径上先向 `query-execution` 内部受保护入口抓取 workload/backfill snapshot，再执行 repo-closed 隔离 replay、组装报告快照、生成导出产物、externalize 到 artifact storage、调用治理 trace/export orchestration，最后把 artifact metadata 回写到 `benchmark_task_report`；当 `benchmark-engine.queues.mode=external-file-queue` 时，提交流程会先把最小 envelope 写入外部文件队列，并把 `queueMessagePath` 等 evidence 回写到任务状态历史与审计面。
 - 当前 `GET /api/benchmark-engine/tasks/{taskId}` 已可查询最新任务状态，并返回 `queueMode/queueEvidence` 以标记当前任务使用的 queue carrier；未知任务返回 `23001`。
+- 当前 `POST /api/benchmark-engine/test-sets` 已可接收 base64 文件、表头字段映射和标签元数据，把通过只读 SQL 边界校验的行导入为 `ACCEPTED` case，把越界 SQL / 非法 JSON / 缺失必填字段的行保留为 `REJECTED` evidence，并自动补充 `IMPORT_BATCH` 来源引用；导入结果按 `READY` / `PARTIAL_READY` / `FAILED` 收口到 `benchmark_test_set` / `benchmark_test_set_case`。
+- 当前 `GET /api/benchmark-engine/test-sets/{testSetId}` 可返回测试集元数据、成员列表和 rejected-row evidence；未知测试集当前沿用 `23001`。
 - 当前 `GET /api/benchmark-engine/reports/{reportId}` 默认返回结构化 JSON；当 `format=PDF|HTML` 时返回 externalized 持久化导出产物内容，并保留稳定的 content-type / filename 契约。
 - 当前 `GET /api/benchmark-engine/reports/{reportId}/raw-data` 返回 attachment download，并从 externalized raw-data snapshot 直接读取响应体。
 - 当前失败路径通过 SQL 或指纹中的显式 `FAIL_BENCHMARK` 标记触发，用于稳定验证 worker 失败与轮询失败场景。

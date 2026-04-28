@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkReportRecord;
 import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTaskRecord;
+import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetCaseRecord;
+import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetRecord;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 
@@ -115,6 +117,96 @@ class BenchmarkPersistenceRecordTest {
         assertEquals("[{\"engine\":\"HETU\"}]", record.getEngineProfilesJson());
         assertEquals("[{\"metric\":\"P99_LATENCY_MS\"}]", record.getThresholdAssessmentsJson());
         assertEquals("[{\"category\":\"REGRESSION_GATE\"}]", record.getRecommendationsJson());
+        assertEquals(now.plusMinutes(1), record.getCreateTime());
+        assertEquals(now.plusMinutes(2), record.getUpdateTime());
+    }
+
+    @Test
+    void shouldExposeBenchmarkTestSetRecordBeanContract() {
+        BenchmarkTestSetRecord record = new BenchmarkTestSetRecord();
+        LocalDateTime now = LocalDateTime.of(2026, 4, 22, 11, 0, 0);
+        record.setTestSetId("set-001");
+        record.setTenantId("tenant-a");
+        record.setTestSetName("route-governance-import");
+        record.setTemplateId("comparison-dual-engine");
+        record.setTemplateType("CROSS_ENGINE_COMPARISON");
+        record.setTemplateVersion("v2026.04");
+        record.setTestSetSource("BATCH_IMPORT");
+        record.setStatus("PARTIAL_READY");
+        record.setTotalCases(Integer.valueOf(2));
+        record.setAcceptedCases(Integer.valueOf(1));
+        record.setRejectedCases(Integer.valueOf(1));
+        record.setFileType("CSV");
+        record.setFileName("comparison.csv");
+        record.setImportBatchId("import-001");
+        record.setFieldMappingsJson("[{\"field\":\"SQL_TEXT\",\"columnName\":\"sql_text\"}]");
+        record.setTestSetLabelsJson("[{\"type\":\"SCENARIO\",\"value\":\"COMPARISON\"}]");
+        record.setTestSetSourceRefsJson("[{\"type\":\"IMPORT_BATCH\",\"referenceId\":\"import-001\"}]");
+        record.setCreatedBy("operator-001");
+        record.setCreatedAt(now);
+        record.setUpdatedAt(now.plusMinutes(1));
+        record.setCreateTime(now.plusMinutes(2));
+        record.setUpdateTime(now.plusMinutes(3));
+
+        assertEquals("set-001", record.getTestSetId());
+        assertEquals("tenant-a", record.getTenantId());
+        assertEquals("route-governance-import", record.getTestSetName());
+        assertEquals("comparison-dual-engine", record.getTemplateId());
+        assertEquals("CROSS_ENGINE_COMPARISON", record.getTemplateType());
+        assertEquals("v2026.04", record.getTemplateVersion());
+        assertEquals("BATCH_IMPORT", record.getTestSetSource());
+        assertEquals("PARTIAL_READY", record.getStatus());
+        assertEquals(Integer.valueOf(2), record.getTotalCases());
+        assertEquals(Integer.valueOf(1), record.getAcceptedCases());
+        assertEquals(Integer.valueOf(1), record.getRejectedCases());
+        assertEquals("CSV", record.getFileType());
+        assertEquals("comparison.csv", record.getFileName());
+        assertEquals("import-001", record.getImportBatchId());
+        assertEquals("[{\"field\":\"SQL_TEXT\",\"columnName\":\"sql_text\"}]", record.getFieldMappingsJson());
+        assertEquals("[{\"type\":\"SCENARIO\",\"value\":\"COMPARISON\"}]", record.getTestSetLabelsJson());
+        assertEquals("[{\"type\":\"IMPORT_BATCH\",\"referenceId\":\"import-001\"}]", record.getTestSetSourceRefsJson());
+        assertEquals("operator-001", record.getCreatedBy());
+        assertEquals(now, record.getCreatedAt());
+        assertEquals(now.plusMinutes(1), record.getUpdatedAt());
+        assertEquals(now.plusMinutes(2), record.getCreateTime());
+        assertEquals(now.plusMinutes(3), record.getUpdateTime());
+    }
+
+    @Test
+    void shouldExposeBenchmarkTestSetCaseRecordBeanContract() {
+        BenchmarkTestSetCaseRecord record = new BenchmarkTestSetCaseRecord();
+        LocalDateTime now = LocalDateTime.of(2026, 4, 22, 12, 0, 0);
+        record.setCaseId("case-001");
+        record.setTestSetId("set-001");
+        record.setSequenceNumber(Integer.valueOf(1));
+        record.setSourceLineNumber(Integer.valueOf(2));
+        record.setCaseName("primary");
+        record.setSqlText("SELECT * FROM orders");
+        record.setSqlFingerprint("fp-001");
+        record.setDatasourceCode("ds-a");
+        record.setReportCode("report-001");
+        record.setTagsJson("[\"comparison\",\"route\"]");
+        record.setBindParametersJson("{\"bizDate\":\"2026-04-22\"}");
+        record.setStatus("ACCEPTED");
+        record.setRejectionReason("none");
+        record.setRawCaseDataJson("{\"sql_text\":\"SELECT * FROM orders\"}");
+        record.setCreateTime(now.plusMinutes(1));
+        record.setUpdateTime(now.plusMinutes(2));
+
+        assertEquals("case-001", record.getCaseId());
+        assertEquals("set-001", record.getTestSetId());
+        assertEquals(Integer.valueOf(1), record.getSequenceNumber());
+        assertEquals(Integer.valueOf(2), record.getSourceLineNumber());
+        assertEquals("primary", record.getCaseName());
+        assertEquals("SELECT * FROM orders", record.getSqlText());
+        assertEquals("fp-001", record.getSqlFingerprint());
+        assertEquals("ds-a", record.getDatasourceCode());
+        assertEquals("report-001", record.getReportCode());
+        assertEquals("[\"comparison\",\"route\"]", record.getTagsJson());
+        assertEquals("{\"bizDate\":\"2026-04-22\"}", record.getBindParametersJson());
+        assertEquals("ACCEPTED", record.getStatus());
+        assertEquals("none", record.getRejectionReason());
+        assertEquals("{\"sql_text\":\"SELECT * FROM orders\"}", record.getRawCaseDataJson());
         assertEquals(now.plusMinutes(1), record.getCreateTime());
         assertEquals(now.plusMinutes(2), record.getUpdateTime());
     }

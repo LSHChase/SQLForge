@@ -21,7 +21,14 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTemplateType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetLabel;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetLabelType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSet;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetCase;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetCaseStatus;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetField;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetFieldMapping;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetFileType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetSource;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetStatus;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThreshold;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdAssessment;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdMetric;
@@ -31,10 +38,15 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdVerdict;
 import com.company.benchmarkengine.domain.benchmark.DesensitizationRequirement;
 import com.company.benchmarkengine.domain.benchmark.ShadowEnvironmentMode;
 import com.company.benchmarkengine.domain.benchmark.repository.BenchmarkTaskRepository;
+import com.company.benchmarkengine.domain.benchmark.repository.BenchmarkTestSetRepository;
 import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkReportRecord;
 import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTaskRecord;
+import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetCaseRecord;
+import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetRecord;
 import com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkReportMapper;
 import com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTaskMapper;
+import com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTestSetCaseMapper;
+import com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTestSetMapper;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.utils.JsonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -52,7 +64,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @ConditionalOnExpression("'${benchmark-engine.queues.mode:database-worker}' != 'local-placeholder'")
-public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
+public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, BenchmarkTestSetRepository {
 
     private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
     private static final TypeReference<List<Map<String, Object>>> LIST_OF_MAPS = new TypeReference<List<Map<String, Object>>>() {
@@ -64,12 +76,18 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
 
     private final BenchmarkTaskMapper benchmarkTaskMapper;
     private final BenchmarkReportMapper benchmarkReportMapper;
+    private final BenchmarkTestSetMapper benchmarkTestSetMapper;
+    private final BenchmarkTestSetCaseMapper benchmarkTestSetCaseMapper;
     private final ObjectMapper objectMapper;
 
     public MybatisBenchmarkTaskRepository(BenchmarkTaskMapper benchmarkTaskMapper,
-                                          BenchmarkReportMapper benchmarkReportMapper) {
+                                          BenchmarkReportMapper benchmarkReportMapper,
+                                          BenchmarkTestSetMapper benchmarkTestSetMapper,
+                                          BenchmarkTestSetCaseMapper benchmarkTestSetCaseMapper) {
         this.benchmarkTaskMapper = benchmarkTaskMapper;
         this.benchmarkReportMapper = benchmarkReportMapper;
+        this.benchmarkTestSetMapper = benchmarkTestSetMapper;
+        this.benchmarkTestSetCaseMapper = benchmarkTestSetCaseMapper;
         this.objectMapper = JsonUtils.objectMapper();
     }
 
@@ -129,6 +147,31 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
         return tasks;
     }
 
+    @Override
+    public BenchmarkTestSet saveTestSet(BenchmarkTestSet testSet) {
+        BenchmarkTestSetRecord record = toTestSetRecord(testSet);
+        if (benchmarkTestSetMapper.selectByTestSetId(testSet.getTestSetId()) == null) {
+            benchmarkTestSetMapper.insert(record);
+        } else {
+            benchmarkTestSetMapper.update(record);
+        }
+        benchmarkTestSetCaseMapper.deleteByTestSetId(testSet.getTestSetId());
+        for (BenchmarkTestSetCase item : testSet.getCases()) {
+            benchmarkTestSetCaseMapper.insert(toTestSetCaseRecord(item));
+        }
+        return testSet;
+    }
+
+    @Override
+    public BenchmarkTestSet findTestSetByTestSetId(String testSetId) {
+        BenchmarkTestSetRecord record = benchmarkTestSetMapper.selectByTestSetId(testSetId);
+        if (record == null) {
+            return null;
+        }
+        List<BenchmarkTestSetCaseRecord> caseRecords = benchmarkTestSetCaseMapper.selectByTestSetId(testSetId);
+        return toTestSet(record, caseRecords);
+    }
+
     private BenchmarkTaskRecord toTaskRecord(BenchmarkTask task) {
         BenchmarkTaskRecord record = new BenchmarkTaskRecord();
         record.setTaskId(task.getTaskId());
@@ -167,6 +210,50 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
         record.setSubmittedAt(toLocalDateTime(task.getSubmittedAt()));
         record.setStartedAt(toLocalDateTime(task.getStartedAt()));
         record.setFinishedAt(toLocalDateTime(task.getFinishedAt()));
+        return record;
+    }
+
+    private BenchmarkTestSetRecord toTestSetRecord(BenchmarkTestSet testSet) {
+        BenchmarkTestSetRecord record = new BenchmarkTestSetRecord();
+        record.setTestSetId(testSet.getTestSetId());
+        record.setTenantId(testSet.getTenantId());
+        record.setTestSetName(testSet.getTestSetName());
+        record.setTemplateId(testSet.getTemplateId());
+        record.setTemplateType(testSet.getTemplateType() == null ? null : testSet.getTemplateType().name());
+        record.setTemplateVersion(testSet.getTemplateVersion());
+        record.setTestSetSource(testSet.getTestSetSource().name());
+        record.setStatus(testSet.getStatus().name());
+        record.setTotalCases(testSet.getTotalCases());
+        record.setAcceptedCases(testSet.getAcceptedCases());
+        record.setRejectedCases(testSet.getRejectedCases());
+        record.setFileType(testSet.getFileType() == null ? null : testSet.getFileType().name());
+        record.setFileName(testSet.getFileName());
+        record.setImportBatchId(testSet.getImportBatchId());
+        record.setFieldMappingsJson(writeJson(testSet.getFieldMappings()));
+        record.setTestSetLabelsJson(writeJson(testSet.getTestSetLabels()));
+        record.setTestSetSourceRefsJson(writeJson(testSet.getTestSetSourceRefs()));
+        record.setCreatedBy(testSet.getCreatedBy());
+        record.setCreatedAt(toLocalDateTime(testSet.getCreatedAt()));
+        record.setUpdatedAt(toLocalDateTime(testSet.getUpdatedAt()));
+        return record;
+    }
+
+    private BenchmarkTestSetCaseRecord toTestSetCaseRecord(BenchmarkTestSetCase item) {
+        BenchmarkTestSetCaseRecord record = new BenchmarkTestSetCaseRecord();
+        record.setCaseId(item.getCaseId());
+        record.setTestSetId(item.getTestSetId());
+        record.setSequenceNumber(item.getSequenceNumber());
+        record.setSourceLineNumber(item.getSourceLineNumber());
+        record.setCaseName(item.getCaseName());
+        record.setSqlText(item.getSqlText());
+        record.setSqlFingerprint(item.getSqlFingerprint());
+        record.setDatasourceCode(item.getDatasourceCode());
+        record.setReportCode(item.getReportCode());
+        record.setTagsJson(writeJson(item.getTags()));
+        record.setBindParametersJson(item.getBindParametersJson());
+        record.setStatus(item.getStatus().name());
+        record.setRejectionReason(item.getRejectionReason());
+        record.setRawCaseDataJson(item.getRawCaseDataJson());
         return record;
     }
 
@@ -244,6 +331,32 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
         );
     }
 
+    private BenchmarkTestSet toTestSet(BenchmarkTestSetRecord record, List<BenchmarkTestSetCaseRecord> caseRecords) {
+        return new BenchmarkTestSet(
+            record.getTestSetId(),
+            record.getTenantId(),
+            record.getTestSetName(),
+            record.getTemplateId(),
+            record.getTemplateType() == null ? null : BenchmarkTemplateType.valueOf(record.getTemplateType()),
+            record.getTemplateVersion(),
+            BenchmarkTestSetSource.valueOf(record.getTestSetSource()),
+            BenchmarkTestSetStatus.valueOf(record.getStatus()),
+            record.getTotalCases(),
+            record.getAcceptedCases(),
+            record.getRejectedCases(),
+            record.getFileType() == null ? null : BenchmarkTestSetFileType.valueOf(record.getFileType()),
+            record.getFileName(),
+            record.getImportBatchId(),
+            readFieldMappings(record.getFieldMappingsJson()),
+            readTestSetLabels(record.getTestSetLabelsJson()),
+            readSourceReferences(record.getTestSetSourceRefsJson()),
+            readTestSetCases(caseRecords),
+            record.getCreatedBy(),
+            toInstant(record.getCreatedAt()),
+            toInstant(record.getUpdatedAt())
+        );
+    }
+
     private BenchmarkTaskError toError(BenchmarkTaskRecord record) {
         if (record.getErrorCode() == null) {
             return null;
@@ -317,6 +430,27 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
         }
     }
 
+    private List<BenchmarkTestSetFieldMapping> readFieldMappings(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            List<Map<String, Object>> items = objectMapper.readValue(json, LIST_OF_MAPS);
+            List<BenchmarkTestSetFieldMapping> mappings = new ArrayList<BenchmarkTestSetFieldMapping>(items.size());
+            for (Map<String, Object> item : items) {
+                mappings.add(
+                    new BenchmarkTestSetFieldMapping(
+                        readEnum(item.get("field"), BenchmarkTestSetField.class),
+                        item.get("columnName") == null ? null : String.valueOf(item.get("columnName"))
+                    )
+                );
+            }
+            return mappings;
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Failed to deserialize benchmark test-set field mappings", ex);
+        }
+    }
+
     private List<BenchmarkSourceReference> readSourceReferences(String json) {
         if (json == null || json.trim().isEmpty()) {
             return Collections.emptyList();
@@ -336,6 +470,34 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
         } catch (Exception ex) {
             throw new IllegalArgumentException("Failed to deserialize benchmark source references", ex);
         }
+    }
+
+    private List<BenchmarkTestSetCase> readTestSetCases(List<BenchmarkTestSetCaseRecord> records) {
+        if (records == null || records.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<BenchmarkTestSetCase> items = new ArrayList<BenchmarkTestSetCase>(records.size());
+        for (BenchmarkTestSetCaseRecord record : records) {
+            items.add(
+                new BenchmarkTestSetCase(
+                    record.getCaseId(),
+                    record.getTestSetId(),
+                    record.getSequenceNumber(),
+                    record.getSourceLineNumber(),
+                    record.getCaseName(),
+                    record.getSqlText(),
+                    record.getSqlFingerprint(),
+                    record.getDatasourceCode(),
+                    record.getReportCode(),
+                    readStringList(record.getTagsJson()),
+                    record.getBindParametersJson(),
+                    BenchmarkTestSetCaseStatus.valueOf(record.getStatus()),
+                    record.getRejectionReason(),
+                    record.getRawCaseDataJson()
+                )
+            );
+        }
+        return items;
     }
 
     private List<BenchmarkTaskStatusTransition> readStatusHistory(String json) {
@@ -495,6 +657,18 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository {
     }
 
     private List<String> readStringList(Object raw) {
+        if (raw instanceof String) {
+            String json = String.valueOf(raw);
+            if (json.trim().isEmpty() || "null".equals(json.trim())) {
+                return Collections.emptyList();
+            }
+            try {
+                List<String> values = objectMapper.readValue(json, LIST_OF_STRINGS);
+                return values == null ? Collections.<String>emptyList() : values;
+            } catch (Exception ex) {
+                throw new IllegalArgumentException("Failed to deserialize benchmark string list", ex);
+            }
+        }
         if (!(raw instanceof List<?>)) {
             return Collections.emptyList();
         }

@@ -31,8 +31,16 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskStatus;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReferenceType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTemplateType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSet;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetCase;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetCaseStatus;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetField;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetFieldMapping;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetFileType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetLabelType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetSource;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetStatus;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdMetric;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdOperator;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdSeverity;
@@ -41,8 +49,12 @@ import com.company.benchmarkengine.domain.benchmark.DesensitizationRequirement;
 import com.company.benchmarkengine.domain.benchmark.ShadowEnvironmentMode;
 import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkReportRecord;
 import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTaskRecord;
+import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetCaseRecord;
+import com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetRecord;
 import com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkReportMapper;
 import com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTaskMapper;
+import com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTestSetCaseMapper;
+import com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTestSetMapper;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -66,7 +78,7 @@ class MybatisBenchmarkTaskRepositoryTest {
             return Integer.valueOf(1);
         }).when(taskMapper).insert(any(BenchmarkTaskRecord.class));
 
-        MybatisBenchmarkTaskRepository repository = new MybatisBenchmarkTaskRepository(taskMapper, reportMapper);
+        MybatisBenchmarkTaskRepository repository = repository(taskMapper, reportMapper);
         BenchmarkTask task = createQueuedTask("task-db-001", BenchmarkTaskType.COMPARISON, Instant.parse("2026-04-22T05:00:00Z"));
         task.markRunning(Instant.parse("2026-04-22T05:00:05Z"));
         task.advancePhase(BenchmarkTaskPhase.SHADOW_VALIDATING, 25, "BASELINE_PREPARED");
@@ -145,7 +157,7 @@ class MybatisBenchmarkTaskRepositoryTest {
             return Integer.valueOf(1);
         }).when(taskMapper).update(any(BenchmarkTaskRecord.class));
 
-        MybatisBenchmarkTaskRepository repository = new MybatisBenchmarkTaskRepository(taskMapper, reportMapper);
+        MybatisBenchmarkTaskRepository repository = repository(taskMapper, reportMapper);
         BenchmarkTask task = createQueuedTask("task-db-002", BenchmarkTaskType.BASELINE, Instant.parse("2026-04-22T04:00:00Z"));
 
         repository.saveTask(task);
@@ -181,7 +193,7 @@ class MybatisBenchmarkTaskRepositoryTest {
             return Integer.valueOf(1);
         }).when(reportMapper).update(any(BenchmarkReportRecord.class));
 
-        MybatisBenchmarkTaskRepository repository = new MybatisBenchmarkTaskRepository(taskMapper, reportMapper);
+        MybatisBenchmarkTaskRepository repository = repository(taskMapper, reportMapper);
         BenchmarkTaskModelApplicationService modelService = new BenchmarkTaskModelApplicationService();
         BenchmarkTask task = createQueuedTask("task-db-003", BenchmarkTaskType.REGRESSION_GUARD, Instant.parse("2026-04-22T06:00:00Z"));
         task.markRunning(Instant.parse("2026-04-22T06:00:05Z"));
@@ -227,6 +239,137 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertNull(repository.findReportByReportId("missing-report"));
     }
 
+    @Test
+    void shouldPersistAndRestoreBenchmarkTestSetAndRejectedCaseEvidence() {
+        BenchmarkTaskMapper taskMapper = org.mockito.Mockito.mock(BenchmarkTaskMapper.class);
+        BenchmarkReportMapper reportMapper = org.mockito.Mockito.mock(BenchmarkReportMapper.class);
+        BenchmarkTestSetMapper testSetMapper = org.mockito.Mockito.mock(BenchmarkTestSetMapper.class);
+        BenchmarkTestSetCaseMapper testSetCaseMapper = org.mockito.Mockito.mock(BenchmarkTestSetCaseMapper.class);
+        AtomicReference<BenchmarkTestSetRecord> storedTestSet = new AtomicReference<BenchmarkTestSetRecord>();
+        AtomicReference<List<BenchmarkTestSetCaseRecord>> storedCases =
+            new AtomicReference<List<BenchmarkTestSetCaseRecord>>(Collections.<BenchmarkTestSetCaseRecord>emptyList());
+        when(testSetMapper.selectByTestSetId("set-db-001")).thenAnswer(invocation -> storedTestSet.get());
+        when(testSetCaseMapper.selectByTestSetId("set-db-001")).thenAnswer(invocation -> storedCases.get());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            storedTestSet.set((BenchmarkTestSetRecord) invocation.getArgument(0));
+            return Integer.valueOf(1);
+        }).when(testSetMapper).insert(any(BenchmarkTestSetRecord.class));
+        org.mockito.Mockito.doAnswer(invocation -> {
+            storedTestSet.set((BenchmarkTestSetRecord) invocation.getArgument(0));
+            return Integer.valueOf(1);
+        }).when(testSetMapper).update(any(BenchmarkTestSetRecord.class));
+        org.mockito.Mockito.doAnswer(invocation -> {
+            storedCases.set(new java.util.ArrayList<BenchmarkTestSetCaseRecord>());
+            return Integer.valueOf(2);
+        }).when(testSetCaseMapper).deleteByTestSetId("set-db-001");
+        org.mockito.Mockito.doAnswer(invocation -> {
+            List<BenchmarkTestSetCaseRecord> snapshot = new java.util.ArrayList<BenchmarkTestSetCaseRecord>(storedCases.get());
+            snapshot.add((BenchmarkTestSetCaseRecord) invocation.getArgument(0));
+            storedCases.set(snapshot);
+            return Integer.valueOf(1);
+        }).when(testSetCaseMapper).insert(any(BenchmarkTestSetCaseRecord.class));
+
+        MybatisBenchmarkTaskRepository repository =
+            new MybatisBenchmarkTaskRepository(taskMapper, reportMapper, testSetMapper, testSetCaseMapper);
+        BenchmarkTestSet testSet = new BenchmarkTestSet(
+            "set-db-001",
+            "tenant-a",
+            "route-governance-import",
+            "comparison-dual-engine",
+            BenchmarkTemplateType.CROSS_ENGINE_COMPARISON,
+            "v2026.04",
+            BenchmarkTestSetSource.BATCH_IMPORT,
+            BenchmarkTestSetStatus.PARTIAL_READY,
+            Integer.valueOf(2),
+            Integer.valueOf(1),
+            Integer.valueOf(1),
+            BenchmarkTestSetFileType.CSV,
+            "comparison.csv",
+            "import-batch-001",
+            Arrays.asList(
+                new BenchmarkTestSetFieldMapping(BenchmarkTestSetField.CASE_NAME, "case_name"),
+                new BenchmarkTestSetFieldMapping(BenchmarkTestSetField.SQL_TEXT, "sql_text")
+            ),
+            Arrays.asList(
+                new com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetLabel(
+                    BenchmarkTestSetLabelType.SCENARIO,
+                    "COMPARISON"
+                )
+            ),
+            Arrays.asList(
+                new BenchmarkSourceReference(BenchmarkSourceReferenceType.IMPORT_BATCH, "import-batch-001")
+            ),
+            Arrays.asList(
+                new BenchmarkTestSetCase(
+                    "case-001",
+                    "set-db-001",
+                    Integer.valueOf(1),
+                    Integer.valueOf(2),
+                    "primary",
+                    "SELECT * FROM orders",
+                    "fp-001",
+                    "ds-a",
+                    "report-001",
+                    Arrays.asList("comparison", "route"),
+                    "{\"bizDate\":\"2026-04-22\"}",
+                    BenchmarkTestSetCaseStatus.ACCEPTED,
+                    null,
+                    "{\"sql_text\":\"SELECT * FROM orders\"}"
+                ),
+                new BenchmarkTestSetCase(
+                    "case-002",
+                    "set-db-001",
+                    Integer.valueOf(2),
+                    Integer.valueOf(3),
+                    "rejected",
+                    "DELETE FROM orders",
+                    "fp-002",
+                    "ds-a",
+                    "report-002",
+                    Collections.singletonList("unsafe"),
+                    null,
+                    BenchmarkTestSetCaseStatus.REJECTED,
+                    "sqlText contains write operations",
+                    "{\"sql_text\":\"DELETE FROM orders\"}"
+                )
+            ),
+            "operator-001",
+            Instant.parse("2026-04-22T07:00:00Z"),
+            Instant.parse("2026-04-22T07:05:00Z")
+        );
+
+        repository.saveTestSet(testSet);
+
+        BenchmarkTestSetRecord record = storedTestSet.get();
+        assertNotNull(record);
+        assertEquals("set-db-001", record.getTestSetId());
+        assertEquals("tenant-a", record.getTenantId());
+        assertEquals("comparison-dual-engine", record.getTemplateId());
+        assertEquals("PARTIAL_READY", record.getStatus());
+        assertEquals("CSV", record.getFileType());
+        assertTrue(record.getFieldMappingsJson().contains("case_name"));
+        assertTrue(record.getTestSetSourceRefsJson().contains("IMPORT_BATCH"));
+        assertEquals(2, storedCases.get().size());
+        assertEquals("ACCEPTED", storedCases.get().get(0).getStatus());
+        assertEquals("REJECTED", storedCases.get().get(1).getStatus());
+        assertTrue(storedCases.get().get(0).getTagsJson().contains("comparison"));
+
+        BenchmarkTestSet restored = repository.findTestSetByTestSetId("set-db-001");
+
+        assertNotNull(restored);
+        assertEquals(BenchmarkTestSetStatus.PARTIAL_READY, restored.getStatus());
+        assertEquals(BenchmarkTestSetFileType.CSV, restored.getFileType());
+        assertEquals(2, restored.getCases().size());
+        assertEquals(BenchmarkTestSetCaseStatus.ACCEPTED, restored.getCases().get(0).getStatus());
+        assertEquals(BenchmarkTestSetCaseStatus.REJECTED, restored.getCases().get(1).getStatus());
+        assertEquals("sqlText contains write operations", restored.getCases().get(1).getRejectionReason());
+        assertEquals(2, restored.getCases().get(0).getTags().size());
+        assertEquals("comparison", restored.getCases().get(0).getTags().get(0));
+        assertEquals("import-batch-001", restored.getTestSetSourceRefs().get(0).getReferenceId());
+        verify(testSetMapper).insert(any(BenchmarkTestSetRecord.class));
+        verify(testSetCaseMapper).deleteByTestSetId("set-db-001");
+    }
+
     private BenchmarkReport createExecutedReport(BenchmarkTaskModelApplicationService modelService,
                                                  BenchmarkTask task,
                                                  Instant generatedAt) {
@@ -246,6 +389,15 @@ class MybatisBenchmarkTaskRepositoryTest {
 
     private BenchmarkTask createQueuedTask(String taskId, BenchmarkTaskType taskType, Instant submittedAt) {
         return new BenchmarkTaskModelApplicationService().createQueuedTask(baseRequest(taskType), taskId, submittedAt);
+    }
+
+    private MybatisBenchmarkTaskRepository repository(BenchmarkTaskMapper taskMapper, BenchmarkReportMapper reportMapper) {
+        return new MybatisBenchmarkTaskRepository(
+            taskMapper,
+            reportMapper,
+            org.mockito.Mockito.mock(BenchmarkTestSetMapper.class),
+            org.mockito.Mockito.mock(BenchmarkTestSetCaseMapper.class)
+        );
     }
 
     private BenchmarkTaskSubmitRequest baseRequest(BenchmarkTaskType taskType) {

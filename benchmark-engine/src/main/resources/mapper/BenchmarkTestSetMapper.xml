@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTestSetMapper">
+
+    <resultMap id="BenchmarkTestSetRecordMap" type="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetRecord">
+        <id property="testSetId" column="test_set_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="testSetName" column="test_set_name"/>
+        <result property="templateId" column="template_id"/>
+        <result property="templateType" column="template_type"/>
+        <result property="templateVersion" column="template_version"/>
+        <result property="testSetSource" column="test_set_source"/>
+        <result property="status" column="status"/>
+        <result property="totalCases" column="total_cases"/>
+        <result property="acceptedCases" column="accepted_cases"/>
+        <result property="rejectedCases" column="rejected_cases"/>
+        <result property="fileType" column="file_type"/>
+        <result property="fileName" column="file_name"/>
+        <result property="importBatchId" column="import_batch_id"/>
+        <result property="fieldMappingsJson" column="field_mappings_json"/>
+        <result property="testSetLabelsJson" column="test_set_labels_json"/>
+        <result property="testSetSourceRefsJson" column="test_set_source_refs_json"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        test_set_id,
+        tenant_id,
+        test_set_name,
+        template_id,
+        template_type,
+        template_version,
+        test_set_source,
+        status,
+        total_cases,
+        accepted_cases,
+        rejected_cases,
+        file_type,
+        file_name,
+        import_batch_id,
+        field_mappings_json,
+        test_set_labels_json,
+        test_set_source_refs_json,
+        created_by,
+        created_at,
+        updated_at,
+        create_time,
+        update_time
+    </sql>
+
+    <select id="selectByTestSetId" resultMap="BenchmarkTestSetRecordMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM benchmark_test_set
+        WHERE test_set_id = #{testSetId}
+    </select>
+
+    <insert id="insert" parameterType="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetRecord">
+        INSERT INTO benchmark_test_set (
+            test_set_id,
+            tenant_id,
+            test_set_name,
+            template_id,
+            template_type,
+            template_version,
+            test_set_source,
+            status,
+            total_cases,
+            accepted_cases,
+            rejected_cases,
+            file_type,
+            file_name,
+            import_batch_id,
+            field_mappings_json,
+            test_set_labels_json,
+            test_set_source_refs_json,
+            created_by,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{testSetId},
+            #{tenantId},
+            #{testSetName},
+            #{templateId},
+            #{templateType},
+            #{templateVersion},
+            #{testSetSource},
+            #{status},
+            #{totalCases},
+            #{acceptedCases},
+            #{rejectedCases},
+            #{fileType},
+            #{fileName},
+            #{importBatchId},
+            #{fieldMappingsJson},
+            #{testSetLabelsJson},
+            #{testSetSourceRefsJson},
+            #{createdBy},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetRecord">
+        UPDATE benchmark_test_set
+        SET tenant_id = #{tenantId},
+            test_set_name = #{testSetName},
+            template_id = #{templateId},
+            template_type = #{templateType},
+            template_version = #{templateVersion},
+            test_set_source = #{testSetSource},
+            status = #{status},
+            total_cases = #{totalCases},
+            accepted_cases = #{acceptedCases},
+            rejected_cases = #{rejectedCases},
+            file_type = #{fileType},
+            file_name = #{fileName},
+            import_batch_id = #{importBatchId},
+            field_mappings_json = #{fieldMappingsJson},
+            test_set_labels_json = #{testSetLabelsJson},
+            test_set_source_refs_json = #{testSetSourceRefsJson},
+            created_by = #{createdBy},
+            created_at = #{createdAt},
+            updated_at = #{updatedAt}
+        WHERE test_set_id = #{testSetId}
+    </update>
+</mapper>
