@@ -23,6 +23,10 @@ coverage/
 __pycache__/
 *.pyc
 .codex-log/
-.codex/state/*.json
-!.codex/state/*.example.json
+.codex/state/**
 !.codex/state/.gitkeep
+!.codex/state/current-task.example.json
+!.codex/state/*.example.json
+
+codex-history-list/
+docs/references/raw-requirements/generated/*.md
