@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -296,7 +295,7 @@ public class BenchmarkTestSetApplicationService {
         if (sqlText == null) {
             return "sqlText is required";
         }
-        String readonlyFailure = validateReadonlySql(sqlText);
+        String readonlyFailure = BenchmarkReadonlySqlSupport.validateReadonlySql(sqlText);
         if (readonlyFailure != null) {
             return readonlyFailure;
         }
@@ -337,73 +336,6 @@ public class BenchmarkTestSetApplicationService {
             }
         }
         return tags;
-    }
-
-    private String validateReadonlySql(String sqlText) {
-        String normalized = stripLeadingComments(sqlText);
-        if (normalized.isEmpty()) {
-            return "sqlText must be a non-empty read-only SQL statement";
-        }
-        if (normalized.indexOf(';') >= 0) {
-            return "sqlText must not contain multi-statement batching";
-        }
-        String upperSql = normalized.toUpperCase(Locale.ROOT);
-        if (!(upperSql.startsWith("SELECT ")
-            || upperSql.startsWith("WITH ")
-            || upperSql.startsWith("SHOW ")
-            || upperSql.startsWith("DESCRIBE ")
-            || upperSql.startsWith("EXPLAIN "))) {
-            return "sqlText must remain within the read-only benchmark boundary";
-        }
-        String padded = ' ' + upperSql + ' ';
-        String[] forbiddenTokens = {
-            " INSERT ",
-            " UPDATE ",
-            " DELETE ",
-            " MERGE ",
-            " UPSERT ",
-            " CREATE ",
-            " ALTER ",
-            " DROP ",
-            " TRUNCATE ",
-            " GRANT ",
-            " REVOKE ",
-            " CALL ",
-            " EXPORT ",
-            " IMPORT ",
-            " LOAD "
-        };
-        int index;
-        for (index = 0; index < forbiddenTokens.length; index++) {
-            if (padded.contains(forbiddenTokens[index])) {
-                return "sqlText contains write, DDL, privilege, or load operations";
-            }
-        }
-        return null;
-    }
-
-    private String stripLeadingComments(String sqlText) {
-        String remaining = sqlText == null ? "" : sqlText.trim();
-        boolean stripped = true;
-        while (stripped) {
-            stripped = false;
-            remaining = remaining.trim();
-            if (remaining.startsWith("--")) {
-                int lineBreak = remaining.indexOf('\n');
-                remaining = lineBreak >= 0 ? remaining.substring(lineBreak + 1) : "";
-                stripped = true;
-                continue;
-            }
-            if (remaining.startsWith("/*")) {
-                int commentEnd = remaining.indexOf("*/");
-                if (commentEnd < 0) {
-                    return "";
-                }
-                remaining = remaining.substring(commentEnd + 2);
-                stripped = true;
-            }
-        }
-        return remaining.trim();
     }
 
     private void ensureRequiredHeaders(Set<String> headers, List<BenchmarkTestSetFieldMappingDTO> fieldMappings) {

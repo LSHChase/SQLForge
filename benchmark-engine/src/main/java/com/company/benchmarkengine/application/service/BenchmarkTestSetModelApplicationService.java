@@ -15,6 +15,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetCaseStatus;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetFieldMapping;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetLabel;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetStatus;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetSource;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -73,23 +74,25 @@ public class BenchmarkTestSetModelApplicationService {
     }
 
     public BenchmarkTestSet buildGeneratedTestSet(String tenantId,
+                                                  String testSetId,
                                                   String testSetName,
                                                   String templateId,
                                                   BenchmarkTemplateType templateType,
                                                   String templateVersion,
+                                                  BenchmarkTestSetSource source,
                                                   List<BenchmarkTestSetLabel> labels,
                                                   List<BenchmarkSourceReference> refs,
                                                   List<BenchmarkTestSetCase> cases,
                                                   Instant now,
                                                   String createdBy) {
         return buildTestSet(
-            null,
+            testSetId,
             tenantId,
             testSetName,
             trimToNull(templateId),
             templateType,
             trimToNull(templateVersion),
-            com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetSource.PARSE_RESULT_GENERATION,
+            source,
             null,
             null,
             null,

@@ -11,6 +11,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetCase;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetCaseStatus;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetLabel;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetLabelType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetSource;
 import com.company.benchmarkengine.domain.benchmark.repository.BenchmarkTestSetRepository;
 import com.company.benchmarkengine.infrastructure.governance.BenchmarkAuditRecord;
 import com.company.benchmarkengine.infrastructure.governance.GovernanceCapabilityClient;
@@ -35,7 +36,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -80,10 +80,12 @@ public class BenchmarkParseResultTestSetApplicationService {
             }
             BenchmarkTestSet testSet = modelService.buildGeneratedTestSet(
                 request.getTenantId(),
+                null,
                 request.getTestSetName(),
                 request.getTemplateId(),
                 request.getTemplateType(),
                 request.getTemplateVersion(),
+                BenchmarkTestSetSource.PARSE_RESULT_GENERATION,
                 labels,
                 refs,
                 cases,
@@ -206,7 +208,7 @@ public class BenchmarkParseResultTestSetApplicationService {
         if (!"VALID".equals(syntaxStatus)) {
             rejectionReason = "parse structure syntax status is not VALID";
         } else {
-            rejectionReason = validateReadonlySql(sqlText);
+            rejectionReason = BenchmarkReadonlySqlSupport.validateReadonlySql(sqlText);
         }
         return new BenchmarkTestSetCase(
             UUID.randomUUID().toString(),
@@ -414,72 +416,6 @@ public class BenchmarkParseResultTestSetApplicationService {
             labels.add(new BenchmarkTestSetLabel(item.getType(), item.getValue()));
         }
         return labels;
-    }
-
-    private String validateReadonlySql(String sqlText) {
-        String normalized = stripLeadingComments(sqlText);
-        if (normalized.isEmpty()) {
-            return "sqlText must be a non-empty read-only SQL statement";
-        }
-        if (normalized.indexOf(';') >= 0) {
-            return "sqlText must not contain multi-statement batching";
-        }
-        String upperSql = normalized.toUpperCase(Locale.ROOT);
-        if (!(upperSql.startsWith("SELECT ")
-            || upperSql.startsWith("WITH ")
-            || upperSql.startsWith("SHOW ")
-            || upperSql.startsWith("DESCRIBE ")
-            || upperSql.startsWith("EXPLAIN "))) {
-            return "sqlText must remain within the read-only benchmark boundary";
-        }
-        String[] forbiddenTokens = {
-            " INSERT ",
-            " UPDATE ",
-            " DELETE ",
-            " MERGE ",
-            " UPSERT ",
-            " CREATE ",
-            " ALTER ",
-            " DROP ",
-            " TRUNCATE ",
-            " GRANT ",
-            " REVOKE ",
-            " CALL ",
-            " EXPORT ",
-            " IMPORT ",
-            " LOAD "
-        };
-        String padded = ' ' + upperSql + ' ';
-        for (String token : forbiddenTokens) {
-            if (padded.contains(token)) {
-                return "sqlText contains write, DDL, privilege, or load operations";
-            }
-        }
-        return null;
-    }
-
-    private String stripLeadingComments(String sqlText) {
-        String remaining = sqlText == null ? "" : sqlText.trim();
-        boolean stripped = true;
-        while (stripped) {
-            stripped = false;
-            remaining = remaining.trim();
-            if (remaining.startsWith("--")) {
-                int lineBreak = remaining.indexOf('\n');
-                remaining = lineBreak >= 0 ? remaining.substring(lineBreak + 1) : "";
-                stripped = true;
-                continue;
-            }
-            if (remaining.startsWith("/*")) {
-                int commentEnd = remaining.indexOf("*/");
-                if (commentEnd < 0) {
-                    return "";
-                }
-                remaining = remaining.substring(commentEnd + 2);
-                stripped = true;
-            }
-        }
-        return remaining.trim();
     }
 
     private void assertAuthorization(String tenantId, String resourceId, String operationCode) {

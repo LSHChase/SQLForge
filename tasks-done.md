@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-041: 打通推荐 SQL 到对比压测
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(benchmark): orchestrate recommendation comparison benchmarks`
+- Priority: 1
+- Depends on: `F-TASK-040`,`D-TASK-062`
+- Scope: recommendation -> comparison benchmark 契约与编排 Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-F / Story `F-STORY-011` 压测模板、测试集与解析联动
+- Human confirmation point: 若 recommendation-to-benchmark 会把推荐 SQL 自动执行为压测任务、绕过审批与安全边界，需人工确认
+- Data impact: 推荐对象与对比压测联动链路
+- Rollback / recovery: 恢复 recommendation 与 benchmark 的显式确认边界
+- Validation:
+  - `recommendation-to-benchmark 测试`
+  - `python3 scripts/foreman.py validate F-TASK-041`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 recommendation -> comparison benchmark 编排入口：从 sql-optimization 读取 recommendation，校验 source/recommended SQL 的只读边界，生成 RECOMMENDATION_GENERATION test set，并提交 comparison benchmark task；同时补齐 recommendation client、响应契约、只读 SQL 共享校验和 controller/service 测试。
+  - Validation evidence: mvn -pl benchmark-engine clean -Dtest=BenchmarkRecommendationComparisonApplicationServiceTest,BenchmarkTaskControllerTest test；mvn -pl benchmark-engine test；python3 scripts/foreman.py validate F-TASK-041 --extra-command "mvn -pl benchmark-engine test"；python3 scripts/task_audit.py --check --phase pre-closeout；python3 scripts/task_audit.py --check --phase post-closeout。
+  - Residual risk: 当前 comparison benchmark worker 仍以 task 主 SQL 作为执行入口，recommendation test set 中的 source/recommended 双 case 先作为契约与追溯元数据落库；若后续需要真正按测试集多 case 回放，还需扩展 worker 执行面。
+  - Next step: 进入 F-TASK-042，把 benchmark regression summary、threshold hit 和 governance alert linkage 收口到报告与告警编排。
+
 ### F-TASK-040: 打通解析结果到测试集一键生成
 
 - Status: done
