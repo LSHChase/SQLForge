@@ -42,6 +42,11 @@ const checks = [
     ]
   },
   {
+    path: 'src/main.js',
+    required: ['ElDatePicker', 'ElInputNumber'],
+    forbidden: []
+  },
+  {
     path: 'src/views/common/formComponentGovernance.js',
     required: [
       'export const buildTenantOptions',

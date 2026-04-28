@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-047: 修复日期区间选择器页面不可用
+
+- Status: done
+- Completed at: 2026-04-28
+- Commit subject: `fix(frontend): register semantic date components`
+- Priority: 1
+- Depends on: HARN-046
+- Scope: 复现并修复 ParseRecordView 日期/日期时间区间选择器在页面上不可用的问题；用浏览器级验证确认可打开、可选择并提交前拆回既有字段；同步测试与文档。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-047`
+- Progress log:
+  - 2026-04-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复 HARN-046 页面日期区间不可用问题：在 Vue 入口显式注册 Element Plus 的 ElDatePicker 与 ElInputNumber，并扩展表单治理静态检查覆盖运行时组件注册。
+  - Validation evidence: npm run test:form-governance; npm run lint; npm run build; system Chrome Playwright smoke opened ParseRecordView date range panel and selected 2026-04-06..2026-04-10; python3 scripts/foreman.py validate HARN-047; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Playwright packaged browser未安装，浏览器级复现使用系统 /usr/bin/google-chrome；后续若 CI 需要自动化运行，应先补浏览器安装或改用已有 smoke 基础设施。
+  - Next step: 继续页面组件治理时，所有新增 Element Plus 组件必须同步 src/main.js 注册或改为统一插件注册方式。
+
 ### HARN-046: 修正 HARN-045 日期区间组件治理
 
 - Status: done
