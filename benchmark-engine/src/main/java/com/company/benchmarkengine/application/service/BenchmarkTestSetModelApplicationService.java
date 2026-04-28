@@ -25,7 +25,8 @@ import org.springframework.stereotype.Service;
 public class BenchmarkTestSetModelApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
-    private static final String TEST_SET_IMPLEMENTATION_STAGE = "BATCH_IMPORT_BASELINE";
+    private static final String TEST_SET_IMPORT_IMPLEMENTATION_STAGE = "BATCH_IMPORT_BASELINE";
+    private static final String TEST_SET_PARSE_IMPLEMENTATION_STAGE = "PARSE_RESULT_GENERATION_BASELINE";
 
     public BenchmarkTestSet buildImportedTestSet(BenchmarkTestSetCreateRequest request,
                                                  String testSetId,
@@ -51,7 +52,7 @@ public class BenchmarkTestSetModelApplicationService {
         if (!containsSourceReference(refs, BenchmarkSourceReferenceType.IMPORT_BATCH, importBatchId)) {
             refs.add(new BenchmarkSourceReference(BenchmarkSourceReferenceType.IMPORT_BATCH, importBatchId));
         }
-        return new BenchmarkTestSet(
+        return buildTestSet(
             testSetId,
             request.getTenantId(),
             request.getTestSetName(),
@@ -59,10 +60,6 @@ public class BenchmarkTestSetModelApplicationService {
             request.getTemplateType(),
             trimToNull(request.getTemplateVersion()),
             request.getTestSetSource(),
-            status,
-            Integer.valueOf(cases.size()),
-            Integer.valueOf(accepted),
-            Integer.valueOf(rejected),
             request.getImportRequest().getFileType(),
             request.getImportRequest().getFileName(),
             importBatchId,
@@ -71,7 +68,36 @@ public class BenchmarkTestSetModelApplicationService {
             refs,
             cases,
             createdBy,
-            now,
+            now
+        );
+    }
+
+    public BenchmarkTestSet buildGeneratedTestSet(String tenantId,
+                                                  String testSetName,
+                                                  String templateId,
+                                                  BenchmarkTemplateType templateType,
+                                                  String templateVersion,
+                                                  List<BenchmarkTestSetLabel> labels,
+                                                  List<BenchmarkSourceReference> refs,
+                                                  List<BenchmarkTestSetCase> cases,
+                                                  Instant now,
+                                                  String createdBy) {
+        return buildTestSet(
+            null,
+            tenantId,
+            testSetName,
+            trimToNull(templateId),
+            templateType,
+            trimToNull(templateVersion),
+            com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetSource.PARSE_RESULT_GENERATION,
+            null,
+            null,
+            null,
+            Collections.<BenchmarkTestSetFieldMapping>emptyList(),
+            labels,
+            refs,
+            cases,
+            createdBy,
             now
         );
     }
@@ -99,8 +125,103 @@ public class BenchmarkTestSetModelApplicationService {
         response.setCreatedAt(testSet.getCreatedAt());
         response.setUpdatedAt(testSet.getUpdatedAt());
         response.setContractStage(CONTRACT_STAGE);
-        response.setImplementationStage(TEST_SET_IMPLEMENTATION_STAGE);
+        response.setImplementationStage(resolveImplementationStage(testSet));
         return response;
+    }
+
+    private BenchmarkTestSet buildTestSet(String requestedTestSetId,
+                                          String tenantId,
+                                          String testSetName,
+                                          String templateId,
+                                          BenchmarkTemplateType templateType,
+                                          String templateVersion,
+                                          com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetSource source,
+                                          com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetFileType fileType,
+                                          String fileName,
+                                          String importBatchId,
+                                          List<BenchmarkTestSetFieldMapping> fieldMappings,
+                                          List<BenchmarkTestSetLabel> labels,
+                                          List<BenchmarkSourceReference> refs,
+                                          List<BenchmarkTestSetCase> cases,
+                                          String createdBy,
+                                          Instant now) {
+        String testSetId = trimToNull(requestedTestSetId);
+        if (testSetId == null) {
+            testSetId = java.util.UUID.randomUUID().toString();
+        }
+        int accepted = 0;
+        int rejected = 0;
+        for (BenchmarkTestSetCase item : cases) {
+            if (item.getStatus() == BenchmarkTestSetCaseStatus.ACCEPTED) {
+                accepted++;
+            } else {
+                rejected++;
+            }
+        }
+        BenchmarkTestSetStatus status = accepted <= 0
+            ? BenchmarkTestSetStatus.FAILED
+            : rejected > 0
+            ? BenchmarkTestSetStatus.PARTIAL_READY
+            : BenchmarkTestSetStatus.READY;
+        List<BenchmarkTestSetCase> normalizedCases = normalizeCases(testSetId, cases);
+        return new BenchmarkTestSet(
+            testSetId,
+            tenantId,
+            testSetName,
+            templateId,
+            templateType,
+            templateVersion,
+            source,
+            status,
+            Integer.valueOf(normalizedCases.size()),
+            Integer.valueOf(accepted),
+            Integer.valueOf(rejected),
+            fileType,
+            fileName,
+            importBatchId,
+            fieldMappings,
+            labels,
+            refs,
+            normalizedCases,
+            createdBy,
+            now,
+            now
+        );
+    }
+
+    private List<BenchmarkTestSetCase> normalizeCases(String testSetId, List<BenchmarkTestSetCase> cases) {
+        if (cases == null || cases.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<BenchmarkTestSetCase> normalized = new ArrayList<BenchmarkTestSetCase>(cases.size());
+        for (BenchmarkTestSetCase item : cases) {
+            normalized.add(
+                new BenchmarkTestSetCase(
+                    item.getCaseId(),
+                    testSetId,
+                    item.getSequenceNumber(),
+                    item.getSourceLineNumber(),
+                    item.getCaseName(),
+                    item.getSqlText(),
+                    item.getSqlFingerprint(),
+                    item.getDatasourceCode(),
+                    item.getReportCode(),
+                    item.getTags(),
+                    item.getBindParametersJson(),
+                    item.getStatus(),
+                    item.getRejectionReason(),
+                    item.getRawCaseDataJson()
+                )
+            );
+        }
+        return Collections.unmodifiableList(normalized);
+    }
+
+    private String resolveImplementationStage(BenchmarkTestSet testSet) {
+        if (testSet.getTestSetSource() == com.company.benchmarkengine.domain.benchmark.BenchmarkTestSetSource.PARSE_RESULT_GENERATION) {
+            return TEST_SET_PARSE_IMPLEMENTATION_STAGE;
+        }
+        return TEST_SET_IMPORT_IMPLEMENTATION_STAGE;
     }
 
     private boolean containsSourceReference(List<BenchmarkSourceReference> refs,

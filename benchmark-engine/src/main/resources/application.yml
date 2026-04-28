@@ -56,6 +56,10 @@ benchmark-engine:
     base-url: ${BENCHMARK_ENGINE_QUERY_EXECUTION_BASE_URL:http://localhost:8081/api/query-execution/internal/benchmark}
     connect-timeout-ms: ${BENCHMARK_ENGINE_QUERY_EXECUTION_CONNECT_TIMEOUT_MS:3000}
     read-timeout-ms: ${BENCHMARK_ENGINE_QUERY_EXECUTION_READ_TIMEOUT_MS:5000}
+  sql-optimization:
+    base-url: ${BENCHMARK_ENGINE_SQL_OPTIMIZATION_BASE_URL:http://localhost:8082/api/sql-optimization}
+    connect-timeout-ms: ${BENCHMARK_ENGINE_SQL_OPTIMIZATION_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${BENCHMARK_ENGINE_SQL_OPTIMIZATION_READ_TIMEOUT_MS:5000}
   artifact-storage:
     base-dir: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_BASE_DIR:target/benchmark-engine-artifacts}
     storage-type: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_TYPE:LOCAL_FILE}

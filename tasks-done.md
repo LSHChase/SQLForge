@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-040: 打通解析结果到测试集一键生成
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(benchmark): generate test sets from parse results`
+- Priority: 1
+- Depends on: `F-TASK-039`,`D-TASK-058`
+- Scope: parse issue / report / SQL 结果生成 benchmark test set Tech: `JAVA-BE`. Layer: `application(controller/service)/domain/infrastructure`.
+- Matrix context: Phase-F / Story `F-STORY-011` 压测模板、测试集与解析联动
+- Human confirmation point: 若 parse-to-benchmark 联动会把解析问题自动视为可直接压测对象、绕过安全边界，需人工确认
+- Data impact: 解析结果到 test set 的联动对象与过滤规则
+- Rollback / recovery: 回退自动生成范围，保留人工筛选入口
+- Validation:
+  - `parse-to-benchmark 测试`
+  - `python3 scripts/foreman.py validate F-TASK-040`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 parse-results test-set 生成链路，支持单 parseTaskId 与 batch important/urgent 解析结果生成 benchmark test set，保留只读边界 rejected evidence，并补齐受保护 SQL-optimization client、接口契约和 controller/service 测试。
+  - Validation evidence: mvn -pl benchmark-engine -Dtest=BenchmarkParseResultTestSetApplicationServiceTest,BenchmarkTestSetControllerTest test；mvn -pl benchmark-engine test；python3 scripts/foreman.py validate F-TASK-040 --extra-command "mvn -pl benchmark-engine test"；python3 scripts/task_audit.py --check --phase pre-closeout；python3 scripts/task_audit.py --check --phase post-closeout。
+  - Residual risk: 当前 parse batch 自动生成仍只吸纳 important/urgent 统计命中的解析项，且单 parseTaskId 路径缺少 reportCode 维度输入；更宽范围的 recommendation/comparison 编排仍需后续任务补齐。
+  - Next step: 进入 F-TASK-041，把 sql-optimization recommendation 链路收口到 comparison benchmark 契约与编排。
+
 ### F-TASK-039: 落地批量测试集导入
 
 - Status: done
