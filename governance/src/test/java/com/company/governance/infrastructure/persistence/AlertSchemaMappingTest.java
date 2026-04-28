@@ -20,10 +20,13 @@ class AlertSchemaMappingTest {
 
         assertContains(schema, "CREATE TABLE IF NOT EXISTS alert_policy");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS alert_event");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS alert_notification_log");
         assertContains(schema, "dedupe_window_seconds INT NOT NULL DEFAULT 900");
         assertContains(schema, "notify_status VARCHAR(32) NOT NULL DEFAULT 'SIMULATED_PENDING_NOTIFY'");
+        assertContains(schema, "delivery_status VARCHAR(32) NOT NULL COMMENT 'Delivery state: SIMULATED_SENT/DEDUPE_SUPPRESSED/SIMULATED_FAILED'");
         assertContains(schema, "alert_status VARCHAR(16) NOT NULL DEFAULT 'OPEN'");
         assertContains(schema, "idx_alert_event_tenant_dedupe_created");
+        assertContains(schema, "idx_alert_notification_tenant_dedupe_created");
     }
 
     @Test
@@ -34,6 +37,9 @@ class AlertSchemaMappingTest {
         assertContains(migration, "CREATE TABLE IF NOT EXISTS alert_event");
         assertContains(migration, "TENANT_ALERT_TYPE_TARGET");
         assertContains(migration, "SIMULATED_PENDING_NOTIFY/SIMULATED_NOTIFIED/SIMULATED_NOTIFY_FAILED");
+        String notificationMigration = readRepositoryFile("sql/migrations/V20260427_002__governance_alert_notification_log.sql");
+        assertContains(notificationMigration, "CREATE TABLE IF NOT EXISTS alert_notification_log");
+        assertContains(notificationMigration, "SIMULATED_SENT/DEDUPE_SUPPRESSED/SIMULATED_FAILED");
     }
 
     @Test
@@ -48,6 +54,11 @@ class AlertSchemaMappingTest {
         assertContains(policyMapper, "selectEnabledByTenantId");
         assertContains(policyMapper, "dedupe_strategy");
         assertContains(policyMapper, "initial_notify_status");
+        String notificationMapper = readMapper("mapper/AlertNotificationLogMapper.xml");
+        assertContains(notificationMapper, "FROM alert_notification_log");
+        assertContains(notificationMapper, "selectByAlertId");
+        assertContains(notificationMapper, "delivery_status");
+        assertContains(notificationMapper, "source_alert_id");
     }
 
     private static String readMapper(String resourcePath) throws IOException {

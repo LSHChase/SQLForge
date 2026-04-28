@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS alert_notification_log (
+  notification_log_id VARCHAR(96) NOT NULL COMMENT 'Alert notification log identifier',
+  tenant_id VARCHAR(64) NOT NULL COMMENT 'Tenant identifier',
+  alert_id VARCHAR(64) NOT NULL COMMENT 'Alert event identifier used as the persisted source',
+  source_alert_id VARCHAR(64) DEFAULT NULL COMMENT 'Original dedupe source alert identifier when notification is suppressed',
+  dedupe_key VARCHAR(255) NOT NULL COMMENT 'Tenant-scoped dedupe key',
+  notify_channel VARCHAR(32) NOT NULL DEFAULT 'SIMULATED_EMAIL' COMMENT 'Notification channel, simulated-only in phase one',
+  delivery_status VARCHAR(32) NOT NULL COMMENT 'Delivery state: SIMULATED_SENT/DEDUPE_SUPPRESSED/SIMULATED_FAILED',
+  template_code VARCHAR(64) NOT NULL COMMENT 'Rendered template identifier',
+  message_subject VARCHAR(255) NOT NULL COMMENT 'Rendered simulated message subject',
+  message_body TEXT NOT NULL COMMENT 'Rendered simulated message body',
+  delivery_summary VARCHAR(512) DEFAULT NULL COMMENT 'Delivery or suppression summary',
+  payload_json JSON DEFAULT NULL COMMENT 'Structured payload for notify simulated or dedupe suppressed evidence',
+  created_by VARCHAR(64) DEFAULT NULL COMMENT 'Operator identifier',
+  created_at DATETIME(3) NOT NULL COMMENT 'Creation timestamp',
+  PRIMARY KEY (notification_log_id),
+  KEY idx_alert_notification_tenant_alert_created (tenant_id, alert_id, created_at),
+  KEY idx_alert_notification_tenant_dedupe_created (tenant_id, dedupe_key, created_at),
+  KEY idx_alert_notification_tenant_status_created (tenant_id, delivery_status, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Simulated alert notification and dedupe suppression log';

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.AlertNotificationLogMapper">
+
+    <resultMap id="AlertNotificationLogRecordResultMap" type="com.company.governance.infrastructure.persistence.entity.AlertNotificationLogRecord">
+        <id property="notificationLogId" column="notification_log_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="alertId" column="alert_id"/>
+        <result property="sourceAlertId" column="source_alert_id"/>
+        <result property="dedupeKey" column="dedupe_key"/>
+        <result property="notifyChannel" column="notify_channel"/>
+        <result property="deliveryStatus" column="delivery_status"/>
+        <result property="templateCode" column="template_code"/>
+        <result property="messageSubject" column="message_subject"/>
+        <result property="messageBody" column="message_body"/>
+        <result property="deliverySummary" column="delivery_summary"/>
+        <result property="payloadJson" column="payload_json"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.company.governance.infrastructure.persistence.entity.AlertNotificationLogRecord">
+        INSERT INTO alert_notification_log (
+            notification_log_id,
+            tenant_id,
+            alert_id,
+            source_alert_id,
+            dedupe_key,
+            notify_channel,
+            delivery_status,
+            template_code,
+            message_subject,
+            message_body,
+            delivery_summary,
+            payload_json,
+            created_by,
+            created_at
+        ) VALUES (
+            #{notificationLogId},
+            #{tenantId},
+            #{alertId},
+            #{sourceAlertId},
+            #{dedupeKey},
+            #{notifyChannel},
+            #{deliveryStatus},
+            #{templateCode},
+            #{messageSubject},
+            #{messageBody},
+            #{deliverySummary},
+            #{payloadJson},
+            #{createdBy},
+            #{createdAt}
+        )
+    </insert>
+
+    <select id="selectByAlertId" resultMap="AlertNotificationLogRecordResultMap">
+        SELECT
+            notification_log_id,
+            tenant_id,
+            alert_id,
+            source_alert_id,
+            dedupe_key,
+            notify_channel,
+            delivery_status,
+            template_code,
+            message_subject,
+            message_body,
+            delivery_summary,
+            payload_json,
+            created_by,
+            created_at
+        FROM alert_notification_log
+        WHERE alert_id = #{alertId}
+        ORDER BY created_at DESC, notification_log_id DESC
+    </select>
+</mapper>

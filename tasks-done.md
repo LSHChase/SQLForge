@@ -4,6 +4,29 @@
 
 ## Done
 
+### F-TASK-036: 落地告警去重与模拟邮件日志
+
+- Status: done
+- Completed at: 2026-04-27
+- Commit subject: `feat(governance): persist alert emission logs`
+- Priority: 1
+- Depends on: `F-TASK-035`
+- Scope: dedupe、notify simulated、日志模板与审计留痕 Tech: `JAVA-BE`,`OPS`. Layer: `application(controller/service)/domain/infrastructure`,`deployments/ci/scripts`.
+- Matrix context: Phase-F / Story `F-STORY-010` 告警中心与模拟邮件
+- Human confirmation point: 若模拟邮件日志会被误写成真实通知、或 dedupe 策略导致关键事件被静默丢弃，需人工确认
+- Data impact: 通知日志、dedupe 状态与告警审计链
+- Rollback / recovery: 恢复 simulated-only 语义与原始事件保留
+- Validation:
+  - `notification/dedup 测试`
+  - `python3 scripts/foreman.py validate F-TASK-036`
+- Progress log:
+  - 2026-04-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added AlertEmissionApplicationService to turn evaluated alert signals into persisted alert events with tenant-scoped dedupe windows, simulated email notification logs, and governance audit entries; backfilled alert_notification_log schema, MyBatis mappings, and notification/dedup tests for the repo-closed alert center baseline.
+  - Validation evidence: python3 scripts/foreman.py validate F-TASK-036; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The repository now persists deduped alert emissions and simulated notification evidence, but alert list/detail/ack APIs and frontend consumption still remain for F-TASK-037, and simulated notify stays repo-closed rather than backed by a real mail channel.
+  - Next step: Proceed to F-TASK-037 to expose alert list/detail/ack APIs over the persisted alert event and notification-log baseline.
+
 ### F-TASK-035: 落地关键事件告警判定
 
 - Status: done

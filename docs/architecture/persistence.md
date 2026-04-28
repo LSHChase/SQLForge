@@ -133,12 +133,15 @@
 | `export_record` | `ExportRecord` | `governance/src/main/resources/mapper/ExportRecordMapper.xml` |
 | `audit_log` | `AuditLogRecord` | `governance/src/main/resources/mapper/AuditLogMapper.xml` |
 | `system_config` | `SystemConfigRecord` | `governance/src/main/resources/mapper/SystemConfigMapper.xml` |
+| `alert_policy` | `AlertPolicyRecord` | `governance/src/main/resources/mapper/AlertPolicyMapper.xml` |
+| `alert_event` | `AlertEventRecord` | `governance/src/main/resources/mapper/AlertEventMapper.xml` |
+| `alert_notification_log` | `AlertNotificationLogRecord` | `governance/src/main/resources/mapper/AlertNotificationLogMapper.xml` |
 | `optimization_task` | `OptimizationTaskRecord` | `sql-optimization/src/main/resources/mapper/OptimizationTaskMapper.xml` |
 | `acceleration_plan` | `AccelerationPlanRecord` | `sql-optimization/src/main/resources/mapper/AccelerationPlanMapper.xml` |
 | `benchmark_task` | `BenchmarkTaskRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkTaskMapper.xml` |
 | `benchmark_task_report` | `BenchmarkReportRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkReportMapper.xml` |
 
-当前 mapper 只固化 `insert/selectById` 或等价最小骨架，目的是先把表结构、主引用键和字段命名稳定下来，再在后续任务中接入真实 repository、事务编排和业务写入路径。当前 `governance` 已额外提供 `GovernanceProtectedPersistenceService` 作为 config/result/history/export/audit/system-config 的敏感字段保护写入入口，并由 benchmark report trace/export orchestration 走真实写入路径验证 `config/result/history/export` 编排。
+当前 mapper 只固化 `insert/selectById` 或等价最小骨架，目的是先把表结构、主引用键和字段命名稳定下来，再在后续任务中接入真实 repository、事务编排和业务写入路径。当前 `governance` 已额外提供 `GovernanceProtectedPersistenceService` 作为 config/result/history/export/audit/system-config 的敏感字段保护写入入口，并由 benchmark report trace/export orchestration 走真实写入路径验证 `config/result/history/export` 编排；`AlertEmissionApplicationService` 则在告警侧编排 `alert_policy`、`alert_event`、`alert_notification_log` 与 `audit_log`，把规则判定后的 simulated notify、dedupe suppressed 和审计留痕闭合到同一事务链。
 
 在 `R-169` 生效后，`GovernanceProtectedPersistenceService` 同时承担核心追溯链的应用层引用完整性校验，负责在无物理外键约束前提下检查：
 
