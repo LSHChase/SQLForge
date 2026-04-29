@@ -9,6 +9,9 @@ public class CombinedParseStatusVO {
     private CombinedParseConclusionVO conclusion;
     private java.util.List<CombinedParseStatusHistoryVO> statusHistory;
     private String degradeReason;
+    private String historyId;
+    private Boolean historyPersisted;
+    private String historyPersistenceStatus;
 
     public String getParseTaskId() {
         return parseTaskId;
@@ -64,5 +67,29 @@ public class CombinedParseStatusVO {
 
     public void setDegradeReason(String degradeReason) {
         this.degradeReason = degradeReason;
+    }
+
+    public String getHistoryId() {
+        return historyId;
+    }
+
+    public void setHistoryId(String historyId) {
+        this.historyId = historyId;
+    }
+
+    public Boolean getHistoryPersisted() {
+        return historyPersisted;
+    }
+
+    public void setHistoryPersisted(Boolean historyPersisted) {
+        this.historyPersisted = historyPersisted;
+    }
+
+    public String getHistoryPersistenceStatus() {
+        return historyPersistenceStatus;
+    }
+
+    public void setHistoryPersistenceStatus(String historyPersistenceStatus) {
+        this.historyPersistenceStatus = historyPersistenceStatus;
     }
 }

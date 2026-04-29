@@ -2058,3 +2058,12 @@
 2026-04-28T20:06:11-05:00 | D-TASK-075 closeout commit | `R-168` | projected | `git commit -m 'feat(sql-optimization): D-TASK-075 detect complex SQL antipatterns' (projected-precommit)`
 2026-04-28T20:06:11-05:00 | D-TASK-075 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-04-28T20:06:11-05:00 | D-TASK-075 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-04-28T21:41:31-05:00 | HARN-049 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-28T21:41:31-05:00 | HARN-049 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-28T21:41:46-05:00 | HARN-049 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-28T21:41:46-05:00 | HARN-049 validate | `R-133`, `R-168` | failed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-28T21:41:58-05:00 | HARN-049 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-28T21:41:58-05:00 | HARN-049 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-28T21:42:17-05:00 | HARN-049 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-28T21:42:17-05:00 | HARN-049 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-28T21:43:07-05:00 | HARN-049 closeout task-audit pre | `R-156`, `R-160`, `R-168` | failed | `python3 scripts/task_audit.py --check --phase pre-closeout`

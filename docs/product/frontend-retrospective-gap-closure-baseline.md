@@ -6,13 +6,12 @@
 
 ## Confirmed Repo-Side Findings
 
-### 1. 解析二级能力存在“已实现但不直达”的入口缺口
+### 1. 解析二级能力由 HARN-049 拆为独立页面
 
 - 产品规格固定要求 `解析工作台`、`批量解析中心`、`解析结果中心`、`加速与改写中心` 四个二级能力。
-- 当前仓库在 `AccelerationView` 内已经承载了单条解析、批量解析、统计视角和解析历史，但此前主导航只保留了“解析工作台 + 推荐中心”。
-- 结果是：
-  - 批量解析和解析结果能力只能通过页面内 tab、query 参数或 legacy redirect 命中。
-  - 用户从导航层面无法直接感知完整的二级能力边界。
+- HARN-049 后，单条解析工作台继续由 `AccelerationView` 承载，批量解析迁移到 `ParseBatchCenterView`，解析历史查询由 `ParseRecordView` 承载。
+- 批量解析和解析历史查询不再依赖 `workspace` query 参数或旧弹窗作为主入口；旧 query 入口只负责跳转到新页面。
+- 解析工作台页面内保留统计结果区与显式入口卡片，但页面职责聚焦为单条 SQL 解析、结果阅读和状态刷新。
 
 ### 2. 路由治理模块名称与实施规格存在漂移
 
@@ -38,14 +37,14 @@
 
 ## Repo-Closed Closures Implemented By U-TASK-004
 
-- 侧栏恢复解析与加速模块的四个显式二级入口：
+- 侧栏恢复解析与加速模块的显式二级入口：
   - `解析工作台`
   - `批量解析中心`
-  - `解析结果中心`
+  - `解析历史查询`
   - `加速与改写中心`
-- 导航激活逻辑升级为 query-aware，允许同一路径按 `workspace` / `analytics` 正确高亮对应入口。
+- 导航激活逻辑保留 legacy query 兼容，但批量解析和解析历史查询已经使用独立路由高亮。
 - 一级模块标签恢复为 `路由治理`，但页面内仍继续使用 evidence / execution evidence 的只读语义，不把它误写成可写治理控制面。
-- `AccelerationView` 顶部新增四个二级入口卡片，确保用户在页面内也能理解二级能力分工，而不是只看到一个统称工作台。
+- `AccelerationView` 顶部保留二级入口卡片，入口指向独立批量解析页、独立解析历史查询页和推荐中心，避免用户只看到一个统称工作台。
 - Dashboard 扩展为 sample-aware KPI：
   - success-rate sample
   - failure-rate sample

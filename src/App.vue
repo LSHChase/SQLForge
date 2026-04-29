@@ -87,14 +87,14 @@ const navigationTree = computed(() => {
           menuLabel: { zh: '解析工作台', en: 'Parse workbench' }
         },
         {
-          ...buildNavTarget(ROUTE_PATHS.acceleration, { workspace: 'batch' }),
+          ...buildNavTarget(ROUTE_PATHS.parseBatchCenter),
           titleKey: 'acceleration.title',
           menuLabel: { zh: '批量解析中心', en: 'Batch parse center' }
         },
         {
-          ...buildNavTarget(ROUTE_PATHS.acceleration, { workspace: 'statistics', analytics: 'issue' }),
+          ...buildNavTarget(ROUTE_PATHS.parseRecord),
           titleKey: 'acceleration.title',
-          menuLabel: { zh: '解析结果中心', en: 'Parse result center' }
+          menuLabel: { zh: '解析历史查询', en: 'Parse history search' }
         },
         {
           ...buildNavTarget(ROUTE_PATHS.recommendationCenter),

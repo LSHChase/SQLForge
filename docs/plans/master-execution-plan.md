@@ -765,6 +765,7 @@ Tasks:
 | `E-TASK-020` | 落地解析工作台双卡结果布局 | 单条 SQL 解析输入、结构解析卡、access parse 卡和综合结论 | `E-TASK-019`,`D-TASK-045` | `npm run lint`、`npm run build`、parse workbench contract 测试 |
 | `E-TASK-021` | 落地批量解析中心与报表清单导入页 | 模板下载、上传、批次列表、批次详情与失败记录展示 | `E-TASK-020`,`D-TASK-054` | `npm run lint`、`npm run build`、batch import contract 测试 |
 | `E-TASK-022` | 落地解析结果中心与优先级矩阵 | 解析统计、问题分布、priority matrix、important/urgent 清单 | `E-TASK-021`,`D-TASK-058` | `npm run lint`、`npm run build`、statistics page contract 测试 |
+| `HARN-049` | HARN-049 解析工作台、批量解析与解析历史能力正式实现 | 在 E-STORY-008 / Phase-E 下，正式实现解析工作台、批量解析、解析历史查询三个独立页面；改造单条解析结果展示结构、中文化/help 提示、状态颜色提示；新增解析完成记录持久化落库、查询与详情查看；补充相关测试与文档。不得重写核心 SQL/parser 算法，不得修改无关治理或 runtime 流程。 | `N/A` | 页面拆分与独立路由测试：解析工作台、批量解析、解析历史查询互不串状态、单条解析结果上下布局与重复标题移除测试、总结/结论合并为统一解析结果结构的展示测试、urgent=true、priority=P1 及其他状态颜色提示测试、中文展示与代码/字段/缩写 help 入口测试、解析完成后历史记录持久化测试、解析历史查询与详情查看关键路径测试、治理验证：foreman validate、pre-closeout audit、post-closeout audit |
 
 ##### Story `E-STORY-009` 数据资产与逻辑视图
 

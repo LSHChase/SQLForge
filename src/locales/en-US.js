@@ -312,8 +312,8 @@ export default {
     summary: 'Submit SQL, select an execution strategy and enter the downstream governance flow.'
   },
   parseRecord: {
-    title: 'Parse Record',
-    summary: 'Track parser output, rewrite status, failed samples and historical diagnostics.'
+    title: 'Parse History Search',
+    summary: 'Search persisted single-parse records, batch-parse records, audit traces, and detail evidence.'
   },
   repairEvidence: {
     title: 'Repair Evidence',
@@ -340,8 +340,8 @@ export default {
     summary: 'Inspect baseline, peak latency, regression deltas and release readiness.'
   },
   parseBatchCenter: {
-    title: 'Batch Parsing Compatibility Entry',
-    summary: 'This route is kept only as a compatibility redirect and lands back on the parse workbench batch dialog.'
+    title: 'Batch Parse Center',
+    summary: 'Handle batch creation, template download, file import, failure retry, and report-catalog SQL parsing on an independent page.'
   },
   parseStatisticsCenter: {
     title: 'Parse Statistics Compatibility Entry',
@@ -369,7 +369,7 @@ export default {
   },
   acceleration: {
     title: 'Parse Workbench',
-    summary: 'Handle single-SQL parsing, batch parsing, statistics views, and parse-history drill-downs in one route.'
+    summary: 'Focus on single-SQL structure parsing, access parsing, and result reading; batch parsing and history search are separate pages.'
   },
   system: {
     title: 'System Management',

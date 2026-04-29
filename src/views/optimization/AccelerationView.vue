@@ -7,9 +7,7 @@ import {
   createParseBatch,
   formatRuntimeError,
   getCombinedParseStatus,
-  getGovernanceQueryHistoryDetail,
   getGovernanceQueryHistoryPage,
-  getGovernanceTraceDetail,
   getParseBatch,
   getParseStatisticsByIssueScene,
   getParseStatisticsByReport,
@@ -20,7 +18,6 @@ import {
   getReportBatch,
   importReportBatch,
   ingestParseBatch,
-  lookupGovernanceTraces,
   parseStructureSql,
   resolveReportBatchSqls,
   retryParseBatchAccess,
@@ -32,7 +29,6 @@ const route = useRoute()
 const router = useRouter()
 const { t, locale } = useI18n()
 
-const terminalStatuses = new Set(['ACCESS_SUCCEEDED', 'PARTIAL_SUCCEEDED', 'FAILED', 'STRUCTURE_ONLY'])
 const combinedTerminalStatuses = new Set(['ACCESS_SUCCEEDED', 'PARTIAL_SUCCEEDED', 'FAILED'])
 
 const form = reactive({
@@ -136,11 +132,6 @@ const priorityMatrix = ref([])
 const importantUrgent = ref([])
 
 const historyPage = ref(null)
-const selectedHistoryId = ref('')
-const historyDetailDialogVisible = ref(false)
-const historyDetailDrawerVisible = ref(false)
-const activeHistoryDialogTab = ref('overview')
-const selectedHistoryDetail = ref(null)
 
 const evidenceDrawerVisible = ref(false)
 const evidenceDrawerTitle = ref('')
@@ -149,8 +140,6 @@ const evidenceDrawerPayload = ref(null)
 const loading = reactive({
   analytics: false,
   historyPage: false,
-  historyDetail: false,
-  historyLookup: false,
   createParseBatch: false,
   ingestParseBatch: false,
   refreshParseBatch: false,
@@ -257,7 +246,12 @@ const summaryCards = computed(() => {
     },
     { label: isChinese.value ? '综合状态' : 'Overall status', value: activeConclusion.value?.overallStatus || activeStatus.value },
     { label: isChinese.value ? 'Access 可用' : 'Access available', value: booleanLabel(activeConclusion.value?.accessAvailable) },
-    { label: isChinese.value ? '降级原因' : 'Degrade reason', value: activeConclusion.value?.degradeReason || parseResult.value?.degradeReason }
+    { label: isChinese.value ? '降级原因' : 'Degrade reason', value: activeConclusion.value?.degradeReason || parseResult.value?.degradeReason },
+    {
+      label: isChinese.value ? '历史写入' : 'History write',
+      value: parseResult.value.historyPersisted ? (isChinese.value ? '已落库' : 'Saved') : parseResult.value.historyPersistenceStatus
+    },
+    { label: 'History ID', value: parseResult.value.historyId }
   ].filter(item => hasDisplayValue(item.value))
 })
 
@@ -269,9 +263,9 @@ const requestSummary = computed(() => [
 ])
 
 const parseWorkbenchSummary = computed(() => [
-  { label: isChinese.value ? '显式二级入口' : 'Explicit secondary entries', value: 4 },
-  { label: isChinese.value ? '统计视角' : 'Statistics views', value: 8 },
-  { label: isChinese.value ? '历史模式' : 'History mode', value: hasLookupCriteria.value ? 'INDEXED' : 'PAGE' }
+  { label: isChinese.value ? '独立页面' : 'Independent pages', value: 3 },
+  { label: isChinese.value ? '当前页面' : 'Current page', value: isChinese.value ? '单条解析' : 'Single parse' },
+  { label: isChinese.value ? '结果布局' : 'Result layout', value: isChinese.value ? '上下结构' : 'Stacked result' }
 ])
 
 const workspaceEntries = computed(() => [
@@ -289,26 +283,26 @@ const workspaceEntries = computed(() => [
     eyebrow: isChinese.value ? '批量解析中心' : 'Batch parse center',
     title: isChinese.value ? '批次导入与补跑' : 'Batch import and recovery',
     description: isChinese.value
-      ? '通过显式二级入口直达批量解析弹窗与报表清单导入。'
-      : 'Jump directly into the batch dialog and report-catalog import workspace.',
-    route: { path: ROUTE_PATHS.acceleration, query: { workspace: 'batch' } }
+      ? '独立页面承载批次创建、导入、失败重试和报表清单导入。'
+      : 'A separate page owns batch creation, import, retries, and report-catalog import.',
+    route: { path: ROUTE_PATHS.parseBatchCenter }
   },
   {
-    key: 'statistics',
-    eyebrow: isChinese.value ? '解析结果中心' : 'Parse result center',
-    title: isChinese.value ? '统计与问题分布' : 'Statistics and issue distribution',
+    key: 'history',
+    eyebrow: isChinese.value ? '解析历史查询' : 'Parse history search',
+    title: isChinese.value ? '历史检索与详情查看' : 'History search and detail',
     description: isChinese.value
-      ? '从问题分布、优先级、逻辑对象和历史样本直达结果视角。'
-      : 'Move straight into issue, priority, logical-object, and history views.',
-    route: { path: ROUTE_PATHS.acceleration, query: { workspace: 'statistics', analytics: 'issue' } }
+      ? '独立页面查询已落库的解析记录、审计追溯和详情证据。'
+      : 'A separate page searches persisted parse records, audit traces, and details.',
+    route: { path: ROUTE_PATHS.parseRecord }
   },
   {
     key: 'rewrite',
     eyebrow: isChinese.value ? '加速与改写中心' : 'Acceleration and rewrite center',
     title: isChinese.value ? '推荐、收益与协同' : 'Recommendations, benefit, and dispatch',
     description: isChinese.value
-      ? '继续在推荐中心查看改写建议、收益风险和 dispatch 状态。'
-      : 'Use the recommendation center for rewrite advice, benefit or risk, and dispatch status.',
+      ? '推荐中心继续承载改写建议、收益风险和 dispatch 状态。'
+      : 'Recommendation center remains responsible for rewrite advice, benefit or risk, and dispatch status.',
     route: { path: ROUTE_PATHS.recommendationCenter }
   }
 ])
@@ -391,13 +385,6 @@ const overviewCards = computed(() => {
 const priorityDistribution = computed(() => Object.entries(overview.value?.priorityDistribution || {}))
 
 const historyRows = computed(() => historyPage.value?.items || [])
-const historyClassificationSummary = computed(() => historyPage.value?.classificationSummary || {})
-const pageSummaryCards = computed(() => [
-  card(isChinese.value ? '当前页记录' : 'Current page', historyRows.value.length),
-  card(isChinese.value ? '成功' : 'Success', historyClassificationSummary.value.SUCCESS || historyClassificationSummary.value.succeeded || 0),
-  card(isChinese.value ? '异常/部分成功' : 'Non-success', historyClassificationSummary.value.PARTIAL || historyClassificationSummary.value.FAILED || historyClassificationSummary.value.nonSuccess || 0),
-  card(isChinese.value ? '接入渠道' : 'Access channels', Object.keys(historyClassificationSummary.value.accessChannelCounts || {}).length)
-])
 
 const severityStats = computed(() => {
   const groups = new Map()
@@ -492,83 +479,6 @@ const parseStatusStats = computed(() => {
   return Array.from(groups.values()).sort((left, right) => right.sampleCount - left.sampleCount)
 })
 
-const detailSummaryCards = computed(() => {
-  if (!selectedHistoryDetail.value) {
-    return []
-  }
-  return [
-    card('History ID', selectedHistoryDetail.value.historyId),
-    card('Trace ID', selectedHistoryDetail.value.traceId),
-    card(isChinese.value ? '报表编码' : 'Report code', selectedHistoryDetail.value.reportCode),
-    card(isChinese.value ? '服务编码' : 'Service code', selectedHistoryDetail.value.traceDetail?.serviceCode || selectedHistoryDetail.value.historyType),
-    card(isChinese.value ? '结果状态' : 'Result status', selectedHistoryDetail.value.resultStatus),
-    card(isChinese.value ? '目标引擎' : 'Target engine', selectedHistoryDetail.value.targetEngine),
-    card(isChinese.value ? '接入渠道' : 'Access channel', selectedHistoryDetail.value.accessChannel),
-    card(isChinese.value ? '提交时间' : 'Submitted at', formatTimestamp(selectedHistoryDetail.value.submittedAt))
-  ]
-})
-
-const traceSummaryCards = computed(() => {
-  const traceDetail = selectedHistoryDetail.value?.traceDetail
-  if (!traceDetail) {
-    return []
-  }
-  return [
-    card(isChinese.value ? '最新状态' : 'Latest status', traceDetail.latestStatus),
-    card(isChinese.value ? '审计事件数' : 'Audit event count', traceDetail.auditEventCount),
-    card(isChinese.value ? '异常事件数' : 'Non-success events', traceDetail.nonSuccessEventCount),
-    card(isChinese.value ? '关联历史数' : 'Query history count', traceDetail.queryHistoryCount)
-  ]
-})
-
-const sqlStateHighlights = computed(() => {
-  const sqlState = selectedHistoryDetail.value?.sqlState || {}
-  return [
-    { key: 'sqlFingerprint', label: isChinese.value ? '执行指纹' : 'SQL fingerprint', value: sqlState.sqlFingerprint || selectedHistoryDetail.value?.sqlFingerprint },
-    { key: 'sqlTemplateFingerprint', label: isChinese.value ? '模板指纹' : 'Template fingerprint', value: sqlState.sqlTemplateFingerprint || selectedHistoryDetail.value?.sqlTemplateFingerprint },
-    { key: 'boundSqlFingerprint', label: isChinese.value ? '绑定指纹' : 'Bound fingerprint', value: sqlState.boundSqlFingerprint || selectedHistoryDetail.value?.boundSqlFingerprint },
-    { key: 'bindingMode', label: isChinese.value ? '绑定模式' : 'Binding mode', value: sqlState.bindingMode || selectedHistoryDetail.value?.bindingMode },
-    { key: 'bindingRenderStatus', label: isChinese.value ? '渲染状态' : 'Binding render', value: sqlState.bindingRenderStatus || selectedHistoryDetail.value?.bindingRenderStatus },
-    { key: 'parameterizedSqlFlag', label: isChinese.value ? '参数化' : 'Parameterized', value: String(sqlState.parameterizedSqlFlag ?? selectedHistoryDetail.value?.parameterizedSqlFlag ?? '-') }
-  ]
-})
-
-const sqlVariants = computed(() =>
-  [
-    { key: 'sqlText', label: isChinese.value ? '原始 SQL' : 'Original SQL', value: selectedHistoryDetail.value?.sqlText },
-    { key: 'sqlTemplateText', label: isChinese.value ? '模板 SQL' : 'Template SQL', value: selectedHistoryDetail.value?.sqlTemplateText },
-    { key: 'boundSqlText', label: isChinese.value ? '绑定 SQL' : 'Bound SQL', value: selectedHistoryDetail.value?.boundSqlText }
-  ].filter(item => hasDisplayValue(item.value))
-)
-
-const signalGroups = computed(() =>
-  [
-    { key: 'commentContext', title: isChinese.value ? '注释上下文' : 'Comment context', payload: selectedHistoryDetail.value?.commentContext },
-    { key: 'queryDateSummary', title: isChinese.value ? '查询日期摘要' : 'Query-date summary', payload: selectedHistoryDetail.value?.queryDateSummary },
-    { key: 'executionSummary', title: isChinese.value ? '执行摘要' : 'Execution summary', payload: selectedHistoryDetail.value?.executionSummary },
-    { key: 'structureParseSummary', title: isChinese.value ? '结构解析' : 'Structure parse', payload: selectedHistoryDetail.value?.structureParseSummary },
-    { key: 'accessParseSummary', title: isChinese.value ? '访问解析' : 'Access parse', payload: selectedHistoryDetail.value?.accessParseSummary },
-    { key: 'routeDecision', title: isChinese.value ? '路由决策' : 'Route decision', payload: selectedHistoryDetail.value?.routeDecision },
-    { key: 'bindingSummary', title: isChinese.value ? '绑定摘要' : 'Binding summary', payload: selectedHistoryDetail.value?.bindingSummary }
-  ].filter(group => isNonEmpty(group.payload))
-)
-
-const referenceGroups = computed(() =>
-  [
-    { key: 'recommendationRefs', title: isChinese.value ? '推荐关联' : 'Recommendation refs', items: selectedHistoryDetail.value?.recommendationRefs || [] },
-    { key: 'benchmarkRefs', title: isChinese.value ? '压测关联' : 'Benchmark refs', items: selectedHistoryDetail.value?.benchmarkRefs || [] },
-    { key: 'alertRefs', title: isChinese.value ? '告警关联' : 'Alert refs', items: selectedHistoryDetail.value?.alertRefs || [] },
-    { key: 'auditRefs', title: isChinese.value ? '审计关联' : 'Audit refs', items: selectedHistoryDetail.value?.auditRefs || [] }
-  ].filter(group => Array.isArray(group.items) && group.items.length > 0)
-)
-
-const historyLogicalObjectHits = computed(() => normalizeArray(selectedHistoryDetail.value?.logicalObjectHits))
-const traceQueryHistories = computed(() => selectedHistoryDetail.value?.traceDetail?.queryHistories || [])
-const auditEvents = computed(() => selectedHistoryDetail.value?.traceDetail?.auditEvents || [])
-const hasLookupCriteria = computed(() =>
-  hasDisplayValue(historyForm.traceId) || hasDisplayValue(historyForm.taskId) || hasDisplayValue(historyForm.reportId)
-)
-
 const card = (label, value) => ({ label, value })
 
 function hasDisplayValue(value) {
@@ -589,7 +499,60 @@ function booleanLabel(value) {
   if (typeof value !== 'boolean') {
     return ''
   }
+  if (isChinese.value) {
+    return value ? '是' : '否'
+  }
   return value ? 'true' : 'false'
+}
+
+function helpTextForKey(key) {
+  const glossary = {
+    parseTaskId: isChinese.value ? '本次解析任务的唯一编号，用于状态刷新和历史追溯。' : 'Unique parse task identifier for status refresh and history tracing.',
+    sqlFingerprint: isChinese.value ? 'SQL 指纹用于识别结构相同或相近的 SQL。' : 'SQL fingerprint identifies structurally identical or similar SQL.',
+    syntaxStatus: isChinese.value ? '语法状态，VALID 表示结构解析通过。' : 'Syntax status. VALID means structure parsing passed.',
+    complexityLevel: isChinese.value ? '复杂度等级，用于判断 SQL 阅读和治理成本。' : 'Complexity level for SQL review and governance cost.',
+    sqlType: isChinese.value ? 'SQL 类型，例如 SELECT、INSERT 或其他语句类别。' : 'SQL type, such as SELECT, INSERT, or another statement kind.',
+    priorityLevel: isChinese.value ? '优先级。P1 表示最高优先级，需要红色高亮。' : 'Priority level. P1 is the highest priority and is highlighted red.',
+    priorityScore: isChinese.value ? '优先级评分，分值越高越需要优先处理。' : 'Priority score. Higher scores need earlier handling.',
+    urgent: isChinese.value ? '是否紧急。是表示需要红色提示。' : 'Whether the result is urgent. True is highlighted red.',
+    important: isChinese.value ? '是否重要，用于区分治理关注度。' : 'Whether the result is important for governance attention.',
+    parserEngine: isChinese.value ? 'Parser 表示当前解析引擎。' : 'Parser identifies the current parsing engine.',
+    scanMode: isChinese.value ? '扫描模式，表示 SQL 读取数据的主要方式。' : 'Scan mode describes how the SQL reads data.',
+    joinType: isChinese.value ? 'Join 类型，表示主要表关联方式。' : 'Join type describes the main table-join pattern.',
+    computeDensity: isChinese.value ? '计算密度，表示表达式、聚合或窗口计算的集中程度。' : 'Compute density reflects expression, aggregation, or window-function weight.',
+    slaLevel: isChinese.value ? 'SLA 是服务等级目标，用于提示时效要求。' : 'SLA means service level objective for timeliness.',
+    serviceStatus: isChinese.value ? '服务状态，表示 Access Parse 服务是否可用。' : 'Service status shows whether Access Parse is available.',
+    connectionStatus: isChinese.value ? '连接状态，表示数据源连接是否成功。' : 'Connection status shows whether datasource connectivity succeeded.',
+    objectResolutionStatus: isChinese.value ? '对象解析状态，表示表、视图等对象是否能被识别。' : 'Object resolution status shows whether tables or views were resolved.',
+    compatibilityStatus: isChinese.value ? '兼容性状态，表示 SQL 与目标引擎是否匹配。' : 'Compatibility status shows whether SQL matches the target engine.'
+  }
+  return glossary[key] || ''
+}
+
+function resultValueClass(item) {
+  const key = String(item?.key || '')
+  const value = String(item?.value || '').toUpperCase()
+  if ((key === 'urgent' && (item.value === true || value === 'TRUE' || value === '是')) || (key === 'priorityLevel' && value === 'P1')) {
+    return 'highlight-chip-danger'
+  }
+  if (value.includes('FAILED') || value.includes('INVALID')) {
+    return 'highlight-chip-danger'
+  }
+  if (value.includes('PARTIAL') || value.includes('UNAVAILABLE')) {
+    return 'highlight-chip-warning'
+  }
+  return ''
+}
+
+function resultBannerClass(status) {
+  const normalized = String(status || '').toUpperCase()
+  if (normalized.includes('FAILED')) {
+    return 'result-banner-danger'
+  }
+  if (normalized.includes('PARTIAL') || normalized.includes('PARSING') || normalized.includes('WAITING')) {
+    return 'result-banner-warning'
+  }
+  return 'result-banner-success'
 }
 
 function parseBooleanFilter(value) {
@@ -636,42 +599,6 @@ function formatInstant(value) {
 
 function formatJson(value) {
   return JSON.stringify(value, null, 2)
-}
-
-function normalizeArray(value) {
-  if (Array.isArray(value)) {
-    return value
-  }
-  if (typeof value === 'string' && value.trim()) {
-    try {
-      const parsed = JSON.parse(value)
-      return Array.isArray(parsed) ? parsed : []
-    } catch {
-      return []
-    }
-  }
-  return []
-}
-
-function isNonEmpty(value) {
-  if (Array.isArray(value)) {
-    return value.length > 0
-  }
-  if (value && typeof value === 'object') {
-    return Object.keys(value).length > 0
-  }
-  return hasDisplayValue(value)
-}
-
-function statusClass(value) {
-  const normalized = String(value || '').toUpperCase()
-  if (normalized === 'SUCCESS' || normalized === 'SUCCEEDED') {
-    return 'pill pill-success'
-  }
-  if (normalized.includes('PARTIAL')) {
-    return 'pill pill-warning'
-  }
-  return 'pill pill-danger'
 }
 
 function parseJsonInput(rawValue, label) {
@@ -1187,145 +1114,21 @@ async function loadHistoryPage() {
   }
 }
 
-async function openHistoryDetail(historyId, preloadedTraceDetail = null) {
-  if (!historyId) {
-    return
-  }
-  loading.historyDetail = true
-  historyErrorMessage.value = ''
-  activeHistoryDialogTab.value = 'overview'
-  selectedHistoryId.value = historyId
-  try {
-    const detail = await getGovernanceQueryHistoryDetail(historyForm.tenantId, historyId, {
-      requestPrefix: 'frontend-parse-record-query-history-detail'
-    })
-    if (preloadedTraceDetail && !detail.traceDetail) {
-      detail.traceDetail = preloadedTraceDetail
-    }
-    selectedHistoryDetail.value = detail
-    historyDetailDialogVisible.value = true
-  } catch (error) {
-    selectedHistoryDetail.value = null
-    historyErrorMessage.value = formatRuntimeError(error)
-  } finally {
-    loading.historyDetail = false
-  }
-}
-
-async function runIndexedLookup() {
-  if (!hasLookupCriteria.value) {
-    historyErrorMessage.value = isChinese.value
-      ? '至少输入 traceId、taskId、reportId 中的一项。'
-      : 'Enter at least one of traceId, taskId, or reportId.'
-    return
-  }
-  loading.historyLookup = true
-  historyErrorMessage.value = ''
-  try {
-    const lookupPage = await lookupGovernanceTraces(
-      historyForm.tenantId,
-      {
-        traceId: historyForm.traceId,
-        taskId: historyForm.taskId,
-        reportId: historyForm.reportId
-      },
-      5,
-      {
-        requestPrefix: 'frontend-parse-record-lookups'
-      }
-    )
-    const firstTraceId = lookupPage?.items?.[0]?.traceId
-    if (!firstTraceId) {
-      historyErrorMessage.value = isChinese.value ? '没有命中记录。' : 'No history matched the lookup criteria.'
-      return
-    }
-    const traceDetail = await getGovernanceTraceDetail(historyForm.tenantId, firstTraceId, 20, {
-      requestPrefix: 'frontend-parse-record-trace-detail'
-    })
-    const firstHistoryId = traceDetail?.queryHistories?.[0]?.historyId
-    if (!firstHistoryId) {
-      historyErrorMessage.value = isChinese.value
-        ? '命中了 trace，但没有可展示的 query history。'
-        : 'A trace was found but no query-history detail is available.'
-      return
-    }
-    await openHistoryDetail(firstHistoryId, traceDetail)
-  } catch (error) {
-    historyErrorMessage.value = formatRuntimeError(error)
-  } finally {
-    loading.historyLookup = false
-  }
-}
-
-async function clearHistoryFilters() {
-  historyForm.reportCode = ''
-  historyForm.datasourceCode = ''
-  historyForm.stage = ''
-  historyForm.bizDate = ''
-  historyForm.queryDateStart = ''
-  historyForm.queryDateEnd = ''
-  historyForm.accessChannel = ''
-  historyForm.status = ''
-  historyForm.logicalObjectType = ''
-  historyForm.engine = ''
-  historyForm.submittedBy = ''
-  historyForm.cacheHit = ''
-  historyForm.rewriteApplied = ''
-  historyForm.accelerationApplied = ''
-  historyForm.parameterizedSql = ''
-  historyForm.sortBy = 'submittedAt'
-  historyForm.sortOrder = 'DESC'
-  historyForm.submittedStart = ''
-  historyForm.submittedEnd = ''
-  historyForm.traceId = ''
-  historyForm.taskId = ''
-  historyForm.reportId = ''
-  await loadHistoryPage()
-}
-
-function openRepairEvidence() {
-  if (!selectedHistoryDetail.value) {
-    return
-  }
-  router.push({
-    path: ROUTE_PATHS.repairEvidence,
-    query: {
-      tenantId: historyForm.tenantId,
-      traceId: selectedHistoryDetail.value.traceId || '',
-      reportId: selectedHistoryDetail.value.reportId || ''
-    }
-  })
-}
-
-function openAuditForensics() {
-  if (!selectedHistoryDetail.value) {
-    return
-  }
-  router.push({
-    path: ROUTE_PATHS.auditForensics,
-    query: {
-      tenantId: historyForm.tenantId,
-      traceId: selectedHistoryDetail.value.traceId || '',
-      reportId: selectedHistoryDetail.value.reportId || ''
-    }
-  })
-}
-
 function openParseWorkspace(routeLocation) {
   router.push(routeLocation)
 }
 
 function applyRouteWorkspace() {
   const workspace = String(route.query.workspace || '').trim()
-  batchDialogVisible.value = workspace === 'batch'
   if (workspace === 'batch') {
-    activeBatchWorkspace.value = String(route.query.batchMode || 'parse')
+    router.replace({ path: ROUTE_PATHS.parseBatchCenter })
+    return
   }
   if (workspace === 'statistics') {
     activeAnalyticsTab.value = String(route.query.analytics || 'issue')
   }
   if (workspace === 'history') {
-    activeAnalyticsTab.value = 'history'
+    router.replace({ path: ROUTE_PATHS.parseRecord })
   }
 }
 
@@ -1344,7 +1147,7 @@ onMounted(async () => {
   parseBatchForm.datasourceCode = form.datasourceCode
   reportBatchForm.datasourceCode = form.datasourceCode
   applyRouteWorkspace()
-  await Promise.all([loadAnalytics(), loadHistoryPage()])
+  await loadAnalytics()
 })
 
 watch(
@@ -1381,10 +1184,10 @@ watch(
           </span>
         </div>
         <div class="action-row action-row-wrap">
-          <el-button type="primary" @click="openParseWorkspace({ path: ROUTE_PATHS.acceleration, query: { workspace: 'batch' } })">
+          <el-button type="primary" @click="openParseWorkspace({ path: ROUTE_PATHS.parseBatchCenter })">
             {{ isChinese ? '打开批量解析' : 'Open batch parsing' }}
           </el-button>
-          <el-button @click="openParseWorkspace({ path: ROUTE_PATHS.acceleration, query: { workspace: 'history' } })">
+          <el-button @click="openParseWorkspace({ path: ROUTE_PATHS.parseRecord })">
             {{ isChinese ? '跳到解析历史' : 'Jump to history' }}
           </el-button>
           <el-button @click="loadAnalytics">
@@ -1496,8 +1299,8 @@ watch(
           >
             {{ isChinese ? '刷新状态' : 'Refresh status' }}
           </el-button>
-          <el-button @click="batchDialogVisible = true">
-            {{ isChinese ? '批量解析弹窗' : 'Batch parsing dialog' }}
+          <el-button @click="openParseWorkspace({ path: ROUTE_PATHS.parseBatchCenter })">
+            {{ isChinese ? '打开批量解析页' : 'Open batch page' }}
           </el-button>
           <el-button @click="resetResult">
             {{ isChinese ? '清空结果' : 'Reset result' }}
@@ -1519,19 +1322,25 @@ watch(
       <article class="surface-card evidence-rail">
         <div class="section-heading">
           <div>
-            <p class="section-kicker sqlforge-code-label">combined conclusion</p>
-            <h2 class="section-title">{{ isChinese ? '综合结论与双卡结果' : 'Combined conclusion and dual cards' }}</h2>
+            <p class="section-kicker sqlforge-code-label">parse result</p>
+            <h2 class="section-title">{{ isChinese ? '解析结果' : 'Parse result' }}</h2>
+            <p class="section-summary">
+              {{ isChinese ? '解析结果备注：结构解析、综合结论、风险判断与规则命中。' : 'Result note: structure parsing, overall verdict, risk judgment, and rule hits.' }}
+            </p>
           </div>
           <el-button v-if="parseResult" text @click="openEvidenceDrawer(isChinese ? '解析原始证据' : 'Raw parse evidence', parseResult)">
             {{ isChinese ? '查看长证据' : 'View long evidence' }}
+          </el-button>
+          <el-button v-if="parseResult?.historyId" text @click="openParseWorkspace({ path: ROUTE_PATHS.parseRecord, query: { reportId: parseResult.historyId } })">
+            {{ isChinese ? '查看历史记录' : 'Open history record' }}
           </el-button>
         </div>
 
         <p v-if="!parseResult && !errorMessage" class="empty-state">
           {{
             isChinese
-              ? '左侧输入一条 SQL 后可先做结构解析，也可直接执行 combined parse 查看 structure/access 双卡和综合状态机。'
-              : 'Enter one SQL statement on the left to run a structure-only preview or a combined parse with structure/access dual cards and the aggregated state machine.'
+              ? '上方输入一条 SQL 后可先做结构解析，也可直接执行综合解析查看结构、访问和综合结论。'
+              : 'Enter one SQL statement above to run a structure-only preview or a combined parse with structure, access, and the overall verdict.'
           }}
         </p>
 
@@ -1540,27 +1349,23 @@ watch(
         </div>
 
         <template v-if="parseResult">
-          <div class="result-banner" :class="terminalStatuses.has(activeStatus) ? 'result-banner-success' : 'result-banner-warning'">
+          <div class="result-banner" :class="resultBannerClass(activeStatus)">
             <strong data-testid="parse-workbench-status">{{ activeStatus }}</strong>
             <span>{{ parseResult.parseTaskId }}</span>
           </div>
 
-          <div class="summary-card-grid">
-            <article v-for="item in summaryCards" :key="item.label" class="summary-card">
-              <span class="summary-card-label">{{ item.label }}</span>
-              <strong :data-testid="item.label === (isChinese ? '综合状态' : 'Overall status') ? 'parse-workbench-overall-status' : undefined">
-                {{ item.value }}
-              </strong>
-            </article>
-          </div>
-
-          <div v-if="activeConclusion" class="conclusion-card">
+          <div class="result-overview-card">
             <div class="conclusion-card__header">
-              <span class="summary-card-label">{{ isChinese ? '综合结论' : 'Combined conclusion' }}</span>
-              <strong data-testid="parse-workbench-overall-status">{{ activeConclusion.overallStatus }}</strong>
+              <span class="summary-card-label">{{ isChinese ? '解析结果备注' : 'Parse result note' }}</span>
+              <strong data-testid="parse-workbench-overall-status">{{ activeConclusion?.overallStatus || activeStatus }}</strong>
             </div>
-            <p class="result-copy">{{ activeConclusion.summary }}</p>
-            <p class="result-copy result-copy-muted">{{ activeConclusion.recommendedAction }}</p>
+            <div class="summary-chip-row">
+              <span v-for="item in summaryCards" :key="item.label" class="summary-chip">
+                {{ item.label }}: <strong>{{ item.value }}</strong>
+              </span>
+            </div>
+            <p v-if="activeConclusion" class="result-copy">{{ activeConclusion.summary }}</p>
+            <p v-if="activeConclusion" class="result-copy result-copy-muted">{{ activeConclusion.recommendedAction }}</p>
           </div>
 
           <div class="parse-card-grid">
@@ -1581,8 +1386,13 @@ watch(
 
               <template v-else>
                 <div class="highlight-grid">
-                  <div v-for="item in structureHighlights" :key="item.key" class="highlight-chip">
-                    <span>{{ item.label }}</span>
+                  <div v-for="item in structureHighlights" :key="item.key" class="highlight-chip" :class="resultValueClass(item)">
+                    <span>
+                      {{ item.label }}
+                      <el-tooltip v-if="helpTextForKey(item.key)" :content="helpTextForKey(item.key)" placement="top">
+                        <el-button text size="small" class="help-dot" aria-label="field help">?</el-button>
+                      </el-tooltip>
+                    </span>
                     <strong>{{ item.value }}</strong>
                   </div>
                 </div>
@@ -1606,8 +1416,13 @@ watch(
                 <div class="mini-section" data-testid="parse-workbench-feature-summary">
                   <span class="summary-card-label">{{ isChinese ? '多维特征' : 'Feature dimensions' }}</span>
                   <div v-if="structureFeatureHighlights.length" class="highlight-grid highlight-grid-compact">
-                    <div v-for="item in structureFeatureHighlights" :key="item.key" class="highlight-chip">
-                      <span>{{ item.label }}</span>
+                    <div v-for="item in structureFeatureHighlights" :key="item.key" class="highlight-chip" :class="resultValueClass(item)">
+                      <span>
+                        {{ item.label }}
+                        <el-tooltip v-if="helpTextForKey(item.key)" :content="helpTextForKey(item.key)" placement="top">
+                          <el-button text size="small" class="help-dot" aria-label="field help">?</el-button>
+                        </el-tooltip>
+                      </span>
                       <strong>{{ item.value }}</strong>
                     </div>
                   </div>
@@ -1745,8 +1560,13 @@ watch(
 
               <template v-else>
                 <div class="highlight-grid">
-                  <div v-for="item in accessHighlights" :key="item.key" class="highlight-chip">
-                    <span>{{ item.label }}</span>
+                  <div v-for="item in accessHighlights" :key="item.key" class="highlight-chip" :class="resultValueClass(item)">
+                    <span>
+                      {{ item.label }}
+                      <el-tooltip v-if="helpTextForKey(item.key)" :content="helpTextForKey(item.key)" placement="top">
+                        <el-button text size="small" class="help-dot" aria-label="field help">?</el-button>
+                      </el-tooltip>
+                    </span>
                     <strong>{{ item.value }}</strong>
                   </div>
                 </div>
@@ -1793,12 +1613,12 @@ watch(
       <div class="shell-header">
         <div>
           <p class="section-kicker sqlforge-code-label">parse statistics center</p>
-          <h2 class="section-title">{{ isChinese ? '解析统计与历史视角' : 'Parse statistics and history views' }}</h2>
+          <h2 class="section-title">{{ isChinese ? '解析结果统计' : 'Parse result statistics' }}</h2>
           <p class="runtime-note">
             {{
               isChinese
-                ? '下半区把 issue / important-urgent / by-report / by-sql 与解析历史合到同一主路由，长证据统一进入 dialog 或 drawer。'
-                : 'The lower half keeps issue, important-or-urgent, by-report, by-SQL, and parse history under one route while long evidence moves into dialogs or drawers.'
+                ? '统计区只展示问题分布、优先级和逻辑对象等结果视角；解析历史查询已拆到独立页面。'
+                : 'Statistics only show issue, priority, and logical-object result views; parse history search lives on its own page.'
             }}
           </p>
         </div>
@@ -1806,8 +1626,8 @@ watch(
           <el-button :loading="loading.analytics" data-testid="statistics-refresh" @click="loadAnalytics">
             {{ isChinese ? '刷新统计' : 'Refresh statistics' }}
           </el-button>
-          <el-button :loading="loading.historyPage" data-testid="parse-record-refresh" @click="loadHistoryPage">
-            {{ isChinese ? '刷新历史' : 'Refresh history' }}
+          <el-button data-testid="parse-record-refresh" @click="openParseWorkspace({ path: ROUTE_PATHS.parseRecord })">
+            {{ isChinese ? '打开解析历史' : 'Open parse history' }}
           </el-button>
         </div>
       </div>
@@ -2038,212 +1858,6 @@ watch(
                 <el-table-column prop="rewriteCount" :label="isChinese ? '轻量改写' : 'Rewrite'" min-width="120" />
                 <el-table-column prop="accelerationCount" :label="isChinese ? '加速命中' : 'Acceleration'" min-width="130" />
               </el-table>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '解析历史' : 'Parse history'" name="history">
-              <div class="history-stack">
-                <div class="table-heading">
-                  <div>
-                    <p class="section-kicker sqlforge-code-label">query history workbench</p>
-                    <h3 class="detail-title">{{ isChinese ? '解析历史' : 'Parse history' }}</h3>
-                  </div>
-                  <div class="action-row action-row-wrap">
-                    <el-button :loading="loading.historyLookup" data-testid="parse-record-run-lookup" @click="runIndexedLookup">
-                      {{ isChinese ? '精确反查' : 'Indexed lookup' }}
-                    </el-button>
-                    <el-button @click="clearHistoryFilters">{{ isChinese ? '清空条件' : 'Clear filters' }}</el-button>
-                  </div>
-                </div>
-
-                <div class="filter-grid">
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
-                    <el-input v-model="historyForm.tenantId" />
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '报表编码' : 'Report code' }}</span>
-                    <el-input v-model="historyForm.reportCode" />
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '数据源' : 'Datasource' }}</span>
-                    <el-input v-model="historyForm.datasourceCode" />
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '阶段' : 'Stage' }}</span>
-                    <el-input v-model="historyForm.stage" />
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '业务日期' : 'Biz date' }}</span>
-                    <el-input v-model="historyForm.bizDate" placeholder="2026-04-27" />
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '查询日期起点' : 'Query date start' }}</span>
-                    <el-input v-model="historyForm.queryDateStart" placeholder="2026-04-01" />
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '查询日期终点' : 'Query date end' }}</span>
-                    <el-input v-model="historyForm.queryDateEnd" placeholder="2026-04-27" />
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '结果状态' : 'Status' }}</span>
-                    <el-select v-model="historyForm.status" data-testid="parse-record-filter-select">
-                      <el-option label="ALL" value="" />
-                      <el-option label="SUCCESS" value="SUCCESS" />
-                      <el-option label="PARTIAL" value="PARTIAL" />
-                      <el-option label="FAILED" value="FAILED" />
-                    </el-select>
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '接入渠道' : 'Access channel' }}</span>
-                    <el-select v-model="historyForm.accessChannel" data-testid="parse-record-status-filter">
-                      <el-option label="ALL" value="" />
-                      <el-option label="PAGE" value="PAGE" />
-                      <el-option label="API" value="API" />
-                      <el-option label="JDBC_AGENT" value="JDBC_AGENT" />
-                      <el-option label="SDK" value="SDK" />
-                      <el-option label="CLIENT" value="CLIENT" />
-                    </el-select>
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '逻辑对象类型' : 'Logical object type' }}</span>
-                    <el-select v-model="historyForm.logicalObjectType">
-                      <el-option label="ALL" value="" />
-                      <el-option label="BUSINESS_VIEW" value="BUSINESS_VIEW" />
-                      <el-option label="DB_VIEW" value="DB_VIEW" />
-                    </el-select>
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '目标引擎' : 'Target engine' }}</span>
-                    <el-select v-model="historyForm.engine" data-testid="parse-record-sort-select">
-                      <el-option label="ALL" value="" />
-                      <el-option label="HETU" value="HETU" />
-                      <el-option label="HIVE" value="HIVE" />
-                    </el-select>
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '提交人' : 'Submitted by' }}</span>
-                    <el-input v-model="historyForm.submittedBy" />
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '缓存命中' : 'Cache hit' }}</span>
-                    <el-select v-model="historyForm.cacheHit">
-                      <el-option label="ALL" value="" />
-                      <el-option label="true" value="true" />
-                      <el-option label="false" value="false" />
-                    </el-select>
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '轻量改写' : 'Rewrite applied' }}</span>
-                    <el-select v-model="historyForm.rewriteApplied">
-                      <el-option label="ALL" value="" />
-                      <el-option label="true" value="true" />
-                      <el-option label="false" value="false" />
-                    </el-select>
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '加速命中' : 'Acceleration applied' }}</span>
-                    <el-select v-model="historyForm.accelerationApplied">
-                      <el-option label="ALL" value="" />
-                      <el-option label="true" value="true" />
-                      <el-option label="false" value="false" />
-                    </el-select>
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '参数化 SQL' : 'Parameterized SQL' }}</span>
-                    <el-select v-model="historyForm.parameterizedSql">
-                      <el-option label="ALL" value="" />
-                      <el-option label="true" value="true" />
-                      <el-option label="false" value="false" />
-                    </el-select>
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '提交起点' : 'Submitted start' }}</span>
-                    <el-input v-model="historyForm.submittedStart" placeholder="2026-04-25T00:00:00" />
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '提交终点' : 'Submitted end' }}</span>
-                    <el-input v-model="historyForm.submittedEnd" placeholder="2026-04-27T23:59:59" />
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '排序字段' : 'Sort by' }}</span>
-                    <el-select v-model="historyForm.sortBy">
-                      <el-option label="submittedAt" value="submittedAt" />
-                      <el-option label="reportCode" value="reportCode" />
-                      <el-option label="datasourceCode" value="datasourceCode" />
-                      <el-option label="targetEngine" value="targetEngine" />
-                    </el-select>
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">{{ isChinese ? '排序方向' : 'Sort order' }}</span>
-                    <el-select v-model="historyForm.sortOrder">
-                      <el-option label="DESC" value="DESC" />
-                      <el-option label="ASC" value="ASC" />
-                    </el-select>
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">Trace ID</span>
-                    <el-input v-model="historyForm.traceId" />
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">Task ID</span>
-                    <el-input v-model="historyForm.taskId" />
-                  </label>
-                  <label class="field-block">
-                    <span class="field-label">Report ID</span>
-                    <el-input v-model="historyForm.reportId" />
-                  </label>
-                </div>
-
-                <div class="summary-chip-row">
-                  <span class="summary-chip">{{ isChinese ? 'History classification' : 'History classification' }}</span>
-                  <span class="summary-chip">{{ isChinese ? 'Sort mode' : 'Sort mode' }}: {{ historyForm.sortBy }} {{ historyForm.sortOrder }}</span>
-                  <span class="summary-chip" data-testid="parse-record-page-mode">{{ hasLookupCriteria ? 'INDEXED' : 'PAGE' }}</span>
-                </div>
-
-                <section class="summary-grid summary-grid-compact">
-                  <article v-for="item in pageSummaryCards" :key="item.label" class="summary-card">
-                    <span class="summary-card-label">{{ item.label }}</span>
-                    <strong>{{ item.value }}</strong>
-                  </article>
-                </section>
-
-                <el-table :data="historyRows" border>
-                  <el-table-column :label="isChinese ? 'History / Report' : 'History / Report'" min-width="220">
-                    <template #default="{ row }">
-                      <button
-                        type="button"
-                        class="table-link"
-                        data-testid="parse-record-trace-item"
-                        @click="openHistoryDetail(row.historyId)"
-                      >
-                        {{ row.reportCode || row.historyId }}
-                      </button>
-                      <div class="cell-subline">{{ row.historyId }}</div>
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
-                  <el-table-column prop="stageCode" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
-                  <el-table-column :label="isChinese ? '服务编码' : 'Service code'" min-width="150">
-                    <template #default="{ row }">{{ row.historyType || '-' }}</template>
-                  </el-table-column>
-                  <el-table-column prop="resultStatus" :label="isChinese ? '状态' : 'Status'" min-width="120">
-                    <template #default="{ row }">
-                      <span :class="statusClass(row.resultStatus)">{{ row.resultStatus || '-' }}</span>
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="accessChannel" :label="isChinese ? '接入渠道' : 'Access channel'" min-width="130" />
-                  <el-table-column :label="isChinese ? '逻辑对象类型' : 'Logical objects'" min-width="160">
-                    <template #default="{ row }">{{ row.logicalObjectTypes?.join(', ') || '-' }}</template>
-                  </el-table-column>
-                  <el-table-column prop="targetEngine" :label="isChinese ? '目标引擎' : 'Target engine'" min-width="120" />
-                  <el-table-column prop="submittedAt" :label="isChinese ? '提交时间' : 'Submitted at'" min-width="170">
-                    <template #default="{ row }">{{ formatTimestamp(row.submittedAt) }}</template>
-                  </el-table-column>
-                  <el-table-column :label="isChinese ? '审计事件数' : 'Audit event count'" min-width="120">
-                    <template #default="{ row }">{{ row.auditEventCount ?? '-' }}</template>
-                  </el-table-column>
-                </el-table>
-              </div>
             </el-tab-pane>
           </el-tabs>
         </section>
@@ -2625,109 +2239,6 @@ watch(
       </template>
     </el-dialog>
 
-    <el-dialog v-model="historyDetailDialogVisible" :title="selectedHistoryDetail?.reportCode || selectedHistoryDetail?.historyId || 'query history detail'" width="1120px">
-      <div v-if="selectedHistoryDetail" class="dialog-stack">
-        <div class="dialog-header">
-          <div class="banner-row">
-            <strong data-testid="parse-record-detail-trace-id">{{ selectedHistoryDetail.traceId || '-' }}</strong>
-            <span :class="statusClass(selectedHistoryDetail.resultStatus)">{{ selectedHistoryDetail.resultStatus || '-' }}</span>
-          </div>
-          <div class="dialog-actions">
-            <el-button type="primary" @click="openRepairEvidence">{{ isChinese ? '打开修复证据' : 'Open repair evidence' }}</el-button>
-            <el-button @click="openAuditForensics">{{ isChinese ? '打开审计取证' : 'Open audit forensics' }}</el-button>
-            <el-button @click="historyDetailDrawerVisible = true">{{ isChinese ? '查看原始证据' : 'View raw evidence' }}</el-button>
-          </div>
-        </div>
-
-        <el-tabs v-model="activeHistoryDialogTab">
-          <el-tab-pane :label="isChinese ? '概览' : 'Overview'" name="overview">
-            <div class="detail-grid">
-              <div v-for="item in detailSummaryCards" :key="item.label" class="detail-grid__item">
-                <span>{{ item.label }}</span>
-                <strong>{{ displayValue(item.value) }}</strong>
-              </div>
-            </div>
-            <div v-if="traceSummaryCards.length" class="detail-grid detail-grid-secondary">
-              <div v-for="item in traceSummaryCards" :key="item.label" class="detail-grid__item">
-                <span>{{ item.label }}</span>
-                <strong>{{ displayValue(item.value) }}</strong>
-              </div>
-            </div>
-          </el-tab-pane>
-
-          <el-tab-pane :label="isChinese ? '关联历史' : 'Linked query histories'" name="histories">
-            <p class="tab-copy">query history detail</p>
-            <p class="tab-copy">SQL tri-state, parse signals, and related forensics</p>
-            <el-table :data="traceQueryHistories" border>
-              <el-table-column prop="historyId" label="History ID" min-width="180" />
-              <el-table-column prop="reportCode" :label="isChinese ? '报表编码' : 'Report code'" min-width="180" />
-              <el-table-column prop="historyType" :label="isChinese ? '类型' : 'Type'" min-width="140" />
-              <el-table-column :label="isChinese ? '提交时间' : 'Submitted at'" min-width="170">
-                <template #default="{ row }">{{ formatTimestamp(row.submittedAt) }}</template>
-              </el-table-column>
-            </el-table>
-            <p v-if="!traceQueryHistories.length" class="empty-copy" data-testid="parse-record-detail-query-history-count">0</p>
-            <p v-else class="empty-copy" data-testid="parse-record-detail-query-history-count">{{ traceQueryHistories.length }}</p>
-          </el-tab-pane>
-
-          <el-tab-pane :label="isChinese ? 'SQL 三态' : 'SQL tri-state'" name="sql">
-            <div class="detail-grid">
-              <div v-for="item in sqlStateHighlights" :key="item.key" class="detail-grid__item">
-                <span>{{ item.label }}</span>
-                <strong :data-testid="`parse-record-history-${item.key.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`)}`">
-                  {{ displayValue(item.value) }}
-                </strong>
-              </div>
-            </div>
-            <div class="code-grid">
-              <article v-for="item in sqlVariants" :key="item.key" class="code-card">
-                <div class="code-card__header"><span>{{ item.label }}</span></div>
-                <pre class="code-block" :data-testid="`parse-record-${item.key}`">{{ item.value }}</pre>
-              </article>
-            </div>
-          </el-tab-pane>
-
-          <el-tab-pane :label="isChinese ? '解析与路由' : 'Parse and route signals'" name="signals">
-            <div class="code-grid">
-              <article v-for="group in signalGroups" :key="group.key" class="code-card">
-                <div class="code-card__header"><span>{{ group.title }}</span></div>
-                <pre class="code-block" :data-testid="`parse-record-${group.key}`">{{ formatJson(group.payload) }}</pre>
-              </article>
-            </div>
-          </el-tab-pane>
-
-          <el-tab-pane :label="isChinese ? '关联证据' : 'References'" name="refs">
-            <div v-if="historyLogicalObjectHits.length" class="detail-grid">
-              <div
-                v-for="(item, index) in historyLogicalObjectHits"
-                :key="`${item.objectKey || item.logicalObjectKey || index}`"
-                class="detail-grid__item"
-              >
-                <span>{{ item.objectType || item.logicalObjectType || 'OBJECT' }}</span>
-                <strong>{{ item.objectKey || item.logicalObjectKey || item.objectName || '-' }}</strong>
-              </div>
-            </div>
-
-            <div v-if="referenceGroups.length" class="code-grid">
-              <article v-for="group in referenceGroups" :key="group.key" class="code-card">
-                <div class="code-card__header"><span>{{ group.title }}</span></div>
-                <pre class="code-block">{{ formatJson(group.items) }}</pre>
-              </article>
-            </div>
-
-            <el-table :data="auditEvents" border>
-              <el-table-column prop="serviceCode" :label="isChinese ? '服务' : 'Service'" min-width="150" />
-              <el-table-column prop="operationType" :label="isChinese ? '操作' : 'Operation'" min-width="160" />
-              <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
-              <el-table-column :label="isChinese ? '时间' : 'Created at'" min-width="170">
-                <template #default="{ row }">{{ formatTimestamp(row.createTime) }}</template>
-              </el-table-column>
-            </el-table>
-          </el-tab-pane>
-        </el-tabs>
-      </div>
-    </el-dialog>
-
     <el-drawer v-model="parseDetailDrawerVisible" :title="parseBatchDetail?.batchName || parseBatchDetail?.batchId || 'parse batch detail'" size="42%">
       <div class="drawer-stack" data-testid="batch-import-parse-detail">
         <div class="summary-grid summary-grid-compact">
@@ -2750,10 +2261,6 @@ watch(
         </div>
         <pre class="code-block">{{ formatJson(reportBatchDetail || {}) }}</pre>
       </div>
-    </el-drawer>
-
-    <el-drawer v-model="historyDetailDrawerVisible" :title="isChinese ? '原始证据' : 'Raw evidence'" size="44%">
-      <pre class="code-block">{{ formatJson(selectedHistoryDetail || {}) }}</pre>
     </el-drawer>
 
     <el-drawer v-model="evidenceDrawerVisible" :title="evidenceDrawerTitle || (isChinese ? '原始证据' : 'Raw evidence')" size="42%">
@@ -2865,7 +2372,7 @@ watch(
 .parse-workbench__grid {
   display: grid;
   gap: 24px;
-  grid-template-columns: minmax(320px, 1.05fr) minmax(360px, 1.35fr);
+  grid-template-columns: 1fr;
 }
 
 .workspace-entry-grid {
@@ -2994,7 +2501,7 @@ watch(
 
 .parse-card-grid,
 .result-layout {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .summary-card-grid,
@@ -3027,6 +2534,30 @@ watch(
   padding: 14px 16px;
 }
 
+.highlight-chip-danger {
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(239, 68, 68, 0.14);
+}
+
+.highlight-chip-danger strong {
+  color: #fca5a5;
+}
+
+.highlight-chip-warning {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.help-dot {
+  min-width: 20px;
+  height: 20px;
+  margin-left: 4px;
+  padding: 0;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 50%;
+  color: var(--sqlforge-text-secondary);
+}
+
 .summary-card {
   min-height: 96px;
 }
@@ -3046,6 +2577,7 @@ watch(
 
 .hint-card,
 .conclusion-card,
+.result-overview-card,
 .history-panel,
 .parse-card,
 .inline-banner,
@@ -3057,6 +2589,7 @@ watch(
 }
 
 .parse-card,
+.result-overview-card,
 .history-panel {
   display: grid;
   gap: 14px;

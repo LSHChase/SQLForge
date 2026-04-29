@@ -312,8 +312,8 @@ export default {
     summary: '统一提交 SQL、选择执行策略并进入后续治理链路。'
   },
   parseRecord: {
-    title: '解析记录',
-    summary: '跟踪解析结果、改写状态、失败样本与历史诊断。'
+    title: '解析历史查询',
+    summary: '查询已落库的单条解析记录、批量解析记录、审计追溯与详情证据。'
   },
   repairEvidence: {
     title: '修复证据',
@@ -340,8 +340,8 @@ export default {
     summary: '查看基线、峰值延迟、回归差异与准入判断。'
   },
   parseBatchCenter: {
-    title: '批量解析兼容入口',
-    summary: '该路径保留为兼容跳转入口，打开后会回到解析工作台并定位到批量解析弹窗。'
+    title: '批量解析',
+    summary: '独立处理批次创建、模板下载、文件导入、失败重试与报表清单解析。'
   },
   parseStatisticsCenter: {
     title: '解析统计兼容入口',
@@ -369,7 +369,7 @@ export default {
   },
   acceleration: {
     title: '解析工作台',
-    summary: '在同一路由内完成单条解析、批量解析、统计视角与解析历史下钻。'
+    summary: '专注单条 SQL 结构解析、访问解析和解析结果阅读；批量解析与历史查询已拆分为独立页面。'
   },
   system: {
     title: '系统管理',

@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-049: HARN-049 解析工作台、批量解析与解析历史能力正式实现
+
+- Status: done
+- Completed at: 2026-04-28
+- Commit subject: `HARN-049 split parse workbench history pages`
+- Priority: 1
+- Depends on: `N/A`
+- Scope: 实现后，单条解析页面采用上下结果布局，合并总结/结论为统一“解析结果”结构，移除重复标题；urgent=true 与 priority=P1 有明确保守红色提示；中文自然语言为主，代码、字段名、缩写和英文技术标识提供 tooltip 或小按钮解释入口；解析完成记录写入历史存储，并可在独立解析历史查询页面检索和查看；解析工作台、批量解析、解析历史查询路由、状态和业务逻辑互不耦合。 Tech: `existing frontend routing/page stack`,`existing frontend state management pattern`,`existing UI/design token or status color convention`,`existing persistence/storage layer`,`existing query/detail-vi...
+- Plan ref: docs/exec-plans/completed/HARN-049-full-auto-execution-plan.md
+- Matrix context: Phase-E / Story `E-STORY-008` 解析工作台与批量解析中心
+- Human confirmation point: Main Foreman 已在 HARN-049 preflight 后确认 materialization 边界：任务绑定 E-STORY-008 / Phase-E；实现复用现有 ROUTE_PATHS、ParseBatchCenterView、ParseRecordView、query_history、parse_batch、parse_batch_item 等当前仓库真值；新增或调整持久化仅限解析历史闭环所需字段、接口和兼容性补充；若发现必须改变权限、保留、脱敏策略或核心 parser 算法，则暂停并另行确认。
+- Data impact: 本任务不引入新的敏感数据类别和独立保留策略；解析历史闭环优先复用当前仓库已有 query_history 查询面、parse_batch / parse_batch_item 批量解析证据表和既有 tenant_id 隔离、分页、审计追溯语义。若实现需要补充字段或接口，只允许做兼容性新增，并继续遵守 R-031 至 R-038 的 MySQL 主持久化、后端历史查询、不可依赖浏览器临时状态、历史默认保留与敏感信息不得明文落库规则。解析 SQL 文本按现有历史/批量证据模型处理，不在前端新增本地持久化副本。
+- Rollback / recovery: 保留核心 parser 算法不变；若页面拆分或历史能力异常，可回退 HARN-049 单任务 commit，并通过治理台账记录回滚；若涉及数据库迁移，应提供可逆迁移或兼容性降级方案，确保旧解析流程仍可运行且不阻断单条解析。
+- Validation:
+  - `页面拆分与独立路由测试：解析工作台、批量解析、解析历史查询互不串状态、单条解析结果上下布局与重复标题移除测试、总结/结论合并为统一解析结果结构的展示测试、urgent=true、priority=P1 及其他状态颜色提示测试、中文展示与代码/字段/缩写 help 入口测试、解析完成后历史记录持久化测试、解析历史查询与详情查看关键路径测试、治理验证：foreman validate、pre-closeout audit、post-closeout audit`
+  - `python3 scripts/foreman.py validate HARN-049`
+- Progress log:
+  - 2026-04-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Split parse workbench, batch parse, and parse history into independent pages; improved single-parse result layout, result notes, color cues, Chinese-first labels, and help tooltips; added parse-history persistence through governance query history.
+  - Validation evidence: node scripts/check-parse-workbench-contract.mjs; node scripts/check-batch-import-contract.mjs; node scripts/check-history-page-contract.mjs; node scripts/check-navigation-shell-contract.mjs; npm run lint; npm run build; mvn -B -pl sqlforge-shared,governance,sql-optimization -am test; python3 scripts/foreman.py validate HARN-049; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: No known functional blockers. Frontend build still reports the existing Vite CJS API deprecation warning.
+  - Next step: Use the three independent pages for manual runtime smoke with a live backend and database when service environment is available.
+
 ### D-TASK-075: 补强复杂反模式 SQL 结构解析验证
 
 - Status: done

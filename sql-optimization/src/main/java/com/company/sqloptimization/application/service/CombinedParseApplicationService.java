@@ -7,6 +7,13 @@ import com.company.sqloptimization.application.controller.vo.CombinedParseConclu
 import com.company.sqloptimization.application.controller.vo.CombinedParseStatusHistoryVO;
 import com.company.sqloptimization.application.controller.vo.CombinedParseStatusVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseResponseVO;
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteResponse;
+import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -18,12 +25,16 @@ public class CombinedParseApplicationService {
 
     private final StructureParseApplicationService structureParseApplicationService;
     private final AccessParseApplicationService accessParseApplicationService;
+    private final GovernanceCapabilityClient governanceCapabilityClient;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, CombinedParseStatusVO> parseStates = new ConcurrentHashMap<String, CombinedParseStatusVO>();
 
     public CombinedParseApplicationService(StructureParseApplicationService structureParseApplicationService,
-                                           AccessParseApplicationService accessParseApplicationService) {
+                                           AccessParseApplicationService accessParseApplicationService,
+                                           GovernanceCapabilityClient governanceCapabilityClient) {
         this.structureParseApplicationService = structureParseApplicationService;
         this.accessParseApplicationService = accessParseApplicationService;
+        this.governanceCapabilityClient = governanceCapabilityClient;
     }
 
     public CombinedParseStatusVO submit(CombinedParseRequest request) {
@@ -42,13 +53,15 @@ public class CombinedParseApplicationService {
             status.setDegradeReason("STRUCTURE_PARSE_INVALID");
             appendHistory(status, "FAILED", "Structure parse returned INVALID and access parse was not started.");
             status.setConclusion(buildConclusion(status));
+            writeParseHistory(status, request);
             return status;
         }
 
         status.setStatus("ACCESS_PARSING");
         appendHistory(status, "ACCESS_PARSING", "Access parse follow-up was scheduled after structure success.");
         status.setConclusion(buildConclusion(status));
-        scheduleAccessParse(status.getParseTaskId(), request);
+        writeParseHistory(status, request);
+        scheduleAccessParse(status.getParseTaskId(), request, RequestContext.snapshot());
         return status;
     }
 
@@ -56,50 +69,117 @@ public class CombinedParseApplicationService {
         return parseStates.get(parseTaskId);
     }
 
-    private void scheduleAccessParse(String parseTaskId, CombinedParseRequest request) {
+    private void scheduleAccessParse(String parseTaskId,
+                                     CombinedParseRequest request,
+                                     RequestContext.ContextValue requestContext) {
         CompletableFuture.runAsync(new Runnable() {
             @Override
             public void run() {
-                delayBeforeAccessParse();
-                AccessParseRequest accessRequest = new AccessParseRequest();
-                accessRequest.setSqlText(request.getSqlText());
-                accessRequest.setSqlTemplateText(request.getSqlTemplateText());
-                accessRequest.setBindParameters(request.getBindParameters());
-                accessRequest.setBindingMode(request.getBindingMode());
-                accessRequest.setDatasourceCode(request.getDatasourceCode());
-                accessRequest.setCommentContext(request.getCommentContext());
-                accessRequest.setConnectionRequired(request.getConnectionRequired());
+                try {
+                    RequestContext.restore(requestContext);
+                    delayBeforeAccessParse();
+                    AccessParseRequest accessRequest = new AccessParseRequest();
+                    accessRequest.setSqlText(request.getSqlText());
+                    accessRequest.setSqlTemplateText(request.getSqlTemplateText());
+                    accessRequest.setBindParameters(request.getBindParameters());
+                    accessRequest.setBindingMode(request.getBindingMode());
+                    accessRequest.setDatasourceCode(request.getDatasourceCode());
+                    accessRequest.setCommentContext(request.getCommentContext());
+                    accessRequest.setConnectionRequired(request.getConnectionRequired());
 
-                AccessParseResponseVO accessParse = accessParseApplicationService.parseAccess(accessRequest, parseTaskId);
-                CombinedParseStatusVO current = parseStates.get(parseTaskId);
-                if (current == null) {
-                    return;
+                    AccessParseResponseVO accessParse = accessParseApplicationService.parseAccess(accessRequest, parseTaskId);
+                    CombinedParseStatusVO current = parseStates.get(parseTaskId);
+                    if (current == null) {
+                        return;
+                    }
+                    current.setAccessParse(accessParse);
+                    if ("AVAILABLE".equals(accessParse.getServiceStatus()) && "CONNECTED".equals(accessParse.getConnectionStatus())) {
+                        current.setStatus("ACCESS_SUCCEEDED");
+                        current.setDegradeReason(null);
+                        appendHistory(current, "ACCESS_SUCCEEDED", "Access parse completed with provider reachability evidence.");
+                    } else if ("SKIPPED".equals(accessParse.getServiceStatus())
+                        || "UNAVAILABLE".equals(accessParse.getServiceStatus())
+                        || "FAILED".equals(accessParse.getConnectionStatus())
+                        || "UNAVAILABLE".equals(accessParse.getConnectionStatus())
+                        || "SKIPPED".equals(accessParse.getConnectionStatus())) {
+                        current.setStatus("PARTIAL_SUCCEEDED");
+                        current.setDegradeReason(accessParse.getDegradeReason());
+                        appendHistory(
+                            current,
+                            "PARTIAL_SUCCEEDED",
+                            "Structure parse succeeded but access parse ended with degraded status: " + accessParse.getDegradeReason()
+                        );
+                    } else {
+                        current.setStatus("PARTIAL_SUCCEEDED");
+                        current.setDegradeReason(accessParse.getDegradeReason());
+                        appendHistory(current, "PARTIAL_SUCCEEDED", "Access parse completed with a non-terminal degraded state.");
+                    }
+                    current.setConclusion(buildConclusion(current));
+                    writeParseHistory(current, request);
+                } finally {
+                    RequestContext.clear();
                 }
-                current.setAccessParse(accessParse);
-                if ("AVAILABLE".equals(accessParse.getServiceStatus()) && "CONNECTED".equals(accessParse.getConnectionStatus())) {
-                    current.setStatus("ACCESS_SUCCEEDED");
-                    current.setDegradeReason(null);
-                    appendHistory(current, "ACCESS_SUCCEEDED", "Access parse completed with provider reachability evidence.");
-                } else if ("SKIPPED".equals(accessParse.getServiceStatus())
-                    || "UNAVAILABLE".equals(accessParse.getServiceStatus())
-                    || "FAILED".equals(accessParse.getConnectionStatus())
-                    || "UNAVAILABLE".equals(accessParse.getConnectionStatus())
-                    || "SKIPPED".equals(accessParse.getConnectionStatus())) {
-                    current.setStatus("PARTIAL_SUCCEEDED");
-                    current.setDegradeReason(accessParse.getDegradeReason());
-                    appendHistory(
-                        current,
-                        "PARTIAL_SUCCEEDED",
-                        "Structure parse succeeded but access parse ended with degraded status: " + accessParse.getDegradeReason()
-                    );
-                } else {
-                    current.setStatus("PARTIAL_SUCCEEDED");
-                    current.setDegradeReason(accessParse.getDegradeReason());
-                    appendHistory(current, "PARTIAL_SUCCEEDED", "Access parse completed with a non-terminal degraded state.");
-                }
-                current.setConclusion(buildConclusion(current));
             }
         });
+    }
+
+    private void writeParseHistory(CombinedParseStatusVO status, CombinedParseRequest request) {
+        try {
+            GovernanceParseHistoryWriteRequest historyRequest = new GovernanceParseHistoryWriteRequest();
+            historyRequest.setParseTaskId(status.getParseTaskId());
+            historyRequest.setSqlFingerprint(
+                status.getStructureParse() == null ? null : status.getStructureParse().getSqlFingerprint()
+            );
+            historyRequest.setDatasourceCode(request.getDatasourceCode());
+            historyRequest.setDatasourceType("AUTO");
+            historyRequest.setSqlText(request.getSqlText());
+            historyRequest.setSqlTemplateText(request.getSqlTemplateText());
+            historyRequest.setBindingMode(request.getBindingMode());
+            historyRequest.setResultStatus(normalizeHistoryResultStatus(status.getStatus()));
+            historyRequest.setResultSummaryJson(toJson(status.getConclusion()));
+            historyRequest.setResultPayloadJson(toJson(status));
+            historyRequest.setQueryContextJson(toJson(request.getCommentContext()));
+            historyRequest.setLogicalObjectHitsJson(toJson(
+                status.getStructureParse() == null ? null : status.getStructureParse().getLogicalObjectHits()
+            ));
+            historyRequest.setSubmittedAt(Instant.now().toString());
+            GovernanceParseHistoryWriteResponse response = governanceCapabilityClient.writeParseHistory(historyRequest);
+            if (response != null) {
+                status.setHistoryId(response.getHistoryId());
+                status.setHistoryPersisted(Boolean.TRUE);
+                status.setHistoryPersistenceStatus("SAVED");
+                return;
+            }
+            status.setHistoryPersisted(Boolean.FALSE);
+            status.setHistoryPersistenceStatus("NO_RESPONSE");
+        } catch (RuntimeException ex) {
+            status.setHistoryPersisted(Boolean.FALSE);
+            status.setHistoryPersistenceStatus("WRITE_FAILED");
+        }
+    }
+
+    private String normalizeHistoryResultStatus(String status) {
+        if ("ACCESS_SUCCEEDED".equals(status) || "STRUCTURE_SUCCEEDED".equals(status)) {
+            return "SUCCESS";
+        }
+        if ("PARTIAL_SUCCEEDED".equals(status) || "ACCESS_PARSING".equals(status)) {
+            return "PARTIAL";
+        }
+        if ("FAILED".equals(status)) {
+            return "FAILED";
+        }
+        return "PARTIAL";
+    }
+
+    private String toJson(Object value) {
+        if (value == null) {
+            return "{}";
+        }
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException ex) {
+            return "{}";
+        }
     }
 
     private CombinedParseConclusionVO buildConclusion(CombinedParseStatusVO status) {
