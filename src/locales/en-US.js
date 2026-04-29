@@ -313,7 +313,7 @@ export default {
   },
   parseRecord: {
     title: 'Parse History Search',
-    summary: 'Search persisted single-parse records, batch-parse records, audit traces, and detail evidence.'
+    summary: 'Search persisted single SQL parse records, audit traces, and detail evidence.'
   },
   repairEvidence: {
     title: 'Repair Evidence',
@@ -344,8 +344,8 @@ export default {
     summary: 'Handle batch creation, template download, file import, failure retry, and report-catalog SQL parsing on an independent page.'
   },
   parseStatisticsCenter: {
-    title: 'Parse Statistics Compatibility Entry',
-    summary: 'This route is kept only as a compatibility redirect and lands back on the parse workbench statistics views.'
+    title: 'SQL Parse Statistics Compatibility Entry',
+    summary: 'This route is kept only as a compatibility redirect and lands back on SQL Parse statistics views.'
   },
   assetCatalog: {
     title: 'Data Asset Catalog',
@@ -368,8 +368,8 @@ export default {
     summary: 'Review derived alerts, simulated ACK state, and notify-simulated outcomes.'
   },
   acceleration: {
-    title: 'Parse Workbench',
-    summary: 'Focus on single-SQL structure parsing, access parsing, and result reading; batch parsing and history search are separate pages.'
+    title: 'SQL Parse',
+    summary: 'Focus on single-SQL parsing, structure/access results, and history traceability.'
   },
   system: {
     title: 'System Management',

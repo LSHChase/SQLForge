@@ -24,6 +24,9 @@ public class StructureParseResponseVO {
     private String priorityLevel;
     private Boolean important;
     private Boolean urgent;
+    private String historyId;
+    private Boolean historyPersisted;
+    private String historyPersistenceStatus;
 
     public String getParseTaskId() {
         return parseTaskId;
@@ -175,5 +178,29 @@ public class StructureParseResponseVO {
 
     public void setUrgent(Boolean urgent) {
         this.urgent = urgent;
+    }
+
+    public String getHistoryId() {
+        return historyId;
+    }
+
+    public void setHistoryId(String historyId) {
+        this.historyId = historyId;
+    }
+
+    public Boolean getHistoryPersisted() {
+        return historyPersisted;
+    }
+
+    public void setHistoryPersisted(Boolean historyPersisted) {
+        this.historyPersisted = historyPersisted;
+    }
+
+    public String getHistoryPersistenceStatus() {
+        return historyPersistenceStatus;
+    }
+
+    public void setHistoryPersistenceStatus(String historyPersistenceStatus) {
+        this.historyPersistenceStatus = historyPersistenceStatus;
     }
 }

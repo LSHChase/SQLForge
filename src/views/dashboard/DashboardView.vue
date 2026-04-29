@@ -294,8 +294,8 @@ const quickEntries = computed(() => [
   },
   {
     key: 'parse',
-    title: isChinese.value ? '解析工作台' : 'Parse workbench',
-    description: isChinese.value ? '显式开放解析工作台、批量解析中心、解析结果中心和加速与改写中心。' : 'Expose parse workbench, batch parse, parse result, and acceleration-rewrite entries explicitly.',
+    title: isChinese.value ? 'SQL解析' : 'SQL Parse',
+    description: isChinese.value ? '直达单条 SQL 解析、结果与历史追溯。' : 'Jump directly into single SQL parsing, result review, and history tracing.',
     status: isChinese.value ? `${Number(overview.value?.issueSceneCount || 0)} 个问题场景` : `${Number(overview.value?.issueSceneCount || 0)} issue scenes`,
     path: {
       path: ROUTE_PATHS.acceleration,
@@ -581,7 +581,7 @@ onMounted(() => {
             {{ isChinese ? '进入查询工作台' : 'Open query workbench' }}
           </button>
           <button class="pill-button" @click="goTo(ROUTE_PATHS.acceleration)">
-            {{ isChinese ? '进入解析工作台' : 'Open parse workbench' }}
+            {{ isChinese ? '进入 SQL解析' : 'Open SQL Parse' }}
           </button>
         </div>
       </div>

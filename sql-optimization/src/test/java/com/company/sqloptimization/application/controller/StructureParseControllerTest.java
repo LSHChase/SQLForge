@@ -12,6 +12,7 @@ import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.governance.GovernanceDbViewDependencyRef;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteResponse;
 import com.company.sqloptimization.SqlOptimizationApplication;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import java.util.Collections;
@@ -26,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = SqlOptimizationApplication.class)
@@ -50,6 +52,10 @@ class StructureParseControllerTest {
         resolveResponse.setObjectKey("DB_VIEW:vw_sales_daily");
         resolveResponse.setDependencies(Collections.singletonList(dependency));
         when(governanceCapabilityClient.resolveDbView(any())).thenReturn(resolveResponse);
+        GovernanceParseHistoryWriteResponse historyResponse = new GovernanceParseHistoryWriteResponse();
+        historyResponse.setHistoryId("history-parse-001");
+        historyResponse.setResultId("result-parse-001");
+        when(governanceCapabilityClient.writeParseHistory(any())).thenReturn(historyResponse);
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"sqlText\":\"SELECT * FROM vw_sales_daily WHERE dt = '2026-04-01' AND dt = '2026-04-01' ORDER BY id\","
@@ -75,7 +81,12 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.riskTags[0]").value("SELECT_STAR"))
             .andExpect(jsonPath("$.rewriteCandidates[0]").value("DEDUPLICATE_WHERE_PREDICATES"))
             .andExpect(jsonPath("$.issues[0].issueCode").value("SELECT_STAR"))
-            .andExpect(jsonPath("$.priorityLevel").value("P1"));
+            .andExpect(jsonPath("$.priorityLevel").value("P1"))
+            .andExpect(jsonPath("$.historyId").value("history-parse-001"))
+            .andExpect(jsonPath("$.historyPersisted").value(true))
+            .andExpect(jsonPath("$.historyPersistenceStatus").value("SAVED"));
+        verify(governanceCapabilityClient).writeParseHistory(any());
+        verify(governanceCapabilityClient).resolveDbView(any());
     }
 
     @Test

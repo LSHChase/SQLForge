@@ -9,12 +9,6 @@ import {
   getCombinedParseStatus,
   getGovernanceQueryHistoryPage,
   getParseBatch,
-  getParseStatisticsByIssueScene,
-  getParseStatisticsByReport,
-  getParseStatisticsBySql,
-  getParseStatisticsImportantUrgent,
-  getParseStatisticsOverview,
-  getParseStatisticsPriorityMatrix,
   getReportBatch,
   importReportBatch,
   ingestParseBatch,
@@ -136,6 +130,9 @@ const historyPage = ref(null)
 const evidenceDrawerVisible = ref(false)
 const evidenceDrawerTitle = ref('')
 const evidenceDrawerPayload = ref(null)
+const fieldHelpDialogVisible = ref(false)
+const fieldHelpDialogTitle = ref('')
+const fieldHelpDialogMessage = ref('')
 
 const loading = reactive({
   analytics: false,
@@ -263,47 +260,20 @@ const requestSummary = computed(() => [
 ])
 
 const parseWorkbenchSummary = computed(() => [
-  { label: isChinese.value ? '独立页面' : 'Independent pages', value: 3 },
-  { label: isChinese.value ? '当前页面' : 'Current page', value: isChinese.value ? '单条解析' : 'Single parse' },
-  { label: isChinese.value ? '结果布局' : 'Result layout', value: isChinese.value ? '上下结构' : 'Stacked result' }
+  { label: isChinese.value ? '当前页面' : 'Current page', value: isChinese.value ? 'SQL解析' : 'SQL Parse' },
+  { label: isChinese.value ? '解析模式' : 'Parse mode', value: isChinese.value ? '单条' : 'Single' },
+  { label: isChinese.value ? '结果布局' : 'Result layout', value: isChinese.value ? '结构/结果分栏' : 'Split result layout' }
 ])
 
 const workspaceEntries = computed(() => [
   {
     key: 'parse',
-    eyebrow: isChinese.value ? '解析工作台' : 'Parse workbench',
+    eyebrow: isChinese.value ? 'SQL解析' : 'SQL Parse',
     title: isChinese.value ? '单条 SQL 解析' : 'Single SQL parsing',
     description: isChinese.value
-      ? '结构解析、Access Parse 和综合结论保持在主工作区。'
-      : 'Keep structure parsing, access parsing, and the overall verdict in the main workspace.',
+      ? '结构解析、Access Parse、结果统计与历史追溯保持在同一工作区。'
+      : 'Structure parsing, access parsing, result statistics, and history tracing stay in one workspace.',
     route: { path: ROUTE_PATHS.acceleration }
-  },
-  {
-    key: 'batch',
-    eyebrow: isChinese.value ? '批量解析中心' : 'Batch parse center',
-    title: isChinese.value ? '批次导入与补跑' : 'Batch import and recovery',
-    description: isChinese.value
-      ? '独立页面承载批次创建、导入、失败重试和报表清单导入。'
-      : 'A separate page owns batch creation, import, retries, and report-catalog import.',
-    route: { path: ROUTE_PATHS.parseBatchCenter }
-  },
-  {
-    key: 'history',
-    eyebrow: isChinese.value ? '解析历史查询' : 'Parse history search',
-    title: isChinese.value ? '历史检索与详情查看' : 'History search and detail',
-    description: isChinese.value
-      ? '独立页面查询已落库的解析记录、审计追溯和详情证据。'
-      : 'A separate page searches persisted parse records, audit traces, and details.',
-    route: { path: ROUTE_PATHS.parseRecord }
-  },
-  {
-    key: 'rewrite',
-    eyebrow: isChinese.value ? '加速与改写中心' : 'Acceleration and rewrite center',
-    title: isChinese.value ? '推荐、收益与协同' : 'Recommendations, benefit, and dispatch',
-    description: isChinese.value
-      ? '推荐中心继续承载改写建议、收益风险和 dispatch 状态。'
-      : 'Recommendation center remains responsible for rewrite advice, benefit or risk, and dispatch status.',
-    route: { path: ROUTE_PATHS.recommendationCenter }
   }
 ])
 
@@ -527,6 +497,101 @@ function helpTextForKey(key) {
     compatibilityStatus: isChinese.value ? '兼容性状态，表示 SQL 与目标引擎是否匹配。' : 'Compatibility status shows whether SQL matches the target engine.'
   }
   return glossary[key] || ''
+}
+
+function openFieldHelp(key, label) {
+  const message = helpTextForKey(key)
+  if (!message) {
+    return
+  }
+  fieldHelpDialogTitle.value = label
+  fieldHelpDialogMessage.value = message
+  fieldHelpDialogVisible.value = true
+}
+
+function riskDisplayText(risk, field) {
+  const code = String(risk?.riskCode || '').trim()
+  if (!isChinese.value) {
+    return risk?.[field] || '-'
+  }
+  const translations = {
+    FULL_TABLE_SCAN_RISK: {
+      summary: '全表扫描风险',
+      evidence: '当前 SQL 缺少足够的过滤条件，可能触发大范围扫描。',
+      suggestedAction: '补充分区键、时间范围或业务键过滤条件。'
+    },
+    LARGE_TABLE_JOIN_RISK: {
+      summary: '大表 Join 风险',
+      evidence: '当前 SQL 存在较重的关联路径，需要确认关联键与数据规模。',
+      suggestedAction: '先核对 Join 键选择性，再结合 Access Parse 或压测确认。'
+    },
+    UNNECESSARY_SORT_RISK: {
+      summary: '无必要排序风险',
+      evidence: 'SQL 存在排序但缺少收敛条件，可能放大计算成本。',
+      suggestedAction: '补充 LIMIT 或改为更适合下游使用的排序方式。'
+    },
+    REPEATED_EXPRESSION_RISK: {
+      summary: '重复表达式计算风险',
+      evidence: '表达式在多个位置重复出现，可能增加 CPU 开销。',
+      suggestedAction: '抽取公共表达式或改写为 CTE / 中间层。'
+    },
+    LARGE_RESULT_SET_RISK: {
+      summary: '结果集过大风险',
+      evidence: '当前 SQL 可能返回过宽或过大的结果集。',
+      suggestedAction: '显式指定列、过滤条件或 LIMIT。'
+    },
+    SCALAR_SUBQUERY_IN_SELECT: {
+      summary: 'SELECT 子句中的标量子查询',
+      evidence: '投影列里存在标量子查询，可能造成重复执行。',
+      suggestedAction: '改写为 Join、预聚合 CTE 或中间对象。'
+    },
+    NESTED_SUBQUERY_RISK: {
+      summary: '嵌套子查询风险',
+      evidence: 'SQL 存在多层嵌套查询，静态判断成本偏高。',
+      suggestedAction: '拆成命名 CTE 分段检查。'
+    },
+    CORRELATED_SUBQUERY_RISK: {
+      summary: '相关子查询风险',
+      evidence: 'SQL 中存在相关引用，可能引入重复 lookup。',
+      suggestedAction: '改写为显式 Join 或预计算阶段。'
+    },
+    FUNCTION_WRAPPED_PREDICATE: {
+      summary: '函数包裹谓词风险',
+      evidence: '过滤条件对列做了函数包裹，可能影响下推。',
+      suggestedAction: '尽量改写成区间判断或归一化列比较。'
+    },
+    NOT_EXISTS_ANTI_JOIN_RISK: {
+      summary: 'NOT EXISTS 反连接风险',
+      evidence: '反连接语义需要额外确认空值与选择性行为。',
+      suggestedAction: '确认语义后再考虑 staged rewrite。'
+    },
+    LEADING_WILDCARD_LIKE_RISK: {
+      summary: '前缀通配 LIKE 风险',
+      evidence: 'LIKE 以通配符开头，通常难以利用前缀裁剪。',
+      suggestedAction: '使用可搜索键或前缀可裁剪谓词。'
+    },
+    OR_PREDICATE_INDEX_RISK: {
+      summary: 'OR 谓词索引风险',
+      evidence: 'WHERE 条件组合了多个 OR 分支，可能削弱裁剪能力。',
+      suggestedAction: '评估 UNION ALL 或分段过滤是否更清晰。'
+    },
+    ORDER_BY_RANDOM_RISK: {
+      summary: '随机排序风险',
+      evidence: 'ORDER BY RAND / RANDOM 会引入昂贵的随机化与排序。',
+      suggestedAction: '改用确定性采样或预生成样本键。'
+    },
+    REPEATED_TABLE_SCAN_RISK: {
+      summary: '重复表扫描风险',
+      evidence: '同一表在多个位置被重复引用，容易放大 IO / CPU。',
+      suggestedAction: '通过 CTE 或中间对象预先分段。'
+    },
+    COMPLEX_QUERY_GRAPH_RISK: {
+      summary: '复杂查询图风险',
+      evidence: '当前查询图由多个 Join、谓词和子查询组成。',
+      suggestedAction: '先拆分为可审查的阶段，再进入上线路径。'
+    }
+  }
+  return translations[code]?.[field] || risk?.[field] || '-'
 }
 
 function resultValueClass(item) {
@@ -1038,28 +1103,87 @@ async function loadAnalytics() {
   loading.analytics = true
   analyticsErrorMessage.value = ''
   try {
-    const tenantId = historyForm.tenantId
-    const [
-      nextOverview,
-      nextIssueScenes,
-      nextSqlStats,
-      nextReportStats,
-      nextPriorityMatrix,
-      nextImportantUrgent
-    ] = await Promise.all([
-      getParseStatisticsOverview(tenantId),
-      getParseStatisticsByIssueScene(tenantId),
-      getParseStatisticsBySql(tenantId),
-      getParseStatisticsByReport(tenantId),
-      getParseStatisticsPriorityMatrix(tenantId),
-      getParseStatisticsImportantUrgent(tenantId)
-    ])
-    overview.value = nextOverview
-    issueScenes.value = Array.isArray(nextIssueScenes) ? nextIssueScenes : []
-    sqlStats.value = Array.isArray(nextSqlStats) ? nextSqlStats : []
-    reportStats.value = Array.isArray(nextReportStats) ? nextReportStats : []
-    priorityMatrix.value = Array.isArray(nextPriorityMatrix) ? nextPriorityMatrix : []
-    importantUrgent.value = Array.isArray(nextImportantUrgent) ? nextImportantUrgent : []
+    await loadHistoryPage()
+    const historyItems = Array.isArray(historyPage.value?.items) ? historyPage.value.items : []
+    const statusCounts = historyPage.value?.classificationSummary?.statusCounts || {}
+    const historyTypeCounts = historyPage.value?.classificationSummary?.historyTypeCounts || {}
+    const accessChannelCounts = historyPage.value?.classificationSummary?.accessChannelCounts || {}
+    const currentIssues = Array.isArray(structureIssues.value) ? structureIssues.value : []
+    const currentHistoryIssueScenes = new Set(
+      currentIssues.map(item => String(item.issueScene || '').trim()).filter(Boolean)
+    )
+    const currentImportantCount = currentIssues.filter(item => item.important === true).length
+    const currentUrgentCount = currentIssues.filter(item => item.urgent === true).length
+    const nonSuccessHistoryCount = historyItems.filter(item => String(item.resultStatus || '').toUpperCase() !== 'SUCCESS').length
+
+    overview.value = {
+      totalSqlCount: historyItems.length + (parseResult.value ? 1 : 0),
+      issueSqlCount: nonSuccessHistoryCount + (currentIssues.length > 0 ? 1 : 0),
+      totalIssueCount: nonSuccessHistoryCount + currentIssues.length,
+      issueSceneCount: currentHistoryIssueScenes.size + Object.keys(historyTypeCounts).length,
+      importantSqlCount: currentImportantCount + nonSuccessHistoryCount,
+      urgentSqlCount: currentUrgentCount + historyItems.filter(item => String(item.resultStatus || '').toUpperCase() === 'FAILED').length,
+      priorityDistribution: {
+        ...statusCounts,
+        ...accessChannelCounts
+      }
+    }
+
+    issueScenes.value = currentIssues.map((issue, index) => ({
+      issueScene: issue.issueScene || `ISSUE_${index + 1}`,
+      issueDomain: issue.issueDomain || '-',
+      severity: issue.severity || '-',
+      priorityLevel: issue.priorityLevel || '-',
+      affectedSqlCount: issue.affectedSqlCount || 1,
+      affectedIssueCount: issue.affectedReportCount || 1,
+      sqlRatio: 1
+    }))
+
+    sqlStats.value = historyItems.map((item, index) => ({
+      itemId: item.historyId || `history-${index + 1}`,
+      batchId: item.historyType || 'SQL_PARSE',
+      parseTaskId: item.resultId || item.historyId,
+      reportCode: item.historyId || item.sqlFingerprint || `history-${index + 1}`,
+      datasourceCode: item.datasourceCode || '-',
+      stage: item.resultStatus || '-',
+      sqlDigest: item.sqlFingerprint || '-',
+      issueCount: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 0 : 1,
+      highestPriorityLevel: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 'P4' : 'P1',
+      highestPriorityScore: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 0 : 100,
+      important: String(item.resultStatus || '').toUpperCase() !== 'SUCCESS',
+      urgent: String(item.resultStatus || '').toUpperCase() === 'FAILED',
+      issueScenes: item.logicalObjectTypes || []
+    }))
+
+    reportStats.value = historyItems.map((item, index) => ({
+      reportCode: item.reportCode || item.historyType || `HISTORY_${index + 1}`,
+      sqlCount: 1,
+      issueCount: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 0 : 1,
+      highestPriorityLevel: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 'P4' : 'P1',
+      highestPriorityScore: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 0 : 100,
+      important: String(item.resultStatus || '').toUpperCase() !== 'SUCCESS',
+      urgent: String(item.resultStatus || '').toUpperCase() === 'FAILED',
+      issueScenes: item.logicalObjectTypes || []
+    }))
+
+    priorityMatrix.value = Object.entries(statusCounts).map(([priorityLevel, sqlCount]) => ({
+      priorityLevel,
+      urgencyBucket: 'HISTORY',
+      sqlCount,
+      issueCount: nonSuccessHistoryCount,
+      reportCount: historyItems.length
+    }))
+
+    importantUrgent.value = currentIssues
+      .filter(item => item.important === true || item.urgent === true)
+      .map((issue, index) => ({
+        reportCode: issue.issueCode || `ISSUE_${index + 1}`,
+        highestPriorityLevel: issue.priorityLevel || '-',
+        highestPriorityScore: issue.priorityScore || 0,
+        datasourceCode: form.datasourceCode || '-',
+        stage: issue.issueDomain || '-',
+        issueScenes: [issue.issueScene || '-']
+      }))
   } catch (error) {
     analyticsErrorMessage.value = formatRuntimeError(error)
   } finally {
@@ -1112,10 +1236,6 @@ async function loadHistoryPage() {
   } finally {
     loading.historyPage = false
   }
-}
-
-function openParseWorkspace(routeLocation) {
-  router.push(routeLocation)
 }
 
 function applyRouteWorkspace() {
@@ -1173,7 +1293,7 @@ watch(
   <section class="runtime-page parse-workbench-page" data-testid="parse-workbench-page">
     <div class="runtime-hero surface-card">
       <div>
-        <p class="runtime-eyebrow sqlforge-code-label">sql optimization parse workbench</p>
+        <p class="runtime-eyebrow sqlforge-code-label">sql optimization SQL Parse</p>
         <h1 class="runtime-title">{{ t('acceleration.title') }}</h1>
         <p class="runtime-summary">{{ t('acceleration.summary') }}</p>
       </div>
@@ -1184,14 +1304,11 @@ watch(
           </span>
         </div>
         <div class="action-row action-row-wrap">
-          <el-button type="primary" @click="openParseWorkspace({ path: ROUTE_PATHS.parseBatchCenter })">
-            {{ isChinese ? '打开批量解析' : 'Open batch parsing' }}
-          </el-button>
-          <el-button @click="openParseWorkspace({ path: ROUTE_PATHS.parseRecord })">
-            {{ isChinese ? '跳到解析历史' : 'Jump to history' }}
-          </el-button>
-          <el-button @click="loadAnalytics">
+          <el-button type="primary" :loading="loading.analytics" @click="loadAnalytics">
             {{ isChinese ? '刷新统计视角' : 'Refresh statistics' }}
+          </el-button>
+          <el-button @click="resetResult">
+            {{ isChinese ? '清空结果' : 'Reset result' }}
           </el-button>
         </div>
       </div>
@@ -1207,9 +1324,6 @@ watch(
         <p class="section-kicker sqlforge-code-label">{{ entry.eyebrow }}</p>
         <h2 class="workspace-entry-title">{{ entry.title }}</h2>
         <p class="section-summary">{{ entry.description }}</p>
-        <el-button text @click="openParseWorkspace(entry.route)">
-          {{ isChinese ? '进入该入口' : 'Open this entry' }}
-        </el-button>
       </article>
     </section>
 
@@ -1299,9 +1413,6 @@ watch(
           >
             {{ isChinese ? '刷新状态' : 'Refresh status' }}
           </el-button>
-          <el-button @click="openParseWorkspace({ path: ROUTE_PATHS.parseBatchCenter })">
-            {{ isChinese ? '打开批量解析页' : 'Open batch page' }}
-          </el-button>
           <el-button @click="resetResult">
             {{ isChinese ? '清空结果' : 'Reset result' }}
           </el-button>
@@ -1330,9 +1441,6 @@ watch(
           </div>
           <el-button v-if="parseResult" text @click="openEvidenceDrawer(isChinese ? '解析原始证据' : 'Raw parse evidence', parseResult)">
             {{ isChinese ? '查看长证据' : 'View long evidence' }}
-          </el-button>
-          <el-button v-if="parseResult?.historyId" text @click="openParseWorkspace({ path: ROUTE_PATHS.parseRecord, query: { reportId: parseResult.historyId } })">
-            {{ isChinese ? '查看历史记录' : 'Open history record' }}
           </el-button>
         </div>
 
@@ -1389,9 +1497,16 @@ watch(
                   <div v-for="item in structureHighlights" :key="item.key" class="highlight-chip" :class="resultValueClass(item)">
                     <span>
                       {{ item.label }}
-                      <el-tooltip v-if="helpTextForKey(item.key)" :content="helpTextForKey(item.key)" placement="top">
-                        <el-button text size="small" class="help-dot" aria-label="field help">?</el-button>
-                      </el-tooltip>
+                      <el-button
+                        v-if="helpTextForKey(item.key)"
+                        text
+                        size="small"
+                        class="help-dot"
+                        aria-label="field help"
+                        @click="openFieldHelp(item.key, item.label)"
+                      >
+                        ?
+                      </el-button>
                     </span>
                     <strong>{{ item.value }}</strong>
                   </div>
@@ -1419,9 +1534,16 @@ watch(
                     <div v-for="item in structureFeatureHighlights" :key="item.key" class="highlight-chip" :class="resultValueClass(item)">
                       <span>
                         {{ item.label }}
-                        <el-tooltip v-if="helpTextForKey(item.key)" :content="helpTextForKey(item.key)" placement="top">
-                          <el-button text size="small" class="help-dot" aria-label="field help">?</el-button>
-                        </el-tooltip>
+                        <el-button
+                          v-if="helpTextForKey(item.key)"
+                          text
+                          size="small"
+                          class="help-dot"
+                          aria-label="field help"
+                          @click="openFieldHelp(item.key, item.label)"
+                        >
+                          ?
+                        </el-button>
                       </span>
                       <strong>{{ item.value }}</strong>
                     </div>
@@ -1507,9 +1629,9 @@ watch(
                         <strong>{{ risk.riskCode }}</strong>
                         <span>{{ risk.severity }}</span>
                       </div>
-                      <p class="issue-card__summary">{{ risk.summary }}</p>
-                      <p class="issue-card__detail">{{ risk.evidence }}</p>
-                      <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ risk.suggestedAction }}</p>
+                      <p class="issue-card__summary">{{ riskDisplayText(risk, 'summary') }}</p>
+                      <p class="issue-card__detail">{{ riskDisplayText(risk, 'evidence') }}</p>
+                      <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ riskDisplayText(risk, 'suggestedAction') }}</p>
                     </article>
                   </div>
                   <p v-else class="empty-inline">
@@ -1563,9 +1685,16 @@ watch(
                   <div v-for="item in accessHighlights" :key="item.key" class="highlight-chip" :class="resultValueClass(item)">
                     <span>
                       {{ item.label }}
-                      <el-tooltip v-if="helpTextForKey(item.key)" :content="helpTextForKey(item.key)" placement="top">
-                        <el-button text size="small" class="help-dot" aria-label="field help">?</el-button>
-                      </el-tooltip>
+                      <el-button
+                        v-if="helpTextForKey(item.key)"
+                        text
+                        size="small"
+                        class="help-dot"
+                        aria-label="field help"
+                        @click="openFieldHelp(item.key, item.label)"
+                      >
+                        ?
+                      </el-button>
                     </span>
                     <strong>{{ item.value }}</strong>
                   </div>
@@ -1611,23 +1740,20 @@ watch(
 
     <section class="surface-card analytics-shell" data-testid="statistics-page">
       <div class="shell-header">
-        <div>
-          <p class="section-kicker sqlforge-code-label">parse statistics center</p>
+      <div>
+          <p class="section-kicker sqlforge-code-label">sql parse statistics</p>
           <h2 class="section-title">{{ isChinese ? '解析结果统计' : 'Parse result statistics' }}</h2>
           <p class="runtime-note">
             {{
               isChinese
-                ? '统计区只展示问题分布、优先级和逻辑对象等结果视角；解析历史查询已拆到独立页面。'
-                : 'Statistics only show issue, priority, and logical-object result views; parse history search lives on its own page.'
+                ? '统计区展示当前单 SQL 结果、历史摘要与结果追溯，不再承载批量入口。'
+                : 'Statistics summarize the current single-SQL result, history digest, and traceability without batch entry points.'
             }}
           </p>
         </div>
         <div class="action-row action-row-wrap">
           <el-button :loading="loading.analytics" data-testid="statistics-refresh" @click="loadAnalytics">
             {{ isChinese ? '刷新统计' : 'Refresh statistics' }}
-          </el-button>
-          <el-button data-testid="parse-record-refresh" @click="openParseWorkspace({ path: ROUTE_PATHS.parseRecord })">
-            {{ isChinese ? '打开解析历史' : 'Open parse history' }}
           </el-button>
         </div>
       </div>
@@ -2266,6 +2392,15 @@ watch(
     <el-drawer v-model="evidenceDrawerVisible" :title="evidenceDrawerTitle || (isChinese ? '原始证据' : 'Raw evidence')" size="42%">
       <pre class="code-block">{{ formatJson(evidenceDrawerPayload || {}) }}</pre>
     </el-drawer>
+
+    <el-dialog v-model="fieldHelpDialogVisible" :title="fieldHelpDialogTitle || (isChinese ? '字段说明' : 'Field help')" width="560px">
+      <p class="result-copy">{{ fieldHelpDialogMessage }}</p>
+      <template #footer>
+        <el-button type="primary" @click="fieldHelpDialogVisible = false">
+          {{ isChinese ? '知道了' : 'Close' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
 
@@ -2509,6 +2644,10 @@ watch(
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
+.highlight-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
 .summary-grid-compact {
   gap: 14px;
 }
@@ -2556,6 +2695,7 @@ watch(
   border: 1px solid var(--sqlforge-border-default);
   border-radius: 50%;
   color: var(--sqlforge-text-secondary);
+  line-height: 18px;
 }
 
 .summary-card {

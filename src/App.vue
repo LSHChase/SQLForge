@@ -82,10 +82,10 @@ const navigationTree = computed(() => {
       label: { zh: '解析与加速', en: 'Parsing and Acceleration' },
       items: [
         {
-          ...buildNavTarget(ROUTE_PATHS.acceleration),
-          titleKey: 'acceleration.title',
-          menuLabel: { zh: '解析工作台', en: 'Parse workbench' }
-        },
+        ...buildNavTarget(ROUTE_PATHS.acceleration),
+        titleKey: 'acceleration.title',
+        menuLabel: { zh: 'SQL解析', en: 'SQL Parse' }
+      },
         {
           ...buildNavTarget(ROUTE_PATHS.parseBatchCenter),
           titleKey: 'acceleration.title',

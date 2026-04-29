@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-050: SQL解析单条页面收口
+
+- Status: done
+- Completed at: 2026-04-28
+- Commit subject: `feat(sql-optimization): rename parse workbench to SQL Parse`
+- Priority: 1
+- Depends on: N/A
+- Scope: 将解析工作台收束为单条 SQL 解析页面，去除批量/历史入口，补齐字段帮助、统计展示、风险清单本地化与单 SQL 历史写入。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-050`
+- Progress log:
+  - 2026-04-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Renamed the single-parse workbench to SQL解析, removed visible batch/history entrances from the page, added a field-help dialog and denser structure-card layout, localized risk text, persisted single SQL structure parse history, and refreshed validation contracts/tests/docs.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-050; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Legacy batch and history routes still exist elsewhere in the app shell for compatibility, but the SQL解析 page no longer exposes them as entrances.
+  - Next step: None.
+
 ### HARN-049: HARN-049 解析工作台、批量解析与解析历史能力正式实现
 
 - Status: done

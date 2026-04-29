@@ -320,7 +320,7 @@ onMounted(() => {
             {{ isChinese ? '刷新推荐中心' : 'Refresh center' }}
           </button>
           <button class="secondary-button" @click="openAccelerationWorkbench">
-            {{ isChinese ? '打开解析工作台' : 'Open parse workbench' }}
+            {{ isChinese ? '打开 SQL解析' : 'Open SQL Parse' }}
           </button>
           <button class="secondary-button" @click="openRoutingGovernance">
             {{ isChinese ? '打开路由治理' : 'Open routing governance' }}

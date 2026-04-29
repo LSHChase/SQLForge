@@ -313,7 +313,7 @@ export default {
   },
   parseRecord: {
     title: '解析历史查询',
-    summary: '查询已落库的单条解析记录、批量解析记录、审计追溯与详情证据。'
+    summary: '查询已落库的单条 SQL 解析记录、审计追溯与详情证据。'
   },
   repairEvidence: {
     title: '修复证据',
@@ -344,8 +344,8 @@ export default {
     summary: '独立处理批次创建、模板下载、文件导入、失败重试与报表清单解析。'
   },
   parseStatisticsCenter: {
-    title: '解析统计兼容入口',
-    summary: '该路径保留为兼容跳转入口，打开后会回到解析工作台并定位到统计视角。'
+    title: 'SQL解析统计兼容入口',
+    summary: '该路径保留为兼容跳转入口，打开后会回到 SQL解析 并定位到统计视角。'
   },
   assetCatalog: {
     title: '数据资产目录',
@@ -368,8 +368,8 @@ export default {
     summary: '查看派生告警、ACK 模拟状态与 notify simulated 结果。'
   },
   acceleration: {
-    title: '解析工作台',
-    summary: '专注单条 SQL 结构解析、访问解析和解析结果阅读；批量解析与历史查询已拆分为独立页面。'
+    title: 'SQL解析',
+    summary: '专注单条 SQL 解析、结构/访问结果阅读与历史追溯。'
   },
   system: {
     title: '系统管理',
