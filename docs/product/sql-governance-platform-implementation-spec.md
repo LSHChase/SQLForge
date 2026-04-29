@@ -508,6 +508,12 @@ Parser 边界：
 - 该指纹用于治理聚合、风险归并和后续推荐 / NL2SQL 消费入口，不代表完整 SQL 语义等价证明。
 - 本阶段不回填历史已生成指纹，不新增持久化字段；如需跨服务缓存迁移或历史数据重算，必须另行任务化。
 
+`D-TASK-075` 使用复杂反模式 SQL 回归补强结构解析递归 AST 信号：
+
+- `featureSummary` 可输出子查询数、SELECT 标量子查询数、嵌套子查询深度、相关子查询数、OR 谓词数、函数包裹谓词数、前导通配符 LIKE 数、随机排序数和重复表扫描数。
+- `riskChecklist/issues/riskTags` 可覆盖 `SCALAR_SUBQUERY_IN_SELECT`、`NESTED_SUBQUERY_RISK`、`CORRELATED_SUBQUERY_RISK`、`FUNCTION_WRAPPED_PREDICATE`、`NOT_EXISTS_ANTI_JOIN_RISK`、`LEADING_WILDCARD_LIKE_RISK`、`OR_PREDICATE_INDEX_RISK`、`ORDER_BY_RANDOM_RISK`、`REPEATED_TABLE_SCAN_RISK` 和 `COMPLEX_QUERY_GRAPH_RISK`。
+- 上述信号全部来自静态 SQL AST，不证明真实索引存在性、对象规模或执行计划成本；涉及字段存在性、权限、分区可用性和真实计划仍属于 access parse / benchmark 边界。
+
 ### 6.3 Access Parse
 
 - 依赖数据库 / 引擎 / 元数据

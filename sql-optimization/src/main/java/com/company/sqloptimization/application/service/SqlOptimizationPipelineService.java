@@ -22,10 +22,12 @@ import io.trino.sql.tree.Query;
 import io.trino.sql.tree.QuerySpecification;
 import io.trino.sql.tree.SingleColumn;
 import io.trino.sql.tree.Table;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -42,13 +44,22 @@ import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.NotExpression;
 import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.Parenthesis;
 import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.TimestampValue;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
+import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
+import net.sf.jsqlparser.expression.operators.relational.ComparisonOperator;
+import net.sf.jsqlparser.expression.operators.relational.ExistsExpression;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.expression.operators.relational.InExpression;
+import net.sf.jsqlparser.expression.operators.relational.ItemsList;
+import net.sf.jsqlparser.expression.operators.relational.LikeExpression;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.AllTableColumns;
@@ -73,7 +84,7 @@ public class SqlOptimizationPipelineService {
     private static final Pattern DATE_PREDICATE_PATTERN =
         Pattern.compile("([A-Z0-9_\\.]*?(DATE|TIME|DT|DAY))[\\s]*(=|>|<|BETWEEN|IN)");
     private static final Set<String> AGGREGATE_FUNCTIONS =
-        new LinkedHashSet<String>(Arrays.asList("COUNT", "SUM", "AVG", "MIN", "MAX", "APPROX_DISTINCT"));
+        new LinkedHashSet<String>(Arrays.asList("COUNT", "SUM", "AVG", "MIN", "MAX", "APPROX_DISTINCT", "GROUP_CONCAT"));
     private static final Set<String> BUILT_IN_SCALAR_FUNCTIONS =
         new LinkedHashSet<String>(Arrays.asList("DATE_TRUNC", "CAST", "COALESCE", "IF", "NULLIF", "LOWER", "UPPER"));
 
@@ -131,7 +142,9 @@ public class SqlOptimizationPipelineService {
         Select select = (Select) statement;
         ParsedSqlProfile profile = new ParsedSqlProfile(normalizedSql, select);
         profile.parserEngine = "JSQLPARSER";
-        profile.tables.addAll(deduplicate(new TablesNamesFinder().getTableList(statement)));
+        List<String> discoveredTables = new TablesNamesFinder().getTableList(statement);
+        profile.tables.addAll(deduplicate(discoveredTables));
+        profile.recordTables(discoveredTables);
         if (select.getWithItemsList() != null) {
             for (WithItem withItem : select.getWithItemsList()) {
                 if (withItem.getSubSelect() != null) {
@@ -383,62 +396,105 @@ public class SqlOptimizationPipelineService {
     }
 
     private void analyzePlainSelect(PlainSelect plainSelect, ParsedSqlProfile profile) {
-        if (plainSelect.getSelectItems() != null) {
-            profile.projectionCount += plainSelect.getSelectItems().size();
-            for (SelectItem selectItem : plainSelect.getSelectItems()) {
-                if (selectItem instanceof AllColumns || selectItem instanceof AllTableColumns) {
-                    profile.selectStar = true;
-                    continue;
+        profile.pushAliasScope(collectAliases(plainSelect));
+        try {
+            recordFromItemScan(plainSelect.getFromItem(), profile);
+            if (plainSelect.getSelectItems() != null) {
+                profile.projectionCount += plainSelect.getSelectItems().size();
+                for (SelectItem selectItem : plainSelect.getSelectItems()) {
+                    if (selectItem instanceof AllColumns || selectItem instanceof AllTableColumns) {
+                        profile.selectStar = true;
+                        continue;
+                    }
+                    if (selectItem instanceof SelectExpressionItem) {
+                        Expression expression = ((SelectExpressionItem) selectItem).getExpression();
+                        profile.recordExpression(expression);
+                        if (expression instanceof SubSelect) {
+                            profile.scalarSubqueryCount++;
+                        }
+                        collectExpressionSignals(expression, profile.projectedColumns, profile.aggregateFunctions, profile);
+                    }
                 }
-                if (selectItem instanceof SelectExpressionItem) {
-                    Expression expression = ((SelectExpressionItem) selectItem).getExpression();
+            }
+            if (plainSelect.getJoins() != null) {
+                profile.joinCount += plainSelect.getJoins().size();
+                for (Join join : plainSelect.getJoins()) {
+                    profile.joinTypes.add(join.isInner() ? "INNER" : join.toString().split("\\s+")[0].toUpperCase(Locale.ROOT));
+                    recordFromItemScan(join.getRightItem(), profile);
+                    analyzeFromItem(join.getRightItem(), profile);
+                    if (join.getOnExpression() != null) {
+                        profile.predicateCount += countPredicates(join.getOnExpression());
+                        profile.joinCriteriaCount += countPredicates(join.getOnExpression());
+                        profile.recordExpression(join.getOnExpression());
+                        collectExpressionSignals(join.getOnExpression(), null, null, profile);
+                    }
+                }
+            }
+            if (plainSelect.getWhere() != null) {
+                profile.predicateCount += countPredicates(plainSelect.getWhere());
+                profile.recordExpression(plainSelect.getWhere());
+                profile.datePredicateColumns.addAll(extractDatePredicateColumns(plainSelect.getWhere()));
+                collectExpressionSignals(plainSelect.getWhere(), null, null, profile);
+            }
+            if (plainSelect.getHaving() != null) {
+                profile.predicateCount += countPredicates(plainSelect.getHaving());
+                profile.recordExpression(plainSelect.getHaving());
+                collectExpressionSignals(plainSelect.getHaving(), null, null, profile);
+            }
+            if (plainSelect.getGroupBy() != null && plainSelect.getGroupBy().getGroupByExpressions() != null) {
+                profile.groupByCount += plainSelect.getGroupBy().getGroupByExpressions().size();
+                for (Expression expression : plainSelect.getGroupBy().getGroupByExpressions()) {
                     profile.recordExpression(expression);
-                    collectExpressionSignals(expression, profile.projectedColumns, profile.aggregateFunctions, profile);
+                    collectExpressionSignals(expression, null, profile.aggregateFunctions, profile);
                 }
             }
+            if (plainSelect.getOrderByElements() != null) {
+                profile.orderByCount += plainSelect.getOrderByElements().size();
+                for (OrderByElement orderByElement : plainSelect.getOrderByElements()) {
+                    profile.recordExpression(orderByElement);
+                    collectOrderBySignals(orderByElement, profile);
+                }
+            }
+            if (plainSelect.getLimit() != null) {
+                profile.limitPresent = true;
+            }
+            if (plainSelect.getDistinct() != null) {
+                profile.distinctPresent = true;
+            }
+            analyzeFromItem(plainSelect.getFromItem(), profile);
+        } finally {
+            profile.popAliasScope();
         }
+    }
+
+    private void analyzeFromItem(FromItem fromItem, ParsedSqlProfile profile) {
+        if (fromItem instanceof SubSelect) {
+            processSubSelect((SubSelect) fromItem, profile);
+        }
+    }
+
+    private Set<String> collectAliases(PlainSelect plainSelect) {
+        LinkedHashSet<String> aliases = new LinkedHashSet<String>();
+        addAlias(aliases, plainSelect.getFromItem());
         if (plainSelect.getJoins() != null) {
-            profile.joinCount += plainSelect.getJoins().size();
             for (Join join : plainSelect.getJoins()) {
-                profile.joinTypes.add(join.isInner() ? "INNER" : join.toString().split("\\s+")[0].toUpperCase(Locale.ROOT));
-                if (join.getOnExpression() != null) {
-                    profile.predicateCount += countPredicates(join.getOnExpression());
-                    profile.joinCriteriaCount += countPredicates(join.getOnExpression());
-                    profile.recordExpression(join.getOnExpression());
-                    collectExpressionSignals(join.getOnExpression(), null, null, profile);
-                }
+                addAlias(aliases, join.getRightItem());
             }
         }
-        if (plainSelect.getWhere() != null) {
-            profile.predicateCount += countPredicates(plainSelect.getWhere());
-            profile.recordExpression(plainSelect.getWhere());
-            profile.datePredicateColumns.addAll(extractDatePredicateColumns(plainSelect.getWhere()));
+        return aliases;
+    }
+
+    private void addAlias(Set<String> aliases, FromItem fromItem) {
+        if (fromItem == null || fromItem.getAlias() == null || fromItem.getAlias().getName() == null) {
+            return;
         }
-        if (plainSelect.getHaving() != null) {
-            profile.predicateCount += countPredicates(plainSelect.getHaving());
-        }
-        if (plainSelect.getGroupBy() != null && plainSelect.getGroupBy().getGroupByExpressions() != null) {
-            profile.groupByCount += plainSelect.getGroupBy().getGroupByExpressions().size();
-            for (Expression expression : plainSelect.getGroupBy().getGroupByExpressions()) {
-                profile.recordExpression(expression);
-                collectExpressionSignals(expression, null, profile.aggregateFunctions, profile);
-            }
-        }
-        if (plainSelect.getOrderByElements() != null) {
-            profile.orderByCount += plainSelect.getOrderByElements().size();
-            for (OrderByElement orderByElement : plainSelect.getOrderByElements()) {
-                profile.recordExpression(orderByElement);
-            }
-        }
-        if (plainSelect.getLimit() != null) {
-            profile.limitPresent = true;
-        }
-        if (plainSelect.getDistinct() != null) {
-            profile.distinctPresent = true;
-        }
-        if (plainSelect.getFromItem() instanceof SubSelect) {
-            profile.subqueryCount++;
-            analyzeSelectBody(((SubSelect) plainSelect.getFromItem()).getSelectBody(), profile);
+        aliases.add(fromItem.getAlias().getName().toUpperCase(Locale.ROOT));
+    }
+
+    private void recordFromItemScan(FromItem fromItem, ParsedSqlProfile profile) {
+        if (fromItem instanceof net.sf.jsqlparser.schema.Table) {
+            net.sf.jsqlparser.schema.Table table = (net.sf.jsqlparser.schema.Table) fromItem;
+            profile.recordTable(table.getFullyQualifiedName());
         }
     }
 
@@ -447,6 +503,10 @@ public class SqlOptimizationPipelineService {
                                           Set<String> aggregateFunctions,
                                           ParsedSqlProfile profile) {
         if (expression == null) {
+            return;
+        }
+        if (expression instanceof SubSelect) {
+            processSubSelect((SubSelect) expression, profile);
             return;
         }
         if (expression instanceof Column) {
@@ -471,11 +531,49 @@ public class SqlOptimizationPipelineService {
                     collectExpressionSignals(parameter, projectedColumns, aggregateFunctions, profile);
                 }
             }
+            if (function.getAttribute() != null) {
+                collectExpressionSignals(function.getAttribute(), projectedColumns, aggregateFunctions, profile);
+            }
             return;
         }
         if (expression instanceof AnalyticExpression) {
             profile.windowFunctionCount++;
             return;
+        }
+        if (expression instanceof OrExpression) {
+            profile.orPredicateCount++;
+        }
+        if (expression instanceof NotExpression) {
+            Expression innerExpression = ((NotExpression) expression).getExpression();
+            if (innerExpression instanceof ExistsExpression) {
+                profile.notExistsCount++;
+            }
+            collectExpressionSignals(innerExpression, projectedColumns, aggregateFunctions, profile);
+            return;
+        }
+        if (expression instanceof ExistsExpression) {
+            ExistsExpression existsExpression = (ExistsExpression) expression;
+            if (existsExpression.isNot()) {
+                profile.notExistsCount++;
+            }
+            collectExpressionSignals(existsExpression.getRightExpression(), projectedColumns, aggregateFunctions, profile);
+            return;
+        }
+        if (expression instanceof InExpression) {
+            InExpression inExpression = (InExpression) expression;
+            collectExpressionSignals(inExpression.getLeftExpression(), projectedColumns, aggregateFunctions, profile);
+            collectExpressionSignals(inExpression.getRightExpression(), projectedColumns, aggregateFunctions, profile);
+            collectItemsListSignals(inExpression.getRightItemsList(), projectedColumns, aggregateFunctions, profile);
+            return;
+        }
+        if (expression instanceof LikeExpression) {
+            LikeExpression likeExpression = (LikeExpression) expression;
+            if (isLeadingWildcardLike(likeExpression)) {
+                profile.leadingWildcardLikeCount++;
+            }
+        }
+        if (expression instanceof ComparisonOperator && hasFunctionWrappedOperand((ComparisonOperator) expression)) {
+            profile.functionWrappedPredicateCount++;
         }
         if (expression instanceof BinaryExpression) {
             BinaryExpression binaryExpression = (BinaryExpression) expression;
@@ -488,6 +586,90 @@ public class SqlOptimizationPipelineService {
         }
     }
 
+    private void collectItemsListSignals(ItemsList itemsList,
+                                         Set<String> projectedColumns,
+                                         Set<String> aggregateFunctions,
+                                         ParsedSqlProfile profile) {
+        if (itemsList instanceof SubSelect) {
+            processSubSelect((SubSelect) itemsList, profile);
+            return;
+        }
+        if (itemsList instanceof ExpressionList) {
+            ExpressionList expressionList = (ExpressionList) itemsList;
+            if (expressionList.getExpressions() != null) {
+                for (Expression item : expressionList.getExpressions()) {
+                    collectExpressionSignals(item, projectedColumns, aggregateFunctions, profile);
+                }
+            }
+        }
+    }
+
+    private void processSubSelect(SubSelect subSelect, ParsedSqlProfile profile) {
+        if (subSelect == null) {
+            return;
+        }
+        profile.subqueryCount++;
+        profile.updateNestedSubqueryDepth();
+        if (profile.referencesVisibleAlias(subSelect.toString())) {
+            profile.correlatedSubqueryCount++;
+        }
+        profile.subqueryDepth++;
+        try {
+            if (subSelect.getWithItemsList() != null) {
+                for (WithItem withItem : subSelect.getWithItemsList()) {
+                    if (withItem.getSubSelect() != null) {
+                        processSubSelect(withItem.getSubSelect(), profile);
+                    }
+                }
+            }
+            analyzeSelectBody(subSelect.getSelectBody(), profile);
+        } finally {
+            profile.subqueryDepth--;
+        }
+    }
+
+    private void collectOrderBySignals(OrderByElement orderByElement, ParsedSqlProfile profile) {
+        if (orderByElement == null) {
+            return;
+        }
+        Expression expression = orderByElement.getExpression();
+        if (expression instanceof Function) {
+            Function function = (Function) expression;
+            if ("RAND".equalsIgnoreCase(function.getName()) || "RANDOM".equalsIgnoreCase(function.getName())) {
+                profile.randomOrderCount++;
+            }
+        }
+        collectExpressionSignals(expression, null, null, profile);
+    }
+
+    private boolean isLeadingWildcardLike(LikeExpression expression) {
+        if (!(expression.getRightExpression() instanceof StringValue)) {
+            return false;
+        }
+        String value = ((StringValue) expression.getRightExpression()).getValue();
+        return value != null && value.startsWith("%");
+    }
+
+    private boolean hasFunctionWrappedOperand(ComparisonOperator expression) {
+        return isColumnFunction(expression.getLeftExpression()) || isColumnFunction(expression.getRightExpression());
+    }
+
+    private boolean isColumnFunction(Expression expression) {
+        if (!(expression instanceof Function)) {
+            return false;
+        }
+        Function function = (Function) expression;
+        if (function.getParameters() == null || function.getParameters().getExpressions() == null) {
+            return false;
+        }
+        for (Expression parameter : function.getParameters().getExpressions()) {
+            if (parameter instanceof Column) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private int countPredicates(Expression expression) {
         if (expression == null) {
             return 0;
@@ -498,6 +680,10 @@ public class SqlOptimizationPipelineService {
         if (expression instanceof AndExpression) {
             AndExpression andExpression = (AndExpression) expression;
             return countPredicates(andExpression.getLeftExpression()) + countPredicates(andExpression.getRightExpression());
+        }
+        if (expression instanceof OrExpression) {
+            OrExpression orExpression = (OrExpression) expression;
+            return countPredicates(orExpression.getLeftExpression()) + countPredicates(orExpression.getRightExpression());
         }
         return 1;
     }
@@ -536,6 +722,36 @@ public class SqlOptimizationPipelineService {
         }
         if (!profile.limitPresent && (profile.selectStar || profile.predicateCount == 0)) {
             profile.warnings.add("LARGE_RESULT_SET_RISK");
+        }
+        if (profile.scalarSubqueryCount > 0) {
+            profile.warnings.add("SCALAR_SUBQUERY_IN_SELECT");
+        }
+        if (profile.subqueryCount >= 3 || profile.nestedSubqueryDepth >= 2) {
+            profile.warnings.add("NESTED_SUBQUERY_RISK");
+        }
+        if (profile.correlatedSubqueryCount > 0) {
+            profile.warnings.add("CORRELATED_SUBQUERY_RISK");
+        }
+        if (profile.functionWrappedPredicateCount > 0) {
+            profile.warnings.add("FUNCTION_WRAPPED_PREDICATE");
+        }
+        if (profile.notExistsCount > 0) {
+            profile.warnings.add("NOT_EXISTS_ANTI_JOIN_RISK");
+        }
+        if (profile.leadingWildcardLikeCount > 0) {
+            profile.warnings.add("LEADING_WILDCARD_LIKE_RISK");
+        }
+        if (profile.orPredicateCount > 0) {
+            profile.warnings.add("OR_PREDICATE_INDEX_RISK");
+        }
+        if (profile.randomOrderCount > 0) {
+            profile.warnings.add("ORDER_BY_RANDOM_RISK");
+        }
+        if (profile.repeatedTableScanCount > 0) {
+            profile.warnings.add("REPEATED_TABLE_SCAN_RISK");
+        }
+        if (profile.subqueryCount + profile.joinCount >= 5 || profile.predicateCount >= 8) {
+            profile.warnings.add("COMPLEX_QUERY_GRAPH_RISK");
         }
     }
 
@@ -1059,6 +1275,8 @@ public class SqlOptimizationPipelineService {
         private final Set<String> joinTypes = new LinkedHashSet<String>();
         private final List<String> warnings = new ArrayList<String>();
         private final LinkedHashMap<String, Integer> expressionFrequency = new LinkedHashMap<String, Integer>();
+        private final LinkedHashMap<String, Integer> tableFrequency = new LinkedHashMap<String, Integer>();
+        private final Deque<Set<String>> aliasScopes = new ArrayDeque<Set<String>>();
         private String parserEngine = "JSQLPARSER";
         private int projectionCount;
         private int predicateCount;
@@ -1068,6 +1286,16 @@ public class SqlOptimizationPipelineService {
         private int orderByCount;
         private int windowFunctionCount;
         private int subqueryCount;
+        private int scalarSubqueryCount;
+        private int nestedSubqueryDepth;
+        private int correlatedSubqueryCount;
+        private int orPredicateCount;
+        private int functionWrappedPredicateCount;
+        private int leadingWildcardLikeCount;
+        private int randomOrderCount;
+        private int notExistsCount;
+        private int repeatedTableScanCount;
+        private int subqueryDepth;
         private int repeatedExpressionCount;
         private boolean selectStar;
         private boolean limitPresent;
@@ -1094,6 +1322,15 @@ public class SqlOptimizationPipelineService {
             payload.put("windowFunctionCount", Integer.valueOf(windowFunctionCount));
             payload.put("udfFunctions", new ArrayList<String>(udfFunctions));
             payload.put("subqueryCount", Integer.valueOf(subqueryCount));
+            payload.put("scalarSubqueryCount", Integer.valueOf(scalarSubqueryCount));
+            payload.put("nestedSubqueryDepth", Integer.valueOf(nestedSubqueryDepth));
+            payload.put("correlatedSubqueryCount", Integer.valueOf(correlatedSubqueryCount));
+            payload.put("orPredicateCount", Integer.valueOf(orPredicateCount));
+            payload.put("functionWrappedPredicateCount", Integer.valueOf(functionWrappedPredicateCount));
+            payload.put("leadingWildcardLikeCount", Integer.valueOf(leadingWildcardLikeCount));
+            payload.put("randomOrderCount", Integer.valueOf(randomOrderCount));
+            payload.put("notExistsCount", Integer.valueOf(notExistsCount));
+            payload.put("repeatedTableScanCount", Integer.valueOf(repeatedTableScanCount));
             payload.put("repeatedExpressionCount", Integer.valueOf(repeatedExpressionCount));
             payload.put("aggregateFunctions", new ArrayList<String>(aggregateFunctions));
             payload.put("datePredicateColumns", new ArrayList<String>(datePredicateColumns));
@@ -1113,6 +1350,9 @@ public class SqlOptimizationPipelineService {
             payload.put("groupByCount", Integer.valueOf(groupByCount));
             payload.put("windowFunctionCount", Integer.valueOf(windowFunctionCount));
             payload.put("udfFunctions", new ArrayList<String>(udfFunctions));
+            payload.put("subqueryCount", Integer.valueOf(subqueryCount));
+            payload.put("correlatedSubqueryCount", Integer.valueOf(correlatedSubqueryCount));
+            payload.put("orPredicateCount", Integer.valueOf(orPredicateCount));
             payload.put("aggregateFunctions", new ArrayList<String>(aggregateFunctions));
             payload.put("datePredicateColumns", new ArrayList<String>(datePredicateColumns));
             payload.put("selectStar", Boolean.valueOf(selectStar));
@@ -1176,6 +1416,46 @@ public class SqlOptimizationPipelineService {
             return subqueryCount;
         }
 
+        public int getScalarSubqueryCount() {
+            return scalarSubqueryCount;
+        }
+
+        public int getNestedSubqueryDepth() {
+            return nestedSubqueryDepth;
+        }
+
+        public int getCorrelatedSubqueryCount() {
+            return correlatedSubqueryCount;
+        }
+
+        public int getOrPredicateCount() {
+            return orPredicateCount;
+        }
+
+        public int getFunctionWrappedPredicateCount() {
+            return functionWrappedPredicateCount;
+        }
+
+        public int getLeadingWildcardLikeCount() {
+            return leadingWildcardLikeCount;
+        }
+
+        public int getRandomOrderCount() {
+            return randomOrderCount;
+        }
+
+        public int getNotExistsCount() {
+            return notExistsCount;
+        }
+
+        public int getRepeatedTableScanCount() {
+            return repeatedTableScanCount;
+        }
+
+        public int getComplexGraphScore() {
+            return subqueryCount + joinCount + orPredicateCount + functionWrappedPredicateCount + randomOrderCount;
+        }
+
         public int getRepeatedExpressionCount() {
             return repeatedExpressionCount;
         }
@@ -1216,6 +1496,62 @@ public class SqlOptimizationPipelineService {
                 }
             }
             repeatedExpressionCount = repeated;
+            repeatedTableScanCount = 0;
+            for (Integer count : tableFrequency.values()) {
+                if (count != null && count.intValue() > 1) {
+                    repeatedTableScanCount += count.intValue() - 1;
+                }
+            }
+        }
+
+        private void recordTables(List<String> discoveredTables) {
+            if (discoveredTables == null) {
+                return;
+            }
+            for (String table : discoveredTables) {
+                recordTable(table);
+            }
+        }
+
+        private void recordTable(String table) {
+            if (table == null) {
+                return;
+            }
+            String key = table.trim().toUpperCase(Locale.ROOT);
+            if (key.isEmpty()) {
+                return;
+            }
+            Integer current = tableFrequency.get(key);
+            tableFrequency.put(key, Integer.valueOf(current == null ? 1 : current.intValue() + 1));
+        }
+
+        private void pushAliasScope(Set<String> aliases) {
+            aliasScopes.push(aliases == null ? Collections.<String>emptySet() : aliases);
+        }
+
+        private void popAliasScope() {
+            if (!aliasScopes.isEmpty()) {
+                aliasScopes.pop();
+            }
+        }
+
+        private boolean referencesVisibleAlias(String sql) {
+            if (sql == null || aliasScopes.isEmpty()) {
+                return false;
+            }
+            String normalized = sql.toUpperCase(Locale.ROOT);
+            for (Set<String> scope : aliasScopes) {
+                for (String alias : scope) {
+                    if (alias != null && !alias.isEmpty() && normalized.contains(alias + ".")) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private void updateNestedSubqueryDepth() {
+            nestedSubqueryDepth = Math.max(nestedSubqueryDepth, subqueryDepth + 1);
         }
     }
 

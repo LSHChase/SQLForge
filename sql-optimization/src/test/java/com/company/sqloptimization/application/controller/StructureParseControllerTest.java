@@ -1,5 +1,7 @@
 package com.company.sqloptimization.application.controller;
 
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -114,6 +116,61 @@ class StructureParseControllerTest {
             JsonTestUtils.readValue(first.getResponse().getContentAsString(), "$.sqlFingerprint"),
             JsonTestUtils.readValue(second.getResponse().getContentAsString(), "$.sqlFingerprint")
         );
+    }
+
+    @Test
+    void shouldExposeComplexAntiPatternStructureSignals() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":" + JsonTestUtils.toJsonString(complexAntiPatternSql()) + "}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.complexityLevel").value("EXTREME"))
+            .andExpect(jsonPath("$.intentProfile.computeDensity").value("HEAVY"))
+            .andExpect(jsonPath("$.intentProfile.slaLevel").value("REPORT_LT_30S"))
+            .andExpect(jsonPath("$.featureSummary.tableCount").value(5))
+            .andExpect(jsonPath("$.featureSummary.subqueryCount").value(greaterThanOrEqualTo(9)))
+            .andExpect(jsonPath("$.featureSummary.scalarSubqueryCount").value(3))
+            .andExpect(jsonPath("$.featureSummary.nestedSubqueryDepth").value(greaterThanOrEqualTo(3)))
+            .andExpect(jsonPath("$.featureSummary.correlatedSubqueryCount").value(greaterThanOrEqualTo(6)))
+            .andExpect(jsonPath("$.featureSummary.orPredicateCount").value(greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.featureSummary.functionWrappedPredicateCount").value(greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.featureSummary.leadingWildcardLikeCount").value(greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.featureSummary.randomOrderCount").value(greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.featureSummary.repeatedTableScanCount").value(greaterThanOrEqualTo(5)))
+            .andExpect(jsonPath("$.estimatedResourceCost.overall").value("HIGH"))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("SCALAR_SUBQUERY_IN_SELECT")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("NESTED_SUBQUERY_RISK")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("CORRELATED_SUBQUERY_RISK")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("FUNCTION_WRAPPED_PREDICATE")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("NOT_EXISTS_ANTI_JOIN_RISK")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("LEADING_WILDCARD_LIKE_RISK")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("ORDER_BY_RANDOM_RISK")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("REPEATED_TABLE_SCAN_RISK")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("COMPLEX_QUERY_GRAPH_RISK")))
+            .andExpect(jsonPath("$.riskChecklist[*].riskCode").value(hasItem("SCALAR_SUBQUERY_IN_SELECT")))
+            .andExpect(jsonPath("$.riskChecklist[*].riskCode").value(hasItem("ORDER_BY_RANDOM_RISK")))
+            .andExpect(jsonPath("$.riskChecklist[*].riskCode").value(hasItem("COMPLEX_QUERY_GRAPH_RISK")))
+            .andExpect(jsonPath("$.priorityLevel").value("P1"));
+    }
+
+    private String complexAntiPatternSql() {
+        return "-- complex anti-pattern query\n"
+            + "SELECT c.customer_id, c.customer_name, c.state,\n"
+            + "(SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.customer_id) AS total_orders,\n"
+            + "(SELECT SUM(order_amount) FROM orders o WHERE o.customer_id = c.customer_id) AS total_spent,\n"
+            + "(SELECT GROUP_CONCAT(product_name) FROM order_items oi JOIN products p ON oi.product_id = p.product_id "
+            + "WHERE oi.customer_id = c.customer_id) AS all_products\n"
+            + "FROM customers c\n"
+            + "WHERE c.is_active = 1 AND c.customer_id IN (\n"
+            + "SELECT o1.customer_id FROM orders o1 WHERE YEAR(o1.order_date) = 2025\n"
+            + "AND NOT EXISTS (SELECT 1 FROM customer_tags ct WHERE ct.customer_id = o1.customer_id AND ct.tag_name = 'VIP')\n"
+            + "AND o1.order_amount > (SELECT AVG(o2.order_amount) FROM orders o2 "
+            + "WHERE o2.state = (SELECT state FROM customers WHERE customer_id = o1.customer_id))\n"
+            + "AND EXISTS (SELECT 1 FROM order_items oi2 WHERE oi2.order_id = o1.order_id "
+            + "AND oi2.product_id IN (SELECT product_id FROM products WHERE category LIKE '%电子%')))\n"
+            + "OR c.customer_id IN (SELECT customer_id FROM orders WHERE order_amount > 10000)\n"
+            + "ORDER BY RAND() LIMIT 10";
     }
 
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {

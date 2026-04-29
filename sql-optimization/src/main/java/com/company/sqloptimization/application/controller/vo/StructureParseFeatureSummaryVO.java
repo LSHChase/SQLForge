@@ -16,6 +16,15 @@ public class StructureParseFeatureSummaryVO {
     private Integer windowFunctionCount;
     private Integer udfFunctionCount;
     private Integer repeatedExpressionCount;
+    private Integer subqueryCount;
+    private Integer scalarSubqueryCount;
+    private Integer nestedSubqueryDepth;
+    private Integer correlatedSubqueryCount;
+    private Integer orPredicateCount;
+    private Integer functionWrappedPredicateCount;
+    private Integer leadingWildcardLikeCount;
+    private Integer randomOrderCount;
+    private Integer repeatedTableScanCount;
     private List<String> evidence;
 
     public String getParserEngine() { return parserEngine; }
@@ -42,6 +51,24 @@ public class StructureParseFeatureSummaryVO {
     public void setUdfFunctionCount(Integer udfFunctionCount) { this.udfFunctionCount = udfFunctionCount; }
     public Integer getRepeatedExpressionCount() { return repeatedExpressionCount; }
     public void setRepeatedExpressionCount(Integer repeatedExpressionCount) { this.repeatedExpressionCount = repeatedExpressionCount; }
+    public Integer getSubqueryCount() { return subqueryCount; }
+    public void setSubqueryCount(Integer subqueryCount) { this.subqueryCount = subqueryCount; }
+    public Integer getScalarSubqueryCount() { return scalarSubqueryCount; }
+    public void setScalarSubqueryCount(Integer scalarSubqueryCount) { this.scalarSubqueryCount = scalarSubqueryCount; }
+    public Integer getNestedSubqueryDepth() { return nestedSubqueryDepth; }
+    public void setNestedSubqueryDepth(Integer nestedSubqueryDepth) { this.nestedSubqueryDepth = nestedSubqueryDepth; }
+    public Integer getCorrelatedSubqueryCount() { return correlatedSubqueryCount; }
+    public void setCorrelatedSubqueryCount(Integer correlatedSubqueryCount) { this.correlatedSubqueryCount = correlatedSubqueryCount; }
+    public Integer getOrPredicateCount() { return orPredicateCount; }
+    public void setOrPredicateCount(Integer orPredicateCount) { this.orPredicateCount = orPredicateCount; }
+    public Integer getFunctionWrappedPredicateCount() { return functionWrappedPredicateCount; }
+    public void setFunctionWrappedPredicateCount(Integer functionWrappedPredicateCount) { this.functionWrappedPredicateCount = functionWrappedPredicateCount; }
+    public Integer getLeadingWildcardLikeCount() { return leadingWildcardLikeCount; }
+    public void setLeadingWildcardLikeCount(Integer leadingWildcardLikeCount) { this.leadingWildcardLikeCount = leadingWildcardLikeCount; }
+    public Integer getRandomOrderCount() { return randomOrderCount; }
+    public void setRandomOrderCount(Integer randomOrderCount) { this.randomOrderCount = randomOrderCount; }
+    public Integer getRepeatedTableScanCount() { return repeatedTableScanCount; }
+    public void setRepeatedTableScanCount(Integer repeatedTableScanCount) { this.repeatedTableScanCount = repeatedTableScanCount; }
     public List<String> getEvidence() { return evidence; }
     public void setEvidence(List<String> evidence) { this.evidence = evidence; }
 }

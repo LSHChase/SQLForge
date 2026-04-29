@@ -228,6 +228,106 @@ public class StructureParseApplicationService {
             issue.setSuggestedAction("Add explicit projection, filters, or LIMIT before using the query in an interactive path.");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
+        } else if ("SCALAR_SUBQUERY_IN_SELECT".equals(warning)) {
+            issue.setIssueCode("SCALAR_SUBQUERY_IN_SELECT");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
+            issue.setSeverity(StructureParseIssueSeverity.HIGH);
+            issue.setSummary("The SELECT list contains scalar subqueries.");
+            issue.setDetail("Scalar subqueries in projection can repeatedly execute lookup or aggregate logic per output row.");
+            issue.setSuggestedAction("Rewrite scalar subqueries as joins, pre-aggregated CTEs, or serving objects.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.TRUE);
+        } else if ("NESTED_SUBQUERY_RISK".equals(warning)) {
+            issue.setIssueCode("NESTED_SUBQUERY_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.STRUCTURE);
+            issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
+            issue.setSeverity(StructureParseIssueSeverity.HIGH);
+            issue.setSummary("The statement contains multiple nested subqueries.");
+            issue.setDetail("Deep subquery nesting makes filter placement, join order, and runtime cost harder to reason about statically.");
+            issue.setSuggestedAction("Flatten the query into named CTE stages and review each stage independently.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.TRUE);
+        } else if ("CORRELATED_SUBQUERY_RISK".equals(warning)) {
+            issue.setIssueCode("CORRELATED_SUBQUERY_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
+            issue.setSeverity(StructureParseIssueSeverity.HIGH);
+            issue.setSummary("The statement contains correlated subquery references.");
+            issue.setDetail("Correlated subqueries can create repeated lookups or decorrelation pressure during planning.");
+            issue.setSuggestedAction("Rewrite correlated subqueries into explicit joins or pre-aggregated CTEs.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.TRUE);
+        } else if ("FUNCTION_WRAPPED_PREDICATE".equals(warning)) {
+            issue.setIssueCode("FUNCTION_WRAPPED_PREDICATE");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("MISSING_FILTER");
+            issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
+            issue.setSummary("A filtering predicate wraps a column in a function.");
+            issue.setDetail("Function-wrapped predicates can block partition pruning or index-style pushdown.");
+            issue.setSuggestedAction("Rewrite the predicate as a range or normalized column comparison when possible.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.FALSE);
+        } else if ("NOT_EXISTS_ANTI_JOIN_RISK".equals(warning)) {
+            issue.setIssueCode("NOT_EXISTS_ANTI_JOIN_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
+            issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
+            issue.setSummary("The statement uses NOT EXISTS anti-join logic.");
+            issue.setDetail("Anti-join logic should be reviewed for null semantics, selectivity, and join placement.");
+            issue.setSuggestedAction("Consider a staged LEFT JOIN ... IS NULL rewrite only after semantic validation.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.FALSE);
+        } else if ("LEADING_WILDCARD_LIKE_RISK".equals(warning)) {
+            issue.setIssueCode("LEADING_WILDCARD_LIKE_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("MISSING_FILTER");
+            issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
+            issue.setSummary("A LIKE predicate starts with a wildcard.");
+            issue.setDetail("Leading wildcard filters usually cannot use prefix pruning and can force wider scans.");
+            issue.setSuggestedAction("Use a normalized search key, inverted index, or prefixable predicate when possible.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.FALSE);
+        } else if ("OR_PREDICATE_INDEX_RISK".equals(warning)) {
+            issue.setIssueCode("OR_PREDICATE_INDEX_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("MISSING_FILTER");
+            issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
+            issue.setSummary("The WHERE clause combines alternatives with OR.");
+            issue.setDetail("OR predicates can weaken static pruning and may need union-based staging for predictable access paths.");
+            issue.setSuggestedAction("Review whether UNION ALL branches or staged filters make the query easier to optimize.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.FALSE);
+        } else if ("ORDER_BY_RANDOM_RISK".equals(warning)) {
+            issue.setIssueCode("ORDER_BY_RANDOM_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("UNBOUNDED_SORT");
+            issue.setSeverity(StructureParseIssueSeverity.HIGH);
+            issue.setSummary("The statement orders rows by a random function.");
+            issue.setDetail("ORDER BY RAND/RANDOM forces expensive randomization and sort-style work before limiting results.");
+            issue.setSuggestedAction("Use sampled source data or deterministic sampling keys instead of random ordering.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.TRUE);
+        } else if ("REPEATED_TABLE_SCAN_RISK".equals(warning)) {
+            issue.setIssueCode("REPEATED_TABLE_SCAN_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
+            issue.setSeverity(StructureParseIssueSeverity.HIGH);
+            issue.setSummary("The statement references the same table multiple times.");
+            issue.setDetail("Repeated table scans can amplify IO, CPU, and shuffle cost when subqueries are not staged.");
+            issue.setSuggestedAction("Pre-stage repeated inputs with CTEs or serving objects and reuse them explicitly.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.TRUE);
+        } else if ("COMPLEX_QUERY_GRAPH_RISK".equals(warning)) {
+            issue.setIssueCode("COMPLEX_QUERY_GRAPH_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.STRUCTURE);
+            issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
+            issue.setSeverity(StructureParseIssueSeverity.HIGH);
+            issue.setSummary("The query graph is too complex for a lightweight interactive path.");
+            issue.setDetail("The static structure combines joins, predicates, and nested subqueries into a high-risk graph.");
+            issue.setSuggestedAction("Break the SQL into reviewed stages and run access parse or benchmark before online use.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.TRUE);
         } else {
             issue.setIssueCode(warning);
             issue.setIssueDomain(StructureParseIssueDomain.CONVENTION);
@@ -402,6 +502,10 @@ public class StructureParseApplicationService {
             + profile.getPredicateCount()
             + profile.getGroupByCount()
             + profile.getAggregateFunctions().size()
+            + profile.getSubqueryCount() * 2
+            + profile.getOrPredicateCount()
+            + profile.getFunctionWrappedPredicateCount()
+            + profile.getRandomOrderCount() * 2
             + (profile.isSetOperation() ? 3 : 0);
         if (score >= 10) {
             return StructureParseComplexityLevel.EXTREME;
@@ -456,6 +560,15 @@ public class StructureParseApplicationService {
         featureSummary.setWindowFunctionCount(Integer.valueOf(profile.getWindowFunctionCount()));
         featureSummary.setUdfFunctionCount(Integer.valueOf(profile.getUdfFunctionCount()));
         featureSummary.setRepeatedExpressionCount(Integer.valueOf(profile.getRepeatedExpressionCount()));
+        featureSummary.setSubqueryCount(Integer.valueOf(profile.getSubqueryCount()));
+        featureSummary.setScalarSubqueryCount(Integer.valueOf(profile.getScalarSubqueryCount()));
+        featureSummary.setNestedSubqueryDepth(Integer.valueOf(profile.getNestedSubqueryDepth()));
+        featureSummary.setCorrelatedSubqueryCount(Integer.valueOf(profile.getCorrelatedSubqueryCount()));
+        featureSummary.setOrPredicateCount(Integer.valueOf(profile.getOrPredicateCount()));
+        featureSummary.setFunctionWrappedPredicateCount(Integer.valueOf(profile.getFunctionWrappedPredicateCount()));
+        featureSummary.setLeadingWildcardLikeCount(Integer.valueOf(profile.getLeadingWildcardLikeCount()));
+        featureSummary.setRandomOrderCount(Integer.valueOf(profile.getRandomOrderCount()));
+        featureSummary.setRepeatedTableScanCount(Integer.valueOf(profile.getRepeatedTableScanCount()));
         featureSummary.setEvidence(buildFeatureEvidence(profile));
         response.setFeatureSummary(featureSummary);
         response.setRiskChecklist(risks);
@@ -525,12 +638,15 @@ public class StructureParseApplicationService {
         if (profile.getWindowFunctionCount() > 0) {
             return "WINDOW";
         }
+        if (profile.getAggregateFunctions().size() + profile.getGroupByCount() + profile.getOrderByCount() >= 3
+            || profile.getJoinCount() >= 3
+            || profile.getSubqueryCount() >= 3
+            || profile.getFunctionWrappedPredicateCount() > 0
+            || profile.getRandomOrderCount() > 0) {
+            return "HEAVY";
+        }
         if (profile.getUdfFunctionCount() > 0) {
             return "UDF";
-        }
-        if (profile.getAggregateFunctions().size() + profile.getGroupByCount() + profile.getOrderByCount() >= 3
-            || profile.getJoinCount() >= 3) {
-            return "HEAVY";
         }
         return "LIGHT";
     }
@@ -538,7 +654,7 @@ public class StructureParseApplicationService {
     private String resolveResourceType(SqlOptimizationPipelineService.ParsedSqlProfile profile,
                                        String scanMode,
                                        String computeDensity) {
-        if (profile.getJoinCount() > 0 || profile.isSetOperation()) {
+        if (profile.getJoinCount() > 0 || profile.isSetOperation() || profile.getSubqueryCount() > 0) {
             return "NETWORK_MIXED";
         }
         if ("FULL_TABLE_SCAN".equals(scanMode) || "CROSS_PARTITION_SCAN".equals(scanMode)) {
@@ -560,7 +676,8 @@ public class StructureParseApplicationService {
             || "CROSS_PARTITION_SCAN".equals(scanMode)
             || "WINDOW".equals(computeDensity)
             || "HEAVY".equals(computeDensity)
-            || profile.getJoinCount() >= 2) {
+            || profile.getJoinCount() >= 2
+            || profile.getSubqueryCount() > 0) {
             return "REPORT_LT_30S";
         }
         return "INTERACTIVE_LT_3S";
@@ -583,6 +700,15 @@ public class StructureParseApplicationService {
         evidence.add("aggregates=" + profile.getAggregateFunctions().size());
         evidence.add("windows=" + profile.getWindowFunctionCount());
         evidence.add("repeatedExpressions=" + profile.getRepeatedExpressionCount());
+        evidence.add("subqueries=" + profile.getSubqueryCount());
+        evidence.add("scalarSubqueries=" + profile.getScalarSubqueryCount());
+        evidence.add("nestedSubqueryDepth=" + profile.getNestedSubqueryDepth());
+        evidence.add("correlatedSubqueries=" + profile.getCorrelatedSubqueryCount());
+        evidence.add("orPredicates=" + profile.getOrPredicateCount());
+        evidence.add("functionWrappedPredicates=" + profile.getFunctionWrappedPredicateCount());
+        evidence.add("leadingWildcardLikes=" + profile.getLeadingWildcardLikeCount());
+        evidence.add("randomOrders=" + profile.getRandomOrderCount());
+        evidence.add("repeatedTableScans=" + profile.getRepeatedTableScanCount());
         return evidence;
     }
 
@@ -606,6 +732,38 @@ public class StructureParseApplicationService {
                 addRisk(risks, emitted, risk("LARGE_RESULT_SET_RISK", "HIGH", "Oversized result set risk",
                     "selectStar=" + profile.isSelectStar() + ", limitPresent=" + profile.isLimitPresent(),
                     "Use explicit columns, filters, or LIMIT for interactive paths."));
+            } else if ("SCALAR_SUBQUERY_IN_SELECT".equals(warning)) {
+                addRisk(risks, emitted, risk("SCALAR_SUBQUERY_IN_SELECT", "HIGH", "Scalar subquery in SELECT",
+                    "scalarSubqueryCount=" + profile.getScalarSubqueryCount(), "Rewrite scalar subqueries into joins or staged aggregates."));
+            } else if ("NESTED_SUBQUERY_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("NESTED_SUBQUERY_RISK", "HIGH", "Nested subquery risk",
+                    "subqueryCount=" + profile.getSubqueryCount() + ", depth=" + profile.getNestedSubqueryDepth(),
+                    "Flatten nested subqueries into named CTE stages."));
+            } else if ("CORRELATED_SUBQUERY_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("CORRELATED_SUBQUERY_RISK", "HIGH", "Correlated subquery risk",
+                    "correlatedSubqueryCount=" + profile.getCorrelatedSubqueryCount(), "Rewrite correlated subqueries into joins or precomputed stages."));
+            } else if ("FUNCTION_WRAPPED_PREDICATE".equals(warning)) {
+                addRisk(risks, emitted, risk("FUNCTION_WRAPPED_PREDICATE", "MEDIUM", "Function-wrapped predicate",
+                    "functionWrappedPredicateCount=" + profile.getFunctionWrappedPredicateCount(), "Rewrite as range or normalized column comparison."));
+            } else if ("NOT_EXISTS_ANTI_JOIN_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("NOT_EXISTS_ANTI_JOIN_RISK", "MEDIUM", "NOT EXISTS anti-join risk",
+                    "notExistsCount=" + profile.getNotExistsCount(), "Review anti-join semantics and staged alternatives."));
+            } else if ("LEADING_WILDCARD_LIKE_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("LEADING_WILDCARD_LIKE_RISK", "MEDIUM", "Leading wildcard LIKE risk",
+                    "leadingWildcardLikeCount=" + profile.getLeadingWildcardLikeCount(), "Use searchable keys or prefixable predicates."));
+            } else if ("OR_PREDICATE_INDEX_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("OR_PREDICATE_INDEX_RISK", "MEDIUM", "OR predicate pruning risk",
+                    "orPredicateCount=" + profile.getOrPredicateCount(), "Consider UNION ALL branches or staged filters."));
+            } else if ("ORDER_BY_RANDOM_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("ORDER_BY_RANDOM_RISK", "HIGH", "Random order risk",
+                    "randomOrderCount=" + profile.getRandomOrderCount(), "Use deterministic sampling instead of ORDER BY RAND/RANDOM."));
+            } else if ("REPEATED_TABLE_SCAN_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("REPEATED_TABLE_SCAN_RISK", "HIGH", "Repeated table scan risk",
+                    "repeatedTableScanCount=" + profile.getRepeatedTableScanCount(), "Pre-stage repeated inputs and reuse them explicitly."));
+            } else if ("COMPLEX_QUERY_GRAPH_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("COMPLEX_QUERY_GRAPH_RISK", "HIGH", "Complex query graph risk",
+                    "subqueryCount=" + profile.getSubqueryCount() + ", predicateCount=" + profile.getPredicateCount(),
+                    "Break the query into reviewed stages before online use."));
             }
         }
         return risks;
@@ -635,11 +793,13 @@ public class StructureParseApplicationService {
                                                                    List<StructureParseRiskVO> risks) {
         StructureParseResourceEstimateVO estimate = new StructureParseResourceEstimateVO();
         estimate.setCpu(level(profile.getAggregateFunctions().size() + profile.getUdfFunctionCount()
-            + profile.getRepeatedExpressionCount()));
-        estimate.setIo(profile.getPredicateCount() == 0 ? "HIGH" : "MEDIUM");
-        estimate.setMemory(profile.getOrderByCount() + profile.getWindowFunctionCount() > 0 ? "HIGH" : "LOW");
-        estimate.setNetwork(profile.getJoinCount() > 0 || profile.isSetOperation() ? "HIGH" : "LOW");
-        estimate.setResultSize(profile.isSelectStar() || !profile.isLimitPresent() ? "HIGH" : "MEDIUM");
+            + profile.getRepeatedExpressionCount()
+            + profile.getFunctionWrappedPredicateCount()
+            + profile.getRandomOrderCount()));
+        estimate.setIo(profile.getPredicateCount() == 0 || profile.getRepeatedTableScanCount() > 0 ? "HIGH" : "MEDIUM");
+        estimate.setMemory(profile.getOrderByCount() + profile.getWindowFunctionCount() + profile.getRandomOrderCount() > 0 ? "HIGH" : "LOW");
+        estimate.setNetwork(profile.getJoinCount() > 0 || profile.isSetOperation() || profile.getSubqueryCount() > 0 ? "HIGH" : "LOW");
+        estimate.setResultSize(profile.isSelectStar() || !profile.isLimitPresent() || profile.getComplexGraphScore() >= 8 ? "HIGH" : "MEDIUM");
         estimate.setOverall(resolveOverallEstimate(estimate, risks));
         estimate.setEvidence(buildFeatureEvidence(profile));
         return estimate;

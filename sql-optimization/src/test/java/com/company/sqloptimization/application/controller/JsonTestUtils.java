@@ -18,4 +18,8 @@ final class JsonTestUtils {
         }
         return current.asText();
     }
+
+    static String toJsonString(String value) throws Exception {
+        return OBJECT_MAPPER.writeValueAsString(value);
+    }
 }

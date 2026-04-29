@@ -86,4 +86,53 @@ class SqlOptimizationPipelineServiceTest {
         assertEquals(1, profile.getWindowFunctionCount());
         assertTrue(profile.isLimitPresent());
     }
+
+    @Test
+    void shouldExtractComplexAntiPatternSignalsFromNestedSql() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            complexAntiPatternSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        assertEquals("JSQLPARSER", profile.getParserEngine());
+        assertEquals(5, profile.getTables().size());
+        assertTrue(profile.getSubqueryCount() >= 9);
+        assertEquals(3, profile.getScalarSubqueryCount());
+        assertTrue(profile.getNestedSubqueryDepth() >= 3);
+        assertTrue(profile.getCorrelatedSubqueryCount() >= 6);
+        assertTrue(profile.getOrPredicateCount() >= 1);
+        assertTrue(profile.getFunctionWrappedPredicateCount() >= 1);
+        assertTrue(profile.getLeadingWildcardLikeCount() >= 1);
+        assertTrue(profile.getRandomOrderCount() >= 1);
+        assertTrue(profile.getNotExistsCount() >= 1);
+        assertTrue(profile.getRepeatedTableScanCount() >= 5);
+        assertTrue(profile.getWarnings().contains("SCALAR_SUBQUERY_IN_SELECT"));
+        assertTrue(profile.getWarnings().contains("NESTED_SUBQUERY_RISK"));
+        assertTrue(profile.getWarnings().contains("CORRELATED_SUBQUERY_RISK"));
+        assertTrue(profile.getWarnings().contains("FUNCTION_WRAPPED_PREDICATE"));
+        assertTrue(profile.getWarnings().contains("NOT_EXISTS_ANTI_JOIN_RISK"));
+        assertTrue(profile.getWarnings().contains("LEADING_WILDCARD_LIKE_RISK"));
+        assertTrue(profile.getWarnings().contains("ORDER_BY_RANDOM_RISK"));
+        assertTrue(profile.getWarnings().contains("REPEATED_TABLE_SCAN_RISK"));
+        assertTrue(profile.getWarnings().contains("COMPLEX_QUERY_GRAPH_RISK"));
+    }
+
+    private String complexAntiPatternSql() {
+        return "-- complex anti-pattern query\n"
+            + "SELECT c.customer_id, c.customer_name, c.state,\n"
+            + "(SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.customer_id) AS total_orders,\n"
+            + "(SELECT SUM(order_amount) FROM orders o WHERE o.customer_id = c.customer_id) AS total_spent,\n"
+            + "(SELECT GROUP_CONCAT(product_name) FROM order_items oi JOIN products p ON oi.product_id = p.product_id "
+            + "WHERE oi.customer_id = c.customer_id) AS all_products\n"
+            + "FROM customers c\n"
+            + "WHERE c.is_active = 1 AND c.customer_id IN (\n"
+            + "SELECT o1.customer_id FROM orders o1 WHERE YEAR(o1.order_date) = 2025\n"
+            + "AND NOT EXISTS (SELECT 1 FROM customer_tags ct WHERE ct.customer_id = o1.customer_id AND ct.tag_name = 'VIP')\n"
+            + "AND o1.order_amount > (SELECT AVG(o2.order_amount) FROM orders o2 "
+            + "WHERE o2.state = (SELECT state FROM customers WHERE customer_id = o1.customer_id))\n"
+            + "AND EXISTS (SELECT 1 FROM order_items oi2 WHERE oi2.order_id = o1.order_id "
+            + "AND oi2.product_id IN (SELECT product_id FROM products WHERE category LIKE '%电子%')))\n"
+            + "OR c.customer_id IN (SELECT customer_id FROM orders WHERE order_amount > 10000)\n"
+            + "ORDER BY RAND() LIMIT 10";
+    }
 }

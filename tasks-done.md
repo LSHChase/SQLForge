@@ -4,6 +4,30 @@
 
 ## Done
 
+### D-TASK-075: 补强复杂反模式 SQL 结构解析验证
+
+- Status: done
+- Completed at: 2026-04-28
+- Commit subject: `feat(sql-optimization): D-TASK-075 detect complex SQL antipatterns`
+- Priority: 1
+- Depends on: `D-TASK-073`,`D-TASK-074`
+- Scope: 结构解析必须在不执行 SQL、不访问元数据的前提下，对复杂嵌套 SQL 输出稳定的静态结构特征、查询意图标签、风险清单和启发式资源估算；新增风险码不能破坏 D-TASK-073/074 旧响应字段。 Tech: `JAVA-BE`,`DOCS`. Layer: `application(controller/service)/domain`,`shared contract docs`.
+- Plan ref: docs/exec-plans/completed/D-TASK-075-full-auto-execution-plan.md
+- Matrix context: Phase-D / Story `D-STORY-007` 结构解析与数据访问解析双轨闭环
+- Human confirmation point: 若实现需要执行用户 SQL、访问真实数据库/元数据、断言真实索引存在性、引入持久化字段或改变结构解析旧字段语义，必须暂停并由人工确认。
+- Data impact: 不变更持久化模型；影响结构解析 API 响应中的新增/更丰富风险标签、issues、featureSummary 计数和启发式资源估算。
+- Rollback / recovery: 回退递归 AST 特征提取、复杂 SQL 测试、风险码映射和文档补充，恢复 D-TASK-074 后的结构解析行为；不触碰历史数据。
+- Validation:
+  - `SqlOptimizationPipelineService complex SQL profile test、StructureParseController complex anti-pattern contract test、sql-optimization module tests、task audit、knowledge lint`
+  - `python3 scripts/foreman.py validate D-TASK-075`
+- Progress log:
+  - 2026-04-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added expected-vs-system regression coverage for the supplied complex anti-pattern SQL, extended recursive JSQLParser traversal for nested/select/where subqueries, correlated alias detection, function-wrapped predicates, leading wildcard LIKE, OR predicates, ORDER BY random and repeated table scans, and surfaced the new counters through intent profile, feature summary, risk tags, checklist, issues and resource estimates.
+  - Validation evidence: mvn -B -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest -Dsurefire.failIfNoSpecifiedTests=false test -DskipITs; mvn -B -pl sql-optimization -am -Dtest=StructureParseControllerTest -Dsurefire.failIfNoSpecifiedTests=false test -DskipITs; mvn -B -pl sql-optimization -am test -DskipITs; mvn -B -pl sql-optimization -am validate pmd:pmd checkstyle:check -DskipTests; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py validate D-TASK-075; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Signals remain static AST heuristics without catalog metadata, real index truth or execution-plan cost proof; Trino path remains compatibility-oriented and was not expanded to identical nested anti-pattern extraction in this task.
+  - Next step: Add metadata-backed access/index evidence and a Trino-specific complex fixture if query-intent scoring needs engine-parity validation.
+
 ### D-TASK-074: 补齐结构解析 SQL 指纹前处理契约
 
 - Status: done
