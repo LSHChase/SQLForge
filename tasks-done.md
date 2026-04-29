@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-052: 修复 SQL解析运行时 500
+
+- Status: done
+- Completed at: 2026-04-28
+- Commit subject: `fix(sql-optimization): restore combined parse runtime`
+- Priority: 1
+- Depends on: N/A
+- Scope: 重启并验证 sql-optimization 运行实例，修复 SQL解析 在综合/结构解析请求下返回 500 的运行时故障，确保当前源码和线上实例一致。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-052`
+- Progress log:
+  - 2026-04-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复 StructureParseApplicationService 缺失治理解析历史 DTO 导入导致 clean build/runtime 综合解析返回 [10000] 的问题；验证结构解析、访问解析和综合解析 HTTP 200。
+  - Validation evidence: mvn -B -f sql-optimization/pom.xml clean test -Dtest=StructureParseControllerTest,AccessParseControllerTest; python3 scripts/foreman.py validate HARN-052; curl POST http://127.0.0.1:8082/api/sql-optimization/parse/combined returned HTTP 200.
+  - Residual risk: 本地治理历史写入仍可能因治理服务权限/数据状态降级为 WRITE_FAILED，但解析主流程已捕获降级且不再返回 500。
+  - Next step: 如需恢复解析历史落库，单独排查治理 /parse-history/write 的权限与数据依赖。
+
 ### HARN-051: 压缩 SQL解析顶部信息卡
 
 - Status: done
