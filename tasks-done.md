@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-051: 压缩 SQL解析顶部信息卡
+
+- Status: done
+- Completed at: 2026-04-28
+- Commit subject: `feat(sql-optimization): simplify SQL Parse top cards`
+- Priority: 1
+- Depends on: N/A
+- Scope: 收敛 SQL解析 页面顶部的冗余信息卡，去掉重复的 workspace entry 与 hero summary chips，只保留核心操作入口和结果区。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-051`
+- Progress log:
+  - 2026-04-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Removed the redundant hero summary chips and the single workspace entry card from the SQL Parse page, leaving the core action buttons, input form, and result/statistics areas intact.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-051; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The main parse workspace still shows request-summary chips near the form, which remain useful context rather than top-level navigation.
+  - Next step: None.
+
 ### HARN-050: SQL解析单条页面收口
 
 - Status: done

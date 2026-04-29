@@ -259,24 +259,6 @@ const requestSummary = computed(() => [
   { label: isChinese.value ? 'Access Parse' : 'Access parse', value: form.connectionRequired ? 'ON' : 'OFF' }
 ])
 
-const parseWorkbenchSummary = computed(() => [
-  { label: isChinese.value ? '当前页面' : 'Current page', value: isChinese.value ? 'SQL解析' : 'SQL Parse' },
-  { label: isChinese.value ? '解析模式' : 'Parse mode', value: isChinese.value ? '单条' : 'Single' },
-  { label: isChinese.value ? '结果布局' : 'Result layout', value: isChinese.value ? '结构/结果分栏' : 'Split result layout' }
-])
-
-const workspaceEntries = computed(() => [
-  {
-    key: 'parse',
-    eyebrow: isChinese.value ? 'SQL解析' : 'SQL Parse',
-    title: isChinese.value ? '单条 SQL 解析' : 'Single SQL parsing',
-    description: isChinese.value
-      ? '结构解析、Access Parse、结果统计与历史追溯保持在同一工作区。'
-      : 'Structure parsing, access parsing, result statistics, and history tracing stay in one workspace.',
-    route: { path: ROUTE_PATHS.acceleration }
-  }
-])
-
 const parseBatchStatusCards = computed(() => {
   if (!parseBatchDetail.value) {
     return []
@@ -1298,11 +1280,6 @@ watch(
         <p class="runtime-summary">{{ t('acceleration.summary') }}</p>
       </div>
       <div class="hero-side">
-        <div class="summary-chip-row">
-          <span v-for="item in parseWorkbenchSummary" :key="item.label" class="summary-chip">
-            {{ item.label }}: <strong>{{ item.value }}</strong>
-          </span>
-        </div>
         <div class="action-row action-row-wrap">
           <el-button type="primary" :loading="loading.analytics" @click="loadAnalytics">
             {{ isChinese ? '刷新统计视角' : 'Refresh statistics' }}
@@ -1313,19 +1290,6 @@ watch(
         </div>
       </div>
     </div>
-
-    <section class="workspace-entry-grid">
-      <article
-        v-for="entry in workspaceEntries"
-        :key="entry.key"
-        class="surface-card workspace-entry-card"
-        data-testid="parse-workspace-entry"
-      >
-        <p class="section-kicker sqlforge-code-label">{{ entry.eyebrow }}</p>
-        <h2 class="workspace-entry-title">{{ entry.title }}</h2>
-        <p class="section-summary">{{ entry.description }}</p>
-      </article>
-    </section>
 
     <div class="parse-workbench__grid">
       <article class="surface-card composer-rail">
@@ -2508,24 +2472,6 @@ watch(
   display: grid;
   gap: 24px;
   grid-template-columns: 1fr;
-}
-
-.workspace-entry-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.workspace-entry-card {
-  display: grid;
-  gap: 10px;
-}
-
-.workspace-entry-title {
-  margin: 0;
-  color: var(--sqlforge-text-primary);
-  font-size: 20px;
-  font-weight: 400;
 }
 
 .analytics-grid,

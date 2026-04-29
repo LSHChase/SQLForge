@@ -7,7 +7,6 @@ const source = fs.readFileSync(viewPath, 'utf8')
 
 const requiredTokens = [
   'data-testid="parse-workbench-page"',
-  'data-testid="parse-workspace-entry"',
   'class="parse-workbench__grid"',
   'SQL解析',
   'SQL Parse',
