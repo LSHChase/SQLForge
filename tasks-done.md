@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-LOCAL-001: 启动前后端
+
+- Status: done
+- Completed at: 2026-04-29
+- Commit subject: `chore(ops): start local frontend and backend`
+- Priority: 2
+- Depends on: N/A
+- Scope: Start local backend services and frontend dev server for the current workspace session.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-LOCAL-001`
+- Progress log:
+  - 2026-04-29: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Started local infrastructure, backend runtime services, and frontend dev server for the current workspace session.
+  - Validation evidence: scripts/local-start.sh; scripts/start-backend-services.sh --reuse-running-stack --skip-build; scripts/health-check.sh --fail-on-error
+  - Residual risk: Long-running dev servers remain active in separate sessions and should be stopped explicitly when no longer needed.
+  - Next step: Keep the dev sessions running for user access or stop them with the repository stop scripts when finished.
+
 ### HARN-052: 修复 SQL解析运行时 500
 
 - Status: done
