@@ -4,6 +4,26 @@
 
 ## Done
 
+### HARN-059: 修复解析历史详情展示解析结果与原始SQL
+
+- Status: done
+- Completed at: 2026-04-29
+- Commit subject: `fix(frontend): enrich parse history detail`
+- Priority: 1
+- Depends on: HARN-058
+- Scope: 修复解析历史单条详情只展示 JSON、缺少 SQL 解析页同款解析结果与统计信息的问题；解析历史详情必须展示原始 SQL，并复用 SQL 解析结果/统计口径，不改变核心 parser 算法、权限边界或持久化保留策略。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-059`
+- Progress log:
+  - 2026-04-29: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-29: added a structured parse-result detail tab to parse history, defaulted history detail drill-through to the parse result view, and surfaced original SQL in the single-record detail.
+  - 2026-04-29: validated frontend contracts and production build for parse history/detail changes.
+- Context closeout:
+  - Completed scope: 修复解析历史单条详情展示：详情默认进入结构化解析结果页签，展示原始 SQL、解析结果摘要、解析统计、结构解析卡、Access Parse 卡、风险/问题清单，同时保留原始 JSON 证据页签。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-059 --extra-command node/scripts/check-history-detail-contract.mjs --extra-command node/scripts/check-history-page-contract.mjs --extra-command node/scripts/check-parse-workbench-contract.mjs --extra-command npm-run-lint --extra-command npm-run-build; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 未连接真实外部 Hetu/MRS 环境做浏览器端到端验收；当前覆盖为静态契约、lint、生产构建与治理审计。
+  - Next step: 如目标环境仍看不到原始 SQL，优先核对对应 query_history 记录是否已通过加密 SQL surface 写入 sql_text_cipher。
+
 ### OPS-LOCAL-004: 重新启动前后端服务
 
 - Status: done

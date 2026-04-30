@@ -8,6 +8,13 @@ const source = fs.readFileSync(viewPath, 'utf8')
 const requiredTokens = [
   'query history detail',
   'SQL tri-state, parse signals, and related forensics',
+  'data-testid="parse-record-history-parse-detail"',
+  'data-testid="parse-record-history-original-sql"',
+  'data-testid="parse-record-history-original-sql-text"',
+  'data-testid="parse-record-history-parse-statistics"',
+  'data-testid="parse-record-history-structure-card"',
+  'data-testid="parse-record-history-access-card"',
+  'data-testid="parse-record-history-issue"',
   'data-testid="parse-record-detail-query-history-count"',
   ':data-testid="`parse-record-${item.key}`"',
   ':data-testid="`parse-record-${group.key}`"',

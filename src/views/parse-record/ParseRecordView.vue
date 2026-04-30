@@ -209,6 +209,124 @@ const sqlVariants = computed(() =>
     { key: 'boundSqlText', label: isChinese.value ? '绑定 SQL' : 'Bound SQL', value: selectedHistoryDetail.value?.boundSqlText }
   ].filter(item => hasDisplayValue(item.value))
 )
+const historyQueryContext = computed(() => objectValue(selectedHistoryDetail.value?.queryContext))
+const historyStructureParse = computed(() =>
+  firstObject(
+    selectedHistoryDetail.value?.structureParseSummary,
+    historyQueryContext.value.structureParseSummary,
+    historyQueryContext.value.structureParse
+  )
+)
+const historyAccessParse = computed(() =>
+  firstObject(
+    selectedHistoryDetail.value?.accessParseSummary,
+    historyQueryContext.value.accessParseSummary,
+    historyQueryContext.value.accessParse
+  )
+)
+const historyResultSummary = computed(() =>
+  firstObject(
+    historyQueryContext.value.resultSummary,
+    selectedHistoryDetail.value?.executionSummary?.resultSummary,
+    selectedHistoryDetail.value?.executionSummary
+  )
+)
+const historyParseStatus = computed(() =>
+  firstValue(
+    historyResultSummary.value.overallStatus,
+    selectedHistoryDetail.value?.resultStatus,
+    historyStructureParse.value.syntaxStatus
+  )
+)
+const historyParseTaskId = computed(() =>
+  firstValue(historyQueryContext.value.parseTaskId, historyStructureParse.value.parseTaskId, selectedHistoryDetail.value?.traceDetail?.taskId)
+)
+const historyStructureIssues = computed(() => normalizeArray(historyStructureParse.value.issues))
+const historyStructureRiskChecklist = computed(() => normalizeArray(historyStructureParse.value.riskChecklist))
+const historyStructureIntentLabels = computed(() => normalizeArray(historyStructureParse.value.intentProfile?.classificationLabels))
+const historyLogicalObjectHits = computed(() => {
+  const fromStructure = normalizeArray(historyStructureParse.value.logicalObjectHits)
+  return fromStructure.length ? fromStructure : logicalObjectHits.value
+})
+const historyParseSummaryCards = computed(() =>
+  [
+    card(isChinese.value ? '综合状态' : 'Overall status', historyParseStatus.value),
+    card(isChinese.value ? 'Parse Task' : 'Parse task', historyParseTaskId.value),
+    card(isChinese.value ? '语法状态' : 'Syntax status', historyStructureParse.value.syntaxStatus),
+    card(isChinese.value ? 'Access 可用' : 'Access available', resolveAccessAvailable(historyResultSummary.value, historyAccessParse.value)),
+    card(isChinese.value ? '降级原因' : 'Degrade reason', firstValue(historyResultSummary.value.degradeReason, historyAccessParse.value.degradeReason)),
+    card(isChinese.value ? '历史写入' : 'History write', selectedHistoryDetail.value?.historyId ? (isChinese.value ? '已落库' : 'Saved') : ''),
+    card('History ID', selectedHistoryDetail.value?.historyId)
+  ].filter(item => hasDisplayValue(item.value))
+)
+const historyParseStatisticCards = computed(() => {
+  const feature = objectValue(historyStructureParse.value.featureSummary)
+  return [
+    card(isChinese.value ? '问题数' : 'Issues', historyStructureIssues.value.length),
+    card(isChinese.value ? '风险项' : 'Risks', historyStructureRiskChecklist.value.length),
+    card(isChinese.value ? '逻辑对象' : 'Logical objects', historyLogicalObjectHits.value.length),
+    card(isChinese.value ? '风险标签' : 'Risk tags', normalizeArray(historyStructureParse.value.riskTags).length),
+    card(isChinese.value ? '改写候选' : 'Rewrite candidates', normalizeArray(historyStructureParse.value.rewriteCandidates).length),
+    card(isChinese.value ? '表数量' : 'Tables', feature.tableCount),
+    card(isChinese.value ? 'Join 数' : 'Joins', feature.joinCount),
+    card(isChinese.value ? '谓词数' : 'Predicates', feature.predicateCount),
+    card(isChinese.value ? '窗口函数' : 'Windows', feature.windowFunctionCount),
+    card(isChinese.value ? '重复表达式' : 'Repeated expressions', feature.repeatedExpressionCount),
+    card(isChinese.value ? '重要' : 'Important', booleanLabel(historyStructureParse.value.important)),
+    card(isChinese.value ? '紧急' : 'Urgent', booleanLabel(historyStructureParse.value.urgent))
+  ].filter(item => hasDisplayValue(item.value))
+})
+const historyStructureHighlights = computed(() =>
+  [
+    { key: 'parseTaskId', label: isChinese.value ? 'Parse Task' : 'Parse task', value: historyParseTaskId.value },
+    { key: 'sqlFingerprint', label: isChinese.value ? 'SQL 指纹' : 'SQL fingerprint', value: firstValue(historyStructureParse.value.sqlFingerprint, selectedHistoryDetail.value?.sqlFingerprint) },
+    { key: 'syntaxStatus', label: isChinese.value ? '语法状态' : 'Syntax status', value: historyStructureParse.value.syntaxStatus },
+    { key: 'complexityLevel', label: isChinese.value ? '复杂度' : 'Complexity', value: historyStructureParse.value.complexityLevel },
+    { key: 'sqlType', label: isChinese.value ? 'SQL 类型' : 'SQL type', value: historyStructureParse.value.sqlType },
+    { key: 'priorityLevel', label: isChinese.value ? '优先级' : 'Priority', value: historyStructureParse.value.priorityLevel },
+    { key: 'priorityScore', label: isChinese.value ? '评分' : 'Score', value: historyStructureParse.value.priorityScore },
+    { key: 'important', label: isChinese.value ? '重要' : 'Important', value: booleanLabel(historyStructureParse.value.important) },
+    { key: 'urgent', label: isChinese.value ? '紧急' : 'Urgent', value: booleanLabel(historyStructureParse.value.urgent) }
+  ].filter(item => hasDisplayValue(item.value))
+)
+const historyStructureFeatureHighlights = computed(() => {
+  const feature = objectValue(historyStructureParse.value.featureSummary)
+  return [
+    { key: 'parserEngine', label: isChinese.value ? 'Parser' : 'Parser', value: feature.parserEngine },
+    { key: 'scanMode', label: isChinese.value ? '扫描模式' : 'Scan mode', value: feature.scanMode },
+    { key: 'joinType', label: isChinese.value ? 'Join 类型' : 'Join type', value: feature.joinType },
+    { key: 'computeDensity', label: isChinese.value ? '计算密度' : 'Compute density', value: feature.computeDensity },
+    { key: 'resourceType', label: isChinese.value ? '资源类型' : 'Resource type', value: feature.resourceType },
+    { key: 'slaLevel', label: isChinese.value ? 'SLA 等级' : 'SLA level', value: feature.slaLevel },
+    { key: 'tableCount', label: isChinese.value ? '表数量' : 'Tables', value: feature.tableCount },
+    { key: 'joinCount', label: isChinese.value ? 'Join 数' : 'Joins', value: feature.joinCount },
+    { key: 'predicateCount', label: isChinese.value ? '谓词数' : 'Predicates', value: feature.predicateCount },
+    { key: 'windowFunctionCount', label: isChinese.value ? '窗口函数' : 'Windows', value: feature.windowFunctionCount },
+    { key: 'repeatedExpressionCount', label: isChinese.value ? '重复表达式' : 'Repeated expressions', value: feature.repeatedExpressionCount }
+  ].filter(item => hasDisplayValue(item.value))
+})
+const historyStructureResourceHighlights = computed(() => {
+  const estimate = objectValue(historyStructureParse.value.estimatedResourceCost)
+  return [
+    { key: 'overall', label: isChinese.value ? '总体' : 'Overall', value: estimate.overall },
+    { key: 'cpu', label: 'CPU', value: estimate.cpu },
+    { key: 'io', label: 'IO', value: estimate.io },
+    { key: 'memory', label: isChinese.value ? '内存' : 'Memory', value: estimate.memory },
+    { key: 'network', label: isChinese.value ? '网络' : 'Network', value: estimate.network },
+    { key: 'resultSize', label: isChinese.value ? '结果集' : 'Result size', value: estimate.resultSize }
+  ].filter(item => hasDisplayValue(item.value))
+})
+const historyAccessHighlights = computed(() =>
+  [
+    { key: 'serviceStatus', label: isChinese.value ? '服务状态' : 'Service status', value: historyAccessParse.value.serviceStatus },
+    { key: 'connectionStatus', label: isChinese.value ? '连接状态' : 'Connection status', value: historyAccessParse.value.connectionStatus },
+    { key: 'objectResolutionStatus', label: isChinese.value ? '对象解析' : 'Object resolution', value: historyAccessParse.value.objectResolutionStatus },
+    { key: 'partitionStatus', label: isChinese.value ? '分区状态' : 'Partition status', value: historyAccessParse.value.partitionStatus },
+    { key: 'dataFreshnessStatus', label: isChinese.value ? '新鲜度' : 'Freshness', value: historyAccessParse.value.dataFreshnessStatus },
+    { key: 'slaStatus', label: 'SLA', value: historyAccessParse.value.slaStatus },
+    { key: 'compatibilityStatus', label: isChinese.value ? '兼容性' : 'Compatibility', value: historyAccessParse.value.compatibilityStatus }
+  ].filter(item => hasDisplayValue(item.value))
+)
 const signalGroups = computed(() =>
   [
     { key: 'commentContext', title: isChinese.value ? '注释上下文' : 'Comment context', payload: selectedHistoryDetail.value?.commentContext },
@@ -326,7 +444,7 @@ const openHistoryDetail = async (historyId, preloadedTraceDetail = null) => {
   }
   loading.detail = true
   errorMessage.value = ''
-  activeDialogTab.value = 'overview'
+  activeDialogTab.value = 'parseResult'
   selectedHistoryId.value = historyId
   try {
     const detail = await getGovernanceQueryHistoryDetail(requestTenantId.value, historyId, {
@@ -530,13 +648,49 @@ const openReportBatchDetail = async row => {
 
 const statusClass = value => {
   const normalized = String(value || '').toUpperCase()
-  if (normalized === 'SUCCESS' || normalized === 'SUCCEEDED') {
+  if (!normalized) {
+    return 'pill'
+  }
+  if (
+    normalized === 'SUCCESS' ||
+    normalized === 'SUCCEEDED' ||
+    normalized === 'VALID' ||
+    normalized === 'AVAILABLE' ||
+    normalized === 'CONNECTED' ||
+    normalized.endsWith('_SUCCEEDED')
+  ) {
     return 'pill pill-success'
   }
-  if (normalized.includes('PARTIAL')) {
+  if (normalized.includes('PARTIAL') || normalized.includes('UNAVAILABLE') || normalized.includes('WAITING') || normalized.includes('PENDING')) {
     return 'pill pill-warning'
   }
   return 'pill pill-danger'
+}
+
+const resultBannerClass = value => {
+  const normalized = String(value || '').toUpperCase()
+  if (normalized.includes('FAILED') || normalized.includes('INVALID')) {
+    return 'result-banner-danger'
+  }
+  if (normalized.includes('PARTIAL') || normalized.includes('UNAVAILABLE') || normalized.includes('WAITING')) {
+    return 'result-banner-warning'
+  }
+  return 'result-banner-success'
+}
+
+const resultValueClass = item => {
+  const key = String(item?.key || '')
+  const value = String(item?.value || '').toUpperCase()
+  if ((key === 'urgent' && (item.value === true || value === 'TRUE' || value === '是')) || (key === 'priorityLevel' && value === 'P1')) {
+    return 'highlight-chip-danger'
+  }
+  if (value.includes('FAILED') || value.includes('INVALID')) {
+    return 'highlight-chip-danger'
+  }
+  if (value.includes('PARTIAL') || value.includes('UNAVAILABLE')) {
+    return 'highlight-chip-warning'
+  }
+  return ''
 }
 
 const parseBooleanFilter = value => {
@@ -566,7 +720,50 @@ const displayValue = value => {
   return String(value)
 }
 
+const displayDetailValue = value => {
+  if (value && typeof value === 'object') {
+    return formatJson(value)
+  }
+  return displayValue(value)
+}
+
 const hasDisplayValue = value => !(value === null || value === undefined || String(value).trim() === '')
+
+const booleanLabel = value => {
+  if (typeof value !== 'boolean') {
+    return ''
+  }
+  if (isChinese.value) {
+    return value ? '是' : '否'
+  }
+  return value ? 'true' : 'false'
+}
+
+const objectValue = value => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value
+  }
+  return {}
+}
+
+const firstObject = (...values) => values.map(objectValue).find(value => Object.keys(value).length > 0) || {}
+
+const firstValue = (...values) => {
+  const match = values.find(value => hasDisplayValue(value))
+  return match === undefined ? '' : match
+}
+
+const resolveAccessAvailable = (summary, accessParse) => {
+  if (typeof summary?.accessAvailable === 'boolean') {
+    return booleanLabel(summary.accessAvailable)
+  }
+  const serviceStatus = String(accessParse?.serviceStatus || '').toUpperCase()
+  const connectionStatus = String(accessParse?.connectionStatus || '').toUpperCase()
+  if (!serviceStatus && !connectionStatus) {
+    return ''
+  }
+  return booleanLabel(serviceStatus === 'AVAILABLE' && connectionStatus === 'CONNECTED')
+}
 
 const rate = (count, total) => {
   if (!total) {
@@ -1109,6 +1306,247 @@ onMounted(async () => {
             </div>
           </el-tab-pane>
 
+          <el-tab-pane :label="isChinese ? '解析结果' : 'Parse result'" name="parseResult">
+            <div class="history-result-panel" data-testid="parse-record-history-parse-detail">
+              <article class="code-card code-card-wide" data-testid="parse-record-history-original-sql">
+                <div class="code-card__header">
+                  <span>{{ isChinese ? '原始 SQL' : 'Original SQL' }}</span>
+                </div>
+                <pre class="code-block" data-testid="parse-record-history-original-sql-text">{{ selectedHistoryDetail.sqlText || '-' }}</pre>
+              </article>
+
+              <div class="result-banner" :class="resultBannerClass(historyParseStatus)">
+                <strong data-testid="parse-record-history-parse-status">{{ historyParseStatus || '-' }}</strong>
+                <span>{{ historyParseTaskId || selectedHistoryDetail.historyId }}</span>
+              </div>
+
+              <div class="result-overview-card" data-testid="parse-record-history-parse-statistics">
+                <div class="parse-card__header">
+                  <div>
+                    <p class="section-kicker sqlforge-code-label">parse result</p>
+                    <h3 class="detail-title">{{ isChinese ? '解析结果与统计' : 'Parse result and statistics' }}</h3>
+                  </div>
+                </div>
+                <div v-if="historyParseSummaryCards.length" class="summary-chip-row">
+                  <span v-for="item in historyParseSummaryCards" :key="item.label" class="summary-chip">
+                    {{ item.label }}: <strong>{{ displayValue(item.value) }}</strong>
+                  </span>
+                </div>
+                <div v-if="historyParseStatisticCards.length" class="detail-grid detail-grid-secondary">
+                  <div v-for="item in historyParseStatisticCards" :key="item.label" class="detail-grid__item">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ displayValue(item.value) }}</strong>
+                  </div>
+                </div>
+                <p v-if="historyResultSummary.summary" class="result-copy">{{ historyResultSummary.summary }}</p>
+                <p v-if="historyResultSummary.recommendedAction" class="result-copy result-copy-muted">
+                  {{ historyResultSummary.recommendedAction }}
+                </p>
+              </div>
+
+              <div
+                v-if="!historyStructureHighlights.length && !historyAccessHighlights.length"
+                class="empty-copy"
+                data-testid="parse-record-history-parse-detail-empty"
+              >
+                {{ isChinese ? '当前记录没有结构化解析详情，只能查看原始证据。' : 'This record has no structured parse detail; raw evidence is still available.' }}
+              </div>
+
+              <div class="parse-card-grid">
+                <article v-if="historyStructureHighlights.length" class="parse-card" data-testid="parse-record-history-structure-card">
+                  <div class="parse-card__header">
+                    <div>
+                      <p class="section-kicker sqlforge-code-label">structure parse</p>
+                      <h3 class="detail-title">{{ isChinese ? '结构解析卡' : 'Structure parse card' }}</h3>
+                    </div>
+                    <span class="pill" :class="statusClass(historyStructureParse.syntaxStatus || historyParseStatus)">
+                      {{ historyStructureParse.syntaxStatus || '-' }}
+                    </span>
+                  </div>
+
+                  <div class="highlight-grid">
+                    <div
+                      v-for="item in historyStructureHighlights"
+                      :key="item.key"
+                      class="highlight-chip"
+                      :class="resultValueClass(item)"
+                    >
+                      <span>{{ item.label }}</span>
+                      <strong>{{ displayValue(item.value) }}</strong>
+                    </div>
+                  </div>
+
+                  <div v-if="historyStructureIntentLabels.length" class="mini-section">
+                    <span class="summary-card-label">{{ isChinese ? '查询意图标签' : 'Query intent labels' }}</span>
+                    <div class="pill-grid">
+                      <span
+                        v-for="item in historyStructureIntentLabels"
+                        :key="`history-intent-${item}`"
+                        class="summary-chip summary-chip-success"
+                      >
+                        {{ item }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div v-if="historyStructureFeatureHighlights.length" class="mini-section">
+                    <span class="summary-card-label">{{ isChinese ? '多维特征' : 'Feature dimensions' }}</span>
+                    <div class="highlight-grid highlight-grid-compact">
+                      <div
+                        v-for="item in historyStructureFeatureHighlights"
+                        :key="item.key"
+                        class="highlight-chip"
+                        :class="resultValueClass(item)"
+                      >
+                        <span>{{ item.label }}</span>
+                        <strong>{{ displayValue(item.value) }}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-if="historyStructureResourceHighlights.length" class="mini-section">
+                    <span class="summary-card-label">{{ isChinese ? '预估资源消耗' : 'Estimated resource cost' }}</span>
+                    <div class="summary-chip-row">
+                      <span
+                        v-for="item in historyStructureResourceHighlights"
+                        :key="`history-resource-${item.key}`"
+                        class="summary-chip"
+                      >
+                        {{ item.label }}: <strong>{{ displayValue(item.value) }}</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="mini-section">
+                    <span class="summary-card-label">{{ isChinese ? '查询日期摘要' : 'Query-date summary' }}</span>
+                    <div class="summary-chip-row">
+                      <span class="summary-chip">
+                        {{ isChinese ? '起点' : 'Start' }}:
+                        <strong>{{ displayValue(historyStructureParse.queryDateSummary?.queryDateStart || selectedHistoryDetail.queryDateSummary?.queryDateStart) }}</strong>
+                      </span>
+                      <span class="summary-chip">
+                        {{ isChinese ? '终点' : 'End' }}:
+                        <strong>{{ displayValue(historyStructureParse.queryDateSummary?.queryDateEnd || selectedHistoryDetail.queryDateSummary?.queryDateEnd) }}</strong>
+                      </span>
+                      <span class="summary-chip">
+                        {{ isChinese ? '状态' : 'Status' }}:
+                        <strong>{{ displayValue(historyStructureParse.queryDateSummary?.queryDateStatus || selectedHistoryDetail.queryDateSummary?.queryDateStatus) }}</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div v-if="historyLogicalObjectHits.length" class="mini-section">
+                    <span class="summary-card-label">{{ isChinese ? '逻辑对象命中' : 'Logical object hits' }}</span>
+                    <div class="pill-grid">
+                      <span
+                        v-for="(item, index) in historyLogicalObjectHits"
+                        :key="`${item.objectKey || item.logicalObjectKey || item.objectName || index}`"
+                        class="summary-chip"
+                      >
+                        {{ item.objectType || item.logicalObjectType || 'OBJECT' }}:
+                        <strong>{{ item.objectKey || item.logicalObjectKey || item.objectName || '-' }}</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="normalizeArray(historyStructureParse.riskTags).length || normalizeArray(historyStructureParse.rewriteCandidates).length"
+                    class="mini-section"
+                  >
+                    <span class="summary-card-label">{{ isChinese ? '风险标签 / 改写候选' : 'Risk tags / rewrite candidates' }}</span>
+                    <div class="pill-grid">
+                      <span
+                        v-for="item in normalizeArray(historyStructureParse.riskTags)"
+                        :key="`history-risk-${item}`"
+                        class="summary-chip summary-chip-warning"
+                      >
+                        {{ item }}
+                      </span>
+                      <span
+                        v-for="item in normalizeArray(historyStructureParse.rewriteCandidates)"
+                        :key="`history-candidate-${item}`"
+                        class="summary-chip summary-chip-success"
+                      >
+                        {{ item }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div v-if="historyStructureRiskChecklist.length" class="issue-list issue-list-compact">
+                    <article
+                      v-for="(risk, index) in historyStructureRiskChecklist"
+                      :key="`${risk.riskCode || 'risk'}-${index}`"
+                      class="issue-card"
+                      data-testid="parse-record-history-risk"
+                    >
+                      <div class="issue-card__header">
+                        <strong>{{ risk.riskCode || '-' }}</strong>
+                        <span>{{ risk.severity || '-' }}</span>
+                      </div>
+                      <p class="issue-card__summary">{{ displayDetailValue(risk.summary) }}</p>
+                      <p class="issue-card__detail">{{ displayDetailValue(risk.evidence) }}</p>
+                      <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(risk.suggestedAction) }}</p>
+                    </article>
+                  </div>
+
+                  <div v-if="historyStructureIssues.length" class="issue-list">
+                    <article
+                      v-for="(issue, index) in historyStructureIssues"
+                      :key="`${issue.issueCode || 'issue'}-${index}`"
+                      class="issue-card"
+                      data-testid="parse-record-history-issue"
+                    >
+                      <div class="issue-card__header">
+                        <strong>{{ issue.issueCode || '-' }}</strong>
+                        <span>{{ displayValue(firstValue(issue.severity, issue.priorityLevel)) }}</span>
+                      </div>
+                      <p class="issue-card__summary">{{ displayDetailValue(issue.summary) }}</p>
+                      <p class="issue-card__detail">{{ displayDetailValue(issue.detail) }}</p>
+                      <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(issue.suggestedAction) }}</p>
+                    </article>
+                  </div>
+                </article>
+
+                <article v-if="historyAccessHighlights.length" class="parse-card" data-testid="parse-record-history-access-card">
+                  <div class="parse-card__header">
+                    <div>
+                      <p class="section-kicker sqlforge-code-label">access parse</p>
+                      <h3 class="detail-title">{{ isChinese ? 'Access Parse 卡' : 'Access parse card' }}</h3>
+                    </div>
+                    <span
+                      class="pill"
+                      :class="statusClass(historyAccessParse.serviceStatus === 'AVAILABLE' && historyAccessParse.connectionStatus === 'CONNECTED' ? 'SUCCESS' : historyAccessParse.serviceStatus)"
+                    >
+                      {{ historyAccessParse.serviceStatus || '-' }}
+                    </span>
+                  </div>
+
+                  <div class="highlight-grid">
+                    <div
+                      v-for="item in historyAccessHighlights"
+                      :key="item.key"
+                      class="highlight-chip"
+                      :class="resultValueClass(item)"
+                    >
+                      <span>{{ item.label }}</span>
+                      <strong>{{ displayValue(item.value) }}</strong>
+                    </div>
+                  </div>
+
+                  <div v-if="historyAccessParse.planSummary" class="mini-section">
+                    <span class="summary-card-label">{{ isChinese ? 'Plan Summary' : 'Plan summary' }}</span>
+                    <p class="result-copy">{{ historyAccessParse.planSummary }}</p>
+                  </div>
+
+                  <div v-if="historyAccessParse.availabilityWarning" class="mini-section">
+                    <span class="summary-card-label">{{ isChinese ? '可用性告警' : 'Availability warning' }}</span>
+                    <p class="result-copy result-copy-muted">{{ historyAccessParse.availabilityWarning }}</p>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </el-tab-pane>
+
           <el-tab-pane :label="isChinese ? '关联历史' : 'Linked query histories'" name="histories">
             <p class="tab-copy">query history detail</p>
             <p class="tab-copy">SQL tri-state, parse signals, and related forensics</p>
@@ -1431,6 +1869,15 @@ onMounted(async () => {
   gap: 16px;
 }
 
+.history-result-panel,
+.parse-card,
+.result-overview-card,
+.mini-section,
+.issue-list {
+  display: grid;
+  gap: 14px;
+}
+
 .banner-row {
   display: flex;
   align-items: center;
@@ -1468,8 +1915,34 @@ onMounted(async () => {
   gap: 12px;
 }
 
+.parse-card-grid,
+.highlight-grid,
+.pill-grid,
+.summary-chip-row {
+  display: grid;
+  gap: 12px;
+}
+
+.parse-card-grid {
+  grid-template-columns: 1fr;
+}
+
+.highlight-grid {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.pill-grid,
+.summary-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+}
+
 .code-card {
   padding: 14px;
+}
+
+.code-card-wide {
+  grid-column: 1 / -1;
 }
 
 .code-card__header {
@@ -1504,6 +1977,106 @@ onMounted(async () => {
 .pill-danger {
   background: rgba(248, 113, 113, 0.12);
   color: #fecaca;
+}
+
+.summary-chip,
+.highlight-chip,
+.issue-card,
+.parse-card,
+.result-overview-card {
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 18px;
+  background: rgba(20, 24, 31, 0.72);
+}
+
+.summary-chip {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.summary-chip-warning {
+  background: rgba(251, 191, 36, 0.18);
+}
+
+.summary-chip-success {
+  background: rgba(16, 185, 129, 0.18);
+}
+
+.highlight-chip,
+.issue-card,
+.parse-card,
+.result-overview-card {
+  padding: 14px;
+}
+
+.highlight-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.highlight-chip span,
+.issue-card__detail {
+  color: var(--sqlforge-text-secondary);
+}
+
+.highlight-chip-danger {
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(239, 68, 68, 0.14);
+}
+
+.highlight-chip-danger strong {
+  color: #fca5a5;
+}
+
+.highlight-chip-warning {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.parse-card__header,
+.issue-card__header,
+.result-banner {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.issue-card__summary,
+.issue-card__detail,
+.result-copy {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.result-copy-muted {
+  color: var(--sqlforge-text-secondary);
+}
+
+.result-banner {
+  border: 1px solid transparent;
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+
+.result-banner-success {
+  background: rgba(16, 185, 129, 0.14);
+  color: #86efac;
+}
+
+.result-banner-warning {
+  background: rgba(251, 191, 36, 0.16);
+  color: #fde68a;
+}
+
+.result-banner-danger {
+  background: rgba(239, 68, 68, 0.14);
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.35);
 }
 
 @media (max-width: 1280px) {

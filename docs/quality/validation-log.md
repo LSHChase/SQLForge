@@ -2161,3 +2161,24 @@
 2026-04-29T21:39:14-05:00 | OPS-LOCAL-004 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-04-29T21:39:14-05:00 | OPS-LOCAL-004 closeout commit | `R-168` | projected | `git commit -m 'chore(ops): restart local frontend and backend' (projected-precommit)`
 2026-04-29T21:39:14-05:00 | OPS-LOCAL-004 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-29T21:55:02-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-29T21:55:02-05:00 | HARN-059 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-29T21:55:18-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-29T21:55:18-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-29T21:55:18-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `node scripts/check-history-detail-contract.mjs`
+2026-04-29T21:55:18-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `node scripts/check-history-page-contract.mjs`
+2026-04-29T21:55:18-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `node scripts/check-parse-workbench-contract.mjs`
+2026-04-29T21:55:19-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-04-29T21:55:23-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-04-29T21:56:12-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-29T21:56:12-05:00 | HARN-059 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-29T21:56:25-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-29T21:56:25-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-29T21:56:25-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `node scripts/check-history-detail-contract.mjs`
+2026-04-29T21:56:25-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `node scripts/check-history-page-contract.mjs`
+2026-04-29T21:56:25-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `node scripts/check-parse-workbench-contract.mjs`
+2026-04-29T21:56:26-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-04-29T21:56:30-05:00 | HARN-059 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-04-29T21:57:11-05:00 | HARN-059 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-29T21:57:11-05:00 | HARN-059 closeout commit | `R-168` | projected | `git commit -m 'fix(frontend): enrich parse history detail' (projected-precommit)`
+2026-04-29T21:57:11-05:00 | HARN-059 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
