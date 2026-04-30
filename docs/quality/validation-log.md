@@ -2156,3 +2156,8 @@
 2026-04-29T21:37:35-05:00 | HARN-058 closeout commit | `R-168` | projected | `git commit -m 'fix(governance): repair parse history traceability' (projected-precommit)`
 2026-04-29T21:37:35-05:00 | HARN-058 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-04-29T21:37:35-05:00 | HARN-058 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-04-29T21:39:07-05:00 | OPS-LOCAL-004 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-29T21:39:07-05:00 | OPS-LOCAL-004 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-29T21:39:14-05:00 | OPS-LOCAL-004 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-29T21:39:14-05:00 | OPS-LOCAL-004 closeout commit | `R-168` | projected | `git commit -m 'chore(ops): restart local frontend and backend' (projected-precommit)`
+2026-04-29T21:39:14-05:00 | OPS-LOCAL-004 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
