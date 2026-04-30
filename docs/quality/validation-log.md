@@ -2182,3 +2182,15 @@
 2026-04-29T21:57:11-05:00 | HARN-059 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-04-29T21:57:11-05:00 | HARN-059 closeout commit | `R-168` | projected | `git commit -m 'fix(frontend): enrich parse history detail' (projected-precommit)`
 2026-04-29T21:57:11-05:00 | HARN-059 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-29T22:04:07-05:00 | HARN-060 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-29T22:04:07-05:00 | HARN-060 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-29T22:04:23-05:00 | HARN-060 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-29T22:04:23-05:00 | HARN-060 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-29T22:04:23-05:00 | HARN-060 validate | `R-133`, `R-168` | passed | `node scripts/check-history-page-contract.mjs`
+2026-04-29T22:04:23-05:00 | HARN-060 validate | `R-133`, `R-168` | passed | `node scripts/check-history-detail-contract.mjs`
+2026-04-29T22:04:23-05:00 | HARN-060 validate | `R-133`, `R-168` | passed | `node scripts/check-batch-import-contract.mjs`
+2026-04-29T22:04:24-05:00 | HARN-060 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-04-29T22:04:27-05:00 | HARN-060 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-04-29T22:04:49-05:00 | HARN-060 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-29T22:04:49-05:00 | HARN-060 closeout commit | `R-168` | projected | `git commit -m 'fix(frontend): hydrate report import parse details' (projected-precommit)`
+2026-04-29T22:04:49-05:00 | HARN-060 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

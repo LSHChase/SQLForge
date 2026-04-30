@@ -4,6 +4,26 @@
 
 ## Done
 
+### HARN-060: 补齐报表导入解析历史 SQL 明细
+
+- Status: done
+- Completed at: 2026-04-29
+- Commit subject: `fix(frontend): hydrate report import parse details`
+- Priority: 1
+- Depends on: HARN-059
+- Scope: 修复解析历史页中报表导入批次详情只展示简略 SQL 明细的问题；报表导入每个报表、每条解析 SQL 都应展示参考 SQL 解析页面的解析统计、结构解析、Access Parse、风险/问题与原始 SQL 信息，不改变核心 parser 算法、权限边界或历史保留策略。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-060`
+- Progress log:
+  - 2026-04-29: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-29: added report-import SQL detail hydration in parse history by resolving each report item parseTaskId to its governance parse-history detail.
+  - 2026-04-29: expanded the report-import drawer to show per-report/per-SQL parse statistics, structure parse, Access Parse, risks, issues, and original SQL evidence.
+- Context closeout:
+  - Completed scope: 修复解析历史页报表导入批次详情：打开报表导入抽屉时按每个 report item 的 parseTaskId 回查治理解析历史详情，并在每个报表/SQL 卡片内展示原始 SQL、解析统计、结构解析、Access Parse、风险与问题清单，同时保留完整解析历史跳转。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-060 --extra-command node/scripts/check-history-page-contract.mjs --extra-command node/scripts/check-history-detail-contract.mjs --extra-command node/scripts/check-batch-import-contract.mjs --extra-command npm-run-lint --extra-command npm-run-build; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 未连接真实外部 Hetu/MRS 环境做浏览器端到端验收；当前覆盖为前端 contract、lint、生产构建与治理审计。若某条 SQL 的 parseTaskId 没有写入 governance query_history，页面会显示详情缺失提示。
+  - Next step: 在实机验收时执行报表导入解析后从解析历史页打开该报表批次，确认每个报表 SQL 的 Loaded details 计数与 parseTaskId 数量一致。
+
 ### HARN-059: 修复解析历史详情展示解析结果与原始SQL
 
 - Status: done
