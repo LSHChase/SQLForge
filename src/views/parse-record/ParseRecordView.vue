@@ -20,8 +20,11 @@ const { locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
+const DEFAULT_HISTORY_CONTEXT_TENANT_ID = 'tenant-a'
+const normalizeQueryValue = value => String(value || '').trim()
+
 const form = reactive({
-  tenantId: 'tenant-a',
+  tenantId: '',
   reportCode: '',
   datasourceCode: '',
   stage: '',
@@ -37,8 +40,8 @@ const form = reactive({
   rewriteApplied: '',
   accelerationApplied: '',
   parameterizedSql: '',
-  sortBy: 'submittedAt',
-  sortOrder: 'DESC',
+  sortBy: '',
+  sortOrder: '',
   submittedStart: '',
   submittedEnd: '',
   traceId: '',
@@ -78,8 +81,19 @@ const rows = computed(() => page.value?.items || [])
 const parseBatchHistoryRows = ref([])
 const reportBatchHistoryRows = ref([])
 const isChinese = computed(() => locale.value === 'zh-CN')
+const routeTenantId = computed(() => normalizeQueryValue(route.query.tenantId))
+const requestTenantId = computed(() => normalizeQueryValue(form.tenantId) || routeTenantId.value || DEFAULT_HISTORY_CONTEXT_TENANT_ID)
 const tenantOptions = computed(() => buildTenantOptions(form.tenantId, rows.value))
 const classificationSummary = computed(() => page.value?.classificationSummary || {})
+const sortModeLabel = computed(() => {
+  const sortBy = normalizeQueryValue(form.sortBy)
+  const sortOrder = normalizeQueryValue(form.sortOrder)
+  if (!sortBy && !sortOrder) {
+    return isChinese.value ? '后端默认' : 'Backend default'
+  }
+  return `${sortBy || 'submittedAt'} ${sortOrder || 'DESC'}`
+})
+const card = (label, value) => ({ label, value })
 const parseBatchHistorySummary = computed(() => {
   const totalRecords = parseBatchHistoryRows.value.reduce((sum, item) => sum + Number(item.totalRecords || 0), 0)
   const failedBatches = parseBatchHistoryRows.value.filter(item => String(item.status || '').includes('FAILED')).length
@@ -180,7 +194,7 @@ const hasLookupCriteria = computed(() =>
 const loadDatasourceOptions = async () => {
   datasourceOptionsLoadFailed.value = false
   try {
-    const nextDatasources = await getGovernanceDatasources(form.tenantId, {
+    const nextDatasources = await getGovernanceDatasources(requestTenantId.value, {
       requestPrefix: 'frontend-parse-record-datasource-options'
     })
     datasourceOptions.value = buildDatasourceOptions(nextDatasources)
@@ -206,7 +220,8 @@ const loadPage = async () => {
   try {
     page.value = await getGovernanceQueryHistoryPage(
       {
-        tenantId: form.tenantId,
+        tenantId: normalizeQueryValue(form.tenantId),
+        requestTenantId: requestTenantId.value,
         reportCode: form.reportCode,
         datasourceCode: form.datasourceCode,
         stage: form.stage,
@@ -244,15 +259,11 @@ const loadPage = async () => {
 const loadBatchHistories = async () => {
   batchHistoryErrorMessage.value = ''
   const [parseResult, reportResult] = await Promise.allSettled([
-    listParseBatches(form.tenantId),
-    listReportBatches(form.tenantId)
+    listParseBatches(requestTenantId.value),
+    listReportBatches(requestTenantId.value)
   ])
-  if (parseResult.status === 'fulfilled') {
-    parseBatchHistoryRows.value = Array.isArray(parseResult.value) ? parseResult.value : []
-  }
-  if (reportResult.status === 'fulfilled') {
-    reportBatchHistoryRows.value = Array.isArray(reportResult.value) ? reportResult.value : []
-  }
+  parseBatchHistoryRows.value = parseResult.status === 'fulfilled' && Array.isArray(parseResult.value) ? parseResult.value : []
+  reportBatchHistoryRows.value = reportResult.status === 'fulfilled' && Array.isArray(reportResult.value) ? reportResult.value : []
   if (parseResult.status === 'rejected') {
     batchHistoryErrorMessage.value = formatRuntimeError(parseResult.reason)
   }
@@ -274,7 +285,7 @@ const openHistoryDetail = async (historyId, preloadedTraceDetail = null) => {
   activeDialogTab.value = 'overview'
   selectedHistoryId.value = historyId
   try {
-    const detail = await getGovernanceQueryHistoryDetail(form.tenantId, historyId, {
+    const detail = await getGovernanceQueryHistoryDetail(requestTenantId.value, historyId, {
       requestPrefix: 'frontend-parse-record-query-history-detail'
     })
     if (preloadedTraceDetail && !detail.traceDetail) {
@@ -301,7 +312,7 @@ const runIndexedLookup = async () => {
   errorMessage.value = ''
   try {
     const lookupPage = await lookupGovernanceTraces(
-      form.tenantId,
+      requestTenantId.value,
       {
         traceId: form.traceId,
         taskId: form.taskId,
@@ -317,7 +328,7 @@ const runIndexedLookup = async () => {
       errorMessage.value = isChinese.value ? '没有命中记录。' : 'No history matched the lookup criteria.'
       return
     }
-    const traceDetail = await getGovernanceTraceDetail(form.tenantId, firstTraceId, 20, {
+    const traceDetail = await getGovernanceTraceDetail(requestTenantId.value, firstTraceId, 20, {
       requestPrefix: 'frontend-parse-record-trace-detail'
     })
     const firstHistoryId = traceDetail?.queryHistories?.[0]?.historyId
@@ -334,6 +345,7 @@ const runIndexedLookup = async () => {
 }
 
 const clearFilters = async () => {
+  form.tenantId = ''
   form.reportCode = ''
   form.datasourceCode = ''
   form.stage = ''
@@ -350,8 +362,8 @@ const clearFilters = async () => {
   form.rewriteApplied = ''
   form.accelerationApplied = ''
   form.parameterizedSql = ''
-  form.sortBy = 'submittedAt'
-  form.sortOrder = 'DESC'
+  form.sortBy = ''
+  form.sortOrder = ''
   form.submittedStart = ''
   form.submittedEnd = ''
   submittedAtRange.value = []
@@ -377,7 +389,7 @@ const runExport = async () => {
   errorMessage.value = ''
   try {
     exportResult.value = await exportGovernanceQueryHistory(
-      form.tenantId,
+      requestTenantId.value,
       {
         historyId: selectedHistoryDetail.value.historyId,
         exportFormat: exportForm.exportFormat,
@@ -403,7 +415,7 @@ const openRepairEvidence = () => {
   router.push({
     path: ROUTE_PATHS.repairEvidence,
     query: {
-      tenantId: form.tenantId,
+      tenantId: requestTenantId.value,
       traceId: selectedHistoryDetail.value.traceId || '',
       reportId: selectedHistoryDetail.value.reportId || ''
     }
@@ -417,7 +429,7 @@ const openAuditForensics = () => {
   router.push({
     path: ROUTE_PATHS.auditForensics,
     query: {
-      tenantId: form.tenantId,
+      tenantId: requestTenantId.value,
       traceId: selectedHistoryDetail.value.traceId || '',
       reportId: selectedHistoryDetail.value.reportId || ''
     }
@@ -431,7 +443,7 @@ const openParseBatchCenter = batchId => {
   router.push({
     path: ROUTE_PATHS.parseBatchCenter,
     query: {
-      tenantId: form.tenantId,
+      tenantId: requestTenantId.value,
       kind: 'parse',
       batchId
     }
@@ -445,7 +457,7 @@ const openReportBatchCenter = batchId => {
   router.push({
     path: ROUTE_PATHS.parseBatchCenter,
     query: {
-      tenantId: form.tenantId,
+      tenantId: requestTenantId.value,
       kind: 'report',
       batchId
     }
@@ -520,9 +532,6 @@ const isNonEmpty = value => {
 const formatJson = value => JSON.stringify(value, null, 2)
 
 onMounted(async () => {
-  if (hasDisplayValue(route.query.tenantId)) {
-    form.tenantId = String(route.query.tenantId)
-  }
   if (hasDisplayValue(route.query.traceId)) {
     form.traceId = String(route.query.traceId)
   }
@@ -565,7 +574,15 @@ onMounted(async () => {
       <div class="field-grid">
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
-          <el-select v-model="form.tenantId" filterable allow-create default-first-option data-testid="parse-record-tenant-select">
+          <el-select
+            v-model="form.tenantId"
+            filterable
+            allow-create
+            clearable
+            default-first-option
+            :placeholder="isChinese ? '空条件，使用当前上下文租户' : 'Empty filter, use current context tenant'"
+            data-testid="parse-record-tenant-select"
+          >
             <el-option
               v-for="item in withCurrentOption(tenantOptions, form.tenantId)"
               :key="item.value"
@@ -647,7 +664,7 @@ onMounted(async () => {
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '目标引擎' : 'Target engine' }}</span>
-          <el-select v-model="form.engine" data-testid="parse-record-sort-select">
+          <el-select v-model="form.engine" data-testid="parse-record-engine-filter">
             <el-option label="ALL" value="" />
             <el-option label="HETU" value="HETU" />
             <el-option label="HIVE" value="HIVE" />
@@ -705,16 +722,19 @@ onMounted(async () => {
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '排序字段' : 'Sort by' }}</span>
-          <el-select v-model="form.sortBy">
+          <el-select v-model="form.sortBy" clearable data-testid="parse-record-sort-select">
+            <el-option :label="isChinese ? '默认' : 'Default'" value="" />
             <el-option label="submittedAt" value="submittedAt" />
-            <el-option label="reportCode" value="reportCode" />
-            <el-option label="datasourceCode" value="datasourceCode" />
-            <el-option label="targetEngine" value="targetEngine" />
+            <el-option label="createTime" value="createTime" />
+            <el-option label="finishedAt" value="finishedAt" />
+            <el-option label="status" value="status" />
+            <el-option label="rowCount" value="rowCount" />
           </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '排序方向' : 'Sort order' }}</span>
-          <el-select v-model="form.sortOrder">
+          <el-select v-model="form.sortOrder" clearable>
+            <el-option :label="isChinese ? '默认' : 'Default'" value="" />
             <el-option label="DESC" value="DESC" />
             <el-option label="ASC" value="ASC" />
           </el-select>
@@ -735,7 +755,7 @@ onMounted(async () => {
 
       <div class="chip-row">
         <span class="chip">{{ isChinese ? 'History classification' : 'History classification' }}</span>
-        <span class="chip">{{ isChinese ? 'Sort mode' : 'Sort mode' }}: {{ form.sortBy }} {{ form.sortOrder }}</span>
+        <span class="chip">{{ isChinese ? 'Sort mode' : 'Sort mode' }}: {{ sortModeLabel }}</span>
         <span class="chip" data-testid="parse-record-page-mode">{{ hasLookupCriteria ? 'INDEXED' : 'PAGE' }}</span>
         <span v-if="datasourceOptionsLoadFailed" class="chip chip-warning" data-testid="parse-record-datasource-options-fallback">
           {{ isChinese ? '数据源候选加载失败，保留手动输入' : 'Datasource options unavailable; manual value allowed' }}

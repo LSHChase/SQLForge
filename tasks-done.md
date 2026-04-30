@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-057: 修复解析历史默认查询与刷新
+
+- Status: done
+- Completed at: 2026-04-29
+- Commit subject: `fix(frontend): repair parse history refresh defaults`
+- Priority: 1
+- Depends on: HARN-056
+- Scope: 修复解析历史页默认查询条件非空和刷新失败问题，分离页面筛选条件与请求上下文租户，补齐批量历史刷新、测试与文档。
+- Validation:
+  - `node scripts/check-history-page-contract.mjs`
+  - `npm run build`
+  - `python3 scripts/foreman.py validate HARN-057`
+  - `python3 scripts/task_audit.py --check --phase pre-closeout`
+- Progress log:
+  - 2026-04-29: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-04-29: captured raw requirement and active execution plan for parse-history default-empty filters and refresh repair.
+  - 2026-04-29: separated parse-history visible tenant filter from request context tenant, reset tenant/sort defaults to empty, and hardened batch history refresh.
+  - 2026-04-29: validation passed with node scripts/check-history-page-contract.mjs, npm run test:form-governance, npm run lint, npm run build, node scripts/lint-repository-knowledge.js, and python3 scripts/foreman.py validate HARN-057.
+- Context closeout:
+  - Completed scope: 修复解析历史页默认筛选与刷新：可见 tenantId、sortBy、sortOrder 默认保持空值；query-history page API 区分筛选租户与请求上下文租户；批量解析与报表导入历史刷新使用有效上下文租户；补齐历史页静态契约检查、表单治理文档和 HARN-057 执行追溯。
+  - Validation evidence: node scripts/check-history-page-contract.mjs; npm run test:form-governance; npm run lint; npm run build; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py validate HARN-057; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 未运行真实后端浏览器 smoke；本任务未改后端持久化逻辑，验证覆盖前端构建、lint、静态契约和治理链路。
+  - Next step: 如目标环境仍显示空列表，优先核对当前请求上下文租户下是否已有 query_history、parse_batch 或 report_batch 数据。
+
 ### OPS-LOCAL-002: 重新启动前后端服务
 
 - Status: done

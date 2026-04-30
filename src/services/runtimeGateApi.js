@@ -18,6 +18,12 @@ const httpClient = axios.create({
 const sleep = delayMs => new Promise(resolve => window.setTimeout(resolve, delayMs))
 
 const trimCorrelationId = value => String(value || '').slice(0, MAX_CORRELATION_ID_LENGTH)
+const normalizeTenantId = tenantId => String(tenantId || '').trim()
+
+const buildTenantQuerySuffix = tenantId => {
+  const normalizedTenantId = normalizeTenantId(tenantId)
+  return normalizedTenantId ? `?tenantId=${encodeURIComponent(normalizedTenantId)}` : ''
+}
 
 const devProxyHeaders = (tenantId, options = {}) => {
   const {
@@ -315,8 +321,8 @@ export const getGovernanceTraceDetail = (tenantId, traceId, limit = 20, requestO
 export const getGovernanceQueryHistoryDetail = (tenantId, historyId, requestOptions = {}) =>
   request({
     method: 'get',
-    url: `/api/governance/query-history/${encodeURIComponent(historyId)}?tenantId=${encodeURIComponent(tenantId)}`,
-    tenantId,
+    url: `/api/governance/query-history/${encodeURIComponent(historyId)}${buildTenantQuerySuffix(tenantId)}`,
+    tenantId: normalizeTenantId(tenantId),
     requestOptions: {
       requestPrefix: 'frontend-governance-query-history-detail',
       ...requestOptions
@@ -326,9 +332,9 @@ export const getGovernanceQueryHistoryDetail = (tenantId, historyId, requestOpti
 export const exportGovernanceQueryHistory = (tenantId, payload, requestOptions = {}) =>
   request({
     method: 'post',
-    url: `/api/governance/query-history/export?tenantId=${encodeURIComponent(tenantId)}`,
+    url: `/api/governance/query-history/export${buildTenantQuerySuffix(tenantId)}`,
     data: payload,
-    tenantId,
+    tenantId: normalizeTenantId(tenantId),
     requestOptions: {
       requestPrefix: 'frontend-governance-query-history-export',
       ...requestOptions
@@ -337,10 +343,13 @@ export const exportGovernanceQueryHistory = (tenantId, payload, requestOptions =
 
 export const getGovernanceQueryHistoryPage = (filters = {}, requestOptions = {}) => {
   const params = new URLSearchParams()
-  const tenantId = String(filters.tenantId || '').trim()
+  const filterTenantId = normalizeTenantId(filters.tenantId)
+  const requestTenantId = normalizeTenantId(filters.requestTenantId) || filterTenantId
   const pageNo = Number(filters.pageNo || 1)
   const pageSize = Number(filters.pageSize || 8)
-  params.set('tenantId', tenantId)
+  if (filterTenantId) {
+    params.set('tenantId', filterTenantId)
+  }
   params.set('pageNo', String(pageNo))
   params.set('pageSize', String(pageSize))
   ;[
@@ -374,7 +383,7 @@ export const getGovernanceQueryHistoryPage = (filters = {}, requestOptions = {})
   return request({
     method: 'get',
     url: `/api/governance/query-history?${params.toString()}`,
-    tenantId,
+    tenantId: requestTenantId,
     requestOptions: {
       requestPrefix: 'frontend-governance-query-history-page',
       ...requestOptions
@@ -476,8 +485,8 @@ export const createParseBatch = (payload, requestOptions = {}) =>
 export const listParseBatches = (tenantId, requestOptions = {}) =>
   request({
     method: 'get',
-    url: `/api/sql-optimization/parse-batches?tenantId=${encodeURIComponent(tenantId)}`,
-    tenantId,
+    url: `/api/sql-optimization/parse-batches${buildTenantQuerySuffix(tenantId)}`,
+    tenantId: normalizeTenantId(tenantId),
     requestOptions: {
       requestPrefix: 'frontend-parse-batch-list',
       ...requestOptions
@@ -522,8 +531,8 @@ export const retryParseBatchAccess = (batchId, tenantId, payload = {}, requestOp
 export const listReportBatches = (tenantId, requestOptions = {}) =>
   request({
     method: 'get',
-    url: `/api/sql-optimization/report-batches?tenantId=${encodeURIComponent(tenantId)}`,
-    tenantId,
+    url: `/api/sql-optimization/report-batches${buildTenantQuerySuffix(tenantId)}`,
+    tenantId: normalizeTenantId(tenantId),
     requestOptions: {
       requestPrefix: 'frontend-report-batch-list',
       ...requestOptions

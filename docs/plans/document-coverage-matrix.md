@@ -137,6 +137,8 @@
 
 | `docs/exec-plans/completed/HARN-056-parse-history-and-batch-center-plan.md` | Indexed | HARN-056 SQL 解析历史与批量解析中心重构执行计划 | Consumed | 约束 HARN-056 的 parse history 持久化、批量解析中心重构、自动文件类型识别、统计与历史展示边界 |
 | `docs/references/raw-requirements/generated/HARN-056-requirement.md` | Archive | HARN-056 raw requirement snapshot | Archived | 保存 HARN-056 原始需求输入，供 task-shaping 与后续审计追溯 |
+| `docs/exec-plans/completed/HARN-057-parse-history-refresh-plan.md` | Indexed | HARN-057 解析历史默认查询与刷新修复执行计划 | Consumed | 约束 HARN-057 的解析历史默认空筛选、请求上下文租户分离、批量历史刷新与验证边界 |
+| `docs/references/raw-requirements/generated/HARN-057-requirement.md` | Archive | HARN-057 raw requirement snapshot | Archived | 保存 HARN-057 用户复核优化输入，供解析历史刷新与默认查询条件修复追溯 |
 
 ## Completeness Statement
 

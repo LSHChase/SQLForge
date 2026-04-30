@@ -3,7 +3,14 @@ import path from 'node:path'
 
 const root = process.cwd()
 const viewPath = path.join(root, 'src/views/parse-record/ParseRecordView.vue')
+const apiPath = path.join(root, 'src/services/runtimeGateApi.js')
 const source = fs.readFileSync(viewPath, 'utf8')
+const apiSource = fs.readFileSync(apiPath, 'utf8')
+const pageApiStart = apiSource.indexOf('export const getGovernanceQueryHistoryPage')
+const pageApiEnd = apiSource.indexOf('export const getHetuRouteCalibration')
+const queryHistoryPageApiSource = pageApiStart >= 0 && pageApiEnd > pageApiStart
+  ? apiSource.slice(pageApiStart, pageApiEnd)
+  : ''
 
 const requiredTokens = [
   'data-testid="parse-record-page"',
@@ -25,15 +32,58 @@ const requiredTokens = [
   'query history workbench',
   'Export evidence',
   'Logical objects',
-  'Governance hits'
+  'Governance hits',
+  "tenantId: ''",
+  "sortBy: ''",
+  "sortOrder: ''",
+  'requestTenantId: requestTenantId.value',
+  'data-testid="parse-record-engine-filter"'
+]
+
+const requiredApiTokens = [
+  'const filterTenantId = normalizeTenantId(filters.tenantId)',
+  'const requestTenantId = normalizeTenantId(filters.requestTenantId) || filterTenantId',
+  'if (filterTenantId) {',
+  "params.set('tenantId', filterTenantId)",
+  'tenantId: requestTenantId'
+]
+
+const requiredSharedApiTokens = [
+  'buildTenantQuerySuffix'
+]
+
+const forbiddenViewTokens = [
+  "tenantId: 'tenant-a'",
+  "sortBy: 'submittedAt'",
+  "sortOrder: 'DESC'"
+]
+
+const forbiddenApiTokens = [
+  "params.set('tenantId', tenantId)"
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))
+const missingApi = requiredApiTokens.filter(token => !queryHistoryPageApiSource.includes(token))
+const missingSharedApi = requiredSharedApiTokens.filter(token => !apiSource.includes(token))
+const forbiddenView = forbiddenViewTokens.filter(token => source.includes(token))
+const forbiddenApi = forbiddenApiTokens.filter(token => queryHistoryPageApiSource.includes(token))
 
-if (missing.length > 0) {
+if (missing.length > 0 || missingApi.length > 0 || missingSharedApi.length > 0 || forbiddenView.length > 0 || forbiddenApi.length > 0) {
   console.error('History page contract check failed.')
   for (const token of missing) {
     console.error(`- missing token: ${token}`)
+  }
+  for (const token of missingApi) {
+    console.error(`- missing API token: ${token}`)
+  }
+  for (const token of missingSharedApi) {
+    console.error(`- missing shared API token: ${token}`)
+  }
+  for (const token of forbiddenView) {
+    console.error(`- forbidden default filter token in view: ${token}`)
+  }
+  for (const token of forbiddenApi) {
+    console.error(`- forbidden unconditional tenant query token in API: ${token}`)
   }
   process.exit(1)
 }

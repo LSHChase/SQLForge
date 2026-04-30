@@ -24,7 +24,7 @@
 | `SystemView` | timeout、pullWindowSeconds、maxBatchSize | `el-input-number` | 现有提交字段，提交前保持 `Number(...)` |
 | `SystemView` | enabled、readonly、tlsEnabled、verifyPeer、bypassOnUnavailable | `el-switch` | 现有布尔字段 |
 | `SystemView` | credentialSecret | password `el-input` | 仅提交临时 secret，不回显原始凭证 |
-| `ParseRecordView` | tenantId | `el-select filterable allow-create` | 默认租户、当前值、查询结果中的 `tenantId` |
+| `ParseRecordView` | tenantId | `el-select filterable allow-create clearable` | 页面查询条件默认空；空值表示不追加 `tenantId` 查询参数，由受保护请求上下文租户承载隔离边界 |
 | `ParseRecordView` | datasourceCode | `el-select filterable allow-create` | `getGovernanceDatasources(tenantId)`，失败时保留手动值 |
 | `ParseRecordView` | bizDate | `el-date-picker type="date"` | 单个业务日，现有 API 只有 `bizDate` 单字段 |
 | `ParseRecordView` | queryDateStart、queryDateEnd | `el-date-picker type="daterange"` | UI 选择日期区间，提交前拆回 `YYYY-MM-DD` 起止字段 |
@@ -41,3 +41,7 @@
 HARN-046 修正了 HARN-045 中把 `queryDateStart/queryDateEnd` 和 `submittedStart/submittedEnd` 拆成两个单点日期组件的问题。后续日期治理默认判断顺序为：已有 start/end 字段的筛选项先做区间；只有单字段且业务语义明确为某一天时才保留单点日期。
 
 HARN-045 / HARN-046 未改写无法从代码或文档确认语义的自由文本字段，例如 SQL 文本、报表编码、路径模板、JSONPath、schemaName、traceId、taskId 和 reportId。后续若需要把这些字段升级为搜索选择或关联资源组件，必须先确认候选值权威来源和权限过滤契约。
+
+## HARN-057 Parse History Defaults
+
+解析历史页的可见查询条件默认值必须保持为空，包括 `tenantId`、`sortBy` 和 `sortOrder`。页面仍可在空筛选状态下刷新列表，但前端必须把“查询条件租户”和“受保护请求上下文租户”分离：只有用户显式选择租户时才把 `tenantId` 放入 query param；未选择时由当前 route 上下文或开发默认上下文租户提供请求头，避免空租户导致受保护接口刷新失败。

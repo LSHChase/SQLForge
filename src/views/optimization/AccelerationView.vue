@@ -1704,7 +1704,7 @@ watch(
 
     <section class="surface-card analytics-shell" data-testid="statistics-page">
       <div class="shell-header">
-      <div>
+        <div>
           <p class="section-kicker sqlforge-code-label">sql parse statistics</p>
           <h2 class="section-title">{{ isChinese ? '解析结果统计' : 'Parse result statistics' }}</h2>
           <p class="runtime-note">
