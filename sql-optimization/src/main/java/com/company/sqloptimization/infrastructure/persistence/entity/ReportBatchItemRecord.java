@@ -13,6 +13,8 @@ public class ReportBatchItemRecord {
     private String stage;
     private String priority;
     private String sourceFileLine;
+    private String sqlColumnName;
+    private Integer sqlOrdinalInReport;
     private String sqlText;
     private String parseTaskId;
     private String structureSyntaxStatus;
@@ -43,6 +45,10 @@ public class ReportBatchItemRecord {
     public void setPriority(String priority) { this.priority = priority; }
     public String getSourceFileLine() { return sourceFileLine; }
     public void setSourceFileLine(String sourceFileLine) { this.sourceFileLine = sourceFileLine; }
+    public String getSqlColumnName() { return sqlColumnName; }
+    public void setSqlColumnName(String sqlColumnName) { this.sqlColumnName = sqlColumnName; }
+    public Integer getSqlOrdinalInReport() { return sqlOrdinalInReport; }
+    public void setSqlOrdinalInReport(Integer sqlOrdinalInReport) { this.sqlOrdinalInReport = sqlOrdinalInReport; }
     public String getSqlText() { return sqlText; }
     public void setSqlText(String sqlText) { this.sqlText = sqlText; }
     public String getParseTaskId() { return parseTaskId; }

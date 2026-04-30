@@ -56,13 +56,19 @@ class ParseBatchPersistenceSchemaMappingTest {
         assertContains(schema, "report_code_field VARCHAR(128) NOT NULL");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_item");
         assertContains(schema, "source_file_line VARCHAR(512)");
+        assertContains(schema, "sql_column_name VARCHAR(128)");
+        assertContains(schema, "sql_ordinal_in_report INT");
         String migration = readRepositoryFile("sql/migrations/V20260426_006__report_batch_catalog.sql");
         assertContains(migration, "CREATE TABLE IF NOT EXISTS report_batch");
         assertContains(migration, "report_batch_item");
+        String wideSqlMigration = readRepositoryFile("sql/migrations/V20260429_001__report_batch_wide_sql_columns.sql");
+        assertContains(wideSqlMigration, "ADD COLUMN sql_column_name");
+        assertContains(wideSqlMigration, "idx_report_batch_item_report_sql");
         String mapper = readMapper("mapper/ReportBatchMapper.xml");
         assertContains(mapper, "FROM report_batch");
         String itemMapper = readMapper("mapper/ReportBatchItemMapper.xml");
         assertContains(itemMapper, "FROM report_batch_item");
+        assertContains(itemMapper, "sql_column_name");
         assertContains(itemMapper, "structure_syntax_status");
     }
 

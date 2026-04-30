@@ -125,6 +125,41 @@ const selectedReportItems = computed(() => {
   const source = selectedReportBatchDetail.value?.reportItems || []
   return Array.isArray(source) ? source.filter(item => item && typeof item === 'object') : []
 })
+const selectedReportGroups = computed(() => {
+  const groups = new Map()
+  selectedReportItems.value.forEach(item => {
+    const reportCode = item.reportCode || item.itemId || 'UNSPECIFIED'
+    const group = groups.get(reportCode) || {
+      reportCode,
+      reportName: item.reportName,
+      items: []
+    }
+    group.items.push(item)
+    groups.set(reportCode, group)
+  })
+  return Array.from(groups.values()).map(group => {
+    const total = group.items.length
+    const resolved = group.items.filter(item => String(item.status || '').toUpperCase() === 'RESOLVED').length
+    const failed = group.items.filter(item => String(item.status || '').toUpperCase() === 'FAILED').length
+    const structureValid = group.items.filter(item => String(item.structureSyntaxStatus || '').toUpperCase() === 'VALID').length
+    const accessConnected = group.items.filter(item =>
+      String(item.accessServiceStatus || '').toUpperCase() === 'AVAILABLE' &&
+      String(item.accessConnectionStatus || '').toUpperCase() === 'CONNECTED'
+    ).length
+    const issueScenes = new Set(group.items.flatMap(item => Array.isArray(item.issueScenes) ? item.issueScenes : []))
+    const logicalObjects = new Set(group.items.flatMap(item => Array.isArray(item.logicalObjectKeys) ? item.logicalObjectKeys : []))
+    return {
+      ...group,
+      total,
+      resolved,
+      failed,
+      structureRate: rate(structureValid, total),
+      accessRate: rate(accessConnected, total),
+      issueSceneCount: issueScenes.size,
+      logicalObjectCount: logicalObjects.size
+    }
+  })
+})
 const reportBatchDetailCards = computed(() => {
   const detail = selectedReportBatchDetail.value
   if (!detail) {
@@ -140,9 +175,9 @@ const reportBatchDetailCards = computed(() => {
     card(isChinese.value ? '批次状态' : 'Batch status', detail.status),
     card(isChinese.value ? '文件类型' : 'File type', detail.fileType),
     card(isChinese.value ? '报表总数' : 'Total reports', detail.totalReports),
-    card(isChinese.value ? 'SQL 明细' : 'SQL rows', total),
-    card(isChinese.value ? '已解析' : 'Resolved', detail.resolvedReports),
-    card(isChinese.value ? '失败' : 'Failed', detail.failedReports),
+    card(isChinese.value ? 'SQL 明细' : 'SQL rows', detail.totalSqls ?? total),
+    card(isChinese.value ? '已解析 SQL' : 'Resolved SQL', detail.resolvedSqls ?? detail.resolvedReports),
+    card(isChinese.value ? '失败 SQL' : 'Failed SQL', detail.failedSqls ?? detail.failedReports),
     card(isChinese.value ? '结构成功率' : 'Structure rate', formatPercent(rate(structureValid, total))),
     card(isChinese.value ? 'Access 连通率' : 'Access connected', formatPercent(rate(accessConnected, total)))
   ].filter(item => hasDisplayValue(item.value))
@@ -652,7 +687,6 @@ const openReportBatchDetail = async row => {
       requestPrefix: 'frontend-parse-record-report-batch-detail'
     })
     reportBatchDetailDrawerVisible.value = true
-    await loadReportBatchItemDetails(selectedReportBatchDetail.value?.reportItems || [])
   } catch (error) {
     selectedReportBatchDetail.value = null
     batchHistoryErrorMessage.value = formatRuntimeError(error)
@@ -665,10 +699,9 @@ const loadReportBatchItemDetails = async items => {
   const parseTaskIds = Array.from(new Set(
     (Array.isArray(items) ? items : [])
       .map(item => normalizeQueryValue(item?.parseTaskId))
-      .filter(Boolean)
+      .filter(parseTaskId => parseTaskId && !reportBatchItemDetails.value[parseTaskId])
   ))
   if (!parseTaskIds.length) {
-    reportBatchItemDetails.value = {}
     return
   }
   loading.reportBatchItemDetails = true
@@ -686,7 +719,7 @@ const loadReportBatchItemDetails = async items => {
         return [parseTaskId, detail]
       })
     )
-    const next = {}
+    const next = { ...reportBatchItemDetails.value }
     let failedCount = 0
     results.forEach(result => {
       if (result.status === 'fulfilled') {
@@ -704,6 +737,10 @@ const loadReportBatchItemDetails = async items => {
   } finally {
     loading.reportBatchItemDetails = false
   }
+}
+
+const loadReportBatchItemDetail = async item => {
+  await loadReportBatchItemDetails([item])
 }
 
 const statusClass = value => {
@@ -1422,112 +1459,139 @@ onMounted(async () => {
             {{ reportBatchItemDetailErrorMessage }}
           </p>
           <div class="report-sql-list">
-            <article
-              v-for="(item, index) in selectedReportItems"
-              :key="item.itemId || item.reportCode || index"
-              class="detail-grid__item report-sql-card"
-              data-testid="parse-record-report-sql-detail"
+            <section
+              v-for="group in selectedReportGroups"
+              :key="group.reportCode"
+              class="report-sql-group"
+              data-testid="parse-record-report-group"
             >
-              <span>{{ item.reportCode || item.itemId || `#${index + 1}` }} · {{ displayValue(item.status) }}</span>
-              <strong>{{ displayValue(item.reportName) }}</strong>
-              <p>
-                {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
-                · Structure: {{ displayValue(item.structureSyntaxStatus) }}
-                · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
-              </p>
-              <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
-              <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
-              <pre v-if="item.sqlText" class="code-block">{{ item.sqlText }}</pre>
-              <div
-                v-if="reportItemParseDetail(item)"
-                class="report-parse-detail"
-                data-testid="parse-record-report-sql-parse-detail"
-              >
-                <div class="result-banner" :class="resultBannerClass(reportItemParseStatus(item))">
-                  <strong>{{ reportItemParseStatus(item) || '-' }}</strong>
-                  <span>{{ reportItemParseDetail(item)?.historyId || reportHistoryIdForTask(item.parseTaskId) }}</span>
-                </div>
-                <div class="summary-chip-row">
-                  <span v-for="detailItem in reportItemParseSummaryCards(item)" :key="`${item.itemId}-${detailItem.label}`" class="summary-chip">
-                    {{ detailItem.label }}: <strong>{{ displayValue(detailItem.value) }}</strong>
-                  </span>
-                </div>
-                <div class="detail-grid detail-grid-secondary">
-                  <div v-for="detailItem in reportItemParseStatisticCards(item)" :key="`${item.itemId}-stat-${detailItem.label}`" class="detail-grid__item">
-                    <span>{{ detailItem.label }}</span>
-                    <strong>{{ displayValue(detailItem.value) }}</strong>
-                  </div>
-                </div>
-                <div v-if="reportItemStructureHighlights(item).length" class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? '结构解析卡' : 'Structure parse card' }}</span>
-                  <div class="highlight-grid">
-                    <div
-                      v-for="detailItem in reportItemStructureHighlights(item)"
-                      :key="`${item.itemId}-structure-${detailItem.key}`"
-                      class="highlight-chip"
-                      :class="resultValueClass(detailItem)"
-                    >
-                      <span>{{ detailItem.label }}</span>
-                      <strong>{{ displayValue(detailItem.value) }}</strong>
-                    </div>
-                  </div>
-                </div>
-                <div v-if="reportItemAccessHighlights(item).length" class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? 'Access Parse 卡' : 'Access parse card' }}</span>
-                  <div class="highlight-grid">
-                    <div
-                      v-for="detailItem in reportItemAccessHighlights(item)"
-                      :key="`${item.itemId}-access-${detailItem.key}`"
-                      class="highlight-chip"
-                      :class="resultValueClass(detailItem)"
-                    >
-                      <span>{{ detailItem.label }}</span>
-                      <strong>{{ displayValue(detailItem.value) }}</strong>
-                    </div>
-                  </div>
-                </div>
-                <div v-if="normalizeArray(reportItemStructureParse(item).riskChecklist).length" class="issue-list issue-list-compact">
-                  <article
-                    v-for="(risk, riskIndex) in normalizeArray(reportItemStructureParse(item).riskChecklist)"
-                    :key="`${item.itemId}-risk-${risk.riskCode || riskIndex}`"
-                    class="issue-card"
-                    data-testid="parse-record-report-sql-risk"
-                  >
-                    <div class="issue-card__header">
-                      <strong>{{ risk.riskCode || '-' }}</strong>
-                      <span>{{ risk.severity || '-' }}</span>
-                    </div>
-                    <p class="issue-card__summary">{{ displayDetailValue(risk.summary) }}</p>
-                    <p class="issue-card__detail">{{ displayDetailValue(risk.evidence) }}</p>
-                    <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(risk.suggestedAction) }}</p>
-                  </article>
-                </div>
-                <div v-if="normalizeArray(reportItemStructureParse(item).issues).length" class="issue-list">
-                  <article
-                    v-for="(issue, issueIndex) in normalizeArray(reportItemStructureParse(item).issues)"
-                    :key="`${item.itemId}-issue-${issue.issueCode || issueIndex}`"
-                    class="issue-card"
-                    data-testid="parse-record-report-sql-issue"
-                  >
-                    <div class="issue-card__header">
-                      <strong>{{ issue.issueCode || '-' }}</strong>
-                      <span>{{ displayValue(firstValue(issue.severity, issue.priorityLevel)) }}</span>
-                    </div>
-                    <p class="issue-card__summary">{{ displayDetailValue(issue.summary) }}</p>
-                    <p class="issue-card__detail">{{ displayDetailValue(issue.detail) }}</p>
-                    <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(issue.suggestedAction) }}</p>
-                  </article>
-                </div>
-                <div class="dialog-actions">
-                  <el-button text @click="openHistoryDetail(reportItemParseDetail(item).historyId)">
-                    {{ isChinese ? '打开完整解析历史' : 'Open full parse history' }}
-                  </el-button>
-                </div>
+              <div class="session-item-top">
+                <strong>{{ group.reportCode }}</strong>
+                <span class="summary-chip">{{ group.total }} SQL</span>
               </div>
-              <p v-else-if="item.parseTaskId && !loading.reportBatchItemDetails" class="empty-copy" data-testid="parse-record-report-sql-detail-missing">
-                {{ isChinese ? '该 SQL 暂未查到结构化解析详情。' : 'Structured parse detail was not found for this SQL yet.' }}
+              <p>
+                {{ displayValue(group.reportName) }}
+                · {{ isChinese ? '已解析' : 'Resolved' }} {{ group.resolved }}
+                · {{ isChinese ? '失败' : 'Failed' }} {{ group.failed }}
+                · Structure {{ formatPercent(group.structureRate) }}
+                · Access {{ formatPercent(group.accessRate) }}
+                · {{ isChinese ? '问题场景' : 'Issue scenes' }} {{ group.issueSceneCount }}
+                · {{ isChinese ? '逻辑对象' : 'Logical objects' }} {{ group.logicalObjectCount }}
               </p>
-            </article>
+              <div class="report-sql-list">
+                <article
+                  v-for="(item, index) in group.items"
+                  :key="item.itemId || `${group.reportCode}-${index}`"
+                  class="detail-grid__item report-sql-card"
+                  data-testid="parse-record-report-sql-detail"
+                >
+                  <span>{{ item.sqlColumnName || item.itemId || `SQL ${index + 1}` }} · {{ displayValue(item.status) }}</span>
+                  <strong>{{ displayValue(item.reportName || group.reportCode) }}</strong>
+                  <p>
+                    {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
+                    · Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                    · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+                  </p>
+                  <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+                  <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
+                  <pre v-if="item.sqlText" class="code-block">{{ item.sqlText }}</pre>
+                  <div v-if="item.parseTaskId && !reportItemParseDetail(item)" class="dialog-actions">
+                    <el-button text :loading="loading.reportBatchItemDetails" @click="loadReportBatchItemDetail(item)">
+                      {{ isChinese ? '加载解析详情' : 'Load parse detail' }}
+                    </el-button>
+                  </div>
+                  <div
+                    v-if="reportItemParseDetail(item)"
+                    class="report-parse-detail"
+                    data-testid="parse-record-report-sql-parse-detail"
+                  >
+                    <div class="result-banner" :class="resultBannerClass(reportItemParseStatus(item))">
+                      <strong>{{ reportItemParseStatus(item) || '-' }}</strong>
+                      <span>{{ reportItemParseDetail(item)?.historyId || reportHistoryIdForTask(item.parseTaskId) }}</span>
+                    </div>
+                    <div class="summary-chip-row">
+                      <span v-for="detailItem in reportItemParseSummaryCards(item)" :key="`${item.itemId}-${detailItem.label}`" class="summary-chip">
+                        {{ detailItem.label }}: <strong>{{ displayValue(detailItem.value) }}</strong>
+                      </span>
+                    </div>
+                    <div class="detail-grid detail-grid-secondary">
+                      <div v-for="detailItem in reportItemParseStatisticCards(item)" :key="`${item.itemId}-stat-${detailItem.label}`" class="detail-grid__item">
+                        <span>{{ detailItem.label }}</span>
+                        <strong>{{ displayValue(detailItem.value) }}</strong>
+                      </div>
+                    </div>
+                    <div v-if="reportItemStructureHighlights(item).length" class="mini-section">
+                      <span class="summary-card-label">{{ isChinese ? '结构解析卡' : 'Structure parse card' }}</span>
+                      <div class="highlight-grid">
+                        <div
+                          v-for="detailItem in reportItemStructureHighlights(item)"
+                          :key="`${item.itemId}-structure-${detailItem.key}`"
+                          class="highlight-chip"
+                          :class="resultValueClass(detailItem)"
+                        >
+                          <span>{{ detailItem.label }}</span>
+                          <strong>{{ displayValue(detailItem.value) }}</strong>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-if="reportItemAccessHighlights(item).length" class="mini-section">
+                      <span class="summary-card-label">{{ isChinese ? 'Access Parse 卡' : 'Access parse card' }}</span>
+                      <div class="highlight-grid">
+                        <div
+                          v-for="detailItem in reportItemAccessHighlights(item)"
+                          :key="`${item.itemId}-access-${detailItem.key}`"
+                          class="highlight-chip"
+                          :class="resultValueClass(detailItem)"
+                        >
+                          <span>{{ detailItem.label }}</span>
+                          <strong>{{ displayValue(detailItem.value) }}</strong>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-if="normalizeArray(reportItemStructureParse(item).riskChecklist).length" class="issue-list issue-list-compact">
+                      <article
+                        v-for="(risk, riskIndex) in normalizeArray(reportItemStructureParse(item).riskChecklist)"
+                        :key="`${item.itemId}-risk-${risk.riskCode || riskIndex}`"
+                        class="issue-card"
+                        data-testid="parse-record-report-sql-risk"
+                      >
+                        <div class="issue-card__header">
+                          <strong>{{ risk.riskCode || '-' }}</strong>
+                          <span>{{ risk.severity || '-' }}</span>
+                        </div>
+                        <p class="issue-card__summary">{{ displayDetailValue(risk.summary) }}</p>
+                        <p class="issue-card__detail">{{ displayDetailValue(risk.evidence) }}</p>
+                        <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(risk.suggestedAction) }}</p>
+                      </article>
+                    </div>
+                    <div v-if="normalizeArray(reportItemStructureParse(item).issues).length" class="issue-list">
+                      <article
+                        v-for="(issue, issueIndex) in normalizeArray(reportItemStructureParse(item).issues)"
+                        :key="`${item.itemId}-issue-${issue.issueCode || issueIndex}`"
+                        class="issue-card"
+                        data-testid="parse-record-report-sql-issue"
+                      >
+                        <div class="issue-card__header">
+                          <strong>{{ issue.issueCode || '-' }}</strong>
+                          <span>{{ displayValue(firstValue(issue.severity, issue.priorityLevel)) }}</span>
+                        </div>
+                        <p class="issue-card__summary">{{ displayDetailValue(issue.summary) }}</p>
+                        <p class="issue-card__detail">{{ displayDetailValue(issue.detail) }}</p>
+                        <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(issue.suggestedAction) }}</p>
+                      </article>
+                    </div>
+                    <div class="dialog-actions">
+                      <el-button text @click="openHistoryDetail(reportItemParseDetail(item).historyId)">
+                        {{ isChinese ? '打开完整解析历史' : 'Open full parse history' }}
+                      </el-button>
+                    </div>
+                  </div>
+                  <p v-else-if="item.parseTaskId && !loading.reportBatchItemDetails" class="empty-copy" data-testid="parse-record-report-sql-detail-missing">
+                    {{ isChinese ? '点击加载解析详情后展示结构化解析统计。' : 'Load parse detail to show structured parse statistics.' }}
+                  </p>
+                </article>
+              </div>
+            </section>
             <p v-if="!selectedReportItems.length" class="empty-copy">
               {{ isChinese ? '导入解析后会展示 SQL 明细。' : 'SQL detail appears after report SQL resolution.' }}
             </p>
@@ -2052,6 +2116,15 @@ onMounted(async () => {
 .report-sql-list {
   display: grid;
   gap: 12px;
+}
+
+.report-sql-group {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 14px;
+  background: rgba(35, 35, 35, 0.88);
 }
 
 .report-sql-card {

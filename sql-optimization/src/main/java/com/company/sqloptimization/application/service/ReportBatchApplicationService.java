@@ -79,6 +79,10 @@ public class ReportBatchApplicationService {
         String reportCodeField = requireText(request == null ? null : request.getReportCodeField(), "reportCodeField");
         byte[] content = decodeBase64(trimToNull(request == null ? null : request.getContentBase64()));
         String fileType = resolveFileType(request, content);
+        List<ReportSourceRow> rows = parseSourceRows(content, request == null ? null : request.getCharset(), fileType);
+        if (rows.isEmpty()) {
+            throw invalidArgument("contentBase64", "No report codes were found in the report batch payload");
+        }
         Instant now = Instant.now();
         ReportBatch batch = ReportBatch.initialize(
             UUID.randomUUID().toString(),
@@ -89,15 +93,12 @@ public class ReportBatchApplicationService {
             trimToNull(request == null ? null : request.getDatasourceCode()),
             trimToNull(request == null ? null : request.getStage()),
             trimToNull(request == null ? null : request.getPriority()),
-            "TXT_MOCK_SOURCE",
+            containsInlineSql(rows) ? "WIDE_SQL_IMPORT" : "TXT_MOCK_SOURCE",
             RequestContext.getUserId(),
             now
         );
-        List<ReportBatchItem> items = buildItems(batch, request, content);
-        if (items.isEmpty()) {
-            throw invalidArgument("contentBase64", "No report codes were found in the mock source payload");
-        }
-        batch.recordImportedItems(items.size(), now);
+        List<ReportBatchItem> items = buildItems(batch, rows);
+        batch.recordImportedItems(countDistinctReports(items), now);
         reportBatchRepository.save(batch);
         for (ReportBatchItem item : items) {
             reportBatchItemRepository.save(item);
@@ -116,13 +117,13 @@ public class ReportBatchApplicationService {
         batch.transitionTo(ReportBatch.ParseStatus.RESOLVING_SQLS, now, "REPORT_SQL_RESOLUTION_STARTED");
         List<ReportBatchItem> resolvedItems = new ArrayList<ReportBatchItem>(items.size());
         for (ReportBatchItem item : items) {
-            ReportSqlResolveResult resolvedSql = reportSqlResolver.resolve(buildReportSqlResolveRequest(batch, item));
+            String resolvedSqlText = resolveSqlText(batch, item);
             Map<String, Object> commentContext = buildCommentContext(batch, item);
-            StructureParseRequest structureRequest = buildStructureRequest(resolvedSql.getSqlText(), batch, commentContext);
+            StructureParseRequest structureRequest = buildStructureRequest(resolvedSqlText, batch, commentContext);
             StructureParseResponseVO structureParse = structureParseApplicationService.parse(structureRequest);
             List<String> issueScenes = extractIssueScenes(structureParse.getIssues());
             List<String> logicalObjectKeys = extractLogicalObjectKeys(structureParse.getLogicalObjectHits());
-            AccessParseResponseVO accessParse = parseAccessIfPossible(resolvedSql.getSqlText(), batch, commentContext, structureParse.getParseTaskId());
+            AccessParseResponseVO accessParse = parseAccessIfPossible(resolvedSqlText, batch, commentContext, structureParse.getParseTaskId());
             ReportBatchItem.Status status = resolveStatus(structureParse, accessParse);
             if (accessParse != null) {
                 structureParseApplicationService.writeParseHistoryWithAccess(
@@ -133,7 +134,7 @@ public class ReportBatchApplicationService {
                 );
             }
             item.complete(
-                resolvedSql.getSqlText(),
+                resolvedSqlText,
                 structureParse.getParseTaskId(),
                 structureParse.getSyntaxStatus(),
                 accessParse == null ? "SKIPPED" : accessParse.getServiceStatus(),
@@ -165,7 +166,7 @@ public class ReportBatchApplicationService {
             if (!tenantId.equals(batch.getTenantId())) {
                 continue;
             }
-            result.add(toResponse(batch, Collections.<ReportBatchItem>emptyList()));
+            result.add(toResponse(batch, reportBatchItemRepository.findByBatchId(batch.getBatchId()), false));
         }
         result.sort(new Comparator<ReportBatchStatusResponse>() {
             @Override
@@ -186,6 +187,10 @@ public class ReportBatchApplicationService {
     }
 
     private ReportBatchStatusResponse toResponse(ReportBatch batch, List<ReportBatchItem> items) {
+        return toResponse(batch, items, true);
+    }
+
+    private ReportBatchStatusResponse toResponse(ReportBatch batch, List<ReportBatchItem> items, boolean includeItems) {
         ReportBatchStatusResponse response = new ReportBatchStatusResponse();
         response.setBatchId(batch.getBatchId());
         response.setTenantId(batch.getTenantId());
@@ -200,7 +205,10 @@ public class ReportBatchApplicationService {
         response.setTotalReports(Integer.valueOf(batch.getTotalReports()));
         response.setResolvedReports(Integer.valueOf(batch.getResolvedReports()));
         response.setFailedReports(Integer.valueOf(batch.getFailedReports()));
-        response.setReportItems(toItemVos(items));
+        response.setTotalSqls(Integer.valueOf(items == null || items.isEmpty() ? batch.getTotalReports() : items.size()));
+        response.setResolvedSqls(Integer.valueOf(countSqlsByStatus(items, ReportBatchItem.Status.RESOLVED)));
+        response.setFailedSqls(Integer.valueOf(countNonResolvedSqls(items)));
+        response.setReportItems(includeItems ? toItemVos(items) : Collections.<ReportBatchItemVO>emptyList());
         response.setStatusHistory(toStatusHistory(batch.getStatusHistory()));
         response.setCreatedAt(batch.getCreatedAt());
         response.setUpdatedAt(batch.getUpdatedAt());
@@ -208,22 +216,23 @@ public class ReportBatchApplicationService {
     }
 
     private void recalculate(ReportBatch batch, List<ReportBatchItem> items, Instant now) {
-        int total = items.size();
-        int resolved = 0;
-        int failed = 0;
+        int failedSqls = 0;
         for (ReportBatchItem item : items) {
-            if (item.getStatus() == ReportBatchItem.Status.RESOLVED) {
-                resolved++;
-            } else if (item.getStatus() == ReportBatchItem.Status.FAILED) {
-                failed++;
-            } else {
-                failed++;
+            if (item.getStatus() != ReportBatchItem.Status.RESOLVED) {
+                failedSqls++;
             }
         }
-        ReportBatch.ParseStatus terminalStatus = failed > 0
+        ReportBatch.ParseStatus terminalStatus = failedSqls > 0
             ? ReportBatch.ParseStatus.PARTIAL_COMPLETED
             : ReportBatch.ParseStatus.COMPLETED;
-        batch.applySummary(total, resolved, failed, terminalStatus, now, "REPORT_SQL_RESOLUTION_COMPLETED");
+        batch.applySummary(
+            countDistinctReports(items),
+            countFullyResolvedReports(items),
+            countReportsWithNonResolvedSql(items),
+            terminalStatus,
+            now,
+            "REPORT_SQL_RESOLUTION_COMPLETED"
+        );
     }
 
     private ReportBatchItem.Status resolveStatus(StructureParseResponseVO structureParse, AccessParseResponseVO accessParse) {
@@ -261,6 +270,15 @@ public class ReportBatchApplicationService {
         return "FAILED";
     }
 
+    private String resolveSqlText(ReportBatch batch, ReportBatchItem item) {
+        String inlineSql = trimToNull(item.getSqlText());
+        if (StringUtils.hasText(inlineSql)) {
+            return inlineSql;
+        }
+        ReportSqlResolveResult resolvedSql = reportSqlResolver.resolve(buildReportSqlResolveRequest(batch, item));
+        return resolvedSql.getSqlText();
+    }
+
     private StructureParseRequest buildStructureRequest(String sqlText, ReportBatch batch, Map<String, Object> commentContext) {
         StructureParseRequest request = new StructureParseRequest();
         request.setSqlText(sqlText);
@@ -284,11 +302,85 @@ public class ReportBatchApplicationService {
         return accessParseApplicationService.parseAccess(request, parseTaskId);
     }
 
-    private List<ReportBatchItem> buildItems(ReportBatch batch, ReportBatchImportRequest request, byte[] content) {
-        List<ReportSourceRow> rows = parseSourceRows(content, request == null ? null : request.getCharset(), batch.getFileType());
+    private boolean containsInlineSql(List<ReportSourceRow> rows) {
+        if (rows == null) {
+            return false;
+        }
+        for (ReportSourceRow row : rows) {
+            if (row != null && StringUtils.hasText(row.sqlText)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int countDistinctReports(List<ReportBatchItem> items) {
+        Set<String> reports = new LinkedHashSet<String>();
+        if (items != null) {
+            for (ReportBatchItem item : items) {
+                reports.add(firstNonBlank(item.getReportCode(), item.getItemId(), "UNSPECIFIED"));
+            }
+        }
+        return reports.size();
+    }
+
+    private int countFullyResolvedReports(List<ReportBatchItem> items) {
+        Map<String, Boolean> reportResolved = new LinkedHashMap<String, Boolean>();
+        if (items != null) {
+            for (ReportBatchItem item : items) {
+                String reportCode = firstNonBlank(item.getReportCode(), item.getItemId(), "UNSPECIFIED");
+                Boolean current = reportResolved.get(reportCode);
+                boolean resolved = item.getStatus() == ReportBatchItem.Status.RESOLVED;
+                reportResolved.put(reportCode, Boolean.valueOf(current == null ? resolved : current.booleanValue() && resolved));
+            }
+        }
+        int count = 0;
+        for (Boolean resolved : reportResolved.values()) {
+            if (Boolean.TRUE.equals(resolved)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private int countReportsWithNonResolvedSql(List<ReportBatchItem> items) {
+        return countDistinctReports(items) - countFullyResolvedReports(items);
+    }
+
+    private int countSqlsByStatus(List<ReportBatchItem> items, ReportBatchItem.Status status) {
+        if (items == null || items.isEmpty()) {
+            return 0;
+        }
+        int count = 0;
+        for (ReportBatchItem item : items) {
+            if (item.getStatus() == status) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private int countNonResolvedSqls(List<ReportBatchItem> items) {
+        if (items == null || items.isEmpty()) {
+            return 0;
+        }
+        int count = 0;
+        for (ReportBatchItem item : items) {
+            if (item.getStatus() != ReportBatchItem.Status.RESOLVED) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private List<ReportBatchItem> buildItems(ReportBatch batch, List<ReportSourceRow> rows) {
         List<ReportBatchItem> items = new ArrayList<ReportBatchItem>(rows.size());
+        Map<String, Integer> reportSqlOrdinals = new LinkedHashMap<String, Integer>();
         for (int i = 0; i < rows.size(); i++) {
             ReportSourceRow row = rows.get(i);
+            String reportKey = firstNonBlank(row.reportCode, "UNSPECIFIED");
+            int ordinal = reportSqlOrdinals.getOrDefault(reportKey, Integer.valueOf(0)).intValue() + 1;
+            reportSqlOrdinals.put(reportKey, Integer.valueOf(ordinal));
             ReportBatchItem item = ReportBatchItem.create(
                 UUID.randomUUID().toString(),
                 batch.getBatchId(),
@@ -299,8 +391,24 @@ public class ReportBatchApplicationService {
                 firstNonBlank(row.stage, batch.getStage()),
                 firstNonBlank(row.priority, batch.getPriority()),
                 row.rawLine,
+                row.sqlColumnName,
+                row.sqlOrdinalInReport == null ? Integer.valueOf(ordinal) : row.sqlOrdinalInReport,
                 batch.getCreatedAt()
             );
+            if (StringUtils.hasText(row.sqlText)) {
+                item.complete(
+                    row.sqlText,
+                    null,
+                    null,
+                    null,
+                    null,
+                    ReportBatchItem.Status.PENDING,
+                    null,
+                    Collections.<String>emptyList(),
+                    Collections.<String>emptyList(),
+                    batch.getCreatedAt()
+                );
+            }
             items.add(item);
         }
         return items;
@@ -384,7 +492,7 @@ public class ReportBatchApplicationService {
                     values.put(header, value);
                 }
                 if (nonEmpty) {
-                    rows.add(toReportRow(values));
+                    rows.addAll(expandReportRows(headers, values, values.toString()));
                 }
             }
             workbook.close();
@@ -412,17 +520,24 @@ public class ReportBatchApplicationService {
                 .setIgnoreSurroundingSpaces(true)
                 .build()
                 .parse(new InputStreamReader(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
+            List<Map.Entry<String, Integer>> headerEntries = new ArrayList<Map.Entry<String, Integer>>(parser.getHeaderMap().entrySet());
+            headerEntries.sort(new Comparator<Map.Entry<String, Integer>>() {
+                @Override
+                public int compare(Map.Entry<String, Integer> left, Map.Entry<String, Integer> right) {
+                    return Integer.compare(left.getValue().intValue(), right.getValue().intValue());
+                }
+            });
+            List<String> headers = new ArrayList<String>(headerEntries.size());
+            for (Map.Entry<String, Integer> entry : headerEntries) {
+                headers.add(normalizeHeader(entry.getKey()));
+            }
             List<ReportSourceRow> rows = new ArrayList<ReportSourceRow>();
             for (CSVRecord record : parser) {
-                Map<String, String> values = record.toMap();
-                ReportSourceRow row = new ReportSourceRow();
-                row.rawLine = values.toString();
-                row.reportCode = trimToNull(firstNonBlank(values.get("report_code"), values.get("reportCode")));
-                row.reportName = trimToNull(firstNonBlank(values.get("report_name"), values.get("reportName")));
-                row.datasourceCode = trimToNull(firstNonBlank(values.get("datasource"), values.get("datasource_code")));
-                row.stage = trimToNull(values.get("stage"));
-                row.priority = trimToNull(values.get("priority"));
-                rows.add(row);
+                Map<String, String> values = new LinkedHashMap<String, String>();
+                for (Map.Entry<String, Integer> entry : headerEntries) {
+                    values.put(normalizeHeader(entry.getKey()), trimToNull(record.get(entry.getKey())));
+                }
+                rows.addAll(expandReportRows(headers, values, values.toString()));
             }
             return rows;
         } catch (Exception ex) {
@@ -482,6 +597,33 @@ public class ReportBatchApplicationService {
         return normalized == null ? null : normalized.toLowerCase(Locale.ROOT);
     }
 
+    private String normalizeHeaderKey(String value) {
+        String normalized = normalizeHeader(value);
+        return normalized == null ? "" : normalized.replace("_", "").replace("-", "");
+    }
+
+    private boolean isReportCodeHeader(String header) {
+        String key = normalizeHeaderKey(header);
+        return "reportcode".equals(key);
+    }
+
+    private boolean isMetadataHeader(String header) {
+        String key = normalizeHeaderKey(header);
+        return "reportcode".equals(key)
+            || "reportname".equals(key)
+            || "datasource".equals(key)
+            || "datasourcecode".equals(key)
+            || "stage".equals(key)
+            || "priority".equals(key);
+    }
+
+    private boolean isSqlHeader(String header) {
+        String key = normalizeHeaderKey(header);
+        return "sql".equals(key)
+            || "sqltext".equals(key)
+            || key.startsWith("sql");
+    }
+
     private String resolveMockBizDate() {
         return java.time.LocalDate.now().toString();
     }
@@ -494,6 +636,10 @@ public class ReportBatchApplicationService {
         putIfPresent(context, "tenant_id", batch.getTenantId());
         putIfPresent(context, "datasource", firstNonBlank(item.getDatasourceCode(), batch.getDatasourceCode()));
         putIfPresent(context, "priority", firstNonBlank(item.getPriority(), batch.getPriority()));
+        putIfPresent(context, "sql_column_name", item.getSqlColumnName());
+        if (item.getSqlOrdinalInReport() != null) {
+            context.put("sql_ordinal_in_report", item.getSqlOrdinalInReport());
+        }
         return context;
     }
 
@@ -555,6 +701,8 @@ public class ReportBatchApplicationService {
             vo.setStage(item.getStage());
             vo.setPriority(item.getPriority());
             vo.setSourceFileLine(item.getSourceFileLine());
+            vo.setSqlColumnName(item.getSqlColumnName());
+            vo.setSqlOrdinalInReport(item.getSqlOrdinalInReport());
             vo.setSqlText(item.getSqlText());
             vo.setParseTaskId(item.getParseTaskId());
             vo.setStructureSyntaxStatus(item.getStructureSyntaxStatus());
@@ -679,15 +827,51 @@ public class ReportBatchApplicationService {
         return value.trim();
     }
 
-    private ReportSourceRow toReportRow(Map<String, String> values) {
-        ReportSourceRow row = new ReportSourceRow();
-        row.rawLine = values.toString();
-        row.reportCode = trimToNull(firstNonBlank(values.get("report_code"), values.get("reportCode")));
-        row.reportName = trimToNull(firstNonBlank(values.get("report_name"), values.get("reportName")));
-        row.datasourceCode = trimToNull(firstNonBlank(values.get("datasource"), values.get("datasource_code")));
-        row.stage = trimToNull(values.get("stage"));
-        row.priority = trimToNull(values.get("priority"));
-        return row;
+    private List<ReportSourceRow> expandReportRows(List<String> headers, Map<String, String> values, String rawLine) {
+        ReportSourceRow base = new ReportSourceRow();
+        base.rawLine = rawLine;
+        base.reportCode = trimToNull(firstNonBlank(values.get("report_code"), values.get("reportcode")));
+        base.reportName = trimToNull(firstNonBlank(values.get("report_name"), values.get("reportname")));
+        base.datasourceCode = trimToNull(firstNonBlank(values.get("datasource"), values.get("datasource_code"), values.get("datasourcecode")));
+        base.stage = trimToNull(values.get("stage"));
+        base.priority = trimToNull(values.get("priority"));
+
+        int reportCodeIndex = -1;
+        for (int index = 0; index < headers.size(); index++) {
+            if (isReportCodeHeader(headers.get(index))) {
+                reportCodeIndex = index;
+                break;
+            }
+        }
+
+        List<ReportSourceRow> rows = new ArrayList<ReportSourceRow>();
+        int sqlOrdinal = 0;
+        for (int index = 0; index < headers.size(); index++) {
+            String header = headers.get(index);
+            if (!StringUtils.hasText(header)) {
+                continue;
+            }
+            boolean afterReportCode = reportCodeIndex >= 0 && index > reportCodeIndex;
+            boolean candidateSqlColumn = isSqlHeader(header) || (afterReportCode && !isMetadataHeader(header));
+            if (!candidateSqlColumn) {
+                continue;
+            }
+            String sqlText = trimToNull(values.get(header));
+            if (!StringUtils.hasText(sqlText)) {
+                continue;
+            }
+            sqlOrdinal++;
+            ReportSourceRow sqlRow = base.copy();
+            sqlRow.rawLine = rawLine + " column=" + header;
+            sqlRow.sqlColumnName = header;
+            sqlRow.sqlOrdinalInReport = Integer.valueOf(sqlOrdinal);
+            sqlRow.sqlText = sqlText;
+            rows.add(sqlRow);
+        }
+        if (rows.isEmpty() && StringUtils.hasText(base.reportCode)) {
+            rows.add(base);
+        }
+        return rows;
     }
 
     private static final class ReportSourceRow {
@@ -697,5 +881,19 @@ public class ReportBatchApplicationService {
         private String stage;
         private String priority;
         private String rawLine;
+        private String sqlColumnName;
+        private Integer sqlOrdinalInReport;
+        private String sqlText;
+
+        private ReportSourceRow copy() {
+            ReportSourceRow row = new ReportSourceRow();
+            row.reportCode = reportCode;
+            row.reportName = reportName;
+            row.datasourceCode = datasourceCode;
+            row.stage = stage;
+            row.priority = priority;
+            row.rawLine = rawLine;
+            return row;
+        }
     }
 }

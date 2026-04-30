@@ -16,6 +16,8 @@ public class ReportBatchItem {
     private final String stage;
     private final String priority;
     private final String sourceFileLine;
+    private final String sqlColumnName;
+    private final Integer sqlOrdinalInReport;
     private final Instant createdAt;
     private Instant updatedAt;
     private String sqlText;
@@ -37,6 +39,8 @@ public class ReportBatchItem {
                            String stage,
                            String priority,
                            String sourceFileLine,
+                           String sqlColumnName,
+                           Integer sqlOrdinalInReport,
                            Instant createdAt) {
         this.itemId = itemId;
         this.batchId = batchId;
@@ -47,8 +51,11 @@ public class ReportBatchItem {
         this.stage = stage;
         this.priority = priority;
         this.sourceFileLine = sourceFileLine;
+        this.sqlColumnName = sqlColumnName;
+        this.sqlOrdinalInReport = sqlOrdinalInReport;
         this.createdAt = createdAt;
         this.updatedAt = createdAt;
+        this.status = Status.PENDING;
         this.issueScenes = new ArrayList<String>();
         this.logicalObjectKeys = new ArrayList<String>();
     }
@@ -62,8 +69,23 @@ public class ReportBatchItem {
                                          String stage,
                                          String priority,
                                          String sourceFileLine,
+                                         String sqlColumnName,
+                                         Integer sqlOrdinalInReport,
                                          Instant createdAt) {
-        return new ReportBatchItem(itemId, batchId, sequenceNumber, reportCode, reportName, datasourceCode, stage, priority, sourceFileLine, createdAt);
+        return new ReportBatchItem(
+            itemId,
+            batchId,
+            sequenceNumber,
+            reportCode,
+            reportName,
+            datasourceCode,
+            stage,
+            priority,
+            sourceFileLine,
+            sqlColumnName,
+            sqlOrdinalInReport,
+            createdAt
+        );
     }
 
     public static ReportBatchItem restore(String itemId,
@@ -75,6 +97,8 @@ public class ReportBatchItem {
                                           String stage,
                                           String priority,
                                           String sourceFileLine,
+                                          String sqlColumnName,
+                                          Integer sqlOrdinalInReport,
                                           String sqlText,
                                           String parseTaskId,
                                           String structureSyntaxStatus,
@@ -96,6 +120,8 @@ public class ReportBatchItem {
             stage,
             priority,
             sourceFileLine,
+            sqlColumnName,
+            sqlOrdinalInReport,
             createdAt
         );
         item.sqlText = sqlText;
@@ -154,6 +180,8 @@ public class ReportBatchItem {
     public String getStage() { return stage; }
     public String getPriority() { return priority; }
     public String getSourceFileLine() { return sourceFileLine; }
+    public String getSqlColumnName() { return sqlColumnName; }
+    public Integer getSqlOrdinalInReport() { return sqlOrdinalInReport; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public String getSqlText() { return sqlText; }
@@ -167,6 +195,7 @@ public class ReportBatchItem {
     public List<String> getLogicalObjectKeys() { return Collections.unmodifiableList(logicalObjectKeys); }
 
     public enum Status {
+        PENDING,
         RESOLVED,
         PARTIAL_RESOLVED,
         FAILED

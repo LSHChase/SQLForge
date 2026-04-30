@@ -732,6 +732,8 @@ CREATE TABLE IF NOT EXISTS report_batch_item (
   stage VARCHAR(32) DEFAULT NULL COMMENT 'Stage metadata',
   priority VARCHAR(32) DEFAULT NULL COMMENT 'Priority hint',
   source_file_line VARCHAR(512) DEFAULT NULL COMMENT 'Original source line or CSV payload summary',
+  sql_column_name VARCHAR(128) DEFAULT NULL COMMENT 'Source spreadsheet column that supplied this SQL',
+  sql_ordinal_in_report INT DEFAULT NULL COMMENT '1-based SQL ordinal inside the same report_code',
   sql_text MEDIUMTEXT DEFAULT NULL COMMENT 'Resolved SQL text',
   parse_task_id VARCHAR(64) DEFAULT NULL COMMENT 'Parse task identifier',
   structure_syntax_status VARCHAR(32) DEFAULT NULL COMMENT 'Structure parse syntax status',
@@ -746,7 +748,8 @@ CREATE TABLE IF NOT EXISTS report_batch_item (
   PRIMARY KEY (item_id),
   KEY idx_report_batch_item_batch_seq (batch_id, sequence_number),
   KEY idx_report_batch_item_batch_status (batch_id, status),
-  KEY idx_report_batch_item_report (batch_id, report_code)
+  KEY idx_report_batch_item_report (batch_id, report_code),
+  KEY idx_report_batch_item_report_sql (batch_id, report_code, sql_ordinal_in_report)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Report catalog imported records and parse evidence';
 
 CREATE TABLE IF NOT EXISTS acceleration_recommendation (

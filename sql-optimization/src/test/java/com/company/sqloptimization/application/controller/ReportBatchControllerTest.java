@@ -43,6 +43,7 @@ class ReportBatchControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("READY"))
             .andExpect(jsonPath("$.fileType").value("TXT"))
+            .andExpect(jsonPath("$.totalSqls").value(2))
             .andExpect(jsonPath("$.reportItems.length()").value(2))
             .andReturn();
 
@@ -57,6 +58,7 @@ class ReportBatchControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("COMPLETED"))
             .andExpect(jsonPath("$.resolvedReports").value(2))
+            .andExpect(jsonPath("$.resolvedSqls").value(2))
             .andExpect(jsonPath("$.reportItems[0].sqlText").exists())
             .andExpect(jsonPath("$.reportItems[0].structureSyntaxStatus").value("VALID"));
 

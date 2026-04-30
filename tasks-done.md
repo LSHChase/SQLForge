@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-061: 重构批量解析当前批次工作台与报表宽表详情
+
+- Status: done
+- Completed at: 2026-04-29
+- Commit subject: `feat(sql-optimization): support report wide sql batches`
+- Priority: 1
+- Depends on: HARN-060
+- Scope: 实现批量解析页当前批次工作台：普通批量解析与报表导入只展示当前批次输入、批次、概览、解析结果弹窗、解析统计弹窗；报表导入支持 report_code 后续多 SQL 列宽表导入并按报表->SQL 上下结构展示，解析历史页报表导入详情支持报表分组、SQL 懒加载解析详情与批次/报表/SQL 统计；不改核心 SQL parser 算法，不弱化 tenant/request/trace 权限链路。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-061`
+- Progress log:
+  - 2026-04-29: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 实现报表导入宽表解析：report_code 后续多 SQL 列会拆成同一报表下多条 SQL item，响应补充 SQL 级统计与 SQL 列定位；批量解析页重构为当前批次工作台，主体只展示当前输入、批次概览、解析结果弹窗和解析统计弹窗；解析历史页报表导入详情改为报表分组，并按 SQL 懒加载治理解析详情。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-061 --extra-command node/scripts/check-batch-import-contract.mjs --extra-command node/scripts/check-history-page-contract.mjs --extra-command node/scripts/check-history-detail-contract.mjs --extra-command mvn-report-batch-tests --extra-command npm-run-lint --extra-command npm-run-build; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 未连接真实外部 Hetu/MRS 环境做浏览器端到端验收；当前覆盖为后端单元/controller/schema 测试、前端契约、lint、生产构建与治理审计。
+  - Next step: 实机验收时用包含 100+ SQL 列的报表导入模板创建批次，确认批量解析页当前批次工作台与解析历史页报表分组/SQL 懒加载详情都符合预期。
+
 ### OPS-LOCAL-005: 重新启动前后端服务
 
 - Status: done

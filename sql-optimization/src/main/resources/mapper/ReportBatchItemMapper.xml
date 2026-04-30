@@ -14,6 +14,8 @@
         <result property="stage" column="stage"/>
         <result property="priority" column="priority"/>
         <result property="sourceFileLine" column="source_file_line"/>
+        <result property="sqlColumnName" column="sql_column_name"/>
+        <result property="sqlOrdinalInReport" column="sql_ordinal_in_report"/>
         <result property="sqlText" column="sql_text"/>
         <result property="parseTaskId" column="parse_task_id"/>
         <result property="structureSyntaxStatus" column="structure_syntax_status"/>
@@ -29,7 +31,7 @@
 
     <sql id="BaseColumns">
         item_id, batch_id, sequence_number, report_code, report_name, datasource_code, stage, priority,
-        source_file_line, sql_text, parse_task_id, structure_syntax_status, access_service_status,
+        source_file_line, sql_column_name, sql_ordinal_in_report, sql_text, parse_task_id, structure_syntax_status, access_service_status,
         access_connection_status, failure_reason, status, issue_scenes_json, logical_object_keys_json,
         created_at, updated_at
     </sql>
@@ -56,12 +58,12 @@
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchItemRecord">
         INSERT INTO report_batch_item (
             item_id, batch_id, sequence_number, report_code, report_name, datasource_code, stage, priority,
-            source_file_line, sql_text, parse_task_id, structure_syntax_status, access_service_status,
+            source_file_line, sql_column_name, sql_ordinal_in_report, sql_text, parse_task_id, structure_syntax_status, access_service_status,
             access_connection_status, failure_reason, status, issue_scenes_json, logical_object_keys_json,
             created_at, updated_at
         ) VALUES (
             #{itemId}, #{batchId}, #{sequenceNumber}, #{reportCode}, #{reportName}, #{datasourceCode}, #{stage}, #{priority},
-            #{sourceFileLine}, #{sqlText}, #{parseTaskId}, #{structureSyntaxStatus}, #{accessServiceStatus},
+            #{sourceFileLine}, #{sqlColumnName}, #{sqlOrdinalInReport}, #{sqlText}, #{parseTaskId}, #{structureSyntaxStatus}, #{accessServiceStatus},
             #{accessConnectionStatus}, #{failureReason}, #{status}, #{issueScenesJson}, #{logicalObjectKeysJson},
             #{createdAt}, #{updatedAt}
         )
@@ -77,6 +79,8 @@
             stage = #{stage},
             priority = #{priority},
             source_file_line = #{sourceFileLine},
+            sql_column_name = #{sqlColumnName},
+            sql_ordinal_in_report = #{sqlOrdinalInReport},
             sql_text = #{sqlText},
             parse_task_id = #{parseTaskId},
             structure_syntax_status = #{structureSyntaxStatus},

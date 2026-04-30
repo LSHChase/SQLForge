@@ -29,9 +29,13 @@ const errorMessage = ref('')
 const parseCreateDialogVisible = ref(false)
 const parseImportDialogVisible = ref(false)
 const parseTemplateDialogVisible = ref(false)
-const parseDetailDrawerVisible = ref(false)
 const reportImportDialogVisible = ref(false)
-const reportDetailDrawerVisible = ref(false)
+const batchSelectorDrawerVisible = ref(false)
+const batchSelectorKind = ref('parse')
+const parseResultDialogVisible = ref(false)
+const parseStatisticsDialogVisible = ref(false)
+const reportResultDialogVisible = ref(false)
+const reportStatisticsDialogVisible = ref(false)
 
 const loading = reactive({
   createParseBatch: false,
@@ -69,7 +73,10 @@ const reportBatchForm = reactive({
   datasourceCode: 'hetu_main',
   stage: 'PROD',
   priority: 'high',
-  rawContent: 'RPT_A|Revenue Report|hetu_main|PROD|high\nRPT_B|Ops Report|hetu_main|PROD|medium\n'
+  rawContent:
+    "report_code,sql_1,sql_2,sql_3\n"
+    + "RPT_A,\"SELECT * FROM orders WHERE dt = '2026-04-01'\",\"SELECT * FROM revenue WHERE dt = '2026-04-01'\",\"SELECT count(*) FROM customers\"\n"
+    + "RPT_B,\"SELECT * FROM ops_events WHERE dt = '2026-04-01'\",,\n"
 })
 
 const parseFileTypeOptions = ['CSV', 'TXT', 'SQL', 'XLS', 'XLSX', 'ET']
@@ -99,8 +106,9 @@ const reportBatchStatusCards = computed(() => {
   return [
     card(isChinese.value ? '导入状态' : 'Import status', reportBatchDetail.value.status),
     card(isChinese.value ? '报表总数' : 'Total reports', reportBatchDetail.value.totalReports),
-    card(isChinese.value ? '已解析 SQL' : 'Resolved reports', reportBatchDetail.value.resolvedReports),
-    card(isChinese.value ? '失败数' : 'Failed reports', reportBatchDetail.value.failedReports),
+    card(isChinese.value ? 'SQL 总数' : 'Total SQL', reportBatchDetail.value.totalSqls ?? reportItems.value.length),
+    card(isChinese.value ? '已解析 SQL' : 'Resolved SQL', reportBatchDetail.value.resolvedSqls ?? reportBatchDetail.value.resolvedReports),
+    card(isChinese.value ? '失败 SQL' : 'Failed SQL', reportBatchDetail.value.failedSqls ?? reportBatchDetail.value.failedReports),
     card(isChinese.value ? '阶段' : 'Stage', reportBatchDetail.value.stage),
     card(isChinese.value ? '优先级' : 'Priority', reportBatchDetail.value.priority)
   ].filter(item => hasDisplayValue(item.value))
@@ -125,6 +133,15 @@ const reportItems = computed(() => {
     []
   return Array.isArray(source) ? source.filter(item => typeof item === 'object') : []
 })
+const parseImportedRecords = computed(() => {
+  const detail = parseBatchDetail.value || {}
+  const source =
+    detail.importedRecords ||
+    detail.records ||
+    detail.recordResults ||
+    []
+  return Array.isArray(source) ? source.filter(item => typeof item === 'object') : []
+})
 const parseIssueStatistics = computed(() => {
   const items = parseBatchDetail.value?.issueStatistics || []
   return Array.isArray(items) ? items : []
@@ -135,7 +152,7 @@ const parseReportStatistics = computed(() => {
 })
 const reportSqlStatisticsCards = computed(() => {
   const items = reportItems.value
-  const total = items.length
+  const total = Number(reportBatchDetail.value?.totalSqls ?? items.length)
   const resolved = items.filter(item => String(item.status || '').toUpperCase() === 'RESOLVED').length
   const partial = items.filter(item => String(item.status || '').toUpperCase().includes('PARTIAL')).length
   const failed = items.filter(item => String(item.status || '').toUpperCase() === 'FAILED').length
@@ -156,6 +173,37 @@ const reportSqlStatisticsCards = computed(() => {
     card(isChinese.value ? '问题场景' : 'Issue scenes', issueScenes.size),
     card(isChinese.value ? '逻辑对象' : 'Logical objects', logicalObjects.size)
   ]
+})
+const reportGroups = computed(() => {
+  const groups = new Map()
+  reportItems.value.forEach(item => {
+    const reportCode = item.reportCode || item.itemId || 'UNSPECIFIED'
+    const group = groups.get(reportCode) || {
+      reportCode,
+      reportName: item.reportName,
+      items: []
+    }
+    group.items.push(item)
+    groups.set(reportCode, group)
+  })
+  return Array.from(groups.values()).map(group => {
+    const total = group.items.length
+    const resolved = group.items.filter(item => String(item.status || '').toUpperCase() === 'RESOLVED').length
+    const failed = group.items.filter(item => String(item.status || '').toUpperCase() === 'FAILED').length
+    const structureValid = group.items.filter(item => String(item.structureSyntaxStatus || '').toUpperCase() === 'VALID').length
+    const accessConnected = group.items.filter(item =>
+      String(item.accessServiceStatus || '').toUpperCase() === 'AVAILABLE' &&
+      String(item.accessConnectionStatus || '').toUpperCase() === 'CONNECTED'
+    ).length
+    return {
+      ...group,
+      total,
+      resolved,
+      failed,
+      structureRate: rate(structureValid, total),
+      accessRate: rate(accessConnected, total)
+    }
+  })
 })
 const reportIssueStatistics = computed(() => {
   const counts = new Map()
@@ -202,36 +250,6 @@ const parseSessionsSummary = computed(() =>
 const reportSessionsSummary = computed(() =>
   `${reportBatchSessions.value.length} ${isChinese.value ? '个批次' : 'batches'}`
 )
-const parseBatchHistorySummary = computed(() => {
-  const totalRecords = parseBatchSessions.value.reduce(
-    (sum, item) => sum + Number(item.totalRecords || 0),
-    0
-  )
-  const failedBatches = parseBatchSessions.value.filter(item => String(item.status || '').includes('FAILED')).length
-  return [
-    card(isChinese.value ? '批次总数' : 'Batches', parseBatchSessions.value.length),
-    card(isChinese.value ? '总记录数' : 'Records', totalRecords),
-    card(isChinese.value ? '失败批次' : 'Failed batches', failedBatches)
-  ]
-})
-const reportBatchHistorySummary = computed(() => {
-  const totalReports = reportBatchSessions.value.reduce(
-    (sum, item) => sum + Number(item.totalReports || 0),
-    0
-  )
-  const resolvedReports = reportBatchSessions.value.reduce(
-    (sum, item) => sum + Number(item.resolvedReports || 0),
-    0
-  )
-  const failedBatches = reportBatchSessions.value.filter(item => String(item.status || '').includes('FAILED')).length
-  return [
-    card(isChinese.value ? '批次总数' : 'Batches', reportBatchSessions.value.length),
-    card(isChinese.value ? '报表总数' : 'Reports', totalReports),
-    card(isChinese.value ? '已解析' : 'Resolved', resolvedReports),
-    card(isChinese.value ? '失败批次' : 'Failed batches', failedBatches)
-  ]
-})
-
 const card = (label, value) => ({ label, value })
 
 const hasDisplayValue = value =>
@@ -358,8 +376,9 @@ const loadReportPayloadBase64 = async (file, rawContent, emptyMessage) => {
     }
   }
   if (hasDisplayValue(rawContent)) {
+    const firstLine = String(rawContent).split('\n', 1)[0] || ''
     return {
-      fileName: 'inline-report-import.txt',
+      fileName: firstLine.includes(',') ? 'inline-report-import.csv' : 'inline-report-import.txt',
       contentBase64: encodeTextToBase64(String(rawContent))
     }
   }
@@ -403,6 +422,12 @@ const buildTemplatePreview = columns => {
 }
 
 const parseTemplatePreview = computed(() => buildTemplatePreview(templateColumns.value))
+const reportTemplatePreview = computed(() =>
+  [
+    'report_code,sql_1,sql_2,sql_3,...,sql_100',
+    "\"RPT_SAMPLE\",\"SELECT * FROM orders WHERE dt = '2026-04-01'\",\"SELECT count(*) FROM revenue\",\"SELECT * FROM customers\",..."
+  ].join('\n')
+)
 
 const handleParseFileChange = event => {
   const [file] = event.target.files || []
@@ -430,7 +455,6 @@ const createParseBatchFlow = async () => {
     upsertSession(parseBatchSessions, parseBatchDetail.value)
     await loadBatchHistories()
     parseCreateDialogVisible.value = false
-    parseDetailDrawerVisible.value = true
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
@@ -471,7 +495,7 @@ const ingestParseBatchFlow = async () => {
     upsertSession(parseBatchSessions, parseBatchDetail.value)
     await loadBatchHistories()
     parseImportDialogVisible.value = false
-    parseDetailDrawerVisible.value = true
+    parseResultDialogVisible.value = true
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
@@ -513,7 +537,7 @@ const retryAccessFlow = async () => {
     })
     upsertSession(parseBatchSessions, parseBatchDetail.value)
     await loadBatchHistories()
-    parseDetailDrawerVisible.value = true
+    parseResultDialogVisible.value = true
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
@@ -543,7 +567,7 @@ const importReportBatchFlow = async () => {
     upsertSession(reportBatchSessions, reportBatchDetail.value)
     await loadBatchHistories()
     reportImportDialogVisible.value = false
-    reportDetailDrawerVisible.value = true
+    reportResultDialogVisible.value = true
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
@@ -581,7 +605,7 @@ const resolveReportSqlsFlow = async () => {
     reportBatchDetail.value = await resolveReportBatchSqls(reportBatchDetail.value.batchId, reportBatchForm.tenantId)
     upsertSession(reportBatchSessions, reportBatchDetail.value)
     await loadBatchHistories()
-    reportDetailDrawerVisible.value = true
+    reportResultDialogVisible.value = true
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
@@ -589,14 +613,22 @@ const resolveReportSqlsFlow = async () => {
   }
 }
 
+const openBatchSelector = async kind => {
+  batchSelectorKind.value = kind
+  batchSelectorDrawerVisible.value = true
+  await loadBatchHistories()
+}
+
 const openParseSession = async batchId => {
   await refreshParseBatchDetail(batchId)
-  parseDetailDrawerVisible.value = true
+  batchSelectorDrawerVisible.value = false
+  activeWorkspace.value = 'parse'
 }
 
 const openReportSession = async batchId => {
   await refreshReportBatchDetail(batchId)
-  reportDetailDrawerVisible.value = true
+  batchSelectorDrawerVisible.value = false
+  activeWorkspace.value = 'report'
 }
 
 onMounted(async () => {
@@ -611,11 +643,12 @@ onMounted(async () => {
     return
   }
   const kind = String(route.query.kind || 'parse').trim()
-  activeWorkspace.value = 'history'
   if (kind === 'report') {
+    activeWorkspace.value = 'report'
     await openReportSession(batchId)
     return
   }
+  activeWorkspace.value = 'parse'
   await openParseSession(batchId)
 })
 </script>
@@ -649,28 +682,17 @@ onMounted(async () => {
       {{ errorMessage }}
     </div>
 
-    <section class="summary-grid history-summary-grid">
-      <article v-for="item in parseBatchHistorySummary" :key="`parse-${item.label}`" class="summary-card">
-        <span class="summary-card-label">{{ item.label }}</span>
-        <strong>{{ item.value }}</strong>
-      </article>
-      <article v-for="item in reportBatchHistorySummary" :key="`report-${item.label}`" class="summary-card">
-        <span class="summary-card-label">{{ item.label }}</span>
-        <strong>{{ item.value }}</strong>
-      </article>
-    </section>
-
     <el-tabs v-model="activeWorkspace" class="workspace-tabs">
       <el-tab-pane :label="isChinese ? '批量解析' : 'Parse batches'" name="parse">
         <div class="workspace-toolbar shell-panel">
           <div class="toolbar-copy">
-            <p class="section-kicker sqlforge-code-label">template download + upload</p>
-            <h2 class="section-title">{{ isChinese ? '批次创建、导入与补跑' : 'Batch creation, import, and recovery' }}</h2>
+            <p class="section-kicker sqlforge-code-label">current batch workbench</p>
+            <h2 class="section-title">{{ isChinese ? '当前批量解析批次' : 'Current parse batch' }}</h2>
             <p class="section-summary">
               {{
                 isChinese
-                  ? '支持多条 SQL 直接粘贴，也支持模板文件导入；批次详情与失败记录放进抽屉，不再整页堆叠。'
-                  : 'Direct multi-SQL paste and template-file import both stay available; batch detail and failures move into drawers instead of filling the whole page.'
+                  ? '本页主体只展示当前批次的输入、批次、概览、解析结果和解析统计。'
+                  : 'The page body only shows the current batch input, batch status, overview, parse results, and statistics.'
               }}
             </p>
           </div>
@@ -687,37 +709,43 @@ onMounted(async () => {
             <el-button :loading="loading.refreshParseBatch" @click="refreshParseBatchDetail()">
               {{ isChinese ? '刷新详情' : 'Refresh detail' }}
             </el-button>
+            <el-button @click="openBatchSelector('parse')">
+              {{ isChinese ? '选择批次' : 'Select batch' }}
+            </el-button>
           </div>
         </div>
 
-        <div class="workspace-grid">
-          <aside class="shell-panel session-rail">
+        <div class="workspace-grid current-batch-grid" data-testid="batch-import-current-workbench">
+          <aside class="shell-panel input-rail" data-testid="batch-import-current-input">
             <div class="section-heading">
               <div>
-                <p class="section-kicker sqlforge-code-label">parse sessions</p>
-                <h3 class="section-title">{{ isChinese ? '批次会话' : 'Batch sessions' }}</h3>
+                <p class="section-kicker sqlforge-code-label">input sql</p>
+                <h3 class="section-title">{{ isChinese ? '输入 SQL 与导入选项' : 'Input SQL and import options' }}</h3>
               </div>
             </div>
-            <div class="session-list">
-              <button
-                v-for="item in parseBatchSessions"
-                :key="item.batchId"
-                type="button"
-                class="session-item"
-                :class="{ 'session-item-active': parseBatchDetail?.batchId === item.batchId }"
-                data-testid="batch-import-parse-batch-item"
-                @click="openParseSession(item.batchId)"
-              >
-                <div class="session-item-top">
-                  <strong>{{ item.batchName || item.batchId }}</strong>
-                  <span class="status-pill">{{ item.status || 'CREATED' }}</span>
-                </div>
-                <p>{{ item.batchId }}</p>
-                <span>{{ formatInstant(item.createdAt || item.updatedAt) }}</span>
-              </button>
-              <div v-if="!parseBatchSessions.length" class="empty-state">
-                {{ isChinese ? '先创建一个 parse batch。' : 'Create a parse batch to start.' }}
-              </div>
+            <div class="dialog-grid dialog-grid-single">
+              <label class="field-block">
+                <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+                <el-input v-model="parseBatchForm.tenantId" />
+              </label>
+              <label class="field-block">
+                <span class="field-label">{{ isChinese ? '批次名称' : 'Batch name' }}</span>
+                <el-input v-model="parseBatchForm.batchName" />
+              </label>
+              <label class="field-block">
+                <span class="field-label">{{ isChinese ? '输入方式' : 'Input mode' }}</span>
+                <el-select v-model="parseBatchForm.directInputMode">
+                  <el-option v-for="item in directInputModeOptions" :key="item" :label="item" :value="item" />
+                </el-select>
+              </label>
+              <label class="field-block">
+                <span class="field-label">{{ isChinese ? '默认数据源' : 'Default datasource' }}</span>
+                <el-input v-model="parseBatchForm.datasourceCode" />
+              </label>
+              <label class="field-block field-block-wide">
+                <span class="field-label">{{ isChinese ? '多 SQL / 表格文本' : 'Multi SQL / tabular text' }}</span>
+                <el-input v-model="parseBatchForm.rawContent" type="textarea" :rows="10" />
+              </label>
             </div>
           </aside>
 
@@ -735,8 +763,11 @@ onMounted(async () => {
                 >
                   {{ isChinese ? '补跑 Access' : 'Retry access' }}
                 </el-button>
-                <el-button :disabled="!parseBatchDetail?.batchId" @click="parseDetailDrawerVisible = true">
-                  {{ isChinese ? '打开详情抽屉' : 'Open detail drawer' }}
+                <el-button :disabled="!parseBatchDetail?.batchId" data-testid="batch-import-parse-detail" @click="parseResultDialogVisible = true">
+                  {{ isChinese ? '解析结果' : 'Parse results' }}
+                </el-button>
+                <el-button :disabled="!parseBatchDetail?.batchId" data-testid="batch-import-parse-statistics" @click="parseStatisticsDialogVisible = true">
+                  {{ isChinese ? '解析统计' : 'Parse statistics' }}
                 </el-button>
               </div>
             </div>
@@ -797,7 +828,7 @@ onMounted(async () => {
 
             <div v-else class="empty-stage">
               <strong>{{ isChinese ? '暂无 parse batch' : 'No parse batch selected' }}</strong>
-              <p>{{ isChinese ? '先创建批次，然后通过弹窗导入多条 SQL 或模板文件。' : 'Create a batch first, then import multi-SQL text or template files through dialogs.' }}</p>
+              <p>{{ isChinese ? '先创建批次，然后导入当前输入区的多条 SQL 或模板文件。' : 'Create a batch first, then import the current multi-SQL input or template file.' }}</p>
             </div>
           </main>
         </div>
@@ -807,12 +838,12 @@ onMounted(async () => {
         <div class="workspace-toolbar shell-panel">
           <div class="toolbar-copy">
             <p class="section-kicker sqlforge-code-label">report catalog import</p>
-            <h2 class="section-title">{{ isChinese ? '报表清单导入与 SQL 解析' : 'Report catalog import and SQL resolution' }}</h2>
+            <h2 class="section-title">{{ isChinese ? '当前报表导入批次' : 'Current report import batch' }}</h2>
             <p class="section-summary">
               {{
                 isChinese
-                  ? '批次表、详情抽屉和导入弹窗分离，避免把报表清单、导入说明和结果全塞在一个长页面里。'
-                  : 'Session list, detail drawers, and import dialogs are separated so the report workflow no longer lives in one long stacked page.'
+                  ? '报表导入按 report_code 分组，展开后查看每个报表下的 SQL。'
+                  : 'Report imports are grouped by report_code, with SQL details under each report.'
               }}
             </p>
           </div>
@@ -830,49 +861,62 @@ onMounted(async () => {
             >
               {{ isChinese ? '解析报表 SQL' : 'Resolve report SQLs' }}
             </el-button>
+            <el-button @click="openBatchSelector('report')">
+              {{ isChinese ? '选择批次' : 'Select batch' }}
+            </el-button>
           </div>
         </div>
 
-        <div class="workspace-grid">
-          <aside class="shell-panel session-rail">
+        <div class="workspace-grid current-batch-grid" data-testid="batch-import-report-current-workbench">
+          <aside class="shell-panel input-rail" data-testid="batch-import-report-current-input">
             <div class="section-heading">
               <div>
-                <p class="section-kicker sqlforge-code-label">report sessions</p>
-                <h3 class="section-title">{{ isChinese ? '报表批次' : 'Report batches' }}</h3>
+                <p class="section-kicker sqlforge-code-label">report import input</p>
+                <h3 class="section-title">{{ isChinese ? '导入选项与宽表模板' : 'Import options and wide template' }}</h3>
               </div>
             </div>
-            <div class="session-list">
-              <button
-                v-for="item in reportBatchSessions"
-                :key="item.batchId"
-                type="button"
-                class="session-item"
-                :class="{ 'session-item-active': reportBatchDetail?.batchId === item.batchId }"
-                data-testid="batch-import-report-item"
-                @click="openReportSession(item.batchId)"
-              >
-                <div class="session-item-top">
-                  <strong>{{ item.batchName || item.batchId }}</strong>
-                  <span class="status-pill">{{ item.status || 'IMPORTED' }}</span>
-                </div>
-                <p>{{ item.batchId }}</p>
-                <span>{{ formatInstant(item.createdAt || item.updatedAt) }}</span>
-              </button>
-              <div v-if="!reportBatchSessions.length" class="empty-state">
-                {{ isChinese ? '先导入一个报表批次。' : 'Import a report batch to start.' }}
-              </div>
+            <div class="dialog-grid dialog-grid-single">
+              <label class="field-block">
+                <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+                <el-input v-model="reportBatchForm.tenantId" />
+              </label>
+              <label class="field-block">
+                <span class="field-label">{{ isChinese ? '批次名称' : 'Batch name' }}</span>
+                <el-input v-model="reportBatchForm.batchName" />
+              </label>
+              <label class="field-block">
+                <span class="field-label">{{ isChinese ? '报表编码字段' : 'Report code field' }}</span>
+                <el-input v-model="reportBatchForm.reportCodeField" />
+              </label>
+              <label class="field-block">
+                <span class="field-label">{{ isChinese ? '默认数据源' : 'Default datasource' }}</span>
+                <el-input v-model="reportBatchForm.datasourceCode" />
+              </label>
+              <label class="field-block field-block-wide">
+                <span class="field-label">{{ isChinese ? '宽表模板预览' : 'Wide template preview' }}</span>
+                <pre class="code-block compact-code">{{ reportTemplatePreview }}</pre>
+              </label>
+              <label class="field-block field-block-wide">
+                <span class="field-label">{{ isChinese ? '内联报表 SQL 宽表' : 'Inline report SQL table' }}</span>
+                <el-input v-model="reportBatchForm.rawContent" type="textarea" :rows="8" />
+              </label>
             </div>
           </aside>
 
           <main class="shell-panel detail-stage">
             <div class="section-heading">
               <div>
-                <p class="section-kicker sqlforge-code-label">report items</p>
-                <h3 class="section-title">{{ isChinese ? '报表项概览' : 'Report items' }}</h3>
+                <p class="section-kicker sqlforge-code-label">current report batch</p>
+                <h3 class="section-title">{{ isChinese ? '当前批次概览' : 'Current batch overview' }}</h3>
               </div>
-              <el-button :disabled="!reportBatchDetail?.batchId" @click="reportDetailDrawerVisible = true">
-                {{ isChinese ? '打开详情抽屉' : 'Open detail drawer' }}
-              </el-button>
+              <div class="toolbar-actions">
+                <el-button :disabled="!reportBatchDetail?.batchId" data-testid="batch-import-report-result" @click="reportResultDialogVisible = true">
+                  {{ isChinese ? '解析结果' : 'Parse results' }}
+                </el-button>
+                <el-button :disabled="!reportBatchDetail?.batchId" data-testid="batch-import-report-statistics" @click="reportStatisticsDialogVisible = true">
+                  {{ isChinese ? '解析统计' : 'Parse statistics' }}
+                </el-button>
+              </div>
             </div>
 
             <div v-if="reportBatchDetail" class="summary-grid">
@@ -891,26 +935,25 @@ onMounted(async () => {
 
             <div v-if="reportBatchDetail" class="report-list">
               <article
-                v-for="(item, index) in reportItems.slice(0, 8)"
-                :key="item.reportCode || item.itemId || index"
+                v-for="group in reportGroups.slice(0, 6)"
+                :key="group.reportCode"
                 class="report-item"
                 data-testid="batch-import-report-sql-detail"
               >
                 <div class="session-item-top">
-                  <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
-                  <span class="status-pill">{{ displayValue(item.status) }}</span>
+                  <strong>{{ group.reportCode }}</strong>
+                  <span class="status-pill">{{ group.total }} SQL</span>
                 </div>
-                <p>{{ displayValue(item.reportName) }} · {{ displayValue(item.datasourceCode || item.stage) }} · {{ displayValue(item.priority) }}</p>
+                <p>{{ displayValue(group.reportName) }}</p>
                 <p>
-                  {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
-                  · Structure: {{ displayValue(item.structureSyntaxStatus) }}
-                  · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+                  {{ isChinese ? '已解析' : 'Resolved' }}: {{ group.resolved }}
+                  · {{ isChinese ? '失败' : 'Failed' }}: {{ group.failed }}
+                  · Structure: {{ formatPercent(group.structureRate) }}
+                  · Access: {{ formatPercent(group.accessRate) }}
                 </p>
-                <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
-                <pre v-if="item.sqlText" class="code-block compact-code">{{ item.sqlText }}</pre>
               </article>
               <div v-if="!reportItems.length" class="empty-state">
-                {{ isChinese ? '导入后会在这里看到报表清单。' : 'Imported report items appear here.' }}
+                {{ isChinese ? '导入后会在这里看到本批次报表与 SQL 概览。' : 'Imported report and SQL overview appears here.' }}
               </div>
             </div>
 
@@ -943,82 +986,9 @@ onMounted(async () => {
 
             <div v-else class="empty-stage">
               <strong>{{ isChinese ? '暂无 report batch' : 'No report batch selected' }}</strong>
-              <p>{{ isChinese ? '通过导入弹窗上传报表清单，再在详情抽屉里查看解析证据。' : 'Use the import dialog to upload the report catalog, then review evidence in the detail drawer.' }}</p>
+              <p>{{ isChinese ? '通过左侧导入选项上传或粘贴 report_code + 多 SQL 宽表。' : 'Use the input panel to upload or paste a report_code + multi-SQL wide table.' }}</p>
             </div>
           </main>
-        </div>
-      </el-tab-pane>
-
-      <el-tab-pane :label="isChinese ? '历史总览' : 'History overview'" name="history">
-        <div class="workspace-toolbar shell-panel">
-          <div class="toolbar-copy">
-            <p class="section-kicker sqlforge-code-label">history overview</p>
-            <h2 class="section-title">{{ isChinese ? '解析历史总览' : 'Parse history overview' }}</h2>
-            <p class="section-summary">
-              {{
-                isChinese
-                  ? '这里直接展示服务端持久化后的批量解析与报表导入记录，可快速回到任意批次详情。'
-                  : 'This tab surfaces persisted batch parse and report-import history so you can jump back into any batch detail.'
-              }}
-            </p>
-          </div>
-          <div class="toolbar-actions">
-            <el-button :loading="loading.refreshParseBatch || loading.refreshReportBatch" @click="loadBatchHistories">
-              {{ isChinese ? '刷新历史' : 'Refresh history' }}
-            </el-button>
-          </div>
-        </div>
-
-        <div class="workspace-grid history-grid">
-          <section class="shell-panel">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">parse history</p>
-                <h3 class="section-title">{{ isChinese ? '批量解析历史' : 'Batch parse history' }}</h3>
-              </div>
-            </div>
-            <el-table :data="parseBatchSessions" border>
-              <el-table-column prop="batchName" :label="isChinese ? '批次名称' : 'Batch name'" min-width="180">
-                <template #default="{ row }">
-                  <button type="button" class="table-link" @click="openParseSession(row.batchId)">
-                    {{ row.batchName || row.batchId }}
-                  </button>
-                </template>
-              </el-table-column>
-              <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
-              <el-table-column prop="totalRecords" :label="isChinese ? '总记录' : 'Total records'" min-width="120" />
-              <el-table-column prop="successRecords" :label="isChinese ? '成功' : 'Success'" min-width="100" />
-              <el-table-column prop="failedRecords" :label="isChinese ? '失败' : 'Failed'" min-width="100" />
-              <el-table-column prop="createdAt" :label="isChinese ? '创建时间' : 'Created at'" min-width="170">
-                <template #default="{ row }">{{ formatInstant(row.createdAt) }}</template>
-              </el-table-column>
-            </el-table>
-          </section>
-
-          <section class="shell-panel">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">report history</p>
-                <h3 class="section-title">{{ isChinese ? '报表导入历史' : 'Report import history' }}</h3>
-              </div>
-            </div>
-            <el-table :data="reportBatchSessions" border>
-              <el-table-column prop="batchName" :label="isChinese ? '批次名称' : 'Batch name'" min-width="180">
-                <template #default="{ row }">
-                  <button type="button" class="table-link" @click="openReportSession(row.batchId)">
-                    {{ row.batchName || row.batchId }}
-                  </button>
-                </template>
-              </el-table-column>
-              <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
-              <el-table-column prop="totalReports" :label="isChinese ? '报表总数' : 'Total reports'" min-width="120" />
-              <el-table-column prop="resolvedReports" :label="isChinese ? '已解析' : 'Resolved'" min-width="100" />
-              <el-table-column prop="failedReports" :label="isChinese ? '失败' : 'Failed'" min-width="100" />
-              <el-table-column prop="createdAt" :label="isChinese ? '创建时间' : 'Created at'" min-width="170">
-                <template #default="{ row }">{{ formatInstant(row.createdAt) }}</template>
-              </el-table-column>
-            </el-table>
-          </section>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -1127,13 +1097,13 @@ onMounted(async () => {
       </template>
     </el-dialog>
 
-    <el-drawer
-      v-model="parseDetailDrawerVisible"
-      :title="isChinese ? 'Parse Batch 详情' : 'Parse batch detail'"
-      size="46%"
+    <el-dialog
+      v-model="parseResultDialogVisible"
+      :title="isChinese ? '当前批次解析结果' : 'Current batch parse results'"
+      width="980px"
       data-testid="batch-import-parse-detail"
     >
-      <div class="drawer-stack">
+      <div class="dialog-stack">
         <div class="summary-grid">
           <article v-for="item in parseBatchStatusCards" :key="item.label" class="summary-card">
             <span class="summary-card-label">{{ item.label }}</span>
@@ -1141,14 +1111,42 @@ onMounted(async () => {
           </article>
         </div>
         <section class="detail-card">
-          <p class="section-kicker sqlforge-code-label">Template-column contract</p>
-          <div class="contract-list">
-            <div v-for="item in templateColumns" :key="item.columnKey" class="contract-item">
-              <strong>{{ item.columnKey }}</strong>
-              <span>{{ displayValue(item.required) }} · {{ displayValue(item.columnType) }}</span>
+          <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
+          <div class="report-list">
+            <article
+              v-for="(item, index) in parseImportedRecords"
+              :key="item.itemId || item.recordId || index"
+              class="report-item"
+              data-testid="batch-import-parse-sql-detail"
+            >
+              <div class="session-item-top">
+                <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
+                <span class="status-pill">{{ displayValue(item.status) }}</span>
+              </div>
+              <p>
+                {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
+                · Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+              </p>
+              <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+              <pre v-if="item.sqlText" class="code-block compact-code">{{ item.sqlText }}</pre>
+            </article>
+            <div v-if="!parseImportedRecords.length" class="empty-state">
+              {{ isChinese ? '当前批次还没有 SQL 明细。' : 'No SQL rows in the current batch yet.' }}
             </div>
           </div>
         </section>
+      </div>
+    </el-dialog>
+
+    <el-dialog v-model="parseStatisticsDialogVisible" :title="isChinese ? '当前批次解析统计' : 'Current batch parse statistics'" width="920px">
+      <div class="dialog-stack">
+        <div class="summary-grid">
+          <article v-for="item in parseBatchStatusCards" :key="item.label" class="summary-card">
+            <span class="summary-card-label">{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </article>
+        </div>
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">parse statistics</p>
           <div class="result-layout">
@@ -1179,15 +1177,19 @@ onMounted(async () => {
               v-for="(item, index) in parseFailureRecords"
               :key="item.recordId || item.id || index"
               class="failure-item"
+              data-testid="batch-import-failure-record"
             >
               <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
               <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
               <p>{{ displayValue(item.sqlText || item.message || item.sqlPreview) }}</p>
             </article>
+            <div v-if="!parseFailureRecords.length" class="empty-state">
+              {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
+            </div>
           </div>
         </section>
       </div>
-    </el-drawer>
+    </el-dialog>
 
     <el-dialog v-model="reportImportDialogVisible" :title="isChinese ? '导入报表批次' : 'Import report batch'" width="820px">
       <div class="dialog-grid">
@@ -1231,18 +1233,59 @@ onMounted(async () => {
       </template>
     </el-dialog>
 
-    <el-drawer
-      v-model="reportDetailDrawerVisible"
-      :title="isChinese ? 'Report Batch 详情' : 'Report batch detail'"
-      size="46%"
+    <el-dialog
+      v-model="reportResultDialogVisible"
+      :title="isChinese ? '当前报表批次解析结果' : 'Current report batch parse results'"
+      width="1040px"
     >
-      <div class="drawer-stack">
+      <div class="dialog-stack">
         <div class="summary-grid">
           <article v-for="item in reportBatchStatusCards" :key="item.label" class="summary-card">
             <span class="summary-card-label">{{ item.label }}</span>
             <strong>{{ item.value }}</strong>
           </article>
         </div>
+        <section class="detail-card">
+          <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
+          <el-collapse accordion>
+            <el-collapse-item
+              v-for="group in reportGroups"
+              :key="group.reportCode"
+              :name="group.reportCode"
+            >
+              <template #title>
+                {{ group.reportCode }} · {{ group.total }} SQL · {{ isChinese ? '已解析' : 'Resolved' }} {{ group.resolved }}
+              </template>
+              <div class="report-list">
+                <article
+                  v-for="(item, index) in group.items"
+                  :key="item.itemId || `${group.reportCode}-${index}`"
+                  class="report-item"
+                  data-testid="batch-import-report-drawer-sql-detail"
+                >
+                  <div class="session-item-top">
+                    <strong>{{ item.sqlColumnName || item.itemId || `SQL ${index + 1}` }}</strong>
+                    <span class="status-pill">{{ displayValue(item.status) }}</span>
+                  </div>
+                  <p>{{ displayValue(item.reportName) }} · {{ displayValue(item.datasourceCode || item.stage) }} · {{ displayValue(item.priority) }}</p>
+                  <p>
+                    {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
+                    · Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                    · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+                  </p>
+                  <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+                  <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
+                  <pre v-if="item.sqlText" class="code-block compact-code">{{ item.sqlText }}</pre>
+                </article>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </section>
+      </div>
+    </el-dialog>
+
+    <el-dialog v-model="reportStatisticsDialogVisible" :title="isChinese ? '当前报表批次解析统计' : 'Current report batch parse statistics'" width="960px">
+      <div class="dialog-stack">
         <div class="summary-grid" data-testid="batch-import-report-drawer-statistics">
           <article v-for="item in reportSqlStatisticsCards" :key="item.label" class="summary-card">
             <span class="summary-card-label">{{ item.label }}</span>
@@ -1252,6 +1295,12 @@ onMounted(async () => {
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">report-level statistics</p>
           <div class="result-layout">
+            <div class="stat-list">
+              <div v-for="item in reportGroups" :key="item.reportCode" class="contract-item">
+                <strong>{{ item.reportCode }}</strong>
+                <span>{{ item.total }} SQL · {{ item.resolved }} resolved · {{ formatPercent(item.structureRate) }}</span>
+              </div>
+            </div>
             <div class="stat-list">
               <div v-for="item in reportIssueStatistics" :key="item.issueScene" class="contract-item">
                 <strong>{{ item.issueScene }}</strong>
@@ -1272,31 +1321,35 @@ onMounted(async () => {
             </div>
           </div>
         </section>
-        <section class="detail-card">
-          <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
-          <div class="report-list">
-            <article
-              v-for="(item, index) in reportItems"
-              :key="item.reportCode || item.itemId || index"
-              class="report-item"
-              data-testid="batch-import-report-drawer-sql-detail"
-            >
-              <div class="session-item-top">
-                <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
-                <span class="status-pill">{{ displayValue(item.status) }}</span>
-              </div>
-              <p>{{ displayValue(item.reportName) }} · {{ displayValue(item.datasourceCode || item.stage) }} · {{ displayValue(item.priority) }}</p>
-              <p>
-                {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
-                · Structure: {{ displayValue(item.structureSyntaxStatus) }}
-                · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
-              </p>
-              <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
-              <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
-              <pre v-if="item.sqlText" class="code-block compact-code">{{ item.sqlText }}</pre>
-            </article>
+      </div>
+    </el-dialog>
+
+    <el-drawer
+      v-model="batchSelectorDrawerVisible"
+      :title="batchSelectorKind === 'report' ? (isChinese ? '选择报表批次' : 'Select report batch') : (isChinese ? '选择解析批次' : 'Select parse batch')"
+      size="38%"
+    >
+      <div class="session-list">
+        <button
+          v-for="item in (batchSelectorKind === 'report' ? reportBatchSessions : parseBatchSessions)"
+          :key="item.batchId"
+          type="button"
+          class="session-item"
+          :class="{
+            'session-item-active': batchSelectorKind === 'report'
+              ? reportBatchDetail?.batchId === item.batchId
+              : parseBatchDetail?.batchId === item.batchId
+          }"
+          :data-testid="batchSelectorKind === 'report' ? 'batch-import-report-item' : 'batch-import-parse-batch-item'"
+          @click="batchSelectorKind === 'report' ? openReportSession(item.batchId) : openParseSession(item.batchId)"
+        >
+          <div class="session-item-top">
+            <strong>{{ item.batchName || item.batchId }}</strong>
+            <span class="status-pill">{{ item.status || '-' }}</span>
           </div>
-        </section>
+          <p>{{ item.batchId }}</p>
+          <span>{{ formatInstant(item.createdAt || item.updatedAt) }}</span>
+        </button>
       </div>
     </el-drawer>
   </section>
@@ -1401,7 +1454,12 @@ onMounted(async () => {
   gap: 20px;
 }
 
+.current-batch-grid {
+  grid-template-columns: minmax(320px, 0.92fr) minmax(0, 1.08fr);
+}
+
 .session-rail,
+.input-rail,
 .detail-stage,
 .detail-card,
 .summary-card,
@@ -1417,6 +1475,7 @@ onMounted(async () => {
 
 .session-list,
 .drawer-stack,
+.dialog-stack,
 .contract-list,
 .failure-list,
 .report-list,
@@ -1510,6 +1569,10 @@ onMounted(async () => {
 
 .dialog-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dialog-grid-single {
+  grid-template-columns: 1fr;
 }
 
 .template-sheet {

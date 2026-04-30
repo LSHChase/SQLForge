@@ -68,6 +68,8 @@ public class MybatisReportBatchItemRepository implements ReportBatchItemReposito
         record.setStage(item.getStage());
         record.setPriority(item.getPriority());
         record.setSourceFileLine(item.getSourceFileLine());
+        record.setSqlColumnName(item.getSqlColumnName());
+        record.setSqlOrdinalInReport(item.getSqlOrdinalInReport());
         record.setSqlText(item.getSqlText());
         record.setParseTaskId(item.getParseTaskId());
         record.setStructureSyntaxStatus(item.getStructureSyntaxStatus());
@@ -93,6 +95,8 @@ public class MybatisReportBatchItemRepository implements ReportBatchItemReposito
             record.getStage(),
             record.getPriority(),
             record.getSourceFileLine(),
+            record.getSqlColumnName(),
+            record.getSqlOrdinalInReport(),
             record.getSqlText(),
             record.getParseTaskId(),
             record.getStructureSyntaxStatus(),
