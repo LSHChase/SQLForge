@@ -2106,3 +2106,8 @@
 2026-04-29T19:04:27-05:00 | HARN-056 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-04-29T19:04:27-05:00 | HARN-056 closeout commit | `R-168` | projected | `git commit -m 'HARN-056: 解析历史落库与批量解析中心重构' (projected-precommit)`
 2026-04-29T19:04:27-05:00 | HARN-056 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-29T19:35:25-05:00 | OPS-LOCAL-002 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-29T19:35:25-05:00 | OPS-LOCAL-002 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-29T19:35:29-05:00 | OPS-LOCAL-002 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-29T19:35:29-05:00 | OPS-LOCAL-002 closeout commit | `R-168` | projected | `git commit -m 'chore(ops): restart local frontend and backend' (projected-precommit)`
+2026-04-29T19:35:29-05:00 | OPS-LOCAL-002 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-LOCAL-002: 重新启动前后端服务
+
+- Status: done
+- Completed at: 2026-04-29
+- Commit subject: `chore(ops): restart local frontend and backend`
+- Priority: 2
+- Depends on: N/A
+- Scope: Restart local backend services and frontend dev server for the current workspace session.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-LOCAL-002`
+- Progress log:
+  - 2026-04-29: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Restarted the local Docker-backed infrastructure, backend runtime services, and frontend dev server for the current workspace session.
+  - Validation evidence: python3 scripts/foreman.py validate OPS-LOCAL-002; python3 scripts/task_audit.py --check --phase pre-closeout; bash scripts/health-check.sh --fail-on-error
+  - Residual risk: Long-running dev services remain active in separate sessions and should be stopped explicitly when no longer needed.
+  - Next step: Keep the services running for user access or stop them with the repository stop scripts when finished.
+
 ### HARN-056: 解析历史落库与批量解析中心重构
 
 - Status: done
