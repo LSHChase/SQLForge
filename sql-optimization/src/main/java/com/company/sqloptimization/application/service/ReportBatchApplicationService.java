@@ -7,6 +7,7 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import com.company.sqloptimization.application.controller.dto.AccessParseRequest;
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
+import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
 import com.company.sqloptimization.application.controller.vo.AccessParseResponseVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchItemVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusHistoryVO;
@@ -117,11 +118,20 @@ public class ReportBatchApplicationService {
         for (ReportBatchItem item : items) {
             ReportSqlResolveResult resolvedSql = reportSqlResolver.resolve(buildReportSqlResolveRequest(batch, item));
             Map<String, Object> commentContext = buildCommentContext(batch, item);
-            StructureParseResponseVO structureParse = parseStructure(resolvedSql.getSqlText(), batch, commentContext);
+            StructureParseRequest structureRequest = buildStructureRequest(resolvedSql.getSqlText(), batch, commentContext);
+            StructureParseResponseVO structureParse = structureParseApplicationService.parse(structureRequest);
             List<String> issueScenes = extractIssueScenes(structureParse.getIssues());
             List<String> logicalObjectKeys = extractLogicalObjectKeys(structureParse.getLogicalObjectHits());
             AccessParseResponseVO accessParse = parseAccessIfPossible(resolvedSql.getSqlText(), batch, commentContext, structureParse.getParseTaskId());
             ReportBatchItem.Status status = resolveStatus(structureParse, accessParse);
+            if (accessParse != null) {
+                structureParseApplicationService.writeParseHistoryWithAccess(
+                    structureParse,
+                    accessParse,
+                    structureRequest,
+                    resolveHistoryResultStatus(status)
+                );
+            }
             item.complete(
                 resolvedSql.getSqlText(),
                 structureParse.getParseTaskId(),
@@ -241,12 +251,22 @@ public class ReportBatchApplicationService {
             : accessParse.getDegradeReason();
     }
 
-    private StructureParseResponseVO parseStructure(String sqlText, ReportBatch batch, Map<String, Object> commentContext) {
-        com.company.sqloptimization.application.controller.dto.StructureParseRequest request = new com.company.sqloptimization.application.controller.dto.StructureParseRequest();
+    private String resolveHistoryResultStatus(ReportBatchItem.Status status) {
+        if (status == ReportBatchItem.Status.RESOLVED) {
+            return "SUCCESS";
+        }
+        if (status == ReportBatchItem.Status.PARTIAL_RESOLVED) {
+            return "PARTIAL";
+        }
+        return "FAILED";
+    }
+
+    private StructureParseRequest buildStructureRequest(String sqlText, ReportBatch batch, Map<String, Object> commentContext) {
+        StructureParseRequest request = new StructureParseRequest();
         request.setSqlText(sqlText);
         request.setDatasourceCode(batch.getDatasourceCode());
         request.setCommentContext(commentContext);
-        return structureParseApplicationService.parse(request);
+        return request;
     }
 
     private AccessParseResponseVO parseAccessIfPossible(String sqlText,

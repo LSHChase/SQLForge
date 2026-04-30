@@ -268,6 +268,28 @@
 - `object_key` 固定为 `TYPE:qualified_object_name_lowercase`
 - `logical_object_hits_json` 中若对象以 JSON 形式落库，也必须沿用同一字段命名，不再混用 `type/objectType`
 
+## 7. HARN-058 Parse History Query Context
+
+SQL 解析历史写入 `query_history` 时，`query_context` 必须使用可投影的归一化结构。历史列表结构化列从该结构投影，历史详情从同一结构读取解析证据。
+
+必备顶层字段：
+
+- `commentContext`: 原 SQL 注释上下文或页面/批次传入上下文，至少承载 `report_code`、`stage`、`biz_date`、`datasource`
+- `queryDateSummary`: 结构解析得到的查询日期摘要
+- `queryDateStart`
+- `queryDateEnd`
+- `queryDateStatus`
+- `logicalObjectHits`
+- `bindingSummary`
+- `structureParseSummary`
+- `accessParseSummary`
+
+兼容规则：
+
+- 历史写入端允许接收 legacy 扁平 comment context，但持久化前必须归一成 `queryContext.commentContext`。
+- 历史投影端必须在 `queryContext.commentContext` 不存在时回退读取 `query_history.comment_context`，用于兼容 HARN-058 前的写入形态。
+- 同一 `parseTaskId` 的结构解析和 access 解析必须合并到同一 `historyId`，不得拆成两条互不关联的历史记录。
+
 ## Related Documents
 
 - `docs/product/sql-governance-platform-implementation-spec.md`

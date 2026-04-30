@@ -351,4 +351,42 @@
             #{createTime}
         )
     </insert>
+
+    <update id="updateById" parameterType="com.company.governance.domain.trace.entity.QueryHistoryRecord">
+        UPDATE query_history
+        SET
+            result_id = #{resultId},
+            tenant_id = #{tenantId},
+            history_type = #{historyType},
+            sql_fingerprint = #{sqlFingerprint},
+            sql_text_cipher = #{sqlTextCipher},
+            sql_template_cipher = #{sqlTemplateCipher},
+            bound_sql_text_cipher = #{boundSqlTextCipher},
+            datasource_code = #{datasourceCode},
+            datasource_type = #{datasourceType},
+            report_code = #{reportCode},
+            stage_code = #{stageCode},
+            biz_date = #{bizDate},
+            query_date_start = #{queryDateStart},
+            query_date_end = #{queryDateEnd},
+            query_date_status = #{queryDateStatus},
+            access_channel = #{accessChannel},
+            parameterized_sql_flag = #{parameterizedSqlFlag},
+            binding_mode = #{bindingMode},
+            binding_render_status = #{bindingRenderStatus},
+            sql_template_fingerprint = #{sqlTemplateFingerprint},
+            bound_sql_fingerprint = #{boundSqlFingerprint},
+            trace_id = #{traceId},
+            request_id = #{requestId},
+            saga_id = #{sagaId},
+            comment_context = #{commentContext},
+            binding_summary = #{bindingSummary},
+            logical_object_hits = #{logicalObjectHits},
+            route_summary = #{routeSummary},
+            cache_summary = #{cacheSummary},
+            query_context = #{queryContext},
+            submitted_by = #{submittedBy},
+            submitted_at = #{submittedAt}
+        WHERE history_id = #{historyId}
+    </update>
 </mapper>

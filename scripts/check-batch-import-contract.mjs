@@ -19,9 +19,14 @@ const requiredTokens = [
   'data-testid="batch-import-report-import"',
   'data-testid="batch-import-report-resolve"',
   'data-testid="batch-import-report-item"',
+  'data-testid="batch-import-report-sql-statistics"',
+  'data-testid="batch-import-report-sql-detail"',
+  'data-testid="batch-import-report-drawer-statistics"',
+  'data-testid="batch-import-report-drawer-sql-detail"',
   'Template-column contract',
   'Failure records',
-  'Report items'
+  'SQL-level parse detail',
+  'report-level statistics'
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))

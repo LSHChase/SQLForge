@@ -125,6 +125,62 @@ const reportItems = computed(() => {
     []
   return Array.isArray(source) ? source.filter(item => typeof item === 'object') : []
 })
+const parseIssueStatistics = computed(() => {
+  const items = parseBatchDetail.value?.issueStatistics || []
+  return Array.isArray(items) ? items : []
+})
+const parseReportStatistics = computed(() => {
+  const items = parseBatchDetail.value?.reportStatistics || []
+  return Array.isArray(items) ? items : []
+})
+const reportSqlStatisticsCards = computed(() => {
+  const items = reportItems.value
+  const total = items.length
+  const resolved = items.filter(item => String(item.status || '').toUpperCase() === 'RESOLVED').length
+  const partial = items.filter(item => String(item.status || '').toUpperCase().includes('PARTIAL')).length
+  const failed = items.filter(item => String(item.status || '').toUpperCase() === 'FAILED').length
+  const structureValid = items.filter(item => String(item.structureSyntaxStatus || '').toUpperCase() === 'VALID').length
+  const accessConnected = items.filter(item =>
+    String(item.accessServiceStatus || '').toUpperCase() === 'AVAILABLE' &&
+    String(item.accessConnectionStatus || '').toUpperCase() === 'CONNECTED'
+  ).length
+  const issueScenes = new Set(items.flatMap(item => Array.isArray(item.issueScenes) ? item.issueScenes : []))
+  const logicalObjects = new Set(items.flatMap(item => Array.isArray(item.logicalObjectKeys) ? item.logicalObjectKeys : []))
+  return [
+    card(isChinese.value ? 'SQL 总数' : 'SQL count', total),
+    card(isChinese.value ? '解析成功' : 'Resolved', resolved),
+    card(isChinese.value ? '部分解析' : 'Partial', partial),
+    card(isChinese.value ? '失败' : 'Failed', failed),
+    card(isChinese.value ? '结构成功率' : 'Structure rate', formatPercent(rate(structureValid, total))),
+    card(isChinese.value ? 'Access 连通率' : 'Access connected', formatPercent(rate(accessConnected, total))),
+    card(isChinese.value ? '问题场景' : 'Issue scenes', issueScenes.size),
+    card(isChinese.value ? '逻辑对象' : 'Logical objects', logicalObjects.size)
+  ]
+})
+const reportIssueStatistics = computed(() => {
+  const counts = new Map()
+  reportItems.value.forEach(item => {
+    const scenes = Array.isArray(item.issueScenes) ? item.issueScenes : []
+    scenes.forEach(scene => counts.set(scene, (counts.get(scene) || 0) + 1))
+  })
+  return Array.from(counts.entries())
+    .map(([issueScene, affectedSqlCount]) => ({
+      issueScene,
+      affectedSqlCount,
+      ratio: rate(affectedSqlCount, reportItems.value.length)
+    }))
+    .sort((left, right) => right.affectedSqlCount - left.affectedSqlCount)
+})
+const reportLogicalObjectStatistics = computed(() => {
+  const counts = new Map()
+  reportItems.value.forEach(item => {
+    const keys = Array.isArray(item.logicalObjectKeys) ? item.logicalObjectKeys : []
+    keys.forEach(objectKey => counts.set(objectKey, (counts.get(objectKey) || 0) + 1))
+  })
+  return Array.from(counts.entries())
+    .map(([objectKey, hitCount]) => ({ objectKey, hitCount }))
+    .sort((left, right) => right.hitCount - left.hitCount)
+})
 const templateColumns = computed(() => parseBatchDetail.value?.templateColumns || [])
 const directSqlPreview = computed(() => {
   if (parseBatchForm.directInputMode !== 'SQL_LINES') {
@@ -186,6 +242,20 @@ const formatRate = value => {
     return '-'
   }
   return `${Number(value).toFixed(2)}`
+}
+
+const rate = (count, total) => {
+  if (!total) {
+    return 0
+  }
+  return Number(count || 0) / Number(total)
+}
+
+const formatPercent = value => {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return '-'
+  }
+  return `${(Number(value) * 100).toFixed(1)}%`
 }
 
 const formatInstant = value => {
@@ -812,19 +882,63 @@ onMounted(async () => {
               </article>
             </div>
 
+            <div v-if="reportBatchDetail" class="summary-grid" data-testid="batch-import-report-sql-statistics">
+              <article v-for="item in reportSqlStatisticsCards" :key="item.label" class="summary-card">
+                <span class="summary-card-label">{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+              </article>
+            </div>
+
             <div v-if="reportBatchDetail" class="report-list">
               <article
                 v-for="(item, index) in reportItems.slice(0, 8)"
                 :key="item.reportCode || item.itemId || index"
                 class="report-item"
+                data-testid="batch-import-report-sql-detail"
               >
-                <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
-                <span>{{ displayValue(item.reportName || item.status) }}</span>
-                <p>{{ displayValue(item.datasourceCode || item.stage) }} · {{ displayValue(item.priority || item.resolutionStatus) }}</p>
+                <div class="session-item-top">
+                  <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
+                  <span class="status-pill">{{ displayValue(item.status) }}</span>
+                </div>
+                <p>{{ displayValue(item.reportName) }} · {{ displayValue(item.datasourceCode || item.stage) }} · {{ displayValue(item.priority) }}</p>
+                <p>
+                  {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
+                  · Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                  · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+                </p>
+                <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+                <pre v-if="item.sqlText" class="code-block compact-code">{{ item.sqlText }}</pre>
               </article>
               <div v-if="!reportItems.length" class="empty-state">
                 {{ isChinese ? '导入后会在这里看到报表清单。' : 'Imported report items appear here.' }}
               </div>
+            </div>
+
+            <div v-if="reportBatchDetail" class="result-layout">
+              <section class="detail-card">
+                <p class="section-kicker sqlforge-code-label">report-level issue statistics</p>
+                <div class="stat-list">
+                  <div v-for="item in reportIssueStatistics.slice(0, 6)" :key="item.issueScene" class="contract-item">
+                    <strong>{{ item.issueScene }}</strong>
+                    <span>{{ item.affectedSqlCount }} · {{ formatPercent(item.ratio) }}</span>
+                  </div>
+                  <div v-if="!reportIssueStatistics.length" class="empty-state">
+                    {{ isChinese ? '当前没有问题场景。' : 'No issue scenes in the current report batch.' }}
+                  </div>
+                </div>
+              </section>
+              <section class="detail-card">
+                <p class="section-kicker sqlforge-code-label">logical object hits</p>
+                <div class="stat-list">
+                  <div v-for="item in reportLogicalObjectStatistics.slice(0, 6)" :key="item.objectKey" class="contract-item">
+                    <strong>{{ item.objectKey }}</strong>
+                    <span>{{ item.hitCount }}</span>
+                  </div>
+                  <div v-if="!reportLogicalObjectStatistics.length" class="empty-state">
+                    {{ isChinese ? '当前没有逻辑对象命中。' : 'No logical object hits yet.' }}
+                  </div>
+                </div>
+              </section>
             </div>
 
             <div v-else class="empty-stage">
@@ -1036,6 +1150,29 @@ onMounted(async () => {
           </div>
         </section>
         <section class="detail-card">
+          <p class="section-kicker sqlforge-code-label">parse statistics</p>
+          <div class="result-layout">
+            <div class="stat-list">
+              <div v-for="item in parseIssueStatistics" :key="item.issueScene" class="contract-item">
+                <strong>{{ item.issueScene }}</strong>
+                <span>{{ displayValue(item.affectedRecords) }} · {{ formatPercent(item.ratio) }}</span>
+              </div>
+              <div v-if="!parseIssueStatistics.length" class="empty-state">
+                {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics yet.' }}
+              </div>
+            </div>
+            <div class="stat-list">
+              <div v-for="item in parseReportStatistics" :key="item.reportCode" class="contract-item">
+                <strong>{{ item.reportCode }}</strong>
+                <span>{{ displayValue(item.sqlCount) }} SQL · {{ displayValue(item.issueCount) }} issues</span>
+              </div>
+              <div v-if="!parseReportStatistics.length" class="empty-state">
+                {{ isChinese ? '当前没有报表维度统计。' : 'No report statistics yet.' }}
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">Failure records</p>
           <div class="failure-list">
             <article
@@ -1106,17 +1243,57 @@ onMounted(async () => {
             <strong>{{ item.value }}</strong>
           </article>
         </div>
+        <div class="summary-grid" data-testid="batch-import-report-drawer-statistics">
+          <article v-for="item in reportSqlStatisticsCards" :key="item.label" class="summary-card">
+            <span class="summary-card-label">{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </article>
+        </div>
         <section class="detail-card">
-          <p class="section-kicker sqlforge-code-label">Report items</p>
+          <p class="section-kicker sqlforge-code-label">report-level statistics</p>
+          <div class="result-layout">
+            <div class="stat-list">
+              <div v-for="item in reportIssueStatistics" :key="item.issueScene" class="contract-item">
+                <strong>{{ item.issueScene }}</strong>
+                <span>{{ item.affectedSqlCount }} SQL · {{ formatPercent(item.ratio) }}</span>
+              </div>
+              <div v-if="!reportIssueStatistics.length" class="empty-state">
+                {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics yet.' }}
+              </div>
+            </div>
+            <div class="stat-list">
+              <div v-for="item in reportLogicalObjectStatistics" :key="item.objectKey" class="contract-item">
+                <strong>{{ item.objectKey }}</strong>
+                <span>{{ item.hitCount }} hits</span>
+              </div>
+              <div v-if="!reportLogicalObjectStatistics.length" class="empty-state">
+                {{ isChinese ? '当前没有逻辑对象命中。' : 'No logical object hits yet.' }}
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="detail-card">
+          <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
           <div class="report-list">
             <article
               v-for="(item, index) in reportItems"
               :key="item.reportCode || item.itemId || index"
               class="report-item"
+              data-testid="batch-import-report-drawer-sql-detail"
             >
-              <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
-              <span>{{ displayValue(item.reportName || item.status) }}</span>
-              <p>{{ displayValue(item.datasourceCode || item.stage) }} · {{ displayValue(item.priority || item.resolutionStatus) }}</p>
+              <div class="session-item-top">
+                <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
+                <span class="status-pill">{{ displayValue(item.status) }}</span>
+              </div>
+              <p>{{ displayValue(item.reportName) }} · {{ displayValue(item.datasourceCode || item.stage) }} · {{ displayValue(item.priority) }}</p>
+              <p>
+                {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
+                · Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+              </p>
+              <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+              <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
+              <pre v-if="item.sqlText" class="code-block compact-code">{{ item.sqlText }}</pre>
             </article>
           </div>
         </section>
@@ -1243,6 +1420,7 @@ onMounted(async () => {
 .contract-list,
 .failure-list,
 .report-list,
+.stat-list,
 .preview-list {
   display: grid;
   gap: 12px;
@@ -1350,6 +1528,11 @@ onMounted(async () => {
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.6;
+}
+
+.compact-code {
+  margin-top: 10px;
+  max-height: 160px;
 }
 
 .empty-stage {

@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-058: 修复解析历史记录投影与报表导入明细
+
+- Status: done
+- Completed at: 2026-04-29
+- Commit subject: `fix(governance): repair parse history traceability`
+- Priority: 1
+- Depends on: HARN-057
+- Scope: 修复单条 SQL、批量解析和报表导入解析记录在解析历史页不可识别/不可筛选的问题，补齐 query_history 投影上下文、报表导入 SQL 级与报表级解析明细展示、测试与文档。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-058`
+- Progress log:
+  - 2026-04-29: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复 SQL parse history 的 config snapshot/reference 链、query_history upsert 与 query_context 归一化投影；补齐批量/报表 access 解析历史合并、报表导入 SQL 级与报表级详情、解析历史页报表导入抽屉和 SQL 解析页 historyId 跳转。
+  - Validation evidence: mvn -pl governance -Dtest=GovernanceParseHistoryTraceabilityApplicationServiceTest,GovernanceProtectedPersistenceServiceTest,TraceabilitySchemaMappingTest clean test; mvn -pl sql-optimization -Dtest=ParseBatchApplicationServiceTest,ReportBatchApplicationServiceTest clean test; node scripts/check-history-page-contract.mjs; node scripts/check-history-detail-contract.mjs; node scripts/check-batch-import-contract.mjs; node scripts/check-parse-workbench-contract.mjs; npm run lint; npm run test:form-governance; npm run build; python3 scripts/foreman.py validate HARN-058; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 未连接真实外部 Hetu/MRS 环境做端到端页面冒烟；当前覆盖为后端单元、前端 contract、lint/build 与治理审计。
+  - Next step: 如需实机验收，在本地/测试环境执行单条综合解析、批量 SQL 导入和报表导入解析，确认解析历史页可按 report/stage/bizDate 筛选并打开详情。
+
 ### OPS-LOCAL-003: 重新启动前后端服务
 
 - Status: done

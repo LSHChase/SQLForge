@@ -276,12 +276,19 @@ public class ParseBatchApplicationService {
         accessRequest.setConnectionRequired(Boolean.TRUE);
 
         AccessParseResponseVO accessParse = accessParseApplicationService.parseAccess(accessRequest, structureParse.getParseTaskId());
+        ParseBatchItemStatus terminalStatus = resolveTerminalStatus(accessParse);
+        structureParseApplicationService.writeParseHistoryWithAccess(
+            structureParse,
+            accessParse,
+            structureRequest,
+            terminalStatus == ParseBatchItemStatus.SUCCESS ? "SUCCESS" : "PARTIAL"
+        );
         item.complete(
             structureParse.getParseTaskId(),
             structureParse.getSyntaxStatus(),
             accessParse.getServiceStatus(),
             accessParse.getConnectionStatus(),
-            resolveTerminalStatus(accessParse),
+            terminalStatus,
             resolveFailureReason(accessParse),
             issueScenes,
             logicalObjectKeys,

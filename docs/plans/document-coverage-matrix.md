@@ -139,6 +139,8 @@
 | `docs/references/raw-requirements/generated/HARN-056-requirement.md` | Archive | HARN-056 raw requirement snapshot | Archived | 保存 HARN-056 原始需求输入，供 task-shaping 与后续审计追溯 |
 | `docs/exec-plans/completed/HARN-057-parse-history-refresh-plan.md` | Indexed | HARN-057 解析历史默认查询与刷新修复执行计划 | Consumed | 约束 HARN-057 的解析历史默认空筛选、请求上下文租户分离、批量历史刷新与验证边界 |
 | `docs/references/raw-requirements/generated/HARN-057-requirement.md` | Archive | HARN-057 raw requirement snapshot | Archived | 保存 HARN-057 用户复核优化输入，供解析历史刷新与默认查询条件修复追溯 |
+| `docs/exec-plans/completed/HARN-058-parse-history-traceability-plan.md` | Indexed | HARN-058 解析历史投影与报表导入明细修复执行计划 | Consumed | 约束 HARN-058 的 query_history 归一化投影、access 解析合并、报表导入 SQL 级与报表级详情展示及验证边界 |
+| `docs/references/raw-requirements/generated/HARN-058-requirement.md` | Archive | HARN-058 raw requirement snapshot | Archived | 保存 HARN-058 用户追问输入，供解析历史可见性和报表导入明细修复追溯 |
 
 ## Completeness Statement
 

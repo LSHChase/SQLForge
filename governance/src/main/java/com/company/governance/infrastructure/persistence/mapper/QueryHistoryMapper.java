@@ -46,4 +46,6 @@ public interface QueryHistoryMapper {
                                                          @Param("historyId") String historyId);
 
     int insert(QueryHistoryRecord queryHistoryRecord);
+
+    int updateById(QueryHistoryRecord queryHistoryRecord);
 }

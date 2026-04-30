@@ -12,6 +12,7 @@ import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import com.company.sqlforge.common.logicalobject.LogicalObjectType;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
+import com.company.sqloptimization.application.controller.vo.AccessParseResponseVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseFeatureSummaryVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseIntentProfileVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseIssueVO;
@@ -31,6 +32,7 @@ import com.company.sqloptimization.domain.parse.StructureParseQueryDateSummary;
 import com.company.sqloptimization.domain.parse.StructureParseResult;
 import com.company.sqloptimization.domain.parse.StructureParseSyntaxStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -38,9 +40,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -901,6 +905,48 @@ public class StructureParseApplicationService {
         }
     }
 
+    public void writeParseHistoryWithAccess(StructureParseResponseVO structureParse,
+                                            AccessParseResponseVO accessParse,
+                                            StructureParseRequest request,
+                                            String resultStatus) {
+        if (governanceCapabilityClient == null || structureParse == null || request == null) {
+            return;
+        }
+        try {
+            GovernanceParseHistoryWriteRequest historyRequest = new GovernanceParseHistoryWriteRequest();
+            historyRequest.setParseTaskId(structureParse.getParseTaskId());
+            historyRequest.setSqlFingerprint(
+                StringUtils.hasText(structureParse.getSqlFingerprint())
+                    ? structureParse.getSqlFingerprint()
+                    : SqlFingerprintUtils.fingerprint(request.getSqlText())
+            );
+            historyRequest.setDatasourceCode(trimToNull(request.getDatasourceCode()));
+            historyRequest.setDatasourceType("AUTO");
+            historyRequest.setSqlText(request.getSqlText());
+            historyRequest.setSqlTemplateText(trimToNull(request.getSqlTemplateText()));
+            historyRequest.setBindingMode(trimToNull(request.getBindingMode()));
+            historyRequest.setResultStatus(StringUtils.hasText(resultStatus) ? resultStatus.trim() : resolveHistoryResultStatus(structureParse));
+            historyRequest.setResultSummaryJson(buildCombinedSummaryJson(structureParse, accessParse));
+            historyRequest.setResultPayloadJson(buildCombinedPayloadJson(structureParse, accessParse));
+            historyRequest.setQueryContextJson(toJson(request.getCommentContext()));
+            historyRequest.setLogicalObjectHitsJson(toJson(structureParse.getLogicalObjectHits()));
+            historyRequest.setSubmittedAt(Instant.now().toString());
+            GovernanceParseHistoryWriteResponse writeResponse = governanceCapabilityClient.writeParseHistory(historyRequest);
+            if (writeResponse != null) {
+                structureParse.setHistoryId(writeResponse.getHistoryId());
+                structureParse.setHistoryPersisted(Boolean.TRUE);
+                structureParse.setHistoryPersistenceStatus("SAVED");
+            }
+        } catch (RuntimeException ex) {
+            LOGGER.warn(
+                "operation=STRUCTURE_ACCESS_PARSE_HISTORY_WRITE entity={} tenantId={} status=DEGRADED reason={}",
+                structureParse.getParseTaskId(),
+                RequestContext.getTenantId(),
+                ex.getMessage()
+            );
+        }
+    }
+
     private String resolveHistoryResultStatus(StructureParseResponseVO response) {
         if (response == null) {
             return HISTORY_RESULT_FAILED;
@@ -909,7 +955,7 @@ public class StructureParseApplicationService {
     }
 
     private String buildStructureSummaryJson(StructureParseResponseVO response) {
-        java.util.LinkedHashMap<String, Object> summary = new java.util.LinkedHashMap<String, Object>();
+        LinkedHashMap<String, Object> summary = new LinkedHashMap<String, Object>();
         summary.put("parseTaskId", response == null ? null : response.getParseTaskId());
         summary.put("syntaxStatus", response == null ? null : response.getSyntaxStatus());
         summary.put("priorityLevel", response == null ? null : response.getPriorityLevel());
@@ -918,6 +964,28 @@ public class StructureParseApplicationService {
         summary.put("urgent", response == null ? null : response.getUrgent());
         summary.put("sqlType", response == null ? null : response.getSqlType());
         return toJson(summary);
+    }
+
+    private String buildCombinedSummaryJson(StructureParseResponseVO structureParse, AccessParseResponseVO accessParse) {
+        LinkedHashMap<String, Object> summary = new LinkedHashMap<String, Object>();
+        summary.put("parseTaskId", structureParse == null ? null : structureParse.getParseTaskId());
+        summary.put("syntaxStatus", structureParse == null ? null : structureParse.getSyntaxStatus());
+        summary.put("priorityLevel", structureParse == null ? null : structureParse.getPriorityLevel());
+        summary.put("priorityScore", structureParse == null ? null : structureParse.getPriorityScore());
+        summary.put("sqlType", structureParse == null ? null : structureParse.getSqlType());
+        summary.put("accessServiceStatus", accessParse == null ? null : accessParse.getServiceStatus());
+        summary.put("accessConnectionStatus", accessParse == null ? null : accessParse.getConnectionStatus());
+        summary.put("accessDegradeReason", accessParse == null ? null : accessParse.getDegradeReason());
+        return toJson(summary);
+    }
+
+    private String buildCombinedPayloadJson(StructureParseResponseVO structureParse, AccessParseResponseVO accessParse) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("parseTaskId", structureParse == null ? null : structureParse.getParseTaskId());
+        payload.put("status", accessParse == null ? "STRUCTURE_SUCCEEDED" : "ACCESS_COMPLETED");
+        payload.put("structureParse", structureParse);
+        payload.put("accessParse", accessParse);
+        return toJson(payload);
     }
 
     private String toJson(Object value) {

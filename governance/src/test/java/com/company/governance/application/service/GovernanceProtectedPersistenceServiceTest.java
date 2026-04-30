@@ -30,6 +30,7 @@ import com.company.sqlforge.common.security.SensitiveDataCryptoProperties;
 import com.company.sqlforge.common.security.SensitiveDataCryptoService;
 import com.company.sqlforge.common.security.SensitiveDataProtectionService;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -183,6 +184,49 @@ class GovernanceProtectedPersistenceServiceTest {
         assertFalse(auditCaptor.getValue().getRequestParams().contains("p@ssw0rd"));
         assertTrue(auditCaptor.getValue().getRequestParams().contains("***"));
         assertFalse(auditCaptor.getValue().getResponseSummary().contains("grant-token"));
+    }
+
+    @Test
+    void shouldProjectLegacyCommentContextWhenQueryContextHasNoNestedCommentContext() {
+        ConfigSnapshotMapper configSnapshotMapper = mock(ConfigSnapshotMapper.class);
+        ExecutionResultMapper executionResultMapper = mock(ExecutionResultMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        SensitiveDataCryptoProperties cryptoProperties = new SensitiveDataCryptoProperties();
+        cryptoProperties.setBase64Key(TEST_BASE64_KEY);
+        SensitiveDataCryptoService cryptoService = new SensitiveDataCryptoService(cryptoProperties);
+        GovernanceProtectedPersistenceService service = new GovernanceProtectedPersistenceService(
+            configSnapshotMapper,
+            executionResultMapper,
+            queryHistoryMapper,
+            mock(ExportRecordMapper.class),
+            mock(AuditLogMapper.class),
+            mock(SystemConfigMapper.class),
+            new SensitiveDataProtectionService(cryptoService),
+            cryptoService
+        );
+        ExecutionResultRecord executionResultRecord = new ExecutionResultRecord();
+        executionResultRecord.setResultId("res-legacy");
+        executionResultRecord.setTenantId("tenant-a");
+        when(executionResultMapper.selectById("res-legacy")).thenReturn(executionResultRecord);
+
+        QueryHistoryRecord record = new QueryHistoryRecord();
+        record.setHistoryId("hist-legacy");
+        record.setResultId("res-legacy");
+        record.setTenantId("tenant-a");
+        record.setHistoryType("SQL_PARSE");
+        record.setCommentContext(
+            "{\"report_code\":\"RPT_LEGACY\",\"stage\":\"PROD\",\"biz_date\":\"2026-04-29\",\"datasource\":\"hetu_main\"}"
+        );
+        record.setQueryContext("{\"structureParseSummary\":{\"syntaxStatus\":\"VALID\"}}");
+
+        service.saveQueryHistoryWithSqlText(record, "SELECT 1");
+
+        ArgumentCaptor<QueryHistoryRecord> historyCaptor = ArgumentCaptor.forClass(QueryHistoryRecord.class);
+        verify(queryHistoryMapper).insert(historyCaptor.capture());
+        assertEquals("RPT_LEGACY", historyCaptor.getValue().getReportCode());
+        assertEquals("PROD", historyCaptor.getValue().getStageCode());
+        assertEquals(LocalDate.parse("2026-04-29"), historyCaptor.getValue().getBizDate());
+        assertEquals("hetu_main", historyCaptor.getValue().getDatasourceCode());
     }
 
     @Test

@@ -82,6 +82,13 @@ public class GovernanceProtectedPersistenceService {
         return queryHistoryMapper.insert(record);
     }
 
+    public int updateQueryHistory(QueryHistoryRecord record) {
+        validateQueryHistoryReference(record);
+        projectQueryHistorySurface(record);
+        protectQueryHistory(record);
+        return queryHistoryMapper.updateById(record);
+    }
+
     public int saveQueryHistoryWithSqlText(QueryHistoryRecord record, String sqlText) {
         return saveQueryHistoryWithSqlSurfaces(record, sqlText, null, null);
     }
@@ -100,6 +107,22 @@ public class GovernanceProtectedPersistenceService {
             record.setBoundSqlTextCipher(sensitiveDataCryptoService.encryptBytes(boundSqlText.getBytes(StandardCharsets.UTF_8)));
         }
         return saveQueryHistory(record);
+    }
+
+    public int updateQueryHistoryWithSqlSurfaces(QueryHistoryRecord record,
+                                                 String sqlText,
+                                                 String sqlTemplateText,
+                                                 String boundSqlText) {
+        if (StringUtils.hasText(sqlText)) {
+            record.setSqlTextCipher(sensitiveDataCryptoService.encryptBytes(sqlText.getBytes(StandardCharsets.UTF_8)));
+        }
+        if (StringUtils.hasText(sqlTemplateText)) {
+            record.setSqlTemplateCipher(sensitiveDataCryptoService.encryptBytes(sqlTemplateText.getBytes(StandardCharsets.UTF_8)));
+        }
+        if (StringUtils.hasText(boundSqlText)) {
+            record.setBoundSqlTextCipher(sensitiveDataCryptoService.encryptBytes(boundSqlText.getBytes(StandardCharsets.UTF_8)));
+        }
+        return updateQueryHistory(record);
     }
 
     public int saveExportRecord(ExportRecord record) {
@@ -222,7 +245,8 @@ public class GovernanceProtectedPersistenceService {
         }
         Map<String, Object> queryContext = parseJsonMap(record.getQueryContext());
         Map<String, Object> explicitCommentContext = readMap(queryContext, "commentContext");
-        Map<String, Object> commentContext = explicitCommentContext.isEmpty() ? Collections.<String, Object>emptyMap() : explicitCommentContext;
+        Map<String, Object> storedCommentContext = parseJsonMap(record.getCommentContext());
+        Map<String, Object> commentContext = firstMap(explicitCommentContext, storedCommentContext);
         Map<String, Object> bindingSummary = readMap(queryContext, "bindingSummary");
         Object logicalObjectHits = firstNonNull(queryContext.get("logicalObjectHits"), queryContext.get("logicalObjects"));
         Map<String, Object> routeSummary = readMap(queryContext, "routeSummary");

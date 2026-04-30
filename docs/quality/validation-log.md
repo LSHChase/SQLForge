@@ -2129,3 +2129,30 @@
 2026-04-29T19:56:19-05:00 | OPS-LOCAL-003 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-04-29T19:56:19-05:00 | OPS-LOCAL-003 closeout commit | `R-168` | projected | `git commit -m 'chore(ops): restart local frontend and backend' (projected-precommit)`
 2026-04-29T19:56:19-05:00 | OPS-LOCAL-003 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-29T21:31:48-05:00 | HARN-058 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-29T21:31:48-05:00 | HARN-058 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-29T21:32:03-05:00 | HARN-058 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-29T21:32:03-05:00 | HARN-058 validate | `R-133`, `R-168` | failed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-29T21:32:26-05:00 | HARN-058 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-29T21:32:26-05:00 | HARN-058 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-29T21:32:40-05:00 | HARN-058 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-29T21:32:40-05:00 | HARN-058 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-29T21:33:00-05:00 | HARN-058 targeted backend tests | `R-133`, `R-168` | passed | `mvn -pl governance -Dtest=GovernanceParseHistoryTraceabilityApplicationServiceTest,GovernanceProtectedPersistenceServiceTest,TraceabilitySchemaMappingTest test`
+2026-04-29T21:33:00-05:00 | HARN-058 targeted backend tests | `R-133`, `R-168` | passed | `mvn -pl sql-optimization -Dtest=ParseBatchApplicationServiceTest,ReportBatchApplicationServiceTest test`
+2026-04-29T21:34:00-05:00 | HARN-058 forced backend recompile tests | `R-133`, `R-168` | passed | `mvn -pl governance -Dtest=GovernanceParseHistoryTraceabilityApplicationServiceTest,GovernanceProtectedPersistenceServiceTest,TraceabilitySchemaMappingTest clean test`
+2026-04-29T21:34:00-05:00 | HARN-058 forced backend recompile tests | `R-133`, `R-168` | passed | `mvn -pl sql-optimization -Dtest=ParseBatchApplicationServiceTest,ReportBatchApplicationServiceTest clean test`
+2026-04-29T21:33:00-05:00 | HARN-058 frontend contract checks | `R-133`, `R-168` | passed | `node scripts/check-history-page-contract.mjs`
+2026-04-29T21:33:00-05:00 | HARN-058 frontend contract checks | `R-133`, `R-168` | passed | `node scripts/check-history-detail-contract.mjs`
+2026-04-29T21:33:00-05:00 | HARN-058 frontend contract checks | `R-133`, `R-168` | passed | `node scripts/check-batch-import-contract.mjs`
+2026-04-29T21:33:00-05:00 | HARN-058 frontend contract checks | `R-133`, `R-168` | passed | `node scripts/check-parse-workbench-contract.mjs`
+2026-04-29T21:33:00-05:00 | HARN-058 frontend validation | `R-133`, `R-168` | passed | `npm run lint`
+2026-04-29T21:33:00-05:00 | HARN-058 frontend validation | `R-133`, `R-168` | passed | `npm run test:form-governance`
+2026-04-29T21:33:00-05:00 | HARN-058 frontend validation | `R-133`, `R-168` | passed | `npm run build`
+2026-04-29T21:35:30-05:00 | HARN-058 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-04-29T21:35:30-05:00 | HARN-058 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-04-29T21:35:39-05:00 | HARN-058 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-04-29T21:35:39-05:00 | HARN-058 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-04-29T21:37:35-05:00 | HARN-058 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-04-29T21:37:35-05:00 | HARN-058 closeout commit | `R-168` | projected | `git commit -m 'fix(governance): repair parse history traceability' (projected-precommit)`
+2026-04-29T21:37:35-05:00 | HARN-058 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-04-29T21:37:35-05:00 | HARN-058 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`

@@ -144,6 +144,7 @@ class TraceabilitySchemaMappingTest {
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "comment_context");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "binding_render_status");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "trace_id = #{traceId}");
+        assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "updateById");
         assertContains(readMapper("mapper/ExportRecordMapper.xml"), "FROM export_record");
         assertContains(readMapper("mapper/ExportRecordMapper.xml"), "history_id");
         assertContains(readMapper("mapper/ExportRecordMapper.xml"), "trace_id = #{traceId}");

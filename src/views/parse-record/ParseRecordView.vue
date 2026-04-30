@@ -12,6 +12,7 @@ import {
   getGovernanceTraceDetail,
   listParseBatches,
   listReportBatches,
+  getReportBatch,
   lookupGovernanceTraces
 } from '../../services/runtimeGateApi'
 import { buildDatasourceOptions, buildTenantOptions, withCurrentOption } from '../common/formComponentGovernance'
@@ -52,6 +53,7 @@ const form = reactive({
 const loading = reactive({
   page: false,
   detail: false,
+  reportBatchDetail: false,
   lookup: false,
   export: false
 })
@@ -67,8 +69,10 @@ const evidenceDrawerVisible = ref(false)
 const activeDialogTab = ref('overview')
 const batchHistoryTab = ref('parse')
 const selectedHistoryDetail = ref(null)
+const selectedReportBatchDetail = ref(null)
 const errorMessage = ref('')
 const batchHistoryErrorMessage = ref('')
+const reportBatchDetailDrawerVisible = ref(false)
 const exportDialogVisible = ref(false)
 const exportResult = ref(null)
 const exportForm = reactive({
@@ -113,6 +117,46 @@ const reportBatchHistorySummary = computed(() => {
     card(isChinese.value ? '已解析' : 'Resolved', resolvedReports),
     card(isChinese.value ? '失败批次' : 'Failed batches', failedBatches)
   ]
+})
+const selectedReportItems = computed(() => {
+  const source = selectedReportBatchDetail.value?.reportItems || []
+  return Array.isArray(source) ? source.filter(item => item && typeof item === 'object') : []
+})
+const reportBatchDetailCards = computed(() => {
+  const detail = selectedReportBatchDetail.value
+  if (!detail) {
+    return []
+  }
+  const total = selectedReportItems.value.length
+  const structureValid = selectedReportItems.value.filter(item => String(item.structureSyntaxStatus || '').toUpperCase() === 'VALID').length
+  const accessConnected = selectedReportItems.value.filter(item =>
+    String(item.accessServiceStatus || '').toUpperCase() === 'AVAILABLE' &&
+    String(item.accessConnectionStatus || '').toUpperCase() === 'CONNECTED'
+  ).length
+  return [
+    card(isChinese.value ? '批次状态' : 'Batch status', detail.status),
+    card(isChinese.value ? '文件类型' : 'File type', detail.fileType),
+    card(isChinese.value ? '报表总数' : 'Total reports', detail.totalReports),
+    card(isChinese.value ? 'SQL 明细' : 'SQL rows', total),
+    card(isChinese.value ? '已解析' : 'Resolved', detail.resolvedReports),
+    card(isChinese.value ? '失败' : 'Failed', detail.failedReports),
+    card(isChinese.value ? '结构成功率' : 'Structure rate', formatPercent(rate(structureValid, total))),
+    card(isChinese.value ? 'Access 连通率' : 'Access connected', formatPercent(rate(accessConnected, total)))
+  ].filter(item => hasDisplayValue(item.value))
+})
+const reportBatchIssueStatistics = computed(() => {
+  const counts = new Map()
+  selectedReportItems.value.forEach(item => {
+    const scenes = Array.isArray(item.issueScenes) ? item.issueScenes : []
+    scenes.forEach(scene => counts.set(scene, (counts.get(scene) || 0) + 1))
+  })
+  return Array.from(counts.entries())
+    .map(([issueScene, affectedSqlCount]) => ({
+      issueScene,
+      affectedSqlCount,
+      ratio: rate(affectedSqlCount, selectedReportItems.value.length)
+    }))
+    .sort((left, right) => right.affectedSqlCount - left.affectedSqlCount)
 })
 const pageSummaryCards = computed(() => [
   { label: isChinese.value ? '当前页记录' : 'Current page', value: rows.value.length },
@@ -464,6 +508,26 @@ const openReportBatchCenter = batchId => {
   })
 }
 
+const openReportBatchDetail = async row => {
+  const batchId = typeof row === 'string' ? row : row?.batchId
+  if (!batchId) {
+    return
+  }
+  loading.reportBatchDetail = true
+  batchHistoryErrorMessage.value = ''
+  try {
+    selectedReportBatchDetail.value = await getReportBatch(batchId, requestTenantId.value, {
+      requestPrefix: 'frontend-parse-record-report-batch-detail'
+    })
+    reportBatchDetailDrawerVisible.value = true
+  } catch (error) {
+    selectedReportBatchDetail.value = null
+    batchHistoryErrorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.reportBatchDetail = false
+  }
+}
+
 const statusClass = value => {
   const normalized = String(value || '').toUpperCase()
   if (normalized === 'SUCCESS' || normalized === 'SUCCEEDED') {
@@ -504,6 +568,20 @@ const displayValue = value => {
 
 const hasDisplayValue = value => !(value === null || value === undefined || String(value).trim() === '')
 
+const rate = (count, total) => {
+  if (!total) {
+    return 0
+  }
+  return Number(count || 0) / Number(total)
+}
+
+const formatPercent = value => {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return '-'
+  }
+  return `${(Number(value) * 100).toFixed(1)}%`
+}
+
 const normalizeArray = value => {
   if (Array.isArray(value)) {
     return value
@@ -539,6 +617,10 @@ onMounted(async () => {
     form.reportId = String(route.query.reportId)
   }
   await refreshWorkbench()
+  if (hasDisplayValue(route.query.historyId)) {
+    await openHistoryDetail(String(route.query.historyId))
+    return
+  }
   if (hasLookupCriteria.value) {
     await runIndexedLookup()
   }
@@ -901,7 +983,7 @@ onMounted(async () => {
                   type="button"
                   class="table-link"
                   data-testid="parse-record-batch-history-report"
-                  @click="openReportBatchCenter(row.batchId)"
+                  @click="openReportBatchDetail(row)"
                 >
                   {{ row.batchName || row.batchId }}
                 </button>
@@ -915,10 +997,74 @@ onMounted(async () => {
             <el-table-column prop="createdAt" :label="isChinese ? '创建时间' : 'Created at'" min-width="170">
               <template #default="{ row }">{{ formatTimestamp(row.createdAt) }}</template>
             </el-table-column>
+            <el-table-column :label="isChinese ? '操作' : 'Actions'" min-width="120">
+              <template #default="{ row }">
+                <el-button text :loading="loading.reportBatchDetail" @click="openReportBatchCenter(row.batchId)">
+                  {{ isChinese ? '批量中心' : 'Batch center' }}
+                </el-button>
+              </template>
+            </el-table-column>
           </el-table>
         </el-tab-pane>
       </el-tabs>
     </section>
+
+    <el-drawer
+      v-model="reportBatchDetailDrawerVisible"
+      :title="selectedReportBatchDetail?.batchName || selectedReportBatchDetail?.batchId || (isChinese ? '报表导入详情' : 'Report import detail')"
+      size="48%"
+      data-testid="parse-record-report-batch-detail"
+    >
+      <div class="dialog-stack">
+        <div class="summary-grid">
+          <article v-for="item in reportBatchDetailCards" :key="item.label" class="summary-card">
+            <span class="summary-card-label">{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </article>
+        </div>
+        <section class="code-card">
+          <div class="code-card__header">
+            <span>{{ isChinese ? '报表级解析统计' : 'Report-level parse statistics' }}</span>
+          </div>
+          <div class="detail-grid">
+            <div v-for="item in reportBatchIssueStatistics" :key="item.issueScene" class="detail-grid__item">
+              <span>{{ item.issueScene }}</span>
+              <strong>{{ item.affectedSqlCount }} SQL · {{ formatPercent(item.ratio) }}</strong>
+            </div>
+            <p v-if="!reportBatchIssueStatistics.length" class="empty-copy">
+              {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics in this report batch.' }}
+            </p>
+          </div>
+        </section>
+        <section class="code-card">
+          <div class="code-card__header">
+            <span>{{ isChinese ? 'SQL 级解析详情' : 'SQL-level parse detail' }}</span>
+          </div>
+          <div class="report-sql-list">
+            <article
+              v-for="(item, index) in selectedReportItems"
+              :key="item.itemId || item.reportCode || index"
+              class="detail-grid__item report-sql-card"
+              data-testid="parse-record-report-sql-detail"
+            >
+              <span>{{ item.reportCode || item.itemId || `#${index + 1}` }} · {{ displayValue(item.status) }}</span>
+              <strong>{{ displayValue(item.reportName) }}</strong>
+              <p>
+                {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
+                · Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+              </p>
+              <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+              <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
+              <pre v-if="item.sqlText" class="code-block">{{ item.sqlText }}</pre>
+            </article>
+            <p v-if="!selectedReportItems.length" class="empty-copy">
+              {{ isChinese ? '导入解析后会展示 SQL 明细。' : 'SQL detail appears after report SQL resolution.' }}
+            </p>
+          </div>
+        </section>
+      </div>
+    </el-drawer>
 
     <el-dialog
       v-model="detailDialogVisible"
@@ -1190,6 +1336,22 @@ onMounted(async () => {
 
 .field-grid {
   flex-wrap: wrap;
+}
+
+.report-sql-list {
+  display: grid;
+  gap: 12px;
+}
+
+.report-sql-card {
+  display: grid;
+  gap: 8px;
+}
+
+.report-sql-card p {
+  margin: 0;
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.6;
 }
 
 .field-block {

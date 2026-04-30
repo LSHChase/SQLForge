@@ -45,3 +45,9 @@ HARN-045 / HARN-046 未改写无法从代码或文档确认语义的自由文本
 ## HARN-057 Parse History Defaults
 
 解析历史页的可见查询条件默认值必须保持为空，包括 `tenantId`、`sortBy` 和 `sortOrder`。页面仍可在空筛选状态下刷新列表，但前端必须把“查询条件租户”和“受保护请求上下文租户”分离：只有用户显式选择租户时才把 `tenantId` 放入 query param；未选择时由当前 route 上下文或开发默认上下文租户提供请求头，避免空租户导致受保护接口刷新失败。
+
+## HARN-058 Parse History And Report Import Detail
+
+解析历史页不只展示 `query_history` SQL 级历史，还必须展示批量解析和报表导入批次历史。报表导入历史在解析历史页内提供详情抽屉，抽屉中至少展示报表级统计、SQL 级解析状态、`parseTaskId`、结构解析状态、access 连接状态、问题场景、逻辑对象命中和解析出的 SQL 文本。
+
+SQL 解析页在拿到 `historyId` 后提供“查看解析历史”入口，跳转到解析历史页并通过 `historyId` 直接打开详情弹窗。该跳转不得改变 HARN-057 的默认空查询条件规则。

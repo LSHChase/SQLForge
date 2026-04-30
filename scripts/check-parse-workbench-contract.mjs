@@ -22,6 +22,7 @@ const requiredTokens = [
   'data-testid="parse-workbench-submit"',
   'data-testid="parse-workbench-structure-preview"',
   'data-testid="parse-workbench-refresh-status"',
+  'data-testid="parse-workbench-open-history"',
   'data-testid="parse-workbench-status"',
   'data-testid="parse-workbench-overall-status"',
   'data-testid="parse-workbench-structure-card"',

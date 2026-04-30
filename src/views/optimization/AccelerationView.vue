@@ -732,6 +732,19 @@ function openEvidenceDrawer(title, payload) {
   evidenceDrawerVisible.value = true
 }
 
+function openParseHistoryDetail() {
+  if (!parseResult.value?.historyId) {
+    return
+  }
+  router.push({
+    path: ROUTE_PATHS.parseRecord,
+    query: {
+      tenantId: form.tenantId,
+      historyId: parseResult.value.historyId
+    }
+  })
+}
+
 async function runStructurePreview() {
   running.value = true
   lastRunMode.value = 'structure'
@@ -1275,7 +1288,7 @@ watch(
   <section class="runtime-page parse-workbench-page" data-testid="parse-workbench-page">
     <div class="runtime-hero surface-card">
       <div>
-        <p class="runtime-eyebrow sqlforge-code-label">sql optimization SQL Parse</p>
+        <p class="runtime-eyebrow sqlforge-code-label">sql optimization SQL Parse · SQL解析</p>
         <h1 class="runtime-title">{{ t('acceleration.title') }}</h1>
         <p class="runtime-summary">{{ t('acceleration.summary') }}</p>
       </div>
@@ -1405,6 +1418,9 @@ watch(
           </div>
           <el-button v-if="parseResult" text @click="openEvidenceDrawer(isChinese ? '解析原始证据' : 'Raw parse evidence', parseResult)">
             {{ isChinese ? '查看长证据' : 'View long evidence' }}
+          </el-button>
+          <el-button v-if="parseResult?.historyId" text data-testid="parse-workbench-open-history" @click="openParseHistoryDetail">
+            {{ isChinese ? '查看解析历史' : 'Open parse history' }}
           </el-button>
         </div>
 
