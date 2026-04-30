@@ -2,6 +2,9 @@ package com.company.sqloptimization.infrastructure.repository;
 
 import com.company.sqloptimization.domain.reportbatch.ReportBatch;
 import com.company.sqloptimization.domain.reportbatch.repository.ReportBatchRepository;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.context.annotation.Primary;
@@ -22,5 +25,12 @@ public class InMemoryReportBatchRepository implements ReportBatchRepository {
     @Override
     public ReportBatch findByBatchId(String batchId) {
         return batches.get(batchId);
+    }
+
+    @Override
+    public List<ReportBatch> findAll() {
+        List<ReportBatch> result = new ArrayList<ReportBatch>(batches.values());
+        result.sort(Comparator.comparing(ReportBatch::getCreatedAt).reversed().thenComparing(ReportBatch::getBatchId));
+        return result;
     }
 }

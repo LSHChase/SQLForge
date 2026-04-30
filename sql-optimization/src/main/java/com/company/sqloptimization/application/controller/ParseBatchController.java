@@ -5,6 +5,7 @@ import com.company.sqloptimization.application.controller.dto.ParseBatchIngestRe
 import com.company.sqloptimization.application.controller.dto.ParseBatchRetryAccessRequest;
 import com.company.sqloptimization.application.controller.vo.ParseBatchStatusResponse;
 import com.company.sqloptimization.application.service.ParseBatchApplicationService;
+import java.util.List;
 import javax.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +27,11 @@ public class ParseBatchController {
     @PostMapping
     public ParseBatchStatusResponse createBatch(@Valid @RequestBody ParseBatchCreateRequest request) {
         return parseBatchApplicationService.createBatch(request);
+    }
+
+    @GetMapping
+    public List<ParseBatchStatusResponse> listBatches() {
+        return parseBatchApplicationService.listBatches();
     }
 
     @PostMapping("/{batchId}/ingest")

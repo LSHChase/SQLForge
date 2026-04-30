@@ -10,8 +10,9 @@ public class ReportBatchImportRequest {
     @NotBlank(message = "batchName is required")
     private String batchName;
 
-    @NotBlank(message = "fileType is required")
     private String fileType;
+
+    private String fileName;
 
     @NotBlank(message = "reportCodeField is required")
     private String reportCodeField;
@@ -28,6 +29,8 @@ public class ReportBatchImportRequest {
     public void setBatchName(String batchName) { this.batchName = batchName; }
     public String getFileType() { return fileType; }
     public void setFileType(String fileType) { this.fileType = fileType; }
+    public String getFileName() { return fileName; }
+    public void setFileName(String fileName) { this.fileName = fileName; }
     public String getReportCodeField() { return reportCodeField; }
     public void setReportCodeField(String reportCodeField) { this.reportCodeField = reportCodeField; }
     public String getDatasourceCode() { return datasourceCode; }

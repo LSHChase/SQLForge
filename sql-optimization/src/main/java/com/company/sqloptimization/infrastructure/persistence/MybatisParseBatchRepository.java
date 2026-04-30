@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -50,6 +51,17 @@ public class MybatisParseBatchRepository implements ParseBatchRepository {
     public ParseBatch findByBatchId(String batchId) {
         ParseBatchRecord record = parseBatchMapper.selectByBatchId(batchId);
         return record == null ? null : toDomain(record);
+    }
+
+    @Override
+    public List<ParseBatch> findAll() {
+        List<ParseBatchRecord> records = parseBatchMapper.selectAll();
+        List<ParseBatch> result = new ArrayList<ParseBatch>(records.size());
+        for (ParseBatchRecord record : records) {
+            result.add(toDomain(record));
+        }
+        result.sort(Comparator.comparing(ParseBatch::getCreatedAt).reversed().thenComparing(ParseBatch::getBatchId));
+        return result;
     }
 
     private ParseBatchRecord toRecord(ParseBatch batch) {

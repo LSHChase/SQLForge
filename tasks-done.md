@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-056: 解析历史落库与批量解析中心重构
+
+- Status: done
+- Completed at: 2026-04-29
+- Commit subject: `HARN-056: 解析历史落库与批量解析中心重构`
+- Priority: 1
+- Depends on: N/A
+- Scope: 所有从SQL解析产生的记录（结构解析、后端解析、批量解析、文件导入解析）统一落库并在解析历史展示；修复批量解析中心可用性；批量解析中心报表上传自动识别文件类型；批量解析支持页面多SQL输入和文件导入两种入口并展示结果；文件导入解析进入解析历史；批量解析与文件导入提供解析统计，参考SQL解析统计；同步代码、测试、文档。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-056`
+- Progress log:
+  - 2026-04-29: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Persisted parse batch and report batch histories, added history list endpoints, auto-detected report import file types, and rebuilt parse history/batch center pages.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-056; python3 scripts/task_audit.py --check --phase pre-closeout; mvn -q -pl sql-optimization -Dtest=ParseBatchControllerTest,ReportBatchControllerTest,ParseBatchPersistenceSchemaMappingTest test; npm run build
+  - Residual risk: No historical backfill was performed for legacy parse records outside the current persisted batch tables.
+  - Next step: Monitor live usage and backfill legacy parse history only if product owners need prior records surfaced.
+
 ### OPS-LOCAL-001: 启动前后端
 
 - Status: done

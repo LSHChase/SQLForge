@@ -199,6 +199,18 @@ public class ParseBatchApplicationService {
         return toResponse(batch, parseBatchItemRepository.findByBatchId(batch.getBatchId()));
     }
 
+    public List<ParseBatchStatusResponse> listBatches() {
+        String tenantId = requireAuthorizedTenant(null);
+        List<ParseBatchStatusResponse> result = new ArrayList<ParseBatchStatusResponse>();
+        for (ParseBatch batch : parseBatchRepository.findAll()) {
+            if (!tenantId.equals(batch.getTenantId())) {
+                continue;
+            }
+            result.add(toResponse(batch, Collections.<ParseBatchItem>emptyList()));
+        }
+        return result;
+    }
+
     private ParseBatch requireBatch(String batchId) {
         ParseBatch batch = parseBatchRepository.findByBatchId(requireText(batchId, "batchId"));
         if (batch == null) {

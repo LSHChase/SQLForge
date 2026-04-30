@@ -473,6 +473,17 @@ export const createParseBatch = (payload, requestOptions = {}) =>
     }
   })
 
+export const listParseBatches = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/parse-batches?tenantId=${encodeURIComponent(tenantId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-batch-list',
+      ...requestOptions
+    }
+  })
+
 export const ingestParseBatch = (batchId, tenantId, payload, requestOptions = {}) =>
   request({
     method: 'post',
@@ -504,6 +515,17 @@ export const retryParseBatchAccess = (batchId, tenantId, payload = {}, requestOp
     tenantId,
     requestOptions: {
       requestPrefix: 'frontend-parse-batch-retry-access',
+      ...requestOptions
+    }
+  })
+
+export const listReportBatches = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/report-batches?tenantId=${encodeURIComponent(tenantId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-report-batch-list',
       ...requestOptions
     }
   })

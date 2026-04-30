@@ -27,6 +27,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -40,6 +41,12 @@ import java.util.UUID;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -68,11 +75,9 @@ public class ReportBatchApplicationService {
     public ReportBatchStatusResponse importBatch(ReportBatchImportRequest request) {
         String tenantId = requireAuthorizedTenant(request == null ? null : request.getTenantId());
         String batchName = requireText(request == null ? null : request.getBatchName(), "batchName");
-        String fileType = requireText(request == null ? null : request.getFileType(), "fileType").toUpperCase(Locale.ROOT);
-        if (!"TXT".equals(fileType)) {
-            throw invalidArgument("fileType", "Report catalog import currently supports TXT mock source only");
-        }
         String reportCodeField = requireText(request == null ? null : request.getReportCodeField(), "reportCodeField");
+        byte[] content = decodeBase64(trimToNull(request == null ? null : request.getContentBase64()));
+        String fileType = resolveFileType(request, content);
         Instant now = Instant.now();
         ReportBatch batch = ReportBatch.initialize(
             UUID.randomUUID().toString(),
@@ -87,7 +92,7 @@ public class ReportBatchApplicationService {
             RequestContext.getUserId(),
             now
         );
-        List<ReportBatchItem> items = buildItems(batch, request);
+        List<ReportBatchItem> items = buildItems(batch, request, content);
         if (items.isEmpty()) {
             throw invalidArgument("contentBase64", "No report codes were found in the mock source payload");
         }
@@ -141,6 +146,33 @@ public class ReportBatchApplicationService {
     public ReportBatchStatusResponse getBatch(String batchId) {
         ReportBatch batch = requireBatch(batchId);
         return toResponse(batch, reportBatchItemRepository.findByBatchId(batch.getBatchId()));
+    }
+
+    public List<ReportBatchStatusResponse> listBatches() {
+        String tenantId = requireAuthorizedTenant(null);
+        List<ReportBatchStatusResponse> result = new ArrayList<ReportBatchStatusResponse>();
+        for (ReportBatch batch : reportBatchRepository.findAll()) {
+            if (!tenantId.equals(batch.getTenantId())) {
+                continue;
+            }
+            result.add(toResponse(batch, Collections.<ReportBatchItem>emptyList()));
+        }
+        result.sort(new Comparator<ReportBatchStatusResponse>() {
+            @Override
+            public int compare(ReportBatchStatusResponse left, ReportBatchStatusResponse right) {
+                if (left.getCreatedAt() == null && right.getCreatedAt() == null) {
+                    return 0;
+                }
+                if (left.getCreatedAt() == null) {
+                    return 1;
+                }
+                if (right.getCreatedAt() == null) {
+                    return -1;
+                }
+                return right.getCreatedAt().compareTo(left.getCreatedAt());
+            }
+        });
+        return result;
     }
 
     private ReportBatchStatusResponse toResponse(ReportBatch batch, List<ReportBatchItem> items) {
@@ -232,10 +264,8 @@ public class ReportBatchApplicationService {
         return accessParseApplicationService.parseAccess(request, parseTaskId);
     }
 
-    private List<ReportBatchItem> buildItems(ReportBatch batch, ReportBatchImportRequest request) {
-        byte[] content = decodeBase64(trimToNull(request == null ? null : request.getContentBase64()));
-        String text = new String(content, resolveCharset(request == null ? null : request.getCharset()));
-        List<ReportSourceRow> rows = parseSourceRows(text);
+    private List<ReportBatchItem> buildItems(ReportBatch batch, ReportBatchImportRequest request, byte[] content) {
+        List<ReportSourceRow> rows = parseSourceRows(content, request == null ? null : request.getCharset(), batch.getFileType());
         List<ReportBatchItem> items = new ArrayList<ReportBatchItem>(rows.size());
         for (int i = 0; i < rows.size(); i++) {
             ReportSourceRow row = rows.get(i);
@@ -256,12 +286,20 @@ public class ReportBatchApplicationService {
         return items;
     }
 
-    private List<ReportSourceRow> parseSourceRows(String text) {
-        if (!StringUtils.hasText(text)) {
+    private List<ReportSourceRow> parseSourceRows(byte[] content, String charsetName, String fileType) {
+        if (content == null || content.length == 0) {
             return Collections.emptyList();
         }
+        String normalizedFileType = normalizeFileType(fileType);
+        if (isWorkbookFileType(normalizedFileType)) {
+            return parseWorkbookSource(content);
+        }
+        String text = new String(content, resolveCharset(charsetName));
         String normalized = text.replace("\r\n", "\n").trim();
-        if (normalized.contains(",") && normalized.split("\n", 2)[0].toLowerCase(Locale.ROOT).contains("report_code")) {
+        if (!StringUtils.hasText(normalized)) {
+            return Collections.emptyList();
+        }
+        if (looksLikeCsv(normalized)) {
             return parseCsvSource(normalized);
         }
         List<ReportSourceRow> rows = new ArrayList<ReportSourceRow>();
@@ -287,6 +325,61 @@ public class ReportBatchApplicationService {
             throw invalidArgument("contentBase64", "Failed to parse report catalog payload: " + ex.getMessage());
         }
         return rows;
+    }
+
+    private List<ReportSourceRow> parseWorkbookSource(byte[] content) {
+        try {
+            Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(content));
+            Sheet sheet = workbook.getNumberOfSheets() == 0 ? null : workbook.getSheetAt(0);
+            if (sheet == null) {
+                return Collections.emptyList();
+            }
+            DataFormatter formatter = new DataFormatter();
+            Row headerRow = sheet.getRow(sheet.getFirstRowNum());
+            if (headerRow == null) {
+                return Collections.emptyList();
+            }
+            List<String> headers = new ArrayList<String>();
+            for (int cellIndex = 0; cellIndex < headerRow.getLastCellNum(); cellIndex++) {
+                headers.add(normalizeHeader(formatter.formatCellValue(headerRow.getCell(cellIndex))));
+            }
+            List<ReportSourceRow> rows = new ArrayList<ReportSourceRow>();
+            for (int rowIndex = sheet.getFirstRowNum() + 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+                Row row = sheet.getRow(rowIndex);
+                if (row == null) {
+                    continue;
+                }
+                Map<String, String> values = new LinkedHashMap<String, String>();
+                boolean nonEmpty = false;
+                for (int cellIndex = 0; cellIndex < headers.size(); cellIndex++) {
+                    String header = headers.get(cellIndex);
+                    if (!StringUtils.hasText(header)) {
+                        continue;
+                    }
+                    Cell cell = row.getCell(cellIndex);
+                    String value = trimToNull(formatter.formatCellValue(cell));
+                    if (StringUtils.hasText(value)) {
+                        nonEmpty = true;
+                    }
+                    values.put(header, value);
+                }
+                if (nonEmpty) {
+                    rows.add(toReportRow(values));
+                }
+            }
+            workbook.close();
+            return rows;
+        } catch (Exception ex) {
+            throw invalidArgument("contentBase64", "Failed to parse workbook report payload: " + ex.getMessage());
+        }
+    }
+
+    private boolean looksLikeCsv(String text) {
+        if (!StringUtils.hasText(text)) {
+            return false;
+        }
+        String firstLine = text.split("\n", 2)[0].toLowerCase(Locale.ROOT);
+        return firstLine.contains(",") && (firstLine.contains("report_code") || firstLine.contains("reportcode"));
     }
 
     private List<ReportSourceRow> parseCsvSource(String text) {
@@ -315,6 +408,58 @@ public class ReportBatchApplicationService {
         } catch (Exception ex) {
             throw invalidArgument("contentBase64", "Failed to parse report catalog CSV payload: " + ex.getMessage());
         }
+    }
+
+    private String resolveFileType(ReportBatchImportRequest request, byte[] content) {
+        String explicit = normalizeFileType(request == null ? null : request.getFileType());
+        if (StringUtils.hasText(explicit)) {
+            return explicit;
+        }
+        String fileName = trimToNull(request == null ? null : request.getFileName());
+        if (StringUtils.hasText(fileName)) {
+            String lower = fileName.toLowerCase(Locale.ROOT);
+            if (lower.endsWith(".xlsx")) {
+                return "XLSX";
+            }
+            if (lower.endsWith(".xls")) {
+                return "XLS";
+            }
+            if (lower.endsWith(".et")) {
+                return "ET";
+            }
+            if (lower.endsWith(".csv")) {
+                return "CSV";
+            }
+            if (lower.endsWith(".txt")) {
+                return "TXT";
+            }
+        }
+        if (looksBinaryWorkbook(content)) {
+            return "XLSX";
+        }
+        String text = new String(content, resolveCharset(request == null ? null : request.getCharset()));
+        return looksLikeCsv(text) ? "CSV" : "TXT";
+    }
+
+    private boolean looksBinaryWorkbook(byte[] content) {
+        if (content == null || content.length < 4) {
+            return false;
+        }
+        return (content[0] == 'P' && content[1] == 'K') || (content[0] == (byte) 0xD0 && content[1] == (byte) 0xCF);
+    }
+
+    private boolean isWorkbookFileType(String fileType) {
+        return "XLSX".equals(fileType) || "XLS".equals(fileType) || "ET".equals(fileType);
+    }
+
+    private String normalizeFileType(String fileType) {
+        String normalized = trimToNull(fileType);
+        return normalized == null ? null : normalized.toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeHeader(String value) {
+        String normalized = trimToNull(value);
+        return normalized == null ? null : normalized.toLowerCase(Locale.ROOT);
     }
 
     private String resolveMockBizDate() {
@@ -512,6 +657,17 @@ public class ReportBatchApplicationService {
             return null;
         }
         return value.trim();
+    }
+
+    private ReportSourceRow toReportRow(Map<String, String> values) {
+        ReportSourceRow row = new ReportSourceRow();
+        row.rawLine = values.toString();
+        row.reportCode = trimToNull(firstNonBlank(values.get("report_code"), values.get("reportCode")));
+        row.reportName = trimToNull(firstNonBlank(values.get("report_name"), values.get("reportName")));
+        row.datasourceCode = trimToNull(firstNonBlank(values.get("datasource"), values.get("datasource_code")));
+        row.stage = trimToNull(values.get("stage"));
+        row.priority = trimToNull(values.get("priority"));
+        return row;
     }
 
     private static final class ReportSourceRow {

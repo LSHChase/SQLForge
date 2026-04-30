@@ -47,6 +47,12 @@
         ORDER BY sequence_number ASC
     </select>
 
+    <select id="selectAll" resultMap="ReportBatchItemRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM report_batch_item
+        ORDER BY batch_id ASC, sequence_number ASC
+    </select>
+
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchItemRecord">
         INSERT INTO report_batch_item (
             item_id, batch_id, sequence_number, report_code, report_name, datasource_code, stage, priority,

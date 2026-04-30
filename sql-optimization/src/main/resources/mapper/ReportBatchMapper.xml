@@ -36,6 +36,12 @@
         WHERE batch_id = #{batchId}
     </select>
 
+    <select id="selectAll" resultMap="ReportBatchRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM report_batch
+        ORDER BY created_at DESC, batch_id DESC
+    </select>
+
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchRecord">
         INSERT INTO report_batch (
             batch_id, tenant_id, batch_name, file_type, report_code_field, datasource_code, stage, priority,

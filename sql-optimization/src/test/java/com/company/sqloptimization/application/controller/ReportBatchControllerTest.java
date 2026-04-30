@@ -37,15 +37,21 @@ class ReportBatchControllerTest {
 
         MvcResult imported = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/report-batches/import"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"tenantId\":\"tenant-a\",\"batchName\":\"report-batch-alpha\",\"fileType\":\"TXT\","
+                .content("{\"tenantId\":\"tenant-a\",\"batchName\":\"report-batch-alpha\",\"fileName\":\"report-batch-alpha.txt\","
                     + "\"reportCodeField\":\"report_code\",\"datasourceCode\":\"hetu_main\",\"stage\":\"PROD\","
                     + "\"priority\":\"high\",\"contentBase64\":\"" + encoded + "\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("READY"))
+            .andExpect(jsonPath("$.fileType").value("TXT"))
             .andExpect(jsonPath("$.reportItems.length()").value(2))
             .andReturn();
 
         String batchId = JsonTestUtils.readValue(imported.getResponse().getContentAsString(), "$.batchId");
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].batchId").value(batchId))
+            .andExpect(jsonPath("$[0].fileType").value("TXT"));
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/report-batches/{batchId}/resolve-sqls", batchId)))
             .andExpect(status().isOk())

@@ -10,6 +10,8 @@ import {
   getGovernanceQueryHistoryDetail,
   getGovernanceQueryHistoryPage,
   getGovernanceTraceDetail,
+  listParseBatches,
+  listReportBatches,
   lookupGovernanceTraces
 } from '../../services/runtimeGateApi'
 import { buildDatasourceOptions, buildTenantOptions, withCurrentOption } from '../common/formComponentGovernance'
@@ -60,8 +62,10 @@ const selectedHistoryId = ref('')
 const detailDialogVisible = ref(false)
 const evidenceDrawerVisible = ref(false)
 const activeDialogTab = ref('overview')
+const batchHistoryTab = ref('parse')
 const selectedHistoryDetail = ref(null)
 const errorMessage = ref('')
+const batchHistoryErrorMessage = ref('')
 const exportDialogVisible = ref(false)
 const exportResult = ref(null)
 const exportForm = reactive({
@@ -71,9 +75,31 @@ const exportForm = reactive({
 })
 
 const rows = computed(() => page.value?.items || [])
+const parseBatchHistoryRows = ref([])
+const reportBatchHistoryRows = ref([])
 const isChinese = computed(() => locale.value === 'zh-CN')
 const tenantOptions = computed(() => buildTenantOptions(form.tenantId, rows.value))
 const classificationSummary = computed(() => page.value?.classificationSummary || {})
+const parseBatchHistorySummary = computed(() => {
+  const totalRecords = parseBatchHistoryRows.value.reduce((sum, item) => sum + Number(item.totalRecords || 0), 0)
+  const failedBatches = parseBatchHistoryRows.value.filter(item => String(item.status || '').includes('FAILED')).length
+  return [
+    card(isChinese.value ? '批次总数' : 'Batches', parseBatchHistoryRows.value.length),
+    card(isChinese.value ? '总记录数' : 'Records', totalRecords),
+    card(isChinese.value ? '失败批次' : 'Failed batches', failedBatches)
+  ]
+})
+const reportBatchHistorySummary = computed(() => {
+  const totalReports = reportBatchHistoryRows.value.reduce((sum, item) => sum + Number(item.totalReports || 0), 0)
+  const resolvedReports = reportBatchHistoryRows.value.reduce((sum, item) => sum + Number(item.resolvedReports || 0), 0)
+  const failedBatches = reportBatchHistoryRows.value.filter(item => String(item.status || '').includes('FAILED')).length
+  return [
+    card(isChinese.value ? '批次总数' : 'Batches', reportBatchHistoryRows.value.length),
+    card(isChinese.value ? '报表总数' : 'Reports', totalReports),
+    card(isChinese.value ? '已解析' : 'Resolved', resolvedReports),
+    card(isChinese.value ? '失败批次' : 'Failed batches', failedBatches)
+  ]
+})
 const pageSummaryCards = computed(() => [
   { label: isChinese.value ? '当前页记录' : 'Current page', value: rows.value.length },
   { label: isChinese.value ? '成功' : 'Success', value: classificationSummary.value.SUCCESS || classificationSummary.value.succeeded || 0 },
@@ -215,8 +241,28 @@ const loadPage = async () => {
   }
 }
 
+const loadBatchHistories = async () => {
+  batchHistoryErrorMessage.value = ''
+  const [parseResult, reportResult] = await Promise.allSettled([
+    listParseBatches(form.tenantId),
+    listReportBatches(form.tenantId)
+  ])
+  if (parseResult.status === 'fulfilled') {
+    parseBatchHistoryRows.value = Array.isArray(parseResult.value) ? parseResult.value : []
+  }
+  if (reportResult.status === 'fulfilled') {
+    reportBatchHistoryRows.value = Array.isArray(reportResult.value) ? reportResult.value : []
+  }
+  if (parseResult.status === 'rejected') {
+    batchHistoryErrorMessage.value = formatRuntimeError(parseResult.reason)
+  }
+  if (reportResult.status === 'rejected' && !batchHistoryErrorMessage.value) {
+    batchHistoryErrorMessage.value = formatRuntimeError(reportResult.reason)
+  }
+}
+
 const refreshWorkbench = async () => {
-  await Promise.all([loadDatasourceOptions(), loadPage()])
+  await Promise.all([loadDatasourceOptions(), loadPage(), loadBatchHistories()])
 }
 
 const openHistoryDetail = async (historyId, preloadedTraceDetail = null) => {
@@ -374,6 +420,34 @@ const openAuditForensics = () => {
       tenantId: form.tenantId,
       traceId: selectedHistoryDetail.value.traceId || '',
       reportId: selectedHistoryDetail.value.reportId || ''
+    }
+  })
+}
+
+const openParseBatchCenter = batchId => {
+  if (!batchId) {
+    return
+  }
+  router.push({
+    path: ROUTE_PATHS.parseBatchCenter,
+    query: {
+      tenantId: form.tenantId,
+      kind: 'parse',
+      batchId
+    }
+  })
+}
+
+const openReportBatchCenter = batchId => {
+  if (!batchId) {
+    return
+  }
+  router.push({
+    path: ROUTE_PATHS.parseBatchCenter,
+    query: {
+      tenantId: form.tenantId,
+      kind: 'report',
+      batchId
     }
   })
 }
@@ -740,6 +814,92 @@ onMounted(async () => {
       </el-table>
     </section>
 
+    <section class="surface-card batch-history-panel">
+      <div class="table-heading">
+        <div>
+          <p class="section-kicker sqlforge-code-label">batch history</p>
+          <h2 class="section-title">{{ isChinese ? '批量解析与报表导入历史' : 'Batch parse and report-import history' }}</h2>
+        </div>
+        <div class="chip-row">
+          <span class="chip">{{ isChinese ? '服务端持久化' : 'Server persisted' }}</span>
+          <span class="chip">{{ isChinese ? '可回跳批量中心' : 'Deep links to batch center' }}</span>
+        </div>
+      </div>
+
+      <div
+        v-if="batchHistoryErrorMessage"
+        class="inline-banner inline-banner-danger"
+        data-testid="parse-record-batch-history-error"
+      >
+        {{ batchHistoryErrorMessage }}
+      </div>
+
+      <el-tabs v-model="batchHistoryTab">
+        <el-tab-pane :label="isChinese ? '批量解析历史' : 'Batch parse history'" name="parse">
+          <section class="summary-grid batch-history-summary">
+            <article v-for="item in parseBatchHistorySummary" :key="item.label" class="summary-card">
+              <span class="summary-card-label">{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </article>
+          </section>
+          <el-table :data="parseBatchHistoryRows" border>
+            <el-table-column prop="batchName" :label="isChinese ? '批次名称' : 'Batch name'" min-width="200">
+              <template #default="{ row }">
+                <button
+                  type="button"
+                  class="table-link"
+                  data-testid="parse-record-batch-history-parse"
+                  @click="openParseBatchCenter(row.batchId)"
+                >
+                  {{ row.batchName || row.batchId }}
+                </button>
+              </template>
+            </el-table-column>
+            <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
+            <el-table-column prop="importMode" :label="isChinese ? '导入模式' : 'Import mode'" min-width="140" />
+            <el-table-column prop="fileType" :label="isChinese ? '文件类型' : 'File type'" min-width="120" />
+            <el-table-column prop="totalRecords" :label="isChinese ? '总记录' : 'Total records'" min-width="110" />
+            <el-table-column prop="successRecords" :label="isChinese ? '成功' : 'Success'" min-width="100" />
+            <el-table-column prop="failedRecords" :label="isChinese ? '失败' : 'Failed'" min-width="100" />
+            <el-table-column prop="createdAt" :label="isChinese ? '创建时间' : 'Created at'" min-width="170">
+              <template #default="{ row }">{{ formatTimestamp(row.createdAt) }}</template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <el-tab-pane :label="isChinese ? '报表导入历史' : 'Report import history'" name="report">
+          <section class="summary-grid batch-history-summary">
+            <article v-for="item in reportBatchHistorySummary" :key="item.label" class="summary-card">
+              <span class="summary-card-label">{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </article>
+          </section>
+          <el-table :data="reportBatchHistoryRows" border>
+            <el-table-column prop="batchName" :label="isChinese ? '批次名称' : 'Batch name'" min-width="200">
+              <template #default="{ row }">
+                <button
+                  type="button"
+                  class="table-link"
+                  data-testid="parse-record-batch-history-report"
+                  @click="openReportBatchCenter(row.batchId)"
+                >
+                  {{ row.batchName || row.batchId }}
+                </button>
+              </template>
+            </el-table-column>
+            <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
+            <el-table-column prop="fileType" :label="isChinese ? '文件类型' : 'File type'" min-width="120" />
+            <el-table-column prop="totalReports" :label="isChinese ? '报表总数' : 'Total reports'" min-width="120" />
+            <el-table-column prop="resolvedReports" :label="isChinese ? '已解析' : 'Resolved'" min-width="110" />
+            <el-table-column prop="failedReports" :label="isChinese ? '失败' : 'Failed'" min-width="100" />
+            <el-table-column prop="createdAt" :label="isChinese ? '创建时间' : 'Created at'" min-width="170">
+              <template #default="{ row }">{{ formatTimestamp(row.createdAt) }}</template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+    </section>
+
     <el-dialog
       v-model="detailDialogVisible"
       :title="selectedHistoryDetail?.reportCode || selectedHistoryDetail?.historyId || 'query history detail'"
@@ -949,7 +1109,8 @@ onMounted(async () => {
 
 .page-shell,
 .filter-panel,
-.table-panel {
+.table-panel,
+.batch-history-panel {
   padding: 20px;
 }
 
@@ -1073,6 +1234,8 @@ onMounted(async () => {
   color: var(--sqlforge-color-brand);
   padding: 0;
   cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .cell-subline {

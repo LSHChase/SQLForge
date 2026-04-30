@@ -6,7 +6,9 @@
   "master_execution_plan": "docs/plans/master-execution-plan.md",
   "task_spec_matrix": "docs/plans/task-spec-matrix.md",
   "task_governance_matrix": "docs/plans/task-governance-extension-matrix.md",
-  "active_exec_plans": [],
+  "active_exec_plans": [
+    "docs/exec-plans/active/HARN-056-parse-history-and-batch-center-plan.md"
+  ],
   "completed_exec_plans": [
     "docs/exec-plans/completed/D-TASK-030-full-auto-execution-plan.md",
     "docs/exec-plans/completed/D-TASK-073-full-auto-execution-plan.md",

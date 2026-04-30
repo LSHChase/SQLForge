@@ -2,6 +2,9 @@ package com.company.sqloptimization.infrastructure.repository;
 
 import com.company.sqloptimization.domain.batch.ParseBatch;
 import com.company.sqloptimization.domain.batch.repository.ParseBatchRepository;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.context.annotation.Primary;
@@ -22,5 +25,12 @@ public class InMemoryParseBatchRepository implements ParseBatchRepository {
     @Override
     public ParseBatch findByBatchId(String batchId) {
         return batches.get(batchId);
+    }
+
+    @Override
+    public List<ParseBatch> findAll() {
+        List<ParseBatch> result = new ArrayList<ParseBatch>(batches.values());
+        result.sort(Comparator.comparing(ParseBatch::getCreatedAt).reversed().thenComparing(ParseBatch::getBatchId));
+        return result;
     }
 }

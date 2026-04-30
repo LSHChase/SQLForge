@@ -15,4 +15,6 @@ public interface ReportBatchItemMapper {
     ReportBatchItemRecord selectByItemId(@Param("itemId") String itemId);
 
     List<ReportBatchItemRecord> selectByBatchId(@Param("batchId") String batchId);
+
+    List<ReportBatchItemRecord> selectAll();
 }

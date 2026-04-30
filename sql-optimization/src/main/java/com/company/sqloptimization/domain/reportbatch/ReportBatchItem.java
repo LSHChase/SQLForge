@@ -66,6 +66,57 @@ public class ReportBatchItem {
         return new ReportBatchItem(itemId, batchId, sequenceNumber, reportCode, reportName, datasourceCode, stage, priority, sourceFileLine, createdAt);
     }
 
+    public static ReportBatchItem restore(String itemId,
+                                          String batchId,
+                                          int sequenceNumber,
+                                          String reportCode,
+                                          String reportName,
+                                          String datasourceCode,
+                                          String stage,
+                                          String priority,
+                                          String sourceFileLine,
+                                          String sqlText,
+                                          String parseTaskId,
+                                          String structureSyntaxStatus,
+                                          String accessServiceStatus,
+                                          String accessConnectionStatus,
+                                          String failureReason,
+                                          Status status,
+                                          List<String> issueScenes,
+                                          List<String> logicalObjectKeys,
+                                          Instant createdAt,
+                                          Instant updatedAt) {
+        ReportBatchItem item = new ReportBatchItem(
+            itemId,
+            batchId,
+            sequenceNumber,
+            reportCode,
+            reportName,
+            datasourceCode,
+            stage,
+            priority,
+            sourceFileLine,
+            createdAt
+        );
+        item.sqlText = sqlText;
+        item.parseTaskId = parseTaskId;
+        item.structureSyntaxStatus = structureSyntaxStatus;
+        item.accessServiceStatus = accessServiceStatus;
+        item.accessConnectionStatus = accessConnectionStatus;
+        item.failureReason = failureReason;
+        item.status = status;
+        item.updatedAt = updatedAt;
+        item.issueScenes.clear();
+        if (issueScenes != null) {
+            item.issueScenes.addAll(issueScenes);
+        }
+        item.logicalObjectKeys.clear();
+        if (logicalObjectKeys != null) {
+            item.logicalObjectKeys.addAll(logicalObjectKeys);
+        }
+        return item;
+    }
+
     public void complete(String sqlText,
                          String parseTaskId,
                          String structureSyntaxStatus,

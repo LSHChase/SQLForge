@@ -1,6 +1,7 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import {
   createParseBatch,
   formatRuntimeError,
@@ -8,11 +9,14 @@ import {
   getReportBatch,
   importReportBatch,
   ingestParseBatch,
+  listParseBatches,
+  listReportBatches,
   resolveReportBatchSqls,
   retryParseBatchAccess
 } from '../../services/runtimeGateApi'
 
 const { locale } = useI18n()
+const route = useRoute()
 
 const activeWorkspace = ref('parse')
 const parseUploadFile = ref(null)
@@ -61,7 +65,6 @@ const retryForm = reactive({
 const reportBatchForm = reactive({
   tenantId: 'tenant-a',
   batchName: 'report-batch-alpha',
-  fileType: 'TXT',
   reportCodeField: 'report_code',
   datasourceCode: 'hetu_main',
   stage: 'PROD',
@@ -70,7 +73,6 @@ const reportBatchForm = reactive({
 })
 
 const parseFileTypeOptions = ['CSV', 'TXT', 'SQL', 'XLS', 'XLSX', 'ET']
-const reportFileTypeOptions = ['TXT', 'CSV', 'XLSX']
 const parseImportModeOptions = ['TABULAR_FILE', 'SQL_FILE', 'REPORT_CATALOG']
 const retryFilterOptions = ['ALL', 'UNAVAILABLE', 'FAILED']
 const directInputModeOptions = ['SQL_LINES', 'TABULAR_TEXT']
@@ -144,6 +146,35 @@ const parseSessionsSummary = computed(() =>
 const reportSessionsSummary = computed(() =>
   `${reportBatchSessions.value.length} ${isChinese.value ? '个批次' : 'batches'}`
 )
+const parseBatchHistorySummary = computed(() => {
+  const totalRecords = parseBatchSessions.value.reduce(
+    (sum, item) => sum + Number(item.totalRecords || 0),
+    0
+  )
+  const failedBatches = parseBatchSessions.value.filter(item => String(item.status || '').includes('FAILED')).length
+  return [
+    card(isChinese.value ? '批次总数' : 'Batches', parseBatchSessions.value.length),
+    card(isChinese.value ? '总记录数' : 'Records', totalRecords),
+    card(isChinese.value ? '失败批次' : 'Failed batches', failedBatches)
+  ]
+})
+const reportBatchHistorySummary = computed(() => {
+  const totalReports = reportBatchSessions.value.reduce(
+    (sum, item) => sum + Number(item.totalReports || 0),
+    0
+  )
+  const resolvedReports = reportBatchSessions.value.reduce(
+    (sum, item) => sum + Number(item.resolvedReports || 0),
+    0
+  )
+  const failedBatches = reportBatchSessions.value.filter(item => String(item.status || '').includes('FAILED')).length
+  return [
+    card(isChinese.value ? '批次总数' : 'Batches', reportBatchSessions.value.length),
+    card(isChinese.value ? '报表总数' : 'Reports', totalReports),
+    card(isChinese.value ? '已解析' : 'Resolved', resolvedReports),
+    card(isChinese.value ? '失败批次' : 'Failed batches', failedBatches)
+  ]
+})
 
 const card = (label, value) => ({ label, value })
 
@@ -181,6 +212,26 @@ const clearError = () => {
 const upsertSession = (collection, item) => {
   const next = collection.value.filter(entry => entry.batchId !== item.batchId)
   collection.value = [item, ...next]
+}
+
+const loadBatchHistories = async () => {
+  clearError()
+  const [parseResult, reportResult] = await Promise.allSettled([
+    listParseBatches(parseBatchForm.tenantId),
+    listReportBatches(reportBatchForm.tenantId)
+  ])
+  if (parseResult.status === 'fulfilled') {
+    parseBatchSessions.value = Array.isArray(parseResult.value) ? parseResult.value : []
+  }
+  if (reportResult.status === 'fulfilled') {
+    reportBatchSessions.value = Array.isArray(reportResult.value) ? reportResult.value : []
+  }
+  if (parseResult.status === 'rejected') {
+    errorMessage.value = formatRuntimeError(parseResult.reason)
+  }
+  if (reportResult.status === 'rejected' && !errorMessage.value) {
+    errorMessage.value = formatRuntimeError(reportResult.reason)
+  }
 }
 
 const encodeArrayBufferToBase64 = buffer => {
@@ -307,6 +358,7 @@ const createParseBatchFlow = async () => {
       structureParseOnly: parseBatchForm.structureParseOnly
     })
     upsertSession(parseBatchSessions, parseBatchDetail.value)
+    await loadBatchHistories()
     parseCreateDialogVisible.value = false
     parseDetailDrawerVisible.value = true
   } catch (error) {
@@ -347,6 +399,7 @@ const ingestParseBatchFlow = async () => {
       charset: 'UTF-8'
     })
     upsertSession(parseBatchSessions, parseBatchDetail.value)
+    await loadBatchHistories()
     parseImportDialogVisible.value = false
     parseDetailDrawerVisible.value = true
   } catch (error) {
@@ -389,6 +442,7 @@ const retryAccessFlow = async () => {
       forceRecheckAvailability: retryForm.forceRecheckAvailability
     })
     upsertSession(parseBatchSessions, parseBatchDetail.value)
+    await loadBatchHistories()
     parseDetailDrawerVisible.value = true
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
@@ -409,7 +463,6 @@ const importReportBatchFlow = async () => {
     reportBatchDetail.value = await importReportBatch({
       tenantId: reportBatchForm.tenantId,
       batchName: reportBatchForm.batchName,
-      fileType: reportBatchForm.fileType,
       reportCodeField: reportBatchForm.reportCodeField,
       datasourceCode: reportBatchForm.datasourceCode,
       stage: reportBatchForm.stage,
@@ -418,6 +471,7 @@ const importReportBatchFlow = async () => {
       charset: 'UTF-8'
     })
     upsertSession(reportBatchSessions, reportBatchDetail.value)
+    await loadBatchHistories()
     reportImportDialogVisible.value = false
     reportDetailDrawerVisible.value = true
   } catch (error) {
@@ -456,6 +510,7 @@ const resolveReportSqlsFlow = async () => {
   try {
     reportBatchDetail.value = await resolveReportBatchSqls(reportBatchDetail.value.batchId, reportBatchForm.tenantId)
     upsertSession(reportBatchSessions, reportBatchDetail.value)
+    await loadBatchHistories()
     reportDetailDrawerVisible.value = true
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
@@ -473,6 +528,26 @@ const openReportSession = async batchId => {
   await refreshReportBatchDetail(batchId)
   reportDetailDrawerVisible.value = true
 }
+
+onMounted(async () => {
+  const tenantId = String(route.query.tenantId || '').trim()
+  if (tenantId) {
+    parseBatchForm.tenantId = tenantId
+    reportBatchForm.tenantId = tenantId
+  }
+  await loadBatchHistories()
+  const batchId = String(route.query.batchId || '').trim()
+  if (!batchId) {
+    return
+  }
+  const kind = String(route.query.kind || 'parse').trim()
+  activeWorkspace.value = 'history'
+  if (kind === 'report') {
+    await openReportSession(batchId)
+    return
+  }
+  await openParseSession(batchId)
+})
 </script>
 
 <template>
@@ -503,6 +578,17 @@ const openReportSession = async batchId => {
     >
       {{ errorMessage }}
     </div>
+
+    <section class="summary-grid history-summary-grid">
+      <article v-for="item in parseBatchHistorySummary" :key="`parse-${item.label}`" class="summary-card">
+        <span class="summary-card-label">{{ item.label }}</span>
+        <strong>{{ item.value }}</strong>
+      </article>
+      <article v-for="item in reportBatchHistorySummary" :key="`report-${item.label}`" class="summary-card">
+        <span class="summary-card-label">{{ item.label }}</span>
+        <strong>{{ item.value }}</strong>
+      </article>
+    </section>
 
     <el-tabs v-model="activeWorkspace" class="workspace-tabs">
       <el-tab-pane :label="isChinese ? '批量解析' : 'Parse batches'" name="parse">
@@ -748,6 +834,79 @@ const openReportSession = async batchId => {
           </main>
         </div>
       </el-tab-pane>
+
+      <el-tab-pane :label="isChinese ? '历史总览' : 'History overview'" name="history">
+        <div class="workspace-toolbar shell-panel">
+          <div class="toolbar-copy">
+            <p class="section-kicker sqlforge-code-label">history overview</p>
+            <h2 class="section-title">{{ isChinese ? '解析历史总览' : 'Parse history overview' }}</h2>
+            <p class="section-summary">
+              {{
+                isChinese
+                  ? '这里直接展示服务端持久化后的批量解析与报表导入记录，可快速回到任意批次详情。'
+                  : 'This tab surfaces persisted batch parse and report-import history so you can jump back into any batch detail.'
+              }}
+            </p>
+          </div>
+          <div class="toolbar-actions">
+            <el-button :loading="loading.refreshParseBatch || loading.refreshReportBatch" @click="loadBatchHistories">
+              {{ isChinese ? '刷新历史' : 'Refresh history' }}
+            </el-button>
+          </div>
+        </div>
+
+        <div class="workspace-grid history-grid">
+          <section class="shell-panel">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker sqlforge-code-label">parse history</p>
+                <h3 class="section-title">{{ isChinese ? '批量解析历史' : 'Batch parse history' }}</h3>
+              </div>
+            </div>
+            <el-table :data="parseBatchSessions" border>
+              <el-table-column prop="batchName" :label="isChinese ? '批次名称' : 'Batch name'" min-width="180">
+                <template #default="{ row }">
+                  <button type="button" class="table-link" @click="openParseSession(row.batchId)">
+                    {{ row.batchName || row.batchId }}
+                  </button>
+                </template>
+              </el-table-column>
+              <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
+              <el-table-column prop="totalRecords" :label="isChinese ? '总记录' : 'Total records'" min-width="120" />
+              <el-table-column prop="successRecords" :label="isChinese ? '成功' : 'Success'" min-width="100" />
+              <el-table-column prop="failedRecords" :label="isChinese ? '失败' : 'Failed'" min-width="100" />
+              <el-table-column prop="createdAt" :label="isChinese ? '创建时间' : 'Created at'" min-width="170">
+                <template #default="{ row }">{{ formatInstant(row.createdAt) }}</template>
+              </el-table-column>
+            </el-table>
+          </section>
+
+          <section class="shell-panel">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker sqlforge-code-label">report history</p>
+                <h3 class="section-title">{{ isChinese ? '报表导入历史' : 'Report import history' }}</h3>
+              </div>
+            </div>
+            <el-table :data="reportBatchSessions" border>
+              <el-table-column prop="batchName" :label="isChinese ? '批次名称' : 'Batch name'" min-width="180">
+                <template #default="{ row }">
+                  <button type="button" class="table-link" @click="openReportSession(row.batchId)">
+                    {{ row.batchName || row.batchId }}
+                  </button>
+                </template>
+              </el-table-column>
+              <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
+              <el-table-column prop="totalReports" :label="isChinese ? '报表总数' : 'Total reports'" min-width="120" />
+              <el-table-column prop="resolvedReports" :label="isChinese ? '已解析' : 'Resolved'" min-width="100" />
+              <el-table-column prop="failedReports" :label="isChinese ? '失败' : 'Failed'" min-width="100" />
+              <el-table-column prop="createdAt" :label="isChinese ? '创建时间' : 'Created at'" min-width="170">
+                <template #default="{ row }">{{ formatInstant(row.createdAt) }}</template>
+              </el-table-column>
+            </el-table>
+          </section>
+        </div>
+      </el-tab-pane>
     </el-tabs>
 
     <el-dialog v-model="parseCreateDialogVisible" :title="isChinese ? '创建 Parse Batch' : 'Create parse batch'" width="760px">
@@ -904,12 +1063,6 @@ const openReportSession = async batchId => {
           <el-input v-model="reportBatchForm.batchName" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '文件类型' : 'File type' }}</span>
-          <el-select v-model="reportBatchForm.fileType">
-            <el-option v-for="item in reportFileTypeOptions" :key="item" :label="item" :value="item" />
-          </el-select>
-        </label>
-        <label class="field-block">
           <span class="field-label">{{ isChinese ? '报表编码字段' : 'Report code field' }}</span>
           <el-input v-model="reportBatchForm.reportCodeField" />
         </label>
@@ -925,6 +1078,9 @@ const openReportSession = async batchId => {
           <span class="field-label">{{ isChinese ? '上传文件' : 'Upload file' }}</span>
           <input type="file" @change="handleReportFileChange">
         </label>
+        <div class="field-note field-block-wide">
+          {{ isChinese ? '文件类型会根据文件名和内容自动识别，无需手动选择。' : 'File type is auto-detected from the filename and payload content.' }}
+        </div>
         <label class="field-block field-block-wide">
           <span class="field-label">{{ isChinese ? '内联清单' : 'Inline report catalog' }}</span>
           <el-input v-model="reportBatchForm.rawContent" type="textarea" :rows="8" />
@@ -1010,7 +1166,7 @@ const openReportSession = async batchId => {
 .runtime-eyebrow,
 .section-kicker {
   margin: 0 0 8px;
-  color: var(--sqlforge-color-brand-text);
+  color: var(--sqlforge-color-brand);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   font-size: 12px;
@@ -1058,6 +1214,10 @@ const openReportSession = async batchId => {
   color: var(--sqlforge-text-muted);
 }
 
+.history-summary-grid {
+  margin-top: -2px;
+}
+
 .workspace-grid {
   display: grid;
   grid-template-columns: minmax(280px, 0.84fr) minmax(0, 1.16fr);
@@ -1093,6 +1253,24 @@ const openReportSession = async batchId => {
   padding: 14px;
   text-align: left;
   cursor: pointer;
+}
+
+.table-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--sqlforge-color-brand);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.field-note {
+  color: var(--sqlforge-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .session-item-active {

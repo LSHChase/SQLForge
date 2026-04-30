@@ -49,6 +49,11 @@ class ParseBatchControllerTest {
 
         String batchId = JsonTestUtils.readValue(createResult.getResponse().getContentAsString(), "$.batchId");
 
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse-batches")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].batchId").value(batchId))
+            .andExpect(jsonPath("$[0].status").value("READY"));
+
         mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse-batches/{batchId}", batchId)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.batchId").value(batchId))

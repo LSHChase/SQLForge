@@ -57,6 +57,13 @@
         WHERE batch_id = #{batchId}
     </select>
 
+    <select id="selectAll" resultMap="ParseBatchRecordMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM parse_batch
+        ORDER BY created_at DESC, batch_id DESC
+    </select>
+
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ParseBatchRecord">
         INSERT INTO parse_batch (
             batch_id,

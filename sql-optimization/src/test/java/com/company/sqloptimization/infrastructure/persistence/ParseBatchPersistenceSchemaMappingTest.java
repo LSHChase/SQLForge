@@ -114,6 +114,17 @@ class ParseBatchPersistenceSchemaMappingTest {
         assertContains(mapper, "import_mode");
         assertContains(mapper, "source_type");
         assertContains(mapper, "status_history_json");
+        assertContains(mapper, "selectAll");
+    }
+
+    @Test
+    void shouldKeepReportBatchMappersAlignedWithHistoryQueries() throws IOException {
+        String mapper = readMapper("mapper/ReportBatchMapper.xml");
+        assertContains(mapper, "FROM report_batch");
+        assertContains(mapper, "selectAll");
+        String itemMapper = readMapper("mapper/ReportBatchItemMapper.xml");
+        assertContains(itemMapper, "FROM report_batch_item");
+        assertContains(itemMapper, "selectAll");
     }
 
     private static String readMapper(String resourcePath) throws IOException {
