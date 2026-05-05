@@ -596,6 +596,7 @@ Tasks:
 | `D-TASK-052` | 扩展 `xls/et` 兼容导入与失败语义 | 二级兼容格式支持与推荐使用稳定格式的失败提示 | `D-TASK-051` | compatibility 测试 |
 | `D-TASK-053` | 落地报表清单解析文件模拟入口 | 以 `report_code` 为主键，从 txt/mock source 获取 SQL 再解析 | `D-TASK-052` | mock resolve 测试 |
 | `D-TASK-054` | 接入报表接口配置与真实拉取抽象 | governance 配置接口，sql-optimization 通过统一抽象调用 | `D-TASK-053` | config/client abstraction 测试 |
+| `HARN-062` | HARN-062 / D-STORY-009 批量报表导入多 SQL 列解析修复 | 在 Phase-D / D-STORY-009 范围内修正批量报表导入或报表清单解析逻辑；仅允许触及相关代码、测试和必要文档。不得重构无关业务流程，不得扩展新导入格式、UI 或权限能力。User confirmed the execution preview at 2026-05-04T23:12:52-05:00; formal materialization may proceed under the recorded single-agent boundary. | `N/A` | 仅一列 SQL：第一列为 report code，第二列非空 SQL 被解析、多列 SQL：第二列及之后多个非空单元格均被解析为同一 report code 下的 SQL、空列跳过：中间或尾部空单元格不产生 SQL、100+ 后续列：不丢列、不串行、不依赖固定列数、回归测试：证明当前只识别一列 SQL 的问题被修复或规避、如存在文档示例或 fixtures，同步校验示例与新规则一致 |
 
 ##### Story `D-STORY-010` 解析统计与优先级分层
 

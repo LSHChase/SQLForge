@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-062: HARN-062 / D-STORY-009 批量报表导入多 SQL 列解析修复
+
+- Status: done
+- Completed at: 2026-05-04
+- Commit subject: `fix(sql-optimization): parse report batch wide SQL columns`
+- Priority: 1
+- Depends on: `N/A`
+- Scope: 对每一行导入数据，第一列必须稳定解析为 report code；从第二列开始遍历该行所有列，每个非空单元格都必须作为该 report code 下的一条 SQL；空单元格必须跳过；不得依赖固定 SQL 列数，需覆盖 100+ 后续列场景；测试和文档需与该规则保持一致。 Tech: `待 preflight 后确认具体实现栈与导入解析模块`,`批量导入解析逻辑`,`表格/CSV/XLSX 行列遍历逻辑`,`单元测试或集成测试，按仓库现有测试框架执行`,`相关导入规则文档`. Layer: `application/import-parsing`,`domain/report-sql-mapping`,`tests`,`docs`.
+- Plan ref: docs/exec-plans/completed/HARN-062-full-auto-execution-plan.md
+- Matrix context: Phase-D / Story `D-STORY-009` 批量解析与报表清单解析
+- Human confirmation point: User confirmed the HARN-062 execution preview at 2026-05-04T23:12:52-05:00. Main Foreman materialization boundary: single-agent execution; reuse existing import formats and parser entry points discovered during preflight; treat cells whose trimmed text is empty as empty; preserve every non-empty SQL cell as one SQL text for the row report code, including punctuation, quotes, semicolons and line breaks when the existing reader preserves them; update only related code, tests and docs; do not add UI, permissions, new import formats or report data-model changes. If implementation proves a report data-model change is unavoidable, pause for separate confirmation.
+- Data impact: 解析行为变更会影响后续批量导入结果：同一行后续所有非空列将被导入为多条 SQL，可能增加解析出的 SQL 数量；不涉及既有持久化数据迁移，除非实现阶段发现当前导入流程会立即写入数据库并需额外确认。
+- Rollback / recovery: 通过单任务单 commit 收口；如验证失败或行为不符合确认规则，回滚 HARN-062 相关代码、测试和文档变更，并保留 audit/validation 记录。若已产生导入数据副作用，需按实际持久化路径制定数据回退步骤并由人类确认。
+- Validation:
+  - `仅一列 SQL：第一列为 report code，第二列非空 SQL 被解析、多列 SQL：第二列及之后多个非空单元格均被解析为同一 report code 下的 SQL、空列跳过：中间或尾部空单元格不产生 SQL、100+ 后续列：不丢列、不串行、不依赖固定列数、回归测试：证明当前只识别一列 SQL 的问题被修复或规避、如存在文档示例或 fixtures，同步校验示例与新规则一致`
+  - `python3 scripts/foreman.py validate HARN-062`
+- Progress log:
+  - 2026-05-04: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Updated report batch CSV/workbook import parsing so column 1 is report code and every non-empty column after it becomes one SQL item; added CSV/XLSX regression coverage and docs.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-062 --extra-command 'mvn -pl sql-optimization -Dtest=ReportBatchApplicationServiceTest,ReportBatchControllerTest test' --extra-command 'node scripts/check-batch-import-contract.mjs'
+  - Residual risk: TXT pipe/mock fallback remains legacy; report rows without inline SQL continue through resolver/mock source.
+  - Next step: Use the committed HARN-062 behavior for batch report imports and verify with a real user workbook/CSV in the target environment.
+
 ### OPS-LOCAL-006: 重新启动前后端服务
 
 - Status: done

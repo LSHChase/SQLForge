@@ -79,7 +79,12 @@ public class ReportBatchApplicationService {
         String reportCodeField = requireText(request == null ? null : request.getReportCodeField(), "reportCodeField");
         byte[] content = decodeBase64(trimToNull(request == null ? null : request.getContentBase64()));
         String fileType = resolveFileType(request, content);
-        List<ReportSourceRow> rows = parseSourceRows(content, request == null ? null : request.getCharset(), fileType);
+        List<ReportSourceRow> rows = parseSourceRows(
+            content,
+            request == null ? null : request.getCharset(),
+            fileType,
+            reportCodeField
+        );
         if (rows.isEmpty()) {
             throw invalidArgument("contentBase64", "No report codes were found in the report batch payload");
         }
@@ -414,21 +419,21 @@ public class ReportBatchApplicationService {
         return items;
     }
 
-    private List<ReportSourceRow> parseSourceRows(byte[] content, String charsetName, String fileType) {
+    private List<ReportSourceRow> parseSourceRows(byte[] content, String charsetName, String fileType, String reportCodeField) {
         if (content == null || content.length == 0) {
             return Collections.emptyList();
         }
         String normalizedFileType = normalizeFileType(fileType);
         if (isWorkbookFileType(normalizedFileType)) {
-            return parseWorkbookSource(content);
+            return parseWorkbookSource(content, reportCodeField);
         }
         String text = new String(content, resolveCharset(charsetName));
         String normalized = text.replace("\r\n", "\n").trim();
         if (!StringUtils.hasText(normalized)) {
             return Collections.emptyList();
         }
-        if (looksLikeCsv(normalized)) {
-            return parseCsvSource(normalized);
+        if ("CSV".equals(normalizedFileType) || looksLikeCsv(normalized)) {
+            return parseCsvSource(normalized, reportCodeField);
         }
         List<ReportSourceRow> rows = new ArrayList<ReportSourceRow>();
         BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(normalized.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
@@ -455,7 +460,7 @@ public class ReportBatchApplicationService {
         return rows;
     }
 
-    private List<ReportSourceRow> parseWorkbookSource(byte[] content) {
+    private List<ReportSourceRow> parseWorkbookSource(byte[] content, String reportCodeField) {
         try {
             Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(content));
             Sheet sheet = workbook.getNumberOfSheets() == 0 ? null : workbook.getSheetAt(0);
@@ -467,32 +472,22 @@ public class ReportBatchApplicationService {
             if (headerRow == null) {
                 return Collections.emptyList();
             }
-            List<String> headers = new ArrayList<String>();
-            for (int cellIndex = 0; cellIndex < headerRow.getLastCellNum(); cellIndex++) {
-                headers.add(normalizeHeader(formatter.formatCellValue(headerRow.getCell(cellIndex))));
-            }
+            boolean hasHeader = isWorkbookHeaderRow(headerRow, formatter, reportCodeField);
+            List<String> headers = hasHeader
+                ? readWorkbookRowValues(headerRow, formatter, Math.max(0, headerRow.getLastCellNum()))
+                : Collections.<String>emptyList();
             List<ReportSourceRow> rows = new ArrayList<ReportSourceRow>();
-            for (int rowIndex = sheet.getFirstRowNum() + 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            int firstDataRow = hasHeader ? sheet.getFirstRowNum() + 1 : sheet.getFirstRowNum();
+            for (int rowIndex = firstDataRow; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
                 Row row = sheet.getRow(rowIndex);
                 if (row == null) {
                     continue;
                 }
-                Map<String, String> values = new LinkedHashMap<String, String>();
-                boolean nonEmpty = false;
-                for (int cellIndex = 0; cellIndex < headers.size(); cellIndex++) {
-                    String header = headers.get(cellIndex);
-                    if (!StringUtils.hasText(header)) {
-                        continue;
-                    }
-                    Cell cell = row.getCell(cellIndex);
-                    String value = trimToNull(formatter.formatCellValue(cell));
-                    if (StringUtils.hasText(value)) {
-                        nonEmpty = true;
-                    }
-                    values.put(header, value);
-                }
-                if (nonEmpty) {
-                    rows.addAll(expandReportRows(headers, values, values.toString()));
+                int cellCount = Math.max(headers.size(), Math.max(0, row.getLastCellNum()));
+                List<String> effectiveHeaders = effectiveHeaders(headers, cellCount);
+                List<String> values = readWorkbookRowValues(row, formatter, cellCount);
+                if (hasAnyText(values)) {
+                    rows.addAll(expandReportRows(effectiveHeaders, values, values.toString()));
                 }
             }
             workbook.close();
@@ -507,37 +502,38 @@ public class ReportBatchApplicationService {
             return false;
         }
         String firstLine = text.split("\n", 2)[0].toLowerCase(Locale.ROOT);
-        return firstLine.contains(",") && (firstLine.contains("report_code") || firstLine.contains("reportcode"));
+        return firstLine.contains(",")
+            && (firstLine.contains("report_code")
+                || firstLine.contains("reportcode")
+                || firstLine.contains("报表代码")
+                || firstLine.contains("报表编码"));
     }
 
-    private List<ReportSourceRow> parseCsvSource(String text) {
+    private List<ReportSourceRow> parseCsvSource(String text, String reportCodeField) {
         try {
             CSVParser parser = CSVFormat.DEFAULT
                 .builder()
-                .setHeader()
-                .setSkipHeaderRecord(true)
                 .setTrim(true)
                 .setIgnoreSurroundingSpaces(true)
                 .build()
                 .parse(new InputStreamReader(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
-            List<Map.Entry<String, Integer>> headerEntries = new ArrayList<Map.Entry<String, Integer>>(parser.getHeaderMap().entrySet());
-            headerEntries.sort(new Comparator<Map.Entry<String, Integer>>() {
-                @Override
-                public int compare(Map.Entry<String, Integer> left, Map.Entry<String, Integer> right) {
-                    return Integer.compare(left.getValue().intValue(), right.getValue().intValue());
-                }
-            });
-            List<String> headers = new ArrayList<String>(headerEntries.size());
-            for (Map.Entry<String, Integer> entry : headerEntries) {
-                headers.add(normalizeHeader(entry.getKey()));
+            List<CSVRecord> records = parser.getRecords();
+            if (records.isEmpty()) {
+                return Collections.emptyList();
             }
+            boolean hasHeader = isCsvHeaderRecord(records.get(0), reportCodeField);
+            int cellCount = maxCsvRecordSize(records);
+            List<String> headers = hasHeader
+                ? effectiveHeaders(csvRecordValues(records.get(0), cellCount), cellCount)
+                : effectiveHeaders(Collections.<String>emptyList(), cellCount);
             List<ReportSourceRow> rows = new ArrayList<ReportSourceRow>();
-            for (CSVRecord record : parser) {
-                Map<String, String> values = new LinkedHashMap<String, String>();
-                for (Map.Entry<String, Integer> entry : headerEntries) {
-                    values.put(normalizeHeader(entry.getKey()), trimToNull(record.get(entry.getKey())));
+            int startIndex = hasHeader ? 1 : 0;
+            for (int recordIndex = startIndex; recordIndex < records.size(); recordIndex++) {
+                CSVRecord record = records.get(recordIndex);
+                List<String> values = csvRecordValues(record, cellCount);
+                if (hasAnyText(values)) {
+                    rows.addAll(expandReportRows(headers, values, values.toString()));
                 }
-                rows.addAll(expandReportRows(headers, values, values.toString()));
             }
             return rows;
         } catch (Exception ex) {
@@ -599,29 +595,91 @@ public class ReportBatchApplicationService {
 
     private String normalizeHeaderKey(String value) {
         String normalized = normalizeHeader(value);
-        return normalized == null ? "" : normalized.replace("_", "").replace("-", "");
+        return normalized == null ? "" : normalized.replace("_", "").replace("-", "").replace(" ", "");
     }
 
-    private boolean isReportCodeHeader(String header) {
+    private boolean isReportCodeHeader(String header, String reportCodeField) {
         String key = normalizeHeaderKey(header);
-        return "reportcode".equals(key);
-    }
-
-    private boolean isMetadataHeader(String header) {
-        String key = normalizeHeaderKey(header);
+        String expected = normalizeHeaderKey(reportCodeField);
         return "reportcode".equals(key)
-            || "reportname".equals(key)
-            || "datasource".equals(key)
-            || "datasourcecode".equals(key)
-            || "stage".equals(key)
-            || "priority".equals(key);
+            || "报表代码".equals(key)
+            || "报表编码".equals(key)
+            || (StringUtils.hasText(expected) && expected.equals(key));
     }
 
-    private boolean isSqlHeader(String header) {
-        String key = normalizeHeaderKey(header);
-        return "sql".equals(key)
-            || "sqltext".equals(key)
-            || key.startsWith("sql");
+    private boolean isCsvHeaderRecord(CSVRecord record, String reportCodeField) {
+        return record != null && record.size() > 0 && isReportCodeHeader(record.get(0), reportCodeField);
+    }
+
+    private boolean isWorkbookHeaderRow(Row row, DataFormatter formatter, String reportCodeField) {
+        if (row == null) {
+            return false;
+        }
+        Cell firstCell = row.getCell(0);
+        return isReportCodeHeader(formatter.formatCellValue(firstCell), reportCodeField);
+    }
+
+    private List<String> readWorkbookRowValues(Row row, DataFormatter formatter, int cellCount) {
+        List<String> values = new ArrayList<String>(cellCount);
+        for (int cellIndex = 0; cellIndex < cellCount; cellIndex++) {
+            values.add(trimToNull(formatter.formatCellValue(row.getCell(cellIndex))));
+        }
+        return values;
+    }
+
+    private int maxCsvRecordSize(List<CSVRecord> records) {
+        int max = 0;
+        for (CSVRecord record : records) {
+            max = Math.max(max, record == null ? 0 : record.size());
+        }
+        return max;
+    }
+
+    private List<String> csvRecordValues(CSVRecord record, int cellCount) {
+        List<String> values = new ArrayList<String>(cellCount);
+        for (int index = 0; index < cellCount; index++) {
+            values.add(record != null && index < record.size() ? trimToNull(record.get(index)) : null);
+        }
+        return values;
+    }
+
+    private List<String> effectiveHeaders(List<String> rawHeaders, int cellCount) {
+        List<String> headers = new ArrayList<String>(cellCount);
+        for (int index = 0; index < cellCount; index++) {
+            String header = index < rawHeaders.size() ? trimToNull(rawHeaders.get(index)) : null;
+            if (StringUtils.hasText(header)) {
+                headers.add(normalizeHeader(header));
+            } else if (index == 0) {
+                headers.add("report_code");
+            } else {
+                headers.add("sql_" + index);
+            }
+        }
+        return headers;
+    }
+
+    private boolean hasAnyText(List<String> values) {
+        if (values == null) {
+            return false;
+        }
+        for (String value : values) {
+            if (StringUtils.hasText(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String valueAt(List<String> values, int index) {
+        return values != null && index >= 0 && index < values.size() ? values.get(index) : null;
+    }
+
+    private String headerAt(List<String> headers, int index) {
+        String header = headers != null && index >= 0 && index < headers.size() ? trimToNull(headers.get(index)) : null;
+        if (StringUtils.hasText(header)) {
+            return header;
+        }
+        return index == 0 ? "report_code" : "sql_" + index;
     }
 
     private String resolveMockBizDate() {
@@ -827,41 +885,21 @@ public class ReportBatchApplicationService {
         return value.trim();
     }
 
-    private List<ReportSourceRow> expandReportRows(List<String> headers, Map<String, String> values, String rawLine) {
+    private List<ReportSourceRow> expandReportRows(List<String> headers, List<String> values, String rawLine) {
         ReportSourceRow base = new ReportSourceRow();
         base.rawLine = rawLine;
-        base.reportCode = trimToNull(firstNonBlank(values.get("report_code"), values.get("reportcode")));
-        base.reportName = trimToNull(firstNonBlank(values.get("report_name"), values.get("reportname")));
-        base.datasourceCode = trimToNull(firstNonBlank(values.get("datasource"), values.get("datasource_code"), values.get("datasourcecode")));
-        base.stage = trimToNull(values.get("stage"));
-        base.priority = trimToNull(values.get("priority"));
-
-        int reportCodeIndex = -1;
-        for (int index = 0; index < headers.size(); index++) {
-            if (isReportCodeHeader(headers.get(index))) {
-                reportCodeIndex = index;
-                break;
-            }
-        }
+        base.reportCode = trimToNull(valueAt(values, 0));
 
         List<ReportSourceRow> rows = new ArrayList<ReportSourceRow>();
         int sqlOrdinal = 0;
-        for (int index = 0; index < headers.size(); index++) {
-            String header = headers.get(index);
-            if (!StringUtils.hasText(header)) {
-                continue;
-            }
-            boolean afterReportCode = reportCodeIndex >= 0 && index > reportCodeIndex;
-            boolean candidateSqlColumn = isSqlHeader(header) || (afterReportCode && !isMetadataHeader(header));
-            if (!candidateSqlColumn) {
-                continue;
-            }
-            String sqlText = trimToNull(values.get(header));
+        for (int index = 1; index < values.size(); index++) {
+            String sqlText = trimToNull(valueAt(values, index));
             if (!StringUtils.hasText(sqlText)) {
                 continue;
             }
             sqlOrdinal++;
             ReportSourceRow sqlRow = base.copy();
+            String header = headerAt(headers, index);
             sqlRow.rawLine = rawLine + " column=" + header;
             sqlRow.sqlColumnName = header;
             sqlRow.sqlOrdinalInReport = Integer.valueOf(sqlOrdinal);

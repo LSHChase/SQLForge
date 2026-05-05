@@ -502,6 +502,13 @@
 - `contentBase64`
 - `charset`
 
+repo-side 基线：
+
+- `CSV` / `XLSX` / `XLS` / `ET` 报表批次载荷采用位置语义：第一列是报表代码，第二列及之后每个 trim 后非空的单元格都是该报表代码下的一条 SQL
+- 表头可选；若存在表头，第一列表头可使用 `report_code`、`reportCode`、`报表代码` 或请求中的 `reportCodeField`，后续列名只作为 `sqlColumnName` 追溯标签
+- 空单元格跳过，不产生 SQL；实现不得依赖固定 SQL 列数，需支持 100+ 后续 SQL 列
+- 只有报表代码且没有内联 SQL 的记录保留 resolver / `TXT_MOCK_SOURCE` 回退语义
+
 ### 5.6 Resolve Report SQLs
 
 - `POST /api/sql-optimization/report-batches/{batchId}/resolve-sqls`

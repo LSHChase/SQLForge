@@ -2217,3 +2217,21 @@
 2026-04-29T22:46:05-05:00 | OPS-LOCAL-006 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-04-29T22:46:05-05:00 | OPS-LOCAL-006 closeout commit | `R-168` | projected | `git commit -m 'chore(ops): restart local frontend and backend' (projected-precommit)`
 2026-04-29T22:46:05-05:00 | OPS-LOCAL-006 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-04T23:19:29-05:00 | HARN-062 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-04T23:19:29-05:00 | HARN-062 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-04T23:19:47-05:00 | HARN-062 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-04T23:19:47-05:00 | HARN-062 validate | `R-133`, `R-168` | failed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-04T23:20:12-05:00 | HARN-062 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-04T23:20:12-05:00 | HARN-062 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-04T23:20:28-05:00 | HARN-062 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-04T23:20:28-05:00 | HARN-062 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-04T23:20:56-05:00 | HARN-062 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-04T23:20:56-05:00 | HARN-062 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-04T23:21:05-05:00 | HARN-062 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-04T23:21:05-05:00 | HARN-062 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-04T23:21:10-05:00 | HARN-062 validate | `R-133`, `R-168` | passed | `mvn -pl sql-optimization -Dtest=ReportBatchApplicationServiceTest,ReportBatchControllerTest test`
+2026-05-04T23:21:10-05:00 | HARN-062 validate | `R-133`, `R-168` | passed | `node scripts/check-batch-import-contract.mjs`
+2026-05-04T23:23:18-05:00 | HARN-062 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-04T23:23:18-05:00 | HARN-062 closeout commit | `R-168` | projected | `git commit -m 'fix(sql-optimization): parse report batch wide SQL columns' (projected-precommit)`
+2026-05-04T23:23:18-05:00 | HARN-062 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-04T23:23:18-05:00 | HARN-062 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`

@@ -65,22 +65,64 @@ class ReportBatchApplicationServiceTest {
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-002", "trace-002", "header", 1L, 2L);
 
         StringBuilder csv = new StringBuilder("report_code");
-        for (int index = 1; index <= 100; index++) {
+        for (int index = 1; index <= 120; index++) {
             csv.append(",sql_").append(index);
         }
         csv.append('\n').append("RPT_WIDE");
-        for (int index = 1; index <= 100; index++) {
+        for (int index = 1; index <= 120; index++) {
             csv.append(",\"SELECT ").append(index).append(" AS metric_value\"");
         }
 
         ReportBatchStatusResponse imported = service.importBatch(baseRequest("wide-csv", "CSV", csv.toString()));
 
         assertEquals(Integer.valueOf(1), imported.getTotalReports());
-        assertEquals(Integer.valueOf(100), imported.getTotalSqls());
-        assertEquals(Integer.valueOf(100), Integer.valueOf(imported.getReportItems().size()));
+        assertEquals(Integer.valueOf(120), imported.getTotalSqls());
+        assertEquals(Integer.valueOf(120), Integer.valueOf(imported.getReportItems().size()));
         assertEquals("sql_1", imported.getReportItems().get(0).getSqlColumnName());
         assertEquals(Integer.valueOf(1), imported.getReportItems().get(0).getSqlOrdinalInReport());
-        assertEquals("sql_100", imported.getReportItems().get(99).getSqlColumnName());
+        assertEquals("sql_120", imported.getReportItems().get(119).getSqlColumnName());
+    }
+
+    @Test
+    void shouldImportEveryNonEmptyCsvCellAfterFirstColumnAsSql() {
+        ReportBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-005", "trace-005", "header", 1L, 2L);
+
+        ReportBatchStatusResponse imported = service.importBatch(baseRequest(
+            "arbitrary-header-csv",
+            "CSV",
+            "报表代码,任意列A,空列,任意列B\n"
+                + "RPT_ARBITRARY,\"SELECT * FROM orders\",,\"SELECT count(*) FROM revenue\""
+        ));
+
+        assertEquals(Integer.valueOf(1), imported.getTotalReports());
+        assertEquals(Integer.valueOf(2), imported.getTotalSqls());
+        assertEquals("RPT_ARBITRARY", imported.getReportItems().get(0).getReportCode());
+        assertEquals("任意列a", imported.getReportItems().get(0).getSqlColumnName());
+        assertEquals("SELECT * FROM orders", imported.getReportItems().get(0).getSqlText());
+        assertEquals(Integer.valueOf(2), imported.getReportItems().get(1).getSqlOrdinalInReport());
+        assertEquals("SELECT count(*) FROM revenue", imported.getReportItems().get(1).getSqlText());
+    }
+
+    @Test
+    void shouldImportHeaderlessCsvRowsByFirstColumnPosition() {
+        ReportBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-006", "trace-006", "header", 1L, 2L);
+
+        ReportBatchStatusResponse imported = service.importBatch(baseRequest(
+            "headerless-csv",
+            "CSV",
+            "RPT_RAW,\"SELECT 1\",,\"SELECT 3\"\n"
+                + "RPT_NEXT,\"SELECT 4\""
+        ));
+
+        assertEquals(Integer.valueOf(2), imported.getTotalReports());
+        assertEquals(Integer.valueOf(3), imported.getTotalSqls());
+        assertEquals("RPT_RAW", imported.getReportItems().get(0).getReportCode());
+        assertEquals("sql_1", imported.getReportItems().get(0).getSqlColumnName());
+        assertEquals("sql_3", imported.getReportItems().get(1).getSqlColumnName());
+        assertEquals(Integer.valueOf(2), imported.getReportItems().get(1).getSqlOrdinalInReport());
+        assertEquals("RPT_NEXT", imported.getReportItems().get(2).getReportCode());
     }
 
     @Test
@@ -124,6 +166,25 @@ class ReportBatchApplicationServiceTest {
         assertEquals("SELECT 3 AS metric_value", imported.getReportItems().get(2).getSqlText());
     }
 
+    @Test
+    void shouldImportWorkbookRowsByFirstColumnPositionWhenHeaderIsLocalized() throws Exception {
+        ReportBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-007", "trace-007", "header", 1L, 2L);
+
+        ReportBatchStatusResponse imported = service.importBatch(baseRequest(
+            "localized-xlsx",
+            "XLSX",
+            buildLocalizedWorkbook()
+        ));
+
+        assertEquals(Integer.valueOf(1), imported.getTotalReports());
+        assertEquals(Integer.valueOf(2), imported.getTotalSqls());
+        assertEquals("RPT_XLSX_CN", imported.getReportItems().get(0).getReportCode());
+        assertEquals("任意列a", imported.getReportItems().get(0).getSqlColumnName());
+        assertEquals("任意列c", imported.getReportItems().get(1).getSqlColumnName());
+        assertEquals(Integer.valueOf(2), imported.getReportItems().get(1).getSqlOrdinalInReport());
+    }
+
     private ReportBatchImportRequest baseRequest(String batchName, String fileType, String content) {
         return baseRequest(batchName, fileType, content.getBytes(StandardCharsets.UTF_8));
     }
@@ -154,6 +215,24 @@ class ReportBatchApplicationServiceTest {
         row.createCell(1).setCellValue("SELECT 1 AS metric_value");
         row.createCell(2).setCellValue("SELECT 2 AS metric_value");
         row.createCell(3).setCellValue("SELECT 3 AS metric_value");
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        workbook.write(outputStream);
+        workbook.close();
+        return outputStream.toByteArray();
+    }
+
+    private byte[] buildLocalizedWorkbook() throws Exception {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("reports");
+        Row header = sheet.createRow(0);
+        header.createCell(0).setCellValue("报表代码");
+        header.createCell(1).setCellValue("任意列A");
+        header.createCell(2).setCellValue("空列B");
+        header.createCell(3).setCellValue("任意列C");
+        Row row = sheet.createRow(1);
+        row.createCell(0).setCellValue("RPT_XLSX_CN");
+        row.createCell(1).setCellValue("SELECT 10 AS metric_value");
+        row.createCell(3).setCellValue("SELECT 30 AS metric_value");
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         workbook.write(outputStream);
         workbook.close();

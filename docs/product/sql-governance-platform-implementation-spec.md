@@ -266,6 +266,12 @@
 - 兼容失败提示：
   - 若 `et` 无法兼容解析，页面与接口需显式提示改用 `xlsx/csv`
 - 报表清单唯一主键：`report_code`
+- 报表批次内联 SQL 导入规则：
+  - `csv` / `xlsx` / `xls` / `et` 表格载荷按列位置解析，不依赖固定 SQL 列数
+  - 第一列为报表代码；若首行是表头，第一列表头可为 `report_code`、`reportCode`、`报表代码` 或请求中的 `reportCodeField`
+  - 第二列及之后，只要单元格 trim 后非空，均作为该行报表代码下的一条 SQL
+  - 中间空单元格跳过，不产生 SQL；后续 100+ SQL 列必须动态遍历
+  - 若表格行只有报表代码且没有内联 SQL，继续走报表 SQL resolver / txt mock source 回退
 - 报表 SQL 获取策略：
   - 一期：从 txt / mock source 模拟
   - 后续：由 `governance` 配置接口，`sql-optimization` 调用
