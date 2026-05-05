@@ -36,6 +36,11 @@ const parseResultDialogVisible = ref(false)
 const parseStatisticsDialogVisible = ref(false)
 const reportResultDialogVisible = ref(false)
 const reportStatisticsDialogVisible = ref(false)
+const parseItemDetailDialogVisible = ref(false)
+const reportItemDetailDialogVisible = ref(false)
+const selectedParseItem = ref(null)
+const selectedReportItem = ref(null)
+const activeReportGroupName = ref('')
 
 const loading = reactive({
   createParseBatch: false,
@@ -133,6 +138,12 @@ const reportItems = computed(() => {
     []
   return Array.isArray(source) ? source.filter(item => typeof item === 'object') : []
 })
+const reportFailureItems = computed(() =>
+  reportItems.value.filter(item =>
+    String(item.status || '').toUpperCase() === 'FAILED' ||
+    hasDisplayValue(item.failureReason)
+  )
+)
 const parseImportedRecords = computed(() => {
   const detail = parseBatchDetail.value || {}
   const source =
@@ -292,6 +303,63 @@ const displayValue = value => {
   }
   return String(value)
 }
+
+const detailField = (zhLabel, enLabel, value, wide = false) => ({
+  label: isChinese.value ? zhLabel : enLabel,
+  value,
+  wide
+})
+
+const parseItemDetailFields = computed(() => {
+  const item = selectedParseItem.value || {}
+  return [
+    detailField('记录 ID', 'Item ID', item.itemId),
+    detailField('序号', 'Sequence', item.sequenceNumber),
+    detailField('报表代码', 'Report code', item.reportCode),
+    detailField('报表名称', 'Report name', item.reportName),
+    detailField('状态', 'Status', item.status),
+    detailField('解析任务', 'Parse task', item.parseTaskId),
+    detailField('数据源', 'Datasource', item.datasourceCode),
+    detailField('阶段', 'Stage', item.stage),
+    detailField('业务日期', 'Biz date', item.bizDate),
+    detailField('优先级', 'Priority', item.priority),
+    detailField('负责人', 'Owner', item.owner),
+    detailField('结构解析', 'Structure parse', item.structureSyntaxStatus),
+    detailField('Access 服务', 'Access service', item.accessServiceStatus),
+    detailField('Access 连接', 'Access connection', item.accessConnectionStatus),
+    detailField('失败原因', 'Failure reason', item.failureReason, true),
+    detailField('问题场景', 'Issue scenes', item.issueScenes, true),
+    detailField('逻辑对象', 'Logical objects', item.logicalObjectKeys, true),
+    detailField('创建时间', 'Created at', formatInstant(item.createdAt)),
+    detailField('更新时间', 'Updated at', formatInstant(item.updatedAt))
+  ]
+})
+
+const reportItemDetailFields = computed(() => {
+  const item = selectedReportItem.value || {}
+  return [
+    detailField('记录 ID', 'Item ID', item.itemId),
+    detailField('序号', 'Sequence', item.sequenceNumber),
+    detailField('报表代码', 'Report code', item.reportCode),
+    detailField('报表名称', 'Report name', item.reportName),
+    detailField('SQL 列', 'SQL column', item.sqlColumnName),
+    detailField('报表内 SQL 序号', 'SQL ordinal in report', item.sqlOrdinalInReport),
+    detailField('源文件行', 'Source line', item.sourceFileLine),
+    detailField('状态', 'Status', item.status),
+    detailField('解析任务', 'Parse task', item.parseTaskId),
+    detailField('数据源', 'Datasource', item.datasourceCode),
+    detailField('阶段', 'Stage', item.stage),
+    detailField('优先级', 'Priority', item.priority),
+    detailField('结构解析', 'Structure parse', item.structureSyntaxStatus),
+    detailField('Access 服务', 'Access service', item.accessServiceStatus),
+    detailField('Access 连接', 'Access connection', item.accessConnectionStatus),
+    detailField('失败原因', 'Failure reason', item.failureReason, true),
+    detailField('问题场景', 'Issue scenes', item.issueScenes, true),
+    detailField('逻辑对象', 'Logical objects', item.logicalObjectKeys, true),
+    detailField('创建时间', 'Created at', formatInstant(item.createdAt)),
+    detailField('更新时间', 'Updated at', formatInstant(item.updatedAt))
+  ]
+})
 
 const clearError = () => {
   errorMessage.value = ''
@@ -545,6 +613,14 @@ const retryAccessFlow = async () => {
   }
 }
 
+const openParseItemDetail = item => {
+  if (!item) {
+    return
+  }
+  selectedParseItem.value = item
+  parseItemDetailDialogVisible.value = true
+}
+
 const importReportBatchFlow = async () => {
   loading.importReportBatch = true
   clearError()
@@ -611,6 +687,20 @@ const resolveReportSqlsFlow = async () => {
   } finally {
     loading.resolveReportBatch = false
   }
+}
+
+const openReportGroupResult = group => {
+  activeReportGroupName.value = group?.reportCode || ''
+  reportResultDialogVisible.value = true
+}
+
+const openReportItemDetail = item => {
+  if (!item) {
+    return
+  }
+  selectedReportItem.value = item
+  activeReportGroupName.value = item.reportCode || activeReportGroupName.value
+  reportItemDetailDialogVisible.value = true
 }
 
 const openBatchSelector = async kind => {
@@ -809,16 +899,21 @@ onMounted(async () => {
                   </div>
                 </div>
                 <div class="failure-list">
-                  <article
+                  <button
                     v-for="(item, index) in parseFailureRecords.slice(0, 6)"
                     :key="item.recordId || item.id || index"
+                    type="button"
                     class="failure-item"
                     data-testid="batch-import-failure-record"
+                    @click="openParseItemDetail(item)"
                   >
                     <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
                     <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
                     <p>{{ displayValue(item.sqlText || item.message || item.sqlPreview) }}</p>
-                  </article>
+                    <span class="detail-link" data-testid="batch-import-parse-failure-detail-open">
+                      {{ isChinese ? '查看解析详情' : 'View parse detail' }}
+                    </span>
+                  </button>
                   <div v-if="!parseFailureRecords.length" class="empty-state">
                     {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
                   </div>
@@ -933,12 +1028,14 @@ onMounted(async () => {
               </article>
             </div>
 
-            <div v-if="reportBatchDetail" class="report-list">
-              <article
+            <div v-if="reportBatchDetail" class="report-list" data-testid="batch-import-report-sql-detail">
+              <button
                 v-for="group in reportGroups.slice(0, 6)"
                 :key="group.reportCode"
+                type="button"
                 class="report-item"
-                data-testid="batch-import-report-sql-detail"
+                data-testid="batch-import-report-group-open"
+                @click="openReportGroupResult(group)"
               >
                 <div class="session-item-top">
                   <strong>{{ group.reportCode }}</strong>
@@ -951,13 +1048,38 @@ onMounted(async () => {
                   · Structure: {{ formatPercent(group.structureRate) }}
                   · Access: {{ formatPercent(group.accessRate) }}
                 </p>
-              </article>
+                <span class="detail-link">{{ isChinese ? '查看解析结果与详情' : 'View results and details' }}</span>
+              </button>
               <div v-if="!reportItems.length" class="empty-state">
                 {{ isChinese ? '导入后会在这里看到本批次报表与 SQL 概览。' : 'Imported report and SQL overview appears here.' }}
               </div>
             </div>
 
             <div v-if="reportBatchDetail" class="result-layout">
+              <section class="detail-card" data-testid="batch-import-report-failure-records">
+                <p class="section-kicker sqlforge-code-label">failed sql detail</p>
+                <div class="failure-list">
+                  <button
+                    v-for="(item, index) in reportFailureItems.slice(0, 6)"
+                    :key="item.itemId || index"
+                    type="button"
+                    class="failure-item"
+                    data-testid="batch-import-report-failure-record"
+                    @click="openReportItemDetail(item)"
+                  >
+                    <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
+                    <span>{{ displayValue(item.failureReason || item.status) }}</span>
+                    <p>
+                      {{ displayValue(item.sqlColumnName || item.sqlOrdinalInReport) }}
+                      · {{ displayValue(item.parseTaskId) }}
+                    </p>
+                    <span class="detail-link">{{ isChinese ? '查看失败详情' : 'View failure detail' }}</span>
+                  </button>
+                  <div v-if="!reportFailureItems.length" class="empty-state">
+                    {{ isChinese ? '当前没有失败 SQL。' : 'No failed SQL rows in the current report batch.' }}
+                  </div>
+                </div>
+              </section>
               <section class="detail-card">
                 <p class="section-kicker sqlforge-code-label">report-level issue statistics</p>
                 <div class="stat-list">
@@ -1130,11 +1252,41 @@ onMounted(async () => {
               </p>
               <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
               <pre v-if="item.sqlText" class="code-block compact-code">{{ item.sqlText }}</pre>
+              <div class="item-actions">
+                <el-button text data-testid="batch-import-parse-item-detail-open" @click="openParseItemDetail(item)">
+                  {{ isChinese ? '查看详情' : 'View detail' }}
+                </el-button>
+              </div>
             </article>
             <div v-if="!parseImportedRecords.length" class="empty-state">
               {{ isChinese ? '当前批次还没有 SQL 明细。' : 'No SQL rows in the current batch yet.' }}
             </div>
           </div>
+        </section>
+      </div>
+    </el-dialog>
+
+    <el-dialog
+      v-model="parseItemDetailDialogVisible"
+      :title="isChinese ? '批量解析记录详情' : 'Parse batch item detail'"
+      width="920px"
+      data-testid="batch-import-parse-item-detail"
+    >
+      <div v-if="selectedParseItem" class="dialog-stack">
+        <div class="detail-fields">
+          <div
+            v-for="field in parseItemDetailFields"
+            :key="field.label"
+            class="detail-field"
+            :class="{ 'detail-field-wide': field.wide }"
+          >
+            <span class="summary-card-label">{{ field.label }}</span>
+            <strong>{{ displayValue(field.value) }}</strong>
+          </div>
+        </div>
+        <section class="detail-card">
+          <p class="section-kicker sqlforge-code-label">SQL text</p>
+          <pre class="code-block">{{ displayValue(selectedParseItem.sqlText || selectedParseItem.sqlTemplateText) }}</pre>
         </section>
       </div>
     </el-dialog>
@@ -1173,16 +1325,21 @@ onMounted(async () => {
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">Failure records</p>
           <div class="failure-list">
-            <article
+            <button
               v-for="(item, index) in parseFailureRecords"
               :key="item.recordId || item.id || index"
+              type="button"
               class="failure-item"
               data-testid="batch-import-failure-record"
+              @click="openParseItemDetail(item)"
             >
               <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
               <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
               <p>{{ displayValue(item.sqlText || item.message || item.sqlPreview) }}</p>
-            </article>
+              <span class="detail-link" data-testid="batch-import-parse-failure-detail-open">
+                {{ isChinese ? '查看解析详情' : 'View parse detail' }}
+              </span>
+            </button>
             <div v-if="!parseFailureRecords.length" class="empty-state">
               {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
             </div>
@@ -1237,6 +1394,7 @@ onMounted(async () => {
       v-model="reportResultDialogVisible"
       :title="isChinese ? '当前报表批次解析结果' : 'Current report batch parse results'"
       width="1040px"
+      data-testid="batch-import-report-result-dialog"
     >
       <div class="dialog-stack">
         <div class="summary-grid">
@@ -1247,7 +1405,7 @@ onMounted(async () => {
         </div>
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
-          <el-collapse accordion>
+          <el-collapse v-model="activeReportGroupName" accordion>
             <el-collapse-item
               v-for="group in reportGroups"
               :key="group.reportCode"
@@ -1276,10 +1434,40 @@ onMounted(async () => {
                   <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
                   <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
                   <pre v-if="item.sqlText" class="code-block compact-code">{{ item.sqlText }}</pre>
+                  <div class="item-actions">
+                    <el-button text data-testid="batch-import-report-item-detail-open" @click="openReportItemDetail(item)">
+                      {{ isChinese ? '查看详情' : 'View detail' }}
+                    </el-button>
+                  </div>
                 </article>
               </div>
             </el-collapse-item>
           </el-collapse>
+        </section>
+      </div>
+    </el-dialog>
+
+    <el-dialog
+      v-model="reportItemDetailDialogVisible"
+      :title="isChinese ? '报表 SQL 解析详情' : 'Report SQL parse detail'"
+      width="920px"
+      data-testid="batch-import-report-item-detail"
+    >
+      <div v-if="selectedReportItem" class="dialog-stack">
+        <div class="detail-fields">
+          <div
+            v-for="field in reportItemDetailFields"
+            :key="field.label"
+            class="detail-field"
+            :class="{ 'detail-field-wide': field.wide }"
+          >
+            <span class="summary-card-label">{{ field.label }}</span>
+            <strong>{{ displayValue(field.value) }}</strong>
+          </div>
+        </div>
+        <section class="detail-card">
+          <p class="section-kicker sqlforge-code-label">SQL text</p>
+          <pre class="code-block">{{ displayValue(selectedReportItem.sqlText) }}</pre>
         </section>
       </div>
     </el-dialog>
@@ -1492,6 +1680,25 @@ onMounted(async () => {
   cursor: pointer;
 }
 
+.failure-item,
+.report-item {
+  display: block;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+button.failure-item,
+button.report-item {
+  cursor: pointer;
+}
+
+button.failure-item:hover,
+button.report-item:hover {
+  border-color: var(--sqlforge-color-brand-border);
+}
+
 .table-link {
   border: 0;
   padding: 0;
@@ -1508,6 +1715,41 @@ onMounted(async () => {
   color: var(--sqlforge-text-muted);
   font-size: 12px;
   line-height: 1.6;
+}
+
+.detail-link {
+  display: inline-flex;
+  margin-top: 8px;
+  color: var(--sqlforge-color-link);
+  font-size: 13px;
+}
+
+.item-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.detail-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.detail-field {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 14px;
+  background: rgba(35, 35, 35, 0.92);
+}
+
+.detail-field strong {
+  overflow-wrap: anywhere;
+}
+
+.detail-field-wide {
+  grid-column: 1 / -1;
 }
 
 .session-item-active {

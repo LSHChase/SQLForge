@@ -1,6 +1,7 @@
 package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
@@ -147,6 +148,32 @@ class ReportBatchApplicationServiceTest {
         assertEquals(Integer.valueOf(2), resolved.getTotalSqls());
         assertEquals(Integer.valueOf(2), resolved.getResolvedSqls());
         assertEquals(Integer.valueOf(1), resolved.getResolvedReports());
+    }
+
+    @Test
+    void shouldExposeFailedReportSqlDetailForResultInspection() {
+        ReportBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-008", "trace-008", "header", 1L, 2L);
+
+        ReportBatchStatusResponse imported = service.importBatch(baseRequest(
+            "failed-report-detail",
+            "CSV",
+            "report_code,sql_1\nRPT_BAD,\"SELECT FROM\""
+        ));
+        ReportBatchStatusResponse resolved = service.resolveSqls(imported.getBatchId());
+
+        assertEquals("PARTIAL_COMPLETED", resolved.getStatus());
+        assertEquals(Integer.valueOf(1), resolved.getFailedReports());
+        assertEquals(Integer.valueOf(1), resolved.getFailedSqls());
+        assertEquals("FAILED", resolved.getReportItems().get(0).getStatus());
+        assertEquals("STRUCTURE_PARSE_INVALID", resolved.getReportItems().get(0).getFailureReason());
+        assertEquals("INVALID", resolved.getReportItems().get(0).getStructureSyntaxStatus());
+        assertEquals("AVAILABLE", resolved.getReportItems().get(0).getAccessServiceStatus());
+        assertEquals("CONNECTED", resolved.getReportItems().get(0).getAccessConnectionStatus());
+        assertEquals("sql_1", resolved.getReportItems().get(0).getSqlColumnName());
+        assertEquals(Integer.valueOf(1), resolved.getReportItems().get(0).getSqlOrdinalInReport());
+        assertEquals("SELECT FROM", resolved.getReportItems().get(0).getSqlText());
+        assertNotNull(resolved.getReportItems().get(0).getParseTaskId());
     }
 
     @Test

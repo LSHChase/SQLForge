@@ -464,6 +464,7 @@
 - 问题统计
 - 报表统计
 - 失败记录
+- 失败记录与导入记录使用同一详情字段集合，至少保留 `itemId`、`sequenceNumber`、`reportCode`、`sqlText`、`parseTaskId`、结构解析状态、Access 状态、`failureReason`、问题场景、逻辑对象和时间戳，供批量解析页点击查看详情
 
 当前 repo-side 基线至少冻结：
 
@@ -568,6 +569,8 @@ repo-side 基线：
 - 结构解析统计
 - 数据访问解析统计
 - 失败记录
+- 报表 SQL 级详情字段至少包含 `itemId`、`sequenceNumber`、`reportCode`、`reportName`、`sourceFileLine`、`sqlColumnName`、`sqlOrdinalInReport`、`sqlText`、`parseTaskId`、结构解析状态、Access 状态、`failureReason`、问题场景、逻辑对象和时间戳
+- 前端可基于上述字段让成功、部分成功和失败 SQL 都可点击查看详情；失败记录不得因状态为 `FAILED` 而禁用详情入口
 
 ## 6. Parse Statistics Contracts
 

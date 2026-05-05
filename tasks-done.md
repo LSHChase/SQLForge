@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-063: HARN-063 批量解析报表结果与失败详情可见性修复
+
+- Status: done
+- Completed at: 2026-05-05
+- Commit subject: `fix(frontend): expose batch report parse details`
+- Priority: 1
+- Depends on: `N/A`
+- Scope: 用户确认该 candidate task pack 后，Main Foreman 才可按 SQLForge 标准治理流程执行 preflight、instantiate、实现、validate、audit、closeout 与单任务单 commit。实现必须保持失败、成功及其他解析状态的结果展示与详情入口语义一致，并不得在未确认字段、权限或页面边界前固化具体实现事实。 Tech: `待实例化后基于仓库上下文确认具体前端页面、后端接口、数据结构与测试框架`,`代码变更`,`自动化测试`,`文档更新`. Layer: `UI/交互层：批量解析列表或相关视图的结果展示与详情入口`,`应用/接口层：解析结果与详情数据获取或传递路径，具体范围待确认`,`测试层：关键用户路径与状态一致性覆盖`,`文档层：批量解析结果与详情查看行为说明`.
+- Plan ref: docs/exec-plans/completed/HARN-063-full-auto-execution-plan.md
+- Matrix context: Phase-D / Story `D-STORY-009` 批量解析与报表清单解析
+- Human confirmation point: User confirmed the HARN-063 execution preview at 2026-05-05T01:32:57-05:00. Main Foreman may materialize and execute the standard task within the confirmed boundary: batch-parse report import result/detail visibility, failed-record detail access, repository-discovered fields and docs, no permission/import-format/core-parser/data-model expansion without separate confirmation.
+- Data impact: 预期主要影响解析结果与解析详情的可见性展示，不应改变批量解析核心算法、导入格式、持久化语义或权限体系；若实例化后发现必须改动数据结构、权限或异步任务架构，需回到 human confirmation。
+- Rollback / recovery: 通过单任务单 commit 保持可回滚边界；若实现引入展示、入口或详情数据回归，应回滚 HARN-063 相关代码、测试与文档变更，并保留审计链记录。closeout 前必须完成 validate 与 pre-closeout audit，closeout 后必须完成 post-closeout audit。
+- Validation:
+  - 失败解析记录可点击并展示对应解析详情、批量解析结果列表展示成功、失败及其他状态的结果信息、解析状态与详情入口可用性保持一致、解析详情展示足够定位导入解析问题的信息，字段需经确认、相关回归测试覆盖详情入口、结果展示与异常状态
+  - `python3 scripts/foreman.py validate HARN-063`
+- Progress log:
+  - 2026-05-05: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Updated ParseBatchCenterView so failed parse records, report groups, failed report SQL rows and SQL-level result rows open detail dialogs; added contract/backend regression coverage and docs.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-063 --extra-command 'node scripts/check-batch-import-contract.mjs' --extra-command 'mvn -pl sql-optimization -Dtest=ReportBatchApplicationServiceTest,ReportBatchControllerTest test' --extra-command 'npm run lint' --extra-command 'npm run build'
+  - Residual risk: No live browser E2E against a real failed report import environment; detail content depends on existing parse/report batch API fields.
+  - Next step: Verify with a real failed report import in the target environment and confirm the detail dialogs show the expected troubleshooting fields.
+
 ### HARN-062: HARN-062 / D-STORY-009 批量报表导入多 SQL 列解析修复
 
 - Status: done

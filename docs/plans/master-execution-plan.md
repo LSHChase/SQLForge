@@ -597,6 +597,7 @@ Tasks:
 | `D-TASK-053` | 落地报表清单解析文件模拟入口 | 以 `report_code` 为主键，从 txt/mock source 获取 SQL 再解析 | `D-TASK-052` | mock resolve 测试 |
 | `D-TASK-054` | 接入报表接口配置与真实拉取抽象 | governance 配置接口，sql-optimization 通过统一抽象调用 | `D-TASK-053` | config/client abstraction 测试 |
 | `HARN-062` | HARN-062 / D-STORY-009 批量报表导入多 SQL 列解析修复 | 在 Phase-D / D-STORY-009 范围内修正批量报表导入或报表清单解析逻辑；仅允许触及相关代码、测试和必要文档。不得重构无关业务流程，不得扩展新导入格式、UI 或权限能力。User confirmed the execution preview at 2026-05-04T23:12:52-05:00; formal materialization may proceed under the recorded single-agent boundary. | `N/A` | 仅一列 SQL：第一列为 report code，第二列非空 SQL 被解析、多列 SQL：第二列及之后多个非空单元格均被解析为同一 report code 下的 SQL、空列跳过：中间或尾部空单元格不产生 SQL、100+ 后续列：不丢列、不串行、不依赖固定列数、回归测试：证明当前只识别一列 SQL 的问题被修复或规避、如存在文档示例或 fixtures，同步校验示例与新规则一致 |
+| `HARN-063` | HARN-063 批量解析报表结果与失败详情可见性修复 | 在 D-STORY-009 / Phase-D 范围内，修复批量解析中解析失败的报表记录无法点击查看解析详情的问题，并增强批量解析列表或相关视图中报表解析结果、状态与详情入口的一致性。交付物预期覆盖代码、测试和文档。User confirmed the execution preview at 2026-05-05T01:32:57-05:00: proceed as a standard single-agent task; treat “中报表导入解析” as report import parsing within the batch-parse workflow; discover the concrete page, API, data fields and docs from repository context during preflight; keep changes limited to result/detail visibility, tests and docs; do not add permissions, import formats, core parser rewrites or data-model changes unless implementation pauses for separate confirmation. | `N/A` | 失败解析记录可点击并展示对应解析详情、批量解析结果列表展示成功、失败及其他状态的结果信息、解析状态与详情入口可用性保持一致、解析详情展示足够定位导入解析问题的信息，字段需经确认、相关回归测试覆盖详情入口、结果展示与异常状态 |
 
 ##### Story `D-STORY-010` 解析统计与优先级分层
 

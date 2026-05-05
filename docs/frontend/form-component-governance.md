@@ -51,3 +51,9 @@ HARN-045 / HARN-046 未改写无法从代码或文档确认语义的自由文本
 解析历史页不只展示 `query_history` SQL 级历史，还必须展示批量解析和报表导入批次历史。报表导入历史在解析历史页内提供详情抽屉，抽屉中至少展示报表级统计、SQL 级解析状态、`parseTaskId`、结构解析状态、access 连接状态、问题场景、逻辑对象命中和解析出的 SQL 文本。
 
 SQL 解析页在拿到 `historyId` 后提供“查看解析历史”入口，跳转到解析历史页并通过 `historyId` 直接打开详情弹窗。该跳转不得改变 HARN-057 的默认空查询条件规则。
+
+## HARN-063 Batch Parse Result Detail Visibility
+
+批量解析页的当前批次工作台必须让失败记录也能打开解析详情。普通批量解析的失败记录、结果弹窗中的 SQL 记录，以及报表导入的报表分组、失败 SQL 和 SQL 级记录都必须保留可点击详情入口。
+
+详情弹窗沿用现有接口字段，不新增权限或本地持久化模型。普通批量解析详情至少展示记录标识、报表标识、状态、`parseTaskId`、结构解析状态、Access 状态、失败原因、问题场景、逻辑对象和 SQL 文本；报表导入 SQL 详情还必须展示 `sourceFileLine`、`sqlColumnName` 与 `sqlOrdinalInReport`，用于定位导入宽表中的失败列。
