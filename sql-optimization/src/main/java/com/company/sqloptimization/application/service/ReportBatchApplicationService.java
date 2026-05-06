@@ -10,6 +10,7 @@ import com.company.sqloptimization.application.controller.dto.ReportBatchImportR
 import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
 import com.company.sqloptimization.application.controller.vo.AccessParseResponseVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchItemVO;
+import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusHistoryVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusResponse;
 import com.company.sqloptimization.application.controller.vo.StructureParseIssueVO;
@@ -28,10 +29,10 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -60,6 +61,8 @@ public class ReportBatchApplicationService {
     private final StructureParseApplicationService structureParseApplicationService;
     private final AccessParseApplicationService accessParseApplicationService;
     private final ReportSqlResolver reportSqlResolver;
+    private final ReportBatchParseStatisticsAssembler parseStatisticsAssembler =
+        new ReportBatchParseStatisticsAssembler();
 
     public ReportBatchApplicationService(ReportBatchRepository reportBatchRepository,
                                          ReportBatchItemRepository reportBatchItemRepository,
@@ -164,6 +167,11 @@ public class ReportBatchApplicationService {
         return toResponse(batch, reportBatchItemRepository.findByBatchId(batch.getBatchId()));
     }
 
+    public ReportBatchParseStatisticsVO getBatchParseStatistics(String batchId) {
+        ReportBatch batch = requireBatch(batchId);
+        return parseStatisticsAssembler.build(reportBatchItemRepository.findByBatchId(batch.getBatchId()));
+    }
+
     public List<ReportBatchStatusResponse> listBatches() {
         String tenantId = requireAuthorizedTenant(null);
         List<ReportBatchStatusResponse> result = new ArrayList<ReportBatchStatusResponse>();
@@ -213,6 +221,7 @@ public class ReportBatchApplicationService {
         response.setTotalSqls(Integer.valueOf(items == null || items.isEmpty() ? batch.getTotalReports() : items.size()));
         response.setResolvedSqls(Integer.valueOf(countSqlsByStatus(items, ReportBatchItem.Status.RESOLVED)));
         response.setFailedSqls(Integer.valueOf(countNonResolvedSqls(items)));
+        response.setParseStatistics(includeItems ? parseStatisticsAssembler.build(items) : null);
         response.setReportItems(includeItems ? toItemVos(items) : Collections.<ReportBatchItemVO>emptyList());
         response.setStatusHistory(toStatusHistory(batch.getStatusHistory()));
         response.setCreatedAt(batch.getCreatedAt());

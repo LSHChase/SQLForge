@@ -21,6 +21,7 @@ public class ReportBatchStatusResponse {
     private Integer totalSqls;
     private Integer resolvedSqls;
     private Integer failedSqls;
+    private ReportBatchParseStatisticsVO parseStatistics;
     private List<ReportBatchItemVO> reportItems;
     private List<ReportBatchStatusHistoryVO> statusHistory;
     private Instant createdAt;
@@ -58,6 +59,8 @@ public class ReportBatchStatusResponse {
     public void setResolvedSqls(Integer resolvedSqls) { this.resolvedSqls = resolvedSqls; }
     public Integer getFailedSqls() { return failedSqls; }
     public void setFailedSqls(Integer failedSqls) { this.failedSqls = failedSqls; }
+    public ReportBatchParseStatisticsVO getParseStatistics() { return parseStatistics; }
+    public void setParseStatistics(ReportBatchParseStatisticsVO parseStatistics) { this.parseStatistics = parseStatistics; }
     public List<ReportBatchItemVO> getReportItems() { return reportItems; }
     public void setReportItems(List<ReportBatchItemVO> reportItems) { this.reportItems = reportItems; }
     public List<ReportBatchStatusHistoryVO> getStatusHistory() { return statusHistory; }

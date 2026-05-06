@@ -13,6 +13,7 @@ import {
   listParseBatches,
   listReportBatches,
   getReportBatch,
+  getReportBatchParseStatistics,
   lookupGovernanceTraces
 } from '../../services/runtimeGateApi'
 import { buildDatasourceOptions, buildTenantOptions, withCurrentOption } from '../common/formComponentGovernance'
@@ -125,6 +126,16 @@ const selectedReportItems = computed(() => {
   const source = selectedReportBatchDetail.value?.reportItems || []
   return Array.isArray(source) ? source.filter(item => item && typeof item === 'object') : []
 })
+const selectedReportParseStatistics = computed(() => objectValue(selectedReportBatchDetail.value?.parseStatistics))
+const selectedReportParseStatisticsOverview = computed(() => objectValue(selectedReportParseStatistics.value.overview))
+const selectedReportIssueSceneStatistics = computed(() => normalizeArray(selectedReportParseStatistics.value.issueSceneStatistics))
+const selectedReportImportanceStatistics = computed(() => normalizeArray(selectedReportParseStatistics.value.importanceStatistics))
+const selectedReportBackendReportStatistics = computed(() => normalizeArray(selectedReportParseStatistics.value.reportStatistics))
+const selectedReportBackendSqlStatistics = computed(() => normalizeArray(selectedReportParseStatistics.value.sqlStatistics))
+const selectedReportPriorityMatrix = computed(() => normalizeArray(selectedReportParseStatistics.value.priorityMatrix))
+const selectedReportLogicalObjectStatistics = computed(() =>
+  normalizeArray(selectedReportParseStatistics.value.logicalObjectStatistics)
+)
 const selectedReportGroups = computed(() => {
   const groups = new Map()
   selectedReportItems.value.forEach(item => {
@@ -165,6 +176,7 @@ const reportBatchDetailCards = computed(() => {
   if (!detail) {
     return []
   }
+  const overview = selectedReportParseStatisticsOverview.value
   const total = selectedReportItems.value.length
   const structureValid = selectedReportItems.value.filter(item => String(item.structureSyntaxStatus || '').toUpperCase() === 'VALID').length
   const accessConnected = selectedReportItems.value.filter(item =>
@@ -175,7 +187,10 @@ const reportBatchDetailCards = computed(() => {
     card(isChinese.value ? '批次状态' : 'Batch status', detail.status),
     card(isChinese.value ? '文件类型' : 'File type', detail.fileType),
     card(isChinese.value ? '报表总数' : 'Total reports', detail.totalReports),
-    card(isChinese.value ? 'SQL 明细' : 'SQL rows', detail.totalSqls ?? total),
+    card(isChinese.value ? 'SQL 明细' : 'SQL rows', overview.totalSqlCount ?? detail.totalSqls ?? total),
+    card(isChinese.value ? '问题 SQL' : 'Issue SQL', overview.issueSqlCount),
+    card(isChinese.value ? '重要 SQL' : 'Important SQL', overview.importantSqlCount),
+    card(isChinese.value ? '紧急 SQL' : 'Urgent SQL', overview.urgentSqlCount),
     card(isChinese.value ? '已解析 SQL' : 'Resolved SQL', detail.resolvedSqls ?? detail.resolvedReports),
     card(isChinese.value ? '失败 SQL' : 'Failed SQL', detail.failedSqls ?? detail.failedReports),
     card(isChinese.value ? '结构成功率' : 'Structure rate', formatPercent(rate(structureValid, total))),
@@ -183,6 +198,12 @@ const reportBatchDetailCards = computed(() => {
   ].filter(item => hasDisplayValue(item.value))
 })
 const reportBatchIssueStatistics = computed(() => {
+  if (selectedReportIssueSceneStatistics.value.length) {
+    return selectedReportIssueSceneStatistics.value.map(item => ({
+      ...item,
+      ratio: item.sqlRatio
+    }))
+  }
   const counts = new Map()
   selectedReportItems.value.forEach(item => {
     const scenes = Array.isArray(item.issueScenes) ? item.issueScenes : []
@@ -195,6 +216,22 @@ const reportBatchIssueStatistics = computed(() => {
       ratio: rate(affectedSqlCount, selectedReportItems.value.length)
     }))
     .sort((left, right) => right.affectedSqlCount - left.affectedSqlCount)
+})
+const reportBatchLogicalObjectStatistics = computed(() => {
+  if (selectedReportLogicalObjectStatistics.value.length) {
+    return selectedReportLogicalObjectStatistics.value.map(item => ({
+      ...item,
+      hitCount: item.sqlCount
+    }))
+  }
+  const counts = new Map()
+  selectedReportItems.value.forEach(item => {
+    const keys = Array.isArray(item.logicalObjectKeys) ? item.logicalObjectKeys : []
+    keys.forEach(objectKey => counts.set(objectKey, (counts.get(objectKey) || 0) + 1))
+  })
+  return Array.from(counts.entries())
+    .map(([objectKey, hitCount]) => ({ objectKey, hitCount }))
+    .sort((left, right) => right.hitCount - left.hitCount)
 })
 const reportBatchParseDetailSummary = computed(() => {
   const total = selectedReportItems.value.filter(item => hasDisplayValue(item.parseTaskId)).length
@@ -673,6 +710,23 @@ const openReportBatchCenter = batchId => {
   })
 }
 
+const loadReportBatchWithStatistics = async batchId => {
+  const detail = await getReportBatch(batchId, requestTenantId.value, {
+    requestPrefix: 'frontend-parse-record-report-batch-detail'
+  })
+  try {
+    const statistics = await getReportBatchParseStatistics(batchId, requestTenantId.value, {
+      requestPrefix: 'frontend-parse-record-report-batch-statistics'
+    })
+    return {
+      ...detail,
+      parseStatistics: statistics || detail?.parseStatistics
+    }
+  } catch {
+    return detail
+  }
+}
+
 const openReportBatchDetail = async row => {
   const batchId = typeof row === 'string' ? row : row?.batchId
   if (!batchId) {
@@ -683,9 +737,7 @@ const openReportBatchDetail = async row => {
   reportBatchItemDetailErrorMessage.value = ''
   reportBatchItemDetails.value = {}
   try {
-    selectedReportBatchDetail.value = await getReportBatch(batchId, requestTenantId.value, {
-      requestPrefix: 'frontend-parse-record-report-batch-detail'
-    })
+    selectedReportBatchDetail.value = await loadReportBatchWithStatistics(batchId)
     reportBatchDetailDrawerVisible.value = true
   } catch (error) {
     selectedReportBatchDetail.value = null
@@ -1434,13 +1486,73 @@ onMounted(async () => {
             <span>{{ isChinese ? '报表级解析统计' : 'Report-level parse statistics' }}</span>
           </div>
           <div class="detail-grid">
-            <div v-for="item in reportBatchIssueStatistics" :key="item.issueScene" class="detail-grid__item">
+            <div
+              v-for="item in reportBatchIssueStatistics"
+              :key="item.issueScene"
+              class="detail-grid__item"
+              data-testid="parse-record-report-statistics-issue-scene"
+            >
               <span>{{ item.issueScene }}</span>
-              <strong>{{ item.affectedSqlCount }} SQL · {{ formatPercent(item.ratio) }}</strong>
+              <strong>{{ item.affectedSqlCount }} SQL · {{ displayValue(item.severity) }} · {{ formatPercent(item.ratio) }}</strong>
             </div>
             <p v-if="!reportBatchIssueStatistics.length" class="empty-copy">
               {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics in this report batch.' }}
             </p>
+          </div>
+          <div class="detail-grid detail-grid-secondary">
+            <div
+              v-for="item in selectedReportImportanceStatistics"
+              :key="item.importanceBucket"
+              class="detail-grid__item"
+              data-testid="parse-record-report-statistics-importance"
+            >
+              <span>{{ item.importanceBucket }}</span>
+              <strong>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</strong>
+            </div>
+          </div>
+          <div class="detail-grid detail-grid-secondary">
+            <div
+              v-for="item in selectedReportBackendReportStatistics"
+              :key="item.reportCode"
+              class="detail-grid__item"
+              data-testid="parse-record-report-statistics-report-view"
+            >
+              <span>{{ item.reportCode }}</span>
+              <strong>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ formatPercent(item.issueSqlRatio) }}</strong>
+            </div>
+          </div>
+          <div class="detail-grid detail-grid-secondary">
+            <div
+              v-for="item in selectedReportPriorityMatrix"
+              :key="`${item.priorityLevel}-${item.urgencyBucket}`"
+              class="detail-grid__item"
+              data-testid="parse-record-report-statistics-priority"
+            >
+              <span>{{ item.priorityLevel }} · {{ item.urgencyBucket }}</span>
+              <strong>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</strong>
+            </div>
+          </div>
+          <div class="detail-grid detail-grid-secondary">
+            <div
+              v-for="item in selectedReportBackendSqlStatistics.slice(0, 8)"
+              :key="item.itemId"
+              class="detail-grid__item"
+              data-testid="parse-record-report-statistics-sql-list"
+            >
+              <span>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</span>
+              <strong>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues</strong>
+            </div>
+          </div>
+          <div class="detail-grid detail-grid-secondary">
+            <div
+              v-for="item in reportBatchLogicalObjectStatistics"
+              :key="item.objectKey"
+              class="detail-grid__item"
+              data-testid="parse-record-report-statistics-logical-object"
+            >
+              <span>{{ item.objectKey }}</span>
+              <strong>{{ item.hitCount }} SQL · {{ displayValue(item.reportCodes) }}</strong>
+            </div>
           </div>
         </section>
         <section class="code-card">

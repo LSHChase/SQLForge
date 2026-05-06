@@ -36,14 +36,22 @@ const requiredTokens = [
   'data-testid="batch-import-report-failure-record"',
   'data-testid="batch-import-report-drawer-statistics"',
   'data-testid="batch-import-report-drawer-sql-detail"',
+  'data-testid="batch-import-report-statistics-issue-scene"',
+  'data-testid="batch-import-report-statistics-importance"',
+  'data-testid="batch-import-report-statistics-report-view"',
+  'data-testid="batch-import-report-statistics-sql-list"',
+  'data-testid="batch-import-report-statistics-priority"',
+  'data-testid="batch-import-report-statistics-logical-object"',
   'data-testid="batch-import-report-item-detail-open"',
   'data-testid="batch-import-report-item-detail"',
+  'getReportBatchParseStatistics',
   'report_code,sql_1,sql_2,sql_3,...,sql_100',
   'Template-column contract',
   'Failure records',
   'failed sql detail',
   'SQL-level parse detail',
-  'report-level statistics'
+  'report-level statistics',
+  'parseStatistics'
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))

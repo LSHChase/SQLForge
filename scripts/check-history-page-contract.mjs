@@ -30,11 +30,19 @@ const requiredTokens = [
   'data-testid="parse-record-report-group"',
   'data-testid="parse-record-report-sql-detail"',
   'data-testid="parse-record-report-sql-detail-statistics"',
+  'data-testid="parse-record-report-statistics-issue-scene"',
+  'data-testid="parse-record-report-statistics-importance"',
+  'data-testid="parse-record-report-statistics-report-view"',
+  'data-testid="parse-record-report-statistics-sql-list"',
+  'data-testid="parse-record-report-statistics-priority"',
+  'data-testid="parse-record-report-statistics-logical-object"',
   'data-testid="parse-record-report-sql-parse-detail"',
   'data-testid="parse-record-report-sql-risk"',
   'data-testid="parse-record-report-sql-issue"',
   'loadReportBatchItemDetail',
+  'getReportBatchParseStatistics',
   'frontend-parse-record-report-sql-history-detail',
+  'frontend-parse-record-report-batch-statistics',
   'History classification',
   'Sort mode',
   'query history table',
@@ -61,7 +69,9 @@ const requiredApiTokens = [
 ]
 
 const requiredSharedApiTokens = [
-  'buildTenantQuerySuffix'
+  'buildTenantQuerySuffix',
+  'frontend-report-batch-parse-statistics',
+  '/parse-statistics'
 ]
 
 const forbiddenViewTokens = [

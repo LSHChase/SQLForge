@@ -612,6 +612,7 @@ Tasks:
 | `D-TASK-056` | 落地按 SQL 与问题场景统计 | parse overview、scene aggregation、single-SQL issue 汇总 | `D-TASK-055` | statistics API 测试 |
 | `D-TASK-057` | 落地按报表统计与占比分析 | report dimension aggregation、报表问题数量与占比计算 | `D-TASK-056` | report aggregation 测试 |
 | `D-TASK-058` | 落地重要/紧急清单与优先级矩阵 | priority matrix、important/urgent view 和 drill-through | `D-TASK-057` | matrix/list 测试 |
+| `HARN-064` | HARN-064 / D-STORY-010: 批量报表导入解析统计与解析历史统计展示 | 在 Phase-D 的 D-STORY-010 下，为批量解析中的报表导入解析流程补齐批次级解析统计能力，并在解析历史页面或模块中提供对应批次/历史记录的统计查看或查询能力。统计维度至少覆盖问题场景、重要程度、报表视角、SQL 清单、优先级视角、逻辑对象视角。具体接口、组件、数据库结构、聚合口径和复用路径须在正式实现前经仓库阅读与治理流程确认。 | `N/A` | Aggregation coverage for all required dimensions: 问题场景, 重要程度, 报表视角, SQL 清单, 优先级视角, 逻辑对象视角、Batch-selected parsing statistics happy path、Parsing history statistics lookup/display path、Empty batch, missing statistics, failed/partial parse, and permission/error state coverage as applicable、Regression coverage against existing SQL parsing statistics behavior where reusable contract is confirmed、Documentation/contract validation for confirmed statistics fields and口径 |
 
 ##### Story `D-STORY-011` 推荐 SQL、加速建议与装数协同事件
 

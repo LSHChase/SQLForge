@@ -573,6 +573,17 @@ export const getReportBatch = (batchId, tenantId, requestOptions = {}) =>
     }
   })
 
+export const getReportBatchParseStatistics = (batchId, tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/report-batches/${encodeURIComponent(batchId)}/parse-statistics`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-report-batch-parse-statistics',
+      ...requestOptions
+    }
+  })
+
 export const getParseStatisticsOverview = (tenantId, requestOptions = {}) =>
   request({
     method: 'get',

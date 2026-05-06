@@ -2,9 +2,11 @@ package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
+import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusResponse;
 import com.company.sqloptimization.application.service.report.MockReportSqlFactory;
 import com.company.sqloptimization.application.service.report.ReportSqlResolver;
@@ -148,6 +150,15 @@ class ReportBatchApplicationServiceTest {
         assertEquals(Integer.valueOf(2), resolved.getTotalSqls());
         assertEquals(Integer.valueOf(2), resolved.getResolvedSqls());
         assertEquals(Integer.valueOf(1), resolved.getResolvedReports());
+        ReportBatchParseStatisticsVO statistics = resolved.getParseStatistics();
+        assertNotNull(statistics);
+        assertEquals(Integer.valueOf(2), statistics.getOverview().getTotalSqlCount());
+        assertEquals(Integer.valueOf(2), statistics.getOverview().getIssueSqlCount());
+        assertEquals(Integer.valueOf(2), Integer.valueOf(statistics.getSqlStatistics().size()));
+        assertEquals("RPT_INLINE", statistics.getReportStatistics().get(0).getReportCode());
+        assertTrue(statistics.getLogicalObjectStatistics().stream()
+            .anyMatch(item -> "TABLE:orders".equals(item.getObjectKey())));
+        assertNotNull(service.getBatchParseStatistics(imported.getBatchId()).getOverview());
     }
 
     @Test

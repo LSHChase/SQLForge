@@ -7,6 +7,7 @@ import {
   formatRuntimeError,
   getParseBatch,
   getReportBatch,
+  getReportBatchParseStatistics,
   importReportBatch,
   ingestParseBatch,
   listParseBatches,
@@ -161,9 +162,20 @@ const parseReportStatistics = computed(() => {
   const items = parseBatchDetail.value?.reportStatistics || []
   return Array.isArray(items) ? items : []
 })
+const reportParseStatistics = computed(() => objectValue(reportBatchDetail.value?.parseStatistics))
+const reportParseStatisticsOverview = computed(() => objectValue(reportParseStatistics.value.overview))
+const reportIssueSceneStatistics = computed(() => arrayValue(reportParseStatistics.value.issueSceneStatistics))
+const reportImportanceStatistics = computed(() => arrayValue(reportParseStatistics.value.importanceStatistics))
+const reportBackendReportStatistics = computed(() => arrayValue(reportParseStatistics.value.reportStatistics))
+const reportBackendSqlStatistics = computed(() => arrayValue(reportParseStatistics.value.sqlStatistics))
+const reportPriorityMatrix = computed(() => arrayValue(reportParseStatistics.value.priorityMatrix))
+const reportBackendLogicalObjectStatistics = computed(() =>
+  arrayValue(reportParseStatistics.value.logicalObjectStatistics)
+)
 const reportSqlStatisticsCards = computed(() => {
   const items = reportItems.value
-  const total = Number(reportBatchDetail.value?.totalSqls ?? items.length)
+  const overview = reportParseStatisticsOverview.value
+  const total = Number(overview.totalSqlCount ?? reportBatchDetail.value?.totalSqls ?? items.length)
   const resolved = items.filter(item => String(item.status || '').toUpperCase() === 'RESOLVED').length
   const partial = items.filter(item => String(item.status || '').toUpperCase().includes('PARTIAL')).length
   const failed = items.filter(item => String(item.status || '').toUpperCase() === 'FAILED').length
@@ -172,18 +184,22 @@ const reportSqlStatisticsCards = computed(() => {
     String(item.accessServiceStatus || '').toUpperCase() === 'AVAILABLE' &&
     String(item.accessConnectionStatus || '').toUpperCase() === 'CONNECTED'
   ).length
-  const issueScenes = new Set(items.flatMap(item => Array.isArray(item.issueScenes) ? item.issueScenes : []))
-  const logicalObjects = new Set(items.flatMap(item => Array.isArray(item.logicalObjectKeys) ? item.logicalObjectKeys : []))
+  const fallbackLogicalObjects = new Set(items.flatMap(item => Array.isArray(item.logicalObjectKeys) ? item.logicalObjectKeys : []))
+  const logicalObjectCount = reportBackendLogicalObjectStatistics.value.length || fallbackLogicalObjects.size
   return [
     card(isChinese.value ? 'SQL 总数' : 'SQL count', total),
+    card(isChinese.value ? '问题 SQL' : 'Issue SQL', overview.issueSqlCount),
+    card(isChinese.value ? '问题总数' : 'Issues', overview.totalIssueCount),
+    card(isChinese.value ? '重要 SQL' : 'Important SQL', overview.importantSqlCount),
+    card(isChinese.value ? '紧急 SQL' : 'Urgent SQL', overview.urgentSqlCount),
     card(isChinese.value ? '解析成功' : 'Resolved', resolved),
     card(isChinese.value ? '部分解析' : 'Partial', partial),
     card(isChinese.value ? '失败' : 'Failed', failed),
     card(isChinese.value ? '结构成功率' : 'Structure rate', formatPercent(rate(structureValid, total))),
     card(isChinese.value ? 'Access 连通率' : 'Access connected', formatPercent(rate(accessConnected, total))),
-    card(isChinese.value ? '问题场景' : 'Issue scenes', issueScenes.size),
-    card(isChinese.value ? '逻辑对象' : 'Logical objects', logicalObjects.size)
-  ]
+    card(isChinese.value ? '问题场景' : 'Issue scenes', overview.issueSceneCount ?? reportIssueSceneStatistics.value.length),
+    card(isChinese.value ? '逻辑对象' : 'Logical objects', logicalObjectCount)
+  ].filter(item => hasDisplayValue(item.value))
 })
 const reportGroups = computed(() => {
   const groups = new Map()
@@ -217,6 +233,12 @@ const reportGroups = computed(() => {
   })
 })
 const reportIssueStatistics = computed(() => {
+  if (reportIssueSceneStatistics.value.length) {
+    return reportIssueSceneStatistics.value.map(item => ({
+      ...item,
+      ratio: item.sqlRatio
+    }))
+  }
   const counts = new Map()
   reportItems.value.forEach(item => {
     const scenes = Array.isArray(item.issueScenes) ? item.issueScenes : []
@@ -231,6 +253,12 @@ const reportIssueStatistics = computed(() => {
     .sort((left, right) => right.affectedSqlCount - left.affectedSqlCount)
 })
 const reportLogicalObjectStatistics = computed(() => {
+  if (reportBackendLogicalObjectStatistics.value.length) {
+    return reportBackendLogicalObjectStatistics.value.map(item => ({
+      ...item,
+      hitCount: item.sqlCount
+    }))
+  }
   const counts = new Map()
   reportItems.value.forEach(item => {
     const keys = Array.isArray(item.logicalObjectKeys) ? item.logicalObjectKeys : []
@@ -265,6 +293,15 @@ const card = (label, value) => ({ label, value })
 
 const hasDisplayValue = value =>
   !(value === null || value === undefined || String(value).trim() === '')
+
+const objectValue = value => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value
+  }
+  return {}
+}
+
+const arrayValue = value => Array.isArray(value) ? value : []
 
 const formatRate = value => {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -651,6 +688,19 @@ const importReportBatchFlow = async () => {
   }
 }
 
+const loadReportBatchWithStatistics = async batchId => {
+  const detail = await getReportBatch(batchId, reportBatchForm.tenantId)
+  try {
+    const statistics = await getReportBatchParseStatistics(batchId, reportBatchForm.tenantId)
+    return {
+      ...detail,
+      parseStatistics: statistics || detail?.parseStatistics
+    }
+  } catch {
+    return detail
+  }
+}
+
 const refreshReportBatchDetail = async batchId => {
   const targetBatchId = batchId || reportBatchDetail.value?.batchId
   if (!targetBatchId) {
@@ -659,7 +709,7 @@ const refreshReportBatchDetail = async batchId => {
   loading.refreshReportBatch = true
   clearError()
   try {
-    reportBatchDetail.value = await getReportBatch(targetBatchId, reportBatchForm.tenantId)
+    reportBatchDetail.value = await loadReportBatchWithStatistics(targetBatchId)
     upsertSession(reportBatchSessions, reportBatchDetail.value)
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
@@ -1484,24 +1534,89 @@ onMounted(async () => {
           <p class="section-kicker sqlforge-code-label">report-level statistics</p>
           <div class="result-layout">
             <div class="stat-list">
-              <div v-for="item in reportGroups" :key="item.reportCode" class="contract-item">
+              <div
+                v-for="item in (reportBackendReportStatistics.length ? reportBackendReportStatistics : reportGroups)"
+                :key="item.reportCode"
+                class="contract-item"
+                data-testid="batch-import-report-statistics-report-view"
+              >
                 <strong>{{ item.reportCode }}</strong>
-                <span>{{ item.total }} SQL · {{ item.resolved }} resolved · {{ formatPercent(item.structureRate) }}</span>
+                <span>
+                  {{ displayValue(item.sqlCount ?? item.total) }} SQL
+                  · {{ displayValue(item.issueCount ?? item.failed) }} issues
+                  · {{ formatPercent(item.issueSqlRatio ?? item.structureRate) }}
+                </span>
               </div>
             </div>
             <div class="stat-list">
-              <div v-for="item in reportIssueStatistics" :key="item.issueScene" class="contract-item">
+              <div
+                v-for="item in reportIssueStatistics"
+                :key="item.issueScene"
+                class="contract-item"
+                data-testid="batch-import-report-statistics-issue-scene"
+              >
                 <strong>{{ item.issueScene }}</strong>
-                <span>{{ item.affectedSqlCount }} SQL · {{ formatPercent(item.ratio) }}</span>
+                <span>
+                  {{ item.affectedSqlCount }} SQL
+                  · {{ displayValue(item.severity) }}
+                  · {{ formatPercent(item.ratio) }}
+                </span>
               </div>
               <div v-if="!reportIssueStatistics.length" class="empty-state">
                 {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics yet.' }}
               </div>
             </div>
             <div class="stat-list">
-              <div v-for="item in reportLogicalObjectStatistics" :key="item.objectKey" class="contract-item">
+              <div
+                v-for="item in reportImportanceStatistics"
+                :key="item.importanceBucket"
+                class="contract-item"
+                data-testid="batch-import-report-statistics-importance"
+              >
+                <strong>{{ item.importanceBucket }}</strong>
+                <span>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</span>
+              </div>
+              <div v-if="!reportImportanceStatistics.length" class="empty-state">
+                {{ isChinese ? '当前没有重要程度统计。' : 'No importance statistics yet.' }}
+              </div>
+            </div>
+            <div class="stat-list">
+              <div
+                v-for="item in reportPriorityMatrix"
+                :key="`${item.priorityLevel}-${item.urgencyBucket}`"
+                class="contract-item"
+                data-testid="batch-import-report-statistics-priority"
+              >
+                <strong>{{ item.priorityLevel }} · {{ item.urgencyBucket }}</strong>
+                <span>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</span>
+              </div>
+              <div v-if="!reportPriorityMatrix.length" class="empty-state">
+                {{ isChinese ? '当前没有优先级矩阵统计。' : 'No priority matrix statistics yet.' }}
+              </div>
+            </div>
+            <div class="stat-list">
+              <div
+                v-for="item in reportBackendSqlStatistics.slice(0, 12)"
+                :key="item.itemId"
+                class="contract-item"
+                data-testid="batch-import-report-statistics-sql-list"
+              >
+                <strong>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</strong>
+                <span>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues · {{ displayValue(item.logicalObjectKeys) }}</span>
+              </div>
+              <div v-if="!reportBackendSqlStatistics.length" class="empty-state">
+                {{ isChinese ? '当前没有 SQL 清单统计。' : 'No SQL list statistics yet.' }}
+              </div>
+            </div>
+            <div class="stat-list">
+              <div
+                v-for="item in reportLogicalObjectStatistics"
+                :key="item.objectKey"
+                class="contract-item"
+                data-testid="batch-import-report-statistics-logical-object"
+              >
                 <strong>{{ item.objectKey }}</strong>
-                <span>{{ item.hitCount }} hits</span>
+                <span>{{ item.hitCount }} SQL · {{ displayValue(item.reportCodes) }}</span>
               </div>
               <div v-if="!reportLogicalObjectStatistics.length" class="empty-state">
                 {{ isChinese ? '当前没有逻辑对象命中。' : 'No logical object hits yet.' }}

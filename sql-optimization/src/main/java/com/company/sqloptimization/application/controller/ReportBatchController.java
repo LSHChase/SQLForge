@@ -1,6 +1,7 @@
 package com.company.sqloptimization.application.controller;
 
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
+import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusResponse;
 import com.company.sqloptimization.application.service.ReportBatchApplicationService;
 import java.util.List;
@@ -40,5 +41,10 @@ public class ReportBatchController {
     @GetMapping("/{batchId}")
     public ReportBatchStatusResponse getBatch(@PathVariable("batchId") String batchId) {
         return reportBatchApplicationService.getBatch(batchId);
+    }
+
+    @GetMapping("/{batchId}/parse-statistics")
+    public ReportBatchParseStatisticsVO getBatchParseStatistics(@PathVariable("batchId") String batchId) {
+        return reportBatchApplicationService.getBatchParseStatistics(batchId);
     }
 }

@@ -59,12 +59,21 @@ class ReportBatchControllerTest {
             .andExpect(jsonPath("$.status").value("COMPLETED"))
             .andExpect(jsonPath("$.resolvedReports").value(2))
             .andExpect(jsonPath("$.resolvedSqls").value(2))
+            .andExpect(jsonPath("$.parseStatistics.overview.totalSqlCount").value(2))
+            .andExpect(jsonPath("$.parseStatistics.sqlStatistics.length()").value(2))
             .andExpect(jsonPath("$.reportItems[0].sqlText").exists())
             .andExpect(jsonPath("$.reportItems[0].structureSyntaxStatus").value("VALID"));
 
         mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches/{batchId}", batchId)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.batchId").value(batchId));
+            .andExpect(jsonPath("$.batchId").value(batchId))
+            .andExpect(jsonPath("$.parseStatistics.reportStatistics.length()").value(2));
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches/{batchId}/parse-statistics", batchId)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.overview.totalSqlCount").value(2))
+            .andExpect(jsonPath("$.sqlStatistics.length()").value(2))
+            .andExpect(jsonPath("$.priorityMatrix.length()").value(1));
     }
 
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {

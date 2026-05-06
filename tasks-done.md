@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-064: HARN-064 / D-STORY-010: 批量报表导入解析统计与解析历史统计展示
+
+- Status: done
+- Completed at: 2026-05-05
+- Commit subject: `feat(sql-optimization): add report batch parse statistics`
+- Priority: 1
+- Depends on: `N/A`
+- Scope: HARN-064 应建立一个可验证的批次/历史解析统计契约：输入为用户选择的批次解析结果或解析历史记录，输出为与现有 SQL 解析统计口径对齐的统计数据集合，至少包含六类维度。实现不得预设现有 SQL 解析统计接口、组件、schema 或聚合逻辑可直接复用；必须在正式实现阶段读取代码后确认复用或适配方案。批量解析入口与解析历史入口应共享一致统计口径，避免产生不兼容的重复聚合逻辑。 Tech: `Repository-confirmed backend/service layer after preflight`,`Repository-confirmed API/query contract after code reading`,`Repository-confirmed frontend/history/batch parsing surfaces if within scope...
+- Plan ref: docs/exec-plans/completed/HARN-064-full-auto-execution-plan.md
+- Matrix context: Phase-D / Story `D-STORY-010` 解析统计与优先级分层
+- Human confirmation point: Resolved before materialization on 2026-05-05: user confirmed HARN-064 formal materialization, single-agent Main Foreman routing, D-STORY-010/P1/no explicit dependency candidate binding, required statistics dimensions, parsing-history coverage, and repository-confirmed API/data/UI contract adaptation where necessary.
+- Data impact: Potential read/query and aggregation impact on batch parsing results, report-import parsing records, parse history records, SQL-level statistics, logical-object statistics, and any persisted/cached statistics model if confirmed. No data migration or persistence change is authorized by this candidate pack alone; any schema or historical data backfill decision requires explicit confirmation during implementation planning.
+- Rollback / recovery: Keep changes scoped to HARN-064. If implementation introduces API/UI/statistics contract regressions, rollback by reverting the HARN-064 single-task commit and restoring prior parsing/history behavior. If schema or persisted statistics changes are later approved, implementation must include explicit rollback/backfill recovery notes before closeout. Use foreman validate, pre-closeout audit, closeout, and post-closeout audit before delivery of the standard task.
+- Validation:
+  - `Aggregation coverage for all required dimensions: 问题场景, 重要程度, 报表视角, SQL 清单, 优先级视角, 逻辑对象视角、Batch-selected parsing statistics happy path、Parsing history statistics lookup/display path、Empty batch, missing statistics, failed/partial parse, and permission/error state coverage as applicable、Regression coverage against existing SQL parsing statistics behavior where reusable contract is confirmed、Documentation/contract validation for confirmed statistics fields and口径`
+  - `python3 scripts/foreman.py validate HARN-064`
+- Progress log:
+  - 2026-05-05: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added a shared report-batch parse-statistics contract for batch detail and parse-history lookup, covering issue scenes, importance, report view, SQL list, priority matrix, and logical-object dimensions across backend API, frontend views, tests, and contract checks.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-064 --extra-command node/scripts/check-batch-import-contract.mjs --extra-command node/scripts/check-history-page-contract.mjs --extra-command mvn-report-batch-statistics-tests --extra-command npm-run-lint --extra-command npm-run-build; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: No schema migration or historical backfill was introduced; live environments still depend on existing report_batch/report_batch_item data quality and governance history availability for per-SQL drill-through.
+  - Next step: In acceptance, open a resolved report-import batch from both the batch center and parse history and verify the six statistics dimensions match the same batch.
+
 ### HARN-063: HARN-063 批量解析报表结果与失败详情可见性修复
 
 - Status: done
