@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-072: Align batch SQL diagnostics with single SQL parse
+
+- Status: done
+- Completed at: 2026-05-06
+- Commit subject: `fix(sql-optimization): align batch SQL diagnostics`
+- Priority: P1
+- Depends on: HARN-071
+- Scope: Fix batch parse issue detection so each batch SQL uses the same diagnostics path as single SQL parsing for complex anti-pattern SQL, including nested scalar subqueries, correlated subqueries, NOT EXISTS, wildcard LIKE, OR predicates, function-wrapped predicates, and ORDER BY RAND diagnostics; keep existing batch/report import contracts and do not add schema changes.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-072`
+- Progress log:
+  - 2026-05-06: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Updated ordinary batch parsing and report batch parsing to retain the single-SQL structure parser's fine-grained issue codes in SQL-level batch details/statistics instead of collapsing multiple diagnostics into coarse issue scenes; added issue-code priority scoring support and complex anti-pattern SQL regressions for SQL-file batch and report wide-table batch paths.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-072; mvn -pl sql-optimization -Dtest=ParseBatchApplicationServiceTest,ReportBatchApplicationServiceTest,ReportBatchParseStatisticsAssemblerTest,ParseStatisticsApplicationServiceTest,StructureParseControllerTest,SqlOptimizationPipelineServiceTest test; node scripts/check-batch-import-contract.mjs; node scripts/check-history-page-contract.mjs; mvn -pl sql-optimization test; git diff --check
+  - Residual risk: Existing persisted batch rows keep their historical coarse issue-scene summaries until re-parsed; this task intentionally avoided schema migration and only changes newly parsed batch/report SQL diagnostics.
+  - Next step: Use the provided complex anti-pattern SQL in acceptance against both SQL解析 and 批量解析, then confirm the batch detail/statistics list includes the same issue codes such as SCALAR_SUBQUERY_IN_SELECT, OR_PREDICATE_INDEX_RISK and ORDER_BY_RANDOM_RISK.
+
 ### HARN-071: HARN-071 批量解析与报表导入大批量治理体验收口
 
 - Status: done

@@ -742,7 +742,12 @@ public class ReportBatchApplicationService {
         }
         Set<String> scenes = new LinkedHashSet<String>();
         for (StructureParseIssueVO issue : issues) {
-            if (issue != null && StringUtils.hasText(issue.getIssueScene())) {
+            if (issue == null) {
+                continue;
+            }
+            if (StringUtils.hasText(issue.getIssueCode())) {
+                scenes.add(issue.getIssueCode());
+            } else if (StringUtils.hasText(issue.getIssueScene())) {
                 scenes.add(issue.getIssueScene());
             }
         }

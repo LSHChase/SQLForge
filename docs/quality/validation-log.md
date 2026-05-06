@@ -2330,3 +2330,15 @@
 2026-05-06T06:20:41-05:00 | HARN-071 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-06T06:20:41-05:00 | HARN-071 closeout commit | `R-168` | projected | `git commit -m 'feat(sql-optimization): harden large batch report parsing' (projected-precommit)`
 2026-05-06T06:20:41-05:00 | HARN-071 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-06T11:03:36-05:00 | HARN-072 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-06T11:03:36-05:00 | HARN-072 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-06T11:03:49-05:00 | HARN-072 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-06T11:03:49-05:00 | HARN-072 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-06T11:04:08-05:00 | HARN-072 targeted sql-optimization tests | `R-119`, `R-125`, `R-127` | passed | `mvn -pl sql-optimization -Dtest=ParseBatchApplicationServiceTest,ReportBatchApplicationServiceTest,ReportBatchParseStatisticsAssemblerTest,ParseStatisticsApplicationServiceTest,StructureParseControllerTest,SqlOptimizationPipelineServiceTest test`
+2026-05-06T11:04:08-05:00 | HARN-072 batch import contract | `R-121`, `R-133` | passed | `node scripts/check-batch-import-contract.mjs`
+2026-05-06T11:04:08-05:00 | HARN-072 history page contract | `R-121`, `R-133` | passed | `node scripts/check-history-page-contract.mjs`
+2026-05-06T11:04:08-05:00 | HARN-072 sql-optimization full tests | `R-119`, `R-125`, `R-127` | passed | `mvn -pl sql-optimization test`
+2026-05-06T11:04:08-05:00 | HARN-072 diff whitespace check | `R-017`, `R-040` | passed | `git diff --check`
+2026-05-06T11:04:08-05:00 | HARN-072 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-06T11:04:08-05:00 | HARN-072 closeout commit | `R-168` | projected | `git commit -m 'fix(sql-optimization): align batch SQL diagnostics' (projected-precommit)`
+2026-05-06T11:04:08-05:00 | HARN-072 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

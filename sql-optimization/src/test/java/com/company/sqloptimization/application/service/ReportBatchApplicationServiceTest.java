@@ -213,6 +213,36 @@ class ReportBatchApplicationServiceTest {
     }
 
     @Test
+    void shouldKeepSingleSqlIssueCodesForComplexReportBatchSql() {
+        ReportBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-010", "trace-010", "header", 1L, 2L);
+
+        ReportBatchStatusResponse imported = service.importBatch(baseRequest(
+            "complex-report-csv",
+            "CSV",
+            "report_code,sql_1\nRPT_COMPLEX," + csvEscape(complexAntiPatternSql())
+        ));
+        ReportBatchStatusResponse resolved = service.resolveSqls(imported.getBatchId());
+
+        assertEquals(Integer.valueOf(1), resolved.getTotalSqls());
+        assertEquals(Integer.valueOf(1), resolved.getResolvedSqls());
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().size() >= 10);
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("SCALAR_SUBQUERY_IN_SELECT"));
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("NESTED_SUBQUERY_RISK"));
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("CORRELATED_SUBQUERY_RISK"));
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("FUNCTION_WRAPPED_PREDICATE"));
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("NOT_EXISTS_ANTI_JOIN_RISK"));
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("LEADING_WILDCARD_LIKE_RISK"));
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("OR_PREDICATE_INDEX_RISK"));
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("ORDER_BY_RANDOM_RISK"));
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("REPEATED_TABLE_SCAN_RISK"));
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("COMPLEX_QUERY_GRAPH_RISK"));
+        assertTrue(resolved.getParseStatistics().getOverview().getTotalIssueCount().intValue() >= 10);
+        assertTrue(resolved.getParseStatistics().getSqlStatistics().get(0).getIssueScenes()
+            .contains("ORDER_BY_RANDOM_RISK"));
+    }
+
+    @Test
     void shouldImportWideWorkbookReportSqlColumns() throws Exception {
         ReportBatchApplicationService service = buildService();
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-004", "trace-004", "header", 1L, 2L);
@@ -263,6 +293,29 @@ class ReportBatchApplicationServiceTest {
         request.setPriority("high");
         request.setContentBase64(Base64.getEncoder().encodeToString(content));
         return request;
+    }
+
+    private String csvEscape(String value) {
+        return "\"" + value.replace("\"", "\"\"") + "\"";
+    }
+
+    private String complexAntiPatternSql() {
+        return "-- complex anti-pattern query\n"
+            + "SELECT c.customer_id, c.customer_name, c.state,\n"
+            + "(SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.customer_id) AS total_orders,\n"
+            + "(SELECT SUM(order_amount) FROM orders o WHERE o.customer_id = c.customer_id) AS total_spent,\n"
+            + "(SELECT GROUP_CONCAT(product_name) FROM order_items oi JOIN products p ON oi.product_id = p.product_id "
+            + "WHERE oi.customer_id = c.customer_id) AS all_products\n"
+            + "FROM customers c\n"
+            + "WHERE c.is_active = 1 AND c.customer_id IN (\n"
+            + "SELECT o1.customer_id FROM orders o1 WHERE YEAR(o1.order_date) = 2025\n"
+            + "AND NOT EXISTS (SELECT 1 FROM customer_tags ct WHERE ct.customer_id = o1.customer_id AND ct.tag_name = 'VIP')\n"
+            + "AND o1.order_amount > (SELECT AVG(o2.order_amount) FROM orders o2 "
+            + "WHERE o2.state = (SELECT state FROM customers WHERE customer_id = o1.customer_id))\n"
+            + "AND EXISTS (SELECT 1 FROM order_items oi2 WHERE oi2.order_id = o1.order_id "
+            + "AND oi2.product_id IN (SELECT product_id FROM products WHERE category LIKE '%电子%')))\n"
+            + "OR c.customer_id IN (SELECT customer_id FROM orders WHERE order_amount > 10000)\n"
+            + "ORDER BY RAND() LIMIT 10";
     }
 
     private byte[] buildWideWorkbook() throws Exception {
