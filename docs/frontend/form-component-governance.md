@@ -65,3 +65,13 @@ SQL 解析页在拿到 `historyId` 后提供“查看解析历史”入口，跳
 单条 SQL 解析页必须在 SQL、数据源、绑定模式或注释上下文变化后清理旧解析结果和旧错误信息。异步解析返回时只能写回与当前输入快照一致的结果，避免一次失败或慢返回影响后续 SQL 的解析展示。
 
 单条 SQL 和解析历史中的失败问题卡片应展示后端返回的 `failureReason`、`failureLine`、`failureColumn`、`failureToken` 与 `failureSnippet`。当 SQL 内含字符串或标识符外的 `--` 行尾注释时，页面无需额外预处理，直接提交原 SQL，由结构解析统一处理。
+
+## HARN-070 SQL Input Output Display Contract
+
+SQL 输入/输出 UI 统一使用共享组件承载：`SqlEditorField` 用于可编辑 SQL 输入，`SqlCodeBlock` 用于只读 SQL 展示。两者都必须提供复制按钮、SQL 语法着色、等宽字体、明确的最小高度/最大高度、溢出滚动和长 SQL 换行约束。
+
+确认覆盖的 SQL 输入面包括 `SqlQueryView` 查询 SQL、`AccelerationView` 单条解析 SQL / 模板 SQL、`ParseBatchCenterView` 当前批次多 SQL 输入和报表宽表输入、`BenchmarkView` 压测 SQL。纯 SQL 输入启用手动格式化按钮；报表宽表、CSV 或表格原始内容只允许复制和高亮，不允许格式化按钮改写表格结构。
+
+确认覆盖的 SQL 输出面包括 `SqlQueryView` 模板 / SQL 库 / Bound SQL 预览、`RecommendationCenterView` 源 SQL / 推荐 SQL、`ParseBatchCenterView` 批次 SQL 明细 / 失败 SQL / 报表 SQL 详情、`ParseRecordView` 报表 SQL 明细 / 原始 SQL / SQL 三态。只读输出通过 `SqlCodeBlock` 在展示边界自动格式化，不回写 API 响应、历史记录、查询结果或后端数据。
+
+JSON 证据、SQL 指纹、报表编码、统计数字和非 SQL 的原始证据块不属于本任务的 SQL 展示框范围，仍保留原有 `code-block` 或普通文本样式。后续新增 SQL-bearing 页面时，默认复用上述两个共享组件，并用 `npm run test:sql-ui-contract` 扩展静态契约检查。

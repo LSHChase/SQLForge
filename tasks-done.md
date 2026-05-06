@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-070: HARN-070 / E-STORY-007 - SQL 输入输出展示与编辑体验增强执行模板
+
+- Status: done
+- Completed at: 2026-05-06
+- Commit subject: `feat(frontend): add SQL copy format highlighting`
+- Priority: 1
+- Depends on: `N/A`
+- Scope: Main Foreman must execute HARN-070 through SQLForge standard actions: preflight, materialize/instantiate, implement, validate, task_audit pre-closeout, closeout, task_audit post-closeout, and single-task single-commit discipline. Every confirmed SQL input surface must support copy plus a manual format action that mutates only the editable UI value. Every confirmed SQL output surface must suppor...
+- Plan ref: docs/exec-plans/completed/HARN-070-full-auto-execution-plan.md
+- Matrix context: Phase-E / Story `E-STORY-007` SQL 查询与历史前端增强
+- Human confirmation point: Resolved by user confirmation on 2026-05-06: materialize HARN-070 as a standard single-agent Main Foreman task bound to E-STORY-007 / Phase-E. Repository inspection will determine the final SQL input/output inventory, existing formatter/highlighter reuse, and concrete documentation entry points. Implementation must keep formatting/display separate from execution, query results, persisted history, and backend datasource semantics.
+- Data impact: Expected data impact is low: changes target UI display/edit interactions and documentation. Potential risk exists if formatting is applied to persisted SQL, submitted SQL, query history records, or execution payloads; formal implementation must keep formatting/display separate from business semantics unless explicitly confirmed.
+- Rollback / recovery: Rollback by reverting the single HARN-070 task commit if implemented as a normal task. Recovery should restore previous SQL input/output UI behavior, remove added formatter/highlighter dependencies or component wiring, and preserve task ledger/audit records according to SQLForge closeout rules. If a dependency is added, rollback must also remove lockfile/package changes tied only to this task.
+- Validation:
+  - `Inventory-backed coverage for each confirmed SQL input page copy behavior、Coverage for each confirmed SQL input page manual format behavior、Coverage for each confirmed SQL output page copy behavior、Coverage for automatic output SQL formatting at the confirmed render/receive boundary、Coverage or assertion for SQL syntax highlighting render state where practical、Coverage for long SQL readability behavior: height, width, scroll, wrap, max-height, or responsive constraints、Regression checks that formatting/display does not alter execution semantics or query results`
+  - `python3 scripts/foreman.py validate HARN-070`
+- Progress log:
+  - 2026-05-06: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added shared SQL editor/display components with copy, manual input formatting, automatic output display formatting, SQL syntax highlighting, and readable sizing; wired them into query, parse, batch parse, parse history, recommendation, and benchmark SQL surfaces; added a static SQL UI contract check and documented the HARN-070 page inventory and display boundary.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-070 --extra-command npm-run-test-sql-ui-contract --extra-command npm-run-test-form-governance --extra-command npm-run-lint --extra-command npm-run-build; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: SQL formatting is intentionally lightweight and UI-scoped; report wide-table/CSV inputs keep formatting disabled to avoid mutating table structure; no live browser E2E was run against external data.
+  - Next step: During product acceptance, spot-check long SQL copy/format/highlight behavior on /sql-query, SQL parse, batch parse, parse history, recommendation, and benchmark pages with production-like SQL samples.
+
 ### U-TASK-005: 更新前端 dist 产物
 
 - Status: done

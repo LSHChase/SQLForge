@@ -10,6 +10,7 @@ import {
   submitBenchmarkTask,
   waitForBenchmarkTask
 } from '../../services/runtimeGateApi'
+import SqlEditorField from '../common/SqlEditorField.vue'
 
 const { t, locale } = useI18n()
 
@@ -407,14 +408,16 @@ onMounted(() => {
             <el-input v-model="form.taskType" />
           </label>
 
-          <label class="field-block field-block-wide">
-            <span class="field-label">SQL</span>
-            <el-input
+          <div class="field-block field-block-wide">
+            <SqlEditorField
               v-model="form.sqlText"
-              type="textarea"
+              label="SQL"
               :rows="6"
+              :copy-label="isChinese ? '复制' : 'Copy'"
+              :format-label="isChinese ? '格式化' : 'Format'"
+              data-testid="benchmark-sql-input"
             />
-          </label>
+          </div>
         </div>
 
         <p class="request-note">

@@ -18,6 +18,8 @@ import {
   submitCombinedParse,
   waitForCombinedParse
 } from '../../services/runtimeGateApi'
+import SqlCodeBlock from '../common/SqlCodeBlock.vue'
+import SqlEditorField from '../common/SqlEditorField.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -1391,15 +1393,27 @@ watch(
             <el-switch v-model="form.connectionRequired" />
           </label>
 
-          <label class="field-block field-block-wide">
-            <span class="field-label">SQL</span>
-            <el-input v-model="form.sqlText" type="textarea" :rows="8" data-testid="parse-workbench-sql-input" />
-          </label>
+          <div class="field-block field-block-wide">
+            <SqlEditorField
+              v-model="form.sqlText"
+              label="SQL"
+              :rows="8"
+              :copy-label="isChinese ? '复制' : 'Copy'"
+              :format-label="isChinese ? '格式化' : 'Format'"
+              data-testid="parse-workbench-sql-input"
+            />
+          </div>
 
-          <label class="field-block field-block-wide">
-            <span class="field-label">{{ isChinese ? '模板 SQL' : 'Template SQL' }}</span>
-            <el-input v-model="form.sqlTemplateText" type="textarea" :rows="4" />
-          </label>
+          <div class="field-block field-block-wide">
+            <SqlEditorField
+              v-model="form.sqlTemplateText"
+              :label="isChinese ? '模板 SQL' : 'Template SQL'"
+              :rows="4"
+              :copy-label="isChinese ? '复制' : 'Copy'"
+              :format-label="isChinese ? '格式化' : 'Format'"
+              data-testid="parse-workbench-template-sql-input"
+            />
+          </div>
 
           <label class="field-block field-block-wide">
             <span class="field-label">{{ isChinese ? '绑定参数 JSON' : 'Bind parameters JSON' }}</span>
@@ -2155,7 +2169,14 @@ watch(
                       >
                         <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
                         <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
-                        <p>{{ displayValue(item.sqlText || item.message || item.sqlPreview) }}</p>
+                        <SqlCodeBlock
+                          v-if="item.sqlText || item.sqlPreview"
+                          :value="item.sqlText || item.sqlPreview"
+                          :label="isChinese ? '失败 SQL' : 'Failed SQL'"
+                          :copy-label="isChinese ? '复制' : 'Copy'"
+                          compact
+                        />
+                        <p v-else>{{ displayValue(item.message) }}</p>
                       </article>
                       <div v-if="!parseFailureRecords.length" class="empty-state">
                         {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
@@ -2318,10 +2339,17 @@ watch(
           <span class="field-label">{{ isChinese ? '上传文件' : 'Upload file' }}</span>
           <input type="file" @change="handleParseFileChange">
         </label>
-        <label class="field-block field-block-wide">
-          <span class="field-label">{{ isChinese ? '批量内容' : 'Batch content' }}</span>
-          <el-input v-model="parseBatchForm.rawContent" type="textarea" :rows="8" />
-        </label>
+        <div class="field-block field-block-wide">
+          <SqlEditorField
+            v-model="parseBatchForm.rawContent"
+            :label="isChinese ? '批量内容' : 'Batch content'"
+            :rows="8"
+            :copy-label="isChinese ? '复制' : 'Copy'"
+            :format-label="isChinese ? '格式化' : 'Format'"
+            :format-enabled="parseBatchForm.directInputMode === 'SQL_LINES'"
+            data-testid="parse-batch-raw-sql-input"
+          />
+        </div>
       </div>
       <template #footer>
         <el-button @click="parseImportDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>
@@ -2372,10 +2400,17 @@ watch(
           <span class="field-label">{{ isChinese ? '上传文件' : 'Upload file' }}</span>
           <input type="file" @change="handleReportFileChange">
         </label>
-        <label class="field-block field-block-wide">
-          <span class="field-label">{{ isChinese ? '清单内容' : 'Catalog content' }}</span>
-          <el-input v-model="reportBatchForm.rawContent" type="textarea" :rows="7" />
-        </label>
+        <div class="field-block field-block-wide">
+          <SqlEditorField
+            v-model="reportBatchForm.rawContent"
+            :label="isChinese ? '清单内容' : 'Catalog content'"
+            :rows="7"
+            :copy-label="isChinese ? '复制' : 'Copy'"
+            :format-label="isChinese ? '格式化' : 'Format'"
+            :format-enabled="false"
+            data-testid="report-batch-raw-sql-input"
+          />
+        </div>
       </div>
       <template #footer>
         <el-button @click="reportImportDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>

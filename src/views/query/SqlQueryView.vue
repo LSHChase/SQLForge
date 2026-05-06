@@ -6,6 +6,9 @@ import {
   formatRuntimeError,
   getGovernanceMessageStats
 } from '../../services/runtimeGateApi'
+import SqlCodeBlock from '../common/SqlCodeBlock.vue'
+import SqlEditorField from '../common/SqlEditorField.vue'
+import { formatSqlText } from '../common/sqlFormatting.mjs'
 
 const { locale } = useI18n()
 
@@ -272,11 +275,7 @@ const loadLibrarySql = entry => {
 }
 
 const formatSql = () => {
-  form.sqlText = String(form.sqlText || '')
-    .split('\n')
-    .map(line => line.trimEnd())
-    .join('\n')
-    .trim()
+  form.sqlText = formatSqlText(form.sqlText)
 }
 
 const resetEvidence = () => {
@@ -462,14 +461,16 @@ const formatJson = value => JSON.stringify(value, null, 2)
           </label>
         </div>
 
-        <label class="editor-block">
-          <span class="field-label">{{ isChinese ? 'SQL 编辑器' : 'SQL editor' }}</span>
-          <el-input
+        <div class="editor-block">
+          <SqlEditorField
             v-model="form.sqlText"
-            type="textarea"
+            :label="isChinese ? 'SQL 编辑器' : 'SQL editor'"
             :rows="14"
+            :copy-label="isChinese ? '复制' : 'Copy'"
+            :format-label="isChinese ? '格式化' : 'Format'"
+            data-testid="query-flow-sql-editor"
           />
-        </label>
+        </div>
 
         <div class="parameter-panel">
           <div class="parameter-panel__header">
@@ -648,7 +649,12 @@ const formatJson = value => JSON.stringify(value, null, 2)
             <strong>{{ template.label }}</strong>
             <el-button text @click="applyTemplate(template)">{{ isChinese ? '应用' : 'Apply' }}</el-button>
           </div>
-          <pre class="code-block">{{ template.content }}</pre>
+          <SqlCodeBlock
+            :value="template.content"
+            :label="template.label"
+            :copy-label="isChinese ? '复制' : 'Copy'"
+            compact
+          />
         </article>
       </div>
     </el-dialog>
@@ -667,7 +673,12 @@ const formatJson = value => JSON.stringify(value, null, 2)
             </div>
             <el-button text @click="loadLibrarySql(entry)">{{ isChinese ? '加载' : 'Load' }}</el-button>
           </div>
-          <pre class="code-block">{{ entry.sqlText }}</pre>
+          <SqlCodeBlock
+            :value="entry.sqlText"
+            :label="entry.title"
+            :copy-label="isChinese ? '复制' : 'Copy'"
+            compact
+          />
         </article>
       </div>
     </el-dialog>
@@ -686,7 +697,12 @@ const formatJson = value => JSON.stringify(value, null, 2)
     </el-dialog>
 
     <el-drawer v-model="showBoundPreviewDrawer" :title="isChinese ? 'Bound SQL preview' : 'Bound SQL preview'" size="48%">
-      <pre class="code-block">{{ boundSqlPreview }}</pre>
+      <SqlCodeBlock
+        :value="boundSqlPreview"
+        :label="isChinese ? '绑定后 SQL' : 'Bound SQL'"
+        :copy-label="isChinese ? '复制' : 'Copy'"
+        data-testid="query-flow-bound-sql"
+      />
     </el-drawer>
 
     <el-drawer v-model="showGovernanceDrawer" :title="isChinese ? '治理摘要' : 'Governance summary'" size="42%">

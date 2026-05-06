@@ -17,6 +17,7 @@ import {
   lookupGovernanceTraces
 } from '../../services/runtimeGateApi'
 import { buildDatasourceOptions, buildTenantOptions, withCurrentOption } from '../common/formComponentGovernance'
+import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 
 const { locale } = useI18n()
 const route = useRoute()
@@ -1625,7 +1626,14 @@ onMounted(async () => {
                   </p>
                   <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
                   <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
-                  <pre v-if="item.sqlText" class="code-block">{{ item.sqlText }}</pre>
+                  <SqlCodeBlock
+                    v-if="item.sqlText"
+                    :value="item.sqlText"
+                    :label="item.sqlColumnName || item.itemId || 'SQL'"
+                    :copy-label="isChinese ? '复制' : 'Copy'"
+                    compact
+                    data-testid="parse-record-report-sql-code"
+                  />
                   <div v-if="item.parseTaskId && !reportItemParseDetail(item)" class="dialog-actions">
                     <el-button text :loading="loading.reportBatchItemDetails" @click="loadReportBatchItemDetail(item)">
                       {{ isChinese ? '加载解析详情' : 'Load parse detail' }}
@@ -1786,7 +1794,12 @@ onMounted(async () => {
                 <div class="code-card__header">
                   <span>{{ isChinese ? '原始 SQL' : 'Original SQL' }}</span>
                 </div>
-                <pre class="code-block" data-testid="parse-record-history-original-sql-text">{{ selectedHistoryDetail.sqlText || '-' }}</pre>
+                <SqlCodeBlock
+                  :value="selectedHistoryDetail.sqlText || '-'"
+                  :label="isChinese ? '原始 SQL' : 'Original SQL'"
+                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  data-testid="parse-record-history-original-sql-text"
+                />
               </article>
 
               <div class="result-banner" :class="resultBannerClass(historyParseStatus)">
@@ -2072,7 +2085,12 @@ onMounted(async () => {
                 <div class="code-card__header">
                   <span>{{ item.label }}</span>
                 </div>
-                <pre class="code-block" :data-testid="`parse-record-${item.key}`">{{ item.value }}</pre>
+                <SqlCodeBlock
+                  :value="item.value"
+                  :label="item.label"
+                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  :data-testid="`parse-record-${item.key}`"
+                />
               </article>
             </div>
           </el-tab-pane>

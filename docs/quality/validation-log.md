@@ -2300,3 +2300,22 @@
 2026-05-06T03:14:00-05:00 | U-TASK-005 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-06T03:14:00-05:00 | U-TASK-005 closeout commit | `R-168` | projected | `git commit -m 'chore(frontend): refresh packaged dist assets' (projected-precommit)`
 2026-05-06T03:14:00-05:00 | U-TASK-005 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-06T05:42:57-05:00 | HARN-070 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-06T05:42:57-05:00 | HARN-070 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-06T05:43:13-05:00 | HARN-070 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-06T05:43:13-05:00 | HARN-070 validate | `R-133`, `R-168` | failed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-06T05:43:13-05:00 | HARN-070 validate | `R-133`, `R-168` | passed | `npm run test:sql-ui-contract`
+2026-05-06T05:43:13-05:00 | HARN-070 validate | `R-133`, `R-168` | passed | `npm run test:form-governance`
+2026-05-06T05:43:14-05:00 | HARN-070 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-06T05:43:18-05:00 | HARN-070 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-06T05:44:47-05:00 | HARN-070 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-06T05:44:47-05:00 | HARN-070 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-06T05:45:05-05:00 | HARN-070 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-06T05:45:05-05:00 | HARN-070 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-06T05:45:05-05:00 | HARN-070 validate | `R-133`, `R-168` | passed | `npm run test:sql-ui-contract`
+2026-05-06T05:45:05-05:00 | HARN-070 validate | `R-133`, `R-168` | passed | `npm run test:form-governance`
+2026-05-06T05:45:07-05:00 | HARN-070 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-06T05:45:10-05:00 | HARN-070 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-06T05:47:55-05:00 | HARN-070 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-06T05:47:55-05:00 | HARN-070 closeout commit | `R-168` | projected | `git commit -m 'feat(frontend): add SQL copy format highlighting' (projected-precommit)`
+2026-05-06T05:47:55-05:00 | HARN-070 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

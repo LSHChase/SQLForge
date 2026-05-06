@@ -15,6 +15,8 @@ import {
   resolveReportBatchSqls,
   retryParseBatchAccess
 } from '../../services/runtimeGateApi'
+import SqlCodeBlock from '../common/SqlCodeBlock.vue'
+import SqlEditorField from '../common/SqlEditorField.vue'
 
 const { locale } = useI18n()
 const route = useRoute()
@@ -883,10 +885,17 @@ onMounted(async () => {
                 <span class="field-label">{{ isChinese ? '默认数据源' : 'Default datasource' }}</span>
                 <el-input v-model="parseBatchForm.datasourceCode" />
               </label>
-              <label class="field-block field-block-wide">
-                <span class="field-label">{{ isChinese ? '多 SQL / 表格文本' : 'Multi SQL / tabular text' }}</span>
-                <el-input v-model="parseBatchForm.rawContent" type="textarea" :rows="10" />
-              </label>
+              <div class="field-block field-block-wide">
+                <SqlEditorField
+                  v-model="parseBatchForm.rawContent"
+                  :label="isChinese ? '多 SQL / 表格文本' : 'Multi SQL / tabular text'"
+                  :rows="10"
+                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  :format-label="isChinese ? '格式化' : 'Format'"
+                  :format-enabled="parseBatchForm.directInputMode === 'SQL_LINES'"
+                  data-testid="batch-import-current-sql-input"
+                />
+              </div>
             </div>
           </aside>
 
@@ -950,21 +959,30 @@ onMounted(async () => {
                   </div>
                 </div>
                 <div class="failure-list">
-                  <button
+                  <article
                     v-for="(item, index) in parseFailureRecords.slice(0, 6)"
                     :key="item.recordId || item.id || index"
-                    type="button"
                     class="failure-item"
+                    role="button"
+                    tabindex="0"
                     data-testid="batch-import-failure-record"
                     @click="openParseItemDetail(item)"
+                    @keydown.enter="openParseItemDetail(item)"
                   >
                     <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
                     <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
-                    <p>{{ displayValue(item.sqlText || item.message || item.sqlPreview) }}</p>
+                    <SqlCodeBlock
+                      v-if="item.sqlText || item.sqlPreview"
+                      :value="item.sqlText || item.sqlPreview"
+                      :label="isChinese ? '失败 SQL' : 'Failed SQL'"
+                      :copy-label="isChinese ? '复制' : 'Copy'"
+                      compact
+                    />
+                    <p v-else>{{ displayValue(item.message) }}</p>
                     <span class="detail-link" data-testid="batch-import-parse-failure-detail-open">
                       {{ isChinese ? '查看解析详情' : 'View parse detail' }}
                     </span>
-                  </button>
+                  </article>
                   <div v-if="!parseFailureRecords.length" class="empty-state">
                     {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
                   </div>
@@ -1038,14 +1056,26 @@ onMounted(async () => {
                 <span class="field-label">{{ isChinese ? '默认数据源' : 'Default datasource' }}</span>
                 <el-input v-model="reportBatchForm.datasourceCode" />
               </label>
-              <label class="field-block field-block-wide">
-                <span class="field-label">{{ isChinese ? '宽表模板预览' : 'Wide template preview' }}</span>
-                <pre class="code-block compact-code">{{ reportTemplatePreview }}</pre>
-              </label>
-              <label class="field-block field-block-wide">
-                <span class="field-label">{{ isChinese ? '内联报表 SQL 宽表' : 'Inline report SQL table' }}</span>
-                <el-input v-model="reportBatchForm.rawContent" type="textarea" :rows="8" />
-              </label>
+              <div class="field-block field-block-wide">
+                <SqlCodeBlock
+                  :value="reportTemplatePreview"
+                  :label="isChinese ? '宽表模板预览' : 'Wide template preview'"
+                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  :auto-format="false"
+                  compact
+                />
+              </div>
+              <div class="field-block field-block-wide">
+                <SqlEditorField
+                  v-model="reportBatchForm.rawContent"
+                  :label="isChinese ? '内联报表 SQL 宽表' : 'Inline report SQL table'"
+                  :rows="8"
+                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  :format-label="isChinese ? '格式化' : 'Format'"
+                  :format-enabled="false"
+                  data-testid="batch-import-report-current-sql-input"
+                />
+              </div>
             </div>
           </aside>
 
@@ -1110,13 +1140,15 @@ onMounted(async () => {
               <section class="detail-card" data-testid="batch-import-report-failure-records">
                 <p class="section-kicker sqlforge-code-label">failed sql detail</p>
                 <div class="failure-list">
-                  <button
+                  <article
                     v-for="(item, index) in reportFailureItems.slice(0, 6)"
                     :key="item.itemId || index"
-                    type="button"
                     class="failure-item"
+                    role="button"
+                    tabindex="0"
                     data-testid="batch-import-report-failure-record"
                     @click="openReportItemDetail(item)"
+                    @keydown.enter="openReportItemDetail(item)"
                   >
                     <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
                     <span>{{ displayValue(item.failureReason || item.status) }}</span>
@@ -1124,8 +1156,15 @@ onMounted(async () => {
                       {{ displayValue(item.sqlColumnName || item.sqlOrdinalInReport) }}
                       · {{ displayValue(item.parseTaskId) }}
                     </p>
+                    <SqlCodeBlock
+                      v-if="item.sqlText"
+                      :value="item.sqlText"
+                      :label="item.sqlColumnName || item.itemId || 'SQL'"
+                      :copy-label="isChinese ? '复制' : 'Copy'"
+                      compact
+                    />
                     <span class="detail-link">{{ isChinese ? '查看失败详情' : 'View failure detail' }}</span>
-                  </button>
+                  </article>
                   <div v-if="!reportFailureItems.length" class="empty-state">
                     {{ isChinese ? '当前没有失败 SQL。' : 'No failed SQL rows in the current report batch.' }}
                   </div>
@@ -1227,19 +1266,29 @@ onMounted(async () => {
           <span class="field-label">{{ isChinese ? '上传文件' : 'Upload file' }}</span>
           <input type="file" data-testid="batch-import-file-input" @change="handleParseFileChange">
         </label>
-        <label class="field-block field-block-wide">
-          <span class="field-label">
-            {{ parseBatchForm.directInputMode === 'SQL_LINES' ? (isChinese ? '多条 SQL 直接输入' : 'Direct multi-SQL input') : (isChinese ? '内联内容' : 'Inline content') }}
-          </span>
-          <el-input v-model="parseBatchForm.rawContent" type="textarea" :rows="10" />
-        </label>
+        <div class="field-block field-block-wide">
+          <SqlEditorField
+            v-model="parseBatchForm.rawContent"
+            :label="parseBatchForm.directInputMode === 'SQL_LINES' ? (isChinese ? '多条 SQL 直接输入' : 'Direct multi-SQL input') : (isChinese ? '内联内容' : 'Inline content')"
+            :rows="10"
+            :copy-label="isChinese ? '复制' : 'Copy'"
+            :format-label="isChinese ? '格式化' : 'Format'"
+            :format-enabled="parseBatchForm.directInputMode === 'SQL_LINES'"
+            data-testid="batch-import-dialog-sql-input"
+          />
+        </div>
       </div>
 
       <div v-if="directSqlPreview.length" class="preview-list">
         <article v-for="item in directSqlPreview.slice(0, 5)" :key="item.reportCode" class="preview-item">
           <strong>{{ item.reportCode }}</strong>
           <span>{{ item.datasource }}</span>
-          <p>{{ item.sqlText }}</p>
+          <SqlCodeBlock
+            :value="item.sqlText"
+            :label="item.reportCode"
+            :copy-label="isChinese ? '复制' : 'Copy'"
+            compact
+          />
         </article>
       </div>
 
@@ -1260,7 +1309,12 @@ onMounted(async () => {
             <span>{{ displayValue(item.required) }} · {{ displayValue(item.columnType) }}</span>
           </div>
         </div>
-        <pre class="code-block">{{ parseTemplatePreview }}</pre>
+        <SqlCodeBlock
+          :value="parseTemplatePreview"
+          :label="isChinese ? '模板预览' : 'Template preview'"
+          :copy-label="isChinese ? '复制' : 'Copy'"
+          :auto-format="false"
+        />
       </div>
       <template #footer>
         <el-button @click="parseTemplateDialogVisible = false">{{ isChinese ? '关闭' : 'Close' }}</el-button>
@@ -1302,7 +1356,14 @@ onMounted(async () => {
                 · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
               </p>
               <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
-              <pre v-if="item.sqlText" class="code-block compact-code">{{ item.sqlText }}</pre>
+              <SqlCodeBlock
+                v-if="item.sqlText"
+                :value="item.sqlText"
+                :label="item.sqlColumnName || item.itemId || 'SQL'"
+                :copy-label="isChinese ? '复制' : 'Copy'"
+                compact
+                data-testid="batch-import-parse-sql-code"
+              />
               <div class="item-actions">
                 <el-button text data-testid="batch-import-parse-item-detail-open" @click="openParseItemDetail(item)">
                   {{ isChinese ? '查看详情' : 'View detail' }}
@@ -1337,7 +1398,12 @@ onMounted(async () => {
         </div>
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">SQL text</p>
-          <pre class="code-block">{{ displayValue(selectedParseItem.sqlText || selectedParseItem.sqlTemplateText) }}</pre>
+          <SqlCodeBlock
+            :value="displayValue(selectedParseItem.sqlText || selectedParseItem.sqlTemplateText)"
+            :label="isChinese ? 'SQL 文本' : 'SQL text'"
+            :copy-label="isChinese ? '复制' : 'Copy'"
+            data-testid="batch-import-selected-parse-sql"
+          />
         </section>
       </div>
     </el-dialog>
@@ -1376,21 +1442,30 @@ onMounted(async () => {
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">Failure records</p>
           <div class="failure-list">
-            <button
+            <article
               v-for="(item, index) in parseFailureRecords"
               :key="item.recordId || item.id || index"
-              type="button"
               class="failure-item"
+              role="button"
+              tabindex="0"
               data-testid="batch-import-failure-record"
               @click="openParseItemDetail(item)"
+              @keydown.enter="openParseItemDetail(item)"
             >
               <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
               <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
-              <p>{{ displayValue(item.sqlText || item.message || item.sqlPreview) }}</p>
+              <SqlCodeBlock
+                v-if="item.sqlText || item.sqlPreview"
+                :value="item.sqlText || item.sqlPreview"
+                :label="isChinese ? '失败 SQL' : 'Failed SQL'"
+                :copy-label="isChinese ? '复制' : 'Copy'"
+                compact
+              />
+              <p v-else>{{ displayValue(item.message) }}</p>
               <span class="detail-link" data-testid="batch-import-parse-failure-detail-open">
                 {{ isChinese ? '查看解析详情' : 'View parse detail' }}
               </span>
-            </button>
+            </article>
             <div v-if="!parseFailureRecords.length" class="empty-state">
               {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
             </div>
@@ -1428,10 +1503,17 @@ onMounted(async () => {
         <div class="field-note field-block-wide">
           {{ isChinese ? '文件类型会根据文件名和内容自动识别，无需手动选择。' : 'File type is auto-detected from the filename and payload content.' }}
         </div>
-        <label class="field-block field-block-wide">
-          <span class="field-label">{{ isChinese ? '内联清单' : 'Inline report catalog' }}</span>
-          <el-input v-model="reportBatchForm.rawContent" type="textarea" :rows="8" />
-        </label>
+        <div class="field-block field-block-wide">
+          <SqlEditorField
+            v-model="reportBatchForm.rawContent"
+            :label="isChinese ? '内联清单' : 'Inline report catalog'"
+            :rows="8"
+            :copy-label="isChinese ? '复制' : 'Copy'"
+            :format-label="isChinese ? '格式化' : 'Format'"
+            :format-enabled="false"
+            data-testid="batch-import-report-dialog-sql-input"
+          />
+        </div>
       </div>
       <template #footer>
         <el-button @click="reportImportDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>
@@ -1484,7 +1566,14 @@ onMounted(async () => {
                   </p>
                   <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
                   <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
-                  <pre v-if="item.sqlText" class="code-block compact-code">{{ item.sqlText }}</pre>
+                  <SqlCodeBlock
+                    v-if="item.sqlText"
+                    :value="item.sqlText"
+                    :label="item.sqlColumnName || item.itemId || 'SQL'"
+                    :copy-label="isChinese ? '复制' : 'Copy'"
+                    compact
+                    data-testid="batch-import-report-sql-code"
+                  />
                   <div class="item-actions">
                     <el-button text data-testid="batch-import-report-item-detail-open" @click="openReportItemDetail(item)">
                       {{ isChinese ? '查看详情' : 'View detail' }}
@@ -1518,7 +1607,12 @@ onMounted(async () => {
         </div>
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">SQL text</p>
-          <pre class="code-block">{{ displayValue(selectedReportItem.sqlText) }}</pre>
+          <SqlCodeBlock
+            :value="displayValue(selectedReportItem.sqlText)"
+            :label="isChinese ? 'SQL 文本' : 'SQL text'"
+            :copy-label="isChinese ? '复制' : 'Copy'"
+            data-testid="batch-import-selected-report-sql"
+          />
         </section>
       </div>
     </el-dialog>
@@ -1822,12 +1916,12 @@ onMounted(async () => {
   text-align: left;
 }
 
-button.failure-item,
+.failure-item[role='button'],
 button.report-item {
   cursor: pointer;
 }
 
-button.failure-item:hover,
+.failure-item[role='button']:hover,
 button.report-item:hover {
   border-color: var(--sqlforge-color-brand-border);
 }

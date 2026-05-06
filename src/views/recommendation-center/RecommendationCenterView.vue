@@ -11,6 +11,7 @@ import {
   getRecommendations,
   getRecommendationTrace
 } from '../../services/runtimeGateApi'
+import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 
 const { locale } = useI18n()
 const router = useRouter()
@@ -432,13 +433,25 @@ onMounted(() => {
               <div class="signal-card__header">
                 <span class="summary-card-label">{{ isChinese ? '源 SQL' : 'Source SQL' }}</span>
               </div>
-              <pre class="code-block">{{ selectedRecommendation.sourceSqlText || '' }}</pre>
+              <SqlCodeBlock
+                :value="selectedRecommendation.sourceSqlText || ''"
+                :label="isChinese ? '源 SQL' : 'Source SQL'"
+                :copy-label="isChinese ? '复制' : 'Copy'"
+                compact
+                data-testid="recommendation-source-sql"
+              />
             </article>
             <article class="sql-card">
               <div class="signal-card__header">
                 <span class="summary-card-label">recommendedSqlText</span>
               </div>
-              <pre class="code-block">{{ selectedRecommendation.recommendedSqlText || '' }}</pre>
+              <SqlCodeBlock
+                :value="selectedRecommendation.recommendedSqlText || ''"
+                label="recommendedSqlText"
+                :copy-label="isChinese ? '复制' : 'Copy'"
+                compact
+                data-testid="recommendation-recommended-sql"
+              />
             </article>
           </div>
         </template>
