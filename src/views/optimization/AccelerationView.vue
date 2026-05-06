@@ -176,7 +176,15 @@ const structureHighlights = computed(() => {
     { key: 'priorityLevel', label: isChinese.value ? '优先级' : 'Priority', value: structureParse.value.priorityLevel },
     { key: 'priorityScore', label: isChinese.value ? '评分' : 'Score', value: structureParse.value.priorityScore },
     { key: 'important', label: isChinese.value ? '重要' : 'Important', value: booleanLabel(structureParse.value.important) },
-    { key: 'urgent', label: isChinese.value ? '紧急' : 'Urgent', value: booleanLabel(structureParse.value.urgent) }
+    { key: 'urgent', label: isChinese.value ? '紧急' : 'Urgent', value: booleanLabel(structureParse.value.urgent) },
+    { key: 'failureReason', label: isChinese.value ? '失败原因' : 'Failure reason', value: structureParse.value.failureReason },
+    {
+      key: 'failurePosition',
+      label: isChinese.value ? '失败位置' : 'Failure position',
+      value: structureParse.value.failureLine && structureParse.value.failureColumn
+        ? `line ${structureParse.value.failureLine}, column ${structureParse.value.failureColumn}`
+        : structureParse.value.failureOffset
+    }
   ].filter(item => hasDisplayValue(item.value))
 })
 
@@ -692,6 +700,19 @@ function buildRequestPayload() {
   return payload
 }
 
+function currentSingleSqlInputKey() {
+  return JSON.stringify({
+    tenantId: form.tenantId,
+    datasourceCode: form.datasourceCode,
+    bindingMode: form.bindingMode,
+    connectionRequired: form.connectionRequired,
+    sqlText: form.sqlText,
+    sqlTemplateText: form.sqlTemplateText,
+    bindParametersText: form.bindParametersText,
+    commentContextText: form.commentContextText
+  })
+}
+
 function normalizeStructureResult(structureOnlyResult) {
   return {
     parseTaskId: structureOnlyResult.parseTaskId,
@@ -749,15 +770,20 @@ async function runStructurePreview() {
   running.value = true
   lastRunMode.value = 'structure'
   errorMessage.value = ''
+  const inputKey = currentSingleSqlInputKey()
   try {
     const payload = buildRequestPayload()
     const structureOnlyResult = await parseStructureSql(payload, {
       requestPrefix: 'frontend-parse-workbench-structure'
     })
-    parseResult.value = normalizeStructureResult(structureOnlyResult)
+    if (currentSingleSqlInputKey() === inputKey) {
+      parseResult.value = normalizeStructureResult(structureOnlyResult)
+    }
   } catch (error) {
-    parseResult.value = null
-    errorMessage.value = formatRuntimeError(error)
+    if (currentSingleSqlInputKey() === inputKey) {
+      parseResult.value = null
+      errorMessage.value = formatRuntimeError(error)
+    }
   } finally {
     running.value = false
   }
@@ -767,21 +793,31 @@ async function runCombinedParseFlow() {
   running.value = true
   lastRunMode.value = 'combined'
   errorMessage.value = ''
+  const inputKey = currentSingleSqlInputKey()
   try {
     const payload = buildRequestPayload()
     const initialResult = await submitCombinedParse(payload, {
       requestPrefix: 'frontend-parse-workbench-submit'
     })
-    parseResult.value = initialResult
+    if (currentSingleSqlInputKey() === inputKey) {
+      parseResult.value = initialResult
+    }
     if (!combinedTerminalStatuses.has(initialResult.status)) {
-      parseResult.value = await waitForCombinedParse(initialResult.parseTaskId, payload.tenantId, {
+      const terminalResult = await waitForCombinedParse(initialResult.parseTaskId, payload.tenantId, {
         requestPrefix: 'frontend-parse-workbench-terminal'
       })
+      if (currentSingleSqlInputKey() === inputKey) {
+        parseResult.value = terminalResult
+      }
     }
-    await Promise.allSettled([loadAnalytics(), loadHistoryPage()])
+    if (currentSingleSqlInputKey() === inputKey) {
+      await Promise.allSettled([loadAnalytics(), loadHistoryPage()])
+    }
   } catch (error) {
-    parseResult.value = null
-    errorMessage.value = formatRuntimeError(error)
+    if (currentSingleSqlInputKey() === inputKey) {
+      parseResult.value = null
+      errorMessage.value = formatRuntimeError(error)
+    }
   } finally {
     running.value = false
   }
@@ -1282,6 +1318,16 @@ watch(
     reportBatchForm.datasourceCode = value
   }
 )
+
+watch(
+  () => currentSingleSqlInputKey(),
+  () => {
+    if (parseResult.value || errorMessage.value) {
+      parseResult.value = null
+      errorMessage.value = ''
+    }
+  }
+)
 </script>
 
 <template>
@@ -1632,6 +1678,12 @@ watch(
                     </div>
                     <p class="issue-card__summary">{{ issue.summary }}</p>
                     <p class="issue-card__detail">{{ issue.detail }}</p>
+                    <p v-if="issue.failureLine || issue.failureColumn || issue.failureToken || issue.failureSnippet" class="issue-card__detail">
+                      {{ isChinese ? '失败定位' : 'Failure position' }}:
+                      <span v-if="issue.failureLine && issue.failureColumn">line {{ issue.failureLine }}, column {{ issue.failureColumn }}</span>
+                      <span v-if="issue.failureToken"> · token {{ issue.failureToken }}</span>
+                      <span v-if="issue.failureSnippet"> · {{ issue.failureSnippet }}</span>
+                    </p>
                     <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ issue.suggestedAction }}</p>
                   </article>
                 </div>

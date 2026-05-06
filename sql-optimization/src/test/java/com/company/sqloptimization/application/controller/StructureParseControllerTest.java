@@ -98,12 +98,36 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.parseType").value("STRUCTURE"))
             .andExpect(jsonPath("$.syntaxStatus").value("INVALID"))
             .andExpect(jsonPath("$.sqlType").value("UNKNOWN"))
+            .andExpect(jsonPath("$.failureReason").isNotEmpty())
+            .andExpect(jsonPath("$.failureLine").value(1))
+            .andExpect(jsonPath("$.failureColumn").value(8))
+            .andExpect(jsonPath("$.failureToken").value("FROM"))
             .andExpect(jsonPath("$.issues[0].issueCode").value("SQL_SYNTAX_INVALID"))
             .andExpect(jsonPath("$.issues[0].issueDomain").value("STRUCTURE"))
+            .andExpect(jsonPath("$.issues[0].failureLine").value(1))
+            .andExpect(jsonPath("$.issues[0].failureColumn").value(8))
+            .andExpect(jsonPath("$.issues[0].failureToken").value("FROM"))
+            .andExpect(jsonPath("$.issues[0].failureSnippet").isNotEmpty())
             .andExpect(jsonPath("$.intentProfile.confidence").value("LOW"))
             .andExpect(jsonPath("$.estimatedResourceCost.overall").value("UNKNOWN"))
             .andExpect(jsonPath("$.queryDateSummary.queryDateStatus").value("UNRESOLVED"))
             .andExpect(jsonPath("$.rewriteCandidates").isEmpty());
+    }
+
+    @Test
+    void shouldParseSqlWithDashLineCommentsInsideStatement() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":" + JsonTestUtils.toJsonString(
+                    "--report_code=RPT_COMMENTED\n"
+                        + "SELECT customer_id, '--not-a-comment' AS marker FROM orders -- table comment\n"
+                        + "WHERE dt = DATE '2026-04-01' -- date filter\n"
+                        + "AND status = 'PAID'"
+                ) + ",\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].objectName").value("orders"))
+            .andExpect(jsonPath("$.featureSummary.predicateCount").value(greaterThanOrEqualTo(2)));
     }
 
     @Test

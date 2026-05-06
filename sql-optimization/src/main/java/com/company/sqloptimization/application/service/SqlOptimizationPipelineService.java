@@ -93,7 +93,7 @@ public class SqlOptimizationPipelineService {
 
     public ParsedSqlProfile analyze(String sqlText, DataSourceTypeEnum datasourceType) {
         String normalizedSql = normalizeSql(sqlText);
-        if (normalizedSql.isEmpty()) {
+        if (normalizedSql.trim().isEmpty()) {
             throw invalidTask(
                 "Real optimization pipeline requires SQL text instead of an empty payload.",
                 "Submit the original SQL text so parser, rewrite, and acceleration analysis can run."
@@ -130,7 +130,8 @@ public class SqlOptimizationPipelineService {
                         "Keep the statement to a single SELECT/WITH query or extend the parser coverage for this datasource."
                     )
                 ),
-                ex
+                ex,
+                normalizedSql
             );
         }
         if (!(statement instanceof net.sf.jsqlparser.statement.select.Select)) {
@@ -173,7 +174,8 @@ public class SqlOptimizationPipelineService {
                         "Use a supported Trino SELECT query or keep the existing JSQLParser strategy."
                     )
                 ),
-                ex
+                ex,
+                normalizedSql
             );
         }
         if (!(statement instanceof Query)) {
@@ -1063,6 +1065,7 @@ public class SqlOptimizationPipelineService {
                     suggestedAction
                 )
             ),
+            null,
             null
         );
     }
@@ -1070,7 +1073,9 @@ public class SqlOptimizationPipelineService {
     private SqlOptimizationExecutionException parserFailure(String message,
                                                             String suggestedAction,
                                                             List<OptimizationTaskRisk> risks,
-                                                            Exception cause) {
+                                                            Exception cause,
+                                                            String sqlText) {
+        SqlFailurePosition position = analyzeSqlFailurePosition(cause, sqlText);
         return new SqlOptimizationExecutionException(
             ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_PARSER_FAILURE,
             message,
@@ -1078,7 +1083,8 @@ public class SqlOptimizationPipelineService {
             false,
             OptimizationTaskPhase.DEEP_PARSING,
             risks,
-            cause
+            cause,
+            position
         );
     }
 
@@ -1086,11 +1092,259 @@ public class SqlOptimizationPipelineService {
         if (sqlText == null) {
             return "";
         }
-        String normalized = sqlText.trim();
-        while (normalized.endsWith(";")) {
-            normalized = normalized.substring(0, normalized.length() - 1).trim();
+        String normalized = stripLineComments(sqlText);
+        normalized = removeTrailingSemicolons(normalized);
+        return normalized;
+    }
+
+    private String stripLineComments(String sqlText) {
+        StringBuilder builder = new StringBuilder(sqlText.length());
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        boolean inBacktick = false;
+        boolean inLineComment = false;
+        for (int index = 0; index < sqlText.length(); index++) {
+            char current = sqlText.charAt(index);
+            char next = index + 1 < sqlText.length() ? sqlText.charAt(index + 1) : '\0';
+            if (inLineComment) {
+                if (current == '\n' || current == '\r') {
+                    inLineComment = false;
+                    builder.append(current);
+                } else {
+                    builder.append(' ');
+                }
+                continue;
+            }
+            if (!inSingleQuote && !inDoubleQuote && !inBacktick && current == '-' && next == '-') {
+                inLineComment = true;
+                builder.append(' ');
+                builder.append(' ');
+                index++;
+                continue;
+            }
+            builder.append(current);
+            if (current == '\'' && !inDoubleQuote && !inBacktick) {
+                if (inSingleQuote && next == '\'') {
+                    builder.append(next);
+                    index++;
+                } else {
+                    inSingleQuote = !inSingleQuote;
+                }
+            } else if (current == '"' && !inSingleQuote && !inBacktick) {
+                inDoubleQuote = !inDoubleQuote;
+            } else if (current == '`' && !inSingleQuote && !inDoubleQuote) {
+                inBacktick = !inBacktick;
+            }
+        }
+        return builder.toString();
+    }
+
+    private String removeTrailingSemicolons(String sqlText) {
+        String normalized = sqlText == null ? "" : sqlText;
+        int end = normalized.length();
+        while (end > 0) {
+            while (end > 0 && Character.isWhitespace(normalized.charAt(end - 1))) {
+                end--;
+            }
+            if (end > 0 && normalized.charAt(end - 1) == ';') {
+                normalized = normalized.substring(0, end - 1);
+                end = normalized.length();
+            } else {
+                break;
+            }
         }
         return normalized;
+    }
+
+    private SqlFailurePosition analyzeSqlFailurePosition(Throwable cause, String sqlText) {
+        String message = collectExceptionMessage(cause);
+        Integer line = findFirstInteger(message, Pattern.compile("(?i)line\\s+(\\d+)\\s*,\\s*column\\s+(\\d+)"), 1);
+        Integer column = findFirstInteger(message, Pattern.compile("(?i)line\\s+(\\d+)\\s*,\\s*column\\s+(\\d+)"), 2);
+        if (line == null || column == null) {
+            line = findFirstInteger(message, Pattern.compile("(?i)line\\s+(\\d+)\\s*:\\s*(\\d+)"), 1);
+            column = findFirstInteger(message, Pattern.compile("(?i)line\\s+(\\d+)\\s*:\\s*(\\d+)"), 2);
+        }
+        String token = firstRegexGroup(message, Pattern.compile("(?i)unexpected token:\\s*\"([^\"]+)\""));
+        if (token == null) {
+            token = firstRegexGroup(message, Pattern.compile("(?i)mismatched input ['\"]([^'\"]+)['\"]"));
+        }
+        if (token == null) {
+            token = firstRegexGroup(message, Pattern.compile("(?i)extraneous input ['\"]([^'\"]+)['\"]"));
+        }
+        SqlFailurePosition selectProjectionFailure = guessSelectProjectionFailure(sqlText);
+        if (selectProjectionFailure != null) {
+            return selectProjectionFailure;
+        }
+        Integer offset = toOffset(sqlText, line, column);
+        Integer tokenOffset = findTokenOffset(sqlText, token, line, offset);
+        if (tokenOffset != null && (offset == null || !startsWithToken(sqlText, offset.intValue(), token))) {
+            offset = tokenOffset;
+            int[] lineColumn = toLineColumn(sqlText, tokenOffset.intValue());
+            line = Integer.valueOf(lineColumn[0]);
+            column = Integer.valueOf(lineColumn[1]);
+        }
+        return new SqlFailurePosition(line, column, offset, token, snippet(sqlText, offset));
+    }
+
+    private SqlFailurePosition guessSelectProjectionFailure(String sqlText) {
+        if (sqlText == null) {
+            return null;
+        }
+        Matcher matcher = Pattern.compile("(?is)^\\s*SELECT\\s+(FROM|WHERE|GROUP\\s+BY|ORDER\\s+BY|HAVING|LIMIT)\\b")
+            .matcher(sqlText);
+        if (!matcher.find()) {
+            return null;
+        }
+        int offset = matcher.start(1);
+        String token = matcher.group(1).trim().split("\\s+")[0];
+        int[] lineColumn = toLineColumn(sqlText, offset);
+        return new SqlFailurePosition(
+            Integer.valueOf(lineColumn[0]),
+            Integer.valueOf(lineColumn[1]),
+            Integer.valueOf(offset),
+            token,
+            snippet(sqlText, Integer.valueOf(offset))
+        );
+    }
+
+    private String collectExceptionMessage(Throwable cause) {
+        StringBuilder builder = new StringBuilder();
+        Throwable current = cause;
+        while (current != null) {
+            if (current.getMessage() != null) {
+                if (builder.length() > 0) {
+                    builder.append(" | ");
+                }
+                builder.append(current.getMessage());
+            }
+            current = current.getCause();
+        }
+        return builder.toString();
+    }
+
+    private Integer findFirstInteger(String message, Pattern pattern, int group) {
+        if (message == null) {
+            return null;
+        }
+        Matcher matcher = pattern.matcher(message);
+        if (!matcher.find()) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(matcher.group(group));
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
+    private String firstRegexGroup(String message, Pattern pattern) {
+        if (message == null) {
+            return null;
+        }
+        Matcher matcher = pattern.matcher(message);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    private Integer findTokenOffset(String sqlText, String token, Integer line, Integer anchorOffset) {
+        if (sqlText == null || token == null || token.trim().isEmpty() || token.startsWith("<")) {
+            return null;
+        }
+        String upperSql = sqlText.toUpperCase(Locale.ROOT);
+        String upperToken = token.toUpperCase(Locale.ROOT);
+        int start = 0;
+        int end = sqlText.length();
+        if (line != null && line.intValue() > 0) {
+            int[] bounds = lineBounds(sqlText, line.intValue());
+            start = bounds[0];
+            end = bounds[1];
+        } else if (anchorOffset != null) {
+            start = Math.max(0, Math.min(anchorOffset.intValue(), sqlText.length()));
+        }
+        int found = upperSql.indexOf(upperToken, start);
+        if (found >= 0 && found < end) {
+            return Integer.valueOf(found);
+        }
+        found = upperSql.indexOf(upperToken);
+        return found >= 0 ? Integer.valueOf(found) : null;
+    }
+
+    private int[] lineBounds(String sqlText, int line) {
+        int currentLine = 1;
+        int start = 0;
+        for (int index = 0; index < sqlText.length(); index++) {
+            if (currentLine == line) {
+                start = index;
+                break;
+            }
+            if (sqlText.charAt(index) == '\n') {
+                currentLine++;
+                start = index + 1;
+            }
+        }
+        int end = sqlText.length();
+        for (int index = start; index < sqlText.length(); index++) {
+            if (sqlText.charAt(index) == '\n' || sqlText.charAt(index) == '\r') {
+                end = index;
+                break;
+            }
+        }
+        return new int[] {start, end};
+    }
+
+    private boolean startsWithToken(String sqlText, int offset, String token) {
+        if (sqlText == null || token == null || offset < 0 || offset + token.length() > sqlText.length()) {
+            return false;
+        }
+        return sqlText.regionMatches(true, offset, token, 0, token.length());
+    }
+
+    private Integer toOffset(String sqlText, Integer line, Integer column) {
+        if (sqlText == null || line == null || column == null || line.intValue() <= 0 || column.intValue() <= 0) {
+            return null;
+        }
+        int currentLine = 1;
+        int currentColumn = 1;
+        for (int index = 0; index < sqlText.length(); index++) {
+            if (currentLine == line.intValue() && currentColumn == column.intValue()) {
+                return Integer.valueOf(index);
+            }
+            char current = sqlText.charAt(index);
+            if (current == '\n') {
+                currentLine++;
+                currentColumn = 1;
+            } else {
+                currentColumn++;
+            }
+        }
+        return currentLine == line.intValue() && currentColumn == column.intValue()
+            ? Integer.valueOf(sqlText.length())
+            : null;
+    }
+
+    private int[] toLineColumn(String sqlText, int offset) {
+        int line = 1;
+        int column = 1;
+        int safeOffset = Math.max(0, Math.min(offset, sqlText == null ? 0 : sqlText.length()));
+        for (int index = 0; index < safeOffset; index++) {
+            char current = sqlText.charAt(index);
+            if (current == '\n') {
+                line++;
+                column = 1;
+            } else {
+                column++;
+            }
+        }
+        return new int[] {line, column};
+    }
+
+    private String snippet(String sqlText, Integer offset) {
+        if (sqlText == null || offset == null) {
+            return null;
+        }
+        int safeOffset = Math.max(0, Math.min(offset.intValue(), sqlText.length()));
+        int start = Math.max(0, safeOffset - 30);
+        int end = Math.min(sqlText.length(), safeOffset + 30);
+        return sqlText.substring(start, end).replace('\n', ' ').replace('\r', ' ').trim();
     }
 
     private List<String> deduplicate(List<String> input) {
@@ -1566,6 +1820,43 @@ public class SqlOptimizationPipelineService {
         }
     }
 
+    public static final class SqlFailurePosition {
+
+        private final Integer line;
+        private final Integer column;
+        private final Integer offset;
+        private final String token;
+        private final String snippet;
+
+        private SqlFailurePosition(Integer line, Integer column, Integer offset, String token, String snippet) {
+            this.line = line;
+            this.column = column;
+            this.offset = offset;
+            this.token = token;
+            this.snippet = snippet;
+        }
+
+        public Integer getLine() {
+            return line;
+        }
+
+        public Integer getColumn() {
+            return column;
+        }
+
+        public Integer getOffset() {
+            return offset;
+        }
+
+        public String getToken() {
+            return token;
+        }
+
+        public String getSnippet() {
+            return snippet;
+        }
+    }
+
     public static final class SqlOptimizationExecutionException extends RuntimeException {
 
         private final int code;
@@ -1573,6 +1864,7 @@ public class SqlOptimizationPipelineService {
         private final boolean retryable;
         private final OptimizationTaskPhase failedPhase;
         private final List<OptimizationTaskRisk> risks;
+        private final SqlFailurePosition failurePosition;
 
         private SqlOptimizationExecutionException(int code,
                                                   String message,
@@ -1580,13 +1872,15 @@ public class SqlOptimizationPipelineService {
                                                   boolean retryable,
                                                   OptimizationTaskPhase failedPhase,
                                                   List<OptimizationTaskRisk> risks,
-                                                  Throwable cause) {
+                                                  Throwable cause,
+                                                  SqlFailurePosition failurePosition) {
             super(message, cause);
             this.code = code;
             this.suggestedAction = suggestedAction;
             this.retryable = retryable;
             this.failedPhase = failedPhase;
             this.risks = risks == null ? Collections.<OptimizationTaskRisk>emptyList() : risks;
+            this.failurePosition = failurePosition;
         }
 
         public int getCode() {
@@ -1607,6 +1901,10 @@ public class SqlOptimizationPipelineService {
 
         public List<OptimizationTaskRisk> getRisks() {
             return risks;
+        }
+
+        public SqlFailurePosition getFailurePosition() {
+            return failurePosition;
         }
     }
 }

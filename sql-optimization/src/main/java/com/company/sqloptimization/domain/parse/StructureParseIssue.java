@@ -15,6 +15,11 @@ public class StructureParseIssue {
     private Integer affectedReportCount;
     private Integer priorityScore;
     private StructureParsePriorityLevel priorityLevel;
+    private Integer failureLine;
+    private Integer failureColumn;
+    private Integer failureOffset;
+    private String failureToken;
+    private String failureSnippet;
 
     public String getIssueCode() {
         return issueCode;
@@ -118,5 +123,45 @@ public class StructureParseIssue {
 
     public void setPriorityLevel(StructureParsePriorityLevel priorityLevel) {
         this.priorityLevel = priorityLevel;
+    }
+
+    public Integer getFailureLine() {
+        return failureLine;
+    }
+
+    public void setFailureLine(Integer failureLine) {
+        this.failureLine = failureLine;
+    }
+
+    public Integer getFailureColumn() {
+        return failureColumn;
+    }
+
+    public void setFailureColumn(Integer failureColumn) {
+        this.failureColumn = failureColumn;
+    }
+
+    public Integer getFailureOffset() {
+        return failureOffset;
+    }
+
+    public void setFailureOffset(Integer failureOffset) {
+        this.failureOffset = failureOffset;
+    }
+
+    public String getFailureToken() {
+        return failureToken;
+    }
+
+    public void setFailureToken(String failureToken) {
+        this.failureToken = failureToken;
+    }
+
+    public String getFailureSnippet() {
+        return failureSnippet;
+    }
+
+    public void setFailureSnippet(String failureSnippet) {
+        this.failureSnippet = failureSnippet;
     }
 }

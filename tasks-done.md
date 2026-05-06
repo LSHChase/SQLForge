@@ -4,6 +4,29 @@
 
 ## Done
 
+### HARN-066: HARN-066
+
+- Status: done
+- Completed at: 2026-05-06
+- Commit subject: `feat(sql-optimization): add parse statistics tabs and SQL diagnostics`
+- Priority: 1
+- Depends on: N/A
+- Scope: 
+- Plan ref: docs/exec-plans/completed/HARN-066-full-auto-execution-plan.md
+- Matrix context: Story `D-STORY-010` 解析统计与优先级分层
+- Human confirmation point: Confirmed by user on 2026-05-06: materialize HARN-066 as a standard single-agent Main Foreman task bound to D-STORY-010 / Phase-D. Prefer existing SQL parse statistics semantics; document any difference. Use the current history permission model. Compatible additive API, field, cache, or UI-contract adaptations are allowed when confirmed by repository evidence. Failure position should prefer line/column and fall back to offset, token, or SQL snippet when parser precision is limited.
+- Data impact: May affect parse-history read/display paths and statistics response shape. Use existing persisted parse evidence where possible. Compatible additive fields or cache keys are allowed when needed; avoid new schema unless repository evidence proves it necessary, and document compatibility, migration, rollback, and permission behavior if it occurs.
+- Rollback / recovery: 若统计展示或解析行为变更引入回归，应可回退 HARN-066 单任务 commit；若涉及 schema/API 变更，需提供向后兼容路径或显式迁移回滚说明；解析器隔离和注释支持应配套回归测试，保证回滚后可恢复既有解析行为。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-066`
+- Progress log:
+  - 2026-05-06: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added tabbed report-batch parse statistics in batch import and parse-history views, isolated single-SQL async results from later inputs, supported SQL body -- line comments, exposed parser failure reason/line/column/offset/token/snippet through backend responses and issue cards, and updated HARN-066 docs/tests.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-066; python3 scripts/task_audit.py --check --phase pre-closeout; mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,StructureParseControllerTest,ReportBatchControllerTest,ReportBatchParseStatisticsAssemblerTest test; mvn -pl sql-optimization test; npm run lint; npm run build; npm run test:form-governance; node scripts/check-batch-import-contract.mjs; node scripts/check-history-page-contract.mjs.
+  - Residual risk: No schema migration was added; parser failure position remains best-effort for dialect-specific parser messages, with token/snippet fallback when exact line-column precision is unavailable.
+  - Next step: Use a live report-import batch in an integration environment to visually confirm the six statistics tabs and failure-position cards against production-like data.
+
 ### HARN-064: HARN-064 / D-STORY-010: 批量报表导入解析统计与解析历史统计展示
 
 - Status: done

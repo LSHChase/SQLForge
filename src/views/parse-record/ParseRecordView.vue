@@ -70,6 +70,7 @@ const detailDialogVisible = ref(false)
 const evidenceDrawerVisible = ref(false)
 const activeDialogTab = ref('overview')
 const batchHistoryTab = ref('parse')
+const activeReportBatchStatisticsTab = ref('issueScene')
 const selectedHistoryDetail = ref(null)
 const selectedReportBatchDetail = ref(null)
 const reportBatchItemDetails = ref({})
@@ -1485,75 +1486,93 @@ onMounted(async () => {
           <div class="code-card__header">
             <span>{{ isChinese ? '报表级解析统计' : 'Report-level parse statistics' }}</span>
           </div>
-          <div class="detail-grid">
-            <div
-              v-for="item in reportBatchIssueStatistics"
-              :key="item.issueScene"
-              class="detail-grid__item"
-              data-testid="parse-record-report-statistics-issue-scene"
-            >
-              <span>{{ item.issueScene }}</span>
-              <strong>{{ item.affectedSqlCount }} SQL · {{ displayValue(item.severity) }} · {{ formatPercent(item.ratio) }}</strong>
-            </div>
-            <p v-if="!reportBatchIssueStatistics.length" class="empty-copy">
-              {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics in this report batch.' }}
-            </p>
-          </div>
-          <div class="detail-grid detail-grid-secondary">
-            <div
-              v-for="item in selectedReportImportanceStatistics"
-              :key="item.importanceBucket"
-              class="detail-grid__item"
-              data-testid="parse-record-report-statistics-importance"
-            >
-              <span>{{ item.importanceBucket }}</span>
-              <strong>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</strong>
-            </div>
-          </div>
-          <div class="detail-grid detail-grid-secondary">
-            <div
-              v-for="item in selectedReportBackendReportStatistics"
-              :key="item.reportCode"
-              class="detail-grid__item"
-              data-testid="parse-record-report-statistics-report-view"
-            >
-              <span>{{ item.reportCode }}</span>
-              <strong>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ formatPercent(item.issueSqlRatio) }}</strong>
-            </div>
-          </div>
-          <div class="detail-grid detail-grid-secondary">
-            <div
-              v-for="item in selectedReportPriorityMatrix"
-              :key="`${item.priorityLevel}-${item.urgencyBucket}`"
-              class="detail-grid__item"
-              data-testid="parse-record-report-statistics-priority"
-            >
-              <span>{{ item.priorityLevel }} · {{ item.urgencyBucket }}</span>
-              <strong>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</strong>
-            </div>
-          </div>
-          <div class="detail-grid detail-grid-secondary">
-            <div
-              v-for="item in selectedReportBackendSqlStatistics.slice(0, 8)"
-              :key="item.itemId"
-              class="detail-grid__item"
-              data-testid="parse-record-report-statistics-sql-list"
-            >
-              <span>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</span>
-              <strong>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues</strong>
-            </div>
-          </div>
-          <div class="detail-grid detail-grid-secondary">
-            <div
-              v-for="item in reportBatchLogicalObjectStatistics"
-              :key="item.objectKey"
-              class="detail-grid__item"
-              data-testid="parse-record-report-statistics-logical-object"
-            >
-              <span>{{ item.objectKey }}</span>
-              <strong>{{ item.hitCount }} SQL · {{ displayValue(item.reportCodes) }}</strong>
-            </div>
-          </div>
+          <el-tabs
+            v-model="activeReportBatchStatisticsTab"
+            class="statistics-tabs"
+            data-testid="parse-record-report-statistics-tabs"
+          >
+            <el-tab-pane :label="isChinese ? '问题场景' : 'Issue scenes'" name="issueScene">
+              <div class="detail-grid">
+                <div
+                  v-for="item in reportBatchIssueStatistics"
+                  :key="item.issueScene"
+                  class="detail-grid__item"
+                  data-testid="parse-record-report-statistics-issue-scene"
+                >
+                  <span>{{ item.issueScene }}</span>
+                  <strong>{{ item.affectedSqlCount }} SQL · {{ displayValue(item.severity) }} · {{ formatPercent(item.ratio) }}</strong>
+                </div>
+                <p v-if="!reportBatchIssueStatistics.length" class="empty-copy">
+                  {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics in this report batch.' }}
+                </p>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane :label="isChinese ? '重要程度' : 'Importance'" name="importance">
+              <div class="detail-grid">
+                <div
+                  v-for="item in selectedReportImportanceStatistics"
+                  :key="item.importanceBucket"
+                  class="detail-grid__item"
+                  data-testid="parse-record-report-statistics-importance"
+                >
+                  <span>{{ item.importanceBucket }}</span>
+                  <strong>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</strong>
+                </div>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane :label="isChinese ? '报表视角' : 'Report view'" name="report">
+              <div class="detail-grid">
+                <div
+                  v-for="item in selectedReportBackendReportStatistics"
+                  :key="item.reportCode"
+                  class="detail-grid__item"
+                  data-testid="parse-record-report-statistics-report-view"
+                >
+                  <span>{{ item.reportCode }}</span>
+                  <strong>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ formatPercent(item.issueSqlRatio) }}</strong>
+                </div>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane :label="isChinese ? 'SQL 清单' : 'SQL list'" name="sqlList">
+              <div class="detail-grid">
+                <div
+                  v-for="item in selectedReportBackendSqlStatistics.slice(0, 8)"
+                  :key="item.itemId"
+                  class="detail-grid__item"
+                  data-testid="parse-record-report-statistics-sql-list"
+                >
+                  <span>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</span>
+                  <strong>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues</strong>
+                </div>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane :label="isChinese ? '优先级视角' : 'Priority view'" name="priority">
+              <div class="detail-grid">
+                <div
+                  v-for="item in selectedReportPriorityMatrix"
+                  :key="`${item.priorityLevel}-${item.urgencyBucket}`"
+                  class="detail-grid__item"
+                  data-testid="parse-record-report-statistics-priority"
+                >
+                  <span>{{ item.priorityLevel }} · {{ item.urgencyBucket }}</span>
+                  <strong>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</strong>
+                </div>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane :label="isChinese ? '逻辑对象视角' : 'Logical objects'" name="logicalObject">
+              <div class="detail-grid">
+                <div
+                  v-for="item in reportBatchLogicalObjectStatistics"
+                  :key="item.objectKey"
+                  class="detail-grid__item"
+                  data-testid="parse-record-report-statistics-logical-object"
+                >
+                  <span>{{ item.objectKey }}</span>
+                  <strong>{{ item.hitCount }} SQL · {{ displayValue(item.reportCodes) }}</strong>
+                </div>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
         </section>
         <section class="code-card">
           <div class="code-card__header">
@@ -1689,6 +1708,12 @@ onMounted(async () => {
                         </div>
                         <p class="issue-card__summary">{{ displayDetailValue(issue.summary) }}</p>
                         <p class="issue-card__detail">{{ displayDetailValue(issue.detail) }}</p>
+                        <p v-if="issue.failureLine || issue.failureColumn || issue.failureToken || issue.failureSnippet" class="issue-card__detail">
+                          {{ isChinese ? '失败定位' : 'Failure position' }}:
+                          <span v-if="issue.failureLine && issue.failureColumn">line {{ issue.failureLine }}, column {{ issue.failureColumn }}</span>
+                          <span v-if="issue.failureToken"> · token {{ issue.failureToken }}</span>
+                          <span v-if="issue.failureSnippet"> · {{ issue.failureSnippet }}</span>
+                        </p>
                         <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(issue.suggestedAction) }}</p>
                       </article>
                     </div>
@@ -1951,6 +1976,12 @@ onMounted(async () => {
                       </div>
                       <p class="issue-card__summary">{{ displayDetailValue(issue.summary) }}</p>
                       <p class="issue-card__detail">{{ displayDetailValue(issue.detail) }}</p>
+                      <p v-if="issue.failureLine || issue.failureColumn || issue.failureToken || issue.failureSnippet" class="issue-card__detail">
+                        {{ isChinese ? '失败定位' : 'Failure position' }}:
+                        <span v-if="issue.failureLine && issue.failureColumn">line {{ issue.failureLine }}, column {{ issue.failureColumn }}</span>
+                        <span v-if="issue.failureToken"> · token {{ issue.failureToken }}</span>
+                        <span v-if="issue.failureSnippet"> · {{ issue.failureSnippet }}</span>
+                      </p>
                       <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(issue.suggestedAction) }}</p>
                     </article>
                   </div>

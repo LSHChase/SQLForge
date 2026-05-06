@@ -131,22 +131,39 @@ public class StructureParseApplicationService {
 
     private StructureParseResult buildInvalidResult(String parseTaskId,
                                                     SqlOptimizationPipelineService.SqlOptimizationExecutionException ex) {
+        SqlOptimizationPipelineService.SqlFailurePosition position = ex.getFailurePosition();
+        String failureReason = failureReason(ex, position);
         StructureParseIssue issue = new StructureParseIssue();
         issue.setIssueCode("SQL_SYNTAX_INVALID");
         issue.setIssueDomain(StructureParseIssueDomain.STRUCTURE);
         issue.setIssueScene("PARSER_FAILURE");
         issue.setSeverity(StructureParseIssueSeverity.HIGH);
-        issue.setSummary(ex.getMessage());
-        issue.setDetail(ex.getCause() == null ? ex.getMessage() : ex.getCause().getMessage());
+        issue.setSummary(failureReason);
+        issue.setDetail(failureDetail(ex, position));
         issue.setSuggestedAction(ex.getSuggestedAction());
         issue.setImportant(Boolean.TRUE);
         issue.setUrgent(Boolean.FALSE);
+        if (position != null) {
+            issue.setFailureLine(position.getLine());
+            issue.setFailureColumn(position.getColumn());
+            issue.setFailureOffset(position.getOffset());
+            issue.setFailureToken(position.getToken());
+            issue.setFailureSnippet(position.getSnippet());
+        }
 
         StructureParseResult result = new StructureParseResult();
         result.setParseTaskId(parseTaskId);
         result.setSyntaxStatus(StructureParseSyntaxStatus.INVALID);
         result.setComplexityLevel(StructureParseComplexityLevel.SIMPLE);
         result.setSqlType("UNKNOWN");
+        result.setFailureReason(failureReason);
+        if (position != null) {
+            result.setFailureLine(position.getLine());
+            result.setFailureColumn(position.getColumn());
+            result.setFailureOffset(position.getOffset());
+            result.setFailureToken(position.getToken());
+            result.setFailureSnippet(position.getSnippet());
+        }
         StructureParseQueryDateSummary queryDateSummary = new StructureParseQueryDateSummary();
         queryDateSummary.setQueryDateStatus(StructureParseQueryDateStatus.UNRESOLVED);
         result.setQueryDateSummary(queryDateSummary);
@@ -156,6 +173,36 @@ public class StructureParseApplicationService {
         result.setIssues(Collections.singletonList(issue));
         result.applyAssessment(StructureParsePriorityScorer.assess(issue));
         return result;
+    }
+
+    private String failureReason(SqlOptimizationPipelineService.SqlOptimizationExecutionException ex,
+                                 SqlOptimizationPipelineService.SqlFailurePosition position) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(ex.getMessage());
+        if (position != null && position.getLine() != null && position.getColumn() != null) {
+            builder.append(" Failure position: line ")
+                .append(position.getLine())
+                .append(", column ")
+                .append(position.getColumn())
+                .append('.');
+        }
+        return builder.toString();
+    }
+
+    private String failureDetail(SqlOptimizationPipelineService.SqlOptimizationExecutionException ex,
+                                 SqlOptimizationPipelineService.SqlFailurePosition position) {
+        String parserMessage = ex.getCause() == null ? ex.getMessage() : ex.getCause().getMessage();
+        StringBuilder builder = new StringBuilder();
+        builder.append(parserMessage);
+        if (position != null) {
+            if (position.getToken() != null) {
+                builder.append(" Token: ").append(position.getToken()).append('.');
+            }
+            if (position.getSnippet() != null) {
+                builder.append(" Near: ").append(position.getSnippet()).append('.');
+            }
+        }
+        return builder.toString();
     }
 
     private List<StructureParseIssue> buildIssues(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
@@ -856,6 +903,12 @@ public class StructureParseApplicationService {
         response.setPriorityLevel(result.getPriorityLevel().name());
         response.setImportant(result.getImportant());
         response.setUrgent(result.getUrgent());
+        response.setFailureReason(result.getFailureReason());
+        response.setFailureLine(result.getFailureLine());
+        response.setFailureColumn(result.getFailureColumn());
+        response.setFailureOffset(result.getFailureOffset());
+        response.setFailureToken(result.getFailureToken());
+        response.setFailureSnippet(result.getFailureSnippet());
         return response;
     }
 
@@ -963,6 +1016,9 @@ public class StructureParseApplicationService {
         summary.put("important", response == null ? null : response.getImportant());
         summary.put("urgent", response == null ? null : response.getUrgent());
         summary.put("sqlType", response == null ? null : response.getSqlType());
+        summary.put("failureReason", response == null ? null : response.getFailureReason());
+        summary.put("failureLine", response == null ? null : response.getFailureLine());
+        summary.put("failureColumn", response == null ? null : response.getFailureColumn());
         return toJson(summary);
     }
 
@@ -973,6 +1029,9 @@ public class StructureParseApplicationService {
         summary.put("priorityLevel", structureParse == null ? null : structureParse.getPriorityLevel());
         summary.put("priorityScore", structureParse == null ? null : structureParse.getPriorityScore());
         summary.put("sqlType", structureParse == null ? null : structureParse.getSqlType());
+        summary.put("failureReason", structureParse == null ? null : structureParse.getFailureReason());
+        summary.put("failureLine", structureParse == null ? null : structureParse.getFailureLine());
+        summary.put("failureColumn", structureParse == null ? null : structureParse.getFailureColumn());
         summary.put("accessServiceStatus", accessParse == null ? null : accessParse.getServiceStatus());
         summary.put("accessConnectionStatus", accessParse == null ? null : accessParse.getConnectionStatus());
         summary.put("accessDegradeReason", accessParse == null ? null : accessParse.getDegradeReason());
@@ -1049,6 +1108,11 @@ public class StructureParseApplicationService {
             vo.setAffectedReportCount(issue.getAffectedReportCount());
             vo.setPriorityScore(issue.getPriorityScore());
             vo.setPriorityLevel(issue.getPriorityLevel().name());
+            vo.setFailureLine(issue.getFailureLine());
+            vo.setFailureColumn(issue.getFailureColumn());
+            vo.setFailureOffset(issue.getFailureOffset());
+            vo.setFailureToken(issue.getFailureToken());
+            vo.setFailureSnippet(issue.getFailureSnippet());
             vos.add(vo);
         }
         return vos;

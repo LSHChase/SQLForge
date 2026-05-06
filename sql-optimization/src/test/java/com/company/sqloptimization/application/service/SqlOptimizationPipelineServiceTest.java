@@ -88,6 +88,22 @@ class SqlOptimizationPipelineServiceTest {
     }
 
     @Test
+    void shouldAnalyzeSqlWithDashLineCommentsWithoutTreatingStringLiteralAsComment() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "-- report_code=RPT_COMMENTED\n"
+                + "SELECT customer_id, '--not-a-comment' AS marker FROM orders -- table comment\n"
+                + "WHERE dt = DATE '2026-04-01' -- date filter\n"
+                + "AND status = 'PAID'",
+            DataSourceTypeEnum.HETU
+        );
+
+        assertEquals("JSQLPARSER", profile.getParserEngine());
+        assertEquals(1, profile.getTables().size());
+        assertEquals("orders", profile.getTables().get(0));
+        assertTrue(profile.getPredicateCount() >= 2);
+    }
+
+    @Test
     void shouldExtractComplexAntiPatternSignalsFromNestedSql() {
         SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
             complexAntiPatternSql(),

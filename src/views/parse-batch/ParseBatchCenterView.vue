@@ -37,6 +37,7 @@ const parseResultDialogVisible = ref(false)
 const parseStatisticsDialogVisible = ref(false)
 const reportResultDialogVisible = ref(false)
 const reportStatisticsDialogVisible = ref(false)
+const activeReportStatisticsTab = ref('issueScene')
 const parseItemDetailDialogVisible = ref(false)
 const reportItemDetailDialogVisible = ref(false)
 const selectedParseItem = ref(null)
@@ -1532,97 +1533,114 @@ onMounted(async () => {
         </div>
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">report-level statistics</p>
-          <div class="result-layout">
-            <div class="stat-list">
-              <div
-                v-for="item in (reportBackendReportStatistics.length ? reportBackendReportStatistics : reportGroups)"
-                :key="item.reportCode"
-                class="contract-item"
-                data-testid="batch-import-report-statistics-report-view"
-              >
-                <strong>{{ item.reportCode }}</strong>
-                <span>
-                  {{ displayValue(item.sqlCount ?? item.total) }} SQL
-                  · {{ displayValue(item.issueCount ?? item.failed) }} issues
-                  · {{ formatPercent(item.issueSqlRatio ?? item.structureRate) }}
-                </span>
+          <el-tabs v-model="activeReportStatisticsTab" class="statistics-tabs" data-testid="batch-import-report-statistics-tabs">
+            <el-tab-pane :label="isChinese ? '问题场景' : 'Issue scenes'" name="issueScene">
+              <div class="stat-list">
+                <div
+                  v-for="item in reportIssueStatistics"
+                  :key="item.issueScene"
+                  class="contract-item"
+                  data-testid="batch-import-report-statistics-issue-scene"
+                >
+                  <strong>{{ item.issueScene }}</strong>
+                  <span>
+                    {{ item.affectedSqlCount }} SQL
+                    · {{ displayValue(item.severity) }}
+                    · {{ formatPercent(item.ratio) }}
+                  </span>
+                </div>
+                <div v-if="!reportIssueStatistics.length" class="empty-state">
+                  {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics yet.' }}
+                </div>
               </div>
-            </div>
-            <div class="stat-list">
-              <div
-                v-for="item in reportIssueStatistics"
-                :key="item.issueScene"
-                class="contract-item"
-                data-testid="batch-import-report-statistics-issue-scene"
-              >
-                <strong>{{ item.issueScene }}</strong>
-                <span>
-                  {{ item.affectedSqlCount }} SQL
-                  · {{ displayValue(item.severity) }}
-                  · {{ formatPercent(item.ratio) }}
-                </span>
+            </el-tab-pane>
+
+            <el-tab-pane :label="isChinese ? '重要程度' : 'Importance'" name="importance">
+              <div class="stat-list">
+                <div
+                  v-for="item in reportImportanceStatistics"
+                  :key="item.importanceBucket"
+                  class="contract-item"
+                  data-testid="batch-import-report-statistics-importance"
+                >
+                  <strong>{{ item.importanceBucket }}</strong>
+                  <span>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</span>
+                </div>
+                <div v-if="!reportImportanceStatistics.length" class="empty-state">
+                  {{ isChinese ? '当前没有重要程度统计。' : 'No importance statistics yet.' }}
+                </div>
               </div>
-              <div v-if="!reportIssueStatistics.length" class="empty-state">
-                {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics yet.' }}
+            </el-tab-pane>
+
+            <el-tab-pane :label="isChinese ? '报表视角' : 'Report view'" name="report">
+              <div class="stat-list">
+                <div
+                  v-for="item in (reportBackendReportStatistics.length ? reportBackendReportStatistics : reportGroups)"
+                  :key="item.reportCode"
+                  class="contract-item"
+                  data-testid="batch-import-report-statistics-report-view"
+                >
+                  <strong>{{ item.reportCode }}</strong>
+                  <span>
+                    {{ displayValue(item.sqlCount ?? item.total) }} SQL
+                    · {{ displayValue(item.issueCount ?? item.failed) }} issues
+                    · {{ formatPercent(item.issueSqlRatio ?? item.structureRate) }}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div class="stat-list">
-              <div
-                v-for="item in reportImportanceStatistics"
-                :key="item.importanceBucket"
-                class="contract-item"
-                data-testid="batch-import-report-statistics-importance"
-              >
-                <strong>{{ item.importanceBucket }}</strong>
-                <span>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</span>
+            </el-tab-pane>
+
+            <el-tab-pane :label="isChinese ? 'SQL 清单' : 'SQL list'" name="sqlList">
+              <div class="stat-list">
+                <div
+                  v-for="item in reportBackendSqlStatistics.slice(0, 12)"
+                  :key="item.itemId"
+                  class="contract-item"
+                  data-testid="batch-import-report-statistics-sql-list"
+                >
+                  <strong>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</strong>
+                  <span>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues · {{ displayValue(item.logicalObjectKeys) }}</span>
+                </div>
+                <div v-if="!reportBackendSqlStatistics.length" class="empty-state">
+                  {{ isChinese ? '当前没有 SQL 清单统计。' : 'No SQL list statistics yet.' }}
+                </div>
               </div>
-              <div v-if="!reportImportanceStatistics.length" class="empty-state">
-                {{ isChinese ? '当前没有重要程度统计。' : 'No importance statistics yet.' }}
+            </el-tab-pane>
+
+            <el-tab-pane :label="isChinese ? '优先级视角' : 'Priority view'" name="priority">
+              <div class="stat-list">
+                <div
+                  v-for="item in reportPriorityMatrix"
+                  :key="`${item.priorityLevel}-${item.urgencyBucket}`"
+                  class="contract-item"
+                  data-testid="batch-import-report-statistics-priority"
+                >
+                  <strong>{{ item.priorityLevel }} · {{ item.urgencyBucket }}</strong>
+                  <span>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</span>
+                </div>
+                <div v-if="!reportPriorityMatrix.length" class="empty-state">
+                  {{ isChinese ? '当前没有优先级矩阵统计。' : 'No priority matrix statistics yet.' }}
+                </div>
               </div>
-            </div>
-            <div class="stat-list">
-              <div
-                v-for="item in reportPriorityMatrix"
-                :key="`${item.priorityLevel}-${item.urgencyBucket}`"
-                class="contract-item"
-                data-testid="batch-import-report-statistics-priority"
-              >
-                <strong>{{ item.priorityLevel }} · {{ item.urgencyBucket }}</strong>
-                <span>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</span>
+            </el-tab-pane>
+
+            <el-tab-pane :label="isChinese ? '逻辑对象视角' : 'Logical objects'" name="logicalObject">
+              <div class="stat-list">
+                <div
+                  v-for="item in reportLogicalObjectStatistics"
+                  :key="item.objectKey"
+                  class="contract-item"
+                  data-testid="batch-import-report-statistics-logical-object"
+                >
+                  <strong>{{ item.objectKey }}</strong>
+                  <span>{{ item.hitCount }} SQL · {{ displayValue(item.reportCodes) }}</span>
+                </div>
+                <div v-if="!reportLogicalObjectStatistics.length" class="empty-state">
+                  {{ isChinese ? '当前没有逻辑对象命中。' : 'No logical object hits yet.' }}
+                </div>
               </div>
-              <div v-if="!reportPriorityMatrix.length" class="empty-state">
-                {{ isChinese ? '当前没有优先级矩阵统计。' : 'No priority matrix statistics yet.' }}
-              </div>
-            </div>
-            <div class="stat-list">
-              <div
-                v-for="item in reportBackendSqlStatistics.slice(0, 12)"
-                :key="item.itemId"
-                class="contract-item"
-                data-testid="batch-import-report-statistics-sql-list"
-              >
-                <strong>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</strong>
-                <span>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues · {{ displayValue(item.logicalObjectKeys) }}</span>
-              </div>
-              <div v-if="!reportBackendSqlStatistics.length" class="empty-state">
-                {{ isChinese ? '当前没有 SQL 清单统计。' : 'No SQL list statistics yet.' }}
-              </div>
-            </div>
-            <div class="stat-list">
-              <div
-                v-for="item in reportLogicalObjectStatistics"
-                :key="item.objectKey"
-                class="contract-item"
-                data-testid="batch-import-report-statistics-logical-object"
-              >
-                <strong>{{ item.objectKey }}</strong>
-                <span>{{ item.hitCount }} SQL · {{ displayValue(item.reportCodes) }}</span>
-              </div>
-              <div v-if="!reportLogicalObjectStatistics.length" class="empty-state">
-                {{ isChinese ? '当前没有逻辑对象命中。' : 'No logical object hits yet.' }}
-              </div>
-            </div>
-          </div>
+            </el-tab-pane>
+          </el-tabs>
         </section>
       </div>
     </el-dialog>

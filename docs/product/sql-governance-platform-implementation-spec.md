@@ -26,6 +26,7 @@
 ## 2. Core Design Constraints
 
 - SQL 注释协议固定为 SQL 开头连续 `--key=value` 注释行。
+- 结构解析与 SQL 指纹前处理必须容忍 SQL 正文中的 `--` 行尾注释；只识别字符串、双引号标识符和反引号标识符外的行注释，不把字面量内的 `--` 当注释。
 - 注释字段至少包括：
   - `report_code`
   - `stage`
@@ -73,6 +74,7 @@
   - `priorityScore`
   - `priorityLevel`
 - 语法不可解析时也要返回结构解析结果，并通过 `syntaxStatus=INVALID` 与问题清单显式标识，不阻断页面显示。
+- 单条 SQL 语法不可解析时，结构解析结果必须尽量返回 `failureReason`、`failureLine`、`failureColumn`、`failureOffset`、`failureToken` 和 `failureSnippet`，并在 `issues[]` 中同步暴露同类字段，便于页面指出失败原因和失败位置。
 - 数据访问解析依赖数据库、引擎或元数据服务，可失败、可跳过、可异步补跑，但不能阻断结构解析结果返回。
 - 默认执行策略：
   - 先执行结构解析
@@ -527,6 +529,12 @@ Parser 边界：
 - `featureSummary` 可输出子查询数、SELECT 标量子查询数、嵌套子查询深度、相关子查询数、OR 谓词数、函数包裹谓词数、前导通配符 LIKE 数、随机排序数和重复表扫描数。
 - `riskChecklist/issues/riskTags` 可覆盖 `SCALAR_SUBQUERY_IN_SELECT`、`NESTED_SUBQUERY_RISK`、`CORRELATED_SUBQUERY_RISK`、`FUNCTION_WRAPPED_PREDICATE`、`NOT_EXISTS_ANTI_JOIN_RISK`、`LEADING_WILDCARD_LIKE_RISK`、`OR_PREDICATE_INDEX_RISK`、`ORDER_BY_RANDOM_RISK`、`REPEATED_TABLE_SCAN_RISK` 和 `COMPLEX_QUERY_GRAPH_RISK`。
 - 上述信号全部来自静态 SQL AST，不证明真实索引存在性、对象规模或执行计划成本；涉及字段存在性、权限、分区可用性和真实计划仍属于 access parse / benchmark 边界。
+
+`HARN-066` 补齐单条 SQL 解析失败诊断与行注释兼容：
+
+- 结构解析前处理必须剔除字符串与标识符外的 `--` 行尾注释，同时保留换行和字符长度，以维持 parser 失败定位和原 SQL 位置的一致性。
+- 单条 SQL 解析失败不得影响后续 SQL 输入或异步解析结果展示；前端必须按当前输入快照接收结果，输入变化后清理旧解析结果和旧错误信息。
+- INVALID 结构解析结果必须给出可读失败原因；当 parser 或启发式定位可用时，同时给出行、列、offset、token 和附近片段。
 
 ### 6.3 Access Parse
 
