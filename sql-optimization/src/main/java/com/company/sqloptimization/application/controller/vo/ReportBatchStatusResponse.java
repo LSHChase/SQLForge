@@ -21,6 +21,9 @@ public class ReportBatchStatusResponse {
     private Integer totalSqls;
     private Integer resolvedSqls;
     private Integer failedSqls;
+    private Integer itemPreviewLimit;
+    private Boolean itemPreviewTruncated;
+    private Integer omittedItemCount;
     private ReportBatchParseStatisticsVO parseStatistics;
     private List<ReportBatchItemVO> reportItems;
     private List<ReportBatchStatusHistoryVO> statusHistory;
@@ -59,6 +62,12 @@ public class ReportBatchStatusResponse {
     public void setResolvedSqls(Integer resolvedSqls) { this.resolvedSqls = resolvedSqls; }
     public Integer getFailedSqls() { return failedSqls; }
     public void setFailedSqls(Integer failedSqls) { this.failedSqls = failedSqls; }
+    public Integer getItemPreviewLimit() { return itemPreviewLimit; }
+    public void setItemPreviewLimit(Integer itemPreviewLimit) { this.itemPreviewLimit = itemPreviewLimit; }
+    public Boolean getItemPreviewTruncated() { return itemPreviewTruncated; }
+    public void setItemPreviewTruncated(Boolean itemPreviewTruncated) { this.itemPreviewTruncated = itemPreviewTruncated; }
+    public Integer getOmittedItemCount() { return omittedItemCount; }
+    public void setOmittedItemCount(Integer omittedItemCount) { this.omittedItemCount = omittedItemCount; }
     public ReportBatchParseStatisticsVO getParseStatistics() { return parseStatistics; }
     public void setParseStatistics(ReportBatchParseStatisticsVO parseStatistics) { this.parseStatistics = parseStatistics; }
     public List<ReportBatchItemVO> getReportItems() { return reportItems; }

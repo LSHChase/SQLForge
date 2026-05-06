@@ -26,6 +26,8 @@ import org.springframework.util.StringUtils;
 
 class ReportBatchParseStatisticsAssembler {
 
+    private static final int SQL_STATISTIC_PREVIEW_LIMIT = 500;
+
     ReportBatchParseStatisticsVO build(List<ReportBatchItem> sourceItems) {
         List<ReportBatchItem> items = sourceItems == null
             ? Collections.<ReportBatchItem>emptyList()
@@ -75,7 +77,11 @@ class ReportBatchParseStatisticsAssembler {
         statistics.setSeverityDistribution(severityDistribution);
         statistics.setImportanceStatistics(toImportanceStatistics(importanceAccumulators));
         statistics.setReportStatistics(toReportStatistics(reportAccumulators));
-        statistics.setSqlStatistics(sortSqlStatistics(sqlStatistics));
+        List<ReportBatchSqlStatisticVO> sortedSqlStatistics = sortSqlStatistics(sqlStatistics);
+        statistics.setSqlStatisticLimit(Integer.valueOf(SQL_STATISTIC_PREVIEW_LIMIT));
+        statistics.setSqlStatisticTruncated(Boolean.valueOf(sortedSqlStatistics.size() > SQL_STATISTIC_PREVIEW_LIMIT));
+        statistics.setOmittedSqlStatisticCount(Integer.valueOf(Math.max(0, sortedSqlStatistics.size() - SQL_STATISTIC_PREVIEW_LIMIT)));
+        statistics.setSqlStatistics(previewSqlStatistics(sortedSqlStatistics));
         statistics.setPriorityMatrix(toPriorityMatrix(priorityMatrix));
         statistics.setLogicalObjectStatistics(toLogicalObjectStatistics(logicalObjectAccumulators));
         return statistics;
@@ -255,6 +261,15 @@ class ReportBatchParseStatisticsAssembler {
             .thenComparing(ReportBatchSqlStatisticVO::getIssueCount, Comparator.reverseOrder())
             .thenComparing(ReportBatchSqlStatisticVO::getItemId));
         return statistics;
+    }
+
+    private List<ReportBatchSqlStatisticVO> previewSqlStatistics(List<ReportBatchSqlStatisticVO> statistics) {
+        if (statistics.size() <= SQL_STATISTIC_PREVIEW_LIMIT) {
+            return statistics;
+        }
+        return new ArrayList<ReportBatchSqlStatisticVO>(
+            statistics.subList(0, SQL_STATISTIC_PREVIEW_LIMIT)
+        );
     }
 
     private List<ParsePriorityMatrixCellVO> toPriorityMatrix(Map<String, MatrixAccumulator> matrix) {

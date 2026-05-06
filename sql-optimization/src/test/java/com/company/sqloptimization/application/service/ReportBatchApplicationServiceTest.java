@@ -87,6 +87,31 @@ class ReportBatchApplicationServiceTest {
     }
 
     @Test
+    void shouldKeepLargeReportImportSummaryFullWhileCappingReturnedItemPreview() {
+        ReportBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-009", "trace-009", "header", 1L, 2L);
+
+        StringBuilder csv = new StringBuilder("report_code");
+        for (int index = 1; index <= 650; index++) {
+            csv.append(",sql_").append(index);
+        }
+        csv.append('\n').append("RPT_BIG");
+        for (int index = 1; index <= 650; index++) {
+            csv.append(",\"SELECT ").append(index).append(" AS metric_value\"");
+        }
+
+        ReportBatchStatusResponse imported = service.importBatch(baseRequest("large-csv", "CSV", csv.toString()));
+
+        assertEquals(Integer.valueOf(1), imported.getTotalReports());
+        assertEquals(Integer.valueOf(650), imported.getTotalSqls());
+        assertEquals(Integer.valueOf(500), Integer.valueOf(imported.getReportItems().size()));
+        assertEquals(Integer.valueOf(500), imported.getItemPreviewLimit());
+        assertEquals(Boolean.TRUE, imported.getItemPreviewTruncated());
+        assertEquals(Integer.valueOf(150), imported.getOmittedItemCount());
+        assertEquals("sql_500", imported.getReportItems().get(499).getSqlColumnName());
+    }
+
+    @Test
     void shouldImportEveryNonEmptyCsvCellAfterFirstColumnAsSql() {
         ReportBatchApplicationService service = buildService();
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-005", "trace-005", "header", 1L, 2L);

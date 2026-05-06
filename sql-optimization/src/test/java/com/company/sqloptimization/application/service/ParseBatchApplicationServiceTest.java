@@ -77,6 +77,30 @@ class ParseBatchApplicationServiceTest {
         assertEquals(Integer.valueOf(2), retried.getSuccessRecords());
     }
 
+    @Test
+    void shouldSplitSqlFileWithoutBreakingSemicolonsInsideSqlText() {
+        ParseBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-002", "trace-002", "header", 1L, 2L);
+
+        ParseBatchStatusResponse created = service.createBatch(baseRequest("SQL_FILE", "SQL"));
+        ParseBatchIngestRequest ingestRequest = new ParseBatchIngestRequest();
+        ingestRequest.setContentBase64(Base64.getEncoder().encodeToString((
+            "SELECT ';' AS literal_value;\n"
+                + "-- this comment contains ; and belongs to the next statement\n"
+                + "SELECT * FROM orders WHERE note = 'a;b' AND dt = '2026-04-01';\n"
+                + "/* trailing ; comment should not create an empty statement */"
+        ).getBytes(StandardCharsets.UTF_8)));
+
+        ParseBatchStatusResponse ingested = service.ingestBatch(created.getBatchId(), ingestRequest);
+
+        assertEquals(Integer.valueOf(2), ingested.getTotalRecords());
+        assertEquals(Integer.valueOf(2), ingested.getImportedRecords().size());
+        assertEquals("VALID", ingested.getImportedRecords().get(0).getStructureSyntaxStatus());
+        assertEquals("VALID", ingested.getImportedRecords().get(1).getStructureSyntaxStatus());
+        assertEquals("SELECT ';' AS literal_value", ingested.getImportedRecords().get(0).getSqlText());
+        assertEquals(Boolean.FALSE, ingested.getItemPreviewTruncated());
+    }
+
     private ParseBatchApplicationService buildService() {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
         StructureParseApplicationService structureService = new StructureParseApplicationService(

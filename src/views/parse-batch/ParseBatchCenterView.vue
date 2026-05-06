@@ -92,6 +92,10 @@ const parseFileTypeOptions = ['CSV', 'TXT', 'SQL', 'XLS', 'XLSX', 'ET']
 const parseImportModeOptions = ['TABULAR_FILE', 'SQL_FILE', 'REPORT_CATALOG']
 const retryFilterOptions = ['ALL', 'UNAVAILABLE', 'FAILED']
 const directInputModeOptions = ['SQL_LINES', 'TABULAR_TEXT']
+const DIRECT_SQL_PREVIEW_LIMIT = 5
+const DASHBOARD_PREVIEW_LIMIT = 6
+const DETAIL_PREVIEW_LIMIT = 25
+const STATISTIC_PREVIEW_LIMIT = 50
 
 const isChinese = computed(() => locale.value === 'zh-CN')
 const parseBatchStatusCards = computed(() => {
@@ -231,7 +235,9 @@ const reportGroups = computed(() => {
       resolved,
       failed,
       structureRate: rate(structureValid, total),
-      accessRate: rate(accessConnected, total)
+      accessRate: rate(accessConnected, total),
+      previewItems: group.items.slice(0, DETAIL_PREVIEW_LIMIT),
+      omittedItemCount: Math.max(0, total - DETAIL_PREVIEW_LIMIT)
     }
   })
 })
@@ -271,8 +277,102 @@ const reportLogicalObjectStatistics = computed(() => {
     .map(([objectKey, hitCount]) => ({ objectKey, hitCount }))
     .sort((left, right) => right.hitCount - left.hitCount)
 })
+const parseImportedRecordsPreview = computed(() => previewList(parseImportedRecords.value, DETAIL_PREVIEW_LIMIT))
+const parseImportedRecordsOmittedCount = computed(() =>
+  omittedFromPreview(
+    parseImportedRecords.value.length,
+    parseImportedRecordsPreview.value.length,
+    parseBatchDetail.value?.omittedItemCount
+  )
+)
+const parseFailureRecordsPreview = computed(() => previewList(parseFailureRecords.value, DETAIL_PREVIEW_LIMIT))
+const parseFailureRecordsOmittedCount = computed(() =>
+  omittedFromPreview(
+    parseFailureRecords.value.length,
+    parseFailureRecordsPreview.value.length,
+    parseBatchDetail.value?.omittedFailureCount
+  )
+)
+const parseFailureRecordsDashboardPreview = computed(() =>
+  previewList(parseFailureRecords.value, DASHBOARD_PREVIEW_LIMIT)
+)
+const parseFailureRecordsDashboardOmittedCount = computed(() =>
+  omittedFromPreview(
+    parseFailureRecords.value.length,
+    parseFailureRecordsDashboardPreview.value.length,
+    parseBatchDetail.value?.omittedFailureCount
+  )
+)
+const parseIssueStatisticsPreview = computed(() => previewList(parseIssueStatistics.value, STATISTIC_PREVIEW_LIMIT))
+const parseIssueStatisticsOmittedCount = computed(() =>
+  omittedFromPreview(parseIssueStatistics.value.length, parseIssueStatisticsPreview.value.length)
+)
+const parseReportStatisticsPreview = computed(() => previewList(parseReportStatistics.value, STATISTIC_PREVIEW_LIMIT))
+const parseReportStatisticsOmittedCount = computed(() =>
+  omittedFromPreview(parseReportStatistics.value.length, parseReportStatisticsPreview.value.length)
+)
+const reportGroupsPreview = computed(() => previewList(reportGroups.value, DETAIL_PREVIEW_LIMIT))
+const reportGroupsOmittedCount = computed(() => {
+  const totalReports = Number(reportBatchDetail.value?.totalReports)
+  const sourceCount = Number.isFinite(totalReports) && totalReports > reportGroups.value.length
+    ? totalReports
+    : reportGroups.value.length
+  return omittedFromPreview(sourceCount, reportGroupsPreview.value.length)
+})
+const reportGroupsDashboardPreview = computed(() => previewList(reportGroups.value, DASHBOARD_PREVIEW_LIMIT))
+const reportGroupsDashboardOmittedCount = computed(() => {
+  const totalReports = Number(reportBatchDetail.value?.totalReports)
+  const sourceCount = Number.isFinite(totalReports) && totalReports > reportGroups.value.length
+    ? totalReports
+    : reportGroups.value.length
+  return omittedFromPreview(sourceCount, reportGroupsDashboardPreview.value.length)
+})
+const reportReturnedItemsOmittedCount = computed(() =>
+  Math.max(0, Number(reportBatchDetail.value?.omittedItemCount || 0))
+)
+const reportFailureItemsDashboardPreview = computed(() =>
+  previewList(reportFailureItems.value, DASHBOARD_PREVIEW_LIMIT)
+)
+const reportFailureItemsDashboardOmittedCount = computed(() =>
+  omittedFromPreview(reportFailureItems.value.length, reportFailureItemsDashboardPreview.value.length)
+)
+const reportIssueStatisticsPreview = computed(() => previewList(reportIssueStatistics.value, STATISTIC_PREVIEW_LIMIT))
+const reportIssueStatisticsOmittedCount = computed(() =>
+  omittedFromPreview(reportIssueStatistics.value.length, reportIssueStatisticsPreview.value.length)
+)
+const reportImportanceStatisticsPreview = computed(() =>
+  previewList(reportImportanceStatistics.value, STATISTIC_PREVIEW_LIMIT)
+)
+const reportImportanceStatisticsOmittedCount = computed(() =>
+  omittedFromPreview(reportImportanceStatistics.value.length, reportImportanceStatisticsPreview.value.length)
+)
+const reportViewStatistics = computed(() =>
+  reportBackendReportStatistics.value.length ? reportBackendReportStatistics.value : reportGroups.value
+)
+const reportViewStatisticsPreview = computed(() => previewList(reportViewStatistics.value, STATISTIC_PREVIEW_LIMIT))
+const reportViewStatisticsOmittedCount = computed(() =>
+  omittedFromPreview(reportViewStatistics.value.length, reportViewStatisticsPreview.value.length)
+)
+const reportSqlStatisticsPreview = computed(() => previewList(reportBackendSqlStatistics.value, STATISTIC_PREVIEW_LIMIT))
+const reportSqlStatisticsOmittedCount = computed(() =>
+  omittedFromPreview(
+    reportBackendSqlStatistics.value.length,
+    reportSqlStatisticsPreview.value.length,
+    reportParseStatistics.value?.omittedSqlStatisticCount
+  )
+)
+const reportPriorityMatrixPreview = computed(() => previewList(reportPriorityMatrix.value, STATISTIC_PREVIEW_LIMIT))
+const reportPriorityMatrixOmittedCount = computed(() =>
+  omittedFromPreview(reportPriorityMatrix.value.length, reportPriorityMatrixPreview.value.length)
+)
+const reportLogicalObjectStatisticsPreview = computed(() =>
+  previewList(reportLogicalObjectStatistics.value, STATISTIC_PREVIEW_LIMIT)
+)
+const reportLogicalObjectStatisticsOmittedCount = computed(() =>
+  omittedFromPreview(reportLogicalObjectStatistics.value.length, reportLogicalObjectStatisticsPreview.value.length)
+)
 const templateColumns = computed(() => parseBatchDetail.value?.templateColumns || [])
-const directSqlPreview = computed(() => {
+const directSqlRows = computed(() => {
   if (parseBatchForm.directInputMode !== 'SQL_LINES') {
     return []
   }
@@ -286,6 +386,10 @@ const directSqlPreview = computed(() => {
       sqlText
     }))
 })
+const directSqlPreview = computed(() => previewList(directSqlRows.value, DIRECT_SQL_PREVIEW_LIMIT))
+const directSqlOmittedCount = computed(() =>
+  omittedFromPreview(directSqlRows.value.length, directSqlPreview.value.length)
+)
 const parseSessionsSummary = computed(() =>
   `${parseBatchSessions.value.length} ${isChinese.value ? '个会话' : 'sessions'}`
 )
@@ -305,6 +409,12 @@ const objectValue = value => {
 }
 
 const arrayValue = value => Array.isArray(value) ? value : []
+
+const previewList = (items, limit) => Array.isArray(items) ? items.slice(0, limit) : []
+
+const omittedFromPreview = (sourceCount, shownCount, upstreamOmitted = 0) =>
+  Math.max(0, Number(sourceCount || 0) - Number(shownCount || 0)) +
+  Math.max(0, Number(upstreamOmitted || 0))
 
 const formatRate = value => {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -449,7 +559,7 @@ const encodeTextToBase64 = text => {
 const escapeCsvCell = value => `"${String(value || '').replace(/"/g, '""')}"`
 
 const buildInlineSqlCsv = () => {
-  const rows = directSqlPreview.value.map(item =>
+  const rows = directSqlRows.value.map(item =>
     [item.reportCode, item.datasource, item.sqlText].map(escapeCsvCell).join(',')
   )
   return ['report_code,datasource,sql_text', ...rows].join('\n')
@@ -960,7 +1070,7 @@ onMounted(async () => {
                 </div>
                 <div class="failure-list">
                   <article
-                    v-for="(item, index) in parseFailureRecords.slice(0, 6)"
+                    v-for="(item, index) in parseFailureRecordsDashboardPreview"
                     :key="item.recordId || item.id || index"
                     class="failure-item"
                     role="button"
@@ -983,6 +1093,13 @@ onMounted(async () => {
                       {{ isChinese ? '查看解析详情' : 'View parse detail' }}
                     </span>
                   </article>
+                  <div v-if="parseFailureRecordsDashboardOmittedCount > 0" class="preview-note">
+                    {{
+                      isChinese
+                        ? `仅展示前 ${DASHBOARD_PREVIEW_LIMIT} 条失败记录，另有 ${parseFailureRecordsDashboardOmittedCount} 条未展开。`
+                        : `Showing the first ${DASHBOARD_PREVIEW_LIMIT} failed rows; ${parseFailureRecordsDashboardOmittedCount} more are omitted.`
+                    }}
+                  </div>
                   <div v-if="!parseFailureRecords.length" class="empty-state">
                     {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
                   </div>
@@ -1111,7 +1228,7 @@ onMounted(async () => {
 
             <div v-if="reportBatchDetail" class="report-list" data-testid="batch-import-report-sql-detail">
               <button
-                v-for="group in reportGroups.slice(0, 6)"
+                v-for="group in reportGroupsDashboardPreview"
                 :key="group.reportCode"
                 type="button"
                 class="report-item"
@@ -1131,6 +1248,13 @@ onMounted(async () => {
                 </p>
                 <span class="detail-link">{{ isChinese ? '查看解析结果与详情' : 'View results and details' }}</span>
               </button>
+              <div v-if="reportGroupsDashboardOmittedCount > 0" class="preview-note">
+                {{
+                  isChinese
+                    ? `仅展示前 ${DASHBOARD_PREVIEW_LIMIT} 个报表分组入口，另有 ${reportGroupsDashboardOmittedCount} 个分组未展开。`
+                    : `Showing the first ${DASHBOARD_PREVIEW_LIMIT} report groups; ${reportGroupsDashboardOmittedCount} more groups are omitted.`
+                }}
+              </div>
               <div v-if="!reportItems.length" class="empty-state">
                 {{ isChinese ? '导入后会在这里看到本批次报表与 SQL 概览。' : 'Imported report and SQL overview appears here.' }}
               </div>
@@ -1141,7 +1265,7 @@ onMounted(async () => {
                 <p class="section-kicker sqlforge-code-label">failed sql detail</p>
                 <div class="failure-list">
                   <article
-                    v-for="(item, index) in reportFailureItems.slice(0, 6)"
+                    v-for="(item, index) in reportFailureItemsDashboardPreview"
                     :key="item.itemId || index"
                     class="failure-item"
                     role="button"
@@ -1165,6 +1289,13 @@ onMounted(async () => {
                     />
                     <span class="detail-link">{{ isChinese ? '查看失败详情' : 'View failure detail' }}</span>
                   </article>
+                  <div v-if="reportFailureItemsDashboardOmittedCount > 0" class="preview-note">
+                    {{
+                      isChinese
+                        ? `仅展示前 ${DASHBOARD_PREVIEW_LIMIT} 条失败 SQL，另有 ${reportFailureItemsDashboardOmittedCount} 条未展开。`
+                        : `Showing the first ${DASHBOARD_PREVIEW_LIMIT} failed SQL rows; ${reportFailureItemsDashboardOmittedCount} more are omitted.`
+                    }}
+                  </div>
                   <div v-if="!reportFailureItems.length" class="empty-state">
                     {{ isChinese ? '当前没有失败 SQL。' : 'No failed SQL rows in the current report batch.' }}
                   </div>
@@ -1173,7 +1304,7 @@ onMounted(async () => {
               <section class="detail-card">
                 <p class="section-kicker sqlforge-code-label">report-level issue statistics</p>
                 <div class="stat-list">
-                  <div v-for="item in reportIssueStatistics.slice(0, 6)" :key="item.issueScene" class="contract-item">
+                  <div v-for="item in reportIssueStatisticsPreview.slice(0, 6)" :key="item.issueScene" class="contract-item">
                     <strong>{{ item.issueScene }}</strong>
                     <span>{{ item.affectedSqlCount }} · {{ formatPercent(item.ratio) }}</span>
                   </div>
@@ -1185,7 +1316,7 @@ onMounted(async () => {
               <section class="detail-card">
                 <p class="section-kicker sqlforge-code-label">logical object hits</p>
                 <div class="stat-list">
-                  <div v-for="item in reportLogicalObjectStatistics.slice(0, 6)" :key="item.objectKey" class="contract-item">
+                  <div v-for="item in reportLogicalObjectStatisticsPreview.slice(0, 6)" :key="item.objectKey" class="contract-item">
                     <strong>{{ item.objectKey }}</strong>
                     <span>{{ item.hitCount }}</span>
                   </div>
@@ -1280,7 +1411,7 @@ onMounted(async () => {
       </div>
 
       <div v-if="directSqlPreview.length" class="preview-list">
-        <article v-for="item in directSqlPreview.slice(0, 5)" :key="item.reportCode" class="preview-item">
+        <article v-for="item in directSqlPreview" :key="item.reportCode" class="preview-item">
           <strong>{{ item.reportCode }}</strong>
           <span>{{ item.datasource }}</span>
           <SqlCodeBlock
@@ -1290,6 +1421,17 @@ onMounted(async () => {
             compact
           />
         </article>
+        <div
+          v-if="directSqlOmittedCount > 0"
+          class="preview-note"
+          data-testid="batch-import-direct-sql-preview-truncated"
+        >
+          {{
+            isChinese
+              ? `仅预览前 ${DIRECT_SQL_PREVIEW_LIMIT} 条，提交时仍导入全部 ${directSqlRows.length} 条 SQL。`
+              : `Previewing the first ${DIRECT_SQL_PREVIEW_LIMIT}; submit still imports all ${directSqlRows.length} SQL rows.`
+          }}
+        </div>
       </div>
 
       <template #footer>
@@ -1339,9 +1481,20 @@ onMounted(async () => {
         </div>
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
+          <div
+            v-if="parseImportedRecordsOmittedCount > 0"
+            class="preview-note"
+            data-testid="batch-import-large-batch-preview"
+          >
+            {{
+              isChinese
+                ? `仅展示前 ${parseImportedRecordsPreview.length} 条 SQL 明细，另有 ${parseImportedRecordsOmittedCount} 条已省略；统计概览仍按完整批次计算。`
+                : `Showing the first ${parseImportedRecordsPreview.length} SQL rows; ${parseImportedRecordsOmittedCount} more are omitted while summaries still use the full batch.`
+            }}
+          </div>
           <div class="report-list">
             <article
-              v-for="(item, index) in parseImportedRecords"
+              v-for="(item, index) in parseImportedRecordsPreview"
               :key="item.itemId || item.recordId || index"
               class="report-item"
               data-testid="batch-import-parse-sql-detail"
@@ -1420,18 +1573,36 @@ onMounted(async () => {
           <p class="section-kicker sqlforge-code-label">parse statistics</p>
           <div class="result-layout">
             <div class="stat-list">
-              <div v-for="item in parseIssueStatistics" :key="item.issueScene" class="contract-item">
+              <div v-for="item in parseIssueStatisticsPreview" :key="item.issueScene" class="contract-item">
                 <strong>{{ item.issueScene }}</strong>
                 <span>{{ displayValue(item.affectedRecords) }} · {{ formatPercent(item.ratio) }}</span>
+              </div>
+              <div
+                v-if="parseIssueStatisticsOmittedCount > 0"
+                class="preview-note preview-note-compact"
+                data-testid="batch-import-parse-statistics-preview"
+              >
+                {{
+                  isChinese
+                    ? `另有 ${parseIssueStatisticsOmittedCount} 个问题场景未展开。`
+                    : `${parseIssueStatisticsOmittedCount} more issue scenes are omitted.`
+                }}
               </div>
               <div v-if="!parseIssueStatistics.length" class="empty-state">
                 {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics yet.' }}
               </div>
             </div>
             <div class="stat-list">
-              <div v-for="item in parseReportStatistics" :key="item.reportCode" class="contract-item">
+              <div v-for="item in parseReportStatisticsPreview" :key="item.reportCode" class="contract-item">
                 <strong>{{ item.reportCode }}</strong>
                 <span>{{ displayValue(item.sqlCount) }} SQL · {{ displayValue(item.issueCount) }} issues</span>
+              </div>
+              <div v-if="parseReportStatisticsOmittedCount > 0" class="preview-note preview-note-compact">
+                {{
+                  isChinese
+                    ? `另有 ${parseReportStatisticsOmittedCount} 个报表统计项未展开。`
+                    : `${parseReportStatisticsOmittedCount} more report statistic rows are omitted.`
+                }}
               </div>
               <div v-if="!parseReportStatistics.length" class="empty-state">
                 {{ isChinese ? '当前没有报表维度统计。' : 'No report statistics yet.' }}
@@ -1443,7 +1614,7 @@ onMounted(async () => {
           <p class="section-kicker sqlforge-code-label">Failure records</p>
           <div class="failure-list">
             <article
-              v-for="(item, index) in parseFailureRecords"
+              v-for="(item, index) in parseFailureRecordsPreview"
               :key="item.recordId || item.id || index"
               class="failure-item"
               role="button"
@@ -1466,6 +1637,17 @@ onMounted(async () => {
                 {{ isChinese ? '查看解析详情' : 'View parse detail' }}
               </span>
             </article>
+            <div
+              v-if="parseFailureRecordsOmittedCount > 0"
+              class="preview-note"
+              data-testid="batch-import-parse-failure-preview"
+            >
+              {{
+                isChinese
+                  ? `仅展示前 ${parseFailureRecordsPreview.length} 条失败记录，另有 ${parseFailureRecordsOmittedCount} 条已省略。`
+                  : `Showing the first ${parseFailureRecordsPreview.length} failed rows; ${parseFailureRecordsOmittedCount} more are omitted.`
+              }}
+            </div>
             <div v-if="!parseFailureRecords.length" class="empty-state">
               {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
             </div>
@@ -1538,9 +1720,20 @@ onMounted(async () => {
         </div>
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
+          <div
+            v-if="reportReturnedItemsOmittedCount > 0 || reportGroupsOmittedCount > 0"
+            class="preview-note"
+            data-testid="batch-import-report-large-batch-preview"
+          >
+            {{
+              isChinese
+                ? `当前明细按预览返回：展示 ${reportGroupsPreview.length} 个报表分组，另有 ${reportReturnedItemsOmittedCount || reportGroupsOmittedCount} 条明细或分组未展开；概览仍按完整批次汇总。`
+                : `Details are previewed: showing ${reportGroupsPreview.length} report groups; ${reportReturnedItemsOmittedCount || reportGroupsOmittedCount} more rows or groups are omitted while summaries use the full batch.`
+            }}
+          </div>
           <el-collapse v-model="activeReportGroupName" accordion>
             <el-collapse-item
-              v-for="group in reportGroups"
+              v-for="group in reportGroupsPreview"
               :key="group.reportCode"
               :name="group.reportCode"
             >
@@ -1549,7 +1742,7 @@ onMounted(async () => {
               </template>
               <div class="report-list">
                 <article
-                  v-for="(item, index) in group.items"
+                  v-for="(item, index) in group.previewItems"
                   :key="item.itemId || `${group.reportCode}-${index}`"
                   class="report-item"
                   data-testid="batch-import-report-drawer-sql-detail"
@@ -1580,6 +1773,13 @@ onMounted(async () => {
                     </el-button>
                   </div>
                 </article>
+                <div v-if="group.omittedItemCount > 0" class="preview-note">
+                  {{
+                    isChinese
+                      ? `该报表仅展示前 ${group.previewItems.length} 条 SQL，另有 ${group.omittedItemCount} 条已省略。`
+                      : `This report shows the first ${group.previewItems.length} SQL rows; ${group.omittedItemCount} more are omitted.`
+                  }}
+                </div>
               </div>
             </el-collapse-item>
           </el-collapse>
@@ -1631,7 +1831,7 @@ onMounted(async () => {
             <el-tab-pane :label="isChinese ? '问题场景' : 'Issue scenes'" name="issueScene">
               <div class="stat-list">
                 <div
-                  v-for="item in reportIssueStatistics"
+                  v-for="item in reportIssueStatisticsPreview"
                   :key="item.issueScene"
                   class="contract-item"
                   data-testid="batch-import-report-statistics-issue-scene"
@@ -1643,6 +1843,17 @@ onMounted(async () => {
                     · {{ formatPercent(item.ratio) }}
                   </span>
                 </div>
+                <div
+                  v-if="reportIssueStatisticsOmittedCount > 0"
+                  class="preview-note preview-note-compact"
+                  data-testid="batch-import-report-statistics-preview"
+                >
+                  {{
+                    isChinese
+                      ? `另有 ${reportIssueStatisticsOmittedCount} 个问题场景未展开。`
+                      : `${reportIssueStatisticsOmittedCount} more issue scenes are omitted.`
+                  }}
+                </div>
                 <div v-if="!reportIssueStatistics.length" class="empty-state">
                   {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics yet.' }}
                 </div>
@@ -1652,13 +1863,20 @@ onMounted(async () => {
             <el-tab-pane :label="isChinese ? '重要程度' : 'Importance'" name="importance">
               <div class="stat-list">
                 <div
-                  v-for="item in reportImportanceStatistics"
+                  v-for="item in reportImportanceStatisticsPreview"
                   :key="item.importanceBucket"
                   class="contract-item"
                   data-testid="batch-import-report-statistics-importance"
                 >
                   <strong>{{ item.importanceBucket }}</strong>
                   <span>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</span>
+                </div>
+                <div v-if="reportImportanceStatisticsOmittedCount > 0" class="preview-note preview-note-compact">
+                  {{
+                    isChinese
+                      ? `另有 ${reportImportanceStatisticsOmittedCount} 个重要程度统计项未展开。`
+                      : `${reportImportanceStatisticsOmittedCount} more importance rows are omitted.`
+                  }}
                 </div>
                 <div v-if="!reportImportanceStatistics.length" class="empty-state">
                   {{ isChinese ? '当前没有重要程度统计。' : 'No importance statistics yet.' }}
@@ -1669,7 +1887,7 @@ onMounted(async () => {
             <el-tab-pane :label="isChinese ? '报表视角' : 'Report view'" name="report">
               <div class="stat-list">
                 <div
-                  v-for="item in (reportBackendReportStatistics.length ? reportBackendReportStatistics : reportGroups)"
+                  v-for="item in reportViewStatisticsPreview"
                   :key="item.reportCode"
                   class="contract-item"
                   data-testid="batch-import-report-statistics-report-view"
@@ -1681,19 +1899,37 @@ onMounted(async () => {
                     · {{ formatPercent(item.issueSqlRatio ?? item.structureRate) }}
                   </span>
                 </div>
+                <div v-if="reportViewStatisticsOmittedCount > 0" class="preview-note preview-note-compact">
+                  {{
+                    isChinese
+                      ? `另有 ${reportViewStatisticsOmittedCount} 个报表统计项未展开。`
+                      : `${reportViewStatisticsOmittedCount} more report rows are omitted.`
+                  }}
+                </div>
               </div>
             </el-tab-pane>
 
             <el-tab-pane :label="isChinese ? 'SQL 清单' : 'SQL list'" name="sqlList">
               <div class="stat-list">
                 <div
-                  v-for="item in reportBackendSqlStatistics.slice(0, 12)"
+                  v-for="item in reportSqlStatisticsPreview"
                   :key="item.itemId"
                   class="contract-item"
                   data-testid="batch-import-report-statistics-sql-list"
                 >
                   <strong>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</strong>
                   <span>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues · {{ displayValue(item.logicalObjectKeys) }}</span>
+                </div>
+                <div
+                  v-if="reportSqlStatisticsOmittedCount > 0"
+                  class="preview-note preview-note-compact"
+                  data-testid="batch-import-report-sql-statistics-preview"
+                >
+                  {{
+                    isChinese
+                      ? `SQL 清单仅展示前 ${reportSqlStatisticsPreview.length} 条，另有 ${reportSqlStatisticsOmittedCount} 条未展开。`
+                      : `SQL list shows the first ${reportSqlStatisticsPreview.length} rows; ${reportSqlStatisticsOmittedCount} more are omitted.`
+                  }}
                 </div>
                 <div v-if="!reportBackendSqlStatistics.length" class="empty-state">
                   {{ isChinese ? '当前没有 SQL 清单统计。' : 'No SQL list statistics yet.' }}
@@ -1704,13 +1940,20 @@ onMounted(async () => {
             <el-tab-pane :label="isChinese ? '优先级视角' : 'Priority view'" name="priority">
               <div class="stat-list">
                 <div
-                  v-for="item in reportPriorityMatrix"
+                  v-for="item in reportPriorityMatrixPreview"
                   :key="`${item.priorityLevel}-${item.urgencyBucket}`"
                   class="contract-item"
                   data-testid="batch-import-report-statistics-priority"
                 >
                   <strong>{{ item.priorityLevel }} · {{ item.urgencyBucket }}</strong>
                   <span>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ item.reportCount }} reports</span>
+                </div>
+                <div v-if="reportPriorityMatrixOmittedCount > 0" class="preview-note preview-note-compact">
+                  {{
+                    isChinese
+                      ? `另有 ${reportPriorityMatrixOmittedCount} 个优先级矩阵项未展开。`
+                      : `${reportPriorityMatrixOmittedCount} more priority rows are omitted.`
+                  }}
                 </div>
                 <div v-if="!reportPriorityMatrix.length" class="empty-state">
                   {{ isChinese ? '当前没有优先级矩阵统计。' : 'No priority matrix statistics yet.' }}
@@ -1721,13 +1964,20 @@ onMounted(async () => {
             <el-tab-pane :label="isChinese ? '逻辑对象视角' : 'Logical objects'" name="logicalObject">
               <div class="stat-list">
                 <div
-                  v-for="item in reportLogicalObjectStatistics"
+                  v-for="item in reportLogicalObjectStatisticsPreview"
                   :key="item.objectKey"
                   class="contract-item"
                   data-testid="batch-import-report-statistics-logical-object"
                 >
                   <strong>{{ item.objectKey }}</strong>
                   <span>{{ item.hitCount }} SQL · {{ displayValue(item.reportCodes) }}</span>
+                </div>
+                <div v-if="reportLogicalObjectStatisticsOmittedCount > 0" class="preview-note preview-note-compact">
+                  {{
+                    isChinese
+                      ? `另有 ${reportLogicalObjectStatisticsOmittedCount} 个逻辑对象未展开。`
+                      : `${reportLogicalObjectStatisticsOmittedCount} more logical objects are omitted.`
+                  }}
                 </div>
                 <div v-if="!reportLogicalObjectStatistics.length" class="empty-state">
                   {{ isChinese ? '当前没有逻辑对象命中。' : 'No logical object hits yet.' }}
@@ -1942,6 +2192,21 @@ button.report-item:hover {
   color: var(--sqlforge-text-muted);
   font-size: 12px;
   line-height: 1.6;
+}
+
+.preview-note {
+  border: 1px solid var(--sqlforge-color-brand-border);
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--sqlforge-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 10px 12px;
+}
+
+.preview-note-compact {
+  font-size: 12px;
+  padding: 8px 10px;
 }
 
 .detail-link {

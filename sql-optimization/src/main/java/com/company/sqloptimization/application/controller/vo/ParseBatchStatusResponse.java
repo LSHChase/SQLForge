@@ -21,6 +21,12 @@ public class ParseBatchStatusResponse {
     private Integer failedRecords;
     private Double structureParseSuccessRate;
     private Double accessParseSuccessRate;
+    private Integer itemPreviewLimit;
+    private Boolean itemPreviewTruncated;
+    private Integer omittedItemCount;
+    private Integer failurePreviewLimit;
+    private Boolean failurePreviewTruncated;
+    private Integer omittedFailureCount;
     private List<String> supportedFileTypes;
     private List<ParseBatchTemplateColumnVO> templateColumns;
     private List<ParseBatchStatusHistoryVO> statusHistory;
@@ -65,6 +71,18 @@ public class ParseBatchStatusResponse {
     public void setStructureParseSuccessRate(Double structureParseSuccessRate) { this.structureParseSuccessRate = structureParseSuccessRate; }
     public Double getAccessParseSuccessRate() { return accessParseSuccessRate; }
     public void setAccessParseSuccessRate(Double accessParseSuccessRate) { this.accessParseSuccessRate = accessParseSuccessRate; }
+    public Integer getItemPreviewLimit() { return itemPreviewLimit; }
+    public void setItemPreviewLimit(Integer itemPreviewLimit) { this.itemPreviewLimit = itemPreviewLimit; }
+    public Boolean getItemPreviewTruncated() { return itemPreviewTruncated; }
+    public void setItemPreviewTruncated(Boolean itemPreviewTruncated) { this.itemPreviewTruncated = itemPreviewTruncated; }
+    public Integer getOmittedItemCount() { return omittedItemCount; }
+    public void setOmittedItemCount(Integer omittedItemCount) { this.omittedItemCount = omittedItemCount; }
+    public Integer getFailurePreviewLimit() { return failurePreviewLimit; }
+    public void setFailurePreviewLimit(Integer failurePreviewLimit) { this.failurePreviewLimit = failurePreviewLimit; }
+    public Boolean getFailurePreviewTruncated() { return failurePreviewTruncated; }
+    public void setFailurePreviewTruncated(Boolean failurePreviewTruncated) { this.failurePreviewTruncated = failurePreviewTruncated; }
+    public Integer getOmittedFailureCount() { return omittedFailureCount; }
+    public void setOmittedFailureCount(Integer omittedFailureCount) { this.omittedFailureCount = omittedFailureCount; }
     public List<String> getSupportedFileTypes() { return supportedFileTypes; }
     public void setSupportedFileTypes(List<String> supportedFileTypes) { this.supportedFileTypes = supportedFileTypes; }
     public List<ParseBatchTemplateColumnVO> getTemplateColumns() { return templateColumns; }

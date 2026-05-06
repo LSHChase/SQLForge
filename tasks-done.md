@@ -4,6 +4,30 @@
 
 ## Done
 
+### HARN-071: HARN-071 批量解析与报表导入大批量治理体验收口
+
+- Status: done
+- Completed at: 2026-05-06
+- Commit subject: `feat(sql-optimization): harden large batch report parsing`
+- Priority: 1
+- Depends on: `HARN-061`,`HARN-062`,`HARN-063`,`HARN-064`,`HARN-066`,`HARN-070`
+- Scope: Main Foreman must execute HARN-071 through SQLForge standard actions; implementation must first confirm current parser/import/UI/statistics contracts from repository evidence, then keep batch/report parse behavior aligned with single SQL parse diagnostics, improve UI display/whitespace/format/highlight and issue summary clarity, and preserve execution payload, persisted history, tenant/request/...
+- Plan ref: docs/exec-plans/completed/HARN-071-full-auto-execution-plan.md
+- Matrix context: Phase-D / Story `D-STORY-009` 批量解析与报表清单解析
+- Human confirmation point: Resolved by active user objective on 2026-05-06: proceed as a standard single-agent Main Foreman task using HARN-071. If repository inspection proves schema migration, permission expansion, new import formats, external report-system integration, or task splitting is unavoidable, pause and request a separate human decision before implementing that expansion.
+- Data impact: Expected data impact is low to moderate: imported SQL text may be trimmed at the outer cell/file boundary for parsing and display, and API/VO/UI summaries may gain compatible additive fields. No historical data migration, destructive update, or persisted SQL semantic rewrite is authorized by default.
+- Rollback / recovery: Rollback by reverting the single HARN-071 task commit and restoring prior batch/report import parser, statistics, and frontend display behavior. If compatible additive API fields or docs are introduced, remove them with the same commit rollback. If implementation discovers unavoidable schema or data migration work, stop for confirmation and record a separate rollback path before proceeding.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-071、mvn -pl sql-optimization -Dtest=ReportBatchApplicationServiceTest,ReportBatchControllerTest,ReportBatchParseStatisticsAssemblerTest,SqlOptimizationPipelineServiceTest,StructureParseControllerTest test、node scripts/check-batch-import-contract.mjs、node scripts/check-history-page-contract.mjs、node scripts/check-history-detail-contract.mjs、node scripts/check-sql-ui-contract.mjs、npm run lint、npm run build`
+  - `python3 scripts/foreman.py validate HARN-071`
+- Progress log:
+  - 2026-05-06: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Aligned batch SQL file splitting with parser boundaries, added backend preview metadata for large parse/report batches, capped report SQL statistics previews, improved ParseBatchCenterView summary-first large-batch display, and documented HARN-071 import/display/statistics limits.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-071; python3 scripts/task_audit.py --check --phase pre-closeout; mvn -pl sql-optimization -Djava.io.tmpdir=/models/project/codex/SQLForge/.tmp -Dtest=ReportBatchApplicationServiceTest,ReportBatchControllerTest,ReportBatchParseStatisticsAssemblerTest,SqlOptimizationPipelineServiceTest,StructureParseControllerTest,ParseBatchApplicationServiceTest clean test; node scripts/check-batch-import-contract.mjs; node scripts/check-history-page-contract.mjs; node scripts/check-history-detail-contract.mjs; node scripts/check-sql-ui-contract.mjs; npm run lint; npm run build; git diff --check
+  - Residual risk: Repo-side 50M / 100k SQL handling is closed as complete statistics plus bounded previews over the existing contentBase64 import path; true streaming upload, external report-system integration, and production-scale acceptance remain out of scope.
+  - Next step: No immediate follow-up required.
+
 ### HARN-070: HARN-070 / E-STORY-007 - SQL 输入输出展示与编辑体验增强执行模板
 
 - Status: done

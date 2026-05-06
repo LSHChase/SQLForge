@@ -10,6 +10,9 @@ public class ReportBatchParseStatisticsVO {
     private Map<String, Integer> severityDistribution;
     private List<ReportBatchImportanceStatisticVO> importanceStatistics;
     private List<ParseReportStatisticVO> reportStatistics;
+    private Integer sqlStatisticLimit;
+    private Boolean sqlStatisticTruncated;
+    private Integer omittedSqlStatisticCount;
     private List<ReportBatchSqlStatisticVO> sqlStatistics;
     private List<ParsePriorityMatrixCellVO> priorityMatrix;
     private List<ReportBatchLogicalObjectStatisticVO> logicalObjectStatistics;
@@ -28,6 +31,14 @@ public class ReportBatchParseStatisticsVO {
     }
     public List<ParseReportStatisticVO> getReportStatistics() { return reportStatistics; }
     public void setReportStatistics(List<ParseReportStatisticVO> reportStatistics) { this.reportStatistics = reportStatistics; }
+    public Integer getSqlStatisticLimit() { return sqlStatisticLimit; }
+    public void setSqlStatisticLimit(Integer sqlStatisticLimit) { this.sqlStatisticLimit = sqlStatisticLimit; }
+    public Boolean getSqlStatisticTruncated() { return sqlStatisticTruncated; }
+    public void setSqlStatisticTruncated(Boolean sqlStatisticTruncated) { this.sqlStatisticTruncated = sqlStatisticTruncated; }
+    public Integer getOmittedSqlStatisticCount() { return omittedSqlStatisticCount; }
+    public void setOmittedSqlStatisticCount(Integer omittedSqlStatisticCount) {
+        this.omittedSqlStatisticCount = omittedSqlStatisticCount;
+    }
     public List<ReportBatchSqlStatisticVO> getSqlStatistics() { return sqlStatistics; }
     public void setSqlStatistics(List<ReportBatchSqlStatisticVO> sqlStatistics) { this.sqlStatistics = sqlStatistics; }
     public List<ParsePriorityMatrixCellVO> getPriorityMatrix() { return priorityMatrix; }

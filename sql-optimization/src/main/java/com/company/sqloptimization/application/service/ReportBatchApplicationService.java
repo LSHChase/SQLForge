@@ -56,6 +56,8 @@ import org.springframework.util.StringUtils;
 @Service
 public class ReportBatchApplicationService {
 
+    private static final int ITEM_PREVIEW_LIMIT = 500;
+
     private final ReportBatchRepository reportBatchRepository;
     private final ReportBatchItemRepository reportBatchItemRepository;
     private final StructureParseApplicationService structureParseApplicationService;
@@ -221,12 +223,26 @@ public class ReportBatchApplicationService {
         response.setTotalSqls(Integer.valueOf(items == null || items.isEmpty() ? batch.getTotalReports() : items.size()));
         response.setResolvedSqls(Integer.valueOf(countSqlsByStatus(items, ReportBatchItem.Status.RESOLVED)));
         response.setFailedSqls(Integer.valueOf(countNonResolvedSqls(items)));
+        response.setItemPreviewLimit(Integer.valueOf(ITEM_PREVIEW_LIMIT));
+        response.setItemPreviewTruncated(Boolean.valueOf(includeItems && itemCount(items) > ITEM_PREVIEW_LIMIT));
+        response.setOmittedItemCount(Integer.valueOf(includeItems ? Math.max(0, itemCount(items) - ITEM_PREVIEW_LIMIT) : 0));
         response.setParseStatistics(includeItems ? parseStatisticsAssembler.build(items) : null);
-        response.setReportItems(includeItems ? toItemVos(items) : Collections.<ReportBatchItemVO>emptyList());
+        response.setReportItems(includeItems ? toItemVos(previewItems(items, ITEM_PREVIEW_LIMIT)) : Collections.<ReportBatchItemVO>emptyList());
         response.setStatusHistory(toStatusHistory(batch.getStatusHistory()));
         response.setCreatedAt(batch.getCreatedAt());
         response.setUpdatedAt(batch.getUpdatedAt());
         return response;
+    }
+
+    private int itemCount(List<ReportBatchItem> items) {
+        return items == null ? 0 : items.size();
+    }
+
+    private List<ReportBatchItem> previewItems(List<ReportBatchItem> items, int limit) {
+        if (items == null || items.size() <= limit) {
+            return items;
+        }
+        return new ArrayList<ReportBatchItem>(items.subList(0, limit));
     }
 
     private void recalculate(ReportBatch batch, List<ReportBatchItem> items, Instant now) {

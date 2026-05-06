@@ -2,8 +2,18 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const root = process.cwd()
-const viewPath = path.join(root, 'src/views/parse-batch/ParseBatchCenterView.vue')
-const source = fs.readFileSync(viewPath, 'utf8')
+const contractFiles = [
+  'src/views/parse-batch/ParseBatchCenterView.vue',
+  'sql-optimization/src/main/java/com/company/sqloptimization/application/service/ParseBatchApplicationService.java',
+  'sql-optimization/src/main/java/com/company/sqloptimization/application/service/ReportBatchApplicationService.java',
+  'sql-optimization/src/main/java/com/company/sqloptimization/application/service/ReportBatchParseStatisticsAssembler.java',
+  'sql-optimization/src/main/java/com/company/sqloptimization/application/controller/vo/ParseBatchStatusResponse.java',
+  'sql-optimization/src/main/java/com/company/sqloptimization/application/controller/vo/ReportBatchStatusResponse.java',
+  'sql-optimization/src/main/java/com/company/sqloptimization/application/controller/vo/ReportBatchParseStatisticsVO.java'
+]
+const source = contractFiles
+  .map(filePath => fs.readFileSync(path.join(root, filePath), 'utf8'))
+  .join('\n')
 
 const requiredTokens = [
   'data-testid="batch-import-page"',
@@ -51,7 +61,20 @@ const requiredTokens = [
   'failed sql detail',
   'SQL-level parse detail',
   'report-level statistics',
-  'parseStatistics'
+  'parseStatistics',
+  'data-testid="batch-import-large-batch-preview"',
+  'data-testid="batch-import-direct-sql-preview-truncated"',
+  'data-testid="batch-import-report-large-batch-preview"',
+  'data-testid="batch-import-report-sql-statistics-preview"',
+  'DETAIL_PREVIEW_LIMIT',
+  'STATISTIC_PREVIEW_LIMIT',
+  'ITEM_PREVIEW_LIMIT',
+  'FAILURE_PREVIEW_LIMIT',
+  'SQL_STATISTIC_PREVIEW_LIMIT',
+  'splitSqlStatements',
+  'omittedItemCount',
+  'omittedFailureCount',
+  'omittedSqlStatisticCount'
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))

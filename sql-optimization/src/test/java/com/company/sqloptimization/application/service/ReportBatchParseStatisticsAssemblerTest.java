@@ -84,6 +84,30 @@ class ReportBatchParseStatisticsAssemblerTest {
         assertTrue(statistics.getLogicalObjectStatistics().isEmpty());
     }
 
+    @Test
+    void shouldCapLargeSqlStatisticListWhileKeepingFullOverview() {
+        Instant now = Instant.parse("2026-05-05T12:00:00Z");
+        List<ReportBatchItem> items = new java.util.ArrayList<ReportBatchItem>();
+        for (int index = 1; index <= 650; index++) {
+            items.add(item(
+                "item-" + index,
+                "RPT_BIG",
+                "SELECT " + index + " AS metric_value",
+                Collections.singletonList("MISSING_FILTER"),
+                Collections.singletonList("TABLE:orders"),
+                now
+            ));
+        }
+
+        ReportBatchParseStatisticsVO statistics = assembler.build(items);
+
+        assertEquals(Integer.valueOf(650), statistics.getOverview().getTotalSqlCount());
+        assertEquals(Integer.valueOf(500), Integer.valueOf(statistics.getSqlStatistics().size()));
+        assertEquals(Integer.valueOf(500), statistics.getSqlStatisticLimit());
+        assertEquals(Boolean.TRUE, statistics.getSqlStatisticTruncated());
+        assertEquals(Integer.valueOf(150), statistics.getOmittedSqlStatisticCount());
+    }
+
     private ReportBatchItem item(String itemId,
                                  String reportCode,
                                  String sqlText,

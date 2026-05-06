@@ -65,6 +65,8 @@ import org.springframework.util.StringUtils;
 @Service
 public class ParseBatchApplicationService {
 
+    private static final int ITEM_PREVIEW_LIMIT = 500;
+    private static final int FAILURE_PREVIEW_LIMIT = 200;
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<Map<String, Object>>() {
     };
     private static final String FAILURE_FILTER_ALL = "ALL";
@@ -385,11 +387,18 @@ public class ParseBatchApplicationService {
         response.setFailedRecords(Integer.valueOf(batch.getFailedRecords()));
         response.setStructureParseSuccessRate(batch.getStructureParseSuccessRate());
         response.setAccessParseSuccessRate(batch.getAccessParseSuccessRate());
+        response.setItemPreviewLimit(Integer.valueOf(ITEM_PREVIEW_LIMIT));
+        response.setItemPreviewTruncated(Boolean.valueOf(items.size() > ITEM_PREVIEW_LIMIT));
+        response.setOmittedItemCount(Integer.valueOf(Math.max(0, items.size() - ITEM_PREVIEW_LIMIT)));
+        List<ParseBatchItem> failureItems = failureItems(items);
+        response.setFailurePreviewLimit(Integer.valueOf(FAILURE_PREVIEW_LIMIT));
+        response.setFailurePreviewTruncated(Boolean.valueOf(failureItems.size() > FAILURE_PREVIEW_LIMIT));
+        response.setOmittedFailureCount(Integer.valueOf(Math.max(0, failureItems.size() - FAILURE_PREVIEW_LIMIT)));
         response.setSupportedFileTypes(resolveSupportedFileTypes(batch.getImportMode()));
         response.setTemplateColumns(resolveTemplateColumns(batch.getImportMode()));
         response.setStatusHistory(toStatusHistory(batch.getStatusHistory()));
-        response.setImportedRecords(toItemVOs(items));
-        response.setFailureRecords(toFailureVOs(items));
+        response.setImportedRecords(toItemVOs(previewItems(items, ITEM_PREVIEW_LIMIT)));
+        response.setFailureRecords(toItemVOs(previewItems(failureItems, FAILURE_PREVIEW_LIMIT)));
         response.setStructureParseStatistics(buildStructureStatistics(items));
         response.setAccessParseStatistics(buildAccessStatistics(items, batch.isStructureParseOnly()));
         response.setIssueStatistics(buildIssueStatistics(items));
@@ -532,14 +541,24 @@ public class ParseBatchApplicationService {
         return results;
     }
 
-    private List<ParseBatchItemVO> toFailureVOs(List<ParseBatchItem> items) {
-        List<ParseBatchItemVO> failures = new ArrayList<ParseBatchItemVO>();
+    private List<ParseBatchItem> failureItems(List<ParseBatchItem> items) {
+        List<ParseBatchItem> failures = new ArrayList<ParseBatchItem>();
+        if (items == null) {
+            return failures;
+        }
         for (ParseBatchItem item : items) {
             if (item.getStatus() == ParseBatchItemStatus.FAILED) {
-                failures.add(toItemVOs(Collections.singletonList(item)).get(0));
+                failures.add(item);
             }
         }
         return failures;
+    }
+
+    private List<ParseBatchItem> previewItems(List<ParseBatchItem> items, int limit) {
+        if (items == null || items.size() <= limit) {
+            return items;
+        }
+        return new ArrayList<ParseBatchItem>(items.subList(0, limit));
     }
 
     private List<ParseBatchStatusHistoryVO> toStatusHistory(List<ParseBatchStatusTransition> history) {
@@ -693,9 +712,8 @@ public class ParseBatchApplicationService {
     private List<ImportedBatchRow> parseSqlFile(ParseBatch batch, byte[] content, String charsetName) {
         String text = new String(content, resolveCharset(charsetName));
         String normalized = text.replace("\r\n", "\n");
-        String[] segments = normalized.split(";");
         List<ImportedBatchRow> rows = new ArrayList<ImportedBatchRow>();
-        for (String segment : segments) {
+        for (String segment : splitSqlStatements(normalized)) {
             String sqlText = trimToNull(segment);
             if (!StringUtils.hasText(sqlText)) {
                 continue;
@@ -712,6 +730,99 @@ public class ParseBatchApplicationService {
             rows.add(row);
         }
         return rows;
+    }
+
+    private List<String> splitSqlStatements(String sqlText) {
+        List<String> statements = new ArrayList<String>();
+        if (!StringUtils.hasText(sqlText)) {
+            return statements;
+        }
+        int statementStart = 0;
+        int cursor = 0;
+        while (cursor < sqlText.length()) {
+            char current = sqlText.charAt(cursor);
+            if (current == '\'' || current == '"' || current == '`') {
+                cursor = readQuotedSegment(sqlText, cursor, current);
+                continue;
+            }
+            if (current == '-' && cursor + 1 < sqlText.length() && sqlText.charAt(cursor + 1) == '-') {
+                cursor = readLineComment(sqlText, cursor);
+                continue;
+            }
+            if (current == '/' && cursor + 1 < sqlText.length() && sqlText.charAt(cursor + 1) == '*') {
+                cursor = readBlockComment(sqlText, cursor);
+                continue;
+            }
+            if (current == ';') {
+                addStatementIfExecutable(statements, sqlText.substring(statementStart, cursor));
+                statementStart = cursor + 1;
+            }
+            cursor++;
+        }
+        addStatementIfExecutable(statements, sqlText.substring(statementStart));
+        return statements;
+    }
+
+    private int readQuotedSegment(String sqlText, int start, char quote) {
+        int cursor = start + 1;
+        while (cursor < sqlText.length()) {
+            char current = sqlText.charAt(cursor);
+            if (current == quote) {
+                if (cursor + 1 < sqlText.length() && sqlText.charAt(cursor + 1) == quote) {
+                    cursor += 2;
+                    continue;
+                }
+                return cursor + 1;
+            }
+            if (current == '\\') {
+                cursor += 2;
+                continue;
+            }
+            cursor++;
+        }
+        return cursor;
+    }
+
+    private int readLineComment(String sqlText, int start) {
+        int newline = sqlText.indexOf('\n', start);
+        return newline < 0 ? sqlText.length() : newline;
+    }
+
+    private int readBlockComment(String sqlText, int start) {
+        int end = sqlText.indexOf("*/", start + 2);
+        return end < 0 ? sqlText.length() : end + 2;
+    }
+
+    private void addStatementIfExecutable(List<String> statements, String candidate) {
+        String normalized = trimToNull(candidate);
+        if (StringUtils.hasText(normalized) && hasExecutableSql(normalized)) {
+            statements.add(normalized);
+        }
+    }
+
+    private boolean hasExecutableSql(String sqlText) {
+        StringBuilder code = new StringBuilder(sqlText.length());
+        int cursor = 0;
+        while (cursor < sqlText.length()) {
+            char current = sqlText.charAt(cursor);
+            if (current == '\'' || current == '"' || current == '`') {
+                int end = readQuotedSegment(sqlText, cursor, current);
+                code.append(sqlText, cursor, end);
+                cursor = end;
+                continue;
+            }
+            if (current == '-' && cursor + 1 < sqlText.length() && sqlText.charAt(cursor + 1) == '-') {
+                cursor = readLineComment(sqlText, cursor);
+                continue;
+            }
+            if (current == '/' && cursor + 1 < sqlText.length() && sqlText.charAt(cursor + 1) == '*') {
+                cursor = readBlockComment(sqlText, cursor);
+                continue;
+            }
+            code.append(current);
+            cursor++;
+        }
+        return StringUtils.hasText(code.toString());
     }
 
     private List<ImportedBatchRow> parseDelimitedRows(byte[] content, String charsetName, ParseBatchFileType fileType) {

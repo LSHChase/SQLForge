@@ -75,3 +75,11 @@ SQL 输入/输出 UI 统一使用共享组件承载：`SqlEditorField` 用于可
 确认覆盖的 SQL 输出面包括 `SqlQueryView` 模板 / SQL 库 / Bound SQL 预览、`RecommendationCenterView` 源 SQL / 推荐 SQL、`ParseBatchCenterView` 批次 SQL 明细 / 失败 SQL / 报表 SQL 详情、`ParseRecordView` 报表 SQL 明细 / 原始 SQL / SQL 三态。只读输出通过 `SqlCodeBlock` 在展示边界自动格式化，不回写 API 响应、历史记录、查询结果或后端数据。
 
 JSON 证据、SQL 指纹、报表编码、统计数字和非 SQL 的原始证据块不属于本任务的 SQL 展示框范围，仍保留原有 `code-block` 或普通文本样式。后续新增 SQL-bearing 页面时，默认复用上述两个共享组件，并用 `npm run test:sql-ui-contract` 扩展静态契约检查。
+
+## HARN-071 Large Batch Parse Display Contract
+
+批量解析和报表导入页面必须按完整统计、有限明细预览的方式展示大批量 SQL。`ParseBatchCenterView` 的 SQL 输入继续使用 `SqlEditorField`：纯多 SQL 输入可手动格式化，CSV / 报表宽表原文不允许格式化按钮改写表格结构。直接多 SQL 输入只预览前 5 条，但提交时必须基于完整输入行构造导入载荷。
+
+批量解析结果、失败记录、报表分组、报表 SQL 明细和报表统计标签页不得对接口返回数组做无界 `v-for` 渲染。页面明细默认预览 25 条，统计列表默认预览 50 条；当后端返回 `omittedItemCount`、`omittedFailureCount` 或 `omittedSqlStatisticCount` 时，页面必须显示剩余省略数量，并说明统计卡片仍基于完整批次。
+
+SQL 明细、失败 SQL 和报表 SQL 详情继续使用 `SqlCodeBlock` 进行只读格式化、高亮、复制、滚动和长 SQL 换行。格式化只发生在展示边界，不回写 API 响应、历史记录、导入载荷或后端持久化内容。
