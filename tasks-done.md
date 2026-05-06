@@ -4,6 +4,24 @@
 
 ## Done
 
+### U-TASK-005: 更新前端 dist 产物
+
+- Status: done
+- Completed at: 2026-05-06
+- Commit subject: `chore(frontend): refresh packaged dist assets`
+- Priority: 1
+- Depends on: U-TASK-004
+- Scope: Regenerate frontend dist and dist-portable from the latest Vue source so packaged pages match current implementation; no source behavior changes.
+- Validation:
+  - `python3 scripts/foreman.py validate U-TASK-005`
+- Progress log:
+  - 2026-05-06: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Regenerated frontend dist and dist-portable from the latest Vue source so packaged pages include the current UI.
+  - Validation evidence: python3 scripts/foreman.py validate U-TASK-005 --include-task-audit --extra-command "npm run build" --extra-command "npm run build:portable"; curl checks for dist preview root/dashboard returned 200; portable health returned UP.
+  - Residual risk: dist/ is ignored by git and updated locally only; dist-portable is the committed portable package for cross-machine startup.
+  - Next step: Use dist-portable/start-portable.sh or start-portable.cmd on another computer after editing portable-config.json for backend host addresses.
+
 ### HARN-066: HARN-066
 
 - Status: done
