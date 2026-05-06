@@ -133,6 +133,32 @@ class ReportBatchApplicationServiceTest {
     }
 
     @Test
+    void shouldExtractInlineDashCommentPreambleBeforeParsingReportSql() {
+        ReportBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-011", "trace-011", "header", 1L, 2L);
+
+        ReportBatchStatusResponse imported = service.importBatch(baseRequest(
+            "comment-preamble-csv",
+            "CSV",
+            "report_code,sql_1\nRPT_COMMENTED," + csvEscape(
+                "-- 报表注释 -- 指标口径 -- 多个说明 SELECT customer_id FROM orders WHERE dt = DATE '2026-04-01'"
+            )
+        ));
+
+        assertEquals(Integer.valueOf(1), imported.getTotalSqls());
+        assertEquals("SELECT customer_id FROM orders WHERE dt = DATE '2026-04-01'",
+            imported.getReportItems().get(0).getSqlText());
+        assertTrue(imported.getReportItems().get(0).getSourceFileLine().contains("-- 报表注释"));
+
+        ReportBatchStatusResponse resolved = service.resolveSqls(imported.getBatchId());
+
+        assertEquals("COMPLETED", resolved.getStatus());
+        assertEquals(Integer.valueOf(1), resolved.getResolvedSqls());
+        assertEquals("VALID", resolved.getReportItems().get(0).getStructureSyntaxStatus());
+        assertTrue(resolved.getReportItems().get(0).getLogicalObjectKeys().contains("TABLE:orders"));
+    }
+
+    @Test
     void shouldImportHeaderlessCsvRowsByFirstColumnPosition() {
         ReportBatchApplicationService service = buildService();
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-006", "trace-006", "header", 1L, 2L);
@@ -202,14 +228,42 @@ class ReportBatchApplicationServiceTest {
         assertEquals(Integer.valueOf(1), resolved.getFailedReports());
         assertEquals(Integer.valueOf(1), resolved.getFailedSqls());
         assertEquals("FAILED", resolved.getReportItems().get(0).getStatus());
-        assertEquals("STRUCTURE_PARSE_INVALID", resolved.getReportItems().get(0).getFailureReason());
         assertEquals("INVALID", resolved.getReportItems().get(0).getStructureSyntaxStatus());
         assertEquals("AVAILABLE", resolved.getReportItems().get(0).getAccessServiceStatus());
         assertEquals("CONNECTED", resolved.getReportItems().get(0).getAccessConnectionStatus());
         assertEquals("sql_1", resolved.getReportItems().get(0).getSqlColumnName());
         assertEquals(Integer.valueOf(1), resolved.getReportItems().get(0).getSqlOrdinalInReport());
         assertEquals("SELECT FROM", resolved.getReportItems().get(0).getSqlText());
+        assertTrue(resolved.getReportItems().get(0).getFailureReason().startsWith("STRUCTURE_PARSE_INVALID"));
+        assertTrue(resolved.getReportItems().get(0).getFailureReason().contains("line=1"));
+        assertTrue(resolved.getReportItems().get(0).getFailureReason().contains("col=8"));
+        assertTrue(resolved.getReportItems().get(0).getFailureReason().contains("token=FROM"));
+        assertTrue(resolved.getReportItems().get(0).getFailureReason().contains("near=SELECT FROM"));
         assertNotNull(resolved.getReportItems().get(0).getParseTaskId());
+    }
+
+    @Test
+    void shouldExposeReportImportFailureLocationAfterInlineCommentExtraction() {
+        ReportBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-012", "trace-012", "header", 1L, 2L);
+
+        ReportBatchStatusResponse imported = service.importBatch(baseRequest(
+            "comment-preamble-invalid-csv",
+            "CSV",
+            "report_code,sql_1\nRPT_BAD_COMMENTED," + csvEscape("-- 说明 -- 多个说明 SELECT FROM")
+        ));
+        ReportBatchStatusResponse resolved = service.resolveSqls(imported.getBatchId());
+
+        String failureReason = resolved.getReportItems().get(0).getFailureReason();
+        assertEquals("PARTIAL_COMPLETED", resolved.getStatus());
+        assertEquals("FAILED", resolved.getReportItems().get(0).getStatus());
+        assertEquals("SELECT FROM", resolved.getReportItems().get(0).getSqlText());
+        assertTrue(failureReason.startsWith("STRUCTURE_PARSE_INVALID"));
+        assertTrue(failureReason.contains("line=1"));
+        assertTrue(failureReason.contains("col=8"));
+        assertTrue(failureReason.contains("token=FROM"));
+        assertTrue(failureReason.contains("near=SELECT FROM"));
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("SQL_SYNTAX_INVALID"));
     }
 
     @Test

@@ -56,7 +56,7 @@ SQL 解析页在拿到 `historyId` 后提供“查看解析历史”入口，跳
 
 批量解析页的当前批次工作台必须让失败记录也能打开解析详情。普通批量解析的失败记录、结果弹窗中的 SQL 记录，以及报表导入的报表分组、失败 SQL 和 SQL 级记录都必须保留可点击详情入口。
 
-详情弹窗沿用现有接口字段，不新增权限或本地持久化模型。普通批量解析详情至少展示记录标识、报表标识、状态、`parseTaskId`、结构解析状态、Access 状态、失败原因、问题场景、逻辑对象和 SQL 文本；报表导入 SQL 详情还必须展示 `sourceFileLine`、`sqlColumnName` 与 `sqlOrdinalInReport`，用于定位导入宽表中的失败列。
+详情弹窗沿用现有接口字段，不新增权限或本地持久化模型。普通批量解析详情至少展示记录标识、报表标识、状态、`parseTaskId`、结构解析状态、Access 状态、失败原因、问题场景、逻辑对象和 SQL 文本；报表导入 SQL 详情还必须展示 `sourceFileLine`、`sqlColumnName` 与 `sqlOrdinalInReport`，用于定位导入宽表中的失败列。报表导入结构解析失败时，`failureReason` 可能携带 `line`、`col`、`token` 和 `near` 片段，页面必须完整展示，不得只保留 `STRUCTURE_PARSE_INVALID` 粗粒度状态。
 
 ## HARN-066 Report Batch Statistics And Parse Diagnostics
 
@@ -65,6 +65,8 @@ SQL 解析页在拿到 `historyId` 后提供“查看解析历史”入口，跳
 单条 SQL 解析页必须在 SQL、数据源、绑定模式或注释上下文变化后清理旧解析结果和旧错误信息。异步解析返回时只能写回与当前输入快照一致的结果，避免一次失败或慢返回影响后续 SQL 的解析展示。
 
 单条 SQL 和解析历史中的失败问题卡片应展示后端返回的 `failureReason`、`failureLine`、`failureColumn`、`failureToken` 与 `failureSnippet`。当 SQL 内含字符串或标识符外的 `--` 行尾注释时，页面无需额外预处理，直接提交原 SQL，由结构解析统一处理。
+
+报表导入宽表单元格若以同一行 `--` 说明前缀开头，并在该行后续出现 `SELECT` / `WITH` 起点，后端会在导入解析边界提取真实 SQL 文本再解析。页面仍展示返回的 SQL 文本、源列和源行证据，避免把这种历史报表清单格式当作纯注释失败。
 
 ## HARN-070 SQL Input Output Display Contract
 

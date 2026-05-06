@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-073: Fix report import SQL extraction and diagnostics
+
+- Status: done
+- Completed at: 2026-05-06
+- Commit subject: `fix(sql-optimization): extract report import sql bodies`
+- Priority: P1
+- Depends on: N/A
+- Scope: Fix report-import SQL extraction for cells whose content starts with repeated -- comment or description fragments before the real SELECT/SQL body, so parsing uses the extracted SQL statement instead of treating the whole cell as comments. Preserve imported SQL evidence where compatible, improve parse failure diagnostics with location/snippet for report import problems, and add focused backend tests/docs without schema changes.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-073`
+- Progress log:
+  - 2026-05-06: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added report-import SQL extraction for same-line dash-comment preambles before SELECT/WITH, kept normal SQL comments on the existing structure parser path, enriched report-import structure parse failure reasons with compact line/column/token/snippet diagnostics, and documented the HARN-073 report-import exception and UI display expectation.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-073; mvn -pl sql-optimization -Dtest=ReportBatchApplicationServiceTest clean test; mvn -pl sql-optimization test; node scripts/check-batch-import-contract.mjs; node scripts/check-history-page-contract.mjs; mvn -pl sql-optimization validate pmd:pmd checkstyle:check; git diff --check; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The extraction is intentionally scoped to report-import cells that start with same-line -- description preambles and then contain SELECT/WITH on that same first line; other SQL file splitting and normal SQL line-comment behavior remain unchanged.
+  - Next step: Use a real report import workbook/CSV containing '-- 说明 -- 说明 SELECT ...' cells and an invalid sample to confirm the UI shows extracted SQL plus reportCode/sqlColumnName/sourceFileLine diagnostics.
+
 ### HARN-072: Align batch SQL diagnostics with single SQL parse
 
 - Status: done

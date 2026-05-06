@@ -40,6 +40,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -57,6 +59,9 @@ import org.springframework.util.StringUtils;
 public class ReportBatchApplicationService {
 
     private static final int ITEM_PREVIEW_LIMIT = 500;
+    private static final int FAILURE_REASON_LIMIT = 128;
+    private static final Pattern REPORT_SQL_START_PATTERN =
+        Pattern.compile("(?i)\\b(WITH|SELECT)\\b(?=\\s|/\\*)");
 
     private final ReportBatchRepository reportBatchRepository;
     private final ReportBatchItemRepository reportBatchItemRepository;
@@ -280,7 +285,7 @@ public class ReportBatchApplicationService {
 
     private String resolveFailureReason(StructureParseResponseVO structureParse, AccessParseResponseVO accessParse) {
         if (!"VALID".equals(structureParse.getSyntaxStatus())) {
-            return "STRUCTURE_PARSE_INVALID";
+            return buildStructureFailureReason(structureParse);
         }
         if (accessParse == null) {
             return null;
@@ -288,6 +293,30 @@ public class ReportBatchApplicationService {
         return "AVAILABLE".equals(accessParse.getServiceStatus()) && "CONNECTED".equals(accessParse.getConnectionStatus())
             ? null
             : accessParse.getDegradeReason();
+    }
+
+    private String buildStructureFailureReason(StructureParseResponseVO structureParse) {
+        StringBuilder builder = new StringBuilder("STRUCTURE_PARSE_INVALID");
+        if (structureParse == null) {
+            return builder.toString();
+        }
+        if (structureParse.getFailureLine() != null) {
+            builder.append(" line=").append(structureParse.getFailureLine());
+        }
+        if (structureParse.getFailureColumn() != null) {
+            builder.append(" col=").append(structureParse.getFailureColumn());
+        }
+        if (StringUtils.hasText(structureParse.getFailureToken())) {
+            builder.append(" token=").append(compactDiagnosticText(structureParse.getFailureToken(), 24));
+        }
+        if (StringUtils.hasText(structureParse.getFailureSnippet())) {
+            builder.append(" near=").append(compactDiagnosticText(structureParse.getFailureSnippet(), 48));
+        }
+        if (builder.length() == "STRUCTURE_PARSE_INVALID".length()
+            && StringUtils.hasText(structureParse.getFailureReason())) {
+            builder.append(" reason=").append(compactDiagnosticText(structureParse.getFailureReason(), 80));
+        }
+        return compactDiagnosticText(builder.toString(), FAILURE_REASON_LIMIT);
     }
 
     private String resolveHistoryResultStatus(ReportBatchItem.Status status) {
@@ -303,10 +332,10 @@ public class ReportBatchApplicationService {
     private String resolveSqlText(ReportBatch batch, ReportBatchItem item) {
         String inlineSql = trimToNull(item.getSqlText());
         if (StringUtils.hasText(inlineSql)) {
-            return inlineSql;
+            return extractReportImportSql(inlineSql);
         }
         ReportSqlResolveResult resolvedSql = reportSqlResolver.resolve(buildReportSqlResolveRequest(batch, item));
-        return resolvedSql.getSqlText();
+        return extractReportImportSql(resolvedSql.getSqlText());
     }
 
     private StructureParseRequest buildStructureRequest(String sqlText, ReportBatch batch, Map<String, Object> commentContext) {
@@ -915,6 +944,48 @@ public class ReportBatchApplicationService {
         return value.trim();
     }
 
+    private String extractReportImportSql(String value) {
+        String sqlText = trimToNull(value);
+        if (!StringUtils.hasText(sqlText) || !sqlText.startsWith("--")) {
+            return sqlText;
+        }
+        int firstLineEnd = firstLineEnd(sqlText);
+        int searchEnd = firstLineEnd < 0 ? sqlText.length() : firstLineEnd;
+        int sqlStart = findReportSqlStart(sqlText, searchEnd);
+        return sqlStart > 0 ? trimToNull(sqlText.substring(sqlStart)) : sqlText;
+    }
+
+    private int firstLineEnd(String value) {
+        int newline = value.indexOf('\n');
+        int carriageReturn = value.indexOf('\r');
+        if (newline < 0) {
+            return carriageReturn;
+        }
+        if (carriageReturn < 0) {
+            return newline;
+        }
+        return Math.min(newline, carriageReturn);
+    }
+
+    private int findReportSqlStart(String sqlText, int searchEnd) {
+        Matcher matcher = REPORT_SQL_START_PATTERN.matcher(sqlText);
+        while (matcher.find()) {
+            if (matcher.start() >= searchEnd) {
+                return -1;
+            }
+            return matcher.start();
+        }
+        return -1;
+    }
+
+    private String compactDiagnosticText(String value, int limit) {
+        String compact = trimToNull(value == null ? null : value.replace('\n', ' ').replace('\r', ' '));
+        if (compact == null || compact.length() <= limit) {
+            return compact;
+        }
+        return compact.substring(0, Math.max(0, limit - 3)) + "...";
+    }
+
     private List<ReportSourceRow> expandReportRows(List<String> headers, List<String> values, String rawLine) {
         ReportSourceRow base = new ReportSourceRow();
         base.rawLine = rawLine;
@@ -933,7 +1004,7 @@ public class ReportBatchApplicationService {
             sqlRow.rawLine = rawLine + " column=" + header;
             sqlRow.sqlColumnName = header;
             sqlRow.sqlOrdinalInReport = Integer.valueOf(sqlOrdinal);
-            sqlRow.sqlText = sqlText;
+            sqlRow.sqlText = extractReportImportSql(sqlText);
             rows.add(sqlRow);
         }
         if (rows.isEmpty() && StringUtils.hasText(base.reportCode)) {

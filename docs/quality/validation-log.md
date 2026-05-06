@@ -2342,3 +2342,11 @@
 2026-05-06T11:04:08-05:00 | HARN-072 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-06T11:04:08-05:00 | HARN-072 closeout commit | `R-168` | projected | `git commit -m 'fix(sql-optimization): align batch SQL diagnostics' (projected-precommit)`
 2026-05-06T11:04:08-05:00 | HARN-072 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-06T11:31:28-05:00 | HARN-073 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-06T11:31:28-05:00 | HARN-073 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-06T11:31:42-05:00 | HARN-073 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-06T11:31:42-05:00 | HARN-073 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-06T11:35:02-05:00 | HARN-073 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-06T11:35:02-05:00 | HARN-073 closeout commit | `R-168` | projected | `git commit -m 'fix(sql-optimization): extract report import sql bodies' (projected-precommit)`
+2026-05-06T11:35:02-05:00 | HARN-073 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-06T11:35:02-05:00 | HARN-073 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
