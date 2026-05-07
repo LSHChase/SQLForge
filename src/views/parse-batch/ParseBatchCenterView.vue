@@ -17,6 +17,7 @@ import {
 } from '../../services/runtimeGateApi'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
+import { issueSceneHelpText } from '../common/issueSceneHelp.mjs'
 
 const { locale } = useI18n()
 const route = useRoute()
@@ -488,6 +489,12 @@ const displayValue = value => {
   return String(value)
 }
 
+const issueSceneValues = value => arrayValue(value).filter(scene => hasDisplayValue(scene))
+
+const issueSceneHelp = scene => issueSceneHelpText(scene, isChinese.value)
+
+const issueSceneListHelp = value => issueSceneValues(value).map(issueSceneHelp).filter(Boolean).join(' / ')
+
 const helpTextForKey = key => {
   const glossary = {
     batchStatus: isChinese.value ? '当前报表批次的导入或解析生命周期状态。' : 'Current lifecycle status of the report-import batch.',
@@ -621,7 +628,6 @@ const buildDiagnosticSummary = item => {
   push('report', item.reportCode)
   push('sqlColumn', item.sqlColumnName)
   push('sqlOrdinal', item.sqlOrdinalInReport)
-  push('sourceLine', item.sourceFileLine)
   push('parseTask', item.parseTaskId)
   push('status', item.status)
   push('line', item.failureLine)
@@ -1624,7 +1630,12 @@ onMounted(async () => {
                 <p class="section-kicker sqlforge-code-label">report-level issue statistics</p>
                 <div class="stat-list">
                   <div v-for="item in reportIssueStatisticsPreview.slice(0, 6)" :key="item.issueScene" class="contract-item">
-                    <strong>{{ item.issueScene }}</strong>
+                    <strong>
+                      {{ item.issueScene }}
+                      <el-tooltip v-if="issueSceneHelp(item.issueScene)" :content="issueSceneHelp(item.issueScene)" placement="top">
+                        <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
+                      </el-tooltip>
+                    </strong>
                     <span>{{ item.affectedSqlCount }} · {{ formatPercent(item.ratio) }}</span>
                   </div>
                   <div v-if="!reportIssueStatistics.length" class="empty-state">
@@ -1827,7 +1838,13 @@ onMounted(async () => {
                 · Structure: {{ displayValue(item.structureSyntaxStatus) }}
                 · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
               </p>
-              <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+              <p>
+                {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                <el-tooltip v-if="issueSceneListHelp(item.issueScenes)" :content="issueSceneListHelp(item.issueScenes)" placement="top">
+                  <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
+                </el-tooltip>
+                {{ displayValue(item.issueScenes) }}
+              </p>
               <p
                 v-if="hasIssueOrFailure(item)"
                 class="diagnostic-line"
@@ -1900,7 +1917,12 @@ onMounted(async () => {
           <div class="result-layout">
             <div class="stat-list">
               <div v-for="item in parseIssueStatisticsPreview" :key="item.issueScene" class="contract-item">
-                <strong>{{ item.issueScene }}</strong>
+                <strong>
+                  {{ item.issueScene }}
+                  <el-tooltip v-if="issueSceneHelp(item.issueScene)" :content="issueSceneHelp(item.issueScene)" placement="top">
+                    <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
+                  </el-tooltip>
+                </strong>
                 <span>{{ displayValue(item.affectedRecords) }} · {{ formatPercent(item.ratio) }}</span>
               </div>
               <div
@@ -2103,7 +2125,13 @@ onMounted(async () => {
                     Structure: {{ displayValue(item.structureSyntaxStatus) }}
                     · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
                   </p>
-                  <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+                  <p>
+                    {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                    <el-tooltip v-if="issueSceneListHelp(item.issueScenes)" :content="issueSceneListHelp(item.issueScenes)" placement="top">
+                      <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
+                    </el-tooltip>
+                    {{ displayValue(item.issueScenes) }}
+                  </p>
                   <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
                   <p
                     v-if="hasIssueOrFailure(item)"
@@ -2202,7 +2230,13 @@ onMounted(async () => {
                 Structure: {{ displayValue(item.structureSyntaxStatus) }}
                 · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
               </p>
-              <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+              <p>
+                {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                <el-tooltip v-if="issueSceneListHelp(item.issueScenes)" :content="issueSceneListHelp(item.issueScenes)" placement="top">
+                  <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
+                </el-tooltip>
+                {{ displayValue(item.issueScenes) }}
+              </p>
               <p
                 v-if="hasIssueOrFailure(item)"
                 class="diagnostic-line"
@@ -2308,7 +2342,12 @@ onMounted(async () => {
                   class="contract-item"
                   data-testid="batch-import-report-statistics-issue-scene"
                 >
-                  <strong>{{ item.issueScene }}</strong>
+                  <strong>
+                    {{ item.issueScene }}
+                    <el-tooltip v-if="issueSceneHelp(item.issueScene)" :content="issueSceneHelp(item.issueScene)" placement="top">
+                      <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
+                    </el-tooltip>
+                  </strong>
                   <span>
                     {{ item.affectedSqlCount }} SQL
                     · {{ displayValue(item.severity) }}

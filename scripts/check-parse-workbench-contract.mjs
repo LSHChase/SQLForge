@@ -3,7 +3,11 @@ import path from 'node:path'
 
 const root = process.cwd()
 const viewPath = path.join(root, 'src/views/optimization/AccelerationView.vue')
-const source = fs.readFileSync(viewPath, 'utf8')
+const helperPath = path.join(root, 'src/views/common/issueSceneHelp.mjs')
+const source = [
+  fs.readFileSync(viewPath, 'utf8'),
+  fs.readFileSync(helperPath, 'utf8')
+].join('\n')
 
 const requiredTokens = [
   'data-testid="parse-workbench-page"',
@@ -35,6 +39,7 @@ const requiredTokens = [
   'data-testid="parse-workbench-history-entry"',
   'data-testid="parse-workbench-issue"',
   'riskDisplayText(',
+  'sharedRiskDisplayText',
   'Logical object hits',
   'Access parse card',
   'Structure parse card',

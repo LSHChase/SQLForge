@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-076: Align parse history and report import details
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `fix(sql-optimization): align report parse details`
+- Priority: P1
+- Depends on: HARN-075
+- Scope: Align parse history detail and report import SQL details with single SQL comprehensive parsing: shared issue-scene help hints, remove full SQL from location/task summaries, and run report SQL structure parse plus Access parse plus history writeback without schema changes.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-076`
+- Progress log:
+  - 2026-05-06: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Aligned report import SQL parsing with the comprehensive single-SQL path by running structure parse, Access Parse, combined history writeback, and detail-safe status propagation; added shared issue-scene help text and removed source-line SQL from fallback location summaries.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-076; python3 scripts/task_audit.py --check --phase pre-closeout; mvn -pl sql-optimization -Dtest=ReportBatchApplicationServiceTest,ReportBatchControllerTest,ReportBatchParseStatisticsAssemblerTest test; mvn -pl sql-optimization test; node scripts/check-history-page-contract.mjs; node scripts/check-history-detail-contract.mjs; node scripts/check-batch-import-contract.mjs; node scripts/check-parse-workbench-contract.mjs; npm run lint; npm run build; git diff --check
+  - Residual risk: Manual browser verification against a production-sized real report batch was not run in this turn.
+  - Next step: During product acceptance, import a real report workbook/CSV and confirm tooltips, Access status, history drill-through, and SQL-only output sections in the UI.
+
 ### BUG-REPORT-SQL-HISTORY-DETAIL-20260507: Fix report SQL history detail loading
 
 - Status: done

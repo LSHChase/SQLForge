@@ -3,7 +3,11 @@ import path from 'node:path'
 
 const root = process.cwd()
 const viewPath = path.join(root, 'src/views/parse-record/ParseRecordView.vue')
-const source = fs.readFileSync(viewPath, 'utf8')
+const helperPath = path.join(root, 'src/views/common/issueSceneHelp.mjs')
+const source = [
+  fs.readFileSync(viewPath, 'utf8'),
+  fs.readFileSync(helperPath, 'utf8')
+].join('\n')
 
 const requiredTokens = [
   'query history detail',
@@ -31,6 +35,9 @@ const requiredTokens = [
   "key: 'boundSqlFingerprint'",
   "key: 'bindingMode'",
   'reportHistoryIdForItem',
+  'issueSceneHelpText',
+  'riskDisplayText',
+  'aria-label="issue scene help"',
   'Recommendation refs',
   'Benchmark refs',
   'Alert refs',

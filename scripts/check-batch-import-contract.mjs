@@ -4,6 +4,7 @@ import path from 'node:path'
 const root = process.cwd()
 const contractFiles = [
   'src/views/parse-batch/ParseBatchCenterView.vue',
+  'src/views/common/issueSceneHelp.mjs',
   'sql-optimization/src/main/java/com/company/sqloptimization/application/service/ParseBatchApplicationService.java',
   'sql-optimization/src/main/java/com/company/sqloptimization/application/service/ReportBatchApplicationService.java',
   'sql-optimization/src/main/java/com/company/sqloptimization/application/service/ReportBatchParseStatisticsAssembler.java',
@@ -97,6 +98,11 @@ const requiredTokens = [
   'data-testid="batch-import-report-statistics-sql-filter"',
   'issueLocationText',
   'help-dot',
+  'issueSceneHelpText',
+  'issueSceneListHelp',
+  'aria-label="issue scene help"',
+  'parseAccessIfPossible',
+  'writeParseHistoryWithAccess',
   'splitSqlStatements',
   'omittedItemCount',
   'omittedFailureCount',

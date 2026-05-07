@@ -63,7 +63,8 @@ class ReportBatchApplicationServiceTest {
         assertEquals(Integer.valueOf(2), resolved.getResolvedReports());
         assertEquals("RPT_A", resolved.getReportItems().get(0).getReportCode());
         assertEquals("VALID", resolved.getReportItems().get(0).getStructureSyntaxStatus());
-        assertEquals("SKIPPED", resolved.getReportItems().get(0).getAccessServiceStatus());
+        assertEquals("AVAILABLE", resolved.getReportItems().get(0).getAccessServiceStatus());
+        assertEquals("CONNECTED", resolved.getReportItems().get(0).getAccessConnectionStatus());
     }
 
     @Test
@@ -224,6 +225,8 @@ class ReportBatchApplicationServiceTest {
         assertEquals(Integer.valueOf(2), resolved.getTotalSqls());
         assertEquals(Integer.valueOf(2), resolved.getResolvedSqls());
         assertEquals(Integer.valueOf(1), resolved.getResolvedReports());
+        assertEquals("AVAILABLE", resolved.getReportItems().get(0).getAccessServiceStatus());
+        assertEquals("CONNECTED", resolved.getReportItems().get(0).getAccessConnectionStatus());
         assertNotNull(resolved.getReportItems().get(0).getHistoryId());
         assertTrue(resolved.getReportItems().get(0).getHistoryId().startsWith("history-parse-"));
         assertEquals(Boolean.TRUE, resolved.getReportItems().get(0).getHistoryPersisted());
@@ -252,6 +255,36 @@ class ReportBatchApplicationServiceTest {
         assertEquals("RPT_INLINE", sceneDetail.getReportDetails().get(0).getReportCode());
         assertEquals("TABLE:orders", sceneDetail.getLogicalObjectDetails().get(0).getObjectKey());
         assertEquals("RPT_INLINE", sceneDetail.getSqlStatistics().get(0).getReportCode());
+    }
+
+    @Test
+    void shouldKeepStructureDetailWhenReportSqlAccessParseIsUnavailable() {
+        ReportBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-013", "trace-013", "header", 1L, 2L);
+
+        ReportBatchImportRequest request = baseRequest(
+            "access-unavailable-csv",
+            "CSV",
+            "report_code,sql_1\nRPT_ACCESS,\"SELECT * FROM orders WHERE dt = '2026-04-01'\""
+        );
+        request.setDatasourceCode("hetu_unavailable");
+
+        ReportBatchStatusResponse imported = service.importBatch(request);
+        ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
+
+        assertEquals("PARTIAL_COMPLETED", resolved.getStatus());
+        assertEquals(Integer.valueOf(0), resolved.getResolvedSqls());
+        assertEquals(Integer.valueOf(1), resolved.getFailedSqls());
+        assertEquals("PARTIAL_RESOLVED", resolved.getReportItems().get(0).getStatus());
+        assertEquals("VALID", resolved.getReportItems().get(0).getStructureSyntaxStatus());
+        assertEquals("UNAVAILABLE", resolved.getReportItems().get(0).getAccessServiceStatus());
+        assertEquals("UNAVAILABLE", resolved.getReportItems().get(0).getAccessConnectionStatus());
+        assertEquals("ACCESS_PARSE_SERVICE_UNAVAILABLE", resolved.getReportItems().get(0).getFailureReason());
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("SELECT_STAR"));
+        assertNotNull(resolved.getReportItems().get(0).getHistoryId());
+        assertEquals(Boolean.TRUE, resolved.getReportItems().get(0).getHistoryPersisted());
+        assertTrue(resolved.getReportItems().get(0).getDiagnosticSummary().contains("sqlColumn=sql_1"));
+        assertFalse(resolved.getReportItems().get(0).getDiagnosticSummary().contains("SELECT * FROM orders"));
     }
 
     @Test

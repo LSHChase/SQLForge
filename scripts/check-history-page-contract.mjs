@@ -4,7 +4,11 @@ import path from 'node:path'
 const root = process.cwd()
 const viewPath = path.join(root, 'src/views/parse-record/ParseRecordView.vue')
 const apiPath = path.join(root, 'src/services/runtimeGateApi.js')
-const source = fs.readFileSync(viewPath, 'utf8')
+const helperPath = path.join(root, 'src/views/common/issueSceneHelp.mjs')
+const source = [
+  fs.readFileSync(viewPath, 'utf8'),
+  fs.readFileSync(helperPath, 'utf8')
+].join('\n')
 const apiSource = fs.readFileSync(apiPath, 'utf8')
 const pageApiStart = apiSource.indexOf('export const getGovernanceQueryHistoryPage')
 const pageApiEnd = apiSource.indexOf('export const getHetuRouteCalibration')
@@ -45,6 +49,8 @@ const requiredTokens = [
   'frontend-parse-record-report-sql-history-detail',
   'frontend-parse-record-report-batch-statistics',
   'issueLocationText',
+  'issueSceneHelpText',
+  'aria-label="issue scene help"',
   'itemTotalCount',
   'History classification',
   'Sort mode',

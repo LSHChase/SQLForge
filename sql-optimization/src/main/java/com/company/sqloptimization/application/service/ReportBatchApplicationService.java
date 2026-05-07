@@ -323,7 +323,7 @@ public class ReportBatchApplicationService {
                 public ReportBatchItem call() {
                     RequestContext.restore(contextValue);
                     try {
-                        return resolveReportBatchItemStructureOnly(batch, item, Instant.now());
+                        return resolveReportBatchItemComprehensive(batch, item, Instant.now());
                     } finally {
                         RequestContext.clear();
                     }
@@ -361,26 +361,61 @@ public class ReportBatchApplicationService {
         return resolvedItems;
     }
 
-    private ReportBatchItem resolveReportBatchItemStructureOnly(ReportBatch batch,
+    private ReportBatchItem resolveReportBatchItemComprehensive(ReportBatch batch,
                                                                 ReportBatchItem item,
                                                                 Instant now) {
         String resolvedSqlText = null;
         try {
             resolvedSqlText = resolveSqlText(batch, item);
             Map<String, Object> commentContext = buildCommentContext(batch, item);
-            StructureParseRequest structureRequest = buildStructureRequest(resolvedSqlText, batch, commentContext);
+            StructureParseRequest structureRequest = buildStructureRequest(resolvedSqlText, batch, item, commentContext);
             StructureParseResponseVO structureParse = structureParseApplicationService.parse(structureRequest);
             List<String> issueScenes = extractIssueScenes(structureParse.getIssues());
             List<String> logicalObjectKeys = extractLogicalObjectKeys(structureParse.getLogicalObjectHits());
-            ReportBatchItem.Status status = resolveStatus(structureParse, null);
+            if (!"VALID".equals(structureParse.getSyntaxStatus())) {
+                item.complete(
+                    resolvedSqlText,
+                    structureParse.getParseTaskId(),
+                    structureParse.getSyntaxStatus(),
+                    "SKIPPED",
+                    "SKIPPED",
+                    ReportBatchItem.Status.FAILED,
+                    resolveFailureReason(structureParse, null),
+                    issueScenes,
+                    logicalObjectKeys,
+                    now
+                );
+                item.recordHistory(
+                    structureParse.getHistoryId(),
+                    structureParse.getHistoryPersisted(),
+                    structureParse.getHistoryPersistenceStatus(),
+                    now
+                );
+                return item;
+            }
+
+            AccessParseResponseVO accessParse = parseAccessIfPossible(
+                resolvedSqlText,
+                batch,
+                item,
+                commentContext,
+                structureParse.getParseTaskId()
+            );
+            ReportBatchItem.Status status = resolveStatus(structureParse, accessParse);
+            structureParseApplicationService.writeParseHistoryWithAccess(
+                structureParse,
+                accessParse,
+                structureRequest,
+                resolveHistoryResultStatus(status)
+            );
             item.complete(
                 resolvedSqlText,
                 structureParse.getParseTaskId(),
                 structureParse.getSyntaxStatus(),
-                "SKIPPED",
-                "SKIPPED",
+                accessParse == null ? "SKIPPED" : accessParse.getServiceStatus(),
+                accessParse == null ? "SKIPPED" : accessParse.getConnectionStatus(),
                 status,
-                resolveFailureReason(structureParse, null),
+                resolveFailureReason(structureParse, accessParse),
                 issueScenes,
                 logicalObjectKeys,
                 now
@@ -596,27 +631,47 @@ public class ReportBatchApplicationService {
         return extractReportImportSql(resolvedSql.getSqlText());
     }
 
-    private StructureParseRequest buildStructureRequest(String sqlText, ReportBatch batch, Map<String, Object> commentContext) {
+    private StructureParseRequest buildStructureRequest(String sqlText,
+                                                        ReportBatch batch,
+                                                        ReportBatchItem item,
+                                                        Map<String, Object> commentContext) {
         StructureParseRequest request = new StructureParseRequest();
         request.setSqlText(sqlText);
-        request.setDatasourceCode(batch.getDatasourceCode());
+        request.setDatasourceCode(firstNonBlank(item.getDatasourceCode(), batch.getDatasourceCode()));
         request.setCommentContext(commentContext);
         return request;
     }
 
     private AccessParseResponseVO parseAccessIfPossible(String sqlText,
                                                         ReportBatch batch,
+                                                        ReportBatchItem item,
                                                         Map<String, Object> commentContext,
                                                         String parseTaskId) {
-        if (!StringUtils.hasText(batch.getDatasourceCode())) {
-            return null;
-        }
         AccessParseRequest request = new AccessParseRequest();
         request.setSqlText(sqlText);
-        request.setDatasourceCode(batch.getDatasourceCode());
+        request.setDatasourceCode(firstNonBlank(item.getDatasourceCode(), batch.getDatasourceCode()));
         request.setCommentContext(commentContext);
         request.setConnectionRequired(Boolean.TRUE);
-        return accessParseApplicationService.parseAccess(request, parseTaskId);
+        try {
+            return accessParseApplicationService.parseAccess(request, parseTaskId);
+        } catch (RuntimeException ex) {
+            return buildAccessParseFailure(parseTaskId, ex);
+        }
+    }
+
+    private AccessParseResponseVO buildAccessParseFailure(String parseTaskId, RuntimeException ex) {
+        AccessParseResponseVO response = new AccessParseResponseVO();
+        response.setParseTaskId(parseTaskId);
+        response.setServiceStatus("FAILED");
+        response.setConnectionStatus("FAILED");
+        response.setObjectResolutionStatus("UNAVAILABLE");
+        response.setCompatibilityStatus("UNKNOWN");
+        response.setAvailabilityWarning("Access parse failed after structure parse succeeded.");
+        response.setDegradeReason(SqlParseDiagnosticSupport.compactDiagnosticText(
+            "ACCESS_PARSE_FAILED: " + (ex == null ? "unknown" : ex.getMessage()),
+            FAILURE_REASON_LIMIT
+        ));
+        return response;
     }
 
     private boolean containsInlineSql(List<ReportSourceRow> rows) {

@@ -18,6 +18,7 @@ import {
   lookupGovernanceTraces
 } from '../../services/runtimeGateApi'
 import { buildDatasourceOptions, buildTenantOptions, withCurrentOption } from '../common/formComponentGovernance'
+import { issueSceneHelpText, riskDisplayText as sharedRiskDisplayText } from '../common/issueSceneHelp.mjs'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 
 const { locale } = useI18n()
@@ -1113,6 +1114,14 @@ const displayValue = value => {
   return String(value)
 }
 
+const issueSceneValues = value => normalizeArray(value).filter(scene => hasDisplayValue(scene))
+
+const issueSceneHelp = scene => issueSceneHelpText(scene, isChinese.value)
+
+const issueSceneListHelp = value => issueSceneValues(value).map(issueSceneHelp).filter(Boolean).join(' / ')
+
+const riskDisplayText = (risk, field) => sharedRiskDisplayText(risk, field, isChinese.value)
+
 const displayDetailValue = value => {
   if (value && typeof value === 'object') {
     return formatJson(value)
@@ -1670,7 +1679,12 @@ onMounted(async () => {
                   data-testid="parse-record-report-statistics-issue-scene"
                   @click="openReportBatchIssueSceneDetail(item)"
                 >
-                  <span>{{ item.issueScene }}</span>
+                  <span>
+                    {{ item.issueScene }}
+                    <el-tooltip v-if="issueSceneHelp(item.issueScene)" :content="issueSceneHelp(item.issueScene)" placement="top">
+                      <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
+                    </el-tooltip>
+                  </span>
                   <strong>
                     {{ item.affectedSqlCount }} SQL · {{ displayValue(item.severity) }} · {{ formatPercent(item.ratio) }}
                     <span v-if="item.reportCount"> · {{ item.reportCount }} {{ isChinese ? '报表' : 'reports' }}</span>
@@ -1743,7 +1757,13 @@ onMounted(async () => {
                     <span>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</span>
                     <strong>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues</strong>
                     <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
-                    <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+                    <p>
+                      {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                      <el-tooltip v-if="issueSceneListHelp(item.issueScenes)" :content="issueSceneListHelp(item.issueScenes)" placement="top">
+                        <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
+                      </el-tooltip>
+                      {{ displayValue(item.issueScenes) }}
+                    </p>
                   </article>
                 </div>
                 <el-pagination
@@ -1888,7 +1908,13 @@ onMounted(async () => {
                     {{ displayValue(reportHistoryIdForItem(item)) }}
                     · {{ displayValue(item.historyPersistenceStatus) }}
                   </p>
-                  <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+                  <p>
+                    {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                    <el-tooltip v-if="issueSceneListHelp(item.issueScenes)" :content="issueSceneListHelp(item.issueScenes)" placement="top">
+                      <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
+                    </el-tooltip>
+                    {{ displayValue(item.issueScenes) }}
+                  </p>
                   <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
                   <p class="empty-copy">{{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}</p>
                   <SqlCodeBlock
@@ -1960,12 +1986,17 @@ onMounted(async () => {
                         data-testid="parse-record-report-sql-risk"
                       >
                         <div class="issue-card__header">
-                          <strong>{{ risk.riskCode || '-' }}</strong>
+                          <strong>
+                            {{ risk.riskCode || '-' }}
+                            <el-tooltip v-if="issueSceneHelp(risk)" :content="issueSceneHelp(risk)" placement="top">
+                              <el-button text size="small" class="help-dot" aria-label="risk help">?</el-button>
+                            </el-tooltip>
+                          </strong>
                           <span>{{ risk.severity || '-' }}</span>
                         </div>
-                        <p class="issue-card__summary">{{ displayDetailValue(risk.summary) }}</p>
-                        <p class="issue-card__detail">{{ displayDetailValue(risk.evidence) }}</p>
-                        <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(risk.suggestedAction) }}</p>
+                        <p class="issue-card__summary">{{ riskDisplayText(risk, 'summary') }}</p>
+                        <p class="issue-card__detail">{{ riskDisplayText(risk, 'evidence') }}</p>
+                        <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ riskDisplayText(risk, 'suggestedAction') }}</p>
                       </article>
                     </div>
                     <div v-if="normalizeArray(reportItemStructureParse(item).issues).length" class="issue-list">
@@ -1976,7 +2007,12 @@ onMounted(async () => {
                         data-testid="parse-record-report-sql-issue"
                       >
                         <div class="issue-card__header">
-                          <strong>{{ issue.issueCode || '-' }}</strong>
+                          <strong>
+                            {{ issue.issueCode || '-' }}
+                            <el-tooltip v-if="issueSceneHelp(issue)" :content="issueSceneHelp(issue)" placement="top">
+                              <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
+                            </el-tooltip>
+                          </strong>
                           <span>{{ displayValue(firstValue(issue.severity, issue.priorityLevel)) }}</span>
                         </div>
                         <p class="issue-card__summary">{{ displayDetailValue(issue.summary) }}</p>
@@ -2246,12 +2282,17 @@ onMounted(async () => {
                       data-testid="parse-record-history-risk"
                     >
                       <div class="issue-card__header">
-                        <strong>{{ risk.riskCode || '-' }}</strong>
+                        <strong>
+                          {{ risk.riskCode || '-' }}
+                          <el-tooltip v-if="issueSceneHelp(risk)" :content="issueSceneHelp(risk)" placement="top">
+                            <el-button text size="small" class="help-dot" aria-label="risk help">?</el-button>
+                          </el-tooltip>
+                        </strong>
                         <span>{{ risk.severity || '-' }}</span>
                       </div>
-                      <p class="issue-card__summary">{{ displayDetailValue(risk.summary) }}</p>
-                      <p class="issue-card__detail">{{ displayDetailValue(risk.evidence) }}</p>
-                      <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(risk.suggestedAction) }}</p>
+                      <p class="issue-card__summary">{{ riskDisplayText(risk, 'summary') }}</p>
+                      <p class="issue-card__detail">{{ riskDisplayText(risk, 'evidence') }}</p>
+                      <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ riskDisplayText(risk, 'suggestedAction') }}</p>
                     </article>
                   </div>
 
@@ -2263,7 +2304,12 @@ onMounted(async () => {
                       data-testid="parse-record-history-issue"
                     >
                       <div class="issue-card__header">
-                        <strong>{{ issue.issueCode || '-' }}</strong>
+                        <strong>
+                          {{ issue.issueCode || '-' }}
+                          <el-tooltip v-if="issueSceneHelp(issue)" :content="issueSceneHelp(issue)" placement="top">
+                            <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
+                          </el-tooltip>
+                        </strong>
                         <span>{{ displayValue(firstValue(issue.severity, issue.priorityLevel)) }}</span>
                       </div>
                       <p class="issue-card__summary">{{ displayDetailValue(issue.summary) }}</p>
@@ -2883,6 +2929,17 @@ onMounted(async () => {
 .result-copy {
   margin: 0;
   line-height: 1.6;
+}
+
+.help-dot {
+  min-width: 20px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin-left: 4px;
+  border-radius: 50%;
+  border: 1px solid var(--sqlforge-border-default);
+  color: var(--sqlforge-text-secondary);
 }
 
 .result-copy-muted {
