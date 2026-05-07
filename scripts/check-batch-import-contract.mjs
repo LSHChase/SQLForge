@@ -21,12 +21,13 @@ const source = contractFiles
 const requiredTokens = [
   'data-testid="batch-import-page"',
   'current batch workbench',
-  'input sql',
+  '创建与导入参数都在弹窗中完成。',
+  'Create and ingest parameters stay in dialogs.',
   'report catalog import',
   'data-testid="batch-import-current-workbench"',
-  'data-testid="batch-import-current-input"',
   'data-testid="batch-import-create"',
   'data-testid="batch-import-download-template"',
+  'data-testid="batch-import-dialog-sql-input"',
   'data-testid="batch-import-parse-result-tabs"',
   'data-testid="batch-import-parse-statistics-tabs"',
   'data-testid="batch-import-ingest"',
@@ -39,8 +40,8 @@ const requiredTokens = [
   'data-testid="batch-import-parse-item-detail-open"',
   'data-testid="batch-import-parse-item-detail"',
   'data-testid="batch-import-report-current-workbench"',
-  'data-testid="batch-import-report-current-input"',
   'data-testid="batch-import-report-import"',
+  'data-testid="batch-import-report-dialog-sql-input"',
   'data-testid="batch-import-report-template"',
   'data-testid="batch-import-report-resolve"',
   'batch-import-report-item',
@@ -122,7 +123,12 @@ const requiredTokens = [
 
 const missing = requiredTokens.filter(token => !source.includes(token))
 const forbiddenTokens = [
-  '<el-button text size="small" class="help-dot" aria-label="issue scene help"'
+  '<el-button text size="small" class="help-dot" aria-label="issue scene help"',
+  'data-testid="batch-import-current-input"',
+  'data-testid="batch-import-report-current-input"',
+  'data-testid="batch-import-current-sql-input"',
+  'data-testid="batch-import-report-current-sql-input"',
+  'class="shell-panel input-rail"'
 ]
 const forbidden = forbiddenTokens.filter(token => source.includes(token))
 

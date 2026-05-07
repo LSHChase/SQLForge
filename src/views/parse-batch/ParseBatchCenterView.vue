@@ -115,7 +115,6 @@ const reportBatchForm = reactive({
 
 const parseFileTypeOptions = ['CSV', 'TXT', 'SQL', 'XLS', 'XLSX', 'ET']
 const parseImportModeOptions = ['TABULAR_FILE', 'SQL_FILE', 'REPORT_CATALOG']
-const retryFilterOptions = ['ALL', 'UNAVAILABLE', 'FAILED']
 const directInputModeOptions = ['SQL_LINES', 'TABULAR_TEXT']
 const DIRECT_SQL_PREVIEW_LIMIT = 5
 const DASHBOARD_PREVIEW_LIMIT = 6
@@ -1242,8 +1241,8 @@ onMounted(async () => {
             <p class="section-summary">
               {{
                 isChinese
-                  ? '本页主体只展示当前批次的输入、批次、概览、解析结果和解析统计。'
-                  : 'The page body only shows the current batch input, batch status, overview, parse results, and statistics.'
+                  ? '本页主体只展示当前批次概览、解析结果和解析统计；创建与导入参数都在弹窗中完成。'
+                  : 'The page body only shows the current batch overview, parse results, and statistics. Create and ingest parameters stay in dialogs.'
               }}
             </p>
           </div>
@@ -1267,46 +1266,6 @@ onMounted(async () => {
         </div>
 
         <div class="workspace-grid current-batch-grid" data-testid="batch-import-current-workbench">
-          <aside class="shell-panel input-rail" data-testid="batch-import-current-input">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">input sql</p>
-                <h3 class="section-title">{{ isChinese ? '输入 SQL 与导入选项' : 'Input SQL and import options' }}</h3>
-              </div>
-            </div>
-            <div class="dialog-grid dialog-grid-single">
-              <label class="field-block">
-                <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
-                <el-input v-model="parseBatchForm.tenantId" />
-              </label>
-              <label class="field-block">
-                <span class="field-label">{{ isChinese ? '批次名称' : 'Batch name' }}</span>
-                <el-input v-model="parseBatchForm.batchName" />
-              </label>
-              <label class="field-block">
-                <span class="field-label">{{ isChinese ? '输入方式' : 'Input mode' }}</span>
-                <el-select v-model="parseBatchForm.directInputMode">
-                  <el-option v-for="item in directInputModeOptions" :key="item" :label="item" :value="item" />
-                </el-select>
-              </label>
-              <label class="field-block">
-                <span class="field-label">{{ isChinese ? '默认数据源' : 'Default datasource' }}</span>
-                <el-input v-model="parseBatchForm.datasourceCode" />
-              </label>
-              <div class="field-block field-block-wide">
-                <SqlEditorField
-                  v-model="parseBatchForm.rawContent"
-                  :label="isChinese ? '多 SQL / 表格文本' : 'Multi SQL / tabular text'"
-                  :rows="10"
-                  :copy-label="isChinese ? '复制' : 'Copy'"
-                  :format-label="isChinese ? '格式化' : 'Format'"
-                  :format-enabled="parseBatchForm.directInputMode === 'SQL_LINES'"
-                  data-testid="batch-import-current-sql-input"
-                />
-              </div>
-            </div>
-          </aside>
-
           <main class="shell-panel detail-stage">
             <div class="section-heading">
               <div>
@@ -1339,7 +1298,7 @@ onMounted(async () => {
 
             <div v-else class="empty-stage">
               <strong>{{ isChinese ? '暂无 parse batch' : 'No parse batch selected' }}</strong>
-              <p>{{ isChinese ? '先创建批次，然后导入当前输入区的多条 SQL 或模板文件。' : 'Create a batch first, then import the current multi-SQL input or template file.' }}</p>
+              <p>{{ isChinese ? '使用“创建批次”建立批次，再通过“导入内容”上传模板文件或粘贴多条 SQL。' : 'Use Create batch first, then Ingest content to upload a template file or paste multiple SQL statements.' }}</p>
             </div>
           </main>
         </div>
@@ -1353,8 +1312,8 @@ onMounted(async () => {
             <p class="section-summary">
               {{
                 isChinese
-                  ? '报表导入按 report_code 分组，展开后查看每个报表下的 SQL。'
-                  : 'Report imports are grouped by report_code, with SQL details under each report.'
+                  ? '报表导入按 report_code 分组，导入参数在弹窗中完成，首屏保留批次概览与结果入口。'
+                  : 'Report imports are grouped by report_code. Import parameters stay in the dialog, while the first screen keeps the batch overview and result entry points.'
               }}
             </p>
           </div>
@@ -1382,44 +1341,6 @@ onMounted(async () => {
         </div>
 
         <div class="workspace-grid current-batch-grid" data-testid="batch-import-report-current-workbench">
-          <aside class="shell-panel input-rail" data-testid="batch-import-report-current-input">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">report import input</p>
-                <h3 class="section-title">{{ isChinese ? '导入选项' : 'Import options' }}</h3>
-              </div>
-            </div>
-            <div class="dialog-grid dialog-grid-single">
-              <label class="field-block">
-                <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
-                <el-input v-model="reportBatchForm.tenantId" />
-              </label>
-              <label class="field-block">
-                <span class="field-label">{{ isChinese ? '批次名称' : 'Batch name' }}</span>
-                <el-input v-model="reportBatchForm.batchName" />
-              </label>
-              <label class="field-block">
-                <span class="field-label">{{ isChinese ? '报表编码字段' : 'Report code field' }}</span>
-                <el-input v-model="reportBatchForm.reportCodeField" />
-              </label>
-              <label class="field-block">
-                <span class="field-label">{{ isChinese ? '默认数据源' : 'Default datasource' }}</span>
-                <el-input v-model="reportBatchForm.datasourceCode" />
-              </label>
-              <div class="field-block field-block-wide">
-                <SqlEditorField
-                  v-model="reportBatchForm.rawContent"
-                  :label="isChinese ? '内联报表 SQL 宽表' : 'Inline report SQL table'"
-                  :rows="8"
-                  :copy-label="isChinese ? '复制' : 'Copy'"
-                  :format-label="isChinese ? '格式化' : 'Format'"
-                  :format-enabled="false"
-                  data-testid="batch-import-report-current-sql-input"
-                />
-              </div>
-            </div>
-          </aside>
-
           <main class="shell-panel detail-stage">
             <div class="section-heading">
               <div>
@@ -1514,7 +1435,7 @@ onMounted(async () => {
 
             <div v-else class="empty-stage">
               <strong>{{ isChinese ? '暂无 report batch' : 'No report batch selected' }}</strong>
-              <p>{{ isChinese ? '通过左侧导入选项上传或粘贴 report_code + 多 SQL 宽表。' : 'Use the input panel to upload or paste a report_code + multi-SQL wide table.' }}</p>
+              <p>{{ isChinese ? '使用“导入报表批次”上传文件或粘贴 report_code + 多 SQL 宽表。' : 'Use Import report batch to upload a file or paste a report_code + multi-SQL wide table.' }}</p>
             </div>
           </main>
         </div>
@@ -1570,12 +1491,6 @@ onMounted(async () => {
           <span class="field-label">{{ isChinese ? '输入方式' : 'Input mode' }}</span>
           <el-select v-model="parseBatchForm.directInputMode">
             <el-option v-for="item in directInputModeOptions" :key="item" :label="item" :value="item" />
-          </el-select>
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ isChinese ? 'Access 补跑筛选' : 'Retry filter' }}</span>
-          <el-select v-model="retryForm.failureFilter">
-            <el-option v-for="item in retryFilterOptions" :key="item" :label="item" :value="item" />
           </el-select>
         </label>
         <label class="field-block field-block-wide">
@@ -2765,16 +2680,15 @@ onMounted(async () => {
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 0.84fr) minmax(0, 1.16fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
 }
 
 .current-batch-grid {
-  grid-template-columns: minmax(320px, 0.92fr) minmax(0, 1.08fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .session-rail,
-.input-rail,
 .detail-stage,
 .detail-card,
 .summary-card,

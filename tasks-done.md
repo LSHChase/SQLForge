@@ -4,6 +4,27 @@
 
 ## Done
 
+### UI-TASK-001: Converge batch parse center input cards
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `fix(frontend): UI-TASK-001 converge batch parse inputs`
+- Priority: 1
+- Depends on: N/A
+- Scope: Remove first-screen batch parse/report import input cards from ParseBatchCenterView, move user input guidance to existing create/import/template dialogs, keep API payloads unchanged, and validate frontend build/lint.
+- Validation:
+  - `python3 scripts/foreman.py validate UI-TASK-001`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-07: removed first-screen parse/report input rail cards from `src/views/parse-batch/ParseBatchCenterView.vue`, kept create/import/template dialogs as the input surfaces, and changed the current workbench layout to a single result column.
+  - 2026-05-07: updated `scripts/check-batch-import-contract.mjs` so the page contract now forbids the removed input rail test ids and requires dialog-based input entry points.
+  - 2026-05-07: validation passed via `python3 scripts/foreman.py validate UI-TASK-001 --extra-command "node scripts/check-batch-import-contract.mjs" --extra-command "npm run lint" --extra-command "npm run build" --extra-command "git diff --check"`.
+- Context closeout:
+  - Completed scope: Removed the first-screen parse and report import input rail cards from ParseBatchCenterView, converted the current workbench to a single result column, kept create/import/template responsibilities in dialogs, and updated the batch import contract check to require dialog input entry points while forbidding removed rail test ids.
+  - Validation evidence: python3 scripts/foreman.py validate UI-TASK-001 --extra-command 'node scripts/check-batch-import-contract.mjs' --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'git diff --check'
+  - Residual risk: Manual browser interaction against a live backend was not run in this turn; repo-closed frontend build/lint and contract checks passed.
+  - Next step: None.
+
 ### HARN-078: Optimize parse page information architecture
 
 - Status: done
