@@ -2423,3 +2423,17 @@
 2026-05-07T01:05:57-05:00 | OPS-RESTART-20260506 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `curl -fsS http://localhost:8082/actuator/health (projected-precommit)`
 2026-05-07T01:05:57-05:00 | OPS-RESTART-20260506 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `curl -fsS http://localhost:8083/actuator/health (projected-precommit)`
 2026-05-07T01:05:58-05:00 | OPS-RESTART-20260506 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `curl -fsS -o /dev/null http://localhost:3000/ (projected-precommit)`
+2026-05-07T01:23:47-05:00 | HARN-077 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-07T01:23:47-05:00 | HARN-077 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-07T01:24:07-05:00 | HARN-077 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-07T01:24:07-05:00 | HARN-077 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-07T01:24:07-05:00 | HARN-077 validate | `R-133`, `R-168` | passed | `node scripts/check-history-detail-contract.mjs`
+2026-05-07T01:24:07-05:00 | HARN-077 validate | `R-133`, `R-168` | passed | `node scripts/check-history-page-contract.mjs`
+2026-05-07T01:24:07-05:00 | HARN-077 validate | `R-133`, `R-168` | passed | `node scripts/check-batch-import-contract.mjs`
+2026-05-07T01:24:07-05:00 | HARN-077 validate | `R-133`, `R-168` | passed | `node scripts/check-parse-workbench-contract.mjs`
+2026-05-07T01:24:08-05:00 | HARN-077 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-07T01:24:12-05:00 | HARN-077 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-07T01:24:12-05:00 | HARN-077 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-07T01:24:39-05:00 | HARN-077 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-07T01:24:39-05:00 | HARN-077 closeout commit | `R-168` | projected | `git commit -m 'fix(frontend): complete issue scene tooltips' (projected-precommit)`
+2026-05-07T01:24:39-05:00 | HARN-077 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-077: 补齐解析详情问题场景中文提示
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `fix(frontend): complete issue scene tooltips`
+- Priority: P1
+- Depends on: HARN-076
+- Scope: 补齐解析历史详情与报表导入详情中问题场景代码旁的中文问号提示，覆盖结构解析 risk checklist、issues、统计、SQL 明细和失败/问题 SQL 详情；复用共享 issueSceneHelp 文案，不改 parser、接口字段或数据库 schema。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-077`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 补齐解析历史详情与报表导入详情中问题场景代码旁的中文 ? 提示；共享 issueSceneHelp 文案按风险含义、原因、建议三段输出并覆盖 REPEATED_TABLE_SCAN_RISK 等结构解析场景；问题场景帮助改为可 hover/focus 的 inline icon，避免嵌套按钮吞掉 tooltip；SQL 清单、失败/问题 SQL、报表级统计、risk checklist 与 issues 列表均展示短问题代码和定位信息，完整 SQL 仍只保留在 SQL 输出区域。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-077 --extra-command node scripts/check-history-detail-contract.mjs --extra-command node scripts/check-history-page-contract.mjs --extra-command node scripts/check-batch-import-contract.mjs --extra-command node scripts/check-parse-workbench-contract.mjs --extra-command npm run lint --extra-command npm run build --extra-command git diff --check; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 未在真实浏览器中对生产规模报表批次逐项手动 hover/focus 验收；当前覆盖来自静态契约、lint 与生产构建。
+  - Next step: 产品验收时在解析历史详情和报表导入详情中用包含 REPEATED_TABLE_SCAN_RISK、SQL_SYNTAX_INVALID 与其他问题场景的样例批次逐项悬停/聚焦 ?。
+
 ### OPS-RESTART-20260506: Restart local frontend and backend
 
 - Status: done

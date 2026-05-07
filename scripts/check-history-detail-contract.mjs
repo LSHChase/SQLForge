@@ -36,7 +36,13 @@ const requiredTokens = [
   "key: 'bindingMode'",
   'reportHistoryIdForItem',
   'issueSceneHelpText',
+  'issueSceneCodesForItem',
+  'issue-scene-help',
   'riskDisplayText',
+  'REPEATED_TABLE_SCAN_RISK',
+  '风险含义：',
+  '原因：',
+  '建议：',
   'aria-label="issue scene help"',
   'Recommendation refs',
   'Benchmark refs',
@@ -45,11 +51,19 @@ const requiredTokens = [
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))
+const forbiddenTokens = [
+  '<el-button text size="small" class="help-dot" aria-label="issue scene help"',
+  'aria-label="risk help"'
+]
+const forbidden = forbiddenTokens.filter(token => source.includes(token))
 
-if (missing.length > 0) {
+if (missing.length > 0 || forbidden.length > 0) {
   console.error('History detail contract check failed.')
   for (const token of missing) {
     console.error(`- missing token: ${token}`)
+  }
+  for (const token of forbidden) {
+    console.error(`- forbidden token: ${token}`)
   }
   process.exit(1)
 }

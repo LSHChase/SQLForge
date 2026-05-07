@@ -527,10 +527,11 @@ const openFieldHelp = (key, label) => {
   fieldHelpDialogVisible.value = true
 }
 
-const detailField = (zhLabel, enLabel, value, wide = false) => ({
+const detailField = (zhLabel, enLabel, value, wide = false, key = '') => ({
   label: isChinese.value ? zhLabel : enLabel,
   value,
-  wide
+  wide,
+  key
 })
 
 const parseItemDetailFields = computed(() => {
@@ -559,7 +560,7 @@ const parseItemDetailFields = computed(() => {
     detailField('失败原因', 'Failure reason', item.failureReason, true),
     detailField('定位摘要', 'Diagnostic summary', item.diagnosticSummary || buildDiagnosticSummary(item), true),
     detailField('失败片段', 'Failure snippet', item.failureSnippet, true),
-    detailField('问题场景', 'Issue scenes', item.issueScenes, true),
+    detailField('问题场景', 'Issue scenes', issueSceneCodesForItem(item), true, 'issueScenes'),
     detailField('逻辑对象', 'Logical objects', item.logicalObjectKeys, true),
     detailField('创建时间', 'Created at', formatInstant(item.createdAt)),
     detailField('更新时间', 'Updated at', formatInstant(item.updatedAt))
@@ -589,7 +590,7 @@ const reportItemDetailFields = computed(() => {
     detailField('失败 token', 'Failure token', item.failureToken),
     detailField('失败原因', 'Failure reason', item.failureReason, true),
     detailField('定位片段', 'Location snippets', issueLocationText(item), true),
-    detailField('问题场景', 'Issue scenes', item.issueScenes, true),
+    detailField('问题场景', 'Issue scenes', issueSceneCodesForItem(item), true, 'issueScenes'),
     detailField('逻辑对象', 'Logical objects', item.logicalObjectKeys, true),
     detailField('创建时间', 'Created at', formatInstant(item.createdAt)),
     detailField('更新时间', 'Updated at', formatInstant(item.updatedAt))
@@ -655,6 +656,14 @@ const issueLocationItems = item => {
     }]
   }
   return []
+}
+
+const issueSceneCodesForItem = item => {
+  const explicitScenes = issueSceneValues(item?.issueScenes)
+  if (explicitScenes.length) {
+    return explicitScenes
+  }
+  return issueLocationItems(item).map(location => location.issueScene).filter(scene => hasDisplayValue(scene))
 }
 
 const issueLocationText = item => {
@@ -1363,11 +1372,7 @@ onMounted(async () => {
                     v-for="(item, index) in parseFailureRecordsDashboardPreview"
                     :key="item.recordId || item.id || index"
                     class="failure-item"
-                    role="button"
-                    tabindex="0"
                     data-testid="batch-import-failure-record"
-                    @click="openParseItemDetail(item)"
-                    @keydown.enter="openParseItemDetail(item)"
                   >
                     <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
                     <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
@@ -1378,6 +1383,18 @@ onMounted(async () => {
                     >
                       {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
                     </p>
+                    <p v-if="issueSceneCodesForItem(item).length">
+                      {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                      <span
+                        v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
+                        class="help-dot issue-scene-help"
+                        tabindex="0"
+                        aria-label="issue scene help"
+                        :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
+                        :title="issueSceneListHelp(issueSceneCodesForItem(item))"
+                      >?</span>
+                      {{ displayValue(issueSceneCodesForItem(item)) }}
+                    </p>
                     <SqlCodeBlock
                       v-if="item.sqlText || item.sqlPreview"
                       :value="item.sqlText || item.sqlPreview"
@@ -1386,9 +1403,14 @@ onMounted(async () => {
                       compact
                     />
                     <p v-else>{{ displayValue(item.message) }}</p>
-                    <span class="detail-link" data-testid="batch-import-parse-failure-detail-open">
+                    <button
+                      type="button"
+                      class="detail-link detail-link-button"
+                      data-testid="batch-import-parse-failure-detail-open"
+                      @click="openParseItemDetail(item)"
+                    >
                       {{ isChinese ? '查看解析详情' : 'View parse detail' }}
-                    </span>
+                    </button>
                   </article>
                   <div v-if="parseFailureRecordsDashboardOmittedCount > 0" class="preview-note">
                     {{
@@ -1593,11 +1615,7 @@ onMounted(async () => {
                     v-for="(item, index) in reportFailureItemsDashboardPreview"
                     :key="item.itemId || index"
                     class="failure-item"
-                    role="button"
-                    tabindex="0"
                     data-testid="batch-import-report-failure-record"
-                    @click="openReportItemDetail(item)"
-                    @keydown.enter="openReportItemDetail(item)"
                   >
                     <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
                     <span>{{ displayValue(item.failureReason || item.status) }}</span>
@@ -1612,7 +1630,21 @@ onMounted(async () => {
                     >
                       {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
                     </p>
-                    <span class="detail-link">{{ isChinese ? '查看失败详情' : 'View failure detail' }}</span>
+                    <p v-if="issueSceneCodesForItem(item).length">
+                      {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                      <span
+                        v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
+                        class="help-dot issue-scene-help"
+                        tabindex="0"
+                        aria-label="issue scene help"
+                        :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
+                        :title="issueSceneListHelp(issueSceneCodesForItem(item))"
+                      >?</span>
+                      {{ displayValue(issueSceneCodesForItem(item)) }}
+                    </p>
+                    <button type="button" class="detail-link detail-link-button" @click="openReportItemDetail(item)">
+                      {{ isChinese ? '查看失败详情' : 'View failure detail' }}
+                    </button>
                   </article>
                   <div v-if="reportFailureItemsDashboardOmittedCount > 0" class="preview-note">
                     {{
@@ -1632,9 +1664,14 @@ onMounted(async () => {
                   <div v-for="item in reportIssueStatisticsPreview.slice(0, 6)" :key="item.issueScene" class="contract-item">
                     <strong>
                       {{ item.issueScene }}
-                      <el-tooltip v-if="issueSceneHelp(item.issueScene)" :content="issueSceneHelp(item.issueScene)" placement="top">
-                        <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
-                      </el-tooltip>
+                      <span
+                        v-if="issueSceneHelp(item.issueScene)"
+                        class="help-dot issue-scene-help"
+                        tabindex="0"
+                        aria-label="issue scene help"
+                        :data-tooltip="issueSceneHelp(item.issueScene)"
+                        :title="issueSceneHelp(item.issueScene)"
+                      >?</span>
                     </strong>
                     <span>{{ item.affectedSqlCount }} · {{ formatPercent(item.ratio) }}</span>
                   </div>
@@ -1840,10 +1877,15 @@ onMounted(async () => {
               </p>
               <p>
                 {{ isChinese ? '问题场景' : 'Issue scenes' }}:
-                <el-tooltip v-if="issueSceneListHelp(item.issueScenes)" :content="issueSceneListHelp(item.issueScenes)" placement="top">
-                  <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
-                </el-tooltip>
-                {{ displayValue(item.issueScenes) }}
+                <span
+                  v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
+                  class="help-dot issue-scene-help"
+                  tabindex="0"
+                  aria-label="issue scene help"
+                  :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
+                  :title="issueSceneListHelp(issueSceneCodesForItem(item))"
+                >?</span>
+                {{ displayValue(issueSceneCodesForItem(item)) }}
               </p>
               <p
                 v-if="hasIssueOrFailure(item)"
@@ -1889,7 +1931,17 @@ onMounted(async () => {
             :class="{ 'detail-field-wide': field.wide }"
           >
             <span class="summary-card-label">{{ field.label }}</span>
-            <strong>{{ displayValue(field.value) }}</strong>
+            <strong>
+              {{ displayValue(field.value) }}
+              <span
+                v-if="field.key === 'issueScenes' && issueSceneListHelp(field.value)"
+                class="help-dot issue-scene-help"
+                tabindex="0"
+                aria-label="issue scene help"
+                :data-tooltip="issueSceneListHelp(field.value)"
+                :title="issueSceneListHelp(field.value)"
+              >?</span>
+            </strong>
           </div>
         </div>
         <section class="detail-card">
@@ -1919,9 +1971,14 @@ onMounted(async () => {
               <div v-for="item in parseIssueStatisticsPreview" :key="item.issueScene" class="contract-item">
                 <strong>
                   {{ item.issueScene }}
-                  <el-tooltip v-if="issueSceneHelp(item.issueScene)" :content="issueSceneHelp(item.issueScene)" placement="top">
-                    <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
-                  </el-tooltip>
+                  <span
+                    v-if="issueSceneHelp(item.issueScene)"
+                    class="help-dot issue-scene-help"
+                    tabindex="0"
+                    aria-label="issue scene help"
+                    :data-tooltip="issueSceneHelp(item.issueScene)"
+                    :title="issueSceneHelp(item.issueScene)"
+                  >?</span>
                 </strong>
                 <span>{{ displayValue(item.affectedRecords) }} · {{ formatPercent(item.ratio) }}</span>
               </div>
@@ -1965,11 +2022,7 @@ onMounted(async () => {
               v-for="(item, index) in parseFailureRecordsPreview"
               :key="item.recordId || item.id || index"
               class="failure-item"
-              role="button"
-              tabindex="0"
               data-testid="batch-import-failure-record"
-              @click="openParseItemDetail(item)"
-              @keydown.enter="openParseItemDetail(item)"
             >
               <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
               <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
@@ -1980,6 +2033,18 @@ onMounted(async () => {
               >
                 {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
               </p>
+              <p v-if="issueSceneCodesForItem(item).length">
+                {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                <span
+                  v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
+                  class="help-dot issue-scene-help"
+                  tabindex="0"
+                  aria-label="issue scene help"
+                  :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
+                  :title="issueSceneListHelp(issueSceneCodesForItem(item))"
+                >?</span>
+                {{ displayValue(issueSceneCodesForItem(item)) }}
+              </p>
               <SqlCodeBlock
                 v-if="item.sqlText || item.sqlPreview"
                 :value="item.sqlText || item.sqlPreview"
@@ -1988,9 +2053,14 @@ onMounted(async () => {
                 compact
               />
               <p v-else>{{ displayValue(item.message) }}</p>
-              <span class="detail-link" data-testid="batch-import-parse-failure-detail-open">
+              <button
+                type="button"
+                class="detail-link detail-link-button"
+                data-testid="batch-import-parse-failure-detail-open"
+                @click="openParseItemDetail(item)"
+              >
                 {{ isChinese ? '查看解析详情' : 'View parse detail' }}
-              </span>
+              </button>
             </article>
             <div
               v-if="parseFailureRecordsOmittedCount > 0"
@@ -2127,10 +2197,15 @@ onMounted(async () => {
                   </p>
                   <p>
                     {{ isChinese ? '问题场景' : 'Issue scenes' }}:
-                    <el-tooltip v-if="issueSceneListHelp(item.issueScenes)" :content="issueSceneListHelp(item.issueScenes)" placement="top">
-                      <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
-                    </el-tooltip>
-                    {{ displayValue(item.issueScenes) }}
+                    <span
+                      v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
+                      class="help-dot issue-scene-help"
+                      tabindex="0"
+                      aria-label="issue scene help"
+                      :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
+                      :title="issueSceneListHelp(issueSceneCodesForItem(item))"
+                    >?</span>
+                    {{ displayValue(issueSceneCodesForItem(item)) }}
                   </p>
                   <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
                   <p
@@ -2232,10 +2307,15 @@ onMounted(async () => {
               </p>
               <p>
                 {{ isChinese ? '问题场景' : 'Issue scenes' }}:
-                <el-tooltip v-if="issueSceneListHelp(item.issueScenes)" :content="issueSceneListHelp(item.issueScenes)" placement="top">
-                  <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
-                </el-tooltip>
-                {{ displayValue(item.issueScenes) }}
+                <span
+                  v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
+                  class="help-dot issue-scene-help"
+                  tabindex="0"
+                  aria-label="issue scene help"
+                  :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
+                  :title="issueSceneListHelp(issueSceneCodesForItem(item))"
+                >?</span>
+                {{ displayValue(issueSceneCodesForItem(item)) }}
               </p>
               <p
                 v-if="hasIssueOrFailure(item)"
@@ -2296,7 +2376,17 @@ onMounted(async () => {
             :class="{ 'detail-field-wide': field.wide }"
           >
             <span class="summary-card-label">{{ field.label }}</span>
-            <strong>{{ displayValue(field.value) }}</strong>
+            <strong>
+              {{ displayValue(field.value) }}
+              <span
+                v-if="field.key === 'issueScenes' && issueSceneListHelp(field.value)"
+                class="help-dot issue-scene-help"
+                tabindex="0"
+                aria-label="issue scene help"
+                :data-tooltip="issueSceneListHelp(field.value)"
+                :title="issueSceneListHelp(field.value)"
+              >?</span>
+            </strong>
           </div>
         </div>
         <section class="detail-card">
@@ -2344,9 +2434,14 @@ onMounted(async () => {
                 >
                   <strong>
                     {{ item.issueScene }}
-                    <el-tooltip v-if="issueSceneHelp(item.issueScene)" :content="issueSceneHelp(item.issueScene)" placement="top">
-                      <el-button text size="small" class="help-dot" aria-label="issue scene help">?</el-button>
-                    </el-tooltip>
+                    <span
+                      v-if="issueSceneHelp(item.issueScene)"
+                      class="help-dot issue-scene-help"
+                      tabindex="0"
+                      aria-label="issue scene help"
+                      :data-tooltip="issueSceneHelp(item.issueScene)"
+                      :title="issueSceneHelp(item.issueScene)"
+                    >?</span>
                   </strong>
                   <span>
                     {{ item.affectedSqlCount }} SQL
@@ -2440,6 +2535,18 @@ onMounted(async () => {
                 >
                   <strong>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</strong>
                   <span>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues · {{ displayValue(item.logicalObjectKeys) }}</span>
+                  <span>
+                    {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                    <span
+                      v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
+                      class="help-dot issue-scene-help"
+                      tabindex="0"
+                      aria-label="issue scene help"
+                      :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
+                      :title="issueSceneListHelp(issueSceneCodesForItem(item))"
+                    >?</span>
+                    {{ displayValue(issueSceneCodesForItem(item)) }}
+                  </span>
                   <span>{{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}</span>
                 </div>
                 <div
@@ -2786,6 +2893,20 @@ button.report-item:hover {
   font-size: 13px;
 }
 
+.detail-link-button {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.detail-link-button:hover,
+.detail-link-button:focus-visible {
+  text-decoration: underline;
+}
+
 .item-actions {
   display: flex;
   justify-content: flex-end;
@@ -2871,6 +2992,74 @@ button.report-item:hover {
   border-radius: 50%;
   color: var(--sqlforge-text-secondary);
   line-height: 18px;
+}
+
+.issue-scene-help {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  margin-left: 4px;
+  cursor: help;
+  background: rgba(20, 24, 31, 0.92);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  vertical-align: middle;
+}
+
+.issue-scene-help::after,
+.issue-scene-help::before {
+  position: absolute;
+  z-index: 30;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, visibility 0.12s ease;
+  visibility: hidden;
+}
+
+.issue-scene-help::after {
+  bottom: calc(100% + 8px);
+  left: 50%;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 48px));
+  padding: 10px 12px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 6px;
+  background: #111827;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
+  color: #f8fafc;
+  content: attr(data-tooltip);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+  text-align: left;
+  text-transform: none;
+  transform: translateX(-50%);
+  white-space: normal;
+}
+
+.issue-scene-help::before {
+  bottom: calc(100% + 3px);
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: #111827;
+  content: '';
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.issue-scene-help:hover::after,
+.issue-scene-help:hover::before,
+.issue-scene-help:focus::after,
+.issue-scene-help:focus::before,
+.issue-scene-help:focus-visible::after,
+.issue-scene-help:focus-visible::before {
+  opacity: 1;
+  visibility: visible;
 }
 
 .result-copy {

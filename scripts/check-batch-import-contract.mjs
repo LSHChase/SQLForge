@@ -99,7 +99,13 @@ const requiredTokens = [
   'issueLocationText',
   'help-dot',
   'issueSceneHelpText',
+  'issueSceneCodesForItem',
   'issueSceneListHelp',
+  'issue-scene-help',
+  'REPEATED_TABLE_SCAN_RISK',
+  '风险含义：',
+  '原因：',
+  '建议：',
   'aria-label="issue scene help"',
   'parseAccessIfPossible',
   'writeParseHistoryWithAccess',
@@ -110,11 +116,18 @@ const requiredTokens = [
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))
+const forbiddenTokens = [
+  '<el-button text size="small" class="help-dot" aria-label="issue scene help"'
+]
+const forbidden = forbiddenTokens.filter(token => source.includes(token))
 
-if (missing.length > 0) {
+if (missing.length > 0 || forbidden.length > 0) {
   console.error('Batch import contract check failed.')
   for (const token of missing) {
     console.error(`- missing token: ${token}`)
+  }
+  for (const token of forbidden) {
+    console.error(`- forbidden token: ${token}`)
   }
   process.exit(1)
 }

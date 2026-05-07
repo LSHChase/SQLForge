@@ -50,6 +50,9 @@ const requiredTokens = [
   'frontend-parse-record-report-batch-statistics',
   'issueLocationText',
   'issueSceneHelpText',
+  'issueSceneCodesForItem',
+  'issue-scene-help',
+  'issue-scene-code-button',
   'aria-label="issue scene help"',
   'itemTotalCount',
   'History classification',
@@ -86,7 +89,9 @@ const requiredSharedApiTokens = [
 const forbiddenViewTokens = [
   "tenantId: 'tenant-a'",
   "sortBy: 'submittedAt'",
-  "sortOrder: 'DESC'"
+  "sortOrder: 'DESC'",
+  '<el-button text size="small" class="help-dot" aria-label="issue scene help"',
+  'aria-label="risk help"'
 ]
 
 const forbiddenApiTokens = [

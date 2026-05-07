@@ -106,11 +106,11 @@ export function issueSceneHelpText(value, chinese = false) {
   const translation = ISSUE_SCENE_TRANSLATIONS[code]
   if (!translation) {
     return chinese
-      ? `${code}：结构解析命中的问题场景，请结合定位片段、逻辑对象和 Access Parse 状态判断治理优先级。`
+      ? `${code}：风险含义：结构解析命中的问题场景。原因：当前 SQL 触发了静态结构规则或解析诊断。建议：结合定位片段、逻辑对象和 Access Parse 状态判断治理优先级。`
       : `${code}: issue scene detected by structure parsing.`
   }
   if (chinese) {
-    return `${translation.summary}：${translation.evidence} 建议：${translation.suggestedAction}`
+    return `${code}：风险含义：${translation.summary}。原因：${translation.evidence} 建议：${translation.suggestedAction}`
   }
   return `${code}: ${translation.summary}`
 }
