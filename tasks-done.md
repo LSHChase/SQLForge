@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-RESTART-20260506: Restart local frontend and backend
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `OPS-RESTART-20260506 restart local frontend and backend`
+- Priority: P2
+- Depends on: N/A
+- Scope: Restart SQLForge local backend services and frontend dev server
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-RESTART-20260506`
+- Progress log:
+  - 2026-05-06: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Restarted local Docker infrastructure, governance, query-execution, sql-optimization, benchmark-engine, and the Vite frontend dev server.
+  - Validation evidence: python3 scripts/foreman.py validate OPS-RESTART-20260506 with backend health endpoints and frontend HTTP 200 checks.
+  - Residual risk: Local development runtime depends on this workstation's Docker and detached process state.
+  - Next step: Use .codex/state/backend-runtime/*.pid and .codex/state/runtime-logs/frontend.pid when stopping these local services.
+
 ### HARN-076: Align parse history and report import details
 
 - Status: done
