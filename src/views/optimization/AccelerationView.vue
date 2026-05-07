@@ -491,6 +491,27 @@ function displayValue(value) {
   return String(value)
 }
 
+function localizedDisplayText(value) {
+  const text = displayValue(value)
+  if (text === '-') {
+    return text
+  }
+  const parts = text
+    .split(/\r?\n+/)
+    .map(part => part.trim())
+    .filter(Boolean)
+  if (parts.length < 2) {
+    return text
+  }
+  const hasChineseText = part => /[\u3400-\u9fff]/.test(part)
+  const chineseParts = parts.filter(hasChineseText)
+  const englishParts = parts.filter(part => !hasChineseText(part) && /[A-Za-z]/.test(part))
+  if (!chineseParts.length || !englishParts.length) {
+    return text
+  }
+  return (isChinese.value ? chineseParts : englishParts).join(' ')
+}
+
 function booleanLabel(value) {
   if (typeof value !== 'boolean') {
     return ''
@@ -536,7 +557,7 @@ function openFieldHelp(key, label) {
 }
 
 function riskDisplayText(risk, field) {
-  return sharedRiskDisplayText(risk, field, isChinese.value)
+  return localizedDisplayText(sharedRiskDisplayText(risk, field, isChinese.value))
 }
 
 function resultValueClass(item) {
@@ -1492,8 +1513,8 @@ watch(
                 {{ item.label }}: <strong>{{ item.value }}</strong>
               </span>
             </div>
-            <p v-if="activeConclusion" class="result-copy">{{ activeConclusion.summary }}</p>
-            <p v-if="activeConclusion" class="result-copy result-copy-muted">{{ activeConclusion.recommendedAction }}</p>
+            <p v-if="activeConclusion" class="result-copy">{{ localizedDisplayText(activeConclusion.summary) }}</p>
+            <p v-if="activeConclusion" class="result-copy result-copy-muted">{{ localizedDisplayText(activeConclusion.recommendedAction) }}</p>
           </div>
 
           <div class="parse-card-grid">
@@ -1670,15 +1691,15 @@ watch(
                       <strong>{{ issue.issueCode }}</strong>
                       <span>{{ issue.severity }} · {{ issue.priorityLevel }}</span>
                     </div>
-                    <p class="issue-card__summary">{{ issue.summary }}</p>
-                    <p class="issue-card__detail">{{ issue.detail }}</p>
+                    <p class="issue-card__summary">{{ localizedDisplayText(issue.summary) }}</p>
+                    <p class="issue-card__detail">{{ localizedDisplayText(issue.detail) }}</p>
                     <p v-if="issue.failureLine || issue.failureColumn || issue.failureToken || issue.failureSnippet" class="issue-card__detail">
                       {{ isChinese ? '失败定位' : 'Failure position' }}:
                       <span v-if="issue.failureLine && issue.failureColumn">line {{ issue.failureLine }}, column {{ issue.failureColumn }}</span>
                       <span v-if="issue.failureToken"> · token {{ issue.failureToken }}</span>
                       <span v-if="issue.failureSnippet"> · {{ issue.failureSnippet }}</span>
                     </p>
-                    <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ issue.suggestedAction }}</p>
+                    <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ localizedDisplayText(issue.suggestedAction) }}</p>
                   </article>
                 </div>
               </template>
@@ -1728,12 +1749,12 @@ watch(
 
                 <div class="mini-section">
                   <span class="summary-card-label">{{ isChinese ? 'Plan Summary' : 'Plan summary' }}</span>
-                  <p class="result-copy">{{ accessParse.planSummary || '-' }}</p>
+                  <p class="result-copy">{{ localizedDisplayText(accessParse.planSummary) }}</p>
                 </div>
 
                 <div class="mini-section">
                   <span class="summary-card-label">{{ isChinese ? '可用性告警' : 'Availability warning' }}</span>
-                  <p class="result-copy result-copy-muted">{{ accessParse.availabilityWarning || '-' }}</p>
+                  <p class="result-copy result-copy-muted">{{ localizedDisplayText(accessParse.availabilityWarning) }}</p>
                 </div>
               </template>
             </article>

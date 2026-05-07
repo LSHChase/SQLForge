@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-081: 解析历史与批次列表分页及解析详情展示修复
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `feat(frontend): paginate parse histories and show details in dialog`
+- Priority: 1
+- Depends on: N/A
+- Scope: 为解析历史列表、批量批次列表、报表导入历史列表补齐合理分页查询与前端分页控件；SQL级解析详情加载改为弹窗展示；修复解析结果展示中英文重复的问题；不改核心 parser 算法、权限边界或历史保留策略。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-081`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 解析历史接口返回 total/pageCount；批量解析批次与报表导入批次接口支持 pageNo/pageSize 并返回分页 envelope；解析记录与批量中心页面增加分页控件；报表 SQL 解析详情改为弹窗加载；解析详情展示按当前语言过滤中英文重复行；portable smoke mock 与打包产物同步。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-081; python3 scripts/task_audit.py --check --phase pre-closeout; mvn -pl governance -Dtest=GovernanceQueryHistoryControllerTest,AuthWebMvcTest test; mvn -pl sql-optimization -Dtest=ParseBatchControllerTest,ReportBatchControllerTest test; npm run lint; npm run build; npm run build:portable; npm run smoke:portable-frontend; git diff --check.
+  - Residual risk: 批量批次列表当前在服务层完成租户过滤后的分页，适合现有内存持久化/本地批次存储模型；若批次数量显著增长，应在后续任务下沉到数据库级 count/page 查询。
+  - Next step: 产品验收时使用真实大批次和报表导入历史确认分页总数、页数、页大小切换和解析详情弹窗交互。
+
 ### CALCITE-001-VERIFY: Verify Apache Calcite parser mode closeout
 
 - Status: done

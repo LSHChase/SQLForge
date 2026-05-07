@@ -269,6 +269,64 @@
         LIMIT #{offset}, #{limit}
     </select>
 
+    <select id="countHistoryPage" resultType="int">
+        SELECT COUNT(1)
+        FROM query_history qh
+        LEFT JOIN execution_result er ON er.result_id = qh.result_id
+        WHERE qh.tenant_id = #{tenantId}
+        <if test="reportCode != null and reportCode != ''">
+            AND qh.report_code = #{reportCode}
+        </if>
+        <if test="datasourceCode != null and datasourceCode != ''">
+            AND qh.datasource_code = #{datasourceCode}
+        </if>
+        <if test="stageCode != null and stageCode != ''">
+            AND qh.stage_code = #{stageCode}
+        </if>
+        <if test="bizDate != null">
+            AND qh.biz_date = #{bizDate}
+        </if>
+        <if test="queryDateStart != null">
+            AND qh.query_date_start &gt;= #{queryDateStart}
+        </if>
+        <if test="queryDateEnd != null">
+            AND qh.query_date_end &lt;= #{queryDateEnd}
+        </if>
+        <if test="status != null and status != ''">
+            AND er.result_status = #{status}
+        </if>
+        <if test="cacheHit != null">
+            AND er.cache_hit = #{cacheHit}
+        </if>
+        <if test="rewriteApplied != null">
+            AND er.rewrite_applied = #{rewriteApplied}
+        </if>
+        <if test="accelerationApplied != null">
+            AND er.acceleration_applied = #{accelerationApplied}
+        </if>
+        <if test="parameterizedSql != null">
+            AND qh.parameterized_sql_flag = #{parameterizedSql}
+        </if>
+        <if test="logicalObjectType != null and logicalObjectType != ''">
+            AND qh.logical_object_hits LIKE CONCAT('%', #{logicalObjectType}, '%')
+        </if>
+        <if test="accessChannel != null and accessChannel != ''">
+            AND qh.access_channel = #{accessChannel}
+        </if>
+        <if test="engine != null and engine != ''">
+            AND er.target_engine = #{engine}
+        </if>
+        <if test="submittedBy != null and submittedBy != ''">
+            AND qh.submitted_by = #{submittedBy}
+        </if>
+        <if test="submittedStart != null">
+            AND qh.submitted_at &gt;= #{submittedStart}
+        </if>
+        <if test="submittedEnd != null">
+            AND qh.submitted_at &lt;= #{submittedEnd}
+        </if>
+    </select>
+
     <select id="selectHistoryDetail" resultMap="GovernanceQueryHistoryProjectionMap">
         SELECT
         <include refid="HistoryProjectionColumns"/>

@@ -50,6 +50,8 @@ class GovernanceQueryHistoryControllerTest {
             Collections.singletonList(item),
             Integer.valueOf(1),
             Integer.valueOf(20),
+            Integer.valueOf(1),
+            Integer.valueOf(1),
             Boolean.FALSE,
             Collections.<String, Object>emptyMap()
         ));
@@ -63,7 +65,9 @@ class GovernanceQueryHistoryControllerTest {
                 .param("accessChannel", "jdbc"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items[0].historyId").value("history-001"))
-            .andExpect(jsonPath("$.items[0].accessChannel").value("JDBC_AGENT"));
+            .andExpect(jsonPath("$.items[0].accessChannel").value("JDBC_AGENT"))
+            .andExpect(jsonPath("$.totalCount").value(1))
+            .andExpect(jsonPath("$.pageCount").value(1));
 
         verify(service).findQueryHistoryPage(
             "tenant-a",

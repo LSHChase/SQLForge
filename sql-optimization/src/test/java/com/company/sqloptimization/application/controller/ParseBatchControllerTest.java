@@ -77,8 +77,12 @@ class ParseBatchControllerTest {
 
         mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse-batches")))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].batchId").value(batchId))
-            .andExpect(jsonPath("$[0].status").value("READY"));
+            .andExpect(jsonPath("$.items[0].batchId").value(batchId))
+            .andExpect(jsonPath("$.items[0].status").value("READY"))
+            .andExpect(jsonPath("$.pageNo").value(1))
+            .andExpect(jsonPath("$.pageSize").value(10))
+            .andExpect(jsonPath("$.totalCount").isNumber())
+            .andExpect(jsonPath("$.pageCount").isNumber());
 
         mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse-batches/{batchId}", batchId)))
             .andExpect(status().isOk())

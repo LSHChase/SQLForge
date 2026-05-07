@@ -220,28 +220,61 @@ public class GovernanceHistoryApplicationService {
         int resolvedPageNo = normalizePageNo(pageNo);
         int resolvedPageSize = normalizeLimit(pageSize);
         int offset = (resolvedPageNo - 1) * resolvedPageSize;
+        String normalizedReportCode = trimToNull(reportCode);
+        String normalizedDatasourceCode = trimToNull(datasourceCode);
+        String normalizedStageCode = trimToNull(stageCode);
+        LocalDate parsedBizDate = parseDateValue(bizDate, "bizDate");
+        LocalDate parsedQueryDateStart = parseDateValue(queryDateStart, "queryDateStart");
+        LocalDate parsedQueryDateEnd = parseDateValue(queryDateEnd, "queryDateEnd");
+        String normalizedStatus = trimToNull(status);
+        String normalizedLogicalObjectType = trimToNull(logicalObjectType);
+        String normalizedAccessChannel = trimToNull(accessChannel);
+        String normalizedEngine = trimToNull(engine);
+        String normalizedSubmittedBy = trimToNull(submittedBy);
+        LocalDateTime parsedSubmittedStart = parseWindowValue(submittedStart, "submittedStart");
+        LocalDateTime parsedSubmittedEnd = parseWindowValue(submittedEnd, "submittedEnd");
         List<GovernanceQueryHistoryProjection> rows = queryHistoryMapper.selectHistoryPage(
             effectiveTenantId,
-            trimToNull(reportCode),
-            trimToNull(datasourceCode),
-            trimToNull(stageCode),
-            parseDateValue(bizDate, "bizDate"),
-            parseDateValue(queryDateStart, "queryDateStart"),
-            parseDateValue(queryDateEnd, "queryDateEnd"),
-            trimToNull(status),
+            normalizedReportCode,
+            normalizedDatasourceCode,
+            normalizedStageCode,
+            parsedBizDate,
+            parsedQueryDateStart,
+            parsedQueryDateEnd,
+            normalizedStatus,
             cacheHit,
             rewriteApplied,
             accelerationApplied,
             parameterizedSql,
-            trimToNull(logicalObjectType),
-            trimToNull(accessChannel),
-            trimToNull(engine),
-            trimToNull(submittedBy),
-            parseWindowValue(submittedStart, "submittedStart"),
-            parseWindowValue(submittedEnd, "submittedEnd"),
+            normalizedLogicalObjectType,
+            normalizedAccessChannel,
+            normalizedEngine,
+            normalizedSubmittedBy,
+            parsedSubmittedStart,
+            parsedSubmittedEnd,
             resolveHistoryOrderBy(sortBy, sortOrder),
             offset,
             resolvedPageSize + LOOKUP_PAGE_FETCH_OVERFLOW
+        );
+        int totalCount = queryHistoryMapper.countHistoryPage(
+            effectiveTenantId,
+            normalizedReportCode,
+            normalizedDatasourceCode,
+            normalizedStageCode,
+            parsedBizDate,
+            parsedQueryDateStart,
+            parsedQueryDateEnd,
+            normalizedStatus,
+            cacheHit,
+            rewriteApplied,
+            accelerationApplied,
+            parameterizedSql,
+            normalizedLogicalObjectType,
+            normalizedAccessChannel,
+            normalizedEngine,
+            normalizedSubmittedBy,
+            parsedSubmittedStart,
+            parsedSubmittedEnd
         );
         boolean hasMore = rows.size() > resolvedPageSize;
         if (hasMore) {
@@ -255,6 +288,8 @@ public class GovernanceHistoryApplicationService {
             items,
             Integer.valueOf(resolvedPageNo),
             Integer.valueOf(resolvedPageSize),
+            Integer.valueOf(totalCount),
+            Integer.valueOf(pageCount(totalCount, resolvedPageSize)),
             Boolean.valueOf(hasMore),
             buildHistoryClassificationSummary(items)
         );
@@ -816,6 +851,13 @@ public class GovernanceHistoryApplicationService {
             return DEFAULT_PAGE_NO;
         }
         return pageNo.intValue();
+    }
+
+    private int pageCount(int totalCount, int pageSize) {
+        if (totalCount <= 0) {
+            return 0;
+        }
+        return (totalCount + pageSize - 1) / pageSize;
     }
 
     private int resolveRecentSourceScanLimit(int resolvedLimit) {

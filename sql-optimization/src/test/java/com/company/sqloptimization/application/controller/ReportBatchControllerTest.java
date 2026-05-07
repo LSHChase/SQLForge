@@ -77,8 +77,12 @@ class ReportBatchControllerTest {
 
         mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches")))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].batchId").value(batchId))
-            .andExpect(jsonPath("$[0].fileType").value("TXT"));
+            .andExpect(jsonPath("$.items[0].batchId").value(batchId))
+            .andExpect(jsonPath("$.items[0].fileType").value("TXT"))
+            .andExpect(jsonPath("$.pageNo").value(1))
+            .andExpect(jsonPath("$.pageSize").value(10))
+            .andExpect(jsonPath("$.totalCount").isNumber())
+            .andExpect(jsonPath("$.pageCount").isNumber());
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/report-batches/{batchId}/resolve-sqls", batchId)))
             .andExpect(status().isOk())

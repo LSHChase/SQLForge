@@ -42,6 +42,25 @@ public interface QueryHistoryMapper {
                                                              @Param("offset") int offset,
                                                              @Param("limit") int limit);
 
+    int countHistoryPage(@Param("tenantId") String tenantId,
+                         @Param("reportCode") String reportCode,
+                         @Param("datasourceCode") String datasourceCode,
+                         @Param("stageCode") String stageCode,
+                         @Param("bizDate") LocalDate bizDate,
+                         @Param("queryDateStart") LocalDate queryDateStart,
+                         @Param("queryDateEnd") LocalDate queryDateEnd,
+                         @Param("status") String status,
+                         @Param("cacheHit") Boolean cacheHit,
+                         @Param("rewriteApplied") Boolean rewriteApplied,
+                         @Param("accelerationApplied") Boolean accelerationApplied,
+                         @Param("parameterizedSql") Boolean parameterizedSql,
+                         @Param("logicalObjectType") String logicalObjectType,
+                         @Param("accessChannel") String accessChannel,
+                         @Param("engine") String engine,
+                         @Param("submittedBy") String submittedBy,
+                         @Param("submittedStart") LocalDateTime submittedStart,
+                         @Param("submittedEnd") LocalDateTime submittedEnd);
+
     GovernanceQueryHistoryProjection selectHistoryDetail(@Param("tenantId") String tenantId,
                                                          @Param("historyId") String historyId);
 

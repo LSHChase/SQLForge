@@ -280,6 +280,8 @@ class AuthWebMvcTest {
             Collections.singletonList(historySummary),
             Integer.valueOf(1),
             Integer.valueOf(5),
+            Integer.valueOf(1),
+            Integer.valueOf(1),
             Boolean.FALSE,
             Collections.<String, Object>emptyMap()
         ));

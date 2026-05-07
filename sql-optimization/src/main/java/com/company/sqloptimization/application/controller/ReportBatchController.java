@@ -1,11 +1,11 @@
 package com.company.sqloptimization.application.controller;
 
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
+import com.company.sqloptimization.application.controller.vo.BatchPageResponse;
 import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneDetailVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusResponse;
 import com.company.sqloptimization.application.service.ReportBatchApplicationService;
-import java.util.List;
 import javax.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,8 +31,10 @@ public class ReportBatchController {
     }
 
     @GetMapping
-    public List<ReportBatchStatusResponse> listBatches() {
-        return reportBatchApplicationService.listBatches();
+    public BatchPageResponse<ReportBatchStatusResponse> listBatches(
+        @RequestParam(value = "pageNo", required = false) Integer pageNo,
+        @RequestParam(value = "pageSize", required = false) Integer pageSize) {
+        return reportBatchApplicationService.listBatches(pageNo, pageSize);
     }
 
     @PostMapping("/{batchId}/resolve-sqls")

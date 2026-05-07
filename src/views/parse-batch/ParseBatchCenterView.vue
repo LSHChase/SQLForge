@@ -63,6 +63,20 @@ const reportSqlPagination = reactive({
   pageSize: 25
 })
 
+const parseBatchListPagination = reactive({
+  pageNo: 1,
+  pageSize: 10,
+  totalCount: 0,
+  pageCount: 0
+})
+
+const reportBatchListPagination = reactive({
+  pageNo: 1,
+  pageSize: 10,
+  totalCount: 0,
+  pageCount: 0
+})
+
 const reportStatisticsSqlPagination = reactive({
   pageNumber: 1,
   pageSize: 25,
@@ -127,6 +141,7 @@ const DASHBOARD_PREVIEW_LIMIT = 6
 const DETAIL_PREVIEW_LIMIT = 25
 const STATISTIC_PREVIEW_LIMIT = 50
 const REPORT_SQL_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+const LIST_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
 const isChinese = computed(() => locale.value === 'zh-CN')
 const parseBatchStatusCards = computed(() => {
@@ -431,10 +446,10 @@ const directSqlOmittedCount = computed(() =>
   omittedFromPreview(directSqlRows.value.length, directSqlPreview.value.length)
 )
 const parseSessionsSummary = computed(() =>
-  `${parseBatchSessions.value.length} ${isChinese.value ? '个会话' : 'sessions'}`
+  `${parseBatchListPagination.totalCount || parseBatchSessions.value.length} ${isChinese.value ? '个会话' : 'sessions'}`
 )
 const reportSessionsSummary = computed(() =>
-  `${reportBatchSessions.value.length} ${isChinese.value ? '个批次' : 'batches'}`
+  `${reportBatchListPagination.totalCount || reportBatchSessions.value.length} ${isChinese.value ? '个批次' : 'batches'}`
 )
 const card = (label, value, key = '') => ({ label, value, key })
 
@@ -701,17 +716,49 @@ const upsertSession = (collection, item) => {
   collection.value = [item, ...next]
 }
 
+const normalizePagedList = (payload, fallbackPageSize) => {
+  if (Array.isArray(payload)) {
+    return {
+      items: payload,
+      pageNo: 1,
+      pageSize: fallbackPageSize,
+      totalCount: payload.length,
+      pageCount: payload.length ? 1 : 0
+    }
+  }
+  const items = Array.isArray(payload?.items) ? payload.items : []
+  const pageSize = Number(payload?.pageSize || fallbackPageSize)
+  return {
+    items,
+    pageNo: Number(payload?.pageNo || 1),
+    pageSize,
+    totalCount: Number(payload?.totalCount ?? items.length),
+    pageCount: Number(payload?.pageCount ?? (items.length ? 1 : 0))
+  }
+}
+
+const applyPaginationResult = (target, payload, fallbackPageSize) => {
+  target.pageNo = Number(payload.pageNo || 1)
+  target.pageSize = Number(payload.pageSize || fallbackPageSize)
+  target.totalCount = Number(payload.totalCount || 0)
+  target.pageCount = Number(payload.pageCount || 0)
+}
+
 const loadBatchHistories = async () => {
   clearError()
   const [parseResult, reportResult] = await Promise.allSettled([
-    listParseBatches(parseBatchForm.tenantId),
-    listReportBatches(reportBatchForm.tenantId)
+    listParseBatches(parseBatchForm.tenantId, parseBatchListPagination),
+    listReportBatches(reportBatchForm.tenantId, reportBatchListPagination)
   ])
   if (parseResult.status === 'fulfilled') {
-    parseBatchSessions.value = Array.isArray(parseResult.value) ? parseResult.value : []
+    const parsePage = normalizePagedList(parseResult.value, parseBatchListPagination.pageSize)
+    parseBatchSessions.value = parsePage.items
+    applyPaginationResult(parseBatchListPagination, parsePage, parseBatchListPagination.pageSize)
   }
   if (reportResult.status === 'fulfilled') {
-    reportBatchSessions.value = Array.isArray(reportResult.value) ? reportResult.value : []
+    const reportPage = normalizePagedList(reportResult.value, reportBatchListPagination.pageSize)
+    reportBatchSessions.value = reportPage.items
+    applyPaginationResult(reportBatchListPagination, reportPage, reportBatchListPagination.pageSize)
   }
   if (parseResult.status === 'rejected') {
     errorMessage.value = formatRuntimeError(parseResult.reason)
@@ -1195,6 +1242,26 @@ const openReportSession = async batchId => {
   await refreshReportBatchDetail(batchId)
   batchSelectorDrawerVisible.value = false
   activeWorkspace.value = 'report'
+}
+
+const handleBatchSelectorPageChange = async pageNo => {
+  if (batchSelectorKind.value === 'report') {
+    reportBatchListPagination.pageNo = pageNo
+  } else {
+    parseBatchListPagination.pageNo = pageNo
+  }
+  await loadBatchHistories()
+}
+
+const handleBatchSelectorPageSizeChange = async pageSize => {
+  if (batchSelectorKind.value === 'report') {
+    reportBatchListPagination.pageSize = pageSize
+    reportBatchListPagination.pageNo = 1
+  } else {
+    parseBatchListPagination.pageSize = pageSize
+    parseBatchListPagination.pageNo = 1
+  }
+  await loadBatchHistories()
 }
 
 onMounted(async () => {
@@ -2592,6 +2659,16 @@ onMounted(async () => {
           <span>{{ formatInstant(item.createdAt || item.updatedAt) }}</span>
         </button>
       </div>
+      <el-pagination
+        class="pagination-row"
+        layout="total, sizes, prev, pager, next"
+        :total="batchSelectorKind === 'report' ? reportBatchListPagination.totalCount : parseBatchListPagination.totalCount"
+        :page-sizes="LIST_PAGE_SIZE_OPTIONS"
+        :page-size="batchSelectorKind === 'report' ? reportBatchListPagination.pageSize : parseBatchListPagination.pageSize"
+        :current-page="batchSelectorKind === 'report' ? reportBatchListPagination.pageNo : parseBatchListPagination.pageNo"
+        @current-change="handleBatchSelectorPageChange"
+        @size-change="handleBatchSelectorPageSizeChange"
+      />
     </el-drawer>
   </section>
 </template>

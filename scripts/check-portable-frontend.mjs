@@ -373,6 +373,10 @@ const startMockBackend = async port => {
         requireProxyHeaders(request)
         writeJson(response, 200, {
           items: [],
+          pageNo: 1,
+          pageSize: 10,
+          totalCount: 0,
+          pageCount: 0,
           classificationSummary: {}
         })
         return
@@ -380,7 +384,14 @@ const startMockBackend = async port => {
 
       if (request.url.startsWith('/api/sql-optimization/parse-batches')) {
         requireProxyHeaders(request)
-        writeJson(response, 200, [])
+        writeJson(response, 200, {
+          items: [],
+          pageNo: 1,
+          pageSize: 10,
+          totalCount: 0,
+          pageCount: 0,
+          hasMore: false
+        })
         return
       }
 
@@ -398,7 +409,14 @@ const startMockBackend = async port => {
 
       if (request.url.startsWith('/api/sql-optimization/report-batches')) {
         requireProxyHeaders(request)
-        writeJson(response, 200, [reportBatchSummary])
+        writeJson(response, 200, {
+          items: [reportBatchSummary],
+          pageNo: 1,
+          pageSize: 10,
+          totalCount: 1,
+          pageCount: 1,
+          hasMore: false
+        })
         return
       }
 
@@ -480,8 +498,11 @@ const runBrowserSmoke = async baseUrl => {
 
     await page.goto(`${baseUrl}/#/governance/history/parse-record`, { waitUntil: 'networkidle' })
     await page.getByTestId('parse-record-page').waitFor({ timeout: defaultTimeoutMs })
-    await page.getByRole('tab', { name: /报表导入历史|Report import history/ }).click()
-    await page.getByTestId('parse-record-batch-history-report').first().click()
+    await page.getByRole('tab', { name: /批量解析与报表导入历史|Batch parse and report-import history/ }).click()
+    const batchHistoryPanel = page.getByTestId('parse-record-batch-report-history-tab')
+    await batchHistoryPanel.waitFor({ state: 'visible', timeout: defaultTimeoutMs })
+    await batchHistoryPanel.getByRole('tab', { name: /报表导入历史|Report import history/ }).click()
+    await batchHistoryPanel.locator('[data-testid="parse-record-batch-history-report"]:visible').first().click()
     const reportDrawer = page.getByTestId('parse-record-report-batch-detail')
     await reportDrawer.waitFor({ state: 'visible', timeout: defaultTimeoutMs })
     await reportDrawer.getByRole('tab', { name: /SQL 清单|SQL list/ }).click()
@@ -489,8 +510,10 @@ const runBrowserSmoke = async baseUrl => {
     await expectTextInLocator(reportDrawer, 'missing_table')
     await expectTextInLocator(reportDrawer, 'WRITE_FAILED')
     await reportDrawer.getByRole('button', { name: /加载解析详情|Load parse detail/ }).click()
-    await expectTextInLocator(reportDrawer, 'history-parse-smoke-1')
-    await expectTextInLocator(reportDrawer, 'orders')
+    const sqlDetailDialog = page.getByTestId('parse-record-report-sql-parse-detail-dialog')
+    await sqlDetailDialog.waitFor({ state: 'visible', timeout: defaultTimeoutMs })
+    await expectTextInLocator(sqlDetailDialog, 'history-parse-smoke-1')
+    await expectTextInLocator(sqlDetailDialog, 'orders')
     assert(
       mockState.persistedHistoryDetailCalls === 1,
       `Expected one persisted history detail request, got ${mockState.persistedHistoryDetailCalls}`

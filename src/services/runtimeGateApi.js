@@ -25,6 +25,24 @@ const buildTenantQuerySuffix = tenantId => {
   return normalizedTenantId ? `?tenantId=${encodeURIComponent(normalizedTenantId)}` : ''
 }
 
+const buildTenantPagedQuery = (tenantId, filters = {}) => {
+  const params = new URLSearchParams()
+  const normalizedTenantId = normalizeTenantId(tenantId)
+  if (normalizedTenantId) {
+    params.set('tenantId', normalizedTenantId)
+  }
+  const pageNo = Number(filters?.pageNo)
+  const pageSize = Number(filters?.pageSize)
+  if (Number.isFinite(pageNo) && pageNo > 0) {
+    params.set('pageNo', String(pageNo))
+  }
+  if (Number.isFinite(pageSize) && pageSize > 0) {
+    params.set('pageSize', String(pageSize))
+  }
+  const query = params.toString()
+  return query ? `?${query}` : ''
+}
+
 const buildReportBatchDetailQuery = filters => {
   const params = new URLSearchParams()
   const pageNumber = Number(filters?.pageNumber)
@@ -504,10 +522,10 @@ export const createParseBatch = (payload, requestOptions = {}) =>
     }
   })
 
-export const listParseBatches = (tenantId, requestOptions = {}) =>
+export const listParseBatches = (tenantId, filters = {}, requestOptions = {}) =>
   request({
     method: 'get',
-    url: `/api/sql-optimization/parse-batches${buildTenantQuerySuffix(tenantId)}`,
+    url: `/api/sql-optimization/parse-batches${buildTenantPagedQuery(tenantId, filters)}`,
     tenantId: normalizeTenantId(tenantId),
     requestOptions: {
       requestPrefix: 'frontend-parse-batch-list',
@@ -550,10 +568,10 @@ export const retryParseBatchAccess = (batchId, tenantId, payload = {}, requestOp
     }
   })
 
-export const listReportBatches = (tenantId, requestOptions = {}) =>
+export const listReportBatches = (tenantId, filters = {}, requestOptions = {}) =>
   request({
     method: 'get',
-    url: `/api/sql-optimization/report-batches${buildTenantQuerySuffix(tenantId)}`,
+    url: `/api/sql-optimization/report-batches${buildTenantPagedQuery(tenantId, filters)}`,
     tenantId: normalizeTenantId(tenantId),
     requestOptions: {
       requestPrefix: 'frontend-report-batch-list',

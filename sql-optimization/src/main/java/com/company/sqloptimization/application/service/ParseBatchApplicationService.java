@@ -12,6 +12,7 @@ import com.company.sqloptimization.application.controller.dto.ParseBatchIngestRe
 import com.company.sqloptimization.application.controller.dto.ParseBatchRetryAccessRequest;
 import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
 import com.company.sqloptimization.application.controller.vo.AccessParseResponseVO;
+import com.company.sqloptimization.application.controller.vo.BatchPageResponse;
 import com.company.sqloptimization.application.controller.vo.ParseBatchIssueStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseBatchItemVO;
 import com.company.sqloptimization.application.controller.vo.ParseBatchReportStatisticVO;
@@ -69,6 +70,8 @@ public class ParseBatchApplicationService {
     private static final int ITEM_PREVIEW_LIMIT = 500;
     private static final int FAILURE_PREVIEW_LIMIT = 200;
     private static final int FAILURE_REASON_LIMIT = 128;
+    private static final int DEFAULT_LIST_PAGE_SIZE = 10;
+    private static final int MAX_LIST_PAGE_SIZE = 100;
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<Map<String, Object>>() {
     };
     private static final String FAILURE_FILTER_ALL = "ALL";
@@ -205,7 +208,7 @@ public class ParseBatchApplicationService {
         return toResponse(batch, parseBatchItemRepository.findByBatchId(batch.getBatchId()));
     }
 
-    public List<ParseBatchStatusResponse> listBatches() {
+    public BatchPageResponse<ParseBatchStatusResponse> listBatches(Integer pageNo, Integer pageSize) {
         String tenantId = requireAuthorizedTenant(null);
         List<ParseBatchStatusResponse> result = new ArrayList<ParseBatchStatusResponse>();
         for (ParseBatch batch : parseBatchRepository.findAll()) {
@@ -214,7 +217,21 @@ public class ParseBatchApplicationService {
             }
             result.add(toResponse(batch, Collections.<ParseBatchItem>emptyList()));
         }
-        return result;
+        int resolvedPageNo = normalizeListPageNo(pageNo);
+        int resolvedPageSize = normalizeListPageSize(pageSize);
+        int totalCount = result.size();
+        int start = Math.min(totalCount, (resolvedPageNo - 1) * resolvedPageSize);
+        int end = Math.min(totalCount, start + resolvedPageSize);
+        List<ParseBatchStatusResponse> pageItems =
+            new ArrayList<ParseBatchStatusResponse>(result.subList(start, end));
+        return new BatchPageResponse<ParseBatchStatusResponse>(
+            pageItems,
+            Integer.valueOf(resolvedPageNo),
+            Integer.valueOf(resolvedPageSize),
+            Integer.valueOf(totalCount),
+            Integer.valueOf(pageCount(totalCount, resolvedPageSize)),
+            Boolean.valueOf(end < totalCount)
+        );
     }
 
     private ParseBatch requireBatch(String batchId) {
@@ -1167,6 +1184,27 @@ public class ParseBatchApplicationService {
             }
         }
         return null;
+    }
+
+    private int normalizeListPageNo(Integer pageNo) {
+        if (pageNo == null || pageNo.intValue() <= 0) {
+            return 1;
+        }
+        return pageNo.intValue();
+    }
+
+    private int normalizeListPageSize(Integer pageSize) {
+        if (pageSize == null || pageSize.intValue() <= 0) {
+            return DEFAULT_LIST_PAGE_SIZE;
+        }
+        return Math.min(MAX_LIST_PAGE_SIZE, pageSize.intValue());
+    }
+
+    private int pageCount(int totalCount, int pageSize) {
+        if (totalCount <= 0) {
+            return 0;
+        }
+        return (totalCount + pageSize - 1) / pageSize;
     }
 
     private String trimToNull(String value) {

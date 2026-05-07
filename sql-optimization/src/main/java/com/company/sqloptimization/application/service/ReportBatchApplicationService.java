@@ -10,6 +10,7 @@ import com.company.sqloptimization.application.controller.dto.AccessParseRequest
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
 import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
 import com.company.sqloptimization.application.controller.vo.AccessParseResponseVO;
+import com.company.sqloptimization.application.controller.vo.BatchPageResponse;
 import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneDetailVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchItemVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
@@ -85,6 +86,8 @@ public class ReportBatchApplicationService {
     private static final int MAX_PARSE_CONCURRENCY = 32;
     private static final int DEFAULT_PERSIST_CHUNK_SIZE = 200;
     private static final int COORDINATOR_QUEUE_CAPACITY = 16;
+    private static final int DEFAULT_LIST_PAGE_SIZE = 10;
+    private static final int MAX_LIST_PAGE_SIZE = 100;
     private static final AtomicInteger THREAD_SEQUENCE = new AtomicInteger(0);
     private static final Pattern REPORT_SQL_START_PATTERN =
         Pattern.compile("(?i)\\b(WITH|SELECT)\\b(?=\\s|/\\*)");
@@ -249,7 +252,7 @@ public class ReportBatchApplicationService {
         );
     }
 
-    public List<ReportBatchStatusResponse> listBatches() {
+    public BatchPageResponse<ReportBatchStatusResponse> listBatches(Integer pageNo, Integer pageSize) {
         String tenantId = requireAuthorizedTenant(null);
         List<ReportBatchStatusResponse> result = new ArrayList<ReportBatchStatusResponse>();
         for (ReportBatch batch : reportBatchRepository.findAll()) {
@@ -273,7 +276,21 @@ public class ReportBatchApplicationService {
                 return right.getCreatedAt().compareTo(left.getCreatedAt());
             }
         });
-        return result;
+        int resolvedPageNo = normalizeListPageNo(pageNo);
+        int resolvedPageSize = normalizeListPageSize(pageSize);
+        int totalCount = result.size();
+        int start = Math.min(totalCount, (resolvedPageNo - 1) * resolvedPageSize);
+        int end = Math.min(totalCount, start + resolvedPageSize);
+        List<ReportBatchStatusResponse> pageItems =
+            new ArrayList<ReportBatchStatusResponse>(result.subList(start, end));
+        return new BatchPageResponse<ReportBatchStatusResponse>(
+            pageItems,
+            Integer.valueOf(resolvedPageNo),
+            Integer.valueOf(resolvedPageSize),
+            Integer.valueOf(totalCount),
+            Integer.valueOf(pageCount(totalCount, resolvedPageSize)),
+            Boolean.valueOf(end < totalCount)
+        );
     }
 
     private void runReportBatchStructureResolution(String batchId, ContextValue contextValue) {
@@ -571,6 +588,20 @@ public class ReportBatchApplicationService {
             return 0;
         }
         return (totalCount + pageSize - 1) / pageSize;
+    }
+
+    private int normalizeListPageNo(Integer pageNo) {
+        if (pageNo == null || pageNo.intValue() <= 0) {
+            return 1;
+        }
+        return pageNo.intValue();
+    }
+
+    private int normalizeListPageSize(Integer pageSize) {
+        if (pageSize == null || pageSize.intValue() <= 0) {
+            return DEFAULT_LIST_PAGE_SIZE;
+        }
+        return Math.min(MAX_LIST_PAGE_SIZE, pageSize.intValue());
     }
 
     private void recalculate(ReportBatch batch, List<ReportBatchItem> items, Instant now) {

@@ -1,42 +1,38 @@
-package com.company.governance.application.controller.vo;
+package com.company.sqloptimization.application.controller.vo;
 
 import java.util.List;
-import java.util.Map;
 
-public class GovernanceQueryHistoryPageVO {
+public class BatchPageResponse<T> {
 
-    private List<GovernanceQueryHistorySummaryVO> items;
+    private List<T> items;
     private Integer pageNo;
     private Integer pageSize;
     private Integer totalCount;
     private Integer pageCount;
     private Boolean hasMore;
-    private Map<String, Object> classificationSummary;
 
-    public GovernanceQueryHistoryPageVO() {
+    public BatchPageResponse() {
     }
 
-    public GovernanceQueryHistoryPageVO(List<GovernanceQueryHistorySummaryVO> items,
-                                        Integer pageNo,
-                                        Integer pageSize,
-                                        Integer totalCount,
-                                        Integer pageCount,
-                                        Boolean hasMore,
-                                        Map<String, Object> classificationSummary) {
+    public BatchPageResponse(List<T> items,
+                             Integer pageNo,
+                             Integer pageSize,
+                             Integer totalCount,
+                             Integer pageCount,
+                             Boolean hasMore) {
         this.items = items;
         this.pageNo = pageNo;
         this.pageSize = pageSize;
         this.totalCount = totalCount;
         this.pageCount = pageCount;
         this.hasMore = hasMore;
-        this.classificationSummary = classificationSummary;
     }
 
-    public List<GovernanceQueryHistorySummaryVO> getItems() {
+    public List<T> getItems() {
         return items;
     }
 
-    public void setItems(List<GovernanceQueryHistorySummaryVO> items) {
+    public void setItems(List<T> items) {
         this.items = items;
     }
 
@@ -78,13 +74,5 @@ public class GovernanceQueryHistoryPageVO {
 
     public void setHasMore(Boolean hasMore) {
         this.hasMore = hasMore;
-    }
-
-    public Map<String, Object> getClassificationSummary() {
-        return classificationSummary;
-    }
-
-    public void setClassificationSummary(Map<String, Object> classificationSummary) {
-        this.classificationSummary = classificationSummary;
     }
 }

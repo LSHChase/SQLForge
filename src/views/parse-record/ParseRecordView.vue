@@ -81,12 +81,32 @@ const selectedHistoryDetail = ref(null)
 const selectedReportBatchDetail = ref(null)
 const selectedReportIssueSceneDetail = ref(null)
 const reportBatchItemDetails = ref({})
+const selectedReportSqlDetailItem = ref(null)
 const errorMessage = ref('')
 const batchHistoryErrorMessage = ref('')
 const reportBatchItemDetailErrorMessage = ref('')
 const reportBatchDetailDrawerVisible = ref(false)
+const reportSqlParseDetailDialogVisible = ref(false)
 const exportDialogVisible = ref(false)
 const exportResult = ref(null)
+const historyPagination = reactive({
+  pageNo: 1,
+  pageSize: 10,
+  totalCount: 0,
+  pageCount: 0
+})
+const parseBatchHistoryPagination = reactive({
+  pageNo: 1,
+  pageSize: 10,
+  totalCount: 0,
+  pageCount: 0
+})
+const reportBatchHistoryPagination = reactive({
+  pageNo: 1,
+  pageSize: 10,
+  totalCount: 0,
+  pageCount: 0
+})
 const reportBatchSqlPagination = reactive({
   pageNumber: 1,
   pageSize: 25,
@@ -99,6 +119,7 @@ const reportBatchIssueScenePagination = reactive({
   logicalObjectKey: ''
 })
 const REPORT_SQL_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+const LIST_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 const exportForm = reactive({
   exportFormat: 'JSON',
   includeTraceDetail: true,
@@ -126,7 +147,9 @@ const parseBatchHistorySummary = computed(() => {
   const totalRecords = parseBatchHistoryRows.value.reduce((sum, item) => sum + Number(item.totalRecords || 0), 0)
   const failedBatches = parseBatchHistoryRows.value.filter(item => String(item.status || '').includes('FAILED')).length
   return [
-    card(isChinese.value ? '批次总数' : 'Batches', parseBatchHistoryRows.value.length),
+    card(isChinese.value ? '当前页批次' : 'Current page', parseBatchHistoryRows.value.length),
+    card(isChinese.value ? '批次总数' : 'Batches', parseBatchHistoryPagination.totalCount),
+    card(isChinese.value ? '总页数' : 'Total pages', parseBatchHistoryPagination.pageCount),
     card(isChinese.value ? '总记录数' : 'Records', totalRecords),
     card(isChinese.value ? '失败批次' : 'Failed batches', failedBatches)
   ]
@@ -136,7 +159,9 @@ const reportBatchHistorySummary = computed(() => {
   const resolvedReports = reportBatchHistoryRows.value.reduce((sum, item) => sum + Number(item.resolvedReports || 0), 0)
   const failedBatches = reportBatchHistoryRows.value.filter(item => String(item.status || '').includes('FAILED')).length
   return [
-    card(isChinese.value ? '批次总数' : 'Batches', reportBatchHistoryRows.value.length),
+    card(isChinese.value ? '当前页批次' : 'Current page', reportBatchHistoryRows.value.length),
+    card(isChinese.value ? '批次总数' : 'Batches', reportBatchHistoryPagination.totalCount),
+    card(isChinese.value ? '总页数' : 'Total pages', reportBatchHistoryPagination.pageCount),
     card(isChinese.value ? '报表总数' : 'Reports', totalReports),
     card(isChinese.value ? '已解析' : 'Resolved', resolvedReports),
     card(isChinese.value ? '失败批次' : 'Failed batches', failedBatches)
@@ -282,6 +307,8 @@ const reportBatchParseDetailSummary = computed(() => {
 })
 const pageSummaryCards = computed(() => [
   { label: isChinese.value ? '当前页记录' : 'Current page', value: rows.value.length },
+  { label: isChinese.value ? '总条数' : 'Total records', value: historyPagination.totalCount },
+  { label: isChinese.value ? '总页数' : 'Total pages', value: historyPagination.pageCount },
   { label: isChinese.value ? '成功' : 'Success', value: classificationSummary.value.SUCCESS || classificationSummary.value.succeeded || 0 },
   { label: isChinese.value ? '异常/部分成功' : 'Non-success', value: classificationSummary.value.PARTIAL || classificationSummary.value.FAILED || classificationSummary.value.nonSuccess || 0 },
   { label: isChinese.value ? '接入渠道' : 'Access channels', value: Object.keys(classificationSummary.value.accessChannelCounts || {}).length }
@@ -497,6 +524,34 @@ const syncDateRangeFields = () => {
   form.submittedEnd = submittedEnd || ''
 }
 
+const normalizePagedList = (payload, fallbackPageSize) => {
+  if (Array.isArray(payload)) {
+    return {
+      items: payload,
+      pageNo: 1,
+      pageSize: fallbackPageSize,
+      totalCount: payload.length,
+      pageCount: payload.length ? 1 : 0
+    }
+  }
+  const items = Array.isArray(payload?.items) ? payload.items : []
+  const pageSize = Number(payload?.pageSize || fallbackPageSize)
+  return {
+    items,
+    pageNo: Number(payload?.pageNo || 1),
+    pageSize,
+    totalCount: Number(payload?.totalCount ?? items.length),
+    pageCount: Number(payload?.pageCount ?? (items.length ? 1 : 0))
+  }
+}
+
+const applyPaginationResult = (target, payload, fallbackPageSize) => {
+  target.pageNo = Number(payload.pageNo || 1)
+  target.pageSize = Number(payload.pageSize || fallbackPageSize)
+  target.totalCount = Number(payload.totalCount || 0)
+  target.pageCount = Number(payload.pageCount || 0)
+}
+
 const loadPage = async () => {
   syncDateRangeFields()
   loading.page = true
@@ -525,15 +580,18 @@ const loadPage = async () => {
         submittedEnd: form.submittedEnd,
         sortBy: form.sortBy,
         sortOrder: form.sortOrder,
-        pageNo: 1,
-        pageSize: 10
+        pageNo: historyPagination.pageNo,
+        pageSize: historyPagination.pageSize
       },
       {
         requestPrefix: 'frontend-parse-record-history-page'
       }
     )
+    const normalizedPage = normalizePagedList(page.value, historyPagination.pageSize)
+    applyPaginationResult(historyPagination, normalizedPage, historyPagination.pageSize)
   } catch (error) {
     page.value = null
+    applyPaginationResult(historyPagination, { pageNo: historyPagination.pageNo, pageSize: historyPagination.pageSize }, historyPagination.pageSize)
     errorMessage.value = formatRuntimeError(error)
   } finally {
     loading.page = false
@@ -543,11 +601,23 @@ const loadPage = async () => {
 const loadBatchHistories = async () => {
   batchHistoryErrorMessage.value = ''
   const [parseResult, reportResult] = await Promise.allSettled([
-    listParseBatches(requestTenantId.value),
-    listReportBatches(requestTenantId.value)
+    listParseBatches(requestTenantId.value, parseBatchHistoryPagination),
+    listReportBatches(requestTenantId.value, reportBatchHistoryPagination)
   ])
-  parseBatchHistoryRows.value = parseResult.status === 'fulfilled' && Array.isArray(parseResult.value) ? parseResult.value : []
-  reportBatchHistoryRows.value = reportResult.status === 'fulfilled' && Array.isArray(reportResult.value) ? reportResult.value : []
+  if (parseResult.status === 'fulfilled') {
+    const parsePage = normalizePagedList(parseResult.value, parseBatchHistoryPagination.pageSize)
+    parseBatchHistoryRows.value = parsePage.items
+    applyPaginationResult(parseBatchHistoryPagination, parsePage, parseBatchHistoryPagination.pageSize)
+  } else {
+    parseBatchHistoryRows.value = []
+  }
+  if (reportResult.status === 'fulfilled') {
+    const reportPage = normalizePagedList(reportResult.value, reportBatchHistoryPagination.pageSize)
+    reportBatchHistoryRows.value = reportPage.items
+    applyPaginationResult(reportBatchHistoryPagination, reportPage, reportBatchHistoryPagination.pageSize)
+  } else {
+    reportBatchHistoryRows.value = []
+  }
   if (parseResult.status === 'rejected') {
     batchHistoryErrorMessage.value = formatRuntimeError(parseResult.reason)
   }
@@ -558,6 +628,46 @@ const loadBatchHistories = async () => {
 
 const refreshWorkbench = async () => {
   await Promise.all([loadDatasourceOptions(), loadPage(), loadBatchHistories()])
+}
+
+const searchWorkbench = async () => {
+  historyPagination.pageNo = 1
+  parseBatchHistoryPagination.pageNo = 1
+  reportBatchHistoryPagination.pageNo = 1
+  await refreshWorkbench()
+}
+
+const handleHistoryPageChange = async pageNo => {
+  historyPagination.pageNo = pageNo
+  await loadPage()
+}
+
+const handleHistoryPageSizeChange = async pageSize => {
+  historyPagination.pageSize = pageSize
+  historyPagination.pageNo = 1
+  await loadPage()
+}
+
+const handleParseBatchHistoryPageChange = async pageNo => {
+  parseBatchHistoryPagination.pageNo = pageNo
+  await loadBatchHistories()
+}
+
+const handleParseBatchHistoryPageSizeChange = async pageSize => {
+  parseBatchHistoryPagination.pageSize = pageSize
+  parseBatchHistoryPagination.pageNo = 1
+  await loadBatchHistories()
+}
+
+const handleReportBatchHistoryPageChange = async pageNo => {
+  reportBatchHistoryPagination.pageNo = pageNo
+  await loadBatchHistories()
+}
+
+const handleReportBatchHistoryPageSizeChange = async pageSize => {
+  reportBatchHistoryPagination.pageSize = pageSize
+  reportBatchHistoryPagination.pageNo = 1
+  await loadBatchHistories()
 }
 
 const openHistoryDetail = async (historyId, preloadedTraceDetail = null) => {
@@ -654,7 +764,7 @@ const clearFilters = async () => {
   form.traceId = ''
   form.taskId = ''
   form.reportId = ''
-  await refreshWorkbench()
+  await searchWorkbench()
 }
 
 const openExportDialog = () => {
@@ -777,6 +887,8 @@ const openReportBatchDetail = async row => {
   batchHistoryErrorMessage.value = ''
   reportBatchItemDetailErrorMessage.value = ''
   reportBatchItemDetails.value = {}
+  selectedReportSqlDetailItem.value = null
+  reportSqlParseDetailDialogVisible.value = false
   selectedReportIssueSceneDetail.value = null
   reportBatchSqlPagination.pageNumber = 1
   reportBatchSqlPagination.pageSize = 25
@@ -935,6 +1047,17 @@ const loadReportBatchItemDetails = async items => {
 
 const loadReportBatchItemDetail = async item => {
   await loadReportBatchItemDetails([item])
+  selectedReportSqlDetailItem.value = item || null
+  if (reportItemParseDetail(item)) {
+    reportSqlParseDetailDialogVisible.value = true
+  }
+}
+
+const openReportSqlParseDetail = item => {
+  selectedReportSqlDetailItem.value = item || null
+  if (reportItemParseDetail(item)) {
+    reportSqlParseDetailDialogVisible.value = true
+  }
 }
 
 const statusClass = value => {
@@ -1218,19 +1341,40 @@ const displayValue = value => {
   return String(value)
 }
 
+const localizedDisplayText = value => {
+  const text = displayValue(value)
+  if (text === '-') {
+    return text
+  }
+  const parts = text
+    .split(/\r?\n+/)
+    .map(part => part.trim())
+    .filter(Boolean)
+  if (parts.length < 2) {
+    return text
+  }
+  const hasChineseText = part => /[\u3400-\u9fff]/.test(part)
+  const chineseParts = parts.filter(hasChineseText)
+  const englishParts = parts.filter(part => !hasChineseText(part) && /[A-Za-z]/.test(part))
+  if (!chineseParts.length || !englishParts.length) {
+    return text
+  }
+  return (isChinese.value ? chineseParts : englishParts).join(' ')
+}
+
 const issueSceneValues = value => normalizeArray(value).filter(scene => hasDisplayValue(scene))
 
 const issueSceneHelp = scene => issueSceneHelpText(scene, isChinese.value)
 
 const issueSceneListHelp = value => issueSceneValues(value).map(issueSceneHelp).filter(Boolean).join(' / ')
 
-const riskDisplayText = (risk, field) => sharedRiskDisplayText(risk, field, isChinese.value)
+const riskDisplayText = (risk, field) => localizedDisplayText(sharedRiskDisplayText(risk, field, isChinese.value))
 
 const displayDetailValue = value => {
   if (value && typeof value === 'object') {
     return formatJson(value)
   }
-  return displayValue(value)
+  return localizedDisplayText(value)
 }
 
 const hasDisplayValue = value => !(value === null || value === undefined || String(value).trim() === '')
@@ -1388,7 +1532,7 @@ onMounted(async () => {
         </p>
       </div>
       <div class="action-row">
-        <el-button type="primary" :loading="loading.page" data-testid="parse-record-refresh" @click="refreshWorkbench">
+        <el-button type="primary" :loading="loading.page" data-testid="parse-record-refresh" @click="searchWorkbench">
           {{ isChinese ? '刷新列表' : 'Refresh list' }}
         </el-button>
         <el-button :loading="loading.lookup" data-testid="parse-record-run-lookup" @click="runIndexedLookup">
@@ -1670,6 +1814,16 @@ onMounted(async () => {
               <template #default="{ row }">{{ row.auditEventCount ?? '-' }}</template>
             </el-table-column>
           </el-table>
+          <el-pagination
+            class="pagination-row"
+            layout="total, sizes, prev, pager, next"
+            :total="historyPagination.totalCount"
+            :page-sizes="LIST_PAGE_SIZE_OPTIONS"
+            :page-size="historyPagination.pageSize"
+            :current-page="historyPagination.pageNo"
+            @current-change="handleHistoryPageChange"
+            @size-change="handleHistoryPageSizeChange"
+          />
         </section>
       </el-tab-pane>
 
@@ -1725,6 +1879,16 @@ onMounted(async () => {
                   <template #default="{ row }">{{ formatTimestamp(row.createdAt) }}</template>
                 </el-table-column>
               </el-table>
+              <el-pagination
+                class="pagination-row"
+                layout="total, sizes, prev, pager, next"
+                :total="parseBatchHistoryPagination.totalCount"
+                :page-sizes="LIST_PAGE_SIZE_OPTIONS"
+                :page-size="parseBatchHistoryPagination.pageSize"
+                :current-page="parseBatchHistoryPagination.pageNo"
+                @current-change="handleParseBatchHistoryPageChange"
+                @size-change="handleParseBatchHistoryPageSizeChange"
+              />
             </el-tab-pane>
 
             <el-tab-pane :label="isChinese ? '报表导入历史' : 'Report import history'" name="report">
@@ -1763,6 +1927,16 @@ onMounted(async () => {
                   </template>
                 </el-table-column>
               </el-table>
+              <el-pagination
+                class="pagination-row"
+                layout="total, sizes, prev, pager, next"
+                :total="reportBatchHistoryPagination.totalCount"
+                :page-sizes="LIST_PAGE_SIZE_OPTIONS"
+                :page-size="reportBatchHistoryPagination.pageSize"
+                :current-page="reportBatchHistoryPagination.pageNo"
+                @current-change="handleReportBatchHistoryPageChange"
+                @size-change="handleReportBatchHistoryPageSizeChange"
+              />
             </el-tab-pane>
           </el-tabs>
         </section>
@@ -2097,125 +2271,10 @@ onMounted(async () => {
                         {{ isChinese ? '加载解析详情' : 'Load parse detail' }}
                       </el-button>
                     </div>
-                    <div
-                      v-if="reportItemParseDetail(item)"
-                      class="report-parse-detail"
-                      data-testid="parse-record-report-sql-parse-detail"
-                    >
-                      <div class="result-banner" :class="resultBannerClass(reportItemParseStatus(item))">
-                        <strong>{{ reportItemParseStatus(item) || '-' }}</strong>
-                        <span>{{ reportItemParseDetail(item)?.historyId || reportHistoryIdForItem(item) }}</span>
-                      </div>
-                      <div class="summary-chip-row">
-                        <span v-for="detailItem in reportItemParseSummaryCards(item)" :key="`${item.itemId}-${detailItem.label}`" class="summary-chip">
-                          {{ detailItem.label }}: <strong>{{ displayValue(detailItem.value) }}</strong>
-                        </span>
-                      </div>
-                      <SqlCodeBlock
-                        v-if="reportItemSqlOutput(item)"
-                        :value="reportItemSqlOutput(item)"
-                        :label="isChinese ? 'SQL 输出' : 'SQL output'"
-                        :copy-label="isChinese ? '复制' : 'Copy'"
-                        compact
-                        data-testid="parse-record-report-sql-code"
-                      />
-                      <div class="detail-grid detail-grid-secondary">
-                        <div v-for="detailItem in reportItemParseStatisticCards(item)" :key="`${item.itemId}-stat-${detailItem.label}`" class="detail-grid__item">
-                          <span>{{ detailItem.label }}</span>
-                          <strong>{{ displayValue(detailItem.value) }}</strong>
-                        </div>
-                      </div>
-                      <div v-if="reportItemStructureHighlights(item).length" class="mini-section">
-                        <span class="summary-card-label">{{ isChinese ? '结构解析卡' : 'Structure parse card' }}</span>
-                        <div class="highlight-grid">
-                          <div
-                            v-for="detailItem in reportItemStructureHighlights(item)"
-                            :key="`${item.itemId}-structure-${detailItem.key}`"
-                            class="highlight-chip"
-                            :class="resultValueClass(detailItem)"
-                          >
-                            <span>{{ detailItem.label }}</span>
-                            <strong>{{ displayValue(detailItem.value) }}</strong>
-                          </div>
-                        </div>
-                      </div>
-                      <div v-if="reportItemAccessHighlights(item).length" class="mini-section">
-                        <span class="summary-card-label">{{ isChinese ? 'Access Parse 卡' : 'Access parse card' }}</span>
-                        <div class="highlight-grid">
-                          <div
-                            v-for="detailItem in reportItemAccessHighlights(item)"
-                            :key="`${item.itemId}-access-${detailItem.key}`"
-                            class="highlight-chip"
-                            :class="resultValueClass(detailItem)"
-                          >
-                            <span>{{ detailItem.label }}</span>
-                            <strong>{{ displayValue(detailItem.value) }}</strong>
-                          </div>
-                        </div>
-                      </div>
-                      <div v-if="normalizeArray(reportItemStructureParse(item).riskChecklist).length" class="issue-list issue-list-compact">
-                        <article
-                          v-for="(risk, riskIndex) in normalizeArray(reportItemStructureParse(item).riskChecklist)"
-                          :key="`${item.itemId}-risk-${risk.riskCode || riskIndex}`"
-                          class="issue-card"
-                          data-testid="parse-record-report-sql-risk"
-                        >
-                          <div class="issue-card__header">
-                            <strong>
-                              {{ risk.riskCode || '-' }}
-                              <span
-                                v-if="issueSceneHelp(risk)"
-                                class="help-dot issue-scene-help"
-                                tabindex="0"
-                                aria-label="issue scene help"
-                                :data-tooltip="issueSceneHelp(risk)"
-                                :title="issueSceneHelp(risk)"
-                              >?</span>
-                            </strong>
-                            <span>{{ risk.severity || '-' }}</span>
-                          </div>
-                          <p class="issue-card__summary">{{ riskDisplayText(risk, 'summary') }}</p>
-                          <p class="issue-card__detail">{{ riskDisplayText(risk, 'evidence') }}</p>
-                          <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ riskDisplayText(risk, 'suggestedAction') }}</p>
-                        </article>
-                      </div>
-                      <div v-if="normalizeArray(reportItemStructureParse(item).issues).length" class="issue-list">
-                        <article
-                          v-for="(issue, issueIndex) in normalizeArray(reportItemStructureParse(item).issues)"
-                          :key="`${item.itemId}-issue-${issue.issueCode || issueIndex}`"
-                          class="issue-card"
-                          data-testid="parse-record-report-sql-issue"
-                        >
-                          <div class="issue-card__header">
-                            <strong>
-                              {{ issue.issueCode || '-' }}
-                              <span
-                                v-if="issueSceneHelp(issue)"
-                                class="help-dot issue-scene-help"
-                                tabindex="0"
-                                aria-label="issue scene help"
-                                :data-tooltip="issueSceneHelp(issue)"
-                                :title="issueSceneHelp(issue)"
-                              >?</span>
-                            </strong>
-                            <span>{{ displayValue(firstValue(issue.severity, issue.priorityLevel)) }}</span>
-                          </div>
-                          <p class="issue-card__summary">{{ displayDetailValue(issue.summary) }}</p>
-                          <p class="issue-card__detail">{{ displayDetailValue(issue.detail) }}</p>
-                          <p v-if="issue.failureLine || issue.failureColumn || issue.failureToken || issue.failureSnippet" class="issue-card__detail">
-                            {{ isChinese ? '失败定位' : 'Failure position' }}:
-                            <span v-if="issue.failureLine && issue.failureColumn">line {{ issue.failureLine }}, column {{ issue.failureColumn }}</span>
-                            <span v-if="issue.failureToken"> · token {{ issue.failureToken }}</span>
-                            <span v-if="issue.failureSnippet"> · {{ issue.failureSnippet }}</span>
-                          </p>
-                          <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(issue.suggestedAction) }}</p>
-                        </article>
-                      </div>
-                      <div v-if="reportHistoryIdForItem(item)" class="dialog-actions">
-                        <el-button text @click="openHistoryDetail(reportItemParseDetail(item).historyId || reportHistoryIdForItem(item))">
-                          {{ isChinese ? '打开完整解析历史' : 'Open full parse history' }}
-                        </el-button>
-                      </div>
+                    <div v-else-if="reportItemParseDetail(item)" class="dialog-actions">
+                      <el-button text data-testid="parse-record-report-sql-parse-detail" @click="openReportSqlParseDetail(item)">
+                        {{ isChinese ? '查看解析详情弹窗' : 'Open parse detail dialog' }}
+                      </el-button>
                     </div>
                     <p v-else-if="reportHistoryIdForItem(item) && !loading.reportBatchItemDetails" class="empty-copy" data-testid="parse-record-report-sql-detail-missing">
                       {{ isChinese ? '点击加载解析详情后展示结构化解析统计。' : 'Load parse detail to show structured parse statistics.' }}
@@ -2245,6 +2304,141 @@ onMounted(async () => {
         </el-tab-pane>
       </el-tabs>
     </el-drawer>
+
+    <el-dialog
+      v-model="reportSqlParseDetailDialogVisible"
+      :title="selectedReportSqlDetailItem?.reportCode || selectedReportSqlDetailItem?.itemId || (isChinese ? 'SQL 级解析详情' : 'SQL parse detail')"
+      width="1040px"
+      data-testid="parse-record-report-sql-parse-detail-dialog"
+    >
+      <div v-if="selectedReportSqlDetailItem" class="dialog-stack">
+        <div class="result-banner" :class="resultBannerClass(reportItemParseStatus(selectedReportSqlDetailItem))">
+          <strong>{{ reportItemParseStatus(selectedReportSqlDetailItem) || '-' }}</strong>
+          <span>{{ reportItemParseDetail(selectedReportSqlDetailItem)?.historyId || reportHistoryIdForItem(selectedReportSqlDetailItem) }}</span>
+        </div>
+        <div class="summary-chip-row">
+          <span v-for="detailItem in reportItemParseSummaryCards(selectedReportSqlDetailItem)" :key="`dialog-${detailItem.label}`" class="summary-chip">
+            {{ detailItem.label }}: <strong>{{ displayValue(detailItem.value) }}</strong>
+          </span>
+        </div>
+        <SqlCodeBlock
+          v-if="reportItemSqlOutput(selectedReportSqlDetailItem)"
+          :value="reportItemSqlOutput(selectedReportSqlDetailItem)"
+          :label="isChinese ? 'SQL 输出' : 'SQL output'"
+          :copy-label="isChinese ? '复制' : 'Copy'"
+          data-testid="parse-record-report-sql-code"
+        />
+        <div class="detail-grid detail-grid-secondary">
+          <div v-for="detailItem in reportItemParseStatisticCards(selectedReportSqlDetailItem)" :key="`dialog-stat-${detailItem.label}`" class="detail-grid__item">
+            <span>{{ detailItem.label }}</span>
+            <strong>{{ displayValue(detailItem.value) }}</strong>
+          </div>
+        </div>
+        <div class="parse-card-grid">
+          <article v-if="reportItemStructureHighlights(selectedReportSqlDetailItem).length" class="parse-card">
+            <div class="parse-card__header">
+              <div>
+                <p class="section-kicker sqlforge-code-label">structure parse</p>
+                <h3 class="detail-title">{{ isChinese ? '结构解析卡' : 'Structure parse card' }}</h3>
+              </div>
+            </div>
+            <div class="highlight-grid">
+              <div
+                v-for="detailItem in reportItemStructureHighlights(selectedReportSqlDetailItem)"
+                :key="`dialog-structure-${detailItem.key}`"
+                class="highlight-chip"
+                :class="resultValueClass(detailItem)"
+              >
+                <span>{{ detailItem.label }}</span>
+                <strong>{{ displayValue(detailItem.value) }}</strong>
+              </div>
+            </div>
+            <div v-if="normalizeArray(reportItemStructureParse(selectedReportSqlDetailItem).riskChecklist).length" class="issue-list issue-list-compact">
+              <article
+                v-for="(risk, riskIndex) in normalizeArray(reportItemStructureParse(selectedReportSqlDetailItem).riskChecklist)"
+                :key="`dialog-risk-${risk.riskCode || riskIndex}`"
+                class="issue-card"
+                data-testid="parse-record-report-sql-risk"
+              >
+                <div class="issue-card__header">
+                  <strong>
+                    {{ risk.riskCode || '-' }}
+                    <span
+                      v-if="issueSceneHelp(risk)"
+                      class="help-dot issue-scene-help"
+                      tabindex="0"
+                      aria-label="issue scene help"
+                      :data-tooltip="issueSceneHelp(risk)"
+                      :title="issueSceneHelp(risk)"
+                    >?</span>
+                  </strong>
+                  <span>{{ risk.severity || '-' }}</span>
+                </div>
+                <p class="issue-card__summary">{{ riskDisplayText(risk, 'summary') }}</p>
+                <p class="issue-card__detail">{{ riskDisplayText(risk, 'evidence') }}</p>
+                <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ riskDisplayText(risk, 'suggestedAction') }}</p>
+              </article>
+            </div>
+            <div v-if="normalizeArray(reportItemStructureParse(selectedReportSqlDetailItem).issues).length" class="issue-list">
+              <article
+                v-for="(issue, issueIndex) in normalizeArray(reportItemStructureParse(selectedReportSqlDetailItem).issues)"
+                :key="`dialog-issue-${issue.issueCode || issueIndex}`"
+                class="issue-card"
+                data-testid="parse-record-report-sql-issue"
+              >
+                <div class="issue-card__header">
+                  <strong>
+                    {{ issue.issueCode || '-' }}
+                    <span
+                      v-if="issueSceneHelp(issue)"
+                      class="help-dot issue-scene-help"
+                      tabindex="0"
+                      aria-label="issue scene help"
+                      :data-tooltip="issueSceneHelp(issue)"
+                      :title="issueSceneHelp(issue)"
+                    >?</span>
+                  </strong>
+                  <span>{{ displayValue(firstValue(issue.severity, issue.priorityLevel)) }}</span>
+                </div>
+                <p class="issue-card__summary">{{ displayDetailValue(issue.summary) }}</p>
+                <p class="issue-card__detail">{{ displayDetailValue(issue.detail) }}</p>
+                <p v-if="issue.failureLine || issue.failureColumn || issue.failureToken || issue.failureSnippet" class="issue-card__detail">
+                  {{ isChinese ? '失败定位' : 'Failure position' }}:
+                  <span v-if="issue.failureLine && issue.failureColumn">line {{ issue.failureLine }}, column {{ issue.failureColumn }}</span>
+                  <span v-if="issue.failureToken"> · token {{ issue.failureToken }}</span>
+                  <span v-if="issue.failureSnippet"> · {{ issue.failureSnippet }}</span>
+                </p>
+                <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(issue.suggestedAction) }}</p>
+              </article>
+            </div>
+          </article>
+          <article v-if="reportItemAccessHighlights(selectedReportSqlDetailItem).length" class="parse-card">
+            <div class="parse-card__header">
+              <div>
+                <p class="section-kicker sqlforge-code-label">access parse</p>
+                <h3 class="detail-title">{{ isChinese ? 'Access Parse 卡' : 'Access parse card' }}</h3>
+              </div>
+            </div>
+            <div class="highlight-grid">
+              <div
+                v-for="detailItem in reportItemAccessHighlights(selectedReportSqlDetailItem)"
+                :key="`dialog-access-${detailItem.key}`"
+                class="highlight-chip"
+                :class="resultValueClass(detailItem)"
+              >
+                <span>{{ detailItem.label }}</span>
+                <strong>{{ displayValue(detailItem.value) }}</strong>
+              </div>
+            </div>
+          </article>
+        </div>
+        <div v-if="reportHistoryIdForItem(selectedReportSqlDetailItem)" class="dialog-actions">
+          <el-button text @click="openHistoryDetail(reportItemParseDetail(selectedReportSqlDetailItem).historyId || reportHistoryIdForItem(selectedReportSqlDetailItem))">
+            {{ isChinese ? '打开完整解析历史' : 'Open full parse history' }}
+          </el-button>
+        </div>
+      </div>
+    </el-dialog>
 
     <el-dialog
       v-model="detailDialogVisible"
@@ -2326,9 +2520,9 @@ onMounted(async () => {
                     <strong>{{ displayValue(item.value) }}</strong>
                   </div>
                 </div>
-                <p v-if="historyResultSummary.summary" class="result-copy">{{ historyResultSummary.summary }}</p>
+                <p v-if="historyResultSummary.summary" class="result-copy">{{ displayDetailValue(historyResultSummary.summary) }}</p>
                 <p v-if="historyResultSummary.recommendedAction" class="result-copy result-copy-muted">
-                  {{ historyResultSummary.recommendedAction }}
+                  {{ displayDetailValue(historyResultSummary.recommendedAction) }}
                 </p>
               </div>
 
@@ -2557,12 +2751,12 @@ onMounted(async () => {
 
                   <div v-if="historyAccessParse.planSummary" class="mini-section">
                     <span class="summary-card-label">{{ isChinese ? 'Plan Summary' : 'Plan summary' }}</span>
-                    <p class="result-copy">{{ historyAccessParse.planSummary }}</p>
+                    <p class="result-copy">{{ displayDetailValue(historyAccessParse.planSummary) }}</p>
                   </div>
 
                   <div v-if="historyAccessParse.availabilityWarning" class="mini-section">
                     <span class="summary-card-label">{{ isChinese ? '可用性告警' : 'Availability warning' }}</span>
-                    <p class="result-copy result-copy-muted">{{ historyAccessParse.availabilityWarning }}</p>
+                    <p class="result-copy result-copy-muted">{{ displayDetailValue(historyAccessParse.availabilityWarning) }}</p>
                   </div>
                 </article>
               </div>
