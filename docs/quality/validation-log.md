@@ -2534,3 +2534,20 @@
 2026-05-07T03:29:33-05:00 | OPS-DIST-PORTABLE-DETAIL-20260507 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:portable-frontend (projected-precommit)`
 2026-05-07T03:29:33-05:00 | OPS-DIST-PORTABLE-DETAIL-20260507 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-page-contract.mjs (projected-precommit)`
 2026-05-07T03:29:33-05:00 | OPS-DIST-PORTABLE-DETAIL-20260507 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-detail-contract.mjs (projected-precommit)`
+2026-05-07T05:04:00-05:00 | HARN-079 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-07T05:04:00-05:00 | HARN-079 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-07T05:04:15-05:00 | HARN-079 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-07T05:04:15-05:00 | HARN-079 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-07T05:04:15-05:00 | HARN-079 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-07T05:04:19-05:00 | HARN-079 validate | `R-133`, `R-168` | passed | `mvn -pl sql-optimization -Dtest=ReportBatchParseStatisticsAssemblerTest,ReportBatchControllerTest test`
+2026-05-07T05:04:27-05:00 | HARN-079 validate | `R-133`, `R-168` | passed | `mvn -pl sql-optimization test`
+2026-05-07T05:04:27-05:00 | HARN-079 validate | `R-133`, `R-168` | passed | `node scripts/check-batch-import-contract.mjs`
+2026-05-07T05:04:27-05:00 | HARN-079 validate | `R-133`, `R-168` | passed | `node scripts/check-history-detail-contract.mjs`
+2026-05-07T05:04:29-05:00 | HARN-079 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-07T05:04:32-05:00 | HARN-079 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-07T05:04:32-05:00 | HARN-079 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-07T05:05:05-05:00 | HARN-079 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-07T05:05:05-05:00 | HARN-079 closeout commit | `R-168` | projected | `git commit -m 'feat(sql-optimization): flag report sql merge candidates' (projected-precommit)`
+2026-05-07T05:05:05-05:00 | HARN-079 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-07T05:05:05-05:00 | HARN-079 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-batch-import-contract.mjs (projected-precommit)`
+2026-05-07T05:05:05-05:00 | HARN-079 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-detail-contract.mjs (projected-precommit)`

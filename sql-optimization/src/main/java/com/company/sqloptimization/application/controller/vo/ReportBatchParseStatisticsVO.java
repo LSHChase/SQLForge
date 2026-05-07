@@ -10,6 +10,7 @@ public class ReportBatchParseStatisticsVO {
     private Map<String, Integer> severityDistribution;
     private List<ReportBatchImportanceStatisticVO> importanceStatistics;
     private List<ParseReportStatisticVO> reportStatistics;
+    private Integer mergeCandidateReportCount;
     private Integer sqlStatisticLimit;
     private Boolean sqlStatisticTruncated;
     private Integer omittedSqlStatisticCount;
@@ -36,6 +37,10 @@ public class ReportBatchParseStatisticsVO {
     }
     public List<ParseReportStatisticVO> getReportStatistics() { return reportStatistics; }
     public void setReportStatistics(List<ParseReportStatisticVO> reportStatistics) { this.reportStatistics = reportStatistics; }
+    public Integer getMergeCandidateReportCount() { return mergeCandidateReportCount; }
+    public void setMergeCandidateReportCount(Integer mergeCandidateReportCount) {
+        this.mergeCandidateReportCount = mergeCandidateReportCount;
+    }
     public Integer getSqlStatisticLimit() { return sqlStatisticLimit; }
     public void setSqlStatisticLimit(Integer sqlStatisticLimit) { this.sqlStatisticLimit = sqlStatisticLimit; }
     public Boolean getSqlStatisticTruncated() { return sqlStatisticTruncated; }

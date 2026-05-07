@@ -88,6 +88,11 @@ const ISSUE_SCENE_TRANSLATIONS = {
     summary: '复杂查询图风险',
     evidence: '当前查询图由多个 Join、谓词和子查询组成。',
     suggestedAction: '先拆分为可审查的阶段，再进入上线路径。'
+  },
+  REPORT_SQL_MERGE_CANDIDATE: {
+    summary: '报表多 SQL 可合并候选',
+    evidence: '同一报表内多条 SQL 共享数据源、阶段和逻辑对象或多个问题场景，可能存在重复扫描或重复维护。',
+    suggestedAction: '复核是否可合并为单条查询、公共 CTE、服务层数据集或统一宽表；不要直接执行未经验证的合并 SQL。'
   }
 }
 

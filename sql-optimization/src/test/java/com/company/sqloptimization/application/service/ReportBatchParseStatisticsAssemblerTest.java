@@ -1,11 +1,15 @@
 package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.company.sqloptimization.application.controller.vo.ParseIssueSceneStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParsePriorityMatrixCellVO;
+import com.company.sqloptimization.application.controller.vo.ParseReportStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchImportanceStatisticVO;
+import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneDetailVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchLogicalObjectStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
 import com.company.sqloptimization.domain.reportbatch.ReportBatchItem;
@@ -52,13 +56,20 @@ class ReportBatchParseStatisticsAssemblerTest {
         ReportBatchParseStatisticsVO statistics = assembler.build(items);
 
         assertEquals(Integer.valueOf(3), statistics.getOverview().getTotalSqlCount());
-        assertEquals(Integer.valueOf(2), statistics.getOverview().getIssueSqlCount());
-        assertEquals(Integer.valueOf(3), statistics.getOverview().getTotalIssueCount());
-        assertEquals(Integer.valueOf(3), statistics.getOverview().getIssueSceneCount());
-        assertEquals("MISSING_FILTER", statistics.getIssueSceneStatistics().get(0).getIssueScene());
+        assertEquals(Integer.valueOf(3), statistics.getOverview().getIssueSqlCount());
+        assertEquals(Integer.valueOf(5), statistics.getOverview().getTotalIssueCount());
+        assertEquals(Integer.valueOf(4), statistics.getOverview().getIssueSceneCount());
+        assertNotNull(findIssueScene(statistics.getIssueSceneStatistics(), "MISSING_FILTER"));
+        assertNotNull(findIssueScene(statistics.getIssueSceneStatistics(), "REPORT_SQL_MERGE_CANDIDATE"));
         assertEquals(Integer.valueOf(1), statistics.getSeverityDistribution().get("HIGH"));
+        assertEquals(Integer.valueOf(3), statistics.getSeverityDistribution().get("MEDIUM"));
         assertEquals("RPT_A", statistics.getReportStatistics().get(0).getReportCode());
         assertEquals(Integer.valueOf(2), statistics.getReportStatistics().get(0).getSqlCount());
+        assertEquals(Boolean.TRUE, statistics.getReportStatistics().get(0).getMergeCandidate());
+        assertEquals(Integer.valueOf(2), statistics.getReportStatistics().get(0).getMergeCandidateSqlCount());
+        assertTrue(statistics.getReportStatistics().get(0).getMergeCandidateReason().contains("TABLE:orders"));
+        assertTrue(statistics.getReportStatistics().get(0).getIssueScenes().contains("REPORT_SQL_MERGE_CANDIDATE"));
+        assertEquals(Integer.valueOf(1), statistics.getMergeCandidateReportCount());
         assertEquals("item-a", statistics.getSqlStatistics().get(0).getItemId());
         assertEquals("P1", statistics.getSqlStatistics().get(0).getHighestPriorityLevel());
         assertNotNull(findImportance(statistics.getImportanceStatistics(), "IMPORTANT_URGENT"));
@@ -77,11 +88,79 @@ class ReportBatchParseStatisticsAssemblerTest {
         ReportBatchParseStatisticsVO statistics = assembler.build(Collections.<ReportBatchItem>emptyList());
 
         assertEquals(Integer.valueOf(0), statistics.getOverview().getTotalSqlCount());
+        assertEquals(Integer.valueOf(0), statistics.getMergeCandidateReportCount());
         assertTrue(statistics.getIssueSceneStatistics().isEmpty());
         assertTrue(statistics.getReportStatistics().isEmpty());
         assertTrue(statistics.getSqlStatistics().isEmpty());
         assertTrue(statistics.getPriorityMatrix().isEmpty());
         assertTrue(statistics.getLogicalObjectStatistics().isEmpty());
+    }
+
+    @Test
+    void shouldDetectMergeCandidatesInIssueSceneDetail() {
+        Instant now = Instant.parse("2026-05-05T12:00:00Z");
+        List<ReportBatchItem> items = Arrays.asList(
+            item("item-a", "RPT_A", "SELECT id FROM orders WHERE dt = '2026-05-05'",
+                Collections.<String>emptyList(), Arrays.asList("TABLE:orders"), now),
+            item("item-b", "RPT_A", "SELECT amount FROM orders WHERE dt = '2026-05-05'",
+                Collections.<String>emptyList(), Arrays.asList("TABLE:orders"), now),
+            item("item-c", "RPT_A", "SELECT id FROM customers WHERE dt = '2026-05-05'",
+                Collections.<String>emptyList(), Arrays.asList("TABLE:customers"), now)
+        );
+
+        ReportBatchIssueSceneDetailVO detail = assembler.buildIssueSceneDetail(
+            items,
+            "REPORT_SQL_MERGE_CANDIDATE",
+            null,
+            null,
+            null,
+            null
+        );
+
+        assertEquals("REPORT_SQL_MERGE_CANDIDATE", detail.getIssueScene());
+        assertEquals(Integer.valueOf(2), detail.getAffectedSqlCount());
+        assertEquals(Integer.valueOf(2), detail.getAffectedIssueCount());
+        assertEquals(Integer.valueOf(1), detail.getReportCount());
+        assertEquals("RPT_A", detail.getReportDetails().get(0).getReportCode());
+        assertEquals(Integer.valueOf(2), detail.getSqlStatistics().size());
+        assertTrue(detail.getSqlStatistics().get(0).getIssueScenes().contains("REPORT_SQL_MERGE_CANDIDATE"));
+    }
+
+    @Test
+    void shouldNotMarkSingleOrCrossReportSqlAsMergeCandidate() {
+        Instant now = Instant.parse("2026-05-05T12:00:00Z");
+        List<ReportBatchItem> items = Arrays.asList(
+            item("item-a", "RPT_A", "SELECT id FROM orders WHERE dt = '2026-05-05'",
+                Collections.<String>emptyList(), Arrays.asList("TABLE:orders"), now),
+            item("item-b", "RPT_B", "SELECT amount FROM orders WHERE dt = '2026-05-05'",
+                Collections.<String>emptyList(), Arrays.asList("TABLE:orders"), now)
+        );
+
+        ReportBatchParseStatisticsVO statistics = assembler.build(items);
+
+        assertEquals(Integer.valueOf(0), statistics.getMergeCandidateReportCount());
+        assertFalse(Boolean.TRUE.equals(findReport(statistics.getReportStatistics(), "RPT_A").getMergeCandidate()));
+        assertFalse(Boolean.TRUE.equals(findReport(statistics.getReportStatistics(), "RPT_B").getMergeCandidate()));
+        assertFalse(statistics.getIssueSceneStatistics().stream()
+            .anyMatch(item -> "REPORT_SQL_MERGE_CANDIDATE".equals(item.getIssueScene())));
+    }
+
+    @Test
+    void shouldIgnoreInvalidSqlWhenAssessingMergeCandidates() {
+        Instant now = Instant.parse("2026-05-05T12:00:00Z");
+        List<ReportBatchItem> items = Arrays.asList(
+            item("item-a", "RPT_A", "SELECT id FROM orders WHERE dt = '2026-05-05'",
+                Collections.<String>emptyList(), Arrays.asList("TABLE:orders"), now),
+            item("item-b", "RPT_A", "SELECT FROM orders",
+                Collections.singletonList("SQL_SYNTAX_INVALID"), Arrays.asList("TABLE:orders"), now,
+                "INVALID", ReportBatchItem.Status.FAILED)
+        );
+
+        ReportBatchParseStatisticsVO statistics = assembler.build(items);
+
+        assertEquals(Integer.valueOf(0), statistics.getMergeCandidateReportCount());
+        assertFalse(Boolean.TRUE.equals(findReport(statistics.getReportStatistics(), "RPT_A").getMergeCandidate()));
+        assertFalse(statistics.getSqlStatistics().get(0).getIssueScenes().contains("REPORT_SQL_MERGE_CANDIDATE"));
     }
 
     @Test
@@ -114,6 +193,26 @@ class ReportBatchParseStatisticsAssemblerTest {
                                  List<String> issueScenes,
                                  List<String> logicalObjectKeys,
                                  Instant now) {
+        return item(
+            itemId,
+            reportCode,
+            sqlText,
+            issueScenes,
+            logicalObjectKeys,
+            now,
+            "VALID",
+            ReportBatchItem.Status.RESOLVED
+        );
+    }
+
+    private ReportBatchItem item(String itemId,
+                                 String reportCode,
+                                 String sqlText,
+                                 List<String> issueScenes,
+                                 List<String> logicalObjectKeys,
+                                 Instant now,
+                                 String structureSyntaxStatus,
+                                 ReportBatchItem.Status status) {
         ReportBatchItem item = ReportBatchItem.create(
             itemId,
             "batch-stat-001",
@@ -131,10 +230,10 @@ class ReportBatchParseStatisticsAssemblerTest {
         item.complete(
             sqlText,
             "parse-" + itemId,
-            "VALID",
+            structureSyntaxStatus,
             "AVAILABLE",
             "CONNECTED",
-            ReportBatchItem.Status.RESOLVED,
+            status,
             null,
             issueScenes,
             logicalObjectKeys,
@@ -164,12 +263,31 @@ class ReportBatchParseStatisticsAssemblerTest {
         return null;
     }
 
+    private ParseIssueSceneStatisticVO findIssueScene(List<ParseIssueSceneStatisticVO> statistics,
+                                                      String issueScene) {
+        for (ParseIssueSceneStatisticVO statistic : statistics) {
+            if (issueScene.equals(statistic.getIssueScene())) {
+                return statistic;
+            }
+        }
+        return null;
+    }
+
     private ReportBatchLogicalObjectStatisticVO findLogicalObject(
         List<ReportBatchLogicalObjectStatisticVO> statistics,
         String objectKey
     ) {
         for (ReportBatchLogicalObjectStatisticVO statistic : statistics) {
             if (objectKey.equals(statistic.getObjectKey())) {
+                return statistic;
+            }
+        }
+        return null;
+    }
+
+    private ParseReportStatisticVO findReport(List<ParseReportStatisticVO> statistics, String reportCode) {
+        for (ParseReportStatisticVO statistic : statistics) {
+            if (reportCode.equals(statistic.getReportCode())) {
                 return statistic;
             }
         }

@@ -12,6 +12,7 @@ const contractFiles = [
   'sql-optimization/src/main/java/com/company/sqloptimization/application/controller/vo/ParseBatchItemVO.java',
   'sql-optimization/src/main/java/com/company/sqloptimization/application/controller/vo/ReportBatchStatusResponse.java',
   'sql-optimization/src/main/java/com/company/sqloptimization/application/controller/vo/ReportBatchItemVO.java',
+  'sql-optimization/src/main/java/com/company/sqloptimization/application/controller/vo/ParseReportStatisticVO.java',
   'sql-optimization/src/main/java/com/company/sqloptimization/application/controller/vo/ReportBatchParseStatisticsVO.java'
 ]
 const source = contractFiles
@@ -109,6 +110,9 @@ const requiredTokens = [
   'issueSceneListHelp',
   'issue-scene-help',
   'REPEATED_TABLE_SCAN_RISK',
+  'REPORT_SQL_MERGE_CANDIDATE',
+  'mergeCandidateReportCount',
+  'mergeCandidateReason',
   '风险含义：',
   '原因：',
   '建议：',

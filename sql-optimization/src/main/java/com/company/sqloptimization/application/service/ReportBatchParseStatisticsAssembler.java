@@ -30,6 +30,9 @@ import org.springframework.util.StringUtils;
 class ReportBatchParseStatisticsAssembler {
 
     private static final int SQL_STATISTIC_PREVIEW_LIMIT = 500;
+    private static final int MIN_SHARED_ISSUE_SCENES_FOR_MERGE = 2;
+    private static final String REPORT_SQL_MERGE_CANDIDATE = "REPORT_SQL_MERGE_CANDIDATE";
+    private static final String VALID_STRUCTURE_STATUS = "VALID";
 
     ReportBatchParseStatisticsVO build(List<ReportBatchItem> sourceItems) {
         return build(sourceItems, null, null, null);
@@ -48,6 +51,7 @@ class ReportBatchParseStatisticsAssembler {
             reportCode,
             SQL_STATISTIC_PREVIEW_LIMIT
         );
+        MergeCandidateIndex mergeCandidateIndex = buildMergeCandidateIndex(items);
         List<ReportBatchSqlStatisticVO> sqlStatistics = new ArrayList<ReportBatchSqlStatisticVO>(items.size());
         Map<String, SceneAccumulator> sceneAccumulators = new LinkedHashMap<String, SceneAccumulator>();
         Map<String, Integer> severityDistribution = initialSeverityDistribution();
@@ -63,7 +67,8 @@ class ReportBatchParseStatisticsAssembler {
         int urgentSqlCount = 0;
 
         for (ReportBatchItem item : items) {
-            SqlIssueAssessment assessment = assessItem(item);
+            List<String> effectiveIssueScenes = effectiveIssueScenes(item, mergeCandidateIndex);
+            SqlIssueAssessment assessment = assessIssueScenes(effectiveIssueScenes);
             if (assessment.issueCount > 0) {
                 issueSqlCount++;
             }
@@ -78,9 +83,9 @@ class ReportBatchParseStatisticsAssembler {
                 assessment.highestPriorityLevel,
                 Integer.valueOf(priorityDistribution.get(assessment.highestPriorityLevel).intValue() + 1)
             );
-            sqlStatistics.add(toSqlStatistic(item, assessment));
-            accumulateScenes(item, items.size(), sceneAccumulators, severityDistribution, issueSceneKeys);
-            accumulateReport(item, assessment, reportAccumulators);
+            sqlStatistics.add(toSqlStatistic(item, effectiveIssueScenes, assessment));
+            accumulateScenes(item, effectiveIssueScenes, items.size(), sceneAccumulators, severityDistribution, issueSceneKeys);
+            accumulateReport(item, effectiveIssueScenes, assessment, reportAccumulators, mergeCandidateIndex);
             accumulatePriority(item, assessment, priorityMatrix);
             accumulateImportance(item, assessment, importanceAccumulators);
             accumulateLogicalObjects(item, assessment, logicalObjectAccumulators);
@@ -93,6 +98,7 @@ class ReportBatchParseStatisticsAssembler {
         statistics.setSeverityDistribution(severityDistribution);
         statistics.setImportanceStatistics(toImportanceStatistics(importanceAccumulators));
         statistics.setReportStatistics(toReportStatistics(reportAccumulators));
+        statistics.setMergeCandidateReportCount(Integer.valueOf(mergeCandidateIndex.reportCount()));
         List<ReportBatchSqlStatisticVO> sortedSqlStatistics = sortSqlStatistics(sqlStatistics);
         List<ReportBatchSqlStatisticVO> filteredSqlStatistics = filterSqlStatistics(
             sortedSqlStatistics,
@@ -135,6 +141,7 @@ class ReportBatchParseStatisticsAssembler {
             reportCodeFilter,
             SQL_STATISTIC_PREVIEW_LIMIT
         );
+        MergeCandidateIndex mergeCandidateIndex = buildMergeCandidateIndex(items);
         List<ReportBatchSqlStatisticVO> sqlStatistics = new ArrayList<ReportBatchSqlStatisticVO>();
         Map<String, IssueSceneReportAccumulator> reportAccumulators =
             new LinkedHashMap<String, IssueSceneReportAccumulator>();
@@ -143,13 +150,14 @@ class ReportBatchParseStatisticsAssembler {
         int affectedIssueCount = 0;
 
         for (ReportBatchItem item : items) {
-            int issueCount = issueCount(item, normalizedIssueScene);
+            List<String> effectiveIssueScenes = effectiveIssueScenes(item, mergeCandidateIndex);
+            int issueCount = issueCount(effectiveIssueScenes, normalizedIssueScene);
             if (issueCount <= 0 || !matchesReportCode(item, reportCodeFilter) || !matchesLogicalObject(item, logicalObjectKeyFilter)) {
                 continue;
             }
             affectedIssueCount += issueCount;
-            SqlIssueAssessment assessment = assessItem(item);
-            sqlStatistics.add(toSqlStatistic(item, assessment));
+            SqlIssueAssessment assessment = assessIssueScenes(effectiveIssueScenes);
+            sqlStatistics.add(toSqlStatistic(item, effectiveIssueScenes, assessment));
             accumulateIssueSceneReport(item, issueCount, reportAccumulators);
             accumulateIssueSceneLogicalObjects(item, issueCount, logicalObjectAccumulators);
         }
@@ -198,11 +206,12 @@ class ReportBatchParseStatisticsAssembler {
     }
 
     private void accumulateScenes(ReportBatchItem item,
+                                  List<String> issueScenes,
                                   int totalSqlCount,
                                   Map<String, SceneAccumulator> accumulators,
                                   Map<String, Integer> severityDistribution,
                                   Set<String> issueSceneKeys) {
-        Set<String> uniqueScenes = new LinkedHashSet<String>(item.getIssueScenes());
+        Set<String> uniqueScenes = new LinkedHashSet<String>(issueScenes);
         for (String scene : uniqueScenes) {
             StructureParseIssueScoringSnapshot snapshot = snapshot(scene);
             String sceneKey = firstNonBlank(scene, snapshot.getIssueScene());
@@ -218,7 +227,7 @@ class ReportBatchParseStatisticsAssembler {
             }
             accumulator.logicalObjectKeys.addAll(item.getLogicalObjectKeys());
         }
-        for (String scene : item.getIssueScenes()) {
+        for (String scene : issueScenes) {
             StructureParseIssueScoringSnapshot snapshot = snapshot(scene);
             String sceneKey = firstNonBlank(scene, snapshot.getIssueScene());
             SceneAccumulator accumulator = accumulators.get(sceneKey);
@@ -231,8 +240,10 @@ class ReportBatchParseStatisticsAssembler {
     }
 
     private void accumulateReport(ReportBatchItem item,
+                                  List<String> issueScenes,
                                   SqlIssueAssessment assessment,
-                                  Map<String, ReportAccumulator> accumulators) {
+                                  Map<String, ReportAccumulator> accumulators,
+                                  MergeCandidateIndex mergeCandidateIndex) {
         String reportCode = firstNonBlank(item.getReportCode(), "UNSPECIFIED_REPORT");
         ReportAccumulator accumulator = accumulators.get(reportCode);
         if (accumulator == null) {
@@ -250,7 +261,13 @@ class ReportBatchParseStatisticsAssembler {
         }
         accumulator.important = accumulator.important || assessment.important;
         accumulator.urgent = accumulator.urgent || assessment.urgent;
-        accumulator.issueScenes.addAll(item.getIssueScenes());
+        accumulator.issueScenes.addAll(issueScenes);
+        MergeCandidateAssessment mergeCandidate = mergeCandidateIndex.assessmentFor(reportCode);
+        if (mergeCandidate != null) {
+            accumulator.mergeCandidate = true;
+            accumulator.mergeCandidateSqlCount = mergeCandidate.sqlCount();
+            accumulator.mergeCandidateReason = mergeCandidate.reason;
+        }
     }
 
     private void accumulatePriority(ReportBatchItem item,
@@ -424,6 +441,9 @@ class ReportBatchParseStatisticsAssembler {
             vo.setImportant(Boolean.valueOf(accumulator.important));
             vo.setUrgent(Boolean.valueOf(accumulator.urgent));
             vo.setIssueScenes(new ArrayList<String>(accumulator.issueScenes));
+            vo.setMergeCandidate(Boolean.valueOf(accumulator.mergeCandidate));
+            vo.setMergeCandidateSqlCount(Integer.valueOf(accumulator.mergeCandidateSqlCount));
+            vo.setMergeCandidateReason(accumulator.mergeCandidateReason);
             result.add(vo);
         }
         result.sort(Comparator
@@ -524,7 +544,9 @@ class ReportBatchParseStatisticsAssembler {
         return result;
     }
 
-    private ReportBatchSqlStatisticVO toSqlStatistic(ReportBatchItem item, SqlIssueAssessment assessment) {
+    private ReportBatchSqlStatisticVO toSqlStatistic(ReportBatchItem item,
+                                                     List<String> issueScenes,
+                                                     SqlIssueAssessment assessment) {
         ReportBatchSqlStatisticVO vo = new ReportBatchSqlStatisticVO();
         vo.setItemId(item.getItemId());
         vo.setBatchId(item.getBatchId());
@@ -542,7 +564,7 @@ class ReportBatchParseStatisticsAssembler {
         vo.setHighestPriorityScore(Integer.valueOf(assessment.highestPriorityScore));
         vo.setImportant(Boolean.valueOf(assessment.important));
         vo.setUrgent(Boolean.valueOf(assessment.urgent));
-        vo.setIssueScenes(new ArrayList<String>(item.getIssueScenes()));
+        vo.setIssueScenes(new ArrayList<String>(issueScenes));
         vo.setIssueLocations(ReportBatchIssueLocationSupport.fromItem(
             item,
             SqlParseDiagnosticSupport.fromFailureReason(item.getFailureReason())
@@ -551,15 +573,15 @@ class ReportBatchParseStatisticsAssembler {
         return vo;
     }
 
-    private SqlIssueAssessment assessItem(ReportBatchItem item) {
-        if (item == null || item.getIssueScenes().isEmpty()) {
+    private SqlIssueAssessment assessIssueScenes(List<String> issueScenes) {
+        if (issueScenes == null || issueScenes.isEmpty()) {
             return new SqlIssueAssessment(0, 0, StructureParsePriorityLevel.P4.name(), false, false);
         }
         int highestScore = 0;
         String highestLevel = StructureParsePriorityLevel.P4.name();
         boolean important = false;
         boolean urgent = false;
-        for (String scene : item.getIssueScenes()) {
+        for (String scene : issueScenes) {
             StructureParseIssueScoringSnapshot snapshot = snapshot(scene);
             if (snapshot.getPriorityScore() > highestScore) {
                 highestScore = snapshot.getPriorityScore();
@@ -568,7 +590,7 @@ class ReportBatchParseStatisticsAssembler {
             important = important || snapshot.isImportant();
             urgent = urgent || snapshot.isUrgent();
         }
-        return new SqlIssueAssessment(item.getIssueScenes().size(), highestScore, highestLevel, important, urgent);
+        return new SqlIssueAssessment(issueScenes.size(), highestScore, highestLevel, important, urgent);
     }
 
     private StructureParseIssueScoringSnapshot snapshot(String issueScene) {
@@ -614,12 +636,12 @@ class ReportBatchParseStatisticsAssembler {
         return "NORMAL";
     }
 
-    private int issueCount(ReportBatchItem item, String issueScene) {
-        if (item == null || !StringUtils.hasText(issueScene)) {
+    private int issueCount(List<String> issueScenes, String issueScene) {
+        if (issueScenes == null || !StringUtils.hasText(issueScene)) {
             return 0;
         }
         int count = 0;
-        for (String itemIssueScene : item.getIssueScenes()) {
+        for (String itemIssueScene : issueScenes) {
             if (issueScene.equals(itemIssueScene)) {
                 count++;
             }
@@ -669,6 +691,143 @@ class ReportBatchParseStatisticsAssembler {
         return null;
     }
 
+    private MergeCandidateIndex buildMergeCandidateIndex(List<ReportBatchItem> items) {
+        MergeCandidateIndex index = new MergeCandidateIndex();
+        Map<String, List<ReportBatchItem>> groups = new LinkedHashMap<String, List<ReportBatchItem>>();
+        for (ReportBatchItem item : items) {
+            if (!isMergeCandidateEligible(item)) {
+                continue;
+            }
+            String reportCode = firstNonBlank(item.getReportCode(), "UNSPECIFIED_REPORT");
+            String groupKey = reportCode
+                + "|"
+                + firstNonBlank(item.getDatasourceCode(), "UNSPECIFIED_DATASOURCE")
+                + "|"
+                + firstNonBlank(item.getStage(), "UNSPECIFIED_STAGE");
+            List<ReportBatchItem> groupItems = groups.get(groupKey);
+            if (groupItems == null) {
+                groupItems = new ArrayList<ReportBatchItem>();
+                groups.put(groupKey, groupItems);
+            }
+            groupItems.add(item);
+        }
+        for (List<ReportBatchItem> groupItems : groups.values()) {
+            if (groupItems.size() < 2) {
+                continue;
+            }
+            MergeCandidateEvidence evidence = logicalObjectMergeEvidence(groupItems);
+            if (evidence == null) {
+                evidence = issueSceneMergeEvidence(groupItems);
+            }
+            if (evidence != null) {
+                String reportCode = firstNonBlank(groupItems.get(0).getReportCode(), "UNSPECIFIED_REPORT");
+                index.record(reportCode, evidence.itemIds, evidence.reason);
+            }
+        }
+        return index;
+    }
+
+    private boolean isMergeCandidateEligible(ReportBatchItem item) {
+        return item != null
+            && StringUtils.hasText(item.getItemId())
+            && StringUtils.hasText(item.getSqlText())
+            && VALID_STRUCTURE_STATUS.equalsIgnoreCase(firstNonBlank(item.getStructureSyntaxStatus(), ""));
+    }
+
+    private MergeCandidateEvidence logicalObjectMergeEvidence(List<ReportBatchItem> items) {
+        Map<String, Set<String>> objectItemIds = new LinkedHashMap<String, Set<String>>();
+        for (ReportBatchItem item : items) {
+            Set<String> uniqueObjects = new LinkedHashSet<String>(item.getLogicalObjectKeys());
+            for (String objectKey : uniqueObjects) {
+                if (!StringUtils.hasText(objectKey)) {
+                    continue;
+                }
+                Set<String> itemIds = objectItemIds.get(objectKey);
+                if (itemIds == null) {
+                    itemIds = new LinkedHashSet<String>();
+                    objectItemIds.put(objectKey, itemIds);
+                }
+                itemIds.add(item.getItemId());
+            }
+        }
+        String bestObjectKey = null;
+        Set<String> bestItemIds = Collections.emptySet();
+        for (Map.Entry<String, Set<String>> entry : objectItemIds.entrySet()) {
+            if (entry.getValue().size() > bestItemIds.size()) {
+                bestObjectKey = entry.getKey();
+                bestItemIds = entry.getValue();
+            }
+        }
+        if (bestItemIds.size() < 2) {
+            return null;
+        }
+        return new MergeCandidateEvidence(
+            bestItemIds,
+            mergeReason(items, bestItemIds.size(), "logical object " + bestObjectKey)
+        );
+    }
+
+    private MergeCandidateEvidence issueSceneMergeEvidence(List<ReportBatchItem> items) {
+        Map<String, Set<String>> sceneItemIds = new LinkedHashMap<String, Set<String>>();
+        for (ReportBatchItem item : items) {
+            Set<String> uniqueScenes = new LinkedHashSet<String>(item.getIssueScenes());
+            for (String issueScene : uniqueScenes) {
+                if (!isMergeCandidateIssueScene(issueScene)) {
+                    continue;
+                }
+                Set<String> itemIds = sceneItemIds.get(issueScene);
+                if (itemIds == null) {
+                    itemIds = new LinkedHashSet<String>();
+                    sceneItemIds.put(issueScene, itemIds);
+                }
+                itemIds.add(item.getItemId());
+            }
+        }
+        List<String> sharedScenes = new ArrayList<String>();
+        Set<String> candidateItemIds = new LinkedHashSet<String>();
+        for (Map.Entry<String, Set<String>> entry : sceneItemIds.entrySet()) {
+            if (entry.getValue().size() >= 2) {
+                sharedScenes.add(entry.getKey());
+                candidateItemIds.addAll(entry.getValue());
+            }
+        }
+        if (sharedScenes.size() < MIN_SHARED_ISSUE_SCENES_FOR_MERGE || candidateItemIds.size() < 2) {
+            return null;
+        }
+        return new MergeCandidateEvidence(
+            candidateItemIds,
+            mergeReason(items, candidateItemIds.size(), "shared issue scenes " + sharedScenes)
+        );
+    }
+
+    private boolean isMergeCandidateIssueScene(String issueScene) {
+        return StringUtils.hasText(issueScene)
+            && !REPORT_SQL_MERGE_CANDIDATE.equals(issueScene)
+            && !"SQL_SYNTAX_INVALID".equals(issueScene)
+            && !"PARSER_FAILURE".equals(issueScene);
+    }
+
+    private String mergeReason(List<ReportBatchItem> items, int sqlCount, String evidence) {
+        ReportBatchItem sample = items.get(0);
+        String reportCode = firstNonBlank(sample.getReportCode(), "UNSPECIFIED_REPORT");
+        String datasourceCode = firstNonBlank(sample.getDatasourceCode(), "UNSPECIFIED_DATASOURCE");
+        String stage = firstNonBlank(sample.getStage(), "UNSPECIFIED_STAGE");
+        return "Report " + reportCode + " has " + sqlCount + " SQL rows on datasource "
+            + datasourceCode + " stage " + stage + " sharing " + evidence
+            + "; review whether they can be merged into one query, shared CTE, or serving dataset.";
+    }
+
+    private List<String> effectiveIssueScenes(ReportBatchItem item, MergeCandidateIndex index) {
+        List<String> result = new ArrayList<String>();
+        if (item != null) {
+            result.addAll(item.getIssueScenes());
+        }
+        if (index.isCandidateItem(item) && !result.contains(REPORT_SQL_MERGE_CANDIDATE)) {
+            result.add(REPORT_SQL_MERGE_CANDIDATE);
+        }
+        return result;
+    }
+
     private static final class SceneAccumulator {
         private final String issueScene;
         private final StructureParseIssueScoringSnapshot snapshot;
@@ -712,10 +871,70 @@ class ReportBatchParseStatisticsAssembler {
         private String highestPriorityLevel = StructureParsePriorityLevel.P4.name();
         private boolean important;
         private boolean urgent;
+        private boolean mergeCandidate;
+        private int mergeCandidateSqlCount;
+        private String mergeCandidateReason;
         private final Set<String> issueScenes = new LinkedHashSet<String>();
 
         private ReportAccumulator(String reportCode) {
             this.reportCode = reportCode;
+        }
+    }
+
+    private static final class MergeCandidateIndex {
+        private final Map<String, MergeCandidateAssessment> reportAssessments =
+            new LinkedHashMap<String, MergeCandidateAssessment>();
+        private final Set<String> candidateItemIds = new LinkedHashSet<String>();
+
+        private void record(String reportCode, Set<String> itemIds, String reason) {
+            if (!StringUtils.hasText(reportCode) || itemIds == null || itemIds.isEmpty()) {
+                return;
+            }
+            MergeCandidateAssessment assessment = reportAssessments.get(reportCode);
+            if (assessment == null) {
+                assessment = new MergeCandidateAssessment(reason);
+                reportAssessments.put(reportCode, assessment);
+            }
+            assessment.itemIds.addAll(itemIds);
+            candidateItemIds.addAll(itemIds);
+            if (!StringUtils.hasText(assessment.reason) && StringUtils.hasText(reason)) {
+                assessment.reason = reason;
+            }
+        }
+
+        private boolean isCandidateItem(ReportBatchItem item) {
+            return item != null && candidateItemIds.contains(item.getItemId());
+        }
+
+        private MergeCandidateAssessment assessmentFor(String reportCode) {
+            return reportAssessments.get(reportCode);
+        }
+
+        private int reportCount() {
+            return reportAssessments.size();
+        }
+    }
+
+    private static final class MergeCandidateAssessment {
+        private final Set<String> itemIds = new LinkedHashSet<String>();
+        private String reason;
+
+        private MergeCandidateAssessment(String reason) {
+            this.reason = reason;
+        }
+
+        private int sqlCount() {
+            return itemIds.size();
+        }
+    }
+
+    private static final class MergeCandidateEvidence {
+        private final Set<String> itemIds;
+        private final String reason;
+
+        private MergeCandidateEvidence(Set<String> itemIds, String reason) {
+            this.itemIds = new LinkedHashSet<String>(itemIds);
+            this.reason = reason;
         }
     }
 

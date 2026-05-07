@@ -33,6 +33,7 @@ public enum StructureParseIssueScenario {
     ORDER_BY_RANDOM_RISK("ORDER_BY_RANDOM_RISK", StructureParseIssueDomain.PERFORMANCE, StructureParseIssueSeverity.HIGH, true, true, 4),
     REPEATED_TABLE_SCAN_RISK("REPEATED_TABLE_SCAN_RISK", StructureParseIssueDomain.PERFORMANCE, StructureParseIssueSeverity.HIGH, true, true, 8),
     COMPLEX_QUERY_GRAPH_RISK("COMPLEX_QUERY_GRAPH_RISK", StructureParseIssueDomain.STRUCTURE, StructureParseIssueSeverity.HIGH, true, true, 8),
+    REPORT_SQL_MERGE_CANDIDATE("REPORT_SQL_MERGE_CANDIDATE", StructureParseIssueDomain.GOVERNANCE, StructureParseIssueSeverity.MEDIUM, false, false, 0),
     GENERAL_WARNING("GENERAL_WARNING", StructureParseIssueDomain.CONVENTION, StructureParseIssueSeverity.LOW, false, false, 1);
 
     private static final Map<String, StructureParseIssueScenario> BY_SCENE = new HashMap<String, StructureParseIssueScenario>();

@@ -14,6 +14,9 @@ public class ParseReportStatisticVO {
     private Boolean important;
     private Boolean urgent;
     private List<String> issueScenes;
+    private Boolean mergeCandidate;
+    private Integer mergeCandidateSqlCount;
+    private String mergeCandidateReason;
 
     public String getReportCode() { return reportCode; }
     public void setReportCode(String reportCode) { this.reportCode = reportCode; }
@@ -35,4 +38,14 @@ public class ParseReportStatisticVO {
     public void setUrgent(Boolean urgent) { this.urgent = urgent; }
     public List<String> getIssueScenes() { return issueScenes; }
     public void setIssueScenes(List<String> issueScenes) { this.issueScenes = issueScenes; }
+    public Boolean getMergeCandidate() { return mergeCandidate; }
+    public void setMergeCandidate(Boolean mergeCandidate) { this.mergeCandidate = mergeCandidate; }
+    public Integer getMergeCandidateSqlCount() { return mergeCandidateSqlCount; }
+    public void setMergeCandidateSqlCount(Integer mergeCandidateSqlCount) {
+        this.mergeCandidateSqlCount = mergeCandidateSqlCount;
+    }
+    public String getMergeCandidateReason() { return mergeCandidateReason; }
+    public void setMergeCandidateReason(String mergeCandidateReason) {
+        this.mergeCandidateReason = mergeCandidateReason;
+    }
 }

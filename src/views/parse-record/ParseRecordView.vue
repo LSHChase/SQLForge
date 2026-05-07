@@ -210,6 +210,7 @@ const reportBatchDetailCards = computed(() => {
     card(isChinese.value ? '问题 SQL' : 'Issue SQL', overview.issueSqlCount),
     card(isChinese.value ? '重要 SQL' : 'Important SQL', overview.importantSqlCount),
     card(isChinese.value ? '紧急 SQL' : 'Urgent SQL', overview.urgentSqlCount),
+    card(isChinese.value ? '可合并报表' : 'Merge candidates', selectedReportParseStatistics.value.mergeCandidateReportCount),
     card(isChinese.value ? '已解析 SQL' : 'Resolved SQL', detail.resolvedSqls ?? detail.resolvedReports),
     card(isChinese.value ? '失败 SQL' : 'Failed SQL', detail.failedSqls ?? detail.failedReports),
     card(isChinese.value ? '结构成功率' : 'Structure rate', formatPercent(rate(structureValid, total))),
@@ -1837,6 +1838,13 @@ onMounted(async () => {
                   >
                     <span>{{ item.reportCode }}</span>
                     <strong>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues · {{ formatPercent(item.issueSqlRatio) }}</strong>
+                    <p v-if="item.mergeCandidate">
+                      {{
+                        isChinese
+                          ? `建议合并复核：${displayValue(item.mergeCandidateSqlCount)} 条 SQL。${displayValue(item.mergeCandidateReason)}`
+                          : `Merge review: ${displayValue(item.mergeCandidateSqlCount)} SQL. ${displayValue(item.mergeCandidateReason)}`
+                      }}
+                    </p>
                   </div>
                 </div>
               </el-tab-pane>

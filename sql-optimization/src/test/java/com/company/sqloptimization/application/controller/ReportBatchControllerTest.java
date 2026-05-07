@@ -179,6 +179,38 @@ class ReportBatchControllerTest {
             .andExpect(jsonPath("$.sqlStatistics[0].reportCode").value("RPT_BAD"));
     }
 
+    @Test
+    void shouldExposeReportSqlMergeCandidateStatistics() throws Exception {
+        String csv = "report_code,sql_1,sql_2\n"
+            + "RPT_MERGE,\"SELECT id FROM orders WHERE dt = '2026-05-05'\","
+            + "\"SELECT amount FROM orders WHERE dt = '2026-05-05'\"";
+        String encoded = Base64.getEncoder().encodeToString(csv.getBytes(StandardCharsets.UTF_8));
+        MvcResult imported = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/report-batches/import"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"batchName\":\"report-batch-merge\","
+                    + "\"fileName\":\"report-batch-merge.csv\",\"reportCodeField\":\"report_code\","
+                    + "\"datasourceCode\":\"hetu_main\",\"stage\":\"PROD\",\"priority\":\"high\","
+                    + "\"contentBase64\":\"" + encoded + "\"}"))
+            .andExpect(status().isOk())
+            .andReturn();
+        String batchId = JsonTestUtils.readValue(imported.getResponse().getContentAsString(), "$.batchId");
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/report-batches/{batchId}/resolve-sqls", batchId)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").exists());
+
+        awaitReportBatchTerminal(batchId, "COMPLETED");
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches/{batchId}/parse-statistics", batchId)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.mergeCandidateReportCount").value(1))
+            .andExpect(jsonPath("$.reportStatistics[0].reportCode").value("RPT_MERGE"))
+            .andExpect(jsonPath("$.reportStatistics[0].mergeCandidate").value(true))
+            .andExpect(jsonPath("$.reportStatistics[0].mergeCandidateSqlCount").value(2))
+            .andExpect(jsonPath("$.reportStatistics[0].mergeCandidateReason").value(org.hamcrest.Matchers.containsString("TABLE:orders")))
+            .andExpect(jsonPath("$.sqlStatistics[0].issueScenes").value(org.hamcrest.Matchers.hasItem("REPORT_SQL_MERGE_CANDIDATE")));
+    }
+
     private void awaitReportBatchTerminal(String batchId, String expectedStatus) throws Exception {
         for (int attempt = 0; attempt < 100; attempt++) {
             MvcResult result = mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches/{batchId}", batchId)))

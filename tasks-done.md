@@ -4,6 +4,26 @@
 
 ## Done
 
+### HARN-079: Analyze merge candidates for multi-SQL reports
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `feat(sql-optimization): flag report sql merge candidates`
+- Priority: 1
+- Depends on: N/A
+- Scope: Add conservative report-batch parse-statistics analysis for same-report multi-SQL merge candidates, expose compatible summary fields, and cover the behavior with backend tests without changing persistence schema or generating executable merged SQL.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-079`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-07: implemented conservative `REPORT_SQL_MERGE_CANDIDATE` analysis for report batch parse statistics, exposed compatible API/UI fields, and documented the non-executable merge suggestion boundary.
+  - 2026-05-07: validation passed via targeted report-batch tests, full `sql-optimization` tests, frontend lint/build, batch/history contract checks, and `git diff --check`.
+- Context closeout:
+  - Completed scope: Added conservative report-batch merge-candidate analysis for same-report multi-SQL groups, exposed compatible merge-candidate API fields, showed the hint in report batch and parse-history report statistics, documented the non-executable recommendation boundary, and covered the behavior with backend/controller tests plus frontend contract checks.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-079 --include-task-audit --extra-command 'mvn -pl sql-optimization -Dtest=ReportBatchParseStatisticsAssemblerTest,ReportBatchControllerTest test' --extra-command 'mvn -pl sql-optimization test' --extra-command 'node scripts/check-batch-import-contract.mjs' --extra-command 'node scripts/check-history-detail-contract.mjs' --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'git diff --check'; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The merge-candidate signal is a conservative static governance hint only; it does not prove semantic equivalence and does not generate executable merged SQL.
+  - Next step: When real report samples are available, review reported merge candidates with report owners before promoting any manual SQL consolidation.
+
 ### OPS-DIST-PORTABLE-DETAIL-20260507: 修复 dist-portable 解析详情加载 404
 
 - Status: done

@@ -224,6 +224,11 @@ const reportSqlStatisticsCards = computed(() => {
     card(isChinese.value ? '结构成功率' : 'Structure rate', formatPercent(rate(structureValid, total)), 'structureRate'),
     card(isChinese.value ? 'Access 连通率' : 'Access connected', formatPercent(rate(accessConnected, total)), 'accessRate'),
     card(isChinese.value ? '问题场景' : 'Issue scenes', overview.issueSceneCount ?? reportIssueSceneStatistics.value.length, 'issueScenes'),
+    card(
+      isChinese.value ? '可合并报表' : 'Merge candidates',
+      reportParseStatistics.value.mergeCandidateReportCount,
+      'mergeCandidateReportCount'
+    ),
     card(isChinese.value ? '逻辑对象' : 'Logical objects', logicalObjectCount, 'logicalObjects')
   ].filter(item => hasDisplayValue(item.value))
 })
@@ -506,6 +511,7 @@ const helpTextForKey = key => {
     structureRate: isChinese.value ? '当前已加载 SQL 行中语法状态为 VALID 的比例。' : 'Ratio of currently loaded SQL rows with VALID syntax.',
     accessRate: isChinese.value ? '当前已加载 SQL 行中 Access 服务可用且连接成功的比例。' : 'Ratio of currently loaded SQL rows with available and connected access parse.',
     issueScenes: isChinese.value ? 'SQL 结构解析命中的问题场景集合。' : 'Issue scenes detected by structure parsing.',
+    mergeCandidateReportCount: isChinese.value ? '同一报表内多条 SQL 命中保守静态合并候选规则的报表数。' : 'Reports where multiple SQL rows match the conservative static merge-candidate rule.',
     logicalObjects: isChinese.value ? '解析或 Access 过程识别到的表、视图等逻辑对象。' : 'Logical objects such as tables or views found during parsing.'
   }
   return glossary[key] || ''
@@ -2419,6 +2425,13 @@ onMounted(async () => {
                     {{ displayValue(item.sqlCount ?? item.total) }} SQL
                     · {{ displayValue(item.issueCount ?? item.failed) }} issues
                     · {{ formatPercent(item.issueSqlRatio ?? item.structureRate) }}
+                  </span>
+                  <span v-if="item.mergeCandidate" class="preview-note preview-note-compact">
+                    {{
+                      isChinese
+                        ? `建议合并复核：${displayValue(item.mergeCandidateSqlCount)} 条 SQL。${displayValue(item.mergeCandidateReason)}`
+                        : `Merge review: ${displayValue(item.mergeCandidateSqlCount)} SQL. ${displayValue(item.mergeCandidateReason)}`
+                    }}
                   </span>
                 </div>
                 <div v-if="reportViewStatisticsOmittedCount > 0" class="preview-note preview-note-compact">
