@@ -2566,3 +2566,19 @@
 2026-05-07T06:02:22-05:00 | UI-TASK-002 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-page-contract.mjs (projected-precommit)`
 2026-05-07T06:02:22-05:00 | UI-TASK-002 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-detail-contract.mjs (projected-precommit)`
 2026-05-07T06:02:22-05:00 | UI-TASK-002 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-batch-import-contract.mjs (projected-precommit)`
+2026-05-07T06:07:28-05:00 | OPS-RESTART-20260507-2 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-07T06:07:28-05:00 | OPS-RESTART-20260507-2 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-07T06:07:28-05:00 | OPS-RESTART-20260507-2 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-07T06:07:28-05:00 | OPS-RESTART-20260507-2 validate | `R-133`, `R-168` | passed | `curl -fsS http://localhost:8080/api/governance/health`
+2026-05-07T06:07:28-05:00 | OPS-RESTART-20260507-2 validate | `R-133`, `R-168` | passed | `curl -fsS http://localhost:8081/actuator/health`
+2026-05-07T06:07:28-05:00 | OPS-RESTART-20260507-2 validate | `R-133`, `R-168` | passed | `curl -fsS http://localhost:8082/actuator/health`
+2026-05-07T06:07:28-05:00 | OPS-RESTART-20260507-2 validate | `R-133`, `R-168` | passed | `curl -fsS http://localhost:8083/actuator/health`
+2026-05-07T06:07:28-05:00 | OPS-RESTART-20260507-2 validate | `R-133`, `R-168` | passed | `curl -fsS -o /dev/null http://localhost:3000/`
+2026-05-07T06:07:48-05:00 | OPS-RESTART-20260507-2 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-07T06:07:48-05:00 | OPS-RESTART-20260507-2 closeout commit | `R-168` | projected | `git commit -m 'OPS-RESTART-20260507-2 restart local frontend and backend' (projected-precommit)`
+2026-05-07T06:07:48-05:00 | OPS-RESTART-20260507-2 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-07T06:07:48-05:00 | OPS-RESTART-20260507-2 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `curl -fsS http://localhost:8080/api/governance/health (projected-precommit)`
+2026-05-07T06:07:48-05:00 | OPS-RESTART-20260507-2 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `curl -fsS http://localhost:8081/actuator/health (projected-precommit)`
+2026-05-07T06:07:48-05:00 | OPS-RESTART-20260507-2 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `curl -fsS http://localhost:8082/actuator/health (projected-precommit)`
+2026-05-07T06:07:48-05:00 | OPS-RESTART-20260507-2 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `curl -fsS http://localhost:8083/actuator/health (projected-precommit)`
+2026-05-07T06:07:48-05:00 | OPS-RESTART-20260507-2 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `curl -fsS -o /dev/null http://localhost:3000/ (projected-precommit)`
