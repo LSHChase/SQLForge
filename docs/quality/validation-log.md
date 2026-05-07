@@ -2612,3 +2612,10 @@
 2026-05-07T09:44:50-05:00 | CALCITE-001 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-07T09:44:50-05:00 | CALCITE-001 closeout commit | `R-168` | projected | `git commit -m 'feat(sql-optimization): add Apache Calcite parser mode' (projected-precommit)`
 2026-05-07T09:44:50-05:00 | CALCITE-001 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-07T09:49:43-05:00 | CALCITE-001 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-07T09:49:43-05:00 | CALCITE-001 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-07T09:53:30-05:00 | CALCITE-001-VERIFY validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-07T09:53:30-05:00 | CALCITE-001-VERIFY validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-07T09:54:01-05:00 | CALCITE-001-VERIFY closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-07T09:54:01-05:00 | CALCITE-001-VERIFY closeout commit | `R-168` | projected | `git commit -m 'test(sql-optimization): stabilize Calcite combined parser test' (projected-precommit)`
+2026-05-07T09:54:01-05:00 | CALCITE-001-VERIFY post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

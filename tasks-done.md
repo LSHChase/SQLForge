@@ -4,6 +4,24 @@
 
 ## Done
 
+### CALCITE-001-VERIFY: Verify Apache Calcite parser mode closeout
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `test(sql-optimization): stabilize Calcite combined parser test`
+- Priority: 1
+- Depends on: CALCITE-001
+- Scope: Verify whether CALCITE-001 truly implemented request-level Apache Calcite parser mode across backend, batch persistence, frontend contracts, task audit, and tests without changing product code.
+- Validation:
+  - `python3 scripts/foreman.py validate CALCITE-001-VERIFY`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Verified CALCITE-001 closeout evidence and implementation across parser selection, batch persistence, frontend contracts, and validation; fixed the combined parser controller test to wait for asynchronous access-parse completion so full sql-optimization reactor tests pass reliably.
+  - Validation evidence: python3 scripts/foreman.py preflight; python3 scripts/foreman.py validate CALCITE-001; python3 scripts/task_audit.py --check --phase pre-closeout; python3 scripts/task_audit.py --check --phase post-closeout; node scripts/check-parse-workbench-contract.mjs; node scripts/check-batch-import-contract.mjs; mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,StructureParseControllerTest,ParseBatchApplicationServiceTest,ParseBatchControllerTest,ReportBatchApplicationServiceTest,ReportBatchControllerTest,ParseBatchPersistenceSchemaMappingTest test; npm run lint; npm run build; mvn -pl sql-optimization -Dtest=StructureParseControllerTest test; mvn -pl sql-optimization -am clean test; python3 scripts/foreman.py validate CALCITE-001-VERIFY; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: No product-code residual risk found in repo-closed verification; Calcite parser scope remains structure/profile extraction only, with rewrite candidates JSQLParser-only by design.
+  - Next step: Monitor Calcite dialect coverage through parser tests when adding new SQL syntax cases.
+
 ### CALCITE-001: Add Apache Calcite parser mode
 
 - Status: done

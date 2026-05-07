@@ -3,6 +3,7 @@ package com.company.sqloptimization.application.controller;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -133,14 +134,18 @@ class StructureParseControllerTest {
 
     @Test
     void shouldPropagateApacheCalciteIntoCombinedStructureParse() throws Exception {
-        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/combined"))
+        MvcResult submitResult = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/combined"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"parserMode\":\"APACHE_CALCITE\",\"sqlText\":\"SELECT customer_id, COUNT(*) "
                     + "FROM orders WHERE dt >= DATE '2026-04-01' GROUP BY customer_id LIMIT 20\","
                     + "\"datasourceCode\":\"hetu_main\",\"connectionRequired\":false}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.structureParse.syntaxStatus").value("VALID"))
-            .andExpect(jsonPath("$.structureParse.featureSummary.parserEngine").value("APACHE_CALCITE"));
+            .andExpect(jsonPath("$.structureParse.featureSummary.parserEngine").value("APACHE_CALCITE"))
+            .andReturn();
+
+        String parseTaskId = JsonTestUtils.readValue(submitResult.getResponse().getContentAsString(), "$.parseTaskId");
+        waitForCombinedStatus(parseTaskId, "PARTIAL_SUCCEEDED");
     }
 
     @Test
@@ -271,5 +276,19 @@ class StructureParseControllerTest {
             .header(RequestHeaderConstants.ACCESS_CHANNEL, "api")
             .header(RequestHeaderConstants.ISSUED_AT, String.valueOf(now - 1000L))
             .header(RequestHeaderConstants.EXPIRES_AT, String.valueOf(now + 60000L));
+    }
+
+    private void waitForCombinedStatus(String parseTaskId, String expectedStatus) throws Exception {
+        for (int attempt = 0; attempt < 20; attempt++) {
+            MvcResult result = mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse/{parseTaskId}", parseTaskId)))
+                .andExpect(status().isOk())
+                .andReturn();
+            String status = JsonTestUtils.readValue(result.getResponse().getContentAsString(), "$.status");
+            if (expectedStatus.equals(status)) {
+                return;
+            }
+            Thread.sleep(40L);
+        }
+        throw new AssertionError("Combined parse did not reach expected status " + expectedStatus);
     }
 }
