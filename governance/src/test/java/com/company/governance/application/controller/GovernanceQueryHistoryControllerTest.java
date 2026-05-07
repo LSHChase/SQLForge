@@ -25,6 +25,7 @@ class GovernanceQueryHistoryControllerTest {
         item.setAccessChannel("JDBC_AGENT");
         when(service.findQueryHistoryPage(
             "tenant-a",
+            "QUERY_EXECUTION",
             null,
             null,
             null,
@@ -62,6 +63,7 @@ class GovernanceQueryHistoryControllerTest {
 
         mockMvc.perform(get("/api/governance/query-history")
                 .param("tenantId", "tenant-a")
+                .param("historyType", "query_execution")
                 .param("accessChannel", "jdbc"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items[0].historyId").value("history-001"))
@@ -71,6 +73,7 @@ class GovernanceQueryHistoryControllerTest {
 
         verify(service).findQueryHistoryPage(
             "tenant-a",
+            "QUERY_EXECUTION",
             null,
             null,
             null,
@@ -93,6 +96,22 @@ class GovernanceQueryHistoryControllerTest {
             null,
             null
         );
+    }
+
+    @Test
+    void shouldRejectUnknownHistoryTypeFilter() throws Exception {
+        GovernanceHistoryApplicationService service = org.mockito.Mockito.mock(GovernanceHistoryApplicationService.class);
+        GovernanceQueryHistoryController controller = new GovernanceQueryHistoryController(service);
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller)
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
+
+        mockMvc.perform(get("/api/governance/query-history")
+                .param("tenantId", "tenant-a")
+                .param("historyType", "REPORT_IMPORT"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(10001))
+            .andExpect(jsonPath("$.message").value(GovernanceHistoryApplicationService.allowedHistoryTypeMessage()));
     }
 
     @Test

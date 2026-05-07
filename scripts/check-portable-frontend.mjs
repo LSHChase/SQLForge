@@ -264,7 +264,7 @@ const queryHistoryDetail = {
   historyId: 'history-parse-smoke-1',
   tenantId: 'tenant-a',
   reportCode: 'RPT_PORTABLE',
-  historyType: 'PARSE',
+  historyType: 'SQL_PARSE',
   resultStatus: 'SUCCESS',
   targetEngine: 'HETU',
   accessChannel: 'REPORT_BATCH',

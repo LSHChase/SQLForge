@@ -121,6 +121,7 @@ const refreshAudit = async () => {
     accessAuditPage.value = await getGovernanceQueryHistoryPage(
       {
         tenantId: form.tenantId,
+        historyType: 'QUERY_EXECUTION',
         accessChannel: form.accessChannel === 'ALL' ? '' : form.accessChannel,
         sortBy: 'submittedAt',
         sortOrder: 'DESC',

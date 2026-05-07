@@ -37,6 +37,7 @@ public class GovernanceQueryHistoryController {
     @GetMapping
     public GovernanceQueryHistoryPageVO getQueryHistoryPage(
         @RequestParam(value = "tenantId", required = false) String tenantId,
+        @RequestParam(value = "historyType", required = false) String historyType,
         @RequestParam(value = "reportCode", required = false) String reportCode,
         @RequestParam(value = "datasourceCode", required = false) String datasourceCode,
         @RequestParam(value = "stage", required = false) String stage,
@@ -59,9 +60,11 @@ public class GovernanceQueryHistoryController {
         @RequestParam(value = "pageNo", required = false) Integer pageNo,
         @RequestParam(value = "pageSize", required = false) Integer pageSize) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
+        String normalizedHistoryType = GovernanceHistoryApplicationService.normalizeHistoryTypeFilter(historyType);
         LOGGER.info(
-            "Handling governance query-history page, tenantId={}, reportCode={}, datasourceCode={}, stage={}, status={}, requestTraceId={}",
+            "Handling governance query-history page, tenantId={}, historyType={}, reportCode={}, datasourceCode={}, stage={}, status={}, requestTraceId={}",
             effectiveTenantId,
+            normalizedHistoryType,
             reportCode,
             datasourceCode,
             stage,
@@ -70,6 +73,7 @@ public class GovernanceQueryHistoryController {
         );
         return governanceHistoryApplicationService.findQueryHistoryPage(
             effectiveTenantId,
+            normalizedHistoryType,
             reportCode,
             datasourceCode,
             stage,

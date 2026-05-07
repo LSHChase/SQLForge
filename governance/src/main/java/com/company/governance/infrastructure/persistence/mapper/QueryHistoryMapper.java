@@ -21,6 +21,7 @@ public interface QueryHistoryMapper {
                                               @Param("traceIds") List<String> traceIds);
 
     List<GovernanceQueryHistoryProjection> selectHistoryPage(@Param("tenantId") String tenantId,
+                                                             @Param("historyType") String historyType,
                                                              @Param("reportCode") String reportCode,
                                                              @Param("datasourceCode") String datasourceCode,
                                                              @Param("stageCode") String stageCode,
@@ -43,6 +44,7 @@ public interface QueryHistoryMapper {
                                                              @Param("limit") int limit);
 
     int countHistoryPage(@Param("tenantId") String tenantId,
+                         @Param("historyType") String historyType,
                          @Param("reportCode") String reportCode,
                          @Param("datasourceCode") String datasourceCode,
                          @Param("stageCode") String stageCode,

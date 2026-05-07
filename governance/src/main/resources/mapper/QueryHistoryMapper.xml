@@ -214,6 +214,9 @@
         FROM query_history qh
         LEFT JOIN execution_result er ON er.result_id = qh.result_id
         WHERE qh.tenant_id = #{tenantId}
+        <if test="historyType != null and historyType != ''">
+            AND qh.history_type = #{historyType}
+        </if>
         <if test="reportCode != null and reportCode != ''">
             AND qh.report_code = #{reportCode}
         </if>
@@ -274,6 +277,9 @@
         FROM query_history qh
         LEFT JOIN execution_result er ON er.result_id = qh.result_id
         WHERE qh.tenant_id = #{tenantId}
+        <if test="historyType != null and historyType != ''">
+            AND qh.history_type = #{historyType}
+        </if>
         <if test="reportCode != null and reportCode != ''">
             AND qh.report_code = #{reportCode}
         </if>

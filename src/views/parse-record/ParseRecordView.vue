@@ -133,22 +133,22 @@ const parseBatchHistoryRows = ref([])
 const reportBatchHistoryRows = ref([])
 const isChinese = computed(() => locale.value === 'zh-CN')
 const isBatchHistoryWorkbench = computed(() => activeHistoryWorkbenchTab.value === 'batchHistory')
-const historyWorkbenchKicker = computed(() => isBatchHistoryWorkbench.value ? 'parse history workbench' : 'query history workbench')
+const historyWorkbenchKicker = computed(() => isBatchHistoryWorkbench.value ? 'parse history workbench' : 'parse query-history workbench')
 const historyWorkbenchTitle = computed(() => {
   if (isBatchHistoryWorkbench.value) {
     return isChinese.value ? '解析历史查询' : 'Parse history search'
   }
-  return isChinese.value ? 'SQL 历史列表与详情' : 'SQL history list and detail'
+  return isChinese.value ? 'SQL 解析记录查询' : 'SQL parse records'
 })
 const historyWorkbenchSummary = computed(() => {
   if (isBatchHistoryWorkbench.value) {
     return isChinese.value
-      ? '批量解析与报表导入历史默认在这里打开，SQL 历史详情仍通过独立入口和 historyId 深链进入。'
-      : 'Batch parse and report-import history opens here by default; SQL history detail still opens through its own entry and historyId deep links.'
+      ? '批量解析、报表导入历史与 SQL 级解析记录在这里查询，不混入 SQL 执行历史。'
+      : 'Batch parse, report-import history, and SQL-level parse records are searched here without SQL execution history.'
   }
   return isChinese.value
-    ? '首页只保留筛选和结果表，详情通过 dialog 展开，原始证据进入 drawer。'
-    : 'The first screen keeps only filters and the result table; record detail opens in a dialog and raw evidence moves into a drawer.'
+    ? '这里只查询 SQL_PARSE 解析记录；SQL 执行历史请从 SQL 历史入口进入。'
+    : 'This table queries only SQL_PARSE records; SQL execution history is available from the SQL history entry.'
 })
 const routeTenantId = computed(() => normalizeQueryValue(route.query.tenantId))
 const requestTenantId = computed(() => normalizeQueryValue(form.tenantId) || routeTenantId.value || DEFAULT_HISTORY_CONTEXT_TENANT_ID)
@@ -581,6 +581,7 @@ const loadPage = async () => {
       {
         tenantId: normalizeQueryValue(form.tenantId),
         requestTenantId: requestTenantId.value,
+        historyType: 'SQL_PARSE',
         reportCode: form.reportCode,
         datasourceCode: form.datasourceCode,
         stage: form.stage,
@@ -1814,12 +1815,12 @@ watch(
       class="history-workbench-tabs"
       data-testid="parse-record-history-workbench-tabs"
     >
-      <el-tab-pane :label="isChinese ? 'SQL 历史列表与详情' : 'SQL history list and detail'" name="sqlHistory">
+      <el-tab-pane :label="isChinese ? 'SQL 解析记录' : 'SQL parse records'" name="sqlHistory">
         <section class="surface-card table-panel" data-testid="parse-record-sql-history-tab">
           <div class="table-heading">
             <div>
-              <p class="section-kicker sqlforge-code-label">query history table</p>
-              <h2 class="section-title">{{ isChinese ? '历史列表' : 'History list' }}</h2>
+              <p class="section-kicker sqlforge-code-label">SQL_PARSE query history table</p>
+              <h2 class="section-title">{{ isChinese ? 'SQL 解析记录' : 'SQL parse records' }}</h2>
             </div>
             <div class="chip-row">
               <span

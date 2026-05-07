@@ -206,6 +206,7 @@ class GovernanceHistoryApplicationServiceTest {
         when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
         when(queryHistoryMapper.selectHistoryPage(
             "tenant-a",
+            "QUERY_EXECUTION",
             "RPT_SALES_DAILY",
             "hetu_main",
             "PROD",
@@ -231,9 +232,31 @@ class GovernanceHistoryApplicationServiceTest {
             buildHistoryProjection("history-002", "trace-002", "SUCCEEDED", "API"),
             buildHistoryProjection("history-003", "trace-003", "FAILED", "API")
         ));
+        when(queryHistoryMapper.countHistoryPage(
+            "tenant-a",
+            "QUERY_EXECUTION",
+            "RPT_SALES_DAILY",
+            "hetu_main",
+            "PROD",
+            LocalDate.parse("2026-04-25"),
+            LocalDate.parse("2026-04-24"),
+            LocalDate.parse("2026-04-25"),
+            "PARTIAL",
+            Boolean.TRUE,
+            Boolean.TRUE,
+            Boolean.FALSE,
+            Boolean.TRUE,
+            "BUSINESS_VIEW",
+            "PAGE",
+            "HETU",
+            "analyst-001",
+            LocalDateTime.parse("2026-04-25T00:00:00"),
+            LocalDateTime.parse("2026-04-25T23:59:59")
+        )).thenReturn(Integer.valueOf(3));
 
         GovernanceQueryHistoryPageVO page = service.findQueryHistoryPage(
             "tenant-a",
+            "query_execution",
             "RPT_SALES_DAILY",
             "hetu_main",
             "PROD",
@@ -259,6 +282,7 @@ class GovernanceHistoryApplicationServiceTest {
 
         assertEquals(2, page.getItems().size());
         assertEquals(Boolean.TRUE, page.getHasMore());
+        assertEquals(Integer.valueOf(3), page.getTotalCount());
         assertEquals("history-001", page.getItems().get(0).getHistoryId());
         assertEquals("PARTIAL", page.getItems().get(0).getResultStatus());
         assertEquals(Collections.singletonList("BUSINESS_VIEW"), page.getItems().get(0).getLogicalObjectTypes());

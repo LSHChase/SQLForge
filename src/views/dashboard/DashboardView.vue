@@ -497,6 +497,7 @@ const loadDashboardEvidence = async () => {
       getGovernanceQueryHistoryPage(
         {
           tenantId,
+          historyType: 'QUERY_EXECUTION',
           pageNo: 1,
           pageSize: 8,
           sortBy: 'submittedAt',

@@ -255,6 +255,7 @@ class AuthWebMvcTest {
             .thenReturn(detail);
         when(governanceHistoryApplicationService.findQueryHistoryPage(
             "system",
+            null,
             "RPT_SALES_DAILY",
             "hetu_main",
             "PROD",
@@ -368,6 +369,7 @@ class AuthWebMvcTest {
         verify(governanceHistoryApplicationService).findTraceDetail("system", "trace-001", Integer.valueOf(5));
         verify(governanceHistoryApplicationService).findQueryHistoryPage(
             "system",
+            null,
             "RPT_SALES_DAILY",
             "hetu_main",
             "PROD",

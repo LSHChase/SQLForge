@@ -4,6 +4,7 @@ import { LEGACY_ROUTE_REDIRECTS, ROUTE_PATHS } from '../config/routePaths.mjs'
 
 const DashboardView = () => import('../views/dashboard/DashboardView.vue')
 const SqlQueryView = () => import('../views/query/SqlQueryView.vue')
+const SqlHistoryView = () => import('../views/sql-history/SqlHistoryView.vue')
 const ParseRecordView = () => import('../views/parse-record/ParseRecordView.vue')
 const ParseBatchCenterView = () => import('../views/parse-batch/ParseBatchCenterView.vue')
 const AssetCatalogView = () => import('../views/asset-catalog/AssetCatalogView.vue')
@@ -193,14 +194,13 @@ export const constantRoutes = [
   {
     path: ROUTE_PATHS.sqlHistory,
     name: 'SqlHistory',
-    component: ParseRecordView,
+    component: SqlHistoryView,
     meta: {
       menu: true,
       navGroup: 'governanceHistory',
       module: 'sql-history',
       submodule: 'history',
       pageKind: 'history',
-      historyWorkbenchTab: 'sqlHistory',
       titleKey: 'sqlHistory.title',
       descriptionKey: 'sqlHistory.summary'
     }

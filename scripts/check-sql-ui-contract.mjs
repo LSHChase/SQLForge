@@ -74,6 +74,11 @@ const requiredFiles = {
     'parse-record-history-original-sql-text',
     'parse-record-report-sql-code'
   ],
+  'src/views/sql-history/SqlHistoryView.vue': [
+    'SqlCodeBlock',
+    'SQL_EXECUTION_HISTORY_TYPE',
+    'sql-history-query-history-table'
+  ],
   'src/views/recommendation-center/RecommendationCenterView.vue': [
     'SqlCodeBlock',
     'recommendation-source-sql',

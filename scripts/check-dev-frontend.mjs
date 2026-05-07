@@ -144,6 +144,8 @@ const runBrowserSmoke = async baseUrl => {
   const unexpectedApiRequests = []
   let governanceStatsCalls = 0
   let queryExecuteCalls = 0
+  let sqlHistoryPageCalls = 0
+  let parseHistoryPageCalls = 0
 
   page.on('pageerror', error => {
     pageErrors.push(error.message)
@@ -151,7 +153,8 @@ const runBrowserSmoke = async baseUrl => {
 
   await page.route('**/api/**', async route => {
     const request = route.request()
-    const { pathname } = new URL(request.url())
+    const requestUrl = new URL(request.url())
+    const { pathname } = requestUrl
     const requestPrefix = request.headers()['x-sqlforge-dev-request-prefix'] || ''
 
     if (requestPrefix.startsWith('frontend-dashboard-')) {
@@ -197,6 +200,64 @@ const runBrowserSmoke = async baseUrl => {
         await fulfillJson(route, [])
         return
       }
+    }
+
+    if (pathname === '/api/governance/query-history' && requestPrefix === 'frontend-sql-history-page') {
+      assert(
+        requestUrl.searchParams.get('historyType') === 'QUERY_EXECUTION',
+        `SQL history page must request QUERY_EXECUTION, got ${requestUrl.searchParams.get('historyType')}`
+      )
+      sqlHistoryPageCalls += 1
+      await fulfillJson(route, {
+        items: [],
+        pageNo: Number(requestUrl.searchParams.get('pageNo') || 1),
+        pageSize: Number(requestUrl.searchParams.get('pageSize') || 10),
+        totalCount: 0,
+        pageCount: 0,
+        classificationSummary: {
+          totalItems: 0,
+          statusCounts: {},
+          accessChannelCounts: {}
+        }
+      })
+      return
+    }
+
+    if (pathname === '/api/governance/query-history' && requestPrefix === 'frontend-parse-record-history-page') {
+      assert(
+        requestUrl.searchParams.get('historyType') === 'SQL_PARSE',
+        `Parse record page must request SQL_PARSE, got ${requestUrl.searchParams.get('historyType')}`
+      )
+      parseHistoryPageCalls += 1
+      await fulfillJson(route, {
+        items: [],
+        pageNo: Number(requestUrl.searchParams.get('pageNo') || 1),
+        pageSize: Number(requestUrl.searchParams.get('pageSize') || 10),
+        totalCount: 0,
+        pageCount: 0,
+        classificationSummary: {
+          totalItems: 0,
+          statusCounts: {},
+          accessChannelCounts: {}
+        }
+      })
+      return
+    }
+
+    if (pathname === '/api/governance/datasources') {
+      assertDevHeaders(request, 'tenant-a', ['frontend-parse-record-datasource-options'])
+      await fulfillJson(route, [])
+      return
+    }
+
+    if (pathname === '/api/sql-optimization/parse-batches') {
+      await fulfillJson(route, { items: [], pageNo: 1, pageSize: 10, totalCount: 0, pageCount: 0 })
+      return
+    }
+
+    if (pathname === '/api/sql-optimization/report-batches') {
+      await fulfillJson(route, { items: [], pageNo: 1, pageSize: 10, totalCount: 0, pageCount: 0 })
+      return
     }
 
     if (pathname === '/api/query-execution/queries/execute') {
@@ -299,8 +360,15 @@ const runBrowserSmoke = async baseUrl => {
     await expectTextInLocator(page.locator('.result-rail'), 'HIVE')
     await expectTextInLocator(page.locator('.results-stage'), 'dev-recovery-order-1')
 
+    await page.goto(`${baseUrl}${ROUTE_PATHS.sqlHistory}`, { waitUntil: 'domcontentloaded' })
+    await page.getByTestId('sql-history-page').waitFor({ timeout: defaultTimeoutMs })
+    await page.goto(`${baseUrl}${ROUTE_PATHS.parseRecord}`, { waitUntil: 'domcontentloaded' })
+    await page.getByTestId('parse-record-page').waitFor({ timeout: defaultTimeoutMs })
+
     assert(queryExecuteCalls === 2, `Expected 2 query execution calls, got ${queryExecuteCalls}`)
     assert(governanceStatsCalls === 2, `Expected 2 governance stats calls, got ${governanceStatsCalls}`)
+    assert(sqlHistoryPageCalls >= 1, `Expected SQL history page calls, got ${sqlHistoryPageCalls}`)
+    assert(parseHistoryPageCalls >= 1, `Expected parse history page calls, got ${parseHistoryPageCalls}`)
     assert(unexpectedApiRequests.length === 0, `Unexpected API requests: ${unexpectedApiRequests.join(', ')}`)
     assert(pageErrors.length === 0, `Frontend dev smoke saw page errors: ${pageErrors.join(' | ')}`)
   } finally {

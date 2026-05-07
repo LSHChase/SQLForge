@@ -91,6 +91,16 @@ public class GovernanceHistoryApplicationService {
     private static final List<String> REPORT_TARGET_TYPES = Collections.unmodifiableList(
         java.util.Arrays.asList("REPORT", "BENCHMARK_ENGINE_REPORT")
     );
+    private static final List<String> ALLOWED_HISTORY_TYPES = Collections.unmodifiableList(
+        java.util.Arrays.asList(
+            "QUERY_EXECUTION",
+            "SQL_PARSE",
+            "ACCELERATION_PLAN",
+            "BENCHMARK_REPORT_EXPORT",
+            "SQL_OPTIMIZATION",
+            "BENCHMARK"
+        )
+    );
     private static final TypeReference<LinkedHashMap<String, Object>> MAP_TYPE =
         new TypeReference<LinkedHashMap<String, Object>>() {
         };
@@ -195,6 +205,7 @@ public class GovernanceHistoryApplicationService {
     }
 
     public GovernanceQueryHistoryPageVO findQueryHistoryPage(String tenantId,
+                                                             String historyType,
                                                              String reportCode,
                                                              String datasourceCode,
                                                              String stageCode,
@@ -221,6 +232,7 @@ public class GovernanceHistoryApplicationService {
         int resolvedPageSize = normalizeLimit(pageSize);
         int offset = (resolvedPageNo - 1) * resolvedPageSize;
         String normalizedReportCode = trimToNull(reportCode);
+        String normalizedHistoryType = normalizeHistoryTypeFilter(historyType);
         String normalizedDatasourceCode = trimToNull(datasourceCode);
         String normalizedStageCode = trimToNull(stageCode);
         LocalDate parsedBizDate = parseDateValue(bizDate, "bizDate");
@@ -235,6 +247,7 @@ public class GovernanceHistoryApplicationService {
         LocalDateTime parsedSubmittedEnd = parseWindowValue(submittedEnd, "submittedEnd");
         List<GovernanceQueryHistoryProjection> rows = queryHistoryMapper.selectHistoryPage(
             effectiveTenantId,
+            normalizedHistoryType,
             normalizedReportCode,
             normalizedDatasourceCode,
             normalizedStageCode,
@@ -258,6 +271,7 @@ public class GovernanceHistoryApplicationService {
         );
         int totalCount = queryHistoryMapper.countHistoryPage(
             effectiveTenantId,
+            normalizedHistoryType,
             normalizedReportCode,
             normalizedDatasourceCode,
             normalizedStageCode,
@@ -293,6 +307,26 @@ public class GovernanceHistoryApplicationService {
             Boolean.valueOf(hasMore),
             buildHistoryClassificationSummary(items)
         );
+    }
+
+    public static String allowedHistoryTypeMessage() {
+        return "historyType must be one of " + String.join("/", ALLOWED_HISTORY_TYPES);
+    }
+
+    public static String normalizeHistoryTypeFilter(String historyType) {
+        String normalizedHistoryType = trimToNull(historyType);
+        if (!StringUtils.hasText(normalizedHistoryType)) {
+            return null;
+        }
+        String upperHistoryType = normalizedHistoryType.toUpperCase();
+        if (!ALLOWED_HISTORY_TYPES.contains(upperHistoryType)) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                allowedHistoryTypeMessage()
+            );
+        }
+        return upperHistoryType;
     }
 
     public GovernanceQueryHistoryDetailVO findQueryHistoryDetail(String tenantId, String historyId) {

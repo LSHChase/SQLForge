@@ -736,7 +736,7 @@ function openParseHistoryDetail() {
     return
   }
   router.push({
-    path: ROUTE_PATHS.sqlHistory,
+    path: ROUTE_PATHS.parseRecord,
     query: {
       tenantId: form.tenantId,
       historyId: parseResult.value.historyId
@@ -1216,6 +1216,7 @@ async function loadHistoryPage() {
     historyPage.value = await getGovernanceQueryHistoryPage(
       {
         tenantId: historyForm.tenantId,
+        historyType: 'SQL_PARSE',
         reportCode: historyForm.reportCode,
         datasourceCode: historyForm.datasourceCode,
         stage: historyForm.stage,

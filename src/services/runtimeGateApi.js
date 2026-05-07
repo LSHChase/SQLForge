@@ -393,6 +393,7 @@ export const getGovernanceQueryHistoryPage = (filters = {}, requestOptions = {})
   params.set('pageNo', String(pageNo))
   params.set('pageSize', String(pageSize))
   ;[
+    'historyType',
     'reportCode',
     'datasourceCode',
     'stage',

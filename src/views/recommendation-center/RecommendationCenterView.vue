@@ -214,7 +214,7 @@ const openParseRecord = () => {
     return
   }
   router.push({
-    path: ROUTE_PATHS.sqlHistory,
+    path: ROUTE_PATHS.parseRecord,
     query: {
       tenantId: form.tenantId,
       reportId: trace.reportCode

@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-083: 修复 SQL 执行历史与解析历史边界
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `fix(fullstack): HARN-083 isolate SQL history boundaries`
+- Priority: 1
+- Depends on: HARN-082
+- Scope: 拆分 SQL 执行历史与解析历史边界；为 governance query-history 增加 historyType 白名单过滤；SQL 历史页固定查询 QUERY_EXECUTION，解析历史页固定查询 SQL_PARSE 或解析专用历史；补齐前后端契约与验证。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-083`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added whitelisted historyType filtering to governance query-history; split SQL execution history into an independent QUERY_EXECUTION frontend route; constrained parse-record and parse surfaces to SQL_PARSE; updated contract/dev-smoke checks for both boundaries.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-083 --include-task-audit --extra-command history contracts --extra-command smoke/build/lint/backend tests; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Repo-closed validation covers API/controller/service/mapper contracts and frontend route/request boundaries; live production data shape still depends on existing persisted history_type values.
+  - Next step: Product acceptance should verify SQL history shows only QUERY_EXECUTION and parse-record shows SQL_PARSE plus batch/report histories against a populated environment.
+
 ### HARN-082: 修复 SQL 历史入口指向
 
 - Status: done
