@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-DIST-PORTABLE-DETAIL-20260507: 修复 dist-portable 解析详情加载 404
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `fix(frontend): harden portable parse detail loading`
+- Priority: 1
+- Depends on: N/A
+- Scope: Analyze dist-portable generated frontend behavior, fix portable parse-detail 404 and refresh generated dist-portable package without changing parser or backend data contracts.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-DIST-PORTABLE-DETAIL-20260507`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Updated ParseRecordView so SQL-list parse detail loading only calls governance query-history for persisted historyId values, displays report-batch SQL evidence when governance history is missing or unavailable, refreshes dist-portable generated assets, and extends portable smoke plus history contract checks for the parse-detail path.
+  - Validation evidence: python3 scripts/foreman.py validate OPS-DIST-PORTABLE-DETAIL-20260507 --include-task-audit --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'npm run build:portable' --extra-command 'npm run smoke:portable-frontend' --extra-command 'node scripts/check-history-page-contract.mjs' --extra-command 'node scripts/check-history-detail-contract.mjs' --extra-command 'git diff --check'; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The portable package still depends on correct backend base URLs and live governance data for full query-history detail; when governance history is absent, the UI now intentionally falls back to report-batch SQL evidence rather than fabricating a history URL.
+  - Next step: Deploy the refreshed dist-portable package with the target portable-config.json backend URLs and verify the SQL list detail path against the real environment.
+
 ### OPS-DIST-ROOT-REVERT-20260507: Revert mistaken root dist commit
 
 - Status: done

@@ -268,11 +268,13 @@ const reportBatchLogicalObjectStatistics = computed(() => {
     .sort((left, right) => right.hitCount - left.hitCount)
 })
 const reportBatchParseDetailSummary = computed(() => {
-  const total = selectedReportItems.value.filter(item => hasDisplayValue(item.parseTaskId) || hasDisplayValue(item.historyId)).length
-  const loaded = selectedReportItems.value.filter(item => Boolean(reportItemParseDetail(item))).length
+  const total = selectedReportItems.value.filter(item => hasDisplayValue(reportHistoryIdForItem(item))).length
+  const loaded = selectedReportItems.value.filter(item => Boolean(reportItemLoadedHistoryDetail(item))).length
+  const batchEvidence = selectedReportItems.value.filter(item => Boolean(reportItemLocalDetail(item))).length
   return [
     card(isChinese.value ? '可追溯 SQL' : 'Traceable SQL', total),
     card(isChinese.value ? '已加载详情' : 'Loaded details', loaded),
+    card(isChinese.value ? '批次内证据' : 'Batch evidence', batchEvidence),
     card(isChinese.value ? '缺失详情' : 'Missing details', Math.max(total - loaded, 0))
   ]
 })
@@ -880,7 +882,8 @@ const loadReportBatchItemDetails = async items => {
     (Array.isArray(items) ? items : [])
       .map(item => ({
         detailKey: reportItemDetailKey(item),
-        historyId: reportHistoryIdForItem(item)
+        historyId: reportHistoryIdForItem(item),
+        item
       }))
       .filter(target => target.detailKey && target.historyId && !reportBatchItemDetails.value[target.detailKey])
       .map(target => [target.detailKey, target])
@@ -905,18 +908,22 @@ const loadReportBatchItemDetails = async items => {
     )
     const next = { ...reportBatchItemDetails.value }
     let failedCount = 0
-    results.forEach(result => {
+    results.forEach((result, index) => {
+      const target = detailTargets[index]
       if (result.status === 'fulfilled') {
         next[result.value[0]] = result.value[1]
         return
       }
       failedCount += 1
+      if (target?.detailKey) {
+        next[target.detailKey] = buildReportItemFallbackDetail(target.item)
+      }
     })
     reportBatchItemDetails.value = next
     if (failedCount > 0) {
       reportBatchItemDetailErrorMessage.value = isChinese.value
-        ? `${failedCount} 条 SQL 的解析详情暂不可用。`
-        : `${failedCount} SQL parse detail records are unavailable.`
+        ? `${failedCount} 条治理解析详情暂不可用，已展示批次内 SQL 证据。`
+        : `${failedCount} governance parse detail records are unavailable; report-batch SQL evidence is shown.`
     }
   } finally {
     loading.reportBatchItemDetails = false
@@ -984,20 +991,105 @@ const parseBooleanFilter = value => {
   return undefined
 }
 
-const reportHistoryIdForTask = parseTaskId => {
-  const normalized = normalizeQueryValue(parseTaskId)
-  return normalized ? `history-parse-${normalized.replace(/[^A-Za-z0-9_-]/g, '-')}` : ''
+const reportHistoryPersistenceStatus = item => normalizeQueryValue(item?.historyPersistenceStatus).toUpperCase()
+
+const reportHistoryIsPersisted = item => {
+  const historyId = normalizeQueryValue(item?.historyId)
+  if (!historyId || item?.historyPersisted === false) {
+    return false
+  }
+  const status = reportHistoryPersistenceStatus(item)
+  if (['WRITE_FAILED', 'WRITE_SKIPPED', 'NO_RESPONSE', 'NOT_PERSISTED'].includes(status)) {
+    return false
+  }
+  return item?.historyPersisted === true || !status || ['SAVED', 'UPSERTED'].includes(status)
 }
 
-const reportHistoryIdForItem = item =>
-  normalizeQueryValue(item?.historyId) || reportHistoryIdForTask(item?.parseTaskId)
+const reportHistoryIdForItem = item => (reportHistoryIsPersisted(item) ? normalizeQueryValue(item?.historyId) : '')
 
 const reportItemDetailKey = item =>
-  normalizeQueryValue(item?.parseTaskId) || normalizeQueryValue(item?.historyId)
+  normalizeQueryValue(item?.historyId) || normalizeQueryValue(item?.parseTaskId) || normalizeQueryValue(item?.itemId)
 
-const reportItemParseDetail = item => {
+const buildReportItemFallbackDetail = item => {
+  if (!item || typeof item !== 'object') {
+    return null
+  }
+  const issueScenes = issueSceneCodesForItem(item)
+  const logicalObjectHits = normalizeArray(item.logicalObjectKeys).map(objectKey => ({
+    objectType: 'OBJECT',
+    objectKey
+  }))
+  const issues = issueScenes.map(issueScene => ({
+    issueCode: issueScene,
+    severity: item.priority,
+    summary: item.diagnosticSummary || item.failureReason || issueScene,
+    detail: issueLocationText(item),
+    suggestedAction: item.failureReason
+      ? (isChinese.value ? '查看失败定位并修正 SQL 后重新解析。' : 'Review the failure position, fix the SQL, and parse again.')
+      : '',
+    failureLine: item.failureLine,
+    failureColumn: item.failureColumn,
+    failureToken: item.failureToken,
+    failureSnippet: item.failureSnippet
+  }))
+  return {
+    historyId: reportHistoryIdForItem(item),
+    resultStatus: item.status,
+    sqlText: item.sqlText,
+    queryContext: {
+      parseTaskId: item.parseTaskId,
+      resultSummary: {
+        overallStatus: item.status,
+        degradeReason: item.failureReason,
+        accessAvailable:
+          String(item.accessServiceStatus || '').toUpperCase() === 'AVAILABLE' &&
+          String(item.accessConnectionStatus || '').toUpperCase() === 'CONNECTED'
+      }
+    },
+    structureParseSummary: {
+      parseTaskId: item.parseTaskId,
+      syntaxStatus: item.structureSyntaxStatus,
+      priorityLevel: item.priority,
+      issues,
+      logicalObjectHits
+    },
+    accessParseSummary: {
+      serviceStatus: item.accessServiceStatus,
+      connectionStatus: item.accessConnectionStatus
+    },
+    executionSummary: {
+      resultSummary: {
+        overallStatus: item.status,
+        degradeReason: item.failureReason
+      }
+    },
+    logicalObjectHits
+  }
+}
+
+const reportItemLoadedHistoryDetail = item => {
   const detailKey = reportItemDetailKey(item)
   return detailKey ? reportBatchItemDetails.value[detailKey] || null : null
+}
+
+const reportItemLocalDetail = item => {
+  if (reportHistoryIdForItem(item)) {
+    return null
+  }
+  if (
+    hasDisplayValue(item?.sqlText) ||
+    hasDisplayValue(item?.parseTaskId) ||
+    hasDisplayValue(item?.structureSyntaxStatus) ||
+    hasDisplayValue(item?.accessServiceStatus) ||
+    issueSceneCodesForItem(item).length > 0
+  ) {
+    return buildReportItemFallbackDetail(item)
+  }
+  return null
+}
+
+const reportItemParseDetail = item => {
+  return reportItemLoadedHistoryDetail(item) || reportItemLocalDetail(item)
 }
 
 const reportItemSqlOutput = item =>
@@ -2001,7 +2093,7 @@ onMounted(async () => {
                           <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(issue.suggestedAction) }}</p>
                         </article>
                       </div>
-                      <div class="dialog-actions">
+                      <div v-if="reportHistoryIdForItem(item)" class="dialog-actions">
                         <el-button text @click="openHistoryDetail(reportItemParseDetail(item).historyId || reportHistoryIdForItem(item))">
                           {{ isChinese ? '打开完整解析历史' : 'Open full parse history' }}
                         </el-button>

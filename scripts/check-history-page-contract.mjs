@@ -46,6 +46,9 @@ const requiredTokens = [
   'data-testid="parse-record-report-sql-risk"',
   'data-testid="parse-record-report-sql-issue"',
   'loadReportBatchItemDetail',
+  'reportHistoryIsPersisted',
+  'reportItemLocalDetail',
+  'buildReportItemFallbackDetail',
   'getReportBatchParseStatistics',
   'frontend-parse-record-report-sql-history-detail',
   'frontend-parse-record-report-batch-statistics',
@@ -92,7 +95,9 @@ const forbiddenViewTokens = [
   "sortBy: 'submittedAt'",
   "sortOrder: 'DESC'",
   '<el-button text size="small" class="help-dot" aria-label="issue scene help"',
-  'aria-label="risk help"'
+  'aria-label="risk help"',
+  'reportHistoryIdForTask',
+  'history-parse-${'
 ]
 
 const forbiddenApiTokens = [

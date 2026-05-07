@@ -6,6 +6,10 @@ import { spawn } from 'node:child_process'
 import { chromium } from 'playwright'
 
 const defaultTimeoutMs = 20000
+const mockState = {
+  persistedHistoryDetailCalls: 0,
+  fabricatedHistoryDetailCalls: 0
+}
 const browserCandidates = [
   process.env.FRONTEND_RUNTIME_BROWSER_BIN,
   '/usr/bin/google-chrome-stable',
@@ -104,6 +108,201 @@ const requireProxyHeaders = request => {
   )
 }
 
+const reportBatchSummary = {
+  batchId: 'report-batch-smoke',
+  tenantId: 'tenant-a',
+  batchName: 'portable report smoke',
+  fileType: 'CSV',
+  status: 'COMPLETED',
+  totalReports: 1,
+  resolvedReports: 1,
+  failedReports: 0,
+  totalSqls: 2,
+  resolvedSqls: 1,
+  failedSqls: 1,
+  itemTotalCount: 2,
+  createdAt: '2026-05-07T08:00:00Z',
+  updatedAt: '2026-05-07T08:01:00Z'
+}
+
+const reportBatchParseStatistics = {
+  overview: {
+    totalSqlCount: 2,
+    issueSqlCount: 2,
+    importantSqlCount: 1,
+    urgentSqlCount: 0
+  },
+  issueSceneStatistics: [
+    {
+      issueScene: 'SELECT_STAR',
+      affectedSqlCount: 1,
+      issueCount: 1,
+      reportCount: 1,
+      logicalObjectCount: 1,
+      severity: 'P2',
+      sqlRatio: 0.5
+    },
+    {
+      issueScene: 'SQL_SYNTAX_INVALID',
+      affectedSqlCount: 1,
+      issueCount: 1,
+      reportCount: 1,
+      logicalObjectCount: 0,
+      severity: 'P1',
+      sqlRatio: 0.5
+    }
+  ],
+  importanceStatistics: [],
+  reportStatistics: [
+    {
+      reportCode: 'RPT_PORTABLE',
+      sqlCount: 2,
+      issueCount: 2,
+      issueSqlRatio: 1
+    }
+  ],
+  sqlStatistics: [
+    {
+      itemId: 'report-item-saved',
+      reportCode: 'RPT_PORTABLE',
+      sqlColumnName: 'sql_1',
+      highestPriorityLevel: 'P2',
+      issueCount: 1,
+      issueScenes: ['SELECT_STAR'],
+      logicalObjectKeys: ['TABLE:orders']
+    },
+    {
+      itemId: 'report-item-local',
+      reportCode: 'RPT_PORTABLE',
+      sqlColumnName: 'sql_2',
+      highestPriorityLevel: 'P1',
+      issueCount: 1,
+      issueScenes: ['SQL_SYNTAX_INVALID'],
+      logicalObjectKeys: []
+    }
+  ],
+  priorityMatrix: [],
+  logicalObjectStatistics: [
+    {
+      objectKey: 'TABLE:orders',
+      sqlCount: 1,
+      hitCount: 1,
+      reportCodes: ['RPT_PORTABLE']
+    }
+  ]
+}
+
+const reportBatchDetail = {
+  ...reportBatchSummary,
+  parseStatistics: reportBatchParseStatistics,
+  reportItems: [
+    {
+      itemId: 'report-item-saved',
+      sequenceNumber: 1,
+      reportCode: 'RPT_PORTABLE',
+      reportName: 'Portable Report',
+      datasourceCode: 'hetu_main',
+      stage: 'PROD',
+      priority: 'P2',
+      sourceFileLine: '2',
+      sqlColumnName: 'sql_1',
+      sqlOrdinalInReport: 1,
+      sqlText: 'SELECT * FROM orders',
+      parseTaskId: 'parse-smoke-1',
+      structureSyntaxStatus: 'VALID',
+      accessServiceStatus: 'AVAILABLE',
+      accessConnectionStatus: 'CONNECTED',
+      historyId: 'history-parse-smoke-1',
+      historyPersisted: true,
+      historyPersistenceStatus: 'SAVED',
+      status: 'RESOLVED',
+      issueScenes: ['SELECT_STAR'],
+      issueLocations: [{ issueScene: 'SELECT_STAR', locationSnippet: 'SELECT *' }],
+      logicalObjectKeys: ['TABLE:orders']
+    },
+    {
+      itemId: 'report-item-local',
+      sequenceNumber: 2,
+      reportCode: 'RPT_PORTABLE',
+      reportName: 'Portable Report',
+      datasourceCode: 'hetu_main',
+      stage: 'PROD',
+      priority: 'P1',
+      sourceFileLine: '2',
+      sqlColumnName: 'sql_2',
+      sqlOrdinalInReport: 2,
+      sqlText: 'SELECT * FROM missing_table',
+      parseTaskId: 'parse-missing',
+      structureSyntaxStatus: 'FAILED',
+      accessServiceStatus: 'SKIPPED',
+      accessConnectionStatus: 'SKIPPED',
+      failureReason: 'SQL_SYNTAX_INVALID line 1 column 15',
+      historyId: '',
+      historyPersisted: false,
+      historyPersistenceStatus: 'WRITE_FAILED',
+      failureLine: 1,
+      failureColumn: 15,
+      failureToken: 'missing_table',
+      failureSnippet: 'missing_table',
+      diagnosticSummary: 'SQL_SYNTAX_INVALID at line 1, column 15',
+      status: 'FAILED',
+      issueScenes: ['SQL_SYNTAX_INVALID'],
+      issueLocations: [{
+        issueScene: 'SQL_SYNTAX_INVALID',
+        failureLine: 1,
+        failureColumn: 15,
+        failureToken: 'missing_table',
+        locationSnippet: 'missing_table'
+      }],
+      logicalObjectKeys: []
+    }
+  ],
+  statusHistory: []
+}
+
+const queryHistoryDetail = {
+  historyId: 'history-parse-smoke-1',
+  tenantId: 'tenant-a',
+  reportCode: 'RPT_PORTABLE',
+  historyType: 'PARSE',
+  resultStatus: 'SUCCESS',
+  targetEngine: 'HETU',
+  accessChannel: 'REPORT_BATCH',
+  sqlText: 'SELECT * FROM orders',
+  structureParseSummary: {
+    parseTaskId: 'parse-smoke-1',
+    syntaxStatus: 'VALID',
+    sqlFingerprint: 'fp-smoke',
+    sqlType: 'SELECT',
+    priorityLevel: 'P2',
+    priorityScore: 45,
+    important: true,
+    urgent: false,
+    featureSummary: {
+      tableCount: 1,
+      predicateCount: 0
+    },
+    issues: [{
+      issueCode: 'SELECT_STAR',
+      severity: 'P2',
+      summary: 'SELECT star usage',
+      detail: 'SELECT * keeps the output shape implicit.',
+      suggestedAction: 'Select explicit columns.'
+    }],
+    logicalObjectHits: [{ objectType: 'TABLE', objectKey: 'TABLE:orders' }]
+  },
+  accessParseSummary: {
+    serviceStatus: 'AVAILABLE',
+    connectionStatus: 'CONNECTED'
+  },
+  executionSummary: {
+    resultSummary: {
+      overallStatus: 'SUCCESS',
+      accessAvailable: true
+    }
+  }
+}
+
 const startMockBackend = async port => {
   let messageStatsCalls = 0
   const server = http.createServer(async (request, response) => {
@@ -144,6 +343,62 @@ const startMockBackend = async port => {
           return
         }
         writeJson(response, 200, { pending: 1, total: 1, failed: 1 })
+        return
+      }
+
+      if (request.url.startsWith('/api/governance/datasources')) {
+        requireProxyHeaders(request)
+        writeJson(response, 200, [])
+        return
+      }
+
+      if (request.url.startsWith('/api/governance/query-history/history-parse-smoke-1')) {
+        requireProxyHeaders(request)
+        mockState.persistedHistoryDetailCalls += 1
+        writeJson(response, 200, queryHistoryDetail)
+        return
+      }
+
+      if (request.url.startsWith('/api/governance/query-history/history-parse-parse-missing')) {
+        requireProxyHeaders(request)
+        mockState.fabricatedHistoryDetailCalls += 1
+        writeJson(response, 404, {
+          code: 'QUERY_HISTORY_NOT_FOUND',
+          message: 'Fabricated parse history id must not be requested by the portable frontend.'
+        })
+        return
+      }
+
+      if (request.url.startsWith('/api/governance/query-history?')) {
+        requireProxyHeaders(request)
+        writeJson(response, 200, {
+          items: [],
+          classificationSummary: {}
+        })
+        return
+      }
+
+      if (request.url.startsWith('/api/sql-optimization/parse-batches')) {
+        requireProxyHeaders(request)
+        writeJson(response, 200, [])
+        return
+      }
+
+      if (request.url.startsWith('/api/sql-optimization/report-batches/report-batch-smoke/parse-statistics')) {
+        requireProxyHeaders(request)
+        writeJson(response, 200, reportBatchParseStatistics)
+        return
+      }
+
+      if (request.url.startsWith('/api/sql-optimization/report-batches/report-batch-smoke')) {
+        requireProxyHeaders(request)
+        writeJson(response, 200, reportBatchDetail)
+        return
+      }
+
+      if (request.url.startsWith('/api/sql-optimization/report-batches')) {
+        requireProxyHeaders(request)
+        writeJson(response, 200, [reportBatchSummary])
         return
       }
 
@@ -216,16 +471,34 @@ const runBrowserSmoke = async baseUrl => {
     await page.goto(`${baseUrl}/#/sql-query`, { waitUntil: 'networkidle' })
     await page.getByTestId('query-flow-page').waitFor({ timeout: defaultTimeoutMs })
     await page.getByTestId('query-flow-submit').click()
-    await page.getByTestId('query-flow-status').waitFor({ timeout: defaultTimeoutMs })
-    await page.getByTestId('query-flow-status').waitFor({ state: 'visible', timeout: defaultTimeoutMs })
-    await expectText(page, 'query-flow-status', 'SUCCESS')
-    await expectText(page, 'query-flow-engine', 'HETU')
+    await expectTextInLocator(page.locator('.query-workbench'), 'success-order-1')
+    await expectTextInLocator(page.locator('.result-rail'), 'HETU')
 
     await page.getByTestId('query-flow-submit-recovery').click()
-    await expectText(page, 'query-flow-status', 'PARTIAL')
-    await expectText(page, 'query-flow-engine', 'HIVE')
-    await expectText(page, 'query-flow-compensation-status', 'COMPENSATED')
-    await expectText(page, 'query-flow-queue-total-delta', '1')
+    await expectTextInLocator(page.locator('.query-workbench'), 'degraded-order-1')
+    await expectTextInLocator(page.locator('.result-rail'), 'HIVE')
+
+    await page.goto(`${baseUrl}/#/governance/history/parse-record`, { waitUntil: 'networkidle' })
+    await page.getByTestId('parse-record-page').waitFor({ timeout: defaultTimeoutMs })
+    await page.getByRole('tab', { name: /报表导入历史|Report import history/ }).click()
+    await page.getByTestId('parse-record-batch-history-report').first().click()
+    const reportDrawer = page.getByTestId('parse-record-report-batch-detail')
+    await reportDrawer.waitFor({ state: 'visible', timeout: defaultTimeoutMs })
+    await reportDrawer.getByRole('tab', { name: /SQL 清单|SQL list/ }).click()
+    await reportDrawer.getByTestId('parse-record-report-sql-detail').first().waitFor({ timeout: defaultTimeoutMs })
+    await expectTextInLocator(reportDrawer, 'missing_table')
+    await expectTextInLocator(reportDrawer, 'WRITE_FAILED')
+    await reportDrawer.getByRole('button', { name: /加载解析详情|Load parse detail/ }).click()
+    await expectTextInLocator(reportDrawer, 'history-parse-smoke-1')
+    await expectTextInLocator(reportDrawer, 'orders')
+    assert(
+      mockState.persistedHistoryDetailCalls === 1,
+      `Expected one persisted history detail request, got ${mockState.persistedHistoryDetailCalls}`
+    )
+    assert(
+      mockState.fabricatedHistoryDetailCalls === 0,
+      `Portable frontend requested fabricated parse history detail ${mockState.fabricatedHistoryDetailCalls} time(s)`
+    )
 
     await page.goto(`${baseUrl}/#/governance/ops/runtime-gates`, { waitUntil: 'networkidle' })
     await page.getByTestId('runtime-gates-page').waitFor({ timeout: defaultTimeoutMs })
@@ -246,8 +519,7 @@ const runBrowserSmoke = async baseUrl => {
   }
 }
 
-const expectText = async (page, testId, expectedText) => {
-  const locator = page.getByTestId(testId)
+const expectTextInLocator = async (locator, expectedText) => {
   await locator.waitFor({ timeout: defaultTimeoutMs })
   const startedAt = Date.now()
 
@@ -256,10 +528,10 @@ const expectText = async (page, testId, expectedText) => {
     if (currentText.includes(expectedText)) {
       return
     }
-    await page.waitForTimeout(200)
+    await sleep(200)
   }
 
-  throw new Error(`Expected ${testId} to include "${expectedText}"`)
+  throw new Error(`Expected locator to include "${expectedText}"`)
 }
 
 const stopChild = async child => {

@@ -36,6 +36,9 @@ const requiredTokens = [
   "key: 'boundSqlFingerprint'",
   "key: 'bindingMode'",
   'reportHistoryIdForItem',
+  'reportHistoryIsPersisted',
+  'reportItemLocalDetail',
+  'buildReportItemFallbackDetail',
   'issueSceneHelpText',
   'issueSceneCodesForItem',
   'issue-scene-help',
@@ -54,7 +57,9 @@ const requiredTokens = [
 const missing = requiredTokens.filter(token => !source.includes(token))
 const forbiddenTokens = [
   '<el-button text size="small" class="help-dot" aria-label="issue scene help"',
-  'aria-label="risk help"'
+  'aria-label="risk help"',
+  'reportHistoryIdForTask',
+  'history-parse-${'
 ]
 const forbidden = forbiddenTokens.filter(token => source.includes(token))
 
