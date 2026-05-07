@@ -7,11 +7,17 @@ const source = fs.readFileSync(viewPath, 'utf8')
 
 const requiredTokens = [
   'data-testid="statistics-page"',
-  'parse statistics center',
+  'sql parse statistics',
   'data-testid="statistics-refresh"',
   'data-testid="statistics-priority-matrix"',
   'data-testid="statistics-issue-scene"',
   'data-testid="statistics-important-urgent"',
+  'data-testid="statistics-detail-dialog"',
+  'data-testid="statistics-detail-tabs"',
+  'data-testid="statistics-detail-relation"',
+  'data-testid="statistics-detail-raw-json"',
+  '关联 SQL/报表',
+  '原始 JSON',
   'Parse overview',
   'Issue distribution',
   'Priority matrix',

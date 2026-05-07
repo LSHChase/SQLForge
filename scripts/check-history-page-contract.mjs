@@ -31,6 +31,7 @@ const requiredTokens = [
   'data-testid="parse-record-export"',
   'data-testid="parse-record-export-result"',
   'data-testid="parse-record-report-batch-detail"',
+  'data-testid="parse-record-report-detail-tabs"',
   'data-testid="parse-record-report-group"',
   'data-testid="parse-record-report-sql-detail"',
   'data-testid="parse-record-report-sql-filter"',

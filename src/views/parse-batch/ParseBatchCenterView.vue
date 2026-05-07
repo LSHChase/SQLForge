@@ -33,6 +33,7 @@ const errorMessage = ref('')
 const parseCreateDialogVisible = ref(false)
 const parseImportDialogVisible = ref(false)
 const parseTemplateDialogVisible = ref(false)
+const reportTemplateDialogVisible = ref(false)
 const reportImportDialogVisible = ref(false)
 const batchSelectorDrawerVisible = ref(false)
 const batchSelectorKind = ref('parse')
@@ -40,7 +41,11 @@ const parseResultDialogVisible = ref(false)
 const parseStatisticsDialogVisible = ref(false)
 const reportResultDialogVisible = ref(false)
 const reportStatisticsDialogVisible = ref(false)
-const activeReportStatisticsTab = ref('issueScene')
+const activeParseResultTab = ref('overview')
+const activeParseStatisticsTab = ref('issue')
+const activeReportResultTab = ref('overview')
+const activeReportGroupDetailTab = ref('overview')
+const activeReportStatisticsTab = ref('overview')
 const parseItemDetailDialogVisible = ref(false)
 const reportItemDetailDialogVisible = ref(false)
 const reportGroupDetailDialogVisible = ref(false)
@@ -50,9 +55,7 @@ const fieldHelpDialogMessage = ref('')
 const selectedParseItem = ref(null)
 const selectedReportItem = ref(null)
 const selectedReportGroupCode = ref('')
-const activeReportGroupName = ref('')
 const reportSqlDetail = ref(null)
-const reportSqlDetailMode = ref('batch')
 const reportSqlDetailSearchCode = ref('')
 
 const reportSqlPagination = reactive({
@@ -169,12 +172,6 @@ const reportItems = computed(() => {
     []
   return Array.isArray(source) ? source.filter(item => typeof item === 'object') : []
 })
-const reportFailureItems = computed(() =>
-  reportItems.value.filter(item =>
-    String(item.status || '').toUpperCase() === 'FAILED' ||
-    hasDisplayValue(item.failureReason)
-  )
-)
 const parseImportedRecords = computed(() => {
   const detail = parseBatchDetail.value || {}
   const source =
@@ -270,11 +267,23 @@ const reportSqlDetailItems = computed(() => {
   const source = detail.reportItems || []
   return Array.isArray(source) ? source.filter(item => typeof item === 'object') : []
 })
+const reportSqlDetailFailureItems = computed(() =>
+  reportSqlDetailItems.value.filter(item =>
+    String(item.status || '').toUpperCase() === 'FAILED' ||
+    hasDisplayValue(item.failureReason)
+  )
+)
 const reportSqlDetailGroups = computed(() => buildReportGroups(reportSqlDetailItems.value))
 const selectedReportGroup = computed(() =>
   reportSqlDetailGroups.value.find(group => group.reportCode === selectedReportGroupCode.value) ||
   reportGroups.value.find(group => group.reportCode === selectedReportGroupCode.value) ||
   null
+)
+const selectedReportGroupFailureItems = computed(() =>
+  (selectedReportGroup.value?.items || []).filter(item =>
+    String(item.status || '').toUpperCase() === 'FAILED' ||
+    hasDisplayValue(item.failureReason)
+  )
 )
 const reportSqlDetailTotalCount = computed(() =>
   Number(reportSqlDetail.value?.itemTotalCount ?? reportSqlDetailItems.value.length)
@@ -339,16 +348,6 @@ const parseFailureRecordsOmittedCount = computed(() =>
     parseBatchDetail.value?.omittedFailureCount
   )
 )
-const parseFailureRecordsDashboardPreview = computed(() =>
-  previewList(parseFailureRecords.value, DASHBOARD_PREVIEW_LIMIT)
-)
-const parseFailureRecordsDashboardOmittedCount = computed(() =>
-  omittedFromPreview(
-    parseFailureRecords.value.length,
-    parseFailureRecordsDashboardPreview.value.length,
-    parseBatchDetail.value?.omittedFailureCount
-  )
-)
 const parseIssueStatisticsPreview = computed(() => previewList(parseIssueStatistics.value, STATISTIC_PREVIEW_LIMIT))
 const parseIssueStatisticsOmittedCount = computed(() =>
   omittedFromPreview(parseIssueStatistics.value.length, parseIssueStatisticsPreview.value.length)
@@ -365,12 +364,6 @@ const reportGroupsDashboardOmittedCount = computed(() => {
     : reportGroups.value.length
   return omittedFromPreview(sourceCount, reportGroupsDashboardPreview.value.length)
 })
-const reportFailureItemsDashboardPreview = computed(() =>
-  previewList(reportFailureItems.value, DASHBOARD_PREVIEW_LIMIT)
-)
-const reportFailureItemsDashboardOmittedCount = computed(() =>
-  omittedFromPreview(reportFailureItems.value.length, reportFailureItemsDashboardPreview.value.length)
-)
 const reportIssueStatisticsPreview = computed(() => previewList(reportIssueStatistics.value, STATISTIC_PREVIEW_LIMIT))
 const reportIssueStatisticsOmittedCount = computed(() =>
   omittedFromPreview(reportIssueStatistics.value.length, reportIssueStatisticsPreview.value.length)
@@ -488,6 +481,8 @@ const displayValue = value => {
   }
   return String(value)
 }
+
+const formatJson = value => JSON.stringify(value || {}, null, 2)
 
 const issueSceneValues = value => arrayValue(value).filter(scene => hasDisplayValue(scene))
 
@@ -886,6 +881,7 @@ const ingestParseBatchFlow = async () => {
     upsertSession(parseBatchSessions, parseBatchDetail.value)
     await loadBatchHistories()
     parseImportDialogVisible.value = false
+    activeParseResultTab.value = 'sql'
     parseResultDialogVisible.value = true
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
@@ -928,6 +924,7 @@ const retryAccessFlow = async () => {
     })
     upsertSession(parseBatchSessions, parseBatchDetail.value)
     await loadBatchHistories()
+    activeParseResultTab.value = 'sql'
     parseResultDialogVisible.value = true
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
@@ -966,6 +963,7 @@ const importReportBatchFlow = async () => {
     upsertSession(reportBatchSessions, reportBatchDetail.value)
     await loadBatchHistories()
     reportImportDialogVisible.value = false
+    activeReportResultTab.value = 'sql'
     reportResultDialogVisible.value = true
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
@@ -1011,7 +1009,6 @@ const loadReportSqlDetail = async ({ reportCode = '', pageNumber = reportSqlPagi
     reportSqlPagination.pageNumber = Number(detail.itemPageNumber || pageNumber)
     reportSqlPagination.pageSize = Number(detail.itemPageSize || pageSize)
     reportSqlDetailSearchCode.value = normalizedReportCode
-    reportSqlDetailMode.value = normalizedReportCode ? 'report' : 'batch'
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
@@ -1082,6 +1079,7 @@ const resolveReportSqlsFlow = async () => {
     reportBatchDetail.value = await resolveReportBatchSqls(reportBatchDetail.value.batchId, reportBatchForm.tenantId)
     upsertSession(reportBatchSessions, reportBatchDetail.value)
     await loadBatchHistories()
+    activeReportResultTab.value = 'sql'
     reportResultDialogVisible.value = true
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
@@ -1092,13 +1090,14 @@ const resolveReportSqlsFlow = async () => {
 
 const openReportGroupDetail = group => {
   selectedReportGroupCode.value = group?.reportCode || ''
+  activeReportGroupDetailTab.value = 'overview'
   reportSqlPagination.pageNumber = 1
   loadReportSqlDetail({ reportCode: selectedReportGroupCode.value, pageNumber: 1 })
   reportGroupDetailDialogVisible.value = true
 }
 
 const openWholeReportBatchSqlDetail = () => {
-  activeReportGroupName.value = ''
+  activeReportResultTab.value = 'overview'
   selectedReportGroupCode.value = ''
   reportSqlPagination.pageNumber = 1
   loadReportSqlDetail({ reportCode: '', pageNumber: 1 })
@@ -1107,6 +1106,7 @@ const openWholeReportBatchSqlDetail = () => {
 
 const openReportStatistics = async () => {
   await refreshReportStatistics({ pageNumber: 1 })
+  activeReportStatisticsTab.value = 'overview'
   reportStatisticsDialogVisible.value = true
 }
 
@@ -1160,7 +1160,6 @@ const openReportItemDetail = item => {
     return
   }
   selectedReportItem.value = item
-  activeReportGroupName.value = item.reportCode || activeReportGroupName.value
   selectedReportGroupCode.value = item.reportCode || selectedReportGroupCode.value
   reportItemDetailDialogVisible.value = true
 }
@@ -1249,14 +1248,14 @@ onMounted(async () => {
             </p>
           </div>
           <div class="toolbar-actions">
+            <el-button data-testid="batch-import-download-template" @click="parseTemplateDialogVisible = true">
+              {{ isChinese ? '批量模板' : 'Batch template' }}
+            </el-button>
             <el-button type="primary" data-testid="batch-import-create" @click="parseCreateDialogVisible = true">
               {{ isChinese ? '创建批次' : 'Create batch' }}
             </el-button>
             <el-button :disabled="!parseBatchDetail?.batchId" data-testid="batch-import-ingest" @click="parseImportDialogVisible = true">
               {{ isChinese ? '导入内容' : 'Ingest content' }}
-            </el-button>
-            <el-button :disabled="!templateColumns.length" data-testid="batch-import-download-template" @click="parseTemplateDialogVisible = true">
-              {{ isChinese ? '查看模板' : 'Preview template' }}
             </el-button>
             <el-button :loading="loading.refreshParseBatch" @click="refreshParseBatchDetail()">
               {{ isChinese ? '刷新详情' : 'Refresh detail' }}
@@ -1338,94 +1337,6 @@ onMounted(async () => {
               </article>
             </div>
 
-            <div v-if="parseBatchDetail" class="result-layout">
-              <section class="detail-card">
-                <div class="section-heading">
-                  <div>
-                    <p class="section-kicker sqlforge-code-label">Template-column contract</p>
-                    <h4 class="detail-title">{{ isChinese ? '模板列契约' : 'Template-column contract' }}</h4>
-                  </div>
-                  <el-button text @click="parseTemplateDialogVisible = true">
-                    {{ isChinese ? '查看模板预览' : 'View template preview' }}
-                  </el-button>
-                </div>
-                <div class="contract-list">
-                  <div v-for="item in templateColumns" :key="item.columnKey" class="contract-item">
-                    <strong>{{ item.columnKey }}</strong>
-                    <span>{{ displayValue(item.required) }} · {{ displayValue(item.columnType) }}</span>
-                  </div>
-                  <div v-if="!templateColumns.length" class="empty-state">
-                    {{ isChinese ? '创建批次后会返回模板列契约。' : 'Template-column contract arrives after batch creation.' }}
-                  </div>
-                </div>
-              </section>
-
-              <section class="detail-card">
-                <div class="section-heading">
-                  <div>
-                    <p class="section-kicker sqlforge-code-label">Failure records</p>
-                    <h4 class="detail-title">{{ isChinese ? '失败记录' : 'Failure records' }}</h4>
-                  </div>
-                </div>
-                <div class="failure-list">
-                  <article
-                    v-for="(item, index) in parseFailureRecordsDashboardPreview"
-                    :key="item.recordId || item.id || index"
-                    class="failure-item"
-                    data-testid="batch-import-failure-record"
-                  >
-                    <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
-                    <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
-                    <p
-                      v-if="hasIssueOrFailure(item)"
-                      class="diagnostic-line"
-                      data-testid="batch-import-parse-diagnostic"
-                    >
-                      {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
-                    </p>
-                    <p v-if="issueSceneCodesForItem(item).length">
-                      {{ isChinese ? '问题场景' : 'Issue scenes' }}:
-                      <span
-                        v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
-                        class="help-dot issue-scene-help"
-                        tabindex="0"
-                        aria-label="issue scene help"
-                        :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                        :title="issueSceneListHelp(issueSceneCodesForItem(item))"
-                      >?</span>
-                      {{ displayValue(issueSceneCodesForItem(item)) }}
-                    </p>
-                    <SqlCodeBlock
-                      v-if="item.sqlText || item.sqlPreview"
-                      :value="item.sqlText || item.sqlPreview"
-                      :label="isChinese ? '失败 SQL' : 'Failed SQL'"
-                      :copy-label="isChinese ? '复制' : 'Copy'"
-                      compact
-                    />
-                    <p v-else>{{ displayValue(item.message) }}</p>
-                    <button
-                      type="button"
-                      class="detail-link detail-link-button"
-                      data-testid="batch-import-parse-failure-detail-open"
-                      @click="openParseItemDetail(item)"
-                    >
-                      {{ isChinese ? '查看解析详情' : 'View parse detail' }}
-                    </button>
-                  </article>
-                  <div v-if="parseFailureRecordsDashboardOmittedCount > 0" class="preview-note">
-                    {{
-                      isChinese
-                        ? `仅展示前 ${DASHBOARD_PREVIEW_LIMIT} 条失败记录，另有 ${parseFailureRecordsDashboardOmittedCount} 条未展开。`
-                        : `Showing the first ${DASHBOARD_PREVIEW_LIMIT} failed rows; ${parseFailureRecordsDashboardOmittedCount} more are omitted.`
-                    }}
-                  </div>
-                  <div v-if="!parseFailureRecords.length" class="empty-state">
-                    {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
-                  </div>
-                </div>
-              </section>
-            </div>
-
             <div v-else class="empty-stage">
               <strong>{{ isChinese ? '暂无 parse batch' : 'No parse batch selected' }}</strong>
               <p>{{ isChinese ? '先创建批次，然后导入当前输入区的多条 SQL 或模板文件。' : 'Create a batch first, then import the current multi-SQL input or template file.' }}</p>
@@ -1448,6 +1359,9 @@ onMounted(async () => {
             </p>
           </div>
           <div class="toolbar-actions">
+            <el-button data-testid="batch-import-report-template" @click="reportTemplateDialogVisible = true">
+              {{ isChinese ? '宽表模板' : 'Wide template' }}
+            </el-button>
             <el-button type="primary" data-testid="batch-import-report-import" @click="reportImportDialogVisible = true">
               {{ isChinese ? '导入报表批次' : 'Import report batch' }}
             </el-button>
@@ -1472,7 +1386,7 @@ onMounted(async () => {
             <div class="section-heading">
               <div>
                 <p class="section-kicker sqlforge-code-label">report import input</p>
-                <h3 class="section-title">{{ isChinese ? '导入选项与宽表模板' : 'Import options and wide template' }}</h3>
+                <h3 class="section-title">{{ isChinese ? '导入选项' : 'Import options' }}</h3>
               </div>
             </div>
             <div class="dialog-grid dialog-grid-single">
@@ -1492,15 +1406,6 @@ onMounted(async () => {
                 <span class="field-label">{{ isChinese ? '默认数据源' : 'Default datasource' }}</span>
                 <el-input v-model="reportBatchForm.datasourceCode" />
               </label>
-              <div class="field-block field-block-wide">
-                <SqlCodeBlock
-                  :value="reportTemplatePreview"
-                  :label="isChinese ? '宽表模板预览' : 'Wide template preview'"
-                  :copy-label="isChinese ? '复制' : 'Copy'"
-                  :auto-format="false"
-                  compact
-                />
-              </div>
               <div class="field-block field-block-wide">
                 <SqlEditorField
                   v-model="reportBatchForm.rawContent"
@@ -1605,93 +1510,6 @@ onMounted(async () => {
               <div v-if="!reportItems.length" class="empty-state">
                 {{ isChinese ? '导入后会在这里看到本批次报表与 SQL 概览。' : 'Imported report and SQL overview appears here.' }}
               </div>
-            </div>
-
-            <div v-if="reportBatchDetail" class="result-layout">
-              <section class="detail-card" data-testid="batch-import-report-failure-records">
-                <p class="section-kicker sqlforge-code-label">failed sql detail</p>
-                <div class="failure-list">
-                  <article
-                    v-for="(item, index) in reportFailureItemsDashboardPreview"
-                    :key="item.itemId || index"
-                    class="failure-item"
-                    data-testid="batch-import-report-failure-record"
-                  >
-                    <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
-                    <span>{{ displayValue(item.failureReason || item.status) }}</span>
-                    <p>
-                      {{ displayValue(item.sqlColumnName || item.sqlOrdinalInReport) }}
-                      · {{ displayValue(item.parseTaskId) }}
-                    </p>
-                    <p
-                      v-if="hasIssueOrFailure(item)"
-                      class="diagnostic-line"
-                      data-testid="batch-import-report-diagnostic"
-                    >
-                      {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
-                    </p>
-                    <p v-if="issueSceneCodesForItem(item).length">
-                      {{ isChinese ? '问题场景' : 'Issue scenes' }}:
-                      <span
-                        v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
-                        class="help-dot issue-scene-help"
-                        tabindex="0"
-                        aria-label="issue scene help"
-                        :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                        :title="issueSceneListHelp(issueSceneCodesForItem(item))"
-                      >?</span>
-                      {{ displayValue(issueSceneCodesForItem(item)) }}
-                    </p>
-                    <button type="button" class="detail-link detail-link-button" @click="openReportItemDetail(item)">
-                      {{ isChinese ? '查看失败详情' : 'View failure detail' }}
-                    </button>
-                  </article>
-                  <div v-if="reportFailureItemsDashboardOmittedCount > 0" class="preview-note">
-                    {{
-                      isChinese
-                        ? `仅展示前 ${DASHBOARD_PREVIEW_LIMIT} 条失败 SQL，另有 ${reportFailureItemsDashboardOmittedCount} 条未展开。`
-                        : `Showing the first ${DASHBOARD_PREVIEW_LIMIT} failed SQL rows; ${reportFailureItemsDashboardOmittedCount} more are omitted.`
-                    }}
-                  </div>
-                  <div v-if="!reportFailureItems.length" class="empty-state">
-                    {{ isChinese ? '当前没有失败 SQL。' : 'No failed SQL rows in the current report batch.' }}
-                  </div>
-                </div>
-              </section>
-              <section class="detail-card">
-                <p class="section-kicker sqlforge-code-label">report-level issue statistics</p>
-                <div class="stat-list">
-                  <div v-for="item in reportIssueStatisticsPreview.slice(0, 6)" :key="item.issueScene" class="contract-item">
-                    <strong>
-                      {{ item.issueScene }}
-                      <span
-                        v-if="issueSceneHelp(item.issueScene)"
-                        class="help-dot issue-scene-help"
-                        tabindex="0"
-                        aria-label="issue scene help"
-                        :data-tooltip="issueSceneHelp(item.issueScene)"
-                        :title="issueSceneHelp(item.issueScene)"
-                      >?</span>
-                    </strong>
-                    <span>{{ item.affectedSqlCount }} · {{ formatPercent(item.ratio) }}</span>
-                  </div>
-                  <div v-if="!reportIssueStatistics.length" class="empty-state">
-                    {{ isChinese ? '当前没有问题场景。' : 'No issue scenes in the current report batch.' }}
-                  </div>
-                </div>
-              </section>
-              <section class="detail-card">
-                <p class="section-kicker sqlforge-code-label">logical object hits</p>
-                <div class="stat-list">
-                  <div v-for="item in reportLogicalObjectStatisticsPreview.slice(0, 6)" :key="item.objectKey" class="contract-item">
-                    <strong>{{ item.objectKey }}</strong>
-                    <span>{{ item.hitCount }}</span>
-                  </div>
-                  <div v-if="!reportLogicalObjectStatistics.length" class="empty-state">
-                    {{ isChinese ? '当前没有逻辑对象命中。' : 'No logical object hits yet.' }}
-                  </div>
-                </div>
-              </section>
             </div>
 
             <div v-else class="empty-stage">
@@ -1817,8 +1635,12 @@ onMounted(async () => {
             <strong>{{ item.columnKey }}</strong>
             <span>{{ displayValue(item.required) }} · {{ displayValue(item.columnType) }}</span>
           </div>
+          <div v-if="!templateColumns.length" class="empty-state">
+            {{ isChinese ? '先创建批次，拿到模板列契约后再下载模板。' : 'Create a batch first so the template-column contract can be downloaded.' }}
+          </div>
         </div>
         <SqlCodeBlock
+          v-if="templateColumns.length"
           :value="parseTemplatePreview"
           :label="isChinese ? '模板预览' : 'Template preview'"
           :copy-label="isChinese ? '复制' : 'Copy'"
@@ -1833,87 +1655,181 @@ onMounted(async () => {
       </template>
     </el-dialog>
 
+    <el-dialog v-model="reportTemplateDialogVisible" :title="isChinese ? '宽表模板' : 'Wide table template'" width="760px">
+      <div class="template-sheet" data-testid="batch-import-report-template-dialog">
+        <p class="section-kicker sqlforge-code-label">report_code,sql_1,sql_2,sql_3,...,sql_100</p>
+        <p class="result-copy">
+          {{
+            isChinese
+              ? '每行代表一个报表，report_code 作为分组键，sql_1、sql_2 等列承载同一报表下的多条 SQL；空单元格会被忽略。'
+              : 'Each row is one report. report_code is the grouping key, while sql_1, sql_2, and later columns hold SQL rows under the same report; empty cells are ignored.'
+          }}
+        </p>
+        <SqlCodeBlock
+          :value="reportTemplatePreview"
+          :label="isChinese ? '宽表模板预览' : 'Wide template preview'"
+          :copy-label="isChinese ? '复制' : 'Copy'"
+          :auto-format="false"
+        />
+      </div>
+      <template #footer>
+        <el-button @click="reportTemplateDialogVisible = false">{{ isChinese ? '关闭' : 'Close' }}</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog
       v-model="parseResultDialogVisible"
       :title="isChinese ? '当前批次解析结果' : 'Current batch parse results'"
       width="980px"
       data-testid="batch-import-parse-detail"
     >
-      <div class="dialog-stack">
-        <div class="summary-grid">
-          <article v-for="item in parseBatchStatusCards" :key="item.label" class="summary-card">
-            <span class="summary-card-label">{{ item.label }}</span>
-            <strong>{{ item.value }}</strong>
-          </article>
-        </div>
-        <section class="detail-card">
-          <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
-          <div
-            v-if="parseImportedRecordsOmittedCount > 0"
-            class="preview-note"
-            data-testid="batch-import-large-batch-preview"
-          >
-            {{
-              isChinese
-                ? `仅展示前 ${parseImportedRecordsPreview.length} 条 SQL 明细，另有 ${parseImportedRecordsOmittedCount} 条已省略；统计概览仍按完整批次计算。`
-                : `Showing the first ${parseImportedRecordsPreview.length} SQL rows; ${parseImportedRecordsOmittedCount} more are omitted while summaries still use the full batch.`
-            }}
-          </div>
-          <div class="report-list">
-            <article
-              v-for="(item, index) in parseImportedRecordsPreview"
-              :key="item.itemId || item.recordId || index"
-              class="report-item"
-              data-testid="batch-import-parse-sql-detail"
-            >
-              <div class="session-item-top">
-                <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
-                <span class="status-pill">{{ displayValue(item.status) }}</span>
-              </div>
-              <p>
-                {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
-                · Structure: {{ displayValue(item.structureSyntaxStatus) }}
-                · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
-              </p>
-              <p>
-                {{ isChinese ? '问题场景' : 'Issue scenes' }}:
-                <span
-                  v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
-                  class="help-dot issue-scene-help"
-                  tabindex="0"
-                  aria-label="issue scene help"
-                  :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                  :title="issueSceneListHelp(issueSceneCodesForItem(item))"
-                >?</span>
-                {{ displayValue(issueSceneCodesForItem(item)) }}
-              </p>
-              <p
-                v-if="hasIssueOrFailure(item)"
-                class="diagnostic-line"
-                data-testid="batch-import-parse-diagnostic"
-              >
-                {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
-              </p>
-              <SqlCodeBlock
-                v-if="item.sqlText"
-                :value="item.sqlText"
-                :label="item.sqlColumnName || item.itemId || 'SQL'"
-                :copy-label="isChinese ? '复制' : 'Copy'"
-                compact
-                data-testid="batch-import-parse-sql-code"
-              />
-              <div class="item-actions">
-                <el-button text data-testid="batch-import-parse-item-detail-open" @click="openParseItemDetail(item)">
-                  {{ isChinese ? '查看详情' : 'View detail' }}
-                </el-button>
-              </div>
+      <el-tabs v-model="activeParseResultTab" data-testid="batch-import-parse-result-tabs">
+        <el-tab-pane :label="isChinese ? '概览' : 'Overview'" name="overview">
+          <div class="summary-grid">
+            <article v-for="item in parseBatchStatusCards" :key="item.label" class="summary-card">
+              <span class="summary-card-label">{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
             </article>
-            <div v-if="!parseImportedRecords.length" class="empty-state">
-              {{ isChinese ? '当前批次还没有 SQL 明细。' : 'No SQL rows in the current batch yet.' }}
-            </div>
           </div>
-        </section>
-      </div>
+        </el-tab-pane>
+        <el-tab-pane :label="isChinese ? 'SQL 明细' : 'SQL detail'" name="sql">
+          <section class="detail-card">
+            <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
+            <div
+              v-if="parseImportedRecordsOmittedCount > 0"
+              class="preview-note"
+              data-testid="batch-import-large-batch-preview"
+            >
+              {{
+                isChinese
+                  ? `仅展示前 ${parseImportedRecordsPreview.length} 条 SQL 明细，另有 ${parseImportedRecordsOmittedCount} 条已省略；统计概览仍按完整批次计算。`
+                  : `Showing the first ${parseImportedRecordsPreview.length} SQL rows; ${parseImportedRecordsOmittedCount} more are omitted while summaries still use the full batch.`
+              }}
+            </div>
+            <div class="report-list">
+              <article
+                v-for="(item, index) in parseImportedRecordsPreview"
+                :key="item.itemId || item.recordId || index"
+                class="report-item"
+                data-testid="batch-import-parse-sql-detail"
+              >
+                <div class="session-item-top">
+                  <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
+                  <span class="status-pill">{{ displayValue(item.status) }}</span>
+                </div>
+                <p>
+                  {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
+                  · Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                  · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+                </p>
+                <p>
+                  {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                  <span
+                    v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
+                    class="help-dot issue-scene-help"
+                    tabindex="0"
+                    aria-label="issue scene help"
+                    :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
+                    :title="issueSceneListHelp(issueSceneCodesForItem(item))"
+                  >?</span>
+                  {{ displayValue(issueSceneCodesForItem(item)) }}
+                </p>
+                <p
+                  v-if="hasIssueOrFailure(item)"
+                  class="diagnostic-line"
+                  data-testid="batch-import-parse-diagnostic"
+                >
+                  {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+                </p>
+                <SqlCodeBlock
+                  v-if="item.sqlText"
+                  :value="item.sqlText"
+                  :label="item.sqlColumnName || item.itemId || 'SQL'"
+                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  compact
+                  data-testid="batch-import-parse-sql-code"
+                />
+                <div class="item-actions">
+                  <el-button text data-testid="batch-import-parse-item-detail-open" @click="openParseItemDetail(item)">
+                    {{ isChinese ? '查看详情' : 'View detail' }}
+                  </el-button>
+                </div>
+              </article>
+              <div v-if="!parseImportedRecords.length" class="empty-state">
+                {{ isChinese ? '当前批次还没有 SQL 明细。' : 'No SQL rows in the current batch yet.' }}
+              </div>
+            </div>
+          </section>
+        </el-tab-pane>
+        <el-tab-pane :label="isChinese ? '失败记录' : 'Failure records'" name="failures">
+          <section class="detail-card">
+            <p class="section-kicker sqlforge-code-label">Failure records</p>
+            <div class="failure-list">
+              <article
+                v-for="(item, index) in parseFailureRecordsPreview"
+                :key="item.recordId || item.id || index"
+                class="failure-item"
+                data-testid="batch-import-failure-record"
+              >
+                <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
+                <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
+                <p
+                  v-if="hasIssueOrFailure(item)"
+                  class="diagnostic-line"
+                  data-testid="batch-import-parse-diagnostic"
+                >
+                  {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+                </p>
+                <p v-if="issueSceneCodesForItem(item).length">
+                  {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                  <span
+                    v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
+                    class="help-dot issue-scene-help"
+                    tabindex="0"
+                    aria-label="issue scene help"
+                    :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
+                    :title="issueSceneListHelp(issueSceneCodesForItem(item))"
+                  >?</span>
+                  {{ displayValue(issueSceneCodesForItem(item)) }}
+                </p>
+                <SqlCodeBlock
+                  v-if="item.sqlText || item.sqlPreview"
+                  :value="item.sqlText || item.sqlPreview"
+                  :label="isChinese ? '失败 SQL' : 'Failed SQL'"
+                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  compact
+                />
+                <p v-else>{{ displayValue(item.message) }}</p>
+                <button
+                  type="button"
+                  class="detail-link detail-link-button"
+                  data-testid="batch-import-parse-failure-detail-open"
+                  @click="openParseItemDetail(item)"
+                >
+                  {{ isChinese ? '查看解析详情' : 'View parse detail' }}
+                </button>
+              </article>
+              <div
+                v-if="parseFailureRecordsOmittedCount > 0"
+                class="preview-note"
+                data-testid="batch-import-parse-failure-preview"
+              >
+                {{
+                  isChinese
+                    ? `仅展示前 ${parseFailureRecordsPreview.length} 条失败记录，另有 ${parseFailureRecordsOmittedCount} 条已省略。`
+                    : `Showing the first ${parseFailureRecordsPreview.length} failed rows; ${parseFailureRecordsOmittedCount} more are omitted.`
+                }}
+              </div>
+              <div v-if="!parseFailureRecords.length" class="empty-state">
+                {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
+              </div>
+            </div>
+          </section>
+        </el-tab-pane>
+        <el-tab-pane :label="isChinese ? '原始证据' : 'Raw evidence'" name="raw">
+          <pre class="code-block">{{ formatJson(parseBatchDetail) }}</pre>
+        </el-tab-pane>
+      </el-tabs>
     </el-dialog>
 
     <el-dialog
@@ -1957,16 +1873,10 @@ onMounted(async () => {
     </el-dialog>
 
     <el-dialog v-model="parseStatisticsDialogVisible" :title="isChinese ? '当前批次解析统计' : 'Current batch parse statistics'" width="920px">
-      <div class="dialog-stack">
-        <div class="summary-grid">
-          <article v-for="item in parseBatchStatusCards" :key="item.label" class="summary-card">
-            <span class="summary-card-label">{{ item.label }}</span>
-            <strong>{{ item.value }}</strong>
-          </article>
-        </div>
-        <section class="detail-card">
-          <p class="section-kicker sqlforge-code-label">parse statistics</p>
-          <div class="result-layout">
+      <el-tabs v-model="activeParseStatisticsTab" data-testid="batch-import-parse-statistics-tabs">
+        <el-tab-pane :label="isChinese ? '问题场景' : 'Issue scenes'" name="issue">
+          <section class="detail-card">
+            <p class="section-kicker sqlforge-code-label">parse statistics</p>
             <div class="stat-list">
               <div v-for="item in parseIssueStatisticsPreview" :key="item.issueScene" class="contract-item">
                 <strong>
@@ -1997,6 +1907,11 @@ onMounted(async () => {
                 {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics yet.' }}
               </div>
             </div>
+          </section>
+        </el-tab-pane>
+        <el-tab-pane :label="isChinese ? '报表维度' : 'By report'" name="report">
+          <section class="detail-card">
+            <p class="section-kicker sqlforge-code-label">report-level statistics</p>
             <div class="stat-list">
               <div v-for="item in parseReportStatisticsPreview" :key="item.reportCode" class="contract-item">
                 <strong>{{ item.reportCode }}</strong>
@@ -2013,72 +1928,74 @@ onMounted(async () => {
                 {{ isChinese ? '当前没有报表维度统计。' : 'No report statistics yet.' }}
               </div>
             </div>
-          </div>
-        </section>
-        <section class="detail-card">
-          <p class="section-kicker sqlforge-code-label">Failure records</p>
-          <div class="failure-list">
-            <article
-              v-for="(item, index) in parseFailureRecordsPreview"
-              :key="item.recordId || item.id || index"
-              class="failure-item"
-              data-testid="batch-import-failure-record"
-            >
-              <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
-              <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
-              <p
-                v-if="hasIssueOrFailure(item)"
-                class="diagnostic-line"
-                data-testid="batch-import-parse-diagnostic"
+          </section>
+        </el-tab-pane>
+        <el-tab-pane :label="isChinese ? '失败记录' : 'Failure records'" name="failures">
+          <section class="detail-card">
+            <p class="section-kicker sqlforge-code-label">Failure records</p>
+            <div class="failure-list">
+              <article
+                v-for="(item, index) in parseFailureRecordsPreview"
+                :key="item.recordId || item.id || index"
+                class="failure-item"
+                data-testid="batch-import-failure-record"
               >
-                {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
-              </p>
-              <p v-if="issueSceneCodesForItem(item).length">
-                {{ isChinese ? '问题场景' : 'Issue scenes' }}:
-                <span
-                  v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
-                  class="help-dot issue-scene-help"
-                  tabindex="0"
-                  aria-label="issue scene help"
-                  :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                  :title="issueSceneListHelp(issueSceneCodesForItem(item))"
-                >?</span>
-                {{ displayValue(issueSceneCodesForItem(item)) }}
-              </p>
-              <SqlCodeBlock
-                v-if="item.sqlText || item.sqlPreview"
-                :value="item.sqlText || item.sqlPreview"
-                :label="isChinese ? '失败 SQL' : 'Failed SQL'"
-                :copy-label="isChinese ? '复制' : 'Copy'"
-                compact
-              />
-              <p v-else>{{ displayValue(item.message) }}</p>
-              <button
-                type="button"
-                class="detail-link detail-link-button"
-                data-testid="batch-import-parse-failure-detail-open"
-                @click="openParseItemDetail(item)"
+                <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
+                <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
+                <p
+                  v-if="hasIssueOrFailure(item)"
+                  class="diagnostic-line"
+                  data-testid="batch-import-parse-diagnostic"
+                >
+                  {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+                </p>
+                <p v-if="issueSceneCodesForItem(item).length">
+                  {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                  <span
+                    v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
+                    class="help-dot issue-scene-help"
+                    tabindex="0"
+                    aria-label="issue scene help"
+                    :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
+                    :title="issueSceneListHelp(issueSceneCodesForItem(item))"
+                  >?</span>
+                  {{ displayValue(issueSceneCodesForItem(item)) }}
+                </p>
+                <SqlCodeBlock
+                  v-if="item.sqlText || item.sqlPreview"
+                  :value="item.sqlText || item.sqlPreview"
+                  :label="isChinese ? '失败 SQL' : 'Failed SQL'"
+                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  compact
+                />
+                <p v-else>{{ displayValue(item.message) }}</p>
+                <button
+                  type="button"
+                  class="detail-link detail-link-button"
+                  data-testid="batch-import-parse-failure-detail-open"
+                  @click="openParseItemDetail(item)"
+                >
+                  {{ isChinese ? '查看解析详情' : 'View parse detail' }}
+                </button>
+              </article>
+              <div
+                v-if="parseFailureRecordsOmittedCount > 0"
+                class="preview-note"
+                data-testid="batch-import-parse-failure-preview"
               >
-                {{ isChinese ? '查看解析详情' : 'View parse detail' }}
-              </button>
-            </article>
-            <div
-              v-if="parseFailureRecordsOmittedCount > 0"
-              class="preview-note"
-              data-testid="batch-import-parse-failure-preview"
-            >
-              {{
-                isChinese
-                  ? `仅展示前 ${parseFailureRecordsPreview.length} 条失败记录，另有 ${parseFailureRecordsOmittedCount} 条已省略。`
-                  : `Showing the first ${parseFailureRecordsPreview.length} failed rows; ${parseFailureRecordsOmittedCount} more are omitted.`
-              }}
+                {{
+                  isChinese
+                    ? `仅展示前 ${parseFailureRecordsPreview.length} 条失败记录，另有 ${parseFailureRecordsOmittedCount} 条已省略。`
+                    : `Showing the first ${parseFailureRecordsPreview.length} failed rows; ${parseFailureRecordsOmittedCount} more are omitted.`
+                }}
+              </div>
+              <div v-if="!parseFailureRecords.length" class="empty-state">
+                {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
+              </div>
             </div>
-            <div v-if="!parseFailureRecords.length" class="empty-state">
-              {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
-            </div>
-          </div>
-        </section>
-      </div>
+          </section>
+        </el-tab-pane>
+      </el-tabs>
     </el-dialog>
 
     <el-dialog v-model="reportImportDialogVisible" :title="isChinese ? '导入报表批次' : 'Import report batch'" width="820px">
@@ -2136,122 +2053,170 @@ onMounted(async () => {
       width="1040px"
       data-testid="batch-import-report-result-dialog"
     >
-      <div class="dialog-stack">
-        <div class="summary-grid">
-          <article v-for="item in reportBatchStatusCards" :key="item.label" class="summary-card">
-            <span class="summary-card-label">{{ item.label }}</span>
-            <strong>{{ item.value }}</strong>
-          </article>
-        </div>
-        <section class="detail-card">
-          <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
-          <div class="filter-row" data-testid="batch-import-report-sql-filter">
-            <el-input
-              v-model="reportSqlDetailSearchCode"
-              :placeholder="isChinese ? '按报表编码筛选' : 'Filter by report code'"
-              clearable
-            />
-            <el-button :loading="loading.reportSqlDetail" @click="applyWholeReportSqlFilter">
-              {{ isChinese ? '查询' : 'Search' }}
-            </el-button>
+      <el-tabs v-model="activeReportResultTab" data-testid="batch-import-report-result-tabs">
+        <el-tab-pane :label="isChinese ? '概览' : 'Overview'" name="overview">
+          <div class="summary-grid">
+            <article v-for="item in reportBatchStatusCards" :key="item.label" class="summary-card">
+              <span class="summary-card-label">{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </article>
+            <article v-for="item in reportSqlStatisticsCards" :key="item.label" class="summary-card">
+              <span class="summary-card-label">{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </article>
           </div>
-          <div
-            v-if="reportSqlDetailTotalCount > reportSqlDetailItems.length"
-            class="preview-note"
-            data-testid="batch-import-report-large-batch-preview"
-          >
-            {{
-              isChinese
-                ? `当前第 ${reportSqlPagination.pageNumber} 页展示 ${reportSqlDetailItems.length} 条 SQL，筛选后共 ${reportSqlDetailTotalCount} 条；概览仍按完整批次汇总。`
-                : `Page ${reportSqlPagination.pageNumber} shows ${reportSqlDetailItems.length} SQL rows out of ${reportSqlDetailTotalCount}; summaries still use the full batch.`
-            }}
-          </div>
-          <el-collapse v-model="activeReportGroupName" v-loading="loading.reportSqlDetail" accordion>
-            <el-collapse-item
+        </el-tab-pane>
+
+        <el-tab-pane :label="isChinese ? '报表分组' : 'Report groups'" name="groups">
+          <div class="report-list">
+            <article
               v-for="group in reportSqlDetailGroups"
               :key="group.reportCode"
-              :name="group.reportCode"
+              class="report-item"
             >
-              <template #title>
-                {{ group.reportCode }} · {{ group.total }} SQL · {{ isChinese ? '已解析' : 'Resolved' }} {{ group.resolved }}
-              </template>
-              <div class="report-list">
-                <article
-                  v-for="(item, index) in group.previewItems"
-                  :key="item.itemId || `${group.reportCode}-${index}`"
-                  class="report-item"
-                  data-testid="batch-import-report-drawer-sql-detail"
-                >
-                  <div class="session-item-top">
-                    <strong>{{ item.sqlColumnName || item.itemId || `SQL ${index + 1}` }}</strong>
-                    <span class="status-pill">{{ displayValue(item.status) }}</span>
-                  </div>
-                  <p>
-                    {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
-                    · {{ isChinese ? 'SQL 序号' : 'SQL ordinal' }}: {{ displayValue(item.sqlOrdinalInReport) }}
-                    · {{ isChinese ? '状态' : 'Status' }}: {{ displayValue(item.status) }}
-                  </p>
-                  <p>
-                    Structure: {{ displayValue(item.structureSyntaxStatus) }}
-                    · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
-                  </p>
-                  <p>
-                    {{ isChinese ? '问题场景' : 'Issue scenes' }}:
-                    <span
-                      v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
-                      class="help-dot issue-scene-help"
-                      tabindex="0"
-                      aria-label="issue scene help"
-                      :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                      :title="issueSceneListHelp(issueSceneCodesForItem(item))"
-                    >?</span>
-                    {{ displayValue(issueSceneCodesForItem(item)) }}
-                  </p>
-                  <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
-                  <p
-                    v-if="hasIssueOrFailure(item)"
-                    class="diagnostic-line"
-                    data-testid="batch-import-report-diagnostic"
-                  >
-                    {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
-                  </p>
-                  <SqlCodeBlock
-                    v-if="item.sqlText"
-                    :value="item.sqlText"
-                    :label="isChinese ? 'SQL 输出' : 'SQL output'"
-                    :copy-label="isChinese ? '复制' : 'Copy'"
-                    compact
-                    data-testid="batch-import-report-sql-code"
-                  />
-                  <div class="item-actions">
-                    <el-button text data-testid="batch-import-report-item-detail-open" @click="openReportItemDetail(item)">
-                      {{ isChinese ? '查看详情' : 'View detail' }}
-                    </el-button>
-                  </div>
-                </article>
-                <div v-if="group.omittedItemCount > 0" class="preview-note">
-                  {{
-                    isChinese
-                      ? `该报表仅展示前 ${group.previewItems.length} 条 SQL，另有 ${group.omittedItemCount} 条已省略。`
-                      : `This report shows the first ${group.previewItems.length} SQL rows; ${group.omittedItemCount} more are omitted.`
-                  }}
-                </div>
+              <div class="session-item-top">
+                <strong>{{ group.reportCode }}</strong>
+                <span class="status-pill">{{ group.total }} SQL</span>
               </div>
-            </el-collapse-item>
-          </el-collapse>
-          <el-pagination
-            v-if="reportSqlDetailTotalCount > reportSqlPagination.pageSize"
-            class="pagination-row"
-            layout="total, sizes, prev, pager, next"
-            :total="reportSqlDetailTotalCount"
-            :page-sizes="REPORT_SQL_PAGE_SIZE_OPTIONS"
-            :page-size="reportSqlPagination.pageSize"
-            :current-page="reportSqlPagination.pageNumber"
-            @current-change="handleReportSqlPageChange"
-            @size-change="handleReportSqlPageSizeChange"
-          />
-        </section>
-      </div>
+              <p>
+                {{ displayValue(group.reportName) }}
+                · {{ isChinese ? '已解析' : 'Resolved' }} {{ group.resolved }}
+                · {{ isChinese ? '失败' : 'Failed' }} {{ group.failed }}
+                · Structure {{ formatPercent(group.structureRate) }}
+                · Access {{ formatPercent(group.accessRate) }}
+              </p>
+              <button type="button" class="detail-link detail-link-button" @click="openReportGroupDetail(group)">
+                {{ isChinese ? '打开本报表 SQL 明细' : 'Open report SQL detail' }}
+              </button>
+            </article>
+            <div v-if="!reportSqlDetailGroups.length" class="empty-state">
+              {{ isChinese ? '当前没有报表分组。' : 'No report groups yet.' }}
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="isChinese ? 'SQL 清单' : 'SQL list'" name="sql">
+          <section class="detail-card">
+            <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
+            <div class="filter-row" data-testid="batch-import-report-sql-filter">
+              <el-input
+                v-model="reportSqlDetailSearchCode"
+                :placeholder="isChinese ? '按报表编码筛选' : 'Filter by report code'"
+                clearable
+              />
+              <el-button :loading="loading.reportSqlDetail" @click="applyWholeReportSqlFilter">
+                {{ isChinese ? '查询' : 'Search' }}
+              </el-button>
+            </div>
+            <div
+              v-if="reportSqlDetailTotalCount > reportSqlDetailItems.length"
+              class="preview-note"
+              data-testid="batch-import-report-large-batch-preview"
+            >
+              {{
+                isChinese
+                  ? `当前第 ${reportSqlPagination.pageNumber} 页展示 ${reportSqlDetailItems.length} 条 SQL，筛选后共 ${reportSqlDetailTotalCount} 条；概览仍按完整批次汇总。`
+                  : `Page ${reportSqlPagination.pageNumber} shows ${reportSqlDetailItems.length} SQL rows out of ${reportSqlDetailTotalCount}; summaries still use the full batch.`
+              }}
+            </div>
+            <div v-loading="loading.reportSqlDetail" class="report-list">
+              <article
+                v-for="(item, index) in reportSqlDetailItems"
+                :key="item.itemId || `${item.reportCode}-${index}`"
+                class="report-item"
+                data-testid="batch-import-report-drawer-sql-detail"
+              >
+                <div class="session-item-top">
+                  <strong>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId || `SQL ${index + 1}` }}</strong>
+                  <span class="status-pill">{{ displayValue(item.status) }}</span>
+                </div>
+                <p>
+                  {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
+                  · {{ isChinese ? 'SQL 序号' : 'SQL ordinal' }}: {{ displayValue(item.sqlOrdinalInReport) }}
+                  · Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                  · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+                </p>
+                <p>
+                  {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                  <span
+                    v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
+                    class="help-dot issue-scene-help"
+                    tabindex="0"
+                    aria-label="issue scene help"
+                    :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
+                    :title="issueSceneListHelp(issueSceneCodesForItem(item))"
+                  >?</span>
+                  {{ displayValue(issueSceneCodesForItem(item)) }}
+                </p>
+                <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
+                <p
+                  v-if="hasIssueOrFailure(item)"
+                  class="diagnostic-line"
+                  data-testid="batch-import-report-diagnostic"
+                >
+                  {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
+                </p>
+                <SqlCodeBlock
+                  v-if="item.sqlText"
+                  :value="item.sqlText"
+                  :label="isChinese ? 'SQL 输出' : 'SQL output'"
+                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  compact
+                  data-testid="batch-import-report-sql-code"
+                />
+                <div class="item-actions">
+                  <el-button text data-testid="batch-import-report-item-detail-open" @click="openReportItemDetail(item)">
+                    {{ isChinese ? '查看详情' : 'View detail' }}
+                  </el-button>
+                </div>
+              </article>
+              <div v-if="!reportSqlDetailItems.length" class="empty-state">
+                {{ isChinese ? '当前没有 SQL 清单。' : 'No SQL rows yet.' }}
+              </div>
+            </div>
+            <el-pagination
+              v-if="reportSqlDetailTotalCount > reportSqlPagination.pageSize"
+              class="pagination-row"
+              layout="total, sizes, prev, pager, next"
+              :total="reportSqlDetailTotalCount"
+              :page-sizes="REPORT_SQL_PAGE_SIZE_OPTIONS"
+              :page-size="reportSqlPagination.pageSize"
+              :current-page="reportSqlPagination.pageNumber"
+              @current-change="handleReportSqlPageChange"
+              @size-change="handleReportSqlPageSizeChange"
+            />
+          </section>
+        </el-tab-pane>
+
+        <el-tab-pane :label="isChinese ? '失败 SQL' : 'Failed SQL'" name="failures">
+          <p class="section-kicker sqlforge-code-label">failed sql detail</p>
+          <div class="failure-list">
+            <article
+              v-for="(item, index) in reportSqlDetailFailureItems"
+              :key="item.itemId || index"
+              class="failure-item"
+              data-testid="batch-import-report-failure-record"
+            >
+              <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
+              <span>{{ displayValue(item.failureReason || item.status) }}</span>
+              <p>{{ displayValue(item.sqlColumnName || item.sqlOrdinalInReport) }} · {{ displayValue(item.parseTaskId) }}</p>
+              <p
+                v-if="hasIssueOrFailure(item)"
+                class="diagnostic-line"
+                data-testid="batch-import-report-diagnostic"
+              >
+                {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
+              </p>
+              <button type="button" class="detail-link detail-link-button" @click="openReportItemDetail(item)">
+                {{ isChinese ? '查看失败详情' : 'View failure detail' }}
+              </button>
+            </article>
+            <div v-if="!reportSqlDetailFailureItems.length" class="empty-state">
+              {{ isChinese ? '当前没有失败 SQL。' : 'No failed SQL rows.' }}
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
     </el-dialog>
 
     <el-dialog
@@ -2260,63 +2225,121 @@ onMounted(async () => {
       width="1040px"
       data-testid="batch-import-report-group-detail-dialog"
     >
-      <div v-if="selectedReportGroup" class="dialog-stack">
-        <div class="summary-grid" data-testid="batch-import-report-scoped-summary">
-          <article class="summary-card">
-            <span class="summary-card-label">{{ isChinese ? '报表编码' : 'Report code' }}</span>
-            <strong>{{ selectedReportGroup.reportCode }}</strong>
-          </article>
-          <article class="summary-card">
-            <span class="summary-card-label">SQL</span>
-            <strong>{{ selectedReportGroup.total }}</strong>
-          </article>
-          <article class="summary-card">
-            <span class="summary-card-label">{{ isChinese ? '已解析' : 'Resolved' }}</span>
-            <strong>{{ selectedReportGroup.resolved }}</strong>
-          </article>
-          <article class="summary-card">
-            <span class="summary-card-label">{{ isChinese ? '失败' : 'Failed' }}</span>
-            <strong>{{ selectedReportGroup.failed }}</strong>
-          </article>
-        </div>
-        <section class="detail-card" data-testid="batch-import-report-scoped-sql-detail">
-          <p class="section-kicker sqlforge-code-label">single report SQL-level parse detail</p>
-          <div v-loading="loading.reportSqlDetail" class="report-list">
-            <article
-              v-for="(item, index) in selectedReportGroup.previewItems"
-              :key="item.itemId || `${selectedReportGroup.reportCode}-${index}`"
-              class="report-item"
-              data-testid="batch-import-report-scoped-sql-row"
-            >
-              <div class="session-item-top">
-                <strong>{{ item.sqlColumnName || item.itemId || `SQL ${index + 1}` }}</strong>
-                <span class="status-pill">{{ displayValue(item.status) }}</span>
+      <el-tabs v-if="selectedReportGroup" v-model="activeReportGroupDetailTab" data-testid="batch-import-report-group-tabs">
+        <el-tab-pane :label="isChinese ? '概览' : 'Overview'" name="overview">
+          <div class="summary-grid" data-testid="batch-import-report-scoped-summary">
+            <article class="summary-card">
+              <span class="summary-card-label">{{ isChinese ? '报表编码' : 'Report code' }}</span>
+              <strong>{{ selectedReportGroup.reportCode }}</strong>
+            </article>
+            <article class="summary-card">
+              <span class="summary-card-label">SQL</span>
+              <strong>{{ selectedReportGroup.total }}</strong>
+            </article>
+            <article class="summary-card">
+              <span class="summary-card-label">{{ isChinese ? '已解析' : 'Resolved' }}</span>
+              <strong>{{ selectedReportGroup.resolved }}</strong>
+            </article>
+            <article class="summary-card">
+              <span class="summary-card-label">{{ isChinese ? '失败' : 'Failed' }}</span>
+              <strong>{{ selectedReportGroup.failed }}</strong>
+            </article>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="isChinese ? 'SQL 清单' : 'SQL list'" name="sql">
+          <section class="detail-card" data-testid="batch-import-report-scoped-sql-detail">
+            <p class="section-kicker sqlforge-code-label">single report SQL-level parse detail</p>
+            <div v-loading="loading.reportSqlDetail" class="report-list">
+              <article
+                v-for="(item, index) in selectedReportGroup.previewItems"
+                :key="item.itemId || `${selectedReportGroup.reportCode}-${index}`"
+                class="report-item"
+                data-testid="batch-import-report-scoped-sql-row"
+              >
+                <div class="session-item-top">
+                  <strong>{{ item.sqlColumnName || item.itemId || `SQL ${index + 1}` }}</strong>
+                  <span class="status-pill">{{ displayValue(item.status) }}</span>
+                </div>
+                <p>
+                  {{ displayValue(item.reportName) }} · {{ displayValue(item.datasourceCode || item.stage) }}
+                  · {{ displayValue(item.priority) }}
+                </p>
+                <p>
+                  {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
+                  · {{ isChinese ? 'SQL 序号' : 'SQL ordinal' }}: {{ displayValue(item.sqlOrdinalInReport) }}
+                  · {{ isChinese ? '状态' : 'Status' }}: {{ displayValue(item.status) }}
+                </p>
+                <p>
+                  Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                  · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+                </p>
+                <p>
+                  {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                  <span
+                    v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
+                    class="help-dot issue-scene-help"
+                    tabindex="0"
+                    aria-label="issue scene help"
+                    :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
+                    :title="issueSceneListHelp(issueSceneCodesForItem(item))"
+                  >?</span>
+                  {{ displayValue(issueSceneCodesForItem(item)) }}
+                </p>
+                <p
+                  v-if="hasIssueOrFailure(item)"
+                  class="diagnostic-line"
+                  data-testid="batch-import-report-diagnostic"
+                >
+                  {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
+                </p>
+                <SqlCodeBlock
+                  v-if="item.sqlText"
+                  :value="item.sqlText"
+                  :label="isChinese ? 'SQL 输出' : 'SQL output'"
+                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  compact
+                  data-testid="batch-import-report-scoped-sql-code"
+                />
+                <div class="item-actions">
+                  <el-button text data-testid="batch-import-report-item-detail-open" @click="openReportItemDetail(item)">
+                    {{ isChinese ? '查看详情' : 'View detail' }}
+                  </el-button>
+                </div>
+              </article>
+              <div v-if="selectedReportGroup.omittedItemCount > 0" class="preview-note">
+                {{
+                  isChinese
+                    ? `该报表仅展示前 ${selectedReportGroup.previewItems.length} 条 SQL，另有 ${selectedReportGroup.omittedItemCount} 条已省略。`
+                    : `This report shows the first ${selectedReportGroup.previewItems.length} SQL rows; ${selectedReportGroup.omittedItemCount} more are omitted.`
+                }}
               </div>
-              <p>
-                {{ displayValue(item.reportName) }} · {{ displayValue(item.datasourceCode || item.stage) }}
-                · {{ displayValue(item.priority) }}
-              </p>
-              <p>
-                {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
-                · {{ isChinese ? 'SQL 序号' : 'SQL ordinal' }}: {{ displayValue(item.sqlOrdinalInReport) }}
-                · {{ isChinese ? '状态' : 'Status' }}: {{ displayValue(item.status) }}
-              </p>
-              <p>
-                Structure: {{ displayValue(item.structureSyntaxStatus) }}
-                · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
-              </p>
-              <p>
-                {{ isChinese ? '问题场景' : 'Issue scenes' }}:
-                <span
-                  v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
-                  class="help-dot issue-scene-help"
-                  tabindex="0"
-                  aria-label="issue scene help"
-                  :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                  :title="issueSceneListHelp(issueSceneCodesForItem(item))"
-                >?</span>
-                {{ displayValue(issueSceneCodesForItem(item)) }}
-              </p>
+            </div>
+            <el-pagination
+              v-if="reportSqlDetailTotalCount > reportSqlPagination.pageSize"
+              class="pagination-row"
+              layout="total, sizes, prev, pager, next"
+              :total="reportSqlDetailTotalCount"
+              :page-sizes="REPORT_SQL_PAGE_SIZE_OPTIONS"
+              :page-size="reportSqlPagination.pageSize"
+              :current-page="reportSqlPagination.pageNumber"
+              @current-change="handleReportSqlPageChange"
+              @size-change="handleReportSqlPageSizeChange"
+            />
+          </section>
+        </el-tab-pane>
+
+        <el-tab-pane :label="isChinese ? '失败 SQL' : 'Failed SQL'" name="failures">
+          <p class="section-kicker sqlforge-code-label">failed sql detail</p>
+          <div class="failure-list">
+            <article
+              v-for="(item, index) in selectedReportGroupFailureItems"
+              :key="item.itemId || index"
+              class="failure-item"
+              data-testid="batch-import-report-failure-record"
+            >
+              <strong>{{ item.sqlColumnName || item.itemId || `SQL ${index + 1}` }}</strong>
+              <span>{{ displayValue(item.failureReason || item.status) }}</span>
               <p
                 v-if="hasIssueOrFailure(item)"
                 class="diagnostic-line"
@@ -2324,41 +2347,16 @@ onMounted(async () => {
               >
                 {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
               </p>
-              <SqlCodeBlock
-                v-if="item.sqlText"
-                :value="item.sqlText"
-                :label="isChinese ? 'SQL 输出' : 'SQL output'"
-                :copy-label="isChinese ? '复制' : 'Copy'"
-                compact
-                data-testid="batch-import-report-scoped-sql-code"
-              />
-              <div class="item-actions">
-                <el-button text data-testid="batch-import-report-item-detail-open" @click="openReportItemDetail(item)">
-                  {{ isChinese ? '查看详情' : 'View detail' }}
-                </el-button>
-              </div>
+              <button type="button" class="detail-link detail-link-button" @click="openReportItemDetail(item)">
+                {{ isChinese ? '查看失败详情' : 'View failure detail' }}
+              </button>
             </article>
-            <div v-if="selectedReportGroup.omittedItemCount > 0" class="preview-note">
-              {{
-                isChinese
-                  ? `该报表仅展示前 ${selectedReportGroup.previewItems.length} 条 SQL，另有 ${selectedReportGroup.omittedItemCount} 条已省略。`
-                  : `This report shows the first ${selectedReportGroup.previewItems.length} SQL rows; ${selectedReportGroup.omittedItemCount} more are omitted.`
-              }}
+            <div v-if="!selectedReportGroupFailureItems.length" class="empty-state">
+              {{ isChinese ? '本报表没有失败 SQL。' : 'No failed SQL rows in this report.' }}
             </div>
           </div>
-          <el-pagination
-            v-if="reportSqlDetailTotalCount > reportSqlPagination.pageSize"
-            class="pagination-row"
-            layout="total, sizes, prev, pager, next"
-            :total="reportSqlDetailTotalCount"
-            :page-sizes="REPORT_SQL_PAGE_SIZE_OPTIONS"
-            :page-size="reportSqlPagination.pageSize"
-            :current-page="reportSqlPagination.pageNumber"
-            @current-change="handleReportSqlPageChange"
-            @size-change="handleReportSqlPageSizeChange"
-          />
-        </section>
-      </div>
+        </el-tab-pane>
+      </el-tabs>
     </el-dialog>
 
     <el-dialog
@@ -2403,27 +2401,30 @@ onMounted(async () => {
 
     <el-dialog v-model="reportStatisticsDialogVisible" :title="isChinese ? '当前报表批次解析统计' : 'Current report batch parse statistics'" width="960px">
       <div class="dialog-stack">
-        <div class="summary-grid" data-testid="batch-import-report-drawer-statistics">
-          <article v-for="item in reportSqlStatisticsCards" :key="item.label" class="summary-card">
-            <span class="summary-card-label">
-              {{ item.label }}
-              <el-button
-                v-if="helpTextForKey(item.key)"
-                text
-                size="small"
-                class="help-dot"
-                aria-label="field help"
-                @click="openFieldHelp(item.key, item.label)"
-              >
-                ?
-              </el-button>
-            </span>
-            <strong>{{ item.value }}</strong>
-          </article>
-        </div>
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">report-level statistics</p>
           <el-tabs v-model="activeReportStatisticsTab" class="statistics-tabs" data-testid="batch-import-report-statistics-tabs">
+            <el-tab-pane :label="isChinese ? '概览' : 'Overview'" name="overview">
+              <div class="summary-grid" data-testid="batch-import-report-drawer-statistics">
+                <article v-for="item in reportSqlStatisticsCards" :key="item.label" class="summary-card">
+                  <span class="summary-card-label">
+                    {{ item.label }}
+                    <el-button
+                      v-if="helpTextForKey(item.key)"
+                      text
+                      size="small"
+                      class="help-dot"
+                      aria-label="field help"
+                      @click="openFieldHelp(item.key, item.label)"
+                    >
+                      ?
+                    </el-button>
+                  </span>
+                  <strong>{{ item.value }}</strong>
+                </article>
+              </div>
+            </el-tab-pane>
+
             <el-tab-pane :label="isChinese ? '问题场景' : 'Issue scenes'" name="issueScene">
               <div class="stat-list">
                 <div

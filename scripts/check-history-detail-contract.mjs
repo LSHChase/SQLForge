@@ -22,6 +22,7 @@ const requiredTokens = [
   'data-testid="parse-record-detail-query-history-count"',
   'data-testid="parse-record-report-sql-history-link"',
   'data-testid="parse-record-report-sql-history-detail-unavailable"',
+  'data-testid="parse-record-report-detail-tabs"',
   ':data-testid="`parse-record-${item.key}`"',
   ':data-testid="`parse-record-${group.key}`"',
   ':data-testid="`parse-record-history-${item.key.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`)}`"',

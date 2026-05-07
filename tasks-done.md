@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-078: Optimize parse page information architecture
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `feat(frontend): reorganize parse detail tabs`
+- Priority: 1
+- Depends on: N/A
+- Scope: Move batch and report import template documentation into template dialogs, reorganize parse result/statistics/history/detail views into tabs, and update frontend contract checks without changing backend APIs, parser behavior, DTOs, or database schema.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-078`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 优化批量解析中心、报表导入、解析历史报表详情和解析统计详情的信息架构：模板说明移入按钮弹窗，解析结果/统计/报表 SQL 详情改为 tabs 分层，统计详情原始 JSON 收敛到弹窗内 tab；未修改后端 API、parser、DTO 或数据库 schema。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-078 --extra-command node scripts/check-batch-import-contract.mjs --extra-command node scripts/check-history-page-contract.mjs --extra-command node scripts/check-history-detail-contract.mjs --extra-command node scripts/check-statistics-page-contract.mjs --extra-command node scripts/check-parse-workbench-contract.mjs --extra-command npm run lint --extra-command npm run build --extra-command git diff --check; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 未运行真实浏览器人工点击验收；当前覆盖来自静态契约、lint、生产构建和源码级按钮顺序检查。
+  - Next step: 产品验收时用包含普通批量失败 SQL、报表宽表、多报表分组和问题场景详情的样例批次逐项点击 tabs 与模板弹窗。
+
 ### HARN-077: 补齐解析详情问题场景中文提示
 
 - Status: done

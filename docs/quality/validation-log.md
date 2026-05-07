@@ -2437,3 +2437,24 @@
 2026-05-07T01:24:39-05:00 | HARN-077 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-07T01:24:39-05:00 | HARN-077 closeout commit | `R-168` | projected | `git commit -m 'fix(frontend): complete issue scene tooltips' (projected-precommit)`
 2026-05-07T01:24:39-05:00 | HARN-077 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-07T01:41:11-05:00 | HARN-078 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-07T01:41:11-05:00 | HARN-078 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-07T01:41:32-05:00 | HARN-078 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-07T01:41:32-05:00 | HARN-078 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-07T01:41:32-05:00 | HARN-078 validate | `R-133`, `R-168` | passed | `node scripts/check-batch-import-contract.mjs`
+2026-05-07T01:41:32-05:00 | HARN-078 validate | `R-133`, `R-168` | passed | `node scripts/check-history-page-contract.mjs`
+2026-05-07T01:41:32-05:00 | HARN-078 validate | `R-133`, `R-168` | passed | `node scripts/check-history-detail-contract.mjs`
+2026-05-07T01:41:32-05:00 | HARN-078 validate | `R-133`, `R-168` | passed | `node scripts/check-statistics-page-contract.mjs`
+2026-05-07T01:41:32-05:00 | HARN-078 validate | `R-133`, `R-168` | passed | `node scripts/check-parse-workbench-contract.mjs`
+2026-05-07T01:41:33-05:00 | HARN-078 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-07T01:41:37-05:00 | HARN-078 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-07T01:41:37-05:00 | HARN-078 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-07T01:42:06-05:00 | HARN-078 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-07T01:42:06-05:00 | HARN-078 closeout commit | `R-168` | projected | `git commit -m 'feat(frontend): reorganize parse detail tabs' (projected-precommit)`
+2026-05-07T01:42:06-05:00 | HARN-078 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-07T01:42:06-05:00 | HARN-078 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-batch-import-contract.mjs (projected-precommit)`
+2026-05-07T01:42:06-05:00 | HARN-078 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-page-contract.mjs (projected-precommit)`
+2026-05-07T01:42:06-05:00 | HARN-078 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-detail-contract.mjs (projected-precommit)`
+2026-05-07T01:42:06-05:00 | HARN-078 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-statistics-page-contract.mjs (projected-precommit)`
+2026-05-07T01:42:06-05:00 | HARN-078 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-parse-workbench-contract.mjs (projected-precommit)`
+2026-05-07T01:42:06-05:00 | HARN-078 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`

@@ -118,6 +118,7 @@ const reportImportDialogVisible = ref(false)
 const reportDetailDrawerVisible = ref(false)
 
 const activeAnalyticsTab = ref('issue')
+const activeStatisticsDetailTab = ref('summary')
 const statisticsDetailDialogVisible = ref(false)
 const statisticsDetailTitle = ref('')
 const statisticsDetailPayload = ref(null)
@@ -346,6 +347,27 @@ const overviewCards = computed(() => {
 })
 
 const priorityDistribution = computed(() => Object.entries(overview.value?.priorityDistribution || {}))
+const statisticsDetailSummaryEntries = computed(() =>
+  Object.entries(statisticsDetailPayload.value || {})
+    .filter(([, value]) => value === null || typeof value !== 'object' || Array.isArray(value))
+)
+const statisticsDetailRelationEntries = computed(() => {
+  const payload = statisticsDetailPayload.value || {}
+  return [
+    ['reportCode', payload.reportCode],
+    ['itemId', payload.itemId],
+    ['parseTaskId', payload.parseTaskId],
+    ['datasourceCode', payload.datasourceCode],
+    ['stage', payload.stage],
+    ['issueScenes', payload.issueScenes],
+    ['issueScene', payload.issueScene],
+    ['sqlCount', payload.sqlCount],
+    ['issueCount', payload.issueCount],
+    ['affectedSqlCount', payload.affectedSqlCount],
+    ['reportCount', payload.reportCount],
+    ['logicalObjectKeys', payload.logicalObjectKeys]
+  ].filter(([, value]) => hasDisplayValue(value) || (Array.isArray(value) && value.length > 0))
+})
 
 const historyRows = computed(() => historyPage.value?.items || [])
 
@@ -1147,6 +1169,7 @@ async function loadAnalytics() {
 function openStatisticsDetail(title, payload) {
   statisticsDetailTitle.value = title
   statisticsDetailPayload.value = payload
+  activeStatisticsDetailTab.value = 'summary'
   statisticsDetailDialogVisible.value = true
 }
 
@@ -2340,16 +2363,36 @@ watch(
       </template>
     </el-dialog>
 
-    <el-dialog v-model="statisticsDetailDialogVisible" :title="statisticsDetailTitle" width="760px">
-      <div class="detail-grid">
-        <div v-for="(value, key) in statisticsDetailPayload || {}" :key="key" class="detail-grid__item">
-          <span>{{ key }}</span>
-          <strong>{{ displayValue(value) }}</strong>
-        </div>
-      </div>
-      <template #footer>
-        <el-button @click="openEvidenceDrawer(statisticsDetailTitle, statisticsDetailPayload)">{{ isChinese ? '查看原始证据' : 'View raw evidence' }}</el-button>
-      </template>
+    <el-dialog v-model="statisticsDetailDialogVisible" :title="statisticsDetailTitle" width="760px" data-testid="statistics-detail-dialog">
+      <el-tabs v-model="activeStatisticsDetailTab" data-testid="statistics-detail-tabs">
+        <el-tab-pane :label="isChinese ? '摘要' : 'Summary'" name="summary">
+          <div class="detail-grid">
+            <div v-for="[key, value] in statisticsDetailSummaryEntries" :key="key" class="detail-grid__item">
+              <span>{{ key }}</span>
+              <strong>{{ displayValue(value) }}</strong>
+            </div>
+          </div>
+        </el-tab-pane>
+        <el-tab-pane :label="isChinese ? '关联 SQL/报表' : 'Related SQL/report'" name="relations">
+          <div class="detail-grid">
+            <div
+              v-for="[key, value] in statisticsDetailRelationEntries"
+              :key="key"
+              class="detail-grid__item"
+              data-testid="statistics-detail-relation"
+            >
+              <span>{{ key }}</span>
+              <strong>{{ displayValue(value) }}</strong>
+            </div>
+          </div>
+          <p v-if="!statisticsDetailRelationEntries.length" class="result-copy">
+            {{ isChinese ? '当前记录没有关联 SQL 或报表定位。' : 'No SQL or report locator is available for this record.' }}
+          </p>
+        </el-tab-pane>
+        <el-tab-pane :label="isChinese ? '原始 JSON' : 'Raw JSON'" name="raw">
+          <pre class="code-block" data-testid="statistics-detail-raw-json">{{ formatJson(statisticsDetailPayload || {}) }}</pre>
+        </el-tab-pane>
+      </el-tabs>
     </el-dialog>
 
     <el-drawer v-model="parseDetailDrawerVisible" :title="parseBatchDetail?.batchName || parseBatchDetail?.batchId || 'parse batch detail'" size="42%">

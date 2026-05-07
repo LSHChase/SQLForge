@@ -20,8 +20,8 @@ const form = reactive({
 const loading = ref(false)
 const errorMessage = ref('')
 const activeTab = ref('issue')
+const activeDetailTab = ref('summary')
 const detailDialogVisible = ref(false)
-const detailDrawerVisible = ref(false)
 const detailTitle = ref('')
 const detailPayload = ref(null)
 const fieldHelpDialogVisible = ref(false)
@@ -49,6 +49,27 @@ const overviewCards = computed(() => {
   ].slice(0, 6)
 })
 const priorityDistribution = computed(() => Object.entries(overview.value?.priorityDistribution || {}))
+const detailSummaryEntries = computed(() =>
+  Object.entries(detailPayload.value || {})
+    .filter(([, value]) => value === null || typeof value !== 'object' || Array.isArray(value))
+)
+const detailRelationEntries = computed(() => {
+  const payload = detailPayload.value || {}
+  return [
+    ['reportCode', payload.reportCode],
+    ['itemId', payload.itemId],
+    ['parseTaskId', payload.parseTaskId],
+    ['datasourceCode', payload.datasourceCode],
+    ['stage', payload.stage],
+    ['issueScenes', payload.issueScenes],
+    ['issueScene', payload.issueScene],
+    ['sqlCount', payload.sqlCount],
+    ['issueCount', payload.issueCount],
+    ['affectedSqlCount', payload.affectedSqlCount],
+    ['reportCount', payload.reportCount],
+    ['logicalObjectKeys', payload.logicalObjectKeys]
+  ].filter(([, value]) => hasDisplayValue(value) || (Array.isArray(value) && value.length > 0))
+})
 
 const card = (label, value, key = '') => ({ label, value, key })
 
@@ -90,14 +111,26 @@ const boolText = value => {
   return value ? 'true' : 'false'
 }
 
+const hasDisplayValue = value => !(value === null || value === undefined || String(value).trim() === '')
+
+const displayValue = value => {
+  if (Array.isArray(value)) {
+    return value.length ? value.join(', ') : '-'
+  }
+  if (!hasDisplayValue(value)) {
+    return '-'
+  }
+  if (value && typeof value === 'object') {
+    return JSON.stringify(value)
+  }
+  return String(value)
+}
+
 const openDetailDialog = (title, payload) => {
   detailTitle.value = title
   detailPayload.value = payload
+  activeDetailTab.value = 'summary'
   detailDialogVisible.value = true
-}
-
-const openDetailDrawer = () => {
-  detailDrawerVisible.value = true
 }
 
 const loadStatistics = async () => {
@@ -360,25 +393,41 @@ onMounted(async () => {
       </section>
     </div>
 
-    <el-dialog v-model="detailDialogVisible" :title="detailTitle" width="760px">
-      <div class="detail-grid">
-        <div
-          v-for="[key, value] in Object.entries(detailPayload || {})"
-          :key="key"
-          class="detail-grid__item"
-        >
-          <span>{{ key }}</span>
-          <strong>{{ Array.isArray(value) ? value.join(', ') : String(value) }}</strong>
-        </div>
-      </div>
-      <template #footer>
-        <el-button @click="openDetailDrawer">{{ isChinese ? '查看原始 JSON' : 'View raw JSON' }}</el-button>
-      </template>
+    <el-dialog v-model="detailDialogVisible" :title="detailTitle" width="760px" data-testid="statistics-detail-dialog">
+      <el-tabs v-model="activeDetailTab" data-testid="statistics-detail-tabs">
+        <el-tab-pane :label="isChinese ? '摘要' : 'Summary'" name="summary">
+          <div class="detail-grid">
+            <div
+              v-for="[key, value] in detailSummaryEntries"
+              :key="key"
+              class="detail-grid__item"
+            >
+              <span>{{ key }}</span>
+              <strong>{{ displayValue(value) }}</strong>
+            </div>
+          </div>
+        </el-tab-pane>
+        <el-tab-pane :label="isChinese ? '关联 SQL/报表' : 'Related SQL/report'" name="relations">
+          <div class="detail-grid">
+            <div
+              v-for="[key, value] in detailRelationEntries"
+              :key="key"
+              class="detail-grid__item"
+              data-testid="statistics-detail-relation"
+            >
+              <span>{{ key }}</span>
+              <strong>{{ displayValue(value) }}</strong>
+            </div>
+          </div>
+          <p v-if="!detailRelationEntries.length" class="section-summary">
+            {{ isChinese ? '当前记录没有关联 SQL 或报表定位。' : 'No SQL or report locator is available for this record.' }}
+          </p>
+        </el-tab-pane>
+        <el-tab-pane :label="isChinese ? '原始 JSON' : 'Raw JSON'" name="raw">
+          <pre class="code-block" data-testid="statistics-detail-raw-json">{{ JSON.stringify(detailPayload || {}, null, 2) }}</pre>
+        </el-tab-pane>
+      </el-tabs>
     </el-dialog>
-
-    <el-drawer v-model="detailDrawerVisible" :title="detailTitle" size="42%">
-      <pre class="code-block">{{ JSON.stringify(detailPayload || {}, null, 2) }}</pre>
-    </el-drawer>
 
     <el-dialog v-model="fieldHelpDialogVisible" :title="fieldHelpDialogTitle || (isChinese ? '字段说明' : 'Field help')" width="560px">
       <p class="section-summary">{{ fieldHelpDialogMessage }}</p>
