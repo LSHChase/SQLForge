@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-RESTART-20260507: Refresh frontend dist and restart local services
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `OPS-RESTART-20260507 refresh dist and restart local services`
+- Priority: 1
+- Depends on: N/A
+- Scope: Rebuild the root frontend dist artifact, then restart the local frontend dev server and backend runtime services using repository standard scripts and verify local reachability.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-RESTART-20260507`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Rebuilt root frontend dist with npm run build, stopped stale frontend/backend runtime listeners, restarted governance/query-execution/sql-optimization/benchmark-engine using scripts/start-backend-services.sh with the existing local stack, and restarted the Vite frontend dev server on port 3000.
+  - Validation evidence: npm run build; python3 scripts/foreman.py validate OPS-RESTART-20260507; curl health checks for 8080/8081/8082/8083 and frontend HTTP 200; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Local runtime remains workstation-stateful; services depend on the current docker-compose infrastructure and detached process state under .codex/state/.
+  - Next step: Use .codex/state/backend-runtime/*.pid and .codex/state/runtime-logs/frontend.pid to stop these services when no longer needed.
+
 ### UI-TASK-001: Converge batch parse center input cards
 
 - Status: done
