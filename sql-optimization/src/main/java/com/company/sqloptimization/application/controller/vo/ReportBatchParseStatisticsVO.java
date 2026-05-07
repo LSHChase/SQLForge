@@ -13,6 +13,11 @@ public class ReportBatchParseStatisticsVO {
     private Integer sqlStatisticLimit;
     private Boolean sqlStatisticTruncated;
     private Integer omittedSqlStatisticCount;
+    private Integer sqlStatisticPageNumber;
+    private Integer sqlStatisticPageSize;
+    private Integer sqlStatisticPageCount;
+    private Integer sqlStatisticTotalCount;
+    private String sqlStatisticReportCodeFilter;
     private List<ReportBatchSqlStatisticVO> sqlStatistics;
     private List<ParsePriorityMatrixCellVO> priorityMatrix;
     private List<ReportBatchLogicalObjectStatisticVO> logicalObjectStatistics;
@@ -38,6 +43,22 @@ public class ReportBatchParseStatisticsVO {
     public Integer getOmittedSqlStatisticCount() { return omittedSqlStatisticCount; }
     public void setOmittedSqlStatisticCount(Integer omittedSqlStatisticCount) {
         this.omittedSqlStatisticCount = omittedSqlStatisticCount;
+    }
+    public Integer getSqlStatisticPageNumber() { return sqlStatisticPageNumber; }
+    public void setSqlStatisticPageNumber(Integer sqlStatisticPageNumber) {
+        this.sqlStatisticPageNumber = sqlStatisticPageNumber;
+    }
+    public Integer getSqlStatisticPageSize() { return sqlStatisticPageSize; }
+    public void setSqlStatisticPageSize(Integer sqlStatisticPageSize) { this.sqlStatisticPageSize = sqlStatisticPageSize; }
+    public Integer getSqlStatisticPageCount() { return sqlStatisticPageCount; }
+    public void setSqlStatisticPageCount(Integer sqlStatisticPageCount) { this.sqlStatisticPageCount = sqlStatisticPageCount; }
+    public Integer getSqlStatisticTotalCount() { return sqlStatisticTotalCount; }
+    public void setSqlStatisticTotalCount(Integer sqlStatisticTotalCount) {
+        this.sqlStatisticTotalCount = sqlStatisticTotalCount;
+    }
+    public String getSqlStatisticReportCodeFilter() { return sqlStatisticReportCodeFilter; }
+    public void setSqlStatisticReportCodeFilter(String sqlStatisticReportCodeFilter) {
+        this.sqlStatisticReportCodeFilter = sqlStatisticReportCodeFilter;
     }
     public List<ReportBatchSqlStatisticVO> getSqlStatistics() { return sqlStatistics; }
     public void setSqlStatistics(List<ReportBatchSqlStatisticVO> sqlStatistics) { this.sqlStatistics = sqlStatistics; }

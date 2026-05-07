@@ -29,9 +29,22 @@ class ReportBatchParseStatisticsAssembler {
     private static final int SQL_STATISTIC_PREVIEW_LIMIT = 500;
 
     ReportBatchParseStatisticsVO build(List<ReportBatchItem> sourceItems) {
+        return build(sourceItems, null, null, null);
+    }
+
+    ReportBatchParseStatisticsVO build(List<ReportBatchItem> sourceItems,
+                                       Integer pageNumber,
+                                       Integer pageSize,
+                                       String reportCode) {
         List<ReportBatchItem> items = sourceItems == null
             ? Collections.<ReportBatchItem>emptyList()
             : sourceItems;
+        SqlStatisticPage pageSelection = SqlStatisticPage.from(
+            pageNumber,
+            pageSize,
+            reportCode,
+            SQL_STATISTIC_PREVIEW_LIMIT
+        );
         List<ReportBatchSqlStatisticVO> sqlStatistics = new ArrayList<ReportBatchSqlStatisticVO>(items.size());
         Map<String, SceneAccumulator> sceneAccumulators = new LinkedHashMap<String, SceneAccumulator>();
         Map<String, Integer> severityDistribution = initialSeverityDistribution();
@@ -78,10 +91,24 @@ class ReportBatchParseStatisticsAssembler {
         statistics.setImportanceStatistics(toImportanceStatistics(importanceAccumulators));
         statistics.setReportStatistics(toReportStatistics(reportAccumulators));
         List<ReportBatchSqlStatisticVO> sortedSqlStatistics = sortSqlStatistics(sqlStatistics);
-        statistics.setSqlStatisticLimit(Integer.valueOf(SQL_STATISTIC_PREVIEW_LIMIT));
-        statistics.setSqlStatisticTruncated(Boolean.valueOf(sortedSqlStatistics.size() > SQL_STATISTIC_PREVIEW_LIMIT));
-        statistics.setOmittedSqlStatisticCount(Integer.valueOf(Math.max(0, sortedSqlStatistics.size() - SQL_STATISTIC_PREVIEW_LIMIT)));
-        statistics.setSqlStatistics(previewSqlStatistics(sortedSqlStatistics));
+        List<ReportBatchSqlStatisticVO> filteredSqlStatistics = filterSqlStatistics(
+            sortedSqlStatistics,
+            pageSelection.reportCode
+        );
+        List<ReportBatchSqlStatisticVO> pageSqlStatistics = pageSqlStatistics(filteredSqlStatistics, pageSelection);
+        statistics.setSqlStatisticLimit(Integer.valueOf(pageSelection.pageSize));
+        statistics.setSqlStatisticTruncated(Boolean.valueOf(filteredSqlStatistics.size() > pageSqlStatistics.size()));
+        statistics.setOmittedSqlStatisticCount(Integer.valueOf(Math.max(0,
+            filteredSqlStatistics.size() - pageSqlStatistics.size())));
+        statistics.setSqlStatisticPageNumber(Integer.valueOf(pageSelection.pageNumber));
+        statistics.setSqlStatisticPageSize(Integer.valueOf(pageSelection.pageSize));
+        statistics.setSqlStatisticPageCount(Integer.valueOf(pageCount(
+            filteredSqlStatistics.size(),
+            pageSelection.pageSize
+        )));
+        statistics.setSqlStatisticTotalCount(Integer.valueOf(filteredSqlStatistics.size()));
+        statistics.setSqlStatisticReportCodeFilter(pageSelection.reportCode);
+        statistics.setSqlStatistics(pageSqlStatistics);
         statistics.setPriorityMatrix(toPriorityMatrix(priorityMatrix));
         statistics.setLogicalObjectStatistics(toLogicalObjectStatistics(logicalObjectAccumulators));
         return statistics;
@@ -263,13 +290,35 @@ class ReportBatchParseStatisticsAssembler {
         return statistics;
     }
 
-    private List<ReportBatchSqlStatisticVO> previewSqlStatistics(List<ReportBatchSqlStatisticVO> statistics) {
-        if (statistics.size() <= SQL_STATISTIC_PREVIEW_LIMIT) {
+    private List<ReportBatchSqlStatisticVO> filterSqlStatistics(List<ReportBatchSqlStatisticVO> statistics,
+                                                               String reportCode) {
+        if (!StringUtils.hasText(reportCode)) {
             return statistics;
         }
-        return new ArrayList<ReportBatchSqlStatisticVO>(
-            statistics.subList(0, SQL_STATISTIC_PREVIEW_LIMIT)
-        );
+        List<ReportBatchSqlStatisticVO> result = new ArrayList<ReportBatchSqlStatisticVO>();
+        for (ReportBatchSqlStatisticVO statistic : statistics) {
+            if (reportCode.equals(statistic.getReportCode())) {
+                result.add(statistic);
+            }
+        }
+        return result;
+    }
+
+    private List<ReportBatchSqlStatisticVO> pageSqlStatistics(List<ReportBatchSqlStatisticVO> statistics,
+                                                             SqlStatisticPage pageSelection) {
+        if (statistics.isEmpty()) {
+            return Collections.emptyList();
+        }
+        int start = Math.min(statistics.size(), (pageSelection.pageNumber - 1) * pageSelection.pageSize);
+        int end = Math.min(statistics.size(), start + pageSelection.pageSize);
+        return new ArrayList<ReportBatchSqlStatisticVO>(statistics.subList(start, end));
+    }
+
+    private int pageCount(int totalCount, int pageSize) {
+        if (totalCount <= 0) {
+            return 0;
+        }
+        return (totalCount + pageSize - 1) / pageSize;
     }
 
     private List<ParsePriorityMatrixCellVO> toPriorityMatrix(Map<String, MatrixAccumulator> matrix) {
@@ -343,6 +392,10 @@ class ReportBatchParseStatisticsAssembler {
         vo.setImportant(Boolean.valueOf(assessment.important));
         vo.setUrgent(Boolean.valueOf(assessment.urgent));
         vo.setIssueScenes(new ArrayList<String>(item.getIssueScenes()));
+        vo.setIssueLocations(ReportBatchIssueLocationSupport.fromItem(
+            item,
+            SqlParseDiagnosticSupport.fromFailureReason(item.getFailureReason())
+        ));
         vo.setLogicalObjectKeys(new ArrayList<String>(item.getLogicalObjectKeys()));
         return vo;
     }
@@ -500,6 +553,31 @@ class ReportBatchParseStatisticsAssembler {
 
         private LogicalObjectAccumulator(String objectKey) {
             this.objectKey = objectKey;
+        }
+    }
+
+    private static final class SqlStatisticPage {
+        private static final int MAX_PAGE_SIZE = 500;
+
+        private final int pageNumber;
+        private final int pageSize;
+        private final String reportCode;
+
+        private SqlStatisticPage(int pageNumber, int pageSize, String reportCode) {
+            this.pageNumber = pageNumber;
+            this.pageSize = pageSize;
+            this.reportCode = reportCode;
+        }
+
+        private static SqlStatisticPage from(Integer pageNumber,
+                                             Integer pageSize,
+                                             String reportCode,
+                                             int defaultPageSize) {
+            int normalizedPageNumber = pageNumber == null ? 1 : Math.max(1, pageNumber.intValue());
+            int normalizedPageSize = pageSize == null ? defaultPageSize : pageSize.intValue();
+            normalizedPageSize = Math.max(1, Math.min(MAX_PAGE_SIZE, normalizedPageSize));
+            String normalizedReportCode = StringUtils.hasText(reportCode) ? reportCode.trim() : null;
+            return new SqlStatisticPage(normalizedPageNumber, normalizedPageSize, normalizedReportCode);
         }
     }
 }

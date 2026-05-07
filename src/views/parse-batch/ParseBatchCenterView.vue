@@ -43,10 +43,27 @@ const activeReportStatisticsTab = ref('issueScene')
 const parseItemDetailDialogVisible = ref(false)
 const reportItemDetailDialogVisible = ref(false)
 const reportGroupDetailDialogVisible = ref(false)
+const fieldHelpDialogVisible = ref(false)
+const fieldHelpDialogTitle = ref('')
+const fieldHelpDialogMessage = ref('')
 const selectedParseItem = ref(null)
 const selectedReportItem = ref(null)
 const selectedReportGroupCode = ref('')
 const activeReportGroupName = ref('')
+const reportSqlDetail = ref(null)
+const reportSqlDetailMode = ref('batch')
+const reportSqlDetailSearchCode = ref('')
+
+const reportSqlPagination = reactive({
+  pageNumber: 1,
+  pageSize: 25
+})
+
+const reportStatisticsSqlPagination = reactive({
+  pageNumber: 1,
+  pageSize: 25,
+  reportCode: ''
+})
 
 const loading = reactive({
   createParseBatch: false,
@@ -55,7 +72,9 @@ const loading = reactive({
   retryParseBatch: false,
   importReportBatch: false,
   resolveReportBatch: false,
-  refreshReportBatch: false
+  refreshReportBatch: false,
+  reportSqlDetail: false,
+  reportStatistics: false
 })
 
 const parseBatchForm = reactive({
@@ -98,6 +117,7 @@ const DIRECT_SQL_PREVIEW_LIMIT = 5
 const DASHBOARD_PREVIEW_LIMIT = 6
 const DETAIL_PREVIEW_LIMIT = 25
 const STATISTIC_PREVIEW_LIMIT = 50
+const REPORT_SQL_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
 const isChinese = computed(() => locale.value === 'zh-CN')
 const parseBatchStatusCards = computed(() => {
@@ -119,13 +139,13 @@ const reportBatchStatusCards = computed(() => {
     return []
   }
   return [
-    card(isChinese.value ? '导入状态' : 'Import status', reportBatchDetail.value.status),
-    card(isChinese.value ? '报表总数' : 'Total reports', reportBatchDetail.value.totalReports),
-    card(isChinese.value ? 'SQL 总数' : 'Total SQL', reportBatchDetail.value.totalSqls ?? reportItems.value.length),
-    card(isChinese.value ? '已解析 SQL' : 'Resolved SQL', reportBatchDetail.value.resolvedSqls ?? reportBatchDetail.value.resolvedReports),
-    card(isChinese.value ? '失败 SQL' : 'Failed SQL', reportBatchDetail.value.failedSqls ?? reportBatchDetail.value.failedReports),
-    card(isChinese.value ? '阶段' : 'Stage', reportBatchDetail.value.stage),
-    card(isChinese.value ? '优先级' : 'Priority', reportBatchDetail.value.priority)
+    card(isChinese.value ? '导入状态' : 'Import status', reportBatchDetail.value.status, 'batchStatus'),
+    card(isChinese.value ? '报表总数' : 'Total reports', reportBatchDetail.value.totalReports, 'totalReports'),
+    card(isChinese.value ? 'SQL 总数' : 'Total SQL', reportBatchDetail.value.totalSqls ?? reportItems.value.length, 'totalSqls'),
+    card(isChinese.value ? '已解析 SQL' : 'Resolved SQL', reportBatchDetail.value.resolvedSqls ?? reportBatchDetail.value.resolvedReports, 'resolvedSqls'),
+    card(isChinese.value ? '失败 SQL' : 'Failed SQL', reportBatchDetail.value.failedSqls ?? reportBatchDetail.value.failedReports, 'failedSqls'),
+    card(isChinese.value ? '阶段' : 'Stage', reportBatchDetail.value.stage, 'stage'),
+    card(isChinese.value ? '优先级' : 'Priority', reportBatchDetail.value.priority, 'priority')
   ].filter(item => hasDisplayValue(item.value))
 })
 const parseFailureRecords = computed(() => {
@@ -196,23 +216,23 @@ const reportSqlStatisticsCards = computed(() => {
   const fallbackLogicalObjects = new Set(items.flatMap(item => Array.isArray(item.logicalObjectKeys) ? item.logicalObjectKeys : []))
   const logicalObjectCount = reportBackendLogicalObjectStatistics.value.length || fallbackLogicalObjects.size
   return [
-    card(isChinese.value ? 'SQL 总数' : 'SQL count', total),
-    card(isChinese.value ? '问题 SQL' : 'Issue SQL', overview.issueSqlCount),
-    card(isChinese.value ? '问题总数' : 'Issues', overview.totalIssueCount),
-    card(isChinese.value ? '重要 SQL' : 'Important SQL', overview.importantSqlCount),
-    card(isChinese.value ? '紧急 SQL' : 'Urgent SQL', overview.urgentSqlCount),
-    card(isChinese.value ? '解析成功' : 'Resolved', resolved),
-    card(isChinese.value ? '部分解析' : 'Partial', partial),
-    card(isChinese.value ? '失败' : 'Failed', failed),
-    card(isChinese.value ? '结构成功率' : 'Structure rate', formatPercent(rate(structureValid, total))),
-    card(isChinese.value ? 'Access 连通率' : 'Access connected', formatPercent(rate(accessConnected, total))),
-    card(isChinese.value ? '问题场景' : 'Issue scenes', overview.issueSceneCount ?? reportIssueSceneStatistics.value.length),
-    card(isChinese.value ? '逻辑对象' : 'Logical objects', logicalObjectCount)
+    card(isChinese.value ? 'SQL 总数' : 'SQL count', total, 'totalSqls'),
+    card(isChinese.value ? '问题 SQL' : 'Issue SQL', overview.issueSqlCount, 'issueSqlCount'),
+    card(isChinese.value ? '问题总数' : 'Issues', overview.totalIssueCount, 'totalIssueCount'),
+    card(isChinese.value ? '重要 SQL' : 'Important SQL', overview.importantSqlCount, 'importantSqlCount'),
+    card(isChinese.value ? '紧急 SQL' : 'Urgent SQL', overview.urgentSqlCount, 'urgentSqlCount'),
+    card(isChinese.value ? '解析成功' : 'Resolved', resolved, 'resolvedSqls'),
+    card(isChinese.value ? '部分解析' : 'Partial', partial, 'partialSqls'),
+    card(isChinese.value ? '失败' : 'Failed', failed, 'failedSqls'),
+    card(isChinese.value ? '结构成功率' : 'Structure rate', formatPercent(rate(structureValid, total)), 'structureRate'),
+    card(isChinese.value ? 'Access 连通率' : 'Access connected', formatPercent(rate(accessConnected, total)), 'accessRate'),
+    card(isChinese.value ? '问题场景' : 'Issue scenes', overview.issueSceneCount ?? reportIssueSceneStatistics.value.length, 'issueScenes'),
+    card(isChinese.value ? '逻辑对象' : 'Logical objects', logicalObjectCount, 'logicalObjects')
   ].filter(item => hasDisplayValue(item.value))
 })
-const reportGroups = computed(() => {
+function buildReportGroups(items) {
   const groups = new Map()
-  reportItems.value.forEach(item => {
+  items.forEach(item => {
     const reportCode = item.reportCode || item.itemId || 'UNSPECIFIED'
     const group = groups.get(reportCode) || {
       reportCode,
@@ -242,9 +262,21 @@ const reportGroups = computed(() => {
       omittedItemCount: Math.max(0, total - DETAIL_PREVIEW_LIMIT)
     }
   })
+}
+const reportGroups = computed(() => buildReportGroups(reportItems.value))
+const reportSqlDetailItems = computed(() => {
+  const detail = reportSqlDetail.value || {}
+  const source = detail.reportItems || []
+  return Array.isArray(source) ? source.filter(item => typeof item === 'object') : []
 })
+const reportSqlDetailGroups = computed(() => buildReportGroups(reportSqlDetailItems.value))
 const selectedReportGroup = computed(() =>
-  reportGroups.value.find(group => group.reportCode === selectedReportGroupCode.value) || null
+  reportSqlDetailGroups.value.find(group => group.reportCode === selectedReportGroupCode.value) ||
+  reportGroups.value.find(group => group.reportCode === selectedReportGroupCode.value) ||
+  null
+)
+const reportSqlDetailTotalCount = computed(() =>
+  Number(reportSqlDetail.value?.itemTotalCount ?? reportSqlDetailItems.value.length)
 )
 const reportGroupDetailTitle = computed(() => {
   if (!selectedReportGroup.value) {
@@ -324,14 +356,6 @@ const parseReportStatisticsPreview = computed(() => previewList(parseReportStati
 const parseReportStatisticsOmittedCount = computed(() =>
   omittedFromPreview(parseReportStatistics.value.length, parseReportStatisticsPreview.value.length)
 )
-const reportGroupsPreview = computed(() => previewList(reportGroups.value, DETAIL_PREVIEW_LIMIT))
-const reportGroupsOmittedCount = computed(() => {
-  const totalReports = Number(reportBatchDetail.value?.totalReports)
-  const sourceCount = Number.isFinite(totalReports) && totalReports > reportGroups.value.length
-    ? totalReports
-    : reportGroups.value.length
-  return omittedFromPreview(sourceCount, reportGroupsPreview.value.length)
-})
 const reportGroupsDashboardPreview = computed(() => previewList(reportGroups.value, DASHBOARD_PREVIEW_LIMIT))
 const reportGroupsDashboardOmittedCount = computed(() => {
   const totalReports = Number(reportBatchDetail.value?.totalReports)
@@ -340,9 +364,6 @@ const reportGroupsDashboardOmittedCount = computed(() => {
     : reportGroups.value.length
   return omittedFromPreview(sourceCount, reportGroupsDashboardPreview.value.length)
 })
-const reportReturnedItemsOmittedCount = computed(() =>
-  Math.max(0, Number(reportBatchDetail.value?.omittedItemCount || 0))
-)
 const reportFailureItemsDashboardPreview = computed(() =>
   previewList(reportFailureItems.value, DASHBOARD_PREVIEW_LIMIT)
 )
@@ -409,7 +430,7 @@ const parseSessionsSummary = computed(() =>
 const reportSessionsSummary = computed(() =>
   `${reportBatchSessions.value.length} ${isChinese.value ? '个批次' : 'batches'}`
 )
-const card = (label, value) => ({ label, value })
+const card = (label, value, key = '') => ({ label, value, key })
 
 const hasDisplayValue = value =>
   !(value === null || value === undefined || String(value).trim() === '')
@@ -467,6 +488,38 @@ const displayValue = value => {
   return String(value)
 }
 
+const helpTextForKey = key => {
+  const glossary = {
+    batchStatus: isChinese.value ? '当前报表批次的导入或解析生命周期状态。' : 'Current lifecycle status of the report-import batch.',
+    totalReports: isChinese.value ? '批次内去重后的报表编码数量。' : 'Number of distinct report codes in the batch.',
+    totalSqls: isChinese.value ? '批次内 SQL 总数；详情清单通过分页逐页展示。' : 'Total SQL rows in the batch; detail lists are paginated.',
+    resolvedSqls: isChinese.value ? '已完成结构解析且 Access 状态可接受的 SQL 数量。' : 'SQL rows whose structure parse and access state are acceptable.',
+    failedSqls: isChinese.value ? '未完全解析成功的 SQL 数量。' : 'SQL rows that did not fully resolve successfully.',
+    stage: isChinese.value ? '报表导入或解析使用的环境阶段。' : 'Environment stage used by report import or parsing.',
+    priority: isChinese.value ? '导入批次或 SQL 行的治理优先级。' : 'Governance priority for the batch or SQL row.',
+    issueSqlCount: isChinese.value ? '至少命中一个问题场景的 SQL 数。' : 'SQL rows with at least one issue scene.',
+    totalIssueCount: isChinese.value ? '所有 SQL 命中的问题总次数。' : 'Total issue hits across SQL rows.',
+    importantSqlCount: isChinese.value ? '命中 important 判定的 SQL 数。' : 'SQL rows marked important by issue scoring.',
+    urgentSqlCount: isChinese.value ? '命中 urgent 判定的 SQL 数。' : 'SQL rows marked urgent by issue scoring.',
+    partialSqls: isChinese.value ? '结构解析通过但 Access 或后续信号未完全成功的 SQL 数。' : 'SQL rows with valid structure but partial access or downstream signals.',
+    structureRate: isChinese.value ? '当前已加载 SQL 行中语法状态为 VALID 的比例。' : 'Ratio of currently loaded SQL rows with VALID syntax.',
+    accessRate: isChinese.value ? '当前已加载 SQL 行中 Access 服务可用且连接成功的比例。' : 'Ratio of currently loaded SQL rows with available and connected access parse.',
+    issueScenes: isChinese.value ? 'SQL 结构解析命中的问题场景集合。' : 'Issue scenes detected by structure parsing.',
+    logicalObjects: isChinese.value ? '解析或 Access 过程识别到的表、视图等逻辑对象。' : 'Logical objects such as tables or views found during parsing.'
+  }
+  return glossary[key] || ''
+}
+
+const openFieldHelp = (key, label) => {
+  const message = helpTextForKey(key)
+  if (!message) {
+    return
+  }
+  fieldHelpDialogTitle.value = label
+  fieldHelpDialogMessage.value = message
+  fieldHelpDialogVisible.value = true
+}
+
 const detailField = (zhLabel, enLabel, value, wide = false) => ({
   label: isChinese.value ? zhLabel : enLabel,
   value,
@@ -513,7 +566,6 @@ const reportItemDetailFields = computed(() => {
     detailField('报表名称', 'Report name', item.reportName),
     detailField('SQL 列', 'SQL column', item.sqlColumnName),
     detailField('报表内 SQL 序号', 'SQL ordinal in report', item.sqlOrdinalInReport),
-    detailField('源文件行', 'Source line', item.sourceFileLine),
     detailField('状态', 'Status', item.status),
     detailField('解析任务', 'Parse task', item.parseTaskId),
     detailField('数据源', 'Datasource', item.datasourceCode),
@@ -527,8 +579,7 @@ const reportItemDetailFields = computed(() => {
     detailField('失败偏移', 'Failure offset', item.failureOffset),
     detailField('失败 token', 'Failure token', item.failureToken),
     detailField('失败原因', 'Failure reason', item.failureReason, true),
-    detailField('定位摘要', 'Diagnostic summary', item.diagnosticSummary || buildDiagnosticSummary(item), true),
-    detailField('失败片段', 'Failure snippet', item.failureSnippet, true),
+    detailField('定位片段', 'Location snippets', issueLocationText(item), true),
     detailField('问题场景', 'Issue scenes', item.issueScenes, true),
     detailField('逻辑对象', 'Logical objects', item.logicalObjectKeys, true),
     detailField('创建时间', 'Created at', formatInstant(item.createdAt)),
@@ -579,6 +630,45 @@ const buildDiagnosticSummary = item => {
   push('issues', item.issueScenes)
   push('reason', item.failureReason)
   return parts.join(' | ')
+}
+
+const issueLocationItems = item => {
+  const locations = arrayValue(item?.issueLocations)
+  if (locations.length) {
+    return locations.filter(location => hasDisplayValue(location?.issueScene))
+  }
+  if (hasDisplayValue(item?.failureSnippet) || hasDisplayValue(item?.failureToken)) {
+    return [{
+      issueScene: 'SQL_SYNTAX_INVALID',
+      locationSnippet: item.failureSnippet,
+      failureToken: item.failureToken,
+      failureLine: item.failureLine,
+      failureColumn: item.failureColumn
+    }]
+  }
+  return []
+}
+
+const issueLocationText = item => {
+  const locations = issueLocationItems(item)
+  if (!locations.length) {
+    return isChinese.value ? '无问题' : 'No issue'
+  }
+  return locations
+    .map(location => {
+      const parts = [location.issueScene]
+      if (hasDisplayValue(location.failureLine) && hasDisplayValue(location.failureColumn)) {
+        parts.push(`line ${location.failureLine}, col ${location.failureColumn}`)
+      }
+      if (hasDisplayValue(location.failureToken)) {
+        parts.push(`token ${location.failureToken}`)
+      }
+      if (hasDisplayValue(location.locationSnippet)) {
+        parts.push(location.locationSnippet)
+      }
+      return parts.filter(Boolean).join(' · ')
+    })
+    .join(' / ')
 }
 
 const upsertSession = (collection, item) => {
@@ -880,6 +970,71 @@ const loadReportBatchWithStatistics = async batchId => {
   }
 }
 
+const loadReportSqlDetail = async ({ reportCode = '', pageNumber = reportSqlPagination.pageNumber, pageSize = reportSqlPagination.pageSize } = {}) => {
+  const batchId = reportBatchDetail.value?.batchId
+  if (!batchId) {
+    return
+  }
+  loading.reportSqlDetail = true
+  clearError()
+  try {
+    const normalizedReportCode = String(reportCode || '').trim()
+    const detail = await getReportBatch(batchId, reportBatchForm.tenantId, {
+      pageNumber,
+      pageSize,
+      reportCode: normalizedReportCode,
+      requestPrefix: normalizedReportCode
+        ? 'frontend-report-batch-report-sql-detail'
+        : 'frontend-report-batch-whole-sql-detail'
+    })
+    reportSqlDetail.value = {
+      ...detail,
+      parseStatistics: reportBatchDetail.value?.parseStatistics || detail?.parseStatistics
+    }
+    reportSqlPagination.pageNumber = Number(detail.itemPageNumber || pageNumber)
+    reportSqlPagination.pageSize = Number(detail.itemPageSize || pageSize)
+    reportSqlDetailSearchCode.value = normalizedReportCode
+    reportSqlDetailMode.value = normalizedReportCode ? 'report' : 'batch'
+  } catch (error) {
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.reportSqlDetail = false
+  }
+}
+
+const refreshReportStatistics = async ({
+  pageNumber = reportStatisticsSqlPagination.pageNumber,
+  pageSize = reportStatisticsSqlPagination.pageSize,
+  reportCode = reportStatisticsSqlPagination.reportCode
+} = {}) => {
+  const batchId = reportBatchDetail.value?.batchId
+  if (!batchId) {
+    return
+  }
+  loading.reportStatistics = true
+  clearError()
+  try {
+    const normalizedReportCode = String(reportCode || '').trim()
+    const statistics = await getReportBatchParseStatistics(batchId, reportBatchForm.tenantId, {
+      pageNumber,
+      pageSize,
+      reportCode: normalizedReportCode,
+      requestPrefix: 'frontend-report-batch-parse-statistics-paged'
+    })
+    reportStatisticsSqlPagination.pageNumber = Number(statistics.sqlStatisticPageNumber || pageNumber)
+    reportStatisticsSqlPagination.pageSize = Number(statistics.sqlStatisticPageSize || pageSize)
+    reportStatisticsSqlPagination.reportCode = normalizedReportCode
+    reportBatchDetail.value = {
+      ...(reportBatchDetail.value || {}),
+      parseStatistics: statistics
+    }
+  } catch (error) {
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.reportStatistics = false
+  }
+}
+
 const refreshReportBatchDetail = async batchId => {
   const targetBatchId = batchId || reportBatchDetail.value?.batchId
   if (!targetBatchId) {
@@ -920,12 +1075,67 @@ const resolveReportSqlsFlow = async () => {
 
 const openReportGroupDetail = group => {
   selectedReportGroupCode.value = group?.reportCode || ''
+  reportSqlPagination.pageNumber = 1
+  loadReportSqlDetail({ reportCode: selectedReportGroupCode.value, pageNumber: 1 })
   reportGroupDetailDialogVisible.value = true
 }
 
 const openWholeReportBatchSqlDetail = () => {
   activeReportGroupName.value = ''
+  selectedReportGroupCode.value = ''
+  reportSqlPagination.pageNumber = 1
+  loadReportSqlDetail({ reportCode: '', pageNumber: 1 })
   reportResultDialogVisible.value = true
+}
+
+const openReportStatistics = async () => {
+  await refreshReportStatistics({ pageNumber: 1 })
+  reportStatisticsDialogVisible.value = true
+}
+
+const applyWholeReportSqlFilter = () => {
+  reportSqlPagination.pageNumber = 1
+  loadReportSqlDetail({
+    reportCode: reportSqlDetailSearchCode.value,
+    pageNumber: 1
+  })
+}
+
+const handleReportSqlPageChange = pageNumber => {
+  reportSqlPagination.pageNumber = pageNumber
+  loadReportSqlDetail({
+    reportCode: reportSqlDetailSearchCode.value,
+    pageNumber
+  })
+}
+
+const handleReportSqlPageSizeChange = pageSize => {
+  reportSqlPagination.pageSize = pageSize
+  reportSqlPagination.pageNumber = 1
+  loadReportSqlDetail({
+    reportCode: reportSqlDetailSearchCode.value,
+    pageNumber: 1,
+    pageSize
+  })
+}
+
+const applyReportStatisticsSqlFilter = () => {
+  reportStatisticsSqlPagination.pageNumber = 1
+  refreshReportStatistics({
+    pageNumber: 1,
+    reportCode: reportStatisticsSqlPagination.reportCode
+  })
+}
+
+const handleReportStatisticsSqlPageChange = pageNumber => {
+  reportStatisticsSqlPagination.pageNumber = pageNumber
+  refreshReportStatistics({ pageNumber })
+}
+
+const handleReportStatisticsSqlPageSizeChange = pageSize => {
+  reportStatisticsSqlPagination.pageSize = pageSize
+  reportStatisticsSqlPagination.pageNumber = 1
+  refreshReportStatistics({ pageNumber: 1, pageSize })
 }
 
 const openReportItemDetail = item => {
@@ -1289,7 +1499,7 @@ onMounted(async () => {
                 >
                   {{ isChinese ? '整个批次 SQL 详情' : 'Whole batch SQL detail' }}
                 </el-button>
-                <el-button :disabled="!reportBatchDetail?.batchId" data-testid="batch-import-report-statistics" @click="reportStatisticsDialogVisible = true">
+                <el-button :disabled="!reportBatchDetail?.batchId" data-testid="batch-import-report-statistics" @click="openReportStatistics">
                   {{ isChinese ? '解析统计' : 'Parse statistics' }}
                 </el-button>
               </div>
@@ -1297,14 +1507,38 @@ onMounted(async () => {
 
             <div v-if="reportBatchDetail" class="summary-grid">
               <article v-for="item in reportBatchStatusCards" :key="item.label" class="summary-card">
-                <span class="summary-card-label">{{ item.label }}</span>
+                <span class="summary-card-label">
+                  {{ item.label }}
+                  <el-button
+                    v-if="helpTextForKey(item.key)"
+                    text
+                    size="small"
+                    class="help-dot"
+                    aria-label="field help"
+                    @click="openFieldHelp(item.key, item.label)"
+                  >
+                    ?
+                  </el-button>
+                </span>
                 <strong>{{ item.value }}</strong>
               </article>
             </div>
 
             <div v-if="reportBatchDetail" class="summary-grid" data-testid="batch-import-report-sql-statistics">
               <article v-for="item in reportSqlStatisticsCards" :key="item.label" class="summary-card">
-                <span class="summary-card-label">{{ item.label }}</span>
+                <span class="summary-card-label">
+                  {{ item.label }}
+                  <el-button
+                    v-if="helpTextForKey(item.key)"
+                    text
+                    size="small"
+                    class="help-dot"
+                    aria-label="field help"
+                    @click="openFieldHelp(item.key, item.label)"
+                  >
+                    ?
+                  </el-button>
+                </span>
                 <strong>{{ item.value }}</strong>
               </article>
             </div>
@@ -1368,15 +1602,8 @@ onMounted(async () => {
                       class="diagnostic-line"
                       data-testid="batch-import-report-diagnostic"
                     >
-                      {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+                      {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
                     </p>
-                    <SqlCodeBlock
-                      v-if="item.sqlText"
-                      :value="item.sqlText"
-                      :label="item.sqlColumnName || item.itemId || 'SQL'"
-                      :copy-label="isChinese ? '复制' : 'Copy'"
-                      compact
-                    />
                     <span class="detail-link">{{ isChinese ? '查看失败详情' : 'View failure detail' }}</span>
                   </article>
                   <div v-if="reportFailureItemsDashboardOmittedCount > 0" class="preview-note">
@@ -1824,20 +2051,30 @@ onMounted(async () => {
         </div>
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
+          <div class="filter-row" data-testid="batch-import-report-sql-filter">
+            <el-input
+              v-model="reportSqlDetailSearchCode"
+              :placeholder="isChinese ? '按报表编码筛选' : 'Filter by report code'"
+              clearable
+            />
+            <el-button :loading="loading.reportSqlDetail" @click="applyWholeReportSqlFilter">
+              {{ isChinese ? '查询' : 'Search' }}
+            </el-button>
+          </div>
           <div
-            v-if="reportReturnedItemsOmittedCount > 0 || reportGroupsOmittedCount > 0"
+            v-if="reportSqlDetailTotalCount > reportSqlDetailItems.length"
             class="preview-note"
             data-testid="batch-import-report-large-batch-preview"
           >
             {{
               isChinese
-                ? `当前明细按预览返回：展示 ${reportGroupsPreview.length} 个报表分组，另有 ${reportReturnedItemsOmittedCount || reportGroupsOmittedCount} 条明细或分组未展开；概览仍按完整批次汇总。`
-                : `Details are previewed: showing ${reportGroupsPreview.length} report groups; ${reportReturnedItemsOmittedCount || reportGroupsOmittedCount} more rows or groups are omitted while summaries use the full batch.`
+                ? `当前第 ${reportSqlPagination.pageNumber} 页展示 ${reportSqlDetailItems.length} 条 SQL，筛选后共 ${reportSqlDetailTotalCount} 条；概览仍按完整批次汇总。`
+                : `Page ${reportSqlPagination.pageNumber} shows ${reportSqlDetailItems.length} SQL rows out of ${reportSqlDetailTotalCount}; summaries still use the full batch.`
             }}
           </div>
-          <el-collapse v-model="activeReportGroupName" accordion>
+          <el-collapse v-model="activeReportGroupName" v-loading="loading.reportSqlDetail" accordion>
             <el-collapse-item
-              v-for="group in reportGroupsPreview"
+              v-for="group in reportSqlDetailGroups"
               :key="group.reportCode"
               :name="group.reportCode"
             >
@@ -1855,10 +2092,13 @@ onMounted(async () => {
                     <strong>{{ item.sqlColumnName || item.itemId || `SQL ${index + 1}` }}</strong>
                     <span class="status-pill">{{ displayValue(item.status) }}</span>
                   </div>
-                  <p>{{ displayValue(item.reportName) }} · {{ displayValue(item.datasourceCode || item.stage) }} · {{ displayValue(item.priority) }}</p>
                   <p>
                     {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
-                    · Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                    · {{ isChinese ? 'SQL 序号' : 'SQL ordinal' }}: {{ displayValue(item.sqlOrdinalInReport) }}
+                    · {{ isChinese ? '状态' : 'Status' }}: {{ displayValue(item.status) }}
+                  </p>
+                  <p>
+                    Structure: {{ displayValue(item.structureSyntaxStatus) }}
                     · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
                   </p>
                   <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
@@ -1868,12 +2108,12 @@ onMounted(async () => {
                     class="diagnostic-line"
                     data-testid="batch-import-report-diagnostic"
                   >
-                    {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+                    {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
                   </p>
                   <SqlCodeBlock
                     v-if="item.sqlText"
                     :value="item.sqlText"
-                    :label="item.sqlColumnName || item.itemId || 'SQL'"
+                    :label="isChinese ? 'SQL 输出' : 'SQL output'"
                     :copy-label="isChinese ? '复制' : 'Copy'"
                     compact
                     data-testid="batch-import-report-sql-code"
@@ -1894,6 +2134,17 @@ onMounted(async () => {
               </div>
             </el-collapse-item>
           </el-collapse>
+          <el-pagination
+            v-if="reportSqlDetailTotalCount > reportSqlPagination.pageSize"
+            class="pagination-row"
+            layout="total, sizes, prev, pager, next"
+            :total="reportSqlDetailTotalCount"
+            :page-sizes="REPORT_SQL_PAGE_SIZE_OPTIONS"
+            :page-size="reportSqlPagination.pageSize"
+            :current-page="reportSqlPagination.pageNumber"
+            @current-change="handleReportSqlPageChange"
+            @size-change="handleReportSqlPageSizeChange"
+          />
         </section>
       </div>
     </el-dialog>
@@ -1925,7 +2176,7 @@ onMounted(async () => {
         </div>
         <section class="detail-card" data-testid="batch-import-report-scoped-sql-detail">
           <p class="section-kicker sqlforge-code-label">single report SQL-level parse detail</p>
-          <div class="report-list">
+          <div v-loading="loading.reportSqlDetail" class="report-list">
             <article
               v-for="(item, index) in selectedReportGroup.previewItems"
               :key="item.itemId || `${selectedReportGroup.reportCode}-${index}`"
@@ -1942,8 +2193,8 @@ onMounted(async () => {
               </p>
               <p>
                 {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
-                · {{ isChinese ? '源文件行' : 'Source line' }}: {{ displayValue(item.sourceFileLine) }}
                 · {{ isChinese ? 'SQL 序号' : 'SQL ordinal' }}: {{ displayValue(item.sqlOrdinalInReport) }}
+                · {{ isChinese ? '状态' : 'Status' }}: {{ displayValue(item.status) }}
               </p>
               <p>
                 Structure: {{ displayValue(item.structureSyntaxStatus) }}
@@ -1955,12 +2206,12 @@ onMounted(async () => {
                 class="diagnostic-line"
                 data-testid="batch-import-report-diagnostic"
               >
-                {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+                {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
               </p>
               <SqlCodeBlock
                 v-if="item.sqlText"
                 :value="item.sqlText"
-                :label="item.sqlColumnName || item.itemId || 'SQL'"
+                :label="isChinese ? 'SQL 输出' : 'SQL output'"
                 :copy-label="isChinese ? '复制' : 'Copy'"
                 compact
                 data-testid="batch-import-report-scoped-sql-code"
@@ -1979,6 +2230,17 @@ onMounted(async () => {
               }}
             </div>
           </div>
+          <el-pagination
+            v-if="reportSqlDetailTotalCount > reportSqlPagination.pageSize"
+            class="pagination-row"
+            layout="total, sizes, prev, pager, next"
+            :total="reportSqlDetailTotalCount"
+            :page-sizes="REPORT_SQL_PAGE_SIZE_OPTIONS"
+            :page-size="reportSqlPagination.pageSize"
+            :current-page="reportSqlPagination.pageNumber"
+            @current-change="handleReportSqlPageChange"
+            @size-change="handleReportSqlPageSizeChange"
+          />
         </section>
       </div>
     </el-dialog>
@@ -2002,10 +2264,10 @@ onMounted(async () => {
           </div>
         </div>
         <section class="detail-card">
-          <p class="section-kicker sqlforge-code-label">SQL text</p>
+          <p class="section-kicker sqlforge-code-label">SQL output</p>
           <SqlCodeBlock
             :value="displayValue(selectedReportItem.sqlText)"
-            :label="isChinese ? 'SQL 文本' : 'SQL text'"
+            :label="isChinese ? 'SQL 输出' : 'SQL output'"
             :copy-label="isChinese ? '复制' : 'Copy'"
             data-testid="batch-import-selected-report-sql"
           />
@@ -2017,7 +2279,19 @@ onMounted(async () => {
       <div class="dialog-stack">
         <div class="summary-grid" data-testid="batch-import-report-drawer-statistics">
           <article v-for="item in reportSqlStatisticsCards" :key="item.label" class="summary-card">
-            <span class="summary-card-label">{{ item.label }}</span>
+            <span class="summary-card-label">
+              {{ item.label }}
+              <el-button
+                v-if="helpTextForKey(item.key)"
+                text
+                size="small"
+                class="help-dot"
+                aria-label="field help"
+                @click="openFieldHelp(item.key, item.label)"
+              >
+                ?
+              </el-button>
+            </span>
             <strong>{{ item.value }}</strong>
           </article>
         </div>
@@ -2106,6 +2380,16 @@ onMounted(async () => {
             </el-tab-pane>
 
             <el-tab-pane :label="isChinese ? 'SQL 清单' : 'SQL list'" name="sqlList">
+              <div class="filter-row" data-testid="batch-import-report-statistics-sql-filter">
+                <el-input
+                  v-model="reportStatisticsSqlPagination.reportCode"
+                  :placeholder="isChinese ? '按报表编码筛选 SQL 清单' : 'Filter SQL list by report code'"
+                  clearable
+                />
+                <el-button :loading="loading.reportStatistics" @click="applyReportStatisticsSqlFilter">
+                  {{ isChinese ? '查询' : 'Search' }}
+                </el-button>
+              </div>
               <div class="stat-list">
                 <div
                   v-for="item in reportSqlStatisticsPreview"
@@ -2115,6 +2399,7 @@ onMounted(async () => {
                 >
                   <strong>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</strong>
                   <span>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues · {{ displayValue(item.logicalObjectKeys) }}</span>
+                  <span>{{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}</span>
                 </div>
                 <div
                   v-if="reportSqlStatisticsOmittedCount > 0"
@@ -2131,6 +2416,17 @@ onMounted(async () => {
                   {{ isChinese ? '当前没有 SQL 清单统计。' : 'No SQL list statistics yet.' }}
                 </div>
               </div>
+              <el-pagination
+                v-if="Number(reportParseStatistics.sqlStatisticTotalCount || 0) > reportStatisticsSqlPagination.pageSize"
+                class="pagination-row"
+                layout="total, sizes, prev, pager, next"
+                :total="Number(reportParseStatistics.sqlStatisticTotalCount || 0)"
+                :page-sizes="REPORT_SQL_PAGE_SIZE_OPTIONS"
+                :page-size="reportStatisticsSqlPagination.pageSize"
+                :current-page="reportStatisticsSqlPagination.pageNumber"
+                @current-change="handleReportStatisticsSqlPageChange"
+                @size-change="handleReportStatisticsSqlPageSizeChange"
+              />
             </el-tab-pane>
 
             <el-tab-pane :label="isChinese ? '优先级视角' : 'Priority view'" name="priority">
@@ -2183,6 +2479,15 @@ onMounted(async () => {
           </el-tabs>
         </section>
       </div>
+    </el-dialog>
+
+    <el-dialog v-model="fieldHelpDialogVisible" :title="fieldHelpDialogTitle || (isChinese ? '字段说明' : 'Field help')" width="560px">
+      <p class="result-copy">{{ fieldHelpDialogMessage }}</p>
+      <template #footer>
+        <el-button type="primary" @click="fieldHelpDialogVisible = false">
+          {{ isChinese ? '知道了' : 'Close' }}
+        </el-button>
+      </template>
     </el-dialog>
 
     <el-drawer
@@ -2390,6 +2695,27 @@ button.report-item:hover {
   line-height: 1.6;
 }
 
+.filter-row,
+.pagination-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.filter-row {
+  margin-bottom: 12px;
+}
+
+.filter-row .el-input {
+  max-width: 320px;
+}
+
+.pagination-row {
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
 .preview-note {
   border: 1px solid var(--sqlforge-color-brand-border);
   border-radius: 10px;
@@ -2486,12 +2812,30 @@ button.report-item:hover {
 
 .summary-card-label,
 .field-label {
-  display: block;
+  display: flex;
+  gap: 4px;
+  align-items: center;
   margin-bottom: 8px;
   color: var(--sqlforge-text-muted);
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.help-dot {
+  min-width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 50%;
+  color: var(--sqlforge-text-secondary);
+  line-height: 18px;
+}
+
+.result-copy {
+  margin: 0;
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.7;
 }
 
 .field-block {

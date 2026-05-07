@@ -29,6 +29,7 @@ public class ReportBatchItemVO {
     private String diagnosticSummary;
     private String status;
     private List<String> issueScenes;
+    private List<ReportBatchIssueLocationVO> issueLocations;
     private List<String> logicalObjectKeys;
     private Instant createdAt;
     private Instant updatedAt;
@@ -81,6 +82,10 @@ public class ReportBatchItemVO {
     public void setStatus(String status) { this.status = status; }
     public List<String> getIssueScenes() { return issueScenes; }
     public void setIssueScenes(List<String> issueScenes) { this.issueScenes = issueScenes; }
+    public List<ReportBatchIssueLocationVO> getIssueLocations() { return issueLocations; }
+    public void setIssueLocations(List<ReportBatchIssueLocationVO> issueLocations) {
+        this.issueLocations = issueLocations;
+    }
     public List<String> getLogicalObjectKeys() { return logicalObjectKeys; }
     public void setLogicalObjectKeys(List<String> logicalObjectKeys) { this.logicalObjectKeys = logicalObjectKeys; }
     public Instant getCreatedAt() { return createdAt; }

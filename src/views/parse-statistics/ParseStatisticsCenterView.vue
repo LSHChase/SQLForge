@@ -24,6 +24,9 @@ const detailDialogVisible = ref(false)
 const detailDrawerVisible = ref(false)
 const detailTitle = ref('')
 const detailPayload = ref(null)
+const fieldHelpDialogVisible = ref(false)
+const fieldHelpDialogTitle = ref('')
+const fieldHelpDialogMessage = ref('')
 const overview = ref(null)
 const issueScenes = ref([])
 const sqlStats = ref([])
@@ -37,17 +40,41 @@ const overviewCards = computed(() => {
     return []
   }
   return [
-    card(isChinese.value ? 'SQL 总数' : 'Total SQL', overview.value.totalSqlCount),
-    card(isChinese.value ? '问题 SQL' : 'Issue SQL', overview.value.issueSqlCount),
-    card(isChinese.value ? '问题总数' : 'Total issues', overview.value.totalIssueCount),
-    card(isChinese.value ? '问题场景数' : 'Issue scenes', overview.value.issueSceneCount),
-    card(isChinese.value ? 'Important SQL' : 'Important SQL', overview.value.importantSqlCount),
-    card(isChinese.value ? 'Urgent SQL' : 'Urgent SQL', overview.value.urgentSqlCount)
+    card(isChinese.value ? 'SQL 总数' : 'Total SQL', overview.value.totalSqlCount, 'totalSqlCount'),
+    card(isChinese.value ? '问题 SQL' : 'Issue SQL', overview.value.issueSqlCount, 'issueSqlCount'),
+    card(isChinese.value ? '问题总数' : 'Total issues', overview.value.totalIssueCount, 'totalIssueCount'),
+    card(isChinese.value ? '问题场景数' : 'Issue scenes', overview.value.issueSceneCount, 'issueSceneCount'),
+    card(isChinese.value ? 'Important SQL' : 'Important SQL', overview.value.importantSqlCount, 'importantSqlCount'),
+    card(isChinese.value ? 'Urgent SQL' : 'Urgent SQL', overview.value.urgentSqlCount, 'urgentSqlCount')
   ].slice(0, 6)
 })
 const priorityDistribution = computed(() => Object.entries(overview.value?.priorityDistribution || {}))
 
-const card = (label, value) => ({ label, value })
+const card = (label, value, key = '') => ({ label, value, key })
+
+const helpTextForKey = key => {
+  const glossary = {
+    totalSqlCount: isChinese.value ? '当前统计范围内的 SQL 总量。' : 'Total SQL rows in the current statistics scope.',
+    issueSqlCount: isChinese.value ? '至少命中一个问题场景的 SQL 数。' : 'SQL rows with at least one issue scene.',
+    totalIssueCount: isChinese.value ? '所有 SQL 命中的问题总次数。' : 'Total issue hits across SQL rows.',
+    issueSceneCount: isChinese.value ? '本次统计中出现过的不同问题场景数。' : 'Number of distinct issue scenes in this statistics scope.',
+    importantSqlCount: isChinese.value ? '命中 important 判定的 SQL 数。' : 'SQL rows marked important by scoring.',
+    urgentSqlCount: isChinese.value ? '命中 urgent 判定的 SQL 数。' : 'SQL rows marked urgent by scoring.',
+    sqlList: isChinese.value ? 'SQL 清单只展示元信息和问题场景；完整 SQL 应进入独立 SQL 输出区。' : 'The SQL list shows metadata and issue scenes; full SQL belongs in a dedicated SQL output area.',
+    issueLocation: isChinese.value ? '问题定位应使用命中的短 SQL 片段、失败 token 或行列信息，不展示整条 SQL。' : 'Issue location should use short matched snippets, failed tokens, or line/column data instead of full SQL.'
+  }
+  return glossary[key] || ''
+}
+
+const openFieldHelp = (key, label) => {
+  const message = helpTextForKey(key)
+  if (!message) {
+    return
+  }
+  fieldHelpDialogTitle.value = label
+  fieldHelpDialogMessage.value = message
+  fieldHelpDialogVisible.value = true
+}
 
 const formatRate = value => {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -145,7 +172,19 @@ onMounted(async () => {
 
     <section class="summary-grid">
       <article v-for="item in overviewCards" :key="item.label" class="summary-card">
-        <span class="summary-card-label">{{ item.label }}</span>
+        <span class="summary-card-label">
+          {{ item.label }}
+          <el-button
+            v-if="helpTextForKey(item.key)"
+            text
+            size="small"
+            class="help-dot"
+            aria-label="field help"
+            @click="openFieldHelp(item.key, item.label)"
+          >
+            ?
+          </el-button>
+        </span>
         <strong>{{ item.value ?? 0 }}</strong>
       </article>
     </section>
@@ -290,7 +329,12 @@ onMounted(async () => {
             <div class="table-heading">
               <div>
                 <p class="section-kicker sqlforge-code-label">By SQL</p>
-                <h2 class="section-title">{{ isChinese ? 'SQL 清单' : 'By SQL' }}</h2>
+                <h2 class="section-title">
+                  {{ isChinese ? 'SQL 清单' : 'By SQL' }}
+                  <el-button text size="small" class="help-dot" aria-label="field help" @click="openFieldHelp('sqlList', isChinese ? 'SQL 清单' : 'SQL list')">
+                    ?
+                  </el-button>
+                </h2>
               </div>
             </div>
             <el-table :data="sqlStats" border>
@@ -335,6 +379,15 @@ onMounted(async () => {
     <el-drawer v-model="detailDrawerVisible" :title="detailTitle" size="42%">
       <pre class="code-block">{{ JSON.stringify(detailPayload || {}, null, 2) }}</pre>
     </el-drawer>
+
+    <el-dialog v-model="fieldHelpDialogVisible" :title="fieldHelpDialogTitle || (isChinese ? '字段说明' : 'Field help')" width="560px">
+      <p class="section-summary">{{ fieldHelpDialogMessage }}</p>
+      <template #footer>
+        <el-button type="primary" @click="fieldHelpDialogVisible = false">
+          {{ isChinese ? '知道了' : 'Close' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
 
@@ -419,9 +472,21 @@ onMounted(async () => {
 }
 
 .summary-card-label {
-  display: block;
+  display: flex;
+  gap: 4px;
+  align-items: center;
   margin-bottom: 8px;
   color: var(--sqlforge-text-secondary);
+}
+
+.help-dot {
+  min-width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 50%;
+  color: var(--sqlforge-text-secondary);
+  line-height: 18px;
 }
 
 .workspace-grid {

@@ -24,6 +24,11 @@ public class ReportBatchStatusResponse {
     private Integer itemPreviewLimit;
     private Boolean itemPreviewTruncated;
     private Integer omittedItemCount;
+    private Integer itemPageNumber;
+    private Integer itemPageSize;
+    private Integer itemPageCount;
+    private Integer itemTotalCount;
+    private String itemReportCodeFilter;
     private ReportBatchParseStatisticsVO parseStatistics;
     private List<ReportBatchItemVO> reportItems;
     private List<ReportBatchStatusHistoryVO> statusHistory;
@@ -68,6 +73,16 @@ public class ReportBatchStatusResponse {
     public void setItemPreviewTruncated(Boolean itemPreviewTruncated) { this.itemPreviewTruncated = itemPreviewTruncated; }
     public Integer getOmittedItemCount() { return omittedItemCount; }
     public void setOmittedItemCount(Integer omittedItemCount) { this.omittedItemCount = omittedItemCount; }
+    public Integer getItemPageNumber() { return itemPageNumber; }
+    public void setItemPageNumber(Integer itemPageNumber) { this.itemPageNumber = itemPageNumber; }
+    public Integer getItemPageSize() { return itemPageSize; }
+    public void setItemPageSize(Integer itemPageSize) { this.itemPageSize = itemPageSize; }
+    public Integer getItemPageCount() { return itemPageCount; }
+    public void setItemPageCount(Integer itemPageCount) { this.itemPageCount = itemPageCount; }
+    public Integer getItemTotalCount() { return itemTotalCount; }
+    public void setItemTotalCount(Integer itemTotalCount) { this.itemTotalCount = itemTotalCount; }
+    public String getItemReportCodeFilter() { return itemReportCodeFilter; }
+    public void setItemReportCodeFilter(String itemReportCodeFilter) { this.itemReportCodeFilter = itemReportCodeFilter; }
     public ReportBatchParseStatisticsVO getParseStatistics() { return parseStatistics; }
     public void setParseStatistics(ReportBatchParseStatisticsVO parseStatistics) { this.parseStatistics = parseStatistics; }
     public List<ReportBatchItemVO> getReportItems() { return reportItems; }

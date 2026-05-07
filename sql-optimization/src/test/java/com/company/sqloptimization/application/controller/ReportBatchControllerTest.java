@@ -69,11 +69,36 @@ class ReportBatchControllerTest {
             .andExpect(jsonPath("$.batchId").value(batchId))
             .andExpect(jsonPath("$.parseStatistics.reportStatistics.length()").value(2));
 
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches/{batchId}", batchId)
+                .param("pageNumber", "1")
+                .param("pageSize", "1")
+                .param("reportCode", "RPT_B")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.itemPageNumber").value(1))
+            .andExpect(jsonPath("$.itemPageSize").value(1))
+            .andExpect(jsonPath("$.itemTotalCount").value(1))
+            .andExpect(jsonPath("$.itemReportCodeFilter").value("RPT_B"))
+            .andExpect(jsonPath("$.reportItems.length()").value(1))
+            .andExpect(jsonPath("$.reportItems[0].reportCode").value("RPT_B"));
+
         mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches/{batchId}/parse-statistics", batchId)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.overview.totalSqlCount").value(2))
             .andExpect(jsonPath("$.sqlStatistics.length()").value(2))
             .andExpect(jsonPath("$.priorityMatrix.length()").value(1));
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches/{batchId}/parse-statistics", batchId)
+                .param("pageNumber", "1")
+                .param("pageSize", "1")
+                .param("reportCode", "RPT_B")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.overview.totalSqlCount").value(2))
+            .andExpect(jsonPath("$.sqlStatisticPageNumber").value(1))
+            .andExpect(jsonPath("$.sqlStatisticPageSize").value(1))
+            .andExpect(jsonPath("$.sqlStatisticTotalCount").value(1))
+            .andExpect(jsonPath("$.sqlStatisticReportCodeFilter").value("RPT_B"))
+            .andExpect(jsonPath("$.sqlStatistics.length()").value(1))
+            .andExpect(jsonPath("$.sqlStatistics[0].reportCode").value("RPT_B"));
     }
 
     @Test
@@ -99,6 +124,7 @@ class ReportBatchControllerTest {
             .andExpect(jsonPath("$.reportItems[0].failureColumn").value(8))
             .andExpect(jsonPath("$.reportItems[0].failureToken").value("FROM"))
             .andExpect(jsonPath("$.reportItems[0].failureSnippet").isNotEmpty())
+            .andExpect(jsonPath("$.reportItems[0].issueLocations[0].locationSnippet").value("SELECT FROM"))
             .andExpect(jsonPath("$.reportItems[0].diagnosticSummary").isNotEmpty());
     }
 

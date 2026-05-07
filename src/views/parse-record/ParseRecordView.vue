@@ -81,6 +81,12 @@ const reportBatchItemDetailErrorMessage = ref('')
 const reportBatchDetailDrawerVisible = ref(false)
 const exportDialogVisible = ref(false)
 const exportResult = ref(null)
+const reportBatchSqlPagination = reactive({
+  pageNumber: 1,
+  pageSize: 25,
+  reportCode: ''
+})
+const REPORT_SQL_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 const exportForm = reactive({
   exportFormat: 'JSON',
   includeTraceDetail: true,
@@ -712,8 +718,11 @@ const openReportBatchCenter = batchId => {
   })
 }
 
-const loadReportBatchWithStatistics = async batchId => {
+const loadReportBatchWithStatistics = async (batchId, options = {}) => {
   const detail = await getReportBatch(batchId, requestTenantId.value, {
+    pageNumber: options.pageNumber,
+    pageSize: options.pageSize,
+    reportCode: options.reportCode,
     requestPrefix: 'frontend-parse-record-report-batch-detail'
   })
   try {
@@ -738,8 +747,11 @@ const openReportBatchDetail = async row => {
   batchHistoryErrorMessage.value = ''
   reportBatchItemDetailErrorMessage.value = ''
   reportBatchItemDetails.value = {}
+  reportBatchSqlPagination.pageNumber = 1
+  reportBatchSqlPagination.pageSize = 25
+  reportBatchSqlPagination.reportCode = ''
   try {
-    selectedReportBatchDetail.value = await loadReportBatchWithStatistics(batchId)
+    selectedReportBatchDetail.value = await loadReportBatchWithStatistics(batchId, reportBatchSqlPagination)
     reportBatchDetailDrawerVisible.value = true
   } catch (error) {
     selectedReportBatchDetail.value = null
@@ -747,6 +759,38 @@ const openReportBatchDetail = async row => {
   } finally {
     loading.reportBatchDetail = false
   }
+}
+
+const refreshSelectedReportSqlPage = async () => {
+  const batchId = selectedReportBatchDetail.value?.batchId
+  if (!batchId) {
+    return
+  }
+  loading.reportBatchDetail = true
+  batchHistoryErrorMessage.value = ''
+  try {
+    selectedReportBatchDetail.value = await loadReportBatchWithStatistics(batchId, reportBatchSqlPagination)
+  } catch (error) {
+    batchHistoryErrorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.reportBatchDetail = false
+  }
+}
+
+const applyReportBatchSqlFilter = async () => {
+  reportBatchSqlPagination.pageNumber = 1
+  await refreshSelectedReportSqlPage()
+}
+
+const handleReportBatchSqlPageChange = async pageNumber => {
+  reportBatchSqlPagination.pageNumber = pageNumber
+  await refreshSelectedReportSqlPage()
+}
+
+const handleReportBatchSqlPageSizeChange = async pageSize => {
+  reportBatchSqlPagination.pageSize = pageSize
+  reportBatchSqlPagination.pageNumber = 1
+  await refreshSelectedReportSqlPage()
 }
 
 const loadReportBatchItemDetails = async items => {
@@ -992,6 +1036,45 @@ const displayDetailValue = value => {
 }
 
 const hasDisplayValue = value => !(value === null || value === undefined || String(value).trim() === '')
+
+const issueLocationItems = item => {
+  const locations = normalizeArray(item?.issueLocations)
+  if (locations.length) {
+    return locations.filter(location => hasDisplayValue(location?.issueScene))
+  }
+  if (hasDisplayValue(item?.failureSnippet) || hasDisplayValue(item?.failureToken)) {
+    return [{
+      issueScene: 'SQL_SYNTAX_INVALID',
+      locationSnippet: item.failureSnippet,
+      failureToken: item.failureToken,
+      failureLine: item.failureLine,
+      failureColumn: item.failureColumn
+    }]
+  }
+  return []
+}
+
+const issueLocationText = item => {
+  const locations = issueLocationItems(item)
+  if (!locations.length) {
+    return isChinese.value ? '无问题' : 'No issue'
+  }
+  return locations
+    .map(location => {
+      const parts = [location.issueScene]
+      if (hasDisplayValue(location.failureLine) && hasDisplayValue(location.failureColumn)) {
+        parts.push(`line ${location.failureLine}, col ${location.failureColumn}`)
+      }
+      if (hasDisplayValue(location.failureToken)) {
+        parts.push(`token ${location.failureToken}`)
+      }
+      if (hasDisplayValue(location.locationSnippet)) {
+        parts.push(location.locationSnippet)
+      }
+      return parts.filter(Boolean).join(' · ')
+    })
+    .join(' / ')
+}
 
 const booleanLabel = value => {
   if (typeof value !== 'boolean') {
@@ -1579,6 +1662,16 @@ onMounted(async () => {
           <div class="code-card__header">
             <span>{{ isChinese ? 'SQL 级解析详情' : 'SQL-level parse detail' }}</span>
           </div>
+          <div class="filter-row" data-testid="parse-record-report-sql-filter">
+            <el-input
+              v-model="reportBatchSqlPagination.reportCode"
+              :placeholder="isChinese ? '按报表编码筛选' : 'Filter by report code'"
+              clearable
+            />
+            <el-button :loading="loading.reportBatchDetail" @click="applyReportBatchSqlFilter">
+              {{ isChinese ? '查询' : 'Search' }}
+            </el-button>
+          </div>
           <div class="summary-chip-row" data-testid="parse-record-report-sql-detail-statistics">
             <span v-for="item in reportBatchParseDetailSummary" :key="item.label" class="summary-chip">
               {{ item.label }}: <strong>{{ item.value }}</strong>
@@ -1626,10 +1719,11 @@ onMounted(async () => {
                   </p>
                   <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
                   <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
+                  <p class="empty-copy">{{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}</p>
                   <SqlCodeBlock
                     v-if="item.sqlText"
                     :value="item.sqlText"
-                    :label="item.sqlColumnName || item.itemId || 'SQL'"
+                    :label="isChinese ? 'SQL 输出' : 'SQL output'"
                     :copy-label="isChinese ? '复制' : 'Copy'"
                     compact
                     data-testid="parse-record-report-sql-code"
@@ -1740,6 +1834,17 @@ onMounted(async () => {
             <p v-if="!selectedReportItems.length" class="empty-copy">
               {{ isChinese ? '导入解析后会展示 SQL 明细。' : 'SQL detail appears after report SQL resolution.' }}
             </p>
+            <el-pagination
+              v-if="Number(selectedReportBatchDetail?.itemTotalCount || 0) > reportBatchSqlPagination.pageSize"
+              class="pagination-row"
+              layout="total, sizes, prev, pager, next"
+              :total="Number(selectedReportBatchDetail?.itemTotalCount || 0)"
+              :page-sizes="REPORT_SQL_PAGE_SIZE_OPTIONS"
+              :page-size="reportBatchSqlPagination.pageSize"
+              :current-page="reportBatchSqlPagination.pageNumber"
+              @current-change="handleReportBatchSqlPageChange"
+              @size-change="handleReportBatchSqlPageSizeChange"
+            />
           </div>
         </section>
       </div>
@@ -2448,6 +2553,27 @@ onMounted(async () => {
 .summary-chip-row {
   display: flex;
   flex-wrap: wrap;
+}
+
+.filter-row,
+.pagination-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.filter-row {
+  margin-bottom: 12px;
+}
+
+.filter-row .el-input {
+  max-width: 320px;
+}
+
+.pagination-row {
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 
 .code-card {

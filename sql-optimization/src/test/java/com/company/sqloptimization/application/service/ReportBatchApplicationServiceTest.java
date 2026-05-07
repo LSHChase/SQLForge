@@ -1,6 +1,7 @@
 package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -109,6 +110,25 @@ class ReportBatchApplicationServiceTest {
         assertEquals(Boolean.TRUE, imported.getItemPreviewTruncated());
         assertEquals(Integer.valueOf(150), imported.getOmittedItemCount());
         assertEquals("sql_500", imported.getReportItems().get(499).getSqlColumnName());
+
+        ReportBatchStatusResponse secondPage = service.getBatch(imported.getBatchId(), 2, 25, "RPT_BIG");
+
+        assertEquals(Integer.valueOf(650), secondPage.getTotalSqls());
+        assertEquals(Integer.valueOf(650), secondPage.getItemTotalCount());
+        assertEquals(Integer.valueOf(2), secondPage.getItemPageNumber());
+        assertEquals(Integer.valueOf(25), secondPage.getItemPageSize());
+        assertEquals(Integer.valueOf(26), secondPage.getItemPageCount());
+        assertEquals(Integer.valueOf(25), Integer.valueOf(secondPage.getReportItems().size()));
+        assertEquals("RPT_BIG", secondPage.getItemReportCodeFilter());
+        assertEquals("sql_26", secondPage.getReportItems().get(0).getSqlColumnName());
+
+        ReportBatchParseStatisticsVO statistics = service.getBatchParseStatistics(imported.getBatchId(), 2, 25, "RPT_BIG");
+
+        assertEquals(Integer.valueOf(650), statistics.getOverview().getTotalSqlCount());
+        assertEquals(Integer.valueOf(650), statistics.getSqlStatisticTotalCount());
+        assertEquals(Integer.valueOf(2), statistics.getSqlStatisticPageNumber());
+        assertEquals(Integer.valueOf(25), Integer.valueOf(statistics.getSqlStatistics().size()));
+        assertEquals("RPT_BIG", statistics.getSqlStatisticReportCodeFilter());
     }
 
     @Test
@@ -272,7 +292,8 @@ class ReportBatchApplicationServiceTest {
         assertEquals(Integer.valueOf(1), resolved.getReportItems().get(0).getFailureLine());
         assertEquals(Integer.valueOf(8), resolved.getReportItems().get(0).getFailureColumn());
         assertEquals("FROM", resolved.getReportItems().get(0).getFailureToken());
-        assertTrue(resolved.getReportItems().get(0).getDiagnosticSummary().contains("sourceLine="));
+        assertFalse(resolved.getReportItems().get(0).getDiagnosticSummary().contains("sourceLine="));
+        assertEquals("SELECT FROM", resolved.getReportItems().get(0).getIssueLocations().get(0).getLocationSnippet());
         assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("SQL_SYNTAX_INVALID"));
     }
 
@@ -304,6 +325,12 @@ class ReportBatchApplicationServiceTest {
         assertTrue(resolved.getParseStatistics().getOverview().getTotalIssueCount().intValue() >= 10);
         assertTrue(resolved.getParseStatistics().getSqlStatistics().get(0).getIssueScenes()
             .contains("ORDER_BY_RANDOM_RISK"));
+        assertTrue(resolved.getReportItems().get(0).getIssueLocations().stream()
+            .anyMatch(location -> "ORDER_BY_RANDOM_RISK".equals(location.getIssueScene())
+                && location.getLocationSnippet().contains("ORDER BY RAND()")));
+        assertTrue(resolved.getReportItems().get(0).getIssueLocations().stream()
+            .allMatch(location -> location.getLocationSnippet() == null
+                || location.getLocationSnippet().length() < complexAntiPatternSql().length()));
     }
 
     @Test

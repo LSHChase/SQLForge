@@ -21,6 +21,7 @@ public class ReportBatchSqlStatisticVO {
     private Boolean important;
     private Boolean urgent;
     private List<String> issueScenes;
+    private List<ReportBatchIssueLocationVO> issueLocations;
     private List<String> logicalObjectKeys;
 
     public String getItemId() { return itemId; }
@@ -57,6 +58,10 @@ public class ReportBatchSqlStatisticVO {
     public void setUrgent(Boolean urgent) { this.urgent = urgent; }
     public List<String> getIssueScenes() { return issueScenes; }
     public void setIssueScenes(List<String> issueScenes) { this.issueScenes = issueScenes; }
+    public List<ReportBatchIssueLocationVO> getIssueLocations() { return issueLocations; }
+    public void setIssueLocations(List<ReportBatchIssueLocationVO> issueLocations) {
+        this.issueLocations = issueLocations;
+    }
     public List<String> getLogicalObjectKeys() { return logicalObjectKeys; }
     public void setLogicalObjectKeys(List<String> logicalObjectKeys) { this.logicalObjectKeys = logicalObjectKeys; }
 }

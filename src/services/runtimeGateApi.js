@@ -25,6 +25,24 @@ const buildTenantQuerySuffix = tenantId => {
   return normalizedTenantId ? `?tenantId=${encodeURIComponent(normalizedTenantId)}` : ''
 }
 
+const buildReportBatchDetailQuery = filters => {
+  const params = new URLSearchParams()
+  const pageNumber = Number(filters?.pageNumber)
+  const pageSize = Number(filters?.pageSize)
+  if (Number.isFinite(pageNumber) && pageNumber > 0) {
+    params.set('pageNumber', String(pageNumber))
+  }
+  if (Number.isFinite(pageSize) && pageSize > 0) {
+    params.set('pageSize', String(pageSize))
+  }
+  const reportCode = String(filters?.reportCode || '').trim()
+  if (reportCode) {
+    params.set('reportCode', reportCode)
+  }
+  const query = params.toString()
+  return query ? `?${query}` : ''
+}
+
 const devProxyHeaders = (tenantId, options = {}) => {
   const {
     requestPrefix = 'frontend-runtime',
@@ -565,7 +583,7 @@ export const resolveReportBatchSqls = (batchId, tenantId, requestOptions = {}) =
 export const getReportBatch = (batchId, tenantId, requestOptions = {}) =>
   request({
     method: 'get',
-    url: `/api/sql-optimization/report-batches/${encodeURIComponent(batchId)}`,
+    url: `/api/sql-optimization/report-batches/${encodeURIComponent(batchId)}${buildReportBatchDetailQuery(requestOptions)}`,
     tenantId,
     requestOptions: {
       requestPrefix: 'frontend-report-batch-detail',
@@ -576,7 +594,7 @@ export const getReportBatch = (batchId, tenantId, requestOptions = {}) =>
 export const getReportBatchParseStatistics = (batchId, tenantId, requestOptions = {}) =>
   request({
     method: 'get',
-    url: `/api/sql-optimization/report-batches/${encodeURIComponent(batchId)}/parse-statistics`,
+    url: `/api/sql-optimization/report-batches/${encodeURIComponent(batchId)}/parse-statistics${buildReportBatchDetailQuery(requestOptions)}`,
     tenantId,
     requestOptions: {
       requestPrefix: 'frontend-report-batch-parse-statistics',

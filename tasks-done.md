@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-075: Adjust report batch SQL detail pagination and issue location display
+
+- Status: done
+- Completed at: 2026-05-06
+- Commit subject: `fix(sql-optimization): adjust report SQL detail pagination`
+- Priority: P1
+- Depends on: HARN-074
+- Scope: Implement report batch SQL detail pagination and report filtering; keep full SQL only in dedicated SQL output; show short per-issue location snippets and help hints across report detail, SQL detail, and parse statistics without schema migration.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-075`
+- Progress log:
+  - 2026-05-06: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Report batch SQL detail and parse statistics now support pagination and report-code filtering; issue location payloads expose short per-issue SQL snippets; report SQL task/location UI avoids full SQL and source-line context while keeping full SQL in the SQL output block; help hints added across report detail and parse statistics.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-075; python3 scripts/task_audit.py --check --phase pre-closeout; mvn -pl sql-optimization -Dtest=ReportBatchApplicationServiceTest,ReportBatchControllerTest,ReportBatchParseStatisticsAssemblerTest test; mvn -pl sql-optimization test; node scripts/check-batch-import-contract.mjs; node scripts/check-history-page-contract.mjs; node scripts/check-sql-ui-contract.mjs; npm run lint; npm run build
+  - Residual risk: Manual browser verification of long real report batches was not run in this turn.
+  - Next step: Exercise the report batch detail dialogs with a production-sized batch in the UI when sample data is available.
+
 ### HARN-074: Fix batch report SQL detail scoping and diagnostics
 
 - Status: done

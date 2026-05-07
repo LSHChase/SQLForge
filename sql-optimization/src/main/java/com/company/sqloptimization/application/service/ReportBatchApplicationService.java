@@ -170,13 +170,37 @@ public class ReportBatchApplicationService {
     }
 
     public ReportBatchStatusResponse getBatch(String batchId) {
+        return getBatch(batchId, null, null, null);
+    }
+
+    public ReportBatchStatusResponse getBatch(String batchId,
+                                              Integer pageNumber,
+                                              Integer pageSize,
+                                              String reportCode) {
         ReportBatch batch = requireBatch(batchId);
-        return toResponse(batch, reportBatchItemRepository.findByBatchId(batch.getBatchId()));
+        return toResponse(
+            batch,
+            reportBatchItemRepository.findByBatchId(batch.getBatchId()),
+            true,
+            PageSelection.from(pageNumber, pageSize, reportCode, ITEM_PREVIEW_LIMIT)
+        );
     }
 
     public ReportBatchParseStatisticsVO getBatchParseStatistics(String batchId) {
+        return getBatchParseStatistics(batchId, null, null, null);
+    }
+
+    public ReportBatchParseStatisticsVO getBatchParseStatistics(String batchId,
+                                                               Integer pageNumber,
+                                                               Integer pageSize,
+                                                               String reportCode) {
         ReportBatch batch = requireBatch(batchId);
-        return parseStatisticsAssembler.build(reportBatchItemRepository.findByBatchId(batch.getBatchId()));
+        return parseStatisticsAssembler.build(
+            reportBatchItemRepository.findByBatchId(batch.getBatchId()),
+            pageNumber,
+            pageSize,
+            reportCode
+        );
     }
 
     public List<ReportBatchStatusResponse> listBatches() {
@@ -211,6 +235,20 @@ public class ReportBatchApplicationService {
     }
 
     private ReportBatchStatusResponse toResponse(ReportBatch batch, List<ReportBatchItem> items, boolean includeItems) {
+        return toResponse(batch, items, includeItems, PageSelection.from(null, null, null, ITEM_PREVIEW_LIMIT));
+    }
+
+    private ReportBatchStatusResponse toResponse(ReportBatch batch,
+                                                 List<ReportBatchItem> items,
+                                                 boolean includeItems,
+                                                 PageSelection pageSelection) {
+        List<ReportBatchItem> safeItems = items == null ? Collections.<ReportBatchItem>emptyList() : items;
+        List<ReportBatchItem> filteredItems = includeItems
+            ? filterItemsByReportCode(safeItems, pageSelection.reportCode)
+            : Collections.<ReportBatchItem>emptyList();
+        List<ReportBatchItem> pageItems = includeItems
+            ? pageItems(filteredItems, pageSelection)
+            : Collections.<ReportBatchItem>emptyList();
         ReportBatchStatusResponse response = new ReportBatchStatusResponse();
         response.setBatchId(batch.getBatchId());
         response.setTenantId(batch.getTenantId());
@@ -225,29 +263,52 @@ public class ReportBatchApplicationService {
         response.setTotalReports(Integer.valueOf(batch.getTotalReports()));
         response.setResolvedReports(Integer.valueOf(batch.getResolvedReports()));
         response.setFailedReports(Integer.valueOf(batch.getFailedReports()));
-        response.setTotalSqls(Integer.valueOf(items == null || items.isEmpty() ? batch.getTotalReports() : items.size()));
-        response.setResolvedSqls(Integer.valueOf(countSqlsByStatus(items, ReportBatchItem.Status.RESOLVED)));
-        response.setFailedSqls(Integer.valueOf(countNonResolvedSqls(items)));
-        response.setItemPreviewLimit(Integer.valueOf(ITEM_PREVIEW_LIMIT));
-        response.setItemPreviewTruncated(Boolean.valueOf(includeItems && itemCount(items) > ITEM_PREVIEW_LIMIT));
-        response.setOmittedItemCount(Integer.valueOf(includeItems ? Math.max(0, itemCount(items) - ITEM_PREVIEW_LIMIT) : 0));
-        response.setParseStatistics(includeItems ? parseStatisticsAssembler.build(items) : null);
-        response.setReportItems(includeItems ? toItemVos(previewItems(items, ITEM_PREVIEW_LIMIT)) : Collections.<ReportBatchItemVO>emptyList());
+        response.setTotalSqls(Integer.valueOf(safeItems.isEmpty() ? batch.getTotalReports() : safeItems.size()));
+        response.setResolvedSqls(Integer.valueOf(countSqlsByStatus(safeItems, ReportBatchItem.Status.RESOLVED)));
+        response.setFailedSqls(Integer.valueOf(countNonResolvedSqls(safeItems)));
+        response.setItemPreviewLimit(Integer.valueOf(pageSelection.pageSize));
+        response.setItemPreviewTruncated(Boolean.valueOf(includeItems && filteredItems.size() > pageItems.size()));
+        response.setOmittedItemCount(Integer.valueOf(includeItems ? Math.max(0, filteredItems.size() - pageItems.size()) : 0));
+        response.setItemPageNumber(Integer.valueOf(pageSelection.pageNumber));
+        response.setItemPageSize(Integer.valueOf(pageSelection.pageSize));
+        response.setItemPageCount(Integer.valueOf(pageCount(filteredItems.size(), pageSelection.pageSize)));
+        response.setItemTotalCount(Integer.valueOf(includeItems ? filteredItems.size() : 0));
+        response.setItemReportCodeFilter(pageSelection.reportCode);
+        response.setParseStatistics(includeItems ? parseStatisticsAssembler.build(safeItems) : null);
+        response.setReportItems(includeItems ? toItemVos(pageItems) : Collections.<ReportBatchItemVO>emptyList());
         response.setStatusHistory(toStatusHistory(batch.getStatusHistory()));
         response.setCreatedAt(batch.getCreatedAt());
         response.setUpdatedAt(batch.getUpdatedAt());
         return response;
     }
 
-    private int itemCount(List<ReportBatchItem> items) {
-        return items == null ? 0 : items.size();
-    }
-
-    private List<ReportBatchItem> previewItems(List<ReportBatchItem> items, int limit) {
-        if (items == null || items.size() <= limit) {
+    private List<ReportBatchItem> filterItemsByReportCode(List<ReportBatchItem> items, String reportCode) {
+        if (!StringUtils.hasText(reportCode)) {
             return items;
         }
-        return new ArrayList<ReportBatchItem>(items.subList(0, limit));
+        List<ReportBatchItem> result = new ArrayList<ReportBatchItem>();
+        for (ReportBatchItem item : items) {
+            if (reportCode.equals(item.getReportCode())) {
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
+    private List<ReportBatchItem> pageItems(List<ReportBatchItem> items, PageSelection pageSelection) {
+        if (items.isEmpty()) {
+            return Collections.emptyList();
+        }
+        int start = Math.min(items.size(), (pageSelection.pageNumber - 1) * pageSelection.pageSize);
+        int end = Math.min(items.size(), start + pageSelection.pageSize);
+        return new ArrayList<ReportBatchItem>(items.subList(start, end));
+    }
+
+    private int pageCount(int totalCount, int pageSize) {
+        if (totalCount <= 0) {
+            return 0;
+        }
+        return (totalCount + pageSize - 1) / pageSize;
     }
 
     private void recalculate(ReportBatch batch, List<ReportBatchItem> items, Instant now) {
@@ -816,6 +877,7 @@ public class ReportBatchApplicationService {
             vo.setDiagnosticSummary(buildReportItemDiagnosticSummary(item, diagnostic));
             vo.setStatus(item.getStatus() == null ? null : item.getStatus().name());
             vo.setIssueScenes(new ArrayList<String>(item.getIssueScenes()));
+            vo.setIssueLocations(ReportBatchIssueLocationSupport.fromItem(item, diagnostic));
             vo.setLogicalObjectKeys(new ArrayList<String>(item.getLogicalObjectKeys()));
             vo.setCreatedAt(item.getCreatedAt());
             vo.setUpdatedAt(item.getUpdatedAt());
@@ -837,7 +899,6 @@ public class ReportBatchApplicationService {
         appendDiagnosticPart(builder, "report", firstNonBlank(item.getReportCode(), "UNSPECIFIED"));
         appendDiagnosticPart(builder, "sqlColumn", item.getSqlColumnName());
         appendDiagnosticPart(builder, "sqlOrdinal", item.getSqlOrdinalInReport());
-        appendDiagnosticPart(builder, "sourceLine", item.getSourceFileLine());
         appendDiagnosticPart(builder, "datasource", item.getDatasourceCode());
         appendDiagnosticPart(builder, "parseTask", item.getParseTaskId());
         appendDiagnosticPart(builder, "status", item.getStatus() == null ? null : item.getStatus().name());
@@ -849,7 +910,6 @@ public class ReportBatchApplicationService {
         if (!item.getIssueScenes().isEmpty()) {
             appendDiagnosticPart(builder, "issues", String.join(",", item.getIssueScenes()));
         }
-        appendDiagnosticPart(builder, "reason", item.getFailureReason());
         return SqlParseDiagnosticSupport.compactDiagnosticText(builder.toString(), 260);
     }
 
@@ -1030,6 +1090,28 @@ public class ReportBatchApplicationService {
             rows.add(base);
         }
         return rows;
+    }
+
+    private static final class PageSelection {
+        private static final int MAX_PAGE_SIZE = 500;
+
+        private final int pageNumber;
+        private final int pageSize;
+        private final String reportCode;
+
+        private PageSelection(int pageNumber, int pageSize, String reportCode) {
+            this.pageNumber = pageNumber;
+            this.pageSize = pageSize;
+            this.reportCode = reportCode;
+        }
+
+        private static PageSelection from(Integer pageNumber, Integer pageSize, String reportCode, int defaultPageSize) {
+            int normalizedPageNumber = pageNumber == null ? 1 : Math.max(1, pageNumber.intValue());
+            int normalizedPageSize = pageSize == null ? defaultPageSize : pageSize.intValue();
+            normalizedPageSize = Math.max(1, Math.min(MAX_PAGE_SIZE, normalizedPageSize));
+            String normalizedReportCode = StringUtils.hasText(reportCode) ? reportCode.trim() : null;
+            return new PageSelection(normalizedPageNumber, normalizedPageSize, normalizedReportCode);
+        }
     }
 
     private static final class ReportSourceRow {
