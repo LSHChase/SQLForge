@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-DIST-ROOT-20260507: Use root dist frontend package
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `chore(frontend): commit root dist assets`
+- Priority: 1
+- Depends on: N/A
+- Scope: Regenerate the root dist frontend package from the latest Vue source, explicitly commit the dist artifacts despite the repository ignore rule, and run the local frontend from the built dist output instead of the Vite dev server.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-DIST-ROOT-20260507`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Regenerated the production root dist package from the latest Vue frontend source, explicitly force-staged the ignored dist files for this repository commit, and switched the local frontend on port 3000 from Vite dev server to Vite preview serving the built dist output.
+  - Validation evidence: python3 scripts/foreman.py validate OPS-DIST-ROOT-20260507 --include-task-audit --extra-command npm-run-build --extra-command check-query-workbench-contract --extra-command git-diff-check --extra-command frontend-curl --extra-command governance-health; backend health checks for 8080/8081/8082/8083 returned UP.
+  - Residual risk: dist/ remains listed in .gitignore, so future newly generated dist files still need explicit git add -f unless the repository ignore policy is changed in a separate task.
+  - Next step: Continue serving the local frontend from dist via .codex/state/runtime-logs/frontend.pid, or update the repository ignore policy separately if root dist should become a normal tracked package path.
+
 ### OPS-DIST-REFRESH-20260507: Refresh frontend dist from latest source
 
 - Status: done
