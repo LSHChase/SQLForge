@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-DIST-REFRESH-20260507: Refresh frontend dist from latest source
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `chore(frontend): refresh packaged dist assets`
+- Priority: 1
+- Depends on: N/A
+- Scope: Rebuild and persist the frontend distribution artifacts from the latest frontend source, verify the generated dist output changes as expected, and restart local frontend/backend services if needed for validation.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-DIST-REFRESH-20260507`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Rebuilt the root ignored dist artifact locally and regenerated the tracked dist-portable package from the latest Vue frontend source so packaged assets use the current hashed bundles.
+  - Validation evidence: python3 scripts/foreman.py validate OPS-DIST-REFRESH-20260507 --include-task-audit --extra-command npm-run-build --extra-command npm-run-build-portable --extra-command check-query-workbench-contract --extra-command git-diff-check; frontend/backend reachability checks returned HTTP 200 / UP.
+  - Residual risk: Root dist/ is intentionally ignored by git and remains a local-only build output; dist-portable is the committed package. npm run smoke:portable-frontend was attempted and failed on a stale query-flow-status assertion that is no longer part of the current query page contract.
+  - Next step: Use dist-portable/start-portable.sh or start-portable.cmd for the portable package; update the portable smoke selector contract in a separate task if browser-smoke coverage must be restored.
+
 ### OPS-RESTART-20260507: Refresh frontend dist and restart local services
 
 - Status: done
