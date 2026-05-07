@@ -369,10 +369,17 @@ public class ReportBatchApplicationService {
             resolvedSqlText = resolveSqlText(batch, item);
             Map<String, Object> commentContext = buildCommentContext(batch, item);
             StructureParseRequest structureRequest = buildStructureRequest(resolvedSqlText, batch, item, commentContext);
+            structureRequest.setHistoryWriteEnabled(Boolean.FALSE);
             StructureParseResponseVO structureParse = structureParseApplicationService.parse(structureRequest);
             List<String> issueScenes = extractIssueScenes(structureParse.getIssues());
             List<String> logicalObjectKeys = extractLogicalObjectKeys(structureParse.getLogicalObjectHits());
             if (!"VALID".equals(structureParse.getSyntaxStatus())) {
+                structureParseApplicationService.writeParseHistoryWithAccess(
+                    structureParse,
+                    null,
+                    structureRequest,
+                    "FAILED"
+                );
                 item.complete(
                     resolvedSqlText,
                     structureParse.getParseTaskId(),

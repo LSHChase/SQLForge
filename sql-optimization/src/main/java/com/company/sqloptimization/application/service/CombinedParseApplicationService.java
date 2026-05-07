@@ -38,6 +38,7 @@ public class CombinedParseApplicationService {
     }
 
     public CombinedParseStatusVO submit(CombinedParseRequest request) {
+        request.setHistoryWriteEnabled(Boolean.FALSE);
         StructureParseResponseVO structureParse = structureParseApplicationService.parse(request);
         CombinedParseStatusVO status = new CombinedParseStatusVO();
         status.setParseTaskId(structureParse.getParseTaskId());

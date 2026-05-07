@@ -115,6 +115,19 @@ class StructureParseControllerTest {
     }
 
     @Test
+    void shouldExposeHistoryWriteFailureWithoutFailingStructureParse() throws Exception {
+        when(governanceCapabilityClient.writeParseHistory(any())).thenThrow(new RuntimeException("route down"));
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT id FROM orders WHERE dt = '2026-04-01'\",\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.historyPersisted").value(false))
+            .andExpect(jsonPath("$.historyPersistenceStatus").value("WRITE_FAILED"));
+    }
+
+    @Test
     void shouldParseSqlWithDashLineCommentsInsideStatement() throws Exception {
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
                 .contentType(MediaType.APPLICATION_JSON)

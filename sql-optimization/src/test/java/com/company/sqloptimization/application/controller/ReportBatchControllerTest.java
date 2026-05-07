@@ -1,6 +1,8 @@
 package com.company.sqloptimization.application.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -132,6 +134,7 @@ class ReportBatchControllerTest {
             .andExpect(jsonPath("$.sqlStatistics.length()").value(1))
             .andExpect(jsonPath("$.sqlStatistics[0].reportCode").value("RPT_B"));
 
+        verify(governanceCapabilityClient, times(2)).writeParseHistory(any());
     }
 
     @Test

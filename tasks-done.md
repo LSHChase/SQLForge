@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-080: 修复解析历史持久化并统一批量解析核心逻辑
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `fix(sql-optimization): persist batch parse history`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修复单条 SQL 解析与批量解析结果未稳定写入治理历史的问题，确保批量解析复用单条 SQL 结构解析的完整、准确、深度逻辑；补充历史写入、批量 item 追溯字段与相关回归测试，不改无关治理/runtime 流程。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-080`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Fixed SQL parse history write orchestration for single, parse-batch, combined, and report-batch parse paths; added parse_batch_item history trace fields and schema migration.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-080; python3 scripts/task_audit.py --check --phase pre-closeout; mvn -pl sql-optimization -Dtest=StructureParseControllerTest,ParseBatchControllerTest,ReportBatchControllerTest,ParseBatchPersistenceSchemaMappingTest test; mvn -pl sql-optimization -Dtest=AccessParseControllerTest,ReportBatchApplicationServiceTest test; mvn -pl sql-optimization test; git diff --check.
+  - Residual risk: External deployed governance database verification was not run in this repository turn; coverage is repo-closed tests and migration/schema assertions.
+  - Next step: Use deployed environment smoke to confirm query_history rows for real governance service calls when environment-backed validation is available.
+
 ### OPS-RESTART-20260507-2: Restart local frontend and backend again
 
 - Status: done

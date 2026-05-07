@@ -235,11 +235,18 @@ public class ParseBatchApplicationService {
         structureRequest.setBindingMode(row.bindingMode);
         structureRequest.setDatasourceCode(firstNonBlank(row.datasourceCode, batch.getDatasourceCode()));
         structureRequest.setCommentContext(buildCommentContext(batch, row));
+        structureRequest.setHistoryWriteEnabled(Boolean.FALSE);
         StructureParseResponseVO structureParse = structureParseApplicationService.parse(structureRequest);
 
         List<String> issueScenes = extractIssueScenes(structureParse.getIssues());
         List<String> logicalObjectKeys = extractLogicalObjectKeys(structureParse.getLogicalObjectHits());
         if (!"VALID".equals(structureParse.getSyntaxStatus())) {
+            structureParseApplicationService.writeParseHistoryWithAccess(
+                structureParse,
+                null,
+                structureRequest,
+                "FAILED"
+            );
             item.complete(
                 structureParse.getParseTaskId(),
                 structureParse.getSyntaxStatus(),
@@ -251,10 +258,22 @@ public class ParseBatchApplicationService {
                 logicalObjectKeys,
                 now
             );
+            item.recordHistory(
+                structureParse.getHistoryId(),
+                structureParse.getHistoryPersisted(),
+                structureParse.getHistoryPersistenceStatus(),
+                now
+            );
             return;
         }
 
         if (batch.isStructureParseOnly()) {
+            structureParseApplicationService.writeParseHistoryWithAccess(
+                structureParse,
+                null,
+                structureRequest,
+                "SUCCESS"
+            );
             item.complete(
                 structureParse.getParseTaskId(),
                 structureParse.getSyntaxStatus(),
@@ -264,6 +283,12 @@ public class ParseBatchApplicationService {
                 null,
                 issueScenes,
                 logicalObjectKeys,
+                now
+            );
+            item.recordHistory(
+                structureParse.getHistoryId(),
+                structureParse.getHistoryPersisted(),
+                structureParse.getHistoryPersistenceStatus(),
                 now
             );
             return;
@@ -295,6 +320,12 @@ public class ParseBatchApplicationService {
             resolveFailureReason(accessParse),
             issueScenes,
             logicalObjectKeys,
+            now
+        );
+        item.recordHistory(
+            structureParse.getHistoryId(),
+            structureParse.getHistoryPersisted(),
+            structureParse.getHistoryPersistenceStatus(),
             now
         );
     }
@@ -533,6 +564,9 @@ public class ParseBatchApplicationService {
             vo.setAccessServiceStatus(item.getAccessServiceStatus());
             vo.setAccessConnectionStatus(item.getAccessConnectionStatus());
             vo.setFailureReason(item.getFailureReason());
+            vo.setHistoryId(item.getHistoryId());
+            vo.setHistoryPersisted(item.getHistoryPersisted());
+            vo.setHistoryPersistenceStatus(item.getHistoryPersistenceStatus());
             SqlParseDiagnosticSupport.Diagnostic diagnostic =
                 SqlParseDiagnosticSupport.fromFailureReason(item.getFailureReason());
             vo.setFailureLine(diagnostic.getFailureLine());

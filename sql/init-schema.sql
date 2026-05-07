@@ -689,6 +689,9 @@ CREATE TABLE IF NOT EXISTS parse_batch_item (
   access_service_status VARCHAR(32) DEFAULT NULL COMMENT 'Access parse provider status',
   access_connection_status VARCHAR(32) DEFAULT NULL COMMENT 'Access parse connection status',
   failure_reason VARCHAR(128) DEFAULT NULL COMMENT 'Failure or degrade reason',
+  history_id VARCHAR(128) DEFAULT NULL COMMENT 'Governance query history id for this parsed SQL',
+  history_persisted TINYINT(1) DEFAULT NULL COMMENT 'Whether governance parse history was persisted for this SQL',
+  history_persistence_status VARCHAR(32) DEFAULT NULL COMMENT 'History write status such as SAVED, NO_RESPONSE, WRITE_FAILED, or WRITE_SKIPPED',
   issue_scenes_json JSON DEFAULT NULL COMMENT 'Issue scene summary payload',
   logical_object_keys_json JSON DEFAULT NULL COMMENT 'Logical object hit summary payload',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
@@ -696,7 +699,8 @@ CREATE TABLE IF NOT EXISTS parse_batch_item (
   PRIMARY KEY (item_id),
   KEY idx_parse_batch_item_batch_seq (batch_id, sequence_number),
   KEY idx_parse_batch_item_batch_status (batch_id, status),
-  KEY idx_parse_batch_item_report (batch_id, report_code)
+  KEY idx_parse_batch_item_report (batch_id, report_code),
+  KEY idx_parse_batch_item_history (history_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Bulk parse batch imported records and parse evidence';
 
 CREATE TABLE IF NOT EXISTS report_batch (

@@ -38,13 +38,20 @@ class ParseBatchPersistenceSchemaMappingTest {
         assertContains(schema, "CREATE TABLE IF NOT EXISTS parse_batch_item");
         assertContains(schema, "sequence_number INT NOT NULL");
         assertContains(schema, "issue_scenes_json JSON");
+        assertContains(schema, "history_id VARCHAR(128)");
+        assertContains(schema, "history_persistence_status VARCHAR(32)");
+        assertContains(schema, "idx_parse_batch_item_history");
         String migration = readRepositoryFile("sql/migrations/V20260426_005__parse_batch_ingestion.sql");
         assertContains(migration, "CREATE TABLE IF NOT EXISTS parse_batch_item");
         assertContains(migration, "logical_object_keys_json JSON");
+        String historyMigration = readRepositoryFile("sql/migrations/V20260507_002__parse_batch_item_history_trace.sql");
+        assertContains(historyMigration, "ADD COLUMN history_id");
+        assertContains(historyMigration, "idx_parse_batch_item_history");
         String mapper = readMapper("mapper/ParseBatchItemMapper.xml");
         assertContains(mapper, "FROM parse_batch_item");
         assertContains(mapper, "sequence_number");
         assertContains(mapper, "access_service_status");
+        assertContains(mapper, "history_persistence_status");
         assertContains(mapper, "selectAll");
         assertContains(mapper, "ORDER BY batch_id ASC, sequence_number ASC");
     }

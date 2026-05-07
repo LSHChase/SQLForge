@@ -965,6 +965,10 @@ public class StructureParseApplicationService {
                                             StructureParseRequest request,
                                             String resultStatus) {
         if (governanceCapabilityClient == null || structureParse == null || request == null) {
+            if (structureParse != null) {
+                structureParse.setHistoryPersisted(Boolean.FALSE);
+                structureParse.setHistoryPersistenceStatus("WRITE_SKIPPED");
+            }
             return;
         }
         try {
@@ -991,7 +995,10 @@ public class StructureParseApplicationService {
                 structureParse.setHistoryId(writeResponse.getHistoryId());
                 structureParse.setHistoryPersisted(Boolean.TRUE);
                 structureParse.setHistoryPersistenceStatus("SAVED");
+                return;
             }
+            structureParse.setHistoryPersisted(Boolean.FALSE);
+            structureParse.setHistoryPersistenceStatus("NO_RESPONSE");
         } catch (RuntimeException ex) {
             LOGGER.warn(
                 "operation=STRUCTURE_ACCESS_PARSE_HISTORY_WRITE entity={} tenantId={} status=DEGRADED reason={}",
@@ -999,6 +1006,8 @@ public class StructureParseApplicationService {
                 RequestContext.getTenantId(),
                 ex.getMessage()
             );
+            structureParse.setHistoryPersisted(Boolean.FALSE);
+            structureParse.setHistoryPersistenceStatus("WRITE_FAILED");
         }
     }
 
@@ -1043,10 +1052,20 @@ public class StructureParseApplicationService {
     private String buildCombinedPayloadJson(StructureParseResponseVO structureParse, AccessParseResponseVO accessParse) {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("parseTaskId", structureParse == null ? null : structureParse.getParseTaskId());
-        payload.put("status", accessParse == null ? "STRUCTURE_SUCCEEDED" : "ACCESS_COMPLETED");
+        payload.put("status", resolveCombinedPayloadStatus(structureParse, accessParse));
         payload.put("structureParse", structureParse);
         payload.put("accessParse", accessParse);
         return toJson(payload);
+    }
+
+    private String resolveCombinedPayloadStatus(StructureParseResponseVO structureParse, AccessParseResponseVO accessParse) {
+        if (accessParse != null) {
+            return "ACCESS_COMPLETED";
+        }
+        if (structureParse == null) {
+            return "STRUCTURE_UNKNOWN";
+        }
+        return "VALID".equals(structureParse.getSyntaxStatus()) ? "STRUCTURE_SUCCEEDED" : "STRUCTURE_FAILED";
     }
 
     private String toJson(Object value) {

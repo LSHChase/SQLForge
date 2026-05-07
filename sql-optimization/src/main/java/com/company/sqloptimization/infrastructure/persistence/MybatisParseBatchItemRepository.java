@@ -89,6 +89,9 @@ public class MybatisParseBatchItemRepository implements ParseBatchItemRepository
         record.setAccessServiceStatus(item.getAccessServiceStatus());
         record.setAccessConnectionStatus(item.getAccessConnectionStatus());
         record.setFailureReason(item.getFailureReason());
+        record.setHistoryId(item.getHistoryId());
+        record.setHistoryPersisted(item.getHistoryPersisted());
+        record.setHistoryPersistenceStatus(item.getHistoryPersistenceStatus());
         record.setIssueScenesJson(JsonUtils.toJson(item.getIssueScenes()));
         record.setLogicalObjectKeysJson(JsonUtils.toJson(item.getLogicalObjectKeys()));
         record.setCreatedAt(toLocalDateTime(item.getCreatedAt()));
@@ -119,6 +122,9 @@ public class MybatisParseBatchItemRepository implements ParseBatchItemRepository
             record.getAccessServiceStatus(),
             record.getAccessConnectionStatus(),
             record.getFailureReason(),
+            record.getHistoryId(),
+            record.getHistoryPersisted(),
+            record.getHistoryPersistenceStatus(),
             readStringList(record.getIssueScenesJson()),
             readStringList(record.getLogicalObjectKeysJson()),
             toInstant(record.getCreatedAt()),
