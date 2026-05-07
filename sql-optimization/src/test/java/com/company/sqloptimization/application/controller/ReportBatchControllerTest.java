@@ -76,6 +76,32 @@ class ReportBatchControllerTest {
             .andExpect(jsonPath("$.priorityMatrix.length()").value(1));
     }
 
+    @Test
+    void shouldExposeInvalidReportSqlDiagnosticsInJson() throws Exception {
+        String csv = "report_code,sql_1\nRPT_BAD,\"SELECT FROM\"";
+        String encoded = Base64.getEncoder().encodeToString(csv.getBytes(StandardCharsets.UTF_8));
+        MvcResult imported = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/report-batches/import"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"batchName\":\"report-batch-invalid\","
+                    + "\"fileName\":\"report-batch-invalid.csv\",\"reportCodeField\":\"report_code\","
+                    + "\"datasourceCode\":\"hetu_main\",\"stage\":\"PROD\",\"priority\":\"high\","
+                    + "\"contentBase64\":\"" + encoded + "\"}"))
+            .andExpect(status().isOk())
+            .andReturn();
+        String batchId = JsonTestUtils.readValue(imported.getResponse().getContentAsString(), "$.batchId");
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/report-batches/{batchId}/resolve-sqls", batchId)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("PARTIAL_COMPLETED"))
+            .andExpect(jsonPath("$.reportItems[0].reportCode").value("RPT_BAD"))
+            .andExpect(jsonPath("$.reportItems[0].sqlColumnName").value("sql_1"))
+            .andExpect(jsonPath("$.reportItems[0].failureLine").value(1))
+            .andExpect(jsonPath("$.reportItems[0].failureColumn").value(8))
+            .andExpect(jsonPath("$.reportItems[0].failureToken").value("FROM"))
+            .andExpect(jsonPath("$.reportItems[0].failureSnippet").isNotEmpty())
+            .andExpect(jsonPath("$.reportItems[0].diagnosticSummary").isNotEmpty());
+    }
+
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {
         long now = System.currentTimeMillis();
         return builder

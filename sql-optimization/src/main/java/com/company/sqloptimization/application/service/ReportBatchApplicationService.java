@@ -296,27 +296,7 @@ public class ReportBatchApplicationService {
     }
 
     private String buildStructureFailureReason(StructureParseResponseVO structureParse) {
-        StringBuilder builder = new StringBuilder("STRUCTURE_PARSE_INVALID");
-        if (structureParse == null) {
-            return builder.toString();
-        }
-        if (structureParse.getFailureLine() != null) {
-            builder.append(" line=").append(structureParse.getFailureLine());
-        }
-        if (structureParse.getFailureColumn() != null) {
-            builder.append(" col=").append(structureParse.getFailureColumn());
-        }
-        if (StringUtils.hasText(structureParse.getFailureToken())) {
-            builder.append(" token=").append(compactDiagnosticText(structureParse.getFailureToken(), 24));
-        }
-        if (StringUtils.hasText(structureParse.getFailureSnippet())) {
-            builder.append(" near=").append(compactDiagnosticText(structureParse.getFailureSnippet(), 48));
-        }
-        if (builder.length() == "STRUCTURE_PARSE_INVALID".length()
-            && StringUtils.hasText(structureParse.getFailureReason())) {
-            builder.append(" reason=").append(compactDiagnosticText(structureParse.getFailureReason(), 80));
-        }
-        return compactDiagnosticText(builder.toString(), FAILURE_REASON_LIMIT);
+        return SqlParseDiagnosticSupport.buildStructureFailureReason(structureParse, FAILURE_REASON_LIMIT);
     }
 
     private String resolveHistoryResultStatus(ReportBatchItem.Status status) {
@@ -826,6 +806,14 @@ public class ReportBatchApplicationService {
             vo.setAccessServiceStatus(item.getAccessServiceStatus());
             vo.setAccessConnectionStatus(item.getAccessConnectionStatus());
             vo.setFailureReason(item.getFailureReason());
+            SqlParseDiagnosticSupport.Diagnostic diagnostic =
+                SqlParseDiagnosticSupport.fromFailureReason(item.getFailureReason());
+            vo.setFailureLine(diagnostic.getFailureLine());
+            vo.setFailureColumn(diagnostic.getFailureColumn());
+            vo.setFailureOffset(diagnostic.getFailureOffset());
+            vo.setFailureToken(diagnostic.getFailureToken());
+            vo.setFailureSnippet(diagnostic.getFailureSnippet());
+            vo.setDiagnosticSummary(buildReportItemDiagnosticSummary(item, diagnostic));
             vo.setStatus(item.getStatus() == null ? null : item.getStatus().name());
             vo.setIssueScenes(new ArrayList<String>(item.getIssueScenes()));
             vo.setLogicalObjectKeys(new ArrayList<String>(item.getLogicalObjectKeys()));
@@ -834,6 +822,45 @@ public class ReportBatchApplicationService {
             vos.add(vo);
         }
         return vos;
+    }
+
+    private String buildReportItemDiagnosticSummary(ReportBatchItem item,
+                                                    SqlParseDiagnosticSupport.Diagnostic diagnostic) {
+        if (item == null
+            || (!StringUtils.hasText(item.getFailureReason())
+                && item.getIssueScenes().isEmpty()
+                && item.getStatus() == ReportBatchItem.Status.RESOLVED)) {
+            return null;
+        }
+        StringBuilder builder = new StringBuilder();
+        appendDiagnosticPart(builder, "sequence", String.valueOf(item.getSequenceNumber()));
+        appendDiagnosticPart(builder, "report", firstNonBlank(item.getReportCode(), "UNSPECIFIED"));
+        appendDiagnosticPart(builder, "sqlColumn", item.getSqlColumnName());
+        appendDiagnosticPart(builder, "sqlOrdinal", item.getSqlOrdinalInReport());
+        appendDiagnosticPart(builder, "sourceLine", item.getSourceFileLine());
+        appendDiagnosticPart(builder, "datasource", item.getDatasourceCode());
+        appendDiagnosticPart(builder, "parseTask", item.getParseTaskId());
+        appendDiagnosticPart(builder, "status", item.getStatus() == null ? null : item.getStatus().name());
+        appendDiagnosticPart(builder, "line", diagnostic.getFailureLine());
+        appendDiagnosticPart(builder, "col", diagnostic.getFailureColumn());
+        appendDiagnosticPart(builder, "offset", diagnostic.getFailureOffset());
+        appendDiagnosticPart(builder, "token", diagnostic.getFailureToken());
+        appendDiagnosticPart(builder, "near", diagnostic.getFailureSnippet());
+        if (!item.getIssueScenes().isEmpty()) {
+            appendDiagnosticPart(builder, "issues", String.join(",", item.getIssueScenes()));
+        }
+        appendDiagnosticPart(builder, "reason", item.getFailureReason());
+        return SqlParseDiagnosticSupport.compactDiagnosticText(builder.toString(), 260);
+    }
+
+    private void appendDiagnosticPart(StringBuilder builder, String label, Object value) {
+        if (value == null || !StringUtils.hasText(String.valueOf(value))) {
+            return;
+        }
+        if (builder.length() > 0) {
+            builder.append(" | ");
+        }
+        builder.append(label).append('=').append(value);
     }
 
     private List<ReportBatchStatusHistoryVO> toStatusHistory(List<ReportBatchStatusTransition> history) {
@@ -976,14 +1003,6 @@ public class ReportBatchApplicationService {
             return matcher.start();
         }
         return -1;
-    }
-
-    private String compactDiagnosticText(String value, int limit) {
-        String compact = trimToNull(value == null ? null : value.replace('\n', ' ').replace('\r', ' '));
-        if (compact == null || compact.length() <= limit) {
-            return compact;
-        }
-        return compact.substring(0, Math.max(0, limit - 3)) + "...";
     }
 
     private List<ReportSourceRow> expandReportRows(List<String> headers, List<String> values, String rawLine) {

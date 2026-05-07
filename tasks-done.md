@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-074: Fix batch report SQL detail scoping and diagnostics
+
+- Status: done
+- Completed at: 2026-05-06
+- Commit subject: `fix(sql-optimization): scope batch report sql details`
+- Priority: P1
+- Depends on: HARN-073
+- Scope: Fix report import per-report SQL detail scoping, add whole-batch SQL detail entry, and expose batch/report SQL parse diagnostics with location evidence.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-074`
+- Progress log:
+  - 2026-05-06: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added per-report report-batch SQL detail, a whole-batch SQL detail entry, structured parse diagnostic fields for batch/report SQL rows, richer structure failure reasons, frontend diagnostic rendering, and regression tests/contracts.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-074 --include-task-audit --extra-command 'node scripts/check-batch-import-contract.mjs' --extra-command 'mvn -pl sql-optimization test' --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'git diff --check'
+  - Residual risk: Precise line/column/token/snippet diagnostics are available for parser failures; non-fatal issue detections are localized to the SQL row/report context and issue-scene codes.
+  - Next step: Smoke a real report import workbook or CSV with multiple reports, invalid SQL, and anti-pattern SQL to confirm the UI separates single-report details from whole-batch SQL detail.
+
 ### HARN-073: Fix report import SQL extraction and diagnostics
 
 - Status: done

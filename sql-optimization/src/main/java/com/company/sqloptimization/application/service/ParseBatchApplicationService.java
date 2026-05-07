@@ -67,6 +67,7 @@ public class ParseBatchApplicationService {
 
     private static final int ITEM_PREVIEW_LIMIT = 500;
     private static final int FAILURE_PREVIEW_LIMIT = 200;
+    private static final int FAILURE_REASON_LIMIT = 128;
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<Map<String, Object>>() {
     };
     private static final String FAILURE_FILTER_ALL = "ALL";
@@ -245,7 +246,7 @@ public class ParseBatchApplicationService {
                 "SKIPPED",
                 "SKIPPED",
                 ParseBatchItemStatus.FAILED,
-                "STRUCTURE_PARSE_INVALID",
+                SqlParseDiagnosticSupport.buildStructureFailureReason(structureParse, FAILURE_REASON_LIMIT),
                 issueScenes,
                 logicalObjectKeys,
                 now
@@ -532,6 +533,14 @@ public class ParseBatchApplicationService {
             vo.setAccessServiceStatus(item.getAccessServiceStatus());
             vo.setAccessConnectionStatus(item.getAccessConnectionStatus());
             vo.setFailureReason(item.getFailureReason());
+            SqlParseDiagnosticSupport.Diagnostic diagnostic =
+                SqlParseDiagnosticSupport.fromFailureReason(item.getFailureReason());
+            vo.setFailureLine(diagnostic.getFailureLine());
+            vo.setFailureColumn(diagnostic.getFailureColumn());
+            vo.setFailureOffset(diagnostic.getFailureOffset());
+            vo.setFailureToken(diagnostic.getFailureToken());
+            vo.setFailureSnippet(diagnostic.getFailureSnippet());
+            vo.setDiagnosticSummary(buildParseItemDiagnosticSummary(item, diagnostic));
             vo.setIssueScenes(new ArrayList<String>(item.getIssueScenes()));
             vo.setLogicalObjectKeys(new ArrayList<String>(item.getLogicalObjectKeys()));
             vo.setCreatedAt(item.getCreatedAt());
@@ -539,6 +548,42 @@ public class ParseBatchApplicationService {
             results.add(vo);
         }
         return results;
+    }
+
+    private String buildParseItemDiagnosticSummary(ParseBatchItem item,
+                                                   SqlParseDiagnosticSupport.Diagnostic diagnostic) {
+        if (item == null
+            || (!StringUtils.hasText(item.getFailureReason())
+                && item.getIssueScenes().isEmpty()
+                && item.getStatus() == ParseBatchItemStatus.SUCCESS)) {
+            return null;
+        }
+        StringBuilder builder = new StringBuilder();
+        appendDiagnosticPart(builder, "sequence", String.valueOf(item.getSequenceNumber()));
+        appendDiagnosticPart(builder, "report", firstNonBlank(item.getReportCode(), "UNSPECIFIED"));
+        appendDiagnosticPart(builder, "datasource", item.getDatasourceCode());
+        appendDiagnosticPart(builder, "parseTask", item.getParseTaskId());
+        appendDiagnosticPart(builder, "status", item.getStatus() == null ? null : item.getStatus().name());
+        appendDiagnosticPart(builder, "line", diagnostic.getFailureLine());
+        appendDiagnosticPart(builder, "col", diagnostic.getFailureColumn());
+        appendDiagnosticPart(builder, "offset", diagnostic.getFailureOffset());
+        appendDiagnosticPart(builder, "token", diagnostic.getFailureToken());
+        appendDiagnosticPart(builder, "near", diagnostic.getFailureSnippet());
+        if (!item.getIssueScenes().isEmpty()) {
+            appendDiagnosticPart(builder, "issues", String.join(",", item.getIssueScenes()));
+        }
+        appendDiagnosticPart(builder, "reason", item.getFailureReason());
+        return SqlParseDiagnosticSupport.compactDiagnosticText(builder.toString(), 240);
+    }
+
+    private void appendDiagnosticPart(StringBuilder builder, String label, Object value) {
+        if (value == null || !StringUtils.hasText(String.valueOf(value))) {
+            return;
+        }
+        if (builder.length() > 0) {
+            builder.append(" | ");
+        }
+        builder.append(label).append('=').append(value);
     }
 
     private List<ParseBatchItem> failureItems(List<ParseBatchItem> items) {

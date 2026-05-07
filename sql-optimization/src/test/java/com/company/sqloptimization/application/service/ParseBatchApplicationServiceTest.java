@@ -103,6 +103,31 @@ class ParseBatchApplicationServiceTest {
     }
 
     @Test
+    void shouldExposeBatchSqlFailureLocationForInvalidSql() {
+        ParseBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-004", "trace-004", "header", 1L, 2L);
+
+        ParseBatchStatusResponse created = service.createBatch(baseRequest("SQL_FILE", "SQL"));
+        ParseBatchIngestRequest ingestRequest = new ParseBatchIngestRequest();
+        ingestRequest.setContentBase64(Base64.getEncoder().encodeToString("SELECT FROM;".getBytes(StandardCharsets.UTF_8)));
+
+        ParseBatchStatusResponse ingested = service.ingestBatch(created.getBatchId(), ingestRequest);
+
+        assertEquals("FAILED", ingested.getStatus());
+        assertEquals(Integer.valueOf(1), ingested.getFailedRecords());
+        assertEquals("FAILED", ingested.getImportedRecords().get(0).getStatus());
+        assertEquals("INVALID", ingested.getImportedRecords().get(0).getStructureSyntaxStatus());
+        assertTrue(ingested.getImportedRecords().get(0).getFailureReason().contains("line=1"));
+        assertTrue(ingested.getImportedRecords().get(0).getFailureReason().contains("col=8"));
+        assertEquals(Integer.valueOf(1), ingested.getImportedRecords().get(0).getFailureLine());
+        assertEquals(Integer.valueOf(8), ingested.getImportedRecords().get(0).getFailureColumn());
+        assertEquals("FROM", ingested.getImportedRecords().get(0).getFailureToken());
+        assertTrue(ingested.getImportedRecords().get(0).getFailureSnippet().contains("SELECT FROM"));
+        assertTrue(ingested.getImportedRecords().get(0).getDiagnosticSummary().contains("sequence=1"));
+        assertTrue(ingested.getImportedRecords().get(0).getDiagnosticSummary().contains("token=FROM"));
+    }
+
+    @Test
     void shouldKeepSingleSqlIssueCodesForComplexBatchSql() {
         ParseBatchApplicationService service = buildService();
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-003", "trace-003", "header", 1L, 2L);

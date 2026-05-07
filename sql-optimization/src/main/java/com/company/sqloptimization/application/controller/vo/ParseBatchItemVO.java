@@ -24,6 +24,12 @@ public class ParseBatchItemVO {
     private String accessServiceStatus;
     private String accessConnectionStatus;
     private String failureReason;
+    private Integer failureLine;
+    private Integer failureColumn;
+    private Integer failureOffset;
+    private String failureToken;
+    private String failureSnippet;
+    private String diagnosticSummary;
     private List<String> issueScenes;
     private List<String> logicalObjectKeys;
     private Instant createdAt;
@@ -67,6 +73,18 @@ public class ParseBatchItemVO {
     public void setAccessConnectionStatus(String accessConnectionStatus) { this.accessConnectionStatus = accessConnectionStatus; }
     public String getFailureReason() { return failureReason; }
     public void setFailureReason(String failureReason) { this.failureReason = failureReason; }
+    public Integer getFailureLine() { return failureLine; }
+    public void setFailureLine(Integer failureLine) { this.failureLine = failureLine; }
+    public Integer getFailureColumn() { return failureColumn; }
+    public void setFailureColumn(Integer failureColumn) { this.failureColumn = failureColumn; }
+    public Integer getFailureOffset() { return failureOffset; }
+    public void setFailureOffset(Integer failureOffset) { this.failureOffset = failureOffset; }
+    public String getFailureToken() { return failureToken; }
+    public void setFailureToken(String failureToken) { this.failureToken = failureToken; }
+    public String getFailureSnippet() { return failureSnippet; }
+    public void setFailureSnippet(String failureSnippet) { this.failureSnippet = failureSnippet; }
+    public String getDiagnosticSummary() { return diagnosticSummary; }
+    public void setDiagnosticSummary(String diagnosticSummary) { this.diagnosticSummary = diagnosticSummary; }
     public List<String> getIssueScenes() { return issueScenes; }
     public void setIssueScenes(List<String> issueScenes) { this.issueScenes = issueScenes; }
     public List<String> getLogicalObjectKeys() { return logicalObjectKeys; }

@@ -16,7 +16,16 @@ _No tasks._
 
 ## In Progress
 
-_No tasks._
+### OPS-RESTART-20260506: Restart local frontend and backend
+
+- Status: in_progress
+- Priority: P2
+- Depends on: N/A
+- Scope: Restart SQLForge local backend services and frontend dev server
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-RESTART-20260506`
+- Progress log:
+  - 2026-05-06: instantiated from foreman CLI using repository truth and task matrices.
 
 
 ## Blocked

@@ -95,6 +95,30 @@ class ParseBatchControllerTest {
     }
 
     @Test
+    void shouldExposeInvalidBatchSqlDiagnosticsInJson() throws Exception {
+        MvcResult createResult = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse-batches"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"batchName\":\"batch-invalid\",\"importMode\":\"SQL_FILE\","
+                    + "\"fileType\":\"SQL\",\"templateVersion\":\"v1\",\"datasourceCode\":\"hetu_main\","
+                    + "\"structureParseOnly\":false}"))
+            .andExpect(status().isOk())
+            .andReturn();
+        String batchId = JsonTestUtils.readValue(createResult.getResponse().getContentAsString(), "$.batchId");
+        String encoded = Base64.getEncoder().encodeToString("SELECT FROM;".getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse-batches/{batchId}/ingest", batchId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"contentBase64\":\"" + encoded + "\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("FAILED"))
+            .andExpect(jsonPath("$.importedRecords[0].failureLine").value(1))
+            .andExpect(jsonPath("$.importedRecords[0].failureColumn").value(8))
+            .andExpect(jsonPath("$.importedRecords[0].failureToken").value("FROM"))
+            .andExpect(jsonPath("$.importedRecords[0].failureSnippet").isNotEmpty())
+            .andExpect(jsonPath("$.importedRecords[0].diagnosticSummary").isNotEmpty());
+    }
+
+    @Test
     void shouldIngestXlsxBatch() throws Exception {
         MvcResult createResult = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse-batches"))
                 .contentType(MediaType.APPLICATION_JSON)

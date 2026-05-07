@@ -42,8 +42,10 @@ const reportStatisticsDialogVisible = ref(false)
 const activeReportStatisticsTab = ref('issueScene')
 const parseItemDetailDialogVisible = ref(false)
 const reportItemDetailDialogVisible = ref(false)
+const reportGroupDetailDialogVisible = ref(false)
 const selectedParseItem = ref(null)
 const selectedReportItem = ref(null)
+const selectedReportGroupCode = ref('')
 const activeReportGroupName = ref('')
 
 const loading = reactive({
@@ -240,6 +242,17 @@ const reportGroups = computed(() => {
       omittedItemCount: Math.max(0, total - DETAIL_PREVIEW_LIMIT)
     }
   })
+})
+const selectedReportGroup = computed(() =>
+  reportGroups.value.find(group => group.reportCode === selectedReportGroupCode.value) || null
+)
+const reportGroupDetailTitle = computed(() => {
+  if (!selectedReportGroup.value) {
+    return isChinese.value ? '本报表 SQL 明细' : 'Report SQL detail'
+  }
+  return isChinese.value
+    ? `${selectedReportGroup.value.reportCode} 本报表 SQL 明细`
+    : `${selectedReportGroup.value.reportCode} report SQL detail`
 })
 const reportIssueStatistics = computed(() => {
   if (reportIssueSceneStatistics.value.length) {
@@ -477,7 +490,13 @@ const parseItemDetailFields = computed(() => {
     detailField('结构解析', 'Structure parse', item.structureSyntaxStatus),
     detailField('Access 服务', 'Access service', item.accessServiceStatus),
     detailField('Access 连接', 'Access connection', item.accessConnectionStatus),
+    detailField('失败行', 'Failure line', item.failureLine),
+    detailField('失败列', 'Failure column', item.failureColumn),
+    detailField('失败偏移', 'Failure offset', item.failureOffset),
+    detailField('失败 token', 'Failure token', item.failureToken),
     detailField('失败原因', 'Failure reason', item.failureReason, true),
+    detailField('定位摘要', 'Diagnostic summary', item.diagnosticSummary || buildDiagnosticSummary(item), true),
+    detailField('失败片段', 'Failure snippet', item.failureSnippet, true),
     detailField('问题场景', 'Issue scenes', item.issueScenes, true),
     detailField('逻辑对象', 'Logical objects', item.logicalObjectKeys, true),
     detailField('创建时间', 'Created at', formatInstant(item.createdAt)),
@@ -503,7 +522,13 @@ const reportItemDetailFields = computed(() => {
     detailField('结构解析', 'Structure parse', item.structureSyntaxStatus),
     detailField('Access 服务', 'Access service', item.accessServiceStatus),
     detailField('Access 连接', 'Access connection', item.accessConnectionStatus),
+    detailField('失败行', 'Failure line', item.failureLine),
+    detailField('失败列', 'Failure column', item.failureColumn),
+    detailField('失败偏移', 'Failure offset', item.failureOffset),
+    detailField('失败 token', 'Failure token', item.failureToken),
     detailField('失败原因', 'Failure reason', item.failureReason, true),
+    detailField('定位摘要', 'Diagnostic summary', item.diagnosticSummary || buildDiagnosticSummary(item), true),
+    detailField('失败片段', 'Failure snippet', item.failureSnippet, true),
     detailField('问题场景', 'Issue scenes', item.issueScenes, true),
     detailField('逻辑对象', 'Logical objects', item.logicalObjectKeys, true),
     detailField('创建时间', 'Created at', formatInstant(item.createdAt)),
@@ -513,6 +538,47 @@ const reportItemDetailFields = computed(() => {
 
 const clearError = () => {
   errorMessage.value = ''
+}
+
+const hasIssueOrFailure = item => {
+  if (!item) {
+    return false
+  }
+  const status = String(item.status || '').toUpperCase()
+  return status.includes('FAILED') ||
+    hasDisplayValue(item.failureReason) ||
+    hasDisplayValue(item.diagnosticSummary) ||
+    (Array.isArray(item.issueScenes) && item.issueScenes.length > 0)
+}
+
+const buildDiagnosticSummary = item => {
+  if (!item) {
+    return ''
+  }
+  if (hasDisplayValue(item.diagnosticSummary)) {
+    return item.diagnosticSummary
+  }
+  const parts = []
+  const push = (label, value) => {
+    if (hasDisplayValue(value)) {
+      parts.push(`${label}=${displayValue(value)}`)
+    }
+  }
+  push('sequence', item.sequenceNumber)
+  push('report', item.reportCode)
+  push('sqlColumn', item.sqlColumnName)
+  push('sqlOrdinal', item.sqlOrdinalInReport)
+  push('sourceLine', item.sourceFileLine)
+  push('parseTask', item.parseTaskId)
+  push('status', item.status)
+  push('line', item.failureLine)
+  push('col', item.failureColumn)
+  push('offset', item.failureOffset)
+  push('token', item.failureToken)
+  push('near', item.failureSnippet)
+  push('issues', item.issueScenes)
+  push('reason', item.failureReason)
+  return parts.join(' | ')
 }
 
 const upsertSession = (collection, item) => {
@@ -852,8 +918,13 @@ const resolveReportSqlsFlow = async () => {
   }
 }
 
-const openReportGroupResult = group => {
-  activeReportGroupName.value = group?.reportCode || ''
+const openReportGroupDetail = group => {
+  selectedReportGroupCode.value = group?.reportCode || ''
+  reportGroupDetailDialogVisible.value = true
+}
+
+const openWholeReportBatchSqlDetail = () => {
+  activeReportGroupName.value = ''
   reportResultDialogVisible.value = true
 }
 
@@ -863,6 +934,7 @@ const openReportItemDetail = item => {
   }
   selectedReportItem.value = item
   activeReportGroupName.value = item.reportCode || activeReportGroupName.value
+  selectedReportGroupCode.value = item.reportCode || selectedReportGroupCode.value
   reportItemDetailDialogVisible.value = true
 }
 
@@ -1081,6 +1153,13 @@ onMounted(async () => {
                   >
                     <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
                     <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
+                    <p
+                      v-if="hasIssueOrFailure(item)"
+                      class="diagnostic-line"
+                      data-testid="batch-import-parse-diagnostic"
+                    >
+                      {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+                    </p>
                     <SqlCodeBlock
                       v-if="item.sqlText || item.sqlPreview"
                       :value="item.sqlText || item.sqlPreview"
@@ -1203,8 +1282,12 @@ onMounted(async () => {
                 <h3 class="section-title">{{ isChinese ? '当前批次概览' : 'Current batch overview' }}</h3>
               </div>
               <div class="toolbar-actions">
-                <el-button :disabled="!reportBatchDetail?.batchId" data-testid="batch-import-report-result" @click="reportResultDialogVisible = true">
-                  {{ isChinese ? '解析结果' : 'Parse results' }}
+                <el-button
+                  :disabled="!reportBatchDetail?.batchId"
+                  data-testid="batch-import-report-batch-sql-detail"
+                  @click="openWholeReportBatchSqlDetail"
+                >
+                  {{ isChinese ? '整个批次 SQL 详情' : 'Whole batch SQL detail' }}
                 </el-button>
                 <el-button :disabled="!reportBatchDetail?.batchId" data-testid="batch-import-report-statistics" @click="reportStatisticsDialogVisible = true">
                   {{ isChinese ? '解析统计' : 'Parse statistics' }}
@@ -1233,7 +1316,7 @@ onMounted(async () => {
                 type="button"
                 class="report-item"
                 data-testid="batch-import-report-group-open"
-                @click="openReportGroupResult(group)"
+                @click="openReportGroupDetail(group)"
               >
                 <div class="session-item-top">
                   <strong>{{ group.reportCode }}</strong>
@@ -1246,7 +1329,7 @@ onMounted(async () => {
                   · Structure: {{ formatPercent(group.structureRate) }}
                   · Access: {{ formatPercent(group.accessRate) }}
                 </p>
-                <span class="detail-link">{{ isChinese ? '查看解析结果与详情' : 'View results and details' }}</span>
+                <span class="detail-link">{{ isChinese ? '查看本报表 SQL 明细' : 'View this report SQL detail' }}</span>
               </button>
               <div v-if="reportGroupsDashboardOmittedCount > 0" class="preview-note">
                 {{
@@ -1279,6 +1362,13 @@ onMounted(async () => {
                     <p>
                       {{ displayValue(item.sqlColumnName || item.sqlOrdinalInReport) }}
                       · {{ displayValue(item.parseTaskId) }}
+                    </p>
+                    <p
+                      v-if="hasIssueOrFailure(item)"
+                      class="diagnostic-line"
+                      data-testid="batch-import-report-diagnostic"
+                    >
+                      {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
                     </p>
                     <SqlCodeBlock
                       v-if="item.sqlText"
@@ -1509,6 +1599,13 @@ onMounted(async () => {
                 · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
               </p>
               <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+              <p
+                v-if="hasIssueOrFailure(item)"
+                class="diagnostic-line"
+                data-testid="batch-import-parse-diagnostic"
+              >
+                {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+              </p>
               <SqlCodeBlock
                 v-if="item.sqlText"
                 :value="item.sqlText"
@@ -1625,6 +1722,13 @@ onMounted(async () => {
             >
               <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
               <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
+              <p
+                v-if="hasIssueOrFailure(item)"
+                class="diagnostic-line"
+                data-testid="batch-import-parse-diagnostic"
+              >
+                {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+              </p>
               <SqlCodeBlock
                 v-if="item.sqlText || item.sqlPreview"
                 :value="item.sqlText || item.sqlPreview"
@@ -1707,7 +1811,7 @@ onMounted(async () => {
 
     <el-dialog
       v-model="reportResultDialogVisible"
-      :title="isChinese ? '当前报表批次解析结果' : 'Current report batch parse results'"
+      :title="isChinese ? '整个报表批次 SQL 详情' : 'Whole report batch SQL detail'"
       width="1040px"
       data-testid="batch-import-report-result-dialog"
     >
@@ -1759,6 +1863,13 @@ onMounted(async () => {
                   </p>
                   <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
                   <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
+                  <p
+                    v-if="hasIssueOrFailure(item)"
+                    class="diagnostic-line"
+                    data-testid="batch-import-report-diagnostic"
+                  >
+                    {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+                  </p>
                   <SqlCodeBlock
                     v-if="item.sqlText"
                     :value="item.sqlText"
@@ -1783,6 +1894,91 @@ onMounted(async () => {
               </div>
             </el-collapse-item>
           </el-collapse>
+        </section>
+      </div>
+    </el-dialog>
+
+    <el-dialog
+      v-model="reportGroupDetailDialogVisible"
+      :title="reportGroupDetailTitle"
+      width="1040px"
+      data-testid="batch-import-report-group-detail-dialog"
+    >
+      <div v-if="selectedReportGroup" class="dialog-stack">
+        <div class="summary-grid" data-testid="batch-import-report-scoped-summary">
+          <article class="summary-card">
+            <span class="summary-card-label">{{ isChinese ? '报表编码' : 'Report code' }}</span>
+            <strong>{{ selectedReportGroup.reportCode }}</strong>
+          </article>
+          <article class="summary-card">
+            <span class="summary-card-label">SQL</span>
+            <strong>{{ selectedReportGroup.total }}</strong>
+          </article>
+          <article class="summary-card">
+            <span class="summary-card-label">{{ isChinese ? '已解析' : 'Resolved' }}</span>
+            <strong>{{ selectedReportGroup.resolved }}</strong>
+          </article>
+          <article class="summary-card">
+            <span class="summary-card-label">{{ isChinese ? '失败' : 'Failed' }}</span>
+            <strong>{{ selectedReportGroup.failed }}</strong>
+          </article>
+        </div>
+        <section class="detail-card" data-testid="batch-import-report-scoped-sql-detail">
+          <p class="section-kicker sqlforge-code-label">single report SQL-level parse detail</p>
+          <div class="report-list">
+            <article
+              v-for="(item, index) in selectedReportGroup.previewItems"
+              :key="item.itemId || `${selectedReportGroup.reportCode}-${index}`"
+              class="report-item"
+              data-testid="batch-import-report-scoped-sql-row"
+            >
+              <div class="session-item-top">
+                <strong>{{ item.sqlColumnName || item.itemId || `SQL ${index + 1}` }}</strong>
+                <span class="status-pill">{{ displayValue(item.status) }}</span>
+              </div>
+              <p>
+                {{ displayValue(item.reportName) }} · {{ displayValue(item.datasourceCode || item.stage) }}
+                · {{ displayValue(item.priority) }}
+              </p>
+              <p>
+                {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
+                · {{ isChinese ? '源文件行' : 'Source line' }}: {{ displayValue(item.sourceFileLine) }}
+                · {{ isChinese ? 'SQL 序号' : 'SQL ordinal' }}: {{ displayValue(item.sqlOrdinalInReport) }}
+              </p>
+              <p>
+                Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+              </p>
+              <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+              <p
+                v-if="hasIssueOrFailure(item)"
+                class="diagnostic-line"
+                data-testid="batch-import-report-diagnostic"
+              >
+                {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+              </p>
+              <SqlCodeBlock
+                v-if="item.sqlText"
+                :value="item.sqlText"
+                :label="item.sqlColumnName || item.itemId || 'SQL'"
+                :copy-label="isChinese ? '复制' : 'Copy'"
+                compact
+                data-testid="batch-import-report-scoped-sql-code"
+              />
+              <div class="item-actions">
+                <el-button text data-testid="batch-import-report-item-detail-open" @click="openReportItemDetail(item)">
+                  {{ isChinese ? '查看详情' : 'View detail' }}
+                </el-button>
+              </div>
+            </article>
+            <div v-if="selectedReportGroup.omittedItemCount > 0" class="preview-note">
+              {{
+                isChinese
+                  ? `该报表仅展示前 ${selectedReportGroup.previewItems.length} 条 SQL，另有 ${selectedReportGroup.omittedItemCount} 条已省略。`
+                  : `This report shows the first ${selectedReportGroup.previewItems.length} SQL rows; ${selectedReportGroup.omittedItemCount} more are omitted.`
+              }}
+            </div>
+          </div>
         </section>
       </div>
     </el-dialog>
@@ -2207,6 +2403,13 @@ button.report-item:hover {
 .preview-note-compact {
   font-size: 12px;
   padding: 8px 10px;
+}
+
+.diagnostic-line {
+  border-left: 3px solid rgba(245, 158, 11, 0.85);
+  padding-left: 10px;
+  color: var(--sqlforge-text-primary);
+  overflow-wrap: anywhere;
 }
 
 .detail-link {

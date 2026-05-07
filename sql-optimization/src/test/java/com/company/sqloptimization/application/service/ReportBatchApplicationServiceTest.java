@@ -239,6 +239,12 @@ class ReportBatchApplicationServiceTest {
         assertTrue(resolved.getReportItems().get(0).getFailureReason().contains("col=8"));
         assertTrue(resolved.getReportItems().get(0).getFailureReason().contains("token=FROM"));
         assertTrue(resolved.getReportItems().get(0).getFailureReason().contains("near=SELECT FROM"));
+        assertEquals(Integer.valueOf(1), resolved.getReportItems().get(0).getFailureLine());
+        assertEquals(Integer.valueOf(8), resolved.getReportItems().get(0).getFailureColumn());
+        assertEquals("FROM", resolved.getReportItems().get(0).getFailureToken());
+        assertTrue(resolved.getReportItems().get(0).getFailureSnippet().contains("SELECT FROM"));
+        assertTrue(resolved.getReportItems().get(0).getDiagnosticSummary().contains("report=RPT_BAD"));
+        assertTrue(resolved.getReportItems().get(0).getDiagnosticSummary().contains("sqlColumn=sql_1"));
         assertNotNull(resolved.getReportItems().get(0).getParseTaskId());
     }
 
@@ -263,6 +269,10 @@ class ReportBatchApplicationServiceTest {
         assertTrue(failureReason.contains("col=8"));
         assertTrue(failureReason.contains("token=FROM"));
         assertTrue(failureReason.contains("near=SELECT FROM"));
+        assertEquals(Integer.valueOf(1), resolved.getReportItems().get(0).getFailureLine());
+        assertEquals(Integer.valueOf(8), resolved.getReportItems().get(0).getFailureColumn());
+        assertEquals("FROM", resolved.getReportItems().get(0).getFailureToken());
+        assertTrue(resolved.getReportItems().get(0).getDiagnosticSummary().contains("sourceLine="));
         assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("SQL_SYNTAX_INVALID"));
     }
 
