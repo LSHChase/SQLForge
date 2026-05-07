@@ -13,6 +13,7 @@ import {
   listParseBatches,
   listReportBatches,
   getReportBatch,
+  getReportBatchIssueSceneDetail,
   getReportBatchParseStatistics,
   lookupGovernanceTraces
 } from '../../services/runtimeGateApi'
@@ -56,6 +57,7 @@ const loading = reactive({
   page: false,
   detail: false,
   reportBatchDetail: false,
+  reportBatchIssueSceneDetail: false,
   reportBatchItemDetails: false,
   lookup: false,
   export: false
@@ -74,6 +76,7 @@ const batchHistoryTab = ref('parse')
 const activeReportBatchStatisticsTab = ref('issueScene')
 const selectedHistoryDetail = ref(null)
 const selectedReportBatchDetail = ref(null)
+const selectedReportIssueSceneDetail = ref(null)
 const reportBatchItemDetails = ref({})
 const errorMessage = ref('')
 const batchHistoryErrorMessage = ref('')
@@ -85,6 +88,12 @@ const reportBatchSqlPagination = reactive({
   pageNumber: 1,
   pageSize: 25,
   reportCode: ''
+})
+const reportBatchIssueScenePagination = reactive({
+  pageNumber: 1,
+  pageSize: 25,
+  reportCode: '',
+  logicalObjectKey: ''
 })
 const REPORT_SQL_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 const exportForm = reactive({
@@ -224,6 +233,21 @@ const reportBatchIssueStatistics = computed(() => {
       ratio: rate(affectedSqlCount, selectedReportItems.value.length)
     }))
     .sort((left, right) => right.affectedSqlCount - left.affectedSqlCount)
+})
+const reportBatchIssueSceneDetailCards = computed(() => {
+  const detail = objectValue(selectedReportIssueSceneDetail.value)
+  if (!detail.issueScene) {
+    return []
+  }
+  return [
+    card(isChinese.value ? '问题场景' : 'Issue scene', detail.issueScene),
+    card(isChinese.value ? '影响 SQL' : 'Affected SQL', detail.affectedSqlCount),
+    card(isChinese.value ? '问题数' : 'Issues', detail.affectedIssueCount),
+    card(isChinese.value ? '报表数' : 'Reports', detail.reportCount),
+    card(isChinese.value ? '逻辑对象' : 'Logical objects', detail.logicalObjectCount),
+    card(isChinese.value ? '优先级' : 'Priority', detail.priorityLevel),
+    card(isChinese.value ? '严重度' : 'Severity', detail.severity)
+  ].filter(item => hasDisplayValue(item.value))
 })
 const reportBatchLogicalObjectStatistics = computed(() => {
   if (selectedReportLogicalObjectStatistics.value.length) {
@@ -747,9 +771,14 @@ const openReportBatchDetail = async row => {
   batchHistoryErrorMessage.value = ''
   reportBatchItemDetailErrorMessage.value = ''
   reportBatchItemDetails.value = {}
+  selectedReportIssueSceneDetail.value = null
   reportBatchSqlPagination.pageNumber = 1
   reportBatchSqlPagination.pageSize = 25
   reportBatchSqlPagination.reportCode = ''
+  reportBatchIssueScenePagination.pageNumber = 1
+  reportBatchIssueScenePagination.pageSize = 25
+  reportBatchIssueScenePagination.reportCode = ''
+  reportBatchIssueScenePagination.logicalObjectKey = ''
   try {
     selectedReportBatchDetail.value = await loadReportBatchWithStatistics(batchId, reportBatchSqlPagination)
     reportBatchDetailDrawerVisible.value = true
@@ -775,6 +804,52 @@ const refreshSelectedReportSqlPage = async () => {
   } finally {
     loading.reportBatchDetail = false
   }
+}
+
+const loadReportBatchIssueSceneDetail = async issueScene => {
+  const batchId = selectedReportBatchDetail.value?.batchId
+  const normalizedIssueScene = normalizeQueryValue(issueScene)
+  if (!batchId || !normalizedIssueScene) {
+    return
+  }
+  loading.reportBatchIssueSceneDetail = true
+  batchHistoryErrorMessage.value = ''
+  try {
+    selectedReportIssueSceneDetail.value = await getReportBatchIssueSceneDetail(
+      batchId,
+      normalizedIssueScene,
+      requestTenantId.value,
+      {
+        pageNumber: reportBatchIssueScenePagination.pageNumber,
+        pageSize: reportBatchIssueScenePagination.pageSize,
+        reportCode: reportBatchIssueScenePagination.reportCode,
+        logicalObjectKey: reportBatchIssueScenePagination.logicalObjectKey,
+        requestPrefix: 'frontend-parse-record-report-issue-scene-detail'
+      }
+    )
+  } catch (error) {
+    selectedReportIssueSceneDetail.value = null
+    batchHistoryErrorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.reportBatchIssueSceneDetail = false
+  }
+}
+
+const openReportBatchIssueSceneDetail = async item => {
+  reportBatchIssueScenePagination.pageNumber = 1
+  reportBatchIssueScenePagination.reportCode = ''
+  reportBatchIssueScenePagination.logicalObjectKey = ''
+  await loadReportBatchIssueSceneDetail(item?.issueScene)
+}
+
+const applyReportBatchIssueSceneFilter = async () => {
+  reportBatchIssueScenePagination.pageNumber = 1
+  await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
+}
+
+const handleReportBatchIssueScenePageChange = async pageNumber => {
+  reportBatchIssueScenePagination.pageNumber = pageNumber
+  await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
 }
 
 const applyReportBatchSqlFilter = async () => {
@@ -1577,18 +1652,99 @@ onMounted(async () => {
           >
             <el-tab-pane :label="isChinese ? '问题场景' : 'Issue scenes'" name="issueScene">
               <div class="detail-grid">
-                <div
+                <button
                   v-for="item in reportBatchIssueStatistics"
                   :key="item.issueScene"
-                  class="detail-grid__item"
+                  type="button"
+                  class="detail-grid__item issue-scene-detail-button"
                   data-testid="parse-record-report-statistics-issue-scene"
+                  @click="openReportBatchIssueSceneDetail(item)"
                 >
                   <span>{{ item.issueScene }}</span>
-                  <strong>{{ item.affectedSqlCount }} SQL · {{ displayValue(item.severity) }} · {{ formatPercent(item.ratio) }}</strong>
-                </div>
+                  <strong>
+                    {{ item.affectedSqlCount }} SQL · {{ displayValue(item.severity) }} · {{ formatPercent(item.ratio) }}
+                    <span v-if="item.reportCount"> · {{ item.reportCount }} {{ isChinese ? '报表' : 'reports' }}</span>
+                    <span v-if="item.logicalObjectCount"> · {{ item.logicalObjectCount }} {{ isChinese ? '对象' : 'objects' }}</span>
+                  </strong>
+                </button>
                 <p v-if="!reportBatchIssueStatistics.length" class="empty-copy">
                   {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics in this report batch.' }}
                 </p>
+              </div>
+              <div
+                v-if="selectedReportIssueSceneDetail"
+                class="issue-scene-detail-panel"
+                data-testid="parse-record-report-issue-scene-detail"
+              >
+                <div class="summary-chip-row">
+                  <span v-for="item in reportBatchIssueSceneDetailCards" :key="item.label" class="summary-chip">
+                    {{ item.label }}: <strong>{{ displayValue(item.value) }}</strong>
+                  </span>
+                  <span v-if="loading.reportBatchIssueSceneDetail" class="summary-chip summary-chip-warning">
+                    {{ isChinese ? '正在加载场景详情' : 'Loading scene detail' }}
+                  </span>
+                </div>
+                <div class="filter-row">
+                  <el-input
+                    v-model="reportBatchIssueScenePagination.reportCode"
+                    :placeholder="isChinese ? '按报表编码筛选' : 'Filter by report code'"
+                    clearable
+                  />
+                  <el-input
+                    v-model="reportBatchIssueScenePagination.logicalObjectKey"
+                    :placeholder="isChinese ? '按逻辑对象筛选' : 'Filter by logical object'"
+                    clearable
+                  />
+                  <el-button :loading="loading.reportBatchIssueSceneDetail" @click="applyReportBatchIssueSceneFilter">
+                    {{ isChinese ? '查询详情' : 'Search detail' }}
+                  </el-button>
+                </div>
+                <div class="detail-grid detail-grid-secondary">
+                  <div
+                    v-for="item in normalizeArray(selectedReportIssueSceneDetail.reportDetails).slice(0, 8)"
+                    :key="item.reportCode"
+                    class="detail-grid__item"
+                    data-testid="parse-record-report-issue-scene-report"
+                  >
+                    <span>{{ item.reportCode }}</span>
+                    <strong>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues</strong>
+                    <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
+                  </div>
+                </div>
+                <div class="detail-grid detail-grid-secondary">
+                  <div
+                    v-for="item in normalizeArray(selectedReportIssueSceneDetail.logicalObjectDetails).slice(0, 8)"
+                    :key="item.objectKey"
+                    class="detail-grid__item"
+                    data-testid="parse-record-report-issue-scene-object"
+                  >
+                    <span>{{ item.objectKey }}</span>
+                    <strong>{{ item.sqlCount }} SQL · {{ item.reportCount }} reports</strong>
+                    <p>{{ displayValue(item.reportCodes) }}</p>
+                  </div>
+                </div>
+                <div class="report-sql-list">
+                  <article
+                    v-for="item in normalizeArray(selectedReportIssueSceneDetail.sqlStatistics)"
+                    :key="item.itemId"
+                    class="detail-grid__item report-sql-card"
+                    data-testid="parse-record-report-issue-scene-sql"
+                  >
+                    <span>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</span>
+                    <strong>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues</strong>
+                    <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
+                    <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
+                  </article>
+                </div>
+                <el-pagination
+                  v-if="Number(selectedReportIssueSceneDetail.sqlStatisticTotalCount || 0) > reportBatchIssueScenePagination.pageSize"
+                  class="pagination-row"
+                  layout="total, prev, pager, next"
+                  :total="Number(selectedReportIssueSceneDetail.sqlStatisticTotalCount || 0)"
+                  :page-size="reportBatchIssueScenePagination.pageSize"
+                  :current-page="reportBatchIssueScenePagination.pageNumber"
+                  @current-change="handleReportBatchIssueScenePageChange"
+                />
               </div>
             </el-tab-pane>
             <el-tab-pane :label="isChinese ? '重要程度' : 'Importance'" name="importance">
@@ -2521,6 +2677,25 @@ onMounted(async () => {
   flex-direction: column;
   gap: 4px;
   padding: 12px 14px;
+}
+
+.issue-scene-detail-button {
+  width: 100%;
+  border: 1px solid var(--sqlforge-border-default);
+  background: rgba(20, 24, 31, 0.72);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.issue-scene-detail-button:hover {
+  border-color: var(--sqlforge-color-brand);
+}
+
+.issue-scene-detail-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
 }
 
 .detail-grid__item span {

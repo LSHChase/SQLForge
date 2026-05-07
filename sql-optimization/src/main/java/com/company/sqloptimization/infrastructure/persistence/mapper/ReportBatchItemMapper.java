@@ -10,6 +10,8 @@ public interface ReportBatchItemMapper {
 
     void insert(ReportBatchItemRecord record);
 
+    void upsertBatch(@Param("records") List<ReportBatchItemRecord> records);
+
     void update(ReportBatchItemRecord record);
 
     ReportBatchItemRecord selectByItemId(@Param("itemId") String itemId);

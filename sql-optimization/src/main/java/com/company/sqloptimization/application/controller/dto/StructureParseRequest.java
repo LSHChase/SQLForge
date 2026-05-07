@@ -12,6 +12,7 @@ public class StructureParseRequest {
     private String bindingMode;
     private String datasourceCode;
     private Map<String, Object> commentContext;
+    private Boolean historyWriteEnabled;
 
     public String getSqlText() {
         return sqlText;
@@ -59,5 +60,13 @@ public class StructureParseRequest {
 
     public void setCommentContext(Map<String, Object> commentContext) {
         this.commentContext = commentContext;
+    }
+
+    public Boolean getHistoryWriteEnabled() {
+        return historyWriteEnabled;
+    }
+
+    public void setHistoryWriteEnabled(Boolean historyWriteEnabled) {
+        this.historyWriteEnabled = historyWriteEnabled;
     }
 }

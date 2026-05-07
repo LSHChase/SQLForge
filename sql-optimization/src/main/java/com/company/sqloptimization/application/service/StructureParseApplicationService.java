@@ -125,7 +125,9 @@ public class StructureParseApplicationService {
         }
         StructureParseResponseVO response = toResponse(result);
         enrichQueryIntent(response, request.getSqlText(), profile);
-        writeParseHistory(response, request, result);
+        if (!Boolean.FALSE.equals(request.getHistoryWriteEnabled())) {
+            writeParseHistory(response, request, result);
+        }
         return response;
     }
 

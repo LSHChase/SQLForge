@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
+import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneDetailVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusResponse;
 import com.company.sqloptimization.application.service.report.MockReportSqlFactory;
@@ -55,12 +56,12 @@ class ReportBatchApplicationServiceTest {
         assertEquals("READY", imported.getStatus());
         assertEquals(Integer.valueOf(2), imported.getTotalReports());
 
-        ReportBatchStatusResponse resolved = service.resolveSqls(imported.getBatchId());
+        ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
         assertEquals("COMPLETED", resolved.getStatus());
         assertEquals(Integer.valueOf(2), resolved.getResolvedReports());
         assertEquals("RPT_A", resolved.getReportItems().get(0).getReportCode());
         assertEquals("VALID", resolved.getReportItems().get(0).getStructureSyntaxStatus());
-        assertEquals("AVAILABLE", resolved.getReportItems().get(0).getAccessServiceStatus());
+        assertEquals("SKIPPED", resolved.getReportItems().get(0).getAccessServiceStatus());
     }
 
     @Test
@@ -170,7 +171,7 @@ class ReportBatchApplicationServiceTest {
             imported.getReportItems().get(0).getSqlText());
         assertTrue(imported.getReportItems().get(0).getSourceFileLine().contains("-- 报表注释"));
 
-        ReportBatchStatusResponse resolved = service.resolveSqls(imported.getBatchId());
+        ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
 
         assertEquals("COMPLETED", resolved.getStatus());
         assertEquals(Integer.valueOf(1), resolved.getResolvedSqls());
@@ -213,7 +214,7 @@ class ReportBatchApplicationServiceTest {
             "CSV",
             "report_code,sql_1,sql_2\nRPT_INLINE,\"SELECT * FROM orders\",\"SELECT * FROM customers\""
         ));
-        ReportBatchStatusResponse resolved = service.resolveSqls(imported.getBatchId());
+        ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
 
         assertEquals(Integer.valueOf(0), Integer.valueOf(resolverCalls.get()));
         assertEquals("COMPLETED", resolved.getStatus());
@@ -230,6 +231,21 @@ class ReportBatchApplicationServiceTest {
         assertTrue(statistics.getLogicalObjectStatistics().stream()
             .anyMatch(item -> "TABLE:orders".equals(item.getObjectKey())));
         assertNotNull(service.getBatchParseStatistics(imported.getBatchId()).getOverview());
+
+        ReportBatchIssueSceneDetailVO sceneDetail = service.getBatchIssueSceneDetail(
+            imported.getBatchId(),
+            "SELECT_STAR",
+            1,
+            10,
+            null,
+            "TABLE:orders"
+        );
+        assertEquals("SELECT_STAR", sceneDetail.getIssueScene());
+        assertEquals(Integer.valueOf(1), sceneDetail.getAffectedSqlCount());
+        assertEquals(Integer.valueOf(1), sceneDetail.getReportCount());
+        assertEquals("RPT_INLINE", sceneDetail.getReportDetails().get(0).getReportCode());
+        assertEquals("TABLE:orders", sceneDetail.getLogicalObjectDetails().get(0).getObjectKey());
+        assertEquals("RPT_INLINE", sceneDetail.getSqlStatistics().get(0).getReportCode());
     }
 
     @Test
@@ -242,15 +258,15 @@ class ReportBatchApplicationServiceTest {
             "CSV",
             "report_code,sql_1\nRPT_BAD,\"SELECT FROM\""
         ));
-        ReportBatchStatusResponse resolved = service.resolveSqls(imported.getBatchId());
+        ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
 
         assertEquals("PARTIAL_COMPLETED", resolved.getStatus());
         assertEquals(Integer.valueOf(1), resolved.getFailedReports());
         assertEquals(Integer.valueOf(1), resolved.getFailedSqls());
         assertEquals("FAILED", resolved.getReportItems().get(0).getStatus());
         assertEquals("INVALID", resolved.getReportItems().get(0).getStructureSyntaxStatus());
-        assertEquals("AVAILABLE", resolved.getReportItems().get(0).getAccessServiceStatus());
-        assertEquals("CONNECTED", resolved.getReportItems().get(0).getAccessConnectionStatus());
+        assertEquals("SKIPPED", resolved.getReportItems().get(0).getAccessServiceStatus());
+        assertEquals("SKIPPED", resolved.getReportItems().get(0).getAccessConnectionStatus());
         assertEquals("sql_1", resolved.getReportItems().get(0).getSqlColumnName());
         assertEquals(Integer.valueOf(1), resolved.getReportItems().get(0).getSqlOrdinalInReport());
         assertEquals("SELECT FROM", resolved.getReportItems().get(0).getSqlText());
@@ -278,7 +294,7 @@ class ReportBatchApplicationServiceTest {
             "CSV",
             "report_code,sql_1\nRPT_BAD_COMMENTED," + csvEscape("-- 说明 -- 多个说明 SELECT FROM")
         ));
-        ReportBatchStatusResponse resolved = service.resolveSqls(imported.getBatchId());
+        ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
 
         String failureReason = resolved.getReportItems().get(0).getFailureReason();
         assertEquals("PARTIAL_COMPLETED", resolved.getStatus());
@@ -307,7 +323,7 @@ class ReportBatchApplicationServiceTest {
             "CSV",
             "report_code,sql_1\nRPT_COMPLEX," + csvEscape(complexAntiPatternSql())
         ));
-        ReportBatchStatusResponse resolved = service.resolveSqls(imported.getBatchId());
+        ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
 
         assertEquals(Integer.valueOf(1), resolved.getTotalSqls());
         assertEquals(Integer.valueOf(1), resolved.getResolvedSqls());
@@ -384,6 +400,27 @@ class ReportBatchApplicationServiceTest {
         request.setPriority("high");
         request.setContentBase64(Base64.getEncoder().encodeToString(content));
         return request;
+    }
+
+    private ReportBatchStatusResponse resolveAndAwait(ReportBatchApplicationService service, String batchId) {
+        service.resolveSqls(batchId);
+        for (int attempt = 0; attempt < 100; attempt++) {
+            ReportBatchStatusResponse current = service.getBatch(batchId);
+            if (isTerminalReportBatchStatus(current.getStatus())) {
+                return current;
+            }
+            try {
+                Thread.sleep(20L);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError("Interrupted while waiting for report batch resolution", ex);
+            }
+        }
+        return service.getBatch(batchId);
+    }
+
+    private boolean isTerminalReportBatchStatus(String status) {
+        return "COMPLETED".equals(status) || "PARTIAL_COMPLETED".equals(status) || "FAILED".equals(status);
     }
 
     private String csvEscape(String value) {

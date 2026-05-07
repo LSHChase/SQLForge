@@ -2,6 +2,7 @@ package com.company.sqloptimization.application.service;
 
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.context.RequestContext.ContextValue;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
@@ -9,6 +10,7 @@ import com.company.sqloptimization.application.controller.dto.AccessParseRequest
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
 import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
 import com.company.sqloptimization.application.controller.vo.AccessParseResponseVO;
+import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneDetailVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchItemVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusHistoryVO;
@@ -40,8 +42,22 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.PreDestroy;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -51,6 +67,9 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -58,8 +77,14 @@ import org.springframework.util.StringUtils;
 @Service
 public class ReportBatchApplicationService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReportBatchApplicationService.class);
     private static final int ITEM_PREVIEW_LIMIT = 500;
     private static final int FAILURE_REASON_LIMIT = 128;
+    private static final int DEFAULT_PARSE_CONCURRENCY = 8;
+    private static final int MAX_PARSE_CONCURRENCY = 32;
+    private static final int DEFAULT_PERSIST_CHUNK_SIZE = 200;
+    private static final int COORDINATOR_QUEUE_CAPACITY = 16;
+    private static final AtomicInteger THREAD_SEQUENCE = new AtomicInteger(0);
     private static final Pattern REPORT_SQL_START_PATTERN =
         Pattern.compile("(?i)\\b(WITH|SELECT)\\b(?=\\s|/\\*)");
 
@@ -70,6 +95,21 @@ public class ReportBatchApplicationService {
     private final ReportSqlResolver reportSqlResolver;
     private final ReportBatchParseStatisticsAssembler parseStatisticsAssembler =
         new ReportBatchParseStatisticsAssembler();
+    private final Set<String> runningReportBatches = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    private final ExecutorService reportBatchCoordinatorExecutor = new ThreadPoolExecutor(
+        1,
+        2,
+        60L,
+        TimeUnit.SECONDS,
+        new LinkedBlockingQueue<Runnable>(COORDINATOR_QUEUE_CAPACITY),
+        namedThreadFactory("report-batch-coordinator")
+    );
+
+    @Value("${sql-optimization.report-batch.parse-concurrency:8}")
+    private int reportBatchParseConcurrency = DEFAULT_PARSE_CONCURRENCY;
+
+    @Value("${sql-optimization.report-batch.persist-chunk-size:200}")
+    private int reportBatchPersistChunkSize = DEFAULT_PERSIST_CHUNK_SIZE;
 
     public ReportBatchApplicationService(ReportBatchRepository reportBatchRepository,
                                          ReportBatchItemRepository reportBatchItemRepository,
@@ -115,9 +155,7 @@ public class ReportBatchApplicationService {
         List<ReportBatchItem> items = buildItems(batch, rows);
         batch.recordImportedItems(countDistinctReports(items), now);
         reportBatchRepository.save(batch);
-        for (ReportBatchItem item : items) {
-            reportBatchItemRepository.save(item);
-        }
+        reportBatchItemRepository.saveAll(items);
         return toResponse(batch, items);
     }
 
@@ -127,46 +165,35 @@ public class ReportBatchApplicationService {
         if (items.isEmpty()) {
             return toResponse(batch, items);
         }
+        if (runningReportBatches.contains(batch.getBatchId())) {
+            return toResponse(batch, items);
+        }
+        if (!runningReportBatches.add(batch.getBatchId())) {
+            return toResponse(batch, items);
+        }
 
         Instant now = Instant.now();
         batch.transitionTo(ReportBatch.ParseStatus.RESOLVING_SQLS, now, "REPORT_SQL_RESOLUTION_STARTED");
-        List<ReportBatchItem> resolvedItems = new ArrayList<ReportBatchItem>(items.size());
-        for (ReportBatchItem item : items) {
-            String resolvedSqlText = resolveSqlText(batch, item);
-            Map<String, Object> commentContext = buildCommentContext(batch, item);
-            StructureParseRequest structureRequest = buildStructureRequest(resolvedSqlText, batch, commentContext);
-            StructureParseResponseVO structureParse = structureParseApplicationService.parse(structureRequest);
-            List<String> issueScenes = extractIssueScenes(structureParse.getIssues());
-            List<String> logicalObjectKeys = extractLogicalObjectKeys(structureParse.getLogicalObjectHits());
-            AccessParseResponseVO accessParse = parseAccessIfPossible(resolvedSqlText, batch, commentContext, structureParse.getParseTaskId());
-            ReportBatchItem.Status status = resolveStatus(structureParse, accessParse);
-            if (accessParse != null) {
-                structureParseApplicationService.writeParseHistoryWithAccess(
-                    structureParse,
-                    accessParse,
-                    structureRequest,
-                    resolveHistoryResultStatus(status)
-                );
-            }
-            item.complete(
-                resolvedSqlText,
-                structureParse.getParseTaskId(),
-                structureParse.getSyntaxStatus(),
-                accessParse == null ? "SKIPPED" : accessParse.getServiceStatus(),
-                accessParse == null ? "SKIPPED" : accessParse.getConnectionStatus(),
-                status,
-                resolveFailureReason(structureParse, accessParse),
-                issueScenes,
-                logicalObjectKeys,
-                now
-            );
-            reportBatchItemRepository.save(item);
-            resolvedItems.add(item);
-        }
-
-        recalculate(batch, resolvedItems, now);
         reportBatchRepository.save(batch);
-        return toResponse(batch, resolvedItems);
+        ContextValue contextValue = RequestContext.snapshot();
+        try {
+            reportBatchCoordinatorExecutor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    runReportBatchStructureResolution(batch.getBatchId(), contextValue);
+                }
+            });
+        } catch (RejectedExecutionException ex) {
+            runningReportBatches.remove(batch.getBatchId());
+            batch.transitionTo(ReportBatch.ParseStatus.FAILED, Instant.now(), "REPORT_SQL_RESOLUTION_START_REJECTED");
+            reportBatchRepository.save(batch);
+            throw new BizException(
+                ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_PIPELINE_NOT_READY,
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Report batch parse executor is saturated"
+            );
+        }
+        return toResponse(batch, items);
     }
 
     public ReportBatchStatusResponse getBatch(String batchId) {
@@ -203,6 +230,23 @@ public class ReportBatchApplicationService {
         );
     }
 
+    public ReportBatchIssueSceneDetailVO getBatchIssueSceneDetail(String batchId,
+                                                                  String issueScene,
+                                                                  Integer pageNumber,
+                                                                  Integer pageSize,
+                                                                  String reportCode,
+                                                                  String logicalObjectKey) {
+        ReportBatch batch = requireBatch(batchId);
+        return parseStatisticsAssembler.buildIssueSceneDetail(
+            reportBatchItemRepository.findByBatchId(batch.getBatchId()),
+            requireText(issueScene, "issueScene"),
+            pageNumber,
+            pageSize,
+            reportCode,
+            logicalObjectKey
+        );
+    }
+
     public List<ReportBatchStatusResponse> listBatches() {
         String tenantId = requireAuthorizedTenant(null);
         List<ReportBatchStatusResponse> result = new ArrayList<ReportBatchStatusResponse>();
@@ -228,6 +272,173 @@ public class ReportBatchApplicationService {
             }
         });
         return result;
+    }
+
+    private void runReportBatchStructureResolution(String batchId, ContextValue contextValue) {
+        RequestContext.restore(contextValue);
+        try {
+            ReportBatch batch = requireBatch(batchId);
+            List<ReportBatchItem> items = reportBatchItemRepository.findByBatchId(batch.getBatchId());
+            List<ReportBatchItem> resolvedItems = resolveItemsConcurrently(batch, items, contextValue);
+            Instant completedAt = Instant.now();
+            recalculate(batch, resolvedItems, completedAt);
+            reportBatchRepository.save(batch);
+            LOGGER.info(
+                "operation=REPORT_BATCH_STRUCTURE_PARSE batchId={} tenantId={} totalSqls={} status={}",
+                batch.getBatchId(),
+                batch.getTenantId(),
+                Integer.valueOf(resolvedItems.size()),
+                batch.getStatus()
+            );
+        } catch (RuntimeException ex) {
+            LOGGER.warn(
+                "operation=REPORT_BATCH_STRUCTURE_PARSE batchId={} tenantId={} status=FAILED reason={}",
+                batchId,
+                RequestContext.getTenantId(),
+                ex.getMessage()
+            );
+            markBatchFailed(batchId);
+        } finally {
+            runningReportBatches.remove(batchId);
+            RequestContext.clear();
+        }
+    }
+
+    private List<ReportBatchItem> resolveItemsConcurrently(ReportBatch batch,
+                                                           List<ReportBatchItem> items,
+                                                           ContextValue contextValue) {
+        if (items == null || items.isEmpty()) {
+            return Collections.emptyList();
+        }
+        int concurrency = resolveParseConcurrency();
+        ExecutorService itemExecutor = Executors.newFixedThreadPool(
+            concurrency,
+            namedThreadFactory("report-batch-item-parser")
+        );
+        CompletionService<ReportBatchItem> completionService =
+            new ExecutorCompletionService<ReportBatchItem>(itemExecutor);
+        for (ReportBatchItem item : items) {
+            completionService.submit(new Callable<ReportBatchItem>() {
+                @Override
+                public ReportBatchItem call() {
+                    RequestContext.restore(contextValue);
+                    try {
+                        return resolveReportBatchItemStructureOnly(batch, item, Instant.now());
+                    } finally {
+                        RequestContext.clear();
+                    }
+                }
+            });
+        }
+
+        List<ReportBatchItem> resolvedItems = new ArrayList<ReportBatchItem>(items.size());
+        List<ReportBatchItem> pendingPersist = new ArrayList<ReportBatchItem>(resolvePersistChunkSize());
+        try {
+            for (int index = 0; index < items.size(); index++) {
+                try {
+                    Future<ReportBatchItem> future = completionService.take();
+                    ReportBatchItem resolvedItem = future.get();
+                    resolvedItems.add(resolvedItem);
+                    pendingPersist.add(resolvedItem);
+                    if (pendingPersist.size() >= resolvePersistChunkSize()) {
+                        reportBatchItemRepository.saveAll(new ArrayList<ReportBatchItem>(pendingPersist));
+                        pendingPersist.clear();
+                    }
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Report batch structure parse was interrupted", ex);
+                } catch (Exception ex) {
+                    throw new IllegalStateException("Report batch structure parse failed", ex);
+                }
+            }
+            if (!pendingPersist.isEmpty()) {
+                reportBatchItemRepository.saveAll(pendingPersist);
+            }
+        } finally {
+            itemExecutor.shutdownNow();
+        }
+        resolvedItems.sort(Comparator.comparingInt(ReportBatchItem::getSequenceNumber));
+        return resolvedItems;
+    }
+
+    private ReportBatchItem resolveReportBatchItemStructureOnly(ReportBatch batch,
+                                                                ReportBatchItem item,
+                                                                Instant now) {
+        String resolvedSqlText = null;
+        try {
+            resolvedSqlText = resolveSqlText(batch, item);
+            Map<String, Object> commentContext = buildCommentContext(batch, item);
+            StructureParseRequest structureRequest = buildStructureRequest(resolvedSqlText, batch, commentContext);
+            structureRequest.setHistoryWriteEnabled(Boolean.FALSE);
+            StructureParseResponseVO structureParse = structureParseApplicationService.parse(structureRequest);
+            List<String> issueScenes = extractIssueScenes(structureParse.getIssues());
+            List<String> logicalObjectKeys = extractLogicalObjectKeys(structureParse.getLogicalObjectHits());
+            ReportBatchItem.Status status = resolveStatus(structureParse, null);
+            item.complete(
+                resolvedSqlText,
+                structureParse.getParseTaskId(),
+                structureParse.getSyntaxStatus(),
+                "SKIPPED",
+                "SKIPPED",
+                status,
+                resolveFailureReason(structureParse, null),
+                issueScenes,
+                logicalObjectKeys,
+                now
+            );
+            return item;
+        } catch (RuntimeException ex) {
+            item.complete(
+                firstNonBlank(resolvedSqlText, item.getSqlText()),
+                null,
+                "FAILED",
+                "SKIPPED",
+                "SKIPPED",
+                ReportBatchItem.Status.FAILED,
+                SqlParseDiagnosticSupport.compactDiagnosticText("REPORT_BATCH_STRUCTURE_PARSE_FAILED: " + ex.getMessage(), FAILURE_REASON_LIMIT),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                now
+            );
+            return item;
+        }
+    }
+
+    private void markBatchFailed(String batchId) {
+        try {
+            ReportBatch batch = reportBatchRepository.findByBatchId(batchId);
+            if (batch == null) {
+                return;
+            }
+            List<ReportBatchItem> items = reportBatchItemRepository.findByBatchId(batchId);
+            batch.applySummary(
+                countDistinctReports(items),
+                countFullyResolvedReports(items),
+                countReportsWithNonResolvedSql(items),
+                ReportBatch.ParseStatus.FAILED,
+                Instant.now(),
+                "REPORT_SQL_RESOLUTION_FAILED"
+            );
+            reportBatchRepository.save(batch);
+        } catch (RuntimeException ex) {
+            LOGGER.warn("operation=REPORT_BATCH_STRUCTURE_PARSE_MARK_FAILED batchId={} status=DEGRADED reason={}", batchId, ex.getMessage());
+        }
+    }
+
+    private int resolveParseConcurrency() {
+        if (reportBatchParseConcurrency <= 0) {
+            return DEFAULT_PARSE_CONCURRENCY;
+        }
+        return Math.min(MAX_PARSE_CONCURRENCY, reportBatchParseConcurrency);
+    }
+
+    private int resolvePersistChunkSize() {
+        return reportBatchPersistChunkSize <= 0 ? DEFAULT_PERSIST_CHUNK_SIZE : reportBatchPersistChunkSize;
+    }
+
+    @PreDestroy
+    public void shutdownReportBatchExecutor() {
+        reportBatchCoordinatorExecutor.shutdownNow();
     }
 
     private ReportBatchStatusResponse toResponse(ReportBatch batch, List<ReportBatchItem> items) {
@@ -466,7 +677,8 @@ public class ReportBatchApplicationService {
         }
         int count = 0;
         for (ReportBatchItem item : items) {
-            if (item.getStatus() != ReportBatchItem.Status.RESOLVED) {
+            if (item.getStatus() == ReportBatchItem.Status.FAILED
+                || item.getStatus() == ReportBatchItem.Status.PARTIAL_RESOLVED) {
                 count++;
             }
         }
@@ -1029,6 +1241,17 @@ public class ReportBatchApplicationService {
             return null;
         }
         return value.trim();
+    }
+
+    private static ThreadFactory namedThreadFactory(String prefix) {
+        return new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable runnable) {
+                Thread thread = new Thread(runnable, prefix + "-" + THREAD_SEQUENCE.incrementAndGet());
+                thread.setDaemon(true);
+                return thread;
+            }
+        };
     }
 
     private String extractReportImportSql(String value) {

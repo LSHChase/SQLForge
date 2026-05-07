@@ -42,6 +42,19 @@ public class MybatisReportBatchItemRepository implements ReportBatchItemReposito
     }
 
     @Override
+    public List<ReportBatchItem> saveAll(List<ReportBatchItem> items) {
+        if (items == null || items.isEmpty()) {
+            return items;
+        }
+        List<ReportBatchItemRecord> records = new ArrayList<ReportBatchItemRecord>(items.size());
+        for (ReportBatchItem item : items) {
+            records.add(toRecord(item));
+        }
+        reportBatchItemMapper.upsertBatch(records);
+        return items;
+    }
+
+    @Override
     public List<ReportBatchItem> findByBatchId(String batchId) {
         List<ReportBatchItemRecord> records = reportBatchItemMapper.selectByBatchId(batchId);
         List<ReportBatchItem> items = new ArrayList<ReportBatchItem>(records.size());

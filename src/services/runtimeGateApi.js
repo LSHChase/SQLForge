@@ -39,6 +39,10 @@ const buildReportBatchDetailQuery = filters => {
   if (reportCode) {
     params.set('reportCode', reportCode)
   }
+  const logicalObjectKey = String(filters?.logicalObjectKey || '').trim()
+  if (logicalObjectKey) {
+    params.set('logicalObjectKey', logicalObjectKey)
+  }
   const query = params.toString()
   return query ? `?${query}` : ''
 }
@@ -598,6 +602,17 @@ export const getReportBatchParseStatistics = (batchId, tenantId, requestOptions 
     tenantId,
     requestOptions: {
       requestPrefix: 'frontend-report-batch-parse-statistics',
+      ...requestOptions
+    }
+  })
+
+export const getReportBatchIssueSceneDetail = (batchId, issueScene, tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/report-batches/${encodeURIComponent(batchId)}/parse-statistics/issue-scenes/${encodeURIComponent(issueScene)}${buildReportBatchDetailQuery(requestOptions)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-report-batch-issue-scene-detail',
       ...requestOptions
     }
   })

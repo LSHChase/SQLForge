@@ -4,6 +4,9 @@ import com.company.sqloptimization.application.controller.vo.ParseIssueSceneStat
 import com.company.sqloptimization.application.controller.vo.ParsePriorityMatrixCellVO;
 import com.company.sqloptimization.application.controller.vo.ParseReportStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseStatisticsOverviewVO;
+import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneDetailVO;
+import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneLogicalObjectDetailVO;
+import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneReportDetailVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchImportanceStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchLogicalObjectStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
@@ -114,6 +117,68 @@ class ReportBatchParseStatisticsAssembler {
         return statistics;
     }
 
+    ReportBatchIssueSceneDetailVO buildIssueSceneDetail(List<ReportBatchItem> sourceItems,
+                                                        String issueScene,
+                                                        Integer pageNumber,
+                                                        Integer pageSize,
+                                                        String reportCode,
+                                                        String logicalObjectKey) {
+        List<ReportBatchItem> items = sourceItems == null
+            ? Collections.<ReportBatchItem>emptyList()
+            : sourceItems;
+        String normalizedIssueScene = trimToNull(issueScene);
+        String reportCodeFilter = trimToNull(reportCode);
+        String logicalObjectKeyFilter = trimToNull(logicalObjectKey);
+        SqlStatisticPage pageSelection = SqlStatisticPage.from(
+            pageNumber,
+            pageSize,
+            reportCodeFilter,
+            SQL_STATISTIC_PREVIEW_LIMIT
+        );
+        List<ReportBatchSqlStatisticVO> sqlStatistics = new ArrayList<ReportBatchSqlStatisticVO>();
+        Map<String, IssueSceneReportAccumulator> reportAccumulators =
+            new LinkedHashMap<String, IssueSceneReportAccumulator>();
+        Map<String, LogicalObjectAccumulator> logicalObjectAccumulators =
+            new LinkedHashMap<String, LogicalObjectAccumulator>();
+        int affectedIssueCount = 0;
+
+        for (ReportBatchItem item : items) {
+            int issueCount = issueCount(item, normalizedIssueScene);
+            if (issueCount <= 0 || !matchesReportCode(item, reportCodeFilter) || !matchesLogicalObject(item, logicalObjectKeyFilter)) {
+                continue;
+            }
+            affectedIssueCount += issueCount;
+            SqlIssueAssessment assessment = assessItem(item);
+            sqlStatistics.add(toSqlStatistic(item, assessment));
+            accumulateIssueSceneReport(item, issueCount, reportAccumulators);
+            accumulateIssueSceneLogicalObjects(item, issueCount, logicalObjectAccumulators);
+        }
+
+        StructureParseIssueScoringSnapshot snapshot = snapshot(normalizedIssueScene);
+        List<ReportBatchSqlStatisticVO> sortedSqlStatistics = sortSqlStatistics(sqlStatistics);
+        List<ReportBatchSqlStatisticVO> pageSqlStatistics = pageSqlStatistics(sortedSqlStatistics, pageSelection);
+        ReportBatchIssueSceneDetailVO detail = new ReportBatchIssueSceneDetailVO();
+        detail.setIssueScene(normalizedIssueScene);
+        detail.setIssueDomain(snapshot.getIssueDomain().name());
+        detail.setSeverity(snapshot.getSeverity().name());
+        detail.setPriorityLevel(snapshot.getPriorityLevel().name());
+        detail.setPriorityScore(Integer.valueOf(snapshot.getPriorityScore()));
+        detail.setAffectedSqlCount(Integer.valueOf(sqlStatistics.size()));
+        detail.setAffectedIssueCount(Integer.valueOf(affectedIssueCount));
+        detail.setReportCount(Integer.valueOf(reportAccumulators.size()));
+        detail.setLogicalObjectCount(Integer.valueOf(logicalObjectAccumulators.size()));
+        detail.setReportCodeFilter(reportCodeFilter);
+        detail.setLogicalObjectKeyFilter(logicalObjectKeyFilter);
+        detail.setSqlStatisticPageNumber(Integer.valueOf(pageSelection.pageNumber));
+        detail.setSqlStatisticPageSize(Integer.valueOf(pageSelection.pageSize));
+        detail.setSqlStatisticPageCount(Integer.valueOf(pageCount(sortedSqlStatistics.size(), pageSelection.pageSize)));
+        detail.setSqlStatisticTotalCount(Integer.valueOf(sortedSqlStatistics.size()));
+        detail.setReportDetails(toIssueSceneReportDetails(reportAccumulators));
+        detail.setLogicalObjectDetails(toIssueSceneLogicalObjectDetails(logicalObjectAccumulators));
+        detail.setSqlStatistics(pageSqlStatistics);
+        return detail;
+    }
+
     private ParseStatisticsOverviewVO overview(int totalSqlCount,
                                                int issueSqlCount,
                                                int totalIssueCount,
@@ -140,17 +205,23 @@ class ReportBatchParseStatisticsAssembler {
         Set<String> uniqueScenes = new LinkedHashSet<String>(item.getIssueScenes());
         for (String scene : uniqueScenes) {
             StructureParseIssueScoringSnapshot snapshot = snapshot(scene);
-            issueSceneKeys.add(snapshot.getIssueScene());
-            SceneAccumulator accumulator = accumulators.get(snapshot.getIssueScene());
+            String sceneKey = firstNonBlank(scene, snapshot.getIssueScene());
+            issueSceneKeys.add(sceneKey);
+            SceneAccumulator accumulator = accumulators.get(sceneKey);
             if (accumulator == null) {
-                accumulator = new SceneAccumulator(snapshot);
-                accumulators.put(snapshot.getIssueScene(), accumulator);
+                accumulator = new SceneAccumulator(sceneKey, snapshot);
+                accumulators.put(sceneKey, accumulator);
             }
             accumulator.affectedSqlCount++;
+            if (StringUtils.hasText(item.getReportCode())) {
+                accumulator.reportCodes.add(item.getReportCode());
+            }
+            accumulator.logicalObjectKeys.addAll(item.getLogicalObjectKeys());
         }
         for (String scene : item.getIssueScenes()) {
             StructureParseIssueScoringSnapshot snapshot = snapshot(scene);
-            SceneAccumulator accumulator = accumulators.get(snapshot.getIssueScene());
+            String sceneKey = firstNonBlank(scene, snapshot.getIssueScene());
+            SceneAccumulator accumulator = accumulators.get(sceneKey);
             if (accumulator != null) {
                 accumulator.affectedIssueCount++;
             }
@@ -240,7 +311,7 @@ class ReportBatchParseStatisticsAssembler {
         List<ParseIssueSceneStatisticVO> result = new ArrayList<ParseIssueSceneStatisticVO>(accumulators.size());
         for (SceneAccumulator accumulator : accumulators.values()) {
             ParseIssueSceneStatisticVO vo = new ParseIssueSceneStatisticVO();
-            vo.setIssueScene(accumulator.snapshot.getIssueScene());
+            vo.setIssueScene(accumulator.issueScene);
             vo.setIssueDomain(accumulator.snapshot.getIssueDomain().name());
             vo.setSeverity(accumulator.snapshot.getSeverity().name());
             vo.setPriorityLevel(accumulator.snapshot.getPriorityLevel().name());
@@ -250,12 +321,92 @@ class ReportBatchParseStatisticsAssembler {
             vo.setSqlRatio(Double.valueOf(totalSqlCount == 0 ? 0D : (double) accumulator.affectedSqlCount / totalSqlCount));
             vo.setImportant(Boolean.valueOf(accumulator.snapshot.isImportant()));
             vo.setUrgent(Boolean.valueOf(accumulator.snapshot.isUrgent()));
+            vo.setReportCount(Integer.valueOf(accumulator.reportCodes.size()));
+            vo.setLogicalObjectCount(Integer.valueOf(accumulator.logicalObjectKeys.size()));
+            vo.setSampleReportCodes(sampleValues(accumulator.reportCodes));
+            vo.setSampleLogicalObjectKeys(sampleValues(accumulator.logicalObjectKeys));
             result.add(vo);
         }
         result.sort(Comparator
             .comparing(ParseIssueSceneStatisticVO::getAffectedSqlCount, Comparator.reverseOrder())
             .thenComparing(ParseIssueSceneStatisticVO::getPriorityScore, Comparator.reverseOrder())
             .thenComparing(ParseIssueSceneStatisticVO::getIssueScene));
+        return result;
+    }
+
+    private void accumulateIssueSceneReport(ReportBatchItem item,
+                                            int issueCount,
+                                            Map<String, IssueSceneReportAccumulator> accumulators) {
+        String reportCode = firstNonBlank(item.getReportCode(), "UNSPECIFIED_REPORT");
+        IssueSceneReportAccumulator accumulator = accumulators.get(reportCode);
+        if (accumulator == null) {
+            accumulator = new IssueSceneReportAccumulator(reportCode, item.getReportName());
+            accumulators.put(reportCode, accumulator);
+        }
+        accumulator.sqlCount++;
+        accumulator.issueCount += issueCount;
+        accumulator.logicalObjectKeys.addAll(item.getLogicalObjectKeys());
+    }
+
+    private void accumulateIssueSceneLogicalObjects(ReportBatchItem item,
+                                                   int issueCount,
+                                                   Map<String, LogicalObjectAccumulator> accumulators) {
+        Set<String> uniqueObjectKeys = new LinkedHashSet<String>(item.getLogicalObjectKeys());
+        for (String objectKey : uniqueObjectKeys) {
+            if (!StringUtils.hasText(objectKey)) {
+                continue;
+            }
+            LogicalObjectAccumulator accumulator = accumulators.get(objectKey);
+            if (accumulator == null) {
+                accumulator = new LogicalObjectAccumulator(objectKey);
+                accumulators.put(objectKey, accumulator);
+            }
+            accumulator.sqlCount++;
+            accumulator.issueCount += issueCount;
+            if (StringUtils.hasText(item.getReportCode())) {
+                accumulator.reportCodes.add(item.getReportCode());
+            }
+        }
+    }
+
+    private List<ReportBatchIssueSceneReportDetailVO> toIssueSceneReportDetails(
+        Map<String, IssueSceneReportAccumulator> accumulators) {
+        List<ReportBatchIssueSceneReportDetailVO> result =
+            new ArrayList<ReportBatchIssueSceneReportDetailVO>(accumulators.size());
+        for (IssueSceneReportAccumulator accumulator : accumulators.values()) {
+            ReportBatchIssueSceneReportDetailVO vo = new ReportBatchIssueSceneReportDetailVO();
+            vo.setReportCode(accumulator.reportCode);
+            vo.setReportName(accumulator.reportName);
+            vo.setSqlCount(Integer.valueOf(accumulator.sqlCount));
+            vo.setIssueCount(Integer.valueOf(accumulator.issueCount));
+            vo.setLogicalObjectCount(Integer.valueOf(accumulator.logicalObjectKeys.size()));
+            vo.setLogicalObjectKeys(new ArrayList<String>(accumulator.logicalObjectKeys));
+            result.add(vo);
+        }
+        result.sort(Comparator
+            .comparing(ReportBatchIssueSceneReportDetailVO::getSqlCount, Comparator.reverseOrder())
+            .thenComparing(ReportBatchIssueSceneReportDetailVO::getIssueCount, Comparator.reverseOrder())
+            .thenComparing(ReportBatchIssueSceneReportDetailVO::getReportCode));
+        return result;
+    }
+
+    private List<ReportBatchIssueSceneLogicalObjectDetailVO> toIssueSceneLogicalObjectDetails(
+        Map<String, LogicalObjectAccumulator> accumulators) {
+        List<ReportBatchIssueSceneLogicalObjectDetailVO> result =
+            new ArrayList<ReportBatchIssueSceneLogicalObjectDetailVO>(accumulators.size());
+        for (LogicalObjectAccumulator accumulator : accumulators.values()) {
+            ReportBatchIssueSceneLogicalObjectDetailVO vo = new ReportBatchIssueSceneLogicalObjectDetailVO();
+            vo.setObjectKey(accumulator.objectKey);
+            vo.setSqlCount(Integer.valueOf(accumulator.sqlCount));
+            vo.setIssueCount(Integer.valueOf(accumulator.issueCount));
+            vo.setReportCount(Integer.valueOf(accumulator.reportCodes.size()));
+            vo.setReportCodes(new ArrayList<String>(accumulator.reportCodes));
+            result.add(vo);
+        }
+        result.sort(Comparator
+            .comparing(ReportBatchIssueSceneLogicalObjectDetailVO::getSqlCount, Comparator.reverseOrder())
+            .thenComparing(ReportBatchIssueSceneLogicalObjectDetailVO::getIssueCount, Comparator.reverseOrder())
+            .thenComparing(ReportBatchIssueSceneLogicalObjectDetailVO::getObjectKey));
         return result;
     }
 
@@ -463,6 +614,49 @@ class ReportBatchParseStatisticsAssembler {
         return "NORMAL";
     }
 
+    private int issueCount(ReportBatchItem item, String issueScene) {
+        if (item == null || !StringUtils.hasText(issueScene)) {
+            return 0;
+        }
+        int count = 0;
+        for (String itemIssueScene : item.getIssueScenes()) {
+            if (issueScene.equals(itemIssueScene)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private boolean matchesReportCode(ReportBatchItem item, String reportCode) {
+        return !StringUtils.hasText(reportCode) || reportCode.equals(item == null ? null : item.getReportCode());
+    }
+
+    private boolean matchesLogicalObject(ReportBatchItem item, String logicalObjectKey) {
+        return !StringUtils.hasText(logicalObjectKey)
+            || (item != null && item.getLogicalObjectKeys().contains(logicalObjectKey));
+    }
+
+    private List<String> sampleValues(Set<String> values) {
+        List<String> result = new ArrayList<String>();
+        if (values == null || values.isEmpty()) {
+            return result;
+        }
+        for (String value : values) {
+            if (result.size() >= 5) {
+                break;
+            }
+            result.add(value);
+        }
+        return result;
+    }
+
+    private String trimToNull(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        return value.trim();
+    }
+
     private String firstNonBlank(String... values) {
         if (values == null) {
             return null;
@@ -476,11 +670,15 @@ class ReportBatchParseStatisticsAssembler {
     }
 
     private static final class SceneAccumulator {
+        private final String issueScene;
         private final StructureParseIssueScoringSnapshot snapshot;
         private int affectedSqlCount;
         private int affectedIssueCount;
+        private final Set<String> reportCodes = new LinkedHashSet<String>();
+        private final Set<String> logicalObjectKeys = new LinkedHashSet<String>();
 
-        private SceneAccumulator(StructureParseIssueScoringSnapshot snapshot) {
+        private SceneAccumulator(String issueScene, StructureParseIssueScoringSnapshot snapshot) {
+            this.issueScene = issueScene;
             this.snapshot = snapshot;
         }
     }
@@ -553,6 +751,19 @@ class ReportBatchParseStatisticsAssembler {
 
         private LogicalObjectAccumulator(String objectKey) {
             this.objectKey = objectKey;
+        }
+    }
+
+    private static final class IssueSceneReportAccumulator {
+        private final String reportCode;
+        private final String reportName;
+        private int sqlCount;
+        private int issueCount;
+        private final Set<String> logicalObjectKeys = new LinkedHashSet<String>();
+
+        private IssueSceneReportAccumulator(String reportCode, String reportName) {
+            this.reportCode = reportCode;
+            this.reportName = reportName;
         }
     }
 

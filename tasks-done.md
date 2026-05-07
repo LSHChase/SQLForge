@@ -4,6 +4,24 @@
 
 ## Done
 
+### D-TASK-076: Accelerate report batch parsing and issue scene drilldown
+
+- Status: done
+- Completed at: 2026-05-06
+- Commit subject: `feat(sql-optimization): accelerate report batch parsing`
+- Priority: P1
+- Depends on: N/A
+- Scope: Implement async report batch structure parsing, batch persistence optimization, and issue-scene drilldown details for report import parse statistics.
+- Validation:
+  - `python3 scripts/foreman.py validate D-TASK-076`
+- Progress log:
+  - 2026-05-06: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented asynchronous structure-first report batch parsing, batch item bulk persistence, issue-scene drilldown APIs, and parse-record frontend detail inspection for affected reports/logical objects/SQL rows.
+  - Validation evidence: mvn -pl sql-optimization -Dtest=ReportBatchApplicationServiceTest,ReportBatchControllerTest test; mvn -pl sql-optimization test; npm run lint; npm run build; npm run test:form-governance; python3 scripts/foreman.py validate D-TASK-076; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Application-local background report batch parsing is not restart-resumable; if the service restarts mid-batch, operators should trigger resolve-sqls again for the affected batch.
+  - Next step: If production requires restart recovery, promote report batch parsing to the database-worker queue model in a follow-up task.
+
 ### HARN-075: Adjust report batch SQL detail pagination and issue location display
 
 - Status: done

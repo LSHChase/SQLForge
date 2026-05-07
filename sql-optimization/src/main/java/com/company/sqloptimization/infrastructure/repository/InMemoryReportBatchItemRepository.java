@@ -23,6 +23,17 @@ public class InMemoryReportBatchItemRepository implements ReportBatchItemReposit
     }
 
     @Override
+    public List<ReportBatchItem> saveAll(List<ReportBatchItem> nextItems) {
+        if (nextItems == null) {
+            return nextItems;
+        }
+        for (ReportBatchItem item : nextItems) {
+            save(item);
+        }
+        return nextItems;
+    }
+
+    @Override
     public List<ReportBatchItem> findByBatchId(String batchId) {
         List<ReportBatchItem> result = new ArrayList<ReportBatchItem>();
         for (ReportBatchItem item : items.values()) {

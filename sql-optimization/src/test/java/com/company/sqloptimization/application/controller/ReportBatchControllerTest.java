@@ -56,6 +56,12 @@ class ReportBatchControllerTest {
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/report-batches/{batchId}/resolve-sqls", batchId)))
             .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").exists());
+
+        awaitReportBatchTerminal(batchId, "COMPLETED");
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches/{batchId}", batchId)))
+            .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("COMPLETED"))
             .andExpect(jsonPath("$.resolvedReports").value(2))
             .andExpect(jsonPath("$.resolvedSqls").value(2))
@@ -99,6 +105,7 @@ class ReportBatchControllerTest {
             .andExpect(jsonPath("$.sqlStatisticReportCodeFilter").value("RPT_B"))
             .andExpect(jsonPath("$.sqlStatistics.length()").value(1))
             .andExpect(jsonPath("$.sqlStatistics[0].reportCode").value("RPT_B"));
+
     }
 
     @Test
@@ -117,6 +124,12 @@ class ReportBatchControllerTest {
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/report-batches/{batchId}/resolve-sqls", batchId)))
             .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").exists());
+
+        awaitReportBatchTerminal(batchId, "PARTIAL_COMPLETED");
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches/{batchId}", batchId)))
+            .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("PARTIAL_COMPLETED"))
             .andExpect(jsonPath("$.reportItems[0].reportCode").value("RPT_BAD"))
             .andExpect(jsonPath("$.reportItems[0].sqlColumnName").value("sql_1"))
@@ -126,6 +139,32 @@ class ReportBatchControllerTest {
             .andExpect(jsonPath("$.reportItems[0].failureSnippet").isNotEmpty())
             .andExpect(jsonPath("$.reportItems[0].issueLocations[0].locationSnippet").value("SELECT FROM"))
             .andExpect(jsonPath("$.reportItems[0].diagnosticSummary").isNotEmpty());
+
+        mockMvc.perform(addProtectedHeaders(get(
+                "/api/sql-optimization/report-batches/{batchId}/parse-statistics/issue-scenes/{issueScene}",
+                batchId,
+                "SQL_SYNTAX_INVALID")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.issueScene").value("SQL_SYNTAX_INVALID"))
+            .andExpect(jsonPath("$.affectedSqlCount").value(1))
+            .andExpect(jsonPath("$.reportDetails[0].reportCode").value("RPT_BAD"))
+            .andExpect(jsonPath("$.sqlStatistics[0].reportCode").value("RPT_BAD"));
+    }
+
+    private void awaitReportBatchTerminal(String batchId, String expectedStatus) throws Exception {
+        for (int attempt = 0; attempt < 100; attempt++) {
+            MvcResult result = mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches/{batchId}", batchId)))
+                .andExpect(status().isOk())
+                .andReturn();
+            String statusValue = JsonTestUtils.readValue(result.getResponse().getContentAsString(), "$.status");
+            if (expectedStatus.equals(statusValue)) {
+                return;
+            }
+            Thread.sleep(20L);
+        }
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches/{batchId}", batchId)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value(expectedStatus));
     }
 
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {

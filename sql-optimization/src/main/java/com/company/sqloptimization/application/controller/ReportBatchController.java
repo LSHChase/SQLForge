@@ -1,6 +1,7 @@
 package com.company.sqloptimization.application.controller;
 
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
+import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneDetailVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusResponse;
 import com.company.sqloptimization.application.service.ReportBatchApplicationService;
@@ -54,5 +55,23 @@ public class ReportBatchController {
         @RequestParam(value = "pageSize", required = false) Integer pageSize,
         @RequestParam(value = "reportCode", required = false) String reportCode) {
         return reportBatchApplicationService.getBatchParseStatistics(batchId, pageNumber, pageSize, reportCode);
+    }
+
+    @GetMapping("/{batchId}/parse-statistics/issue-scenes/{issueScene}")
+    public ReportBatchIssueSceneDetailVO getBatchIssueSceneDetail(
+        @PathVariable("batchId") String batchId,
+        @PathVariable("issueScene") String issueScene,
+        @RequestParam(value = "pageNumber", required = false) Integer pageNumber,
+        @RequestParam(value = "pageSize", required = false) Integer pageSize,
+        @RequestParam(value = "reportCode", required = false) String reportCode,
+        @RequestParam(value = "logicalObjectKey", required = false) String logicalObjectKey) {
+        return reportBatchApplicationService.getBatchIssueSceneDetail(
+            batchId,
+            issueScene,
+            pageNumber,
+            pageSize,
+            reportCode,
+            logicalObjectKey
+        );
     }
 }
