@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-082: 修复 SQL 历史入口指向
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `fix(frontend): HARN-082 split SQL history route`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修复 SQL 历史列表入口与解析历史查询入口共用同一路由导致默认页签互相覆盖的问题；新增独立 sqlHistory route path，调整路由 meta/default tab 与相关前端跳转，不改后端 query-history/query-execution API。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-082`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增独立 ROUTE_PATHS.sqlHistory 与 SqlHistory 路由，ParseRecord 路由默认进入批量解析/报表导入历史；SQL 历史导航、Dashboard、推荐中心、路由治理、取证与解析 historyId 深链改向 SQL history；ParseRecordView 根据 route meta/query 同步默认页签并保留 historyId 直开 SQL 详情；同步前端 smoke/contract 检查以覆盖新路由和当前 UI 契约。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-082 --include-task-audit --extra-command 'node scripts/check-history-page-contract.mjs' --extra-command 'node scripts/check-history-detail-contract.mjs' --extra-command 'node scripts/check-query-workbench-contract.mjs' --extra-command 'node scripts/check-sql-ui-contract.mjs' --extra-command 'npm run smoke:frontend-dev' --extra-command 'mvn -pl query-execution -Dtest=QueryExecutionControllerTest test' --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'git diff --check'
+  - Residual risk: 未改后端 query-history 与 query-execution API；验证为 repo-closed 静态契约、dev browser smoke、前端 lint/build 与 query-execution controller test，未在真实外部环境手工点击验收。
+  - Next step: 产品验收时分别从 SQL 历史 > 历史列表、解析与加速 > 解析历史查询、Dashboard/推荐/路由/取证跳转进入，确认默认页签和 historyId 深链符合预期。
+
 ### HARN-081: 解析历史与批次列表分页及解析详情展示修复
 
 - Status: done

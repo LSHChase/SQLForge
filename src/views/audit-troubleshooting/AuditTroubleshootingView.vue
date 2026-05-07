@@ -428,7 +428,7 @@ const openParseRecord = () => {
     return
   }
   router.push({
-    path: ROUTE_PATHS.parseRecord,
+    path: ROUTE_PATHS.sqlHistory,
     query: buildDrillQuery(source)
   })
 }

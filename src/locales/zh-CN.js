@@ -311,9 +311,13 @@ export default {
     title: 'SQL查询',
     summary: '统一提交 SQL、选择执行策略并进入后续治理链路。'
   },
+  sqlHistory: {
+    title: 'SQL历史',
+    summary: '查询已落库的 query-history 列表、关联 trace 与详情证据。'
+  },
   parseRecord: {
     title: '解析历史查询',
-    summary: '查询已落库的单条 SQL 解析记录、审计追溯与详情证据。'
+    summary: '查询批量解析与报表导入历史，回看批次级解析记录。'
   },
   repairEvidence: {
     title: '修复证据',

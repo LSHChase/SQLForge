@@ -65,8 +65,8 @@ const requiredFiles = {
   ],
   'src/views/parse-batch/ParseBatchCenterView.vue': [
     'SqlEditorField',
-    'batch-import-current-sql-input',
-    'batch-import-report-current-sql-input',
+    'batch-import-dialog-sql-input',
+    'batch-import-report-dialog-sql-input',
     'SqlCodeBlock'
   ],
   'src/views/parse-record/ParseRecordView.vue': [

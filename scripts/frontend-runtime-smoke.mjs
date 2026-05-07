@@ -324,7 +324,7 @@ const runParseRecordFlow = async (page, runtimeEvidence) => {
   const lookupWindowStart = '2026-04-01T00:00:00'
   const lookupWindowEnd = '2026-04-30T23:59:59'
 
-  await page.goto(`${frontendBaseUrl}${ROUTE_PATHS.parseRecord}`, { waitUntil: 'networkidle' })
+  await page.goto(`${frontendBaseUrl}${ROUTE_PATHS.sqlHistory}`, { waitUntil: 'networkidle' })
   await page.getByTestId('parse-record-page').waitFor({ timeout: defaultTimeoutMs })
 
   await expectNumberAtLeast(page, 'parse-record-recent-count', 3)

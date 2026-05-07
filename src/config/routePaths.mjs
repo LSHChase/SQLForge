@@ -11,6 +11,7 @@ export const ROUTE_PATHS = {
   parseStatisticsCenter: '/governance/parse/statistics',
   assetCatalog: '/governance/assets/catalog',
   system: '/system',
+  sqlHistory: '/governance/history/sql-history',
   parseRecord: '/governance/history/parse-record',
   repairEvidence: '/governance/history/repair-evidence',
   auditForensics: '/governance/history/audit-forensics',

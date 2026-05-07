@@ -311,9 +311,13 @@ export default {
     title: 'SQL Query',
     summary: 'Submit SQL, select an execution strategy and enter the downstream governance flow.'
   },
+  sqlHistory: {
+    title: 'SQL History',
+    summary: 'Search persisted query-history rows, linked traces, and detail evidence.'
+  },
   parseRecord: {
     title: 'Parse History Search',
-    summary: 'Search persisted single SQL parse records, audit traces, and detail evidence.'
+    summary: 'Search batch parse and report-import history with batch-level parse records.'
   },
   repairEvidence: {
     title: 'Repair Evidence',

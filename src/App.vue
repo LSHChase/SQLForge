@@ -72,7 +72,7 @@ const navigationTree = computed(() => {
       key: 'sql-history',
       label: { zh: 'SQL 历史', en: 'SQL History' },
       items: [
-        { ...buildNavTarget(ROUTE_PATHS.parseRecord), titleKey: 'parseRecord.title', menuLabel: { zh: '历史列表', en: 'History list' } },
+        { ...buildNavTarget(ROUTE_PATHS.sqlHistory), titleKey: 'sqlHistory.title', menuLabel: { zh: '历史列表', en: 'History list' } },
         { ...buildNavTarget(ROUTE_PATHS.repairEvidence), titleKey: 'repairEvidence.title', menuLabel: { zh: '修复证据', en: 'Repair evidence' } },
         { ...buildNavTarget(ROUTE_PATHS.auditForensics), titleKey: 'auditForensics.title', menuLabel: { zh: '审计取证', en: 'Audit forensics' } }
       ]

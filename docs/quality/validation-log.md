@@ -2626,3 +2626,22 @@
 2026-05-07T11:28:57-05:00 | HARN-081 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-07T11:28:57-05:00 | HARN-081 closeout commit | `R-168` | projected | `git commit -m 'feat(frontend): paginate parse histories and show details in dialog' (projected-precommit)`
 2026-05-07T11:28:57-05:00 | HARN-081 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-07T11:43:36-05:00 | HARN-082 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-07T11:43:36-05:00 | HARN-082 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-07T11:44:00-05:00 | HARN-082 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-07T11:44:00-05:00 | HARN-082 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-07T11:44:00-05:00 | HARN-082 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-07T11:44:00-05:00 | HARN-082 validate | `R-133`, `R-168` | passed | `node scripts/check-history-page-contract.mjs`
+2026-05-07T11:44:00-05:00 | HARN-082 validate | `R-133`, `R-168` | passed | `node scripts/check-history-detail-contract.mjs`
+2026-05-07T11:44:00-05:00 | HARN-082 validate | `R-133`, `R-168` | passed | `node scripts/check-query-workbench-contract.mjs`
+2026-05-07T11:44:00-05:00 | HARN-082 validate | `R-133`, `R-168` | passed | `node scripts/check-sql-ui-contract.mjs`
+2026-05-07T11:44:04-05:00 | HARN-082 validate | `R-133`, `R-168` | passed | `npm run smoke:frontend-dev`
+2026-05-07T11:44:07-05:00 | HARN-082 validate | `R-133`, `R-168` | passed | `mvn -pl query-execution -Dtest=QueryExecutionControllerTest test`
+2026-05-07T11:44:08-05:00 | HARN-082 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-07T11:44:12-05:00 | HARN-082 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-07T11:44:12-05:00 | HARN-082 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-07T11:45:20-05:00 | HARN-082 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-07T11:45:20-05:00 | HARN-082 closeout commit | `R-168` | projected | `git commit -m 'fix(frontend): HARN-082 split SQL history route' (projected-precommit)`
+2026-05-07T11:45:20-05:00 | HARN-082 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-07T11:45:20-05:00 | HARN-082 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-page-contract.mjs (projected-precommit)`
+2026-05-07T11:45:20-05:00 | HARN-082 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:frontend-dev (projected-precommit)`

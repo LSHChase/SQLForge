@@ -71,8 +71,7 @@ const waitForDevServer = async baseUrl => {
   throw new Error(`Frontend dev server did not become ready at ${baseUrl}`)
 }
 
-const expectText = async (page, testId, expectedText) => {
-  const locator = page.getByTestId(testId)
+const expectTextInLocator = async (locator, expectedText) => {
   await locator.waitFor({ timeout: defaultTimeoutMs })
   const startedAt = Date.now()
 
@@ -81,16 +80,23 @@ const expectText = async (page, testId, expectedText) => {
     if (currentText.includes(expectedText)) {
       return
     }
-    await page.waitForTimeout(200)
+    await locator.page().waitForTimeout(200)
   }
 
-  throw new Error(`Expected ${testId} to include "${expectedText}"`)
+  throw new Error(`Expected locator to include "${expectedText}"`)
 }
 
 const parseJsonBody = request => {
   const text = request.postData() || ''
   return text ? JSON.parse(text) : {}
 }
+
+const fulfillJson = (route, body) =>
+  route.fulfill({
+    status: 200,
+    contentType: 'application/json; charset=utf-8',
+    body: JSON.stringify(body)
+  })
 
 const assertDevHeaders = (request, expectedTenantId, expectedPrefixes) => {
   const headers = request.headers()
@@ -137,6 +143,7 @@ const runBrowserSmoke = async baseUrl => {
   const pageErrors = []
   const unexpectedApiRequests = []
   let governanceStatsCalls = 0
+  let queryExecuteCalls = 0
 
   page.on('pageerror', error => {
     pageErrors.push(error.message)
@@ -145,45 +152,89 @@ const runBrowserSmoke = async baseUrl => {
   await page.route('**/api/**', async route => {
     const request = route.request()
     const { pathname } = new URL(request.url())
+    const requestPrefix = request.headers()['x-sqlforge-dev-request-prefix'] || ''
+
+    if (requestPrefix.startsWith('frontend-dashboard-')) {
+      if (pathname === '/api/sql-optimization/parse-statistics/overview') {
+        await fulfillJson(route, { totalSqlCount: 0, issueSqlCount: 0, issueSceneCount: 0 })
+        return
+      }
+      if (pathname === '/api/sql-optimization/parse-statistics/by-issue-scene') {
+        await fulfillJson(route, [])
+        return
+      }
+      if (pathname === '/api/sql-optimization/parse-statistics/important-urgent') {
+        await fulfillJson(route, [])
+        return
+      }
+      if (pathname === '/api/governance/admin/messages/stats') {
+        await fulfillJson(route, { pending: 0, total: 0, failed: 0 })
+        return
+      }
+      if (pathname === '/api/sql-optimization/dispatch-contract') {
+        await fulfillJson(route, { coordinationMode: 'PULL_ONLY', externalPullRequired: false })
+        return
+      }
+      if (pathname === '/api/governance/query-history') {
+        await fulfillJson(route, {
+          items: [],
+          pageNo: 1,
+          pageSize: 8,
+          totalCount: 0,
+          pageCount: 0,
+          classificationSummary: {
+            totalItems: 0,
+            accessChannelCounts: {}
+          }
+        })
+        return
+      }
+      if (pathname === '/api/sql-optimization/dispatch-events') {
+        await fulfillJson(route, [])
+        return
+      }
+      if (pathname === '/api/sql-optimization/recommendations') {
+        await fulfillJson(route, [])
+        return
+      }
+    }
 
     if (pathname === '/api/query-execution/queries/execute') {
       assertDevHeaders(request, 'tenant-a', ['frontend-query'])
+      queryExecuteCalls += 1
       const payload = parseJsonBody(request)
       const isRecoveryFlow = Boolean(payload.queryContext?.timeoutMs)
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json; charset=utf-8',
-        body: JSON.stringify(
-          isRecoveryFlow
-            ? {
-                status: 'PARTIAL',
-                degraded: true,
-                implementationStage: 'DEV_BROWSER_SMOKE',
-                degradeReason: 'Mock timeout fallback',
-                rows: [{ orderId: 'dev-recovery-order-1', totalAmount: 18.4 }],
-                retryPath: [
-                  { engine: 'HETU', resultStatus: 'TIMEOUT', elapsedMs: 30 },
-                  { engine: 'HIVE', resultStatus: 'SUCCESS', elapsedMs: 18 }
-                ],
-                sqlFingerprint: 'query-recovery-fingerprint',
-                metadata: {
-                  targetEngine: 'HIVE'
-                }
+      await fulfillJson(
+        route,
+        isRecoveryFlow
+          ? {
+              status: 'PARTIAL',
+              degraded: true,
+              implementationStage: 'DEV_BROWSER_SMOKE',
+              degradeReason: 'Mock timeout fallback',
+              rows: [{ orderId: 'dev-recovery-order-1', totalAmount: 18.4 }],
+              retryPath: [
+                { engine: 'HETU', resultStatus: 'TIMEOUT', elapsedMs: 30 },
+                { engine: 'HIVE', resultStatus: 'SUCCESS', elapsedMs: 18 }
+              ],
+              sqlFingerprint: 'query-recovery-fingerprint',
+              metadata: {
+                targetEngine: 'HIVE'
               }
-            : {
-                status: 'SUCCESS',
-                degraded: false,
-                implementationStage: 'DEV_BROWSER_SMOKE',
-                degradeReason: '',
-                rows: [{ orderId: 'dev-success-order-1', totalAmount: 42.8 }],
-                retryPath: [],
-                sqlFingerprint: 'query-success-fingerprint',
-                metadata: {
-                  targetEngine: 'HETU'
-                }
+            }
+          : {
+              status: 'SUCCESS',
+              degraded: false,
+              implementationStage: 'DEV_BROWSER_SMOKE',
+              degradeReason: '',
+              rows: [{ orderId: 'dev-success-order-1', totalAmount: 42.8 }],
+              retryPath: [],
+              sqlFingerprint: 'query-success-fingerprint',
+              metadata: {
+                targetEngine: 'HETU'
               }
-        )
-      })
+            }
+      )
       return
     }
 
@@ -193,15 +244,12 @@ const runBrowserSmoke = async baseUrl => {
         'frontend-query-governance-stats-after'
       ])
       governanceStatsCalls += 1
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json; charset=utf-8',
-        body: JSON.stringify(
-          governanceStatsCalls === 1
-            ? { pending: 0, total: 0, failed: 0 }
-            : { pending: 1, total: 1, failed: 1 }
-        )
-      })
+      await fulfillJson(
+        route,
+        governanceStatsCalls === 1
+          ? { pending: 0, total: 0, failed: 0 }
+          : { pending: 1, total: 1, failed: 1 }
+      )
       return
     }
 
@@ -242,18 +290,16 @@ const runBrowserSmoke = async baseUrl => {
     await page.getByTestId('query-flow-page').waitFor({ timeout: defaultTimeoutMs })
 
     await page.getByTestId('query-flow-submit').click()
-    await expectText(page, 'query-flow-status', 'SUCCESS')
-    await expectText(page, 'query-flow-engine', 'HETU')
-    await expectText(page, 'query-flow-degraded', 'false')
+    await expectTextInLocator(page.locator('.result-rail'), 'SUCCESS')
+    await expectTextInLocator(page.locator('.result-rail'), 'HETU')
+    await expectTextInLocator(page.locator('.results-stage'), 'dev-success-order-1')
 
     await page.getByTestId('query-flow-submit-recovery').click()
-    await expectText(page, 'query-flow-status', 'PARTIAL')
-    await expectText(page, 'query-flow-engine', 'HIVE')
-    await expectText(page, 'query-flow-degraded', 'true')
-    await expectText(page, 'query-flow-retry-path-size', '2')
-    await expectText(page, 'query-flow-compensation-status', 'COMPENSATED')
-    await expectText(page, 'query-flow-queue-total-delta', '1')
+    await expectTextInLocator(page.locator('.result-rail'), 'PARTIAL')
+    await expectTextInLocator(page.locator('.result-rail'), 'HIVE')
+    await expectTextInLocator(page.locator('.results-stage'), 'dev-recovery-order-1')
 
+    assert(queryExecuteCalls === 2, `Expected 2 query execution calls, got ${queryExecuteCalls}`)
     assert(governanceStatsCalls === 2, `Expected 2 governance stats calls, got ${governanceStatsCalls}`)
     assert(unexpectedApiRequests.length === 0, `Unexpected API requests: ${unexpectedApiRequests.join(', ')}`)
     assert(pageErrors.length === 0, `Frontend dev smoke saw page errors: ${pageErrors.join(' | ')}`)

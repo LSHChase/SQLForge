@@ -5,11 +5,15 @@ const root = process.cwd()
 const viewPath = path.join(root, 'src/views/parse-record/ParseRecordView.vue')
 const apiPath = path.join(root, 'src/services/runtimeGateApi.js')
 const helperPath = path.join(root, 'src/views/common/issueSceneHelp.mjs')
+const routePathsPath = path.join(root, 'src/config/routePaths.mjs')
+const routerPath = path.join(root, 'src/router/index.js')
 const source = [
   fs.readFileSync(viewPath, 'utf8'),
   fs.readFileSync(helperPath, 'utf8')
 ].join('\n')
 const apiSource = fs.readFileSync(apiPath, 'utf8')
+const routePathsSource = fs.readFileSync(routePathsPath, 'utf8')
+const routerSource = fs.readFileSync(routerPath, 'utf8')
 const pageApiStart = apiSource.indexOf('export const getGovernanceQueryHistoryPage')
 const pageApiEnd = apiSource.indexOf('export const getHetuRouteCalibration')
 const queryHistoryPageApiSource = pageApiStart >= 0 && pageApiEnd > pageApiStart
@@ -99,6 +103,17 @@ const requiredSharedApiTokens = [
   '/parse-statistics'
 ]
 
+const requiredRouteTokens = [
+  "sqlHistory: '/governance/history/sql-history'",
+  "parseRecord: '/governance/history/parse-record'",
+  'path: ROUTE_PATHS.sqlHistory',
+  "name: 'SqlHistory'",
+  "historyWorkbenchTab: 'sqlHistory'",
+  'path: ROUTE_PATHS.parseRecord',
+  "name: 'ParseRecord'",
+  "historyWorkbenchTab: 'batchHistory'"
+]
+
 const forbiddenViewTokens = [
   "tenantId: 'tenant-a'",
   "sortBy: 'submittedAt'",
@@ -117,10 +132,12 @@ const forbiddenApiTokens = [
 const missing = requiredTokens.filter(token => !source.includes(token))
 const missingApi = requiredApiTokens.filter(token => !queryHistoryPageApiSource.includes(token))
 const missingSharedApi = requiredSharedApiTokens.filter(token => !apiSource.includes(token))
+const routeSource = `${routePathsSource}\n${routerSource}`
+const missingRoute = requiredRouteTokens.filter(token => !routeSource.includes(token))
 const forbiddenView = forbiddenViewTokens.filter(token => source.includes(token))
 const forbiddenApi = forbiddenApiTokens.filter(token => queryHistoryPageApiSource.includes(token))
 
-if (missing.length > 0 || missingApi.length > 0 || missingSharedApi.length > 0 || forbiddenView.length > 0 || forbiddenApi.length > 0) {
+if (missing.length > 0 || missingApi.length > 0 || missingSharedApi.length > 0 || missingRoute.length > 0 || forbiddenView.length > 0 || forbiddenApi.length > 0) {
   console.error('History page contract check failed.')
   for (const token of missing) {
     console.error(`- missing token: ${token}`)
@@ -130,6 +147,9 @@ if (missing.length > 0 || missingApi.length > 0 || missingSharedApi.length > 0 |
   }
   for (const token of missingSharedApi) {
     console.error(`- missing shared API token: ${token}`)
+  }
+  for (const token of missingRoute) {
+    console.error(`- missing route token: ${token}`)
   }
   for (const token of forbiddenView) {
     console.error(`- forbidden default filter token in view: ${token}`)

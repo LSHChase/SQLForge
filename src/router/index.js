@@ -191,8 +191,8 @@ export const constantRoutes = [
     }
   },
   {
-    path: ROUTE_PATHS.parseRecord,
-    name: 'ParseRecord',
+    path: ROUTE_PATHS.sqlHistory,
+    name: 'SqlHistory',
     component: ParseRecordView,
     meta: {
       menu: true,
@@ -200,6 +200,22 @@ export const constantRoutes = [
       module: 'sql-history',
       submodule: 'history',
       pageKind: 'history',
+      historyWorkbenchTab: 'sqlHistory',
+      titleKey: 'sqlHistory.title',
+      descriptionKey: 'sqlHistory.summary'
+    }
+  },
+  {
+    path: ROUTE_PATHS.parseRecord,
+    name: 'ParseRecord',
+    component: ParseRecordView,
+    meta: {
+      menu: true,
+      navGroup: 'governanceHistory',
+      module: 'parse-acceleration',
+      submodule: 'history',
+      pageKind: 'history',
+      historyWorkbenchTab: 'batchHistory',
       titleKey: 'parseRecord.title',
       descriptionKey: 'parseRecord.summary'
     }

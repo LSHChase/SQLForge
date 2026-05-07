@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
@@ -27,6 +27,8 @@ const router = useRouter()
 
 const DEFAULT_HISTORY_CONTEXT_TENANT_ID = 'tenant-a'
 const normalizeQueryValue = value => String(value || '').trim()
+const HISTORY_WORKBENCH_TABS = new Set(['sqlHistory', 'batchHistory'])
+const BATCH_HISTORY_TABS = new Set(['parse', 'report'])
 
 const form = reactive({
   tenantId: '',
@@ -130,6 +132,24 @@ const rows = computed(() => page.value?.items || [])
 const parseBatchHistoryRows = ref([])
 const reportBatchHistoryRows = ref([])
 const isChinese = computed(() => locale.value === 'zh-CN')
+const isBatchHistoryWorkbench = computed(() => activeHistoryWorkbenchTab.value === 'batchHistory')
+const historyWorkbenchKicker = computed(() => isBatchHistoryWorkbench.value ? 'parse history workbench' : 'query history workbench')
+const historyWorkbenchTitle = computed(() => {
+  if (isBatchHistoryWorkbench.value) {
+    return isChinese.value ? '解析历史查询' : 'Parse history search'
+  }
+  return isChinese.value ? 'SQL 历史列表与详情' : 'SQL history list and detail'
+})
+const historyWorkbenchSummary = computed(() => {
+  if (isBatchHistoryWorkbench.value) {
+    return isChinese.value
+      ? '批量解析与报表导入历史默认在这里打开，SQL 历史详情仍通过独立入口和 historyId 深链进入。'
+      : 'Batch parse and report-import history opens here by default; SQL history detail still opens through its own entry and historyId deep links.'
+  }
+  return isChinese.value
+    ? '首页只保留筛选和结果表，详情通过 dialog 展开，原始证据进入 drawer。'
+    : 'The first screen keeps only filters and the result table; record detail opens in a dialog and raw evidence moves into a drawer.'
+})
 const routeTenantId = computed(() => normalizeQueryValue(route.query.tenantId))
 const requestTenantId = computed(() => normalizeQueryValue(form.tenantId) || routeTenantId.value || DEFAULT_HISTORY_CONTEXT_TENANT_ID)
 const tenantOptions = computed(() => buildTenantOptions(form.tenantId, rows.value))
@@ -1503,32 +1523,71 @@ const isNonEmpty = value => {
 
 const formatJson = value => JSON.stringify(value, null, 2)
 
-onMounted(async () => {
-  if (hasDisplayValue(route.query.traceId)) {
-    form.traceId = String(route.query.traceId)
+const hasQueryValue = key => hasDisplayValue(route.query[key])
+
+const resolveHistoryWorkbenchTabFromRoute = () => {
+  if (hasQueryValue('historyId')) {
+    return 'sqlHistory'
   }
-  if (hasDisplayValue(route.query.reportId)) {
-    form.reportId = String(route.query.reportId)
+  const queryTab = normalizeQueryValue(
+    route.query.historyWorkbenchTab || route.query.historyTab || route.query.tab
+  )
+  if (HISTORY_WORKBENCH_TABS.has(queryTab)) {
+    return queryTab
   }
-  await refreshWorkbench()
-  if (hasDisplayValue(route.query.historyId)) {
+  const metaTab = normalizeQueryValue(route.meta.historyWorkbenchTab)
+  return HISTORY_WORKBENCH_TABS.has(metaTab) ? metaTab : 'sqlHistory'
+}
+
+const syncHistoryWorkbenchTabFromRoute = () => {
+  activeHistoryWorkbenchTab.value = resolveHistoryWorkbenchTabFromRoute()
+  const queryBatchTab = normalizeQueryValue(route.query.batchHistoryTab || route.query.batchTab)
+  if (BATCH_HISTORY_TABS.has(queryBatchTab)) {
+    batchHistoryTab.value = queryBatchTab
+  }
+}
+
+const syncLookupFieldsFromRoute = () => {
+  form.traceId = hasQueryValue('traceId') ? String(route.query.traceId) : ''
+  form.taskId = hasQueryValue('taskId') ? String(route.query.taskId) : ''
+  form.reportId = hasQueryValue('reportId') ? String(route.query.reportId) : ''
+}
+
+const openRouteDeepLink = async () => {
+  if (hasQueryValue('historyId')) {
     await openHistoryDetail(String(route.query.historyId))
     return
   }
   if (hasLookupCriteria.value) {
     await runIndexedLookup()
   }
+}
+
+onMounted(async () => {
+  syncHistoryWorkbenchTabFromRoute()
+  syncLookupFieldsFromRoute()
+  await refreshWorkbench()
+  await openRouteDeepLink()
 })
+
+watch(
+  () => route.fullPath,
+  async () => {
+    syncHistoryWorkbenchTabFromRoute()
+    syncLookupFieldsFromRoute()
+    await openRouteDeepLink()
+  }
+)
 </script>
 
 <template>
   <section class="history-page" data-testid="parse-record-page">
     <header class="surface-card page-shell">
       <div>
-        <p class="section-kicker sqlforge-code-label">query history workbench</p>
-        <h1 class="section-title">{{ isChinese ? 'SQL 历史列表与详情' : 'SQL history list and detail' }}</h1>
+        <p class="section-kicker sqlforge-code-label">{{ historyWorkbenchKicker }}</p>
+        <h1 class="section-title">{{ historyWorkbenchTitle }}</h1>
         <p class="section-summary">
-          {{ isChinese ? '首页只保留筛选和结果表，详情通过 dialog 展开，原始证据进入 drawer。' : 'The first screen keeps only filters and the result table; record detail opens in a dialog and raw evidence moves into a drawer.' }}
+          {{ historyWorkbenchSummary }}
         </p>
       </div>
       <div class="action-row">

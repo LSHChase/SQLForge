@@ -30,7 +30,7 @@ const targets = [
       "key: 'route-engine-sample'",
       'path: ROUTE_PATHS.sqlQuery',
       'path: ROUTE_PATHS.acceleration',
-      'path: ROUTE_PATHS.parseRecord',
+      'path: ROUTE_PATHS.sqlHistory',
       'path: ROUTE_PATHS.benchmark',
       'path: ROUTE_PATHS.system',
       'query-history',

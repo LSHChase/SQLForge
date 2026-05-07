@@ -736,7 +736,7 @@ function openParseHistoryDetail() {
     return
   }
   router.push({
-    path: ROUTE_PATHS.parseRecord,
+    path: ROUTE_PATHS.sqlHistory,
     query: {
       tenantId: form.tenantId,
       historyId: parseResult.value.historyId

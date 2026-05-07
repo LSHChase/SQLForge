@@ -310,7 +310,7 @@ const quickEntries = computed(() => [
     title: isChinese.value ? 'SQL 历史' : 'SQL history',
     description: isChinese.value ? '回查 query history、关联 trace 和取证详情。' : 'Inspect query-history rows, linked traces, and forensic detail.',
     status: isChinese.value ? `${Number(queryHistoryPage.value?.classificationSummary?.totalItems || 0)} 条窗口记录` : `${Number(queryHistoryPage.value?.classificationSummary?.totalItems || 0)} windowed rows`,
-    path: ROUTE_PATHS.parseRecord
+    path: ROUTE_PATHS.sqlHistory
   },
   {
     key: 'benchmark',
@@ -359,7 +359,7 @@ const healthCards = computed(() => [
       ? '当前只展示 query-history 当前页可见的接入渠道，不伪装成全局租户统计。'
       : 'Shows only access channels visible in the current query-history page window.',
     tone: Object.keys(accessCounts.value).length > 0 ? 'neutral' : 'warning',
-    path: ROUTE_PATHS.parseRecord,
+    path: ROUTE_PATHS.sqlHistory,
     actionLabel: isChinese.value ? '检查历史样本' : 'Inspect history window'
   },
   {
@@ -457,7 +457,7 @@ const activityItems = computed(() => {
     target: item.reportCode || item.datasourceCode || item.traceId || item.historyId,
     status: item.resultStatus || 'UNKNOWN',
     time: formatTimestamp(item.submittedAt),
-    path: ROUTE_PATHS.parseRecord,
+    path: ROUTE_PATHS.sqlHistory,
     sortValue: toEpoch(item.submittedAt)
   }))
   const dispatchActivities = dispatchEvents.value.map(item => ({
