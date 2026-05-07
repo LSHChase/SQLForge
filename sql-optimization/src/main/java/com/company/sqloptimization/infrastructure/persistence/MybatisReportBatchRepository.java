@@ -1,6 +1,7 @@
 package com.company.sqloptimization.infrastructure.persistence;
 
 import com.company.sqlforge.common.utils.JsonUtils;
+import com.company.sqloptimization.domain.parse.SqlParserMode;
 import com.company.sqloptimization.domain.reportbatch.ReportBatch;
 import com.company.sqloptimization.domain.reportbatch.ReportBatch.ParseStatus;
 import com.company.sqloptimization.domain.reportbatch.ReportBatchStatusTransition;
@@ -71,6 +72,7 @@ public class MybatisReportBatchRepository implements ReportBatchRepository {
         record.setDatasourceCode(batch.getDatasourceCode());
         record.setStage(batch.getStage());
         record.setPriority(batch.getPriority());
+        record.setParserMode(batch.getParserMode());
         record.setSourceType(batch.getSourceType());
         record.setStatus(batch.getStatus().name());
         record.setTotalReports(Integer.valueOf(batch.getTotalReports()));
@@ -93,6 +95,7 @@ public class MybatisReportBatchRepository implements ReportBatchRepository {
             record.getDatasourceCode(),
             record.getStage(),
             record.getPriority(),
+            SqlParserMode.resolveDefault(record.getParserMode()).name(),
             record.getSourceType(),
             record.getStatus() == null ? ParseStatus.FAILED : ParseStatus.valueOf(record.getStatus()),
             record.getTotalReports() == null ? 0 : record.getTotalReports().intValue(),

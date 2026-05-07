@@ -57,6 +57,7 @@ class ReportBatchApplicationServiceTest {
         ReportBatchStatusResponse imported = service.importBatch(request);
         assertEquals("READY", imported.getStatus());
         assertEquals(Integer.valueOf(2), imported.getTotalReports());
+        assertEquals("JSQLPARSER", imported.getParserMode());
 
         ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
         assertEquals("COMPLETED", resolved.getStatus());
@@ -65,6 +66,27 @@ class ReportBatchApplicationServiceTest {
         assertEquals("VALID", resolved.getReportItems().get(0).getStructureSyntaxStatus());
         assertEquals("AVAILABLE", resolved.getReportItems().get(0).getAccessServiceStatus());
         assertEquals("CONNECTED", resolved.getReportItems().get(0).getAccessConnectionStatus());
+    }
+
+    @Test
+    void shouldPropagateApacheCalciteIntoReportBatchStructureParsing() {
+        ReportBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-014", "trace-014", "header", 1L, 2L);
+
+        ReportBatchImportRequest request = baseRequest(
+            "calcite-report-csv",
+            "CSV",
+            "report_code,sql_1\nRPT_CALCITE,\"SELECT customer_id, COUNT(*) FROM orders "
+                + "WHERE dt >= DATE '2026-04-01' GROUP BY customer_id LIMIT 10\""
+        );
+        request.setParserMode("APACHE_CALCITE");
+
+        ReportBatchStatusResponse imported = service.importBatch(request);
+        ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
+
+        assertEquals("APACHE_CALCITE", resolved.getParserMode());
+        assertEquals("COMPLETED", resolved.getStatus());
+        assertEquals("VALID", resolved.getReportItems().get(0).getStructureSyntaxStatus());
     }
 
     @Test

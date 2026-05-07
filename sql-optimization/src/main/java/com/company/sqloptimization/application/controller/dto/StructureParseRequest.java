@@ -1,7 +1,9 @@
 package com.company.sqloptimization.application.controller.dto;
 
+import com.company.sqloptimization.domain.parse.SqlParserMode;
 import java.util.Map;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Pattern;
 
 public class StructureParseRequest {
 
@@ -13,6 +15,8 @@ public class StructureParseRequest {
     private String datasourceCode;
     private Map<String, Object> commentContext;
     private Boolean historyWriteEnabled;
+    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode must be JSQLPARSER or APACHE_CALCITE")
+    private String parserMode;
 
     public String getSqlText() {
         return sqlText;
@@ -68,5 +72,13 @@ public class StructureParseRequest {
 
     public void setHistoryWriteEnabled(Boolean historyWriteEnabled) {
         this.historyWriteEnabled = historyWriteEnabled;
+    }
+
+    public String getParserMode() {
+        return parserMode;
+    }
+
+    public void setParserMode(String parserMode) {
+        this.parserMode = parserMode;
     }
 }

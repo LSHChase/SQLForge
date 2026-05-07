@@ -24,6 +24,9 @@ const requiredTokens = [
   'help-dot',
   'data-testid="statistics-refresh"',
   'data-testid="parse-workbench-submit"',
+  'data-testid="parse-workbench-parser-mode"',
+  'data-testid="parse-workbench-parse-batch-parser-mode"',
+  'data-testid="parse-workbench-report-batch-parser-mode"',
   'data-testid="parse-workbench-structure-preview"',
   'data-testid="parse-workbench-refresh-status"',
   'data-testid="parse-workbench-open-history"',
@@ -51,7 +54,15 @@ const requiredTokens = [
   'Feature dimensions',
   'Estimated resource cost',
   'Risk checklist',
-  'SQL fingerprint'
+  'SQL fingerprint',
+  'parserModeOptions',
+  'JSQLParser',
+  'Apache Calcite',
+  'APACHE_CALCITE',
+  'parserMode: String(form.parserMode',
+  'parserMode: parseBatchForm.parserMode',
+  'parserMode: reportBatchForm.parserMode',
+  '解析工具 / Parser tool'
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))

@@ -115,6 +115,44 @@ class StructureParseControllerTest {
     }
 
     @Test
+    void shouldParseStructureWithApacheCalciteWhenRequested() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"parserMode\":\"APACHE_CALCITE\",\"sqlText\":\"WITH recent_orders AS ("
+                    + "SELECT customer_id, amount, dt FROM hive.sales.orders WHERE dt >= DATE '2026-04-01') "
+                    + "SELECT customer_id, SUM(amount) AS total_amount FROM recent_orders "
+                    + "WHERE dt <= DATE '2026-04-30' GROUP BY customer_id LIMIT 10\","
+                    + "\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.featureSummary.parserEngine").value("APACHE_CALCITE"))
+            .andExpect(jsonPath("$.featureSummary.tableCount").value(greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.featureSummary.predicateCount").value(greaterThanOrEqualTo(2)))
+            .andExpect(jsonPath("$.rewriteCandidates").isEmpty());
+    }
+
+    @Test
+    void shouldPropagateApacheCalciteIntoCombinedStructureParse() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/combined"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"parserMode\":\"APACHE_CALCITE\",\"sqlText\":\"SELECT customer_id, COUNT(*) "
+                    + "FROM orders WHERE dt >= DATE '2026-04-01' GROUP BY customer_id LIMIT 20\","
+                    + "\"datasourceCode\":\"hetu_main\",\"connectionRequired\":false}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.structureParse.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.structureParse.featureSummary.parserEngine").value("APACHE_CALCITE"));
+    }
+
+    @Test
+    void shouldRejectUnsupportedParserModeAsValidationError() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"parserMode\":\"TRINO\",\"sqlText\":\"SELECT * FROM orders\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("parserMode must be JSQLPARSER or APACHE_CALCITE"));
+    }
+
+    @Test
     void shouldExposeHistoryWriteFailureWithoutFailingStructureParse() throws Exception {
         when(governanceCapabilityClient.writeParseHistory(any())).thenThrow(new RuntimeException("route down"));
 

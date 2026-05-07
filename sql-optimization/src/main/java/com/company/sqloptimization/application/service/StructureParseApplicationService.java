@@ -31,6 +31,7 @@ import com.company.sqloptimization.domain.parse.StructureParseQueryDateStatus;
 import com.company.sqloptimization.domain.parse.StructureParseQueryDateSummary;
 import com.company.sqloptimization.domain.parse.StructureParseResult;
 import com.company.sqloptimization.domain.parse.StructureParseSyntaxStatus;
+import com.company.sqloptimization.domain.parse.SqlParserMode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -90,7 +91,11 @@ public class StructureParseApplicationService {
         StructureParseResult result;
         SqlOptimizationPipelineService.ParsedSqlProfile profile = null;
         try {
-            profile = sqlOptimizationPipelineService.analyze(request.getSqlText(), DataSourceTypeEnum.AUTO);
+            profile = sqlOptimizationPipelineService.analyze(
+                request.getSqlText(),
+                DataSourceTypeEnum.AUTO,
+                SqlParserMode.resolve(request.getParserMode())
+            );
             result = new StructureParseResult();
             result.setParseTaskId(parseTaskId);
             result.setSyntaxStatus(StructureParseSyntaxStatus.VALID);
@@ -603,7 +608,7 @@ public class StructureParseApplicationService {
         intentProfile.setComputeDensity(computeDensity);
         intentProfile.setResourceType(resourceType);
         intentProfile.setSlaLevel(slaLevel);
-        intentProfile.setConfidence(profile.getParserEngine().equals("TRINO") ? "MEDIUM" : "HIGH");
+        intentProfile.setConfidence(profile.getParserEngine().equals("APACHE_CALCITE") ? "MEDIUM" : "HIGH");
         intentProfile.setClassificationLabels(buildClassificationLabels(scanMode, joinType, computeDensity, resourceType, slaLevel));
         response.setIntentProfile(intentProfile);
 

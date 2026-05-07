@@ -68,6 +68,7 @@ class ParseBatchControllerTest {
                     + "\"structureParseOnly\":false}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("READY"))
+            .andExpect(jsonPath("$.parserMode").value("JSQLPARSER"))
             .andExpect(jsonPath("$.templateColumns[8].columnKey").value("sql_text"))
             .andExpect(header().exists(RequestHeaderConstants.TRACE_ID))
             .andReturn();
@@ -85,6 +86,31 @@ class ParseBatchControllerTest {
             .andExpect(jsonPath("$.sourceType").value("FILE_UPLOAD"))
             .andExpect(jsonPath("$.statusHistory[0].currentStatus").value("UPLOADED"))
             .andExpect(jsonPath("$.supportedFileTypes[0]").value("XLSX"));
+    }
+
+    @Test
+    void shouldCreateAndIngestApacheCalciteParseBatchContract() throws Exception {
+        MvcResult createResult = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse-batches"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"batchName\":\"batch-calcite\",\"importMode\":\"SQL_FILE\","
+                    + "\"fileType\":\"SQL\",\"templateVersion\":\"v1\",\"datasourceCode\":\"hetu_main\","
+                    + "\"parserMode\":\"APACHE_CALCITE\",\"structureParseOnly\":true}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.parserMode").value("APACHE_CALCITE"))
+            .andReturn();
+        String batchId = JsonTestUtils.readValue(createResult.getResponse().getContentAsString(), "$.batchId");
+        String encoded = Base64.getEncoder().encodeToString(
+            "SELECT customer_id, COUNT(*) FROM orders WHERE dt >= DATE '2026-04-01' GROUP BY customer_id LIMIT 10"
+                .getBytes(StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse-batches/{batchId}/ingest", batchId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"contentBase64\":\"" + encoded + "\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.parserMode").value("APACHE_CALCITE"))
+            .andExpect(jsonPath("$.status").value("COMPLETED"))
+            .andExpect(jsonPath("$.importedRecords[0].structureSyntaxStatus").value("VALID"));
     }
 
     @Test

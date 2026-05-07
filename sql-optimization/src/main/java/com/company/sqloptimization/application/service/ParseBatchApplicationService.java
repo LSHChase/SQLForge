@@ -31,6 +31,7 @@ import com.company.sqloptimization.domain.batch.ParseBatchStatus;
 import com.company.sqloptimization.domain.batch.ParseBatchStatusTransition;
 import com.company.sqloptimization.domain.batch.repository.ParseBatchItemRepository;
 import com.company.sqloptimization.domain.batch.repository.ParseBatchRepository;
+import com.company.sqloptimization.domain.parse.SqlParserMode;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
@@ -95,6 +96,7 @@ public class ParseBatchApplicationService {
         ParseBatchFileType fileType = requireFileType(request == null ? null : request.getFileType());
         validateFileTypeCompatibility(importMode, fileType);
         String batchName = requireText(request == null ? null : request.getBatchName(), "batchName");
+        String parserMode = SqlParserMode.resolve(request == null ? null : request.getParserMode()).name();
         Instant now = Instant.now();
         ParseBatch batch = ParseBatch.initialize(
             UUID.randomUUID().toString(),
@@ -105,6 +107,7 @@ public class ParseBatchApplicationService {
             fileType,
             trimToNull(request == null ? null : request.getTemplateVersion()),
             trimToNull(request == null ? null : request.getDatasourceCode()),
+            parserMode,
             Boolean.TRUE.equals(request == null ? null : request.getStructureParseOnly()),
             RequestContext.getUserId(),
             now
@@ -234,6 +237,7 @@ public class ParseBatchApplicationService {
         structureRequest.setBindParameters(parseBindParameters(row.bindParametersJson));
         structureRequest.setBindingMode(row.bindingMode);
         structureRequest.setDatasourceCode(firstNonBlank(row.datasourceCode, batch.getDatasourceCode()));
+        structureRequest.setParserMode(batch.getParserMode());
         structureRequest.setCommentContext(buildCommentContext(batch, row));
         structureRequest.setHistoryWriteEnabled(Boolean.FALSE);
         StructureParseResponseVO structureParse = structureParseApplicationService.parse(structureRequest);
@@ -411,6 +415,7 @@ public class ParseBatchApplicationService {
         response.setFileType(batch.getFileType().name());
         response.setTemplateVersion(batch.getTemplateVersion());
         response.setDatasourceCode(batch.getDatasourceCode());
+        response.setParserMode(batch.getParserMode());
         response.setStructureParseOnly(Boolean.valueOf(batch.isStructureParseOnly()));
         response.setStatus(batch.getStatus().name());
         response.setTotalRecords(Integer.valueOf(batch.getTotalRecords()));

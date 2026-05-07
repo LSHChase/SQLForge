@@ -15,6 +15,7 @@ public class ParseBatch {
     private final ParseBatchFileType fileType;
     private final String templateVersion;
     private final String datasourceCode;
+    private final String parserMode;
     private final boolean structureParseOnly;
     private final List<ParseBatchStatusTransition> statusHistory;
     private ParseBatchStatus status;
@@ -36,6 +37,7 @@ public class ParseBatch {
                       ParseBatchFileType fileType,
                       String templateVersion,
                       String datasourceCode,
+                      String parserMode,
                       boolean structureParseOnly,
                       String createdBy,
                       Instant createdAt) {
@@ -47,6 +49,7 @@ public class ParseBatch {
         this.fileType = fileType;
         this.templateVersion = templateVersion;
         this.datasourceCode = datasourceCode;
+        this.parserMode = parserMode;
         this.structureParseOnly = structureParseOnly;
         this.createdBy = createdBy;
         this.createdAt = createdAt;
@@ -62,6 +65,7 @@ public class ParseBatch {
                                         ParseBatchFileType fileType,
                                         String templateVersion,
                                         String datasourceCode,
+                                        String parserMode,
                                         boolean structureParseOnly,
                                         String createdBy,
                                         Instant createdAt) {
@@ -74,6 +78,7 @@ public class ParseBatch {
             fileType,
             templateVersion,
             datasourceCode,
+            parserMode,
             structureParseOnly,
             createdBy,
             createdAt
@@ -94,6 +99,7 @@ public class ParseBatch {
                                      ParseBatchFileType fileType,
                                      String templateVersion,
                                      String datasourceCode,
+                                     String parserMode,
                                      boolean structureParseOnly,
                                      ParseBatchStatus status,
                                      int totalRecords,
@@ -115,6 +121,7 @@ public class ParseBatch {
             fileType,
             templateVersion,
             datasourceCode,
+            parserMode,
             structureParseOnly,
             createdBy,
             createdAt
@@ -167,6 +174,7 @@ public class ParseBatch {
     public ParseBatchFileType getFileType() { return fileType; }
     public String getTemplateVersion() { return templateVersion; }
     public String getDatasourceCode() { return datasourceCode; }
+    public String getParserMode() { return parserMode; }
     public boolean isStructureParseOnly() { return structureParseOnly; }
     public ParseBatchStatus getStatus() { return status; }
     public int getTotalRecords() { return totalRecords; }

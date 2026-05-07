@@ -12,6 +12,7 @@ public class ReportBatchRecord {
     private String datasourceCode;
     private String stage;
     private String priority;
+    private String parserMode;
     private String sourceType;
     private String status;
     private Integer totalReports;
@@ -38,6 +39,8 @@ public class ReportBatchRecord {
     public void setStage(String stage) { this.stage = stage; }
     public String getPriority() { return priority; }
     public void setPriority(String priority) { this.priority = priority; }
+    public String getParserMode() { return parserMode; }
+    public void setParserMode(String parserMode) { this.parserMode = parserMode; }
     public String getSourceType() { return sourceType; }
     public void setSourceType(String sourceType) { this.sourceType = sourceType; }
     public String getStatus() { return status; }

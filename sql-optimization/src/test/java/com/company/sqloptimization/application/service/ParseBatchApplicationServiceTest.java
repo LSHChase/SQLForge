@@ -36,8 +36,31 @@ class ParseBatchApplicationServiceTest {
 
         assertEquals("READY", response.getStatus());
         assertEquals("FILE_UPLOAD", response.getSourceType());
+        assertEquals("JSQLPARSER", response.getParserMode());
         assertEquals(Integer.valueOf(3), Integer.valueOf(response.getStatusHistory().size()));
         assertEquals("sql_text", response.getTemplateColumns().get(8).getColumnKey());
+    }
+
+    @Test
+    void shouldCreateAndIngestApacheCalciteParseBatch() {
+        ParseBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-005", "trace-005", "header", 1L, 2L);
+
+        ParseBatchCreateRequest request = baseRequest("SQL_FILE", "SQL");
+        request.setParserMode("APACHE_CALCITE");
+        request.setStructureParseOnly(Boolean.TRUE);
+        ParseBatchStatusResponse created = service.createBatch(request);
+
+        ParseBatchIngestRequest ingestRequest = new ParseBatchIngestRequest();
+        ingestRequest.setContentBase64(Base64.getEncoder().encodeToString(
+            "SELECT customer_id, COUNT(*) FROM orders WHERE dt >= DATE '2026-04-01' GROUP BY customer_id LIMIT 10"
+                .getBytes(StandardCharsets.UTF_8)
+        ));
+        ParseBatchStatusResponse ingested = service.ingestBatch(created.getBatchId(), ingestRequest);
+
+        assertEquals("APACHE_CALCITE", ingested.getParserMode());
+        assertEquals("COMPLETED", ingested.getStatus());
+        assertEquals("VALID", ingested.getImportedRecords().get(0).getStructureSyntaxStatus());
     }
 
     @Test

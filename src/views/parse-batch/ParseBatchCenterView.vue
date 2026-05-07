@@ -88,6 +88,7 @@ const parseBatchForm = reactive({
   fileType: 'CSV',
   templateVersion: 'v1',
   datasourceCode: 'hetu_main',
+  parserMode: 'JSQLPARSER',
   structureParseOnly: false,
   directInputMode: 'SQL_LINES',
   rawContent:
@@ -105,6 +106,7 @@ const reportBatchForm = reactive({
   batchName: 'report-batch-alpha',
   reportCodeField: 'report_code',
   datasourceCode: 'hetu_main',
+  parserMode: 'JSQLPARSER',
   stage: 'PROD',
   priority: 'high',
   rawContent:
@@ -116,6 +118,10 @@ const reportBatchForm = reactive({
 const parseFileTypeOptions = ['CSV', 'TXT', 'SQL', 'XLS', 'XLSX', 'ET']
 const parseImportModeOptions = ['TABULAR_FILE', 'SQL_FILE', 'REPORT_CATALOG']
 const directInputModeOptions = ['SQL_LINES', 'TABULAR_TEXT']
+const parserModeOptions = [
+  { label: 'JSQLParser', value: 'JSQLPARSER' },
+  { label: 'Apache Calcite', value: 'APACHE_CALCITE' }
+]
 const DIRECT_SQL_PREVIEW_LIMIT = 5
 const DASHBOARD_PREVIEW_LIMIT = 6
 const DETAIL_PREVIEW_LIMIT = 25
@@ -129,6 +135,7 @@ const parseBatchStatusCards = computed(() => {
   }
   return [
     card(isChinese.value ? '批次状态' : 'Batch status', parseBatchDetail.value.status),
+    card(isChinese.value ? '解析工具' : 'Parser tool', parseBatchDetail.value.parserMode),
     card(isChinese.value ? '总记录数' : 'Total records', parseBatchDetail.value.totalRecords),
     card(isChinese.value ? '成功' : 'Success', parseBatchDetail.value.successRecords),
     card(isChinese.value ? '部分成功' : 'Partial success', parseBatchDetail.value.partialSuccessRecords),
@@ -143,6 +150,7 @@ const reportBatchStatusCards = computed(() => {
   }
   return [
     card(isChinese.value ? '导入状态' : 'Import status', reportBatchDetail.value.status, 'batchStatus'),
+    card(isChinese.value ? '解析工具' : 'Parser tool', reportBatchDetail.value.parserMode, 'parserMode'),
     card(isChinese.value ? '报表总数' : 'Total reports', reportBatchDetail.value.totalReports, 'totalReports'),
     card(isChinese.value ? 'SQL 总数' : 'Total SQL', reportBatchDetail.value.totalSqls ?? reportItems.value.length, 'totalSqls'),
     card(isChinese.value ? '已解析 SQL' : 'Resolved SQL', reportBatchDetail.value.resolvedSqls ?? reportBatchDetail.value.resolvedReports, 'resolvedSqls'),
@@ -841,6 +849,7 @@ const createParseBatchFlow = async () => {
       fileType: parseBatchForm.fileType,
       templateVersion: parseBatchForm.templateVersion,
       datasourceCode: parseBatchForm.datasourceCode,
+      parserMode: parseBatchForm.parserMode,
       structureParseOnly: parseBatchForm.structureParseOnly
     })
     upsertSession(parseBatchSessions, parseBatchDetail.value)
@@ -960,6 +969,7 @@ const importReportBatchFlow = async () => {
       batchName: reportBatchForm.batchName,
       reportCodeField: reportBatchForm.reportCodeField,
       datasourceCode: reportBatchForm.datasourceCode,
+      parserMode: reportBatchForm.parserMode,
       stage: reportBatchForm.stage,
       priority: reportBatchForm.priority,
       ...payload,
@@ -1478,6 +1488,17 @@ onMounted(async () => {
           <span class="field-label">{{ isChinese ? '默认数据源' : 'Default datasource' }}</span>
           <el-input v-model="parseBatchForm.datasourceCode" />
         </label>
+        <label class="field-block">
+          <span class="field-label">解析工具 / Parser tool</span>
+          <el-select v-model="parseBatchForm.parserMode" data-testid="batch-import-parse-batch-parser-mode">
+            <el-option
+              v-for="option in parserModeOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
+        </label>
         <label class="field-block field-block-wide">
           <span class="field-label">{{ isChinese ? '仅结构解析' : 'Structure-only batch' }}</span>
           <el-switch v-model="parseBatchForm.structureParseOnly" />
@@ -1936,6 +1957,17 @@ onMounted(async () => {
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '默认数据源' : 'Default datasource' }}</span>
           <el-input v-model="reportBatchForm.datasourceCode" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">解析工具 / Parser tool</span>
+          <el-select v-model="reportBatchForm.parserMode" data-testid="batch-import-report-batch-parser-mode">
+            <el-option
+              v-for="option in parserModeOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '优先级' : 'Priority' }}</span>

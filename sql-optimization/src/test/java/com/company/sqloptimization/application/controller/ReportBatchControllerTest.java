@@ -68,6 +68,7 @@ class ReportBatchControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("READY"))
             .andExpect(jsonPath("$.fileType").value("TXT"))
+            .andExpect(jsonPath("$.parserMode").value("JSQLPARSER"))
             .andExpect(jsonPath("$.totalSqls").value(2))
             .andExpect(jsonPath("$.reportItems.length()").value(2))
             .andReturn();
@@ -135,6 +136,33 @@ class ReportBatchControllerTest {
             .andExpect(jsonPath("$.sqlStatistics[0].reportCode").value("RPT_B"));
 
         verify(governanceCapabilityClient, times(2)).writeParseHistory(any());
+    }
+
+    @Test
+    void shouldImportAndResolveApacheCalciteReportBatch() throws Exception {
+        String csv = "report_code,sql_1\nRPT_CALCITE,\"SELECT customer_id, COUNT(*) FROM orders "
+            + "WHERE dt >= DATE '2026-04-01' GROUP BY customer_id LIMIT 10\"";
+        String encoded = Base64.getEncoder().encodeToString(csv.getBytes(StandardCharsets.UTF_8));
+        MvcResult imported = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/report-batches/import"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"batchName\":\"report-batch-calcite\","
+                    + "\"fileName\":\"report-batch-calcite.csv\",\"reportCodeField\":\"report_code\","
+                    + "\"datasourceCode\":\"hetu_main\",\"stage\":\"PROD\",\"priority\":\"high\","
+                    + "\"parserMode\":\"APACHE_CALCITE\",\"contentBase64\":\"" + encoded + "\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.parserMode").value("APACHE_CALCITE"))
+            .andReturn();
+        String batchId = JsonTestUtils.readValue(imported.getResponse().getContentAsString(), "$.batchId");
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/report-batches/{batchId}/resolve-sqls", batchId)))
+            .andExpect(status().isOk());
+
+        awaitReportBatchTerminal(batchId, "COMPLETED");
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches/{batchId}", batchId)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.parserMode").value("APACHE_CALCITE"))
+            .andExpect(jsonPath("$.reportItems[0].structureSyntaxStatus").value("VALID"));
     }
 
     @Test

@@ -13,6 +13,7 @@
         <result property="datasourceCode" column="datasource_code"/>
         <result property="stage" column="stage"/>
         <result property="priority" column="priority"/>
+        <result property="parserMode" column="parser_mode"/>
         <result property="sourceType" column="source_type"/>
         <result property="status" column="status"/>
         <result property="totalReports" column="total_reports"/>
@@ -25,7 +26,7 @@
     </resultMap>
 
     <sql id="BaseColumns">
-        batch_id, tenant_id, batch_name, file_type, report_code_field, datasource_code, stage, priority,
+        batch_id, tenant_id, batch_name, file_type, report_code_field, datasource_code, stage, priority, parser_mode,
         source_type, status, total_reports, resolved_reports, failed_reports, status_history_json,
         created_by, created_at, updated_at
     </sql>
@@ -44,11 +45,11 @@
 
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchRecord">
         INSERT INTO report_batch (
-            batch_id, tenant_id, batch_name, file_type, report_code_field, datasource_code, stage, priority,
+            batch_id, tenant_id, batch_name, file_type, report_code_field, datasource_code, stage, priority, parser_mode,
             source_type, status, total_reports, resolved_reports, failed_reports, status_history_json,
             created_by, created_at, updated_at
         ) VALUES (
-            #{batchId}, #{tenantId}, #{batchName}, #{fileType}, #{reportCodeField}, #{datasourceCode}, #{stage}, #{priority},
+            #{batchId}, #{tenantId}, #{batchName}, #{fileType}, #{reportCodeField}, #{datasourceCode}, #{stage}, #{priority}, #{parserMode},
             #{sourceType}, #{status}, #{totalReports}, #{resolvedReports}, #{failedReports}, #{statusHistoryJson},
             #{createdBy}, #{createdAt}, #{updatedAt}
         )
@@ -63,6 +64,7 @@
             datasource_code = #{datasourceCode},
             stage = #{stage},
             priority = #{priority},
+            parser_mode = #{parserMode},
             source_type = #{sourceType},
             status = #{status},
             total_reports = #{totalReports},

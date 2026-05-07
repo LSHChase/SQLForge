@@ -1,6 +1,8 @@
 package com.company.sqloptimization.application.controller.dto;
 
+import com.company.sqloptimization.domain.parse.SqlParserMode;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Pattern;
 
 public class ReportBatchImportRequest {
 
@@ -20,6 +22,8 @@ public class ReportBatchImportRequest {
     private String datasourceCode;
     private String stage;
     private String priority;
+    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode must be JSQLPARSER or APACHE_CALCITE")
+    private String parserMode;
     private String contentBase64;
     private String charset;
 
@@ -39,6 +43,8 @@ public class ReportBatchImportRequest {
     public void setStage(String stage) { this.stage = stage; }
     public String getPriority() { return priority; }
     public void setPriority(String priority) { this.priority = priority; }
+    public String getParserMode() { return parserMode; }
+    public void setParserMode(String parserMode) { this.parserMode = parserMode; }
     public String getContentBase64() { return contentBase64; }
     public void setContentBase64(String contentBase64) { this.contentBase64 = contentBase64; }
     public String getCharset() { return charset; }

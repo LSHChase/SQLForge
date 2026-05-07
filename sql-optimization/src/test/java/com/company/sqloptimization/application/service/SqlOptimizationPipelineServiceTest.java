@@ -4,11 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqloptimization.domain.parse.SqlParserMode;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 class SqlOptimizationPipelineServiceTest {
 
@@ -71,20 +71,23 @@ class SqlOptimizationPipelineServiceTest {
     }
 
     @Test
-    void shouldAnalyzeQueryShapeWithTrinoParserAdapter() {
-        SqlOptimizationPipelineService trinoService = new SqlOptimizationPipelineService();
-        ReflectionTestUtils.setField(trinoService, "parserStrategy", "TRINO");
-
-        SqlOptimizationPipelineService.ParsedSqlProfile profile = trinoService.analyze(
-            "SELECT customer_id, sum(amount) OVER (PARTITION BY customer_id) total_amount "
-                + "FROM hive.sales.orders WHERE dt >= DATE '2026-04-01' LIMIT 10",
-            DataSourceTypeEnum.HETU
+    void shouldAnalyzeQueryShapeWithApacheCalciteParserAdapter() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "WITH recent_orders AS ("
+                + "SELECT customer_id, amount, dt FROM hive.sales.orders WHERE dt >= DATE '2026-04-01'"
+                + ") SELECT customer_id, SUM(amount) AS total_amount "
+                + "FROM recent_orders WHERE dt <= DATE '2026-04-30' GROUP BY customer_id LIMIT 10",
+            DataSourceTypeEnum.HETU,
+            SqlParserMode.APACHE_CALCITE
         );
 
-        assertEquals("TRINO", profile.getParserEngine());
-        assertEquals(1, profile.getTables().size());
-        assertEquals(1, profile.getWindowFunctionCount());
+        assertEquals("APACHE_CALCITE", profile.getParserEngine());
+        assertTrue(profile.getTables().contains("hive.sales.orders"));
+        assertTrue(profile.getPredicateCount() >= 2);
+        assertEquals(1, profile.getAggregateFunctions().size());
+        assertTrue(profile.getGroupByCount() >= 1);
         assertTrue(profile.isLimitPresent());
+        assertTrue(service.deriveRewriteCandidateRules(profile).isEmpty());
     }
 
     @Test

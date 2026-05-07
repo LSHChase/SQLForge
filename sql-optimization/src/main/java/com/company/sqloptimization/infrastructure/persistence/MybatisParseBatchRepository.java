@@ -8,6 +8,7 @@ import com.company.sqloptimization.domain.batch.ParseBatchSourceType;
 import com.company.sqloptimization.domain.batch.ParseBatchStatus;
 import com.company.sqloptimization.domain.batch.ParseBatchStatusTransition;
 import com.company.sqloptimization.domain.batch.repository.ParseBatchRepository;
+import com.company.sqloptimization.domain.parse.SqlParserMode;
 import com.company.sqloptimization.infrastructure.persistence.entity.ParseBatchRecord;
 import com.company.sqloptimization.infrastructure.persistence.mapper.ParseBatchMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -74,6 +75,7 @@ public class MybatisParseBatchRepository implements ParseBatchRepository {
         record.setFileType(batch.getFileType().name());
         record.setTemplateVersion(batch.getTemplateVersion());
         record.setDatasourceCode(batch.getDatasourceCode());
+        record.setParserMode(batch.getParserMode());
         record.setStructureParseOnly(Boolean.valueOf(batch.isStructureParseOnly()));
         record.setStatus(batch.getStatus().name());
         record.setTotalRecords(Integer.valueOf(batch.getTotalRecords()));
@@ -99,6 +101,7 @@ public class MybatisParseBatchRepository implements ParseBatchRepository {
             ParseBatchFileType.valueOf(record.getFileType()),
             record.getTemplateVersion(),
             record.getDatasourceCode(),
+            SqlParserMode.resolveDefault(record.getParserMode()).name(),
             Boolean.TRUE.equals(record.getStructureParseOnly()),
             ParseBatchStatus.valueOf(record.getStatus()),
             record.getTotalRecords() == null ? 0 : record.getTotalRecords().intValue(),

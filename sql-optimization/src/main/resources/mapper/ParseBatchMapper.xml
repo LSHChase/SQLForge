@@ -13,6 +13,7 @@
         <result property="fileType" column="file_type"/>
         <result property="templateVersion" column="template_version"/>
         <result property="datasourceCode" column="datasource_code"/>
+        <result property="parserMode" column="parser_mode"/>
         <result property="structureParseOnly" column="structure_parse_only"/>
         <result property="status" column="status"/>
         <result property="totalRecords" column="total_records"/>
@@ -36,6 +37,7 @@
         file_type,
         template_version,
         datasource_code,
+        parser_mode,
         structure_parse_only,
         status,
         total_records,
@@ -74,6 +76,7 @@
             file_type,
             template_version,
             datasource_code,
+            parser_mode,
             structure_parse_only,
             status,
             total_records,
@@ -95,6 +98,7 @@
             #{fileType},
             #{templateVersion},
             #{datasourceCode},
+            #{parserMode},
             #{structureParseOnly},
             #{status},
             #{totalRecords},
@@ -119,6 +123,7 @@
             file_type = #{fileType},
             template_version = #{templateVersion},
             datasource_code = #{datasourceCode},
+            parser_mode = #{parserMode},
             structure_parse_only = #{structureParseOnly},
             status = #{status},
             total_records = #{totalRecords},

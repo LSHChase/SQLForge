@@ -13,6 +13,7 @@ public class ParseBatchStatusResponse {
     private String fileType;
     private String templateVersion;
     private String datasourceCode;
+    private String parserMode;
     private Boolean structureParseOnly;
     private String status;
     private Integer totalRecords;
@@ -55,6 +56,8 @@ public class ParseBatchStatusResponse {
     public void setTemplateVersion(String templateVersion) { this.templateVersion = templateVersion; }
     public String getDatasourceCode() { return datasourceCode; }
     public void setDatasourceCode(String datasourceCode) { this.datasourceCode = datasourceCode; }
+    public String getParserMode() { return parserMode; }
+    public void setParserMode(String parserMode) { this.parserMode = parserMode; }
     public Boolean getStructureParseOnly() { return structureParseOnly; }
     public void setStructureParseOnly(Boolean structureParseOnly) { this.structureParseOnly = structureParseOnly; }
     public String getStatus() { return status; }

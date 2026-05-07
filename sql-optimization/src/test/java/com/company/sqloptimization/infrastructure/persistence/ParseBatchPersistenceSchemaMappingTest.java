@@ -19,6 +19,7 @@ class ParseBatchPersistenceSchemaMappingTest {
         String schema = readRepositoryFile("sql/init-schema.sql");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS parse_batch");
         assertContains(schema, "import_mode VARCHAR(32) NOT NULL");
+        assertContains(schema, "parser_mode VARCHAR(32) NOT NULL DEFAULT 'JSQLPARSER'");
         assertContains(schema, "structure_parse_only TINYINT(1) NOT NULL DEFAULT 0");
         assertContains(schema, "status_history_json JSON NOT NULL");
         assertContains(schema, "idx_parse_batch_tenant_status_created");
@@ -61,6 +62,7 @@ class ParseBatchPersistenceSchemaMappingTest {
         String schema = readRepositoryFile("sql/init-schema.sql");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch");
         assertContains(schema, "report_code_field VARCHAR(128) NOT NULL");
+        assertContains(schema, "parser_mode VARCHAR(32) NOT NULL DEFAULT 'JSQLPARSER'");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_item");
         assertContains(schema, "source_file_line VARCHAR(512)");
         assertContains(schema, "sql_column_name VARCHAR(128)");
@@ -77,6 +79,9 @@ class ParseBatchPersistenceSchemaMappingTest {
         assertContains(itemMapper, "FROM report_batch_item");
         assertContains(itemMapper, "sql_column_name");
         assertContains(itemMapper, "structure_syntax_status");
+        String parserModeMigration = readRepositoryFile("sql/migrations/V20260507_003__parser_mode_contract.sql");
+        assertContains(parserModeMigration, "ADD COLUMN parser_mode");
+        assertContains(parserModeMigration, "APACHE_CALCITE");
     }
 
     @Test
@@ -126,6 +131,7 @@ class ParseBatchPersistenceSchemaMappingTest {
         assertContains(mapper, "FROM parse_batch");
         assertContains(mapper, "import_mode");
         assertContains(mapper, "source_type");
+        assertContains(mapper, "parser_mode");
         assertContains(mapper, "status_history_json");
         assertContains(mapper, "selectAll");
     }
@@ -134,6 +140,7 @@ class ParseBatchPersistenceSchemaMappingTest {
     void shouldKeepReportBatchMappersAlignedWithHistoryQueries() throws IOException {
         String mapper = readMapper("mapper/ReportBatchMapper.xml");
         assertContains(mapper, "FROM report_batch");
+        assertContains(mapper, "parser_mode");
         assertContains(mapper, "selectAll");
         String itemMapper = readMapper("mapper/ReportBatchItemMapper.xml");
         assertContains(itemMapper, "FROM report_batch_item");

@@ -4,6 +4,24 @@
 
 ## Done
 
+### CALCITE-001: Add Apache Calcite parser mode
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `feat(sql-optimization): add Apache Calcite parser mode`
+- Priority: 1
+- Depends on: N/A
+- Scope: Add request-level SQL parser selection for JSQLParser or Apache Calcite across structure, combined, parse batch, and report batch flows, with persistence, UI controls, validation, and tests.
+- Validation:
+  - `python3 scripts/foreman.py validate CALCITE-001`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added request-level parserMode selection for JSQLParser and Apache Calcite across structure, combined, parse batch, and report batch flows, including persistence, migration, UI controls, contracts, and tests.
+  - Validation evidence: python3 scripts/foreman.py validate CALCITE-001; python3 scripts/task_audit.py --check --phase pre-closeout; mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,StructureParseControllerTest,ParseBatchApplicationServiceTest,ParseBatchControllerTest,ReportBatchApplicationServiceTest,ReportBatchControllerTest,ParseBatchPersistenceSchemaMappingTest test; mvn -pl sql-optimization -am clean test; node scripts/check-parse-workbench-contract.mjs; node scripts/check-batch-import-contract.mjs; npm run lint; npm run build.
+  - Residual risk: Apache Calcite support is limited to structure/profile extraction; SQL rewrite candidates remain JSQLParser-only by design.
+  - Next step: Monitor Calcite dialect coverage and add neutral rewrite signals only when they do not require JSQLParser AST mutation.
+
 ### OPS-RESTART-20260507-3: Restart local frontend and backend on demand
 
 - Status: done

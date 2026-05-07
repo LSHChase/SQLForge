@@ -43,6 +43,7 @@ class ParseStatisticsApplicationServiceTest {
             ParseBatchFileType.CSV,
             "v1",
             "hetu_main",
+            "JSQLPARSER",
             false,
             "operator-001",
             now
@@ -56,6 +57,7 @@ class ParseStatisticsApplicationServiceTest {
             ParseBatchFileType.CSV,
             "v1",
             "hetu_main",
+            "JSQLPARSER",
             false,
             "operator-002",
             now

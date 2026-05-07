@@ -20,6 +20,7 @@ import com.company.sqloptimization.application.controller.vo.StructureParseRespo
 import com.company.sqloptimization.application.service.report.ReportSqlResolveRequest;
 import com.company.sqloptimization.application.service.report.ReportSqlResolveResult;
 import com.company.sqloptimization.application.service.report.ReportSqlResolver;
+import com.company.sqloptimization.domain.parse.SqlParserMode;
 import com.company.sqloptimization.domain.reportbatch.ReportBatch;
 import com.company.sqloptimization.domain.reportbatch.ReportBatchItem;
 import com.company.sqloptimization.domain.reportbatch.ReportBatchStatusTransition;
@@ -148,6 +149,7 @@ public class ReportBatchApplicationService {
             trimToNull(request == null ? null : request.getDatasourceCode()),
             trimToNull(request == null ? null : request.getStage()),
             trimToNull(request == null ? null : request.getPriority()),
+            SqlParserMode.resolve(request == null ? null : request.getParserMode()).name(),
             containsInlineSql(rows) ? "WIDE_SQL_IMPORT" : "TXT_MOCK_SOURCE",
             RequestContext.getUserId(),
             now
@@ -517,6 +519,7 @@ public class ReportBatchApplicationService {
         response.setDatasourceCode(batch.getDatasourceCode());
         response.setStage(batch.getStage());
         response.setPriority(batch.getPriority());
+        response.setParserMode(batch.getParserMode());
         response.setSourceType(batch.getSourceType());
         response.setStatus(batch.getStatus().name());
         response.setTotalReports(Integer.valueOf(batch.getTotalReports()));
@@ -645,6 +648,7 @@ public class ReportBatchApplicationService {
         StructureParseRequest request = new StructureParseRequest();
         request.setSqlText(sqlText);
         request.setDatasourceCode(firstNonBlank(item.getDatasourceCode(), batch.getDatasourceCode()));
+        request.setParserMode(batch.getParserMode());
         request.setCommentContext(commentContext);
         return request;
     }

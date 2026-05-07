@@ -15,6 +15,7 @@ public class ReportBatch {
     private final String datasourceCode;
     private final String stage;
     private final String priority;
+    private final String parserMode;
     private final String sourceType;
     private final List<ReportBatchStatusTransition> statusHistory;
     private ParseStatus status;
@@ -33,6 +34,7 @@ public class ReportBatch {
                        String datasourceCode,
                        String stage,
                        String priority,
+                       String parserMode,
                        String sourceType,
                        String createdBy,
                        Instant createdAt) {
@@ -44,6 +46,7 @@ public class ReportBatch {
         this.datasourceCode = datasourceCode;
         this.stage = stage;
         this.priority = priority;
+        this.parserMode = parserMode;
         this.sourceType = sourceType;
         this.createdBy = createdBy;
         this.createdAt = createdAt;
@@ -59,6 +62,7 @@ public class ReportBatch {
                                          String datasourceCode,
                                          String stage,
                                          String priority,
+                                         String parserMode,
                                          String sourceType,
                                          String createdBy,
                                          Instant createdAt) {
@@ -71,6 +75,7 @@ public class ReportBatch {
             datasourceCode,
             stage,
             priority,
+            parserMode,
             sourceType,
             createdBy,
             createdAt
@@ -89,6 +94,7 @@ public class ReportBatch {
                                       String datasourceCode,
                                       String stage,
                                       String priority,
+                                      String parserMode,
                                       String sourceType,
                                       ParseStatus status,
                                       int totalReports,
@@ -107,6 +113,7 @@ public class ReportBatch {
             datasourceCode,
             stage,
             priority,
+            parserMode,
             sourceType,
             createdBy,
             createdAt
@@ -157,6 +164,7 @@ public class ReportBatch {
     public String getDatasourceCode() { return datasourceCode; }
     public String getStage() { return stage; }
     public String getPriority() { return priority; }
+    public String getParserMode() { return parserMode; }
     public String getSourceType() { return sourceType; }
     public ParseStatus getStatus() { return status; }
     public int getTotalReports() { return totalReports; }

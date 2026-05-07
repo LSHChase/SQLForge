@@ -29,6 +29,8 @@ const requiredTokens = [
   'report catalog import',
   'data-testid="batch-import-current-workbench"',
   'data-testid="batch-import-create"',
+  'data-testid="batch-import-parse-batch-parser-mode"',
+  'data-testid="batch-import-report-batch-parser-mode"',
   'data-testid="batch-import-download-template"',
   'data-testid="batch-import-dialog-sql-input"',
   'data-testid="batch-import-parse-result-tabs"',
@@ -127,7 +129,14 @@ const requiredTokens = [
   'splitSqlStatements',
   'omittedItemCount',
   'omittedFailureCount',
-  'omittedSqlStatisticCount'
+  'omittedSqlStatisticCount',
+  'parserModeOptions',
+  'JSQLParser',
+  'Apache Calcite',
+  'APACHE_CALCITE',
+  'parserMode: parseBatchForm.parserMode',
+  'parserMode: reportBatchForm.parserMode',
+  '解析工具 / Parser tool'
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))
