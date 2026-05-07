@@ -2384,3 +2384,16 @@
 2026-05-06T21:07:34-05:00 | D-TASK-076 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-06T21:24:22-05:00 | D-TASK-076 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
 2026-05-06T21:24:22-05:00 | D-TASK-076 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-06T21:57:18-05:00 | BUG-REPORT-SQL-HISTORY-DETAIL-20260507 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-06T21:57:18-05:00 | BUG-REPORT-SQL-HISTORY-DETAIL-20260507 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-06T21:57:18-05:00 | BUG-REPORT-SQL-HISTORY-DETAIL-20260507 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-06T21:57:24-05:00 | BUG-REPORT-SQL-HISTORY-DETAIL-20260507 validate | `R-133`, `R-168` | passed | `mvn -pl sql-optimization -Dtest=ReportBatchApplicationServiceTest,ReportBatchControllerTest clean test`
+2026-05-06T21:57:24-05:00 | BUG-REPORT-SQL-HISTORY-DETAIL-20260507 validate | `R-133`, `R-168` | passed | `node scripts/check-batch-import-contract.mjs`
+2026-05-06T21:57:24-05:00 | BUG-REPORT-SQL-HISTORY-DETAIL-20260507 validate | `R-133`, `R-168` | passed | `node scripts/check-history-detail-contract.mjs`
+2026-05-06T21:57:28-05:00 | BUG-REPORT-SQL-HISTORY-DETAIL-20260507 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-06T21:58:40-05:00 | BUG-REPORT-SQL-HISTORY-DETAIL-20260507 validate | `R-133`, `R-168` | passed | `bash scripts/verify-db-scripts.sh`
+2026-05-06T22:35:39-05:00 | BUG-REPORT-SQL-HISTORY-DETAIL-20260507 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-06T22:35:39-05:00 | BUG-REPORT-SQL-HISTORY-DETAIL-20260507 closeout commit | `R-168` | projected | `git commit -m 'fix(sql-optimization): persist report SQL parse history' (projected-precommit)`
+2026-05-06T22:35:39-05:00 | BUG-REPORT-SQL-HISTORY-DETAIL-20260507 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-06T22:35:39-05:00 | BUG-REPORT-SQL-HISTORY-DETAIL-20260507 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-batch-import-contract.mjs (projected-precommit)`
+2026-05-06T22:35:39-05:00 | BUG-REPORT-SQL-HISTORY-DETAIL-20260507 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-detail-contract.mjs (projected-precommit)`

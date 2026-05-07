@@ -535,6 +535,8 @@ const parseItemDetailFields = computed(() => {
     detailField('报表名称', 'Report name', item.reportName),
     detailField('状态', 'Status', item.status),
     detailField('解析任务', 'Parse task', item.parseTaskId),
+    detailField('解析历史', 'Parse history', item.historyId),
+    detailField('历史写入', 'History write', item.historyPersistenceStatus),
     detailField('数据源', 'Datasource', item.datasourceCode),
     detailField('阶段', 'Stage', item.stage),
     detailField('业务日期', 'Biz date', item.bizDate),

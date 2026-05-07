@@ -21,6 +21,9 @@ public class ReportBatchItemRecord {
     private String accessServiceStatus;
     private String accessConnectionStatus;
     private String failureReason;
+    private String historyId;
+    private Boolean historyPersisted;
+    private String historyPersistenceStatus;
     private String status;
     private String issueScenesJson;
     private String logicalObjectKeysJson;
@@ -61,6 +64,12 @@ public class ReportBatchItemRecord {
     public void setAccessConnectionStatus(String accessConnectionStatus) { this.accessConnectionStatus = accessConnectionStatus; }
     public String getFailureReason() { return failureReason; }
     public void setFailureReason(String failureReason) { this.failureReason = failureReason; }
+    public String getHistoryId() { return historyId; }
+    public void setHistoryId(String historyId) { this.historyId = historyId; }
+    public Boolean getHistoryPersisted() { return historyPersisted; }
+    public void setHistoryPersisted(Boolean historyPersisted) { this.historyPersisted = historyPersisted; }
+    public String getHistoryPersistenceStatus() { return historyPersistenceStatus; }
+    public void setHistoryPersistenceStatus(String historyPersistenceStatus) { this.historyPersistenceStatus = historyPersistenceStatus; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getIssueScenesJson() { return issueScenesJson; }

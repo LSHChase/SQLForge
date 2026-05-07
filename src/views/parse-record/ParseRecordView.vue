@@ -266,7 +266,7 @@ const reportBatchLogicalObjectStatistics = computed(() => {
     .sort((left, right) => right.hitCount - left.hitCount)
 })
 const reportBatchParseDetailSummary = computed(() => {
-  const total = selectedReportItems.value.filter(item => hasDisplayValue(item.parseTaskId)).length
+  const total = selectedReportItems.value.filter(item => hasDisplayValue(item.parseTaskId) || hasDisplayValue(item.historyId)).length
   const loaded = selectedReportItems.value.filter(item => Boolean(reportItemParseDetail(item))).length
   return [
     card(isChinese.value ? '可追溯 SQL' : 'Traceable SQL', total),
@@ -869,27 +869,31 @@ const handleReportBatchSqlPageSizeChange = async pageSize => {
 }
 
 const loadReportBatchItemDetails = async items => {
-  const parseTaskIds = Array.from(new Set(
+  const detailTargets = Array.from(new Map(
     (Array.isArray(items) ? items : [])
-      .map(item => normalizeQueryValue(item?.parseTaskId))
-      .filter(parseTaskId => parseTaskId && !reportBatchItemDetails.value[parseTaskId])
-  ))
-  if (!parseTaskIds.length) {
+      .map(item => ({
+        detailKey: reportItemDetailKey(item),
+        historyId: reportHistoryIdForItem(item)
+      }))
+      .filter(target => target.detailKey && target.historyId && !reportBatchItemDetails.value[target.detailKey])
+      .map(target => [target.detailKey, target])
+  ).values())
+  if (!detailTargets.length) {
     return
   }
   loading.reportBatchItemDetails = true
   reportBatchItemDetailErrorMessage.value = ''
   try {
     const results = await Promise.allSettled(
-      parseTaskIds.map(async parseTaskId => {
+      detailTargets.map(async target => {
         const detail = await getGovernanceQueryHistoryDetail(
           requestTenantId.value,
-          reportHistoryIdForTask(parseTaskId),
+          target.historyId,
           {
             requestPrefix: 'frontend-parse-record-report-sql-history-detail'
           }
         )
-        return [parseTaskId, detail]
+        return [target.detailKey, detail]
       })
     )
     const next = { ...reportBatchItemDetails.value }
@@ -978,9 +982,15 @@ const reportHistoryIdForTask = parseTaskId => {
   return normalized ? `history-parse-${normalized.replace(/[^A-Za-z0-9_-]/g, '-')}` : ''
 }
 
+const reportHistoryIdForItem = item =>
+  normalizeQueryValue(item?.historyId) || reportHistoryIdForTask(item?.parseTaskId)
+
+const reportItemDetailKey = item =>
+  normalizeQueryValue(item?.parseTaskId) || normalizeQueryValue(item?.historyId)
+
 const reportItemParseDetail = item => {
-  const parseTaskId = normalizeQueryValue(item?.parseTaskId)
-  return parseTaskId ? reportBatchItemDetails.value[parseTaskId] || null : null
+  const detailKey = reportItemDetailKey(item)
+  return detailKey ? reportBatchItemDetails.value[detailKey] || null : null
 }
 
 const reportItemQueryContext = item => objectValue(reportItemParseDetail(item)?.queryContext)
@@ -1873,6 +1883,11 @@ onMounted(async () => {
                     · Structure: {{ displayValue(item.structureSyntaxStatus) }}
                     · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
                   </p>
+                  <p data-testid="parse-record-report-sql-history-link">
+                    {{ isChinese ? '解析历史' : 'Parse history' }}:
+                    {{ displayValue(reportHistoryIdForItem(item)) }}
+                    · {{ displayValue(item.historyPersistenceStatus) }}
+                  </p>
                   <p>{{ isChinese ? '问题场景' : 'Issue scenes' }}: {{ displayValue(item.issueScenes) }}</p>
                   <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
                   <p class="empty-copy">{{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}</p>
@@ -1884,7 +1899,7 @@ onMounted(async () => {
                     compact
                     data-testid="parse-record-report-sql-code"
                   />
-                  <div v-if="item.parseTaskId && !reportItemParseDetail(item)" class="dialog-actions">
+                  <div v-if="reportHistoryIdForItem(item) && !reportItemParseDetail(item)" class="dialog-actions">
                     <el-button text :loading="loading.reportBatchItemDetails" @click="loadReportBatchItemDetail(item)">
                       {{ isChinese ? '加载解析详情' : 'Load parse detail' }}
                     </el-button>
@@ -1896,7 +1911,7 @@ onMounted(async () => {
                   >
                     <div class="result-banner" :class="resultBannerClass(reportItemParseStatus(item))">
                       <strong>{{ reportItemParseStatus(item) || '-' }}</strong>
-                      <span>{{ reportItemParseDetail(item)?.historyId || reportHistoryIdForTask(item.parseTaskId) }}</span>
+                      <span>{{ reportItemParseDetail(item)?.historyId || reportHistoryIdForItem(item) }}</span>
                     </div>
                     <div class="summary-chip-row">
                       <span v-for="detailItem in reportItemParseSummaryCards(item)" :key="`${item.itemId}-${detailItem.label}`" class="summary-chip">
@@ -1976,13 +1991,16 @@ onMounted(async () => {
                       </article>
                     </div>
                     <div class="dialog-actions">
-                      <el-button text @click="openHistoryDetail(reportItemParseDetail(item).historyId)">
+                      <el-button text @click="openHistoryDetail(reportItemParseDetail(item).historyId || reportHistoryIdForItem(item))">
                         {{ isChinese ? '打开完整解析历史' : 'Open full parse history' }}
                       </el-button>
                     </div>
                   </div>
-                  <p v-else-if="item.parseTaskId && !loading.reportBatchItemDetails" class="empty-copy" data-testid="parse-record-report-sql-detail-missing">
+                  <p v-else-if="reportHistoryIdForItem(item) && !loading.reportBatchItemDetails" class="empty-copy" data-testid="parse-record-report-sql-detail-missing">
                     {{ isChinese ? '点击加载解析详情后展示结构化解析统计。' : 'Load parse detail to show structured parse statistics.' }}
+                  </p>
+                  <p v-else class="empty-copy" data-testid="parse-record-report-sql-history-detail-unavailable">
+                    {{ isChinese ? '解析历史暂不可用；当前仅展示报表批次内的 SQL 解析证据。' : 'Parse history is unavailable; this card shows report-batch SQL evidence only.' }}
                   </p>
                 </article>
               </div>

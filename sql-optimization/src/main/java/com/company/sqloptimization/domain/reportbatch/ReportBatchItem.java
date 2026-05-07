@@ -26,6 +26,9 @@ public class ReportBatchItem {
     private String accessServiceStatus;
     private String accessConnectionStatus;
     private String failureReason;
+    private String historyId;
+    private Boolean historyPersisted;
+    private String historyPersistenceStatus;
     private Status status;
     private final List<String> issueScenes;
     private final List<String> logicalObjectKeys;
@@ -105,6 +108,9 @@ public class ReportBatchItem {
                                           String accessServiceStatus,
                                           String accessConnectionStatus,
                                           String failureReason,
+                                          String historyId,
+                                          Boolean historyPersisted,
+                                          String historyPersistenceStatus,
                                           Status status,
                                           List<String> issueScenes,
                                           List<String> logicalObjectKeys,
@@ -130,6 +136,9 @@ public class ReportBatchItem {
         item.accessServiceStatus = accessServiceStatus;
         item.accessConnectionStatus = accessConnectionStatus;
         item.failureReason = failureReason;
+        item.historyId = historyId;
+        item.historyPersisted = historyPersisted;
+        item.historyPersistenceStatus = historyPersistenceStatus;
         item.status = status;
         item.updatedAt = updatedAt;
         item.issueScenes.clear();
@@ -171,6 +180,16 @@ public class ReportBatchItem {
         }
     }
 
+    public void recordHistory(String historyId,
+                              Boolean historyPersisted,
+                              String historyPersistenceStatus,
+                              Instant occurredAt) {
+        this.historyId = historyId;
+        this.historyPersisted = historyPersisted;
+        this.historyPersistenceStatus = historyPersistenceStatus;
+        this.updatedAt = occurredAt;
+    }
+
     public String getItemId() { return itemId; }
     public String getBatchId() { return batchId; }
     public int getSequenceNumber() { return sequenceNumber; }
@@ -190,6 +209,9 @@ public class ReportBatchItem {
     public String getAccessServiceStatus() { return accessServiceStatus; }
     public String getAccessConnectionStatus() { return accessConnectionStatus; }
     public String getFailureReason() { return failureReason; }
+    public String getHistoryId() { return historyId; }
+    public Boolean getHistoryPersisted() { return historyPersisted; }
+    public String getHistoryPersistenceStatus() { return historyPersistenceStatus; }
     public Status getStatus() { return status; }
     public List<String> getIssueScenes() { return Collections.unmodifiableList(issueScenes); }
     public List<String> getLogicalObjectKeys() { return Collections.unmodifiableList(logicalObjectKeys); }

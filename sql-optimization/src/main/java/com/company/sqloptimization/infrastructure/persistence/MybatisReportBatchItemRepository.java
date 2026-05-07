@@ -89,6 +89,9 @@ public class MybatisReportBatchItemRepository implements ReportBatchItemReposito
         record.setAccessServiceStatus(item.getAccessServiceStatus());
         record.setAccessConnectionStatus(item.getAccessConnectionStatus());
         record.setFailureReason(item.getFailureReason());
+        record.setHistoryId(item.getHistoryId());
+        record.setHistoryPersisted(item.getHistoryPersisted());
+        record.setHistoryPersistenceStatus(item.getHistoryPersistenceStatus());
         record.setStatus(item.getStatus() == null ? null : item.getStatus().name());
         record.setIssueScenesJson(JsonUtils.toJson(item.getIssueScenes()));
         record.setLogicalObjectKeysJson(JsonUtils.toJson(item.getLogicalObjectKeys()));
@@ -116,6 +119,9 @@ public class MybatisReportBatchItemRepository implements ReportBatchItemReposito
             record.getAccessServiceStatus(),
             record.getAccessConnectionStatus(),
             record.getFailureReason(),
+            record.getHistoryId(),
+            record.getHistoryPersisted(),
+            record.getHistoryPersistenceStatus(),
             record.getStatus() == null ? null : Status.valueOf(record.getStatus()),
             readStringList(record.getIssueScenesJson()),
             readStringList(record.getLogicalObjectKeysJson()),

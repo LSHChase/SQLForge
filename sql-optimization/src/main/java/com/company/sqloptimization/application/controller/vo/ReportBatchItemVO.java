@@ -21,6 +21,9 @@ public class ReportBatchItemVO {
     private String accessServiceStatus;
     private String accessConnectionStatus;
     private String failureReason;
+    private String historyId;
+    private Boolean historyPersisted;
+    private String historyPersistenceStatus;
     private Integer failureLine;
     private Integer failureColumn;
     private Integer failureOffset;
@@ -66,6 +69,14 @@ public class ReportBatchItemVO {
     public void setAccessConnectionStatus(String accessConnectionStatus) { this.accessConnectionStatus = accessConnectionStatus; }
     public String getFailureReason() { return failureReason; }
     public void setFailureReason(String failureReason) { this.failureReason = failureReason; }
+    public String getHistoryId() { return historyId; }
+    public void setHistoryId(String historyId) { this.historyId = historyId; }
+    public Boolean getHistoryPersisted() { return historyPersisted; }
+    public void setHistoryPersisted(Boolean historyPersisted) { this.historyPersisted = historyPersisted; }
+    public String getHistoryPersistenceStatus() { return historyPersistenceStatus; }
+    public void setHistoryPersistenceStatus(String historyPersistenceStatus) {
+        this.historyPersistenceStatus = historyPersistenceStatus;
+    }
     public Integer getFailureLine() { return failureLine; }
     public void setFailureLine(Integer failureLine) { this.failureLine = failureLine; }
     public Integer getFailureColumn() { return failureColumn; }

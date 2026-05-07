@@ -4,6 +4,24 @@
 
 ## Done
 
+### BUG-REPORT-SQL-HISTORY-DETAIL-20260507: Fix report SQL history detail loading
+
+- Status: done
+- Completed at: 2026-05-06
+- Commit subject: `fix(sql-optimization): persist report SQL parse history`
+- Priority: 1
+- Depends on: N/A
+- Scope: Persist and load per-SQL parse history for report import history details
+- Validation:
+  - `python3 scripts/foreman.py validate BUG-REPORT-SQL-HISTORY-DETAIL-20260507`
+- Progress log:
+  - 2026-05-06: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Persist report batch item history ids, expose them through report SQL detail APIs, and load report import history SQL details by real historyId with legacy fallback.
+  - Validation evidence: mvn -pl sql-optimization -Dtest=ReportBatchApplicationServiceTest,ReportBatchControllerTest clean test; node scripts/check-batch-import-contract.mjs; node scripts/check-history-detail-contract.mjs; npm run build; bash scripts/verify-db-scripts.sh
+  - Residual risk: Existing report batch items imported before this change may lack history_id; the frontend keeps a parseTaskId-derived fallback and displays unavailable history without blocking batch evidence.
+  - Next step: Deploy DB migration V20260507_001 before relying on persisted report SQL history ids in database-worker mode.
+
 ### D-TASK-076: Accelerate report batch parsing and issue scene drilldown
 
 - Status: done

@@ -740,6 +740,9 @@ CREATE TABLE IF NOT EXISTS report_batch_item (
   access_service_status VARCHAR(32) DEFAULT NULL COMMENT 'Access parse provider status',
   access_connection_status VARCHAR(32) DEFAULT NULL COMMENT 'Access parse connection status',
   failure_reason VARCHAR(128) DEFAULT NULL COMMENT 'Failure or degrade reason',
+  history_id VARCHAR(128) DEFAULT NULL COMMENT 'Governance query history id for this parsed report SQL',
+  history_persisted TINYINT(1) DEFAULT NULL COMMENT 'Whether governance parse history was persisted for this SQL',
+  history_persistence_status VARCHAR(32) DEFAULT NULL COMMENT 'History write status such as SAVED, NO_RESPONSE, WRITE_FAILED, or WRITE_SKIPPED',
   status VARCHAR(32) NOT NULL COMMENT 'Current item status',
   issue_scenes_json JSON DEFAULT NULL COMMENT 'Issue scene summary payload',
   logical_object_keys_json JSON DEFAULT NULL COMMENT 'Logical object hit summary payload',
@@ -749,7 +752,8 @@ CREATE TABLE IF NOT EXISTS report_batch_item (
   KEY idx_report_batch_item_batch_seq (batch_id, sequence_number),
   KEY idx_report_batch_item_batch_status (batch_id, status),
   KEY idx_report_batch_item_report (batch_id, report_code),
-  KEY idx_report_batch_item_report_sql (batch_id, report_code, sql_ordinal_in_report)
+  KEY idx_report_batch_item_report_sql (batch_id, report_code, sql_ordinal_in_report),
+  KEY idx_report_batch_item_history (history_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Report catalog imported records and parse evidence';
 
 CREATE TABLE IF NOT EXISTS acceleration_recommendation (

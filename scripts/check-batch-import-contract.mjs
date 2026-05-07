@@ -80,6 +80,8 @@ const requiredTokens = [
   'SQL_STATISTIC_PREVIEW_LIMIT',
   'SqlParseDiagnosticSupport',
   'diagnosticSummary',
+  'historyId',
+  'historyPersistenceStatus',
   'failureLine',
   'failureColumn',
   'failureToken',

@@ -6,15 +6,17 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteResponse;
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
 import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneDetailVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusResponse;
 import com.company.sqloptimization.application.service.report.MockReportSqlFactory;
 import com.company.sqloptimization.application.service.report.ReportSqlResolver;
+import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqloptimization.infrastructure.repository.InMemoryReportBatchItemRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemoryReportBatchRepository;
-import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -222,6 +224,10 @@ class ReportBatchApplicationServiceTest {
         assertEquals(Integer.valueOf(2), resolved.getTotalSqls());
         assertEquals(Integer.valueOf(2), resolved.getResolvedSqls());
         assertEquals(Integer.valueOf(1), resolved.getResolvedReports());
+        assertNotNull(resolved.getReportItems().get(0).getHistoryId());
+        assertTrue(resolved.getReportItems().get(0).getHistoryId().startsWith("history-parse-"));
+        assertEquals(Boolean.TRUE, resolved.getReportItems().get(0).getHistoryPersisted());
+        assertEquals("SAVED", resolved.getReportItems().get(0).getHistoryPersistenceStatus());
         ReportBatchParseStatisticsVO statistics = resolved.getParseStatistics();
         assertNotNull(statistics);
         assertEquals(Integer.valueOf(2), statistics.getOverview().getTotalSqlCount());
@@ -489,6 +495,15 @@ class ReportBatchApplicationServiceTest {
 
     private ReportBatchApplicationService buildService(ReportSqlResolver reportSqlResolver) {
         GovernanceCapabilityClient governanceCapabilityClient = Mockito.mock(GovernanceCapabilityClient.class);
+        Mockito.when(governanceCapabilityClient.writeParseHistory(Mockito.any())).thenAnswer(invocation -> {
+            GovernanceParseHistoryWriteRequest request = invocation.getArgument(0);
+            GovernanceParseHistoryWriteResponse response = new GovernanceParseHistoryWriteResponse();
+            String parseTaskId = request == null ? "" : request.getParseTaskId();
+            String sanitizedTaskId = parseTaskId == null ? "" : parseTaskId.replaceAll("[^A-Za-z0-9_-]", "-");
+            response.setHistoryId("history-parse-" + sanitizedTaskId);
+            response.setResultId("result-parse-" + sanitizedTaskId);
+            return response;
+        });
         StructureParseApplicationService structureService = new StructureParseApplicationService(
             new SqlOptimizationPipelineService(),
             governanceCapabilityClient

@@ -1,5 +1,7 @@
 package com.company.sqloptimization.application.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -7,13 +9,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
+import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteResponse;
 import com.company.sqloptimization.SqlOptimizationApplication;
+import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +34,22 @@ class ReportBatchControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private GovernanceCapabilityClient governanceCapabilityClient;
+
+    @BeforeEach
+    void stubGovernanceHistoryWrites() {
+        when(governanceCapabilityClient.writeParseHistory(any())).thenAnswer(invocation -> {
+            GovernanceParseHistoryWriteRequest request = invocation.getArgument(0);
+            GovernanceParseHistoryWriteResponse response = new GovernanceParseHistoryWriteResponse();
+            String parseTaskId = request == null ? "" : request.getParseTaskId();
+            String sanitizedTaskId = parseTaskId == null ? "" : parseTaskId.replaceAll("[^A-Za-z0-9_-]", "-");
+            response.setHistoryId("history-parse-" + sanitizedTaskId);
+            response.setResultId("result-parse-" + sanitizedTaskId);
+            return response;
+        });
+    }
 
     @Test
     void shouldImportAndResolveMockReportCatalog() throws Exception {
@@ -68,6 +91,9 @@ class ReportBatchControllerTest {
             .andExpect(jsonPath("$.parseStatistics.overview.totalSqlCount").value(2))
             .andExpect(jsonPath("$.parseStatistics.sqlStatistics.length()").value(2))
             .andExpect(jsonPath("$.reportItems[0].sqlText").exists())
+            .andExpect(jsonPath("$.reportItems[0].historyId").isNotEmpty())
+            .andExpect(jsonPath("$.reportItems[0].historyPersisted").value(true))
+            .andExpect(jsonPath("$.reportItems[0].historyPersistenceStatus").value("SAVED"))
             .andExpect(jsonPath("$.reportItems[0].structureSyntaxStatus").value("VALID"));
 
         mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/report-batches/{batchId}", batchId)))
@@ -138,6 +164,8 @@ class ReportBatchControllerTest {
             .andExpect(jsonPath("$.reportItems[0].failureToken").value("FROM"))
             .andExpect(jsonPath("$.reportItems[0].failureSnippet").isNotEmpty())
             .andExpect(jsonPath("$.reportItems[0].issueLocations[0].locationSnippet").value("SELECT FROM"))
+            .andExpect(jsonPath("$.reportItems[0].historyId").isNotEmpty())
+            .andExpect(jsonPath("$.reportItems[0].historyPersistenceStatus").value("SAVED"))
             .andExpect(jsonPath("$.reportItems[0].diagnosticSummary").isNotEmpty());
 
         mockMvc.perform(addProtectedHeaders(get(

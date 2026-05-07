@@ -369,7 +369,6 @@ public class ReportBatchApplicationService {
             resolvedSqlText = resolveSqlText(batch, item);
             Map<String, Object> commentContext = buildCommentContext(batch, item);
             StructureParseRequest structureRequest = buildStructureRequest(resolvedSqlText, batch, commentContext);
-            structureRequest.setHistoryWriteEnabled(Boolean.FALSE);
             StructureParseResponseVO structureParse = structureParseApplicationService.parse(structureRequest);
             List<String> issueScenes = extractIssueScenes(structureParse.getIssues());
             List<String> logicalObjectKeys = extractLogicalObjectKeys(structureParse.getLogicalObjectHits());
@@ -386,6 +385,12 @@ public class ReportBatchApplicationService {
                 logicalObjectKeys,
                 now
             );
+            item.recordHistory(
+                structureParse.getHistoryId(),
+                structureParse.getHistoryPersisted(),
+                structureParse.getHistoryPersistenceStatus(),
+                now
+            );
             return item;
         } catch (RuntimeException ex) {
             item.complete(
@@ -400,6 +405,7 @@ public class ReportBatchApplicationService {
                 Collections.<String>emptyList(),
                 now
             );
+            item.recordHistory(null, Boolean.FALSE, "WRITE_SKIPPED", now);
             return item;
         }
     }
@@ -1079,6 +1085,9 @@ public class ReportBatchApplicationService {
             vo.setAccessServiceStatus(item.getAccessServiceStatus());
             vo.setAccessConnectionStatus(item.getAccessConnectionStatus());
             vo.setFailureReason(item.getFailureReason());
+            vo.setHistoryId(item.getHistoryId());
+            vo.setHistoryPersisted(item.getHistoryPersisted());
+            vo.setHistoryPersistenceStatus(item.getHistoryPersistenceStatus());
             SqlParseDiagnosticSupport.Diagnostic diagnostic =
                 SqlParseDiagnosticSupport.fromFailureReason(item.getFailureReason());
             vo.setFailureLine(diagnostic.getFailureLine());
