@@ -2,8 +2,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const root = process.cwd()
+const batchViewPath = 'src/views/parse-batch/ParseBatchCenterView.vue'
 const contractFiles = [
-  'src/views/parse-batch/ParseBatchCenterView.vue',
+  batchViewPath,
   'src/views/common/issueSceneHelp.mjs',
   'sql-optimization/src/main/java/com/company/sqloptimization/application/service/ParseBatchApplicationService.java',
   'sql-optimization/src/main/java/com/company/sqloptimization/application/service/ReportBatchApplicationService.java',
@@ -18,6 +19,7 @@ const contractFiles = [
 const source = contractFiles
   .map(filePath => fs.readFileSync(path.join(root, filePath), 'utf8'))
   .join('\n')
+const viewSource = fs.readFileSync(path.join(root, batchViewPath), 'utf8')
 
 const requiredTokens = [
   'data-testid="batch-import-page"',
@@ -57,7 +59,6 @@ const requiredTokens = [
   'data-testid="batch-import-report-scoped-sql-detail"',
   'data-testid="batch-import-report-scoped-sql-row"',
   'data-testid="batch-import-report-failure-record"',
-  'data-testid="batch-import-report-drawer-statistics"',
   'data-testid="batch-import-report-drawer-sql-detail"',
   'data-testid="batch-import-report-statistics-issue-scene"',
   'data-testid="batch-import-report-statistics-importance"',
@@ -77,6 +78,10 @@ const requiredTokens = [
   'SQL-level parse detail',
   'report-level statistics',
   'parseStatistics',
+  "activeReportResultTab = ref('groups')",
+  "activeReportStatisticsTab = ref('issueScene')",
+  "activeReportResultTab.value = 'groups'",
+  "activeReportStatisticsTab.value = 'issueScene'",
   'data-testid="batch-import-large-batch-preview"',
   'data-testid="batch-import-direct-sql-preview-truncated"',
   'data-testid="batch-import-report-large-batch-preview"',
@@ -136,13 +141,53 @@ const forbiddenTokens = [
 ]
 const forbidden = forbiddenTokens.filter(token => source.includes(token))
 
-if (missing.length > 0 || forbidden.length > 0) {
+const sliceAfter = (content, token, endToken) => {
+  const start = content.indexOf(token)
+  if (start < 0) {
+    return ''
+  }
+  const end = content.indexOf(endToken, start)
+  return end > start ? content.slice(start, end) : content.slice(start)
+}
+
+const reportResultTabsSource = sliceAfter(
+  viewSource,
+  'data-testid="batch-import-report-result-tabs"',
+  'data-testid="batch-import-report-group-detail-dialog"'
+)
+const reportStatisticsTabsSource = sliceAfter(
+  viewSource,
+  'data-testid="batch-import-report-statistics-tabs"',
+  '</el-tabs>'
+)
+const reportResultForbiddenTokens = [
+  'name="overview"',
+  "isChinese ? '概览' : 'Overview'"
+].filter(token => reportResultTabsSource.includes(token))
+const reportStatisticsForbiddenTokens = [
+  'name="overview"',
+  "isChinese ? '概览' : 'Overview'",
+  'data-testid="batch-import-report-drawer-statistics"'
+].filter(token => reportStatisticsTabsSource.includes(token))
+
+if (
+  missing.length > 0 ||
+  forbidden.length > 0 ||
+  reportResultForbiddenTokens.length > 0 ||
+  reportStatisticsForbiddenTokens.length > 0
+) {
   console.error('Batch import contract check failed.')
   for (const token of missing) {
     console.error(`- missing token: ${token}`)
   }
   for (const token of forbidden) {
     console.error(`- forbidden token: ${token}`)
+  }
+  for (const token of reportResultForbiddenTokens) {
+    console.error(`- forbidden whole report SQL detail overview token: ${token}`)
+  }
+  for (const token of reportStatisticsForbiddenTokens) {
+    console.error(`- forbidden report statistics overview token: ${token}`)
   }
   process.exit(1)
 }

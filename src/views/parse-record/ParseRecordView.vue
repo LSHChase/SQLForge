@@ -73,6 +73,7 @@ const selectedHistoryId = ref('')
 const detailDialogVisible = ref(false)
 const evidenceDrawerVisible = ref(false)
 const activeDialogTab = ref('overview')
+const activeHistoryWorkbenchTab = ref('sqlHistory')
 const batchHistoryTab = ref('parse')
 const activeReportBatchDetailTab = ref('overview')
 const activeReportBatchStatisticsTab = ref('issueScene')
@@ -848,7 +849,8 @@ const openReportBatchIssueSceneDetail = async item => {
   reportBatchIssueScenePagination.logicalObjectKey = ''
   await loadReportBatchIssueSceneDetail(item?.issueScene)
   if (selectedReportIssueSceneDetail.value) {
-    activeReportBatchDetailTab.value = 'issueSceneDetail'
+    activeReportBatchDetailTab.value = 'statistics'
+    activeReportBatchStatisticsTab.value = 'issueScene'
   }
 }
 
@@ -1604,158 +1606,168 @@ onMounted(async () => {
       </article>
     </section>
 
-    <section class="surface-card table-panel">
-      <div class="table-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">query history table</p>
-          <h2 class="section-title">{{ isChinese ? '历史列表' : 'History list' }}</h2>
-        </div>
-        <div class="chip-row">
-          <span
-            v-for="(value, key) in classificationSummary"
-            :key="key"
-            class="chip"
+    <el-tabs
+      v-model="activeHistoryWorkbenchTab"
+      class="history-workbench-tabs"
+      data-testid="parse-record-history-workbench-tabs"
+    >
+      <el-tab-pane :label="isChinese ? 'SQL 历史列表与详情' : 'SQL history list and detail'" name="sqlHistory">
+        <section class="surface-card table-panel" data-testid="parse-record-sql-history-tab">
+          <div class="table-heading">
+            <div>
+              <p class="section-kicker sqlforge-code-label">query history table</p>
+              <h2 class="section-title">{{ isChinese ? '历史列表' : 'History list' }}</h2>
+            </div>
+            <div class="chip-row">
+              <span
+                v-for="(value, key) in classificationSummary"
+                :key="key"
+                class="chip"
+              >
+                {{ key }}: {{ typeof value === 'object' ? Object.keys(value).length : value }}
+              </span>
+            </div>
+          </div>
+
+          <el-table :data="rows" border>
+            <el-table-column :label="isChinese ? 'History / Report' : 'History / Report'" min-width="220">
+              <template #default="{ row }">
+                <button
+                  type="button"
+                  class="table-link"
+                  data-testid="parse-record-trace-item"
+                  @click="openHistoryDetail(row.historyId)"
+                >
+                  {{ row.reportCode || row.historyId }}
+                </button>
+                <div class="cell-subline">{{ row.historyId }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
+            <el-table-column prop="stageCode" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
+            <el-table-column :label="isChinese ? '服务编码' : 'Service code'" min-width="150">
+              <template #default="{ row }">{{ row.historyType || '-' }}</template>
+            </el-table-column>
+            <el-table-column prop="resultStatus" :label="isChinese ? '状态' : 'Status'" min-width="120">
+              <template #default="{ row }">
+                <span :class="statusClass(row.resultStatus)">{{ row.resultStatus || '-' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="accessChannel" :label="isChinese ? '接入渠道' : 'Access channel'" min-width="130" />
+            <el-table-column :label="isChinese ? '逻辑对象类型' : 'Logical objects'" min-width="160">
+              <template #default="{ row }">{{ row.logicalObjectTypes?.join(', ') || '-' }}</template>
+            </el-table-column>
+            <el-table-column :label="isChinese ? '治理命中' : 'Governance hits'" min-width="170">
+              <template #default="{ row }">
+                {{ `cache:${row.cacheHit === true ? 'Y' : row.cacheHit === false ? 'N' : '-'} / rewrite:${row.rewriteApplied === true ? 'Y' : row.rewriteApplied === false ? 'N' : '-'} / accel:${row.accelerationApplied === true ? 'Y' : row.accelerationApplied === false ? 'N' : '-'}` }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="targetEngine" :label="isChinese ? '目标引擎' : 'Target engine'" min-width="120" />
+            <el-table-column prop="submittedAt" :label="isChinese ? '提交时间' : 'Submitted at'" min-width="170">
+              <template #default="{ row }">{{ formatTimestamp(row.submittedAt) }}</template>
+            </el-table-column>
+            <el-table-column :label="isChinese ? '审计事件数' : 'Audit event count'" min-width="120">
+              <template #default="{ row }">{{ row.auditEventCount ?? '-' }}</template>
+            </el-table-column>
+          </el-table>
+        </section>
+      </el-tab-pane>
+
+      <el-tab-pane :label="isChinese ? '批量解析与报表导入历史' : 'Batch parse and report-import history'" name="batchHistory">
+        <section class="surface-card batch-history-panel" data-testid="parse-record-batch-report-history-tab">
+          <div class="table-heading">
+            <div>
+              <p class="section-kicker sqlforge-code-label">batch history</p>
+              <h2 class="section-title">{{ isChinese ? '批量解析与报表导入历史' : 'Batch parse and report-import history' }}</h2>
+            </div>
+            <div class="chip-row">
+              <span class="chip">{{ isChinese ? '服务端持久化' : 'Server persisted' }}</span>
+              <span class="chip">{{ isChinese ? '可回跳批量中心' : 'Deep links to batch center' }}</span>
+            </div>
+          </div>
+
+          <div
+            v-if="batchHistoryErrorMessage"
+            class="inline-banner inline-banner-danger"
+            data-testid="parse-record-batch-history-error"
           >
-            {{ key }}: {{ typeof value === 'object' ? Object.keys(value).length : value }}
-          </span>
-        </div>
-      </div>
+            {{ batchHistoryErrorMessage }}
+          </div>
 
-      <el-table :data="rows" border>
-        <el-table-column :label="isChinese ? 'History / Report' : 'History / Report'" min-width="220">
-          <template #default="{ row }">
-            <button
-              type="button"
-              class="table-link"
-              data-testid="parse-record-trace-item"
-              @click="openHistoryDetail(row.historyId)"
-            >
-              {{ row.reportCode || row.historyId }}
-            </button>
-            <div class="cell-subline">{{ row.historyId }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
-        <el-table-column prop="stageCode" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
-        <el-table-column :label="isChinese ? '服务编码' : 'Service code'" min-width="150">
-          <template #default="{ row }">{{ row.historyType || '-' }}</template>
-        </el-table-column>
-        <el-table-column prop="resultStatus" :label="isChinese ? '状态' : 'Status'" min-width="120">
-          <template #default="{ row }">
-            <span :class="statusClass(row.resultStatus)">{{ row.resultStatus || '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="accessChannel" :label="isChinese ? '接入渠道' : 'Access channel'" min-width="130" />
-        <el-table-column :label="isChinese ? '逻辑对象类型' : 'Logical objects'" min-width="160">
-          <template #default="{ row }">{{ row.logicalObjectTypes?.join(', ') || '-' }}</template>
-        </el-table-column>
-        <el-table-column :label="isChinese ? '治理命中' : 'Governance hits'" min-width="170">
-          <template #default="{ row }">
-            {{ `cache:${row.cacheHit === true ? 'Y' : row.cacheHit === false ? 'N' : '-'} / rewrite:${row.rewriteApplied === true ? 'Y' : row.rewriteApplied === false ? 'N' : '-'} / accel:${row.accelerationApplied === true ? 'Y' : row.accelerationApplied === false ? 'N' : '-'}` }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="targetEngine" :label="isChinese ? '目标引擎' : 'Target engine'" min-width="120" />
-        <el-table-column prop="submittedAt" :label="isChinese ? '提交时间' : 'Submitted at'" min-width="170">
-          <template #default="{ row }">{{ formatTimestamp(row.submittedAt) }}</template>
-        </el-table-column>
-        <el-table-column :label="isChinese ? '审计事件数' : 'Audit event count'" min-width="120">
-          <template #default="{ row }">{{ row.auditEventCount ?? '-' }}</template>
-        </el-table-column>
-      </el-table>
-    </section>
+          <el-tabs v-model="batchHistoryTab">
+            <el-tab-pane :label="isChinese ? '批量解析历史' : 'Batch parse history'" name="parse">
+              <section class="summary-grid batch-history-summary">
+                <article v-for="item in parseBatchHistorySummary" :key="item.label" class="summary-card">
+                  <span class="summary-card-label">{{ item.label }}</span>
+                  <strong>{{ item.value }}</strong>
+                </article>
+              </section>
+              <el-table :data="parseBatchHistoryRows" border>
+                <el-table-column prop="batchName" :label="isChinese ? '批次名称' : 'Batch name'" min-width="200">
+                  <template #default="{ row }">
+                    <button
+                      type="button"
+                      class="table-link"
+                      data-testid="parse-record-batch-history-parse"
+                      @click="openParseBatchCenter(row.batchId)"
+                    >
+                      {{ row.batchName || row.batchId }}
+                    </button>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
+                <el-table-column prop="importMode" :label="isChinese ? '导入模式' : 'Import mode'" min-width="140" />
+                <el-table-column prop="fileType" :label="isChinese ? '文件类型' : 'File type'" min-width="120" />
+                <el-table-column prop="totalRecords" :label="isChinese ? '总记录' : 'Total records'" min-width="110" />
+                <el-table-column prop="successRecords" :label="isChinese ? '成功' : 'Success'" min-width="100" />
+                <el-table-column prop="failedRecords" :label="isChinese ? '失败' : 'Failed'" min-width="100" />
+                <el-table-column prop="createdAt" :label="isChinese ? '创建时间' : 'Created at'" min-width="170">
+                  <template #default="{ row }">{{ formatTimestamp(row.createdAt) }}</template>
+                </el-table-column>
+              </el-table>
+            </el-tab-pane>
 
-    <section class="surface-card batch-history-panel">
-      <div class="table-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">batch history</p>
-          <h2 class="section-title">{{ isChinese ? '批量解析与报表导入历史' : 'Batch parse and report-import history' }}</h2>
-        </div>
-        <div class="chip-row">
-          <span class="chip">{{ isChinese ? '服务端持久化' : 'Server persisted' }}</span>
-          <span class="chip">{{ isChinese ? '可回跳批量中心' : 'Deep links to batch center' }}</span>
-        </div>
-      </div>
-
-      <div
-        v-if="batchHistoryErrorMessage"
-        class="inline-banner inline-banner-danger"
-        data-testid="parse-record-batch-history-error"
-      >
-        {{ batchHistoryErrorMessage }}
-      </div>
-
-      <el-tabs v-model="batchHistoryTab">
-        <el-tab-pane :label="isChinese ? '批量解析历史' : 'Batch parse history'" name="parse">
-          <section class="summary-grid batch-history-summary">
-            <article v-for="item in parseBatchHistorySummary" :key="item.label" class="summary-card">
-              <span class="summary-card-label">{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-            </article>
-          </section>
-          <el-table :data="parseBatchHistoryRows" border>
-            <el-table-column prop="batchName" :label="isChinese ? '批次名称' : 'Batch name'" min-width="200">
-              <template #default="{ row }">
-                <button
-                  type="button"
-                  class="table-link"
-                  data-testid="parse-record-batch-history-parse"
-                  @click="openParseBatchCenter(row.batchId)"
-                >
-                  {{ row.batchName || row.batchId }}
-                </button>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
-            <el-table-column prop="importMode" :label="isChinese ? '导入模式' : 'Import mode'" min-width="140" />
-            <el-table-column prop="fileType" :label="isChinese ? '文件类型' : 'File type'" min-width="120" />
-            <el-table-column prop="totalRecords" :label="isChinese ? '总记录' : 'Total records'" min-width="110" />
-            <el-table-column prop="successRecords" :label="isChinese ? '成功' : 'Success'" min-width="100" />
-            <el-table-column prop="failedRecords" :label="isChinese ? '失败' : 'Failed'" min-width="100" />
-            <el-table-column prop="createdAt" :label="isChinese ? '创建时间' : 'Created at'" min-width="170">
-              <template #default="{ row }">{{ formatTimestamp(row.createdAt) }}</template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-
-        <el-tab-pane :label="isChinese ? '报表导入历史' : 'Report import history'" name="report">
-          <section class="summary-grid batch-history-summary">
-            <article v-for="item in reportBatchHistorySummary" :key="item.label" class="summary-card">
-              <span class="summary-card-label">{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-            </article>
-          </section>
-          <el-table :data="reportBatchHistoryRows" border>
-            <el-table-column prop="batchName" :label="isChinese ? '批次名称' : 'Batch name'" min-width="200">
-              <template #default="{ row }">
-                <button
-                  type="button"
-                  class="table-link"
-                  data-testid="parse-record-batch-history-report"
-                  @click="openReportBatchDetail(row)"
-                >
-                  {{ row.batchName || row.batchId }}
-                </button>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
-            <el-table-column prop="fileType" :label="isChinese ? '文件类型' : 'File type'" min-width="120" />
-            <el-table-column prop="totalReports" :label="isChinese ? '报表总数' : 'Total reports'" min-width="120" />
-            <el-table-column prop="resolvedReports" :label="isChinese ? '已解析' : 'Resolved'" min-width="110" />
-            <el-table-column prop="failedReports" :label="isChinese ? '失败' : 'Failed'" min-width="100" />
-            <el-table-column prop="createdAt" :label="isChinese ? '创建时间' : 'Created at'" min-width="170">
-              <template #default="{ row }">{{ formatTimestamp(row.createdAt) }}</template>
-            </el-table-column>
-            <el-table-column :label="isChinese ? '操作' : 'Actions'" min-width="120">
-              <template #default="{ row }">
-                <el-button text :loading="loading.reportBatchDetail" @click="openReportBatchCenter(row.batchId)">
-                  {{ isChinese ? '批量中心' : 'Batch center' }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-      </el-tabs>
-    </section>
+            <el-tab-pane :label="isChinese ? '报表导入历史' : 'Report import history'" name="report">
+              <section class="summary-grid batch-history-summary">
+                <article v-for="item in reportBatchHistorySummary" :key="item.label" class="summary-card">
+                  <span class="summary-card-label">{{ item.label }}</span>
+                  <strong>{{ item.value }}</strong>
+                </article>
+              </section>
+              <el-table :data="reportBatchHistoryRows" border>
+                <el-table-column prop="batchName" :label="isChinese ? '批次名称' : 'Batch name'" min-width="200">
+                  <template #default="{ row }">
+                    <button
+                      type="button"
+                      class="table-link"
+                      data-testid="parse-record-batch-history-report"
+                      @click="openReportBatchDetail(row)"
+                    >
+                      {{ row.batchName || row.batchId }}
+                    </button>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
+                <el-table-column prop="fileType" :label="isChinese ? '文件类型' : 'File type'" min-width="120" />
+                <el-table-column prop="totalReports" :label="isChinese ? '报表总数' : 'Total reports'" min-width="120" />
+                <el-table-column prop="resolvedReports" :label="isChinese ? '已解析' : 'Resolved'" min-width="110" />
+                <el-table-column prop="failedReports" :label="isChinese ? '失败' : 'Failed'" min-width="100" />
+                <el-table-column prop="createdAt" :label="isChinese ? '创建时间' : 'Created at'" min-width="170">
+                  <template #default="{ row }">{{ formatTimestamp(row.createdAt) }}</template>
+                </el-table-column>
+                <el-table-column :label="isChinese ? '操作' : 'Actions'" min-width="120">
+                  <template #default="{ row }">
+                    <el-button text :loading="loading.reportBatchDetail" @click="openReportBatchCenter(row.batchId)">
+                      {{ isChinese ? '批量中心' : 'Batch center' }}
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-tab-pane>
+          </el-tabs>
+        </section>
+      </el-tab-pane>
+    </el-tabs>
 
     <el-drawer
       v-model="reportBatchDetailDrawerVisible"
@@ -1814,6 +1826,104 @@ onMounted(async () => {
                     {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics in this report batch.' }}
                   </p>
                 </div>
+                <div
+                  v-if="selectedReportIssueSceneDetail"
+                  class="issue-scene-detail-panel"
+                  data-testid="parse-record-report-issue-scene-detail"
+                >
+                  <div class="summary-chip-row">
+                    <span v-for="item in reportBatchIssueSceneDetailCards" :key="item.label" class="summary-chip">
+                      {{ item.label }}:
+                      <strong>{{ displayValue(item.value) }}</strong>
+                      <span
+                        v-if="item.key === 'issueScene' && issueSceneHelp(item.value)"
+                        class="help-dot issue-scene-help"
+                        tabindex="0"
+                        aria-label="issue scene help"
+                        :data-tooltip="issueSceneHelp(item.value)"
+                        :title="issueSceneHelp(item.value)"
+                      >?</span>
+                    </span>
+                    <span v-if="loading.reportBatchIssueSceneDetail" class="summary-chip summary-chip-warning">
+                      {{ isChinese ? '正在加载场景详情' : 'Loading scene detail' }}
+                    </span>
+                  </div>
+                  <div class="filter-row">
+                    <el-input
+                      v-model="reportBatchIssueScenePagination.reportCode"
+                      :placeholder="isChinese ? '按报表编码筛选' : 'Filter by report code'"
+                      clearable
+                    />
+                    <el-input
+                      v-model="reportBatchIssueScenePagination.logicalObjectKey"
+                      :placeholder="isChinese ? '按逻辑对象筛选' : 'Filter by logical object'"
+                      clearable
+                    />
+                    <el-button :loading="loading.reportBatchIssueSceneDetail" @click="applyReportBatchIssueSceneFilter">
+                      {{ isChinese ? '查询详情' : 'Search detail' }}
+                    </el-button>
+                  </div>
+                  <div class="detail-grid detail-grid-secondary">
+                    <div
+                      v-for="item in normalizeArray(selectedReportIssueSceneDetail.reportDetails).slice(0, 8)"
+                      :key="item.reportCode"
+                      class="detail-grid__item"
+                      data-testid="parse-record-report-issue-scene-report"
+                    >
+                      <span>{{ item.reportCode }}</span>
+                      <strong>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues</strong>
+                      <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
+                    </div>
+                  </div>
+                  <div class="detail-grid detail-grid-secondary">
+                    <div
+                      v-for="item in normalizeArray(selectedReportIssueSceneDetail.logicalObjectDetails).slice(0, 8)"
+                      :key="item.objectKey"
+                      class="detail-grid__item"
+                      data-testid="parse-record-report-issue-scene-object"
+                    >
+                      <span>{{ item.objectKey }}</span>
+                      <strong>{{ item.sqlCount }} SQL · {{ item.reportCount }} reports</strong>
+                      <p>{{ displayValue(item.reportCodes) }}</p>
+                    </div>
+                  </div>
+                  <div class="report-sql-list">
+                    <article
+                      v-for="item in normalizeArray(selectedReportIssueSceneDetail.sqlStatistics)"
+                      :key="item.itemId"
+                      class="detail-grid__item report-sql-card"
+                      data-testid="parse-record-report-issue-scene-sql"
+                    >
+                      <span>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</span>
+                      <strong>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues</strong>
+                      <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
+                      <p>
+                        {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                        <span
+                          v-if="issueSceneListHelp(item.issueScenes)"
+                          class="help-dot issue-scene-help"
+                          tabindex="0"
+                          aria-label="issue scene help"
+                          :data-tooltip="issueSceneListHelp(item.issueScenes)"
+                          :title="issueSceneListHelp(item.issueScenes)"
+                        >?</span>
+                        {{ displayValue(item.issueScenes) }}
+                      </p>
+                    </article>
+                  </div>
+                  <el-pagination
+                    v-if="Number(selectedReportIssueSceneDetail.sqlStatisticTotalCount || 0) > reportBatchIssueScenePagination.pageSize"
+                    class="pagination-row"
+                    layout="total, prev, pager, next"
+                    :total="Number(selectedReportIssueSceneDetail.sqlStatisticTotalCount || 0)"
+                    :page-size="reportBatchIssueScenePagination.pageSize"
+                    :current-page="reportBatchIssueScenePagination.pageNumber"
+                    @current-change="handleReportBatchIssueScenePageChange"
+                  />
+                </div>
+                <p v-else class="empty-copy">
+                  {{ isChinese ? '在“报表级统计”中点击问题场景后查看详情。' : 'Select an issue scene in Report-level statistics to inspect details.' }}
+                </p>
               </el-tab-pane>
               <el-tab-pane :label="isChinese ? '重要程度' : 'Importance'" name="importance">
                 <div class="detail-grid">
@@ -2132,107 +2242,6 @@ onMounted(async () => {
               />
             </div>
           </section>
-        </el-tab-pane>
-
-        <el-tab-pane :label="isChinese ? '问题场景详情' : 'Issue scene detail'" name="issueSceneDetail">
-          <div
-            v-if="selectedReportIssueSceneDetail"
-            class="issue-scene-detail-panel"
-            data-testid="parse-record-report-issue-scene-detail"
-          >
-            <div class="summary-chip-row">
-              <span v-for="item in reportBatchIssueSceneDetailCards" :key="item.label" class="summary-chip">
-                {{ item.label }}:
-                <strong>{{ displayValue(item.value) }}</strong>
-                <span
-                  v-if="item.key === 'issueScene' && issueSceneHelp(item.value)"
-                  class="help-dot issue-scene-help"
-                  tabindex="0"
-                  aria-label="issue scene help"
-                  :data-tooltip="issueSceneHelp(item.value)"
-                  :title="issueSceneHelp(item.value)"
-                >?</span>
-              </span>
-              <span v-if="loading.reportBatchIssueSceneDetail" class="summary-chip summary-chip-warning">
-                {{ isChinese ? '正在加载场景详情' : 'Loading scene detail' }}
-              </span>
-            </div>
-            <div class="filter-row">
-              <el-input
-                v-model="reportBatchIssueScenePagination.reportCode"
-                :placeholder="isChinese ? '按报表编码筛选' : 'Filter by report code'"
-                clearable
-              />
-              <el-input
-                v-model="reportBatchIssueScenePagination.logicalObjectKey"
-                :placeholder="isChinese ? '按逻辑对象筛选' : 'Filter by logical object'"
-                clearable
-              />
-              <el-button :loading="loading.reportBatchIssueSceneDetail" @click="applyReportBatchIssueSceneFilter">
-                {{ isChinese ? '查询详情' : 'Search detail' }}
-              </el-button>
-            </div>
-            <div class="detail-grid detail-grid-secondary">
-              <div
-                v-for="item in normalizeArray(selectedReportIssueSceneDetail.reportDetails).slice(0, 8)"
-                :key="item.reportCode"
-                class="detail-grid__item"
-                data-testid="parse-record-report-issue-scene-report"
-              >
-                <span>{{ item.reportCode }}</span>
-                <strong>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues</strong>
-                <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
-              </div>
-            </div>
-            <div class="detail-grid detail-grid-secondary">
-              <div
-                v-for="item in normalizeArray(selectedReportIssueSceneDetail.logicalObjectDetails).slice(0, 8)"
-                :key="item.objectKey"
-                class="detail-grid__item"
-                data-testid="parse-record-report-issue-scene-object"
-              >
-                <span>{{ item.objectKey }}</span>
-                <strong>{{ item.sqlCount }} SQL · {{ item.reportCount }} reports</strong>
-                <p>{{ displayValue(item.reportCodes) }}</p>
-              </div>
-            </div>
-            <div class="report-sql-list">
-              <article
-                v-for="item in normalizeArray(selectedReportIssueSceneDetail.sqlStatistics)"
-                :key="item.itemId"
-                class="detail-grid__item report-sql-card"
-                data-testid="parse-record-report-issue-scene-sql"
-              >
-                <span>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</span>
-                <strong>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues</strong>
-                <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
-                <p>
-                  {{ isChinese ? '问题场景' : 'Issue scenes' }}:
-                  <span
-                    v-if="issueSceneListHelp(item.issueScenes)"
-                    class="help-dot issue-scene-help"
-                    tabindex="0"
-                    aria-label="issue scene help"
-                    :data-tooltip="issueSceneListHelp(item.issueScenes)"
-                    :title="issueSceneListHelp(item.issueScenes)"
-                  >?</span>
-                  {{ displayValue(item.issueScenes) }}
-                </p>
-              </article>
-            </div>
-            <el-pagination
-              v-if="Number(selectedReportIssueSceneDetail.sqlStatisticTotalCount || 0) > reportBatchIssueScenePagination.pageSize"
-              class="pagination-row"
-              layout="total, prev, pager, next"
-              :total="Number(selectedReportIssueSceneDetail.sqlStatisticTotalCount || 0)"
-              :page-size="reportBatchIssueScenePagination.pageSize"
-              :current-page="reportBatchIssueScenePagination.pageNumber"
-              @current-change="handleReportBatchIssueScenePageChange"
-            />
-          </div>
-          <p v-else class="empty-copy">
-            {{ isChinese ? '在“报表级统计”中点击问题场景后查看详情。' : 'Select an issue scene in Report-level statistics to inspect details.' }}
-          </p>
         </el-tab-pane>
       </el-tabs>
     </el-drawer>

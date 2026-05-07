@@ -23,6 +23,10 @@ const requiredTokens = [
   'data-testid="parse-record-report-sql-history-link"',
   'data-testid="parse-record-report-sql-history-detail-unavailable"',
   'data-testid="parse-record-report-detail-tabs"',
+  'data-testid="parse-record-report-statistics-tabs"',
+  'data-testid="parse-record-report-issue-scene-detail"',
+  "activeReportBatchDetailTab.value = 'statistics'",
+  "activeReportBatchStatisticsTab.value = 'issueScene'",
   ':data-testid="`parse-record-${item.key}`"',
   ':data-testid="`parse-record-${group.key}`"',
   ':data-testid="`parse-record-history-${item.key.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`)}`"',
@@ -62,7 +66,8 @@ const forbiddenTokens = [
   '<el-button text size="small" class="help-dot" aria-label="issue scene help"',
   'aria-label="risk help"',
   'reportHistoryIdForTask',
-  'history-parse-${'
+  'history-parse-${',
+  'name="issueSceneDetail"'
 ]
 const forbidden = forbiddenTokens.filter(token => source.includes(token))
 

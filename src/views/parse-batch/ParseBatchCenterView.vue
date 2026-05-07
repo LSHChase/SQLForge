@@ -43,9 +43,9 @@ const reportResultDialogVisible = ref(false)
 const reportStatisticsDialogVisible = ref(false)
 const activeParseResultTab = ref('overview')
 const activeParseStatisticsTab = ref('issue')
-const activeReportResultTab = ref('overview')
+const activeReportResultTab = ref('groups')
 const activeReportGroupDetailTab = ref('overview')
-const activeReportStatisticsTab = ref('overview')
+const activeReportStatisticsTab = ref('issueScene')
 const parseItemDetailDialogVisible = ref(false)
 const reportItemDetailDialogVisible = ref(false)
 const reportGroupDetailDialogVisible = ref(false)
@@ -1102,7 +1102,7 @@ const openReportGroupDetail = group => {
 }
 
 const openWholeReportBatchSqlDetail = () => {
-  activeReportResultTab.value = 'overview'
+  activeReportResultTab.value = 'groups'
   selectedReportGroupCode.value = ''
   reportSqlPagination.pageNumber = 1
   loadReportSqlDetail({ reportCode: '', pageNumber: 1 })
@@ -1111,7 +1111,7 @@ const openWholeReportBatchSqlDetail = () => {
 
 const openReportStatistics = async () => {
   await refreshReportStatistics({ pageNumber: 1 })
-  activeReportStatisticsTab.value = 'overview'
+  activeReportStatisticsTab.value = 'issueScene'
   reportStatisticsDialogVisible.value = true
 }
 
@@ -1975,19 +1975,6 @@ onMounted(async () => {
       data-testid="batch-import-report-result-dialog"
     >
       <el-tabs v-model="activeReportResultTab" data-testid="batch-import-report-result-tabs">
-        <el-tab-pane :label="isChinese ? '概览' : 'Overview'" name="overview">
-          <div class="summary-grid">
-            <article v-for="item in reportBatchStatusCards" :key="item.label" class="summary-card">
-              <span class="summary-card-label">{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-            </article>
-            <article v-for="item in reportSqlStatisticsCards" :key="item.label" class="summary-card">
-              <span class="summary-card-label">{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-            </article>
-          </div>
-        </el-tab-pane>
-
         <el-tab-pane :label="isChinese ? '报表分组' : 'Report groups'" name="groups">
           <div class="report-list">
             <article
@@ -2325,27 +2312,6 @@ onMounted(async () => {
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">report-level statistics</p>
           <el-tabs v-model="activeReportStatisticsTab" class="statistics-tabs" data-testid="batch-import-report-statistics-tabs">
-            <el-tab-pane :label="isChinese ? '概览' : 'Overview'" name="overview">
-              <div class="summary-grid" data-testid="batch-import-report-drawer-statistics">
-                <article v-for="item in reportSqlStatisticsCards" :key="item.label" class="summary-card">
-                  <span class="summary-card-label">
-                    {{ item.label }}
-                    <el-button
-                      v-if="helpTextForKey(item.key)"
-                      text
-                      size="small"
-                      class="help-dot"
-                      aria-label="field help"
-                      @click="openFieldHelp(item.key, item.label)"
-                    >
-                      ?
-                    </el-button>
-                  </span>
-                  <strong>{{ item.value }}</strong>
-                </article>
-              </div>
-            </el-tab-pane>
-
             <el-tab-pane :label="isChinese ? '问题场景' : 'Issue scenes'" name="issueScene">
               <div class="stat-list">
                 <div

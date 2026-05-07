@@ -30,6 +30,13 @@ const requiredTokens = [
   'data-testid="parse-record-detail-trace-id"',
   'data-testid="parse-record-export"',
   'data-testid="parse-record-export-result"',
+  'activeHistoryWorkbenchTab',
+  "ref('sqlHistory')",
+  'data-testid="parse-record-history-workbench-tabs"',
+  'data-testid="parse-record-sql-history-tab"',
+  'data-testid="parse-record-batch-report-history-tab"',
+  'name="sqlHistory"',
+  'name="batchHistory"',
   'data-testid="parse-record-report-batch-detail"',
   'data-testid="parse-record-report-detail-tabs"',
   'data-testid="parse-record-report-group"',
@@ -52,6 +59,8 @@ const requiredTokens = [
   'getReportBatchParseStatistics',
   'frontend-parse-record-report-sql-history-detail',
   'frontend-parse-record-report-batch-statistics',
+  "activeReportBatchDetailTab.value = 'statistics'",
+  "activeReportBatchStatisticsTab.value = 'issueScene'",
   'issueLocationText',
   'issueSceneHelpText',
   'issueSceneCodesForItem',
@@ -97,7 +106,8 @@ const forbiddenViewTokens = [
   '<el-button text size="small" class="help-dot" aria-label="issue scene help"',
   'aria-label="risk help"',
   'reportHistoryIdForTask',
-  'history-parse-${'
+  'history-parse-${',
+  'name="issueSceneDetail"'
 ]
 
 const forbiddenApiTokens = [

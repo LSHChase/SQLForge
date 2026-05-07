@@ -4,6 +4,24 @@
 
 ## Done
 
+### UI-TASK-002: Converge parse history and report import IA
+
+- Status: done
+- Completed at: 2026-05-07
+- Commit subject: `fix(frontend): UI-TASK-002 converge parse history IA`
+- Priority: 1
+- Depends on: N/A
+- Scope: Refine ParseRecordView and ParseBatchCenterView information architecture per confirmed plan: add top-level parse history workbench tabs, move report issue-scene detail into report-level statistics issue-scene tab, remove duplicate overview tabs from report batch SQL detail/statistics dialogs, preserve backend APIs, DTOs, parser behavior, statistics semantics, permissions, and persistence schema, and update frontend contract checks.
+- Validation:
+  - `python3 scripts/foreman.py validate UI-TASK-002`
+- Progress log:
+  - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added top-level SQL-history vs batch/report-history tabs in ParseRecordView, moved report issue-scene detail into the report-level statistics issue-scene tab, removed duplicate overview tabs from whole-report SQL detail and report statistics dialogs in ParseBatchCenterView, and updated static frontend contracts without changing backend APIs, parser behavior, DTOs, permissions, statistics semantics, or persistence schema.
+  - Validation evidence: python3 scripts/foreman.py validate UI-TASK-002 --include-task-audit --extra-command 'node scripts/check-history-page-contract.mjs' --extra-command 'node scripts/check-history-detail-contract.mjs' --extra-command 'node scripts/check-batch-import-contract.mjs' --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'git diff --check'; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Manual browser or portable smoke was not run in this turn; coverage is repo-closed through static contracts, lint, production build, and task audit.
+  - Next step: Use a real report-import batch during product acceptance to click the history workbench tabs, SQL list detail, and inline issue-scene drill-down.
+
 ### HARN-079: Analyze merge candidates for multi-SQL reports
 
 - Status: done
