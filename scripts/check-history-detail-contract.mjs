@@ -10,8 +10,7 @@ const source = [
 ].join('\n')
 
 const requiredTokens = [
-  'query history detail',
-  'SQL tri-state, parse signals, and related forensics',
+  'parse history detail',
   'data-testid="parse-record-history-parse-detail"',
   'data-testid="parse-record-history-original-sql"',
   'data-testid="parse-record-history-original-sql-text"',
@@ -19,7 +18,6 @@ const requiredTokens = [
   'data-testid="parse-record-history-structure-card"',
   'data-testid="parse-record-history-access-card"',
   'data-testid="parse-record-history-issue"',
-  'data-testid="parse-record-detail-query-history-count"',
   'data-testid="parse-record-report-sql-history-link"',
   'data-testid="parse-record-report-sql-history-detail-unavailable"',
   'data-testid="parse-record-report-detail-tabs"',
@@ -43,6 +41,8 @@ const requiredTokens = [
   'reportHistoryIsPersisted',
   'reportItemLocalDetail',
   'buildReportItemFallbackDetail',
+  'getSqlParseHistoryDetail',
+  'exportSqlParseHistory',
   'issueSceneHelpText',
   'issueSceneCodesForItem',
   'issue-scene-help',
@@ -67,7 +67,10 @@ const forbiddenTokens = [
   'aria-label="risk help"',
   'reportHistoryIdForTask',
   'history-parse-${',
-  'name="issueSceneDetail"'
+  'name="issueSceneDetail"',
+  'query history detail',
+  'getGovernanceQueryHistoryDetail',
+  'exportGovernanceQueryHistory'
 ]
 const forbidden = forbiddenTokens.filter(token => source.includes(token))
 

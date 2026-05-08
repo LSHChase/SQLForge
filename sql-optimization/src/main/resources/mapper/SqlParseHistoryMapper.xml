@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.SqlParseHistoryMapper">
+
+    <resultMap id="SqlParseHistoryRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.SqlParseHistoryRecord">
+        <id property="parseHistoryId" column="parse_history_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="sourceType" column="source_type"/>
+        <result property="sourceId" column="source_id"/>
+        <result property="batchKey" column="batch_key"/>
+        <result property="parseTaskId" column="parse_task_id"/>
+        <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="datasourceType" column="datasource_type"/>
+        <result property="reportCode" column="report_code"/>
+        <result property="stageCode" column="stage_code"/>
+        <result property="bizDate" column="biz_date"/>
+        <result property="queryDateStart" column="query_date_start"/>
+        <result property="queryDateEnd" column="query_date_end"/>
+        <result property="queryDateStatus" column="query_date_status"/>
+        <result property="accessChannel" column="access_channel"/>
+        <result property="parserMode" column="parser_mode"/>
+        <result property="sqlText" column="sql_text"/>
+        <result property="sqlTemplateText" column="sql_template_text"/>
+        <result property="bindingMode" column="binding_mode"/>
+        <result property="parameterizedSqlFlag" column="parameterized_sql_flag"/>
+        <result property="resultStatus" column="result_status"/>
+        <result property="targetEngine" column="target_engine"/>
+        <result property="structureParseSummaryJson" column="structure_parse_summary_json"/>
+        <result property="accessParseSummaryJson" column="access_parse_summary_json"/>
+        <result property="resultSummaryJson" column="result_summary_json"/>
+        <result property="resultPayloadJson" column="result_payload_json"/>
+        <result property="queryContextJson" column="query_context_json"/>
+        <result property="commentContextJson" column="comment_context_json"/>
+        <result property="bindingSummaryJson" column="binding_summary_json"/>
+        <result property="logicalObjectHitsJson" column="logical_object_hits_json"/>
+        <result property="issueScenesJson" column="issue_scenes_json"/>
+        <result property="logicalObjectKeysJson" column="logical_object_keys_json"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="requestId" column="request_id"/>
+        <result property="sagaId" column="saga_id"/>
+        <result property="submittedBy" column="submitted_by"/>
+        <result property="submittedAt" column="submitted_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        parse_history_id,
+        tenant_id,
+        source_type,
+        source_id,
+        batch_key,
+        parse_task_id,
+        sql_fingerprint,
+        datasource_code,
+        datasource_type,
+        report_code,
+        stage_code,
+        biz_date,
+        query_date_start,
+        query_date_end,
+        query_date_status,
+        access_channel,
+        parser_mode,
+        sql_text,
+        sql_template_text,
+        binding_mode,
+        parameterized_sql_flag,
+        result_status,
+        target_engine,
+        structure_parse_summary_json,
+        access_parse_summary_json,
+        result_summary_json,
+        result_payload_json,
+        query_context_json,
+        comment_context_json,
+        binding_summary_json,
+        logical_object_hits_json,
+        issue_scenes_json,
+        logical_object_keys_json,
+        trace_id,
+        request_id,
+        saga_id,
+        submitted_by,
+        submitted_at,
+        created_at,
+        updated_at
+    </sql>
+
+    <sql id="FilterWhere">
+        WHERE tenant_id = #{tenantId}
+        <if test="sourceType != null and sourceType != ''">
+            AND source_type = #{sourceType}
+        </if>
+        <if test="reportCode != null and reportCode != ''">
+            AND report_code = #{reportCode}
+        </if>
+        <if test="datasourceCode != null and datasourceCode != ''">
+            AND datasource_code = #{datasourceCode}
+        </if>
+        <if test="stageCode != null and stageCode != ''">
+            AND stage_code = #{stageCode}
+        </if>
+        <if test="bizDate != null and bizDate != ''">
+            AND biz_date = #{bizDate}
+        </if>
+        <if test="queryDateStart != null and queryDateStart != ''">
+            AND query_date_start &gt;= #{queryDateStart}
+        </if>
+        <if test="queryDateEnd != null and queryDateEnd != ''">
+            AND query_date_end &lt;= #{queryDateEnd}
+        </if>
+        <if test="status != null and status != ''">
+            AND result_status = #{status}
+        </if>
+        <if test="logicalObjectType != null and logicalObjectType != ''">
+            AND logical_object_hits_json LIKE CONCAT('%', #{logicalObjectType}, '%')
+        </if>
+        <if test="accessChannel != null and accessChannel != ''">
+            AND access_channel = #{accessChannel}
+        </if>
+        <if test="engine != null and engine != ''">
+            AND target_engine = #{engine}
+        </if>
+        <if test="submittedBy != null and submittedBy != ''">
+            AND submitted_by = #{submittedBy}
+        </if>
+        <if test="traceId != null and traceId != ''">
+            AND trace_id = #{traceId}
+        </if>
+        <if test="parseTaskId != null and parseTaskId != ''">
+            AND parse_task_id = #{parseTaskId}
+        </if>
+        <if test="submittedStart != null">
+            AND submitted_at &gt;= #{submittedStart}
+        </if>
+        <if test="submittedEnd != null">
+            AND submitted_at &lt;= #{submittedEnd}
+        </if>
+    </sql>
+
+    <select id="selectByParseHistoryId" resultMap="SqlParseHistoryRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM sql_parse_history
+        WHERE parse_history_id = #{parseHistoryId}
+    </select>
+
+    <select id="selectByBatchKeyAndSqlFingerprint" resultMap="SqlParseHistoryRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM sql_parse_history
+        WHERE batch_key = #{batchKey}
+          AND sql_fingerprint = #{sqlFingerprint}
+        ORDER BY submitted_at DESC, parse_history_id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectPage" parameterType="com.company.sqloptimization.domain.parsehistory.SqlParseHistoryFilter" resultMap="SqlParseHistoryRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM sql_parse_history
+        <include refid="FilterWhere"/>
+        ORDER BY ${orderByClause}
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="count" parameterType="com.company.sqloptimization.domain.parsehistory.SqlParseHistoryFilter" resultType="int">
+        SELECT COUNT(1)
+        FROM sql_parse_history
+        <include refid="FilterWhere"/>
+    </select>
+
+    <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.SqlParseHistoryRecord">
+        INSERT INTO sql_parse_history (
+            parse_history_id, tenant_id, source_type, source_id, batch_key, parse_task_id,
+            sql_fingerprint, datasource_code, datasource_type, report_code, stage_code,
+            biz_date, query_date_start, query_date_end, query_date_status, access_channel,
+            parser_mode, sql_text, sql_template_text, binding_mode, parameterized_sql_flag,
+            result_status, target_engine, structure_parse_summary_json, access_parse_summary_json,
+            result_summary_json, result_payload_json, query_context_json, comment_context_json,
+            binding_summary_json, logical_object_hits_json, issue_scenes_json, logical_object_keys_json,
+            trace_id, request_id, saga_id, submitted_by, submitted_at, created_at, updated_at
+        ) VALUES (
+            #{parseHistoryId}, #{tenantId}, #{sourceType}, #{sourceId}, #{batchKey}, #{parseTaskId},
+            #{sqlFingerprint}, #{datasourceCode}, #{datasourceType}, #{reportCode}, #{stageCode},
+            #{bizDate}, #{queryDateStart}, #{queryDateEnd}, #{queryDateStatus}, #{accessChannel},
+            #{parserMode}, #{sqlText}, #{sqlTemplateText}, #{bindingMode}, #{parameterizedSqlFlag},
+            #{resultStatus}, #{targetEngine}, #{structureParseSummaryJson}, #{accessParseSummaryJson},
+            #{resultSummaryJson}, #{resultPayloadJson}, #{queryContextJson}, #{commentContextJson},
+            #{bindingSummaryJson}, #{logicalObjectHitsJson}, #{issueScenesJson}, #{logicalObjectKeysJson},
+            #{traceId}, #{requestId}, #{sagaId}, #{submittedBy}, #{submittedAt}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.SqlParseHistoryRecord">
+        UPDATE sql_parse_history
+        SET tenant_id = #{tenantId},
+            source_type = #{sourceType},
+            source_id = #{sourceId},
+            batch_key = #{batchKey},
+            parse_task_id = #{parseTaskId},
+            sql_fingerprint = #{sqlFingerprint},
+            datasource_code = #{datasourceCode},
+            datasource_type = #{datasourceType},
+            report_code = #{reportCode},
+            stage_code = #{stageCode},
+            biz_date = #{bizDate},
+            query_date_start = #{queryDateStart},
+            query_date_end = #{queryDateEnd},
+            query_date_status = #{queryDateStatus},
+            access_channel = #{accessChannel},
+            parser_mode = #{parserMode},
+            sql_text = #{sqlText},
+            sql_template_text = #{sqlTemplateText},
+            binding_mode = #{bindingMode},
+            parameterized_sql_flag = #{parameterizedSqlFlag},
+            result_status = #{resultStatus},
+            target_engine = #{targetEngine},
+            structure_parse_summary_json = #{structureParseSummaryJson},
+            access_parse_summary_json = #{accessParseSummaryJson},
+            result_summary_json = #{resultSummaryJson},
+            result_payload_json = #{resultPayloadJson},
+            query_context_json = #{queryContextJson},
+            comment_context_json = #{commentContextJson},
+            binding_summary_json = #{bindingSummaryJson},
+            logical_object_hits_json = #{logicalObjectHitsJson},
+            issue_scenes_json = #{issueScenesJson},
+            logical_object_keys_json = #{logicalObjectKeysJson},
+            trace_id = #{traceId},
+            request_id = #{requestId},
+            saga_id = #{sagaId},
+            submitted_by = #{submittedBy},
+            submitted_at = #{submittedAt},
+            updated_at = #{updatedAt}
+        WHERE parse_history_id = #{parseHistoryId}
+    </update>
+</mapper>

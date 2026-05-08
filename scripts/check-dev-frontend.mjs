@@ -192,6 +192,21 @@ const runBrowserSmoke = async baseUrl => {
         })
         return
       }
+      if (pathname === '/api/sql-optimization/parse-history') {
+        await fulfillJson(route, {
+          items: [],
+          pageNo: 1,
+          pageSize: 8,
+          totalCount: 0,
+          pageCount: 0,
+          classificationSummary: {
+            totalItems: 0,
+            accessChannelCounts: {},
+            sourceTypeCounts: {}
+          }
+        })
+        return
+      }
       if (pathname === '/api/sql-optimization/dispatch-events') {
         await fulfillJson(route, [])
         return
@@ -223,10 +238,10 @@ const runBrowserSmoke = async baseUrl => {
       return
     }
 
-    if (pathname === '/api/governance/query-history' && requestPrefix === 'frontend-parse-record-history-page') {
+    if (pathname === '/api/sql-optimization/parse-history' && requestPrefix === 'frontend-parse-record-parse-history-page') {
       assert(
-        requestUrl.searchParams.get('historyType') === 'SQL_PARSE',
-        `Parse record page must request SQL_PARSE, got ${requestUrl.searchParams.get('historyType')}`
+        !requestUrl.searchParams.has('historyType'),
+        'Parse record page must not request governance query-history historyType'
       )
       parseHistoryPageCalls += 1
       await fulfillJson(route, {
@@ -238,7 +253,8 @@ const runBrowserSmoke = async baseUrl => {
         classificationSummary: {
           totalItems: 0,
           statusCounts: {},
-          accessChannelCounts: {}
+          accessChannelCounts: {},
+          sourceTypeCounts: {}
         }
       })
       return

@@ -212,7 +212,7 @@ const reportBatchDetail = {
       structureSyntaxStatus: 'VALID',
       accessServiceStatus: 'AVAILABLE',
       accessConnectionStatus: 'CONNECTED',
-      historyId: 'history-parse-smoke-1',
+      historyId: 'parse-history-smoke-1',
       historyPersisted: true,
       historyPersistenceStatus: 'SAVED',
       status: 'RESOLVED',
@@ -260,11 +260,13 @@ const reportBatchDetail = {
   statusHistory: []
 }
 
-const queryHistoryDetail = {
-  historyId: 'history-parse-smoke-1',
+const parseHistoryDetail = {
+  parseHistoryId: 'parse-history-smoke-1',
+  historyId: 'parse-history-smoke-1',
   tenantId: 'tenant-a',
   reportCode: 'RPT_PORTABLE',
-  historyType: 'SQL_PARSE',
+  historyType: 'SQL_PARSE_RECORD',
+  sourceType: 'REPORT_BATCH',
   resultStatus: 'SUCCESS',
   targetEngine: 'HETU',
   accessChannel: 'REPORT_BATCH',
@@ -352,24 +354,24 @@ const startMockBackend = async port => {
         return
       }
 
-      if (request.url.startsWith('/api/governance/query-history/history-parse-smoke-1')) {
+      if (request.url.startsWith('/api/sql-optimization/parse-history/parse-history-smoke-1')) {
         requireProxyHeaders(request)
         mockState.persistedHistoryDetailCalls += 1
-        writeJson(response, 200, queryHistoryDetail)
+        writeJson(response, 200, parseHistoryDetail)
         return
       }
 
-      if (request.url.startsWith('/api/governance/query-history/history-parse-parse-missing')) {
+      if (request.url.startsWith('/api/sql-optimization/parse-history/history-parse-parse-missing')) {
         requireProxyHeaders(request)
         mockState.fabricatedHistoryDetailCalls += 1
         writeJson(response, 404, {
-          code: 'QUERY_HISTORY_NOT_FOUND',
+          code: 'PARSE_HISTORY_NOT_FOUND',
           message: 'Fabricated parse history id must not be requested by the portable frontend.'
         })
         return
       }
 
-      if (request.url.startsWith('/api/governance/query-history?')) {
+      if (request.url.startsWith('/api/sql-optimization/parse-history?')) {
         requireProxyHeaders(request)
         writeJson(response, 200, {
           items: [],
@@ -512,7 +514,7 @@ const runBrowserSmoke = async baseUrl => {
     await reportDrawer.getByRole('button', { name: /加载解析详情|Load parse detail/ }).click()
     const sqlDetailDialog = page.getByTestId('parse-record-report-sql-parse-detail-dialog')
     await sqlDetailDialog.waitFor({ state: 'visible', timeout: defaultTimeoutMs })
-    await expectTextInLocator(sqlDetailDialog, 'history-parse-smoke-1')
+    await expectTextInLocator(sqlDetailDialog, 'parse-history-smoke-1')
     await expectTextInLocator(sqlDetailDialog, 'orders')
     assert(
       mockState.persistedHistoryDetailCalls === 1,

@@ -2668,3 +2668,15 @@
 2026-05-07T12:10:30-05:00 | HARN-083 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-07T12:10:30-05:00 | HARN-083 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-page-contract.mjs (projected-precommit)`
 2026-05-07T12:10:30-05:00 | HARN-083 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:frontend-dev (projected-precommit)`
+2026-05-08T01:41:41-05:00 | HARN-084 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-08T01:41:41-05:00 | HARN-084 validate | `R-131`, `R-133` | failed | `node scripts/lint-repository-knowledge.js`
+2026-05-08T01:42:00-05:00 | HARN-084 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-08T01:42:00-05:00 | HARN-084 validate | `R-133`, `R-168` | failed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-08T01:43:17-05:00 | HARN-084 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-08T01:43:17-05:00 | HARN-084 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-08T01:43:40-05:00 | HARN-084 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-08T01:43:40-05:00 | HARN-084 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-08T01:45:18-05:00 | HARN-084 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-08T01:45:18-05:00 | HARN-084 closeout commit | `R-168` | projected | `git commit -m 'HARN-084 decouple SQL parse history' (projected-precommit)`
+2026-05-08T01:45:18-05:00 | HARN-084 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-08T01:45:18-05:00 | HARN-084 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

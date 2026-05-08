@@ -432,6 +432,77 @@ export const getGovernanceQueryHistoryPage = (filters = {}, requestOptions = {})
   })
 }
 
+export const getSqlParseHistoryDetail = (tenantId, parseHistoryId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/parse-history/${encodeURIComponent(parseHistoryId)}${buildTenantQuerySuffix(tenantId)}`,
+    tenantId: normalizeTenantId(tenantId),
+    requestOptions: {
+      requestPrefix: 'frontend-sql-parse-history-detail',
+      ...requestOptions
+    }
+  })
+
+export const exportSqlParseHistory = (tenantId, payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/parse-history/export${buildTenantQuerySuffix(tenantId)}`,
+    data: payload,
+    tenantId: normalizeTenantId(tenantId),
+    requestOptions: {
+      requestPrefix: 'frontend-sql-parse-history-export',
+      ...requestOptions
+    }
+  })
+
+export const getSqlParseHistoryPage = (filters = {}, requestOptions = {}) => {
+  const params = new URLSearchParams()
+  const filterTenantId = normalizeTenantId(filters.tenantId)
+  const requestTenantId = normalizeTenantId(filters.requestTenantId) || filterTenantId
+  const pageNo = Number(filters.pageNo || 1)
+  const pageSize = Number(filters.pageSize || 8)
+  if (filterTenantId) {
+    params.set('tenantId', filterTenantId)
+  }
+  params.set('pageNo', String(pageNo))
+  params.set('pageSize', String(pageSize))
+  ;[
+    'sourceType',
+    'reportCode',
+    'datasourceCode',
+    'stage',
+    'bizDate',
+    'queryDateStart',
+    'queryDateEnd',
+    'status',
+    'logicalObjectType',
+    'accessChannel',
+    'engine',
+    'submittedBy',
+    'traceId',
+    'parseTaskId',
+    'submittedStart',
+    'submittedEnd',
+    'sortBy',
+    'sortOrder'
+  ].forEach(key => {
+    const value = String(filters?.[key] || '').trim()
+    if (value) {
+      params.set(key, value)
+    }
+  })
+
+  return request({
+    method: 'get',
+    url: `/api/sql-optimization/parse-history?${params.toString()}`,
+    tenantId: requestTenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-sql-parse-history-page',
+      ...requestOptions
+    }
+  })
+}
+
 export const getHetuRouteCalibration = (tenantId, requestOptions = {}) =>
   request({
     method: 'get',

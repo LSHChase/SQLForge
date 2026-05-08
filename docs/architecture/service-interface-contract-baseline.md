@@ -350,7 +350,28 @@
 - 当前 placeholder 失败路径通过 SQL 或指纹中的显式 `FAIL_OPTIMIZATION` 标记触发，用于稳定验证轮询失败场景。
 - 当前真实结果会以 `summary` + `suggestion_payload_json` 落仓，失败链路会额外沉淀 `failed_phase` 与 `error_risks_json`；acceleration suggestion 仍保持“给出建议”边界，而后续 apply/verify/rollback 需要经 governed acceleration plan 对象显式审批后才能进入 runtime。
 
-## 3.2.1 SQL Optimization Acceleration Plan Governance Baseline
+## 3.2.1 SQL Optimization Parse History Baseline
+
+当前 `sql-optimization` 拥有独立 SQL 解析记录面。结构解析、综合解析、批量解析、报表解析和日终慢 SQL 解析只写 `sql_parse_history`，不再通过治理侧 `query_history` 存放 `SQL_PARSE` 语义记录。`query_history` 保持 SQL 执行历史边界。
+
+| Endpoint | Request baseline | Response baseline | Current implementation stage |
+|:---|:---|:---|:---|
+| `GET /api/sql-optimization/parse-history` | query: `tenantId`,`sourceType`,`reportCode`,`datasourceCode`,`stage`,`bizDate`,`queryDateStart`,`queryDateEnd`,`status`,`logicalObjectType`,`accessChannel`,`engine`,`submittedBy`,`traceId`,`parseTaskId`,`submittedStart`,`submittedEnd`,`sortBy`,`sortOrder`,`pageNo`,`pageSize` | `SqlParseHistoryPageVO` with `items[]`,`pageNo`,`pageSize`,`totalCount`,`pageCount`,`hasMore`,`classificationSummary` | `SQL_PARSE_HISTORY_DECOUPLED_BASELINE` |
+| `GET /api/sql-optimization/parse-history/{parseHistoryId}` | path: `parseHistoryId`, optional `tenantId` | `SqlParseHistoryDetailVO` with summary fields plus `sqlText`,`sqlTemplateText`,`sqlState`,`structureParseSummary`,`accessParseSummary`,`executionSummary`,`queryContext`,`commentContext`,`bindingSummary`,`logicalObjectHits`,`issueScenes`,`logicalObjectKeys`,`recommendationRefs`,`benchmarkRefs`,`alertRefs`,`auditRefs` | `SQL_PARSE_HISTORY_DECOUPLED_BASELINE` |
+| `POST /api/sql-optimization/parse-history/export` | query: optional `tenantId`; body: `parseHistoryId` or legacy alias `historyId`, `exportFormat` | `SqlParseHistoryExportVO` with `exportId`,`parseHistoryId`,`historyId`,`exportFormat`,`exportStatus`,`fileName`,`contentType`,`storageType`,`storageUri`,`exportedAt`,`auditReference`,`payload` | `SQL_PARSE_HISTORY_DECOUPLED_BASELINE` |
+
+当前解析记录边界如下：
+
+- 主键使用 `parseHistoryId`，兼容前端历史字段时可回填同值 `historyId`，但语义仍是解析记录 ID。
+- `historyType` 固定返回 `SQL_PARSE_RECORD`，不得再在治理 `query_history` 中使用 `historyType=SQL_PARSE` 做逻辑隔离。
+- `sourceType` 固定覆盖 `STRUCTURE_PARSE`、`COMBINED_PARSE`、`PARSE_BATCH`、`REPORT_BATCH`、`END_OF_DAY_SLOW_SQL`。
+- 关键结构字段包括 `parseTaskId`、`sqlFingerprint`、`datasourceCode`、`reportCode`、`stageCode`、`bizDate`、`queryDate*`、`accessChannel`、`parserMode`、`bindingMode`、`resultStatus`、`targetEngine`、`traceId`、`requestId`、`sagaId`、`submittedBy`、`submittedAt`。
+- 解析证据字段包括 `structureParseSummary`、`accessParseSummary`、`resultSummary/resultPayload`、`queryContext`、`commentContext`、`bindingSummary`、`logicalObjectHits`、`issueScenes` 与 `logicalObjectKeys`。
+- 导出当前只承诺 `JSON` / `CSV` inline response；不写治理侧 `export_record`，后续如需跨服务取证归档必须另行扩展契约。
+
+日终慢 SQL 解析当前只固化服务骨架：`SlowSqlExecutionHistorySource` 只读拉取执行历史候选，`EndOfDaySlowSqlParseApplicationService` 按时间窗口、慢 SQL 阈值、limit 与幂等 `batchKey + sqlFingerprint` 生成解析记录。本轮不固化真实 cron 调度和执行历史 source 实现。
+
+## 3.2.2 SQL Optimization Acceleration Plan Governance Baseline
 
 当前 `sql-optimization` 已把 acceleration plan 从 suggestion artifact 收口为受治理正式对象，并通过独立 MySQL carrier、governance traceability 与 query-execution runtime gating 形成 submit/approve/apply/verify/rollback 闭环：
 

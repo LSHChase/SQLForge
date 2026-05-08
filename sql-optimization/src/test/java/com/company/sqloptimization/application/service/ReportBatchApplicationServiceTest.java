@@ -6,8 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.context.RequestContext;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteRequest;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteResponse;
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
 import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneDetailVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
@@ -15,6 +13,7 @@ import com.company.sqloptimization.application.controller.vo.ReportBatchStatusRe
 import com.company.sqloptimization.application.service.report.MockReportSqlFactory;
 import com.company.sqloptimization.application.service.report.ReportSqlResolver;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqloptimization.infrastructure.repository.InMemorySqlParseHistoryRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemoryReportBatchItemRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemoryReportBatchRepository;
 import java.io.ByteArrayOutputStream;
@@ -250,7 +249,7 @@ class ReportBatchApplicationServiceTest {
         assertEquals("AVAILABLE", resolved.getReportItems().get(0).getAccessServiceStatus());
         assertEquals("CONNECTED", resolved.getReportItems().get(0).getAccessConnectionStatus());
         assertNotNull(resolved.getReportItems().get(0).getHistoryId());
-        assertTrue(resolved.getReportItems().get(0).getHistoryId().startsWith("history-parse-"));
+        assertTrue(resolved.getReportItems().get(0).getHistoryId().startsWith("parse-history-"));
         assertEquals(Boolean.TRUE, resolved.getReportItems().get(0).getHistoryPersisted());
         assertEquals("SAVED", resolved.getReportItems().get(0).getHistoryPersistenceStatus());
         ReportBatchParseStatisticsVO statistics = resolved.getParseStatistics();
@@ -550,18 +549,12 @@ class ReportBatchApplicationServiceTest {
 
     private ReportBatchApplicationService buildService(ReportSqlResolver reportSqlResolver) {
         GovernanceCapabilityClient governanceCapabilityClient = Mockito.mock(GovernanceCapabilityClient.class);
-        Mockito.when(governanceCapabilityClient.writeParseHistory(Mockito.any())).thenAnswer(invocation -> {
-            GovernanceParseHistoryWriteRequest request = invocation.getArgument(0);
-            GovernanceParseHistoryWriteResponse response = new GovernanceParseHistoryWriteResponse();
-            String parseTaskId = request == null ? "" : request.getParseTaskId();
-            String sanitizedTaskId = parseTaskId == null ? "" : parseTaskId.replaceAll("[^A-Za-z0-9_-]", "-");
-            response.setHistoryId("history-parse-" + sanitizedTaskId);
-            response.setResultId("result-parse-" + sanitizedTaskId);
-            return response;
-        });
+        SqlParseHistoryApplicationService sqlParseHistoryApplicationService =
+            new SqlParseHistoryApplicationService(new InMemorySqlParseHistoryRepository());
         StructureParseApplicationService structureService = new StructureParseApplicationService(
             new SqlOptimizationPipelineService(),
-            governanceCapabilityClient
+            governanceCapabilityClient,
+            sqlParseHistoryApplicationService
         );
         AccessParseApplicationService accessService = new AccessParseApplicationService();
         return new ReportBatchApplicationService(

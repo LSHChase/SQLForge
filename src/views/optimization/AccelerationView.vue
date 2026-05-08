@@ -7,9 +7,9 @@ import {
   createParseBatch,
   formatRuntimeError,
   getCombinedParseStatus,
-  getGovernanceQueryHistoryPage,
   getParseBatch,
   getReportBatch,
+  getSqlParseHistoryPage,
   importReportBatch,
   ingestParseBatch,
   parseStructureSql,
@@ -85,10 +85,6 @@ const historyForm = reactive({
   logicalObjectType: '',
   engine: '',
   submittedBy: '',
-  cacheHit: '',
-  rewriteApplied: '',
-  accelerationApplied: '',
-  parameterizedSql: '',
   sortBy: 'submittedAt',
   sortOrder: 'DESC',
   submittedStart: '',
@@ -584,16 +580,6 @@ function resultBannerClass(status) {
     return 'result-banner-warning'
   }
   return 'result-banner-success'
-}
-
-function parseBooleanFilter(value) {
-  if (value === 'true') {
-    return true
-  }
-  if (value === 'false') {
-    return false
-  }
-  return undefined
 }
 
 function formatNumber(value) {
@@ -1117,7 +1103,7 @@ async function loadAnalytics() {
     await loadHistoryPage()
     const historyItems = Array.isArray(historyPage.value?.items) ? historyPage.value.items : []
     const statusCounts = historyPage.value?.classificationSummary?.statusCounts || {}
-    const historyTypeCounts = historyPage.value?.classificationSummary?.historyTypeCounts || {}
+    const sourceTypeCounts = historyPage.value?.classificationSummary?.sourceTypeCounts || {}
     const accessChannelCounts = historyPage.value?.classificationSummary?.accessChannelCounts || {}
     const currentIssues = Array.isArray(structureIssues.value) ? structureIssues.value : []
     const currentHistoryIssueScenes = new Set(
@@ -1131,7 +1117,7 @@ async function loadAnalytics() {
       totalSqlCount: historyItems.length + (parseResult.value ? 1 : 0),
       issueSqlCount: nonSuccessHistoryCount + (currentIssues.length > 0 ? 1 : 0),
       totalIssueCount: nonSuccessHistoryCount + currentIssues.length,
-      issueSceneCount: currentHistoryIssueScenes.size + Object.keys(historyTypeCounts).length,
+      issueSceneCount: currentHistoryIssueScenes.size + Object.keys(sourceTypeCounts).length,
       importantSqlCount: currentImportantCount + nonSuccessHistoryCount,
       urgentSqlCount: currentUrgentCount + historyItems.filter(item => String(item.resultStatus || '').toUpperCase() === 'FAILED').length,
       priorityDistribution: {
@@ -1152,8 +1138,8 @@ async function loadAnalytics() {
 
     sqlStats.value = historyItems.map((item, index) => ({
       itemId: item.historyId || `history-${index + 1}`,
-      batchId: item.historyType || 'SQL_PARSE',
-      parseTaskId: item.resultId || item.historyId,
+      batchId: item.sourceType || 'SQL_PARSE_HISTORY',
+      parseTaskId: item.parseTaskId || item.historyId,
       reportCode: item.historyId || item.sqlFingerprint || `history-${index + 1}`,
       datasourceCode: item.datasourceCode || '-',
       stage: item.resultStatus || '-',
@@ -1167,7 +1153,7 @@ async function loadAnalytics() {
     }))
 
     reportStats.value = historyItems.map((item, index) => ({
-      reportCode: item.reportCode || item.historyType || `HISTORY_${index + 1}`,
+      reportCode: item.reportCode || item.sourceType || `HISTORY_${index + 1}`,
       sqlCount: 1,
       issueCount: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 0 : 1,
       highestPriorityLevel: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 'P4' : 'P1',
@@ -1213,10 +1199,9 @@ async function loadHistoryPage() {
   loading.historyPage = true
   historyErrorMessage.value = ''
   try {
-    historyPage.value = await getGovernanceQueryHistoryPage(
+    historyPage.value = await getSqlParseHistoryPage(
       {
         tenantId: historyForm.tenantId,
-        historyType: 'SQL_PARSE',
         reportCode: historyForm.reportCode,
         datasourceCode: historyForm.datasourceCode,
         stage: historyForm.stage,
@@ -1228,10 +1213,6 @@ async function loadHistoryPage() {
         logicalObjectType: historyForm.logicalObjectType,
         engine: historyForm.engine,
         submittedBy: historyForm.submittedBy,
-        cacheHit: parseBooleanFilter(historyForm.cacheHit),
-        rewriteApplied: parseBooleanFilter(historyForm.rewriteApplied),
-        accelerationApplied: parseBooleanFilter(historyForm.accelerationApplied),
-        parameterizedSql: parseBooleanFilter(historyForm.parameterizedSql),
         submittedStart: historyForm.submittedStart,
         submittedEnd: historyForm.submittedEnd,
         sortBy: historyForm.sortBy,
@@ -1240,7 +1221,7 @@ async function loadHistoryPage() {
         pageSize: 10
       },
       {
-        requestPrefix: 'frontend-parse-record-history-page'
+        requestPrefix: 'frontend-acceleration-parse-history-page'
       }
     )
   } catch (error) {

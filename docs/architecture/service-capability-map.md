@@ -77,6 +77,8 @@
 - 基础 DTO / VO 与错误码区间固化
 - 真实 SQL parser / AST analysis / conservative rewrite rule / acceleration suggestion pipeline
 - 结构化 `suggestion / failure` 输出，覆盖收益、成本、风险、失败阶段与任务类型差异
+- 独立 SQL 解析记录面：结构解析、综合解析、批量解析、报表解析写入 `sql_parse_history`，并通过 `GET /api/sql-optimization/parse-history`、`GET /api/sql-optimization/parse-history/{parseHistoryId}`、`POST /api/sql-optimization/parse-history/export` 提供解析记录查询与 inline 导出
+- 日终慢 SQL 解析服务骨架：只读 `SlowSqlExecutionHistorySource` 端口、`EndOfDaySlowSqlParseApplicationService`、时间窗口/慢 SQL 阈值/limit 过滤，以及 `batchKey + sqlFingerprint` 幂等写入解析记录；真实 cron 调度与执行历史 source 实现后续任务化
 - acceleration plan 通过 `governance` 受保护 trace 入口回写 `config/result/history` 追溯链，并通过 `query-execution` internal runtime surface 收口 apply/verify/rollback 闭环
 - 与 `governance` 的租户/数据源检查、审计写入、失败恢复与补偿 queue smoke
 
@@ -84,6 +86,7 @@
 
 - 外部队列调度、回调通知
 - 更接近 engine-native / materialized-view 的物理加速编排与长期运行证据
+- 真实日终调度、跨服务慢 SQL 执行历史拉取实现，以及旧 `query_history` 中既有 `SQL_PARSE` 数据在线迁移
 
 ## 3. 压测引擎服务
 
@@ -143,6 +146,7 @@
 - 租户配置查询
 - 消息重试与管理入口骨架
 - 核心追溯链表结构基线：`config_snapshot`、`execution_result`、`query_history`、`export_record` 与扩展后的 `audit_log`
+- `query_history` 当前收口为 SQL 执行历史和跨服务追溯链的执行语义记录，不再承载 SQL 解析记录；SQL 解析记录由 `sql-optimization.sql_parse_history` 拥有
 - `POST /api/governance/internal/audit/write` 的真实落库基线，支持把 `config/result/history/export` 追溯键接入 `audit_log`
 - `POST /api/governance/internal/acceleration-plan/trace/write` 的真实落库基线，支持把 acceleration plan 生命周期回写到 `config_snapshot/execution_result/query_history`
 - header-based stateless auth 的 `LOGIN` / `LOGOUT` 审计落库基线

@@ -81,14 +81,8 @@ const hasLookupCriteria = computed(() =>
   Boolean(normalizeQueryValue(form.traceId) || normalizeQueryValue(form.taskId) || normalizeQueryValue(form.reportId))
 )
 const auditEvents = computed(() => selectedHistoryDetail.value?.traceDetail?.auditEvents || [])
-const traceQueryHistories = computed(() => selectedHistoryDetail.value?.traceDetail?.queryHistories || [])
 const executionSummary = computed(() => objectValue(selectedHistoryDetail.value?.executionSummary))
 const sqlState = computed(() => objectValue(selectedHistoryDetail.value?.sqlState))
-const parseEvidence = computed(() => ({
-  structureParseSummary: selectedHistoryDetail.value?.structureParseSummary,
-  accessParseSummary: selectedHistoryDetail.value?.accessParseSummary,
-  queryContext: selectedHistoryDetail.value?.queryContext
-}))
 
 const summaryCards = computed(() => [
   { label: isChinese.value ? '当前页记录' : 'Current page', value: rows.value.length },
@@ -734,20 +728,7 @@ watch(
             </div>
           </el-tab-pane>
 
-          <el-tab-pane :label="isChinese ? '解析证据' : 'Parse evidence'" name="parseEvidence">
-            <p class="tab-copy">
-              {{ isChinese ? '解析信息作为执行详情的附属证据展示，不作为 SQL 历史默认视角。' : 'Parse information is shown as supporting evidence, not as the default SQL history view.' }}
-            </p>
-            <div class="code-grid">
-              <article v-for="(payload, key) in parseEvidence" :key="key" class="code-card">
-                <div class="code-card__header">{{ key }}</div>
-                <pre class="code-block">{{ formatJson(payload || {}) }}</pre>
-              </article>
-            </div>
-          </el-tab-pane>
-
           <el-tab-pane :label="isChinese ? '审计关联' : 'Audit links'" name="audit">
-            <p class="tab-copy" data-testid="sql-history-detail-query-history-count">{{ traceQueryHistories.length }}</p>
             <el-table :data="auditEvents" border>
               <el-table-column prop="serviceCode" :label="isChinese ? '服务' : 'Service'" min-width="150" />
               <el-table-column prop="operationType" :label="isChinese ? '操作' : 'Operation'" min-width="160" />

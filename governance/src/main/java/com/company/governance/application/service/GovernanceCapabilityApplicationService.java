@@ -23,8 +23,6 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequ
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteRequest;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
@@ -56,7 +54,6 @@ public class GovernanceCapabilityApplicationService {
     private final GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService;
     private final GovernanceBenchmarkRegressionAlertApplicationService governanceBenchmarkRegressionAlertApplicationService;
     private final GovernanceAccelerationPlanTraceabilityApplicationService governanceAccelerationPlanTraceabilityApplicationService;
-    private final GovernanceParseHistoryTraceabilityApplicationService governanceParseHistoryTraceabilityApplicationService;
     private final DatabaseViewCatalogApplicationService databaseViewCatalogApplicationService;
     private final ReportInterfaceConfigApplicationService reportInterfaceConfigApplicationService;
     private final MessagingProperties messagingProperties;
@@ -68,7 +65,6 @@ public class GovernanceCapabilityApplicationService {
                                                   GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService,
                                                   GovernanceBenchmarkRegressionAlertApplicationService governanceBenchmarkRegressionAlertApplicationService,
                                                   GovernanceAccelerationPlanTraceabilityApplicationService governanceAccelerationPlanTraceabilityApplicationService,
-                                                  GovernanceParseHistoryTraceabilityApplicationService governanceParseHistoryTraceabilityApplicationService,
                                                   DatabaseViewCatalogApplicationService databaseViewCatalogApplicationService,
                                                   ReportInterfaceConfigApplicationService reportInterfaceConfigApplicationService,
                                                   MessagingProperties messagingProperties,
@@ -78,7 +74,6 @@ public class GovernanceCapabilityApplicationService {
         this.governanceBenchmarkTraceabilityApplicationService = governanceBenchmarkTraceabilityApplicationService;
         this.governanceBenchmarkRegressionAlertApplicationService = governanceBenchmarkRegressionAlertApplicationService;
         this.governanceAccelerationPlanTraceabilityApplicationService = governanceAccelerationPlanTraceabilityApplicationService;
-        this.governanceParseHistoryTraceabilityApplicationService = governanceParseHistoryTraceabilityApplicationService;
         this.databaseViewCatalogApplicationService = databaseViewCatalogApplicationService;
         this.reportInterfaceConfigApplicationService = reportInterfaceConfigApplicationService;
         this.messagingProperties = messagingProperties;
@@ -124,11 +119,6 @@ public class GovernanceCapabilityApplicationService {
     ) {
         requireProtectedTenantContext();
         return governanceAccelerationPlanTraceabilityApplicationService.writeAccelerationPlanTrace(request);
-    }
-
-    public GovernanceParseHistoryWriteResponse writeParseHistory(GovernanceParseHistoryWriteRequest request) {
-        requireProtectedTenantContext();
-        return governanceParseHistoryTraceabilityApplicationService.writeParseHistory(request);
     }
 
     public GovernanceDbViewResolveResponse resolveDbView(GovernanceDbViewResolveRequest request) {

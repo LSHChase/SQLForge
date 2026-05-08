@@ -356,7 +356,8 @@
 
 ### 4.5 SQL 历史导出与取证
 
-- `POST /api/governance/query-history/export` 负责单次 history 的取证导出基线
+- `POST /api/governance/query-history/export` 只负责单次 SQL 执行历史的取证导出基线
+- SQL 解析记录由 `POST /api/sql-optimization/parse-history/export` 导出，不再复用治理 `query_history` 导出面
 - 支持格式：
   - `CSV`
   - `EXCEL`
@@ -547,6 +548,13 @@ Parser 边界：
 - 结构解析前处理必须剔除字符串与标识符外的 `--` 行尾注释，同时保留换行和字符长度，以维持 parser 失败定位和原 SQL 位置的一致性。
 - 单条 SQL 解析失败不得影响后续 SQL 输入或异步解析结果展示；前端必须按当前输入快照接收结果，输入变化后清理旧解析结果和旧错误信息。
 - INVALID 结构解析结果必须给出可读失败原因；当 parser 或启发式定位可用时，同时给出行、列、offset、token 和附近片段。
+
+`HARN-084` 将 SQL 执行历史与 SQL 解析记录解耦：
+
+- SQL 执行历史继续由治理 `query_history` 与 `/api/governance/query-history` 承载，语义固定为 `QUERY_EXECUTION`。
+- SQL 解析记录由 `sql-optimization.sql_parse_history` 与 `/api/sql-optimization/parse-history` 承载，语义固定为 `SQL_PARSE_RECORD`。
+- 结构解析、综合解析、批量解析、报表解析和日终慢 SQL 解析不再写治理 `query_history`。
+- 日终慢 SQL 解析本阶段只提供只读候选 source 端口、应用服务骨架、幂等批次键和测试，不声明真实 cron 调度已投产。
 
 ### 6.3 Access Parse
 

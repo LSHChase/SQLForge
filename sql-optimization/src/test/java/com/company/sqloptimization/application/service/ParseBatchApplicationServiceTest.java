@@ -14,6 +14,7 @@ import com.company.sqloptimization.application.controller.vo.ParseBatchStatusRes
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqloptimization.infrastructure.repository.InMemoryParseBatchItemRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemoryParseBatchRepository;
+import com.company.sqloptimization.infrastructure.repository.InMemorySqlParseHistoryRepository;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
@@ -182,9 +183,12 @@ class ParseBatchApplicationServiceTest {
 
     private ParseBatchApplicationService buildService() {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
+        SqlParseHistoryApplicationService sqlParseHistoryApplicationService =
+            new SqlParseHistoryApplicationService(new InMemorySqlParseHistoryRepository());
         StructureParseApplicationService structureService = new StructureParseApplicationService(
             new SqlOptimizationPipelineService(),
-            governanceCapabilityClient
+            governanceCapabilityClient,
+            sqlParseHistoryApplicationService
         );
         AccessParseApplicationService accessService = new AccessParseApplicationService();
         return new ParseBatchApplicationService(

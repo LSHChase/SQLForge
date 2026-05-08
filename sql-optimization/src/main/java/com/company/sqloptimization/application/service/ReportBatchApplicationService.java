@@ -397,7 +397,10 @@ public class ReportBatchApplicationService {
                     structureParse,
                     null,
                     structureRequest,
-                    "FAILED"
+                    "FAILED",
+                    SqlParseHistoryApplicationService.SOURCE_REPORT_BATCH,
+                    item.getItemId(),
+                    batch.getBatchId()
                 );
                 item.complete(
                     resolvedSqlText,
@@ -432,7 +435,10 @@ public class ReportBatchApplicationService {
                 structureParse,
                 accessParse,
                 structureRequest,
-                resolveHistoryResultStatus(status)
+                resolveHistoryResultStatus(status),
+                SqlParseHistoryApplicationService.SOURCE_REPORT_BATCH,
+                item.getItemId(),
+                batch.getBatchId()
             );
             item.complete(
                 resolvedSqlText,

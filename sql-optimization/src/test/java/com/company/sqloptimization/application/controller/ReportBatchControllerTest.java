@@ -1,9 +1,5 @@
 package com.company.sqloptimization.application.controller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -11,13 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteRequest;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteResponse;
 import com.company.sqloptimization.SqlOptimizationApplication;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -39,19 +32,6 @@ class ReportBatchControllerTest {
 
     @MockBean
     private GovernanceCapabilityClient governanceCapabilityClient;
-
-    @BeforeEach
-    void stubGovernanceHistoryWrites() {
-        when(governanceCapabilityClient.writeParseHistory(any())).thenAnswer(invocation -> {
-            GovernanceParseHistoryWriteRequest request = invocation.getArgument(0);
-            GovernanceParseHistoryWriteResponse response = new GovernanceParseHistoryWriteResponse();
-            String parseTaskId = request == null ? "" : request.getParseTaskId();
-            String sanitizedTaskId = parseTaskId == null ? "" : parseTaskId.replaceAll("[^A-Za-z0-9_-]", "-");
-            response.setHistoryId("history-parse-" + sanitizedTaskId);
-            response.setResultId("result-parse-" + sanitizedTaskId);
-            return response;
-        });
-    }
 
     @Test
     void shouldImportAndResolveMockReportCatalog() throws Exception {
@@ -139,7 +119,6 @@ class ReportBatchControllerTest {
             .andExpect(jsonPath("$.sqlStatistics.length()").value(1))
             .andExpect(jsonPath("$.sqlStatistics[0].reportCode").value("RPT_B"));
 
-        verify(governanceCapabilityClient, times(2)).writeParseHistory(any());
     }
 
     @Test

@@ -5,21 +5,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.company.sqloptimization.SqlOptimizationApplication;
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteRequest;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteResponse;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -45,19 +38,6 @@ class ParseBatchControllerTest {
 
     @MockBean
     private GovernanceCapabilityClient governanceCapabilityClient;
-
-    @BeforeEach
-    void stubGovernanceHistoryWrites() {
-        when(governanceCapabilityClient.writeParseHistory(any())).thenAnswer(invocation -> {
-            GovernanceParseHistoryWriteRequest request = invocation.getArgument(0);
-            GovernanceParseHistoryWriteResponse response = new GovernanceParseHistoryWriteResponse();
-            String parseTaskId = request == null ? "" : request.getParseTaskId();
-            String sanitizedTaskId = parseTaskId == null ? "" : parseTaskId.replaceAll("[^A-Za-z0-9_-]", "-");
-            response.setHistoryId("history-parse-" + sanitizedTaskId);
-            response.setResultId("result-parse-" + sanitizedTaskId);
-            return response;
-        });
-    }
 
     @Test
     void shouldCreateAndFetchParseBatchContract() throws Exception {
@@ -152,7 +132,6 @@ class ParseBatchControllerTest {
             .andExpect(jsonPath("$.importedRecords[0].historyId").isNotEmpty())
             .andExpect(jsonPath("$.importedRecords[0].historyPersistenceStatus").value("SAVED"))
             .andExpect(jsonPath("$.accessParseStatistics.successRecords").value(2));
-        verify(governanceCapabilityClient, times(2)).writeParseHistory(any());
     }
 
     @Test

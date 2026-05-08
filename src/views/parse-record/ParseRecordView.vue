@@ -4,18 +4,16 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import {
-  exportGovernanceQueryHistory,
+  exportSqlParseHistory,
   formatRuntimeError,
   getGovernanceDatasources,
-  getGovernanceQueryHistoryDetail,
-  getGovernanceQueryHistoryPage,
-  getGovernanceTraceDetail,
+  getSqlParseHistoryDetail,
+  getSqlParseHistoryPage,
   listParseBatches,
   listReportBatches,
   getReportBatch,
   getReportBatchIssueSceneDetail,
-  getReportBatchParseStatistics,
-  lookupGovernanceTraces
+  getReportBatchParseStatistics
 } from '../../services/runtimeGateApi'
 import { buildDatasourceOptions, buildTenantOptions, withCurrentOption } from '../common/formComponentGovernance'
 import { issueSceneHelpText, riskDisplayText as sharedRiskDisplayText } from '../common/issueSceneHelp.mjs'
@@ -43,10 +41,6 @@ const form = reactive({
   logicalObjectType: '',
   engine: '',
   submittedBy: '',
-  cacheHit: '',
-  rewriteApplied: '',
-  accelerationApplied: '',
-  parameterizedSql: '',
   sortBy: '',
   sortOrder: '',
   submittedStart: '',
@@ -133,7 +127,7 @@ const parseBatchHistoryRows = ref([])
 const reportBatchHistoryRows = ref([])
 const isChinese = computed(() => locale.value === 'zh-CN')
 const isBatchHistoryWorkbench = computed(() => activeHistoryWorkbenchTab.value === 'batchHistory')
-const historyWorkbenchKicker = computed(() => isBatchHistoryWorkbench.value ? 'parse history workbench' : 'parse query-history workbench')
+const historyWorkbenchKicker = computed(() => isBatchHistoryWorkbench.value ? 'parse history workbench' : 'parse record workbench')
 const historyWorkbenchTitle = computed(() => {
   if (isBatchHistoryWorkbench.value) {
     return isChinese.value ? '解析历史查询' : 'Parse history search'
@@ -147,8 +141,8 @@ const historyWorkbenchSummary = computed(() => {
       : 'Batch parse, report-import history, and SQL-level parse records are searched here without SQL execution history.'
   }
   return isChinese.value
-    ? '这里只查询 SQL_PARSE 解析记录；SQL 执行历史请从 SQL 历史入口进入。'
-    : 'This table queries only SQL_PARSE records; SQL execution history is available from the SQL history entry.'
+    ? '这里只查询 SQL 解析记录；SQL 执行历史请从 SQL 历史入口进入。'
+    : 'This table queries only SQL parse records; SQL execution history is available from the SQL history entry.'
 })
 const routeTenantId = computed(() => normalizeQueryValue(route.query.tenantId))
 const requestTenantId = computed(() => normalizeQueryValue(form.tenantId) || routeTenantId.value || DEFAULT_HISTORY_CONTEXT_TENANT_ID)
@@ -338,10 +332,10 @@ const detailSummaryCards = computed(() => {
     return []
   }
   return [
-    { label: 'History ID', value: selectedHistoryDetail.value.historyId },
+    { label: 'Parse History ID', value: selectedHistoryDetail.value.parseHistoryId || selectedHistoryDetail.value.historyId },
     { label: 'Trace ID', value: selectedHistoryDetail.value.traceId },
     { label: isChinese.value ? '报表编码' : 'Report code', value: selectedHistoryDetail.value.reportCode },
-    { label: isChinese.value ? '服务编码' : 'Service code', value: selectedHistoryDetail.value.traceDetail?.serviceCode || selectedHistoryDetail.value.historyType },
+    { label: isChinese.value ? '来源类型' : 'Source type', value: selectedHistoryDetail.value.sourceType },
     { label: isChinese.value ? '结果状态' : 'Result status', value: selectedHistoryDetail.value.resultStatus },
     { label: isChinese.value ? '目标引擎' : 'Target engine', value: selectedHistoryDetail.value.targetEngine },
     { label: isChinese.value ? '接入渠道' : 'Access channel', value: selectedHistoryDetail.value.accessChannel },
@@ -516,7 +510,6 @@ const referenceGroups = computed(() =>
   ].filter(group => Array.isArray(group.items) && group.items.length > 0)
 )
 const logicalObjectHits = computed(() => normalizeArray(selectedHistoryDetail.value?.logicalObjectHits))
-const traceQueryHistories = computed(() => selectedHistoryDetail.value?.traceDetail?.queryHistories || [])
 const auditEvents = computed(() => selectedHistoryDetail.value?.traceDetail?.auditEvents || [])
 const hasLookupCriteria = computed(() =>
   hasDisplayValue(form.traceId) || hasDisplayValue(form.taskId) || hasDisplayValue(form.reportId)
@@ -577,11 +570,10 @@ const loadPage = async () => {
   loading.page = true
   errorMessage.value = ''
   try {
-    page.value = await getGovernanceQueryHistoryPage(
+    page.value = await getSqlParseHistoryPage(
       {
         tenantId: normalizeQueryValue(form.tenantId),
         requestTenantId: requestTenantId.value,
-        historyType: 'SQL_PARSE',
         reportCode: form.reportCode,
         datasourceCode: form.datasourceCode,
         stage: form.stage,
@@ -593,10 +585,8 @@ const loadPage = async () => {
         logicalObjectType: form.logicalObjectType,
         engine: form.engine,
         submittedBy: form.submittedBy,
-        cacheHit: parseBooleanFilter(form.cacheHit),
-        rewriteApplied: parseBooleanFilter(form.rewriteApplied),
-        accelerationApplied: parseBooleanFilter(form.accelerationApplied),
-        parameterizedSql: parseBooleanFilter(form.parameterizedSql),
+        traceId: form.traceId,
+        parseTaskId: form.taskId,
         submittedStart: form.submittedStart,
         submittedEnd: form.submittedEnd,
         sortBy: form.sortBy,
@@ -605,7 +595,7 @@ const loadPage = async () => {
         pageSize: historyPagination.pageSize
       },
       {
-        requestPrefix: 'frontend-parse-record-history-page'
+        requestPrefix: 'frontend-parse-record-parse-history-page'
       }
     )
     const normalizedPage = normalizePagedList(page.value, historyPagination.pageSize)
@@ -700,8 +690,8 @@ const openHistoryDetail = async (historyId, preloadedTraceDetail = null) => {
   activeDialogTab.value = 'parseResult'
   selectedHistoryId.value = historyId
   try {
-    const detail = await getGovernanceQueryHistoryDetail(requestTenantId.value, historyId, {
-      requestPrefix: 'frontend-parse-record-query-history-detail'
+    const detail = await getSqlParseHistoryDetail(requestTenantId.value, historyId, {
+      requestPrefix: 'frontend-parse-record-parse-history-detail'
     })
     if (preloadedTraceDetail && !detail.traceDetail) {
       detail.traceDetail = preloadedTraceDetail
@@ -726,32 +716,14 @@ const runIndexedLookup = async () => {
   loading.lookup = true
   errorMessage.value = ''
   try {
-    const lookupPage = await lookupGovernanceTraces(
-      requestTenantId.value,
-      {
-        traceId: form.traceId,
-        taskId: form.taskId,
-        reportId: form.reportId
-      },
-      5,
-      {
-        requestPrefix: 'frontend-parse-record-lookups'
-      }
-    )
-    const firstTraceId = lookupPage?.items?.[0]?.traceId
-    if (!firstTraceId) {
-      errorMessage.value = isChinese.value ? '没有命中记录。' : 'No history matched the lookup criteria.'
-      return
+    if (normalizeQueryValue(form.reportId) && !normalizeQueryValue(form.reportCode)) {
+      form.reportCode = form.reportId
     }
-    const traceDetail = await getGovernanceTraceDetail(requestTenantId.value, firstTraceId, 20, {
-      requestPrefix: 'frontend-parse-record-trace-detail'
-    })
-    const firstHistoryId = traceDetail?.queryHistories?.[0]?.historyId
-    if (!firstHistoryId) {
-      errorMessage.value = isChinese.value ? '命中了 trace，但没有可展示的 query history。' : 'A trace was found but no query-history detail is available.'
-      return
+    historyPagination.pageNo = 1
+    await loadPage()
+    if (!rows.value.length) {
+      errorMessage.value = isChinese.value ? '没有命中解析记录。' : 'No parse-history record matched the lookup criteria.'
     }
-    await openHistoryDetail(firstHistoryId, traceDetail)
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
@@ -773,10 +745,6 @@ const clearFilters = async () => {
   form.logicalObjectType = ''
   form.engine = ''
   form.submittedBy = ''
-  form.cacheHit = ''
-  form.rewriteApplied = ''
-  form.accelerationApplied = ''
-  form.parameterizedSql = ''
   form.sortBy = ''
   form.sortOrder = ''
   form.submittedStart = ''
@@ -803,10 +771,10 @@ const runExport = async () => {
   loading.export = true
   errorMessage.value = ''
   try {
-    exportResult.value = await exportGovernanceQueryHistory(
+    exportResult.value = await exportSqlParseHistory(
       requestTenantId.value,
       {
-        historyId: selectedHistoryDetail.value.historyId,
+        parseHistoryId: selectedHistoryDetail.value.parseHistoryId || selectedHistoryDetail.value.historyId,
         exportFormat: exportForm.exportFormat,
         includeTraceDetail: exportForm.includeTraceDetail,
         exportReason: exportForm.exportReason
@@ -1032,11 +1000,11 @@ const loadReportBatchItemDetails = async items => {
   try {
     const results = await Promise.allSettled(
       detailTargets.map(async target => {
-        const detail = await getGovernanceQueryHistoryDetail(
+        const detail = await getSqlParseHistoryDetail(
           requestTenantId.value,
           target.historyId,
           {
-            requestPrefix: 'frontend-parse-record-report-sql-history-detail'
+            requestPrefix: 'frontend-parse-record-report-sql-parse-history-detail'
           }
         )
         return [target.detailKey, detail]
@@ -1126,16 +1094,6 @@ const resultValueClass = item => {
     return 'highlight-chip-warning'
   }
   return ''
-}
-
-const parseBooleanFilter = value => {
-  if (value === 'true') {
-    return true
-  }
-  if (value === 'false') {
-    return false
-  }
-  return undefined
 }
 
 const reportHistoryPersistenceStatus = item => normalizeQueryValue(item?.historyPersistenceStatus).toUpperCase()
@@ -1710,38 +1668,6 @@ watch(
           <span class="field-label">{{ isChinese ? '提交人' : 'Submitted by' }}</span>
           <el-input v-model="form.submittedBy" />
         </label>
-        <label class="field-block">
-          <span class="field-label">{{ isChinese ? '缓存命中' : 'Cache hit' }}</span>
-          <el-select v-model="form.cacheHit" data-testid="parse-record-bool-filter">
-            <el-option label="ALL" value="" />
-            <el-option label="true" value="true" />
-            <el-option label="false" value="false" />
-          </el-select>
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ isChinese ? '轻量改写' : 'Rewrite applied' }}</span>
-          <el-select v-model="form.rewriteApplied">
-            <el-option label="ALL" value="" />
-            <el-option label="true" value="true" />
-            <el-option label="false" value="false" />
-          </el-select>
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ isChinese ? '加速命中' : 'Acceleration applied' }}</span>
-          <el-select v-model="form.accelerationApplied">
-            <el-option label="ALL" value="" />
-            <el-option label="true" value="true" />
-            <el-option label="false" value="false" />
-          </el-select>
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ isChinese ? '参数化 SQL' : 'Parameterized SQL' }}</span>
-          <el-select v-model="form.parameterizedSql">
-            <el-option label="ALL" value="" />
-            <el-option label="true" value="true" />
-            <el-option label="false" value="false" />
-          </el-select>
-        </label>
         <label class="field-block field-block-wide">
           <span class="field-label">{{ isChinese ? '提交时间区间' : 'Submitted time range' }}</span>
           <el-date-picker
@@ -1819,7 +1745,7 @@ watch(
         <section class="surface-card table-panel" data-testid="parse-record-sql-history-tab">
           <div class="table-heading">
             <div>
-              <p class="section-kicker sqlforge-code-label">SQL_PARSE query history table</p>
+              <p class="section-kicker sqlforge-code-label">SQL parse history table</p>
               <h2 class="section-title">{{ isChinese ? 'SQL 解析记录' : 'SQL parse records' }}</h2>
             </div>
             <div class="chip-row">
@@ -1834,23 +1760,23 @@ watch(
           </div>
 
           <el-table :data="rows" border>
-            <el-table-column :label="isChinese ? 'History / Report' : 'History / Report'" min-width="220">
+            <el-table-column :label="isChinese ? '解析记录 / 报表' : 'Parse record / Report'" min-width="220">
               <template #default="{ row }">
                 <button
                   type="button"
                   class="table-link"
                   data-testid="parse-record-trace-item"
-                  @click="openHistoryDetail(row.historyId)"
+                  @click="openHistoryDetail(row.parseHistoryId || row.historyId)"
                 >
-                  {{ row.reportCode || row.historyId }}
+                  {{ row.reportCode || row.parseHistoryId || row.historyId }}
                 </button>
-                <div class="cell-subline">{{ row.historyId }}</div>
+                <div class="cell-subline">{{ row.parseHistoryId || row.historyId }}</div>
               </template>
             </el-table-column>
             <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
             <el-table-column prop="stageCode" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
-            <el-table-column :label="isChinese ? '服务编码' : 'Service code'" min-width="150">
-              <template #default="{ row }">{{ row.historyType || '-' }}</template>
+            <el-table-column :label="isChinese ? '来源类型' : 'Source type'" min-width="150">
+              <template #default="{ row }">{{ row.sourceType || '-' }}</template>
             </el-table-column>
             <el-table-column prop="resultStatus" :label="isChinese ? '状态' : 'Status'" min-width="120">
               <template #default="{ row }">
@@ -1861,17 +1787,10 @@ watch(
             <el-table-column :label="isChinese ? '逻辑对象类型' : 'Logical objects'" min-width="160">
               <template #default="{ row }">{{ row.logicalObjectTypes?.join(', ') || '-' }}</template>
             </el-table-column>
-            <el-table-column :label="isChinese ? '治理命中' : 'Governance hits'" min-width="170">
-              <template #default="{ row }">
-                {{ `cache:${row.cacheHit === true ? 'Y' : row.cacheHit === false ? 'N' : '-'} / rewrite:${row.rewriteApplied === true ? 'Y' : row.rewriteApplied === false ? 'N' : '-'} / accel:${row.accelerationApplied === true ? 'Y' : row.accelerationApplied === false ? 'N' : '-'}` }}
-              </template>
-            </el-table-column>
+            <el-table-column prop="parseTaskId" :label="isChinese ? '解析任务' : 'Parse task'" min-width="180" />
             <el-table-column prop="targetEngine" :label="isChinese ? '目标引擎' : 'Target engine'" min-width="120" />
             <el-table-column prop="submittedAt" :label="isChinese ? '提交时间' : 'Submitted at'" min-width="170">
               <template #default="{ row }">{{ formatTimestamp(row.submittedAt) }}</template>
-            </el-table-column>
-            <el-table-column :label="isChinese ? '审计事件数' : 'Audit event count'" min-width="120">
-              <template #default="{ row }">{{ row.auditEventCount ?? '-' }}</template>
             </el-table-column>
           </el-table>
           <el-pagination
@@ -2502,7 +2421,7 @@ watch(
 
     <el-dialog
       v-model="detailDialogVisible"
-      :title="selectedHistoryDetail?.reportCode || selectedHistoryDetail?.historyId || 'query history detail'"
+      :title="selectedHistoryDetail?.reportCode || selectedHistoryDetail?.parseHistoryId || selectedHistoryDetail?.historyId || 'parse history detail'"
       width="1120px"
     >
       <div v-if="selectedHistoryDetail" class="dialog-stack">
@@ -2821,29 +2740,6 @@ watch(
                 </article>
               </div>
             </div>
-          </el-tab-pane>
-
-          <el-tab-pane :label="isChinese ? '关联历史' : 'Linked query histories'" name="histories">
-            <p class="tab-copy">query history detail</p>
-            <p class="tab-copy">SQL tri-state, parse signals, and related forensics</p>
-            <el-table :data="traceQueryHistories" border>
-              <el-table-column prop="historyId" label="History ID" min-width="180" />
-              <el-table-column prop="reportCode" :label="isChinese ? '报表编码' : 'Report code'" min-width="180" />
-              <el-table-column prop="historyType" :label="isChinese ? '类型' : 'Type'" min-width="140" />
-              <el-table-column :label="isChinese ? '提交时间' : 'Submitted at'" min-width="170">
-                <template #default="{ row }">{{ formatTimestamp(row.submittedAt) }}</template>
-              </el-table-column>
-            </el-table>
-            <p
-              v-if="!traceQueryHistories.length"
-              class="empty-copy"
-              data-testid="parse-record-detail-query-history-count"
-            >
-              0
-            </p>
-            <p v-else class="empty-copy" data-testid="parse-record-detail-query-history-count">
-              {{ traceQueryHistories.length }}
-            </p>
           </el-tab-pane>
 
           <el-tab-pane :label="isChinese ? 'SQL 三态' : 'SQL tri-state'" name="sql">

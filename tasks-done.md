@@ -4,6 +4,26 @@
 
 ## Done
 
+### HARN-084: Decouple SQL parse history from SQL execution history
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `HARN-084 decouple SQL parse history`
+- Priority: 1
+- Depends on: HARN-083
+- Scope: Implement the confirmed SQL history decoupling plan: keep governance query_history limited to SQL execution records, add sql-optimization owned sql_parse_history persistence and parse-history APIs, write parse flows and end-of-day slow-SQL parse skeleton to sql_parse_history, update frontend clients/views/contracts, synchronize schema migrations and architecture docs, and validate backend/frontend/data boundaries.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-084`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-08: implemented SQL parse-history decoupling, removed governance parse-history write surface, updated frontend/runtime contracts, docs, schema, migration, and portable bundle.
+  - 2026-05-08: validation passed for shared/governance/sql-optimization module tests, frontend contracts/smokes/builds, and `python3 scripts/foreman.py validate HARN-084`.
+- Context closeout:
+  - Completed scope: Implemented SQL parse-history decoupling: sql-optimization owned sql_parse_history persistence/API, local parse-flow writes, end-of-day slow-SQL skeleton, frontend API/page split, governance parse write surface removal, schema/migration/docs/contracts/portable bundle updates.
+  - Validation evidence: mvn -pl sqlforge-shared test; mvn -pl governance test; mvn -pl sql-optimization test; node scripts/check-history-page-contract.mjs; node scripts/check-history-detail-contract.mjs; node scripts/check-sql-ui-contract.mjs; node scripts/check-dev-frontend.mjs; npm run lint; npm run build; npm run build:portable; node scripts/check-portable-frontend.mjs; python3 scripts/foreman.py validate HARN-084; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Existing legacy SQL_PARSE rows in query_history are not migrated; real cron scheduling and production slow-SQL source connector remain out of scope.
+  - Next step: Create a separate governed task if historical migration, scheduler wiring, or a production slow-SQL source connector is required.
+
 ### HARN-083: 修复 SQL 执行历史与解析历史边界
 
 - Status: done

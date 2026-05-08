@@ -8,12 +8,6 @@ import com.company.sqloptimization.application.controller.vo.CombinedParseStatus
 import com.company.sqloptimization.application.controller.vo.CombinedParseStatusVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseResponseVO;
 import com.company.sqlforge.common.context.RequestContext;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteRequest;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteResponse;
-import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -25,16 +19,15 @@ public class CombinedParseApplicationService {
 
     private final StructureParseApplicationService structureParseApplicationService;
     private final AccessParseApplicationService accessParseApplicationService;
-    private final GovernanceCapabilityClient governanceCapabilityClient;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final SqlParseHistoryApplicationService sqlParseHistoryApplicationService;
     private final Map<String, CombinedParseStatusVO> parseStates = new ConcurrentHashMap<String, CombinedParseStatusVO>();
 
     public CombinedParseApplicationService(StructureParseApplicationService structureParseApplicationService,
                                            AccessParseApplicationService accessParseApplicationService,
-                                           GovernanceCapabilityClient governanceCapabilityClient) {
+                                           SqlParseHistoryApplicationService sqlParseHistoryApplicationService) {
         this.structureParseApplicationService = structureParseApplicationService;
         this.accessParseApplicationService = accessParseApplicationService;
-        this.governanceCapabilityClient = governanceCapabilityClient;
+        this.sqlParseHistoryApplicationService = sqlParseHistoryApplicationService;
     }
 
     public CombinedParseStatusVO submit(CombinedParseRequest request) {
@@ -126,33 +119,19 @@ public class CombinedParseApplicationService {
 
     private void writeParseHistory(CombinedParseStatusVO status, CombinedParseRequest request) {
         try {
-            GovernanceParseHistoryWriteRequest historyRequest = new GovernanceParseHistoryWriteRequest();
-            historyRequest.setParseTaskId(status.getParseTaskId());
-            historyRequest.setSqlFingerprint(
-                status.getStructureParse() == null ? null : status.getStructureParse().getSqlFingerprint()
+            SqlParseHistoryWriteResult writeResult = sqlParseHistoryApplicationService.writeCombinedHistory(
+                status,
+                request,
+                normalizeHistoryResultStatus(status.getStatus())
             );
-            historyRequest.setDatasourceCode(request.getDatasourceCode());
-            historyRequest.setDatasourceType("AUTO");
-            historyRequest.setSqlText(request.getSqlText());
-            historyRequest.setSqlTemplateText(request.getSqlTemplateText());
-            historyRequest.setBindingMode(request.getBindingMode());
-            historyRequest.setResultStatus(normalizeHistoryResultStatus(status.getStatus()));
-            historyRequest.setResultSummaryJson(toJson(status.getConclusion()));
-            historyRequest.setResultPayloadJson(toJson(status));
-            historyRequest.setQueryContextJson(toJson(request.getCommentContext()));
-            historyRequest.setLogicalObjectHitsJson(toJson(
-                status.getStructureParse() == null ? null : status.getStructureParse().getLogicalObjectHits()
-            ));
-            historyRequest.setSubmittedAt(Instant.now().toString());
-            GovernanceParseHistoryWriteResponse response = governanceCapabilityClient.writeParseHistory(historyRequest);
-            if (response != null) {
-                status.setHistoryId(response.getHistoryId());
-                status.setHistoryPersisted(Boolean.TRUE);
-                status.setHistoryPersistenceStatus("SAVED");
+            if (writeResult == null) {
+                status.setHistoryPersisted(Boolean.FALSE);
+                status.setHistoryPersistenceStatus("NO_RESPONSE");
                 return;
             }
-            status.setHistoryPersisted(Boolean.FALSE);
-            status.setHistoryPersistenceStatus("NO_RESPONSE");
+            status.setHistoryId(writeResult.getParseHistoryId());
+            status.setHistoryPersisted(writeResult.getPersisted());
+            status.setHistoryPersistenceStatus(writeResult.getPersistenceStatus());
         } catch (RuntimeException ex) {
             status.setHistoryPersisted(Boolean.FALSE);
             status.setHistoryPersistenceStatus("WRITE_FAILED");
@@ -170,17 +149,6 @@ public class CombinedParseApplicationService {
             return "FAILED";
         }
         return "PARTIAL";
-    }
-
-    private String toJson(Object value) {
-        if (value == null) {
-            return "{}";
-        }
-        try {
-            return objectMapper.writeValueAsString(value);
-        } catch (JsonProcessingException ex) {
-            return "{}";
-        }
     }
 
     private CombinedParseConclusionVO buildConclusion(CombinedParseStatusVO status) {

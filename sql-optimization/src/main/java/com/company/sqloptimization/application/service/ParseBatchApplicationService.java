@@ -266,7 +266,10 @@ public class ParseBatchApplicationService {
                 structureParse,
                 null,
                 structureRequest,
-                "FAILED"
+                "FAILED",
+                SqlParseHistoryApplicationService.SOURCE_PARSE_BATCH,
+                item.getItemId(),
+                batch.getBatchId()
             );
             item.complete(
                 structureParse.getParseTaskId(),
@@ -293,7 +296,10 @@ public class ParseBatchApplicationService {
                 structureParse,
                 null,
                 structureRequest,
-                "SUCCESS"
+                "SUCCESS",
+                SqlParseHistoryApplicationService.SOURCE_PARSE_BATCH,
+                item.getItemId(),
+                batch.getBatchId()
             );
             item.complete(
                 structureParse.getParseTaskId(),
@@ -330,7 +336,10 @@ public class ParseBatchApplicationService {
             structureParse,
             accessParse,
             structureRequest,
-            terminalStatus == ParseBatchItemStatus.SUCCESS ? "SUCCESS" : "PARTIAL"
+            terminalStatus == ParseBatchItemStatus.SUCCESS ? "SUCCESS" : "PARTIAL",
+            SqlParseHistoryApplicationService.SOURCE_PARSE_BATCH,
+            item.getItemId(),
+            batch.getBatchId()
         );
         item.complete(
             structureParse.getParseTaskId(),

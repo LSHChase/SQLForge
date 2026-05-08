@@ -16,8 +16,6 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequ
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteRequest;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
@@ -84,13 +82,6 @@ public class GovernanceCapabilityController {
         @RequestBody GovernanceAccelerationPlanTraceRequest request
     ) {
         return governanceCapabilityApplicationService.writeAccelerationPlanTrace(request);
-    }
-
-    @PostMapping("/parse-history/write")
-    public GovernanceParseHistoryWriteResponse writeParseHistory(
-        @RequestBody GovernanceParseHistoryWriteRequest request
-    ) {
-        return governanceCapabilityApplicationService.writeParseHistory(request);
     }
 
     @PostMapping("/db-views/resolve")

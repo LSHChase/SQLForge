@@ -32,6 +32,7 @@
 - `Datasource`
 - `QueryExecution`
 - `QueryHistoryView`
+- `SqlParseHistory`
 - `CommentContext`
 - `SqlBindingSnapshot`
 - `MetadataSnapshot`
@@ -64,7 +65,7 @@
 
 优先落在 `governance`：
 
-- 历史宽表 / 查询面
+- SQL 执行历史宽表 / 查询面
 - 路由规则与历史决策
 - 数据源
 - 逻辑对象目录与映射
@@ -86,6 +87,7 @@
 优先落在 `sql-optimization`：
 
 - 解析任务
+- SQL 解析记录
 - 解析问题
 - 批量解析
 - 报表解析记录
@@ -122,6 +124,15 @@
 
 建议新增：
 
+- `sql_parse_history`
+  - 所属服务：`sql-optimization`
+  - 主键：`parse_history_id`
+  - 结构化字段：`tenant_id`,`source_type`,`source_id`,`batch_key`,`parse_task_id`,`sql_fingerprint`,`datasource_code`,`datasource_type`,`report_code`,`stage_code`,`biz_date`,`query_date_start`,`query_date_end`,`query_date_status`,`access_channel`,`parser_mode`,`binding_mode`,`parameterized_sql_flag`,`result_status`,`target_engine`,`trace_id`,`request_id`,`saga_id`,`submitted_by`,`submitted_at`,`created_at`,`updated_at`
+  - 大文本字段：`sql_text`,`sql_template_text`
+  - JSON 字段：`structure_parse_summary_json`,`access_parse_summary_json`,`result_summary_json`,`result_payload_json`,`query_context_json`,`comment_context_json`,`binding_summary_json`,`logical_object_hits_json`,`issue_scenes_json`,`logical_object_keys_json`
+  - 追溯键：`tenant_id`,`parse_history_id`,`parse_task_id`,`sql_fingerprint`,`source_type`,`source_id`,`batch_key`,`report_code`,`datasource_code`,`trace_id`,`request_id`,`saga_id`
+  - 来源类型：`STRUCTURE_PARSE`,`COMBINED_PARSE`,`PARSE_BATCH`,`REPORT_BATCH`,`END_OF_DAY_SLOW_SQL`
+  - 边界：仅承载 SQL 解析记录；不得再把解析记录写入 governance `query_history` 或使用 `historyType=SQL_PARSE` 做逻辑隔离
 - `parse_batch`
   - 所属服务：`sql-optimization`
   - 主键：`batch_id`
@@ -135,7 +146,7 @@
   - 结构化字段：`batch_id`,`sequence_number`,`report_code`,`report_name`,`datasource_code`,`stage`,`biz_date`,`priority`,`owner`,`tags`,`status`,`parse_task_id`,`structure_syntax_status`,`access_service_status`,`access_connection_status`,`failure_reason`,`binding_mode`,`created_at`,`updated_at`
   - 大文本字段：`sql_text`,`sql_template_text`
   - JSON 字段：`bind_parameters_json`,`issue_scenes_json`,`logical_object_keys_json`
-  - 追溯键：`tenant_id(经 batch 间接关联)`,`batch_id`,`item_id`,`report_code`,`parse_task_id`,`datasource_code`
+  - 追溯键：`tenant_id(经 batch 间接关联)`,`batch_id`,`item_id`,`report_code`,`parse_task_id`,`datasource_code`,`history_id(解析记录 ID)`
 - `report_batch`
   - 所属服务：`sql-optimization`
   - 主键：`batch_id`
@@ -148,7 +159,7 @@
   - 外键语义：`batch_id -> report_batch.batch_id`
   - 结构化字段：`batch_id`,`sequence_number`,`report_code`,`report_name`,`datasource_code`,`stage`,`priority`,`source_file_line`,`sql_text`,`parse_task_id`,`structure_syntax_status`,`access_service_status`,`access_connection_status`,`failure_reason`,`status`,`created_at`,`updated_at`
   - JSON 字段：`issue_scenes_json`,`logical_object_keys_json`
-  - 追溯键：`tenant_id(经 batch 间接关联)`,`batch_id`,`item_id`,`report_code`,`parse_task_id`,`datasource_code`
+  - 追溯键：`tenant_id(经 batch 间接关联)`,`batch_id`,`item_id`,`report_code`,`parse_task_id`,`datasource_code`,`history_id(解析记录 ID)`
 - `acceleration_recommendation`
   - 所属服务：`sql-optimization`
   - 主键：`recommendation_id`
@@ -268,12 +279,20 @@
 - `object_key` 固定为 `TYPE:qualified_object_name_lowercase`
 - `logical_object_hits_json` 中若对象以 JSON 形式落库，也必须沿用同一字段命名，不再混用 `type/objectType`
 
-## 7. HARN-058 Parse History Query Context
+## 7. HARN-084 Parse History Storage Boundary
 
-SQL 解析历史写入 `query_history` 时，`query_context` 必须使用可投影的归一化结构。历史列表结构化列从该结构投影，历史详情从同一结构读取解析证据。
+SQL 解析记录写入 `sql_parse_history` 时，`query_context_json` 必须使用可投影的归一化结构。解析记录列表结构化列从 `sql_parse_history` 的结构化字段投影，解析记录详情从同一记录读取解析证据。
 
 必备顶层字段：
 
+- `parseTaskId`
+- `sourceType`
+- `sourceId`
+- `batchKey`
+- `datasourceCode`
+- `datasourceType`
+- `sqlFingerprint`
+- `accessChannel`
 - `commentContext`: 原 SQL 注释上下文或页面/批次传入上下文，至少承载 `report_code`、`stage`、`biz_date`、`datasource`
 - `queryDateSummary`: 结构解析得到的查询日期摘要
 - `queryDateStart`
@@ -286,9 +305,10 @@ SQL 解析历史写入 `query_history` 时，`query_context` 必须使用可投�
 
 兼容规则：
 
-- 历史写入端允许接收 legacy 扁平 comment context，但持久化前必须归一成 `queryContext.commentContext`。
-- 历史投影端必须在 `queryContext.commentContext` 不存在时回退读取 `query_history.comment_context`，用于兼容 HARN-058 前的写入形态。
-- 同一 `parseTaskId` 的结构解析和 access 解析必须合并到同一 `historyId`，不得拆成两条互不关联的历史记录。
+- 解析写入端允许接收 legacy 扁平 comment context，但持久化前必须归一成 `queryContext.commentContext`，并同步投影 `report_code`、`stage_code`、`biz_date` 等结构化列。
+- 同一 `parseTaskId` 的结构解析和 access 解析必须合并到同一 `parseHistoryId`，不得拆成两条互不关联的解析记录。
+- `query_history` 只承载 SQL 执行历史和跨服务追溯链的执行语义记录，不再新增 `SQL_PARSE` 解析记录。
+- 旧 `query_history` 中既有 `SQL_PARSE` 数据不做在线迁移；若需要历史迁移或兼容查询，应另立数据迁移任务并单独审计。
 
 ## Related Documents
 

@@ -96,6 +96,8 @@
 
 ## 3. Query History Contracts
 
+查询历史契约只承载 SQL 执行历史和执行追溯语义。SQL 解析记录由 `sql-optimization` 的 parse-history 契约承载，不再通过 `historyType=SQL_PARSE` 或解析页请求 `/api/governance/query-history` 做逻辑隔离。
+
 ### 3.1 History List
 
 - `GET /api/governance/query-history`
@@ -118,6 +120,7 @@
 - `logicalObjectType`
 - `accessChannel`
 - `engine`
+- `historyType=QUERY_EXECUTION` 固定执行历史语义，不能用于解析记录查询
 
 ### 3.2 History Detail
 
@@ -133,8 +136,6 @@
 - `queryDateSummary`
 - `logicalObjectHits`
 - `executionSummary`
-- `structureParseSummary`
-- `accessParseSummary`
 - `routeDecision`
 - `recommendationRefs`
 - `benchmarkRefs`
@@ -382,6 +383,102 @@
 - `ACCESS_SUCCEEDED`
 - `PARTIAL_SUCCEEDED`
 - `FAILED`
+
+### 4.4 Parse History
+
+- `GET /api/sql-optimization/parse-history`
+- `GET /api/sql-optimization/parse-history/{parseHistoryId}`
+- `POST /api/sql-optimization/parse-history/export`
+
+列表支持过滤：
+
+- `tenantId`
+- `sourceType`
+- `reportCode`
+- `datasourceCode`
+- `stage`
+- `bizDate`
+- `queryDateStart`
+- `queryDateEnd`
+- `status`
+- `logicalObjectType`
+- `accessChannel`
+- `engine`
+- `submittedBy`
+- `traceId`
+- `parseTaskId`
+- `submittedStart`
+- `submittedEnd`
+- `sortBy`
+- `sortOrder`
+- `pageNo`
+- `pageSize`
+
+列表项返回：
+
+- `parseHistoryId`
+- `historyId`: 兼容前端旧字段时等同于 `parseHistoryId`
+- `historyType=SQL_PARSE_RECORD`
+- `tenantId`
+- `sourceType`
+- `sourceId`
+- `batchKey`
+- `parseTaskId`
+- `sqlFingerprint`
+- `datasourceCode`
+- `datasourceType`
+- `reportCode`
+- `stageCode`
+- `bizDate`
+- `queryDateStart`
+- `queryDateEnd`
+- `queryDateStatus`
+- `accessChannel`
+- `parserMode`
+- `bindingMode`
+- `parameterizedSqlFlag`
+- `resultStatus`
+- `targetEngine`
+- `traceId`
+- `requestId`
+- `sagaId`
+- `submittedBy`
+- `submittedAt`
+- `createdAt`
+- `updatedAt`
+
+详情额外返回：
+
+- `sqlText`
+- `sqlTemplateText`
+- `sqlState`
+- `structureParseSummary`
+- `accessParseSummary`
+- `executionSummary`
+- `queryContext`
+- `commentContext`
+- `bindingSummary`
+- `logicalObjectHits`
+- `issueScenes`
+- `logicalObjectKeys`
+- `recommendationRefs`
+- `benchmarkRefs`
+- `alertRefs`
+- `auditRefs`
+
+导出请求：
+
+- `parseHistoryId`
+- `exportFormat`: 当前支持 `JSON` / `CSV`
+- `exportReason`
+- `includeTraceDetail`
+
+边界：
+
+- `sql_parse_history` 是解析记录持久化真源，属于 `sql-optimization`。
+- `query_history` 是 SQL 执行历史持久化真源，属于治理追溯链，不再新增解析记录。
+- 结构解析、综合解析、批量解析、报表解析和日终慢 SQL 解析写入 `sql_parse_history`。
+- 日终慢 SQL 解析只读慢 SQL 执行历史候选，按窗口、阈值和 `batchKey + sqlFingerprint` 幂等生成解析记录；真实 cron 调度不属于本契约当前实现。
 
 ## 5. Batch Parse Contracts
 

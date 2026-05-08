@@ -11,8 +11,6 @@ import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionReq
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteRequest;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
 import com.company.sqlforge.common.governance.ProtectedGovernanceRequestSupport;
@@ -84,11 +82,6 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
     @Override
     public GovernanceAccelerationPlanTraceResponse writeAccelerationPlanTrace(GovernanceAccelerationPlanTraceRequest request) {
         return post("/acceleration-plan/trace/write", request, GovernanceAccelerationPlanTraceResponse.class);
-    }
-
-    @Override
-    public GovernanceParseHistoryWriteResponse writeParseHistory(GovernanceParseHistoryWriteRequest request) {
-        return post("/parse-history/write", request, GovernanceParseHistoryWriteResponse.class);
     }
 
     @Override

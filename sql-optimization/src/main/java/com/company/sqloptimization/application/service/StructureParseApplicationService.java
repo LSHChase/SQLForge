@@ -5,8 +5,6 @@ import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.governance.GovernanceDbViewDependencyRef;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteRequest;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteResponse;
 import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
 import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import com.company.sqlforge.common.logicalobject.LogicalObjectType;
@@ -32,8 +30,6 @@ import com.company.sqloptimization.domain.parse.StructureParseQueryDateSummary;
 import com.company.sqloptimization.domain.parse.StructureParseResult;
 import com.company.sqloptimization.domain.parse.StructureParseSyntaxStatus;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -69,12 +65,14 @@ public class StructureParseApplicationService {
 
     private final SqlOptimizationPipelineService sqlOptimizationPipelineService;
     private final GovernanceCapabilityClient governanceCapabilityClient;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final SqlParseHistoryApplicationService sqlParseHistoryApplicationService;
 
     public StructureParseApplicationService(SqlOptimizationPipelineService sqlOptimizationPipelineService,
-                                            GovernanceCapabilityClient governanceCapabilityClient) {
+                                            GovernanceCapabilityClient governanceCapabilityClient,
+                                            SqlParseHistoryApplicationService sqlParseHistoryApplicationService) {
         this.sqlOptimizationPipelineService = sqlOptimizationPipelineService;
         this.governanceCapabilityClient = governanceCapabilityClient;
+        this.sqlParseHistoryApplicationService = sqlParseHistoryApplicationService;
     }
 
     public StructureParseResponseVO parse(StructureParseRequest request) {
@@ -922,37 +920,17 @@ public class StructureParseApplicationService {
     private void writeParseHistory(StructureParseResponseVO response,
                                    StructureParseRequest request,
                                    StructureParseResult result) {
-        if (governanceCapabilityClient == null || response == null || request == null || result == null) {
+        if (sqlParseHistoryApplicationService == null || response == null || request == null || result == null) {
             return;
         }
         try {
-            GovernanceParseHistoryWriteRequest historyRequest = new GovernanceParseHistoryWriteRequest();
-            historyRequest.setParseTaskId(response.getParseTaskId());
-            historyRequest.setSqlFingerprint(
-                StringUtils.hasText(response.getSqlFingerprint())
-                    ? response.getSqlFingerprint()
-                    : SqlFingerprintUtils.fingerprint(request.getSqlText())
+            SqlParseHistoryWriteResult writeResult = sqlParseHistoryApplicationService.writeStructureHistory(
+                response,
+                null,
+                request,
+                resolveHistoryResultStatus(response)
             );
-            historyRequest.setDatasourceCode(trimToNull(request.getDatasourceCode()));
-            historyRequest.setDatasourceType("AUTO");
-            historyRequest.setSqlText(request.getSqlText());
-            historyRequest.setSqlTemplateText(trimToNull(request.getSqlTemplateText()));
-            historyRequest.setBindingMode(trimToNull(request.getBindingMode()));
-            historyRequest.setResultStatus(resolveHistoryResultStatus(response));
-            historyRequest.setResultSummaryJson(buildStructureSummaryJson(response));
-            historyRequest.setResultPayloadJson(toJson(response));
-            historyRequest.setQueryContextJson(toJson(request.getCommentContext()));
-            historyRequest.setLogicalObjectHitsJson(toJson(response.getLogicalObjectHits()));
-            historyRequest.setSubmittedAt(String.valueOf(System.currentTimeMillis()));
-            GovernanceParseHistoryWriteResponse writeResponse = governanceCapabilityClient.writeParseHistory(historyRequest);
-            if (writeResponse != null) {
-                response.setHistoryId(writeResponse.getHistoryId());
-                response.setHistoryPersisted(Boolean.TRUE);
-                response.setHistoryPersistenceStatus("SAVED");
-                return;
-            }
-            response.setHistoryPersisted(Boolean.FALSE);
-            response.setHistoryPersistenceStatus("NO_RESPONSE");
+            applyHistoryWriteResult(response, writeResult);
         } catch (RuntimeException ex) {
             LOGGER.warn(
                 "operation=STRUCTURE_PARSE_HISTORY_WRITE entity={} tenantId={} status=DEGRADED reason={}",
@@ -969,7 +947,25 @@ public class StructureParseApplicationService {
                                             AccessParseResponseVO accessParse,
                                             StructureParseRequest request,
                                             String resultStatus) {
-        if (governanceCapabilityClient == null || structureParse == null || request == null) {
+        writeParseHistoryWithAccess(
+            structureParse,
+            accessParse,
+            request,
+            resultStatus,
+            SqlParseHistoryApplicationService.SOURCE_STRUCTURE_PARSE,
+            null,
+            null
+        );
+    }
+
+    public void writeParseHistoryWithAccess(StructureParseResponseVO structureParse,
+                                            AccessParseResponseVO accessParse,
+                                            StructureParseRequest request,
+                                            String resultStatus,
+                                            String sourceType,
+                                            String sourceId,
+                                            String batchKey) {
+        if (sqlParseHistoryApplicationService == null || structureParse == null || request == null) {
             if (structureParse != null) {
                 structureParse.setHistoryPersisted(Boolean.FALSE);
                 structureParse.setHistoryPersistenceStatus("WRITE_SKIPPED");
@@ -977,33 +973,16 @@ public class StructureParseApplicationService {
             return;
         }
         try {
-            GovernanceParseHistoryWriteRequest historyRequest = new GovernanceParseHistoryWriteRequest();
-            historyRequest.setParseTaskId(structureParse.getParseTaskId());
-            historyRequest.setSqlFingerprint(
-                StringUtils.hasText(structureParse.getSqlFingerprint())
-                    ? structureParse.getSqlFingerprint()
-                    : SqlFingerprintUtils.fingerprint(request.getSqlText())
+            SqlParseHistoryWriteResult writeResult = sqlParseHistoryApplicationService.writeStructureHistory(
+                structureParse,
+                accessParse,
+                request,
+                StringUtils.hasText(resultStatus) ? resultStatus.trim() : resolveHistoryResultStatus(structureParse),
+                sourceType,
+                sourceId,
+                batchKey
             );
-            historyRequest.setDatasourceCode(trimToNull(request.getDatasourceCode()));
-            historyRequest.setDatasourceType("AUTO");
-            historyRequest.setSqlText(request.getSqlText());
-            historyRequest.setSqlTemplateText(trimToNull(request.getSqlTemplateText()));
-            historyRequest.setBindingMode(trimToNull(request.getBindingMode()));
-            historyRequest.setResultStatus(StringUtils.hasText(resultStatus) ? resultStatus.trim() : resolveHistoryResultStatus(structureParse));
-            historyRequest.setResultSummaryJson(buildCombinedSummaryJson(structureParse, accessParse));
-            historyRequest.setResultPayloadJson(buildCombinedPayloadJson(structureParse, accessParse));
-            historyRequest.setQueryContextJson(toJson(request.getCommentContext()));
-            historyRequest.setLogicalObjectHitsJson(toJson(structureParse.getLogicalObjectHits()));
-            historyRequest.setSubmittedAt(Instant.now().toString());
-            GovernanceParseHistoryWriteResponse writeResponse = governanceCapabilityClient.writeParseHistory(historyRequest);
-            if (writeResponse != null) {
-                structureParse.setHistoryId(writeResponse.getHistoryId());
-                structureParse.setHistoryPersisted(Boolean.TRUE);
-                structureParse.setHistoryPersistenceStatus("SAVED");
-                return;
-            }
-            structureParse.setHistoryPersisted(Boolean.FALSE);
-            structureParse.setHistoryPersistenceStatus("NO_RESPONSE");
+            applyHistoryWriteResult(structureParse, writeResult);
         } catch (RuntimeException ex) {
             LOGGER.warn(
                 "operation=STRUCTURE_ACCESS_PARSE_HISTORY_WRITE entity={} tenantId={} status=DEGRADED reason={}",
@@ -1023,62 +1002,15 @@ public class StructureParseApplicationService {
         return "VALID".equals(response.getSyntaxStatus()) ? HISTORY_RESULT_SUCCESS : HISTORY_RESULT_FAILED;
     }
 
-    private String buildStructureSummaryJson(StructureParseResponseVO response) {
-        LinkedHashMap<String, Object> summary = new LinkedHashMap<String, Object>();
-        summary.put("parseTaskId", response == null ? null : response.getParseTaskId());
-        summary.put("syntaxStatus", response == null ? null : response.getSyntaxStatus());
-        summary.put("priorityLevel", response == null ? null : response.getPriorityLevel());
-        summary.put("priorityScore", response == null ? null : response.getPriorityScore());
-        summary.put("important", response == null ? null : response.getImportant());
-        summary.put("urgent", response == null ? null : response.getUrgent());
-        summary.put("sqlType", response == null ? null : response.getSqlType());
-        summary.put("failureReason", response == null ? null : response.getFailureReason());
-        summary.put("failureLine", response == null ? null : response.getFailureLine());
-        summary.put("failureColumn", response == null ? null : response.getFailureColumn());
-        return toJson(summary);
-    }
-
-    private String buildCombinedSummaryJson(StructureParseResponseVO structureParse, AccessParseResponseVO accessParse) {
-        LinkedHashMap<String, Object> summary = new LinkedHashMap<String, Object>();
-        summary.put("parseTaskId", structureParse == null ? null : structureParse.getParseTaskId());
-        summary.put("syntaxStatus", structureParse == null ? null : structureParse.getSyntaxStatus());
-        summary.put("priorityLevel", structureParse == null ? null : structureParse.getPriorityLevel());
-        summary.put("priorityScore", structureParse == null ? null : structureParse.getPriorityScore());
-        summary.put("sqlType", structureParse == null ? null : structureParse.getSqlType());
-        summary.put("failureReason", structureParse == null ? null : structureParse.getFailureReason());
-        summary.put("failureLine", structureParse == null ? null : structureParse.getFailureLine());
-        summary.put("failureColumn", structureParse == null ? null : structureParse.getFailureColumn());
-        summary.put("accessServiceStatus", accessParse == null ? null : accessParse.getServiceStatus());
-        summary.put("accessConnectionStatus", accessParse == null ? null : accessParse.getConnectionStatus());
-        summary.put("accessDegradeReason", accessParse == null ? null : accessParse.getDegradeReason());
-        return toJson(summary);
-    }
-
-    private String buildCombinedPayloadJson(StructureParseResponseVO structureParse, AccessParseResponseVO accessParse) {
-        Map<String, Object> payload = new LinkedHashMap<String, Object>();
-        payload.put("parseTaskId", structureParse == null ? null : structureParse.getParseTaskId());
-        payload.put("status", resolveCombinedPayloadStatus(structureParse, accessParse));
-        payload.put("structureParse", structureParse);
-        payload.put("accessParse", accessParse);
-        return toJson(payload);
-    }
-
-    private String resolveCombinedPayloadStatus(StructureParseResponseVO structureParse, AccessParseResponseVO accessParse) {
-        if (accessParse != null) {
-            return "ACCESS_COMPLETED";
+    private void applyHistoryWriteResult(StructureParseResponseVO response, SqlParseHistoryWriteResult writeResult) {
+        if (writeResult == null) {
+            response.setHistoryPersisted(Boolean.FALSE);
+            response.setHistoryPersistenceStatus("NO_RESPONSE");
+            return;
         }
-        if (structureParse == null) {
-            return "STRUCTURE_UNKNOWN";
-        }
-        return "VALID".equals(structureParse.getSyntaxStatus()) ? "STRUCTURE_SUCCEEDED" : "STRUCTURE_FAILED";
-    }
-
-    private String toJson(Object value) {
-        try {
-            return objectMapper.writeValueAsString(value);
-        } catch (Exception ex) {
-            return "{}";
-        }
+        response.setHistoryId(writeResult.getParseHistoryId());
+        response.setHistoryPersisted(writeResult.getPersisted());
+        response.setHistoryPersistenceStatus(writeResult.getPersistenceStatus());
     }
 
     private StructureParseQueryDateSummaryVO toQueryDateSummaryVO(StructureParseQueryDateSummary summary) {

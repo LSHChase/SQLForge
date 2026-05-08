@@ -2,6 +2,7 @@ package com.company.sqloptimization.application.controller;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -13,7 +14,6 @@ import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.governance.GovernanceDbViewDependencyRef;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
-import com.company.sqlforge.common.governance.GovernanceParseHistoryWriteResponse;
 import com.company.sqloptimization.SqlOptimizationApplication;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import java.util.Collections;
@@ -53,11 +53,7 @@ class StructureParseControllerTest {
         resolveResponse.setObjectKey("DB_VIEW:vw_sales_daily");
         resolveResponse.setDependencies(Collections.singletonList(dependency));
         when(governanceCapabilityClient.resolveDbView(any())).thenReturn(resolveResponse);
-        GovernanceParseHistoryWriteResponse historyResponse = new GovernanceParseHistoryWriteResponse();
-        historyResponse.setHistoryId("history-parse-001");
-        historyResponse.setResultId("result-parse-001");
-        when(governanceCapabilityClient.writeParseHistory(any())).thenReturn(historyResponse);
-        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+        MvcResult parseResult = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"sqlText\":\"SELECT * FROM vw_sales_daily WHERE dt = '2026-04-01' AND dt = '2026-04-01' ORDER BY id\","
                     + "\"datasourceCode\":\"hetu_main\",\"bindingMode\":\"POSITIONAL\","
@@ -83,10 +79,16 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.rewriteCandidates[0]").value("DEDUPLICATE_WHERE_PREDICATES"))
             .andExpect(jsonPath("$.issues[0].issueCode").value("SELECT_STAR"))
             .andExpect(jsonPath("$.priorityLevel").value("P1"))
-            .andExpect(jsonPath("$.historyId").value("history-parse-001"))
+            .andExpect(jsonPath("$.historyId").value(startsWith("parse-history-")))
             .andExpect(jsonPath("$.historyPersisted").value(true))
-            .andExpect(jsonPath("$.historyPersistenceStatus").value("SAVED"));
-        verify(governanceCapabilityClient).writeParseHistory(any());
+            .andExpect(jsonPath("$.historyPersistenceStatus").value("SAVED"))
+            .andReturn();
+        String historyId = JsonTestUtils.readValue(parseResult.getResponse().getContentAsString(), "$.historyId");
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse-history/{historyId}", historyId)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.parseHistoryId").value(historyId))
+            .andExpect(jsonPath("$.sourceType").value("STRUCTURE_PARSE"))
+            .andExpect(jsonPath("$.historyType").value("SQL_PARSE_RECORD"));
         verify(governanceCapabilityClient).resolveDbView(any());
     }
 
@@ -158,16 +160,15 @@ class StructureParseControllerTest {
     }
 
     @Test
-    void shouldExposeHistoryWriteFailureWithoutFailingStructureParse() throws Exception {
-        when(governanceCapabilityClient.writeParseHistory(any())).thenThrow(new RuntimeException("route down"));
-
+    void shouldPersistStructureParseHistoryWithoutGovernanceQueryHistoryRoute() throws Exception {
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"sqlText\":\"SELECT id FROM orders WHERE dt = '2026-04-01'\",\"datasourceCode\":\"hetu_main\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
-            .andExpect(jsonPath("$.historyPersisted").value(false))
-            .andExpect(jsonPath("$.historyPersistenceStatus").value("WRITE_FAILED"));
+            .andExpect(jsonPath("$.historyId").value(startsWith("parse-history-")))
+            .andExpect(jsonPath("$.historyPersisted").value(true))
+            .andExpect(jsonPath("$.historyPersistenceStatus").value("SAVED"));
     }
 
     @Test

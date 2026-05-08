@@ -32,7 +32,6 @@ const requiredTokens = [
   'data-testid="parse-record-sort-select"',
   'data-testid="parse-record-status-filter"',
   'data-testid="parse-record-datasource-filter"',
-  'data-testid="parse-record-bool-filter"',
   'data-testid="parse-record-page-mode"',
   'data-testid="parse-record-trace-item"',
   'data-testid="parse-record-detail-trace-id"',
@@ -43,7 +42,8 @@ const requiredTokens = [
   'data-testid="parse-record-history-workbench-tabs"',
   'data-testid="parse-record-sql-history-tab"',
   'data-testid="parse-record-batch-report-history-tab"',
-  "historyType: 'SQL_PARSE'",
+  'getSqlParseHistoryPage',
+  'frontend-parse-record-parse-history-page',
   'name="sqlHistory"',
   'name="batchHistory"',
   'data-testid="parse-record-report-batch-detail"',
@@ -66,7 +66,7 @@ const requiredTokens = [
   'reportItemLocalDetail',
   'buildReportItemFallbackDetail',
   'getReportBatchParseStatistics',
-  'frontend-parse-record-report-sql-history-detail',
+  'frontend-parse-record-report-sql-parse-history-detail',
   'frontend-parse-record-report-batch-statistics',
   "activeReportBatchDetailTab.value = 'statistics'",
   "activeReportBatchStatisticsTab.value = 'issueScene'",
@@ -79,14 +79,13 @@ const requiredTokens = [
   'itemTotalCount',
   'History classification',
   'Sort mode',
-  'query history table',
+  'SQL parse history table',
   'batch history',
-  'parse query-history workbench',
+  'parse record workbench',
   'Export evidence',
   'Report-level parse statistics',
   'SQL-level parse detail',
   'Logical objects',
-  'Governance hits',
   "tenantId: ''",
   "sortBy: ''",
   "sortOrder: ''",
@@ -112,7 +111,6 @@ const requiredSqlHistoryTokens = [
   "const SQL_EXECUTION_HISTORY_TYPE = 'QUERY_EXECUTION'",
   'historyType: SQL_EXECUTION_HISTORY_TYPE',
   "activeDetailTab.value = 'overview'",
-  'name="parseEvidence"',
   'frontend-sql-history-page',
   'frontend-sql-history-detail',
   'QUERY_EXECUTION history'
@@ -129,6 +127,11 @@ const requiredApiTokens = [
 
 const requiredSharedApiTokens = [
   'buildTenantQuerySuffix',
+  'export const getSqlParseHistoryPage',
+  '/api/sql-optimization/parse-history',
+  'frontend-sql-parse-history-page',
+  'export const getSqlParseHistoryDetail',
+  'export const exportSqlParseHistory',
   'frontend-report-batch-parse-statistics',
   '/parse-statistics'
 ]
@@ -153,7 +156,13 @@ const forbiddenViewTokens = [
   'aria-label="risk help"',
   'reportHistoryIdForTask',
   'history-parse-${',
-  'name="issueSceneDetail"'
+  'name="issueSceneDetail"',
+  "historyType: 'SQL_PARSE'",
+  'parse query-history workbench',
+  'SQL_PARSE query history table',
+  'getGovernanceQueryHistoryPage',
+  'getGovernanceQueryHistoryDetail',
+  'exportGovernanceQueryHistory'
 ]
 
 const forbiddenApiTokens = [
