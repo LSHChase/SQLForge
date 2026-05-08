@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-001: Restart local frontend and backend services
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `OPS-001 Restart local frontend and backend services`
+- Priority: 1
+- Depends on: N/A
+- Scope: Restart the local SQLForge frontend and backend runtime services and verify health endpoints; no source changes.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-001`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Restarted local backend Spring Boot services and frontend Vite dev server; verified MySQL, Redis, MinIO, message queue, backend health endpoints, and frontend URL.
+  - Validation evidence: python3 scripts/foreman.py validate OPS-001; bash scripts/health-check.sh --fail-on-error
+  - Residual risk: None for local runtime restart; services are session processes with pid files under /tmp.
+  - Next step: Use /tmp/sqlforge-backend-runtime/*.pid and /tmp/sqlforge-frontend-runtime/frontend.pid to stop this local runtime if needed.
+
 ### HARN-084: Decouple SQL parse history from SQL execution history
 
 - Status: done
