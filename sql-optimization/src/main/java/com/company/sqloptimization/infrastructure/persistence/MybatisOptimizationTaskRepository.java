@@ -9,6 +9,7 @@ import com.company.sqloptimization.domain.task.OptimizationTaskError;
 import com.company.sqloptimization.domain.task.OptimizationTaskPhase;
 import com.company.sqloptimization.domain.task.OptimizationTaskPriority;
 import com.company.sqloptimization.domain.task.OptimizationTaskRisk;
+import com.company.sqloptimization.domain.task.OptimizationTaskSourceContext;
 import com.company.sqloptimization.domain.task.OptimizationTaskStatus;
 import com.company.sqloptimization.domain.task.OptimizationTaskStatusTransition;
 import com.company.sqloptimization.domain.task.OptimizationTaskSubmission;
@@ -96,6 +97,7 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
         record.setParseDepth(task.getParseDepth().name());
         record.setCallbackUrl(task.getCallbackUrl());
         record.setRequestedSuggestionTypesJson(writeJson(task.getRequestedSuggestionTypes()));
+        record.setTaskContextJson(writeSourceContextJson(task.getSourceContext()));
         record.setStatus(task.getStatus().name());
         record.setCurrentPhase(task.getCurrentPhase().name());
         record.setProgressPercent(task.getProgressPercent());
@@ -126,7 +128,8 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
             OptimizationTaskPriority.valueOf(record.getPriority()),
             OptimizationParseDepth.valueOf(record.getParseDepth()),
             record.getCallbackUrl(),
-            readSuggestionTypes(record.getRequestedSuggestionTypesJson())
+            readSuggestionTypes(record.getRequestedSuggestionTypesJson()),
+            readSourceContext(record.getTaskContextJson())
         );
         return OptimizationTask.restore(
             record.getTaskId(),
@@ -183,6 +186,24 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
         } catch (Exception ex) {
             throw new IllegalArgumentException("Failed to deserialize optimization suggestion types", ex);
         }
+    }
+
+    private OptimizationTaskSourceContext readSourceContext(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return OptimizationTaskSourceContext.empty();
+        }
+        try {
+            return objectMapper.readValue(json, OptimizationTaskSourceContext.class);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Failed to deserialize optimization task context payload", ex);
+        }
+    }
+
+    private String writeSourceContextJson(OptimizationTaskSourceContext sourceContext) {
+        if (sourceContext == null || sourceContext.isEmpty()) {
+            return null;
+        }
+        return writeJson(sourceContext);
     }
 
     private List<OptimizationTaskStatusTransition> readStatusHistory(String json) {

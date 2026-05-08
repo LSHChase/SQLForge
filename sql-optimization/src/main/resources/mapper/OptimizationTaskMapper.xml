@@ -15,6 +15,7 @@
         <result property="parseDepth" column="parse_depth"/>
         <result property="callbackUrl" column="callback_url"/>
         <result property="requestedSuggestionTypesJson" column="requested_suggestion_types_json"/>
+        <result property="taskContextJson" column="task_context_json"/>
         <result property="status" column="status"/>
         <result property="currentPhase" column="current_phase"/>
         <result property="progressPercent" column="progress_percent"/>
@@ -45,6 +46,7 @@
         parse_depth,
         callback_url,
         requested_suggestion_types_json,
+        task_context_json,
         status,
         current_phase,
         progress_percent,
@@ -92,6 +94,7 @@
             parse_depth,
             callback_url,
             requested_suggestion_types_json,
+            task_context_json,
             status,
             current_phase,
             progress_percent,
@@ -118,6 +121,7 @@
             #{parseDepth},
             #{callbackUrl},
             #{requestedSuggestionTypesJson},
+            #{taskContextJson},
             #{status},
             #{currentPhase},
             #{progressPercent},
@@ -147,6 +151,7 @@
             parse_depth = #{parseDepth},
             callback_url = #{callbackUrl},
             requested_suggestion_types_json = #{requestedSuggestionTypesJson},
+            task_context_json = #{taskContextJson},
             status = #{status},
             current_phase = #{currentPhase},
             progress_percent = #{progressPercent},

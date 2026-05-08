@@ -184,6 +184,10 @@
 
 - `sql/migrations/V20260425_002__acceleration_plan_governance.sql`
 
+当前 HARN-089 追加的增量脚本：
+
+- `sql/migrations/V20260508_003__parse_triggered_rewrite_task_context.sql`
+
 当前 D-TASK-018 追加的增量脚本：
 
 - `sql/migrations/V20260423_017__drop_traceability_foreign_keys.sql`

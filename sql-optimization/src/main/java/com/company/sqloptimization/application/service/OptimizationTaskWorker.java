@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -33,15 +34,32 @@ public class OptimizationTaskWorker {
     private final OptimizationTaskExecutionProperties executionProperties;
     private final OptimizationMetricsRecorder optimizationMetricsRecorder;
     private final SqlOptimizationPipelineService sqlOptimizationPipelineService;
+    private final ParseTriggeredRewriteRecommendationService parseTriggeredRewriteRecommendationService;
 
     public OptimizationTaskWorker(OptimizationTaskRepository optimizationTaskRepository,
                                   OptimizationTaskExecutionProperties executionProperties,
                                   OptimizationMetricsRecorder optimizationMetricsRecorder,
                                   SqlOptimizationPipelineService sqlOptimizationPipelineService) {
+        this(
+            optimizationTaskRepository,
+            executionProperties,
+            optimizationMetricsRecorder,
+            sqlOptimizationPipelineService,
+            null
+        );
+    }
+
+    @Autowired
+    public OptimizationTaskWorker(OptimizationTaskRepository optimizationTaskRepository,
+                                  OptimizationTaskExecutionProperties executionProperties,
+                                  OptimizationMetricsRecorder optimizationMetricsRecorder,
+                                  SqlOptimizationPipelineService sqlOptimizationPipelineService,
+                                  ParseTriggeredRewriteRecommendationService parseTriggeredRewriteRecommendationService) {
         this.optimizationTaskRepository = optimizationTaskRepository;
         this.executionProperties = executionProperties;
         this.optimizationMetricsRecorder = optimizationMetricsRecorder;
         this.sqlOptimizationPipelineService = sqlOptimizationPipelineService;
+        this.parseTriggeredRewriteRecommendationService = parseTriggeredRewriteRecommendationService;
     }
 
     @Scheduled(fixedDelayString = "${sql-optimization.task-execution.poll-interval-ms:25}")
@@ -89,6 +107,7 @@ public class OptimizationTaskWorker {
             delay();
             task.markSucceeded(suggestion, Instant.now());
             optimizationTaskRepository.save(task);
+            persistRewriteRecommendation(task);
             logStateChange(task, STATE_WORKER_RUNNING, STATE_WORKER_SUCCEEDED, task.getSummary());
             optimizationMetricsRecorder.recordWorkerTerminal(task, System.currentTimeMillis() - start);
             logEnd(task, start);
@@ -160,6 +179,23 @@ public class OptimizationTaskWorker {
 
     private boolean shouldForceFailure(OptimizationTask task) {
         return containsFailureMarker(task.getSqlText()) || containsFailureMarker(task.getSqlFingerprint());
+    }
+
+    private void persistRewriteRecommendation(OptimizationTask task) {
+        if (parseTriggeredRewriteRecommendationService == null) {
+            return;
+        }
+        try {
+            parseTriggeredRewriteRecommendationService.persistRecommendationFromSucceededRewriteTask(task);
+        } catch (RuntimeException ex) {
+            LOGGER.warn(
+                "operation={} entity={} tenantId={} status=RECOMMENDATION_WRITE_DEGRADED reason={}",
+                OPERATION,
+                task.getTaskId(),
+                task.getTenantId(),
+                ex.getMessage()
+            );
+        }
     }
 
     private boolean containsFailureMarker(String value) {

@@ -141,6 +141,7 @@ CREATE TABLE IF NOT EXISTS optimization_task (
   parse_depth VARCHAR(16) NOT NULL COMMENT 'Parse depth',
   callback_url VARCHAR(2048) DEFAULT NULL COMMENT 'Optional callback URL',
   requested_suggestion_types_json JSON DEFAULT NULL COMMENT 'Requested acceleration suggestion types JSON',
+  task_context_json JSON DEFAULT NULL COMMENT 'Parse-triggered task source context JSON',
   status VARCHAR(16) NOT NULL COMMENT 'Task status: QUEUED/RUNNING/SUCCEEDED/FAILED/CANCELLED',
   current_phase VARCHAR(32) NOT NULL COMMENT 'Current task phase',
   progress_percent INT NOT NULL DEFAULT 0 COMMENT 'Progress percentage',

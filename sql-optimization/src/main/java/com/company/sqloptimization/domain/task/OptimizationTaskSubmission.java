@@ -21,6 +21,7 @@ public class OptimizationTaskSubmission {
     private final OptimizationParseDepth parseDepth;
     private final String callbackUrl;
     private final List<AccelerationSuggestionType> requestedSuggestionTypes;
+    private final OptimizationTaskSourceContext sourceContext;
 
     public OptimizationTaskSubmission(String tenantId,
                                       OptimizationTaskType taskType,
@@ -31,6 +32,30 @@ public class OptimizationTaskSubmission {
                                       OptimizationParseDepth parseDepth,
                                       String callbackUrl,
                                       List<AccelerationSuggestionType> requestedSuggestionTypes) {
+        this(
+            tenantId,
+            taskType,
+            sqlText,
+            sqlFingerprint,
+            datasourceType,
+            priority,
+            parseDepth,
+            callbackUrl,
+            requestedSuggestionTypes,
+            OptimizationTaskSourceContext.empty()
+        );
+    }
+
+    public OptimizationTaskSubmission(String tenantId,
+                                      OptimizationTaskType taskType,
+                                      String sqlText,
+                                      String sqlFingerprint,
+                                      DataSourceTypeEnum datasourceType,
+                                      OptimizationTaskPriority priority,
+                                      OptimizationParseDepth parseDepth,
+                                      String callbackUrl,
+                                      List<AccelerationSuggestionType> requestedSuggestionTypes,
+                                      OptimizationTaskSourceContext sourceContext) {
         this.tenantId = tenantId;
         this.taskType = taskType;
         this.sqlText = sqlText;
@@ -40,6 +65,7 @@ public class OptimizationTaskSubmission {
         this.parseDepth = parseDepth == null ? OptimizationParseDepth.DEEP : parseDepth;
         this.callbackUrl = callbackUrl;
         this.requestedSuggestionTypes = normalizeSuggestionTypes(taskType, requestedSuggestionTypes);
+        this.sourceContext = sourceContext == null ? OptimizationTaskSourceContext.empty() : sourceContext;
     }
 
     private List<AccelerationSuggestionType> normalizeSuggestionTypes(
@@ -93,5 +119,9 @@ public class OptimizationTaskSubmission {
 
     public List<AccelerationSuggestionType> getRequestedSuggestionTypes() {
         return requestedSuggestionTypes;
+    }
+
+    public OptimizationTaskSourceContext getSourceContext() {
+        return sourceContext;
     }
 }

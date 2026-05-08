@@ -14,6 +14,7 @@ public class OptimizationTaskRecord {
     private String parseDepth;
     private String callbackUrl;
     private String requestedSuggestionTypesJson;
+    private String taskContextJson;
     private String status;
     private String currentPhase;
     private Integer progressPercent;
@@ -110,6 +111,14 @@ public class OptimizationTaskRecord {
 
     public void setRequestedSuggestionTypesJson(String requestedSuggestionTypesJson) {
         this.requestedSuggestionTypesJson = requestedSuggestionTypesJson;
+    }
+
+    public String getTaskContextJson() {
+        return taskContextJson;
+    }
+
+    public void setTaskContextJson(String taskContextJson) {
+        this.taskContextJson = taskContextJson;
     }
 
     public String getStatus() {

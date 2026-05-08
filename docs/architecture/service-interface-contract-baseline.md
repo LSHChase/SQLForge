@@ -263,6 +263,7 @@
 - `taskContext.priority`：`HIGH` / `NORMAL` / `LOW`，默认 `NORMAL`
 - `taskContext.callbackUrl`：可选
 - `taskContext.requestedSuggestionTypes`：仅 `ACCELERATION_SUGGESTION` 任务允许传入；为空时按 `ALL` 归一
+- `taskContext.sourceType` / `sourceId` / `batchId` / `reportCode` / `historyId` / `parseTaskId` / `datasourceCode` / `issueScenes`：解析命中问题场景后自动提交 `REWRITE` 任务时写入的来源上下文；普通外部提交可不传，旧请求保持兼容
 
 当前 `OptimizationTaskSubmitResponse` / `OptimizationTaskStatusResponse` 基线字段如下：
 

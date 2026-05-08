@@ -17,6 +17,14 @@ public class OptimizationTaskContextDTO {
     private String callbackUrl;
 
     private List<AccelerationSuggestionType> requestedSuggestionTypes = Collections.emptyList();
+    private String sourceType;
+    private String sourceId;
+    private String batchId;
+    private String reportCode;
+    private String historyId;
+    private String parseTaskId;
+    private String datasourceCode;
+    private List<String> issueScenes = Collections.emptyList();
 
     public OptimizationParseDepth getParseDepth() {
         return parseDepth;
@@ -54,5 +62,73 @@ public class OptimizationTaskContextDTO {
         this.requestedSuggestionTypes = Collections.unmodifiableList(
             new ArrayList<AccelerationSuggestionType>(requestedSuggestionTypes)
         );
+    }
+
+    public String getSourceType() {
+        return sourceType;
+    }
+
+    public void setSourceType(String sourceType) {
+        this.sourceType = sourceType;
+    }
+
+    public String getSourceId() {
+        return sourceId;
+    }
+
+    public void setSourceId(String sourceId) {
+        this.sourceId = sourceId;
+    }
+
+    public String getBatchId() {
+        return batchId;
+    }
+
+    public void setBatchId(String batchId) {
+        this.batchId = batchId;
+    }
+
+    public String getReportCode() {
+        return reportCode;
+    }
+
+    public void setReportCode(String reportCode) {
+        this.reportCode = reportCode;
+    }
+
+    public String getHistoryId() {
+        return historyId;
+    }
+
+    public void setHistoryId(String historyId) {
+        this.historyId = historyId;
+    }
+
+    public String getParseTaskId() {
+        return parseTaskId;
+    }
+
+    public void setParseTaskId(String parseTaskId) {
+        this.parseTaskId = parseTaskId;
+    }
+
+    public String getDatasourceCode() {
+        return datasourceCode;
+    }
+
+    public void setDatasourceCode(String datasourceCode) {
+        this.datasourceCode = datasourceCode;
+    }
+
+    public List<String> getIssueScenes() {
+        return issueScenes;
+    }
+
+    public void setIssueScenes(List<String> issueScenes) {
+        if (issueScenes == null) {
+            this.issueScenes = Collections.emptyList();
+            return;
+        }
+        this.issueScenes = Collections.unmodifiableList(new ArrayList<String>(issueScenes));
     }
 }

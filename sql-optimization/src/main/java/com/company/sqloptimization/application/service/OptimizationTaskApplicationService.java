@@ -57,6 +57,16 @@ public class OptimizationTaskApplicationService {
     }
 
     public OptimizationTaskSubmitResponse submitTask(OptimizationTaskSubmitRequest request) {
+        return submitTask(request, UUID.randomUUID().toString(), false);
+    }
+
+    public OptimizationTaskSubmitResponse submitInternalTaskIfAbsent(OptimizationTaskSubmitRequest request, String taskId) {
+        return submitTask(request, taskId, true);
+    }
+
+    private OptimizationTaskSubmitResponse submitTask(OptimizationTaskSubmitRequest request,
+                                                      String requestedTaskId,
+                                                      boolean idempotent) {
         long start = System.currentTimeMillis();
         request.setTenantId(requireAuthorizedTenant(request.getTenantId()));
         String normalizedFingerprint = normalizeFingerprint(request);
@@ -71,10 +81,25 @@ public class OptimizationTaskApplicationService {
                 normalizedFingerprint,
                 SUBMIT_OPERATION
             );
+            String taskId = hasText(requestedTaskId) ? requestedTaskId.trim() : UUID.randomUUID().toString();
+            if (idempotent) {
+                OptimizationTask existing = optimizationTaskRepository.findByTaskId(taskId);
+                if (existing != null) {
+                    verifyTenantAccess(existing.getTenantId());
+                    OptimizationTaskSubmitResponse response = optimizationTaskModelApplicationService.buildSubmitResponse(
+                        existing,
+                        existing.getSubmittedAt() == null
+                            ? Instant.now().plusSeconds(READY_ESTIMATE_SECONDS)
+                            : existing.getSubmittedAt().plusSeconds(READY_ESTIMATE_SECONDS)
+                    );
+                    logEnd(SUBMIT_OPERATION, existing.getTaskId(), existing.getTenantId(), start, existing.getStatus().name());
+                    return response;
+                }
+            }
             Instant submittedAt = Instant.now();
             OptimizationTask task = optimizationTaskModelApplicationService.createQueuedTask(
                 request,
-                UUID.randomUUID().toString(),
+                taskId,
                 submittedAt
             );
             optimizationTaskRepository.save(task);
@@ -181,6 +206,10 @@ public class OptimizationTaskApplicationService {
             return request.getSqlFingerprint().trim();
         }
         return SqlFingerprintUtils.fingerprint(request.getSqlText().trim());
+    }
+
+    private boolean hasText(String value) {
+        return value != null && value.trim().length() > 0;
     }
 
     private String requireAuthorizedTenant(String requestTenantId) {

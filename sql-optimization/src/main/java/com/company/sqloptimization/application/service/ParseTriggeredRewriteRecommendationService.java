@@ -1,0 +1,430 @@
+package com.company.sqloptimization.application.service;
+
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.utils.JsonUtils;
+import com.company.sqlforge.common.utils.SqlFingerprintUtils;
+import com.company.sqloptimization.application.controller.dto.OptimizationTaskContextDTO;
+import com.company.sqloptimization.application.controller.dto.OptimizationTaskSubmitRequest;
+import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
+import com.company.sqloptimization.application.controller.vo.StructureParseIssueVO;
+import com.company.sqloptimization.application.controller.vo.StructureParseResponseVO;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.BenefitLevel;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationStatus;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationType;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RiskLevel;
+import com.company.sqloptimization.domain.recommendation.repository.AccelerationRecommendationRepository;
+import com.company.sqloptimization.domain.task.OptimizationParseDepth;
+import com.company.sqloptimization.domain.task.OptimizationTask;
+import com.company.sqloptimization.domain.task.OptimizationTaskArtifact;
+import com.company.sqloptimization.domain.task.OptimizationTaskPriority;
+import com.company.sqloptimization.domain.task.OptimizationTaskRisk;
+import com.company.sqloptimization.domain.task.OptimizationTaskSourceContext;
+import com.company.sqloptimization.domain.task.OptimizationTaskStatus;
+import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
+import com.company.sqloptimization.domain.task.OptimizationTaskType;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+@Service
+public class ParseTriggeredRewriteRecommendationService {
+
+    private static final Logger LOGGER =
+        LoggerFactory.getLogger(ParseTriggeredRewriteRecommendationService.class);
+    private static final Set<String> TARGET_ISSUE_SCENES = Collections.unmodifiableSet(
+        new LinkedHashSet<String>(Arrays.asList(
+            "OR_PREDICATE_INDEX_RISK",
+            "SELECT_STAR",
+            "NESTED_SUBQUERY_RISK",
+            "LEADING_WILDCARD_LIKE_RISK"
+        ))
+    );
+    private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<List<String>>() {
+    };
+
+    private final OptimizationTaskApplicationService optimizationTaskApplicationService;
+    private final AccelerationRecommendationRepository recommendationRepository;
+    private final ObjectMapper objectMapper;
+
+    public ParseTriggeredRewriteRecommendationService(OptimizationTaskApplicationService optimizationTaskApplicationService,
+                                                      AccelerationRecommendationRepository recommendationRepository) {
+        this.optimizationTaskApplicationService = optimizationTaskApplicationService;
+        this.recommendationRepository = recommendationRepository;
+        this.objectMapper = JsonUtils.objectMapper();
+    }
+
+    public void triggerAfterHistoryWrite(StructureParseResponseVO structureParse,
+                                         StructureParseRequest request,
+                                         String sourceType,
+                                         String sourceId,
+                                         String batchId) {
+        try {
+            if (!isTriggerable(structureParse, request)) {
+                return;
+            }
+            List<String> targetIssueScenes = targetIssueScenes(structureParse);
+            if (targetIssueScenes.isEmpty()) {
+                return;
+            }
+            String tenantId = RequestContext.getTenantId();
+            if (!StringUtils.hasText(tenantId)) {
+                return;
+            }
+            String sqlFingerprint = resolveSqlFingerprint(structureParse, request);
+            OptimizationTaskContextDTO context = new OptimizationTaskContextDTO();
+            context.setPriority(OptimizationTaskPriority.NORMAL);
+            context.setParseDepth(OptimizationParseDepth.DEEP);
+            context.setSourceType(sourceType);
+            context.setSourceId(firstText(sourceId, structureParse.getParseTaskId(), structureParse.getHistoryId()));
+            context.setBatchId(batchId);
+            context.setReportCode(resolveReportCode(request));
+            context.setHistoryId(structureParse.getHistoryId());
+            context.setParseTaskId(structureParse.getParseTaskId());
+            context.setDatasourceCode(trimToNull(request.getDatasourceCode()));
+            context.setIssueScenes(targetIssueScenes);
+
+            OptimizationTaskSubmitRequest submitRequest = new OptimizationTaskSubmitRequest();
+            submitRequest.setTenantId(tenantId);
+            submitRequest.setTaskType(OptimizationTaskType.REWRITE);
+            submitRequest.setSqlText(request.getSqlText());
+            submitRequest.setSqlFingerprint(sqlFingerprint);
+            submitRequest.setDatasourceType(DataSourceTypeEnum.AUTO);
+            submitRequest.setTaskContext(context);
+            String taskId = taskIdFor(idempotencyKey(tenantId, context, sqlFingerprint));
+            optimizationTaskApplicationService.submitInternalTaskIfAbsent(submitRequest, taskId);
+            LOGGER.info(
+                "operation=PARSE_TRIGGERED_REWRITE_SUBMIT entity={} tenantId={} historyId={} sourceType={} sourceId={} status=QUEUED_OR_REUSED issueScenes={}",
+                taskId,
+                tenantId,
+                structureParse.getHistoryId(),
+                context.getSourceType(),
+                context.getSourceId(),
+                targetIssueScenes
+            );
+        } catch (RuntimeException ex) {
+            LOGGER.warn(
+                "operation=PARSE_TRIGGERED_REWRITE_SUBMIT entity={} tenantId={} status=DEGRADED reason={}",
+                structureParse == null ? null : structureParse.getParseTaskId(),
+                RequestContext.getTenantId(),
+                ex.getMessage()
+            );
+        }
+    }
+
+    public void persistRecommendationFromSucceededRewriteTask(OptimizationTask task) {
+        if (task == null
+            || task.getTaskType() != OptimizationTaskType.REWRITE
+            || task.getStatus() != OptimizationTaskStatus.SUCCEEDED
+            || task.getSuggestion() == null
+            || task.getSourceContext() == null
+            || task.getSourceContext().getIssueScenes().isEmpty()) {
+            return;
+        }
+        OptimizationTaskSourceContext context = task.getSourceContext();
+        List<String> targetIssueScenes = targetIssueScenes(context.getIssueScenes());
+        if (targetIssueScenes.isEmpty()) {
+            return;
+        }
+        String recommendationId = recommendationIdFor(idempotencyKey(task.getTenantId(), context, task.getSqlFingerprint()));
+        if (recommendationRepository.findByRecommendationId(recommendationId) != null) {
+            return;
+        }
+        OptimizationTaskSuggestion suggestion = task.getSuggestion();
+        List<String> appliedRules = readAppliedRules(suggestion);
+        boolean safeRewriteAvailable = !appliedRules.isEmpty();
+        String candidateSql = artifactContent(suggestion, "REWRITTEN_SQL", "candidateSql");
+        String recommendedSql = safeRewriteAvailable && StringUtils.hasText(candidateSql)
+            ? candidateSql.trim()
+            : task.getSqlText();
+        Instant now = Instant.now();
+        AccelerationRecommendation recommendation = AccelerationRecommendation.builder()
+            .recommendationId(recommendationId)
+            .tenantId(task.getTenantId())
+            .recommendationType(RecommendationType.REWRITE)
+            .sourceSqlId(firstText(context.getSourceId(), context.getHistoryId(), context.getParseTaskId()))
+            .historyId(context.getHistoryId())
+            .parseTaskId(context.getParseTaskId())
+            .batchId(context.getBatchId())
+            .sqlFingerprint(task.getSqlFingerprint())
+            .sourceSqlText(task.getSqlText())
+            .recommendedSqlText(recommendedSql)
+            .targetEngine(task.getDatasourceType() == null ? null : task.getDatasourceType().name())
+            .targetDatasource(context.getDatasourceCode())
+            .reportCode(context.getReportCode())
+            .summary(buildSummary(targetIssueScenes, safeRewriteAvailable))
+            .reason(buildReason(suggestion, targetIssueScenes, appliedRules, safeRewriteAvailable))
+            .expectedGain(buildExpectedGain(suggestion, safeRewriteAvailable))
+            .benefitLevel(resolveBenefitLevel(suggestion, safeRewriteAvailable))
+            .riskLevel(safeRewriteAvailable ? RiskLevel.MEDIUM : RiskLevel.HIGH)
+            .riskSummary(buildRiskSummary(suggestion, targetIssueScenes, safeRewriteAvailable))
+            .requiresDispatch(false)
+            .status(RecommendationStatus.RECOMMENDED)
+            .createdBy("SYSTEM_PARSE_REWRITE")
+            .createdAt(now)
+            .updatedAt(now)
+            .build();
+        recommendationRepository.save(recommendation);
+        LOGGER.info(
+            "operation=PARSE_TRIGGERED_REWRITE_RECOMMENDATION entity={} tenantId={} taskId={} historyId={} status=SAVED issueScenes={}",
+            recommendationId,
+            task.getTenantId(),
+            task.getTaskId(),
+            context.getHistoryId(),
+            targetIssueScenes
+        );
+    }
+
+    private boolean isTriggerable(StructureParseResponseVO structureParse, StructureParseRequest request) {
+        return structureParse != null
+            && request != null
+            && "VALID".equals(structureParse.getSyntaxStatus())
+            && Boolean.TRUE.equals(structureParse.getHistoryPersisted())
+            && StringUtils.hasText(structureParse.getHistoryId())
+            && StringUtils.hasText(structureParse.getParseTaskId())
+            && StringUtils.hasText(request.getSqlText());
+    }
+
+    private List<String> targetIssueScenes(StructureParseResponseVO structureParse) {
+        LinkedHashSet<String> scenes = new LinkedHashSet<String>();
+        if (structureParse.getIssues() != null) {
+            for (StructureParseIssueVO issue : structureParse.getIssues()) {
+                if (issue == null) {
+                    continue;
+                }
+                addTargetIssueScene(scenes, issue.getIssueCode());
+                addTargetIssueScene(scenes, issue.getIssueScene());
+            }
+        }
+        if (structureParse.getRiskTags() != null) {
+            for (String riskTag : structureParse.getRiskTags()) {
+                addTargetIssueScene(scenes, riskTag);
+            }
+        }
+        return sortedList(scenes);
+    }
+
+    private List<String> targetIssueScenes(List<String> issueScenes) {
+        LinkedHashSet<String> scenes = new LinkedHashSet<String>();
+        if (issueScenes != null) {
+            for (String issueScene : issueScenes) {
+                addTargetIssueScene(scenes, issueScene);
+            }
+        }
+        return sortedList(scenes);
+    }
+
+    private void addTargetIssueScene(Set<String> scenes, String candidate) {
+        String normalized = trimToNull(candidate);
+        if (normalized != null && TARGET_ISSUE_SCENES.contains(normalized)) {
+            scenes.add(normalized);
+        }
+    }
+
+    private List<String> sortedList(Set<String> scenes) {
+        if (scenes == null || scenes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> items = new ArrayList<String>(scenes);
+        Collections.sort(items);
+        return items;
+    }
+
+    private String resolveSqlFingerprint(StructureParseResponseVO structureParse, StructureParseRequest request) {
+        if (StringUtils.hasText(structureParse.getSqlFingerprint())) {
+            return structureParse.getSqlFingerprint().trim();
+        }
+        return SqlFingerprintUtils.fingerprint(request.getSqlText().trim());
+    }
+
+    private String resolveReportCode(StructureParseRequest request) {
+        if (request == null || request.getCommentContext() == null || request.getCommentContext().isEmpty()) {
+            return null;
+        }
+        return firstText(request.getCommentContext(), "report_code", "reportCode");
+    }
+
+    private String firstText(Map<String, Object> values, String firstKey, String secondKey) {
+        if (values == null) {
+            return null;
+        }
+        String first = objectText(values.get(firstKey));
+        return first == null ? objectText(values.get(secondKey)) : first;
+    }
+
+    private String idempotencyKey(String tenantId, OptimizationTaskContextDTO context, String sqlFingerprint) {
+        return tenantId
+            + "|REWRITE|"
+            + firstText(context.getSourceId(), context.getHistoryId(), context.getParseTaskId(), "NO_SOURCE")
+            + "|"
+            + firstText(sqlFingerprint, "NO_FINGERPRINT")
+            + "|"
+            + String.join(",", targetIssueScenes(context.getIssueScenes()));
+    }
+
+    private String idempotencyKey(String tenantId, OptimizationTaskSourceContext context, String sqlFingerprint) {
+        return tenantId
+            + "|REWRITE|"
+            + firstText(context.getSourceId(), context.getHistoryId(), context.getParseTaskId(), "NO_SOURCE")
+            + "|"
+            + firstText(sqlFingerprint, "NO_FINGERPRINT")
+            + "|"
+            + String.join(",", targetIssueScenes(context.getIssueScenes()));
+    }
+
+    private String taskIdFor(String key) {
+        return "rewrite-task-" + UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)).toString();
+    }
+
+    private String recommendationIdFor(String key) {
+        return "rewrite-reco-" + UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)).toString();
+    }
+
+    private List<String> readAppliedRules(OptimizationTaskSuggestion suggestion) {
+        String content = artifactContent(suggestion, "REWRITE_RULE_TRACE", "appliedRules");
+        if (!StringUtils.hasText(content)) {
+            return Collections.emptyList();
+        }
+        try {
+            List<String> values = objectMapper.readValue(content, STRING_LIST_TYPE);
+            List<String> rules = new ArrayList<String>();
+            for (String value : values) {
+                if (StringUtils.hasText(value)) {
+                    rules.add(value.trim());
+                }
+            }
+            return rules;
+        } catch (Exception ex) {
+            return Collections.emptyList();
+        }
+    }
+
+    private String artifactContent(OptimizationTaskSuggestion suggestion, String category, String name) {
+        if (suggestion == null || suggestion.getArtifacts() == null) {
+            return null;
+        }
+        for (OptimizationTaskArtifact artifact : suggestion.getArtifacts()) {
+            if (artifact == null) {
+                continue;
+            }
+            if (category.equals(artifact.getCategory()) && name.equals(artifact.getName())) {
+                return artifact.getContent();
+            }
+        }
+        return null;
+    }
+
+    private String buildSummary(List<String> targetIssueScenes, boolean safeRewriteAvailable) {
+        String prefix = safeRewriteAvailable
+            ? "Generated a safe rewrite recommendation from parse issues: "
+            : "Created a manual-review rewrite recommendation from parse issues: ";
+        return prefix + String.join(", ", targetIssueScenes);
+    }
+
+    private String buildReason(OptimizationTaskSuggestion suggestion,
+                               List<String> targetIssueScenes,
+                               List<String> appliedRules,
+                               boolean safeRewriteAvailable) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Parse issue scenes matched automatic rewrite review: ")
+            .append(String.join(", ", targetIssueScenes))
+            .append(". ");
+        if (safeRewriteAvailable) {
+            builder.append("Applied conservative rewrite rules: ")
+                .append(String.join(", ", appliedRules))
+                .append(". ");
+        } else {
+            builder.append("No conservative rewrite rule was safe without additional metadata, so the recommendation preserves the original SQL. ");
+        }
+        if (StringUtils.hasText(suggestion.getSummary())) {
+            builder.append(suggestion.getSummary());
+        }
+        return builder.toString();
+    }
+
+    private String buildExpectedGain(OptimizationTaskSuggestion suggestion, boolean safeRewriteAvailable) {
+        if (!safeRewriteAvailable) {
+            return "Manual review target identified; no automatic performance gain is asserted until a safe rewrite is approved.";
+        }
+        if (suggestion.getBenefits() != null && !suggestion.getBenefits().isEmpty()) {
+            return suggestion.getBenefits().get(0).getSummary();
+        }
+        return "Safe syntactic rewrite candidate is available for validation.";
+    }
+
+    private BenefitLevel resolveBenefitLevel(OptimizationTaskSuggestion suggestion, boolean safeRewriteAvailable) {
+        if (!safeRewriteAvailable || suggestion == null || suggestion.getConfidenceScore() == null) {
+            return BenefitLevel.LOW;
+        }
+        int confidence = suggestion.getConfidenceScore().intValue();
+        if (confidence >= 70) {
+            return BenefitLevel.HIGH;
+        }
+        if (confidence >= 40) {
+            return BenefitLevel.MEDIUM;
+        }
+        return BenefitLevel.LOW;
+    }
+
+    private String buildRiskSummary(OptimizationTaskSuggestion suggestion,
+                                    List<String> targetIssueScenes,
+                                    boolean safeRewriteAvailable) {
+        StringBuilder builder = new StringBuilder();
+        if (safeRewriteAvailable) {
+            builder.append("Validate the candidate SQL against the original result set before approval.");
+        } else {
+            builder.append("No safe rewrite rule matched; recommended SQL is the original SQL and requires manual handling.");
+        }
+        if (targetIssueScenes.contains("SELECT_STAR")) {
+            builder.append(" SELECT_STAR is not expanded automatically because column metadata is not guaranteed in this path.");
+        }
+        if (suggestion.getRisks() != null && !suggestion.getRisks().isEmpty()) {
+            builder.append(" Worker risks: ");
+            List<String> riskSummaries = new ArrayList<String>();
+            for (OptimizationTaskRisk risk : suggestion.getRisks()) {
+                if (risk != null && StringUtils.hasText(risk.getSummary())) {
+                    riskSummaries.add(risk.getCategory() + "=" + risk.getSummary());
+                }
+            }
+            builder.append(String.join("; ", riskSummaries));
+        }
+        return builder.toString();
+    }
+
+    private String firstText(String first, String second) {
+        return StringUtils.hasText(first) ? first.trim() : trimToNull(second);
+    }
+
+    private String firstText(String first, String second, String third) {
+        return firstText(firstText(first, second), third);
+    }
+
+    private String firstText(String first, String second, String third, String fallback) {
+        return firstText(firstText(first, second, third), fallback);
+    }
+
+    private String objectText(Object value) {
+        return value == null ? null : trimToNull(String.valueOf(value));
+    }
+
+    private String trimToNull(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        return value.trim();
+    }
+}

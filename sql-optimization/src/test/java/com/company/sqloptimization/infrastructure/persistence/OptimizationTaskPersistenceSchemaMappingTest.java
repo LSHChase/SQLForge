@@ -20,6 +20,7 @@ class OptimizationTaskPersistenceSchemaMappingTest {
 
         assertContains(schema, "CREATE TABLE IF NOT EXISTS optimization_task");
         assertContains(schema, "requested_suggestion_types_json JSON");
+        assertContains(schema, "task_context_json JSON");
         assertContains(schema, "suggestion_payload_json JSON");
         assertContains(schema, "failed_phase VARCHAR(32)");
         assertContains(schema, "error_risks_json JSON");
@@ -31,6 +32,8 @@ class OptimizationTaskPersistenceSchemaMappingTest {
     void shouldProvideIncrementalMigrationForOptimizationTaskPersistence() throws IOException {
         String migration = readRepositoryFile("sql/migrations/V20260422_014__sql_optimization_task_persistence.sql");
         String payloadMigration = readRepositoryFile("sql/migrations/V20260425_001__sql_optimization_task_real_pipeline_payloads.sql");
+        String contextMigration =
+            readRepositoryFile("sql/migrations/V20260508_003__parse_triggered_rewrite_task_context.sql");
 
         assertContains(migration, "CREATE TABLE IF NOT EXISTS optimization_task");
         assertContains(migration, "current_phase VARCHAR(32) NOT NULL");
@@ -38,6 +41,7 @@ class OptimizationTaskPersistenceSchemaMappingTest {
         assertContains(payloadMigration, "ADD COLUMN suggestion_payload_json JSON");
         assertContains(payloadMigration, "ADD COLUMN failed_phase VARCHAR(32)");
         assertContains(payloadMigration, "ADD COLUMN error_risks_json JSON");
+        assertContains(contextMigration, "ADD COLUMN task_context_json JSON");
     }
 
     @Test
@@ -46,6 +50,7 @@ class OptimizationTaskPersistenceSchemaMappingTest {
 
         assertContains(mapper, "FROM optimization_task");
         assertContains(mapper, "requested_suggestion_types_json");
+        assertContains(mapper, "task_context_json");
         assertContains(mapper, "suggestion_payload_json");
         assertContains(mapper, "failed_phase");
         assertContains(mapper, "error_risks_json");

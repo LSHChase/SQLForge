@@ -83,13 +83,15 @@ public class StructureParseApplicationService {
     private final SqlParseHistoryApplicationService sqlParseHistoryApplicationService;
     private final DatasourceViewMetadataClient datasourceViewMetadataClient;
     private final HetuPlanAnalysisClient hetuPlanAnalysisClient;
+    private final ParseTriggeredRewriteRecommendationService parseTriggeredRewriteRecommendationService;
 
     @Autowired
     public StructureParseApplicationService(SqlOptimizationPipelineService sqlOptimizationPipelineService,
                                             GovernanceCapabilityClient governanceCapabilityClient,
                                             SqlParseHistoryApplicationService sqlParseHistoryApplicationService,
                                             DatasourceViewMetadataClient datasourceViewMetadataClient,
-                                            HetuPlanAnalysisClient hetuPlanAnalysisClient) {
+                                            HetuPlanAnalysisClient hetuPlanAnalysisClient,
+                                            ParseTriggeredRewriteRecommendationService parseTriggeredRewriteRecommendationService) {
         this.sqlOptimizationPipelineService = sqlOptimizationPipelineService;
         this.governanceCapabilityClient = governanceCapabilityClient;
         this.sqlParseHistoryApplicationService = sqlParseHistoryApplicationService;
@@ -99,6 +101,22 @@ public class StructureParseApplicationService {
         this.hetuPlanAnalysisClient = hetuPlanAnalysisClient == null
             ? HetuPlanAnalysisClient.unavailable()
             : hetuPlanAnalysisClient;
+        this.parseTriggeredRewriteRecommendationService = parseTriggeredRewriteRecommendationService;
+    }
+
+    public StructureParseApplicationService(SqlOptimizationPipelineService sqlOptimizationPipelineService,
+                                            GovernanceCapabilityClient governanceCapabilityClient,
+                                            SqlParseHistoryApplicationService sqlParseHistoryApplicationService,
+                                            DatasourceViewMetadataClient datasourceViewMetadataClient,
+                                            HetuPlanAnalysisClient hetuPlanAnalysisClient) {
+        this(
+            sqlOptimizationPipelineService,
+            governanceCapabilityClient,
+            sqlParseHistoryApplicationService,
+            datasourceViewMetadataClient,
+            hetuPlanAnalysisClient,
+            null
+        );
     }
 
     public StructureParseApplicationService(SqlOptimizationPipelineService sqlOptimizationPipelineService,
@@ -110,7 +128,8 @@ public class StructureParseApplicationService {
             governanceCapabilityClient,
             sqlParseHistoryApplicationService,
             datasourceViewMetadataClient,
-            HetuPlanAnalysisClient.unavailable()
+            HetuPlanAnalysisClient.unavailable(),
+            null
         );
     }
 
@@ -122,7 +141,8 @@ public class StructureParseApplicationService {
             governanceCapabilityClient,
             sqlParseHistoryApplicationService,
             DatasourceViewMetadataClient.unavailable(),
-            HetuPlanAnalysisClient.unavailable()
+            HetuPlanAnalysisClient.unavailable(),
+            null
         );
     }
 
@@ -1404,6 +1424,13 @@ public class StructureParseApplicationService {
                 resolveHistoryResultStatus(response)
             );
             applyHistoryWriteResult(response, writeResult);
+            triggerRewriteRecommendation(
+                response,
+                request,
+                SqlParseHistoryApplicationService.SOURCE_STRUCTURE_PARSE,
+                response.getParseTaskId(),
+                null
+            );
         } catch (RuntimeException ex) {
             LOGGER.warn(
                 "operation=STRUCTURE_PARSE_HISTORY_WRITE entity={} tenantId={} status=DEGRADED reason={}",
@@ -1456,6 +1483,7 @@ public class StructureParseApplicationService {
                 batchKey
             );
             applyHistoryWriteResult(structureParse, writeResult);
+            triggerRewriteRecommendation(structureParse, request, sourceType, sourceId, batchKey);
         } catch (RuntimeException ex) {
             LOGGER.warn(
                 "operation=STRUCTURE_ACCESS_PARSE_HISTORY_WRITE entity={} tenantId={} status=DEGRADED reason={}",
@@ -1490,6 +1518,23 @@ public class StructureParseApplicationService {
         response.setHistoryId(writeResult.getParseHistoryId());
         response.setHistoryPersisted(writeResult.getPersisted());
         response.setHistoryPersistenceStatus(writeResult.getPersistenceStatus());
+    }
+
+    private void triggerRewriteRecommendation(StructureParseResponseVO structureParse,
+                                              StructureParseRequest request,
+                                              String sourceType,
+                                              String sourceId,
+                                              String batchId) {
+        if (parseTriggeredRewriteRecommendationService == null) {
+            return;
+        }
+        parseTriggeredRewriteRecommendationService.triggerAfterHistoryWrite(
+            structureParse,
+            request,
+            sourceType,
+            sourceId,
+            batchId
+        );
     }
 
     private StructureParseQueryDateSummaryVO toQueryDateSummaryVO(StructureParseQueryDateSummary summary) {

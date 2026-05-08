@@ -17,6 +17,7 @@ import com.company.sqloptimization.domain.task.OptimizationTaskBenefit;
 import com.company.sqloptimization.domain.task.OptimizationTaskCost;
 import com.company.sqloptimization.domain.task.OptimizationTaskError;
 import com.company.sqloptimization.domain.task.OptimizationTaskRisk;
+import com.company.sqloptimization.domain.task.OptimizationTaskSourceContext;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import com.company.sqloptimization.domain.task.OptimizationTaskStatus;
 import com.company.sqloptimization.domain.task.OptimizationTaskStatusTransition;
@@ -50,7 +51,17 @@ public class OptimizationTaskModelApplicationService {
             taskContext.getPriority(),
             taskContext.getParseDepth(),
             taskContext.getCallbackUrl(),
-            taskContext.getRequestedSuggestionTypes()
+            taskContext.getRequestedSuggestionTypes(),
+            new OptimizationTaskSourceContext(
+                taskContext.getSourceType(),
+                taskContext.getSourceId(),
+                taskContext.getBatchId(),
+                taskContext.getReportCode(),
+                taskContext.getHistoryId(),
+                taskContext.getParseTaskId(),
+                taskContext.getDatasourceCode(),
+                taskContext.getIssueScenes()
+            )
         );
         return OptimizationTask.submit(taskId, submission, submittedAt);
     }

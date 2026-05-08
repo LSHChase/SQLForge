@@ -742,6 +742,7 @@ repo-side 基线：
 边界：
 
 - 推荐对象只表达建议、收益、风险、目标 SQL 与是否需要装数协同。
+- 解析命中 `OR_PREDICATE_INDEX_RISK`、`SELECT_STAR`、`NESTED_SUBQUERY_RISK`、`LEADING_WILDCARD_LIKE_RISK` 时，可由解析链路自动生成 `REWRITE` 推荐；无安全改写规则时 `recommendedSqlText` 保守等于原始 SQL，并在 `reason` / `riskSummary` 标记人工处理要求。
 - SQLForge 不在 recommendation status 中提供 `EXECUTED` 状态；执行与装数回执由后续 `DispatchEvent` 承载。
 - `requiresDispatch=true` 只表示需要外部装数/预热协同，不表示本项目已执行装数。
 - trace 查询只返回同租户 `historyId/parseTaskId/batchId/routeDecisionId/alertId/sqlFingerprint/reportCode/logicalObjectKey` 等引用键，以及同租户 dispatch event；跨服务详情由各自受权接口查询。

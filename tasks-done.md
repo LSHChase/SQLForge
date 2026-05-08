@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-089: Auto-create rewrite recommendations from parse issues
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `feat(sql-optimization): HARN-089 auto rewrite recommendations`
+- Priority: 1
+- Depends on: N/A
+- Scope: When SQL structure parsing from single parse, ordinary batch parse, or report batch parse produces one of OR_PREDICATE_INDEX_RISK, SELECT_STAR, NESTED_SUBQUERY_RISK, or LEADING_WILDCARD_LIKE_RISK with a valid parsed structure, automatically submit an async REWRITE task and persist the worker result as an acceleration_recommendation with parse source traceability fields and idempotency protection.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-089`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented parse-triggered REWRITE task submission for single structure parse, parse batch, and report batch history writes; added task source-context persistence; persisted successful parse-triggered rewrite worker output into acceleration_recommendation with original/recommended SQL and parse trace fields; updated contracts, schema, migration, docs, and regression tests.
+  - Validation evidence: mvn -pl sql-optimization -Dtest=ParseTriggeredRewriteRecommendationServiceTest,OptimizationTaskWorkerTest,StructureParseControllerTest,ParseBatchApplicationServiceTest,ReportBatchApplicationServiceTest,OptimizationTaskPersistenceSchemaMappingTest,ParseBatchPersistenceSchemaMappingTest test; mvn -pl sql-optimization test; node scripts/check-history-detail-contract.mjs; node scripts/check-batch-import-contract.mjs; node scripts/lint-repository-knowledge.js; git diff --check; python3 scripts/foreman.py validate HARN-089; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Automatic rewrite recommendations are conservative and do not infer SELECT_STAR column expansion without metadata; no live external datasource rewrite validation was executed in this repo-closed task.
+  - Next step: Use the recommendation center to review generated REWRITE records and approve only candidates that have been validated against representative data.
+
 ### OPS-004: Restart local sql-optimization service
 
 - Status: done

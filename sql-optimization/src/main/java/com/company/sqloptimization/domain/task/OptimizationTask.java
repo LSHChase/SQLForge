@@ -21,6 +21,7 @@ public class OptimizationTask {
     private final OptimizationParseDepth parseDepth;
     private final String callbackUrl;
     private final List<AccelerationSuggestionType> requestedSuggestionTypes;
+    private final OptimizationTaskSourceContext sourceContext;
     private final Instant submittedAt;
     private final List<OptimizationTaskStatusTransition> statusHistory;
 
@@ -47,6 +48,7 @@ public class OptimizationTask {
         this.parseDepth = submission.getParseDepth();
         this.callbackUrl = submission.getCallbackUrl();
         this.requestedSuggestionTypes = submission.getRequestedSuggestionTypes();
+        this.sourceContext = submission.getSourceContext();
         this.submittedAt = submittedAt;
         this.status = OptimizationTaskStatus.QUEUED;
         this.currentPhase = OptimizationTaskPhase.SUBMITTED;
@@ -76,6 +78,7 @@ public class OptimizationTask {
         this.parseDepth = submission.getParseDepth();
         this.callbackUrl = submission.getCallbackUrl();
         this.requestedSuggestionTypes = submission.getRequestedSuggestionTypes();
+        this.sourceContext = submission.getSourceContext();
         this.submittedAt = submittedAt;
         this.statusHistory = statusHistory == null
             ? new ArrayList<OptimizationTaskStatusTransition>()
@@ -245,6 +248,10 @@ public class OptimizationTask {
 
     public List<AccelerationSuggestionType> getRequestedSuggestionTypes() {
         return requestedSuggestionTypes;
+    }
+
+    public OptimizationTaskSourceContext getSourceContext() {
+        return sourceContext;
     }
 
     public OptimizationTaskStatus getStatus() {
