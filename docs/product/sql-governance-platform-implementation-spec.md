@@ -76,6 +76,7 @@
 - 语法不可解析时也要返回结构解析结果，并通过 `syntaxStatus=INVALID` 与问题清单显式标识，不阻断页面显示。
 - 单条 SQL 语法不可解析时，结构解析结果必须尽量返回 `failureReason`、`failureLine`、`failureColumn`、`failureOffset`、`failureToken` 和 `failureSnippet`，并在 `issues[]` 中同步暴露同类字段，便于页面指出失败原因和失败位置。
 - 数据访问解析依赖数据库、引擎或元数据服务，可失败、可跳过、可异步补跑，但不能阻断结构解析结果返回。
+- 结构解析命中底层数据库 View 时，应优先从目标数据源实时读取 View definition 并递归展开依赖；View 本身以 `DB_VIEW` hit 保留，最终叶子表以 `TABLE` hit 返回并写入历史 key。governance DB View 目录仅作为实时元数据不可用时的 fallback 证据。
 - 默认执行策略：
   - 先执行结构解析
   - 连接可用时自动异步补跑数据访问解析

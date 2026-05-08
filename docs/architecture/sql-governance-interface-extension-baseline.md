@@ -234,6 +234,14 @@
 - 例如 `DB_VIEW:analytics.vw_sales_daily`
 - 作为查询、历史、解析、路由之间的统一引用键
 
+数据库 View 展开口径：
+
+- 当结构解析请求携带 `datasourceCode` 时，SQL 优化服务应优先通过目标数据源只读元数据实时判断命中对象是否为底层数据库 View，并读取 View definition SQL。
+- 实时命中 DB View 时，`logicalObjectHits` 保留该 View 的 `DB_VIEW` hit，`matchSource=LIVE_DB_VIEW_METADATA`；View definition 中递归解析出的最终叶子表追加为 `TABLE` hit，`matchSource=DB_VIEW_DEFINITION`。
+- `mappedPhysicalTargets` 对 DB View 表示最终叶子 `TABLE:*` keys，而不是原 SQL 中的 View 名；`featureSummary.tableCount` 与解析历史 `logicalObjectKeys` 使用最终唯一 `TABLE:*` keys。
+- 递归展开默认最大深度为 5，并按规范化对象 key 防循环；循环、无权限、无配置、元数据查询失败或 View definition 不可解析时，结构解析不得失败，应保留原对象 hit，并通过 `DB_VIEW_DEFINITION_UNRESOLVED` risk/issue 标识降级原因。
+- governance 的 `database_view_ref/dependency` 目录只能作为实时元数据不可用时的缓存/降级证据；使用该目录时 `matchSource=DB_VIEW_CATALOG_FALLBACK`，不得写成实时 View definition 结果。
+
 `issues[]` 子字段：
 
 - `issueCode`

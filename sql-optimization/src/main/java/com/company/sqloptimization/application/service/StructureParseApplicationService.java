@@ -30,6 +30,10 @@ import com.company.sqloptimization.domain.parse.StructureParseQueryDateSummary;
 import com.company.sqloptimization.domain.parse.StructureParseResult;
 import com.company.sqloptimization.domain.parse.StructureParseSyntaxStatus;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
+import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataClient;
+import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataRequest;
+import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataResponse;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -48,24 +52,44 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 
 @Service
 public class StructureParseApplicationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(StructureParseApplicationService.class);
     private static final Pattern ISO_DATE_PATTERN = Pattern.compile("\\b(\\d{4}-\\d{2}-\\d{2})\\b");
+    private static final Pattern VIEW_DEFINITION_BODY_PATTERN = Pattern.compile("(?is)\\bAS\\s+((SELECT|WITH)\\b.*)$");
     private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final String MATCH_SOURCE_SQL = "SQL_TABLE_SCAN";
     private static final String MATCH_SOURCE_HEURISTIC = "NAME_HEURISTIC";
+    private static final String MATCH_SOURCE_DB_VIEW_METADATA = "LIVE_DB_VIEW_METADATA";
+    private static final String MATCH_SOURCE_DB_VIEW_DEFINITION = "DB_VIEW_DEFINITION";
+    private static final String MATCH_SOURCE_DB_VIEW_CATALOG_FALLBACK = "DB_VIEW_CATALOG_FALLBACK";
+    private static final String RISK_DB_VIEW_DEFINITION_UNRESOLVED = "DB_VIEW_DEFINITION_UNRESOLVED";
     private static final String HISTORY_RESULT_SUCCESS = "SUCCESS";
     private static final String HISTORY_RESULT_FAILED = "FAILED";
+    private static final int MAX_DB_VIEW_EXPANSION_DEPTH = 5;
 
     private final SqlOptimizationPipelineService sqlOptimizationPipelineService;
     private final GovernanceCapabilityClient governanceCapabilityClient;
     private final SqlParseHistoryApplicationService sqlParseHistoryApplicationService;
+    private final DatasourceViewMetadataClient datasourceViewMetadataClient;
+
+    @Autowired
+    public StructureParseApplicationService(SqlOptimizationPipelineService sqlOptimizationPipelineService,
+                                            GovernanceCapabilityClient governanceCapabilityClient,
+                                            SqlParseHistoryApplicationService sqlParseHistoryApplicationService,
+                                            DatasourceViewMetadataClient datasourceViewMetadataClient) {
+        this.sqlOptimizationPipelineService = sqlOptimizationPipelineService;
+        this.governanceCapabilityClient = governanceCapabilityClient;
+        this.sqlParseHistoryApplicationService = sqlParseHistoryApplicationService;
+        this.datasourceViewMetadataClient = datasourceViewMetadataClient == null
+            ? DatasourceViewMetadataClient.unavailable()
+            : datasourceViewMetadataClient;
+    }
 
     public StructureParseApplicationService(SqlOptimizationPipelineService sqlOptimizationPipelineService,
                                             GovernanceCapabilityClient governanceCapabilityClient,
@@ -73,6 +97,7 @@ public class StructureParseApplicationService {
         this.sqlOptimizationPipelineService = sqlOptimizationPipelineService;
         this.governanceCapabilityClient = governanceCapabilityClient;
         this.sqlParseHistoryApplicationService = sqlParseHistoryApplicationService;
+        this.datasourceViewMetadataClient = DatasourceViewMetadataClient.unavailable();
     }
 
     public StructureParseResponseVO parse(StructureParseRequest request) {
@@ -100,10 +125,16 @@ public class StructureParseApplicationService {
             result.setComplexityLevel(resolveComplexity(profile));
             result.setSqlType("SELECT");
             result.setQueryDateSummary(extractQueryDateSummary(request.getSqlText(), profile));
-            result.setLogicalObjectHits(buildLogicalObjectHits(profile, tenantId, datasourceCode));
-            result.setRiskTags(new ArrayList<String>(profile.getWarnings()));
+            LogicalObjectExpansionResult logicalObjectExpansion = buildLogicalObjectHits(
+                profile,
+                tenantId,
+                datasourceCode,
+                SqlParserMode.resolve(request.getParserMode())
+            );
+            result.setLogicalObjectHits(logicalObjectExpansion.getHits());
+            result.setRiskTags(buildRiskTags(profile, logicalObjectExpansion));
             result.setRewriteCandidates(sqlOptimizationPipelineService.deriveRewriteCandidateRules(profile));
-            result.setIssues(buildIssues(profile));
+            result.setIssues(buildIssues(profile, logicalObjectExpansion));
             result.applyAssessment(StructureParsePriorityScorer.assessAll(result.getIssues()));
             LOGGER.info(
                 "operation=STRUCTURE_PARSE entity={} tenantId={} datasourceCode={} costMs={} status=END syntaxStatus={} priorityLevel={}",
@@ -210,12 +241,44 @@ public class StructureParseApplicationService {
         return builder.toString();
     }
 
-    private List<StructureParseIssue> buildIssues(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+    private List<String> buildRiskTags(SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                       LogicalObjectExpansionResult logicalObjectExpansion) {
+        List<String> riskTags = new ArrayList<String>(profile.getWarnings());
+        if (logicalObjectExpansion != null && logicalObjectExpansion.hasUnresolvedViewDefinition()) {
+            riskTags.add(RISK_DB_VIEW_DEFINITION_UNRESOLVED);
+        }
+        return riskTags;
+    }
+
+    private List<StructureParseIssue> buildIssues(SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                                  LogicalObjectExpansionResult logicalObjectExpansion) {
         List<StructureParseIssue> issues = new ArrayList<StructureParseIssue>();
         for (String warning : profile.getWarnings()) {
             issues.add(buildIssueFromWarning(warning, profile));
         }
+        if (logicalObjectExpansion != null && logicalObjectExpansion.hasUnresolvedViewDefinition()) {
+            issues.add(buildDbViewDefinitionUnresolvedIssue(logicalObjectExpansion));
+        }
         return issues;
+    }
+
+    private StructureParseIssue buildDbViewDefinitionUnresolvedIssue(LogicalObjectExpansionResult logicalObjectExpansion) {
+        StructureParseIssue issue = new StructureParseIssue();
+        issue.setIssueCode(RISK_DB_VIEW_DEFINITION_UNRESOLVED);
+        issue.setIssueDomain(StructureParseIssueDomain.STRUCTURE);
+        issue.setIssueScene("METADATA_UNRESOLVED");
+        issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
+        issue.setSummary("A database view definition could not be fully expanded from live metadata.");
+        issue.setDetail(String.join("; ", logicalObjectExpansion.getUnresolvedReasons()));
+        issue.setSuggestedAction("Verify datasource metadata permissions or refresh the governed DB view catalog fallback.");
+        issue.setImportant(Boolean.TRUE);
+        issue.setUrgent(Boolean.FALSE);
+        issue.setAffectedSqlCount(Integer.valueOf(1));
+        issue.setAffectedReportCount(Integer.valueOf(1));
+        StructureParsePriorityAssessment assessment = StructureParsePriorityScorer.assess(issue);
+        issue.setPriorityScore(Integer.valueOf(assessment.getPriorityScore()));
+        issue.setPriorityLevel(assessment.getPriorityLevel());
+        return issue;
     }
 
     private StructureParseIssue buildIssueFromWarning(String warning,
@@ -452,76 +515,291 @@ public class StructureParseApplicationService {
         }
     }
 
-    private List<StructureParseLogicalObjectHit> buildLogicalObjectHits(SqlOptimizationPipelineService.ParsedSqlProfile profile,
-                                                                       String tenantId,
-                                                                       String datasourceCode) {
-        List<StructureParseLogicalObjectHit> hits = new ArrayList<StructureParseLogicalObjectHit>();
+    private LogicalObjectExpansionResult buildLogicalObjectHits(SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                                               String tenantId,
+                                                               String datasourceCode,
+                                                               SqlParserMode parserMode) {
+        LogicalObjectExpansionResult result = new LogicalObjectExpansionResult();
+        ViewExpansionContext context = new ViewExpansionContext(tenantId, datasourceCode, parserMode, result);
         for (String table : profile.getTables()) {
-            StructureParseLogicalObjectHit hit = new StructureParseLogicalObjectHit();
-            hit.setObjectName(table);
-            hit.setMappedPhysicalTargets(Collections.singletonList(table));
-            if (isDbViewHeuristic(table)) {
-                hit.setObjectType(LogicalObjectType.DB_VIEW);
-                hit.setMatchSource(MATCH_SOURCE_HEURISTIC);
-                hit.setResolved(Boolean.FALSE);
-            } else {
-                hit.setObjectType(LogicalObjectType.TABLE);
-                hit.setMatchSource(MATCH_SOURCE_SQL);
-                hit.setResolved(Boolean.TRUE);
-            }
-            fillLogicalObjectReferenceFields(hit);
-            enrichDbViewDependencyEvidence(hit, tenantId, datasourceCode);
-            hits.add(hit);
+            expandObjectReference(table, MATCH_SOURCE_SQL, 0, context);
         }
-        return hits;
+        return result;
     }
 
-    private void enrichDbViewDependencyEvidence(StructureParseLogicalObjectHit hit, String tenantId, String datasourceCode) {
-        if (hit == null || hit.getObjectType() != LogicalObjectType.DB_VIEW || !StringUtils.hasText(datasourceCode)) {
-            return;
+    private List<String> expandObjectReference(String objectName,
+                                               String matchSource,
+                                               int depth,
+                                               ViewExpansionContext context) {
+        QualifiedObjectName qualifiedObject = QualifiedObjectName.parse(objectName);
+        DatasourceViewMetadataResponse metadata = resolveLiveViewMetadata(qualifiedObject, context);
+        if (metadata != null && Boolean.TRUE.equals(metadata.getView())) {
+            return expandLiveDbView(qualifiedObject, metadata, depth, context);
+        }
+        GovernanceDbViewResolveResponse fallback = null;
+        if (metadata == null || !Boolean.TRUE.equals(metadata.getResolved())) {
+            fallback = resolveGovernanceDbViewFallback(qualifiedObject, context);
+        }
+        if (fallback != null && Boolean.TRUE.equals(fallback.getResolved())) {
+            return applyGovernanceDbViewFallback(qualifiedObject, fallback, context);
+        }
+        if (isDbViewHeuristic(qualifiedObject.getQualifiedName())) {
+            StructureParseLogicalObjectHit hit = buildLogicalObjectHit(
+                LogicalObjectType.DB_VIEW,
+                qualifiedObject,
+                MATCH_SOURCE_HEURISTIC,
+                Boolean.FALSE
+            );
+            hit.setMappedPhysicalTargets(Collections.<String>emptyList());
+            context.getResult().addHit(hit);
+            context.getResult().addUnresolvedReason(
+                "view=" + hit.getObjectKey() + ", reason="
+                    + metadataFailureReason(metadata, "DB_VIEW_HEURISTIC_WITHOUT_DEFINITION")
+            );
+            return Collections.emptyList();
+        }
+        StructureParseLogicalObjectHit tableHit = buildLogicalObjectHit(
+            LogicalObjectType.TABLE,
+            qualifiedObject,
+            matchSource,
+            Boolean.valueOf(metadata == null || Boolean.TRUE.equals(metadata.getResolved()))
+        );
+        tableHit.setMappedPhysicalTargets(Collections.singletonList(tableHit.getObjectKey()));
+        context.getResult().addHit(tableHit);
+        return Collections.singletonList(tableHit.getObjectKey());
+    }
+
+    private List<String> expandLiveDbView(QualifiedObjectName qualifiedObject,
+                                          DatasourceViewMetadataResponse metadata,
+                                          int depth,
+                                          ViewExpansionContext context) {
+        StructureParseLogicalObjectHit viewHit = buildLogicalObjectHit(
+            LogicalObjectType.DB_VIEW,
+            qualifiedObject,
+            MATCH_SOURCE_DB_VIEW_METADATA,
+            Boolean.TRUE
+        );
+        context.getResult().addHit(viewHit);
+        String visitKey = context.visitKey(viewHit.getObjectKey());
+        if (context.isVisited(visitKey)) {
+            viewHit.setResolved(Boolean.FALSE);
+            context.getResult().addUnresolvedReason("view=" + viewHit.getObjectKey() + ", reason=DB_VIEW_DEFINITION_CYCLE");
+            return Collections.emptyList();
+        }
+        if (depth >= MAX_DB_VIEW_EXPANSION_DEPTH) {
+            viewHit.setResolved(Boolean.FALSE);
+            context.getResult().addUnresolvedReason("view=" + viewHit.getObjectKey() + ", reason=DB_VIEW_DEFINITION_MAX_DEPTH");
+            return Collections.emptyList();
+        }
+        String viewDefinitionSql = extractViewDefinitionBody(metadata.getViewDefinitionSql());
+        if (!StringUtils.hasText(viewDefinitionSql)) {
+            return expandDbViewFromFallbackOrMarkUnresolved(qualifiedObject, viewHit, context, "DB_VIEW_DEFINITION_EMPTY");
+        }
+        context.pushVisited(visitKey);
+        try {
+            SqlOptimizationPipelineService.ParsedSqlProfile viewProfile = sqlOptimizationPipelineService.analyze(
+                viewDefinitionSql,
+                DataSourceTypeEnum.AUTO,
+                context.getParserMode()
+            );
+            LinkedHashSet<String> leafTableKeys = new LinkedHashSet<String>();
+            for (String dependency : viewProfile.getTables()) {
+                leafTableKeys.addAll(expandObjectReference(dependency, MATCH_SOURCE_DB_VIEW_DEFINITION, depth + 1, context));
+            }
+            viewHit.setMappedPhysicalTargets(new ArrayList<String>(leafTableKeys));
+            if (leafTableKeys.isEmpty()) {
+                viewHit.setResolved(Boolean.FALSE);
+                context.getResult().addUnresolvedReason(
+                    "view=" + viewHit.getObjectKey() + ", reason=DB_VIEW_DEFINITION_NO_TABLE_DEPENDENCIES"
+                );
+            }
+            return new ArrayList<String>(leafTableKeys);
+        } catch (SqlOptimizationPipelineService.SqlOptimizationExecutionException ex) {
+            return expandDbViewFromFallbackOrMarkUnresolved(
+                qualifiedObject,
+                viewHit,
+                context,
+                "DB_VIEW_DEFINITION_PARSE_FAILED"
+            );
+        } finally {
+            context.popVisited(visitKey);
+        }
+    }
+
+    private List<String> expandDbViewFromFallbackOrMarkUnresolved(QualifiedObjectName qualifiedObject,
+                                                                  StructureParseLogicalObjectHit viewHit,
+                                                                  ViewExpansionContext context,
+                                                                  String reason) {
+        GovernanceDbViewResolveResponse fallback = resolveGovernanceDbViewFallback(qualifiedObject, context);
+        if (fallback != null && Boolean.TRUE.equals(fallback.getResolved())) {
+            List<String> leafTableKeys = applyGovernanceDbViewDependencies(viewHit, fallback, context);
+            if (!leafTableKeys.isEmpty()) {
+                return leafTableKeys;
+            }
+        }
+        viewHit.setResolved(Boolean.FALSE);
+        viewHit.setMappedPhysicalTargets(Collections.<String>emptyList());
+        context.getResult().addUnresolvedReason("view=" + viewHit.getObjectKey() + ", reason=" + reason);
+        return Collections.emptyList();
+    }
+
+    private List<String> applyGovernanceDbViewFallback(QualifiedObjectName qualifiedObject,
+                                                       GovernanceDbViewResolveResponse fallback,
+                                                       ViewExpansionContext context) {
+        StructureParseLogicalObjectHit viewHit = buildLogicalObjectHit(
+            LogicalObjectType.DB_VIEW,
+            qualifiedObject,
+            MATCH_SOURCE_DB_VIEW_CATALOG_FALLBACK,
+            Boolean.TRUE
+        );
+        if (StringUtils.hasText(fallback.getObjectKey())) {
+            viewHit.setObjectKey(fallback.getObjectKey());
+        }
+        context.getResult().addHit(viewHit);
+        return applyGovernanceDbViewDependencies(viewHit, fallback, context);
+    }
+
+    private List<String> applyGovernanceDbViewDependencies(StructureParseLogicalObjectHit viewHit,
+                                                           GovernanceDbViewResolveResponse fallback,
+                                                           ViewExpansionContext context) {
+        LinkedHashSet<String> dependencyKeys = new LinkedHashSet<String>();
+        LinkedHashSet<String> leafTableKeys = new LinkedHashSet<String>();
+        if (fallback.getDependencies() != null) {
+            for (GovernanceDbViewDependencyRef dependency : fallback.getDependencies()) {
+                if (dependency == null) {
+                    continue;
+                }
+                String dependencyKey = dependencyObjectKey(dependency);
+                if (StringUtils.hasText(dependencyKey)) {
+                    dependencyKeys.add(dependencyKey);
+                }
+                if ("TABLE".equalsIgnoreCase(trimToNull(dependency.getObjectType()))) {
+                    StructureParseLogicalObjectHit tableHit = buildLogicalObjectHit(
+                        LogicalObjectType.TABLE,
+                        QualifiedObjectName.parse(firstNonBlank(dependency.getObjectName(), stripObjectKeyType(dependencyKey))),
+                        MATCH_SOURCE_DB_VIEW_CATALOG_FALLBACK,
+                        Boolean.TRUE
+                    );
+                    if (StringUtils.hasText(dependencyKey)) {
+                        tableHit.setObjectKey(dependencyKey);
+                    }
+                    tableHit.setMappedPhysicalTargets(Collections.singletonList(tableHit.getObjectKey()));
+                    context.getResult().addHit(tableHit);
+                    leafTableKeys.add(tableHit.getObjectKey());
+                }
+            }
+        }
+        viewHit.setMappedPhysicalTargets(new ArrayList<String>(leafTableKeys.isEmpty() ? dependencyKeys : leafTableKeys));
+        return new ArrayList<String>(leafTableKeys);
+    }
+
+    private DatasourceViewMetadataResponse resolveLiveViewMetadata(QualifiedObjectName qualifiedObject,
+                                                                   ViewExpansionContext context) {
+        DatasourceViewMetadataRequest request = new DatasourceViewMetadataRequest();
+        request.setTenantId(context.getTenantId());
+        request.setDatasourceCode(context.getDatasourceCode());
+        request.setCatalogName(qualifiedObject.getCatalogName());
+        request.setSchemaName(qualifiedObject.getSchemaName());
+        request.setObjectName(qualifiedObject.getObjectName());
+        try {
+            return datasourceViewMetadataClient.resolveView(request);
+        } catch (RuntimeException ex) {
+            LOGGER.warn(
+                "operation=STRUCTURE_PARSE_DB_VIEW_METADATA tenantId={} datasourceCode={} objectName={} status=DEGRADED reason={}",
+                context.getTenantId(),
+                context.getDatasourceCode(),
+                qualifiedObject.getQualifiedName(),
+                ex.getMessage()
+            );
+            return DatasourceViewMetadataResponse.unresolved("DATASOURCE_VIEW_METADATA_QUERY_FAILED");
+        }
+    }
+
+    private GovernanceDbViewResolveResponse resolveGovernanceDbViewFallback(QualifiedObjectName qualifiedObject,
+                                                                            ViewExpansionContext context) {
+        if (!StringUtils.hasText(context.getDatasourceCode())) {
+            return null;
         }
         try {
             GovernanceDbViewResolveRequest request = new GovernanceDbViewResolveRequest();
-            request.setTenantId(tenantId);
-            request.setDatasourceCode(datasourceCode);
-            request.setViewName(hit.getObjectName());
-            GovernanceDbViewResolveResponse response = governanceCapabilityClient.resolveDbView(request);
-            if (response == null) {
-                return;
-            }
-            if (Boolean.TRUE.equals(response.getResolved())) {
-                hit.setResolved(Boolean.TRUE);
-            }
-            if (StringUtils.hasText(response.getObjectKey())) {
-                hit.setObjectKey(response.getObjectKey());
-            }
-            if (response.getDependencies() != null && !response.getDependencies().isEmpty()) {
-                List<String> targets = new ArrayList<String>();
-                for (GovernanceDbViewDependencyRef dependency : response.getDependencies()) {
-                    if (dependency == null) {
-                        continue;
-                    }
-                    String key = StringUtils.hasText(dependency.getObjectKey())
-                        ? dependency.getObjectKey()
-                        : dependency.getObjectName();
-                    if (StringUtils.hasText(key)) {
-                        targets.add(key);
-                    }
-                }
-                if (!targets.isEmpty()) {
-                    hit.setMappedPhysicalTargets(targets);
-                }
-            }
+            request.setTenantId(context.getTenantId());
+            request.setDatasourceCode(context.getDatasourceCode());
+            request.setViewName(qualifiedObject.getObjectName());
+            return governanceCapabilityClient.resolveDbView(request);
         } catch (Exception ex) {
             LOGGER.warn(
-                "operation=STRUCTURE_PARSE_DB_VIEW_ENRICH entity={} tenantId={} datasourceCode={} viewName={} status=DEGRADED reason={}",
-                hit.getObjectKey(),
-                tenantId,
-                datasourceCode,
-                hit.getObjectName(),
+                "operation=STRUCTURE_PARSE_DB_VIEW_CATALOG_FALLBACK tenantId={} datasourceCode={} viewName={} status=DEGRADED reason={}",
+                context.getTenantId(),
+                context.getDatasourceCode(),
+                qualifiedObject.getQualifiedName(),
                 ex.getMessage()
             );
+            return null;
         }
+    }
+
+    private StructureParseLogicalObjectHit buildLogicalObjectHit(LogicalObjectType objectType,
+                                                                 QualifiedObjectName qualifiedObject,
+                                                                 String matchSource,
+                                                                 Boolean resolved) {
+        StructureParseLogicalObjectHit hit = new StructureParseLogicalObjectHit();
+        hit.setObjectType(objectType);
+        hit.setObjectName(qualifiedObject.getQualifiedName());
+        hit.setCatalogName(qualifiedObject.getCatalogName());
+        hit.setSchemaName(qualifiedObject.getSchemaName());
+        hit.setMatchSource(matchSource);
+        hit.setResolved(resolved);
+        fillLogicalObjectReferenceFields(hit);
+        return hit;
+    }
+
+    private String dependencyObjectKey(GovernanceDbViewDependencyRef dependency) {
+        String objectKey = trimToNull(dependency.getObjectKey());
+        if (objectKey != null) {
+            return objectKey;
+        }
+        String objectType = trimToNull(dependency.getObjectType());
+        String objectName = trimToNull(dependency.getObjectName());
+        if (!StringUtils.hasText(objectType) || !StringUtils.hasText(objectName)) {
+            return objectName;
+        }
+        try {
+            return LogicalObjectRef.buildObjectKey(LogicalObjectType.valueOf(objectType.toUpperCase(Locale.ROOT)), objectName);
+        } catch (IllegalArgumentException ex) {
+            return objectName;
+        }
+    }
+
+    private String stripObjectKeyType(String objectKey) {
+        String normalized = trimToNull(objectKey);
+        if (normalized == null) {
+            return null;
+        }
+        int separator = normalized.indexOf(':');
+        return separator >= 0 && separator + 1 < normalized.length() ? normalized.substring(separator + 1) : normalized;
+    }
+
+    private String metadataFailureReason(DatasourceViewMetadataResponse metadata, String defaultReason) {
+        if (metadata != null && StringUtils.hasText(metadata.getFailureReason())) {
+            return metadata.getFailureReason();
+        }
+        return defaultReason;
+    }
+
+    private String extractViewDefinitionBody(String definitionSql) {
+        String normalized = trimToNull(definitionSql);
+        if (normalized == null) {
+            return null;
+        }
+        String upper = normalized.toUpperCase(Locale.ROOT);
+        if (upper.startsWith("SELECT") || upper.startsWith("WITH")) {
+            return normalized;
+        }
+        Matcher matcher = VIEW_DEFINITION_BODY_PATTERN.matcher(normalized);
+        if (matcher.find()) {
+            return matcher.group(1).trim();
+        }
+        return normalized;
     }
 
     private void fillLogicalObjectReferenceFields(StructureParseLogicalObjectHit hit) {
@@ -598,6 +876,7 @@ public class StructureParseApplicationService {
         String resourceType = resolveResourceType(profile, scanMode, computeDensity);
         String slaLevel = resolveSlaLevel(profile, scanMode, computeDensity);
         List<StructureParseRiskVO> risks = buildRiskChecklist(profile);
+        int finalTableCount = resolveFinalTableCount(response, profile);
 
         StructureParseIntentProfileVO intentProfile = new StructureParseIntentProfileVO();
         intentProfile.setScanMode(scanMode);
@@ -616,7 +895,7 @@ public class StructureParseApplicationService {
         featureSummary.setComputeDensity(computeDensity);
         featureSummary.setResourceType(resourceType);
         featureSummary.setSlaLevel(slaLevel);
-        featureSummary.setTableCount(Integer.valueOf(profile.getTables().size()));
+        featureSummary.setTableCount(Integer.valueOf(finalTableCount));
         featureSummary.setJoinCount(Integer.valueOf(profile.getJoinCount()));
         featureSummary.setPredicateCount(Integer.valueOf(profile.getPredicateCount()));
         featureSummary.setWindowFunctionCount(Integer.valueOf(profile.getWindowFunctionCount()));
@@ -631,10 +910,10 @@ public class StructureParseApplicationService {
         featureSummary.setLeadingWildcardLikeCount(Integer.valueOf(profile.getLeadingWildcardLikeCount()));
         featureSummary.setRandomOrderCount(Integer.valueOf(profile.getRandomOrderCount()));
         featureSummary.setRepeatedTableScanCount(Integer.valueOf(profile.getRepeatedTableScanCount()));
-        featureSummary.setEvidence(buildFeatureEvidence(profile));
+        featureSummary.setEvidence(buildFeatureEvidence(profile, finalTableCount));
         response.setFeatureSummary(featureSummary);
         response.setRiskChecklist(risks);
-        response.setEstimatedResourceCost(buildResourceEstimate(profile, risks));
+        response.setEstimatedResourceCost(buildResourceEstimate(profile, risks, finalTableCount));
     }
 
     private StructureParseIntentProfileVO unknownIntentProfile() {
@@ -819,6 +1098,47 @@ public class StructureParseApplicationService {
         return evidence;
     }
 
+    private List<String> buildFeatureEvidence(SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                              int finalTableCount) {
+        List<String> evidence = buildFeatureEvidence(profile);
+        if (finalTableCount != profile.getTables().size()) {
+            evidence.add("expandedTables=" + finalTableCount);
+        }
+        return evidence;
+    }
+
+    private int resolveFinalTableCount(StructureParseResponseVO response,
+                                       SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+        List<String> tableKeys = extractFinalTableKeys(response == null ? null : response.getLogicalObjectHits());
+        return tableKeys.isEmpty() ? profile.getTables().size() : tableKeys.size();
+    }
+
+    private List<String> extractFinalTableKeys(List<LogicalObjectSurface> logicalObjectHits) {
+        if (logicalObjectHits == null || logicalObjectHits.isEmpty()) {
+            return Collections.emptyList();
+        }
+        LinkedHashSet<String> keys = new LinkedHashSet<String>();
+        for (LogicalObjectSurface hit : logicalObjectHits) {
+            if (hit == null) {
+                continue;
+            }
+            addTableKey(keys, hit.getObjectKey());
+            if (hit.getMappedPhysicalTargets() != null) {
+                for (String target : hit.getMappedPhysicalTargets()) {
+                    addTableKey(keys, target);
+                }
+            }
+        }
+        return new ArrayList<String>(keys);
+    }
+
+    private void addTableKey(Set<String> keys, String candidate) {
+        String normalized = trimToNull(candidate);
+        if (normalized != null && normalized.toUpperCase(Locale.ROOT).startsWith("TABLE:")) {
+            keys.add(normalized);
+        }
+    }
+
     private List<StructureParseRiskVO> buildRiskChecklist(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
         List<StructureParseRiskVO> risks = new ArrayList<StructureParseRiskVO>();
         Set<String> emitted = new LinkedHashSet<String>();
@@ -897,18 +1217,22 @@ public class StructureParseApplicationService {
     }
 
     private StructureParseResourceEstimateVO buildResourceEstimate(SqlOptimizationPipelineService.ParsedSqlProfile profile,
-                                                                   List<StructureParseRiskVO> risks) {
+                                                                   List<StructureParseRiskVO> risks,
+                                                                   int finalTableCount) {
         StructureParseResourceEstimateVO estimate = new StructureParseResourceEstimateVO();
         estimate.setCpu(level(profile.getAggregateFunctions().size() + profile.getUdfFunctionCount()
             + profile.getRepeatedExpressionCount()
             + profile.getFunctionWrappedPredicateCount()
             + profile.getRandomOrderCount()));
-        estimate.setIo(profile.getPredicateCount() == 0 || profile.getRepeatedTableScanCount() > 0 ? "HIGH" : "MEDIUM");
+        estimate.setIo(profile.getPredicateCount() == 0 || profile.getRepeatedTableScanCount() > 0
+            || finalTableCount > profile.getTables().size() ? "HIGH" : "MEDIUM");
         estimate.setMemory(profile.getOrderByCount() + profile.getWindowFunctionCount() + profile.getRandomOrderCount() > 0 ? "HIGH" : "LOW");
-        estimate.setNetwork(profile.getJoinCount() > 0 || profile.isSetOperation() || profile.getSubqueryCount() > 0 ? "HIGH" : "LOW");
-        estimate.setResultSize(profile.isSelectStar() || !profile.isLimitPresent() || profile.getComplexGraphScore() >= 8 ? "HIGH" : "MEDIUM");
+        estimate.setNetwork(profile.getJoinCount() > 0 || profile.isSetOperation() || profile.getSubqueryCount() > 0
+            || finalTableCount > 1 ? "HIGH" : "LOW");
+        estimate.setResultSize(profile.isSelectStar() || !profile.isLimitPresent() || profile.getComplexGraphScore() >= 8
+            || finalTableCount > profile.getTables().size() ? "HIGH" : "MEDIUM");
         estimate.setOverall(resolveOverallEstimate(estimate, risks));
-        estimate.setEvidence(buildFeatureEvidence(profile));
+        estimate.setEvidence(buildFeatureEvidence(profile, finalTableCount));
         return estimate;
     }
 
@@ -1120,6 +1444,183 @@ public class StructureParseApplicationService {
         return vos;
     }
 
+    private static final class LogicalObjectExpansionResult {
+
+        private final Map<String, StructureParseLogicalObjectHit> hitsByKey =
+            new LinkedHashMap<String, StructureParseLogicalObjectHit>();
+        private final List<String> unresolvedReasons = new ArrayList<String>();
+
+        private void addHit(StructureParseLogicalObjectHit hit) {
+            if (hit == null || !StringUtils.hasText(hit.getObjectKey())) {
+                return;
+            }
+            StructureParseLogicalObjectHit existing = hitsByKey.get(hit.getObjectKey());
+            if (existing == null) {
+                hitsByKey.put(hit.getObjectKey(), hit);
+                return;
+            }
+            if (Boolean.TRUE.equals(hit.getResolved())) {
+                existing.setResolved(Boolean.TRUE);
+            } else if (Boolean.FALSE.equals(hit.getResolved())) {
+                existing.setResolved(Boolean.FALSE);
+            }
+            if (!StringUtils.hasText(existing.getMatchSource()) && StringUtils.hasText(hit.getMatchSource())) {
+                existing.setMatchSource(hit.getMatchSource());
+            }
+            existing.setMappedPhysicalTargets(mergeTargets(existing.getMappedPhysicalTargets(), hit.getMappedPhysicalTargets()));
+        }
+
+        private List<StructureParseLogicalObjectHit> getHits() {
+            return new ArrayList<StructureParseLogicalObjectHit>(hitsByKey.values());
+        }
+
+        private void addUnresolvedReason(String reason) {
+            if (StringUtils.hasText(reason)) {
+                unresolvedReasons.add(reason);
+            }
+        }
+
+        private boolean hasUnresolvedViewDefinition() {
+            return !unresolvedReasons.isEmpty();
+        }
+
+        private List<String> getUnresolvedReasons() {
+            return unresolvedReasons;
+        }
+
+        private static List<String> mergeTargets(List<String> first, List<String> second) {
+            LinkedHashSet<String> values = new LinkedHashSet<String>();
+            if (first != null) {
+                values.addAll(first);
+            }
+            if (second != null) {
+                values.addAll(second);
+            }
+            return new ArrayList<String>(values);
+        }
+    }
+
+    private static final class ViewExpansionContext {
+
+        private final String tenantId;
+        private final String datasourceCode;
+        private final SqlParserMode parserMode;
+        private final LogicalObjectExpansionResult result;
+        private final Set<String> visited = new LinkedHashSet<String>();
+
+        private ViewExpansionContext(String tenantId,
+                                     String datasourceCode,
+                                     SqlParserMode parserMode,
+                                     LogicalObjectExpansionResult result) {
+            this.tenantId = tenantId;
+            this.datasourceCode = datasourceCode;
+            this.parserMode = parserMode;
+            this.result = result;
+        }
+
+        private String getTenantId() {
+            return tenantId;
+        }
+
+        private String getDatasourceCode() {
+            return datasourceCode;
+        }
+
+        private SqlParserMode getParserMode() {
+            return parserMode;
+        }
+
+        private LogicalObjectExpansionResult getResult() {
+            return result;
+        }
+
+        private String visitKey(String objectKey) {
+            return (datasourceCode == null ? "" : datasourceCode.toLowerCase(Locale.ROOT))
+                + "|" + (objectKey == null ? "" : objectKey.toLowerCase(Locale.ROOT));
+        }
+
+        private boolean isVisited(String visitKey) {
+            return visited.contains(visitKey);
+        }
+
+        private void pushVisited(String visitKey) {
+            visited.add(visitKey);
+        }
+
+        private void popVisited(String visitKey) {
+            visited.remove(visitKey);
+        }
+    }
+
+    private static final class QualifiedObjectName {
+
+        private final String catalogName;
+        private final String schemaName;
+        private final String objectName;
+        private final String qualifiedName;
+
+        private QualifiedObjectName(String catalogName, String schemaName, String objectName) {
+            this.catalogName = catalogName;
+            this.schemaName = schemaName;
+            this.objectName = objectName;
+            this.qualifiedName = buildQualifiedName(catalogName, schemaName, objectName);
+        }
+
+        private static QualifiedObjectName parse(String value) {
+            if (!StringUtils.hasText(value)) {
+                return new QualifiedObjectName(null, null, "");
+            }
+            String[] parts = value.trim().split("\\.");
+            if (parts.length >= 3) {
+                return new QualifiedObjectName(clean(parts[0]), clean(parts[1]), clean(parts[2]));
+            }
+            if (parts.length == 2) {
+                return new QualifiedObjectName(null, clean(parts[0]), clean(parts[1]));
+            }
+            return new QualifiedObjectName(null, null, clean(parts[0]));
+        }
+
+        private static String clean(String value) {
+            String normalized = value == null ? "" : value.trim();
+            if ((normalized.startsWith("\"") && normalized.endsWith("\""))
+                || (normalized.startsWith("`") && normalized.endsWith("`"))
+                || (normalized.startsWith("[") && normalized.endsWith("]"))) {
+                return normalized.substring(1, normalized.length() - 1);
+            }
+            return normalized;
+        }
+
+        private static String buildQualifiedName(String catalogName, String schemaName, String objectName) {
+            List<String> parts = new ArrayList<String>();
+            if (StringUtils.hasText(catalogName)) {
+                parts.add(catalogName);
+            }
+            if (StringUtils.hasText(schemaName)) {
+                parts.add(schemaName);
+            }
+            if (StringUtils.hasText(objectName)) {
+                parts.add(objectName);
+            }
+            return String.join(".", parts);
+        }
+
+        private String getCatalogName() {
+            return catalogName;
+        }
+
+        private String getSchemaName() {
+            return schemaName;
+        }
+
+        private String getObjectName() {
+            return objectName;
+        }
+
+        private String getQualifiedName() {
+            return qualifiedName;
+        }
+    }
+
     private static final class AggregateShape {
 
         private final int complexityWeight;
@@ -1150,5 +1651,18 @@ public class StructureParseApplicationService {
             return null;
         }
         return value.trim();
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            String normalized = trimToNull(value);
+            if (normalized != null) {
+                return normalized;
+            }
+        }
+        return null;
     }
 }

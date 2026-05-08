@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-087: Resolve live database view definitions during structure parse
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `feat(sql-optimization): HARN-087 expand live database views`
+- Priority: 1
+- Depends on: N/A
+- Scope: In sql-optimization, add live datasource view metadata resolution and recursive DB view expansion during structure parsing; preserve governance DB view catalog as fallback evidence only; persist expanded logical object hits and table keys across single, batch, report, and history flows.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-087`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added sql-optimization live datasource view metadata resolution with JDBC read-only metadata queries, recursive DB view definition expansion with depth/cycle protection, governance DB view catalog fallback labeling, final TABLE key extraction for history/batch/report records, and interface/data-model documentation for the new DB view expansion contract.
+  - Validation evidence: mvn -pl sql-optimization test; python3 scripts/foreman.py validate HARN-087 --extra-command "mvn -pl sql-optimization test" --extra-command "node scripts/lint-repository-knowledge.js" --extra-command "git diff --check"; node scripts/lint-repository-knowledge.js; git diff --check
+  - Residual risk: Live metadata expansion depends on configured read-only datasource metadata credentials and permissions; environments without those settings degrade to unresolved evidence or governance DB view catalog fallback.
+  - Next step: Configure sql-optimization.view-metadata.datasources for real Hetu/Trino test datasources when environment-backed DB view definition validation is available.
+
 ### HARN-086: Fix simple GROUP BY intent risk false positives
 
 - Status: done

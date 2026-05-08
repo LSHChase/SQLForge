@@ -1154,6 +1154,20 @@ public class ReportBatchApplicationService {
             if (logicalObjectHit == null) {
                 continue;
             }
+            if (logicalObjectHit.getMappedPhysicalTargets() != null) {
+                for (String target : logicalObjectHit.getMappedPhysicalTargets()) {
+                    addTableKey(keys, target);
+                }
+            }
+            addTableKey(keys, logicalObjectHit.getObjectKey());
+        }
+        if (!keys.isEmpty()) {
+            return new ArrayList<String>(keys);
+        }
+        for (LogicalObjectSurface logicalObjectHit : logicalObjectHits) {
+            if (logicalObjectHit == null) {
+                continue;
+            }
             String objectKey = trimToNull(logicalObjectHit.getObjectKey());
             if (!StringUtils.hasText(objectKey)) {
                 objectKey = trimToNull(logicalObjectHit.getObjectName());
@@ -1163,6 +1177,13 @@ public class ReportBatchApplicationService {
             }
         }
         return new ArrayList<String>(keys);
+    }
+
+    private void addTableKey(Set<String> keys, String candidate) {
+        String normalized = trimToNull(candidate);
+        if (normalized != null && normalized.toUpperCase(Locale.ROOT).startsWith("TABLE:")) {
+            keys.add(normalized);
+        }
     }
 
     private List<ReportBatchItemVO> toItemVos(List<ReportBatchItem> items) {

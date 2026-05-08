@@ -302,6 +302,7 @@ SQL 解析记录写入 `sql_parse_history` 时，`query_context_json` 必须使�
 - `bindingSummary`
 - `structureParseSummary`
 - `accessParseSummary`
+- `logicalObjectKeys`: 解析写入端按最终唯一 `TABLE:*` keys 归档；若原 SQL 命中底层 DB View，应优先保存实时 View definition 递归展开后的叶子表 keys，实时元数据不可用时才允许使用治理 DB View 目录 fallback 证据。
 
 兼容规则：
 

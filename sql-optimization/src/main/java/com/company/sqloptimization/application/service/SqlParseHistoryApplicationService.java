@@ -535,15 +535,42 @@ public class SqlParseHistoryApplicationService {
                 continue;
             }
             try {
+                Object mappedPhysicalTargets = hit.getClass().getMethod("getMappedPhysicalTargets").invoke(hit);
+                if (mappedPhysicalTargets instanceof Iterable) {
+                    for (Object target : (Iterable<?>) mappedPhysicalTargets) {
+                        addTableKey(values, target == null ? null : String.valueOf(target));
+                    }
+                }
+                Object objectKey = hit.getClass().getMethod("getObjectKey").invoke(hit);
+                addTableKey(values, objectKey == null ? null : String.valueOf(objectKey));
+            } catch (Exception ignored) {
+                // LogicalObjectSurface keeps objectKey as a bean getter; ignore unexpected shapes.
+            }
+        }
+        if (!values.isEmpty()) {
+            return new ArrayList<String>(values);
+        }
+        for (Object hit : structureParse.getLogicalObjectHits()) {
+            if (hit == null) {
+                continue;
+            }
+            try {
                 Object objectKey = hit.getClass().getMethod("getObjectKey").invoke(hit);
                 if (objectKey != null) {
                     values.add(String.valueOf(objectKey));
                 }
             } catch (Exception ignored) {
-                // LogicalObjectSurface keeps objectKey as a bean getter; ignore unexpected shapes.
+                // Preserve the previous fallback behavior for unexpected logical-object shapes.
             }
         }
         return new ArrayList<String>(values);
+    }
+
+    private void addTableKey(LinkedHashSet<String> values, String candidate) {
+        String normalized = trimToNull(candidate);
+        if (normalized != null && normalized.toUpperCase(Locale.ROOT).startsWith("TABLE:")) {
+            values.add(normalized);
+        }
     }
 
     private String resolveAccessChannel(String sourceType, AccessParseResponseVO accessParse) {

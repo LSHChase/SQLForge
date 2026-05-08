@@ -366,7 +366,7 @@
 - `historyType` 固定返回 `SQL_PARSE_RECORD`，不得再在治理 `query_history` 中使用 `historyType=SQL_PARSE` 做逻辑隔离。
 - `sourceType` 固定覆盖 `STRUCTURE_PARSE`、`COMBINED_PARSE`、`PARSE_BATCH`、`REPORT_BATCH`、`END_OF_DAY_SLOW_SQL`。
 - 关键结构字段包括 `parseTaskId`、`sqlFingerprint`、`datasourceCode`、`reportCode`、`stageCode`、`bizDate`、`queryDate*`、`accessChannel`、`parserMode`、`bindingMode`、`resultStatus`、`targetEngine`、`traceId`、`requestId`、`sagaId`、`submittedBy`、`submittedAt`。
-- 解析证据字段包括 `structureParseSummary`、`accessParseSummary`、`resultSummary/resultPayload`、`queryContext`、`commentContext`、`bindingSummary`、`logicalObjectHits`、`issueScenes` 与 `logicalObjectKeys`。
+- 解析证据字段包括 `structureParseSummary`、`accessParseSummary`、`resultSummary/resultPayload`、`queryContext`、`commentContext`、`bindingSummary`、`logicalObjectHits`、`issueScenes` 与 `logicalObjectKeys`；若 SQL 命中底层 DB View，`logicalObjectHits` 保留 View hit 并追加实时 View definition 展开的叶子 `TABLE` hit，`logicalObjectKeys` 固化最终唯一 `TABLE:*` keys。
 - 导出当前只承诺 `JSON` / `CSV` inline response；不写治理侧 `export_record`，后续如需跨服务取证归档必须另行扩展契约。
 
 日终慢 SQL 解析当前只固化服务骨架：`SlowSqlExecutionHistorySource` 只读拉取执行历史候选，`EndOfDaySlowSqlParseApplicationService` 按时间窗口、慢 SQL 阈值、limit 与幂等 `batchKey + sqlFingerprint` 生成解析记录。本轮不固化真实 cron 调度和执行历史 source 实现。

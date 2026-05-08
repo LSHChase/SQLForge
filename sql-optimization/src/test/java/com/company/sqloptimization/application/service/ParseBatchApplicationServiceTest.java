@@ -12,12 +12,16 @@ import com.company.sqloptimization.application.controller.dto.ParseBatchIngestRe
 import com.company.sqloptimization.application.controller.dto.ParseBatchRetryAccessRequest;
 import com.company.sqloptimization.application.controller.vo.ParseBatchStatusResponse;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataClient;
+import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataRequest;
+import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataResponse;
 import com.company.sqloptimization.infrastructure.repository.InMemoryParseBatchItemRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemoryParseBatchRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemorySqlParseHistoryRepository;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -62,6 +66,30 @@ class ParseBatchApplicationServiceTest {
         assertEquals("APACHE_CALCITE", ingested.getParserMode());
         assertEquals("COMPLETED", ingested.getStatus());
         assertEquals("VALID", ingested.getImportedRecords().get(0).getStructureSyntaxStatus());
+    }
+
+    @Test
+    void shouldPersistFinalTableKeysForLiveViewDefinitionsInBatchParse() {
+        DatasourceViewMetadataClient metadataClient = request -> {
+            DatasourceViewMetadataRequest metadataRequest = request;
+            if ("vw_sales_daily".equals(metadataRequest.getObjectName())) {
+                return DatasourceViewMetadataResponse.view("SELECT * FROM sales.orders");
+            }
+            return DatasourceViewMetadataResponse.table();
+        };
+        ParseBatchApplicationService service = buildService(metadataClient);
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-006", "trace-006", "header", 1L, 2L);
+
+        ParseBatchStatusResponse created = service.createBatch(baseRequest("SQL_FILE", "SQL"));
+        ParseBatchIngestRequest ingestRequest = new ParseBatchIngestRequest();
+        ingestRequest.setContentBase64(Base64.getEncoder().encodeToString(
+            "SELECT * FROM vw_sales_daily".getBytes(StandardCharsets.UTF_8)
+        ));
+
+        ParseBatchStatusResponse ingested = service.ingestBatch(created.getBatchId(), ingestRequest);
+
+        assertEquals("COMPLETED", ingested.getStatus());
+        assertEquals(Collections.singletonList("TABLE:sales.orders"), ingested.getImportedRecords().get(0).getLogicalObjectKeys());
     }
 
     @Test
@@ -182,13 +210,18 @@ class ParseBatchApplicationServiceTest {
     }
 
     private ParseBatchApplicationService buildService() {
+        return buildService(DatasourceViewMetadataClient.unavailable());
+    }
+
+    private ParseBatchApplicationService buildService(DatasourceViewMetadataClient datasourceViewMetadataClient) {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
         SqlParseHistoryApplicationService sqlParseHistoryApplicationService =
             new SqlParseHistoryApplicationService(new InMemorySqlParseHistoryRepository());
         StructureParseApplicationService structureService = new StructureParseApplicationService(
             new SqlOptimizationPipelineService(),
             governanceCapabilityClient,
-            sqlParseHistoryApplicationService
+            sqlParseHistoryApplicationService,
+            datasourceViewMetadataClient
         );
         AccessParseApplicationService accessService = new AccessParseApplicationService();
         return new ParseBatchApplicationService(

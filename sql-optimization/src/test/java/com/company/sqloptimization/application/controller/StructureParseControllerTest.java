@@ -17,6 +17,9 @@ import com.company.sqlforge.common.governance.GovernanceDbViewDependencyRef;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqloptimization.SqlOptimizationApplication;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataClient;
+import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataRequest;
+import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataResponse;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +32,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +46,9 @@ class StructureParseControllerTest {
 
     @MockBean
     private GovernanceCapabilityClient governanceCapabilityClient;
+
+    @MockBean
+    private DatasourceViewMetadataClient datasourceViewMetadataClient;
 
     @Test
     void shouldReturnStructureParseResultForValidReadSql() throws Exception {
@@ -91,6 +98,87 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.sourceType").value("STRUCTURE_PARSE"))
             .andExpect(jsonPath("$.historyType").value("SQL_PARSE_RECORD"));
         verify(governanceCapabilityClient).resolveDbView(any());
+    }
+
+    @Test
+    void shouldExpandLiveDatabaseViewDefinitionToLeafTables() throws Exception {
+        when(datasourceViewMetadataClient.resolveView(any())).thenAnswer(invocation -> {
+            DatasourceViewMetadataRequest request = invocation.getArgument(0);
+            if ("vw_sales_daily".equals(request.getObjectName())) {
+                return DatasourceViewMetadataResponse.view(
+                    "CREATE VIEW vw_sales_daily AS SELECT order_id, dt FROM sales.orders WHERE dt >= DATE '2026-04-01'"
+                );
+            }
+            return DatasourceViewMetadataResponse.table();
+        });
+
+        MvcResult parseResult = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT order_id FROM vw_sales_daily WHERE dt = DATE '2026-04-01'\","
+                    + "\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].objectType").value("DB_VIEW"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].objectKey").value("DB_VIEW:vw_sales_daily"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].matchSource").value("LIVE_DB_VIEW_METADATA"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].resolved").value(true))
+            .andExpect(jsonPath("$.logicalObjectHits[0].mappedPhysicalTargets[0]").value("TABLE:sales.orders"))
+            .andExpect(jsonPath("$.logicalObjectHits[1].objectType").value("TABLE"))
+            .andExpect(jsonPath("$.logicalObjectHits[1].objectKey").value("TABLE:sales.orders"))
+            .andExpect(jsonPath("$.logicalObjectHits[1].matchSource").value("DB_VIEW_DEFINITION"))
+            .andExpect(jsonPath("$.featureSummary.tableCount").value(1))
+            .andExpect(jsonPath("$.riskTags").value(not(hasItem("DB_VIEW_DEFINITION_UNRESOLVED"))))
+            .andReturn();
+
+        String historyId = JsonTestUtils.readValue(parseResult.getResponse().getContentAsString(), "$.historyId");
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse-history/{historyId}", historyId)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.logicalObjectKeys[0]").value("TABLE:sales.orders"));
+        verify(governanceCapabilityClient, never()).resolveDbView(any());
+    }
+
+    @Test
+    void shouldRecursivelyExpandNestedLiveDatabaseViews() throws Exception {
+        when(datasourceViewMetadataClient.resolveView(any())).thenAnswer(invocation -> {
+            DatasourceViewMetadataRequest request = invocation.getArgument(0);
+            if ("vw_outer".equals(request.getObjectName())) {
+                return DatasourceViewMetadataResponse.view("SELECT * FROM vw_inner");
+            }
+            if ("vw_inner".equals(request.getObjectName())) {
+                return DatasourceViewMetadataResponse.view("SELECT * FROM warehouse.fact_orders");
+            }
+            return DatasourceViewMetadataResponse.table();
+        });
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT * FROM vw_outer\",\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].objectKey").value("DB_VIEW:vw_outer"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].mappedPhysicalTargets[0]").value("TABLE:warehouse.fact_orders"))
+            .andExpect(jsonPath("$.logicalObjectHits[1].objectKey").value("DB_VIEW:vw_inner"))
+            .andExpect(jsonPath("$.logicalObjectHits[1].mappedPhysicalTargets[0]").value("TABLE:warehouse.fact_orders"))
+            .andExpect(jsonPath("$.logicalObjectHits[2].objectKey").value("TABLE:warehouse.fact_orders"))
+            .andExpect(jsonPath("$.featureSummary.tableCount").value(1));
+        verify(governanceCapabilityClient, never()).resolveDbView(any());
+    }
+
+    @Test
+    void shouldDegradeOnCircularLiveDatabaseViewDefinition() throws Exception {
+        when(datasourceViewMetadataClient.resolveView(any())).thenReturn(
+            DatasourceViewMetadataResponse.view("SELECT * FROM vw_loop")
+        );
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT * FROM vw_loop\",\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].objectKey").value("DB_VIEW:vw_loop"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].resolved").value(false))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("DB_VIEW_DEFINITION_UNRESOLVED")))
+            .andExpect(jsonPath("$.issues[*].issueCode").value(hasItem("DB_VIEW_DEFINITION_UNRESOLVED")));
     }
 
     @Test

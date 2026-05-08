@@ -48,6 +48,9 @@ sql-optimization:
     base-url: ${SQL_OPTIMIZATION_QUERY_EXECUTION_BASE_URL:http://localhost:8081/api/query-execution/internal/acceleration-plans}
     connect-timeout-ms: ${SQL_OPTIMIZATION_QUERY_EXECUTION_CONNECT_TIMEOUT_MS:3000}
     read-timeout-ms: ${SQL_OPTIMIZATION_QUERY_EXECUTION_READ_TIMEOUT_MS:5000}
+  view-metadata:
+    enabled: ${SQL_OPTIMIZATION_VIEW_METADATA_ENABLED:true}
+    query-timeout-seconds: ${SQL_OPTIMIZATION_VIEW_METADATA_QUERY_TIMEOUT_SECONDS:3}
   queues:
     mode: database-worker
 
