@@ -234,6 +234,44 @@ class StructureParseControllerTest {
     }
 
     @Test
+    void shouldNotEscalateSimpleGroupedLookupAsHeavyOrComplex() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT customer_id, COUNT(*) FROM orders "
+                    + "WHERE dt >= DATE '2026-04-01' GROUP BY customer_id LIMIT 20\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.complexityLevel").value("MODERATE"))
+            .andExpect(jsonPath("$.intentProfile.computeDensity").value("MODERATE"))
+            .andExpect(jsonPath("$.intentProfile.slaLevel").value("INTERACTIVE_LT_3S"))
+            .andExpect(jsonPath("$.featureSummary.tableCount").value(1))
+            .andExpect(jsonPath("$.featureSummary.joinCount").value(0))
+            .andExpect(jsonPath("$.featureSummary.subqueryCount").value(0))
+            .andExpect(jsonPath("$.riskTags").value(not(hasItem("COMPLEX_QUERY_GRAPH_RISK"))))
+            .andExpect(jsonPath("$.riskChecklist[*].riskCode").value(not(hasItem("COMPLEX_QUERY_GRAPH_RISK"))))
+            .andExpect(jsonPath("$.priorityLevel").value("P4"));
+    }
+
+    @Test
+    void shouldKeepFilteredLimitedMultiKeyGroupedReportNonHeavy() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT region, customer_id, status, COUNT(*), SUM(amount) "
+                    + "FROM orders WHERE dt >= DATE '2026-04-01' AND tenant_id = 7 "
+                    + "GROUP BY region, customer_id, status ORDER BY region LIMIT 50\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.complexityLevel").value("MODERATE"))
+            .andExpect(jsonPath("$.intentProfile.computeDensity").value("MODERATE"))
+            .andExpect(jsonPath("$.intentProfile.slaLevel").value("INTERACTIVE_LT_3S"))
+            .andExpect(jsonPath("$.featureSummary.tableCount").value(1))
+            .andExpect(jsonPath("$.featureSummary.joinCount").value(0))
+            .andExpect(jsonPath("$.featureSummary.subqueryCount").value(0))
+            .andExpect(jsonPath("$.riskTags").value(not(hasItem("COMPLEX_QUERY_GRAPH_RISK"))))
+            .andExpect(jsonPath("$.riskChecklist[*].riskCode").value(not(hasItem("COMPLEX_QUERY_GRAPH_RISK"))));
+    }
+
+    @Test
     void shouldExposeComplexAntiPatternStructureSignals() throws Exception {
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
                 .contentType(MediaType.APPLICATION_JSON)

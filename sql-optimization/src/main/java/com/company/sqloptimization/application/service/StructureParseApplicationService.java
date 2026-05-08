@@ -563,8 +563,7 @@ public class StructureParseApplicationService {
     private StructureParseComplexityLevel resolveComplexity(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
         int score = profile.getJoinCount() * 2
             + profile.getPredicateCount()
-            + profile.getGroupByCount()
-            + profile.getAggregateFunctions().size()
+            + aggregateShape(profile).getComplexityWeight()
             + profile.getSubqueryCount() * 2
             + profile.getOrPredicateCount()
             + profile.getFunctionWrappedPredicateCount()
@@ -701,17 +700,62 @@ public class StructureParseApplicationService {
         if (profile.getWindowFunctionCount() > 0) {
             return "WINDOW";
         }
-        if (profile.getAggregateFunctions().size() + profile.getGroupByCount() + profile.getOrderByCount() >= 3
-            || profile.getJoinCount() >= 3
+        AggregateShape aggregateShape = aggregateShape(profile);
+        if (profile.getJoinCount() >= 3
             || profile.getSubqueryCount() >= 3
+            || profile.getNestedSubqueryDepth() >= 2
             || profile.getFunctionWrappedPredicateCount() > 0
-            || profile.getRandomOrderCount() > 0) {
+            || profile.getRandomOrderCount() > 0
+            || aggregateShape.isHeavy()) {
             return "HEAVY";
         }
         if (profile.getUdfFunctionCount() > 0) {
             return "UDF";
         }
+        if (aggregateShape.isModerate()) {
+            return "MODERATE";
+        }
         return "LIGHT";
+    }
+
+    private AggregateShape aggregateShape(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+        int aggregateCount = profile.getAggregateFunctions().size();
+        int groupByCount = profile.getGroupByCount();
+        int orderByCount = profile.getOrderByCount();
+        int groupingWeight = cappedShapeWeight(groupByCount, 3, 8);
+        int aggregateWeight = cappedShapeWeight(aggregateCount, 2, 4);
+        int orderingWeight = cappedShapeWeight(orderByCount, 1, 3);
+        int complexityWeight = Math.min(3, groupingWeight + aggregateWeight);
+        boolean compactFilteredReport = profile.getTables().size() <= 1
+            && profile.getJoinCount() == 0
+            && profile.getSubqueryCount() == 0
+            && profile.getPredicateCount() > 0
+            && profile.isLimitPresent()
+            && groupByCount <= 3
+            && aggregateCount <= 2
+            && orderByCount <= 1;
+        boolean heavy = !compactFilteredReport
+            && (groupByCount > 8
+                || aggregateCount > 4
+                || groupingWeight + aggregateWeight + orderingWeight >= 5);
+        boolean moderate = groupByCount > 1
+            || aggregateCount > 1
+            || (groupByCount > 0 && aggregateCount > 0)
+            || (orderByCount > 0 && (groupByCount > 0 || aggregateCount > 0));
+        return new AggregateShape(complexityWeight, heavy, moderate);
+    }
+
+    private int cappedShapeWeight(int count, int smallUpperBound, int mediumUpperBound) {
+        if (count <= 0) {
+            return 0;
+        }
+        if (count <= smallUpperBound) {
+            return 1;
+        }
+        if (count <= mediumUpperBound) {
+            return 2;
+        }
+        return 3;
     }
 
     private String resolveResourceType(SqlOptimizationPipelineService.ParsedSqlProfile profile,
@@ -1074,6 +1118,31 @@ public class StructureParseApplicationService {
             vos.add(vo);
         }
         return vos;
+    }
+
+    private static final class AggregateShape {
+
+        private final int complexityWeight;
+        private final boolean heavy;
+        private final boolean moderate;
+
+        private AggregateShape(int complexityWeight, boolean heavy, boolean moderate) {
+            this.complexityWeight = complexityWeight;
+            this.heavy = heavy;
+            this.moderate = moderate;
+        }
+
+        private int getComplexityWeight() {
+            return complexityWeight;
+        }
+
+        private boolean isHeavy() {
+            return heavy;
+        }
+
+        private boolean isModerate() {
+            return moderate;
+        }
     }
 
     private String trimToNull(String value) {

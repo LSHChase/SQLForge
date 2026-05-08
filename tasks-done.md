@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-086: Fix simple GROUP BY intent risk false positives
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `fix(sql-optimization): HARN-086 reduce simple group-by intent risk`
+- Priority: 1
+- Depends on: N/A
+- Scope: sql-optimization structure parse intent risk classification
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-086`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Capped aggregate and group-by contribution in structure parse intent and complexity scoring so filtered, limited single-table grouped reports classify below HEAVY/COMPLEX while complex anti-pattern SQL still emits EXTREME/HEAVY graph risk.
+  - Validation evidence: `mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,StructureParseControllerTest test`; `git diff --check`; `python3 scripts/foreman.py validate HARN-086 --extra-command ...`; `python3 scripts/task_audit.py --check --phase pre-closeout`.
+  - Residual risk: Heuristics remain static parser estimates; genuinely large aggregation-only reports still rely on capped aggregate-shape thresholds until metadata-backed costing exists.
+  - Next step: Monitor future aggregation-heavy parser fixtures for cases that need metadata-backed cost signals.
+
 ### OPS-002: Restart local frontend and backend services again
 
 - Status: done
