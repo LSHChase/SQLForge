@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-004: Restart local sql-optimization service
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `OPS-004 Restart local sql-optimization service`
+- Priority: 1
+- Depends on: N/A
+- Scope: Restart only the local SQLForge sql-optimization runtime service and verify its health endpoint; no source changes.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-004`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Restarted only the local sql-optimization Spring Boot runtime service on port 8082 and verified the service health endpoint while leaving frontend and other backend services running.
+  - Validation evidence: python3 scripts/foreman.py validate OPS-004; bash scripts/health-check.sh --fail-on-error; curl readiness for http://localhost:8082/actuator/health
+  - Residual risk: None for local single-service runtime restart; service is a session process with pid file under /tmp/sqlforge-backend-runtime.
+  - Next step: Use /tmp/sqlforge-backend-runtime/sql-optimization.pid to stop this local service if needed.
+
 ### HARN-088: Dual-channel SQL parse and Hetu plan analysis
 
 - Status: done
