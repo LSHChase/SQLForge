@@ -1,6 +1,7 @@
 package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
@@ -107,6 +108,26 @@ class SqlOptimizationPipelineServiceTest {
     }
 
     @Test
+    void shouldNotFlagRepeatedScanOrExpressionForTablePrefixedColumns() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "SELECT orders_status, orders_amount, orders_count "
+                + "FROM orders "
+                + "WHERE dt = DATE '2026-04-01' "
+                + "GROUP BY orders_status, orders_amount, orders_count "
+                + "ORDER BY orders_status "
+                + "LIMIT 50",
+            DataSourceTypeEnum.HETU
+        );
+
+        assertEquals(1, profile.getTables().size());
+        assertEquals("orders", profile.getTables().get(0));
+        assertEquals(0, profile.getRepeatedTableScanCount());
+        assertEquals(0, profile.getRepeatedExpressionCount());
+        assertFalse(profile.getWarnings().contains("REPEATED_TABLE_SCAN_RISK"));
+        assertFalse(profile.getWarnings().contains("REPEATED_EXPRESSION_COMPUTE"));
+    }
+
+    @Test
     void shouldExtractComplexAntiPatternSignalsFromNestedSql() {
         SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
             complexAntiPatternSql(),
@@ -124,7 +145,7 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(profile.getLeadingWildcardLikeCount() >= 1);
         assertTrue(profile.getRandomOrderCount() >= 1);
         assertTrue(profile.getNotExistsCount() >= 1);
-        assertTrue(profile.getRepeatedTableScanCount() >= 5);
+        assertTrue(profile.getRepeatedTableScanCount() > 0);
         assertTrue(profile.getWarnings().contains("SCALAR_SUBQUERY_IN_SELECT"));
         assertTrue(profile.getWarnings().contains("NESTED_SUBQUERY_RISK"));
         assertTrue(profile.getWarnings().contains("CORRELATED_SUBQUERY_RISK"));

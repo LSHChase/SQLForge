@@ -2686,3 +2686,16 @@
 2026-05-08T01:48:47-05:00 | OPS-001 closeout commit | `R-168` | projected | `git commit -m 'OPS-001 Restart local frontend and backend services' (projected-precommit)`
 2026-05-08T01:48:47-05:00 | OPS-001 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-08T01:48:47-05:00 | OPS-001 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-08T02:15:16-05:00 | HARN-085 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-08T02:15:16-05:00 | HARN-085 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-08T02:15:31-05:00 | HARN-085 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-08T02:15:31-05:00 | HARN-085 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-08T02:15:48-05:00 | HARN-085 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-08T02:15:48-05:00 | HARN-085 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-08T02:16:02-05:00 | HARN-085 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-08T02:16:02-05:00 | HARN-085 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-08T02:16:06-05:00 | HARN-085 validate | `R-133`, `R-168` | passed | `mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,StructureParseControllerTest test`
+2026-05-08T02:16:06-05:00 | HARN-085 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-08T02:16:33-05:00 | HARN-085 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-08T02:16:33-05:00 | HARN-085 closeout commit | `R-168` | projected | `git commit -m 'fix(sql-optimization): HARN-085 correct repeated risk detection' (projected-precommit)`
+2026-05-08T02:16:33-05:00 | HARN-085 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

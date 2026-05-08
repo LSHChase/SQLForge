@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-085: Fix repeated scan/expression false positives
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `fix(sql-optimization): HARN-085 correct repeated risk detection`
+- Priority: 1
+- Depends on: N/A
+- Scope: Separate discovered table inventory from real table-scan frequency in SQL structure parsing; exclude simple column references from repeated-expression risk; add regression coverage for table-prefixed column names without changing frontend fields, persistence schema, or access-parse semantics.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-085`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Separated JSQLParser table discovery from real table-scan frequency, renamed the internal scan-frequency tracking, skipped simple column/identifier references in repeated-expression counting, and added pipeline/controller regressions for orders-prefixed column names while preserving real repeated-scan anti-pattern detection.
+  - Validation evidence: mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,StructureParseControllerTest test; python3 scripts/foreman.py validate HARN-085 --extra-command 'mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,StructureParseControllerTest test' --extra-command 'git diff --check'; git diff --check
+  - Residual risk: Repo-closed coverage targets structure parsing behavior; no frontend contract fields, persistence schema, or access-parse semantics were changed.
+  - Next step: Monitor future parser fixtures for dialect-specific cases where CTE aliases or engine-specific identifiers need stronger physical-table classification.
+
 ### OPS-001: Restart local frontend and backend services
 
 - Status: done

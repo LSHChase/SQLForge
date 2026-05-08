@@ -2,6 +2,7 @@ package com.company.sqloptimization.application.controller;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -188,6 +189,28 @@ class StructureParseControllerTest {
     }
 
     @Test
+    void shouldNotFlagRepeatedRisksForTablePrefixedColumnNames() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT orders_status, orders_amount, orders_count "
+                    + "FROM orders "
+                    + "WHERE dt = DATE '2026-04-01' "
+                    + "GROUP BY orders_status, orders_amount, orders_count "
+                    + "ORDER BY orders_status "
+                    + "LIMIT 50\","
+                    + "\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.featureSummary.tableCount").value(1))
+            .andExpect(jsonPath("$.featureSummary.repeatedTableScanCount").value(0))
+            .andExpect(jsonPath("$.featureSummary.repeatedExpressionCount").value(0))
+            .andExpect(jsonPath("$.riskTags").value(not(hasItem("REPEATED_TABLE_SCAN_RISK"))))
+            .andExpect(jsonPath("$.riskTags").value(not(hasItem("REPEATED_EXPRESSION_COMPUTE"))))
+            .andExpect(jsonPath("$.riskChecklist[*].riskCode").value(not(hasItem("REPEATED_TABLE_SCAN_RISK"))))
+            .andExpect(jsonPath("$.riskChecklist[*].riskCode").value(not(hasItem("REPEATED_EXPRESSION_RISK"))));
+    }
+
+    @Test
     void shouldReturnStableFingerprintForCommentedAndParameterizedEquivalentSql() throws Exception {
         MvcResult first = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -229,7 +252,7 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.featureSummary.functionWrappedPredicateCount").value(greaterThanOrEqualTo(1)))
             .andExpect(jsonPath("$.featureSummary.leadingWildcardLikeCount").value(greaterThanOrEqualTo(1)))
             .andExpect(jsonPath("$.featureSummary.randomOrderCount").value(greaterThanOrEqualTo(1)))
-            .andExpect(jsonPath("$.featureSummary.repeatedTableScanCount").value(greaterThanOrEqualTo(5)))
+            .andExpect(jsonPath("$.featureSummary.repeatedTableScanCount").value(greaterThanOrEqualTo(1)))
             .andExpect(jsonPath("$.estimatedResourceCost.overall").value("HIGH"))
             .andExpect(jsonPath("$.riskTags").value(hasItem("SCALAR_SUBQUERY_IN_SELECT")))
             .andExpect(jsonPath("$.riskTags").value(hasItem("NESTED_SUBQUERY_RISK")))

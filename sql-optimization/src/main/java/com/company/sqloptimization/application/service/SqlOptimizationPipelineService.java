@@ -204,7 +204,6 @@ public class SqlOptimizationPipelineService {
         profile.parserEngine = "JSQLPARSER";
         List<String> discoveredTables = new TablesNamesFinder().getTableList(statement);
         profile.tables.addAll(deduplicate(discoveredTables));
-        profile.recordTables(discoveredTables);
         if (select.getWithItemsList() != null) {
             for (WithItem withItem : select.getWithItemsList()) {
                 if (withItem.getSubSelect() != null) {
@@ -601,7 +600,7 @@ public class SqlOptimizationPipelineService {
     private void recordFromItemScan(FromItem fromItem, ParsedSqlProfile profile) {
         if (fromItem instanceof net.sf.jsqlparser.schema.Table) {
             net.sf.jsqlparser.schema.Table table = (net.sf.jsqlparser.schema.Table) fromItem;
-            profile.recordTable(table.getFullyQualifiedName());
+            profile.recordTableScan(table.getFullyQualifiedName());
         }
     }
 
@@ -1610,7 +1609,7 @@ public class SqlOptimizationPipelineService {
                 if (!profile.tables.contains(table)) {
                     profile.tables.add(table);
                 }
-                profile.recordTable(table);
+                profile.recordTableScan(table);
                 return;
             }
             if (from instanceof SqlBasicCall && from.getKind() == SqlKind.AS) {
@@ -1878,6 +1877,7 @@ public class SqlOptimizationPipelineService {
         @Override
         protected Void visitTable(Table node, ParsedSqlProfile profile) {
             profile.tables.add(node.getName().toString());
+            profile.recordTableScan(node.getName().toString());
             return null;
         }
 
@@ -1978,7 +1978,7 @@ public class SqlOptimizationPipelineService {
         private final Set<String> joinTypes = new LinkedHashSet<String>();
         private final List<String> warnings = new ArrayList<String>();
         private final LinkedHashMap<String, Integer> expressionFrequency = new LinkedHashMap<String, Integer>();
-        private final LinkedHashMap<String, Integer> tableFrequency = new LinkedHashMap<String, Integer>();
+        private final LinkedHashMap<String, Integer> tableScanFrequency = new LinkedHashMap<String, Integer>();
         private final Deque<Set<String>> aliasScopes = new ArrayDeque<Set<String>>();
         private String parserEngine = "JSQLPARSER";
         private int projectionCount;
@@ -2191,12 +2191,37 @@ public class SqlOptimizationPipelineService {
             if (expression == null) {
                 return;
             }
+            if (expression instanceof OrderByElement) {
+                recordExpression(((OrderByElement) expression).getExpression());
+                return;
+            }
+            if (expression instanceof Parenthesis) {
+                recordExpression(((Parenthesis) expression).getExpression());
+                return;
+            }
             String key = expression.toString().trim().toUpperCase(Locale.ROOT);
-            if (key.length() < 4) {
+            if (key.length() < 4 || isSimpleExpressionReference(expression, key)) {
                 return;
             }
             Integer current = expressionFrequency.get(key);
             expressionFrequency.put(key, Integer.valueOf(current == null ? 1 : current.intValue() + 1));
+        }
+
+        private boolean isSimpleExpressionReference(Object expression, String key) {
+            if (expression instanceof Column
+                || expression instanceof SqlIdentifier
+                || expression instanceof DereferenceExpression
+                || expression instanceof LongValue
+                || expression instanceof DoubleValue
+                || expression instanceof StringValue
+                || expression instanceof DateValue
+                || expression instanceof TimestampValue
+                || expression instanceof NullValue) {
+                return true;
+            }
+            return key.matches("[A-Z_][A-Z0-9_]*(\\.[A-Z_][A-Z0-9_]*)*")
+                || key.matches("\"[^\"]+\"(\\.\"[^\"]+\")*")
+                || key.matches("`[^`]+`(\\.`[^`]+`)*");
         }
 
         private void recalculateRepeatedExpressions() {
@@ -2208,23 +2233,14 @@ public class SqlOptimizationPipelineService {
             }
             repeatedExpressionCount = repeated;
             repeatedTableScanCount = 0;
-            for (Integer count : tableFrequency.values()) {
+            for (Integer count : tableScanFrequency.values()) {
                 if (count != null && count.intValue() > 1) {
                     repeatedTableScanCount += count.intValue() - 1;
                 }
             }
         }
 
-        private void recordTables(List<String> discoveredTables) {
-            if (discoveredTables == null) {
-                return;
-            }
-            for (String table : discoveredTables) {
-                recordTable(table);
-            }
-        }
-
-        private void recordTable(String table) {
+        private void recordTableScan(String table) {
             if (table == null) {
                 return;
             }
@@ -2232,8 +2248,8 @@ public class SqlOptimizationPipelineService {
             if (key.isEmpty()) {
                 return;
             }
-            Integer current = tableFrequency.get(key);
-            tableFrequency.put(key, Integer.valueOf(current == null ? 1 : current.intValue() + 1));
+            Integer current = tableScanFrequency.get(key);
+            tableScanFrequency.put(key, Integer.valueOf(current == null ? 1 : current.intValue() + 1));
         }
 
         private void pushAliasScope(Set<String> aliases) {
