@@ -15,6 +15,8 @@ import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilit
 import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataClient;
 import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataRequest;
 import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataResponse;
+import com.company.sqloptimization.domain.parse.HetuPlanAnalysisResult;
+import com.company.sqloptimization.infrastructure.plananalysis.HetuPlanAnalysisClient;
 import com.company.sqloptimization.infrastructure.repository.InMemoryParseBatchItemRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemoryParseBatchRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemorySqlParseHistoryRepository;
@@ -66,6 +68,67 @@ class ParseBatchApplicationServiceTest {
         assertEquals("APACHE_CALCITE", ingested.getParserMode());
         assertEquals("COMPLETED", ingested.getStatus());
         assertEquals("VALID", ingested.getImportedRecords().get(0).getStructureSyntaxStatus());
+    }
+
+    @Test
+    void shouldPersistPlanAnalysisStatusForWithPlanParseBatch() {
+        ParseBatchApplicationService service = buildService(
+            DatasourceViewMetadataClient.unavailable(),
+            (sqlText, datasourceCode) -> HetuPlanAnalysisResult.success(
+                datasourceCode,
+                "Fragment 0 [SINGLE]",
+                5L,
+                Collections.singletonList("sqlExecution=EXPLAIN_ONLY")
+            )
+        );
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-007", "trace-007", "header", 1L, 2L);
+
+        ParseBatchCreateRequest request = baseRequest("SQL_FILE", "SQL");
+        request.setParserMode("JSQLPARSER_WITH_PLAN");
+        request.setStructureParseOnly(Boolean.TRUE);
+        ParseBatchStatusResponse created = service.createBatch(request);
+
+        ParseBatchIngestRequest ingestRequest = new ParseBatchIngestRequest();
+        ingestRequest.setContentBase64(Base64.getEncoder().encodeToString(
+            "SELECT id FROM orders WHERE dt = DATE '2026-04-01'".getBytes(StandardCharsets.UTF_8)
+        ));
+        ParseBatchStatusResponse ingested = service.ingestBatch(created.getBatchId(), ingestRequest);
+
+        assertEquals("COMPLETED", ingested.getStatus());
+        assertEquals("SUCCESS", ingested.getImportedRecords().get(0).getPlanAnalysisStatus());
+        assertEquals("SUCCESS", ingested.getImportedRecords().get(0).getAnalysisStatus());
+        assertEquals(Integer.valueOf(1), ingested.getPlanAnalysisStatistics().getSuccessRecords());
+    }
+
+    @Test
+    void shouldMarkParseBatchItemPartialWhenPlanFails() {
+        ParseBatchApplicationService service = buildService(
+            DatasourceViewMetadataClient.unavailable(),
+            (sqlText, datasourceCode) -> HetuPlanAnalysisResult.failed(
+                datasourceCode,
+                "HETU_PLAN_DATASOURCE_NOT_CONFIGURED",
+                4L,
+                Collections.singletonList("datasourceCode=" + datasourceCode)
+            )
+        );
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-008", "trace-008", "header", 1L, 2L);
+
+        ParseBatchCreateRequest request = baseRequest("SQL_FILE", "SQL");
+        request.setParserMode("JSQLPARSER_WITH_PLAN");
+        request.setStructureParseOnly(Boolean.TRUE);
+        ParseBatchStatusResponse created = service.createBatch(request);
+        ParseBatchIngestRequest ingestRequest = new ParseBatchIngestRequest();
+        ingestRequest.setContentBase64(Base64.getEncoder().encodeToString(
+            "SELECT id FROM orders WHERE dt = DATE '2026-04-01'".getBytes(StandardCharsets.UTF_8)
+        ));
+
+        ParseBatchStatusResponse ingested = service.ingestBatch(created.getBatchId(), ingestRequest);
+
+        assertEquals("PARTIAL_COMPLETED", ingested.getStatus());
+        assertEquals("PARTIAL_SUCCESS", ingested.getImportedRecords().get(0).getStatus());
+        assertEquals("FAILED", ingested.getImportedRecords().get(0).getPlanAnalysisStatus());
+        assertEquals("PARTIAL_SUCCESS", ingested.getImportedRecords().get(0).getAnalysisStatus());
+        assertEquals(Integer.valueOf(1), ingested.getPlanAnalysisStatistics().getFailedRecords());
     }
 
     @Test
@@ -214,6 +277,11 @@ class ParseBatchApplicationServiceTest {
     }
 
     private ParseBatchApplicationService buildService(DatasourceViewMetadataClient datasourceViewMetadataClient) {
+        return buildService(datasourceViewMetadataClient, HetuPlanAnalysisClient.unavailable());
+    }
+
+    private ParseBatchApplicationService buildService(DatasourceViewMetadataClient datasourceViewMetadataClient,
+                                                      HetuPlanAnalysisClient hetuPlanAnalysisClient) {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
         SqlParseHistoryApplicationService sqlParseHistoryApplicationService =
             new SqlParseHistoryApplicationService(new InMemorySqlParseHistoryRepository());
@@ -221,7 +289,8 @@ class ParseBatchApplicationServiceTest {
             new SqlOptimizationPipelineService(),
             governanceCapabilityClient,
             sqlParseHistoryApplicationService,
-            datasourceViewMetadataClient
+            datasourceViewMetadataClient,
+            hetuPlanAnalysisClient
         );
         AccessParseApplicationService accessService = new AccessParseApplicationService();
         return new ParseBatchApplicationService(

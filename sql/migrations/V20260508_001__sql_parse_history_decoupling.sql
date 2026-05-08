@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS sql_parse_history (
   query_date_end VARCHAR(32) DEFAULT NULL COMMENT 'Query date upper bound parsed from SQL body',
   query_date_status VARCHAR(32) DEFAULT NULL COMMENT 'Query date extraction status such as RESOLVED/UNRESOLVED/PARTIAL',
   access_channel VARCHAR(32) DEFAULT NULL COMMENT 'Parse access channel or batch source',
-  parser_mode VARCHAR(32) DEFAULT NULL COMMENT 'SQL parser mode: JSQLPARSER or APACHE_CALCITE',
+  parser_mode VARCHAR(32) DEFAULT NULL COMMENT 'SQL parser mode: JSQLPARSER, APACHE_CALCITE, JSQLPARSER_WITH_PLAN, or APACHE_CALCITE_WITH_PLAN',
   sql_text MEDIUMTEXT NOT NULL COMMENT 'SQL text captured for parse management',
   sql_template_text MEDIUMTEXT DEFAULT NULL COMMENT 'Prepared SQL template text',
   binding_mode VARCHAR(32) DEFAULT NULL COMMENT 'Binding mode such as POSITIONAL/NAMED',

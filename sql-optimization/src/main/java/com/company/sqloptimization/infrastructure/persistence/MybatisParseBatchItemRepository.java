@@ -88,6 +88,9 @@ public class MybatisParseBatchItemRepository implements ParseBatchItemRepository
         record.setStructureSyntaxStatus(item.getStructureSyntaxStatus());
         record.setAccessServiceStatus(item.getAccessServiceStatus());
         record.setAccessConnectionStatus(item.getAccessConnectionStatus());
+        record.setPlanAnalysisStatus(item.getPlanAnalysisStatus());
+        record.setCombinedAnalysisStatus(item.getCombinedAnalysisStatus());
+        record.setPlanAnalysisJson(item.getPlanAnalysisJson());
         record.setFailureReason(item.getFailureReason());
         record.setHistoryId(item.getHistoryId());
         record.setHistoryPersisted(item.getHistoryPersisted());
@@ -121,6 +124,9 @@ public class MybatisParseBatchItemRepository implements ParseBatchItemRepository
             record.getStructureSyntaxStatus(),
             record.getAccessServiceStatus(),
             record.getAccessConnectionStatus(),
+            record.getPlanAnalysisStatus(),
+            record.getCombinedAnalysisStatus(),
+            record.getPlanAnalysisJson(),
             record.getFailureReason(),
             record.getHistoryId(),
             record.getHistoryPersisted(),

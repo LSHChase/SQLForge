@@ -20,6 +20,8 @@ import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilit
 import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataClient;
 import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataRequest;
 import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataResponse;
+import com.company.sqloptimization.domain.parse.HetuPlanAnalysisResult;
+import com.company.sqloptimization.infrastructure.plananalysis.HetuPlanAnalysisClient;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +51,9 @@ class StructureParseControllerTest {
 
     @MockBean
     private DatasourceViewMetadataClient datasourceViewMetadataClient;
+
+    @MockBean
+    private HetuPlanAnalysisClient hetuPlanAnalysisClient;
 
     @Test
     void shouldReturnStructureParseResultForValidReadSql() throws Exception {
@@ -224,6 +229,67 @@ class StructureParseControllerTest {
     }
 
     @Test
+    void shouldRunHetuExplainPlanWhenPlanParserModeRequested() throws Exception {
+        when(hetuPlanAnalysisClient.explain(any(), any())).thenReturn(
+            HetuPlanAnalysisResult.success(
+                "hetu_main",
+                "Fragment 0 [SINGLE]\nOutput[_col0]",
+                7L,
+                Collections.singletonList("sqlExecution=EXPLAIN_ONLY")
+            )
+        );
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"parserMode\":\"JSQLPARSER_WITH_PLAN\",\"sqlText\":\"SELECT * FROM orders WHERE dt = DATE '2026-04-01'\","
+                    + "\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.analysisStatus").value("SUCCESS"))
+            .andExpect(jsonPath("$.structureAnalysisStatus").value("SUCCESS"))
+            .andExpect(jsonPath("$.planAnalysis.status").value("SUCCESS"))
+            .andExpect(jsonPath("$.planAnalysis.planText").value(org.hamcrest.Matchers.containsString("Fragment 0")))
+            .andExpect(jsonPath("$.planAnalysis.evidence[0]").value("sqlExecution=EXPLAIN_ONLY"));
+
+        verify(hetuPlanAnalysisClient).explain(any(), any());
+    }
+
+    @Test
+    void shouldReturnPartialSuccessWhenHetuPlanFailsAfterStructureSuccess() throws Exception {
+        when(hetuPlanAnalysisClient.explain(any(), any())).thenReturn(
+            HetuPlanAnalysisResult.failed(
+                "hetu_main",
+                "HETU_PLAN_DATASOURCE_NOT_CONFIGURED",
+                3L,
+                Collections.singletonList("datasourceCode=hetu_main")
+            )
+        );
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"parserMode\":\"APACHE_CALCITE_WITH_PLAN\",\"sqlText\":\"SELECT id FROM orders WHERE dt = DATE '2026-04-01'\","
+                    + "\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.analysisStatus").value("PARTIAL_SUCCESS"))
+            .andExpect(jsonPath("$.planAnalysis.status").value("FAILED"))
+            .andExpect(jsonPath("$.planAnalysis.failureReason").value("HETU_PLAN_DATASOURCE_NOT_CONFIGURED"));
+    }
+
+    @Test
+    void shouldSkipHetuPlanForLocalOnlyParserModes() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"parserMode\":\"JSQLPARSER\",\"sqlText\":\"SELECT id FROM orders WHERE dt = DATE '2026-04-01'\","
+                    + "\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.analysisStatus").value("SUCCESS"))
+            .andExpect(jsonPath("$.planAnalysis.status").value("SKIPPED"));
+
+        verify(hetuPlanAnalysisClient, never()).explain(any(), any());
+    }
+
+    @Test
     void shouldPropagateApacheCalciteIntoCombinedStructureParse() throws Exception {
         MvcResult submitResult = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/combined"))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -245,7 +311,7 @@ class StructureParseControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"parserMode\":\"TRINO\",\"sqlText\":\"SELECT * FROM orders\"}"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("parserMode must be JSQLPARSER or APACHE_CALCITE"));
+            .andExpect(jsonPath("$.message").value("parserMode must be JSQLPARSER, APACHE_CALCITE, JSQLPARSER_WITH_PLAN or APACHE_CALCITE_WITH_PLAN"));
     }
 
     @Test

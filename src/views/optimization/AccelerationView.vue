@@ -153,7 +153,9 @@ const isChinese = computed(() => locale.value === 'zh-CN')
 const bindingModeOptions = ['POSITIONAL', 'NAMED']
 const parserModeOptions = [
   { label: 'JSQLParser', value: 'JSQLPARSER' },
-  { label: 'Apache Calcite', value: 'APACHE_CALCITE' }
+  { label: 'Apache Calcite', value: 'APACHE_CALCITE' },
+  { label: 'JSQLParser + Hetu EXPLAIN', value: 'JSQLPARSER_WITH_PLAN' },
+  { label: 'Apache Calcite + Hetu EXPLAIN', value: 'APACHE_CALCITE_WITH_PLAN' }
 ]
 const parseFileTypeOptions = ['CSV', 'TXT', 'SQL', 'XLS', 'XLSX', 'ET']
 const reportFileTypeOptions = ['TXT', 'CSV', 'XLSX']
@@ -164,6 +166,7 @@ const activeStatus = computed(() => parseResult.value?.status || 'IDLE')
 const activeConclusion = computed(() => parseResult.value?.conclusion || null)
 const structureParse = computed(() => parseResult.value?.structureParse || null)
 const accessParse = computed(() => parseResult.value?.accessParse || null)
+const planAnalysis = computed(() => structureParse.value?.planAnalysis || null)
 const statusHistory = computed(() => parseResult.value?.statusHistory || [])
 const logicalObjectHits = computed(() => structureParse.value?.logicalObjectHits || [])
 const structureIssues = computed(() => structureParse.value?.issues || [])
@@ -177,6 +180,8 @@ const structureHighlights = computed(() => {
   return [
     { key: 'parseTaskId', label: isChinese.value ? 'Parse Task' : 'Parse task', value: structureParse.value.parseTaskId },
     { key: 'sqlFingerprint', label: isChinese.value ? 'SQL 指纹' : 'SQL fingerprint', value: structureParse.value.sqlFingerprint },
+    { key: 'analysisStatus', label: isChinese.value ? '组合状态' : 'Analysis status', value: structureParse.value.analysisStatus },
+    { key: 'structureAnalysisStatus', label: isChinese.value ? '结构状态' : 'Structure status', value: structureParse.value.structureAnalysisStatus },
     { key: 'syntaxStatus', label: isChinese.value ? '语法状态' : 'Syntax status', value: structureParse.value.syntaxStatus },
     { key: 'complexityLevel', label: isChinese.value ? '复杂度' : 'Complexity', value: structureParse.value.complexityLevel },
     { key: 'sqlType', label: isChinese.value ? 'SQL 类型' : 'SQL type', value: structureParse.value.sqlType },
@@ -245,6 +250,18 @@ const accessHighlights = computed(() => {
   ].filter(item => hasDisplayValue(item.value))
 })
 
+const planHighlights = computed(() => {
+  if (!planAnalysis.value) {
+    return []
+  }
+  return [
+    { key: 'planStatus', label: isChinese.value ? '计划状态' : 'Plan status', value: planAnalysis.value.status },
+    { key: 'datasourceCode', label: isChinese.value ? '数据源' : 'Datasource', value: planAnalysis.value.datasourceCode },
+    { key: 'costMs', label: isChinese.value ? '耗时 ms' : 'Cost ms', value: planAnalysis.value.costMs },
+    { key: 'failureReason', label: isChinese.value ? '失败原因' : 'Failure reason', value: planAnalysis.value.failureReason }
+  ].filter(item => hasDisplayValue(item.value))
+})
+
 const summaryCards = computed(() => {
   if (!parseResult.value) {
     return []
@@ -257,6 +274,8 @@ const summaryCards = computed(() => {
         : (isChinese.value ? '仅结构解析' : 'Structure only')
     },
     { label: isChinese.value ? '解析工具' : 'Parser tool', value: structureParse.value?.featureSummary?.parserEngine || form.parserMode },
+    { label: isChinese.value ? '解析组合状态' : 'Analysis status', value: structureParse.value?.analysisStatus },
+    { label: isChinese.value ? '执行计划' : 'Plan analysis', value: structureParse.value?.planAnalysis?.status },
     { label: isChinese.value ? '综合状态' : 'Overall status', value: activeConclusion.value?.overallStatus || activeStatus.value },
     { label: isChinese.value ? 'Access 可用' : 'Access available', value: booleanLabel(activeConclusion.value?.accessAvailable) },
     { label: isChinese.value ? '降级原因' : 'Degrade reason', value: activeConclusion.value?.degradeReason || parseResult.value?.degradeReason },
@@ -288,7 +307,8 @@ const parseBatchStatusCards = computed(() => {
     card(isChinese.value ? '部分成功' : 'Partial success', parseBatchDetail.value.partialSuccessRecords),
     card(isChinese.value ? '失败' : 'Failed', parseBatchDetail.value.failedRecords),
     card(isChinese.value ? 'Structure 成功率' : 'Structure rate', formatNumber(parseBatchDetail.value.structureParseSuccessRate)),
-    card(isChinese.value ? 'Access 成功率' : 'Access rate', formatNumber(parseBatchDetail.value.accessParseSuccessRate))
+    card(isChinese.value ? 'Access 成功率' : 'Access rate', formatNumber(parseBatchDetail.value.accessParseSuccessRate)),
+    card(isChinese.value ? 'Plan 成功率' : 'Plan rate', formatNumber(parseBatchDetail.value.planAnalysisStatistics?.successRate))
   ].filter(item => hasDisplayValue(item.value))
 })
 
@@ -302,6 +322,7 @@ const reportBatchStatusCards = computed(() => {
     card(isChinese.value ? '报表总数' : 'Total reports', reportBatchDetail.value.totalReports),
     card(isChinese.value ? '已解析 SQL' : 'Resolved reports', reportBatchDetail.value.resolvedReports),
     card(isChinese.value ? '失败数' : 'Failed reports', reportBatchDetail.value.failedReports),
+    card(isChinese.value ? 'Plan 成功率' : 'Plan rate', formatNumber(reportBatchDetail.value.planAnalysisStatistics?.successRate)),
     card(isChinese.value ? '阶段' : 'Stage', reportBatchDetail.value.stage),
     card(isChinese.value ? '优先级' : 'Priority', reportBatchDetail.value.priority)
   ].filter(item => hasDisplayValue(item.value))
@@ -1687,6 +1708,51 @@ watch(
               </template>
             </article>
 
+            <article class="parse-card" data-testid="parse-workbench-plan-card">
+              <div class="parse-card__header">
+                <div>
+                  <p class="section-kicker sqlforge-code-label">hetu explain plan</p>
+                  <h3 class="detail-title">{{ isChinese ? '执行计划卡' : 'Execution plan card' }}</h3>
+                </div>
+                <span
+                  class="status-pill"
+                  :class="planAnalysis?.status === 'SUCCESS' ? 'status-pill-success' : 'status-pill-warning'"
+                >
+                  {{ planAnalysis?.status || (isChinese ? '未执行' : 'Not run') }}
+                </span>
+              </div>
+
+              <p v-if="!planAnalysis" class="empty-state">
+                {{ isChinese ? '旧历史或无计划模式不会生成 Hetu 执行计划。' : 'Old history or non-plan modes do not include Hetu plan output.' }}
+              </p>
+
+              <template v-else>
+                <div class="highlight-grid">
+                  <div v-for="item in planHighlights" :key="item.key" class="highlight-chip" :class="resultValueClass(item)">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.value }}</strong>
+                  </div>
+                </div>
+                <div class="mini-section" data-testid="parse-workbench-plan-analysis">
+                  <span class="summary-card-label">{{ isChinese ? '计划证据' : 'Plan evidence' }}</span>
+                  <div v-if="planAnalysis.evidence?.length" class="pill-grid">
+                    <span v-for="item in planAnalysis.evidence" :key="item" class="summary-chip">{{ item }}</span>
+                  </div>
+                  <p v-else class="empty-inline">
+                    {{ isChinese ? '暂无计划证据。' : 'No plan evidence yet.' }}
+                  </p>
+                </div>
+                <SqlCodeBlock
+                  v-if="planAnalysis.planText"
+                  :value="planAnalysis.planText"
+                  :label="isChinese ? 'Hetu EXPLAIN 输出' : 'Hetu EXPLAIN output'"
+                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  compact
+                  data-testid="parse-workbench-plan-text"
+                />
+              </template>
+            </article>
+
             <article class="parse-card" data-testid="parse-workbench-access-card">
               <div class="parse-card__header">
                 <div>
@@ -2152,6 +2218,9 @@ watch(
                       >
                         <strong>{{ item.reportCode || item.recordId || item.id || `#${index + 1}` }}</strong>
                         <span>{{ displayValue(item.failureReason || item.errorCode || item.status) }}</span>
+                        <p v-if="item.planAnalysisStatus || item.analysisStatus">
+                          Plan: {{ displayValue(item.planAnalysisStatus) }} · Analysis: {{ displayValue(item.analysisStatus) }}
+                        </p>
                         <SqlCodeBlock
                           v-if="item.sqlText || item.sqlPreview"
                           :value="item.sqlText || item.sqlPreview"
@@ -2254,6 +2323,9 @@ watch(
                     <strong>{{ item.reportCode || item.itemId || `#${index + 1}` }}</strong>
                     <span>{{ displayValue(item.reportName || item.status) }}</span>
                     <p>{{ displayValue(item.datasourceCode || item.stage) }} · {{ displayValue(item.priority || item.resolutionStatus) }}</p>
+                    <p v-if="item.planAnalysisStatus || item.analysisStatus">
+                      Plan: {{ displayValue(item.planAnalysisStatus) }} · Analysis: {{ displayValue(item.analysisStatus) }}
+                    </p>
                   </article>
                   <div v-if="!reportItems.length" class="empty-state">
                     {{ isChinese ? '导入后会在这里看到报表清单。' : 'Imported report items appear here.' }}

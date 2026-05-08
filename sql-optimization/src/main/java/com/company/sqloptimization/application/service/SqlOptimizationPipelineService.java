@@ -129,7 +129,7 @@ public class SqlOptimizationPipelineService {
                 "Submit the original SQL text so parser, rewrite, and acceleration analysis can run."
             );
         }
-        SqlParserMode resolvedMode = parserMode == null ? resolveDefaultParserMode() : parserMode;
+        SqlParserMode resolvedMode = (parserMode == null ? resolveDefaultParserMode() : parserMode).structureMode();
         SqlStructureParserAdapter adapter = parserAdapters.get(resolvedMode);
         if (adapter == null) {
             adapter = parserAdapters.get(SqlParserMode.JSQLPARSER);

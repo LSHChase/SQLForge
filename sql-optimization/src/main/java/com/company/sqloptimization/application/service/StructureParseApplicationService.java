@@ -11,6 +11,7 @@ import com.company.sqlforge.common.logicalobject.LogicalObjectType;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
 import com.company.sqloptimization.application.controller.vo.AccessParseResponseVO;
+import com.company.sqloptimization.application.controller.vo.PlanAnalysisVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseFeatureSummaryVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseIntentProfileVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseIssueVO;
@@ -29,11 +30,15 @@ import com.company.sqloptimization.domain.parse.StructureParseQueryDateStatus;
 import com.company.sqloptimization.domain.parse.StructureParseQueryDateSummary;
 import com.company.sqloptimization.domain.parse.StructureParseResult;
 import com.company.sqloptimization.domain.parse.StructureParseSyntaxStatus;
+import com.company.sqloptimization.domain.parse.HetuPlanAnalysisResult;
+import com.company.sqloptimization.domain.parse.ParseAnalysisStatus;
+import com.company.sqloptimization.domain.parse.PlanAnalysisStatus;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataClient;
 import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataRequest;
 import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataResponse;
+import com.company.sqloptimization.infrastructure.plananalysis.HetuPlanAnalysisClient;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -77,27 +82,48 @@ public class StructureParseApplicationService {
     private final GovernanceCapabilityClient governanceCapabilityClient;
     private final SqlParseHistoryApplicationService sqlParseHistoryApplicationService;
     private final DatasourceViewMetadataClient datasourceViewMetadataClient;
+    private final HetuPlanAnalysisClient hetuPlanAnalysisClient;
 
     @Autowired
     public StructureParseApplicationService(SqlOptimizationPipelineService sqlOptimizationPipelineService,
                                             GovernanceCapabilityClient governanceCapabilityClient,
                                             SqlParseHistoryApplicationService sqlParseHistoryApplicationService,
-                                            DatasourceViewMetadataClient datasourceViewMetadataClient) {
+                                            DatasourceViewMetadataClient datasourceViewMetadataClient,
+                                            HetuPlanAnalysisClient hetuPlanAnalysisClient) {
         this.sqlOptimizationPipelineService = sqlOptimizationPipelineService;
         this.governanceCapabilityClient = governanceCapabilityClient;
         this.sqlParseHistoryApplicationService = sqlParseHistoryApplicationService;
         this.datasourceViewMetadataClient = datasourceViewMetadataClient == null
             ? DatasourceViewMetadataClient.unavailable()
             : datasourceViewMetadataClient;
+        this.hetuPlanAnalysisClient = hetuPlanAnalysisClient == null
+            ? HetuPlanAnalysisClient.unavailable()
+            : hetuPlanAnalysisClient;
+    }
+
+    public StructureParseApplicationService(SqlOptimizationPipelineService sqlOptimizationPipelineService,
+                                            GovernanceCapabilityClient governanceCapabilityClient,
+                                            SqlParseHistoryApplicationService sqlParseHistoryApplicationService,
+                                            DatasourceViewMetadataClient datasourceViewMetadataClient) {
+        this(
+            sqlOptimizationPipelineService,
+            governanceCapabilityClient,
+            sqlParseHistoryApplicationService,
+            datasourceViewMetadataClient,
+            HetuPlanAnalysisClient.unavailable()
+        );
     }
 
     public StructureParseApplicationService(SqlOptimizationPipelineService sqlOptimizationPipelineService,
                                             GovernanceCapabilityClient governanceCapabilityClient,
                                             SqlParseHistoryApplicationService sqlParseHistoryApplicationService) {
-        this.sqlOptimizationPipelineService = sqlOptimizationPipelineService;
-        this.governanceCapabilityClient = governanceCapabilityClient;
-        this.sqlParseHistoryApplicationService = sqlParseHistoryApplicationService;
-        this.datasourceViewMetadataClient = DatasourceViewMetadataClient.unavailable();
+        this(
+            sqlOptimizationPipelineService,
+            governanceCapabilityClient,
+            sqlParseHistoryApplicationService,
+            DatasourceViewMetadataClient.unavailable(),
+            HetuPlanAnalysisClient.unavailable()
+        );
     }
 
     public StructureParseResponseVO parse(StructureParseRequest request) {
@@ -113,11 +139,13 @@ public class StructureParseApplicationService {
         );
         StructureParseResult result;
         SqlOptimizationPipelineService.ParsedSqlProfile profile = null;
+        SqlParserMode requestedParserMode = SqlParserMode.resolve(request.getParserMode());
+        SqlParserMode structureParserMode = requestedParserMode.structureMode();
         try {
             profile = sqlOptimizationPipelineService.analyze(
                 request.getSqlText(),
                 DataSourceTypeEnum.AUTO,
-                SqlParserMode.resolve(request.getParserMode())
+                structureParserMode
             );
             result = new StructureParseResult();
             result.setParseTaskId(parseTaskId);
@@ -129,7 +157,7 @@ public class StructureParseApplicationService {
                 profile,
                 tenantId,
                 datasourceCode,
-                SqlParserMode.resolve(request.getParserMode())
+                structureParserMode
             );
             result.setLogicalObjectHits(logicalObjectExpansion.getHits());
             result.setRiskTags(buildRiskTags(profile, logicalObjectExpansion));
@@ -159,6 +187,10 @@ public class StructureParseApplicationService {
         }
         StructureParseResponseVO response = toResponse(result);
         enrichQueryIntent(response, request.getSqlText(), profile);
+        HetuPlanAnalysisResult planAnalysis = resolvePlanAnalysis(request, requestedParserMode, datasourceCode);
+        response.setPlanAnalysis(toPlanAnalysisVO(planAnalysis));
+        response.setStructureAnalysisStatus(resolveStructureAnalysisStatus(response).name());
+        response.setAnalysisStatus(resolveAnalysisStatus(response, planAnalysis, requestedParserMode).name());
         if (!Boolean.FALSE.equals(request.getHistoryWriteEnabled())) {
             writeParseHistory(response, request, result);
         }
@@ -209,6 +241,79 @@ public class StructureParseApplicationService {
         result.setIssues(Collections.singletonList(issue));
         result.applyAssessment(StructureParsePriorityScorer.assess(issue));
         return result;
+    }
+
+    private HetuPlanAnalysisResult resolvePlanAnalysis(StructureParseRequest request,
+                                                       SqlParserMode requestedParserMode,
+                                                       String datasourceCode) {
+        if (requestedParserMode == null || !requestedParserMode.requiresPlanAnalysis()) {
+            return HetuPlanAnalysisResult.skipped(
+                datasourceCode,
+                "PARSER_MODE_WITHOUT_PLAN",
+                Collections.singletonList("parserMode=" + (requestedParserMode == null ? SqlParserMode.DEFAULT_VALUE : requestedParserMode.name()))
+            );
+        }
+        long start = System.currentTimeMillis();
+        try {
+            HetuPlanAnalysisResult result = hetuPlanAnalysisClient.explain(request.getSqlText(), datasourceCode);
+            if (result == null) {
+                return HetuPlanAnalysisResult.failed(
+                    datasourceCode,
+                    "HETU_PLAN_CLIENT_RETURNED_NULL",
+                    System.currentTimeMillis() - start,
+                    Collections.singletonList("parserMode=" + requestedParserMode.name())
+                );
+            }
+            return result;
+        } catch (RuntimeException ex) {
+            return HetuPlanAnalysisResult.failed(
+                datasourceCode,
+                "HETU_PLAN_EXPLAIN_FAILED: " + ex.getMessage(),
+                System.currentTimeMillis() - start,
+                Collections.singletonList("parserMode=" + requestedParserMode.name())
+            );
+        }
+    }
+
+    private ParseAnalysisStatus resolveStructureAnalysisStatus(StructureParseResponseVO response) {
+        return response != null && "VALID".equals(response.getSyntaxStatus())
+            ? ParseAnalysisStatus.SUCCESS
+            : ParseAnalysisStatus.FAILED;
+    }
+
+    private ParseAnalysisStatus resolveAnalysisStatus(StructureParseResponseVO response,
+                                                      HetuPlanAnalysisResult planAnalysis,
+                                                      SqlParserMode requestedParserMode) {
+        boolean structureSuccess = resolveStructureAnalysisStatus(response) == ParseAnalysisStatus.SUCCESS;
+        if (requestedParserMode == null || !requestedParserMode.requiresPlanAnalysis()) {
+            return structureSuccess ? ParseAnalysisStatus.SUCCESS : ParseAnalysisStatus.FAILED;
+        }
+        boolean planSuccess = planAnalysis != null && planAnalysis.getStatus() == PlanAnalysisStatus.SUCCESS;
+        if (structureSuccess && planSuccess) {
+            return ParseAnalysisStatus.SUCCESS;
+        }
+        if (structureSuccess || planSuccess) {
+            return ParseAnalysisStatus.PARTIAL_SUCCESS;
+        }
+        return ParseAnalysisStatus.FAILED;
+    }
+
+    private PlanAnalysisVO toPlanAnalysisVO(HetuPlanAnalysisResult result) {
+        PlanAnalysisVO vo = new PlanAnalysisVO();
+        if (result == null) {
+            vo.setStatus(PlanAnalysisStatus.FAILED.name());
+            vo.setFailureReason("HETU_PLAN_RESULT_MISSING");
+            vo.setEvidence(Collections.singletonList("result=missing"));
+            vo.setCostMs(Long.valueOf(0L));
+            return vo;
+        }
+        vo.setStatus(result.getStatus() == null ? null : result.getStatus().name());
+        vo.setPlanText(result.getPlanText());
+        vo.setDatasourceCode(result.getDatasourceCode());
+        vo.setCostMs(result.getCostMs());
+        vo.setFailureReason(result.getFailureReason());
+        vo.setEvidence(result.getEvidence());
+        return vo;
     }
 
     private String failureReason(SqlOptimizationPipelineService.SqlOptimizationExecutionException ex,
@@ -1367,7 +1472,13 @@ public class StructureParseApplicationService {
         if (response == null) {
             return HISTORY_RESULT_FAILED;
         }
-        return "VALID".equals(response.getSyntaxStatus()) ? HISTORY_RESULT_SUCCESS : HISTORY_RESULT_FAILED;
+        if (ParseAnalysisStatus.SUCCESS.name().equals(response.getAnalysisStatus())) {
+            return HISTORY_RESULT_SUCCESS;
+        }
+        if (ParseAnalysisStatus.PARTIAL_SUCCESS.name().equals(response.getAnalysisStatus())) {
+            return "PARTIAL";
+        }
+        return HISTORY_RESULT_FAILED;
     }
 
     private void applyHistoryWriteResult(StructureParseResponseVO response, SqlParseHistoryWriteResult writeResult) {

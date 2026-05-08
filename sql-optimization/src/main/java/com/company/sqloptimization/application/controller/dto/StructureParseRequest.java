@@ -15,7 +15,7 @@ public class StructureParseRequest {
     private String datasourceCode;
     private Map<String, Object> commentContext;
     private Boolean historyWriteEnabled;
-    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode must be JSQLPARSER or APACHE_CALCITE")
+    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode must be JSQLPARSER, APACHE_CALCITE, JSQLPARSER_WITH_PLAN or APACHE_CALCITE_WITH_PLAN")
     private String parserMode;
 
     public String getSqlText() {

@@ -6,11 +6,13 @@ import com.company.sqlforge.common.context.RequestContext.ContextValue;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
+import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqloptimization.application.controller.dto.AccessParseRequest;
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
 import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
 import com.company.sqloptimization.application.controller.vo.AccessParseResponseVO;
 import com.company.sqloptimization.application.controller.vo.BatchPageResponse;
+import com.company.sqloptimization.application.controller.vo.ParseBatchStageStatisticsVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneDetailVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchItemVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
@@ -393,11 +395,12 @@ public class ReportBatchApplicationService {
             List<String> issueScenes = extractIssueScenes(structureParse.getIssues());
             List<String> logicalObjectKeys = extractLogicalObjectKeys(structureParse.getLogicalObjectHits());
             if (!"VALID".equals(structureParse.getSyntaxStatus())) {
+                ReportBatchItem.Status status = resolveStructureOnlyStatus(structureParse);
                 structureParseApplicationService.writeParseHistoryWithAccess(
                     structureParse,
                     null,
                     structureRequest,
-                    "FAILED",
+                    resolveHistoryResultStatus(status),
                     SqlParseHistoryApplicationService.SOURCE_REPORT_BATCH,
                     item.getItemId(),
                     batch.getBatchId()
@@ -408,12 +411,13 @@ public class ReportBatchApplicationService {
                     structureParse.getSyntaxStatus(),
                     "SKIPPED",
                     "SKIPPED",
-                    ReportBatchItem.Status.FAILED,
+                    status,
                     resolveFailureReason(structureParse, null),
                     issueScenes,
                     logicalObjectKeys,
                     now
                 );
+                recordItemPlanAnalysis(item, structureParse, now);
                 item.recordHistory(
                     structureParse.getHistoryId(),
                     structureParse.getHistoryPersisted(),
@@ -452,6 +456,7 @@ public class ReportBatchApplicationService {
                 logicalObjectKeys,
                 now
             );
+            recordItemPlanAnalysis(item, structureParse, now);
             item.recordHistory(
                 structureParse.getHistoryId(),
                 structureParse.getHistoryPersisted(),
@@ -551,6 +556,7 @@ public class ReportBatchApplicationService {
         response.setTotalSqls(Integer.valueOf(safeItems.isEmpty() ? batch.getTotalReports() : safeItems.size()));
         response.setResolvedSqls(Integer.valueOf(countSqlsByStatus(safeItems, ReportBatchItem.Status.RESOLVED)));
         response.setFailedSqls(Integer.valueOf(countNonResolvedSqls(safeItems)));
+        response.setPlanAnalysisStatistics(buildPlanStatistics(safeItems));
         response.setItemPreviewLimit(Integer.valueOf(pageSelection.pageSize));
         response.setItemPreviewTruncated(Boolean.valueOf(includeItems && filteredItems.size() > pageItems.size()));
         response.setOmittedItemCount(Integer.valueOf(includeItems ? Math.max(0, filteredItems.size() - pageItems.size()) : 0));
@@ -631,21 +637,36 @@ public class ReportBatchApplicationService {
     }
 
     private ReportBatchItem.Status resolveStatus(StructureParseResponseVO structureParse, AccessParseResponseVO accessParse) {
-        if (!"VALID".equals(structureParse.getSyntaxStatus())) {
+        if ("FAILED".equals(structureParse.getAnalysisStatus())) {
             return ReportBatchItem.Status.FAILED;
         }
-        if (accessParse == null) {
-            return ReportBatchItem.Status.RESOLVED;
-        }
-        if ("AVAILABLE".equals(accessParse.getServiceStatus()) && "CONNECTED".equals(accessParse.getConnectionStatus())) {
+        if ("SUCCESS".equals(structureParse.getAnalysisStatus())
+            && (accessParse == null
+                || ("AVAILABLE".equals(accessParse.getServiceStatus()) && "CONNECTED".equals(accessParse.getConnectionStatus())))) {
             return ReportBatchItem.Status.RESOLVED;
         }
         return ReportBatchItem.Status.PARTIAL_RESOLVED;
     }
 
+    private ReportBatchItem.Status resolveStructureOnlyStatus(StructureParseResponseVO structureParse) {
+        if ("SUCCESS".equals(structureParse.getAnalysisStatus())) {
+            return ReportBatchItem.Status.RESOLVED;
+        }
+        if ("PARTIAL_SUCCESS".equals(structureParse.getAnalysisStatus())) {
+            return ReportBatchItem.Status.PARTIAL_RESOLVED;
+        }
+        return ReportBatchItem.Status.FAILED;
+    }
+
     private String resolveFailureReason(StructureParseResponseVO structureParse, AccessParseResponseVO accessParse) {
         if (!"VALID".equals(structureParse.getSyntaxStatus())) {
             return buildStructureFailureReason(structureParse);
+        }
+        if (structureParse.getPlanAnalysis() != null && "FAILED".equals(structureParse.getPlanAnalysis().getStatus())) {
+            return SqlParseDiagnosticSupport.compactDiagnosticText(
+                structureParse.getPlanAnalysis().getFailureReason(),
+                FAILURE_REASON_LIMIT
+            );
         }
         if (accessParse == null) {
             return null;
@@ -653,6 +674,15 @@ public class ReportBatchApplicationService {
         return "AVAILABLE".equals(accessParse.getServiceStatus()) && "CONNECTED".equals(accessParse.getConnectionStatus())
             ? null
             : accessParse.getDegradeReason();
+    }
+
+    private void recordItemPlanAnalysis(ReportBatchItem item, StructureParseResponseVO structureParse, Instant now) {
+        item.recordPlanAnalysis(
+            structureParse.getPlanAnalysis() == null ? null : structureParse.getPlanAnalysis().getStatus(),
+            structureParse.getAnalysisStatus(),
+            structureParse.getPlanAnalysis() == null ? null : JsonUtils.toJson(structureParse.getPlanAnalysis()),
+            now
+        );
     }
 
     private String buildStructureFailureReason(StructureParseResponseVO structureParse) {
@@ -792,6 +822,28 @@ public class ReportBatchApplicationService {
             }
         }
         return count;
+    }
+
+    private ParseBatchStageStatisticsVO buildPlanStatistics(List<ReportBatchItem> items) {
+        int success = 0;
+        int partial = 0;
+        int failed = 0;
+        List<ReportBatchItem> safeItems = items == null ? Collections.<ReportBatchItem>emptyList() : items;
+        for (ReportBatchItem item : safeItems) {
+            if ("SUCCESS".equals(item.getPlanAnalysisStatus())) {
+                success++;
+            } else if ("FAILED".equals(item.getPlanAnalysisStatus())) {
+                failed++;
+            } else {
+                partial++;
+            }
+        }
+        ParseBatchStageStatisticsVO vo = new ParseBatchStageStatisticsVO();
+        vo.setSuccessRecords(Integer.valueOf(success));
+        vo.setPartialSuccessRecords(Integer.valueOf(partial));
+        vo.setFailedRecords(Integer.valueOf(failed));
+        vo.setSuccessRate(successRate(success, safeItems.size()));
+        return vo;
     }
 
     private List<ReportBatchItem> buildItems(ReportBatch batch, List<ReportSourceRow> rows) {
@@ -1208,6 +1260,9 @@ public class ReportBatchApplicationService {
             vo.setStructureSyntaxStatus(item.getStructureSyntaxStatus());
             vo.setAccessServiceStatus(item.getAccessServiceStatus());
             vo.setAccessConnectionStatus(item.getAccessConnectionStatus());
+            vo.setPlanAnalysisStatus(item.getPlanAnalysisStatus());
+            vo.setAnalysisStatus(item.getCombinedAnalysisStatus());
+            vo.setPlanAnalysis(parseJsonValue(item.getPlanAnalysisJson()));
             vo.setFailureReason(item.getFailureReason());
             vo.setHistoryId(item.getHistoryId());
             vo.setHistoryPersisted(item.getHistoryPersisted());
@@ -1229,6 +1284,24 @@ public class ReportBatchApplicationService {
             vos.add(vo);
         }
         return vos;
+    }
+
+    private Double successRate(int success, int total) {
+        if (total <= 0) {
+            return Double.valueOf(0.0D);
+        }
+        return Double.valueOf(((double) success) / ((double) total));
+    }
+
+    private Object parseJsonValue(String json) {
+        if (!StringUtils.hasText(json)) {
+            return null;
+        }
+        try {
+            return JsonUtils.objectMapper().readValue(json, Object.class);
+        } catch (Exception ex) {
+            return json;
+        }
     }
 
     private String buildReportItemDiagnosticSummary(ReportBatchItem item,

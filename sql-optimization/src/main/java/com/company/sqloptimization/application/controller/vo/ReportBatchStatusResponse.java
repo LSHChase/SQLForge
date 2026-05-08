@@ -22,6 +22,7 @@ public class ReportBatchStatusResponse {
     private Integer totalSqls;
     private Integer resolvedSqls;
     private Integer failedSqls;
+    private ParseBatchStageStatisticsVO planAnalysisStatistics;
     private Integer itemPreviewLimit;
     private Boolean itemPreviewTruncated;
     private Integer omittedItemCount;
@@ -70,6 +71,8 @@ public class ReportBatchStatusResponse {
     public void setResolvedSqls(Integer resolvedSqls) { this.resolvedSqls = resolvedSqls; }
     public Integer getFailedSqls() { return failedSqls; }
     public void setFailedSqls(Integer failedSqls) { this.failedSqls = failedSqls; }
+    public ParseBatchStageStatisticsVO getPlanAnalysisStatistics() { return planAnalysisStatistics; }
+    public void setPlanAnalysisStatistics(ParseBatchStageStatisticsVO planAnalysisStatistics) { this.planAnalysisStatistics = planAnalysisStatistics; }
     public Integer getItemPreviewLimit() { return itemPreviewLimit; }
     public void setItemPreviewLimit(Integer itemPreviewLimit) { this.itemPreviewLimit = itemPreviewLimit; }
     public Boolean getItemPreviewTruncated() { return itemPreviewTruncated; }

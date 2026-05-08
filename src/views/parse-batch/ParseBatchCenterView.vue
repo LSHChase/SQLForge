@@ -134,7 +134,9 @@ const parseImportModeOptions = ['TABULAR_FILE', 'SQL_FILE', 'REPORT_CATALOG']
 const directInputModeOptions = ['SQL_LINES', 'TABULAR_TEXT']
 const parserModeOptions = [
   { label: 'JSQLParser', value: 'JSQLPARSER' },
-  { label: 'Apache Calcite', value: 'APACHE_CALCITE' }
+  { label: 'Apache Calcite', value: 'APACHE_CALCITE' },
+  { label: 'JSQLParser + Hetu EXPLAIN', value: 'JSQLPARSER_WITH_PLAN' },
+  { label: 'Apache Calcite + Hetu EXPLAIN', value: 'APACHE_CALCITE_WITH_PLAN' }
 ]
 const DIRECT_SQL_PREVIEW_LIMIT = 5
 const DASHBOARD_PREVIEW_LIMIT = 6
@@ -156,7 +158,8 @@ const parseBatchStatusCards = computed(() => {
     card(isChinese.value ? '部分成功' : 'Partial success', parseBatchDetail.value.partialSuccessRecords),
     card(isChinese.value ? '失败' : 'Failed', parseBatchDetail.value.failedRecords),
     card(isChinese.value ? 'Structure 成功率' : 'Structure rate', formatRate(parseBatchDetail.value.structureParseSuccessRate)),
-    card(isChinese.value ? 'Access 成功率' : 'Access rate', formatRate(parseBatchDetail.value.accessParseSuccessRate))
+    card(isChinese.value ? 'Access 成功率' : 'Access rate', formatRate(parseBatchDetail.value.accessParseSuccessRate)),
+    card(isChinese.value ? 'Plan 成功率' : 'Plan rate', formatRate(parseBatchDetail.value.planAnalysisStatistics?.successRate))
   ].filter(item => hasDisplayValue(item.value))
 })
 const reportBatchStatusCards = computed(() => {
@@ -170,6 +173,7 @@ const reportBatchStatusCards = computed(() => {
     card(isChinese.value ? 'SQL 总数' : 'Total SQL', reportBatchDetail.value.totalSqls ?? reportItems.value.length, 'totalSqls'),
     card(isChinese.value ? '已解析 SQL' : 'Resolved SQL', reportBatchDetail.value.resolvedSqls ?? reportBatchDetail.value.resolvedReports, 'resolvedSqls'),
     card(isChinese.value ? '失败 SQL' : 'Failed SQL', reportBatchDetail.value.failedSqls ?? reportBatchDetail.value.failedReports, 'failedSqls'),
+    card(isChinese.value ? 'Plan 成功率' : 'Plan rate', formatRate(reportBatchDetail.value.planAnalysisStatistics?.successRate), 'planRate'),
     card(isChinese.value ? '阶段' : 'Stage', reportBatchDetail.value.stage, 'stage'),
     card(isChinese.value ? '优先级' : 'Priority', reportBatchDetail.value.priority, 'priority')
   ].filter(item => hasDisplayValue(item.value))
@@ -503,6 +507,9 @@ const displayValue = value => {
   if (Array.isArray(value)) {
     return value.length ? value.join(', ') : '-'
   }
+  if (value && typeof value === 'object') {
+    return JSON.stringify(value)
+  }
   if (value === null || value === undefined || String(value).trim() === '') {
     return '-'
   }
@@ -574,6 +581,8 @@ const parseItemDetailFields = computed(() => {
     detailField('优先级', 'Priority', item.priority),
     detailField('负责人', 'Owner', item.owner),
     detailField('结构解析', 'Structure parse', item.structureSyntaxStatus),
+    detailField('组合状态', 'Analysis status', item.analysisStatus),
+    detailField('执行计划', 'Plan analysis', item.planAnalysisStatus),
     detailField('Access 服务', 'Access service', item.accessServiceStatus),
     detailField('Access 连接', 'Access connection', item.accessConnectionStatus),
     detailField('失败行', 'Failure line', item.failureLine),
@@ -585,6 +594,7 @@ const parseItemDetailFields = computed(() => {
     detailField('失败片段', 'Failure snippet', item.failureSnippet, true),
     detailField('问题场景', 'Issue scenes', issueSceneCodesForItem(item), true, 'issueScenes'),
     detailField('逻辑对象', 'Logical objects', item.logicalObjectKeys, true),
+    detailField('执行计划摘要', 'Plan analysis summary', item.planAnalysis, true),
     detailField('创建时间', 'Created at', formatInstant(item.createdAt)),
     detailField('更新时间', 'Updated at', formatInstant(item.updatedAt))
   ]
@@ -605,6 +615,8 @@ const reportItemDetailFields = computed(() => {
     detailField('阶段', 'Stage', item.stage),
     detailField('优先级', 'Priority', item.priority),
     detailField('结构解析', 'Structure parse', item.structureSyntaxStatus),
+    detailField('组合状态', 'Analysis status', item.analysisStatus),
+    detailField('执行计划', 'Plan analysis', item.planAnalysisStatus),
     detailField('Access 服务', 'Access service', item.accessServiceStatus),
     detailField('Access 连接', 'Access connection', item.accessConnectionStatus),
     detailField('失败行', 'Failure line', item.failureLine),
@@ -615,6 +627,7 @@ const reportItemDetailFields = computed(() => {
     detailField('定位片段', 'Location snippets', issueLocationText(item), true),
     detailField('问题场景', 'Issue scenes', issueSceneCodesForItem(item), true, 'issueScenes'),
     detailField('逻辑对象', 'Logical objects', item.logicalObjectKeys, true),
+    detailField('执行计划摘要', 'Plan analysis summary', item.planAnalysis, true),
     detailField('创建时间', 'Created at', formatInstant(item.createdAt)),
     detailField('更新时间', 'Updated at', formatInstant(item.updatedAt))
   ]
@@ -1729,7 +1742,9 @@ onMounted(async () => {
                 <p>
                   {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
                   · Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                  · Plan: {{ displayValue(item.planAnalysisStatus) }}
                   · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+                  · Analysis: {{ displayValue(item.analysisStatus) }}
                 </p>
                 <p>
                   {{ isChinese ? '问题场景' : 'Issue scenes' }}:
@@ -2141,7 +2156,9 @@ onMounted(async () => {
                   {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
                   · {{ isChinese ? 'SQL 序号' : 'SQL ordinal' }}: {{ displayValue(item.sqlOrdinalInReport) }}
                   · Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                  · Plan: {{ displayValue(item.planAnalysisStatus) }}
                   · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+                  · Analysis: {{ displayValue(item.analysisStatus) }}
                 </p>
                 <p>
                   {{ isChinese ? '问题场景' : 'Issue scenes' }}:
@@ -2279,7 +2296,9 @@ onMounted(async () => {
                 </p>
                 <p>
                   Structure: {{ displayValue(item.structureSyntaxStatus) }}
+                  · Plan: {{ displayValue(item.planAnalysisStatus) }}
                   · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
+                  · Analysis: {{ displayValue(item.analysisStatus) }}
                 </p>
                 <p>
                   {{ isChinese ? '问题场景' : 'Issue scenes' }}:

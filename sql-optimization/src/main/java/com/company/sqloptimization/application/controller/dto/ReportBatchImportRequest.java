@@ -22,7 +22,7 @@ public class ReportBatchImportRequest {
     private String datasourceCode;
     private String stage;
     private String priority;
-    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode must be JSQLPARSER or APACHE_CALCITE")
+    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode must be JSQLPARSER, APACHE_CALCITE, JSQLPARSER_WITH_PLAN or APACHE_CALCITE_WITH_PLAN")
     private String parserMode;
     private String contentBase64;
     private String charset;

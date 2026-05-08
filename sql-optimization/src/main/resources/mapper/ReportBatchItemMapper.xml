@@ -21,6 +21,9 @@
         <result property="structureSyntaxStatus" column="structure_syntax_status"/>
         <result property="accessServiceStatus" column="access_service_status"/>
         <result property="accessConnectionStatus" column="access_connection_status"/>
+        <result property="planAnalysisStatus" column="plan_analysis_status"/>
+        <result property="combinedAnalysisStatus" column="combined_analysis_status"/>
+        <result property="planAnalysisJson" column="plan_analysis_json"/>
         <result property="failureReason" column="failure_reason"/>
         <result property="historyId" column="history_id"/>
         <result property="historyPersisted" column="history_persisted"/>
@@ -35,7 +38,8 @@
     <sql id="BaseColumns">
         item_id, batch_id, sequence_number, report_code, report_name, datasource_code, stage, priority,
         source_file_line, sql_column_name, sql_ordinal_in_report, sql_text, parse_task_id, structure_syntax_status, access_service_status,
-        access_connection_status, failure_reason, history_id, history_persisted, history_persistence_status,
+        access_connection_status, plan_analysis_status, combined_analysis_status, plan_analysis_json,
+        failure_reason, history_id, history_persisted, history_persistence_status,
         status, issue_scenes_json, logical_object_keys_json,
         created_at, updated_at
     </sql>
@@ -63,13 +67,15 @@
         INSERT INTO report_batch_item (
             item_id, batch_id, sequence_number, report_code, report_name, datasource_code, stage, priority,
             source_file_line, sql_column_name, sql_ordinal_in_report, sql_text, parse_task_id, structure_syntax_status, access_service_status,
-            access_connection_status, failure_reason, history_id, history_persisted, history_persistence_status,
+            access_connection_status, plan_analysis_status, combined_analysis_status, plan_analysis_json,
+            failure_reason, history_id, history_persisted, history_persistence_status,
             status, issue_scenes_json, logical_object_keys_json,
             created_at, updated_at
         ) VALUES (
             #{itemId}, #{batchId}, #{sequenceNumber}, #{reportCode}, #{reportName}, #{datasourceCode}, #{stage}, #{priority},
             #{sourceFileLine}, #{sqlColumnName}, #{sqlOrdinalInReport}, #{sqlText}, #{parseTaskId}, #{structureSyntaxStatus}, #{accessServiceStatus},
-            #{accessConnectionStatus}, #{failureReason}, #{historyId}, #{historyPersisted}, #{historyPersistenceStatus},
+            #{accessConnectionStatus}, #{planAnalysisStatus}, #{combinedAnalysisStatus}, #{planAnalysisJson},
+            #{failureReason}, #{historyId}, #{historyPersisted}, #{historyPersistenceStatus},
             #{status}, #{issueScenesJson}, #{logicalObjectKeysJson},
             #{createdAt}, #{updatedAt}
         )
@@ -79,7 +85,8 @@
         INSERT INTO report_batch_item (
             item_id, batch_id, sequence_number, report_code, report_name, datasource_code, stage, priority,
             source_file_line, sql_column_name, sql_ordinal_in_report, sql_text, parse_task_id, structure_syntax_status, access_service_status,
-            access_connection_status, failure_reason, history_id, history_persisted, history_persistence_status,
+            access_connection_status, plan_analysis_status, combined_analysis_status, plan_analysis_json,
+            failure_reason, history_id, history_persisted, history_persistence_status,
             status, issue_scenes_json, logical_object_keys_json,
             created_at, updated_at
         ) VALUES
@@ -87,7 +94,8 @@
             (
                 #{record.itemId}, #{record.batchId}, #{record.sequenceNumber}, #{record.reportCode}, #{record.reportName}, #{record.datasourceCode}, #{record.stage}, #{record.priority},
                 #{record.sourceFileLine}, #{record.sqlColumnName}, #{record.sqlOrdinalInReport}, #{record.sqlText}, #{record.parseTaskId}, #{record.structureSyntaxStatus}, #{record.accessServiceStatus},
-                #{record.accessConnectionStatus}, #{record.failureReason}, #{record.historyId}, #{record.historyPersisted}, #{record.historyPersistenceStatus},
+                #{record.accessConnectionStatus}, #{record.planAnalysisStatus}, #{record.combinedAnalysisStatus}, #{record.planAnalysisJson},
+                #{record.failureReason}, #{record.historyId}, #{record.historyPersisted}, #{record.historyPersistenceStatus},
                 #{record.status}, #{record.issueScenesJson}, #{record.logicalObjectKeysJson},
                 #{record.createdAt}, #{record.updatedAt}
             )
@@ -108,6 +116,9 @@
             structure_syntax_status = VALUES(structure_syntax_status),
             access_service_status = VALUES(access_service_status),
             access_connection_status = VALUES(access_connection_status),
+            plan_analysis_status = VALUES(plan_analysis_status),
+            combined_analysis_status = VALUES(combined_analysis_status),
+            plan_analysis_json = VALUES(plan_analysis_json),
             failure_reason = VALUES(failure_reason),
             history_id = VALUES(history_id),
             history_persisted = VALUES(history_persisted),
@@ -136,6 +147,9 @@
             structure_syntax_status = #{structureSyntaxStatus},
             access_service_status = #{accessServiceStatus},
             access_connection_status = #{accessConnectionStatus},
+            plan_analysis_status = #{planAnalysisStatus},
+            combined_analysis_status = #{combinedAnalysisStatus},
+            plan_analysis_json = #{planAnalysisJson},
             failure_reason = #{failureReason},
             history_id = #{historyId},
             history_persisted = #{historyPersisted},

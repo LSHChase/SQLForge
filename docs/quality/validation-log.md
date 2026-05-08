@@ -2732,3 +2732,15 @@
 2026-05-08T05:25:12-05:00 | OPS-003 closeout commit | `R-168` | projected | `git commit -m 'OPS-003 Restart local frontend and backend services third run' (projected-precommit)`
 2026-05-08T05:25:12-05:00 | OPS-003 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-08T05:25:12-05:00 | OPS-003 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-08T07:35:09-05:00 | HARN-088 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-08T07:35:09-05:00 | HARN-088 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-08T07:35:27-05:00 | HARN-088 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-08T07:35:27-05:00 | HARN-088 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-08T07:36:41-05:00 | HARN-088 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-08T07:36:41-05:00 | HARN-088 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-08T07:37:00-05:00 | HARN-088 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-08T07:37:00-05:00 | HARN-088 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-08T07:38:17-05:00 | HARN-088 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-08T07:38:17-05:00 | HARN-088 closeout commit | `R-168` | projected | `git commit -m 'feat(sql-optimization): HARN-088 add dual-channel parse plan analysis' (projected-precommit)`
+2026-05-08T07:38:17-05:00 | HARN-088 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-08T07:38:17-05:00 | HARN-088 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`

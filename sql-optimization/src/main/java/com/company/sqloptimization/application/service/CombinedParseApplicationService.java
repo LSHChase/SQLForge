@@ -43,9 +43,13 @@ public class CombinedParseApplicationService {
         parseStates.put(status.getParseTaskId(), status);
 
         if (!"VALID".equals(structureParse.getSyntaxStatus())) {
-            status.setStatus("FAILED");
+            if ("PARTIAL_SUCCESS".equals(structureParse.getAnalysisStatus())) {
+                status.setStatus("PARTIAL_SUCCEEDED");
+            } else {
+                status.setStatus("FAILED");
+            }
             status.setDegradeReason("STRUCTURE_PARSE_INVALID");
-            appendHistory(status, "FAILED", "Structure parse returned INVALID and access parse was not started.");
+            appendHistory(status, status.getStatus(), "Structure parse returned INVALID and access parse was not started.");
             status.setConclusion(buildConclusion(status));
             writeParseHistory(status, request);
             return status;
@@ -87,10 +91,22 @@ public class CombinedParseApplicationService {
                         return;
                     }
                     current.setAccessParse(accessParse);
-                    if ("AVAILABLE".equals(accessParse.getServiceStatus()) && "CONNECTED".equals(accessParse.getConnectionStatus())) {
+                    boolean accessSucceeded = "AVAILABLE".equals(accessParse.getServiceStatus())
+                        && "CONNECTED".equals(accessParse.getConnectionStatus());
+                    boolean analysisSucceeded = current.getStructureParse() != null
+                        && "SUCCESS".equals(current.getStructureParse().getAnalysisStatus());
+                    if (accessSucceeded && analysisSucceeded) {
                         current.setStatus("ACCESS_SUCCEEDED");
                         current.setDegradeReason(null);
                         appendHistory(current, "ACCESS_SUCCEEDED", "Access parse completed with provider reachability evidence.");
+                    } else if (accessSucceeded) {
+                        current.setStatus("PARTIAL_SUCCEEDED");
+                        current.setDegradeReason(resolvePlanDegradeReason(current));
+                        appendHistory(
+                            current,
+                            "PARTIAL_SUCCEEDED",
+                            "Access parse succeeded but structure/plan analysis ended with a degraded status."
+                        );
                     } else if ("SKIPPED".equals(accessParse.getServiceStatus())
                         || "UNAVAILABLE".equals(accessParse.getServiceStatus())
                         || "FAILED".equals(accessParse.getConnectionStatus())
@@ -168,8 +184,13 @@ public class CombinedParseApplicationService {
         }
         if ("PARTIAL_SUCCEEDED".equals(status.getStatus())) {
             conclusion.setOverallStatus("PARTIAL_SUCCESS");
-            conclusion.setSummary("Structure parse succeeded, but access parse evidence is degraded or unavailable.");
-            conclusion.setRecommendedAction("Use structure evidence now and review datasource availability before rerunning access parse.");
+            if (status.getStructureParse() != null && !"VALID".equals(status.getStructureParse().getSyntaxStatus())) {
+                conclusion.setSummary("Structure parse failed, but another parse evidence channel is available.");
+                conclusion.setRecommendedAction("Review the plan evidence and fix SQL syntax before rerunning full parse.");
+            } else {
+                conclusion.setSummary("Structure parse succeeded, but access parse evidence is degraded or unavailable.");
+                conclusion.setRecommendedAction("Use structure evidence now and review datasource availability before rerunning access parse.");
+            }
             return conclusion;
         }
         if ("ACCESS_SUCCEEDED".equals(status.getStatus())) {
@@ -182,6 +203,15 @@ public class CombinedParseApplicationService {
         conclusion.setSummary("Structure parse is ready and access parse follow-up is still running.");
         conclusion.setRecommendedAction("Poll the combined parse status until access parse reaches a terminal state.");
         return conclusion;
+    }
+
+    private String resolvePlanDegradeReason(CombinedParseStatusVO status) {
+        if (status == null
+            || status.getStructureParse() == null
+            || status.getStructureParse().getPlanAnalysis() == null) {
+            return null;
+        }
+        return status.getStructureParse().getPlanAnalysis().getFailureReason();
     }
 
     private void appendHistory(CombinedParseStatusVO status, String state, String note) {

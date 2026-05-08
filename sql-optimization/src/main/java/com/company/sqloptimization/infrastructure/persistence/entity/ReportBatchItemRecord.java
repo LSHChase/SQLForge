@@ -20,6 +20,9 @@ public class ReportBatchItemRecord {
     private String structureSyntaxStatus;
     private String accessServiceStatus;
     private String accessConnectionStatus;
+    private String planAnalysisStatus;
+    private String combinedAnalysisStatus;
+    private String planAnalysisJson;
     private String failureReason;
     private String historyId;
     private Boolean historyPersisted;
@@ -62,6 +65,12 @@ public class ReportBatchItemRecord {
     public void setAccessServiceStatus(String accessServiceStatus) { this.accessServiceStatus = accessServiceStatus; }
     public String getAccessConnectionStatus() { return accessConnectionStatus; }
     public void setAccessConnectionStatus(String accessConnectionStatus) { this.accessConnectionStatus = accessConnectionStatus; }
+    public String getPlanAnalysisStatus() { return planAnalysisStatus; }
+    public void setPlanAnalysisStatus(String planAnalysisStatus) { this.planAnalysisStatus = planAnalysisStatus; }
+    public String getCombinedAnalysisStatus() { return combinedAnalysisStatus; }
+    public void setCombinedAnalysisStatus(String combinedAnalysisStatus) { this.combinedAnalysisStatus = combinedAnalysisStatus; }
+    public String getPlanAnalysisJson() { return planAnalysisJson; }
+    public void setPlanAnalysisJson(String planAnalysisJson) { this.planAnalysisJson = planAnalysisJson; }
     public String getFailureReason() { return failureReason; }
     public void setFailureReason(String failureReason) { this.failureReason = failureReason; }
     public String getHistoryId() { return historyId; }

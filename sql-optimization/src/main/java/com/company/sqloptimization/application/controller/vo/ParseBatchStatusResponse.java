@@ -35,6 +35,7 @@ public class ParseBatchStatusResponse {
     private List<ParseBatchItemVO> failureRecords;
     private ParseBatchStageStatisticsVO structureParseStatistics;
     private ParseBatchStageStatisticsVO accessParseStatistics;
+    private ParseBatchStageStatisticsVO planAnalysisStatistics;
     private List<ParseBatchIssueStatisticVO> issueStatistics;
     private List<ParseBatchReportStatisticVO> reportStatistics;
     private Instant createdAt;
@@ -100,6 +101,8 @@ public class ParseBatchStatusResponse {
     public void setStructureParseStatistics(ParseBatchStageStatisticsVO structureParseStatistics) { this.structureParseStatistics = structureParseStatistics; }
     public ParseBatchStageStatisticsVO getAccessParseStatistics() { return accessParseStatistics; }
     public void setAccessParseStatistics(ParseBatchStageStatisticsVO accessParseStatistics) { this.accessParseStatistics = accessParseStatistics; }
+    public ParseBatchStageStatisticsVO getPlanAnalysisStatistics() { return planAnalysisStatistics; }
+    public void setPlanAnalysisStatistics(ParseBatchStageStatisticsVO planAnalysisStatistics) { this.planAnalysisStatistics = planAnalysisStatistics; }
     public List<ParseBatchIssueStatisticVO> getIssueStatistics() { return issueStatistics; }
     public void setIssueStatistics(List<ParseBatchIssueStatisticVO> issueStatistics) { this.issueStatistics = issueStatistics; }
     public List<ParseBatchReportStatisticVO> getReportStatistics() { return reportStatistics; }

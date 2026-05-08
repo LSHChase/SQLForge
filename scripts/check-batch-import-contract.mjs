@@ -134,6 +134,11 @@ const requiredTokens = [
   'JSQLParser',
   'Apache Calcite',
   'APACHE_CALCITE',
+  'JSQLPARSER_WITH_PLAN',
+  'APACHE_CALCITE_WITH_PLAN',
+  'planAnalysisStatus',
+  'planAnalysisStatistics',
+  'analysisStatus',
   'parserMode: parseBatchForm.parserMode',
   'parserMode: reportBatchForm.parserMode',
   '解析工具 / Parser tool'

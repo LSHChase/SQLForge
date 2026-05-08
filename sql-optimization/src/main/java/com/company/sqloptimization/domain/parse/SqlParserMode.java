@@ -8,10 +8,12 @@ import org.springframework.util.StringUtils;
 
 public enum SqlParserMode {
     JSQLPARSER,
-    APACHE_CALCITE;
+    APACHE_CALCITE,
+    JSQLPARSER_WITH_PLAN,
+    APACHE_CALCITE_WITH_PLAN;
 
     public static final String DEFAULT_VALUE = "JSQLPARSER";
-    public static final String REQUEST_PATTERN = "^\\s*$|(?i:JSQLPARSER|APACHE_CALCITE)";
+    public static final String REQUEST_PATTERN = "^\\s*$|(?i:JSQLPARSER|APACHE_CALCITE|JSQLPARSER_WITH_PLAN|APACHE_CALCITE_WITH_PLAN)";
 
     public static SqlParserMode resolve(String value) {
         if (!StringUtils.hasText(value)) {
@@ -34,9 +36,24 @@ public enum SqlParserMode {
             return JSQLPARSER;
         }
         String normalized = value.trim().toUpperCase(Locale.ROOT);
-        if ("APACHE_CALCITE".equals(normalized)) {
+        try {
+            return SqlParserMode.valueOf(normalized);
+        } catch (IllegalArgumentException ex) {
+            return JSQLPARSER;
+        }
+    }
+
+    public SqlParserMode structureMode() {
+        if (this == JSQLPARSER_WITH_PLAN) {
+            return JSQLPARSER;
+        }
+        if (this == APACHE_CALCITE_WITH_PLAN) {
             return APACHE_CALCITE;
         }
-        return JSQLPARSER;
+        return this;
+    }
+
+    public boolean requiresPlanAnalysis() {
+        return this == JSQLPARSER_WITH_PLAN || this == APACHE_CALCITE_WITH_PLAN;
     }
 }

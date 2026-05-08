@@ -12,7 +12,9 @@ import com.company.sqloptimization.application.controller.vo.ReportBatchParseSta
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusResponse;
 import com.company.sqloptimization.application.service.report.MockReportSqlFactory;
 import com.company.sqloptimization.application.service.report.ReportSqlResolver;
+import com.company.sqloptimization.domain.parse.HetuPlanAnalysisResult;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqloptimization.infrastructure.plananalysis.HetuPlanAnalysisClient;
 import com.company.sqloptimization.infrastructure.repository.InMemorySqlParseHistoryRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemoryReportBatchItemRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemoryReportBatchRepository;
@@ -20,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -86,6 +89,35 @@ class ReportBatchApplicationServiceTest {
         assertEquals("APACHE_CALCITE", resolved.getParserMode());
         assertEquals("COMPLETED", resolved.getStatus());
         assertEquals("VALID", resolved.getReportItems().get(0).getStructureSyntaxStatus());
+    }
+
+    @Test
+    void shouldPersistPlanAnalysisStatusForReportBatchWithPlanMode() {
+        ReportBatchApplicationService service = buildService(
+            request -> MockReportSqlFactory.resolve(request, "UNIT_TEST_MOCK_SOURCE"),
+            (sqlText, datasourceCode) -> HetuPlanAnalysisResult.success(
+                datasourceCode,
+                "Fragment 0 [SINGLE]",
+                6L,
+                Collections.singletonList("sqlExecution=EXPLAIN_ONLY")
+            )
+        );
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-015", "trace-015", "header", 1L, 2L);
+
+        ReportBatchImportRequest request = baseRequest(
+            "plan-report-csv",
+            "CSV",
+            "report_code,sql_1\nRPT_PLAN,\"SELECT id FROM orders WHERE dt = DATE '2026-04-01'\""
+        );
+        request.setParserMode("APACHE_CALCITE_WITH_PLAN");
+
+        ReportBatchStatusResponse imported = service.importBatch(request);
+        ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
+
+        assertEquals("COMPLETED", resolved.getStatus());
+        assertEquals("SUCCESS", resolved.getReportItems().get(0).getPlanAnalysisStatus());
+        assertEquals("SUCCESS", resolved.getReportItems().get(0).getAnalysisStatus());
+        assertEquals(Integer.valueOf(1), resolved.getPlanAnalysisStatistics().getSuccessRecords());
     }
 
     @Test
@@ -548,13 +580,20 @@ class ReportBatchApplicationServiceTest {
     }
 
     private ReportBatchApplicationService buildService(ReportSqlResolver reportSqlResolver) {
+        return buildService(reportSqlResolver, HetuPlanAnalysisClient.unavailable());
+    }
+
+    private ReportBatchApplicationService buildService(ReportSqlResolver reportSqlResolver,
+                                                       HetuPlanAnalysisClient hetuPlanAnalysisClient) {
         GovernanceCapabilityClient governanceCapabilityClient = Mockito.mock(GovernanceCapabilityClient.class);
         SqlParseHistoryApplicationService sqlParseHistoryApplicationService =
             new SqlParseHistoryApplicationService(new InMemorySqlParseHistoryRepository());
         StructureParseApplicationService structureService = new StructureParseApplicationService(
             new SqlOptimizationPipelineService(),
             governanceCapabilityClient,
-            sqlParseHistoryApplicationService
+            sqlParseHistoryApplicationService,
+            com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataClient.unavailable(),
+            hetuPlanAnalysisClient
         );
         AccessParseApplicationService accessService = new AccessParseApplicationService();
         return new ReportBatchApplicationService(

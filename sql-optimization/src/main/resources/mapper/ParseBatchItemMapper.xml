@@ -25,6 +25,9 @@
         <result property="structureSyntaxStatus" column="structure_syntax_status"/>
         <result property="accessServiceStatus" column="access_service_status"/>
         <result property="accessConnectionStatus" column="access_connection_status"/>
+        <result property="planAnalysisStatus" column="plan_analysis_status"/>
+        <result property="combinedAnalysisStatus" column="combined_analysis_status"/>
+        <result property="planAnalysisJson" column="plan_analysis_json"/>
         <result property="failureReason" column="failure_reason"/>
         <result property="historyId" column="history_id"/>
         <result property="historyPersisted" column="history_persisted"/>
@@ -56,6 +59,9 @@
         structure_syntax_status,
         access_service_status,
         access_connection_status,
+        plan_analysis_status,
+        combined_analysis_status,
+        plan_analysis_json,
         failure_reason,
         history_id,
         history_persisted,
@@ -90,14 +96,16 @@
             item_id, batch_id, sequence_number, report_code, report_name, datasource_code,
             stage, biz_date, priority, owner, tags, sql_text, sql_template_text,
             bind_parameters_json, binding_mode, status, parse_task_id, structure_syntax_status,
-            access_service_status, access_connection_status, failure_reason, history_id,
+            access_service_status, access_connection_status, plan_analysis_status,
+            combined_analysis_status, plan_analysis_json, failure_reason, history_id,
             history_persisted, history_persistence_status, issue_scenes_json, logical_object_keys_json,
             created_at, updated_at
         ) VALUES (
             #{itemId}, #{batchId}, #{sequenceNumber}, #{reportCode}, #{reportName}, #{datasourceCode},
             #{stage}, #{bizDate}, #{priority}, #{owner}, #{tags}, #{sqlText}, #{sqlTemplateText},
             #{bindParametersJson}, #{bindingMode}, #{status}, #{parseTaskId}, #{structureSyntaxStatus},
-            #{accessServiceStatus}, #{accessConnectionStatus}, #{failureReason}, #{historyId},
+            #{accessServiceStatus}, #{accessConnectionStatus}, #{planAnalysisStatus},
+            #{combinedAnalysisStatus}, #{planAnalysisJson}, #{failureReason}, #{historyId},
             #{historyPersisted}, #{historyPersistenceStatus}, #{issueScenesJson}, #{logicalObjectKeysJson},
             #{createdAt}, #{updatedAt}
         )
@@ -124,6 +132,9 @@
             structure_syntax_status = #{structureSyntaxStatus},
             access_service_status = #{accessServiceStatus},
             access_connection_status = #{accessConnectionStatus},
+            plan_analysis_status = #{planAnalysisStatus},
+            combined_analysis_status = #{combinedAnalysisStatus},
+            plan_analysis_json = #{planAnalysisJson},
             failure_reason = #{failureReason},
             history_id = #{historyId},
             history_persisted = #{historyPersisted},

@@ -262,11 +262,12 @@ public class ParseBatchApplicationService {
         List<String> issueScenes = extractIssueScenes(structureParse.getIssues());
         List<String> logicalObjectKeys = extractLogicalObjectKeys(structureParse.getLogicalObjectHits());
         if (!"VALID".equals(structureParse.getSyntaxStatus())) {
+            ParseBatchItemStatus terminalStatus = resolveStructureOnlyStatus(structureParse);
             structureParseApplicationService.writeParseHistoryWithAccess(
                 structureParse,
                 null,
                 structureRequest,
-                "FAILED",
+                resolveHistoryResultStatus(terminalStatus),
                 SqlParseHistoryApplicationService.SOURCE_PARSE_BATCH,
                 item.getItemId(),
                 batch.getBatchId()
@@ -276,12 +277,13 @@ public class ParseBatchApplicationService {
                 structureParse.getSyntaxStatus(),
                 "SKIPPED",
                 "SKIPPED",
-                ParseBatchItemStatus.FAILED,
+                terminalStatus,
                 SqlParseDiagnosticSupport.buildStructureFailureReason(structureParse, FAILURE_REASON_LIMIT),
                 issueScenes,
                 logicalObjectKeys,
                 now
             );
+            recordItemPlanAnalysis(item, structureParse, now);
             item.recordHistory(
                 structureParse.getHistoryId(),
                 structureParse.getHistoryPersisted(),
@@ -292,11 +294,12 @@ public class ParseBatchApplicationService {
         }
 
         if (batch.isStructureParseOnly()) {
+            ParseBatchItemStatus terminalStatus = resolveStructureOnlyStatus(structureParse);
             structureParseApplicationService.writeParseHistoryWithAccess(
                 structureParse,
                 null,
                 structureRequest,
-                "SUCCESS",
+                resolveHistoryResultStatus(terminalStatus),
                 SqlParseHistoryApplicationService.SOURCE_PARSE_BATCH,
                 item.getItemId(),
                 batch.getBatchId()
@@ -306,12 +309,13 @@ public class ParseBatchApplicationService {
                 structureParse.getSyntaxStatus(),
                 "SKIPPED",
                 "SKIPPED",
-                ParseBatchItemStatus.SUCCESS,
-                null,
+                terminalStatus,
+                resolveFailureReason(structureParse, null),
                 issueScenes,
                 logicalObjectKeys,
                 now
             );
+            recordItemPlanAnalysis(item, structureParse, now);
             item.recordHistory(
                 structureParse.getHistoryId(),
                 structureParse.getHistoryPersisted(),
@@ -331,12 +335,12 @@ public class ParseBatchApplicationService {
         accessRequest.setConnectionRequired(Boolean.TRUE);
 
         AccessParseResponseVO accessParse = accessParseApplicationService.parseAccess(accessRequest, structureParse.getParseTaskId());
-        ParseBatchItemStatus terminalStatus = resolveTerminalStatus(accessParse);
+        ParseBatchItemStatus terminalStatus = resolveTerminalStatus(structureParse, accessParse);
         structureParseApplicationService.writeParseHistoryWithAccess(
             structureParse,
             accessParse,
             structureRequest,
-            terminalStatus == ParseBatchItemStatus.SUCCESS ? "SUCCESS" : "PARTIAL",
+            resolveHistoryResultStatus(terminalStatus),
             SqlParseHistoryApplicationService.SOURCE_PARSE_BATCH,
             item.getItemId(),
             batch.getBatchId()
@@ -347,11 +351,12 @@ public class ParseBatchApplicationService {
             accessParse.getServiceStatus(),
             accessParse.getConnectionStatus(),
             terminalStatus,
-            resolveFailureReason(accessParse),
+            resolveFailureReason(structureParse, accessParse),
             issueScenes,
             logicalObjectKeys,
             now
         );
+        recordItemPlanAnalysis(item, structureParse, now);
         item.recordHistory(
             structureParse.getHistoryId(),
             structureParse.getHistoryPersisted(),
@@ -360,43 +365,124 @@ public class ParseBatchApplicationService {
         );
     }
 
-    private ParseBatchItemStatus resolveTerminalStatus(AccessParseResponseVO accessParse) {
-        if ("AVAILABLE".equals(accessParse.getServiceStatus()) && "CONNECTED".equals(accessParse.getConnectionStatus())) {
+    private ParseBatchItemStatus resolveStructureOnlyStatus(StructureParseResponseVO structureParse) {
+        if ("SUCCESS".equals(structureParse.getAnalysisStatus())) {
+            return ParseBatchItemStatus.SUCCESS;
+        }
+        if ("PARTIAL_SUCCESS".equals(structureParse.getAnalysisStatus())) {
+            return ParseBatchItemStatus.PARTIAL_SUCCESS;
+        }
+        return ParseBatchItemStatus.FAILED;
+    }
+
+    private ParseBatchItemStatus resolveTerminalStatus(StructureParseResponseVO structureParse,
+                                                       AccessParseResponseVO accessParse) {
+        if ("FAILED".equals(structureParse.getAnalysisStatus())) {
+            return ParseBatchItemStatus.FAILED;
+        }
+        if ("SUCCESS".equals(structureParse.getAnalysisStatus())
+            && accessParse != null
+            && "AVAILABLE".equals(accessParse.getServiceStatus())
+            && "CONNECTED".equals(accessParse.getConnectionStatus())) {
             return ParseBatchItemStatus.SUCCESS;
         }
         return ParseBatchItemStatus.PARTIAL_SUCCESS;
     }
 
-    private String resolveFailureReason(AccessParseResponseVO accessParse) {
-        return resolveTerminalStatus(accessParse) == ParseBatchItemStatus.SUCCESS ? null : accessParse.getDegradeReason();
+    private String resolveHistoryResultStatus(ParseBatchItemStatus status) {
+        if (status == ParseBatchItemStatus.SUCCESS) {
+            return "SUCCESS";
+        }
+        if (status == ParseBatchItemStatus.PARTIAL_SUCCESS) {
+            return "PARTIAL";
+        }
+        return "FAILED";
+    }
+
+    private String resolveFailureReason(StructureParseResponseVO structureParse,
+                                        AccessParseResponseVO accessParse) {
+        if (structureParse != null && !"VALID".equals(structureParse.getSyntaxStatus())) {
+            return SqlParseDiagnosticSupport.buildStructureFailureReason(structureParse, FAILURE_REASON_LIMIT);
+        }
+        if (structureParse != null
+            && structureParse.getPlanAnalysis() != null
+            && "FAILED".equals(structureParse.getPlanAnalysis().getStatus())) {
+            return compactFailureReason(structureParse.getPlanAnalysis().getFailureReason());
+        }
+        if (accessParse == null) {
+            return null;
+        }
+        return "AVAILABLE".equals(accessParse.getServiceStatus()) && "CONNECTED".equals(accessParse.getConnectionStatus())
+            ? null
+            : accessParse.getDegradeReason();
     }
 
     private void updateItemFromAccess(ParseBatchItem item, AccessParseResponseVO accessParse, Instant now) {
+        ParseBatchItemStatus terminalStatus = resolveTerminalStatus(item, accessParse);
         item.complete(
             item.getParseTaskId(),
             item.getStructureSyntaxStatus(),
             accessParse.getServiceStatus(),
             accessParse.getConnectionStatus(),
-            resolveTerminalStatus(accessParse),
-            resolveFailureReason(accessParse),
+            terminalStatus,
+            resolveFailureReason(item, accessParse),
             item.getIssueScenes(),
             item.getLogicalObjectKeys(),
             now
         );
     }
 
+    private ParseBatchItemStatus resolveTerminalStatus(ParseBatchItem item, AccessParseResponseVO accessParse) {
+        if ("FAILED".equals(item.getCombinedAnalysisStatus())) {
+            return ParseBatchItemStatus.FAILED;
+        }
+        if ("SUCCESS".equals(item.getCombinedAnalysisStatus())
+            && accessParse != null
+            && "AVAILABLE".equals(accessParse.getServiceStatus())
+            && "CONNECTED".equals(accessParse.getConnectionStatus())) {
+            return ParseBatchItemStatus.SUCCESS;
+        }
+        return ParseBatchItemStatus.PARTIAL_SUCCESS;
+    }
+
+    private String resolveFailureReason(ParseBatchItem item, AccessParseResponseVO accessParse) {
+        if (item != null && "FAILED".equals(item.getPlanAnalysisStatus())) {
+            return item.getFailureReason();
+        }
+        return accessParse == null || ("AVAILABLE".equals(accessParse.getServiceStatus()) && "CONNECTED".equals(accessParse.getConnectionStatus()))
+            ? null
+            : accessParse.getDegradeReason();
+    }
+
+    private void recordItemPlanAnalysis(ParseBatchItem item, StructureParseResponseVO structureParse, Instant now) {
+        item.recordPlanAnalysis(
+            structureParse.getPlanAnalysis() == null ? null : structureParse.getPlanAnalysis().getStatus(),
+            structureParse.getAnalysisStatus(),
+            structureParse.getPlanAnalysis() == null ? null : JsonUtils.toJson(structureParse.getPlanAnalysis()),
+            now
+        );
+    }
+
+    private String compactFailureReason(String failureReason) {
+        return SqlParseDiagnosticSupport.compactDiagnosticText(failureReason, FAILURE_REASON_LIMIT);
+    }
+
     private void recalculateBatch(ParseBatch batch, List<ParseBatchItem> items, Instant now) {
         int total = items.size();
         int structureSuccess = 0;
         int accessSuccess = 0;
+        int success = 0;
         int partial = 0;
         int failed = 0;
         for (ParseBatchItem item : items) {
             if ("VALID".equals(item.getStructureSyntaxStatus())) {
                 structureSuccess++;
             }
-            if (item.getStatus() == ParseBatchItemStatus.SUCCESS) {
+            if ("AVAILABLE".equals(item.getAccessServiceStatus()) && "CONNECTED".equals(item.getAccessConnectionStatus())) {
                 accessSuccess++;
+            }
+            if (item.getStatus() == ParseBatchItemStatus.SUCCESS) {
+                success++;
             } else if (item.getStatus() == ParseBatchItemStatus.PARTIAL_SUCCESS) {
                 partial++;
             } else {
@@ -413,7 +499,7 @@ public class ParseBatchApplicationService {
         }
         batch.applyRunSummary(
             total,
-            accessSuccess,
+            success,
             partial,
             failed,
             successRate(structureSuccess, total),
@@ -464,6 +550,7 @@ public class ParseBatchApplicationService {
         response.setFailureRecords(toItemVOs(previewItems(failureItems, FAILURE_PREVIEW_LIMIT)));
         response.setStructureParseStatistics(buildStructureStatistics(items));
         response.setAccessParseStatistics(buildAccessStatistics(items, batch.isStructureParseOnly()));
+        response.setPlanAnalysisStatistics(buildPlanStatistics(items));
         response.setIssueStatistics(buildIssueStatistics(items));
         response.setReportStatistics(buildReportStatistics(items));
         response.setCreatedAt(batch.getCreatedAt());
@@ -502,14 +589,35 @@ public class ParseBatchApplicationService {
         int partial = 0;
         int failed = 0;
         for (ParseBatchItem item : items) {
-            if (item.getStatus() == ParseBatchItemStatus.SUCCESS) {
+            if ("AVAILABLE".equals(item.getAccessServiceStatus()) && "CONNECTED".equals(item.getAccessConnectionStatus())) {
                 success++;
-            } else if (item.getStatus() == ParseBatchItemStatus.PARTIAL_SUCCESS) {
-                partial++;
-            } else {
+            } else if ("SKIPPED".equals(item.getAccessServiceStatus()) && "SKIPPED".equals(item.getAccessConnectionStatus())) {
                 failed++;
+            } else {
+                partial++;
             }
         }
+        vo.setSuccessRecords(Integer.valueOf(success));
+        vo.setPartialSuccessRecords(Integer.valueOf(partial));
+        vo.setFailedRecords(Integer.valueOf(failed));
+        vo.setSuccessRate(successRate(success, items.size()));
+        return vo;
+    }
+
+    private ParseBatchStageStatisticsVO buildPlanStatistics(List<ParseBatchItem> items) {
+        int success = 0;
+        int partial = 0;
+        int failed = 0;
+        for (ParseBatchItem item : items) {
+            if ("SUCCESS".equals(item.getPlanAnalysisStatus())) {
+                success++;
+            } else if ("FAILED".equals(item.getPlanAnalysisStatus())) {
+                failed++;
+            } else {
+                partial++;
+            }
+        }
+        ParseBatchStageStatisticsVO vo = new ParseBatchStageStatisticsVO();
         vo.setSuccessRecords(Integer.valueOf(success));
         vo.setPartialSuccessRecords(Integer.valueOf(partial));
         vo.setFailedRecords(Integer.valueOf(failed));
@@ -594,6 +702,9 @@ public class ParseBatchApplicationService {
             vo.setStructureSyntaxStatus(item.getStructureSyntaxStatus());
             vo.setAccessServiceStatus(item.getAccessServiceStatus());
             vo.setAccessConnectionStatus(item.getAccessConnectionStatus());
+            vo.setPlanAnalysisStatus(item.getPlanAnalysisStatus());
+            vo.setAnalysisStatus(item.getCombinedAnalysisStatus());
+            vo.setPlanAnalysis(parseJsonValue(item.getPlanAnalysisJson()));
             vo.setFailureReason(item.getFailureReason());
             vo.setHistoryId(item.getHistoryId());
             vo.setHistoryPersisted(item.getHistoryPersisted());
@@ -1129,6 +1240,17 @@ public class ParseBatchApplicationService {
             return JsonUtils.objectMapper().readValue(bindParametersJson, MAP_TYPE);
         } catch (Exception ex) {
             throw invalidArgument("bind_parameters", "Failed to deserialize bind parameters JSON");
+        }
+    }
+
+    private Object parseJsonValue(String json) {
+        if (!StringUtils.hasText(json)) {
+            return null;
+        }
+        try {
+            return JsonUtils.objectMapper().readValue(json, Object.class);
+        } catch (Exception ex) {
+            return json;
         }
     }
 

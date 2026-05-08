@@ -26,3 +26,12 @@ sqlforge:
 sql-optimization:
   callbacks:
     enabled: false
+  hetu-plan:
+    enabled: ${SQL_OPTIMIZATION_HETU_PLAN_ENABLED:false}
+    query-timeout-seconds: ${SQL_OPTIMIZATION_HETU_PLAN_QUERY_TIMEOUT_SECONDS:5}
+    datasources:
+      hetu_main:
+        driver-class-name: ${SQL_OPTIMIZATION_HETU_PLAN_HETU_MAIN_DRIVER:}
+        jdbc-url: ${SQL_OPTIMIZATION_HETU_PLAN_HETU_MAIN_JDBC_URL:}
+        username: ${SQL_OPTIMIZATION_HETU_PLAN_HETU_MAIN_USERNAME:}
+        password: ${SQL_OPTIMIZATION_HETU_PLAN_HETU_MAIN_PASSWORD:}

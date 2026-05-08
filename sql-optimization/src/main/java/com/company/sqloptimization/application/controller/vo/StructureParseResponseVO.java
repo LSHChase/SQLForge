@@ -7,6 +7,8 @@ public class StructureParseResponseVO {
 
     private String parseTaskId;
     private String parseType = "STRUCTURE";
+    private String analysisStatus;
+    private String structureAnalysisStatus;
     private String syntaxStatus;
     private String complexityLevel;
     private String sqlType;
@@ -30,6 +32,7 @@ public class StructureParseResponseVO {
     private Integer failureOffset;
     private String failureToken;
     private String failureSnippet;
+    private PlanAnalysisVO planAnalysis;
     private String historyId;
     private Boolean historyPersisted;
     private String historyPersistenceStatus;
@@ -48,6 +51,22 @@ public class StructureParseResponseVO {
 
     public void setParseType(String parseType) {
         this.parseType = parseType;
+    }
+
+    public String getAnalysisStatus() {
+        return analysisStatus;
+    }
+
+    public void setAnalysisStatus(String analysisStatus) {
+        this.analysisStatus = analysisStatus;
+    }
+
+    public String getStructureAnalysisStatus() {
+        return structureAnalysisStatus;
+    }
+
+    public void setStructureAnalysisStatus(String structureAnalysisStatus) {
+        this.structureAnalysisStatus = structureAnalysisStatus;
     }
 
     public String getSyntaxStatus() {
@@ -232,6 +251,14 @@ public class StructureParseResponseVO {
 
     public void setFailureSnippet(String failureSnippet) {
         this.failureSnippet = failureSnippet;
+    }
+
+    public PlanAnalysisVO getPlanAnalysis() {
+        return planAnalysis;
+    }
+
+    public void setPlanAnalysis(PlanAnalysisVO planAnalysis) {
+        this.planAnalysis = planAnalysis;
     }
 
     public String getHistoryId() {

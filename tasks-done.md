@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-088: Dual-channel SQL parse and Hetu plan analysis
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `feat(sql-optimization): HARN-088 add dual-channel parse plan analysis`
+- Priority: 1
+- Depends on: N/A
+- Scope: Add four parser modes where _WITH_PLAN combines local structural parsing with read-only Hetu EXPLAIN plan analysis, propagating combined status and plan evidence through single parse, parse batch, report batch, history summaries, frontend displays, contract checks, tests, and validation.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-088`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented four parser modes, server-side Hetu EXPLAIN plan analysis, combined structure/plan statuses, history persistence payloads, item-level batch/report plan summaries and statistics, frontend detail displays, schema migration, contract checks, and focused/full regression tests.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-088; mvn -pl sql-optimization test; mvn -pl sql-optimization -Dtest=StructureParseControllerTest,ParseBatchApplicationServiceTest,ParseBatchControllerTest,ReportBatchApplicationServiceTest,ReportBatchControllerTest test; mvn -pl sql-optimization -Dtest=ParseBatchPersistenceSchemaMappingTest,SqlParseHistoryPersistenceSchemaMappingTest test; node scripts/check-parse-workbench-contract.mjs; node scripts/check-batch-import-contract.mjs; npm run lint; npm run build; node scripts/lint-repository-knowledge.js; git diff --check; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Live external Hetu/MRS JDBC evidence was not executed in this workspace because no target credentials/window were available; HARN-016 and INBOX-002 now include HARN-088 as the environment-backed validation chain.
+  - Next step: Run a target-environment smoke with configured sql-optimization.hetu-plan.datasources.<code> credentials and archive the real EXPLAIN evidence under HARN-016/INBOX-002 when the Hetu/MRS validation window opens.
+
 ### OPS-003: Restart local frontend and backend services third run
 
 - Status: done

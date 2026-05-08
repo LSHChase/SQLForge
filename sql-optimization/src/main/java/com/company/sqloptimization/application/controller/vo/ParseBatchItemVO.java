@@ -23,6 +23,9 @@ public class ParseBatchItemVO {
     private String structureSyntaxStatus;
     private String accessServiceStatus;
     private String accessConnectionStatus;
+    private String planAnalysisStatus;
+    private String analysisStatus;
+    private Object planAnalysis;
     private String failureReason;
     private String historyId;
     private Boolean historyPersisted;
@@ -74,6 +77,12 @@ public class ParseBatchItemVO {
     public void setAccessServiceStatus(String accessServiceStatus) { this.accessServiceStatus = accessServiceStatus; }
     public String getAccessConnectionStatus() { return accessConnectionStatus; }
     public void setAccessConnectionStatus(String accessConnectionStatus) { this.accessConnectionStatus = accessConnectionStatus; }
+    public String getPlanAnalysisStatus() { return planAnalysisStatus; }
+    public void setPlanAnalysisStatus(String planAnalysisStatus) { this.planAnalysisStatus = planAnalysisStatus; }
+    public String getAnalysisStatus() { return analysisStatus; }
+    public void setAnalysisStatus(String analysisStatus) { this.analysisStatus = analysisStatus; }
+    public Object getPlanAnalysis() { return planAnalysis; }
+    public void setPlanAnalysis(Object planAnalysis) { this.planAnalysis = planAnalysis; }
     public String getFailureReason() { return failureReason; }
     public void setFailureReason(String failureReason) { this.failureReason = failureReason; }
     public String getHistoryId() { return historyId; }

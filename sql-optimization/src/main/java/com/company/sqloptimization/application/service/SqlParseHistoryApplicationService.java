@@ -363,6 +363,11 @@ public class SqlParseHistoryApplicationService {
         if (accessParse != null) {
             queryContext.put("accessParseSummary", accessParse);
         }
+        if (structureParse.getPlanAnalysis() != null) {
+            queryContext.put("planAnalysis", structureParse.getPlanAnalysis());
+        }
+        queryContext.put("analysisStatus", structureParse.getAnalysisStatus());
+        queryContext.put("structureAnalysisStatus", structureParse.getStructureAnalysisStatus());
         queryContext.put("resultSummary", resultSummary);
         return toJson(queryContext);
     }
@@ -372,12 +377,33 @@ public class SqlParseHistoryApplicationService {
                                                              String resultStatus) {
         LinkedHashMap<String, Object> summary = new LinkedHashMap<String, Object>();
         summary.put("overallStatus", normalizeResultStatus(resultStatus));
+        summary.put("analysisStatus", structureParse.getAnalysisStatus());
+        summary.put("structureAnalysisStatus", structureParse.getStructureAnalysisStatus());
         summary.put("structureAvailable", Boolean.TRUE);
         summary.put("accessAvailable", Boolean.valueOf(accessParse != null
             && "AVAILABLE".equals(accessParse.getServiceStatus())
             && "CONNECTED".equals(accessParse.getConnectionStatus())));
-        summary.put("degradeReason", accessParse == null ? structureParse.getFailureReason() : accessParse.getDegradeReason());
+        summary.put("planStatus", structureParse.getPlanAnalysis() == null ? null : structureParse.getPlanAnalysis().getStatus());
+        summary.put("planAvailable", Boolean.valueOf(structureParse.getPlanAnalysis() != null
+            && "SUCCESS".equals(structureParse.getPlanAnalysis().getStatus())));
+        summary.put("degradeReason", resolveSummaryDegradeReason(structureParse, accessParse));
         return summary;
+    }
+
+    private String resolveSummaryDegradeReason(StructureParseResponseVO structureParse,
+                                               AccessParseResponseVO accessParse) {
+        if (accessParse != null && StringUtils.hasText(accessParse.getDegradeReason())) {
+            return accessParse.getDegradeReason();
+        }
+        if (structureParse != null && StringUtils.hasText(structureParse.getFailureReason())) {
+            return structureParse.getFailureReason();
+        }
+        if (structureParse != null
+            && structureParse.getPlanAnalysis() != null
+            && StringUtils.hasText(structureParse.getPlanAnalysis().getFailureReason())) {
+            return structureParse.getPlanAnalysis().getFailureReason();
+        }
+        return null;
     }
 
     private String buildBindingSummaryJson(StructureParseRequest request, String sqlFingerprint) {

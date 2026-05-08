@@ -23,7 +23,7 @@
 
 - Status: open
 - Needed decision: 确认真实 Win10 测试环境何时可执行 `scripts/run-hetu-env-smoke.sh`，采用 `JDBC` / `REST` / `CLIENT` 中哪一种 Hetu 模式先做留证，以及由谁负责保存真实返回日志/响应证据；在该决定落定前，仓库侧实现继续推进，不把外部环境等待视为主线编码阻塞。
-- Task refs: HARN-016, D-TASK-017, D-TASK-018, HARN-013, HARN-014
+- Task refs: HARN-016, HARN-088, D-TASK-017, D-TASK-018, HARN-013, HARN-014
 - Plan refs: docs/plans/master-execution-plan.md#D-TASK-017, docs/plans/master-execution-plan.md#D-TASK-018
 
 ### INBOX-003: 前端 Vue SFC 构建约束与依赖禁用策略冲突
