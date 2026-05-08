@@ -215,6 +215,15 @@ const structureFeatureHighlights = computed(() => {
     { key: 'tableCount', label: isChinese.value ? '表数量' : 'Tables', value: feature.tableCount },
     { key: 'joinCount', label: isChinese.value ? 'Join 数' : 'Joins', value: feature.joinCount },
     { key: 'predicateCount', label: isChinese.value ? '谓词数' : 'Predicates', value: feature.predicateCount },
+    { key: 'orderByExpressionCount', label: isChinese.value ? '排序字段' : 'Order keys', value: feature.orderByExpressionCount },
+    { key: 'duplicateOrderByKeyCount', label: isChinese.value ? '重复排序 key' : 'Duplicate order keys', value: feature.duplicateOrderByKeyCount },
+    { key: 'duplicateGroupByKeyCount', label: isChinese.value ? '重复分组 key' : 'Duplicate group keys', value: feature.duplicateGroupByKeyCount },
+    { key: 'groupByWithoutAggregate', label: isChinese.value ? '分组无聚合' : 'Group without aggregate', value: booleanLabel(feature.groupByWithoutAggregate) },
+    { key: 'aggregateFunctionCount', label: isChinese.value ? '聚合函数' : 'Aggregates', value: feature.aggregateFunctionCount },
+    { key: 'stringProjectionCount', label: isChinese.value ? '字符串投影' : 'String projections', value: feature.stringProjectionCount },
+    { key: 'stringConcatenationCount', label: isChinese.value ? '字符串拼接' : 'String concatenations', value: feature.stringConcatenationCount },
+    { key: 'largeStringAggregateCount', label: isChinese.value ? '字符串聚合' : 'String aggregates', value: feature.largeStringAggregateCount },
+    { key: 'repeatedSubqueryCount', label: isChinese.value ? '重复子查询' : 'Repeated subqueries', value: feature.repeatedSubqueryCount },
     { key: 'windowFunctionCount', label: isChinese.value ? '窗口函数' : 'Windows', value: feature.windowFunctionCount },
     { key: 'repeatedExpressionCount', label: isChinese.value ? '重复表达式' : 'Repeated expressions', value: feature.repeatedExpressionCount }
   ].filter(item => hasDisplayValue(item.value))
@@ -257,7 +266,7 @@ const planHighlights = computed(() => {
   return [
     { key: 'planStatus', label: isChinese.value ? '计划状态' : 'Plan status', value: planAnalysis.value.status },
     { key: 'datasourceCode', label: isChinese.value ? '数据源' : 'Datasource', value: planAnalysis.value.datasourceCode },
-    { key: 'costMs', label: isChinese.value ? '耗时 ms' : 'Cost ms', value: planAnalysis.value.costMs },
+    { key: 'costMs', label: isChinese.value ? '计划分析耗时 ms' : 'Plan analysis ms', value: planAnalysis.value.costMs },
     { key: 'failureReason', label: isChinese.value ? '失败原因' : 'Failure reason', value: planAnalysis.value.failureReason }
   ].filter(item => hasDisplayValue(item.value))
 })

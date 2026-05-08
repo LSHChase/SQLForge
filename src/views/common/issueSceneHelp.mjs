@@ -94,6 +94,41 @@ const ISSUE_SCENE_TRANSLATIONS = {
     evidence: '当前查询图由多个 Join、谓词和子查询组成。',
     suggestedAction: '先拆分为可审查的阶段，再进入上线路径。'
   },
+  ORDER_BY_COMPLEXITY_RISK: {
+    summary: '排序复杂度风险',
+    evidence: '排序字段过多、排序 key 重复，或排序叠加聚合/分组可能放大内存与 shuffle 成本。',
+    suggestedAction: '减少排序字段、删除重复排序 key，或通过执行计划证据确认排序成本。'
+  },
+  JOIN_LATENCY_RISK: {
+    summary: 'Join 耗时风险',
+    evidence: '多 Join、弱 Join 条件或 Join 叠加子查询存在长耗时静态信号。',
+    suggestedAction: '结合 Access Parse 或 Benchmark 确认 Join 键、过滤位置、扫描量和行移动。'
+  },
+  AGGREGATION_COMPLEXITY_RISK: {
+    summary: '聚合复杂度风险',
+    evidence: '聚合函数、分组、排序或字符串聚合组合较重。',
+    suggestedAction: '将可复用聚合预计算，或改为已验证的服务层对象。'
+  },
+  GROUP_BY_WITHOUT_AGGREGATE_RISK: {
+    summary: '分组无聚合风险',
+    evidence: 'SQL 存在 GROUP BY 但没有聚合函数，可能只是去重或冗余分组。',
+    suggestedAction: '明确使用 DISTINCT，或删除不必要的 GROUP BY。'
+  },
+  DUPLICATE_GROUP_OR_ORDER_KEY_RISK: {
+    summary: '重复分组/排序 key 风险',
+    evidence: 'GROUP BY 或 ORDER BY 中存在重复 key。',
+    suggestedAction: '删除重复 key 后再进入改写或加速评审。'
+  },
+  REPEATED_SUBQUERY_RISK: {
+    summary: '重复子查询风险',
+    evidence: '同一规范化子查询形态重复出现，可能重复执行 lookup 或聚合。',
+    suggestedAction: '抽取为命名 CTE 或治理后的服务层对象。'
+  },
+  LARGE_STRING_RESULT_RISK: {
+    summary: '字符串结果过大风险',
+    evidence: '字符串投影、拼接或聚合可能放大返回字节数。',
+    suggestedAction: '减少字符串列，避免无界字符串聚合，并用真实执行证据确认返回体积。'
+  },
   REPORT_SQL_MERGE_CANDIDATE: {
     summary: '报表多 SQL 可合并候选',
     evidence: '同一报表内多条 SQL 共享数据源、阶段和逻辑对象或多个问题场景，可能存在重复扫描或重复维护。',

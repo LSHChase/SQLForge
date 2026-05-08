@@ -128,6 +128,49 @@ class SqlOptimizationPipelineServiceTest {
     }
 
     @Test
+    void shouldExposeOrderGroupDuplicateAndGroupWithoutAggregateSignals() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "SELECT status FROM orders "
+                + "WHERE dt = DATE '2026-04-01' "
+                + "GROUP BY status, status "
+                + "ORDER BY status, status, customer_id",
+            DataSourceTypeEnum.HETU
+        );
+
+        assertEquals(3, profile.getOrderByExpressionCount());
+        assertEquals(1, profile.getDuplicateOrderByKeyCount());
+        assertEquals(1, profile.getDuplicateGroupByKeyCount());
+        assertTrue(profile.isGroupByWithoutAggregate());
+        assertTrue(profile.getWarnings().contains("ORDER_BY_COMPLEXITY_RISK"));
+        assertTrue(profile.getWarnings().contains("GROUP_BY_WITHOUT_AGGREGATE_RISK"));
+        assertTrue(profile.getWarnings().contains("DUPLICATE_GROUP_OR_ORDER_KEY_RISK"));
+    }
+
+    @Test
+    void shouldExposeAggregationStringAndRepeatedSubquerySignals() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "SELECT c.customer_id, "
+                + "(SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.customer_id) AS order_count_a, "
+                + "(SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.customer_id) AS order_count_b, "
+                + "GROUP_CONCAT(CONCAT(c.customer_name, ':', c.status)) AS customer_labels, "
+                + "COUNT(*), SUM(c.amount), AVG(c.amount) "
+                + "FROM customers c "
+                + "WHERE c.dt = DATE '2026-04-01' "
+                + "GROUP BY c.customer_id "
+                + "ORDER BY c.customer_id",
+            DataSourceTypeEnum.HETU
+        );
+
+        assertTrue(profile.getAggregateFunctionCount() >= 5);
+        assertTrue(profile.getStringConcatenationCount() >= 1);
+        assertEquals(1, profile.getLargeStringAggregateCount());
+        assertTrue(profile.getRepeatedSubqueryCount() >= 1);
+        assertTrue(profile.getWarnings().contains("AGGREGATION_COMPLEXITY_RISK"));
+        assertTrue(profile.getWarnings().contains("LARGE_STRING_RESULT_RISK"));
+        assertTrue(profile.getWarnings().contains("REPEATED_SUBQUERY_RISK"));
+    }
+
+    @Test
     void shouldExtractComplexAntiPatternSignalsFromNestedSql() {
         SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
             complexAntiPatternSql(),

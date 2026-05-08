@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-091: 补齐 SQL 结构解析风险分析
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `feat(sql-optimization): HARN-091 expand structure risk signals`
+- Priority: 1
+- Depends on: N/A
+- Scope: Extend sql-optimization structure parsing with additional static risk signals for order/group/aggregation/string/repeated-subquery complexity, expose compatible API/frontend fields, keep real execution metrics bounded to access parse/benchmark evidence, and validate backend/frontend contracts.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-091`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Expanded structure parsing static profile fields for order/group/aggregation/string/repeated-subquery complexity, emitted the corresponding static-only risk checklist/issues/evidence, preserved real execution metrics for access parse/benchmark plan evidence, and surfaced the new fields/risks in frontend contracts and documentation.
+  - Validation evidence: python3 scripts/foreman.py preflight; mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,StructureParseContractTest,StructureParseControllerTest test; node scripts/check-parse-workbench-contract.mjs; node scripts/check-history-page-contract.mjs; node scripts/check-history-detail-contract.mjs; git diff --check; mvn -pl sql-optimization test; npm run lint; npm run build; python3 scripts/foreman.py validate HARN-091; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Static risk signals remain conservative heuristics; real scan volume, returned bytes, row counts, execution time, and plan-node cost still require access parse or benchmark evidence from a configured datasource.
+  - Next step: Add datasource-backed calibration in a separate task if production plan metrics expose additional row, byte, or cost signals for these static risk classes.
+
 ### HARN-090: Invalid SQL fallback structure parsing
 
 - Status: done

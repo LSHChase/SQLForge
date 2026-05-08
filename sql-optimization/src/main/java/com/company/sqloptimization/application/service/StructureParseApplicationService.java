@@ -755,7 +755,6 @@ public class StructureParseApplicationService {
             vo.setStatus(PlanAnalysisStatus.FAILED.name());
             vo.setFailureReason("HETU_PLAN_RESULT_MISSING");
             vo.setEvidence(Collections.singletonList("result=missing"));
-            vo.setCostMs(Long.valueOf(0L));
             return vo;
         }
         vo.setStatus(result.getStatus() == null ? null : result.getStatus().name());
@@ -998,6 +997,76 @@ public class StructureParseApplicationService {
             issue.setSummary("The statement references the same table multiple times.");
             issue.setDetail("Repeated table scans can amplify IO, CPU, and shuffle cost when subqueries are not staged.");
             issue.setSuggestedAction("Pre-stage repeated inputs with CTEs or serving objects and reuse them explicitly.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.TRUE);
+        } else if ("ORDER_BY_COMPLEXITY_RISK".equals(warning)) {
+            issue.setIssueCode("ORDER_BY_COMPLEXITY_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("UNBOUNDED_SORT");
+            issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
+            issue.setSummary("The statement contains multiple or redundant ORDER BY keys.");
+            issue.setDetail("Static analysis found sort-key breadth, duplicate ordering, or sort plus aggregation/grouping pressure.");
+            issue.setSuggestedAction("Reduce sort keys, remove duplicate ordering, or validate sorted serving output with plan evidence.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.FALSE);
+        } else if ("JOIN_LATENCY_RISK".equals(warning)) {
+            issue.setIssueCode("JOIN_LATENCY_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
+            issue.setSeverity(StructureParseIssueSeverity.HIGH);
+            issue.setSummary("The join graph has static signals for long-running execution.");
+            issue.setDetail("Multiple joins, weak static join-condition evidence, or join plus subquery composition can increase latency.");
+            issue.setSuggestedAction("Confirm join keys, filter placement, scanned volume, and row movement with access parse or benchmark evidence.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.TRUE);
+        } else if ("AGGREGATION_COMPLEXITY_RISK".equals(warning)) {
+            issue.setIssueCode("AGGREGATION_COMPLEXITY_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
+            issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
+            issue.setSummary("The statement combines enough aggregation work to need review.");
+            issue.setDetail("Aggregate count, grouping breadth, ordering, or string aggregation can increase CPU and memory pressure.");
+            issue.setSuggestedAction("Pre-aggregate reusable stages or move heavy aggregate output into reviewed serving objects.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.FALSE);
+        } else if ("GROUP_BY_WITHOUT_AGGREGATE_RISK".equals(warning)) {
+            issue.setIssueCode("GROUP_BY_WITHOUT_AGGREGATE_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.CONVENTION);
+            issue.setIssueScene("GENERAL_WARNING");
+            issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
+            issue.setSummary("The statement uses GROUP BY without aggregate functions.");
+            issue.setDetail("A GROUP BY without aggregation is often a DISTINCT-style de-duplication or redundant grouping operation.");
+            issue.setSuggestedAction("Use DISTINCT for de-duplication intent or remove the grouping if it is redundant.");
+            issue.setImportant(Boolean.FALSE);
+            issue.setUrgent(Boolean.FALSE);
+        } else if ("DUPLICATE_GROUP_OR_ORDER_KEY_RISK".equals(warning)) {
+            issue.setIssueCode("DUPLICATE_GROUP_OR_ORDER_KEY_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.CONVENTION);
+            issue.setIssueScene("GENERAL_WARNING");
+            issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
+            issue.setSummary("The statement repeats GROUP BY or ORDER BY keys.");
+            issue.setDetail("Duplicate grouping or ordering keys add unnecessary logical-plan work and can obscure query intent.");
+            issue.setSuggestedAction("Remove duplicate grouping or ordering keys before rewrite or acceleration review.");
+            issue.setImportant(Boolean.FALSE);
+            issue.setUrgent(Boolean.FALSE);
+        } else if ("REPEATED_SUBQUERY_RISK".equals(warning)) {
+            issue.setIssueCode("REPEATED_SUBQUERY_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.STRUCTURE);
+            issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
+            issue.setSeverity(StructureParseIssueSeverity.HIGH);
+            issue.setSummary("The statement repeats a normalized subquery shape.");
+            issue.setDetail("Repeated nested or scalar subqueries can re-plan or re-execute the same lookup/aggregate work.");
+            issue.setSuggestedAction("Extract repeated subqueries into a named CTE or reviewed serving object.");
+            issue.setImportant(Boolean.TRUE);
+            issue.setUrgent(Boolean.TRUE);
+        } else if ("LARGE_STRING_RESULT_RISK".equals(warning)) {
+            issue.setIssueCode("LARGE_STRING_RESULT_RISK");
+            issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
+            issue.setIssueScene("WIDE_PROJECTION");
+            issue.setSeverity(StructureParseIssueSeverity.HIGH);
+            issue.setSummary("The statement may produce a large string-heavy result.");
+            issue.setDetail("String projections, concatenation, or string aggregation can expand returned bytes even when row count is unknown.");
+            issue.setSuggestedAction("Limit string projections, avoid unbounded string aggregation, or validate returned bytes through access parse or benchmark.");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
         } else if ("COMPLEX_QUERY_GRAPH_RISK".equals(warning)) {
@@ -1402,6 +1471,9 @@ public class StructureParseApplicationService {
             + profile.getOrPredicateCount()
             + profile.getFunctionWrappedPredicateCount()
             + profile.getRandomOrderCount() * 2
+            + profile.getRepeatedSubqueryCount() * 2
+            + profile.getStringConcatenationCount()
+            + profile.getLargeStringAggregateCount() * 2
             + (profile.isSetOperation() ? 3 : 0);
         if (score >= 10) {
             return StructureParseComplexityLevel.EXTREME;
@@ -1468,6 +1540,15 @@ public class StructureParseApplicationService {
         featureSummary.setLeadingWildcardLikeCount(Integer.valueOf(profile.getLeadingWildcardLikeCount()));
         featureSummary.setRandomOrderCount(Integer.valueOf(profile.getRandomOrderCount()));
         featureSummary.setRepeatedTableScanCount(Integer.valueOf(profile.getRepeatedTableScanCount()));
+        featureSummary.setOrderByExpressionCount(Integer.valueOf(profile.getOrderByExpressionCount()));
+        featureSummary.setDuplicateOrderByKeyCount(Integer.valueOf(profile.getDuplicateOrderByKeyCount()));
+        featureSummary.setDuplicateGroupByKeyCount(Integer.valueOf(profile.getDuplicateGroupByKeyCount()));
+        featureSummary.setGroupByWithoutAggregate(Boolean.valueOf(profile.isGroupByWithoutAggregate()));
+        featureSummary.setAggregateFunctionCount(Integer.valueOf(profile.getAggregateFunctionCount()));
+        featureSummary.setStringProjectionCount(Integer.valueOf(profile.getStringProjectionCount()));
+        featureSummary.setStringConcatenationCount(Integer.valueOf(profile.getStringConcatenationCount()));
+        featureSummary.setLargeStringAggregateCount(Integer.valueOf(profile.getLargeStringAggregateCount()));
+        featureSummary.setRepeatedSubqueryCount(Integer.valueOf(profile.getRepeatedSubqueryCount()));
         featureSummary.setEvidence(buildFeatureEvidence(profile, finalTableCount));
         response.setFeatureSummary(featureSummary);
         response.setRiskChecklist(risks);
@@ -1520,6 +1601,15 @@ public class StructureParseApplicationService {
         featureSummary.setLeadingWildcardLikeCount(Integer.valueOf(0));
         featureSummary.setRandomOrderCount(Integer.valueOf(0));
         featureSummary.setRepeatedTableScanCount(Integer.valueOf(0));
+        featureSummary.setOrderByExpressionCount(Integer.valueOf(0));
+        featureSummary.setDuplicateOrderByKeyCount(Integer.valueOf(0));
+        featureSummary.setDuplicateGroupByKeyCount(Integer.valueOf(0));
+        featureSummary.setGroupByWithoutAggregate(Boolean.FALSE);
+        featureSummary.setAggregateFunctionCount(Integer.valueOf(0));
+        featureSummary.setStringProjectionCount(Integer.valueOf(0));
+        featureSummary.setStringConcatenationCount(Integer.valueOf(0));
+        featureSummary.setLargeStringAggregateCount(Integer.valueOf(0));
+        featureSummary.setRepeatedSubqueryCount(Integer.valueOf(0));
         featureSummary.setEvidence(buildHeuristicFeatureEvidence(profile, finalTableCount));
         response.setFeatureSummary(featureSummary);
         response.setEstimatedResourceCost(heuristicResourceEstimate(profile));
@@ -1545,6 +1635,7 @@ public class StructureParseApplicationService {
     private List<String> buildHeuristicFeatureEvidence(HeuristicFallbackProfile profile, int finalTableCount) {
         List<String> evidence = new ArrayList<String>();
         evidence.add("parser=" + HEURISTIC_FALLBACK_ENGINE);
+        evidence.add("staticOnly=true");
         evidence.add("fallback=AST_UNAVAILABLE");
         evidence.add("sqlTooLong=" + profile.isSqlTooLong());
         evidence.add("sqlLength=" + profile.getSqlLength());
@@ -1564,6 +1655,7 @@ public class StructureParseApplicationService {
         List<String> evidence = new ArrayList<String>();
         evidence.add("Resource estimate is bounded because the AST parser did not produce a valid profile.");
         evidence.add("parser=" + HEURISTIC_FALLBACK_ENGINE);
+        evidence.add("staticOnly=true");
         evidence.add("tables=" + profile.getTables().size());
         evidence.add("predicates=" + profile.getPredicateCount());
         estimate.setEvidence(evidence);
@@ -1639,6 +1731,8 @@ public class StructureParseApplicationService {
             || profile.getNestedSubqueryDepth() >= 2
             || profile.getFunctionWrappedPredicateCount() > 0
             || profile.getRandomOrderCount() > 0
+            || profile.getRepeatedSubqueryCount() > 0
+            || profile.getLargeStringAggregateCount() > 0
             || aggregateShape.isHeavy()) {
             return "HEAVY";
         }
@@ -1652,7 +1746,7 @@ public class StructureParseApplicationService {
     }
 
     private AggregateShape aggregateShape(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
-        int aggregateCount = profile.getAggregateFunctions().size();
+        int aggregateCount = profile.getAggregateFunctionCount();
         int groupByCount = profile.getGroupByCount();
         int orderByCount = profile.getOrderByCount();
         int groupingWeight = cappedShapeWeight(groupByCount, 3, 8);
@@ -1734,13 +1828,19 @@ public class StructureParseApplicationService {
     private List<String> buildFeatureEvidence(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
         List<String> evidence = new ArrayList<String>();
         evidence.add("parser=" + profile.getParserEngine());
+        evidence.add("staticOnly=true");
         evidence.add("tables=" + profile.getTables().size());
         evidence.add("predicates=" + profile.getPredicateCount());
         evidence.add("joins=" + profile.getJoinCount());
-        evidence.add("aggregates=" + profile.getAggregateFunctions().size());
+        evidence.add("aggregates=" + profile.getAggregateFunctionCount());
+        evidence.add("orderByExpressions=" + profile.getOrderByExpressionCount());
+        evidence.add("duplicateGroupByKeys=" + profile.getDuplicateGroupByKeyCount());
+        evidence.add("duplicateOrderByKeys=" + profile.getDuplicateOrderByKeyCount());
+        evidence.add("groupByWithoutAggregate=" + profile.isGroupByWithoutAggregate());
         evidence.add("windows=" + profile.getWindowFunctionCount());
         evidence.add("repeatedExpressions=" + profile.getRepeatedExpressionCount());
         evidence.add("subqueries=" + profile.getSubqueryCount());
+        evidence.add("repeatedSubqueries=" + profile.getRepeatedSubqueryCount());
         evidence.add("scalarSubqueries=" + profile.getScalarSubqueryCount());
         evidence.add("nestedSubqueryDepth=" + profile.getNestedSubqueryDepth());
         evidence.add("correlatedSubqueries=" + profile.getCorrelatedSubqueryCount());
@@ -1749,6 +1849,9 @@ public class StructureParseApplicationService {
         evidence.add("leadingWildcardLikes=" + profile.getLeadingWildcardLikeCount());
         evidence.add("randomOrders=" + profile.getRandomOrderCount());
         evidence.add("repeatedTableScans=" + profile.getRepeatedTableScanCount());
+        evidence.add("stringProjections=" + profile.getStringProjectionCount());
+        evidence.add("stringConcatenations=" + profile.getStringConcatenationCount());
+        evidence.add("largeStringAggregates=" + profile.getLargeStringAggregateCount());
         return evidence;
     }
 
@@ -1853,6 +1956,42 @@ public class StructureParseApplicationService {
             } else if ("REPEATED_TABLE_SCAN_RISK".equals(warning)) {
                 addRisk(risks, emitted, risk("REPEATED_TABLE_SCAN_RISK", "HIGH", "Repeated table scan risk",
                     "repeatedTableScanCount=" + profile.getRepeatedTableScanCount(), "Pre-stage repeated inputs and reuse them explicitly."));
+            } else if ("ORDER_BY_COMPLEXITY_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("ORDER_BY_COMPLEXITY_RISK", "MEDIUM", "ORDER BY complexity risk",
+                    "staticOnly=true, orderByExpressionCount=" + profile.getOrderByExpressionCount()
+                        + ", duplicateOrderByKeyCount=" + profile.getDuplicateOrderByKeyCount(),
+                    "Reduce sort keys, remove duplicate ordering, or validate sorted output with plan evidence."));
+            } else if ("JOIN_LATENCY_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("JOIN_LATENCY_RISK", "HIGH", "Join latency risk",
+                    "staticOnly=true, joinCount=" + profile.getJoinCount()
+                        + ", joinCriteriaCount=" + profile.getJoinCriteriaCount()
+                        + ", subqueryCount=" + profile.getSubqueryCount(),
+                    "Confirm join keys, filter placement, scanned volume, and row movement with access parse or benchmark."));
+            } else if ("AGGREGATION_COMPLEXITY_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("AGGREGATION_COMPLEXITY_RISK", "MEDIUM", "Aggregation complexity risk",
+                    "staticOnly=true, aggregateFunctionCount=" + profile.getAggregateFunctionCount()
+                        + ", groupByCount=" + profile.getGroupByCount()
+                        + ", largeStringAggregateCount=" + profile.getLargeStringAggregateCount(),
+                    "Pre-aggregate reusable stages or move heavy aggregate output into serving objects."));
+            } else if ("GROUP_BY_WITHOUT_AGGREGATE_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("GROUP_BY_WITHOUT_AGGREGATE_RISK", "MEDIUM", "GROUP BY without aggregate",
+                    "staticOnly=true, groupByCount=" + profile.getGroupByCount() + ", aggregateFunctionCount=0",
+                    "Use DISTINCT for de-duplication intent or remove redundant grouping."));
+            } else if ("DUPLICATE_GROUP_OR_ORDER_KEY_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("DUPLICATE_GROUP_OR_ORDER_KEY_RISK", "MEDIUM", "Duplicate group/order key risk",
+                    "staticOnly=true, duplicateGroupByKeyCount=" + profile.getDuplicateGroupByKeyCount()
+                        + ", duplicateOrderByKeyCount=" + profile.getDuplicateOrderByKeyCount(),
+                    "Remove duplicate grouping or ordering keys before rewrite review."));
+            } else if ("REPEATED_SUBQUERY_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("REPEATED_SUBQUERY_RISK", "HIGH", "Repeated subquery risk",
+                    "staticOnly=true, repeatedSubqueryCount=" + profile.getRepeatedSubqueryCount(),
+                    "Extract repeated subqueries into a named CTE or reviewed serving object."));
+            } else if ("LARGE_STRING_RESULT_RISK".equals(warning)) {
+                addRisk(risks, emitted, risk("LARGE_STRING_RESULT_RISK", "HIGH", "Large string result risk",
+                    "staticOnly=true, stringProjectionCount=" + profile.getStringProjectionCount()
+                        + ", stringConcatenationCount=" + profile.getStringConcatenationCount()
+                        + ", largeStringAggregateCount=" + profile.getLargeStringAggregateCount(),
+                    "Limit string projections or validate returned bytes through access parse or benchmark."));
             } else if ("COMPLEX_QUERY_GRAPH_RISK".equals(warning)) {
                 addRisk(risks, emitted, risk("COMPLEX_QUERY_GRAPH_RISK", "HIGH", "Complex query graph risk",
                     "subqueryCount=" + profile.getSubqueryCount() + ", predicateCount=" + profile.getPredicateCount(),
@@ -1886,17 +2025,24 @@ public class StructureParseApplicationService {
                                                                    List<StructureParseRiskVO> risks,
                                                                    int finalTableCount) {
         StructureParseResourceEstimateVO estimate = new StructureParseResourceEstimateVO();
-        estimate.setCpu(level(profile.getAggregateFunctions().size() + profile.getUdfFunctionCount()
+        estimate.setCpu(level(profile.getAggregateFunctionCount() + profile.getUdfFunctionCount()
             + profile.getRepeatedExpressionCount()
             + profile.getFunctionWrappedPredicateCount()
-            + profile.getRandomOrderCount()));
+            + profile.getRandomOrderCount()
+            + profile.getStringConcatenationCount()
+            + profile.getRepeatedSubqueryCount()));
         estimate.setIo(profile.getPredicateCount() == 0 || profile.getRepeatedTableScanCount() > 0
             || finalTableCount > profile.getTables().size() ? "HIGH" : "MEDIUM");
-        estimate.setMemory(profile.getOrderByCount() + profile.getWindowFunctionCount() + profile.getRandomOrderCount() > 0 ? "HIGH" : "LOW");
+        estimate.setMemory(profile.getOrderByExpressionCount() + profile.getWindowFunctionCount()
+            + profile.getRandomOrderCount() + profile.getLargeStringAggregateCount() > 0 ? "HIGH" : "LOW");
         estimate.setNetwork(profile.getJoinCount() > 0 || profile.isSetOperation() || profile.getSubqueryCount() > 0
-            || finalTableCount > 1 ? "HIGH" : "LOW");
+            || finalTableCount > 1 || profile.getStringProjectionCount() >= 4
+            || profile.getLargeStringAggregateCount() > 0 ? "HIGH" : "LOW");
         estimate.setResultSize(profile.isSelectStar() || !profile.isLimitPresent() || profile.getComplexGraphScore() >= 8
-            || finalTableCount > profile.getTables().size() ? "HIGH" : "MEDIUM");
+            || finalTableCount > profile.getTables().size()
+            || profile.getStringProjectionCount() >= 4
+            || profile.getLargeStringAggregateCount() > 0
+            || profile.getStringConcatenationCount() >= 2 ? "HIGH" : "MEDIUM");
         estimate.setOverall(resolveOverallEstimate(estimate, risks));
         estimate.setEvidence(buildFeatureEvidence(profile, finalTableCount));
         return estimate;

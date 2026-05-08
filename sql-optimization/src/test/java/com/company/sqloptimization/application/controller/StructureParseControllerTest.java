@@ -498,6 +498,57 @@ class StructureParseControllerTest {
     }
 
     @Test
+    void shouldExposeOrderGroupRedundancyStaticRiskSignals() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT status FROM orders "
+                    + "WHERE dt = DATE '2026-04-01' "
+                    + "GROUP BY status, status "
+                    + "ORDER BY status, status, customer_id\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.featureSummary.orderByExpressionCount").value(3))
+            .andExpect(jsonPath("$.featureSummary.duplicateOrderByKeyCount").value(1))
+            .andExpect(jsonPath("$.featureSummary.duplicateGroupByKeyCount").value(1))
+            .andExpect(jsonPath("$.featureSummary.groupByWithoutAggregate").value(true))
+            .andExpect(jsonPath("$.featureSummary.evidence").value(hasItem("staticOnly=true")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("ORDER_BY_COMPLEXITY_RISK")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("GROUP_BY_WITHOUT_AGGREGATE_RISK")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("DUPLICATE_GROUP_OR_ORDER_KEY_RISK")))
+            .andExpect(jsonPath("$.issues[*].issueCode").value(hasItem("ORDER_BY_COMPLEXITY_RISK")))
+            .andExpect(jsonPath("$.issues[*].issueCode").value(hasItem("GROUP_BY_WITHOUT_AGGREGATE_RISK")))
+            .andExpect(jsonPath("$.riskChecklist[*].riskCode").value(hasItem("ORDER_BY_COMPLEXITY_RISK")))
+            .andExpect(jsonPath("$.riskChecklist[*].riskCode").value(hasItem("DUPLICATE_GROUP_OR_ORDER_KEY_RISK")));
+    }
+
+    @Test
+    void shouldExposeStringAggregationAndRepeatedSubqueryStaticRiskSignals() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT c.customer_id, "
+                    + "(SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.customer_id) AS order_count_a, "
+                    + "(SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.customer_id) AS order_count_b, "
+                    + "GROUP_CONCAT(CONCAT(c.customer_name, ':', c.status)) AS customer_labels, "
+                    + "COUNT(*), SUM(c.amount), AVG(c.amount) "
+                    + "FROM customers c WHERE c.dt = DATE '2026-04-01' "
+                    + "GROUP BY c.customer_id ORDER BY c.customer_id\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.featureSummary.aggregateFunctionCount").value(greaterThanOrEqualTo(5)))
+            .andExpect(jsonPath("$.featureSummary.stringConcatenationCount").value(greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.featureSummary.largeStringAggregateCount").value(1))
+            .andExpect(jsonPath("$.featureSummary.repeatedSubqueryCount").value(greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.estimatedResourceCost.resultSize").value("HIGH"))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("AGGREGATION_COMPLEXITY_RISK")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("LARGE_STRING_RESULT_RISK")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("REPEATED_SUBQUERY_RISK")))
+            .andExpect(jsonPath("$.riskChecklist[*].riskCode").value(hasItem("AGGREGATION_COMPLEXITY_RISK")))
+            .andExpect(jsonPath("$.riskChecklist[*].riskCode").value(hasItem("LARGE_STRING_RESULT_RISK")))
+            .andExpect(jsonPath("$.riskChecklist[*].riskCode").value(hasItem("REPEATED_SUBQUERY_RISK")))
+            .andExpect(jsonPath("$.riskChecklist[*].evidence").value(hasItem(org.hamcrest.Matchers.containsString("staticOnly=true"))));
+    }
+
+    @Test
     void shouldExposeComplexAntiPatternStructureSignals() throws Exception {
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
                 .contentType(MediaType.APPLICATION_JSON)

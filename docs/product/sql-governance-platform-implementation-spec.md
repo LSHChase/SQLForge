@@ -544,6 +544,13 @@ Parser 边界：
 - `riskChecklist/issues/riskTags` 可覆盖 `SCALAR_SUBQUERY_IN_SELECT`、`NESTED_SUBQUERY_RISK`、`CORRELATED_SUBQUERY_RISK`、`FUNCTION_WRAPPED_PREDICATE`、`NOT_EXISTS_ANTI_JOIN_RISK`、`LEADING_WILDCARD_LIKE_RISK`、`OR_PREDICATE_INDEX_RISK`、`ORDER_BY_RANDOM_RISK`、`REPEATED_TABLE_SCAN_RISK` 和 `COMPLEX_QUERY_GRAPH_RISK`。
 - 上述信号全部来自静态 SQL AST，不证明真实索引存在性、对象规模或执行计划成本；涉及字段存在性、权限、分区可用性和真实计划仍属于 access parse / benchmark 边界。
 
+`HARN-091` 继续补齐结构解析静态风险分析，但不把静态结果伪装成真实执行指标：
+
+- `featureSummary` 可继续输出 `orderByExpressionCount`、`duplicateOrderByKeyCount`、`duplicateGroupByKeyCount`、`groupByWithoutAggregate`、`aggregateFunctionCount`、`stringProjectionCount`、`stringConcatenationCount`、`largeStringAggregateCount` 和 `repeatedSubqueryCount`。
+- `riskChecklist/issues/riskTags` 可覆盖 `ORDER_BY_COMPLEXITY_RISK`、`JOIN_LATENCY_RISK`、`AGGREGATION_COMPLEXITY_RISK`、`GROUP_BY_WITHOUT_AGGREGATE_RISK`、`DUPLICATE_GROUP_OR_ORDER_KEY_RISK`、`REPEATED_SUBQUERY_RISK` 和 `LARGE_STRING_RESULT_RISK`。
+- 结构解析 evidence 必须带有 `staticOnly=true`，上述计数只能表达排序、Join、聚合、字符串返回和重复子查询的静态启发式风险，不输出真实扫描行数、扫描字节数、执行耗时、返回行数或返回字节数。
+- 真实执行计划摘要、扫描量、耗时和返回体积只能来自 access parse / benchmark / Hetu EXPLAIN 这类真实引擎证据；当这些证据不可用或 skipped 时，页面必须展示 unavailable / skipped 语义，不得显示为 0 成本或低风险。
+
 `HARN-066` 补齐单条 SQL 解析失败诊断与行注释兼容：
 
 - 结构解析前处理必须剔除字符串与标识符外的 `--` 行尾注释，同时保留换行和字符长度，以维持 parser 失败定位和原 SQL 位置的一致性。

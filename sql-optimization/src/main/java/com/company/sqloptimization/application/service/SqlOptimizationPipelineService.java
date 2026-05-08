@@ -98,9 +98,26 @@ public class SqlOptimizationPipelineService {
     private static final Pattern DATE_PREDICATE_PATTERN =
         Pattern.compile("([A-Z0-9_\\.]*?(DATE|TIME|DT|DAY))[\\s]*(=|>|<|BETWEEN|IN)");
     private static final Set<String> AGGREGATE_FUNCTIONS =
-        new LinkedHashSet<String>(Arrays.asList("COUNT", "SUM", "AVG", "MIN", "MAX", "APPROX_DISTINCT", "GROUP_CONCAT"));
+        new LinkedHashSet<String>(Arrays.asList(
+            "COUNT", "SUM", "AVG", "MIN", "MAX", "APPROX_DISTINCT", "GROUP_CONCAT", "STRING_AGG", "LISTAGG"
+        ));
+    private static final Set<String> STRING_AGGREGATE_FUNCTIONS =
+        new LinkedHashSet<String>(Arrays.asList("GROUP_CONCAT", "STRING_AGG", "LISTAGG"));
+    private static final Set<String> STRING_CONCAT_FUNCTIONS =
+        new LinkedHashSet<String>(Arrays.asList("CONCAT", "CONCAT_WS"));
+    private static final Set<String> STRING_SCALAR_FUNCTIONS =
+        new LinkedHashSet<String>(Arrays.asList(
+            "LOWER", "UPPER", "SUBSTR", "SUBSTRING", "TRIM", "LTRIM", "RTRIM", "REPLACE", "REGEXP_REPLACE", "FORMAT"
+        ));
     private static final Set<String> BUILT_IN_SCALAR_FUNCTIONS =
-        new LinkedHashSet<String>(Arrays.asList("DATE_TRUNC", "CAST", "COALESCE", "IF", "NULLIF", "LOWER", "UPPER"));
+        new LinkedHashSet<String>(Arrays.asList(
+            "DATE_TRUNC", "CAST", "COALESCE", "IF", "NULLIF", "LOWER", "UPPER", "CONCAT", "CONCAT_WS",
+            "SUBSTR", "SUBSTRING", "TRIM", "LTRIM", "RTRIM", "REPLACE", "REGEXP_REPLACE", "FORMAT"
+        ));
+    private static final Pattern STRING_LIKE_PROJECTION_PATTERN =
+        Pattern.compile("(?i)(^|[._])(?:name|title|desc|description|comment|remark|note|text|content|address|email|phone|status|type|code|label)$");
+    private static final Pattern STRING_AGGREGATE_PATTERN =
+        Pattern.compile("(?i)\\b(GROUP_CONCAT|STRING_AGG|LISTAGG)\\s*\\(");
 
     @Value("${sql-optimization.parser.strategy:JSQLPARSER}")
     private String parserStrategy = "JSQLPARSER";
@@ -487,6 +504,10 @@ public class SqlOptimizationPipelineService {
             }
             if (setOperationList.getOrderByElements() != null) {
                 profile.orderByCount += setOperationList.getOrderByElements().size();
+                profile.orderByExpressionCount += setOperationList.getOrderByElements().size();
+                for (OrderByElement orderByElement : setOperationList.getOrderByElements()) {
+                    profile.recordOrderByKey(orderByElement == null ? null : orderByElement.getExpression());
+                }
             }
             if (setOperationList.getLimit() != null) {
                 profile.limitPresent = true;
@@ -517,6 +538,17 @@ public class SqlOptimizationPipelineService {
                         profile.recordExpression(expression);
                         if (expression instanceof SubSelect) {
                             profile.scalarSubqueryCount++;
+                        }
+                        if (isStringProjectionExpression(expression)) {
+                            profile.stringProjectionCount++;
+                        }
+                        if (containsStringConcatenationText(expression)) {
+                            profile.stringConcatenationCount++;
+                        }
+                        int textStringAggregates = countStringAggregateText(expression);
+                        if (textStringAggregates > 0) {
+                            profile.largeStringAggregateCount += textStringAggregates;
+                            profile.aggregateFunctionCount += textStringAggregates;
                         }
                         collectExpressionSignals(expression, profile.projectedColumns, profile.aggregateFunctions, profile);
                     }
@@ -550,13 +582,16 @@ public class SqlOptimizationPipelineService {
             if (plainSelect.getGroupBy() != null && plainSelect.getGroupBy().getGroupByExpressions() != null) {
                 profile.groupByCount += plainSelect.getGroupBy().getGroupByExpressions().size();
                 for (Expression expression : plainSelect.getGroupBy().getGroupByExpressions()) {
+                    profile.recordGroupByKey(expression);
                     profile.recordExpression(expression);
                     collectExpressionSignals(expression, null, profile.aggregateFunctions, profile);
                 }
             }
             if (plainSelect.getOrderByElements() != null) {
                 profile.orderByCount += plainSelect.getOrderByElements().size();
+                profile.orderByExpressionCount += plainSelect.getOrderByElements().size();
                 for (OrderByElement orderByElement : plainSelect.getOrderByElements()) {
+                    profile.recordOrderByKey(orderByElement == null ? null : orderByElement.getExpression());
                     profile.recordExpression(orderByElement);
                     collectOrderBySignals(orderByElement, profile);
                 }
@@ -628,6 +663,17 @@ public class SqlOptimizationPipelineService {
                 if (aggregateFunctions != null && AGGREGATE_FUNCTIONS.contains(upperName)) {
                     aggregateFunctions.add(upperName);
                 }
+                if (AGGREGATE_FUNCTIONS.contains(upperName)) {
+                    profile.aggregateFunctionCount++;
+                }
+                if (STRING_AGGREGATE_FUNCTIONS.contains(upperName)) {
+                    profile.largeStringAggregateCount++;
+                }
+                if (STRING_CONCAT_FUNCTIONS.contains(upperName)) {
+                    profile.stringConcatenationCount++;
+                } else if (function.toString().toUpperCase(Locale.ROOT).contains("CONCAT(")) {
+                    profile.stringConcatenationCount++;
+                }
                 if (!AGGREGATE_FUNCTIONS.contains(upperName) && !BUILT_IN_SCALAR_FUNCTIONS.contains(upperName)) {
                     profile.udfFunctions.add(upperName);
                 }
@@ -683,6 +729,9 @@ public class SqlOptimizationPipelineService {
         }
         if (expression instanceof BinaryExpression) {
             BinaryExpression binaryExpression = (BinaryExpression) expression;
+            if (isStringConcatenationExpression(binaryExpression)) {
+                profile.stringConcatenationCount++;
+            }
             collectExpressionSignals(binaryExpression.getLeftExpression(), projectedColumns, aggregateFunctions, profile);
             collectExpressionSignals(binaryExpression.getRightExpression(), projectedColumns, aggregateFunctions, profile);
             return;
@@ -690,6 +739,59 @@ public class SqlOptimizationPipelineService {
         if (expression instanceof Parenthesis) {
             collectExpressionSignals(((Parenthesis) expression).getExpression(), projectedColumns, aggregateFunctions, profile);
         }
+    }
+
+    private boolean isStringProjectionExpression(Expression expression) {
+        if (expression == null) {
+            return false;
+        }
+        if (expression instanceof StringValue) {
+            return true;
+        }
+        if (expression instanceof Column) {
+            return isStringLikeProjectionKey(((Column) expression).getColumnName());
+        }
+        if (expression instanceof Function) {
+            Function function = (Function) expression;
+            String name = function.getName() == null ? "" : function.getName().toUpperCase(Locale.ROOT);
+            return STRING_AGGREGATE_FUNCTIONS.contains(name)
+                || STRING_CONCAT_FUNCTIONS.contains(name)
+                || STRING_SCALAR_FUNCTIONS.contains(name)
+                || "CAST".equals(name) && expression.toString().toUpperCase(Locale.ROOT).contains("CHAR");
+        }
+        return expression.toString().contains("||");
+    }
+
+    private boolean isStringConcatenationExpression(BinaryExpression expression) {
+        return expression != null && expression.toString().contains("||");
+    }
+
+    private boolean containsStringConcatenationText(Object expression) {
+        if (expression == null) {
+            return false;
+        }
+        String text = expression.toString().toUpperCase(Locale.ROOT);
+        return text.contains("CONCAT(") || text.contains("||");
+    }
+
+    private int countStringAggregateText(Object expression) {
+        if (expression == null) {
+            return 0;
+        }
+        int count = 0;
+        Matcher matcher = STRING_AGGREGATE_PATTERN.matcher(expression.toString());
+        while (matcher.find()) {
+            count++;
+        }
+        return count;
+    }
+
+    private static boolean isStringLikeProjectionKey(String key) {
+        if (!StringUtils.hasText(key)) {
+            return false;
+        }
+        String normalized = key.replace("\"", "").replace("`", "").trim();
+        return STRING_LIKE_PROJECTION_PATTERN.matcher(normalized).find();
     }
 
     private void collectItemsListSignals(ItemsList itemsList,
@@ -715,6 +817,7 @@ public class SqlOptimizationPipelineService {
             return;
         }
         profile.subqueryCount++;
+        profile.recordSubquery(subSelect);
         profile.updateNestedSubqueryDepth();
         if (profile.referencesVisibleAlias(subSelect.toString())) {
             profile.correlatedSubqueryCount++;
@@ -855,6 +958,36 @@ public class SqlOptimizationPipelineService {
         }
         if (profile.repeatedTableScanCount > 0) {
             profile.warnings.add("REPEATED_TABLE_SCAN_RISK");
+        }
+        if (profile.orderByExpressionCount >= 3
+            || profile.duplicateOrderByKeyCount > 0
+            || (profile.orderByExpressionCount > 0 && profile.groupByCount > 0 && profile.aggregateFunctionCount >= 2)) {
+            profile.warnings.add("ORDER_BY_COMPLEXITY_RISK");
+        }
+        if (profile.joinCount >= 3
+            || (profile.joinCount >= 2 && (profile.joinCriteriaCount <= profile.joinCount || profile.subqueryCount > 0))) {
+            profile.warnings.add("JOIN_LATENCY_RISK");
+        }
+        if (profile.aggregateFunctionCount >= 4
+            || (profile.aggregateFunctionCount >= 2 && profile.groupByCount >= 3)
+            || (profile.aggregateFunctionCount >= 2 && profile.orderByExpressionCount > 0 && profile.groupByCount > 0)
+            || profile.largeStringAggregateCount > 0) {
+            profile.warnings.add("AGGREGATION_COMPLEXITY_RISK");
+        }
+        if (profile.groupByCount > 0 && profile.aggregateFunctionCount == 0) {
+            profile.warnings.add("GROUP_BY_WITHOUT_AGGREGATE_RISK");
+        }
+        if (profile.duplicateGroupByKeyCount > 0 || profile.duplicateOrderByKeyCount > 0) {
+            profile.warnings.add("DUPLICATE_GROUP_OR_ORDER_KEY_RISK");
+        }
+        if (profile.repeatedSubqueryCount > 0) {
+            profile.warnings.add("REPEATED_SUBQUERY_RISK");
+        }
+        if (profile.largeStringAggregateCount > 0
+            || profile.stringConcatenationCount >= 2
+            || profile.stringProjectionCount >= 4
+            || (!profile.limitPresent && profile.stringProjectionCount >= 2)) {
+            profile.warnings.add("LARGE_STRING_RESULT_RISK");
         }
         if (profile.subqueryCount + profile.joinCount >= 5 || profile.predicateCount >= 8) {
             profile.warnings.add("COMPLEX_QUERY_GRAPH_RISK");
@@ -1106,6 +1239,36 @@ public class SqlOptimizationPipelineService {
                     "HEAVY_JOIN_GRAPH",
                     "The parsed query joins multiple datasets and may need staged execution or stronger acceleration.",
                     "Review join keys, filter placement, and serving-layer alternatives before approval."
+                )
+            );
+        }
+        if (profile.getOrderByExpressionCount() >= 3 || profile.getDuplicateOrderByKeyCount() > 0) {
+            risks.add(
+                new OptimizationTaskRisk(
+                    "MEDIUM",
+                    "ORDER_BY_COMPLEXITY_RISK",
+                    "The parsed statement carries multiple or repeated ORDER BY keys.",
+                    "Reduce sort keys, remove duplicate ordering, or move sorted serving output behind validation."
+                )
+            );
+        }
+        if (profile.getJoinCount() >= 2 && (profile.getJoinCriteriaCount() <= profile.getJoinCount() || profile.getSubqueryCount() > 0)) {
+            risks.add(
+                new OptimizationTaskRisk(
+                    "HIGH",
+                    "JOIN_LATENCY_RISK",
+                    "The join graph has static signals that may produce long-running distributed execution.",
+                    "Confirm join keys, filter placement, and row movement with access parse or benchmark evidence."
+                )
+            );
+        }
+        if (profile.getAggregateFunctionCount() >= 4 || profile.getLargeStringAggregateCount() > 0) {
+            risks.add(
+                new OptimizationTaskRisk(
+                    "MEDIUM",
+                    "AGGREGATION_COMPLEXITY_RISK",
+                    "Aggregation count or string aggregation indicates heavier compute and memory pressure.",
+                    "Pre-aggregate reusable stages or review materialized serving objects before approval."
                 )
             );
         }
@@ -1548,6 +1711,7 @@ public class SqlOptimizationPipelineService {
         private void collectSelect(SqlSelect select, ParsedSqlProfile profile, boolean root) {
             if (!root) {
                 profile.subqueryCount++;
+                profile.recordSubquery(select);
                 profile.updateNestedSubqueryDepth();
                 profile.subqueryDepth++;
             }
@@ -1561,6 +1725,7 @@ public class SqlOptimizationPipelineService {
                 if (group != null) {
                     profile.groupByCount += group.size();
                     for (SqlNode item : group.getList()) {
+                        profile.recordGroupByKey(item);
                         profile.recordExpression(item);
                         collectExpression(item, profile);
                     }
@@ -1591,6 +1756,9 @@ public class SqlOptimizationPipelineService {
                 if (isStar(item)) {
                     profile.selectStar = true;
                     continue;
+                }
+                if (isCalciteStringProjection(item)) {
+                    profile.stringProjectionCount++;
                 }
                 profile.recordExpression(item);
                 collectExpression(item, profile);
@@ -1675,7 +1843,9 @@ public class SqlOptimizationPipelineService {
                 return;
             }
             profile.orderByCount += orderList.size();
+            profile.orderByExpressionCount += orderList.size();
             for (SqlNode item : orderList.getList()) {
+                profile.recordOrderByKey(item);
                 profile.recordExpression(item);
                 if (isRandomOrder(item)) {
                     profile.randomOrderCount++;
@@ -1733,8 +1903,15 @@ public class SqlOptimizationPipelineService {
             String upperName = functionName.toUpperCase(Locale.ROOT);
             if (AGGREGATE_FUNCTIONS.contains(upperName)) {
                 profile.aggregateFunctions.add(upperName);
+                profile.aggregateFunctionCount++;
+                if (STRING_AGGREGATE_FUNCTIONS.contains(upperName)) {
+                    profile.largeStringAggregateCount++;
+                }
             } else if (looksLikeScalarFunction(call) && !BUILT_IN_SCALAR_FUNCTIONS.contains(upperName)) {
                 profile.udfFunctions.add(upperName);
+            }
+            if (STRING_CONCAT_FUNCTIONS.contains(upperName)) {
+                profile.stringConcatenationCount++;
             }
         }
 
@@ -1787,6 +1964,23 @@ public class SqlOptimizationPipelineService {
             return text.contains("RAND(") || text.contains("RANDOM(");
         }
 
+        private boolean isCalciteStringProjection(SqlNode node) {
+            if (node == null) {
+                return false;
+            }
+            String text = node.toString();
+            String upperText = text.toUpperCase(Locale.ROOT);
+            if (upperText.contains("||") || upperText.contains("CONCAT(") || upperText.contains("GROUP_CONCAT(")
+                || upperText.contains("STRING_AGG(") || upperText.contains("LISTAGG(")) {
+                return true;
+            }
+            if (node instanceof SqlIdentifier) {
+                String[] parts = text.split("\\.");
+                return parts.length > 0 && isStringLikeProjectionKey(parts[parts.length - 1]);
+            }
+            return false;
+        }
+
         private int countCalcitePredicates(String expressionSql) {
             if (expressionSql == null || expressionSql.trim().isEmpty()) {
                 return 0;
@@ -1830,7 +2024,12 @@ public class SqlOptimizationPipelineService {
             }
             process(node.getQueryBody(), profile);
             if (node.getOrderBy().isPresent()) {
-                profile.orderByCount += node.getOrderBy().get().getSortItems().size();
+                List<io.trino.sql.tree.SortItem> sortItems = node.getOrderBy().get().getSortItems();
+                profile.orderByCount += sortItems.size();
+                profile.orderByExpressionCount += sortItems.size();
+                for (io.trino.sql.tree.SortItem sortItem : sortItems) {
+                    profile.recordOrderByKey(sortItem.getSortKey());
+                }
                 profile.recordExpression(node.getOrderBy().get());
             }
             if (node.getLimit().isPresent()) {
@@ -1854,7 +2053,11 @@ public class SqlOptimizationPipelineService {
                 process(node.getWhere().get(), profile);
             }
             if (node.getGroupBy().isPresent()) {
-                profile.groupByCount++;
+                List<io.trino.sql.tree.GroupingElement> groupingElements = node.getGroupBy().get().getGroupingElements();
+                profile.groupByCount += groupingElements.size();
+                for (io.trino.sql.tree.GroupingElement groupingElement : groupingElements) {
+                    profile.recordGroupByKey(groupingElement);
+                }
                 profile.recordExpression(node.getGroupBy().get());
                 process(node.getGroupBy().get(), profile);
             }
@@ -1864,7 +2067,12 @@ public class SqlOptimizationPipelineService {
                 process(node.getHaving().get(), profile);
             }
             if (node.getOrderBy().isPresent()) {
-                profile.orderByCount += node.getOrderBy().get().getSortItems().size();
+                List<io.trino.sql.tree.SortItem> sortItems = node.getOrderBy().get().getSortItems();
+                profile.orderByCount += sortItems.size();
+                profile.orderByExpressionCount += sortItems.size();
+                for (io.trino.sql.tree.SortItem sortItem : sortItems) {
+                    profile.recordOrderByKey(sortItem.getSortKey());
+                }
                 profile.recordExpression(node.getOrderBy().get());
                 process(node.getOrderBy().get(), profile);
             }
@@ -1900,6 +2108,9 @@ public class SqlOptimizationPipelineService {
 
         @Override
         protected Void visitSingleColumn(SingleColumn node, ParsedSqlProfile profile) {
+            if (isTrinoStringProjection(node.getExpression())) {
+                profile.stringProjectionCount++;
+            }
             profile.recordExpression(node.getExpression());
             process(node.getExpression(), profile);
             return null;
@@ -1917,8 +2128,15 @@ public class SqlOptimizationPipelineService {
             String functionName = name == null ? "" : name.toString().toUpperCase(Locale.ROOT);
             if (AGGREGATE_FUNCTIONS.contains(functionName)) {
                 profile.aggregateFunctions.add(functionName);
+                profile.aggregateFunctionCount++;
+                if (STRING_AGGREGATE_FUNCTIONS.contains(functionName)) {
+                    profile.largeStringAggregateCount++;
+                }
             } else if (!BUILT_IN_SCALAR_FUNCTIONS.contains(functionName)) {
                 profile.udfFunctions.add(functionName);
+            }
+            if (STRING_CONCAT_FUNCTIONS.contains(functionName)) {
+                profile.stringConcatenationCount++;
             }
             if (node.getWindow().isPresent()) {
                 profile.windowFunctionCount++;
@@ -1938,7 +2156,22 @@ public class SqlOptimizationPipelineService {
         @Override
         protected Void visitSubqueryExpression(io.trino.sql.tree.SubqueryExpression node, ParsedSqlProfile profile) {
             profile.subqueryCount++;
+            profile.recordSubquery(node);
             return visitNode(node, profile);
+        }
+
+        private boolean isTrinoStringProjection(io.trino.sql.tree.Expression expression) {
+            if (expression == null) {
+                return false;
+            }
+            String text = expression.toString();
+            String upperText = text.toUpperCase(Locale.ROOT);
+            if (upperText.contains("||") || upperText.contains("CONCAT(") || upperText.contains("GROUP_CONCAT(")
+                || upperText.contains("STRING_AGG(") || upperText.contains("LISTAGG(")) {
+                return true;
+            }
+            String[] parts = text.split("\\.");
+            return parts.length > 0 && isStringLikeProjectionKey(parts[parts.length - 1]);
         }
 
         private static int countTrinoPredicates(String expressionSql) {
@@ -1979,6 +2212,9 @@ public class SqlOptimizationPipelineService {
         private final List<String> warnings = new ArrayList<String>();
         private final LinkedHashMap<String, Integer> expressionFrequency = new LinkedHashMap<String, Integer>();
         private final LinkedHashMap<String, Integer> tableScanFrequency = new LinkedHashMap<String, Integer>();
+        private final LinkedHashMap<String, Integer> groupByKeyFrequency = new LinkedHashMap<String, Integer>();
+        private final LinkedHashMap<String, Integer> orderByKeyFrequency = new LinkedHashMap<String, Integer>();
+        private final LinkedHashMap<String, Integer> subqueryFrequency = new LinkedHashMap<String, Integer>();
         private final Deque<Set<String>> aliasScopes = new ArrayDeque<Set<String>>();
         private String parserEngine = "JSQLPARSER";
         private int projectionCount;
@@ -1987,6 +2223,14 @@ public class SqlOptimizationPipelineService {
         private int joinCriteriaCount;
         private int groupByCount;
         private int orderByCount;
+        private int orderByExpressionCount;
+        private int duplicateOrderByKeyCount;
+        private int duplicateGroupByKeyCount;
+        private int aggregateFunctionCount;
+        private int stringProjectionCount;
+        private int stringConcatenationCount;
+        private int largeStringAggregateCount;
+        private int repeatedSubqueryCount;
         private int windowFunctionCount;
         private int subqueryCount;
         private int scalarSubqueryCount;
@@ -2022,6 +2266,15 @@ public class SqlOptimizationPipelineService {
             payload.put("joinTypes", new ArrayList<String>(joinTypes));
             payload.put("groupByCount", Integer.valueOf(groupByCount));
             payload.put("orderByCount", Integer.valueOf(orderByCount));
+            payload.put("orderByExpressionCount", Integer.valueOf(orderByExpressionCount));
+            payload.put("duplicateOrderByKeyCount", Integer.valueOf(duplicateOrderByKeyCount));
+            payload.put("duplicateGroupByKeyCount", Integer.valueOf(duplicateGroupByKeyCount));
+            payload.put("groupByWithoutAggregate", Boolean.valueOf(isGroupByWithoutAggregate()));
+            payload.put("aggregateFunctionCount", Integer.valueOf(aggregateFunctionCount));
+            payload.put("stringProjectionCount", Integer.valueOf(stringProjectionCount));
+            payload.put("stringConcatenationCount", Integer.valueOf(stringConcatenationCount));
+            payload.put("largeStringAggregateCount", Integer.valueOf(largeStringAggregateCount));
+            payload.put("repeatedSubqueryCount", Integer.valueOf(repeatedSubqueryCount));
             payload.put("windowFunctionCount", Integer.valueOf(windowFunctionCount));
             payload.put("udfFunctions", new ArrayList<String>(udfFunctions));
             payload.put("subqueryCount", Integer.valueOf(subqueryCount));
@@ -2051,9 +2304,13 @@ public class SqlOptimizationPipelineService {
             payload.put("joinCount", Integer.valueOf(joinCount));
             payload.put("predicateCount", Integer.valueOf(predicateCount));
             payload.put("groupByCount", Integer.valueOf(groupByCount));
+            payload.put("aggregateFunctionCount", Integer.valueOf(aggregateFunctionCount));
+            payload.put("stringProjectionCount", Integer.valueOf(stringProjectionCount));
+            payload.put("largeStringAggregateCount", Integer.valueOf(largeStringAggregateCount));
             payload.put("windowFunctionCount", Integer.valueOf(windowFunctionCount));
             payload.put("udfFunctions", new ArrayList<String>(udfFunctions));
             payload.put("subqueryCount", Integer.valueOf(subqueryCount));
+            payload.put("repeatedSubqueryCount", Integer.valueOf(repeatedSubqueryCount));
             payload.put("correlatedSubqueryCount", Integer.valueOf(correlatedSubqueryCount));
             payload.put("orPredicateCount", Integer.valueOf(orPredicateCount));
             payload.put("aggregateFunctions", new ArrayList<String>(aggregateFunctions));
@@ -2115,6 +2372,42 @@ public class SqlOptimizationPipelineService {
             return orderByCount;
         }
 
+        public int getOrderByExpressionCount() {
+            return orderByExpressionCount;
+        }
+
+        public int getDuplicateOrderByKeyCount() {
+            return duplicateOrderByKeyCount;
+        }
+
+        public int getDuplicateGroupByKeyCount() {
+            return duplicateGroupByKeyCount;
+        }
+
+        public boolean isGroupByWithoutAggregate() {
+            return groupByCount > 0 && aggregateFunctionCount == 0;
+        }
+
+        public int getAggregateFunctionCount() {
+            return aggregateFunctionCount;
+        }
+
+        public int getStringProjectionCount() {
+            return stringProjectionCount;
+        }
+
+        public int getStringConcatenationCount() {
+            return stringConcatenationCount;
+        }
+
+        public int getLargeStringAggregateCount() {
+            return largeStringAggregateCount;
+        }
+
+        public int getRepeatedSubqueryCount() {
+            return repeatedSubqueryCount;
+        }
+
         public int getWindowFunctionCount() {
             return windowFunctionCount;
         }
@@ -2164,7 +2457,8 @@ public class SqlOptimizationPipelineService {
         }
 
         public int getComplexGraphScore() {
-            return subqueryCount + joinCount + orPredicateCount + functionWrappedPredicateCount + randomOrderCount;
+            return subqueryCount + joinCount + orPredicateCount + functionWrappedPredicateCount + randomOrderCount
+                + repeatedSubqueryCount + largeStringAggregateCount;
         }
 
         public int getRepeatedExpressionCount() {
@@ -2238,6 +2532,9 @@ public class SqlOptimizationPipelineService {
                     repeatedTableScanCount += count.intValue() - 1;
                 }
             }
+            duplicateGroupByKeyCount = repeatedCount(groupByKeyFrequency);
+            duplicateOrderByKeyCount = repeatedCount(orderByKeyFrequency);
+            repeatedSubqueryCount = repeatedCount(subqueryFrequency);
         }
 
         private void recordTableScan(String table) {
@@ -2250,6 +2547,48 @@ public class SqlOptimizationPipelineService {
             }
             Integer current = tableScanFrequency.get(key);
             tableScanFrequency.put(key, Integer.valueOf(current == null ? 1 : current.intValue() + 1));
+        }
+
+        private void recordGroupByKey(Object expression) {
+            recordFrequency(groupByKeyFrequency, normalizeProfileKey(expression));
+        }
+
+        private void recordOrderByKey(Object expression) {
+            recordFrequency(orderByKeyFrequency, normalizeProfileKey(expression));
+        }
+
+        private void recordSubquery(Object subquery) {
+            recordFrequency(subqueryFrequency, normalizeProfileKey(subquery));
+        }
+
+        private void recordFrequency(Map<String, Integer> frequency, String key) {
+            if (frequency == null || key == null || key.isEmpty()) {
+                return;
+            }
+            Integer current = frequency.get(key);
+            frequency.put(key, Integer.valueOf(current == null ? 1 : current.intValue() + 1));
+        }
+
+        private int repeatedCount(Map<String, Integer> frequency) {
+            int repeated = 0;
+            for (Integer count : frequency.values()) {
+                if (count != null && count.intValue() > 1) {
+                    repeated += count.intValue() - 1;
+                }
+            }
+            return repeated;
+        }
+
+        private String normalizeProfileKey(Object value) {
+            if (value == null) {
+                return "";
+            }
+            return value.toString()
+                .replace('\n', ' ')
+                .replace('\r', ' ')
+                .trim()
+                .replaceAll("\\s+", " ")
+                .toUpperCase(Locale.ROOT);
         }
 
         private void pushAliasScope(Set<String> aliases) {

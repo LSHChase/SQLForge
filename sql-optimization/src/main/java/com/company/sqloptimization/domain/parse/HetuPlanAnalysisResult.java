@@ -46,7 +46,6 @@ public class HetuPlanAnalysisResult {
         result.setStatus(PlanAnalysisStatus.SKIPPED);
         result.setDatasourceCode(datasourceCode);
         result.setFailureReason(failureReason);
-        result.setCostMs(Long.valueOf(0L));
         result.setEvidence(evidence);
         return result;
     }

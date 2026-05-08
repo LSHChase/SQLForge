@@ -25,6 +25,15 @@ public class StructureParseFeatureSummaryVO {
     private Integer leadingWildcardLikeCount;
     private Integer randomOrderCount;
     private Integer repeatedTableScanCount;
+    private Integer orderByExpressionCount;
+    private Integer duplicateOrderByKeyCount;
+    private Integer duplicateGroupByKeyCount;
+    private Boolean groupByWithoutAggregate;
+    private Integer aggregateFunctionCount;
+    private Integer stringProjectionCount;
+    private Integer stringConcatenationCount;
+    private Integer largeStringAggregateCount;
+    private Integer repeatedSubqueryCount;
     private List<String> evidence;
 
     public String getParserEngine() { return parserEngine; }
@@ -69,6 +78,24 @@ public class StructureParseFeatureSummaryVO {
     public void setRandomOrderCount(Integer randomOrderCount) { this.randomOrderCount = randomOrderCount; }
     public Integer getRepeatedTableScanCount() { return repeatedTableScanCount; }
     public void setRepeatedTableScanCount(Integer repeatedTableScanCount) { this.repeatedTableScanCount = repeatedTableScanCount; }
+    public Integer getOrderByExpressionCount() { return orderByExpressionCount; }
+    public void setOrderByExpressionCount(Integer orderByExpressionCount) { this.orderByExpressionCount = orderByExpressionCount; }
+    public Integer getDuplicateOrderByKeyCount() { return duplicateOrderByKeyCount; }
+    public void setDuplicateOrderByKeyCount(Integer duplicateOrderByKeyCount) { this.duplicateOrderByKeyCount = duplicateOrderByKeyCount; }
+    public Integer getDuplicateGroupByKeyCount() { return duplicateGroupByKeyCount; }
+    public void setDuplicateGroupByKeyCount(Integer duplicateGroupByKeyCount) { this.duplicateGroupByKeyCount = duplicateGroupByKeyCount; }
+    public Boolean getGroupByWithoutAggregate() { return groupByWithoutAggregate; }
+    public void setGroupByWithoutAggregate(Boolean groupByWithoutAggregate) { this.groupByWithoutAggregate = groupByWithoutAggregate; }
+    public Integer getAggregateFunctionCount() { return aggregateFunctionCount; }
+    public void setAggregateFunctionCount(Integer aggregateFunctionCount) { this.aggregateFunctionCount = aggregateFunctionCount; }
+    public Integer getStringProjectionCount() { return stringProjectionCount; }
+    public void setStringProjectionCount(Integer stringProjectionCount) { this.stringProjectionCount = stringProjectionCount; }
+    public Integer getStringConcatenationCount() { return stringConcatenationCount; }
+    public void setStringConcatenationCount(Integer stringConcatenationCount) { this.stringConcatenationCount = stringConcatenationCount; }
+    public Integer getLargeStringAggregateCount() { return largeStringAggregateCount; }
+    public void setLargeStringAggregateCount(Integer largeStringAggregateCount) { this.largeStringAggregateCount = largeStringAggregateCount; }
+    public Integer getRepeatedSubqueryCount() { return repeatedSubqueryCount; }
+    public void setRepeatedSubqueryCount(Integer repeatedSubqueryCount) { this.repeatedSubqueryCount = repeatedSubqueryCount; }
     public List<String> getEvidence() { return evidence; }
     public void setEvidence(List<String> evidence) { this.evidence = evidence; }
 }
