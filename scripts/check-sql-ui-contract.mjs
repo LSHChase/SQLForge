@@ -36,6 +36,14 @@ for (const tokenClass of ['sql-token-keyword', 'sql-token-literal', 'sql-token-c
     errors.push(`highlightSql must emit ${tokenClass} markup.`)
   }
 }
+const mixedSql = "select 名称, amount from orders where city = '北京' and note = '@@@@'"
+const highlightedMixedSql = highlightSql(mixedSql)
+if (!highlightedMixedSql.includes('名称') || !highlightedMixedSql.includes('sql-token-keyword')) {
+  errors.push('highlightSql must preserve mixed Chinese/English SQL while still highlighting SQL keywords.')
+}
+if (!highlightedMixedSql.includes('&#39;北京&#39;') || !highlightedMixedSql.includes('&#39;@@@@&#39;')) {
+  errors.push('highlightSql must preserve Chinese and symbol content inside quoted literals.')
+}
 
 const requiredFiles = {
   'src/views/common/SqlEditorField.vue': [
@@ -93,6 +101,29 @@ for (const [relativePath, needles] of Object.entries(requiredFiles)) {
     if (!content.includes(needle)) {
       errors.push(`${relativePath} is missing ${needle}.`)
     }
+  }
+}
+
+const sqlEditorField = read('src/views/common/SqlEditorField.vue')
+if (/<pre[^>]*sql-editor-field__highlight[^>]*>\s+<code/.test(sqlEditorField)) {
+  errors.push('SqlEditorField highlight pre must not inject leading template whitespace before code.')
+}
+if (!/<pre[^>]*sql-editor-field__highlight[^>]*><code\s+v-html="highlightedSql"\s*\/><\/pre>/.test(sqlEditorField)) {
+  errors.push('SqlEditorField highlight pre/code must stay adjacent so line one aligns with the textarea.')
+}
+const sharedEditorStyle = sqlEditorField.match(
+  /\.sql-editor-field__highlight,\n\.sql-editor-field__textarea\s*\{([\s\S]*?)\n\}/
+)?.[1] ?? ''
+for (const declaration of [
+  'box-sizing: border-box',
+  'font-family:',
+  'line-height:',
+  'white-space: pre-wrap',
+  'word-break: break-word',
+  'overflow-wrap: break-word'
+]) {
+  if (!sharedEditorStyle.includes(declaration)) {
+    errors.push(`SqlEditorField highlight and textarea shared style is missing ${declaration}.`)
   }
 }
 

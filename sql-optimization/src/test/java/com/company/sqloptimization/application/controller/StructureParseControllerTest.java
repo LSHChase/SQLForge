@@ -1,5 +1,6 @@
 package com.company.sqloptimization.application.controller;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
@@ -234,6 +235,33 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.featureSummary.tableCount").value(2))
             .andExpect(jsonPath("$.featureSummary.joinCount").value(1))
             .andExpect(jsonPath("$.riskTags").value(hasItem("SQL_SYNTAX_INVALID")));
+    }
+
+    @Test
+    void shouldIgnoreDiagnosticNoiseInInvalidSqlFallbackScan() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"@@@@ 中文 SELECT * FROM orders o "
+                    + "JOIN customers c ON o.customer_id = c.id "
+                    + "WHERE o.dt = DATE '2026-05-08'\","
+                    + "\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("INVALID"))
+            .andExpect(jsonPath("$.sqlType").value("SELECT"))
+            .andExpect(jsonPath("$.failureToken").value("SQL_SYNTAX_INVALID"))
+            .andExpect(jsonPath("$.failureReason").value(not(containsString("@"))))
+            .andExpect(jsonPath("$.failureReason").value(not(containsString("中文"))))
+            .andExpect(jsonPath("$.failureSnippet").value(not(containsString("@"))))
+            .andExpect(jsonPath("$.failureSnippet").value(not(containsString("中文"))))
+            .andExpect(jsonPath("$.logicalObjectHits[*].objectKey").value(hasItem("TABLE:orders")))
+            .andExpect(jsonPath("$.logicalObjectHits[*].objectKey").value(hasItem("TABLE:customers")))
+            .andExpect(jsonPath("$.featureSummary.parserEngine").value("HEURISTIC_FALLBACK"))
+            .andExpect(jsonPath("$.featureSummary.tableCount").value(2))
+            .andExpect(jsonPath("$.featureSummary.joinCount").value(1))
+            .andExpect(jsonPath("$.featureSummary.predicateCount").value(1))
+            .andExpect(jsonPath("$.queryDateSummary.queryDateStart").value("2026-05-08"))
+            .andExpect(jsonPath("$.issues[0].detail").value(not(containsString("@"))))
+            .andExpect(jsonPath("$.issues[0].detail").value(not(containsString("中文"))));
     }
 
     @Test
@@ -495,6 +523,33 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.featureSummary.subqueryCount").value(0))
             .andExpect(jsonPath("$.riskTags").value(not(hasItem("COMPLEX_QUERY_GRAPH_RISK"))))
             .andExpect(jsonPath("$.riskChecklist[*].riskCode").value(not(hasItem("COMPLEX_QUERY_GRAPH_RISK"))));
+    }
+
+    @Test
+    void shouldDescribeLargeJoinPairRiskAsStaticEvidenceRisk() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT o.id FROM orders o "
+                    + "JOIN customers c ON o.customer_id = c.id "
+                    + "JOIN regions r ON c.region_id = r.id "
+                    + "WHERE o.dt = DATE '2026-05-08' LIMIT 20\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("LARGE_JOIN_PAIR_RISK")))
+            .andExpect(jsonPath("$.issues[?(@.issueCode == 'LARGE_JOIN_PAIR_RISK')].summary")
+                .value(hasItem("The statement has limited static evidence for join conditions or selectivity.")))
+            .andExpect(jsonPath("$.issues[?(@.issueCode == 'LARGE_JOIN_PAIR_RISK')].detail")
+                .value(hasItem(not(containsString("large table")))))
+            .andExpect(jsonPath("$.issues[?(@.issueCode == 'LARGE_JOIN_PAIR_RISK')].detail")
+                .value(hasItem(not(containsString("large-table")))))
+            .andExpect(jsonPath("$.issues[?(@.issueCode == 'LARGE_JOIN_PAIR_RISK')].suggestedAction")
+                .value(hasItem(containsString("Access Parse or benchmark"))))
+            .andExpect(jsonPath("$.riskChecklist[?(@.riskCode == 'LARGE_TABLE_JOIN_RISK')].summary")
+                .value(hasItem("Static join evidence risk")))
+            .andExpect(jsonPath("$.riskChecklist[?(@.riskCode == 'LARGE_TABLE_JOIN_RISK')].suggestedAction")
+                .value(hasItem(containsString("Access Parse or benchmark"))))
+            .andExpect(jsonPath("$.riskChecklist[?(@.riskCode == 'LARGE_TABLE_JOIN_RISK')].summary")
+                .value(hasItem(not(containsString("Large table")))));
     }
 
     @Test

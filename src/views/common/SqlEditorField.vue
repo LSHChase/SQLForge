@@ -80,10 +80,9 @@ const syncScroll = event => {
       </div>
     </div>
     <div class="sql-editor-field__shell" :style="{ minHeight, maxHeight }">
-      <pre ref="highlightRef" class="sql-editor-field__highlight" aria-hidden="true">
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <code v-html="highlightedSql" />
-      </pre>
+      <!-- eslint-disable vue/no-v-html -->
+      <pre ref="highlightRef" class="sql-editor-field__highlight" aria-hidden="true"><code v-html="highlightedSql" /></pre>
+      <!-- eslint-enable vue/no-v-html -->
       <textarea
         class="sql-editor-field__textarea"
         :value="displayValue"
@@ -141,16 +140,19 @@ const syncScroll = event => {
 .sql-editor-field__textarea {
   position: absolute;
   inset: 0;
+  box-sizing: border-box;
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 14px 16px;
   border: 0;
-  font-family: var(--sqlforge-font-mono);
+  font-family: var(--sqlforge-font-mono), "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 13px;
+  font-variant-ligatures: none;
   line-height: 1.65;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  word-break: break-word;
+  overflow-wrap: break-word;
   tab-size: 2;
 }
 
@@ -158,6 +160,18 @@ const syncScroll = event => {
   overflow: hidden;
   color: var(--sqlforge-text-primary);
   pointer-events: none;
+}
+
+.sql-editor-field__highlight code {
+  display: block;
+  box-sizing: border-box;
+  min-height: 100%;
+  font: inherit;
+  line-height: inherit;
+  white-space: inherit;
+  word-break: inherit;
+  overflow-wrap: inherit;
+  tab-size: inherit;
 }
 
 .sql-editor-field__textarea {

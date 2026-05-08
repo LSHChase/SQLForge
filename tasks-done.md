@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-092: SQL static parse and editor alignment fixes
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `fix(sql-optimization): close HARN-092 static parse diagnostics`
+- Priority: 1
+- Depends on: N/A
+- Scope: Fix static SQL diagnostic noise handling, conservative LARGE_JOIN_PAIR_RISK copy, and SqlEditorField highlight/input alignment without public API changes.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-092`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复静态结构解析 fallback/diagnostic scan 对 @@@@ 与中文噪声的处理，保守化 LARGE_JOIN_PAIR_RISK issue/checklist 文案，并修复 SqlEditorField 高亮层首行偏移与混排对齐。
+  - Validation evidence: mvn -B -pl sql-optimization -am test -DskipITs; node scripts/check-sql-ui-contract.mjs; npm run build; python3 scripts/foreman.py validate HARN-092; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: None.
+  - Next step: No immediate follow-up.
+
 ### HARN-091: 补齐 SQL 结构解析风险分析
 
 - Status: done
