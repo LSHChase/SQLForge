@@ -48,6 +48,7 @@ const requiredTokens = [
   'issue-scene-help',
   'riskDisplayText',
   'REPEATED_TABLE_SCAN_RISK',
+  'SQL_TOO_LONG',
   'REPORT_SQL_MERGE_CANDIDATE',
   'mergeCandidateReportCount',
   'mergeCandidateReason',

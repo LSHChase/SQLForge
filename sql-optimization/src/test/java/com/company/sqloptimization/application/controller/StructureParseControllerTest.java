@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -190,15 +191,18 @@ class StructureParseControllerTest {
     void shouldReturnInvalidStructureParseInsteadOfFailingHard() throws Exception {
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"sqlText\":\"SELECT FROM\",\"datasourceCode\":\"hetu_main\"}"))
+                .content("{\"sqlText\":\"SELECT FROM orders WHERE dt = '2026-05-08'\",\"datasourceCode\":\"hetu_main\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.parseType").value("STRUCTURE"))
             .andExpect(jsonPath("$.syntaxStatus").value("INVALID"))
-            .andExpect(jsonPath("$.sqlType").value("UNKNOWN"))
+            .andExpect(jsonPath("$.sqlType").value("SELECT"))
             .andExpect(jsonPath("$.failureReason").isNotEmpty())
             .andExpect(jsonPath("$.failureLine").value(1))
             .andExpect(jsonPath("$.failureColumn").value(8))
             .andExpect(jsonPath("$.failureToken").value("FROM"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].objectKey").value("TABLE:orders"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].matchSource").value("HEURISTIC_FALLBACK"))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("SQL_SYNTAX_INVALID")))
             .andExpect(jsonPath("$.issues[0].issueCode").value("SQL_SYNTAX_INVALID"))
             .andExpect(jsonPath("$.issues[0].issueDomain").value("STRUCTURE"))
             .andExpect(jsonPath("$.issues[0].failureLine").value(1))
@@ -206,9 +210,62 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.issues[0].failureToken").value("FROM"))
             .andExpect(jsonPath("$.issues[0].failureSnippet").isNotEmpty())
             .andExpect(jsonPath("$.intentProfile.confidence").value("LOW"))
+            .andExpect(jsonPath("$.featureSummary.parserEngine").value("HEURISTIC_FALLBACK"))
+            .andExpect(jsonPath("$.featureSummary.tableCount").value(1))
+            .andExpect(jsonPath("$.featureSummary.predicateCount").value(1))
             .andExpect(jsonPath("$.estimatedResourceCost.overall").value("UNKNOWN"))
-            .andExpect(jsonPath("$.queryDateSummary.queryDateStatus").value("UNRESOLVED"))
+            .andExpect(jsonPath("$.queryDateSummary.queryDateStart").value("2026-05-08"))
+            .andExpect(jsonPath("$.queryDateSummary.queryDateStatus").value("RESOLVED"))
             .andExpect(jsonPath("$.rewriteCandidates").isEmpty());
+    }
+
+    @Test
+    void shouldReturnHeuristicJoinEvidenceForIncompleteInvalidSql() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT * FROM orders o JOIN customers c ON o.customer_id =\","
+                    + "\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("INVALID"))
+            .andExpect(jsonPath("$.sqlType").value("SELECT"))
+            .andExpect(jsonPath("$.logicalObjectHits[*].objectKey").value(hasItem("TABLE:orders")))
+            .andExpect(jsonPath("$.logicalObjectHits[*].objectKey").value(hasItem("TABLE:customers")))
+            .andExpect(jsonPath("$.featureSummary.parserEngine").value("HEURISTIC_FALLBACK"))
+            .andExpect(jsonPath("$.featureSummary.tableCount").value(2))
+            .andExpect(jsonPath("$.featureSummary.joinCount").value(1))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("SQL_SYNTAX_INVALID")));
+    }
+
+    @Test
+    void shouldReturnBoundedDiagnosticsForSqlOverDefaultLimit() throws Exception {
+        String sqlText = overlongSql();
+        MvcResult result = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":" + JsonTestUtils.toJsonString(sqlText) + ",\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("INVALID"))
+            .andExpect(jsonPath("$.sqlType").value("SELECT"))
+            .andExpect(jsonPath("$.failureReason").value("SQL is too long; syntax parser failed or was skipped for bounded diagnostics."))
+            .andExpect(jsonPath("$.failureToken").value("SQL_TOO_LONG"))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("SQL_SYNTAX_INVALID")))
+            .andExpect(jsonPath("$.riskTags").value(hasItem("SQL_TOO_LONG")))
+            .andExpect(jsonPath("$.issues[*].issueCode").value(hasItem("SQL_TOO_LONG")))
+            .andExpect(jsonPath("$.logicalObjectHits[0].objectKey").value("TABLE:orders"))
+            .andExpect(jsonPath("$.featureSummary.parserEngine").value("HEURISTIC_FALLBACK"))
+            .andExpect(jsonPath("$.featureSummary.tableCount").value(1))
+            .andExpect(jsonPath("$.featureSummary.predicateCount").value(1))
+            .andExpect(jsonPath("$.queryDateSummary.queryDateStart").value("2026-05-08"))
+            .andReturn();
+
+        String failureSnippet = JsonTestUtils.readValue(result.getResponse().getContentAsString(), "$.failureSnippet");
+        String failureDetail = new com.fasterxml.jackson.databind.ObjectMapper()
+            .readTree(result.getResponse().getContentAsString())
+            .get("issues")
+            .get(1)
+            .get("detail")
+            .asText();
+        assertTrue(failureSnippet.length() <= 120);
+        assertTrue(failureDetail.length() <= 512);
     }
 
     @Test
@@ -303,6 +360,21 @@ class StructureParseControllerTest {
 
         String parseTaskId = JsonTestUtils.readValue(submitResult.getResponse().getContentAsString(), "$.parseTaskId");
         waitForCombinedStatus(parseTaskId, "PARTIAL_SUCCEEDED");
+    }
+
+    @Test
+    void shouldExposeHeuristicFallbackEvidenceInCombinedInvalidParse() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/combined"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT FROM orders WHERE dt = '2026-05-08'\","
+                    + "\"datasourceCode\":\"hetu_main\",\"connectionRequired\":false}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("FAILED"))
+            .andExpect(jsonPath("$.degradeReason").value("STRUCTURE_PARSE_INVALID"))
+            .andExpect(jsonPath("$.structureParse.syntaxStatus").value("INVALID"))
+            .andExpect(jsonPath("$.structureParse.featureSummary.parserEngine").value("HEURISTIC_FALLBACK"))
+            .andExpect(jsonPath("$.structureParse.logicalObjectHits[*].objectKey").value(hasItem("TABLE:orders")))
+            .andExpect(jsonPath("$.structureParse.riskTags").value(hasItem("SQL_SYNTAX_INVALID")));
     }
 
     @Test
@@ -478,6 +550,17 @@ class StructureParseControllerTest {
             + "AND oi2.product_id IN (SELECT product_id FROM products WHERE category LIKE '%电子%')))\n"
             + "OR c.customer_id IN (SELECT customer_id FROM orders WHERE order_amount > 10000)\n"
             + "ORDER BY RAND() LIMIT 10";
+    }
+
+    private String overlongSql() {
+        String prefix = "SELECT * FROM orders WHERE dt = '2026-05-08' ";
+        StringBuilder builder = new StringBuilder(10 * 1024 * 1024 + 128);
+        builder.append(prefix).append("/*");
+        while (builder.length() <= 10 * 1024 * 1024) {
+            builder.append(" bounded diagnostics filler ");
+        }
+        builder.append("*/");
+        return builder.toString();
     }
 
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {

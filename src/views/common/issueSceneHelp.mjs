@@ -9,6 +9,11 @@ const ISSUE_SCENE_TRANSLATIONS = {
     evidence: '结构解析器无法识别当前 SQL，后续 Access Parse 与治理判断不能完整展开。',
     suggestedAction: '先根据行、列、token 和短片段修正 SQL 语法后再重新解析。'
   },
+  SQL_TOO_LONG: {
+    summary: 'SQL 文本过长',
+    evidence: 'SQL 超过结构解析默认长度上限，系统只返回有界的启发式结构诊断。',
+    suggestedAction: '拆分 SQL、缩短生成语句，或在治理确认后调整解析长度上限。'
+  },
   FULL_TABLE_SCAN_RISK: {
     summary: '全表扫描风险',
     evidence: '当前 SQL 缺少足够的过滤条件，可能触发大范围扫描。',

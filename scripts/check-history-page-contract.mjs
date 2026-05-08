@@ -74,6 +74,7 @@ const requiredTokens = [
   'issueSceneHelpText',
   'issueSceneCodesForItem',
   'issue-scene-help',
+  'SQL_TOO_LONG',
   'issue-scene-code-button',
   'aria-label="issue scene help"',
   'itemTotalCount',

@@ -47,6 +47,7 @@ const requiredTokens = [
   'riskDisplayText(',
   'sharedRiskDisplayText',
   'REPEATED_TABLE_SCAN_RISK',
+  'SQL_TOO_LONG',
   '风险含义：',
   '原因：',
   '建议：',

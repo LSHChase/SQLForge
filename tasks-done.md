@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-090: Invalid SQL fallback structure parsing
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `feat(sql-optimization): HARN-090 add invalid SQL fallback diagnostics`
+- Priority: 1
+- Depends on: N/A
+- Scope: Return bounded best-effort structure diagnostics for incomplete, syntactically invalid, and overlong SQL across structure parse, combined parse, batch SQL parsing, and report import parsing without changing request contracts.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-090`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added bounded heuristic structure diagnostics for invalid and overlong SQL across structure parse, combined parse, batch SQL parsing, and report import parsing, including SQL_TOO_LONG issue/help metadata and static contract coverage.
+  - Validation evidence: mvn -pl sql-optimization -Dtest=StructureParseControllerTest,ParseBatchControllerTest,ReportBatchControllerTest,ReportBatchApplicationServiceTest test; mvn -pl sql-optimization -Dtest=StructureParseContractTest,ParseBatchApplicationServiceTest,ReportBatchParseStatisticsAssemblerTest,StructureParseResultTest,StructureParsePriorityScorerTest,ParseBatchPersistenceSchemaMappingTest test; mvn -pl sql-optimization -Dtest=StructureParseControllerTest test; node scripts/check-parse-workbench-contract.mjs; node scripts/check-batch-import-contract.mjs; node scripts/check-history-detail-contract.mjs; node scripts/check-history-page-contract.mjs; git diff --check; python3 scripts/foreman.py validate HARN-090; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Heuristic fallback evidence is intentionally best-effort and overlong SQL diagnostics scan only a bounded prefix to keep parser responses and persisted summaries readable.
+  - Next step: Monitor invalid SQL samples for additional object-token forms and extend the heuristic patterns under a follow-up task if production evidence requires it.
+
 ### HARN-089: Auto-create rewrite recommendations from parse issues
 
 - Status: done

@@ -58,6 +58,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -67,16 +68,41 @@ public class StructureParseApplicationService {
     private static final Logger LOGGER = LoggerFactory.getLogger(StructureParseApplicationService.class);
     private static final Pattern ISO_DATE_PATTERN = Pattern.compile("\\b(\\d{4}-\\d{2}-\\d{2})\\b");
     private static final Pattern VIEW_DEFINITION_BODY_PATTERN = Pattern.compile("(?is)\\bAS\\s+((SELECT|WITH)\\b.*)$");
+    private static final Pattern HEURISTIC_SQL_TYPE_PATTERN =
+        Pattern.compile("(?is)^\\s*(?:/\\*.*?\\*/\\s*|--[^\\r\\n]*(?:\\r?\\n|$)\\s*)*(WITH|SELECT|INSERT|UPDATE|DELETE|MERGE)\\b");
+    private static final Pattern HEURISTIC_OBJECT_PATTERN =
+        Pattern.compile("(?is)\\b(?:FROM|JOIN)\\s+((?:\"[^\"]+\"|`[^`]+`|\\[[^\\]]+\\]|[A-Za-z_][A-Za-z0-9_$]*)(?:\\s*\\.\\s*(?:\"[^\"]+\"|`[^`]+`|\\[[^\\]]+\\]|[A-Za-z_][A-Za-z0-9_$]*)){0,2})");
+    private static final Pattern HEURISTIC_JOIN_PATTERN = Pattern.compile("(?i)\\bJOIN\\b");
+    private static final Pattern HEURISTIC_WHERE_PATTERN = Pattern.compile("(?i)\\bWHERE\\b");
+    private static final Pattern HEURISTIC_BOOLEAN_PATTERN = Pattern.compile("(?i)\\b(AND|OR)\\b");
+    private static final Pattern HEURISTIC_OR_PATTERN = Pattern.compile("(?i)\\bOR\\b");
+    private static final Pattern HEURISTIC_DATE_PREDICATE_PATTERN =
+        Pattern.compile("(?i)([A-Za-z0-9_\\.]*?(DATE|TIME|DT|DAY))\\s*(>=|<=|=|>|<|BETWEEN|IN)");
     private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final String MATCH_SOURCE_SQL = "SQL_TABLE_SCAN";
     private static final String MATCH_SOURCE_HEURISTIC = "NAME_HEURISTIC";
+    private static final String MATCH_SOURCE_HEURISTIC_FALLBACK = "HEURISTIC_FALLBACK";
     private static final String MATCH_SOURCE_DB_VIEW_METADATA = "LIVE_DB_VIEW_METADATA";
     private static final String MATCH_SOURCE_DB_VIEW_DEFINITION = "DB_VIEW_DEFINITION";
     private static final String MATCH_SOURCE_DB_VIEW_CATALOG_FALLBACK = "DB_VIEW_CATALOG_FALLBACK";
     private static final String RISK_DB_VIEW_DEFINITION_UNRESOLVED = "DB_VIEW_DEFINITION_UNRESOLVED";
+    private static final String RISK_SQL_SYNTAX_INVALID = "SQL_SYNTAX_INVALID";
+    private static final String RISK_SQL_TOO_LONG = "SQL_TOO_LONG";
+    private static final String HEURISTIC_FALLBACK_ENGINE = "HEURISTIC_FALLBACK";
+    private static final String SQL_TOO_LONG_FAILURE_REASON =
+        "SQL is too long; syntax parser failed or was skipped for bounded diagnostics.";
     private static final String HISTORY_RESULT_SUCCESS = "SUCCESS";
     private static final String HISTORY_RESULT_FAILED = "FAILED";
     private static final int MAX_DB_VIEW_EXPANSION_DEPTH = 5;
+    private static final int DEFAULT_SQL_TEXT_LENGTH_LIMIT = 10 * 1024 * 1024;
+    private static final int HEURISTIC_SQL_WINDOW_LIMIT = 64 * 1024;
+    private static final int FAILURE_REASON_TEXT_LIMIT = 512;
+    private static final int FAILURE_DETAIL_TEXT_LIMIT = 512;
+    private static final int FAILURE_TOKEN_TEXT_LIMIT = 64;
+    private static final int FAILURE_SNIPPET_TEXT_LIMIT = 120;
+
+    @Value("${sql-optimization.parser.max-sql-length:10485760}")
+    private int maxSqlTextLength = DEFAULT_SQL_TEXT_LENGTH_LIMIT;
 
     private final SqlOptimizationPipelineService sqlOptimizationPipelineService;
     private final GovernanceCapabilityClient governanceCapabilityClient;
@@ -161,40 +187,9 @@ public class StructureParseApplicationService {
         SqlOptimizationPipelineService.ParsedSqlProfile profile = null;
         SqlParserMode requestedParserMode = SqlParserMode.resolve(request.getParserMode());
         SqlParserMode structureParserMode = requestedParserMode.structureMode();
-        try {
-            profile = sqlOptimizationPipelineService.analyze(
-                request.getSqlText(),
-                DataSourceTypeEnum.AUTO,
-                structureParserMode
-            );
-            result = new StructureParseResult();
-            result.setParseTaskId(parseTaskId);
-            result.setSyntaxStatus(StructureParseSyntaxStatus.VALID);
-            result.setComplexityLevel(resolveComplexity(profile));
-            result.setSqlType("SELECT");
-            result.setQueryDateSummary(extractQueryDateSummary(request.getSqlText(), profile));
-            LogicalObjectExpansionResult logicalObjectExpansion = buildLogicalObjectHits(
-                profile,
-                tenantId,
-                datasourceCode,
-                structureParserMode
-            );
-            result.setLogicalObjectHits(logicalObjectExpansion.getHits());
-            result.setRiskTags(buildRiskTags(profile, logicalObjectExpansion));
-            result.setRewriteCandidates(sqlOptimizationPipelineService.deriveRewriteCandidateRules(profile));
-            result.setIssues(buildIssues(profile, logicalObjectExpansion));
-            result.applyAssessment(StructureParsePriorityScorer.assessAll(result.getIssues()));
-            LOGGER.info(
-                "operation=STRUCTURE_PARSE entity={} tenantId={} datasourceCode={} costMs={} status=END syntaxStatus={} priorityLevel={}",
-                parseTaskId,
-                tenantId,
-                datasourceCode,
-                System.currentTimeMillis() - start,
-                result.getSyntaxStatus(),
-                result.getPriorityLevel()
-            );
-        } catch (SqlOptimizationPipelineService.SqlOptimizationExecutionException ex) {
-            result = buildInvalidResult(parseTaskId, ex);
+        boolean sqlTooLong = isSqlTooLong(request.getSqlText());
+        if (sqlTooLong) {
+            result = buildInvalidResult(parseTaskId, request.getSqlText(), null, true);
             LOGGER.info(
                 "operation=STRUCTURE_PARSE entity={} tenantId={} datasourceCode={} costMs={} status=END syntaxStatus={} degradedReason={}",
                 parseTaskId,
@@ -202,12 +197,57 @@ public class StructureParseApplicationService {
                 datasourceCode,
                 System.currentTimeMillis() - start,
                 result.getSyntaxStatus(),
-                ex.getMessage()
+                SQL_TOO_LONG_FAILURE_REASON
             );
+        } else {
+            try {
+                profile = sqlOptimizationPipelineService.analyze(
+                    request.getSqlText(),
+                    DataSourceTypeEnum.AUTO,
+                    structureParserMode
+                );
+                result = new StructureParseResult();
+                result.setParseTaskId(parseTaskId);
+                result.setSyntaxStatus(StructureParseSyntaxStatus.VALID);
+                result.setComplexityLevel(resolveComplexity(profile));
+                result.setSqlType("SELECT");
+                result.setQueryDateSummary(extractQueryDateSummary(request.getSqlText(), profile));
+                LogicalObjectExpansionResult logicalObjectExpansion = buildLogicalObjectHits(
+                    profile,
+                    tenantId,
+                    datasourceCode,
+                    structureParserMode
+                );
+                result.setLogicalObjectHits(logicalObjectExpansion.getHits());
+                result.setRiskTags(buildRiskTags(profile, logicalObjectExpansion));
+                result.setRewriteCandidates(sqlOptimizationPipelineService.deriveRewriteCandidateRules(profile));
+                result.setIssues(buildIssues(profile, logicalObjectExpansion));
+                result.applyAssessment(StructureParsePriorityScorer.assessAll(result.getIssues()));
+                LOGGER.info(
+                    "operation=STRUCTURE_PARSE entity={} tenantId={} datasourceCode={} costMs={} status=END syntaxStatus={} priorityLevel={}",
+                    parseTaskId,
+                    tenantId,
+                    datasourceCode,
+                    System.currentTimeMillis() - start,
+                    result.getSyntaxStatus(),
+                    result.getPriorityLevel()
+                );
+            } catch (SqlOptimizationPipelineService.SqlOptimizationExecutionException ex) {
+                result = buildInvalidResult(parseTaskId, request.getSqlText(), ex, false);
+                LOGGER.info(
+                    "operation=STRUCTURE_PARSE entity={} tenantId={} datasourceCode={} costMs={} status=END syntaxStatus={} degradedReason={}",
+                    parseTaskId,
+                    tenantId,
+                    datasourceCode,
+                    System.currentTimeMillis() - start,
+                    result.getSyntaxStatus(),
+                    ex.getMessage()
+                );
+            }
         }
         StructureParseResponseVO response = toResponse(result);
         enrichQueryIntent(response, request.getSqlText(), profile);
-        HetuPlanAnalysisResult planAnalysis = resolvePlanAnalysis(request, requestedParserMode, datasourceCode);
+        HetuPlanAnalysisResult planAnalysis = resolvePlanAnalysis(request, requestedParserMode, datasourceCode, response);
         response.setPlanAnalysis(toPlanAnalysisVO(planAnalysis));
         response.setStructureAnalysisStatus(resolveStructureAnalysisStatus(response).name());
         response.setAnalysisStatus(resolveAnalysisStatus(response, planAnalysis, requestedParserMode).name());
@@ -218,59 +258,450 @@ public class StructureParseApplicationService {
     }
 
     private StructureParseResult buildInvalidResult(String parseTaskId,
-                                                    SqlOptimizationPipelineService.SqlOptimizationExecutionException ex) {
-        SqlOptimizationPipelineService.SqlFailurePosition position = ex.getFailurePosition();
-        String failureReason = failureReason(ex, position);
-        StructureParseIssue issue = new StructureParseIssue();
-        issue.setIssueCode("SQL_SYNTAX_INVALID");
-        issue.setIssueDomain(StructureParseIssueDomain.STRUCTURE);
-        issue.setIssueScene("PARSER_FAILURE");
-        issue.setSeverity(StructureParseIssueSeverity.HIGH);
-        issue.setSummary(failureReason);
-        issue.setDetail(failureDetail(ex, position));
-        issue.setSuggestedAction(ex.getSuggestedAction());
-        issue.setImportant(Boolean.TRUE);
-        issue.setUrgent(Boolean.FALSE);
-        if (position != null) {
-            issue.setFailureLine(position.getLine());
-            issue.setFailureColumn(position.getColumn());
-            issue.setFailureOffset(position.getOffset());
-            issue.setFailureToken(position.getToken());
-            issue.setFailureSnippet(position.getSnippet());
+                                                    String sqlText,
+                                                    SqlOptimizationPipelineService.SqlOptimizationExecutionException ex,
+                                                    boolean sqlTooLong) {
+        HeuristicFallbackProfile heuristicProfile = analyzeHeuristicFallback(sqlText, sqlTooLong);
+        SqlOptimizationPipelineService.SqlFailurePosition position = ex == null ? null : ex.getFailurePosition();
+        String failureReason = sqlTooLong
+            ? SQL_TOO_LONG_FAILURE_REASON
+            : compactDiagnosticText(failureReason(ex, position), FAILURE_REASON_TEXT_LIMIT);
+        String failureDetail = sqlTooLong
+            ? compactDiagnosticText(
+                SQL_TOO_LONG_FAILURE_REASON
+                    + " sqlLength="
+                    + heuristicProfile.getSqlLength()
+                    + ", threshold="
+                    + resolveSqlTextLengthLimit()
+                    + ".",
+                FAILURE_DETAIL_TEXT_LIMIT
+            )
+            : compactDiagnosticText(failureDetail(ex, position), FAILURE_DETAIL_TEXT_LIMIT);
+        String failureToken = sqlTooLong
+            ? RISK_SQL_TOO_LONG
+            : compactDiagnosticText(position == null ? null : position.getToken(), FAILURE_TOKEN_TEXT_LIMIT);
+        String failureSnippet = compactDiagnosticText(
+            sqlTooLong ? snippetAround(sqlText, 0, FAILURE_SNIPPET_TEXT_LIMIT) : position == null ? null : position.getSnippet(),
+            FAILURE_SNIPPET_TEXT_LIMIT
+        );
+        List<StructureParseIssue> issues = new ArrayList<StructureParseIssue>();
+        StructureParseIssue syntaxIssue = buildSyntaxInvalidIssue(
+            failureReason,
+            failureDetail,
+            ex == null ? "Fix SQL syntax or reduce the statement before running full structure parse." : ex.getSuggestedAction(),
+            position,
+            failureToken,
+            failureSnippet,
+            sqlTooLong
+        );
+        issues.add(syntaxIssue);
+        if (sqlTooLong) {
+            issues.add(buildSqlTooLongIssue(failureReason, failureDetail, failureToken, failureSnippet));
         }
-
         StructureParseResult result = new StructureParseResult();
         result.setParseTaskId(parseTaskId);
         result.setSyntaxStatus(StructureParseSyntaxStatus.INVALID);
-        result.setComplexityLevel(StructureParseComplexityLevel.SIMPLE);
-        result.setSqlType("UNKNOWN");
+        result.setComplexityLevel(resolveHeuristicComplexity(heuristicProfile));
+        result.setSqlType(heuristicProfile.getSqlType());
         result.setFailureReason(failureReason);
         if (position != null) {
             result.setFailureLine(position.getLine());
             result.setFailureColumn(position.getColumn());
             result.setFailureOffset(position.getOffset());
-            result.setFailureToken(position.getToken());
-            result.setFailureSnippet(position.getSnippet());
+            result.setFailureToken(failureToken);
+            result.setFailureSnippet(failureSnippet);
+        } else if (sqlTooLong) {
+            result.setFailureLine(Integer.valueOf(1));
+            result.setFailureColumn(Integer.valueOf(1));
+            result.setFailureOffset(Integer.valueOf(0));
+            result.setFailureToken(failureToken);
+            result.setFailureSnippet(failureSnippet);
         }
-        StructureParseQueryDateSummary queryDateSummary = new StructureParseQueryDateSummary();
-        queryDateSummary.setQueryDateStatus(StructureParseQueryDateStatus.UNRESOLVED);
-        result.setQueryDateSummary(queryDateSummary);
-        result.setLogicalObjectHits(Collections.<StructureParseLogicalObjectHit>emptyList());
-        result.setRiskTags(Collections.singletonList("SQL_SYNTAX_INVALID"));
+        result.setQueryDateSummary(buildHeuristicQueryDateSummary(heuristicProfile));
+        result.setLogicalObjectHits(buildHeuristicLogicalObjectHits(heuristicProfile));
+        result.setRiskTags(buildInvalidRiskTags(sqlTooLong));
         result.setRewriteCandidates(Collections.<String>emptyList());
-        result.setIssues(Collections.singletonList(issue));
-        result.applyAssessment(StructureParsePriorityScorer.assess(issue));
+        result.setIssues(issues);
+        result.applyAssessment(StructureParsePriorityScorer.assessAll(issues));
         return result;
+    }
+
+    private StructureParseIssue buildSyntaxInvalidIssue(String failureReason,
+                                                        String failureDetail,
+                                                        String suggestedAction,
+                                                        SqlOptimizationPipelineService.SqlFailurePosition position,
+                                                        String failureToken,
+                                                        String failureSnippet,
+                                                        boolean sqlTooLong) {
+        StructureParseIssue issue = new StructureParseIssue();
+        issue.setIssueCode(RISK_SQL_SYNTAX_INVALID);
+        issue.setIssueDomain(StructureParseIssueDomain.STRUCTURE);
+        issue.setIssueScene(RISK_SQL_SYNTAX_INVALID);
+        issue.setSeverity(StructureParseIssueSeverity.HIGH);
+        issue.setSummary(failureReason);
+        issue.setDetail(failureDetail);
+        issue.setSuggestedAction(suggestedAction);
+        issue.setImportant(Boolean.TRUE);
+        issue.setUrgent(Boolean.FALSE);
+        issue.setAffectedSqlCount(Integer.valueOf(1));
+        issue.setAffectedReportCount(Integer.valueOf(1));
+        if (position != null) {
+            issue.setFailureLine(position.getLine());
+            issue.setFailureColumn(position.getColumn());
+            issue.setFailureOffset(position.getOffset());
+        } else if (sqlTooLong) {
+            issue.setFailureLine(Integer.valueOf(1));
+            issue.setFailureColumn(Integer.valueOf(1));
+            issue.setFailureOffset(Integer.valueOf(0));
+        }
+        issue.setFailureToken(failureToken);
+        issue.setFailureSnippet(failureSnippet);
+        StructureParsePriorityScorer.assess(issue);
+        return issue;
+    }
+
+    private StructureParseIssue buildSqlTooLongIssue(String failureReason,
+                                                     String failureDetail,
+                                                     String failureToken,
+                                                     String failureSnippet) {
+        StructureParseIssue issue = new StructureParseIssue();
+        issue.setIssueCode(RISK_SQL_TOO_LONG);
+        issue.setIssueDomain(StructureParseIssueDomain.STRUCTURE);
+        issue.setIssueScene(RISK_SQL_TOO_LONG);
+        issue.setSeverity(StructureParseIssueSeverity.HIGH);
+        issue.setSummary(failureReason);
+        issue.setDetail(failureDetail);
+        issue.setSuggestedAction("Reduce SQL size, split the statement into smaller reviewed stages, or raise the parser limit explicitly.");
+        issue.setImportant(Boolean.TRUE);
+        issue.setUrgent(Boolean.FALSE);
+        issue.setAffectedSqlCount(Integer.valueOf(1));
+        issue.setAffectedReportCount(Integer.valueOf(1));
+        issue.setFailureLine(Integer.valueOf(1));
+        issue.setFailureColumn(Integer.valueOf(1));
+        issue.setFailureOffset(Integer.valueOf(0));
+        issue.setFailureToken(failureToken);
+        issue.setFailureSnippet(failureSnippet);
+        StructureParsePriorityScorer.assess(issue);
+        return issue;
+    }
+
+    private List<String> buildInvalidRiskTags(boolean sqlTooLong) {
+        List<String> riskTags = new ArrayList<String>();
+        riskTags.add(RISK_SQL_SYNTAX_INVALID);
+        if (sqlTooLong) {
+            riskTags.add(RISK_SQL_TOO_LONG);
+        }
+        return riskTags;
+    }
+
+    private boolean isSqlTooLong(String sqlText) {
+        return sqlText != null && sqlText.length() > resolveSqlTextLengthLimit();
+    }
+
+    private int resolveSqlTextLengthLimit() {
+        return maxSqlTextLength <= 0 ? DEFAULT_SQL_TEXT_LENGTH_LIMIT : maxSqlTextLength;
+    }
+
+    private HeuristicFallbackProfile analyzeHeuristicFallback(String sqlText, boolean sqlTooLong) {
+        String boundedSql = boundedHeuristicSql(sqlText, sqlTooLong);
+        String scanSql = maskSingleQuotedLiterals(stripSqlComments(boundedSql == null ? "" : boundedSql));
+        HeuristicFallbackProfile profile = new HeuristicFallbackProfile();
+        profile.setSqlTooLong(sqlTooLong);
+        profile.setSqlLength(sqlText == null ? 0 : sqlText.length());
+        profile.setBoundedSqlLength(boundedSql == null ? 0 : boundedSql.length());
+        profile.setSqlType(inferSqlType(scanSql));
+        profile.setTables(extractHeuristicObjects(scanSql));
+        profile.setJoinCount(countMatches(HEURISTIC_JOIN_PATTERN, scanSql));
+        profile.setPredicateCount(countHeuristicPredicates(scanSql));
+        profile.setOrPredicateCount(countMatches(HEURISTIC_OR_PATTERN, scanSql));
+        profile.setDatePredicateColumns(extractHeuristicDatePredicateColumns(scanSql));
+        profile.setDates(extractDates(boundedSql));
+        return profile;
+    }
+
+    private String boundedHeuristicSql(String sqlText, boolean sqlTooLong) {
+        if (sqlText == null) {
+            return "";
+        }
+        if (!sqlTooLong || sqlText.length() <= HEURISTIC_SQL_WINDOW_LIMIT) {
+            return sqlText;
+        }
+        return sqlText.substring(0, HEURISTIC_SQL_WINDOW_LIMIT);
+    }
+
+    private String inferSqlType(String sqlText) {
+        String normalized = trimToNull(sqlText);
+        if (normalized == null) {
+            return "UNKNOWN";
+        }
+        Matcher matcher = HEURISTIC_SQL_TYPE_PATTERN.matcher(normalized);
+        if (!matcher.find()) {
+            return "UNKNOWN";
+        }
+        String token = matcher.group(1).toUpperCase(Locale.ROOT);
+        return "WITH".equals(token) ? "SELECT" : token;
+    }
+
+    private List<String> extractHeuristicObjects(String scanSql) {
+        if (!StringUtils.hasText(scanSql)) {
+            return Collections.emptyList();
+        }
+        LinkedHashSet<String> objects = new LinkedHashSet<String>();
+        Matcher matcher = HEURISTIC_OBJECT_PATTERN.matcher(scanSql);
+        while (matcher.find() && objects.size() < 64) {
+            String candidate = normalizeHeuristicObjectName(matcher.group(1));
+            if (isLikelyHeuristicObjectName(candidate)) {
+                objects.add(candidate);
+            }
+        }
+        return new ArrayList<String>(objects);
+    }
+
+    private String normalizeHeuristicObjectName(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            return null;
+        }
+        return normalized.replaceAll("\\s*\\.\\s*", ".").trim();
+    }
+
+    private boolean isLikelyHeuristicObjectName(String candidate) {
+        String normalized = trimToNull(candidate);
+        if (normalized == null) {
+            return false;
+        }
+        String upper = normalized.toUpperCase(Locale.ROOT);
+        String firstToken = upper.split("\\s+", 2)[0];
+        return !"SELECT".equals(firstToken)
+            && !"WHERE".equals(firstToken)
+            && !"JOIN".equals(firstToken)
+            && !"ON".equals(firstToken)
+            && !"GROUP".equals(firstToken)
+            && !"ORDER".equals(firstToken)
+            && !"HAVING".equals(firstToken)
+            && !"LIMIT".equals(firstToken)
+            && !"UNNEST".equals(firstToken)
+            && !"VALUES".equals(firstToken)
+            && !"LATERAL".equals(firstToken);
+    }
+
+    private int countHeuristicPredicates(String scanSql) {
+        Matcher whereMatcher = HEURISTIC_WHERE_PATTERN.matcher(scanSql == null ? "" : scanSql);
+        if (!whereMatcher.find()) {
+            return 0;
+        }
+        String predicateTail = scanSql.substring(whereMatcher.end());
+        return 1 + countMatches(HEURISTIC_BOOLEAN_PATTERN, predicateTail);
+    }
+
+    private int countMatches(Pattern pattern, String value) {
+        Matcher matcher = pattern.matcher(value == null ? "" : value);
+        int count = 0;
+        while (matcher.find()) {
+            count++;
+        }
+        return count;
+    }
+
+    private List<String> extractHeuristicDatePredicateColumns(String scanSql) {
+        LinkedHashSet<String> columns = new LinkedHashSet<String>();
+        Matcher matcher = HEURISTIC_DATE_PREDICATE_PATTERN.matcher(scanSql == null ? "" : scanSql.toUpperCase(Locale.ROOT));
+        while (matcher.find()) {
+            String column = trimToNull(matcher.group(1));
+            if (column != null) {
+                columns.add(column);
+            }
+        }
+        return new ArrayList<String>(columns);
+    }
+
+    private List<LocalDate> extractDates(String sqlText) {
+        List<LocalDate> dates = new ArrayList<LocalDate>();
+        Matcher matcher = ISO_DATE_PATTERN.matcher(sqlText == null ? "" : sqlText);
+        while (matcher.find()) {
+            LocalDate parsed = tryParseDate(matcher.group(1));
+            if (parsed != null) {
+                dates.add(parsed);
+            }
+        }
+        dates.sort(Comparator.naturalOrder());
+        return dates;
+    }
+
+    private StructureParseQueryDateSummary buildHeuristicQueryDateSummary(HeuristicFallbackProfile profile) {
+        StructureParseQueryDateSummary summary = new StructureParseQueryDateSummary();
+        summary.setQueryDateFields(profile.getDatePredicateColumns());
+        if (!profile.getDates().isEmpty()) {
+            summary.setQueryDateStart(profile.getDates().get(0).format(ISO_DATE));
+            summary.setQueryDateEnd(profile.getDates().get(profile.getDates().size() - 1).format(ISO_DATE));
+            summary.setQueryDateStatus(StructureParseQueryDateStatus.RESOLVED);
+            return summary;
+        }
+        if (!profile.getDatePredicateColumns().isEmpty()) {
+            summary.setQueryDateStatus(StructureParseQueryDateStatus.PARTIAL);
+            return summary;
+        }
+        summary.setQueryDateStatus(StructureParseQueryDateStatus.UNRESOLVED);
+        return summary;
+    }
+
+    private List<StructureParseLogicalObjectHit> buildHeuristicLogicalObjectHits(HeuristicFallbackProfile profile) {
+        if (profile == null || profile.getTables().isEmpty()) {
+            return Collections.emptyList();
+        }
+        LogicalObjectExpansionResult result = new LogicalObjectExpansionResult();
+        for (String table : profile.getTables()) {
+            QualifiedObjectName qualifiedObject = QualifiedObjectName.parse(table);
+            LogicalObjectType objectType = isDbViewHeuristic(qualifiedObject.getQualifiedName())
+                ? LogicalObjectType.DB_VIEW
+                : LogicalObjectType.TABLE;
+            StructureParseLogicalObjectHit hit = buildLogicalObjectHit(
+                objectType,
+                qualifiedObject,
+                MATCH_SOURCE_HEURISTIC_FALLBACK,
+                Boolean.FALSE
+            );
+            hit.setMappedPhysicalTargets(objectType == LogicalObjectType.TABLE
+                ? Collections.singletonList(hit.getObjectKey())
+                : Collections.<String>emptyList());
+            result.addHit(hit);
+        }
+        return result.getHits();
+    }
+
+    private StructureParseComplexityLevel resolveHeuristicComplexity(HeuristicFallbackProfile profile) {
+        int score = profile.getJoinCount() * 2 + profile.getPredicateCount() + profile.getTables().size();
+        if (score >= 10) {
+            return StructureParseComplexityLevel.EXTREME;
+        }
+        if (score >= 6) {
+            return StructureParseComplexityLevel.COMPLEX;
+        }
+        if (score >= 3) {
+            return StructureParseComplexityLevel.MODERATE;
+        }
+        return StructureParseComplexityLevel.SIMPLE;
+    }
+
+    private String stripSqlComments(String sqlText) {
+        if (!StringUtils.hasText(sqlText)) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(sqlText.length());
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        boolean inBacktick = false;
+        int index = 0;
+        while (index < sqlText.length()) {
+            char current = sqlText.charAt(index);
+            char next = index + 1 < sqlText.length() ? sqlText.charAt(index + 1) : '\0';
+            if (!inSingleQuote && !inDoubleQuote && !inBacktick && current == '-' && next == '-') {
+                builder.append(' ');
+                index += 2;
+                while (index < sqlText.length()) {
+                    char item = sqlText.charAt(index);
+                    if (item == '\n' || item == '\r') {
+                        builder.append(item);
+                        break;
+                    }
+                    builder.append(' ');
+                    index++;
+                }
+                continue;
+            }
+            if (!inSingleQuote && !inDoubleQuote && !inBacktick && current == '/' && next == '*') {
+                builder.append(' ');
+                index += 2;
+                while (index + 1 < sqlText.length()) {
+                    if (sqlText.charAt(index) == '*' && sqlText.charAt(index + 1) == '/') {
+                        builder.append(' ');
+                        index += 2;
+                        break;
+                    }
+                    builder.append(sqlText.charAt(index) == '\n' ? '\n' : ' ');
+                    index++;
+                }
+                continue;
+            }
+            builder.append(current);
+            if (current == '\'' && !inDoubleQuote && !inBacktick) {
+                if (inSingleQuote && next == '\'') {
+                    builder.append(next);
+                    index += 2;
+                    continue;
+                }
+                inSingleQuote = !inSingleQuote;
+            } else if (current == '"' && !inSingleQuote && !inBacktick) {
+                inDoubleQuote = !inDoubleQuote;
+            } else if (current == '`' && !inSingleQuote && !inDoubleQuote) {
+                inBacktick = !inBacktick;
+            }
+            index++;
+        }
+        return builder.toString();
+    }
+
+    private String maskSingleQuotedLiterals(String sqlText) {
+        if (!StringUtils.hasText(sqlText)) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(sqlText.length());
+        boolean inSingleQuote = false;
+        for (int index = 0; index < sqlText.length(); index++) {
+            char current = sqlText.charAt(index);
+            char next = index + 1 < sqlText.length() ? sqlText.charAt(index + 1) : '\0';
+            if (current == '\'') {
+                builder.append(' ');
+                if (inSingleQuote && next == '\'') {
+                    builder.append(' ');
+                    index++;
+                    continue;
+                }
+                inSingleQuote = !inSingleQuote;
+                continue;
+            }
+            builder.append(inSingleQuote && current != '\n' && current != '\r' ? ' ' : current);
+        }
+        return builder.toString();
+    }
+
+    private String snippetAround(String sqlText, int offset, int limit) {
+        if (!StringUtils.hasText(sqlText)) {
+            return null;
+        }
+        int safeOffset = Math.max(0, Math.min(offset, sqlText.length()));
+        int radius = Math.max(8, limit / 2);
+        int start = Math.max(0, safeOffset - radius);
+        int end = Math.min(sqlText.length(), safeOffset + radius);
+        return compactDiagnosticText(sqlText.substring(start, end), limit);
+    }
+
+    private String compactDiagnosticText(String value, int limit) {
+        return SqlParseDiagnosticSupport.compactDiagnosticText(value, limit);
     }
 
     private HetuPlanAnalysisResult resolvePlanAnalysis(StructureParseRequest request,
                                                        SqlParserMode requestedParserMode,
-                                                       String datasourceCode) {
+                                                       String datasourceCode,
+                                                       StructureParseResponseVO structureParse) {
         if (requestedParserMode == null || !requestedParserMode.requiresPlanAnalysis()) {
             return HetuPlanAnalysisResult.skipped(
                 datasourceCode,
                 "PARSER_MODE_WITHOUT_PLAN",
                 Collections.singletonList("parserMode=" + (requestedParserMode == null ? SqlParserMode.DEFAULT_VALUE : requestedParserMode.name()))
+            );
+        }
+        if (structureParse != null
+            && !"VALID".equals(structureParse.getSyntaxStatus())
+            && containsValue(structureParse.getRiskTags(), RISK_SQL_TOO_LONG)) {
+            return HetuPlanAnalysisResult.failed(
+                datasourceCode,
+                "SQL_TOO_LONG_PLAN_ANALYSIS_SKIPPED",
+                0L,
+                Arrays.asList(
+                    "parserMode=" + requestedParserMode.name(),
+                    "reason=" + SQL_TOO_LONG_FAILURE_REASON
+                )
             );
         }
         long start = System.currentTimeMillis();
@@ -989,9 +1420,11 @@ public class StructureParseApplicationService {
                                    SqlOptimizationPipelineService.ParsedSqlProfile profile) {
         response.setSqlFingerprint(SqlFingerprintUtils.fingerprint(sqlText));
         if (profile == null) {
-            response.setIntentProfile(unknownIntentProfile());
-            response.setFeatureSummary(unknownFeatureSummary());
-            response.setEstimatedResourceCost(unknownResourceEstimate());
+            HeuristicFallbackProfile heuristicProfile = analyzeHeuristicFallback(
+                sqlText,
+                containsValue(response == null ? null : response.getRiskTags(), RISK_SQL_TOO_LONG)
+            );
+            enrichHeuristicQueryIntent(response, heuristicProfile);
             response.setRiskChecklist(Collections.<StructureParseRiskVO>emptyList());
             return;
         }
@@ -1039,6 +1472,102 @@ public class StructureParseApplicationService {
         response.setFeatureSummary(featureSummary);
         response.setRiskChecklist(risks);
         response.setEstimatedResourceCost(buildResourceEstimate(profile, risks, finalTableCount));
+    }
+
+    private void enrichHeuristicQueryIntent(StructureParseResponseVO response,
+                                            HeuristicFallbackProfile profile) {
+        String scanMode = resolveHeuristicScanMode(profile);
+        String joinType = resolveHeuristicJoinType(profile);
+        String computeDensity = "UNKNOWN";
+        String resourceType = "UNKNOWN";
+        String slaLevel = profile.getJoinCount() > 0 || profile.getPredicateCount() == 0
+            ? "REPORT_LT_30S"
+            : "UNKNOWN";
+
+        StructureParseIntentProfileVO intentProfile = new StructureParseIntentProfileVO();
+        intentProfile.setScanMode(scanMode);
+        intentProfile.setJoinType(joinType);
+        intentProfile.setComputeDensity(computeDensity);
+        intentProfile.setResourceType(resourceType);
+        intentProfile.setSlaLevel(slaLevel);
+        intentProfile.setConfidence("LOW");
+        intentProfile.setClassificationLabels(buildClassificationLabels(scanMode, joinType, computeDensity, resourceType, slaLevel));
+        response.setIntentProfile(intentProfile);
+
+        int finalTableCount = extractFinalTableKeys(response == null ? null : response.getLogicalObjectHits()).size();
+        if (finalTableCount <= 0) {
+            finalTableCount = profile.getTables().size();
+        }
+        StructureParseFeatureSummaryVO featureSummary = new StructureParseFeatureSummaryVO();
+        featureSummary.setParserEngine(HEURISTIC_FALLBACK_ENGINE);
+        featureSummary.setScanMode(scanMode);
+        featureSummary.setJoinType(joinType);
+        featureSummary.setComputeDensity(computeDensity);
+        featureSummary.setResourceType(resourceType);
+        featureSummary.setSlaLevel(slaLevel);
+        featureSummary.setTableCount(Integer.valueOf(finalTableCount));
+        featureSummary.setJoinCount(Integer.valueOf(profile.getJoinCount()));
+        featureSummary.setPredicateCount(Integer.valueOf(profile.getPredicateCount()));
+        featureSummary.setWindowFunctionCount(Integer.valueOf(0));
+        featureSummary.setUdfFunctionCount(Integer.valueOf(0));
+        featureSummary.setRepeatedExpressionCount(Integer.valueOf(0));
+        featureSummary.setSubqueryCount(Integer.valueOf(0));
+        featureSummary.setScalarSubqueryCount(Integer.valueOf(0));
+        featureSummary.setNestedSubqueryDepth(Integer.valueOf(0));
+        featureSummary.setCorrelatedSubqueryCount(Integer.valueOf(0));
+        featureSummary.setOrPredicateCount(Integer.valueOf(profile.getOrPredicateCount()));
+        featureSummary.setFunctionWrappedPredicateCount(Integer.valueOf(0));
+        featureSummary.setLeadingWildcardLikeCount(Integer.valueOf(0));
+        featureSummary.setRandomOrderCount(Integer.valueOf(0));
+        featureSummary.setRepeatedTableScanCount(Integer.valueOf(0));
+        featureSummary.setEvidence(buildHeuristicFeatureEvidence(profile, finalTableCount));
+        response.setFeatureSummary(featureSummary);
+        response.setEstimatedResourceCost(heuristicResourceEstimate(profile));
+    }
+
+    private String resolveHeuristicScanMode(HeuristicFallbackProfile profile) {
+        if (profile.getPredicateCount() == 0) {
+            return "FULL_TABLE_SCAN";
+        }
+        if (!profile.getDatePredicateColumns().isEmpty() || !profile.getDates().isEmpty()) {
+            return profile.getPredicateCount() == 1 ? "RANGE_SCAN" : "PARTITION_RANGE_SCAN";
+        }
+        return "CROSS_PARTITION_SCAN";
+    }
+
+    private String resolveHeuristicJoinType(HeuristicFallbackProfile profile) {
+        if (profile.getJoinCount() == 0) {
+            return "NONE";
+        }
+        return profile.getJoinCount() == 1 ? "CHAIN" : "MANY_TO_MANY";
+    }
+
+    private List<String> buildHeuristicFeatureEvidence(HeuristicFallbackProfile profile, int finalTableCount) {
+        List<String> evidence = new ArrayList<String>();
+        evidence.add("parser=" + HEURISTIC_FALLBACK_ENGINE);
+        evidence.add("fallback=AST_UNAVAILABLE");
+        evidence.add("sqlTooLong=" + profile.isSqlTooLong());
+        evidence.add("sqlLength=" + profile.getSqlLength());
+        evidence.add("boundedSqlLength=" + profile.getBoundedSqlLength());
+        evidence.add("tables=" + finalTableCount);
+        evidence.add("predicates=" + profile.getPredicateCount());
+        evidence.add("joins=" + profile.getJoinCount());
+        evidence.add("orPredicates=" + profile.getOrPredicateCount());
+        if (!profile.getDatePredicateColumns().isEmpty()) {
+            evidence.add("datePredicateColumns=" + String.join(",", profile.getDatePredicateColumns()));
+        }
+        return evidence;
+    }
+
+    private StructureParseResourceEstimateVO heuristicResourceEstimate(HeuristicFallbackProfile profile) {
+        StructureParseResourceEstimateVO estimate = unknownResourceEstimate();
+        List<String> evidence = new ArrayList<String>();
+        evidence.add("Resource estimate is bounded because the AST parser did not produce a valid profile.");
+        evidence.add("parser=" + HEURISTIC_FALLBACK_ENGINE);
+        evidence.add("tables=" + profile.getTables().size());
+        evidence.add("predicates=" + profile.getPredicateCount());
+        estimate.setEvidence(evidence);
+        return estimate;
     }
 
     private StructureParseIntentProfileVO unknownIntentProfile() {
@@ -1262,6 +1791,18 @@ public class StructureParseApplicationService {
         if (normalized != null && normalized.toUpperCase(Locale.ROOT).startsWith("TABLE:")) {
             keys.add(normalized);
         }
+    }
+
+    private boolean containsValue(List<String> values, String expected) {
+        if (values == null || !StringUtils.hasText(expected)) {
+            return false;
+        }
+        for (String value : values) {
+            if (expected.equals(value)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<StructureParseRiskVO> buildRiskChecklist(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
@@ -1598,6 +2139,102 @@ public class StructureParseApplicationService {
             vos.add(vo);
         }
         return vos;
+    }
+
+    private static final class HeuristicFallbackProfile {
+
+        private String sqlType = "UNKNOWN";
+        private List<String> tables = Collections.emptyList();
+        private List<String> datePredicateColumns = Collections.emptyList();
+        private List<LocalDate> dates = Collections.emptyList();
+        private int joinCount;
+        private int predicateCount;
+        private int orPredicateCount;
+        private boolean sqlTooLong;
+        private int sqlLength;
+        private int boundedSqlLength;
+
+        private String getSqlType() {
+            return sqlType;
+        }
+
+        private void setSqlType(String sqlType) {
+            this.sqlType = StringUtils.hasText(sqlType) ? sqlType : "UNKNOWN";
+        }
+
+        private List<String> getTables() {
+            return tables;
+        }
+
+        private void setTables(List<String> tables) {
+            this.tables = tables == null ? Collections.<String>emptyList() : tables;
+        }
+
+        private List<String> getDatePredicateColumns() {
+            return datePredicateColumns;
+        }
+
+        private void setDatePredicateColumns(List<String> datePredicateColumns) {
+            this.datePredicateColumns = datePredicateColumns == null
+                ? Collections.<String>emptyList()
+                : datePredicateColumns;
+        }
+
+        private List<LocalDate> getDates() {
+            return dates;
+        }
+
+        private void setDates(List<LocalDate> dates) {
+            this.dates = dates == null ? Collections.<LocalDate>emptyList() : dates;
+        }
+
+        private int getJoinCount() {
+            return joinCount;
+        }
+
+        private void setJoinCount(int joinCount) {
+            this.joinCount = Math.max(0, joinCount);
+        }
+
+        private int getPredicateCount() {
+            return predicateCount;
+        }
+
+        private void setPredicateCount(int predicateCount) {
+            this.predicateCount = Math.max(0, predicateCount);
+        }
+
+        private int getOrPredicateCount() {
+            return orPredicateCount;
+        }
+
+        private void setOrPredicateCount(int orPredicateCount) {
+            this.orPredicateCount = Math.max(0, orPredicateCount);
+        }
+
+        private boolean isSqlTooLong() {
+            return sqlTooLong;
+        }
+
+        private void setSqlTooLong(boolean sqlTooLong) {
+            this.sqlTooLong = sqlTooLong;
+        }
+
+        private int getSqlLength() {
+            return sqlLength;
+        }
+
+        private void setSqlLength(int sqlLength) {
+            this.sqlLength = Math.max(0, sqlLength);
+        }
+
+        private int getBoundedSqlLength() {
+            return boundedSqlLength;
+        }
+
+        private void setBoundedSqlLength(int boundedSqlLength) {
+            this.boundedSqlLength = Math.max(0, boundedSqlLength);
+        }
     }
 
     private static final class LogicalObjectExpansionResult {

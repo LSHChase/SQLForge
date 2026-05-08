@@ -144,7 +144,9 @@ class ParseBatchControllerTest {
             .andExpect(status().isOk())
             .andReturn();
         String batchId = JsonTestUtils.readValue(createResult.getResponse().getContentAsString(), "$.batchId");
-        String encoded = Base64.getEncoder().encodeToString("SELECT FROM;".getBytes(StandardCharsets.UTF_8));
+        String encoded = Base64.getEncoder().encodeToString(
+            "SELECT FROM orders WHERE dt = '2026-05-08';".getBytes(StandardCharsets.UTF_8)
+        );
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse-batches/{batchId}/ingest", batchId))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -158,6 +160,8 @@ class ParseBatchControllerTest {
             .andExpect(jsonPath("$.importedRecords[0].historyId").isNotEmpty())
             .andExpect(jsonPath("$.importedRecords[0].historyPersisted").value(true))
             .andExpect(jsonPath("$.importedRecords[0].historyPersistenceStatus").value("SAVED"))
+            .andExpect(jsonPath("$.importedRecords[0].issueScenes").value(org.hamcrest.Matchers.hasItem("SQL_SYNTAX_INVALID")))
+            .andExpect(jsonPath("$.importedRecords[0].logicalObjectKeys").value(org.hamcrest.Matchers.hasItem("TABLE:orders")))
             .andExpect(jsonPath("$.importedRecords[0].diagnosticSummary").isNotEmpty());
     }
 

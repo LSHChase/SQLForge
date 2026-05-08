@@ -15,6 +15,7 @@ public enum StructureParseIssueScenario {
     DIALECT_INCOMPATIBLE("DIALECT_INCOMPATIBLE", StructureParseIssueDomain.COMPATIBILITY, StructureParseIssueSeverity.HIGH, true, false, 6),
     PARAMETER_BINDING_RISK("PARAMETER_BINDING_RISK", StructureParseIssueDomain.STRUCTURE, StructureParseIssueSeverity.MEDIUM, true, false, 4),
     SQL_SYNTAX_INVALID("SQL_SYNTAX_INVALID", StructureParseIssueDomain.STRUCTURE, StructureParseIssueSeverity.HIGH, true, false, 8),
+    SQL_TOO_LONG("SQL_TOO_LONG", StructureParseIssueDomain.STRUCTURE, StructureParseIssueSeverity.HIGH, true, false, 8),
     SELECT_STAR("SELECT_STAR", StructureParseIssueDomain.GOVERNANCE, StructureParseIssueSeverity.MEDIUM, true, false, 3),
     FULL_SCAN_RISK("FULL_SCAN_RISK", StructureParseIssueDomain.PERFORMANCE, StructureParseIssueSeverity.HIGH, true, true, 8),
     NO_PREDICATE("NO_PREDICATE", StructureParseIssueDomain.PERFORMANCE, StructureParseIssueSeverity.HIGH, true, true, 8),

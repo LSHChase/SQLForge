@@ -377,6 +377,31 @@ class ReportBatchApplicationServiceTest {
     }
 
     @Test
+    void shouldPersistHeuristicObjectEvidenceForInvalidReportSql() {
+        ReportBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-016", "trace-016", "header", 1L, 2L);
+
+        ReportBatchStatusResponse imported = service.importBatch(baseRequest(
+            "invalid-report-object-detail",
+            "CSV",
+            "report_code,sql_1\nRPT_BAD_OBJECT,\"SELECT FROM orders WHERE dt = '2026-05-08'\""
+        ));
+        ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
+
+        assertEquals("PARTIAL_COMPLETED", resolved.getStatus());
+        assertEquals("FAILED", resolved.getReportItems().get(0).getStatus());
+        assertEquals("INVALID", resolved.getReportItems().get(0).getStructureSyntaxStatus());
+        assertTrue(resolved.getReportItems().get(0).getIssueScenes().contains("SQL_SYNTAX_INVALID"));
+        assertTrue(resolved.getReportItems().get(0).getLogicalObjectKeys().contains("TABLE:orders"));
+        assertTrue(resolved.getReportItems().get(0).getFailureReason().contains("near=SELECT FROM orders"));
+        assertNotNull(resolved.getReportItems().get(0).getDiagnosticSummary());
+        assertTrue(resolved.getParseStatistics().getSqlStatistics().get(0).getIssueScenes()
+            .contains("SQL_SYNTAX_INVALID"));
+        assertTrue(resolved.getParseStatistics().getLogicalObjectStatistics().stream()
+            .anyMatch(item -> "TABLE:orders".equals(item.getObjectKey())));
+    }
+
+    @Test
     void shouldExposeReportImportFailureLocationAfterInlineCommentExtraction() {
         ReportBatchApplicationService service = buildService();
         RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-012", "trace-012", "header", 1L, 2L);
