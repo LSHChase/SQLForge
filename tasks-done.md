@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-094: Wire Hetu JDBC driver into page-managed EXPLAIN path
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `fix(governance): HARN-094 wire Hetu JDBC driver`
+- Priority: 1
+- Depends on: HARN-093
+- Scope: Add Hetu JDBC runtime dependency to governance and sql-optimization so page-managed Hetu JDBC test-connection and *_WITH_PLAN EXPLAIN can load the configured driver class in real deployments; validate targeted frontend/backend contracts without changing closed HARN-093 ledger evidence.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-094`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added the managed Hetu JDBC runtime dependency to governance and sql-optimization and added classpath regression tests so page-managed JDBC test-connection and *_WITH_PLAN EXPLAIN can load io.prestosql.jdbc.PrestoDriver in real deployments.
+  - Validation evidence: mvn -pl governance -am -Dtest=DatasourceConfigApplicationServiceTest,DatasourceConfigControllerTest,GovernanceCapabilityApplicationServiceTest,AuthWebMvcTest,HetuJdbcDriverClasspathTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl sql-optimization -am -Dtest=StructureParseControllerTest,ParseBatchApplicationServiceTest,ReportBatchApplicationServiceTest,GovernanceHttpClientTest,JdbcHetuPlanAnalysisClientTest,HetuJdbcDriverClasspathTest -Dsurefire.failIfNoSpecifiedTests=false test; node scripts/check-system-datasource-contract.mjs; node scripts/check-parse-workbench-contract.mjs; node scripts/check-sql-ui-contract.mjs; git diff --check; python3 scripts/foreman.py validate HARN-094; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Live external Hetu/MRS smoke validation still requires environment credentials and remains tracked by HARN-016/INBOX-002.
+  - Next step: Run the HARN-016 external Hetu/MRS smoke once the Win10 Hetu/MRS environment is available.
+
 ### HARN-093: 页面配置 Hetu JDBC 并用于 EXPLAIN 实测
 
 - Status: done
