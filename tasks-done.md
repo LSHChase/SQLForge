@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-DIST-PORTABLE-REFRESH-20260509: Refresh tracked dist-portable package and restart local services
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `chore(frontend): refresh deterministic portable bundle`
+- Priority: 1
+- Depends on: N/A
+- Scope: Rebuild the tracked dist-portable frontend package from the latest source without missing generated assets, verify it has no stale differences versus the portable build output, then restart local backend and frontend services and verify reachability.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-DIST-PORTABLE-REFRESH-20260509`
+- Progress log:
+  - 2026-05-09: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Regenerated the tracked dist-portable package from the latest frontend source, removed stale hashed portable assets, and made portable mode default-disable the temporary delivery-progress route so the package no longer embeds volatile task ledger and validation-log snapshots. Restarted the four backend services and the Vite frontend dev server after the refresh.
+  - Validation evidence: python3 scripts/foreman.py validate OPS-DIST-PORTABLE-REFRESH-20260509 --include-task-audit --extra-command 'npm run build:portable' --extra-command 'npm run smoke:portable-frontend' --extra-command 'npm run build' --extra-command 'npm run lint' --extra-command 'bash scripts/health-check.sh --fail-on-error' --extra-command 'git diff --check'; repeated dist-portable sha256 comparison after consecutive builds; portable asset reference check
+  - Residual risk: Portable builds now omit the temporary delivery-progress route by default to keep copied portable packages deterministic; developers can still explicitly set VITE_ENABLE_DELIVERY_PROGRESS=true for local diagnostic builds if they need that route.
+  - Next step: No follow-up required for the refreshed portable package; use /tmp/sqlforge-backend-runtime/*.pid and /tmp/sqlforge-frontend-runtime.pid to stop the restarted local services when needed.
+
 ### HARN-103: 保留历史原始 SQL 展示并统一提示交互
 
 - Status: done

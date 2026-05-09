@@ -2914,3 +2914,32 @@
 2026-05-08T23:41:19-05:00 | HARN-103 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-08T23:41:19-05:00 | HARN-103 closeout commit | `R-168` | projected | `git commit -m 'fix(history): HARN-103 preserve raw SQL display' (projected-precommit)`
 2026-05-08T23:41:19-05:00 | HARN-103 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-09T00:21:01-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-09T00:21:01-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-09T00:21:01-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-09T00:21:05-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `npm run build:portable`
+2026-05-09T00:21:09-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `npm run smoke:portable-frontend`
+2026-05-09T00:21:13-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-09T00:21:14-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-09T00:21:14-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-09T00:22:44-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-09T00:22:44-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-09T00:22:44-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-09T00:22:44-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `bash scripts/health-check.sh --fail-on-error`
+2026-05-09T00:22:44-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-09T00:25:16-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-09T00:25:16-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-09T00:25:16-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-09T00:25:20-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `npm run build:portable`
+2026-05-09T00:25:24-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `npm run smoke:portable-frontend`
+2026-05-09T00:25:28-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-09T00:25:29-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-09T00:25:29-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `bash scripts/health-check.sh --fail-on-error`
+2026-05-09T00:25:29-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-09T00:26:08-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-09T00:26:08-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 closeout commit | `R-168` | projected | `git commit -m 'chore(frontend): refresh deterministic portable bundle' (projected-precommit)`
+2026-05-09T00:26:08-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-09T00:26:08-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run build:portable (projected-precommit)`
+2026-05-09T00:26:08-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:portable-frontend (projected-precommit)`
+2026-05-09T00:26:08-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `bash scripts/health-check.sh --fail-on-error (projected-precommit)`
+2026-05-09T00:26:08-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`

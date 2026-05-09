@@ -28,9 +28,18 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const proxyDefaults = resolveProxyDefaults(env)
   const isPortableBuild = mode === 'portable'
+  const hasDeliveryProgressFlag = Object.prototype.hasOwnProperty.call(
+    env,
+    'VITE_ENABLE_DELIVERY_PROGRESS'
+  )
+  const deliveryProgressFlag =
+    isPortableBuild && !hasDeliveryProgressFlag ? 'false' : env.VITE_ENABLE_DELIVERY_PROGRESS
 
   return {
     plugins: [vue()],
+    define: {
+      'import.meta.env.VITE_ENABLE_DELIVERY_PROGRESS': JSON.stringify(deliveryProgressFlag)
+    },
     base: isPortableBuild ? './' : '/',
     server: {
       host: '0.0.0.0',
