@@ -40,7 +40,7 @@
       "path": "docs/rules/codex-rules.md",
       "title": "Codex Rules",
       "excerpt": "\u672c\u6587\u4ef6\u4e3a append-only \u89c4\u5219\u8d26\u672c\uff0c\u57fa\u7ebf\u6765\u6e90\u4e3a `docs/architecture/init.md` \u7684 `R-001` \u81f3 `R-115`\uff0c\u540e\u7eed\u89c4\u5219\u6309\u8ffd\u52a0\u65b9\u5f0f\u6269\u5c55\u5230\u5f53\u524d\u7248\u672c\u3002",
-      "sha256": "29831c22eda4c7b0318624d965b610a606753f7a7314b43d37a7e304339fc5fb"
+      "sha256": "2f065958da0d1c717a3184ec5ce9407df2999acf6c48b749e7fa6645f45e8103"
     },
     {
       "path": "docs/quality/validation-rules.md",

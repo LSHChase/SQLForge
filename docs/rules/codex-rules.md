@@ -946,9 +946,21 @@ messaging:
 - 若当前执行环境不能提供 JDK 8u112，相关 Java 构建、运行或交付验证不得被写成合规通过；必须记录为 skipped、blocked、residual risk 或进入 `INBOX.md`，按任务性质处理。
 - 任何改用其他 Java 8 update、JDK 发行版版本或更高 Java 版本的需求，都必须先由人类确认，并通过追加规则、部署文档和验证规则同步落地。
 
+## 前端页面视觉自检强制流程（R-186）
+
+### R-186 前端实现截图自检门禁
+
+- 新增、修改或重构前端页面时，Codex 必须在实现前后运行页面并抓取截图；截图的主要用途是让 Codex 自己看到实际渲染效果，发现视觉误判、布局漂移和语义混排，不是替代人工验收的留证材料。
+- 页面实现流程固定为：读规则与现状 -> before 截图 -> 实现 -> after 截图 -> Codex 读图复核 -> 修复漂移 -> lint / build / contract / governance 验证 -> closeout。
+- 读图复核必须覆盖首屏主流程、信息密度、组件语义、响应式堆叠、重复文案、表格 footer、分页状态和 summary 文案；发现问题必须主动修复后再进入验证。
+- 管理后台主路径默认使用紧凑 `SectionHeader` 和分区布局；`PageHero` 只用于 Dashboard、概览、总览、KPI 或静态运维摘要类页面。
+- 筛选 / 表格页必须确认首屏能看到主流程和至少一部分结果区；筛选区字段较多时必须使用响应式 grid、flex wrapping 或共享 SearchForm / ToolbarShell，不得退化为单列长表单。
+- 表格 footer 必须把状态信息和分页控件分区；不得在 Element Plus pagination 外重复“当前页 / 总数 / 第几页”等自定义分页摘要，不得保留无意义 summary 或废弃说明文案。
+- closeout 可记录截图路径和已修复问题，但截图路径只是审计链副产物；交付结论必须说明 Codex 已基于截图完成自我复核和必要修复。
+
 ## Current Consumption Note (2026-04-20)
 
 - `R-001` 至 `R-115` 仍是初始化基线，语义来源保持 `docs/architecture/init.md` 不变。
-- `R-116` 至 `R-185` 是初始化后追加的验证、Java 规范、harness 治理、MCP 治理、前端页面工程规则与 JDK 8u112 运行时强制基线。
+- `R-116` 至 `R-186` 是初始化后追加的验证、Java 规范、harness 治理、MCP 治理、前端页面工程规则、JDK 8u112 运行时强制基线与前端截图自检门禁。
 - 当前仓库执行时，若初始化文档中的目标落点路径与真实文档路径不一致，统一按 `docs/plans/document-truth-baseline.md` 中的漂移映射消费。
 - 本说明不新增规则编号，不改变既有规则语义，只补充当前仓库的实际消费顺序。

@@ -446,14 +446,17 @@
 
 ### 12.1 Default Page Skeleton
 
-- 顶部：搜索 / 筛选区，默认使用 `SearchForm.vue` 或同等共享组件承载。
+- 顶部：管理页默认使用紧凑 `SectionHeader.vue` 或同等分区标题；`PageHero.vue` 只用于 Dashboard、概览、总览、KPI 或静态运维摘要类页面。
+- 搜索 / 筛选区：默认使用 `SearchForm.vue` 或同等共享组件承载。
 - 主体：操作按钮区 + `<el-table>` 或列表区，新增、编辑、删除、导入、导出、批量操作必须与表格状态清晰关联。
 - 底部：分页、批量处理状态、查询结果数量、最近刷新时间或其他状态栏。
 - 弹窗 / 抽屉：只承载新增、编辑、详情、确认、错误处理和辅助配置；不得把完整主流程藏入弹窗。
+- 筛选 / 表格页必须在常见桌面首屏看到主流程入口和至少一部分表格 / 结果区；不得让 hero、说明块或低密度筛选表单把主体结果完全挤出首屏。
 
 ### 12.2 SearchForm.vue
 
 - 搜索项必须优先通过字段定义数组数据驱动渲染，而不是在每个页面重复手写一组表单模板。
+- 筛选项超过 3 个时必须使用响应式 grid、flex wrapping、`SearchForm.vue` 或 `ToolbarShell.vue` 等紧凑结构；不得退化为单列长表单。
 - 页面使用 `searchForm` 保存筛选值，并把筛选状态与分页、排序状态分离。
 - 点击搜索时必须先重置 `pageInfo.currentPage`，再刷新表格数据。
 - 点击重置时必须清理筛选值、重置分页和排序，并重新获取数据或回到页面定义的空筛选状态。
@@ -473,6 +476,8 @@
 - `current-change` 和 `size-change` 必须触发重新获取数据；`size-change` 默认重置到第一页。
 - 表格 loading、空状态、错误状态和刷新状态必须独立表达，不得只依靠表格空数组隐式说明。
 - 批量操作、导出和上传任务应在分页附近或状态栏展示进度与结果摘要。
+- 表格 footer 必须语义分区：左侧状态区只展示最近查询、刷新、批量处理或错误状态，右侧分页区只承载 Element Plus pagination 及其总数 / 页码控件。
+- 不得在 `<el-pagination>` 外再重复“当前页 / 总数 / 第几页”等自定义分页摘要，也不得保留无意义 table summary、废弃说明文案或与分页控件重复的 summary 文案。
 
 ### 12.5 EditDialog.vue
 
@@ -525,6 +530,7 @@
 ### 13.2.1 HARN-108 Shared Layout Contract
 
 - `src/views/common/PageHero.vue` 是页面顶部主叙事层，只接收已本地化的 `eyebrow`、`title`、`summary`、`pills` 与 actions / aside 插槽；它不绑定业务状态、不做权限判断、不发起 API 请求。
+- `PageHero.vue` 默认只用于 Dashboard、概览、总览、KPI 或静态运维摘要类页面；CRUD、历史、配置、审计、数据源、解析、报表接口等管理主路径默认使用紧凑 `SectionHeader.vue`。
 - `SectionHeader.vue` 统一 section 标题、kicker、summary 与操作位，页面不得继续为普通分区复制新的 `section-heading` / `section-title` 样式块。
 - `EvidencePanel.vue` 承载只读证据、风险说明、详情面板与静态运维信息；它可以设置 `tone`，但不得嵌套 `<el-card>` 或包装完整主流程。
 - `MetricCard.vue` 只用于 KPI、样本计数、比例和状态摘要；指标值必须来自页面已有后端证据、窗口样本或明确的静态治理事实，不得在组件内推导全局事实。
@@ -537,3 +543,17 @@
 - 不改变后端 API、SQL 执行 payload、parser payload、历史查询、审计追溯、权限或持久化语义。
 - SQL 输入输出继续以 `SqlEditorField` 与 `SqlCodeBlock` 为契约；raw SQL 展示面必须保留不自动格式化语义。
 - 页面中文/英文文案应逐步迁入现有 i18n 文件；不得新增平行国际化系统或继续扩大 `isChinese ? ...` 本地三元文案债务。
+
+### 13.4 Frontend Screenshot Self-Review Workflow
+
+新增、修改或重构前端页面时，截图不是为了给人类留证据，而是 Codex 自己确认实际渲染效果的实现门禁。页面任务默认流程为：
+
+1. 读取相关规则、现状页面和既有组件。
+2. 启动页面并抓取 before 截图，记录主要视口和 mock 数据来源。
+3. 完成实现。
+4. 抓取 after 截图，覆盖桌面首屏和必要的窄屏 / 移动堆叠。
+5. Codex 以资深前端架构师视角读图复核首屏主流程、信息密度、组件语义、响应式堆叠、重复文案、表格 footer、分页状态和 summary 文案。
+6. 主动修复截图暴露的布局漂移、语义混排、重复分页摘要、低密度筛选、过大 hero 或废弃说明文案。
+7. 再执行 lint、build、页面治理脚本、相关 contract 测试和 `foreman validate`。
+
+closeout 可以记录截图路径和“已完成截图自检并修复的问题”，但截图路径只是审计链副产物；核心要求是 Codex 已经基于实际渲染完成自我复核和修复。

@@ -4,6 +4,27 @@
 
 ## Done
 
+### HARN-116: 加固前端页面治理脚本与设计文档
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `chore(frontend): HARN-116 harden page governance`
+- Priority: 2
+- Depends on: HARN-109,HARN-110,HARN-111,HARN-112,HARN-113,HARN-114,HARN-115
+- Scope: 扩展 `check-frontend-page-governance.mjs`，补充 layout/i18n/card nesting/SQL component/page shell 检查；更新 `docs/frontend/design-system.md` 与相关前端治理文档，防止重构后回退。
+- Validation:
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:frontend-page-governance`
+  - `node scripts/lint-repository-knowledge.js`
+- Progress log:
+  - 2026-05-09: resumed from repository preflight and prior implementation plan; hardening screenshot self-review workflow, management page shell rules, pagination/footer/static governance checks.
+- Context closeout:
+  - Completed scope: Added R-186 screenshot self-review governance; updated frontend design/form governance and HARN-111 through HARN-116 matrix expectations; extended check-frontend-page-governance with diff-aware PageHero, duplicate pagination summary, footer separation, filter density, obsolete copy checks, plus a synthetic self-test; regenerated authority-map.
+  - Validation evidence: npm run lint; npm run build; npm run test:frontend-page-governance; node scripts/check-frontend-page-governance.mjs --self-test; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance --check; python3 scripts/foreman.py validate HARN-116 passed after authority-map regeneration; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
+  - Residual risk: Static governance checks remain heuristic and diff-aware, so screenshot reading remains mandatory for page implementation tasks; HARN-116 changed docs/scripts only and did not render a business page.
+  - Next step: Start HARN-111 by capturing before screenshots, then after implementation screenshots, and record Codex screenshot self-review fixes in closeout.
+
 ### HARN-119: 修复 SQL 历史分页状态栏
 
 - Status: done

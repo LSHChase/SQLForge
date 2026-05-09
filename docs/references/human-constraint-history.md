@@ -263,3 +263,20 @@
   - `docs/operations/local-development.md`
   - `docs/plans/task-spec-matrix.md`
   - `scripts/lint-repository-knowledge.js`
+
+## 2026-05-09T09:22:00-05:00
+
+- 事件：人类要求把前端页面截图从人工留证定位修正为 Codex 实现自检门禁，并在 HARN-111 前先加固 HARN-116 的视觉自检 checklist 与脚本规则。
+- 新增规则：`R-186`。
+- 约束：
+  - 新增、修改、重构前端页面时，Codex 必须在实现前后运行页面、截图、读图复核，并根据截图主动修复视觉误判、布局漂移和语义混排。
+  - 页面流程固定为读规则与现状、before 截图、实现、after 截图、Codex 自我视觉复核、修复漂移、验证、closeout。
+  - 管理页默认使用紧凑 `SectionHeader`；`PageHero` 只用于 Dashboard、概览、总览、KPI 或静态运维摘要类页面。
+  - 筛选 / 表格页必须确认首屏能看到主流程和结果区，筛选区保持响应式 grid / flex 密度，表格 footer 状态区和分页区分离，禁止重复分页摘要和废弃说明文案。
+- 落点：
+  - `docs/rules/codex-rules.md`
+  - `docs/frontend/design-system.md`
+  - `docs/frontend/form-component-governance.md`
+  - `docs/plans/task-spec-matrix.md`
+  - `scripts/check-frontend-page-governance.mjs`
+  - `scripts/lint-repository-knowledge.js`

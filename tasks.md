@@ -72,18 +72,6 @@
   - `npm run test:form-governance`
   - `npm run test:frontend-page-governance`
 
-### HARN-116: 加固前端页面治理脚本与设计文档
-
-- Status: todo
-- Priority: 2
-- Depends on: HARN-109,HARN-110,HARN-111,HARN-112,HARN-113,HARN-114,HARN-115
-- Scope: 扩展 `check-frontend-page-governance.mjs`，补充 layout/i18n/card nesting/SQL component/page shell 检查；更新 `docs/frontend/design-system.md` 与相关前端治理文档，防止重构后回退。
-- Validation:
-  - `npm run lint`
-  - `npm run build`
-  - `npm run test:frontend-page-governance`
-  - `node scripts/lint-repository-knowledge.js`
-
 
 ## In Progress
 
