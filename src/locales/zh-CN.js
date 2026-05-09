@@ -458,6 +458,7 @@ export default {
     footer: {
       currentPageCount: '当前页 {count} 条',
       totalCount: '总数 {count} 条',
+      pageWindow: '第 {current}/{total} 页',
       lastQuery: '最近查询：{status} · {time}'
     }
   },

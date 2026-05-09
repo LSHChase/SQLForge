@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-100: 修复 SQL 历史列表分页切换体验
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `fix(frontend): restore sql history pagination controls`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修复 SQL 历史历史列表底部分页只显示分页信息、缺少明确页码切换/跳转体验的问题；保持 HARN-099 数据驱动结构、接口参数语义和现有 contract 标识不变，补齐分页状态展示与前端治理验证。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-100`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Restored explicit SQL history list pagination controls by adding Element Plus current-page/page-size v-model bindings, visible page window status, jumper navigation, loading disablement, total fallback handling, and history page contract markers for the pagination control.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-100; npm run lint; npm run build; npm run test:form-governance; npm run test:sql-ui-contract; npm run test:frontend-page-governance; node scripts/check-history-page-contract.mjs; node scripts/check-history-detail-contract.mjs; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Playwright runtime check was attempted but this environment lacks the Playwright Chromium binary; validation is through build, static governance, contract scripts, and foreman gates.
+  - Next step: Product acceptance should verify the SQL history list with more than one page of QUERY_EXECUTION results: page buttons, next/previous, page-size changes, and jumper navigation should all reload the list.
+
 ### HARN-099: 重构 SQL 历史历史列表前端主路径
 
 - Status: done

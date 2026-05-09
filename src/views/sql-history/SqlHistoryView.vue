@@ -281,6 +281,10 @@ const summaryMetrics = computed(() => [
 const lookupMode = computed(() => (hasLookupCriteria.value ? 'INDEXED' : 'PAGE'))
 const listStatusLabel = computed(() => t(`sqlHistory.queryStatus.${listStatus.value}`))
 const lastQueryText = computed(() => (lastQueryAt.value ? formatTimestamp(lastQueryAt.value) : '-'))
+const pageWindow = computed(() => ({
+  current: pageInfo.currentPage,
+  total: pageInfo.pageCount || Math.ceil(pageInfo.total / pageInfo.pageSize) || 0
+}))
 const emptyDescription = computed(() => {
   if (loading.list) {
     return t('sqlHistory.states.loading')
@@ -552,8 +556,8 @@ const loadPage = async () => {
 const applyPageInfo = payload => {
   pageInfo.currentPage = Number(payload?.pageNo || pageInfo.currentPage || 1)
   pageInfo.pageSize = Number(payload?.pageSize || pageInfo.pageSize || 10)
-  pageInfo.total = Number(payload?.totalCount || 0)
-  pageInfo.pageCount = Number(payload?.pageCount || 0)
+  pageInfo.total = Number(payload?.totalCount ?? payload?.total ?? 0)
+  pageInfo.pageCount = Number(payload?.pageCount ?? Math.ceil(pageInfo.total / pageInfo.pageSize) ?? 0)
 }
 
 const search = async () => {
@@ -952,15 +956,19 @@ watch(
         <div class="footer-status">
           <span>{{ t('sqlHistory.footer.currentPageCount', { count: tableRows.length }) }}</span>
           <span>{{ t('sqlHistory.footer.totalCount', { count: pageInfo.total }) }}</span>
+          <span>{{ t('sqlHistory.footer.pageWindow', pageWindow) }}</span>
           <span>{{ t('sqlHistory.footer.lastQuery', { status: listStatusLabel, time: lastQueryText }) }}</span>
         </div>
         <el-pagination
+          v-model:page-size="pageInfo.pageSize"
+          v-model:current-page="pageInfo.currentPage"
           class="pagination-row"
-          layout="total, sizes, prev, pager, next"
+          data-testid="sql-history-pagination"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
           :total="pageInfo.total"
           :page-sizes="LIST_PAGE_SIZE_OPTIONS"
-          :page-size="pageInfo.pageSize"
-          :current-page="pageInfo.currentPage"
+          :disabled="loading.list"
           @current-change="handlePageChange"
           @size-change="handlePageSizeChange"
         />

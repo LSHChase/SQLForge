@@ -458,6 +458,7 @@ export default {
     footer: {
       currentPageCount: '{count} on this page',
       totalCount: '{count} total',
+      pageWindow: 'Page {current}/{total}',
       lastQuery: 'Last query: {status} · {time}'
     }
   },
