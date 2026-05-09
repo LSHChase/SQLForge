@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-005: Restart local frontend and backend services after dependency refresh
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `OPS-005 Restart local frontend and backend services after dependency refresh`
+- Priority: 1
+- Depends on: N/A
+- Scope: Restart the local SQLForge frontend and backend runtime services, including backend runtime dependency refresh when needed, and verify health endpoints; no source changes.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-005`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Restarted local backend Spring Boot services and frontend Vite dev server; refreshed backend runtime dependencies after stale shared dependency caused the first governance startup attempt to fail; verified MySQL, Redis, MinIO, message queue, backend health endpoints, and frontend URL.
+  - Validation evidence: bash scripts/health-check.sh --fail-on-error; npm run test:frontend-page-governance; python3 scripts/foreman.py validate OPS-005; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Working tree still contains active frontend task changes outside this OPS closeout; they were not staged into the restart closeout commit.
+  - Next step: Continue the active HARN frontend work separately; use /tmp/sqlforge-backend-runtime/*.pid and /tmp/sqlforge-frontend-runtime/frontend.pid to stop this local runtime if needed.
+
 ### HARN-097: 补齐前端页面规则自动化门禁
 
 - Status: done
