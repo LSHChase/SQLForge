@@ -7,12 +7,12 @@ import {
   exportGovernanceQueryHistory,
   formatRuntimeError,
   getGovernanceQueryHistoryDetail,
-  getGovernanceQueryHistoryPage,
   getGovernanceTraceDetail,
   lookupGovernanceTraces
 } from '../../services/runtimeGateApi'
 import { engineOptions } from '../common/formComponentGovernance'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
+import { useSqlHistoryList } from './useSqlHistoryList'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -20,26 +20,7 @@ const router = useRouter()
 
 const SQL_EXECUTION_HISTORY_TYPE = 'QUERY_EXECUTION'
 const PAGE_KICKER = 'QUERY_EXECUTION history'
-const DEFAULT_HISTORY_CONTEXT_TENANT_ID = 'tenant-a'
 const LIST_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
-
-const DEFAULT_SEARCH_FORM = Object.freeze({
-  tenantId: '',
-  reportCode: '',
-  datasourceCode: '',
-  status: '',
-  accessChannel: '',
-  engine: '',
-  submittedBy: '',
-  cacheHit: '',
-  rewriteApplied: '',
-  accelerationApplied: '',
-  sortBy: '',
-  sortOrder: '',
-  traceId: '',
-  taskId: '',
-  reportId: ''
-})
 
 const statusValueOptions = [
   { label: 'SUCCESS', value: 'SUCCESS' },
@@ -77,34 +58,19 @@ const exportFormatOptions = [
   { label: 'MARKDOWN', value: 'MARKDOWN' }
 ]
 
-const createSearchForm = () => ({ ...DEFAULT_SEARCH_FORM })
-const normalizeQueryValue = value => String(value || '').trim()
-
-const searchForm = reactive(createSearchForm())
-const pageInfo = reactive({
-  currentPage: 1,
-  pageSize: 10,
-  total: 0,
-  pageCount: 0
-})
-
 const loading = reactive({
-  list: false,
   detail: false,
   lookup: false,
   export: false
 })
 
-const tablePage = ref(null)
 const selectedHistoryDetail = ref(null)
 const detailDrawerVisible = ref(false)
 const evidenceDrawerVisible = ref(false)
 const exportDialogVisible = ref(false)
 const exportResult = ref(null)
 const activeDetailTab = ref('overview')
-const errorMessage = ref('')
-const listStatus = ref('idle')
-const lastQueryAt = ref('')
+const workflowErrorMessage = ref('')
 
 const exportForm = reactive({
   exportFormat: 'JSON',
@@ -112,21 +78,35 @@ const exportForm = reactive({
   exportReason: 'frontend-sql-history-forensics'
 })
 
-const routeTenantId = computed(() => normalizeQueryValue(route.query.tenantId))
-const requestTenantId = computed(
-  () => normalizeQueryValue(searchForm.tenantId) || routeTenantId.value || DEFAULT_HISTORY_CONTEXT_TENANT_ID
-)
-const tableRows = computed(() => tablePage.value?.items || [])
-const classificationSummary = computed(() => tablePage.value?.classificationSummary || {})
+const routeTenantId = computed(() => String(route.query.tenantId || '').trim())
+const {
+  searchForm,
+  pageInfo,
+  loadingList,
+  tableRows,
+  classificationSummary,
+  listErrorMessage,
+  listStatus,
+  lastQueryAt,
+  requestTenantId,
+  hasLookupCriteria,
+  pageWindow,
+  currentTenantOptions,
+  currentDatasourceOptions,
+  datasourceOptionsLoadFailed,
+  initializeList,
+  search: searchList,
+  clearFilters: clearListFilters,
+  handlePageChange,
+  handlePageSizeChange,
+  syncRouteTenant,
+  normalizeQueryValue
+} = useSqlHistoryList({
+  routeTenantId,
+  historyType: SQL_EXECUTION_HISTORY_TYPE
+})
 const statusCounts = computed(() => classificationSummary.value.statusCounts || {})
 const accessChannelCounts = computed(() => classificationSummary.value.accessChannelCounts || {})
-const hasLookupCriteria = computed(() =>
-  Boolean(
-    normalizeQueryValue(searchForm.traceId) ||
-      normalizeQueryValue(searchForm.taskId) ||
-      normalizeQueryValue(searchForm.reportId)
-  )
-)
 const auditEvents = computed(() => selectedHistoryDetail.value?.traceDetail?.auditEvents || [])
 const executionSummary = computed(() => objectValue(selectedHistoryDetail.value?.executionSummary))
 const sqlState = computed(() => objectValue(selectedHistoryDetail.value?.sqlState))
@@ -151,9 +131,13 @@ const sortOrderOptions = computed(() => withDefaultOption(sortOrderValueOptions)
 const searchFields = computed(() => [
   {
     key: 'tenantId',
-    type: 'input',
+    type: 'select',
     label: t('sqlHistory.filters.tenant'),
     placeholder: t('sqlHistory.filters.tenantPlaceholder'),
+    options: currentTenantOptions.value,
+    filterable: true,
+    allowCreate: true,
+    defaultFirstOption: true,
     testId: 'sql-history-tenant-filter'
   },
   {
@@ -165,9 +149,13 @@ const searchFields = computed(() => [
   },
   {
     key: 'datasourceCode',
-    type: 'input',
+    type: 'select',
     label: t('sqlHistory.filters.datasource'),
     placeholder: t('sqlHistory.filters.datasourcePlaceholder'),
+    options: currentDatasourceOptions.value,
+    filterable: true,
+    allowCreate: true,
+    defaultFirstOption: true,
     testId: 'sql-history-datasource-filter'
   },
   {
@@ -281,15 +269,12 @@ const summaryMetrics = computed(() => [
 const lookupMode = computed(() => (hasLookupCriteria.value ? 'INDEXED' : 'PAGE'))
 const listStatusLabel = computed(() => t(`sqlHistory.queryStatus.${listStatus.value}`))
 const lastQueryText = computed(() => (lastQueryAt.value ? formatTimestamp(lastQueryAt.value) : '-'))
-const pageWindow = computed(() => ({
-  current: pageInfo.currentPage,
-  total: pageInfo.pageCount || Math.ceil(pageInfo.total / pageInfo.pageSize) || 0
-}))
+const visibleErrorMessage = computed(() => workflowErrorMessage.value || listErrorMessage.value)
 const emptyDescription = computed(() => {
-  if (loading.list) {
+  if (loadingList.value) {
     return t('sqlHistory.states.loading')
   }
-  if (errorMessage.value) {
+  if (listErrorMessage.value) {
     return t('sqlHistory.states.loadFailed')
   }
   return t('sqlHistory.states.empty')
@@ -321,7 +306,10 @@ const operationStatusItems = computed(() => [
 
 const selectFieldProps = field => ({
   placeholder: field.placeholder || t('sqlHistory.filters.selectPlaceholder'),
-  clearable: true
+  clearable: true,
+  filterable: Boolean(field.filterable),
+  allowCreate: Boolean(field.allowCreate),
+  defaultFirstOption: Boolean(field.defaultFirstOption)
 })
 
 const inputFieldProps = field => ({
@@ -500,85 +488,14 @@ const sqlVariants = computed(() =>
   ].filter(item => hasDisplayValue(item.value))
 )
 
-const parseBooleanFilter = value => {
-  if (value === 'true') {
-    return true
-  }
-  if (value === 'false') {
-    return false
-  }
-  return undefined
-}
-
-const loadPage = async () => {
-  loading.list = true
-  listStatus.value = 'loading'
-  errorMessage.value = ''
-  try {
-    tablePage.value = await getGovernanceQueryHistoryPage(
-      {
-        tenantId: normalizeQueryValue(searchForm.tenantId),
-        requestTenantId: requestTenantId.value,
-        historyType: SQL_EXECUTION_HISTORY_TYPE,
-        reportCode: searchForm.reportCode,
-        datasourceCode: searchForm.datasourceCode,
-        status: searchForm.status,
-        accessChannel: searchForm.accessChannel,
-        engine: searchForm.engine,
-        submittedBy: searchForm.submittedBy,
-        cacheHit: parseBooleanFilter(searchForm.cacheHit),
-        rewriteApplied: parseBooleanFilter(searchForm.rewriteApplied),
-        accelerationApplied: parseBooleanFilter(searchForm.accelerationApplied),
-        sortBy: searchForm.sortBy,
-        sortOrder: searchForm.sortOrder,
-        pageNo: pageInfo.currentPage,
-        pageSize: pageInfo.pageSize
-      },
-      {
-        requestPrefix: 'frontend-sql-history-page'
-      }
-    )
-    applyPageInfo(tablePage.value)
-    listStatus.value = 'success'
-    lastQueryAt.value = new Date().toISOString()
-  } catch (error) {
-    tablePage.value = null
-    pageInfo.total = 0
-    pageInfo.pageCount = 0
-    listStatus.value = 'error'
-    lastQueryAt.value = new Date().toISOString()
-    errorMessage.value = formatRuntimeError(error)
-  } finally {
-    loading.list = false
-  }
-}
-
-const applyPageInfo = payload => {
-  pageInfo.currentPage = Number(payload?.pageNo || pageInfo.currentPage || 1)
-  pageInfo.pageSize = Number(payload?.pageSize || pageInfo.pageSize || 10)
-  pageInfo.total = Number(payload?.totalCount ?? payload?.total ?? 0)
-  pageInfo.pageCount = Number(payload?.pageCount ?? Math.ceil(pageInfo.total / pageInfo.pageSize) ?? 0)
-}
-
 const search = async () => {
-  pageInfo.currentPage = 1
-  await loadPage()
+  workflowErrorMessage.value = ''
+  await searchList()
 }
 
 const clearFilters = async () => {
-  Object.assign(searchForm, createSearchForm())
-  await search()
-}
-
-const handlePageChange = async currentPage => {
-  pageInfo.currentPage = currentPage
-  await loadPage()
-}
-
-const handlePageSizeChange = async pageSize => {
-  pageInfo.pageSize = pageSize
-  pageInfo.currentPage = 1
-  await loadPage()
+  workflowErrorMessage.value = ''
+  await clearListFilters()
 }
 
 const openHistoryDetail = async historyId => {
@@ -587,7 +504,7 @@ const openHistoryDetail = async historyId => {
     return
   }
   loading.detail = true
-  errorMessage.value = ''
+  workflowErrorMessage.value = ''
   activeDetailTab.value = 'overview'
   try {
     selectedHistoryDetail.value = await getGovernanceQueryHistoryDetail(requestTenantId.value, normalizedHistoryId, {
@@ -596,7 +513,7 @@ const openHistoryDetail = async historyId => {
     detailDrawerVisible.value = true
   } catch (error) {
     selectedHistoryDetail.value = null
-    errorMessage.value = formatRuntimeError(error)
+    workflowErrorMessage.value = formatRuntimeError(error)
   } finally {
     loading.detail = false
   }
@@ -604,11 +521,11 @@ const openHistoryDetail = async historyId => {
 
 const runIndexedLookup = async () => {
   if (!hasLookupCriteria.value) {
-    errorMessage.value = t('sqlHistory.messages.lookupRequired')
+    workflowErrorMessage.value = t('sqlHistory.messages.lookupRequired')
     return
   }
   loading.lookup = true
-  errorMessage.value = ''
+  workflowErrorMessage.value = ''
   try {
     const lookupPage = await lookupGovernanceTraces(
       requestTenantId.value,
@@ -624,7 +541,7 @@ const runIndexedLookup = async () => {
     )
     const firstTraceId = lookupPage?.items?.[0]?.traceId
     if (!firstTraceId) {
-      errorMessage.value = t('sqlHistory.messages.lookupEmpty')
+      workflowErrorMessage.value = t('sqlHistory.messages.lookupEmpty')
       return
     }
     const traceDetail = await getGovernanceTraceDetail(requestTenantId.value, firstTraceId, 20, {
@@ -634,7 +551,7 @@ const runIndexedLookup = async () => {
       item => item.historyType === SQL_EXECUTION_HISTORY_TYPE
     )
     if (!executionHistory?.historyId) {
-      errorMessage.value = t('sqlHistory.messages.lookupWithoutExecution')
+      workflowErrorMessage.value = t('sqlHistory.messages.lookupWithoutExecution')
       return
     }
     await openHistoryDetail(executionHistory.historyId)
@@ -642,7 +559,7 @@ const runIndexedLookup = async () => {
       selectedHistoryDetail.value.traceDetail = traceDetail
     }
   } catch (error) {
-    errorMessage.value = formatRuntimeError(error)
+    workflowErrorMessage.value = formatRuntimeError(error)
   } finally {
     loading.lookup = false
   }
@@ -703,7 +620,7 @@ const runExport = async () => {
     return
   }
   loading.export = true
-  errorMessage.value = ''
+  workflowErrorMessage.value = ''
   try {
     exportResult.value = await exportGovernanceQueryHistory(
       requestTenantId.value,
@@ -719,7 +636,7 @@ const runExport = async () => {
     )
   } catch (error) {
     exportResult.value = null
-    errorMessage.value = formatRuntimeError(error)
+    workflowErrorMessage.value = formatRuntimeError(error)
   } finally {
     loading.export = false
   }
@@ -810,17 +727,17 @@ const formatTimestamp = value => {
 const formatJson = value => JSON.stringify(value, null, 2)
 
 onMounted(async () => {
-  searchForm.tenantId = routeTenantId.value
-  await loadPage()
+  syncRouteTenant()
+  await initializeList()
   await openRouteDeepLink()
 })
 
 watch(
   () => route.fullPath,
   async () => {
-    searchForm.tenantId = routeTenantId.value
+    syncRouteTenant()
     pageInfo.currentPage = 1
-    await loadPage()
+    await initializeList()
     await openRouteDeepLink()
   }
 )
@@ -835,7 +752,7 @@ watch(
         <p class="section-summary">{{ t('sqlHistory.executionSummary') }}</p>
       </div>
       <div class="action-row">
-        <el-button type="primary" :loading="loading.list" data-testid="sql-history-refresh" @click="search">
+        <el-button type="primary" :loading="loadingList" data-testid="sql-history-refresh" @click="search">
           {{ t('sqlHistory.actions.refresh') }}
         </el-button>
         <el-button :loading="loading.lookup" data-testid="sql-history-run-lookup" @click="runIndexedLookup">
@@ -845,13 +762,13 @@ watch(
       </div>
     </header>
 
-    <div v-if="errorMessage" class="inline-banner inline-banner-danger" data-testid="sql-history-error">
+    <div v-if="visibleErrorMessage" class="inline-banner inline-banner-danger" data-testid="sql-history-error">
       <strong>{{ t('sqlHistory.states.errorTitle') }}</strong>
-      <span>{{ errorMessage }}</span>
+      <span>{{ visibleErrorMessage }}</span>
     </div>
 
     <section class="filter-panel">
-      <el-form class="filter-form" :model="searchForm" label-position="top" @submit.prevent>
+      <el-form class="filter-form" :model="searchForm" label-position="top" @submit.prevent="search">
         <div class="field-grid">
           <el-form-item v-for="field in searchFields" :key="field.key" :label="field.label" class="field-block">
             <el-select
@@ -871,10 +788,14 @@ watch(
               v-model="searchForm[field.key]"
               :data-testid="field.testId"
               v-bind="inputFieldProps(field)"
+              @keyup.enter="search"
             />
           </el-form-item>
         </div>
       </el-form>
+      <div v-if="datasourceOptionsLoadFailed" class="filter-hint" data-testid="sql-history-datasource-options-fallback">
+        {{ t('sqlHistory.states.datasourceOptionsFallback') }}
+      </div>
     </section>
 
     <section class="summary-strip" :aria-label="t('sqlHistory.metrics.label')">
@@ -905,7 +826,7 @@ watch(
       </div>
 
       <el-table
-        v-loading="loading.list"
+        v-loading="loadingList"
         :data="tableRows"
         :element-loading-text="t('sqlHistory.states.loading')"
         border
@@ -968,7 +889,7 @@ watch(
           layout="total, sizes, prev, pager, next, jumper"
           :total="pageInfo.total"
           :page-sizes="LIST_PAGE_SIZE_OPTIONS"
-          :disabled="loading.list"
+          :disabled="loadingList"
           @current-change="handlePageChange"
           @size-change="handlePageSizeChange"
         />
@@ -1179,6 +1100,12 @@ watch(
 
 .field-grid {
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.filter-hint {
+  margin-top: var(--sqlforge-space-3);
+  color: #f4c84a;
+  font-size: var(--sqlforge-text-meta);
 }
 
 .summary-strip {

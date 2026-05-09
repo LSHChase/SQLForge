@@ -316,7 +316,7 @@ export default {
     summary: 'Search persisted query-history rows, linked traces, and detail evidence.',
     executionSummary: 'Shows only QUERY_EXECUTION records; parse histories stay in the parse-record entry.',
     actions: {
-      refresh: 'Refresh list',
+      refresh: 'Search / refresh',
       lookup: 'Indexed lookup',
       clear: 'Clear filters',
       openRepairEvidence: 'Open repair evidence',
@@ -389,7 +389,8 @@ export default {
       loading: 'Loading SQL execution history',
       empty: 'No SQL execution history matches the current filters.',
       loadFailed: 'The list failed to load. Check the error above.',
-      errorTitle: 'SQL history query failed'
+      errorTitle: 'SQL history query failed',
+      datasourceOptionsFallback: 'Datasource options are unavailable; manual values remain enabled.'
     },
     messages: {
       lookupRequired: 'Enter at least one of traceId, taskId, or reportId.',

@@ -4,10 +4,12 @@ import path from 'node:path'
 const root = process.cwd()
 const viewPath = path.join(root, 'src/views/parse-record/ParseRecordView.vue')
 const sqlHistoryViewPath = path.join(root, 'src/views/sql-history/SqlHistoryView.vue')
+const sqlHistoryListPath = path.join(root, 'src/views/sql-history/useSqlHistoryList.js')
 const apiPath = path.join(root, 'src/services/runtimeGateApi.js')
 const helperPath = path.join(root, 'src/views/common/issueSceneHelp.mjs')
 const routePathsPath = path.join(root, 'src/config/routePaths.mjs')
 const routerPath = path.join(root, 'src/router/index.js')
+const mainPath = path.join(root, 'src/main.js')
 const source = [
   fs.readFileSync(viewPath, 'utf8'),
   fs.readFileSync(sqlHistoryViewPath, 'utf8'),
@@ -15,9 +17,12 @@ const source = [
 ].join('\n')
 const parseRecordSource = fs.readFileSync(viewPath, 'utf8')
 const sqlHistorySource = fs.readFileSync(sqlHistoryViewPath, 'utf8')
+const sqlHistoryListSource = fs.readFileSync(sqlHistoryListPath, 'utf8')
+const sqlHistoryContractSource = `${sqlHistorySource}\n${sqlHistoryListSource}`
 const apiSource = fs.readFileSync(apiPath, 'utf8')
 const routePathsSource = fs.readFileSync(routePathsPath, 'utf8')
 const routerSource = fs.readFileSync(routerPath, 'utf8')
+const mainSource = fs.readFileSync(mainPath, 'utf8')
 const pageApiStart = apiSource.indexOf('export const getGovernanceQueryHistoryPage')
 const pageApiEnd = apiSource.indexOf('export const getHetuRouteCalibration')
 const queryHistoryPageApiSource = pageApiStart >= 0 && pageApiEnd > pageApiStart
@@ -100,6 +105,7 @@ const requiredSqlHistoryTokens = [
   'data-testid="sql-history-run-lookup"',
   'data-testid="sql-history-query-history-table"',
   'data-testid="sql-history-pagination"',
+  'data-testid="sql-history-datasource-options-fallback"',
   'data-testid="sql-history-trace-item"',
   'data-testid="sql-history-detail-drawer"',
   'data-testid="sql-history-detail-tabs"',
@@ -110,6 +116,8 @@ const requiredSqlHistoryTokens = [
   "testId: 'sql-history-detail-audit-count'",
   'data-testid="sql-history-export"',
   'data-testid="sql-history-export-result"',
+  'useSqlHistoryList',
+  '@submit.prevent="search"',
   "const SQL_EXECUTION_HISTORY_TYPE = 'QUERY_EXECUTION'",
   'historyType: SQL_EXECUTION_HISTORY_TYPE',
   'v-model:current-page="pageInfo.currentPage"',
@@ -153,6 +161,15 @@ const requiredRouteTokens = [
   "historyWorkbenchTab: 'batchHistory'"
 ]
 
+const requiredMainTokens = [
+  'ElPagination',
+  'ElForm',
+  'ElFormItem',
+  'ElEmpty',
+  'ElCheckbox',
+  'app.use(ElLoading)'
+]
+
 const forbiddenViewTokens = [
   "tenantId: 'tenant-a'",
   "sortBy: 'submittedAt'",
@@ -175,15 +192,16 @@ const forbiddenApiTokens = [
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))
-const missingSqlHistory = requiredSqlHistoryTokens.filter(token => !sqlHistorySource.includes(token))
+const missingSqlHistory = requiredSqlHistoryTokens.filter(token => !sqlHistoryContractSource.includes(token))
 const missingApi = requiredApiTokens.filter(token => !queryHistoryPageApiSource.includes(token))
 const missingSharedApi = requiredSharedApiTokens.filter(token => !apiSource.includes(token))
 const routeSource = `${routePathsSource}\n${routerSource}`
 const missingRoute = requiredRouteTokens.filter(token => !routeSource.includes(token))
+const missingMain = requiredMainTokens.filter(token => !mainSource.includes(token))
 const forbiddenView = forbiddenViewTokens.filter(token => parseRecordSource.includes(token))
 const forbiddenApi = forbiddenApiTokens.filter(token => queryHistoryPageApiSource.includes(token))
 
-if (missing.length > 0 || missingSqlHistory.length > 0 || missingApi.length > 0 || missingSharedApi.length > 0 || missingRoute.length > 0 || forbiddenView.length > 0 || forbiddenApi.length > 0) {
+if (missing.length > 0 || missingSqlHistory.length > 0 || missingApi.length > 0 || missingSharedApi.length > 0 || missingRoute.length > 0 || missingMain.length > 0 || forbiddenView.length > 0 || forbiddenApi.length > 0) {
   console.error('History page contract check failed.')
   for (const token of missing) {
     console.error(`- missing token: ${token}`)
@@ -199,6 +217,9 @@ if (missing.length > 0 || missingSqlHistory.length > 0 || missingApi.length > 0 
   }
   for (const token of missingRoute) {
     console.error(`- missing route token: ${token}`)
+  }
+  for (const token of missingMain) {
+    console.error(`- missing main registration token: ${token}`)
   }
   for (const token of forbiddenView) {
     console.error(`- forbidden default filter token in view: ${token}`)

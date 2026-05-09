@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-101: 收敛 SQL 历史列表架构与分页运行态验证
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `refactor(frontend): harden sql history list architecture`
+- Priority: 1
+- Depends on: N/A
+- Scope: 按复核方案修正 SQL 历史历史列表主路径：下沉列表状态和分页归一化，修复搜索提交与状态隔离，补齐受控租户/数据源候选和分页运行态 smoke/contract，不改变后端 API、路由或详情/导出核心契约。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-101`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 收敛 SQL 历史列表主路径为 useSqlHistoryList 数据状态层，修复分页组件注册、分页切换、pageSize 重置、键盘提交搜索、错误状态分层与受控租户/数据源候选。
+  - Validation evidence: npm run lint; npm run build; npm run test:form-governance; npm run test:sql-ui-contract; npm run test:frontend-page-governance; node scripts/check-history-page-contract.mjs; node scripts/check-history-detail-contract.mjs; npm run smoke:frontend-dev; python3 scripts/foreman.py validate HARN-101; python3 scripts/task_audit.py --check --phase pre-closeout.
+  - Residual risk: 详情抽屉、导出弹窗、审计关联和后端 API 仅做兼容保留，未在本任务做结构性重构。
+  - Next step: 产品验收 SQL 历史默认查询、分页跳转、pageSize 切换、筛选提交、清空条件、空/错误/加载态与 History ID 详情打开流程。
+
 ### HARN-100: 修复 SQL 历史列表分页切换体验
 
 - Status: done

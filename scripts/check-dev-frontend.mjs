@@ -145,6 +145,7 @@ const runBrowserSmoke = async baseUrl => {
   let governanceStatsCalls = 0
   let queryExecuteCalls = 0
   let sqlHistoryPageCalls = 0
+  const sqlHistoryPageRequests = []
   let parseHistoryPageCalls = 0
 
   page.on('pageerror', error => {
@@ -223,16 +224,40 @@ const runBrowserSmoke = async baseUrl => {
         `SQL history page must request QUERY_EXECUTION, got ${requestUrl.searchParams.get('historyType')}`
       )
       sqlHistoryPageCalls += 1
+      const pageNo = Number(requestUrl.searchParams.get('pageNo') || 1)
+      const pageSize = Number(requestUrl.searchParams.get('pageSize') || 10)
+      const totalCount = 42
+      sqlHistoryPageRequests.push({
+        pageNo,
+        pageSize,
+        reportCode: requestUrl.searchParams.get('reportCode') || ''
+      })
+      const remainingCount = Math.max(0, totalCount - ((pageNo - 1) * pageSize))
+      const itemCount = Math.min(pageSize, remainingCount)
       await fulfillJson(route, {
-        items: [],
-        pageNo: Number(requestUrl.searchParams.get('pageNo') || 1),
-        pageSize: Number(requestUrl.searchParams.get('pageSize') || 10),
-        totalCount: 0,
-        pageCount: 0,
+        items: Array.from({ length: itemCount }, (_, index) => ({
+          historyId: `dev-history-${pageNo}-${index + 1}`,
+          traceId: `dev-trace-${pageNo}-${index + 1}`,
+          reportCode: `DEV_RPT_${pageNo}_${index + 1}`,
+          datasourceCode: 'hetu_main',
+          resultStatus: 'SUCCESS',
+          accessChannel: 'PAGE',
+          targetEngine: 'HETU',
+          cacheHit: index % 2 === 0,
+          rewriteApplied: false,
+          accelerationApplied: true,
+          submittedBy: 'dev-smoke',
+          submittedAt: '2026-05-08T22:30:00',
+          auditEventCount: 1
+        })),
+        pageNo,
+        pageSize,
+        totalCount,
+        pageCount: Math.ceil(totalCount / pageSize),
         classificationSummary: {
-          totalItems: 0,
-          statusCounts: {},
-          accessChannelCounts: {}
+          totalItems: totalCount,
+          statusCounts: { SUCCESS: totalCount },
+          accessChannelCounts: { PAGE: totalCount }
         }
       })
       return
@@ -261,8 +286,14 @@ const runBrowserSmoke = async baseUrl => {
     }
 
     if (pathname === '/api/governance/datasources') {
-      assertDevHeaders(request, 'tenant-a', ['frontend-parse-record-datasource-options'])
-      await fulfillJson(route, [])
+      assertDevHeaders(request, 'tenant-a', [
+        'frontend-parse-record-datasource-options',
+        'frontend-sql-history-datasource-options'
+      ])
+      await fulfillJson(route, [
+        { datasourceCode: 'hetu_main', datasourceName: 'Hetu main' },
+        { datasourceCode: 'hive_archive', datasourceName: 'Hive archive' }
+      ])
       return
     }
 
@@ -378,12 +409,58 @@ const runBrowserSmoke = async baseUrl => {
 
     await page.goto(`${baseUrl}${ROUTE_PATHS.sqlHistory}`, { waitUntil: 'domcontentloaded' })
     await page.getByTestId('sql-history-page').waitFor({ timeout: defaultTimeoutMs })
+    await expectTextInLocator(page.getByTestId('sql-history-pagination'), '42')
+    await Promise.all([
+      page.waitForResponse(response => {
+        if (!response.url().includes('/api/governance/query-history')) {
+          return false
+        }
+        const responseUrl = new URL(response.url())
+        return responseUrl.searchParams.get('pageNo') === '2'
+      }),
+      page.getByTestId('sql-history-pagination').locator('.btn-next').click()
+    ])
+    const pageSizeResponse = page.waitForResponse(response => {
+      if (!response.url().includes('/api/governance/query-history')) {
+        return false
+      }
+      const responseUrl = new URL(response.url())
+      return responseUrl.searchParams.get('pageNo') === '1' && responseUrl.searchParams.get('pageSize') === '25'
+    })
+    await page.getByTestId('sql-history-pagination').locator('.el-select').click()
+    await page.getByRole('option', { name: /25/ }).click()
+    await pageSizeResponse
+    await page.getByTestId('sql-history-report-filter').click()
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A')
+    await page.keyboard.type('DEV_RPT_FILTER')
+    await Promise.all([
+      page.waitForResponse(response => {
+        if (!response.url().includes('/api/governance/query-history')) {
+          return false
+        }
+        const responseUrl = new URL(response.url())
+        return responseUrl.searchParams.get('pageNo') === '1' && responseUrl.searchParams.get('reportCode') === 'DEV_RPT_FILTER'
+      }),
+      page.keyboard.press('Enter')
+    ])
     await page.goto(`${baseUrl}${ROUTE_PATHS.parseRecord}`, { waitUntil: 'domcontentloaded' })
     await page.getByTestId('parse-record-page').waitFor({ timeout: defaultTimeoutMs })
 
     assert(queryExecuteCalls === 2, `Expected 2 query execution calls, got ${queryExecuteCalls}`)
     assert(governanceStatsCalls === 2, `Expected 2 governance stats calls, got ${governanceStatsCalls}`)
     assert(sqlHistoryPageCalls >= 1, `Expected SQL history page calls, got ${sqlHistoryPageCalls}`)
+    assert(
+      sqlHistoryPageRequests.some(item => item.pageNo === 2),
+      `Expected SQL history next-page request, got ${JSON.stringify(sqlHistoryPageRequests)}`
+    )
+    assert(
+      sqlHistoryPageRequests.some(item => item.pageNo === 1 && item.pageSize === 25),
+      `Expected SQL history page-size reset request, got ${JSON.stringify(sqlHistoryPageRequests)}`
+    )
+    assert(
+      sqlHistoryPageRequests.some(item => item.pageNo === 1 && item.reportCode === 'DEV_RPT_FILTER'),
+      `Expected SQL history submit-search request, got ${JSON.stringify(sqlHistoryPageRequests)}`
+    )
     assert(parseHistoryPageCalls >= 1, `Expected parse history page calls, got ${parseHistoryPageCalls}`)
     assert(unexpectedApiRequests.length === 0, `Unexpected API requests: ${unexpectedApiRequests.join(', ')}`)
     assert(pageErrors.length === 0, `Frontend dev smoke saw page errors: ${pageErrors.join(' | ')}`)

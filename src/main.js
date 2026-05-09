@@ -2,18 +2,24 @@ import { createApp } from 'vue'
 import {
   ElAside,
   ElButton,
+  ElCheckbox,
   ElConfigProvider,
   ElContainer,
   ElDatePicker,
   ElDialog,
   ElDrawer,
+  ElEmpty,
+  ElForm,
+  ElFormItem,
   ElHeader,
   ElInput,
   ElInputNumber,
+  ElLoading,
   ElMain,
   ElMenu,
   ElMenuItem,
   ElOption,
+  ElPagination,
   ElScrollbar,
   ElSelect,
   ElSubMenu,
@@ -50,11 +56,15 @@ const app = createApp(App)
 ;[
   ElAside,
   ElButton,
+  ElCheckbox,
   ElConfigProvider,
   ElContainer,
   ElDatePicker,
   ElDialog,
   ElDrawer,
+  ElEmpty,
+  ElForm,
+  ElFormItem,
   ElHeader,
   ElInput,
   ElInputNumber,
@@ -62,6 +72,7 @@ const app = createApp(App)
   ElMenu,
   ElMenuItem,
   ElOption,
+  ElPagination,
   ElScrollbar,
   ElSelect,
   ElSubMenu,
@@ -75,6 +86,7 @@ const app = createApp(App)
 ].forEach(component => {
   app.component(component.name, component)
 })
+app.use(ElLoading)
 app.use(pinia)
 
 const globalConfigStore = useGlobalConfigStore(pinia)

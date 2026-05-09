@@ -316,7 +316,7 @@ export default {
     summary: '查询已落库的 query-history 列表、关联 trace 与详情证据。',
     executionSummary: '仅展示 QUERY_EXECUTION 执行记录，解析历史保留在解析历史查询入口。',
     actions: {
-      refresh: '刷新列表',
+      refresh: '查询/刷新',
       lookup: '精确反查',
       clear: '清空条件',
       openRepairEvidence: '打开修复证据',
@@ -389,7 +389,8 @@ export default {
       loading: '正在加载 SQL 执行历史',
       empty: '当前条件下没有 SQL 执行历史。',
       loadFailed: '列表加载失败，请查看上方错误信息。',
-      errorTitle: 'SQL 历史查询失败'
+      errorTitle: 'SQL 历史查询失败',
+      datasourceOptionsFallback: '数据源候选加载失败，保留手动输入。'
     },
     messages: {
       lookupRequired: '至少输入 traceId、taskId、reportId 中的一项。',
