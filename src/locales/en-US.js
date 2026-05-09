@@ -313,7 +313,153 @@ export default {
   },
   sqlHistory: {
     title: 'SQL History',
-    summary: 'Search persisted query-history rows, linked traces, and detail evidence.'
+    summary: 'Search persisted query-history rows, linked traces, and detail evidence.',
+    executionSummary: 'Shows only QUERY_EXECUTION records; parse histories stay in the parse-record entry.',
+    actions: {
+      refresh: 'Refresh list',
+      lookup: 'Indexed lookup',
+      clear: 'Clear filters',
+      openRepairEvidence: 'Open repair evidence',
+      openAuditForensics: 'Open audit forensics',
+      exportEvidence: 'Export evidence',
+      viewRawEvidence: 'View raw evidence',
+      copy: 'Copy'
+    },
+    options: {
+      all: 'All',
+      default: 'Default'
+    },
+    filters: {
+      tenant: 'Tenant',
+      tenantPlaceholder: 'Uses route tenant or tenant-a by default',
+      reportKey: 'SQL/report key',
+      reportKeyPlaceholder: 'Enter reportCode or SQL fingerprint',
+      datasource: 'Datasource',
+      datasourcePlaceholder: 'Enter datasource code',
+      status: 'Execution status',
+      accessChannel: 'Access channel',
+      engine: 'Target engine',
+      submittedBy: 'Submitted by',
+      submittedByPlaceholder: 'Enter submitter',
+      cacheHit: 'Cache hit',
+      rewriteApplied: 'Rewrite applied',
+      accelerationApplied: 'Acceleration applied',
+      sortBy: 'Sort by',
+      sortOrder: 'Sort order',
+      traceIdPlaceholder: 'Enter Trace ID',
+      taskIdPlaceholder: 'Enter Task ID',
+      reportIdPlaceholder: 'Enter Report ID',
+      selectPlaceholder: 'Select'
+    },
+    metrics: {
+      label: 'SQL execution history summary',
+      currentPage: 'Current page',
+      total: 'Execution records',
+      success: 'Success',
+      nonSuccess: 'Non-success',
+      accessChannels: 'Access channels'
+    },
+    statusBar: {
+      historyType: 'History type',
+      requestTenant: 'Request tenant',
+      lookupMode: 'Lookup mode',
+      lastQuery: 'Last query'
+    },
+    queryStatus: {
+      idle: 'Not queried',
+      loading: 'Loading',
+      success: 'Refreshed',
+      error: 'Query failed'
+    },
+    table: {
+      kicker: 'Execution history table',
+      title: 'Execution records',
+      historyId: 'History ID',
+      reportKey: 'SQL/report key',
+      datasource: 'Datasource',
+      status: 'Execution status',
+      accessChannel: 'Access channel',
+      targetEngine: 'Target engine',
+      governanceHits: 'Governance hits',
+      submittedBy: 'Submitted by',
+      submittedAt: 'Submitted at',
+      auditEventCount: 'Audit event count'
+    },
+    states: {
+      loading: 'Loading SQL execution history',
+      empty: 'No SQL execution history matches the current filters.',
+      loadFailed: 'The list failed to load. Check the error above.',
+      errorTitle: 'SQL history query failed'
+    },
+    messages: {
+      lookupRequired: 'Enter at least one of traceId, taskId, or reportId.',
+      lookupEmpty: 'No history matched the lookup criteria.',
+      lookupWithoutExecution: 'A trace was found but no QUERY_EXECUTION history is available.'
+    },
+    detail: {
+      title: 'Execution detail',
+      historyId: 'History ID',
+      traceId: 'Trace ID',
+      reportKey: 'SQL/report key',
+      datasource: 'Datasource',
+      status: 'Execution status',
+      accessChannel: 'Access channel',
+      targetEngine: 'Target engine',
+      submittedBy: 'Submitted by',
+      submittedAt: 'Submitted at',
+      auditEventCount: 'Audit event count'
+    },
+    execution: {
+      cacheHit: 'Cache hit',
+      rewriteApplied: 'Rewrite applied',
+      accelerationApplied: 'Acceleration applied',
+      returnedRows: 'Returned rows',
+      errorCode: 'Error code',
+      errorMessage: 'Error message',
+      routeDecision: 'Route decision',
+      cacheSummary: 'Cache summary'
+    },
+    sql: {
+      sqlFingerprint: 'SQL fingerprint',
+      templateFingerprint: 'Template fingerprint',
+      boundFingerprint: 'Bound fingerprint',
+      bindingMode: 'Binding mode',
+      bindingRender: 'Binding render',
+      originalSql: 'Original SQL',
+      templateSql: 'Template SQL',
+      boundSql: 'Bound SQL'
+    },
+    governance: {
+      cache: 'cache',
+      rewrite: 'rewrite',
+      acceleration: 'accel'
+    },
+    tabs: {
+      overview: 'Execution overview',
+      execution: 'Execution evidence',
+      sql: 'SQL tri-state',
+      audit: 'Audit links'
+    },
+    audit: {
+      service: 'Service',
+      operation: 'Operation',
+      status: 'Status',
+      createdAt: 'Created at'
+    },
+    rawEvidence: {
+      title: 'Raw evidence'
+    },
+    export: {
+      title: 'Export SQL execution evidence',
+      format: 'Format',
+      includeTraceDetail: 'Include trace detail',
+      run: 'Run export'
+    },
+    footer: {
+      currentPageCount: '{count} on this page',
+      totalCount: '{count} total',
+      lastQuery: 'Last query: {status} · {time}'
+    }
   },
   parseRecord: {
     title: 'Parse History Search',

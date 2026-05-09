@@ -313,7 +313,153 @@ export default {
   },
   sqlHistory: {
     title: 'SQL历史',
-    summary: '查询已落库的 query-history 列表、关联 trace 与详情证据。'
+    summary: '查询已落库的 query-history 列表、关联 trace 与详情证据。',
+    executionSummary: '仅展示 QUERY_EXECUTION 执行记录，解析历史保留在解析历史查询入口。',
+    actions: {
+      refresh: '刷新列表',
+      lookup: '精确反查',
+      clear: '清空条件',
+      openRepairEvidence: '打开修复证据',
+      openAuditForensics: '打开审计取证',
+      exportEvidence: '导出取证',
+      viewRawEvidence: '查看原始证据',
+      copy: '复制'
+    },
+    options: {
+      all: '全部',
+      default: '默认'
+    },
+    filters: {
+      tenant: '租户',
+      tenantPlaceholder: '默认使用路由租户或 tenant-a',
+      reportKey: 'SQL/报表标识',
+      reportKeyPlaceholder: '输入 reportCode 或 SQL 指纹',
+      datasource: '数据源',
+      datasourcePlaceholder: '输入数据源编码',
+      status: '执行状态',
+      accessChannel: '接入渠道',
+      engine: '目标引擎',
+      submittedBy: '提交人',
+      submittedByPlaceholder: '输入提交人',
+      cacheHit: '缓存命中',
+      rewriteApplied: '轻量改写',
+      accelerationApplied: '加速命中',
+      sortBy: '排序字段',
+      sortOrder: '排序方向',
+      traceIdPlaceholder: '输入 Trace ID',
+      taskIdPlaceholder: '输入 Task ID',
+      reportIdPlaceholder: '输入 Report ID',
+      selectPlaceholder: '请选择'
+    },
+    metrics: {
+      label: 'SQL 执行历史摘要',
+      currentPage: '当前页记录',
+      total: '执行历史总数',
+      success: '成功',
+      nonSuccess: '异常/部分成功',
+      accessChannels: '接入渠道'
+    },
+    statusBar: {
+      historyType: '历史类型',
+      requestTenant: '请求租户',
+      lookupMode: '反查模式',
+      lastQuery: '最近查询'
+    },
+    queryStatus: {
+      idle: '未查询',
+      loading: '加载中',
+      success: '已刷新',
+      error: '查询失败'
+    },
+    table: {
+      kicker: '执行历史表',
+      title: '执行记录',
+      historyId: 'History ID',
+      reportKey: 'SQL/报表标识',
+      datasource: '数据源',
+      status: '执行状态',
+      accessChannel: '接入渠道',
+      targetEngine: '目标引擎',
+      governanceHits: '治理命中',
+      submittedBy: '提交人',
+      submittedAt: '提交时间',
+      auditEventCount: '审计事件数'
+    },
+    states: {
+      loading: '正在加载 SQL 执行历史',
+      empty: '当前条件下没有 SQL 执行历史。',
+      loadFailed: '列表加载失败，请查看上方错误信息。',
+      errorTitle: 'SQL 历史查询失败'
+    },
+    messages: {
+      lookupRequired: '至少输入 traceId、taskId、reportId 中的一项。',
+      lookupEmpty: '没有命中记录。',
+      lookupWithoutExecution: '命中了 trace，但没有 QUERY_EXECUTION 执行历史。'
+    },
+    detail: {
+      title: '执行详情',
+      historyId: 'History ID',
+      traceId: 'Trace ID',
+      reportKey: 'SQL/报表标识',
+      datasource: '数据源',
+      status: '执行状态',
+      accessChannel: '接入渠道',
+      targetEngine: '目标引擎',
+      submittedBy: '提交人',
+      submittedAt: '提交时间',
+      auditEventCount: '审计事件数'
+    },
+    execution: {
+      cacheHit: '缓存命中',
+      rewriteApplied: '轻量改写',
+      accelerationApplied: '加速命中',
+      returnedRows: '返回行数',
+      errorCode: '错误码',
+      errorMessage: '错误信息',
+      routeDecision: '路由决策',
+      cacheSummary: '缓存摘要'
+    },
+    sql: {
+      sqlFingerprint: '执行指纹',
+      templateFingerprint: '模板指纹',
+      boundFingerprint: '绑定指纹',
+      bindingMode: '绑定模式',
+      bindingRender: '绑定渲染',
+      originalSql: '原始 SQL',
+      templateSql: '模板 SQL',
+      boundSql: '绑定 SQL'
+    },
+    governance: {
+      cache: 'cache',
+      rewrite: 'rewrite',
+      acceleration: 'accel'
+    },
+    tabs: {
+      overview: '执行概览',
+      execution: '执行取证',
+      sql: 'SQL 三态',
+      audit: '审计关联'
+    },
+    audit: {
+      service: '服务',
+      operation: '操作',
+      status: '状态',
+      createdAt: '时间'
+    },
+    rawEvidence: {
+      title: '原始证据'
+    },
+    export: {
+      title: '导出 SQL 执行取证',
+      format: '格式',
+      includeTraceDetail: '包含 trace 详情',
+      run: '执行导出'
+    },
+    footer: {
+      currentPageCount: '当前页 {count} 条',
+      totalCount: '总数 {count} 条',
+      lastQuery: '最近查询：{status} · {time}'
+    }
   },
   parseRecord: {
     title: '解析历史查询',

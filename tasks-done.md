@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-099: 重构 SQL 历史历史列表前端主路径
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `refactor(frontend): restructure sql history list`
+- Priority: 1
+- Depends on: N/A
+- Scope: 按 R-177 至 R-184 重构 SQL 历史页历史列表主体，覆盖筛选、摘要状态、操作按钮、执行记录表格、分页与 loading/error/empty 状态，并保留现有详情抽屉、SQL 展示、审计关联、导出与 contract 标识兼容。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-099`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Refactored the SQL history list main path into searchForm/pageInfo state, data-driven search field and table column configs, token-based management-page layout, explicit loading/error/empty/footer states, and sqlHistory i18n while preserving existing detail drawer, SQL code block, lookup, export, route, and contract markers.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-099; npm run lint; npm run build; npm run test:form-governance; npm run test:sql-ui-contract; npm run test:frontend-page-governance; node scripts/check-history-page-contract.mjs; node scripts/check-history-detail-contract.mjs; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Runtime API behavior was not exercised against a live backend in this turn; coverage is static contract, build, and governance validation.
+  - Next step: Product acceptance should exercise default QUERY_EXECUTION list loading, search reset, clear filters, pagination, indexed lookup, detail drawer, and export result in a running environment.
+
 ### OPS-005: Restart local frontend and backend services after dependency refresh
 
 - Status: done
