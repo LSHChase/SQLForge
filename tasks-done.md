@@ -4,6 +4,26 @@
 
 ## Done
 
+### HARN-107: 抽离 App 壳层导航与路由元数据
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `refactor(frontend): HARN-107 extract navigation shell metadata`
+- Priority: 1
+- Depends on: HARN-106
+- Scope: 重构 `src/App.vue`、`src/router/index.js`、`src/config/routePaths.mjs` 的导航树、active key、breadcrumb、workspace header 与 delivery-progress 可见性逻辑；保持所有 path、legacy redirect、菜单可达性不变。
+- Validation:
+  - `node scripts/check-navigation-shell-contract.mjs`
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:frontend-page-governance`
+  - `npm run smoke:frontend-dev`
+- Context closeout:
+  - Completed scope: Extracted App shell navigation tree, route metadata, active menu key, breadcrumb, workspace header inputs, legacy redirects, and delivery-progress visibility into routePaths-driven configuration while keeping existing paths and menu reachability unchanged.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-107 --include-task-audit with node scripts/check-navigation-shell-contract.mjs, npm run lint, npm run build, npm run test:frontend-page-governance, npm run smoke:frontend-dev, and git diff --check passed.
+  - Residual risk: No backend, persistence, API payload, or production delivery-progress exposure change; HARN-108 remains the next shared layout extraction task.
+  - Next step: Start HARN-108 shared page layout component and style contract work.
+
 ### HARN-106: 全量前端页面重构任务落账与治理基线固化
 
 - Status: done

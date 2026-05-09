@@ -2,7 +2,12 @@
 import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import { ROUTE_PATHS } from './config/routePaths.mjs'
+import {
+  buildNavigationBreadcrumb,
+  buildNavigationKey,
+  createNavigationTree,
+  findActiveNavigationItem
+} from './config/routePaths.mjs'
 import { deliveryProgressEnabled } from './config/runtimeFlags'
 import { useGlobalConfigStore, useTenantStore, useUserStore } from './stores'
 
@@ -14,23 +19,6 @@ const userStore = useUserStore()
 
 const navLabel = value => (locale.value === 'zh-CN' ? value.zh : value.en)
 const itemLabel = item => navLabel(item.menuLabel || { zh: t(item.titleKey), en: t(item.titleKey) })
-const normalizeNavQuery = query =>
-  Object.entries(query || {})
-    .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
-    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
-const buildNavKey = (path, query = {}) => {
-  const params = new URLSearchParams()
-  normalizeNavQuery(query).forEach(([key, value]) => {
-    params.set(key, String(value))
-  })
-  const queryText = params.toString()
-  return queryText ? `${path}?${queryText}` : path
-}
-const buildNavTarget = (path, query = {}) => ({
-  path,
-  query,
-  menuKey: buildNavKey(path, query)
-})
 const itemBadgeLabel = item => {
   if (!item?.badge) {
     return ''
@@ -38,204 +26,10 @@ const itemBadgeLabel = item => {
   return locale.value === 'zh-CN' ? item.badge.zh : item.badge.en
 }
 
-const navigationTree = computed(() => {
-  const tree = [
-    {
-      key: 'dashboard',
-      label: { zh: 'Dashboard', en: 'Dashboard' },
-      directItem: {
-        ...buildNavTarget(ROUTE_PATHS.dashboard),
-        titleKey: 'dashboard.title',
-        menuLabel: { zh: '总览首页', en: 'Overview home' }
-      }
-    },
-    {
-      key: 'delivery-progress',
-      label: { zh: 'AI 交付', en: 'AI Delivery' },
-      directItem: {
-        ...buildNavTarget(ROUTE_PATHS.deliveryProgress),
-        titleKey: 'deliveryProgress.title',
-        menuLabel: { zh: 'AI 交付工作台', en: 'AI delivery workbench' },
-        badge: { zh: '临时', en: 'R&D' }
-      }
-    },
-    {
-      key: 'sql-query',
-      label: { zh: 'SQL 查询', en: 'SQL Query' },
-      directItem: {
-        ...buildNavTarget(ROUTE_PATHS.sqlQuery),
-        titleKey: 'sqlQuery.title',
-        menuLabel: { zh: '查询工作台', en: 'SQL workbench' }
-      }
-    },
-    {
-      key: 'sql-history',
-      label: { zh: 'SQL 历史', en: 'SQL History' },
-      items: [
-        { ...buildNavTarget(ROUTE_PATHS.sqlHistory), titleKey: 'sqlHistory.title', menuLabel: { zh: '历史列表', en: 'History list' } },
-        { ...buildNavTarget(ROUTE_PATHS.repairEvidence), titleKey: 'repairEvidence.title', menuLabel: { zh: '修复证据', en: 'Repair evidence' } },
-        { ...buildNavTarget(ROUTE_PATHS.auditForensics), titleKey: 'auditForensics.title', menuLabel: { zh: '审计取证', en: 'Audit forensics' } }
-      ]
-    },
-    {
-      key: 'parse-acceleration',
-      label: { zh: '解析与加速', en: 'Parsing and Acceleration' },
-      items: [
-        {
-        ...buildNavTarget(ROUTE_PATHS.acceleration),
-        titleKey: 'acceleration.title',
-        menuLabel: { zh: 'SQL解析', en: 'SQL Parse' }
-      },
-        {
-          ...buildNavTarget(ROUTE_PATHS.parseBatchCenter),
-          titleKey: 'acceleration.title',
-          menuLabel: { zh: '批量解析中心', en: 'Batch parse center' }
-        },
-        {
-          ...buildNavTarget(ROUTE_PATHS.parseRecord),
-          titleKey: 'acceleration.title',
-          menuLabel: { zh: '解析历史查询', en: 'Parse history search' }
-        },
-        {
-          ...buildNavTarget(ROUTE_PATHS.recommendationCenter),
-          titleKey: 'recommendationCenter.title',
-          menuLabel: { zh: '加速与改写中心', en: 'Acceleration and rewrite center' }
-        }
-      ]
-    },
-    {
-      key: 'routing',
-      label: { zh: '路由治理', en: 'Routing Governance' },
-      directItem: {
-        ...buildNavTarget(ROUTE_PATHS.routingGovernance),
-        titleKey: 'routingGovernance.title',
-        menuLabel: { zh: '路由执行证据', en: 'Routing execution evidence' }
-      }
-    },
-    {
-      key: 'assets',
-      label: { zh: '数据资产', en: 'Data Assets' },
-      directItem: {
-        ...buildNavTarget(ROUTE_PATHS.assetCatalog),
-        titleKey: 'assetCatalog.title',
-        menuLabel: { zh: '资产目录', en: 'Asset catalog' }
-      }
-    },
-    {
-      key: 'benchmark',
-      label: { zh: '压测中心', en: 'Benchmark Center' },
-      directItem: {
-        ...buildNavTarget(ROUTE_PATHS.benchmark),
-        titleKey: 'benchmark.title',
-        menuLabel: { zh: '压测工作台', en: 'Benchmark workbench' }
-      }
-    },
-    {
-      key: 'system',
-      label: { zh: '系统管理', en: 'System Management' },
-      sections: [
-        {
-          key: 'config',
-          label: { zh: '数据源与接口', en: 'Datasources and interfaces' },
-          items: [{ ...buildNavTarget(ROUTE_PATHS.system), titleKey: 'system.title', menuLabel: { zh: '系统管理', en: 'System management' } }]
-        },
-        {
-          key: 'alerts',
-          label: { zh: '告警与处置', en: 'Alerts and remediation' },
-          items: [
-            { ...buildNavTarget(ROUTE_PATHS.alertCenter), titleKey: 'alertCenter.title', menuLabel: { zh: '告警中心', en: 'Alert center' } },
-            { ...buildNavTarget(ROUTE_PATHS.auditTroubleshooting), titleKey: 'auditTroubleshooting.title', menuLabel: { zh: '故障处置', en: 'Troubleshooting' } }
-          ]
-        },
-        {
-          key: 'runtime',
-          label: { zh: '运行治理', en: 'Runtime governance' },
-          items: [
-            { ...buildNavTarget(ROUTE_PATHS.runtimeGates), titleKey: 'runtimeGates.title', menuLabel: { zh: '运行时门禁', en: 'Runtime gates' } },
-            { ...buildNavTarget(ROUTE_PATHS.recoveryDrill), titleKey: 'recoveryDrill.title', menuLabel: { zh: '恢复演练', en: 'Recovery drill' } }
-          ]
-        }
-      ]
-    },
-    {
-      key: 'access',
-      label: { zh: '开放接入', en: 'Open Access' },
-      directItem: {
-        ...buildNavTarget(ROUTE_PATHS.accessCenter),
-        titleKey: 'accessCenter.title',
-        menuLabel: { zh: '开放接入', en: 'Open access' }
-      }
-    }
-  ]
-
-  return deliveryProgressEnabled ? tree : tree.filter(item => item.key !== 'delivery-progress')
-})
-
-const flattenNavItems = tree =>
-  tree.flatMap(module => {
-    if (module.directItem) {
-      return [
-        {
-          ...module.directItem,
-          moduleKey: module.key,
-          moduleLabel: module.label,
-          sectionKey: '',
-          sectionLabel: null,
-          depth: 2,
-          moduleHasChildren: false
-        }
-      ]
-    }
-    if (Array.isArray(module.items)) {
-      return module.items.map(item => ({
-        ...item,
-        moduleKey: module.key,
-        moduleLabel: module.label,
-        sectionKey: '',
-        sectionLabel: null,
-        depth: 2,
-        moduleHasChildren: true
-      }))
-    }
-    return module.sections.flatMap(section =>
-      section.items.map(item => ({
-        ...item,
-        moduleKey: module.key,
-        moduleLabel: module.label,
-        sectionKey: section.key,
-        sectionLabel: section.label,
-        depth: 3,
-        moduleHasChildren: true
-      }))
-    )
-  })
-
-const navItemMatchesRoute = (item, currentRoute) => {
-  if (item.path !== currentRoute.path) {
-    return false
-  }
-  return normalizeNavQuery(item.query).every(([key, value]) => String(currentRoute.query?.[key] ?? '') === String(value))
-}
-
-const activeNavItem = computed(() => {
-  const items = flattenNavItems(navigationTree.value).sort(
-    (left, right) => normalizeNavQuery(right.query).length - normalizeNavQuery(left.query).length
-  )
-  return items.find(item => navItemMatchesRoute(item, route)) || null
-})
-const activeMenuKey = computed(() => activeNavItem.value?.menuKey || buildNavKey(route.path, route.query))
-const defaultOpeneds = computed(() => {
-  if (!activeNavItem.value) {
-    return []
-  }
-  if (activeNavItem.value.sectionKey) {
-    return [activeNavItem.value.moduleKey, `${activeNavItem.value.moduleKey}:${activeNavItem.value.sectionKey}`]
-  }
-  if (activeNavItem.value.moduleHasChildren) {
-    return [activeNavItem.value.moduleKey]
-  }
-  return []
-})
+const navigationTree = computed(() => createNavigationTree({ includeDeliveryProgress: deliveryProgressEnabled }))
+const activeNavItem = computed(() => findActiveNavigationItem(navigationTree.value, route))
+const activeMenuKey = computed(() => activeNavItem.value?.menuKey || buildNavigationKey(route.path, route.query))
+const defaultOpeneds = computed(() => activeNavItem.value?.defaultOpeneds || [])
 const localeLabel = computed(() => (locale.value === 'zh-CN' ? 'EN' : '中'))
 const workspaceSummary = computed(() =>
   t('common.workspaceSummary', {
@@ -244,17 +38,7 @@ const workspaceSummary = computed(() =>
   })
 )
 const userBadge = computed(() => `${userStore.displayName} · ${userStore.role}`)
-const breadcrumbText = computed(() => {
-  if (!activeNavItem.value) {
-    return []
-  }
-  const parts = [navLabel(activeNavItem.value.moduleLabel)]
-  if (activeNavItem.value.sectionLabel) {
-    parts.push(navLabel(activeNavItem.value.sectionLabel))
-  }
-  parts.push(itemLabel(activeNavItem.value))
-  return parts
-})
+const breadcrumbText = computed(() => buildNavigationBreadcrumb(activeNavItem.value, navLabel, itemLabel))
 
 const handleLocaleToggle = () => {
   const nextLocale = locale.value === 'zh-CN' ? 'en-US' : 'zh-CN'

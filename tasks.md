@@ -11,18 +11,6 @@
 
 ## Todo
 
-### HARN-107: 抽离 App 壳层导航与路由元数据
-
-- Status: todo
-- Priority: 1
-- Depends on: HARN-106
-- Scope: 重构 `src/App.vue`、`src/router/index.js`、`src/config/routePaths.mjs` 的导航树、active key、breadcrumb、workspace header 与 delivery-progress 可见性逻辑；保持所有 path、legacy redirect、菜单可达性不变。
-- Validation:
-  - `npm run lint`
-  - `npm run build`
-  - `npm run test:frontend-page-governance`
-  - `npm run smoke:frontend-dev`
-
 ### HARN-108: 建立前端共享页面布局组件与样式契约
 
 - Status: todo
