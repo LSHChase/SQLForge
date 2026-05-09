@@ -193,6 +193,7 @@
 - 仓库已提供环境无关的测试环境 minimal smoke 入口，但外部测试环境 CI/CD 仍需由独立 owner 接入并保留部署后执行证据；在形成该证据前，测试环境不能被写成完整替代仓库闭环门禁的事实。
 - 治理扩展点当前仍以租户范围、数据源访问、审计写入、调度状态契约为主，未演进为完整治理中心能力。
 - 前端已落成 `/dashboard` 驾驶舱、`/sql-query`、`/acceleration`、`/benchmark`、`/system` 与治理历史/治理运维扩展路由；当前剩余缺口已从“页面壳层缺失”转为“真值归档、能力收口与后续运行时覆盖补齐”。
+- `HARN-106` 已将前端全页面结构化重构拆为后续任务：当前 `ParseRecordView`、`ParseBatchCenterView`、`AccelerationView` 仍是 3000 行级超长页面，`SystemView`、`SqlHistoryView`、`DashboardView` 以及多条取证/运维页面仍有 1000 行级布局、状态、i18n 与重复取证模式收敛缺口；这些是待实施缺口，不得写成已完成重构事实。
 
 ## Related Documents
 

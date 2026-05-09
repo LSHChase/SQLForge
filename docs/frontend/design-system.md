@@ -505,3 +505,26 @@
 - 页面状态必须拆分为搜索表单、分页排序、表格数据、弹窗表单、loading / error / empty / success。
 - 权限能力、候选值、字典、跨页面缓存和当前租户上下文必须来自后端或共享状态模块，不得在页面中各自复制一份事实源。
 - 国际化 key 必须覆盖页面标题、操作按钮、表格列、表单 label、提示、错误兜底和空状态文案。
+
+## 13. Full Page Refactor Baseline
+
+`HARN-106` 将全量页面扫描结论固化为后续重构基线。该基线不代表页面已经重构完成，只说明后续任务的拆分顺序、非实现边界和验收约束。
+
+### 13.1 Priority Surfaces
+
+- 第一优先级拆分超长页面：`src/views/parse-record/ParseRecordView.vue`、`src/views/parse-batch/ParseBatchCenterView.vue`、`src/views/optimization/AccelerationView.vue`。
+- 第二优先级收敛大型业务页：`SystemView`、`SqlHistoryView`、`DashboardView`、`AuditForensicsView`、`AuditTroubleshootingView`、`RepairEvidenceView`。
+- `App.vue`、`src/router/index.js` 与 `src/config/routePaths.mjs` 是壳层与路由元数据优先治理点；重构必须保持 path、legacy redirect、菜单可达性和生产隐藏 `delivery-progress` 语义不变。
+
+### 13.2 Required Shared Shapes
+
+- 页面 hero、section header、evidence panel、metric card、toolbar/filter shell 优先抽到共享组件或同等本地模式，避免每个页面重复复制样式和状态拼装。
+- 业务页面状态必须拆分为筛选、分页排序、表格/列表数据、详情/弹层数据、loading/error/empty/success，不得继续把主流程状态全部堆在单个 SFC 顶层。
+- 重复 trace lookup、timeline、queue、retry、datasource/config 表格与详情模式应收敛为 composable 或共享组件；抽象必须服务真实重复复杂度，不能引入跨业务的杂项组件。
+
+### 13.3 Non-Implementation Boundaries
+
+- 不更换 Vue SFC + JavaScript + Element Plus + 自研组件栈。
+- 不改变后端 API、SQL 执行 payload、parser payload、历史查询、审计追溯、权限或持久化语义。
+- SQL 输入输出继续以 `SqlEditorField` 与 `SqlCodeBlock` 为契约；raw SQL 展示面必须保留不自动格式化语义。
+- 页面中文/英文文案应逐步迁入现有 i18n 文件；不得新增平行国际化系统或继续扩大 `isChinese ? ...` 本地三元文案债务。

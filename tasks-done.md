@@ -4,6 +4,27 @@
 
 ## Done
 
+### HARN-106: 全量前端页面重构任务落账与治理基线固化
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `docs(frontend): HARN-106 land refactor backlog`
+- Priority: 1
+- Depends on: HARN-096
+- Scope: 将本轮全量页面扫描结论正式写入任务台账和必要文档，明确后续页面重构小任务、执行顺序、验证门禁和非实现边界；本任务只落账，不改页面。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-106`
+  - `python3 scripts/task_audit.py --check --phase pre-closeout`
+  - `node scripts/lint-repository-knowledge.js`
+- Progress log:
+  - 2026-05-09: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-09: remapped the prior plan's placeholder `HARN-097` through `HARN-107` IDs to `HARN-106` through `HARN-116` because `HARN-097` through `HARN-105` already exist in completed history.
+- Context closeout:
+  - Completed scope: Remapped the prior placeholder IDs to HARN-106 through HARN-116, added the full frontend page refactor backlog to tasks.md, mirrored it into the Phase-E master plan and both task matrices, and recorded the shared design/truth baseline without changing page implementation.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-106 --include-task-audit --extra-command git diff --check passed after regenerating governance policy; node scripts/lint-repository-knowledge.js, python3 scripts/validate_codex_runtime.py, python3 scripts/foreman.py compile-governance --check, python3 scripts/task_audit.py --check --phase pre-closeout, and git diff --check passed.
+  - Residual risk: No page implementation was changed in HARN-106; the actual refactors remain pending in HARN-107 through HARN-116, and HARN-096 is still the active ParseRecordView fix that should be respected before parse-record refactor work.
+  - Next step: Finish or coordinate around HARN-096, then start HARN-107 for the App shell and route metadata extraction before the shared layout and page-specific refactor tasks.
+
 ### HARN-098: 固化 JDK 8u112 强制运行时要求
 
 - Status: done

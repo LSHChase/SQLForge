@@ -833,6 +833,32 @@ Tasks:
 | `E-TASK-031` | 落地系统管理中的数据源与报表接口页 | datasource 管理、测试连接、报表接口配置与健康状态页 | `E-TASK-024`,`D-TASK-072` | `npm run lint`、`npm run build`、system-management datasource contract 测试 |
 | `E-TASK-032` | 落地 Redis 规则源、装数协同与系统参数页 | Redis rule source、dispatch policy、系统参数与权限审计展示 | `E-TASK-031`,`D-TASK-072` | `npm run lint`、`npm run build`、system-management config contract 测试 |
 
+##### Story `E-STORY-014` 前端全页面结构化重构
+
+- 目标：在不更换 Vue SFC + Element Plus + 自研组件栈、不改变路由/API/SQL/payload/审计语义的前提下，把当前已落地的长页面与重复页面模式收敛为可维护的页面壳层、共享布局、业务 composable、i18n 与治理脚本基线。
+- 扫描结论：
+  - 超长高风险页优先拆分：`ParseRecordView` 当前约 3417 行、`ParseBatchCenterView` 当前约 3139 行、`AccelerationView` 当前约 3121 行。
+  - 大型业务页需要收敛布局、状态和重复取证模式：`SystemView` 约 1419 行、`SqlHistoryView` 约 1268 行、`DashboardView` 约 1097 行，`AuditForensicsView` / `AuditTroubleshootingView` / `RepairEvidenceView` 均超过 1000 行。
+  - 多数页面仍大量使用 `isChinese ? ...` 本地三元文案；后续重构应逐步迁入现有 i18n 文件，不新增平行国际化体系。
+  - SQL 输入输出组件已存在，后续任务必须保留 `SqlEditorField` / `SqlCodeBlock` 契约，不改变 SQL payload、历史和审计语义。
+- 执行边界：`HARN-106` 只落账和固化治理基线，不改页面实现；后续任务按下表逐个执行，普通任务保持单任务单 commit。原规划中的 `HARN-097` 至 `HARN-107` 为占位 ID；因当前仓库已完成 `HARN-097` 至 `HARN-105`，正式落账改用 `HARN-106` 至 `HARN-116`。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `HARN-106` | 全量前端页面重构任务落账与治理基线固化 | 写入页面扫描结论、后续小任务、执行顺序、验证门禁和非实现边界；本任务只落账，不改页面 | `HARN-096` | `python3 scripts/task_audit.py --check --phase pre-closeout`、`node scripts/lint-repository-knowledge.js` |
+| `HARN-107` | 抽离 App 壳层导航与路由元数据 | 重构 `App.vue`、`router/index.js`、`routePaths.mjs` 的导航树、active key、breadcrumb、workspace header 与 delivery-progress 可见性逻辑，保持 path、legacy redirect、菜单可达性不变 | `HARN-106` | `npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`npm run smoke:frontend-dev` |
+| `HARN-108` | 建立前端共享页面布局组件与样式契约 | 抽取 `PageHero`、`SectionHeader`、`EvidencePanel`、`MetricCard`、toolbar/filter shell 等布局层，覆盖 `DashboardView`、静态运维页、common 组件，不引入新 UI 框架 | `HARN-107` | `npm run lint`、`npm run build`、`npm run test:frontend-page-governance` |
+| `HARN-109` | 重构 Dashboard、Delivery、Runtime、Recovery 概览类页面 | 覆盖 `DashboardView`、`DeliveryProgressView`、`RuntimeGatesView`、`RecoveryDrillView`，统一 KPI、风险、活动流、静态证据区布局，保留 sample/window/session/PULL_ONLY 边界 | `HARN-108` | `npm run lint`、`npm run build`、`npm run smoke:frontend-dev` |
+| `HARN-110` | 重构 SQL 查询与 SQL 历史页面结构 | 覆盖 `SqlQueryView`、`SqlHistoryView`、`useSqlHistoryList.js`，拆分查询三栏、结果 tabs、历史筛选、详情抽屉和 SQL 三态展示，保留 SQL UI 与历史查询契约 | `HARN-108` | `npm run lint`、`npm run build`、`npm run test:sql-ui-contract`、`npm run test:frontend-page-governance` |
+| `HARN-111` | 拆分解析工作台与解析统计页面 | 覆盖 `AccelerationView`、`ParseStatisticsCenterView`，拆分单条 SQL 输入、结构解析、access parse、结论、统计入口、字段 help 和详情弹层，不改变 parser/API/payload | `HARN-110` | `npm run lint`、`npm run build`、`npm run test:sql-ui-contract`、`npm run test:frontend-page-governance` |
+| `HARN-112` | 拆分批量解析中心页面 | 覆盖 `ParseBatchCenterView`，拆分普通批量、报表导入、统计标签、详情弹窗、失败详情和 SQL 展示，保留 summary-first、有限明细预览、失败详情和大批量渲染约束 | `HARN-111` | `npm run lint`、`npm run build`、`npm run test:sql-ui-contract`、`npm run test:frontend-page-governance` |
+| `HARN-113` | 拆分解析历史查询与报表详情页面 | 覆盖 `ParseRecordView`，拆分筛选、SQL 解析记录、批量/报表历史、详情弹层、报表统计、issue-scene detail 和原始 SQL 展示，保留默认空筛选与 raw SQL 不自动格式化契约 | `HARN-112` | `npm run lint`、`npm run build`、`npm run test:form-governance`、`npm run test:sql-ui-contract`、`npm run test:frontend-page-governance` |
+| `HARN-114` | 重构资产、路由、推荐、压测、接入页面 | 覆盖 `AssetCatalogView`、`RoutingGovernanceView`、`RecommendationCenterView`、`BenchmarkView`、`AccessCenterView`，统一列表/详情/证据/placeholder 语义，保留只读证据边界和缺失写 API 的显式边界 | `HARN-108` | `npm run lint`、`npm run build`、`npm run test:sql-ui-contract`、`npm run test:frontend-page-governance` |
+| `HARN-115` | 重构告警、取证、修复、故障处置与系统管理页面 | 覆盖 `AlertCenterView`、`AuditForensicsView`、`AuditTroubleshootingView`、`RepairEvidenceView`、`SystemView`，收敛 trace lookup、timeline、queue、retry、datasource/config 表格与详情模式，保留权限和后端权威边界 | `HARN-108` | `npm run lint`、`npm run build`、`npm run test:form-governance`、`npm run test:frontend-page-governance` |
+| `HARN-116` | 加固前端页面治理脚本与设计文档 | 扩展 `check-frontend-page-governance.mjs`，补充 layout/i18n/card nesting/SQL component/page shell 检查；更新设计系统与前端治理文档，防止重构后回退 | `HARN-109`,`HARN-110`,`HARN-111`,`HARN-112`,`HARN-113`,`HARN-114`,`HARN-115` | `npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`node scripts/lint-repository-knowledge.js` |
+
 ### Phase-F 部署、运维、生产就绪
 
 #### Epic `F-EPIC-001` Delivery, Compliance and Operations
