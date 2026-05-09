@@ -94,8 +94,57 @@ function diffAddedLines(relativePath) {
   return added
 }
 
+function diffRemovedLines(relativePath) {
+  const outputs = []
+  for (const args of [
+    ['diff', '--unified=0', '--', relativePath],
+    ['diff', '--cached', '--unified=0', '--', relativePath]
+  ]) {
+    try {
+      outputs.push(execFileSync('git', args, { cwd: root, encoding: 'utf8' }))
+    } catch {
+      // Keep this tolerant for unusual file states.
+    }
+  }
+
+  const removed = []
+  for (const output of outputs) {
+    let oldLine = 0
+    for (const rawLine of output.split(/\r?\n/)) {
+      const hunk = rawLine.match(/^@@ -(\d+)(?:,\d+)? \+\d+(?:,\d+)? @@/)
+      if (hunk) {
+        oldLine = Number(hunk[1])
+        continue
+      }
+      if (rawLine.startsWith('+++') || rawLine.startsWith('---') || rawLine.startsWith('diff --git')) {
+        continue
+      }
+      if (rawLine.startsWith('-')) {
+        removed.push({ line: rawLine.slice(1), sourceLine: oldLine || 0 })
+        oldLine += 1
+        continue
+      }
+      if (!rawLine.startsWith('+') && oldLine > 0) {
+        oldLine += 1
+      }
+    }
+  }
+  return removed
+}
+
 function lineRef(relativePath, lineNumber) {
   return lineNumber ? `${relativePath}:${lineNumber}` : relativePath
+}
+
+function normalizeMovedLine(line) {
+  return line.trim().replace(/\s+/g, ' ')
+}
+
+let movedLineKeys = new Set()
+
+function isMovedExistingLine(line) {
+  const normalized = normalizeMovedLine(line)
+  return normalized && movedLineKeys.has(normalized)
 }
 
 function countMatches(value, pattern) {
@@ -128,6 +177,9 @@ function checkHardcodedText(relativePath, addedLines, errors) {
     if (!line || line.startsWith('//') || line.startsWith('*') || line.startsWith('/*')) {
       continue
     }
+    if (isMovedExistingLine(line)) {
+      continue
+    }
     if (/data-testid=|aria-|class=|:class=|data-/.test(line)) {
       continue
     }
@@ -155,6 +207,9 @@ function checkObsoleteCopy(relativePath, addedLines, errors) {
   for (const item of addedLines) {
     const line = item.line.trim()
     if (!line || line.startsWith('//') || line.startsWith('*') || line.startsWith('/*')) {
+      continue
+    }
+    if (isMovedExistingLine(line)) {
       continue
     }
     if (obsoleteCopyPattern.test(line)) {
@@ -397,6 +452,12 @@ if (process.argv.includes('--self-test')) {
 const files = changedFiles()
 const errors = []
 const addedLinesByFile = new Map(files.map(file => [file, diffAddedLines(file)]))
+movedLineKeys = new Set(
+  files
+    .flatMap(file => diffRemovedLines(file))
+    .map(item => normalizeMovedLine(item.line))
+    .filter(Boolean)
+)
 
 if (files.some(file => localePathPattern.test(file))) {
   checkLocaleKeys(errors)

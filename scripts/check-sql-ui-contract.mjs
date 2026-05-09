@@ -6,6 +6,16 @@ const __filename = fileURLToPath(import.meta.url)
 const root = path.resolve(path.dirname(__filename), '..')
 
 const read = relativePath => fs.readFileSync(path.join(root, relativePath), 'utf8')
+const readParseRecordSource = () => fs
+  .readdirSync(path.join(root, 'src/views/parse-record'))
+  .filter(file => /\.(?:vue|js|css)$/.test(file))
+  .sort()
+  .map(file => fs.readFileSync(path.join(root, 'src/views/parse-record', file), 'utf8'))
+  .join('\n')
+const readContractSource = relativePath =>
+  relativePath === 'src/views/parse-record/ParseRecordView.vue'
+    ? readParseRecordSource()
+    : read(relativePath)
 
 const fail = messages => {
   console.error('SQL UI contract check failed.')
@@ -96,7 +106,7 @@ const requiredFiles = {
 }
 
 for (const [relativePath, needles] of Object.entries(requiredFiles)) {
-  const content = read(relativePath)
+  const content = readContractSource(relativePath)
   for (const needle of needles) {
     if (!content.includes(needle)) {
       errors.push(`${relativePath} is missing ${needle}.`)
@@ -141,7 +151,7 @@ const rawSqlPrePattern =
   /<pre[^>]*code-block[^>]*>\s*\{\{\s*(?:template\.content|entry\.sqlText|boundSqlPreview|item\.sqlText|selectedHistoryDetail\.sqlText|selectedRecommendation\.sourceSqlText|selectedRecommendation\.recommendedSqlText)/
 
 for (const relativePath of Object.keys(requiredFiles).filter(item => item.endsWith('.vue'))) {
-  const content = read(relativePath)
+  const content = readContractSource(relativePath)
   if (rawSqlTextareaPattern.test(content)) {
     errors.push(`${relativePath} still contains a raw SQL textarea instead of SqlEditorField.`)
   }
@@ -150,7 +160,7 @@ for (const relativePath of Object.keys(requiredFiles).filter(item => item.endsWi
   }
 }
 
-const parseRecordView = read('src/views/parse-record/ParseRecordView.vue')
+const parseRecordView = readParseRecordSource()
 if (!/key:\s*'sqlText'[\s\S]{0,180}autoFormat:\s*false/.test(parseRecordView)) {
   errors.push('ParseRecordView raw SQL variant must disable SqlCodeBlock auto formatting.')
 }

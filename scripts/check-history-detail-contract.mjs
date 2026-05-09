@@ -2,10 +2,16 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const root = process.cwd()
-const viewPath = path.join(root, 'src/views/parse-record/ParseRecordView.vue')
+const parseRecordDir = path.join(root, 'src/views/parse-record')
 const helperPath = path.join(root, 'src/views/common/issueSceneHelp.mjs')
+const parseRecordSource = fs
+  .readdirSync(parseRecordDir)
+  .filter(file => /\.(?:vue|js|css)$/.test(file))
+  .sort()
+  .map(file => fs.readFileSync(path.join(parseRecordDir, file), 'utf8'))
+  .join('\n')
 const source = [
-  fs.readFileSync(viewPath, 'utf8'),
+  parseRecordSource,
   fs.readFileSync(helperPath, 'utf8')
 ].join('\n')
 

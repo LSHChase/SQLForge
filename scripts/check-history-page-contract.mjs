@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const root = process.cwd()
-const viewPath = path.join(root, 'src/views/parse-record/ParseRecordView.vue')
+const parseRecordDir = path.join(root, 'src/views/parse-record')
 const sqlHistoryViewPath = path.join(root, 'src/views/sql-history/SqlHistoryView.vue')
 const sqlHistoryListPath = path.join(root, 'src/views/sql-history/useSqlHistoryList.js')
 const apiPath = path.join(root, 'src/services/runtimeGateApi.js')
@@ -10,12 +10,19 @@ const helperPath = path.join(root, 'src/views/common/issueSceneHelp.mjs')
 const routePathsPath = path.join(root, 'src/config/routePaths.mjs')
 const routerPath = path.join(root, 'src/router/index.js')
 const mainPath = path.join(root, 'src/main.js')
+const readParseRecordSource = () => fs
+  .readdirSync(parseRecordDir)
+  .filter(file => /\.(?:vue|js|css)$/.test(file))
+  .sort()
+  .map(file => fs.readFileSync(path.join(parseRecordDir, file), 'utf8'))
+  .join('\n')
+
+const parseRecordSource = readParseRecordSource()
 const source = [
-  fs.readFileSync(viewPath, 'utf8'),
+  parseRecordSource,
   fs.readFileSync(sqlHistoryViewPath, 'utf8'),
   fs.readFileSync(helperPath, 'utf8')
 ].join('\n')
-const parseRecordSource = fs.readFileSync(viewPath, 'utf8')
 const sqlHistorySource = fs.readFileSync(sqlHistoryViewPath, 'utf8')
 const sqlHistoryListSource = fs.readFileSync(sqlHistoryListPath, 'utf8')
 const sqlHistoryContractSource = `${sqlHistorySource}\n${sqlHistoryListSource}`
@@ -155,12 +162,13 @@ const requiredSharedApiTokens = [
 const requiredRouteTokens = [
   "sqlHistory: '/governance/history/sql-history'",
   "parseRecord: '/governance/history/parse-record'",
-  'path: ROUTE_PATHS.sqlHistory',
-  "name: 'SqlHistory'",
-  'component: SqlHistoryView',
+  "componentRoute(\n    'sqlHistory'",
+  "'SqlHistory'",
+  "'SqlHistoryView'",
   "const SqlHistoryView = () => import('../views/sql-history/SqlHistoryView.vue')",
-  'path: ROUTE_PATHS.parseRecord',
-  "name: 'ParseRecord'",
+  "componentRoute(\n    'parseRecord'",
+  "'ParseRecord'",
+  "'ParseRecordView'",
   "historyWorkbenchTab: 'batchHistory'"
 ]
 

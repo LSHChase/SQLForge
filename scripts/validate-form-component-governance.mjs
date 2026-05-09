@@ -1,6 +1,13 @@
 import { readFileSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+const readParseRecordSource = () => readdirSync(new URL('../src/views/parse-record', import.meta.url))
+  .filter(file => /\.(?:vue|js|css)$/.test(file))
+  .sort()
+  .map(file => read(`src/views/parse-record/${file}`))
+  .join('\n')
+const readSource = path => path === 'src/views/parse-record/ParseRecordView.vue' ? readParseRecordSource() : read(path)
 
 const checks = [
   {
@@ -62,7 +69,7 @@ const checks = [
 const failures = []
 
 for (const check of checks) {
-  const content = read(check.path)
+  const content = readSource(check.path)
   for (const snippet of check.required) {
     if (!content.includes(snippet)) {
       failures.push(`${check.path} missing required component marker: ${snippet}`)

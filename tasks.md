@@ -11,20 +11,6 @@
 
 ## Todo
 
-### HARN-113: 拆分解析历史查询与报表详情页面
-
-- Status: todo
-- Priority: 1
-- Depends on: HARN-112
-- Scope: 覆盖 `ParseRecordView`；拆分筛选、SQL 解析记录、批量/报表历史、详情弹层、报表统计、issue-scene detail 和原始 SQL 展示；保留默认空筛选与 raw SQL 不自动格式化契约。
-- Validation:
-  - before/after 截图自检
-  - `npm run lint`
-  - `npm run build`
-  - `npm run test:form-governance`
-  - `npm run test:sql-ui-contract`
-  - `npm run test:frontend-page-governance`
-
 ### HARN-114: 重构资产、路由、推荐、压测、接入页面
 
 - Status: todo

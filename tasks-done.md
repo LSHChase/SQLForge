@@ -4,6 +4,27 @@
 
 ## Done
 
+### HARN-113: 拆分解析历史查询与报表详情页面
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `feat(frontend): HARN-113 split parse history page`
+- Priority: 1
+- Depends on: HARN-112
+- Scope: 覆盖 `ParseRecordView`；拆分筛选、SQL 解析记录、批量/报表历史、详情弹层、报表统计、issue-scene detail 和原始 SQL 展示；保留默认空筛选与 raw SQL 不自动格式化契约。
+- Validation:
+  - before/after 截图自检
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:form-governance`
+  - `npm run test:sql-ui-contract`
+  - `npm run test:frontend-page-governance`
+- Context closeout:
+  - Completed scope: Split ParseRecordView into a lightweight page shell, parse-record scoped composable, filter panel, SQL history pane, batch/report history pane, report detail drawer, report SQL detail dialog, parse history detail dialog, evidence/export dialog, and shared parse-record styles; updated history/form/SQL/page governance contract scripts to read the split source set while preserving default empty filters, pagination/detail semantics, issue-scene detail, report statistics evidence, and raw SQL autoFormat=false behavior.
+  - Validation evidence: before screenshot: .codex/state/screenshots/HARN-113/before-parse-record-page.png, .codex/state/screenshots/HARN-113/before-batch-report-history.png, .codex/state/screenshots/HARN-113/before-report-detail-drawer.png, .codex/state/screenshots/HARN-113/before-report-sql-list.png; after screenshot: .codex/state/screenshots/HARN-113/after-parse-record-page.png, .codex/state/screenshots/HARN-113/after-batch-report-history.png, .codex/state/screenshots/HARN-113/after-report-detail-drawer.png, .codex/state/screenshots/HARN-113/after-report-sql-list.png, .codex/state/screenshots/HARN-113/after-report-sql-list-narrow.png; Codex visual self-review found scoped-style drift after component extraction and 已修复 by applying parse-record scoped styles to split components; visual review passed with no visual drift in the reviewed desktop and narrow screenshots. Passed: npm run lint; npm run build; npm run test:form-governance; npm run test:sql-ui-contract; npm run test:frontend-page-governance; node scripts/check-history-page-contract.mjs; node scripts/check-history-detail-contract.mjs; python3 scripts/foreman.py validate HARN-113 --extra-command "node scripts/check-history-page-contract.mjs" --extra-command "node scripts/check-history-detail-contract.mjs"; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
+  - Residual risk: No backend API, route path, history persistence, permission, audit, parser, or raw SQL formatting semantics changed. The split components intentionally retain existing local isChinese copy debt as moved lines; the page-governance script now treats exact moved lines as existing debt while still blocking newly introduced hardcoded copy. Visual review used mocked browser data rather than a live backend dataset.
+  - Next step: Proceed to HARN-114 asset, routing, recommendation, benchmark, and access page refactor after HARN-113 post-closeout audit passes.
+
 ### HARN-112: 拆分批量解析中心页面
 
 - Status: done
