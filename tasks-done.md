@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-DIST-PORTABLE-REFRESH-20260509-HARN104: Refresh portable bundle after HARN-104
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `chore(frontend): refresh HARN-104 portable bundle`
+- Priority: 1
+- Depends on: N/A
+- Scope: Rebuild tracked dist-portable from current source after HARN-104, restart local backend services and frontend dev server, and verify health/reachability.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-DIST-PORTABLE-REFRESH-20260509-HARN104`
+- Progress log:
+  - 2026-05-09: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Rebuilt tracked dist-portable from the current HARN-104 frontend source and restarted local backend services plus the frontend dev server.
+  - Validation evidence: python3 scripts/foreman.py validate OPS-DIST-PORTABLE-REFRESH-20260509-HARN104 --include-task-audit with npm run build:portable, npm run smoke:portable-frontend, bash scripts/health-check.sh --fail-on-error, and git diff --check passed; python3 scripts/task_audit.py --check --phase pre-closeout passed.
+  - Residual risk: Only generated portable frontend assets and local runtime process state changed in this task; no source behavior was edited here.
+  - Next step: Use http://localhost:3000/ with backend health endpoints on 8080-8083 for local verification.
+
 ### HARN-104: 修复 SQL 历史与解析历史页面展示
 
 - Status: done

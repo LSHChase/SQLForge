@@ -2955,3 +2955,15 @@
 2026-05-09T01:20:50-05:00 | HARN-104 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-09T01:20:50-05:00 | HARN-104 closeout commit | `R-168` | projected | `git commit -m 'fix(history): HARN-104 clean history pages' (projected-precommit)`
 2026-05-09T01:20:50-05:00 | HARN-104 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-09T01:24:42-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509-HARN104 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-09T01:24:42-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509-HARN104 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-09T01:24:42-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509-HARN104 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-09T01:24:46-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509-HARN104 validate | `R-133`, `R-168` | passed | `npm run build:portable`
+2026-05-09T01:24:50-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509-HARN104 validate | `R-133`, `R-168` | passed | `npm run smoke:portable-frontend`
+2026-05-09T01:24:50-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509-HARN104 validate | `R-133`, `R-168` | passed | `bash scripts/health-check.sh --fail-on-error`
+2026-05-09T01:24:50-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509-HARN104 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-09T01:25:47-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509-HARN104 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-09T01:25:47-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509-HARN104 closeout commit | `R-168` | projected | `git commit -m 'chore(frontend): refresh HARN-104 portable bundle' (projected-precommit)`
+2026-05-09T01:25:47-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509-HARN104 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-09T01:25:47-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509-HARN104 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `bash scripts/health-check.sh --fail-on-error (projected-precommit)`
+2026-05-09T01:25:47-05:00 | OPS-DIST-PORTABLE-REFRESH-20260509-HARN104 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:portable-frontend (projected-precommit)`
