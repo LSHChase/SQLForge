@@ -37,6 +37,7 @@ import com.company.governance.application.service.TenantConfigApplicationService
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckResponse;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -50,6 +51,7 @@ import com.company.governance.infrastructure.persistence.mapper.ConfigSnapshotMa
 import com.company.governance.infrastructure.persistence.mapper.BusinessLogicalViewMapper;
 import com.company.governance.infrastructure.persistence.mapper.DatabaseViewDependencyMapper;
 import com.company.governance.infrastructure.persistence.mapper.DatabaseViewMapper;
+import com.company.governance.infrastructure.persistence.mapper.DatasourceConfigMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExecutionResultMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.GovernanceHistoryLookupIndexMapper;
@@ -142,6 +144,9 @@ class AuthWebMvcTest {
 
     @MockBean
     private DatabaseViewMapper databaseViewMapper;
+
+    @MockBean
+    private DatasourceConfigMapper datasourceConfigMapper;
 
     @MockBean
     private LogicalObjectMappingMapper logicalObjectMappingMapper;
@@ -459,6 +464,22 @@ class AuthWebMvcTest {
                 "TRANSITIONAL_SKELETON",
                 "TRANSITIONAL_SKELETON"
             ));
+        GovernanceJdbcDatasourceResolveResponse jdbcResolveResponse = new GovernanceJdbcDatasourceResolveResponse();
+        jdbcResolveResponse.setTenantId("system");
+        jdbcResolveResponse.setDatasourceCode("hetu_main");
+        jdbcResolveResponse.setEngineType("HETU");
+        jdbcResolveResponse.setConnectionMode("JDBC");
+        jdbcResolveResponse.setResolved(true);
+        jdbcResolveResponse.setJdbcUrl("jdbc:hetu://coordinator:8080/hive/default");
+        jdbcResolveResponse.setDriverClassName("io.prestosql.jdbc.PrestoDriver");
+        jdbcResolveResponse.setUsername("hetu_user");
+        jdbcResolveResponse.setPassword("secret");
+        jdbcResolveResponse.setTimeoutMs(Integer.valueOf(3000));
+        jdbcResolveResponse.setCredentialMask("****cret");
+        jdbcResolveResponse.setContractStage("LONG_TERM_BASELINE");
+        jdbcResolveResponse.setImplementationStage("HETU_JDBC_DATASOURCE_RESOLVE_BASELINE");
+        when(governanceCapabilityApplicationService.resolveJdbcDatasource(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(jdbcResolveResponse);
 
         mockMvc.perform(addProtectedHeaders(post("/api/governance/internal/tenant-scope/check")
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
@@ -498,6 +519,15 @@ class AuthWebMvcTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("ACTIVE"))
             .andExpect(jsonPath("$.contractStage").value("TRANSITIONAL_SKELETON"));
+
+        mockMvc.perform(addProtectedHeaders(post("/api/governance/internal/datasources/jdbc/resolve")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"system\",\"datasourceCode\":\"hetu_main\",\"engineType\":\"HETU\"}")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.resolved").value(true))
+            .andExpect(jsonPath("$.jdbcUrl").value("jdbc:hetu://coordinator:8080/hive/default"))
+            .andExpect(jsonPath("$.password").value("secret"))
+            .andExpect(jsonPath("$.credentialMask").value("****cret"));
     }
 
     @Test

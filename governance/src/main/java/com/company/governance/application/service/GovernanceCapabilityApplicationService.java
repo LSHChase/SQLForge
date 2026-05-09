@@ -23,6 +23,8 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequ
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
@@ -56,6 +58,7 @@ public class GovernanceCapabilityApplicationService {
     private final GovernanceAccelerationPlanTraceabilityApplicationService governanceAccelerationPlanTraceabilityApplicationService;
     private final DatabaseViewCatalogApplicationService databaseViewCatalogApplicationService;
     private final ReportInterfaceConfigApplicationService reportInterfaceConfigApplicationService;
+    private final DatasourceConfigApplicationService datasourceConfigApplicationService;
     private final MessagingProperties messagingProperties;
     private final TenantConfigRepository tenantConfigRepository;
 
@@ -67,6 +70,7 @@ public class GovernanceCapabilityApplicationService {
                                                   GovernanceAccelerationPlanTraceabilityApplicationService governanceAccelerationPlanTraceabilityApplicationService,
                                                   DatabaseViewCatalogApplicationService databaseViewCatalogApplicationService,
                                                   ReportInterfaceConfigApplicationService reportInterfaceConfigApplicationService,
+                                                  DatasourceConfigApplicationService datasourceConfigApplicationService,
                                                   MessagingProperties messagingProperties,
                                                   TenantConfigRepository tenantConfigRepository) {
         this.governanceAuthorizationMatrixApplicationService = governanceAuthorizationMatrixApplicationService;
@@ -76,6 +80,7 @@ public class GovernanceCapabilityApplicationService {
         this.governanceAccelerationPlanTraceabilityApplicationService = governanceAccelerationPlanTraceabilityApplicationService;
         this.databaseViewCatalogApplicationService = databaseViewCatalogApplicationService;
         this.reportInterfaceConfigApplicationService = reportInterfaceConfigApplicationService;
+        this.datasourceConfigApplicationService = datasourceConfigApplicationService;
         this.messagingProperties = messagingProperties;
         this.tenantConfigRepository = tenantConfigRepository;
     }
@@ -124,6 +129,11 @@ public class GovernanceCapabilityApplicationService {
     public GovernanceDbViewResolveResponse resolveDbView(GovernanceDbViewResolveRequest request) {
         requireProtectedTenantContext();
         return databaseViewCatalogApplicationService.resolveDbView(request);
+    }
+
+    public GovernanceJdbcDatasourceResolveResponse resolveJdbcDatasource(GovernanceJdbcDatasourceResolveRequest request) {
+        requireProtectedTenantContext();
+        return datasourceConfigApplicationService.resolveJdbcDatasource(request);
     }
 
     public GovernanceTenantArtifactPolicyResponse resolveTenantArtifactPolicy(

@@ -13,8 +13,11 @@ export const stageOptions = [
 
 export const connectionModeOptions = [
   { label: 'JDBC', value: 'JDBC' },
+  { label: 'API', value: 'API' },
   { label: 'REST', value: 'REST' },
-  { label: 'CLIENT', value: 'CLIENT' }
+  { label: 'CLIENT', value: 'CLIENT' },
+  { label: 'GATEWAY', value: 'GATEWAY' },
+  { label: 'PROXY', value: 'PROXY' }
 ]
 
 export const authModeOptions = [
@@ -26,7 +29,10 @@ export const authModeOptions = [
 
 export const credentialModeOptions = [
   { label: 'REF', value: 'REF' },
-  { label: 'SECRET', value: 'SECRET' }
+  { label: 'SECRET', value: 'SECRET' },
+  { label: 'PASSWORD', value: 'PASSWORD' },
+  { label: 'TOKEN', value: 'TOKEN' },
+  { label: 'AK_SK', value: 'AK_SK' }
 ]
 
 export const sourceTypeOptions = [

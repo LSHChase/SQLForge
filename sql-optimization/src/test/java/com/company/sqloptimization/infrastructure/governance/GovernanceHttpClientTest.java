@@ -17,6 +17,8 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
 import com.company.sqloptimization.config.OptimizationGovernanceProperties;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
@@ -160,6 +162,40 @@ class GovernanceHttpClientTest {
 
         assertEquals(ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID, ex.getCode());
         assertEquals("Governance capability route is unavailable", ex.getMessage());
+        server.verify();
+    }
+
+    @Test
+    void shouldResolveJdbcDatasourceViaProtectedGovernanceRoute() {
+        GovernanceHttpClient client = createClient();
+        RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        setProtectedRequestContext();
+        server.expect(requestTo("http://governance.test/api/governance/internal/datasources/jdbc/resolve"))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"tenantId\":\"tenant-a\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"datasourceCode\":\"hetu_main\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"engineType\":\"HETU\"")))
+            .andRespond(withSuccess(
+                "{\"tenantId\":\"tenant-a\",\"datasourceCode\":\"hetu_main\",\"engineType\":\"HETU\","
+                    + "\"connectionMode\":\"JDBC\",\"resolved\":true,\"enabled\":true,\"readonly\":true,"
+                    + "\"jdbcUrl\":\"jdbc:hetu://coordinator:8080/hive/default\","
+                    + "\"driverClassName\":\"io.prestosql.jdbc.PrestoDriver\","
+                    + "\"username\":\"hetu_user\",\"password\":\"secret\",\"timeoutMs\":3000,"
+                    + "\"credentialMask\":\"****cret\"}",
+                MediaType.APPLICATION_JSON
+            ));
+        GovernanceJdbcDatasourceResolveRequest request = new GovernanceJdbcDatasourceResolveRequest();
+        request.setTenantId("tenant-a");
+        request.setDatasourceCode("hetu_main");
+        request.setEngineType("HETU");
+
+        GovernanceJdbcDatasourceResolveResponse response = client.resolveJdbcDatasource(request);
+
+        assertEquals(true, response.isResolved());
+        assertEquals("jdbc:hetu://coordinator:8080/hive/default", response.getJdbcUrl());
+        assertEquals("secret", response.getPassword());
+        assertEquals("****cret", response.getCredentialMask());
         server.verify();
     }
 

@@ -16,6 +16,8 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequ
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
@@ -87,6 +89,13 @@ public class GovernanceCapabilityController {
     @PostMapping("/db-views/resolve")
     public GovernanceDbViewResolveResponse resolveDbView(@RequestBody GovernanceDbViewResolveRequest request) {
         return governanceCapabilityApplicationService.resolveDbView(request);
+    }
+
+    @PostMapping("/datasources/jdbc/resolve")
+    public GovernanceJdbcDatasourceResolveResponse resolveJdbcDatasource(
+        @RequestBody GovernanceJdbcDatasourceResolveRequest request
+    ) {
+        return governanceCapabilityApplicationService.resolveJdbcDatasource(request);
     }
 
     @PostMapping("/tenant-artifact-policy/resolve")

@@ -796,7 +796,11 @@ public class StructureParseApplicationService {
         }
         long start = System.currentTimeMillis();
         try {
-            HetuPlanAnalysisResult result = hetuPlanAnalysisClient.explain(request.getSqlText(), datasourceCode);
+            HetuPlanAnalysisResult result = hetuPlanAnalysisClient.explain(
+                request.getSqlText(),
+                RequestContext.getTenantId(),
+                datasourceCode
+            );
             if (result == null) {
                 return HetuPlanAnalysisResult.failed(
                     datasourceCode,

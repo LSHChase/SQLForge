@@ -10,6 +10,9 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
+import com.company.sqlforge.common.security.SensitiveDataCryptoService;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,13 +29,21 @@ public class DatasourceConfigApplicationService {
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
     private static final String IMPLEMENTATION_STAGE = "DATASOURCE_CONFIG_BASELINE";
     private static final String HEALTHCHECK_IMPLEMENTATION_STAGE = "DATASOURCE_HEALTHCHECK_BASELINE";
+    private static final String JDBC_RESOLVE_IMPLEMENTATION_STAGE = "HETU_JDBC_DATASOURCE_RESOLVE_BASELINE";
     private static final int DEFAULT_TIMEOUT_MS = 3000;
-    private static final List<String> SUPPORTED_CONNECTION_MODES = Arrays.asList("JDBC", "API", "CLIENT", "GATEWAY", "PROXY");
+    private static final String DEFAULT_ENGINE_TYPE = "HETU";
+    private static final List<String> SUPPORTED_CONNECTION_MODES = Arrays.asList("JDBC", "API", "REST", "CLIENT", "GATEWAY", "PROXY");
 
     private final DatasourceConfigRepository datasourceConfigRepository;
+    private final SensitiveDataCryptoService sensitiveDataCryptoService;
+    private final DatasourceJdbcConnectionProbe jdbcConnectionProbe;
 
-    public DatasourceConfigApplicationService(DatasourceConfigRepository datasourceConfigRepository) {
+    public DatasourceConfigApplicationService(DatasourceConfigRepository datasourceConfigRepository,
+                                              SensitiveDataCryptoService sensitiveDataCryptoService,
+                                              DatasourceJdbcConnectionProbe jdbcConnectionProbe) {
         this.datasourceConfigRepository = datasourceConfigRepository;
+        this.sensitiveDataCryptoService = sensitiveDataCryptoService;
+        this.jdbcConnectionProbe = jdbcConnectionProbe;
     }
 
     public DatasourceConfigVO create(DatasourceConfigUpsertRequest request) {
@@ -61,6 +72,7 @@ public class DatasourceConfigApplicationService {
         String tenantId = requireTenant(request == null ? null : request.getTenantId());
         DatasourceConfig current = loadConfig(tenantId, requireText(datasourceId, "datasourceId"));
         Instant checkedAt = Instant.now();
+        long start = System.currentTimeMillis();
         int timeoutMs = request != null && request.getTimeoutMsOverride() != null && request.getTimeoutMsOverride().intValue() > 0
             ? request.getTimeoutMsOverride().intValue()
             : current.getTimeoutMs();
@@ -68,12 +80,29 @@ public class DatasourceConfigApplicationService {
         String connectionStatus;
         String healthStatus;
         String failureReason = null;
+        boolean realJdbcProbe = false;
+        long elapsedMs;
         if (!current.isEnabled()) {
             connectionStatus = "UNAVAILABLE";
             healthStatus = "DISABLED";
             failureReason = "DATASOURCE_DISABLED";
+            elapsedMs = System.currentTimeMillis() - start;
+        } else if ("JDBC".equals(current.getConnectionMode())) {
+            realJdbcProbe = true;
+            DatasourceJdbcConnectionProbe.JdbcProbeResult probeResult =
+                jdbcConnectionProbe.probe(current, decryptCredential(current), timeoutMs);
+            elapsedMs = probeResult.getElapsedMs();
+            if (probeResult.isConnected()) {
+                connectionStatus = "CONNECTED";
+                healthStatus = "HEALTHY";
+            } else {
+                connectionStatus = "FAILED";
+                healthStatus = "DEGRADED";
+                failureReason = probeResult.getFailureReason();
+            }
         } else {
             failureReason = evaluateFailureReason(current);
+            elapsedMs = System.currentTimeMillis() - start;
             if (failureReason == null) {
                 connectionStatus = "CONNECTED";
                 healthStatus = "HEALTHY";
@@ -83,18 +112,61 @@ public class DatasourceConfigApplicationService {
             }
         }
 
-        DatasourceConfig refreshed = datasourceConfigRepository.save(current.withHealthStatus(healthStatus, failureReason, checkedAt));
+        DatasourceConfig refreshed = datasourceConfigRepository.save(current.withHealthStatus(
+            healthStatus,
+            failureReason,
+            checkedAt,
+            Long.valueOf(elapsedMs)
+        ));
         DatasourceConnectionTestVO response = new DatasourceConnectionTestVO();
         response.setTenantId(refreshed.getTenantId());
         response.setDatasourceId(refreshed.getDatasourceId());
+        response.setDatasourceCode(refreshed.getDatasourceCode());
+        response.setEngineType(refreshed.getEngineType());
         response.setConnectionStatus(connectionStatus);
         response.setHealthStatus(refreshed.getHealthStatus());
         response.setLastFailureReason(refreshed.getLastFailureReason());
         response.setCheckedAt(refreshed.getLastCheckedAt());
+        response.setElapsedMs(Long.valueOf(elapsedMs));
         response.setTimeoutMs(Integer.valueOf(timeoutMs));
+        response.setRealJdbcProbe(Boolean.valueOf(realJdbcProbe));
         response.setReadonlyBoundary(refreshed.isReadonly() ? "READONLY_ONLY" : "UNSPECIFIED");
         response.setContractStage(CONTRACT_STAGE);
         response.setImplementationStage(HEALTHCHECK_IMPLEMENTATION_STAGE);
+        return response;
+    }
+
+    public GovernanceJdbcDatasourceResolveResponse resolveJdbcDatasource(GovernanceJdbcDatasourceResolveRequest request) {
+        String tenantId = requireTenant(request == null ? null : request.getTenantId());
+        String datasourceCode = requireText(request == null ? null : request.getDatasourceCode(), "datasourceCode");
+        String engineType = normalizeEngineType(request == null ? null : request.getEngineType());
+        DatasourceConfig config = datasourceConfigRepository
+            .findByTenantIdAndDatasourceCodeAndEngineType(tenantId, datasourceCode, engineType)
+            .orElse(null);
+        if (config == null) {
+            return unresolved(tenantId, datasourceCode, engineType, "HETU_JDBC_CONFIG_NOT_FOUND");
+        }
+        if (!"JDBC".equals(config.getConnectionMode())) {
+            return unresolved(tenantId, datasourceCode, engineType, "HETU_JDBC_CONFIG_NOT_FOUND");
+        }
+        if (!config.isEnabled()) {
+            return unresolved(tenantId, datasourceCode, engineType, "HETU_JDBC_DATASOURCE_DISABLED");
+        }
+        if (!StringUtils.hasText(config.getJdbcUrl())) {
+            return unresolved(tenantId, datasourceCode, engineType, "HETU_JDBC_URL_MISSING");
+        }
+        GovernanceJdbcDatasourceResolveResponse response = baseResolveResponse(config.getTenantId(), config.getDatasourceCode(), config.getEngineType());
+        response.setResolved(true);
+        response.setDatasourceId(config.getDatasourceId());
+        response.setConnectionMode(config.getConnectionMode());
+        response.setEnabled(config.isEnabled());
+        response.setReadonly(config.isReadonly());
+        response.setJdbcUrl(config.getJdbcUrl());
+        response.setDriverClassName(config.getJdbcDriverClassName());
+        response.setUsername(config.getUsername());
+        response.setPassword(decryptCredential(config));
+        response.setTimeoutMs(Integer.valueOf(config.getTimeoutMs()));
+        response.setCredentialMask(config.getCredentialMask());
         return response;
     }
 
@@ -102,17 +174,22 @@ public class DatasourceConfigApplicationService {
         String tenantId = requireTenant(request == null ? null : request.getTenantId());
         String connectionMode = normalizeConnectionMode(request == null ? null : request.getConnectionMode());
         validateConnectionFields(connectionMode, request);
+        DatasourceConfig existing = null;
         if (update) {
-            loadConfig(tenantId, datasourceId);
+            existing = loadConfig(tenantId, datasourceId);
         }
+        CredentialEnvelope credentialEnvelope = buildCredentialEnvelope(request, existing);
         DatasourceConfig config = new DatasourceConfig(
             datasourceId,
             tenantId,
             requireText(request == null ? null : request.getDatasourceCode(), "datasourceCode"),
             firstNonBlank(request == null ? null : request.getDatasourceName(), request == null ? null : request.getDatasourceCode()),
+            normalizeEngineType(request == null ? null : request.getEngineType()),
             connectionMode,
             firstNonBlank(request == null ? null : request.getStage(), "PROD").toUpperCase(Locale.ROOT),
             trimToNull(request == null ? null : request.getJdbcUrl()),
+            trimToNull(request == null ? null : request.getJdbcDriverClassName()),
+            trimToNull(request == null ? null : request.getUsername()),
             trimToNull(request == null ? null : request.getApiBaseUrl()),
             trimToNull(request == null ? null : request.getClientEndpoint()),
             trimToNull(request == null ? null : request.getGatewayEndpoint()),
@@ -120,15 +197,19 @@ public class DatasourceConfigApplicationService {
             firstNonBlank(request == null ? null : request.getAuthMode(), "NONE").toUpperCase(Locale.ROOT),
             firstNonBlank(request == null ? null : request.getCredentialMode(), "NONE").toUpperCase(Locale.ROOT),
             trimToNull(request == null ? null : request.getCredentialRef()),
-            maskSecret(request == null ? null : request.getCredentialSecret()),
+            credentialEnvelope.mask,
+            credentialEnvelope.ciphertext,
+            credentialEnvelope.algorithm,
+            credentialEnvelope.keyId,
             request != null && Boolean.TRUE.equals(request.getTlsEnabled()),
             request == null || request.getVerifyPeer() == null || request.getVerifyPeer().booleanValue(),
             request == null || request.getReadonly() == null || request.getReadonly().booleanValue(),
             request == null || request.getEnabled() == null || request.getEnabled().booleanValue(),
             normalizeTimeout(request == null ? null : request.getTimeoutMs()),
-            "UNKNOWN",
-            null,
-            null,
+            existing == null ? "UNKNOWN" : firstNonBlank(existing.getHealthStatus(), "UNKNOWN"),
+            existing == null ? null : existing.getLastFailureReason(),
+            existing == null ? null : existing.getLastCheckedAt(),
+            existing == null ? null : existing.getLastCheckElapsedMs(),
             Instant.now()
         );
         datasourceConfigRepository.save(config);
@@ -139,8 +220,8 @@ public class DatasourceConfigApplicationService {
         if ("JDBC".equals(connectionMode) && !StringUtils.hasText(request.getJdbcUrl())) {
             throw invalidArgument("jdbcUrl", "jdbcUrl is required for JDBC datasource config");
         }
-        if ("API".equals(connectionMode) && !StringUtils.hasText(request.getApiBaseUrl())) {
-            throw invalidArgument("apiBaseUrl", "apiBaseUrl is required for API datasource config");
+        if (("API".equals(connectionMode) || "REST".equals(connectionMode)) && !StringUtils.hasText(request.getApiBaseUrl())) {
+            throw invalidArgument("apiBaseUrl", "apiBaseUrl is required for API/REST datasource config");
         }
         if ("CLIENT".equals(connectionMode) && !StringUtils.hasText(request.getClientEndpoint())) {
             throw invalidArgument("clientEndpoint", "clientEndpoint is required for CLIENT datasource config");
@@ -173,7 +254,7 @@ public class DatasourceConfigApplicationService {
         if ("JDBC".equals(config.getConnectionMode())) {
             return config.getJdbcUrl();
         }
-        if ("API".equals(config.getConnectionMode())) {
+        if ("API".equals(config.getConnectionMode()) || "REST".equals(config.getConnectionMode())) {
             return config.getApiBaseUrl();
         }
         if ("CLIENT".equals(config.getConnectionMode())) {
@@ -200,9 +281,12 @@ public class DatasourceConfigApplicationService {
         response.setTenantId(config.getTenantId());
         response.setDatasourceCode(config.getDatasourceCode());
         response.setDatasourceName(config.getDatasourceName());
+        response.setEngineType(config.getEngineType());
         response.setConnectionMode(config.getConnectionMode());
         response.setStage(config.getStage());
         response.setJdbcUrl(config.getJdbcUrl());
+        response.setJdbcDriverClassName(config.getJdbcDriverClassName());
+        response.setUsername(config.getUsername());
         response.setApiBaseUrl(config.getApiBaseUrl());
         response.setClientEndpoint(config.getClientEndpoint());
         response.setGatewayEndpoint(config.getGatewayEndpoint());
@@ -240,9 +324,13 @@ public class DatasourceConfigApplicationService {
     private String normalizeConnectionMode(String value) {
         String normalized = requireText(value, "connectionMode").toUpperCase(Locale.ROOT);
         if (!SUPPORTED_CONNECTION_MODES.contains(normalized)) {
-            throw invalidArgument("connectionMode", "connectionMode must be JDBC/API/CLIENT/GATEWAY/PROXY");
+            throw invalidArgument("connectionMode", "connectionMode must be JDBC/API/REST/CLIENT/GATEWAY/PROXY");
         }
         return normalized;
+    }
+
+    private String normalizeEngineType(String value) {
+        return firstNonBlank(value, DEFAULT_ENGINE_TYPE).toUpperCase(Locale.ROOT);
     }
 
     private int normalizeTimeout(Integer timeoutMs) {
@@ -291,7 +379,73 @@ public class DatasourceConfigApplicationService {
         return "****" + normalized.substring(normalized.length() - 4);
     }
 
+    private CredentialEnvelope buildCredentialEnvelope(DatasourceConfigUpsertRequest request, DatasourceConfig existing) {
+        String secret = trimToNull(request == null ? null : request.getCredentialSecret());
+        if (!StringUtils.hasText(secret) && existing != null) {
+            return new CredentialEnvelope(
+                existing.getCredentialMask(),
+                existing.getCredentialCiphertext(),
+                existing.getEncryptionAlgorithm(),
+                existing.getEncryptionKeyId()
+            );
+        }
+        if (!StringUtils.hasText(secret)) {
+            return new CredentialEnvelope(null, null, null, null);
+        }
+        return new CredentialEnvelope(
+            maskSecret(secret),
+            sensitiveDataCryptoService.encrypt(secret),
+            sensitiveDataCryptoService.getAlgorithm(),
+            sensitiveDataCryptoService.getKeyId()
+        );
+    }
+
+    private String decryptCredential(DatasourceConfig config) {
+        if (config == null || !StringUtils.hasText(config.getCredentialCiphertext())) {
+            return null;
+        }
+        return sensitiveDataCryptoService.decrypt(config.getCredentialCiphertext());
+    }
+
+    private GovernanceJdbcDatasourceResolveResponse unresolved(String tenantId,
+                                                               String datasourceCode,
+                                                               String engineType,
+                                                               String failureReason) {
+        GovernanceJdbcDatasourceResolveResponse response = baseResolveResponse(tenantId, datasourceCode, engineType);
+        response.setResolved(false);
+        response.setFailureReason(failureReason);
+        return response;
+    }
+
+    private GovernanceJdbcDatasourceResolveResponse baseResolveResponse(String tenantId,
+                                                                        String datasourceCode,
+                                                                        String engineType) {
+        GovernanceJdbcDatasourceResolveResponse response = new GovernanceJdbcDatasourceResolveResponse();
+        response.setTenantId(tenantId);
+        response.setDatasourceCode(datasourceCode);
+        response.setEngineType(engineType);
+        response.setConnectionMode("JDBC");
+        response.setContractStage(CONTRACT_STAGE);
+        response.setImplementationStage(JDBC_RESOLVE_IMPLEMENTATION_STAGE);
+        return response;
+    }
+
     private BizException invalidArgument(String fieldName, String message) {
         return new BizException(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, HttpStatus.BAD_REQUEST, message + " [" + fieldName + "]");
+    }
+
+    private static final class CredentialEnvelope {
+
+        private final String mask;
+        private final String ciphertext;
+        private final String algorithm;
+        private final String keyId;
+
+        private CredentialEnvelope(String mask, String ciphertext, String algorithm, String keyId) {
+            this.mask = mask;
+            this.ciphertext = ciphertext;
+            this.algorithm = algorithm;
+            this.keyId = keyId;
+        }
     }
 }

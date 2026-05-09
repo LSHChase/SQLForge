@@ -9,8 +9,20 @@ const targets = [
       'data-testid="system-datasource-detail"',
       'data-testid="system-datasource-test"',
       'data-testid="system-datasource-test-result"',
+      'data-testid="system-hetu-jdbc-create"',
+      'data-testid="system-datasource-engine-filter"',
+      'data-testid="system-datasource-mode-filter"',
+      'data-testid="system-datasource-engine-type"',
       'data-testid="system-report-interface-card"',
+      'engineType',
+      'connectionMode',
+      'jdbcDriverClassName',
+      'username',
       'credentialMask',
+      'credentialSecret',
+      'realJdbcProbe',
+      'elapsedMs',
+      'lastFailureReason',
       'resolverStatus'
     ]
   },
@@ -20,6 +32,8 @@ const targets = [
       'getGovernanceDatasources',
       'getGovernanceDatasourceDetail',
       'testGovernanceDatasourceConnection',
+      'createGovernanceDatasource',
+      'updateGovernanceDatasource',
       'getGovernanceReportInterfaces'
     ]
   }

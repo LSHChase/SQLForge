@@ -6,11 +6,15 @@ public class DatasourceConnectionTestVO {
 
     private String tenantId;
     private String datasourceId;
+    private String datasourceCode;
+    private String engineType;
     private String connectionStatus;
     private String healthStatus;
     private String lastFailureReason;
     private Instant checkedAt;
+    private Long elapsedMs;
     private Integer timeoutMs;
+    private Boolean realJdbcProbe;
     private String readonlyBoundary;
     private String contractStage;
     private String implementationStage;
@@ -29,6 +33,22 @@ public class DatasourceConnectionTestVO {
 
     public void setDatasourceId(String datasourceId) {
         this.datasourceId = datasourceId;
+    }
+
+    public String getDatasourceCode() {
+        return datasourceCode;
+    }
+
+    public void setDatasourceCode(String datasourceCode) {
+        this.datasourceCode = datasourceCode;
+    }
+
+    public String getEngineType() {
+        return engineType;
+    }
+
+    public void setEngineType(String engineType) {
+        this.engineType = engineType;
     }
 
     public String getConnectionStatus() {
@@ -63,12 +83,28 @@ public class DatasourceConnectionTestVO {
         this.checkedAt = checkedAt;
     }
 
+    public Long getElapsedMs() {
+        return elapsedMs;
+    }
+
+    public void setElapsedMs(Long elapsedMs) {
+        this.elapsedMs = elapsedMs;
+    }
+
     public Integer getTimeoutMs() {
         return timeoutMs;
     }
 
     public void setTimeoutMs(Integer timeoutMs) {
         this.timeoutMs = timeoutMs;
+    }
+
+    public Boolean getRealJdbcProbe() {
+        return realJdbcProbe;
+    }
+
+    public void setRealJdbcProbe(Boolean realJdbcProbe) {
+        this.realJdbcProbe = realJdbcProbe;
     }
 
     public String getReadonlyBoundary() {

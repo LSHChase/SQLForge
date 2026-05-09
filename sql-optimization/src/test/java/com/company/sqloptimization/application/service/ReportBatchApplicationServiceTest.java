@@ -95,7 +95,7 @@ class ReportBatchApplicationServiceTest {
     void shouldPersistPlanAnalysisStatusForReportBatchWithPlanMode() {
         ReportBatchApplicationService service = buildService(
             request -> MockReportSqlFactory.resolve(request, "UNIT_TEST_MOCK_SOURCE"),
-            (sqlText, datasourceCode) -> HetuPlanAnalysisResult.success(
+            (sqlText, tenantId, datasourceCode) -> HetuPlanAnalysisResult.success(
                 datasourceCode,
                 "Fragment 0 [SINGLE]",
                 6L,

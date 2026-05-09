@@ -74,7 +74,7 @@ class ParseBatchApplicationServiceTest {
     void shouldPersistPlanAnalysisStatusForWithPlanParseBatch() {
         ParseBatchApplicationService service = buildService(
             DatasourceViewMetadataClient.unavailable(),
-            (sqlText, datasourceCode) -> HetuPlanAnalysisResult.success(
+            (sqlText, tenantId, datasourceCode) -> HetuPlanAnalysisResult.success(
                 datasourceCode,
                 "Fragment 0 [SINGLE]",
                 5L,
@@ -104,9 +104,9 @@ class ParseBatchApplicationServiceTest {
     void shouldMarkParseBatchItemPartialWhenPlanFails() {
         ParseBatchApplicationService service = buildService(
             DatasourceViewMetadataClient.unavailable(),
-            (sqlText, datasourceCode) -> HetuPlanAnalysisResult.failed(
+            (sqlText, tenantId, datasourceCode) -> HetuPlanAnalysisResult.failed(
                 datasourceCode,
-                "HETU_PLAN_DATASOURCE_NOT_CONFIGURED",
+                "HETU_JDBC_CONFIG_NOT_FOUND",
                 4L,
                 Collections.singletonList("datasourceCode=" + datasourceCode)
             )

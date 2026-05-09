@@ -8,9 +8,12 @@ public class DatasourceConfigVO {
     private String tenantId;
     private String datasourceCode;
     private String datasourceName;
+    private String engineType;
     private String connectionMode;
     private String stage;
     private String jdbcUrl;
+    private String jdbcDriverClassName;
+    private String username;
     private String apiBaseUrl;
     private String clientEndpoint;
     private String gatewayEndpoint;
@@ -62,6 +65,14 @@ public class DatasourceConfigVO {
         this.datasourceName = datasourceName;
     }
 
+    public String getEngineType() {
+        return engineType;
+    }
+
+    public void setEngineType(String engineType) {
+        this.engineType = engineType;
+    }
+
     public String getConnectionMode() {
         return connectionMode;
     }
@@ -84,6 +95,22 @@ public class DatasourceConfigVO {
 
     public void setJdbcUrl(String jdbcUrl) {
         this.jdbcUrl = jdbcUrl;
+    }
+
+    public String getJdbcDriverClassName() {
+        return jdbcDriverClassName;
+    }
+
+    public void setJdbcDriverClassName(String jdbcDriverClassName) {
+        this.jdbcDriverClassName = jdbcDriverClassName;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getApiBaseUrl() {

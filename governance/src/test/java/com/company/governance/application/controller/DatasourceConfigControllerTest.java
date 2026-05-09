@@ -29,8 +29,12 @@ class DatasourceConfigControllerTest {
         DatasourceConnectionTestVO health = new DatasourceConnectionTestVO();
         health.setDatasourceId("datasource-001");
         health.setTenantId("tenant-a");
+        health.setDatasourceCode("hetu_main");
+        health.setEngineType("HETU");
         health.setConnectionStatus("CONNECTED");
         health.setHealthStatus("HEALTHY");
+        health.setRealJdbcProbe(Boolean.TRUE);
+        health.setElapsedMs(Long.valueOf(7L));
         health.setCheckedAt(Instant.parse("2026-04-27T05:00:00Z"));
         when(service.list("tenant-a")).thenReturn(Collections.singletonList(config));
         when(service.find("tenant-a", "datasource-001")).thenReturn(config);
@@ -45,21 +49,26 @@ class DatasourceConfigControllerTest {
         mockMvc.perform(get("/api/governance/datasources").param("tenantId", "tenant-a"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].datasourceId").value("datasource-001"))
-            .andExpect(jsonPath("$[0].connectionMode").value("JDBC"));
+            .andExpect(jsonPath("$[0].connectionMode").value("JDBC"))
+            .andExpect(jsonPath("$[0].engineType").value("HETU"));
 
         mockMvc.perform(get("/api/governance/datasources/datasource-001").param("tenantId", "tenant-a"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.healthStatus").value("UNKNOWN"));
 
         mockMvc.perform(post("/api/governance/datasources")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"tenantId\":\"tenant-a\",\"datasourceCode\":\"hetu_main\",\"connectionMode\":\"JDBC\",\"jdbcUrl\":\"jdbc:mysql://localhost:3306/sqlforge\"}"))
+            .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"datasourceCode\":\"hetu_main\",\"engineType\":\"HETU\","
+                    + "\"connectionMode\":\"JDBC\",\"jdbcUrl\":\"jdbc:mysql://localhost:3306/sqlforge\","
+                    + "\"jdbcDriverClassName\":\"com.mysql.cj.jdbc.Driver\",\"username\":\"hetu_user\","
+                    + "\"credentialSecret\":\"secret\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.datasourceCode").value("hetu_main"));
 
         mockMvc.perform(put("/api/governance/datasources/datasource-001")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"tenantId\":\"tenant-a\",\"datasourceCode\":\"hetu_main\",\"connectionMode\":\"JDBC\",\"jdbcUrl\":\"jdbc:mysql://localhost:3306/sqlforge\"}"))
+            .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"datasourceCode\":\"hetu_main\",\"engineType\":\"HETU\","
+                    + "\"connectionMode\":\"JDBC\",\"jdbcUrl\":\"jdbc:mysql://localhost:3306/sqlforge\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.datasourceId").value("datasource-001"));
 
@@ -68,7 +77,8 @@ class DatasourceConfigControllerTest {
                 .content("{\"tenantId\":\"tenant-a\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.connectionStatus").value("CONNECTED"))
-            .andExpect(jsonPath("$.healthStatus").value("HEALTHY"));
+            .andExpect(jsonPath("$.healthStatus").value("HEALTHY"))
+            .andExpect(jsonPath("$.realJdbcProbe").value(true));
 
         verify(service).list("tenant-a");
         verify(service).find("tenant-a", "datasource-001");
@@ -80,8 +90,11 @@ class DatasourceConfigControllerTest {
         config.setTenantId("tenant-a");
         config.setDatasourceCode("hetu_main");
         config.setDatasourceName("Hetu Main");
+        config.setEngineType("HETU");
         config.setConnectionMode("JDBC");
         config.setJdbcUrl("jdbc:mysql://localhost:3306/sqlforge");
+        config.setJdbcDriverClassName("com.mysql.cj.jdbc.Driver");
+        config.setUsername("hetu_user");
         config.setCredentialMask("****cret");
         config.setEnabled(true);
         config.setReadonly(true);

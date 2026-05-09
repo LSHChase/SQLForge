@@ -8,9 +8,12 @@ public class DatasourceConfig {
     private final String tenantId;
     private final String datasourceCode;
     private final String datasourceName;
+    private final String engineType;
     private final String connectionMode;
     private final String stage;
     private final String jdbcUrl;
+    private final String jdbcDriverClassName;
+    private final String username;
     private final String apiBaseUrl;
     private final String clientEndpoint;
     private final String gatewayEndpoint;
@@ -19,6 +22,9 @@ public class DatasourceConfig {
     private final String credentialMode;
     private final String credentialRef;
     private final String credentialMask;
+    private final String credentialCiphertext;
+    private final String encryptionAlgorithm;
+    private final String encryptionKeyId;
     private final boolean tlsEnabled;
     private final boolean verifyPeer;
     private final boolean readonly;
@@ -27,15 +33,19 @@ public class DatasourceConfig {
     private final String healthStatus;
     private final String lastFailureReason;
     private final Instant lastCheckedAt;
+    private final Long lastCheckElapsedMs;
     private final Instant updatedAt;
 
     public DatasourceConfig(String datasourceId,
                             String tenantId,
                             String datasourceCode,
                             String datasourceName,
+                            String engineType,
                             String connectionMode,
                             String stage,
                             String jdbcUrl,
+                            String jdbcDriverClassName,
+                            String username,
                             String apiBaseUrl,
                             String clientEndpoint,
                             String gatewayEndpoint,
@@ -44,6 +54,9 @@ public class DatasourceConfig {
                             String credentialMode,
                             String credentialRef,
                             String credentialMask,
+                            String credentialCiphertext,
+                            String encryptionAlgorithm,
+                            String encryptionKeyId,
                             boolean tlsEnabled,
                             boolean verifyPeer,
                             boolean readonly,
@@ -52,14 +65,18 @@ public class DatasourceConfig {
                             String healthStatus,
                             String lastFailureReason,
                             Instant lastCheckedAt,
+                            Long lastCheckElapsedMs,
                             Instant updatedAt) {
         this.datasourceId = datasourceId;
         this.tenantId = tenantId;
         this.datasourceCode = datasourceCode;
         this.datasourceName = datasourceName;
+        this.engineType = engineType;
         this.connectionMode = connectionMode;
         this.stage = stage;
         this.jdbcUrl = jdbcUrl;
+        this.jdbcDriverClassName = jdbcDriverClassName;
+        this.username = username;
         this.apiBaseUrl = apiBaseUrl;
         this.clientEndpoint = clientEndpoint;
         this.gatewayEndpoint = gatewayEndpoint;
@@ -68,6 +85,9 @@ public class DatasourceConfig {
         this.credentialMode = credentialMode;
         this.credentialRef = credentialRef;
         this.credentialMask = credentialMask;
+        this.credentialCiphertext = credentialCiphertext;
+        this.encryptionAlgorithm = encryptionAlgorithm;
+        this.encryptionKeyId = encryptionKeyId;
         this.tlsEnabled = tlsEnabled;
         this.verifyPeer = verifyPeer;
         this.readonly = readonly;
@@ -76,18 +96,25 @@ public class DatasourceConfig {
         this.healthStatus = healthStatus;
         this.lastFailureReason = lastFailureReason;
         this.lastCheckedAt = lastCheckedAt;
+        this.lastCheckElapsedMs = lastCheckElapsedMs;
         this.updatedAt = updatedAt;
     }
 
-    public DatasourceConfig withHealthStatus(String nextHealthStatus, String nextFailureReason, Instant nextCheckedAt) {
+    public DatasourceConfig withHealthStatus(String nextHealthStatus,
+                                             String nextFailureReason,
+                                             Instant nextCheckedAt,
+                                             Long nextElapsedMs) {
         return new DatasourceConfig(
             datasourceId,
             tenantId,
             datasourceCode,
             datasourceName,
+            engineType,
             connectionMode,
             stage,
             jdbcUrl,
+            jdbcDriverClassName,
+            username,
             apiBaseUrl,
             clientEndpoint,
             gatewayEndpoint,
@@ -96,6 +123,9 @@ public class DatasourceConfig {
             credentialMode,
             credentialRef,
             credentialMask,
+            credentialCiphertext,
+            encryptionAlgorithm,
+            encryptionKeyId,
             tlsEnabled,
             verifyPeer,
             readonly,
@@ -104,6 +134,7 @@ public class DatasourceConfig {
             nextHealthStatus,
             nextFailureReason,
             nextCheckedAt,
+            nextElapsedMs,
             Instant.now()
         );
     }
@@ -124,6 +155,10 @@ public class DatasourceConfig {
         return datasourceName;
     }
 
+    public String getEngineType() {
+        return engineType;
+    }
+
     public String getConnectionMode() {
         return connectionMode;
     }
@@ -134,6 +169,14 @@ public class DatasourceConfig {
 
     public String getJdbcUrl() {
         return jdbcUrl;
+    }
+
+    public String getJdbcDriverClassName() {
+        return jdbcDriverClassName;
+    }
+
+    public String getUsername() {
+        return username;
     }
 
     public String getApiBaseUrl() {
@@ -168,6 +211,18 @@ public class DatasourceConfig {
         return credentialMask;
     }
 
+    public String getCredentialCiphertext() {
+        return credentialCiphertext;
+    }
+
+    public String getEncryptionAlgorithm() {
+        return encryptionAlgorithm;
+    }
+
+    public String getEncryptionKeyId() {
+        return encryptionKeyId;
+    }
+
     public boolean isTlsEnabled() {
         return tlsEnabled;
     }
@@ -198,6 +253,10 @@ public class DatasourceConfig {
 
     public Instant getLastCheckedAt() {
         return lastCheckedAt;
+    }
+
+    public Long getLastCheckElapsedMs() {
+        return lastCheckElapsedMs;
     }
 
     public Instant getUpdatedAt() {

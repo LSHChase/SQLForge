@@ -7,6 +7,7 @@ import {
   createParseBatch,
   formatRuntimeError,
   getCombinedParseStatus,
+  getGovernanceDatasources,
   getParseBatch,
   getReportBatch,
   getSqlParseHistoryPage,
@@ -20,6 +21,7 @@ import {
 } from '../../services/runtimeGateApi'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
+import { buildDatasourceOptions, withCurrentOption } from '../common/formComponentGovernance'
 import { riskDisplayText as sharedRiskDisplayText } from '../common/issueSceneHelp.mjs'
 
 const route = useRoute()
@@ -129,6 +131,7 @@ const priorityMatrix = ref([])
 const importantUrgent = ref([])
 
 const historyPage = ref(null)
+const governanceDatasources = ref([])
 
 const evidenceDrawerVisible = ref(false)
 const evidenceDrawerTitle = ref('')
@@ -157,6 +160,7 @@ const parserModeOptions = [
   { label: 'JSQLParser + Hetu EXPLAIN', value: 'JSQLPARSER_WITH_PLAN' },
   { label: 'Apache Calcite + Hetu EXPLAIN', value: 'APACHE_CALCITE_WITH_PLAN' }
 ]
+const datasourceOptions = computed(() => buildDatasourceOptions(governanceDatasources.value))
 const parseFileTypeOptions = ['CSV', 'TXT', 'SQL', 'XLS', 'XLSX', 'ET']
 const reportFileTypeOptions = ['TXT', 'CSV', 'XLSX']
 const parseImportModeOptions = ['TABULAR_FILE', 'SQL_FILE', 'REPORT_CATALOG']
@@ -1262,6 +1266,17 @@ async function loadHistoryPage() {
   }
 }
 
+async function loadGovernanceDatasources() {
+  try {
+    const response = await getGovernanceDatasources(form.tenantId, {
+      requestPrefix: 'frontend-parse-workbench-governance-datasources'
+    })
+    governanceDatasources.value = Array.isArray(response) ? response : []
+  } catch (error) {
+    governanceDatasources.value = []
+  }
+}
+
 function applyRouteWorkspace() {
   const workspace = String(route.query.workspace || '').trim()
   if (workspace === 'batch') {
@@ -1293,7 +1308,7 @@ onMounted(async () => {
   parseBatchForm.parserMode = form.parserMode
   reportBatchForm.parserMode = form.parserMode
   applyRouteWorkspace()
-  await loadAnalytics()
+  await Promise.allSettled([loadGovernanceDatasources(), loadAnalytics()])
 })
 
 watch(
@@ -1302,6 +1317,7 @@ watch(
     historyForm.tenantId = value
     parseBatchForm.tenantId = value
     reportBatchForm.tenantId = value
+    loadGovernanceDatasources()
   }
 )
 
@@ -1376,10 +1392,21 @@ watch(
 
           <label class="field-block">
             <span class="field-label">{{ isChinese ? '数据源编码' : 'Datasource code' }}</span>
-            <el-input
+            <el-select
               v-model="form.datasourceCode"
+              filterable
+              allow-create
+              default-first-option
               :placeholder="isChinese ? 'hetu_main / 留空触发 partial-success' : 'hetu_main / leave blank to trigger partial-success'"
-            />
+              data-testid="parse-workbench-datasource-code"
+            >
+              <el-option
+                v-for="item in withCurrentOption(datasourceOptions, form.datasourceCode)"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
           </label>
 
           <label class="field-block">
@@ -2376,7 +2403,14 @@ watch(
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '数据源' : 'Datasource' }}</span>
-          <el-input v-model="parseBatchForm.datasourceCode" />
+          <el-select v-model="parseBatchForm.datasourceCode" filterable allow-create default-first-option data-testid="parse-workbench-parse-batch-datasource-code">
+            <el-option
+              v-for="item in withCurrentOption(datasourceOptions, parseBatchForm.datasourceCode)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">解析工具 / Parser tool</span>
@@ -2465,7 +2499,14 @@ watch(
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '数据源' : 'Datasource' }}</span>
-          <el-input v-model="reportBatchForm.datasourceCode" />
+          <el-select v-model="reportBatchForm.datasourceCode" filterable allow-create default-first-option data-testid="parse-workbench-report-batch-datasource-code">
+            <el-option
+              v-for="item in withCurrentOption(datasourceOptions, reportBatchForm.datasourceCode)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">解析工具 / Parser tool</span>

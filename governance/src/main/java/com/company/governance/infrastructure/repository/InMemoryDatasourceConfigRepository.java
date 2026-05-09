@@ -8,9 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.stereotype.Repository;
 
-@Repository
 public class InMemoryDatasourceConfigRepository implements DatasourceConfigRepository {
 
     private final Map<String, DatasourceConfig> configs = new ConcurrentHashMap<String, DatasourceConfig>();
@@ -31,6 +29,20 @@ public class InMemoryDatasourceConfigRepository implements DatasourceConfigRepos
     }
 
     @Override
+    public Optional<DatasourceConfig> findByTenantIdAndDatasourceCodeAndEngineType(String tenantId,
+                                                                                   String datasourceCode,
+                                                                                   String engineType) {
+        for (DatasourceConfig config : configs.values()) {
+            if (tenantId.equals(config.getTenantId())
+                && equalsIgnoreCase(datasourceCode, config.getDatasourceCode())
+                && equalsIgnoreCase(engineType, config.getEngineType())) {
+                return Optional.of(config);
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Override
     public List<DatasourceConfig> findByTenantId(String tenantId) {
         List<DatasourceConfig> result = new ArrayList<DatasourceConfig>();
         for (DatasourceConfig config : configs.values()) {
@@ -40,5 +52,12 @@ public class InMemoryDatasourceConfigRepository implements DatasourceConfigRepos
         }
         result.sort(Comparator.comparing(DatasourceConfig::getDatasourceCode));
         return result;
+    }
+
+    private boolean equalsIgnoreCase(String left, String right) {
+        if (left == null) {
+            return right == null;
+        }
+        return left.equalsIgnoreCase(right);
     }
 }

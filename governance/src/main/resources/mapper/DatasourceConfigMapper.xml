@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.DatasourceConfigMapper">
+
+    <resultMap id="DatasourceConfigResultMap" type="com.company.governance.infrastructure.persistence.entity.DatasourceConfigRecord">
+        <id property="datasourceId" column="datasource_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="datasourceName" column="datasource_name"/>
+        <result property="engineType" column="engine_type"/>
+        <result property="connectionMode" column="connection_mode"/>
+        <result property="stage" column="stage"/>
+        <result property="jdbcUrl" column="jdbc_url"/>
+        <result property="jdbcDriverClassName" column="jdbc_driver_class_name"/>
+        <result property="username" column="username"/>
+        <result property="apiBaseUrl" column="api_base_url"/>
+        <result property="clientEndpoint" column="client_endpoint"/>
+        <result property="gatewayEndpoint" column="gateway_endpoint"/>
+        <result property="proxyEndpoint" column="proxy_endpoint"/>
+        <result property="authMode" column="auth_mode"/>
+        <result property="credentialMode" column="credential_mode"/>
+        <result property="credentialRef" column="credential_ref"/>
+        <result property="credentialMask" column="credential_mask"/>
+        <result property="credentialCiphertext" column="credential_ciphertext"/>
+        <result property="encryptionAlgorithm" column="encryption_algorithm"/>
+        <result property="encryptionKeyId" column="encryption_key_id"/>
+        <result property="tlsEnabled" column="tls_enabled"/>
+        <result property="verifyPeer" column="verify_peer"/>
+        <result property="readonly" column="readonly_flag"/>
+        <result property="enabled" column="enabled"/>
+        <result property="timeoutMs" column="timeout_ms"/>
+        <result property="healthStatus" column="health_status"/>
+        <result property="lastFailureReason" column="last_failure_reason"/>
+        <result property="lastCheckedAt" column="last_checked_at"/>
+        <result property="lastCheckElapsedMs" column="last_check_elapsed_ms"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        datasource_id,
+        tenant_id,
+        datasource_code,
+        datasource_name,
+        engine_type,
+        connection_mode,
+        stage,
+        jdbc_url,
+        jdbc_driver_class_name,
+        username,
+        api_base_url,
+        client_endpoint,
+        gateway_endpoint,
+        proxy_endpoint,
+        auth_mode,
+        credential_mode,
+        credential_ref,
+        credential_mask,
+        credential_ciphertext,
+        encryption_algorithm,
+        encryption_key_id,
+        tls_enabled,
+        verify_peer,
+        readonly_flag,
+        enabled,
+        timeout_ms,
+        health_status,
+        last_failure_reason,
+        last_checked_at,
+        last_check_elapsed_ms,
+        create_time,
+        update_time
+    </sql>
+
+    <insert id="upsert" parameterType="com.company.governance.infrastructure.persistence.entity.DatasourceConfigRecord">
+        INSERT INTO datasource_config (
+            datasource_id,
+            tenant_id,
+            datasource_code,
+            datasource_name,
+            engine_type,
+            connection_mode,
+            stage,
+            jdbc_url,
+            jdbc_driver_class_name,
+            username,
+            api_base_url,
+            client_endpoint,
+            gateway_endpoint,
+            proxy_endpoint,
+            auth_mode,
+            credential_mode,
+            credential_ref,
+            credential_mask,
+            credential_ciphertext,
+            encryption_algorithm,
+            encryption_key_id,
+            tls_enabled,
+            verify_peer,
+            readonly_flag,
+            enabled,
+            timeout_ms,
+            health_status,
+            last_failure_reason,
+            last_checked_at,
+            last_check_elapsed_ms,
+            create_time,
+            update_time
+        ) VALUES (
+            #{datasourceId},
+            #{tenantId},
+            #{datasourceCode},
+            #{datasourceName},
+            #{engineType},
+            #{connectionMode},
+            #{stage},
+            #{jdbcUrl},
+            #{jdbcDriverClassName},
+            #{username},
+            #{apiBaseUrl},
+            #{clientEndpoint},
+            #{gatewayEndpoint},
+            #{proxyEndpoint},
+            #{authMode},
+            #{credentialMode},
+            #{credentialRef},
+            #{credentialMask},
+            #{credentialCiphertext},
+            #{encryptionAlgorithm},
+            #{encryptionKeyId},
+            #{tlsEnabled},
+            #{verifyPeer},
+            #{readonly},
+            #{enabled},
+            #{timeoutMs},
+            #{healthStatus},
+            #{lastFailureReason},
+            #{lastCheckedAt},
+            #{lastCheckElapsedMs},
+            #{createTime},
+            #{updateTime}
+        )
+        ON DUPLICATE KEY UPDATE
+            datasource_code = VALUES(datasource_code),
+            datasource_name = VALUES(datasource_name),
+            engine_type = VALUES(engine_type),
+            connection_mode = VALUES(connection_mode),
+            stage = VALUES(stage),
+            jdbc_url = VALUES(jdbc_url),
+            jdbc_driver_class_name = VALUES(jdbc_driver_class_name),
+            username = VALUES(username),
+            api_base_url = VALUES(api_base_url),
+            client_endpoint = VALUES(client_endpoint),
+            gateway_endpoint = VALUES(gateway_endpoint),
+            proxy_endpoint = VALUES(proxy_endpoint),
+            auth_mode = VALUES(auth_mode),
+            credential_mode = VALUES(credential_mode),
+            credential_ref = VALUES(credential_ref),
+            credential_mask = VALUES(credential_mask),
+            credential_ciphertext = VALUES(credential_ciphertext),
+            encryption_algorithm = VALUES(encryption_algorithm),
+            encryption_key_id = VALUES(encryption_key_id),
+            tls_enabled = VALUES(tls_enabled),
+            verify_peer = VALUES(verify_peer),
+            readonly_flag = VALUES(readonly_flag),
+            enabled = VALUES(enabled),
+            timeout_ms = VALUES(timeout_ms),
+            health_status = VALUES(health_status),
+            last_failure_reason = VALUES(last_failure_reason),
+            last_checked_at = VALUES(last_checked_at),
+            last_check_elapsed_ms = VALUES(last_check_elapsed_ms),
+            update_time = VALUES(update_time)
+    </insert>
+
+    <select id="selectByTenantIdAndDatasourceId" resultMap="DatasourceConfigResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM datasource_config
+        WHERE tenant_id = #{tenantId}
+          AND datasource_id = #{datasourceId}
+    </select>
+
+    <select id="selectByTenantIdAndDatasourceCodeAndEngineType" resultMap="DatasourceConfigResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM datasource_config
+        WHERE tenant_id = #{tenantId}
+          AND datasource_code = #{datasourceCode}
+          AND engine_type = #{engineType}
+        ORDER BY update_time DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectByTenantId" resultMap="DatasourceConfigResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM datasource_config
+        WHERE tenant_id = #{tenantId}
+        ORDER BY datasource_code ASC, update_time DESC
+    </select>
+</mapper>

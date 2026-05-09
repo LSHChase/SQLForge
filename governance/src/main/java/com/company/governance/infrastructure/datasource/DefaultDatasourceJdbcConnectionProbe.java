@@ -1,0 +1,72 @@
+package com.company.governance.infrastructure.datasource;
+
+import com.company.governance.application.service.DatasourceJdbcConnectionProbe;
+import com.company.governance.domain.datasource.DatasourceConfig;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+
+@Component
+public class DefaultDatasourceJdbcConnectionProbe implements DatasourceJdbcConnectionProbe {
+
+    private static final int MAX_REASON_LENGTH = 160;
+
+    @Override
+    public JdbcProbeResult probe(DatasourceConfig config, String password, int timeoutMs) {
+        long start = System.nanoTime();
+        if (config == null || !StringUtils.hasText(config.getJdbcUrl())) {
+            return failed("JDBC_URL_MISSING", start);
+        }
+        try {
+            if (StringUtils.hasText(config.getJdbcDriverClassName())) {
+                Class.forName(config.getJdbcDriverClassName().trim());
+            }
+            DriverManager.setLoginTimeout(Math.max(1, timeoutMs / 1000));
+            try (Connection connection = DriverManager.getConnection(config.getJdbcUrl(), connectionProperties(config, password))) {
+                try {
+                    connection.setReadOnly(true);
+                } catch (SQLException ignored) {
+                    // Some drivers do not support toggling read-only mode after connect.
+                }
+                if (!connection.isValid(Math.max(1, timeoutMs / 1000))) {
+                    return failed("JDBC_CONNECTION_INVALID", start);
+                }
+                return new JdbcProbeResult(true, null, elapsedMs(start));
+            }
+        } catch (ClassNotFoundException ex) {
+            return failed("JDBC_DRIVER_CLASS_NOT_FOUND: " + compact(ex.getMessage()), start);
+        } catch (SQLException ex) {
+            return failed("JDBC_CONNECT_FAILED: " + compact(ex.getMessage()), start);
+        } catch (RuntimeException ex) {
+            return failed("JDBC_CONNECT_FAILED: " + compact(ex.getMessage()), start);
+        }
+    }
+
+    private Properties connectionProperties(DatasourceConfig config, String password) {
+        Properties properties = new Properties();
+        if (StringUtils.hasText(config.getUsername())) {
+            properties.setProperty("user", config.getUsername().trim());
+        }
+        if (StringUtils.hasText(password)) {
+            properties.setProperty("password", password);
+        }
+        return properties;
+    }
+
+    private JdbcProbeResult failed(String reason, long start) {
+        return new JdbcProbeResult(false, reason, elapsedMs(start));
+    }
+
+    private long elapsedMs(long start) {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+    }
+
+    private String compact(String value) {
+        String normalized = value == null ? "unknown" : value.replaceAll("\\s+", " ").trim();
+        return normalized.length() <= MAX_REASON_LENGTH ? normalized : normalized.substring(0, MAX_REASON_LENGTH);
+    }
+}

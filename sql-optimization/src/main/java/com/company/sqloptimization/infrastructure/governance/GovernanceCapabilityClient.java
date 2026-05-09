@@ -5,6 +5,8 @@ import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceReq
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
 
@@ -19,6 +21,8 @@ public interface GovernanceCapabilityClient {
     GovernanceAccelerationPlanTraceResponse writeAccelerationPlanTrace(GovernanceAccelerationPlanTraceRequest request);
 
     GovernanceDbViewResolveResponse resolveDbView(GovernanceDbViewResolveRequest request);
+
+    GovernanceJdbcDatasourceResolveResponse resolveJdbcDatasource(GovernanceJdbcDatasourceResolveRequest request);
 
     GovernanceReportInterfaceConfigResponse resolveReportInterfaceConfig(GovernanceReportInterfaceConfigRequest request);
 

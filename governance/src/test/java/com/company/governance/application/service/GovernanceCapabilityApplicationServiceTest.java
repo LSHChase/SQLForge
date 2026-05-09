@@ -64,6 +64,7 @@ class GovernanceCapabilityApplicationServiceTest {
             accelerationPlanTraceabilityApplicationService,
             databaseViewCatalogApplicationService,
             mock(ReportInterfaceConfigApplicationService.class),
+            mock(DatasourceConfigApplicationService.class),
             databaseMessaging(),
             tenantConfigRepository
         );
@@ -156,6 +157,7 @@ class GovernanceCapabilityApplicationServiceTest {
             accelerationPlanTraceabilityApplicationService,
             databaseViewCatalogApplicationService,
             mock(ReportInterfaceConfigApplicationService.class),
+            mock(DatasourceConfigApplicationService.class),
             messagingProperties,
             tenantConfigRepository
         );
@@ -209,6 +211,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
             mock(ReportInterfaceConfigApplicationService.class),
+            mock(DatasourceConfigApplicationService.class),
             databaseMessaging(),
             mock(TenantConfigRepository.class)
         );
@@ -235,6 +238,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
             mock(ReportInterfaceConfigApplicationService.class),
+            mock(DatasourceConfigApplicationService.class),
             databaseMessaging(),
             tenantConfigRepository
         );
@@ -277,6 +281,7 @@ class GovernanceCapabilityApplicationServiceTest {
             accelerationPlanTraceabilityApplicationService,
             mock(DatabaseViewCatalogApplicationService.class),
             mock(ReportInterfaceConfigApplicationService.class),
+            mock(DatasourceConfigApplicationService.class),
             databaseMessaging(),
             mock(TenantConfigRepository.class)
         );
@@ -318,6 +323,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             databaseViewCatalogApplicationService,
             mock(ReportInterfaceConfigApplicationService.class),
+            mock(DatasourceConfigApplicationService.class),
             databaseMessaging(),
             mock(TenantConfigRepository.class)
         );
@@ -357,6 +363,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
             reportInterfaceConfigApplicationService,
+            mock(DatasourceConfigApplicationService.class),
             databaseMessaging(),
             mock(TenantConfigRepository.class)
         );
@@ -396,6 +403,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
             mock(ReportInterfaceConfigApplicationService.class),
+            mock(DatasourceConfigApplicationService.class),
             databaseMessaging(),
             mock(TenantConfigRepository.class)
         );

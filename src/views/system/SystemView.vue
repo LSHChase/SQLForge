@@ -69,6 +69,10 @@ const dispatchPolicies = ref([])
 const datasourceTestResult = ref(null)
 const retryResult = ref(null)
 const selectedDatasourceId = ref('')
+const datasourceFilter = reactive({
+  engineType: '',
+  connectionMode: ''
+})
 
 const datasourceDialogVisible = ref(false)
 const reportDialogVisible = ref(false)
@@ -103,6 +107,13 @@ const tenantOptions = computed(() =>
   )
 )
 const datasourceOptions = computed(() => buildDatasourceOptions(datasources.value))
+const filteredDatasources = computed(() =>
+  datasources.value.filter(item => {
+    const engineMatched = !datasourceFilter.engineType || item.engineType === datasourceFilter.engineType
+    const modeMatched = !datasourceFilter.connectionMode || item.connectionMode === datasourceFilter.connectionMode
+    return engineMatched && modeMatched
+  })
+)
 const summaryCards = computed(() => [
   card('datasources', isChinese.value ? '数据源' : 'Datasources', datasources.value.length),
   card('report-interfaces', isChinese.value ? '报表接口' : 'Report interfaces', reportInterfaces.value.length),
@@ -156,9 +167,12 @@ function buildDatasourceForm() {
     tenantId: form.tenantId,
     datasourceCode: '',
     datasourceName: '',
+    engineType: 'HETU',
     connectionMode: 'JDBC',
     stage: 'PROD',
     jdbcUrl: '',
+    jdbcDriverClassName: 'io.prestosql.jdbc.PrestoDriver',
+    username: '',
     apiBaseUrl: '',
     clientEndpoint: '',
     gatewayEndpoint: '',
@@ -352,6 +366,25 @@ const openDatasourceCreate = () => {
   datasourceDialogVisible.value = true
 }
 
+const openHetuJdbcCreate = () => {
+  datasourceDialogMode.value = 'create'
+  resetFormState(datasourceForm, buildDatasourceForm)
+  Object.assign(datasourceForm, {
+    engineType: 'HETU',
+    connectionMode: 'JDBC',
+    datasourceCode: 'hetu_main',
+    datasourceName: 'Hetu JDBC',
+    jdbcDriverClassName: 'io.prestosql.jdbc.PrestoDriver',
+    authMode: 'PASSWORD',
+    credentialMode: 'PASSWORD',
+    readonly: true,
+    enabled: true
+  })
+  datasourceFilter.engineType = 'HETU'
+  datasourceFilter.connectionMode = 'JDBC'
+  datasourceDialogVisible.value = true
+}
+
 const openDatasourceEdit = row => {
   datasourceDialogMode.value = 'edit'
   resetFormState(datasourceForm, buildDatasourceForm)
@@ -360,9 +393,12 @@ const openDatasourceEdit = row => {
     tenantId: row.tenantId || form.tenantId,
     datasourceCode: row.datasourceCode || '',
     datasourceName: row.datasourceName || '',
+    engineType: row.engineType || 'HETU',
     connectionMode: row.connectionMode || 'JDBC',
     stage: row.stage || 'PROD',
     jdbcUrl: row.jdbcUrl || '',
+    jdbcDriverClassName: row.jdbcDriverClassName || '',
+    username: row.username || '',
     apiBaseUrl: row.apiBaseUrl || '',
     clientEndpoint: row.clientEndpoint || '',
     gatewayEndpoint: row.gatewayEndpoint || '',
@@ -386,9 +422,12 @@ const submitDatasource = async () => {
     tenantId: datasourceForm.tenantId,
     datasourceCode: datasourceForm.datasourceCode,
     datasourceName: datasourceForm.datasourceName,
+    engineType: datasourceForm.engineType,
     connectionMode: datasourceForm.connectionMode,
     stage: datasourceForm.stage,
     jdbcUrl: datasourceForm.jdbcUrl,
+    jdbcDriverClassName: datasourceForm.jdbcDriverClassName,
+    username: datasourceForm.username,
     apiBaseUrl: datasourceForm.apiBaseUrl,
     clientEndpoint: datasourceForm.clientEndpoint,
     gatewayEndpoint: datasourceForm.gatewayEndpoint,
@@ -636,12 +675,35 @@ onMounted(() => {
               <p class="section-kicker sqlforge-code-label">datasource actions</p>
               <h2 class="section-title">{{ isChinese ? '数据源列表' : 'Datasource list' }}</h2>
             </div>
-            <el-button @click="openDatasourceCreate">{{ isChinese ? '新增数据源' : 'Create datasource' }}</el-button>
+            <div class="action-row action-row-tight">
+              <el-select v-model="datasourceFilter.engineType" clearable :placeholder="isChinese ? '引擎' : 'Engine'" data-testid="system-datasource-engine-filter">
+                <el-option
+                  v-for="item in withCurrentOption(engineOptions, datasourceFilter.engineType)"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+              <el-select v-model="datasourceFilter.connectionMode" clearable :placeholder="isChinese ? '模式' : 'Mode'" data-testid="system-datasource-mode-filter">
+                <el-option
+                  v-for="item in withCurrentOption(connectionModeOptions, datasourceFilter.connectionMode)"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+              <el-button data-testid="system-hetu-jdbc-create" @click="openHetuJdbcCreate">
+                {{ isChinese ? 'Hetu JDBC 快捷创建' : 'Create Hetu JDBC' }}
+              </el-button>
+              <el-button @click="openDatasourceCreate">{{ isChinese ? '新增数据源' : 'Create datasource' }}</el-button>
+            </div>
           </div>
-          <el-table :data="datasources" border>
+          <el-table :data="filteredDatasources" border>
+            <el-table-column prop="engineType" :label="isChinese ? '引擎' : 'Engine'" min-width="110" />
             <el-table-column prop="datasourceCode" :label="isChinese ? '编码' : 'Code'" min-width="160" />
             <el-table-column prop="datasourceName" :label="isChinese ? '名称' : 'Name'" min-width="180" />
             <el-table-column prop="connectionMode" :label="isChinese ? '连接模式' : 'Connection mode'" min-width="140" />
+            <el-table-column prop="credentialMask" :label="isChinese ? '凭证' : 'Credential'" min-width="130" />
             <el-table-column prop="healthStatus" :label="isChinese ? '健康状态' : 'Health status'" min-width="140" />
             <el-table-column :label="isChinese ? '最后检查' : 'Last checked at'" min-width="170">
               <template #default="{ row }">{{ formatTimestamp(row.lastCheckedAt) }}</template>
@@ -670,7 +732,7 @@ onMounted(() => {
             </div>
             <el-button @click="openReportCreate">{{ isChinese ? '新增报表接口' : 'Create report interface' }}</el-button>
           </div>
-          <el-table :data="reportInterfaces" border>
+          <el-table :data="reportInterfaces" border data-testid="system-report-interface-card">
             <el-table-column prop="endpointCode" :label="isChinese ? '接口编码' : 'Endpoint code'" min-width="170" />
             <el-table-column prop="resolverStatus" :label="isChinese ? '解析状态' : 'Resolver status'" min-width="150" />
             <el-table-column :label="isChinese ? '基础地址' : 'Base URL'" min-width="220">
@@ -778,10 +840,28 @@ onMounted(() => {
     </section>
 
     <el-drawer v-model="detailDrawerVisible" :title="detailTitle" size="42%">
-      <pre class="code-block">{{ formatJson(detailPayload || {}) }}</pre>
+      <pre class="code-block" data-testid="system-datasource-detail">{{ formatJson(detailPayload || {}) }}</pre>
     </el-drawer>
 
     <el-dialog v-model="testDialogVisible" :title="isChinese ? '连接测试结果' : 'Connection test result'" width="680px">
+      <div class="detail-grid detail-grid-compact" data-testid="system-datasource-test-result">
+        <div class="detail-grid__item">
+          <span>{{ isChinese ? '真实 JDBC 探测' : 'Real JDBC probe' }}</span>
+          <strong>{{ datasourceTestResult?.realJdbcProbe ? 'true' : 'false' }}</strong>
+        </div>
+        <div class="detail-grid__item">
+          <span>{{ isChinese ? '连接状态' : 'Connection status' }}</span>
+          <strong>{{ displayValue(datasourceTestResult?.connectionStatus) }}</strong>
+        </div>
+        <div class="detail-grid__item">
+          <span>{{ isChinese ? '耗时 ms' : 'Elapsed ms' }}</span>
+          <strong>{{ displayValue(datasourceTestResult?.elapsedMs) }}</strong>
+        </div>
+        <div class="detail-grid__item">
+          <span>{{ isChinese ? '失败原因' : 'Failure reason' }}</span>
+          <strong>{{ displayValue(datasourceTestResult?.lastFailureReason) }}</strong>
+        </div>
+      </div>
       <pre class="code-block">{{ formatJson(datasourceTestResult || {}) }}</pre>
     </el-dialog>
 
@@ -805,6 +885,17 @@ onMounted(() => {
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '名称' : 'Name' }}</span>
           <el-input v-model="datasourceForm.datasourceName" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ isChinese ? '引擎' : 'Engine' }}</span>
+          <el-select v-model="datasourceForm.engineType" data-testid="system-datasource-engine-type">
+            <el-option
+              v-for="item in withCurrentOption(engineOptions, datasourceForm.engineType)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">{{ isChinese ? '连接模式' : 'Connection mode' }}</span>
@@ -835,6 +926,14 @@ onMounted(() => {
         <label class="field-block field-block-wide">
           <span class="field-label">jdbcUrl</span>
           <el-input v-model="datasourceForm.jdbcUrl" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">jdbcDriverClassName</span>
+          <el-input v-model="datasourceForm.jdbcDriverClassName" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">username</span>
+          <el-input v-model="datasourceForm.username" autocomplete="off" />
         </label>
         <label class="field-block field-block-wide">
           <span class="field-label">apiBaseUrl</span>

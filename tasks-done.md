@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-093: 页面配置 Hetu JDBC 并用于 EXPLAIN 实测
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `feat(governance): HARN-093 configure Hetu JDBC explain`
+- Priority: 1
+- Depends on: D-TASK-069,HARN-088
+- Scope: 在系统管理数据源与接口中支持 Hetu JDBC 配置、脱敏与真实测试连接；治理服务持久化并加密保存 JDBC 凭证，提供受保护内部 resolve 接口；sql-optimization 在 *_WITH_PLAN 解析模式下优先解析页面配置执行真实 EXPLAIN，并保留本地配置 fallback；补齐前端与契约/模块测试。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-093`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented page-managed Hetu JDBC datasource configuration with encrypted credential storage, real JDBC connection probing, protected internal JDBC resolve, and sql-optimization *_WITH_PLAN EXPLAIN using governance config with local fallback; updated system/parse workbench UI contracts, DDL, persistence docs, and tests.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-093; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check; npm run lint; npm run build; node scripts/check-system-datasource-contract.mjs; node scripts/check-parse-workbench-contract.mjs; node scripts/check-sql-ui-contract.mjs; mvn -pl governance -am -Dtest=DatasourceConfigApplicationServiceTest,DatasourceConfigControllerTest,GovernanceCapabilityApplicationServiceTest,AuthWebMvcTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl sql-optimization -am -Dtest=StructureParseControllerTest,ParseBatchApplicationServiceTest,ReportBatchApplicationServiceTest,GovernanceHttpClientTest,JdbcHetuPlanAnalysisClientTest -Dsurefire.failIfNoSpecifiedTests=false test
+  - Residual risk: Live external Hetu/MRS credential and network validation remains tracked by blocked HARN-016/INBOX-002; repository-side behavior is covered with mock and controlled JDBC tests.
+  - Next step: When the Win10 Hetu/MRS environment is available, deploy the configured services and execute the HARN-016 environment smoke to archive live JDBC evidence.
+
 ### HARN-092: SQL static parse and editor alignment fixes
 
 - Status: done

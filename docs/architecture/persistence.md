@@ -188,6 +188,10 @@
 
 - `sql/migrations/V20260508_003__parse_triggered_rewrite_task_context.sql`
 
+当前 HARN-093 追加的增量脚本：
+
+- `sql/migrations/V20260508_004__datasource_config_jdbc_credentials.sql`
+
 当前 D-TASK-018 追加的增量脚本：
 
 - `sql/migrations/V20260423_017__drop_traceability_foreign_keys.sql`

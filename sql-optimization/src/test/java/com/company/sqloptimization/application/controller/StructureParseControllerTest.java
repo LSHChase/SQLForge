@@ -315,7 +315,7 @@ class StructureParseControllerTest {
 
     @Test
     void shouldRunHetuExplainPlanWhenPlanParserModeRequested() throws Exception {
-        when(hetuPlanAnalysisClient.explain(any(), any())).thenReturn(
+        when(hetuPlanAnalysisClient.explain(any(), any(), any())).thenReturn(
             HetuPlanAnalysisResult.success(
                 "hetu_main",
                 "Fragment 0 [SINGLE]\nOutput[_col0]",
@@ -336,15 +336,15 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.planAnalysis.planText").value(org.hamcrest.Matchers.containsString("Fragment 0")))
             .andExpect(jsonPath("$.planAnalysis.evidence[0]").value("sqlExecution=EXPLAIN_ONLY"));
 
-        verify(hetuPlanAnalysisClient).explain(any(), any());
+        verify(hetuPlanAnalysisClient).explain(any(), any(), any());
     }
 
     @Test
     void shouldReturnPartialSuccessWhenHetuPlanFailsAfterStructureSuccess() throws Exception {
-        when(hetuPlanAnalysisClient.explain(any(), any())).thenReturn(
+        when(hetuPlanAnalysisClient.explain(any(), any(), any())).thenReturn(
             HetuPlanAnalysisResult.failed(
                 "hetu_main",
-                "HETU_PLAN_DATASOURCE_NOT_CONFIGURED",
+                "HETU_JDBC_CONFIG_NOT_FOUND",
                 3L,
                 Collections.singletonList("datasourceCode=hetu_main")
             )
@@ -358,7 +358,7 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
             .andExpect(jsonPath("$.analysisStatus").value("PARTIAL_SUCCESS"))
             .andExpect(jsonPath("$.planAnalysis.status").value("FAILED"))
-            .andExpect(jsonPath("$.planAnalysis.failureReason").value("HETU_PLAN_DATASOURCE_NOT_CONFIGURED"));
+            .andExpect(jsonPath("$.planAnalysis.failureReason").value("HETU_JDBC_CONFIG_NOT_FOUND"));
     }
 
     @Test
@@ -371,7 +371,7 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.analysisStatus").value("SUCCESS"))
             .andExpect(jsonPath("$.planAnalysis.status").value("SKIPPED"));
 
-        verify(hetuPlanAnalysisClient, never()).explain(any(), any());
+        verify(hetuPlanAnalysisClient, never()).explain(any(), any(), any());
     }
 
     @Test
