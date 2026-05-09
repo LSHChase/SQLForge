@@ -724,8 +724,26 @@ export default {
     summary: 'Handle batch creation, template download, file import, failure retry, and report-catalog SQL parsing on an independent page.'
   },
   parseStatisticsCenter: {
-    title: 'SQL Parse Statistics Compatibility Entry',
-    summary: 'This route is kept only as a compatibility redirect and lands back on SQL Parse statistics views.'
+    title: 'SQL Parse Statistics Center',
+    summary: 'Review parse overview, issue distribution, priority matrix, and SQL/report statistics on an independent page.',
+    severityView: 'Severity view',
+    priorityView: 'Priority view',
+    logicalObjectView: 'Logical object view',
+    parseStatusSamples: 'Parse status samples',
+    severity: 'Severity',
+    issueScenes: 'Issue scenes',
+    affectedSql: 'Affected SQL',
+    affectedIssues: 'Issues',
+    urgentScenes: 'Urgent scenes',
+    priority: 'Priority',
+    highestScore: 'Highest score',
+    logicalObjectType: 'Type',
+    logicalObjectKey: 'Object key',
+    samples: 'Samples',
+    resultStatus: 'Result status',
+    cacheHit: 'Cache hit',
+    rewrite: 'Rewrite',
+    acceleration: 'Acceleration'
   },
   assetCatalog: {
     title: 'Data Asset Catalog',
@@ -749,7 +767,10 @@ export default {
   },
   acceleration: {
     title: 'SQL Parse',
-    summary: 'Focus on single-SQL parsing, structure/access results, and history traceability.'
+    summary: 'Focus on single-SQL parsing, structure/access results, and history traceability.',
+    openStatisticsCenter: 'Open statistics center',
+    statisticsEntryTitle: 'Parse statistics entry',
+    statisticsEntrySummary: 'Overview, issue distribution, priority matrix, and SQL/report statistics now live on a separate page while this workbench keeps the single-SQL parse flow.'
   },
   system: {
     title: 'System Management',

@@ -2,8 +2,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const root = process.cwd()
-const viewPath = path.join(root, 'src/views/optimization/AccelerationView.vue')
-const source = fs.readFileSync(viewPath, 'utf8')
+const source = [
+  'src/views/parse-statistics/ParseStatisticsCenterView.vue',
+  'src/locales/zh-CN.js',
+  'src/locales/en-US.js'
+]
+  .map(relativePath => fs.readFileSync(path.join(root, relativePath), 'utf8'))
+  .join('\n')
 
 const requiredTokens = [
   'data-testid="statistics-page"',

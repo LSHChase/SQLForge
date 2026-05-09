@@ -10,7 +10,6 @@ import {
   getGovernanceDatasources,
   getParseBatch,
   getReportBatch,
-  getSqlParseHistoryPage,
   importReportBatch,
   ingestParseBatch,
   parseStructureSql,
@@ -74,34 +73,10 @@ const reportBatchForm = reactive({
   rawContent: 'RPT_A|Revenue Report|hetu_main|PROD|high\nRPT_B|Ops Report|hetu_main|PROD|medium\n'
 })
 
-const historyForm = reactive({
-  tenantId: 'tenant-a',
-  reportCode: '',
-  datasourceCode: '',
-  stage: '',
-  bizDate: '',
-  queryDateStart: '',
-  queryDateEnd: '',
-  accessChannel: '',
-  status: '',
-  logicalObjectType: '',
-  engine: '',
-  submittedBy: '',
-  sortBy: 'submittedAt',
-  sortOrder: 'DESC',
-  submittedStart: '',
-  submittedEnd: '',
-  traceId: '',
-  taskId: '',
-  reportId: ''
-})
-
 const running = ref(false)
 const lastRunMode = ref('combined')
 const parseResult = ref(null)
 const errorMessage = ref('')
-const analyticsErrorMessage = ref('')
-const historyErrorMessage = ref('')
 
 const batchDialogVisible = ref(false)
 const activeBatchWorkspace = ref('parse')
@@ -118,19 +93,6 @@ const parseDetailDrawerVisible = ref(false)
 const reportImportDialogVisible = ref(false)
 const reportDetailDrawerVisible = ref(false)
 
-const activeAnalyticsTab = ref('issue')
-const activeStatisticsDetailTab = ref('summary')
-const statisticsDetailDialogVisible = ref(false)
-const statisticsDetailTitle = ref('')
-const statisticsDetailPayload = ref(null)
-const overview = ref(null)
-const issueScenes = ref([])
-const sqlStats = ref([])
-const reportStats = ref([])
-const priorityMatrix = ref([])
-const importantUrgent = ref([])
-
-const historyPage = ref(null)
 const governanceDatasources = ref([])
 
 const evidenceDrawerVisible = ref(false)
@@ -141,8 +103,6 @@ const fieldHelpDialogTitle = ref('')
 const fieldHelpDialogMessage = ref('')
 
 const loading = reactive({
-  analytics: false,
-  historyPage: false,
   createParseBatch: false,
   ingestParseBatch: false,
   refreshParseBatch: false,
@@ -373,138 +333,6 @@ const directSqlPreview = computed(() => {
 const parseSessionsSummary = computed(() => `${parseBatchSessions.value.length} ${isChinese.value ? '个会话' : 'sessions'}`)
 const reportSessionsSummary = computed(() => `${reportBatchSessions.value.length} ${isChinese.value ? '个批次' : 'batches'}`)
 
-const overviewCards = computed(() => {
-  if (!overview.value) {
-    return []
-  }
-  return [
-    card(isChinese.value ? 'SQL 总数' : 'Total SQL', overview.value.totalSqlCount),
-    card(isChinese.value ? '问题 SQL' : 'Issue SQL', overview.value.issueSqlCount),
-    card(isChinese.value ? '问题总数' : 'Total issues', overview.value.totalIssueCount),
-    card(isChinese.value ? '问题场景数' : 'Issue scenes', overview.value.issueSceneCount),
-    card(isChinese.value ? 'Important SQL' : 'Important SQL', overview.value.importantSqlCount),
-    card(isChinese.value ? 'Urgent SQL' : 'Urgent SQL', overview.value.urgentSqlCount)
-  ]
-})
-
-const priorityDistribution = computed(() => Object.entries(overview.value?.priorityDistribution || {}))
-const statisticsDetailSummaryEntries = computed(() =>
-  Object.entries(statisticsDetailPayload.value || {})
-    .filter(([, value]) => value === null || typeof value !== 'object' || Array.isArray(value))
-)
-const statisticsDetailRelationEntries = computed(() => {
-  const payload = statisticsDetailPayload.value || {}
-  return [
-    ['reportCode', payload.reportCode],
-    ['itemId', payload.itemId],
-    ['parseTaskId', payload.parseTaskId],
-    ['datasourceCode', payload.datasourceCode],
-    ['stage', payload.stage],
-    ['issueScenes', payload.issueScenes],
-    ['issueScene', payload.issueScene],
-    ['sqlCount', payload.sqlCount],
-    ['issueCount', payload.issueCount],
-    ['affectedSqlCount', payload.affectedSqlCount],
-    ['reportCount', payload.reportCount],
-    ['logicalObjectKeys', payload.logicalObjectKeys]
-  ].filter(([, value]) => hasDisplayValue(value) || (Array.isArray(value) && value.length > 0))
-})
-
-const historyRows = computed(() => historyPage.value?.items || [])
-
-const severityStats = computed(() => {
-  const groups = new Map()
-  issueScenes.value.forEach(item => {
-    const key = String(item.severity || 'UNKNOWN')
-    const current = groups.get(key) || {
-      severity: key,
-      issueSceneCount: 0,
-      affectedSqlCount: 0,
-      affectedIssueCount: 0,
-      urgentCount: 0
-    }
-    current.issueSceneCount += 1
-    current.affectedSqlCount += Number(item.affectedSqlCount || 0)
-    current.affectedIssueCount += Number(item.affectedIssueCount || 0)
-    if (item.urgent === true) {
-      current.urgentCount += 1
-    }
-    groups.set(key, current)
-  })
-  return Array.from(groups.values()).sort((left, right) => right.affectedSqlCount - left.affectedSqlCount)
-})
-
-const priorityStats = computed(() => {
-  const groups = new Map()
-  issueScenes.value.forEach(item => {
-    const key = String(item.priorityLevel || 'UNKNOWN')
-    const current = groups.get(key) || {
-      priorityLevel: key,
-      issueSceneCount: 0,
-      affectedSqlCount: 0,
-      affectedIssueCount: 0,
-      highestPriorityScore: 0
-    }
-    current.issueSceneCount += 1
-    current.affectedSqlCount += Number(item.affectedSqlCount || 0)
-    current.affectedIssueCount += Number(item.affectedIssueCount || 0)
-    current.highestPriorityScore = Math.max(current.highestPriorityScore, Number(item.priorityScore || 0))
-    groups.set(key, current)
-  })
-  return Array.from(groups.values()).sort((left, right) => right.affectedSqlCount - left.affectedSqlCount)
-})
-
-const logicalObjectStats = computed(() => {
-  const groups = new Map()
-  historyRows.value.forEach(row => {
-    const typedHits = [
-      ...(Array.isArray(row.logicalObjectTypes) ? row.logicalObjectTypes.map(type => ({ key: type, type })) : []),
-      ...(Array.isArray(row.logicalObjectHits)
-        ? row.logicalObjectHits.map(hit => ({
-            key: hit.objectKey || hit.logicalObjectKey || hit.objectName || hit.objectType || hit.logicalObjectType || 'OBJECT',
-            type: hit.objectType || hit.logicalObjectType || 'OBJECT'
-          }))
-        : [])
-    ]
-    typedHits.forEach(hit => {
-      const current = groups.get(hit.key) || {
-        logicalObjectKey: hit.key,
-        logicalObjectType: hit.type,
-        sampleCount: 0
-      }
-      current.sampleCount += 1
-      groups.set(hit.key, current)
-    })
-  })
-  return Array.from(groups.values()).sort((left, right) => right.sampleCount - left.sampleCount)
-})
-
-const parseStatusStats = computed(() => {
-  const groups = new Map()
-  historyRows.value.forEach(row => {
-    const key = String(row.resultStatus || 'UNKNOWN')
-    const current = groups.get(key) || {
-      resultStatus: key,
-      sampleCount: 0,
-      cacheHitCount: 0,
-      rewriteCount: 0,
-      accelerationCount: 0
-    }
-    current.sampleCount += 1
-    if (row.cacheHit === true) {
-      current.cacheHitCount += 1
-    }
-    if (row.rewriteApplied === true) {
-      current.rewriteCount += 1
-    }
-    if (row.accelerationApplied === true) {
-      current.accelerationCount += 1
-    }
-    groups.set(key, current)
-  })
-  return Array.from(groups.values()).sort((left, right) => right.sampleCount - left.sampleCount)
-})
-
 const card = (label, value) => ({ label, value })
 
 function hasDisplayValue(value) {
@@ -621,13 +449,6 @@ function formatNumber(value) {
     return '-'
   }
   return `${Number(value).toFixed(2)}`
-}
-
-function formatRate(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) {
-    return '-'
-  }
-  return `${(Number(value) * 100).toFixed(1)}%`
 }
 
 function formatTimestamp(value) {
@@ -807,9 +628,6 @@ async function runCombinedParseFlow() {
       if (currentSingleSqlInputKey() === inputKey) {
         parseResult.value = terminalResult
       }
-    }
-    if (currentSingleSqlInputKey() === inputKey) {
-      await Promise.allSettled([loadAnalytics(), loadHistoryPage()])
     }
   } catch (error) {
     if (currentSingleSqlInputKey() === inputKey) {
@@ -1130,139 +948,23 @@ async function openReportSession(batchId) {
   reportDetailDrawerVisible.value = true
 }
 
-async function loadAnalytics() {
-  loading.analytics = true
-  analyticsErrorMessage.value = ''
-  try {
-    await loadHistoryPage()
-    const historyItems = Array.isArray(historyPage.value?.items) ? historyPage.value.items : []
-    const statusCounts = historyPage.value?.classificationSummary?.statusCounts || {}
-    const sourceTypeCounts = historyPage.value?.classificationSummary?.sourceTypeCounts || {}
-    const accessChannelCounts = historyPage.value?.classificationSummary?.accessChannelCounts || {}
-    const currentIssues = Array.isArray(structureIssues.value) ? structureIssues.value : []
-    const currentHistoryIssueScenes = new Set(
-      currentIssues.map(item => String(item.issueScene || '').trim()).filter(Boolean)
-    )
-    const currentImportantCount = currentIssues.filter(item => item.important === true).length
-    const currentUrgentCount = currentIssues.filter(item => item.urgent === true).length
-    const nonSuccessHistoryCount = historyItems.filter(item => String(item.resultStatus || '').toUpperCase() !== 'SUCCESS').length
-
-    overview.value = {
-      totalSqlCount: historyItems.length + (parseResult.value ? 1 : 0),
-      issueSqlCount: nonSuccessHistoryCount + (currentIssues.length > 0 ? 1 : 0),
-      totalIssueCount: nonSuccessHistoryCount + currentIssues.length,
-      issueSceneCount: currentHistoryIssueScenes.size + Object.keys(sourceTypeCounts).length,
-      importantSqlCount: currentImportantCount + nonSuccessHistoryCount,
-      urgentSqlCount: currentUrgentCount + historyItems.filter(item => String(item.resultStatus || '').toUpperCase() === 'FAILED').length,
-      priorityDistribution: {
-        ...statusCounts,
-        ...accessChannelCounts
-      }
+function openStatisticsCenter() {
+  const analytics = String(route.query.analytics || 'issue')
+  router.push({
+    path: ROUTE_PATHS.parseStatisticsCenter,
+    query: {
+      tenantId: form.tenantId,
+      analytics
     }
-
-    issueScenes.value = currentIssues.map((issue, index) => ({
-      issueScene: issue.issueScene || `ISSUE_${index + 1}`,
-      issueDomain: issue.issueDomain || '-',
-      severity: issue.severity || '-',
-      priorityLevel: issue.priorityLevel || '-',
-      affectedSqlCount: issue.affectedSqlCount || 1,
-      affectedIssueCount: issue.affectedReportCount || 1,
-      sqlRatio: 1
-    }))
-
-    sqlStats.value = historyItems.map((item, index) => ({
-      itemId: item.historyId || `history-${index + 1}`,
-      batchId: item.sourceType || 'SQL_PARSE_HISTORY',
-      parseTaskId: item.parseTaskId || item.historyId,
-      reportCode: item.historyId || item.sqlFingerprint || `history-${index + 1}`,
-      datasourceCode: item.datasourceCode || '-',
-      stage: item.resultStatus || '-',
-      sqlDigest: item.sqlFingerprint || '-',
-      issueCount: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 0 : 1,
-      highestPriorityLevel: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 'P4' : 'P1',
-      highestPriorityScore: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 0 : 100,
-      important: String(item.resultStatus || '').toUpperCase() !== 'SUCCESS',
-      urgent: String(item.resultStatus || '').toUpperCase() === 'FAILED',
-      issueScenes: item.logicalObjectTypes || []
-    }))
-
-    reportStats.value = historyItems.map((item, index) => ({
-      reportCode: item.reportCode || item.sourceType || `HISTORY_${index + 1}`,
-      sqlCount: 1,
-      issueCount: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 0 : 1,
-      highestPriorityLevel: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 'P4' : 'P1',
-      highestPriorityScore: String(item.resultStatus || '').toUpperCase() === 'SUCCESS' ? 0 : 100,
-      important: String(item.resultStatus || '').toUpperCase() !== 'SUCCESS',
-      urgent: String(item.resultStatus || '').toUpperCase() === 'FAILED',
-      issueScenes: item.logicalObjectTypes || []
-    }))
-
-    priorityMatrix.value = Object.entries(statusCounts).map(([priorityLevel, sqlCount]) => ({
-      priorityLevel,
-      urgencyBucket: 'HISTORY',
-      sqlCount,
-      issueCount: nonSuccessHistoryCount,
-      reportCount: historyItems.length
-    }))
-
-    importantUrgent.value = currentIssues
-      .filter(item => item.important === true || item.urgent === true)
-      .map((issue, index) => ({
-        reportCode: issue.issueCode || `ISSUE_${index + 1}`,
-        highestPriorityLevel: issue.priorityLevel || '-',
-        highestPriorityScore: issue.priorityScore || 0,
-        datasourceCode: form.datasourceCode || '-',
-        stage: issue.issueDomain || '-',
-        issueScenes: [issue.issueScene || '-']
-      }))
-  } catch (error) {
-    analyticsErrorMessage.value = formatRuntimeError(error)
-  } finally {
-    loading.analytics = false
-  }
+  })
 }
 
-function openStatisticsDetail(title, payload) {
-  statisticsDetailTitle.value = title
-  statisticsDetailPayload.value = payload
-  activeStatisticsDetailTab.value = 'summary'
-  statisticsDetailDialogVisible.value = true
-}
-
-async function loadHistoryPage() {
-  loading.historyPage = true
-  historyErrorMessage.value = ''
-  try {
-    historyPage.value = await getSqlParseHistoryPage(
-      {
-        tenantId: historyForm.tenantId,
-        reportCode: historyForm.reportCode,
-        datasourceCode: historyForm.datasourceCode,
-        stage: historyForm.stage,
-        bizDate: historyForm.bizDate,
-        queryDateStart: historyForm.queryDateStart,
-        queryDateEnd: historyForm.queryDateEnd,
-        accessChannel: historyForm.accessChannel,
-        status: historyForm.status,
-        logicalObjectType: historyForm.logicalObjectType,
-        engine: historyForm.engine,
-        submittedBy: historyForm.submittedBy,
-        submittedStart: historyForm.submittedStart,
-        submittedEnd: historyForm.submittedEnd,
-        sortBy: historyForm.sortBy,
-        sortOrder: historyForm.sortOrder,
-        pageNo: 1,
-        pageSize: 10
-      },
-      {
-        requestPrefix: 'frontend-acceleration-parse-history-page'
-      }
-    )
-  } catch (error) {
-    historyPage.value = null
-    historyErrorMessage.value = formatRuntimeError(error)
-  } finally {
-    loading.historyPage = false
+function statisticsRedirectQuery() {
+  const nextQuery = { ...route.query }
+  delete nextQuery.workspace
+  return {
+    ...nextQuery,
+    analytics: String(route.query.analytics || 'issue')
   }
 }
 
@@ -1284,7 +986,11 @@ function applyRouteWorkspace() {
     return
   }
   if (workspace === 'statistics') {
-    activeAnalyticsTab.value = String(route.query.analytics || 'issue')
+    router.replace({
+      path: ROUTE_PATHS.parseStatisticsCenter,
+      query: statisticsRedirectQuery()
+    })
+    return
   }
   if (workspace === 'history') {
     router.replace({ path: ROUTE_PATHS.parseRecord })
@@ -1299,7 +1005,6 @@ watch(
 )
 
 onMounted(async () => {
-  historyForm.tenantId = form.tenantId
   parseBatchForm.tenantId = form.tenantId
   reportBatchForm.tenantId = form.tenantId
   retryForm.datasourceCode = form.datasourceCode
@@ -1308,13 +1013,12 @@ onMounted(async () => {
   parseBatchForm.parserMode = form.parserMode
   reportBatchForm.parserMode = form.parserMode
   applyRouteWorkspace()
-  await Promise.allSettled([loadGovernanceDatasources(), loadAnalytics()])
+  await loadGovernanceDatasources()
 })
 
 watch(
   () => form.tenantId,
   value => {
-    historyForm.tenantId = value
     parseBatchForm.tenantId = value
     reportBatchForm.tenantId = value
     loadGovernanceDatasources()
@@ -1359,8 +1063,8 @@ watch(
       </div>
       <div class="hero-side">
         <div class="action-row action-row-wrap">
-          <el-button type="primary" :loading="loading.analytics" @click="loadAnalytics">
-            {{ isChinese ? '刷新统计视角' : 'Refresh statistics' }}
+          <el-button type="primary" data-testid="parse-workbench-open-statistics" @click="openStatisticsCenter">
+            {{ t('acceleration.openStatisticsCenter') }}
           </el-button>
           <el-button @click="resetResult">
             {{ isChinese ? '清空结果' : 'Reset result' }}
@@ -1869,255 +1573,18 @@ watch(
       </article>
     </div>
 
-    <section class="surface-card analytics-shell" data-testid="statistics-page">
+    <section class="surface-card statistics-entry" data-testid="parse-workbench-statistics-entry">
       <div class="shell-header">
         <div>
           <p class="section-kicker sqlforge-code-label">sql parse statistics</p>
-          <h2 class="section-title">{{ isChinese ? '解析结果统计' : 'Parse result statistics' }}</h2>
-          <p class="runtime-note">
-            {{
-              isChinese
-                ? '统计区展示当前单 SQL 结果、历史摘要与结果追溯，不再承载批量入口。'
-                : 'Statistics summarize the current single-SQL result, history digest, and traceability without batch entry points.'
-            }}
-          </p>
+          <h2 class="section-title">{{ t('acceleration.statisticsEntryTitle') }}</h2>
+          <p class="runtime-note">{{ t('acceleration.statisticsEntrySummary') }}</p>
         </div>
         <div class="action-row action-row-wrap">
-          <el-button :loading="loading.analytics" data-testid="statistics-refresh" @click="loadAnalytics">
-            {{ isChinese ? '刷新统计' : 'Refresh statistics' }}
+          <el-button data-testid="parse-workbench-open-statistics-secondary" @click="openStatisticsCenter">
+            {{ t('acceleration.openStatisticsCenter') }}
           </el-button>
         </div>
-      </div>
-
-      <div v-if="analyticsErrorMessage" class="inline-banner inline-banner-danger" data-testid="statistics-error">
-        {{ analyticsErrorMessage }}
-      </div>
-      <div v-if="historyErrorMessage" class="inline-banner inline-banner-danger">
-        {{ historyErrorMessage }}
-      </div>
-
-      <section class="summary-grid summary-grid-compact">
-        <article v-for="item in overviewCards" :key="item.label" class="summary-card">
-          <span class="summary-card-label">{{ item.label }}</span>
-          <strong>{{ item.value ?? 0 }}</strong>
-        </article>
-      </section>
-
-      <div class="analytics-grid">
-        <aside class="analytics-rail">
-          <section class="detail-card">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">Parse overview</p>
-                <h3 class="detail-title">{{ isChinese ? '解析总览' : 'Parse overview' }}</h3>
-              </div>
-            </div>
-            <div class="distribution-list">
-              <div v-for="[priority, count] in priorityDistribution" :key="priority" class="distribution-item">
-                <span>{{ priority }}</span>
-                <strong>{{ count }}</strong>
-              </div>
-            </div>
-          </section>
-
-          <section class="detail-card">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">Priority matrix</p>
-                <h3 class="detail-title">{{ isChinese ? '优先级矩阵' : 'Priority matrix' }}</h3>
-              </div>
-            </div>
-            <div class="matrix-list" data-testid="statistics-priority-matrix">
-              <button
-                v-for="item in priorityMatrix"
-                :key="`${item.priorityLevel}-${item.urgencyBucket}`"
-                type="button"
-                class="matrix-item"
-                @click="openStatisticsDetail(`${item.priorityLevel} / ${item.urgencyBucket}`, item)"
-              >
-                <strong>{{ item.priorityLevel }} / {{ item.urgencyBucket }}</strong>
-                <span>{{ item.sqlCount }} SQL · {{ item.issueCount }} issues</span>
-                <span>{{ item.reportCount }} reports</span>
-              </button>
-            </div>
-          </section>
-        </aside>
-
-        <section class="detail-stage">
-          <el-tabs v-model="activeAnalyticsTab">
-            <el-tab-pane :label="isChinese ? '问题分布' : 'Issue distribution'" name="issue">
-              <div class="table-heading">
-                <div>
-                  <p class="section-kicker sqlforge-code-label">Issue distribution</p>
-                  <h3 class="detail-title">{{ isChinese ? '问题分布' : 'Issue distribution' }}</h3>
-                </div>
-              </div>
-              <el-table :data="issueScenes" border>
-                <el-table-column prop="issueScene" :label="isChinese ? '问题场景' : 'Issue scene'" min-width="180">
-                  <template #default="{ row }">
-                    <button type="button" class="table-link" data-testid="statistics-issue-scene" @click="openStatisticsDetail(row.issueScene, row)">
-                      {{ row.issueScene }}
-                    </button>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="issueDomain" :label="isChinese ? '领域' : 'Domain'" min-width="120" />
-                <el-table-column prop="severity" :label="isChinese ? '严重度' : 'Severity'" min-width="120" />
-                <el-table-column prop="priorityLevel" :label="isChinese ? '优先级' : 'Priority'" min-width="120" />
-                <el-table-column prop="affectedSqlCount" :label="isChinese ? '影响 SQL' : 'Affected SQL'" min-width="120" />
-                <el-table-column prop="affectedIssueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="100" />
-                <el-table-column :label="isChinese ? '占比' : 'Ratio'" min-width="100">
-                  <template #default="{ row }">{{ formatRate(row.sqlRatio) }}</template>
-                </el-table-column>
-              </el-table>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '重要/紧急' : 'Important or urgent list'" name="important">
-              <div class="table-heading">
-                <div>
-                  <p class="section-kicker sqlforge-code-label">Important or urgent list</p>
-                  <h3 class="detail-title">{{ isChinese ? 'Important / Urgent 清单' : 'Important or urgent list' }}</h3>
-                </div>
-              </div>
-              <el-table :data="importantUrgent" border>
-                <el-table-column :label="isChinese ? '对象' : 'Item'" min-width="180">
-                  <template #default="{ row }">
-                    <button
-                      type="button"
-                      class="table-link"
-                      data-testid="statistics-important-urgent"
-                      @click="openStatisticsDetail(row.reportCode || row.itemId || row.parseTaskId || 'important', row)"
-                    >
-                      {{ row.reportCode || row.itemId || row.parseTaskId || '-' }}
-                    </button>
-                  </template>
-                </el-table-column>
-                <el-table-column :label="isChinese ? '最高优先级' : 'Highest priority'" min-width="150">
-                  <template #default="{ row }">{{ row.highestPriorityLevel }} / {{ row.highestPriorityScore }}</template>
-                </el-table-column>
-                <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
-                <el-table-column prop="stage" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
-                <el-table-column :label="isChinese ? '问题场景' : 'Issue scenes'" min-width="220">
-                  <template #default="{ row }">{{ row.issueScenes?.join(', ') || '-' }}</template>
-                </el-table-column>
-              </el-table>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '报表视角' : 'By report'" name="report">
-              <div class="table-heading">
-                <div>
-                  <p class="section-kicker sqlforge-code-label">By report</p>
-                  <h3 class="detail-title">{{ isChinese ? '报表视角' : 'By report' }}</h3>
-                </div>
-              </div>
-              <el-table :data="reportStats" border>
-                <el-table-column prop="reportCode" :label="isChinese ? '报表编码' : 'Report code'" min-width="180">
-                  <template #default="{ row }">
-                    <button type="button" class="table-link" @click="openStatisticsDetail(row.reportCode, row)">
-                      {{ row.reportCode }}
-                    </button>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="sqlCount" :label="isChinese ? 'SQL 数' : 'SQL count'" min-width="120" />
-                <el-table-column prop="issueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="120" />
-                <el-table-column :label="isChinese ? '最高优先级' : 'Highest priority'" min-width="150">
-                  <template #default="{ row }">{{ row.highestPriorityLevel }} / {{ row.highestPriorityScore }}</template>
-                </el-table-column>
-                <el-table-column :label="isChinese ? '重要 / 紧急' : 'Important / urgent'" min-width="130">
-                  <template #default="{ row }">{{ booleanLabel(row.important) }} / {{ booleanLabel(row.urgent) }}</template>
-                </el-table-column>
-              </el-table>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? 'SQL 清单' : 'By SQL'" name="sql">
-              <div class="table-heading">
-                <div>
-                  <p class="section-kicker sqlforge-code-label">By SQL</p>
-                  <h3 class="detail-title">{{ isChinese ? 'SQL 清单' : 'By SQL' }}</h3>
-                </div>
-              </div>
-              <el-table :data="sqlStats" border>
-                <el-table-column :label="isChinese ? '对象' : 'Item'" min-width="180">
-                  <template #default="{ row }">
-                    <button type="button" class="table-link" @click="openStatisticsDetail(row.reportCode || row.itemId || row.parseTaskId || 'sql', row)">
-                      {{ row.reportCode || row.itemId || row.parseTaskId || '-' }}
-                    </button>
-                  </template>
-                </el-table-column>
-                <el-table-column :label="isChinese ? '优先级' : 'Priority'" min-width="150">
-                  <template #default="{ row }">{{ row.highestPriorityLevel }} / {{ row.highestPriorityScore }}</template>
-                </el-table-column>
-                <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
-                <el-table-column prop="stage" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
-                <el-table-column prop="issueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="110" />
-                <el-table-column :label="isChinese ? '问题场景' : 'Issue scenes'" min-width="220">
-                  <template #default="{ row }">{{ row.issueScenes?.join(', ') || '-' }}</template>
-                </el-table-column>
-              </el-table>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '严重度视角' : 'By severity'" name="severity">
-              <div class="table-heading">
-                <div>
-                  <p class="section-kicker sqlforge-code-label">Severity view</p>
-                  <h3 class="detail-title">{{ isChinese ? '严重度视角' : 'By severity' }}</h3>
-                </div>
-              </div>
-              <el-table :data="severityStats" border>
-                <el-table-column prop="severity" :label="isChinese ? '严重度' : 'Severity'" min-width="140" />
-                <el-table-column prop="issueSceneCount" :label="isChinese ? '问题场景数' : 'Issue scenes'" min-width="140" />
-                <el-table-column prop="affectedSqlCount" :label="isChinese ? '影响 SQL' : 'Affected SQL'" min-width="140" />
-                <el-table-column prop="affectedIssueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="120" />
-                <el-table-column prop="urgentCount" :label="isChinese ? '紧急场景' : 'Urgent scenes'" min-width="140" />
-              </el-table>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '优先级视角' : 'By priority'" name="priority">
-              <div class="table-heading">
-                <div>
-                  <p class="section-kicker sqlforge-code-label">Priority view</p>
-                  <h3 class="detail-title">{{ isChinese ? '优先级视角' : 'By priority' }}</h3>
-                </div>
-              </div>
-              <el-table :data="priorityStats" border>
-                <el-table-column prop="priorityLevel" :label="isChinese ? '优先级' : 'Priority'" min-width="140" />
-                <el-table-column prop="issueSceneCount" :label="isChinese ? '问题场景数' : 'Issue scenes'" min-width="140" />
-                <el-table-column prop="affectedSqlCount" :label="isChinese ? '影响 SQL' : 'Affected SQL'" min-width="140" />
-                <el-table-column prop="affectedIssueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="120" />
-                <el-table-column prop="highestPriorityScore" :label="isChinese ? '最高分' : 'Highest score'" min-width="140" />
-              </el-table>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '逻辑对象视角' : 'Logical object view'" name="logical-object">
-              <div class="table-heading">
-                <div>
-                  <p class="section-kicker sqlforge-code-label">Logical object view</p>
-                  <h3 class="detail-title">{{ isChinese ? '逻辑对象视角' : 'Logical object view' }}</h3>
-                </div>
-              </div>
-              <el-table :data="logicalObjectStats" border>
-                <el-table-column prop="logicalObjectType" :label="isChinese ? '对象类型' : 'Type'" min-width="150" />
-                <el-table-column prop="logicalObjectKey" :label="isChinese ? '对象标识' : 'Object key'" min-width="240" />
-                <el-table-column prop="sampleCount" :label="isChinese ? '命中样本' : 'Samples'" min-width="120" />
-              </el-table>
-            </el-tab-pane>
-
-            <el-tab-pane :label="isChinese ? '解析状态样本' : 'Parse status samples'" name="parse-status">
-              <div class="table-heading">
-                <div>
-                  <p class="section-kicker sqlforge-code-label">Parse status samples</p>
-                  <h3 class="detail-title">{{ isChinese ? '解析状态样本' : 'Parse status samples' }}</h3>
-                </div>
-              </div>
-              <el-table :data="parseStatusStats" border>
-                <el-table-column prop="resultStatus" :label="isChinese ? '结果状态' : 'Result status'" min-width="150" />
-                <el-table-column prop="sampleCount" :label="isChinese ? '样本数' : 'Samples'" min-width="120" />
-                <el-table-column prop="cacheHitCount" :label="isChinese ? '缓存命中' : 'Cache hit'" min-width="120" />
-                <el-table-column prop="rewriteCount" :label="isChinese ? '轻量改写' : 'Rewrite'" min-width="120" />
-                <el-table-column prop="accelerationCount" :label="isChinese ? '加速命中' : 'Acceleration'" min-width="130" />
-              </el-table>
-            </el-tab-pane>
-          </el-tabs>
-        </section>
       </div>
     </section>
 
@@ -2549,38 +2016,6 @@ watch(
           {{ isChinese ? '导入批次' : 'Import batch' }}
         </el-button>
       </template>
-    </el-dialog>
-
-    <el-dialog v-model="statisticsDetailDialogVisible" :title="statisticsDetailTitle" width="760px" data-testid="statistics-detail-dialog">
-      <el-tabs v-model="activeStatisticsDetailTab" data-testid="statistics-detail-tabs">
-        <el-tab-pane :label="isChinese ? '摘要' : 'Summary'" name="summary">
-          <div class="detail-grid">
-            <div v-for="[key, value] in statisticsDetailSummaryEntries" :key="key" class="detail-grid__item">
-              <span>{{ key }}</span>
-              <strong>{{ displayValue(value) }}</strong>
-            </div>
-          </div>
-        </el-tab-pane>
-        <el-tab-pane :label="isChinese ? '关联 SQL/报表' : 'Related SQL/report'" name="relations">
-          <div class="detail-grid">
-            <div
-              v-for="[key, value] in statisticsDetailRelationEntries"
-              :key="key"
-              class="detail-grid__item"
-              data-testid="statistics-detail-relation"
-            >
-              <span>{{ key }}</span>
-              <strong>{{ displayValue(value) }}</strong>
-            </div>
-          </div>
-          <p v-if="!statisticsDetailRelationEntries.length" class="result-copy">
-            {{ isChinese ? '当前记录没有关联 SQL 或报表定位。' : 'No SQL or report locator is available for this record.' }}
-          </p>
-        </el-tab-pane>
-        <el-tab-pane :label="isChinese ? '原始 JSON' : 'Raw JSON'" name="raw">
-          <pre class="code-block" data-testid="statistics-detail-raw-json">{{ formatJson(statisticsDetailPayload || {}) }}</pre>
-        </el-tab-pane>
-      </el-tabs>
     </el-dialog>
 
     <el-drawer v-model="parseDetailDrawerVisible" :title="parseBatchDetail?.batchName || parseBatchDetail?.batchId || 'parse batch detail'" size="42%">

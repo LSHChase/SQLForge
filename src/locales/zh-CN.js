@@ -724,8 +724,26 @@ export default {
     summary: '独立处理批次创建、模板下载、文件导入、失败重试与报表清单解析。'
   },
   parseStatisticsCenter: {
-    title: 'SQL解析统计兼容入口',
-    summary: '该路径保留为兼容跳转入口，打开后会回到 SQL解析 并定位到统计视角。'
+    title: 'SQL解析统计中心',
+    summary: '独立查看解析概览、问题分布、优先级矩阵、SQL 与报表维度统计。',
+    severityView: '严重度视角',
+    priorityView: '优先级视角',
+    logicalObjectView: '逻辑对象视角',
+    parseStatusSamples: '解析状态样本',
+    severity: '严重度',
+    issueScenes: '问题场景数',
+    affectedSql: '影响 SQL',
+    affectedIssues: '问题数',
+    urgentScenes: '紧急场景',
+    priority: '优先级',
+    highestScore: '最高分',
+    logicalObjectType: '对象类型',
+    logicalObjectKey: '对象标识',
+    samples: '样本数',
+    resultStatus: '结果状态',
+    cacheHit: '缓存命中',
+    rewrite: '轻量改写',
+    acceleration: '加速命中'
   },
   assetCatalog: {
     title: '数据资产目录',
@@ -749,7 +767,10 @@ export default {
   },
   acceleration: {
     title: 'SQL解析',
-    summary: '专注单条 SQL 解析、结构/访问结果阅读与历史追溯。'
+    summary: '专注单条 SQL 解析、结构/访问结果阅读与历史追溯。',
+    openStatisticsCenter: '打开统计中心',
+    statisticsEntryTitle: '解析统计入口',
+    statisticsEntrySummary: '统计总览、问题分布、优先级矩阵与 SQL/报表维度已拆到独立页面，当前工作台只保留单条解析主流程。'
   },
   system: {
     title: '系统管理',

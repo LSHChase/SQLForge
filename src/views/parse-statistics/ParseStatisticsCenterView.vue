@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import {
   formatRuntimeError,
   getParseStatisticsByIssueScene,
@@ -11,15 +12,22 @@ import {
   getParseStatisticsPriorityMatrix
 } from '../../services/runtimeGateApi'
 
-const { locale } = useI18n()
+const route = useRoute()
+const { t, locale } = useI18n()
+const statisticsTabs = new Set(['issue', 'important', 'report', 'sql', 'severity', 'priority', 'logical-object', 'parse-status'])
+const requestedStatisticsTab = String(route.query.analytics || 'issue')
 
 const form = reactive({
   tenantId: 'tenant-a'
 })
+const pageInfo = reactive({
+  currentPage: 1,
+  pageSize: 10
+})
 
 const loading = ref(false)
 const errorMessage = ref('')
-const activeTab = ref('issue')
+const activeTab = ref(statisticsTabs.has(requestedStatisticsTab) ? requestedStatisticsTab : 'issue')
 const activeDetailTab = ref('summary')
 const detailDialogVisible = ref(false)
 const detailTitle = ref('')
@@ -69,6 +77,91 @@ const detailRelationEntries = computed(() => {
     ['reportCount', payload.reportCount],
     ['logicalObjectKeys', payload.logicalObjectKeys]
   ].filter(([, value]) => hasDisplayValue(value) || (Array.isArray(value) && value.length > 0))
+})
+const severityStats = computed(() => {
+  const groups = new Map()
+  issueScenes.value.forEach(item => {
+    const key = String(item.severity || 'UNKNOWN')
+    const current = groups.get(key) || {
+      severity: key,
+      issueSceneCount: 0,
+      affectedSqlCount: 0,
+      affectedIssueCount: 0,
+      urgentCount: 0
+    }
+    current.issueSceneCount += 1
+    current.affectedSqlCount += Number(item.affectedSqlCount || 0)
+    current.affectedIssueCount += Number(item.affectedIssueCount || 0)
+    if (item.urgent === true || String(item.priorityLevel || '').toUpperCase() === 'P1') {
+      current.urgentCount += 1
+    }
+    groups.set(key, current)
+  })
+  return Array.from(groups.values()).sort((left, right) => right.affectedSqlCount - left.affectedSqlCount)
+})
+const priorityStats = computed(() => {
+  const groups = new Map()
+  issueScenes.value.forEach(item => {
+    const key = String(item.priorityLevel || 'UNKNOWN')
+    const current = groups.get(key) || {
+      priorityLevel: key,
+      issueSceneCount: 0,
+      affectedSqlCount: 0,
+      affectedIssueCount: 0,
+      highestPriorityScore: 0
+    }
+    current.issueSceneCount += 1
+    current.affectedSqlCount += Number(item.affectedSqlCount || 0)
+    current.affectedIssueCount += Number(item.affectedIssueCount || 0)
+    current.highestPriorityScore = Math.max(current.highestPriorityScore, Number(item.priorityScore || 0))
+    groups.set(key, current)
+  })
+  return Array.from(groups.values()).sort((left, right) => right.affectedSqlCount - left.affectedSqlCount)
+})
+const logicalObjectStats = computed(() => {
+  const groups = new Map()
+  sqlStats.value.forEach(item => {
+    const keys = [
+      ...(Array.isArray(item.logicalObjectKeys) ? item.logicalObjectKeys : []),
+      ...(Array.isArray(item.logicalObjectTypes) ? item.logicalObjectTypes : [])
+    ]
+    keys.forEach(key => {
+      const normalizedKey = String(key || 'OBJECT')
+      const current = groups.get(normalizedKey) || {
+        logicalObjectKey: normalizedKey,
+        logicalObjectType: item.logicalObjectType || 'OBJECT',
+        sampleCount: 0
+      }
+      current.sampleCount += 1
+      groups.set(normalizedKey, current)
+    })
+  })
+  return Array.from(groups.values()).sort((left, right) => right.sampleCount - left.sampleCount)
+})
+const parseStatusStats = computed(() => {
+  const groups = new Map()
+  sqlStats.value.forEach(item => {
+    const key = String(item.resultStatus || item.parseStatus || item.stage || 'UNKNOWN')
+    const current = groups.get(key) || {
+      resultStatus: key,
+      sampleCount: 0,
+      cacheHitCount: 0,
+      rewriteCount: 0,
+      accelerationCount: 0
+    }
+    current.sampleCount += 1
+    if (item.cacheHit === true) {
+      current.cacheHitCount += 1
+    }
+    if (item.rewriteApplied === true) {
+      current.rewriteCount += 1
+    }
+    if (item.accelerationApplied === true) {
+      current.accelerationCount += 1
+    }
+    groups.set(key, current)
+  })
+  return Array.from(groups.values()).sort((left, right) => right.sampleCount - left.sampleCount)
 })
 
 const card = (label, value, key = '') => ({ label, value, key })
@@ -126,6 +219,8 @@ const displayValue = value => {
   return String(value)
 }
 
+const summaryWindow = items => items.slice(0, pageInfo.pageSize)
+
 const openDetailDialog = (title, payload) => {
   detailTitle.value = title
   detailPayload.value = payload
@@ -175,9 +270,9 @@ onMounted(async () => {
   <section class="statistics-page" data-testid="statistics-page">
     <header class="page-shell">
       <div>
-        <p class="section-kicker sqlforge-code-label">parse statistics center</p>
-        <h1 class="section-title">{{ isChinese ? '解析结果中心' : 'Parse result center' }}</h1>
-        <p class="section-summary">{{ isChinese ? '顶部保留概览，明细统一进入表格与弹层。' : 'Top-level KPIs stay lightweight while detailed evidence moves into tables and overlays.' }}</p>
+        <p class="section-kicker sqlforge-code-label">sql parse statistics</p>
+        <h1 class="section-title">{{ t('parseStatisticsCenter.title') }}</h1>
+        <p class="section-summary">{{ t('parseStatisticsCenter.summary') }}</p>
       </div>
       <div class="hero-actions">
         <label class="field-block">
@@ -389,6 +484,68 @@ onMounted(async () => {
               </el-table-column>
             </el-table>
           </el-tab-pane>
+
+          <el-tab-pane :label="t('parseStatisticsCenter.severityView')" name="severity">
+            <div class="table-heading">
+              <div>
+                <p class="section-kicker sqlforge-code-label">Severity view</p>
+                <h2 class="section-title">{{ t('parseStatisticsCenter.severityView') }}</h2>
+              </div>
+            </div>
+            <el-table :data="summaryWindow(severityStats)" border>
+              <el-table-column prop="severity" :label="t('parseStatisticsCenter.severity')" min-width="140" />
+              <el-table-column prop="issueSceneCount" :label="t('parseStatisticsCenter.issueScenes')" min-width="140" />
+              <el-table-column prop="affectedSqlCount" :label="t('parseStatisticsCenter.affectedSql')" min-width="140" />
+              <el-table-column prop="affectedIssueCount" :label="t('parseStatisticsCenter.affectedIssues')" min-width="120" />
+              <el-table-column prop="urgentCount" :label="t('parseStatisticsCenter.urgentScenes')" min-width="140" />
+            </el-table>
+          </el-tab-pane>
+
+          <el-tab-pane :label="t('parseStatisticsCenter.priorityView')" name="priority">
+            <div class="table-heading">
+              <div>
+                <p class="section-kicker sqlforge-code-label">Priority view</p>
+                <h2 class="section-title">{{ t('parseStatisticsCenter.priorityView') }}</h2>
+              </div>
+            </div>
+            <el-table :data="summaryWindow(priorityStats)" border>
+              <el-table-column prop="priorityLevel" :label="t('parseStatisticsCenter.priority')" min-width="140" />
+              <el-table-column prop="issueSceneCount" :label="t('parseStatisticsCenter.issueScenes')" min-width="140" />
+              <el-table-column prop="affectedSqlCount" :label="t('parseStatisticsCenter.affectedSql')" min-width="140" />
+              <el-table-column prop="affectedIssueCount" :label="t('parseStatisticsCenter.affectedIssues')" min-width="120" />
+              <el-table-column prop="highestPriorityScore" :label="t('parseStatisticsCenter.highestScore')" min-width="140" />
+            </el-table>
+          </el-tab-pane>
+
+          <el-tab-pane :label="t('parseStatisticsCenter.logicalObjectView')" name="logical-object">
+            <div class="table-heading">
+              <div>
+                <p class="section-kicker sqlforge-code-label">Logical object view</p>
+                <h2 class="section-title">{{ t('parseStatisticsCenter.logicalObjectView') }}</h2>
+              </div>
+            </div>
+            <el-table :data="summaryWindow(logicalObjectStats)" border>
+              <el-table-column prop="logicalObjectType" :label="t('parseStatisticsCenter.logicalObjectType')" min-width="150" />
+              <el-table-column prop="logicalObjectKey" :label="t('parseStatisticsCenter.logicalObjectKey')" min-width="240" />
+              <el-table-column prop="sampleCount" :label="t('parseStatisticsCenter.samples')" min-width="120" />
+            </el-table>
+          </el-tab-pane>
+
+          <el-tab-pane :label="t('parseStatisticsCenter.parseStatusSamples')" name="parse-status">
+            <div class="table-heading">
+              <div>
+                <p class="section-kicker sqlforge-code-label">Parse status samples</p>
+                <h2 class="section-title">{{ t('parseStatisticsCenter.parseStatusSamples') }}</h2>
+              </div>
+            </div>
+            <el-table :data="summaryWindow(parseStatusStats)" border>
+              <el-table-column prop="resultStatus" :label="t('parseStatisticsCenter.resultStatus')" min-width="150" />
+              <el-table-column prop="sampleCount" :label="t('parseStatisticsCenter.samples')" min-width="120" />
+              <el-table-column prop="cacheHitCount" :label="t('parseStatisticsCenter.cacheHit')" min-width="120" />
+              <el-table-column prop="rewriteCount" :label="t('parseStatisticsCenter.rewrite')" min-width="120" />
+              <el-table-column prop="accelerationCount" :label="t('parseStatisticsCenter.acceleration')" min-width="130" />
+            </el-table>
+          </el-tab-pane>
         </el-tabs>
       </section>
     </div>
@@ -539,12 +696,12 @@ onMounted(async () => {
 }
 
 .workspace-grid {
-  grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
+  grid-template-columns: 1fr;
 }
 
 .overview-rail {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -570,6 +727,16 @@ onMounted(async () => {
 
 .result-stage {
   min-width: 0;
+  overflow-x: auto;
+}
+
+.result-stage :deep(.el-table) {
+  min-width: 100%;
+}
+
+.result-stage :deep(.el-table .cell) {
+  word-break: normal;
+  white-space: nowrap;
 }
 
 .table-heading {
@@ -615,6 +782,10 @@ onMounted(async () => {
 
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .overview-rail {
+    grid-template-columns: 1fr;
   }
 
   .detail-grid {

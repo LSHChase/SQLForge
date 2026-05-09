@@ -11,19 +11,6 @@
 
 ## Todo
 
-### HARN-111: 拆分解析工作台与解析统计页面
-
-- Status: todo
-- Priority: 1
-- Depends on: HARN-110,HARN-116
-- Scope: 覆盖 `AccelerationView`、`ParseStatisticsCenterView`；拆分单条 SQL 输入、结构解析、access parse、结论、统计入口、字段 help 和详情弹层，不改变 parser/API/payload。
-- Validation:
-  - before/after 截图自检
-  - `npm run lint`
-  - `npm run build`
-  - `npm run test:sql-ui-contract`
-  - `npm run test:frontend-page-governance`
-
 ### HARN-112: 拆分批量解析中心页面
 
 - Status: todo

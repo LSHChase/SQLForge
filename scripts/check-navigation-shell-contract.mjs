@@ -96,6 +96,7 @@ const routerRequiredTokens = [
   'LEGACY_ROUTE_DEFINITIONS',
   'DELIVERY_PROGRESS_ROUTE_DEFINITION',
   'DeliveryProgressView',
+  'ParseStatisticsCenterView',
   'routeFromDefinition'
 ]
 
@@ -121,6 +122,7 @@ const requiredNavTargets = [
   ROUTE_PATHS.repairEvidence,
   ROUTE_PATHS.auditForensics,
   ROUTE_PATHS.acceleration,
+  ROUTE_PATHS.parseStatisticsCenter,
   ROUTE_PATHS.parseBatchCenter,
   ROUTE_PATHS.parseRecord,
   ROUTE_PATHS.recommendationCenter,
@@ -188,14 +190,12 @@ check(parseBatchRedirect?.query?.workspace === 'batch', 'Legacy parse batch redi
 check(parseBatchRedirect?.query?.source === 'legacy', 'Legacy parse batch redirect must preserve incoming query.')
 
 const legacyStatisticsRedirect = findLegacyRoute(LEGACY_ROUTE_REDIRECTS.parseStatisticsCenter)?.redirect({ query: {} })
-check(legacyStatisticsRedirect?.path === ROUTE_PATHS.acceleration, 'Legacy parse statistics redirect must target acceleration.')
-check(legacyStatisticsRedirect?.query?.workspace === 'statistics', 'Legacy parse statistics redirect must preserve workspace=statistics.')
+check(legacyStatisticsRedirect?.path === ROUTE_PATHS.parseStatisticsCenter, 'Legacy parse statistics redirect must target the statistics center.')
 check(legacyStatisticsRedirect?.query?.analytics === 'issue', 'Legacy parse statistics redirect must default analytics=issue.')
 
-const canonicalStatisticsRedirect = findRoute(ROUTE_PATHS.parseStatisticsCenter)?.redirect({ query: { analytics: 'table' } })
-check(canonicalStatisticsRedirect?.path === ROUTE_PATHS.acceleration, 'Canonical parse statistics redirect must target acceleration.')
-check(canonicalStatisticsRedirect?.query?.workspace === 'statistics', 'Canonical parse statistics redirect must preserve workspace=statistics.')
-check(canonicalStatisticsRedirect?.query?.analytics === 'table', 'Canonical parse statistics redirect must preserve analytics.')
+const canonicalStatisticsRoute = findRoute(ROUTE_PATHS.parseStatisticsCenter)
+check(canonicalStatisticsRoute?.componentKey === 'ParseStatisticsCenterView', 'Canonical parse statistics route must render ParseStatisticsCenterView.')
+check(!canonicalStatisticsRoute?.redirect, 'Canonical parse statistics route must not redirect back to the parse workbench.')
 
 if (errors.length > 0) {
   console.error('Navigation shell contract check failed.')

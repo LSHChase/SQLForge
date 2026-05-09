@@ -4,6 +4,26 @@
 
 ## Done
 
+### HARN-111: 拆分解析工作台与解析统计页面
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `feat(frontend): HARN-111 split parse statistics page`
+- Priority: 1
+- Depends on: HARN-110,HARN-116
+- Scope: 覆盖 `AccelerationView`、`ParseStatisticsCenterView`；拆分单条 SQL 输入、结构解析、access parse、结论、统计入口、字段 help 和详情弹层，不改变 parser/API/payload。
+- Validation:
+  - before/after 截图自检
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:sql-ui-contract`
+  - `npm run test:frontend-page-governance`
+- Context closeout:
+  - Completed scope: 拆分 AccelerationView 单条 SQL 解析工作台与 ParseStatisticsCenterView 独立统计页面；before screenshot: .codex/state/harn-111/screenshots/before-acceleration-desktop.png, .codex/state/harn-111/screenshots/before-statistics-route-desktop.png；after screenshot: .codex/state/harn-111/screenshots/after-acceleration-desktop.png, .codex/state/harn-111/screenshots/after-statistics-desktop.png, .codex/state/harn-111/screenshots/after-statistics-narrow.png；Codex 读图视觉复核已覆盖首屏主流程、统计页表格、入口拆分和窄屏堆叠，并已修复统计表格列断词 visual drift。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-111 --extra-command node scripts/check-parse-workbench-contract.mjs --extra-command node scripts/check-statistics-page-contract.mjs --extra-command node scripts/check-navigation-shell-contract.mjs；npm run lint；npm run build；npm run test:sql-ui-contract；npm run test:frontend-page-governance；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 未修改 parser/API/payload/后端模型；截图证据保存在 .codex/state/harn-111/screenshots/，不作为长期真值入仓；全局 body min-width 1280px 仍限制真正移动端布局，本次按现有壳层完成 narrow viewport 自检。
+  - Next step: 进入 HARN-112，继续拆分批量解析中心页面。
+
 ### HARN-120: 补齐前端截图自检机器门禁
 
 - Status: done

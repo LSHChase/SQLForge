@@ -187,17 +187,18 @@ export const APP_ROUTE_DEFINITIONS = [
       descriptionKey: 'acceleration.summary'
     })
   ),
-  {
-    path: ROUTE_PATHS.parseStatisticsCenter,
-    redirect: to => ({
-      path: ROUTE_PATHS.acceleration,
-      query: {
-        ...to.query,
-        workspace: 'statistics',
-        analytics: String(to.query.analytics || 'issue')
-      }
+  componentRoute(
+    'parseStatisticsCenter',
+    'ParseStatisticsCenter',
+    'ParseStatisticsCenterView',
+    routeMeta({
+      module: 'parse-acceleration',
+      submodule: 'statistics',
+      pageKind: 'statistics',
+      titleKey: 'parseStatisticsCenter.title',
+      descriptionKey: 'parseStatisticsCenter.summary'
     })
-  },
+  ),
   componentRoute(
     'assetCatalog',
     'AssetCatalog',
@@ -354,10 +355,9 @@ export const LEGACY_ROUTE_DEFINITIONS = [
   {
     path: LEGACY_ROUTE_REDIRECTS.parseStatisticsCenter,
     redirect: to => ({
-      path: ROUTE_PATHS.acceleration,
+      path: ROUTE_PATHS.parseStatisticsCenter,
       query: {
         ...to.query,
-        workspace: 'statistics',
         analytics: String(to.query.analytics || 'issue')
       }
     })
@@ -444,6 +444,10 @@ export const NAVIGATION_TREE = [
     label: { zh: '解析与加速', en: 'Parsing and Acceleration' },
     items: [
       navItem('acceleration', 'acceleration.title', { zh: 'SQL解析', en: 'SQL Parse' }),
+      navItem('parseStatisticsCenter', 'parseStatisticsCenter.title', {
+        zh: '解析统计',
+        en: 'Parse statistics'
+      }),
       navItem('parseBatchCenter', 'acceleration.title', { zh: '批量解析中心', en: 'Batch parse center' }),
       navItem('parseRecord', 'acceleration.title', { zh: '解析历史查询', en: 'Parse history search' }),
       navItem('recommendationCenter', 'recommendationCenter.title', {
