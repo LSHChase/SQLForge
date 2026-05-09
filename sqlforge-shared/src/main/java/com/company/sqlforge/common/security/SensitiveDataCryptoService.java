@@ -10,6 +10,11 @@ import java.util.Arrays;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.bouncycastle.crypto.engines.AESEngine;
+import org.bouncycastle.crypto.modes.GCMBlockCipher;
+import org.bouncycastle.crypto.params.AEADParameters;
+import org.bouncycastle.crypto.params.KeyParameter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.env.Environment;
@@ -25,12 +30,14 @@ public class SensitiveDataCryptoService implements InitializingBean {
     private static final String AES = "AES";
     private static final String ENVELOPE_PREFIX = "ENC::";
     private static final int AES_256_KEY_LENGTH = 32;
+    private static final int AES_256_MAX_ALLOWED_KEY_LENGTH = 256;
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH_BITS = 128;
 
     private final SensitiveDataCryptoProperties properties;
     private final Environment environment;
     private final SecureRandom secureRandom;
+    private final boolean forceLightweightFallback;
 
     public SensitiveDataCryptoService(SensitiveDataCryptoProperties properties) {
         this(properties, null);
@@ -38,9 +45,16 @@ public class SensitiveDataCryptoService implements InitializingBean {
 
     @Autowired
     public SensitiveDataCryptoService(SensitiveDataCryptoProperties properties, Environment environment) {
+        this(properties, environment, false);
+    }
+
+    SensitiveDataCryptoService(SensitiveDataCryptoProperties properties,
+                               Environment environment,
+                               boolean forceLightweightFallback) {
         this.properties = properties;
         this.environment = environment;
         this.secureRandom = new SecureRandom();
+        this.forceLightweightFallback = forceLightweightFallback;
     }
 
     @Override
@@ -125,6 +139,9 @@ public class SensitiveDataCryptoService implements InitializingBean {
     }
 
     private byte[] encryptInternal(byte[] plainBytes, byte[] iv) {
+        if (shouldUseLightweightAesGcm()) {
+            return encryptWithLightweightAesGcm(plainBytes, iv);
+        }
         try {
             Cipher cipher = Cipher.getInstance(TRANSFORMATION);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey(), new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
@@ -135,6 +152,9 @@ public class SensitiveDataCryptoService implements InitializingBean {
     }
 
     private byte[] decryptInternal(byte[] cipherBytes, byte[] iv) {
+        if (shouldUseLightweightAesGcm()) {
+            return decryptWithLightweightAesGcm(cipherBytes, iv);
+        }
         try {
             Cipher cipher = Cipher.getInstance(TRANSFORMATION);
             cipher.init(Cipher.DECRYPT_MODE, secretKey(), new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
@@ -145,6 +165,10 @@ public class SensitiveDataCryptoService implements InitializingBean {
     }
 
     private SecretKeySpec secretKey() {
+        return new SecretKeySpec(secretKeyBytes(), AES);
+    }
+
+    private byte[] secretKeyBytes() {
         if (!StringUtils.hasText(properties.getBase64Key())) {
             throw invalidCryptoConfiguration("Missing base64Key for sensitive data encryption");
         }
@@ -157,7 +181,50 @@ public class SensitiveDataCryptoService implements InitializingBean {
         if (decodedKey.length != AES_256_KEY_LENGTH) {
             throw invalidCryptoConfiguration("Sensitive data encryption key must decode to 32 bytes");
         }
-        return new SecretKeySpec(decodedKey, AES);
+        return decodedKey;
+    }
+
+    private boolean shouldUseLightweightAesGcm() {
+        return forceLightweightFallback || !isJceAes256Allowed();
+    }
+
+    private boolean isJceAes256Allowed() {
+        try {
+            return Cipher.getMaxAllowedKeyLength(AES) >= AES_256_MAX_ALLOWED_KEY_LENGTH;
+        } catch (GeneralSecurityException ex) {
+            return false;
+        }
+    }
+
+    private byte[] encryptWithLightweightAesGcm(byte[] plainBytes, byte[] iv) {
+        try {
+            return doLightweightAesGcm(true, plainBytes, iv);
+        } catch (InvalidCipherTextException ex) {
+            throw invalidCryptoConfiguration("Failed to encrypt sensitive data", ex);
+        }
+    }
+
+    private byte[] decryptWithLightweightAesGcm(byte[] cipherBytes, byte[] iv) {
+        try {
+            return doLightweightAesGcm(false, cipherBytes, iv);
+        } catch (InvalidCipherTextException ex) {
+            throw invalidCryptoConfiguration("Failed to decrypt sensitive data", ex);
+        }
+    }
+
+    private byte[] doLightweightAesGcm(boolean forEncryption, byte[] input, byte[] iv)
+        throws InvalidCipherTextException {
+        GCMBlockCipher cipher = new GCMBlockCipher(new AESEngine());
+        AEADParameters parameters = new AEADParameters(
+            new KeyParameter(secretKeyBytes()),
+            GCM_TAG_LENGTH_BITS,
+            iv
+        );
+        cipher.init(forEncryption, parameters);
+        byte[] output = new byte[cipher.getOutputSize(input.length)];
+        int length = cipher.processBytes(input, 0, input.length, output, 0);
+        length += cipher.doFinal(output, length);
+        return length == output.length ? output : Arrays.copyOf(output, length);
     }
 
     private ParsedEnvelope parseEnvelope(String envelope) {

@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-105: Support AES-256 crypto fallback on JDK 8u112
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `fix(security): HARN-105 support AES fallback`
+- Priority: 1
+- Depends on: HARN-102
+- Scope: Add a BouncyCastle lightweight AES-256-GCM fallback for SQLForge sensitive data encryption when the runtime JCE policy cannot initialize 256-bit AES/GCM, preserving existing ciphertext envelope and byte payload formats for governance query history and sensitive config persistence.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-105`
+- Progress log:
+  - 2026-05-09: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added BouncyCastle lightweight AES-256-GCM fallback for sensitive-data encryption when JCE cannot initialize 256-bit AES/GCM, kept existing envelope and byte ciphertext formats, and covered default plus forced fallback encryption/decryption paths.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-105 with shared crypto and governance query-history persistence Maven tests; git diff --check; pre-closeout task audit.
+  - Residual risk: Actual JDK 8u112 runtime still needs target-machine restart verification, but fallback behavior is covered by a forced lightweight-provider unit test and governance persistence tests.
+  - Next step: Deploy the updated shared dependency, restart governance on the JDK 8u112 machine, and retry /api/governance/internal/query-execution-history/write with the configured 32-byte base64 crypto key.
+
 ### OPS-SCHEMA-DRIFT-REPAIR-20260509: Repair local schema drift for parse history
 
 - Status: done

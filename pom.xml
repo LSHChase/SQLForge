@@ -34,6 +34,7 @@
         <p3c.pmd.version>2.1.1</p3c.pmd.version>
         <lettuce.version>6.2.6.RELEASE</lettuce.version>
         <kafka.clients.version>3.6.2</kafka.clients.version>
+        <bouncycastle.version>1.70</bouncycastle.version>
         <lombok.version>1.18.32</lombok.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <pagehelper.version>1.4.7</pagehelper.version>
@@ -95,6 +96,11 @@
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-clients</artifactId>
                 <version>${kafka.clients.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk15on</artifactId>
+                <version>${bouncycastle.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.projectlombok</groupId>
