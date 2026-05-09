@@ -470,8 +470,7 @@ export default {
       governanceHits: '治理命中',
       submittedBy: '提交人',
       submittedAt: '提交时间',
-      auditEventCount: '审计事件数',
-      summary: '列表只消费后端分页、筛选和分类摘要；详情通过抽屉下钻。'
+      auditEventCount: '审计事件数'
     },
     states: {
       loading: '正在加载 SQL 执行历史',

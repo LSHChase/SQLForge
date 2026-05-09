@@ -338,6 +338,17 @@ const summaryMetrics = computed(() => [
 
 const listStatusLabel = computed(() => t(`sqlHistory.queryStatus.${listStatus.value}`))
 const lastQueryText = computed(() => (lastQueryAt.value ? formatTimestamp(lastQueryAt.value) : '-'))
+const paginationSummaryText = computed(() =>
+  t('sqlHistory.footer.resultWindow', {
+    count: tableRows.value.length,
+    total: pageInfo.total,
+    current: pageWindow.value.current,
+    pages: pageWindow.value.total
+  })
+)
+const paginationStateText = computed(() =>
+  t('sqlHistory.footer.lastQuery', { status: listStatusLabel.value, time: lastQueryText.value })
+)
 const visibleErrorMessage = computed(() => workflowErrorMessage.value || listErrorMessage.value)
 const emptyDescription = computed(() => {
   if (loadingList.value) {
@@ -367,6 +378,31 @@ const dateFieldProps = field => ({
   clearable: true,
   valueFormat: 'YYYY-MM-DD'
 })
+
+const filterFieldClass = field => `field-block-${field.type || 'input'}`
+
+const filterFieldStyle = field => ({
+  '--filter-field-min': `clamp(184px, ${filterFieldWidthCh(field)}ch, 360px)`
+})
+
+const filterFieldWidthCh = field => {
+  const optionTextLength = Math.max(
+    0,
+    ...(field.options || []).map(option => visualTextLength(option.label))
+  )
+  const textLength = Math.max(
+    visualTextLength(field.label),
+    visualTextLength(field.placeholder),
+    optionTextLength
+  )
+  const typeBase = field.type === 'date' ? 18 : field.type === 'select' ? 20 : 19
+  return Math.min(34, Math.max(typeBase, textLength + 6))
+}
+
+const visualTextLength = value =>
+  Array.from(String(value || '')).reduce((length, character) => {
+    return length + (/[\u3400-\u9fff]/.test(character) ? 2 : 1)
+  }, 0)
 
 const tableColumnProps = column => ({
   prop: column.prop,
@@ -946,7 +982,14 @@ watch(
     >
       <el-form class="filter-form" :model="searchForm" label-position="top" @submit.prevent="search">
         <div class="field-grid">
-          <el-form-item v-for="field in searchFields" :key="field.key" :label="field.label" class="field-block">
+          <el-form-item
+            v-for="field in searchFields"
+            :key="field.key"
+            class="field-block"
+            :class="filterFieldClass(field)"
+            :style="filterFieldStyle(field)"
+          >
+            <template #label>{{ field.label }}</template>
             <el-select
               v-if="field.type === 'select'"
               v-model="searchForm[field.key]"
@@ -1047,23 +1090,25 @@ watch(
       </el-table>
 
       <div class="table-footer">
-        <div class="footer-status">
-          <span>{{ t('sqlHistory.footer.resultWindow', { count: tableRows.length, total: pageInfo.total, current: pageWindow.current, pages: pageWindow.total }) }}</span>
-          <span>{{ t('sqlHistory.footer.lastQuery', { status: listStatusLabel, time: lastQueryText }) }}</span>
+        <div class="pagination-cluster">
+          <div class="pagination-summary" data-testid="sql-history-pagination-summary">
+            <span>{{ paginationSummaryText }}</span>
+            <span>{{ paginationStateText }}</span>
+          </div>
+          <el-pagination
+            v-model:page-size="pageInfo.pageSize"
+            v-model:current-page="pageInfo.currentPage"
+            class="pagination-row"
+            data-testid="sql-history-pagination"
+            background
+            layout="prev, pager, next, sizes"
+            :total="pageInfo.total"
+            :page-sizes="LIST_PAGE_SIZE_OPTIONS"
+            :disabled="loadingList"
+            @current-change="handlePageChange"
+            @size-change="handlePageSizeChange"
+          />
         </div>
-        <el-pagination
-          v-model:page-size="pageInfo.pageSize"
-          v-model:current-page="pageInfo.currentPage"
-          class="pagination-row"
-          data-testid="sql-history-pagination"
-          background
-          layout="prev, pager, next, sizes"
-          :total="pageInfo.total"
-          :page-sizes="LIST_PAGE_SIZE_OPTIONS"
-          :disabled="loadingList"
-          @current-change="handlePageChange"
-          @size-change="handlePageSizeChange"
-        />
       </div>
     </EvidencePanel>
 
@@ -1251,7 +1296,7 @@ watch(
 .field-label,
 .summary-metric span,
 .operation-item small,
-.footer-status {
+.pagination-summary {
   color: var(--sqlforge-text-muted);
   font-size: var(--sqlforge-text-meta);
   line-height: 1.4;
@@ -1300,7 +1345,12 @@ watch(
 }
 
 .field-grid {
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  --filter-field-default-min: clamp(184px, 20ch, 320px);
+
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--sqlforge-space-3);
 }
 
 .filter-hint {
@@ -1320,8 +1370,33 @@ watch(
   gap: var(--sqlforge-space-2);
 }
 
+.field-grid .field-block {
+  flex: 1 1 var(--filter-field-min, var(--filter-field-default-min));
+  min-width: min(100%, var(--filter-field-min, var(--filter-field-default-min)));
+  max-width: min(100%, 360px);
+}
+
+.field-grid .field-block-input {
+  max-width: min(100%, 420px);
+}
+
+.field-grid .field-block-date {
+  max-width: min(100%, 280px);
+}
+
 .field-block :deep(.el-form-item__label) {
   color: var(--sqlforge-text-secondary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-block :deep(.el-form-item__content),
+.field-block :deep(.el-input),
+.field-block :deep(.el-select),
+.field-block :deep(.el-date-editor.el-input) {
+  width: 100%;
 }
 
 .detail-grid {
@@ -1412,17 +1487,29 @@ watch(
 
 .table-footer {
   margin-top: var(--sqlforge-space-4);
-  align-items: flex-start;
+  align-items: flex-end;
+  justify-content: flex-end;
 }
 
-.footer-status {
+.pagination-cluster {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: var(--sqlforge-space-2);
+  max-width: 100%;
+}
+
+.pagination-summary {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--sqlforge-space-3);
+  text-align: right;
 }
 
 .pagination-row {
   justify-content: flex-end;
+  max-width: 100%;
 }
 
 .code-card__header {
@@ -1456,7 +1543,7 @@ watch(
   }
 
   .pagination-row {
-    justify-content: flex-start;
+    justify-content: flex-end;
   }
 }
 </style>

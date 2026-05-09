@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-118: 修复 SQL 历史分页与筛选自适应布局
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `fix(frontend): HARN-118 align sql history pagination layout`
+- Priority: 1
+- Depends on: HARN-117
+- Scope: 基于截图复核 SQL 历史页面，修正 HARN-117 仍不合理的管理页布局：分页/结果窗口信息只保留在右下角并完善展示；筛选区每行列数根据可用宽度与字段文案长度自适应；保持 SQL 查询 payload、历史查询参数、详情抽屉、SqlEditorField/SqlCodeBlock 和 raw SQL 展示语义不变。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-118`
+- Progress log:
+  - 2026-05-09: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-09: replaced the SQL history filter grid with field-width-aware flex wrapping, moved result-window/last-query copy into the single right-aligned pagination cluster, removed the obsolete table summary locale copy, and captured mocked browser screenshots at 1440/1040/760 widths under `/tmp/sqlforge-harn118-*.png`.
+- Context closeout:
+  - Completed scope: 修正 SQL 历史页面筛选与分页布局：筛选区按字段文案长度和可用宽度自适应换行；分页摘要和分页控件收敛为右下角唯一信息簇；移除已废弃的执行记录说明文案；不改变 SQL 查询 payload、历史查询参数、详情抽屉或 raw SQL 展示语义。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-118 passed; npm run lint -- --quiet passed; npm run build passed; npm run test:sql-ui-contract passed; npm run test:frontend-page-governance passed; mocked Playwright/Chrome screenshots generated at /tmp/sqlforge-harn118-sql-history-1440.png, /tmp/sqlforge-harn118-filter-1040.png, and /tmp/sqlforge-harn118-table-1440.png with one pagination component, no footer-status node, and no obsolete table summary text.
+  - Residual risk: 截图使用 mocked API 数据验证前端布局与交互容器，未连接真实后端环境做人工点击验收；本任务未改后端 API、分页契约或持久化。
+  - Next step: 后续前端页面任务默认把截图复核、DOM 数量断言、重复分页/说明文案检查纳入实现内验证，避免只靠代码静态判断页面质量。
+
 ### HARN-117: 复核并修复 HARN-110 页面结构回归
 
 - Status: done

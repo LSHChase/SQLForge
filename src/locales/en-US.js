@@ -470,8 +470,7 @@ export default {
       governanceHits: 'Governance hits',
       submittedBy: 'Submitted by',
       submittedAt: 'Submitted at',
-      auditEventCount: 'Audit event count',
-      summary: 'The list consumes backend pagination, filters, and classification summary; details drill down through the drawer.'
+      auditEventCount: 'Audit event count'
     },
     states: {
       loading: 'Loading SQL execution history',
