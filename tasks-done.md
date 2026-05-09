@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-103: 保留历史原始 SQL 展示并统一提示交互
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `fix(history): HARN-103 preserve raw SQL display`
+- Priority: 1
+- Depends on: N/A
+- Scope: Fix parse history and SQL execution history raw SQL surfaces so Original SQL display and copy preserve the submitted SQL text exactly for new records, including comments, whitespace, and semicolons; keep execution normalization and non-raw SQL formatting unchanged; unify issue-scene question-mark help to a single hover tooltip without duplicate native title popups; add focused backend and frontend contract checks.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-103`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Preserved submitted SQL text for new query-execution history writes, disabled SqlCodeBlock auto formatting for Original SQL surfaces in parse and SQL history detail views, removed duplicate native issue-scene title tooltips, and documented/guarded the raw SQL display contract.
+  - Validation evidence: npm run test:sql-ui-contract; mvn -pl query-execution -am -Dtest=QueryExecutionApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test; npm run test:frontend-page-governance; npm run lint; npm run build; node scripts/check-history-page-contract.mjs && node scripts/check-history-detail-contract.mjs && node scripts/check-batch-import-contract.mjs; git diff --check; python3 scripts/foreman.py validate HARN-103; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Existing history rows that were already persisted with normalized SQL are not backfilled because removed whitespace or semicolon characters cannot be reliably reconstructed from persisted evidence.
+  - Next step: No follow-up required for new records; if historical backfill becomes mandatory, shape a separate data-repair task with a recoverable source-of-truth inventory.
+
 ### HARN-102: 接通 SQL 历史数据库持久化链路
 
 - Status: done

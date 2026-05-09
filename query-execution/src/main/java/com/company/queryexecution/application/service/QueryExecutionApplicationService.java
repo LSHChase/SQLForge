@@ -917,7 +917,7 @@ public class QueryExecutionApplicationService {
         historyRequest.setResultId("result-qe-" + stableKey);
         historyRequest.setHistoryId("history-qe-" + stableKey);
         historyRequest.setTenantId(request.getTenantId());
-        historyRequest.setSqlText(actualSql);
+        historyRequest.setSqlText(request.getSqlText());
         historyRequest.setSqlTemplate(actualSql);
         historyRequest.setBoundSql(actualSql);
         historyRequest.setSqlFingerprint(effectiveFingerprint);

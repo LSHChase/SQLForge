@@ -142,6 +142,35 @@ for (const relativePath of Object.keys(requiredFiles).filter(item => item.endsWi
   }
 }
 
+const parseRecordView = read('src/views/parse-record/ParseRecordView.vue')
+if (!/key:\s*'sqlText'[\s\S]{0,180}autoFormat:\s*false/.test(parseRecordView)) {
+  errors.push('ParseRecordView raw SQL variant must disable SqlCodeBlock auto formatting.')
+}
+if (!/:auto-format="false"[\s\S]{0,120}data-testid="parse-record-history-original-sql-text"/.test(parseRecordView)) {
+  errors.push('ParseRecordView parse-result Original SQL block must copy and display unformatted raw SQL.')
+}
+if (!/:auto-format="item\.autoFormat !== false"/.test(parseRecordView)) {
+  errors.push('ParseRecordView SQL tri-state blocks must honor per-variant autoFormat settings.')
+}
+
+const sqlHistoryView = read('src/views/sql-history/SqlHistoryView.vue')
+if (!/key:\s*'sqlText'[\s\S]{0,180}autoFormat:\s*false/.test(sqlHistoryView)) {
+  errors.push('SqlHistoryView raw SQL variant must disable SqlCodeBlock auto formatting.')
+}
+if (!/const sqlCodeBlockProps = item => \(\{[\s\S]{0,220}autoFormat: item\.autoFormat !== false/.test(sqlHistoryView)) {
+  errors.push('SqlHistoryView SqlCodeBlock props must honor per-variant autoFormat settings.')
+}
+
+for (const relativePath of [
+  'src/views/parse-record/ParseRecordView.vue',
+  'src/views/parse-batch/ParseBatchCenterView.vue'
+]) {
+  const content = read(relativePath)
+  if (/class="help-dot issue-scene-help"[\s\S]{0,260}:title=/.test(content)) {
+    errors.push(`${relativePath} issue-scene help dots must not use native title tooltips.`)
+  }
+}
+
 const docs = read('docs/frontend/form-component-governance.md')
 if (!docs.includes('HARN-070 SQL Input Output Display Contract')) {
   errors.push('docs/frontend/form-component-governance.md is missing the HARN-070 SQL display contract section.')

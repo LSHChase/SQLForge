@@ -502,6 +502,25 @@ class QueryExecutionApplicationServiceTest {
     }
 
     @Test
+    void shouldPreserveSubmittedSqlTextInGovernanceHistoryWriteRequest() {
+        setRequestContext("tenant-a");
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        QueryExecutionApplicationService service =
+            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), governanceCapabilityClient);
+        String submittedSql = "  SELECT * FROM orders /* keep original comment */;\n";
+
+        service.executeSynchronously(baseRequest(submittedSql));
+
+        ArgumentCaptor<GovernanceQueryExecutionHistoryWriteRequest> captor =
+            ArgumentCaptor.forClass(GovernanceQueryExecutionHistoryWriteRequest.class);
+        verify(governanceCapabilityClient).writeQueryExecutionHistory(captor.capture());
+        GovernanceQueryExecutionHistoryWriteRequest historyRequest = captor.getValue();
+        assertEquals(submittedSql, historyRequest.getSqlText());
+        assertEquals("SELECT * FROM orders /* keep original comment */", historyRequest.getSqlTemplate());
+        assertEquals("SELECT * FROM orders /* keep original comment */", historyRequest.getBoundSql());
+    }
+
+    @Test
     void shouldRejectSpoofedTenantBeforeLoggingOrGovernanceCall() {
         setRequestContext("tenant-a");
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();

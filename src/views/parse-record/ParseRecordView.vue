@@ -19,7 +19,7 @@ import { buildDatasourceOptions, buildTenantOptions, withCurrentOption } from '.
 import { issueSceneHelpText, riskDisplayText as sharedRiskDisplayText } from '../common/issueSceneHelp.mjs'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -367,7 +367,12 @@ const sqlStateHighlights = computed(() => {
 })
 const sqlVariants = computed(() =>
   [
-    { key: 'sqlText', label: isChinese.value ? '原始 SQL' : 'Original SQL', value: selectedHistoryDetail.value?.sqlText },
+    {
+      key: 'sqlText',
+      label: t('sqlHistory.sql.originalSql'),
+      value: selectedHistoryDetail.value?.sqlText,
+      autoFormat: false
+    },
     { key: 'sqlTemplateText', label: isChinese.value ? '模板 SQL' : 'Template SQL', value: selectedHistoryDetail.value?.sqlTemplateText },
     { key: 'boundSqlText', label: isChinese.value ? '绑定 SQL' : 'Bound SQL', value: selectedHistoryDetail.value?.boundSqlText }
   ].filter(item => hasDisplayValue(item.value))
@@ -1985,7 +1990,6 @@ watch(
                         tabindex="0"
                         aria-label="issue scene help"
                         :data-tooltip="issueSceneHelp(item.issueScene)"
-                        :title="issueSceneHelp(item.issueScene)"
                       >?</span>
                     </span>
                     <strong>
@@ -2013,7 +2017,6 @@ watch(
                         tabindex="0"
                         aria-label="issue scene help"
                         :data-tooltip="issueSceneHelp(item.value)"
-                        :title="issueSceneHelp(item.value)"
                       >?</span>
                     </span>
                     <span v-if="loading.reportBatchIssueSceneDetail" class="summary-chip summary-chip-warning">
@@ -2077,7 +2080,6 @@ watch(
                           tabindex="0"
                           aria-label="issue scene help"
                           :data-tooltip="issueSceneListHelp(item.issueScenes)"
-                          :title="issueSceneListHelp(item.issueScenes)"
                         >?</span>
                         {{ displayValue(item.issueScenes) }}
                       </p>
@@ -2148,7 +2150,6 @@ watch(
                         tabindex="0"
                         aria-label="issue scene help"
                         :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                        :title="issueSceneListHelp(issueSceneCodesForItem(item))"
                       >?</span>
                       {{ displayValue(issueSceneCodesForItem(item)) }}
                     </p>
@@ -2258,7 +2259,6 @@ watch(
                         tabindex="0"
                         aria-label="issue scene help"
                         :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                        :title="issueSceneListHelp(issueSceneCodesForItem(item))"
                       >?</span>
                       {{ displayValue(issueSceneCodesForItem(item)) }}
                     </p>
@@ -2367,7 +2367,6 @@ watch(
                       tabindex="0"
                       aria-label="issue scene help"
                       :data-tooltip="issueSceneHelp(risk)"
-                      :title="issueSceneHelp(risk)"
                     >?</span>
                   </strong>
                   <span>{{ risk.severity || '-' }}</span>
@@ -2393,7 +2392,6 @@ watch(
                       tabindex="0"
                       aria-label="issue scene help"
                       :data-tooltip="issueSceneHelp(issue)"
-                      :title="issueSceneHelp(issue)"
                     >?</span>
                   </strong>
                   <span>{{ displayValue(firstValue(issue.severity, issue.priorityLevel)) }}</span>
@@ -2491,6 +2489,7 @@ watch(
                   :value="selectedHistoryDetail.sqlText || '-'"
                   :label="isChinese ? '原始 SQL' : 'Original SQL'"
                   :copy-label="isChinese ? '复制' : 'Copy'"
+                  :auto-format="false"
                   data-testid="parse-record-history-original-sql-text"
                 />
               </article>
@@ -2647,7 +2646,6 @@ watch(
                           tabindex="0"
                           aria-label="issue scene help"
                           :data-tooltip="issueSceneHelp(item)"
-                          :title="issueSceneHelp(item)"
                         >?</span>
                       </span>
                       <span
@@ -2676,7 +2674,6 @@ watch(
                             tabindex="0"
                             aria-label="issue scene help"
                             :data-tooltip="issueSceneHelp(risk)"
-                            :title="issueSceneHelp(risk)"
                           >?</span>
                         </strong>
                         <span>{{ risk.severity || '-' }}</span>
@@ -2703,7 +2700,6 @@ watch(
                             tabindex="0"
                             aria-label="issue scene help"
                             :data-tooltip="issueSceneHelp(issue)"
-                            :title="issueSceneHelp(issue)"
                           >?</span>
                         </strong>
                         <span>{{ displayValue(firstValue(issue.severity, issue.priorityLevel)) }}</span>
@@ -2787,6 +2783,7 @@ watch(
                   :value="item.value"
                   :label="item.label"
                   :copy-label="isChinese ? '复制' : 'Copy'"
+                  :auto-format="item.autoFormat !== false"
                   :data-testid="`parse-record-${item.key}`"
                 />
               </article>

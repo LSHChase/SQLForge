@@ -1754,7 +1754,6 @@ onMounted(async () => {
                     tabindex="0"
                     aria-label="issue scene help"
                     :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                    :title="issueSceneListHelp(issueSceneCodesForItem(item))"
                   >?</span>
                   {{ displayValue(issueSceneCodesForItem(item)) }}
                 </p>
@@ -1812,7 +1811,6 @@ onMounted(async () => {
                     tabindex="0"
                     aria-label="issue scene help"
                     :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                    :title="issueSceneListHelp(issueSceneCodesForItem(item))"
                   >?</span>
                   {{ displayValue(issueSceneCodesForItem(item)) }}
                 </p>
@@ -1879,7 +1877,6 @@ onMounted(async () => {
                 tabindex="0"
                 aria-label="issue scene help"
                 :data-tooltip="issueSceneListHelp(field.value)"
-                :title="issueSceneListHelp(field.value)"
               >?</span>
             </strong>
           </div>
@@ -1911,7 +1908,6 @@ onMounted(async () => {
                     tabindex="0"
                     aria-label="issue scene help"
                     :data-tooltip="issueSceneHelp(item.issueScene)"
-                    :title="issueSceneHelp(item.issueScene)"
                   >?</span>
                 </strong>
                 <span>{{ displayValue(item.affectedRecords) }} · {{ formatPercent(item.ratio) }}</span>
@@ -1981,7 +1977,6 @@ onMounted(async () => {
                     tabindex="0"
                     aria-label="issue scene help"
                     :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                    :title="issueSceneListHelp(issueSceneCodesForItem(item))"
                   >?</span>
                   {{ displayValue(issueSceneCodesForItem(item)) }}
                 </p>
@@ -2168,7 +2163,6 @@ onMounted(async () => {
                     tabindex="0"
                     aria-label="issue scene help"
                     :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                    :title="issueSceneListHelp(issueSceneCodesForItem(item))"
                   >?</span>
                   {{ displayValue(issueSceneCodesForItem(item)) }}
                 </p>
@@ -2308,7 +2302,6 @@ onMounted(async () => {
                     tabindex="0"
                     aria-label="issue scene help"
                     :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                    :title="issueSceneListHelp(issueSceneCodesForItem(item))"
                   >?</span>
                   {{ displayValue(issueSceneCodesForItem(item)) }}
                 </p>
@@ -2408,7 +2401,6 @@ onMounted(async () => {
                 tabindex="0"
                 aria-label="issue scene help"
                 :data-tooltip="issueSceneListHelp(field.value)"
-                :title="issueSceneListHelp(field.value)"
               >?</span>
             </strong>
           </div>
@@ -2446,7 +2438,6 @@ onMounted(async () => {
                       tabindex="0"
                       aria-label="issue scene help"
                       :data-tooltip="issueSceneHelp(item.issueScene)"
-                      :title="issueSceneHelp(item.issueScene)"
                     >?</span>
                   </strong>
                   <span>
@@ -2556,7 +2547,6 @@ onMounted(async () => {
                       tabindex="0"
                       aria-label="issue scene help"
                       :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                      :title="issueSceneListHelp(issueSceneCodesForItem(item))"
                     >?</span>
                     {{ displayValue(issueSceneCodesForItem(item)) }}
                   </span>

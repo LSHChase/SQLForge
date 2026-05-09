@@ -331,7 +331,8 @@ const detailDrawerProps = computed(() => ({
 const sqlCodeBlockProps = item => ({
   value: item.value,
   label: item.label,
-  copyLabel: t('sqlHistory.actions.copy')
+  copyLabel: t('sqlHistory.actions.copy'),
+  autoFormat: item.autoFormat !== false
 })
 
 const historyTableColumns = computed(() => [
@@ -478,7 +479,12 @@ const sqlCards = computed(() => [
 
 const sqlVariants = computed(() =>
   [
-    { key: 'sqlText', label: t('sqlHistory.sql.originalSql'), value: selectedHistoryDetail.value?.sqlText },
+    {
+      key: 'sqlText',
+      label: t('sqlHistory.sql.originalSql'),
+      value: selectedHistoryDetail.value?.sqlText,
+      autoFormat: false
+    },
     {
       key: 'sqlTemplateText',
       label: t('sqlHistory.sql.templateSql'),

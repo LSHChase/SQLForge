@@ -84,7 +84,7 @@ SQL 输入/输出 UI 统一使用共享组件承载：`SqlEditorField` 用于可
 
 确认覆盖的 SQL 输入面包括 `SqlQueryView` 查询 SQL、`AccelerationView` 单条解析 SQL / 模板 SQL、`ParseBatchCenterView` 当前批次多 SQL 输入和报表宽表输入、`BenchmarkView` 压测 SQL。纯 SQL 输入启用手动格式化按钮；报表宽表、CSV 或表格原始内容只允许复制和高亮，不允许格式化按钮改写表格结构。
 
-确认覆盖的 SQL 输出面包括 `SqlQueryView` 模板 / SQL 库 / Bound SQL 预览、`RecommendationCenterView` 源 SQL / 推荐 SQL、`ParseBatchCenterView` 批次 SQL 明细 / 失败 SQL / 报表 SQL 详情、`ParseRecordView` 报表 SQL 明细 / 原始 SQL / SQL 三态。只读输出通过 `SqlCodeBlock` 在展示边界自动格式化，不回写 API 响应、历史记录、查询结果或后端数据。
+确认覆盖的 SQL 输出面包括 `SqlQueryView` 模板 / SQL 库 / Bound SQL 预览、`RecommendationCenterView` 源 SQL / 推荐 SQL、`ParseBatchCenterView` 批次 SQL 明细 / 失败 SQL / 报表 SQL 详情、`ParseRecordView` 报表 SQL 明细 / 原始 SQL / SQL 三态。只读输出默认通过 `SqlCodeBlock` 在展示边界自动格式化，不回写 API 响应、历史记录、查询结果或后端数据；标记为“原始 SQL / Original SQL”的历史取证面必须关闭自动格式化，展示和复制后端返回的原始文本。
 
 JSON 证据、SQL 指纹、报表编码、统计数字和非 SQL 的原始证据块不属于本任务的 SQL 展示框范围，仍保留原有 `code-block` 或普通文本样式。后续新增 SQL-bearing 页面时，默认复用上述两个共享组件，并用 `npm run test:sql-ui-contract` 扩展静态契约检查。
 
