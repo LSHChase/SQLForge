@@ -13,7 +13,7 @@ import {
 import { engineOptions } from '../common/formComponentGovernance'
 import EvidencePanel from '../common/EvidencePanel.vue'
 import MetricCard from '../common/MetricCard.vue'
-import PageHero from '../common/PageHero.vue'
+import SectionHeader from '../common/SectionHeader.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import { useSqlHistoryList } from './useSqlHistoryList'
@@ -905,33 +905,33 @@ watch(
 
 <template>
   <section class="sql-history-page" data-testid="sql-history-page">
-    <PageHero
-      :eyebrow="PAGE_KICKER"
-      :title="t('sqlHistory.title')"
-      :summary="t('sqlHistory.summary')"
-      :pills="[requestTenantId, SQL_EXECUTION_HISTORY_TYPE, listStatusLabel]"
-    >
-      <template #actions>
-        <div class="action-row">
-          <el-button type="primary" :loading="loadingList" data-testid="sql-history-refresh" @click="search">
-            {{ t('sqlHistory.actions.refresh') }}
-          </el-button>
-          <el-button :loading="loading.lookup" data-testid="sql-history-run-lookup" @click="runIndexedLookup">
-            {{ t('sqlHistory.actions.lookup') }}
-          </el-button>
-          <el-button @click="clearFilters">{{ t('sqlHistory.actions.clear') }}</el-button>
-        </div>
-      </template>
-      <template #aside>
-        <div class="summary-strip" :aria-label="t('sqlHistory.metrics.label')">
-          <MetricCard
-            v-for="item in summaryMetrics"
-            :key="item.key"
-            v-bind="metricCardProps(item)"
-          />
-        </div>
-      </template>
-    </PageHero>
+    <header class="sql-history-header surface-card">
+      <SectionHeader
+        :eyebrow="PAGE_KICKER"
+        :title="t('sqlHistory.title')"
+        :summary="t('sqlHistory.summary')"
+        size="compact"
+      >
+        <template #actions>
+          <div class="action-row">
+            <el-button type="primary" :loading="loadingList" data-testid="sql-history-refresh" @click="search">
+              {{ t('sqlHistory.actions.refresh') }}
+            </el-button>
+            <el-button :loading="loading.lookup" data-testid="sql-history-run-lookup" @click="runIndexedLookup">
+              {{ t('sqlHistory.actions.lookup') }}
+            </el-button>
+            <el-button @click="clearFilters">{{ t('sqlHistory.actions.clear') }}</el-button>
+          </div>
+        </template>
+      </SectionHeader>
+      <div class="summary-strip" :aria-label="t('sqlHistory.metrics.label')">
+        <MetricCard
+          v-for="item in summaryMetrics"
+          :key="item.key"
+          v-bind="metricCardProps(item)"
+        />
+      </div>
+    </header>
 
     <div v-if="visibleErrorMessage" class="inline-banner inline-banner-danger" data-testid="sql-history-error">
       <strong>{{ t('sqlHistory.states.errorTitle') }}</strong>
@@ -986,7 +986,6 @@ watch(
       test-id="sql-history-query-history-table"
       :eyebrow="t('sqlHistory.table.kicker')"
       :title="t('sqlHistory.table.title')"
-      :summary="t('sqlHistory.table.summary')"
     >
       <el-table
         v-loading="loadingList"
@@ -1049,9 +1048,7 @@ watch(
 
       <div class="table-footer">
         <div class="footer-status">
-          <span>{{ t('sqlHistory.footer.currentPageCount', { count: tableRows.length }) }}</span>
-          <span>{{ t('sqlHistory.footer.totalCount', { count: pageInfo.total }) }}</span>
-          <span>{{ t('sqlHistory.footer.pageWindow', pageWindow) }}</span>
+          <span>{{ t('sqlHistory.footer.resultWindow', { count: tableRows.length, total: pageInfo.total, current: pageWindow.current, pages: pageWindow.total }) }}</span>
           <span>{{ t('sqlHistory.footer.lastQuery', { status: listStatusLabel, time: lastQueryText }) }}</span>
         </div>
         <el-pagination
@@ -1060,7 +1057,7 @@ watch(
           class="pagination-row"
           data-testid="sql-history-pagination"
           background
-          layout="total, sizes, prev, pager, next, jumper"
+          layout="prev, pager, next, sizes"
           :total="pageInfo.total"
           :page-sizes="LIST_PAGE_SIZE_OPTIONS"
           :disabled="loadingList"
@@ -1226,16 +1223,18 @@ watch(
   color: var(--sqlforge-text-primary);
 }
 
-.page-shell,
-.filter-panel,
-.table-panel {
+.surface-card {
   border: 1px solid var(--sqlforge-border-default);
   border-radius: var(--sqlforge-radius-sm);
   background: var(--sqlforge-surface-2);
   padding: var(--sqlforge-space-5);
 }
 
-.page-shell,
+.sql-history-header {
+  display: grid;
+  gap: var(--sqlforge-space-4);
+}
+
 .table-heading,
 .dialog-header,
 .banner-row,
@@ -1246,10 +1245,6 @@ watch(
   justify-content: space-between;
   gap: var(--sqlforge-space-3);
   flex-wrap: wrap;
-}
-
-.page-copy {
-  max-width: 760px;
 }
 
 .section-kicker,
@@ -1292,6 +1287,10 @@ watch(
   margin-bottom: 0;
 }
 
+.filter-form {
+  width: 100%;
+}
+
 .field-grid,
 .summary-strip,
 .detail-grid,
@@ -1311,29 +1310,7 @@ watch(
 }
 
 .summary-strip {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-sm);
-  background: var(--sqlforge-bg-page-deep);
-  padding: var(--sqlforge-space-4);
-}
-
-.summary-metric {
-  min-width: 0;
-  border-left: 1px solid var(--sqlforge-border-default);
-  padding-left: var(--sqlforge-space-3);
-}
-
-.summary-metric:first-child {
-  border-left: 0;
-  padding-left: 0;
-}
-
-.summary-metric strong {
-  display: block;
-  margin-top: var(--sqlforge-space-1);
-  color: var(--sqlforge-text-primary);
-  font-size: var(--sqlforge-text-heading);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 .field-block,
@@ -1435,6 +1412,7 @@ watch(
 
 .table-footer {
   margin-top: var(--sqlforge-space-4);
+  align-items: flex-start;
 }
 
 .footer-status {
@@ -1469,7 +1447,6 @@ watch(
     padding: var(--sqlforge-space-4);
   }
 
-  .page-shell,
   .table-heading,
   .dialog-header,
   .action-row,
@@ -1478,16 +1455,8 @@ watch(
     flex-direction: column;
   }
 
-  .summary-metric {
-    border-left: 0;
-    border-top: 1px solid var(--sqlforge-border-default);
-    padding-left: 0;
-    padding-top: var(--sqlforge-space-3);
-  }
-
-  .summary-metric:first-child {
-    border-top: 0;
-    padding-top: 0;
+  .pagination-row {
+    justify-content: flex-start;
   }
 }
 </style>

@@ -575,6 +575,7 @@ export default {
       currentPageCount: '{count} on this page',
       totalCount: '{count} total',
       pageWindow: 'Page {current}/{total}',
+      resultWindow: '{count} on this page / {total} total / page {current}/{pages}',
       lastQuery: 'Last query: {status} · {time}'
     }
   },

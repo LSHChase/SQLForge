@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-117: 复核并修复 HARN-110 页面结构回归
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `fix(frontend): HARN-117 repair sql page layout regressions`
+- Priority: 1
+- Depends on: HARN-110
+- Scope: 截图复核 SQL 查询与 SQL 历史页面，修复 HARN-110 引入的筛选布局、分页/状态栏重复、无必要说明文案和可见页面结构问题；保留 SQL 执行 payload、历史查询契约、SqlEditorField/SqlCodeBlock、后端权威和 raw SQL 不自动格式化语义。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-117`
+- Progress log:
+  - 2026-05-09: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-09: captured SQL query/history screenshots with mocked API data, confirmed one-column history filters, duplicated pagination/status copy, unnecessary table summary copy, and over-large PageHero usage on high-frequency workbench pages; implemented compact header, filter-grid, pagination, and copy cleanup.
+- Context closeout:
+  - Completed scope: Captured SQL query/history screenshots with mocked API data, confirmed HARN-110 visual regressions, and repaired high-frequency page layout by replacing oversized PageHero usage with compact SectionHeader headers, restoring SQL history filters to a multi-column grid, removing unnecessary table summary copy, and simplifying the history pagination/status footer while preserving SQL payload and history contracts.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-117 --include-task-audit passed; direct npm run lint, npm run build, npm run test:frontend-page-governance, npm run test:sql-ui-contract, and npm run test:form-governance passed; screenshot artifacts were generated under /tmp/sqlforge-harn117-screenshots/.
+  - Residual risk: The current governance scripts still do not assert screenshot-level layout quality, filter grid density, duplicate pagination/status text, or oversized PageHero usage on management pages; HARN-116 should add explicit visual/layout guards before the remaining page refactors.
+  - Next step: Before starting HARN-111, add a short visual review checklist or screenshot guard for the target page class, then apply the compact management-page header pattern instead of PageHero by default.
+
 ### HARN-110: 重构 SQL 查询与 SQL 历史页面结构
 
 - Status: done

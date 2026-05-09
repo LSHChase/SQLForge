@@ -7,7 +7,7 @@ import {
   getGovernanceMessageStats
 } from '../../services/runtimeGateApi'
 import MetricCard from '../common/MetricCard.vue'
-import PageHero from '../common/PageHero.vue'
+import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
 import { formatSqlText } from '../common/sqlFormatting.mjs'
@@ -415,22 +415,25 @@ const formatJson = value => JSON.stringify(value, null, 2)
 
 <template>
   <section class="query-workbench" data-testid="query-flow-page">
-    <PageHero
-      :eyebrow="t('sqlQuery.hero.eyebrow')"
-      :title="t('sqlQuery.title')"
-      :summary="t('sqlQuery.summary')"
-      :pills="queryHeroPills"
-    >
-      <template #aside>
-        <div class="query-hero-metrics">
-          <MetricCard
-            v-for="item in queryHeroMetrics"
-            :key="item.key"
-            v-bind="queryMetricProps(item)"
-          />
-        </div>
-      </template>
-    </PageHero>
+    <header class="query-workbench__header surface-card">
+      <SectionHeader
+        :eyebrow="t('sqlQuery.hero.eyebrow')"
+        :title="t('sqlQuery.title')"
+        :summary="t('sqlQuery.summary')"
+        size="compact"
+      >
+        <template #actions>
+          <span v-for="pill in queryHeroPills" :key="pill" class="mini-pill">{{ pill }}</span>
+        </template>
+      </SectionHeader>
+      <div class="query-hero-metrics">
+        <MetricCard
+          v-for="item in queryHeroMetrics"
+          :key="item.key"
+          v-bind="queryMetricProps(item)"
+        />
+      </div>
+    </header>
 
     <div class="query-workbench__grid">
       <aside class="query-rail surface-card">
@@ -836,13 +839,33 @@ const formatJson = value => JSON.stringify(value, null, 2)
 .query-workbench {
   display: flex;
   flex-direction: column;
-  gap: var(--sqlforge-space-6);
+  gap: var(--sqlforge-space-5);
+}
+
+.query-workbench__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.95fr);
+  gap: var(--sqlforge-space-5);
+  align-items: stretch;
+  padding: var(--sqlforge-space-5);
 }
 
 .query-hero-metrics {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--sqlforge-space-3);
+}
+
+.mini-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-pill);
+  background: var(--sqlforge-bg-page-deep);
+  color: var(--sqlforge-text-secondary);
+  font-size: var(--sqlforge-text-meta);
 }
 
 .query-workbench__grid {
@@ -1054,10 +1077,12 @@ const formatJson = value => JSON.stringify(value, null, 2)
 }
 
 @media (max-width: 1280px) {
+  .query-workbench__header,
   .query-workbench__grid {
     grid-template-columns: 1fr;
   }
 
+  .query-hero-metrics,
   .field-grid,
   .detail-grid {
     grid-template-columns: 1fr;
