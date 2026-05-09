@@ -223,3 +223,17 @@
   - `docs/rules/codex-rules.md`
   - `docs/frontend/design-system.md`
   - `docs/frontend/form-component-governance.md`
+
+## 2026-05-08T21:55:00-05:00
+
+- 事件：人类要求把 `R-177` 至 `R-184` 从文档约束补强为前端页面新增、修改、重构时的自动化门禁。
+- 约束：
+  - 新增 `scripts/check-frontend-page-governance.mjs`，检查变更管理页的 i18n 使用、明显硬编码文案、表格 / 分页 / 弹窗 / 字典模式和 `<el-card>` 嵌套高风险结构。
+  - `foreman validate` 只要检测到 `src/views/**/*.vue`、`src/components/**/*.vue` 或 `src/locales/**` 变更，必须自动追加 `npm run lint`、`npm run build`、`npm run test:form-governance`、`npm run test:sql-ui-contract` 和 `npm run test:frontend-page-governance`。
+  - `task-spec-matrix.md` 必须把 `R-177` 至 `R-184` 和上述验证命令作为所有 `VUE-FE` / frontend 页面任务的默认叠加规则，避免只依赖执行者自觉判断。
+- 落点：
+  - `scripts/check-frontend-page-governance.mjs`
+  - `scripts/foreman.py`
+  - `package.json`
+  - `docs/rules/codex-rules.md`
+  - `docs/plans/task-spec-matrix.md`

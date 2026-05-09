@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-097: 补齐前端页面规则自动化门禁
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `chore(frontend): HARN-097 enforce page governance gates`
+- Priority: 1
+- Depends on: N/A
+- Scope: Add automated enforcement for R-177 through R-184: create a frontend page governance contract script, make foreman validate automatically run frontend lint/build/form-governance/sql-ui/page-governance checks when tracked diffs touch frontend view/component/locale files, and map R-177 through R-184 plus the new validation command into frontend task matrices.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-097`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added a diff-aware frontend page governance checker, exposed it through npm, wired foreman validate to automatically run frontend lint/build/form-governance/sql-ui/page-governance checks when frontend view/component/locale files change, mapped R-177 through R-184 into the frontend task default overlay, updated rule/history documentation, and regenerated the compiled authority map.
+  - Validation evidence: npm run test:frontend-page-governance; python3 -m py_compile scripts/foreman.py; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance; python3 scripts/foreman.py validate HARN-097; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check
+  - Residual risk: The new gate is diff-aware and enforces changed frontend surfaces; existing frontend debt is not retroactively failed unless those files are touched. During implementation it correctly flagged the separate HARN-096 ParseRecordView diff, which was temporarily stashed only for HARN-097 closeout and will be restored.
+  - Next step: Future frontend page tasks should rely on foreman validate to auto-run the frontend governance gates, and touched management pages must satisfy R-177 through R-184.
+
 ### HARN-095: 固化前端页面工程规则
 
 - Status: done

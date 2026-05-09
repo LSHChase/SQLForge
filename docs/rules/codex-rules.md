@@ -933,6 +933,8 @@ messaging:
 - 新增或重构前端页面必须执行 `R-124` 前端三件套验证：`npm run lint`、`npm run build`，以及路由 / 国际化 / 主题文件完整性检查。
 - 触发表单治理、日期区间、候选值、权限可见性或提交格式变更时，必须执行 `npm run test:form-governance` 或对应静态契约检查。
 - 触发 SQL 输入、SQL 展示、格式化、高亮、复制、历史详情或 SQL-bearing 页面时，必须执行 `npm run test:sql-ui-contract` 或 `node scripts/check-sql-ui-contract.mjs`。
+- 触发 `src/views/**/*.vue`、`src/components/**/*.vue` 或 `src/locales/**` 变更时，`foreman validate` 必须自动追加前端 lint、build、表单治理、SQL UI 和 `npm run test:frontend-page-governance` 页面治理检查。
+- `scripts/check-frontend-page-governance.mjs` 必须检查变更管理页的 i18n 使用、明显硬编码文案、表格 / 分页 / 弹窗 / 字典模式和 `<el-card>` 嵌套高风险结构。
 - 页面涉及历史、批量导入、系统管理、数据源、解析或其他已有 contract 脚本覆盖面时，必须运行对应 `scripts/check-*-contract.mjs`，不得只依赖浏览器目测。
 
 ## Current Consumption Note (2026-04-20)

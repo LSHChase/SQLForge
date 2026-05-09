@@ -16,7 +16,16 @@ _No tasks._
 
 ## In Progress
 
-_No tasks._
+### HARN-096: 修复问题场景详情报表展示不全
+
+- Status: in_progress
+- Priority: 1
+- Depends on: N/A
+- Scope: Fix parse history report import detail issue-scene drawer so reportDetails are rendered completely in the report-level statistics detail, keep SQL detail pagination unchanged, and add a static contract guard preventing reportDetails slice truncation from returning.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-096`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
 
 
 ## Blocked

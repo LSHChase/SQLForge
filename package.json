@@ -15,6 +15,7 @@
     "lint": "eslint . --ext .js,.mjs,.vue --max-warnings=0",
     "test:form-governance": "node scripts/validate-form-component-governance.mjs",
     "test:sql-ui-contract": "node scripts/check-sql-ui-contract.mjs",
+    "test:frontend-page-governance": "node scripts/check-frontend-page-governance.mjs",
     "portable:start": "node dist-portable/portable-server.mjs --config dist-portable/portable-config.json",
     "smoke:frontend-dev": "node scripts/check-dev-frontend.mjs",
     "smoke:portable-frontend": "node scripts/check-portable-frontend.mjs",

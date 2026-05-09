@@ -9,7 +9,7 @@
 - `ADR`：`docs/adr/README.md` 与对应 ADR 实体文件
 - `Sec`：`docs/security/compliance.md`, `docs/security/access-control-spec.md`
 - `Msg`：`docs/architecture/messaging-abstraction.md`
-- `Front`：`docs/frontend/design-system.md`, `docs/quality/frontend-backend-separation-baseline.md`
+- `Front`：`docs/frontend/design-system.md`, `docs/frontend/form-component-governance.md`, `docs/quality/frontend-backend-separation-baseline.md`
 - `Deploy`：`docs/deployments/local-setup.md`, `docs/deployments/offline-setup.md`, `docs/deployments/huawei-cloud-setup.md`
 - `Delivery`：`docs/deliveries/init-completion.md`, `docs/plans/phase-0-plan.md`
 - `Archive`：`docs/references/human-constraint-history.md`, `docs/references/raw-requirements/...`
@@ -26,6 +26,20 @@
 - `application(controller/service)/domain/infrastructure`：后端强制分层，其中 `application` 仅作为 `controller`、`service` 等入站与编排代码的包域
 - `frontend/router/views/styles`：前端层
 - `deployments/ci/scripts`：运维与交付层
+
+## Frontend Task Default Governance Overlay
+
+所有 `Tech` 包含 `VUE-FE`、`Layer` 包含 `frontend/router/views/styles`，或契约涉及 `frontend-page` / `frontend-routing` / `ui-components` / `i18n` 的新增、修改、重构任务，默认叠加以下规则和验证；各行不再重复展开时仍视为已映射：
+
+- 默认规则：`R-177`,`R-178`,`R-179`,`R-180`,`R-181`,`R-182`,`R-183`,`R-184`
+- 默认验证：
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:form-governance`
+  - `npm run test:sql-ui-contract`
+  - `npm run test:frontend-page-governance`
+  - 任务命中的 `scripts/check-*-contract.mjs`
+- `foreman validate` 若检测到 `src/views/**/*.vue`、`src/components/**/*.vue` 或 `src/locales/**` 变更，必须自动追加上述前五项前端验证。
 
 ## Phase-A
 
