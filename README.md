@@ -4,7 +4,7 @@ SQLForge 是一个面向企业 BI 与数据中台场景的 SQL 生命周期治�
 
 ## 项目简介
 
-- 后端技术栈：Java 8、Spring Boot 2.7.x、MyBatis XML、Maven、Lombok、MapStruct
+- 后端技术栈：JDK 8u112、Spring Boot 2.7.x、MyBatis XML、Maven、Lombok、MapStruct
 - 前端技术栈：Vue 3、JavaScript、Element Plus 2.4+、Pinia、Vue Router 4、Vite
 - 基础设施：Nacos 2.2.x、Spring Cloud Gateway 3.1.x、Sentinel 1.8.x、XXL-JOB 2.4
 - 数据与中间件：MySQL 8.0、Redis 7.x、Kafka 3.6+、Hudi 0.14.0(COW)

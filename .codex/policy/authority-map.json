@@ -34,19 +34,19 @@
       "path": "docs/architecture/init.md",
       "title": "SQL\u751f\u547d\u5468\u671f\u6cbb\u7406\u5e73\u53f0 \u2014 \u67b6\u6784\u521d\u59cb\u5316\u603b\u6587\u6863",
       "excerpt": "\u57fa\u4e8e\u5168\u90e8\u5386\u53f2\u786e\u8ba4\u3001\u8865\u5145\u89c4\u5219\u53ca\u4fee\u590d\u9879\uff0c\u73b0\u8f93\u51fa\u5b8c\u6574\u7248\u300a\u9879\u76ee\u67b6\u6784\u521d\u59cb\u5316\u6587\u6863\u300b\u3002",
-      "sha256": "a8d941136ab4609ca1ec3f5daf58b01b0d5b9513c9213c9604d2ed1796c14dc7"
+      "sha256": "ae5e2581c8ffd22d414854b131e99bcafa07ce9f166d73a52d74fad24a6f76c2"
     },
     {
       "path": "docs/rules/codex-rules.md",
       "title": "Codex Rules",
       "excerpt": "\u672c\u6587\u4ef6\u4e3a append-only \u89c4\u5219\u8d26\u672c\uff0c\u57fa\u7ebf\u6765\u6e90\u4e3a `docs/architecture/init.md` \u7684 `R-001` \u81f3 `R-115`\uff0c\u540e\u7eed\u89c4\u5219\u6309\u8ffd\u52a0\u65b9\u5f0f\u6269\u5c55\u5230\u5f53\u524d\u7248\u672c\u3002",
-      "sha256": "1c3b2f990db576e77c8a7dc52986950801db662fe96814e6c331291340d50229"
+      "sha256": "29831c22eda4c7b0318624d965b610a606753f7a7314b43d37a7e304339fc5fb"
     },
     {
       "path": "docs/quality/validation-rules.md",
       "title": "Validation Rules",
-      "excerpt": "\u672c\u6587\u4ef6\u72ec\u7acb\u6536\u5f55 `R-116` \u81f3 `R-176` \u7684\u9a8c\u8bc1\u89c4\u5219\uff0c\u5e76\u8865\u5145 `R-168` \u7684\u6267\u884c\u578b\u9a8c\u8bc1\u8854\u63a5\uff0c\u7528\u4e8e\u5feb\u901f\u67e5\u9605\u9636\u6bb5\u95e8\u7981\u3001\u4efb\u52a1\u9a8c\u8bc1\u3001\u56de\u5f52\u9a8c\u8bc1\u3001\u73af\u5883\u9a8c\u8bc1\u3001\u89c4\u5219\u81ea\u7ef4\u62a4\u3001\u81ea\u52a8\u89e6\u53d1\u9a8c\u8bc1\u89c4\u5219\u3001harness \u4efb\u52a1\u6cbb\u7406\u9a8c\u8bc1\u4e0e MCP \u6cbb\u7406\u9a8c\u8bc1\u3002",
-      "sha256": "66b2e574919955be05ca97b4ffcf077aa901d7ae5d68cbbdb0777182e5ed71a3"
+      "excerpt": "\u672c\u6587\u4ef6\u72ec\u7acb\u6536\u5f55 `R-116` \u81f3 `R-185` \u7684\u9a8c\u8bc1\u89c4\u5219\uff0c\u5e76\u8865\u5145 `R-168` \u7684\u6267\u884c\u578b\u9a8c\u8bc1\u8854\u63a5\uff0c\u7528\u4e8e\u5feb\u901f\u67e5\u9605\u9636\u6bb5\u95e8\u7981\u3001\u4efb\u52a1\u9a8c\u8bc1\u3001\u56de\u5f52\u9a8c\u8bc1\u3001\u73af\u5883\u9a8c\u8bc1\u3001\u89c4\u5219\u81ea\u7ef4\u62a4\u3001\u81ea\u52a8\u89e6\u53d1\u9a8c\u8bc1\u89c4\u5219\u3001harness \u4efb\u52a1\u6cbb\u7406\u9a8c\u8bc1\u3001MCP \u6cbb\u7406\u9a8c\u8bc1\u4e0e JDK \u8fd0\u884c\u65f6\u9a8c\u8bc1\u3002",
+      "sha256": "a98856b65b8111f1df742ab098597ef0d51b6815c4dcbb10ab244511acfe9ec1"
     }
   ]
 }

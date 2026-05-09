@@ -57,7 +57,7 @@
 
 - Windows 10
 - IntelliJ IDEA
-- JDK 8
+- JDK 8u112
 - Maven 3.8+
 - MySQL 8.0 或兼容 TDSQL
 - Redis 7.x 或兼容实例
@@ -303,7 +303,7 @@ IDEA Run Configuration 建议：
 
 - `Main class`: `com.company.governance.GovernanceApplication`
 - `Use classpath of module`: `governance`
-- `JRE`: `Java 8`
+- `JRE`: `JDK 8u112`
 - `Active profiles`:
   - `test`
   - 如果用了本地 overlay：`test,test-local`
@@ -320,7 +320,7 @@ IDEA Run Configuration 建议：
 
 - `Main class`: `com.company.queryexecution.QueryExecutionApplication`
 - `Use classpath of module`: `query-execution`
-- `JRE`: `Java 8`
+- `JRE`: `JDK 8u112`
 - `Active profiles`:
   - `test`
   - 如果用了本地 overlay：`test,test-local`

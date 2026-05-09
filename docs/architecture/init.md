@@ -68,7 +68,7 @@
 | 规则ID | 规则内容 | 固化位置 |
 |:---|:---|:---|
 | **R-015** | 前后端必须可独立构建和部署 | `docs/architecture/deployment.md` |
-| **R-016** | 前端技术栈固定：Vue 3 + JavaScript + CSS；后端固定：Java 8 + Spring Boot 2.x | `docs/tech-stack.md` |
+| **R-016** | 前端技术栈固定：Vue 3 + JavaScript + CSS；后端固定：Java 8 + Spring Boot 2.x，实际 Java 运行时按 `R-185` 固定为 JDK 8u112 | `docs/tech-stack.md` |
 | **R-017** | 文件编码统一UTF-8，行尾统一LF，运行/构建路径必须兼容amd64和arm64 | `.editorconfig`、`pom.xml` |
 | **R-018** | 前端负责页面编排、表单输入、交互反馈、体验型预校验；后端是权威边界，负责规则校验、业务编排、执行控制、持久化、审计 | `docs/architecture/boundary.md` |
 | **R-019** | 重要领域判断不能长期留在前端状态里；前端可以预校验，但后端必须重新校验全部请求 | 接口契约文档 |
@@ -805,7 +805,7 @@ SQL优化服务 → 公共管理服务（获取元数据、统计信息、写入
 
 | 层级 | 组件 | 版本/说明 |
 |:---|:---|:---|
-| **基础运行时** | Java | 8 |
+| **基础运行时** | Java | JDK 8u112 |
 | | Spring Boot | 2.7.x |
 | | Vue | 3.3+ |
 | | Element Plus | 2.4+ |
@@ -985,7 +985,7 @@ SQL优化服务 → 公共管理服务（获取元数据、统计信息、写入
 3. **关联规则编号**（如R-021、R-060）
 4. **上下文引用：** 需读取的文档路径（按R-006顺序）
 5. **接口契约：** 输入/输出/边界条件纯文字描述
-6. **技术约束：** Java 8、Spring Boot 2.x、MyBatis XML、Element Plus等
+6. **技术约束：** JDK 8u112、Spring Boot 2.x、MyBatis XML、Element Plus等
 7. **分层定位：** controller/service/domain/infrastructure/common
 8. **测试策略：** 正常/异常/边界场景
 9. **依赖声明：** 前置Task
@@ -1124,7 +1124,7 @@ SQL优化服务 → 公共管理服务（获取元数据、统计信息、写入
 
 ### 13.2 ARM64支持
 
-- 所有Java服务基于OpenJDK 8 ARM64镜像构建
+- 所有Java服务基于 JDK 8u112 兼容 ARM64 镜像构建
 - 前端Vite构建配置兼容ARM64
 - 华为云鲲鹏服务器部署验证
 

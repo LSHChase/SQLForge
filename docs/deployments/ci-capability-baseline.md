@@ -39,7 +39,7 @@
 | Workflow count | 当前仓库有四个 GitHub Actions 工作流：`.github/workflows/ci.yml`、`.github/workflows/phase-gate.yml`、`.github/workflows/kafka-runtime-gate.yml` 与 `.github/workflows/release-phase-gate.yml` | `.github/workflows/ci.yml`, `.github/workflows/phase-gate.yml`, `.github/workflows/kafka-runtime-gate.yml`, `.github/workflows/release-phase-gate.yml` |
 | Trigger policy | 主 CI 在 `main` / `master` / `develop` 的 `push` 以及所有 `pull_request` 上触发；release gate 绑定到 `checkpoint/*` tag push 与 GitHub `release.published` 元数据 | `.github/workflows/ci.yml`, `.github/workflows/release-phase-gate.yml` |
 | Job topology | 当前只有一个 job：`build-and-test`，运行环境为 `ubuntu-latest` | `.github/workflows/ci.yml` |
-| Runtime setup | workflow 会安装 Java 8 和 Node.js 20 | `.github/workflows/ci.yml` |
+| Runtime setup | workflow 会安装 Zulu JDK 8u112 和 Node.js 20 | `.github/workflows/ci.yml` |
 | Backend static checks | workflow 会分步执行 `mvn -B validate -DskipTests`、`mvn -B pmd:pmd -DskipTests`、`mvn -B checkstyle:checkstyle -DskipTests`、`mvn -B checkstyle:check -DskipTests` | `.github/workflows/ci.yml` |
 | Java scan artifacts | workflow 会校验并上传各模块的 `target/pmd.xml`、`target/site/pmd.html`、`target/checkstyle-result.xml`、`target/site/checkstyle.html` | `.github/workflows/ci.yml`, `scripts/verify_java_quality_reports.py` |
 | Backend tests | workflow 会执行 `mvn -B test` | `.github/workflows/ci.yml` |

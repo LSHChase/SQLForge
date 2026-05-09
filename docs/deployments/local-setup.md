@@ -3,7 +3,7 @@
 ## 前置条件
 
 - Docker Desktop 或 Docker Engine + Docker Compose
-- JDK 8
+- JDK 8u112
 - Maven 3.8+
 - Node.js 18+
 

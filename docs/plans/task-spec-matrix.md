@@ -17,7 +17,7 @@
 ## Tech / Layer Codes
 
 - `DOCS`：Markdown/规则/计划/ADR 文档
-- `JAVA-BE`：Java 8 + Spring Boot 2.x + MyBatis XML + Maven
+- `JAVA-BE`：JDK 8u112 + Spring Boot 2.x + MyBatis XML + Maven
 - `VUE-FE`：Vue 3 + JavaScript + Element Plus + Vite
 - `OPS`：Docker Compose / CI / Huawei Cloud / shell scripts
 - `SQL`：MySQL schema / init scripts / XML

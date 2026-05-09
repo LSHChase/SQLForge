@@ -1,6 +1,6 @@
 # SQLForge Alibaba Java Guidelines
 
-本文件将阿里 Java 代码规范固化为 SQLForge 的仓库内落地版本，作为 Java 8 + Spring Boot 2.x + MyBatis XML 技术栈的默认编码参考。
+本文件将阿里 Java 代码规范固化为 SQLForge 的仓库内落地版本，作为 JDK 8u112 + Spring Boot 2.x + MyBatis XML 技术栈的默认编码参考。
 
 ## 规范来源
 

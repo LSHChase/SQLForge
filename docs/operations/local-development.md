@@ -75,7 +75,7 @@
 
 ## Environment Rules
 
-- 后端固定 Java 8 + Spring Boot 2.x
+- 后端固定 JDK 8u112 + Spring Boot 2.x
 - 多环境配置通过 `application-{profile}.yml`
 - 本地脚本和 compose 编排以仓库当前文件为准，不引入外部项目的服务顺序或端口口径
 - `docs/generated/repo-map.md` 只作为仓库结构快照，不替代源码和规范文档

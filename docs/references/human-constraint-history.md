@@ -237,3 +237,29 @@
   - `package.json`
   - `docs/rules/codex-rules.md`
   - `docs/plans/task-spec-matrix.md`
+
+## 2026-05-09T00:00:00-05:00
+
+- 事件：人类要求把 `jdk8u112` 写入强制要求。
+- 新增规则：`R-185`。
+- 约束：
+  - 后端 Java 编译、测试、本地运行、CI、测试环境和交付环境固定使用 JDK 8u112。
+  - 文档、脚本、CI workflow、IDEA / 本地部署说明和环境验收不得只以泛化 `Java 8` / `JDK 8` 表述为满足条件。
+  - 当前环境不能提供 JDK 8u112 时，相关 Java 验证不得写成合规通过，必须记录为 skipped、blocked、residual risk 或进入 `INBOX.md`。
+  - 改用其他 Java 8 update、其他 JDK 发行版版本或更高 Java 版本前，必须先由人类确认并同步规则、部署文档和验证规则。
+- 落点：
+  - `AGENTS.md`
+  - `README.md`
+  - `.github/workflows/ci.yml`
+  - `.github/workflows/phase-gate.yml`
+  - `.github/workflows/release-phase-gate.yml`
+  - `.github/workflows/kafka-runtime-gate.yml`
+  - `docs/rules/codex-rules.md`
+  - `docs/quality/validation-rules.md`
+  - `docs/architecture/init.md`
+  - `docs/deployments/local-setup.md`
+  - `docs/deployments/hetu-test-environment-deployment-runbook.md`
+  - `docs/deployments/ci-capability-baseline.md`
+  - `docs/operations/local-development.md`
+  - `docs/plans/task-spec-matrix.md`
+  - `scripts/lint-repository-knowledge.js`

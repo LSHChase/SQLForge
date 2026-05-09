@@ -98,13 +98,14 @@ const requiredReadmeMarkers = [
   'docs/plans/codex-governance-integration-blueprint.md'
 ]
 
-const expectedRuleEnd = 184
+const expectedRuleEnd = 185
 const expectedValidationIndexRanges = [
   [116, 144],
   [151, 154],
   [156, 161],
   [168, 168],
-  [170, 176]
+  [170, 176],
+  [185, 185]
 ]
 const requiredMessagingConfigs = [
   'governance/src/main/resources/application-dev.yml',

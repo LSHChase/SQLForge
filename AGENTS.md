@@ -7,6 +7,7 @@
 - 非 trivial 任务在开始实现前，必须先通过 `python3 scripts/foreman.py preflight` 建立上下文。
 - `docs/README.md`、`docs/plans/document-truth-baseline.md`、`docs/architecture/init.md`、`docs/rules/codex-rules.md`、`docs/quality/validation-rules.md` 是默认必读入口。
 - 完整的 Karpathy 风格编码说明见 `docs/rules/karpathy-guidelines.md`；`AGENTS.md` 只保留入口和仓库级执行约束。
+- 后端 Java 编译、测试、本地运行、CI 与交付环境固定使用 JDK 8u112；不得以泛化 `Java 8` 或其他 8u 版本替代，除非人类确认并更新规则。
 - 非 trivial 任务不得绕过 `tasks.md` / `tasks-done.md` / `INBOX.md` 的运行台账体系。
 - 任务实现、验证、归档、closeout 与交付收尾必须通过 `python3 scripts/foreman.py ...` 标准动作执行。
 - 禁止跳过 `python3 scripts/task_audit.py --check --phase pre-closeout|post-closeout`。

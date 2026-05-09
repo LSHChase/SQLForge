@@ -23,7 +23,7 @@
 ## 架构与工程硬约束
 
 - `R-015`：前后端必须可独立构建和部署。
-- `R-016`：前端固定 Vue 3 + JavaScript + CSS，后端固定 Java 8 + Spring Boot 2.x。
+- `R-016`：前端固定 Vue 3 + JavaScript + CSS，后端固定 Java 8 + Spring Boot 2.x；实际 Java 运行时以 `R-185` 的 JDK 8u112 强制基线为准。
 - `R-017`：文件统一 UTF-8/LF，运行与构建路径兼容 amd64 和 arm64。
 - `R-018`：前端负责编排与预校验，后端是规则、编排、执行、持久化与审计的权威边界。
 - `R-019`：关键领域判断不能长期留在前端状态里，后端必须重校验。
@@ -937,9 +937,18 @@ messaging:
 - `scripts/check-frontend-page-governance.mjs` 必须检查变更管理页的 i18n 使用、明显硬编码文案、表格 / 分页 / 弹窗 / 字典模式和 `<el-card>` 嵌套高风险结构。
 - 页面涉及历史、批量导入、系统管理、数据源、解析或其他已有 contract 脚本覆盖面时，必须运行对应 `scripts/check-*-contract.mjs`，不得只依赖浏览器目测。
 
+## Java 运行时强制要求（R-185）
+
+### R-185 JDK 8u112 强制基线
+
+- 后端 Java 编译、测试、本地运行、CI、测试环境和交付环境必须固定使用 JDK 8u112。
+- 文档、脚本、CI workflow、IDEA / 本地部署说明和环境验收不得只写泛化的 `Java 8` / `JDK 8` 作为满足条件；必须明确 JDK 8u112。
+- 若当前执行环境不能提供 JDK 8u112，相关 Java 构建、运行或交付验证不得被写成合规通过；必须记录为 skipped、blocked、residual risk 或进入 `INBOX.md`，按任务性质处理。
+- 任何改用其他 Java 8 update、JDK 发行版版本或更高 Java 版本的需求，都必须先由人类确认，并通过追加规则、部署文档和验证规则同步落地。
+
 ## Current Consumption Note (2026-04-20)
 
 - `R-001` 至 `R-115` 仍是初始化基线，语义来源保持 `docs/architecture/init.md` 不变。
-- `R-116` 至 `R-184` 是初始化后追加的验证、Java 规范、harness 治理、MCP 治理与前端页面工程规则。
+- `R-116` 至 `R-185` 是初始化后追加的验证、Java 规范、harness 治理、MCP 治理、前端页面工程规则与 JDK 8u112 运行时强制基线。
 - 当前仓库执行时，若初始化文档中的目标落点路径与真实文档路径不一致，统一按 `docs/plans/document-truth-baseline.md` 中的漂移映射消费。
 - 本说明不新增规则编号，不改变既有规则语义，只补充当前仓库的实际消费顺序。

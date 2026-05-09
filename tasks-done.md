@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-098: 固化 JDK 8u112 强制运行时要求
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `docs(runtime): HARN-098 pin JDK 8u112 requirement`
+- Priority: 1
+- Depends on: N/A
+- Scope: 将人类要求的 JDK 8u112 写入 SQLForge 长期强制要求，更新 Java 运行时规则、技术栈/部署入口与人类约束历史，不改业务代码。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-098`
+- Progress log:
+  - 2026-05-09: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added JDK 8u112 as the mandatory Java runtime baseline across AGENTS, rules, validation rules, architecture/README/deployment docs, CI workflows, human constraint history, task spec aliases, and regenerated governance authority map.
+  - Validation evidence: node scripts/lint-repository-knowledge.js; git diff --check; python3 scripts/foreman.py compile-governance --check; python3 scripts/foreman.py validate HARN-098
+  - Residual risk: Local shell currently reports OpenJDK 1.8.0_482, so no local Java build/test was claimed as JDK 8u112-compliant; GitHub workflows now install and verify Zulu JDK 8u112 before Java gates.
+  - Next step: Apply R-185 to future Java build, deployment, CI, and test-environment changes; raise INBOX/blocker if any target environment cannot provision JDK 8u112.
+
 ### HARN-105: Support AES-256 crypto fallback on JDK 8u112
 
 - Status: done
