@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-SCHEMA-DRIFT-REPAIR-20260509: Repair local schema drift for parse history
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `chore(local): repair schema drift for parse history`
+- Priority: 1
+- Depends on: N/A
+- Scope: Apply local MySQL schema additions for sql_parse_history, datasource_config, and related compatibility migrations, then restart backend services and verify parse-history queries.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-SCHEMA-DRIFT-REPAIR-20260509`
+- Progress log:
+  - 2026-05-09: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Applied local MySQL schema additions from sql/init-schema.sql and migrations V20260508_001, V20260509_001, V20260508_004, plus V20260508_003 for optimization_task.task_context_json; restarted backend services.
+  - Validation evidence: python3 scripts/foreman.py validate OPS-SCHEMA-DRIFT-REPAIR-20260509 --include-task-audit passed with health-check, schema presence checks, and parse-history readback; structure parse smoke returned historyPersisted=true and sql_parse_history readback returned totalCount >= 1.
+  - Residual risk: The repair updates the current local MySQL volume only; other developers or reset volumes must apply the same schema scripts or rerun local-start against their own databases.
+  - Next step: Continue using http://localhost:3000/ and rerun parser workflows; new parse requests now persist to sql_parse_history.
+
 ### OPS-DIST-PORTABLE-REFRESH-20260509-HARN104: Refresh portable bundle after HARN-104
 
 - Status: done
