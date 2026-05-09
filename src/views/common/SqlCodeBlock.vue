@@ -58,10 +58,8 @@ const copySql = () => copyTextToClipboard(displaySql.value)
       <span class="sql-code-panel__label">{{ label }}</span>
       <el-button text size="small" @click.stop="copySql">{{ copyLabel }}</el-button>
     </div>
-    <pre class="sql-code-panel__body" :style="{ maxHeight }">
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <code v-html="highlightedSql" />
-    </pre>
+    <!-- eslint-disable-next-line vue/no-v-html -->
+    <pre class="sql-code-panel__body" :style="{ maxHeight }"><code v-html="highlightedSql" /></pre>
   </section>
 </template>
 

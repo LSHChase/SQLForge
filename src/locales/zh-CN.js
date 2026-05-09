@@ -314,7 +314,6 @@ export default {
   sqlHistory: {
     title: 'SQL历史',
     summary: '查询已落库的 query-history 列表、关联 trace 与详情证据。',
-    executionSummary: '仅展示 QUERY_EXECUTION 执行记录，解析历史保留在解析历史查询入口。',
     actions: {
       refresh: '查询/刷新',
       lookup: '精确反查',
@@ -359,12 +358,6 @@ export default {
       nonSuccess: '异常/部分成功',
       accessChannels: '接入渠道'
     },
-    statusBar: {
-      historyType: '历史类型',
-      requestTenant: '请求租户',
-      lookupMode: '反查模式',
-      lastQuery: '最近查询'
-    },
     queryStatus: {
       idle: '未查询',
       loading: '加载中',
@@ -376,6 +369,7 @@ export default {
       title: '执行记录',
       historyId: 'History ID',
       reportKey: 'SQL/报表标识',
+      requestTenant: '请求租户',
       datasource: '数据源',
       status: '执行状态',
       accessChannel: '接入渠道',

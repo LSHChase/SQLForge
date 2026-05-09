@@ -127,6 +127,14 @@ for (const declaration of [
   }
 }
 
+const sqlCodeBlock = read('src/views/common/SqlCodeBlock.vue')
+if (/<pre[^>]*sql-code-panel__body[^>]*>\s+<code/.test(sqlCodeBlock)) {
+  errors.push('SqlCodeBlock body pre must not inject leading template whitespace before code.')
+}
+if (!/<pre[^>]*sql-code-panel__body[^>]*><code\s+v-html="highlightedSql"\s*\/><\/pre>/.test(sqlCodeBlock)) {
+  errors.push('SqlCodeBlock body pre/code must stay adjacent so SQL output starts at column one.')
+}
+
 const rawSqlTextareaPattern =
   /<el-input[^>]+v-model="(?:form\.sqlText|form\.sqlTemplateText|parseBatchForm\.rawContent|reportBatchForm\.rawContent)"[^>]+type="textarea"|type="textarea"[^>]+v-model="(?:form\.sqlText|form\.sqlTemplateText|parseBatchForm\.rawContent|reportBatchForm\.rawContent)"/
 const rawSqlPrePattern =

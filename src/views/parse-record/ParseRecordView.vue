@@ -134,16 +134,6 @@ const historyWorkbenchTitle = computed(() => {
   }
   return isChinese.value ? 'SQL 解析记录查询' : 'SQL parse records'
 })
-const historyWorkbenchSummary = computed(() => {
-  if (isBatchHistoryWorkbench.value) {
-    return isChinese.value
-      ? '批量解析、报表导入历史与 SQL 级解析记录在这里查询，不混入 SQL 执行历史。'
-      : 'Batch parse, report-import history, and SQL-level parse records are searched here without SQL execution history.'
-  }
-  return isChinese.value
-    ? '这里只查询 SQL 解析记录；SQL 执行历史请从 SQL 历史入口进入。'
-    : 'This table queries only SQL parse records; SQL execution history is available from the SQL history entry.'
-})
 const routeTenantId = computed(() => normalizeQueryValue(route.query.tenantId))
 const requestTenantId = computed(() => normalizeQueryValue(form.tenantId) || routeTenantId.value || DEFAULT_HISTORY_CONTEXT_TENANT_ID)
 const tenantOptions = computed(() => buildTenantOptions(form.tenantId, rows.value))
@@ -1569,9 +1559,6 @@ watch(
       <div>
         <p class="section-kicker sqlforge-code-label">{{ historyWorkbenchKicker }}</p>
         <h1 class="section-title">{{ historyWorkbenchTitle }}</h1>
-        <p class="section-summary">
-          {{ historyWorkbenchSummary }}
-        </p>
       </div>
       <div class="action-row">
         <el-button type="primary" :loading="loading.page" data-testid="parse-record-refresh" @click="searchWorkbench">

@@ -124,6 +124,9 @@ const requiredSqlHistoryTokens = [
   'v-model:page-size="pageInfo.pageSize"',
   'layout="total, sizes, prev, pager, next, jumper"',
   "activeDetailTab.value = 'overview'",
+  "label: t('sqlHistory.table.requestTenant')",
+  "slot: 'requestTenant'",
+  'row.tenantId || requestTenantId',
   'frontend-sql-history-page',
   'frontend-sql-history-detail',
   'QUERY_EXECUTION history'
@@ -184,7 +187,15 @@ const forbiddenViewTokens = [
   'SQL_PARSE query history table',
   'getGovernanceQueryHistoryPage',
   'getGovernanceQueryHistoryDetail',
-  'exportGovernanceQueryHistory'
+  'exportGovernanceQueryHistory',
+  'historyWorkbenchSummary'
+]
+
+const forbiddenSqlHistoryTokens = [
+  'operationStatusItems',
+  'class="operation-bar"',
+  "t('sqlHistory.executionSummary')",
+  'sqlHistory.statusBar'
 ]
 
 const forbiddenApiTokens = [
@@ -199,9 +210,10 @@ const routeSource = `${routePathsSource}\n${routerSource}`
 const missingRoute = requiredRouteTokens.filter(token => !routeSource.includes(token))
 const missingMain = requiredMainTokens.filter(token => !mainSource.includes(token))
 const forbiddenView = forbiddenViewTokens.filter(token => parseRecordSource.includes(token))
+const forbiddenSqlHistory = forbiddenSqlHistoryTokens.filter(token => sqlHistorySource.includes(token))
 const forbiddenApi = forbiddenApiTokens.filter(token => queryHistoryPageApiSource.includes(token))
 
-if (missing.length > 0 || missingSqlHistory.length > 0 || missingApi.length > 0 || missingSharedApi.length > 0 || missingRoute.length > 0 || missingMain.length > 0 || forbiddenView.length > 0 || forbiddenApi.length > 0) {
+if (missing.length > 0 || missingSqlHistory.length > 0 || missingApi.length > 0 || missingSharedApi.length > 0 || missingRoute.length > 0 || missingMain.length > 0 || forbiddenView.length > 0 || forbiddenSqlHistory.length > 0 || forbiddenApi.length > 0) {
   console.error('History page contract check failed.')
   for (const token of missing) {
     console.error(`- missing token: ${token}`)
@@ -223,6 +235,9 @@ if (missing.length > 0 || missingSqlHistory.length > 0 || missingApi.length > 0 
   }
   for (const token of forbiddenView) {
     console.error(`- forbidden default filter token in view: ${token}`)
+  }
+  for (const token of forbiddenSqlHistory) {
+    console.error(`- forbidden SQL history token in view: ${token}`)
   }
   for (const token of forbiddenApi) {
     console.error(`- forbidden unconditional tenant query token in API: ${token}`)

@@ -266,7 +266,6 @@ const summaryMetrics = computed(() => [
   }
 ])
 
-const lookupMode = computed(() => (hasLookupCriteria.value ? 'INDEXED' : 'PAGE'))
 const listStatusLabel = computed(() => t(`sqlHistory.queryStatus.${listStatus.value}`))
 const lastQueryText = computed(() => (lastQueryAt.value ? formatTimestamp(lastQueryAt.value) : '-'))
 const visibleErrorMessage = computed(() => workflowErrorMessage.value || listErrorMessage.value)
@@ -279,30 +278,6 @@ const emptyDescription = computed(() => {
   }
   return t('sqlHistory.states.empty')
 })
-
-const operationStatusItems = computed(() => [
-  {
-    key: 'historyType',
-    label: t('sqlHistory.statusBar.historyType'),
-    value: SQL_EXECUTION_HISTORY_TYPE,
-    testId: 'sql-history-history-type'
-  },
-  {
-    key: 'tenant',
-    label: t('sqlHistory.statusBar.requestTenant'),
-    value: requestTenantId.value
-  },
-  {
-    key: 'lookup',
-    label: t('sqlHistory.statusBar.lookupMode'),
-    value: lookupMode.value
-  },
-  {
-    key: 'lastQuery',
-    label: t('sqlHistory.statusBar.lastQuery'),
-    value: `${listStatusLabel.value} · ${lastQueryText.value}`
-  }
-])
 
 const selectFieldProps = field => ({
   placeholder: field.placeholder || t('sqlHistory.filters.selectPlaceholder'),
@@ -347,6 +322,12 @@ const historyTableColumns = computed(() => [
     label: t('sqlHistory.table.reportKey'),
     minWidth: 180,
     slot: 'reportKey'
+  },
+  {
+    key: 'requestTenant',
+    label: t('sqlHistory.table.requestTenant'),
+    minWidth: 130,
+    slot: 'requestTenant'
   },
   {
     key: 'datasourceCode',
@@ -755,7 +736,6 @@ watch(
       <div class="page-copy">
         <p class="section-kicker">{{ PAGE_KICKER }}</p>
         <h1 class="section-title">{{ t('sqlHistory.title') }}</h1>
-        <p class="section-summary">{{ t('sqlHistory.executionSummary') }}</p>
       </div>
       <div class="action-row">
         <el-button type="primary" :loading="loadingList" data-testid="sql-history-refresh" @click="search">
@@ -819,18 +799,6 @@ watch(
         </div>
       </div>
 
-      <div class="operation-bar">
-        <span
-          v-for="item in operationStatusItems"
-          :key="item.key"
-          class="operation-item"
-          :data-testid="item.testId || undefined"
-        >
-          <small>{{ item.label }}</small>
-          <strong>{{ item.value }}</strong>
-        </span>
-      </div>
-
       <el-table
         v-loading="loadingList"
         :data="tableRows"
@@ -856,6 +824,9 @@ watch(
             </template>
             <template v-else-if="column.slot === 'reportKey'">
               {{ displayValue(row.reportCode || row.sqlFingerprint) }}
+            </template>
+            <template v-else-if="column.slot === 'requestTenant'">
+              {{ displayValue(row.tenantId || requestTenantId) }}
             </template>
             <template v-else-if="column.slot === 'status'">
               <span :class="statusClass(row.resultStatus)">{{ displayValue(row.resultStatus) }}</span>
@@ -1138,33 +1109,6 @@ watch(
   margin-top: var(--sqlforge-space-1);
   color: var(--sqlforge-text-primary);
   font-size: var(--sqlforge-text-heading);
-}
-
-.operation-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sqlforge-space-2);
-  margin: var(--sqlforge-space-4) 0;
-  border-top: 1px solid var(--sqlforge-border-default);
-  border-bottom: 1px solid var(--sqlforge-border-default);
-  padding: var(--sqlforge-space-3) 0;
-}
-
-.operation-item {
-  display: inline-flex;
-  min-height: 34px;
-  align-items: center;
-  gap: var(--sqlforge-space-2);
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-xs);
-  background: var(--sqlforge-surface-1);
-  padding: var(--sqlforge-space-2) var(--sqlforge-space-3);
-}
-
-.operation-item strong {
-  color: var(--sqlforge-text-primary);
-  font-family: var(--sqlforge-font-mono);
-  font-size: var(--sqlforge-text-meta);
 }
 
 .field-block,

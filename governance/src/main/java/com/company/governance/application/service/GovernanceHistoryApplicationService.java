@@ -1134,6 +1134,7 @@ public class GovernanceHistoryApplicationService {
         item.setHistoryId(row.getHistoryId());
         item.setResultId(row.getResultId());
         item.setTraceId(row.getTraceId());
+        item.setTenantId(row.getTenantId());
         item.setHistoryType(row.getHistoryType());
         item.setReportCode(row.getReportCode());
         item.setDatasourceCode(row.getDatasourceCode());

@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-104: 修复 SQL 历史与解析历史页面展示
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `fix(history): HARN-104 clean history pages`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修复 SQL 输入输出错位、清理 SQL 历史与解析历史无效说明和状态条、将请求租户融入 SQL 历史记录行，并修复解析历史查询旧表结构导致的 10000 报错；覆盖前端契约、迁移兼容与验证。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-104`
+- Progress log:
+  - 2026-05-09: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复共享 SqlCodeBlock 模板空白导致的 SQL 输出首行错位；移除 SQL 历史和解析历史页顶部无效说明；删除 SQL 历史执行记录表上方运行状态条；将请求租户融入 SQL 历史记录行；补齐治理 query-history summary tenantId；新增 sql_parse_history 旧表兼容迁移并加固前端/迁移契约检查。
+  - Validation evidence: node scripts/check-sql-ui-contract.mjs; node scripts/check-history-page-contract.mjs; node scripts/check-history-detail-contract.mjs; npm run lint; npm run build; mvn -pl governance -Dtest=GovernanceQueryHistoryControllerTest test; mvn -pl sql-optimization -Dtest=StructureParseControllerTest,ParseBatchControllerTest,ReportBatchControllerTest,SqlParseHistoryPersistenceSchemaMappingTest test; python3 scripts/foreman.py validate HARN-104; git diff --check; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 未连接目标环境 MySQL 做 live migration smoke；兼容迁移通过 schema mapping 和聚焦控制器/前端契约验证覆盖。
+  - Next step: 目标环境部署后执行一次解析历史查询页面 smoke，确认旧 sql_parse_history 表已补齐字段且不再返回 10000。
+
 ### OPS-DIST-PORTABLE-REFRESH-20260509: Refresh tracked dist-portable package and restart local services
 
 - Status: done

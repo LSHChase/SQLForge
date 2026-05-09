@@ -10,6 +10,7 @@ public class GovernanceQueryHistorySummaryVO {
     private String historyId;
     private String resultId;
     private String traceId;
+    private String tenantId;
     private String historyType;
     private String reportCode;
     private String datasourceCode;
@@ -60,6 +61,14 @@ public class GovernanceQueryHistorySummaryVO {
 
     public void setTraceId(String traceId) {
         this.traceId = traceId;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getHistoryType() {

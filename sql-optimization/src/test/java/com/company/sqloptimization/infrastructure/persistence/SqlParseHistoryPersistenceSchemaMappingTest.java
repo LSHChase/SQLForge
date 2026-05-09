@@ -29,6 +29,15 @@ class SqlParseHistoryPersistenceSchemaMappingTest {
         assertContains(migration, "CREATE TABLE IF NOT EXISTS sql_parse_history");
         assertContains(migration, "SQL parse history id for this parsed SQL");
         assertContains(migration, "SQL parse history id for this parsed report SQL");
+
+        String compatibilityMigration =
+            readRepositoryFile("sql/migrations/V20260509_001__sql_parse_history_compatibility.sql");
+        assertContains(compatibilityMigration, "ensure_sql_parse_history_compatibility");
+        assertContains(compatibilityMigration, "binding_summary_json");
+        assertContains(compatibilityMigration, "logical_object_hits_json");
+        assertContains(compatibilityMigration, "issue_scenes_json");
+        assertContains(compatibilityMigration, "logical_object_keys_json");
+        assertContains(compatibilityMigration, "idx_sql_parse_history_trace");
     }
 
     @Test

@@ -314,7 +314,6 @@ export default {
   sqlHistory: {
     title: 'SQL History',
     summary: 'Search persisted query-history rows, linked traces, and detail evidence.',
-    executionSummary: 'Shows only QUERY_EXECUTION records; parse histories stay in the parse-record entry.',
     actions: {
       refresh: 'Search / refresh',
       lookup: 'Indexed lookup',
@@ -359,12 +358,6 @@ export default {
       nonSuccess: 'Non-success',
       accessChannels: 'Access channels'
     },
-    statusBar: {
-      historyType: 'History type',
-      requestTenant: 'Request tenant',
-      lookupMode: 'Lookup mode',
-      lastQuery: 'Last query'
-    },
     queryStatus: {
       idle: 'Not queried',
       loading: 'Loading',
@@ -376,6 +369,7 @@ export default {
       title: 'Execution records',
       historyId: 'History ID',
       reportKey: 'SQL/report key',
+      requestTenant: 'Request tenant',
       datasource: 'Datasource',
       status: 'Execution status',
       accessChannel: 'Access channel',
