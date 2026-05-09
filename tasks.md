@@ -11,19 +11,6 @@
 
 ## Todo
 
-### HARN-112: 拆分批量解析中心页面
-
-- Status: todo
-- Priority: 1
-- Depends on: HARN-111
-- Scope: 覆盖 `ParseBatchCenterView`；拆分普通批量、报表导入、统计标签、详情弹窗、失败详情和 SQL 展示；保留 summary-first、有限明细预览、失败记录可点击详情和大批量渲染约束。
-- Validation:
-  - before/after 截图自检
-  - `npm run lint`
-  - `npm run build`
-  - `npm run test:sql-ui-contract`
-  - `npm run test:frontend-page-governance`
-
 ### HARN-113: 拆分解析历史查询与报表详情页面
 
 - Status: todo

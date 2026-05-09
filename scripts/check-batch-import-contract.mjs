@@ -5,6 +5,9 @@ const root = process.cwd()
 const batchViewPath = 'src/views/parse-batch/ParseBatchCenterView.vue'
 const contractFiles = [
   batchViewPath,
+  'src/views/parse-batch/useParseBatchCenter.js',
+  'src/views/parse-batch/BatchSummaryCards.vue',
+  'src/views/parse-batch/BatchDetailFields.vue',
   'src/views/common/issueSceneHelp.mjs',
   'sql-optimization/src/main/java/com/company/sqloptimization/application/service/ParseBatchApplicationService.java',
   'sql-optimization/src/main/java/com/company/sqloptimization/application/service/ReportBatchApplicationService.java',

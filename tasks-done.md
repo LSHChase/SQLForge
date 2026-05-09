@@ -4,6 +4,28 @@
 
 ## Done
 
+### HARN-112: 拆分批量解析中心页面
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `feat(frontend): HARN-112 split batch parse center`
+- Priority: 1
+- Depends on: HARN-111
+- Scope: 覆盖 `ParseBatchCenterView`；拆分普通批量、报表导入、统计标签、详情弹窗、失败详情和 SQL 展示；保留 summary-first、有限明细预览、失败记录可点击详情和大批量渲染约束。
+- Validation:
+  - before/after 截图自检
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:sql-ui-contract`
+  - `npm run test:frontend-page-governance`
+- Progress log:
+  - 2026-05-09: HARN-112 bound with `python3 scripts/foreman.py preflight --task HARN-112`; starting frontend split and R-186 screenshot workflow.
+- Context closeout:
+  - Completed scope: Split ParseBatchCenterView into a compact page shell, useParseBatchCenter state/API orchestration, shared summary/detail display components, and external parse-batch scoped styles; updated the batch import contract guard to read the split source files while preserving existing route, API payloads, data-testid hooks, summary-first previews, failure detail entry points, and SQL UI components.
+  - Validation evidence: before screenshot: .codex/state/screenshots/HARN-112/before-parse-batch-center.png; after screenshot: .codex/state/screenshots/HARN-112/after-parse-batch-center.png; Codex visual self-review covered the batch/report tabs, first-screen workbench layout, summary text, and responsive shell via Playwright metrics; visual review passed with no visual drift found. Passed: python3 scripts/foreman.py validate HARN-112 --extra-command 'node scripts/check-batch-import-contract.mjs', npm run lint, npm run build, npm run test:form-governance, npm run test:sql-ui-contract, npm run test:frontend-page-governance, node scripts/check-batch-import-contract.mjs.
+  - Residual risk: No backend, parser, persistence, routing, or payload semantics changed. Screenshot self-review used the default empty/local state rather than populated production-scale batch data; large-batch limits remain guarded by contract tokens and existing preview metadata.
+  - Next step: Proceed to HARN-113 parse history and report detail page split after HARN-112 post-closeout audit passes.
+
 ### HARN-111: 拆分解析工作台与解析统计页面
 
 - Status: done

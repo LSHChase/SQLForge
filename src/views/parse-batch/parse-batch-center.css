@@ -1,0 +1,453 @@
+.runtime-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.shell-panel {
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 32%),
+    var(--sqlforge-surface-2);
+  padding: 20px;
+}
+
+.page-hero,
+.workspace-toolbar,
+.section-heading,
+.toolbar-actions,
+.hero-inline,
+.session-item-top {
+  display: flex;
+  gap: 12px;
+}
+
+.page-hero,
+.workspace-toolbar,
+.section-heading {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.page-hero,
+.workspace-toolbar {
+  flex-wrap: wrap;
+}
+
+.runtime-eyebrow,
+.section-kicker {
+  margin: 0 0 8px;
+  color: var(--sqlforge-color-brand);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.runtime-title,
+.section-title,
+.detail-title {
+  margin: 0;
+  color: var(--sqlforge-text-primary);
+}
+
+.runtime-summary,
+.section-summary,
+.empty-state,
+.empty-stage p,
+.session-item p,
+.session-item span,
+.failure-item p,
+.report-item p {
+  margin: 0;
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.6;
+}
+
+.hero-inline,
+.toolbar-actions {
+  flex-wrap: wrap;
+}
+
+.hero-pill,
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--sqlforge-border-default);
+  background: var(--sqlforge-bg-page-deep);
+  color: var(--sqlforge-text-secondary);
+  font-size: 12px;
+}
+
+.hero-pill-muted {
+  color: var(--sqlforge-text-muted);
+}
+
+.history-summary-grid {
+  margin-top: -2px;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+
+.current-batch-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.session-rail,
+.detail-stage,
+.detail-card,
+.summary-card,
+.session-item,
+.failure-item,
+.report-item,
+.contract-item,
+.preview-item {
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 16px;
+  background: rgba(35, 35, 35, 0.92);
+}
+
+.session-list,
+.drawer-stack,
+.dialog-stack,
+.contract-list,
+.failure-list,
+.report-list,
+.stat-list,
+.preview-list {
+  display: grid;
+  gap: 12px;
+}
+
+.session-item {
+  width: 100%;
+  padding: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.failure-item,
+.report-item {
+  display: block;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.failure-item[role='button'],
+button.report-item {
+  cursor: pointer;
+}
+
+.failure-item[role='button']:hover,
+button.report-item:hover {
+  border-color: var(--sqlforge-color-brand-border);
+}
+
+.table-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--sqlforge-color-brand);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.field-note {
+  color: var(--sqlforge-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.filter-row,
+.pagination-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.filter-row {
+  margin-bottom: 12px;
+}
+
+.filter-row .el-input {
+  max-width: 320px;
+}
+
+.pagination-row {
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.preview-note {
+  border: 1px solid var(--sqlforge-color-brand-border);
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--sqlforge-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 10px 12px;
+}
+
+.preview-note-compact {
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.diagnostic-line {
+  border-left: 3px solid rgba(245, 158, 11, 0.85);
+  padding-left: 10px;
+  color: var(--sqlforge-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.detail-link {
+  display: inline-flex;
+  margin-top: 8px;
+  color: var(--sqlforge-color-link);
+  font-size: 13px;
+}
+
+.detail-link-button {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.detail-link-button:hover,
+.detail-link-button:focus-visible {
+  text-decoration: underline;
+}
+
+.item-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.detail-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.detail-field {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 14px;
+  background: rgba(35, 35, 35, 0.92);
+}
+
+.detail-field strong {
+  overflow-wrap: anywhere;
+}
+
+.detail-field-wide {
+  grid-column: 1 / -1;
+}
+
+.session-item-active {
+  border-color: var(--sqlforge-color-brand-border);
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.25);
+}
+
+.detail-stage,
+.empty-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.summary-grid,
+.dialog-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.result-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.summary-card,
+.detail-card,
+.failure-item,
+.report-item,
+.contract-item,
+.preview-item {
+  padding: 14px 16px;
+}
+
+.summary-card-label,
+.field-label {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 8px;
+  color: var(--sqlforge-text-muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.help-dot {
+  min-width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 50%;
+  color: var(--sqlforge-text-secondary);
+  line-height: 18px;
+}
+
+.issue-scene-help {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  margin-left: 4px;
+  cursor: help;
+  background: rgba(20, 24, 31, 0.92);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  vertical-align: middle;
+}
+
+.issue-scene-help::after,
+.issue-scene-help::before {
+  position: absolute;
+  z-index: 30;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, visibility 0.12s ease;
+  visibility: hidden;
+}
+
+.issue-scene-help::after {
+  bottom: calc(100% + 8px);
+  left: 50%;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 48px));
+  padding: 10px 12px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 6px;
+  background: #111827;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
+  color: #f8fafc;
+  content: attr(data-tooltip);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+  text-align: left;
+  text-transform: none;
+  transform: translateX(-50%);
+  white-space: normal;
+}
+
+.issue-scene-help::before {
+  bottom: calc(100% + 3px);
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: #111827;
+  content: '';
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.issue-scene-help:hover::after,
+.issue-scene-help:hover::before,
+.issue-scene-help:focus::after,
+.issue-scene-help:focus::before,
+.issue-scene-help:focus-visible::after,
+.issue-scene-help:focus-visible::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+.result-copy {
+  margin: 0;
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.7;
+}
+
+.field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-block-wide {
+  grid-column: 1 / -1;
+}
+
+.dialog-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dialog-grid-single {
+  grid-template-columns: 1fr;
+}
+
+.template-sheet {
+  display: grid;
+  gap: 16px;
+}
+
+.code-block {
+  margin: 0;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--sqlforge-border-default);
+  background: var(--sqlforge-bg-page-deep);
+  color: var(--sqlforge-text-primary);
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+.compact-code {
+  margin-top: 10px;
+  max-height: 160px;
+}
+
+.empty-stage {
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  border: 1px dashed var(--sqlforge-border-default);
+  border-radius: 16px;
+}
+
+@media (max-width: 1100px) {
+  .workspace-grid,
+  .result-layout,
+  .dialog-grid {
+    grid-template-columns: 1fr;
+  }
+}
