@@ -2,41 +2,37 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import EvidencePanel from '../common/EvidencePanel.vue'
+import MetricCard from '../common/MetricCard.vue'
 import PageHero from '../common/PageHero.vue'
+import SectionHeader from '../common/SectionHeader.vue'
 
-const { t, locale } = useI18n()
-const isChinese = computed(() => locale.value === 'zh-CN')
+const { t } = useI18n()
 
 const inventoryItems = computed(() => [
   {
+    key: 'core',
     title: 'MySQL / Core Traceability',
-    summary: isChinese.value
-      ? '主库、核心追溯链、schema 版本与 migration 清单必须成批恢复。'
-      : 'Primary metadata tables, schema version, and migration inventory must recover as one batch.'
+    summary: t('recoveryDrill.inventory.core')
   },
   {
+    key: 'audit',
     title: 'audit_log',
-    summary: isChinese.value
-      ? '审计留痕必须连续，`LOGIN/LOGOUT` 与 `audit/write` 抽样恢复后仍可落库。'
-      : 'Audit evidence must remain continuous and still accept `LOGIN/LOGOUT` and `audit/write` samples after restore.'
+    summary: t('recoveryDrill.inventory.audit')
   },
   {
+    key: 'export',
     title: 'export_record / archive pointers',
-    summary: isChinese.value
-      ? '导出元数据和脱敏归档索引要能互相核对。'
-      : 'Export metadata and sanitized archive pointers must reconcile with each other.'
+    summary: t('recoveryDrill.inventory.export')
   },
   {
+    key: 'queue',
     title: 'kafka_message_queue',
-    summary: isChinese.value
-      ? '数据库兜底或 fallback backlog 恢复后必须还能继续补偿。'
-      : 'Database fallback backlog must remain replayable after recovery.'
+    summary: t('recoveryDrill.inventory.queue')
   },
   {
+    key: 'keys',
     title: 'system_config / key boundary',
-    summary: isChinese.value
-      ? '只恢复密文、不回流明文，`encryption_key_id` 必须与批次对应。'
-      : 'Restore ciphertext only, never plaintext, and keep `encryption_key_id` aligned with the backup batch.'
+    summary: t('recoveryDrill.inventory.keys')
   }
 ])
 
@@ -45,15 +41,50 @@ const objectiveRows = computed(() => [
   ['governance / audit_log', '< 1h', '< 4h', 'DBA / Compliance Ops'],
   ['governance / export_record', '< 1h', '< 4h', 'DBA / Storage Ops'],
   ['governance / kafka_message_queue', '< 1h', '< 4h', 'DBA / Messaging Ops'],
-  ['governance / system_config + keys', isChinese.value ? '与备份批次同步' : 'Same batch as backup', isChinese.value ? '与备份批次同步' : 'Same batch as backup', 'Security Ops']
+  ['governance / system_config + keys', t('recoveryDrill.sameBackupBatch'), t('recoveryDrill.sameBackupBatch'), 'Security Ops']
 ])
 
 const checklistItems = computed(() => [
-  isChinese.value ? '4 个后端 `/actuator/health` 和治理 `/api/governance/health` 全部返回 `UP`。' : 'All backend `/actuator/health` probes and governance `/api/governance/health` return `UP`.',
-  isChinese.value ? '恢复后复跑 `audit/write` 抽样、`LOGIN/LOGOUT` 审计样本。' : 'Replay `audit/write` and `LOGIN/LOGOUT` audit samples after restore.',
-  isChinese.value ? '检查 `kafka_message_queue` backlog 或明确记录为何不适用。' : 'Check `kafka_message_queue` backlog or explicitly record why it is not applicable.',
-  isChinese.value ? '抽样 `export_record` 与 `history_id/result_id` 追溯键，确认脱敏地址未泄漏。' : 'Sample `export_record` against `history_id/result_id` and confirm storage pointers remain sanitized.',
-  isChinese.value ? '抽检日志平台和 `system_config`，确认没有密码、Token、密钥明文泄漏。' : 'Sample log platforms and `system_config` to confirm no password, token, or key leaks.'
+  t('recoveryDrill.checklist.health'),
+  t('recoveryDrill.checklist.audit'),
+  t('recoveryDrill.checklist.backlog'),
+  t('recoveryDrill.checklist.export'),
+  t('recoveryDrill.checklist.leak')
+])
+
+const recoveryMetrics = computed(() => [
+  {
+    key: 'inventory',
+    label: t('recoveryDrill.metrics.inventory.label'),
+    value: inventoryItems.value.length,
+    trend: t('recoveryDrill.metrics.inventory.trend'),
+    detail: t('recoveryDrill.metrics.inventory.detail'),
+    tone: 'neutral'
+  },
+  {
+    key: 'rpo',
+    label: t('recoveryDrill.metrics.rpo.label'),
+    value: '< 1h',
+    trend: 'RPO',
+    detail: t('recoveryDrill.metrics.rpo.detail'),
+    tone: 'success'
+  },
+  {
+    key: 'rto',
+    label: t('recoveryDrill.metrics.rto.label'),
+    value: '< 4h',
+    trend: 'RTO',
+    detail: t('recoveryDrill.metrics.rto.detail'),
+    tone: 'success'
+  },
+  {
+    key: 'checklist',
+    label: t('recoveryDrill.metrics.checklist.label'),
+    value: checklistItems.value.length,
+    trend: t('recoveryDrill.metrics.checklist.trend'),
+    detail: t('recoveryDrill.metrics.checklist.detail'),
+    tone: 'warning'
+  }
 ])
 </script>
 
@@ -73,58 +104,52 @@ const checklistItems = computed(() => [
       </template>
     </PageHero>
 
-    <div class="summary-card-grid">
-      <EvidencePanel
-        v-for="item in inventoryItems"
-        :key="item.title"
-        as="article"
-        v-bind="{
-          eyebrow: item.title,
-          title: item.title,
-          summary: item.summary
-        }"
+    <section class="runtime-section">
+      <SectionHeader
+        eyebrow="kpi"
+        :title="t('recoveryDrill.kpiTitle')"
+        :summary="t('recoveryDrill.kpiSummary')"
       />
-    </div>
+      <div class="metric-grid">
+        <MetricCard
+          v-for="metric in recoveryMetrics"
+          :key="metric.key"
+          v-bind="{
+            label: metric.label,
+            value: metric.value,
+            trend: metric.trend,
+            detail: metric.detail,
+            tone: metric.tone
+          }"
+        />
+      </div>
+    </section>
 
     <div class="runtime-grid">
       <EvidencePanel
         as="article"
-        v-bind="{
-          eyebrow: t('recoveryDrill.objectivesEyebrow'),
-          title: t('recoveryDrill.objectivesTitle')
-        }"
+        :eyebrow="t('recoveryDrill.activityEyebrow')"
+        :title="t('recoveryDrill.activityTitle')"
+        :summary="t('recoveryDrill.activitySummary')"
       >
-        <div class="table-wrap">
-          <table class="objective-table">
-            <thead>
-              <tr>
-                <th>{{ isChinese ? '数据域' : 'Domain' }}</th>
-                <th>RPO</th>
-                <th>RTO</th>
-                <th>{{ isChinese ? '责任人' : 'Owner' }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="row in objectiveRows"
-                :key="row[0]"
-              >
-                <td>{{ row[0] }}</td>
-                <td>{{ row[1] }}</td>
-                <td>{{ row[2] }}</td>
-                <td>{{ row[3] }}</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="activity-list">
+          <article
+            v-for="item in inventoryItems"
+            :key="item.key"
+            class="activity-item"
+          >
+            <p class="activity-type sqlforge-code-label">{{ item.title }}</p>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.summary }}</p>
+          </article>
         </div>
       </EvidencePanel>
 
       <EvidencePanel
         as="article"
-        v-bind="{
-          eyebrow: t('recoveryDrill.checklistEyebrow'),
-          title: t('recoveryDrill.checklistTitle')
-        }"
+        :eyebrow="t('recoveryDrill.checklistEyebrow')"
+        :title="t('recoveryDrill.checklistTitle')"
+        :summary="t('recoveryDrill.checklistSummary')"
         tone="warning"
       >
         <ul class="bullet-list">
@@ -137,6 +162,36 @@ const checklistItems = computed(() => [
         </ul>
       </EvidencePanel>
     </div>
+
+    <EvidencePanel
+      :eyebrow="t('recoveryDrill.objectivesEyebrow')"
+      :title="t('recoveryDrill.objectivesTitle')"
+      :summary="t('recoveryDrill.objectivesSummary')"
+    >
+      <div class="table-wrap">
+        <table class="objective-table">
+          <thead>
+            <tr>
+              <th>{{ t('recoveryDrill.table.domain') }}</th>
+              <th>RPO</th>
+              <th>RTO</th>
+              <th>{{ t('recoveryDrill.table.owner') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in objectiveRows"
+              :key="row[0]"
+            >
+              <td>{{ row[0] }}</td>
+              <td>{{ row[1] }}</td>
+              <td>{{ row[2] }}</td>
+              <td>{{ row[3] }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </EvidencePanel>
   </section>
 </template>
 
@@ -148,12 +203,14 @@ const checklistItems = computed(() => [
 }
 
 .runtime-grid,
-.summary-card-grid {
+.runtime-section,
+.metric-grid,
+.activity-list {
   display: grid;
-  gap: 20px;
+  gap: var(--sqlforge-space-5);
 }
 
-.summary-card-grid {
+.metric-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
@@ -165,6 +222,35 @@ const checklistItems = computed(() => [
   margin: 0;
   color: var(--sqlforge-text-secondary);
   line-height: 1.65;
+}
+
+.activity-item {
+  display: grid;
+  gap: var(--sqlforge-space-2);
+  padding: var(--sqlforge-space-5);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-lg);
+  background: var(--sqlforge-surface-2);
+}
+
+.activity-item h3,
+.activity-item p {
+  margin: 0;
+}
+
+.activity-item h3 {
+  color: var(--sqlforge-text-primary);
+  font-size: var(--sqlforge-text-heading);
+  font-weight: 500;
+}
+
+.activity-item p {
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.6;
+}
+
+.activity-type {
+  color: var(--sqlforge-text-muted);
 }
 
 .table-wrap {

@@ -3,8 +3,12 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { createDeliveryProgressSnapshot } from './progressSnapshot'
 import { deliveryProgressAvailability } from '../../config/runtimeFlags'
+import EvidencePanel from '../common/EvidencePanel.vue'
+import MetricCard from '../common/MetricCard.vue'
+import PageHero from '../common/PageHero.vue'
+import SectionHeader from '../common/SectionHeader.vue'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const snapshot = createDeliveryProgressSnapshot()
 
 const summaryCards = computed(() => [
@@ -61,6 +65,34 @@ const runtimePills = computed(() => [
     label: t('deliveryProgress.runtime.scope')
   }
 ])
+const heroPills = computed(() => [
+  ...runtimePills.value.map(pill => pill.label),
+  ...sourceFiles.value
+])
+const visibilityRows = computed(() => [
+  {
+    key: 'mode',
+    label: t('deliveryProgress.runtime.modeLabel'),
+    value: runtimeAvailability.value.mode
+  },
+  {
+    key: 'flag',
+    label: t('deliveryProgress.runtime.flagLabel'),
+    value: t(`deliveryProgress.runtime.flag.${runtimeAvailability.value.flagState}`)
+  },
+  {
+    key: 'scope',
+    label: t('deliveryProgress.runtime.scopeLabel'),
+    value: t('deliveryProgress.runtime.scope')
+  }
+])
+const summaryMetrics = computed(() =>
+  summaryCards.value.map(card => ({
+    ...card,
+    label: t(`deliveryProgress.cards.${card.key}`),
+    trend: card.key === 'done' ? 'tasks-done.md' : 'tasks.md'
+  }))
+)
 
 const statusTypeMap = {
   todo: '',
@@ -80,91 +112,69 @@ const changeKindTypeMap = {
 
 const formatProgressLog = progressLog => {
   if (!progressLog.length) {
-    return locale.value === 'zh-CN' ? '暂无进度日志' : 'No progress log yet'
+    return t('deliveryProgress.empty.progressLog')
   }
   return progressLog[progressLog.length - 1]
 }
 </script>
 
 <template>
-  <section class="delivery-progress-page">
-    <section class="delivery-hero">
-      <div class="delivery-hero-copy">
-        <p class="hero-eyebrow sqlforge-code-label">{{ t('deliveryProgress.eyebrow') }}</p>
-        <h1 class="hero-title">{{ t('deliveryProgress.heroTitle') }}</h1>
-        <p class="hero-summary">{{ t('deliveryProgress.heroSummary') }}</p>
-        <div class="hero-pills">
-          <span
-            v-for="pill in runtimePills"
-            :key="pill.key"
-            class="hero-pill hero-pill-strong"
-          >
-            {{ pill.label }}
-          </span>
-          <span
-            v-for="sourceFile in sourceFiles"
-            :key="sourceFile"
-            class="hero-pill"
-          >
-            {{ sourceFile }}
-          </span>
-        </div>
-      </div>
-
-      <div class="delivery-hero-card">
-        <p class="delivery-hero-label sqlforge-code-label">{{ t('deliveryProgress.visibilityLabel') }}</p>
-        <h2>{{ t('deliveryProgress.visibilityTitle') }}</h2>
-        <p>{{ t(runtimeAvailability.visibilityReasonKey) }}</p>
-        <div class="hero-card-list">
-          <div class="hero-card-row">
-            <span>{{ t('deliveryProgress.runtime.modeLabel') }}</span>
-            <strong>{{ runtimeAvailability.mode }}</strong>
+  <section class="delivery-progress-page" data-testid="delivery-progress-page">
+    <PageHero
+      :eyebrow="t('deliveryProgress.eyebrow')"
+      :title="t('deliveryProgress.heroTitle')"
+      :summary="t('deliveryProgress.heroSummary')"
+      :pills="heroPills"
+    >
+      <template #aside>
+        <EvidencePanel
+          tone="warning"
+          :eyebrow="t('deliveryProgress.visibilityLabel')"
+          :title="t('deliveryProgress.visibilityTitle')"
+          :summary="t(runtimeAvailability.visibilityReasonKey)"
+        >
+          <div class="delivery-evidence-rows">
+            <div
+              v-for="row in visibilityRows"
+              :key="row.key"
+              class="delivery-evidence-row"
+            >
+              <span>{{ row.label }}</span>
+              <strong>{{ row.value }}</strong>
+            </div>
           </div>
-          <div class="hero-card-row">
-            <span>{{ t('deliveryProgress.runtime.flagLabel') }}</span>
-            <strong>{{ t(`deliveryProgress.runtime.flag.${runtimeAvailability.flagState}`) }}</strong>
-          </div>
-          <div class="hero-card-row">
-            <span>{{ t('deliveryProgress.runtime.scopeLabel') }}</span>
-            <strong>{{ t('deliveryProgress.runtime.scope') }}</strong>
-          </div>
-        </div>
-        <p class="hero-card-footnote">{{ t('deliveryProgress.visibilitySummary') }}</p>
-      </div>
-    </section>
+          <template #footer>
+            {{ t('deliveryProgress.visibilitySummary') }}
+          </template>
+        </EvidencePanel>
+      </template>
+    </PageHero>
 
     <section class="delivery-section">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">{{ t('deliveryProgress.summaryTitle') }}</p>
-          <h2 class="sqlforge-section-title">{{ t('deliveryProgress.summaryTitle') }}</h2>
-        </div>
-        <p class="section-summary">{{ t('deliveryProgress.summaryDescription') }}</p>
-      </div>
+      <SectionHeader
+        eyebrow="kpi"
+        :title="t('deliveryProgress.summaryTitle')"
+        :summary="t('deliveryProgress.summaryDescription')"
+      />
 
       <div class="summary-grid">
-        <article
-          v-for="card in summaryCards"
+        <MetricCard
+          v-for="card in summaryMetrics"
           :key="card.key"
-          class="summary-card"
-          :class="`summary-card-${card.tone}`"
-        >
-          <p class="summary-card-label">{{ t(`deliveryProgress.cards.${card.key}`) }}</p>
-          <p class="summary-card-value">{{ card.value }}</p>
-        </article>
+          :label="card.label"
+          :value="card.value"
+          :trend="card.trend"
+          :tone="card.tone"
+        />
       </div>
     </section>
 
     <section class="delivery-grid">
-      <section class="delivery-section">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">{{ t('deliveryProgress.activeTasksTitle') }}</p>
-            <h2 class="sqlforge-section-title">{{ t('deliveryProgress.activeTasksTitle') }}</h2>
-          </div>
-          <p class="section-summary">{{ t('deliveryProgress.activeTasksDescription') }}</p>
-        </div>
-
+      <EvidencePanel
+        :eyebrow="t('deliveryProgress.activeTasksTitle')"
+        :title="t('deliveryProgress.activeTasksTitle')"
+        :summary="t('deliveryProgress.activeTasksDescription')"
+      >
         <div class="task-list">
           <article
             v-for="task in activeTasks"
@@ -191,17 +201,13 @@ const formatProgressLog = progressLog => {
             <p class="task-card-log">{{ formatProgressLog(task.progressLog) }}</p>
           </article>
         </div>
-      </section>
+      </EvidencePanel>
 
-      <section class="delivery-section">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">{{ t('deliveryProgress.moduleTitle') }}</p>
-            <h2 class="sqlforge-section-title">{{ t('deliveryProgress.moduleTitle') }}</h2>
-          </div>
-          <p class="section-summary">{{ t('deliveryProgress.moduleDescription') }}</p>
-        </div>
-
+      <EvidencePanel
+        :eyebrow="t('deliveryProgress.moduleTitle')"
+        :title="t('deliveryProgress.moduleTitle')"
+        :summary="t('deliveryProgress.moduleDescription')"
+      >
         <div class="module-list">
           <article
             v-for="module in moduleProgress"
@@ -232,19 +238,15 @@ const formatProgressLog = progressLog => {
             </div>
           </article>
         </div>
-      </section>
+      </EvidencePanel>
     </section>
 
     <section class="delivery-grid">
-      <section class="delivery-section">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">{{ t('deliveryProgress.recentChangesTitle') }}</p>
-            <h2 class="sqlforge-section-title">{{ t('deliveryProgress.recentChangesTitle') }}</h2>
-          </div>
-          <p class="section-summary">{{ t('deliveryProgress.recentChangesDescription') }}</p>
-        </div>
-
+      <EvidencePanel
+        eyebrow="activity stream"
+        :title="t('deliveryProgress.recentChangesTitle')"
+        :summary="t('deliveryProgress.recentChangesDescription')"
+      >
         <div class="timeline-list">
           <article
             v-for="item in recentChanges"
@@ -273,17 +275,14 @@ const formatProgressLog = progressLog => {
             </p>
           </article>
         </div>
-      </section>
+      </EvidencePanel>
 
-      <section class="delivery-section">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">{{ t('deliveryProgress.blockedTitle') }}</p>
-            <h2 class="sqlforge-section-title">{{ t('deliveryProgress.blockedTitle') }}</h2>
-          </div>
-          <p class="section-summary">{{ t('deliveryProgress.blockedDescription') }}</p>
-        </div>
-
+      <EvidencePanel
+        eyebrow="risk queue"
+        :title="t('deliveryProgress.blockedTitle')"
+        :summary="t('deliveryProgress.blockedDescription')"
+        :tone="hasExplicitBlocked ? 'danger' : 'warning'"
+      >
         <div
           v-if="blockerItems.length"
           class="task-list"
@@ -326,18 +325,14 @@ const formatProgressLog = progressLog => {
               : t('deliveryProgress.pendingFootnote')
           }}
         </p>
-      </section>
+      </EvidencePanel>
     </section>
 
-    <section class="delivery-section">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">{{ t('deliveryProgress.dependencyTitle') }}</p>
-          <h2 class="sqlforge-section-title">{{ t('deliveryProgress.dependencyTitle') }}</h2>
-        </div>
-        <p class="section-summary">{{ t('deliveryProgress.dependencyDescription') }}</p>
-      </div>
-
+    <EvidencePanel
+      eyebrow="static evidence"
+      :title="t('deliveryProgress.dependencyTitle')"
+      :summary="t('deliveryProgress.dependencyDescription')"
+    >
       <div
         v-if="dependencyChains.length"
         class="dependency-list"
@@ -388,18 +383,14 @@ const formatProgressLog = progressLog => {
         <h3>{{ t('deliveryProgress.empty.dependencyTitle') }}</h3>
         <p>{{ t('deliveryProgress.empty.dependencyDescription') }}</p>
       </article>
-    </section>
+    </EvidencePanel>
 
     <section class="delivery-grid">
-      <section class="delivery-section">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">{{ t('deliveryProgress.completedTitle') }}</p>
-            <h2 class="sqlforge-section-title">{{ t('deliveryProgress.completedTitle') }}</h2>
-          </div>
-          <p class="section-summary">{{ t('deliveryProgress.completedDescription') }}</p>
-        </div>
-
+      <EvidencePanel
+        :eyebrow="t('deliveryProgress.completedTitle')"
+        :title="t('deliveryProgress.completedTitle')"
+        :summary="t('deliveryProgress.completedDescription')"
+      >
         <div class="timeline-list">
           <article
             v-for="task in completedTasks"
@@ -416,17 +407,13 @@ const formatProgressLog = progressLog => {
             <p class="timeline-card-line">{{ task.commitSubject }}</p>
           </article>
         </div>
-      </section>
+      </EvidencePanel>
 
-      <section class="delivery-section">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">{{ t('deliveryProgress.validationTitle') }}</p>
-            <h2 class="sqlforge-section-title">{{ t('deliveryProgress.validationTitle') }}</h2>
-          </div>
-          <p class="section-summary">{{ t('deliveryProgress.validationDescription') }}</p>
-        </div>
-
+      <EvidencePanel
+        :eyebrow="t('deliveryProgress.validationTitle')"
+        :title="t('deliveryProgress.validationTitle')"
+        :summary="t('deliveryProgress.validationDescription')"
+      >
         <div class="timeline-list">
           <article
             v-for="entry in validationEntries"
@@ -444,155 +431,30 @@ const formatProgressLog = progressLog => {
             <p class="timeline-card-line timeline-card-line-muted">{{ entry.evidence }}</p>
           </article>
         </div>
-      </section>
+      </EvidencePanel>
     </section>
   </section>
 </template>
 
 <style scoped>
 .delivery-progress-page {
-  display: grid;
-  gap: 24px;
-}
-
-.delivery-hero,
-.delivery-section {
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-xl);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 36%),
-    var(--sqlforge-surface-3);
-}
-
-.delivery-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.9fr);
-  gap: 24px;
-  padding: 28px;
-}
-
-.hero-eyebrow,
-.section-kicker,
-.delivery-hero-label,
-.task-card-id,
-.module-card-label,
-.timeline-card-id {
-  margin: 0;
-  color: var(--sqlforge-text-muted);
-}
-
-.hero-title {
-  margin: 10px 0 0;
-  font-size: 38px;
-  font-weight: 400;
-  line-height: 1.05;
-}
-
-.hero-summary {
-  margin: 12px 0 0;
-  color: var(--sqlforge-text-secondary);
-  line-height: 1.7;
-}
-
-.hero-pills {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.hero-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 7px 12px;
-  border: 1px solid var(--sqlforge-border-strong);
-  border-radius: var(--sqlforge-radius-pill);
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--sqlforge-text-secondary);
-  font-size: 12px;
-}
-
-.hero-pill-strong {
-  border-color: var(--sqlforge-color-brand-border);
-  background: rgba(62, 207, 142, 0.08);
-  color: var(--sqlforge-text-primary);
-}
-
-.delivery-hero-card {
-  padding: 20px;
-  border: 1px solid var(--sqlforge-color-brand-border);
-  border-radius: var(--sqlforge-radius-lg);
-  background: rgba(62, 207, 142, 0.08);
-}
-
-.delivery-hero-card h2 {
-  margin: 10px 0 0;
-  font-size: 24px;
-  font-weight: 400;
-}
-
-.delivery-hero-card p:last-child {
-  margin: 12px 0 0;
-  color: var(--sqlforge-text-secondary);
-  line-height: 1.6;
-}
-
-.hero-card-list {
-  display: grid;
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.hero-card-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  color: var(--sqlforge-text-secondary);
-}
-
-.hero-card-row strong {
-  color: var(--sqlforge-text-primary);
-  font-weight: 500;
-}
-
-.hero-card-footnote {
-  margin: 16px 0 0;
-}
-
-.delivery-section {
-  padding: 24px;
+  flex-direction: column;
+  gap: var(--sqlforge-space-6);
 }
 
 .delivery-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-}
-
-.section-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.section-summary {
-  max-width: 380px;
-  margin: 0;
-  color: var(--sqlforge-text-secondary);
-  line-height: 1.6;
-  text-align: right;
+  gap: var(--sqlforge-space-6);
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--sqlforge-space-4);
 }
 
-.summary-card,
 .task-card,
 .module-card,
 .timeline-card,
@@ -601,34 +463,6 @@ const formatProgressLog = progressLog => {
   border: 1px solid var(--sqlforge-border-default);
   border-radius: var(--sqlforge-radius-lg);
   background: var(--sqlforge-surface-2);
-}
-
-.summary-card {
-  padding: 18px;
-}
-
-.summary-card-label {
-  margin: 0;
-  color: var(--sqlforge-text-muted);
-  font-size: 13px;
-}
-
-.summary-card-value {
-  margin: 12px 0 0;
-  font-size: 30px;
-  font-weight: 400;
-}
-
-.summary-card-warning {
-  border-color: rgba(214, 179, 48, 0.28);
-}
-
-.summary-card-danger {
-  border-color: rgba(236, 106, 94, 0.28);
-}
-
-.summary-card-success {
-  border-color: rgba(62, 207, 142, 0.28);
 }
 
 .task-list,
@@ -644,7 +478,7 @@ const formatProgressLog = progressLog => {
 .timeline-card,
 .dependency-card,
 .empty-card {
-  padding: 18px;
+  padding: var(--sqlforge-space-5);
 }
 
 .task-card-header,
@@ -759,6 +593,30 @@ const formatProgressLog = progressLog => {
   font-weight: 500;
 }
 
+.delivery-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sqlforge-space-5);
+}
+
+.delivery-evidence-rows {
+  display: grid;
+  gap: var(--sqlforge-space-3);
+}
+
+.delivery-evidence-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sqlforge-space-4);
+  color: var(--sqlforge-text-secondary);
+}
+
+.delivery-evidence-row strong {
+  color: var(--sqlforge-text-primary);
+  font-weight: 500;
+}
+
 @media (max-width: 1280px) {
   .summary-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -766,28 +624,12 @@ const formatProgressLog = progressLog => {
 }
 
 @media (max-width: 1080px) {
-  .delivery-hero,
   .delivery-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .section-heading {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .section-summary {
-    max-width: none;
-    text-align: left;
   }
 }
 
 @media (max-width: 720px) {
-  .delivery-hero,
-  .delivery-section {
-    padding: 20px;
-  }
-
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

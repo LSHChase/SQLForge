@@ -380,6 +380,33 @@ const healthCards = computed(() => [
   }
 ])
 
+const dashboardEvidenceRows = computed(() => [
+  {
+    key: 'parse-overview',
+    label: t('dashboard.evidenceRows.parseOverview.label'),
+    value: Number(overview.value?.totalSqlCount || 0),
+    detail: t('dashboard.evidenceRows.parseOverview.detail')
+  },
+  {
+    key: 'query-window',
+    label: t('dashboard.evidenceRows.queryWindow.label'),
+    value: historyWindowStats.value.total,
+    detail: t('dashboard.evidenceRows.queryWindow.detail')
+  },
+  {
+    key: 'message-stats',
+    label: t('dashboard.evidenceRows.messageStats.label'),
+    value: Number(messageStats.value?.pending || 0) + Number(messageStats.value?.failed || 0),
+    detail: t('dashboard.evidenceRows.messageStats.detail')
+  },
+  {
+    key: 'dispatch-mode',
+    label: t('dashboard.evidenceRows.dispatchMode.label'),
+    value: dispatchContract.value?.coordinationMode || 'PULL_ONLY',
+    detail: t('dashboard.evidenceRows.dispatchMode.detail')
+  }
+])
+
 const issueDistributionCards = computed(() =>
   issueScenes.value.slice(0, 4).map(item => ({
     key: item.issueScene || item.sceneCode || item.issueCategory || 'UNKNOWN',
@@ -678,6 +705,26 @@ onMounted(() => {
       </div>
     </EvidencePanel>
 
+    <EvidencePanel
+      class="dashboard-section"
+      :eyebrow="t('dashboard.evidenceEyebrow')"
+      :title="t('dashboard.evidenceBoundaryTitle')"
+      :summary="t('dashboard.evidenceBoundarySummary')"
+      test-id="dashboard-static-evidence"
+    >
+      <div class="evidence-boundary-grid">
+        <article
+          v-for="row in dashboardEvidenceRows"
+          :key="row.key"
+          class="evidence-boundary-item"
+        >
+          <span class="evidence-boundary-label sqlforge-code-label">{{ row.label }}</span>
+          <strong>{{ row.value }}</strong>
+          <p>{{ row.detail }}</p>
+        </article>
+      </div>
+    </EvidencePanel>
+
     <section class="dashboard-split">
       <EvidencePanel
         as="article"
@@ -774,7 +821,8 @@ onMounted(() => {
 .metric-grid,
 .entry-grid,
 .distribution-grid,
-.health-grid {
+.health-grid,
+.evidence-boundary-grid {
   display: grid;
   gap: 18px;
 }
@@ -797,6 +845,10 @@ onMounted(() => {
 
 .distribution-grid {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.evidence-boundary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .todo-list,
@@ -948,7 +1000,8 @@ onMounted(() => {
 
 .entry-card,
 .distribution-card,
-.health-card {
+.health-card,
+.evidence-boundary-item {
   border-radius: 14px;
   padding: 18px;
 }
@@ -981,6 +1034,30 @@ onMounted(() => {
 .distribution-value,
 .activity-target {
   color: var(--sqlforge-text-primary);
+}
+
+.evidence-boundary-item {
+  border: 1px solid var(--sqlforge-border-default);
+  background: var(--sqlforge-surface-2);
+}
+
+.evidence-boundary-item strong {
+  display: block;
+  margin-top: 10px;
+  color: var(--sqlforge-text-primary);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.evidence-boundary-item p {
+  margin: 10px 0 0;
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.6;
+}
+
+.evidence-boundary-label {
+  color: var(--sqlforge-text-muted);
 }
 
 .distribution-value {

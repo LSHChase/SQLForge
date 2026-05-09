@@ -2,18 +2,17 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import EvidencePanel from '../common/EvidencePanel.vue'
+import MetricCard from '../common/MetricCard.vue'
 import PageHero from '../common/PageHero.vue'
+import SectionHeader from '../common/SectionHeader.vue'
 
-const { t, locale } = useI18n()
-const isChinese = computed(() => locale.value === 'zh-CN')
+const { t } = useI18n()
 
 const gateCards = computed(() => [
   {
     key: 'entry',
-    title: isChinese.value ? 'Entry Gate' : 'Entry Gate',
-    summary: isChinese.value
-      ? '台账、治理编译物和仓库知识 lint 必须先对齐。'
-      : 'Task ledger, compiled governance policy, and repository knowledge lint must pass first.',
+    title: t('runtimeGates.gates.entry.title'),
+    summary: t('runtimeGates.gates.entry.summary'),
     checks: [
       'python3 scripts/task_audit.py --check',
       'python3 scripts/foreman.py compile-governance --check',
@@ -22,10 +21,8 @@ const gateCards = computed(() => [
   },
   {
     key: 'delivery',
-    title: isChinese.value ? 'Delivery Gate' : 'Delivery Gate',
-    summary: isChinese.value
-      ? '数据库脚本、构建、覆盖率和 Sonar 统一收口到阶段交付门禁。'
-      : 'Database scripts, build, coverage, and Sonar are wired into the delivery gate.',
+    title: t('runtimeGates.gates.delivery.title'),
+    summary: t('runtimeGates.gates.delivery.summary'),
     checks: [
       'bash scripts/verify-db-scripts.sh',
       'mvn -B clean install',
@@ -36,10 +33,8 @@ const gateCards = computed(() => [
   },
   {
     key: 'compliance',
-    title: isChinese.value ? 'Compliance Gate' : 'Compliance Gate',
-    summary: isChinese.value
-      ? '恢复基线、可观测基线、Kafka gate 与敏感数据边界纳入 R-118 复验。'
-      : 'Recovery baseline, observability baseline, Kafka gate, and sensitive-data controls now feed R-118 rechecks.',
+    title: t('runtimeGates.gates.compliance.title'),
+    summary: t('runtimeGates.gates.compliance.summary'),
     checks: [
       'python3 scripts/verify_compliance_baseline.py',
       'python3 scripts/verify_kafka_runtime_config.py',
@@ -49,35 +44,68 @@ const gateCards = computed(() => [
 ])
 
 const blockerItems = computed(() => [
-  isChinese.value
-    ? 'Coverage threshold 已被 phase gate 真正执行，但当前仓库全量覆盖率仍需继续抬升到 Phase-1+ 85%。'
-    : 'The phase gate now enforces coverage thresholds, but the repository still needs higher overall line coverage to reach the Phase-1+ 85% bar.',
-  isChinese.value
-    ? 'Sonar 在 delivery/full gate 下已被强制要求，缺少 secrets 时会直接阻断。'
-    : 'Sonar is now mandatory in delivery/full gates and will block when secrets are missing.',
-  isChinese.value
-    ? 'Phase Gate workflow 仍然是显式 workflow_dispatch，不会自动绑定发布动作。'
-    : 'The Phase Gate workflow remains an explicit workflow_dispatch gate instead of an automatically bound release action.'
+  t('runtimeGates.blockers.coverage'),
+  t('runtimeGates.blockers.sonar'),
+  t('runtimeGates.blockers.workflowDispatch')
 ])
 
 const evidenceRows = computed(() => [
   {
-    label: isChinese.value ? 'CI 默认门禁' : 'Default CI gate',
+    label: t('runtimeGates.evidenceRows.defaultCi'),
     value: 'compose config + DB script gate + runtime smoke'
   },
   {
-    label: isChinese.value ? '真实 Kafka 门禁' : 'Real Kafka gate',
+    label: t('runtimeGates.evidenceRows.kafka'),
     value: '.github/workflows/kafka-runtime-gate.yml'
   },
   {
-    label: isChinese.value ? 'Phase Gate 入口' : 'Phase Gate entrypoint',
+    label: t('runtimeGates.evidenceRows.phaseGate'),
     value: '.github/workflows/phase-gate.yml'
   },
   {
-    label: isChinese.value ? '阶段脚本' : 'Phase script',
+    label: t('runtimeGates.evidenceRows.phaseScript'),
     value: 'scripts/run-phase-gates.sh'
   }
 ])
+
+const runtimeMetrics = computed(() => {
+  const checkCount = gateCards.value.reduce((total, gate) => total + gate.checks.length, 0)
+
+  return [
+    {
+      key: 'gate-count',
+      label: t('runtimeGates.metrics.gates.label'),
+      value: gateCards.value.length,
+      trend: 'Entry / Delivery / Compliance',
+      detail: t('runtimeGates.metrics.gates.detail'),
+      tone: 'success'
+    },
+    {
+      key: 'check-count',
+      label: t('runtimeGates.metrics.checks.label'),
+      value: checkCount,
+      trend: t('runtimeGates.metrics.checks.trend'),
+      detail: t('runtimeGates.metrics.checks.detail'),
+      tone: 'neutral'
+    },
+    {
+      key: 'workflow-count',
+      label: t('runtimeGates.metrics.workflows.label'),
+      value: evidenceRows.value.filter(row => row.value.includes('.github/workflows')).length,
+      trend: '.github/workflows',
+      detail: t('runtimeGates.metrics.workflows.detail'),
+      tone: 'neutral'
+    },
+    {
+      key: 'blocker-count',
+      label: t('runtimeGates.metrics.blockers.label'),
+      value: blockerItems.value.length,
+      trend: t('runtimeGates.metrics.blockers.trend'),
+      detail: t('runtimeGates.metrics.blockers.detail'),
+      tone: 'warning'
+    }
+  ]
+})
 </script>
 
 <template>
@@ -96,55 +124,63 @@ const evidenceRows = computed(() => [
       </template>
     </PageHero>
 
-    <div class="summary-card-grid">
-      <EvidencePanel
-        v-for="gate in gateCards"
-        :key="gate.key"
-        as="article"
-        v-bind="{
-          eyebrow: gate.title,
-          title: gate.title,
-          summary: gate.summary
-        }"
-      >
-        <div class="check-list">
-          <span
-            v-for="item in gate.checks"
-            :key="item"
-            class="check-pill"
-          >
-            {{ item }}
-          </span>
-        </div>
-      </EvidencePanel>
-    </div>
+    <section class="runtime-section">
+      <SectionHeader
+        eyebrow="kpi"
+        :title="t('runtimeGates.kpiTitle')"
+        :summary="t('runtimeGates.kpiSummary')"
+      />
+      <div class="metric-grid">
+        <MetricCard
+          v-for="metric in runtimeMetrics"
+          :key="metric.key"
+          v-bind="{
+            label: metric.label,
+            value: metric.value,
+            trend: metric.trend,
+            detail: metric.detail,
+            tone: metric.tone
+          }"
+        />
+      </div>
+    </section>
 
     <div class="runtime-grid">
       <EvidencePanel
         as="article"
-        v-bind="{
-          eyebrow: t('runtimeGates.evidenceEyebrow'),
-          title: t('runtimeGates.evidenceTitle')
-        }"
+        :eyebrow="t('runtimeGates.activityEyebrow')"
+        :title="t('runtimeGates.activityTitle')"
+        :summary="t('runtimeGates.activitySummary')"
       >
-        <div class="evidence-grid">
-          <div
-            v-for="row in evidenceRows"
-            :key="row.label"
-            class="evidence-item"
+        <div class="activity-list">
+          <article
+            v-for="gate in gateCards"
+            :key="gate.key"
+            class="activity-item"
           >
-            <span class="evidence-label">{{ row.label }}</span>
-            <strong>{{ row.value }}</strong>
-          </div>
+            <div class="activity-copy">
+              <p class="activity-type sqlforge-code-label">{{ gate.title }}</p>
+              <h3>{{ gate.title }}</h3>
+              <p>{{ gate.summary }}</p>
+            </div>
+            <div class="check-list">
+              <span
+                v-for="item in gate.checks"
+                :key="item"
+                class="check-pill"
+              >
+                {{ item }}
+              </span>
+            </div>
+          </article>
         </div>
       </EvidencePanel>
 
       <EvidencePanel
         as="article"
-        v-bind="{
-          eyebrow: t('runtimeGates.blockersEyebrow'),
-          title: t('runtimeGates.blockersTitle')
-        }"
+        :eyebrow="t('runtimeGates.blockersEyebrow')"
+        :title="t('runtimeGates.blockersTitle')"
+        :summary="t('runtimeGates.blockersSummary')"
         tone="warning"
       >
         <ul class="bullet-list">
@@ -157,6 +193,23 @@ const evidenceRows = computed(() => [
         </ul>
       </EvidencePanel>
     </div>
+
+    <EvidencePanel
+      :eyebrow="t('runtimeGates.evidenceEyebrow')"
+      :title="t('runtimeGates.evidenceTitle')"
+      :summary="t('runtimeGates.evidenceSummary')"
+    >
+      <div class="evidence-grid">
+        <div
+          v-for="row in evidenceRows"
+          :key="row.label"
+          class="evidence-item"
+        >
+          <span class="evidence-label">{{ row.label }}</span>
+          <strong>{{ row.value }}</strong>
+        </div>
+      </div>
+    </EvidencePanel>
   </section>
 </template>
 
@@ -168,13 +221,15 @@ const evidenceRows = computed(() => [
 }
 
 .runtime-grid,
-.summary-card-grid {
+.runtime-section,
+.metric-grid,
+.activity-list {
   display: grid;
-  gap: 20px;
+  gap: var(--sqlforge-space-5);
 }
 
-.summary-card-grid {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+.metric-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .runtime-grid {
@@ -191,7 +246,6 @@ const evidenceRows = computed(() => [
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 16px;
 }
 
 .check-pill {
@@ -200,6 +254,40 @@ const evidenceRows = computed(() => [
   background: var(--sqlforge-bg-page-deep);
   color: var(--sqlforge-text-primary);
   font-size: 13px;
+}
+
+.activity-item {
+  display: grid;
+  gap: var(--sqlforge-space-4);
+  padding: var(--sqlforge-space-5);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-lg);
+  background: var(--sqlforge-surface-2);
+}
+
+.activity-copy {
+  display: grid;
+  gap: var(--sqlforge-space-2);
+}
+
+.activity-copy h3,
+.activity-copy p {
+  margin: 0;
+}
+
+.activity-copy h3 {
+  color: var(--sqlforge-text-primary);
+  font-size: var(--sqlforge-text-heading);
+  font-weight: 500;
+}
+
+.activity-copy p {
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.6;
+}
+
+.activity-type {
+  color: var(--sqlforge-text-muted);
 }
 
 .evidence-grid {

@@ -4,6 +4,26 @@
 
 ## Done
 
+### HARN-109: 重构 Dashboard、Delivery、Runtime、Recovery 概览类页面
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `refactor(frontend): HARN-109 unify overview pages`
+- Priority: 2
+- Depends on: HARN-108
+- Scope: 覆盖 `DashboardView`、`DeliveryProgressView`、`RuntimeGatesView`、`RecoveryDrillView`；统一 KPI、风险、活动流、静态证据区布局，保留 sample/window/session/PULL_ONLY 边界，不伪造全局事实。
+- Validation:
+  - `npm run lint`
+  - `npm run build`
+  - `npm run smoke:frontend-dev`
+- Progress log:
+  - 2026-05-09: started HARN-109 overview page refactor after strict preflight; scope remains Dashboard, Delivery, Runtime, and Recovery overview layout only.
+- Context closeout:
+  - Completed scope: Refactored Dashboard, DeliveryProgressView, RuntimeGatesView, and RecoveryDrillView around shared PageHero, SectionHeader, EvidencePanel, MetricCard, risk/activity/static-evidence patterns while preserving sample/window/session/PULL_ONLY boundaries and avoiding backend/API/persistence changes.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-109 --include-task-audit --extra-command 'npm run smoke:frontend-dev' passed; direct npm run lint, npm run build, npm run test:frontend-page-governance, and npm run smoke:frontend-dev also passed.
+  - Residual risk: No backend, API, persistence, permission, or production delivery-progress exposure changes; remaining HARN-110 through HARN-116 page refactors still need to continue from this shared overview pattern.
+  - Next step: Start HARN-110 SQL query and SQL history page refactor using the shared layout and SQL UI contracts.
+
 ### HARN-108: 建立前端共享页面布局组件与样式契约
 
 - Status: done

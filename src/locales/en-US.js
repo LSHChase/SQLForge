@@ -44,6 +44,27 @@ export default {
     issueDistributionTitle: 'Issue distribution',
     recentActivityTitle: 'Recent activity',
     nextStepsTitle: 'Recommended next steps',
+    evidenceEyebrow: 'static evidence',
+    evidenceBoundaryTitle: 'Evidence boundaries',
+    evidenceBoundarySummary: 'The homepage shows only facts proven by the current API response, window, or coordination mode instead of turning samples into global conclusions.',
+    evidenceRows: {
+      parseOverview: {
+        label: 'Parse overview',
+        detail: 'Taken from the current parse-statistics overview sample, not full-tenant history.'
+      },
+      queryWindow: {
+        label: 'Query window',
+        detail: 'Taken from the current query-history page window; success, failure and hit rates are window-based.'
+      },
+      messageStats: {
+        label: 'Governance messages',
+        detail: 'Taken from governance admin message stats and only merges pending plus failed risk.'
+      },
+      dispatchMode: {
+        label: 'Dispatch mode',
+        detail: 'Keeps showing PULL_ONLY or the backend-returned mode without pretending active push exists.'
+      }
+    },
     actions: {
       openQueryWorkbench: 'Open query workbench',
       openSqlParse: 'Open SQL Parse',
@@ -320,7 +341,8 @@ export default {
       blockedTitle: 'No blocker items to display',
       blockedDescription: 'This area will refresh automatically once a task enters `blocked` or a new unresolved reason appears in the latest progress logs.',
       dependencyTitle: 'No dependency chains yet',
-      dependencyDescription: 'Dependency structures will render here after active tasks carry `Depends on` entries.'
+      dependencyDescription: 'Dependency structures will render here after active tasks carry `Depends on` entries.',
+      progressLog: 'No progress log yet'
     }
   },
   sqlQuery: {
@@ -498,8 +520,60 @@ export default {
     heroNote: 'The point is not more display pages, but a clear line between blocking gates and residual risks.',
     evidenceEyebrow: 'evidence map',
     evidenceTitle: 'Scripts And Workflow Entry Points',
+    evidenceSummary: 'Lists repository scripts and workflow entry points only; it does not claim an external environment has already executed them.',
+    kpiTitle: 'Gate KPIs And Evidence Boundaries',
+    kpiSummary: 'Metrics count only the scripts, workflows and residual blockers listed on this page, without extrapolating global runtime health.',
+    activityEyebrow: 'gate activity',
+    activityTitle: 'Gate Activity Stream',
+    activitySummary: 'Shows blocking checks and script entry points in Entry, Delivery and Compliance order.',
     blockersEyebrow: 'residual blockers',
-    blockersTitle: 'Residual Blockers Still Open'
+    blockersTitle: 'Residual Blockers Still Open',
+    blockersSummary: 'These remain risks to track before exit and must not be presented as already closed facts.',
+    gates: {
+      entry: {
+        title: 'Entry Gate',
+        summary: 'Task ledger, compiled governance policy, and repository knowledge lint must pass first.'
+      },
+      delivery: {
+        title: 'Delivery Gate',
+        summary: 'Database scripts, build, coverage, and Sonar are wired into the delivery gate.'
+      },
+      compliance: {
+        title: 'Compliance Gate',
+        summary: 'Recovery baseline, observability baseline, Kafka gate, and sensitive-data controls now feed R-118 rechecks.'
+      }
+    },
+    blockers: {
+      coverage: 'The phase gate now enforces coverage thresholds, but the repository still needs higher overall line coverage to reach the Phase-1+ 85% bar.',
+      sonar: 'Sonar is now mandatory in delivery/full gates and will block when secrets are missing.',
+      workflowDispatch: 'The Phase Gate workflow remains an explicit workflow_dispatch gate instead of an automatically bound release action.'
+    },
+    evidenceRows: {
+      defaultCi: 'Default CI gate',
+      kafka: 'Real Kafka gate',
+      phaseGate: 'Phase Gate entrypoint',
+      phaseScript: 'Phase script'
+    },
+    metrics: {
+      gates: {
+        label: 'Gate layers',
+        detail: 'Counts only the Entry, Delivery and Compliance gates explicitly listed here.'
+      },
+      checks: {
+        label: 'Blocking checks',
+        trend: 'Script entrypoints',
+        detail: 'Derived from the command list in the gate activity stream, not from external environment state.'
+      },
+      workflows: {
+        label: 'Workflow entries',
+        detail: 'Shows repository workflow file references only; execution results remain tied to validation logs.'
+      },
+      blockers: {
+        label: 'Residual blockers',
+        trend: 'Track further',
+        detail: 'These items stay in the risk queue and must not be marked as closed facts.'
+      }
+    }
   },
   recoveryDrill: {
     title: 'Recovery Drill',
@@ -510,8 +584,54 @@ export default {
     heroNote: 'Restore completion means more than database replay: health probes, audit compensation, queue backlog, export/desensitization, and leak checks must all pass.',
     objectivesEyebrow: 'rpo / rto',
     objectivesTitle: 'Recovery Objectives And Owners',
+    objectivesSummary: 'This static table records data domains, RPO/RTO targets, and owner boundaries.',
     checklistEyebrow: 'acceptance checklist',
-    checklistTitle: 'Mandatory Post-Restore Checklist'
+    checklistTitle: 'Mandatory Post-Restore Checklist',
+    checklistSummary: 'High-risk evidence must be rechecked after restore; replaying the database is not the only completion signal.',
+    kpiTitle: 'Recovery Drill KPIs And Acceptance Boundaries',
+    kpiSummary: 'Shows only baseline objects, RPO/RTO targets and post-restore checks, without presenting drill results as production-verified facts.',
+    activityEyebrow: 'recovery flow',
+    activityTitle: 'Recovery Object Activity Stream',
+    activitySummary: 'Shows the recovery batch focus objects in order with their acceptance semantics.',
+    sameBackupBatch: 'Same batch as backup',
+    inventory: {
+      core: 'Primary metadata tables, schema version, and migration inventory must recover as one batch.',
+      audit: 'Audit evidence must remain continuous and still accept `LOGIN/LOGOUT` and `audit/write` samples after restore.',
+      export: 'Export metadata and sanitized archive pointers must reconcile with each other.',
+      queue: 'Database fallback backlog must remain replayable after recovery.',
+      keys: 'Restore ciphertext only, never plaintext, and keep `encryption_key_id` aligned with the backup batch.'
+    },
+    checklist: {
+      health: 'All backend `/actuator/health` probes and governance `/api/governance/health` return `UP`.',
+      audit: 'Replay `audit/write` and `LOGIN/LOGOUT` audit samples after restore.',
+      backlog: 'Check `kafka_message_queue` backlog or explicitly record why it is not applicable.',
+      export: 'Sample `export_record` against `history_id/result_id` and confirm storage pointers remain sanitized.',
+      leak: 'Sample log platforms and `system_config` to confirm no password, token, or key leaks.'
+    },
+    metrics: {
+      inventory: {
+        label: 'Recovery objects',
+        trend: 'Baseline inventory',
+        detail: 'Counts only the recovery objects explicitly listed in the current baseline.'
+      },
+      rpo: {
+        label: 'RPO target',
+        detail: 'Recovery point target shared by governance metadata, audit, export and queue domains.'
+      },
+      rto: {
+        label: 'RTO target',
+        detail: 'Post-restore health, audit, queue and desensitization checks still have to pass.'
+      },
+      checklist: {
+        label: 'Recheck items',
+        trend: 'post-restore',
+        detail: 'Every item must be rechecked after restore; a single success signal does not close the loop.'
+      }
+    },
+    table: {
+      domain: 'Domain',
+      owner: 'Owner'
+    }
   },
   benchmark: {
     title: 'Benchmark Report',

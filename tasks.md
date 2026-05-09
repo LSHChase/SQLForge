@@ -11,17 +11,6 @@
 
 ## Todo
 
-### HARN-109: 重构 Dashboard、Delivery、Runtime、Recovery 概览类页面
-
-- Status: todo
-- Priority: 2
-- Depends on: HARN-108
-- Scope: 覆盖 `DashboardView`、`DeliveryProgressView`、`RuntimeGatesView`、`RecoveryDrillView`；统一 KPI、风险、活动流、静态证据区布局，保留 sample/window/session/PULL_ONLY 边界，不伪造全局事实。
-- Validation:
-  - `npm run lint`
-  - `npm run build`
-  - `npm run smoke:frontend-dev`
-
 ### HARN-110: 重构 SQL 查询与 SQL 历史页面结构
 
 - Status: todo

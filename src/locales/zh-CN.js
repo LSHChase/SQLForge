@@ -44,6 +44,27 @@ export default {
     issueDistributionTitle: '问题分布',
     recentActivityTitle: '最近活动',
     nextStepsTitle: '下一步建议',
+    evidenceEyebrow: 'static evidence',
+    evidenceBoundaryTitle: '证据边界',
+    evidenceBoundarySummary: '首页只展示当前接口、窗口或协同模式可证明的事实，避免把样本扩写成全局结论。',
+    evidenceRows: {
+      parseOverview: {
+        label: '解析总览',
+        detail: '来自 parse-statistics overview 的当前样本，不代表全量租户历史。'
+      },
+      queryWindow: {
+        label: '查询窗口',
+        detail: '来自 query-history 当前页窗口，成功率、失败率和命中率均按窗口计算。'
+      },
+      messageStats: {
+        label: '治理消息',
+        detail: '来自 governance admin message stats，只合并 pending 与 failed 风险。'
+      },
+      dispatchMode: {
+        label: '协同模式',
+        detail: '继续显式展示 PULL_ONLY 或后端返回模式，不伪装主动下发。'
+      }
+    },
     actions: {
       openQueryWorkbench: '进入查询工作台',
       openSqlParse: '进入 SQL解析',
@@ -320,7 +341,8 @@ export default {
       blockedTitle: '当前没有待展示的阻塞项',
       blockedDescription: '若后续任务进入 `blocked`，或最新进度日志写入新的待决原因，这里会自动刷新。',
       dependencyTitle: '当前没有依赖链',
-      dependencyDescription: '待活动任务补入 `Depends on` 后，这里会自动展示依赖结构。'
+      dependencyDescription: '待活动任务补入 `Depends on` 后，这里会自动展示依赖结构。',
+      progressLog: '暂无进度日志'
     }
   },
   sqlQuery: {
@@ -498,8 +520,60 @@ export default {
     heroNote: '当前重点不是再加展示页，而是明确哪些脚本已经成为阻断门禁、哪些仍是残余风险。',
     evidenceEyebrow: 'evidence map',
     evidenceTitle: '脚本与 workflow 入口',
+    evidenceSummary: '仅列出仓库内脚本和 workflow 入口，不代表外部环境已经执行。',
+    kpiTitle: '门禁 KPI 与证据边界',
+    kpiSummary: '指标只统计本页列出的脚本、workflow 和残余阻塞，不外推运行时全局健康。',
+    activityEyebrow: 'gate activity',
+    activityTitle: '门禁活动流',
+    activitySummary: '按 Entry、Delivery、Compliance 顺序展示阻断检查和脚本入口。',
     blockersEyebrow: 'residual blockers',
-    blockersTitle: '仍需继续推进的阻塞项'
+    blockersTitle: '仍需继续推进的阻塞项',
+    blockersSummary: '这些仍是退出前要继续跟踪的风险项，不能写成已闭环事实。',
+    gates: {
+      entry: {
+        title: 'Entry Gate',
+        summary: '台账、治理编译物和仓库知识 lint 必须先对齐。'
+      },
+      delivery: {
+        title: 'Delivery Gate',
+        summary: '数据库脚本、构建、覆盖率和 Sonar 统一收口到阶段交付门禁。'
+      },
+      compliance: {
+        title: 'Compliance Gate',
+        summary: '恢复基线、可观测基线、Kafka gate 与敏感数据边界纳入 R-118 复验。'
+      }
+    },
+    blockers: {
+      coverage: 'Coverage threshold 已被 phase gate 真正执行，但当前仓库全量覆盖率仍需继续抬升到 Phase-1+ 85%。',
+      sonar: 'Sonar 在 delivery/full gate 下已被强制要求，缺少 secrets 时会直接阻断。',
+      workflowDispatch: 'Phase Gate workflow 仍然是显式 workflow_dispatch，不会自动绑定发布动作。'
+    },
+    evidenceRows: {
+      defaultCi: 'CI 默认门禁',
+      kafka: '真实 Kafka 门禁',
+      phaseGate: 'Phase Gate 入口',
+      phaseScript: '阶段脚本'
+    },
+    metrics: {
+      gates: {
+        label: '门禁层级',
+        detail: '只统计当前页面明确列出的 Entry、Delivery 与 Compliance 门禁。'
+      },
+      checks: {
+        label: '阻断检查',
+        trend: '脚本入口',
+        detail: '来自门禁活动流的命令清单，不推导外部环境状态。'
+      },
+      workflows: {
+        label: 'workflow 入口',
+        detail: '仅显示仓库内 workflow 文件引用，执行结果仍以验证日志为准。'
+      },
+      blockers: {
+        label: '残余阻塞',
+        trend: '需继续跟踪',
+        detail: '这些项保留为风险队列，不能标记为已关闭事实。'
+      }
+    }
   },
   recoveryDrill: {
     title: '恢复演练',
@@ -510,8 +584,54 @@ export default {
     heroNote: '恢复完成的定义不是库导回来了，而是健康探针、审计补偿、队列 backlog、导出/脱敏和敏感泄漏检查都通过。',
     objectivesEyebrow: 'rpo / rto',
     objectivesTitle: '恢复目标与责任人',
+    objectivesSummary: '静态表格记录数据域、RPO/RTO 和责任人边界。',
     checklistEyebrow: 'acceptance checklist',
-    checklistTitle: '恢复后必须复验的清单'
+    checklistTitle: '恢复后必须复验的清单',
+    checklistSummary: '恢复完成后必须复验的高风险证据，不以数据库导回作为唯一完成定义。',
+    kpiTitle: '恢复演练 KPI 与验收边界',
+    kpiSummary: '仅展示基线对象、RPO/RTO 目标和恢复后检查项，不把演练结果写成已生产验证事实。',
+    activityEyebrow: 'recovery flow',
+    activityTitle: '恢复对象活动流',
+    activitySummary: '按恢复批次关注对象展示顺序和验收语义。',
+    sameBackupBatch: '与备份批次同步',
+    inventory: {
+      core: '主库、核心追溯链、schema 版本与 migration 清单必须成批恢复。',
+      audit: '审计留痕必须连续，`LOGIN/LOGOUT` 与 `audit/write` 抽样恢复后仍可落库。',
+      export: '导出元数据和脱敏归档索引要能互相核对。',
+      queue: '数据库兜底或 fallback backlog 恢复后必须还能继续补偿。',
+      keys: '只恢复密文、不回流明文，`encryption_key_id` 必须与批次对应。'
+    },
+    checklist: {
+      health: '4 个后端 `/actuator/health` 和治理 `/api/governance/health` 全部返回 `UP`。',
+      audit: '恢复后复跑 `audit/write` 抽样、`LOGIN/LOGOUT` 审计样本。',
+      backlog: '检查 `kafka_message_queue` backlog 或明确记录为何不适用。',
+      export: '抽样 `export_record` 与 `history_id/result_id` 追溯键，确认脱敏地址未泄漏。',
+      leak: '抽检日志平台和 `system_config`，确认没有密码、Token、密钥明文泄漏。'
+    },
+    metrics: {
+      inventory: {
+        label: '恢复对象',
+        trend: '基线清单',
+        detail: '只统计当前基线明确列出的恢复对象。'
+      },
+      rpo: {
+        label: 'RPO 目标',
+        detail: '治理元数据、审计、导出和队列域共同遵守的恢复点目标。'
+      },
+      rto: {
+        label: 'RTO 目标',
+        detail: '恢复后仍需通过健康、审计、队列和脱敏验收。'
+      },
+      checklist: {
+        label: '复验检查',
+        trend: 'post-restore',
+        detail: '恢复完成后必须逐项复验，不以单点成功替代闭环。'
+      }
+    },
+    table: {
+      domain: '数据域',
+      owner: '责任人'
+    }
   },
   benchmark: {
     title: '压测报告',

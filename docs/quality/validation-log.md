@@ -3057,3 +3057,27 @@
 2026-05-09T07:41:13-05:00 | HARN-108 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run lint (projected-precommit)`
 2026-05-09T07:41:13-05:00 | HARN-108 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run build (projected-precommit)`
 2026-05-09T07:41:13-05:00 | HARN-108 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run test:frontend-page-governance (projected-precommit)`
+2026-05-09T07:49:48-05:00 | HARN-109 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-09T07:49:48-05:00 | HARN-109 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-09T07:50:26-05:00 | HARN-109 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-09T07:50:26-05:00 | HARN-109 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-09T07:50:28-05:00 | HARN-109 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-09T07:50:31-05:00 | HARN-109 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-09T07:50:31-05:00 | HARN-109 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-09T07:50:31-05:00 | HARN-109 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-09T07:50:32-05:00 | HARN-109 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184` | passed | `npm run test:frontend-page-governance`
+2026-05-09T07:50:32-05:00 | HARN-109 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-09T07:51:39-05:00 | HARN-109 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-09T07:51:39-05:00 | HARN-109 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-09T07:51:56-05:00 | HARN-109 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-09T07:51:56-05:00 | HARN-109 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-09T07:51:58-05:00 | HARN-109 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-09T07:52:01-05:00 | HARN-109 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-09T07:52:01-05:00 | HARN-109 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-09T07:52:01-05:00 | HARN-109 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-09T07:52:01-05:00 | HARN-109 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184` | passed | `npm run test:frontend-page-governance`
+2026-05-09T07:52:01-05:00 | HARN-109 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-09T07:52:07-05:00 | HARN-109 validate | `R-133`, `R-168` | passed | `npm run smoke:frontend-dev`
+2026-05-09T07:52:27-05:00 | HARN-109 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-09T07:52:27-05:00 | HARN-109 closeout commit | `R-168` | projected | `git commit -m 'refactor(frontend): HARN-109 unify overview pages' (projected-precommit)`
+2026-05-09T07:52:27-05:00 | HARN-109 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
