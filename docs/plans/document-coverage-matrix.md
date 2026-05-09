@@ -87,7 +87,7 @@
 | `docs/quality/alibaba-java-guidelines.md` | Authority | Java 规范适配文档 | Consumed | Java 实现与扫描治理 |
 | `docs/quality/frontend-backend-separation-baseline.md` | Authority | 前后端分离基线 | Consumed | 边界治理与脚本校验 |
 | `docs/quality/validation-log.md` | Indexed | 验证行为审计日志 | Referenced | 验证证据追溯与关闭链路 |
-| `docs/quality/validation-rules.md` | Authority | `R-116` 至 `R-161` 验证规则与 `R-168` 执行衔接 | Consumed | 任务、阶段与上下文收尾验证矩阵 |
+| `docs/quality/validation-rules.md` | Authority | `R-116` 至 `R-186` 验证规则与 `R-168` 执行衔接 | Consumed | 任务、阶段、上下文收尾与前端视觉自检验证矩阵 |
 | `docs/references/human-constraint-history.md` | Authority | 长期约束历史账本 | Consumed | 规则追加与人类决策追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/Java开发手册(黄山版).pdf` | Archive | Java 规范原始 PDF | Archived | `R-154` 来源追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/README.snapshot.md` | Archive | Java 规范原始 README 快照 | Archived | `R-154` 来源追溯 |

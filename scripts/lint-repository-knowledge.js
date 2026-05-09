@@ -105,7 +105,7 @@ const expectedValidationIndexRanges = [
   [156, 161],
   [168, 168],
   [170, 176],
-  [185, 185]
+  [185, 186]
 ]
 const requiredMessagingConfigs = [
   'governance/src/main/resources/application-dev.yml',

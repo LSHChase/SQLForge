@@ -33,6 +33,13 @@ REQUIRED_CONTEXT_CLOSEOUT_MARKERS = [
     "Residual risk:",
     "Next step:",
 ]
+VISUAL_SELF_REVIEW_TRIGGER = "before/after 截图自检"
+VISUAL_SELF_REVIEW_REQUIRED_PATTERNS = {
+    "before screenshot": re.compile(r"(before\s*(?:截图|screenshot)|截图[^。\n]*(?:before|前))", re.IGNORECASE),
+    "after screenshot": re.compile(r"(after\s*(?:截图|screenshot)|截图[^。\n]*(?:after|后))", re.IGNORECASE),
+    "Codex visual review": re.compile(r"(Codex[^。\n]*(?:读图|截图自检|视觉复核|visual self-review)|(?:读图|截图自检|视觉复核|visual self-review))", re.IGNORECASE),
+    "fix outcome": re.compile(r"(修复|已修复|未发现[^。\n]*(?:漂移|问题)|no visual drift|no screenshot issue|visual review passed)", re.IGNORECASE),
+}
 PHASE_PRE_CLOSEOUT = "pre-closeout"
 PHASE_POST_CLOSEOUT = "post-closeout"
 ALLOWED_PHASES = {PHASE_PRE_CLOSEOUT, PHASE_POST_CLOSEOUT}
@@ -189,6 +196,28 @@ def validate_context_closeout(block: Dict[str, str], errors: List[str]) -> None:
     if missing:
         errors.append(
             f"{block['task_id']} is missing required Context closeout markers:\n- " + "\n- ".join(missing)
+        )
+
+
+def requires_visual_self_review(block: Dict[str, str]) -> bool:
+    return VISUAL_SELF_REVIEW_TRIGGER in block["body"]
+
+
+def validate_visual_self_review(block: Dict[str, str], errors: List[str]) -> None:
+    if not requires_visual_self_review(block):
+        return
+
+    if "Context closeout:" not in block["body"]:
+        return
+
+    closeout = block["body"].split("Context closeout:", 1)[1]
+    missing = [
+        label for label, pattern in VISUAL_SELF_REVIEW_REQUIRED_PATTERNS.items() if not pattern.search(closeout)
+    ]
+    if missing:
+        errors.append(
+            f"{block['task_id']} requires R-186 visual self-review closeout evidence but is missing:\n- "
+            + "\n- ".join(missing)
         )
 
 
@@ -486,6 +515,7 @@ def audit(phase: str) -> List[str]:
             errors.append(f"{block['task_id']} commit subject not found in git history: {subject}")
         if requires_context_closeout(block, done_ledger=True):
             validate_context_closeout(block, errors)
+        validate_visual_self_review(block, errors)
         validate_done_plan_ref(block, errors)
 
     return errors
@@ -524,6 +554,7 @@ def main() -> int:
         print("- tasks-done commit subjects all exist in git history")
     print("- tasks-done ordering is newest-first for closeout evaluation")
     print("- R-168 Context closeout markers exist for applicable in-review/done tasks")
+    print("- R-186 visual self-review closeout evidence exists for tasks marked with before/after 截图自检")
     print("- archived done-task Plan refs do not point at active exec plans")
     return 0
 

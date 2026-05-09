@@ -15,9 +15,10 @@
 
 - Status: todo
 - Priority: 1
-- Depends on: HARN-110
+- Depends on: HARN-110,HARN-116
 - Scope: 覆盖 `AccelerationView`、`ParseStatisticsCenterView`；拆分单条 SQL 输入、结构解析、access parse、结论、统计入口、字段 help 和详情弹层，不改变 parser/API/payload。
 - Validation:
+  - before/after 截图自检
   - `npm run lint`
   - `npm run build`
   - `npm run test:sql-ui-contract`
@@ -30,6 +31,7 @@
 - Depends on: HARN-111
 - Scope: 覆盖 `ParseBatchCenterView`；拆分普通批量、报表导入、统计标签、详情弹窗、失败详情和 SQL 展示；保留 summary-first、有限明细预览、失败记录可点击详情和大批量渲染约束。
 - Validation:
+  - before/after 截图自检
   - `npm run lint`
   - `npm run build`
   - `npm run test:sql-ui-contract`
@@ -42,6 +44,7 @@
 - Depends on: HARN-112
 - Scope: 覆盖 `ParseRecordView`；拆分筛选、SQL 解析记录、批量/报表历史、详情弹层、报表统计、issue-scene detail 和原始 SQL 展示；保留默认空筛选与 raw SQL 不自动格式化契约。
 - Validation:
+  - before/after 截图自检
   - `npm run lint`
   - `npm run build`
   - `npm run test:form-governance`
@@ -52,9 +55,10 @@
 
 - Status: todo
 - Priority: 2
-- Depends on: HARN-108
+- Depends on: HARN-108,HARN-116
 - Scope: 覆盖 `AssetCatalogView`、`RoutingGovernanceView`、`RecommendationCenterView`、`BenchmarkView`、`AccessCenterView`；统一列表/详情/证据/placeholder 语义，保留只读证据边界和缺失写 API 的显式边界。
 - Validation:
+  - before/after 截图自检
   - `npm run lint`
   - `npm run build`
   - `npm run test:sql-ui-contract`
@@ -64,9 +68,10 @@
 
 - Status: todo
 - Priority: 2
-- Depends on: HARN-108
+- Depends on: HARN-108,HARN-116
 - Scope: 覆盖 `AlertCenterView`、`AuditForensicsView`、`AuditTroubleshootingView`、`RepairEvidenceView`、`SystemView`；收敛重复 trace lookup、timeline、queue、retry、datasource/config 表格与详情模式，保留权限和后端权威边界。
 - Validation:
+  - before/after 截图自检
   - `npm run lint`
   - `npm run build`
   - `npm run test:form-governance`

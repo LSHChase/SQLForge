@@ -4,13 +4,35 @@
 
 ## Done
 
+### HARN-120: 补齐前端截图自检机器门禁
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `chore(frontend): HARN-120 enforce visual review gate`
+- Priority: 1
+- Depends on: HARN-116
+- Scope: 补齐 HARN-116 复核发现的可执行性缺口：让前端治理脚本默认执行自测，新增截图自检 closeout/audit 机器检查，补齐 R-186 validation-rules 索引与任务/计划依赖，使 HARN-111 以后页面任务必须记录 before/after 截图与 Codex 读图修复结论。
+- Validation:
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:frontend-page-governance`
+  - `node scripts/lint-repository-knowledge.js`
+  - `python3 scripts/foreman.py validate HARN-120`
+- Progress log:
+  - 2026-05-09: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added the task_audit R-186 closeout gate for frontend page tasks carrying the visual screenshot marker; made npm run test:frontend-page-governance run the governance script self-test by default; synced validation-rules, knowledge lint, HARN-111 through HARN-115 dependencies and validation lists, master/task matrices, human constraint history, and the HARN-116 dependency correction.
+  - Validation evidence: npm run lint; npm run build; npm run test:frontend-page-governance; python3 -m py_compile scripts/task_audit.py scripts/foreman.py; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance --check; python3 scripts/foreman.py validate HARN-120; python3 scripts/task_audit.py --check --phase pre-closeout; python3 scripts/task_audit.py --check --phase post-closeout; git diff --check; local negative and positive task_audit visual-review fixtures.
+  - Residual risk: The R-186 audit gate validates closeout evidence text rather than opening image files, so Codex still must actually capture and read screenshots during page work; this avoids committing binary screenshots while preventing silent omission of before screenshot, after screenshot, visual review, and fix or no-drift conclusions.
+  - Next step: Start HARN-111 with the screenshot validation marker already in its ledger; record before screenshot, after screenshot, Codex visual review, and fix or no-drift outcome in closeout.
+
 ### HARN-116: 加固前端页面治理脚本与设计文档
 
 - Status: done
 - Completed at: 2026-05-09
 - Commit subject: `chore(frontend): HARN-116 harden page governance`
 - Priority: 2
-- Depends on: HARN-109,HARN-110,HARN-111,HARN-112,HARN-113,HARN-114,HARN-115
+- Depends on: HARN-109,HARN-110
 - Scope: 扩展 `check-frontend-page-governance.mjs`，补充 layout/i18n/card nesting/SQL component/page shell 检查；更新 `docs/frontend/design-system.md` 与相关前端治理文档，防止重构后回退。
 - Validation:
   - `npm run lint`
@@ -22,8 +44,8 @@
 - Context closeout:
   - Completed scope: Added R-186 screenshot self-review governance; updated frontend design/form governance and HARN-111 through HARN-116 matrix expectations; extended check-frontend-page-governance with diff-aware PageHero, duplicate pagination summary, footer separation, filter density, obsolete copy checks, plus a synthetic self-test; regenerated authority-map.
   - Validation evidence: npm run lint; npm run build; npm run test:frontend-page-governance; node scripts/check-frontend-page-governance.mjs --self-test; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance --check; python3 scripts/foreman.py validate HARN-116 passed after authority-map regeneration; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
-  - Residual risk: Static governance checks remain heuristic and diff-aware, so screenshot reading remains mandatory for page implementation tasks; HARN-116 changed docs/scripts only and did not render a business page.
-  - Next step: Start HARN-111 by capturing before screenshots, then after implementation screenshots, and record Codex screenshot self-review fixes in closeout.
+  - Residual risk: Static governance checks remain heuristic and diff-aware, so screenshot reading remains mandatory for page implementation tasks; HARN-116 changed docs/scripts only and did not render a business page. HARN-120 later tightened this into a closeout audit gate and corrected the dependency truth so HARN-111 treats HARN-116 as a prerequisite.
+  - Next step: Start HARN-111 only after the HARN-120 closeout gate is present; capture before screenshots, then after implementation screenshots, and record Codex screenshot self-review fixes in closeout.
 
 ### HARN-119: 修复 SQL 历史分页状态栏
 

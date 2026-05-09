@@ -1,6 +1,6 @@
 # Validation Rules
 
-本文件独立收录 `R-116` 至 `R-185` 的验证规则，并补充 `R-168` 的执行型验证衔接，用于快速查阅阶段门禁、任务验证、回归验证、环境验证、规则自维护、自动触发验证规则、harness 任务治理验证、MCP 治理验证与 JDK 运行时验证。
+本文件独立收录 `R-116` 至 `R-186` 的验证规则，并补充 `R-168` 的执行型验证衔接，用于快速查阅阶段门禁、任务验证、回归验证、环境验证、规则自维护、自动触发验证规则、harness 任务治理验证、MCP 治理验证、JDK 运行时验证与前端视觉自检验证。
 
 ## 索引
 
@@ -52,6 +52,7 @@
 - `R-175` Multi-agent prepare / launch / collect MCP 验证
 - `R-176` Auto-planner / full-auto MCP 合同验证
 - `R-185` JDK 8u112 运行时验证
+- `R-186` 前端截图自检验证
 
 ## 阶段质量门禁（Phase Gate）
 
@@ -451,6 +452,21 @@
 - 通过标准：适用检查项全部通过。
 - 失败处置：修正文档 / workflow / 环境版本声明；若环境暂不可用，进入任务台账 residual risk、blocked 或 `INBOX.md`，不得静默放行。
 - 关联规则：`R-016`, `R-119`, `R-151`, `R-185`
+
+## 前端视觉自检验证（R-186）
+
+### R-186 前端截图自检验证
+
+- 触发时机：新增、修改或重构前端页面，且任务台账或任务矩阵 Validation 标记 `before/after 截图自检` 时。
+- 检查清单：
+  1. closeout 的 `Validation evidence` 或 `Completed scope` 明确记录 before screenshot 路径或等价截图证据。
+  2. closeout 的 `Validation evidence` 或 `Completed scope` 明确记录 after screenshot 路径或等价截图证据。
+  3. closeout 说明 Codex 已完成读图 / 视觉复核 / visual self-review。
+  4. closeout 说明截图复核后已修复的问题，或明确记录未发现 visual drift / 截图问题。
+  5. `python3 scripts/task_audit.py --check --phase pre-closeout|post-closeout` 能阻断缺少上述记录的已归档任务。
+- 通过标准：适用检查项全部通过，且截图自检记录不替代 lint、build、contract、页面治理脚本和 `foreman validate`。
+- 失败处置：不得 closeout；补抓 before/after 截图、补做 Codex 读图复核并修复问题，或在无法重建 before 状态时记录原因、after 复核证据和 residual risk。
+- 关联规则：`R-124`, `R-133`, `R-156`, `R-168`, `R-184`, `R-186`
 
 ## Harness 任务治理验证（R-156 至 R-161）
 

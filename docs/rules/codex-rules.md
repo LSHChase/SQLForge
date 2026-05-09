@@ -957,6 +957,7 @@ messaging:
 - 筛选 / 表格页必须确认首屏能看到主流程和至少一部分结果区；筛选区字段较多时必须使用响应式 grid、flex wrapping 或共享 SearchForm / ToolbarShell，不得退化为单列长表单。
 - 表格 footer 必须把状态信息和分页控件分区；不得在 Element Plus pagination 外重复“当前页 / 总数 / 第几页”等自定义分页摘要，不得保留无意义 summary 或废弃说明文案。
 - closeout 可记录截图路径和已修复问题，但截图路径只是审计链副产物；交付结论必须说明 Codex 已基于截图完成自我复核和必要修复。
+- 标记为 `before/after 截图自检` 的前端页面任务，`task_audit.py` 必须在 closeout 阶段检查 before screenshot、after screenshot、Codex 读图复核和修复 / 未发现漂移结论；缺失时不得归档任务。
 
 ## Current Consumption Note (2026-04-20)
 

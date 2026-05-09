@@ -854,7 +854,7 @@ def command_validate(args: argparse.Namespace) -> int:
                 (["npm", "run", "build"], "`R-124`, `R-184`"),
                 (["npm", "run", "test:form-governance"], "`R-180`, `R-184`"),
                 (["npm", "run", "test:sql-ui-contract"], "`R-180`, `R-184`"),
-                (["npm", "run", "test:frontend-page-governance"], "`R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`"),
+                (["npm", "run", "test:frontend-page-governance"], "`R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186`"),
             ]
         )
     if args.include_task_audit:

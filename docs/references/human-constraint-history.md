@@ -280,3 +280,22 @@
   - `docs/plans/task-spec-matrix.md`
   - `scripts/check-frontend-page-governance.mjs`
   - `scripts/lint-repository-knowledge.js`
+
+## 2026-05-09T09:45:00-05:00
+
+- 事件：人类要求以资深前端架构师视角复核 HARN-116 后，继续补齐可执行性缺口。
+- 约束：
+  - `npm run test:frontend-page-governance` 必须默认执行脚本自测，避免治理脚本改坏后 clean tree 直接通过。
+  - `R-186` 必须进入 `docs/quality/validation-rules.md`，并被知识 lint 索引覆盖。
+  - 标记 `before/after 截图自检` 的前端页面任务，closeout 必须记录 before screenshot、after screenshot、Codex 读图复核和修复 / 未发现漂移结论；`task_audit.py` 必须阻断缺失记录的归档。
+  - HARN-111 及后续页面任务必须把 HARN-116 作为前置治理真值，并在验证清单中显式包含截图自检。
+- 落点：
+  - `scripts/task_audit.py`
+  - `package.json`
+  - `docs/quality/validation-rules.md`
+  - `docs/rules/codex-rules.md`
+  - `docs/plans/master-execution-plan.md`
+  - `docs/plans/task-spec-matrix.md`
+  - `docs/plans/task-governance-extension-matrix.md`
+  - `tasks.md`
+  - `tasks-done.md`
