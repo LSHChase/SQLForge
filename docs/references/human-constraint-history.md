@@ -207,3 +207,19 @@
 - 落点：
   - `docs/rules/codex-rules.md`
   - `docs/architecture/persistence.md`
+
+## 2026-05-08T21:45:00-05:00
+
+- 事件：人类要求把后台页面实现规则固化为长期前端规范，本轮只固化规则，不实现具体页面代码。
+- 新增规则：`R-177` 至 `R-184`。
+- 约束：
+  - 前端页面实现基线固定为 Vue 3 + Element Plus + 自研组件，新增页面必须优先复用既有主题、组件、composable 和 contract 检查。
+  - 管理后台页面默认采用顶部搜索筛选、主体操作按钮 + 表格、底部分页 / 状态栏结构。
+  - 除明确需求、概览和 KPI 区域外，禁止用多层卡片堆叠承载主要功能；优先使用列表、表格、弹窗、抽屉、提示、Tab 和上下 / 左右分区。
+  - 搜索表单、表格列、编辑弹窗、字典翻译、分页和进度反馈必须优先数据驱动并抽象为共享组件或 composable。
+  - 前端不得自造权限结论；按钮展示、禁用和隐藏只做体验层控制，后端仍是权限、业务校验、数据隔离和审计权威。
+  - 页面必须分离 API / 状态 / UI 编排，落实 i18n，并按触发面执行前端三件套、表单治理、SQL UI 或相关静态契约测试。
+- 落点：
+  - `docs/rules/codex-rules.md`
+  - `docs/frontend/design-system.md`
+  - `docs/frontend/form-component-governance.md`

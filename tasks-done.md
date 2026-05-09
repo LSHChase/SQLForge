@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-095: 固化前端页面工程规则
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `docs(frontend): HARN-095 codify management page rules`
+- Priority: 1
+- Depends on: N/A
+- Scope: Docs-only governance task to codify frontend page implementation rules: Vue 3 + Element Plus + self-built components, management-page layout defaults, no main-function card stacking, data-driven reusable SearchForm/EditDialog/dictionary/pagination/progress patterns, backend-authoritative permission boundary, API/state layering, i18n, and validation gates in codex rules, frontend design system, and form component governance.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-095`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Codified frontend management-page engineering rules as long-term governance: appended R-177 through R-184, expanded the frontend design system with SearchForm/table/pagination/EditDialog/useDict/progress/tab/API-state patterns, clarified form-component governance boundaries, recorded the human constraint history, updated repository knowledge lint to check through R-184, and regenerated the compiled authority map.
+  - Validation evidence: node scripts/lint-repository-knowledge.js; git diff --check; python3 scripts/foreman.py compile-governance; python3 scripts/foreman.py validate HARN-095; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: No runtime risk; this task changes governance documents and generated policy metadata only.
+  - Next step: Apply R-177 through R-184 when implementing or refactoring future frontend management pages.
+
 ### HARN-094: Wire Hetu JDBC driver into page-managed EXPLAIN path
 
 - Status: done
