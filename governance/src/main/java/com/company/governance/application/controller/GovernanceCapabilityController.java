@@ -18,6 +18,8 @@ import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
@@ -63,6 +65,13 @@ public class GovernanceCapabilityController {
     @PostMapping("/audit/write")
     public AuditWriteResponse writeAudit(@RequestBody AuditWriteRequest request) {
         return governanceCapabilityApplicationService.publishAuditEvent(request);
+    }
+
+    @PostMapping("/query-execution-history/write")
+    public GovernanceQueryExecutionHistoryWriteResponse writeQueryExecutionHistory(
+        @RequestBody GovernanceQueryExecutionHistoryWriteRequest request
+    ) {
+        return governanceCapabilityApplicationService.writeQueryExecutionHistory(request);
     }
 
     @PostMapping("/benchmark/report-trace/write")

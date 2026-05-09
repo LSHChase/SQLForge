@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-102: 接通 SQL 历史数据库持久化链路
+
+- Status: done
+- Completed at: 2026-05-08
+- Commit subject: `feat(history): HARN-102 persist SQL execution history`
+- Priority: 1
+- Depends on: N/A
+- Scope: 默认使用 MySQL sql_parse_history 持久化解析历史；由 query-execution 调用 governance 内部执行历史写入接口，让 governance 事务内写入 execution_result、query_history 与审计记录；补齐相关客户端、服务和测试验证。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-102`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-08: wired SQL parse history to database-by-default configuration and added governance-owned query execution history write path from query-execution evidence into execution_result/query_history/audit_log.
+- Context closeout:
+  - Completed scope: Defaulted SQL parse history to MySQL sql_parse_history without runtime in-memory fallback; added governance-owned query execution history write API and query-execution client evidence path; updated docs and focused tests.
+  - Validation evidence: mvn -pl sqlforge-shared,governance,query-execution,sql-optimization -am -DskipTests compile; mvn -pl query-execution -am -Dtest=QueryExecutionApplicationServiceTest,GovernanceHttpClientTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl governance -am -Dtest=GovernanceQueryExecutionHistoryApplicationServiceTest,GovernanceCapabilityApplicationServiceTest,AuthWebMvcTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl sql-optimization -am -Dtest=SqlParseHistoryRepositorySelectionTest,StructureParseControllerTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate HARN-102; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: No live MySQL restart smoke was run in this environment; repository-side compile and focused persistence/client tests passed.
+  - Next step: Deploy with MySQL-backed service configuration and run one live SQL execution plus one parse-history restart smoke in the target environment.
+
 ### HARN-101: 收敛 SQL 历史列表架构与分页运行态验证
 
 - Status: done

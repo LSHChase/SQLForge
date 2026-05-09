@@ -17,6 +17,8 @@
 - `benchmark-engine` 当前已接入 MySQL `benchmark_task` / `benchmark_task_report` 双表、MyBatis XML mapper 与 in-process scheduled worker，用于承载真实任务持久化、报告回写和状态流转；在此基础上，任务分发 carrier 已支持默认 `database-worker` 与显式启用的 `external-file-queue` 两种模式，但持久化真值仍固定落在 MySQL 表与审计链上。
 - `benchmark-engine` 当前已通过 `governance` 内部 `benchmark/report-trace/write` 与 `alerts/benchmark-regression/emit` 受保护入口，把 benchmark report artifact 的 `config_snapshot/execution_result/query_history/export_record` 编排写入接到真实追溯链，并在 `REGRESSION_GUARD` 失败阈值场景下把治理告警 linkage 回写到 `benchmark_task_report`。
 - `sql-optimization` 当前也已通过 `governance` 内部 `acceleration-plan/trace/write` 受保护入口，把 acceleration plan 的 `config_snapshot/execution_result/query_history` 编排写入接到真实追溯链。
+- `sql-optimization` 当前默认使用 MySQL `sql_parse_history` 作为 SQL 解析记录载体，主运行时不再注册 in-memory parse history repository；测试若需内存实现必须显式装配 test fixture。
+- `query-execution` 当前通过 `governance` 内部 `query-execution-history/write` 受保护入口提交 SQL 执行证据，由 `governance` 在自身持久化边界内写入 `execution_result`、`query_history` 与关联 `audit_log`，不直接操作治理表。
 - 因此，Phase-D 的核心追溯链当前在 `governance` 内以 schema + entity + mapper XML 形式固化，同时允许 `sql-optimization` 与 `benchmark-engine` 在独立任务/报告表上落真实 carrier，并通过受保护入口把跨服务 trace/export 编排接回治理链，避免异步任务实现继续漂移。
 
 ## Core Traceability Chain
@@ -102,6 +104,7 @@
 - 审计记录允许引用 config/result/history/export 任意一层，但不要求每条记录都填满全部引用键。
 - 当前已落地两类真实写入入口：
   - `POST /api/governance/internal/audit/write`
+  - `POST /api/governance/internal/query-execution-history/write`
   - `governance` 的 header-based stateless auth `LOGIN` / `LOGOUT` 事件
 - 当前 `benchmark-engine` 的报告查询、导出查询与 raw-data 下载在 artifact 已具备治理追溯元数据时，会把 `config_snapshot_id/result_id/history_id/export_id` 一并写入对应 `audit_log`。
 - 当前 `benchmark-engine` 的报告查询、导出查询与 raw-data 下载还会把 artifact recovery status、storage recovery source、storage read status 与 provider/external recovery 留痕写入 `audit_log.response_summary`，供 governance history query/detail 直接复用。

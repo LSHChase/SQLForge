@@ -8,6 +8,8 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.governance.ProtectedGovernanceRequestSupport;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
@@ -91,6 +93,17 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
         request.setRequestParams(auditRecord.getRequestParams());
         request.setResponseSummary(auditRecord.getResponseSummary());
         post("/audit/write", request, Object.class);
+    }
+
+    @Override
+    public GovernanceQueryExecutionHistoryWriteResponse writeQueryExecutionHistory(
+        GovernanceQueryExecutionHistoryWriteRequest request
+    ) {
+        return post(
+            "/query-execution-history/write",
+            request,
+            GovernanceQueryExecutionHistoryWriteResponse.class
+        );
     }
 
     private <T> T post(String path, Object request, Class<T> responseType) {

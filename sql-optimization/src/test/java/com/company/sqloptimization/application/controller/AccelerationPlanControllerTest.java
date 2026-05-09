@@ -14,6 +14,7 @@ import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanResponse;
 import com.company.sqloptimization.SqlOptimizationApplication;
+import com.company.sqloptimization.SqlOptimizationTestPersistenceConfiguration;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionAccelerationPlanClient;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-@SpringBootTest(classes = SqlOptimizationApplication.class)
+@SpringBootTest(classes = {SqlOptimizationApplication.class, SqlOptimizationTestPersistenceConfiguration.class})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class AccelerationPlanControllerTest {

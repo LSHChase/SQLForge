@@ -38,6 +38,7 @@ import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRes
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactBatchOperationResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactOperationResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckResponse;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -455,6 +456,14 @@ class AuthWebMvcTest {
                 "LONG_TERM_BASELINE",
                 "TRANSITIONAL_SKELETON"
             ));
+        GovernanceQueryExecutionHistoryWriteResponse queryExecutionHistoryResponse =
+            new GovernanceQueryExecutionHistoryWriteResponse();
+        queryExecutionHistoryResponse.setHistoryId("history-qe-001");
+        queryExecutionHistoryResponse.setResultId("result-qe-001");
+        queryExecutionHistoryResponse.setContractStage("LONG_TERM_BASELINE");
+        queryExecutionHistoryResponse.setImplementationStage("QUERY_EXECUTION_HISTORY_PERSISTENCE_BASELINE");
+        when(governanceCapabilityApplicationService.writeQueryExecutionHistory(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(queryExecutionHistoryResponse);
         when(governanceCapabilityApplicationService.getScheduleExtensionStatus())
             .thenReturn(new ScheduleExtensionStatusVO(
                 "governance.schedule.dispatch",
@@ -514,6 +523,15 @@ class AuthWebMvcTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("ACCEPTED"))
             .andExpect(jsonPath("$.deliveryMode").value("DATABASE"));
+
+        mockMvc.perform(addProtectedHeaders(post("/api/governance/internal/query-execution-history/write")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"system\",\"sqlText\":\"SELECT 1\",\"sqlFingerprint\":\"fp-001\","
+                    + "\"datasourceType\":\"HETU\",\"historyType\":\"QUERY_EXECUTION\","
+                    + "\"resultStatus\":\"SUCCESS\",\"targetEngine\":\"HETU\"}")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.historyId").value("history-qe-001"))
+            .andExpect(jsonPath("$.implementationStage").value("QUERY_EXECUTION_HISTORY_PERSISTENCE_BASELINE"));
 
         mockMvc.perform(addProtectedHeaders(get("/api/governance/internal/schedule/extensions")))
             .andExpect(status().isOk())

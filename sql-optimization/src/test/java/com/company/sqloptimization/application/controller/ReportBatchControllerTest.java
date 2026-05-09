@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqloptimization.SqlOptimizationApplication;
+import com.company.sqloptimization.SqlOptimizationTestPersistenceConfiguration;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -22,7 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-@SpringBootTest(classes = SqlOptimizationApplication.class)
+@SpringBootTest(classes = {SqlOptimizationApplication.class, SqlOptimizationTestPersistenceConfiguration.class})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class ReportBatchControllerTest {

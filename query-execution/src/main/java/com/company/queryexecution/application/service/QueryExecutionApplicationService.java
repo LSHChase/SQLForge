@@ -15,7 +15,6 @@ import com.company.queryexecution.domain.query.ReadonlyQueryGuard;
 import com.company.queryexecution.infrastructure.adapter.HetuExecutionUnavailableException;
 import com.company.queryexecution.infrastructure.adapter.QueryExecutionAdapter;
 import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
-import com.company.queryexecution.infrastructure.governance.QueryExecutionAuditRecord;
 import com.company.sqlforge.common.access.AccessAuditContract;
 import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
@@ -23,12 +22,16 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
 import com.company.sqlforge.common.jdbcagent.JdbcAgentSqlCommentParser;
 import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
 import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import com.company.sqlforge.common.logicalobject.LogicalObjectType;
 import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -412,7 +415,7 @@ public class QueryExecutionApplicationService {
                 ex
             );
             metricsRecorder.recordException(request, System.currentTimeMillis() - start);
-            writeAuditRecord(
+            writeExecutionHistoryRecord(
                 request,
                 sqlFingerprint,
                 null,
@@ -782,7 +785,14 @@ public class QueryExecutionApplicationService {
             response.isDegraded()
         );
         metricsRecorder.recordResponse(request, response, costMs);
-        writeAuditRecord(request, response.getSqlFingerprint(), response, response.getStatus().name(), costMs, null);
+        writeExecutionHistoryRecord(
+            request,
+            response.getSqlFingerprint(),
+            response,
+            response.getStatus().name(),
+            costMs,
+            null
+        );
         return response;
     }
 
@@ -879,31 +889,97 @@ public class QueryExecutionApplicationService {
         return requestedEngine == null ? DataSourceTypeEnum.AUTO.name() : requestedEngine.name();
     }
 
-    private void writeAuditRecord(QueryExecuteRequest request,
-                                  String sqlFingerprint,
-                                  QueryExecuteResponse response,
-                                  String resultStatus,
-                                  long elapsedMs,
-                                  String failureReason) {
-        governanceCapabilityClient.writeAudit(
-            new QueryExecutionAuditRecord(
-                OPERATION,
-                RESOURCE_TYPE_QUERY,
-                sqlFingerprint,
-                resultStatus,
-                elapsedMs,
-                buildRequestParams(request, sqlFingerprint),
-                buildResponseSummary(response, failureReason)
-            )
+    private void writeExecutionHistoryRecord(QueryExecuteRequest request,
+                                             String sqlFingerprint,
+                                             QueryExecuteResponse response,
+                                             String resultStatus,
+                                             long elapsedMs,
+                                             String failureReason) {
+        AccessAuditContract accessAuditContract = AccessAuditContract.capture();
+        String actualSql = response == null || response.getMetadata() == null
+            ? normalizeSql(request.getSqlText())
+            : response.getMetadata().getActualSql();
+        String effectiveFingerprint = StringUtils.hasText(sqlFingerprint)
+            ? sqlFingerprint
+            : SqlFingerprintUtils.fingerprint(actualSql);
+        String stableKey = stableHash(
+            RequestContext.getRequestId(),
+            RequestContext.getTraceId(),
+            request.getTenantId(),
+            effectiveFingerprint
         );
+        Instant finishedAt = Instant.now();
+        Instant startedAt = finishedAt.minusMillis(Math.max(0L, elapsedMs));
+
+        GovernanceQueryExecutionHistoryWriteRequest historyRequest =
+            new GovernanceQueryExecutionHistoryWriteRequest();
+        historyRequest.setConfigSnapshotId("cfg-qe-" + stableKey);
+        historyRequest.setResultId("result-qe-" + stableKey);
+        historyRequest.setHistoryId("history-qe-" + stableKey);
+        historyRequest.setTenantId(request.getTenantId());
+        historyRequest.setSqlText(actualSql);
+        historyRequest.setSqlTemplate(actualSql);
+        historyRequest.setBoundSql(actualSql);
+        historyRequest.setSqlFingerprint(effectiveFingerprint);
+        historyRequest.setDatasourceCode(resolveDatasourceCode(request, response));
+        historyRequest.setDatasourceType(request.getDatasourceType() == null ? null : request.getDatasourceType().name());
+        historyRequest.setHistoryType("QUERY_EXECUTION");
+        historyRequest.setResultStatus(resultStatus);
+        historyRequest.setTargetEngine(response == null || response.getMetadata() == null
+            ? null
+            : response.getMetadata().getTargetEngine());
+        historyRequest.setReturnedRowCount(response == null || response.getMetadata() == null
+            ? Long.valueOf(0L)
+            : Long.valueOf(response.getMetadata().getRowCount()));
+        historyRequest.setCacheHit(response == null || response.getMetadata() == null
+            ? Boolean.FALSE
+            : Boolean.valueOf(response.getMetadata().isCacheHit()));
+        historyRequest.setRewriteApplied(Boolean.FALSE);
+        historyRequest.setAccelerationApplied(response == null || response.getMetadata() == null
+            ? Boolean.FALSE
+            : Boolean.valueOf(response.getMetadata().isAccelerationApplied()));
+        historyRequest.setAccessChannel(accessAuditContract.getAccessChannel().name());
+        historyRequest.setCommentContext(toJson(response == null ? null : response.getCommentContext()));
+        historyRequest.setQueryDateSummary(toJson(response == null ? null : response.getQueryDateSummary()));
+        historyRequest.setBindingSummary(toJson(response == null ? null : response.getBindingSummary()));
+        historyRequest.setLogicalObjectHits(toJson(response == null ? null : response.getLogicalObjectHits()));
+        historyRequest.setRouteSummary(toJson(response == null ? null : response.getRouteSummary()));
+        historyRequest.setCacheSummary(toJson(response == null ? null : response.getCacheSummary()));
+        historyRequest.setQueryContext(toJson(buildHistoryQueryContext(
+            request,
+            response,
+            resultStatus,
+            failureReason,
+            accessAuditContract
+        )));
+        historyRequest.setTraceId(RequestContext.getTraceId());
+        historyRequest.setRequestId(RequestContext.getRequestId());
+        historyRequest.setSagaId("query-execution-" + stableKey);
+        historyRequest.setSubmittedBy(RequestContext.getUserId());
+        historyRequest.setStartedAt(startedAt.toString());
+        historyRequest.setFinishedAt(finishedAt.toString());
+        historyRequest.setElapsedMs(Long.valueOf(elapsedMs));
+        historyRequest.setErrorCode(response == null || response.getError() == null
+            ? null
+            : Integer.valueOf(response.getError().getCode()));
+        historyRequest.setErrorMessage(firstText(
+            failureReason,
+            response == null || response.getError() == null ? null : response.getError().getMessage()
+        ));
+        governanceCapabilityClient.writeQueryExecutionHistory(historyRequest);
     }
 
-    private String buildRequestParams(QueryExecuteRequest request, String sqlFingerprint) {
-        AccessAuditContract accessAuditContract = AccessAuditContract.capture();
+    private Map<String, Object> buildHistoryQueryContext(QueryExecuteRequest request,
+                                                         QueryExecuteResponse response,
+                                                         String resultStatus,
+                                                         String failureReason,
+                                                         AccessAuditContract accessAuditContract) {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("serviceCode", ServiceCodeConstants.QUERY_EXECUTION);
+        payload.put("operationCode", OPERATION);
+        payload.put("resourceType", RESOURCE_TYPE_QUERY);
         payload.put("accessChannel", accessAuditContract.getAccessChannel().name());
         payload.put("authSource", accessAuditContract.getAuthSource());
-        payload.put("serviceCode", ServiceCodeConstants.QUERY_EXECUTION);
         payload.put("tenantId", request.getTenantId());
         payload.put("datasourceType", request.getDatasourceType() == null ? null : request.getDatasourceType().name());
         payload.put("faultToleranceStrategy", request.getFaultToleranceStrategy() == null
@@ -912,39 +988,64 @@ public class QueryExecutionApplicationService {
         payload.put("accelerationPreference", request.getAccelerationPreference() == null
             ? null
             : request.getAccelerationPreference().name());
-        payload.put("sqlFingerprint", sqlFingerprint);
-        return JsonUtils.toJson(payload);
-    }
-
-    private String buildResponseSummary(QueryExecuteResponse response, String failureReason) {
-        Map<String, Object> payload = new LinkedHashMap<String, Object>();
-        payload.put("resultStatus", response == null ? QueryExecutionStatus.FAILED.name() : response.getStatus().name());
+        payload.put("requestContext", buildRequestContextPayload(request.getQueryContext()));
+        payload.put("resultStatus", resultStatus);
         payload.put("targetEngine", response == null || response.getMetadata() == null
             ? null
             : response.getMetadata().getTargetEngine());
-        payload.put("accelerationApplied", response != null
-            && response.getMetadata() != null
-            && response.getMetadata().isAccelerationApplied());
-        payload.put("cacheHit", response != null
-            && response.getMetadata() != null
-            && response.getMetadata().isCacheHit());
-        payload.put("cacheGovernanceStatus", response == null || response.getMetadata() == null
+        payload.put("returnedRowCount", response == null || response.getMetadata() == null
+            ? Long.valueOf(0L)
+            : Long.valueOf(response.getMetadata().getRowCount()));
+        payload.put("scannedRows", response == null || response.getMetadata() == null
+            ? Long.valueOf(0L)
+            : Long.valueOf(response.getMetadata().getScannedRows()));
+        payload.put("elapsedMs", response == null || response.getMetadata() == null
             ? null
-            : response.getMetadata().getCacheGovernanceStatus());
-        payload.put("cacheGovernanceEvidence", response == null || response.getMetadata() == null
-            ? null
-            : response.getMetadata().getCacheGovernanceEvidence());
-        payload.put("degraded", response != null && response.isDegraded());
-        payload.put("retryPathSize", response == null || response.getRetryPath() == null ? 0 : response.getRetryPath().size());
-        payload.put("errorCode", response == null || response.getError() == null ? null : response.getError().getCode());
-        payload.put("queryDateStatus", response == null || response.getQueryDateSummary() == null
-            ? null
-            : response.getQueryDateSummary().get("queryDateStatus"));
-        payload.put("logicalObjectHitCount", response == null || response.getLogicalObjectHits() == null
+            : Long.valueOf(response.getMetadata().getElapsedMs()));
+        payload.put("degraded", Boolean.valueOf(response != null && response.isDegraded()));
+        payload.put("degradeReason", response == null ? null : response.getDegradeReason());
+        payload.put("retryPathSize", response == null || response.getRetryPath() == null
             ? Integer.valueOf(0)
-            : Integer.valueOf(response.getLogicalObjectHits().size()));
+            : Integer.valueOf(response.getRetryPath().size()));
+        payload.put("commentContext", response == null ? null : response.getCommentContext());
+        payload.put("queryDateSummary", response == null ? null : response.getQueryDateSummary());
+        payload.put("bindingSummary", response == null ? null : response.getBindingSummary());
+        payload.put("logicalObjectHits", response == null ? null : response.getLogicalObjectHits());
+        payload.put("routeSummary", response == null ? null : response.getRouteSummary());
+        payload.put("cacheSummary", response == null ? null : response.getCacheSummary());
+        if (response != null && response.getQueryDateSummary() != null) {
+            payload.put("queryDateStart", response.getQueryDateSummary().get("queryDateStart"));
+            payload.put("queryDateEnd", response.getQueryDateSummary().get("queryDateEnd"));
+            payload.put("queryDateStatus", response.getQueryDateSummary().get("queryDateStatus"));
+        }
         payload.put("failureReason", failureReason);
-        return JsonUtils.toJson(payload);
+        return payload;
+    }
+
+    private Map<String, Object> buildRequestContextPayload(QueryContextDTO queryContext) {
+        if (queryContext == null) {
+            return Collections.emptyMap();
+        }
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("databaseName", queryContext.getDatabaseName());
+        payload.put("schemaVersion", queryContext.getSchemaVersion());
+        payload.put("timeoutMs", queryContext.getTimeoutMs());
+        payload.put("sessionVariables", queryContext.getSessionVariables());
+        return payload;
+    }
+
+    private String resolveDatasourceCode(QueryExecuteRequest request, QueryExecuteResponse response) {
+        Map<String, String> commentContext = response == null ? null : response.getCommentContext();
+        return firstText(
+            commentContext == null ? null : commentContext.get("datasource"),
+            commentContext == null ? null : commentContext.get("datasource_code"),
+            request.getQueryContext() == null ? null : request.getQueryContext().getDatabaseName(),
+            request.getDatasourceType() == null ? null : request.getDatasourceType().name()
+        );
+    }
+
+    private String toJson(Object payload) {
+        return payload == null ? null : JsonUtils.toJson(payload);
     }
 
     private Map<String, String> buildCommentContext(String sqlText) {
@@ -1295,5 +1396,37 @@ public class QueryExecutionApplicationService {
         normalized.setFaultToleranceStrategy(request.getFaultToleranceStrategy());
         normalized.setAccelerationPreference(com.company.queryexecution.domain.query.AccelerationPreference.NONE);
         return normalized;
+    }
+
+    private String firstText(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (StringUtils.hasText(value)) {
+                return value.trim();
+            }
+        }
+        return null;
+    }
+
+    private String stableHash(String... parts) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            if (parts != null) {
+                for (String part : parts) {
+                    digest.update((part == null ? "" : part).getBytes(StandardCharsets.UTF_8));
+                    digest.update((byte) '|');
+                }
+            }
+            byte[] hash = digest.digest();
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < 12 && i < hash.length; i += 1) {
+                builder.append(String.format("%02x", Integer.valueOf(hash[i] & 0xff)));
+            }
+            return builder.toString();
+        } catch (Exception ex) {
+            return String.valueOf(Math.abs(Arrays.hashCode(parts)));
+        }
     }
 }

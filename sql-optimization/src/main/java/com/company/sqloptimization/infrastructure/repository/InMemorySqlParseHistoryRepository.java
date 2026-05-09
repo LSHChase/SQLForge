@@ -11,12 +11,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.context.annotation.Primary;
-import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
-@Repository
-@Primary
 public class InMemorySqlParseHistoryRepository implements SqlParseHistoryRepository {
 
     private final Map<String, SqlParseHistory> records = new ConcurrentHashMap<String, SqlParseHistory>();

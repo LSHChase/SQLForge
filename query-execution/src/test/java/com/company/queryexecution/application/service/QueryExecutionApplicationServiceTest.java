@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.company.queryexecution.application.controller.dto.QueryContextDTO;
 import com.company.queryexecution.application.controller.dto.QueryExecuteRequest;
@@ -30,6 +31,8 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Arrays;
 import java.util.Collections;
@@ -446,7 +449,7 @@ class QueryExecutionApplicationServiceTest {
         assertEquals("simulated adapter failure", ex.getMessage());
         assertTrue(output.getOut().contains("status=FAILED phase=EXCEPTION"));
         assertTrue(output.getOut().contains("reason=simulated adapter failure"));
-        verify(governanceCapabilityClient).writeAudit(any());
+        verify(governanceCapabilityClient).writeQueryExecutionHistory(any());
     }
 
     @Test
@@ -466,11 +469,11 @@ class QueryExecutionApplicationServiceTest {
             org.mockito.ArgumentMatchers.anyString(),
             org.mockito.Mockito.eq("QUERY_EXECUTE_SYNC")
         );
-        verify(governanceCapabilityClient).writeAudit(any());
+        verify(governanceCapabilityClient).writeQueryExecutionHistory(any());
     }
 
     @Test
-    void shouldIncludeAccessChannelInAuditRequestParams() {
+    void shouldIncludeHistoryProjectionFieldsInGovernanceWriteRequest() {
         setRequestContext("tenant-a");
         RequestMetadataContext.set("127.0.0.1", "JUnit", "api");
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
@@ -479,11 +482,23 @@ class QueryExecutionApplicationServiceTest {
 
         service.executeSynchronously(baseRequest("SELECT * FROM orders"));
 
-        ArgumentCaptor<com.company.queryexecution.infrastructure.governance.QueryExecutionAuditRecord> captor =
-            ArgumentCaptor.forClass(com.company.queryexecution.infrastructure.governance.QueryExecutionAuditRecord.class);
-        verify(governanceCapabilityClient).writeAudit(captor.capture());
-        assertTrue(captor.getValue().getRequestParams().contains("\"accessChannel\":\"API\""));
-        assertTrue(captor.getValue().getRequestParams().contains("\"authSource\":\"header\""));
+        ArgumentCaptor<GovernanceQueryExecutionHistoryWriteRequest> captor =
+            ArgumentCaptor.forClass(GovernanceQueryExecutionHistoryWriteRequest.class);
+        verify(governanceCapabilityClient).writeQueryExecutionHistory(captor.capture());
+        GovernanceQueryExecutionHistoryWriteRequest historyRequest = captor.getValue();
+        assertEquals("QUERY_EXECUTION", historyRequest.getHistoryType());
+        assertEquals("SUCCESS", historyRequest.getResultStatus());
+        assertEquals("HETU", historyRequest.getTargetEngine());
+        assertEquals(Long.valueOf(1L), historyRequest.getReturnedRowCount());
+        assertEquals(Boolean.FALSE, historyRequest.getCacheHit());
+        assertEquals(Boolean.FALSE, historyRequest.getRewriteApplied());
+        assertEquals(Boolean.FALSE, historyRequest.getAccelerationApplied());
+        assertEquals("API", historyRequest.getAccessChannel());
+        assertNotNull(historyRequest.getSqlText());
+        assertNotNull(historyRequest.getSqlFingerprint());
+        assertTrue(historyRequest.getRouteSummary().contains("\"selectedEngine\":\"HETU\""));
+        assertTrue(historyRequest.getCacheSummary().contains("\"cacheHit\":false"));
+        assertTrue(historyRequest.getQueryContext().contains("\"authSource\":\"header\""));
     }
 
     @Test
@@ -500,6 +515,7 @@ class QueryExecutionApplicationServiceTest {
         assertEquals("Request tenantId does not match authenticated tenant context", ex.getMessage());
         verify(governanceCapabilityClient, org.mockito.Mockito.never()).assertAuthorization(any(), any(), any(), any(), any());
         verify(governanceCapabilityClient, org.mockito.Mockito.never()).writeAudit(any());
+        verify(governanceCapabilityClient, org.mockito.Mockito.never()).writeQueryExecutionHistory(any());
     }
 
     private QueryExecuteRequest baseRequest(String sqlText) {
@@ -526,6 +542,8 @@ class QueryExecutionApplicationServiceTest {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
         doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
+        when(governanceCapabilityClient.writeQueryExecutionHistory(any()))
+            .thenReturn(new GovernanceQueryExecutionHistoryWriteResponse());
         return governanceCapabilityClient;
     }
 

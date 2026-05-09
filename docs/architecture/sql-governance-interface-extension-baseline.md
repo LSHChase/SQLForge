@@ -485,6 +485,7 @@
 
 - `sql_parse_history` 是解析记录持久化真源，属于 `sql-optimization`。
 - `query_history` 是 SQL 执行历史持久化真源，属于治理追溯链，不再新增解析记录。
+- SQL 执行历史写入由 `query-execution` 调用 `POST /api/governance/internal/query-execution-history/write` 提交执行证据，`governance` 负责同一事务内落 `execution_result`、`query_history` 与审计引用。
 - 结构解析、综合解析、批量解析、报表解析和日终慢 SQL 解析写入 `sql_parse_history`。
 - 日终慢 SQL 解析只读慢 SQL 执行历史候选，按窗口、阈值和 `batchKey + sqlFingerprint` 幂等生成解析记录；真实 cron 调度不属于本契约当前实现。
 

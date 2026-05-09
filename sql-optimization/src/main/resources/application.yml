@@ -28,6 +28,8 @@ mybatis:
 sql-optimization:
   parser:
     strategy: ${SQL_OPTIMIZATION_PARSER_STRATEGY:JSQLPARSER}
+  parse-history:
+    repository: ${SQL_OPTIMIZATION_PARSE_HISTORY_REPOSITORY:database}
   task-model:
     isolated-queue: true
     contract-stage: LONG_TERM_BASELINE

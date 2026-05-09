@@ -25,6 +25,8 @@ import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
@@ -56,6 +58,7 @@ public class GovernanceCapabilityApplicationService {
     private final GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService;
     private final GovernanceBenchmarkRegressionAlertApplicationService governanceBenchmarkRegressionAlertApplicationService;
     private final GovernanceAccelerationPlanTraceabilityApplicationService governanceAccelerationPlanTraceabilityApplicationService;
+    private final GovernanceQueryExecutionHistoryApplicationService governanceQueryExecutionHistoryApplicationService;
     private final DatabaseViewCatalogApplicationService databaseViewCatalogApplicationService;
     private final ReportInterfaceConfigApplicationService reportInterfaceConfigApplicationService;
     private final DatasourceConfigApplicationService datasourceConfigApplicationService;
@@ -68,6 +71,7 @@ public class GovernanceCapabilityApplicationService {
                                                   GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService,
                                                   GovernanceBenchmarkRegressionAlertApplicationService governanceBenchmarkRegressionAlertApplicationService,
                                                   GovernanceAccelerationPlanTraceabilityApplicationService governanceAccelerationPlanTraceabilityApplicationService,
+                                                  GovernanceQueryExecutionHistoryApplicationService governanceQueryExecutionHistoryApplicationService,
                                                   DatabaseViewCatalogApplicationService databaseViewCatalogApplicationService,
                                                   ReportInterfaceConfigApplicationService reportInterfaceConfigApplicationService,
                                                   DatasourceConfigApplicationService datasourceConfigApplicationService,
@@ -78,6 +82,7 @@ public class GovernanceCapabilityApplicationService {
         this.governanceBenchmarkTraceabilityApplicationService = governanceBenchmarkTraceabilityApplicationService;
         this.governanceBenchmarkRegressionAlertApplicationService = governanceBenchmarkRegressionAlertApplicationService;
         this.governanceAccelerationPlanTraceabilityApplicationService = governanceAccelerationPlanTraceabilityApplicationService;
+        this.governanceQueryExecutionHistoryApplicationService = governanceQueryExecutionHistoryApplicationService;
         this.databaseViewCatalogApplicationService = databaseViewCatalogApplicationService;
         this.reportInterfaceConfigApplicationService = reportInterfaceConfigApplicationService;
         this.datasourceConfigApplicationService = datasourceConfigApplicationService;
@@ -124,6 +129,13 @@ public class GovernanceCapabilityApplicationService {
     ) {
         requireProtectedTenantContext();
         return governanceAccelerationPlanTraceabilityApplicationService.writeAccelerationPlanTrace(request);
+    }
+
+    public GovernanceQueryExecutionHistoryWriteResponse writeQueryExecutionHistory(
+        GovernanceQueryExecutionHistoryWriteRequest request
+    ) {
+        requireProtectedTenantContext();
+        return governanceQueryExecutionHistoryApplicationService.writeQueryExecutionHistory(request);
     }
 
     public GovernanceDbViewResolveResponse resolveDbView(GovernanceDbViewResolveRequest request) {

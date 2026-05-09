@@ -26,6 +26,8 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlert
 import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
@@ -62,6 +64,7 @@ class GovernanceCapabilityApplicationServiceTest {
             benchmarkTraceabilityApplicationService,
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             accelerationPlanTraceabilityApplicationService,
+            mock(GovernanceQueryExecutionHistoryApplicationService.class),
             databaseViewCatalogApplicationService,
             mock(ReportInterfaceConfigApplicationService.class),
             mock(DatasourceConfigApplicationService.class),
@@ -155,6 +158,7 @@ class GovernanceCapabilityApplicationServiceTest {
             benchmarkTraceabilityApplicationService,
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             accelerationPlanTraceabilityApplicationService,
+            mock(GovernanceQueryExecutionHistoryApplicationService.class),
             databaseViewCatalogApplicationService,
             mock(ReportInterfaceConfigApplicationService.class),
             mock(DatasourceConfigApplicationService.class),
@@ -209,6 +213,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
+            mock(GovernanceQueryExecutionHistoryApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
             mock(ReportInterfaceConfigApplicationService.class),
             mock(DatasourceConfigApplicationService.class),
@@ -236,6 +241,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
+            mock(GovernanceQueryExecutionHistoryApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
             mock(ReportInterfaceConfigApplicationService.class),
             mock(DatasourceConfigApplicationService.class),
@@ -279,6 +285,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             accelerationPlanTraceabilityApplicationService,
+            mock(GovernanceQueryExecutionHistoryApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
             mock(ReportInterfaceConfigApplicationService.class),
             mock(DatasourceConfigApplicationService.class),
@@ -312,6 +319,49 @@ class GovernanceCapabilityApplicationServiceTest {
     }
 
     @Test
+    void shouldDelegateQueryExecutionHistoryWrite() {
+        GovernanceQueryExecutionHistoryApplicationService queryExecutionHistoryApplicationService =
+            mock(GovernanceQueryExecutionHistoryApplicationService.class);
+        GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
+            mock(GovernanceAuthorizationMatrixApplicationService.class),
+            mock(GovernanceAuditTrailService.class),
+            mock(GovernanceBenchmarkTraceabilityApplicationService.class),
+            mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
+            mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
+            queryExecutionHistoryApplicationService,
+            mock(DatabaseViewCatalogApplicationService.class),
+            mock(ReportInterfaceConfigApplicationService.class),
+            mock(DatasourceConfigApplicationService.class),
+            databaseMessaging(),
+            mock(TenantConfigRepository.class)
+        );
+        RequestContext.set(
+            "tenant-a",
+            "service-user",
+            Arrays.asList("SERVICE"),
+            "request-031",
+            "trace-031",
+            "header",
+            100L,
+            200L
+        );
+        GovernanceQueryExecutionHistoryWriteRequest request = new GovernanceQueryExecutionHistoryWriteRequest();
+        request.setTenantId("tenant-a");
+        request.setSqlFingerprint("fp-031");
+        request.setDatasourceType("HETU");
+        request.setResultStatus("SUCCESS");
+        GovernanceQueryExecutionHistoryWriteResponse historyResponse =
+            new GovernanceQueryExecutionHistoryWriteResponse();
+        historyResponse.setHistoryId("history-qe-031");
+        when(queryExecutionHistoryApplicationService.writeQueryExecutionHistory(request)).thenReturn(historyResponse);
+
+        GovernanceQueryExecutionHistoryWriteResponse response = service.writeQueryExecutionHistory(request);
+
+        assertEquals("history-qe-031", response.getHistoryId());
+        verify(queryExecutionHistoryApplicationService).writeQueryExecutionHistory(request);
+    }
+
+    @Test
     void shouldDelegateDbViewResolution() {
         DatabaseViewCatalogApplicationService databaseViewCatalogApplicationService =
             mock(DatabaseViewCatalogApplicationService.class);
@@ -321,6 +371,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
+            mock(GovernanceQueryExecutionHistoryApplicationService.class),
             databaseViewCatalogApplicationService,
             mock(ReportInterfaceConfigApplicationService.class),
             mock(DatasourceConfigApplicationService.class),
@@ -361,6 +412,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
+            mock(GovernanceQueryExecutionHistoryApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
             reportInterfaceConfigApplicationService,
             mock(DatasourceConfigApplicationService.class),
@@ -401,6 +453,7 @@ class GovernanceCapabilityApplicationServiceTest {
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             regressionAlertApplicationService,
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class),
+            mock(GovernanceQueryExecutionHistoryApplicationService.class),
             mock(DatabaseViewCatalogApplicationService.class),
             mock(ReportInterfaceConfigApplicationService.class),
             mock(DatasourceConfigApplicationService.class),

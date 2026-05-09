@@ -1,6 +1,8 @@
 package com.company.queryexecution.infrastructure.governance;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 
 public interface GovernanceCapabilityClient {
 
@@ -11,4 +13,8 @@ public interface GovernanceCapabilityClient {
                              String operationCode);
 
     void writeAudit(QueryExecutionAuditRecord auditRecord);
+
+    GovernanceQueryExecutionHistoryWriteResponse writeQueryExecutionHistory(
+        GovernanceQueryExecutionHistoryWriteRequest request
+    );
 }

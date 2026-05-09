@@ -18,6 +18,8 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -60,6 +62,38 @@ class GovernanceHttpClientTest {
             "{\"resultStatus\":\"SUCCESS\"}"
         ));
 
+        server.verify();
+    }
+
+    @Test
+    void shouldWriteQueryExecutionHistoryToGovernanceRoute() {
+        GovernanceHttpClient client = createClient();
+        RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        setProtectedRequestContext();
+        GovernanceQueryExecutionHistoryWriteRequest request = new GovernanceQueryExecutionHistoryWriteRequest();
+        request.setTenantId("tenant-a");
+        request.setSqlText("SELECT * FROM orders");
+        request.setSqlFingerprint("fp-001");
+        request.setDatasourceType("HETU");
+        request.setHistoryType("QUERY_EXECUTION");
+        request.setResultStatus("SUCCESS");
+        request.setTargetEngine("HETU");
+        request.setReturnedRowCount(Long.valueOf(1L));
+        request.setCacheHit(Boolean.FALSE);
+        server.expect(requestTo("http://governance.test/api/governance/internal/query-execution-history/write"))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"historyType\":\"QUERY_EXECUTION\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"resultStatus\":\"SUCCESS\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"targetEngine\":\"HETU\"")))
+            .andRespond(withSuccess(
+                "{\"resultId\":\"result-qe-001\",\"historyId\":\"history-qe-001\"}",
+                MediaType.APPLICATION_JSON
+            ));
+
+        GovernanceQueryExecutionHistoryWriteResponse response = client.writeQueryExecutionHistory(request);
+
+        assertEquals("history-qe-001", response.getHistoryId());
         server.verify();
     }
 

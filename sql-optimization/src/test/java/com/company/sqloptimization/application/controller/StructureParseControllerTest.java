@@ -18,6 +18,7 @@ import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.governance.GovernanceDbViewDependencyRef;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqloptimization.SqlOptimizationApplication;
+import com.company.sqloptimization.SqlOptimizationTestPersistenceConfiguration;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataClient;
 import com.company.sqloptimization.infrastructure.metadata.DatasourceViewMetadataRequest;
@@ -40,7 +41,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = SqlOptimizationApplication.class)
+@SpringBootTest(classes = {SqlOptimizationApplication.class, SqlOptimizationTestPersistenceConfiguration.class})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class StructureParseControllerTest {
