@@ -101,7 +101,6 @@ const {
   lastQueryAt,
   requestTenantId,
   hasLookupCriteria,
-  pageWindow,
   currentTenantOptions,
   currentDatasourceOptions,
   datasourceOptionsLoadFailed,
@@ -338,14 +337,6 @@ const summaryMetrics = computed(() => [
 
 const listStatusLabel = computed(() => t(`sqlHistory.queryStatus.${listStatus.value}`))
 const lastQueryText = computed(() => (lastQueryAt.value ? formatTimestamp(lastQueryAt.value) : '-'))
-const paginationSummaryText = computed(() =>
-  t('sqlHistory.footer.resultWindow', {
-    count: tableRows.value.length,
-    total: pageInfo.total,
-    current: pageWindow.value.current,
-    pages: pageWindow.value.total
-  })
-)
 const paginationStateText = computed(() =>
   t('sqlHistory.footer.lastQuery', { status: listStatusLabel.value, time: lastQueryText.value })
 )
@@ -1090,18 +1081,17 @@ watch(
       </el-table>
 
       <div class="table-footer">
+        <div class="footer-status">
+          {{ paginationStateText }}
+        </div>
         <div class="pagination-cluster">
-          <div class="pagination-summary" data-testid="sql-history-pagination-summary">
-            <span>{{ paginationSummaryText }}</span>
-            <span>{{ paginationStateText }}</span>
-          </div>
           <el-pagination
             v-model:page-size="pageInfo.pageSize"
             v-model:current-page="pageInfo.currentPage"
             class="pagination-row"
             data-testid="sql-history-pagination"
             background
-            layout="prev, pager, next, sizes"
+            layout="total, sizes, prev, pager, next, jumper"
             :total="pageInfo.total"
             :page-sizes="LIST_PAGE_SIZE_OPTIONS"
             :disabled="loadingList"
@@ -1296,7 +1286,7 @@ watch(
 .field-label,
 .summary-metric span,
 .operation-item small,
-.pagination-summary {
+.footer-status {
   color: var(--sqlforge-text-muted);
   font-size: var(--sqlforge-text-meta);
   line-height: 1.4;
@@ -1488,23 +1478,22 @@ watch(
 .table-footer {
   margin-top: var(--sqlforge-space-4);
   align-items: flex-end;
-  justify-content: flex-end;
+  justify-content: space-between;
+}
+
+.footer-status {
+  flex: 0 1 320px;
+  max-width: min(360px, 40%);
+  min-width: 0;
 }
 
 .pagination-cluster {
   display: flex;
   align-items: flex-end;
+  flex: 0 1 auto;
   flex-direction: column;
   gap: var(--sqlforge-space-2);
   max-width: 100%;
-}
-
-.pagination-summary {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--sqlforge-space-3);
-  text-align: right;
 }
 
 .pagination-row {
@@ -1540,6 +1529,15 @@ watch(
   .table-footer {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .footer-status {
+    flex-basis: auto;
+    max-width: 100%;
+  }
+
+  .pagination-cluster {
+    align-items: flex-end;
   }
 
   .pagination-row {

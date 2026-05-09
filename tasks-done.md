@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-119: 修复 SQL 历史分页状态栏
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `fix(frontend): HARN-119 restore sql history footer pagination`
+- Priority: 1
+- Depends on: HARN-118
+- Scope: Fix SqlHistoryView footer semantics so the left status area only shows the latest query state and the right footer restores Element Plus pagination total, sizes, pager and jumper controls without changing filters, pagination API/composable, detail drawer or SQL display semantics.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-119`
+- Progress log:
+  - 2026-05-09: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Restored SqlHistoryView footer semantics so the left footer-status contains only the latest query state and the right pagination cluster uses Element Plus total, sizes, pager and jumper controls; removed the unused resultWindow custom summary locale; added a SQL UI contract guard against the mixed footer summary regression.
+  - Validation evidence: npm run lint -- --quiet; npm run build; npm run test:sql-ui-contract; npm run test:frontend-page-governance; Playwright mocked DOM and screenshot assertions at /tmp/sqlforge-harn119-screenshots/sql-history-1440.png, /tmp/sqlforge-harn119-screenshots/sql-history-1040.png, and /tmp/sqlforge-harn119-screenshots/sql-history-760.png; python3 scripts/foreman.py validate HARN-119; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
+  - Residual risk: No query parameters, pagination composable contract, backend API contract, filter layout, detail drawer, or SQL display semantics changed; screenshot validation used mocked repo-local browser responses rather than a live backend.
+  - Next step: No follow-up required for HARN-119; future SQL history footer regressions are covered by npm run test:sql-ui-contract.
+
 ### HARN-118: 修复 SQL 历史分页与筛选自适应布局
 
 - Status: done

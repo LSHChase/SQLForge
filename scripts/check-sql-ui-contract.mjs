@@ -168,6 +168,19 @@ if (!/key:\s*'sqlText'[\s\S]{0,180}autoFormat:\s*false/.test(sqlHistoryView)) {
 if (!/const sqlCodeBlockProps = item => \(\{[\s\S]{0,220}autoFormat: item\.autoFormat !== false/.test(sqlHistoryView)) {
   errors.push('SqlHistoryView SqlCodeBlock props must honor per-variant autoFormat settings.')
 }
+if (!/class="footer-status"[\s\S]{0,120}\{\{\s*paginationStateText\s*\}\}/.test(sqlHistoryView)) {
+  errors.push('SqlHistoryView footer-status must contain only the latest query status text.')
+}
+if (
+  !/data-testid="sql-history-pagination"[\s\S]{0,220}layout="total, sizes, prev, pager, next, jumper"[\s\S]{0,220}:total="pageInfo\.total"/.test(
+    sqlHistoryView
+  )
+) {
+  errors.push('SqlHistoryView pagination must use Element Plus total, sizes, pager and jumper layout.')
+}
+if (/paginationSummaryText|sqlHistory\.footer\.resultWindow|data-testid="sql-history-pagination-summary"/.test(sqlHistoryView)) {
+  errors.push('SqlHistoryView must not reintroduce a custom mixed pagination summary.')
+}
 
 for (const relativePath of [
   'src/views/parse-record/ParseRecordView.vue',
