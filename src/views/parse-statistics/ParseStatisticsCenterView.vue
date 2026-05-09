@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import {
@@ -15,7 +15,6 @@ import {
 const route = useRoute()
 const { t, locale } = useI18n()
 const statisticsTabs = new Set(['issue', 'important', 'report', 'sql', 'severity', 'priority', 'logical-object', 'parse-status'])
-const requestedStatisticsTab = String(route.query.analytics || 'issue')
 
 const form = reactive({
   tenantId: 'tenant-a'
@@ -27,7 +26,7 @@ const pageInfo = reactive({
 
 const loading = ref(false)
 const errorMessage = ref('')
-const activeTab = ref(statisticsTabs.has(requestedStatisticsTab) ? requestedStatisticsTab : 'issue')
+const activeTab = ref(routeStatisticsTab())
 const activeDetailTab = ref('summary')
 const detailDialogVisible = ref(false)
 const detailTitle = ref('')
@@ -41,8 +40,25 @@ const sqlStats = ref([])
 const reportStats = ref([])
 const priorityMatrix = ref([])
 const importantUrgent = ref([])
+const statisticErrors = reactive({
+  overview: '',
+  issueScenes: '',
+  sqlStats: '',
+  reportStats: '',
+  priorityMatrix: '',
+  importantUrgent: ''
+})
 
 const isChinese = computed(() => locale.value === 'zh-CN')
+const statisticErrorMessages = computed(() =>
+  Object.entries(statisticErrors)
+    .filter(([, message]) => Boolean(message))
+    .map(([key, message]) => ({
+      key,
+      label: statisticErrorLabel(key),
+      message
+    }))
+)
 const overviewCards = computed(() => {
   if (!overview.value) {
     return []
@@ -122,8 +138,10 @@ const logicalObjectStats = computed(() => {
   const groups = new Map()
   sqlStats.value.forEach(item => {
     const keys = [
-      ...(Array.isArray(item.logicalObjectKeys) ? item.logicalObjectKeys : []),
-      ...(Array.isArray(item.logicalObjectTypes) ? item.logicalObjectTypes : [])
+      ...normalizeDisplayList(item.logicalObjectKeys),
+      ...normalizeDisplayList(item.logicalObjectTypes),
+      ...normalizeDisplayList(item.logicalObjectKey),
+      ...normalizeDisplayList(item.logicalObjectType)
     ]
     keys.forEach(key => {
       const normalizedKey = String(key || 'OBJECT')
@@ -166,6 +184,23 @@ const parseStatusStats = computed(() => {
 
 const card = (label, value, key = '') => ({ label, value, key })
 
+function routeStatisticsTab() {
+  const requestedStatisticsTab = String(route.query.analytics || 'issue')
+  return statisticsTabs.has(requestedStatisticsTab) ? requestedStatisticsTab : 'issue'
+}
+
+const statisticErrorLabel = key => {
+  const labels = {
+    overview: t('parseStatisticsCenter.errorLabels.overview'),
+    issueScenes: t('parseStatisticsCenter.errorLabels.issueScenes'),
+    sqlStats: t('parseStatisticsCenter.errorLabels.sqlStats'),
+    reportStats: t('parseStatisticsCenter.errorLabels.reportStats'),
+    priorityMatrix: t('parseStatisticsCenter.errorLabels.priorityMatrix'),
+    importantUrgent: t('parseStatisticsCenter.errorLabels.importantUrgent')
+  }
+  return labels[key] || key
+}
+
 const helpTextForKey = key => {
   const glossary = {
     totalSqlCount: isChinese.value ? '当前统计范围内的 SQL 总量。' : 'Total SQL rows in the current statistics scope.',
@@ -206,9 +241,29 @@ const boolText = value => {
 
 const hasDisplayValue = value => !(value === null || value === undefined || String(value).trim() === '')
 
+const normalizeDisplayList = value => {
+  if (Array.isArray(value)) {
+    return value
+      .filter(item => hasDisplayValue(item))
+      .map(item => (item && typeof item === 'object' ? JSON.stringify(item) : String(item)))
+  }
+  if (!hasDisplayValue(value)) {
+    return []
+  }
+  if (value && typeof value === 'object') {
+    return [JSON.stringify(value)]
+  }
+  return [String(value)]
+}
+
+const displayList = value => {
+  const items = normalizeDisplayList(value)
+  return items.length ? items.join(', ') : '-'
+}
+
 const displayValue = value => {
   if (Array.isArray(value)) {
-    return value.length ? value.join(', ') : '-'
+    return displayList(value)
   }
   if (!hasDisplayValue(value)) {
     return '-'
@@ -228,34 +283,106 @@ const openDetailDialog = (title, payload) => {
   detailDialogVisible.value = true
 }
 
+const statisticLoaders = [
+  {
+    key: 'overview',
+    load: tenantId => getParseStatisticsOverview(tenantId),
+    assign: value => {
+      overview.value = value && typeof value === 'object' && !Array.isArray(value) ? value : null
+    },
+    clear: () => {
+      overview.value = null
+    }
+  },
+  {
+    key: 'issueScenes',
+    load: tenantId => getParseStatisticsByIssueScene(tenantId),
+    assign: value => {
+      issueScenes.value = Array.isArray(value) ? value : []
+    },
+    clear: () => {
+      issueScenes.value = []
+    }
+  },
+  {
+    key: 'sqlStats',
+    load: tenantId => getParseStatisticsBySql(tenantId),
+    assign: value => {
+      sqlStats.value = Array.isArray(value) ? value : []
+    },
+    clear: () => {
+      sqlStats.value = []
+    }
+  },
+  {
+    key: 'reportStats',
+    load: tenantId => getParseStatisticsByReport(tenantId),
+    assign: value => {
+      reportStats.value = Array.isArray(value) ? value : []
+    },
+    clear: () => {
+      reportStats.value = []
+    }
+  },
+  {
+    key: 'priorityMatrix',
+    load: tenantId => getParseStatisticsPriorityMatrix(tenantId),
+    assign: value => {
+      priorityMatrix.value = Array.isArray(value) ? value : []
+    },
+    clear: () => {
+      priorityMatrix.value = []
+    }
+  },
+  {
+    key: 'importantUrgent',
+    load: tenantId => getParseStatisticsImportantUrgent(tenantId),
+    assign: value => {
+      importantUrgent.value = Array.isArray(value) ? value : []
+    },
+    clear: () => {
+      importantUrgent.value = []
+    }
+  }
+]
+
+const resetStatisticErrors = () => {
+  Object.keys(statisticErrors).forEach(key => {
+    statisticErrors[key] = ''
+  })
+}
+
 const loadStatistics = async () => {
   loading.value = true
   errorMessage.value = ''
+  resetStatisticErrors()
   try {
     const tenantId = form.tenantId
-    const [
-      nextOverview,
-      nextIssueScenes,
-      nextSqlStats,
-      nextReportStats,
-      nextPriorityMatrix,
-      nextImportantUrgent
-    ] = await Promise.all([
-      getParseStatisticsOverview(tenantId),
-      getParseStatisticsByIssueScene(tenantId),
-      getParseStatisticsBySql(tenantId),
-      getParseStatisticsByReport(tenantId),
-      getParseStatisticsPriorityMatrix(tenantId),
-      getParseStatisticsImportantUrgent(tenantId)
-    ])
-    overview.value = nextOverview
-    issueScenes.value = Array.isArray(nextIssueScenes) ? nextIssueScenes : []
-    sqlStats.value = Array.isArray(nextSqlStats) ? nextSqlStats : []
-    reportStats.value = Array.isArray(nextReportStats) ? nextReportStats : []
-    priorityMatrix.value = Array.isArray(nextPriorityMatrix) ? nextPriorityMatrix : []
-    importantUrgent.value = Array.isArray(nextImportantUrgent) ? nextImportantUrgent : []
-  } catch (error) {
-    errorMessage.value = formatRuntimeError(error)
+    const results = await Promise.allSettled(
+      statisticLoaders.map(loader => Promise.resolve().then(() => loader.load(tenantId)))
+    )
+    let successCount = 0
+    let firstError = null
+    results.forEach((result, index) => {
+      const loader = statisticLoaders[index]
+      if (result.status === 'fulfilled') {
+        try {
+          loader.assign(result.value)
+          successCount += 1
+        } catch (error) {
+          firstError = firstError || error
+          loader.clear()
+          statisticErrors[loader.key] = formatRuntimeError(error)
+        }
+        return
+      }
+      firstError = firstError || result.reason
+      loader.clear()
+      statisticErrors[loader.key] = formatRuntimeError(result.reason)
+    })
+    if (successCount === 0 && firstError) {
+      errorMessage.value = formatRuntimeError(firstError)
+    }
   } finally {
     loading.value = false
   }
@@ -264,6 +391,13 @@ const loadStatistics = async () => {
 onMounted(async () => {
   await loadStatistics()
 })
+
+watch(
+  () => route.query.analytics,
+  () => {
+    activeTab.value = routeStatisticsTab()
+  }
+)
 </script>
 
 <template>
@@ -291,11 +425,18 @@ onMounted(async () => {
     </header>
 
     <div
-      v-if="errorMessage"
+      v-if="errorMessage || statisticErrorMessages.length"
       class="inline-banner inline-banner-danger"
       data-testid="statistics-error"
     >
-      {{ errorMessage }}
+      <p v-if="errorMessage">{{ errorMessage }}</p>
+      <p
+        v-for="item in statisticErrorMessages"
+        :key="item.key"
+        data-testid="statistics-endpoint-error"
+      >
+        <strong>{{ item.label }}</strong>: {{ item.message }}
+      </p>
     </div>
 
     <section class="summary-grid">
@@ -422,7 +563,7 @@ onMounted(async () => {
               <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
               <el-table-column prop="stage" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
               <el-table-column :label="isChinese ? '问题场景' : 'Issue scenes'" min-width="220">
-                <template #default="{ row }">{{ row.issueScenes?.join(', ') || '-' }}</template>
+                <template #default="{ row }">{{ displayList(row.issueScenes) }}</template>
               </el-table-column>
             </el-table>
           </el-tab-pane>
@@ -480,7 +621,7 @@ onMounted(async () => {
               <el-table-column prop="stage" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
               <el-table-column prop="issueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="110" />
               <el-table-column :label="isChinese ? '问题场景' : 'Issue scenes'" min-width="220">
-                <template #default="{ row }">{{ row.issueScenes?.join(', ') || '-' }}</template>
+                <template #default="{ row }">{{ displayList(row.issueScenes) }}</template>
               </el-table-column>
             </el-table>
           </el-tab-pane>
@@ -667,6 +808,14 @@ onMounted(async () => {
 .inline-banner-danger {
   border-color: rgba(248, 113, 113, 0.35);
   color: #fecaca;
+}
+
+.inline-banner p {
+  margin: 0;
+}
+
+.inline-banner p + p {
+  margin-top: 6px;
 }
 
 .summary-grid {

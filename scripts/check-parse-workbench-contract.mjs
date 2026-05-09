@@ -22,8 +22,6 @@ const requiredTokens = [
   'fieldHelpDialogTitle',
   'fieldHelpDialogMessage',
   'help-dot',
-  'data-testid="parse-workbench-open-statistics"',
-  'data-testid="parse-workbench-statistics-entry"',
   'data-testid="parse-workbench-submit"',
   'data-testid="parse-workbench-datasource-code"',
   'data-testid="parse-workbench-parser-mode"',
@@ -94,11 +92,21 @@ const requiredTokens = [
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))
+const forbiddenTokens = [
+  'data-testid="parse-workbench-open-statistics"',
+  'data-testid="parse-workbench-statistics-entry"',
+  'data-testid="parse-workbench-open-statistics-secondary"',
+  'function openStatisticsCenter()'
+]
+const presentForbidden = forbiddenTokens.filter(token => source.includes(token))
 
-if (missing.length > 0) {
+if (missing.length > 0 || presentForbidden.length > 0) {
   console.error('Parse workbench contract check failed.')
   for (const token of missing) {
     console.error(`- missing token: ${token}`)
+  }
+  for (const token of presentForbidden) {
+    console.error(`- forbidden token: ${token}`)
   }
   process.exit(1)
 }

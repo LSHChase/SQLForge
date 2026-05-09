@@ -948,17 +948,6 @@ async function openReportSession(batchId) {
   reportDetailDrawerVisible.value = true
 }
 
-function openStatisticsCenter() {
-  const analytics = String(route.query.analytics || 'issue')
-  router.push({
-    path: ROUTE_PATHS.parseStatisticsCenter,
-    query: {
-      tenantId: form.tenantId,
-      analytics
-    }
-  })
-}
-
 function statisticsRedirectQuery() {
   const nextQuery = { ...route.query }
   delete nextQuery.workspace
@@ -1063,10 +1052,7 @@ watch(
       </div>
       <div class="hero-side">
         <div class="action-row action-row-wrap">
-          <el-button type="primary" data-testid="parse-workbench-open-statistics" @click="openStatisticsCenter">
-            {{ t('acceleration.openStatisticsCenter') }}
-          </el-button>
-          <el-button @click="resetResult">
+          <el-button type="primary" @click="resetResult">
             {{ isChinese ? '清空结果' : 'Reset result' }}
           </el-button>
         </div>
@@ -1572,21 +1558,6 @@ watch(
         </template>
       </article>
     </div>
-
-    <section class="surface-card statistics-entry" data-testid="parse-workbench-statistics-entry">
-      <div class="shell-header">
-        <div>
-          <p class="section-kicker sqlforge-code-label">sql parse statistics</p>
-          <h2 class="section-title">{{ t('acceleration.statisticsEntryTitle') }}</h2>
-          <p class="runtime-note">{{ t('acceleration.statisticsEntrySummary') }}</p>
-        </div>
-        <div class="action-row action-row-wrap">
-          <el-button data-testid="parse-workbench-open-statistics-secondary" @click="openStatisticsCenter">
-            {{ t('acceleration.openStatisticsCenter') }}
-          </el-button>
-        </div>
-      </div>
-    </section>
 
     <el-dialog v-model="batchDialogVisible" :title="isChinese ? '批量解析 Dialog' : 'Batch parsing dialog'" width="1240px" top="4vh">
       <section class="batch-dialog-shell" data-testid="batch-import-page">

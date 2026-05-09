@@ -743,7 +743,15 @@ export default {
     resultStatus: 'Result status',
     cacheHit: 'Cache hit',
     rewrite: 'Rewrite',
-    acceleration: 'Acceleration'
+    acceleration: 'Acceleration',
+    errorLabels: {
+      overview: 'Parse overview',
+      issueScenes: 'Issue distribution',
+      sqlStats: 'By SQL',
+      reportStats: 'By report',
+      priorityMatrix: 'Priority matrix',
+      importantUrgent: 'Important or urgent list'
+    }
   },
   assetCatalog: {
     title: 'Data Asset Catalog',
@@ -767,10 +775,7 @@ export default {
   },
   acceleration: {
     title: 'SQL Parse',
-    summary: 'Focus on single-SQL parsing, structure/access results, and history traceability.',
-    openStatisticsCenter: 'Open statistics center',
-    statisticsEntryTitle: 'Parse statistics entry',
-    statisticsEntrySummary: 'Overview, issue distribution, priority matrix, and SQL/report statistics now live on a separate page while this workbench keeps the single-SQL parse flow.'
+    summary: 'Focus on single-SQL parsing, structure/access results, and history traceability.'
   },
   system: {
     title: 'System Management',

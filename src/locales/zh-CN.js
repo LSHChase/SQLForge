@@ -743,7 +743,15 @@ export default {
     resultStatus: '结果状态',
     cacheHit: '缓存命中',
     rewrite: '轻量改写',
-    acceleration: '加速命中'
+    acceleration: '加速命中',
+    errorLabels: {
+      overview: '解析总览',
+      issueScenes: '问题分布',
+      sqlStats: 'SQL 清单',
+      reportStats: '报表视角',
+      priorityMatrix: '优先级矩阵',
+      importantUrgent: '重要/紧急清单'
+    }
   },
   assetCatalog: {
     title: '数据资产目录',
@@ -767,10 +775,7 @@ export default {
   },
   acceleration: {
     title: 'SQL解析',
-    summary: '专注单条 SQL 解析、结构/访问结果阅读与历史追溯。',
-    openStatisticsCenter: '打开统计中心',
-    statisticsEntryTitle: '解析统计入口',
-    statisticsEntrySummary: '统计总览、问题分布、优先级矩阵与 SQL/报表维度已拆到独立页面，当前工作台只保留单条解析主流程。'
+    summary: '专注单条 SQL 解析、结构/访问结果阅读与历史追溯。'
   },
   system: {
     title: '系统管理',
