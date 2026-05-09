@@ -33,6 +33,22 @@ export default {
     heroPrimary: '进入 SQL 查询',
     heroSecondary: '查看压测报告',
     heroFootnote: 'Dark-mode-native dashboard baseline',
+    operatorHeroTitle: '首页总览与主线待办',
+    operatorHeroSummary: '首页重新聚合解析、治理、推荐与协同证据，但仍只消费当前仓库已有的已审计接口，不把局部样本夸大成全租户最终事实。',
+    operatorFocusEyebrow: 'operator focus',
+    openRisksTitle: '开放风险',
+    openRisksSummary: '失败消息、dispatch failure、urgent SQL 与高风险 recommendation 会在这里合并成一个操作焦点。',
+    coreKpiTitle: '核心 KPI',
+    primaryEntriesTitle: '五大主入口',
+    platformHealthRiskTitle: '平台健康与风险',
+    issueDistributionTitle: '问题分布',
+    recentActivityTitle: '最近活动',
+    nextStepsTitle: '下一步建议',
+    actions: {
+      openQueryWorkbench: '进入查询工作台',
+      openSqlParse: '进入 SQL解析',
+      refreshOverview: '刷新总览'
+    },
     metricLabel: '关键指标',
     metrics: {
       queryVolume: '总查询量',
@@ -475,11 +491,27 @@ export default {
   },
   runtimeGates: {
     title: '运行时门禁',
-    summary: '汇总阶段入口、交付、合规门禁证据以及当前仍未闭口的退出阻塞项。'
+    summary: '汇总阶段入口、交付、合规门禁证据以及当前仍未闭口的退出阻塞项。',
+    heroEyebrow: 'phase-f runtime gates',
+    heroTitle: '运行时门禁与退出阻断基线',
+    heroSummary: '这里收口 Entry / Delivery / Compliance 三层门禁，避免 Phase-F 的 build、runtime、恢复和合规证据继续散在脚本与文档里。',
+    heroNote: '当前重点不是再加展示页，而是明确哪些脚本已经成为阻断门禁、哪些仍是残余风险。',
+    evidenceEyebrow: 'evidence map',
+    evidenceTitle: '脚本与 workflow 入口',
+    blockersEyebrow: 'residual blockers',
+    blockersTitle: '仍需继续推进的阻塞项'
   },
   recoveryDrill: {
     title: '恢复演练',
-    summary: '沉淀备份范围、恢复目标、责任边界与恢复后必过验收检查。'
+    summary: '沉淀备份范围、恢复目标、责任边界与恢复后必过验收检查。',
+    heroEyebrow: 'recovery drill baseline',
+    heroTitle: '备份恢复与恢复后验收基线',
+    heroSummary: '这一页把 F-TASK-008/009 形成的备份对象、恢复目标、责任边界和恢复后检查统一收在治理运维路径里。',
+    heroNote: '恢复完成的定义不是库导回来了，而是健康探针、审计补偿、队列 backlog、导出/脱敏和敏感泄漏检查都通过。',
+    objectivesEyebrow: 'rpo / rto',
+    objectivesTitle: '恢复目标与责任人',
+    checklistEyebrow: 'acceptance checklist',
+    checklistTitle: '恢复后必须复验的清单'
   },
   benchmark: {
     title: '压测报告',

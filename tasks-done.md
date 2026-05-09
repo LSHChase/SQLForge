@@ -4,6 +4,26 @@
 
 ## Done
 
+### HARN-108: 建立前端共享页面布局组件与样式契约
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `refactor(frontend): HARN-108 add shared page layout components`
+- Priority: 1
+- Depends on: HARN-107
+- Scope: 为所有页面抽取共享 `PageHero`、`SectionHeader`、`EvidencePanel`、`MetricCard`、toolbar/filter shell 等布局层；覆盖 `DashboardView`、静态运维页、common 组件，不引入新 UI 框架。
+- Validation:
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:frontend-page-governance`
+- Progress log:
+  - 2026-05-09: started shared frontend page layout component and style contract implementation after HARN-107 closeout.
+- Context closeout:
+  - Completed scope: Established shared PageHero, SectionHeader, EvidencePanel, MetricCard, and ToolbarShell components; wired DashboardView, RuntimeGatesView, RecoveryDrillView, and RoutePlaceholder; documented the layout contract and i18n keys without changing backend/API/persistence semantics.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-108 --include-task-audit passed with npm run lint, npm run build, npm run test:form-governance, npm run test:sql-ui-contract, npm run test:frontend-page-governance, and pre-closeout task audit.
+  - Residual risk: Only initial Dashboard/static-ops/common surfaces are migrated; HARN-109 through HARN-115 still need to reuse these components page by page.
+  - Next step: Start HARN-109 overview page refactor using the HARN-108 shared layout contract.
+
 ### HARN-107: 抽离 App 壳层导航与路由元数据
 
 - Status: done

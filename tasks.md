@@ -11,17 +11,6 @@
 
 ## Todo
 
-### HARN-108: 建立前端共享页面布局组件与样式契约
-
-- Status: todo
-- Priority: 1
-- Depends on: HARN-107
-- Scope: 为所有页面抽取共享 `PageHero`、`SectionHeader`、`EvidencePanel`、`MetricCard`、toolbar/filter shell 等布局层；覆盖 `DashboardView`、静态运维页、common 组件，不引入新 UI 框架。
-- Validation:
-  - `npm run lint`
-  - `npm run build`
-  - `npm run test:frontend-page-governance`
-
 ### HARN-109: 重构 Dashboard、Delivery、Runtime、Recovery 概览类页面
 
 - Status: todo

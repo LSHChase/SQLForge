@@ -15,8 +15,13 @@ import {
   getParseStatisticsOverview,
   getRecommendations
 } from '../../services/runtimeGateApi'
+import EvidencePanel from '../common/EvidencePanel.vue'
+import MetricCard from '../common/MetricCard.vue'
+import PageHero from '../common/PageHero.vue'
+import SectionHeader from '../common/SectionHeader.vue'
+import ToolbarShell from '../common/ToolbarShell.vue'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const tenantStore = useTenantStore()
 
@@ -563,98 +568,72 @@ onMounted(() => {
 
 <template>
   <section class="dashboard-page" data-testid="dashboard-page">
-    <section class="dashboard-hero sqlforge-panel">
-      <div class="hero-copy">
-        <p class="hero-eyebrow sqlforge-code-label">governance cockpit</p>
-        <h1 class="hero-title">{{ isChinese ? '首页总览与主线待办' : 'Overview and operator cockpit' }}</h1>
-        <p class="hero-summary">
-          {{
-            isChinese
-              ? '首页重新聚合解析、治理、推荐与协同证据，但仍只消费当前仓库已有的已审计接口，不把局部样本夸大成全租户最终事实。'
-              : 'The homepage now aggregates parse, governance, recommendation, and dispatch evidence while staying inside audited repository surfaces instead of overstating partial samples.'
-          }}
-        </p>
-        <div class="hero-pills">
-          <span v-for="pill in overviewPills" :key="pill" class="hero-pill">{{ pill }}</span>
-        </div>
+    <PageHero
+      :eyebrow="t('common.platformTagline')"
+      :title="t('dashboard.operatorHeroTitle')"
+      :summary="t('dashboard.operatorHeroSummary')"
+      :pills="overviewPills"
+    >
+      <template #actions>
         <div class="hero-actions">
           <button class="pill-button pill-button-primary" @click="goTo(ROUTE_PATHS.sqlQuery)">
-            {{ isChinese ? '进入查询工作台' : 'Open query workbench' }}
+            {{ t('dashboard.actions.openQueryWorkbench') }}
           </button>
           <button class="pill-button" @click="goTo(ROUTE_PATHS.acceleration)">
-            {{ isChinese ? '进入 SQL解析' : 'Open SQL Parse' }}
+            {{ t('dashboard.actions.openSqlParse') }}
           </button>
         </div>
-      </div>
+      </template>
 
-      <aside class="hero-aside sqlforge-subpanel">
-        <p class="hero-aside-label sqlforge-code-label">operator focus</p>
-        <div class="hero-signal">
-          <span class="hero-signal-value">{{ openRiskCount }}</span>
-          <div>
-            <h2>{{ isChinese ? '开放风险' : 'Open risks' }}</h2>
-            <p>
-              {{
-                isChinese
-                  ? '失败消息、dispatch failure、urgent SQL 与高风险 recommendation 会在这里合并成一个操作焦点。'
-                  : 'Failed messages, dispatch failures, urgent SQL, and high-risk recommendations are merged into one operator focus here.'
-              }}
-            </p>
+      <template #aside>
+        <ToolbarShell class="dashboard-focus-shell" :eyebrow="t('dashboard.operatorFocusEyebrow')" density="compact">
+          <div class="hero-signal">
+            <span class="hero-signal-value">{{ openRiskCount }}</span>
+            <div>
+              <h2>{{ t('dashboard.openRisksTitle') }}</h2>
+              <p>{{ t('dashboard.openRisksSummary') }}</p>
+            </div>
           </div>
-        </div>
-        <label class="field-label">
-          <span>{{ isChinese ? '租户' : 'Tenant' }}</span>
-          <input
-            v-model.trim="form.tenantId"
-            class="text-input"
-            data-testid="dashboard-tenant-input"
+          <label class="field-label">
+            <span>{{ t('common.currentTenant') }}</span>
+            <input
+              v-model.trim="form.tenantId"
+              class="text-input"
+              data-testid="dashboard-tenant-input"
+            >
+          </label>
+          <button
+            class="pill-button pill-button-primary"
+            :disabled="loading"
+            data-testid="dashboard-refresh"
+            @click="loadDashboardEvidence"
           >
-        </label>
-        <button
-          class="pill-button pill-button-primary"
-          :disabled="loading"
-          data-testid="dashboard-refresh"
-          @click="loadDashboardEvidence"
-        >
-          {{ isChinese ? '刷新总览' : 'Refresh overview' }}
-        </button>
-      </aside>
-    </section>
+            {{ t('dashboard.actions.refreshOverview') }}
+          </button>
+        </ToolbarShell>
+      </template>
+    </PageHero>
 
     <p v-if="errorMessage" class="error-banner" data-testid="dashboard-error">{{ errorMessage }}</p>
 
     <section class="dashboard-section">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">kpi</p>
-          <h2 class="section-title">{{ isChinese ? '核心 KPI' : 'Core KPI' }}</h2>
-        </div>
-      </div>
+      <SectionHeader eyebrow="kpi" :title="t('dashboard.coreKpiTitle')" />
       <div class="metric-grid">
-        <article
+        <MetricCard
           v-for="metric in metricCards"
           :key="metric.key"
-          class="metric-card"
-          :class="`metric-card-${metric.tone}`"
-          data-testid="dashboard-kpi-card"
-        >
-          <p class="metric-label">{{ metric.label }}</p>
-          <div class="metric-value-row">
-            <strong class="metric-value">{{ metric.value }}</strong>
-            <span class="metric-trend">{{ metric.trend }}</span>
-          </div>
-          <p class="metric-detail">{{ metric.detail }}</p>
-        </article>
+          :label="metric.label"
+          :value="metric.value"
+          :trend="metric.trend"
+          :detail="metric.detail"
+          :tone="metric.tone"
+          test-id="dashboard-kpi-card"
+        />
       </div>
     </section>
 
     <section class="dashboard-section">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">workflow entry</p>
-          <h2 class="section-title">{{ isChinese ? '五大主入口' : 'Five primary entries' }}</h2>
-        </div>
-      </div>
+      <SectionHeader eyebrow="workflow entry" :title="t('dashboard.primaryEntriesTitle')" />
       <div class="entry-grid">
         <article
           v-for="entry in quickEntries"
@@ -673,13 +652,12 @@ onMounted(() => {
       </div>
     </section>
 
-    <section class="dashboard-section sqlforge-panel" data-testid="dashboard-health">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">health & risk</p>
-          <h2 class="section-title">{{ isChinese ? '平台健康与风险' : 'Platform health and risk' }}</h2>
-        </div>
-      </div>
+    <EvidencePanel
+      class="dashboard-section"
+      eyebrow="health & risk"
+      :title="t('dashboard.platformHealthRiskTitle')"
+      test-id="dashboard-health"
+    >
       <div class="health-grid">
         <article
           v-for="card in healthCards"
@@ -698,16 +676,16 @@ onMounted(() => {
           </button>
         </article>
       </div>
-    </section>
+    </EvidencePanel>
 
     <section class="dashboard-split">
-      <article class="dashboard-section sqlforge-panel" data-testid="dashboard-issue-distribution">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">issue distribution</p>
-            <h2 class="section-title">{{ isChinese ? '问题分布' : 'Issue distribution' }}</h2>
-          </div>
-        </div>
+      <EvidencePanel
+        as="article"
+        class="dashboard-section"
+        eyebrow="issue distribution"
+        :title="t('dashboard.issueDistributionTitle')"
+        test-id="dashboard-issue-distribution"
+      >
         <div class="distribution-grid">
           <article
             v-for="item in issueDistributionCards"
@@ -719,15 +697,15 @@ onMounted(() => {
             <p class="distribution-description">{{ item.description }}</p>
           </article>
         </div>
-      </article>
+      </EvidencePanel>
 
-      <article class="dashboard-section sqlforge-panel" data-testid="dashboard-activity-stream">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">activity stream</p>
-            <h2 class="section-title">{{ isChinese ? '最近活动' : 'Recent activity' }}</h2>
-          </div>
-        </div>
+      <EvidencePanel
+        as="article"
+        class="dashboard-section"
+        eyebrow="activity stream"
+        :title="t('dashboard.recentActivityTitle')"
+        test-id="dashboard-activity-stream"
+      >
         <div class="activity-list">
           <article
             v-for="item in activityItems"
@@ -746,16 +724,15 @@ onMounted(() => {
             </div>
           </article>
         </div>
-      </article>
+      </EvidencePanel>
     </section>
 
-    <section class="dashboard-section sqlforge-panel" data-testid="dashboard-next-steps">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">next step queue</p>
-          <h2 class="section-title">{{ isChinese ? '下一步建议' : 'Recommended next steps' }}</h2>
-        </div>
-      </div>
+    <EvidencePanel
+      class="dashboard-section"
+      eyebrow="next step queue"
+      :title="t('dashboard.nextStepsTitle')"
+      test-id="dashboard-next-steps"
+    >
       <div class="todo-list">
         <article
           v-for="item in nextStepItems"
@@ -773,7 +750,7 @@ onMounted(() => {
           </button>
         </article>
       </div>
-    </section>
+    </EvidencePanel>
   </section>
 </template>
 
@@ -784,9 +761,6 @@ onMounted(() => {
   gap: 24px;
 }
 
-.sqlforge-panel,
-.sqlforge-subpanel,
-.metric-card,
 .entry-card,
 .distribution-card,
 .health-card,
@@ -796,18 +770,6 @@ onMounted(() => {
   background: var(--sqlforge-surface-2);
 }
 
-.sqlforge-panel {
-  border-radius: 16px;
-  padding: 24px;
-}
-
-.sqlforge-subpanel {
-  border-radius: 14px;
-  padding: 18px;
-  background: rgba(41, 41, 41, 0.84);
-}
-
-.dashboard-hero,
 .dashboard-split,
 .metric-grid,
 .entry-grid,
@@ -817,7 +779,6 @@ onMounted(() => {
   gap: 18px;
 }
 
-.dashboard-hero,
 .dashboard-split {
   grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
 }
@@ -838,8 +799,6 @@ onMounted(() => {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
-.hero-copy,
-.hero-aside,
 .todo-list,
 .activity-list {
   display: flex;
@@ -847,9 +806,6 @@ onMounted(() => {
   gap: 16px;
 }
 
-.hero-eyebrow,
-.hero-aside-label,
-.section-kicker,
 .metric-label,
 .distribution-label,
 .field-label span,
@@ -858,15 +814,6 @@ onMounted(() => {
   color: var(--sqlforge-text-muted);
 }
 
-.hero-title {
-  margin: 0;
-  font-size: clamp(40px, 6vw, 68px);
-  line-height: 1;
-  font-weight: 400;
-  color: var(--sqlforge-text-primary);
-}
-
-.hero-summary,
 .distribution-description,
 .todo-description,
 .metric-detail,
@@ -878,9 +825,7 @@ onMounted(() => {
   line-height: 1.6;
 }
 
-.hero-pills,
 .hero-actions,
-.section-heading,
 .metric-value-row {
   display: flex;
   align-items: center;
@@ -888,7 +833,11 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
-.hero-pill,
+.dashboard-focus-shell :deep(.toolbar-shell-body) {
+  flex-direction: column;
+  align-items: stretch;
+}
+
 .metric-trend,
 .status-pill {
   display: inline-flex;
@@ -997,16 +946,6 @@ onMounted(() => {
   gap: 18px;
 }
 
-.section-heading {
-  justify-content: space-between;
-}
-
-.section-title {
-  font-size: 28px;
-  line-height: 1.1;
-}
-
-.metric-card,
 .entry-card,
 .distribution-card,
 .health-card {
@@ -1014,29 +953,19 @@ onMounted(() => {
   padding: 18px;
 }
 
-.metric-card-danger,
 .health-card-danger,
 .todo-item-danger {
   border-color: rgba(212, 96, 96, 0.35);
 }
 
-.metric-card-warning,
 .health-card-warning,
 .todo-item-warning {
   border-color: rgba(207, 166, 62, 0.32);
 }
 
-.metric-card-success,
 .health-card-success,
 .todo-item-success {
   border-color: var(--sqlforge-color-brand-border);
-}
-
-.metric-value {
-  font-size: 34px;
-  line-height: 1;
-  font-weight: 400;
-  color: var(--sqlforge-text-primary);
 }
 
 .entry-label,
@@ -1078,7 +1007,6 @@ onMounted(() => {
 }
 
 @media (max-width: 1080px) {
-  .dashboard-hero,
   .dashboard-split {
     grid-template-columns: 1fr;
   }

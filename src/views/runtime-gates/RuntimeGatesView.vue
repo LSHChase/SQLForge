@@ -1,8 +1,10 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import EvidencePanel from '../common/EvidencePanel.vue'
+import PageHero from '../common/PageHero.vue'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 const isChinese = computed(() => locale.value === 'zh-CN')
 
 const gateCards = computed(() => [
@@ -80,38 +82,31 @@ const evidenceRows = computed(() => [
 
 <template>
   <section class="runtime-page" data-testid="runtime-gates-page">
-    <div class="runtime-hero surface-card">
-      <div>
-        <p class="runtime-eyebrow sqlforge-code-label">phase-f runtime gates</p>
-        <h1 class="runtime-title">
-          {{ isChinese ? '运行时门禁与退出阻断基线' : 'Runtime Gates And Exit Blocking Baseline' }}
-        </h1>
-        <p class="runtime-summary">
-          {{
-            isChinese
-              ? '这里收口 Entry / Delivery / Compliance 三层门禁，避免 Phase-F 的 build、runtime、恢复和合规证据继续散在脚本与文档里。'
-              : 'This page consolidates the Entry, Delivery, and Compliance gates so Phase-F build, runtime, recovery, and compliance evidence no longer drift across scripts and docs.'
-          }}
-        </p>
-      </div>
-      <p class="runtime-note">
-        {{
-          isChinese
-            ? '当前重点不是再加展示页，而是明确哪些脚本已经成为阻断门禁、哪些仍是残余风险。'
-            : 'The point is not more display pages, but a clear line between blocking gates and residual risks.'
-        }}
-      </p>
-    </div>
+    <PageHero
+      v-bind="{
+        eyebrow: t('runtimeGates.heroEyebrow'),
+        title: t('runtimeGates.heroTitle'),
+        summary: t('runtimeGates.heroSummary')
+      }"
+    >
+      <template #aside>
+        <EvidencePanel tone="warning">
+          <p class="runtime-note">{{ t('runtimeGates.heroNote') }}</p>
+        </EvidencePanel>
+      </template>
+    </PageHero>
 
     <div class="summary-card-grid">
-      <article
+      <EvidencePanel
         v-for="gate in gateCards"
         :key="gate.key"
-        class="surface-card gate-card"
+        as="article"
+        v-bind="{
+          eyebrow: gate.title,
+          title: gate.title,
+          summary: gate.summary
+        }"
       >
-        <p class="section-kicker sqlforge-code-label">{{ gate.title }}</p>
-        <h2 class="section-title">{{ gate.title }}</h2>
-        <p class="section-summary">{{ gate.summary }}</p>
         <div class="check-list">
           <span
             v-for="item in gate.checks"
@@ -121,18 +116,17 @@ const evidenceRows = computed(() => [
             {{ item }}
           </span>
         </div>
-      </article>
+      </EvidencePanel>
     </div>
 
     <div class="runtime-grid">
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">evidence map</p>
-            <h2 class="section-title">{{ isChinese ? '脚本与 workflow 入口' : 'Scripts And Workflow Entry Points' }}</h2>
-          </div>
-        </div>
-
+      <EvidencePanel
+        as="article"
+        v-bind="{
+          eyebrow: t('runtimeGates.evidenceEyebrow'),
+          title: t('runtimeGates.evidenceTitle')
+        }"
+      >
         <div class="evidence-grid">
           <div
             v-for="row in evidenceRows"
@@ -143,16 +137,16 @@ const evidenceRows = computed(() => [
             <strong>{{ row.value }}</strong>
           </div>
         </div>
-      </article>
+      </EvidencePanel>
 
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">residual blockers</p>
-            <h2 class="section-title">{{ isChinese ? '仍需继续推进的阻塞项' : 'Residual Blockers Still Open' }}</h2>
-          </div>
-        </div>
-
+      <EvidencePanel
+        as="article"
+        v-bind="{
+          eyebrow: t('runtimeGates.blockersEyebrow'),
+          title: t('runtimeGates.blockersTitle')
+        }"
+        tone="warning"
+      >
         <ul class="bullet-list">
           <li
             v-for="item in blockerItems"
@@ -161,7 +155,7 @@ const evidenceRows = computed(() => [
             {{ item }}
           </li>
         </ul>
-      </article>
+      </EvidencePanel>
     </div>
   </section>
 </template>
@@ -173,26 +167,10 @@ const evidenceRows = computed(() => [
   gap: 24px;
 }
 
-.surface-card {
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 45%),
-    var(--sqlforge-surface-2);
-  box-shadow: none;
-  padding: 24px;
-}
-
-.runtime-hero,
 .runtime-grid,
 .summary-card-grid {
   display: grid;
   gap: 20px;
-}
-
-.runtime-hero {
-  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
-  align-items: start;
 }
 
 .summary-card-grid {
@@ -203,30 +181,8 @@ const evidenceRows = computed(() => [
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
-.runtime-eyebrow,
-.section-kicker {
-  margin: 0 0 12px;
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #0f766e;
-}
-
-.runtime-title,
-.section-title {
+.runtime-note {
   margin: 0;
-  font-size: 28px;
-  color: var(--sqlforge-text-primary);
-}
-
-.section-title {
-  font-size: 22px;
-}
-
-.runtime-summary,
-.runtime-note,
-.section-summary {
-  margin: 12px 0 0;
   color: var(--sqlforge-text-secondary);
   line-height: 1.65;
 }
@@ -265,7 +221,7 @@ const evidenceRows = computed(() => [
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #0f766e;
+  color: var(--sqlforge-text-muted);
 }
 
 .bullet-list {
@@ -273,11 +229,5 @@ const evidenceRows = computed(() => [
   padding-left: 18px;
   color: var(--sqlforge-text-secondary);
   line-height: 1.7;
-}
-
-@media (max-width: 960px) {
-  .runtime-hero {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

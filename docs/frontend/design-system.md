@@ -522,6 +522,15 @@
 - 业务页面状态必须拆分为筛选、分页排序、表格/列表数据、详情/弹层数据、loading/error/empty/success，不得继续把主流程状态全部堆在单个 SFC 顶层。
 - 重复 trace lookup、timeline、queue、retry、datasource/config 表格与详情模式应收敛为 composable 或共享组件；抽象必须服务真实重复复杂度，不能引入跨业务的杂项组件。
 
+### 13.2.1 HARN-108 Shared Layout Contract
+
+- `src/views/common/PageHero.vue` 是页面顶部主叙事层，只接收已本地化的 `eyebrow`、`title`、`summary`、`pills` 与 actions / aside 插槽；它不绑定业务状态、不做权限判断、不发起 API 请求。
+- `SectionHeader.vue` 统一 section 标题、kicker、summary 与操作位，页面不得继续为普通分区复制新的 `section-heading` / `section-title` 样式块。
+- `EvidencePanel.vue` 承载只读证据、风险说明、详情面板与静态运维信息；它可以设置 `tone`，但不得嵌套 `<el-card>` 或包装完整主流程。
+- `MetricCard.vue` 只用于 KPI、样本计数、比例和状态摘要；指标值必须来自页面已有后端证据、窗口样本或明确的静态治理事实，不得在组件内推导全局事实。
+- `ToolbarShell.vue` 承载筛选、刷新、批量动作和工具条；搜索动作、分页重置、loading/error/success 状态仍由页面或 composable 显式管理。
+- HARN-108 首批接入 `DashboardView`、`RuntimeGatesView`、`RecoveryDrillView` 与 `RoutePlaceholder`，后续 `HARN-109` 至 `HARN-115` 应复用这些组件逐页替换本地重复布局，而不是一次性重写全部业务页面。
+
 ### 13.3 Non-Implementation Boundaries
 
 - 不更换 Vue SFC + JavaScript + Element Plus + 自研组件栈。

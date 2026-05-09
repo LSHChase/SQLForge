@@ -33,6 +33,22 @@ export default {
     heroPrimary: 'Open SQL Query',
     heroSecondary: 'View Benchmark Report',
     heroFootnote: 'Dark-mode-native dashboard baseline',
+    operatorHeroTitle: 'Overview and operator cockpit',
+    operatorHeroSummary: 'The homepage now aggregates parse, governance, recommendation, and dispatch evidence while staying inside audited repository surfaces instead of overstating partial samples.',
+    operatorFocusEyebrow: 'operator focus',
+    openRisksTitle: 'Open risks',
+    openRisksSummary: 'Failed messages, dispatch failures, urgent SQL, and high-risk recommendations are merged into one operator focus here.',
+    coreKpiTitle: 'Core KPI',
+    primaryEntriesTitle: 'Five primary entries',
+    platformHealthRiskTitle: 'Platform health and risk',
+    issueDistributionTitle: 'Issue distribution',
+    recentActivityTitle: 'Recent activity',
+    nextStepsTitle: 'Recommended next steps',
+    actions: {
+      openQueryWorkbench: 'Open query workbench',
+      openSqlParse: 'Open SQL Parse',
+      refreshOverview: 'Refresh overview'
+    },
     metricLabel: 'Key metrics',
     metrics: {
       queryVolume: 'Query volume',
@@ -475,11 +491,27 @@ export default {
   },
   runtimeGates: {
     title: 'Runtime Gates',
-    summary: 'Consolidate phase entry, delivery, and compliance runtime-gate evidence plus the remaining exit blockers.'
+    summary: 'Consolidate phase entry, delivery, and compliance runtime-gate evidence plus the remaining exit blockers.',
+    heroEyebrow: 'phase-f runtime gates',
+    heroTitle: 'Runtime Gates And Exit Blocking Baseline',
+    heroSummary: 'This page consolidates the Entry, Delivery, and Compliance gates so Phase-F build, runtime, recovery, and compliance evidence no longer drift across scripts and docs.',
+    heroNote: 'The point is not more display pages, but a clear line between blocking gates and residual risks.',
+    evidenceEyebrow: 'evidence map',
+    evidenceTitle: 'Scripts And Workflow Entry Points',
+    blockersEyebrow: 'residual blockers',
+    blockersTitle: 'Residual Blockers Still Open'
   },
   recoveryDrill: {
     title: 'Recovery Drill',
-    summary: 'Track backup scope, restore objectives, ownership boundaries, and mandatory post-restore acceptance checks.'
+    summary: 'Track backup scope, restore objectives, ownership boundaries, and mandatory post-restore acceptance checks.',
+    heroEyebrow: 'recovery drill baseline',
+    heroTitle: 'Backup Recovery And Post-Restore Acceptance Baseline',
+    heroSummary: 'This page gathers the backup inventory, recovery objectives, ownership boundaries, and post-restore checks established by F-TASK-008/009.',
+    heroNote: 'Restore completion means more than database replay: health probes, audit compensation, queue backlog, export/desensitization, and leak checks must all pass.',
+    objectivesEyebrow: 'rpo / rto',
+    objectivesTitle: 'Recovery Objectives And Owners',
+    checklistEyebrow: 'acceptance checklist',
+    checklistTitle: 'Mandatory Post-Restore Checklist'
   },
   benchmark: {
     title: 'Benchmark Report',

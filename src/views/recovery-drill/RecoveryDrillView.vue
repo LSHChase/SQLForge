@@ -1,8 +1,10 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import EvidencePanel from '../common/EvidencePanel.vue'
+import PageHero from '../common/PageHero.vue'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 const isChinese = computed(() => locale.value === 'zh-CN')
 
 const inventoryItems = computed(() => [
@@ -57,50 +59,41 @@ const checklistItems = computed(() => [
 
 <template>
   <section class="runtime-page" data-testid="recovery-drill-page">
-    <div class="runtime-hero surface-card">
-      <div>
-        <p class="runtime-eyebrow sqlforge-code-label">recovery drill baseline</p>
-        <h1 class="runtime-title">
-          {{ isChinese ? '备份恢复与恢复后验收基线' : 'Backup Recovery And Post-Restore Acceptance Baseline' }}
-        </h1>
-        <p class="runtime-summary">
-          {{
-            isChinese
-              ? '这一页把 F-TASK-008/009 形成的备份对象、恢复目标、责任边界和恢复后检查统一收在治理运维路径里。'
-              : 'This page gathers the backup inventory, recovery objectives, ownership boundaries, and post-restore checks established by F-TASK-008/009.'
-          }}
-        </p>
-      </div>
-      <p class="runtime-note">
-        {{
-          isChinese
-            ? '恢复完成的定义不是库导回来了，而是健康探针、审计补偿、队列 backlog、导出/脱敏和敏感泄漏检查都通过。'
-            : 'Restore completion means more than database replay: health probes, audit compensation, queue backlog, export/desensitization, and leak checks must all pass.'
-        }}
-      </p>
-    </div>
+    <PageHero
+      v-bind="{
+        eyebrow: t('recoveryDrill.heroEyebrow'),
+        title: t('recoveryDrill.heroTitle'),
+        summary: t('recoveryDrill.heroSummary')
+      }"
+    >
+      <template #aside>
+        <EvidencePanel tone="warning">
+          <p class="runtime-note">{{ t('recoveryDrill.heroNote') }}</p>
+        </EvidencePanel>
+      </template>
+    </PageHero>
 
     <div class="summary-card-grid">
-      <article
+      <EvidencePanel
         v-for="item in inventoryItems"
         :key="item.title"
-        class="surface-card inventory-card"
-      >
-        <p class="section-kicker sqlforge-code-label">{{ item.title }}</p>
-        <h2 class="section-title">{{ item.title }}</h2>
-        <p class="section-summary">{{ item.summary }}</p>
-      </article>
+        as="article"
+        v-bind="{
+          eyebrow: item.title,
+          title: item.title,
+          summary: item.summary
+        }"
+      />
     </div>
 
     <div class="runtime-grid">
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">rpo / rto</p>
-            <h2 class="section-title">{{ isChinese ? '恢复目标与责任人' : 'Recovery Objectives And Owners' }}</h2>
-          </div>
-        </div>
-
+      <EvidencePanel
+        as="article"
+        v-bind="{
+          eyebrow: t('recoveryDrill.objectivesEyebrow'),
+          title: t('recoveryDrill.objectivesTitle')
+        }"
+      >
         <div class="table-wrap">
           <table class="objective-table">
             <thead>
@@ -124,16 +117,16 @@ const checklistItems = computed(() => [
             </tbody>
           </table>
         </div>
-      </article>
+      </EvidencePanel>
 
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">acceptance checklist</p>
-            <h2 class="section-title">{{ isChinese ? '恢复后必须复验的清单' : 'Mandatory Post-Restore Checklist' }}</h2>
-          </div>
-        </div>
-
+      <EvidencePanel
+        as="article"
+        v-bind="{
+          eyebrow: t('recoveryDrill.checklistEyebrow'),
+          title: t('recoveryDrill.checklistTitle')
+        }"
+        tone="warning"
+      >
         <ul class="bullet-list">
           <li
             v-for="item in checklistItems"
@@ -142,7 +135,7 @@ const checklistItems = computed(() => [
             {{ item }}
           </li>
         </ul>
-      </article>
+      </EvidencePanel>
     </div>
   </section>
 </template>
@@ -154,26 +147,10 @@ const checklistItems = computed(() => [
   gap: 24px;
 }
 
-.surface-card {
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at top right, rgba(234, 88, 12, 0.08), transparent 45%),
-    var(--sqlforge-surface-2);
-  box-shadow: none;
-  padding: 24px;
-}
-
-.runtime-hero,
 .runtime-grid,
 .summary-card-grid {
   display: grid;
   gap: 20px;
-}
-
-.runtime-hero {
-  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
-  align-items: start;
 }
 
 .summary-card-grid {
@@ -184,30 +161,8 @@ const checklistItems = computed(() => [
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
-.runtime-eyebrow,
-.section-kicker {
-  margin: 0 0 12px;
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #c2410c;
-}
-
-.runtime-title,
-.section-title {
+.runtime-note {
   margin: 0;
-  font-size: 28px;
-  color: var(--sqlforge-text-primary);
-}
-
-.section-title {
-  font-size: 22px;
-}
-
-.runtime-summary,
-.runtime-note,
-.section-summary {
-  margin: 12px 0 0;
   color: var(--sqlforge-text-secondary);
   line-height: 1.65;
 }
@@ -230,19 +185,13 @@ const checklistItems = computed(() => [
 }
 
 .objective-table th {
-  color: #0f172a;
+  color: var(--sqlforge-text-primary);
 }
 
 .bullet-list {
   margin: 0;
   padding-left: 18px;
-  color: #334155;
+  color: var(--sqlforge-text-secondary);
   line-height: 1.7;
-}
-
-@media (max-width: 960px) {
-  .runtime-hero {
-    grid-template-columns: 1fr;
-  }
 }
 </style>
