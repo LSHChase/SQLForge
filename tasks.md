@@ -11,18 +11,6 @@
 
 ## Todo
 
-### HARN-110: 重构 SQL 查询与 SQL 历史页面结构
-
-- Status: todo
-- Priority: 1
-- Depends on: HARN-108
-- Scope: 覆盖 `SqlQueryView`、`SqlHistoryView`、`useSqlHistoryList.js`；拆分查询三栏、结果 tabs、历史筛选、详情抽屉和 SQL 三态展示，保留 SQL UI 契约和历史查询契约。
-- Validation:
-  - `npm run lint`
-  - `npm run build`
-  - `npm run test:sql-ui-contract`
-  - `npm run test:frontend-page-governance`
-
 ### HARN-111: 拆分解析工作台与解析统计页面
 
 - Status: todo

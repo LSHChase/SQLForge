@@ -4,6 +4,27 @@
 
 ## Done
 
+### HARN-110: 重构 SQL 查询与 SQL 历史页面结构
+
+- Status: done
+- Completed at: 2026-05-09
+- Commit subject: `refactor(frontend): HARN-110 restructure sql query history pages`
+- Priority: 1
+- Depends on: HARN-108
+- Scope: 覆盖 `SqlQueryView`、`SqlHistoryView`、`useSqlHistoryList.js`；拆分查询三栏、结果 tabs、历史筛选、详情抽屉和 SQL 三态展示，保留 SQL UI 契约和历史查询契约。
+- Validation:
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:sql-ui-contract`
+  - `npm run test:frontend-page-governance`
+- Progress log:
+  - 2026-05-09: started HARN-110 after task-bound strict preflight; scope remains SQL query and SQL history page structure, history filters, detail drawer, and SQL tri-state display only.
+- Context closeout:
+  - Completed scope: Refactored SqlQueryView and SqlHistoryView around the HARN-108 shared page layout components; added query access/history result tabs; expanded SQL history filters through existing query-history parameters; split the detail drawer into overview, execution, SQL tri-state, parse/route signals, linked evidence, and audit surfaces while preserving SqlEditorField/SqlCodeBlock and backend history contracts.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-110 --include-task-audit passed; direct npm run lint, npm run build, npm run test:sql-ui-contract, npm run test:frontend-page-governance, and npm run test:form-governance passed.
+  - Residual risk: No backend API, SQL execution payload, persistence, export, audit, or raw SQL auto-formatting semantics changed; standalone scripts/check-history-page-contract.mjs still reflects pre-HARN-107 router token assumptions and is left for HARN-116 governance-script hardening.
+  - Next step: Start HARN-111 parse workbench and parse statistics page refactor using the same shared layout and SQL UI contracts.
+
 ### HARN-109: 重构 Dashboard、Delivery、Runtime、Recovery 概览类页面
 
 - Status: done

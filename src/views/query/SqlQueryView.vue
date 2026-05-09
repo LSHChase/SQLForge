@@ -6,11 +6,13 @@ import {
   formatRuntimeError,
   getGovernanceMessageStats
 } from '../../services/runtimeGateApi'
+import MetricCard from '../common/MetricCard.vue'
+import PageHero from '../common/PageHero.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
 import { formatSqlText } from '../common/sqlFormatting.mjs'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 
 const datasourceTree = [
   {
@@ -170,6 +172,37 @@ const validationTips = computed(() => {
   }
   return tips
 })
+const queryHeroPills = computed(() => [
+  form.tenantId || 'tenant-a',
+  form.datasourceType,
+  selectedDatasource.value.label
+])
+const queryHeroMetrics = computed(() => [
+  {
+    key: 'resultRows',
+    label: t('sqlQuery.metrics.resultRows'),
+    value: previewRows.value.length,
+    trend: result.value?.status || t('sqlQuery.metrics.pending'),
+    detail: t('sqlQuery.metrics.resultRowsDetail'),
+    tone: previewRows.value.length > 0 ? 'success' : 'neutral'
+  },
+  {
+    key: 'validationTips',
+    label: t('sqlQuery.metrics.validationTips'),
+    value: validationTips.value.length,
+    trend: validationTips.value.length > 0 ? t('sqlQuery.metrics.review') : t('sqlQuery.metrics.ready'),
+    detail: t('sqlQuery.metrics.validationTipsDetail'),
+    tone: validationTips.value.length > 0 ? 'warning' : 'success'
+  },
+  {
+    key: 'recentRuns',
+    label: t('sqlQuery.metrics.recentRuns'),
+    value: executionHistory.value.length,
+    trend: t('sqlQuery.metrics.sessionOnly'),
+    detail: t('sqlQuery.metrics.recentRunsDetail'),
+    tone: executionHistory.value.length > 0 ? 'neutral' : 'warning'
+  }
+])
 const summaryRows = computed(() => {
   const metadata = result.value?.metadata || {}
   return [
@@ -222,6 +255,35 @@ const recommendationRows = computed(() => {
       value: isChinese.value ? '如需长文本说明，打开 explain 或治理抽屉。' : 'Use the explain dialog or governance drawer for long-form evidence.'
     }
   ]
+})
+const accessRows = computed(() => {
+  const queryDateSummary = result.value?.queryDateSummary || {}
+  const bindingSummary = result.value?.bindingSummary || {}
+  const lightweightParseSummary = result.value?.lightweightParseSummary || {}
+  return [
+    { label: t('sqlQuery.access.queryDateStatus'), value: queryDateSummary.queryDateStatus },
+    { label: t('sqlQuery.access.queryDateStart'), value: queryDateSummary.queryDateStart },
+    { label: t('sqlQuery.access.queryDateEnd'), value: queryDateSummary.queryDateEnd },
+    { label: t('sqlQuery.access.queryDateFields'), value: listText(queryDateSummary.queryDateFields) },
+    { label: t('sqlQuery.access.bindingMode'), value: bindingSummary.bindingMode },
+    { label: t('sqlQuery.access.logicalObjects'), value: listText((result.value?.logicalObjectHits || []).map(item => item.objectKey || item.logicalObjectKey || item.objectName)) },
+    { label: t('sqlQuery.access.parseStatus'), value: lightweightParseSummary.syntaxStatus || lightweightParseSummary.status },
+    { label: t('sqlQuery.access.commentContext'), value: listText(Object.keys(result.value?.commentContext || {})) }
+  ]
+})
+const historyAssociationRows = computed(() => [
+  { label: t('sqlQuery.historyAssociation.sqlFingerprint'), value: result.value?.sqlFingerprint },
+  { label: t('sqlQuery.historyAssociation.contractStage'), value: result.value?.contractStage },
+  { label: t('sqlQuery.historyAssociation.implementationStage'), value: result.value?.implementationStage },
+  { label: t('sqlQuery.historyAssociation.downloadUrl'), value: result.value?.downloadUrl },
+  { label: t('sqlQuery.historyAssociation.historyBoundary'), value: t('sqlQuery.historyAssociation.backendHistory') }
+])
+const queryMetricProps = item => ({
+  label: item.label,
+  value: item.value,
+  trend: item.trend,
+  detail: item.detail,
+  tone: item.tone
 })
 const explainSteps = computed(() => [
   {
@@ -353,6 +415,23 @@ const formatJson = value => JSON.stringify(value, null, 2)
 
 <template>
   <section class="query-workbench" data-testid="query-flow-page">
+    <PageHero
+      :eyebrow="t('sqlQuery.hero.eyebrow')"
+      :title="t('sqlQuery.title')"
+      :summary="t('sqlQuery.summary')"
+      :pills="queryHeroPills"
+    >
+      <template #aside>
+        <div class="query-hero-metrics">
+          <MetricCard
+            v-for="item in queryHeroMetrics"
+            :key="item.key"
+            v-bind="queryMetricProps(item)"
+          />
+        </div>
+      </template>
+    </PageHero>
+
     <div class="query-workbench__grid">
       <aside class="query-rail surface-card">
         <div class="panel-heading">
@@ -610,6 +689,19 @@ const formatJson = value => JSON.stringify(value, null, 2)
           </div>
         </el-tab-pane>
 
+        <el-tab-pane :label="t('sqlQuery.resultTabs.access')" name="access">
+          <div class="detail-grid">
+            <div
+              v-for="item in accessRows"
+              :key="item.label"
+              class="detail-grid__item"
+            >
+              <span>{{ item.label }}</span>
+              <strong>{{ displayValue(item.value) }}</strong>
+            </div>
+          </div>
+        </el-tab-pane>
+
         <el-tab-pane :label="isChinese ? '路由' : 'Routing'" name="routing">
           <div class="detail-grid">
             <div
@@ -619,6 +711,19 @@ const formatJson = value => JSON.stringify(value, null, 2)
             >
               <span>{{ item.label }}</span>
               <strong>{{ item.value }}</strong>
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="t('sqlQuery.resultTabs.history')" name="history">
+          <div class="detail-grid">
+            <div
+              v-for="item in historyAssociationRows"
+              :key="item.label"
+              class="detail-grid__item"
+            >
+              <span>{{ item.label }}</span>
+              <strong>{{ displayValue(item.value) }}</strong>
             </div>
           </div>
         </el-tab-pane>
@@ -731,7 +836,13 @@ const formatJson = value => JSON.stringify(value, null, 2)
 .query-workbench {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--sqlforge-space-6);
+}
+
+.query-hero-metrics {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sqlforge-space-3);
 }
 
 .query-workbench__grid {

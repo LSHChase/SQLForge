@@ -347,7 +347,44 @@ export default {
   },
   sqlQuery: {
     title: 'SQL Query',
-    summary: 'Submit SQL, select an execution strategy and enter the downstream governance flow.'
+    summary: 'Submit SQL, select an execution strategy and enter the downstream governance flow.',
+    hero: {
+      eyebrow: 'query workbench'
+    },
+    metrics: {
+      resultRows: 'Result rows',
+      resultRowsDetail: 'Shows rows returned by the current response, not backend history totals.',
+      validationTips: 'Validation tips',
+      validationTipsDetail: 'The frontend only gives input hints; backend validation remains authoritative.',
+      recentRuns: 'Recent runs',
+      recentRunsDetail: 'Shows only the latest six execution summaries in this session.',
+      pending: 'Pending',
+      review: 'Review',
+      ready: 'Ready',
+      sessionOnly: 'session'
+    },
+    resultTabs: {
+      access: 'Access parse',
+      history: 'History links'
+    },
+    access: {
+      queryDateStatus: 'query_date status',
+      queryDateStart: 'query_date start',
+      queryDateEnd: 'query_date end',
+      queryDateFields: 'query_date fields',
+      bindingMode: 'Binding mode',
+      logicalObjects: 'Logical objects',
+      parseStatus: 'Lightweight parse status',
+      commentContext: 'Comment context'
+    },
+    historyAssociation: {
+      sqlFingerprint: 'SQL fingerprint',
+      contractStage: 'Contract stage',
+      implementationStage: 'Implementation stage',
+      downloadUrl: 'Download URL',
+      historyBoundary: 'History boundary',
+      backendHistory: 'History persistence, export, and audit links are governed by backend query-history.'
+    }
   },
   sqlHistory: {
     title: 'SQL History',
@@ -373,20 +410,33 @@ export default {
       reportKeyPlaceholder: 'Enter reportCode or SQL fingerprint',
       datasource: 'Datasource',
       datasourcePlaceholder: 'Enter datasource code',
+      stage: 'Stage',
+      stagePlaceholder: 'Enter stage',
+      bizDate: 'Business date',
+      queryDateStart: 'Query date start',
+      queryDateEnd: 'Query date end',
+      datePlaceholder: 'Select date',
       status: 'Execution status',
+      logicalObjectType: 'Logical object type',
       accessChannel: 'Access channel',
       engine: 'Target engine',
       submittedBy: 'Submitted by',
       submittedByPlaceholder: 'Enter submitter',
+      submittedStart: 'Submitted start',
+      submittedEnd: 'Submitted end',
       cacheHit: 'Cache hit',
       rewriteApplied: 'Rewrite applied',
       accelerationApplied: 'Acceleration applied',
+      parameterizedSql: 'Parameterized SQL',
       sortBy: 'Sort by',
       sortOrder: 'Sort order',
       traceIdPlaceholder: 'Enter Trace ID',
       taskIdPlaceholder: 'Enter Task ID',
       reportIdPlaceholder: 'Enter Report ID',
-      selectPlaceholder: 'Select'
+      selectPlaceholder: 'Select',
+      eyebrow: 'history filters',
+      title: 'History filters and indexed lookup',
+      summary: 'Every filter maps to an existing query-history parameter; empty defaults preserve the history query contract.'
     },
     metrics: {
       label: 'SQL execution history summary',
@@ -394,7 +444,9 @@ export default {
       total: 'Execution records',
       success: 'Success',
       nonSuccess: 'Non-success',
-      accessChannels: 'Access channels'
+      accessChannels: 'Access channels',
+      queryDateResolved: 'query_date resolved',
+      parameterizedSql: 'Parameterized SQL'
     },
     queryStatus: {
       idle: 'Not queried',
@@ -409,20 +461,25 @@ export default {
       reportKey: 'SQL/report key',
       requestTenant: 'Request tenant',
       datasource: 'Datasource',
+      stage: 'Stage',
       status: 'Execution status',
       accessChannel: 'Access channel',
       targetEngine: 'Target engine',
+      queryDate: 'query_date',
+      sqlState: 'SQL state',
       governanceHits: 'Governance hits',
       submittedBy: 'Submitted by',
       submittedAt: 'Submitted at',
-      auditEventCount: 'Audit event count'
+      auditEventCount: 'Audit event count',
+      summary: 'The list consumes backend pagination, filters, and classification summary; details drill down through the drawer.'
     },
     states: {
       loading: 'Loading SQL execution history',
       empty: 'No SQL execution history matches the current filters.',
       loadFailed: 'The list failed to load. Check the error above.',
       errorTitle: 'SQL history query failed',
-      datasourceOptionsFallback: 'Datasource options are unavailable; manual values remain enabled.'
+      datasourceOptionsFallback: 'Datasource options are unavailable; manual values remain enabled.',
+      noSignalEvidence: 'No parse, route, or context evidence is available for this detail.'
     },
     messages: {
       lookupRequired: 'Enter at least one of traceId, taskId, or reportId.',
@@ -433,8 +490,15 @@ export default {
       title: 'Execution detail',
       historyId: 'History ID',
       traceId: 'Trace ID',
+      resultId: 'Result ID',
       reportKey: 'SQL/report key',
       datasource: 'Datasource',
+      datasourceType: 'Datasource type',
+      stage: 'Stage',
+      bizDate: 'Business date',
+      queryDateStart: 'query_date start',
+      queryDateEnd: 'query_date end',
+      queryDateStatus: 'query_date status',
       status: 'Execution status',
       accessChannel: 'Access channel',
       targetEngine: 'Target engine',
@@ -458,6 +522,7 @@ export default {
       boundFingerprint: 'Bound fingerprint',
       bindingMode: 'Binding mode',
       bindingRender: 'Binding render',
+      parameterizedSql: 'Parameterized SQL',
       originalSql: 'Original SQL',
       templateSql: 'Template SQL',
       boundSql: 'Bound SQL'
@@ -471,7 +536,25 @@ export default {
       overview: 'Execution overview',
       execution: 'Execution evidence',
       sql: 'SQL tri-state',
+      signals: 'Parse and route',
+      refs: 'Linked evidence',
       audit: 'Audit links'
+    },
+    signals: {
+      commentContext: 'Comment context',
+      queryDateSummary: 'query_date summary',
+      logicalObjectHits: 'Logical object hits',
+      structureParseSummary: 'Structure parse summary',
+      accessParseSummary: 'Access parse summary',
+      bindingSummary: 'Binding summary',
+      routeDecision: 'Route decision',
+      cacheSummary: 'Cache summary'
+    },
+    refs: {
+      recommendationRefs: 'Recommendation refs',
+      benchmarkRefs: 'Benchmark refs',
+      auditRefs: 'Audit refs',
+      alertRefs: 'Alert refs'
     },
     audit: {
       service: 'Service',

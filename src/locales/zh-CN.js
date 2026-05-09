@@ -347,7 +347,44 @@ export default {
   },
   sqlQuery: {
     title: 'SQL查询',
-    summary: '统一提交 SQL、选择执行策略并进入后续治理链路。'
+    summary: '统一提交 SQL、选择执行策略并进入后续治理链路。',
+    hero: {
+      eyebrow: 'query workbench'
+    },
+    metrics: {
+      resultRows: '结果行',
+      resultRowsDetail: '执行后展示当前响应返回行数，不替代后端历史总量。',
+      validationTips: '预校验提示',
+      validationTipsDetail: '前端只做输入提醒，最终校验仍以后端为准。',
+      recentRuns: '最近执行',
+      recentRunsDetail: '仅展示当前会话最近 6 次执行摘要。',
+      pending: '待执行',
+      review: '需复核',
+      ready: '就绪',
+      sessionOnly: 'session'
+    },
+    resultTabs: {
+      access: '数据访问解析',
+      history: '历史关联'
+    },
+    access: {
+      queryDateStatus: 'query_date 状态',
+      queryDateStart: 'query_date 起始',
+      queryDateEnd: 'query_date 结束',
+      queryDateFields: 'query_date 字段',
+      bindingMode: '绑定模式',
+      logicalObjects: '命中对象',
+      parseStatus: '轻量解析状态',
+      commentContext: '注释上下文'
+    },
+    historyAssociation: {
+      sqlFingerprint: 'SQL 指纹',
+      contractStage: '契约阶段',
+      implementationStage: '实现阶段',
+      downloadUrl: '下载地址',
+      historyBoundary: '历史边界',
+      backendHistory: '历史写入、导出和审计关联以后端 query-history 为准。'
+    }
   },
   sqlHistory: {
     title: 'SQL历史',
@@ -373,20 +410,33 @@ export default {
       reportKeyPlaceholder: '输入 reportCode 或 SQL 指纹',
       datasource: '数据源',
       datasourcePlaceholder: '输入数据源编码',
+      stage: '阶段',
+      stagePlaceholder: '输入 stage',
+      bizDate: '业务日期',
+      queryDateStart: '查询日期起始',
+      queryDateEnd: '查询日期结束',
+      datePlaceholder: '选择日期',
       status: '执行状态',
+      logicalObjectType: '逻辑对象类型',
       accessChannel: '接入渠道',
       engine: '目标引擎',
       submittedBy: '提交人',
       submittedByPlaceholder: '输入提交人',
+      submittedStart: '提交起始',
+      submittedEnd: '提交结束',
       cacheHit: '缓存命中',
       rewriteApplied: '轻量改写',
       accelerationApplied: '加速命中',
+      parameterizedSql: '参数化 SQL',
       sortBy: '排序字段',
       sortOrder: '排序方向',
       traceIdPlaceholder: '输入 Trace ID',
       taskIdPlaceholder: '输入 Task ID',
       reportIdPlaceholder: '输入 Report ID',
-      selectPlaceholder: '请选择'
+      selectPlaceholder: '请选择',
+      eyebrow: 'history filters',
+      title: '历史筛选与精确反查',
+      summary: '筛选项全部映射到 query-history 已有查询参数；默认空筛选不改变历史查询契约。'
     },
     metrics: {
       label: 'SQL 执行历史摘要',
@@ -394,7 +444,9 @@ export default {
       total: '执行历史总数',
       success: '成功',
       nonSuccess: '异常/部分成功',
-      accessChannels: '接入渠道'
+      accessChannels: '接入渠道',
+      queryDateResolved: 'query_date 已解析',
+      parameterizedSql: '参数化 SQL'
     },
     queryStatus: {
       idle: '未查询',
@@ -409,20 +461,25 @@ export default {
       reportKey: 'SQL/报表标识',
       requestTenant: '请求租户',
       datasource: '数据源',
+      stage: '阶段',
       status: '执行状态',
       accessChannel: '接入渠道',
       targetEngine: '目标引擎',
+      queryDate: 'query_date',
+      sqlState: 'SQL 状态',
       governanceHits: '治理命中',
       submittedBy: '提交人',
       submittedAt: '提交时间',
-      auditEventCount: '审计事件数'
+      auditEventCount: '审计事件数',
+      summary: '列表只消费后端分页、筛选和分类摘要；详情通过抽屉下钻。'
     },
     states: {
       loading: '正在加载 SQL 执行历史',
       empty: '当前条件下没有 SQL 执行历史。',
       loadFailed: '列表加载失败，请查看上方错误信息。',
       errorTitle: 'SQL 历史查询失败',
-      datasourceOptionsFallback: '数据源候选加载失败，保留手动输入。'
+      datasourceOptionsFallback: '数据源候选加载失败，保留手动输入。',
+      noSignalEvidence: '当前详情没有可展示的解析、路由或上下文证据。'
     },
     messages: {
       lookupRequired: '至少输入 traceId、taskId、reportId 中的一项。',
@@ -433,8 +490,15 @@ export default {
       title: '执行详情',
       historyId: 'History ID',
       traceId: 'Trace ID',
+      resultId: 'Result ID',
       reportKey: 'SQL/报表标识',
       datasource: '数据源',
+      datasourceType: '数据源类型',
+      stage: '阶段',
+      bizDate: '业务日期',
+      queryDateStart: 'query_date 起始',
+      queryDateEnd: 'query_date 结束',
+      queryDateStatus: 'query_date 状态',
       status: '执行状态',
       accessChannel: '接入渠道',
       targetEngine: '目标引擎',
@@ -458,6 +522,7 @@ export default {
       boundFingerprint: '绑定指纹',
       bindingMode: '绑定模式',
       bindingRender: '绑定渲染',
+      parameterizedSql: '参数化 SQL',
       originalSql: '原始 SQL',
       templateSql: '模板 SQL',
       boundSql: '绑定 SQL'
@@ -471,7 +536,25 @@ export default {
       overview: '执行概览',
       execution: '执行取证',
       sql: 'SQL 三态',
+      signals: '解析与路由',
+      refs: '关联证据',
       audit: '审计关联'
+    },
+    signals: {
+      commentContext: '注释上下文',
+      queryDateSummary: 'query_date 摘要',
+      logicalObjectHits: '命中逻辑对象',
+      structureParseSummary: '结构解析摘要',
+      accessParseSummary: '数据访问解析摘要',
+      bindingSummary: '参数绑定摘要',
+      routeDecision: '路由决策',
+      cacheSummary: '缓存摘要'
+    },
+    refs: {
+      recommendationRefs: '推荐关联',
+      benchmarkRefs: '压测关联',
+      auditRefs: '审计关联',
+      alertRefs: '告警关联'
     },
     audit: {
       service: '服务',

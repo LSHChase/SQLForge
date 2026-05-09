@@ -11,6 +11,10 @@ import {
   lookupGovernanceTraces
 } from '../../services/runtimeGateApi'
 import { engineOptions } from '../common/formComponentGovernance'
+import EvidencePanel from '../common/EvidencePanel.vue'
+import MetricCard from '../common/MetricCard.vue'
+import PageHero from '../common/PageHero.vue'
+import ToolbarShell from '../common/ToolbarShell.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import { useSqlHistoryList } from './useSqlHistoryList'
 
@@ -41,11 +45,18 @@ const booleanValueOptions = [
   { label: 'false', value: 'false' }
 ]
 
+const logicalObjectTypeValueOptions = [
+  { label: 'BUSINESS_VIEW', value: 'BUSINESS_VIEW' },
+  { label: 'DB_VIEW', value: 'DB_VIEW' },
+  { label: 'TABLE', value: 'TABLE' }
+]
+
 const sortFieldValueOptions = [
   { label: 'submittedAt', value: 'submittedAt' },
   { label: 'finishedAt', value: 'finishedAt' },
   { label: 'status', value: 'status' },
-  { label: 'rowCount', value: 'rowCount' }
+  { label: 'rowCount', value: 'rowCount' },
+  { label: 'queryDateStart', value: 'queryDateStart' }
 ]
 
 const sortOrderValueOptions = [
@@ -125,6 +136,7 @@ const statusFilterOptions = computed(() => withAllOption(statusValueOptions))
 const accessChannelOptions = computed(() => withAllOption(accessChannelValueOptions))
 const targetEngineOptions = computed(() => withAllOption(engineOptions))
 const booleanFilterOptions = computed(() => withAllOption(booleanValueOptions))
+const logicalObjectTypeOptions = computed(() => withAllOption(logicalObjectTypeValueOptions))
 const sortFieldOptions = computed(() => withDefaultOption(sortFieldValueOptions))
 const sortOrderOptions = computed(() => withDefaultOption(sortOrderValueOptions))
 
@@ -159,11 +171,41 @@ const searchFields = computed(() => [
     testId: 'sql-history-datasource-filter'
   },
   {
+    key: 'stage',
+    type: 'input',
+    label: t('sqlHistory.filters.stage'),
+    placeholder: t('sqlHistory.filters.stagePlaceholder')
+  },
+  {
+    key: 'bizDate',
+    type: 'date',
+    label: t('sqlHistory.filters.bizDate'),
+    placeholder: t('sqlHistory.filters.datePlaceholder')
+  },
+  {
+    key: 'queryDateStart',
+    type: 'date',
+    label: t('sqlHistory.filters.queryDateStart'),
+    placeholder: t('sqlHistory.filters.datePlaceholder')
+  },
+  {
+    key: 'queryDateEnd',
+    type: 'date',
+    label: t('sqlHistory.filters.queryDateEnd'),
+    placeholder: t('sqlHistory.filters.datePlaceholder')
+  },
+  {
     key: 'status',
     type: 'select',
     label: t('sqlHistory.filters.status'),
     options: statusFilterOptions.value,
     testId: 'sql-history-status-filter'
+  },
+  {
+    key: 'logicalObjectType',
+    type: 'select',
+    label: t('sqlHistory.filters.logicalObjectType'),
+    options: logicalObjectTypeOptions.value
   },
   {
     key: 'accessChannel',
@@ -186,6 +228,18 @@ const searchFields = computed(() => [
     placeholder: t('sqlHistory.filters.submittedByPlaceholder')
   },
   {
+    key: 'submittedStart',
+    type: 'date',
+    label: t('sqlHistory.filters.submittedStart'),
+    placeholder: t('sqlHistory.filters.datePlaceholder')
+  },
+  {
+    key: 'submittedEnd',
+    type: 'date',
+    label: t('sqlHistory.filters.submittedEnd'),
+    placeholder: t('sqlHistory.filters.datePlaceholder')
+  },
+  {
     key: 'cacheHit',
     type: 'select',
     label: t('sqlHistory.filters.cacheHit'),
@@ -201,6 +255,12 @@ const searchFields = computed(() => [
     key: 'accelerationApplied',
     type: 'select',
     label: t('sqlHistory.filters.accelerationApplied'),
+    options: booleanFilterOptions.value
+  },
+  {
+    key: 'parameterizedSql',
+    type: 'select',
+    label: t('sqlHistory.filters.parameterizedSql'),
     options: booleanFilterOptions.value
   },
   {
@@ -263,6 +323,16 @@ const summaryMetrics = computed(() => [
     key: 'accessChannels',
     label: t('sqlHistory.metrics.accessChannels'),
     value: Object.keys(accessChannelCounts.value).length
+  },
+  {
+    key: 'queryDateResolved',
+    label: t('sqlHistory.metrics.queryDateResolved'),
+    value: tableRows.value.filter(item => String(item.queryDateStatus || '').toUpperCase() === 'RESOLVED').length
+  },
+  {
+    key: 'parameterizedSql',
+    label: t('sqlHistory.metrics.parameterizedSql'),
+    value: tableRows.value.filter(item => item.parameterizedSqlFlag === true).length
   }
 ])
 
@@ -292,6 +362,12 @@ const inputFieldProps = field => ({
   clearable: true
 })
 
+const dateFieldProps = field => ({
+  placeholder: field.placeholder,
+  clearable: true,
+  valueFormat: 'YYYY-MM-DD'
+})
+
 const tableColumnProps = column => ({
   prop: column.prop,
   label: column.label,
@@ -308,6 +384,11 @@ const sqlCodeBlockProps = item => ({
   label: item.label,
   copyLabel: t('sqlHistory.actions.copy'),
   autoFormat: item.autoFormat !== false
+})
+
+const metricCardProps = item => ({
+  label: item.label,
+  value: item.value
 })
 
 const historyTableColumns = computed(() => [
@@ -336,6 +417,12 @@ const historyTableColumns = computed(() => [
     minWidth: 130
   },
   {
+    key: 'stageCode',
+    prop: 'stageCode',
+    label: t('sqlHistory.table.stage'),
+    minWidth: 110
+  },
+  {
     key: 'resultStatus',
     prop: 'resultStatus',
     label: t('sqlHistory.table.status'),
@@ -353,6 +440,18 @@ const historyTableColumns = computed(() => [
     prop: 'targetEngine',
     label: t('sqlHistory.table.targetEngine'),
     minWidth: 120
+  },
+  {
+    key: 'queryDate',
+    label: t('sqlHistory.table.queryDate'),
+    minWidth: 180,
+    slot: 'queryDate'
+  },
+  {
+    key: 'parameterizedSqlFlag',
+    label: t('sqlHistory.table.sqlState'),
+    minWidth: 140,
+    slot: 'sqlState'
   },
   {
     key: 'governanceHits',
@@ -434,6 +533,20 @@ const executionCards = computed(() => {
   ].filter(item => hasDisplayValue(item.value))
 })
 
+const contextCards = computed(() => {
+  const detail = selectedHistoryDetail.value || {}
+  const queryDateSummary = objectValue(detail.queryDateSummary)
+  return [
+    { label: t('sqlHistory.detail.resultId'), value: detail.resultId },
+    { label: t('sqlHistory.detail.stage'), value: detail.stageCode },
+    { label: t('sqlHistory.detail.bizDate'), value: detail.bizDate },
+    { label: t('sqlHistory.detail.datasourceType'), value: detail.datasourceType },
+    { label: t('sqlHistory.detail.queryDateStart'), value: queryDateSummary.queryDateStart },
+    { label: t('sqlHistory.detail.queryDateEnd'), value: queryDateSummary.queryDateEnd },
+    { label: t('sqlHistory.detail.queryDateStatus'), value: queryDateSummary.queryDateStatus }
+  ].filter(item => hasDisplayValue(item.value))
+})
+
 const sqlCards = computed(() => [
   {
     label: t('sqlHistory.sql.sqlFingerprint'),
@@ -455,6 +568,10 @@ const sqlCards = computed(() => [
   {
     label: t('sqlHistory.sql.bindingRender'),
     value: firstValue(sqlState.value.bindingRenderStatus, selectedHistoryDetail.value?.bindingRenderStatus)
+  },
+  {
+    label: t('sqlHistory.sql.parameterizedSql'),
+    value: booleanDisplay(sqlState.value.parameterizedSqlFlag)
   }
 ])
 
@@ -474,6 +591,62 @@ const sqlVariants = computed(() =>
     { key: 'boundSqlText', label: t('sqlHistory.sql.boundSql'), value: selectedHistoryDetail.value?.boundSqlText }
   ].filter(item => hasDisplayValue(item.value))
 )
+
+const parseSignalCards = computed(() => {
+  const detail = selectedHistoryDetail.value || {}
+  return [
+    {
+      key: 'commentContext',
+      title: t('sqlHistory.signals.commentContext'),
+      payload: detail.commentContext
+    },
+    {
+      key: 'queryDateSummary',
+      title: t('sqlHistory.signals.queryDateSummary'),
+      payload: detail.queryDateSummary
+    },
+    {
+      key: 'logicalObjectHits',
+      title: t('sqlHistory.signals.logicalObjectHits'),
+      payload: detail.logicalObjectHits
+    },
+    {
+      key: 'structureParseSummary',
+      title: t('sqlHistory.signals.structureParseSummary'),
+      payload: detail.structureParseSummary
+    },
+    {
+      key: 'accessParseSummary',
+      title: t('sqlHistory.signals.accessParseSummary'),
+      payload: detail.accessParseSummary
+    },
+    {
+      key: 'bindingSummary',
+      title: t('sqlHistory.signals.bindingSummary'),
+      payload: detail.bindingSummary
+    },
+    {
+      key: 'routeDecision',
+      title: t('sqlHistory.signals.routeDecision'),
+      payload: detail.routeDecision
+    },
+    {
+      key: 'cacheSummary',
+      title: t('sqlHistory.signals.cacheSummary'),
+      payload: detail.cacheSummary
+    }
+  ].filter(item => isNonEmpty(item.payload))
+})
+
+const referenceGroups = computed(() => {
+  const detail = selectedHistoryDetail.value || {}
+  return [
+    { key: 'recommendationRefs', title: t('sqlHistory.refs.recommendationRefs'), items: detail.recommendationRefs || [] },
+    { key: 'benchmarkRefs', title: t('sqlHistory.refs.benchmarkRefs'), items: detail.benchmarkRefs || [] },
+    { key: 'auditRefs', title: t('sqlHistory.refs.auditRefs'), items: detail.auditRefs || [] },
+    { key: 'alertRefs', title: t('sqlHistory.refs.alertRefs'), items: detail.alertRefs || [] }
+  ]
+})
 
 const search = async () => {
   workflowErrorMessage.value = ''
@@ -732,28 +905,45 @@ watch(
 
 <template>
   <section class="sql-history-page" data-testid="sql-history-page">
-    <header class="page-shell">
-      <div class="page-copy">
-        <p class="section-kicker">{{ PAGE_KICKER }}</p>
-        <h1 class="section-title">{{ t('sqlHistory.title') }}</h1>
-      </div>
-      <div class="action-row">
-        <el-button type="primary" :loading="loadingList" data-testid="sql-history-refresh" @click="search">
-          {{ t('sqlHistory.actions.refresh') }}
-        </el-button>
-        <el-button :loading="loading.lookup" data-testid="sql-history-run-lookup" @click="runIndexedLookup">
-          {{ t('sqlHistory.actions.lookup') }}
-        </el-button>
-        <el-button @click="clearFilters">{{ t('sqlHistory.actions.clear') }}</el-button>
-      </div>
-    </header>
+    <PageHero
+      :eyebrow="PAGE_KICKER"
+      :title="t('sqlHistory.title')"
+      :summary="t('sqlHistory.summary')"
+      :pills="[requestTenantId, SQL_EXECUTION_HISTORY_TYPE, listStatusLabel]"
+    >
+      <template #actions>
+        <div class="action-row">
+          <el-button type="primary" :loading="loadingList" data-testid="sql-history-refresh" @click="search">
+            {{ t('sqlHistory.actions.refresh') }}
+          </el-button>
+          <el-button :loading="loading.lookup" data-testid="sql-history-run-lookup" @click="runIndexedLookup">
+            {{ t('sqlHistory.actions.lookup') }}
+          </el-button>
+          <el-button @click="clearFilters">{{ t('sqlHistory.actions.clear') }}</el-button>
+        </div>
+      </template>
+      <template #aside>
+        <div class="summary-strip" :aria-label="t('sqlHistory.metrics.label')">
+          <MetricCard
+            v-for="item in summaryMetrics"
+            :key="item.key"
+            v-bind="metricCardProps(item)"
+          />
+        </div>
+      </template>
+    </PageHero>
 
     <div v-if="visibleErrorMessage" class="inline-banner inline-banner-danger" data-testid="sql-history-error">
       <strong>{{ t('sqlHistory.states.errorTitle') }}</strong>
       <span>{{ visibleErrorMessage }}</span>
     </div>
 
-    <section class="filter-panel">
+    <ToolbarShell
+      class="filter-panel"
+      :eyebrow="t('sqlHistory.filters.eyebrow')"
+      :title="t('sqlHistory.filters.title')"
+      :summary="t('sqlHistory.filters.summary')"
+    >
       <el-form class="filter-form" :model="searchForm" label-position="top" @submit.prevent="search">
         <div class="field-grid">
           <el-form-item v-for="field in searchFields" :key="field.key" :label="field.label" class="field-block">
@@ -769,6 +959,12 @@ watch(
                 v-bind="option"
               />
             </el-select>
+            <el-date-picker
+              v-else-if="field.type === 'date'"
+              v-model="searchForm[field.key]"
+              :data-testid="field.testId"
+              v-bind="dateFieldProps(field)"
+            />
             <el-input
               v-else
               v-model="searchForm[field.key]"
@@ -782,23 +978,16 @@ watch(
       <div v-if="datasourceOptionsLoadFailed" class="filter-hint" data-testid="sql-history-datasource-options-fallback">
         {{ t('sqlHistory.states.datasourceOptionsFallback') }}
       </div>
-    </section>
+    </ToolbarShell>
 
-    <section class="summary-strip" :aria-label="t('sqlHistory.metrics.label')">
-      <div v-for="item in summaryMetrics" :key="item.key" class="summary-metric">
-        <span>{{ item.label }}</span>
-        <strong>{{ item.value }}</strong>
-      </div>
-    </section>
-
-    <section class="table-panel" data-testid="sql-history-query-history-table">
-      <div class="table-heading">
-        <div>
-          <p class="section-kicker">{{ t('sqlHistory.table.kicker') }}</p>
-          <h2 class="section-title section-title-small">{{ t('sqlHistory.table.title') }}</h2>
-        </div>
-      </div>
-
+    <!-- data-testid="sql-history-query-history-table" -->
+    <EvidencePanel
+      class="table-panel"
+      test-id="sql-history-query-history-table"
+      :eyebrow="t('sqlHistory.table.kicker')"
+      :title="t('sqlHistory.table.title')"
+      :summary="t('sqlHistory.table.summary')"
+    >
       <el-table
         v-loading="loadingList"
         :data="tableRows"
@@ -830,6 +1019,14 @@ watch(
             </template>
             <template v-else-if="column.slot === 'status'">
               <span :class="statusClass(row.resultStatus)">{{ displayValue(row.resultStatus) }}</span>
+            </template>
+            <template v-else-if="column.slot === 'queryDate'">
+              {{ displayValue(row.queryDateStart) }} / {{ displayValue(row.queryDateEnd) }}
+              <div class="cell-subline">{{ displayValue(row.queryDateStatus) }}</div>
+            </template>
+            <template v-else-if="column.slot === 'sqlState'">
+              {{ booleanShort(row.parameterizedSqlFlag) }}
+              <div class="cell-subline">{{ displayValue(row.bindingMode) }}</div>
             </template>
             <template v-else-if="column.slot === 'governanceHits'">
               {{ governanceHitText(row) }}
@@ -871,7 +1068,7 @@ watch(
           @size-change="handlePageSizeChange"
         />
       </div>
-    </section>
+    </EvidencePanel>
 
     <el-drawer
       v-model="detailDrawerVisible"
@@ -909,6 +1106,12 @@ watch(
                 <strong :data-testid="item.testId || undefined">{{ displayValue(item.value) }}</strong>
               </div>
             </div>
+            <div v-if="contextCards.length" class="detail-grid detail-grid-spaced">
+              <div v-for="item in contextCards" :key="item.label" class="detail-grid__item">
+                <span>{{ item.label }}</span>
+                <strong>{{ displayValue(item.value) }}</strong>
+              </div>
+            </div>
           </el-tab-pane>
 
           <el-tab-pane :label="t('sqlHistory.tabs.execution')" name="execution">
@@ -941,6 +1144,28 @@ watch(
               <article v-for="item in sqlVariants" :key="item.key" class="code-card">
                 <div class="code-card__header">{{ item.label }}</div>
                 <SqlCodeBlock v-bind="sqlCodeBlockProps(item)" />
+              </article>
+            </div>
+          </el-tab-pane>
+
+          <el-tab-pane :label="t('sqlHistory.tabs.signals')" name="signals">
+            <div class="code-grid">
+              <article v-for="item in parseSignalCards" :key="item.key" class="code-card">
+                <div class="code-card__header">{{ item.title }}</div>
+                <pre class="code-block">{{ formatJson(item.payload) }}</pre>
+              </article>
+            </div>
+            <el-empty
+              v-if="!parseSignalCards.length"
+              :description="t('sqlHistory.states.noSignalEvidence')"
+            />
+          </el-tab-pane>
+
+          <el-tab-pane :label="t('sqlHistory.tabs.refs')" name="refs">
+            <div class="code-grid">
+              <article v-for="group in referenceGroups" :key="group.key" class="code-card">
+                <div class="code-card__header">{{ group.title }}</div>
+                <pre class="code-block">{{ formatJson(group.items || []) }}</pre>
               </article>
             </div>
           </el-tab-pane>
