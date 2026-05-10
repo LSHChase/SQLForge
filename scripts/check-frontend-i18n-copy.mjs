@@ -190,10 +190,16 @@ function checkChineseCopy(zhLeaves, errors) {
 }
 
 function checkSourceChineseBranches(errors) {
-  const sourceFiles = fs
+  const viewFiles = fs
     .readdirSync(path.join(root, 'src/views'), { recursive: true })
     .filter(file => /\.(?:vue|js|mjs)$/.test(file))
     .map(file => `src/views/${file}`)
+  const configFiles = fs
+    .readdirSync(path.join(root, 'src/config'), { recursive: true })
+    .filter(file => /\.(?:js|mjs)$/.test(file))
+    .map(file => `src/config/${file}`)
+  const sourceFiles = viewFiles
+    .concat(configFiles)
     .concat(['src/App.vue'])
     .filter(file => fs.existsSync(path.join(root, file)))
 
@@ -214,6 +220,17 @@ function checkSourceChineseBranches(errors) {
   }
 }
 
+function checkBypassedLocaleObjects(errors) {
+  const sourceFiles = ['src/App.vue', 'src/config/routePaths.mjs']
+  const bypassPattern = /\{\s*zh:\s*['"][^'"]+['"]\s*,\s*en:\s*['"][^'"]+['"]\s*\}/g
+  for (const relativePath of sourceFiles) {
+    const source = read(relativePath)
+    for (const match of source.matchAll(bypassPattern)) {
+      errors.push(`${relativePath} bypasses locale files with a zh/en object: ${match[0]}`)
+    }
+  }
+}
+
 const errors = []
 const zhLeaves = flattenLeaves(localeObject(localePaths.zh))
 const enLeaves = flattenLeaves(localeObject(localePaths.en))
@@ -221,6 +238,7 @@ const enLeaves = flattenLeaves(localeObject(localePaths.en))
 checkLocaleKeyAlignment(zhLeaves, enLeaves, errors)
 checkChineseCopy(zhLeaves, errors)
 checkSourceChineseBranches(errors)
+checkBypassedLocaleObjects(errors)
 
 if (errors.length > 0) {
   console.error('Frontend i18n copy check failed.')

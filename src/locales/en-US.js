@@ -51,7 +51,12 @@ export default {
       scenario: 'Scenario',
       report: 'Report',
       resultStatus: 'Result status'
-    }
+    },
+    localeToggleToEnglish: 'EN',
+    localeToggleToChinese: '中',
+    adaptiveNavigation: 'Adaptive navigation',
+    defaultTenantName: 'System Tenant',
+    defaultUserName: 'Platform Admin'
   },
   dashboard: {
     title: 'Engineering Dashboard',
@@ -2581,11 +2586,50 @@ export default {
       text015: 'Edit dispatch policy is not writable yet',
       text016: 'The current backend repository exposes only Dispatch-policy creation and does not provide a PUT or PATCH update endpoint.',
       text017: 'Add a backend update contract before converting this action into a real editable form.'
+    }
+  },
+  navigation: {
+    modules: {
+      dashboard: 'Dashboard',
+      deliveryProgress: 'AI Delivery',
+      sqlQuery: 'SQL Query',
+      sqlHistory: 'SQL History',
+      parseAcceleration: 'Parsing and Acceleration',
+      routing: 'Routing Governance',
+      assets: 'Data Assets',
+      benchmark: 'Benchmark Center',
+      system: 'System Management',
+      access: 'Open Access'
     },
-    app: {
-      text001: '中',
-      text002: 'Adaptive navigation',
-      text003: 'Current workspace'
+    sections: {
+      datasourcesInterfaces: 'Datasources and interfaces',
+      alertsRemediation: 'Alerts and remediation',
+      runtimeGovernance: 'Runtime governance'
+    },
+    items: {
+      dashboardHome: 'Overview home',
+      deliveryWorkbench: 'AI delivery workbench',
+      sqlWorkbench: 'SQL workbench',
+      historyList: 'History list',
+      repairEvidence: 'Repair evidence',
+      auditForensics: 'Audit forensics',
+      sqlParse: 'SQL Parse',
+      parseStatistics: 'Parse statistics',
+      batchParseCenter: 'Batch parse center',
+      parseHistorySearch: 'Parse history search',
+      accelerationRewriteCenter: 'Acceleration and rewrite center',
+      routingEvidence: 'Routing execution evidence',
+      assetCatalog: 'Asset catalog',
+      benchmarkWorkbench: 'Benchmark workbench',
+      systemManagement: 'System management',
+      alertCenter: 'Alert center',
+      troubleshooting: 'Troubleshooting',
+      runtimeGates: 'Runtime gates',
+      recoveryDrill: 'Recovery drill',
+      openAccess: 'Open access'
+    },
+    badges: {
+      temporary: 'R&D'
     }
   }
 }

@@ -17,27 +17,39 @@ const globalConfigStore = useGlobalConfigStore()
 const tenantStore = useTenantStore()
 const userStore = useUserStore()
 
-const navLabel = value => (locale.value === 'zh-CN' ? value.zh : value.en)
-const itemLabel = item => navLabel(item.menuLabel || { zh: t(item.titleKey), en: t(item.titleKey) })
+const navLabel = key => t(key)
+const itemLabel = item => t(item.menuLabel || item.titleKey)
 const itemBadgeLabel = item => {
   if (!item?.badge) {
     return ''
   }
-  return locale.value === 'zh-CN' ? item.badge.zh : item.badge.en
+  return t(item.badge)
 }
 
 const navigationTree = computed(() => createNavigationTree({ includeDeliveryProgress: deliveryProgressEnabled }))
 const activeNavItem = computed(() => findActiveNavigationItem(navigationTree.value, route))
 const activeMenuKey = computed(() => activeNavItem.value?.menuKey || buildNavigationKey(route.path, route.query))
 const defaultOpeneds = computed(() => activeNavItem.value?.defaultOpeneds || [])
-const localeLabel = computed(() => (t('inline.app.text001')))
+const localeLabel = computed(() =>
+  locale.value === 'zh-CN' ? t('common.localeToggleToEnglish') : t('common.localeToggleToChinese')
+)
+const tenantDisplayName = computed(() =>
+  tenantStore.tenantId === 'system' && !tenantStore.tenantName
+    ? t('common.defaultTenantName')
+    : tenantStore.tenantName
+)
+const userDisplayName = computed(() =>
+  userStore.userId === 'admin' && !userStore.displayName
+    ? t('common.defaultUserName')
+    : userStore.displayName
+)
 const workspaceSummary = computed(() =>
   t('common.workspaceSummary', {
-    tenant: tenantStore.tenantName,
+    tenant: tenantDisplayName.value,
     engine: tenantStore.defaultEngine
   })
 )
-const userBadge = computed(() => `${userStore.displayName} · ${userStore.role}`)
+const userBadge = computed(() => `${userDisplayName.value} · ${userStore.role}`)
 const breadcrumbText = computed(() => buildNavigationBreadcrumb(activeNavItem.value, navLabel, itemLabel))
 
 const handleLocaleToggle = () => {
@@ -62,13 +74,13 @@ onMounted(() => {
           <p class="brand-title">{{ t('common.appName') }}</p>
           <p class="brand-summary">{{ t('common.brandSummary') }}</p>
           <div class="brand-meta">
-            <span class="brand-pill">{{ tenantStore.tenantName }}</span>
+            <span class="brand-pill">{{ tenantDisplayName }}</span>
             <span class="brand-pill brand-pill-muted">{{ userBadge }}</span>
           </div>
         </div>
 
         <div class="sidebar-section">
-          <p class="sidebar-section-label sqlforge-code-label">{{ t('inline.app.text002') }}</p>
+          <p class="sidebar-section-label sqlforge-code-label">{{ t('common.adaptiveNavigation') }}</p>
           <el-scrollbar class="menu-scroll">
             <el-menu
               :default-active="activeMenuKey"
@@ -163,7 +175,7 @@ onMounted(() => {
       <el-container class="app-main">
         <el-header class="app-header">
           <div class="page-heading">
-            <p class="page-kicker sqlforge-code-label">{{ t('inline.app.text003') }}</p>
+            <p class="page-kicker sqlforge-code-label">{{ t('common.currentWorkspace') }}</p>
             <h1 class="page-title">{{ t(route.meta.titleKey || 'dashboard.title') }}</h1>
             <div class="breadcrumb-strip">
               <span

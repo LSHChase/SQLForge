@@ -51,7 +51,12 @@ export default {
       scenario: '场景',
       report: '报告',
       resultStatus: '结果状态'
-    }
+    },
+    localeToggleToEnglish: 'EN',
+    localeToggleToChinese: '中',
+    adaptiveNavigation: '按需导航',
+    defaultTenantName: '系统租户',
+    defaultUserName: '平台管理员'
   },
   dashboard: {
     title: '研发驾驶舱',
@@ -2565,11 +2570,50 @@ export default {
       text015: '修改 Dispatch 策略暂不可写',
       text016: '当前后端仓库只开放 Dispatch 策略新增接口，没有提供 PUT / PATCH 更新接口。',
       text017: '如需真实修改动作，先补后端更新契约，再把表单切换为可提交。'
+    }
+  },
+  navigation: {
+    modules: {
+      dashboard: '驾驶舱',
+      deliveryProgress: 'AI 交付',
+      sqlQuery: 'SQL 查询',
+      sqlHistory: 'SQL 历史',
+      parseAcceleration: '解析与加速',
+      routing: '路由治理',
+      assets: '数据资产',
+      benchmark: '压测中心',
+      system: '系统管理',
+      access: '开放接入'
     },
-    app: {
-      text001: 'EN',
-      text002: '按需导航',
-      text003: '当前工作区'
+    sections: {
+      datasourcesInterfaces: '数据源与接口',
+      alertsRemediation: '告警与处置',
+      runtimeGovernance: '运行治理'
+    },
+    items: {
+      dashboardHome: '总览首页',
+      deliveryWorkbench: 'AI 交付工作台',
+      sqlWorkbench: '查询工作台',
+      historyList: '历史列表',
+      repairEvidence: '修复证据',
+      auditForensics: '审计取证',
+      sqlParse: 'SQL 解析',
+      parseStatistics: '解析统计',
+      batchParseCenter: '批量解析中心',
+      parseHistorySearch: '解析历史查询',
+      accelerationRewriteCenter: '加速与改写中心',
+      routingEvidence: '路由执行证据',
+      assetCatalog: '资产目录',
+      benchmarkWorkbench: '压测工作台',
+      systemManagement: '系统管理',
+      alertCenter: '告警中心',
+      troubleshooting: '故障处置',
+      runtimeGates: '运行时门禁',
+      recoveryDrill: '恢复演练',
+      openAccess: '开放接入'
+    },
+    badges: {
+      temporary: '临时'
     }
   }
 }

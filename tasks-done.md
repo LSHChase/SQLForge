@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-126: 复核并修复前端中文治理架构缺口
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `fix(frontend): route navigation copy through locales`
+- Priority: 1
+- Depends on: HARN-125
+- Scope: 以资深前端架构视角复核 HARN-125 中文治理，修复仍绕过 locale 的导航文案、默认用户/租户英文展示、语言切换语义 key 与 i18n 审计覆盖缺口；保持路由、API、SQL、payload 和技术关键字语义不变。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-126`
+- Progress log:
+  - 2026-05-10: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 复核 HARN-125 中文治理后，修复导航仍使用 {zh,en} 绕过 locale、默认系统租户/平台管理员英文直出、App 语言切换与导航标签使用 inline 数字 key 的问题；导航、默认身份、语言切换和按需导航均改为语义化 locale key；i18n 文案审计扩大到 src/config 并禁止新的 zh/en 绕过对象。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-126 --include-task-audit --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'npm run test:frontend-page-governance' --extra-command 'npm run test:i18n-copy' --extra-command 'npm run test:sql-ui-contract' --extra-command 'npm run test:form-governance' --extra-command 'npm run smoke:frontend-dev' --extra-command 'node scripts/lint-repository-knowledge.js' --extra-command 'git diff --check'；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: HARN-125 生成的 inline.views*.textNNN 大批量页面文案仍是可维护性债务，但本轮已封住导航、默认身份和 src/config 绕过 locale 的高风险缺口；技术标识如 SQL、Trace ID、RPO/RTO、JDBC Agent 按需求保留。
+  - Next step: 后续前端文案新增必须继续走语义化 locale key；逐步把 HARN-125 生成的 inline.views*.textNNN 页面 key 按页面域重命名为业务语义 key。
+
 ### HARN-125: 前端页面中文化与 i18n 防回退整改
 
 - Status: done

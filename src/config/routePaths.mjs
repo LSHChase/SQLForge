@@ -415,96 +415,87 @@ const navItem = (routeKey, titleKey, menuLabel, extra = {}) => ({
 export const NAVIGATION_TREE = [
   {
     key: 'dashboard',
-    label: { zh: 'Dashboard', en: 'Dashboard' },
-    directItem: navItem('dashboard', 'dashboard.title', { zh: '总览首页', en: 'Overview home' })
+    label: 'navigation.modules.dashboard',
+    directItem: navItem('dashboard', 'dashboard.title', 'navigation.items.dashboardHome')
   },
   {
     key: 'delivery-progress',
-    label: { zh: 'AI 交付', en: 'AI Delivery' },
-    directItem: navItem('deliveryProgress', 'deliveryProgress.title', { zh: 'AI 交付工作台', en: 'AI delivery workbench' }, {
-      badge: { zh: '临时', en: 'R&D' }
+    label: 'navigation.modules.deliveryProgress',
+    directItem: navItem('deliveryProgress', 'deliveryProgress.title', 'navigation.items.deliveryWorkbench', {
+      badge: 'navigation.badges.temporary'
     })
   },
   {
     key: 'sql-query',
-    label: { zh: 'SQL 查询', en: 'SQL Query' },
-    directItem: navItem('sqlQuery', 'sqlQuery.title', { zh: '查询工作台', en: 'SQL workbench' })
+    label: 'navigation.modules.sqlQuery',
+    directItem: navItem('sqlQuery', 'sqlQuery.title', 'navigation.items.sqlWorkbench')
   },
   {
     key: 'sql-history',
-    label: { zh: 'SQL 历史', en: 'SQL History' },
+    label: 'navigation.modules.sqlHistory',
     items: [
-      navItem('sqlHistory', 'sqlHistory.title', { zh: '历史列表', en: 'History list' }),
-      navItem('repairEvidence', 'repairEvidence.title', { zh: '修复证据', en: 'Repair evidence' }),
-      navItem('auditForensics', 'auditForensics.title', { zh: '审计取证', en: 'Audit forensics' })
+      navItem('sqlHistory', 'sqlHistory.title', 'navigation.items.historyList'),
+      navItem('repairEvidence', 'repairEvidence.title', 'navigation.items.repairEvidence'),
+      navItem('auditForensics', 'auditForensics.title', 'navigation.items.auditForensics')
     ]
   },
   {
     key: 'parse-acceleration',
-    label: { zh: '解析与加速', en: 'Parsing and Acceleration' },
+    label: 'navigation.modules.parseAcceleration',
     items: [
-      navItem('acceleration', 'acceleration.title', { zh: 'SQL解析', en: 'SQL Parse' }),
-      navItem('parseStatisticsCenter', 'parseStatisticsCenter.title', {
-        zh: '解析统计',
-        en: 'Parse statistics'
-      }),
-      navItem('parseBatchCenter', 'acceleration.title', { zh: '批量解析中心', en: 'Batch parse center' }),
-      navItem('parseRecord', 'acceleration.title', { zh: '解析历史查询', en: 'Parse history search' }),
-      navItem('recommendationCenter', 'recommendationCenter.title', {
-        zh: '加速与改写中心',
-        en: 'Acceleration and rewrite center'
-      })
+      navItem('acceleration', 'acceleration.title', 'navigation.items.sqlParse'),
+      navItem('parseStatisticsCenter', 'parseStatisticsCenter.title', 'navigation.items.parseStatistics'),
+      navItem('parseBatchCenter', 'acceleration.title', 'navigation.items.batchParseCenter'),
+      navItem('parseRecord', 'acceleration.title', 'navigation.items.parseHistorySearch'),
+      navItem('recommendationCenter', 'recommendationCenter.title', 'navigation.items.accelerationRewriteCenter')
     ]
   },
   {
     key: 'routing',
-    label: { zh: '路由治理', en: 'Routing Governance' },
-    directItem: navItem('routingGovernance', 'routingGovernance.title', {
-      zh: '路由执行证据',
-      en: 'Routing execution evidence'
-    })
+    label: 'navigation.modules.routing',
+    directItem: navItem('routingGovernance', 'routingGovernance.title', 'navigation.items.routingEvidence')
   },
   {
     key: 'assets',
-    label: { zh: '数据资产', en: 'Data Assets' },
-    directItem: navItem('assetCatalog', 'assetCatalog.title', { zh: '资产目录', en: 'Asset catalog' })
+    label: 'navigation.modules.assets',
+    directItem: navItem('assetCatalog', 'assetCatalog.title', 'navigation.items.assetCatalog')
   },
   {
     key: 'benchmark',
-    label: { zh: '压测中心', en: 'Benchmark Center' },
-    directItem: navItem('benchmark', 'benchmark.title', { zh: '压测工作台', en: 'Benchmark workbench' })
+    label: 'navigation.modules.benchmark',
+    directItem: navItem('benchmark', 'benchmark.title', 'navigation.items.benchmarkWorkbench')
   },
   {
     key: 'system',
-    label: { zh: '系统管理', en: 'System Management' },
+    label: 'navigation.modules.system',
     sections: [
       {
         key: 'config',
-        label: { zh: '数据源与接口', en: 'Datasources and interfaces' },
-        items: [navItem('system', 'system.title', { zh: '系统管理', en: 'System management' })]
+        label: 'navigation.sections.datasourcesInterfaces',
+        items: [navItem('system', 'system.title', 'navigation.items.systemManagement')]
       },
       {
         key: 'alerts',
-        label: { zh: '告警与处置', en: 'Alerts and remediation' },
+        label: 'navigation.sections.alertsRemediation',
         items: [
-          navItem('alertCenter', 'alertCenter.title', { zh: '告警中心', en: 'Alert center' }),
-          navItem('auditTroubleshooting', 'auditTroubleshooting.title', { zh: '故障处置', en: 'Troubleshooting' })
+          navItem('alertCenter', 'alertCenter.title', 'navigation.items.alertCenter'),
+          navItem('auditTroubleshooting', 'auditTroubleshooting.title', 'navigation.items.troubleshooting')
         ]
       },
       {
         key: 'runtime',
-        label: { zh: '运行治理', en: 'Runtime governance' },
+        label: 'navigation.sections.runtimeGovernance',
         items: [
-          navItem('runtimeGates', 'runtimeGates.title', { zh: '运行时门禁', en: 'Runtime gates' }),
-          navItem('recoveryDrill', 'recoveryDrill.title', { zh: '恢复演练', en: 'Recovery drill' })
+          navItem('runtimeGates', 'runtimeGates.title', 'navigation.items.runtimeGates'),
+          navItem('recoveryDrill', 'recoveryDrill.title', 'navigation.items.recoveryDrill')
         ]
       }
     ]
   },
   {
     key: 'access',
-    label: { zh: '开放接入', en: 'Open Access' },
-    directItem: navItem('accessCenter', 'accessCenter.title', { zh: '开放接入', en: 'Open access' })
+    label: 'navigation.modules.access',
+    directItem: navItem('accessCenter', 'accessCenter.title', 'navigation.items.openAccess')
   }
 ]
 

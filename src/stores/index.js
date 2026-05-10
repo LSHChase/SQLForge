@@ -5,7 +5,7 @@ export const pinia = createPinia()
 export const useTenantStore = defineStore('tenantStore', {
   state: () => ({
     tenantId: 'system',
-    tenantName: 'System Tenant',
+    tenantName: '',
     defaultEngine: 'HETU',
     backupEngine: 'HIVE'
   }),
@@ -22,7 +22,7 @@ export const useTenantStore = defineStore('tenantStore', {
 export const useUserStore = defineStore('userStore', {
   state: () => ({
     userId: 'admin',
-    displayName: 'Platform Admin',
+    displayName: '',
     role: 'ADMIN'
   }),
   actions: {
