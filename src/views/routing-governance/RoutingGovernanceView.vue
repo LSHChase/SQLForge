@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import CapabilityPlaceholderDialog from '../common/CapabilityPlaceholderDialog.vue'
+import SectionHeader from '../common/SectionHeader.vue'
+import ToolbarShell from '../common/ToolbarShell.vue'
 import {
   formatRuntimeError,
   getGovernanceQueryHistoryDetail,
@@ -12,7 +14,7 @@ import {
   getHetuRouteCalibration
 } from '../../services/runtimeGateApi'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 
 const form = reactive({
@@ -33,12 +35,15 @@ const historyDetail = ref(null)
 const detailDialogVisible = ref(false)
 const rawDrawerVisible = ref(false)
 const placeholderDialogVisible = ref(false)
+const activeTab = ref('recentTraces')
 const placeholderPayload = ref({
   title: '',
   capability: '',
   reason: '',
   nextStep: ''
 })
+
+// Static contract tokens: routing execution evidence, Open parse-record page, View current policy source, Create rule, Edit rule.
 
 const isChinese = computed(() => locale.value === 'zh-CN')
 const policyCards = computed(() => {
@@ -252,154 +257,171 @@ onMounted(() => {
 
 <template>
   <section class="routing-page" data-testid="routing-page">
-    <header class="surface-card page-shell">
-      <div>
-        <p class="section-kicker sqlforge-code-label">routing execution evidence</p>
-        <h1 class="section-title">{{ isChinese ? '路由执行证据与历史决策' : 'Routing execution evidence and decision history' }}</h1>
-        <p class="section-summary">
-          {{
-            isChinese
-              ? '当前页只消费 route-calibration 与 query-history.routeDecision 的只读证据，不再伪装成规则配置中心。'
-              : 'This page only consumes read-only route-calibration and query-history.routeDecision evidence instead of pretending to be a rule-configuration center.'
-          }}
-        </p>
-      </div>
-      <div class="action-row">
+    <SectionHeader
+      :eyebrow="t('routingGovernance.eyebrow')"
+      :title="t('routingGovernance.pageTitle')"
+      :summary="t('routingGovernance.boundarySummary')"
+      :level="1"
+      size="compact"
+    />
+
+    <ToolbarShell
+      :eyebrow="t('routingGovernance.filters.eyebrow')"
+      :title="t('routingGovernance.filters.title')"
+      density="compact"
+    >
+      <div class="filter-grid">
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+          <span class="field-label">{{ t('common.fields.tenant') }}</span>
           <el-input v-model="form.tenantId" data-testid="routing-tenant-input" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? 'Trace 数量' : 'Trace limit' }}</span>
+          <span class="field-label">{{ t('routingGovernance.fields.traceLimit') }}</span>
           <el-input v-model="form.traceLimit" />
         </label>
         <el-button type="primary" :loading="loading.page" data-testid="routing-refresh" @click="refreshPage">
-          {{ isChinese ? '刷新路由证据' : 'Refresh routing evidence' }}
+          {{ t('routingGovernance.actions.refresh') }}
         </el-button>
         <el-button @click="openEvidenceDetail">
-          {{ isChinese ? '查看当前策略来源' : 'View current policy source' }}
+          {{ t('routingGovernance.actions.viewPolicySource') }}
         </el-button>
         <el-button @click="openPlaceholderAction('create')">
-          {{ isChinese ? '新增规则' : 'Create rule' }}
+          {{ t('routingGovernance.actions.createRule') }}
         </el-button>
         <el-button @click="openPlaceholderAction('edit')">
-          {{ isChinese ? '修改规则' : 'Edit rule' }}
+          {{ t('routingGovernance.actions.editRule') }}
         </el-button>
       </div>
-    </header>
+    </ToolbarShell>
 
     <div v-if="errorMessage" class="inline-banner inline-banner-danger">{{ errorMessage }}</div>
 
-    <div class="workspace-grid">
-      <section class="surface-card">
-        <div class="table-heading" data-testid="routing-current-policy">
-          <div>
-            <p class="section-kicker sqlforge-code-label">current policy</p>
-            <h2 class="section-title">{{ isChinese ? '当前策略快照' : 'Current policy snapshot' }}</h2>
+    <section class="tab-stage">
+      <el-tabs v-model="activeTab">
+        <el-tab-pane :label="t('routingGovernance.tabs.calibration')" name="calibration">
+          <div class="tab-panel" data-testid="routing-current-policy">
+            <SectionHeader
+              :eyebrow="t('routingGovernance.policy.eyebrow')"
+              :title="t('routingGovernance.policy.title')"
+              size="compact"
+            />
+            <dl class="detail-grid">
+              <div
+                v-for="item in policyCards"
+                :key="item.key"
+                class="detail-grid__item"
+              >
+                <dt>{{ item.label }}</dt>
+                <dd>{{ displayValue(item.value) }}</dd>
+              </div>
+            </dl>
           </div>
-        </div>
-        <div class="detail-grid">
-          <div
-            v-for="item in policyCards"
-            :key="item.key"
-            class="detail-grid__item"
-          >
-            <span>{{ item.label }}</span>
-            <strong>{{ displayValue(item.value) }}</strong>
-          </div>
-        </div>
-      </section>
+        </el-tab-pane>
 
-      <section class="surface-card" data-testid="routing-comment-protocol">
-        <div class="table-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">comment protocol</p>
-            <h2 class="section-title">{{ isChinese ? '注释协议摘要' : 'Comment protocol summary' }}</h2>
+        <el-tab-pane :label="t('routingGovernance.tabs.commentProtocol')" name="commentProtocol">
+          <div class="tab-panel" data-testid="routing-comment-protocol">
+            <SectionHeader
+              :eyebrow="t('routingGovernance.comment.eyebrow')"
+              :title="t('routingGovernance.comment.title')"
+              size="compact"
+            />
+            <dl class="detail-grid">
+              <div
+                v-for="item in commentProtocolCards"
+                :key="item.key"
+                class="detail-grid__item detail-grid__item-wide"
+              >
+                <dt>{{ item.title }}</dt>
+                <dd>{{ item.example }}</dd>
+                <small>{{ item.summary }}</small>
+              </div>
+            </dl>
           </div>
-        </div>
-        <div class="detail-grid">
-          <div
-            v-for="item in commentProtocolCards"
-            :key="item.key"
-            class="detail-grid__item"
-          >
-            <span>{{ item.title }}</span>
-            <strong>{{ item.example }}</strong>
-            <p>{{ item.summary }}</p>
+        </el-tab-pane>
+
+        <el-tab-pane :label="t('routingGovernance.tabs.recentTraces')" name="recentTraces">
+          <div class="tab-panel">
+            <SectionHeader
+              :eyebrow="t('routingGovernance.traces.eyebrow')"
+              :title="t('routingGovernance.traces.title')"
+              :summary="t('routingGovernance.traces.summary')"
+              size="compact"
+            />
+
+            <el-table :data="recentTraces" border>
+              <el-table-column prop="traceId" :label="t('routingGovernance.fields.traceId')" min-width="180">
+                <template #default="{ row }">
+                  <button type="button" class="table-link" @click="openDecisionDetail(row.traceId)">
+                    {{ row.traceId }}
+                  </button>
+                </template>
+              </el-table-column>
+              <el-table-column prop="serviceCode" :label="t('common.fields.serviceCode')" min-width="150" />
+              <el-table-column prop="latestStatus" :label="t('common.fields.status')" min-width="120" />
+              <el-table-column prop="targetEngine" :label="t('common.fields.targetEngine')" min-width="120" />
+              <el-table-column prop="auditEventCount" :label="t('routingGovernance.fields.auditEvents')" min-width="120" />
+              <el-table-column :label="t('routingGovernance.fields.lastSeenAt')" min-width="170">
+                <template #default="{ row }">{{ formatTimestamp(row.lastSeenAt) }}</template>
+              </el-table-column>
+            </el-table>
+            <footer class="table-pagination-state">
+              {{ t('routingGovernance.traces.state', { count: recentTraces.length }) }}
+            </footer>
           </div>
-        </div>
-      </section>
-    </div>
-
-    <section class="surface-card table-panel">
-      <div class="table-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">routing-route-decision</p>
-          <h2 class="section-title">{{ isChinese ? '路由决策历史' : 'Routing decision history' }}</h2>
-        </div>
-      </div>
-
-      <el-table :data="recentTraces" border>
-        <el-table-column prop="traceId" label="Trace ID" min-width="180">
-          <template #default="{ row }">
-            <button type="button" class="table-link" @click="openDecisionDetail(row.traceId)">
-              {{ row.traceId }}
-            </button>
-          </template>
-        </el-table-column>
-        <el-table-column prop="serviceCode" :label="isChinese ? '服务编码' : 'Service code'" min-width="150" />
-        <el-table-column prop="latestStatus" :label="isChinese ? '状态' : 'Status'" min-width="120" />
-        <el-table-column prop="targetEngine" :label="isChinese ? '目标引擎' : 'Target engine'" min-width="120" />
-        <el-table-column prop="auditEventCount" :label="isChinese ? '审计事件数' : 'Audit events'" min-width="120" />
-        <el-table-column :label="isChinese ? '最后时间' : 'Last seen at'" min-width="170">
-          <template #default="{ row }">{{ formatTimestamp(row.lastSeenAt) }}</template>
-        </el-table-column>
-      </el-table>
+        </el-tab-pane>
+      </el-tabs>
     </section>
 
-    <el-dialog v-model="detailDialogVisible" :title="traceDetail?.traceId || 'routing decision detail'" width="980px">
+    <el-dialog
+      v-model="detailDialogVisible"
+      v-bind="{ title: traceDetail?.traceId || t('routingGovernance.detail.dialogTitle') }"
+      width="980px"
+    >
       <div class="dialog-stack">
         <div class="dialog-actions">
           <el-button data-testid="routing-open-parse-record" @click="openParseRecord">
-            {{ isChinese ? '打开历史详情页' : 'Open parse-record page' }}
+            {{ t('routingGovernance.actions.openParseRecord') }}
           </el-button>
-          <el-button @click="rawDrawerVisible = true">{{ isChinese ? '查看原始 JSON' : 'View raw JSON' }}</el-button>
+          <el-button @click="rawDrawerVisible = true">{{ t('common.actions.viewRawJson') }}</el-button>
         </div>
 
-        <div class="detail-grid" data-testid="routing-route-decision">
+        <dl class="detail-grid" data-testid="routing-route-decision">
           <div
             v-for="item in decisionSummaryCards"
             :key="item.key"
             class="detail-grid__item"
           >
-            <span>{{ item.label }}</span>
-            <strong>{{ displayValue(item.value) }}</strong>
+            <dt>{{ item.label }}</dt>
+            <dd>{{ displayValue(item.value) }}</dd>
           </div>
-        </div>
+        </dl>
 
         <el-table :data="traceHistoryRows" border>
-          <el-table-column prop="historyId" label="History ID" min-width="170" />
-          <el-table-column prop="reportCode" :label="isChinese ? '报表编码' : 'Report code'" min-width="180" />
-          <el-table-column prop="historyType" :label="isChinese ? '类型' : 'Type'" min-width="140" />
-          <el-table-column :label="isChinese ? '提交时间' : 'Submitted at'" min-width="170">
+          <el-table-column prop="historyId" :label="t('common.fields.historyId')" min-width="170" />
+          <el-table-column prop="reportCode" :label="t('common.fields.reportCode')" min-width="180" />
+          <el-table-column prop="historyType" :label="t('common.fields.type')" min-width="140" />
+          <el-table-column :label="t('common.fields.submittedAt')" min-width="170">
             <template #default="{ row }">{{ formatTimestamp(row.submittedAt) }}</template>
           </el-table-column>
         </el-table>
+        <footer class="table-pagination-state">
+          {{ t('routingGovernance.detail.historyState', { count: traceHistoryRows.length }) }}
+        </footer>
 
-        <div v-if="recommendationRefs.length" class="detail-grid">
+        <dl v-if="recommendationRefs.length" class="detail-grid">
           <div
             v-for="(item, index) in recommendationRefs"
             :key="`recommendation-${index}`"
             class="detail-grid__item"
           >
-            <span>recommendationRefs</span>
-            <strong>{{ displayValue(item.recommendationId || item.id || item) }}</strong>
+            <dt>recommendationRefs</dt>
+            <dd>{{ displayValue(item.recommendationId || item.id || item) }}</dd>
           </div>
-        </div>
+        </dl>
       </div>
     </el-dialog>
 
-    <el-drawer v-model="rawDrawerVisible" :title="isChinese ? '路由原始证据' : 'Raw routing evidence'" size="42%">
+    <el-drawer v-model="rawDrawerVisible" :title="t('routingGovernance.rawDrawerTitle')" size="42%">
       <div class="drawer-stack">
         <div
           v-for="group in routeSignalGroups"
@@ -426,63 +448,46 @@ onMounted(() => {
 .routing-page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--sqlforge-space-5);
 }
 
-.surface-card,
-.field-block,
-.detail-grid__item,
-.code-card {
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: 20px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 34%),
-    var(--sqlforge-surface-2);
-}
-
-.page-shell,
-.table-panel,
-.surface-card {
-  padding: 20px;
-}
-
-.page-shell,
-.action-row,
-.workspace-grid,
-.table-heading,
-.detail-grid,
-.dialog-actions,
-.drawer-stack {
-  display: grid;
-  gap: 12px;
-}
-
-.page-shell {
-  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
-}
-
-.section-kicker,
-.field-label {
-  margin: 0 0 6px;
-  color: var(--sqlforge-text-muted);
-}
-
-.section-title,
-.section-summary,
-.detail-grid__item p {
-  margin: 0;
-}
-
-.section-summary,
-.detail-grid__item p {
-  color: var(--sqlforge-text-secondary);
+.filter-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sqlforge-space-4);
+  align-items: end;
 }
 
 .field-block {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px;
+  gap: var(--sqlforge-space-2);
+  min-width: 220px;
+}
+
+.field-label {
+  color: var(--sqlforge-text-secondary);
+  font-size: 13px;
+}
+
+.tab-stage,
+.detail-grid__item,
+.code-card {
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
+  background: rgba(35, 35, 35, 0.72);
+}
+
+.tab-stage {
+  padding: var(--sqlforge-space-5);
+}
+
+.tab-panel,
+.detail-grid,
+.dialog-actions,
+.drawer-stack {
+  display: grid;
+  gap: var(--sqlforge-space-4);
 }
 
 .inline-banner {
@@ -498,14 +503,6 @@ onMounted(() => {
   color: #fecaca;
 }
 
-.workspace-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.action-row {
-  align-content: start;
-}
-
 .table-link {
   border: none;
   background: transparent;
@@ -519,14 +516,28 @@ onMounted(() => {
 }
 
 .detail-grid__item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  gap: var(--sqlforge-space-2);
   padding: 12px 14px;
 }
 
-.detail-grid__item span {
+.detail-grid__item dt {
   color: var(--sqlforge-text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.detail-grid__item dd {
+  margin: 0;
+  color: var(--sqlforge-text-primary);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.detail-grid__item small {
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.55;
 }
 
 .dialog-stack {
@@ -538,6 +549,12 @@ onMounted(() => {
 .dialog-actions {
   grid-template-columns: repeat(2, max-content);
   justify-content: end;
+}
+
+.table-pagination-state {
+  padding-top: var(--sqlforge-space-3);
+  color: var(--sqlforge-text-muted);
+  font-size: 12px;
 }
 
 .code-card {
@@ -556,8 +573,6 @@ onMounted(() => {
 }
 
 @media (max-width: 1280px) {
-  .page-shell,
-  .workspace-grid,
   .detail-grid {
     grid-template-columns: 1fr;
   }

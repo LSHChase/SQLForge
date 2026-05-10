@@ -10,7 +10,9 @@ import {
   submitBenchmarkTask,
   waitForBenchmarkTask
 } from '../../services/runtimeGateApi'
+import SectionHeader from '../common/SectionHeader.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
+import ToolbarShell from '../common/ToolbarShell.vue'
 
 const { t, locale } = useI18n()
 
@@ -31,8 +33,11 @@ const queueStatsBefore = ref(null)
 const queueStatsAfter = ref(null)
 const errorMessage = ref('')
 const sessionTasks = ref([])
+const activeTab = ref('templates')
 
 const isChinese = computed(() => locale.value === 'zh-CN')
+
+// Static contract tokens: template catalog, test-set catalog, Comparison metrics, regression results.
 
 const templateCatalog = computed(() => [
   {
@@ -313,477 +318,437 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="benchmark-page runtime-page" data-testid="benchmark-page">
-    <header class="runtime-hero surface-card">
-      <div>
-        <p class="runtime-eyebrow sqlforge-code-label">benchmark center</p>
-        <h1 class="runtime-title">{{ t('benchmark.title') }}</h1>
-        <p class="runtime-summary">{{ t('benchmark.summary') }}</p>
+  <section class="benchmark-page" data-testid="benchmark-page">
+    <SectionHeader
+      :eyebrow="t('benchmark.eyebrow')"
+      :title="t('benchmark.title')"
+      :summary="t('benchmark.boundarySummary')"
+      :level="1"
+      size="compact"
+    />
+
+    <ToolbarShell
+      :eyebrow="t('benchmark.input.eyebrow')"
+      :title="t('benchmark.input.title')"
+      :summary="t('benchmark.input.summary')"
+      density="compact"
+    >
+      <div class="form-grid">
+        <label class="field-block">
+          <span class="field-label">{{ t('common.fields.tenant') }}</span>
+          <el-input v-model="form.tenantId" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ t('common.fields.taskType') }}</span>
+          <el-input v-model="form.taskType" />
+        </label>
+        <div class="field-block field-block-wide">
+          <SqlEditorField
+            v-model="form.sqlText"
+            :label="t('benchmark.fields.sql')"
+            :rows="5"
+            :copy-label="t('common.actions.copy')"
+            :format-label="t('common.actions.format')"
+            data-testid="benchmark-sql-input"
+          />
+        </div>
       </div>
-      <p class="runtime-note">
-        {{
-          isChinese
-            ? '当前 repo-side 已有真实 benchmark task/report 接口，但“模板详情”和“测试集”仍以前端 catalog 组织，不宣称后端已有独立模板/测试集 CRUD。'
-            : 'The repo already exposes live benchmark task and report APIs, while template detail and test sets are still organized as frontend catalogs rather than dedicated backend CRUD surfaces.'
-        }}
-      </p>
-    </header>
+    </ToolbarShell>
 
-    <div class="catalog-grid">
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">template catalog</p>
-            <h2 class="section-title">{{ isChinese ? '模板详情' : 'Template detail' }}</h2>
-          </div>
-        </div>
-        <div class="catalog-list">
-          <button
-            v-for="item in templateCatalog"
-            :key="item.templateId"
-            type="button"
-            class="catalog-card"
-            :class="{ 'catalog-card-active': selectedTemplateId === item.templateId }"
-            data-testid="benchmark-template-card"
-            @click="chooseTemplate(item.templateId)"
-          >
-            <div class="catalog-card-header">
-              <div>
-                <p class="section-kicker sqlforge-code-label">{{ item.taskType }}</p>
-                <h3>{{ item.title }}</h3>
-              </div>
-              <span class="catalog-pill">{{ item.templateId }}</span>
-            </div>
-            <p class="result-copy">{{ item.summary }}</p>
-            <p class="request-note">{{ item.datasetSummary }}</p>
-            <p class="catalog-footnote">{{ item.executionSummary }}</p>
-          </button>
-        </div>
-      </article>
-
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">test-set catalog</p>
-            <h2 class="section-title">{{ isChinese ? '测试集' : 'Test sets' }}</h2>
-          </div>
-        </div>
-        <div class="catalog-list">
-          <article
-            v-for="item in testSetCatalog"
-            :key="item.testSetId"
-            class="catalog-card catalog-card-static"
-            data-testid="benchmark-test-set-card"
-          >
-            <div class="catalog-card-header">
-              <div>
-                <p class="section-kicker sqlforge-code-label">{{ item.mode }}</p>
-                <h3>{{ item.title }}</h3>
-              </div>
-              <span class="catalog-pill">{{ item.implementationStage }}</span>
-            </div>
-            <p class="result-copy">{{ item.summary }}</p>
-          </article>
-        </div>
-      </article>
+    <div
+      v-if="errorMessage"
+      class="result-banner result-banner-danger"
+      data-testid="benchmark-flow-error"
+    >
+      {{ errorMessage }}
     </div>
 
-    <div class="runtime-grid">
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">benchmark task</p>
-            <h2 class="section-title">{{ isChinese ? '压测任务' : 'Benchmark task' }}</h2>
-          </div>
-        </div>
-
-        <div class="form-grid">
-          <label class="field-block">
-            <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
-            <el-input v-model="form.tenantId" />
-          </label>
-
-          <label class="field-block">
-            <span class="field-label">{{ isChinese ? '任务类型' : 'Task type' }}</span>
-            <el-input v-model="form.taskType" />
-          </label>
-
-          <div class="field-block field-block-wide">
-            <SqlEditorField
-              v-model="form.sqlText"
-              label="SQL"
-              :rows="6"
-              :copy-label="isChinese ? '复制' : 'Copy'"
-              :format-label="isChinese ? '格式化' : 'Format'"
-              data-testid="benchmark-sql-input"
+    <section class="tab-stage">
+      <el-tabs v-model="activeTab">
+        <el-tab-pane :label="t('benchmark.tabs.templates')" name="templates">
+          <div class="tab-panel">
+            <SectionHeader
+              :eyebrow="t('benchmark.templates.eyebrow')"
+              :title="t('benchmark.templates.title')"
+              :summary="t('benchmark.templates.summary')"
+              size="compact"
             />
-          </div>
-        </div>
-
-        <p class="request-note">
-          {{
-            isChinese
-              ? '成功链路使用当前选中模板的 taskContext；失败链路会在 SQL 上附加 `FAIL_BENCHMARK`，用于检查 governance 补偿证据。'
-              : 'The success path uses the taskContext of the selected template, while the failure path appends `FAIL_BENCHMARK` to verify governance compensation evidence.'
-          }}
-        </p>
-
-        <div class="action-row action-row-wrap">
-          <el-button
-            type="primary"
-            :loading="running && lastScenario === 'success'"
-            data-testid="benchmark-flow-submit"
-            @click="runSuccessFlow"
-          >
-            {{ isChinese ? '执行当前模板' : 'Run selected template' }}
-          </el-button>
-          <el-button
-            :loading="running && lastScenario === 'failure'"
-            data-testid="benchmark-flow-submit-failure"
-            @click="runFailureCompensationFlow"
-          >
-            {{ isChinese ? '执行失败恢复 + 补偿' : 'Run failure recovery + compensation' }}
-          </el-button>
-        </div>
-      </article>
-
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">session tasks</p>
-            <h2 class="section-title">{{ isChinese ? '会话任务列表' : 'Session task list' }}</h2>
-          </div>
-        </div>
-
-        <p v-if="!sessionTasks.length" class="empty-state">
-          {{
-            isChinese
-              ? '当前页面没有全局任务列表接口，因此这里保留本次会话中发起过的 benchmark 任务。'
-              : 'There is no global benchmark-task list API yet, so this panel keeps the tasks launched in the current session.'
-          }}
-        </p>
-
-        <div v-else class="catalog-list">
-          <article
-            v-for="item in sessionTasks"
-            :key="item.taskId"
-            class="catalog-card catalog-card-static"
-            data-testid="benchmark-session-task"
-          >
-            <div class="catalog-card-header">
-              <div>
-                <p class="section-kicker sqlforge-code-label">{{ item.taskType }}</p>
-                <h3>{{ item.taskId }}</h3>
-              </div>
-              <span class="catalog-pill">{{ item.status }}</span>
-            </div>
-            <p class="result-copy">{{ item.currentPhase || '-' }}</p>
-            <div class="catalog-meta-row">
-              <span>{{ isChinese ? '场景' : 'Scenario' }}: {{ item.scenario }}</span>
-              <span>{{ isChinese ? '报告' : 'Report' }}: {{ item.reportId || '-' }}</span>
-              <span>{{ isChinese ? '裁决' : 'Verdict' }}: {{ item.verdict || '-' }}</span>
-            </div>
-          </article>
-        </div>
-      </article>
-    </div>
-
-    <div class="runtime-grid runtime-grid-results">
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">runtime evidence</p>
-            <h2 class="section-title">{{ isChinese ? '任务与补偿结果' : 'Task and compensation evidence' }}</h2>
-          </div>
-        </div>
-
-        <div
-          v-if="errorMessage"
-          class="result-banner result-banner-danger"
-          data-testid="benchmark-flow-error"
-        >
-          {{ errorMessage }}
-        </div>
-
-        <template v-if="submitResult">
-          <div class="evidence-grid">
-            <div class="evidence-item">
-              <span class="evidence-label">{{ isChinese ? '任务 ID' : 'Task ID' }}</span>
-              <strong>{{ submitResult.taskId }}</strong>
-            </div>
-            <div class="evidence-item">
-              <span class="evidence-label">{{ isChinese ? '初始状态' : 'Initial status' }}</span>
-              <strong>{{ submitResult.status }}</strong>
-            </div>
-          </div>
-        </template>
-
-        <template v-if="taskStatus">
-          <div
-            class="result-banner"
-            :class="taskStatus.status === 'SUCCEEDED' ? 'result-banner-success' : 'result-banner-warning'"
-          >
-            <strong data-testid="benchmark-flow-status">{{ taskStatus.status }}</strong>
-            <span data-testid="benchmark-flow-report-id">{{ taskStatus.reportId || '-' }}</span>
-          </div>
-
-          <div class="evidence-grid">
-            <div v-for="item in activeTaskCards" :key="item.key" class="evidence-item">
-              <span class="evidence-label">{{ item.label }}</span>
-              <strong>{{ displayValue(item.value) }}</strong>
-            </div>
-          </div>
-
-          <div v-if="taskStatus.error" class="trace-card">
-            <div class="evidence-grid">
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? '失败码' : 'Failure code' }}</span>
-                <strong data-testid="benchmark-flow-failure-code">{{ taskStatus.error.code }}</strong>
-              </div>
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? '可重试' : 'Retryable' }}</span>
-                <strong>{{ taskStatus.error.retryable ? 'true' : 'false' }}</strong>
-              </div>
-            </div>
-            <p class="result-copy">{{ taskStatus.error.message }}</p>
-          </div>
-        </template>
-
-        <template v-if="compensationStatus">
-          <div class="compensation-card">
-            <div class="result-banner" :class="compensationDetected ? 'result-banner-success' : 'result-banner-danger'">
-              <strong data-testid="benchmark-flow-compensation-indicator">
-                {{ compensationDetected ? 'COMPENSATED' : 'NOT_COMPENSATED' }}
-              </strong>
-              <span data-testid="benchmark-flow-compensation-status">{{ compensationStatus.status }}</span>
-            </div>
-
-            <div class="evidence-grid">
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? '补偿前 pending' : 'Pending before' }}</span>
-                <strong data-testid="benchmark-flow-queue-pending-before">{{ queueStatsBefore?.pending ?? 0 }}</strong>
-              </div>
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? '补偿后 pending' : 'Pending after' }}</span>
-                <strong data-testid="benchmark-flow-queue-pending-after">{{ queueStatsAfter?.pending ?? 0 }}</strong>
-              </div>
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? 'pending 增量' : 'Pending delta' }}</span>
-                <strong data-testid="benchmark-flow-queue-pending-delta">{{ queuePendingDelta }}</strong>
-              </div>
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? 'total 增量' : 'Total delta' }}</span>
-                <strong data-testid="benchmark-flow-queue-total-delta">{{ queueTotalDelta }}</strong>
-              </div>
-            </div>
-          </div>
-        </template>
-      </article>
-
-      <article class="surface-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">benchmark report</p>
-            <h2 class="section-title">{{ isChinese ? '报告对比与回归结果' : 'Report comparison and regression results' }}</h2>
-          </div>
-        </div>
-
-        <p v-if="!report" class="empty-state">
-          {{
-            isChinese
-              ? '执行成功后会在这里显示实际 report 返回值，包括 comparison 指标、threshold verdict、trend chart 和 benchmark recommendation。'
-              : 'After a successful run, this panel shows the live report payload, including comparison metrics, threshold verdicts, trend charts, and benchmark recommendations.'
-          }}
-        </p>
-
-        <template v-else>
-          <div class="report-card" data-testid="benchmark-flow-report">
-            <div class="evidence-grid">
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? '裁决' : 'Verdict' }}</span>
-                <strong>{{ report.verdict }}</strong>
-              </div>
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? '任务类型' : 'Task type' }}</span>
-                <strong>{{ report.taskType }}</strong>
-              </div>
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? '格式' : 'Format' }}</span>
-                <strong>{{ report.requestedFormat }}</strong>
-              </div>
-              <div class="evidence-item">
-                <span class="evidence-label">{{ isChinese ? '原始数据路径' : 'Raw-data path' }}</span>
-                <strong>{{ report.rawDataDownloadPath || '-' }}</strong>
-              </div>
-            </div>
-            <p class="result-copy">
-              {{
-                isChinese
-                  ? `报告 ${report.reportId} 由真实接口返回，可用格式 ${report.availableFormats.join(', ')}。`
-                  : `Report ${report.reportId} was returned by the live API with formats ${report.availableFormats.join(', ')}.`
-              }}
-            </p>
-          </div>
-
-          <div class="report-section" data-testid="benchmark-report-compare">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">engine comparison</p>
-                <h3 class="section-title section-title-small">{{ isChinese ? '对比指标' : 'Comparison metrics' }}</h3>
-              </div>
-            </div>
-            <div class="catalog-list">
-              <article v-for="item in reportEngineResults" :key="item.engine" class="catalog-card catalog-card-static">
-                <div class="catalog-card-header">
-                  <div>
-                    <p class="section-kicker sqlforge-code-label">{{ item.engine }}</p>
-                    <h3>{{ item.verdict }}</h3>
-                  </div>
-                  <span class="catalog-pill">{{ item.actualQps }} QPS</span>
-                </div>
-                <div class="catalog-meta-row">
-                  <span>P50 {{ item.p50LatencyMs }}ms</span>
-                  <span>P95 {{ item.p95LatencyMs }}ms</span>
-                  <span>P99 {{ item.p99LatencyMs }}ms</span>
-                  <span>{{ isChinese ? '扫描字节' : 'Scanned bytes' }} {{ item.scannedDataBytes }}</span>
-                </div>
-                <p class="result-copy">{{ item.notes || '-' }}</p>
-              </article>
-            </div>
-          </div>
-
-          <div class="report-section" data-testid="benchmark-regression-results">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">regression results</p>
-                <h3 class="section-title section-title-small">{{ isChinese ? '阈值与回归判断' : 'Threshold and regression verdicts' }}</h3>
-              </div>
-            </div>
-            <div class="catalog-list">
-              <article
-                v-for="item in reportThresholdAssessments"
-                :key="`${item.metric}-${item.verdict}`"
-                class="catalog-card catalog-card-static"
+            <div class="row-list">
+              <button
+                v-for="item in templateCatalog"
+                :key="item.templateId"
+                type="button"
+                class="select-row"
+                :class="{ 'select-row-active': selectedTemplateId === item.templateId }"
+                data-testid="benchmark-template-card"
+                @click="chooseTemplate(item.templateId)"
               >
-                <div class="catalog-card-header">
+                <div class="row-heading">
                   <div>
-                    <p class="section-kicker sqlforge-code-label">{{ item.metric }}</p>
-                    <h3>{{ item.verdict }}</h3>
+                    <p class="section-kicker sqlforge-code-label">{{ item.taskType }}</p>
+                    <h3>{{ item.title }}</h3>
                   </div>
-                  <span class="catalog-pill">{{ item.actualValue }} / {{ item.targetValue }}</span>
+                  <span class="catalog-pill">{{ item.templateId }}</span>
                 </div>
                 <p class="result-copy">{{ item.summary }}</p>
-              </article>
+                <p class="request-note">{{ item.datasetSummary }}</p>
+                <p class="catalog-footnote">{{ item.executionSummary }}</p>
+              </button>
             </div>
           </div>
+        </el-tab-pane>
 
-          <div class="report-section">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">trend & recommendation</p>
-                <h3 class="section-title section-title-small">{{ isChinese ? '趋势与后续建议' : 'Trend charts and follow-up recommendations' }}</h3>
-              </div>
-            </div>
-            <div class="catalog-list">
-              <article v-for="item in reportTrendCharts" :key="item.title" class="catalog-card catalog-card-static">
-                <div class="catalog-card-header">
+        <el-tab-pane :label="t('benchmark.tabs.testSets')" name="testSets">
+          <div class="tab-panel">
+            <SectionHeader
+              :eyebrow="t('benchmark.testSets.eyebrow')"
+              :title="t('benchmark.testSets.title')"
+              :summary="t('benchmark.testSets.summary')"
+              size="compact"
+            />
+            <div class="row-list">
+              <article
+                v-for="item in testSetCatalog"
+                :key="item.testSetId"
+                class="evidence-row"
+                data-testid="benchmark-test-set-card"
+              >
+                <div class="row-heading">
                   <div>
-                    <p class="section-kicker sqlforge-code-label">{{ item.chartType }}</p>
+                    <p class="section-kicker sqlforge-code-label">{{ item.mode }}</p>
                     <h3>{{ item.title }}</h3>
                   </div>
-                  <span class="catalog-pill">{{ item.series?.length || 0 }} series</span>
-                </div>
-                <p class="result-copy">{{ item.xAxisLabel }} / {{ item.yAxisLabel }}</p>
-              </article>
-              <article v-for="item in reportRecommendations" :key="item.title" class="catalog-card catalog-card-static">
-                <div class="catalog-card-header">
-                  <div>
-                    <p class="section-kicker sqlforge-code-label">{{ item.category }}</p>
-                    <h3>{{ item.title }}</h3>
-                  </div>
-                  <span class="catalog-pill">{{ item.riskLevel }}</span>
+                  <span class="catalog-pill">{{ item.implementationStage }}</span>
                 </div>
                 <p class="result-copy">{{ item.summary }}</p>
-                <p class="catalog-footnote">{{ item.expectedBenefit }}</p>
               </article>
             </div>
           </div>
-        </template>
-      </article>
-    </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="t('benchmark.tabs.taskFlow')" name="taskFlow">
+          <div class="tab-panel">
+            <SectionHeader
+              :eyebrow="t('benchmark.taskFlow.eyebrow')"
+              :title="t('benchmark.taskFlow.title')"
+              :summary="t('benchmark.taskFlow.summary')"
+              size="compact"
+            />
+            <div class="action-row-wrap">
+              <el-button
+                type="primary"
+                :loading="running && lastScenario === 'success'"
+                data-testid="benchmark-flow-submit"
+                @click="runSuccessFlow"
+              >
+                {{ t('benchmark.actions.runTemplate') }}
+              </el-button>
+            </div>
+
+            <template v-if="submitResult">
+              <dl class="evidence-grid">
+                <div class="evidence-item">
+                  <dt>{{ t('common.fields.taskId') }}</dt>
+                  <dd>{{ submitResult.taskId }}</dd>
+                </div>
+                <div class="evidence-item">
+                  <dt>{{ t('benchmark.fields.initialStatus') }}</dt>
+                  <dd>{{ submitResult.status }}</dd>
+                </div>
+              </dl>
+            </template>
+
+            <template v-if="taskStatus">
+              <div
+                class="result-banner"
+                :class="taskStatus.status === 'SUCCEEDED' ? 'result-banner-success' : 'result-banner-warning'"
+              >
+                <strong data-testid="benchmark-flow-status">{{ taskStatus.status }}</strong>
+                <span data-testid="benchmark-flow-report-id">{{ taskStatus.reportId || '-' }}</span>
+              </div>
+
+              <dl class="evidence-grid">
+                <div v-for="item in activeTaskCards" :key="item.key" class="evidence-item">
+                  <dt>{{ item.label }}</dt>
+                  <dd>{{ displayValue(item.value) }}</dd>
+                </div>
+              </dl>
+
+              <div v-if="taskStatus.error" class="trace-panel">
+                <dl class="evidence-grid">
+                  <div class="evidence-item">
+                    <dt>{{ t('benchmark.fields.failureCode') }}</dt>
+                    <dd data-testid="benchmark-flow-failure-code">{{ taskStatus.error.code }}</dd>
+                  </div>
+                  <div class="evidence-item">
+                    <dt>{{ t('benchmark.fields.retryable') }}</dt>
+                    <dd>{{ taskStatus.error.retryable ? 'true' : 'false' }}</dd>
+                  </div>
+                </dl>
+                <p class="result-copy">{{ taskStatus.error.message }}</p>
+              </div>
+            </template>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="t('benchmark.tabs.compensation')" name="compensation">
+          <div class="tab-panel">
+            <SectionHeader
+              :eyebrow="t('benchmark.compensation.eyebrow')"
+              :title="t('benchmark.compensation.title')"
+              :summary="t('benchmark.compensation.summary')"
+              size="compact"
+            />
+            <div class="action-row-wrap">
+              <el-button
+                :loading="running && lastScenario === 'failure'"
+                data-testid="benchmark-flow-submit-failure"
+                @click="runFailureCompensationFlow"
+              >
+                {{ t('benchmark.actions.runCompensation') }}
+              </el-button>
+            </div>
+
+            <template v-if="compensationStatus">
+              <div class="result-banner" :class="compensationDetected ? 'result-banner-success' : 'result-banner-danger'">
+                <strong data-testid="benchmark-flow-compensation-indicator">
+                  {{ compensationDetected ? 'COMPENSATED' : 'NOT_COMPENSATED' }}
+                </strong>
+                <span data-testid="benchmark-flow-compensation-status">{{ compensationStatus.status }}</span>
+              </div>
+
+              <dl class="evidence-grid">
+                <div class="evidence-item">
+                  <dt>{{ t('benchmark.fields.pendingBefore') }}</dt>
+                  <dd data-testid="benchmark-flow-queue-pending-before">{{ queueStatsBefore?.pending ?? 0 }}</dd>
+                </div>
+                <div class="evidence-item">
+                  <dt>{{ t('benchmark.fields.pendingAfter') }}</dt>
+                  <dd data-testid="benchmark-flow-queue-pending-after">{{ queueStatsAfter?.pending ?? 0 }}</dd>
+                </div>
+                <div class="evidence-item">
+                  <dt>{{ t('benchmark.fields.pendingDelta') }}</dt>
+                  <dd data-testid="benchmark-flow-queue-pending-delta">{{ queuePendingDelta }}</dd>
+                </div>
+                <div class="evidence-item">
+                  <dt>{{ t('benchmark.fields.totalDelta') }}</dt>
+                  <dd data-testid="benchmark-flow-queue-total-delta">{{ queueTotalDelta }}</dd>
+                </div>
+              </dl>
+            </template>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="t('benchmark.tabs.report')" name="report">
+          <div class="tab-panel">
+            <SectionHeader
+              :eyebrow="t('benchmark.report.eyebrow')"
+              :title="t('benchmark.report.title')"
+              :summary="t('benchmark.report.summary')"
+              size="compact"
+            />
+
+            <p v-if="!report" class="empty-state">
+              {{ t('benchmark.report.empty') }}
+            </p>
+
+            <template v-else>
+              <div class="report-panel" data-testid="benchmark-flow-report">
+                <dl class="evidence-grid">
+                  <div class="evidence-item">
+                    <dt>{{ t('common.fields.verdict') }}</dt>
+                    <dd>{{ report.verdict }}</dd>
+                  </div>
+                  <div class="evidence-item">
+                    <dt>{{ t('common.fields.taskType') }}</dt>
+                    <dd>{{ report.taskType }}</dd>
+                  </div>
+                  <div class="evidence-item">
+                    <dt>{{ t('common.fields.format') }}</dt>
+                    <dd>{{ report.requestedFormat }}</dd>
+                  </div>
+                  <div class="evidence-item">
+                    <dt>{{ t('benchmark.fields.rawDataPath') }}</dt>
+                    <dd>{{ report.rawDataDownloadPath || '-' }}</dd>
+                  </div>
+                </dl>
+                <p class="result-copy">
+                  {{ t('benchmark.report.returned', { reportId: report.reportId, formats: report.availableFormats.join(', ') }) }}
+                </p>
+              </div>
+
+              <section class="report-section" data-testid="benchmark-report-compare">
+                <SectionHeader
+                  :eyebrow="t('benchmark.report.engineEyebrow')"
+                  :title="t('benchmark.report.comparisonTitle')"
+                  size="compact"
+                />
+                <div class="row-list">
+                  <article v-for="item in reportEngineResults" :key="item.engine" class="evidence-row">
+                    <div class="row-heading">
+                      <div>
+                        <p class="section-kicker sqlforge-code-label">{{ item.engine }}</p>
+                        <h3>{{ item.verdict }}</h3>
+                      </div>
+                      <span class="catalog-pill">{{ item.actualQps }} QPS</span>
+                    </div>
+                    <div class="catalog-meta-row">
+                      <span>P50 {{ item.p50LatencyMs }}ms</span>
+                      <span>P95 {{ item.p95LatencyMs }}ms</span>
+                      <span>P99 {{ item.p99LatencyMs }}ms</span>
+                      <span>{{ t('benchmark.fields.scannedBytes') }} {{ item.scannedDataBytes }}</span>
+                    </div>
+                    <p class="result-copy">{{ item.notes || '-' }}</p>
+                  </article>
+                </div>
+              </section>
+
+              <section class="report-section" data-testid="benchmark-regression-results">
+                <SectionHeader
+                  :eyebrow="t('benchmark.report.regressionEyebrow')"
+                  :title="t('benchmark.report.regressionTitle')"
+                  size="compact"
+                />
+                <div class="row-list">
+                  <article
+                    v-for="item in reportThresholdAssessments"
+                    :key="`${item.metric}-${item.verdict}`"
+                    class="evidence-row"
+                  >
+                    <div class="row-heading">
+                      <div>
+                        <p class="section-kicker sqlforge-code-label">{{ item.metric }}</p>
+                        <h3>{{ item.verdict }}</h3>
+                      </div>
+                      <span class="catalog-pill">{{ item.actualValue }} / {{ item.targetValue }}</span>
+                    </div>
+                    <p class="result-copy">{{ item.summary }}</p>
+                  </article>
+                </div>
+              </section>
+
+              <section class="report-section">
+                <SectionHeader
+                  :eyebrow="t('benchmark.report.trendEyebrow')"
+                  :title="t('benchmark.report.trendTitle')"
+                  size="compact"
+                />
+                <div class="row-list">
+                  <article v-for="item in reportTrendCharts" :key="item.title" class="evidence-row">
+                    <div class="row-heading">
+                      <div>
+                        <p class="section-kicker sqlforge-code-label">{{ item.chartType }}</p>
+                        <h3>{{ item.title }}</h3>
+                      </div>
+                      <span class="catalog-pill">{{ item.series?.length || 0 }} series</span>
+                    </div>
+                    <p class="result-copy">{{ item.xAxisLabel }} / {{ item.yAxisLabel }}</p>
+                  </article>
+                  <article v-for="item in reportRecommendations" :key="item.title" class="evidence-row">
+                    <div class="row-heading">
+                      <div>
+                        <p class="section-kicker sqlforge-code-label">{{ item.category }}</p>
+                        <h3>{{ item.title }}</h3>
+                      </div>
+                      <span class="catalog-pill">{{ item.riskLevel }}</span>
+                    </div>
+                    <p class="result-copy">{{ item.summary }}</p>
+                    <p class="catalog-footnote">{{ item.expectedBenefit }}</p>
+                  </article>
+                </div>
+              </section>
+            </template>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="t('benchmark.tabs.sessionTasks')" name="sessionTasks">
+          <div class="tab-panel">
+            <SectionHeader
+              :eyebrow="t('benchmark.session.eyebrow')"
+              :title="t('benchmark.session.title')"
+              :summary="t('benchmark.session.summary')"
+              size="compact"
+            />
+
+            <p v-if="!sessionTasks.length" class="empty-state">
+              {{ t('benchmark.session.empty') }}
+            </p>
+
+            <div v-else class="row-list">
+              <article
+                v-for="item in sessionTasks"
+                :key="item.taskId"
+                class="evidence-row"
+                data-testid="benchmark-session-task"
+              >
+                <div class="row-heading">
+                  <div>
+                    <p class="section-kicker sqlforge-code-label">{{ item.taskType }}</p>
+                    <h3>{{ item.taskId }}</h3>
+                  </div>
+                  <span class="catalog-pill">{{ item.status }}</span>
+                </div>
+                <p class="result-copy">{{ item.currentPhase || '-' }}</p>
+                <div class="catalog-meta-row">
+                  <span>{{ t('common.fields.scenario') }}: {{ item.scenario }}</span>
+                  <span>{{ t('common.fields.report') }}: {{ item.reportId || '-' }}</span>
+                  <span>{{ t('common.fields.verdict') }}: {{ item.verdict || '-' }}</span>
+                </div>
+              </article>
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+    </section>
   </section>
 </template>
 
 <style scoped>
-.runtime-page {
+.benchmark-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--sqlforge-space-5);
 }
 
-.surface-card {
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: 16px;
-  background: var(--sqlforge-surface-2);
-}
-
-.runtime-hero,
-.catalog-grid > article,
-.runtime-grid > article {
-  padding: 24px;
-}
-
-.runtime-hero {
-  display: grid;
-  gap: 16px;
-}
-
-.catalog-grid,
-.runtime-grid,
 .form-grid,
 .evidence-grid {
   display: grid;
-  gap: 24px;
+  gap: var(--sqlforge-space-4);
 }
 
-.catalog-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.form-grid {
+  width: 100%;
+  grid-template-columns: minmax(180px, 0.35fr) minmax(180px, 0.35fr) minmax(320px, 1fr);
 }
 
-.runtime-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.runtime-grid-results {
-  align-items: start;
-}
-
-.runtime-eyebrow,
 .section-kicker,
-.evidence-label,
 .field-label,
 .catalog-footnote {
   margin: 0;
   color: var(--sqlforge-text-muted);
 }
 
-.runtime-title,
-.section-title,
-.catalog-card-header h3 {
-  margin: 8px 0 0;
+.field-block,
+.evidence-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sqlforge-space-2);
 }
 
-.section-title {
-  font-size: 26px;
-  line-height: 1.1;
+.field-block-wide {
+  grid-column: span 1;
 }
 
-.section-title-small {
-  font-size: 18px;
+.tab-stage,
+.select-row,
+.evidence-row,
+.report-panel,
+.trace-panel {
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
+  background: rgba(35, 35, 35, 0.72);
 }
 
-.runtime-summary,
-.runtime-note,
 .empty-state,
 .request-note,
 .result-copy,
@@ -793,45 +758,30 @@ onMounted(() => {
   line-height: 1.7;
 }
 
-.form-grid,
+.tab-stage {
+  padding: var(--sqlforge-space-5);
+}
+
+.tab-panel,
+.row-list,
+.report-section {
+  display: grid;
+  gap: var(--sqlforge-space-4);
+}
+
 .evidence-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.field-block,
-.evidence-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.field-block-wide {
-  grid-column: 1 / -1;
-}
-
-.catalog-list,
-.report-section {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.catalog-card,
-.report-card,
-.compensation-card,
-.trace-card {
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: 14px;
+.select-row,
+.evidence-row,
+.report-panel,
+.trace-panel {
   padding: 16px;
-  background: var(--sqlforge-surface-2);
-}
-
-.catalog-card {
   text-align: left;
 }
 
-.catalog-card-header,
-.section-heading,
+.row-heading,
 .result-banner {
   display: flex;
   justify-content: space-between;
@@ -839,12 +789,17 @@ onMounted(() => {
   gap: 12px;
 }
 
-.catalog-card-active {
-  border-color: var(--sqlforge-color-brand-border);
+.row-heading h3 {
+  margin: 0;
 }
 
-.catalog-card-static {
-  cursor: default;
+.select-row {
+  width: 100%;
+  cursor: pointer;
+}
+
+.select-row-active {
+  border-color: var(--sqlforge-color-brand-border);
 }
 
 .catalog-pill {
@@ -871,7 +826,6 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 20px;
 }
 
 .result-banner {
@@ -881,10 +835,7 @@ onMounted(() => {
   margin: 18px 0;
 }
 
-.result-banner-success,
-.report-card,
-.compensation-card,
-.trace-card {
+.result-banner-success {
   border-color: var(--sqlforge-color-brand-border);
   background: rgba(62, 207, 142, 0.08);
 }
@@ -899,9 +850,28 @@ onMounted(() => {
   background: rgba(232, 82, 82, 0.12);
 }
 
+.evidence-item {
+  padding: 12px 14px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
+  background: rgba(20, 24, 31, 0.48);
+}
+
+.evidence-item dt {
+  color: var(--sqlforge-text-muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.evidence-item dd {
+  margin: 0;
+  color: var(--sqlforge-text-primary);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1080px) {
-  .catalog-grid,
-  .runtime-grid,
   .form-grid,
   .evidence-grid {
     grid-template-columns: 1fr;

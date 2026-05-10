@@ -2,13 +2,15 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import CapabilityPlaceholderDialog from '../common/CapabilityPlaceholderDialog.vue'
+import SectionHeader from '../common/SectionHeader.vue'
+import ToolbarShell from '../common/ToolbarShell.vue'
 import {
   formatRuntimeError,
   getGovernanceQueryHistoryDetail,
   getGovernanceQueryHistoryPage
 } from '../../services/runtimeGateApi'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 
 const form = reactive({
   tenantId: 'tenant-a',
@@ -36,6 +38,14 @@ const placeholderPayload = ref({
 })
 
 const isChinese = computed(() => locale.value === 'zh-CN')
+const accessChannelOptions = [
+  'ALL',
+  'PAGE',
+  'API',
+  'JDBC_AGENT',
+  'SDK',
+  'CLIENT'
+].map(value => ({ label: value, value }))
 const accessChannelCards = computed(() => [
   channelCard('PAGE', isChinese.value ? '页面入口' : 'Page entry', isChinese.value ? '前端控制台与浏览器发起查询。' : 'Frontend console and browser-launched queries.'),
   channelCard('API', 'HTTP API', isChinese.value ? '受保护接口默认入口。' : 'Protected HTTP API baseline.'),
@@ -87,6 +97,8 @@ const sdkCards = computed(() => [
 ])
 const auditItems = computed(() => accessAuditPage.value?.items || [])
 const classificationSummary = computed(() => accessAuditPage.value?.classificationSummary || {})
+
+// Static contract tokens: GET /api/governance/access-audit, query-history, JDBC_AGENT, SDK_QUERY_EXECUTE, OBSERVE, GOVERNED_EXECUTE, LOCAL_REWRITE_DIRECT_JDBC.
 
 const openPlaceholderAction = actionType => {
   const config = actionType === 'create'
@@ -187,70 +199,59 @@ onMounted(() => {
 
 <template>
   <section class="access-page" data-testid="access-page">
-    <header class="surface-card page-shell">
-      <div>
-        <p class="section-kicker sqlforge-code-label">{{ isChinese ? '接入工作台' : 'Access workbench' }}</p>
-        <h1 class="section-title">{{ isChinese ? '开放接入与审计样例' : 'Open access and audit samples' }}</h1>
-        <p class="section-summary">
-          {{
-            isChinese
-              ? '默认首页展示接入审计表格，其余通道策略放到次级 tab。'
-              : 'The landing tab focuses on access-audit tables, while channel policies stay in secondary tabs.'
-          }}
-        </p>
-      </div>
-      <div class="action-row">
+    <SectionHeader
+      :eyebrow="t('accessCenter.eyebrow')"
+      :title="t('accessCenter.pageTitle')"
+      :summary="t('accessCenter.boundarySummary')"
+      :level="1"
+      size="compact"
+    />
+
+    <ToolbarShell
+      :eyebrow="t('accessCenter.filters.eyebrow')"
+      :title="t('accessCenter.filters.title')"
+      density="compact"
+    >
+      <div class="filter-grid">
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+          <span class="field-label">{{ t('common.fields.tenant') }}</span>
           <el-input v-model="form.tenantId" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '接入渠道' : 'Access channel' }}</span>
+          <span class="field-label">{{ t('accessCenter.fields.accessChannel') }}</span>
           <el-select v-model="form.accessChannel">
-            <el-option label="ALL" value="ALL" />
-            <el-option label="PAGE" value="PAGE" />
-            <el-option label="API" value="API" />
-            <el-option label="JDBC_AGENT" value="JDBC_AGENT" />
-            <el-option label="SDK" value="SDK" />
-            <el-option label="CLIENT" value="CLIENT" />
+            <el-option
+              v-for="item in accessChannelOptions"
+              :key="item.value"
+              v-bind="{ label: item.label, value: item.value }"
+            />
           </el-select>
         </label>
         <el-button type="primary" :loading="loading.page" data-testid="access-refresh" @click="refreshAudit">
-          {{ isChinese ? '刷新接入证据' : 'Refresh access evidence' }}
+          {{ t('accessCenter.actions.refresh') }}
         </el-button>
         <el-button @click="openPlaceholderAction('create')">
-          {{ isChinese ? '新增接入策略' : 'Create access strategy' }}
+          {{ t('accessCenter.actions.createStrategy') }}
         </el-button>
         <el-button @click="openPlaceholderAction('edit')">
-          {{ isChinese ? '修改策略' : 'Edit strategy' }}
+          {{ t('accessCenter.actions.editStrategy') }}
         </el-button>
-        <el-button @click="policyDialogVisible = true">{{ isChinese ? '边界说明' : 'Boundary help' }}</el-button>
+        <el-button @click="policyDialogVisible = true">{{ t('accessCenter.actions.boundaryHelp') }}</el-button>
       </div>
-    </header>
+    </ToolbarShell>
 
     <div v-if="errorMessage" class="inline-banner inline-banner-danger">{{ errorMessage }}</div>
 
-    <section class="summary-grid">
-      <article
-        v-for="item in accessChannelCards"
-        :key="item.channel"
-        class="summary-card"
-        data-testid="access-channel-card"
-      >
-        <span class="summary-card-label">{{ item.channel }}</span>
-        <strong>{{ item.title }}</strong>
-        <p>{{ item.summary }}</p>
-      </article>
-    </section>
-
-    <section class="surface-card tab-stage">
+    <section class="tab-stage">
       <el-tabs v-model="activeTab">
-        <el-tab-pane :label="isChinese ? '接入审计' : 'Access audit'" name="audit">
-          <div class="table-heading">
-            <div>
-              <p class="section-kicker sqlforge-code-label">access audit sample</p>
-              <h2 class="section-title">{{ isChinese ? '接入审计样例' : 'Access-audit samples' }}</h2>
-            </div>
+        <el-tab-pane :label="t('accessCenter.tabs.audit')" name="audit">
+          <div class="tab-panel">
+            <SectionHeader
+              :eyebrow="t('accessCenter.audit.eyebrow')"
+              :title="t('accessCenter.audit.title')"
+              :summary="t('accessCenter.audit.summary')"
+              size="compact"
+            />
             <div class="chip-row">
               <span
                 v-for="(value, key) in classificationSummary"
@@ -260,130 +261,177 @@ onMounted(() => {
                 {{ key }}: {{ typeof value === 'object' ? Object.keys(value).length : value }}
               </span>
             </div>
+
+            <p class="section-summary">{{ t('accessCenter.audit.boundary') }}</p>
+
+            <el-table :data="auditItems" border>
+              <el-table-column :label="t('accessCenter.fields.historyReport')" min-width="220">
+                <template #default="{ row }">
+                  <button
+                    type="button"
+                    class="table-link"
+                    data-testid="access-audit-item"
+                    @click="openAuditDetail(row.historyId)"
+                  >
+                    {{ row.reportCode || row.historyId }}
+                  </button>
+                  <div class="cell-subline">{{ row.historyId }}</div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="accessChannel" :label="t('accessCenter.fields.accessChannel')" min-width="130" />
+              <el-table-column prop="resultStatus" :label="t('common.fields.status')" min-width="120" />
+              <el-table-column prop="targetEngine" :label="t('common.fields.targetEngine')" min-width="120" />
+              <el-table-column prop="submittedBy" :label="t('common.fields.submittedBy')" min-width="140" />
+              <el-table-column :label="t('common.fields.submittedAt')" min-width="170">
+                <template #default="{ row }">{{ formatTimestamp(row.submittedAt) }}</template>
+              </el-table-column>
+            </el-table>
+            <footer class="table-pagination-state">
+              {{ t('accessCenter.audit.state', { count: auditItems.length }) }}
+            </footer>
           </div>
-
-          <p class="section-summary">
-            {{
-              isChinese
-                ? '当前仓库还没有独立开放给前端的 `GET /api/governance/access-audit` 控制器，因此这里先用 query-history 的 `accessChannel` 过滤面呈现审计样例。'
-                : 'The repository does not yet expose a dedicated frontend controller for `GET /api/governance/access-audit`, so this page currently renders audit samples through the query-history surface filtered by `accessChannel`.'
-            }}
-          </p>
-
-          <el-table :data="auditItems" border>
-            <el-table-column :label="isChinese ? 'History / Report' : 'History / Report'" min-width="220">
-              <template #default="{ row }">
-                <button
-                  type="button"
-                  class="table-link"
-                  data-testid="access-audit-item"
-                  @click="openAuditDetail(row.historyId)"
-                >
-                  {{ row.reportCode || row.historyId }}
-                </button>
-                <div class="cell-subline">{{ row.historyId }}</div>
-              </template>
-            </el-table-column>
-            <el-table-column prop="accessChannel" :label="isChinese ? '接入渠道' : 'Access channel'" min-width="130" />
-            <el-table-column prop="resultStatus" :label="isChinese ? '状态' : 'Status'" min-width="120" />
-            <el-table-column prop="targetEngine" :label="isChinese ? '目标引擎' : 'Target engine'" min-width="120" />
-            <el-table-column prop="submittedBy" :label="isChinese ? '提交人' : 'Submitted by'" min-width="140" />
-            <el-table-column :label="isChinese ? '提交时间' : 'Submitted at'" min-width="170">
-              <template #default="{ row }">{{ formatTimestamp(row.submittedAt) }}</template>
-            </el-table-column>
-          </el-table>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? 'JDBC Agent' : 'JDBC Agent'" name="jdbc">
-          <el-table :data="jdbcAgentModes" border>
-            <el-table-column prop="mode" label="Mode" min-width="180">
-              <template #default="{ row }">
-                <span data-testid="access-jdbc-agent-mode">{{ row.mode }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="title" :label="isChinese ? '标题' : 'Title'" min-width="160" />
-            <el-table-column prop="summary" :label="isChinese ? '说明' : 'Summary'" min-width="320" />
-          </el-table>
-
-          <div class="detail-grid">
-            <div
-              v-for="item in jdbcPolicyFields"
-              :key="item.key"
-              class="detail-grid__item"
-            >
-              <span>{{ item.label }}</span>
-              <strong>{{ displayValue(item.value) }}</strong>
+        <el-tab-pane :label="t('accessCenter.tabs.channels')" name="channels">
+          <div class="tab-panel">
+            <SectionHeader
+              :eyebrow="t('accessCenter.channels.eyebrow')"
+              :title="t('accessCenter.channels.title')"
+              size="compact"
+            />
+            <div class="row-list">
+              <article
+                v-for="item in accessChannelCards"
+                :key="item.channel"
+                class="evidence-row"
+                data-testid="access-channel-card"
+              >
+                <div>
+                  <p class="section-kicker sqlforge-code-label">{{ item.channel }}</p>
+                  <h3>{{ item.title }}</h3>
+                </div>
+                <p class="section-summary">{{ item.summary }}</p>
+              </article>
             </div>
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? 'SDK / Client' : 'SDK / Client'" name="sdk">
-          <div class="detail-grid">
+        <el-tab-pane :label="t('accessCenter.tabs.jdbc')" name="jdbc">
+          <div class="tab-panel">
+            <el-table :data="jdbcAgentModes" border>
+              <el-table-column prop="mode" :label="t('accessCenter.fields.mode')" min-width="180">
+                <template #default="{ row }">
+                  <span data-testid="access-jdbc-agent-mode">{{ row.mode }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="title" :label="t('common.fields.title')" min-width="160" />
+              <el-table-column prop="summary" :label="t('common.fields.summary')" min-width="320" />
+            </el-table>
+            <footer class="table-pagination-state">
+              {{ t('accessCenter.jdbc.state', { count: jdbcAgentModes.length }) }}
+            </footer>
+
+            <dl class="detail-grid">
+              <div
+                v-for="item in jdbcPolicyFields"
+                :key="item.key"
+                class="detail-grid__item"
+              >
+                <dt>{{ item.label }}</dt>
+                <dd>{{ displayValue(item.value) }}</dd>
+              </div>
+            </dl>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="t('accessCenter.tabs.sdk')" name="sdk">
+          <dl class="detail-grid">
             <div
               v-for="item in sdkCards"
               :key="item.key"
               class="detail-grid__item"
               data-testid="access-sdk-card"
             >
-              <span>{{ item.label }}</span>
-              <strong>{{ displayValue(item.value) }}</strong>
+              <dt>{{ item.label }}</dt>
+              <dd>{{ displayValue(item.value) }}</dd>
             </div>
-          </div>
+          </dl>
+        </el-tab-pane>
+
+        <el-tab-pane :label="t('accessCenter.tabs.policy')" name="policy">
+          <dl class="detail-grid">
+            <div class="detail-grid__item">
+              <dt>GET /api/governance/access-audit</dt>
+              <dd>query-history fallback</dd>
+            </div>
+            <div class="detail-grid__item">
+              <dt>JDBC_AGENT</dt>
+              <dd>OBSERVE / GOVERNED_EXECUTE / LOCAL_REWRITE_DIRECT_JDBC</dd>
+            </div>
+            <div class="detail-grid__item">
+              <dt>SDK_QUERY_EXECUTE</dt>
+              <dd>typed client + access audit</dd>
+            </div>
+          </dl>
         </el-tab-pane>
       </el-tabs>
     </section>
 
-    <el-dialog v-model="detailDialogVisible" :title="selectedHistoryDetail?.reportCode || selectedHistoryDetail?.historyId || 'access audit detail'" width="760px">
-      <div v-if="selectedHistoryDetail" class="detail-grid" data-testid="access-audit-detail">
+    <el-dialog
+      v-model="detailDialogVisible"
+      v-bind="{ title: selectedHistoryDetail?.reportCode || selectedHistoryDetail?.historyId || t('accessCenter.detail.dialogTitle') }"
+      width="760px"
+    >
+      <dl v-if="selectedHistoryDetail" class="detail-grid" data-testid="access-audit-detail">
         <div class="detail-grid__item">
-          <span>History ID</span>
-          <strong>{{ displayValue(selectedHistoryDetail.historyId) }}</strong>
+          <dt>{{ t('common.fields.historyId') }}</dt>
+          <dd>{{ displayValue(selectedHistoryDetail.historyId) }}</dd>
         </div>
         <div class="detail-grid__item">
-          <span>Trace ID</span>
-          <strong>{{ displayValue(selectedHistoryDetail.traceId) }}</strong>
+          <dt>{{ t('common.fields.traceId') }}</dt>
+          <dd>{{ displayValue(selectedHistoryDetail.traceId) }}</dd>
         </div>
         <div class="detail-grid__item">
-          <span>{{ isChinese ? '接入渠道' : 'Access channel' }}</span>
-          <strong>{{ displayValue(selectedHistoryDetail.accessChannel) }}</strong>
+          <dt>{{ t('accessCenter.fields.accessChannel') }}</dt>
+          <dd>{{ displayValue(selectedHistoryDetail.accessChannel) }}</dd>
         </div>
         <div class="detail-grid__item">
-          <span>{{ isChinese ? '目标引擎' : 'Target engine' }}</span>
-          <strong>{{ displayValue(selectedHistoryDetail.targetEngine) }}</strong>
+          <dt>{{ t('common.fields.targetEngine') }}</dt>
+          <dd>{{ displayValue(selectedHistoryDetail.targetEngine) }}</dd>
         </div>
         <div class="detail-grid__item">
-          <span>{{ isChinese ? '结果状态' : 'Result status' }}</span>
-          <strong>{{ displayValue(selectedHistoryDetail.resultStatus) }}</strong>
+          <dt>{{ t('common.fields.resultStatus') }}</dt>
+          <dd>{{ displayValue(selectedHistoryDetail.resultStatus) }}</dd>
         </div>
         <div class="detail-grid__item">
-          <span>{{ isChinese ? '报表编码' : 'Report code' }}</span>
-          <strong>{{ displayValue(selectedHistoryDetail.reportCode) }}</strong>
+          <dt>{{ t('common.fields.reportCode') }}</dt>
+          <dd>{{ displayValue(selectedHistoryDetail.reportCode) }}</dd>
         </div>
-      </div>
+      </dl>
       <template #footer>
-        <el-button @click="rawDrawerVisible = true">{{ isChinese ? '查看原始证据' : 'View raw evidence' }}</el-button>
+        <el-button @click="rawDrawerVisible = true">{{ t('common.actions.viewRawEvidence') }}</el-button>
       </template>
     </el-dialog>
 
-    <el-drawer v-model="rawDrawerVisible" :title="isChinese ? '接入原始证据' : 'Raw access evidence'" size="42%">
+    <el-drawer v-model="rawDrawerVisible" :title="t('accessCenter.rawDrawerTitle')" size="42%">
       <pre class="code-block">{{ formatJson(selectedHistoryDetail || {}) }}</pre>
     </el-drawer>
 
-    <el-dialog v-model="policyDialogVisible" :title="isChinese ? '接入边界说明' : 'Access boundary guide'" width="680px">
-      <div class="detail-grid">
+    <el-dialog v-model="policyDialogVisible" :title="t('accessCenter.policy.dialogTitle')" width="680px">
+      <dl class="detail-grid">
         <div class="detail-grid__item">
-          <span>GET /api/governance/access-audit</span>
-          <strong>query-history fallback</strong>
+          <dt>GET /api/governance/access-audit</dt>
+          <dd>query-history fallback</dd>
         </div>
         <div class="detail-grid__item">
-          <span>JDBC_AGENT</span>
-          <strong>OBSERVE / GOVERNED_EXECUTE / LOCAL_REWRITE_DIRECT_JDBC</strong>
+          <dt>JDBC_AGENT</dt>
+          <dd>OBSERVE / GOVERNED_EXECUTE / LOCAL_REWRITE_DIRECT_JDBC</dd>
         </div>
         <div class="detail-grid__item">
-          <span>SDK_QUERY_EXECUTE</span>
-          <strong>typed client + access audit</strong>
+          <dt>SDK_QUERY_EXECUTE</dt>
+          <dd>typed client + access audit</dd>
         </div>
-      </div>
+      </dl>
     </el-dialog>
 
     <CapabilityPlaceholderDialog
@@ -400,53 +448,51 @@ onMounted(() => {
 .access-page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--sqlforge-space-5);
 }
 
-.surface-card,
-.summary-card,
-.field-block,
+.filter-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sqlforge-space-4);
+  align-items: end;
+}
+
+.field-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sqlforge-space-2);
+  min-width: 210px;
+}
+
+.field-label {
+  color: var(--sqlforge-text-secondary);
+  font-size: 13px;
+}
+
+.tab-stage,
+.evidence-row,
 .detail-grid__item {
   border: 1px solid var(--sqlforge-border-default);
-  border-radius: 20px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 34%),
-    var(--sqlforge-surface-2);
+  border-radius: var(--sqlforge-radius-sm);
+  background: rgba(35, 35, 35, 0.72);
 }
 
-.page-shell,
 .tab-stage {
-  padding: 20px;
+  padding: var(--sqlforge-space-5);
 }
 
-.page-shell,
-.action-row,
-.summary-grid,
-.chip-row {
-  display: flex;
-  gap: 12px;
-}
-
-.page-shell {
-  align-items: flex-start;
-  justify-content: space-between;
-}
-
-.section-kicker,
-.field-label,
-.summary-card-label {
+.section-kicker {
   margin: 0 0 6px;
   color: var(--sqlforge-text-muted);
 }
 
-.section-title,
 .section-summary,
-.summary-card p {
+.evidence-row h3 {
   margin: 0;
 }
 
 .section-summary,
-.summary-card p,
 .cell-subline {
   color: var(--sqlforge-text-secondary);
 }
@@ -464,25 +510,17 @@ onMounted(() => {
   color: #fecaca;
 }
 
-.action-row,
-.summary-grid,
+.tab-panel,
+.row-list {
+  display: grid;
+  gap: var(--sqlforge-space-4);
+}
+
 .chip-row {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
-}
-
-.field-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-  min-width: 210px;
-}
-
-.summary-card {
-  padding: 14px;
-  min-width: 180px;
-  flex: 1 1 180px;
+  gap: var(--sqlforge-space-2);
 }
 
 .chip {
@@ -494,14 +532,6 @@ onMounted(() => {
   background: rgba(20, 24, 31, 0.82);
   color: var(--sqlforge-text-secondary);
   font-size: 12px;
-}
-
-.table-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
 }
 
 .table-link {
@@ -517,22 +547,41 @@ onMounted(() => {
   font-size: 12px;
 }
 
+.evidence-row {
+  display: grid;
+  gap: var(--sqlforge-space-3);
+  padding: 14px 16px;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 14px;
 }
 
 .detail-grid__item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  gap: var(--sqlforge-space-2);
   padding: 12px 14px;
 }
 
-.detail-grid__item span {
+.detail-grid__item dt {
   color: var(--sqlforge-text-secondary);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.detail-grid__item dd {
+  margin: 0;
+  color: var(--sqlforge-text-primary);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.table-pagination-state {
+  color: var(--sqlforge-text-muted);
+  font-size: 12px;
 }
 
 .code-block {
@@ -542,11 +591,6 @@ onMounted(() => {
 }
 
 @media (max-width: 1280px) {
-  .page-shell,
-  .table-heading {
-    flex-direction: column;
-  }
-
   .detail-grid {
     grid-template-columns: 1fr;
   }

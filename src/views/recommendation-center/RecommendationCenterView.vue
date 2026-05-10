@@ -11,9 +11,11 @@ import {
   getRecommendations,
   getRecommendationTrace
 } from '../../services/runtimeGateApi'
+import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
+import ToolbarShell from '../common/ToolbarShell.vue'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 
 const form = reactive({
@@ -33,8 +35,11 @@ const selectedRecommendationId = ref('')
 const selectedRecommendation = ref(null)
 const recommendationTrace = ref(null)
 const errorMessage = ref('')
+const activeDetailTab = ref('summary')
 
 const isChinese = computed(() => locale.value === 'zh-CN')
+
+// Static contract tokens: recommendation detail, coordinationMode, PULL_ONLY, dispatchEvents, benefitLevel, riskLevel, recommendedSqlText, logicalObjectKey.
 
 const filterOptions = computed(() => {
   const counts = {
@@ -298,49 +303,46 @@ onMounted(() => {
 
 <template>
   <section class="recommendation-page" data-testid="recommendation-page">
-    <header class="recommendation-hero sqlforge-panel">
-      <div class="hero-copy">
-        <p class="section-kicker sqlforge-code-label">recommendation center</p>
-        <h1>{{ isChinese ? '推荐与加速中心' : 'Recommendation and acceleration center' }}</h1>
-        <p class="hero-summary">
-          {{
-            isChinese
-              ? '页面负责消费 recommendation、dispatchEvents 与 traceability 证据；SQLForge 仍然只管理建议、事件和回执，不执行推荐 SQL、不主动装数。'
-              : 'This center consumes recommendation, dispatchEvents, and traceability evidence while SQLForge continues to manage suggestions, events, and callbacks only without executing recommended SQL or loading data.'
-          }}
-        </p>
-      </div>
+    <SectionHeader
+      :eyebrow="t('recommendationCenter.eyebrow')"
+      :title="t('recommendationCenter.pageTitle')"
+      :summary="t('recommendationCenter.boundarySummary')"
+      :level="1"
+      size="compact"
+    />
 
-      <div class="hero-actions">
-        <label class="field-label">
-          <span>{{ isChinese ? '租户' : 'Tenant' }}</span>
-          <input v-model.trim="form.tenantId" class="text-input" data-testid="recommendation-tenant-input">
+    <ToolbarShell
+      :eyebrow="t('recommendationCenter.filters.eyebrow')"
+      :title="t('recommendationCenter.filters.title')"
+      density="compact"
+    >
+      <div class="filter-grid">
+        <label class="field-block">
+          <span class="field-label">{{ t('common.fields.tenant') }}</span>
+          <el-input v-model.trim="form.tenantId" data-testid="recommendation-tenant-input" />
         </label>
-        <div class="hero-button-row">
-          <button class="primary-button" data-testid="recommendation-refresh" @click="refreshPage">
-            {{ isChinese ? '刷新推荐中心' : 'Refresh center' }}
-          </button>
-          <button class="secondary-button" @click="openAccelerationWorkbench">
-            {{ isChinese ? '打开 SQL解析' : 'Open SQL Parse' }}
-          </button>
-          <button class="secondary-button" @click="openRoutingGovernance">
-            {{ isChinese ? '打开路由治理' : 'Open routing governance' }}
-          </button>
-        </div>
+        <el-button type="primary" :loading="loading.page" data-testid="recommendation-refresh" @click="refreshPage">
+          {{ t('recommendationCenter.actions.refresh') }}
+        </el-button>
+        <el-button @click="openRoutingGovernance">
+          {{ t('recommendationCenter.actions.openRouting') }}
+        </el-button>
+        <el-button @click="openAccelerationWorkbench">
+          {{ t('recommendationCenter.actions.openParse') }}
+        </el-button>
       </div>
-    </header>
+    </ToolbarShell>
 
     <p v-if="errorMessage" class="error-banner" data-testid="recommendation-error">{{ errorMessage }}</p>
 
-    <div class="recommendation-grid">
-      <article class="sqlforge-panel recommendation-list-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">recommendation categories</p>
-            <h2>{{ isChinese ? '推荐分类' : 'Recommendation categories' }}</h2>
-          </div>
-          <span class="section-badge">{{ recommendations.length }}</span>
-        </div>
+    <div class="recommendation-workspace">
+      <section class="recommendation-list-pane">
+        <SectionHeader
+          :eyebrow="t('recommendationCenter.list.eyebrow')"
+          :title="t('recommendationCenter.list.title')"
+          :summary="t('recommendationCenter.list.summary', { count: recommendations.length })"
+          size="compact"
+        />
 
         <div class="filter-row" data-testid="recommendation-filter">
           <button
@@ -360,12 +362,12 @@ onMounted(() => {
             v-for="item in filteredRecommendations"
             :key="item.recommendationId"
             type="button"
-            class="recommendation-card"
-            :class="{ 'recommendation-card-active': selectedRecommendationId === item.recommendationId }"
-            data-testid="recommendation-card"
+            class="recommendation-row"
+            :class="{ 'recommendation-row-active': selectedRecommendationId === item.recommendationId }"
+            data-testid="recommendation-item"
             @click="loadRecommendation(item.recommendationId)"
           >
-            <div class="recommendation-card-header">
+            <div class="recommendation-row-header">
               <div>
                 <p class="section-kicker sqlforge-code-label">{{ item.recommendationType }}</p>
                 <h3>{{ item.summary || item.recommendationId }}</h3>
@@ -376,151 +378,128 @@ onMounted(() => {
             </div>
             <p class="muted-copy">{{ item.expectedGain || item.reason || '-' }}</p>
             <div class="pill-row">
-              <span class="mini-pill">benefit {{ item.benefitLevel || 'UNKNOWN' }}</span>
-              <span class="mini-pill">risk {{ item.riskLevel || 'UNKNOWN' }}</span>
-              <span class="mini-pill">dispatch {{ boolText(item.requiresDispatch) || 'false' }}</span>
+              <span class="mini-pill">{{ t('recommendationCenter.fields.benefitLevel') }} {{ item.benefitLevel || 'UNKNOWN' }}</span>
+              <span class="mini-pill">{{ t('recommendationCenter.fields.riskLevel') }} {{ item.riskLevel || 'UNKNOWN' }}</span>
+              <span class="mini-pill">{{ t('recommendationCenter.fields.dispatch') }} {{ boolText(item.requiresDispatch) || 'false' }}</span>
             </div>
           </button>
         </div>
-      </article>
+      </section>
 
-      <article class="sqlforge-panel recommendation-detail-card" data-testid="recommendation-detail">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">recommendation detail</p>
-            <h2>{{ isChinese ? '收益、风险与 SQL 详情' : 'Benefit, risk, and SQL detail' }}</h2>
-          </div>
-          <span class="section-badge">{{ selectedRecommendation?.recommendationId || '-' }}</span>
-        </div>
+      <section class="recommendation-detail-pane" data-testid="recommendation-detail">
+        <SectionHeader
+          :eyebrow="t('recommendationCenter.detail.eyebrow')"
+          :title="t('recommendationCenter.detail.title')"
+          :summary="selectedRecommendation?.recommendationId || t('recommendationCenter.states.selectRecommendation')"
+          size="compact"
+        />
 
         <p v-if="loading.detail" class="muted-copy">
-          {{ isChinese ? '正在加载 recommendation detail…' : 'Loading recommendation detail…' }}
+          {{ t('recommendationCenter.states.loadingDetail') }}
         </p>
         <p v-else-if="!selectedRecommendation" class="muted-copy">
-          {{ isChinese ? '当前没有可展示的 recommendation。' : 'No recommendation is available to display yet.' }}
+          {{ t('recommendationCenter.states.emptyDetail') }}
         </p>
         <template v-else>
-          <div class="summary-grid">
-            <article v-for="item in summaryCards" :key="item.key" class="summary-card">
-              <span class="summary-card-label">{{ item.label }}</span>
-              <strong>{{ displayValue(item.value) }}</strong>
-            </article>
-          </div>
+          <el-tabs v-model="activeDetailTab" class="detail-tabs">
+            <el-tab-pane :label="t('recommendationCenter.tabs.summary')" name="summary">
+              <dl class="description-grid">
+                <div v-for="item in summaryCards" :key="item.key" class="description-item">
+                  <dt>{{ item.label }}</dt>
+                  <dd>{{ displayValue(item.value) }}</dd>
+                </div>
+              </dl>
+              <dl class="description-grid description-grid-copy">
+                <div class="description-item">
+                  <dt>{{ t('recommendationCenter.fields.expectedGain') }}</dt>
+                  <dd>{{ selectedRecommendation.expectedGain || '-' }}</dd>
+                </div>
+                <div class="description-item">
+                  <dt>{{ t('recommendationCenter.fields.riskSummary') }}</dt>
+                  <dd>{{ selectedRecommendation.riskSummary || '-' }}</dd>
+                </div>
+                <div class="description-item">
+                  <dt>{{ t('recommendationCenter.fields.reason') }}</dt>
+                  <dd>{{ selectedRecommendation.reason || '-' }}</dd>
+                </div>
+              </dl>
+            </el-tab-pane>
 
-          <div class="detail-copy-grid">
-            <article class="detail-copy-card">
-              <div class="signal-card__header">
-                <span class="summary-card-label">{{ isChinese ? '预期收益' : 'Expected gain' }}</span>
+            <el-tab-pane :label="t('recommendationCenter.tabs.sqlEvidence')" name="sqlEvidence">
+              <div class="sql-grid">
+                <SqlCodeBlock
+                  :value="selectedRecommendation.sourceSqlText || ''"
+                  :label="t('recommendationCenter.fields.sourceSql')"
+                  :copy-label="t('common.actions.copy')"
+                  compact
+                  data-testid="recommendation-source-sql"
+                />
+                <SqlCodeBlock
+                  :value="selectedRecommendation.recommendedSqlText || ''"
+                  label="recommendedSqlText"
+                  :copy-label="t('common.actions.copy')"
+                  compact
+                  data-testid="recommendation-recommended-sql"
+                />
               </div>
-              <p class="detail-copy-text">{{ selectedRecommendation.expectedGain || '-' }}</p>
-            </article>
-            <article class="detail-copy-card">
-              <div class="signal-card__header">
-                <span class="summary-card-label">{{ isChinese ? '风险摘要' : 'Risk summary' }}</span>
-              </div>
-              <p class="detail-copy-text">{{ selectedRecommendation.riskSummary || '-' }}</p>
-            </article>
-            <article class="detail-copy-card">
-              <div class="signal-card__header">
-                <span class="summary-card-label">{{ isChinese ? '推荐原因' : 'Reason' }}</span>
-              </div>
-              <p class="detail-copy-text">{{ selectedRecommendation.reason || '-' }}</p>
-            </article>
-          </div>
+            </el-tab-pane>
 
-          <div class="sql-grid">
-            <article class="sql-card">
-              <div class="signal-card__header">
-                <span class="summary-card-label">{{ isChinese ? '源 SQL' : 'Source SQL' }}</span>
+            <el-tab-pane :label="t('recommendationCenter.tabs.dispatchContract')" name="dispatchContract">
+              <dl class="description-grid" data-testid="recommendation-dispatch-contract">
+                <div v-for="item in contractCards" :key="item.key" class="description-item">
+                  <dt>{{ item.label }}</dt>
+                  <dd>{{ displayValue(item.value) }}</dd>
+                </div>
+              </dl>
+              <p class="muted-copy">{{ t('recommendationCenter.dispatch.boundary') }}</p>
+            </el-tab-pane>
+
+            <el-tab-pane :label="t('recommendationCenter.tabs.traceability')" name="traceability">
+              <div class="traceability-group" data-testid="recommendation-trace-refs">
+                <div class="pane-actions">
+                  <el-button :disabled="!recommendationTrace?.reportCode" @click="openParseRecord">
+                    {{ t('recommendationCenter.actions.openHistory') }}
+                  </el-button>
+                </div>
+                <div class="pill-row">
+                  <span v-for="item in traceabilityCards" :key="item.key" class="mini-pill">
+                    {{ item.label }}: {{ displayValue(item.value) }}
+                  </span>
+                </div>
+                <pre class="code-block code-block-compact">{{ formatJson(recommendationTrace?.traceRefs || {}) }}</pre>
               </div>
-              <SqlCodeBlock
-                :value="selectedRecommendation.sourceSqlText || ''"
-                :label="isChinese ? '源 SQL' : 'Source SQL'"
-                :copy-label="isChinese ? '复制' : 'Copy'"
-                compact
-                data-testid="recommendation-source-sql"
-              />
-            </article>
-            <article class="sql-card">
-              <div class="signal-card__header">
-                <span class="summary-card-label">recommendedSqlText</span>
+            </el-tab-pane>
+
+            <el-tab-pane :label="t('recommendationCenter.tabs.dispatchEvents')" name="dispatchEvents">
+              <div class="dispatch-event-list">
+                <article
+                  v-for="item in selectedDispatchEvents"
+                  :key="item.dispatchEventId"
+                  class="dispatch-event-row"
+                  data-testid="recommendation-dispatch-event"
+                >
+                  <div class="recommendation-row-header">
+                    <div>
+                      <p class="section-kicker sqlforge-code-label">{{ item.dispatchType }}</p>
+                      <h3>{{ item.dispatchEventId }}</h3>
+                    </div>
+                    <span class="status-pill" :class="{ 'status-pill-warn': item.status === 'FAILED' }">
+                      {{ item.status }}
+                    </span>
+                  </div>
+                  <p class="muted-copy">{{ item.resultMessage || t('recommendationCenter.states.waitingCallback') }}</p>
+                  <div class="pill-row">
+                    <span class="mini-pill">report {{ item.reportCode || '-' }}</span>
+                    <span class="mini-pill">logical {{ item.logicalObjectKey || '-' }}</span>
+                    <span class="mini-pill">engine {{ item.targetEngine || '-' }}</span>
+                  </div>
+                  <pre class="code-block code-block-compact">{{ formatJson(item.statusHistory || []) }}</pre>
+                </article>
               </div>
-              <SqlCodeBlock
-                :value="selectedRecommendation.recommendedSqlText || ''"
-                label="recommendedSqlText"
-                :copy-label="isChinese ? '复制' : 'Copy'"
-                compact
-                data-testid="recommendation-recommended-sql"
-              />
-            </article>
-          </div>
+            </el-tab-pane>
+          </el-tabs>
         </template>
-      </article>
-
-      <article class="sqlforge-panel dispatch-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">dispatch governance</p>
-            <h2>{{ isChinese ? 'dispatch 合同与追溯' : 'Dispatch contract and traceability' }}</h2>
-          </div>
-          <button class="secondary-button compact-button" :disabled="!recommendationTrace?.reportCode" @click="openParseRecord">
-            {{ isChinese ? '打开历史页' : 'Open history page' }}
-          </button>
-        </div>
-
-        <div class="summary-grid" data-testid="recommendation-dispatch-contract">
-          <article v-for="item in contractCards" :key="item.key" class="summary-card summary-card-compact">
-            <span class="summary-card-label">{{ item.label }}</span>
-            <strong>{{ displayValue(item.value) }}</strong>
-          </article>
-        </div>
-
-        <p class="muted-copy">
-          {{
-            isChinese
-              ? '当前协同边界固定为 coordinationMode=PULL_ONLY：外部模块负责真实装数、预热执行和底层变更，SQLForge 只保留 recommendation 与 dispatch 回执审计。'
-              : 'The current collaboration boundary is fixed at coordinationMode=PULL_ONLY: external modules own real data loading, prewarm execution, and storage changes while SQLForge keeps recommendation plus dispatch callback evidence only.'
-          }}
-        </p>
-
-        <div class="traceability-group" data-testid="recommendation-trace-refs">
-          <div class="signal-card__header">
-            <span class="summary-card-label">{{ isChinese ? '关联追溯键' : 'Traceability refs' }}</span>
-          </div>
-          <div class="pill-row">
-            <span v-for="item in traceabilityCards" :key="item.key" class="mini-pill">
-              {{ item.label }}: {{ displayValue(item.value) }}
-            </span>
-          </div>
-          <pre class="code-block code-block-compact">{{ formatJson(recommendationTrace?.traceRefs || {}) }}</pre>
-        </div>
-
-        <div class="dispatch-event-list">
-          <article
-            v-for="item in selectedDispatchEvents"
-            :key="item.dispatchEventId"
-            class="dispatch-event-card"
-            data-testid="recommendation-dispatch-event"
-          >
-            <div class="recommendation-card-header">
-              <div>
-                <p class="section-kicker sqlforge-code-label">{{ item.dispatchType }}</p>
-                <h3>{{ item.dispatchEventId }}</h3>
-              </div>
-              <span class="status-pill" :class="{ 'status-pill-warn': item.status === 'FAILED' }">
-                {{ item.status }}
-              </span>
-            </div>
-            <p class="muted-copy">{{ item.resultMessage || (isChinese ? '等待外部回执。' : 'Waiting for an external callback.') }}</p>
-            <div class="pill-row">
-              <span class="mini-pill">report {{ item.reportCode || '-' }}</span>
-              <span class="mini-pill">logical {{ item.logicalObjectKey || '-' }}</span>
-              <span class="mini-pill">engine {{ item.targetEngine || '-' }}</span>
-            </div>
-            <pre class="code-block code-block-compact">{{ formatJson(item.statusHistory || []) }}</pre>
-          </article>
-        </div>
-      </article>
+      </section>
     </div>
   </section>
 </template>
@@ -529,31 +508,23 @@ onMounted(() => {
 .recommendation-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--sqlforge-space-5);
 }
 
-.recommendation-hero,
-.recommendation-list-card,
-.recommendation-detail-card,
-.dispatch-card {
+.recommendation-list-pane,
+.recommendation-detail-pane {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--sqlforge-space-4);
+  min-width: 0;
+  padding-top: var(--sqlforge-space-5);
+  border-top: 1px solid var(--sqlforge-border-default);
 }
 
-.recommendation-hero {
-  display: grid;
-  gap: 20px;
-  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.9fr);
-}
-
-.hero-copy h1,
-.section-heading h2,
-.recommendation-card-header h3 {
+.recommendation-row-header h3 {
   margin: 0;
 }
 
-.hero-summary,
 .muted-copy,
 .detail-copy-text {
   margin: 0;
@@ -561,43 +532,25 @@ onMounted(() => {
   line-height: 1.6;
 }
 
-.hero-actions,
-.summary-card,
-.detail-copy-card,
-.sql-card,
-.dispatch-event-card,
-.recommendation-card {
-  border: 1px solid var(--sqlforge-border-default);
-  background: var(--sqlforge-surface-2);
+.filter-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sqlforge-space-4);
+  align-items: end;
 }
 
-.hero-actions {
+.field-block {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px;
-  border-radius: 14px;
-  background: rgba(41, 41, 41, 0.84);
+  gap: var(--sqlforge-space-2);
+  min-width: 220px;
 }
 
 .field-label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
   font-size: 13px;
   color: var(--sqlforge-text-secondary);
 }
 
-.text-input {
-  min-height: 42px;
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--sqlforge-border-default);
-  background: var(--sqlforge-bg-page-deep);
-  color: var(--sqlforge-text-primary);
-}
-
-.hero-button-row,
 .filter-row,
 .pill-row {
   display: flex;
@@ -605,40 +558,9 @@ onMounted(() => {
   gap: 10px;
 }
 
-.primary-button,
-.secondary-button,
 .filter-chip,
-.recommendation-card {
+.recommendation-row {
   cursor: pointer;
-}
-
-.primary-button,
-.secondary-button {
-  min-height: 42px;
-  border-radius: 999px;
-  border: 1px solid var(--sqlforge-border-default);
-  padding: 0 18px;
-  font-weight: 500;
-}
-
-.compact-button {
-  min-height: 36px;
-}
-
-.primary-button {
-  background: var(--sqlforge-bg-page-deep);
-  color: var(--sqlforge-text-primary);
-  border-color: var(--sqlforge-text-primary);
-}
-
-.secondary-button {
-  background: var(--sqlforge-bg-page-deep);
-  color: var(--sqlforge-text-secondary);
-}
-
-.secondary-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
 }
 
 .error-banner {
@@ -650,10 +572,10 @@ onMounted(() => {
   color: #ffd6d6;
 }
 
-.recommendation-grid {
+.recommendation-workspace {
   display: grid;
-  gap: 24px;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: var(--sqlforge-space-5);
+  grid-template-columns: minmax(280px, 0.9fr) minmax(480px, 1.4fr);
 }
 
 .recommendation-list,
@@ -663,28 +585,29 @@ onMounted(() => {
   gap: 12px;
 }
 
-.recommendation-card,
-.dispatch-event-card,
-.detail-copy-card,
-.sql-card,
-.traceability-group {
+.recommendation-row,
+.dispatch-event-row,
+.traceability-group,
+.description-item {
   padding: 16px;
-  border-radius: 14px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
+  background: rgba(35, 35, 35, 0.72);
 }
 
-.recommendation-card {
+.recommendation-row {
   display: flex;
   flex-direction: column;
   gap: 10px;
   text-align: left;
 }
 
-.recommendation-card-active {
+.recommendation-row-active {
   border-color: var(--sqlforge-color-brand-border);
 }
 
-.recommendation-card-header,
-.section-heading {
+.recommendation-row-header,
+.pane-actions {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -725,41 +648,41 @@ onMounted(() => {
   color: #9a4b15;
 }
 
-.summary-grid,
-.detail-copy-grid,
+.description-grid,
 .sql-grid {
   display: grid;
   gap: 14px;
 }
 
-.summary-grid {
+.description-grid {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
-.detail-copy-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+.description-grid-copy {
+  margin-top: var(--sqlforge-space-4);
 }
 
 .sql-grid {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
-.summary-card {
-  padding: 16px;
-  border-radius: 18px;
+.description-item {
+  display: grid;
+  gap: var(--sqlforge-space-2);
 }
 
-.summary-card-compact {
-  padding: 14px;
-}
-
-.summary-card-label {
-  display: inline-flex;
-  margin-bottom: 8px;
+.description-item dt {
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--sqlforge-text-muted);
+}
+
+.description-item dd {
+  margin: 0;
+  color: var(--sqlforge-text-primary);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .code-block {
@@ -781,22 +704,15 @@ onMounted(() => {
 }
 
 @media (max-width: 1200px) {
-  .recommendation-grid,
-  .recommendation-hero {
+  .recommendation-workspace {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 640px) {
-  .hero-button-row,
   .filter-row,
   .pill-row {
     flex-direction: column;
-  }
-
-  .primary-button,
-  .secondary-button {
-    width: 100%;
   }
 }
 </style>

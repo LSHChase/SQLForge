@@ -21,7 +21,36 @@ export default {
     temporaryPage: 'Temporary',
     nonProductionOnly: 'Non-prod only',
     switchToDark: 'Switch dark',
-    switchToLight: 'Switch light'
+    switchToLight: 'Switch light',
+    actions: {
+      copy: 'Copy',
+      format: 'Format',
+      viewRawJson: 'View raw JSON',
+      viewRawEvidence: 'View raw evidence'
+    },
+    fields: {
+      tenant: 'Tenant',
+      datasource: 'Datasource',
+      schema: 'Schema',
+      status: 'Status',
+      targetEngine: 'Target engine',
+      serviceCode: 'Service code',
+      historyId: 'History ID',
+      traceId: 'Trace ID',
+      reportCode: 'Report code',
+      type: 'Type',
+      submittedAt: 'Submitted at',
+      submittedBy: 'Submitted by',
+      title: 'Title',
+      summary: 'Summary',
+      taskType: 'Task type',
+      taskId: 'Task ID',
+      verdict: 'Verdict',
+      format: 'Format',
+      scenario: 'Scenario',
+      report: 'Report',
+      resultStatus: 'Result status'
+    }
   },
   dashboard: {
     title: 'Engineering Dashboard',
@@ -717,7 +746,77 @@ export default {
   },
   benchmark: {
     title: 'Benchmark Report',
-    summary: 'Inspect baseline, peak latency, regression deltas and release readiness.'
+    summary: 'Inspect baseline, peak latency, regression deltas and release readiness.',
+    eyebrow: 'benchmark center',
+    boundarySummary: 'The repo exposes live benchmark task and report APIs; templates and test sets remain frontend session/catalog surfaces rather than backend CRUD.',
+    input: {
+      eyebrow: 'benchmark input',
+      title: 'Benchmark boundary and inputs',
+      summary: 'Tenant, task type, and SQL are the key inputs for real benchmark task submission. Success and failure-compensation flows run in the tabs below.'
+    },
+    fields: {
+      sql: 'SQL',
+      initialStatus: 'Initial status',
+      failureCode: 'Failure code',
+      retryable: 'Retryable',
+      pendingBefore: 'Pending before',
+      pendingAfter: 'Pending after',
+      pendingDelta: 'Pending delta',
+      totalDelta: 'Total delta',
+      rawDataPath: 'Raw-data path',
+      scannedBytes: 'Scanned bytes'
+    },
+    tabs: {
+      templates: 'Templates',
+      testSets: 'Test sets',
+      taskFlow: 'Task flow',
+      compensation: 'Failure compensation',
+      report: 'Report',
+      sessionTasks: 'Session tasks'
+    },
+    templates: {
+      eyebrow: 'template catalog',
+      title: 'Template list',
+      summary: 'Templates are task presets on this page for quickly filling real benchmark task parameters.'
+    },
+    testSets: {
+      eyebrow: 'test-set catalog',
+      title: 'Test-set list',
+      summary: 'Test sets are frontend session catalog entries, not a claim that a dedicated test-set API exists.'
+    },
+    taskFlow: {
+      eyebrow: 'benchmark task flow',
+      title: 'Success task flow',
+      summary: 'Submit, poll, and read the report with the taskContext from the selected template.'
+    },
+    compensation: {
+      eyebrow: 'failure compensation',
+      title: 'Failure compensation flow',
+      summary: 'The failure path appends FAIL_BENCHMARK to verify governance compensation queue evidence.'
+    },
+    report: {
+      eyebrow: 'benchmark report',
+      title: 'Report comparison and regression results',
+      summary: 'After a successful run, show live report engine results, threshold assessments, trend charts, and recommendations.',
+      empty: 'A successful run will render the live report payload here.',
+      returned: 'Report {reportId} was returned by the live API with formats {formats}.',
+      engineEyebrow: 'engine comparison',
+      comparisonTitle: 'Comparison metrics',
+      regressionEyebrow: 'regression results',
+      regressionTitle: 'Threshold and regression verdicts',
+      trendEyebrow: 'trend & recommendation',
+      trendTitle: 'Trend charts and follow-up recommendations'
+    },
+    session: {
+      eyebrow: 'session tasks',
+      title: 'Session task list',
+      summary: 'There is no global benchmark-task list API yet, so this panel keeps tasks launched in this session.',
+      empty: 'No benchmark task has been launched in this session.'
+    },
+    actions: {
+      runTemplate: 'Run selected template',
+      runCompensation: 'Run failure recovery + compensation'
+    }
   },
   parseBatchCenter: {
     title: 'Batch Parse Center',
@@ -755,19 +854,200 @@ export default {
   },
   assetCatalog: {
     title: 'Data Asset Catalog',
-    summary: 'Browse datasource, schema, table, logical-view, and db-view lists with detail evidence.'
+    summary: 'Browse datasource, schema, table, logical-view, and db-view lists with detail evidence.',
+    eyebrow: 'data asset catalog',
+    workspaceSummary: 'Filter by asset type, inspect lists and detail evidence, and keep metadata snapshots, lineage, physical mappings, dependencies, and SQL candidates in one workspace.',
+    filters: {
+      eyebrow: 'asset filters',
+      title: 'Filters and refresh',
+      summary: 'Filter state and catalog state stay separate; refreshing does not change backend asset facts.',
+      schemaPlaceholder: 'Used for table list only'
+    },
+    actions: {
+      refresh: 'Refresh catalog'
+    },
+    catalog: {
+      eyebrow: 'catalog tabs',
+      title: 'Asset catalog',
+      summary: '{count} entries in the current type'
+    },
+    detail: {
+      eyebrow: 'asset detail',
+      title: 'Detail and evidence',
+      summary: 'Details, health status, snapshots, and drill-down evidence stay in the persistent detail region.',
+      connectionEndpoint: 'Connection endpoint',
+      credentialMode: 'Credential mode',
+      lastFailureReason: 'Last failure reason'
+    },
+    states: {
+      emptyCatalog: 'No catalog entries match the current filters.',
+      selectAsset: 'Select an asset from the left to render the detail panel.'
+    },
+    health: {
+      eyebrow: 'freshness / sla / heat',
+      title: 'Freshness, SLA, and heat proxy',
+      usageHeatProxy: 'Usage heat proxy'
+    },
+    snapshot: {
+      eyebrow: 'snapshot evidence',
+      title: 'Metadata snapshot evidence'
+    },
+    relatedSql: {
+      eyebrow: 'related sql',
+      title: 'Related SQL candidates',
+      summary: 'Read-only candidates; SQL is not executed.',
+      boundary: 'The current repo-side baseline has no dedicated logical-object to SQL endpoint, so candidates are aligned by logical-view `viewCode` and parse-statistics `reportCode`.',
+      empty: 'No related SQL candidates matched this logical view yet.'
+    }
   },
   routingGovernance: {
     title: 'Routing Execution Evidence',
-    summary: 'Review routing calibration, historical decisions, and comment-protocol summaries through a read-only evidence surface.'
+    summary: 'Review routing calibration, historical decisions, and comment-protocol summaries through a read-only evidence surface.',
+    eyebrow: 'routing execution evidence',
+    pageTitle: 'Routing execution evidence and decision history',
+    boundarySummary: 'This page only consumes read-only route-calibration and query-history.routeDecision evidence instead of pretending to be a rule-configuration center.',
+    filters: {
+      eyebrow: 'routing filters',
+      title: 'Evidence scope and actions'
+    },
+    fields: {
+      traceLimit: 'Trace limit',
+      traceId: 'Trace ID',
+      auditEvents: 'Audit events',
+      lastSeenAt: 'Last seen at'
+    },
+    actions: {
+      refresh: 'Refresh routing evidence',
+      viewPolicySource: 'View current policy source',
+      createRule: 'Create rule',
+      editRule: 'Edit rule',
+      openParseRecord: 'Open parse-record page'
+    },
+    tabs: {
+      calibration: 'Calibration',
+      commentProtocol: 'Comment protocol',
+      recentTraces: 'Recent traces'
+    },
+    policy: {
+      eyebrow: 'current policy',
+      title: 'Current policy snapshot'
+    },
+    comment: {
+      eyebrow: 'comment protocol',
+      title: 'Comment protocol summary'
+    },
+    traces: {
+      eyebrow: 'routing-route-decision',
+      title: 'Routing decision history',
+      summary: 'Trace detail opens in a dialog and raw route evidence opens in a drawer.',
+      state: '{count} trace rows currently loaded'
+    },
+    detail: {
+      dialogTitle: 'Routing decision detail',
+      historyState: '{count} trace history rows currently loaded'
+    },
+    rawDrawerTitle: 'Raw routing evidence'
   },
   recommendationCenter: {
     title: 'Recommendation Center',
-    summary: 'Review recommendation categories, benefit or risk, dispatch status, and traceability links.'
+    summary: 'Review recommendation categories, benefit or risk, dispatch status, and traceability links.',
+    eyebrow: 'recommendation center',
+    pageTitle: 'Recommendation Center',
+    boundarySummary: 'This center consumes recommendation, dispatchEvents, and traceability evidence while SQLForge manages suggestions, events, and callbacks only without executing recommended SQL or loading data.',
+    filters: {
+      eyebrow: 'recommendation filters',
+      title: 'Tenant and refresh'
+    },
+    actions: {
+      refresh: 'Refresh center',
+      openRouting: 'Open routing governance',
+      openParse: 'Open SQL Parse',
+      openHistory: 'Open history page'
+    },
+    list: {
+      eyebrow: 'recommendation categories',
+      title: 'Recommendation categories',
+      summary: '{count} recommendations for the current tenant'
+    },
+    detail: {
+      eyebrow: 'recommendation detail',
+      title: 'Benefit, risk, and SQL detail'
+    },
+    fields: {
+      benefitLevel: 'benefit',
+      riskLevel: 'risk',
+      dispatch: 'dispatch',
+      expectedGain: 'Expected gain',
+      riskSummary: 'Risk summary',
+      reason: 'Reason',
+      sourceSql: 'Source SQL'
+    },
+    states: {
+      selectRecommendation: 'Select a recommendation to inspect its detail.',
+      loadingDetail: 'Loading recommendation detail…',
+      emptyDetail: 'No recommendation is available to display yet.',
+      waitingCallback: 'Waiting for an external callback.'
+    },
+    tabs: {
+      summary: 'Summary',
+      sqlEvidence: 'SQL evidence',
+      dispatchContract: 'Dispatch contract',
+      traceability: 'Traceability',
+      dispatchEvents: 'Dispatch events'
+    },
+    dispatch: {
+      boundary: 'The current collaboration boundary is fixed at coordinationMode=PULL_ONLY: external modules own real data loading, prewarm execution, and storage changes while SQLForge keeps recommendation plus dispatch callback evidence only.'
+    }
   },
   accessCenter: {
     title: 'Open Access',
-    summary: 'Review API, JDBC Agent, Java SDK, access strategies, and access-audit samples.'
+    summary: 'Review API, JDBC Agent, Java SDK, access strategies, and access-audit samples.',
+    eyebrow: 'access workbench',
+    pageTitle: 'Open access and audit samples',
+    boundarySummary: 'The default view shows the access-audit table, while channels, JDBC Agent, SDK, and policy boundaries move into tabs. Actions without write APIs remain explicit placeholders.',
+    filters: {
+      eyebrow: 'access filters',
+      title: 'Access scope and actions'
+    },
+    fields: {
+      accessChannel: 'Access channel',
+      historyReport: 'History / Report',
+      mode: 'Mode'
+    },
+    actions: {
+      refresh: 'Refresh access evidence',
+      createStrategy: 'Create access strategy',
+      editStrategy: 'Edit strategy',
+      boundaryHelp: 'Boundary help'
+    },
+    tabs: {
+      audit: 'Access audit',
+      channels: 'Channels',
+      jdbc: 'JDBC Agent',
+      sdk: 'SDK / Client',
+      policy: 'Policy boundary'
+    },
+    audit: {
+      eyebrow: 'access audit sample',
+      title: 'Access-audit samples',
+      summary: 'Render query-history accessChannel filter results in a table by default.',
+      boundary: 'The repository does not yet expose a dedicated frontend controller for `GET /api/governance/access-audit`, so this page currently renders audit samples through the query-history surface filtered by `accessChannel`.',
+      state: '{count} access-audit sample rows currently loaded'
+    },
+    channels: {
+      eyebrow: 'access channels',
+      title: 'Access channels'
+    },
+    jdbc: {
+      state: '{count} JDBC Agent modes currently loaded'
+    },
+    detail: {
+      dialogTitle: 'Access audit detail'
+    },
+    rawDrawerTitle: 'Raw access evidence',
+    policy: {
+      dialogTitle: 'Access boundary guide'
+    }
   },
   alertCenter: {
     title: 'Alert Center',

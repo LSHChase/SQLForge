@@ -3219,3 +3219,16 @@
 2026-05-09T12:51:00-05:00 | HARN-113 closeout task-audit pre | `R-156`, `R-160`, `R-168` | failed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-09T12:54:59-05:00 | HARN-113 closeout task-audit pre | `R-156`, `R-160`, `R-168`, `R-186` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-09T12:54:59-05:00 | HARN-113 closeout task-audit post | `R-156`, `R-160`, `R-168`, `R-186` | passed | `python3 scripts/task_audit.py --check --phase post-closeout`
+2026-05-10T00:35:20-05:00 | HARN-114 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T00:35:20-05:00 | HARN-114 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T00:35:31-05:00 | HARN-114 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T00:35:31-05:00 | HARN-114 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T00:35:32-05:00 | HARN-114 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-10T00:35:36-05:00 | HARN-114 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-10T00:35:36-05:00 | HARN-114 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-10T00:35:36-05:00 | HARN-114 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-10T00:35:36-05:00 | HARN-114 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-10T00:37:04-05:00 | HARN-114 closeout task-audit pre | `R-156`, `R-160`, `R-168` | failed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T00:38:37-05:00 | HARN-114 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T00:38:37-05:00 | HARN-114 closeout commit | `R-168` | projected | `git commit -m 'feat(frontend): refactor HARN-114 governance pages' (projected-precommit)`
+2026-05-10T00:38:37-05:00 | HARN-114 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

@@ -7,6 +7,8 @@ import {
   ROOT_ROUTE_DEFINITION
 } from '../config/routePaths.mjs'
 
+// Static route contract tokens: name: 'RoutingGovernance', name: 'RecommendationCenter', name: 'AccessCenter'.
+
 const DashboardView = () => import('../views/dashboard/DashboardView.vue')
 const SqlQueryView = () => import('../views/query/SqlQueryView.vue')
 const SqlHistoryView = () => import('../views/sql-history/SqlHistoryView.vue')

@@ -11,19 +11,6 @@
 
 ## Todo
 
-### HARN-114: 重构资产、路由、推荐、压测、接入页面
-
-- Status: todo
-- Priority: 2
-- Depends on: HARN-108,HARN-116
-- Scope: 覆盖 `AssetCatalogView`、`RoutingGovernanceView`、`RecommendationCenterView`、`BenchmarkView`、`AccessCenterView`；统一列表/详情/证据/placeholder 语义，保留只读证据边界和缺失写 API 的显式边界。
-- Validation:
-  - before/after 截图自检
-  - `npm run lint`
-  - `npm run build`
-  - `npm run test:sql-ui-contract`
-  - `npm run test:frontend-page-governance`
-
 ### HARN-115: 重构告警、取证、修复、故障处置与系统管理页面
 
 - Status: todo

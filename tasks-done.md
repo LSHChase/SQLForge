@@ -4,6 +4,26 @@
 
 ## Done
 
+### HARN-114: 重构资产、路由、推荐、压测、接入页面
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(frontend): refactor HARN-114 governance pages`
+- Priority: 2
+- Depends on: HARN-108,HARN-116
+- Scope: 覆盖 `AssetCatalogView`、`RoutingGovernanceView`、`RecommendationCenterView`、`BenchmarkView`、`AccessCenterView`；统一列表/详情/证据/placeholder 语义，保留只读证据边界和缺失写 API 的显式边界。
+- Validation:
+  - before/after 截图自检
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:sql-ui-contract`
+  - `npm run test:frontend-page-governance`
+- Context closeout:
+  - Completed scope: Refactored AssetCatalogView, RoutingGovernanceView, RecommendationCenterView, BenchmarkView, and AccessCenterView into compact header, toolbar, tabs/list/table, detail, dialog, and drawer flows; preserved existing APIs, read-only evidence boundaries, placeholder write-boundary messaging, SQL payload display, and i18n-backed visible copy. Added mobile shell responsiveness for the touched page screenshots.
+  - Validation evidence: Passed npm run lint; npm run build; npm run test:sql-ui-contract; npm run test:frontend-page-governance; npm run smoke:frontend-dev; page contract scripts for asset/routing/recommendation/benchmark/access; python3 scripts/foreman.py validate HARN-114; python3 scripts/task_audit.py --check --phase pre-closeout. Before screenshots: .codex/state/screenshots/HARN-114/before/{asset-catalog,routing-governance,recommendation-center,benchmark,access-center}.png. After screenshots: .codex/state/screenshots/HARN-114/after/{asset-catalog,routing-governance,recommendation-center,benchmark,access-center}.png plus routing-detail-dialog-visible.png, routing-raw-drawer-visible.png, recommendation-detail-tabs.png, benchmark-report.png, benchmark-compensation.png, access-audit-detail-visible.png, access-raw-drawer-visible.png, and after-mobile/*.png. Codex visual self-review completed; duplicate asset empty copy and mobile clipping 已修复; visual review passed with no visual drift, no remaining overlap, no card nesting, and no pagination-summary drift observed.
+  - Residual risk: No backend interface, permission, audit, persistence, or data-migration behavior changed; runtime data availability remains governed by existing backend services and the pages retain explicit read-only or missing-write-API boundaries.
+  - Next step: Proceed to the next planned frontend governance page task.
+
 ### HARN-113: 拆分解析历史查询与报表详情页面
 
 - Status: done

@@ -253,6 +253,7 @@ onMounted(() => {
   margin: 12px 0 0;
   color: var(--sqlforge-text-secondary);
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .brand-meta,
@@ -478,6 +479,72 @@ onMounted(() => {
   .workspace-card {
     min-width: 0;
     width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  .app-sidebar {
+    width: 100% !important;
+    flex: 0 0 auto;
+    gap: 12px;
+    padding: 12px;
+    border-right: none;
+    border-bottom: 1px solid var(--sqlforge-border-default);
+  }
+
+  .brand-panel {
+    padding: 14px;
+  }
+
+  .brand-title {
+    margin-top: 6px;
+    font-size: 24px;
+  }
+
+  .brand-summary {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .sidebar-section {
+    display: none;
+  }
+
+  .sidebar-runtime {
+    display: none;
+  }
+
+  .app-main {
+    width: 100%;
+  }
+
+  .app-header {
+    gap: 16px;
+    padding: 16px 14px 0;
+  }
+
+  .page-title {
+    margin-top: 6px;
+    font-size: 26px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .workspace-card {
+    display: none;
+  }
+
+  .page-container {
+    padding: 16px 14px 28px;
   }
 }
 </style>

@@ -21,7 +21,36 @@ export default {
     temporaryPage: '临时页',
     nonProductionOnly: '仅非生产',
     switchToDark: '切换深色',
-    switchToLight: '切换浅色'
+    switchToLight: '切换浅色',
+    actions: {
+      copy: '复制',
+      format: '格式化',
+      viewRawJson: '查看原始 JSON',
+      viewRawEvidence: '查看原始证据'
+    },
+    fields: {
+      tenant: '租户',
+      datasource: '数据源',
+      schema: 'Schema',
+      status: '状态',
+      targetEngine: '目标引擎',
+      serviceCode: '服务编码',
+      historyId: 'History ID',
+      traceId: 'Trace ID',
+      reportCode: '报表编码',
+      type: '类型',
+      submittedAt: '提交时间',
+      submittedBy: '提交人',
+      title: '标题',
+      summary: '说明',
+      taskType: '任务类型',
+      taskId: '任务 ID',
+      verdict: '裁决',
+      format: '格式',
+      scenario: '场景',
+      report: '报告',
+      resultStatus: '结果状态'
+    }
   },
   dashboard: {
     title: '研发驾驶舱',
@@ -717,7 +746,77 @@ export default {
   },
   benchmark: {
     title: '压测报告',
-    summary: '查看基线、峰值延迟、回归差异与准入判断。'
+    summary: '查看基线、峰值延迟、回归差异与准入判断。',
+    eyebrow: 'benchmark center',
+    boundarySummary: '当前 repo-side 已有真实 benchmark task/report 接口；模板与测试集仍以前端 session/catalog 组织，不伪装成后端 CRUD。',
+    input: {
+      eyebrow: 'benchmark input',
+      title: '压测边界与关键输入',
+      summary: '租户、任务类型与 SQL 是提交真实 benchmark task 的关键输入，成功与失败补偿流程在下方 tabs 执行。'
+    },
+    fields: {
+      sql: 'SQL',
+      initialStatus: '初始状态',
+      failureCode: '失败码',
+      retryable: '可重试',
+      pendingBefore: '补偿前 pending',
+      pendingAfter: '补偿后 pending',
+      pendingDelta: 'pending 增量',
+      totalDelta: 'total 增量',
+      rawDataPath: '原始数据路径',
+      scannedBytes: '扫描字节'
+    },
+    tabs: {
+      templates: '模板',
+      testSets: '测试集',
+      taskFlow: '任务流',
+      compensation: '失败补偿',
+      report: '报告',
+      sessionTasks: '会话任务'
+    },
+    templates: {
+      eyebrow: 'template catalog',
+      title: '模板列表',
+      summary: '模板是当前页面的 task preset，用于快速填充真实 benchmark task 参数。'
+    },
+    testSets: {
+      eyebrow: 'test-set catalog',
+      title: '测试集列表',
+      summary: '测试集为前端 session catalog，不宣称仓库已有独立 test-set API。'
+    },
+    taskFlow: {
+      eyebrow: 'benchmark task flow',
+      title: '成功任务流',
+      summary: '使用当前选中模板的 taskContext 提交、轮询并读取报告。'
+    },
+    compensation: {
+      eyebrow: 'failure compensation',
+      title: '失败补偿流',
+      summary: '失败链路会追加 FAIL_BENCHMARK，用于验证 governance compensation queue evidence。'
+    },
+    report: {
+      eyebrow: 'benchmark report',
+      title: '报告对比与回归结果',
+      summary: '成功执行后展示真实 report 返回的 engine results、threshold assessments、trend charts 与 recommendations。',
+      empty: '执行成功后会在这里显示实际 report 返回值。',
+      returned: '报告 {reportId} 由真实接口返回，可用格式 {formats}。',
+      engineEyebrow: 'engine comparison',
+      comparisonTitle: '对比指标',
+      regressionEyebrow: 'regression results',
+      regressionTitle: '阈值与回归判断',
+      trendEyebrow: 'trend & recommendation',
+      trendTitle: '趋势与后续建议'
+    },
+    session: {
+      eyebrow: 'session tasks',
+      title: '会话任务列表',
+      summary: '当前没有全局任务列表接口，因此仅保留本次会话发起的 benchmark 任务。',
+      empty: '当前会话尚未发起 benchmark 任务。'
+    },
+    actions: {
+      runTemplate: '执行当前模板',
+      runCompensation: '执行失败恢复 + 补偿'
+    }
   },
   parseBatchCenter: {
     title: '批量解析',
@@ -755,19 +854,200 @@ export default {
   },
   assetCatalog: {
     title: '数据资产目录',
-    summary: '查看 datasource、schema、table、logical view 与 db view 的列表和详情证据。'
+    summary: '查看 datasource、schema、table、logical view 与 db view 的列表和详情证据。',
+    eyebrow: 'data asset catalog',
+    workspaceSummary: '按资产类型筛选、查看列表和详情证据，并把 metadata snapshot、lineage、physical mappings、dependencies 与 SQL 候选留在同一工作面。',
+    filters: {
+      eyebrow: 'asset filters',
+      title: '筛选与刷新',
+      summary: '筛选状态与目录状态分离；刷新不会改变后端资产事实。',
+      schemaPlaceholder: '仅 table 列表使用'
+    },
+    actions: {
+      refresh: '刷新目录'
+    },
+    catalog: {
+      eyebrow: 'catalog tabs',
+      title: '资产目录',
+      summary: '当前类型 {count} 条结果'
+    },
+    detail: {
+      eyebrow: 'asset detail',
+      title: '详情与证据',
+      summary: '详情、健康状态、snapshot 与下钻证据在常驻区域展示。',
+      connectionEndpoint: '连接地址',
+      credentialMode: '凭证模式',
+      lastFailureReason: '最近失败原因'
+    },
+    states: {
+      emptyCatalog: '当前筛选下没有目录结果。',
+      selectAsset: '从左侧选择一个资产后显示详情。'
+    },
+    health: {
+      eyebrow: 'freshness / sla / heat',
+      title: '数据到位与热度 proxy',
+      usageHeatProxy: 'Usage heat proxy'
+    },
+    snapshot: {
+      eyebrow: 'snapshot evidence',
+      title: 'Metadata snapshot 旁证'
+    },
+    relatedSql: {
+      eyebrow: 'related sql',
+      title: '相关 SQL 候选',
+      summary: '只读候选，不执行 SQL。',
+      boundary: '当前 repo-side 没有 logical-object -> SQL 的独立查询接口，这里按 logical view `viewCode` 与 parse statistics `reportCode` 对齐展示候选。',
+      empty: '当前 logical view 还没有匹配到 related SQL 候选。'
+    }
   },
   routingGovernance: {
     title: '路由执行证据',
-    summary: '查看当前路由校准、历史决策与注释协议摘要；当前仅支持只读证据查看。'
+    summary: '查看当前路由校准、历史决策与注释协议摘要；当前仅支持只读证据查看。',
+    eyebrow: 'routing execution evidence',
+    pageTitle: '路由执行证据与历史决策',
+    boundarySummary: '当前页只消费 route-calibration 与 query-history.routeDecision 的只读证据，不伪装成规则配置中心。',
+    filters: {
+      eyebrow: 'routing filters',
+      title: '证据范围与操作'
+    },
+    fields: {
+      traceLimit: 'Trace 数量',
+      traceId: 'Trace ID',
+      auditEvents: '审计事件数',
+      lastSeenAt: '最后时间'
+    },
+    actions: {
+      refresh: '刷新路由证据',
+      viewPolicySource: '查看当前策略来源',
+      createRule: '新增规则',
+      editRule: '修改规则',
+      openParseRecord: '打开历史详情页'
+    },
+    tabs: {
+      calibration: 'Calibration',
+      commentProtocol: '注释协议',
+      recentTraces: 'Recent traces'
+    },
+    policy: {
+      eyebrow: 'current policy',
+      title: '当前策略快照'
+    },
+    comment: {
+      eyebrow: 'comment protocol',
+      title: '注释协议摘要'
+    },
+    traces: {
+      eyebrow: 'routing-route-decision',
+      title: '路由决策历史',
+      summary: 'trace detail 通过弹窗下钻，raw route evidence 通过抽屉查看。',
+      state: '当前 trace 结果 {count} 条'
+    },
+    detail: {
+      dialogTitle: '路由决策详情',
+      historyState: '当前 trace history {count} 条'
+    },
+    rawDrawerTitle: '路由原始证据'
   },
   recommendationCenter: {
     title: '推荐与加速中心',
-    summary: '查看 recommendation 分类、收益风险、dispatch 状态与追溯关联。'
+    summary: '查看 recommendation 分类、收益风险、dispatch 状态与追溯关联。',
+    eyebrow: 'recommendation center',
+    pageTitle: '推荐与加速中心',
+    boundarySummary: '页面消费 recommendation、dispatchEvents 与 traceability 证据；SQLForge 只管理建议、事件和回执，不执行推荐 SQL、不主动装数。',
+    filters: {
+      eyebrow: 'recommendation filters',
+      title: '租户与刷新'
+    },
+    actions: {
+      refresh: '刷新推荐中心',
+      openRouting: '打开路由治理',
+      openParse: '打开 SQL解析',
+      openHistory: '打开历史页'
+    },
+    list: {
+      eyebrow: 'recommendation categories',
+      title: '推荐分类',
+      summary: '当前租户 {count} 条 recommendation'
+    },
+    detail: {
+      eyebrow: 'recommendation detail',
+      title: '收益、风险与 SQL 详情'
+    },
+    fields: {
+      benefitLevel: '收益',
+      riskLevel: '风险',
+      dispatch: '协同',
+      expectedGain: '预期收益',
+      riskSummary: '风险摘要',
+      reason: '推荐原因',
+      sourceSql: '源 SQL'
+    },
+    states: {
+      selectRecommendation: '选择一个 recommendation 查看详情。',
+      loadingDetail: '正在加载 recommendation detail…',
+      emptyDetail: '当前没有可展示的 recommendation。',
+      waitingCallback: '等待外部回执。'
+    },
+    tabs: {
+      summary: 'Summary',
+      sqlEvidence: 'SQL evidence',
+      dispatchContract: 'Dispatch contract',
+      traceability: 'Traceability',
+      dispatchEvents: 'Dispatch events'
+    },
+    dispatch: {
+      boundary: '当前协同边界固定为 coordinationMode=PULL_ONLY：外部模块负责真实装数、预热执行和底层变更，SQLForge 只保留 recommendation 与 dispatch 回执审计。'
+    }
   },
   accessCenter: {
     title: '开放接入',
-    summary: '查看 API、JDBC Agent、Java SDK、接入策略与 access audit 样例。'
+    summary: '查看 API、JDBC Agent、Java SDK、接入策略与 access audit 样例。',
+    eyebrow: 'access workbench',
+    pageTitle: '开放接入与审计样例',
+    boundarySummary: '默认展示接入审计表格，渠道、JDBC Agent、SDK 和策略边界拆入 tabs；缺失写 API 的动作继续显式不可写。',
+    filters: {
+      eyebrow: 'access filters',
+      title: '接入范围与操作'
+    },
+    fields: {
+      accessChannel: '接入渠道',
+      historyReport: 'History / Report',
+      mode: 'Mode'
+    },
+    actions: {
+      refresh: '刷新接入证据',
+      createStrategy: '新增接入策略',
+      editStrategy: '修改策略',
+      boundaryHelp: '边界说明'
+    },
+    tabs: {
+      audit: '接入审计',
+      channels: 'Channels',
+      jdbc: 'JDBC Agent',
+      sdk: 'SDK / Client',
+      policy: 'Policy boundary'
+    },
+    audit: {
+      eyebrow: 'access audit sample',
+      title: '接入审计样例',
+      summary: '默认用表格呈现 query-history accessChannel 过滤结果。',
+      boundary: '当前仓库还没有独立开放给前端的 `GET /api/governance/access-audit` 控制器，因此这里先用 query-history 的 `accessChannel` 过滤面呈现审计样例。',
+      state: '当前审计样例 {count} 条'
+    },
+    channels: {
+      eyebrow: 'access channels',
+      title: '接入渠道'
+    },
+    jdbc: {
+      state: '当前 JDBC Agent mode {count} 条'
+    },
+    detail: {
+      dialogTitle: '接入审计详情'
+    },
+    rawDrawerTitle: '接入原始证据',
+    policy: {
+      dialogTitle: '接入边界说明'
+    }
   },
   alertCenter: {
     title: '告警中心',

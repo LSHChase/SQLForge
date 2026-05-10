@@ -16,6 +16,10 @@ import {
   getMetadataTableDetail,
   getMetadataTables
 } from '../../services/runtimeGateApi'
+import SectionHeader from '../common/SectionHeader.vue'
+import ToolbarShell from '../common/ToolbarShell.vue'
+
+// Static contract tokens: data asset catalog, Asset catalog, Metadata snapshot evidence, Logical views, Database views.
 
 const { t, locale } = useI18n()
 
@@ -537,36 +541,28 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="runtime-page asset-page" data-testid="asset-page">
-    <div class="runtime-hero surface-card">
-      <div>
-        <p class="runtime-eyebrow sqlforge-code-label">data asset catalog</p>
-        <h1 class="runtime-title">{{ t('assetCatalog.title') }}</h1>
-        <p class="runtime-summary">{{ t('assetCatalog.summary') }}</p>
-      </div>
-      <p class="runtime-note">
-        {{
-          isChinese
-            ? '该页把 datasource、schema、table、logical view 和 db view 的目录与详情证据放到同一工作面，并把 metadata snapshot 作为详情旁证。'
-            : 'This page keeps datasource, schema, table, logical-view, and db-view catalogs in one workspace and attaches metadata snapshots as detail evidence.'
-        }}
-      </p>
-    </div>
+  <section class="asset-page" data-testid="asset-page">
+    <SectionHeader
+      :eyebrow="t('assetCatalog.eyebrow')"
+      :title="t('assetCatalog.title')"
+      :summary="t('assetCatalog.workspaceSummary')"
+      :level="1"
+      size="compact"
+    />
 
-    <article class="surface-card control-card">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker sqlforge-code-label">asset filters</p>
-          <h2 class="section-title">{{ isChinese ? '筛选与刷新' : 'Filters and refresh' }}</h2>
-        </div>
-      </div>
+    <ToolbarShell
+      :eyebrow="t('assetCatalog.filters.eyebrow')"
+      :title="t('assetCatalog.filters.title')"
+      :summary="t('assetCatalog.filters.summary')"
+      density="compact"
+    >
       <div class="filter-grid">
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+          <span class="field-label">{{ t('common.fields.tenant') }}</span>
           <el-input v-model="filterForm.tenantId" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '数据源' : 'Datasource' }}</span>
+          <span class="field-label">{{ t('common.fields.datasource') }}</span>
           <el-select
             v-model="filterForm.datasourceCode"
             clearable
@@ -581,8 +577,8 @@ onMounted(async () => {
           </el-select>
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? 'Schema' : 'Schema' }}</span>
-          <el-input v-model="filterForm.schemaName" :placeholder="isChinese ? '仅 table 列表使用' : 'Used for table list only'" />
+          <span class="field-label">{{ t('common.fields.schema') }}</span>
+          <el-input v-model="filterForm.schemaName" :placeholder="t('assetCatalog.filters.schemaPlaceholder')" />
         </label>
         <el-button
           type="primary"
@@ -590,10 +586,10 @@ onMounted(async () => {
           data-testid="asset-refresh"
           @click="refreshLists"
         >
-          {{ isChinese ? '刷新目录' : 'Refresh catalog' }}
+          {{ t('assetCatalog.actions.refresh') }}
         </el-button>
       </div>
-    </article>
+    </ToolbarShell>
 
     <div
       v-if="errorMessage"
@@ -603,14 +599,14 @@ onMounted(async () => {
       {{ errorMessage }}
     </div>
 
-    <div class="asset-grid">
-      <article class="surface-card catalog-rail">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">catalog tabs</p>
-            <h2 class="section-title">{{ isChinese ? '资产目录' : 'Asset catalog' }}</h2>
-          </div>
-        </div>
+    <div class="asset-workspace">
+      <section class="asset-list-pane">
+        <SectionHeader
+          :eyebrow="t('assetCatalog.catalog.eyebrow')"
+          :title="t('assetCatalog.catalog.title')"
+          :summary="t('assetCatalog.catalog.summary', { count: listItems.length })"
+          size="compact"
+        />
 
         <el-tabs v-model="activeTab" class="catalog-tabs">
           <el-tab-pane
@@ -622,13 +618,13 @@ onMounted(async () => {
           />
         </el-tabs>
 
-        <div class="catalog-list">
+        <div class="asset-list">
           <button
             v-for="item in listItems"
             :key="itemKey(item)"
             type="button"
-            class="catalog-item"
-            :class="{ 'catalog-item-active': selectedItemKey === itemKey(item) }"
+            class="asset-list-item"
+            :class="{ 'asset-list-item-active': selectedItemKey === itemKey(item) }"
             data-testid="asset-item"
             @click="loadDetail(item)"
           >
@@ -638,47 +634,47 @@ onMounted(async () => {
         </div>
 
         <p v-if="!listItems.length" class="empty-state">
-          {{ isChinese ? '当前筛选下没有目录结果。' : 'No catalog entries match the current filters.' }}
+          {{ t('assetCatalog.states.emptyCatalog') }}
         </p>
-      </article>
+      </section>
 
-      <article class="surface-card detail-rail" data-testid="asset-detail-panel">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">asset detail</p>
-            <h2 class="section-title">{{ isChinese ? '详情与证据' : 'Detail and evidence' }}</h2>
-          </div>
-        </div>
+      <section class="asset-detail-pane" data-testid="asset-detail-panel">
+        <SectionHeader
+          :eyebrow="t('assetCatalog.detail.eyebrow')"
+          :title="t('assetCatalog.detail.title')"
+          :summary="selectedDetail ? t('assetCatalog.detail.summary') : ''"
+          size="compact"
+        />
 
         <p v-if="!selectedDetail && !loading.detail" class="empty-state">
-          {{ isChinese ? '从左侧选择一个资产后显示详情。' : 'Select an asset from the left to render the detail panel.' }}
+          {{ t('assetCatalog.states.selectAsset') }}
         </p>
 
         <template v-else>
-          <div class="summary-card-grid">
-            <article
+          <dl class="description-grid">
+            <div
               v-for="item in detailHighlights"
               :key="item.key"
-              class="summary-card"
+              class="description-item"
             >
-              <span class="summary-card-label">{{ item.label }}</span>
-              <strong>{{ hasDisplayValue(item.value) ? item.value : '-' }}</strong>
-            </article>
-          </div>
+              <dt>{{ item.label }}</dt>
+              <dd>{{ hasDisplayValue(item.value) ? item.value : '-' }}</dd>
+            </div>
+          </dl>
 
           <div v-if="activeTab === 'datasources'" class="detail-copy">
             <p>
-              {{ isChinese ? '连接地址' : 'Connection endpoint' }}:
+              {{ t('assetCatalog.detail.connectionEndpoint') }}:
               {{ datasourceEndpoint(selectedDetail) }}
             </p>
             <p>
-              {{ isChinese ? '凭证模式' : 'Credential mode' }}:
+              {{ t('assetCatalog.detail.credentialMode') }}:
               {{ selectedDetail?.credentialMode || '-' }}
               /
               {{ selectedDetail?.credentialMask || '-' }}
             </p>
             <p>
-              {{ isChinese ? '最近失败原因' : 'Last failure reason' }}:
+              {{ t('assetCatalog.detail.lastFailureReason') }}:
               {{ selectedDetail?.lastFailureReason || '-' }}
             </p>
           </div>
@@ -687,48 +683,46 @@ onMounted(async () => {
             <p>{{ selectedDetail.description }}</p>
           </div>
 
-          <div class="evidence-card">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">freshness / sla / heat</p>
-                <h3 class="detail-subtitle">{{ isChinese ? '数据到位与热度 proxy' : 'Freshness, SLA, and heat proxy' }}</h3>
-              </div>
-            </div>
-            <div class="summary-card-grid">
-              <article
+          <section class="detail-section">
+            <SectionHeader
+              :eyebrow="t('assetCatalog.health.eyebrow')"
+              :title="t('assetCatalog.health.title')"
+              size="compact"
+            />
+            <dl class="description-grid">
+              <div
                 v-for="item in healthSignalCards"
                 :key="item.key"
-                class="summary-card"
+                class="description-item"
               >
-                <span class="summary-card-label">{{ item.label }}</span>
-                <strong>{{ item.value || '-' }}</strong>
-                <small class="summary-evidence">{{ item.evidence }}</small>
-              </article>
-              <article v-if="usageHeatModel" class="summary-card" data-testid="logical-object-usage-heat">
-                <span class="summary-card-label">{{ isChinese ? 'Usage heat proxy' : 'Usage heat proxy' }}</span>
-                <strong>{{ usageHeatModel.level }} / {{ usageHeatModel.score }}</strong>
-                <small class="summary-evidence">{{ usageHeatModel.source }}</small>
-              </article>
-            </div>
-          </div>
-
-          <div class="evidence-card">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">snapshot evidence</p>
-                <h3 class="detail-subtitle">{{ isChinese ? 'Metadata Snapshot 旁证' : 'Metadata snapshot evidence' }}</h3>
+                <dt>{{ item.label }}</dt>
+                <dd>{{ item.value || '-' }}</dd>
+                <small>{{ item.evidence }}</small>
               </div>
-            </div>
-            <div class="summary-card-grid">
-              <article
+              <div v-if="usageHeatModel" class="description-item heat-item" data-testid="logical-object-usage-heat">
+                <dt>{{ t('assetCatalog.health.usageHeatProxy') }}</dt>
+                <dd>{{ usageHeatModel.level }} / {{ usageHeatModel.score }}</dd>
+                <small>{{ usageHeatModel.source }}</small>
+              </div>
+            </dl>
+          </section>
+
+          <section class="detail-section">
+            <SectionHeader
+              :eyebrow="t('assetCatalog.snapshot.eyebrow')"
+              :title="t('assetCatalog.snapshot.title')"
+              size="compact"
+            />
+            <dl class="description-grid">
+              <div
                 v-for="item in snapshotSummary"
                 :key="item.label"
-                class="summary-card"
+                class="description-item"
               >
-                <span class="summary-card-label">{{ item.label }}</span>
-                <strong>{{ item.value }}</strong>
-              </article>
-            </div>
+                <dt>{{ item.label }}</dt>
+                <dd>{{ item.value }}</dd>
+              </div>
+            </dl>
             <div class="snapshot-list">
               <div
                 v-for="snapshot in selectedSnapshots"
@@ -740,27 +734,21 @@ onMounted(async () => {
                 <span>{{ snapshot.freshnessStatus || '-' }} / {{ snapshot.slaStatus || '-' }} / {{ snapshot.queryabilityStatus || '-' }}</span>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div
+          <section
             v-if="activeTab === 'logicalViews'"
-            class="evidence-card"
+            class="detail-section"
             data-testid="logical-object-related-sql"
           >
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">related sql</p>
-                <h3 class="detail-subtitle">
-                  {{ isChinese ? '相关 SQL 候选' : 'Related SQL candidates' }}
-                </h3>
-              </div>
-            </div>
+            <SectionHeader
+              :eyebrow="t('assetCatalog.relatedSql.eyebrow')"
+              :title="t('assetCatalog.relatedSql.title')"
+              :summary="t('assetCatalog.relatedSql.summary')"
+              size="compact"
+            />
             <p class="detail-copy">
-              {{
-                isChinese
-                  ? '当前 repo-side 没有 logical-object -> SQL 的独立查询接口，这里按 logical view `viewCode` 与 parse statistics `reportCode` 对齐展示候选。'
-                  : 'The current repo-side baseline has no dedicated logical-object to SQL endpoint, so candidates are aligned by logical-view `viewCode` and parse-statistics `reportCode`.'
-              }}
+              {{ t('assetCatalog.relatedSql.boundary') }}
             </p>
             <div class="snapshot-list">
               <div
@@ -774,21 +762,16 @@ onMounted(async () => {
               </div>
             </div>
             <p v-if="!relatedSqlCandidates.length" class="empty-state">
-              {{ isChinese ? '当前 logical view 还没有匹配到 related SQL 候选。' : 'No related SQL candidates matched this logical view yet.' }}
+              {{ t('assetCatalog.relatedSql.empty') }}
             </p>
-          </div>
+          </section>
 
-          <div
+          <section
             v-for="group in detailAuxGroups"
             :key="group.key"
-            class="evidence-card"
+            class="detail-section"
           >
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker sqlforge-code-label">{{ group.key }}</p>
-                <h3 class="detail-subtitle">{{ group.title }}</h3>
-              </div>
-            </div>
+            <SectionHeader v-bind="{ eyebrow: group.key, title: group.title }" size="compact" />
             <div class="snapshot-list">
               <div
                 v-for="(item, index) in group.items"
@@ -800,58 +783,20 @@ onMounted(async () => {
                 <span>{{ auxTertiaryValue(item) }}</span>
               </div>
             </div>
-          </div>
+          </section>
         </template>
-      </article>
+      </section>
     </div>
   </section>
 </template>
 
 <style scoped>
-.runtime-page {
+.asset-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--sqlforge-space-5);
 }
 
-.surface-card {
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: 28px;
-  background:
-    radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 38%),
-    var(--sqlforge-surface-2);
-  box-shadow: none;
-}
-
-.runtime-hero,
-.control-card,
-.asset-grid > article {
-  padding: 24px;
-}
-
-.runtime-hero {
-  display: grid;
-  gap: 14px;
-}
-
-.runtime-eyebrow,
-.section-kicker {
-  margin: 0 0 8px;
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: #047857;
-}
-
-.runtime-title,
-.section-title,
-.detail-subtitle {
-  margin: 0;
-  color: var(--sqlforge-text-primary);
-}
-
-.runtime-summary,
-.runtime-note,
 .empty-state,
 .detail-copy p {
   margin: 0;
@@ -859,53 +804,57 @@ onMounted(async () => {
   line-height: 1.6;
 }
 
-.section-heading,
 .filter-grid {
   display: flex;
-  gap: 16px;
-  align-items: end;
-  justify-content: space-between;
-}
-
-.filter-grid {
   flex-wrap: wrap;
+  gap: var(--sqlforge-space-4);
+  align-items: end;
 }
 
 .field-block {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--sqlforge-space-2);
   min-width: 220px;
 }
 
 .field-label {
-  color: #475569;
+  color: var(--sqlforge-text-secondary);
   font-size: 13px;
 }
 
-.asset-grid {
+.asset-workspace {
   display: grid;
-  gap: 24px;
+  gap: var(--sqlforge-space-5);
   grid-template-columns: minmax(300px, 0.9fr) minmax(380px, 1.3fr);
 }
 
-.catalog-list,
-.snapshot-list {
-  display: grid;
-  gap: 12px;
+.asset-list-pane,
+.asset-detail-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sqlforge-space-4);
+  min-width: 0;
+  padding-top: var(--sqlforge-space-5);
+  border-top: 1px solid var(--sqlforge-border-default);
 }
 
-.catalog-item,
+.asset-list,
+.snapshot-list {
+  display: grid;
+  gap: var(--sqlforge-space-3);
+}
+
+.asset-list-item,
 .snapshot-item,
-.summary-card,
-.evidence-card {
-  border-radius: 18px;
+.description-item {
   border: 1px solid var(--sqlforge-border-default);
-  background: rgba(35, 35, 35, 0.92);
+  border-radius: var(--sqlforge-radius-sm);
+  background: rgba(35, 35, 35, 0.72);
   padding: 14px 16px;
 }
 
-.catalog-item {
+.asset-list-item {
   display: grid;
   gap: 4px;
   width: 100%;
@@ -913,53 +862,60 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-.catalog-item span,
+.asset-list-item span,
 .snapshot-item span {
-  color: #475569;
+  color: var(--sqlforge-text-muted);
   font-size: 12px;
 }
 
-.catalog-item-active {
+.asset-list-item-active {
   border-color: rgba(16, 185, 129, 0.45);
-  box-shadow: 0 16px 30px rgba(16, 185, 129, 0.12);
 }
 
-.summary-card-grid {
+.description-grid {
   display: grid;
-  gap: 12px;
+  gap: var(--sqlforge-space-3);
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
-.summary-card-label {
-  display: block;
-  margin-bottom: 8px;
+.description-item {
+  display: grid;
+  gap: var(--sqlforge-space-2);
+}
+
+.description-item dt {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #475569;
+  color: var(--sqlforge-text-muted);
 }
 
-.summary-evidence {
-  color: #64748b;
+.description-item dd {
+  margin: 0;
+  color: var(--sqlforge-text-primary);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.description-item small {
+  color: var(--sqlforge-text-secondary);
   font-size: 11px;
   line-height: 1.5;
 }
 
-.detail-rail,
-.catalog-rail {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+.detail-copy,
+.detail-section {
+  display: grid;
+  gap: var(--sqlforge-space-4);
 }
 
-.detail-copy,
-.evidence-card {
-  display: grid;
-  gap: 12px;
+.detail-section {
+  padding-top: var(--sqlforge-space-4);
+  border-top: 1px solid var(--sqlforge-border-subtle);
 }
 
 .result-banner {
-  border-radius: 18px;
+  border-radius: var(--sqlforge-radius-sm);
   padding: 14px 16px;
 }
 
@@ -969,7 +925,7 @@ onMounted(async () => {
 }
 
 @media (max-width: 1080px) {
-  .asset-grid {
+  .asset-workspace {
     grid-template-columns: 1fr;
   }
 
