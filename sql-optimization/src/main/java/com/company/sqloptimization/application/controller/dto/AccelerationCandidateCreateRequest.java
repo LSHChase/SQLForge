@@ -7,7 +7,6 @@ import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import java.math.BigDecimal;
 import java.util.Map;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 public class AccelerationCandidateCreateRequest {
@@ -20,7 +19,6 @@ public class AccelerationCandidateCreateRequest {
     @NotNull(message = "sourceKind is required")
     private GovernanceSourceKind sourceKind;
 
-    @NotBlank(message = "sourceId is required")
     private String sourceId;
 
     private String historyId;

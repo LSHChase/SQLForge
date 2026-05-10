@@ -11,15 +11,6 @@
 
 ## Todo
 
-### HARN-133: 加速候选生成统一入口
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-129`, `HARN-132`
-- Scope: 统一解析驱动与查询驱动 source normalization、candidate API、`sourceType/sourceKind/sourceId/evidenceLevel` 追溯键校验和 static/runtime evidence 分层。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-133`
-
 ### HARN-134: 改写记录写入与 SQL 历史聚合接口
 
 - Status: todo

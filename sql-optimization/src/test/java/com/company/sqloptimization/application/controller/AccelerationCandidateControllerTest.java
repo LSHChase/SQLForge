@@ -9,6 +9,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
+import com.company.sqlforge.common.constants.ErrorCodeConstants;
+import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.exception.GlobalExceptionHandler;
 import com.company.sqloptimization.application.controller.vo.AccelerationCandidateVO;
 import com.company.sqloptimization.application.service.AccelerationCandidateApplicationService;
 import java.util.Collections;
@@ -17,10 +20,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @WebMvcTest(AccelerationCandidateController.class)
+@Import(GlobalExceptionHandler.class)
 class AccelerationCandidateControllerTest {
 
     @Autowired
@@ -61,6 +67,48 @@ class AccelerationCandidateControllerTest {
         mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/acceleration-candidates")))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].sourceType").value("PARSE"));
+    }
+
+    @Test
+    void shouldAcceptCandidateRequestWithDerivedSourceId() throws Exception {
+        AccelerationCandidateVO candidate = new AccelerationCandidateVO();
+        candidate.setCandidateId("candidate-002");
+        candidate.setTenantId("tenant-a");
+        candidate.setSourceType("QUERY");
+        candidate.setSourceKind("QUERY_HISTORY");
+        candidate.setSourceId("history-001");
+        candidate.setEvidenceLevel("RUNTIME_HISTORY");
+        candidate.setStatus("DRAFT");
+        candidate.setContractStage("LONG_TERM_BASELINE");
+        candidate.setImplementationStage("ACCELERATION_REWRITE_CONTRACT_BASELINE");
+        when(accelerationCandidateApplicationService.createCandidate(any())).thenReturn(candidate);
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/acceleration-candidates"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"sourceType\":\"QUERY\",\"sourceKind\":\"QUERY_HISTORY\","
+                    + "\"historyId\":\"history-001\",\"evidenceLevel\":\"RUNTIME_HISTORY\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.sourceId").value("history-001"))
+            .andExpect(jsonPath("$.evidenceLevel").value("RUNTIME_HISTORY"));
+    }
+
+    @Test
+    void shouldReturnBadRequestForInvalidCandidateSourceEvidence() throws Exception {
+        when(accelerationCandidateApplicationService.createCandidate(any())).thenThrow(new BizException(
+            ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+            HttpStatus.BAD_REQUEST,
+            "evidenceLevel: evidenceLevel STATIC_PARSE is not valid for QUERY sourceType"
+        ));
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/acceleration-candidates"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"sourceType\":\"QUERY\",\"sourceKind\":\"QUERY_HISTORY\","
+                    + "\"historyId\":\"history-001\",\"evidenceLevel\":\"STATIC_PARSE\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT))
+            .andExpect(jsonPath("$.message").value(
+                "evidenceLevel: evidenceLevel STATIC_PARSE is not valid for QUERY sourceType"
+            ));
     }
 
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {

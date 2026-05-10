@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
+import com.company.sqlforge.common.exception.BizException;
 import com.company.sqloptimization.application.controller.dto.AccelerationCandidateCreateRequest;
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
@@ -25,9 +27,11 @@ import com.company.sqloptimization.infrastructure.repository.InMemoryAcceleratio
 import com.company.sqloptimization.infrastructure.repository.InMemorySqlRewriteRecordRepository;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 class AccelerationRewriteContractApplicationServiceTest {
 
@@ -63,6 +67,123 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals("DRAFT", created.getStatus());
         assertEquals("ACCELERATION_REWRITE_CONTRACT_BASELINE", created.getImplementationStage());
         assertEquals(created.getCandidateId(), detail.getCandidateId());
+    }
+
+    @Test
+    void shouldNormalizeParseCandidateSourceIdFromTraceKeys() {
+        setTenant("tenant-a");
+        AccelerationCandidateApplicationService service =
+            new AccelerationCandidateApplicationService(new InMemoryAccelerationCandidateRepository());
+
+        AccelerationCandidateCreateRequest request = new AccelerationCandidateCreateRequest();
+        request.setTenantId("tenant-a");
+        request.setSourceType(GovernanceSourceType.PARSE);
+        request.setSourceKind(GovernanceSourceKind.STRUCTURE_PARSE);
+        request.setSourceId("explicit-source");
+        request.setParseHistoryId("parse-history-001");
+        request.setParseTaskId("parse-task-001");
+        request.setEvidenceLevel(EvidenceLevel.STATIC_PARSE);
+
+        AccelerationCandidateVO created = service.createCandidate(request);
+
+        assertEquals("PARSE", created.getSourceType());
+        assertEquals("STRUCTURE_PARSE", created.getSourceKind());
+        assertEquals("parse-history-001", created.getSourceId());
+        assertEquals("STATIC_PARSE", created.getEvidenceLevel());
+    }
+
+    @Test
+    void shouldNormalizeQueryCandidateSourceIdFromHistory() {
+        setTenant("tenant-a");
+        AccelerationCandidateApplicationService service =
+            new AccelerationCandidateApplicationService(new InMemoryAccelerationCandidateRepository());
+
+        AccelerationCandidateCreateRequest request = new AccelerationCandidateCreateRequest();
+        request.setTenantId("tenant-a");
+        request.setSourceType(GovernanceSourceType.QUERY);
+        request.setSourceKind(GovernanceSourceKind.QUERY_HISTORY);
+        request.setSourceId("manual-source");
+        request.setHistoryId("history-001");
+        request.setEvidenceLevel(EvidenceLevel.RUNTIME_HISTORY);
+
+        AccelerationCandidateVO created = service.createCandidate(request);
+
+        assertEquals("QUERY", created.getSourceType());
+        assertEquals("QUERY_HISTORY", created.getSourceKind());
+        assertEquals("history-001", created.getSourceId());
+        assertEquals("RUNTIME_HISTORY", created.getEvidenceLevel());
+    }
+
+    @Test
+    void shouldRejectCandidateSourceKindOutsideSourceType() {
+        setTenant("tenant-a");
+        AccelerationCandidateApplicationService service =
+            new AccelerationCandidateApplicationService(new InMemoryAccelerationCandidateRepository());
+        AccelerationCandidateCreateRequest request = new AccelerationCandidateCreateRequest();
+        request.setTenantId("tenant-a");
+        request.setSourceType(GovernanceSourceType.PARSE);
+        request.setSourceKind(GovernanceSourceKind.QUERY_HISTORY);
+        request.setSourceId("history-001");
+        request.setEvidenceLevel(EvidenceLevel.STATIC_PARSE);
+
+        BizException exception = assertThrows(BizException.class, () -> service.createCandidate(request));
+
+        assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+    }
+
+    @Test
+    void shouldRejectEvidenceLevelOutsideSourceType() {
+        setTenant("tenant-a");
+        AccelerationCandidateApplicationService service =
+            new AccelerationCandidateApplicationService(new InMemoryAccelerationCandidateRepository());
+        AccelerationCandidateCreateRequest request = new AccelerationCandidateCreateRequest();
+        request.setTenantId("tenant-a");
+        request.setSourceType(GovernanceSourceType.QUERY);
+        request.setSourceKind(GovernanceSourceKind.QUERY_HISTORY);
+        request.setHistoryId("history-001");
+        request.setEvidenceLevel(EvidenceLevel.STATIC_PARSE);
+
+        BizException exception = assertThrows(BizException.class, () -> service.createCandidate(request));
+
+        assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+    }
+
+    @Test
+    void shouldRejectMissingCandidateTraceKey() {
+        setTenant("tenant-a");
+        AccelerationCandidateApplicationService service =
+            new AccelerationCandidateApplicationService(new InMemoryAccelerationCandidateRepository());
+        AccelerationCandidateCreateRequest request = new AccelerationCandidateCreateRequest();
+        request.setTenantId("tenant-a");
+        request.setSourceType(GovernanceSourceType.PARSE);
+        request.setSourceKind(GovernanceSourceKind.STRUCTURE_PARSE);
+        request.setEvidenceLevel(EvidenceLevel.STATIC_PARSE);
+
+        BizException exception = assertThrows(BizException.class, () -> service.createCandidate(request));
+
+        assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+    }
+
+    @Test
+    void shouldRejectRuntimeEvidenceOnStaticParseCandidate() {
+        setTenant("tenant-a");
+        AccelerationCandidateApplicationService service =
+            new AccelerationCandidateApplicationService(new InMemoryAccelerationCandidateRepository());
+        AccelerationCandidateCreateRequest request = new AccelerationCandidateCreateRequest();
+        request.setTenantId("tenant-a");
+        request.setSourceType(GovernanceSourceType.PARSE);
+        request.setSourceKind(GovernanceSourceKind.STRUCTURE_PARSE);
+        request.setParseHistoryId("parse-history-001");
+        request.setEvidenceLevel(EvidenceLevel.STATIC_PARSE);
+        request.setRuntimeEvidence(Collections.<String, Object>singletonMap("elapsedMs", Integer.valueOf(1200)));
+
+        BizException exception = assertThrows(BizException.class, () -> service.createCandidate(request));
+
+        assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
     }
 
     @Test

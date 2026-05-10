@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-133: 加速候选生成统一入口
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(sql-optimization): unify acceleration candidate source validation`
+- Priority: 1
+- Depends on: `HARN-129`, `HARN-132`
+- Scope: 统一解析驱动与查询驱动 source normalization、candidate API、`sourceType/sourceKind/sourceId/evidenceLevel` 追溯键校验和 static/runtime evidence 分层。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-133`
+- Context closeout:
+  - Completed scope: Implemented unified PARSE/QUERY candidate source normalization, trace-key sourceId derivation, sourceKind/evidenceLevel compatibility validation, and service/controller regression coverage for HARN-133.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-133 --include-task-audit --extra-command "mvn -pl sql-optimization test" --extra-command "git diff --check"; python3 scripts/task_audit.py --check --phase pre-closeout.
+  - Residual risk: Local validation ran under OpenJDK 1.8.0_482; repository delivery baseline remains JDK 8u112 and should be used in CI/release environments.
+  - Next step: Proceed to HARN-134 rewrite record write path and query-history aggregation using the normalized candidate trace fields.
+
 ### HARN-132: 建立 SQL diff 后端服务
 
 - Status: done

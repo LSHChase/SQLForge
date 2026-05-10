@@ -8,8 +8,12 @@ import com.company.sqloptimization.application.controller.dto.AccelerationCandid
 import com.company.sqloptimization.application.controller.vo.AccelerationCandidateVO;
 import com.company.sqloptimization.domain.candidate.AccelerationCandidate;
 import com.company.sqloptimization.domain.candidate.repository.AccelerationCandidateRepository;
+import com.company.sqloptimization.domain.governance.EvidenceLevel;
+import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
+import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -21,6 +25,32 @@ public class AccelerationCandidateApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
     private static final String IMPLEMENTATION_STAGE = "ACCELERATION_REWRITE_CONTRACT_BASELINE";
+    private static final EnumSet<GovernanceSourceKind> PARSE_SOURCE_KINDS = EnumSet.of(
+        GovernanceSourceKind.STRUCTURE_PARSE,
+        GovernanceSourceKind.COMBINED_PARSE,
+        GovernanceSourceKind.PARSE_BATCH,
+        GovernanceSourceKind.REPORT_BATCH,
+        GovernanceSourceKind.END_OF_DAY_SLOW_SQL
+    );
+    private static final EnumSet<GovernanceSourceKind> QUERY_SOURCE_KINDS = EnumSet.of(
+        GovernanceSourceKind.QUERY_HISTORY,
+        GovernanceSourceKind.SLOW_SQL,
+        GovernanceSourceKind.HIGH_P99,
+        GovernanceSourceKind.HIGH_SCAN,
+        GovernanceSourceKind.BENCHMARK_REGRESSION,
+        GovernanceSourceKind.MANUAL
+    );
+    private static final EnumSet<EvidenceLevel> PARSE_EVIDENCE_LEVELS = EnumSet.of(
+        EvidenceLevel.STATIC_PARSE,
+        EvidenceLevel.ACCESS_PARSE,
+        EvidenceLevel.MIXED
+    );
+    private static final EnumSet<EvidenceLevel> QUERY_EVIDENCE_LEVELS = EnumSet.of(
+        EvidenceLevel.RUNTIME_HISTORY,
+        EvidenceLevel.EXPLAIN_PLAN,
+        EvidenceLevel.BENCHMARK,
+        EvidenceLevel.MIXED
+    );
 
     private final AccelerationCandidateRepository accelerationCandidateRepository;
 
@@ -33,13 +63,14 @@ public class AccelerationCandidateApplicationService {
         if (request == null) {
             throw invalidArgument("request", "candidate request is required");
         }
+        NormalizedSource normalizedSource = normalizeSource(request);
         Instant now = Instant.now();
         AccelerationCandidate candidate = AccelerationCandidate.builder()
             .candidateId(UUID.randomUUID().toString())
             .tenantId(tenantId)
-            .sourceType(request.getSourceType())
-            .sourceKind(request.getSourceKind())
-            .sourceId(trimToNull(request.getSourceId()))
+            .sourceType(normalizedSource.sourceType)
+            .sourceKind(normalizedSource.sourceKind)
+            .sourceId(normalizedSource.sourceId)
             .historyId(trimToNull(request.getHistoryId()))
             .parseHistoryId(trimToNull(request.getParseHistoryId()))
             .parseTaskId(trimToNull(request.getParseTaskId()))
@@ -55,7 +86,7 @@ public class AccelerationCandidateApplicationService {
             .status(request.getStatus())
             .confidence(request.getConfidence())
             .priority(request.getPriority())
-            .evidenceLevel(request.getEvidenceLevel())
+            .evidenceLevel(normalizedSource.evidenceLevel)
             .schemaVersion(trimToNull(request.getSchemaVersion()))
             .createdBy(RequestContext.getUserId())
             .createdAt(now)
@@ -68,6 +99,93 @@ public class AccelerationCandidateApplicationService {
             .risk(request.getRisk())
             .build();
         return toVo(accelerationCandidateRepository.save(candidate));
+    }
+
+    private NormalizedSource normalizeSource(AccelerationCandidateCreateRequest request) {
+        GovernanceSourceType sourceType = request.getSourceType();
+        GovernanceSourceKind sourceKind = request.getSourceKind();
+        EvidenceLevel evidenceLevel = request.getEvidenceLevel();
+        if (sourceType == null) {
+            throw invalidArgument("sourceType", "sourceType is required");
+        }
+        if (sourceKind == null) {
+            throw invalidArgument("sourceKind", "sourceKind is required");
+        }
+        if (evidenceLevel == null) {
+            throw invalidArgument("evidenceLevel", "evidenceLevel is required");
+        }
+        if (sourceType == GovernanceSourceType.PARSE) {
+            validateParseSource(request, sourceKind, evidenceLevel);
+            return new NormalizedSource(sourceType, sourceKind, resolveParseSourceId(request), evidenceLevel);
+        }
+        if (sourceType == GovernanceSourceType.QUERY) {
+            validateQuerySource(sourceKind, evidenceLevel);
+            return new NormalizedSource(sourceType, sourceKind, resolveQuerySourceId(request), evidenceLevel);
+        }
+        throw invalidArgument("sourceType", "Unsupported sourceType: " + sourceType);
+    }
+
+    private void validateParseSource(AccelerationCandidateCreateRequest request,
+                                     GovernanceSourceKind sourceKind,
+                                     EvidenceLevel evidenceLevel) {
+        if (!PARSE_SOURCE_KINDS.contains(sourceKind)) {
+            throw invalidArgument("sourceKind", "sourceKind " + sourceKind + " is not valid for PARSE sourceType");
+        }
+        if (!PARSE_EVIDENCE_LEVELS.contains(evidenceLevel)) {
+            throw invalidArgument(
+                "evidenceLevel",
+                "evidenceLevel " + evidenceLevel + " is not valid for PARSE sourceType"
+            );
+        }
+        if (request.getRuntimeEvidence() != null
+            && !request.getRuntimeEvidence().isEmpty()
+            && (evidenceLevel == EvidenceLevel.STATIC_PARSE || evidenceLevel == EvidenceLevel.ACCESS_PARSE)) {
+            throw invalidArgument(
+                "runtimeEvidence",
+                "runtimeEvidence requires MIXED or QUERY evidence and cannot be attached to static parse evidence"
+            );
+        }
+    }
+
+    private void validateQuerySource(GovernanceSourceKind sourceKind, EvidenceLevel evidenceLevel) {
+        if (!QUERY_SOURCE_KINDS.contains(sourceKind)) {
+            throw invalidArgument("sourceKind", "sourceKind " + sourceKind + " is not valid for QUERY sourceType");
+        }
+        if (!QUERY_EVIDENCE_LEVELS.contains(evidenceLevel)) {
+            throw invalidArgument(
+                "evidenceLevel",
+                "evidenceLevel " + evidenceLevel + " is not valid for QUERY sourceType"
+            );
+        }
+    }
+
+    private String resolveParseSourceId(AccelerationCandidateCreateRequest request) {
+        String sourceId = firstNonBlank(
+            request.getParseHistoryId(),
+            request.getParseTaskId(),
+            request.getBatchItemId(),
+            request.getBatchId(),
+            request.getSourceId()
+        );
+        if (!StringUtils.hasText(sourceId)) {
+            throw invalidArgument(
+                "sourceId",
+                "PARSE candidate requires sourceId, parseHistoryId, parseTaskId, batchItemId or batchId"
+            );
+        }
+        return sourceId;
+    }
+
+    private String resolveQuerySourceId(AccelerationCandidateCreateRequest request) {
+        String sourceId = firstNonBlank(
+            request.getHistoryId(),
+            request.getBenchmarkTaskId(),
+            request.getSourceId()
+        );
+        if (!StringUtils.hasText(sourceId)) {
+            throw invalidArgument("sourceId", "QUERY candidate requires sourceId, historyId or benchmarkTaskId");
+        }
+        return sourceId;
     }
 
     public AccelerationCandidateVO getCandidate(String candidateId) {
@@ -171,5 +289,40 @@ public class AccelerationCandidateApplicationService {
             return null;
         }
         return value.trim();
+    }
+
+    private String firstNonBlank(String first, String second, String third) {
+        return firstNonBlank(new String[] { first, second, third });
+    }
+
+    private String firstNonBlank(String first, String second, String third, String fourth, String fifth) {
+        return firstNonBlank(new String[] { first, second, third, fourth, fifth });
+    }
+
+    private String firstNonBlank(String[] values) {
+        for (String value : values) {
+            String trimmed = trimToNull(value);
+            if (trimmed != null) {
+                return trimmed;
+            }
+        }
+        return null;
+    }
+
+    private static final class NormalizedSource {
+        private final GovernanceSourceType sourceType;
+        private final GovernanceSourceKind sourceKind;
+        private final String sourceId;
+        private final EvidenceLevel evidenceLevel;
+
+        private NormalizedSource(GovernanceSourceType sourceType,
+                                 GovernanceSourceKind sourceKind,
+                                 String sourceId,
+                                 EvidenceLevel evidenceLevel) {
+            this.sourceType = sourceType;
+            this.sourceKind = sourceKind;
+            this.sourceId = sourceId;
+            this.evidenceLevel = evidenceLevel;
+        }
     }
 }
