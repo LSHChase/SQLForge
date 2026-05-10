@@ -80,6 +80,10 @@ export function useParseBatchCenter() {
     pageSize: 25,
     reportCode: ''
   })
+  const reportStatisticsIssueScenePagination = reactive({
+    pageNumber: 1,
+    pageSize: 10
+  })
 
   const loading = reactive({
     createParseBatch: false,
@@ -394,6 +398,12 @@ export function useParseBatchCenter() {
     return omittedFromPreview(sourceCount, reportGroupsDashboardPreview.value.length)
   })
   const reportIssueStatisticsPreview = computed(() => previewList(reportIssueStatistics.value, STATISTIC_PREVIEW_LIMIT))
+  const reportIssueStatisticsPage = computed(() => {
+    const pageNumber = Math.max(1, Number(reportStatisticsIssueScenePagination.pageNumber || 1))
+    const pageSize = Math.max(1, Number(reportStatisticsIssueScenePagination.pageSize || 10))
+    const start = (pageNumber - 1) * pageSize
+    return reportIssueStatistics.value.slice(start, start + pageSize)
+  })
   const reportIssueStatisticsOmittedCount = computed(() =>
     omittedFromPreview(reportIssueStatistics.value.length, reportIssueStatisticsPreview.value.length)
   )
@@ -1179,6 +1189,8 @@ export function useParseBatchCenter() {
 
   const openReportStatistics = async () => {
     await refreshReportStatistics({ pageNumber: 1 })
+    reportStatisticsIssueScenePagination.pageNumber = 1
+    reportStatisticsIssueScenePagination.pageSize = 10
     activeReportStatisticsTab.value = 'issueScene'
     reportStatisticsDialogVisible.value = true
   }
@@ -1226,6 +1238,15 @@ export function useParseBatchCenter() {
     reportStatisticsSqlPagination.pageSize = pageSize
     reportStatisticsSqlPagination.pageNumber = 1
     refreshReportStatistics({ pageNumber: 1, pageSize })
+  }
+
+  const handleReportStatisticsIssueScenePageChange = pageNumber => {
+    reportStatisticsIssueScenePagination.pageNumber = pageNumber
+  }
+
+  const handleReportStatisticsIssueScenePageSizeChange = pageSize => {
+    reportStatisticsIssueScenePagination.pageSize = pageSize
+    reportStatisticsIssueScenePagination.pageNumber = 1
   }
 
   const openReportItemDetail = item => {
@@ -1336,6 +1357,7 @@ export function useParseBatchCenter() {
     parseBatchListPagination,
     reportBatchListPagination,
     reportStatisticsSqlPagination,
+    reportStatisticsIssueScenePagination,
     loading,
     parseBatchForm,
     retryForm,
@@ -1388,6 +1410,7 @@ export function useParseBatchCenter() {
     reportGroupsDashboardPreview,
     reportGroupsDashboardOmittedCount,
     reportIssueStatisticsPreview,
+    reportIssueStatisticsPage,
     reportIssueStatisticsOmittedCount,
     reportImportanceStatisticsPreview,
     reportImportanceStatisticsOmittedCount,
@@ -1469,6 +1492,8 @@ export function useParseBatchCenter() {
     applyReportStatisticsSqlFilter,
     handleReportStatisticsSqlPageChange,
     handleReportStatisticsSqlPageSizeChange,
+    handleReportStatisticsIssueScenePageChange,
+    handleReportStatisticsIssueScenePageSizeChange,
     openReportItemDetail,
     openBatchSelector,
     openParseSession,

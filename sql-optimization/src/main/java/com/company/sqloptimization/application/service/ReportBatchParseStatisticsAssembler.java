@@ -156,8 +156,7 @@ class ReportBatchParseStatisticsAssembler {
                 continue;
             }
             affectedIssueCount += issueCount;
-            SqlIssueAssessment assessment = assessIssueScenes(effectiveIssueScenes);
-            sqlStatistics.add(toSqlStatistic(item, effectiveIssueScenes, assessment));
+            sqlStatistics.add(toIssueSceneSqlStatistic(item, normalizedIssueScene, issueCount));
             accumulateIssueSceneReport(item, issueCount, reportAccumulators);
             accumulateIssueSceneLogicalObjects(item, issueCount, logicalObjectAccumulators);
         }
@@ -547,6 +546,27 @@ class ReportBatchParseStatisticsAssembler {
     private ReportBatchSqlStatisticVO toSqlStatistic(ReportBatchItem item,
                                                      List<String> issueScenes,
                                                      SqlIssueAssessment assessment) {
+        return toSqlStatistic(item, issueScenes, assessment, issueScenes, Integer.valueOf(assessment.issueCount));
+    }
+
+    private ReportBatchSqlStatisticVO toIssueSceneSqlStatistic(ReportBatchItem item,
+                                                               String issueScene,
+                                                               int issueCount) {
+        List<String> issueSceneScope = Collections.singletonList(issueScene);
+        return toSqlStatistic(
+            item,
+            issueSceneScope,
+            assessIssueScenes(issueSceneScope),
+            issueSceneScope,
+            Integer.valueOf(issueCount)
+        );
+    }
+
+    private ReportBatchSqlStatisticVO toSqlStatistic(ReportBatchItem item,
+                                                     List<String> issueScenes,
+                                                     SqlIssueAssessment assessment,
+                                                     List<String> locationIssueScenes,
+                                                     Integer issueCountOverride) {
         ReportBatchSqlStatisticVO vo = new ReportBatchSqlStatisticVO();
         vo.setItemId(item.getItemId());
         vo.setBatchId(item.getBatchId());
@@ -559,7 +579,7 @@ class ReportBatchParseStatisticsAssembler {
         vo.setSqlOrdinalInReport(item.getSqlOrdinalInReport());
         vo.setStatus(item.getStatus() == null ? null : item.getStatus().name());
         vo.setSqlDigest(digest(item.getSqlText()));
-        vo.setIssueCount(Integer.valueOf(assessment.issueCount));
+        vo.setIssueCount(issueCountOverride == null ? Integer.valueOf(assessment.issueCount) : issueCountOverride);
         vo.setHighestPriorityLevel(assessment.highestPriorityLevel);
         vo.setHighestPriorityScore(Integer.valueOf(assessment.highestPriorityScore));
         vo.setImportant(Boolean.valueOf(assessment.important));
@@ -567,7 +587,8 @@ class ReportBatchParseStatisticsAssembler {
         vo.setIssueScenes(new ArrayList<String>(issueScenes));
         vo.setIssueLocations(ReportBatchIssueLocationSupport.fromItem(
             item,
-            SqlParseDiagnosticSupport.fromFailureReason(item.getFailureReason())
+            SqlParseDiagnosticSupport.fromFailureReason(item.getFailureReason()),
+            locationIssueScenes
         ));
         vo.setLogicalObjectKeys(new ArrayList<String>(item.getLogicalObjectKeys()));
         return vo;

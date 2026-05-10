@@ -7,31 +7,42 @@ const { t } = useI18n()
 const {
   activeReportBatchDetailTab,
   activeReportBatchStatisticsTab,
+  clearReportBatchIssueSceneLogicalObjectFilter,
+  clearReportBatchIssueSceneReportFilter,
   applyReportBatchIssueSceneFilter,
   applyReportBatchSqlFilter,
   displayValue,
   formatPercent,
   handleReportBatchIssueScenePageChange,
+  handleReportBatchIssueScenePageSizeChange,
+  handleReportBatchIssueStatisticsPageChange,
+  handleReportBatchIssueStatisticsPageSizeChange,
   handleReportBatchSqlPageChange,
   handleReportBatchSqlPageSizeChange,
   isChinese,
   issueLocationText,
+  issueLocationTextForScene,
+  issueSceneLogicalObjectRowClassName,
   issueSceneCodesForItem,
   issueSceneHelp,
   issueSceneListHelp,
+  issueSceneReportRowClassName,
   loading,
   loadReportBatchItemDetail,
   normalizeArray,
   openReportBatchIssueSceneDetail,
   openReportSqlParseDetail,
   REPORT_SQL_PAGE_SIZE_OPTIONS,
+  REPORT_STATISTIC_PAGE_SIZE_OPTIONS,
   reportBatchDetailCards,
   reportBatchDetailDrawerVisible,
   reportBatchIssueSceneDetailCards,
   reportBatchIssueSceneDetailDialogTitle,
   reportBatchIssueSceneDetailDialogVisible,
   reportBatchIssueScenePagination,
+  reportBatchIssueStatisticsPagination,
   reportBatchIssueStatistics,
+  reportBatchIssueStatisticsPage,
   reportBatchItemDetailErrorMessage,
   reportBatchLogicalObjectStatistics,
   reportBatchParseDetailSummary,
@@ -45,7 +56,9 @@ const {
   selectedReportImportanceStatistics,
   selectedReportIssueSceneDetail,
   selectedReportItems,
-  selectedReportPriorityMatrix
+  selectedReportPriorityMatrix,
+  selectReportBatchIssueSceneLogicalObject,
+  selectReportBatchIssueSceneReport
 } = useParseRecordContext()
 </script>
 
@@ -78,34 +91,36 @@ const {
           >
             <el-tab-pane :label="isChinese ? '问题场景' : 'Issue scenes'" name="issueScene">
               <el-table
-                :data="reportBatchIssueStatistics"
+                v-loading="loading.reportBatchDetail"
+                :data="reportBatchIssueStatisticsPage"
                 border
                 data-testid="parse-record-report-statistics-issue-scene"
               >
-                <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.issueScene') }" min-width="220">
+                <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.issueScene') }" min-width="260" show-overflow-tooltip>
                   <template #default="{ row }">
                     <span class="issue-scene-line">
                       <span class="issue-scene-code issue-scene-code-button">{{ row.issueScene }}</span>
-                      <span
+                      <el-tooltip
                         v-if="issueSceneHelp(row.issueScene)"
-                        class="help-dot issue-scene-help"
-                        tabindex="0"
-                        aria-label="issue scene help"
-                        :data-tooltip="issueSceneHelp(row.issueScene)"
-                      >?</span>
+                        v-bind="{ content: issueSceneHelp(row.issueScene) }"
+                        placement="top"
+                        teleported
+                      >
+                        <span class="help-dot issue-scene-help" tabindex="0" aria-label="issue scene help">{{ t('common.helpMark') }}</span>
+                      </el-tooltip>
                     </span>
                   </template>
                 </el-table-column>
-                <el-table-column prop="affectedSqlCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.affectedSql') }" min-width="110" />
-                <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.severity') }" min-width="110">
+                <el-table-column prop="affectedSqlCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.affectedSql') }" width="100" />
+                <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.severity') }" width="100">
                   <template #default="{ row }">{{ displayValue(row.severity) }}</template>
                 </el-table-column>
-                <el-table-column prop="reportCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.reportCount') }" min-width="110" />
-                <el-table-column prop="logicalObjectCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.logicalObjectCount') }" min-width="130" />
-                <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.ratio') }" min-width="100">
+                <el-table-column prop="reportCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.reportCount') }" width="90" />
+                <el-table-column prop="logicalObjectCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.logicalObjectCount') }" width="110" />
+                <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.ratio') }" width="90">
                   <template #default="{ row }">{{ formatPercent(row.ratio) }}</template>
                 </el-table-column>
-                <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.actions') }" min-width="120" fixed="right">
+                <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.actions') }" width="100" fixed="right">
                   <template #default="{ row }">
                     <el-button text :loading="loading.reportBatchIssueSceneDetail" @click="openReportBatchIssueSceneDetail(row)">
                       {{ t('parseRecord.issueSceneDetail.actions.viewDetail') }}
@@ -118,6 +133,17 @@ const {
                   </p>
                 </template>
               </el-table>
+              <el-pagination
+                v-if="reportBatchIssueStatistics.length > reportBatchIssueStatisticsPagination.pageSize"
+                class="pagination-row"
+                layout="total, sizes, prev, pager, next"
+                :total="reportBatchIssueStatistics.length"
+                :page-sizes="REPORT_STATISTIC_PAGE_SIZE_OPTIONS"
+                :page-size="reportBatchIssueStatisticsPagination.pageSize"
+                :current-page="reportBatchIssueStatisticsPagination.pageNumber"
+                @current-change="handleReportBatchIssueStatisticsPageChange"
+                @size-change="handleReportBatchIssueStatisticsPageSizeChange"
+              />
             </el-tab-pane>
             <el-tab-pane :label="isChinese ? '重要程度' : 'Importance'" name="importance">
               <div class="detail-grid">
@@ -164,13 +190,14 @@ const {
                   <strong>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues</strong>
                   <p>
                     {{ isChinese ? '问题场景' : 'Issue scenes' }}:
-                    <span
+                    <el-tooltip
                       v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
-                      class="help-dot issue-scene-help"
-                      tabindex="0"
-                      aria-label="issue scene help"
-                      :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                    >?</span>
+                      v-bind="{ content: issueSceneListHelp(issueSceneCodesForItem(item)) }"
+                      placement="top"
+                      teleported
+                    >
+                      <span class="help-dot issue-scene-help" tabindex="0" aria-label="issue scene help">{{ t('common.helpMark') }}</span>
+                    </el-tooltip>
                     {{ displayValue(issueSceneCodesForItem(item)) }}
                   </p>
                 </div>
@@ -273,13 +300,14 @@ const {
                   </p>
                   <p>
                     {{ isChinese ? '问题场景' : 'Issue scenes' }}:
-                    <span
+                    <el-tooltip
                       v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
-                      class="help-dot issue-scene-help"
-                      tabindex="0"
-                      aria-label="issue scene help"
-                      :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                    >?</span>
+                      v-bind="{ content: issueSceneListHelp(issueSceneCodesForItem(item)) }"
+                      placement="top"
+                      teleported
+                    >
+                      <span class="help-dot issue-scene-help" tabindex="0" aria-label="issue scene help">{{ t('common.helpMark') }}</span>
+                    </el-tooltip>
                     {{ displayValue(issueSceneCodesForItem(item)) }}
                   </p>
                   <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
@@ -338,13 +366,14 @@ const {
         <span v-for="item in reportBatchIssueSceneDetailCards" :key="item.label" class="summary-chip">
           {{ item.label }}:
           <strong>{{ displayValue(item.value) }}</strong>
-          <span
+          <el-tooltip
             v-if="item.key === 'issueScene' && issueSceneHelp(item.value)"
-            class="help-dot issue-scene-help"
-            tabindex="0"
-            aria-label="issue scene help"
-            :data-tooltip="issueSceneHelp(item.value)"
-          >?</span>
+            v-bind="{ content: issueSceneHelp(item.value) }"
+            placement="top"
+            teleported
+          >
+            <span class="help-dot issue-scene-help" tabindex="0" aria-label="issue scene help">{{ t('common.helpMark') }}</span>
+          </el-tooltip>
         </span>
         <span v-if="loading.reportBatchIssueSceneDetail" class="summary-chip summary-chip-warning">
           {{ isChinese ? '正在加载场景详情' : 'Loading scene detail' }}
@@ -365,6 +394,26 @@ const {
           {{ isChinese ? '查询详情' : 'Search detail' }}
         </el-button>
       </div>
+      <div class="linked-filter-row" data-testid="parse-record-report-issue-scene-linked-filters">
+        <span class="summary-chip">
+          {{ t('parseRecord.issueSceneDetail.filters.currentScene') }}:
+          <strong>{{ displayValue(selectedReportIssueSceneDetail.issueScene) }}</strong>
+        </span>
+        <span v-if="reportBatchIssueScenePagination.reportCode" class="summary-chip summary-chip-active">
+          {{ t('parseRecord.issueSceneDetail.filters.report') }}:
+          <strong>{{ reportBatchIssueScenePagination.reportCode }}</strong>
+          <el-button text size="small" @click="clearReportBatchIssueSceneReportFilter">
+            {{ t('parseRecord.issueSceneDetail.filters.clear') }}
+          </el-button>
+        </span>
+        <span v-if="reportBatchIssueScenePagination.logicalObjectKey" class="summary-chip summary-chip-active">
+          {{ t('parseRecord.issueSceneDetail.filters.logicalObject') }}:
+          <strong>{{ reportBatchIssueScenePagination.logicalObjectKey }}</strong>
+          <el-button text size="small" @click="clearReportBatchIssueSceneLogicalObjectFilter">
+            {{ t('parseRecord.issueSceneDetail.filters.clear') }}
+          </el-button>
+        </span>
+      </div>
 
       <section class="issue-scene-detail-section">
         <div class="detail-section-heading">
@@ -373,9 +422,11 @@ const {
         <el-table
           :data="normalizeArray(selectedReportIssueSceneDetail.reportDetails)"
           border
+          :row-class-name="issueSceneReportRowClassName"
           data-testid="parse-record-report-issue-scene-report"
+          @row-click="selectReportBatchIssueSceneReport"
         >
-          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.report') }" min-width="220">
+          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.report') }" min-width="260" show-overflow-tooltip>
             <template #default="{ row }">
               <div class="table-cell-stack">
                 <strong>{{ displayValue(row.reportCode) }}</strong>
@@ -383,10 +434,10 @@ const {
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="sqlCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.sqlCount') }" min-width="100" />
-          <el-table-column prop="issueCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.issueCount') }" min-width="100" />
-          <el-table-column prop="logicalObjectCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.logicalObjectCount') }" min-width="120" />
-          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.logicalObjectKeys') }" min-width="260">
+          <el-table-column prop="sqlCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.sqlCount') }" width="90" />
+          <el-table-column prop="issueCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.issueCount') }" width="90" />
+          <el-table-column prop="logicalObjectCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.logicalObjectCount') }" width="120" />
+          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.logicalObjectKeys') }" min-width="320" show-overflow-tooltip>
             <template #default="{ row }">{{ displayValue(row.logicalObjectKeys) }}</template>
           </el-table-column>
         </el-table>
@@ -399,13 +450,15 @@ const {
         <el-table
           :data="normalizeArray(selectedReportIssueSceneDetail.logicalObjectDetails)"
           border
+          :row-class-name="issueSceneLogicalObjectRowClassName"
           data-testid="parse-record-report-issue-scene-object"
+          @row-click="selectReportBatchIssueSceneLogicalObject"
         >
-          <el-table-column prop="objectKey" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.object') }" min-width="240" />
-          <el-table-column prop="sqlCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.sqlCount') }" min-width="100" />
-          <el-table-column prop="issueCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.issueCount') }" min-width="100" />
-          <el-table-column prop="reportCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.reportCount') }" min-width="100" />
-          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.reportCodes') }" min-width="260">
+          <el-table-column prop="objectKey" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.object') }" min-width="300" show-overflow-tooltip />
+          <el-table-column prop="sqlCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.sqlCount') }" width="90" />
+          <el-table-column prop="issueCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.issueCount') }" width="90" />
+          <el-table-column prop="reportCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.reportCount') }" width="90" />
+          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.reportCodes') }" min-width="280" show-overflow-tooltip>
             <template #default="{ row }">{{ displayValue(row.reportCodes) }}</template>
           </el-table-column>
         </el-table>
@@ -420,7 +473,7 @@ const {
           border
           data-testid="parse-record-report-issue-scene-sql"
         >
-          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.reportSql') }" min-width="240">
+          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.reportSql') }" min-width="260" show-overflow-tooltip>
             <template #default="{ row }">
               <div class="table-cell-stack">
                 <strong>{{ displayValue(row.reportCode) }}</strong>
@@ -428,37 +481,27 @@ const {
               </div>
             </template>
           </el-table-column>
-          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.priority') }" min-width="110">
+          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.priority') }" width="90">
             <template #default="{ row }">{{ displayValue(row.highestPriorityLevel) }}</template>
           </el-table-column>
-          <el-table-column prop="issueCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.issueCount') }" min-width="100" />
-          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.logicalObjects') }" min-width="220">
+          <el-table-column prop="issueCount" v-bind="{ label: t('parseRecord.issueSceneDetail.columns.sceneIssueCount') }" width="120" />
+          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.logicalObjects') }" min-width="220" show-overflow-tooltip>
             <template #default="{ row }">{{ displayValue(row.logicalObjectKeys) }}</template>
           </el-table-column>
-          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.issueScenes') }" min-width="240">
-            <template #default="{ row }">
-              <span
-                v-if="issueSceneListHelp(row.issueScenes)"
-                class="help-dot issue-scene-help"
-                tabindex="0"
-                aria-label="issue scene help"
-                :data-tooltip="issueSceneListHelp(row.issueScenes)"
-              >?</span>
-              {{ displayValue(row.issueScenes) }}
-            </template>
-          </el-table-column>
-          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.location') }" min-width="220">
-            <template #default="{ row }">{{ issueLocationText(row) }}</template>
+          <el-table-column v-bind="{ label: t('parseRecord.issueSceneDetail.columns.location') }" min-width="520" show-overflow-tooltip>
+            <template #default="{ row }">{{ issueLocationTextForScene(row, selectedReportIssueSceneDetail.issueScene) }}</template>
           </el-table-column>
         </el-table>
         <el-pagination
           v-if="Number(selectedReportIssueSceneDetail.sqlStatisticTotalCount || 0) > reportBatchIssueScenePagination.pageSize"
           class="pagination-row"
-          layout="total, prev, pager, next"
+          layout="total, sizes, prev, pager, next"
           :total="Number(selectedReportIssueSceneDetail.sqlStatisticTotalCount || 0)"
+          :page-sizes="REPORT_SQL_PAGE_SIZE_OPTIONS"
           :page-size="reportBatchIssueScenePagination.pageSize"
           :current-page="reportBatchIssueScenePagination.pageNumber"
           @current-change="handleReportBatchIssueScenePageChange"
+          @size-change="handleReportBatchIssueScenePageSizeChange"
         />
       </section>
     </div>

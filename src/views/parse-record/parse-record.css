@@ -318,6 +318,30 @@
   margin-bottom: 12px;
 }
 
+.linked-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.summary-chip-active {
+  border-color: var(--sqlforge-color-brand-border);
+  color: var(--sqlforge-text-primary);
+}
+
+:deep(.linked-table-row-active td) {
+  background: rgba(62, 207, 142, 0.08) !important;
+}
+
+:deep(.el-table__row) {
+  cursor: default;
+}
+
+.issue-scene-detail-section :deep(.el-table__row) {
+  cursor: pointer;
+}
+
 .filter-row .el-input {
   max-width: 320px;
 }

@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-122: Repair report parse statistics issue-scene drilldown
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `HARN-122 repair report issue-scene drilldown`
+- Priority: 1
+- Depends on: HARN-113
+- Scope: 收敛报表导入解析统计的问题场景标准列表、提示、定位列宽与问题场景明细报表/逻辑对象/SQL 联动；同步批量解析中心同类统计弹窗；后端问题场景明细接口只返回当前场景相关 issueScenes/issueLocations/计数。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-122`
+- Progress log:
+  - 2026-05-10: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 收敛报表批次问题场景明细后端契约；改造解析历史报表级问题场景标准分页列表、详情联动与定位展示；对齐批量解析中心同类报表统计弹窗。
+  - Validation evidence: mvn -pl sql-optimization -Dtest=ReportBatchParseStatisticsAssemblerTest clean test；npm run lint；npm run build；npm run test:frontend-page-governance；npm run test:form-governance；npm run test:sql-ui-contract；node scripts/check-history-detail-contract.mjs；node scripts/check-batch-import-contract.mjs；node scripts/lint-repository-knowledge.js；git diff --check；foreman validate HARN-122；task_audit pre-closeout。
+  - Residual risk: 未做浏览器人工截图验证；本次以单元测试、构建、前端治理与静态契约检查覆盖。
+  - Next step: 如需要继续扩展，可在后续任务中补端到端点击链路自动化。
+
 ### HARN-121: Repair SQL parse runtime errors
 
 - Status: done

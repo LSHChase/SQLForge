@@ -321,6 +321,21 @@ button.report-item:hover {
   line-height: 18px;
 }
 
+.issue-scene-line {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.issue-scene-code {
+  min-width: 0;
+  color: var(--sqlforge-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .issue-scene-help {
   position: relative;
   display: inline-flex;
@@ -393,6 +408,12 @@ button.report-item:hover {
   margin: 0;
   color: var(--sqlforge-text-secondary);
   line-height: 1.7;
+}
+
+.empty-copy {
+  margin: 0;
+  color: var(--sqlforge-text-muted);
+  line-height: 1.6;
 }
 
 .field-block {

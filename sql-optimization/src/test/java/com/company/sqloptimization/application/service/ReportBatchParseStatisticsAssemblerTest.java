@@ -12,6 +12,7 @@ import com.company.sqloptimization.application.controller.vo.ReportBatchImportan
 import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneDetailVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchLogicalObjectStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
+import com.company.sqloptimization.application.controller.vo.ReportBatchSqlStatisticVO;
 import com.company.sqloptimization.domain.reportbatch.ReportBatchItem;
 import java.time.Instant;
 import java.util.Arrays;
@@ -124,6 +125,38 @@ class ReportBatchParseStatisticsAssemblerTest {
         assertEquals("RPT_A", detail.getReportDetails().get(0).getReportCode());
         assertEquals(Integer.valueOf(2), detail.getSqlStatistics().size());
         assertTrue(detail.getSqlStatistics().get(0).getIssueScenes().contains("REPORT_SQL_MERGE_CANDIDATE"));
+    }
+
+    @Test
+    void shouldScopeIssueSceneDetailSqlRowsToCurrentScene() {
+        Instant now = Instant.parse("2026-05-05T12:00:00Z");
+        List<ReportBatchItem> items = Collections.singletonList(
+            item(
+                "item-a",
+                "RPT_A",
+                "SELECT * FROM orders",
+                Arrays.asList("MISSING_FILTER", "WIDE_PROJECTION"),
+                Arrays.asList("TABLE:orders"),
+                now
+            )
+        );
+
+        ReportBatchIssueSceneDetailVO detail = assembler.buildIssueSceneDetail(
+            items,
+            "MISSING_FILTER",
+            null,
+            null,
+            null,
+            null
+        );
+
+        assertEquals(Integer.valueOf(1), detail.getAffectedSqlCount());
+        assertEquals(Integer.valueOf(1), detail.getAffectedIssueCount());
+        ReportBatchSqlStatisticVO row = detail.getSqlStatistics().get(0);
+        assertEquals(Integer.valueOf(1), row.getIssueCount());
+        assertEquals(Collections.singletonList("MISSING_FILTER"), row.getIssueScenes());
+        assertTrue(row.getIssueLocations().stream()
+            .allMatch(location -> "MISSING_FILTER".equals(location.getIssueScene())));
     }
 
     @Test

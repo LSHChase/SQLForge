@@ -37,10 +37,19 @@ final class ReportBatchIssueLocationSupport {
 
     static List<ReportBatchIssueLocationVO> fromItem(ReportBatchItem item,
                                                      SqlParseDiagnosticSupport.Diagnostic diagnostic) {
+        return fromItem(item, diagnostic, item == null ? null : item.getIssueScenes());
+    }
+
+    static List<ReportBatchIssueLocationVO> fromItem(ReportBatchItem item,
+                                                     SqlParseDiagnosticSupport.Diagnostic diagnostic,
+                                                     List<String> issueScenes) {
         if (item == null) {
             return new ArrayList<ReportBatchIssueLocationVO>();
         }
-        Set<String> scenes = new LinkedHashSet<String>(item.getIssueScenes());
+        Set<String> scenes = new LinkedHashSet<String>();
+        if (issueScenes != null) {
+            scenes.addAll(issueScenes);
+        }
         if (scenes.isEmpty() && diagnostic != null && hasDiagnosticEvidence(diagnostic)) {
             scenes.add("SQL_SYNTAX_INVALID");
         }

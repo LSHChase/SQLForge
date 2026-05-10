@@ -114,7 +114,12 @@ const reportBatchIssueScenePagination = reactive({
   reportCode: '',
   logicalObjectKey: ''
 })
+const reportBatchIssueStatisticsPagination = reactive({
+  pageNumber: 1,
+  pageSize: 10
+})
 const REPORT_SQL_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+const REPORT_STATISTIC_PAGE_SIZE_OPTIONS = [10, 25, 50]
 const LIST_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 const exportForm = reactive({
   exportFormat: 'JSON',
@@ -266,6 +271,12 @@ const reportBatchIssueStatistics = computed(() => {
       ratio: rate(affectedSqlCount, selectedReportItems.value.length)
     }))
     .sort((left, right) => right.affectedSqlCount - left.affectedSqlCount)
+})
+const reportBatchIssueStatisticsPage = computed(() => {
+  const pageNumber = Math.max(1, Number(reportBatchIssueStatisticsPagination.pageNumber || 1))
+  const pageSize = Math.max(1, Number(reportBatchIssueStatisticsPagination.pageSize || 10))
+  const start = (pageNumber - 1) * pageSize
+  return reportBatchIssueStatistics.value.slice(start, start + pageSize)
 })
 const reportBatchIssueSceneDetailCards = computed(() => {
   const detail = objectValue(selectedReportIssueSceneDetail.value)
@@ -914,6 +925,8 @@ const openReportBatchDetail = async row => {
   reportBatchSqlPagination.pageNumber = 1
   reportBatchSqlPagination.pageSize = 25
   reportBatchSqlPagination.reportCode = ''
+  reportBatchIssueStatisticsPagination.pageNumber = 1
+  reportBatchIssueStatisticsPagination.pageSize = 10
   activeReportBatchDetailTab.value = 'overview'
   activeReportBatchStatisticsTab.value = 'issueScene'
   try {
@@ -996,6 +1009,68 @@ const handleReportBatchIssueScenePageChange = async pageNumber => {
   reportBatchIssueScenePagination.pageNumber = pageNumber
   await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
 }
+
+const handleReportBatchIssueScenePageSizeChange = async pageSize => {
+  reportBatchIssueScenePagination.pageSize = pageSize
+  reportBatchIssueScenePagination.pageNumber = 1
+  await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
+}
+
+const handleReportBatchIssueStatisticsPageChange = pageNumber => {
+  reportBatchIssueStatisticsPagination.pageNumber = pageNumber
+}
+
+const handleReportBatchIssueStatisticsPageSizeChange = pageSize => {
+  reportBatchIssueStatisticsPagination.pageSize = pageSize
+  reportBatchIssueStatisticsPagination.pageNumber = 1
+}
+
+const clearReportBatchIssueSceneReportFilter = async () => {
+  reportBatchIssueScenePagination.reportCode = ''
+  reportBatchIssueScenePagination.pageNumber = 1
+  await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
+}
+
+const clearReportBatchIssueSceneLogicalObjectFilter = async () => {
+  reportBatchIssueScenePagination.logicalObjectKey = ''
+  reportBatchIssueScenePagination.pageNumber = 1
+  await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
+}
+
+const selectReportBatchIssueSceneReport = async row => {
+  const nextReportCode = normalizeQueryValue(row?.reportCode)
+  if (!nextReportCode) {
+    return
+  }
+  reportBatchIssueScenePagination.reportCode = nextReportCode
+  const currentObject = normalizeQueryValue(reportBatchIssueScenePagination.logicalObjectKey)
+  const rowObjects = Array.isArray(row?.logicalObjectKeys) ? row.logicalObjectKeys : []
+  if (currentObject && !rowObjects.includes(currentObject)) {
+    reportBatchIssueScenePagination.logicalObjectKey = ''
+  }
+  reportBatchIssueScenePagination.pageNumber = 1
+  await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
+}
+
+const selectReportBatchIssueSceneLogicalObject = async row => {
+  const nextObjectKey = normalizeQueryValue(row?.objectKey)
+  if (!nextObjectKey) {
+    return
+  }
+  reportBatchIssueScenePagination.logicalObjectKey = nextObjectKey
+  reportBatchIssueScenePagination.pageNumber = 1
+  await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
+}
+
+const issueSceneReportRowClassName = ({ row }) =>
+  normalizeQueryValue(row?.reportCode) === normalizeQueryValue(reportBatchIssueScenePagination.reportCode)
+    ? 'linked-table-row-active'
+    : ''
+
+const issueSceneLogicalObjectRowClassName = ({ row }) =>
+  normalizeQueryValue(row?.objectKey) === normalizeQueryValue(reportBatchIssueScenePagination.logicalObjectKey)
+    ? 'linked-table-row-active'
+    : ''
 
 const applyReportBatchSqlFilter = async () => {
   reportBatchSqlPagination.pageNumber = 1
@@ -1442,6 +1517,14 @@ const issueLocationText = item => {
     .join(' / ')
 }
 
+const issueLocationTextForScene = (item, issueScene) => {
+  const normalizedIssueScene = normalizeQueryValue(issueScene)
+  const scopedLocations = issueLocationItems(item).filter(location =>
+    normalizeQueryValue(location.issueScene) === normalizedIssueScene
+  )
+  return issueLocationText({ ...objectValue(item), issueLocations: scopedLocations })
+}
+
 const booleanLabel = value => {
   if (typeof value !== 'boolean') {
     return ''
@@ -1597,6 +1680,8 @@ watch(reportBatchDetailDrawerVisible, visible => {
     buildReportItemFallbackDetail,
     card,
     classificationSummary,
+    clearReportBatchIssueSceneLogicalObjectFilter,
+    clearReportBatchIssueSceneReportFilter,
     clearFilters,
     datasourceOptions,
     datasourceOptionsLoadFailed,
@@ -1623,6 +1708,9 @@ watch(reportBatchDetailDrawerVisible, visible => {
     handleReportBatchHistoryPageChange,
     handleReportBatchHistoryPageSizeChange,
     handleReportBatchIssueScenePageChange,
+    handleReportBatchIssueScenePageSizeChange,
+    handleReportBatchIssueStatisticsPageChange,
+    handleReportBatchIssueStatisticsPageSizeChange,
     handleReportBatchSqlPageChange,
     handleReportBatchSqlPageSizeChange,
     hasDisplayValue,
@@ -1653,6 +1741,7 @@ watch(reportBatchDetailDrawerVisible, visible => {
     isNonEmpty,
     issueLocationItems,
     issueLocationText,
+    issueLocationTextForScene,
     issueSceneCodesForItem,
     issueSceneHelp,
     issueSceneListHelp,
@@ -1692,6 +1781,7 @@ watch(reportBatchDetailDrawerVisible, visible => {
     referenceGroups,
     refreshSelectedReportSqlPage,
     refreshWorkbench,
+    REPORT_STATISTIC_PAGE_SIZE_OPTIONS,
     REPORT_SQL_PAGE_SIZE_OPTIONS,
     reportBatchDetailCards,
     reportBatchDetailDrawerVisible,
@@ -1702,7 +1792,9 @@ watch(reportBatchDetailDrawerVisible, visible => {
     reportBatchIssueSceneDetailDialogTitle,
     reportBatchIssueSceneDetailDialogVisible,
     reportBatchIssueScenePagination,
+    reportBatchIssueStatisticsPagination,
     reportBatchIssueStatistics,
+    reportBatchIssueStatisticsPage,
     reportBatchItemDetailErrorMessage,
     reportBatchItemDetails,
     reportBatchLogicalObjectStatistics,
@@ -1740,6 +1832,8 @@ watch(reportBatchDetailDrawerVisible, visible => {
     runExport,
     runIndexedLookup,
     searchWorkbench,
+    selectReportBatchIssueSceneLogicalObject,
+    selectReportBatchIssueSceneReport,
     selectedHistoryDetail,
     selectedHistoryId,
     selectedReportBackendReportStatistics,
@@ -1760,6 +1854,8 @@ watch(reportBatchDetailDrawerVisible, visible => {
     sqlStateHighlights,
     sqlVariants,
     statusClass,
+    issueSceneLogicalObjectRowClassName,
+    issueSceneReportRowClassName,
     submittedAtRange,
     syncDateRangeFields,
     syncHistoryWorkbenchTabFromRoute,

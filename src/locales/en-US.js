@@ -28,6 +28,7 @@ export default {
       viewRawJson: 'View raw JSON',
       viewRawEvidence: 'View raw evidence'
     },
+    helpMark: '?',
     fields: {
       tenant: 'Tenant',
       datasource: 'Datasource',
@@ -613,6 +614,12 @@ export default {
       actions: {
         viewDetail: 'View detail'
       },
+      filters: {
+        currentScene: 'Current scene',
+        report: 'Report',
+        logicalObject: 'Logical object',
+        clear: 'Clear'
+      },
       sections: {
         reportDetail: 'Report detail',
         logicalObjectDetail: 'Logical object detail',
@@ -629,6 +636,7 @@ export default {
         report: 'Report',
         sqlCount: 'SQL count',
         issueCount: 'Issues',
+        sceneIssueCount: 'Current-scene issues',
         logicalObjectKeys: 'Logical object keys',
         object: 'Object',
         reportCodes: 'Report codes',
@@ -961,7 +969,27 @@ export default {
   },
   parseBatchCenter: {
     title: 'Batch Parse Center',
-    summary: 'Handle batch creation, template download, file import, failure retry, and report-catalog SQL parsing on an independent page.'
+    summary: 'Handle batch creation, template download, file import, failure retry, and report-catalog SQL parsing on an independent page.',
+    reportStatistics: {
+      tabs: {
+        issueScenes: 'Issue scenes'
+      },
+      columns: {
+        issueScene: 'Issue scene',
+        affectedSql: 'Affected SQL',
+        severity: 'Severity',
+        reportCount: 'Reports',
+        logicalObjectCount: 'Objects',
+        ratio: 'Ratio'
+      },
+      labels: {
+        issueScenes: 'Issue scenes',
+        location: 'Location'
+      },
+      states: {
+        emptyIssueScenes: 'No issue statistics yet.'
+      }
+    }
   },
   parseStatisticsCenter: {
     title: 'SQL Parse Statistics Center',

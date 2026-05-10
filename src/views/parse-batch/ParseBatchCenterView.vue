@@ -6,7 +6,7 @@ import BatchDetailFields from './BatchDetailFields.vue'
 import BatchSummaryCards from './BatchSummaryCards.vue'
 import { useParseBatchCenter } from './useParseBatchCenter'
 
-useI18n()
+const { t } = useI18n()
 
 const {
   activeWorkspace,
@@ -44,6 +44,7 @@ const {
   parseBatchListPagination,
   reportBatchListPagination,
   reportStatisticsSqlPagination,
+  reportStatisticsIssueScenePagination,
   loading,
   parseBatchForm,
   reportBatchForm,
@@ -87,8 +88,7 @@ const {
   parseReportStatisticsOmittedCount,
   reportGroupsDashboardPreview,
   reportGroupsDashboardOmittedCount,
-  reportIssueStatisticsPreview,
-  reportIssueStatisticsOmittedCount,
+  reportIssueStatisticsPage,
   reportImportanceStatisticsPreview,
   reportImportanceStatisticsOmittedCount,
   reportViewStatisticsPreview,
@@ -141,6 +141,8 @@ const {
   applyReportStatisticsSqlFilter,
   handleReportStatisticsSqlPageChange,
   handleReportStatisticsSqlPageSizeChange,
+  handleReportStatisticsIssueScenePageChange,
+  handleReportStatisticsIssueScenePageSizeChange,
   openReportItemDetail,
   openBatchSelector,
   openParseSession,
@@ -1215,45 +1217,54 @@ const {
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">report-level statistics</p>
           <el-tabs v-model="activeReportStatisticsTab" class="statistics-tabs" data-testid="batch-import-report-statistics-tabs">
-            <el-tab-pane :label="isChinese ? '问题场景' : 'Issue scenes'" name="issueScene">
-              <div class="stat-list">
-                <div
-                  v-for="item in reportIssueStatisticsPreview"
-                  :key="item.issueScene"
-                  class="contract-item"
-                  data-testid="batch-import-report-statistics-issue-scene"
-                >
-                  <strong>
-                    {{ item.issueScene }}
-                    <span
-                      v-if="issueSceneHelp(item.issueScene)"
-                      class="help-dot issue-scene-help"
-                      tabindex="0"
-                      aria-label="issue scene help"
-                      :data-tooltip="issueSceneHelp(item.issueScene)"
-                    >?</span>
-                  </strong>
-                  <span>
-                    {{ item.affectedSqlCount }} SQL
-                    · {{ displayValue(item.severity) }}
-                    · {{ formatPercent(item.ratio) }}
-                  </span>
-                </div>
-                <div
-                  v-if="reportIssueStatisticsOmittedCount > 0"
-                  class="preview-note preview-note-compact"
-                  data-testid="batch-import-report-statistics-preview"
-                >
-                  {{
-                    isChinese
-                      ? `另有 ${reportIssueStatisticsOmittedCount} 个问题场景未展开。`
-                      : `${reportIssueStatisticsOmittedCount} more issue scenes are omitted.`
-                  }}
-                </div>
-                <div v-if="!reportIssueStatistics.length" class="empty-state">
-                  {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics yet.' }}
-                </div>
-              </div>
+            <el-tab-pane :label="t('parseBatchCenter.reportStatistics.tabs.issueScenes')" name="issueScene">
+              <el-table
+                v-loading="loading.reportStatistics"
+                :data="reportIssueStatisticsPage"
+                border
+                data-testid="batch-import-report-statistics-issue-scene"
+              >
+                <el-table-column :label="t('parseBatchCenter.reportStatistics.columns.issueScene')" min-width="260" show-overflow-tooltip>
+                  <template #default="{ row }">
+                    <span class="issue-scene-line">
+                      <span class="issue-scene-code">{{ row.issueScene }}</span>
+                      <el-tooltip
+                        v-if="issueSceneHelp(row.issueScene)"
+                        v-bind="{ content: issueSceneHelp(row.issueScene) }"
+                        placement="top"
+                        teleported
+                      >
+                        <span class="help-dot issue-scene-help" tabindex="0" aria-label="issue scene help">{{ t('common.helpMark') }}</span>
+                      </el-tooltip>
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="affectedSqlCount" :label="t('parseBatchCenter.reportStatistics.columns.affectedSql')" width="100" />
+                <el-table-column :label="t('parseBatchCenter.reportStatistics.columns.severity')" width="100">
+                  <template #default="{ row }">{{ displayValue(row.severity) }}</template>
+                </el-table-column>
+                <el-table-column prop="reportCount" :label="t('parseBatchCenter.reportStatistics.columns.reportCount')" width="90" />
+                <el-table-column prop="logicalObjectCount" :label="t('parseBatchCenter.reportStatistics.columns.logicalObjectCount')" width="110" />
+                <el-table-column :label="t('parseBatchCenter.reportStatistics.columns.ratio')" width="90">
+                  <template #default="{ row }">{{ formatPercent(row.ratio) }}</template>
+                </el-table-column>
+                <template #empty>
+                  <p class="empty-copy">
+                    {{ t('parseBatchCenter.reportStatistics.states.emptyIssueScenes') }}
+                  </p>
+                </template>
+              </el-table>
+              <el-pagination
+                v-if="reportIssueStatistics.length > reportStatisticsIssueScenePagination.pageSize"
+                class="pagination-row"
+                layout="total, sizes, prev, pager, next"
+                :total="reportIssueStatistics.length"
+                :page-sizes="LIST_PAGE_SIZE_OPTIONS"
+                :page-size="reportStatisticsIssueScenePagination.pageSize"
+                :current-page="reportStatisticsIssueScenePagination.pageNumber"
+                @current-change="handleReportStatisticsIssueScenePageChange"
+                @size-change="handleReportStatisticsIssueScenePageSizeChange"
+              />
             </el-tab-pane>
 
             <el-tab-pane :label="isChinese ? '重要程度' : 'Importance'" name="importance">
@@ -1333,17 +1344,18 @@ const {
                   <strong>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</strong>
                   <span>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues · {{ displayValue(item.logicalObjectKeys) }}</span>
                   <span>
-                    {{ isChinese ? '问题场景' : 'Issue scenes' }}:
-                    <span
+                    {{ t('parseBatchCenter.reportStatistics.labels.issueScenes') }}:
+                    <el-tooltip
                       v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
-                      class="help-dot issue-scene-help"
-                      tabindex="0"
-                      aria-label="issue scene help"
-                      :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
-                    >?</span>
+                      v-bind="{ content: issueSceneListHelp(issueSceneCodesForItem(item)) }"
+                      placement="top"
+                      teleported
+                    >
+                      <span class="help-dot issue-scene-help" tabindex="0" aria-label="issue scene help">{{ t('common.helpMark') }}</span>
+                    </el-tooltip>
                     {{ displayValue(issueSceneCodesForItem(item)) }}
                   </span>
-                  <span>{{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}</span>
+                  <span>{{ t('parseBatchCenter.reportStatistics.labels.location') }}: {{ issueLocationText(item) }}</span>
                 </div>
                 <div
                   v-if="reportSqlStatisticsOmittedCount > 0"

@@ -28,6 +28,7 @@ export default {
       viewRawJson: '查看原始 JSON',
       viewRawEvidence: '查看原始证据'
     },
+    helpMark: '?',
     fields: {
       tenant: '租户',
       datasource: '数据源',
@@ -613,6 +614,12 @@ export default {
       actions: {
         viewDetail: '查看明细'
       },
+      filters: {
+        currentScene: '当前场景',
+        report: '报表',
+        logicalObject: '逻辑对象',
+        clear: '清除'
+      },
       sections: {
         reportDetail: '报表明细',
         logicalObjectDetail: '逻辑对象明细',
@@ -629,6 +636,7 @@ export default {
         report: '报表',
         sqlCount: 'SQL 数',
         issueCount: '问题数',
+        sceneIssueCount: '本场景问题数',
         logicalObjectKeys: '逻辑对象集合',
         object: '对象',
         reportCodes: '报表编码集合',
@@ -961,7 +969,27 @@ export default {
   },
   parseBatchCenter: {
     title: '批量解析',
-    summary: '独立处理批次创建、模板下载、文件导入、失败重试与报表清单解析。'
+    summary: '独立处理批次创建、模板下载、文件导入、失败重试与报表清单解析。',
+    reportStatistics: {
+      tabs: {
+        issueScenes: '问题场景'
+      },
+      columns: {
+        issueScene: '问题场景',
+        affectedSql: '影响 SQL',
+        severity: '严重度',
+        reportCount: '报表数',
+        logicalObjectCount: '逻辑对象',
+        ratio: '比例'
+      },
+      labels: {
+        issueScenes: '问题场景',
+        location: '定位'
+      },
+      states: {
+        emptyIssueScenes: '当前没有问题场景统计。'
+      }
+    }
   },
   parseStatisticsCenter: {
     title: 'SQL解析统计中心',
