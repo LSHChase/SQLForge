@@ -75,19 +75,19 @@ public final class StructureParsePriorityScorer {
     }
 
     private static int baseScore(StructureParseIssueSeverity severity) {
-        switch (severity) {
-            case CRITICAL:
-                return 90;
-            case HIGH:
-                return 70;
-            case MEDIUM:
-                return 50;
-            case LOW:
-                return 25;
-            case INFO:
-            default:
-                return 10;
+        if (StructureParseIssueSeverity.CRITICAL == severity) {
+            return 90;
         }
+        if (StructureParseIssueSeverity.HIGH == severity) {
+            return 70;
+        }
+        if (StructureParseIssueSeverity.MEDIUM == severity) {
+            return 50;
+        }
+        if (StructureParseIssueSeverity.LOW == severity) {
+            return 25;
+        }
+        return 10;
     }
 
     private static int normalizedImpact(Integer impact) {

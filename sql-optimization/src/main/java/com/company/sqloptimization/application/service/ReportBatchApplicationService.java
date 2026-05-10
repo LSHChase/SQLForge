@@ -1544,17 +1544,20 @@ public class ReportBatchApplicationService {
     }
 
     private static final class ReportSourceRow {
-        private String reportCode;
-        private String reportName;
-        private String datasourceCode;
-        private String stage;
-        private String priority;
-        private String rawLine;
-        private String sqlColumnName;
-        private Integer sqlOrdinalInReport;
-        private String sqlText;
+        String reportCode;
+        String reportName;
+        String datasourceCode;
+        String stage;
+        String priority;
+        String rawLine;
+        String sqlColumnName;
+        Integer sqlOrdinalInReport;
+        String sqlText;
 
-        private ReportSourceRow copy() {
+        ReportSourceRow() {
+        }
+
+        ReportSourceRow copy() {
             ReportSourceRow row = new ReportSourceRow();
             row.reportCode = reportCode;
             row.reportName = reportName;

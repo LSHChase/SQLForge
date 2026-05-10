@@ -4,6 +4,28 @@
 
 ## Done
 
+### HARN-121: Repair SQL parse runtime errors
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `HARN-121 fix sql parse runtime errors`
+- Priority: 1
+- Depends on: N/A
+- Scope: Reproduce SQL parse page, batch report import, and recommendation failures; fix the shared runtime error cause; add focused regression coverage.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-121`
+- Progress log:
+  - 2026-05-10: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-10: reproduced parse structure and report import 500s; runtime logs showed stale synthetic class failures around `StructureParsePriorityScorer$1` and `ReportBatchApplicationService$ReportSourceRow`.
+  - 2026-05-10: removed compiler-generated enum-switch and private nested-access bridge dependencies from the parse/report hot paths; added a binary-compatibility regression test.
+  - 2026-05-10: restarted `sql-optimization`; direct API, Vite proxy, and Playwright page flows for parse workbench, report import/resolve, and recommendations returned 200 without page errors.
+  - 2026-05-10: validation passed with `mvn -pl sql-optimization test`, `npm run lint`, `npm run build`, and `git diff --check`.
+- Context closeout:
+  - Completed scope: Reproduced SQL parse, report batch import, and recommendation-facing runtime failures; removed fragile synthetic class dependencies in parse/report hot paths; added binary compatibility regression coverage.
+  - Validation evidence: mvn -pl sql-optimization test; npm run lint; npm run build; git diff --check; direct API and Vite proxy smokes; Playwright parse workbench/report import/recommendation page flow; python3 scripts/foreman.py validate HARN-121; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Local Java runtime is OpenJDK 1.8.0_482 rather than repository baseline JDK 8u112; no external Hetu/MRS live environment validation was added.
+  - Next step: Use JDK 8u112 for delivery/runtime validation before release packaging.
+
 ### HARN-096: 修复问题场景详情报表展示不全
 
 - Status: done

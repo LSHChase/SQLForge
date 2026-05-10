@@ -3258,3 +3258,10 @@
 2026-05-10T02:17:18-05:00 | HARN-096 closeout commit | `R-168` | projected | `git commit -m 'HARN-096 list report issue scene details' (projected-precommit)`
 2026-05-10T02:17:18-05:00 | HARN-096 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-10T02:17:18-05:00 | HARN-096 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`
+2026-05-10T02:43:32-05:00 | HARN-121 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T02:43:32-05:00 | HARN-121 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T02:43:42-05:00 | HARN-121 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T02:43:42-05:00 | HARN-121 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T02:44:15-05:00 | HARN-121 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T02:44:15-05:00 | HARN-121 closeout commit | `R-168` | projected | `git commit -m 'HARN-121 fix sql parse runtime errors' (projected-precommit)`
+2026-05-10T02:44:15-05:00 | HARN-121 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
