@@ -11,15 +11,6 @@
 
 ## Todo
 
-### HARN-132: 建立 SQL diff 后端服务
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-130`
-- Scope: 提供文本 diff、规则级 diff、AST 摘要 diff 与 recommendation diff API，供推荐中心、加速治理工作台和 SQL 历史复用；diff 只做展示证据，不改写 SQL。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-132`
-
 ### HARN-133: 加速候选生成统一入口
 
 - Status: todo

@@ -2718,6 +2718,10 @@ public class SqlOptimizationPipelineService {
             return new LinkedHashSet<String>(aggregateFunctions);
         }
 
+        public List<String> getProjectedColumns() {
+            return new ArrayList<String>(projectedColumns);
+        }
+
         public Set<String> getDatePredicateColumns() {
             return new LinkedHashSet<String>(datePredicateColumns);
         }
@@ -2857,6 +2861,10 @@ public class SqlOptimizationPipelineService {
 
         public boolean isLimitPresent() {
             return limitPresent;
+        }
+
+        public boolean isDistinctPresent() {
+            return distinctPresent;
         }
 
         public boolean isSetOperation() {

@@ -8,6 +8,7 @@ import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqloptimization.application.controller.dto.AccelerationRecommendationCreateRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationRecommendationVO;
+import com.company.sqloptimization.application.controller.vo.RecommendationDiffVO;
 import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
@@ -33,7 +34,16 @@ class AccelerationRecommendationApplicationServiceTest {
 
     @Test
     void shouldCreateReadonlyRecommendationWithBenefitAndRiskModel() {
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN"),
+            "request-001",
+            "trace-001",
+            "header",
+            1L,
+            2L
+        );
         AccelerationRecommendationApplicationService service =
             new AccelerationRecommendationApplicationService(new InMemoryAccelerationRecommendationRepository());
 
@@ -47,6 +57,7 @@ class AccelerationRecommendationApplicationServiceTest {
         request.setRouteDecisionId("route-001");
         request.setAlertId("alert-001");
         request.setSqlFingerprint("fp-001");
+        request.setSourceSqlText("SELECT COUNT(1) FROM sales");
         request.setRecommendedSqlText("CREATE TABLE agg_sales AS SELECT * FROM sales");
         request.setTargetEngine("trino");
         request.setTargetDatasource("hetu_main");
@@ -74,6 +85,7 @@ class AccelerationRecommendationApplicationServiceTest {
         AccelerationRecommendationVO created = service.createRecommendation(request);
         List<AccelerationRecommendationVO> list = service.listRecommendations();
         AccelerationRecommendationVO detail = service.getRecommendation(created.getRecommendationId());
+        RecommendationDiffVO diff = service.getRecommendationDiff(created.getRecommendationId());
 
         assertEquals("CREATE_TABLE", created.getRecommendationType());
         assertEquals("HIGH", created.getBenefitLevel());
@@ -101,12 +113,24 @@ class AccelerationRecommendationApplicationServiceTest {
         assertEquals(Boolean.TRUE, created.getManualReviewRequired());
         assertEquals(1, list.size());
         assertEquals(created.getRecommendationId(), detail.getRecommendationId());
+        assertEquals("TEXT_DIFF_READY_AST_WARNING", diff.getDiffStatus());
+        assertEquals(Boolean.TRUE, diff.getDiffSummary().get("textDiffReady"));
+        assertEquals("DISPLAY_ONLY_NOT_SEMANTIC_PROOF", diff.getDiffSummary().get("evidenceBoundary"));
         assertFalse(enumContainsExecuted(), "RecommendationStatus must not expose an executed state");
     }
 
     @Test
     void shouldRejectCrossTenantRecommendationCreation() {
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN"),
+            "request-001",
+            "trace-001",
+            "header",
+            1L,
+            2L
+        );
         AccelerationRecommendationApplicationService service =
             new AccelerationRecommendationApplicationService(new InMemoryAccelerationRecommendationRepository());
         AccelerationRecommendationCreateRequest request = new AccelerationRecommendationCreateRequest();

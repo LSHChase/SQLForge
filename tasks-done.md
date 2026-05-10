@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-132: 建立 SQL diff 后端服务
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(sql-optimization): add recommendation sql diff service`
+- Priority: 1
+- Depends on: `HARN-130`
+- Scope: 提供文本 diff、规则级 diff、AST 摘要 diff 与 recommendation diff API，供推荐中心、加速治理工作台和 SQL 历史复用；diff 只做展示证据，不改写 SQL。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-132`
+- Context closeout:
+  - Completed scope: Implemented the HARN-132 SQL diff backend service for recommendation diff: deterministic text diff hunks, rule-level evidence from ruleChain/unappliedRules/semanticRisks, AST summary comparison via the existing parser pipeline, and display-only diff summary boundaries without SQL rewrite, persistence changes, or recommendation write-back.
+  - Validation evidence: java -version; mvn -pl sql-optimization -Dtest=SqlDiffApplicationServiceTest,AccelerationRecommendationApplicationServiceTest,AccelerationRecommendationControllerTest test; mvn -pl sql-optimization test; python3 scripts/foreman.py validate HARN-132 --include-task-audit --extra-command "mvn -pl sql-optimization test" --extra-command "git diff --check"; git diff --check; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance --check.
+  - Residual risk: Local Codex environment provides OpenJDK 1.8.0_482 rather than required JDK 8u112, so Java compile/test evidence is compatibility evidence only until rerun in the fixed delivery JDK; HARN-135/HARN-136 remain responsible for result equivalence validation, not HARN-132.
+  - Next step: Proceed to HARN-133 acceleration candidate unified entry, reusing the diff API as display evidence.
+
 ### HARN-131: 实现首批 L0/L1 安全改写规则
 
 - Status: done

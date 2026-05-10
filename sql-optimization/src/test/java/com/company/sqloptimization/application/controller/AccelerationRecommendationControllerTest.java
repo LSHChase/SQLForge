@@ -55,9 +55,11 @@ class AccelerationRecommendationControllerTest {
         diff.setSourceKind("QUERY_HISTORY");
         diff.setSourceId("history-001");
         diff.setEvidenceLevel("RUNTIME_HISTORY");
-        diff.setDiffStatus("CONTRACT_ONLY");
-        diff.setImplementationStage("RECOMMENDATION_DIFF_CONTRACT_BASELINE");
-        when(recommendationApplicationService.listRecommendations()).thenReturn(Collections.singletonList(recommendation));
+        diff.setTextDiff(Collections.singletonList(textHunk("REPLACE")));
+        diff.setDiffStatus("READY");
+        diff.setImplementationStage("HARN_132_SQL_DIFF_SERVICE");
+        when(recommendationApplicationService.listRecommendations())
+            .thenReturn(Collections.singletonList(recommendation));
         when(recommendationApplicationService.getRecommendation("rec-001")).thenReturn(recommendation);
         when(recommendationApplicationService.getRecommendationDiff("rec-001")).thenReturn(diff);
 
@@ -79,7 +81,8 @@ class AccelerationRecommendationControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.sourceKind").value("QUERY_HISTORY"))
             .andExpect(jsonPath("$.evidenceLevel").value("RUNTIME_HISTORY"))
-            .andExpect(jsonPath("$.diffStatus").value("CONTRACT_ONLY"));
+            .andExpect(jsonPath("$.diffStatus").value("READY"))
+            .andExpect(jsonPath("$.textDiff[0].type").value("REPLACE"));
     }
 
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {
@@ -99,6 +102,13 @@ class AccelerationRecommendationControllerTest {
     private Map<String, Object> rule(String rule) {
         Map<String, Object> entry = new LinkedHashMap<String, Object>();
         entry.put("rule", rule);
+        return entry;
+    }
+
+    private Map<String, Object> textHunk(String type) {
+        Map<String, Object> entry = new LinkedHashMap<String, Object>();
+        entry.put("hunkId", "hunk-1");
+        entry.put("type", type);
         return entry;
     }
 }
