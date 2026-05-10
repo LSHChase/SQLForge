@@ -155,8 +155,10 @@ class ReportBatchParseStatisticsAssemblerTest {
         ReportBatchSqlStatisticVO row = detail.getSqlStatistics().get(0);
         assertEquals(Integer.valueOf(1), row.getIssueCount());
         assertEquals(Collections.singletonList("MISSING_FILTER"), row.getIssueScenes());
+        assertFalse(row.getIssueLocations().isEmpty());
         assertTrue(row.getIssueLocations().stream()
             .allMatch(location -> "MISSING_FILTER".equals(location.getIssueScene())));
+        assertTrue(row.getIssueLocations().get(0).getLocationSnippet().contains("SELECT * FROM orders"));
     }
 
     @Test

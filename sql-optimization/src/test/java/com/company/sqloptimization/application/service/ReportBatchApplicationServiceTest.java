@@ -308,6 +308,8 @@ class ReportBatchApplicationServiceTest {
         assertEquals("RPT_INLINE", sceneDetail.getReportDetails().get(0).getReportCode());
         assertEquals("TABLE:orders", sceneDetail.getLogicalObjectDetails().get(0).getObjectKey());
         assertEquals("RPT_INLINE", sceneDetail.getSqlStatistics().get(0).getReportCode());
+        assertFalse(sceneDetail.getSqlStatistics().get(0).getIssueLocations().isEmpty());
+        assertEquals("SELECT_STAR", sceneDetail.getSqlStatistics().get(0).getIssueLocations().get(0).getIssueScene());
     }
 
     @Test

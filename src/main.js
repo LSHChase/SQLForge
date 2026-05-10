@@ -24,12 +24,12 @@ import {
   ElSelect,
   ElSubMenu,
   ElSwitch,
-  ElTag
-  ,
+  ElTag,
   ElTabPane,
   ElTable,
   ElTableColumn,
   ElTabs,
+  ElTooltip,
   ElTree
 } from 'element-plus'
 import 'element-plus/dist/index.css'
@@ -82,6 +82,7 @@ const app = createApp(App)
   ElTableColumn,
   ElTabs,
   ElTag,
+  ElTooltip,
   ElTree
 ].forEach(component => {
   app.component(component.name, component)

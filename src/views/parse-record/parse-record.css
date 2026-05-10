@@ -536,6 +536,11 @@
   transform: translateX(-50%) rotate(45deg);
 }
 
+.issue-scene-help:not([data-tooltip])::after,
+.issue-scene-help:not([data-tooltip])::before {
+  display: none;
+}
+
 .issue-scene-help:hover::after,
 .issue-scene-help:hover::before,
 .issue-scene-help:focus::after,

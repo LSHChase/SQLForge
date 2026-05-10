@@ -191,7 +191,10 @@ class ReportBatchControllerTest {
             .andExpect(jsonPath("$.issueScene").value("SQL_SYNTAX_INVALID"))
             .andExpect(jsonPath("$.affectedSqlCount").value(1))
             .andExpect(jsonPath("$.reportDetails[0].reportCode").value("RPT_BAD"))
-            .andExpect(jsonPath("$.sqlStatistics[0].reportCode").value("RPT_BAD"));
+            .andExpect(jsonPath("$.sqlStatistics[0].reportCode").value("RPT_BAD"))
+            .andExpect(jsonPath("$.sqlStatistics[0].issueScenes[0]").value("SQL_SYNTAX_INVALID"))
+            .andExpect(jsonPath("$.sqlStatistics[0].issueLocations[0].issueScene").value("SQL_SYNTAX_INVALID"))
+            .andExpect(jsonPath("$.sqlStatistics[0].issueLocations[0].locationSnippet").isNotEmpty());
     }
 
     @Test

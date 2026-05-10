@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-123: Repair report issue-scene detail regressions
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `HARN-123 fix report issue-scene detail regressions`
+- Priority: 1
+- Depends on: HARN-122
+- Scope: 复核并修复解析历史报表导入历史解析详情中报表级问题场景帮助提示为空、问题场景明细定位显示无问题、明细三表未按标准列表呈现的问题；必须通过截图自检验证。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-123`
+- Progress log:
+  - 2026-05-10: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复报表导入历史解析详情中问题场景帮助提示无内容、问题场景 SQL 定位误显示无问题、明细报表/逻辑对象/SQL 三表标准分页列表缺口；补强 issueLocations 非空契约测试与历史明细契约脚本。
+  - Validation evidence: 截图自检：Playwright mock 报表导入历史页面，hover 问题场景问号后确认 el-tooltip 出现 SELECT_STAR 中文说明；问题场景明细截图确认无‘无问题’，缺定位时显示‘定位待补充’；30 行 mock 明细截图确认报表、逻辑对象、SQL 三个列表均出现分页。临时截图已删除。自动验证：npm run lint；npm run build；npm run test:frontend-page-governance；npm run test:form-governance；npm run test:sql-ui-contract；node scripts/check-history-detail-contract.mjs；node scripts/check-batch-import-contract.mjs；node scripts/lint-repository-knowledge.js；mvn -pl sql-optimization -Dtest=ReportBatchParseStatisticsAssemblerTest,ReportBatchApplicationServiceTest,ReportBatchControllerTest clean test；git diff --check；foreman validate HARN-123；task_audit pre-closeout。
+  - Residual risk: 未接入真实外部环境数据截图；本轮使用 Playwright 页面截图、mock API、前后端契约测试与后端 controller/service/assembler 测试覆盖用户指出的三类问题。
+  - Next step: 如真实环境仍出现定位待补充，应追查具体 SQL 行的后端 issueLocations 生成规则是否缺少更细粒度 pattern。
+
 ### HARN-122: Repair report parse statistics issue-scene drilldown
 
 - Status: done

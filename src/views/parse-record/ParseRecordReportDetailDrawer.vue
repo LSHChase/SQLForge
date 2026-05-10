@@ -15,6 +15,10 @@ const {
   formatPercent,
   handleReportBatchIssueScenePageChange,
   handleReportBatchIssueScenePageSizeChange,
+  handleReportBatchIssueSceneReportPageChange,
+  handleReportBatchIssueSceneReportPageSizeChange,
+  handleReportBatchIssueSceneLogicalObjectPageChange,
+  handleReportBatchIssueSceneLogicalObjectPageSizeChange,
   handleReportBatchIssueStatisticsPageChange,
   handleReportBatchIssueStatisticsPageSizeChange,
   handleReportBatchSqlPageChange,
@@ -40,6 +44,8 @@ const {
   reportBatchIssueSceneDetailDialogTitle,
   reportBatchIssueSceneDetailDialogVisible,
   reportBatchIssueScenePagination,
+  reportBatchIssueSceneReportPagination,
+  reportBatchIssueSceneLogicalObjectPagination,
   reportBatchIssueStatisticsPagination,
   reportBatchIssueStatistics,
   reportBatchIssueStatisticsPage,
@@ -55,6 +61,10 @@ const {
   selectedReportGroups,
   selectedReportImportanceStatistics,
   selectedReportIssueSceneDetail,
+  selectedReportIssueSceneReportDetails,
+  selectedReportIssueSceneReportDetailsPage,
+  selectedReportIssueSceneLogicalObjectDetails,
+  selectedReportIssueSceneLogicalObjectDetailsPage,
   selectedReportItems,
   selectedReportPriorityMatrix,
   selectReportBatchIssueSceneLogicalObject,
@@ -420,7 +430,8 @@ const {
           <span>{{ t('parseRecord.issueSceneDetail.sections.reportDetail') }}</span>
         </div>
         <el-table
-          :data="normalizeArray(selectedReportIssueSceneDetail.reportDetails)"
+          v-loading="loading.reportBatchIssueSceneDetail"
+          :data="selectedReportIssueSceneReportDetailsPage"
           border
           :row-class-name="issueSceneReportRowClassName"
           data-testid="parse-record-report-issue-scene-report"
@@ -441,6 +452,17 @@ const {
             <template #default="{ row }">{{ displayValue(row.logicalObjectKeys) }}</template>
           </el-table-column>
         </el-table>
+        <el-pagination
+          v-if="selectedReportIssueSceneReportDetails.length > reportBatchIssueSceneReportPagination.pageSize"
+          class="pagination-row"
+          layout="total, sizes, prev, pager, next"
+          :total="selectedReportIssueSceneReportDetails.length"
+          :page-sizes="REPORT_STATISTIC_PAGE_SIZE_OPTIONS"
+          :page-size="reportBatchIssueSceneReportPagination.pageSize"
+          :current-page="reportBatchIssueSceneReportPagination.pageNumber"
+          @current-change="handleReportBatchIssueSceneReportPageChange"
+          @size-change="handleReportBatchIssueSceneReportPageSizeChange"
+        />
       </section>
 
       <section class="issue-scene-detail-section">
@@ -448,7 +470,8 @@ const {
           <span>{{ t('parseRecord.issueSceneDetail.sections.logicalObjectDetail') }}</span>
         </div>
         <el-table
-          :data="normalizeArray(selectedReportIssueSceneDetail.logicalObjectDetails)"
+          v-loading="loading.reportBatchIssueSceneDetail"
+          :data="selectedReportIssueSceneLogicalObjectDetailsPage"
           border
           :row-class-name="issueSceneLogicalObjectRowClassName"
           data-testid="parse-record-report-issue-scene-object"
@@ -462,6 +485,17 @@ const {
             <template #default="{ row }">{{ displayValue(row.reportCodes) }}</template>
           </el-table-column>
         </el-table>
+        <el-pagination
+          v-if="selectedReportIssueSceneLogicalObjectDetails.length > reportBatchIssueSceneLogicalObjectPagination.pageSize"
+          class="pagination-row"
+          layout="total, sizes, prev, pager, next"
+          :total="selectedReportIssueSceneLogicalObjectDetails.length"
+          :page-sizes="REPORT_STATISTIC_PAGE_SIZE_OPTIONS"
+          :page-size="reportBatchIssueSceneLogicalObjectPagination.pageSize"
+          :current-page="reportBatchIssueSceneLogicalObjectPagination.pageNumber"
+          @current-change="handleReportBatchIssueSceneLogicalObjectPageChange"
+          @size-change="handleReportBatchIssueSceneLogicalObjectPageSizeChange"
+        />
       </section>
 
       <section class="issue-scene-detail-section">
@@ -469,6 +503,7 @@ const {
           <span>{{ t('parseRecord.issueSceneDetail.sections.sqlDetail') }}</span>
         </div>
         <el-table
+          v-loading="loading.reportBatchIssueSceneDetail"
           :data="normalizeArray(selectedReportIssueSceneDetail.sqlStatistics)"
           border
           data-testid="parse-record-report-issue-scene-sql"

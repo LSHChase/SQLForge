@@ -114,6 +114,14 @@ const reportBatchIssueScenePagination = reactive({
   reportCode: '',
   logicalObjectKey: ''
 })
+const reportBatchIssueSceneReportPagination = reactive({
+  pageNumber: 1,
+  pageSize: 10
+})
+const reportBatchIssueSceneLogicalObjectPagination = reactive({
+  pageNumber: 1,
+  pageSize: 10
+})
 const reportBatchIssueStatisticsPagination = reactive({
   pageNumber: 1,
   pageSize: 10
@@ -121,6 +129,19 @@ const reportBatchIssueStatisticsPagination = reactive({
 const REPORT_SQL_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 const REPORT_STATISTIC_PAGE_SIZE_OPTIONS = [10, 25, 50]
 const LIST_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+function pageItems(items, pagination) {
+  const source = Array.isArray(items) ? items : []
+  const pageNumber = Math.max(1, Number(pagination?.pageNumber || 1))
+  const pageSize = Math.max(1, Number(pagination?.pageSize || 10))
+  const start = (pageNumber - 1) * pageSize
+  return source.slice(start, start + pageSize)
+}
+
+function resetReportBatchIssueSceneLocalPages() {
+  reportBatchIssueSceneReportPagination.pageNumber = 1
+  reportBatchIssueSceneLogicalObjectPagination.pageNumber = 1
+}
+
 const exportForm = reactive({
   exportFormat: 'JSON',
   includeTraceDetail: true,
@@ -273,11 +294,20 @@ const reportBatchIssueStatistics = computed(() => {
     .sort((left, right) => right.affectedSqlCount - left.affectedSqlCount)
 })
 const reportBatchIssueStatisticsPage = computed(() => {
-  const pageNumber = Math.max(1, Number(reportBatchIssueStatisticsPagination.pageNumber || 1))
-  const pageSize = Math.max(1, Number(reportBatchIssueStatisticsPagination.pageSize || 10))
-  const start = (pageNumber - 1) * pageSize
-  return reportBatchIssueStatistics.value.slice(start, start + pageSize)
+  return pageItems(reportBatchIssueStatistics.value, reportBatchIssueStatisticsPagination)
 })
+const selectedReportIssueSceneReportDetails = computed(() =>
+  normalizeArray(selectedReportIssueSceneDetail.value?.reportDetails)
+)
+const selectedReportIssueSceneReportDetailsPage = computed(() =>
+  pageItems(selectedReportIssueSceneReportDetails.value, reportBatchIssueSceneReportPagination)
+)
+const selectedReportIssueSceneLogicalObjectDetails = computed(() =>
+  normalizeArray(selectedReportIssueSceneDetail.value?.logicalObjectDetails)
+)
+const selectedReportIssueSceneLogicalObjectDetailsPage = computed(() =>
+  pageItems(selectedReportIssueSceneLogicalObjectDetails.value, reportBatchIssueSceneLogicalObjectPagination)
+)
 const reportBatchIssueSceneDetailCards = computed(() => {
   const detail = objectValue(selectedReportIssueSceneDetail.value)
   if (!detail.issueScene) {
@@ -993,6 +1023,7 @@ const openReportBatchIssueSceneDetail = async item => {
   reportBatchIssueScenePagination.pageNumber = 1
   reportBatchIssueScenePagination.reportCode = ''
   reportBatchIssueScenePagination.logicalObjectKey = ''
+  resetReportBatchIssueSceneLocalPages()
   await loadReportBatchIssueSceneDetail(item?.issueScene)
   if (selectedReportIssueSceneDetail.value) {
     activeReportBatchDetailTab.value = 'statistics'
@@ -1002,6 +1033,7 @@ const openReportBatchIssueSceneDetail = async item => {
 
 const applyReportBatchIssueSceneFilter = async () => {
   reportBatchIssueScenePagination.pageNumber = 1
+  resetReportBatchIssueSceneLocalPages()
   await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
 }
 
@@ -1025,15 +1057,35 @@ const handleReportBatchIssueStatisticsPageSizeChange = pageSize => {
   reportBatchIssueStatisticsPagination.pageNumber = 1
 }
 
+const handleReportBatchIssueSceneReportPageChange = pageNumber => {
+  reportBatchIssueSceneReportPagination.pageNumber = pageNumber
+}
+
+const handleReportBatchIssueSceneReportPageSizeChange = pageSize => {
+  reportBatchIssueSceneReportPagination.pageSize = pageSize
+  reportBatchIssueSceneReportPagination.pageNumber = 1
+}
+
+const handleReportBatchIssueSceneLogicalObjectPageChange = pageNumber => {
+  reportBatchIssueSceneLogicalObjectPagination.pageNumber = pageNumber
+}
+
+const handleReportBatchIssueSceneLogicalObjectPageSizeChange = pageSize => {
+  reportBatchIssueSceneLogicalObjectPagination.pageSize = pageSize
+  reportBatchIssueSceneLogicalObjectPagination.pageNumber = 1
+}
+
 const clearReportBatchIssueSceneReportFilter = async () => {
   reportBatchIssueScenePagination.reportCode = ''
   reportBatchIssueScenePagination.pageNumber = 1
+  resetReportBatchIssueSceneLocalPages()
   await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
 }
 
 const clearReportBatchIssueSceneLogicalObjectFilter = async () => {
   reportBatchIssueScenePagination.logicalObjectKey = ''
   reportBatchIssueScenePagination.pageNumber = 1
+  resetReportBatchIssueSceneLocalPages()
   await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
 }
 
@@ -1049,6 +1101,7 @@ const selectReportBatchIssueSceneReport = async row => {
     reportBatchIssueScenePagination.logicalObjectKey = ''
   }
   reportBatchIssueScenePagination.pageNumber = 1
+  resetReportBatchIssueSceneLocalPages()
   await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
 }
 
@@ -1059,6 +1112,7 @@ const selectReportBatchIssueSceneLogicalObject = async row => {
   }
   reportBatchIssueScenePagination.logicalObjectKey = nextObjectKey
   reportBatchIssueScenePagination.pageNumber = 1
+  resetReportBatchIssueSceneLocalPages()
   await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
 }
 
@@ -1519,10 +1573,23 @@ const issueLocationText = item => {
 
 const issueLocationTextForScene = (item, issueScene) => {
   const normalizedIssueScene = normalizeQueryValue(issueScene)
-  const scopedLocations = issueLocationItems(item).filter(location =>
+  const row = objectValue(item)
+  const locations = issueLocationItems(row)
+  const scopedLocations = locations.filter(location =>
     normalizeQueryValue(location.issueScene) === normalizedIssueScene
   )
-  return issueLocationText({ ...objectValue(item), issueLocations: scopedLocations })
+  if (scopedLocations.length) {
+    return issueLocationText({ ...row, issueLocations: scopedLocations })
+  }
+  const rowScenes = issueSceneCodesForItem(row).map(scene => normalizeQueryValue(scene))
+  const rowIssueCount = Number(row.issueCount || 0)
+  if (normalizedIssueScene && (rowScenes.includes(normalizedIssueScene) || rowIssueCount > 0)) {
+    if (locations.length) {
+      return issueLocationText({ ...row, issueLocations: locations })
+    }
+    return `${normalizedIssueScene} · ${isChinese.value ? '定位待补充' : 'Location pending'}`
+  }
+  return issueLocationText({ ...row, issueLocations: [] })
 }
 
 const booleanLabel = value => {
@@ -1709,6 +1776,10 @@ watch(reportBatchDetailDrawerVisible, visible => {
     handleReportBatchHistoryPageSizeChange,
     handleReportBatchIssueScenePageChange,
     handleReportBatchIssueScenePageSizeChange,
+    handleReportBatchIssueSceneReportPageChange,
+    handleReportBatchIssueSceneReportPageSizeChange,
+    handleReportBatchIssueSceneLogicalObjectPageChange,
+    handleReportBatchIssueSceneLogicalObjectPageSizeChange,
     handleReportBatchIssueStatisticsPageChange,
     handleReportBatchIssueStatisticsPageSizeChange,
     handleReportBatchSqlPageChange,
@@ -1792,6 +1863,8 @@ watch(reportBatchDetailDrawerVisible, visible => {
     reportBatchIssueSceneDetailDialogTitle,
     reportBatchIssueSceneDetailDialogVisible,
     reportBatchIssueScenePagination,
+    reportBatchIssueSceneReportPagination,
+    reportBatchIssueSceneLogicalObjectPagination,
     reportBatchIssueStatisticsPagination,
     reportBatchIssueStatistics,
     reportBatchIssueStatisticsPage,
@@ -1842,6 +1915,10 @@ watch(reportBatchDetailDrawerVisible, visible => {
     selectedReportGroups,
     selectedReportImportanceStatistics,
     selectedReportIssueSceneDetail,
+    selectedReportIssueSceneReportDetails,
+    selectedReportIssueSceneReportDetailsPage,
+    selectedReportIssueSceneLogicalObjectDetails,
+    selectedReportIssueSceneLogicalObjectDetailsPage,
     selectedReportIssueSceneStatistics,
     selectedReportItems,
     selectedReportLogicalObjectStatistics,
