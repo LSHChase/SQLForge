@@ -358,6 +358,7 @@
 - 推荐 SQL 必须从简单替换升级为 L0 安全语法改写、L1 结构改写、L2 引擎/物理协同建议三层输出，并显式标注前置条件、语义风险、未采用规则、验证方式和是否允许自动应用。
 - 推荐前后 SQL 必须提供 diff 视图，覆盖文本 diff、规则级 diff、AST 摘要差异和风险提示；仅展示两个 SQL 代码块不足以满足治理要求。
 - 改写记录必须能在 SQL 历史详情中查询，并支持周期性原 SQL / 推荐 SQL 结果比对；发现差异时触发 `SQL_REWRITE_RESULT_DIVERGENCE` 告警并暂停自动应用。
+- `HARN-143` 明确状态边界：`APPLIED` 只能表示配置或绑定已写入，不等同于产品态生效；默认运行时优先应用必须等待 `VERIFIED` / `ACTIVE` 且结果等价、收益有效、schema 未过期。
 
 #### 4.4.5 加速治理工作台
 
@@ -367,7 +368,9 @@
   - `QUERY`：SQL 历史、慢 SQL、高 P99、高扫描量、压测回归。
 - 页面必须固定展示：
   - `sourceType`
+  - `sourceKind`
   - `sourceId`
+  - `evidenceLevel`
   - `parseHistoryId`
   - `historyId`
   - `sqlFingerprint`

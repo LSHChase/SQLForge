@@ -145,6 +145,7 @@
 | `docs/exec-plans/completed/HARN-084-sql-parse-history-decoupling-plan.md` | Indexed | HARN-084 SQL 解析记录与 SQL 执行历史解耦执行计划 | Consumed | 约束 HARN-084 的 `sql_parse_history` 持久化、parse-history API、前端 API 拆分、日终慢 SQL 解析骨架与验证顺序 |
 | `docs/references/raw-requirements/HARN-084-sql-parse-history-decoupling.md` | Archive | HARN-084 raw requirement snapshot | Archived | 保存 HARN-084 用户确认计划输入，供解析历史解耦实现和后续审计追溯 |
 | `docs/references/raw-requirements/HARN-127-acceleration-rewrite-governance.md` | Archive | HARN-127 raw requirement snapshot | Archived | 保存本轮加速与改写治理工作台方案、SQL diff、改写记录和任务拆分原始需求，供后续 `HARN-128` 至 `HARN-142` 追溯 |
+| `docs/references/raw-requirements/HARN-143-acceleration-rewrite-governance-review.md` | Archive | HARN-143 raw requirement snapshot | Archived | 保存对 HARN-127 方案、输入输出、历史、文档、任务依赖和缺失点的严格复核要求，供 `HARN-128` 之后实施时追溯复核修正基线 |
 
 ## Completeness Statement
 

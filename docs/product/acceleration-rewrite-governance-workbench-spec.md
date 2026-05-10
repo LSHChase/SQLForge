@@ -41,6 +41,17 @@
 - 当前没有独立 `sql_rewrite_record` / `rewrite_validation_run` 查询面，也没有 SQL 历史详情里的改写记录 tab。
 - 当前没有周期性原 SQL / 推荐 SQL 结果比对，也没有 `SQL_REWRITE_RESULT_DIVERGENCE` 告警事件闭环。
 
+## HARN-143 Review Corrections
+
+`HARN-143` 对本方案、产品规格、接口基线、数据模型、主计划、任务矩阵和台账做严格复核后，确认以下修正必须进入后续实现基线：
+
+- `APPLIED` 只能表示计划已应用或绑定已写入，不能等同于产品态“生效”；只有 `VERIFIED` / `ACTIVE` 且验证未过期的计划才允许进入默认运行时优先应用。
+- 解析驱动与查询驱动的来源字段必须区分 `sourceType`、`sourceKind` 与 `sourceId`，避免把 `parseHistoryId`、`parseTaskId`、`batchId`、`batchItemId`、`historyId`、`executionId` 和 `benchmarkTaskId` 混为一个不可解释字段。
+- 所有候选与推荐必须携带 `evidenceLevel`，至少区分 `STATIC_PARSE`、`ACCESS_PARSE`、`EXPLAIN_PLAN`、`RUNTIME_HISTORY`、`BENCHMARK`、`MIXED`，页面不得把不可用证据显示为 0 成本或已验证收益。
+- `rewrite_validation_run` 的数据主责归 `sql-optimization`；`query-execution` 和 `benchmark-engine` 只能作为只读执行或压测证据提供方，不能成为第二套改写验证真值。
+- 改写差异告警必须同步进入 `Alert Contracts`，否则 SQL 历史和工作台只能展示状态，无法形成监控闭环。
+- `HARN-128` 的实施依赖应从 `HARN-127` 调整为 `HARN-143`，后续实现必须基于复核修正版方案继续。
+
 ## Boundary Decisions
 
 - SQLForge 负责发现候选、生成推荐、审批、绑定、验证、结果比对、监控告警和审计追溯。
@@ -56,16 +67,19 @@
 解析工作台、批量解析、报表解析或解析历史产生：
 
 - `sourceType=PARSE`
-- `sourceId=parseHistoryId | parseTaskId | batchId`
+- `sourceKind=STRUCTURE_PARSE | COMBINED_PARSE | PARSE_BATCH | REPORT_BATCH | END_OF_DAY_SLOW_SQL`
+- `sourceId=parseHistoryId | parseTaskId | batchId | batchItemId | reportBatchId | reportBatchItemId`
 - `parseHistoryId`
 - `parseTaskId`
 - `batchId`
+- `batchItemId`
 - `reportCode`
 - `sqlFingerprint`
 - `datasourceCode`
 - `stage`
 - `issueScenes`
 - `staticOnly`
+- `evidenceLevel=STATIC_PARSE | ACCESS_PARSE | MIXED`
 
 随后进入统一流程：
 
@@ -84,7 +98,8 @@
 SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输入产生：
 
 - `sourceType=QUERY`
-- `sourceId=historyId | executionId | benchmarkTaskId`
+- `sourceKind=QUERY_HISTORY | SLOW_SQL | HIGH_P99 | HIGH_SCAN | BENCHMARK_REGRESSION | MANUAL`
+- `sourceId=historyId | executionId | benchmarkTaskId | manualInputId`
 - `historyId`
 - `executionId`
 - `benchmarkTaskId`
@@ -96,6 +111,7 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 - `scannedRows`
 - `scannedBytes`
 - `runtimeEvidence`
+- `evidenceLevel=RUNTIME_HISTORY | EXPLAIN_PLAN | BENCHMARK | MIXED`
 
 若缺少结构解析证据，则工作台提供“先解析再生成建议”的显式动作，不把解析伪装成已经完成。
 
@@ -105,10 +121,13 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 |:---|:---|:---|
 | 草稿 | `DRAFT`, `PENDING_APPROVAL`, recommendation `RECOMMENDED` | 建议已生成，尚未确认或未形成可应用计划 |
 | 待生效 | `APPROVED`, `APPLYING` | 已审批，等待应用、外部协同或运行时绑定 |
-| 生效 | `APPLIED`, `VERIFIED`, `ACTIVE` | 已应用并进入监控窗口 |
+| 已应用待验证 | `APPLIED` | 配置或绑定已应用，但尚未证明结果等价和收益有效；不得作为默认自动优先路径 |
+| 生效 | `VERIFIED`, `ACTIVE` | 已验证并进入监控窗口；验证过期、schema 变化或 artifact 失效后必须降级 |
 | 待复核 | `VERIFY_FAILED`, validation `DIVERGED`, monitor `REGRESSED` | 验证失败、收益衰减或结果差异，需要人工处理 |
 | 失效 | `INVALID`, `EXPIRED` | schema、模型、artifact、新鲜度或外部依赖失效 |
 | 废弃 | `ROLLED_BACK`, `DEPRECATED`, `CANCELLED` | 用户取消、系统回滚或长期无收益 |
+
+默认运行时优先应用门槛：只有 `VERIFIED` / `ACTIVE` 且 `validationStatus=EQUIVALENT`、`benefitStatus=POSITIVE`、`schemaVersion` 未过期的绑定，才能被查询执行默认优先消费。`APPLIED` 仅允许在工作台验证或显式测试模式中使用。
 
 ## Workbench Page Design
 
@@ -120,12 +139,14 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 - 双入口 segmented control：`解析驱动` / `查询驱动`。
 - 入口表单：
   - `sourceType`
+  - `sourceKind`
   - `parseHistoryId` 或 `historyId`
   - `sqlText`
   - `datasourceCode`
   - `schemaName`
   - `stage`
   - `reportCode`
+  - `evidenceLevel`
   - `enableHetuExplain`
 - 流程图：只在本页展示，节点为 `入口证据 -> 候选建议 -> SQL 差异 -> 计划审批 -> 应用验证 -> 监控告警 -> 回滚/废弃`。
 - 操作区 tabs：
@@ -151,14 +172,16 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 
 对于现有页面尚未覆盖的操作，工作台提供最小按钮：
 
-1. 生成建议：`POST /api/sql-optimization/tasks`
-2. 查询建议任务：`GET /api/sql-optimization/tasks/{taskId}`
-3. 创建计划：`POST /api/sql-optimization/acceleration-plans`
-4. 审批计划：`POST /api/sql-optimization/acceleration-plans/{planId}/approval`
-5. 应用计划：`POST /api/sql-optimization/acceleration-plans/{planId}/apply`
-6. 验证计划：`POST /api/sql-optimization/acceleration-plans/{planId}/verify`
-7. 执行加速查询：`POST /api/query-execution/queries/execute`
-8. 回滚计划：`POST /api/sql-optimization/acceleration-plans/{planId}/rollback`
+1. 基线查询：`POST /api/query-execution/queries/execute`，不带 `PREFER_ACCELERATED`，记录 baseline metadata。
+2. 生成建议：`POST /api/sql-optimization/tasks`
+3. 查询建议任务：`GET /api/sql-optimization/tasks/{taskId}`
+4. 创建计划：`POST /api/sql-optimization/acceleration-plans`
+5. 审批计划：`POST /api/sql-optimization/acceleration-plans/{planId}/approval`
+6. 应用计划：`POST /api/sql-optimization/acceleration-plans/{planId}/apply`
+7. 验证计划：`POST /api/sql-optimization/acceleration-plans/{planId}/verify`
+8. 执行加速查询：`POST /api/query-execution/queries/execute`，显式传入 `accelerationPreference=PREFER_ACCELERATED`，检查 `metadata.accelerationApplied`。
+9. 回滚计划：`POST /api/sql-optimization/acceleration-plans/{planId}/rollback`
+10. 回滚后查询：再次执行查询，确认 `metadata.accelerationApplied=false` 或绑定已失效。
 
 当目标接口尚未实现时，按钮必须显示 `未实现` 或 `需要后续任务`，不能提交 mock 成功。
 
@@ -346,6 +369,7 @@ SQL 历史不得只依赖 `recommendationRefs` 中的弱引用展示改写。后
 - 归属：`sql-optimization`
 - 主键：`candidate_id`
 - 结构化字段：`tenant_id`, `source_type`, `source_id`, `history_id`, `parse_history_id`, `task_id`, `sql_fingerprint`, `datasource_code`, `stage`, `candidate_type`, `status`, `confidence`, `priority`, `created_by`, `created_at`, `updated_at`
+- 补充结构化字段：`source_kind`, `evidence_level`, `schema_version`
 - JSON 字段：`source_evidence_json`, `issue_evidence_json`, `runtime_evidence_json`, `benefit_estimate_json`, `cost_estimate_json`, `risk_json`
 
 ### `sql_rewrite_record`
@@ -353,12 +377,13 @@ SQL 历史不得只依赖 `recommendationRefs` 中的弱引用展示改写。后
 - 归属：`sql-optimization`，由 `governance` 查询面聚合到 SQL 历史详情。
 - 主键：`rewrite_record_id`
 - 结构化字段：`tenant_id`, `recommendation_id`, `optimization_task_id`, `source_type`, `source_id`, `history_id`, `parse_history_id`, `sql_fingerprint`, `datasource_code`, `status`, `validation_status`, `auto_apply_allowed`, `manual_review_required`, `created_by`, `created_at`, `updated_at`
+- 补充结构化字段：`source_kind`, `validation_policy_id`, `last_validation_run_id`, `last_compared_at`, `alert_status`
 - 大文本字段：`original_sql_text`, `recommended_sql_text`, `executed_sql_text`
 - JSON 字段：`rule_chain_json`, `diff_summary_json`, `risk_json`, `trace_refs_json`
 
 ### `rewrite_validation_run`
 
-- 归属：`sql-optimization` 或 `benchmark-engine` 协同；只读执行通过 `query-execution`。
+- 归属：`sql-optimization`。`query-execution` 提供只读执行证据，`benchmark-engine` 可提供压测或回归证据，但不得成为第二套改写验证真值。
 - 主键：`validation_run_id`
 - 结构化字段：`tenant_id`, `rewrite_record_id`, `recommendation_id`, `history_id`, `sql_fingerprint`, `status`, `comparison_status`, `difference_type`, `started_at`, `finished_at`
 - JSON 字段：`comparison_policy_json`, `original_result_digest_json`, `recommended_result_digest_json`, `difference_sample_json`, `execution_evidence_json`
@@ -417,6 +442,7 @@ SQL 历史不得只依赖 `recommendationRefs` 中的弱引用展示改写。后
 
 | Task ID | Title | Primary output | Key validation |
 |:---|:---|:---|:---|
+| `HARN-143` | 复核加速与改写治理方案完整性 | 修正状态边界、来源字段、证据层级、告警契约、真实接口 smoke 顺序和任务依赖 | `foreman validate`, knowledge lint, governance compile |
 | `HARN-128` | 固化加速候选与改写记录后端契约 | `sql-optimization` 目标 DTO/VO、状态枚举、接口契约文档和最小 controller/service 骨架 | `mvn -pl sql-optimization test`, contract tests |
 | `HARN-129` | 落地 `acceleration_candidate` / `sql_rewrite_record` / `rewrite_validation_run` 持久化 | SQL migration、entity、mapper XML、repository tests | db-script check, mapper tests |
 | `HARN-130` | 深化推荐 SQL 规则输出模型 | L0/L1/L2 rule model、rule chain、risk/precondition/unapplied rules 输出 | `SqlOptimizationPipelineServiceTest` |
@@ -437,10 +463,11 @@ SQL 历史不得只依赖 `recommendationRefs` 中的弱引用展示改写。后
 
 推荐执行顺序：
 
-1. `HARN-128` 至 `HARN-134`：后端契约、持久化、推荐、diff 与历史聚合。
-2. `HARN-135` 至 `HARN-136`：周期比对和告警闭环。
-3. `HARN-137` 至 `HARN-141`：前端工作台、推荐中心、SQL 历史和告警展示。
-4. `HARN-142`：端到端 smoke、runbook 和文档收口。
+1. `HARN-143`：先完成严格复核与文档修正，作为后续实现基线。
+2. `HARN-128` 至 `HARN-134`：后端契约、持久化、推荐、diff 与历史聚合。
+3. `HARN-135` 至 `HARN-136`：周期比对和告警闭环。
+4. `HARN-137` 至 `HARN-141`：前端工作台、推荐中心、SQL 历史和告警展示。
+5. `HARN-142`：端到端 smoke、runbook 和文档收口。
 
 任何任务若发现必须改变生产装数、真实物化视图执行、权限边界、历史保留策略或外部环境默认依赖，必须暂停并拆出人工确认项。
 

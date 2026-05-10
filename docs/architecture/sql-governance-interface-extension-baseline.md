@@ -763,7 +763,9 @@ repo-side 基线：
 新增字段至少覆盖：
 
 - `sourceType`: `PARSE`,`QUERY`
+- `sourceKind`: `STRUCTURE_PARSE`,`COMBINED_PARSE`,`PARSE_BATCH`,`REPORT_BATCH`,`END_OF_DAY_SLOW_SQL`,`QUERY_HISTORY`,`SLOW_SQL`,`HIGH_P99`,`HIGH_SCAN`,`BENCHMARK_REGRESSION`,`MANUAL`
 - `sourceId`
+- `evidenceLevel`: `STATIC_PARSE`,`ACCESS_PARSE`,`EXPLAIN_PLAN`,`RUNTIME_HISTORY`,`BENCHMARK`,`MIXED`
 - `parseHistoryId`
 - `historyId`
 - `ruleChain[]`
@@ -784,6 +786,7 @@ repo-side 基线：
 - 差异类型至少包括 `SCHEMA_DIFF`,`ROW_COUNT_DIFF`,`KEY_SET_DIFF`,`ORDER_DIFF`,`VALUE_DIFF`,`CHECKSUM_DIFF`,`TIMEZONE_OR_PRECISION_DIFF`
 - 比对不得把大结果集全量拉回前端；后端返回 schema digest、row count、key/hash/checksum digest 和有限差异样本。
 - 发现 `DIVERGED` 时必须暂停自动应用，并触发 `SQL_REWRITE_RESULT_DIVERGENCE` 告警事件。
+- 默认运行时优先应用门槛为 `planStatus=VERIFIED|ACTIVE`、`validationStatus=EQUIVALENT`、`benefitStatus=POSITIVE`、`schemaVersion` 未过期；`APPLIED` 仅表示已写入配置或绑定，不得等同于生效。
 
 治理事件载荷至少包括：
 
@@ -898,6 +901,36 @@ repo-side 基线：
 - `GET /api/governance/alerts/{alertId}`
 - `POST /api/governance/alerts/{alertId}/ack`
 - `POST /api/governance/alerts/policies`
+
+`HARN-143` 之后，改写与加速治理相关告警类型至少包括：
+
+- `SQL_REWRITE_RESULT_DIVERGENCE`
+- `SQL_REWRITE_VALIDATION_FAILED`
+- `ACCELERATION_PLAN_REGRESSED`
+- `ACCELERATION_ARTIFACT_INVALIDATED`
+
+告警 payload 至少保留以下可检索或可下钻字段：
+
+- `tenantId`
+- `sourceType`
+- `sourceKind`
+- `sourceId`
+- `historyId`
+- `parseHistoryId`
+- `recommendationId`
+- `rewriteRecordId`
+- `validationRunId`
+- `planId`
+- `sqlFingerprint`
+- `differenceType`
+- `sampleEvidence`
+- `autoApplyPaused`
+
+边界：
+
+- 差异告警不等于自动回滚生产配置；默认动作是暂停自动应用、记录审计证据并等待人工复核。
+- 模拟邮件仍只能标记为 `notify simulated`，不得写成真实通知成功。
+- 告警查询必须遵守同租户可见性，不能通过 `historyId`、`recommendationId` 或 `rewriteRecordId` 越权钻取。
 
 ## 13. System Management Contracts
 

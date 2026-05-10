@@ -174,22 +174,22 @@
 - `acceleration_candidate`
   - 所属服务：`sql-optimization`
   - 主键：`candidate_id`
-  - 结构化字段：`tenant_id`,`source_type`,`source_id`,`history_id`,`parse_history_id`,`task_id`,`sql_fingerprint`,`datasource_code`,`stage`,`report_code`,`candidate_type`,`status`,`confidence`,`priority`,`created_by`,`created_at`,`updated_at`
+  - 结构化字段：`tenant_id`,`source_type`,`source_kind`,`source_id`,`history_id`,`parse_history_id`,`task_id`,`sql_fingerprint`,`datasource_code`,`stage`,`report_code`,`candidate_type`,`status`,`confidence`,`priority`,`evidence_level`,`schema_version`,`created_by`,`created_at`,`updated_at`
   - JSON 字段：`source_evidence_json`,`issue_evidence_json`,`runtime_evidence_json`,`benefit_estimate_json`,`cost_estimate_json`,`risk_json`
-  - 追溯键：`tenant_id`,`candidate_id`,`source_type`,`source_id`,`history_id`,`parse_history_id`,`task_id`,`sql_fingerprint`,`report_code`,`datasource_code`
+  - 追溯键：`tenant_id`,`candidate_id`,`source_type`,`source_kind`,`source_id`,`history_id`,`parse_history_id`,`task_id`,`sql_fingerprint`,`report_code`,`datasource_code`
   - 边界：统一承接解析驱动与查询驱动进入加速/改写治理工作台的候选对象；不得表示真实物理加速已执行
 - `sql_rewrite_record`
   - 所属服务：`sql-optimization`，由 `governance` 查询面聚合到 SQL 历史详情
   - 主键：`rewrite_record_id`
-  - 结构化字段：`tenant_id`,`recommendation_id`,`optimization_task_id`,`source_type`,`source_id`,`history_id`,`parse_history_id`,`sql_fingerprint`,`datasource_code`,`status`,`validation_status`,`auto_apply_allowed`,`manual_review_required`,`created_by`,`created_at`,`updated_at`
+  - 结构化字段：`tenant_id`,`recommendation_id`,`optimization_task_id`,`source_type`,`source_kind`,`source_id`,`history_id`,`parse_history_id`,`sql_fingerprint`,`datasource_code`,`status`,`validation_status`,`auto_apply_allowed`,`manual_review_required`,`validation_policy_id`,`last_validation_run_id`,`last_compared_at`,`alert_status`,`created_by`,`created_at`,`updated_at`
   - 大文本字段：`original_sql_text`,`recommended_sql_text`,`executed_sql_text`
   - JSON 字段：`rule_chain_json`,`diff_summary_json`,`risk_json`,`trace_refs_json`
-  - 追溯键：`tenant_id`,`rewrite_record_id`,`recommendation_id`,`optimization_task_id`,`source_type`,`source_id`,`history_id`,`parse_history_id`,`sql_fingerprint`
+  - 追溯键：`tenant_id`,`rewrite_record_id`,`recommendation_id`,`optimization_task_id`,`source_type`,`source_kind`,`source_id`,`history_id`,`parse_history_id`,`sql_fingerprint`
   - 边界：承载改写建议、diff、验证状态和实际执行 SQL 追溯；不得把推荐状态误写成装数或真实物理加速完成
 - `rewrite_validation_run`
-  - 所属服务：`sql-optimization`，只读执行可通过 `query-execution` 或 `benchmark-engine` 协同
+  - 所属服务：`sql-optimization`，只读执行可通过 `query-execution` 协同，压测或回归证据可通过 `benchmark-engine` 协同；`benchmark-engine` 不拥有本对象的长期真值
   - 主键：`validation_run_id`
-  - 结构化字段：`tenant_id`,`rewrite_record_id`,`recommendation_id`,`history_id`,`sql_fingerprint`,`status`,`comparison_status`,`difference_type`,`started_at`,`finished_at`
+  - 结构化字段：`tenant_id`,`rewrite_record_id`,`recommendation_id`,`history_id`,`sql_fingerprint`,`status`,`comparison_status`,`difference_type`,`auto_apply_paused`,`started_at`,`finished_at`
   - JSON 字段：`comparison_policy_json`,`original_result_digest_json`,`recommended_result_digest_json`,`difference_sample_json`,`execution_evidence_json`
   - 追溯键：`tenant_id`,`validation_run_id`,`rewrite_record_id`,`recommendation_id`,`history_id`,`sql_fingerprint`
   - 边界：只保存结果比对摘要、digest、有限差异样本和执行证据；大结果集不得全量拉回前端或落入本表
