@@ -28,7 +28,21 @@ const requiredTokens = [
   'data-testid="parse-record-report-sql-history-detail-unavailable"',
   'data-testid="parse-record-report-detail-tabs"',
   'data-testid="parse-record-report-statistics-tabs"',
+  ':data="reportBatchIssueStatistics"',
+  'data-testid="parse-record-report-statistics-issue-scene"',
   'data-testid="parse-record-report-issue-scene-detail"',
+  'data-testid="parse-record-report-issue-scene-detail-dialog"',
+  'data-testid="parse-record-report-issue-scene-report"',
+  'data-testid="parse-record-report-issue-scene-object"',
+  'data-testid="parse-record-report-issue-scene-sql"',
+  ':data="normalizeArray(selectedReportIssueSceneDetail.reportDetails)"',
+  ':data="normalizeArray(selectedReportIssueSceneDetail.logicalObjectDetails)"',
+  ':data="normalizeArray(selectedReportIssueSceneDetail.sqlStatistics)"',
+  'reportBatchIssueSceneDetailDialogVisible',
+  'reportBatchIssueSceneDetailDialogTitle',
+  'sqlStatisticTotalCount',
+  'layout="total, prev, pager, next"',
+  '@current-change="handleReportBatchIssueScenePageChange"',
   "activeReportBatchDetailTab.value = 'statistics'",
   "activeReportBatchStatisticsTab.value = 'issueScene'",
   ':data-testid="`parse-record-${item.key}`"',
@@ -80,14 +94,24 @@ const forbiddenTokens = [
   'exportGovernanceQueryHistory'
 ]
 const forbidden = forbiddenTokens.filter(token => source.includes(token))
+const forbiddenPatterns = [
+  {
+    label: 'selectedReportIssueSceneDetail.reportDetails fixed slice(0, 8)',
+    pattern: /selectedReportIssueSceneDetail\.reportDetails[\s\S]{0,120}\.slice\(\s*0\s*,\s*8\s*\)/
+  }
+]
+const forbiddenPatternHits = forbiddenPatterns.filter(item => item.pattern.test(source))
 
-if (missing.length > 0 || forbidden.length > 0) {
+if (missing.length > 0 || forbidden.length > 0 || forbiddenPatternHits.length > 0) {
   console.error('History detail contract check failed.')
   for (const token of missing) {
     console.error(`- missing token: ${token}`)
   }
   for (const token of forbidden) {
     console.error(`- forbidden token: ${token}`)
+  }
+  for (const item of forbiddenPatternHits) {
+    console.error(`- forbidden pattern: ${item.label}`)
   }
   process.exit(1)
 }

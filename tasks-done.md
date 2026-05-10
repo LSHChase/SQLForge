@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-096: 修复问题场景详情报表展示不全
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `HARN-096 list report issue scene details`
+- Priority: 1
+- Depends on: N/A
+- Scope: Fix parse history report import detail issue-scene drawer so reportDetails are rendered completely in the report-level statistics detail, keep SQL detail pagination unchanged, and add a static contract guard preventing reportDetails slice truncation from returning.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-096`
+- Progress log:
+  - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Converted parse history report-batch issue-scene statistics and detail views to Element Plus tables, moved issue-scene detail into a dialog, preserved SQL detail pagination, localized new labels, and added contract guards against reportDetails slice truncation.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-096; npm run lint; npm run build; npm run test:frontend-page-governance; npm run test:sql-ui-contract; node scripts/check-history-detail-contract.mjs; node scripts/check-history-page-contract.mjs; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
+  - Residual risk: No backend API or tenant/pagination request semantics were changed; live before/after screenshot capture was not available in this fresh-context turn, so UI confidence comes from static contracts, governance checks, and production build.
+  - Next step: Use the parse history report-import detail drawer with seeded report batch data to perform any optional browser-level visual review.
+
 ### HARN-115: 重构告警、取证、修复、故障处置与系统管理页面
 
 - Status: done

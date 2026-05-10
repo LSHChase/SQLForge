@@ -608,7 +608,37 @@ export default {
   },
   parseRecord: {
     title: 'Parse History Search',
-    summary: 'Search batch parse and report-import history with batch-level parse records.'
+    summary: 'Search batch parse and report-import history with batch-level parse records.',
+    issueSceneDetail: {
+      actions: {
+        viewDetail: 'View detail'
+      },
+      sections: {
+        reportDetail: 'Report detail',
+        logicalObjectDetail: 'Logical object detail',
+        sqlDetail: 'SQL detail'
+      },
+      columns: {
+        issueScene: 'Issue scene',
+        affectedSql: 'Affected SQL',
+        severity: 'Severity',
+        reportCount: 'Reports',
+        logicalObjectCount: 'Logical objects',
+        ratio: 'Ratio',
+        actions: 'Actions',
+        report: 'Report',
+        sqlCount: 'SQL count',
+        issueCount: 'Issues',
+        logicalObjectKeys: 'Logical object keys',
+        object: 'Object',
+        reportCodes: 'Report codes',
+        reportSql: 'Report / SQL',
+        priority: 'Priority',
+        logicalObjects: 'Logical objects',
+        issueScenes: 'Issue scenes',
+        location: 'Location'
+      }
+    }
   },
   governanceTrace: {
     tenantContext: 'Tenant context',

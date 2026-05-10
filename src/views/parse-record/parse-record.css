@@ -247,10 +247,31 @@
   padding: 0;
 }
 
+.issue-scene-code {
+  color: var(--sqlforge-text-primary);
+  font-weight: 700;
+}
+
 .issue-scene-detail-panel {
   display: grid;
   gap: 12px;
   margin-top: 14px;
+}
+
+.issue-scene-detail-section {
+  display: grid;
+  gap: 10px;
+}
+
+.detail-section-heading {
+  color: var(--sqlforge-text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.table-cell-stack {
+  display: grid;
+  gap: 2px;
 }
 
 .detail-grid__item span {

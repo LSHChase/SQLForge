@@ -608,7 +608,37 @@ export default {
   },
   parseRecord: {
     title: '解析历史查询',
-    summary: '查询批量解析与报表导入历史，回看批次级解析记录。'
+    summary: '查询批量解析与报表导入历史，回看批次级解析记录。',
+    issueSceneDetail: {
+      actions: {
+        viewDetail: '查看明细'
+      },
+      sections: {
+        reportDetail: '报表明细',
+        logicalObjectDetail: '逻辑对象明细',
+        sqlDetail: 'SQL 明细'
+      },
+      columns: {
+        issueScene: '问题场景',
+        affectedSql: '影响 SQL',
+        severity: '严重度',
+        reportCount: '报表数',
+        logicalObjectCount: '逻辑对象数',
+        ratio: '比例',
+        actions: '操作',
+        report: '报表',
+        sqlCount: 'SQL 数',
+        issueCount: '问题数',
+        logicalObjectKeys: '逻辑对象集合',
+        object: '对象',
+        reportCodes: '报表编码集合',
+        reportSql: '报表 / SQL',
+        priority: '优先级',
+        logicalObjects: '逻辑对象',
+        issueScenes: '问题场景',
+        location: '定位'
+      }
+    }
   },
   governanceTrace: {
     tenantContext: '租户上下文',

@@ -81,6 +81,7 @@ const errorMessage = ref('')
 const batchHistoryErrorMessage = ref('')
 const reportBatchItemDetailErrorMessage = ref('')
 const reportBatchDetailDrawerVisible = ref(false)
+const reportBatchIssueSceneDetailDialogVisible = ref(false)
 const reportSqlParseDetailDialogVisible = ref(false)
 const exportDialogVisible = ref(false)
 const exportResult = ref(null)
@@ -280,6 +281,20 @@ const reportBatchIssueSceneDetailCards = computed(() => {
     card(isChinese.value ? '优先级' : 'Priority', detail.priorityLevel),
     card(isChinese.value ? '严重度' : 'Severity', detail.severity)
   ].filter(item => hasDisplayValue(item.value))
+})
+const reportBatchIssueSceneDetailDialogTitle = computed(() => {
+  const detail = objectValue(selectedReportIssueSceneDetail.value)
+  const title = isChinese.value ? '问题场景明细' : 'Issue scene detail'
+  const scene = detail.issueScene || '-'
+  const filters = [
+    reportBatchIssueScenePagination.reportCode
+      ? `${isChinese.value ? '报表编码' : 'Report code'}: ${reportBatchIssueScenePagination.reportCode}`
+      : '',
+    reportBatchIssueScenePagination.logicalObjectKey
+      ? `${isChinese.value ? '逻辑对象' : 'Logical object'}: ${reportBatchIssueScenePagination.logicalObjectKey}`
+      : ''
+  ].filter(Boolean)
+  return filters.length ? `${title}: ${scene} (${filters.join(' · ')})` : `${title}: ${scene}`
 })
 const reportBatchLogicalObjectStatistics = computed(() => {
   if (selectedReportLogicalObjectStatistics.value.length) {
@@ -875,6 +890,15 @@ const loadReportBatchWithStatistics = async (batchId, options = {}) => {
   }
 }
 
+const resetReportBatchIssueSceneDetail = () => {
+  selectedReportIssueSceneDetail.value = null
+  reportBatchIssueSceneDetailDialogVisible.value = false
+  reportBatchIssueScenePagination.pageNumber = 1
+  reportBatchIssueScenePagination.pageSize = 25
+  reportBatchIssueScenePagination.reportCode = ''
+  reportBatchIssueScenePagination.logicalObjectKey = ''
+}
+
 const openReportBatchDetail = async row => {
   const batchId = typeof row === 'string' ? row : row?.batchId
   if (!batchId) {
@@ -886,14 +910,10 @@ const openReportBatchDetail = async row => {
   reportBatchItemDetails.value = {}
   selectedReportSqlDetailItem.value = null
   reportSqlParseDetailDialogVisible.value = false
-  selectedReportIssueSceneDetail.value = null
+  resetReportBatchIssueSceneDetail()
   reportBatchSqlPagination.pageNumber = 1
   reportBatchSqlPagination.pageSize = 25
   reportBatchSqlPagination.reportCode = ''
-  reportBatchIssueScenePagination.pageNumber = 1
-  reportBatchIssueScenePagination.pageSize = 25
-  reportBatchIssueScenePagination.reportCode = ''
-  reportBatchIssueScenePagination.logicalObjectKey = ''
   activeReportBatchDetailTab.value = 'overview'
   activeReportBatchStatisticsTab.value = 'issueScene'
   try {
@@ -944,8 +964,10 @@ const loadReportBatchIssueSceneDetail = async issueScene => {
         requestPrefix: 'frontend-parse-record-report-issue-scene-detail'
       }
     )
+    reportBatchIssueSceneDetailDialogVisible.value = Boolean(selectedReportIssueSceneDetail.value)
   } catch (error) {
     selectedReportIssueSceneDetail.value = null
+    reportBatchIssueSceneDetailDialogVisible.value = false
     batchHistoryErrorMessage.value = formatRuntimeError(error)
   } finally {
     loading.reportBatchIssueSceneDetail = false
@@ -953,6 +975,8 @@ const loadReportBatchIssueSceneDetail = async issueScene => {
 }
 
 const openReportBatchIssueSceneDetail = async item => {
+  selectedReportIssueSceneDetail.value = null
+  reportBatchIssueSceneDetailDialogVisible.value = false
   reportBatchIssueScenePagination.pageNumber = 1
   reportBatchIssueScenePagination.reportCode = ''
   reportBatchIssueScenePagination.logicalObjectKey = ''
@@ -1551,6 +1575,12 @@ watch(
   }
 )
 
+watch(reportBatchDetailDrawerVisible, visible => {
+  if (!visible) {
+    resetReportBatchIssueSceneDetail()
+  }
+})
+
   return {
     activeDialogTab,
     activeHistoryWorkbenchTab,
@@ -1669,6 +1699,8 @@ watch(
     reportBatchHistoryRows,
     reportBatchHistorySummary,
     reportBatchIssueSceneDetailCards,
+    reportBatchIssueSceneDetailDialogTitle,
+    reportBatchIssueSceneDetailDialogVisible,
     reportBatchIssueScenePagination,
     reportBatchIssueStatistics,
     reportBatchItemDetailErrorMessage,
