@@ -110,7 +110,7 @@
 - 当前运行波次：`Phase-D / D-STORY-005`
 - 当前活跃目标：`D-TASK-031` 至 `D-TASK-037` 已全部完成 closeout，分别把 `sql-optimization` 真实 parse/rewrite/acceleration suggestion 链、acceleration plan 治理闭环、`query-execution` 生产级 Hetu 路由校准证据、`benchmark-engine` 外部队列/provider-native 语义、真正的 cache governance 闭环、provider-neutral distributed cache backend baseline，以及 cache capacity / eviction / metrics governance baseline 推进到当前仓库真值。默认主路径仍保持 repo-closed，不得把 environment-backed provider、object storage、distributed cache 或真实 Redis 长跑/恢复演练写成仓库默认事实。
 - `HARN-042` 已完成 closeout：SQL 治理平台实施规格包与 D/E/F 全量 Story / Task inventory 已写入仓库真值。
-- 当前治理任务：当前没有新的已实例化治理收口任务。
+- 当前治理任务：`HARN-127` 已实例化，用于把加速与改写治理工作台完整方案、SQL diff、改写记录、周期比对告警和后续 Codex 小任务清单落入本地文档与任务台账；本任务只改文档和任务清单，不实现业务代码。
 - 当前下一条可执行主线任务：
   - 当前没有新的已实例化 repo-side mainline task。
   - 下一条 repo-side Wave 1 候选任务应从 `D-TASK-038` 启动。
@@ -859,6 +859,33 @@ Tasks:
 | `HARN-115` | 重构告警、取证、修复、故障处置与系统管理页面 | 覆盖 `AlertCenterView`、`AuditForensicsView`、`AuditTroubleshootingView`、`RepairEvidenceView`、`SystemView`，收敛 trace lookup、timeline、queue、retry、datasource/config 表格与详情模式，保留权限和后端权威边界 | `HARN-108`,`HARN-116` | before/after 截图自检、`npm run lint`、`npm run build`、`npm run test:form-governance`、`npm run test:frontend-page-governance` |
 | `HARN-116` | 加固前端页面治理脚本与设计文档 | 扩展 `check-frontend-page-governance.mjs`，补充 layout/i18n/card nesting/SQL component/page shell 检查；更新设计系统与前端治理文档，防止重构后回退 | `HARN-109`,`HARN-110` | `npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`node scripts/lint-repository-knowledge.js` |
 | `HARN-120` | 补齐前端截图自检机器门禁 | 补齐 HARN-116 后复核发现的执行缺口：默认运行页面治理自测、把 R-186 纳入 validation-rules、通过 task_audit closeout gate 检查 before/after 截图和 Codex 读图修复结论，并修正 HARN-111 以后页面任务依赖 | `HARN-116` | `npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`node scripts/lint-repository-knowledge.js`、`python3 scripts/foreman.py validate HARN-120` |
+
+##### Story `E-STORY-015` 加速与改写治理工作台闭环
+
+- 目标：在不把推荐误写成真实装数、不把静态解析误写成真实执行指标的前提下，补齐加速与改写治理工作台、推荐 SQL 深化、SQL diff、SQL 历史改写记录、周期比对和差异告警闭环。
+- 设计权威：[加速与改写治理工作台方案](../product/acceleration-rewrite-governance-workbench-spec.md)。
+- 执行边界：`HARN-127` 只落方案和任务清单；`HARN-128` 至 `HARN-142` 后续逐个 `/plan` 实施，普通任务保持单任务单 commit。
+
+Tasks:
+
+| Task ID | Task | Scope | Dependencies | Verification |
+|:---|:---|:---|:---|:---|
+| `HARN-127` | 落地加速与改写治理方案和任务清单 | 复盘历史需求，新增完整方案文档、原始需求快照、主计划、任务矩阵和后续任务台账；不实现业务代码 | N/A | `python3 scripts/foreman.py validate HARN-127`、`node scripts/lint-repository-knowledge.js`、`python3 scripts/task_audit.py --check --phase pre-closeout` |
+| `HARN-128` | 固化加速候选与改写记录后端契约 | 补齐 candidate、rewrite record、validation run DTO/VO、状态枚举、接口契约与最小 controller/service 骨架 | `HARN-127` | `mvn -pl sql-optimization test`、接口契约测试 |
+| `HARN-129` | 落地加速候选与改写验证持久化 | 新增 `acceleration_candidate`、`sql_rewrite_record`、`rewrite_validation_run` migration、entity、mapper XML 与 repository 测试 | `HARN-128` | DB script check、mapper/repository 测试 |
+| `HARN-130` | 深化推荐 SQL 规则输出模型 | L0/L1/L2 rule model、rule chain、preconditions、semantic risks、unapplied rules、manual review 标识 | `HARN-128` | `SqlOptimizationPipelineServiceTest` |
+| `HARN-131` | 实现首批 L0/L1 安全改写规则 | COUNT、重复 group/order、select star 元数据化、重复子查询 CTE 候选、函数谓词区间候选 | `HARN-130` | parser/rewrite 单元测试 |
+| `HARN-132` | 建立 SQL diff 后端服务 | 文本 diff、规则级 diff、AST 摘要 diff 与 recommendation diff API | `HARN-130` | diff service/controller 测试 |
+| `HARN-133` | 加速候选生成统一入口 | 解析驱动与查询驱动 source normalization、candidate API 与追溯键校验 | `HARN-129`,`HARN-132` | service/controller 测试 |
+| `HARN-134` | 改写记录写入与 SQL 历史聚合接口 | 写入 `sql_rewrite_record`，并提供 `query-history/{historyId}/rewrite-records` 聚合面 | `HARN-129`,`HARN-133` | governance + optimization contract 测试 |
+| `HARN-135` | 周期比对执行模型与只读比较引擎 | validation policy、result digest、schema/row/hash/checksum comparison，不拉全量结果到前端 | `HARN-134` | comparison engine 测试 |
+| `HARN-136` | 周期比对调度与差异告警 | scheduled validation、自动暂停应用、`SQL_REWRITE_RESULT_DIVERGENCE` 告警联动 | `HARN-135`,`F-TASK-037` | scheduler/alert linkage 测试 |
+| `HARN-137` | 前端加速治理工作台壳层 | 双入口、流程图、source fields、已有页面跳转、证据抽屉与设计系统约束 | `HARN-133`,`HARN-116` | lint/build/page governance/截图自检 |
+| `HARN-138` | 工作台候选、计划审批与应用验证 tabs | 候选建议、SQL 差异、计划审批、应用验证、接口证据 tabs 与真实接口按钮 | `HARN-137`,`HARN-134` | browser smoke + API mock contract |
+| `HARN-139` | 推荐中心 SQL diff 与规则详情 | 推荐详情接入 diff 视图、ruleChain、risk/precondition/unappliedRules 展示 | `HARN-132`,`HARN-114` | recommendation page contract |
+| `HARN-140` | SQL 历史改写记录 tab 与筛选 | SQL 历史列表筛选、详情改写记录 tab、diff 跳转与验证状态展示 | `HARN-134`,`HARN-110` | history page/detail contract |
+| `HARN-141` | 监控与告警前端联动 | 工作台、推荐中心、SQL 历史展示 validation status、告警入口和自动暂停证据 | `HARN-136`,`HARN-138`,`HARN-140` | alert/history/workbench contract |
+| `HARN-142` | 加速与改写治理端到端 smoke 与文档收口 | repo-closed smoke、runbook、契约检查脚本、文档同步与残余风险收口 | `HARN-141` | `foreman validate`、frontend smoke、knowledge lint |
 
 ### Phase-F 部署、运维、生产就绪
 

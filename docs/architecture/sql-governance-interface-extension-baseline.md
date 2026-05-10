@@ -748,6 +748,43 @@ repo-side 基线：
 - `requiresDispatch=true` 只表示需要外部装数/预热协同，不表示本项目已执行装数。
 - trace 查询只返回同租户 `historyId/parseTaskId/batchId/routeDecisionId/alertId/sqlFingerprint/reportCode/logicalObjectKey` 等引用键，以及同租户 dispatch event；跨服务详情由各自受权接口查询。
 
+`HARN-127` 之后，推荐与加速治理目标契约扩展为：
+
+- `POST /api/sql-optimization/acceleration-candidates`
+- `GET /api/sql-optimization/acceleration-candidates/{candidateId}`
+- `GET /api/sql-optimization/recommendations/{recommendationId}/diff`
+- `POST /api/sql-optimization/rewrite-records`
+- `GET /api/sql-optimization/rewrite-records`
+- `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}`
+- `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/validation-runs`
+- `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}/validation-runs`
+- `GET /api/governance/query-history/{historyId}/rewrite-records`
+
+新增字段至少覆盖：
+
+- `sourceType`: `PARSE`,`QUERY`
+- `sourceId`
+- `parseHistoryId`
+- `historyId`
+- `ruleChain[]`
+- `unappliedRules[]`
+- `preconditions[]`
+- `semanticRisks[]`
+- `diffSummary`
+- `validationMethod`
+- `validationStatus`
+- `autoApplyAllowed`
+- `manualReviewRequired`
+
+推荐 SQL diff 契约必须提供文本 diff、规则级 diff 与 AST 摘要差异。SQL 历史详情不得只依赖 `recommendationRefs` 弱引用展示改写记录，应通过 `query-history/{historyId}/rewrite-records` 聚合同租户可见的改写记录、验证状态和告警引用。
+
+改写结果周期比对契约目标：
+
+- `validationStatus`: `NOT_VALIDATED`,`VALIDATING`,`EQUIVALENT`,`DIVERGED`,`FAILED`,`EXPIRED`
+- 差异类型至少包括 `SCHEMA_DIFF`,`ROW_COUNT_DIFF`,`KEY_SET_DIFF`,`ORDER_DIFF`,`VALUE_DIFF`,`CHECKSUM_DIFF`,`TIMEZONE_OR_PRECISION_DIFF`
+- 比对不得把大结果集全量拉回前端；后端返回 schema digest、row count、key/hash/checksum digest 和有限差异样本。
+- 发现 `DIVERGED` 时必须暂停自动应用，并触发 `SQL_REWRITE_RESULT_DIVERGENCE` 告警事件。
+
 治理事件载荷至少包括：
 
 - `recommendationId`

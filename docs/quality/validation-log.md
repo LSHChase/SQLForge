@@ -3351,3 +3351,28 @@
 2026-05-10T04:52:33-05:00 | HARN-126 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-10T04:52:33-05:00 | HARN-126 closeout commit | `R-168` | projected | `git commit -m 'fix(frontend): route navigation copy through locales' (projected-precommit)`
 2026-05-10T04:52:33-05:00 | HARN-126 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-10T06:52:49-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T06:52:49-05:00 | HARN-127 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T06:53:00-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T06:53:00-05:00 | HARN-127 validate | `R-133`, `R-168` | failed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T06:53:00-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T06:53:28-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T06:53:28-05:00 | HARN-127 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T06:53:38-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T06:53:38-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T06:53:38-05:00 | HARN-127 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T06:53:38-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T06:53:38-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-10T06:54:59-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T06:54:59-05:00 | HARN-127 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T06:55:10-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T06:55:10-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T06:55:10-05:00 | HARN-127 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T06:55:10-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T06:55:10-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T06:55:10-05:00 | HARN-127 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-10T06:55:41-05:00 | HARN-127 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T06:55:41-05:00 | HARN-127 closeout commit | `R-168` | projected | `git commit -m 'docs(product): land acceleration rewrite governance plan' (projected-precommit)`
+2026-05-10T06:55:41-05:00 | HARN-127 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-10T06:55:41-05:00 | HARN-127 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-05-10T06:55:41-05:00 | HARN-127 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`

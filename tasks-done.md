@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-127: 落地加速与改写治理方案和任务清单
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `docs(product): land acceleration rewrite governance plan`
+- Priority: 1
+- Depends on: N/A
+- Scope: 复盘加速与改写治理历史方案，补齐完整架构/前端设计文档，并拆分后续 Codex 可执行任务清单；本任务只改文档和任务台账，不实现业务代码。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-127`
+- Progress log:
+  - 2026-05-10: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-10: added acceleration/rewrite governance workbench design, raw requirement snapshot, plan/matrix synchronization, and follow-up task ledger entries HARN-128 through HARN-142.
+- Context closeout:
+  - Completed scope: 复盘并落地加速与改写治理工作台完整方案，补齐解析驱动/查询驱动双入口、同页候选/审批/验证、SQL diff、深度推荐规则、SQL 历史改写记录、周期比对告警和真实接口 smoke 设计；同步产品规格、接口基线、数据模型、主计划、任务矩阵、任务台账与原始需求快照；本轮不实现业务代码。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-127 --include-task-audit --extra-command 'node scripts/lint-repository-knowledge.js' --extra-command 'python3 scripts/foreman.py compile-governance --check' --extra-command 'git diff --check'; node scripts/lint-repository-knowledge.js; python3 scripts/task_audit.py --check --phase pre-closeout; python3 scripts/foreman.py compile-governance --check
+  - Residual risk: 本轮仅完成设计与任务落账；HARN-128 至 HARN-142 尚未实现，真实 Hetu/MRS 运行收益和外部环境证据仍归 HARN-016 / INBOX-002。
+  - Next step: 用户后续从 HARN-128 至 HARN-142 中选择单个任务，并通过 /plan 细化后按标准 preflight/instantiate/validate/closeout 执行。
+
 ### HARN-126: 复核并修复前端中文治理架构缺口
 
 - Status: done
