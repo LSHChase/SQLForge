@@ -1,6 +1,7 @@
 package com.company.sqloptimization.application.controller;
 
 import com.company.sqloptimization.application.controller.vo.AccelerationRecommendationVO;
+import com.company.sqloptimization.application.controller.vo.RecommendationDiffVO;
 import com.company.sqloptimization.application.service.AccelerationRecommendationApplicationService;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,5 +27,10 @@ public class AccelerationRecommendationController {
     @GetMapping("/{recommendationId}")
     public AccelerationRecommendationVO getRecommendation(@PathVariable("recommendationId") String recommendationId) {
         return recommendationApplicationService.getRecommendation(recommendationId);
+    }
+
+    @GetMapping("/{recommendationId}/diff")
+    public RecommendationDiffVO getRecommendationDiff(@PathVariable("recommendationId") String recommendationId) {
+        return recommendationApplicationService.getRecommendationDiff(recommendationId);
     }
 }

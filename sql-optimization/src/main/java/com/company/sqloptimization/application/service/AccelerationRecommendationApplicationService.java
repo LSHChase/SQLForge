@@ -6,11 +6,15 @@ import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqloptimization.application.controller.dto.AccelerationRecommendationCreateRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationRecommendationVO;
+import com.company.sqloptimization.application.controller.vo.RecommendationDiffVO;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
 import com.company.sqloptimization.domain.recommendation.repository.AccelerationRecommendationRepository;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,6 +22,9 @@ import org.springframework.util.StringUtils;
 
 @Service
 public class AccelerationRecommendationApplicationService {
+
+    private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
+    private static final String DIFF_IMPLEMENTATION_STAGE = "RECOMMENDATION_DIFF_CONTRACT_BASELINE";
 
     private final AccelerationRecommendationRepository recommendationRepository;
 
@@ -89,6 +96,36 @@ public class AccelerationRecommendationApplicationService {
         return toVo(recommendation);
     }
 
+    public RecommendationDiffVO getRecommendationDiff(String recommendationId) {
+        AccelerationRecommendation recommendation = recommendationRepository.findByRecommendationId(recommendationId);
+        if (recommendation == null) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
+                HttpStatus.NOT_FOUND,
+                "Recommendation not found: " + recommendationId
+            );
+        }
+        verifyTenantAccess(recommendation.getTenantId());
+        RecommendationDiffVO vo = new RecommendationDiffVO();
+        vo.setRecommendationId(recommendation.getRecommendationId());
+        vo.setTenantId(recommendation.getTenantId());
+        vo.setSourceType(inferSourceType(recommendation));
+        vo.setSourceKind(inferSourceKind(recommendation));
+        vo.setSourceId(inferSourceId(recommendation));
+        vo.setEvidenceLevel(inferEvidenceLevel(recommendation));
+        vo.setSqlFingerprint(recommendation.getSqlFingerprint());
+        vo.setOriginalSql(recommendation.getSourceSqlText());
+        vo.setRecommendedSql(recommendation.getRecommendedSqlText());
+        vo.setTextDiff(Collections.<Map<String, Object>>emptyList());
+        vo.setRuleDiff(Collections.<Map<String, Object>>emptyList());
+        vo.setAstSummaryDiff(Collections.<String, Object>emptyMap());
+        vo.setDiffSummary(buildDiffSummary());
+        vo.setDiffStatus("CONTRACT_ONLY");
+        vo.setContractStage(CONTRACT_STAGE);
+        vo.setImplementationStage(DIFF_IMPLEMENTATION_STAGE);
+        return vo;
+    }
+
     private AccelerationRecommendationVO toVo(AccelerationRecommendation recommendation) {
         AccelerationRecommendationVO vo = new AccelerationRecommendationVO();
         vo.setRecommendationId(recommendation.getRecommendationId());
@@ -119,6 +156,64 @@ public class AccelerationRecommendationApplicationService {
         vo.setCreatedAt(recommendation.getCreatedAt());
         vo.setUpdatedAt(recommendation.getUpdatedAt());
         return vo;
+    }
+
+    private Map<String, Object> buildDiffSummary() {
+        Map<String, Object> summary = new LinkedHashMap<String, Object>();
+        summary.put("textDiffReady", Boolean.FALSE);
+        summary.put("ruleDiffReady", Boolean.FALSE);
+        summary.put("astSummaryReady", Boolean.FALSE);
+        summary.put("followUpTask", "HARN-132");
+        return summary;
+    }
+
+    private String inferSourceType(AccelerationRecommendation recommendation) {
+        if (StringUtils.hasText(recommendation.getParseTaskId()) || StringUtils.hasText(recommendation.getBatchId())) {
+            return "PARSE";
+        }
+        if (StringUtils.hasText(recommendation.getHistoryId())) {
+            return "QUERY";
+        }
+        return null;
+    }
+
+    private String inferSourceKind(AccelerationRecommendation recommendation) {
+        if (StringUtils.hasText(recommendation.getBatchId())) {
+            return "PARSE_BATCH";
+        }
+        if (StringUtils.hasText(recommendation.getParseTaskId())) {
+            return "STRUCTURE_PARSE";
+        }
+        if (StringUtils.hasText(recommendation.getHistoryId())) {
+            return "QUERY_HISTORY";
+        }
+        return null;
+    }
+
+    private String inferSourceId(AccelerationRecommendation recommendation) {
+        if (StringUtils.hasText(recommendation.getSourceSqlId())) {
+            return recommendation.getSourceSqlId();
+        }
+        if (StringUtils.hasText(recommendation.getHistoryId())) {
+            return recommendation.getHistoryId();
+        }
+        if (StringUtils.hasText(recommendation.getParseTaskId())) {
+            return recommendation.getParseTaskId();
+        }
+        if (StringUtils.hasText(recommendation.getBatchId())) {
+            return recommendation.getBatchId();
+        }
+        return null;
+    }
+
+    private String inferEvidenceLevel(AccelerationRecommendation recommendation) {
+        if (StringUtils.hasText(recommendation.getHistoryId())) {
+            return "RUNTIME_HISTORY";
+        }
+        if (StringUtils.hasText(recommendation.getParseTaskId()) || StringUtils.hasText(recommendation.getBatchId())) {
+            return "STATIC_PARSE";
+        }
+        return null;
     }
 
     private String requireAuthorizedTenant(String requestTenantId) {

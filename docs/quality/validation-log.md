@@ -3410,3 +3410,13 @@
 2026-05-10T07:30:19-05:00 | HARN-144 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-10T07:30:19-05:00 | HARN-144 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
 2026-05-10T07:30:19-05:00 | HARN-144 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`
+2026-05-10T07:51:59-05:00 | HARN-128 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T07:52:00-05:00 | HARN-128 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T07:52:12-05:00 | HARN-128 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T07:52:12-05:00 | HARN-128 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T07:53:28-05:00 | HARN-128 local Java compile/test | `R-040`, `R-119`, `R-185` | residual-risk | `mvn -pl sql-optimization -DskipTests compile` and `mvn -pl sql-optimization test` passed under OpenJDK 1.8.0_482; local Codex environment does not provide JDK 8u112, so this is not recorded as a JDK 8u112 compliance pass.
+2026-05-10T07:54:54-05:00 | HARN-128 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T07:54:54-05:00 | HARN-128 closeout commit | `R-168` | projected | `git commit -m 'feat(sql-optimization): add acceleration rewrite contract skeleton' (projected-precommit)`
+2026-05-10T07:54:54-05:00 | HARN-128 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-10T07:54:54-05:00 | HARN-128 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-05-10T07:54:54-05:00 | HARN-128 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`

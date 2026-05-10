@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqloptimization.application.controller.vo.AccelerationRecommendationVO;
+import com.company.sqloptimization.application.controller.vo.RecommendationDiffVO;
 import com.company.sqloptimization.application.service.AccelerationRecommendationApplicationService;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
@@ -38,8 +39,18 @@ class AccelerationRecommendationControllerTest {
         recommendation.setRiskLevel("LOW");
         recommendation.setRequiresDispatch(Boolean.TRUE);
         recommendation.setStatus("RECOMMENDED");
+        RecommendationDiffVO diff = new RecommendationDiffVO();
+        diff.setRecommendationId("rec-001");
+        diff.setTenantId("tenant-a");
+        diff.setSourceType("QUERY");
+        diff.setSourceKind("QUERY_HISTORY");
+        diff.setSourceId("history-001");
+        diff.setEvidenceLevel("RUNTIME_HISTORY");
+        diff.setDiffStatus("CONTRACT_ONLY");
+        diff.setImplementationStage("RECOMMENDATION_DIFF_CONTRACT_BASELINE");
         when(recommendationApplicationService.listRecommendations()).thenReturn(Collections.singletonList(recommendation));
         when(recommendationApplicationService.getRecommendation("rec-001")).thenReturn(recommendation);
+        when(recommendationApplicationService.getRecommendationDiff("rec-001")).thenReturn(diff);
 
         mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/recommendations")))
             .andExpect(status().isOk())
@@ -51,6 +62,12 @@ class AccelerationRecommendationControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.recommendationId").value("rec-001"))
             .andExpect(jsonPath("$.requiresDispatch").value(true));
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/recommendations/rec-001/diff")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.sourceKind").value("QUERY_HISTORY"))
+            .andExpect(jsonPath("$.evidenceLevel").value("RUNTIME_HISTORY"))
+            .andExpect(jsonPath("$.diffStatus").value("CONTRACT_ONLY"));
     }
 
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {

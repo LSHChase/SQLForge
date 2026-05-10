@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-128: 固化加速候选与改写记录后端契约
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(sql-optimization): add acceleration rewrite contract skeleton`
+- Priority: 1
+- Depends on: `HARN-144`
+- Scope: 补齐 acceleration candidate、sql rewrite record、rewrite validation run 的后端 DTO/VO、状态枚举、接口契约与最小 controller/service 骨架；保持后端权威、租户隔离、推荐与真实执行边界不变。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-128`
+- Context closeout:
+  - Completed scope: Implemented sql-optimization acceleration candidate, rewrite record, validation run and recommendation diff backend contract skeletons with DTO/VO, status enums, controllers, services, in-memory repositories and focused contract tests; no SQL migration, MyBatis mapper or real diff/comparison engine was added.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-128; python3 scripts/task_audit.py --check --phase pre-closeout; mvn -pl sql-optimization -DskipTests compile; mvn -pl sql-optimization test; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance --check; git diff --check.
+  - Residual risk: Local Codex environment provides OpenJDK 1.8.0_482 rather than required JDK 8u112, so Maven compile/test evidence is compatibility evidence only and not a JDK 8u112 compliance pass; true persistence, SQL diff, deep rewrite model, governance history aggregation and periodic comparison remain in HARN-129/HARN-132/HARN-134/HARN-135/HARN-136.
+  - Next step: Implement HARN-129 persistence for acceleration_candidate, sql_rewrite_record and rewrite_validation_run using SQL migration, entity, MyBatis XML mapper and repository tests.
+
 ### HARN-144: 复核加速改写治理文档一致性
 
 - Status: done
