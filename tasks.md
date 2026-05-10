@@ -11,15 +11,6 @@
 
 ## Todo
 
-### HARN-131: 实现首批 L0/L1 安全改写规则
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-130`
-- Scope: 实现 COUNT、重复 group/order、select star 元数据化、重复子查询 CTE 候选、函数谓词区间候选；无法证明安全时必须标记人工复核，不自动应用。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-131`
-
 ### HARN-132: 建立 SQL diff 后端服务
 
 - Status: todo

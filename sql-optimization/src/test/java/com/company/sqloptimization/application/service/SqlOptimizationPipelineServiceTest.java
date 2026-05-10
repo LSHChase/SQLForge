@@ -2,6 +2,7 @@ package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
@@ -55,6 +56,40 @@ class SqlOptimizationPipelineServiceTest {
     }
 
     @Test
+    void shouldNotRewriteCountNullToCountStar() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "SELECT COUNT(NULL) FROM orders",
+            DataSourceTypeEnum.HETU
+        );
+
+        OptimizationTaskSuggestion suggestion = service.buildRewriteSuggestion(profile);
+        String rewrittenSql = suggestion.getArtifacts().get(0).getContent().toUpperCase();
+
+        assertTrue(service.deriveRewriteCandidateRules(profile).isEmpty());
+        assertTrue(rewrittenSql.contains("COUNT(NULL)"));
+        assertFalse(rewrittenSql.contains("COUNT(*)"));
+    }
+
+    @Test
+    void shouldPreserveOrderDirectionWhenDeduplicatingGroupAndOrderKeys() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "SELECT status FROM orders GROUP BY status, status ORDER BY status ASC, status DESC, status ASC",
+            DataSourceTypeEnum.HETU
+        );
+
+        OptimizationTaskSuggestion suggestion = service.buildRewriteSuggestion(profile);
+        String rewrittenSql = suggestion.getArtifacts().get(0).getContent().toUpperCase();
+        String ruleTrace = suggestion.getArtifacts().get(1).getContent();
+
+        assertTrue(rewrittenSql.contains("GROUP BY STATUS"));
+        assertFalse(rewrittenSql.contains("GROUP BY STATUS, STATUS"));
+        assertTrue(rewrittenSql.contains("STATUS DESC"));
+        assertFalse(rewrittenSql.contains("ORDER BY STATUS, STATUS DESC, STATUS"));
+        assertTrue(ruleTrace.contains("DEDUPLICATE_GROUP_BY_KEYS"));
+        assertTrue(ruleTrace.contains("DEDUPLICATE_ORDER_BY_KEYS"));
+    }
+
+    @Test
     void shouldBuildLayeredRecommendationRuleOutputModel() {
         SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
             "SELECT COUNT(1), * FROM orders "
@@ -74,6 +109,61 @@ class SqlOptimizationPipelineServiceTest {
         assertEquals("NOT_REAL_EXECUTION_GAIN", model.getExpectedBenefit().get("claimBoundary"));
         assertEquals("RESULT_DIFF_REQUIRED", model.getEstimatedCost().get("validation"));
         assertEquals("RESULT_DIFF_THEN_MANUAL_REVIEW", model.getValidationMethod());
+        assertTrue(model.isManualReviewRequired());
+        assertFalse(model.isAutoApplyAllowed());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldKeepSelectStarAndFunctionPredicateAsManualReviewCandidates() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "SELECT * FROM orders WHERE YEAR(order_date) = 2026",
+            DataSourceTypeEnum.HETU
+        );
+
+        OptimizationTaskSuggestion suggestion = service.buildRewriteSuggestion(profile);
+        String rewrittenSql = suggestion.getArtifacts().get(0).getContent().toUpperCase();
+        SqlOptimizationPipelineService.RecommendationRuleOutputModel model =
+            service.buildRecommendationRuleOutputModel(profile);
+        Map<String, Object> selectStarRule = findRule(model.getUnappliedRules(), "SELECT_STAR_EXPANSION");
+        Map<String, Object> functionRule = findRule(model.getUnappliedRules(), "FUNCTION_PREDICATE_TO_RANGE");
+        Map<String, Object> selectStarEvidence = (Map<String, Object>) selectStarRule.get("evidence");
+        Map<String, Object> functionEvidence = (Map<String, Object>) functionRule.get("evidence");
+
+        assertTrue(rewrittenSql.contains("SELECT * FROM ORDERS"));
+        assertFalse(rewrittenSql.contains("ORDER_DATE >="));
+        assertEquals(Boolean.TRUE, selectStarRule.get("manualReviewRequired"));
+        assertEquals(Boolean.TRUE, functionRule.get("manualReviewRequired"));
+        assertEquals("MANUAL_REVIEW_ONLY", selectStarEvidence.get("rewritePolicy"));
+        assertTrue(((List<?>) selectStarEvidence.get("starItems")).contains("*"));
+        assertEquals("MANUAL_REVIEW_ONLY", functionEvidence.get("rewritePolicy"));
+        assertTrue(((List<?>) functionEvidence.get("predicateSamples")).contains("YEAR(order_date) = 2026"));
+        assertTrue(model.isManualReviewRequired());
+        assertFalse(model.isAutoApplyAllowed());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldKeepRepeatedSubqueryAsManualReviewCteCandidate() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "SELECT c.customer_id, "
+                + "(SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.customer_id) AS order_count_a, "
+                + "(SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.customer_id) AS order_count_b "
+                + "FROM customers c",
+            DataSourceTypeEnum.HETU
+        );
+
+        OptimizationTaskSuggestion suggestion = service.buildRewriteSuggestion(profile);
+        String rewrittenSql = suggestion.getArtifacts().get(0).getContent().toUpperCase();
+        SqlOptimizationPipelineService.RecommendationRuleOutputModel model =
+            service.buildRecommendationRuleOutputModel(profile);
+        Map<String, Object> cteRule = findRule(model.getUnappliedRules(), "REPEATED_SUBQUERY_TO_CTE");
+        Map<String, Object> evidence = (Map<String, Object>) cteRule.get("evidence");
+
+        assertFalse(rewrittenSql.startsWith("WITH "));
+        assertEquals(Boolean.TRUE, cteRule.get("manualReviewRequired"));
+        assertEquals("MANUAL_REVIEW_ONLY", evidence.get("rewritePolicy"));
+        assertEquals(Integer.valueOf(1), evidence.get("repeatedSubqueryCount"));
         assertTrue(model.isManualReviewRequired());
         assertFalse(model.isAutoApplyAllowed());
     }
@@ -269,6 +359,16 @@ class SqlOptimizationPipelineServiceTest {
             }
         }
         return false;
+    }
+
+    private Map<String, Object> findRule(List<Map<String, Object>> entries, String rule) {
+        for (Map<String, Object> entry : entries) {
+            if (rule.equals(entry.get("rule"))) {
+                return entry;
+            }
+        }
+        assertNotNull(null, "Expected rule " + rule);
+        return null;
     }
 
     private boolean containsPrecondition(List<Map<String, Object>> entries, String code) {

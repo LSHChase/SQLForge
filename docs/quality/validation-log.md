@@ -3458,3 +3458,13 @@
 2026-05-10T09:07:00-05:00 | HARN-130 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-10T09:07:00-05:00 | HARN-130 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
 2026-05-10T09:07:00-05:00 | HARN-130 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`
+2026-05-10T09:21:48-05:00 | HARN-131 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T09:21:48-05:00 | HARN-131 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T09:21:59-05:00 | HARN-131 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T09:21:59-05:00 | HARN-131 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T09:22:40-05:00 | HARN-131 local Java tests | `R-040`, `R-119`, `R-121`, `R-127`, `R-185` | residual-risk | `mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest clean test` passed 15 tests; `mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,ParseTriggeredRewriteRecommendationServiceTest,OptimizationTaskWorkerTest,AccelerationRecommendationApplicationServiceTest test` passed 21 tests; `mvn -pl sql-optimization test` passed 194 tests under OpenJDK 1.8.0_482; local Codex environment does not provide required JDK 8u112, so this is compatibility evidence only.
+2026-05-10T09:23:20-05:00 | HARN-131 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T09:23:20-05:00 | HARN-131 closeout commit | `R-168` | projected | `git commit -m 'feat(sql-optimization): implement safe rewrite rule candidates' (projected-precommit)`
+2026-05-10T09:23:20-05:00 | HARN-131 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-10T09:23:20-05:00 | HARN-131 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-05-10T09:23:20-05:00 | HARN-131 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`

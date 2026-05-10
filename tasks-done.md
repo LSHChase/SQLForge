@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-131: 实现首批 L0/L1 安全改写规则
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(sql-optimization): implement safe rewrite rule candidates`
+- Priority: 1
+- Depends on: `HARN-130`
+- Scope: 实现 COUNT、重复 group/order、select star 元数据化、重复子查询 CTE 候选、函数谓词区间候选；无法证明安全时必须标记人工复核，不自动应用。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-131`
+- Context closeout:
+  - Completed scope: Implemented first L0/L1 rewrite behavior in the existing sql-optimization recommendation pipeline: safe COUNT and duplicate group/order candidate rewrites, plus manual-review metadata for SELECT star, repeated subquery CTE, and function predicate range candidates.
+  - Validation evidence: java -version; mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest clean test; mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,ParseTriggeredRewriteRecommendationServiceTest,OptimizationTaskWorkerTest,AccelerationRecommendationApplicationServiceTest test; mvn -pl sql-optimization test; python3 scripts/foreman.py validate HARN-131; git diff --check; python3 scripts/task_audit.py --check --phase pre-closeout.
+  - Residual risk: Local Codex environment provides OpenJDK 1.8.0_482 rather than required JDK 8u112, so Java validation is compatibility evidence only until rerun under the fixed delivery JDK.
+  - Next step: Proceed to HARN-132 SQL diff backend service.
+
 ### HARN-130: 深化推荐 SQL 规则输出模型
 
 - Status: done

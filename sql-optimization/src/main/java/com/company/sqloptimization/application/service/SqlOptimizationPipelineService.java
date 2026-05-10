@@ -516,7 +516,8 @@ public class SqlOptimizationPipelineService {
                 "SELECT_STAR_EXPANSION",
                 "COLUMN_METADATA_REQUIRED",
                 "Column metadata and projection ownership are required before expanding SELECT *.",
-                "Projection changes can alter downstream consumers if hidden columns are omitted or reordered."
+                "Projection changes can alter downstream consumers if hidden columns are omitted or reordered.",
+                selectStarEvidence(profile)
             );
         }
         if (profile.getOrPredicateCount() > 0) {
@@ -540,7 +541,8 @@ public class SqlOptimizationPipelineService {
                 "FUNCTION_PREDICATE_TO_RANGE",
                 "COLUMN_TYPE_TIMEZONE_REQUIRED",
                 "Column type, timezone, and boundary precision evidence are required before range conversion.",
-                "Time boundary or precision differences can change result sets."
+                "Time boundary or precision differences can change result sets.",
+                functionPredicateEvidence(profile)
             );
         }
         if (profile.getScalarSubqueryCount() > 0) {
@@ -564,7 +566,8 @@ public class SqlOptimizationPipelineService {
                 "REPEATED_SUBQUERY_TO_CTE",
                 "SUBQUERY_SIDE_EFFECT_FREE_REQUIRED",
                 "The repeated subquery must be side-effect free and engine CTE behavior must be understood.",
-                "Some engines inline CTEs or optimize them differently, changing performance without guaranteed benefit."
+                "Some engines inline CTEs or optimize them differently, changing performance without guaranteed benefit.",
+                repeatedSubqueryEvidence(profile)
             );
         }
         if (profile.getNotExistsCount() > 0) {
@@ -687,15 +690,66 @@ public class SqlOptimizationPipelineService {
                                   String missingEvidence,
                                   String preconditionDescription,
                                   String riskDescription) {
+        addUnappliedRule(
+            unappliedRules,
+            preconditions,
+            semanticRisks,
+            level,
+            rule,
+            missingEvidence,
+            preconditionDescription,
+            riskDescription,
+            Collections.<String, Object>emptyMap()
+        );
+    }
+
+    private void addUnappliedRule(List<Map<String, Object>> unappliedRules,
+                                  List<Map<String, Object>> preconditions,
+                                  List<Map<String, Object>> semanticRisks,
+                                  String level,
+                                  String rule,
+                                  String missingEvidence,
+                                  String preconditionDescription,
+                                  String riskDescription,
+                                  Map<String, Object> evidence) {
         LinkedHashMap<String, Object> unapplied = new LinkedHashMap<String, Object>();
         unapplied.put("level", level);
         unapplied.put("rule", rule);
         unapplied.put("status", "NOT_APPLIED");
         unapplied.put("reason", missingEvidence);
         unapplied.put("manualReviewRequired", Boolean.TRUE);
+        if (evidence != null && !evidence.isEmpty()) {
+            unapplied.put("evidence", evidence);
+        }
         unappliedRules.add(unapplied);
         preconditions.add(preconditionEntry(rule, missingEvidence, preconditionDescription));
         semanticRisks.add(semanticRiskEntry(rule, "SEMANTIC_EQUIVALENCE_RISK", "HIGH", riskDescription));
+    }
+
+    private Map<String, Object> selectStarEvidence(ParsedSqlProfile profile) {
+        LinkedHashMap<String, Object> evidence = new LinkedHashMap<String, Object>();
+        evidence.put("starItems", profile.getSelectStarItems());
+        evidence.put("knownTables", profile.getTables());
+        evidence.put("metadataRequirement", "TRUSTED_COLUMN_LIST_REQUIRED");
+        evidence.put("rewritePolicy", "MANUAL_REVIEW_ONLY");
+        return evidence;
+    }
+
+    private Map<String, Object> functionPredicateEvidence(ParsedSqlProfile profile) {
+        LinkedHashMap<String, Object> evidence = new LinkedHashMap<String, Object>();
+        evidence.put("predicateSamples", profile.getFunctionWrappedPredicateExpressions());
+        evidence.put("requiredProofs", Arrays.asList("COLUMN_TYPE", "TIMEZONE", "BOUNDARY_PRECISION"));
+        evidence.put("rewritePolicy", "MANUAL_REVIEW_ONLY");
+        return evidence;
+    }
+
+    private Map<String, Object> repeatedSubqueryEvidence(ParsedSqlProfile profile) {
+        LinkedHashMap<String, Object> evidence = new LinkedHashMap<String, Object>();
+        evidence.put("repeatedSubqueryCount", Integer.valueOf(profile.getRepeatedSubqueryCount()));
+        evidence.put("subquerySamples", profile.getRepeatedSubquerySamples());
+        evidence.put("requiredProofs", Arrays.asList("SIDE_EFFECT_FREE", "ENGINE_CTE_BEHAVIOR"));
+        evidence.put("rewritePolicy", "MANUAL_REVIEW_ONLY");
+        return evidence;
     }
 
     private Map<String, Object> ruleEntry(String level,
@@ -845,6 +899,7 @@ public class SqlOptimizationPipelineService {
                 for (SelectItem selectItem : plainSelect.getSelectItems()) {
                     if (selectItem instanceof AllColumns || selectItem instanceof AllTableColumns) {
                         profile.selectStar = true;
+                        profile.recordSelectStar(selectItem);
                         continue;
                     }
                     if (selectItem instanceof SelectExpressionItem) {
@@ -1040,6 +1095,7 @@ public class SqlOptimizationPipelineService {
         }
         if (expression instanceof ComparisonOperator && hasFunctionWrappedOperand((ComparisonOperator) expression)) {
             profile.functionWrappedPredicateCount++;
+            profile.recordFunctionWrappedPredicate(expression);
         }
         if (expression instanceof BinaryExpression) {
             BinaryExpression binaryExpression = (BinaryExpression) expression;
@@ -1630,8 +1686,7 @@ public class SqlOptimizationPipelineService {
             || expression instanceof DoubleValue
             || expression instanceof StringValue
             || expression instanceof DateValue
-            || expression instanceof TimestampValue
-            || (expression != null && !(expression instanceof NullValue) && expression.toString().startsWith(":"));
+            || expression instanceof TimestampValue;
     }
 
     private SqlOptimizationExecutionException invalidTask(String message, String suggestedAction) {
@@ -2069,6 +2124,7 @@ public class SqlOptimizationPipelineService {
             for (SqlNode item : selectList.getList()) {
                 if (isStar(item)) {
                     profile.selectStar = true;
+                    profile.recordSelectStar(item);
                     continue;
                 }
                 if (isCalciteStringProjection(item)) {
@@ -2192,6 +2248,7 @@ public class SqlOptimizationPipelineService {
             }
             if (isComparisonKind(kind) && hasCalciteFunctionWrappedOperand(call)) {
                 profile.functionWrappedPredicateCount++;
+                profile.recordFunctionWrappedPredicate(call);
             }
             if (kind == SqlKind.OVER) {
                 profile.windowFunctionCount++;
@@ -2433,6 +2490,7 @@ public class SqlOptimizationPipelineService {
         @Override
         protected Void visitAllColumns(io.trino.sql.tree.AllColumns node, ParsedSqlProfile profile) {
             profile.selectStar = true;
+            profile.recordSelectStar(node);
             return null;
         }
 
@@ -2522,6 +2580,8 @@ public class SqlOptimizationPipelineService {
         private final Set<String> aggregateFunctions = new LinkedHashSet<String>();
         private final Set<String> udfFunctions = new LinkedHashSet<String>();
         private final Set<String> datePredicateColumns = new LinkedHashSet<String>();
+        private final Set<String> selectStarItems = new LinkedHashSet<String>();
+        private final Set<String> functionWrappedPredicateExpressions = new LinkedHashSet<String>();
         private final Set<String> joinTypes = new LinkedHashSet<String>();
         private final List<String> warnings = new ArrayList<String>();
         private final LinkedHashMap<String, Integer> expressionFrequency = new LinkedHashMap<String, Integer>();
@@ -2605,6 +2665,8 @@ public class SqlOptimizationPipelineService {
             payload.put("aggregateFunctions", new ArrayList<String>(aggregateFunctions));
             payload.put("datePredicateColumns", new ArrayList<String>(datePredicateColumns));
             payload.put("selectStar", Boolean.valueOf(selectStar));
+            payload.put("selectStarItems", new ArrayList<String>(selectStarItems));
+            payload.put("functionWrappedPredicateExpressions", new ArrayList<String>(functionWrappedPredicateExpressions));
             payload.put("limitPresent", Boolean.valueOf(limitPresent));
             payload.put("distinctPresent", Boolean.valueOf(distinctPresent));
             payload.put("setOperation", Boolean.valueOf(setOperation));
@@ -2630,6 +2692,8 @@ public class SqlOptimizationPipelineService {
             payload.put("aggregateFunctions", new ArrayList<String>(aggregateFunctions));
             payload.put("datePredicateColumns", new ArrayList<String>(datePredicateColumns));
             payload.put("selectStar", Boolean.valueOf(selectStar));
+            payload.put("selectStarItems", new ArrayList<String>(selectStarItems));
+            payload.put("functionWrappedPredicateExpressions", new ArrayList<String>(functionWrappedPredicateExpressions));
             payload.put("warnings", warnings);
             return payload;
         }
@@ -2656,6 +2720,14 @@ public class SqlOptimizationPipelineService {
 
         public Set<String> getDatePredicateColumns() {
             return new LinkedHashSet<String>(datePredicateColumns);
+        }
+
+        public List<String> getSelectStarItems() {
+            return new ArrayList<String>(selectStarItems);
+        }
+
+        public List<String> getFunctionWrappedPredicateExpressions() {
+            return new ArrayList<String>(functionWrappedPredicateExpressions);
         }
 
         public List<String> getWarnings() {
@@ -2815,6 +2887,18 @@ public class SqlOptimizationPipelineService {
             expressionFrequency.put(key, Integer.valueOf(current == null ? 1 : current.intValue() + 1));
         }
 
+        private void recordSelectStar(Object selectItem) {
+            String item = normalizeProfileText(selectItem);
+            selectStarItems.add(item.isEmpty() ? "*" : item);
+        }
+
+        private void recordFunctionWrappedPredicate(Object expression) {
+            String item = normalizeProfileText(expression);
+            if (!item.isEmpty()) {
+                functionWrappedPredicateExpressions.add(item);
+            }
+        }
+
         private boolean isSimpleExpressionReference(Object expression, String key) {
             if (expression instanceof Column
                 || expression instanceof SqlIdentifier
@@ -2875,6 +2959,16 @@ public class SqlOptimizationPipelineService {
             recordFrequency(subqueryFrequency, normalizeProfileKey(subquery));
         }
 
+        private List<String> getRepeatedSubquerySamples() {
+            List<String> samples = new ArrayList<String>();
+            for (Map.Entry<String, Integer> entry : subqueryFrequency.entrySet()) {
+                if (entry.getValue() != null && entry.getValue().intValue() > 1) {
+                    samples.add(entry.getKey());
+                }
+            }
+            return samples;
+        }
+
         private void recordFrequency(Map<String, Integer> frequency, String key) {
             if (frequency == null || key == null || key.isEmpty()) {
                 return;
@@ -2897,12 +2991,18 @@ public class SqlOptimizationPipelineService {
             if (value == null) {
                 return "";
             }
+            return normalizeProfileText(value).toUpperCase(Locale.ROOT);
+        }
+
+        private String normalizeProfileText(Object value) {
+            if (value == null) {
+                return "";
+            }
             return value.toString()
                 .replace('\n', ' ')
                 .replace('\r', ' ')
                 .trim()
-                .replaceAll("\\s+", " ")
-                .toUpperCase(Locale.ROOT);
+                .replaceAll("\\s+", " ");
         }
 
         private void pushAliasScope(Set<String> aliases) {
