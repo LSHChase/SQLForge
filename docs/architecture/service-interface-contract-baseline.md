@@ -191,7 +191,21 @@
 - `effectiveRouteOrder[]` 先遵循 `query-execution.hetu.calibration.route-order`，再回补 `allowed-modes` 中未显式排序的模式；calibration 只能重排已允许模式，不能借此启用未允许模式。
 - `skipUnreadyModes=true` 时，未 ready 的模式不会被实际调用，而会在 `attemptedModes[]` 中落成 `SKIPPED_*` 证据；`clusterEvidence.liveVerificationStatus` 默认仍是 `PENDING_ENV_WINDOW`，只表示仓库侧校准状态，不把外部 Win10/Hetu live 结果写成当前仓库默认事实。
 
-## 3.1.2 Query Execution Internal Benchmark Workload Baseline
+## 3.1.2 Query Execution Internal Result Digest Baseline
+
+当前 `query-execution` 已新增受保护内部只读摘要契约，供 `sql-optimization` 在改写验证中执行原 SQL / 推荐 SQL 的摘要化结果比对，而不把大结果集跨服务传递或返回前端：
+
+| Endpoint | Request baseline | Response baseline | Current implementation stage |
+|:---|:---|:---|:---|
+| `/api/query-execution/internal/result-digests/execute` | `QueryExecutionResultDigestRequest` with `tenantId`,`validationRunId`,`rewriteRecordId`,`sqlFingerprint`,`sqlText`,`datasourceType`,`datasourceCode`,`comparisonPolicy`; protected headers required | `QueryExecutionResultDigestResponse` with `tenantId`,`validationRunId`,`rewriteRecordId`,`sqlFingerprint`,`status`,`targetEngine`,`resultDigest`,`limitedSample`,`executionEvidence`,`errorCode`,`errorMessage`,`contractStage`,`implementationStage`; `resultDigest` carries schema digest, row count/sample row count, order digest, key-set digest and checksum digest; response never returns the full result set | `READONLY_RESULT_DIGEST_BASELINE` |
+
+说明：
+
+- 内部入口复用同步查询路径的只读 SQL guard、租户上下文、路由、失败 JSON 与治理历史写入；非只读 SQL、多语句或未授权访问不得进入摘要比对。
+- `limitedSample` 仅用于差异证据下钻，受 `comparisonPolicy.sampleLimit` 上限控制；完整 rows 不进入接口响应、`rewrite_validation_run` 或前端展示。
+- `resultDigest` 是后端比较输入，不是第二套验证真值；最终验证状态仍以 `sql-optimization.rewrite_validation_run` 为准。
+
+## 3.1.3 Query Execution Internal Benchmark Workload Baseline
 
 当前 `query-execution` 已新增受保护内部契约，供 `benchmark-engine` 在 worker 场景下抓取 workload/backfill evidence，而不绕过既有查询执行与治理审计边界：
 

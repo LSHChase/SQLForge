@@ -5,6 +5,7 @@ import com.company.queryexecution.application.service.HetuRouteCalibrationServic
 import com.company.queryexecution.application.service.QueryExecutionBenchmarkWorkloadService;
 import com.company.queryexecution.application.service.QueryExecutionAccelerationRuntimeService;
 import com.company.queryexecution.application.service.QueryExecutionCacheGovernanceRuntimeService;
+import com.company.queryexecution.application.service.QueryExecutionResultDigestService;
 import com.company.queryexecution.domain.query.HetuRouteCalibrationSnapshot;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanApplyRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanResponse;
@@ -16,6 +17,8 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyApply
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyInvalidateRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyVerifyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,20 +35,28 @@ public class QueryExecutionInternalController {
     private final QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService;
     private final QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService;
     private final HetuRouteCalibrationService hetuRouteCalibrationService;
+    private final QueryExecutionResultDigestService queryExecutionResultDigestService;
 
     public QueryExecutionInternalController(QueryExecutionBenchmarkWorkloadService queryExecutionBenchmarkWorkloadService,
                                             QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService,
                                             QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService,
-                                            HetuRouteCalibrationService hetuRouteCalibrationService) {
+                                            HetuRouteCalibrationService hetuRouteCalibrationService,
+                                            QueryExecutionResultDigestService queryExecutionResultDigestService) {
         this.queryExecutionBenchmarkWorkloadService = queryExecutionBenchmarkWorkloadService;
         this.queryExecutionAccelerationRuntimeService = queryExecutionAccelerationRuntimeService;
         this.queryExecutionCacheGovernanceRuntimeService = queryExecutionCacheGovernanceRuntimeService;
         this.hetuRouteCalibrationService = hetuRouteCalibrationService;
+        this.queryExecutionResultDigestService = queryExecutionResultDigestService;
     }
 
     @PostMapping("/benchmark/workload/capture")
     public QueryExecutionBenchmarkWorkloadResponse captureWorkload(@RequestBody QueryExecutionBenchmarkWorkloadRequest request) {
         return queryExecutionBenchmarkWorkloadService.capture(request);
+    }
+
+    @PostMapping("/result-digests/execute")
+    public QueryExecutionResultDigestResponse executeResultDigest(@RequestBody QueryExecutionResultDigestRequest request) {
+        return queryExecutionResultDigestService.executeDigest(request);
     }
 
     @GetMapping("/hetu/route-calibration")

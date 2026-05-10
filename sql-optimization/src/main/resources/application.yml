@@ -48,6 +48,7 @@ sql-optimization:
       HIVE: ${SQL_OPTIMIZATION_GOVERNANCE_DATASOURCE_HIVE:optimization-hive}
   query-execution:
     base-url: ${SQL_OPTIMIZATION_QUERY_EXECUTION_BASE_URL:http://localhost:8081/api/query-execution/internal/acceleration-plans}
+    result-digest-base-url: ${SQL_OPTIMIZATION_QUERY_EXECUTION_RESULT_DIGEST_BASE_URL:http://localhost:8081/api/query-execution/internal/result-digests}
     connect-timeout-ms: ${SQL_OPTIMIZATION_QUERY_EXECUTION_CONNECT_TIMEOUT_MS:3000}
     read-timeout-ms: ${SQL_OPTIMIZATION_QUERY_EXECUTION_READ_TIMEOUT_MS:5000}
   view-metadata:

@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-135: 周期比对执行模型与只读比较引擎
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(sql-optimization): add readonly rewrite comparison engine`
+- Priority: 1
+- Depends on: `HARN-134`
+- Scope: 建立 validation policy、result digest、schema/row/hash/checksum comparison；比对必须只读，不把大结果集全量拉回前端。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-135`
+- Context closeout:
+  - Completed scope: Implemented HARN-135 readonly result digest execution contract, backend comparison engine, validation run execution path, tests and interface docs.
+  - Validation evidence: mvn -pl query-execution,sql-optimization -am test; python3 scripts/foreman.py validate HARN-135; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance --check; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check
+  - Residual risk: Local Java runtime is not confirmed as required JDK 8u112; Maven evidence is compatibility evidence until rerun in the fixed delivery JDK. HARN-136 remains responsible for scheduler and alert emission.
+  - Next step: Proceed to HARN-136 scheduled validation and SQL_REWRITE_RESULT_DIVERGENCE alert linkage.
+
 ### HARN-134: 改写记录写入与 SQL 历史聚合接口
 
 - Status: done

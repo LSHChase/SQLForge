@@ -14,6 +14,7 @@ import com.company.queryexecution.application.service.HetuRouteCalibrationServic
 import com.company.queryexecution.application.service.QueryExecutionAccelerationRuntimeService;
 import com.company.queryexecution.application.service.QueryExecutionBenchmarkWorkloadService;
 import com.company.queryexecution.application.service.QueryExecutionCacheGovernanceRuntimeService;
+import com.company.queryexecution.application.service.QueryExecutionResultDigestService;
 import com.company.queryexecution.config.AuthProperties;
 import com.company.queryexecution.config.WebMvcConfig;
 import com.company.queryexecution.domain.query.HetuClusterEvidenceSnapshot;
@@ -25,6 +26,7 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlan
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadEngineSnapshot;
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyResponse;
+import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
@@ -60,6 +62,9 @@ class QueryExecutionInternalControllerTest {
 
     @MockBean
     private HetuRouteCalibrationService hetuRouteCalibrationService;
+
+    @MockBean
+    private QueryExecutionResultDigestService queryExecutionResultDigestService;
 
     @Test
     void shouldReturnBenchmarkWorkloadSnapshot() throws Exception {
@@ -160,6 +165,43 @@ class QueryExecutionInternalControllerTest {
             .andExpect(jsonPath("$.implementationStage").value("HETU_ROUTE_CALIBRATION_BASELINE"));
 
         verify(hetuRouteCalibrationService).currentSnapshot();
+    }
+
+    @Test
+    void shouldExecuteReadonlyResultDigestThroughInternalEndpoint() throws Exception {
+        QueryExecutionResultDigestResponse response = new QueryExecutionResultDigestResponse();
+        response.setTenantId("tenant-a");
+        response.setValidationRunId("validation-001");
+        response.setRewriteRecordId("rewrite-001");
+        response.setSqlFingerprint("fp-001");
+        response.setStatus("SUCCESS");
+        response.setTargetEngine("HETU");
+        response.setResultDigest(Collections.<String, Object>singletonMap("checksumDigest", "checksum-001"));
+        response.setLimitedSample(Collections.<java.util.Map<String, Object>>emptyList());
+        response.setExecutionEvidence(Collections.<String, Object>singletonMap("readonlyDigestOnly", Boolean.TRUE));
+        response.setContractStage("LONG_TERM_BASELINE");
+        response.setImplementationStage("READONLY_RESULT_DIGEST_BASELINE");
+        when(queryExecutionResultDigestService.executeDigest(any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/query-execution/internal/result-digests/execute")
+                .header("X-Tenant-Id", "tenant-a")
+                .header("X-User-Id", "service-user")
+                .header("X-Role-Codes", "SERVICE")
+                .header("X-Request-Id", "request-005")
+                .header("X-Trace-Id", "trace-005")
+                .header("X-Auth-Source", "header")
+                .header("X-Issued-At", "1713700000000")
+                .header("X-Expires-At", "2713700000000")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"validationRunId\":\"validation-001\","
+                    + "\"rewriteRecordId\":\"rewrite-001\",\"sqlText\":\"SELECT 1\",\"datasourceType\":\"HETU\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("SUCCESS"))
+            .andExpect(jsonPath("$.resultDigest.checksumDigest").value("checksum-001"))
+            .andExpect(jsonPath("$.executionEvidence.readonlyDigestOnly").value(true))
+            .andExpect(jsonPath("$.implementationStage").value("READONLY_RESULT_DIGEST_BASELINE"));
+
+        verify(queryExecutionResultDigestService).executeDigest(any());
     }
 
     @Test

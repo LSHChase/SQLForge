@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class OptimizationQueryExecutionProperties {
 
     private String baseUrl = "http://localhost:8081/api/query-execution/internal/acceleration-plans";
+    private String resultDigestBaseUrl = "http://localhost:8081/api/query-execution/internal/result-digests";
     private int connectTimeoutMs = 3000;
     private int readTimeoutMs = 5000;
 
@@ -15,6 +16,14 @@ public class OptimizationQueryExecutionProperties {
 
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
+    }
+
+    public String getResultDigestBaseUrl() {
+        return resultDigestBaseUrl;
+    }
+
+    public void setResultDigestBaseUrl(String resultDigestBaseUrl) {
+        this.resultDigestBaseUrl = resultDigestBaseUrl;
     }
 
     public int getConnectTimeoutMs() {

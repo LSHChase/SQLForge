@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
+import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
@@ -23,12 +25,15 @@ import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.governance.ValidationRunStatus;
+import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionResultDigestClient;
 import com.company.sqloptimization.infrastructure.repository.InMemoryAccelerationCandidateRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemorySqlRewriteRecordRepository;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -204,8 +209,16 @@ class AccelerationRewriteContractApplicationServiceTest {
     @Test
     void shouldCreateRewriteRecordAndValidationRunWithoutMarkingAppliedAsActive() {
         setTenant("tenant-a");
+        StubResultDigestClient digestClient = new StubResultDigestClient(
+            digest("schema-001", Long.valueOf(1L), "checksum-original", row("id", "1")),
+            digest("schema-001", Long.valueOf(1L), "checksum-recommended", row("id", "2"))
+        );
         SqlRewriteRecordApplicationService service =
-            new SqlRewriteRecordApplicationService(new InMemorySqlRewriteRecordRepository());
+            new SqlRewriteRecordApplicationService(
+                new InMemorySqlRewriteRecordRepository(),
+                digestClient,
+                new ResultDigestComparisonEngine()
+            );
 
         SqlRewriteRecordCreateRequest request = new SqlRewriteRecordCreateRequest();
         request.setTenantId("tenant-a");
@@ -229,9 +242,9 @@ class AccelerationRewriteContractApplicationServiceTest {
 
         RewriteValidationRunCreateRequest runRequest = new RewriteValidationRunCreateRequest();
         runRequest.setStatus(ValidationRunStatus.SUCCEEDED);
-        runRequest.setComparisonStatus(ComparisonStatus.DIVERGED);
-        runRequest.setDifferenceType(DifferenceType.VALUE_DIFF);
-        runRequest.setAutoApplyPaused(Boolean.TRUE);
+        runRequest.setComparisonStatus(ComparisonStatus.EQUIVALENT);
+        runRequest.setDifferenceType(DifferenceType.NONE);
+        runRequest.setAutoApplyPaused(Boolean.FALSE);
         runRequest.setStartedAt(Instant.parse("2026-05-10T00:00:00Z"));
         runRequest.setFinishedAt(Instant.parse("2026-05-10T00:00:03Z"));
 
@@ -248,6 +261,7 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals(Boolean.FALSE, updated.getAutoApplyAllowed());
         assertEquals(1, runs.size());
         assertFalse(enumContainsActive(), "rewrite record status must not expose ACTIVE in HARN-128");
+        assertEquals(2, digestClient.getRequestCount());
     }
 
     @Test
@@ -290,6 +304,57 @@ class AccelerationRewriteContractApplicationServiceTest {
             }
         }
         return false;
+    }
+
+    private QueryExecutionResultDigestResponse digest(String schemaDigest,
+                                                      Long rowCount,
+                                                      String checksumDigest,
+                                                      Map<String, Object> sampleRow) {
+        QueryExecutionResultDigestResponse response = new QueryExecutionResultDigestResponse();
+        response.setStatus("SUCCESS");
+        response.setResultDigest(digestMap(schemaDigest, rowCount, checksumDigest));
+        response.setLimitedSample(Collections.singletonList(sampleRow));
+        response.setExecutionEvidence(Collections.<String, Object>singletonMap("readonlyDigestOnly", Boolean.TRUE));
+        return response;
+    }
+
+    private Map<String, Object> digestMap(String schemaDigest, Long rowCount, String checksumDigest) {
+        Map<String, Object> digest = new LinkedHashMap<String, Object>();
+        digest.put("schemaDigest", schemaDigest);
+        digest.put("rowCount", rowCount);
+        digest.put("keySetDigest", "");
+        digest.put("orderDigest", checksumDigest);
+        digest.put("checksumDigest", checksumDigest);
+        return digest;
+    }
+
+    private Map<String, Object> row(String key, String value) {
+        Map<String, Object> row = new LinkedHashMap<String, Object>();
+        row.put(key, value);
+        return row;
+    }
+
+    private static final class StubResultDigestClient implements QueryExecutionResultDigestClient {
+
+        private final QueryExecutionResultDigestResponse original;
+        private final QueryExecutionResultDigestResponse recommended;
+        private int requestCount;
+
+        private StubResultDigestClient(QueryExecutionResultDigestResponse original,
+                                       QueryExecutionResultDigestResponse recommended) {
+            this.original = original;
+            this.recommended = recommended;
+        }
+
+        @Override
+        public QueryExecutionResultDigestResponse executeDigest(QueryExecutionResultDigestRequest request) {
+            requestCount++;
+            return requestCount == 1 ? original : recommended;
+        }
+
+        int getRequestCount() {
+            return requestCount;
+        }
     }
 
     private void setTenant(String tenantId) {

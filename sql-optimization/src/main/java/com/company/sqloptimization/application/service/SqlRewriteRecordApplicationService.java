@@ -1,22 +1,32 @@
 package com.company.sqloptimization.application.service;
 
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
 import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
 import com.company.sqloptimization.application.controller.vo.SqlRewriteRecordVO;
 import com.company.sqloptimization.domain.governance.ComparisonStatus;
+import com.company.sqloptimization.domain.governance.DifferenceType;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
+import com.company.sqloptimization.domain.governance.ValidationRunStatus;
 import com.company.sqloptimization.domain.rewrite.RewriteValidationRun;
 import com.company.sqloptimization.domain.rewrite.SqlRewriteRecord;
 import com.company.sqloptimization.domain.rewrite.repository.SqlRewriteRecordRepository;
+import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionResultDigestClient;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -28,9 +38,20 @@ public class SqlRewriteRecordApplicationService {
     private static final String IMPLEMENTATION_STAGE = "ACCELERATION_REWRITE_CONTRACT_BASELINE";
 
     private final SqlRewriteRecordRepository sqlRewriteRecordRepository;
+    private final QueryExecutionResultDigestClient queryExecutionResultDigestClient;
+    private final ResultDigestComparisonEngine resultDigestComparisonEngine;
 
     public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository) {
+        this(sqlRewriteRecordRepository, null, new ResultDigestComparisonEngine());
+    }
+
+    @Autowired
+    public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository,
+                                              QueryExecutionResultDigestClient queryExecutionResultDigestClient,
+                                              ResultDigestComparisonEngine resultDigestComparisonEngine) {
         this.sqlRewriteRecordRepository = sqlRewriteRecordRepository;
+        this.queryExecutionResultDigestClient = queryExecutionResultDigestClient;
+        this.resultDigestComparisonEngine = resultDigestComparisonEngine;
     }
 
     public SqlRewriteRecordVO createRewriteRecord(SqlRewriteRecordCreateRequest request) {
@@ -102,8 +123,76 @@ public class SqlRewriteRecordApplicationService {
         if (!tenantId.equals(rewriteRecord.getTenantId())) {
             throw new AccessDeniedException("Authenticated tenant cannot create validation run for this rewrite record");
         }
+        RewriteValidationRun validationRun = queryExecutionResultDigestClient == null
+            ? buildClientSubmittedValidationRun(rewriteRecord, tenantId, request)
+            : buildExecutedValidationRun(rewriteRecord, tenantId, request);
+        sqlRewriteRecordRepository.saveValidationRun(validationRun);
+        sqlRewriteRecordRepository.saveRecord(rewriteRecord.withValidationSummary(validationRun, Instant.now()));
+        return toValidationRunVo(validationRun);
+    }
+
+    private RewriteValidationRun buildExecutedValidationRun(SqlRewriteRecord rewriteRecord,
+                                                            String tenantId,
+                                                            RewriteValidationRunCreateRequest request) {
+        String validationRunId = UUID.randomUUID().toString();
+        Instant startedAt = request == null || request.getStartedAt() == null ? Instant.now() : request.getStartedAt();
+        Map<String, Object> comparisonPolicy = buildComparisonPolicy(rewriteRecord, request);
+        QueryExecutionResultDigestResponse originalDigest = null;
+        QueryExecutionResultDigestResponse recommendedDigest = null;
+        ResultDigestComparisonResult comparisonResult;
+        try {
+            originalDigest = queryExecutionResultDigestClient.executeDigest(buildDigestRequest(
+                rewriteRecord,
+                request,
+                tenantId,
+                validationRunId,
+                rewriteRecord.getOriginalSqlText(),
+                comparisonPolicy
+            ));
+            recommendedDigest = queryExecutionResultDigestClient.executeDigest(buildDigestRequest(
+                rewriteRecord,
+                request,
+                tenantId,
+                validationRunId,
+                rewriteRecord.getRecommendedSqlText(),
+                comparisonPolicy
+            ));
+            comparisonResult = resultDigestComparisonEngine.compare(originalDigest, recommendedDigest, comparisonPolicy);
+        } catch (RuntimeException ex) {
+            comparisonResult = failedComparisonResult(ex, comparisonPolicy);
+        }
+        return RewriteValidationRun.builder()
+            .validationRunId(validationRunId)
+            .tenantId(tenantId)
+            .rewriteRecordId(rewriteRecord.getRewriteRecordId())
+            .recommendationId(resolveValue(
+                request == null ? null : request.getRecommendationId(),
+                rewriteRecord.getRecommendationId()
+            ))
+            .historyId(resolveValue(request == null ? null : request.getHistoryId(), rewriteRecord.getHistoryId()))
+            .sqlFingerprint(resolveValue(
+                request == null ? null : request.getSqlFingerprint(),
+                rewriteRecord.getSqlFingerprint()
+            ))
+            .status(comparisonResult.getValidationRunStatus())
+            .comparisonStatus(comparisonResult.getComparisonStatus())
+            .differenceType(comparisonResult.getDifferenceType())
+            .autoApplyPaused(comparisonResult.isAutoApplyPaused())
+            .startedAt(startedAt)
+            .finishedAt(Instant.now())
+            .comparisonPolicy(comparisonPolicy)
+            .originalResultDigest(originalDigest == null ? Collections.<String, Object>emptyMap() : originalDigest.getResultDigest())
+            .recommendedResultDigest(recommendedDigest == null ? Collections.<String, Object>emptyMap() : recommendedDigest.getResultDigest())
+            .differenceSample(comparisonResult.getDifferenceSample())
+            .executionEvidence(comparisonResult.getExecutionEvidence())
+            .build();
+    }
+
+    private RewriteValidationRun buildClientSubmittedValidationRun(SqlRewriteRecord rewriteRecord,
+                                                                   String tenantId,
+                                                                   RewriteValidationRunCreateRequest request) {
         Instant now = Instant.now();
-        RewriteValidationRun validationRun = RewriteValidationRun.builder()
+        return RewriteValidationRun.builder()
             .validationRunId(UUID.randomUUID().toString())
             .tenantId(tenantId)
             .rewriteRecordId(rewriteRecord.getRewriteRecordId())
@@ -128,9 +217,89 @@ public class SqlRewriteRecordApplicationService {
             .differenceSample(request == null ? null : request.getDifferenceSample())
             .executionEvidence(request == null ? null : request.getExecutionEvidence())
             .build();
-        sqlRewriteRecordRepository.saveValidationRun(validationRun);
-        sqlRewriteRecordRepository.saveRecord(rewriteRecord.withValidationSummary(validationRun, now));
-        return toValidationRunVo(validationRun);
+    }
+
+    private QueryExecutionResultDigestRequest buildDigestRequest(SqlRewriteRecord rewriteRecord,
+                                                                 RewriteValidationRunCreateRequest request,
+                                                                 String tenantId,
+                                                                 String validationRunId,
+                                                                 String sqlText,
+                                                                 Map<String, Object> comparisonPolicy) {
+        QueryExecutionResultDigestRequest digestRequest = new QueryExecutionResultDigestRequest();
+        digestRequest.setTenantId(tenantId);
+        digestRequest.setValidationRunId(validationRunId);
+        digestRequest.setRewriteRecordId(rewriteRecord.getRewriteRecordId());
+        digestRequest.setSqlFingerprint(resolveValue(
+            request == null ? null : request.getSqlFingerprint(),
+            rewriteRecord.getSqlFingerprint()
+        ));
+        digestRequest.setSqlText(sqlText);
+        digestRequest.setDatasourceType(resolveDatasourceType(rewriteRecord, request));
+        digestRequest.setDatasourceCode(rewriteRecord.getDatasourceCode());
+        digestRequest.setComparisonPolicy(comparisonPolicy);
+        return digestRequest;
+    }
+
+    private Map<String, Object> buildComparisonPolicy(SqlRewriteRecord rewriteRecord,
+                                                       RewriteValidationRunCreateRequest request) {
+        Map<String, Object> policy = new LinkedHashMap<String, Object>();
+        policy.put("policyId", StringUtils.hasText(rewriteRecord.getValidationPolicyId())
+            ? rewriteRecord.getValidationPolicyId()
+            : "DEFAULT_READONLY_DIGEST_POLICY");
+        policy.put("executionMode", "READONLY_RESULT_DIGEST");
+        policy.put("sampleLimit", Integer.valueOf(5));
+        policy.put("orderSensitive", Boolean.FALSE);
+        policy.put("numericTolerance", "0");
+        policy.put("timezone", "UTC");
+        policy.put("nullHandling", "STRICT");
+        if (request != null && request.getComparisonPolicy() != null) {
+            policy.putAll(request.getComparisonPolicy());
+        }
+        if (request != null && StringUtils.hasText(request.getTriggerReason())) {
+            policy.put("triggerReason", request.getTriggerReason().trim());
+        }
+        policy.put("readonlyOnly", Boolean.TRUE);
+        policy.put("rewriteRecordId", rewriteRecord.getRewriteRecordId());
+        return policy;
+    }
+
+    private DataSourceTypeEnum resolveDatasourceType(SqlRewriteRecord rewriteRecord,
+                                                     RewriteValidationRunCreateRequest request) {
+        if (request != null && request.getDatasourceType() != null) {
+            return request.getDatasourceType();
+        }
+        String datasourceCode = rewriteRecord.getDatasourceCode();
+        if (StringUtils.hasText(datasourceCode)) {
+            try {
+                return DataSourceTypeEnum.valueOf(datasourceCode.trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+                return DataSourceTypeEnum.AUTO;
+            }
+        }
+        return DataSourceTypeEnum.AUTO;
+    }
+
+    private ResultDigestComparisonResult failedComparisonResult(RuntimeException exception,
+                                                               Map<String, Object> comparisonPolicy) {
+        Map<String, Object> sample = new LinkedHashMap<String, Object>();
+        sample.put("reason", "readonly digest execution failed");
+        sample.put("differenceType", DifferenceType.UNKNOWN.name());
+        sample.put("errorType", exception.getClass().getSimpleName());
+        sample.put("errorMessage", exception.getMessage());
+
+        Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+        evidence.put("comparisonPolicy", comparisonPolicy == null ? Collections.emptyMap() : comparisonPolicy);
+        evidence.put("readonlyDigestOnly", Boolean.TRUE);
+        evidence.put("errorType", exception.getClass().getSimpleName());
+        evidence.put("errorMessage", exception.getMessage());
+        return new ResultDigestComparisonResult(
+            ValidationRunStatus.FAILED,
+            ComparisonStatus.FAILED,
+            DifferenceType.UNKNOWN,
+            false,
+            sample,
+            evidence
+        );
     }
 
     public List<RewriteValidationRunVO> listValidationRuns(String rewriteRecordId) {

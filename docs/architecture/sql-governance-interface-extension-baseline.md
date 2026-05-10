@@ -793,6 +793,8 @@ repo-side 基线：
 - `validationStatus`: `NOT_VALIDATED`,`VALIDATING`,`EQUIVALENT`,`DIVERGED`,`FAILED`,`EXPIRED`
 - 差异类型至少包括 `SCHEMA_DIFF`,`ROW_COUNT_DIFF`,`KEY_SET_DIFF`,`ORDER_DIFF`,`VALUE_DIFF`,`CHECKSUM_DIFF`,`TIMEZONE_OR_PRECISION_DIFF`
 - 比对不得把大结果集全量拉回前端；后端返回 schema digest、row count、key/hash/checksum digest 和有限差异样本。
+- `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/validation-runs` 由 `sql-optimization` 触发后端只读摘要比对；request 只允许提供 policy override、`datasourceType` 和触发原因等上下文，不把客户端提交的 digest 或 `comparisonStatus` 当作权威结论。
+- `query-execution` 内部只读摘要执行契约为 `POST /api/query-execution/internal/result-digests/execute`，返回 `resultDigest`、`limitedSample` 与 `executionEvidence`，不跨服务传递完整 rows。
 - 发现 `DIVERGED` 时必须暂停自动应用，并触发 `SQL_REWRITE_RESULT_DIVERGENCE` 告警事件。
 - 默认运行时优先应用门槛为 `planStatus=VERIFIED|ACTIVE`、`validationStatus=EQUIVALENT`、`benefitStatus=POSITIVE`、`schemaVersion` 未过期；`APPLIED` 仅表示已写入配置或绑定，不得等同于生效。
 

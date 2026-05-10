@@ -11,15 +11,6 @@
 
 ## Todo
 
-### HARN-135: 周期比对执行模型与只读比较引擎
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-134`
-- Scope: 建立 validation policy、result digest、schema/row/hash/checksum comparison；比对必须只读，不把大结果集全量拉回前端。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-135`
-
 ### HARN-136: 周期比对调度与差异告警
 
 - Status: todo

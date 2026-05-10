@@ -3,6 +3,7 @@ package com.company.sqloptimization.application.controller.dto;
 import com.company.sqloptimization.domain.governance.ComparisonStatus;
 import com.company.sqloptimization.domain.governance.DifferenceType;
 import com.company.sqloptimization.domain.governance.ValidationRunStatus;
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import java.time.Instant;
 import java.util.Map;
 
@@ -12,6 +13,8 @@ public class RewriteValidationRunCreateRequest {
     private String recommendationId;
     private String historyId;
     private String sqlFingerprint;
+    private DataSourceTypeEnum datasourceType;
+    private String triggerReason;
     private ValidationRunStatus status;
     private ComparisonStatus comparisonStatus;
     private DifferenceType differenceType;
@@ -32,6 +35,10 @@ public class RewriteValidationRunCreateRequest {
     public void setHistoryId(String historyId) { this.historyId = historyId; }
     public String getSqlFingerprint() { return sqlFingerprint; }
     public void setSqlFingerprint(String sqlFingerprint) { this.sqlFingerprint = sqlFingerprint; }
+    public DataSourceTypeEnum getDatasourceType() { return datasourceType; }
+    public void setDatasourceType(DataSourceTypeEnum datasourceType) { this.datasourceType = datasourceType; }
+    public String getTriggerReason() { return triggerReason; }
+    public void setTriggerReason(String triggerReason) { this.triggerReason = triggerReason; }
     public ValidationRunStatus getStatus() { return status; }
     public void setStatus(ValidationRunStatus status) { this.status = status; }
     public ComparisonStatus getComparisonStatus() { return comparisonStatus; }
