@@ -610,17 +610,128 @@ export default {
     title: 'Parse History Search',
     summary: 'Search batch parse and report-import history with batch-level parse records.'
   },
+  governanceTrace: {
+    tenantContext: 'Tenant context',
+    businessTenant: 'Business tenant',
+    governanceTenant: 'Governance tenant',
+    lookupLimit: 'Lookup limit',
+    traceId: 'Trace ID',
+    taskId: 'Task ID',
+    reportId: 'Report ID',
+    windowStart: 'Window start',
+    windowEnd: 'Window end',
+    clearCriteria: 'Clear criteria',
+    loadOlderEvidence: 'Load older evidence',
+    refreshQueueImpact: 'Refresh queue impact',
+    matchedTraces: 'Matched traces',
+    compensationTraces: 'Compensation traces',
+    repairSignalChains: 'Repair signal chains',
+    reportLinkedTraces: 'Report-linked traces',
+    nonSuccessChains: 'Non-success chains',
+    olderEvidenceAvailable: 'Older evidence chains available',
+    olderRemediationAvailable: 'Older remediation chains available',
+    olderTracesAvailable: 'Older traces available',
+    serviceCode: 'Service code',
+    resourceType: 'Resource type',
+    resourceId: 'Resource id',
+    lastSeenAt: 'Last seen at',
+    lookupMode: 'Lookup match',
+    repairSignal: 'Repair signal',
+    compensationTrace: 'Compensation trace',
+    auditEvents: 'Audit events',
+    sqlFingerprint: 'SQL fingerprint',
+    errorCode: 'Error code',
+    targetEngine: 'Target engine',
+    degraded: 'Degraded',
+    requestChain: 'Request chain',
+    task: 'Task',
+    report: 'Report',
+    fingerprint: 'Fingerprint',
+    error: 'Error',
+    engine: 'Engine',
+    degradedRecovery: 'Degraded recovery',
+    queueImpact: 'Queue impact',
+    queueTotal: 'Total messages',
+    queuePending: 'Pending backlog',
+    queueFailed: 'Failed messages',
+    queueConsumed: 'Consumed',
+    retryStatus: 'Retry status',
+    retriedCount: 'Retried count',
+    failedDelta: 'Failed delta',
+    repairOutcome: 'Repair outcome',
+    criteria: {
+      traceId: 'Trace lookup',
+      taskId: 'Task lookup',
+      reportId: 'Report lookup',
+      windowStart: 'Window start',
+      windowEnd: 'Window end'
+    }
+  },
   repairEvidence: {
     title: 'Repair Evidence',
-    summary: 'Reverse lookup trace, task and report evidence to confirm compensation and repair outcomes.'
+    summary: 'Reverse lookup trace, task and report evidence to confirm compensation and repair outcomes.',
+    refactorNote: 'This page reuses the shared trace lookup, result list, and audit timeline components while keeping compensation, degraded recovery, and report write-back evidence visible.',
+    lookupTitle: 'Lookup criteria and matched traces',
+    lookupSummary: 'Enter a trace, task, or report id to query the governance trace chain; window fields are passed through to the backend lookup contract.',
+    detailTitle: 'Compensation and repair detail',
+    actions: {
+      runLookup: 'Run reverse lookup',
+      openTroubleshooting: 'Open remediation decision'
+    },
+    messages: {
+      requiredLookup: 'Enter at least one of traceId, taskId, or reportId before running the lookup.',
+      emptyCriteria: 'Enter a trace, task, or report id and then run the lookup.',
+      noMatches: 'Matched traces render here so you can keep drilling into the linked audit and repair timeline.',
+      emptyDetail: 'After you select a matched trace, the lookup mode, repair signals, and audit timeline render here.'
+    }
   },
   auditForensics: {
     title: 'Audit Forensics',
-    summary: 'Stitch compensation, repair, write-back and history events into a paged forensic chain.'
+    summary: 'Stitch compensation, repair, write-back and history events into a paged forensic chain.',
+    refactorNote: 'This page consolidates failure chains, compensation traces, report write-back, and audit events into shared forensic components while preserving cross-page pivots.',
+    lookupTitle: 'Forensic criteria and matched evidence chains',
+    lookupSummary: 'Trace, task, or report can start the forensic lookup, and pagination cursor still comes from the backend.',
+    detailTitle: 'Forensic detail and cross-page pivots',
+    actions: {
+      runLookup: 'Run forensic lookup',
+      openParseRecord: 'Open parse record',
+      openRepairEvidence: 'Open repair evidence',
+      openTroubleshooting: 'Open remediation decision'
+    },
+    messages: {
+      requiredLookup: 'Enter at least one of traceId, taskId, or reportId before running the forensic lookup.',
+      emptyCriteria: 'Enter a trace, task, or report id and then run the forensic lookup.',
+      noMatches: 'Matched chains render here with failure, compensation, and report write-back evidence.',
+      emptyDetail: 'After you select a matched trace, the forensic signals, linked history events, and cross-page actions render here.'
+    }
   },
   auditTroubleshooting: {
     title: 'Audit Troubleshooting',
-    summary: 'Summarize failure type, compensation state, write-back state and queue impact, then expose remediation actions and acceptance signals.'
+    summary: 'Summarize failure type, compensation state, write-back state and queue impact, then expose remediation actions and acceptance signals.',
+    refactorNote: 'This page merges trace forensics with governance queue impact in one remediation view, while retry still calls the backend authority.',
+    lookupTitle: 'Failure scope, queue impact and decision inputs',
+    lookupSummary: 'Business tenant drives trace lookup, while governance tenant drives message stats and retry so permission boundaries stay separate.',
+    detailTitle: 'Remediation actions and acceptance signals',
+    actions: {
+      runLookup: 'Run remediation lookup',
+      retryFailedMessages: 'Retry failed messages',
+      openSystem: 'Open governance backlog',
+      openRepairEvidence: 'Open repair evidence',
+      openParseRecord: 'Back to parse record'
+    },
+    decision: {
+      failureType: 'Failure type',
+      compensationState: 'Compensation state',
+      writeBackState: 'Write-back state',
+      queueImpact: 'Queue impact',
+      acceptanceState: 'Acceptance state'
+    },
+    messages: {
+      requiredLookup: 'Enter at least one of traceId, taskId, or reportId before running the remediation lookup.',
+      emptyCriteria: 'Enter a trace, task, or report id and then run the remediation lookup.',
+      noMatches: 'Matched chains render here with queue impact and remediation actions.',
+      emptyDetail: 'After you select a matched trace, the failure type, compensation state, write-back state, and acceptance signals render here.'
+    }
   },
   runtimeGates: {
     title: 'Runtime Gates',
@@ -1051,7 +1162,51 @@ export default {
   },
   alertCenter: {
     title: 'Alert Center',
-    summary: 'Review derived alerts, simulated ACK state, and notify-simulated outcomes.'
+    summary: 'Review derived alerts, simulated ACK state, and notify-simulated outcomes.',
+    pageTitle: 'Alert center and notification state',
+    refactorSummary: 'The dedicated read path {readPath} has a baseline, but this page still derives alerts from backlog, dispatch events, and important-or-urgent SQL while keeping ACK and notify explicitly simulated until the dedicated path is wired.',
+    controlsTitle: 'Alert refresh and simulated actions',
+    controlsSummary: 'Refresh derived alerts by tenant; create-rule and notification-policy actions still expose the missing write-interface boundary.',
+    listTitle: 'Alert list',
+    detailTitle: 'Detail, ACK, and notify state',
+    metrics: {
+      total: 'Total alerts',
+      open: 'Open',
+      high: 'High severity',
+      simulated: 'Notify simulated'
+    },
+    fields: {
+      alertId: 'Alert ID',
+      ackStatus: 'ACK status',
+      notifyStatus: 'Notify status',
+      ackMode: 'ACK mode'
+    },
+    actions: {
+      refresh: 'Refresh alerts',
+      createRule: 'Create alert rule',
+      editNotify: 'Edit notify strategy',
+      ack: 'Simulate ACK',
+      clearAck: 'Clear simulated ACK'
+    },
+    derived: {
+      backlogTitle: 'Governance backlog alert',
+      backlogSummary: 'Current failed={failed}, pending={pending}.',
+      dispatchTitle: 'Dispatch event requires attention',
+      parseTitle: 'Parse-priority alert'
+    },
+    placeholder: {
+      createTitle: 'Create alert rule is not writable yet',
+      createCapability: 'Create alert rule',
+      createReason: 'The repository does not expose a dedicated alert-rule write API, and this page still derives evidence from backlog, dispatch, and important-or-urgent SQL.',
+      createNextStep: 'If alert-configuration APIs are added later, connect the create form here.',
+      editTitle: 'Edit notification strategy is not writable yet',
+      editCapability: 'Edit notification strategy',
+      editReason: 'ACK and notify are explicitly simulated on this page and should not pretend to be a live notification control plane.',
+      editNextStep: 'Introduce real notification APIs and audit coverage before wiring editing actions.'
+    },
+    messages: {
+      noAlert: 'No alert is available to display.'
+    }
   },
   acceleration: {
     title: 'SQL Parse',

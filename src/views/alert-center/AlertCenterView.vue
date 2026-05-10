@@ -2,6 +2,10 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import CapabilityPlaceholderDialog from '../common/CapabilityPlaceholderDialog.vue'
+import EvidencePanel from '../common/EvidencePanel.vue'
+import MetricCard from '../common/MetricCard.vue'
+import SectionHeader from '../common/SectionHeader.vue'
+import ToolbarShell from '../common/ToolbarShell.vue'
 import {
   formatRuntimeError,
   getDispatchEvents,
@@ -10,8 +14,9 @@ import {
 } from '../../services/runtimeGateApi'
 
 const ACK_STORAGE_KEY = 'sqlforge-alert-center-acks'
+const backendReadPath = 'GET /api/governance/alerts'
 
-const { locale } = useI18n()
+const { t } = useI18n()
 
 const form = reactive({
   tenantId: 'tenant-a'
@@ -35,8 +40,6 @@ const placeholderPayload = ref({
   nextStep: ''
 })
 
-const isChinese = computed(() => locale.value === 'zh-CN')
-
 const loadAcknowledgements = () => {
   try {
     const raw = window.localStorage.getItem(ACK_STORAGE_KEY)
@@ -59,10 +62,11 @@ const derivedAlerts = computed(() => {
       alertId: 'derived-governance-backlog',
       sourceType: 'MESSAGE_BACKLOG',
       severity: (stats.failed || 0) > 0 ? 'HIGH' : 'MEDIUM',
-      title: isChinese.value ? '治理补偿 backlog 告警' : 'Governance backlog alert',
-      summary: isChinese.value
-        ? `当前 failed=${stats.failed || 0}，pending=${stats.pending || 0}。`
-        : `Current failed=${stats.failed || 0}, pending=${stats.pending || 0}.`,
+      title: t('alertCenter.derived.backlogTitle'),
+      summary: t('alertCenter.derived.backlogSummary', {
+        failed: stats.failed || 0,
+        pending: stats.pending || 0
+      }),
       notifyStatus: 'SIMULATED_PENDING_NOTIFY',
       evidence: stats
     })
@@ -77,7 +81,7 @@ const derivedAlerts = computed(() => {
       alertId: `dispatch-${item.dispatchEventId}`,
       sourceType: 'DISPATCH_EVENT',
       severity: status === 'FAILED' ? 'HIGH' : 'MEDIUM',
-      title: isChinese.value ? '装数协同事件待处理' : 'Dispatch event requires attention',
+      title: t('alertCenter.derived.dispatchTitle'),
       summary: `${item.dispatchEventId} · ${status} · ${item.resultMessage || '-'}`,
       notifyStatus: status === 'FAILED' ? 'SIMULATED_NOTIFIED' : 'SIMULATED_PENDING_NOTIFY',
       evidence: item
@@ -89,7 +93,7 @@ const derivedAlerts = computed(() => {
       alertId: `parse-${item.itemId || item.parseTaskId || item.sqlDigest}`,
       sourceType: 'IMPORTANT_URGENT_SQL',
       severity: item.urgent ? 'HIGH' : 'MEDIUM',
-      title: isChinese.value ? '解析优先级告警' : 'Parse-priority alert',
+      title: t('alertCenter.derived.parseTitle'),
       summary: `${item.reportCode || '-'} · ${item.highestPriorityLevel || '-'} · ${item.issueCount || 0} issues`,
       notifyStatus: item.urgent ? 'SIMULATED_NOTIFIED' : 'SIMULATED_PENDING_NOTIFY',
       evidence: item
@@ -108,22 +112,24 @@ const derivedAlerts = computed(() => {
 const alertSummaryCards = computed(() => [
   {
     key: 'total',
-    label: isChinese.value ? '总告警' : 'Total alerts',
+    label: t('alertCenter.metrics.total'),
     value: derivedAlerts.value.length
   },
   {
     key: 'open',
-    label: isChinese.value ? '未 ACK' : 'Open',
-    value: derivedAlerts.value.filter(item => item.ackStatus === 'OPEN').length
+    label: t('alertCenter.metrics.open'),
+    value: derivedAlerts.value.filter(item => item.ackStatus === 'OPEN').length,
+    tone: 'warning'
   },
   {
     key: 'high',
-    label: isChinese.value ? '高优先级' : 'High severity',
-    value: derivedAlerts.value.filter(item => item.severity === 'HIGH').length
+    label: t('alertCenter.metrics.high'),
+    value: derivedAlerts.value.filter(item => item.severity === 'HIGH').length,
+    tone: 'danger'
   },
   {
     key: 'simulated',
-    label: isChinese.value ? 'notify simulated' : 'Notify simulated',
+    label: t('alertCenter.metrics.simulated'),
     value: derivedAlerts.value.filter(item => item.notifyStatus === 'SIMULATED_NOTIFIED').length
   }
 ])
@@ -133,28 +139,19 @@ const selectedAlert = computed(() =>
 )
 
 const openPlaceholderAction = actionType => {
-  const config = actionType === 'create'
+  placeholderPayload.value = actionType === 'create'
     ? {
-        title: isChinese.value ? '新增告警规则暂不可写' : 'Create alert rule is not writable yet',
-        capability: isChinese.value ? '新增告警规则' : 'Create alert rule',
-        reason: isChinese.value
-          ? '当前仓库没有独立的告警规则写接口，这一页仍然基于 backlog、dispatch 和 important/urgent SQL 派生证据。'
-          : 'The repository does not expose a dedicated alert-rule write API, and this page still derives evidence from backlog, dispatch, and important-or-urgent SQL.',
-        nextStep: isChinese.value
-          ? '后续若补告警配置后端，再把新增表单接到这里。'
-          : 'If alert-configuration APIs are added later, connect the create form here.'
+        title: t('alertCenter.placeholder.createTitle'),
+        capability: t('alertCenter.placeholder.createCapability'),
+        reason: t('alertCenter.placeholder.createReason'),
+        nextStep: t('alertCenter.placeholder.createNextStep')
       }
     : {
-        title: isChinese.value ? '修改通知策略暂不可写' : 'Edit notification strategy is not writable yet',
-        capability: isChinese.value ? '修改通知策略' : 'Edit notification strategy',
-        reason: isChinese.value
-          ? '当前页面的 ACK / notify 明确是 simulated，不应伪装成已经接通的真实通知控制面。'
-          : 'ACK and notify are explicitly simulated on this page and should not pretend to be a live notification control plane.',
-        nextStep: isChinese.value
-          ? '需要真实通知接口和审计链后，再接入编辑动作。'
-          : 'Introduce real notification APIs and audit coverage before wiring editing actions.'
+        title: t('alertCenter.placeholder.editTitle'),
+        capability: t('alertCenter.placeholder.editCapability'),
+        reason: t('alertCenter.placeholder.editReason'),
+        nextStep: t('alertCenter.placeholder.editNextStep')
       }
-  placeholderPayload.value = config
   placeholderDialogVisible.value = true
 }
 
@@ -211,6 +208,8 @@ const compareAlertSeverity = (left, right) => {
   return (rank[right.severity] || 0) - (rank[left.severity] || 0)
 }
 
+const formatJson = value => JSON.stringify(value, null, 2)
+
 watch(
   () => form.tenantId,
   () => {
@@ -226,57 +225,47 @@ onMounted(() => {
 
 <template>
   <section class="alert-page" data-testid="alert-page">
-    <header class="alert-hero sqlforge-panel">
-      <div>
-        <p class="section-kicker sqlforge-code-label">alert center</p>
-        <h1>{{ isChinese ? '告警中心与通知状态' : 'Alert center and notification state' }}</h1>
-        <p class="hero-summary">
-          {{
-            isChinese
-              ? '后端已经有独立 `GET /api/governance/alerts` / `POST /api/governance/alerts/{alertId}/ack` 基线，但当前页面在正式接线前仍先基于 backlog、dispatch event 和 important/urgent SQL 派生告警，并把 ACK / notify 明确标成 simulated。'
-              : 'The backend now exposes baseline `GET /api/governance/alerts` and `POST /api/governance/alerts/{alertId}/ack` endpoints, but this page still derives alerts from backlog, dispatch events, and important-or-urgent SQL while keeping ACK and notify explicitly simulated until the dedicated read path is wired.'
-          }}
-        </p>
-      </div>
-      <div class="hero-actions">
-        <label class="field-label">
-          <span>{{ isChinese ? '租户' : 'Tenant' }}</span>
-          <input v-model.trim="form.tenantId" class="text-input">
-        </label>
-        <button class="primary-button" data-testid="alert-refresh" @click="refreshAlerts">
-          {{ isChinese ? '刷新告警' : 'Refresh alerts' }}
-        </button>
-        <button class="secondary-button" type="button" @click="openPlaceholderAction('create')">
-          {{ isChinese ? '新增告警规则' : 'Create alert rule' }}
-        </button>
-        <button class="secondary-button" type="button" @click="openPlaceholderAction('edit')">
-          {{ isChinese ? '修改通知策略' : 'Edit notify strategy' }}
-        </button>
-      </div>
-    </header>
+    <SectionHeader
+      eyebrow="alert center"
+      :title="t('alertCenter.pageTitle')"
+      :summary="t('alertCenter.refactorSummary', { readPath: backendReadPath })"
+    />
 
-    <p v-if="errorMessage" class="error-banner" data-testid="alert-error">{{ errorMessage }}</p>
+    <ToolbarShell
+      eyebrow="alert controls"
+      :title="t('alertCenter.controlsTitle')"
+      :summary="t('alertCenter.controlsSummary')"
+      test-id="alert-toolbar"
+    >
+      <label class="alert-field">
+        <span>{{ t('governanceTrace.tenantContext') }}</span>
+        <el-input v-model.trim="form.tenantId" data-testid="alert-tenant-id" />
+      </label>
+      <el-button type="primary" :loading="loading.page" data-testid="alert-refresh" @click="refreshAlerts">
+        {{ t('alertCenter.actions.refresh') }}
+      </el-button>
+      <el-button @click="openPlaceholderAction('create')">
+        {{ t('alertCenter.actions.createRule') }}
+      </el-button>
+      <el-button @click="openPlaceholderAction('edit')">
+        {{ t('alertCenter.actions.editNotify') }}
+      </el-button>
+    </ToolbarShell>
+
+    <div v-if="errorMessage" class="result-banner result-banner-danger" data-testid="alert-error">
+      {{ errorMessage }}
+    </div>
 
     <section class="summary-grid">
-      <article
+      <MetricCard
         v-for="item in alertSummaryCards"
         :key="item.key"
-        class="summary-card"
-      >
-        <span class="summary-card-label">{{ item.label }}</span>
-        <strong>{{ item.value }}</strong>
-      </article>
+        v-bind="{ label: item.label, value: item.value, tone: item.tone || 'neutral' }"
+      />
     </section>
 
     <div class="alert-grid">
-      <article class="sqlforge-panel">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">derived alerts</p>
-            <h2>{{ isChinese ? '告警列表' : 'Alert list' }}</h2>
-          </div>
-        </div>
-
+      <EvidencePanel eyebrow="derived alerts" :title="t('alertCenter.listTitle')" tone="warning">
         <div class="alert-list">
           <button
             v-for="item in derivedAlerts"
@@ -289,14 +278,14 @@ onMounted(() => {
           >
             <div class="alert-item-header">
               <div>
-                <p class="section-kicker sqlforge-code-label">{{ item.sourceType }}</p>
+                <p class="alert-source sqlforge-code-label">{{ item.sourceType }}</p>
                 <h3>{{ item.title }}</h3>
               </div>
               <span class="status-pill" :class="{ 'status-pill-warn': item.severity === 'HIGH' }">
                 {{ item.severity }}
               </span>
             </div>
-            <p class="hero-summary">{{ item.summary }}</p>
+            <p class="alert-summary">{{ item.summary }}</p>
             <div class="pill-row">
               <span class="mini-pill">{{ item.ackStatus }}</span>
               <span class="mini-pill">{{ item.notifyStatus }}</span>
@@ -304,61 +293,53 @@ onMounted(() => {
             </div>
           </button>
         </div>
-      </article>
+      </EvidencePanel>
 
-      <article class="sqlforge-panel" data-testid="alert-detail">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">alert detail</p>
-            <h2>{{ isChinese ? '详情、ACK 与 notify 状态' : 'Detail, ACK, and notify state' }}</h2>
-          </div>
-        </div>
-
-        <p v-if="!selectedAlert" class="hero-summary">
-          {{ isChinese ? '当前没有可展示的告警。' : 'No alert is available to display.' }}
+      <EvidencePanel data-testid="alert-detail" eyebrow="alert detail" :title="t('alertCenter.detailTitle')">
+        <p v-if="!selectedAlert" class="empty-state">
+          {{ t('alertCenter.messages.noAlert') }}
         </p>
 
         <template v-else>
-          <div class="summary-grid">
-            <article class="summary-card">
-              <span class="summary-card-label">alertId</span>
+          <div class="alert-detail-grid">
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.alertId') }}</span>
               <strong>{{ selectedAlert.alertId }}</strong>
-            </article>
-            <article class="summary-card">
-              <span class="summary-card-label">{{ isChinese ? 'ACK 状态' : 'ACK status' }}</span>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.ackStatus') }}</span>
               <strong data-testid="alert-ack-status">{{ selectedAlert.ackStatus }}</strong>
-            </article>
-            <article class="summary-card">
-              <span class="summary-card-label">{{ isChinese ? '通知状态' : 'Notify status' }}</span>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.notifyStatus') }}</span>
               <strong data-testid="alert-notify-status">{{ selectedAlert.notifyStatus }}</strong>
-            </article>
-            <article class="summary-card">
-              <span class="summary-card-label">{{ isChinese ? 'ACK 模式' : 'ACK mode' }}</span>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.ackMode') }}</span>
               <strong>{{ selectedAlert.ackMode }}</strong>
-            </article>
+            </div>
           </div>
 
           <div class="action-row">
-            <button
-              class="primary-button"
+            <el-button
+              type="primary"
               data-testid="alert-ack"
               :disabled="selectedAlert.ackStatus === 'ACK_SIMULATED'"
               @click="acknowledgeAlert(selectedAlert.alertId)"
             >
-              {{ isChinese ? 'ACK 模拟确认' : 'Simulate ACK' }}
-            </button>
-            <button
-              class="secondary-button"
+              {{ t('alertCenter.actions.ack') }}
+            </el-button>
+            <el-button
               :disabled="selectedAlert.ackStatus !== 'ACK_SIMULATED'"
               @click="clearAcknowledgement(selectedAlert.alertId)"
             >
-              {{ isChinese ? '撤销模拟 ACK' : 'Clear simulated ACK' }}
-            </button>
+              {{ t('alertCenter.actions.clearAck') }}
+            </el-button>
           </div>
 
           <pre class="code-block">{{ formatJson(selectedAlert.evidence) }}</pre>
         </template>
-      </article>
+      </EvidencePanel>
     </div>
 
     <CapabilityPlaceholderDialog
@@ -375,79 +356,22 @@ onMounted(() => {
 .alert-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--sqlforge-space-6);
 }
 
-.alert-hero,
-.alert-grid > article {
+.alert-field {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-}
-
-.alert-hero {
-  display: grid;
-  gap: 20px;
-  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.9fr);
-}
-
-.hero-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 18px;
-  border-radius: 14px;
-  border: 1px solid var(--sqlforge-border-default);
-  background: rgba(41, 41, 41, 0.84);
-}
-
-.field-label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  gap: var(--sqlforge-space-2);
+  min-width: 220px;
+  color: var(--sqlforge-text-secondary);
   font-size: 13px;
-  color: var(--sqlforge-text-secondary);
-}
-
-.text-input {
-  min-height: 42px;
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--sqlforge-border-default);
-  background: var(--sqlforge-bg-page-deep);
-  color: var(--sqlforge-text-primary);
-}
-
-.primary-button,
-.secondary-button,
-.alert-item {
-  cursor: pointer;
-}
-
-.primary-button,
-.secondary-button {
-  min-height: 42px;
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: 999px;
-  padding: 0 18px;
-  font-weight: 500;
-}
-
-.primary-button {
-  background: var(--sqlforge-bg-page-deep);
-  color: var(--sqlforge-text-primary);
-  border-color: rgba(212, 96, 96, 0.35);
-}
-
-.secondary-button {
-  background: var(--sqlforge-bg-page-deep);
-  color: var(--sqlforge-text-secondary);
 }
 
 .summary-grid,
 .alert-grid {
   display: grid;
-  gap: 20px;
+  gap: var(--sqlforge-space-5);
 }
 
 .summary-grid {
@@ -455,65 +379,111 @@ onMounted(() => {
 }
 
 .alert-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+  align-items: start;
 }
 
-.summary-card,
-.alert-item {
-  padding: 16px;
-  border-radius: 14px;
+.alert-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--sqlforge-space-3);
+}
+
+.alert-detail-item {
+  min-width: 0;
+  padding: var(--sqlforge-space-4);
   border: 1px solid var(--sqlforge-border-default);
-  background: var(--sqlforge-surface-2);
+  border-radius: var(--sqlforge-radius-md);
+  background: var(--sqlforge-bg-page-deep);
 }
 
-.summary-card-label {
-  display: inline-flex;
-  margin-bottom: 8px;
+.alert-detail-item span,
+.alert-detail-item strong {
+  display: block;
+  min-width: 0;
+}
+
+.alert-detail-item span {
+  color: var(--sqlforge-text-secondary);
   font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--sqlforge-text-muted);
 }
 
-.alert-list,
-.pill-row {
+.alert-detail-item strong {
+  margin-top: var(--sqlforge-space-2);
+  color: var(--sqlforge-text-primary);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.alert-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.pill-row {
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--sqlforge-space-3);
 }
 
 .alert-item {
+  width: 100%;
+  padding: var(--sqlforge-space-4);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-md);
+  background: var(--sqlforge-bg-page-deep);
+  color: inherit;
   text-align: left;
+  cursor: pointer;
 }
 
 .alert-item-active {
-  border-color: rgba(212, 96, 96, 0.35);
+  border-color: rgba(207, 166, 62, 0.32);
 }
 
 .alert-item-header,
-.section-heading,
+.pill-row,
 .action-row {
   display: flex;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--sqlforge-space-3);
+  align-items: center;
+}
+
+.alert-item-header {
   justify-content: space-between;
-  gap: 12px;
+}
+
+.alert-source,
+.alert-item h3,
+.alert-summary,
+.empty-state {
+  margin: 0;
+}
+
+.alert-item h3 {
+  color: var(--sqlforge-text-primary);
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.alert-summary,
+.empty-state {
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.6;
+}
+
+.pill-row,
+.action-row {
+  margin-top: var(--sqlforge-space-4);
 }
 
 .status-pill,
 .mini-pill {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   min-height: 28px;
-  padding: 0 12px;
-  border-radius: 999px;
+  padding: 0 var(--sqlforge-space-3);
   border: 1px solid var(--sqlforge-border-default);
+  border-radius: 999px;
   background: var(--sqlforge-bg-page-deep);
   color: var(--sqlforge-text-secondary);
   font-size: 12px;
@@ -525,26 +495,23 @@ onMounted(() => {
   color: #ffd6d6;
 }
 
-.hero-summary,
-.error-banner {
-  margin: 0;
-  color: var(--sqlforge-text-secondary);
-  line-height: 1.6;
+.result-banner {
+  padding: var(--sqlforge-space-4);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-md);
+  background: var(--sqlforge-bg-page-deep);
 }
 
-.error-banner {
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(212, 96, 96, 0.35);
-  background: rgba(120, 28, 28, 0.18);
+.result-banner-danger {
+  border-color: rgba(212, 96, 96, 0.35);
   color: #ffd6d6;
 }
 
 .code-block {
-  margin: 0;
-  padding: 14px;
-  border-radius: 14px;
+  margin: var(--sqlforge-space-4) 0 0;
+  padding: var(--sqlforge-space-4);
   border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-md);
   background: var(--sqlforge-bg-page-deep);
   color: var(--sqlforge-text-primary);
   overflow: auto;
@@ -555,7 +522,6 @@ onMounted(() => {
 }
 
 @media (max-width: 1100px) {
-  .alert-hero,
   .alert-grid {
     grid-template-columns: 1fr;
   }

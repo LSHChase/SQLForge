@@ -11,18 +11,7 @@
 
 ## Todo
 
-### HARN-115: 重构告警、取证、修复、故障处置与系统管理页面
-
-- Status: todo
-- Priority: 2
-- Depends on: HARN-108,HARN-116
-- Scope: 覆盖 `AlertCenterView`、`AuditForensicsView`、`AuditTroubleshootingView`、`RepairEvidenceView`、`SystemView`；收敛重复 trace lookup、timeline、queue、retry、datasource/config 表格与详情模式，保留权限和后端权威边界。
-- Validation:
-  - before/after 截图自检
-  - `npm run lint`
-  - `npm run build`
-  - `npm run test:form-governance`
-  - `npm run test:frontend-page-governance`
+_No tasks._
 
 
 ## In Progress

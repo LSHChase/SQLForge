@@ -4,6 +4,26 @@
 
 ## Done
 
+### HARN-115: 重构告警、取证、修复、故障处置与系统管理页面
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `HARN-115 refactor governance operations pages`
+- Priority: 2
+- Depends on: HARN-108,HARN-116
+- Scope: 覆盖 `AlertCenterView`、`AuditForensicsView`、`AuditTroubleshootingView`、`RepairEvidenceView`、`SystemView`；收敛重复 trace lookup、timeline、queue、retry、datasource/config 表格与详情模式，保留权限和后端权威边界。
+- Validation:
+  - before/after 截图自检
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:form-governance`
+  - `npm run test:frontend-page-governance`
+- Context closeout:
+  - Completed scope: Refactored AlertCenterView, AuditForensicsView, AuditTroubleshootingView, RepairEvidenceView, and SystemView around shared trace lookup/result/detail and queue retry primitives; moved SystemView orchestration into useSystemManagement while preserving datasource, config, retry, permission, and backend-authority boundaries.
+  - Validation evidence: Passed npm run lint; npm run build; npm run test:form-governance; npm run test:frontend-page-governance; node scripts/check-alert-page-contract.mjs; node scripts/check-system-config-contract.mjs; node scripts/check-system-datasource-contract.mjs; python3 scripts/foreman.py validate HARN-115; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check. before screenshot: .codex/state/screenshots/HARN-115/before/{alert-center,audit-forensics,audit-troubleshooting,repair-evidence,system}.png. after screenshot: .codex/state/screenshots/HARN-115/after/{alert-center,audit-forensics,audit-troubleshooting,repair-evidence,system,system-datasource-detail-drawer,system-datasource-test-dialog,system-datasource-test-dialog-focused,audit-troubleshooting-retry-panel}.png and .codex/state/screenshots/HARN-115/after-mobile/{alert-center,audit-forensics,audit-troubleshooting,repair-evidence,system}.png. Codex visual self-review completed; alert detail long-value overflow, mobile trace detail enum clipping, and transient system dialog screenshot opacity were 已修复; visual review passed with no remaining overlap, clipping, card nesting, or management PageHero drift observed.
+  - Residual risk: Screenshots used mocked browser API responses for deterministic frontend evidence; no backend service, permission model, or live datasource behavior was changed.
+  - Next step: Continue with the next ledger task after HARN-115; keep the shared governance trace primitives as the default for future trace lookup and retry surfaces.
+
 ### HARN-114: 重构资产、路由、推荐、压测、接入页面
 
 - Status: done

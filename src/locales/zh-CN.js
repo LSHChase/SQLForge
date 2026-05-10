@@ -610,17 +610,128 @@ export default {
     title: '解析历史查询',
     summary: '查询批量解析与报表导入历史，回看批次级解析记录。'
   },
+  governanceTrace: {
+    tenantContext: '租户上下文',
+    businessTenant: '业务租户',
+    governanceTenant: '治理租户',
+    lookupLimit: '返回数量',
+    traceId: 'Trace ID',
+    taskId: 'Task ID',
+    reportId: 'Report ID',
+    windowStart: '窗口开始',
+    windowEnd: '窗口结束',
+    clearCriteria: '清空条件',
+    loadOlderEvidence: '加载更早证据',
+    refreshQueueImpact: '刷新队列影响',
+    matchedTraces: '命中 trace',
+    compensationTraces: '补偿 trace',
+    repairSignalChains: '修复信号链',
+    reportLinkedTraces: '报告回写链',
+    nonSuccessChains: '异常/修复链',
+    olderEvidenceAvailable: '仍有更早证据链',
+    olderRemediationAvailable: '仍有更早处置链',
+    olderTracesAvailable: '仍有更早 trace',
+    serviceCode: '服务编码',
+    resourceType: '资源类型',
+    resourceId: '资源标识',
+    lastSeenAt: '最后发生时间',
+    lookupMode: '命中维度',
+    repairSignal: '修复信号',
+    compensationTrace: '补偿链路',
+    auditEvents: '审计事件',
+    sqlFingerprint: 'SQL 指纹',
+    errorCode: '错误码',
+    targetEngine: '目标引擎',
+    degraded: '降级',
+    requestChain: '请求链路',
+    task: '任务',
+    report: '报告',
+    fingerprint: '指纹',
+    error: '错误',
+    engine: '引擎',
+    degradedRecovery: '降级恢复',
+    queueImpact: '队列影响',
+    queueTotal: '消息总数',
+    queuePending: '待补偿',
+    queueFailed: '失败消息',
+    queueConsumed: '已消费',
+    retryStatus: '重试状态',
+    retriedCount: '重试数量',
+    failedDelta: 'failed 降幅',
+    repairOutcome: '修复结果',
+    criteria: {
+      traceId: 'Trace 反查',
+      taskId: 'Task 反查',
+      reportId: 'Report 反查',
+      windowStart: '窗口开始',
+      windowEnd: '窗口结束'
+    }
+  },
   repairEvidence: {
     title: '修复证据',
-    summary: '按 trace、task、report 反查治理链路，确认补偿与修复结果。'
+    summary: '按 trace、task、report 反查治理链路，确认补偿与修复结果。',
+    refactorNote: '该页复用统一 trace lookup、命中列表与审计时间线组件，保留补偿、降级恢复和报告回写证据可见性。',
+    lookupTitle: '追溯条件与命中结果',
+    lookupSummary: '输入 trace、task 或 report 后查询治理追溯链，窗口字段会原样传给后端反查接口。',
+    detailTitle: '补偿与修复证据明细',
+    actions: {
+      runLookup: '执行反查',
+      openTroubleshooting: '打开处置决策'
+    },
+    messages: {
+      requiredLookup: '至少输入 traceId、taskId、reportId 中的一项后再执行反查。',
+      emptyCriteria: '输入 trace / task / report 后执行反查。',
+      noMatches: '命中结果会展示对应 trace 列表，并允许继续下钻审计/修复时间线。',
+      emptyDetail: '选择左侧命中 trace 后，这里会显示命中维度、修复信号和审计时间线。'
+    }
   },
   auditForensics: {
     title: '审计取证',
-    summary: '串联补偿、修复、回写与历史事件，形成可分页的取证链路。'
+    summary: '串联补偿、修复、回写与历史事件，形成可分页的取证链路。',
+    refactorNote: '该页把失败链、补偿链、报告回写和审计事件收敛到同一套取证组件，并保留跨页 pivot。',
+    lookupTitle: '取证条件与证据链命中',
+    lookupSummary: 'trace、task、report 任一维度都可作为取证入口，分页 cursor 继续来自后端。',
+    detailTitle: '审计取证详情与跨页 pivot',
+    actions: {
+      runLookup: '执行取证反查',
+      openParseRecord: '跳回历史诊断',
+      openRepairEvidence: '打开修复证据',
+      openTroubleshooting: '打开处置决策'
+    },
+    messages: {
+      requiredLookup: '至少输入 traceId、taskId、reportId 中的一项后再执行取证反查。',
+      emptyCriteria: '输入 trace / task / report 后执行取证反查。',
+      noMatches: '命中结果会展示失败链、补偿链与报告回写证据。',
+      emptyDetail: '选择左侧命中 trace 后，这里会显示取证信号、历史事件和跨页跳转动作。'
+    }
   },
   auditTroubleshooting: {
     title: '故障处置',
-    summary: '汇总失败类型、补偿状态、回写状态与队列影响，并给出处置动作与验收信号。'
+    summary: '汇总失败类型、补偿状态、回写状态与队列影响，并给出处置动作与验收信号。',
+    refactorNote: '该页把 trace 取证与治理消息队列影响合并到统一处置视图，retry 仍调用后端权威入口。',
+    lookupTitle: '故障范围、队列影响与决策输入',
+    lookupSummary: '业务租户用于 trace 反查，治理租户用于 message stats 与 retry，不混写两个权限边界。',
+    detailTitle: '处置动作与验收信号',
+    actions: {
+      runLookup: '执行处置反查',
+      retryFailedMessages: '重试失败消息',
+      openSystem: '打开治理 backlog',
+      openRepairEvidence: '打开修复证据',
+      openParseRecord: '回到历史诊断'
+    },
+    decision: {
+      failureType: '失败类型',
+      compensationState: '补偿状态',
+      writeBackState: '回写状态',
+      queueImpact: '队列影响',
+      acceptanceState: '验收信号'
+    },
+    messages: {
+      requiredLookup: '至少输入 traceId、taskId、reportId 中的一项后再执行处置决策反查。',
+      emptyCriteria: '输入 trace / task / report 后执行处置决策反查。',
+      noMatches: '命中结果会展示故障链与队列影响，并提供处置入口。',
+      emptyDetail: '选择左侧命中 trace 后，这里会显示失败类型、补偿状态、回写状态和验收信号。'
+    }
   },
   runtimeGates: {
     title: '运行时门禁',
@@ -1051,7 +1162,51 @@ export default {
   },
   alertCenter: {
     title: '告警中心',
-    summary: '查看派生告警、ACK 模拟状态与 notify simulated 结果。'
+    summary: '查看派生告警、ACK 模拟状态与 notify simulated 结果。',
+    pageTitle: '告警中心与通知状态',
+    refactorSummary: '专用读接口 {readPath} 存在基线，但当前页面在正式接线前仍基于 backlog、dispatch event 和 important/urgent SQL 派生告警，并明确保留 ACK / notify simulated 边界。',
+    controlsTitle: '告警刷新与模拟动作',
+    controlsSummary: '筛选租户后刷新派生告警；新增规则和通知策略仍展示为缺失写接口的能力边界。',
+    listTitle: '告警列表',
+    detailTitle: '详情、ACK 与 notify 状态',
+    metrics: {
+      total: '总告警',
+      open: '未 ACK',
+      high: '高优先级',
+      simulated: 'notify simulated'
+    },
+    fields: {
+      alertId: '告警 ID',
+      ackStatus: 'ACK 状态',
+      notifyStatus: '通知状态',
+      ackMode: 'ACK 模式'
+    },
+    actions: {
+      refresh: '刷新告警',
+      createRule: '新增告警规则',
+      editNotify: '修改通知策略',
+      ack: 'ACK 模拟确认',
+      clearAck: '撤销模拟 ACK'
+    },
+    derived: {
+      backlogTitle: '治理补偿 backlog 告警',
+      backlogSummary: '当前 failed={failed}，pending={pending}。',
+      dispatchTitle: '装数协同事件待处理',
+      parseTitle: '解析优先级告警'
+    },
+    placeholder: {
+      createTitle: '新增告警规则暂不可写',
+      createCapability: '新增告警规则',
+      createReason: '当前仓库没有独立的告警规则写接口，这一页仍然基于 backlog、dispatch 和 important/urgent SQL 派生证据。',
+      createNextStep: '后续若补告警配置后端，再把新增表单接到这里。',
+      editTitle: '修改通知策略暂不可写',
+      editCapability: '修改通知策略',
+      editReason: '当前页面的 ACK / notify 明确是 simulated，不应伪装成已经接通的真实通知控制面。',
+      editNextStep: '需要真实通知接口和审计链后，再接入编辑动作。'
+    },
+    messages: {
+      noAlert: '当前没有可展示的告警。'
+    }
   },
   acceleration: {
     title: 'SQL解析',

@@ -27,7 +27,7 @@ const targets = [
   },
   {
     path: 'src/router/index.js',
-    tokens: ['AlertCenterView', "name: 'AlertCenter'"]
+    tokens: ['AlertCenterView']
   }
 ]
 
