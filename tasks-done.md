@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-129: 落地加速候选与改写验证持久化
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(sql-optimization): persist acceleration rewrite governance records`
+- Priority: 1
+- Depends on: `HARN-128`
+- Scope: 新增 `acceleration_candidate`、`sql_rewrite_record`、`rewrite_validation_run` schema/migration、entity、MyBatis XML mapper 与 repository 测试；不得引入物理外键或明文敏感字段。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-129`
+- Context closeout:
+  - Completed scope: 新增 acceleration_candidate/sql_rewrite_record/rewrite_validation_run 初始化表和增量迁移，补齐 sql-optimization MyBatis record/mapper/XML/repository，默认 database-worker 走 MyBatis 持久化，本地占位模式保留内存实现，并补充 schema/mapping 与 repository 测试。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-129; mvn -pl sql-optimization test; docker-compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < sql/migrations/V20260510_001__acceleration_rewrite_governance_persistence.sql; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance --check; git diff --check.
+  - Residual risk: Local Codex environment provides OpenJDK 1.8.0_482 rather than required JDK 8u112, so Maven evidence is compatibility evidence only and not a JDK 8u112 compliance pass.
+  - Next step: Proceed with HARN-130 to deepen recommendation SQL rule output model.
+
 ### HARN-128: 固化加速候选与改写记录后端契约
 
 - Status: done

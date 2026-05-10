@@ -141,6 +141,9 @@
 | `alert_notification_log` | `AlertNotificationLogRecord` | `governance/src/main/resources/mapper/AlertNotificationLogMapper.xml` |
 | `optimization_task` | `OptimizationTaskRecord` | `sql-optimization/src/main/resources/mapper/OptimizationTaskMapper.xml` |
 | `acceleration_plan` | `AccelerationPlanRecord` | `sql-optimization/src/main/resources/mapper/AccelerationPlanMapper.xml` |
+| `acceleration_candidate` | `AccelerationCandidateRecord` | `sql-optimization/src/main/resources/mapper/AccelerationCandidateMapper.xml` |
+| `sql_rewrite_record` | `SqlRewriteRecordRecord` | `sql-optimization/src/main/resources/mapper/SqlRewriteRecordMapper.xml` |
+| `rewrite_validation_run` | `RewriteValidationRunRecord` | `sql-optimization/src/main/resources/mapper/RewriteValidationRunMapper.xml` |
 | `benchmark_task` | `BenchmarkTaskRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkTaskMapper.xml` |
 | `benchmark_task_report` | `BenchmarkReportRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkReportMapper.xml` |
 当前 `benchmark_task_report` 除 `engine/threshold/recommendation/executionSummary/exportArtifacts` JSON 外，还显式持久化 `regression_summary_json` 与 `alert_linkages_json`，用来承载 `REGRESSION_GUARD` 的 threshold hit 汇总和治理告警回链结果。
@@ -194,6 +197,10 @@
 当前 HARN-093 追加的增量脚本：
 
 - `sql/migrations/V20260508_004__datasource_config_jdbc_credentials.sql`
+
+当前 HARN-129 追加的增量脚本：
+
+- `sql/migrations/V20260510_001__acceleration_rewrite_governance_persistence.sql`
 
 当前 D-TASK-018 追加的增量脚本：
 

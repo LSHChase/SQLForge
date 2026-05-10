@@ -1,0 +1,18 @@
+package com.company.sqloptimization.infrastructure.persistence.mapper;
+
+import com.company.sqloptimization.infrastructure.persistence.entity.SqlRewriteRecordRecord;
+import java.util.List;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface SqlRewriteRecordMapper {
+
+    SqlRewriteRecordRecord selectByRewriteRecordId(@Param("rewriteRecordId") String rewriteRecordId);
+
+    List<SqlRewriteRecordRecord> selectByTenantId(@Param("tenantId") String tenantId);
+
+    int insert(SqlRewriteRecordRecord record);
+
+    int update(SqlRewriteRecordRecord record);
+}

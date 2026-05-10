@@ -11,15 +11,6 @@
 
 ## Todo
 
-### HARN-129: 落地加速候选与改写验证持久化
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-128`
-- Scope: 新增 `acceleration_candidate`、`sql_rewrite_record`、`rewrite_validation_run` schema/migration、entity、MyBatis XML mapper 与 repository 测试；不得引入物理外键或明文敏感字段。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-129`
-
 ### HARN-130: 深化推荐 SQL 规则输出模型
 
 - Status: todo

@@ -8,11 +8,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.context.annotation.Primary;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@Primary
+@ConditionalOnProperty(prefix = "sql-optimization.queues", name = "mode", havingValue = "local-placeholder")
 public class InMemorySqlRewriteRecordRepository implements SqlRewriteRecordRepository {
 
     private final Map<String, SqlRewriteRecord> records = new ConcurrentHashMap<String, SqlRewriteRecord>();

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.SqlRewriteRecordMapper">
+
+    <resultMap id="SqlRewriteRecordRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.SqlRewriteRecordRecord">
+        <id property="rewriteRecordId" column="rewrite_record_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="recommendationId" column="recommendation_id"/>
+        <result property="optimizationTaskId" column="optimization_task_id"/>
+        <result property="sourceType" column="source_type"/>
+        <result property="sourceKind" column="source_kind"/>
+        <result property="sourceId" column="source_id"/>
+        <result property="evidenceLevel" column="evidence_level"/>
+        <result property="historyId" column="history_id"/>
+        <result property="parseHistoryId" column="parse_history_id"/>
+        <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="status" column="status"/>
+        <result property="validationStatus" column="validation_status"/>
+        <result property="autoApplyAllowed" column="auto_apply_allowed"/>
+        <result property="manualReviewRequired" column="manual_review_required"/>
+        <result property="validationPolicyId" column="validation_policy_id"/>
+        <result property="lastValidationRunId" column="last_validation_run_id"/>
+        <result property="lastComparedAt" column="last_compared_at"/>
+        <result property="alertStatus" column="alert_status"/>
+        <result property="originalSqlText" column="original_sql_text"/>
+        <result property="recommendedSqlText" column="recommended_sql_text"/>
+        <result property="executedSqlText" column="executed_sql_text"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="ruleChainJson" column="rule_chain_json"/>
+        <result property="diffSummaryJson" column="diff_summary_json"/>
+        <result property="riskJson" column="risk_json"/>
+        <result property="traceRefsJson" column="trace_refs_json"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        rewrite_record_id, tenant_id, recommendation_id, optimization_task_id, source_type,
+        source_kind, source_id, evidence_level, history_id, parse_history_id, sql_fingerprint,
+        datasource_code, status, validation_status, auto_apply_allowed, manual_review_required,
+        validation_policy_id, last_validation_run_id, last_compared_at, alert_status,
+        original_sql_text, recommended_sql_text, executed_sql_text, created_by, created_at,
+        updated_at, rule_chain_json, diff_summary_json, risk_json, trace_refs_json
+    </sql>
+
+    <select id="selectByRewriteRecordId" resultMap="SqlRewriteRecordRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM sql_rewrite_record
+        WHERE rewrite_record_id = #{rewriteRecordId}
+    </select>
+
+    <select id="selectByTenantId" resultMap="SqlRewriteRecordRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM sql_rewrite_record
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.SqlRewriteRecordRecord">
+        INSERT INTO sql_rewrite_record (
+            rewrite_record_id, tenant_id, recommendation_id, optimization_task_id, source_type,
+            source_kind, source_id, evidence_level, history_id, parse_history_id, sql_fingerprint,
+            datasource_code, status, validation_status, auto_apply_allowed, manual_review_required,
+            validation_policy_id, last_validation_run_id, last_compared_at, alert_status,
+            original_sql_text, recommended_sql_text, executed_sql_text, created_by, created_at,
+            updated_at, rule_chain_json, diff_summary_json, risk_json, trace_refs_json
+        ) VALUES (
+            #{rewriteRecordId}, #{tenantId}, #{recommendationId}, #{optimizationTaskId}, #{sourceType},
+            #{sourceKind}, #{sourceId}, #{evidenceLevel}, #{historyId}, #{parseHistoryId}, #{sqlFingerprint},
+            #{datasourceCode}, #{status}, #{validationStatus}, #{autoApplyAllowed}, #{manualReviewRequired},
+            #{validationPolicyId}, #{lastValidationRunId}, #{lastComparedAt}, #{alertStatus},
+            #{originalSqlText}, #{recommendedSqlText}, #{executedSqlText}, #{createdBy}, #{createdAt},
+            #{updatedAt}, #{ruleChainJson}, #{diffSummaryJson}, #{riskJson}, #{traceRefsJson}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.SqlRewriteRecordRecord">
+        UPDATE sql_rewrite_record
+        SET tenant_id = #{tenantId},
+            recommendation_id = #{recommendationId},
+            optimization_task_id = #{optimizationTaskId},
+            source_type = #{sourceType},
+            source_kind = #{sourceKind},
+            source_id = #{sourceId},
+            evidence_level = #{evidenceLevel},
+            history_id = #{historyId},
+            parse_history_id = #{parseHistoryId},
+            sql_fingerprint = #{sqlFingerprint},
+            datasource_code = #{datasourceCode},
+            status = #{status},
+            validation_status = #{validationStatus},
+            auto_apply_allowed = #{autoApplyAllowed},
+            manual_review_required = #{manualReviewRequired},
+            validation_policy_id = #{validationPolicyId},
+            last_validation_run_id = #{lastValidationRunId},
+            last_compared_at = #{lastComparedAt},
+            alert_status = #{alertStatus},
+            original_sql_text = #{originalSqlText},
+            recommended_sql_text = #{recommendedSqlText},
+            executed_sql_text = #{executedSqlText},
+            created_by = #{createdBy},
+            created_at = #{createdAt},
+            updated_at = #{updatedAt},
+            rule_chain_json = #{ruleChainJson},
+            diff_summary_json = #{diffSummaryJson},
+            risk_json = #{riskJson},
+            trace_refs_json = #{traceRefsJson}
+        WHERE rewrite_record_id = #{rewriteRecordId}
+    </update>
+</mapper>

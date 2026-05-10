@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.AccelerationCandidateMapper">
+
+    <resultMap id="AccelerationCandidateRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationCandidateRecord">
+        <id property="candidateId" column="candidate_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="sourceType" column="source_type"/>
+        <result property="sourceKind" column="source_kind"/>
+        <result property="sourceId" column="source_id"/>
+        <result property="historyId" column="history_id"/>
+        <result property="parseHistoryId" column="parse_history_id"/>
+        <result property="parseTaskId" column="parse_task_id"/>
+        <result property="batchId" column="batch_id"/>
+        <result property="batchItemId" column="batch_item_id"/>
+        <result property="benchmarkTaskId" column="benchmark_task_id"/>
+        <result property="optimizationTaskId" column="optimization_task_id"/>
+        <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="stage" column="stage"/>
+        <result property="reportCode" column="report_code"/>
+        <result property="candidateType" column="candidate_type"/>
+        <result property="status" column="status"/>
+        <result property="confidence" column="confidence"/>
+        <result property="priority" column="priority"/>
+        <result property="evidenceLevel" column="evidence_level"/>
+        <result property="schemaVersion" column="schema_version"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="sourceEvidenceJson" column="source_evidence_json"/>
+        <result property="issueEvidenceJson" column="issue_evidence_json"/>
+        <result property="runtimeEvidenceJson" column="runtime_evidence_json"/>
+        <result property="benefitEstimateJson" column="benefit_estimate_json"/>
+        <result property="costEstimateJson" column="cost_estimate_json"/>
+        <result property="riskJson" column="risk_json"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        candidate_id, tenant_id, source_type, source_kind, source_id, history_id, parse_history_id,
+        parse_task_id, batch_id, batch_item_id, benchmark_task_id, optimization_task_id,
+        sql_fingerprint, datasource_code, stage, report_code, candidate_type, status, confidence,
+        priority, evidence_level, schema_version, created_by, created_at, updated_at,
+        source_evidence_json, issue_evidence_json, runtime_evidence_json, benefit_estimate_json,
+        cost_estimate_json, risk_json
+    </sql>
+
+    <select id="selectByCandidateId" resultMap="AccelerationCandidateRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM acceleration_candidate
+        WHERE candidate_id = #{candidateId}
+    </select>
+
+    <select id="selectByTenantId" resultMap="AccelerationCandidateRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM acceleration_candidate
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationCandidateRecord">
+        INSERT INTO acceleration_candidate (
+            candidate_id, tenant_id, source_type, source_kind, source_id, history_id, parse_history_id,
+            parse_task_id, batch_id, batch_item_id, benchmark_task_id, optimization_task_id,
+            sql_fingerprint, datasource_code, stage, report_code, candidate_type, status, confidence,
+            priority, evidence_level, schema_version, created_by, created_at, updated_at,
+            source_evidence_json, issue_evidence_json, runtime_evidence_json, benefit_estimate_json,
+            cost_estimate_json, risk_json
+        ) VALUES (
+            #{candidateId}, #{tenantId}, #{sourceType}, #{sourceKind}, #{sourceId}, #{historyId}, #{parseHistoryId},
+            #{parseTaskId}, #{batchId}, #{batchItemId}, #{benchmarkTaskId}, #{optimizationTaskId},
+            #{sqlFingerprint}, #{datasourceCode}, #{stage}, #{reportCode}, #{candidateType}, #{status}, #{confidence},
+            #{priority}, #{evidenceLevel}, #{schemaVersion}, #{createdBy}, #{createdAt}, #{updatedAt},
+            #{sourceEvidenceJson}, #{issueEvidenceJson}, #{runtimeEvidenceJson}, #{benefitEstimateJson},
+            #{costEstimateJson}, #{riskJson}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationCandidateRecord">
+        UPDATE acceleration_candidate
+        SET tenant_id = #{tenantId},
+            source_type = #{sourceType},
+            source_kind = #{sourceKind},
+            source_id = #{sourceId},
+            history_id = #{historyId},
+            parse_history_id = #{parseHistoryId},
+            parse_task_id = #{parseTaskId},
+            batch_id = #{batchId},
+            batch_item_id = #{batchItemId},
+            benchmark_task_id = #{benchmarkTaskId},
+            optimization_task_id = #{optimizationTaskId},
+            sql_fingerprint = #{sqlFingerprint},
+            datasource_code = #{datasourceCode},
+            stage = #{stage},
+            report_code = #{reportCode},
+            candidate_type = #{candidateType},
+            status = #{status},
+            confidence = #{confidence},
+            priority = #{priority},
+            evidence_level = #{evidenceLevel},
+            schema_version = #{schemaVersion},
+            created_by = #{createdBy},
+            created_at = #{createdAt},
+            updated_at = #{updatedAt},
+            source_evidence_json = #{sourceEvidenceJson},
+            issue_evidence_json = #{issueEvidenceJson},
+            runtime_evidence_json = #{runtimeEvidenceJson},
+            benefit_estimate_json = #{benefitEstimateJson},
+            cost_estimate_json = #{costEstimateJson},
+            risk_json = #{riskJson}
+        WHERE candidate_id = #{candidateId}
+    </update>
+</mapper>

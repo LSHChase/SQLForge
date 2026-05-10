@@ -3420,3 +3420,16 @@
 2026-05-10T07:54:54-05:00 | HARN-128 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-10T07:54:54-05:00 | HARN-128 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
 2026-05-10T07:54:54-05:00 | HARN-128 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`
+2026-05-10T08:32:31-05:00 | HARN-129 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T08:32:31-05:00 | HARN-129 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T08:32:44-05:00 | HARN-129 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T08:32:44-05:00 | HARN-129 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T08:33:39-05:00 | HARN-129 local Java test | `R-040`, `R-119`, `R-122`, `R-129`, `R-185` | residual-risk | `mvn -pl sql-optimization test` passed under OpenJDK 1.8.0_482; local Codex environment does not provide required JDK 8u112, so this is compatibility evidence only.
+2026-05-10T08:33:39-05:00 | HARN-129 local-mysql-ddl | `R-129`, `R-169` | passed | `docker-compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < sql/migrations/V20260510_001__acceleration_rewrite_governance_persistence.sql`; follow-up `SHOW TABLES` confirmed `acceleration_candidate`, `sql_rewrite_record`, `rewrite_validation_run` and `information_schema.KEY_COLUMN_USAGE` confirmed 0 physical foreign keys.
+2026-05-10T08:33:39-05:00 | HARN-129 pre-closeout audit | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T08:33:39-05:00 | HARN-129 knowledge / governance / diff checks | `R-131`, `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`; `python3 scripts/foreman.py compile-governance --check`; `git diff --check`
+2026-05-10T08:35:10-05:00 | HARN-129 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T08:35:10-05:00 | HARN-129 closeout commit | `R-168` | projected | `git commit -m 'feat(sql-optimization): persist acceleration rewrite governance records' (projected-precommit)`
+2026-05-10T08:35:10-05:00 | HARN-129 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-10T08:35:10-05:00 | HARN-129 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-05-10T08:35:10-05:00 | HARN-129 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`
