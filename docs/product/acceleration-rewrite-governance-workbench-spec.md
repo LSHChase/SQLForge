@@ -2,7 +2,7 @@
 
 ## Summary
 
-本文件落地 `HARN-127` 对加速、改写、SQL 解析、SQL 历史、周期比对与告警闭环的复盘设计。本文是目标方案与任务拆分，不代表当前代码已经全部实现。
+本文件落地 `HARN-127` 对加速、改写、SQL 解析、SQL 历史、周期比对与告警闭环的复盘设计，并吸收 `HARN-143` / `HARN-144` 的复核修正。本文是目标方案与任务拆分，不代表当前代码已经全部实现。
 
 当前代码事实必须继续以 `docs/plans/document-truth-baseline.md` 为准：仓库已经具备 SQL 优化任务、解析记录、推荐中心、加速计划生命周期接口、查询执行侧已批准绑定应用，以及 SQL 历史的基础查询面；尚未具备完整的物理加速编排、深度改写规则体系、SQL diff 语义视图、改写记录持久化、周期性结果比对和自动差异告警闭环。
 
@@ -35,7 +35,7 @@
 - 当前加速计划更接近“治理闭环 + 运行时绑定开关”，不能写成已完成物化视图、分区、分桶、拆分执行或生产装数。
 - 当前推荐 SQL 规则偏保守，深度结构改写不足；多数复杂反模式只能回退为人工复核或推荐 SQL 等于原 SQL。
 - 当前执行拦截依赖显式执行偏好和运行时绑定，不等于所有后续同指纹 SQL 自动应用。
-- 当前没有统一的 `sourceType/sourceId` 加速候选对象，解析驱动与查询驱动之间缺少同一套后续治理对象。
+- 当前没有统一的 `sourceType/sourceKind/sourceId/evidenceLevel` 加速候选对象，解析驱动与查询驱动之间缺少同一套后续治理对象。
 - 当前没有面向 operator 的加速候选、计划审批、应用验证、监控告警同页工作台。
 - 当前没有 SQL diff、规则级 diff、AST 摘要差异或风险高亮。
 - 当前没有独立 `sql_rewrite_record` / `rewrite_validation_run` 查询面，也没有 SQL 历史详情里的改写记录 tab。
@@ -50,7 +50,14 @@
 - 所有候选与推荐必须携带 `evidenceLevel`，至少区分 `STATIC_PARSE`、`ACCESS_PARSE`、`EXPLAIN_PLAN`、`RUNTIME_HISTORY`、`BENCHMARK`、`MIXED`，页面不得把不可用证据显示为 0 成本或已验证收益。
 - `rewrite_validation_run` 的数据主责归 `sql-optimization`；`query-execution` 和 `benchmark-engine` 只能作为只读执行或压测证据提供方，不能成为第二套改写验证真值。
 - 改写差异告警必须同步进入 `Alert Contracts`，否则 SQL 历史和工作台只能展示状态，无法形成监控闭环。
-- `HARN-128` 的实施依赖应从 `HARN-127` 调整为 `HARN-143`，后续实现必须基于复核修正版方案继续。
+- `HARN-128` 的实施依赖不应再直接指向 `HARN-127`，后续实现必须基于复核修正版方案继续。
+
+`HARN-144` 进一步做文档一致性复核，修正以下遗留歧义：
+
+- 后续实现入口调整为 `HARN-128` 依赖 `HARN-144`，确保不会绕过最新复核修正版方案。
+- 推荐输出、SQL 历史改写记录和告警 payload 必须同步携带 `sourceKind` / `evidenceLevel`，不能只在入口表单或候选对象里出现。
+- 目标数据对象中不得使用含义不清的 `task_id`；解析任务、优化任务、批量项和 benchmark 任务必须通过明确字段或 `source_evidence_json` 区分。
+- `rewrite_validation_run` 必须保留 `auto_apply_paused`，让周期比对的“暂停自动应用”结果可审计。
 
 ## Boundary Decisions
 
@@ -236,8 +243,11 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 
 - `recommendationId`
 - `sourceType`
+- `sourceKind`
 - `sourceId`
+- `evidenceLevel`
 - `sqlFingerprint`
+- `schemaVersion`
 - `originalSql`
 - `recommendedSql`
 - `ruleChain[]`
@@ -284,7 +294,9 @@ SQL 历史详情必须新增 `改写记录` tab，列表页新增相关筛选。
 - `recommendationId`
 - `optimizationTaskId`
 - `sourceType`
+- `sourceKind`
 - `sourceId`
+- `evidenceLevel`
 - `historyId`
 - `parseHistoryId`
 - `sqlFingerprint`
@@ -349,12 +361,15 @@ SQL 历史不得只依赖 `recommendationRefs` 中的弱引用展示改写。后
 
 - `tenantId`
 - `sourceType`
+- `sourceKind`
 - `sourceId`
+- `evidenceLevel`
 - `historyId`
 - `parseHistoryId`
 - `recommendationId`
 - `rewriteRecordId`
 - `validationRunId`
+- `planId`
 - `sqlFingerprint`
 - `differenceType`
 - `sampleEvidence`
@@ -368,16 +383,14 @@ SQL 历史不得只依赖 `recommendationRefs` 中的弱引用展示改写。后
 
 - 归属：`sql-optimization`
 - 主键：`candidate_id`
-- 结构化字段：`tenant_id`, `source_type`, `source_id`, `history_id`, `parse_history_id`, `task_id`, `sql_fingerprint`, `datasource_code`, `stage`, `candidate_type`, `status`, `confidence`, `priority`, `created_by`, `created_at`, `updated_at`
-- 补充结构化字段：`source_kind`, `evidence_level`, `schema_version`
+- 结构化字段：`tenant_id`, `source_type`, `source_kind`, `source_id`, `history_id`, `parse_history_id`, `parse_task_id`, `batch_id`, `batch_item_id`, `benchmark_task_id`, `optimization_task_id`, `sql_fingerprint`, `datasource_code`, `stage`, `candidate_type`, `status`, `confidence`, `priority`, `evidence_level`, `schema_version`, `created_by`, `created_at`, `updated_at`
 - JSON 字段：`source_evidence_json`, `issue_evidence_json`, `runtime_evidence_json`, `benefit_estimate_json`, `cost_estimate_json`, `risk_json`
 
 ### `sql_rewrite_record`
 
 - 归属：`sql-optimization`，由 `governance` 查询面聚合到 SQL 历史详情。
 - 主键：`rewrite_record_id`
-- 结构化字段：`tenant_id`, `recommendation_id`, `optimization_task_id`, `source_type`, `source_id`, `history_id`, `parse_history_id`, `sql_fingerprint`, `datasource_code`, `status`, `validation_status`, `auto_apply_allowed`, `manual_review_required`, `created_by`, `created_at`, `updated_at`
-- 补充结构化字段：`source_kind`, `validation_policy_id`, `last_validation_run_id`, `last_compared_at`, `alert_status`
+- 结构化字段：`tenant_id`, `recommendation_id`, `optimization_task_id`, `source_type`, `source_kind`, `source_id`, `history_id`, `parse_history_id`, `sql_fingerprint`, `datasource_code`, `status`, `validation_status`, `auto_apply_allowed`, `manual_review_required`, `validation_policy_id`, `last_validation_run_id`, `last_compared_at`, `alert_status`, `created_by`, `created_at`, `updated_at`
 - 大文本字段：`original_sql_text`, `recommended_sql_text`, `executed_sql_text`
 - JSON 字段：`rule_chain_json`, `diff_summary_json`, `risk_json`, `trace_refs_json`
 
@@ -385,7 +398,7 @@ SQL 历史不得只依赖 `recommendationRefs` 中的弱引用展示改写。后
 
 - 归属：`sql-optimization`。`query-execution` 提供只读执行证据，`benchmark-engine` 可提供压测或回归证据，但不得成为第二套改写验证真值。
 - 主键：`validation_run_id`
-- 结构化字段：`tenant_id`, `rewrite_record_id`, `recommendation_id`, `history_id`, `sql_fingerprint`, `status`, `comparison_status`, `difference_type`, `started_at`, `finished_at`
+- 结构化字段：`tenant_id`, `rewrite_record_id`, `recommendation_id`, `history_id`, `sql_fingerprint`, `status`, `comparison_status`, `difference_type`, `auto_apply_paused`, `started_at`, `finished_at`
 - JSON 字段：`comparison_policy_json`, `original_result_digest_json`, `recommended_result_digest_json`, `difference_sample_json`, `execution_evidence_json`
 
 ## Target Interfaces
@@ -438,17 +451,16 @@ SQL 历史不得只依赖 `recommendationRefs` 中的弱引用展示改写。后
 
 ## Codex Task Decomposition
 
-以下任务按单任务单 commit 设计，后续每次由人类选择一个任务并通过 `/plan` 细化后实现。
+以下任务按单任务单 commit 设计。`HARN-143` 与 `HARN-144` 是已完成或当前收口中的文档复核基线，不属于后续业务实现任务；后续每次由人类从 `HARN-128` 起选择一个任务并通过 `/plan` 细化后实现。
 
 | Task ID | Title | Primary output | Key validation |
 |:---|:---|:---|:---|
-| `HARN-143` | 复核加速与改写治理方案完整性 | 修正状态边界、来源字段、证据层级、告警契约、真实接口 smoke 顺序和任务依赖 | `foreman validate`, knowledge lint, governance compile |
 | `HARN-128` | 固化加速候选与改写记录后端契约 | `sql-optimization` 目标 DTO/VO、状态枚举、接口契约文档和最小 controller/service 骨架 | `mvn -pl sql-optimization test`, contract tests |
 | `HARN-129` | 落地 `acceleration_candidate` / `sql_rewrite_record` / `rewrite_validation_run` 持久化 | SQL migration、entity、mapper XML、repository tests | db-script check, mapper tests |
 | `HARN-130` | 深化推荐 SQL 规则输出模型 | L0/L1/L2 rule model、rule chain、risk/precondition/unapplied rules 输出 | `SqlOptimizationPipelineServiceTest` |
 | `HARN-131` | 实现首批 L0/L1 安全改写规则 | `COUNT(*)`、重复 group/order、select star 元数据化、重复子查询 CTE 候选、函数谓词区间候选 | parser/rewrite tests |
 | `HARN-132` | 建立 SQL diff 后端服务 | text diff、rule-level diff、AST summary diff API | diff service tests |
-| `HARN-133` | 加速候选生成统一入口 | parse-driven/query-driven source normalization 与 candidate API | service/controller tests |
+| `HARN-133` | 加速候选生成统一入口 | parse-driven/query-driven source normalization、`sourceType/sourceKind/sourceId/evidenceLevel` 校验与 candidate API | service/controller tests |
 | `HARN-134` | 改写记录写入与 SQL 历史聚合接口 | `query-history/{historyId}/rewrite-records` 聚合面 | governance + optimization contract tests |
 | `HARN-135` | 周期比对执行模型与只读比较引擎 | validation policy、result digest、schema/row/hash comparison | comparison engine tests |
 | `HARN-136` | 周期比对调度与差异告警 | scheduled validation、pause auto-apply、alert event linkage | scheduler/alert tests |
@@ -463,11 +475,10 @@ SQL 历史不得只依赖 `recommendationRefs` 中的弱引用展示改写。后
 
 推荐执行顺序：
 
-1. `HARN-143`：先完成严格复核与文档修正，作为后续实现基线。
-2. `HARN-128` 至 `HARN-134`：后端契约、持久化、推荐、diff 与历史聚合。
-3. `HARN-135` 至 `HARN-136`：周期比对和告警闭环。
-4. `HARN-137` 至 `HARN-141`：前端工作台、推荐中心、SQL 历史和告警展示。
-5. `HARN-142`：端到端 smoke、runbook 和文档收口。
+1. `HARN-128` 至 `HARN-134`：后端契约、持久化、推荐、diff 与历史聚合。
+2. `HARN-135` 至 `HARN-136`：周期比对和告警闭环。
+3. `HARN-137` 至 `HARN-141`：前端工作台、推荐中心、SQL 历史和告警展示。
+4. `HARN-142`：端到端 smoke、runbook 和文档收口。
 
 任何任务若发现必须改变生产装数、真实物化视图执行、权限边界、历史保留策略或外部环境默认依赖，必须暂停并拆出人工确认项。
 

@@ -748,7 +748,7 @@ repo-side 基线：
 - `requiresDispatch=true` 只表示需要外部装数/预热协同，不表示本项目已执行装数。
 - trace 查询只返回同租户 `historyId/parseTaskId/batchId/routeDecisionId/alertId/sqlFingerprint/reportCode/logicalObjectKey` 等引用键，以及同租户 dispatch event；跨服务详情由各自受权接口查询。
 
-`HARN-127` 之后，推荐与加速治理目标契约扩展为：
+`HARN-127` 之后，推荐与加速治理目标契约扩展为；`HARN-143` / `HARN-144` 的复核修正是后续实现的最新基线：
 
 - `POST /api/sql-optimization/acceleration-candidates`
 - `GET /api/sql-optimization/acceleration-candidates/{candidateId}`
@@ -766,6 +766,7 @@ repo-side 基线：
 - `sourceKind`: `STRUCTURE_PARSE`,`COMBINED_PARSE`,`PARSE_BATCH`,`REPORT_BATCH`,`END_OF_DAY_SLOW_SQL`,`QUERY_HISTORY`,`SLOW_SQL`,`HIGH_P99`,`HIGH_SCAN`,`BENCHMARK_REGRESSION`,`MANUAL`
 - `sourceId`
 - `evidenceLevel`: `STATIC_PARSE`,`ACCESS_PARSE`,`EXPLAIN_PLAN`,`RUNTIME_HISTORY`,`BENCHMARK`,`MIXED`
+- `schemaVersion`
 - `parseHistoryId`
 - `historyId`
 - `ruleChain[]`
@@ -902,7 +903,7 @@ repo-side 基线：
 - `POST /api/governance/alerts/{alertId}/ack`
 - `POST /api/governance/alerts/policies`
 
-`HARN-143` 之后，改写与加速治理相关告警类型至少包括：
+`HARN-143` / `HARN-144` 之后，改写与加速治理相关告警类型至少包括：
 
 - `SQL_REWRITE_RESULT_DIVERGENCE`
 - `SQL_REWRITE_VALIDATION_FAILED`
@@ -915,6 +916,7 @@ repo-side 基线：
 - `sourceType`
 - `sourceKind`
 - `sourceId`
+- `evidenceLevel`
 - `historyId`
 - `parseHistoryId`
 - `recommendationId`

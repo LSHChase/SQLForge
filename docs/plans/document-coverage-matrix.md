@@ -41,7 +41,7 @@
 | `docs/frontend/design-system.md` | Authority | 前端视觉与页面设计规则 | Consumed | Dashboard、业务页、主题系统 |
 | `docs/frontend/form-component-governance.md` | Authority | 页面表单组件语义治理基线 | Consumed | `HARN-045` 的日期时间、租户、数据源、枚举、布尔、数值与敏感输入组件映射权威落点 |
 | `docs/product/sql-governance-platform-implementation-spec.md` | Authority | SQL 治理中后台 + 开放接入平台产品实施规格 | Consumed | `HARN-042` 与后续 D/E/F Story 的产品目标、页面与流程权威落点 |
-| `docs/product/acceleration-rewrite-governance-workbench-spec.md` | Authority | 加速与改写治理工作台、SQL diff、改写记录、周期比对告警与任务拆分方案 | Consumed | `HARN-127` 与后续 `HARN-128` 至 `HARN-142` 的方案、页面、接口、数据模型与任务边界权威落点 |
+| `docs/product/acceleration-rewrite-governance-workbench-spec.md` | Authority | 加速与改写治理工作台、SQL diff、改写记录、周期比对告警与任务拆分方案 | Consumed | `HARN-127`、`HARN-143`、`HARN-144` 与后续 `HARN-128` 至 `HARN-142` 的方案、页面、接口、数据模型与任务边界权威落点 |
 | `docs/product/frontend-retrospective-gap-closure-baseline.md` | Authority | 前端复盘、规格补漏与 repo-closed 边界基线 | Consumed | `U-TASK-004` 的前端差距基线、导航/首页补漏边界与剩余待后端承接项权威落点 |
 | `docs/agent-prompts/auto-planner.md` | Indexed | requirement-driven auto planner prompt 模板 | Referenced | 约束 full-auto 模式下的 exec plan 与 manifest 自动生成，不允许绕过 Main Foreman 治理链 |
 | `docs/agent-prompts/auto-foreman.md` | Indexed | autonomous Main Foreman prompt 模板 | Referenced | 约束 full-auto 模式下 collect 之后的 fan-in、验证与 closeout 收口行为 |
@@ -146,6 +146,7 @@
 | `docs/references/raw-requirements/HARN-084-sql-parse-history-decoupling.md` | Archive | HARN-084 raw requirement snapshot | Archived | 保存 HARN-084 用户确认计划输入，供解析历史解耦实现和后续审计追溯 |
 | `docs/references/raw-requirements/HARN-127-acceleration-rewrite-governance.md` | Archive | HARN-127 raw requirement snapshot | Archived | 保存本轮加速与改写治理工作台方案、SQL diff、改写记录和任务拆分原始需求，供后续 `HARN-128` 至 `HARN-142` 追溯 |
 | `docs/references/raw-requirements/HARN-143-acceleration-rewrite-governance-review.md` | Archive | HARN-143 raw requirement snapshot | Archived | 保存对 HARN-127 方案、输入输出、历史、文档、任务依赖和缺失点的严格复核要求，供 `HARN-128` 之后实施时追溯复核修正基线 |
+| `docs/references/raw-requirements/HARN-144-acceleration-rewrite-governance-doc-consistency.md` | Archive | HARN-144 raw requirement snapshot | Archived | 保存对 HARN-143 后方案、输入输出、历史、文档、任务依赖和一致性缺口的复核要求，供 `HARN-128` 之后实施时追溯最新修正基线 |
 
 ## Completeness Statement
 

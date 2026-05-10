@@ -174,9 +174,9 @@
 - `acceleration_candidate`
   - 所属服务：`sql-optimization`
   - 主键：`candidate_id`
-  - 结构化字段：`tenant_id`,`source_type`,`source_kind`,`source_id`,`history_id`,`parse_history_id`,`task_id`,`sql_fingerprint`,`datasource_code`,`stage`,`report_code`,`candidate_type`,`status`,`confidence`,`priority`,`evidence_level`,`schema_version`,`created_by`,`created_at`,`updated_at`
+  - 结构化字段：`tenant_id`,`source_type`,`source_kind`,`source_id`,`history_id`,`parse_history_id`,`parse_task_id`,`batch_id`,`batch_item_id`,`benchmark_task_id`,`optimization_task_id`,`sql_fingerprint`,`datasource_code`,`stage`,`report_code`,`candidate_type`,`status`,`confidence`,`priority`,`evidence_level`,`schema_version`,`created_by`,`created_at`,`updated_at`
   - JSON 字段：`source_evidence_json`,`issue_evidence_json`,`runtime_evidence_json`,`benefit_estimate_json`,`cost_estimate_json`,`risk_json`
-  - 追溯键：`tenant_id`,`candidate_id`,`source_type`,`source_kind`,`source_id`,`history_id`,`parse_history_id`,`task_id`,`sql_fingerprint`,`report_code`,`datasource_code`
+  - 追溯键：`tenant_id`,`candidate_id`,`source_type`,`source_kind`,`source_id`,`history_id`,`parse_history_id`,`parse_task_id`,`batch_id`,`batch_item_id`,`benchmark_task_id`,`optimization_task_id`,`sql_fingerprint`,`report_code`,`datasource_code`
   - 边界：统一承接解析驱动与查询驱动进入加速/改写治理工作台的候选对象；不得表示真实物理加速已执行
 - `sql_rewrite_record`
   - 所属服务：`sql-optimization`，由 `governance` 查询面聚合到 SQL 历史详情

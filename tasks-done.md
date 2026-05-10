@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-144: 复核加速改写治理文档一致性
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `docs(product): align acceleration governance review docs`
+- Priority: 1
+- Depends on: `HARN-143`
+- Scope: 严格复核 HARN-143 后的加速与改写治理方案、输入输出、历史、产品/接口/数据模型/计划/任务台账一致性；仅修正文档中的遗留歧义、遗漏和任务表达偏差，不实现业务代码、不改变生产边界。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-144`
+- Progress log:
+  - 2026-05-10: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-10: reviewed HARN-143 follow-up docs and identified only consistency corrections: recommendation/evidence fields, alert payload alignment, target model naming, HARN-133 task wording and HARN-128 dependency.
+- Context closeout:
+  - Completed scope: 严格复核 HARN-143 后的加速与改写治理方案、输入输出、历史、产品规格、接口基线、数据模型、主计划、任务矩阵、覆盖矩阵和任务台账；仅修正文档遗留歧义：推荐输出和历史/告警字段对齐 sourceKind/evidenceLevel，目标模型去除含糊 task_id，rewrite_validation_run 保留 auto_apply_paused，HARN-133 任务表达补齐证据字段，HARN-128 依赖更新为 HARN-144。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-144 --include-task-audit --extra-command 'node scripts/lint-repository-knowledge.js' --extra-command 'python3 scripts/foreman.py compile-governance --check' --extra-command 'git diff --check'; node scripts/lint-repository-knowledge.js; python3 scripts/task_audit.py --check --phase pre-closeout; python3 scripts/foreman.py compile-governance --check; git diff --check
+  - Residual risk: 本轮只修正文档与任务治理，不实现 HARN-128 至 HARN-142；真实 Hetu/MRS、P99、扫描量、物化视图收益与外部装数证据仍归 HARN-016 / INBOX-002 外部环境链。
+  - Next step: 从 HARN-128 开始按 /plan 逐个实现，HARN-128 现在依赖 HARN-144 复核修正版方案。
+
 ### HARN-143: 复核加速与改写治理方案完整性
 
 - Status: done

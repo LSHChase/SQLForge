@@ -15,7 +15,7 @@
 
 - Status: todo
 - Priority: 1
-- Depends on: `HARN-143`
+- Depends on: `HARN-144`
 - Scope: 补齐 acceleration candidate、sql rewrite record、rewrite validation run 的后端 DTO/VO、状态枚举、接口契约与最小 controller/service 骨架；保持后端权威、租户隔离、推荐与真实执行边界不变。
 - Validation:
   - `python3 scripts/foreman.py validate HARN-128`
@@ -61,7 +61,7 @@
 - Status: todo
 - Priority: 1
 - Depends on: `HARN-129`, `HARN-132`
-- Scope: 统一解析驱动与查询驱动 source normalization、candidate API、sourceType/sourceId 追溯键校验和 static/runtime evidence 分层。
+- Scope: 统一解析驱动与查询驱动 source normalization、candidate API、`sourceType/sourceKind/sourceId/evidenceLevel` 追溯键校验和 static/runtime evidence 分层。
 - Validation:
   - `python3 scripts/foreman.py validate HARN-133`
 
