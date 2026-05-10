@@ -156,9 +156,9 @@ const isBatchHistoryWorkbench = computed(() => activeHistoryWorkbenchTab.value =
 const historyWorkbenchKicker = computed(() => isBatchHistoryWorkbench.value ? 'parse history workbench' : 'parse record workbench')
 const historyWorkbenchTitle = computed(() => {
   if (isBatchHistoryWorkbench.value) {
-    return isChinese.value ? '解析历史查询' : 'Parse history search'
+    return t('inline.viewsParseRecordUseParseRecordView.text001')
   }
-  return isChinese.value ? 'SQL 解析记录查询' : 'SQL parse records'
+  return t('inline.viewsParseRecordUseParseRecordView.text002')
 })
 const routeTenantId = computed(() => normalizeQueryValue(route.query.tenantId))
 const requestTenantId = computed(() => normalizeQueryValue(form.tenantId) || routeTenantId.value || DEFAULT_HISTORY_CONTEXT_TENANT_ID)
@@ -168,7 +168,7 @@ const sortModeLabel = computed(() => {
   const sortBy = normalizeQueryValue(form.sortBy)
   const sortOrder = normalizeQueryValue(form.sortOrder)
   if (!sortBy && !sortOrder) {
-    return isChinese.value ? '后端默认' : 'Backend default'
+    return t('inline.viewsParseRecordUseParseRecordView.text003')
   }
   return `${sortBy || 'submittedAt'} ${sortOrder || 'DESC'}`
 })
@@ -177,11 +177,11 @@ const parseBatchHistorySummary = computed(() => {
   const totalRecords = parseBatchHistoryRows.value.reduce((sum, item) => sum + Number(item.totalRecords || 0), 0)
   const failedBatches = parseBatchHistoryRows.value.filter(item => String(item.status || '').includes('FAILED')).length
   return [
-    card(isChinese.value ? '当前页批次' : 'Current page', parseBatchHistoryRows.value.length),
-    card(isChinese.value ? '批次总数' : 'Batches', parseBatchHistoryPagination.totalCount),
-    card(isChinese.value ? '总页数' : 'Total pages', parseBatchHistoryPagination.pageCount),
-    card(isChinese.value ? '总记录数' : 'Records', totalRecords),
-    card(isChinese.value ? '失败批次' : 'Failed batches', failedBatches)
+    card(t('inline.viewsParseRecordUseParseRecordView.text004'), parseBatchHistoryRows.value.length),
+    card(t('inline.viewsParseRecordUseParseRecordView.text005'), parseBatchHistoryPagination.totalCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text006'), parseBatchHistoryPagination.pageCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text007'), totalRecords),
+    card(t('inline.viewsParseRecordUseParseRecordView.text008'), failedBatches)
   ]
 })
 const reportBatchHistorySummary = computed(() => {
@@ -189,12 +189,12 @@ const reportBatchHistorySummary = computed(() => {
   const resolvedReports = reportBatchHistoryRows.value.reduce((sum, item) => sum + Number(item.resolvedReports || 0), 0)
   const failedBatches = reportBatchHistoryRows.value.filter(item => String(item.status || '').includes('FAILED')).length
   return [
-    card(isChinese.value ? '当前页批次' : 'Current page', reportBatchHistoryRows.value.length),
-    card(isChinese.value ? '批次总数' : 'Batches', reportBatchHistoryPagination.totalCount),
-    card(isChinese.value ? '总页数' : 'Total pages', reportBatchHistoryPagination.pageCount),
-    card(isChinese.value ? '报表总数' : 'Reports', totalReports),
-    card(isChinese.value ? '已解析' : 'Resolved', resolvedReports),
-    card(isChinese.value ? '失败批次' : 'Failed batches', failedBatches)
+    card(t('inline.viewsParseRecordUseParseRecordView.text009'), reportBatchHistoryRows.value.length),
+    card(t('inline.viewsParseRecordUseParseRecordView.text010'), reportBatchHistoryPagination.totalCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text011'), reportBatchHistoryPagination.pageCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text012'), totalReports),
+    card(t('inline.viewsParseRecordUseParseRecordView.text013'), resolvedReports),
+    card(t('inline.viewsParseRecordUseParseRecordView.text014'), failedBatches)
   ]
 })
 const selectedReportItems = computed(() => {
@@ -259,18 +259,18 @@ const reportBatchDetailCards = computed(() => {
     String(item.accessConnectionStatus || '').toUpperCase() === 'CONNECTED'
   ).length
   return [
-    card(isChinese.value ? '批次状态' : 'Batch status', detail.status),
-    card(isChinese.value ? '文件类型' : 'File type', detail.fileType),
-    card(isChinese.value ? '报表总数' : 'Total reports', detail.totalReports),
-    card(isChinese.value ? 'SQL 明细' : 'SQL rows', overview.totalSqlCount ?? detail.totalSqls ?? total),
-    card(isChinese.value ? '问题 SQL' : 'Issue SQL', overview.issueSqlCount),
-    card(isChinese.value ? '重要 SQL' : 'Important SQL', overview.importantSqlCount),
-    card(isChinese.value ? '紧急 SQL' : 'Urgent SQL', overview.urgentSqlCount),
-    card(isChinese.value ? '可合并报表' : 'Merge candidates', selectedReportParseStatistics.value.mergeCandidateReportCount),
-    card(isChinese.value ? '已解析 SQL' : 'Resolved SQL', detail.resolvedSqls ?? detail.resolvedReports),
-    card(isChinese.value ? '失败 SQL' : 'Failed SQL', detail.failedSqls ?? detail.failedReports),
-    card(isChinese.value ? '结构成功率' : 'Structure rate', formatPercent(rate(structureValid, total))),
-    card(isChinese.value ? 'Access 连通率' : 'Access connected', formatPercent(rate(accessConnected, total)))
+    card(t('inline.viewsParseRecordUseParseRecordView.text015'), detail.status),
+    card(t('inline.viewsParseRecordUseParseRecordView.text016'), detail.fileType),
+    card(t('inline.viewsParseRecordUseParseRecordView.text017'), detail.totalReports),
+    card(t('inline.viewsParseRecordUseParseRecordView.text018'), overview.totalSqlCount ?? detail.totalSqls ?? total),
+    card(t('inline.viewsParseRecordUseParseRecordView.text019'), overview.issueSqlCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text020'), overview.importantSqlCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text021'), overview.urgentSqlCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text022'), selectedReportParseStatistics.value.mergeCandidateReportCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text023'), detail.resolvedSqls ?? detail.resolvedReports),
+    card(t('inline.viewsParseRecordUseParseRecordView.text024'), detail.failedSqls ?? detail.failedReports),
+    card(t('inline.viewsParseRecordUseParseRecordView.text025'), formatPercent(rate(structureValid, total))),
+    card(t('inline.viewsParseRecordUseParseRecordView.text026'), formatPercent(rate(accessConnected, total)))
   ].filter(item => hasDisplayValue(item.value))
 })
 const reportBatchIssueStatistics = computed(() => {
@@ -323,25 +323,25 @@ const reportBatchIssueSceneDetailCards = computed(() => {
     return []
   }
   return [
-    card(isChinese.value ? '问题场景' : 'Issue scene', detail.issueScene, 'issueScene'),
-    card(isChinese.value ? '影响 SQL' : 'Affected SQL', detail.affectedSqlCount),
-    card(isChinese.value ? '问题数' : 'Issues', detail.affectedIssueCount),
-    card(isChinese.value ? '报表数' : 'Reports', detail.reportCount),
-    card(isChinese.value ? '逻辑对象' : 'Logical objects', detail.logicalObjectCount),
-    card(isChinese.value ? '优先级' : 'Priority', detail.priorityLevel),
-    card(isChinese.value ? '严重度' : 'Severity', detail.severity)
+    card(t('inline.viewsParseRecordUseParseRecordView.text027'), detail.issueScene, 'issueScene'),
+    card(t('inline.viewsParseRecordUseParseRecordView.text028'), detail.affectedSqlCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text029'), detail.affectedIssueCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text030'), detail.reportCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text031'), detail.logicalObjectCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text032'), detail.priorityLevel),
+    card(t('inline.viewsParseRecordUseParseRecordView.text033'), detail.severity)
   ].filter(item => hasDisplayValue(item.value))
 })
 const reportBatchIssueSceneDetailDialogTitle = computed(() => {
   const detail = objectValue(selectedReportIssueSceneDetail.value)
-  const title = isChinese.value ? '问题场景明细' : 'Issue scene detail'
+  const title = t('inline.viewsParseRecordUseParseRecordView.text034')
   const scene = detail.issueScene || '-'
   const filters = [
     reportBatchIssueScenePagination.reportCode
-      ? `${isChinese.value ? '报表编码' : 'Report code'}: ${reportBatchIssueScenePagination.reportCode}`
+      ? `${t('inline.viewsParseRecordUseParseRecordView.text035')}: ${reportBatchIssueScenePagination.reportCode}`
       : '',
     reportBatchIssueScenePagination.logicalObjectKey
-      ? `${isChinese.value ? '逻辑对象' : 'Logical object'}: ${reportBatchIssueScenePagination.logicalObjectKey}`
+      ? `${t('inline.viewsParseRecordUseParseRecordView.text036')}: ${reportBatchIssueScenePagination.logicalObjectKey}`
       : ''
   ].filter(Boolean)
   return filters.length ? `${title}: ${scene} (${filters.join(' · ')})` : `${title}: ${scene}`
@@ -367,19 +367,19 @@ const reportBatchParseDetailSummary = computed(() => {
   const loaded = selectedReportItems.value.filter(item => Boolean(reportItemLoadedHistoryDetail(item))).length
   const batchEvidence = selectedReportItems.value.filter(item => Boolean(reportItemLocalDetail(item))).length
   return [
-    card(isChinese.value ? '可追溯 SQL' : 'Traceable SQL', total),
-    card(isChinese.value ? '已加载详情' : 'Loaded details', loaded),
-    card(isChinese.value ? '批次内证据' : 'Batch evidence', batchEvidence),
-    card(isChinese.value ? '缺失详情' : 'Missing details', Math.max(total - loaded, 0))
+    card(t('inline.viewsParseRecordUseParseRecordView.text037'), total),
+    card(t('inline.viewsParseRecordUseParseRecordView.text038'), loaded),
+    card(t('inline.viewsParseRecordUseParseRecordView.text039'), batchEvidence),
+    card(t('inline.viewsParseRecordUseParseRecordView.text040'), Math.max(total - loaded, 0))
   ]
 })
 const pageSummaryCards = computed(() => [
-  { label: isChinese.value ? '当前页记录' : 'Current page', value: rows.value.length },
-  { label: isChinese.value ? '总条数' : 'Total records', value: historyPagination.totalCount },
-  { label: isChinese.value ? '总页数' : 'Total pages', value: historyPagination.pageCount },
-  { label: isChinese.value ? '成功' : 'Success', value: classificationSummary.value.SUCCESS || classificationSummary.value.succeeded || 0 },
-  { label: isChinese.value ? '异常/部分成功' : 'Non-success', value: classificationSummary.value.PARTIAL || classificationSummary.value.FAILED || classificationSummary.value.nonSuccess || 0 },
-  { label: isChinese.value ? '接入渠道' : 'Access channels', value: Object.keys(classificationSummary.value.accessChannelCounts || {}).length }
+  { label: t('inline.viewsParseRecordUseParseRecordView.text041'), value: rows.value.length },
+  { label: t('inline.viewsParseRecordUseParseRecordView.text042'), value: historyPagination.totalCount },
+  { label: t('inline.viewsParseRecordUseParseRecordView.text043'), value: historyPagination.pageCount },
+  { label: t('inline.viewsParseRecordUseParseRecordView.text044'), value: classificationSummary.value.SUCCESS || classificationSummary.value.succeeded || 0 },
+  { label: t('inline.viewsParseRecordUseParseRecordView.text045'), value: classificationSummary.value.PARTIAL || classificationSummary.value.FAILED || classificationSummary.value.nonSuccess || 0 },
+  { label: t('inline.viewsParseRecordUseParseRecordView.text046'), value: Object.keys(classificationSummary.value.accessChannelCounts || {}).length }
 ])
 const detailSummaryCards = computed(() => {
   if (!selectedHistoryDetail.value) {
@@ -388,12 +388,12 @@ const detailSummaryCards = computed(() => {
   return [
     { label: 'Parse History ID', value: selectedHistoryDetail.value.parseHistoryId || selectedHistoryDetail.value.historyId },
     { label: 'Trace ID', value: selectedHistoryDetail.value.traceId },
-    { label: isChinese.value ? '报表编码' : 'Report code', value: selectedHistoryDetail.value.reportCode },
-    { label: isChinese.value ? '来源类型' : 'Source type', value: selectedHistoryDetail.value.sourceType },
-    { label: isChinese.value ? '结果状态' : 'Result status', value: selectedHistoryDetail.value.resultStatus },
-    { label: isChinese.value ? '目标引擎' : 'Target engine', value: selectedHistoryDetail.value.targetEngine },
-    { label: isChinese.value ? '接入渠道' : 'Access channel', value: selectedHistoryDetail.value.accessChannel },
-    { label: isChinese.value ? '提交时间' : 'Submitted at', value: formatTimestamp(selectedHistoryDetail.value.submittedAt) }
+    { label: t('inline.viewsParseRecordUseParseRecordView.text047'), value: selectedHistoryDetail.value.reportCode },
+    { label: t('inline.viewsParseRecordUseParseRecordView.text048'), value: selectedHistoryDetail.value.sourceType },
+    { label: t('inline.viewsParseRecordUseParseRecordView.text049'), value: selectedHistoryDetail.value.resultStatus },
+    { label: t('inline.viewsParseRecordUseParseRecordView.text050'), value: selectedHistoryDetail.value.targetEngine },
+    { label: t('inline.viewsParseRecordUseParseRecordView.text051'), value: selectedHistoryDetail.value.accessChannel },
+    { label: t('inline.viewsParseRecordUseParseRecordView.text052'), value: formatTimestamp(selectedHistoryDetail.value.submittedAt) }
   ]
 })
 const traceSummaryCards = computed(() => {
@@ -402,21 +402,21 @@ const traceSummaryCards = computed(() => {
     return []
   }
   return [
-    { label: isChinese.value ? '最新状态' : 'Latest status', value: traceDetail.latestStatus },
-    { label: isChinese.value ? '审计事件数' : 'Audit event count', value: traceDetail.auditEventCount },
-    { label: isChinese.value ? '异常事件数' : 'Non-success events', value: traceDetail.nonSuccessEventCount },
-    { label: isChinese.value ? '关联历史数' : 'Query history count', value: traceDetail.queryHistoryCount }
+    { label: t('inline.viewsParseRecordUseParseRecordView.text053'), value: traceDetail.latestStatus },
+    { label: t('inline.viewsParseRecordUseParseRecordView.text054'), value: traceDetail.auditEventCount },
+    { label: t('inline.viewsParseRecordUseParseRecordView.text055'), value: traceDetail.nonSuccessEventCount },
+    { label: t('inline.viewsParseRecordUseParseRecordView.text056'), value: traceDetail.queryHistoryCount }
   ]
 })
 const sqlStateHighlights = computed(() => {
   const sqlState = selectedHistoryDetail.value?.sqlState || {}
   return [
-    { key: 'sqlFingerprint', label: isChinese.value ? '执行指纹' : 'SQL fingerprint', value: sqlState.sqlFingerprint || selectedHistoryDetail.value?.sqlFingerprint },
-    { key: 'sqlTemplateFingerprint', label: isChinese.value ? '模板指纹' : 'Template fingerprint', value: sqlState.sqlTemplateFingerprint || selectedHistoryDetail.value?.sqlTemplateFingerprint },
-    { key: 'boundSqlFingerprint', label: isChinese.value ? '绑定指纹' : 'Bound fingerprint', value: sqlState.boundSqlFingerprint || selectedHistoryDetail.value?.boundSqlFingerprint },
-    { key: 'bindingMode', label: isChinese.value ? '绑定模式' : 'Binding mode', value: sqlState.bindingMode || selectedHistoryDetail.value?.bindingMode },
-    { key: 'bindingRenderStatus', label: isChinese.value ? '渲染状态' : 'Binding render', value: sqlState.bindingRenderStatus || selectedHistoryDetail.value?.bindingRenderStatus },
-    { key: 'parameterizedSqlFlag', label: isChinese.value ? '参数化' : 'Parameterized', value: String(sqlState.parameterizedSqlFlag ?? selectedHistoryDetail.value?.parameterizedSqlFlag ?? '-') }
+    { key: 'sqlFingerprint', label: t('inline.viewsParseRecordUseParseRecordView.text057'), value: sqlState.sqlFingerprint || selectedHistoryDetail.value?.sqlFingerprint },
+    { key: 'sqlTemplateFingerprint', label: t('inline.viewsParseRecordUseParseRecordView.text058'), value: sqlState.sqlTemplateFingerprint || selectedHistoryDetail.value?.sqlTemplateFingerprint },
+    { key: 'boundSqlFingerprint', label: t('inline.viewsParseRecordUseParseRecordView.text059'), value: sqlState.boundSqlFingerprint || selectedHistoryDetail.value?.boundSqlFingerprint },
+    { key: 'bindingMode', label: t('inline.viewsParseRecordUseParseRecordView.text060'), value: sqlState.bindingMode || selectedHistoryDetail.value?.bindingMode },
+    { key: 'bindingRenderStatus', label: t('inline.viewsParseRecordUseParseRecordView.text061'), value: sqlState.bindingRenderStatus || selectedHistoryDetail.value?.bindingRenderStatus },
+    { key: 'parameterizedSqlFlag', label: t('inline.viewsParseRecordUseParseRecordView.text062'), value: String(sqlState.parameterizedSqlFlag ?? selectedHistoryDetail.value?.parameterizedSqlFlag ?? '-') }
   ]
 })
 const sqlVariants = computed(() =>
@@ -427,8 +427,8 @@ const sqlVariants = computed(() =>
       value: selectedHistoryDetail.value?.sqlText,
       autoFormat: false
     },
-    { key: 'sqlTemplateText', label: isChinese.value ? '模板 SQL' : 'Template SQL', value: selectedHistoryDetail.value?.sqlTemplateText },
-    { key: 'boundSqlText', label: isChinese.value ? '绑定 SQL' : 'Bound SQL', value: selectedHistoryDetail.value?.boundSqlText }
+    { key: 'sqlTemplateText', label: t('inline.viewsParseRecordUseParseRecordView.text063'), value: selectedHistoryDetail.value?.sqlTemplateText },
+    { key: 'boundSqlText', label: t('inline.viewsParseRecordUseParseRecordView.text064'), value: selectedHistoryDetail.value?.boundSqlText }
   ].filter(item => hasDisplayValue(item.value))
 )
 const historyQueryContext = computed(() => objectValue(selectedHistoryDetail.value?.queryContext))
@@ -472,114 +472,114 @@ const historyLogicalObjectHits = computed(() => {
 })
 const historyParseSummaryCards = computed(() =>
   [
-    card(isChinese.value ? '综合状态' : 'Overall status', historyParseStatus.value),
-    card(isChinese.value ? 'Parse Task' : 'Parse task', historyParseTaskId.value),
-    card(isChinese.value ? '语法状态' : 'Syntax status', historyStructureParse.value.syntaxStatus),
-    card(isChinese.value ? 'Access 可用' : 'Access available', resolveAccessAvailable(historyResultSummary.value, historyAccessParse.value)),
-    card(isChinese.value ? '降级原因' : 'Degrade reason', firstValue(historyResultSummary.value.degradeReason, historyAccessParse.value.degradeReason)),
-    card(isChinese.value ? '历史写入' : 'History write', selectedHistoryDetail.value?.historyId ? (isChinese.value ? '已落库' : 'Saved') : ''),
+    card(t('inline.viewsParseRecordUseParseRecordView.text065'), historyParseStatus.value),
+    card(t('inline.viewsParseRecordUseParseRecordView.text066'), historyParseTaskId.value),
+    card(t('inline.viewsParseRecordUseParseRecordView.text067'), historyStructureParse.value.syntaxStatus),
+    card(t('inline.viewsParseRecordUseParseRecordView.text068'), resolveAccessAvailable(historyResultSummary.value, historyAccessParse.value)),
+    card(t('inline.viewsParseRecordUseParseRecordView.text069'), firstValue(historyResultSummary.value.degradeReason, historyAccessParse.value.degradeReason)),
+    card(t('inline.viewsParseRecordUseParseRecordView.text070'), selectedHistoryDetail.value?.historyId ? (t('inline.viewsParseRecordUseParseRecordView.text071')) : ''),
     card('History ID', selectedHistoryDetail.value?.historyId)
   ].filter(item => hasDisplayValue(item.value))
 )
 const historyParseStatisticCards = computed(() => {
   const feature = objectValue(historyStructureParse.value.featureSummary)
   return [
-    card(isChinese.value ? '问题数' : 'Issues', historyStructureIssues.value.length),
-    card(isChinese.value ? '风险项' : 'Risks', historyStructureRiskChecklist.value.length),
-    card(isChinese.value ? '逻辑对象' : 'Logical objects', historyLogicalObjectHits.value.length),
-    card(isChinese.value ? '风险标签' : 'Risk tags', normalizeArray(historyStructureParse.value.riskTags).length),
-    card(isChinese.value ? '改写候选' : 'Rewrite candidates', normalizeArray(historyStructureParse.value.rewriteCandidates).length),
-    card(isChinese.value ? '表数量' : 'Tables', feature.tableCount),
-    card(isChinese.value ? 'Join 数' : 'Joins', feature.joinCount),
-    card(isChinese.value ? '谓词数' : 'Predicates', feature.predicateCount),
-    card(isChinese.value ? '排序字段' : 'Order keys', feature.orderByExpressionCount),
-    card(isChinese.value ? '重复排序 key' : 'Duplicate order keys', feature.duplicateOrderByKeyCount),
-    card(isChinese.value ? '重复分组 key' : 'Duplicate group keys', feature.duplicateGroupByKeyCount),
-    card(isChinese.value ? '字符串结果' : 'String result signals', feature.stringProjectionCount),
-    card(isChinese.value ? '重复子查询' : 'Repeated subqueries', feature.repeatedSubqueryCount),
-    card(isChinese.value ? '窗口函数' : 'Windows', feature.windowFunctionCount),
-    card(isChinese.value ? '重复表达式' : 'Repeated expressions', feature.repeatedExpressionCount),
-    card(isChinese.value ? '重要' : 'Important', booleanLabel(historyStructureParse.value.important)),
-    card(isChinese.value ? '紧急' : 'Urgent', booleanLabel(historyStructureParse.value.urgent))
+    card(t('inline.viewsParseRecordUseParseRecordView.text072'), historyStructureIssues.value.length),
+    card(t('inline.viewsParseRecordUseParseRecordView.text073'), historyStructureRiskChecklist.value.length),
+    card(t('inline.viewsParseRecordUseParseRecordView.text074'), historyLogicalObjectHits.value.length),
+    card(t('inline.viewsParseRecordUseParseRecordView.text075'), normalizeArray(historyStructureParse.value.riskTags).length),
+    card(t('inline.viewsParseRecordUseParseRecordView.text076'), normalizeArray(historyStructureParse.value.rewriteCandidates).length),
+    card(t('inline.viewsParseRecordUseParseRecordView.text077'), feature.tableCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text078'), feature.joinCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text079'), feature.predicateCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text080'), feature.orderByExpressionCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text081'), feature.duplicateOrderByKeyCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text082'), feature.duplicateGroupByKeyCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text083'), feature.stringProjectionCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text084'), feature.repeatedSubqueryCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text085'), feature.windowFunctionCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text086'), feature.repeatedExpressionCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text087'), booleanLabel(historyStructureParse.value.important)),
+    card(t('inline.viewsParseRecordUseParseRecordView.text088'), booleanLabel(historyStructureParse.value.urgent))
   ].filter(item => hasDisplayValue(item.value))
 })
 const historyStructureHighlights = computed(() =>
   [
-    { key: 'parseTaskId', label: isChinese.value ? 'Parse Task' : 'Parse task', value: historyParseTaskId.value },
-    { key: 'sqlFingerprint', label: isChinese.value ? 'SQL 指纹' : 'SQL fingerprint', value: firstValue(historyStructureParse.value.sqlFingerprint, selectedHistoryDetail.value?.sqlFingerprint) },
-    { key: 'syntaxStatus', label: isChinese.value ? '语法状态' : 'Syntax status', value: historyStructureParse.value.syntaxStatus },
-    { key: 'complexityLevel', label: isChinese.value ? '复杂度' : 'Complexity', value: historyStructureParse.value.complexityLevel },
-    { key: 'sqlType', label: isChinese.value ? 'SQL 类型' : 'SQL type', value: historyStructureParse.value.sqlType },
-    { key: 'priorityLevel', label: isChinese.value ? '优先级' : 'Priority', value: historyStructureParse.value.priorityLevel },
-    { key: 'priorityScore', label: isChinese.value ? '评分' : 'Score', value: historyStructureParse.value.priorityScore },
-    { key: 'important', label: isChinese.value ? '重要' : 'Important', value: booleanLabel(historyStructureParse.value.important) },
-    { key: 'urgent', label: isChinese.value ? '紧急' : 'Urgent', value: booleanLabel(historyStructureParse.value.urgent) }
+    { key: 'parseTaskId', label: t('inline.viewsParseRecordUseParseRecordView.text089'), value: historyParseTaskId.value },
+    { key: 'sqlFingerprint', label: t('inline.viewsParseRecordUseParseRecordView.text090'), value: firstValue(historyStructureParse.value.sqlFingerprint, selectedHistoryDetail.value?.sqlFingerprint) },
+    { key: 'syntaxStatus', label: t('inline.viewsParseRecordUseParseRecordView.text091'), value: historyStructureParse.value.syntaxStatus },
+    { key: 'complexityLevel', label: t('inline.viewsParseRecordUseParseRecordView.text092'), value: historyStructureParse.value.complexityLevel },
+    { key: 'sqlType', label: t('inline.viewsParseRecordUseParseRecordView.text093'), value: historyStructureParse.value.sqlType },
+    { key: 'priorityLevel', label: t('inline.viewsParseRecordUseParseRecordView.text094'), value: historyStructureParse.value.priorityLevel },
+    { key: 'priorityScore', label: t('inline.viewsParseRecordUseParseRecordView.text095'), value: historyStructureParse.value.priorityScore },
+    { key: 'important', label: t('inline.viewsParseRecordUseParseRecordView.text096'), value: booleanLabel(historyStructureParse.value.important) },
+    { key: 'urgent', label: t('inline.viewsParseRecordUseParseRecordView.text097'), value: booleanLabel(historyStructureParse.value.urgent) }
   ].filter(item => hasDisplayValue(item.value))
 )
 const historyStructureFeatureHighlights = computed(() => {
   const feature = objectValue(historyStructureParse.value.featureSummary)
   return [
-    { key: 'parserEngine', label: isChinese.value ? 'Parser' : 'Parser', value: feature.parserEngine },
-    { key: 'scanMode', label: isChinese.value ? '扫描模式' : 'Scan mode', value: feature.scanMode },
-    { key: 'joinType', label: isChinese.value ? 'Join 类型' : 'Join type', value: feature.joinType },
-    { key: 'computeDensity', label: isChinese.value ? '计算密度' : 'Compute density', value: feature.computeDensity },
-    { key: 'resourceType', label: isChinese.value ? '资源类型' : 'Resource type', value: feature.resourceType },
-    { key: 'slaLevel', label: isChinese.value ? 'SLA 等级' : 'SLA level', value: feature.slaLevel },
-    { key: 'tableCount', label: isChinese.value ? '表数量' : 'Tables', value: feature.tableCount },
-    { key: 'joinCount', label: isChinese.value ? 'Join 数' : 'Joins', value: feature.joinCount },
-    { key: 'predicateCount', label: isChinese.value ? '谓词数' : 'Predicates', value: feature.predicateCount },
-    { key: 'orderByExpressionCount', label: isChinese.value ? '排序字段' : 'Order keys', value: feature.orderByExpressionCount },
-    { key: 'duplicateOrderByKeyCount', label: isChinese.value ? '重复排序 key' : 'Duplicate order keys', value: feature.duplicateOrderByKeyCount },
-    { key: 'duplicateGroupByKeyCount', label: isChinese.value ? '重复分组 key' : 'Duplicate group keys', value: feature.duplicateGroupByKeyCount },
-    { key: 'groupByWithoutAggregate', label: isChinese.value ? '分组无聚合' : 'Group without aggregate', value: booleanLabel(feature.groupByWithoutAggregate) },
-    { key: 'aggregateFunctionCount', label: isChinese.value ? '聚合函数' : 'Aggregates', value: feature.aggregateFunctionCount },
-    { key: 'stringProjectionCount', label: isChinese.value ? '字符串投影' : 'String projections', value: feature.stringProjectionCount },
-    { key: 'stringConcatenationCount', label: isChinese.value ? '字符串拼接' : 'String concatenations', value: feature.stringConcatenationCount },
-    { key: 'largeStringAggregateCount', label: isChinese.value ? '字符串聚合' : 'String aggregates', value: feature.largeStringAggregateCount },
-    { key: 'repeatedSubqueryCount', label: isChinese.value ? '重复子查询' : 'Repeated subqueries', value: feature.repeatedSubqueryCount },
-    { key: 'windowFunctionCount', label: isChinese.value ? '窗口函数' : 'Windows', value: feature.windowFunctionCount },
-    { key: 'repeatedExpressionCount', label: isChinese.value ? '重复表达式' : 'Repeated expressions', value: feature.repeatedExpressionCount }
+    { key: 'parserEngine', label: t('inline.viewsParseRecordUseParseRecordView.text098'), value: feature.parserEngine },
+    { key: 'scanMode', label: t('inline.viewsParseRecordUseParseRecordView.text099'), value: feature.scanMode },
+    { key: 'joinType', label: t('inline.viewsParseRecordUseParseRecordView.text100'), value: feature.joinType },
+    { key: 'computeDensity', label: t('inline.viewsParseRecordUseParseRecordView.text101'), value: feature.computeDensity },
+    { key: 'resourceType', label: t('inline.viewsParseRecordUseParseRecordView.text102'), value: feature.resourceType },
+    { key: 'slaLevel', label: t('inline.viewsParseRecordUseParseRecordView.text103'), value: feature.slaLevel },
+    { key: 'tableCount', label: t('inline.viewsParseRecordUseParseRecordView.text104'), value: feature.tableCount },
+    { key: 'joinCount', label: t('inline.viewsParseRecordUseParseRecordView.text105'), value: feature.joinCount },
+    { key: 'predicateCount', label: t('inline.viewsParseRecordUseParseRecordView.text106'), value: feature.predicateCount },
+    { key: 'orderByExpressionCount', label: t('inline.viewsParseRecordUseParseRecordView.text107'), value: feature.orderByExpressionCount },
+    { key: 'duplicateOrderByKeyCount', label: t('inline.viewsParseRecordUseParseRecordView.text108'), value: feature.duplicateOrderByKeyCount },
+    { key: 'duplicateGroupByKeyCount', label: t('inline.viewsParseRecordUseParseRecordView.text109'), value: feature.duplicateGroupByKeyCount },
+    { key: 'groupByWithoutAggregate', label: t('inline.viewsParseRecordUseParseRecordView.text110'), value: booleanLabel(feature.groupByWithoutAggregate) },
+    { key: 'aggregateFunctionCount', label: t('inline.viewsParseRecordUseParseRecordView.text111'), value: feature.aggregateFunctionCount },
+    { key: 'stringProjectionCount', label: t('inline.viewsParseRecordUseParseRecordView.text112'), value: feature.stringProjectionCount },
+    { key: 'stringConcatenationCount', label: t('inline.viewsParseRecordUseParseRecordView.text113'), value: feature.stringConcatenationCount },
+    { key: 'largeStringAggregateCount', label: t('inline.viewsParseRecordUseParseRecordView.text114'), value: feature.largeStringAggregateCount },
+    { key: 'repeatedSubqueryCount', label: t('inline.viewsParseRecordUseParseRecordView.text115'), value: feature.repeatedSubqueryCount },
+    { key: 'windowFunctionCount', label: t('inline.viewsParseRecordUseParseRecordView.text116'), value: feature.windowFunctionCount },
+    { key: 'repeatedExpressionCount', label: t('inline.viewsParseRecordUseParseRecordView.text117'), value: feature.repeatedExpressionCount }
   ].filter(item => hasDisplayValue(item.value))
 })
 const historyStructureResourceHighlights = computed(() => {
   const estimate = objectValue(historyStructureParse.value.estimatedResourceCost)
   return [
-    { key: 'overall', label: isChinese.value ? '总体' : 'Overall', value: estimate.overall },
+    { key: 'overall', label: t('inline.viewsParseRecordUseParseRecordView.text118'), value: estimate.overall },
     { key: 'cpu', label: 'CPU', value: estimate.cpu },
     { key: 'io', label: 'IO', value: estimate.io },
-    { key: 'memory', label: isChinese.value ? '内存' : 'Memory', value: estimate.memory },
-    { key: 'network', label: isChinese.value ? '网络' : 'Network', value: estimate.network },
-    { key: 'resultSize', label: isChinese.value ? '结果集' : 'Result size', value: estimate.resultSize }
+    { key: 'memory', label: t('inline.viewsParseRecordUseParseRecordView.text119'), value: estimate.memory },
+    { key: 'network', label: t('inline.viewsParseRecordUseParseRecordView.text120'), value: estimate.network },
+    { key: 'resultSize', label: t('inline.viewsParseRecordUseParseRecordView.text121'), value: estimate.resultSize }
   ].filter(item => hasDisplayValue(item.value))
 })
 const historyAccessHighlights = computed(() =>
   [
-    { key: 'serviceStatus', label: isChinese.value ? '服务状态' : 'Service status', value: historyAccessParse.value.serviceStatus },
-    { key: 'connectionStatus', label: isChinese.value ? '连接状态' : 'Connection status', value: historyAccessParse.value.connectionStatus },
-    { key: 'objectResolutionStatus', label: isChinese.value ? '对象解析' : 'Object resolution', value: historyAccessParse.value.objectResolutionStatus },
-    { key: 'partitionStatus', label: isChinese.value ? '分区状态' : 'Partition status', value: historyAccessParse.value.partitionStatus },
-    { key: 'dataFreshnessStatus', label: isChinese.value ? '新鲜度' : 'Freshness', value: historyAccessParse.value.dataFreshnessStatus },
+    { key: 'serviceStatus', label: t('inline.viewsParseRecordUseParseRecordView.text122'), value: historyAccessParse.value.serviceStatus },
+    { key: 'connectionStatus', label: t('inline.viewsParseRecordUseParseRecordView.text123'), value: historyAccessParse.value.connectionStatus },
+    { key: 'objectResolutionStatus', label: t('inline.viewsParseRecordUseParseRecordView.text124'), value: historyAccessParse.value.objectResolutionStatus },
+    { key: 'partitionStatus', label: t('inline.viewsParseRecordUseParseRecordView.text125'), value: historyAccessParse.value.partitionStatus },
+    { key: 'dataFreshnessStatus', label: t('inline.viewsParseRecordUseParseRecordView.text126'), value: historyAccessParse.value.dataFreshnessStatus },
     { key: 'slaStatus', label: 'SLA', value: historyAccessParse.value.slaStatus },
-    { key: 'compatibilityStatus', label: isChinese.value ? '兼容性' : 'Compatibility', value: historyAccessParse.value.compatibilityStatus }
+    { key: 'compatibilityStatus', label: t('inline.viewsParseRecordUseParseRecordView.text127'), value: historyAccessParse.value.compatibilityStatus }
   ].filter(item => hasDisplayValue(item.value))
 )
 const signalGroups = computed(() =>
   [
-    { key: 'commentContext', title: isChinese.value ? '注释上下文' : 'Comment context', payload: selectedHistoryDetail.value?.commentContext },
-    { key: 'queryDateSummary', title: isChinese.value ? '查询日期摘要' : 'Query-date summary', payload: selectedHistoryDetail.value?.queryDateSummary },
-    { key: 'executionSummary', title: isChinese.value ? '执行摘要' : 'Execution summary', payload: selectedHistoryDetail.value?.executionSummary },
-    { key: 'structureParseSummary', title: isChinese.value ? '结构解析' : 'Structure parse', payload: selectedHistoryDetail.value?.structureParseSummary },
-    { key: 'accessParseSummary', title: isChinese.value ? '访问解析' : 'Access parse', payload: selectedHistoryDetail.value?.accessParseSummary },
-    { key: 'routeDecision', title: isChinese.value ? '路由决策' : 'Route decision', payload: selectedHistoryDetail.value?.routeDecision },
-    { key: 'bindingSummary', title: isChinese.value ? '绑定摘要' : 'Binding summary', payload: selectedHistoryDetail.value?.bindingSummary }
+    { key: 'commentContext', title: t('inline.viewsParseRecordUseParseRecordView.text128'), payload: selectedHistoryDetail.value?.commentContext },
+    { key: 'queryDateSummary', title: t('inline.viewsParseRecordUseParseRecordView.text129'), payload: selectedHistoryDetail.value?.queryDateSummary },
+    { key: 'executionSummary', title: t('inline.viewsParseRecordUseParseRecordView.text130'), payload: selectedHistoryDetail.value?.executionSummary },
+    { key: 'structureParseSummary', title: t('inline.viewsParseRecordUseParseRecordView.text131'), payload: selectedHistoryDetail.value?.structureParseSummary },
+    { key: 'accessParseSummary', title: t('inline.viewsParseRecordUseParseRecordView.text132'), payload: selectedHistoryDetail.value?.accessParseSummary },
+    { key: 'routeDecision', title: t('inline.viewsParseRecordUseParseRecordView.text133'), payload: selectedHistoryDetail.value?.routeDecision },
+    { key: 'bindingSummary', title: t('inline.viewsParseRecordUseParseRecordView.text134'), payload: selectedHistoryDetail.value?.bindingSummary }
   ].filter(group => isNonEmpty(group.payload))
 )
 const referenceGroups = computed(() =>
   [
-    { key: 'recommendationRefs', title: isChinese.value ? '推荐关联' : 'Recommendation refs', items: selectedHistoryDetail.value?.recommendationRefs || [] },
-    { key: 'benchmarkRefs', title: isChinese.value ? '压测关联' : 'Benchmark refs', items: selectedHistoryDetail.value?.benchmarkRefs || [] },
-    { key: 'alertRefs', title: isChinese.value ? '告警关联' : 'Alert refs', items: selectedHistoryDetail.value?.alertRefs || [] },
-    { key: 'auditRefs', title: isChinese.value ? '审计关联' : 'Audit refs', items: selectedHistoryDetail.value?.auditRefs || [] }
+    { key: 'recommendationRefs', title: t('inline.viewsParseRecordUseParseRecordView.text135'), items: selectedHistoryDetail.value?.recommendationRefs || [] },
+    { key: 'benchmarkRefs', title: t('inline.viewsParseRecordUseParseRecordView.text136'), items: selectedHistoryDetail.value?.benchmarkRefs || [] },
+    { key: 'alertRefs', title: t('inline.viewsParseRecordUseParseRecordView.text137'), items: selectedHistoryDetail.value?.alertRefs || [] },
+    { key: 'auditRefs', title: t('inline.viewsParseRecordUseParseRecordView.text138'), items: selectedHistoryDetail.value?.auditRefs || [] }
   ].filter(group => Array.isArray(group.items) && group.items.length > 0)
 )
 const logicalObjectHits = computed(() => normalizeArray(selectedHistoryDetail.value?.logicalObjectHits))
@@ -781,9 +781,7 @@ const openHistoryDetail = async (historyId, preloadedTraceDetail = null) => {
 
 const runIndexedLookup = async () => {
   if (!hasLookupCriteria.value) {
-    errorMessage.value = isChinese.value
-      ? '至少输入 traceId、taskId、reportId 中的一项。'
-      : 'Enter at least one of traceId, taskId, or reportId.'
+    errorMessage.value = t('inline.viewsParseRecordUseParseRecordView.text139')
     return
   }
   loading.lookup = true
@@ -795,7 +793,7 @@ const runIndexedLookup = async () => {
     historyPagination.pageNo = 1
     await loadPage()
     if (!rows.value.length) {
-      errorMessage.value = isChinese.value ? '没有命中解析记录。' : 'No parse-history record matched the lookup criteria.'
+      errorMessage.value = t('inline.viewsParseRecordUseParseRecordView.text140')
     }
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
@@ -1340,7 +1338,7 @@ const buildReportItemFallbackDetail = item => {
     summary: item.diagnosticSummary || item.failureReason || issueScene,
     detail: issueLocationText(item),
     suggestedAction: item.failureReason
-      ? (isChinese.value ? '查看失败定位并修正 SQL 后重新解析。' : 'Review the failure position, fix the SQL, and parse again.')
+      ? (t('inline.viewsParseRecordUseParseRecordView.text141'))
       : '',
     failureLine: item.failureLine,
     failureColumn: item.failureColumn,
@@ -1457,11 +1455,11 @@ const reportItemParseSummaryCards = item => {
   const structureParse = reportItemStructureParse(item)
   const accessParse = reportItemAccessParse(item)
   return [
-    card(isChinese.value ? '综合状态' : 'Overall status', reportItemParseStatus(item)),
-    card(isChinese.value ? '解析历史' : 'Parse history', detail?.historyId),
-    card(isChinese.value ? '语法状态' : 'Syntax status', firstValue(structureParse.syntaxStatus, item?.structureSyntaxStatus)),
-    card(isChinese.value ? 'Access 可用' : 'Access available', resolveAccessAvailable(resultSummary, accessParse)),
-    card(isChinese.value ? '降级原因' : 'Degrade reason', firstValue(resultSummary.degradeReason, accessParse.degradeReason, item?.failureReason))
+    card(t('inline.viewsParseRecordUseParseRecordView.text142'), reportItemParseStatus(item)),
+    card(t('inline.viewsParseRecordUseParseRecordView.text143'), detail?.historyId),
+    card(t('inline.viewsParseRecordUseParseRecordView.text144'), firstValue(structureParse.syntaxStatus, item?.structureSyntaxStatus)),
+    card(t('inline.viewsParseRecordUseParseRecordView.text145'), resolveAccessAvailable(resultSummary, accessParse)),
+    card(t('inline.viewsParseRecordUseParseRecordView.text146'), firstValue(resultSummary.degradeReason, accessParse.degradeReason, item?.failureReason))
   ].filter(entry => hasDisplayValue(entry.value))
 }
 
@@ -1469,52 +1467,52 @@ const reportItemParseStatisticCards = item => {
   const structureParse = reportItemStructureParse(item)
   const feature = objectValue(structureParse.featureSummary)
   return [
-    card(isChinese.value ? '问题数' : 'Issues', normalizeArray(structureParse.issues).length || normalizeArray(item?.issueScenes).length),
-    card(isChinese.value ? '风险项' : 'Risks', normalizeArray(structureParse.riskChecklist).length),
-    card(isChinese.value ? '逻辑对象' : 'Logical objects', reportItemLogicalObjectHits(item).length),
-    card(isChinese.value ? '风险标签' : 'Risk tags', normalizeArray(structureParse.riskTags).length),
-    card(isChinese.value ? '改写候选' : 'Rewrite candidates', normalizeArray(structureParse.rewriteCandidates).length),
-    card(isChinese.value ? '表数量' : 'Tables', feature.tableCount),
-    card(isChinese.value ? 'Join 数' : 'Joins', feature.joinCount),
-    card(isChinese.value ? '谓词数' : 'Predicates', feature.predicateCount),
-    card(isChinese.value ? '排序字段' : 'Order keys', feature.orderByExpressionCount),
-    card(isChinese.value ? '重复排序 key' : 'Duplicate order keys', feature.duplicateOrderByKeyCount),
-    card(isChinese.value ? '重复分组 key' : 'Duplicate group keys', feature.duplicateGroupByKeyCount),
-    card(isChinese.value ? '字符串结果' : 'String result signals', feature.stringProjectionCount),
-    card(isChinese.value ? '重复子查询' : 'Repeated subqueries', feature.repeatedSubqueryCount),
-    card(isChinese.value ? '窗口函数' : 'Windows', feature.windowFunctionCount),
-    card(isChinese.value ? '优先级' : 'Priority', structureParse.priorityLevel),
-    card(isChinese.value ? '评分' : 'Score', structureParse.priorityScore),
-    card(isChinese.value ? '重要' : 'Important', booleanLabel(structureParse.important)),
-    card(isChinese.value ? '紧急' : 'Urgent', booleanLabel(structureParse.urgent))
+    card(t('inline.viewsParseRecordUseParseRecordView.text147'), normalizeArray(structureParse.issues).length || normalizeArray(item?.issueScenes).length),
+    card(t('inline.viewsParseRecordUseParseRecordView.text148'), normalizeArray(structureParse.riskChecklist).length),
+    card(t('inline.viewsParseRecordUseParseRecordView.text149'), reportItemLogicalObjectHits(item).length),
+    card(t('inline.viewsParseRecordUseParseRecordView.text150'), normalizeArray(structureParse.riskTags).length),
+    card(t('inline.viewsParseRecordUseParseRecordView.text151'), normalizeArray(structureParse.rewriteCandidates).length),
+    card(t('inline.viewsParseRecordUseParseRecordView.text152'), feature.tableCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text153'), feature.joinCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text154'), feature.predicateCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text155'), feature.orderByExpressionCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text156'), feature.duplicateOrderByKeyCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text157'), feature.duplicateGroupByKeyCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text158'), feature.stringProjectionCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text159'), feature.repeatedSubqueryCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text160'), feature.windowFunctionCount),
+    card(t('inline.viewsParseRecordUseParseRecordView.text161'), structureParse.priorityLevel),
+    card(t('inline.viewsParseRecordUseParseRecordView.text162'), structureParse.priorityScore),
+    card(t('inline.viewsParseRecordUseParseRecordView.text163'), booleanLabel(structureParse.important)),
+    card(t('inline.viewsParseRecordUseParseRecordView.text164'), booleanLabel(structureParse.urgent))
   ].filter(entry => hasDisplayValue(entry.value))
 }
 
 const reportItemStructureHighlights = item => {
   const structureParse = reportItemStructureParse(item)
   return [
-    { key: 'parseTaskId', label: isChinese.value ? 'Parse Task' : 'Parse task', value: item?.parseTaskId },
-    { key: 'sqlFingerprint', label: isChinese.value ? 'SQL 指纹' : 'SQL fingerprint', value: firstValue(structureParse.sqlFingerprint, reportItemParseDetail(item)?.sqlFingerprint) },
-    { key: 'syntaxStatus', label: isChinese.value ? '语法状态' : 'Syntax status', value: firstValue(structureParse.syntaxStatus, item?.structureSyntaxStatus) },
-    { key: 'complexityLevel', label: isChinese.value ? '复杂度' : 'Complexity', value: structureParse.complexityLevel },
-    { key: 'sqlType', label: isChinese.value ? 'SQL 类型' : 'SQL type', value: structureParse.sqlType },
-    { key: 'priorityLevel', label: isChinese.value ? '优先级' : 'Priority', value: structureParse.priorityLevel },
-    { key: 'priorityScore', label: isChinese.value ? '评分' : 'Score', value: structureParse.priorityScore },
-    { key: 'important', label: isChinese.value ? '重要' : 'Important', value: booleanLabel(structureParse.important) },
-    { key: 'urgent', label: isChinese.value ? '紧急' : 'Urgent', value: booleanLabel(structureParse.urgent) }
+    { key: 'parseTaskId', label: t('inline.viewsParseRecordUseParseRecordView.text165'), value: item?.parseTaskId },
+    { key: 'sqlFingerprint', label: t('inline.viewsParseRecordUseParseRecordView.text166'), value: firstValue(structureParse.sqlFingerprint, reportItemParseDetail(item)?.sqlFingerprint) },
+    { key: 'syntaxStatus', label: t('inline.viewsParseRecordUseParseRecordView.text167'), value: firstValue(structureParse.syntaxStatus, item?.structureSyntaxStatus) },
+    { key: 'complexityLevel', label: t('inline.viewsParseRecordUseParseRecordView.text168'), value: structureParse.complexityLevel },
+    { key: 'sqlType', label: t('inline.viewsParseRecordUseParseRecordView.text169'), value: structureParse.sqlType },
+    { key: 'priorityLevel', label: t('inline.viewsParseRecordUseParseRecordView.text170'), value: structureParse.priorityLevel },
+    { key: 'priorityScore', label: t('inline.viewsParseRecordUseParseRecordView.text171'), value: structureParse.priorityScore },
+    { key: 'important', label: t('inline.viewsParseRecordUseParseRecordView.text172'), value: booleanLabel(structureParse.important) },
+    { key: 'urgent', label: t('inline.viewsParseRecordUseParseRecordView.text173'), value: booleanLabel(structureParse.urgent) }
   ].filter(entry => hasDisplayValue(entry.value))
 }
 
 const reportItemAccessHighlights = item => {
   const accessParse = reportItemAccessParse(item)
   return [
-    { key: 'serviceStatus', label: isChinese.value ? '服务状态' : 'Service status', value: firstValue(accessParse.serviceStatus, item?.accessServiceStatus) },
-    { key: 'connectionStatus', label: isChinese.value ? '连接状态' : 'Connection status', value: firstValue(accessParse.connectionStatus, item?.accessConnectionStatus) },
-    { key: 'objectResolutionStatus', label: isChinese.value ? '对象解析' : 'Object resolution', value: accessParse.objectResolutionStatus },
-    { key: 'partitionStatus', label: isChinese.value ? '分区状态' : 'Partition status', value: accessParse.partitionStatus },
-    { key: 'dataFreshnessStatus', label: isChinese.value ? '新鲜度' : 'Freshness', value: accessParse.dataFreshnessStatus },
+    { key: 'serviceStatus', label: t('inline.viewsParseRecordUseParseRecordView.text174'), value: firstValue(accessParse.serviceStatus, item?.accessServiceStatus) },
+    { key: 'connectionStatus', label: t('inline.viewsParseRecordUseParseRecordView.text175'), value: firstValue(accessParse.connectionStatus, item?.accessConnectionStatus) },
+    { key: 'objectResolutionStatus', label: t('inline.viewsParseRecordUseParseRecordView.text176'), value: accessParse.objectResolutionStatus },
+    { key: 'partitionStatus', label: t('inline.viewsParseRecordUseParseRecordView.text177'), value: accessParse.partitionStatus },
+    { key: 'dataFreshnessStatus', label: t('inline.viewsParseRecordUseParseRecordView.text178'), value: accessParse.dataFreshnessStatus },
     { key: 'slaStatus', label: 'SLA', value: accessParse.slaStatus },
-    { key: 'compatibilityStatus', label: isChinese.value ? '兼容性' : 'Compatibility', value: accessParse.compatibilityStatus }
+    { key: 'compatibilityStatus', label: t('inline.viewsParseRecordUseParseRecordView.text179'), value: accessParse.compatibilityStatus }
   ].filter(entry => hasDisplayValue(entry.value))
 }
 
@@ -1601,7 +1599,7 @@ const issueSceneCodesForItem = item => {
 const issueLocationText = item => {
   const locations = issueLocationItems(item)
   if (!locations.length) {
-    return isChinese.value ? '无问题' : 'No issue'
+    return t('inline.viewsParseRecordUseParseRecordView.text180')
   }
   return locations
     .map(location => {
@@ -1633,7 +1631,7 @@ const issueLocationTextForScene = (item, issueScene) => {
   const rowScenes = issueSceneCodesForItem(row).map(scene => normalizeQueryValue(scene))
   const rowIssueCount = Number(row.issueCount || 0)
   if (normalizedIssueScene && (rowScenes.includes(normalizedIssueScene) || rowIssueCount > 0)) {
-    return `${normalizedIssueScene} · ${isChinese.value ? '定位待补充' : 'Location pending'}`
+    return `${normalizedIssueScene} · ${t('inline.viewsParseRecordUseParseRecordView.text181')}`
   }
   return issueLocationText({ ...row, issueLocations: [] })
 }

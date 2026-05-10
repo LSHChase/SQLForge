@@ -15,7 +15,7 @@ import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const router = useRouter()
 
 const form = reactive({
@@ -37,7 +37,6 @@ const recommendationTrace = ref(null)
 const errorMessage = ref('')
 const activeDetailTab = ref('summary')
 
-const isChinese = computed(() => locale.value === 'zh-CN')
 
 // Static contract tokens: recommendation detail, coordinationMode, PULL_ONLY, dispatchEvents, benefitLevel, riskLevel, recommendedSqlText, logicalObjectKey.
 
@@ -72,11 +71,11 @@ const filterOptions = computed(() => {
     }
   }
   return [
-    option('ALL', isChinese.value ? '全部' : 'All', counts.ALL),
-    option('REQUIRES_DISPATCH', isChinese.value ? '需协同' : 'Requires dispatch', counts.REQUIRES_DISPATCH),
+    option('ALL', t('inline.viewsRecommendationCenterRecommendationCenterView.text001'), counts.ALL),
+    option('REQUIRES_DISPATCH', t('inline.viewsRecommendationCenterRecommendationCenterView.text002'), counts.REQUIRES_DISPATCH),
     option('DISPATCH_READY', 'Dispatch ready', counts.DISPATCH_READY),
-    option('HIGH_BENEFIT', isChinese.value ? '高收益' : 'High benefit', counts.HIGH_BENEFIT),
-    option('HIGH_RISK', isChinese.value ? '高风险' : 'High risk', counts.HIGH_RISK),
+    option('HIGH_BENEFIT', t('inline.viewsRecommendationCenterRecommendationCenterView.text003'), counts.HIGH_BENEFIT),
+    option('HIGH_RISK', t('inline.viewsRecommendationCenterRecommendationCenterView.text004'), counts.HIGH_RISK),
     option('ACCELERATION', 'ACCELERATION', counts.ACCELERATION),
     option('REWRITE', 'REWRITE', counts.REWRITE)
   ]
@@ -100,13 +99,13 @@ const summaryCards = computed(() => {
     return []
   }
   return [
-    field('recommendationType', isChinese.value ? '推荐类型' : 'Recommendation type', recommendation.recommendationType),
+    field('recommendationType', t('inline.viewsRecommendationCenterRecommendationCenterView.text005'), recommendation.recommendationType),
     field('status', 'Status', recommendation.status),
     field('benefitLevel', 'benefitLevel', recommendation.benefitLevel),
     field('riskLevel', 'riskLevel', recommendation.riskLevel),
-    field('targetEngine', isChinese.value ? '目标引擎' : 'Target engine', recommendation.targetEngine),
-    field('targetDatasource', isChinese.value ? '目标数据源' : 'Target datasource', recommendation.targetDatasource),
-    field('requiresDispatch', isChinese.value ? '需协同' : 'Requires dispatch', boolText(recommendation.requiresDispatch)),
+    field('targetEngine', t('inline.viewsRecommendationCenterRecommendationCenterView.text006'), recommendation.targetEngine),
+    field('targetDatasource', t('inline.viewsRecommendationCenterRecommendationCenterView.text007'), recommendation.targetDatasource),
+    field('requiresDispatch', t('inline.viewsRecommendationCenterRecommendationCenterView.text008'), boolText(recommendation.requiresDispatch)),
     field('logicalObjectKey', 'logicalObjectKey', recommendation.logicalObjectKey)
   ]
 })
@@ -139,10 +138,10 @@ const contractCards = computed(() => {
     field('dataLoadingAllowed', 'dataLoadingAllowed', boolText(contract.dataLoadingAllowed)),
     field('activeExternalPushAllowed', 'activeExternalPushAllowed', boolText(contract.activeExternalPushAllowed)),
     field('externalPullRequired', 'externalPullRequired', boolText(contract.externalPullRequired)),
-    field('allowedEventStatuses', isChinese.value ? '允许状态' : 'Allowed statuses', listText(contract.allowedEventStatuses)),
-    field('allowedDispatchTypes', isChinese.value ? '允许类型' : 'Allowed types', listText(contract.allowedDispatchTypes)),
-    field('auditBoundary', isChinese.value ? '审计边界' : 'Audit boundary', contract.auditBoundary),
-    field('residualOwner', isChinese.value ? '剩余责任方' : 'Residual owner', contract.residualOwner)
+    field('allowedEventStatuses', t('inline.viewsRecommendationCenterRecommendationCenterView.text009'), listText(contract.allowedEventStatuses)),
+    field('allowedDispatchTypes', t('inline.viewsRecommendationCenterRecommendationCenterView.text010'), listText(contract.allowedDispatchTypes)),
+    field('auditBoundary', t('inline.viewsRecommendationCenterRecommendationCenterView.text011'), contract.auditBoundary),
+    field('residualOwner', t('inline.viewsRecommendationCenterRecommendationCenterView.text012'), contract.residualOwner)
   ]
 })
 

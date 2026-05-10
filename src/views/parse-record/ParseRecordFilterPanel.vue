@@ -2,14 +2,13 @@
 import { useI18n } from 'vue-i18n'
 import { useParseRecordContext } from './parseRecordContext'
 
-useI18n()
+const { t } = useI18n()
 
 const {
   datasourceOptions,
   datasourceOptionsLoadFailed,
   form,
   hasLookupCriteria,
-  isChinese,
   queryDateRange,
   sortModeLabel,
   submittedAtRange,
@@ -22,14 +21,14 @@ const {
   <section class="surface-card filter-panel">
     <div class="field-grid filter-grid">
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text001') }}</span>
         <el-select
           v-model="form.tenantId"
           filterable
           allow-create
           clearable
           default-first-option
-          :placeholder="isChinese ? '空条件，使用当前上下文租户' : 'Empty filter, use current context tenant'"
+          :placeholder="t('inline.viewsParseRecordParseRecordFilterPanel.text002')"
           data-testid="parse-record-tenant-select"
         >
           <el-option
@@ -41,11 +40,11 @@ const {
         </el-select>
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? '报表编码' : 'Report code' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text003') }}</span>
         <el-input v-model="form.reportCode" />
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? '数据源' : 'Datasource' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text004') }}</span>
         <el-select
           v-model="form.datasourceCode"
           filterable
@@ -62,29 +61,29 @@ const {
         </el-select>
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? '阶段' : 'Stage' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text005') }}</span>
         <el-input v-model="form.stage" />
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? '业务日期' : 'Biz date' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text006') }}</span>
         <el-date-picker v-model="form.bizDate" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" placeholder="2026-04-27" />
       </label>
       <label class="field-block field-block-wide">
-        <span class="field-label">{{ isChinese ? '查询日期区间' : 'Query date range' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text007') }}</span>
         <el-date-picker
           v-model="queryDateRange"
           type="daterange"
           value-format="YYYY-MM-DD"
           format="YYYY-MM-DD"
           unlink-panels
-          :range-separator="isChinese ? '至' : 'to'"
-          :start-placeholder="isChinese ? '开始日期' : 'Start date'"
-          :end-placeholder="isChinese ? '结束日期' : 'End date'"
+          :range-separator="t('inline.viewsParseRecordParseRecordFilterPanel.text008')"
+          :start-placeholder="t('inline.viewsParseRecordParseRecordFilterPanel.text009')"
+          :end-placeholder="t('inline.viewsParseRecordParseRecordFilterPanel.text010')"
           data-testid="parse-record-query-date-range"
         />
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? '结果状态' : 'Status' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text011') }}</span>
         <el-select v-model="form.status" data-testid="parse-record-filter-select">
           <el-option label="ALL" value="" />
           <el-option label="SUCCESS" value="SUCCESS" />
@@ -93,7 +92,7 @@ const {
         </el-select>
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? '接入渠道' : 'Access channel' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text012') }}</span>
         <el-select v-model="form.accessChannel" data-testid="parse-record-status-filter">
           <el-option label="ALL" value="" />
           <el-option label="PAGE" value="PAGE" />
@@ -104,7 +103,7 @@ const {
         </el-select>
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? '逻辑对象类型' : 'Logical object type' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text013') }}</span>
         <el-select v-model="form.logicalObjectType">
           <el-option label="ALL" value="" />
           <el-option label="BUSINESS_VIEW" value="BUSINESS_VIEW" />
@@ -112,7 +111,7 @@ const {
         </el-select>
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? '目标引擎' : 'Target engine' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text014') }}</span>
         <el-select v-model="form.engine" data-testid="parse-record-engine-filter">
           <el-option label="ALL" value="" />
           <el-option label="HETU" value="HETU" />
@@ -120,27 +119,27 @@ const {
         </el-select>
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? '提交人' : 'Submitted by' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text015') }}</span>
         <el-input v-model="form.submittedBy" />
       </label>
       <label class="field-block field-block-wide">
-        <span class="field-label">{{ isChinese ? '提交时间区间' : 'Submitted time range' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text016') }}</span>
         <el-date-picker
           v-model="submittedAtRange"
           type="datetimerange"
           value-format="YYYY-MM-DD[T]HH:mm:ss"
           format="YYYY-MM-DD HH:mm:ss"
           unlink-panels
-          :range-separator="isChinese ? '至' : 'to'"
-          :start-placeholder="isChinese ? '开始时间' : 'Start time'"
-          :end-placeholder="isChinese ? '结束时间' : 'End time'"
+          :range-separator="t('inline.viewsParseRecordParseRecordFilterPanel.text017')"
+          :start-placeholder="t('inline.viewsParseRecordParseRecordFilterPanel.text018')"
+          :end-placeholder="t('inline.viewsParseRecordParseRecordFilterPanel.text019')"
           data-testid="parse-record-submitted-at-range"
         />
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? '排序字段' : 'Sort by' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text020') }}</span>
         <el-select v-model="form.sortBy" clearable data-testid="parse-record-sort-select">
-          <el-option :label="isChinese ? '默认' : 'Default'" value="" />
+          <el-option :label="t('inline.viewsParseRecordParseRecordFilterPanel.text021')" value="" />
           <el-option label="submittedAt" value="submittedAt" />
           <el-option label="createTime" value="createTime" />
           <el-option label="finishedAt" value="finishedAt" />
@@ -149,33 +148,33 @@ const {
         </el-select>
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? '排序方向' : 'Sort order' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text022') }}</span>
         <el-select v-model="form.sortOrder" clearable>
-          <el-option :label="isChinese ? '默认' : 'Default'" value="" />
+          <el-option :label="t('inline.viewsParseRecordParseRecordFilterPanel.text023')" value="" />
           <el-option label="DESC" value="DESC" />
           <el-option label="ASC" value="ASC" />
         </el-select>
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? 'Trace ID' : 'Trace ID' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text024') }}</span>
         <el-input v-model="form.traceId" />
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? 'Task ID' : 'Task ID' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text025') }}</span>
         <el-input v-model="form.taskId" />
       </label>
       <label class="field-block">
-        <span class="field-label">{{ isChinese ? 'Report ID' : 'Report ID' }}</span>
+        <span class="field-label">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text026') }}</span>
         <el-input v-model="form.reportId" />
       </label>
     </div>
 
     <div class="chip-row">
-      <span class="chip">{{ isChinese ? 'History classification' : 'History classification' }}</span>
-      <span class="chip">{{ isChinese ? 'Sort mode' : 'Sort mode' }}: {{ sortModeLabel }}</span>
+      <span class="chip">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text027') }}</span>
+      <span class="chip">{{ t('inline.viewsParseRecordParseRecordFilterPanel.text028') }}: {{ sortModeLabel }}</span>
       <span class="chip" data-testid="parse-record-page-mode">{{ hasLookupCriteria ? 'INDEXED' : 'PAGE' }}</span>
       <span v-if="datasourceOptionsLoadFailed" class="chip chip-warning" data-testid="parse-record-datasource-options-fallback">
-        {{ isChinese ? '数据源候选加载失败，保留手动输入' : 'Datasource options unavailable; manual value allowed' }}
+        {{ t('inline.viewsParseRecordParseRecordFilterPanel.text029') }}
       </span>
     </div>
   </section>

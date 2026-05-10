@@ -14,7 +14,7 @@ import SectionHeader from '../common/SectionHeader.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const form = reactive({
   tenantId: 'tenant-a',
@@ -35,7 +35,6 @@ const errorMessage = ref('')
 const sessionTasks = ref([])
 const activeTab = ref('templates')
 
-const isChinese = computed(() => locale.value === 'zh-CN')
 
 // Static contract tokens: template catalog, test-set catalog, Comparison metrics, regression results.
 
@@ -43,12 +42,10 @@ const templateCatalog = computed(() => [
   {
     templateId: 'baseline-snapshot',
     taskType: 'BASELINE',
-    title: isChinese.value ? '基线快照模板' : 'Baseline snapshot template',
-    summary: isChinese.value
-      ? '沉淀稳定基线，供后续回归任务比对。'
-      : 'Capture a stable baseline for later regression tasks.',
-    datasetSummary: isChinese.value ? '单 SQL / 只读 / 影子环境必需' : 'Single SQL / readonly / shadow required',
-    executionSummary: isChinese.value ? 'repo-side task preset，不代表独立模板管理接口已上线。' : 'A repo-side task preset rather than a dedicated template-management API.',
+    title: t('inline.viewsBenchmarkBenchmarkView.text001'),
+    summary: t('inline.viewsBenchmarkBenchmarkView.text002'),
+    datasetSummary: t('inline.viewsBenchmarkBenchmarkView.text003'),
+    executionSummary: t('inline.viewsBenchmarkBenchmarkView.text004'),
     sqlText: 'SELECT * FROM orders',
     taskContext: {
       priority: 'HIGH',
@@ -63,12 +60,10 @@ const templateCatalog = computed(() => [
   {
     templateId: 'comparison-dual-engine',
     taskType: 'COMPARISON',
-    title: isChinese.value ? '双引擎对比模板' : 'Dual-engine comparison template',
-    summary: isChinese.value
-      ? '比较 HETU/HIVE 指标，给路由和推荐中心提供基线证据。'
-      : 'Compare HETU and HIVE metrics to support routing and recommendation evidence.',
-    datasetSummary: isChinese.value ? '跨引擎对比 / 只读 / 中等并发' : 'Cross-engine comparison / readonly / medium concurrency',
-    executionSummary: isChinese.value ? '当前页面用 task preset 组织模板，不宣称后端已有模板 CRUD。' : 'Templates are organized as task presets on this page without claiming backend template CRUD exists.',
+    title: t('inline.viewsBenchmarkBenchmarkView.text005'),
+    summary: t('inline.viewsBenchmarkBenchmarkView.text006'),
+    datasetSummary: t('inline.viewsBenchmarkBenchmarkView.text007'),
+    executionSummary: t('inline.viewsBenchmarkBenchmarkView.text008'),
     sqlText: 'SELECT * FROM orders',
     taskContext: {
       priority: 'HIGH',
@@ -83,12 +78,10 @@ const templateCatalog = computed(() => [
   {
     templateId: 'regression-guard',
     taskType: 'REGRESSION_GUARD',
-    title: isChinese.value ? '回归守卫模板' : 'Regression guard template',
-    summary: isChinese.value
-      ? '关注 p99 延迟与扫描量，输出 release gate 风险。'
-      : 'Focus on p99 latency and scan volume to produce a release-gate verdict.',
-    datasetSummary: isChinese.value ? '回归验证 / 阈值门禁 / 只读' : 'Regression validation / threshold gate / readonly',
-    executionSummary: isChinese.value ? '用于回归模式展示，不把“测试集管理”误写成已落库对象。' : 'Used to render the regression mode without pretending test-set management is already persisted.',
+    title: t('inline.viewsBenchmarkBenchmarkView.text009'),
+    summary: t('inline.viewsBenchmarkBenchmarkView.text010'),
+    datasetSummary: t('inline.viewsBenchmarkBenchmarkView.text011'),
+    executionSummary: t('inline.viewsBenchmarkBenchmarkView.text012'),
     sqlText: 'SELECT * FROM orders WHERE ds = CURRENT_DATE',
     taskContext: {
       priority: 'HIGH',
@@ -105,28 +98,22 @@ const templateCatalog = computed(() => [
 const testSetCatalog = computed(() => [
   {
     testSetId: 'set-route-comparison',
-    title: isChinese.value ? '路由对比集' : 'Routing comparison set',
-    summary: isChinese.value
-      ? '以 comparison template 驱动跨引擎样本，供 route governance 和 recommendation 复用。'
-      : 'A comparison-driven sample set reused by route-governance and recommendation pages.',
+    title: t('inline.viewsBenchmarkBenchmarkView.text013'),
+    summary: t('inline.viewsBenchmarkBenchmarkView.text014'),
     mode: 'COMPARISON',
     implementationStage: 'SESSION_CATALOG_ONLY'
   },
   {
     testSetId: 'set-baseline-capture',
-    title: isChinese.value ? '基线沉淀集' : 'Baseline capture set',
-    summary: isChinese.value
-      ? '在 repo-side 以预置任务参数承载，不宣称独立 test-set API 已存在。'
-      : 'Carried as repo-side task presets instead of claiming a dedicated test-set API already exists.',
+    title: t('inline.viewsBenchmarkBenchmarkView.text015'),
+    summary: t('inline.viewsBenchmarkBenchmarkView.text016'),
     mode: 'BASELINE',
     implementationStage: 'SESSION_CATALOG_ONLY'
   },
   {
     testSetId: 'set-regression-gate',
-    title: isChinese.value ? '回归门禁集' : 'Regression gate set',
-    summary: isChinese.value
-      ? '聚焦阈值结论、recommendation 建议与回归阻断。'
-      : 'Focuses on threshold verdicts, recommendations, and regression blocking.',
+    title: t('inline.viewsBenchmarkBenchmarkView.text017'),
+    summary: t('inline.viewsBenchmarkBenchmarkView.text018'),
     mode: 'REGRESSION_GUARD',
     implementationStage: 'SESSION_CATALOG_ONLY'
   }
@@ -142,13 +129,13 @@ const activeTaskCards = computed(() => {
   }
   return [
     field('taskId', 'Task ID', taskStatus.value.taskId),
-    field('taskType', isChinese.value ? '任务类型' : 'Task type', taskStatus.value.taskType),
+    field('taskType', t('inline.viewsBenchmarkBenchmarkView.text019'), taskStatus.value.taskType),
     field('status', 'Status', taskStatus.value.status),
-    field('currentPhase', isChinese.value ? '当前阶段' : 'Current phase', taskStatus.value.currentPhase),
+    field('currentPhase', t('inline.viewsBenchmarkBenchmarkView.text020'), taskStatus.value.currentPhase),
     field('priority', 'Priority', taskStatus.value.priority),
-    field('progressPercent', isChinese.value ? '进度' : 'Progress', taskStatus.value.progressPercent),
-    field('queueMode', isChinese.value ? '队列模式' : 'Queue mode', taskStatus.value.queueMode),
-    field('shadowEnvironmentMode', isChinese.value ? '影子环境' : 'Shadow environment', taskStatus.value.shadowEnvironmentMode)
+    field('progressPercent', t('inline.viewsBenchmarkBenchmarkView.text021'), taskStatus.value.progressPercent),
+    field('queueMode', t('inline.viewsBenchmarkBenchmarkView.text022'), taskStatus.value.queueMode),
+    field('shadowEnvironmentMode', t('inline.viewsBenchmarkBenchmarkView.text023'), taskStatus.value.shadowEnvironmentMode)
   ].filter(item => displayValue(item.value) !== '-')
 })
 

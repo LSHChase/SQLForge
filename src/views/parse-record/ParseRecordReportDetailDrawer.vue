@@ -76,12 +76,12 @@ const {
 <template>
   <el-drawer
     v-model="reportBatchDetailDrawerVisible"
-    :title="selectedReportBatchDetail?.batchName || selectedReportBatchDetail?.batchId || (isChinese ? '报表导入详情' : 'Report import detail')"
+    :title="selectedReportBatchDetail?.batchName || selectedReportBatchDetail?.batchId || (t('inline.viewsParseRecordParseRecordReportDetailDrawer.text001'))"
     size="64%"
     data-testid="parse-record-report-batch-detail"
   >
     <el-tabs v-model="activeReportBatchDetailTab" data-testid="parse-record-report-detail-tabs">
-      <el-tab-pane :label="isChinese ? '概览' : 'Overview'" name="overview">
+      <el-tab-pane :label="t('inline.viewsParseRecordParseRecordReportDetailDrawer.text002')" name="overview">
         <div class="summary-grid">
           <article v-for="item in reportBatchDetailCards" :key="item.label" class="summary-card">
             <span class="summary-card-label">{{ item.label }}</span>
@@ -90,17 +90,17 @@ const {
         </div>
       </el-tab-pane>
 
-      <el-tab-pane :label="isChinese ? '报表级统计' : 'Report-level statistics'" name="statistics">
+      <el-tab-pane :label="t('inline.viewsParseRecordParseRecordReportDetailDrawer.text003')" name="statistics">
         <section class="code-card">
           <div class="code-card__header">
-            <span>{{ isChinese ? '报表级解析统计' : 'Report-level parse statistics' }}</span>
+            <span>{{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text004') }}</span>
           </div>
           <el-tabs
             v-model="activeReportBatchStatisticsTab"
             class="statistics-tabs"
             data-testid="parse-record-report-statistics-tabs"
           >
-            <el-tab-pane :label="isChinese ? '问题场景' : 'Issue scenes'" name="issueScene">
+            <el-tab-pane :label="t('inline.viewsParseRecordParseRecordReportDetailDrawer.text005')" name="issueScene">
               <el-table
                 v-loading="loading.reportBatchDetail"
                 :data="reportBatchIssueStatisticsPage"
@@ -140,7 +140,7 @@ const {
                 </el-table-column>
                 <template #empty>
                   <p class="empty-copy">
-                    {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics in this report batch.' }}
+                    {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text006') }}
                   </p>
                 </template>
               </el-table>
@@ -156,7 +156,7 @@ const {
                 @size-change="handleReportBatchIssueStatisticsPageSizeChange"
               />
             </el-tab-pane>
-            <el-tab-pane :label="isChinese ? '重要程度' : 'Importance'" name="importance">
+            <el-tab-pane :label="t('inline.viewsParseRecordParseRecordReportDetailDrawer.text007')" name="importance">
               <div class="detail-grid">
                 <div
                   v-for="item in selectedReportImportanceStatistics"
@@ -169,7 +169,7 @@ const {
                 </div>
               </div>
             </el-tab-pane>
-            <el-tab-pane :label="isChinese ? '报表视角' : 'Report view'" name="report">
+            <el-tab-pane :label="t('inline.viewsParseRecordParseRecordReportDetailDrawer.text008')" name="report">
               <div class="detail-grid">
                 <div
                   v-for="item in selectedReportBackendReportStatistics"
@@ -189,7 +189,7 @@ const {
                 </div>
               </div>
             </el-tab-pane>
-            <el-tab-pane :label="isChinese ? 'SQL 清单' : 'SQL list'" name="sqlList">
+            <el-tab-pane :label="t('inline.viewsParseRecordParseRecordReportDetailDrawer.text009')" name="sqlList">
               <div class="detail-grid">
                 <div
                   v-for="item in selectedReportBackendSqlStatistics.slice(0, 8)"
@@ -200,7 +200,7 @@ const {
                   <span>{{ item.reportCode }} · {{ item.sqlColumnName || item.itemId }}</span>
                   <strong>{{ item.highestPriorityLevel }} · {{ item.issueCount }} issues</strong>
                   <p>
-                    {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                    {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text010') }}:
                     <el-tooltip
                       v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
                       v-bind="{ content: issueSceneListHelp(issueSceneCodesForItem(item)) }"
@@ -214,7 +214,7 @@ const {
                 </div>
               </div>
             </el-tab-pane>
-            <el-tab-pane :label="isChinese ? '优先级视角' : 'Priority view'" name="priority">
+            <el-tab-pane :label="t('inline.viewsParseRecordParseRecordReportDetailDrawer.text011')" name="priority">
               <div class="detail-grid">
                 <div
                   v-for="item in selectedReportPriorityMatrix"
@@ -227,7 +227,7 @@ const {
                 </div>
               </div>
             </el-tab-pane>
-            <el-tab-pane :label="isChinese ? '逻辑对象视角' : 'Logical objects'" name="logicalObject">
+            <el-tab-pane :label="t('inline.viewsParseRecordParseRecordReportDetailDrawer.text012')" name="logicalObject">
               <div class="detail-grid">
                 <div
                   v-for="item in reportBatchLogicalObjectStatistics"
@@ -244,19 +244,19 @@ const {
         </section>
       </el-tab-pane>
 
-      <el-tab-pane :label="isChinese ? 'SQL 清单' : 'SQL list'" name="sqlList">
+      <el-tab-pane :label="t('inline.viewsParseRecordParseRecordReportDetailDrawer.text013')" name="sqlList">
         <section class="code-card">
           <div class="code-card__header">
-            <span>{{ isChinese ? 'SQL 级解析详情' : 'SQL-level parse detail' }}</span>
+            <span>{{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text014') }}</span>
           </div>
           <div class="filter-row" data-testid="parse-record-report-sql-filter">
             <el-input
               v-model="reportBatchSqlPagination.reportCode"
-              :placeholder="isChinese ? '按报表编码筛选' : 'Filter by report code'"
+              :placeholder="t('inline.viewsParseRecordParseRecordReportDetailDrawer.text015')"
               clearable
             />
             <el-button :loading="loading.reportBatchDetail" @click="applyReportBatchSqlFilter">
-              {{ isChinese ? '查询' : 'Search' }}
+              {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text016') }}
             </el-button>
           </div>
           <div class="summary-chip-row" data-testid="parse-record-report-sql-detail-statistics">
@@ -264,7 +264,7 @@ const {
               {{ item.label }}: <strong>{{ item.value }}</strong>
             </span>
             <span v-if="loading.reportBatchItemDetails" class="summary-chip summary-chip-warning">
-              {{ isChinese ? '正在加载每条 SQL 的解析详情' : 'Loading per-SQL parse details' }}
+              {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text017') }}
             </span>
           </div>
           <p v-if="reportBatchItemDetailErrorMessage" class="empty-copy" data-testid="parse-record-report-sql-detail-load-warning">
@@ -283,12 +283,12 @@ const {
               </div>
               <p>
                 {{ displayValue(group.reportName) }}
-                · {{ isChinese ? '已解析' : 'Resolved' }} {{ group.resolved }}
-                · {{ isChinese ? '失败' : 'Failed' }} {{ group.failed }}
+                · {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text018') }} {{ group.resolved }}
+                · {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text019') }} {{ group.failed }}
                 · Structure {{ formatPercent(group.structureRate) }}
                 · Access {{ formatPercent(group.accessRate) }}
-                · {{ isChinese ? '问题场景' : 'Issue scenes' }} {{ group.issueSceneCount }}
-                · {{ isChinese ? '逻辑对象' : 'Logical objects' }} {{ group.logicalObjectCount }}
+                · {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text020') }} {{ group.issueSceneCount }}
+                · {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text021') }} {{ group.logicalObjectCount }}
               </p>
               <div class="report-sql-list">
                 <article
@@ -300,17 +300,17 @@ const {
                   <span>{{ item.sqlColumnName || item.itemId || `SQL ${index + 1}` }} · {{ displayValue(item.status) }}</span>
                   <strong>{{ displayValue(item.reportName || group.reportCode) }}</strong>
                   <p>
-                    {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
+                    {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text022') }}: {{ displayValue(item.parseTaskId) }}
                     · Structure: {{ displayValue(item.structureSyntaxStatus) }}
                     · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
                   </p>
                   <p data-testid="parse-record-report-sql-history-link">
-                    {{ isChinese ? '解析历史' : 'Parse history' }}:
+                    {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text023') }}:
                     {{ displayValue(reportHistoryIdForItem(item)) }}
                     · {{ displayValue(item.historyPersistenceStatus) }}
                   </p>
                   <p>
-                    {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                    {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text024') }}:
                     <el-tooltip
                       v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
                       v-bind="{ content: issueSceneListHelp(issueSceneCodesForItem(item)) }"
@@ -321,29 +321,29 @@ const {
                     </el-tooltip>
                     {{ displayValue(issueSceneCodesForItem(item)) }}
                   </p>
-                  <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
-                  <p class="empty-copy">{{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}</p>
+                  <p>{{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text025') }}: {{ displayValue(item.logicalObjectKeys) }}</p>
+                  <p class="empty-copy">{{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text026') }}: {{ issueLocationText(item) }}</p>
                   <div v-if="reportHistoryIdForItem(item) && !reportItemParseDetail(item)" class="dialog-actions">
                     <el-button text :loading="loading.reportBatchItemDetails" @click="loadReportBatchItemDetail(item)">
-                      {{ isChinese ? '加载解析详情' : 'Load parse detail' }}
+                      {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text027') }}
                     </el-button>
                   </div>
                   <div v-else-if="reportItemParseDetail(item)" class="dialog-actions">
                     <el-button text data-testid="parse-record-report-sql-parse-detail" @click="openReportSqlParseDetail(item)">
-                      {{ isChinese ? '查看解析详情弹窗' : 'Open parse detail dialog' }}
+                      {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text028') }}
                     </el-button>
                   </div>
                   <p v-else-if="reportHistoryIdForItem(item) && !loading.reportBatchItemDetails" class="empty-copy" data-testid="parse-record-report-sql-detail-missing">
-                    {{ isChinese ? '点击加载解析详情后展示结构化解析统计。' : 'Load parse detail to show structured parse statistics.' }}
+                    {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text029') }}
                   </p>
                   <p v-else class="empty-copy" data-testid="parse-record-report-sql-history-detail-unavailable">
-                    {{ isChinese ? '解析历史暂不可用；当前仅展示报表批次内的 SQL 解析证据。' : 'Parse history is unavailable; this card shows report-batch SQL evidence only.' }}
+                    {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text030') }}
                   </p>
                 </article>
               </div>
             </section>
             <p v-if="!selectedReportItems.length" class="empty-copy">
-              {{ isChinese ? '导入解析后会展示 SQL 明细。' : 'SQL detail appears after report SQL resolution.' }}
+              {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text031') }}
             </p>
             <el-pagination
               v-if="Number(selectedReportBatchDetail?.itemTotalCount || 0) > reportBatchSqlPagination.pageSize"
@@ -387,22 +387,22 @@ const {
           </el-tooltip>
         </span>
         <span v-if="loading.reportBatchIssueSceneDetail" class="summary-chip summary-chip-warning">
-          {{ isChinese ? '正在加载场景详情' : 'Loading scene detail' }}
+          {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text032') }}
         </span>
       </div>
       <div class="filter-row">
         <el-input
           v-model="reportBatchIssueScenePagination.reportCode"
-          :placeholder="isChinese ? '按报表编码筛选' : 'Filter by report code'"
+          :placeholder="t('inline.viewsParseRecordParseRecordReportDetailDrawer.text033')"
           clearable
         />
         <el-input
           v-model="reportBatchIssueScenePagination.logicalObjectKey"
-          :placeholder="isChinese ? '按逻辑对象筛选' : 'Filter by logical object'"
+          :placeholder="t('inline.viewsParseRecordParseRecordReportDetailDrawer.text034')"
           clearable
         />
         <el-button :loading="loading.reportBatchIssueSceneDetail" @click="applyReportBatchIssueSceneFilter">
-          {{ isChinese ? '查询详情' : 'Search detail' }}
+          {{ t('inline.viewsParseRecordParseRecordReportDetailDrawer.text035') }}
         </el-button>
       </div>
       <div class="linked-filter-row" data-testid="parse-record-report-issue-scene-linked-filters">

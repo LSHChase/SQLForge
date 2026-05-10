@@ -2,7 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import { useParseRecordContext } from './parseRecordContext'
 
-useI18n()
+const { t } = useI18n()
 
 const {
   batchHistoryErrorMessage,
@@ -12,7 +12,6 @@ const {
   handleParseBatchHistoryPageSizeChange,
   handleReportBatchHistoryPageChange,
   handleReportBatchHistoryPageSizeChange,
-  isChinese,
   LIST_PAGE_SIZE_OPTIONS,
   loading,
   openParseBatchCenter,
@@ -28,16 +27,16 @@ const {
 </script>
 
 <template>
-  <el-tab-pane :label="isChinese ? '批量解析与报表导入历史' : 'Batch parse and report-import history'" name="batchHistory">
+  <el-tab-pane :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text001')" name="batchHistory">
     <section class="surface-card batch-history-panel" data-testid="parse-record-batch-report-history-tab">
       <div class="table-heading">
         <div>
           <p class="section-kicker sqlforge-code-label">batch history</p>
-          <h2 class="section-title">{{ isChinese ? '批量解析与报表导入历史' : 'Batch parse and report-import history' }}</h2>
+          <h2 class="section-title">{{ t('inline.viewsParseRecordParseRecordBatchHistoryPane.text002') }}</h2>
         </div>
         <div class="chip-row">
-          <span class="chip">{{ isChinese ? '服务端持久化' : 'Server persisted' }}</span>
-          <span class="chip">{{ isChinese ? '可回跳批量中心' : 'Deep links to batch center' }}</span>
+          <span class="chip">{{ t('inline.viewsParseRecordParseRecordBatchHistoryPane.text003') }}</span>
+          <span class="chip">{{ t('inline.viewsParseRecordParseRecordBatchHistoryPane.text004') }}</span>
         </div>
       </div>
 
@@ -50,7 +49,7 @@ const {
       </div>
 
       <el-tabs v-model="batchHistoryTab">
-        <el-tab-pane :label="isChinese ? '批量解析历史' : 'Batch parse history'" name="parse">
+        <el-tab-pane :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text005')" name="parse">
           <section class="summary-grid batch-history-summary">
             <article v-for="item in parseBatchHistorySummary" :key="item.label" class="summary-card">
               <span class="summary-card-label">{{ item.label }}</span>
@@ -58,7 +57,7 @@ const {
             </article>
           </section>
           <el-table :data="parseBatchHistoryRows" border>
-            <el-table-column prop="batchName" :label="isChinese ? '批次名称' : 'Batch name'" min-width="200">
+            <el-table-column prop="batchName" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text006')" min-width="200">
               <template #default="{ row }">
                 <button
                   type="button"
@@ -70,13 +69,13 @@ const {
                 </button>
               </template>
             </el-table-column>
-            <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
-            <el-table-column prop="importMode" :label="isChinese ? '导入模式' : 'Import mode'" min-width="140" />
-            <el-table-column prop="fileType" :label="isChinese ? '文件类型' : 'File type'" min-width="120" />
-            <el-table-column prop="totalRecords" :label="isChinese ? '总记录' : 'Total records'" min-width="110" />
-            <el-table-column prop="successRecords" :label="isChinese ? '成功' : 'Success'" min-width="100" />
-            <el-table-column prop="failedRecords" :label="isChinese ? '失败' : 'Failed'" min-width="100" />
-            <el-table-column prop="createdAt" :label="isChinese ? '创建时间' : 'Created at'" min-width="170">
+            <el-table-column prop="status" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text007')" min-width="120" />
+            <el-table-column prop="importMode" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text008')" min-width="140" />
+            <el-table-column prop="fileType" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text009')" min-width="120" />
+            <el-table-column prop="totalRecords" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text010')" min-width="110" />
+            <el-table-column prop="successRecords" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text011')" min-width="100" />
+            <el-table-column prop="failedRecords" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text012')" min-width="100" />
+            <el-table-column prop="createdAt" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text013')" min-width="170">
               <template #default="{ row }">{{ formatTimestamp(row.createdAt) }}</template>
             </el-table-column>
           </el-table>
@@ -92,7 +91,7 @@ const {
           />
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? '报表导入历史' : 'Report import history'" name="report">
+        <el-tab-pane :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text014')" name="report">
           <section class="summary-grid batch-history-summary">
             <article v-for="item in reportBatchHistorySummary" :key="item.label" class="summary-card">
               <span class="summary-card-label">{{ item.label }}</span>
@@ -100,7 +99,7 @@ const {
             </article>
           </section>
           <el-table :data="reportBatchHistoryRows" border>
-            <el-table-column prop="batchName" :label="isChinese ? '批次名称' : 'Batch name'" min-width="200">
+            <el-table-column prop="batchName" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text015')" min-width="200">
               <template #default="{ row }">
                 <button
                   type="button"
@@ -112,18 +111,18 @@ const {
                 </button>
               </template>
             </el-table-column>
-            <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
-            <el-table-column prop="fileType" :label="isChinese ? '文件类型' : 'File type'" min-width="120" />
-            <el-table-column prop="totalReports" :label="isChinese ? '报表总数' : 'Total reports'" min-width="120" />
-            <el-table-column prop="resolvedReports" :label="isChinese ? '已解析' : 'Resolved'" min-width="110" />
-            <el-table-column prop="failedReports" :label="isChinese ? '失败' : 'Failed'" min-width="100" />
-            <el-table-column prop="createdAt" :label="isChinese ? '创建时间' : 'Created at'" min-width="170">
+            <el-table-column prop="status" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text016')" min-width="120" />
+            <el-table-column prop="fileType" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text017')" min-width="120" />
+            <el-table-column prop="totalReports" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text018')" min-width="120" />
+            <el-table-column prop="resolvedReports" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text019')" min-width="110" />
+            <el-table-column prop="failedReports" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text020')" min-width="100" />
+            <el-table-column prop="createdAt" :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text021')" min-width="170">
               <template #default="{ row }">{{ formatTimestamp(row.createdAt) }}</template>
             </el-table-column>
-            <el-table-column :label="isChinese ? '操作' : 'Actions'" min-width="120">
+            <el-table-column :label="t('inline.viewsParseRecordParseRecordBatchHistoryPane.text022')" min-width="120">
               <template #default="{ row }">
                 <el-button text :loading="loading.reportBatchDetail" @click="openReportBatchCenter(row.batchId)">
-                  {{ isChinese ? '批量中心' : 'Batch center' }}
+                  {{ t('inline.viewsParseRecordParseRecordBatchHistoryPane.text023') }}
                 </el-button>
               </template>
             </el-table-column>

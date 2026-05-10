@@ -13,7 +13,7 @@ import {
 } from '../../services/runtimeGateApi'
 
 const route = useRoute()
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const statisticsTabs = new Set(['issue', 'important', 'report', 'sql', 'severity', 'priority', 'logical-object', 'parse-status'])
 
 const form = reactive({
@@ -49,7 +49,6 @@ const statisticErrors = reactive({
   importantUrgent: ''
 })
 
-const isChinese = computed(() => locale.value === 'zh-CN')
 const statisticErrorMessages = computed(() =>
   Object.entries(statisticErrors)
     .filter(([, message]) => Boolean(message))
@@ -64,12 +63,12 @@ const overviewCards = computed(() => {
     return []
   }
   return [
-    card(isChinese.value ? 'SQL 总数' : 'Total SQL', overview.value.totalSqlCount, 'totalSqlCount'),
-    card(isChinese.value ? '问题 SQL' : 'Issue SQL', overview.value.issueSqlCount, 'issueSqlCount'),
-    card(isChinese.value ? '问题总数' : 'Total issues', overview.value.totalIssueCount, 'totalIssueCount'),
-    card(isChinese.value ? '问题场景数' : 'Issue scenes', overview.value.issueSceneCount, 'issueSceneCount'),
-    card(isChinese.value ? 'Important SQL' : 'Important SQL', overview.value.importantSqlCount, 'importantSqlCount'),
-    card(isChinese.value ? 'Urgent SQL' : 'Urgent SQL', overview.value.urgentSqlCount, 'urgentSqlCount')
+    card(t('inline.viewsParseStatisticsParseStatisticsCenterView.text001'), overview.value.totalSqlCount, 'totalSqlCount'),
+    card(t('inline.viewsParseStatisticsParseStatisticsCenterView.text002'), overview.value.issueSqlCount, 'issueSqlCount'),
+    card(t('inline.viewsParseStatisticsParseStatisticsCenterView.text003'), overview.value.totalIssueCount, 'totalIssueCount'),
+    card(t('inline.viewsParseStatisticsParseStatisticsCenterView.text004'), overview.value.issueSceneCount, 'issueSceneCount'),
+    card(t('inline.viewsParseStatisticsParseStatisticsCenterView.text005'), overview.value.importantSqlCount, 'importantSqlCount'),
+    card(t('inline.viewsParseStatisticsParseStatisticsCenterView.text006'), overview.value.urgentSqlCount, 'urgentSqlCount')
   ].slice(0, 6)
 })
 const priorityDistribution = computed(() => Object.entries(overview.value?.priorityDistribution || {}))
@@ -203,14 +202,14 @@ const statisticErrorLabel = key => {
 
 const helpTextForKey = key => {
   const glossary = {
-    totalSqlCount: isChinese.value ? '当前统计范围内的 SQL 总量。' : 'Total SQL rows in the current statistics scope.',
-    issueSqlCount: isChinese.value ? '至少命中一个问题场景的 SQL 数。' : 'SQL rows with at least one issue scene.',
-    totalIssueCount: isChinese.value ? '所有 SQL 命中的问题总次数。' : 'Total issue hits across SQL rows.',
-    issueSceneCount: isChinese.value ? '本次统计中出现过的不同问题场景数。' : 'Number of distinct issue scenes in this statistics scope.',
-    importantSqlCount: isChinese.value ? '命中 important 判定的 SQL 数。' : 'SQL rows marked important by scoring.',
-    urgentSqlCount: isChinese.value ? '命中 urgent 判定的 SQL 数。' : 'SQL rows marked urgent by scoring.',
-    sqlList: isChinese.value ? 'SQL 清单只展示元信息和问题场景；完整 SQL 应进入独立 SQL 输出区。' : 'The SQL list shows metadata and issue scenes; full SQL belongs in a dedicated SQL output area.',
-    issueLocation: isChinese.value ? '问题定位应使用命中的短 SQL 片段、失败 token 或行列信息，不展示整条 SQL。' : 'Issue location should use short matched snippets, failed tokens, or line/column data instead of full SQL.'
+    totalSqlCount: t('inline.viewsParseStatisticsParseStatisticsCenterView.text007'),
+    issueSqlCount: t('inline.viewsParseStatisticsParseStatisticsCenterView.text008'),
+    totalIssueCount: t('inline.viewsParseStatisticsParseStatisticsCenterView.text009'),
+    issueSceneCount: t('inline.viewsParseStatisticsParseStatisticsCenterView.text010'),
+    importantSqlCount: t('inline.viewsParseStatisticsParseStatisticsCenterView.text011'),
+    urgentSqlCount: t('inline.viewsParseStatisticsParseStatisticsCenterView.text012'),
+    sqlList: t('inline.viewsParseStatisticsParseStatisticsCenterView.text013'),
+    issueLocation: t('inline.viewsParseStatisticsParseStatisticsCenterView.text014')
   }
   return glossary[key] || ''
 }
@@ -410,7 +409,7 @@ watch(
       </div>
       <div class="hero-actions">
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseStatisticsParseStatisticsCenterView.text015') }}</span>
           <el-input v-model="form.tenantId" />
         </label>
         <el-button
@@ -419,7 +418,7 @@ watch(
           data-testid="statistics-refresh"
           @click="loadStatistics"
         >
-          {{ isChinese ? '刷新统计' : 'Refresh statistics' }}
+          {{ t('inline.viewsParseStatisticsParseStatisticsCenterView.text016') }}
         </el-button>
       </div>
     </header>
@@ -464,7 +463,7 @@ watch(
           <div class="panel-heading">
             <div>
               <p class="section-kicker sqlforge-code-label">Parse overview</p>
-              <h2 class="section-title">{{ isChinese ? '解析总览' : 'Parse overview' }}</h2>
+              <h2 class="section-title">{{ t('inline.viewsParseStatisticsParseStatisticsCenterView.text017') }}</h2>
             </div>
           </div>
 
@@ -484,7 +483,7 @@ watch(
           <div class="panel-heading">
             <div>
               <p class="section-kicker sqlforge-code-label">Priority matrix</p>
-              <h2 class="section-title">{{ isChinese ? '优先级矩阵' : 'Priority matrix' }}</h2>
+              <h2 class="section-title">{{ t('inline.viewsParseStatisticsParseStatisticsCenterView.text018') }}</h2>
             </div>
           </div>
 
@@ -506,15 +505,15 @@ watch(
 
       <section class="surface-card result-stage">
         <el-tabs v-model="activeTab">
-          <el-tab-pane :label="isChinese ? '问题分布' : 'Issue distribution'" name="issue">
+          <el-tab-pane :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text019')" name="issue">
             <div class="table-heading">
               <div>
                 <p class="section-kicker sqlforge-code-label">Issue distribution</p>
-                <h2 class="section-title">{{ isChinese ? '问题分布' : 'Issue distribution' }}</h2>
+                <h2 class="section-title">{{ t('inline.viewsParseStatisticsParseStatisticsCenterView.text020') }}</h2>
               </div>
             </div>
             <el-table :data="issueScenes" border>
-              <el-table-column prop="issueScene" :label="isChinese ? '问题场景' : 'Issue scene'" min-width="180">
+              <el-table-column prop="issueScene" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text021')" min-width="180">
                 <template #default="{ row }">
                   <button
                     type="button"
@@ -526,26 +525,26 @@ watch(
                   </button>
                 </template>
               </el-table-column>
-              <el-table-column prop="issueDomain" :label="isChinese ? '领域' : 'Domain'" min-width="120" />
-              <el-table-column prop="severity" :label="isChinese ? '严重度' : 'Severity'" min-width="120" />
-              <el-table-column prop="priorityLevel" :label="isChinese ? '优先级' : 'Priority'" min-width="120" />
-              <el-table-column prop="affectedSqlCount" :label="isChinese ? '影响 SQL' : 'Affected SQL'" min-width="120" />
-              <el-table-column prop="affectedIssueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="100" />
-              <el-table-column :label="isChinese ? '占比' : 'Ratio'" min-width="100">
+              <el-table-column prop="issueDomain" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text022')" min-width="120" />
+              <el-table-column prop="severity" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text023')" min-width="120" />
+              <el-table-column prop="priorityLevel" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text024')" min-width="120" />
+              <el-table-column prop="affectedSqlCount" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text025')" min-width="120" />
+              <el-table-column prop="affectedIssueCount" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text026')" min-width="100" />
+              <el-table-column :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text027')" min-width="100">
                 <template #default="{ row }">{{ formatRate(row.sqlRatio) }}</template>
               </el-table-column>
             </el-table>
           </el-tab-pane>
 
-          <el-tab-pane :label="isChinese ? '重要/紧急' : 'Important or urgent list'" name="important">
+          <el-tab-pane :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text028')" name="important">
             <div class="table-heading">
               <div>
                 <p class="section-kicker sqlforge-code-label">Important or urgent list</p>
-                <h2 class="section-title">{{ isChinese ? 'Important / Urgent 清单' : 'Important or urgent list' }}</h2>
+                <h2 class="section-title">{{ t('inline.viewsParseStatisticsParseStatisticsCenterView.text029') }}</h2>
               </div>
             </div>
             <el-table :data="importantUrgent" border>
-              <el-table-column :label="isChinese ? '对象' : 'Item'" min-width="180">
+              <el-table-column :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text030')" min-width="180">
                 <template #default="{ row }">
                   <button
                     type="button"
@@ -557,70 +556,70 @@ watch(
                   </button>
                 </template>
               </el-table-column>
-              <el-table-column :label="isChinese ? '最高优先级' : 'Highest priority'" min-width="150">
+              <el-table-column :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text031')" min-width="150">
                 <template #default="{ row }">{{ row.highestPriorityLevel }} / {{ row.highestPriorityScore }}</template>
               </el-table-column>
-              <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
-              <el-table-column prop="stage" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
-              <el-table-column :label="isChinese ? '问题场景' : 'Issue scenes'" min-width="220">
+              <el-table-column prop="datasourceCode" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text032')" min-width="140" />
+              <el-table-column prop="stage" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text033')" min-width="110" />
+              <el-table-column :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text034')" min-width="220">
                 <template #default="{ row }">{{ displayList(row.issueScenes) }}</template>
               </el-table-column>
             </el-table>
           </el-tab-pane>
 
-          <el-tab-pane :label="isChinese ? '报表视角' : 'By report'" name="report">
+          <el-tab-pane :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text035')" name="report">
             <div class="table-heading">
               <div>
                 <p class="section-kicker sqlforge-code-label">By report</p>
-                <h2 class="section-title">{{ isChinese ? '报表视角' : 'By report' }}</h2>
+                <h2 class="section-title">{{ t('inline.viewsParseStatisticsParseStatisticsCenterView.text036') }}</h2>
               </div>
             </div>
             <el-table :data="reportStats" border>
-              <el-table-column prop="reportCode" :label="isChinese ? '报表编码' : 'Report code'" min-width="180">
+              <el-table-column prop="reportCode" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text037')" min-width="180">
                 <template #default="{ row }">
                   <button type="button" class="table-link" @click="openDetailDialog(row.reportCode, row)">
                     {{ row.reportCode }}
                   </button>
                 </template>
               </el-table-column>
-              <el-table-column prop="sqlCount" :label="isChinese ? 'SQL 数' : 'SQL count'" min-width="120" />
-              <el-table-column prop="issueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="120" />
-              <el-table-column :label="isChinese ? '最高优先级' : 'Highest priority'" min-width="150">
+              <el-table-column prop="sqlCount" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text038')" min-width="120" />
+              <el-table-column prop="issueCount" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text039')" min-width="120" />
+              <el-table-column :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text040')" min-width="150">
                 <template #default="{ row }">{{ row.highestPriorityLevel }} / {{ row.highestPriorityScore }}</template>
               </el-table-column>
-              <el-table-column :label="isChinese ? '重要 / 紧急' : 'Important / urgent'" min-width="130">
+              <el-table-column :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text041')" min-width="130">
                 <template #default="{ row }">{{ boolText(row.important) }} / {{ boolText(row.urgent) }}</template>
               </el-table-column>
             </el-table>
           </el-tab-pane>
 
-          <el-tab-pane :label="isChinese ? 'SQL 清单' : 'By SQL'" name="sql">
+          <el-tab-pane :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text042')" name="sql">
             <div class="table-heading">
               <div>
                 <p class="section-kicker sqlforge-code-label">By SQL</p>
                 <h2 class="section-title">
-                  {{ isChinese ? 'SQL 清单' : 'By SQL' }}
-                  <el-button text size="small" class="help-dot" aria-label="field help" @click="openFieldHelp('sqlList', isChinese ? 'SQL 清单' : 'SQL list')">
+                  {{ t('inline.viewsParseStatisticsParseStatisticsCenterView.text043') }}
+                  <el-button text size="small" class="help-dot" aria-label="field help" @click="openFieldHelp('sqlList', t('inline.viewsParseStatisticsParseStatisticsCenterView.text044'))">
                     ?
                   </el-button>
                 </h2>
               </div>
             </div>
             <el-table :data="sqlStats" border>
-              <el-table-column :label="isChinese ? '对象' : 'Item'" min-width="180">
+              <el-table-column :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text045')" min-width="180">
                 <template #default="{ row }">
                   <button type="button" class="table-link" @click="openDetailDialog(row.reportCode || row.itemId || row.parseTaskId || 'sql', row)">
                     {{ row.reportCode || row.itemId || row.parseTaskId || '-' }}
                   </button>
                 </template>
               </el-table-column>
-              <el-table-column :label="isChinese ? '优先级' : 'Priority'" min-width="150">
+              <el-table-column :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text046')" min-width="150">
                 <template #default="{ row }">{{ row.highestPriorityLevel }} / {{ row.highestPriorityScore }}</template>
               </el-table-column>
-              <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
-              <el-table-column prop="stage" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
-              <el-table-column prop="issueCount" :label="isChinese ? '问题数' : 'Issues'" min-width="110" />
-              <el-table-column :label="isChinese ? '问题场景' : 'Issue scenes'" min-width="220">
+              <el-table-column prop="datasourceCode" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text047')" min-width="140" />
+              <el-table-column prop="stage" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text048')" min-width="110" />
+              <el-table-column prop="issueCount" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text049')" min-width="110" />
+              <el-table-column :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text050')" min-width="220">
                 <template #default="{ row }">{{ displayList(row.issueScenes) }}</template>
               </el-table-column>
             </el-table>
@@ -693,7 +692,7 @@ watch(
 
     <el-dialog v-model="detailDialogVisible" :title="detailTitle" width="760px" data-testid="statistics-detail-dialog">
       <el-tabs v-model="activeDetailTab" data-testid="statistics-detail-tabs">
-        <el-tab-pane :label="isChinese ? '摘要' : 'Summary'" name="summary">
+        <el-tab-pane :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text051')" name="summary">
           <div class="detail-grid">
             <div
               v-for="[key, value] in detailSummaryEntries"
@@ -705,7 +704,7 @@ watch(
             </div>
           </div>
         </el-tab-pane>
-        <el-tab-pane :label="isChinese ? '关联 SQL/报表' : 'Related SQL/report'" name="relations">
+        <el-tab-pane :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text052')" name="relations">
           <div class="detail-grid">
             <div
               v-for="[key, value] in detailRelationEntries"
@@ -718,20 +717,20 @@ watch(
             </div>
           </div>
           <p v-if="!detailRelationEntries.length" class="section-summary">
-            {{ isChinese ? '当前记录没有关联 SQL 或报表定位。' : 'No SQL or report locator is available for this record.' }}
+            {{ t('inline.viewsParseStatisticsParseStatisticsCenterView.text053') }}
           </p>
         </el-tab-pane>
-        <el-tab-pane :label="isChinese ? '原始 JSON' : 'Raw JSON'" name="raw">
+        <el-tab-pane :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text054')" name="raw">
           <pre class="code-block" data-testid="statistics-detail-raw-json">{{ JSON.stringify(detailPayload || {}, null, 2) }}</pre>
         </el-tab-pane>
       </el-tabs>
     </el-dialog>
 
-    <el-dialog v-model="fieldHelpDialogVisible" :title="fieldHelpDialogTitle || (isChinese ? '字段说明' : 'Field help')" width="560px">
+    <el-dialog v-model="fieldHelpDialogVisible" :title="fieldHelpDialogTitle || (t('inline.viewsParseStatisticsParseStatisticsCenterView.text055'))" width="560px">
       <p class="section-summary">{{ fieldHelpDialogMessage }}</p>
       <template #footer>
         <el-button type="primary" @click="fieldHelpDialogVisible = false">
-          {{ isChinese ? '知道了' : 'Close' }}
+          {{ t('inline.viewsParseStatisticsParseStatisticsCenterView.text056') }}
         </el-button>
       </template>
     </el-dialog>

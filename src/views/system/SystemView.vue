@@ -3,7 +3,7 @@ import { useI18n } from 'vue-i18n'
 import CapabilityPlaceholderDialog from '../common/CapabilityPlaceholderDialog.vue'
 import { useSystemManagement } from './useSystemManagement'
 
-useI18n()
+const { t } = useI18n()
 
 const {
   ackModeOptions,
@@ -45,7 +45,6 @@ const {
   reportForm,
   redisForm,
   dispatchForm,
-  isChinese,
   tenantOptions,
   datasourceOptions,
   filteredDatasources,
@@ -81,19 +80,17 @@ const {
   <section class="system-page" data-testid="system-management-page">
     <header class="surface-card page-shell">
       <div>
-        <p class="section-kicker sqlforge-code-label">{{ isChinese ? '系统管理' : 'System management' }}</p>
-        <h1 class="section-title">{{ isChinese ? '数据源、接口与运行治理' : 'Datasources, interfaces, and runtime governance' }}</h1>
+        <p class="section-kicker sqlforge-code-label">{{ t('inline.viewsSystemSystemView.text001') }}</p>
+        <h1 class="section-title">{{ t('inline.viewsSystemSystemView.text002') }}</h1>
         <p class="section-summary">
           {{
-            isChinese
-              ? '默认首页保持数据源管理，但新增、修改、测试和重试动作现在都在同一工作台内可见。'
-              : 'Datasource management remains the default landing state, while create, edit, test, and retry actions are now visible in the same workspace.'
+            t('inline.viewsSystemSystemView.text003')
           }}
         </p>
       </div>
       <div class="action-row">
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+          <span class="field-label">{{ t('inline.viewsSystemSystemView.text004') }}</span>
           <el-select
             v-model="form.tenantId"
             filterable
@@ -105,16 +102,16 @@ const {
           </el-select>
         </label>
         <el-button type="primary" :loading="loading.page" data-testid="system-refresh" @click="loadSystemEvidence">
-          {{ isChinese ? '刷新系统证据' : 'Refresh system evidence' }}
+          {{ t('inline.viewsSystemSystemView.text005') }}
         </el-button>
         <el-button :loading="loading.retry" @click="retryFailedMessages">
-          {{ isChinese ? '重试失败消息' : 'Retry failed messages' }}
+          {{ t('inline.viewsSystemSystemView.text006') }}
         </el-button>
-        <el-button @click="openDatasourceCreate">{{ isChinese ? '新增数据源' : 'Create datasource' }}</el-button>
-        <el-button @click="openReportCreate">{{ isChinese ? '新增报表接口' : 'Create report interface' }}</el-button>
-        <el-button @click="openRedisCreate">{{ isChinese ? '新增 Redis 规则源' : 'Create Redis rule source' }}</el-button>
-        <el-button @click="openDispatchCreate">{{ isChinese ? '新增 Dispatch 策略' : 'Create Dispatch policy' }}</el-button>
-        <el-button @click="helpDialogVisible = true">{{ isChinese ? '边界说明' : 'Boundary help' }}</el-button>
+        <el-button @click="openDatasourceCreate">{{ t('inline.viewsSystemSystemView.text007') }}</el-button>
+        <el-button @click="openReportCreate">{{ t('inline.viewsSystemSystemView.text008') }}</el-button>
+        <el-button @click="openRedisCreate">{{ t('inline.viewsSystemSystemView.text009') }}</el-button>
+        <el-button @click="openDispatchCreate">{{ t('inline.viewsSystemSystemView.text010') }}</el-button>
+        <el-button @click="helpDialogVisible = true">{{ t('inline.viewsSystemSystemView.text011') }}</el-button>
       </div>
     </header>
 
@@ -129,14 +126,14 @@ const {
 
     <section class="surface-card tab-stage">
       <el-tabs v-model="activeTab">
-        <el-tab-pane :label="isChinese ? '数据源管理' : 'Datasource management'" name="datasource">
+        <el-tab-pane :label="t('inline.viewsSystemSystemView.text012')" name="datasource">
           <div class="table-heading">
             <div>
               <p class="section-kicker sqlforge-code-label">datasource actions</p>
-              <h2 class="section-title">{{ isChinese ? '数据源列表' : 'Datasource list' }}</h2>
+              <h2 class="section-title">{{ t('inline.viewsSystemSystemView.text013') }}</h2>
             </div>
             <div class="action-row action-row-tight">
-              <el-select v-model="datasourceFilter.engineType" clearable :placeholder="isChinese ? '引擎' : 'Engine'" data-testid="system-datasource-engine-filter">
+              <el-select v-model="datasourceFilter.engineType" clearable :placeholder="t('inline.viewsSystemSystemView.text014')" data-testid="system-datasource-engine-filter">
                 <el-option
                   v-for="item in withCurrentOption(engineOptions, datasourceFilter.engineType)"
                   :key="item.value"
@@ -144,7 +141,7 @@ const {
                   :value="item.value"
                 />
               </el-select>
-              <el-select v-model="datasourceFilter.connectionMode" clearable :placeholder="isChinese ? '模式' : 'Mode'" data-testid="system-datasource-mode-filter">
+              <el-select v-model="datasourceFilter.connectionMode" clearable :placeholder="t('inline.viewsSystemSystemView.text015')" data-testid="system-datasource-mode-filter">
                 <el-option
                   v-for="item in withCurrentOption(connectionModeOptions, datasourceFilter.connectionMode)"
                   :key="item.value"
@@ -153,90 +150,90 @@ const {
                 />
               </el-select>
               <el-button data-testid="system-hetu-jdbc-create" @click="openHetuJdbcCreate">
-                {{ isChinese ? 'Hetu JDBC 快捷创建' : 'Create Hetu JDBC' }}
+                {{ t('inline.viewsSystemSystemView.text016') }}
               </el-button>
-              <el-button @click="openDatasourceCreate">{{ isChinese ? '新增数据源' : 'Create datasource' }}</el-button>
+              <el-button @click="openDatasourceCreate">{{ t('inline.viewsSystemSystemView.text017') }}</el-button>
             </div>
           </div>
           <el-table :data="filteredDatasources" border>
-            <el-table-column prop="engineType" :label="isChinese ? '引擎' : 'Engine'" min-width="110" />
-            <el-table-column prop="datasourceCode" :label="isChinese ? '编码' : 'Code'" min-width="160" />
-            <el-table-column prop="datasourceName" :label="isChinese ? '名称' : 'Name'" min-width="180" />
-            <el-table-column prop="connectionMode" :label="isChinese ? '连接模式' : 'Connection mode'" min-width="140" />
-            <el-table-column prop="credentialMask" :label="isChinese ? '凭证' : 'Credential'" min-width="130" />
-            <el-table-column prop="healthStatus" :label="isChinese ? '健康状态' : 'Health status'" min-width="140" />
-            <el-table-column :label="isChinese ? '最后检查' : 'Last checked at'" min-width="170">
+            <el-table-column prop="engineType" :label="t('inline.viewsSystemSystemView.text018')" min-width="110" />
+            <el-table-column prop="datasourceCode" :label="t('inline.viewsSystemSystemView.text019')" min-width="160" />
+            <el-table-column prop="datasourceName" :label="t('inline.viewsSystemSystemView.text020')" min-width="180" />
+            <el-table-column prop="connectionMode" :label="t('inline.viewsSystemSystemView.text021')" min-width="140" />
+            <el-table-column prop="credentialMask" :label="t('inline.viewsSystemSystemView.text022')" min-width="130" />
+            <el-table-column prop="healthStatus" :label="t('inline.viewsSystemSystemView.text023')" min-width="140" />
+            <el-table-column :label="t('inline.viewsSystemSystemView.text024')" min-width="170">
               <template #default="{ row }">{{ formatTimestamp(row.lastCheckedAt) }}</template>
             </el-table-column>
-            <el-table-column :label="isChinese ? '操作' : 'Actions'" min-width="260">
+            <el-table-column :label="t('inline.viewsSystemSystemView.text025')" min-width="260">
               <template #default="{ row }">
                 <el-button text data-testid="system-datasource-card" @click="openDatasourceDetail(row.datasourceId)">
-                  {{ isChinese ? '查看详情' : 'View detail' }}
+                  {{ t('inline.viewsSystemSystemView.text026') }}
                 </el-button>
                 <el-button text @click="openDatasourceEdit(row)">
-                  {{ isChinese ? '修改' : 'Edit' }}
+                  {{ t('inline.viewsSystemSystemView.text027') }}
                 </el-button>
                 <el-button text data-testid="system-datasource-test" @click="runDatasourceTest(row.datasourceId)">
-                  {{ isChinese ? '测试连接' : 'Test connection' }}
+                  {{ t('inline.viewsSystemSystemView.text028') }}
                 </el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? '报表接口' : 'Report interfaces'" name="report">
+        <el-tab-pane :label="t('inline.viewsSystemSystemView.text029')" name="report">
           <div class="table-heading">
             <div>
               <p class="section-kicker sqlforge-code-label">report interface actions</p>
-              <h2 class="section-title">{{ isChinese ? '报表接口' : 'Report interfaces' }}</h2>
+              <h2 class="section-title">{{ t('inline.viewsSystemSystemView.text030') }}</h2>
             </div>
-            <el-button @click="openReportCreate">{{ isChinese ? '新增报表接口' : 'Create report interface' }}</el-button>
+            <el-button @click="openReportCreate">{{ t('inline.viewsSystemSystemView.text031') }}</el-button>
           </div>
           <el-table :data="reportInterfaces" border data-testid="system-report-interface-card">
-            <el-table-column prop="endpointCode" :label="isChinese ? '接口编码' : 'Endpoint code'" min-width="170" />
-            <el-table-column prop="resolverStatus" :label="isChinese ? '解析状态' : 'Resolver status'" min-width="150" />
-            <el-table-column :label="isChinese ? '基础地址' : 'Base URL'" min-width="220">
+            <el-table-column prop="endpointCode" :label="t('inline.viewsSystemSystemView.text032')" min-width="170" />
+            <el-table-column prop="resolverStatus" :label="t('inline.viewsSystemSystemView.text033')" min-width="150" />
+            <el-table-column :label="t('inline.viewsSystemSystemView.text034')" min-width="220">
               <template #default="{ row }">{{ maskValue(row.baseUrl) }}</template>
             </el-table-column>
-            <el-table-column prop="pathTemplate" :label="isChinese ? '路径模板' : 'Path template'" min-width="220" />
-            <el-table-column :label="isChinese ? '操作' : 'Action'" min-width="180">
+            <el-table-column prop="pathTemplate" :label="t('inline.viewsSystemSystemView.text035')" min-width="220" />
+            <el-table-column :label="t('inline.viewsSystemSystemView.text036')" min-width="180">
               <template #default="{ row }">
                 <el-button text @click="openPayloadDrawer(row.endpointCode || 'report interface', row)">
-                  {{ isChinese ? '查看' : 'View' }}
+                  {{ t('inline.viewsSystemSystemView.text037') }}
                 </el-button>
                 <el-button text @click="openReportEdit(row)">
-                  {{ isChinese ? '修改' : 'Edit' }}
+                  {{ t('inline.viewsSystemSystemView.text038') }}
                 </el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? 'Redis 规则源' : 'Redis rule sources'" name="redis">
+        <el-tab-pane :label="t('inline.viewsSystemSystemView.text039')" name="redis">
           <div class="table-heading">
             <div>
               <p class="section-kicker sqlforge-code-label">redis rule-source actions</p>
-              <h2 class="section-title">{{ isChinese ? 'Redis 规则源' : 'Redis rule sources' }}</h2>
+              <h2 class="section-title">{{ t('inline.viewsSystemSystemView.text040') }}</h2>
             </div>
-            <el-button @click="openRedisCreate">{{ isChinese ? '新增 Redis 规则源' : 'Create Redis rule source' }}</el-button>
+            <el-button @click="openRedisCreate">{{ t('inline.viewsSystemSystemView.text041') }}</el-button>
           </div>
           <div data-testid="system-redis-rule-sources">
             <el-table :data="redisRuleSources" border>
-              <el-table-column prop="sourceId" :label="isChinese ? 'Source ID' : 'Source ID'" min-width="170" />
-              <el-table-column prop="activationMode" :label="isChinese ? '激活模式' : 'Activation mode'" min-width="150" />
-              <el-table-column :label="isChinese ? '命名空间' : 'Namespace'" min-width="180">
+              <el-table-column prop="sourceId" :label="t('inline.viewsSystemSystemView.text042')" min-width="170" />
+              <el-table-column prop="activationMode" :label="t('inline.viewsSystemSystemView.text043')" min-width="150" />
+              <el-table-column :label="t('inline.viewsSystemSystemView.text044')" min-width="180">
                 <template #default="{ row }">{{ displayValue(row.redisNamespace) || 'CONFIG_ONLY' }}</template>
               </el-table-column>
-              <el-table-column :label="isChinese ? '端点' : 'Endpoints'" min-width="220">
+              <el-table-column :label="t('inline.viewsSystemSystemView.text045')" min-width="220">
                 <template #default="{ row }">{{ maskValue(row.redisEndpoints) }}</template>
               </el-table-column>
-              <el-table-column :label="isChinese ? '操作' : 'Action'" min-width="190">
+              <el-table-column :label="t('inline.viewsSystemSystemView.text046')" min-width="190">
                 <template #default="{ row }">
                   <el-button text data-testid="system-redis-rule-source-card" @click="openPayloadDrawer(row.sourceId || 'redis rule source', row)">
-                    {{ isChinese ? '查看' : 'View' }}
+                    {{ t('inline.viewsSystemSystemView.text047') }}
                   </el-button>
                   <el-button text @click="openRedisEdit(row)">
-                    {{ isChinese ? '修改' : 'Edit' }}
+                    {{ t('inline.viewsSystemSystemView.text048') }}
                   </el-button>
                 </template>
               </el-table-column>
@@ -244,30 +241,30 @@ const {
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? 'Dispatch 策略' : 'Dispatch policies'" name="dispatch">
+        <el-tab-pane :label="t('inline.viewsSystemSystemView.text049')" name="dispatch">
           <div class="table-heading">
             <div>
               <p class="section-kicker sqlforge-code-label">dispatch policy actions</p>
-              <h2 class="section-title">{{ isChinese ? 'Dispatch 策略' : 'Dispatch policies' }}</h2>
+              <h2 class="section-title">{{ t('inline.viewsSystemSystemView.text050') }}</h2>
             </div>
-            <el-button @click="openDispatchCreate">{{ isChinese ? '新增 Dispatch 策略' : 'Create Dispatch policy' }}</el-button>
+            <el-button @click="openDispatchCreate">{{ t('inline.viewsSystemSystemView.text051') }}</el-button>
           </div>
           <div data-testid="system-dispatch-policies">
             <el-table :data="dispatchPolicies" border>
-              <el-table-column prop="policyId" :label="isChinese ? 'Policy ID' : 'Policy ID'" min-width="170" />
-              <el-table-column prop="targetEngine" :label="isChinese ? '目标引擎' : 'Target engine'" min-width="140" />
-              <el-table-column prop="targetDatasource" :label="isChinese ? '目标数据源' : 'Target datasource'" min-width="160" />
-              <el-table-column prop="ackMode" :label="isChinese ? 'Ack 模式' : 'Ack mode'" min-width="130" />
-              <el-table-column :label="isChinese ? '状态' : 'Status'" min-width="200">
+              <el-table-column prop="policyId" :label="t('inline.viewsSystemSystemView.text052')" min-width="170" />
+              <el-table-column prop="targetEngine" :label="t('inline.viewsSystemSystemView.text053')" min-width="140" />
+              <el-table-column prop="targetDatasource" :label="t('inline.viewsSystemSystemView.text054')" min-width="160" />
+              <el-table-column prop="ackMode" :label="t('inline.viewsSystemSystemView.text055')" min-width="130" />
+              <el-table-column :label="t('inline.viewsSystemSystemView.text056')" min-width="200">
                 <template #default="{ row }">{{ displayValue(row.executionBoundary || 'EXTERNAL_MODULE_REQUIRED') }}</template>
               </el-table-column>
-              <el-table-column :label="isChinese ? '操作' : 'Action'" min-width="190">
+              <el-table-column :label="t('inline.viewsSystemSystemView.text057')" min-width="190">
                 <template #default="{ row }">
                   <el-button text data-testid="system-dispatch-policy-card" @click="openPayloadDrawer(row.policyId || 'dispatch policy', row)">
-                    {{ isChinese ? '查看' : 'View' }}
+                    {{ t('inline.viewsSystemSystemView.text058') }}
                   </el-button>
                   <el-button text @click="openDispatchEditPlaceholder(row)">
-                    {{ isChinese ? '修改' : 'Edit' }}
+                    {{ t('inline.viewsSystemSystemView.text059') }}
                   </el-button>
                 </template>
               </el-table-column>
@@ -275,7 +272,7 @@ const {
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? '租户参数 / 权限' : 'Tenant params / permission'" name="tenant">
+        <el-tab-pane :label="t('inline.viewsSystemSystemView.text060')" name="tenant">
           <div class="tenant-stage">
             <div class="detail-grid" data-testid="system-tenant-params">
               <div v-for="item in tenantParamCards" :key="item.key" class="detail-grid__item">
@@ -303,29 +300,29 @@ const {
       <pre class="code-block" data-testid="system-datasource-detail">{{ formatJson(detailPayload || {}) }}</pre>
     </el-drawer>
 
-    <el-dialog v-model="testDialogVisible" :title="isChinese ? '连接测试结果' : 'Connection test result'" width="680px">
+    <el-dialog v-model="testDialogVisible" :title="t('inline.viewsSystemSystemView.text061')" width="680px">
       <div class="detail-grid detail-grid-compact" data-testid="system-datasource-test-result">
         <div class="detail-grid__item">
-          <span>{{ isChinese ? '真实 JDBC 探测' : 'Real JDBC probe' }}</span>
+          <span>{{ t('inline.viewsSystemSystemView.text062') }}</span>
           <strong>{{ datasourceTestResult?.realJdbcProbe ? 'true' : 'false' }}</strong>
         </div>
         <div class="detail-grid__item">
-          <span>{{ isChinese ? '连接状态' : 'Connection status' }}</span>
+          <span>{{ t('inline.viewsSystemSystemView.text063') }}</span>
           <strong>{{ displayValue(datasourceTestResult?.connectionStatus) }}</strong>
         </div>
         <div class="detail-grid__item">
-          <span>{{ isChinese ? '耗时 ms' : 'Elapsed ms' }}</span>
+          <span>{{ t('inline.viewsSystemSystemView.text064') }}</span>
           <strong>{{ displayValue(datasourceTestResult?.elapsedMs) }}</strong>
         </div>
         <div class="detail-grid__item">
-          <span>{{ isChinese ? '失败原因' : 'Failure reason' }}</span>
+          <span>{{ t('inline.viewsSystemSystemView.text065') }}</span>
           <strong>{{ displayValue(datasourceTestResult?.lastFailureReason) }}</strong>
         </div>
       </div>
       <pre class="code-block">{{ formatJson(datasourceTestResult || {}) }}</pre>
     </el-dialog>
 
-    <el-dialog v-model="datasourceDialogVisible" :title="datasourceDialogMode === 'create' ? (isChinese ? '新增数据源' : 'Create datasource') : (isChinese ? '修改数据源' : 'Edit datasource')" width="860px">
+    <el-dialog v-model="datasourceDialogVisible" :title="datasourceDialogMode === 'create' ? (t('inline.viewsSystemSystemView.text066')) : (t('inline.viewsSystemSystemView.text067'))" width="860px">
       <div class="form-grid">
         <label class="field-block">
           <span class="field-label">tenantId</span>
@@ -339,15 +336,15 @@ const {
           </el-select>
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '编码' : 'Code' }}</span>
+          <span class="field-label">{{ t('inline.viewsSystemSystemView.text068') }}</span>
           <el-input v-model="datasourceForm.datasourceCode" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '名称' : 'Name' }}</span>
+          <span class="field-label">{{ t('inline.viewsSystemSystemView.text069') }}</span>
           <el-input v-model="datasourceForm.datasourceName" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '引擎' : 'Engine' }}</span>
+          <span class="field-label">{{ t('inline.viewsSystemSystemView.text070') }}</span>
           <el-select v-model="datasourceForm.engineType" data-testid="system-datasource-engine-type">
             <el-option
               v-for="item in withCurrentOption(engineOptions, datasourceForm.engineType)"
@@ -358,7 +355,7 @@ const {
           </el-select>
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '连接模式' : 'Connection mode' }}</span>
+          <span class="field-label">{{ t('inline.viewsSystemSystemView.text071') }}</span>
           <el-select v-model="datasourceForm.connectionMode">
             <el-option
               v-for="item in withCurrentOption(connectionModeOptions, datasourceForm.connectionMode)"
@@ -447,14 +444,14 @@ const {
         </label>
       </div>
       <template #footer>
-        <el-button @click="datasourceDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>
+        <el-button @click="datasourceDialogVisible = false">{{ t('inline.viewsSystemSystemView.text072') }}</el-button>
         <el-button type="primary" :loading="loading.datasourceSubmit" @click="submitDatasource">
-          {{ datasourceDialogMode === 'create' ? (isChinese ? '新增' : 'Create') : (isChinese ? '保存修改' : 'Save changes') }}
+          {{ datasourceDialogMode === 'create' ? (t('inline.viewsSystemSystemView.text073')) : (t('inline.viewsSystemSystemView.text074')) }}
         </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="reportDialogVisible" :title="reportDialogMode === 'create' ? (isChinese ? '新增报表接口' : 'Create report interface') : (isChinese ? '修改报表接口' : 'Edit report interface')" width="860px">
+    <el-dialog v-model="reportDialogVisible" :title="reportDialogMode === 'create' ? (t('inline.viewsSystemSystemView.text075')) : (t('inline.viewsSystemSystemView.text076'))" width="860px">
       <div class="form-grid">
         <label class="field-block">
           <span class="field-label">tenantId</span>
@@ -556,14 +553,14 @@ const {
         </label>
       </div>
       <template #footer>
-        <el-button @click="reportDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>
+        <el-button @click="reportDialogVisible = false">{{ t('inline.viewsSystemSystemView.text077') }}</el-button>
         <el-button type="primary" :loading="loading.reportSubmit" @click="submitReportInterface">
-          {{ reportDialogMode === 'create' ? (isChinese ? '新增' : 'Create') : (isChinese ? '保存修改' : 'Save changes') }}
+          {{ reportDialogMode === 'create' ? (t('inline.viewsSystemSystemView.text078')) : (t('inline.viewsSystemSystemView.text079')) }}
         </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="redisDialogVisible" :title="redisDialogMode === 'create' ? (isChinese ? '新增 Redis 规则源' : 'Create Redis rule source') : (isChinese ? '修改 Redis 规则源' : 'Edit Redis rule source')" width="860px">
+    <el-dialog v-model="redisDialogVisible" :title="redisDialogMode === 'create' ? (t('inline.viewsSystemSystemView.text080')) : (t('inline.viewsSystemSystemView.text081'))" width="860px">
       <div class="form-grid">
         <label class="field-block">
           <span class="field-label">tenantId</span>
@@ -617,14 +614,14 @@ const {
         </label>
       </div>
       <template #footer>
-        <el-button @click="redisDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>
+        <el-button @click="redisDialogVisible = false">{{ t('inline.viewsSystemSystemView.text082') }}</el-button>
         <el-button type="primary" :loading="loading.redisSubmit" @click="submitRedisRuleSource">
-          {{ redisDialogMode === 'create' ? (isChinese ? '新增' : 'Create') : (isChinese ? '保存修改' : 'Save changes') }}
+          {{ redisDialogMode === 'create' ? (t('inline.viewsSystemSystemView.text083')) : (t('inline.viewsSystemSystemView.text084')) }}
         </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="dispatchDialogVisible" :title="isChinese ? '新增 Dispatch 策略' : 'Create Dispatch policy'" width="760px">
+    <el-dialog v-model="dispatchDialogVisible" :title="t('inline.viewsSystemSystemView.text085')" width="760px">
       <div class="form-grid">
         <label class="field-block">
           <span class="field-label">tenantId</span>
@@ -710,22 +707,22 @@ const {
         </label>
       </div>
       <template #footer>
-        <el-button @click="dispatchDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>
+        <el-button @click="dispatchDialogVisible = false">{{ t('inline.viewsSystemSystemView.text086') }}</el-button>
         <el-button type="primary" :loading="loading.dispatchSubmit" @click="submitDispatchPolicy">
-          {{ isChinese ? '新增策略' : 'Create policy' }}
+          {{ t('inline.viewsSystemSystemView.text087') }}
         </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="helpDialogVisible" :title="isChinese ? '系统管理边界说明' : 'System-management boundary guide'" width="760px">
+    <el-dialog v-model="helpDialogVisible" :title="t('inline.viewsSystemSystemView.text088')" width="760px">
       <div class="detail-grid">
         <div class="detail-grid__item">
           <span>CONFIG_ONLY</span>
-          <strong>{{ isChinese ? 'Redis 规则源仍保留配置证据语义，但现在支持新增和修改。' : 'Redis rule sources keep config-evidence semantics while now supporting create and edit.' }}</strong>
+          <strong>{{ t('inline.viewsSystemSystemView.text089') }}</strong>
         </div>
         <div class="detail-grid__item">
           <span>EXTERNAL_MODULE_REQUIRED</span>
-          <strong>{{ isChinese ? 'Dispatch 策略支持新增，但当前仍不伪装为浏览器内执行，也没有修改接口。' : 'Dispatch policies support creation, but they are still not presented as browser-executed workflows and still lack an edit API.' }}</strong>
+          <strong>{{ t('inline.viewsSystemSystemView.text090') }}</strong>
         </div>
       </div>
     </el-dialog>

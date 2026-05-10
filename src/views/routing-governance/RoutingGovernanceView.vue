@@ -14,7 +14,7 @@ import {
   getHetuRouteCalibration
 } from '../../services/runtimeGateApi'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const router = useRouter()
 
 const form = reactive({
@@ -45,7 +45,6 @@ const placeholderPayload = ref({
 
 // Static contract tokens: routing execution evidence, Open parse-record page, View current policy source, Create rule, Edit rule.
 
-const isChinese = computed(() => locale.value === 'zh-CN')
 const policyCards = computed(() => {
   const calibration = routeCalibration.value
   if (!calibration) {
@@ -54,10 +53,10 @@ const policyCards = computed(() => {
   return [
     field('routeProfile', 'Route profile', calibration.routeProfile),
     field('effectiveRouteOrder', 'effectiveRouteOrder', listText(calibration.effectiveRouteOrder)),
-    field('declaredAllowedModes', isChinese.value ? '声明允许模式' : 'Declared modes', listText(calibration.declaredAllowedModes)),
+    field('declaredAllowedModes', t('inline.viewsRoutingGovernanceRoutingGovernanceView.text001'), listText(calibration.declaredAllowedModes)),
     field('readonlyBoundary', 'readonlyBoundary', calibration.readonlyBoundary),
-    field('liveVerificationStatus', isChinese.value ? '实时校验' : 'Live verification', calibration.liveVerificationStatus),
-    field('implementationStage', isChinese.value ? '实现阶段' : 'Implementation stage', calibration.implementationStage)
+    field('liveVerificationStatus', t('inline.viewsRoutingGovernanceRoutingGovernanceView.text002'), calibration.liveVerificationStatus),
+    field('implementationStage', t('inline.viewsRoutingGovernanceRoutingGovernanceView.text003'), calibration.implementationStage)
   ]
 })
 const commentProtocolCards = computed(() => [
@@ -65,39 +64,33 @@ const commentProtocolCards = computed(() => [
     key: 'engineHint',
     title: 'engineHint',
     example: '/* engineHint=HETU */',
-    summary: isChinese.value
-      ? '通过注释表达目标引擎偏好；真正采用哪个引擎仍以后端 routeDecision 为准。'
-      : 'Use a comment to express the preferred engine, while the backend routeDecision remains authoritative.'
+    summary: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text004')
   },
   {
     key: 'priority',
     title: 'priority',
     example: '/* priority=HIGH */',
-    summary: isChinese.value
-      ? '治理优先级进入上下文，但不会替代路由证据。'
-      : 'Priority flows into context without replacing routing evidence.'
+    summary: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text005')
   },
   {
     key: 'readonlyBoundary',
     title: 'readonlyBoundary',
     example: 'REPO_CLOSED_DEFAULT',
-    summary: isChinese.value
-      ? '当前页只读展示 calibration 快照和历史 routeDecision，不提供前端改写规则入口。'
-      : 'This page is read-only and exposes calibration snapshots plus historical routeDecision evidence rather than rule editing.'
+    summary: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text006')
   }
 ])
 const decisionSummaryCards = computed(() => {
   const routeDecision = historyDetail.value?.routeDecision || {}
   const executionSummary = historyDetail.value?.executionSummary || {}
   return [
-    field('selectedEngine', isChinese.value ? '选择引擎' : 'Selected engine', pick(routeDecision, ['selectedEngine', 'targetEngine', 'engine'])),
-    field('ruleId', isChinese.value ? '规则标识' : 'Rule id', pick(routeDecision, ['ruleId', 'routeDecisionId', 'decisionId'])),
+    field('selectedEngine', t('inline.viewsRoutingGovernanceRoutingGovernanceView.text007'), pick(routeDecision, ['selectedEngine', 'targetEngine', 'engine'])),
+    field('ruleId', t('inline.viewsRoutingGovernanceRoutingGovernanceView.text008'), pick(routeDecision, ['ruleId', 'routeDecisionId', 'decisionId'])),
     field('routeProfile', 'Route profile', pick(routeDecision, ['routeProfile'])),
     field('routeOrder', 'Route order', listText(pick(routeDecision, ['routeOrder', 'attemptedModes']))),
-    field('verification', isChinese.value ? '校验状态' : 'Verification', pick(routeDecision, ['verificationStatus', 'routeVerificationStatus'])),
-    field('fallback', isChinese.value ? '回退说明' : 'Fallback note', pick(routeDecision, ['fallbackReason', 'degradeReason'])),
-    field('executionMode', isChinese.value ? '执行模式' : 'Execution mode', executionSummary.executionMode),
-    field('attemptedModes', isChinese.value ? '尝试模式' : 'Attempted modes', listText(executionSummary.attemptedModes))
+    field('verification', t('inline.viewsRoutingGovernanceRoutingGovernanceView.text009'), pick(routeDecision, ['verificationStatus', 'routeVerificationStatus'])),
+    field('fallback', t('inline.viewsRoutingGovernanceRoutingGovernanceView.text010'), pick(routeDecision, ['fallbackReason', 'degradeReason'])),
+    field('executionMode', t('inline.viewsRoutingGovernanceRoutingGovernanceView.text011'), executionSummary.executionMode),
+    field('attemptedModes', t('inline.viewsRoutingGovernanceRoutingGovernanceView.text012'), listText(executionSummary.attemptedModes))
   ].filter(item => displayValue(item.value) !== '-')
 })
 const traceHistoryRows = computed(() => traceDetail.value?.queryHistories || [])
@@ -105,9 +98,9 @@ const recommendationRefs = computed(() => historyDetail.value?.recommendationRef
 const routeSignalGroups = computed(() =>
   [
     { key: 'routeDecision', title: 'routeDecision', payload: historyDetail.value?.routeDecision },
-    { key: 'commentContext', title: isChinese.value ? '注释上下文' : 'Comment context', payload: historyDetail.value?.commentContext },
-    { key: 'executionSummary', title: isChinese.value ? '执行摘要' : 'Execution summary', payload: historyDetail.value?.executionSummary },
-    { key: 'queryContext', title: isChinese.value ? '查询上下文' : 'Query context', payload: historyDetail.value?.queryContext }
+    { key: 'commentContext', title: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text013'), payload: historyDetail.value?.commentContext },
+    { key: 'executionSummary', title: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text014'), payload: historyDetail.value?.executionSummary },
+    { key: 'queryContext', title: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text015'), payload: historyDetail.value?.queryContext }
   ].filter(group => isNonEmpty(group.payload))
 )
 
@@ -137,24 +130,16 @@ const refreshPage = async () => {
 const openPlaceholderAction = actionType => {
   const config = actionType === 'create'
     ? {
-        title: isChinese.value ? '新增规则暂不可写' : 'Create-rule action is not writable yet',
-        capability: isChinese.value ? '新增路由规则' : 'Create routing rule',
-        reason: isChinese.value
-          ? '当前仓库仅开放 route-calibration 与 query-history.routeDecision 的只读证据查看，尚未提供路由规则写接口。'
-          : 'The current repository only exposes read-only route-calibration and query-history.routeDecision evidence. No writable routing-rule API is available yet.',
-        nextStep: isChinese.value
-          ? '需要后端新增规则写接口后，再把表单接入该证据页。'
-          : 'Add a backend routing-rule write API before connecting a form here.'
+        title: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text016'),
+        capability: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text017'),
+        reason: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text018'),
+        nextStep: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text019')
       }
     : {
-        title: isChinese.value ? '修改规则暂不可写' : 'Edit-rule action is not writable yet',
-        capability: isChinese.value ? '修改路由规则' : 'Edit routing rule',
-        reason: isChinese.value
-          ? '当前页的职责是执行证据展示，不是前端配置中心；仓库真值也没有提供规则更新接口。'
-          : 'This page is an execution-evidence surface rather than a frontend control plane, and the repository truth does not expose a rule-update API.',
-        nextStep: isChinese.value
-          ? '若后续开放写接口，应先补契约和审计链，再接入编辑动作。'
-          : 'If a writable API is introduced later, wire contract and audit coverage before adding edit actions.'
+        title: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text020'),
+        capability: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text021'),
+        reason: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text022'),
+        nextStep: t('inline.viewsRoutingGovernanceRoutingGovernanceView.text023')
       }
   placeholderPayload.value = config
   placeholderDialogVisible.value = true

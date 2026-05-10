@@ -3,13 +3,12 @@ import { useI18n } from 'vue-i18n'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import { useParseRecordContext } from './parseRecordContext'
 
-useI18n()
+const { t } = useI18n()
 
 const {
   displayDetailValue,
   displayValue,
   firstValue,
-  isChinese,
   issueSceneHelp,
   normalizeArray,
   openHistoryDetail,
@@ -33,7 +32,7 @@ const {
 <template>
   <el-dialog
     v-model="reportSqlParseDetailDialogVisible"
-    :title="selectedReportSqlDetailItem?.reportCode || selectedReportSqlDetailItem?.itemId || (isChinese ? 'SQL 级解析详情' : 'SQL parse detail')"
+    :title="selectedReportSqlDetailItem?.reportCode || selectedReportSqlDetailItem?.itemId || (t('inline.viewsParseRecordParseRecordReportSqlDetailDialog.text001'))"
     width="1040px"
     data-testid="parse-record-report-sql-parse-detail-dialog"
   >
@@ -50,8 +49,8 @@ const {
       <SqlCodeBlock
         v-if="reportItemSqlOutput(selectedReportSqlDetailItem)"
         :value="reportItemSqlOutput(selectedReportSqlDetailItem)"
-        :label="isChinese ? 'SQL 输出' : 'SQL output'"
-        :copy-label="isChinese ? '复制' : 'Copy'"
+        :label="t('inline.viewsParseRecordParseRecordReportSqlDetailDialog.text002')"
+        :copy-label="t('inline.viewsParseRecordParseRecordReportSqlDetailDialog.text003')"
         data-testid="parse-record-report-sql-code"
       />
       <div class="detail-grid detail-grid-secondary">
@@ -65,7 +64,7 @@ const {
           <div class="parse-card__header">
             <div>
               <p class="section-kicker sqlforge-code-label">structure parse</p>
-              <h3 class="detail-title">{{ isChinese ? '结构解析卡' : 'Structure parse card' }}</h3>
+              <h3 class="detail-title">{{ t('inline.viewsParseRecordParseRecordReportSqlDetailDialog.text004') }}</h3>
             </div>
           </div>
           <div class="highlight-grid">
@@ -101,7 +100,7 @@ const {
               </div>
               <p class="issue-card__summary">{{ riskDisplayText(risk, 'summary') }}</p>
               <p class="issue-card__detail">{{ riskDisplayText(risk, 'evidence') }}</p>
-              <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ riskDisplayText(risk, 'suggestedAction') }}</p>
+              <p class="issue-card__detail">{{ t('inline.viewsParseRecordParseRecordReportSqlDetailDialog.text005') }}: {{ riskDisplayText(risk, 'suggestedAction') }}</p>
             </article>
           </div>
           <div v-if="normalizeArray(reportItemStructureParse(selectedReportSqlDetailItem).issues).length" class="issue-list">
@@ -127,12 +126,12 @@ const {
               <p class="issue-card__summary">{{ displayDetailValue(issue.summary) }}</p>
               <p class="issue-card__detail">{{ displayDetailValue(issue.detail) }}</p>
               <p v-if="issue.failureLine || issue.failureColumn || issue.failureToken || issue.failureSnippet" class="issue-card__detail">
-                {{ isChinese ? '失败定位' : 'Failure position' }}:
+                {{ t('inline.viewsParseRecordParseRecordReportSqlDetailDialog.text006') }}:
                 <span v-if="issue.failureLine && issue.failureColumn">line {{ issue.failureLine }}, column {{ issue.failureColumn }}</span>
                 <span v-if="issue.failureToken"> · token {{ issue.failureToken }}</span>
                 <span v-if="issue.failureSnippet"> · {{ issue.failureSnippet }}</span>
               </p>
-              <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(issue.suggestedAction) }}</p>
+              <p class="issue-card__detail">{{ t('inline.viewsParseRecordParseRecordReportSqlDetailDialog.text007') }}: {{ displayDetailValue(issue.suggestedAction) }}</p>
             </article>
           </div>
         </article>
@@ -140,7 +139,7 @@ const {
           <div class="parse-card__header">
             <div>
               <p class="section-kicker sqlforge-code-label">access parse</p>
-              <h3 class="detail-title">{{ isChinese ? 'Access Parse 卡' : 'Access parse card' }}</h3>
+              <h3 class="detail-title">{{ t('inline.viewsParseRecordParseRecordReportSqlDetailDialog.text008') }}</h3>
             </div>
           </div>
           <div class="highlight-grid">
@@ -158,7 +157,7 @@ const {
       </div>
       <div v-if="reportHistoryIdForItem(selectedReportSqlDetailItem)" class="dialog-actions">
         <el-button text @click="openHistoryDetail(reportItemParseDetail(selectedReportSqlDetailItem).historyId || reportHistoryIdForItem(selectedReportSqlDetailItem))">
-          {{ isChinese ? '打开完整解析历史' : 'Open full parse history' }}
+          {{ t('inline.viewsParseRecordParseRecordReportSqlDetailDialog.text009') }}
         </el-button>
       </div>
     </div>

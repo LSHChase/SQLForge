@@ -21,7 +21,7 @@ import ToolbarShell from '../common/ToolbarShell.vue'
 
 // Static contract tokens: data asset catalog, Asset catalog, Metadata snapshot evidence, Logical views, Database views.
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const filterForm = reactive({
   tenantId: 'tenant-a',
@@ -47,27 +47,26 @@ const tables = ref([])
 const logicalViews = ref([])
 const databaseViews = ref([])
 
-const isChinese = computed(() => locale.value === 'zh-CN')
 const tabOptions = computed(() => [
   {
     value: 'datasources',
-    label: isChinese.value ? '数据源' : 'Datasources'
+    label: t('inline.viewsAssetCatalogAssetCatalogView.text001')
   },
   {
     value: 'schemas',
-    label: isChinese.value ? 'Schema' : 'Schemas'
+    label: t('inline.viewsAssetCatalogAssetCatalogView.text002')
   },
   {
     value: 'tables',
-    label: isChinese.value ? '表' : 'Tables'
+    label: t('inline.viewsAssetCatalogAssetCatalogView.text003')
   },
   {
     value: 'logicalViews',
-    label: isChinese.value ? '逻辑视图' : 'Logical views'
+    label: t('inline.viewsAssetCatalogAssetCatalogView.text004')
   },
   {
     value: 'databaseViews',
-    label: isChinese.value ? '数据库视图' : 'Database views'
+    label: t('inline.viewsAssetCatalogAssetCatalogView.text005')
   }
 ])
 
@@ -101,13 +100,13 @@ const detailHighlights = computed(() => {
   }
   if (activeTab.value === 'datasources') {
     return [
-      field('datasourceCode', isChinese.value ? '数据源编码' : 'Datasource code', detail.datasourceCode),
-      field('datasourceName', isChinese.value ? '名称' : 'Name', detail.datasourceName),
-      field('connectionMode', isChinese.value ? '连接模式' : 'Connection mode', detail.connectionMode),
+      field('datasourceCode', t('inline.viewsAssetCatalogAssetCatalogView.text006'), detail.datasourceCode),
+      field('datasourceName', t('inline.viewsAssetCatalogAssetCatalogView.text007'), detail.datasourceName),
+      field('connectionMode', t('inline.viewsAssetCatalogAssetCatalogView.text008'), detail.connectionMode),
       field('stage', 'Stage', detail.stage),
-      field('healthStatus', isChinese.value ? '健康状态' : 'Health status', detail.healthStatus),
-      field('readonly', isChinese.value ? '只读' : 'Readonly', boolText(detail.readonly)),
-      field('enabled', isChinese.value ? '启用' : 'Enabled', boolText(detail.enabled)),
+      field('healthStatus', t('inline.viewsAssetCatalogAssetCatalogView.text009'), detail.healthStatus),
+      field('readonly', t('inline.viewsAssetCatalogAssetCatalogView.text010'), boolText(detail.readonly)),
+      field('enabled', t('inline.viewsAssetCatalogAssetCatalogView.text011'), boolText(detail.enabled)),
       field('timeoutMs', 'Timeout', detail.timeoutMs),
       field('contractStage', 'Contract', detail.contractStage),
       field('implementationStage', 'Implementation', detail.implementationStage)
@@ -117,54 +116,54 @@ const detailHighlights = computed(() => {
     return [
       field('schemaName', 'Schema', detail.schemaName),
       field('catalogName', 'Catalog', detail.catalogName),
-      field('tableCount', isChinese.value ? '表数' : 'Tables', detail.tableCount),
-      field('dbViewCount', isChinese.value ? 'DB View 数' : 'DB views', detail.dbViewCount),
-      field('logicalViewCount', isChinese.value ? '逻辑视图数' : 'Logical views', detail.logicalViewCount),
-      field('freshnessStatus', isChinese.value ? '新鲜度' : 'Freshness', detail.freshnessStatus),
+      field('tableCount', t('inline.viewsAssetCatalogAssetCatalogView.text012'), detail.tableCount),
+      field('dbViewCount', t('inline.viewsAssetCatalogAssetCatalogView.text013'), detail.dbViewCount),
+      field('logicalViewCount', t('inline.viewsAssetCatalogAssetCatalogView.text014'), detail.logicalViewCount),
+      field('freshnessStatus', t('inline.viewsAssetCatalogAssetCatalogView.text015'), detail.freshnessStatus),
       field('slaStatus', 'SLA', detail.slaStatus),
-      field('queryabilityStatus', isChinese.value ? '可查询性' : 'Queryability', detail.queryabilityStatus),
-      field('evidenceStatus', isChinese.value ? '证据状态' : 'Evidence', detail.evidenceStatus)
+      field('queryabilityStatus', t('inline.viewsAssetCatalogAssetCatalogView.text016'), detail.queryabilityStatus),
+      field('evidenceStatus', t('inline.viewsAssetCatalogAssetCatalogView.text017'), detail.evidenceStatus)
     ]
   }
   if (activeTab.value === 'tables') {
     return [
-      field('tableName', isChinese.value ? '表名' : 'Table', detail.tableName),
+      field('tableName', t('inline.viewsAssetCatalogAssetCatalogView.text018'), detail.tableName),
       field('schemaName', 'Schema', detail.schemaName),
       field('objectKey', 'Object key', detail.objectKey),
-      field('columnCount', isChinese.value ? '列数' : 'Columns', detail.columnCount),
-      field('partitionCount', isChinese.value ? '分区数' : 'Partitions', detail.partitionCount),
-      field('rowCount', isChinese.value ? '行数' : 'Rows', detail.rowCount),
-      field('storageBytes', isChinese.value ? '存储字节' : 'Storage bytes', detail.storageBytes),
-      field('upstreamCount', isChinese.value ? '上游数' : 'Upstream', detail.upstreamCount),
-      field('downstreamCount', isChinese.value ? '下游数' : 'Downstream', detail.downstreamCount),
-      field('freshnessStatus', isChinese.value ? '新鲜度' : 'Freshness', detail.freshnessStatus)
+      field('columnCount', t('inline.viewsAssetCatalogAssetCatalogView.text019'), detail.columnCount),
+      field('partitionCount', t('inline.viewsAssetCatalogAssetCatalogView.text020'), detail.partitionCount),
+      field('rowCount', t('inline.viewsAssetCatalogAssetCatalogView.text021'), detail.rowCount),
+      field('storageBytes', t('inline.viewsAssetCatalogAssetCatalogView.text022'), detail.storageBytes),
+      field('upstreamCount', t('inline.viewsAssetCatalogAssetCatalogView.text023'), detail.upstreamCount),
+      field('downstreamCount', t('inline.viewsAssetCatalogAssetCatalogView.text024'), detail.downstreamCount),
+      field('freshnessStatus', t('inline.viewsAssetCatalogAssetCatalogView.text025'), detail.freshnessStatus)
     ]
   }
   if (activeTab.value === 'logicalViews') {
     return [
-      field('viewCode', isChinese.value ? '视图编码' : 'View code', detail.viewCode),
-      field('viewName', isChinese.value ? '视图名称' : 'View name', detail.viewName),
+      field('viewCode', t('inline.viewsAssetCatalogAssetCatalogView.text026'), detail.viewCode),
+      field('viewName', t('inline.viewsAssetCatalogAssetCatalogView.text027'), detail.viewName),
       field('objectKey', 'Object key', detail.objectKey),
-      field('subjectArea', isChinese.value ? '主题域' : 'Subject area', detail.subjectArea),
-      field('ownerUser', isChinese.value ? 'Owner' : 'Owner', detail.ownerUser),
-      field('queryable', isChinese.value ? '可查询' : 'Queryable', boolText(detail.queryable)),
-      field('freshnessStatus', isChinese.value ? '新鲜度' : 'Freshness', detail.freshnessStatus),
+      field('subjectArea', t('inline.viewsAssetCatalogAssetCatalogView.text028'), detail.subjectArea),
+      field('ownerUser', t('inline.viewsAssetCatalogAssetCatalogView.text029'), detail.ownerUser),
+      field('queryable', t('inline.viewsAssetCatalogAssetCatalogView.text030'), boolText(detail.queryable)),
+      field('freshnessStatus', t('inline.viewsAssetCatalogAssetCatalogView.text031'), detail.freshnessStatus),
       field('slaStatus', 'SLA', detail.slaStatus),
-      field('upstreamCount', isChinese.value ? '上游数' : 'Upstream', detail.upstreamCount),
-      field('downstreamCount', isChinese.value ? '下游数' : 'Downstream', detail.downstreamCount)
+      field('upstreamCount', t('inline.viewsAssetCatalogAssetCatalogView.text032'), detail.upstreamCount),
+      field('downstreamCount', t('inline.viewsAssetCatalogAssetCatalogView.text033'), detail.downstreamCount)
     ]
   }
   return [
-    field('viewName', isChinese.value ? '视图名' : 'View name', detail.viewName),
+    field('viewName', t('inline.viewsAssetCatalogAssetCatalogView.text034'), detail.viewName),
     field('schemaName', 'Schema', detail.schemaName),
     field('catalogName', 'Catalog', detail.catalogName),
     field('objectKey', 'Object key', detail.objectKey),
-    field('ownerUser', isChinese.value ? 'Owner' : 'Owner', detail.ownerUser),
-    field('queryable', isChinese.value ? '可查询' : 'Queryable', boolText(detail.queryable)),
-    field('freshnessStatus', isChinese.value ? '新鲜度' : 'Freshness', detail.freshnessStatus),
+    field('ownerUser', t('inline.viewsAssetCatalogAssetCatalogView.text035'), detail.ownerUser),
+    field('queryable', t('inline.viewsAssetCatalogAssetCatalogView.text036'), boolText(detail.queryable)),
+    field('freshnessStatus', t('inline.viewsAssetCatalogAssetCatalogView.text037'), detail.freshnessStatus),
     field('slaStatus', 'SLA', detail.slaStatus),
-    field('upstreamCount', isChinese.value ? '上游数' : 'Upstream', detail.upstreamCount),
-    field('downstreamCount', isChinese.value ? '下游数' : 'Downstream', detail.downstreamCount)
+    field('upstreamCount', t('inline.viewsAssetCatalogAssetCatalogView.text038'), detail.upstreamCount),
+    field('downstreamCount', t('inline.viewsAssetCatalogAssetCatalogView.text039'), detail.downstreamCount)
   ]
 })
 
@@ -172,11 +171,11 @@ const snapshotSummary = computed(() => {
   const items = selectedSnapshots.value
   return [
     {
-      label: isChinese.value ? 'Snapshot 数' : 'Snapshots',
+      label: t('inline.viewsAssetCatalogAssetCatalogView.text040'),
       value: items.length
     },
     {
-      label: isChinese.value ? 'Freshness' : 'Freshness',
+      label: t('inline.viewsAssetCatalogAssetCatalogView.text041'),
       value: summarizeDistinct(items.map(item => item.freshnessStatus))
     },
     {
@@ -184,11 +183,11 @@ const snapshotSummary = computed(() => {
       value: summarizeDistinct(items.map(item => item.slaStatus))
     },
     {
-      label: isChinese.value ? 'Queryability' : 'Queryability',
+      label: t('inline.viewsAssetCatalogAssetCatalogView.text042'),
       value: summarizeDistinct(items.map(item => item.queryabilityStatus))
     },
     {
-      label: isChinese.value ? 'Evidence' : 'Evidence',
+      label: t('inline.viewsAssetCatalogAssetCatalogView.text043'),
       value: summarizeDistinct(items.map(item => item.evidenceStatus))
     }
   ]
@@ -213,9 +212,7 @@ const usageHeatModel = computed(() => {
   return {
     score,
     level,
-    source: isChinese.value
-      ? '依据上/下游计数、snapshot 覆盖和 queryable 状态计算的 proxy，不代表真实运行热度。'
-      : 'A proxy derived from upstream/downstream counts, snapshot coverage, and queryable state rather than live runtime heat.'
+    source: t('inline.viewsAssetCatalogAssetCatalogView.text044')
   }
 })
 
@@ -227,21 +224,21 @@ const healthSignalCards = computed(() => {
   return [
     {
       key: 'freshness',
-      label: isChinese.value ? 'Freshness' : 'Freshness',
+      label: t('inline.viewsAssetCatalogAssetCatalogView.text045'),
       value: detail.freshnessStatus || summarizeDistinct(selectedSnapshots.value.map(item => item.freshnessStatus)),
-      evidence: isChinese.value ? 'metadata snapshot 聚合' : 'metadata snapshot aggregate'
+      evidence: t('inline.viewsAssetCatalogAssetCatalogView.text046')
     },
     {
       key: 'sla',
       label: 'SLA',
       value: detail.slaStatus || summarizeDistinct(selectedSnapshots.value.map(item => item.slaStatus)),
-      evidence: isChinese.value ? 'metadata snapshot 聚合' : 'metadata snapshot aggregate'
+      evidence: t('inline.viewsAssetCatalogAssetCatalogView.text047')
     },
     {
       key: 'queryability',
-      label: isChinese.value ? 'Queryability' : 'Queryability',
+      label: t('inline.viewsAssetCatalogAssetCatalogView.text048'),
       value: detail.queryabilityStatus || summarizeDistinct(selectedSnapshots.value.map(item => item.queryabilityStatus)),
-      evidence: isChinese.value ? '详情字段 + snapshot' : 'detail field + snapshots'
+      evidence: t('inline.viewsAssetCatalogAssetCatalogView.text049')
     }
   ]
 })
@@ -255,12 +252,12 @@ const detailAuxGroups = computed(() => {
     return [
       {
         key: 'upstreamRefs',
-        title: isChinese.value ? '上游血缘' : 'Upstream lineage',
+        title: t('inline.viewsAssetCatalogAssetCatalogView.text050'),
         items: detail.upstreamRefs || []
       },
       {
         key: 'downstreamRefs',
-        title: isChinese.value ? '下游血缘' : 'Downstream lineage',
+        title: t('inline.viewsAssetCatalogAssetCatalogView.text051'),
         items: detail.downstreamRefs || []
       }
     ]
@@ -269,7 +266,7 @@ const detailAuxGroups = computed(() => {
     return [
       {
         key: 'physicalTargets',
-        title: isChinese.value ? '物理映射' : 'Physical targets',
+        title: t('inline.viewsAssetCatalogAssetCatalogView.text052'),
         items: detail.physicalTargets || []
       }
     ]
@@ -278,7 +275,7 @@ const detailAuxGroups = computed(() => {
     return [
       {
         key: 'dependencies',
-        title: isChinese.value ? '依赖对象' : 'Dependencies',
+        title: t('inline.viewsAssetCatalogAssetCatalogView.text053'),
         items: detail.dependencies || []
       }
     ]

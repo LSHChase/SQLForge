@@ -12,7 +12,7 @@ import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
 import { formatSqlText } from '../common/sqlFormatting.mjs'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const datasourceTree = [
   {
@@ -115,7 +115,6 @@ const showExplainDialog = ref(false)
 const executionHistory = ref([])
 const nextParameterId = ref(4)
 
-const isChinese = computed(() => locale.value === 'zh-CN')
 const previewRows = computed(() => result.value?.rows || [])
 const resultColumns = computed(() => {
   const firstRow = previewRows.value[0]
@@ -133,12 +132,12 @@ const selectedDatasource = computed(() => {
 })
 const datasourceOptions = computed(() => ['HETU', 'HIVE'])
 const accelerationOptions = computed(() => [
-  { value: 'NONE', label: isChinese.value ? '不偏好加速' : 'No acceleration preference' },
-  { value: 'PREFER_ACCELERATED', label: isChinese.value ? '优先加速链路' : 'Prefer accelerated path' }
+  { value: 'NONE', label: t('inline.viewsQuerySqlQueryView.text001') },
+  { value: 'PREFER_ACCELERATED', label: t('inline.viewsQuerySqlQueryView.text002') }
 ])
 const toleranceOptions = computed(() => [
-  { value: 'FAIL_FAST', label: isChinese.value ? '快速失败' : 'Fail fast' },
-  { value: 'RETRY_THEN_FALLBACK', label: isChinese.value ? '重试后回退' : 'Retry then fallback' }
+  { value: 'FAIL_FAST', label: t('inline.viewsQuerySqlQueryView.text003') },
+  { value: 'RETRY_THEN_FALLBACK', label: t('inline.viewsQuerySqlQueryView.text004') }
 ])
 const recentLibraryEntries = computed(() => sqlLibrary.filter(item => item.type === 'recent'))
 const favoriteLibraryEntries = computed(() => sqlLibrary.filter(item => item.type === 'favorite'))
@@ -162,13 +161,13 @@ const boundSqlPreview = computed(() => {
 const validationTips = computed(() => {
   const tips = []
   if (!String(form.sqlText || '').includes('--report_code=')) {
-    tips.push(isChinese.value ? '缺少 --report_code 注释。' : 'Missing --report_code annotation.')
+    tips.push(t('inline.viewsQuerySqlQueryView.text005'))
   }
   if (!String(form.sqlText || '').toUpperCase().includes('SELECT') && !String(form.sqlText || '').toUpperCase().includes('EXPLAIN')) {
-    tips.push(isChinese.value ? '当前工作台更适合 SELECT / EXPLAIN。' : 'The current workbench is optimized for SELECT or EXPLAIN.')
+    tips.push(t('inline.viewsQuerySqlQueryView.text006'))
   }
   if (!parameterSnapshot.value.query_date) {
-    tips.push(isChinese.value ? '建议补充 query_date 参数。' : 'Add a query_date binding for audited execution.')
+    tips.push(t('inline.viewsQuerySqlQueryView.text007'))
   }
   return tips
 })
@@ -206,13 +205,13 @@ const queryHeroMetrics = computed(() => [
 const summaryRows = computed(() => {
   const metadata = result.value?.metadata || {}
   return [
-    { label: isChinese.value ? '数据源对象' : 'Datasource object', value: selectedDatasource.value.label },
-    { label: isChinese.value ? '执行模式' : 'Execution mode', value: metadata.executionMode || '-' },
-    { label: isChinese.value ? '目标引擎' : 'Target engine', value: metadata.targetEngine || form.datasourceType },
-    { label: isChinese.value ? '路由配置' : 'Route profile', value: metadata.routeProfile || '-' },
-    { label: isChinese.value ? '缓存状态' : 'Cache status', value: metadata.cacheGovernanceStatus || '-' },
-    { label: isChinese.value ? 'SQL 指纹' : 'SQL fingerprint', value: result.value?.sqlFingerprint || '-' },
-    { label: isChinese.value ? '耗时' : 'Elapsed', value: metadata.elapsedMs == null ? '-' : `${metadata.elapsedMs}ms` }
+    { label: t('inline.viewsQuerySqlQueryView.text008'), value: selectedDatasource.value.label },
+    { label: t('inline.viewsQuerySqlQueryView.text009'), value: metadata.executionMode || '-' },
+    { label: t('inline.viewsQuerySqlQueryView.text010'), value: metadata.targetEngine || form.datasourceType },
+    { label: t('inline.viewsQuerySqlQueryView.text011'), value: metadata.routeProfile || '-' },
+    { label: t('inline.viewsQuerySqlQueryView.text012'), value: metadata.cacheGovernanceStatus || '-' },
+    { label: t('inline.viewsQuerySqlQueryView.text013'), value: result.value?.sqlFingerprint || '-' },
+    { label: t('inline.viewsQuerySqlQueryView.text014'), value: metadata.elapsedMs == null ? '-' : `${metadata.elapsedMs}ms` }
   ]
 })
 const structureRows = computed(() => {
@@ -228,10 +227,10 @@ const structureRows = computed(() => {
     riskTags.push('WINDOW')
   }
   return [
-    { label: isChinese.value ? '语法状态' : 'Syntax status', value: validationTips.value.length ? 'REVIEW' : 'VALID' },
-    { label: isChinese.value ? 'SQL 类型' : 'SQL type', value: sqlText.trim().startsWith('EXPLAIN') ? 'EXPLAIN' : 'SELECT' },
-    { label: isChinese.value ? '复杂度' : 'Complexity', value: riskTags.length >= 2 ? 'COMPLEX' : 'MODERATE' },
-    { label: isChinese.value ? '风险标签' : 'Risk tags', value: riskTags.length ? riskTags.join(', ') : 'NONE' }
+    { label: t('inline.viewsQuerySqlQueryView.text015'), value: validationTips.value.length ? 'REVIEW' : 'VALID' },
+    { label: t('inline.viewsQuerySqlQueryView.text016'), value: sqlText.trim().startsWith('EXPLAIN') ? 'EXPLAIN' : 'SELECT' },
+    { label: t('inline.viewsQuerySqlQueryView.text017'), value: riskTags.length >= 2 ? 'COMPLEX' : 'MODERATE' },
+    { label: t('inline.viewsQuerySqlQueryView.text018'), value: riskTags.length ? riskTags.join(', ') : 'NONE' }
   ]
 })
 const routingRows = computed(() => {
@@ -239,20 +238,20 @@ const routingRows = computed(() => {
   return [
     { label: 'routeProfile', value: metadata.routeProfile || '-' },
     { label: 'attemptedModes', value: listText(metadata.attemptedModes) },
-    { label: isChinese.value ? '回退策略' : 'Fallback strategy', value: form.faultToleranceStrategy },
-    { label: isChinese.value ? '加速偏好' : 'Acceleration preference', value: form.accelerationPreference }
+    { label: t('inline.viewsQuerySqlQueryView.text019'), value: form.faultToleranceStrategy },
+    { label: t('inline.viewsQuerySqlQueryView.text020'), value: form.accelerationPreference }
   ]
 })
 const recommendationRows = computed(() => {
   const metadata = result.value?.metadata || {}
   return [
     {
-      label: isChinese.value ? '推荐动作' : 'Recommended action',
-      value: metadata.cacheGovernanceStatus === 'HIT' ? (isChinese.value ? '继续复用缓存链路' : 'Keep the cached route') : (isChinese.value ? '优先验证推荐中心结果' : 'Validate recommendation-center output')
+      label: t('inline.viewsQuerySqlQueryView.text021'),
+      value: metadata.cacheGovernanceStatus === 'HIT' ? (t('inline.viewsQuerySqlQueryView.text022')) : (t('inline.viewsQuerySqlQueryView.text023'))
     },
     {
-      label: isChinese.value ? '下一步' : 'Next step',
-      value: isChinese.value ? '如需长文本说明，打开 explain 或治理抽屉。' : 'Use the explain dialog or governance drawer for long-form evidence.'
+      label: t('inline.viewsQuerySqlQueryView.text024'),
+      value: t('inline.viewsQuerySqlQueryView.text025')
     }
   ]
 })
@@ -287,16 +286,16 @@ const queryMetricProps = item => ({
 })
 const explainSteps = computed(() => [
   {
-    label: isChinese.value ? '输入规范化' : 'Input normalization',
-    detail: isChinese.value ? '应用注释和参数绑定后生成 bound SQL。' : 'Generate bound SQL after annotations and parameter bindings are applied.'
+    label: t('inline.viewsQuerySqlQueryView.text026'),
+    detail: t('inline.viewsQuerySqlQueryView.text027')
   },
   {
-    label: isChinese.value ? '路由判断' : 'Routing decision',
-    detail: result.value?.metadata?.routeProfile || (isChinese.value ? '执行后会回填 route profile。' : 'The route profile is populated after execution.')
+    label: t('inline.viewsQuerySqlQueryView.text028'),
+    detail: result.value?.metadata?.routeProfile || (t('inline.viewsQuerySqlQueryView.text029'))
   },
   {
-    label: isChinese.value ? '治理写回' : 'Governance write-back',
-    detail: result.value?.metadata?.executionMode || (isChinese.value ? '执行完成后回填 execution mode。' : 'The execution mode is populated after execution completes.')
+    label: t('inline.viewsQuerySqlQueryView.text030'),
+    detail: result.value?.metadata?.executionMode || (t('inline.viewsQuerySqlQueryView.text031'))
   }
 ])
 
@@ -439,17 +438,17 @@ const formatJson = value => JSON.stringify(value, null, 2)
       <aside class="query-rail surface-card">
         <div class="panel-heading">
           <div>
-            <p class="section-kicker sqlforge-code-label">{{ isChinese ? '对象与收藏' : 'Objects and favorites' }}</p>
-            <h2 class="section-title">{{ isChinese ? '对象树、收藏与最近 SQL' : 'Object tree, favorites, and recent SQL' }}</h2>
+            <p class="section-kicker sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text032') }}</p>
+            <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text033') }}</h2>
           </div>
           <div class="utility-actions">
-            <el-button text @click="showTemplateDialog = true">{{ isChinese ? '模板' : 'Templates' }}</el-button>
-            <el-button text @click="showLibraryDialog = true">{{ isChinese ? 'SQL 库' : 'SQL library' }}</el-button>
+            <el-button text @click="showTemplateDialog = true">{{ t('inline.viewsQuerySqlQueryView.text034') }}</el-button>
+            <el-button text @click="showLibraryDialog = true">{{ t('inline.viewsQuerySqlQueryView.text035') }}</el-button>
           </div>
         </div>
 
         <el-tabs v-model="activeExplorerTab">
-          <el-tab-pane :label="isChinese ? '对象' : 'Objects'" name="objects">
+          <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text036')" name="objects">
             <el-tree
               :data="datasourceTree"
               node-key="id"
@@ -457,7 +456,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
               @node-click="syncDatasourceSelection"
             />
           </el-tab-pane>
-          <el-tab-pane :label="isChinese ? '收藏' : 'Favorites'" name="favorites">
+          <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text037')" name="favorites">
             <button
               v-for="entry in favoriteLibraryEntries"
               :key="entry.key"
@@ -469,7 +468,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
               <span>{{ entry.summary }}</span>
             </button>
           </el-tab-pane>
-          <el-tab-pane :label="isChinese ? '最近 SQL' : 'Recent SQL'" name="recent">
+          <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text038')" name="recent">
             <button
               v-for="entry in recentLibraryEntries"
               :key="entry.key"
@@ -487,12 +486,12 @@ const formatJson = value => JSON.stringify(value, null, 2)
       <section class="editor-rail surface-card">
         <div class="panel-heading">
           <div>
-            <p class="section-kicker sqlforge-code-label">{{ isChinese ? '查询工作台' : 'Query workbench' }}</p>
-            <h2 class="section-title">{{ isChinese ? 'SQL 编辑、参数绑定与执行动作' : 'SQL editing, bindings, and execution' }}</h2>
+            <p class="section-kicker sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text039') }}</p>
+            <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text040') }}</h2>
           </div>
           <div class="utility-actions">
-            <el-button text @click="formatSql">{{ isChinese ? '格式化' : 'Format SQL' }}</el-button>
-            <el-button text @click="showExplainDialog = true">{{ isChinese ? 'Explain 说明' : 'Explain guide' }}</el-button>
+            <el-button text @click="formatSql">{{ t('inline.viewsQuerySqlQueryView.text041') }}</el-button>
+            <el-button text @click="showExplainDialog = true">{{ t('inline.viewsQuerySqlQueryView.text042') }}</el-button>
           </div>
         </div>
 
@@ -505,11 +504,11 @@ const formatJson = value => JSON.stringify(value, null, 2)
 
         <div class="field-grid">
           <label class="field-block">
-            <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+            <span class="field-label">{{ t('inline.viewsQuerySqlQueryView.text043') }}</span>
             <el-input v-model="form.tenantId" />
           </label>
           <label class="field-block">
-            <span class="field-label">{{ isChinese ? '目标引擎' : 'Target engine' }}</span>
+            <span class="field-label">{{ t('inline.viewsQuerySqlQueryView.text044') }}</span>
             <el-select v-model="form.datasourceType">
               <el-option
                 v-for="item in datasourceOptions"
@@ -520,7 +519,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
             </el-select>
           </label>
           <label class="field-block">
-            <span class="field-label">{{ isChinese ? '加速偏好' : 'Acceleration preference' }}</span>
+            <span class="field-label">{{ t('inline.viewsQuerySqlQueryView.text045') }}</span>
             <el-select v-model="form.accelerationPreference">
               <el-option
                 v-for="item in accelerationOptions"
@@ -531,7 +530,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
             </el-select>
           </label>
           <label class="field-block">
-            <span class="field-label">{{ isChinese ? '容错策略' : 'Fault tolerance' }}</span>
+            <span class="field-label">{{ t('inline.viewsQuerySqlQueryView.text046') }}</span>
             <el-select v-model="form.faultToleranceStrategy">
               <el-option
                 v-for="item in toleranceOptions"
@@ -546,10 +545,10 @@ const formatJson = value => JSON.stringify(value, null, 2)
         <div class="editor-block">
           <SqlEditorField
             v-model="form.sqlText"
-            :label="isChinese ? 'SQL 编辑器' : 'SQL editor'"
+            :label="t('inline.viewsQuerySqlQueryView.text047')"
             :rows="14"
-            :copy-label="isChinese ? '复制' : 'Copy'"
-            :format-label="isChinese ? '格式化' : 'Format'"
+            :copy-label="t('inline.viewsQuerySqlQueryView.text048')"
+            :format-label="t('inline.viewsQuerySqlQueryView.text049')"
             data-testid="query-flow-sql-editor"
           />
         </div>
@@ -557,17 +556,17 @@ const formatJson = value => JSON.stringify(value, null, 2)
         <div class="parameter-panel">
           <div class="parameter-panel__header">
             <div>
-              <p class="section-kicker sqlforge-code-label">{{ isChinese ? '参数绑定' : 'Parameter bindings' }}</p>
-              <h3 class="parameter-panel__title">{{ isChinese ? '紧凑表格式输入' : 'Compact tabular bindings' }}</h3>
+              <p class="section-kicker sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text050') }}</p>
+              <h3 class="parameter-panel__title">{{ t('inline.viewsQuerySqlQueryView.text051') }}</h3>
             </div>
-            <el-button text @click="addParameter">{{ isChinese ? '新增参数' : 'Add parameter' }}</el-button>
+            <el-button text @click="addParameter">{{ t('inline.viewsQuerySqlQueryView.text052') }}</el-button>
           </div>
 
           <div class="parameter-table">
             <div class="parameter-table__head">
-              <span>{{ isChinese ? '参数名' : 'Key' }}</span>
-              <span>{{ isChinese ? '参数值' : 'Value' }}</span>
-              <span>{{ isChinese ? '操作' : 'Action' }}</span>
+              <span>{{ t('inline.viewsQuerySqlQueryView.text053') }}</span>
+              <span>{{ t('inline.viewsQuerySqlQueryView.text054') }}</span>
+              <span>{{ t('inline.viewsQuerySqlQueryView.text055') }}</span>
             </div>
             <div
               v-for="row in parameterRows"
@@ -576,7 +575,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
             >
               <el-input v-model="row.key" />
               <el-input v-model="row.value" />
-              <el-button text @click="removeParameter(row.id)">{{ isChinese ? '删除' : 'Remove' }}</el-button>
+              <el-button text @click="removeParameter(row.id)">{{ t('inline.viewsQuerySqlQueryView.text056') }}</el-button>
             </div>
           </div>
         </div>
@@ -588,18 +587,18 @@ const formatJson = value => JSON.stringify(value, null, 2)
             data-testid="query-flow-submit"
             @click="runQuery('default')"
           >
-            {{ isChinese ? '执行 SQL' : 'Run SQL' }}
+            {{ t('inline.viewsQuerySqlQueryView.text057') }}
           </el-button>
           <el-button
             :loading="running"
             data-testid="query-flow-submit-recovery"
             @click="runQuery('recovery')"
           >
-            {{ isChinese ? '恢复执行' : 'Recovery run' }}
+            {{ t('inline.viewsQuerySqlQueryView.text058') }}
           </el-button>
           <div class="submit-row__helpers">
-            <el-button text @click="showBoundPreviewDrawer = true">{{ isChinese ? '查看 Bound SQL' : 'View bound SQL' }}</el-button>
-            <el-button text @click="showGovernanceDrawer = true">{{ isChinese ? '治理摘要' : 'Governance summary' }}</el-button>
+            <el-button text @click="showBoundPreviewDrawer = true">{{ t('inline.viewsQuerySqlQueryView.text059') }}</el-button>
+            <el-button text @click="showGovernanceDrawer = true">{{ t('inline.viewsQuerySqlQueryView.text060') }}</el-button>
           </div>
         </div>
       </section>
@@ -608,7 +607,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
         <div class="panel-heading">
           <div>
             <p class="section-kicker sqlforge-code-label">governance summary</p>
-            <h2 class="section-title">{{ isChinese ? '当前执行摘要' : 'Current execution summary' }}</h2>
+            <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text061') }}</h2>
           </div>
         </div>
 
@@ -624,9 +623,9 @@ const formatJson = value => JSON.stringify(value, null, 2)
         </div>
 
         <div class="history-panel">
-          <p class="section-kicker sqlforge-code-label">{{ isChinese ? '最近执行' : 'Recent runs' }}</p>
+          <p class="section-kicker sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text062') }}</p>
           <p v-if="!executionHistory.length" class="muted-copy">
-            {{ isChinese ? '执行后会在这里保留最近 6 条记录。' : 'The last six runs are listed here after execution.' }}
+            {{ t('inline.viewsQuerySqlQueryView.text063') }}
           </p>
           <div v-else class="history-list">
             <div
@@ -646,12 +645,12 @@ const formatJson = value => JSON.stringify(value, null, 2)
       <div class="panel-heading">
         <div>
           <p class="section-kicker sqlforge-code-label">result tabs</p>
-          <h2 class="section-title">{{ isChinese ? '结果、摘要、结构解析、路由与推荐' : 'Results, summary, structure, routing, and recommendation' }}</h2>
+          <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text064') }}</h2>
         </div>
       </div>
 
       <el-tabs v-model="activeResultTab">
-        <el-tab-pane :label="isChinese ? '结果' : 'Rows'" name="rows">
+        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text065')" name="rows">
           <div v-if="previewRows.length" class="table-shell">
             <el-table :data="previewRows" border>
               <el-table-column
@@ -663,10 +662,10 @@ const formatJson = value => JSON.stringify(value, null, 2)
               />
             </el-table>
           </div>
-          <p v-else class="empty-copy">{{ isChinese ? '默认先展示结果表，执行后可直接查看返回行。' : 'The result table is the default landing state once execution completes.' }}</p>
+          <p v-else class="empty-copy">{{ t('inline.viewsQuerySqlQueryView.text066') }}</p>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? '执行摘要' : 'Execution summary'" name="summary">
+        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text067')" name="summary">
           <div class="detail-grid">
             <div
               v-for="item in summaryRows"
@@ -679,7 +678,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? '结构解析' : 'Structure parse'" name="structure">
+        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text068')" name="structure">
           <div class="detail-grid">
             <div
               v-for="item in structureRows"
@@ -705,7 +704,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? '路由' : 'Routing'" name="routing">
+        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text069')" name="routing">
           <div class="detail-grid">
             <div
               v-for="item in routingRows"
@@ -731,7 +730,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? '推荐' : 'Recommendation'" name="recommendation">
+        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text070')" name="recommendation">
           <div class="detail-grid">
             <div
               v-for="item in recommendationRows"
@@ -746,7 +745,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
       </el-tabs>
     </section>
 
-    <el-dialog v-model="showTemplateDialog" :title="isChinese ? '注释模板' : 'Annotation templates'" width="720px">
+    <el-dialog v-model="showTemplateDialog" :title="t('inline.viewsQuerySqlQueryView.text071')" width="720px">
       <div class="dialog-list">
         <article
           v-for="template in sqlTemplates"
@@ -755,19 +754,19 @@ const formatJson = value => JSON.stringify(value, null, 2)
         >
           <div class="dialog-card__header">
             <strong>{{ template.label }}</strong>
-            <el-button text @click="applyTemplate(template)">{{ isChinese ? '应用' : 'Apply' }}</el-button>
+            <el-button text @click="applyTemplate(template)">{{ t('inline.viewsQuerySqlQueryView.text072') }}</el-button>
           </div>
           <SqlCodeBlock
             :value="template.content"
             :label="template.label"
-            :copy-label="isChinese ? '复制' : 'Copy'"
+            :copy-label="t('inline.viewsQuerySqlQueryView.text073')"
             compact
           />
         </article>
       </div>
     </el-dialog>
 
-    <el-dialog v-model="showLibraryDialog" :title="isChinese ? 'SQL Library' : 'SQL library'" width="720px">
+    <el-dialog v-model="showLibraryDialog" :title="t('inline.viewsQuerySqlQueryView.text074')" width="720px">
       <div class="dialog-list">
         <article
           v-for="entry in sqlLibrary"
@@ -779,19 +778,19 @@ const formatJson = value => JSON.stringify(value, null, 2)
               <strong>{{ entry.title }}</strong>
               <p class="muted-copy">{{ entry.summary }}</p>
             </div>
-            <el-button text @click="loadLibrarySql(entry)">{{ isChinese ? '加载' : 'Load' }}</el-button>
+            <el-button text @click="loadLibrarySql(entry)">{{ t('inline.viewsQuerySqlQueryView.text075') }}</el-button>
           </div>
           <SqlCodeBlock
             :value="entry.sqlText"
             :label="entry.title"
-            :copy-label="isChinese ? '复制' : 'Copy'"
+            :copy-label="t('inline.viewsQuerySqlQueryView.text076')"
             compact
           />
         </article>
       </div>
     </el-dialog>
 
-    <el-dialog v-model="showExplainDialog" :title="isChinese ? 'Explain 说明' : 'Explain guide'" width="640px">
+    <el-dialog v-model="showExplainDialog" :title="t('inline.viewsQuerySqlQueryView.text077')" width="640px">
       <div class="dialog-list">
         <article
           v-for="item in explainSteps"
@@ -804,16 +803,16 @@ const formatJson = value => JSON.stringify(value, null, 2)
       </div>
     </el-dialog>
 
-    <el-drawer v-model="showBoundPreviewDrawer" :title="isChinese ? 'Bound SQL preview' : 'Bound SQL preview'" size="48%">
+    <el-drawer v-model="showBoundPreviewDrawer" :title="t('inline.viewsQuerySqlQueryView.text078')" size="48%">
       <SqlCodeBlock
         :value="boundSqlPreview"
-        :label="isChinese ? '绑定后 SQL' : 'Bound SQL'"
-        :copy-label="isChinese ? '复制' : 'Copy'"
+        :label="t('inline.viewsQuerySqlQueryView.text079')"
+        :copy-label="t('inline.viewsQuerySqlQueryView.text080')"
         data-testid="query-flow-bound-sql"
       />
     </el-drawer>
 
-    <el-drawer v-model="showGovernanceDrawer" :title="isChinese ? '治理摘要' : 'Governance summary'" size="42%">
+    <el-drawer v-model="showGovernanceDrawer" :title="t('inline.viewsQuerySqlQueryView.text081')" size="42%">
       <div class="drawer-stack">
         <div class="detail-grid">
           <div
@@ -827,7 +826,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
         </div>
 
         <div v-if="queueStatsBefore || queueStatsAfter" class="dialog-card">
-          <strong>{{ isChinese ? '补偿队列快照' : 'Compensation queue snapshots' }}</strong>
+          <strong>{{ t('inline.viewsQuerySqlQueryView.text082') }}</strong>
           <pre class="code-block">{{ formatJson({ before: queueStatsBefore, after: queueStatsAfter }) }}</pre>
         </div>
       </div>

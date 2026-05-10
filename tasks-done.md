@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-125: 前端页面中文化与 i18n 防回退整改
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `fix(frontend): localize visible page copy`
+- Priority: 1
+- Depends on: HARN-124
+- Scope: 整改前端页面用户可见英文文案：保留 SQL/API/JSON/HTTP/JDBC/SDK/MySQL/Redis/Kafka/HETU/HIVE、枚举、路径、代码、任务号和后端原始 payload 等技术关键字，其余标题、段落、按钮、提示、表头、空状态、帮助文本迁入 zh-CN/en-US 语言包并随右上角语言切换；补充 i18n 审计脚本防止回退。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-125`
+- Progress log:
+  - 2026-05-10: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 将前端主要业务页和治理页中大量可见中英文三元文案迁入 i18n key；清理 zh-CN 中的英文 prose，保留 SQL/API/JSON/HTTP/JDBC/SDK/MySQL/Redis/Kafka/HETU/HIVE、ID、枚举、路径、代码与后端 payload 等技术标识；新增 check-frontend-i18n-copy.mjs 并接入 npm run test:frontend-page-governance，防止中文文案回退为英文长句。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-125 --include-task-audit --extra-command "npm run lint" --extra-command "npm run build" --extra-command "npm run test:frontend-page-governance" --extra-command "npm run test:sql-ui-contract" --extra-command "npm run test:form-governance" --extra-command "node scripts/lint-repository-knowledge.js" --extra-command "git diff --check"；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 技术关键词、接口路径、枚举、ID 和后端原始 payload 按需求保留英文；导航仍沿用既有 route metadata 结构，但中文/英文文案均随右上角语言切换。
+  - Next step: 后续新增前端文案继续通过 npm run test:frontend-page-governance 和 npm run test:i18n-copy 约束，不再引入未治理的英文长句。
+
 ### HARN-124: Correct issue-scene scoped locations and standard detail lists
 
 - Status: done

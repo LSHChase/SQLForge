@@ -2,7 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import { useParseRecordContext } from './parseRecordContext'
 
-useI18n()
+const { t } = useI18n()
 
 const {
   classificationSummary,
@@ -10,7 +10,6 @@ const {
   handleHistoryPageChange,
   handleHistoryPageSizeChange,
   historyPagination,
-  isChinese,
   LIST_PAGE_SIZE_OPTIONS,
   openHistoryDetail,
   rows,
@@ -19,12 +18,12 @@ const {
 </script>
 
 <template>
-  <el-tab-pane :label="isChinese ? 'SQL 解析记录' : 'SQL parse records'" name="sqlHistory">
+  <el-tab-pane :label="t('inline.viewsParseRecordParseRecordSqlHistoryPane.text001')" name="sqlHistory">
     <section class="surface-card table-panel" data-testid="parse-record-sql-history-tab">
       <div class="table-heading">
         <div>
           <p class="section-kicker sqlforge-code-label">SQL parse history table</p>
-          <h2 class="section-title">{{ isChinese ? 'SQL 解析记录' : 'SQL parse records' }}</h2>
+          <h2 class="section-title">{{ t('inline.viewsParseRecordParseRecordSqlHistoryPane.text002') }}</h2>
         </div>
         <div class="chip-row">
           <span
@@ -38,7 +37,7 @@ const {
       </div>
 
       <el-table :data="rows" border>
-        <el-table-column :label="isChinese ? '解析记录 / 报表' : 'Parse record / Report'" min-width="220">
+        <el-table-column :label="t('inline.viewsParseRecordParseRecordSqlHistoryPane.text003')" min-width="220">
           <template #default="{ row }">
             <button
               type="button"
@@ -51,23 +50,23 @@ const {
             <div class="cell-subline">{{ row.parseHistoryId || row.historyId }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="datasourceCode" :label="isChinese ? '数据源' : 'Datasource'" min-width="140" />
-        <el-table-column prop="stageCode" :label="isChinese ? '阶段' : 'Stage'" min-width="110" />
-        <el-table-column :label="isChinese ? '来源类型' : 'Source type'" min-width="150">
+        <el-table-column prop="datasourceCode" :label="t('inline.viewsParseRecordParseRecordSqlHistoryPane.text004')" min-width="140" />
+        <el-table-column prop="stageCode" :label="t('inline.viewsParseRecordParseRecordSqlHistoryPane.text005')" min-width="110" />
+        <el-table-column :label="t('inline.viewsParseRecordParseRecordSqlHistoryPane.text006')" min-width="150">
           <template #default="{ row }">{{ row.sourceType || '-' }}</template>
         </el-table-column>
-        <el-table-column prop="resultStatus" :label="isChinese ? '状态' : 'Status'" min-width="120">
+        <el-table-column prop="resultStatus" :label="t('inline.viewsParseRecordParseRecordSqlHistoryPane.text007')" min-width="120">
           <template #default="{ row }">
             <span :class="statusClass(row.resultStatus)">{{ row.resultStatus || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="accessChannel" :label="isChinese ? '接入渠道' : 'Access channel'" min-width="130" />
-        <el-table-column :label="isChinese ? '逻辑对象类型' : 'Logical objects'" min-width="160">
+        <el-table-column prop="accessChannel" :label="t('inline.viewsParseRecordParseRecordSqlHistoryPane.text008')" min-width="130" />
+        <el-table-column :label="t('inline.viewsParseRecordParseRecordSqlHistoryPane.text009')" min-width="160">
           <template #default="{ row }">{{ row.logicalObjectTypes?.join(', ') || '-' }}</template>
         </el-table-column>
-        <el-table-column prop="parseTaskId" :label="isChinese ? '解析任务' : 'Parse task'" min-width="180" />
-        <el-table-column prop="targetEngine" :label="isChinese ? '目标引擎' : 'Target engine'" min-width="120" />
-        <el-table-column prop="submittedAt" :label="isChinese ? '提交时间' : 'Submitted at'" min-width="170">
+        <el-table-column prop="parseTaskId" :label="t('inline.viewsParseRecordParseRecordSqlHistoryPane.text010')" min-width="180" />
+        <el-table-column prop="targetEngine" :label="t('inline.viewsParseRecordParseRecordSqlHistoryPane.text011')" min-width="120" />
+        <el-table-column prop="submittedAt" :label="t('inline.viewsParseRecordParseRecordSqlHistoryPane.text012')" min-width="170">
           <template #default="{ row }">{{ formatTimestamp(row.submittedAt) }}</template>
         </el-table-column>
       </el-table>

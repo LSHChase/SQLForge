@@ -17,7 +17,7 @@ import {
 import { issueSceneHelpText } from '../common/issueSceneHelp.mjs'
 
 export function useParseBatchCenter() {
-  const { locale } = useI18n()
+  const { t, locale } = useI18n()
   const route = useRoute()
 
   const activeWorkspace = ref('parse')
@@ -153,15 +153,15 @@ export function useParseBatchCenter() {
       return []
     }
     return [
-      card(isChinese.value ? '批次状态' : 'Batch status', parseBatchDetail.value.status),
-      card(isChinese.value ? '解析工具' : 'Parser tool', parseBatchDetail.value.parserMode),
-      card(isChinese.value ? '总记录数' : 'Total records', parseBatchDetail.value.totalRecords),
-      card(isChinese.value ? '成功' : 'Success', parseBatchDetail.value.successRecords),
-      card(isChinese.value ? '部分成功' : 'Partial success', parseBatchDetail.value.partialSuccessRecords),
-      card(isChinese.value ? '失败' : 'Failed', parseBatchDetail.value.failedRecords),
-      card(isChinese.value ? 'Structure 成功率' : 'Structure rate', formatRate(parseBatchDetail.value.structureParseSuccessRate)),
-      card(isChinese.value ? 'Access 成功率' : 'Access rate', formatRate(parseBatchDetail.value.accessParseSuccessRate)),
-      card(isChinese.value ? 'Plan 成功率' : 'Plan rate', formatRate(parseBatchDetail.value.planAnalysisStatistics?.successRate))
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text001'), parseBatchDetail.value.status),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text002'), parseBatchDetail.value.parserMode),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text003'), parseBatchDetail.value.totalRecords),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text004'), parseBatchDetail.value.successRecords),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text005'), parseBatchDetail.value.partialSuccessRecords),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text006'), parseBatchDetail.value.failedRecords),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text007'), formatRate(parseBatchDetail.value.structureParseSuccessRate)),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text008'), formatRate(parseBatchDetail.value.accessParseSuccessRate)),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text009'), formatRate(parseBatchDetail.value.planAnalysisStatistics?.successRate))
     ].filter(item => hasDisplayValue(item.value))
   })
   const reportBatchStatusCards = computed(() => {
@@ -169,15 +169,15 @@ export function useParseBatchCenter() {
       return []
     }
     return [
-      card(isChinese.value ? '导入状态' : 'Import status', reportBatchDetail.value.status, 'batchStatus'),
-      card(isChinese.value ? '解析工具' : 'Parser tool', reportBatchDetail.value.parserMode, 'parserMode'),
-      card(isChinese.value ? '报表总数' : 'Total reports', reportBatchDetail.value.totalReports, 'totalReports'),
-      card(isChinese.value ? 'SQL 总数' : 'Total SQL', reportBatchDetail.value.totalSqls ?? reportItems.value.length, 'totalSqls'),
-      card(isChinese.value ? '已解析 SQL' : 'Resolved SQL', reportBatchDetail.value.resolvedSqls ?? reportBatchDetail.value.resolvedReports, 'resolvedSqls'),
-      card(isChinese.value ? '失败 SQL' : 'Failed SQL', reportBatchDetail.value.failedSqls ?? reportBatchDetail.value.failedReports, 'failedSqls'),
-      card(isChinese.value ? 'Plan 成功率' : 'Plan rate', formatRate(reportBatchDetail.value.planAnalysisStatistics?.successRate), 'planRate'),
-      card(isChinese.value ? '阶段' : 'Stage', reportBatchDetail.value.stage, 'stage'),
-      card(isChinese.value ? '优先级' : 'Priority', reportBatchDetail.value.priority, 'priority')
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text010'), reportBatchDetail.value.status, 'batchStatus'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text011'), reportBatchDetail.value.parserMode, 'parserMode'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text012'), reportBatchDetail.value.totalReports, 'totalReports'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text013'), reportBatchDetail.value.totalSqls ?? reportItems.value.length, 'totalSqls'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text014'), reportBatchDetail.value.resolvedSqls ?? reportBatchDetail.value.resolvedReports, 'resolvedSqls'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text015'), reportBatchDetail.value.failedSqls ?? reportBatchDetail.value.failedReports, 'failedSqls'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text016'), formatRate(reportBatchDetail.value.planAnalysisStatistics?.successRate), 'planRate'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text017'), reportBatchDetail.value.stage, 'stage'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text018'), reportBatchDetail.value.priority, 'priority')
     ].filter(item => hasDisplayValue(item.value))
   })
   const parseFailureRecords = computed(() => {
@@ -242,23 +242,23 @@ export function useParseBatchCenter() {
     const fallbackLogicalObjects = new Set(items.flatMap(item => Array.isArray(item.logicalObjectKeys) ? item.logicalObjectKeys : []))
     const logicalObjectCount = reportBackendLogicalObjectStatistics.value.length || fallbackLogicalObjects.size
     return [
-      card(isChinese.value ? 'SQL 总数' : 'SQL count', total, 'totalSqls'),
-      card(isChinese.value ? '问题 SQL' : 'Issue SQL', overview.issueSqlCount, 'issueSqlCount'),
-      card(isChinese.value ? '问题总数' : 'Issues', overview.totalIssueCount, 'totalIssueCount'),
-      card(isChinese.value ? '重要 SQL' : 'Important SQL', overview.importantSqlCount, 'importantSqlCount'),
-      card(isChinese.value ? '紧急 SQL' : 'Urgent SQL', overview.urgentSqlCount, 'urgentSqlCount'),
-      card(isChinese.value ? '解析成功' : 'Resolved', resolved, 'resolvedSqls'),
-      card(isChinese.value ? '部分解析' : 'Partial', partial, 'partialSqls'),
-      card(isChinese.value ? '失败' : 'Failed', failed, 'failedSqls'),
-      card(isChinese.value ? '结构成功率' : 'Structure rate', formatPercent(rate(structureValid, total)), 'structureRate'),
-      card(isChinese.value ? 'Access 连通率' : 'Access connected', formatPercent(rate(accessConnected, total)), 'accessRate'),
-      card(isChinese.value ? '问题场景' : 'Issue scenes', overview.issueSceneCount ?? reportIssueSceneStatistics.value.length, 'issueScenes'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text019'), total, 'totalSqls'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text020'), overview.issueSqlCount, 'issueSqlCount'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text021'), overview.totalIssueCount, 'totalIssueCount'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text022'), overview.importantSqlCount, 'importantSqlCount'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text023'), overview.urgentSqlCount, 'urgentSqlCount'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text024'), resolved, 'resolvedSqls'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text025'), partial, 'partialSqls'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text026'), failed, 'failedSqls'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text027'), formatPercent(rate(structureValid, total)), 'structureRate'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text028'), formatPercent(rate(accessConnected, total)), 'accessRate'),
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text029'), overview.issueSceneCount ?? reportIssueSceneStatistics.value.length, 'issueScenes'),
       card(
-        isChinese.value ? '可合并报表' : 'Merge candidates',
+        t('inline.viewsParseBatchUseParseBatchCenter.text030'),
         reportParseStatistics.value.mergeCandidateReportCount,
         'mergeCandidateReportCount'
       ),
-      card(isChinese.value ? '逻辑对象' : 'Logical objects', logicalObjectCount, 'logicalObjects')
+      card(t('inline.viewsParseBatchUseParseBatchCenter.text031'), logicalObjectCount, 'logicalObjects')
     ].filter(item => hasDisplayValue(item.value))
   })
   function buildReportGroups(items) {
@@ -323,7 +323,7 @@ export function useParseBatchCenter() {
   )
   const reportGroupDetailTitle = computed(() => {
     if (!selectedReportGroup.value) {
-      return isChinese.value ? '本报表 SQL 明细' : 'Report SQL detail'
+      return t('inline.viewsParseBatchUseParseBatchCenter.text032')
     }
     return isChinese.value
       ? `${selectedReportGroup.value.reportCode} 本报表 SQL 明细`
@@ -458,10 +458,10 @@ export function useParseBatchCenter() {
     omittedFromPreview(directSqlRows.value.length, directSqlPreview.value.length)
   )
   const parseSessionsSummary = computed(() =>
-    `${parseBatchListPagination.totalCount || parseBatchSessions.value.length} ${isChinese.value ? '个会话' : 'sessions'}`
+    `${parseBatchListPagination.totalCount || parseBatchSessions.value.length} ${t('inline.viewsParseBatchUseParseBatchCenter.text033')}`
   )
   const reportSessionsSummary = computed(() =>
-    `${reportBatchListPagination.totalCount || reportBatchSessions.value.length} ${isChinese.value ? '个批次' : 'batches'}`
+    `${reportBatchListPagination.totalCount || reportBatchSessions.value.length} ${t('inline.viewsParseBatchUseParseBatchCenter.text034')}`
   )
   const card = (label, value, key = '') => ({ label, value, key })
 
@@ -534,23 +534,23 @@ export function useParseBatchCenter() {
 
   const helpTextForKey = key => {
     const glossary = {
-      batchStatus: isChinese.value ? '当前报表批次的导入或解析生命周期状态。' : 'Current lifecycle status of the report-import batch.',
-      totalReports: isChinese.value ? '批次内去重后的报表编码数量。' : 'Number of distinct report codes in the batch.',
-      totalSqls: isChinese.value ? '批次内 SQL 总数；详情清单通过分页逐页展示。' : 'Total SQL rows in the batch; detail lists are paginated.',
-      resolvedSqls: isChinese.value ? '已完成结构解析且 Access 状态可接受的 SQL 数量。' : 'SQL rows whose structure parse and access state are acceptable.',
-      failedSqls: isChinese.value ? '未完全解析成功的 SQL 数量。' : 'SQL rows that did not fully resolve successfully.',
-      stage: isChinese.value ? '报表导入或解析使用的环境阶段。' : 'Environment stage used by report import or parsing.',
-      priority: isChinese.value ? '导入批次或 SQL 行的治理优先级。' : 'Governance priority for the batch or SQL row.',
-      issueSqlCount: isChinese.value ? '至少命中一个问题场景的 SQL 数。' : 'SQL rows with at least one issue scene.',
-      totalIssueCount: isChinese.value ? '所有 SQL 命中的问题总次数。' : 'Total issue hits across SQL rows.',
-      importantSqlCount: isChinese.value ? '命中 important 判定的 SQL 数。' : 'SQL rows marked important by issue scoring.',
-      urgentSqlCount: isChinese.value ? '命中 urgent 判定的 SQL 数。' : 'SQL rows marked urgent by issue scoring.',
-      partialSqls: isChinese.value ? '结构解析通过但 Access 或后续信号未完全成功的 SQL 数。' : 'SQL rows with valid structure but partial access or downstream signals.',
-      structureRate: isChinese.value ? '当前已加载 SQL 行中语法状态为 VALID 的比例。' : 'Ratio of currently loaded SQL rows with VALID syntax.',
-      accessRate: isChinese.value ? '当前已加载 SQL 行中 Access 服务可用且连接成功的比例。' : 'Ratio of currently loaded SQL rows with available and connected access parse.',
-      issueScenes: isChinese.value ? 'SQL 结构解析命中的问题场景集合。' : 'Issue scenes detected by structure parsing.',
-      mergeCandidateReportCount: isChinese.value ? '同一报表内多条 SQL 命中保守静态合并候选规则的报表数。' : 'Reports where multiple SQL rows match the conservative static merge-candidate rule.',
-      logicalObjects: isChinese.value ? '解析或 Access 过程识别到的表、视图等逻辑对象。' : 'Logical objects such as tables or views found during parsing.'
+      batchStatus: t('inline.viewsParseBatchUseParseBatchCenter.text035'),
+      totalReports: t('inline.viewsParseBatchUseParseBatchCenter.text036'),
+      totalSqls: t('inline.viewsParseBatchUseParseBatchCenter.text037'),
+      resolvedSqls: t('inline.viewsParseBatchUseParseBatchCenter.text038'),
+      failedSqls: t('inline.viewsParseBatchUseParseBatchCenter.text039'),
+      stage: t('inline.viewsParseBatchUseParseBatchCenter.text040'),
+      priority: t('inline.viewsParseBatchUseParseBatchCenter.text041'),
+      issueSqlCount: t('inline.viewsParseBatchUseParseBatchCenter.text042'),
+      totalIssueCount: t('inline.viewsParseBatchUseParseBatchCenter.text043'),
+      importantSqlCount: t('inline.viewsParseBatchUseParseBatchCenter.text044'),
+      urgentSqlCount: t('inline.viewsParseBatchUseParseBatchCenter.text045'),
+      partialSqls: t('inline.viewsParseBatchUseParseBatchCenter.text046'),
+      structureRate: t('inline.viewsParseBatchUseParseBatchCenter.text047'),
+      accessRate: t('inline.viewsParseBatchUseParseBatchCenter.text048'),
+      issueScenes: t('inline.viewsParseBatchUseParseBatchCenter.text049'),
+      mergeCandidateReportCount: t('inline.viewsParseBatchUseParseBatchCenter.text050'),
+      logicalObjects: t('inline.viewsParseBatchUseParseBatchCenter.text051')
     }
     return glossary[key] || ''
   }
@@ -713,7 +713,7 @@ export function useParseBatchCenter() {
   const issueLocationText = item => {
     const locations = issueLocationItems(item)
     if (!locations.length) {
-      return isChinese.value ? '无问题' : 'No issue'
+      return t('inline.viewsParseBatchUseParseBatchCenter.text052')
     }
     return locations
       .map(location => {
@@ -932,9 +932,7 @@ export function useParseBatchCenter() {
 
   const downloadTemplate = () => {
     if (!templateColumns.value.length) {
-      errorMessage.value = isChinese.value
-        ? '先创建批次，拿到模板列契约后再下载模板。'
-        : 'Create a batch first so the template-column contract can be downloaded.'
+      errorMessage.value = t('inline.viewsParseBatchUseParseBatchCenter.text053')
       return
     }
     downloadTextFile(
@@ -945,7 +943,7 @@ export function useParseBatchCenter() {
 
   const ingestParseBatchFlow = async () => {
     if (!parseBatchDetail.value?.batchId) {
-      errorMessage.value = isChinese.value ? '请先创建 parse batch。' : 'Create a parse batch first.'
+      errorMessage.value = t('inline.viewsParseBatchUseParseBatchCenter.text054')
       return
     }
     loading.ingestParseBatch = true
@@ -954,7 +952,7 @@ export function useParseBatchCenter() {
       const payload = await loadPayloadBase64(
         parseUploadFile.value,
         parseBatchForm.rawContent,
-        isChinese.value ? '请上传文件或填写批量内容。' : 'Upload a file or provide inline batch content.'
+        t('inline.viewsParseBatchUseParseBatchCenter.text055')
       )
       parseBatchDetail.value = await ingestParseBatch(parseBatchDetail.value.batchId, parseBatchForm.tenantId, {
         ...payload,
@@ -991,9 +989,7 @@ export function useParseBatchCenter() {
 
   const retryAccessFlow = async () => {
     if (!parseBatchDetail.value?.batchId) {
-      errorMessage.value = isChinese.value
-        ? '请先选择一个 parse batch。'
-        : 'Select a parse batch first.'
+      errorMessage.value = t('inline.viewsParseBatchUseParseBatchCenter.text056')
       return
     }
     loading.retryParseBatch = true
@@ -1030,7 +1026,7 @@ export function useParseBatchCenter() {
       const payload = await loadReportPayloadBase64(
         reportUploadFile.value,
         reportBatchForm.rawContent,
-        isChinese.value ? '请上传报表清单文件或填写模拟内容。' : 'Upload a report catalog file or provide inline mock content.'
+        t('inline.viewsParseBatchUseParseBatchCenter.text057')
       )
       reportBatchDetail.value = await importReportBatch({
         tenantId: reportBatchForm.tenantId,
@@ -1151,9 +1147,7 @@ export function useParseBatchCenter() {
 
   const resolveReportSqlsFlow = async () => {
     if (!reportBatchDetail.value?.batchId) {
-      errorMessage.value = isChinese.value
-        ? '请先导入一个报表批次。'
-        : 'Import a report batch first.'
+      errorMessage.value = t('inline.viewsParseBatchUseParseBatchCenter.text058')
       return
     }
     loading.resolveReportBatch = true

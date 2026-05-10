@@ -30,7 +30,7 @@ const navigationTree = computed(() => createNavigationTree({ includeDeliveryProg
 const activeNavItem = computed(() => findActiveNavigationItem(navigationTree.value, route))
 const activeMenuKey = computed(() => activeNavItem.value?.menuKey || buildNavigationKey(route.path, route.query))
 const defaultOpeneds = computed(() => activeNavItem.value?.defaultOpeneds || [])
-const localeLabel = computed(() => (locale.value === 'zh-CN' ? 'EN' : '中'))
+const localeLabel = computed(() => (t('inline.app.text001')))
 const workspaceSummary = computed(() =>
   t('common.workspaceSummary', {
     tenant: tenantStore.tenantName,
@@ -68,7 +68,7 @@ onMounted(() => {
         </div>
 
         <div class="sidebar-section">
-          <p class="sidebar-section-label sqlforge-code-label">{{ locale === 'zh-CN' ? '按需导航' : 'Adaptive navigation' }}</p>
+          <p class="sidebar-section-label sqlforge-code-label">{{ t('inline.app.text002') }}</p>
           <el-scrollbar class="menu-scroll">
             <el-menu
               :default-active="activeMenuKey"
@@ -163,7 +163,7 @@ onMounted(() => {
       <el-container class="app-main">
         <el-header class="app-header">
           <div class="page-heading">
-            <p class="page-kicker sqlforge-code-label">{{ locale === 'zh-CN' ? '当前工作区' : 'Current workspace' }}</p>
+            <p class="page-kicker sqlforge-code-label">{{ t('inline.app.text003') }}</p>
             <h1 class="page-title">{{ t(route.meta.titleKey || 'dashboard.title') }}</h1>
             <div class="breadcrumb-strip">
               <span

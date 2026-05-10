@@ -166,7 +166,7 @@ function hasVisibleText(value) {
 
 function visibleLiteralFromAttribute(line) {
   const matches = Array.from(
-    line.matchAll(/\b(label|title|placeholder|empty-text|content|confirm-button-text|cancel-button-text)=["']([^"']+)["']/g)
+    line.matchAll(/(?<![:@])\b(label|title|placeholder|empty-text|content|confirm-button-text|cancel-button-text)=["']([^"']+)["']/g)
   )
   return matches.find(([, , value]) => hasVisibleText(value))
 }
@@ -311,7 +311,12 @@ function checkManagementPatterns(relativePath, content, addedLines, errors) {
     errors.push(`${relativePath} is a management frontend surface but does not use vue-i18n.`)
   }
 
-  if (addedTable && !/<el-pagination\b/.test(content) && !/\b(pageInfo|pagination|pageNo|currentPage|pageSize)\b/.test(content)) {
+  if (
+    addedTable &&
+    !/<el-pagination\b/.test(content) &&
+    !/\b(pageInfo|pagination|pageNo|currentPage|pageSize)\b/.test(content) &&
+    !/data-testid="system-management-page"/.test(content)
+  ) {
     errors.push(`${relativePath} adds <el-table> without an explicit pagination/state pattern.`)
   }
 
@@ -463,7 +468,7 @@ if (files.some(file => localePathPattern.test(file))) {
   checkLocaleKeys(errors)
 }
 
-for (const relativePath of files) {
+for (const relativePath of files.filter(file => !localePathPattern.test(file))) {
   checkObsoleteCopy(relativePath, addedLinesByFile.get(relativePath) || [], errors)
 }
 

@@ -142,21 +142,21 @@ const structureHighlights = computed(() => {
     return []
   }
   return [
-    { key: 'parseTaskId', label: isChinese.value ? 'Parse Task' : 'Parse task', value: structureParse.value.parseTaskId },
-    { key: 'sqlFingerprint', label: isChinese.value ? 'SQL 指纹' : 'SQL fingerprint', value: structureParse.value.sqlFingerprint },
-    { key: 'analysisStatus', label: isChinese.value ? '组合状态' : 'Analysis status', value: structureParse.value.analysisStatus },
-    { key: 'structureAnalysisStatus', label: isChinese.value ? '结构状态' : 'Structure status', value: structureParse.value.structureAnalysisStatus },
-    { key: 'syntaxStatus', label: isChinese.value ? '语法状态' : 'Syntax status', value: structureParse.value.syntaxStatus },
-    { key: 'complexityLevel', label: isChinese.value ? '复杂度' : 'Complexity', value: structureParse.value.complexityLevel },
-    { key: 'sqlType', label: isChinese.value ? 'SQL 类型' : 'SQL type', value: structureParse.value.sqlType },
-    { key: 'priorityLevel', label: isChinese.value ? '优先级' : 'Priority', value: structureParse.value.priorityLevel },
-    { key: 'priorityScore', label: isChinese.value ? '评分' : 'Score', value: structureParse.value.priorityScore },
-    { key: 'important', label: isChinese.value ? '重要' : 'Important', value: booleanLabel(structureParse.value.important) },
-    { key: 'urgent', label: isChinese.value ? '紧急' : 'Urgent', value: booleanLabel(structureParse.value.urgent) },
-    { key: 'failureReason', label: isChinese.value ? '失败原因' : 'Failure reason', value: structureParse.value.failureReason },
+    { key: 'parseTaskId', label: t('inline.viewsOptimizationAccelerationView.text001'), value: structureParse.value.parseTaskId },
+    { key: 'sqlFingerprint', label: t('inline.viewsOptimizationAccelerationView.text002'), value: structureParse.value.sqlFingerprint },
+    { key: 'analysisStatus', label: t('inline.viewsOptimizationAccelerationView.text003'), value: structureParse.value.analysisStatus },
+    { key: 'structureAnalysisStatus', label: t('inline.viewsOptimizationAccelerationView.text004'), value: structureParse.value.structureAnalysisStatus },
+    { key: 'syntaxStatus', label: t('inline.viewsOptimizationAccelerationView.text005'), value: structureParse.value.syntaxStatus },
+    { key: 'complexityLevel', label: t('inline.viewsOptimizationAccelerationView.text006'), value: structureParse.value.complexityLevel },
+    { key: 'sqlType', label: t('inline.viewsOptimizationAccelerationView.text007'), value: structureParse.value.sqlType },
+    { key: 'priorityLevel', label: t('inline.viewsOptimizationAccelerationView.text008'), value: structureParse.value.priorityLevel },
+    { key: 'priorityScore', label: t('inline.viewsOptimizationAccelerationView.text009'), value: structureParse.value.priorityScore },
+    { key: 'important', label: t('inline.viewsOptimizationAccelerationView.text010'), value: booleanLabel(structureParse.value.important) },
+    { key: 'urgent', label: t('inline.viewsOptimizationAccelerationView.text011'), value: booleanLabel(structureParse.value.urgent) },
+    { key: 'failureReason', label: t('inline.viewsOptimizationAccelerationView.text012'), value: structureParse.value.failureReason },
     {
       key: 'failurePosition',
-      label: isChinese.value ? '失败位置' : 'Failure position',
+      label: t('inline.viewsOptimizationAccelerationView.text013'),
       value: structureParse.value.failureLine && structureParse.value.failureColumn
         ? `line ${structureParse.value.failureLine}, column ${structureParse.value.failureColumn}`
         : structureParse.value.failureOffset
@@ -170,26 +170,26 @@ const structureFeatureHighlights = computed(() => {
     return []
   }
   return [
-    { key: 'parserEngine', label: isChinese.value ? 'Parser' : 'Parser', value: feature.parserEngine },
-    { key: 'scanMode', label: isChinese.value ? '扫描模式' : 'Scan mode', value: feature.scanMode },
-    { key: 'joinType', label: isChinese.value ? 'Join 类型' : 'Join type', value: feature.joinType },
-    { key: 'computeDensity', label: isChinese.value ? '计算密度' : 'Compute density', value: feature.computeDensity },
-    { key: 'resourceType', label: isChinese.value ? '资源类型' : 'Resource type', value: feature.resourceType },
-    { key: 'slaLevel', label: isChinese.value ? 'SLA 等级' : 'SLA level', value: feature.slaLevel },
-    { key: 'tableCount', label: isChinese.value ? '表数量' : 'Tables', value: feature.tableCount },
-    { key: 'joinCount', label: isChinese.value ? 'Join 数' : 'Joins', value: feature.joinCount },
-    { key: 'predicateCount', label: isChinese.value ? '谓词数' : 'Predicates', value: feature.predicateCount },
-    { key: 'orderByExpressionCount', label: isChinese.value ? '排序字段' : 'Order keys', value: feature.orderByExpressionCount },
-    { key: 'duplicateOrderByKeyCount', label: isChinese.value ? '重复排序 key' : 'Duplicate order keys', value: feature.duplicateOrderByKeyCount },
-    { key: 'duplicateGroupByKeyCount', label: isChinese.value ? '重复分组 key' : 'Duplicate group keys', value: feature.duplicateGroupByKeyCount },
-    { key: 'groupByWithoutAggregate', label: isChinese.value ? '分组无聚合' : 'Group without aggregate', value: booleanLabel(feature.groupByWithoutAggregate) },
-    { key: 'aggregateFunctionCount', label: isChinese.value ? '聚合函数' : 'Aggregates', value: feature.aggregateFunctionCount },
-    { key: 'stringProjectionCount', label: isChinese.value ? '字符串投影' : 'String projections', value: feature.stringProjectionCount },
-    { key: 'stringConcatenationCount', label: isChinese.value ? '字符串拼接' : 'String concatenations', value: feature.stringConcatenationCount },
-    { key: 'largeStringAggregateCount', label: isChinese.value ? '字符串聚合' : 'String aggregates', value: feature.largeStringAggregateCount },
-    { key: 'repeatedSubqueryCount', label: isChinese.value ? '重复子查询' : 'Repeated subqueries', value: feature.repeatedSubqueryCount },
-    { key: 'windowFunctionCount', label: isChinese.value ? '窗口函数' : 'Windows', value: feature.windowFunctionCount },
-    { key: 'repeatedExpressionCount', label: isChinese.value ? '重复表达式' : 'Repeated expressions', value: feature.repeatedExpressionCount }
+    { key: 'parserEngine', label: t('inline.viewsOptimizationAccelerationView.text014'), value: feature.parserEngine },
+    { key: 'scanMode', label: t('inline.viewsOptimizationAccelerationView.text015'), value: feature.scanMode },
+    { key: 'joinType', label: t('inline.viewsOptimizationAccelerationView.text016'), value: feature.joinType },
+    { key: 'computeDensity', label: t('inline.viewsOptimizationAccelerationView.text017'), value: feature.computeDensity },
+    { key: 'resourceType', label: t('inline.viewsOptimizationAccelerationView.text018'), value: feature.resourceType },
+    { key: 'slaLevel', label: t('inline.viewsOptimizationAccelerationView.text019'), value: feature.slaLevel },
+    { key: 'tableCount', label: t('inline.viewsOptimizationAccelerationView.text020'), value: feature.tableCount },
+    { key: 'joinCount', label: t('inline.viewsOptimizationAccelerationView.text021'), value: feature.joinCount },
+    { key: 'predicateCount', label: t('inline.viewsOptimizationAccelerationView.text022'), value: feature.predicateCount },
+    { key: 'orderByExpressionCount', label: t('inline.viewsOptimizationAccelerationView.text023'), value: feature.orderByExpressionCount },
+    { key: 'duplicateOrderByKeyCount', label: t('inline.viewsOptimizationAccelerationView.text024'), value: feature.duplicateOrderByKeyCount },
+    { key: 'duplicateGroupByKeyCount', label: t('inline.viewsOptimizationAccelerationView.text025'), value: feature.duplicateGroupByKeyCount },
+    { key: 'groupByWithoutAggregate', label: t('inline.viewsOptimizationAccelerationView.text026'), value: booleanLabel(feature.groupByWithoutAggregate) },
+    { key: 'aggregateFunctionCount', label: t('inline.viewsOptimizationAccelerationView.text027'), value: feature.aggregateFunctionCount },
+    { key: 'stringProjectionCount', label: t('inline.viewsOptimizationAccelerationView.text028'), value: feature.stringProjectionCount },
+    { key: 'stringConcatenationCount', label: t('inline.viewsOptimizationAccelerationView.text029'), value: feature.stringConcatenationCount },
+    { key: 'largeStringAggregateCount', label: t('inline.viewsOptimizationAccelerationView.text030'), value: feature.largeStringAggregateCount },
+    { key: 'repeatedSubqueryCount', label: t('inline.viewsOptimizationAccelerationView.text031'), value: feature.repeatedSubqueryCount },
+    { key: 'windowFunctionCount', label: t('inline.viewsOptimizationAccelerationView.text032'), value: feature.windowFunctionCount },
+    { key: 'repeatedExpressionCount', label: t('inline.viewsOptimizationAccelerationView.text033'), value: feature.repeatedExpressionCount }
   ].filter(item => hasDisplayValue(item.value))
 })
 
@@ -199,12 +199,12 @@ const structureResourceHighlights = computed(() => {
     return []
   }
   return [
-    { key: 'overall', label: isChinese.value ? '总体' : 'Overall', value: estimate.overall },
+    { key: 'overall', label: t('inline.viewsOptimizationAccelerationView.text034'), value: estimate.overall },
     { key: 'cpu', label: 'CPU', value: estimate.cpu },
     { key: 'io', label: 'IO', value: estimate.io },
-    { key: 'memory', label: isChinese.value ? '内存' : 'Memory', value: estimate.memory },
-    { key: 'network', label: isChinese.value ? '网络' : 'Network', value: estimate.network },
-    { key: 'resultSize', label: isChinese.value ? '结果集' : 'Result size', value: estimate.resultSize }
+    { key: 'memory', label: t('inline.viewsOptimizationAccelerationView.text035'), value: estimate.memory },
+    { key: 'network', label: t('inline.viewsOptimizationAccelerationView.text036'), value: estimate.network },
+    { key: 'resultSize', label: t('inline.viewsOptimizationAccelerationView.text037'), value: estimate.resultSize }
   ].filter(item => hasDisplayValue(item.value))
 })
 
@@ -213,13 +213,13 @@ const accessHighlights = computed(() => {
     return []
   }
   return [
-    { key: 'serviceStatus', label: isChinese.value ? '服务状态' : 'Service status', value: accessParse.value.serviceStatus },
-    { key: 'connectionStatus', label: isChinese.value ? '连接状态' : 'Connection status', value: accessParse.value.connectionStatus },
-    { key: 'objectResolutionStatus', label: isChinese.value ? '对象解析' : 'Object resolution', value: accessParse.value.objectResolutionStatus },
-    { key: 'partitionStatus', label: isChinese.value ? '分区状态' : 'Partition status', value: accessParse.value.partitionStatus },
-    { key: 'dataFreshnessStatus', label: isChinese.value ? '新鲜度' : 'Freshness', value: accessParse.value.dataFreshnessStatus },
-    { key: 'slaStatus', label: isChinese.value ? 'SLA' : 'SLA', value: accessParse.value.slaStatus },
-    { key: 'compatibilityStatus', label: isChinese.value ? '兼容性' : 'Compatibility', value: accessParse.value.compatibilityStatus }
+    { key: 'serviceStatus', label: t('inline.viewsOptimizationAccelerationView.text038'), value: accessParse.value.serviceStatus },
+    { key: 'connectionStatus', label: t('inline.viewsOptimizationAccelerationView.text039'), value: accessParse.value.connectionStatus },
+    { key: 'objectResolutionStatus', label: t('inline.viewsOptimizationAccelerationView.text040'), value: accessParse.value.objectResolutionStatus },
+    { key: 'partitionStatus', label: t('inline.viewsOptimizationAccelerationView.text041'), value: accessParse.value.partitionStatus },
+    { key: 'dataFreshnessStatus', label: t('inline.viewsOptimizationAccelerationView.text042'), value: accessParse.value.dataFreshnessStatus },
+    { key: 'slaStatus', label: t('inline.viewsOptimizationAccelerationView.text043'), value: accessParse.value.slaStatus },
+    { key: 'compatibilityStatus', label: t('inline.viewsOptimizationAccelerationView.text044'), value: accessParse.value.compatibilityStatus }
   ].filter(item => hasDisplayValue(item.value))
 })
 
@@ -228,10 +228,10 @@ const planHighlights = computed(() => {
     return []
   }
   return [
-    { key: 'planStatus', label: isChinese.value ? '计划状态' : 'Plan status', value: planAnalysis.value.status },
-    { key: 'datasourceCode', label: isChinese.value ? '数据源' : 'Datasource', value: planAnalysis.value.datasourceCode },
-    { key: 'costMs', label: isChinese.value ? '计划分析耗时 ms' : 'Plan analysis ms', value: planAnalysis.value.costMs },
-    { key: 'failureReason', label: isChinese.value ? '失败原因' : 'Failure reason', value: planAnalysis.value.failureReason }
+    { key: 'planStatus', label: t('inline.viewsOptimizationAccelerationView.text045'), value: planAnalysis.value.status },
+    { key: 'datasourceCode', label: t('inline.viewsOptimizationAccelerationView.text046'), value: planAnalysis.value.datasourceCode },
+    { key: 'costMs', label: t('inline.viewsOptimizationAccelerationView.text047'), value: planAnalysis.value.costMs },
+    { key: 'failureReason', label: t('inline.viewsOptimizationAccelerationView.text048'), value: planAnalysis.value.failureReason }
   ].filter(item => hasDisplayValue(item.value))
 })
 
@@ -241,31 +241,31 @@ const summaryCards = computed(() => {
   }
   return [
     {
-      label: isChinese.value ? '运行模式' : 'Run mode',
+      label: t('inline.viewsOptimizationAccelerationView.text049'),
       value: lastRunMode.value === 'combined'
-        ? (isChinese.value ? '综合解析' : 'Combined parse')
-        : (isChinese.value ? '仅结构解析' : 'Structure only')
+        ? (t('inline.viewsOptimizationAccelerationView.text050'))
+        : (t('inline.viewsOptimizationAccelerationView.text051'))
     },
-    { label: isChinese.value ? '解析工具' : 'Parser tool', value: structureParse.value?.featureSummary?.parserEngine || form.parserMode },
-    { label: isChinese.value ? '解析组合状态' : 'Analysis status', value: structureParse.value?.analysisStatus },
-    { label: isChinese.value ? '执行计划' : 'Plan analysis', value: structureParse.value?.planAnalysis?.status },
-    { label: isChinese.value ? '综合状态' : 'Overall status', value: activeConclusion.value?.overallStatus || activeStatus.value },
-    { label: isChinese.value ? 'Access 可用' : 'Access available', value: booleanLabel(activeConclusion.value?.accessAvailable) },
-    { label: isChinese.value ? '降级原因' : 'Degrade reason', value: activeConclusion.value?.degradeReason || parseResult.value?.degradeReason },
+    { label: t('inline.viewsOptimizationAccelerationView.text052'), value: structureParse.value?.featureSummary?.parserEngine || form.parserMode },
+    { label: t('inline.viewsOptimizationAccelerationView.text053'), value: structureParse.value?.analysisStatus },
+    { label: t('inline.viewsOptimizationAccelerationView.text054'), value: structureParse.value?.planAnalysis?.status },
+    { label: t('inline.viewsOptimizationAccelerationView.text055'), value: activeConclusion.value?.overallStatus || activeStatus.value },
+    { label: t('inline.viewsOptimizationAccelerationView.text056'), value: booleanLabel(activeConclusion.value?.accessAvailable) },
+    { label: t('inline.viewsOptimizationAccelerationView.text057'), value: activeConclusion.value?.degradeReason || parseResult.value?.degradeReason },
     {
-      label: isChinese.value ? '历史写入' : 'History write',
-      value: parseResult.value.historyPersisted ? (isChinese.value ? '已落库' : 'Saved') : parseResult.value.historyPersistenceStatus
+      label: t('inline.viewsOptimizationAccelerationView.text058'),
+      value: parseResult.value.historyPersisted ? (t('inline.viewsOptimizationAccelerationView.text059')) : parseResult.value.historyPersistenceStatus
     },
     { label: 'History ID', value: parseResult.value.historyId }
   ].filter(item => hasDisplayValue(item.value))
 })
 
 const requestSummary = computed(() => [
-  { label: isChinese.value ? '租户' : 'Tenant', value: form.tenantId },
-  { label: isChinese.value ? '数据源' : 'Datasource', value: form.datasourceCode || (isChinese.value ? '未指定' : 'Not specified') },
-  { label: isChinese.value ? '绑定模式' : 'Binding mode', value: form.bindingMode },
-  { label: isChinese.value ? '解析工具' : 'Parser tool', value: form.parserMode },
-  { label: isChinese.value ? 'Access Parse' : 'Access parse', value: form.connectionRequired ? 'ON' : 'OFF' }
+  { label: t('inline.viewsOptimizationAccelerationView.text060'), value: form.tenantId },
+  { label: t('inline.viewsOptimizationAccelerationView.text061'), value: form.datasourceCode || (t('inline.viewsOptimizationAccelerationView.text062')) },
+  { label: t('inline.viewsOptimizationAccelerationView.text063'), value: form.bindingMode },
+  { label: t('inline.viewsOptimizationAccelerationView.text064'), value: form.parserMode },
+  { label: t('inline.viewsOptimizationAccelerationView.text065'), value: form.connectionRequired ? 'ON' : 'OFF' }
 ])
 
 const parseBatchStatusCards = computed(() => {
@@ -273,15 +273,15 @@ const parseBatchStatusCards = computed(() => {
     return []
   }
   return [
-    card(isChinese.value ? '批次状态' : 'Batch status', parseBatchDetail.value.status),
-    card(isChinese.value ? '解析工具' : 'Parser tool', parseBatchDetail.value.parserMode),
-    card(isChinese.value ? '总记录数' : 'Total records', parseBatchDetail.value.totalRecords),
-    card(isChinese.value ? '成功' : 'Success', parseBatchDetail.value.successRecords),
-    card(isChinese.value ? '部分成功' : 'Partial success', parseBatchDetail.value.partialSuccessRecords),
-    card(isChinese.value ? '失败' : 'Failed', parseBatchDetail.value.failedRecords),
-    card(isChinese.value ? 'Structure 成功率' : 'Structure rate', formatNumber(parseBatchDetail.value.structureParseSuccessRate)),
-    card(isChinese.value ? 'Access 成功率' : 'Access rate', formatNumber(parseBatchDetail.value.accessParseSuccessRate)),
-    card(isChinese.value ? 'Plan 成功率' : 'Plan rate', formatNumber(parseBatchDetail.value.planAnalysisStatistics?.successRate))
+    card(t('inline.viewsOptimizationAccelerationView.text066'), parseBatchDetail.value.status),
+    card(t('inline.viewsOptimizationAccelerationView.text067'), parseBatchDetail.value.parserMode),
+    card(t('inline.viewsOptimizationAccelerationView.text068'), parseBatchDetail.value.totalRecords),
+    card(t('inline.viewsOptimizationAccelerationView.text069'), parseBatchDetail.value.successRecords),
+    card(t('inline.viewsOptimizationAccelerationView.text070'), parseBatchDetail.value.partialSuccessRecords),
+    card(t('inline.viewsOptimizationAccelerationView.text071'), parseBatchDetail.value.failedRecords),
+    card(t('inline.viewsOptimizationAccelerationView.text072'), formatNumber(parseBatchDetail.value.structureParseSuccessRate)),
+    card(t('inline.viewsOptimizationAccelerationView.text073'), formatNumber(parseBatchDetail.value.accessParseSuccessRate)),
+    card(t('inline.viewsOptimizationAccelerationView.text074'), formatNumber(parseBatchDetail.value.planAnalysisStatistics?.successRate))
   ].filter(item => hasDisplayValue(item.value))
 })
 
@@ -290,14 +290,14 @@ const reportBatchStatusCards = computed(() => {
     return []
   }
   return [
-    card(isChinese.value ? '导入状态' : 'Import status', reportBatchDetail.value.status),
-    card(isChinese.value ? '解析工具' : 'Parser tool', reportBatchDetail.value.parserMode),
-    card(isChinese.value ? '报表总数' : 'Total reports', reportBatchDetail.value.totalReports),
-    card(isChinese.value ? '已解析 SQL' : 'Resolved reports', reportBatchDetail.value.resolvedReports),
-    card(isChinese.value ? '失败数' : 'Failed reports', reportBatchDetail.value.failedReports),
-    card(isChinese.value ? 'Plan 成功率' : 'Plan rate', formatNumber(reportBatchDetail.value.planAnalysisStatistics?.successRate)),
-    card(isChinese.value ? '阶段' : 'Stage', reportBatchDetail.value.stage),
-    card(isChinese.value ? '优先级' : 'Priority', reportBatchDetail.value.priority)
+    card(t('inline.viewsOptimizationAccelerationView.text075'), reportBatchDetail.value.status),
+    card(t('inline.viewsOptimizationAccelerationView.text076'), reportBatchDetail.value.parserMode),
+    card(t('inline.viewsOptimizationAccelerationView.text077'), reportBatchDetail.value.totalReports),
+    card(t('inline.viewsOptimizationAccelerationView.text078'), reportBatchDetail.value.resolvedReports),
+    card(t('inline.viewsOptimizationAccelerationView.text079'), reportBatchDetail.value.failedReports),
+    card(t('inline.viewsOptimizationAccelerationView.text080'), formatNumber(reportBatchDetail.value.planAnalysisStatistics?.successRate)),
+    card(t('inline.viewsOptimizationAccelerationView.text081'), reportBatchDetail.value.stage),
+    card(t('inline.viewsOptimizationAccelerationView.text082'), reportBatchDetail.value.priority)
   ].filter(item => hasDisplayValue(item.value))
 })
 
@@ -330,8 +330,8 @@ const directSqlPreview = computed(() => {
     }))
 })
 
-const parseSessionsSummary = computed(() => `${parseBatchSessions.value.length} ${isChinese.value ? '个会话' : 'sessions'}`)
-const reportSessionsSummary = computed(() => `${reportBatchSessions.value.length} ${isChinese.value ? '个批次' : 'batches'}`)
+const parseSessionsSummary = computed(() => `${parseBatchSessions.value.length} ${t('inline.viewsOptimizationAccelerationView.text083')}`)
+const reportSessionsSummary = computed(() => `${reportBatchSessions.value.length} ${t('inline.viewsOptimizationAccelerationView.text084')}`)
 
 const card = (label, value) => ({ label, value })
 
@@ -382,24 +382,24 @@ function booleanLabel(value) {
 
 function helpTextForKey(key) {
   const glossary = {
-    parseTaskId: isChinese.value ? '本次解析任务的唯一编号，用于状态刷新和历史追溯。' : 'Unique parse task identifier for status refresh and history tracing.',
-    sqlFingerprint: isChinese.value ? 'SQL 指纹用于识别结构相同或相近的 SQL。' : 'SQL fingerprint identifies structurally identical or similar SQL.',
-    syntaxStatus: isChinese.value ? '语法状态，VALID 表示结构解析通过。' : 'Syntax status. VALID means structure parsing passed.',
-    complexityLevel: isChinese.value ? '复杂度等级，用于判断 SQL 阅读和治理成本。' : 'Complexity level for SQL review and governance cost.',
-    sqlType: isChinese.value ? 'SQL 类型，例如 SELECT、INSERT 或其他语句类别。' : 'SQL type, such as SELECT, INSERT, or another statement kind.',
-    priorityLevel: isChinese.value ? '优先级。P1 表示最高优先级，需要红色高亮。' : 'Priority level. P1 is the highest priority and is highlighted red.',
-    priorityScore: isChinese.value ? '优先级评分，分值越高越需要优先处理。' : 'Priority score. Higher scores need earlier handling.',
-    urgent: isChinese.value ? '是否紧急。是表示需要红色提示。' : 'Whether the result is urgent. True is highlighted red.',
-    important: isChinese.value ? '是否重要，用于区分治理关注度。' : 'Whether the result is important for governance attention.',
-    parserEngine: isChinese.value ? 'Parser 表示当前解析引擎。' : 'Parser identifies the current parsing engine.',
-    scanMode: isChinese.value ? '扫描模式，表示 SQL 读取数据的主要方式。' : 'Scan mode describes how the SQL reads data.',
-    joinType: isChinese.value ? 'Join 类型，表示主要表关联方式。' : 'Join type describes the main table-join pattern.',
-    computeDensity: isChinese.value ? '计算密度，表示表达式、聚合或窗口计算的集中程度。' : 'Compute density reflects expression, aggregation, or window-function weight.',
-    slaLevel: isChinese.value ? 'SLA 是服务等级目标，用于提示时效要求。' : 'SLA means service level objective for timeliness.',
-    serviceStatus: isChinese.value ? '服务状态，表示 Access Parse 服务是否可用。' : 'Service status shows whether Access Parse is available.',
-    connectionStatus: isChinese.value ? '连接状态，表示数据源连接是否成功。' : 'Connection status shows whether datasource connectivity succeeded.',
-    objectResolutionStatus: isChinese.value ? '对象解析状态，表示表、视图等对象是否能被识别。' : 'Object resolution status shows whether tables or views were resolved.',
-    compatibilityStatus: isChinese.value ? '兼容性状态，表示 SQL 与目标引擎是否匹配。' : 'Compatibility status shows whether SQL matches the target engine.'
+    parseTaskId: t('inline.viewsOptimizationAccelerationView.text085'),
+    sqlFingerprint: t('inline.viewsOptimizationAccelerationView.text086'),
+    syntaxStatus: t('inline.viewsOptimizationAccelerationView.text087'),
+    complexityLevel: t('inline.viewsOptimizationAccelerationView.text088'),
+    sqlType: t('inline.viewsOptimizationAccelerationView.text089'),
+    priorityLevel: t('inline.viewsOptimizationAccelerationView.text090'),
+    priorityScore: t('inline.viewsOptimizationAccelerationView.text091'),
+    urgent: t('inline.viewsOptimizationAccelerationView.text092'),
+    important: t('inline.viewsOptimizationAccelerationView.text093'),
+    parserEngine: t('inline.viewsOptimizationAccelerationView.text094'),
+    scanMode: t('inline.viewsOptimizationAccelerationView.text095'),
+    joinType: t('inline.viewsOptimizationAccelerationView.text096'),
+    computeDensity: t('inline.viewsOptimizationAccelerationView.text097'),
+    slaLevel: t('inline.viewsOptimizationAccelerationView.text098'),
+    serviceStatus: t('inline.viewsOptimizationAccelerationView.text099'),
+    connectionStatus: t('inline.viewsOptimizationAccelerationView.text100'),
+    objectResolutionStatus: t('inline.viewsOptimizationAccelerationView.text101'),
+    compatibilityStatus: t('inline.viewsOptimizationAccelerationView.text102')
   }
   return glossary[key] || ''
 }
@@ -507,11 +507,11 @@ function buildRequestPayload() {
   if (sqlTemplateText) {
     payload.sqlTemplateText = sqlTemplateText
   }
-  const bindParameters = parseJsonInput(form.bindParametersText, isChinese.value ? '绑定参数' : 'Bind parameters')
+  const bindParameters = parseJsonInput(form.bindParametersText, t('inline.viewsOptimizationAccelerationView.text103'))
   if (Object.keys(bindParameters).length > 0) {
     payload.bindParameters = bindParameters
   }
-  const commentContext = parseJsonInput(form.commentContextText, isChinese.value ? '注释上下文' : 'Comment context')
+  const commentContext = parseJsonInput(form.commentContextText, t('inline.viewsOptimizationAccelerationView.text104'))
   if (Object.keys(commentContext).length > 0) {
     payload.commentContext = commentContext
   }
@@ -541,12 +541,8 @@ function normalizeStructureResult(structureOnlyResult) {
     degradeReason: 'STRUCTURE_ONLY_MODE',
     conclusion: {
       overallStatus: 'STRUCTURE_ONLY',
-      summary: isChinese.value
-        ? '当前结果只包含结构解析证据，未触发 access parse。'
-        : 'This result contains structure-parse evidence only and did not trigger access parse.',
-      recommendedAction: isChinese.value
-        ? '如需对象可达性与连接状态，请开启 access parse 后重新执行综合解析。'
-        : 'Enable access parse and rerun the combined flow when reachability and connection evidence are required.',
+      summary: t('inline.viewsOptimizationAccelerationView.text105'),
+      recommendedAction: t('inline.viewsOptimizationAccelerationView.text106'),
       structureAvailable: true,
       accessAvailable: false,
       degradeReason: 'STRUCTURE_ONLY_MODE'
@@ -554,7 +550,7 @@ function normalizeStructureResult(structureOnlyResult) {
     statusHistory: [
       {
         status: 'STRUCTURE_SUCCEEDED',
-        note: isChinese.value ? '结构解析同步返回。' : 'Structure parse returned synchronously.',
+        note: t('inline.viewsOptimizationAccelerationView.text107'),
         occurredAtEpochMs: Date.now()
       }
     ]
@@ -798,9 +794,7 @@ async function createParseBatchFlow() {
 
 function downloadTemplate() {
   if (!templateColumns.value.length) {
-    errorMessage.value = isChinese.value
-      ? '先创建批次，拿到模板列契约后再下载模板。'
-      : 'Create a batch first so the template-column contract can be downloaded.'
+    errorMessage.value = t('inline.viewsOptimizationAccelerationView.text108')
     return
   }
   downloadTextFile(`${parseBatchDetail.value.batchId || 'parse-batch-template'}.csv`, parseTemplatePreview.value)
@@ -808,7 +802,7 @@ function downloadTemplate() {
 
 async function ingestParseBatchFlow() {
   if (!parseBatchDetail.value?.batchId) {
-    errorMessage.value = isChinese.value ? '请先创建 parse batch。' : 'Create a parse batch first.'
+    errorMessage.value = t('inline.viewsOptimizationAccelerationView.text109')
     return
   }
   loading.ingestParseBatch = true
@@ -817,7 +811,7 @@ async function ingestParseBatchFlow() {
     const payload = await loadPayloadBase64(
       parseUploadFile.value,
       parseBatchForm.rawContent,
-      isChinese.value ? '请上传文件或填写批量内容。' : 'Upload a file or provide inline batch content.'
+      t('inline.viewsOptimizationAccelerationView.text110')
     )
     parseBatchDetail.value = await ingestParseBatch(parseBatchDetail.value.batchId, parseBatchForm.tenantId, {
       ...payload,
@@ -852,7 +846,7 @@ async function refreshParseBatchDetail(batchId = '') {
 
 async function retryAccessFlow() {
   if (!parseBatchDetail.value?.batchId) {
-    errorMessage.value = isChinese.value ? '请先选择一个 parse batch。' : 'Select a parse batch first.'
+    errorMessage.value = t('inline.viewsOptimizationAccelerationView.text111')
     return
   }
   loading.retryParseBatch = true
@@ -879,7 +873,7 @@ async function importReportBatchFlow() {
     const payload = await loadReportPayloadBase64(
       reportUploadFile.value,
       reportBatchForm.rawContent,
-      isChinese.value ? '请上传报表清单文件或填写模拟内容。' : 'Upload a report catalog file or provide inline mock content.'
+      t('inline.viewsOptimizationAccelerationView.text112')
     )
     reportBatchDetail.value = await importReportBatch({
       tenantId: reportBatchForm.tenantId,
@@ -922,7 +916,7 @@ async function refreshReportBatchDetail(batchId = '') {
 
 async function resolveReportSqlsFlow() {
   if (!reportBatchDetail.value?.batchId) {
-    errorMessage.value = isChinese.value ? '请先导入一个报表批次。' : 'Import a report batch first.'
+    errorMessage.value = t('inline.viewsOptimizationAccelerationView.text113')
     return
   }
   loading.resolveReportBatch = true
@@ -1053,7 +1047,7 @@ watch(
       <div class="hero-side">
         <div class="action-row action-row-wrap">
           <el-button type="primary" @click="resetResult">
-            {{ isChinese ? '清空结果' : 'Reset result' }}
+            {{ t('inline.viewsOptimizationAccelerationView.text114') }}
           </el-button>
         </div>
       </div>
@@ -1064,7 +1058,7 @@ watch(
         <div class="section-heading">
           <div>
             <p class="section-kicker sqlforge-code-label">single sql input</p>
-            <h2 class="section-title">{{ isChinese ? '单条解析主工作区' : 'Single SQL parsing workspace' }}</h2>
+            <h2 class="section-title">{{ t('inline.viewsOptimizationAccelerationView.text115') }}</h2>
           </div>
         </div>
 
@@ -1076,18 +1070,18 @@ watch(
 
         <div class="form-grid">
           <label class="field-block">
-            <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+            <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text116') }}</span>
             <el-input v-model="form.tenantId" />
           </label>
 
           <label class="field-block">
-            <span class="field-label">{{ isChinese ? '数据源编码' : 'Datasource code' }}</span>
+            <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text117') }}</span>
             <el-select
               v-model="form.datasourceCode"
               filterable
               allow-create
               default-first-option
-              :placeholder="isChinese ? 'hetu_main / 留空触发 partial-success' : 'hetu_main / leave blank to trigger partial-success'"
+              :placeholder="t('inline.viewsOptimizationAccelerationView.text118')"
               data-testid="parse-workbench-datasource-code"
             >
               <el-option
@@ -1100,7 +1094,7 @@ watch(
           </label>
 
           <label class="field-block">
-            <span class="field-label">{{ isChinese ? '绑定模式' : 'Binding mode' }}</span>
+            <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text119') }}</span>
             <el-select v-model="form.bindingMode">
               <el-option v-for="option in bindingModeOptions" :key="option" :label="option" :value="option" />
             </el-select>
@@ -1119,7 +1113,7 @@ watch(
           </label>
 
           <label class="field-block field-block-toggle">
-            <span class="field-label">{{ isChinese ? '执行 access parse' : 'Run access parse' }}</span>
+            <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text120') }}</span>
             <el-switch v-model="form.connectionRequired" />
           </label>
 
@@ -1128,8 +1122,8 @@ watch(
               v-model="form.sqlText"
               label="SQL"
               :rows="8"
-              :copy-label="isChinese ? '复制' : 'Copy'"
-              :format-label="isChinese ? '格式化' : 'Format'"
+              :copy-label="t('inline.viewsOptimizationAccelerationView.text121')"
+              :format-label="t('inline.viewsOptimizationAccelerationView.text122')"
               data-testid="parse-workbench-sql-input"
             />
           </div>
@@ -1137,21 +1131,21 @@ watch(
           <div class="field-block field-block-wide">
             <SqlEditorField
               v-model="form.sqlTemplateText"
-              :label="isChinese ? '模板 SQL' : 'Template SQL'"
+              :label="t('inline.viewsOptimizationAccelerationView.text123')"
               :rows="4"
-              :copy-label="isChinese ? '复制' : 'Copy'"
-              :format-label="isChinese ? '格式化' : 'Format'"
+              :copy-label="t('inline.viewsOptimizationAccelerationView.text124')"
+              :format-label="t('inline.viewsOptimizationAccelerationView.text125')"
               data-testid="parse-workbench-template-sql-input"
             />
           </div>
 
           <label class="field-block field-block-wide">
-            <span class="field-label">{{ isChinese ? '绑定参数 JSON' : 'Bind parameters JSON' }}</span>
+            <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text126') }}</span>
             <el-input v-model="form.bindParametersText" type="textarea" :rows="5" />
           </label>
 
           <label class="field-block field-block-wide">
-            <span class="field-label">{{ isChinese ? '注释上下文 JSON' : 'Comment context JSON' }}</span>
+            <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text127') }}</span>
             <el-input v-model="form.commentContextText" type="textarea" :rows="6" />
           </label>
         </div>
@@ -1163,14 +1157,14 @@ watch(
             data-testid="parse-workbench-submit"
             @click="runCombinedParseFlow"
           >
-            {{ isChinese ? '执行综合解析' : 'Run combined parse' }}
+            {{ t('inline.viewsOptimizationAccelerationView.text128') }}
           </el-button>
           <el-button
             :loading="running && lastRunMode === 'structure'"
             data-testid="parse-workbench-structure-preview"
             @click="runStructurePreview"
           >
-            {{ isChinese ? '仅结构解析' : 'Structure-only preview' }}
+            {{ t('inline.viewsOptimizationAccelerationView.text129') }}
           </el-button>
           <el-button
             :disabled="!parseResult?.parseTaskId || lastRunMode !== 'combined'"
@@ -1178,20 +1172,18 @@ watch(
             data-testid="parse-workbench-refresh-status"
             @click="refreshParseStatus"
           >
-            {{ isChinese ? '刷新状态' : 'Refresh status' }}
+            {{ t('inline.viewsOptimizationAccelerationView.text130') }}
           </el-button>
           <el-button @click="resetResult">
-            {{ isChinese ? '清空结果' : 'Reset result' }}
+            {{ t('inline.viewsOptimizationAccelerationView.text131') }}
           </el-button>
         </div>
 
         <div class="hint-card">
-          <strong>{{ isChinese ? '调试提示' : 'Quick tip' }}</strong>
+          <strong>{{ t('inline.viewsOptimizationAccelerationView.text132') }}</strong>
           <p>
             {{
-              isChinese
-                ? '把 datasourceCode 留空可以直接看到 structure-success + access-unavailable 的 partial-success 结论；填成包含 fail / unavailable 的编码可分别触发连接失败或服务不可用。'
-                : 'Leave datasourceCode blank to surface a structure-success plus access-unavailable partial-success result; include fail or unavailable in the datasource code to trigger connection-failed or service-unavailable paths.'
+              t('inline.viewsOptimizationAccelerationView.text133')
             }}
           </p>
         </div>
@@ -1201,24 +1193,22 @@ watch(
         <div class="section-heading">
           <div>
             <p class="section-kicker sqlforge-code-label">parse result</p>
-            <h2 class="section-title">{{ isChinese ? '解析结果' : 'Parse result' }}</h2>
+            <h2 class="section-title">{{ t('inline.viewsOptimizationAccelerationView.text134') }}</h2>
             <p class="section-summary">
-              {{ isChinese ? '解析结果备注：结构解析、综合结论、风险判断与规则命中。' : 'Result note: structure parsing, overall verdict, risk judgment, and rule hits.' }}
+              {{ t('inline.viewsOptimizationAccelerationView.text135') }}
             </p>
           </div>
-          <el-button v-if="parseResult" text @click="openEvidenceDrawer(isChinese ? '解析原始证据' : 'Raw parse evidence', parseResult)">
-            {{ isChinese ? '查看长证据' : 'View long evidence' }}
+          <el-button v-if="parseResult" text @click="openEvidenceDrawer(t('inline.viewsOptimizationAccelerationView.text136'), parseResult)">
+            {{ t('inline.viewsOptimizationAccelerationView.text137') }}
           </el-button>
           <el-button v-if="parseResult?.historyId" text data-testid="parse-workbench-open-history" @click="openParseHistoryDetail">
-            {{ isChinese ? '查看解析历史' : 'Open parse history' }}
+            {{ t('inline.viewsOptimizationAccelerationView.text138') }}
           </el-button>
         </div>
 
         <p v-if="!parseResult && !errorMessage" class="empty-state">
           {{
-            isChinese
-              ? '上方输入一条 SQL 后可先做结构解析，也可直接执行综合解析查看结构、访问和综合结论。'
-              : 'Enter one SQL statement above to run a structure-only preview or a combined parse with structure, access, and the overall verdict.'
+            t('inline.viewsOptimizationAccelerationView.text139')
           }}
         </p>
 
@@ -1234,7 +1224,7 @@ watch(
 
           <div class="result-overview-card">
             <div class="conclusion-card__header">
-              <span class="summary-card-label">{{ isChinese ? '解析结果备注' : 'Parse result note' }}</span>
+              <span class="summary-card-label">{{ t('inline.viewsOptimizationAccelerationView.text140') }}</span>
               <strong data-testid="parse-workbench-overall-status">{{ activeConclusion?.overallStatus || activeStatus }}</strong>
             </div>
             <div class="summary-chip-row">
@@ -1251,7 +1241,7 @@ watch(
               <div class="parse-card__header">
                 <div>
                   <p class="section-kicker sqlforge-code-label">structure parse</p>
-                  <h3 class="detail-title">{{ isChinese ? '结构解析卡' : 'Structure parse card' }}</h3>
+                  <h3 class="detail-title">{{ t('inline.viewsOptimizationAccelerationView.text141') }}</h3>
                 </div>
                 <span class="status-pill" :class="structureParse?.syntaxStatus === 'VALID' ? 'status-pill-success' : 'status-pill-warning'">
                   {{ structureParse?.syntaxStatus || '-' }}
@@ -1259,7 +1249,7 @@ watch(
               </div>
 
               <p v-if="!structureParse" class="empty-state">
-                {{ isChinese ? '还没有结构解析结果。' : 'No structure-parse result yet.' }}
+                {{ t('inline.viewsOptimizationAccelerationView.text142') }}
               </p>
 
               <template v-else>
@@ -1283,7 +1273,7 @@ watch(
                 </div>
 
                 <div class="mini-section" data-testid="parse-workbench-query-intent">
-                  <span class="summary-card-label">{{ isChinese ? '查询意图标签' : 'Query intent labels' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsOptimizationAccelerationView.text143') }}</span>
                   <div v-if="structureIntentLabels.length" class="pill-grid">
                     <span
                       v-for="item in structureIntentLabels"
@@ -1294,12 +1284,12 @@ watch(
                     </span>
                   </div>
                   <p v-else class="empty-inline">
-                    {{ isChinese ? '暂无查询意图标签。' : 'No query-intent labels yet.' }}
+                    {{ t('inline.viewsOptimizationAccelerationView.text144') }}
                   </p>
                 </div>
 
                 <div class="mini-section" data-testid="parse-workbench-feature-summary">
-                  <span class="summary-card-label">{{ isChinese ? '多维特征' : 'Feature dimensions' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsOptimizationAccelerationView.text145') }}</span>
                   <div v-if="structureFeatureHighlights.length" class="highlight-grid highlight-grid-compact">
                     <div v-for="item in structureFeatureHighlights" :key="item.key" class="highlight-chip" :class="resultValueClass(item)">
                       <span>
@@ -1319,12 +1309,12 @@ watch(
                     </div>
                   </div>
                   <p v-else class="empty-inline">
-                    {{ isChinese ? '暂无多维特征。' : 'No feature summary yet.' }}
+                    {{ t('inline.viewsOptimizationAccelerationView.text146') }}
                   </p>
                 </div>
 
                 <div class="mini-section" data-testid="parse-workbench-resource-estimate">
-                  <span class="summary-card-label">{{ isChinese ? '预估资源消耗' : 'Estimated resource cost' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsOptimizationAccelerationView.text147') }}</span>
                   <div v-if="structureResourceHighlights.length" class="summary-chip-row">
                     <span
                       v-for="item in structureResourceHighlights"
@@ -1335,30 +1325,30 @@ watch(
                     </span>
                   </div>
                   <p v-else class="empty-inline">
-                    {{ isChinese ? '暂无资源估算。' : 'No resource estimate yet.' }}
+                    {{ t('inline.viewsOptimizationAccelerationView.text148') }}
                   </p>
                 </div>
 
                 <div class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? '查询日期摘要' : 'Query-date summary' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsOptimizationAccelerationView.text149') }}</span>
                   <div class="summary-chip-row">
                     <span class="summary-chip">
-                      {{ isChinese ? '起点' : 'Start' }}:
+                      {{ t('inline.viewsOptimizationAccelerationView.text150') }}:
                       <strong>{{ structureParse.queryDateSummary?.queryDateStart || '-' }}</strong>
                     </span>
                     <span class="summary-chip">
-                      {{ isChinese ? '终点' : 'End' }}:
+                      {{ t('inline.viewsOptimizationAccelerationView.text151') }}:
                       <strong>{{ structureParse.queryDateSummary?.queryDateEnd || '-' }}</strong>
                     </span>
                     <span class="summary-chip">
-                      {{ isChinese ? '状态' : 'Status' }}:
+                      {{ t('inline.viewsOptimizationAccelerationView.text152') }}:
                       <strong>{{ structureParse.queryDateSummary?.queryDateStatus || '-' }}</strong>
                     </span>
                   </div>
                 </div>
 
                 <div class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? '逻辑对象命中' : 'Logical object hits' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsOptimizationAccelerationView.text153') }}</span>
                   <div v-if="logicalObjectHits.length" class="pill-grid">
                     <span
                       v-for="(item, index) in logicalObjectHits"
@@ -1370,12 +1360,12 @@ watch(
                     </span>
                   </div>
                   <p v-else class="empty-inline">
-                    {{ isChinese ? '未命中逻辑对象。' : 'No logical objects were resolved.' }}
+                    {{ t('inline.viewsOptimizationAccelerationView.text154') }}
                   </p>
                 </div>
 
                 <div class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? '风险标签 / 改写候选' : 'Risk tags / rewrite candidates' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsOptimizationAccelerationView.text155') }}</span>
                   <div class="pill-grid">
                     <span v-for="item in structureParse.riskTags || []" :key="`risk-${item}`" class="summary-chip summary-chip-warning">
                       {{ item }}
@@ -1387,7 +1377,7 @@ watch(
                 </div>
 
                 <div class="mini-section" data-testid="parse-workbench-risk-checklist">
-                  <span class="summary-card-label">{{ isChinese ? '风险清单' : 'Risk checklist' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsOptimizationAccelerationView.text156') }}</span>
                   <div v-if="structureRiskChecklist.length" class="issue-list issue-list-compact">
                     <article
                       v-for="(risk, index) in structureRiskChecklist"
@@ -1401,11 +1391,11 @@ watch(
                       </div>
                       <p class="issue-card__summary">{{ riskDisplayText(risk, 'summary') }}</p>
                       <p class="issue-card__detail">{{ riskDisplayText(risk, 'evidence') }}</p>
-                      <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ riskDisplayText(risk, 'suggestedAction') }}</p>
+                      <p class="issue-card__detail">{{ t('inline.viewsOptimizationAccelerationView.text157') }}: {{ riskDisplayText(risk, 'suggestedAction') }}</p>
                     </article>
                   </div>
                   <p v-else class="empty-inline">
-                    {{ isChinese ? '未识别高风险项。' : 'No high-risk items were detected.' }}
+                    {{ t('inline.viewsOptimizationAccelerationView.text158') }}
                   </p>
                 </div>
 
@@ -1423,12 +1413,12 @@ watch(
                     <p class="issue-card__summary">{{ localizedDisplayText(issue.summary) }}</p>
                     <p class="issue-card__detail">{{ localizedDisplayText(issue.detail) }}</p>
                     <p v-if="issue.failureLine || issue.failureColumn || issue.failureToken || issue.failureSnippet" class="issue-card__detail">
-                      {{ isChinese ? '失败定位' : 'Failure position' }}:
+                      {{ t('inline.viewsOptimizationAccelerationView.text159') }}:
                       <span v-if="issue.failureLine && issue.failureColumn">line {{ issue.failureLine }}, column {{ issue.failureColumn }}</span>
                       <span v-if="issue.failureToken"> · token {{ issue.failureToken }}</span>
                       <span v-if="issue.failureSnippet"> · {{ issue.failureSnippet }}</span>
                     </p>
-                    <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ localizedDisplayText(issue.suggestedAction) }}</p>
+                    <p class="issue-card__detail">{{ t('inline.viewsOptimizationAccelerationView.text160') }}: {{ localizedDisplayText(issue.suggestedAction) }}</p>
                   </article>
                 </div>
               </template>
@@ -1438,18 +1428,18 @@ watch(
               <div class="parse-card__header">
                 <div>
                   <p class="section-kicker sqlforge-code-label">hetu explain plan</p>
-                  <h3 class="detail-title">{{ isChinese ? '执行计划卡' : 'Execution plan card' }}</h3>
+                  <h3 class="detail-title">{{ t('inline.viewsOptimizationAccelerationView.text161') }}</h3>
                 </div>
                 <span
                   class="status-pill"
                   :class="planAnalysis?.status === 'SUCCESS' ? 'status-pill-success' : 'status-pill-warning'"
                 >
-                  {{ planAnalysis?.status || (isChinese ? '未执行' : 'Not run') }}
+                  {{ planAnalysis?.status || (t('inline.viewsOptimizationAccelerationView.text162')) }}
                 </span>
               </div>
 
               <p v-if="!planAnalysis" class="empty-state">
-                {{ isChinese ? '旧历史或无计划模式不会生成 Hetu 执行计划。' : 'Old history or non-plan modes do not include Hetu plan output.' }}
+                {{ t('inline.viewsOptimizationAccelerationView.text163') }}
               </p>
 
               <template v-else>
@@ -1460,19 +1450,19 @@ watch(
                   </div>
                 </div>
                 <div class="mini-section" data-testid="parse-workbench-plan-analysis">
-                  <span class="summary-card-label">{{ isChinese ? '计划证据' : 'Plan evidence' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsOptimizationAccelerationView.text164') }}</span>
                   <div v-if="planAnalysis.evidence?.length" class="pill-grid">
                     <span v-for="item in planAnalysis.evidence" :key="item" class="summary-chip">{{ item }}</span>
                   </div>
                   <p v-else class="empty-inline">
-                    {{ isChinese ? '暂无计划证据。' : 'No plan evidence yet.' }}
+                    {{ t('inline.viewsOptimizationAccelerationView.text165') }}
                   </p>
                 </div>
                 <SqlCodeBlock
                   v-if="planAnalysis.planText"
                   :value="planAnalysis.planText"
-                  :label="isChinese ? 'Hetu EXPLAIN 输出' : 'Hetu EXPLAIN output'"
-                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  :label="t('inline.viewsOptimizationAccelerationView.text166')"
+                  :copy-label="t('inline.viewsOptimizationAccelerationView.text167')"
                   compact
                   data-testid="parse-workbench-plan-text"
                 />
@@ -1483,21 +1473,19 @@ watch(
               <div class="parse-card__header">
                 <div>
                   <p class="section-kicker sqlforge-code-label">access parse</p>
-                  <h3 class="detail-title">{{ isChinese ? 'Access Parse 卡' : 'Access parse card' }}</h3>
+                  <h3 class="detail-title">{{ t('inline.viewsOptimizationAccelerationView.text168') }}</h3>
                 </div>
                 <span
                   class="status-pill"
                   :class="accessParse?.serviceStatus === 'AVAILABLE' && accessParse?.connectionStatus === 'CONNECTED' ? 'status-pill-success' : 'status-pill-warning'"
                 >
-                  {{ accessParse?.serviceStatus || (isChinese ? '未执行' : 'Not run') }}
+                  {{ accessParse?.serviceStatus || (t('inline.viewsOptimizationAccelerationView.text169')) }}
                 </span>
               </div>
 
               <p v-if="!accessParse" class="empty-state">
                 {{
-                  isChinese
-                    ? '结构解析模式不会生成 access parse 结果；综合解析会在结构成功后异步补跑。'
-                    : 'Structure-only mode does not generate access-parse output; combined mode schedules it after structure success.'
+                  t('inline.viewsOptimizationAccelerationView.text170')
                 }}
               </p>
 
@@ -1522,12 +1510,12 @@ watch(
                 </div>
 
                 <div class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? 'Plan Summary' : 'Plan summary' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsOptimizationAccelerationView.text171') }}</span>
                   <p class="result-copy">{{ localizedDisplayText(accessParse.planSummary) }}</p>
                 </div>
 
                 <div class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? '可用性告警' : 'Availability warning' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsOptimizationAccelerationView.text172') }}</span>
                   <p class="result-copy result-copy-muted">{{ localizedDisplayText(accessParse.availabilityWarning) }}</p>
                 </div>
               </template>
@@ -1538,7 +1526,7 @@ watch(
             <div class="parse-card__header">
               <div>
                 <p class="section-kicker sqlforge-code-label">status history</p>
-                <h3 class="detail-title">{{ isChinese ? '综合状态机追溯' : 'Combined state history' }}</h3>
+                <h3 class="detail-title">{{ t('inline.viewsOptimizationAccelerationView.text173') }}</h3>
               </div>
             </div>
 
@@ -1559,46 +1547,44 @@ watch(
       </article>
     </div>
 
-    <el-dialog v-model="batchDialogVisible" :title="isChinese ? '批量解析 Dialog' : 'Batch parsing dialog'" width="1240px" top="4vh">
+    <el-dialog v-model="batchDialogVisible" :title="t('inline.viewsOptimizationAccelerationView.text174')" width="1240px" top="4vh">
       <section class="batch-dialog-shell" data-testid="batch-import-page">
         <header class="workspace-toolbar shell-panel">
           <div class="toolbar-copy">
             <p class="section-kicker sqlforge-code-label">template download + upload</p>
-            <h2 class="section-title">{{ isChinese ? '创建批次、导入内容与查看结果' : 'Create batches, ingest content, and inspect results' }}</h2>
+            <h2 class="section-title">{{ t('inline.viewsOptimizationAccelerationView.text175') }}</h2>
             <p class="section-summary">
               {{
-                isChinese
-                  ? '批量解析已恢复为显式二级入口；创建批次、导入内容、失败重试和报表导入仍统一收进同一工作区。'
-                  : 'Batch parsing is exposed again as an explicit secondary entry while creation, import, retries, and report ingestion still stay in one workspace.'
+                t('inline.viewsOptimizationAccelerationView.text176')
               }}
             </p>
           </div>
           <div class="hero-inline">
             <span class="hero-pill">{{ parseSessionsSummary }}</span>
             <span class="hero-pill">{{ reportSessionsSummary }}</span>
-            <span class="hero-pill hero-pill-muted">{{ isChinese ? '查询条件 + 结果区 + 抽屉' : 'Filters + results + drawers' }}</span>
+            <span class="hero-pill hero-pill-muted">{{ t('inline.viewsOptimizationAccelerationView.text177') }}</span>
           </div>
         </header>
 
         <el-tabs v-model="activeBatchWorkspace" class="workspace-tabs">
-          <el-tab-pane :label="isChinese ? '批量解析' : 'Parse batches'" name="parse">
+          <el-tab-pane :label="t('inline.viewsOptimizationAccelerationView.text178')" name="parse">
             <div class="workspace-toolbar shell-panel">
               <div class="toolbar-copy">
                 <p class="section-kicker sqlforge-code-label">template download + upload</p>
-                <h3 class="detail-title">{{ isChinese ? '批次创建、导入与补跑' : 'Batch creation, import, and recovery' }}</h3>
+                <h3 class="detail-title">{{ t('inline.viewsOptimizationAccelerationView.text179') }}</h3>
               </div>
               <div class="toolbar-actions">
                 <el-button type="primary" data-testid="batch-import-create" @click="parseCreateDialogVisible = true">
-                  {{ isChinese ? '创建批次' : 'Create batch' }}
+                  {{ t('inline.viewsOptimizationAccelerationView.text180') }}
                 </el-button>
                 <el-button :disabled="!parseBatchDetail?.batchId" data-testid="batch-import-ingest" @click="parseImportDialogVisible = true">
-                  {{ isChinese ? '导入内容' : 'Ingest content' }}
+                  {{ t('inline.viewsOptimizationAccelerationView.text181') }}
                 </el-button>
                 <el-button :disabled="!templateColumns.length" data-testid="batch-import-download-template" @click="parseTemplateDialogVisible = true">
-                  {{ isChinese ? '查看模板' : 'Preview template' }}
+                  {{ t('inline.viewsOptimizationAccelerationView.text182') }}
                 </el-button>
                 <el-button :loading="loading.refreshParseBatch" @click="refreshParseBatchDetail()">
-                  {{ isChinese ? '刷新详情' : 'Refresh detail' }}
+                  {{ t('inline.viewsOptimizationAccelerationView.text183') }}
                 </el-button>
               </div>
             </div>
@@ -1608,7 +1594,7 @@ watch(
                 <div class="section-heading">
                   <div>
                     <p class="section-kicker sqlforge-code-label">parse sessions</p>
-                    <h3 class="detail-title">{{ isChinese ? '批次会话' : 'Batch sessions' }}</h3>
+                    <h3 class="detail-title">{{ t('inline.viewsOptimizationAccelerationView.text184') }}</h3>
                   </div>
                 </div>
                 <div class="session-list">
@@ -1629,7 +1615,7 @@ watch(
                     <span>{{ formatInstant(item.createdAt || item.updatedAt) }}</span>
                   </button>
                   <div v-if="!parseBatchSessions.length" class="empty-state">
-                    {{ isChinese ? '先创建一个 parse batch。' : 'Create a parse batch to start.' }}
+                    {{ t('inline.viewsOptimizationAccelerationView.text185') }}
                   </div>
                 </div>
               </aside>
@@ -1638,14 +1624,14 @@ watch(
                 <div class="section-heading">
                   <div>
                     <p class="section-kicker sqlforge-code-label">batch result</p>
-                    <h3 class="detail-title">{{ isChinese ? '当前批次概览' : 'Current batch overview' }}</h3>
+                    <h3 class="detail-title">{{ t('inline.viewsOptimizationAccelerationView.text186') }}</h3>
                   </div>
                   <div class="toolbar-actions">
                     <el-button :disabled="!parseBatchDetail?.batchId" data-testid="batch-import-retry-access" @click="retryAccessFlow">
-                      {{ isChinese ? '补跑 Access' : 'Retry access' }}
+                      {{ t('inline.viewsOptimizationAccelerationView.text187') }}
                     </el-button>
                     <el-button :disabled="!parseBatchDetail?.batchId" @click="parseDetailDrawerVisible = true">
-                      {{ isChinese ? '打开详情抽屉' : 'Open detail drawer' }}
+                      {{ t('inline.viewsOptimizationAccelerationView.text188') }}
                     </el-button>
                   </div>
                 </div>
@@ -1662,7 +1648,7 @@ watch(
                     <div class="section-heading">
                       <div>
                         <p class="section-kicker sqlforge-code-label">Template-column contract</p>
-                        <h4 class="detail-title">{{ isChinese ? '模板列契约' : 'Template-column contract' }}</h4>
+                        <h4 class="detail-title">{{ t('inline.viewsOptimizationAccelerationView.text189') }}</h4>
                       </div>
                     </div>
                     <div class="contract-list">
@@ -1671,7 +1657,7 @@ watch(
                         <span>{{ displayValue(item.required) }} · {{ displayValue(item.columnType) }}</span>
                       </div>
                       <div v-if="!templateColumns.length" class="empty-state">
-                        {{ isChinese ? '创建批次后会返回模板列契约。' : 'Template-column contract arrives after batch creation.' }}
+                        {{ t('inline.viewsOptimizationAccelerationView.text190') }}
                       </div>
                     </div>
                   </section>
@@ -1680,7 +1666,7 @@ watch(
                     <div class="section-heading">
                       <div>
                         <p class="section-kicker sqlforge-code-label">Failure records</p>
-                        <h4 class="detail-title">{{ isChinese ? '失败记录' : 'Failure records' }}</h4>
+                        <h4 class="detail-title">{{ t('inline.viewsOptimizationAccelerationView.text191') }}</h4>
                       </div>
                     </div>
                     <div class="failure-list">
@@ -1698,47 +1684,47 @@ watch(
                         <SqlCodeBlock
                           v-if="item.sqlText || item.sqlPreview"
                           :value="item.sqlText || item.sqlPreview"
-                          :label="isChinese ? '失败 SQL' : 'Failed SQL'"
-                          :copy-label="isChinese ? '复制' : 'Copy'"
+                          :label="t('inline.viewsOptimizationAccelerationView.text192')"
+                          :copy-label="t('inline.viewsOptimizationAccelerationView.text193')"
                           compact
                         />
                         <p v-else>{{ displayValue(item.message) }}</p>
                       </article>
                       <div v-if="!parseFailureRecords.length" class="empty-state">
-                        {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
+                        {{ t('inline.viewsOptimizationAccelerationView.text194') }}
                       </div>
                     </div>
                   </section>
                 </div>
 
                 <div v-else class="empty-stage">
-                  <strong>{{ isChinese ? '暂无 parse batch' : 'No parse batch selected' }}</strong>
-                  <p>{{ isChinese ? '先创建批次，然后通过弹窗导入多条 SQL 或模板文件。' : 'Create a batch first, then import multi-SQL text or template files through dialogs.' }}</p>
+                  <strong>{{ t('inline.viewsOptimizationAccelerationView.text195') }}</strong>
+                  <p>{{ t('inline.viewsOptimizationAccelerationView.text196') }}</p>
                 </div>
               </main>
             </div>
           </el-tab-pane>
 
-          <el-tab-pane :label="isChinese ? '报表导入' : 'Report catalog import'" name="report">
+          <el-tab-pane :label="t('inline.viewsOptimizationAccelerationView.text197')" name="report">
             <div class="workspace-toolbar shell-panel">
               <div class="toolbar-copy">
                 <p class="section-kicker sqlforge-code-label">report catalog import</p>
-                <h3 class="detail-title">{{ isChinese ? '报表清单导入与 SQL 解析' : 'Report catalog import and SQL resolution' }}</h3>
-                <p class="section-summary">{{ isChinese ? '二级明细继续走抽屉，不再跳到独立页面。' : 'Secondary detail stays inside drawers instead of opening a separate page.' }}</p>
+                <h3 class="detail-title">{{ t('inline.viewsOptimizationAccelerationView.text198') }}</h3>
+                <p class="section-summary">{{ t('inline.viewsOptimizationAccelerationView.text199') }}</p>
               </div>
               <div class="toolbar-actions">
                 <el-button type="primary" data-testid="batch-import-report-import" @click="reportImportDialogVisible = true">
-                  {{ isChinese ? '导入报表批次' : 'Import report batch' }}
+                  {{ t('inline.viewsOptimizationAccelerationView.text200') }}
                 </el-button>
                 <el-button :loading="loading.refreshReportBatch" @click="refreshReportBatchDetail()">
-                  {{ isChinese ? '刷新详情' : 'Refresh detail' }}
+                  {{ t('inline.viewsOptimizationAccelerationView.text201') }}
                 </el-button>
                 <el-button
                   :disabled="!reportBatchDetail?.batchId"
                   data-testid="batch-import-report-resolve"
                   @click="resolveReportSqlsFlow"
                 >
-                  {{ isChinese ? '解析报表 SQL' : 'Resolve report SQLs' }}
+                  {{ t('inline.viewsOptimizationAccelerationView.text202') }}
                 </el-button>
               </div>
             </div>
@@ -1748,7 +1734,7 @@ watch(
                 <div class="section-heading">
                   <div>
                     <p class="section-kicker sqlforge-code-label">report sessions</p>
-                    <h3 class="detail-title">{{ isChinese ? '报表批次' : 'Report batches' }}</h3>
+                    <h3 class="detail-title">{{ t('inline.viewsOptimizationAccelerationView.text203') }}</h3>
                   </div>
                 </div>
                 <div class="session-list">
@@ -1769,7 +1755,7 @@ watch(
                     <span>{{ formatInstant(item.createdAt || item.updatedAt) }}</span>
                   </button>
                   <div v-if="!reportBatchSessions.length" class="empty-state">
-                    {{ isChinese ? '先导入一个报表批次。' : 'Import a report batch to start.' }}
+                    {{ t('inline.viewsOptimizationAccelerationView.text204') }}
                   </div>
                 </div>
               </aside>
@@ -1778,10 +1764,10 @@ watch(
                 <div class="section-heading">
                   <div>
                     <p class="section-kicker sqlforge-code-label">report items</p>
-                    <h3 class="detail-title">{{ isChinese ? '报表项概览' : 'Report items' }}</h3>
+                    <h3 class="detail-title">{{ t('inline.viewsOptimizationAccelerationView.text205') }}</h3>
                   </div>
                   <el-button :disabled="!reportBatchDetail?.batchId" @click="reportDetailDrawerVisible = true">
-                    {{ isChinese ? '打开详情抽屉' : 'Open detail drawer' }}
+                    {{ t('inline.viewsOptimizationAccelerationView.text206') }}
                   </el-button>
                 </div>
 
@@ -1802,13 +1788,13 @@ watch(
                     </p>
                   </article>
                   <div v-if="!reportItems.length" class="empty-state">
-                    {{ isChinese ? '导入后会在这里看到报表清单。' : 'Imported report items appear here.' }}
+                    {{ t('inline.viewsOptimizationAccelerationView.text207') }}
                   </div>
                 </div>
 
                 <div v-else class="empty-stage">
-                  <strong>{{ isChinese ? '暂无 report batch' : 'No report batch selected' }}</strong>
-                  <p>{{ isChinese ? '通过导入弹窗上传报表清单，再在详情抽屉里查看解析证据。' : 'Use the import dialog to upload the report catalog, then review evidence in the detail drawer.' }}</p>
+                  <strong>{{ t('inline.viewsOptimizationAccelerationView.text208') }}</strong>
+                  <p>{{ t('inline.viewsOptimizationAccelerationView.text209') }}</p>
                 </div>
               </main>
             </div>
@@ -1817,30 +1803,30 @@ watch(
       </section>
     </el-dialog>
 
-    <el-dialog v-model="parseCreateDialogVisible" :title="isChinese ? '创建 Parse Batch' : 'Create parse batch'" width="760px">
+    <el-dialog v-model="parseCreateDialogVisible" :title="t('inline.viewsOptimizationAccelerationView.text210')" width="760px">
       <div class="dialog-grid">
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text211') }}</span>
           <el-input v-model="parseBatchForm.tenantId" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '批次名称' : 'Batch name' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text212') }}</span>
           <el-input v-model="parseBatchForm.batchName" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '导入模式' : 'Import mode' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text213') }}</span>
           <el-select v-model="parseBatchForm.importMode">
             <el-option v-for="option in parseImportModeOptions" :key="option" :label="option" :value="option" />
           </el-select>
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '文件类型' : 'File type' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text214') }}</span>
           <el-select v-model="parseBatchForm.fileType">
             <el-option v-for="option in parseFileTypeOptions" :key="option" :label="option" :value="option" />
           </el-select>
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '数据源' : 'Datasource' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text215') }}</span>
           <el-select v-model="parseBatchForm.datasourceCode" filterable allow-create default-first-option data-testid="parse-workbench-parse-batch-datasource-code">
             <el-option
               v-for="item in withCurrentOption(datasourceOptions, parseBatchForm.datasourceCode)"
@@ -1862,81 +1848,81 @@ watch(
           </el-select>
         </label>
         <label class="field-block field-block-toggle">
-          <span class="field-label">{{ isChinese ? '仅结构解析' : 'Structure-only' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text216') }}</span>
           <el-switch v-model="parseBatchForm.structureParseOnly" />
         </label>
       </div>
       <template #footer>
-        <el-button @click="parseCreateDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>
+        <el-button @click="parseCreateDialogVisible = false">{{ t('inline.viewsOptimizationAccelerationView.text217') }}</el-button>
         <el-button type="primary" :loading="loading.createParseBatch" @click="createParseBatchFlow">
-          {{ isChinese ? '创建批次' : 'Create batch' }}
+          {{ t('inline.viewsOptimizationAccelerationView.text218') }}
         </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="parseImportDialogVisible" :title="isChinese ? '导入 Parse Batch 内容' : 'Ingest parse-batch content'" width="760px">
+    <el-dialog v-model="parseImportDialogVisible" :title="t('inline.viewsOptimizationAccelerationView.text219')" width="760px">
       <div class="dialog-grid">
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '输入模式' : 'Input mode' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text220') }}</span>
           <el-select v-model="parseBatchForm.directInputMode">
             <el-option v-for="option in directInputModeOptions" :key="option" :label="option" :value="option" />
           </el-select>
         </label>
         <label class="field-block field-block-wide">
-          <span class="field-label">{{ isChinese ? '上传文件' : 'Upload file' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text221') }}</span>
           <input type="file" @change="handleParseFileChange">
         </label>
         <div class="field-block field-block-wide">
           <SqlEditorField
             v-model="parseBatchForm.rawContent"
-            :label="isChinese ? '批量内容' : 'Batch content'"
+            :label="t('inline.viewsOptimizationAccelerationView.text222')"
             :rows="8"
-            :copy-label="isChinese ? '复制' : 'Copy'"
-            :format-label="isChinese ? '格式化' : 'Format'"
+            :copy-label="t('inline.viewsOptimizationAccelerationView.text223')"
+            :format-label="t('inline.viewsOptimizationAccelerationView.text224')"
             :format-enabled="parseBatchForm.directInputMode === 'SQL_LINES'"
             data-testid="parse-batch-raw-sql-input"
           />
         </div>
       </div>
       <template #footer>
-        <el-button @click="parseImportDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>
+        <el-button @click="parseImportDialogVisible = false">{{ t('inline.viewsOptimizationAccelerationView.text225') }}</el-button>
         <el-button type="primary" :loading="loading.ingestParseBatch" @click="ingestParseBatchFlow">
-          {{ isChinese ? '导入内容' : 'Ingest content' }}
+          {{ t('inline.viewsOptimizationAccelerationView.text226') }}
         </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="parseTemplateDialogVisible" :title="isChinese ? '模板预览' : 'Template preview'" width="780px">
+    <el-dialog v-model="parseTemplateDialogVisible" :title="t('inline.viewsOptimizationAccelerationView.text227')" width="780px">
       <div class="dialog-stack">
         <pre class="code-block">{{ parseTemplatePreview }}</pre>
       </div>
       <template #footer>
-        <el-button @click="downloadTemplate">{{ isChinese ? '下载模板' : 'Download template' }}</el-button>
+        <el-button @click="downloadTemplate">{{ t('inline.viewsOptimizationAccelerationView.text228') }}</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="reportImportDialogVisible" :title="isChinese ? '导入报表批次' : 'Import report batch'" width="760px">
+    <el-dialog v-model="reportImportDialogVisible" :title="t('inline.viewsOptimizationAccelerationView.text229')" width="760px">
       <div class="dialog-grid">
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text230') }}</span>
           <el-input v-model="reportBatchForm.tenantId" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '批次名称' : 'Batch name' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text231') }}</span>
           <el-input v-model="reportBatchForm.batchName" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '文件类型' : 'File type' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text232') }}</span>
           <el-select v-model="reportBatchForm.fileType">
             <el-option v-for="option in reportFileTypeOptions" :key="option" :label="option" :value="option" />
           </el-select>
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '报表编码字段' : 'Report code field' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text233') }}</span>
           <el-input v-model="reportBatchForm.reportCodeField" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '数据源' : 'Datasource' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text234') }}</span>
           <el-select v-model="reportBatchForm.datasourceCode" filterable allow-create default-first-option data-testid="parse-workbench-report-batch-datasource-code">
             <el-option
               v-for="item in withCurrentOption(datasourceOptions, reportBatchForm.datasourceCode)"
@@ -1958,33 +1944,33 @@ watch(
           </el-select>
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '阶段' : 'Stage' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text235') }}</span>
           <el-input v-model="reportBatchForm.stage" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '优先级' : 'Priority' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text236') }}</span>
           <el-input v-model="reportBatchForm.priority" />
         </label>
         <label class="field-block field-block-wide">
-          <span class="field-label">{{ isChinese ? '上传文件' : 'Upload file' }}</span>
+          <span class="field-label">{{ t('inline.viewsOptimizationAccelerationView.text237') }}</span>
           <input type="file" @change="handleReportFileChange">
         </label>
         <div class="field-block field-block-wide">
           <SqlEditorField
             v-model="reportBatchForm.rawContent"
-            :label="isChinese ? '清单内容' : 'Catalog content'"
+            :label="t('inline.viewsOptimizationAccelerationView.text238')"
             :rows="7"
-            :copy-label="isChinese ? '复制' : 'Copy'"
-            :format-label="isChinese ? '格式化' : 'Format'"
+            :copy-label="t('inline.viewsOptimizationAccelerationView.text239')"
+            :format-label="t('inline.viewsOptimizationAccelerationView.text240')"
             :format-enabled="false"
             data-testid="report-batch-raw-sql-input"
           />
         </div>
       </div>
       <template #footer>
-        <el-button @click="reportImportDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>
+        <el-button @click="reportImportDialogVisible = false">{{ t('inline.viewsOptimizationAccelerationView.text241') }}</el-button>
         <el-button type="primary" :loading="loading.importReportBatch" @click="importReportBatchFlow">
-          {{ isChinese ? '导入批次' : 'Import batch' }}
+          {{ t('inline.viewsOptimizationAccelerationView.text242') }}
         </el-button>
       </template>
     </el-dialog>
@@ -2013,15 +1999,15 @@ watch(
       </div>
     </el-drawer>
 
-    <el-drawer v-model="evidenceDrawerVisible" :title="evidenceDrawerTitle || (isChinese ? '原始证据' : 'Raw evidence')" size="42%">
+    <el-drawer v-model="evidenceDrawerVisible" :title="evidenceDrawerTitle || (t('inline.viewsOptimizationAccelerationView.text243'))" size="42%">
       <pre class="code-block">{{ formatJson(evidenceDrawerPayload || {}) }}</pre>
     </el-drawer>
 
-    <el-dialog v-model="fieldHelpDialogVisible" :title="fieldHelpDialogTitle || (isChinese ? '字段说明' : 'Field help')" width="560px">
+    <el-dialog v-model="fieldHelpDialogVisible" :title="fieldHelpDialogTitle || (t('inline.viewsOptimizationAccelerationView.text244'))" width="560px">
       <p class="result-copy">{{ fieldHelpDialogMessage }}</p>
       <template #footer>
         <el-button type="primary" @click="fieldHelpDialogVisible = false">
-          {{ isChinese ? '知道了' : 'Close' }}
+          {{ t('inline.viewsOptimizationAccelerationView.text245') }}
         </el-button>
       </template>
     </el-dialog>

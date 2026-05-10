@@ -156,20 +156,18 @@ const {
   <section class="runtime-page batch-import-page" data-testid="batch-import-page">
     <header class="page-hero shell-panel">
       <div>
-        <p class="runtime-eyebrow sqlforge-code-label">{{ isChinese ? '批次筛选' : 'Batch filters' }}</p>
-        <h2 class="runtime-title">{{ isChinese ? '创建批次、导入内容与查看结果' : 'Create batches, ingest content, and inspect results' }}</h2>
+        <p class="runtime-eyebrow sqlforge-code-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text001') }}</p>
+        <h2 class="runtime-title">{{ t('inline.viewsParseBatchParseBatchCenterView.text002') }}</h2>
         <p class="runtime-summary">
           {{
-            isChinese
-              ? '首屏只保留批次入口与当前结果区；模板、导入和详情都转入弹窗或抽屉。'
-              : 'The first screen stays focused on batch entry points and the current result stage. Templates, imports, and details move into dialogs or drawers.'
+            t('inline.viewsParseBatchParseBatchCenterView.text003')
           }}
         </p>
       </div>
       <div class="hero-inline">
         <span class="hero-pill">{{ parseSessionsSummary }}</span>
         <span class="hero-pill">{{ reportSessionsSummary }}</span>
-        <span class="hero-pill hero-pill-muted">{{ isChinese ? '查询条件 + 结果区 + 抽屉' : 'Filters + results + drawers' }}</span>
+        <span class="hero-pill hero-pill-muted">{{ t('inline.viewsParseBatchParseBatchCenterView.text004') }}</span>
       </div>
     </header>
 
@@ -182,34 +180,32 @@ const {
     </div>
 
     <el-tabs v-model="activeWorkspace" class="workspace-tabs">
-      <el-tab-pane :label="isChinese ? '批量解析' : 'Parse batches'" name="parse">
+      <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text005')" name="parse">
         <div class="workspace-toolbar shell-panel">
           <div class="toolbar-copy">
             <p class="section-kicker sqlforge-code-label">current batch workbench</p>
-            <h2 class="section-title">{{ isChinese ? '当前批量解析批次' : 'Current parse batch' }}</h2>
+            <h2 class="section-title">{{ t('inline.viewsParseBatchParseBatchCenterView.text006') }}</h2>
             <p class="section-summary">
               {{
-                isChinese
-                  ? '本页主体只展示当前批次概览、解析结果和解析统计；创建与导入参数都在弹窗中完成。'
-                  : 'The page body only shows the current batch overview, parse results, and statistics. Create and ingest parameters stay in dialogs.'
+                t('inline.viewsParseBatchParseBatchCenterView.text007')
               }}
             </p>
           </div>
           <div class="toolbar-actions">
             <el-button data-testid="batch-import-download-template" @click="parseTemplateDialogVisible = true">
-              {{ isChinese ? '批量模板' : 'Batch template' }}
+              {{ t('inline.viewsParseBatchParseBatchCenterView.text008') }}
             </el-button>
             <el-button type="primary" data-testid="batch-import-create" @click="parseCreateDialogVisible = true">
-              {{ isChinese ? '创建批次' : 'Create batch' }}
+              {{ t('inline.viewsParseBatchParseBatchCenterView.text009') }}
             </el-button>
             <el-button :disabled="!parseBatchDetail?.batchId" data-testid="batch-import-ingest" @click="parseImportDialogVisible = true">
-              {{ isChinese ? '导入内容' : 'Ingest content' }}
+              {{ t('inline.viewsParseBatchParseBatchCenterView.text010') }}
             </el-button>
             <el-button :loading="loading.refreshParseBatch" @click="refreshParseBatchDetail()">
-              {{ isChinese ? '刷新详情' : 'Refresh detail' }}
+              {{ t('inline.viewsParseBatchParseBatchCenterView.text011') }}
             </el-button>
             <el-button @click="openBatchSelector('parse')">
-              {{ isChinese ? '选择批次' : 'Select batch' }}
+              {{ t('inline.viewsParseBatchParseBatchCenterView.text012') }}
             </el-button>
           </div>
         </div>
@@ -219,7 +215,7 @@ const {
             <div class="section-heading">
               <div>
                 <p class="section-kicker sqlforge-code-label">batch result</p>
-                <h3 class="section-title">{{ isChinese ? '当前批次概览' : 'Current batch overview' }}</h3>
+                <h3 class="section-title">{{ t('inline.viewsParseBatchParseBatchCenterView.text013') }}</h3>
               </div>
               <div class="toolbar-actions">
                 <el-button
@@ -227,13 +223,13 @@ const {
                   data-testid="batch-import-retry-access"
                   @click="retryAccessFlow"
                 >
-                  {{ isChinese ? '补跑 Access' : 'Retry access' }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text014') }}
                 </el-button>
                 <el-button :disabled="!parseBatchDetail?.batchId" data-testid="batch-import-parse-detail" @click="parseResultDialogVisible = true">
-                  {{ isChinese ? '解析结果' : 'Parse results' }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text015') }}
                 </el-button>
                 <el-button :disabled="!parseBatchDetail?.batchId" data-testid="batch-import-parse-statistics" @click="parseStatisticsDialogVisible = true">
-                  {{ isChinese ? '解析统计' : 'Parse statistics' }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text016') }}
                 </el-button>
               </div>
             </div>
@@ -241,45 +237,43 @@ const {
             <BatchSummaryCards v-if="parseBatchDetail" :items="parseBatchStatusCards" />
 
             <div v-else class="empty-stage">
-              <strong>{{ isChinese ? '暂无 parse batch' : 'No parse batch selected' }}</strong>
-              <p>{{ isChinese ? '使用“创建批次”建立批次，再通过“导入内容”上传模板文件或粘贴多条 SQL。' : 'Use Create batch first, then Ingest content to upload a template file or paste multiple SQL statements.' }}</p>
+              <strong>{{ t('inline.viewsParseBatchParseBatchCenterView.text017') }}</strong>
+              <p>{{ t('inline.viewsParseBatchParseBatchCenterView.text018') }}</p>
             </div>
           </main>
         </div>
       </el-tab-pane>
 
-      <el-tab-pane :label="isChinese ? '报表导入' : 'Report catalog import'" name="report">
+      <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text019')" name="report">
         <div class="workspace-toolbar shell-panel">
           <div class="toolbar-copy">
             <p class="section-kicker sqlforge-code-label">report catalog import</p>
-            <h2 class="section-title">{{ isChinese ? '当前报表导入批次' : 'Current report import batch' }}</h2>
+            <h2 class="section-title">{{ t('inline.viewsParseBatchParseBatchCenterView.text020') }}</h2>
             <p class="section-summary">
               {{
-                isChinese
-                  ? '报表导入按 report_code 分组，导入参数在弹窗中完成，首屏保留批次概览与结果入口。'
-                  : 'Report imports are grouped by report_code. Import parameters stay in the dialog, while the first screen keeps the batch overview and result entry points.'
+                t('inline.viewsParseBatchParseBatchCenterView.text021')
               }}
             </p>
           </div>
           <div class="toolbar-actions">
             <el-button data-testid="batch-import-report-template" @click="reportTemplateDialogVisible = true">
-              {{ isChinese ? '宽表模板' : 'Wide template' }}
+              {{ t('inline.viewsParseBatchParseBatchCenterView.text022') }}
             </el-button>
             <el-button type="primary" data-testid="batch-import-report-import" @click="reportImportDialogVisible = true">
-              {{ isChinese ? '导入报表批次' : 'Import report batch' }}
+              {{ t('inline.viewsParseBatchParseBatchCenterView.text023') }}
             </el-button>
             <el-button :loading="loading.refreshReportBatch" @click="refreshReportBatchDetail()">
-              {{ isChinese ? '刷新详情' : 'Refresh detail' }}
+              {{ t('inline.viewsParseBatchParseBatchCenterView.text024') }}
             </el-button>
             <el-button
               :disabled="!reportBatchDetail?.batchId"
               data-testid="batch-import-report-resolve"
               @click="resolveReportSqlsFlow"
             >
-              {{ isChinese ? '解析报表 SQL' : 'Resolve report SQLs' }}
+              {{ t('inline.viewsParseBatchParseBatchCenterView.text025') }}
             </el-button>
             <el-button @click="openBatchSelector('report')">
-              {{ isChinese ? '选择批次' : 'Select batch' }}
+              {{ t('inline.viewsParseBatchParseBatchCenterView.text026') }}
             </el-button>
           </div>
         </div>
@@ -289,7 +283,7 @@ const {
             <div class="section-heading">
               <div>
                 <p class="section-kicker sqlforge-code-label">current report batch</p>
-                <h3 class="section-title">{{ isChinese ? '当前批次概览' : 'Current batch overview' }}</h3>
+                <h3 class="section-title">{{ t('inline.viewsParseBatchParseBatchCenterView.text027') }}</h3>
               </div>
               <div class="toolbar-actions">
                 <el-button
@@ -297,10 +291,10 @@ const {
                   data-testid="batch-import-report-batch-sql-detail"
                   @click="openWholeReportBatchSqlDetail"
                 >
-                  {{ isChinese ? '整个批次 SQL 详情' : 'Whole batch SQL detail' }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text028') }}
                 </el-button>
                 <el-button :disabled="!reportBatchDetail?.batchId" data-testid="batch-import-report-statistics" @click="openReportStatistics">
-                  {{ isChinese ? '解析统计' : 'Parse statistics' }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text029') }}
                 </el-button>
               </div>
             </div>
@@ -335,12 +329,12 @@ const {
                 </div>
                 <p>{{ displayValue(group.reportName) }}</p>
                 <p>
-                  {{ isChinese ? '已解析' : 'Resolved' }}: {{ group.resolved }}
-                  · {{ isChinese ? '失败' : 'Failed' }}: {{ group.failed }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text030') }}: {{ group.resolved }}
+                  · {{ t('inline.viewsParseBatchParseBatchCenterView.text031') }}: {{ group.failed }}
                   · Structure: {{ formatPercent(group.structureRate) }}
                   · Access: {{ formatPercent(group.accessRate) }}
                 </p>
-                <span class="detail-link">{{ isChinese ? '查看本报表 SQL 明细' : 'View this report SQL detail' }}</span>
+                <span class="detail-link">{{ t('inline.viewsParseBatchParseBatchCenterView.text032') }}</span>
               </button>
               <div v-if="reportGroupsDashboardOmittedCount > 0" class="preview-note">
                 {{
@@ -350,47 +344,47 @@ const {
                 }}
               </div>
               <div v-if="!reportItems.length" class="empty-state">
-                {{ isChinese ? '导入后会在这里看到本批次报表与 SQL 概览。' : 'Imported report and SQL overview appears here.' }}
+                {{ t('inline.viewsParseBatchParseBatchCenterView.text033') }}
               </div>
             </div>
 
             <div v-else class="empty-stage">
-              <strong>{{ isChinese ? '暂无 report batch' : 'No report batch selected' }}</strong>
-              <p>{{ isChinese ? '使用“导入报表批次”上传文件或粘贴 report_code + 多 SQL 宽表。' : 'Use Import report batch to upload a file or paste a report_code + multi-SQL wide table.' }}</p>
+              <strong>{{ t('inline.viewsParseBatchParseBatchCenterView.text034') }}</strong>
+              <p>{{ t('inline.viewsParseBatchParseBatchCenterView.text035') }}</p>
             </div>
           </main>
         </div>
       </el-tab-pane>
     </el-tabs>
 
-    <el-dialog v-model="parseCreateDialogVisible" :title="isChinese ? '创建 Parse Batch' : 'Create parse batch'" width="760px">
+    <el-dialog v-model="parseCreateDialogVisible" :title="t('inline.viewsParseBatchParseBatchCenterView.text036')" width="760px">
       <div class="dialog-grid">
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text037') }}</span>
           <el-input v-model="parseBatchForm.tenantId" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '批次名称' : 'Batch name' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text038') }}</span>
           <el-input v-model="parseBatchForm.batchName" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '导入模式' : 'Import mode' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text039') }}</span>
           <el-select v-model="parseBatchForm.importMode">
             <el-option v-for="item in parseImportModeOptions" :key="item" :label="item" :value="item" />
           </el-select>
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '文件类型' : 'File type' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text040') }}</span>
           <el-select v-model="parseBatchForm.fileType">
             <el-option v-for="item in parseFileTypeOptions" :key="item" :label="item" :value="item" />
           </el-select>
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '模板版本' : 'Template version' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text041') }}</span>
           <el-input v-model="parseBatchForm.templateVersion" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '默认数据源' : 'Default datasource' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text042') }}</span>
           <el-input v-model="parseBatchForm.datasourceCode" />
         </label>
         <label class="field-block">
@@ -405,37 +399,37 @@ const {
           </el-select>
         </label>
         <label class="field-block field-block-wide">
-          <span class="field-label">{{ isChinese ? '仅结构解析' : 'Structure-only batch' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text043') }}</span>
           <el-switch v-model="parseBatchForm.structureParseOnly" />
         </label>
       </div>
       <template #footer>
-        <el-button @click="parseCreateDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>
+        <el-button @click="parseCreateDialogVisible = false">{{ t('inline.viewsParseBatchParseBatchCenterView.text044') }}</el-button>
         <el-button type="primary" :loading="loading.createParseBatch" @click="createParseBatchFlow">
-          {{ isChinese ? '创建批次' : 'Create batch' }}
+          {{ t('inline.viewsParseBatchParseBatchCenterView.text045') }}
         </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="parseImportDialogVisible" :title="isChinese ? '导入批量内容' : 'Import batch content'" width="820px">
+    <el-dialog v-model="parseImportDialogVisible" :title="t('inline.viewsParseBatchParseBatchCenterView.text046')" width="820px">
       <div class="dialog-grid">
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '输入方式' : 'Input mode' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text047') }}</span>
           <el-select v-model="parseBatchForm.directInputMode">
             <el-option v-for="item in directInputModeOptions" :key="item" :label="item" :value="item" />
           </el-select>
         </label>
         <label class="field-block field-block-wide">
-          <span class="field-label">{{ isChinese ? '上传文件' : 'Upload file' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text048') }}</span>
           <input type="file" data-testid="batch-import-file-input" @change="handleParseFileChange">
         </label>
         <div class="field-block field-block-wide">
           <SqlEditorField
             v-model="parseBatchForm.rawContent"
-            :label="parseBatchForm.directInputMode === 'SQL_LINES' ? (isChinese ? '多条 SQL 直接输入' : 'Direct multi-SQL input') : (isChinese ? '内联内容' : 'Inline content')"
+            :label="parseBatchForm.directInputMode === 'SQL_LINES' ? (t('inline.viewsParseBatchParseBatchCenterView.text049')) : (t('inline.viewsParseBatchParseBatchCenterView.text050'))"
             :rows="10"
-            :copy-label="isChinese ? '复制' : 'Copy'"
-            :format-label="isChinese ? '格式化' : 'Format'"
+            :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text051')"
+            :format-label="t('inline.viewsParseBatchParseBatchCenterView.text052')"
             :format-enabled="parseBatchForm.directInputMode === 'SQL_LINES'"
             data-testid="batch-import-dialog-sql-input"
           />
@@ -449,7 +443,7 @@ const {
           <SqlCodeBlock
             :value="item.sqlText"
             :label="item.reportCode"
-            :copy-label="isChinese ? '复制' : 'Copy'"
+            :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text053')"
             compact
           />
         </article>
@@ -467,14 +461,14 @@ const {
       </div>
 
       <template #footer>
-        <el-button @click="parseImportDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>
+        <el-button @click="parseImportDialogVisible = false">{{ t('inline.viewsParseBatchParseBatchCenterView.text054') }}</el-button>
         <el-button type="primary" :loading="loading.ingestParseBatch" @click="ingestParseBatchFlow">
-          {{ isChinese ? '确认导入' : 'Confirm import' }}
+          {{ t('inline.viewsParseBatchParseBatchCenterView.text055') }}
         </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="parseTemplateDialogVisible" :title="isChinese ? '模板列契约与预览' : 'Template-column contract and preview'" width="760px">
+    <el-dialog v-model="parseTemplateDialogVisible" :title="t('inline.viewsParseBatchParseBatchCenterView.text056')" width="760px">
       <div class="template-sheet">
         <p class="section-kicker sqlforge-code-label">Template-column contract</p>
         <div class="contract-list">
@@ -483,55 +477,53 @@ const {
             <span>{{ displayValue(item.required) }} · {{ displayValue(item.columnType) }}</span>
           </div>
           <div v-if="!templateColumns.length" class="empty-state">
-            {{ isChinese ? '先创建批次，拿到模板列契约后再下载模板。' : 'Create a batch first so the template-column contract can be downloaded.' }}
+            {{ t('inline.viewsParseBatchParseBatchCenterView.text057') }}
           </div>
         </div>
         <SqlCodeBlock
           v-if="templateColumns.length"
           :value="parseTemplatePreview"
-          :label="isChinese ? '模板预览' : 'Template preview'"
-          :copy-label="isChinese ? '复制' : 'Copy'"
+          :label="t('inline.viewsParseBatchParseBatchCenterView.text058')"
+          :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text059')"
           :auto-format="false"
         />
       </div>
       <template #footer>
-        <el-button @click="parseTemplateDialogVisible = false">{{ isChinese ? '关闭' : 'Close' }}</el-button>
+        <el-button @click="parseTemplateDialogVisible = false">{{ t('inline.viewsParseBatchParseBatchCenterView.text060') }}</el-button>
         <el-button :disabled="!templateColumns.length" @click="downloadTemplate">
-          {{ isChinese ? '下载模板' : 'Download template' }}
+          {{ t('inline.viewsParseBatchParseBatchCenterView.text061') }}
         </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="reportTemplateDialogVisible" :title="isChinese ? '宽表模板' : 'Wide table template'" width="760px">
+    <el-dialog v-model="reportTemplateDialogVisible" :title="t('inline.viewsParseBatchParseBatchCenterView.text062')" width="760px">
       <div class="template-sheet" data-testid="batch-import-report-template-dialog">
         <p class="section-kicker sqlforge-code-label">report_code,sql_1,sql_2,sql_3,...,sql_100</p>
         <p class="result-copy">
           {{
-            isChinese
-              ? '每行代表一个报表，report_code 作为分组键，sql_1、sql_2 等列承载同一报表下的多条 SQL；空单元格会被忽略。'
-              : 'Each row is one report. report_code is the grouping key, while sql_1, sql_2, and later columns hold SQL rows under the same report; empty cells are ignored.'
+            t('inline.viewsParseBatchParseBatchCenterView.text063')
           }}
         </p>
         <SqlCodeBlock
           :value="reportTemplatePreview"
-          :label="isChinese ? '宽表模板预览' : 'Wide template preview'"
-          :copy-label="isChinese ? '复制' : 'Copy'"
+          :label="t('inline.viewsParseBatchParseBatchCenterView.text064')"
+          :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text065')"
           :auto-format="false"
         />
       </div>
       <template #footer>
-        <el-button @click="reportTemplateDialogVisible = false">{{ isChinese ? '关闭' : 'Close' }}</el-button>
+        <el-button @click="reportTemplateDialogVisible = false">{{ t('inline.viewsParseBatchParseBatchCenterView.text066') }}</el-button>
       </template>
     </el-dialog>
 
     <el-dialog
       v-model="parseResultDialogVisible"
-      :title="isChinese ? '当前批次解析结果' : 'Current batch parse results'"
+      :title="t('inline.viewsParseBatchParseBatchCenterView.text067')"
       width="980px"
       data-testid="batch-import-parse-detail"
     >
       <el-tabs v-model="activeParseResultTab" data-testid="batch-import-parse-result-tabs">
-        <el-tab-pane :label="isChinese ? '概览' : 'Overview'" name="overview">
+        <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text068')" name="overview">
           <div class="summary-grid">
             <article v-for="item in parseBatchStatusCards" :key="item.label" class="summary-card">
               <span class="summary-card-label">{{ item.label }}</span>
@@ -539,7 +531,7 @@ const {
             </article>
           </div>
         </el-tab-pane>
-        <el-tab-pane :label="isChinese ? 'SQL 明细' : 'SQL detail'" name="sql">
+        <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text069')" name="sql">
           <section class="detail-card">
             <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
             <div
@@ -565,14 +557,14 @@ const {
                   <span class="status-pill">{{ displayValue(item.status) }}</span>
                 </div>
                 <p>
-                  {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text070') }}: {{ displayValue(item.parseTaskId) }}
                   · Structure: {{ displayValue(item.structureSyntaxStatus) }}
                   · Plan: {{ displayValue(item.planAnalysisStatus) }}
                   · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
                   · Analysis: {{ displayValue(item.analysisStatus) }}
                 </p>
                 <p>
-                  {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text071') }}:
                   <span
                     v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
                     class="help-dot issue-scene-help"
@@ -587,29 +579,29 @@ const {
                   class="diagnostic-line"
                   data-testid="batch-import-parse-diagnostic"
                 >
-                  {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text072') }}: {{ buildDiagnosticSummary(item) }}
                 </p>
                 <SqlCodeBlock
                   v-if="item.sqlText"
                   :value="item.sqlText"
                   :label="item.sqlColumnName || item.itemId || 'SQL'"
-                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text073')"
                   compact
                   data-testid="batch-import-parse-sql-code"
                 />
                 <div class="item-actions">
                   <el-button text data-testid="batch-import-parse-item-detail-open" @click="openParseItemDetail(item)">
-                    {{ isChinese ? '查看详情' : 'View detail' }}
+                    {{ t('inline.viewsParseBatchParseBatchCenterView.text074') }}
                   </el-button>
                 </div>
               </article>
               <div v-if="!parseImportedRecords.length" class="empty-state">
-                {{ isChinese ? '当前批次还没有 SQL 明细。' : 'No SQL rows in the current batch yet.' }}
+                {{ t('inline.viewsParseBatchParseBatchCenterView.text075') }}
               </div>
             </div>
           </section>
         </el-tab-pane>
-        <el-tab-pane :label="isChinese ? '失败记录' : 'Failure records'" name="failures">
+        <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text076')" name="failures">
           <section class="detail-card">
             <p class="section-kicker sqlforge-code-label">Failure records</p>
             <div class="failure-list">
@@ -626,10 +618,10 @@ const {
                   class="diagnostic-line"
                   data-testid="batch-import-parse-diagnostic"
                 >
-                  {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text077') }}: {{ buildDiagnosticSummary(item) }}
                 </p>
                 <p v-if="issueSceneCodesForItem(item).length">
-                  {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text078') }}:
                   <span
                     v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
                     class="help-dot issue-scene-help"
@@ -642,8 +634,8 @@ const {
                 <SqlCodeBlock
                   v-if="item.sqlText || item.sqlPreview"
                   :value="item.sqlText || item.sqlPreview"
-                  :label="isChinese ? '失败 SQL' : 'Failed SQL'"
-                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  :label="t('inline.viewsParseBatchParseBatchCenterView.text079')"
+                  :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text080')"
                   compact
                 />
                 <p v-else>{{ displayValue(item.message) }}</p>
@@ -653,7 +645,7 @@ const {
                   data-testid="batch-import-parse-failure-detail-open"
                   @click="openParseItemDetail(item)"
                 >
-                  {{ isChinese ? '查看解析详情' : 'View parse detail' }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text081') }}
                 </button>
               </article>
               <div
@@ -668,12 +660,12 @@ const {
                 }}
               </div>
               <div v-if="!parseFailureRecords.length" class="empty-state">
-                {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
+                {{ t('inline.viewsParseBatchParseBatchCenterView.text082') }}
               </div>
             </div>
           </section>
         </el-tab-pane>
-        <el-tab-pane :label="isChinese ? '原始证据' : 'Raw evidence'" name="raw">
+        <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text083')" name="raw">
           <pre class="code-block">{{ formatJson(parseBatchDetail) }}</pre>
         </el-tab-pane>
       </el-tabs>
@@ -681,7 +673,7 @@ const {
 
     <el-dialog
       v-model="parseItemDetailDialogVisible"
-      :title="isChinese ? '批量解析记录详情' : 'Parse batch item detail'"
+      :title="t('inline.viewsParseBatchParseBatchCenterView.text084')"
       width="920px"
       data-testid="batch-import-parse-item-detail"
     >
@@ -695,17 +687,17 @@ const {
           <p class="section-kicker sqlforge-code-label">SQL text</p>
           <SqlCodeBlock
             :value="displayValue(selectedParseItem.sqlText || selectedParseItem.sqlTemplateText)"
-            :label="isChinese ? 'SQL 文本' : 'SQL text'"
-            :copy-label="isChinese ? '复制' : 'Copy'"
+            :label="t('inline.viewsParseBatchParseBatchCenterView.text085')"
+            :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text086')"
             data-testid="batch-import-selected-parse-sql"
           />
         </section>
       </div>
     </el-dialog>
 
-    <el-dialog v-model="parseStatisticsDialogVisible" :title="isChinese ? '当前批次解析统计' : 'Current batch parse statistics'" width="920px">
+    <el-dialog v-model="parseStatisticsDialogVisible" :title="t('inline.viewsParseBatchParseBatchCenterView.text087')" width="920px">
       <el-tabs v-model="activeParseStatisticsTab" data-testid="batch-import-parse-statistics-tabs">
-        <el-tab-pane :label="isChinese ? '问题场景' : 'Issue scenes'" name="issue">
+        <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text088')" name="issue">
           <section class="detail-card">
             <p class="section-kicker sqlforge-code-label">parse statistics</p>
             <div class="stat-list">
@@ -734,12 +726,12 @@ const {
                 }}
               </div>
               <div v-if="!parseIssueStatistics.length" class="empty-state">
-                {{ isChinese ? '当前没有问题场景统计。' : 'No issue statistics yet.' }}
+                {{ t('inline.viewsParseBatchParseBatchCenterView.text089') }}
               </div>
             </div>
           </section>
         </el-tab-pane>
-        <el-tab-pane :label="isChinese ? '报表维度' : 'By report'" name="report">
+        <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text090')" name="report">
           <section class="detail-card">
             <p class="section-kicker sqlforge-code-label">report-level statistics</p>
             <div class="stat-list">
@@ -755,12 +747,12 @@ const {
                 }}
               </div>
               <div v-if="!parseReportStatistics.length" class="empty-state">
-                {{ isChinese ? '当前没有报表维度统计。' : 'No report statistics yet.' }}
+                {{ t('inline.viewsParseBatchParseBatchCenterView.text091') }}
               </div>
             </div>
           </section>
         </el-tab-pane>
-        <el-tab-pane :label="isChinese ? '失败记录' : 'Failure records'" name="failures">
+        <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text092')" name="failures">
           <section class="detail-card">
             <p class="section-kicker sqlforge-code-label">Failure records</p>
             <div class="failure-list">
@@ -777,10 +769,10 @@ const {
                   class="diagnostic-line"
                   data-testid="batch-import-parse-diagnostic"
                 >
-                  {{ isChinese ? '定位' : 'Location' }}: {{ buildDiagnosticSummary(item) }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text093') }}: {{ buildDiagnosticSummary(item) }}
                 </p>
                 <p v-if="issueSceneCodesForItem(item).length">
-                  {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text094') }}:
                   <span
                     v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
                     class="help-dot issue-scene-help"
@@ -793,8 +785,8 @@ const {
                 <SqlCodeBlock
                   v-if="item.sqlText || item.sqlPreview"
                   :value="item.sqlText || item.sqlPreview"
-                  :label="isChinese ? '失败 SQL' : 'Failed SQL'"
-                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  :label="t('inline.viewsParseBatchParseBatchCenterView.text095')"
+                  :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text096')"
                   compact
                 />
                 <p v-else>{{ displayValue(item.message) }}</p>
@@ -804,7 +796,7 @@ const {
                   data-testid="batch-import-parse-failure-detail-open"
                   @click="openParseItemDetail(item)"
                 >
-                  {{ isChinese ? '查看解析详情' : 'View parse detail' }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text097') }}
                 </button>
               </article>
               <div
@@ -819,7 +811,7 @@ const {
                 }}
               </div>
               <div v-if="!parseFailureRecords.length" class="empty-state">
-                {{ isChinese ? '当前没有失败记录。' : 'No failure records in the current batch.' }}
+                {{ t('inline.viewsParseBatchParseBatchCenterView.text098') }}
               </div>
             </div>
           </section>
@@ -827,22 +819,22 @@ const {
       </el-tabs>
     </el-dialog>
 
-    <el-dialog v-model="reportImportDialogVisible" :title="isChinese ? '导入报表批次' : 'Import report batch'" width="820px">
+    <el-dialog v-model="reportImportDialogVisible" :title="t('inline.viewsParseBatchParseBatchCenterView.text099')" width="820px">
       <div class="dialog-grid">
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '租户' : 'Tenant' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text100') }}</span>
           <el-input v-model="reportBatchForm.tenantId" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '批次名称' : 'Batch name' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text101') }}</span>
           <el-input v-model="reportBatchForm.batchName" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '报表编码字段' : 'Report code field' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text102') }}</span>
           <el-input v-model="reportBatchForm.reportCodeField" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '默认数据源' : 'Default datasource' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text103') }}</span>
           <el-input v-model="reportBatchForm.datasourceCode" />
         </label>
         <label class="field-block">
@@ -857,44 +849,44 @@ const {
           </el-select>
         </label>
         <label class="field-block">
-          <span class="field-label">{{ isChinese ? '优先级' : 'Priority' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text104') }}</span>
           <el-input v-model="reportBatchForm.priority" />
         </label>
         <label class="field-block field-block-wide">
-          <span class="field-label">{{ isChinese ? '上传文件' : 'Upload file' }}</span>
+          <span class="field-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text105') }}</span>
           <input type="file" @change="handleReportFileChange">
         </label>
         <div class="field-note field-block-wide">
-          {{ isChinese ? '文件类型会根据文件名和内容自动识别，无需手动选择。' : 'File type is auto-detected from the filename and payload content.' }}
+          {{ t('inline.viewsParseBatchParseBatchCenterView.text106') }}
         </div>
         <div class="field-block field-block-wide">
           <SqlEditorField
             v-model="reportBatchForm.rawContent"
-            :label="isChinese ? '内联清单' : 'Inline report catalog'"
+            :label="t('inline.viewsParseBatchParseBatchCenterView.text107')"
             :rows="8"
-            :copy-label="isChinese ? '复制' : 'Copy'"
-            :format-label="isChinese ? '格式化' : 'Format'"
+            :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text108')"
+            :format-label="t('inline.viewsParseBatchParseBatchCenterView.text109')"
             :format-enabled="false"
             data-testid="batch-import-report-dialog-sql-input"
           />
         </div>
       </div>
       <template #footer>
-        <el-button @click="reportImportDialogVisible = false">{{ isChinese ? '取消' : 'Cancel' }}</el-button>
+        <el-button @click="reportImportDialogVisible = false">{{ t('inline.viewsParseBatchParseBatchCenterView.text110') }}</el-button>
         <el-button type="primary" :loading="loading.importReportBatch" @click="importReportBatchFlow">
-          {{ isChinese ? '导入报表批次' : 'Import report batch' }}
+          {{ t('inline.viewsParseBatchParseBatchCenterView.text111') }}
         </el-button>
       </template>
     </el-dialog>
 
     <el-dialog
       v-model="reportResultDialogVisible"
-      :title="isChinese ? '整个报表批次 SQL 详情' : 'Whole report batch SQL detail'"
+      :title="t('inline.viewsParseBatchParseBatchCenterView.text112')"
       width="1040px"
       data-testid="batch-import-report-result-dialog"
     >
       <el-tabs v-model="activeReportResultTab" data-testid="batch-import-report-result-tabs">
-        <el-tab-pane :label="isChinese ? '报表分组' : 'Report groups'" name="groups">
+        <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text113')" name="groups">
           <div class="report-list">
             <article
               v-for="group in reportSqlDetailGroups"
@@ -907,32 +899,32 @@ const {
               </div>
               <p>
                 {{ displayValue(group.reportName) }}
-                · {{ isChinese ? '已解析' : 'Resolved' }} {{ group.resolved }}
-                · {{ isChinese ? '失败' : 'Failed' }} {{ group.failed }}
+                · {{ t('inline.viewsParseBatchParseBatchCenterView.text114') }} {{ group.resolved }}
+                · {{ t('inline.viewsParseBatchParseBatchCenterView.text115') }} {{ group.failed }}
                 · Structure {{ formatPercent(group.structureRate) }}
                 · Access {{ formatPercent(group.accessRate) }}
               </p>
               <button type="button" class="detail-link detail-link-button" @click="openReportGroupDetail(group)">
-                {{ isChinese ? '打开本报表 SQL 明细' : 'Open report SQL detail' }}
+                {{ t('inline.viewsParseBatchParseBatchCenterView.text116') }}
               </button>
             </article>
             <div v-if="!reportSqlDetailGroups.length" class="empty-state">
-              {{ isChinese ? '当前没有报表分组。' : 'No report groups yet.' }}
+              {{ t('inline.viewsParseBatchParseBatchCenterView.text117') }}
             </div>
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? 'SQL 清单' : 'SQL list'" name="sql">
+        <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text118')" name="sql">
           <section class="detail-card">
             <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
             <div class="filter-row" data-testid="batch-import-report-sql-filter">
               <el-input
                 v-model="reportSqlDetailSearchCode"
-                :placeholder="isChinese ? '按报表编码筛选' : 'Filter by report code'"
+                :placeholder="t('inline.viewsParseBatchParseBatchCenterView.text119')"
                 clearable
               />
               <el-button :loading="loading.reportSqlDetail" @click="applyWholeReportSqlFilter">
-                {{ isChinese ? '查询' : 'Search' }}
+                {{ t('inline.viewsParseBatchParseBatchCenterView.text120') }}
               </el-button>
             </div>
             <div
@@ -958,15 +950,15 @@ const {
                   <span class="status-pill">{{ displayValue(item.status) }}</span>
                 </div>
                 <p>
-                  {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
-                  · {{ isChinese ? 'SQL 序号' : 'SQL ordinal' }}: {{ displayValue(item.sqlOrdinalInReport) }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text121') }}: {{ displayValue(item.parseTaskId) }}
+                  · {{ t('inline.viewsParseBatchParseBatchCenterView.text122') }}: {{ displayValue(item.sqlOrdinalInReport) }}
                   · Structure: {{ displayValue(item.structureSyntaxStatus) }}
                   · Plan: {{ displayValue(item.planAnalysisStatus) }}
                   · Access: {{ displayValue(item.accessServiceStatus) }}/{{ displayValue(item.accessConnectionStatus) }}
                   · Analysis: {{ displayValue(item.analysisStatus) }}
                 </p>
                 <p>
-                  {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text123') }}:
                   <span
                     v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
                     class="help-dot issue-scene-help"
@@ -976,30 +968,30 @@ const {
                   >?</span>
                   {{ displayValue(issueSceneCodesForItem(item)) }}
                 </p>
-                <p>{{ isChinese ? '逻辑对象' : 'Logical objects' }}: {{ displayValue(item.logicalObjectKeys) }}</p>
+                <p>{{ t('inline.viewsParseBatchParseBatchCenterView.text124') }}: {{ displayValue(item.logicalObjectKeys) }}</p>
                 <p
                   v-if="hasIssueOrFailure(item)"
                   class="diagnostic-line"
                   data-testid="batch-import-report-diagnostic"
                 >
-                  {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text125') }}: {{ issueLocationText(item) }}
                 </p>
                 <SqlCodeBlock
                   v-if="item.sqlText"
                   :value="item.sqlText"
-                  :label="isChinese ? 'SQL 输出' : 'SQL output'"
-                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  :label="t('inline.viewsParseBatchParseBatchCenterView.text126')"
+                  :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text127')"
                   compact
                   data-testid="batch-import-report-sql-code"
                 />
                 <div class="item-actions">
                   <el-button text data-testid="batch-import-report-item-detail-open" @click="openReportItemDetail(item)">
-                    {{ isChinese ? '查看详情' : 'View detail' }}
+                    {{ t('inline.viewsParseBatchParseBatchCenterView.text128') }}
                   </el-button>
                 </div>
               </article>
               <div v-if="!reportSqlDetailItems.length" class="empty-state">
-                {{ isChinese ? '当前没有 SQL 清单。' : 'No SQL rows yet.' }}
+                {{ t('inline.viewsParseBatchParseBatchCenterView.text129') }}
               </div>
             </div>
             <el-pagination
@@ -1016,7 +1008,7 @@ const {
           </section>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? '失败 SQL' : 'Failed SQL'" name="failures">
+        <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text130')" name="failures">
           <p class="section-kicker sqlforge-code-label">failed sql detail</p>
           <div class="failure-list">
             <article
@@ -1033,14 +1025,14 @@ const {
                 class="diagnostic-line"
                 data-testid="batch-import-report-diagnostic"
               >
-                {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
+                {{ t('inline.viewsParseBatchParseBatchCenterView.text131') }}: {{ issueLocationText(item) }}
               </p>
               <button type="button" class="detail-link detail-link-button" @click="openReportItemDetail(item)">
-                {{ isChinese ? '查看失败详情' : 'View failure detail' }}
+                {{ t('inline.viewsParseBatchParseBatchCenterView.text132') }}
               </button>
             </article>
             <div v-if="!reportSqlDetailFailureItems.length" class="empty-state">
-              {{ isChinese ? '当前没有失败 SQL。' : 'No failed SQL rows.' }}
+              {{ t('inline.viewsParseBatchParseBatchCenterView.text133') }}
             </div>
           </div>
         </el-tab-pane>
@@ -1054,10 +1046,10 @@ const {
       data-testid="batch-import-report-group-detail-dialog"
     >
       <el-tabs v-if="selectedReportGroup" v-model="activeReportGroupDetailTab" data-testid="batch-import-report-group-tabs">
-        <el-tab-pane :label="isChinese ? '概览' : 'Overview'" name="overview">
+        <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text134')" name="overview">
           <div class="summary-grid" data-testid="batch-import-report-scoped-summary">
             <article class="summary-card">
-              <span class="summary-card-label">{{ isChinese ? '报表编码' : 'Report code' }}</span>
+              <span class="summary-card-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text135') }}</span>
               <strong>{{ selectedReportGroup.reportCode }}</strong>
             </article>
             <article class="summary-card">
@@ -1065,17 +1057,17 @@ const {
               <strong>{{ selectedReportGroup.total }}</strong>
             </article>
             <article class="summary-card">
-              <span class="summary-card-label">{{ isChinese ? '已解析' : 'Resolved' }}</span>
+              <span class="summary-card-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text136') }}</span>
               <strong>{{ selectedReportGroup.resolved }}</strong>
             </article>
             <article class="summary-card">
-              <span class="summary-card-label">{{ isChinese ? '失败' : 'Failed' }}</span>
+              <span class="summary-card-label">{{ t('inline.viewsParseBatchParseBatchCenterView.text137') }}</span>
               <strong>{{ selectedReportGroup.failed }}</strong>
             </article>
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? 'SQL 清单' : 'SQL list'" name="sql">
+        <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text138')" name="sql">
           <section class="detail-card" data-testid="batch-import-report-scoped-sql-detail">
             <p class="section-kicker sqlforge-code-label">single report SQL-level parse detail</p>
             <div v-loading="loading.reportSqlDetail" class="report-list">
@@ -1094,9 +1086,9 @@ const {
                   · {{ displayValue(item.priority) }}
                 </p>
                 <p>
-                  {{ isChinese ? '任务' : 'Task' }}: {{ displayValue(item.parseTaskId) }}
-                  · {{ isChinese ? 'SQL 序号' : 'SQL ordinal' }}: {{ displayValue(item.sqlOrdinalInReport) }}
-                  · {{ isChinese ? '状态' : 'Status' }}: {{ displayValue(item.status) }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text139') }}: {{ displayValue(item.parseTaskId) }}
+                  · {{ t('inline.viewsParseBatchParseBatchCenterView.text140') }}: {{ displayValue(item.sqlOrdinalInReport) }}
+                  · {{ t('inline.viewsParseBatchParseBatchCenterView.text141') }}: {{ displayValue(item.status) }}
                 </p>
                 <p>
                   Structure: {{ displayValue(item.structureSyntaxStatus) }}
@@ -1105,7 +1097,7 @@ const {
                   · Analysis: {{ displayValue(item.analysisStatus) }}
                 </p>
                 <p>
-                  {{ isChinese ? '问题场景' : 'Issue scenes' }}:
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text142') }}:
                   <span
                     v-if="issueSceneListHelp(issueSceneCodesForItem(item))"
                     class="help-dot issue-scene-help"
@@ -1120,19 +1112,19 @@ const {
                   class="diagnostic-line"
                   data-testid="batch-import-report-diagnostic"
                 >
-                  {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text143') }}: {{ issueLocationText(item) }}
                 </p>
                 <SqlCodeBlock
                   v-if="item.sqlText"
                   :value="item.sqlText"
-                  :label="isChinese ? 'SQL 输出' : 'SQL output'"
-                  :copy-label="isChinese ? '复制' : 'Copy'"
+                  :label="t('inline.viewsParseBatchParseBatchCenterView.text144')"
+                  :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text145')"
                   compact
                   data-testid="batch-import-report-scoped-sql-code"
                 />
                 <div class="item-actions">
                   <el-button text data-testid="batch-import-report-item-detail-open" @click="openReportItemDetail(item)">
-                    {{ isChinese ? '查看详情' : 'View detail' }}
+                    {{ t('inline.viewsParseBatchParseBatchCenterView.text146') }}
                   </el-button>
                 </div>
               </article>
@@ -1158,7 +1150,7 @@ const {
           </section>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? '失败 SQL' : 'Failed SQL'" name="failures">
+        <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text147')" name="failures">
           <p class="section-kicker sqlforge-code-label">failed sql detail</p>
           <div class="failure-list">
             <article
@@ -1174,14 +1166,14 @@ const {
                 class="diagnostic-line"
                 data-testid="batch-import-report-diagnostic"
               >
-                {{ isChinese ? '定位' : 'Location' }}: {{ issueLocationText(item) }}
+                {{ t('inline.viewsParseBatchParseBatchCenterView.text148') }}: {{ issueLocationText(item) }}
               </p>
               <button type="button" class="detail-link detail-link-button" @click="openReportItemDetail(item)">
-                {{ isChinese ? '查看失败详情' : 'View failure detail' }}
+                {{ t('inline.viewsParseBatchParseBatchCenterView.text149') }}
               </button>
             </article>
             <div v-if="!selectedReportGroupFailureItems.length" class="empty-state">
-              {{ isChinese ? '本报表没有失败 SQL。' : 'No failed SQL rows in this report.' }}
+              {{ t('inline.viewsParseBatchParseBatchCenterView.text150') }}
             </div>
           </div>
         </el-tab-pane>
@@ -1190,7 +1182,7 @@ const {
 
     <el-dialog
       v-model="reportItemDetailDialogVisible"
-      :title="isChinese ? '报表 SQL 解析详情' : 'Report SQL parse detail'"
+      :title="t('inline.viewsParseBatchParseBatchCenterView.text151')"
       width="920px"
       data-testid="batch-import-report-item-detail"
     >
@@ -1204,15 +1196,15 @@ const {
           <p class="section-kicker sqlforge-code-label">SQL output</p>
           <SqlCodeBlock
             :value="displayValue(selectedReportItem.sqlText)"
-            :label="isChinese ? 'SQL 输出' : 'SQL output'"
-            :copy-label="isChinese ? '复制' : 'Copy'"
+            :label="t('inline.viewsParseBatchParseBatchCenterView.text152')"
+            :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text153')"
             data-testid="batch-import-selected-report-sql"
           />
         </section>
       </div>
     </el-dialog>
 
-    <el-dialog v-model="reportStatisticsDialogVisible" :title="isChinese ? '当前报表批次解析统计' : 'Current report batch parse statistics'" width="960px">
+    <el-dialog v-model="reportStatisticsDialogVisible" :title="t('inline.viewsParseBatchParseBatchCenterView.text154')" width="960px">
       <div class="dialog-stack">
         <section class="detail-card">
           <p class="section-kicker sqlforge-code-label">report-level statistics</p>
@@ -1267,7 +1259,7 @@ const {
               />
             </el-tab-pane>
 
-            <el-tab-pane :label="isChinese ? '重要程度' : 'Importance'" name="importance">
+            <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text155')" name="importance">
               <div class="stat-list">
                 <div
                   v-for="item in reportImportanceStatisticsPreview"
@@ -1286,12 +1278,12 @@ const {
                   }}
                 </div>
                 <div v-if="!reportImportanceStatistics.length" class="empty-state">
-                  {{ isChinese ? '当前没有重要程度统计。' : 'No importance statistics yet.' }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text156') }}
                 </div>
               </div>
             </el-tab-pane>
 
-            <el-tab-pane :label="isChinese ? '报表视角' : 'Report view'" name="report">
+            <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text157')" name="report">
               <div class="stat-list">
                 <div
                   v-for="item in reportViewStatisticsPreview"
@@ -1323,15 +1315,15 @@ const {
               </div>
             </el-tab-pane>
 
-            <el-tab-pane :label="isChinese ? 'SQL 清单' : 'SQL list'" name="sqlList">
+            <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text158')" name="sqlList">
               <div class="filter-row" data-testid="batch-import-report-statistics-sql-filter">
                 <el-input
                   v-model="reportStatisticsSqlPagination.reportCode"
-                  :placeholder="isChinese ? '按报表编码筛选 SQL 清单' : 'Filter SQL list by report code'"
+                  :placeholder="t('inline.viewsParseBatchParseBatchCenterView.text159')"
                   clearable
                 />
                 <el-button :loading="loading.reportStatistics" @click="applyReportStatisticsSqlFilter">
-                  {{ isChinese ? '查询' : 'Search' }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text160') }}
                 </el-button>
               </div>
               <div class="stat-list">
@@ -1369,7 +1361,7 @@ const {
                   }}
                 </div>
                 <div v-if="!reportBackendSqlStatistics.length" class="empty-state">
-                  {{ isChinese ? '当前没有 SQL 清单统计。' : 'No SQL list statistics yet.' }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text161') }}
                 </div>
               </div>
               <el-pagination
@@ -1385,7 +1377,7 @@ const {
               />
             </el-tab-pane>
 
-            <el-tab-pane :label="isChinese ? '优先级视角' : 'Priority view'" name="priority">
+            <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text162')" name="priority">
               <div class="stat-list">
                 <div
                   v-for="item in reportPriorityMatrixPreview"
@@ -1404,12 +1396,12 @@ const {
                   }}
                 </div>
                 <div v-if="!reportPriorityMatrix.length" class="empty-state">
-                  {{ isChinese ? '当前没有优先级矩阵统计。' : 'No priority matrix statistics yet.' }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text163') }}
                 </div>
               </div>
             </el-tab-pane>
 
-            <el-tab-pane :label="isChinese ? '逻辑对象视角' : 'Logical objects'" name="logicalObject">
+            <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text164')" name="logicalObject">
               <div class="stat-list">
                 <div
                   v-for="item in reportLogicalObjectStatisticsPreview"
@@ -1428,7 +1420,7 @@ const {
                   }}
                 </div>
                 <div v-if="!reportLogicalObjectStatistics.length" class="empty-state">
-                  {{ isChinese ? '当前没有逻辑对象命中。' : 'No logical object hits yet.' }}
+                  {{ t('inline.viewsParseBatchParseBatchCenterView.text165') }}
                 </div>
               </div>
             </el-tab-pane>
@@ -1437,18 +1429,18 @@ const {
       </div>
     </el-dialog>
 
-    <el-dialog v-model="fieldHelpDialogVisible" :title="fieldHelpDialogTitle || (isChinese ? '字段说明' : 'Field help')" width="560px">
+    <el-dialog v-model="fieldHelpDialogVisible" :title="fieldHelpDialogTitle || (t('inline.viewsParseBatchParseBatchCenterView.text166'))" width="560px">
       <p class="result-copy">{{ fieldHelpDialogMessage }}</p>
       <template #footer>
         <el-button type="primary" @click="fieldHelpDialogVisible = false">
-          {{ isChinese ? '知道了' : 'Close' }}
+          {{ t('inline.viewsParseBatchParseBatchCenterView.text167') }}
         </el-button>
       </template>
     </el-dialog>
 
     <el-drawer
       v-model="batchSelectorDrawerVisible"
-      :title="batchSelectorKind === 'report' ? (isChinese ? '选择报表批次' : 'Select report batch') : (isChinese ? '选择解析批次' : 'Select parse batch')"
+      :title="batchSelectorKind === 'report' ? (t('inline.viewsParseBatchParseBatchCenterView.text168')) : (t('inline.viewsParseBatchParseBatchCenterView.text169'))"
       size="38%"
     >
       <div class="session-list">

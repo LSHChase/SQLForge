@@ -10,7 +10,7 @@ import {
   getGovernanceQueryHistoryPage
 } from '../../services/runtimeGateApi'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const form = reactive({
   tenantId: 'tenant-a',
@@ -37,7 +37,6 @@ const placeholderPayload = ref({
   nextStep: ''
 })
 
-const isChinese = computed(() => locale.value === 'zh-CN')
 const accessChannelOptions = [
   'ALL',
   'PAGE',
@@ -47,40 +46,34 @@ const accessChannelOptions = [
   'CLIENT'
 ].map(value => ({ label: value, value }))
 const accessChannelCards = computed(() => [
-  channelCard('PAGE', isChinese.value ? '页面入口' : 'Page entry', isChinese.value ? '前端控制台与浏览器发起查询。' : 'Frontend console and browser-launched queries.'),
-  channelCard('API', 'HTTP API', isChinese.value ? '受保护接口默认入口。' : 'Protected HTTP API baseline.'),
-  channelCard('JDBC_AGENT', 'JDBC Agent', isChinese.value ? '支持 Observe / Governed Execute / Local Rewrite + Direct JDBC。' : 'Supports Observe / Governed Execute / Local Rewrite + Direct JDBC.'),
-  channelCard('SDK', 'Java SDK', isChinese.value ? 'typed client + retry + access audit。' : 'Typed client + retry + access audit.'),
-  channelCard('CLIENT', 'Direct Client', isChinese.value ? '保留 vocabulary，但不宣称独立 client SDK 已全面落地。' : 'Vocabulary is preserved without claiming a separate client SDK is fully rolled out.')
+  channelCard('PAGE', t('inline.viewsAccessCenterAccessCenterView.text001'), t('inline.viewsAccessCenterAccessCenterView.text002')),
+  channelCard('API', 'HTTP API', t('inline.viewsAccessCenterAccessCenterView.text003')),
+  channelCard('JDBC_AGENT', 'JDBC Agent', t('inline.viewsAccessCenterAccessCenterView.text004')),
+  channelCard('SDK', 'Java SDK', t('inline.viewsAccessCenterAccessCenterView.text005')),
+  channelCard('CLIENT', 'Direct Client', t('inline.viewsAccessCenterAccessCenterView.text006'))
 ])
 const jdbcAgentModes = computed(() => [
   {
     mode: 'OBSERVE',
     title: 'Observe',
-    summary: isChinese.value
-      ? '默认模式；采集 SQL、注释与 query-date 证据，不接管执行。'
-      : 'Default mode; captures SQL, comment, and query-date evidence without taking over execution.'
+    summary: t('inline.viewsAccessCenterAccessCenterView.text007')
   },
   {
     mode: 'GOVERNED_EXECUTE',
     title: 'Governed Execute',
-    summary: isChinese.value
-      ? '通过平台 API 执行 SQL，失败时依 fallbackStrategy 保留 direct JDBC 语义。'
-      : 'Executes SQL through the platform API and preserves direct-JDBC fallback semantics according to fallbackStrategy.'
+    summary: t('inline.viewsAccessCenterAccessCenterView.text008')
   },
   {
     mode: 'LOCAL_REWRITE_DIRECT_JDBC',
     title: 'Local Rewrite + Direct JDBC',
-    summary: isChinese.value
-      ? '本地轻量改写与路由，再直连 JDBC；改写失败不可 silent mutate。'
-      : 'Performs lightweight local rewrite and routing before direct JDBC; rewrite failures must not silently mutate SQL.'
+    summary: t('inline.viewsAccessCenterAccessCenterView.text009')
   }
 ])
 const jdbcPolicyFields = computed(() => [
   field('agentMode', 'agentMode', 'OBSERVE'),
-  field('redisEndpoints', 'redisEndpoints', isChinese.value ? '规则源可配置，但不把外部 Redis 写成默认事实。' : 'Rule-source endpoints are configurable without claiming external Redis is the default fact.'),
+  field('redisEndpoints', 'redisEndpoints', t('inline.viewsAccessCenterAccessCenterView.text010')),
   field('redisNamespace', 'redisNamespace', 'sqlforge:jdbc-agent'),
-  field('apiBaseUrl', 'apiBaseUrl', isChinese.value ? '必填运行时配置' : 'Required runtime configuration'),
+  field('apiBaseUrl', 'apiBaseUrl', t('inline.viewsAccessCenterAccessCenterView.text011')),
   field('routeEnabled', 'routeEnabled', 'false/true'),
   field('rewriteEnabled', 'rewriteEnabled', 'false/true'),
   field('lightParseTimeoutMs', 'lightParseTimeoutMs', '20'),
@@ -92,8 +85,8 @@ const sdkCards = computed(() => [
   field('operationCode', 'operationCode', 'SDK_QUERY_EXECUTE'),
   field('resourceType', 'resourceType', 'SDK_QUERY'),
   field('serviceCode', 'serviceCode', 'JAVA_SDK'),
-  field('auditWrite', isChinese.value ? '审计写回' : 'Audit write', isChinese.value ? '成功/失败都写 access audit 摘要。' : 'Writes access-audit summaries on both success and failure.'),
-  field('routeProfile', isChinese.value ? '成功摘要' : 'Success summary', isChinese.value ? '会回写 routeProfile 与 executionMode。' : 'Persists routeProfile and executionMode in the success summary.')
+  field('auditWrite', t('inline.viewsAccessCenterAccessCenterView.text012'), t('inline.viewsAccessCenterAccessCenterView.text013')),
+  field('routeProfile', t('inline.viewsAccessCenterAccessCenterView.text014'), t('inline.viewsAccessCenterAccessCenterView.text015'))
 ])
 const auditItems = computed(() => accessAuditPage.value?.items || [])
 const classificationSummary = computed(() => accessAuditPage.value?.classificationSummary || {})
@@ -103,24 +96,16 @@ const classificationSummary = computed(() => accessAuditPage.value?.classificati
 const openPlaceholderAction = actionType => {
   const config = actionType === 'create'
     ? {
-        title: isChinese.value ? '新增接入策略暂不可写' : 'Create access strategy is not writable yet',
-        capability: isChinese.value ? '新增接入策略' : 'Create access strategy',
-        reason: isChinese.value
-          ? '当前仓库对开放接入页只暴露 query-history 视角和渠道说明，没有对应的接入策略写接口。'
-          : 'The repository currently exposes only query-history evidence and channel guidance for the access page, without a writable access-strategy API.',
-        nextStep: isChinese.value
-          ? '如需真实新增能力，先补后端策略写接口和审计契约。'
-          : 'Add a backend policy-write API and audit contract before enabling a real create flow.'
+        title: t('inline.viewsAccessCenterAccessCenterView.text016'),
+        capability: t('inline.viewsAccessCenterAccessCenterView.text017'),
+        reason: t('inline.viewsAccessCenterAccessCenterView.text018'),
+        nextStep: t('inline.viewsAccessCenterAccessCenterView.text019')
       }
     : {
-        title: isChinese.value ? '修改策略暂不可写' : 'Edit access strategy is not writable yet',
-        capability: isChinese.value ? '修改接入策略' : 'Edit access strategy',
-        reason: isChinese.value
-          ? '当前页仍以接入证据和渠道语义为主，没有可提交的策略更新后端落点。'
-          : 'This page remains an evidence-first access surface and has no backend destination for submitted strategy updates.',
-        nextStep: isChinese.value
-          ? '后续开放写接口时，再把表单和列表明细接入这里。'
-          : 'Connect forms and row-level editing here only after a writable API is introduced.'
+        title: t('inline.viewsAccessCenterAccessCenterView.text020'),
+        capability: t('inline.viewsAccessCenterAccessCenterView.text021'),
+        reason: t('inline.viewsAccessCenterAccessCenterView.text022'),
+        nextStep: t('inline.viewsAccessCenterAccessCenterView.text023')
       }
   placeholderPayload.value = config
   placeholderDialogVisible.value = true

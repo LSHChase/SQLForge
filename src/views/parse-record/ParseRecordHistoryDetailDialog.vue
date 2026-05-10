@@ -3,7 +3,7 @@ import { useI18n } from 'vue-i18n'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import { useParseRecordContext } from './parseRecordContext'
 
-useI18n()
+const { t } = useI18n()
 
 const {
   activeDialogTab,
@@ -31,7 +31,6 @@ const {
   historyStructureParse,
   historyStructureResourceHighlights,
   historyStructureRiskChecklist,
-  isChinese,
   issueSceneHelp,
   loading,
   logicalObjectHits,
@@ -69,15 +68,15 @@ const auditEventPagination = {
           <span :class="statusClass(selectedHistoryDetail.resultStatus)">{{ selectedHistoryDetail.resultStatus || '-' }}</span>
         </div>
         <div class="dialog-actions">
-          <el-button type="primary" @click="openRepairEvidence">{{ isChinese ? '打开修复证据' : 'Open repair evidence' }}</el-button>
-          <el-button @click="openAuditForensics">{{ isChinese ? '打开审计取证' : 'Open audit forensics' }}</el-button>
-          <el-button :loading="loading.export" data-testid="parse-record-export" @click="openExportDialog">{{ isChinese ? '导出取证' : 'Export evidence' }}</el-button>
-          <el-button @click="evidenceDrawerVisible = true">{{ isChinese ? '查看原始证据' : 'View raw evidence' }}</el-button>
+          <el-button type="primary" @click="openRepairEvidence">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text001') }}</el-button>
+          <el-button @click="openAuditForensics">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text002') }}</el-button>
+          <el-button :loading="loading.export" data-testid="parse-record-export" @click="openExportDialog">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text003') }}</el-button>
+          <el-button @click="evidenceDrawerVisible = true">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text004') }}</el-button>
         </div>
       </div>
 
       <el-tabs v-model="activeDialogTab">
-        <el-tab-pane :label="isChinese ? '概览' : 'Overview'" name="overview">
+        <el-tab-pane :label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text005')" name="overview">
           <div class="detail-grid">
             <div
               v-for="item in detailSummaryCards"
@@ -100,16 +99,16 @@ const auditEventPagination = {
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? '解析结果' : 'Parse result'" name="parseResult">
+        <el-tab-pane :label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text006')" name="parseResult">
           <div class="history-result-panel" data-testid="parse-record-history-parse-detail">
             <article class="code-card code-card-wide" data-testid="parse-record-history-original-sql">
               <div class="code-card__header">
-                <span>{{ isChinese ? '原始 SQL' : 'Original SQL' }}</span>
+                <span>{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text007') }}</span>
               </div>
               <SqlCodeBlock
                 :value="selectedHistoryDetail.sqlText || '-'"
-                :label="isChinese ? '原始 SQL' : 'Original SQL'"
-                :copy-label="isChinese ? '复制' : 'Copy'"
+                :label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text008')"
+                :copy-label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text009')"
                 :auto-format="false"
                 data-testid="parse-record-history-original-sql-text"
               />
@@ -124,7 +123,7 @@ const auditEventPagination = {
               <div class="parse-card__header">
                 <div>
                   <p class="section-kicker sqlforge-code-label">parse result</p>
-                  <h3 class="detail-title">{{ isChinese ? '解析结果与统计' : 'Parse result and statistics' }}</h3>
+                  <h3 class="detail-title">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text010') }}</h3>
                 </div>
               </div>
               <div v-if="historyParseSummaryCards.length" class="summary-chip-row">
@@ -149,7 +148,7 @@ const auditEventPagination = {
               class="empty-copy"
               data-testid="parse-record-history-parse-detail-empty"
             >
-              {{ isChinese ? '当前记录没有结构化解析详情，只能查看原始证据。' : 'This record has no structured parse detail; raw evidence is still available.' }}
+              {{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text011') }}
             </div>
 
             <div class="parse-card-grid">
@@ -157,7 +156,7 @@ const auditEventPagination = {
                 <div class="parse-card__header">
                   <div>
                     <p class="section-kicker sqlforge-code-label">structure parse</p>
-                    <h3 class="detail-title">{{ isChinese ? '结构解析卡' : 'Structure parse card' }}</h3>
+                    <h3 class="detail-title">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text012') }}</h3>
                   </div>
                   <span class="pill" :class="statusClass(historyStructureParse.syntaxStatus || historyParseStatus)">
                     {{ historyStructureParse.syntaxStatus || '-' }}
@@ -177,7 +176,7 @@ const auditEventPagination = {
                 </div>
 
                 <div v-if="historyStructureIntentLabels.length" class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? '查询意图标签' : 'Query intent labels' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text013') }}</span>
                   <div class="pill-grid">
                     <span
                       v-for="item in historyStructureIntentLabels"
@@ -190,7 +189,7 @@ const auditEventPagination = {
                 </div>
 
                 <div v-if="historyStructureFeatureHighlights.length" class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? '多维特征' : 'Feature dimensions' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text014') }}</span>
                   <div class="highlight-grid highlight-grid-compact">
                     <div
                       v-for="item in historyStructureFeatureHighlights"
@@ -205,7 +204,7 @@ const auditEventPagination = {
                 </div>
 
                 <div v-if="historyStructureResourceHighlights.length" class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? '预估资源消耗' : 'Estimated resource cost' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text015') }}</span>
                   <div class="summary-chip-row">
                     <span
                       v-for="item in historyStructureResourceHighlights"
@@ -218,25 +217,25 @@ const auditEventPagination = {
                 </div>
 
                 <div class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? '查询日期摘要' : 'Query-date summary' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text016') }}</span>
                   <div class="summary-chip-row">
                     <span class="summary-chip">
-                      {{ isChinese ? '起点' : 'Start' }}:
+                      {{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text017') }}:
                       <strong>{{ displayValue(historyStructureParse.queryDateSummary?.queryDateStart || selectedHistoryDetail.queryDateSummary?.queryDateStart) }}</strong>
                     </span>
                     <span class="summary-chip">
-                      {{ isChinese ? '终点' : 'End' }}:
+                      {{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text018') }}:
                       <strong>{{ displayValue(historyStructureParse.queryDateSummary?.queryDateEnd || selectedHistoryDetail.queryDateSummary?.queryDateEnd) }}</strong>
                     </span>
                     <span class="summary-chip">
-                      {{ isChinese ? '状态' : 'Status' }}:
+                      {{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text019') }}:
                       <strong>{{ displayValue(historyStructureParse.queryDateSummary?.queryDateStatus || selectedHistoryDetail.queryDateSummary?.queryDateStatus) }}</strong>
                     </span>
                   </div>
                 </div>
 
                 <div v-if="historyLogicalObjectHits.length" class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? '逻辑对象命中' : 'Logical object hits' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text020') }}</span>
                   <div class="pill-grid">
                     <span
                       v-for="(item, index) in historyLogicalObjectHits"
@@ -253,7 +252,7 @@ const auditEventPagination = {
                   v-if="normalizeArray(historyStructureParse.riskTags).length || normalizeArray(historyStructureParse.rewriteCandidates).length"
                   class="mini-section"
                 >
-                  <span class="summary-card-label">{{ isChinese ? '风险标签 / 改写候选' : 'Risk tags / rewrite candidates' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text021') }}</span>
                   <div class="pill-grid">
                     <span
                       v-for="item in normalizeArray(historyStructureParse.riskTags)"
@@ -301,7 +300,7 @@ const auditEventPagination = {
                     </div>
                     <p class="issue-card__summary">{{ riskDisplayText(risk, 'summary') }}</p>
                     <p class="issue-card__detail">{{ riskDisplayText(risk, 'evidence') }}</p>
-                    <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ riskDisplayText(risk, 'suggestedAction') }}</p>
+                    <p class="issue-card__detail">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text022') }}: {{ riskDisplayText(risk, 'suggestedAction') }}</p>
                   </article>
                 </div>
 
@@ -328,12 +327,12 @@ const auditEventPagination = {
                     <p class="issue-card__summary">{{ displayDetailValue(issue.summary) }}</p>
                     <p class="issue-card__detail">{{ displayDetailValue(issue.detail) }}</p>
                     <p v-if="issue.failureLine || issue.failureColumn || issue.failureToken || issue.failureSnippet" class="issue-card__detail">
-                      {{ isChinese ? '失败定位' : 'Failure position' }}:
+                      {{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text023') }}:
                       <span v-if="issue.failureLine && issue.failureColumn">line {{ issue.failureLine }}, column {{ issue.failureColumn }}</span>
                       <span v-if="issue.failureToken"> · token {{ issue.failureToken }}</span>
                       <span v-if="issue.failureSnippet"> · {{ issue.failureSnippet }}</span>
                     </p>
-                    <p class="issue-card__detail">{{ isChinese ? '建议动作' : 'Suggested action' }}: {{ displayDetailValue(issue.suggestedAction) }}</p>
+                    <p class="issue-card__detail">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text024') }}: {{ displayDetailValue(issue.suggestedAction) }}</p>
                   </article>
                 </div>
               </article>
@@ -342,7 +341,7 @@ const auditEventPagination = {
                 <div class="parse-card__header">
                   <div>
                     <p class="section-kicker sqlforge-code-label">access parse</p>
-                    <h3 class="detail-title">{{ isChinese ? 'Access Parse 卡' : 'Access parse card' }}</h3>
+                    <h3 class="detail-title">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text025') }}</h3>
                   </div>
                   <span
                     class="pill"
@@ -365,12 +364,12 @@ const auditEventPagination = {
                 </div>
 
                 <div v-if="historyAccessParse.planSummary" class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? 'Plan Summary' : 'Plan summary' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text026') }}</span>
                   <p class="result-copy">{{ displayDetailValue(historyAccessParse.planSummary) }}</p>
                 </div>
 
                 <div v-if="historyAccessParse.availabilityWarning" class="mini-section">
-                  <span class="summary-card-label">{{ isChinese ? '可用性告警' : 'Availability warning' }}</span>
+                  <span class="summary-card-label">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text027') }}</span>
                   <p class="result-copy result-copy-muted">{{ displayDetailValue(historyAccessParse.availabilityWarning) }}</p>
                 </div>
               </article>
@@ -378,7 +377,7 @@ const auditEventPagination = {
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? 'SQL 三态' : 'SQL tri-state'" name="sql">
+        <el-tab-pane :label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text028')" name="sql">
           <div class="detail-grid">
             <div
               v-for="item in sqlStateHighlights"
@@ -403,7 +402,7 @@ const auditEventPagination = {
               <SqlCodeBlock
                 :value="item.value"
                 :label="item.label"
-                :copy-label="isChinese ? '复制' : 'Copy'"
+                :copy-label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text029')"
                 :auto-format="item.autoFormat !== false"
                 :data-testid="`parse-record-${item.key}`"
               />
@@ -411,7 +410,7 @@ const auditEventPagination = {
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? '解析与路由' : 'Parse and route signals'" name="signals">
+        <el-tab-pane :label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text030')" name="signals">
           <div class="code-grid">
             <article
               v-for="group in signalGroups"
@@ -426,7 +425,7 @@ const auditEventPagination = {
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="isChinese ? '关联证据' : 'References'" name="refs">
+        <el-tab-pane :label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text031')" name="refs">
           <div v-if="logicalObjectHits.length" class="detail-grid">
             <div
               v-for="(item, index) in logicalObjectHits"
@@ -452,10 +451,10 @@ const auditEventPagination = {
           </div>
 
           <el-table :data="auditEvents" :max-height="auditEventPagination.pageSize * 4" border>
-            <el-table-column prop="serviceCode" :label="isChinese ? '服务' : 'Service'" min-width="150" />
-            <el-table-column prop="operationType" :label="isChinese ? '操作' : 'Operation'" min-width="160" />
-            <el-table-column prop="status" :label="isChinese ? '状态' : 'Status'" min-width="120" />
-            <el-table-column :label="isChinese ? '时间' : 'Created at'" min-width="170">
+            <el-table-column prop="serviceCode" :label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text032')" min-width="150" />
+            <el-table-column prop="operationType" :label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text033')" min-width="160" />
+            <el-table-column prop="status" :label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text034')" min-width="120" />
+            <el-table-column :label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text035')" min-width="170">
               <template #default="{ row }">{{ formatTimestamp(row.createTime) }}</template>
             </el-table-column>
           </el-table>

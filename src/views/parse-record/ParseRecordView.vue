@@ -11,7 +11,7 @@ import ParseRecordSqlHistoryPane from './ParseRecordSqlHistoryPane.vue'
 import { PARSE_RECORD_CONTEXT_KEY } from './parseRecordContext'
 import { useParseRecordView } from './useParseRecordView'
 
-useI18n()
+const { t } = useI18n()
 
 const parseRecordContext = useParseRecordView()
 provide(PARSE_RECORD_CONTEXT_KEY, parseRecordContext)
@@ -21,7 +21,6 @@ const {
   errorMessage,
   historyWorkbenchKicker,
   historyWorkbenchTitle,
-  isChinese,
   loading,
   pageSummaryCards,
   runIndexedLookup,
@@ -38,12 +37,12 @@ const {
       </div>
       <div class="action-row">
         <el-button type="primary" :loading="loading.page" data-testid="parse-record-refresh" @click="searchWorkbench">
-          {{ isChinese ? '刷新列表' : 'Refresh list' }}
+          {{ t('inline.viewsParseRecordParseRecordView.text001') }}
         </el-button>
         <el-button :loading="loading.lookup" data-testid="parse-record-run-lookup" @click="runIndexedLookup">
-          {{ isChinese ? '精确反查' : 'Indexed lookup' }}
+          {{ t('inline.viewsParseRecordParseRecordView.text002') }}
         </el-button>
-        <el-button @click="clearFilters">{{ isChinese ? '清空条件' : 'Clear filters' }}</el-button>
+        <el-button @click="clearFilters">{{ t('inline.viewsParseRecordParseRecordView.text003') }}</el-button>
       </div>
     </header>
 

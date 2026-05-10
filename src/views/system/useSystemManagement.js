@@ -36,7 +36,7 @@ import {
 } from '../../services/runtimeGateApi'
 
 export function useSystemManagement() {
-  const { locale } = useI18n()
+  const { t, locale } = useI18n()
 
   const form = reactive({
     tenantId: 'system'
@@ -196,12 +196,12 @@ export function useSystemManagement() {
     })
   )
   const summaryCards = computed(() => [
-    card('datasources', isChinese.value ? '数据源' : 'Datasources', datasources.value.length),
-    card('report-interfaces', isChinese.value ? '报表接口' : 'Report interfaces', reportInterfaces.value.length),
-    card('redis-rule-sources', isChinese.value ? 'Redis 规则源' : 'Redis rule sources', redisRuleSources.value.length),
-    card('dispatch-policies', isChinese.value ? 'Dispatch 策略' : 'Dispatch policies', dispatchPolicies.value.length),
-    card('pending', isChinese.value ? '待补偿' : 'Pending backlog', stats.value?.pending ?? 0),
-    card('failed', isChinese.value ? '失败消息' : 'Failed messages', stats.value?.failed ?? 0)
+    card('datasources', t('inline.viewsSystemUseSystemManagement.text001'), datasources.value.length),
+    card('report-interfaces', t('inline.viewsSystemUseSystemManagement.text002'), reportInterfaces.value.length),
+    card('redis-rule-sources', t('inline.viewsSystemUseSystemManagement.text003'), redisRuleSources.value.length),
+    card('dispatch-policies', t('inline.viewsSystemUseSystemManagement.text004'), dispatchPolicies.value.length),
+    card('pending', t('inline.viewsSystemUseSystemManagement.text005'), stats.value?.pending ?? 0),
+    card('failed', t('inline.viewsSystemUseSystemManagement.text006'), stats.value?.failed ?? 0)
   ].slice(0, 6))
 
   const tenantParamCards = computed(() => {
@@ -222,23 +222,23 @@ export function useSystemManagement() {
   const permissionAuditCards = computed(() => [
     field(
       'datasourceBoundary',
-      isChinese.value ? '数据源边界' : 'Datasource boundary',
-      isChinese.value ? '支持新增、修改、查看详情和 test-connection；仍不暴露原始凭证。' : 'Supports create, edit, detail, and test-connection while keeping raw credentials hidden.'
+      t('inline.viewsSystemUseSystemManagement.text007'),
+      t('inline.viewsSystemUseSystemManagement.text008')
     ),
     field(
       'reportInterfaceBoundary',
-      isChinese.value ? '报表接口边界' : 'Report-interface boundary',
-      isChinese.value ? '支持新增与修改；列表仍强调 resolverStatus / unavailableReason 的证据语义。' : 'Supports create and edit while keeping resolverStatus and unavailableReason evidence-first.'
+      t('inline.viewsSystemUseSystemManagement.text009'),
+      t('inline.viewsSystemUseSystemManagement.text010')
     ),
     field(
       'redisBoundary',
-      isChinese.value ? 'Redis 规则源边界' : 'Redis rule-source boundary',
-      isChinese.value ? '支持新增与修改，但列表仍保留 CONFIG_ONLY / SIMULATED_READY 等证据口径。' : 'Supports create and edit while preserving CONFIG_ONLY and SIMULATED_READY evidence semantics.'
+      t('inline.viewsSystemUseSystemManagement.text011'),
+      t('inline.viewsSystemUseSystemManagement.text012')
     ),
     field(
       'dispatchBoundary',
-      isChinese.value ? 'Dispatch 边界' : 'Dispatch boundary',
-      isChinese.value ? '当前仓库支持新增 Dispatch 策略；修改动作仍缺写接口，因此保留 EXTERNAL_MODULE_REQUIRED 的执行边界说明。' : 'The repository supports creating dispatch policies. Editing still lacks a write API, so the EXTERNAL_MODULE_REQUIRED execution boundary remains explicit.'
+      t('inline.viewsSystemUseSystemManagement.text013'),
+      t('inline.viewsSystemUseSystemManagement.text014')
     )
   ])
 
@@ -573,14 +573,10 @@ export function useSystemManagement() {
 
   const openDispatchEditPlaceholder = row => {
     placeholderPayload.value = {
-      title: isChinese.value ? '修改 Dispatch 策略暂不可写' : 'Edit dispatch policy is not writable yet',
+      title: t('inline.viewsSystemUseSystemManagement.text015'),
       capability: isChinese.value ? `修改策略 ${row.policyId}` : `Edit policy ${row.policyId}`,
-      reason: isChinese.value
-        ? '当前后端仓库只开放 Dispatch 策略新增接口，没有提供 PUT / PATCH 更新接口。'
-        : 'The current backend repository exposes only Dispatch-policy creation and does not provide a PUT or PATCH update endpoint.',
-      nextStep: isChinese.value
-        ? '如需真实修改动作，先补后端更新契约，再把表单切换为可提交。'
-        : 'Add a backend update contract before converting this action into a real editable form.'
+      reason: t('inline.viewsSystemUseSystemManagement.text016'),
+      nextStep: t('inline.viewsSystemUseSystemManagement.text017')
     }
     placeholderDialogVisible.value = true
   }
