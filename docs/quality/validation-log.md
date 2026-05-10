@@ -3433,3 +3433,28 @@
 2026-05-10T08:35:10-05:00 | HARN-129 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-10T08:35:10-05:00 | HARN-129 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
 2026-05-10T08:35:10-05:00 | HARN-129 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`
+2026-05-10T08:54:01-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T08:54:01-05:00 | HARN-130 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T08:54:13-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T08:54:13-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T08:54:13-05:00 | HARN-130 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T08:54:23-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `mvn -pl sql-optimization test`
+2026-05-10T08:54:23-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T08:54:23-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T08:54:23-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-10T08:55:02-05:00 | HARN-130 local Java clean test | `R-040`, `R-119`, `R-121`, `R-185` | residual-risk | `mvn -pl sql-optimization clean test` passed 190 tests under OpenJDK 1.8.0_482; local Codex environment does not provide required JDK 8u112, so this is compatibility evidence only.
+2026-05-10T08:55:20-05:00 | HARN-130 local-mysql-ddl | `R-122`, `R-129`, `R-169` | passed | `docker-compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < sql/migrations/V20260510_002__recommendation_rule_output_model.sql`; follow-up `SHOW COLUMNS` confirmed `rule_chain_json` and `manual_review_required`, and `information_schema.KEY_COLUMN_USAGE` confirmed 0 physical foreign keys on `acceleration_recommendation`.
+2026-05-10T09:05:06-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T09:05:06-05:00 | HARN-130 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T09:05:19-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T09:05:19-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T09:05:19-05:00 | HARN-130 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T09:05:29-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `mvn -pl sql-optimization test`
+2026-05-10T09:05:29-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T09:05:29-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T09:05:29-05:00 | HARN-130 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-10T09:07:00-05:00 | HARN-130 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T09:07:00-05:00 | HARN-130 closeout commit | `R-168` | projected | `git commit -m 'feat(sql-optimization): deepen recommendation rule output model' (projected-precommit)`
+2026-05-10T09:07:00-05:00 | HARN-130 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-10T09:07:00-05:00 | HARN-130 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-05-10T09:07:00-05:00 | HARN-130 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`

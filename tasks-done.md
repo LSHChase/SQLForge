@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-130: 深化推荐 SQL 规则输出模型
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(sql-optimization): deepen recommendation rule output model`
+- Priority: 1
+- Depends on: `HARN-128`
+- Scope: 建立 L0/L1/L2 rule model、rule chain、preconditions、semantic risks、unapplied rules、manualReviewRequired 与 autoApplyAllowed 输出；不得把静态启发式写成真实收益。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-130`
+- Context closeout:
+  - Completed scope: Expanded acceleration recommendation rule output model across domain DTO VO persistence SQL migration and parse-triggered recommendation flow; added L0/L1/L2 rule-chain, unapplied-rules, preconditions, semantic-risk, expected-benefit, estimated-cost, confidence, validation, and manual-review governance fields without claiming static heuristic gains as real execution improvement.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-130 --include-task-audit with mvn -pl sql-optimization test, repository-knowledge lint, compile-governance --check, and git diff --check passed; focused constructor-injection tests passed; local MySQL migration smoke confirmed added columns and no physical FK.
+  - Residual risk: Local Codex environment provides OpenJDK 1.8.0_482 rather than mandated JDK 8u112, so Java validation is compatibility evidence only until run in the fixed delivery JDK; HARN-131/HARN-132 remain responsible for concrete rewrite algorithms and diff execution.
+  - Next step: Proceed to dependent recommendation rewrite and diff tasks after JDK 8u112 CI or human-approved environment confirmation.
+
 ### HARN-129: 落地加速候选与改写验证持久化
 
 - Status: done

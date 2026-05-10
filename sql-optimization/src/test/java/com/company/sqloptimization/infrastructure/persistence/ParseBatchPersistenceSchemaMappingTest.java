@@ -117,14 +117,25 @@ class ParseBatchPersistenceSchemaMappingTest {
         assertContains(schema, "route_decision_id VARCHAR(64)");
         assertContains(schema, "benefit_level VARCHAR(32) NOT NULL DEFAULT 'UNKNOWN'");
         assertContains(schema, "risk_level VARCHAR(32) NOT NULL DEFAULT 'UNKNOWN'");
+        assertContains(schema, "rule_chain_json JSON DEFAULT NULL");
+        assertContains(schema, "unapplied_rules_json JSON DEFAULT NULL");
+        assertContains(schema, "manual_review_required TINYINT(1) NOT NULL DEFAULT 1");
         assertContains(schema, "no executed state in SQLForge");
         String migration = readRepositoryFile("sql/migrations/V20260426_007__acceleration_recommendation_catalog.sql");
         assertContains(migration, "CREATE TABLE IF NOT EXISTS acceleration_recommendation");
         assertContains(migration, "idx_acc_reco_tenant_type_created");
+        String ruleModelMigration = readRepositoryFile(
+            "sql/migrations/V20260510_002__recommendation_rule_output_model.sql"
+        );
+        assertContains(ruleModelMigration, "ADD COLUMN rule_chain_json JSON");
+        assertContains(ruleModelMigration, "ADD COLUMN semantic_risks_json JSON");
+        assertContains(ruleModelMigration, "idx_acc_reco_validation");
         String mapper = readMapper("mapper/AccelerationRecommendationMapper.xml");
         assertContains(mapper, "FROM acceleration_recommendation");
         assertContains(mapper, "selectByTenantId");
         assertContains(mapper, "requires_dispatch");
+        assertContains(mapper, "rule_chain_json");
+        assertContains(mapper, "manual_review_required");
         String traceMigration = readRepositoryFile("sql/migrations/V20260426_009__recommendation_traceability_keys.sql");
         assertContains(traceMigration, "ADD COLUMN history_id");
         assertContains(traceMigration, "idx_acc_reco_parse_task");

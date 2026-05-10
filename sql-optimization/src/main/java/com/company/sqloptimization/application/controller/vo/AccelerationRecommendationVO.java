@@ -1,6 +1,8 @@
 package com.company.sqloptimization.application.controller.vo;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
 public class AccelerationRecommendationVO {
 
@@ -28,6 +30,22 @@ public class AccelerationRecommendationVO {
     private String riskSummary;
     private Boolean requiresDispatch;
     private String status;
+    private String sourceType;
+    private String sourceKind;
+    private String sourceId;
+    private String evidenceLevel;
+    private String schemaVersion;
+    private List<Map<String, Object>> ruleChain;
+    private List<Map<String, Object>> unappliedRules;
+    private List<Map<String, Object>> preconditions;
+    private List<Map<String, Object>> semanticRisks;
+    private Map<String, Object> expectedBenefit;
+    private Map<String, Object> estimatedCost;
+    private Integer confidence;
+    private String validationMethod;
+    private String validationStatus;
+    private Boolean autoApplyAllowed;
+    private Boolean manualReviewRequired;
     private String createdBy;
     private Instant createdAt;
     private Instant updatedAt;
@@ -80,6 +98,38 @@ public class AccelerationRecommendationVO {
     public void setRequiresDispatch(Boolean requiresDispatch) { this.requiresDispatch = requiresDispatch; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getSourceType() { return sourceType; }
+    public void setSourceType(String sourceType) { this.sourceType = sourceType; }
+    public String getSourceKind() { return sourceKind; }
+    public void setSourceKind(String sourceKind) { this.sourceKind = sourceKind; }
+    public String getSourceId() { return sourceId; }
+    public void setSourceId(String sourceId) { this.sourceId = sourceId; }
+    public String getEvidenceLevel() { return evidenceLevel; }
+    public void setEvidenceLevel(String evidenceLevel) { this.evidenceLevel = evidenceLevel; }
+    public String getSchemaVersion() { return schemaVersion; }
+    public void setSchemaVersion(String schemaVersion) { this.schemaVersion = schemaVersion; }
+    public List<Map<String, Object>> getRuleChain() { return ruleChain; }
+    public void setRuleChain(List<Map<String, Object>> ruleChain) { this.ruleChain = ruleChain; }
+    public List<Map<String, Object>> getUnappliedRules() { return unappliedRules; }
+    public void setUnappliedRules(List<Map<String, Object>> unappliedRules) { this.unappliedRules = unappliedRules; }
+    public List<Map<String, Object>> getPreconditions() { return preconditions; }
+    public void setPreconditions(List<Map<String, Object>> preconditions) { this.preconditions = preconditions; }
+    public List<Map<String, Object>> getSemanticRisks() { return semanticRisks; }
+    public void setSemanticRisks(List<Map<String, Object>> semanticRisks) { this.semanticRisks = semanticRisks; }
+    public Map<String, Object> getExpectedBenefit() { return expectedBenefit; }
+    public void setExpectedBenefit(Map<String, Object> expectedBenefit) { this.expectedBenefit = expectedBenefit; }
+    public Map<String, Object> getEstimatedCost() { return estimatedCost; }
+    public void setEstimatedCost(Map<String, Object> estimatedCost) { this.estimatedCost = estimatedCost; }
+    public Integer getConfidence() { return confidence; }
+    public void setConfidence(Integer confidence) { this.confidence = confidence; }
+    public String getValidationMethod() { return validationMethod; }
+    public void setValidationMethod(String validationMethod) { this.validationMethod = validationMethod; }
+    public String getValidationStatus() { return validationStatus; }
+    public void setValidationStatus(String validationStatus) { this.validationStatus = validationStatus; }
+    public Boolean getAutoApplyAllowed() { return autoApplyAllowed; }
+    public void setAutoApplyAllowed(Boolean autoApplyAllowed) { this.autoApplyAllowed = autoApplyAllowed; }
+    public Boolean getManualReviewRequired() { return manualReviewRequired; }
+    public void setManualReviewRequired(Boolean manualReviewRequired) { this.manualReviewRequired = manualReviewRequired; }
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
     public Instant getCreatedAt() { return createdAt; }

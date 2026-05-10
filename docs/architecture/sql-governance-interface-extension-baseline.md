@@ -778,6 +778,7 @@ repo-side 基线：
 - `validationStatus`
 - `autoApplyAllowed`
 - `manualReviewRequired`
+- `manualReviewRequired`
 
 推荐 SQL diff 契约必须提供文本 diff、规则级 diff 与 AST 摘要差异。SQL 历史详情不得只依赖 `recommendationRefs` 弱引用展示改写记录，应通过 `query-history/{historyId}/rewrite-records` 聚合同租户可见的改写记录、验证状态和告警引用。
 

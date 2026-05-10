@@ -258,6 +258,7 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 - `estimatedCost`
 - `confidence`
 - `validationMethod`
+- `validationStatus`
 - `autoApplyAllowed`
 - `manualReviewRequired`
 

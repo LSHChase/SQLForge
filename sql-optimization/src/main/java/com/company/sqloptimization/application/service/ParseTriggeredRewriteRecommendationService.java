@@ -9,6 +9,10 @@ import com.company.sqloptimization.application.controller.dto.OptimizationTaskSu
 import com.company.sqloptimization.application.controller.dto.StructureParseRequest;
 import com.company.sqloptimization.application.controller.vo.StructureParseIssueVO;
 import com.company.sqloptimization.application.controller.vo.StructureParseResponseVO;
+import com.company.sqloptimization.domain.governance.EvidenceLevel;
+import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
+import com.company.sqloptimization.domain.governance.GovernanceSourceType;
+import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.BenefitLevel;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationStatus;
@@ -38,6 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -59,12 +64,16 @@ public class ParseTriggeredRewriteRecommendationService {
 
     private final OptimizationTaskApplicationService optimizationTaskApplicationService;
     private final AccelerationRecommendationRepository recommendationRepository;
+    private final SqlOptimizationPipelineService pipelineService;
     private final ObjectMapper objectMapper;
 
+    @Autowired
     public ParseTriggeredRewriteRecommendationService(OptimizationTaskApplicationService optimizationTaskApplicationService,
-                                                      AccelerationRecommendationRepository recommendationRepository) {
+                                                      AccelerationRecommendationRepository recommendationRepository,
+                                                      SqlOptimizationPipelineService pipelineService) {
         this.optimizationTaskApplicationService = optimizationTaskApplicationService;
         this.recommendationRepository = recommendationRepository;
+        this.pipelineService = pipelineService;
         this.objectMapper = JsonUtils.objectMapper();
     }
 
@@ -151,6 +160,7 @@ public class ParseTriggeredRewriteRecommendationService {
         String recommendedSql = safeRewriteAvailable && StringUtils.hasText(candidateSql)
             ? candidateSql.trim()
             : task.getSqlText();
+        SqlOptimizationPipelineService.RecommendationRuleOutputModel ruleModel = buildRuleModel(task);
         Instant now = Instant.now();
         AccelerationRecommendation recommendation = AccelerationRecommendation.builder()
             .recommendationId(recommendationId)
@@ -174,6 +184,21 @@ public class ParseTriggeredRewriteRecommendationService {
             .riskSummary(buildRiskSummary(suggestion, targetIssueScenes, safeRewriteAvailable))
             .requiresDispatch(false)
             .status(RecommendationStatus.RECOMMENDED)
+            .sourceType(resolveGovernanceSourceType(context))
+            .sourceKind(resolveGovernanceSourceKind(context))
+            .sourceId(firstText(context.getSourceId(), context.getHistoryId(), context.getParseTaskId(), context.getBatchId()))
+            .evidenceLevel(EvidenceLevel.STATIC_PARSE)
+            .ruleChain(ruleModel.getRuleChain())
+            .unappliedRules(ruleModel.getUnappliedRules())
+            .preconditions(ruleModel.getPreconditions())
+            .semanticRisks(ruleModel.getSemanticRisks())
+            .expectedBenefit(ruleModel.getExpectedBenefit())
+            .estimatedCost(ruleModel.getEstimatedCost())
+            .confidence(ruleModel.getConfidence())
+            .validationMethod(ruleModel.getValidationMethod())
+            .validationStatus(RewriteValidationStatus.NOT_VALIDATED)
+            .autoApplyAllowed(Boolean.valueOf(ruleModel.isAutoApplyAllowed()))
+            .manualReviewRequired(Boolean.valueOf(ruleModel.isManualReviewRequired()))
             .createdBy("SYSTEM_PARSE_REWRITE")
             .createdAt(now)
             .updatedAt(now)
@@ -187,6 +212,52 @@ public class ParseTriggeredRewriteRecommendationService {
             context.getHistoryId(),
             targetIssueScenes
         );
+    }
+
+    private SqlOptimizationPipelineService.RecommendationRuleOutputModel buildRuleModel(OptimizationTask task) {
+        try {
+            SqlOptimizationPipelineService.ParsedSqlProfile profile = pipelineService.analyze(
+                task.getSqlText(),
+                task.getDatasourceType() == null ? DataSourceTypeEnum.AUTO : task.getDatasourceType()
+            );
+            return pipelineService.buildRecommendationRuleOutputModel(profile);
+        } catch (RuntimeException ex) {
+            LOGGER.warn(
+                "operation=PARSE_TRIGGERED_RULE_MODEL entity={} tenantId={} status=DEGRADED reason={}",
+                task.getTaskId(),
+                task.getTenantId(),
+                ex.getMessage()
+            );
+            return SqlOptimizationPipelineService.RecommendationRuleOutputModel.empty();
+        }
+    }
+
+    private GovernanceSourceType resolveGovernanceSourceType(OptimizationTaskSourceContext context) {
+        String sourceType = context == null ? null : trimToNull(context.getSourceType());
+        if ("QUERY_HISTORY".equals(sourceType) || "SLOW_SQL".equals(sourceType)) {
+            return GovernanceSourceType.QUERY;
+        }
+        return GovernanceSourceType.PARSE;
+    }
+
+    private GovernanceSourceKind resolveGovernanceSourceKind(OptimizationTaskSourceContext context) {
+        String sourceType = context == null ? null : trimToNull(context.getSourceType());
+        if ("PARSE_BATCH".equals(sourceType)) {
+            return GovernanceSourceKind.PARSE_BATCH;
+        }
+        if ("REPORT_BATCH".equals(sourceType)) {
+            return GovernanceSourceKind.REPORT_BATCH;
+        }
+        if ("COMBINED_PARSE".equals(sourceType)) {
+            return GovernanceSourceKind.COMBINED_PARSE;
+        }
+        if ("QUERY_HISTORY".equals(sourceType)) {
+            return GovernanceSourceKind.QUERY_HISTORY;
+        }
+        if ("SLOW_SQL".equals(sourceType)) {
+            return GovernanceSourceKind.SLOW_SQL;
+        }
+        return GovernanceSourceKind.STRUCTURE_PARSE;
     }
 
     private boolean isTriggerable(StructureParseResponseVO structureParse, StructureParseRequest request) {

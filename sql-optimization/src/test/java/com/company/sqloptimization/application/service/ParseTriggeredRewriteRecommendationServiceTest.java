@@ -32,7 +32,8 @@ class ParseTriggeredRewriteRecommendationServiceTest {
         OptimizationTaskApplicationService taskApplicationService = mock(OptimizationTaskApplicationService.class);
         ParseTriggeredRewriteRecommendationService service = new ParseTriggeredRewriteRecommendationService(
             taskApplicationService,
-            new InMemoryAccelerationRecommendationRepository()
+            new InMemoryAccelerationRecommendationRepository(),
+            new SqlOptimizationPipelineService()
         );
 
         service.triggerAfterHistoryWrite(
@@ -64,7 +65,8 @@ class ParseTriggeredRewriteRecommendationServiceTest {
         OptimizationTaskApplicationService taskApplicationService = mock(OptimizationTaskApplicationService.class);
         ParseTriggeredRewriteRecommendationService service = new ParseTriggeredRewriteRecommendationService(
             taskApplicationService,
-            new InMemoryAccelerationRecommendationRepository()
+            new InMemoryAccelerationRecommendationRepository(),
+            new SqlOptimizationPipelineService()
         );
 
         service.triggerAfterHistoryWrite(

@@ -166,10 +166,11 @@
 - `acceleration_recommendation`
   - 所属服务：`sql-optimization`
   - 主键：`recommendation_id`
-  - 结构化字段：`tenant_id`,`recommendation_type`,`source_sql_id`,`history_id`,`parse_task_id`,`batch_id`,`route_decision_id`,`alert_id`,`sql_fingerprint`,`target_engine`,`target_datasource`,`report_code`,`logical_object_key`,`summary`,`expected_gain`,`benefit_level`,`risk_level`,`requires_dispatch`,`status`,`created_by`,`created_at`,`updated_at`
+  - 结构化字段：`tenant_id`,`recommendation_type`,`source_sql_id`,`history_id`,`parse_task_id`,`batch_id`,`route_decision_id`,`alert_id`,`sql_fingerprint`,`target_engine`,`target_datasource`,`report_code`,`logical_object_key`,`summary`,`expected_gain`,`benefit_level`,`risk_level`,`requires_dispatch`,`status`,`source_type`,`source_kind`,`source_id`,`evidence_level`,`schema_version`,`confidence`,`validation_method`,`validation_status`,`auto_apply_allowed`,`manual_review_required`,`created_by`,`created_at`,`updated_at`
   - 大文本字段：`source_sql_text`,`recommended_sql_text`,`reason`,`risk_summary`
-  - 追溯键：`tenant_id`,`recommendation_id`,`source_sql_id`,`history_id`,`parse_task_id`,`batch_id`,`route_decision_id`,`alert_id`,`sql_fingerprint`,`report_code`,`logical_object_key`
-  - 自动生成来源：当单条结构解析、普通批量解析或报表批量解析在有效结构解析结果中命中 `OR_PREDICATE_INDEX_RISK`、`SELECT_STAR`、`NESTED_SUBQUERY_RISK`、`LEADING_WILDCARD_LIKE_RISK` 任一问题场景时，`sql-optimization` 会提交解析来源标记的异步 `REWRITE` 任务；worker 成功后以 `REWRITE` 类型写入本表，并保留原始 SQL、推荐 SQL、`history_id`、`parse_task_id`、`batch_id`、`report_code`、`sql_fingerprint` 与目标数据源
+  - JSON 字段：`rule_chain_json`,`unapplied_rules_json`,`preconditions_json`,`semantic_risks_json`,`expected_benefit_json`,`estimated_cost_json`
+  - 追溯键：`tenant_id`,`recommendation_id`,`source_sql_id`,`source_type`,`source_kind`,`source_id`,`history_id`,`parse_task_id`,`batch_id`,`route_decision_id`,`alert_id`,`sql_fingerprint`,`report_code`,`logical_object_key`
+  - 自动生成来源：当单条结构解析、普通批量解析或报表批量解析在有效结构解析结果中命中 `OR_PREDICATE_INDEX_RISK`、`SELECT_STAR`、`NESTED_SUBQUERY_RISK`、`LEADING_WILDCARD_LIKE_RISK` 任一问题场景时，`sql-optimization` 会提交解析来源标记的异步 `REWRITE` 任务；worker 成功后以 `REWRITE` 类型写入本表，并保留原始 SQL、推荐 SQL、`history_id`、`parse_task_id`、`batch_id`、`report_code`、`sql_fingerprint`、目标数据源、L0/L1/L2 rule model、rule chain、preconditions、semantic risks、unapplied rules、validation status、manual review 与 auto apply 边界
   - 状态边界：仅允许 `RECOMMENDED`、`REVIEWING`、`DISPATCH_READY`、`CANCELLED`；不得在本对象内表达 `EXECUTED`，避免把推荐误写成真实装数或执行结果
 - `acceleration_candidate`
   - 所属服务：`sql-optimization`

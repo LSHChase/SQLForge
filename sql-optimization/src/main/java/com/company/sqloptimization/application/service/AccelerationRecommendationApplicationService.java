@@ -7,6 +7,9 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqloptimization.application.controller.dto.AccelerationRecommendationCreateRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationRecommendationVO;
 import com.company.sqloptimization.application.controller.vo.RecommendationDiffVO;
+import com.company.sqloptimization.domain.governance.EvidenceLevel;
+import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
+import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
 import com.company.sqloptimization.domain.recommendation.repository.AccelerationRecommendationRepository;
 import java.time.Instant;
@@ -66,6 +69,22 @@ public class AccelerationRecommendationApplicationService {
             .riskSummary(trimToNull(request.getRiskSummary()))
             .requiresDispatch(Boolean.TRUE.equals(request.getRequiresDispatch()))
             .status(request.getStatus())
+            .sourceType(request.getSourceType() == null ? inferSourceType(request) : request.getSourceType())
+            .sourceKind(request.getSourceKind() == null ? inferSourceKind(request) : request.getSourceKind())
+            .sourceId(resolveSourceId(request))
+            .evidenceLevel(request.getEvidenceLevel() == null ? inferEvidenceLevel(request) : request.getEvidenceLevel())
+            .schemaVersion(trimToNull(request.getSchemaVersion()))
+            .ruleChain(request.getRuleChain())
+            .unappliedRules(request.getUnappliedRules())
+            .preconditions(request.getPreconditions())
+            .semanticRisks(request.getSemanticRisks())
+            .expectedBenefit(request.getExpectedBenefit())
+            .estimatedCost(request.getEstimatedCost())
+            .confidence(request.getConfidence())
+            .validationMethod(trimToNull(request.getValidationMethod()))
+            .validationStatus(request.getValidationStatus())
+            .autoApplyAllowed(Boolean.valueOf(Boolean.TRUE.equals(request.getAutoApplyAllowed())))
+            .manualReviewRequired(request.getManualReviewRequired())
             .createdBy(RequestContext.getUserId())
             .createdAt(now)
             .updatedAt(now)
@@ -109,10 +128,10 @@ public class AccelerationRecommendationApplicationService {
         RecommendationDiffVO vo = new RecommendationDiffVO();
         vo.setRecommendationId(recommendation.getRecommendationId());
         vo.setTenantId(recommendation.getTenantId());
-        vo.setSourceType(inferSourceType(recommendation));
-        vo.setSourceKind(inferSourceKind(recommendation));
-        vo.setSourceId(inferSourceId(recommendation));
-        vo.setEvidenceLevel(inferEvidenceLevel(recommendation));
+        vo.setSourceType(sourceTypeName(recommendation));
+        vo.setSourceKind(sourceKindName(recommendation));
+        vo.setSourceId(sourceId(recommendation));
+        vo.setEvidenceLevel(evidenceLevelName(recommendation));
         vo.setSqlFingerprint(recommendation.getSqlFingerprint());
         vo.setOriginalSql(recommendation.getSourceSqlText());
         vo.setRecommendedSql(recommendation.getRecommendedSqlText());
@@ -152,6 +171,22 @@ public class AccelerationRecommendationApplicationService {
         vo.setRiskSummary(recommendation.getRiskSummary());
         vo.setRequiresDispatch(Boolean.valueOf(recommendation.isRequiresDispatch()));
         vo.setStatus(recommendation.getStatus().name());
+        vo.setSourceType(recommendation.getSourceType() == null ? null : recommendation.getSourceType().name());
+        vo.setSourceKind(recommendation.getSourceKind() == null ? null : recommendation.getSourceKind().name());
+        vo.setSourceId(recommendation.getSourceId());
+        vo.setEvidenceLevel(recommendation.getEvidenceLevel() == null ? null : recommendation.getEvidenceLevel().name());
+        vo.setSchemaVersion(recommendation.getSchemaVersion());
+        vo.setRuleChain(recommendation.getRuleChain());
+        vo.setUnappliedRules(recommendation.getUnappliedRules());
+        vo.setPreconditions(recommendation.getPreconditions());
+        vo.setSemanticRisks(recommendation.getSemanticRisks());
+        vo.setExpectedBenefit(recommendation.getExpectedBenefit());
+        vo.setEstimatedCost(recommendation.getEstimatedCost());
+        vo.setConfidence(recommendation.getConfidence());
+        vo.setValidationMethod(recommendation.getValidationMethod());
+        vo.setValidationStatus(recommendation.getValidationStatus().name());
+        vo.setAutoApplyAllowed(Boolean.valueOf(recommendation.isAutoApplyAllowed()));
+        vo.setManualReviewRequired(Boolean.valueOf(recommendation.isManualReviewRequired()));
         vo.setCreatedBy(recommendation.getCreatedBy());
         vo.setCreatedAt(recommendation.getCreatedAt());
         vo.setUpdatedAt(recommendation.getUpdatedAt());
@@ -167,30 +202,81 @@ public class AccelerationRecommendationApplicationService {
         return summary;
     }
 
-    private String inferSourceType(AccelerationRecommendation recommendation) {
-        if (StringUtils.hasText(recommendation.getParseTaskId()) || StringUtils.hasText(recommendation.getBatchId())) {
-            return "PARSE";
+    private GovernanceSourceType inferSourceType(AccelerationRecommendationCreateRequest request) {
+        if (StringUtils.hasText(request.getParseTaskId()) || StringUtils.hasText(request.getBatchId())) {
+            return GovernanceSourceType.PARSE;
         }
-        if (StringUtils.hasText(recommendation.getHistoryId())) {
-            return "QUERY";
+        if (StringUtils.hasText(request.getHistoryId())) {
+            return GovernanceSourceType.QUERY;
         }
         return null;
     }
 
-    private String inferSourceKind(AccelerationRecommendation recommendation) {
+    private String sourceTypeName(AccelerationRecommendation recommendation) {
+        if (recommendation.getSourceType() != null) {
+            return recommendation.getSourceType().name();
+        }
+        if (StringUtils.hasText(recommendation.getParseTaskId()) || StringUtils.hasText(recommendation.getBatchId())) {
+            return GovernanceSourceType.PARSE.name();
+        }
+        if (StringUtils.hasText(recommendation.getHistoryId())) {
+            return GovernanceSourceType.QUERY.name();
+        }
+        return null;
+    }
+
+    private GovernanceSourceKind inferSourceKind(AccelerationRecommendationCreateRequest request) {
+        if (StringUtils.hasText(request.getBatchId())) {
+            return GovernanceSourceKind.PARSE_BATCH;
+        }
+        if (StringUtils.hasText(request.getParseTaskId())) {
+            return GovernanceSourceKind.STRUCTURE_PARSE;
+        }
+        if (StringUtils.hasText(request.getHistoryId())) {
+            return GovernanceSourceKind.QUERY_HISTORY;
+        }
+        return null;
+    }
+
+    private String sourceKindName(AccelerationRecommendation recommendation) {
+        if (recommendation.getSourceKind() != null) {
+            return recommendation.getSourceKind().name();
+        }
         if (StringUtils.hasText(recommendation.getBatchId())) {
-            return "PARSE_BATCH";
+            return GovernanceSourceKind.PARSE_BATCH.name();
         }
         if (StringUtils.hasText(recommendation.getParseTaskId())) {
-            return "STRUCTURE_PARSE";
+            return GovernanceSourceKind.STRUCTURE_PARSE.name();
         }
         if (StringUtils.hasText(recommendation.getHistoryId())) {
-            return "QUERY_HISTORY";
+            return GovernanceSourceKind.QUERY_HISTORY.name();
         }
         return null;
     }
 
-    private String inferSourceId(AccelerationRecommendation recommendation) {
+    private String resolveSourceId(AccelerationRecommendationCreateRequest request) {
+        if (StringUtils.hasText(request.getSourceId())) {
+            return request.getSourceId().trim();
+        }
+        if (StringUtils.hasText(request.getSourceSqlId())) {
+            return request.getSourceSqlId().trim();
+        }
+        if (StringUtils.hasText(request.getHistoryId())) {
+            return request.getHistoryId().trim();
+        }
+        if (StringUtils.hasText(request.getParseTaskId())) {
+            return request.getParseTaskId().trim();
+        }
+        if (StringUtils.hasText(request.getBatchId())) {
+            return request.getBatchId().trim();
+        }
+        return null;
+    }
+
+    private String sourceId(AccelerationRecommendation recommendation) {
+        if (StringUtils.hasText(recommendation.getSourceId())) {
+            return recommendation.getSourceId();
+        }
         if (StringUtils.hasText(recommendation.getSourceSqlId())) {
             return recommendation.getSourceSqlId();
         }
@@ -206,12 +292,25 @@ public class AccelerationRecommendationApplicationService {
         return null;
     }
 
-    private String inferEvidenceLevel(AccelerationRecommendation recommendation) {
+    private EvidenceLevel inferEvidenceLevel(AccelerationRecommendationCreateRequest request) {
+        if (StringUtils.hasText(request.getHistoryId())) {
+            return EvidenceLevel.RUNTIME_HISTORY;
+        }
+        if (StringUtils.hasText(request.getParseTaskId()) || StringUtils.hasText(request.getBatchId())) {
+            return EvidenceLevel.STATIC_PARSE;
+        }
+        return null;
+    }
+
+    private String evidenceLevelName(AccelerationRecommendation recommendation) {
+        if (recommendation.getEvidenceLevel() != null) {
+            return recommendation.getEvidenceLevel().name();
+        }
         if (StringUtils.hasText(recommendation.getHistoryId())) {
-            return "RUNTIME_HISTORY";
+            return EvidenceLevel.RUNTIME_HISTORY.name();
         }
         if (StringUtils.hasText(recommendation.getParseTaskId()) || StringUtils.hasText(recommendation.getBatchId())) {
-            return "STATIC_PARSE";
+            return EvidenceLevel.STATIC_PARSE.name();
         }
         return null;
     }

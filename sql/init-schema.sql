@@ -846,6 +846,22 @@ CREATE TABLE IF NOT EXISTS acceleration_recommendation (
   risk_summary TEXT DEFAULT NULL COMMENT 'Risk summary and constraints',
   requires_dispatch TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 if external loading/dispatch coordination is required',
   status VARCHAR(32) NOT NULL DEFAULT 'RECOMMENDED' COMMENT 'RECOMMENDED/REVIEWING/DISPATCH_READY/CANCELLED; no executed state in SQLForge',
+  source_type VARCHAR(32) DEFAULT NULL COMMENT 'PARSE/QUERY source type for recommendation traceability',
+  source_kind VARCHAR(64) DEFAULT NULL COMMENT 'Governance source kind such as STRUCTURE_PARSE/QUERY_HISTORY',
+  source_id VARCHAR(128) DEFAULT NULL COMMENT 'Canonical source identifier paired with source type/kind',
+  evidence_level VARCHAR(32) DEFAULT NULL COMMENT 'STATIC_PARSE/ACCESS_PARSE/EXPLAIN_PLAN/RUNTIME_HISTORY/BENCHMARK/MIXED',
+  schema_version VARCHAR(64) NOT NULL DEFAULT 'SQL_RECOMMENDATION_RULE_MODEL_V1' COMMENT 'Recommendation rule output schema version',
+  rule_chain_json JSON DEFAULT NULL COMMENT 'Applied or selected recommendation rule chain evidence',
+  unapplied_rules_json JSON DEFAULT NULL COMMENT 'Rules considered but not applied with reason evidence',
+  preconditions_json JSON DEFAULT NULL COMMENT 'Preconditions required before validation or later apply',
+  semantic_risks_json JSON DEFAULT NULL COMMENT 'Semantic risks that require validation or manual review',
+  expected_benefit_json JSON DEFAULT NULL COMMENT 'Static estimated benefit evidence, not real execution gain',
+  estimated_cost_json JSON DEFAULT NULL COMMENT 'Static estimated cost and governance follow-up evidence',
+  confidence INT DEFAULT NULL COMMENT 'Static model confidence score 0-100',
+  validation_method VARCHAR(64) DEFAULT NULL COMMENT 'Required validation method before approval or later apply',
+  validation_status VARCHAR(32) NOT NULL DEFAULT 'NOT_VALIDATED' COMMENT 'NOT_VALIDATED/VALIDATING/EQUIVALENT/DIVERGED/FAILED/EXPIRED',
+  auto_apply_allowed TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Whether later automatic apply is allowed after validation',
+  manual_review_required TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Whether recommendation requires manual review',
   created_by VARCHAR(64) DEFAULT NULL COMMENT 'Recommendation creator',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
@@ -858,7 +874,9 @@ CREATE TABLE IF NOT EXISTS acceleration_recommendation (
   KEY idx_acc_reco_parse_task (tenant_id, parse_task_id),
   KEY idx_acc_reco_batch (tenant_id, batch_id),
   KEY idx_acc_reco_route (tenant_id, route_decision_id),
-  KEY idx_acc_reco_alert (tenant_id, alert_id)
+  KEY idx_acc_reco_alert (tenant_id, alert_id),
+  KEY idx_acc_reco_source (tenant_id, source_type, source_kind, source_id),
+  KEY idx_acc_reco_validation (tenant_id, validation_status, manual_review_required)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Read-only SQL acceleration and rewrite recommendation catalog';
 
 CREATE TABLE IF NOT EXISTS acceleration_candidate (

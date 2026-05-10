@@ -73,7 +73,7 @@ class OptimizationTaskWorkerTest {
         properties.setQueueVisibilityDelayMs(0L);
         properties.setPhaseDelayMs(0L);
         ParseTriggeredRewriteRecommendationService recommendationService =
-            new ParseTriggeredRewriteRecommendationService(null, recommendationRepository);
+            new ParseTriggeredRewriteRecommendationService(null, recommendationRepository, new SqlOptimizationPipelineService());
         OptimizationTaskWorker worker = new OptimizationTaskWorker(
             taskRepository,
             properties,
@@ -95,6 +95,15 @@ class OptimizationTaskWorkerTest {
         assertEquals("parse-task-001", recommendation.getParseTaskId());
         assertEquals("batch-001", recommendation.getBatchId());
         assertEquals("RPT_SELECT_STAR", recommendation.getReportCode());
+        assertEquals("PARSE", recommendation.getSourceType().name());
+        assertEquals("PARSE_BATCH", recommendation.getSourceKind().name());
+        assertEquals("STATIC_PARSE", recommendation.getEvidenceLevel().name());
+        assertEquals("SQL_RECOMMENDATION_RULE_MODEL_V1", recommendation.getSchemaVersion());
+        assertEquals("SELECT_STAR_EXPANSION", recommendation.getUnappliedRules().get(0).get("rule"));
+        assertEquals("NOT_REAL_EXECUTION_GAIN", recommendation.getExpectedBenefit().get("claimBoundary"));
+        assertEquals("NOT_VALIDATED", recommendation.getValidationStatus().name());
+        assertEquals(false, recommendation.isAutoApplyAllowed());
+        assertEquals(true, recommendation.isManualReviewRequired());
     }
 
     private OptimizationTaskSubmitRequest baseRequest() {

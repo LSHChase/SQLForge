@@ -1,9 +1,15 @@
 package com.company.sqloptimization.application.controller.dto;
 
+import com.company.sqloptimization.domain.governance.EvidenceLevel;
+import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
+import com.company.sqloptimization.domain.governance.GovernanceSourceType;
+import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.BenefitLevel;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationStatus;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationType;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RiskLevel;
+import java.util.List;
+import java.util.Map;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
@@ -39,6 +45,22 @@ public class AccelerationRecommendationCreateRequest {
     private String riskSummary;
     private Boolean requiresDispatch;
     private RecommendationStatus status;
+    private GovernanceSourceType sourceType;
+    private GovernanceSourceKind sourceKind;
+    private String sourceId;
+    private EvidenceLevel evidenceLevel;
+    private String schemaVersion;
+    private List<Map<String, Object>> ruleChain;
+    private List<Map<String, Object>> unappliedRules;
+    private List<Map<String, Object>> preconditions;
+    private List<Map<String, Object>> semanticRisks;
+    private Map<String, Object> expectedBenefit;
+    private Map<String, Object> estimatedCost;
+    private Integer confidence;
+    private String validationMethod;
+    private RewriteValidationStatus validationStatus;
+    private Boolean autoApplyAllowed;
+    private Boolean manualReviewRequired;
 
     public String getTenantId() { return tenantId; }
     public void setTenantId(String tenantId) { this.tenantId = tenantId; }
@@ -86,4 +108,36 @@ public class AccelerationRecommendationCreateRequest {
     public void setRequiresDispatch(Boolean requiresDispatch) { this.requiresDispatch = requiresDispatch; }
     public RecommendationStatus getStatus() { return status; }
     public void setStatus(RecommendationStatus status) { this.status = status; }
+    public GovernanceSourceType getSourceType() { return sourceType; }
+    public void setSourceType(GovernanceSourceType sourceType) { this.sourceType = sourceType; }
+    public GovernanceSourceKind getSourceKind() { return sourceKind; }
+    public void setSourceKind(GovernanceSourceKind sourceKind) { this.sourceKind = sourceKind; }
+    public String getSourceId() { return sourceId; }
+    public void setSourceId(String sourceId) { this.sourceId = sourceId; }
+    public EvidenceLevel getEvidenceLevel() { return evidenceLevel; }
+    public void setEvidenceLevel(EvidenceLevel evidenceLevel) { this.evidenceLevel = evidenceLevel; }
+    public String getSchemaVersion() { return schemaVersion; }
+    public void setSchemaVersion(String schemaVersion) { this.schemaVersion = schemaVersion; }
+    public List<Map<String, Object>> getRuleChain() { return ruleChain; }
+    public void setRuleChain(List<Map<String, Object>> ruleChain) { this.ruleChain = ruleChain; }
+    public List<Map<String, Object>> getUnappliedRules() { return unappliedRules; }
+    public void setUnappliedRules(List<Map<String, Object>> unappliedRules) { this.unappliedRules = unappliedRules; }
+    public List<Map<String, Object>> getPreconditions() { return preconditions; }
+    public void setPreconditions(List<Map<String, Object>> preconditions) { this.preconditions = preconditions; }
+    public List<Map<String, Object>> getSemanticRisks() { return semanticRisks; }
+    public void setSemanticRisks(List<Map<String, Object>> semanticRisks) { this.semanticRisks = semanticRisks; }
+    public Map<String, Object> getExpectedBenefit() { return expectedBenefit; }
+    public void setExpectedBenefit(Map<String, Object> expectedBenefit) { this.expectedBenefit = expectedBenefit; }
+    public Map<String, Object> getEstimatedCost() { return estimatedCost; }
+    public void setEstimatedCost(Map<String, Object> estimatedCost) { this.estimatedCost = estimatedCost; }
+    public Integer getConfidence() { return confidence; }
+    public void setConfidence(Integer confidence) { this.confidence = confidence; }
+    public String getValidationMethod() { return validationMethod; }
+    public void setValidationMethod(String validationMethod) { this.validationMethod = validationMethod; }
+    public RewriteValidationStatus getValidationStatus() { return validationStatus; }
+    public void setValidationStatus(RewriteValidationStatus validationStatus) { this.validationStatus = validationStatus; }
+    public Boolean getAutoApplyAllowed() { return autoApplyAllowed; }
+    public void setAutoApplyAllowed(Boolean autoApplyAllowed) { this.autoApplyAllowed = autoApplyAllowed; }
+    public Boolean getManualReviewRequired() { return manualReviewRequired; }
+    public void setManualReviewRequired(Boolean manualReviewRequired) { this.manualReviewRequired = manualReviewRequired; }
 }

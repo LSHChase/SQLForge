@@ -486,6 +486,320 @@ public class SqlOptimizationPipelineService {
         return profile.getRewriteOutcome().appliedRules;
     }
 
+    public RecommendationRuleOutputModel buildRecommendationRuleOutputModel(ParsedSqlProfile profile) {
+        if (profile == null) {
+            return RecommendationRuleOutputModel.empty();
+        }
+        List<Map<String, Object>> ruleChain = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> unappliedRules = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> preconditions = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> semanticRisks = new ArrayList<Map<String, Object>>();
+
+        RewriteOutcome outcome = profile.getRewriteOutcome();
+        for (String appliedRule : outcome.appliedRules) {
+            ruleChain.add(ruleEntry(
+                "L0",
+                normalizeRecommendationRule(appliedRule),
+                "APPLIED_TO_CANDIDATE_SQL",
+                "STATIC_PARSE",
+                Boolean.TRUE,
+                l0RuleDescription(appliedRule)
+            ));
+        }
+
+        if (profile.isSelectStar()) {
+            addUnappliedRule(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "SELECT_STAR_EXPANSION",
+                "COLUMN_METADATA_REQUIRED",
+                "Column metadata and projection ownership are required before expanding SELECT *.",
+                "Projection changes can alter downstream consumers if hidden columns are omitted or reordered."
+            );
+        }
+        if (profile.getOrPredicateCount() > 0) {
+            addUnappliedRule(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "OR_TO_UNION_ALL",
+                "PREDICATE_EXCLUSIVITY_OR_DEDUP_REQUIRED",
+                "Predicate exclusivity or a deduplication strategy is required before OR can become UNION/UNION ALL.",
+                "Rows may duplicate or disappear if OR branches are not mutually exclusive."
+            );
+        }
+        if (profile.getFunctionWrappedPredicateCount() > 0) {
+            addUnappliedRule(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "FUNCTION_PREDICATE_TO_RANGE",
+                "COLUMN_TYPE_TIMEZONE_REQUIRED",
+                "Column type, timezone, and boundary precision evidence are required before range conversion.",
+                "Time boundary or precision differences can change result sets."
+            );
+        }
+        if (profile.getScalarSubqueryCount() > 0) {
+            addUnappliedRule(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "SCALAR_SUBQUERY_TO_JOIN",
+                "UNIQUENESS_PROOF_REQUIRED",
+                "A uniqueness proof is required before scalar subqueries can become joins.",
+                "A join rewrite can inflate rows when the scalar subquery is not unique."
+            );
+        }
+        if (profile.getRepeatedSubqueryCount() > 0) {
+            addUnappliedRule(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "REPEATED_SUBQUERY_TO_CTE",
+                "SUBQUERY_SIDE_EFFECT_FREE_REQUIRED",
+                "The repeated subquery must be side-effect free and engine CTE behavior must be understood.",
+                "Some engines inline CTEs or optimize them differently, changing performance without guaranteed benefit."
+            );
+        }
+        if (profile.getNotExistsCount() > 0) {
+            addUnappliedRule(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "NOT_EXISTS_TO_ANTI_JOIN",
+                "NULL_SEMANTICS_PROOF_REQUIRED",
+                "NULL behavior must be proven before NOT EXISTS can become an anti join.",
+                "NULL semantics can change anti-join results."
+            );
+        }
+        if (profile.getLeadingWildcardLikeCount() > 0) {
+            addUnappliedRule(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "LEADING_LIKE_REVIEW",
+                "SEARCH_INDEX_OR_TEXT_CAPABILITY_REQUIRED",
+                "Search index or text search capability evidence is required before changing leading wildcard predicates.",
+                "Text matching semantics and collation may change."
+            );
+        }
+        if (profile.getRandomOrderCount() > 0) {
+            addUnappliedRule(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "ORDER_RANDOM_REVIEW",
+                "SAMPLING_INTENT_REQUIRED",
+                "The business sampling intent must be confirmed before replacing random ordering.",
+                "Randomness and repeatability requirements are semantic, not parser-derived."
+            );
+        }
+
+        addL2RuleCandidates(profile, ruleChain, preconditions, semanticRisks);
+
+        boolean manualReviewRequired = !unappliedRules.isEmpty() || containsManualReviewRule(ruleChain);
+        String validationMethod = manualReviewRequired ? "RESULT_DIFF_THEN_MANUAL_REVIEW" : "RESULT_DIFF_REQUIRED";
+        return new RecommendationRuleOutputModel(
+            ruleChain,
+            unappliedRules,
+            preconditions,
+            semanticRisks,
+            expectedBenefit(profile, outcome),
+            estimatedCost(profile, manualReviewRequired),
+            Integer.valueOf(calculateRecommendationConfidence(profile, outcome, unappliedRules)),
+            validationMethod,
+            false,
+            manualReviewRequired
+        );
+    }
+
+    private void addL2RuleCandidates(ParsedSqlProfile profile,
+                                     List<Map<String, Object>> ruleChain,
+                                     List<Map<String, Object>> preconditions,
+                                     List<Map<String, Object>> semanticRisks) {
+        if (!profile.getAggregateFunctions().isEmpty() || profile.getGroupByCount() > 0) {
+            ruleChain.add(ruleEntry(
+                "L2",
+                "PRECOMPUTE_MV",
+                "PULL_ONLY_CANDIDATE",
+                "STATIC_PARSE",
+                Boolean.FALSE,
+                "High-reuse aggregation shape can become a materialized-view or precompute recommendation."
+            ));
+            preconditions.add(preconditionEntry(
+                "PRECOMPUTE_MV",
+                "RUNTIME_REUSE_AND_REFRESH_POLICY_REQUIRED",
+                "Runtime frequency, freshness target, and refresh ownership are required before dispatch."
+            ));
+        }
+        if (!profile.getDatePredicateColumns().isEmpty()) {
+            ruleChain.add(ruleEntry(
+                "L2",
+                "PARTITION_PRUNING",
+                "PULL_ONLY_CANDIDATE",
+                "STATIC_PARSE",
+                Boolean.FALSE,
+                "Date-like predicates indicate a partition pruning or partition-key recommendation."
+            ));
+            preconditions.add(preconditionEntry(
+                "PARTITION_PRUNING",
+                "PARTITION_METADATA_REQUIRED",
+                "Partition key metadata and current storage layout must be checked before external execution."
+            ));
+        }
+        if (profile.getJoinCount() > 0) {
+            ruleChain.add(ruleEntry(
+                "L2",
+                "BUCKET_JOIN",
+                "PULL_ONLY_CANDIDATE",
+                "STATIC_PARSE",
+                Boolean.FALSE,
+                "Join activity indicates a bucket alignment or co-location recommendation candidate."
+            ));
+            preconditions.add(preconditionEntry(
+                "BUCKET_JOIN",
+                "JOIN_KEY_DISTRIBUTION_REQUIRED",
+                "Join-key stability, data skew, and storage ownership evidence are required before bucket changes."
+            ));
+            semanticRisks.add(semanticRiskEntry(
+                "BUCKET_JOIN",
+                "PHYSICAL_LAYOUT_RISK",
+                "MEDIUM",
+                "Bucket or co-location changes are external physical coordination and cannot be auto-applied from static parse."
+            ));
+        }
+    }
+
+    private void addUnappliedRule(List<Map<String, Object>> unappliedRules,
+                                  List<Map<String, Object>> preconditions,
+                                  List<Map<String, Object>> semanticRisks,
+                                  String level,
+                                  String rule,
+                                  String missingEvidence,
+                                  String preconditionDescription,
+                                  String riskDescription) {
+        LinkedHashMap<String, Object> unapplied = new LinkedHashMap<String, Object>();
+        unapplied.put("level", level);
+        unapplied.put("rule", rule);
+        unapplied.put("status", "NOT_APPLIED");
+        unapplied.put("reason", missingEvidence);
+        unapplied.put("manualReviewRequired", Boolean.TRUE);
+        unappliedRules.add(unapplied);
+        preconditions.add(preconditionEntry(rule, missingEvidence, preconditionDescription));
+        semanticRisks.add(semanticRiskEntry(rule, "SEMANTIC_EQUIVALENCE_RISK", "HIGH", riskDescription));
+    }
+
+    private Map<String, Object> ruleEntry(String level,
+                                          String rule,
+                                          String status,
+                                          String evidenceLevel,
+                                          Boolean autoApplyEligibleAfterValidation,
+                                          String description) {
+        LinkedHashMap<String, Object> entry = new LinkedHashMap<String, Object>();
+        entry.put("level", level);
+        entry.put("rule", rule);
+        entry.put("status", status);
+        entry.put("evidenceLevel", evidenceLevel);
+        entry.put("autoApplyEligibleAfterValidation", autoApplyEligibleAfterValidation);
+        entry.put("description", description);
+        if (!Boolean.TRUE.equals(autoApplyEligibleAfterValidation)) {
+            entry.put("manualReviewRequired", Boolean.TRUE);
+        }
+        return entry;
+    }
+
+    private Map<String, Object> preconditionEntry(String rule, String code, String description) {
+        LinkedHashMap<String, Object> entry = new LinkedHashMap<String, Object>();
+        entry.put("rule", rule);
+        entry.put("code", code);
+        entry.put("description", description);
+        return entry;
+    }
+
+    private Map<String, Object> semanticRiskEntry(String rule, String category, String severity, String description) {
+        LinkedHashMap<String, Object> entry = new LinkedHashMap<String, Object>();
+        entry.put("rule", rule);
+        entry.put("category", category);
+        entry.put("severity", severity);
+        entry.put("description", description);
+        return entry;
+    }
+
+    private String normalizeRecommendationRule(String appliedRule) {
+        if ("COUNT_LITERAL_TO_COUNT_STAR".equals(appliedRule)) {
+            return "COUNT_ONE_TO_COUNT_STAR";
+        }
+        if ("DEDUPLICATE_GROUP_BY_KEYS".equals(appliedRule) || "DEDUPLICATE_ORDER_BY_KEYS".equals(appliedRule)) {
+            return "DUPLICATE_GROUP_ORDER_KEY";
+        }
+        return appliedRule;
+    }
+
+    private String l0RuleDescription(String appliedRule) {
+        if ("COUNT_LITERAL_TO_COUNT_STAR".equals(appliedRule)) {
+            return "COUNT over a non-null literal is normalized to COUNT(*) in the candidate SQL.";
+        }
+        if ("DEDUPLICATE_GROUP_BY_KEYS".equals(appliedRule) || "DEDUPLICATE_ORDER_BY_KEYS".equals(appliedRule)) {
+            return "Duplicate grouping or ordering keys are removed while preserving first occurrence order.";
+        }
+        return "Conservative syntax rewrite applied to the candidate SQL.";
+    }
+
+    private boolean containsManualReviewRule(List<Map<String, Object>> ruleChain) {
+        for (Map<String, Object> rule : ruleChain) {
+            if (Boolean.TRUE.equals(rule.get("manualReviewRequired"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Map<String, Object> expectedBenefit(ParsedSqlProfile profile, RewriteOutcome outcome) {
+        LinkedHashMap<String, Object> benefit = new LinkedHashMap<String, Object>();
+        benefit.put("evidenceType", "STATIC_HEURISTIC");
+        benefit.put("claimBoundary", "NOT_REAL_EXECUTION_GAIN");
+        benefit.put("summary", "Estimated from parser signals and rule coverage only.");
+        benefit.put("appliedRuleCount", Integer.valueOf(outcome.appliedRules.size()));
+        benefit.put("riskSignalCount", Integer.valueOf(profile.getWarnings().size()));
+        benefit.put("level", staticBenefitLevel(profile, outcome));
+        return benefit;
+    }
+
+    private Map<String, Object> estimatedCost(ParsedSqlProfile profile, boolean manualReviewRequired) {
+        LinkedHashMap<String, Object> cost = new LinkedHashMap<String, Object>();
+        cost.put("evidenceType", "STATIC_HEURISTIC");
+        cost.put("validation", "RESULT_DIFF_REQUIRED");
+        cost.put("manualReviewRequired", Boolean.valueOf(manualReviewRequired));
+        cost.put("followUp", manualReviewRequired ? "REVIEW_RULE_PRECONDITIONS" : "VALIDATE_L0_CANDIDATE");
+        cost.put("riskSignalCount", Integer.valueOf(profile.getWarnings().size()));
+        return cost;
+    }
+
+    private String staticBenefitLevel(ParsedSqlProfile profile, RewriteOutcome outcome) {
+        if (outcome.appliedRules.size() >= 2 || profile.getAggregateFunctionCount() >= 4 || profile.getJoinCount() >= 3) {
+            return "MEDIUM";
+        }
+        if (!outcome.appliedRules.isEmpty() || profile.isSelectStar() || profile.getDatePredicateColumns().size() > 0) {
+            return "LOW";
+        }
+        return "UNKNOWN";
+    }
+
+    private int calculateRecommendationConfidence(ParsedSqlProfile profile,
+                                                  RewriteOutcome outcome,
+                                                  List<Map<String, Object>> unappliedRules) {
+        return clamp(62 + outcome.appliedRules.size() * 6 - unappliedRules.size() * 5 - profile.getWarnings().size() * 2, 25, 88);
+    }
+
     private void analyzeSelectBody(SelectBody selectBody, ParsedSqlProfile profile) {
         if (selectBody == null) {
             return;
@@ -2634,6 +2948,86 @@ public class SqlOptimizationPipelineService {
         private static RewriteOutcome empty() {
             return new RewriteOutcome("", Collections.<String>emptyList());
         }
+    }
+
+    public static final class RecommendationRuleOutputModel {
+
+        private final List<Map<String, Object>> ruleChain;
+        private final List<Map<String, Object>> unappliedRules;
+        private final List<Map<String, Object>> preconditions;
+        private final List<Map<String, Object>> semanticRisks;
+        private final Map<String, Object> expectedBenefit;
+        private final Map<String, Object> estimatedCost;
+        private final Integer confidence;
+        private final String validationMethod;
+        private final boolean autoApplyAllowed;
+        private final boolean manualReviewRequired;
+
+        private RecommendationRuleOutputModel(List<Map<String, Object>> ruleChain,
+                                              List<Map<String, Object>> unappliedRules,
+                                              List<Map<String, Object>> preconditions,
+                                              List<Map<String, Object>> semanticRisks,
+                                              Map<String, Object> expectedBenefit,
+                                              Map<String, Object> estimatedCost,
+                                              Integer confidence,
+                                              String validationMethod,
+                                              boolean autoApplyAllowed,
+                                              boolean manualReviewRequired) {
+            this.ruleChain = immutableListCopy(ruleChain);
+            this.unappliedRules = immutableListCopy(unappliedRules);
+            this.preconditions = immutableListCopy(preconditions);
+            this.semanticRisks = immutableListCopy(semanticRisks);
+            this.expectedBenefit = immutableMapCopy(expectedBenefit);
+            this.estimatedCost = immutableMapCopy(estimatedCost);
+            this.confidence = confidence;
+            this.validationMethod = validationMethod;
+            this.autoApplyAllowed = autoApplyAllowed;
+            this.manualReviewRequired = manualReviewRequired;
+        }
+
+        public static RecommendationRuleOutputModel empty() {
+            return new RecommendationRuleOutputModel(
+                Collections.<Map<String, Object>>emptyList(),
+                Collections.<Map<String, Object>>emptyList(),
+                Collections.<Map<String, Object>>emptyList(),
+                Collections.<Map<String, Object>>emptyList(),
+                Collections.<String, Object>emptyMap(),
+                Collections.<String, Object>emptyMap(),
+                Integer.valueOf(0),
+                "RESULT_DIFF_REQUIRED",
+                false,
+                true
+            );
+        }
+
+        private static Map<String, Object> immutableMapCopy(Map<String, Object> value) {
+            if (value == null || value.isEmpty()) {
+                return Collections.emptyMap();
+            }
+            return Collections.unmodifiableMap(new LinkedHashMap<String, Object>(value));
+        }
+
+        private static List<Map<String, Object>> immutableListCopy(List<Map<String, Object>> value) {
+            if (value == null || value.isEmpty()) {
+                return Collections.emptyList();
+            }
+            List<Map<String, Object>> result = new ArrayList<Map<String, Object>>(value.size());
+            for (Map<String, Object> item : value) {
+                result.add(immutableMapCopy(item));
+            }
+            return Collections.unmodifiableList(result);
+        }
+
+        public List<Map<String, Object>> getRuleChain() { return ruleChain; }
+        public List<Map<String, Object>> getUnappliedRules() { return unappliedRules; }
+        public List<Map<String, Object>> getPreconditions() { return preconditions; }
+        public List<Map<String, Object>> getSemanticRisks() { return semanticRisks; }
+        public Map<String, Object> getExpectedBenefit() { return expectedBenefit; }
+        public Map<String, Object> getEstimatedCost() { return estimatedCost; }
+        public Integer getConfidence() { return confidence; }
+        public String getValidationMethod() { return validationMethod; }
+        public boolean isAutoApplyAllowed() { return autoApplyAllowed; }
+        public boolean isManualReviewRequired() { return manualReviewRequired; }
     }
 
     public static final class SqlFailurePosition {

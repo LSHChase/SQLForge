@@ -9,6 +9,8 @@ import com.company.sqloptimization.domain.parse.SqlParserMode;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class SqlOptimizationPipelineServiceTest {
@@ -50,6 +52,47 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(ruleTrace.contains("DEDUPLICATE_WHERE_PREDICATES"));
         assertTrue(ruleTrace.contains("DEDUPLICATE_GROUP_BY_KEYS"));
         assertTrue(ruleTrace.contains("DEDUPLICATE_ORDER_BY_KEYS"));
+    }
+
+    @Test
+    void shouldBuildLayeredRecommendationRuleOutputModel() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "SELECT COUNT(1), * FROM orders "
+                + "WHERE YEAR(order_date) = 2026 OR status LIKE '%paid' "
+                + "GROUP BY status, status ORDER BY status, status",
+            DataSourceTypeEnum.HETU
+        );
+
+        SqlOptimizationPipelineService.RecommendationRuleOutputModel model =
+            service.buildRecommendationRuleOutputModel(profile);
+
+        assertTrue(containsRule(model.getRuleChain(), "COUNT_ONE_TO_COUNT_STAR"));
+        assertTrue(containsRule(model.getRuleChain(), "DUPLICATE_GROUP_ORDER_KEY"));
+        assertTrue(containsRule(model.getUnappliedRules(), "SELECT_STAR_EXPANSION"));
+        assertTrue(containsRule(model.getUnappliedRules(), "OR_TO_UNION_ALL"));
+        assertTrue(containsRule(model.getUnappliedRules(), "FUNCTION_PREDICATE_TO_RANGE"));
+        assertEquals("NOT_REAL_EXECUTION_GAIN", model.getExpectedBenefit().get("claimBoundary"));
+        assertEquals("RESULT_DIFF_REQUIRED", model.getEstimatedCost().get("validation"));
+        assertEquals("RESULT_DIFF_THEN_MANUAL_REVIEW", model.getValidationMethod());
+        assertTrue(model.isManualReviewRequired());
+        assertFalse(model.isAutoApplyAllowed());
+    }
+
+    @Test
+    void shouldMarkL2PhysicalRecommendationsAsPullOnlyCandidates() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "SELECT customer_id, SUM(amount) FROM orders "
+                + "WHERE order_date >= DATE '2026-04-01' GROUP BY customer_id",
+            DataSourceTypeEnum.HETU
+        );
+
+        SqlOptimizationPipelineService.RecommendationRuleOutputModel model =
+            service.buildRecommendationRuleOutputModel(profile);
+
+        assertTrue(containsRule(model.getRuleChain(), "PRECOMPUTE_MV"));
+        assertTrue(containsRule(model.getRuleChain(), "PARTITION_PRUNING"));
+        assertTrue(containsPrecondition(model.getPreconditions(), "RUNTIME_REUSE_AND_REFRESH_POLICY_REQUIRED"));
+        assertFalse(model.isAutoApplyAllowed());
     }
 
     @Test
@@ -217,5 +260,23 @@ class SqlOptimizationPipelineServiceTest {
             + "AND oi2.product_id IN (SELECT product_id FROM products WHERE category LIKE '%电子%')))\n"
             + "OR c.customer_id IN (SELECT customer_id FROM orders WHERE order_amount > 10000)\n"
             + "ORDER BY RAND() LIMIT 10";
+    }
+
+    private boolean containsRule(List<Map<String, Object>> entries, String rule) {
+        for (Map<String, Object> entry : entries) {
+            if (rule.equals(entry.get("rule"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsPrecondition(List<Map<String, Object>> entries, String code) {
+        for (Map<String, Object> entry : entries) {
+            if (code.equals(entry.get("code"))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

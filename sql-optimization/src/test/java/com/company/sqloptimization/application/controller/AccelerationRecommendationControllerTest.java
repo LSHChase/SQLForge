@@ -11,6 +11,8 @@ import com.company.sqloptimization.application.controller.vo.AccelerationRecomme
 import com.company.sqloptimization.application.controller.vo.RecommendationDiffVO;
 import com.company.sqloptimization.application.service.AccelerationRecommendationApplicationService;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -39,6 +41,13 @@ class AccelerationRecommendationControllerTest {
         recommendation.setRiskLevel("LOW");
         recommendation.setRequiresDispatch(Boolean.TRUE);
         recommendation.setStatus("RECOMMENDED");
+        recommendation.setSourceType("PARSE");
+        recommendation.setSourceKind("STRUCTURE_PARSE");
+        recommendation.setEvidenceLevel("STATIC_PARSE");
+        recommendation.setValidationStatus("NOT_VALIDATED");
+        recommendation.setAutoApplyAllowed(Boolean.FALSE);
+        recommendation.setManualReviewRequired(Boolean.TRUE);
+        recommendation.setRuleChain(Collections.singletonList(rule("COUNT_ONE_TO_COUNT_STAR")));
         RecommendationDiffVO diff = new RecommendationDiffVO();
         diff.setRecommendationId("rec-001");
         diff.setTenantId("tenant-a");
@@ -61,7 +70,10 @@ class AccelerationRecommendationControllerTest {
         mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/recommendations/rec-001")))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.recommendationId").value("rec-001"))
-            .andExpect(jsonPath("$.requiresDispatch").value(true));
+            .andExpect(jsonPath("$.requiresDispatch").value(true))
+            .andExpect(jsonPath("$.ruleChain[0].rule").value("COUNT_ONE_TO_COUNT_STAR"))
+            .andExpect(jsonPath("$.manualReviewRequired").value(true))
+            .andExpect(jsonPath("$.autoApplyAllowed").value(false));
 
         mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/recommendations/rec-001/diff")))
             .andExpect(status().isOk())
@@ -82,5 +94,11 @@ class AccelerationRecommendationControllerTest {
             .header(RequestHeaderConstants.ACCESS_CHANNEL, "api")
             .header(RequestHeaderConstants.ISSUED_AT, String.valueOf(now - 1000L))
             .header(RequestHeaderConstants.EXPIRES_AT, String.valueOf(now + 60000L));
+    }
+
+    private Map<String, Object> rule(String rule) {
+        Map<String, Object> entry = new LinkedHashMap<String, Object>();
+        entry.put("rule", rule);
+        return entry;
     }
 }

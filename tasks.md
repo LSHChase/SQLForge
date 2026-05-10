@@ -11,15 +11,6 @@
 
 ## Todo
 
-### HARN-130: 深化推荐 SQL 规则输出模型
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-128`
-- Scope: 建立 L0/L1/L2 rule model、rule chain、preconditions、semantic risks、unapplied rules、manualReviewRequired 与 autoApplyAllowed 输出；不得把静态启发式写成真实收益。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-130`
-
 ### HARN-131: 实现首批 L0/L1 安全改写规则
 
 - Status: todo

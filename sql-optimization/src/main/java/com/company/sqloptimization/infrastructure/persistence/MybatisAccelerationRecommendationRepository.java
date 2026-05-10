@@ -1,5 +1,10 @@
 package com.company.sqloptimization.infrastructure.persistence;
 
+import com.company.sqlforge.common.utils.JsonUtils;
+import com.company.sqloptimization.domain.governance.EvidenceLevel;
+import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
+import com.company.sqloptimization.domain.governance.GovernanceSourceType;
+import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.BenefitLevel;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationStatus;
@@ -8,11 +13,14 @@ import com.company.sqloptimization.domain.recommendation.AccelerationRecommendat
 import com.company.sqloptimization.domain.recommendation.repository.AccelerationRecommendationRepository;
 import com.company.sqloptimization.infrastructure.persistence.entity.AccelerationRecommendationRecord;
 import com.company.sqloptimization.infrastructure.persistence.mapper.AccelerationRecommendationMapper;
+import com.fasterxml.jackson.databind.JavaType;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
@@ -81,6 +89,22 @@ public class MybatisAccelerationRecommendationRepository implements Acceleration
         record.setRiskSummary(recommendation.getRiskSummary());
         record.setRequiresDispatch(Boolean.valueOf(recommendation.isRequiresDispatch()));
         record.setStatus(recommendation.getStatus().name());
+        record.setSourceType(recommendation.getSourceType() == null ? null : recommendation.getSourceType().name());
+        record.setSourceKind(recommendation.getSourceKind() == null ? null : recommendation.getSourceKind().name());
+        record.setSourceId(recommendation.getSourceId());
+        record.setEvidenceLevel(recommendation.getEvidenceLevel() == null ? null : recommendation.getEvidenceLevel().name());
+        record.setSchemaVersion(recommendation.getSchemaVersion());
+        record.setRuleChainJson(writeList(recommendation.getRuleChain()));
+        record.setUnappliedRulesJson(writeList(recommendation.getUnappliedRules()));
+        record.setPreconditionsJson(writeList(recommendation.getPreconditions()));
+        record.setSemanticRisksJson(writeList(recommendation.getSemanticRisks()));
+        record.setExpectedBenefitJson(writeMap(recommendation.getExpectedBenefit()));
+        record.setEstimatedCostJson(writeMap(recommendation.getEstimatedCost()));
+        record.setConfidence(recommendation.getConfidence());
+        record.setValidationMethod(recommendation.getValidationMethod());
+        record.setValidationStatus(recommendation.getValidationStatus().name());
+        record.setAutoApplyAllowed(Boolean.valueOf(recommendation.isAutoApplyAllowed()));
+        record.setManualReviewRequired(Boolean.valueOf(recommendation.isManualReviewRequired()));
         record.setCreatedBy(recommendation.getCreatedBy());
         record.setCreatedAt(toLocalDateTime(recommendation.getCreatedAt()));
         record.setUpdatedAt(toLocalDateTime(recommendation.getUpdatedAt()));
@@ -113,10 +137,62 @@ public class MybatisAccelerationRecommendationRepository implements Acceleration
             .riskSummary(record.getRiskSummary())
             .requiresDispatch(Boolean.TRUE.equals(record.getRequiresDispatch()))
             .status(record.getStatus() == null ? null : RecommendationStatus.valueOf(record.getStatus()))
+            .sourceType(record.getSourceType() == null ? null : GovernanceSourceType.valueOf(record.getSourceType()))
+            .sourceKind(record.getSourceKind() == null ? null : GovernanceSourceKind.valueOf(record.getSourceKind()))
+            .sourceId(record.getSourceId())
+            .evidenceLevel(record.getEvidenceLevel() == null ? null : EvidenceLevel.valueOf(record.getEvidenceLevel()))
+            .schemaVersion(record.getSchemaVersion())
+            .ruleChain(readList(record.getRuleChainJson()))
+            .unappliedRules(readList(record.getUnappliedRulesJson()))
+            .preconditions(readList(record.getPreconditionsJson()))
+            .semanticRisks(readList(record.getSemanticRisksJson()))
+            .expectedBenefit(readMap(record.getExpectedBenefitJson()))
+            .estimatedCost(readMap(record.getEstimatedCostJson()))
+            .confidence(record.getConfidence())
+            .validationMethod(record.getValidationMethod())
+            .validationStatus(record.getValidationStatus() == null
+                ? null
+                : RewriteValidationStatus.valueOf(record.getValidationStatus()))
+            .autoApplyAllowed(record.getAutoApplyAllowed())
+            .manualReviewRequired(record.getManualReviewRequired())
             .createdBy(record.getCreatedBy())
             .createdAt(toInstant(record.getCreatedAt()))
             .updatedAt(toInstant(record.getUpdatedAt()))
             .build();
+    }
+
+    private String writeMap(Map<String, Object> value) {
+        return value == null || value.isEmpty() ? null : JsonUtils.toJson(value);
+    }
+
+    private String writeList(List<Map<String, Object>> value) {
+        return value == null || value.isEmpty() ? null : JsonUtils.toJson(value);
+    }
+
+    private Map<String, Object> readMap(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return Collections.emptyMap();
+        }
+        try {
+            JavaType type = JsonUtils.objectMapper().getTypeFactory()
+                .constructMapType(Map.class, String.class, Object.class);
+            return JsonUtils.objectMapper().readValue(json, type);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Failed to deserialize recommendation JSON", ex);
+        }
+    }
+
+    private List<Map<String, Object>> readList(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            JavaType type = JsonUtils.objectMapper().getTypeFactory()
+                .constructCollectionType(List.class, Map.class);
+            return JsonUtils.objectMapper().readValue(json, type);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Failed to deserialize recommendation list JSON", ex);
+        }
     }
 
     private LocalDateTime toLocalDateTime(Instant instant) {
