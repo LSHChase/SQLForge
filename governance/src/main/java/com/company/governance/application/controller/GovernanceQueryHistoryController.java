@@ -4,6 +4,7 @@ import com.company.governance.application.controller.dto.GovernanceQueryHistoryE
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryDetailVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryExportVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryPageVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryRewriteRecordsVO;
 import com.company.governance.application.service.GovernanceHistoryApplicationService;
 import com.company.sqlforge.common.access.AccessChannel;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
@@ -110,6 +111,20 @@ public class GovernanceQueryHistoryController {
             RequestContext.getTraceId()
         );
         return governanceHistoryApplicationService.findQueryHistoryDetail(effectiveTenantId, historyId);
+    }
+
+    @GetMapping("/{historyId}/rewrite-records")
+    public GovernanceQueryHistoryRewriteRecordsVO getQueryHistoryRewriteRecords(
+        @PathVariable("historyId") String historyId,
+        @RequestParam(value = "tenantId", required = false) String tenantId) {
+        String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
+        LOGGER.info(
+            "Handling governance query-history rewrite records, tenantId={}, historyId={}, requestTraceId={}",
+            effectiveTenantId,
+            historyId,
+            RequestContext.getTraceId()
+        );
+        return governanceHistoryApplicationService.findQueryHistoryRewriteRecords(effectiveTenantId, historyId);
     }
 
     @PostMapping("/export")

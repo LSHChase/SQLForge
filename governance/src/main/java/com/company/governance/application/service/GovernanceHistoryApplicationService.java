@@ -5,6 +5,8 @@ import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryDetailVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryExportVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryPageVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryRewriteRecordVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryRewriteRecordsVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistorySummaryVO;
 import com.company.governance.application.controller.vo.GovernanceTraceLookupPageVO;
 import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO;
@@ -19,6 +21,8 @@ import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.GovernanceHistoryLookupIndexMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
+import com.company.governance.infrastructure.sqloptimization.GovernanceSqlOptimizationClient;
+import com.company.governance.infrastructure.sqloptimization.SqlOptimizationRewriteRecordResponse;
 import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
@@ -73,6 +77,8 @@ public class GovernanceHistoryApplicationService {
     private static final String DEFAULT_EXPORT_STORAGE_TYPE = "INLINE_RESPONSE";
     private static final String OPERATION_QUERY_HISTORY_EXPORT = "QUERY_HISTORY_EXPORT";
     private static final String TARGET_QUERY_HISTORY = "QUERY_HISTORY";
+    private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
+    private static final String REWRITE_RECORD_AGGREGATION_STAGE = "QUERY_HISTORY_REWRITE_RECORD_AGGREGATION";
     private static final int DEFAULT_LIMIT = 12;
     private static final int MAX_LIMIT = 50;
     private static final int DEFAULT_PAGE_NO = 1;
@@ -111,6 +117,7 @@ public class GovernanceHistoryApplicationService {
     private final ExportRecordMapper exportRecordMapper;
     private final TenantAccessLogic tenantAccessLogic;
     private final GovernanceBenchmarkEngineClient governanceBenchmarkEngineClient;
+    private final GovernanceSqlOptimizationClient governanceSqlOptimizationClient;
     private final GovernanceProtectedPersistenceService governanceProtectedPersistenceService;
     private final SensitiveDataCryptoService sensitiveDataCryptoService;
 
@@ -118,7 +125,7 @@ public class GovernanceHistoryApplicationService {
                                                QueryHistoryMapper queryHistoryMapper,
                                                ExportRecordMapper exportRecordMapper,
                                                TenantAccessLogic tenantAccessLogic) {
-        this(auditLogMapper, null, queryHistoryMapper, exportRecordMapper, tenantAccessLogic, null, null, null);
+        this(auditLogMapper, null, queryHistoryMapper, exportRecordMapper, tenantAccessLogic, null, null, null, null);
     }
 
     public GovernanceHistoryApplicationService(AuditLogMapper auditLogMapper,
@@ -132,6 +139,7 @@ public class GovernanceHistoryApplicationService {
             queryHistoryMapper,
             exportRecordMapper,
             tenantAccessLogic,
+            null,
             null,
             null,
             null
@@ -152,7 +160,29 @@ public class GovernanceHistoryApplicationService {
             tenantAccessLogic,
             governanceBenchmarkEngineClient,
             null,
+            null,
             null
+        );
+    }
+
+    public GovernanceHistoryApplicationService(AuditLogMapper auditLogMapper,
+                                               GovernanceHistoryLookupIndexMapper governanceHistoryLookupIndexMapper,
+                                               QueryHistoryMapper queryHistoryMapper,
+                                               ExportRecordMapper exportRecordMapper,
+                                               TenantAccessLogic tenantAccessLogic,
+                                               GovernanceBenchmarkEngineClient governanceBenchmarkEngineClient,
+                                               GovernanceProtectedPersistenceService governanceProtectedPersistenceService,
+                                               SensitiveDataCryptoService sensitiveDataCryptoService) {
+        this(
+            auditLogMapper,
+            governanceHistoryLookupIndexMapper,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic,
+            governanceBenchmarkEngineClient,
+            null,
+            governanceProtectedPersistenceService,
+            sensitiveDataCryptoService
         );
     }
 
@@ -163,6 +193,7 @@ public class GovernanceHistoryApplicationService {
                                                ExportRecordMapper exportRecordMapper,
                                                TenantAccessLogic tenantAccessLogic,
                                                GovernanceBenchmarkEngineClient governanceBenchmarkEngineClient,
+                                               GovernanceSqlOptimizationClient governanceSqlOptimizationClient,
                                                GovernanceProtectedPersistenceService governanceProtectedPersistenceService,
                                                SensitiveDataCryptoService sensitiveDataCryptoService) {
         this.auditLogMapper = auditLogMapper;
@@ -171,6 +202,7 @@ public class GovernanceHistoryApplicationService {
         this.exportRecordMapper = exportRecordMapper;
         this.tenantAccessLogic = tenantAccessLogic;
         this.governanceBenchmarkEngineClient = governanceBenchmarkEngineClient;
+        this.governanceSqlOptimizationClient = governanceSqlOptimizationClient;
         this.governanceProtectedPersistenceService = governanceProtectedPersistenceService;
         this.sensitiveDataCryptoService = sensitiveDataCryptoService;
     }
@@ -354,6 +386,52 @@ public class GovernanceHistoryApplicationService {
         }
         populateReferenceSurfaces(detailVO);
         return detailVO;
+    }
+
+    public GovernanceQueryHistoryRewriteRecordsVO findQueryHistoryRewriteRecords(String tenantId, String historyId) {
+        String effectiveTenantId = resolveAuthorizedTenantId(tenantId);
+        String normalizedHistoryId = trimToNull(historyId);
+        if (!StringUtils.hasText(normalizedHistoryId)) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.BAD_REQUEST,
+                "historyId must not be empty"
+            );
+        }
+        GovernanceQueryHistoryProjection row =
+            queryHistoryMapper.selectHistoryDetail(effectiveTenantId, normalizedHistoryId);
+        if (row == null) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
+                HttpStatus.NOT_FOUND,
+                "query history record does not exist"
+            );
+        }
+        if (governanceSqlOptimizationClient == null) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "governance sql-optimization client is not configured"
+            );
+        }
+        List<SqlOptimizationRewriteRecordResponse> records =
+            governanceSqlOptimizationClient.listRewriteRecordsByHistoryId(normalizedHistoryId);
+        List<GovernanceQueryHistoryRewriteRecordVO> items =
+            new ArrayList<GovernanceQueryHistoryRewriteRecordVO>();
+        for (SqlOptimizationRewriteRecordResponse record : records) {
+            if (sameRewriteRecordScope(record, effectiveTenantId, normalizedHistoryId)) {
+                items.add(toQueryHistoryRewriteRecord(record));
+            }
+        }
+
+        GovernanceQueryHistoryRewriteRecordsVO response = new GovernanceQueryHistoryRewriteRecordsVO();
+        response.setTenantId(effectiveTenantId);
+        response.setHistoryId(normalizedHistoryId);
+        response.setRewriteRecordCount(Integer.valueOf(items.size()));
+        response.setItems(items);
+        response.setContractStage(CONTRACT_STAGE);
+        response.setImplementationStage(REWRITE_RECORD_AGGREGATION_STAGE);
+        return response;
     }
 
     public GovernanceQueryHistoryExportVO exportQueryHistory(String tenantId, GovernanceQueryHistoryExportRequest request) {
@@ -1215,6 +1293,77 @@ public class GovernanceHistoryApplicationService {
         if (detail.getAlertRefs() == null) {
             detail.setAlertRefs(Collections.<Map<String, Object>>emptyList());
         }
+    }
+
+    private boolean sameRewriteRecordScope(SqlOptimizationRewriteRecordResponse record,
+                                           String tenantId,
+                                           String historyId) {
+        return record != null
+            && tenantId.equals(record.getTenantId())
+            && historyId.equals(record.getHistoryId());
+    }
+
+    private GovernanceQueryHistoryRewriteRecordVO toQueryHistoryRewriteRecord(
+        SqlOptimizationRewriteRecordResponse record
+    ) {
+        GovernanceQueryHistoryRewriteRecordVO item = new GovernanceQueryHistoryRewriteRecordVO();
+        item.setRewriteRecordId(record.getRewriteRecordId());
+        item.setTenantId(record.getTenantId());
+        item.setRecommendationId(record.getRecommendationId());
+        item.setOptimizationTaskId(record.getOptimizationTaskId());
+        item.setSourceType(record.getSourceType());
+        item.setSourceKind(record.getSourceKind());
+        item.setSourceId(record.getSourceId());
+        item.setEvidenceLevel(record.getEvidenceLevel());
+        item.setHistoryId(record.getHistoryId());
+        item.setParseHistoryId(record.getParseHistoryId());
+        item.setSqlFingerprint(record.getSqlFingerprint());
+        item.setDatasourceCode(record.getDatasourceCode());
+        item.setStatus(record.getStatus());
+        item.setValidationStatus(record.getValidationStatus());
+        item.setAutoApplyAllowed(record.getAutoApplyAllowed());
+        item.setManualReviewRequired(record.getManualReviewRequired());
+        item.setValidationPolicyId(record.getValidationPolicyId());
+        item.setLastValidationRunId(record.getLastValidationRunId());
+        item.setLastComparedAt(record.getLastComparedAt());
+        item.setAlertStatus(record.getAlertStatus());
+        item.setOriginalSqlText(record.getOriginalSqlText());
+        item.setRecommendedSqlText(record.getRecommendedSqlText());
+        item.setExecutedSqlText(record.getExecutedSqlText());
+        item.setCreatedBy(record.getCreatedBy());
+        item.setCreatedAt(record.getCreatedAt());
+        item.setUpdatedAt(record.getUpdatedAt());
+        item.setRuleChain(record.getRuleChain() == null
+            ? Collections.<Map<String, Object>>emptyList()
+            : record.getRuleChain());
+        item.setDiffSummary(record.getDiffSummary() == null
+            ? Collections.<String, Object>emptyMap()
+            : record.getDiffSummary());
+        item.setRisk(record.getRisk() == null
+            ? Collections.<String, Object>emptyMap()
+            : record.getRisk());
+        item.setTraceRefs(record.getTraceRefs() == null
+            ? Collections.<String, Object>emptyMap()
+            : record.getTraceRefs());
+        item.setAlertRefs(buildRewriteRecordAlertRefs(record));
+        return item;
+    }
+
+    private List<Map<String, Object>> buildRewriteRecordAlertRefs(SqlOptimizationRewriteRecordResponse record) {
+        List<Map<String, Object>> alertRefs = readNestedList(record.getTraceRefs(), "alertRefs");
+        if (!alertRefs.isEmpty()) {
+            return alertRefs;
+        }
+        if (!StringUtils.hasText(record.getAlertStatus()) || "NONE".equals(record.getAlertStatus())) {
+            return Collections.emptyList();
+        }
+        LinkedHashMap<String, Object> alertRef = new LinkedHashMap<String, Object>();
+        alertRef.put("source", "sql_rewrite_record");
+        alertRef.put("rewriteRecordId", record.getRewriteRecordId());
+        alertRef.put("alertStatus", record.getAlertStatus());
+        alertRef.put("validationStatus", record.getValidationStatus());
+        alertRef.put("lastValidationRunId", record.getLastValidationRunId());
+        return Collections.<Map<String, Object>>singletonList(alertRef);
     }
 
     private Map<String, Object> buildHistoryClassificationSummary(List<GovernanceQueryHistorySummaryVO> items) {

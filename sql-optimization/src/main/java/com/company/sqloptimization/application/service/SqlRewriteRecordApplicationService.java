@@ -77,10 +77,13 @@ public class SqlRewriteRecordApplicationService {
                                                        String validationStatus,
                                                        String sourceType) {
         String tenantId = requireContextTenant();
-        List<SqlRewriteRecord> records = sqlRewriteRecordRepository.findRecordsByTenantId(tenantId);
+        String normalizedHistoryId = trimToNull(historyId);
+        List<SqlRewriteRecord> records = normalizedHistoryId == null
+            ? sqlRewriteRecordRepository.findRecordsByTenantId(tenantId)
+            : sqlRewriteRecordRepository.findRecordsByTenantIdAndHistoryId(tenantId, normalizedHistoryId);
         List<SqlRewriteRecordVO> result = new ArrayList<SqlRewriteRecordVO>();
         for (SqlRewriteRecord record : records) {
-            if (matches(record, historyId, recommendationId, validationStatus, sourceType)) {
+            if (matches(record, normalizedHistoryId, recommendationId, validationStatus, sourceType)) {
                 result.add(toRewriteRecordVo(record));
             }
         }

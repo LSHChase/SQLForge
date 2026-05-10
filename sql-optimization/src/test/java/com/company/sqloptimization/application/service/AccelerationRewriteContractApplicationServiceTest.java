@@ -250,6 +250,39 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertFalse(enumContainsActive(), "rewrite record status must not expose ACTIVE in HARN-128");
     }
 
+    @Test
+    void shouldListRewriteRecordsByHistoryWithinTenant() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(repository);
+
+        setTenant("tenant-a");
+        SqlRewriteRecordVO historyRecord = service.createRewriteRecord(rewriteRecordRequest("tenant-a", "history-001"));
+        service.createRewriteRecord(rewriteRecordRequest("tenant-a", "history-002"));
+        setTenant("tenant-b");
+        service.createRewriteRecord(rewriteRecordRequest("tenant-b", "history-001"));
+
+        setTenant("tenant-a");
+        List<SqlRewriteRecordVO> records = service.listRewriteRecords("history-001", null, null, null);
+
+        assertEquals(1, records.size());
+        assertEquals(historyRecord.getRewriteRecordId(), records.get(0).getRewriteRecordId());
+        assertEquals("tenant-a", records.get(0).getTenantId());
+        assertEquals("history-001", records.get(0).getHistoryId());
+    }
+
+    private SqlRewriteRecordCreateRequest rewriteRecordRequest(String tenantId, String historyId) {
+        SqlRewriteRecordCreateRequest request = new SqlRewriteRecordCreateRequest();
+        request.setTenantId(tenantId);
+        request.setSourceType(GovernanceSourceType.QUERY);
+        request.setSourceKind(GovernanceSourceKind.QUERY_HISTORY);
+        request.setSourceId(historyId);
+        request.setEvidenceLevel(EvidenceLevel.RUNTIME_HISTORY);
+        request.setHistoryId(historyId);
+        request.setOriginalSqlText("SELECT * FROM orders");
+        request.setRecommendedSqlText("SELECT id FROM orders");
+        return request;
+    }
+
     private boolean enumContainsActive() {
         for (RewriteRecordStatus status : RewriteRecordStatus.values()) {
             if ("ACTIVE".equals(status.name())) {

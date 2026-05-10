@@ -72,6 +72,17 @@ public class MybatisSqlRewriteRecordRepository implements SqlRewriteRecordReposi
     }
 
     @Override
+    public List<SqlRewriteRecord> findRecordsByTenantIdAndHistoryId(String tenantId, String historyId) {
+        List<SqlRewriteRecordRecord> records =
+            sqlRewriteRecordMapper.selectByTenantIdAndHistoryId(tenantId, historyId);
+        List<SqlRewriteRecord> result = new ArrayList<SqlRewriteRecord>(records.size());
+        for (SqlRewriteRecordRecord record : records) {
+            result.add(toDomain(record));
+        }
+        return result;
+    }
+
+    @Override
     @Transactional
     public RewriteValidationRun saveValidationRun(RewriteValidationRun validationRun) {
         RewriteValidationRunRecord record = toRecord(validationRun);

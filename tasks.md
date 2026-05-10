@@ -11,15 +11,6 @@
 
 ## Todo
 
-### HARN-134: 改写记录写入与 SQL 历史聚合接口
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-129`, `HARN-133`
-- Scope: 写入 `sql_rewrite_record`，并提供 `GET /api/governance/query-history/{historyId}/rewrite-records` 聚合面，使 SQL 历史详情能看到改写记录、diff、验证状态和告警引用。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-134`
-
 ### HARN-135: 周期比对执行模型与只读比较引擎
 
 - Status: todo

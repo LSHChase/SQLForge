@@ -12,6 +12,9 @@ public interface SqlRewriteRecordMapper {
 
     List<SqlRewriteRecordRecord> selectByTenantId(@Param("tenantId") String tenantId);
 
+    List<SqlRewriteRecordRecord> selectByTenantIdAndHistoryId(@Param("tenantId") String tenantId,
+                                                              @Param("historyId") String historyId);
+
     int insert(SqlRewriteRecordRecord record);
 
     int update(SqlRewriteRecordRecord record);

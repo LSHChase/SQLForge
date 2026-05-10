@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryPageVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryRewriteRecordVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryRewriteRecordsVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistorySummaryVO;
 import com.company.governance.application.service.GovernanceHistoryApplicationService;
 import com.company.sqlforge.common.exception.GlobalExceptionHandler;
@@ -130,5 +132,38 @@ class GovernanceQueryHistoryControllerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(10001))
             .andExpect(jsonPath("$.message").value("accessChannel must be one of PAGE/API/JDBC_AGENT/SDK/CLIENT"));
+    }
+
+    @Test
+    void shouldExposeQueryHistoryRewriteRecordsAggregationEndpoint() throws Exception {
+        GovernanceHistoryApplicationService service = org.mockito.Mockito.mock(GovernanceHistoryApplicationService.class);
+        GovernanceQueryHistoryRewriteRecordVO item = new GovernanceQueryHistoryRewriteRecordVO();
+        item.setRewriteRecordId("rewrite-001");
+        item.setTenantId("tenant-a");
+        item.setHistoryId("history-001");
+        item.setValidationStatus("DIVERGED");
+        item.setAlertStatus("OPEN");
+        GovernanceQueryHistoryRewriteRecordsVO response = new GovernanceQueryHistoryRewriteRecordsVO();
+        response.setTenantId("tenant-a");
+        response.setHistoryId("history-001");
+        response.setRewriteRecordCount(Integer.valueOf(1));
+        response.setItems(Collections.singletonList(item));
+        response.setContractStage("LONG_TERM_BASELINE");
+        response.setImplementationStage("QUERY_HISTORY_REWRITE_RECORD_AGGREGATION");
+        when(service.findQueryHistoryRewriteRecords("tenant-a", "history-001")).thenReturn(response);
+        GovernanceQueryHistoryController controller = new GovernanceQueryHistoryController(service);
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller)
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
+
+        mockMvc.perform(get("/api/governance/query-history/history-001/rewrite-records")
+                .param("tenantId", "tenant-a"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.rewriteRecordCount").value(1))
+            .andExpect(jsonPath("$.items[0].rewriteRecordId").value("rewrite-001"))
+            .andExpect(jsonPath("$.items[0].validationStatus").value("DIVERGED"))
+            .andExpect(jsonPath("$.implementationStage").value("QUERY_HISTORY_REWRITE_RECORD_AGGREGATION"));
+
+        verify(service).findQueryHistoryRewriteRecords("tenant-a", "history-001");
     }
 }

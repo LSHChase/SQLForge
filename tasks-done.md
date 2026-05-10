@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-134: 改写记录写入与 SQL 历史聚合接口
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(governance): aggregate query history rewrite records`
+- Priority: 1
+- Depends on: `HARN-129`, `HARN-133`
+- Scope: 写入 `sql_rewrite_record`，并提供 `GET /api/governance/query-history/{historyId}/rewrite-records` 聚合面，使 SQL 历史详情能看到改写记录、diff、验证状态和告警引用。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-134`
+- Context closeout:
+  - Completed scope: Implemented HARN-134 rewrite-record history aggregation: sql-optimization now supports tenant/history scoped rewrite-record queries, governance exposes GET /api/governance/query-history/{historyId}/rewrite-records via a protected sql-optimization client, and aggregation preserves diff, validation status and alert refs within tenant scope.
+  - Validation evidence: mvn -pl sql-optimization test; mvn -pl governance test; python3 scripts/foreman.py validate HARN-134 --include-task-audit --extra-command 'mvn -pl sql-optimization test' --extra-command 'mvn -pl governance test' --extra-command 'git diff --check'; python3 scripts/task_audit.py --check --phase pre-closeout.
+  - Residual risk: Local Codex validation ran under OpenJDK 1.8.0_482; repository delivery baseline remains JDK 8u112 and should be rerun in that fixed environment for release evidence.
+  - Next step: Proceed to HARN-135 periodic comparison execution model using the rewrite-record aggregation surface and validation status fields.
+
 ### HARN-133: 加速候选生成统一入口
 
 - Status: done

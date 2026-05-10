@@ -43,6 +43,18 @@ public class InMemorySqlRewriteRecordRepository implements SqlRewriteRecordRepos
     }
 
     @Override
+    public List<SqlRewriteRecord> findRecordsByTenantIdAndHistoryId(String tenantId, String historyId) {
+        List<SqlRewriteRecord> matches = new ArrayList<SqlRewriteRecord>();
+        for (SqlRewriteRecord record : records.values()) {
+            if (record.getTenantId().equals(tenantId) && historyId.equals(record.getHistoryId())) {
+                matches.add(record);
+            }
+        }
+        matches.sort(Comparator.comparing(SqlRewriteRecord::getCreatedAt).reversed());
+        return matches;
+    }
+
+    @Override
     public RewriteValidationRun saveValidationRun(RewriteValidationRun validationRun) {
         validationRuns.put(validationRun.getValidationRunId(), validationRun);
         return validationRun;

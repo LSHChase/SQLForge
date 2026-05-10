@@ -58,6 +58,8 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         assertContains(rewriteMapper, "FROM sql_rewrite_record");
         assertContains(rewriteMapper, "rule_chain_json");
         assertContains(rewriteMapper, "last_validation_run_id");
+        assertContains(rewriteMapper, "selectByTenantIdAndHistoryId");
+        assertContains(rewriteMapper, "AND history_id = #{historyId}");
         assertContains(validationMapper, "FROM rewrite_validation_run");
         assertContains(validationMapper, "auto_apply_paused");
         assertContains(validationMapper, "ORDER BY started_at DESC");

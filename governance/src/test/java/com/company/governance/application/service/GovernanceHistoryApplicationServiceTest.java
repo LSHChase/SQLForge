@@ -13,6 +13,7 @@ import com.company.governance.application.controller.vo.GovernanceTraceDetailVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryDetailVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryExportVO;
 import com.company.governance.application.controller.vo.GovernanceQueryHistoryPageVO;
+import com.company.governance.application.controller.vo.GovernanceQueryHistoryRewriteRecordsVO;
 import com.company.governance.application.controller.vo.GovernanceTraceLookupPageVO;
 import com.company.governance.application.controller.vo.GovernanceTraceSummaryVO;
 import com.company.governance.domain.tenant.logic.TenantAccessLogic;
@@ -26,6 +27,8 @@ import com.company.governance.infrastructure.persistence.mapper.AuditLogMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.GovernanceHistoryLookupIndexMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
+import com.company.governance.infrastructure.sqloptimization.GovernanceSqlOptimizationClient;
+import com.company.governance.infrastructure.sqloptimization.SqlOptimizationRewriteRecordResponse;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.TenantContext;
@@ -42,6 +45,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
@@ -351,6 +355,100 @@ class GovernanceHistoryApplicationServiceTest {
         assertNotNull(detail.getTraceDetail());
         assertEquals(1, detail.getAuditRefs().size());
         assertEquals("trace-query", detail.getTraceDetail().getTraceId());
+    }
+
+    @Test
+    void shouldAggregateRewriteRecordsForExistingQueryHistoryOnlyWithinTenant() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceSqlOptimizationClient sqlOptimizationClient = mock(GovernanceSqlOptimizationClient.class);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            null,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic,
+            null,
+            sqlOptimizationClient,
+            null,
+            null
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(queryHistoryMapper.selectHistoryDetail("tenant-a", "history-001"))
+            .thenReturn(buildHistoryProjection("history-001", "trace-query", "PARTIAL", "PAGE"));
+        when(sqlOptimizationClient.listRewriteRecordsByHistoryId("history-001")).thenReturn(Arrays.asList(
+            buildRewriteRecord("rewrite-001", "tenant-a", "history-001", "DIVERGED", "OPEN"),
+            buildRewriteRecord("rewrite-cross", "tenant-b", "history-001", "EQUIVALENT", "NONE"),
+            buildRewriteRecord("rewrite-other-history", "tenant-a", "history-002", "FAILED", "OPEN")
+        ));
+
+        GovernanceQueryHistoryRewriteRecordsVO response =
+            service.findQueryHistoryRewriteRecords("tenant-a", "history-001");
+
+        assertEquals("tenant-a", response.getTenantId());
+        assertEquals("history-001", response.getHistoryId());
+        assertEquals(Integer.valueOf(1), response.getRewriteRecordCount());
+        assertEquals("rewrite-001", response.getItems().get(0).getRewriteRecordId());
+        assertEquals("DIVERGED", response.getItems().get(0).getValidationStatus());
+        assertEquals("OPEN", response.getItems().get(0).getAlertStatus());
+        assertEquals("alert-001", response.getItems().get(0).getAlertRefs().get(0).get("alertId"));
+        assertEquals("QUERY_HISTORY_REWRITE_RECORD_AGGREGATION", response.getImplementationStage());
+        verify(queryHistoryMapper).selectHistoryDetail("tenant-a", "history-001");
+        verify(sqlOptimizationClient).listRewriteRecordsByHistoryId("history-001");
+    }
+
+    @Test
+    void shouldRejectRewriteRecordAggregationWhenQueryHistoryDoesNotExist() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceSqlOptimizationClient sqlOptimizationClient = mock(GovernanceSqlOptimizationClient.class);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            null,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic,
+            null,
+            sqlOptimizationClient,
+            null,
+            null
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(queryHistoryMapper.selectHistoryDetail("tenant-a", "missing-history")).thenReturn(null);
+
+        BizException exception = assertThrows(
+            BizException.class,
+            () -> service.findQueryHistoryRewriteRecords("tenant-a", "missing-history")
+        );
+
+        assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());
+        assertEquals("query history record does not exist", exception.getMessage());
     }
 
     @Test
@@ -1329,6 +1427,37 @@ class GovernanceHistoryApplicationServiceTest {
         record.setSqlTextCipher(cryptoService.encryptBytes("SELECT * FROM sales.orders".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         record.setSqlTemplateCipher(cryptoService.encryptBytes("SELECT * FROM sales.orders WHERE dt = ?".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         record.setBoundSqlTextCipher(cryptoService.encryptBytes("SELECT * FROM sales.orders WHERE dt = '2026-04-25'".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        return record;
+    }
+
+    private SqlOptimizationRewriteRecordResponse buildRewriteRecord(String rewriteRecordId,
+                                                                    String tenantId,
+                                                                    String historyId,
+                                                                    String validationStatus,
+                                                                    String alertStatus) {
+        SqlOptimizationRewriteRecordResponse record = new SqlOptimizationRewriteRecordResponse();
+        record.setRewriteRecordId(rewriteRecordId);
+        record.setTenantId(tenantId);
+        record.setHistoryId(historyId);
+        record.setRecommendationId("rec-" + rewriteRecordId);
+        record.setSourceType("QUERY");
+        record.setSourceKind("QUERY_HISTORY");
+        record.setSourceId(historyId);
+        record.setEvidenceLevel("RUNTIME_HISTORY");
+        record.setStatus("APPLIED");
+        record.setValidationStatus(validationStatus);
+        record.setAutoApplyAllowed(Boolean.FALSE);
+        record.setManualReviewRequired(Boolean.TRUE);
+        record.setAlertStatus(alertStatus);
+        record.setOriginalSqlText("SELECT * FROM sales.orders");
+        record.setRecommendedSqlText("SELECT id FROM sales.orders");
+        LinkedHashMap<String, Object> alertRef = new LinkedHashMap<String, Object>();
+        alertRef.put("alertId", "alert-001");
+        alertRef.put("alertStatus", alertStatus);
+        record.setTraceRefs(Collections.<String, Object>singletonMap(
+            "alertRefs",
+            Collections.<Map<String, Object>>singletonList(alertRef)
+        ));
         return record;
     }
 

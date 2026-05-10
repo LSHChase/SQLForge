@@ -12,6 +12,8 @@ public interface SqlRewriteRecordRepository {
 
     List<SqlRewriteRecord> findRecordsByTenantId(String tenantId);
 
+    List<SqlRewriteRecord> findRecordsByTenantIdAndHistoryId(String tenantId, String historyId);
+
     RewriteValidationRun saveValidationRun(RewriteValidationRun validationRun);
 
     List<RewriteValidationRun> findValidationRunsByRewriteRecordId(String rewriteRecordId);

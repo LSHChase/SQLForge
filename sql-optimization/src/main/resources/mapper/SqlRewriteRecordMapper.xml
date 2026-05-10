@@ -59,6 +59,14 @@
         ORDER BY created_at DESC
     </select>
 
+    <select id="selectByTenantIdAndHistoryId" resultMap="SqlRewriteRecordRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM sql_rewrite_record
+        WHERE tenant_id = #{tenantId}
+          AND history_id = #{historyId}
+        ORDER BY created_at DESC
+    </select>
+
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.SqlRewriteRecordRecord">
         INSERT INTO sql_rewrite_record (
             rewrite_record_id, tenant_id, recommendation_id, optimization_task_id, source_type,
