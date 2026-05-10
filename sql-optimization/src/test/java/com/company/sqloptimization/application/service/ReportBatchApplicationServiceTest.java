@@ -300,6 +300,10 @@ class ReportBatchApplicationServiceTest {
             1,
             10,
             null,
+            null,
+            null,
+            null,
+            null,
             "TABLE:orders"
         );
         assertEquals("SELECT_STAR", sceneDetail.getIssueScene());

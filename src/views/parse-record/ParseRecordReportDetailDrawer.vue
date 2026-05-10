@@ -61,10 +61,11 @@ const {
   selectedReportGroups,
   selectedReportImportanceStatistics,
   selectedReportIssueSceneDetail,
-  selectedReportIssueSceneReportDetails,
   selectedReportIssueSceneReportDetailsPage,
-  selectedReportIssueSceneLogicalObjectDetails,
+  selectedReportIssueSceneReportDetailTotalCount,
   selectedReportIssueSceneLogicalObjectDetailsPage,
+  selectedReportIssueSceneLogicalObjectDetailTotalCount,
+  selectedReportIssueSceneSqlStatisticTotalCount,
   selectedReportItems,
   selectedReportPriorityMatrix,
   selectReportBatchIssueSceneLogicalObject,
@@ -453,10 +454,10 @@ const {
           </el-table-column>
         </el-table>
         <el-pagination
-          v-if="selectedReportIssueSceneReportDetails.length > reportBatchIssueSceneReportPagination.pageSize"
+          v-if="selectedReportIssueSceneReportDetailTotalCount > 0"
           class="pagination-row"
           layout="total, sizes, prev, pager, next"
-          :total="selectedReportIssueSceneReportDetails.length"
+          :total="selectedReportIssueSceneReportDetailTotalCount"
           :page-sizes="REPORT_STATISTIC_PAGE_SIZE_OPTIONS"
           :page-size="reportBatchIssueSceneReportPagination.pageSize"
           :current-page="reportBatchIssueSceneReportPagination.pageNumber"
@@ -486,10 +487,10 @@ const {
           </el-table-column>
         </el-table>
         <el-pagination
-          v-if="selectedReportIssueSceneLogicalObjectDetails.length > reportBatchIssueSceneLogicalObjectPagination.pageSize"
+          v-if="selectedReportIssueSceneLogicalObjectDetailTotalCount > 0"
           class="pagination-row"
           layout="total, sizes, prev, pager, next"
-          :total="selectedReportIssueSceneLogicalObjectDetails.length"
+          :total="selectedReportIssueSceneLogicalObjectDetailTotalCount"
           :page-sizes="REPORT_STATISTIC_PAGE_SIZE_OPTIONS"
           :page-size="reportBatchIssueSceneLogicalObjectPagination.pageSize"
           :current-page="reportBatchIssueSceneLogicalObjectPagination.pageNumber"
@@ -528,10 +529,10 @@ const {
           </el-table-column>
         </el-table>
         <el-pagination
-          v-if="Number(selectedReportIssueSceneDetail.sqlStatisticTotalCount || 0) > reportBatchIssueScenePagination.pageSize"
+          v-if="selectedReportIssueSceneSqlStatisticTotalCount > 0"
           class="pagination-row"
           layout="total, sizes, prev, pager, next"
-          :total="Number(selectedReportIssueSceneDetail.sqlStatisticTotalCount || 0)"
+          :total="selectedReportIssueSceneSqlStatisticTotalCount"
           :page-sizes="REPORT_SQL_PAGE_SIZE_OPTIONS"
           :page-size="reportBatchIssueScenePagination.pageSize"
           :current-page="reportBatchIssueScenePagination.pageNumber"

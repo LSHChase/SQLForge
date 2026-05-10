@@ -53,6 +53,22 @@ const buildReportBatchDetailQuery = filters => {
   if (Number.isFinite(pageSize) && pageSize > 0) {
     params.set('pageSize', String(pageSize))
   }
+  const reportDetailPageNumber = Number(filters?.reportDetailPageNumber)
+  const reportDetailPageSize = Number(filters?.reportDetailPageSize)
+  if (Number.isFinite(reportDetailPageNumber) && reportDetailPageNumber > 0) {
+    params.set('reportDetailPageNumber', String(reportDetailPageNumber))
+  }
+  if (Number.isFinite(reportDetailPageSize) && reportDetailPageSize > 0) {
+    params.set('reportDetailPageSize', String(reportDetailPageSize))
+  }
+  const logicalObjectDetailPageNumber = Number(filters?.logicalObjectDetailPageNumber)
+  const logicalObjectDetailPageSize = Number(filters?.logicalObjectDetailPageSize)
+  if (Number.isFinite(logicalObjectDetailPageNumber) && logicalObjectDetailPageNumber > 0) {
+    params.set('logicalObjectDetailPageNumber', String(logicalObjectDetailPageNumber))
+  }
+  if (Number.isFinite(logicalObjectDetailPageSize) && logicalObjectDetailPageSize > 0) {
+    params.set('logicalObjectDetailPageSize', String(logicalObjectDetailPageSize))
+  }
   const reportCode = String(filters?.reportCode || '').trim()
   if (reportCode) {
     params.set('reportCode', reportCode)

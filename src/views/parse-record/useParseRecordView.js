@@ -300,13 +300,22 @@ const selectedReportIssueSceneReportDetails = computed(() =>
   normalizeArray(selectedReportIssueSceneDetail.value?.reportDetails)
 )
 const selectedReportIssueSceneReportDetailsPage = computed(() =>
-  pageItems(selectedReportIssueSceneReportDetails.value, reportBatchIssueSceneReportPagination)
+  selectedReportIssueSceneReportDetails.value
+)
+const selectedReportIssueSceneReportDetailTotalCount = computed(() =>
+  Number(selectedReportIssueSceneDetail.value?.reportDetailTotalCount ?? selectedReportIssueSceneReportDetails.value.length)
 )
 const selectedReportIssueSceneLogicalObjectDetails = computed(() =>
   normalizeArray(selectedReportIssueSceneDetail.value?.logicalObjectDetails)
 )
 const selectedReportIssueSceneLogicalObjectDetailsPage = computed(() =>
-  pageItems(selectedReportIssueSceneLogicalObjectDetails.value, reportBatchIssueSceneLogicalObjectPagination)
+  selectedReportIssueSceneLogicalObjectDetails.value
+)
+const selectedReportIssueSceneLogicalObjectDetailTotalCount = computed(() =>
+  Number(selectedReportIssueSceneDetail.value?.logicalObjectDetailTotalCount ?? selectedReportIssueSceneLogicalObjectDetails.value.length)
+)
+const selectedReportIssueSceneSqlStatisticTotalCount = computed(() =>
+  Number(selectedReportIssueSceneDetail.value?.sqlStatisticTotalCount ?? normalizeArray(selectedReportIssueSceneDetail.value?.sqlStatistics).length)
 )
 const reportBatchIssueSceneDetailCards = computed(() => {
   const detail = objectValue(selectedReportIssueSceneDetail.value)
@@ -938,6 +947,37 @@ const resetReportBatchIssueSceneDetail = () => {
   reportBatchIssueScenePagination.pageSize = 25
   reportBatchIssueScenePagination.reportCode = ''
   reportBatchIssueScenePagination.logicalObjectKey = ''
+  reportBatchIssueSceneReportPagination.pageNumber = 1
+  reportBatchIssueSceneReportPagination.pageSize = 10
+  reportBatchIssueSceneLogicalObjectPagination.pageNumber = 1
+  reportBatchIssueSceneLogicalObjectPagination.pageSize = 10
+}
+
+const syncReportBatchIssueSceneDetailPagination = detail => {
+  const reportPageNumber = Number(detail?.reportDetailPageNumber)
+  const reportPageSize = Number(detail?.reportDetailPageSize)
+  const logicalObjectPageNumber = Number(detail?.logicalObjectDetailPageNumber)
+  const logicalObjectPageSize = Number(detail?.logicalObjectDetailPageSize)
+  const sqlPageNumber = Number(detail?.sqlStatisticPageNumber)
+  const sqlPageSize = Number(detail?.sqlStatisticPageSize)
+  if (Number.isFinite(reportPageNumber) && reportPageNumber > 0) {
+    reportBatchIssueSceneReportPagination.pageNumber = reportPageNumber
+  }
+  if (Number.isFinite(reportPageSize) && reportPageSize > 0) {
+    reportBatchIssueSceneReportPagination.pageSize = reportPageSize
+  }
+  if (Number.isFinite(logicalObjectPageNumber) && logicalObjectPageNumber > 0) {
+    reportBatchIssueSceneLogicalObjectPagination.pageNumber = logicalObjectPageNumber
+  }
+  if (Number.isFinite(logicalObjectPageSize) && logicalObjectPageSize > 0) {
+    reportBatchIssueSceneLogicalObjectPagination.pageSize = logicalObjectPageSize
+  }
+  if (Number.isFinite(sqlPageNumber) && sqlPageNumber > 0) {
+    reportBatchIssueScenePagination.pageNumber = sqlPageNumber
+  }
+  if (Number.isFinite(sqlPageSize) && sqlPageSize > 0) {
+    reportBatchIssueScenePagination.pageSize = sqlPageSize
+  }
 }
 
 const openReportBatchDetail = async row => {
@@ -1002,11 +1042,16 @@ const loadReportBatchIssueSceneDetail = async issueScene => {
       {
         pageNumber: reportBatchIssueScenePagination.pageNumber,
         pageSize: reportBatchIssueScenePagination.pageSize,
+        reportDetailPageNumber: reportBatchIssueSceneReportPagination.pageNumber,
+        reportDetailPageSize: reportBatchIssueSceneReportPagination.pageSize,
+        logicalObjectDetailPageNumber: reportBatchIssueSceneLogicalObjectPagination.pageNumber,
+        logicalObjectDetailPageSize: reportBatchIssueSceneLogicalObjectPagination.pageSize,
         reportCode: reportBatchIssueScenePagination.reportCode,
         logicalObjectKey: reportBatchIssueScenePagination.logicalObjectKey,
         requestPrefix: 'frontend-parse-record-report-issue-scene-detail'
       }
     )
+    syncReportBatchIssueSceneDetailPagination(selectedReportIssueSceneDetail.value)
     reportBatchIssueSceneDetailDialogVisible.value = Boolean(selectedReportIssueSceneDetail.value)
   } catch (error) {
     selectedReportIssueSceneDetail.value = null
@@ -1057,22 +1102,26 @@ const handleReportBatchIssueStatisticsPageSizeChange = pageSize => {
   reportBatchIssueStatisticsPagination.pageNumber = 1
 }
 
-const handleReportBatchIssueSceneReportPageChange = pageNumber => {
+const handleReportBatchIssueSceneReportPageChange = async pageNumber => {
   reportBatchIssueSceneReportPagination.pageNumber = pageNumber
+  await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
 }
 
-const handleReportBatchIssueSceneReportPageSizeChange = pageSize => {
+const handleReportBatchIssueSceneReportPageSizeChange = async pageSize => {
   reportBatchIssueSceneReportPagination.pageSize = pageSize
   reportBatchIssueSceneReportPagination.pageNumber = 1
+  await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
 }
 
-const handleReportBatchIssueSceneLogicalObjectPageChange = pageNumber => {
+const handleReportBatchIssueSceneLogicalObjectPageChange = async pageNumber => {
   reportBatchIssueSceneLogicalObjectPagination.pageNumber = pageNumber
+  await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
 }
 
-const handleReportBatchIssueSceneLogicalObjectPageSizeChange = pageSize => {
+const handleReportBatchIssueSceneLogicalObjectPageSizeChange = async pageSize => {
   reportBatchIssueSceneLogicalObjectPagination.pageSize = pageSize
   reportBatchIssueSceneLogicalObjectPagination.pageNumber = 1
+  await loadReportBatchIssueSceneDetail(selectedReportIssueSceneDetail.value?.issueScene)
 }
 
 const clearReportBatchIssueSceneReportFilter = async () => {
@@ -1584,9 +1633,6 @@ const issueLocationTextForScene = (item, issueScene) => {
   const rowScenes = issueSceneCodesForItem(row).map(scene => normalizeQueryValue(scene))
   const rowIssueCount = Number(row.issueCount || 0)
   if (normalizedIssueScene && (rowScenes.includes(normalizedIssueScene) || rowIssueCount > 0)) {
-    if (locations.length) {
-      return issueLocationText({ ...row, issueLocations: locations })
-    }
     return `${normalizedIssueScene} · ${isChinese.value ? '定位待补充' : 'Location pending'}`
   }
   return issueLocationText({ ...row, issueLocations: [] })
@@ -1917,8 +1963,11 @@ watch(reportBatchDetailDrawerVisible, visible => {
     selectedReportIssueSceneDetail,
     selectedReportIssueSceneReportDetails,
     selectedReportIssueSceneReportDetailsPage,
+    selectedReportIssueSceneReportDetailTotalCount,
     selectedReportIssueSceneLogicalObjectDetails,
     selectedReportIssueSceneLogicalObjectDetailsPage,
+    selectedReportIssueSceneLogicalObjectDetailTotalCount,
+    selectedReportIssueSceneSqlStatisticTotalCount,
     selectedReportIssueSceneStatistics,
     selectedReportItems,
     selectedReportLogicalObjectStatistics,

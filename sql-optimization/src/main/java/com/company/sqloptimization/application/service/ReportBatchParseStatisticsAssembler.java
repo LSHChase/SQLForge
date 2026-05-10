@@ -30,6 +30,7 @@ import org.springframework.util.StringUtils;
 class ReportBatchParseStatisticsAssembler {
 
     private static final int SQL_STATISTIC_PREVIEW_LIMIT = 500;
+    private static final int ISSUE_SCENE_DETAIL_PAGE_SIZE = 10;
     private static final int MIN_SHARED_ISSUE_SCENES_FOR_MERGE = 2;
     private static final String REPORT_SQL_MERGE_CANDIDATE = "REPORT_SQL_MERGE_CANDIDATE";
     private static final String VALID_STRUCTURE_STATUS = "VALID";
@@ -127,6 +128,10 @@ class ReportBatchParseStatisticsAssembler {
                                                         String issueScene,
                                                         Integer pageNumber,
                                                         Integer pageSize,
+                                                        Integer reportDetailPageNumber,
+                                                        Integer reportDetailPageSize,
+                                                        Integer logicalObjectDetailPageNumber,
+                                                        Integer logicalObjectDetailPageSize,
                                                         String reportCode,
                                                         String logicalObjectKey) {
         List<ReportBatchItem> items = sourceItems == null
@@ -140,6 +145,18 @@ class ReportBatchParseStatisticsAssembler {
             pageSize,
             reportCodeFilter,
             SQL_STATISTIC_PREVIEW_LIMIT
+        );
+        SqlStatisticPage reportDetailPageSelection = SqlStatisticPage.from(
+            reportDetailPageNumber,
+            reportDetailPageSize,
+            null,
+            ISSUE_SCENE_DETAIL_PAGE_SIZE
+        );
+        SqlStatisticPage logicalObjectDetailPageSelection = SqlStatisticPage.from(
+            logicalObjectDetailPageNumber,
+            logicalObjectDetailPageSize,
+            null,
+            ISSUE_SCENE_DETAIL_PAGE_SIZE
         );
         MergeCandidateIndex mergeCandidateIndex = buildMergeCandidateIndex(items);
         List<ReportBatchSqlStatisticVO> sqlStatistics = new ArrayList<ReportBatchSqlStatisticVO>();
@@ -164,6 +181,13 @@ class ReportBatchParseStatisticsAssembler {
         StructureParseIssueScoringSnapshot snapshot = snapshot(normalizedIssueScene);
         List<ReportBatchSqlStatisticVO> sortedSqlStatistics = sortSqlStatistics(sqlStatistics);
         List<ReportBatchSqlStatisticVO> pageSqlStatistics = pageSqlStatistics(sortedSqlStatistics, pageSelection);
+        List<ReportBatchIssueSceneReportDetailVO> reportDetails = toIssueSceneReportDetails(reportAccumulators);
+        List<ReportBatchIssueSceneLogicalObjectDetailVO> logicalObjectDetails =
+            toIssueSceneLogicalObjectDetails(logicalObjectAccumulators);
+        List<ReportBatchIssueSceneReportDetailVO> pageReportDetails =
+            pageItems(reportDetails, reportDetailPageSelection);
+        List<ReportBatchIssueSceneLogicalObjectDetailVO> pageLogicalObjectDetails =
+            pageItems(logicalObjectDetails, logicalObjectDetailPageSelection);
         ReportBatchIssueSceneDetailVO detail = new ReportBatchIssueSceneDetailVO();
         detail.setIssueScene(normalizedIssueScene);
         detail.setIssueDomain(snapshot.getIssueDomain().name());
@@ -176,12 +200,23 @@ class ReportBatchParseStatisticsAssembler {
         detail.setLogicalObjectCount(Integer.valueOf(logicalObjectAccumulators.size()));
         detail.setReportCodeFilter(reportCodeFilter);
         detail.setLogicalObjectKeyFilter(logicalObjectKeyFilter);
+        detail.setReportDetailPageNumber(Integer.valueOf(reportDetailPageSelection.pageNumber));
+        detail.setReportDetailPageSize(Integer.valueOf(reportDetailPageSelection.pageSize));
+        detail.setReportDetailPageCount(Integer.valueOf(pageCount(reportDetails.size(), reportDetailPageSelection.pageSize)));
+        detail.setReportDetailTotalCount(Integer.valueOf(reportDetails.size()));
+        detail.setLogicalObjectDetailPageNumber(Integer.valueOf(logicalObjectDetailPageSelection.pageNumber));
+        detail.setLogicalObjectDetailPageSize(Integer.valueOf(logicalObjectDetailPageSelection.pageSize));
+        detail.setLogicalObjectDetailPageCount(Integer.valueOf(pageCount(
+            logicalObjectDetails.size(),
+            logicalObjectDetailPageSelection.pageSize
+        )));
+        detail.setLogicalObjectDetailTotalCount(Integer.valueOf(logicalObjectDetails.size()));
         detail.setSqlStatisticPageNumber(Integer.valueOf(pageSelection.pageNumber));
         detail.setSqlStatisticPageSize(Integer.valueOf(pageSelection.pageSize));
         detail.setSqlStatisticPageCount(Integer.valueOf(pageCount(sortedSqlStatistics.size(), pageSelection.pageSize)));
         detail.setSqlStatisticTotalCount(Integer.valueOf(sortedSqlStatistics.size()));
-        detail.setReportDetails(toIssueSceneReportDetails(reportAccumulators));
-        detail.setLogicalObjectDetails(toIssueSceneLogicalObjectDetails(logicalObjectAccumulators));
+        detail.setReportDetails(pageReportDetails);
+        detail.setLogicalObjectDetails(pageLogicalObjectDetails);
         detail.setSqlStatistics(pageSqlStatistics);
         return detail;
     }
@@ -476,12 +511,16 @@ class ReportBatchParseStatisticsAssembler {
 
     private List<ReportBatchSqlStatisticVO> pageSqlStatistics(List<ReportBatchSqlStatisticVO> statistics,
                                                              SqlStatisticPage pageSelection) {
-        if (statistics.isEmpty()) {
+        return pageItems(statistics, pageSelection);
+    }
+
+    private <T> List<T> pageItems(List<T> items, SqlStatisticPage pageSelection) {
+        if (items == null || items.isEmpty()) {
             return Collections.emptyList();
         }
-        int start = Math.min(statistics.size(), (pageSelection.pageNumber - 1) * pageSelection.pageSize);
-        int end = Math.min(statistics.size(), start + pageSelection.pageSize);
-        return new ArrayList<ReportBatchSqlStatisticVO>(statistics.subList(start, end));
+        int start = Math.min(items.size(), (pageSelection.pageNumber - 1) * pageSelection.pageSize);
+        int end = Math.min(items.size(), start + pageSelection.pageSize);
+        return new ArrayList<T>(items.subList(start, end));
     }
 
     private int pageCount(int totalCount, int pageSize) {

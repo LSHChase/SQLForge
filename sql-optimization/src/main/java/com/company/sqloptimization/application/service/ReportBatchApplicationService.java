@@ -241,6 +241,10 @@ public class ReportBatchApplicationService {
                                                                   String issueScene,
                                                                   Integer pageNumber,
                                                                   Integer pageSize,
+                                                                  Integer reportDetailPageNumber,
+                                                                  Integer reportDetailPageSize,
+                                                                  Integer logicalObjectDetailPageNumber,
+                                                                  Integer logicalObjectDetailPageSize,
                                                                   String reportCode,
                                                                   String logicalObjectKey) {
         ReportBatch batch = requireBatch(batchId);
@@ -249,6 +253,10 @@ public class ReportBatchApplicationService {
             requireText(issueScene, "issueScene"),
             pageNumber,
             pageSize,
+            reportDetailPageNumber,
+            reportDetailPageSize,
+            logicalObjectDetailPageNumber,
+            logicalObjectDetailPageSize,
             reportCode,
             logicalObjectKey
         );

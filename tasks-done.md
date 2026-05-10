@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-124: Correct issue-scene scoped locations and standard detail lists
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `HARN-124: align issue scene detail lists`
+- Priority: 1
+- Depends on: HARN-123
+- Scope: 纠正问题场景明细定位范围：只展示当前问题场景的定位信息，不回退展示其他场景定位；分析后端定位来源与持久化字段关系；补齐报表明细、逻辑对象明细、SQL 明细完整标准列表分页信息与契约验证。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-124`
+- Progress log:
+  - 2026-05-10: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 纠正问题场景明细定位范围：前端只展示当前问题场景定位，不再回退展示其他场景定位；明确后端定位不是独立按场景持久字段，而是读取时由 SQL/诊断/场景集合动态组装；补齐问题场景明细报表、逻辑对象、SQL 三张标准列表的分页契约、接口参数、前端总数展示与后端测试。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-124；mvn -pl sql-optimization -Dtest=ReportBatchParseStatisticsAssemblerTest,ReportBatchApplicationServiceTest,ReportBatchControllerTest test；npm run lint；npm run build；npm run test:frontend-page-governance；npm run test:form-governance；npm run test:sql-ui-contract；node scripts/check-history-detail-contract.mjs；node scripts/check-batch-import-contract.mjs；node scripts/lint-repository-knowledge.js；git diff --check；Playwright 截图复核：问题场景 ? tooltip 可见，三张明细表均为 el-table 且三组 el-pagination 显示 Total 24/18/37，SQL 定位显示 SELECT_STAR · 定位待补充，未泄漏 OTHER_SCENE_SNIPPET_SHOULD_NOT_RENDER，点击报表行会携带 reportCode 重新加载联动明细。
+  - Residual risk: 当前执行环境仅提供 OpenJDK 1.8.0_482（/usr/lib/jvm/java-8-openjdk-amd64），未提供仓库规则指定的 JDK 8u112；本轮后端测试在可用 JDK8 环境通过，交付环境仍需用 8u112 复验。
+  - Next step: 在标准 JDK 8u112 环境进行一次后端相关用例复验。
+
 ### HARN-123: Repair report issue-scene detail regressions
 
 - Status: done

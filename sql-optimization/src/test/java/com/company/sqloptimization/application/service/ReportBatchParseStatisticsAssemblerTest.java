@@ -15,6 +15,7 @@ import com.company.sqloptimization.application.controller.vo.ReportBatchParseSta
 import com.company.sqloptimization.application.controller.vo.ReportBatchSqlStatisticVO;
 import com.company.sqloptimization.domain.reportbatch.ReportBatchItem;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -115,6 +116,10 @@ class ReportBatchParseStatisticsAssemblerTest {
             null,
             null,
             null,
+            null,
+            null,
+            null,
+            null,
             null
         );
 
@@ -147,6 +152,10 @@ class ReportBatchParseStatisticsAssemblerTest {
             null,
             null,
             null,
+            null,
+            null,
+            null,
+            null,
             null
         );
 
@@ -159,6 +168,56 @@ class ReportBatchParseStatisticsAssemblerTest {
         assertTrue(row.getIssueLocations().stream()
             .allMatch(location -> "MISSING_FILTER".equals(location.getIssueScene())));
         assertTrue(row.getIssueLocations().get(0).getLocationSnippet().contains("SELECT * FROM orders"));
+    }
+
+    @Test
+    void shouldExposeIndependentIssueSceneDetailPaginationMetadata() {
+        Instant now = Instant.parse("2026-05-05T12:00:00Z");
+        List<ReportBatchItem> items = new ArrayList<ReportBatchItem>();
+        for (int index = 1; index <= 12; index++) {
+            String suffix = String.format("%02d", Integer.valueOf(index));
+            items.add(item(
+                "item-" + suffix,
+                "RPT_" + suffix,
+                "SELECT * FROM table_" + suffix,
+                Collections.singletonList("SELECT_STAR"),
+                Collections.singletonList("TABLE:table_" + suffix),
+                now
+            ));
+        }
+
+        ReportBatchIssueSceneDetailVO detail = assembler.buildIssueSceneDetail(
+            items,
+            "SELECT_STAR",
+            2,
+            6,
+            2,
+            5,
+            3,
+            4,
+            null,
+            null
+        );
+
+        assertEquals(Integer.valueOf(12), detail.getReportDetailTotalCount());
+        assertEquals(Integer.valueOf(2), detail.getReportDetailPageNumber());
+        assertEquals(Integer.valueOf(5), detail.getReportDetailPageSize());
+        assertEquals(Integer.valueOf(3), detail.getReportDetailPageCount());
+        assertEquals(Integer.valueOf(5), Integer.valueOf(detail.getReportDetails().size()));
+        assertEquals("RPT_06", detail.getReportDetails().get(0).getReportCode());
+
+        assertEquals(Integer.valueOf(12), detail.getLogicalObjectDetailTotalCount());
+        assertEquals(Integer.valueOf(3), detail.getLogicalObjectDetailPageNumber());
+        assertEquals(Integer.valueOf(4), detail.getLogicalObjectDetailPageSize());
+        assertEquals(Integer.valueOf(3), detail.getLogicalObjectDetailPageCount());
+        assertEquals(Integer.valueOf(4), Integer.valueOf(detail.getLogicalObjectDetails().size()));
+        assertEquals("TABLE:table_09", detail.getLogicalObjectDetails().get(0).getObjectKey());
+
+        assertEquals(Integer.valueOf(12), detail.getSqlStatisticTotalCount());
+        assertEquals(Integer.valueOf(2), detail.getSqlStatisticPageNumber());
+        assertEquals(Integer.valueOf(6), detail.getSqlStatisticPageSize());
+        assertEquals(Integer.valueOf(2), detail.getSqlStatisticPageCount());
+        assertEquals(Integer.valueOf(6), Integer.valueOf(detail.getSqlStatistics().size()));
     }
 
     @Test

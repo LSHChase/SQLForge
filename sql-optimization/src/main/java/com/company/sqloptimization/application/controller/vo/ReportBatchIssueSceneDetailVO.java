@@ -15,6 +15,14 @@ public class ReportBatchIssueSceneDetailVO {
     private Integer logicalObjectCount;
     private String reportCodeFilter;
     private String logicalObjectKeyFilter;
+    private Integer reportDetailPageNumber;
+    private Integer reportDetailPageSize;
+    private Integer reportDetailPageCount;
+    private Integer reportDetailTotalCount;
+    private Integer logicalObjectDetailPageNumber;
+    private Integer logicalObjectDetailPageSize;
+    private Integer logicalObjectDetailPageCount;
+    private Integer logicalObjectDetailTotalCount;
     private Integer sqlStatisticPageNumber;
     private Integer sqlStatisticPageSize;
     private Integer sqlStatisticPageCount;
@@ -45,6 +53,30 @@ public class ReportBatchIssueSceneDetailVO {
     public void setReportCodeFilter(String reportCodeFilter) { this.reportCodeFilter = reportCodeFilter; }
     public String getLogicalObjectKeyFilter() { return logicalObjectKeyFilter; }
     public void setLogicalObjectKeyFilter(String logicalObjectKeyFilter) { this.logicalObjectKeyFilter = logicalObjectKeyFilter; }
+    public Integer getReportDetailPageNumber() { return reportDetailPageNumber; }
+    public void setReportDetailPageNumber(Integer reportDetailPageNumber) { this.reportDetailPageNumber = reportDetailPageNumber; }
+    public Integer getReportDetailPageSize() { return reportDetailPageSize; }
+    public void setReportDetailPageSize(Integer reportDetailPageSize) { this.reportDetailPageSize = reportDetailPageSize; }
+    public Integer getReportDetailPageCount() { return reportDetailPageCount; }
+    public void setReportDetailPageCount(Integer reportDetailPageCount) { this.reportDetailPageCount = reportDetailPageCount; }
+    public Integer getReportDetailTotalCount() { return reportDetailTotalCount; }
+    public void setReportDetailTotalCount(Integer reportDetailTotalCount) { this.reportDetailTotalCount = reportDetailTotalCount; }
+    public Integer getLogicalObjectDetailPageNumber() { return logicalObjectDetailPageNumber; }
+    public void setLogicalObjectDetailPageNumber(Integer logicalObjectDetailPageNumber) {
+        this.logicalObjectDetailPageNumber = logicalObjectDetailPageNumber;
+    }
+    public Integer getLogicalObjectDetailPageSize() { return logicalObjectDetailPageSize; }
+    public void setLogicalObjectDetailPageSize(Integer logicalObjectDetailPageSize) {
+        this.logicalObjectDetailPageSize = logicalObjectDetailPageSize;
+    }
+    public Integer getLogicalObjectDetailPageCount() { return logicalObjectDetailPageCount; }
+    public void setLogicalObjectDetailPageCount(Integer logicalObjectDetailPageCount) {
+        this.logicalObjectDetailPageCount = logicalObjectDetailPageCount;
+    }
+    public Integer getLogicalObjectDetailTotalCount() { return logicalObjectDetailTotalCount; }
+    public void setLogicalObjectDetailTotalCount(Integer logicalObjectDetailTotalCount) {
+        this.logicalObjectDetailTotalCount = logicalObjectDetailTotalCount;
+    }
     public Integer getSqlStatisticPageNumber() { return sqlStatisticPageNumber; }
     public void setSqlStatisticPageNumber(Integer sqlStatisticPageNumber) { this.sqlStatisticPageNumber = sqlStatisticPageNumber; }
     public Integer getSqlStatisticPageSize() { return sqlStatisticPageSize; }

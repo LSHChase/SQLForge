@@ -65,6 +65,10 @@ public class ReportBatchController {
         @PathVariable("issueScene") String issueScene,
         @RequestParam(value = "pageNumber", required = false) Integer pageNumber,
         @RequestParam(value = "pageSize", required = false) Integer pageSize,
+        @RequestParam(value = "reportDetailPageNumber", required = false) Integer reportDetailPageNumber,
+        @RequestParam(value = "reportDetailPageSize", required = false) Integer reportDetailPageSize,
+        @RequestParam(value = "logicalObjectDetailPageNumber", required = false) Integer logicalObjectDetailPageNumber,
+        @RequestParam(value = "logicalObjectDetailPageSize", required = false) Integer logicalObjectDetailPageSize,
         @RequestParam(value = "reportCode", required = false) String reportCode,
         @RequestParam(value = "logicalObjectKey", required = false) String logicalObjectKey) {
         return reportBatchApplicationService.getBatchIssueSceneDetail(
@@ -72,6 +76,10 @@ public class ReportBatchController {
             issueScene,
             pageNumber,
             pageSize,
+            reportDetailPageNumber,
+            reportDetailPageSize,
+            logicalObjectDetailPageNumber,
+            logicalObjectDetailPageSize,
             reportCode,
             logicalObjectKey
         );

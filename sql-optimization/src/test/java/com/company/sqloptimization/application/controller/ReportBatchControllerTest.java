@@ -186,10 +186,21 @@ class ReportBatchControllerTest {
         mockMvc.perform(addProtectedHeaders(get(
                 "/api/sql-optimization/report-batches/{batchId}/parse-statistics/issue-scenes/{issueScene}",
                 batchId,
-                "SQL_SYNTAX_INVALID")))
+                "SQL_SYNTAX_INVALID")
+                .param("pageNumber", "1")
+                .param("pageSize", "1")
+                .param("reportDetailPageNumber", "1")
+                .param("reportDetailPageSize", "1")
+                .param("logicalObjectDetailPageNumber", "1")
+                .param("logicalObjectDetailPageSize", "1")))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.issueScene").value("SQL_SYNTAX_INVALID"))
             .andExpect(jsonPath("$.affectedSqlCount").value(1))
+            .andExpect(jsonPath("$.reportDetailPageNumber").value(1))
+            .andExpect(jsonPath("$.reportDetailPageSize").value(1))
+            .andExpect(jsonPath("$.reportDetailTotalCount").value(1))
+            .andExpect(jsonPath("$.logicalObjectDetailPageNumber").value(1))
+            .andExpect(jsonPath("$.logicalObjectDetailPageSize").value(1))
             .andExpect(jsonPath("$.reportDetails[0].reportCode").value("RPT_BAD"))
             .andExpect(jsonPath("$.sqlStatistics[0].reportCode").value("RPT_BAD"))
             .andExpect(jsonPath("$.sqlStatistics[0].issueScenes[0]").value("SQL_SYNTAX_INVALID"))
