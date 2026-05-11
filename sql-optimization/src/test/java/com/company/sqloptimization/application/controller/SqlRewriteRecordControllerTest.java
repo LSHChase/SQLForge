@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
+import com.company.sqloptimization.application.controller.vo.RewritePublishEligibilityReasonVO;
+import com.company.sqloptimization.application.controller.vo.RewritePublishEligibilityVO;
 import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
 import com.company.sqloptimization.application.controller.vo.SqlRewriteRecordVO;
 import com.company.sqloptimization.application.service.SqlRewriteRecordApplicationService;
@@ -56,6 +58,26 @@ class SqlRewriteRecordControllerTest {
         approvedRecord.setReviewedBy("operator-001");
         approvedRecord.setReviewNote("looks equivalent");
         approvedRecord.setPublishStatus("UNPUBLISHED");
+        RewritePublishEligibilityReasonVO reason = new RewritePublishEligibilityReasonVO();
+        reason.setCode("VALIDATION_STATUS_NOT_EQUIVALENT");
+        reason.setMessage("Rewrite record validationStatus must be EQUIVALENT.");
+        reason.setBlocking(Boolean.TRUE);
+        reason.setField("validationStatus");
+        reason.setEvidenceRef("validation-001");
+        RewritePublishEligibilityVO eligibility = new RewritePublishEligibilityVO();
+        eligibility.setRewriteRecordId("rewrite-001");
+        eligibility.setTenantId("tenant-a");
+        eligibility.setPolicyId("DEFAULT_REWRITE_PUBLISH_ELIGIBILITY");
+        eligibility.setEligible(Boolean.FALSE);
+        eligibility.setReviewStatus("APPROVED");
+        eligibility.setValidationStatus("NOT_VALIDATED");
+        eligibility.setPublishStatus("UNPUBLISHED");
+        eligibility.setAlertStatus("NONE");
+        eligibility.setAutoApplyAllowed(Boolean.TRUE);
+        eligibility.setLastValidationRunId("validation-001");
+        eligibility.setRefusalReasons(Collections.singletonList(reason));
+        eligibility.setContractStage("LONG_TERM_BASELINE");
+        eligibility.setImplementationStage("ACCELERATION_REWRITE_CONTRACT_BASELINE");
         RewriteValidationRunVO run = new RewriteValidationRunVO();
         run.setValidationRunId("validation-001");
         run.setRewriteRecordId("rewrite-001");
@@ -68,6 +90,7 @@ class SqlRewriteRecordControllerTest {
         when(sqlRewriteRecordApplicationService.listRewriteRecords("history-001", null, null, null))
             .thenReturn(Collections.singletonList(record));
         when(sqlRewriteRecordApplicationService.reviewRewriteRecord(any(), any())).thenReturn(approvedRecord);
+        when(sqlRewriteRecordApplicationService.getPublishEligibility("rewrite-001")).thenReturn(eligibility);
         when(sqlRewriteRecordApplicationService.createValidationRun(any(), any())).thenReturn(run);
         when(sqlRewriteRecordApplicationService.listValidationRuns("rewrite-001"))
             .thenReturn(Collections.singletonList(run));
@@ -102,6 +125,13 @@ class SqlRewriteRecordControllerTest {
             .andExpect(jsonPath("$.reviewStatus").value("APPROVED"))
             .andExpect(jsonPath("$.reviewedBy").value("operator-001"))
             .andExpect(jsonPath("$.publishStatus").value("UNPUBLISHED"));
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/rewrite-records/rewrite-001/publish-eligibility")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.policyId").value("DEFAULT_REWRITE_PUBLISH_ELIGIBILITY"))
+            .andExpect(jsonPath("$.eligible").value(false))
+            .andExpect(jsonPath("$.refusalReasons[0].code").value("VALIDATION_STATUS_NOT_EQUIVALENT"))
+            .andExpect(jsonPath("$.refusalReasons[0].blocking").value(true));
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/validation-runs"))
                 .contentType(MediaType.APPLICATION_JSON)

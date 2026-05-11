@@ -169,23 +169,6 @@ _No tasks._
 - Progress log:
   - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
 
-### PRW-004: 实现发布资格策略与验证门禁
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `PRW-003`,`HARN-135`
-- Scope: 所有发布接口必须调用同一个后端策略服务，页面只能展示策略结果，不能成为核心门禁。 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `sql-optimization`,`application service`,`domain policy`,`tests`.
-- Plan ref: docs/exec-plans/active/PRW-004-full-auto-execution-plan.md
-- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
-- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
-- Data impact: 读取验证、告警和改写记录状态并产生资格判断；不修改运行时绑定。
-- Rollback / recovery: 回退策略服务和发布入口调用，恢复为不可发布或只读状态。
-- Validation:
-  - `mvn -pl sql-optimization test、python3 scripts/foreman.py validate PRW-004`
-  - `python3 scripts/foreman.py validate PRW-004`
-- Progress log:
-  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
-
 ### PRW-001: 固化生产改写闭环接口与状态契约
 
 - Status: in_progress

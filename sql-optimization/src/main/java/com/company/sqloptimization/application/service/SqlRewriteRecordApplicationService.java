@@ -10,6 +10,8 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResp
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordReviewRequest;
+import com.company.sqloptimization.application.controller.vo.RewritePublishEligibilityReasonVO;
+import com.company.sqloptimization.application.controller.vo.RewritePublishEligibilityVO;
 import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
 import com.company.sqloptimization.application.controller.vo.SqlRewriteRecordVO;
 import com.company.sqloptimization.domain.governance.ComparisonStatus;
@@ -19,6 +21,9 @@ import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.governance.ValidationRunStatus;
 import com.company.sqloptimization.domain.rewrite.RewriteValidationRun;
 import com.company.sqloptimization.domain.rewrite.SqlRewriteRecord;
+import com.company.sqloptimization.domain.rewrite.policy.RewritePublishEligibility;
+import com.company.sqloptimization.domain.rewrite.policy.RewritePublishEligibilityPolicy;
+import com.company.sqloptimization.domain.rewrite.policy.RewritePublishEligibilityReason;
 import com.company.sqloptimization.domain.rewrite.repository.SqlRewriteRecordRepository;
 import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionResultDigestClient;
 import java.time.Instant;
@@ -42,6 +47,7 @@ public class SqlRewriteRecordApplicationService {
     private final SqlRewriteRecordRepository sqlRewriteRecordRepository;
     private final QueryExecutionResultDigestClient queryExecutionResultDigestClient;
     private final ResultDigestComparisonEngine resultDigestComparisonEngine;
+    private final RewritePublishEligibilityPolicy rewritePublishEligibilityPolicy;
 
     public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository) {
         this(sqlRewriteRecordRepository, null, new ResultDigestComparisonEngine());
@@ -51,9 +57,22 @@ public class SqlRewriteRecordApplicationService {
     public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository,
                                               QueryExecutionResultDigestClient queryExecutionResultDigestClient,
                                               ResultDigestComparisonEngine resultDigestComparisonEngine) {
+        this(
+            sqlRewriteRecordRepository,
+            queryExecutionResultDigestClient,
+            resultDigestComparisonEngine,
+            new RewritePublishEligibilityPolicy()
+        );
+    }
+
+    public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository,
+                                              QueryExecutionResultDigestClient queryExecutionResultDigestClient,
+                                              ResultDigestComparisonEngine resultDigestComparisonEngine,
+                                              RewritePublishEligibilityPolicy rewritePublishEligibilityPolicy) {
         this.sqlRewriteRecordRepository = sqlRewriteRecordRepository;
         this.queryExecutionResultDigestClient = queryExecutionResultDigestClient;
         this.resultDigestComparisonEngine = resultDigestComparisonEngine;
+        this.rewritePublishEligibilityPolicy = rewritePublishEligibilityPolicy;
     }
 
     public SqlRewriteRecordVO createRewriteRecord(SqlRewriteRecordCreateRequest request) {
@@ -153,6 +172,19 @@ public class SqlRewriteRecordApplicationService {
             buildReviewTraceRefs(rewriteRecord, nextStatus, reviewedBy, reviewedAt)
         );
         return toRewriteRecordVo(sqlRewriteRecordRepository.saveRecord(reviewed));
+    }
+
+    public RewritePublishEligibilityVO getPublishEligibility(String rewriteRecordId) {
+        SqlRewriteRecord rewriteRecord = requireRewriteRecord(rewriteRecordId);
+        List<RewriteValidationRun> runs =
+            sqlRewriteRecordRepository.findValidationRunsByRewriteRecordId(rewriteRecord.getRewriteRecordId());
+        List<RewriteValidationRun> tenantRuns = new ArrayList<RewriteValidationRun>();
+        for (RewriteValidationRun run : runs) {
+            if (rewriteRecord.getTenantId().equals(run.getTenantId())) {
+                tenantRuns.add(run);
+            }
+        }
+        return toPublishEligibilityVo(rewritePublishEligibilityPolicy.evaluate(rewriteRecord, tenantRuns));
     }
 
     public RewriteValidationRunVO createValidationRun(String rewriteRecordId,
@@ -472,6 +504,35 @@ public class SqlRewriteRecordApplicationService {
         vo.setDiffSummary(record.getDiffSummary());
         vo.setRisk(record.getRisk());
         vo.setTraceRefs(record.getTraceRefs());
+        vo.setContractStage(CONTRACT_STAGE);
+        vo.setImplementationStage(IMPLEMENTATION_STAGE);
+        return vo;
+    }
+
+    private RewritePublishEligibilityVO toPublishEligibilityVo(RewritePublishEligibility eligibility) {
+        RewritePublishEligibilityVO vo = new RewritePublishEligibilityVO();
+        vo.setRewriteRecordId(eligibility.getRewriteRecordId());
+        vo.setTenantId(eligibility.getTenantId());
+        vo.setPolicyId(eligibility.getPolicyId());
+        vo.setEligible(Boolean.valueOf(eligibility.isEligible()));
+        vo.setReviewStatus(eligibility.getReviewStatus());
+        vo.setValidationStatus(eligibility.getValidationStatus());
+        vo.setPublishStatus(eligibility.getPublishStatus());
+        vo.setAlertStatus(eligibility.getAlertStatus());
+        vo.setAutoApplyAllowed(eligibility.getAutoApplyAllowed());
+        vo.setLastValidationRunId(eligibility.getLastValidationRunId());
+        List<RewritePublishEligibilityReasonVO> reasons =
+            new ArrayList<RewritePublishEligibilityReasonVO>(eligibility.getRefusalReasons().size());
+        for (RewritePublishEligibilityReason reason : eligibility.getRefusalReasons()) {
+            RewritePublishEligibilityReasonVO reasonVo = new RewritePublishEligibilityReasonVO();
+            reasonVo.setCode(reason.getCode());
+            reasonVo.setMessage(reason.getMessage());
+            reasonVo.setBlocking(Boolean.valueOf(reason.isBlocking()));
+            reasonVo.setField(reason.getField());
+            reasonVo.setEvidenceRef(reason.getEvidenceRef());
+            reasons.add(reasonVo);
+        }
+        vo.setRefusalReasons(reasons);
         vo.setContractStage(CONTRACT_STAGE);
         vo.setImplementationStage(IMPLEMENTATION_STAGE);
         return vo;

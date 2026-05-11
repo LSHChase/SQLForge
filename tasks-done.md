@@ -4,6 +4,30 @@
 
 ## Done
 
+### PRW-004: 实现发布资格策略与验证门禁
+
+- Status: done
+- Completed at: 2026-05-11
+- Commit subject: `PRW-004 implement rewrite publish eligibility gate`
+- Priority: 1
+- Depends on: `PRW-003`,`HARN-135`
+- Scope: 所有发布接口必须调用同一个后端策略服务，页面只能展示策略结果，不能成为核心门禁。 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `sql-optimization`,`application service`,`domain policy`,`tests`.
+- Plan ref: docs/exec-plans/completed/PRW-004-full-auto-execution-plan.md
+- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
+- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
+- Data impact: 读取验证、告警和改写记录状态并产生资格判断；不修改运行时绑定。
+- Rollback / recovery: 回退策略服务和发布入口调用，恢复为不可发布或只读状态。
+- Validation:
+  - `mvn -pl sql-optimization test、python3 scripts/foreman.py validate PRW-004`
+  - `python3 scripts/foreman.py validate PRW-004`
+- Progress log:
+  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented centralized rewrite publish eligibility policy, structured refusal reasons, read-only publish-eligibility API, service conversion, and focused policy/service/controller coverage without mutating runtime bindings.
+  - Validation evidence: mvn -pl sql-optimization -Dtest=RewritePublishEligibilityPolicyTest,AccelerationRewriteContractApplicationServiceTest,SqlRewriteRecordControllerTest test; mvn -pl sql-optimization test; python3 scripts/foreman.py validate PRW-004; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
+  - Residual risk: PRW-006 still owns publish/pause/unpublish actions and query-execution runtime binding mutation; target runtime dialect validation remains conservative datasource evidence until PRW-005/PRW-006 provide runtime binding checks.
+  - Next step: Continue with PRW-005 runtime binding model and PRW-006 publish actions.
+
 ### PRW-003: 实现改写记录审批状态机
 
 - Status: done

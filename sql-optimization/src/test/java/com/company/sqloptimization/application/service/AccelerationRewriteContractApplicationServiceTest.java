@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
@@ -17,6 +18,7 @@ import com.company.sqloptimization.application.controller.dto.RewriteValidationR
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordReviewRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationCandidateVO;
+import com.company.sqloptimization.application.controller.vo.RewritePublishEligibilityVO;
 import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
 import com.company.sqloptimization.application.controller.vo.SqlRewriteRecordVO;
 import com.company.sqloptimization.domain.governance.CandidateType;
@@ -357,6 +359,38 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals("binding-should-stay", approved.getRuntimeBindingId());
         assertEquals("APPROVED", ((Map<?, ?>) approved.getTraceRefs().get("lastReviewTrace")).get("reviewStatus"));
         assertEquals("trace-001", ((Map<?, ?>) approved.getTraceRefs().get("lastReviewTrace")).get("traceId"));
+    }
+
+    @Test
+    void shouldReturnPublishEligibilityFromCentralPolicy() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(repository);
+        setTenant("tenant-a");
+
+        SqlRewriteRecordCreateRequest request = rewriteRecordRequest("tenant-a", "history-eligibility");
+        request.setSqlFingerprint("fp-eligibility");
+        request.setDatasourceCode("HETU");
+        request.setAutoApplyAllowed(Boolean.TRUE);
+        SqlRewriteRecordVO created = service.createRewriteRecord(request);
+        service.reviewRewriteRecord(
+            created.getRewriteRecordId(),
+            reviewRequest("tenant-a", RewriteReviewStatus.APPROVED, "equivalent and approved")
+        );
+        RewriteValidationRunCreateRequest runRequest = new RewriteValidationRunCreateRequest();
+        runRequest.setStatus(ValidationRunStatus.SUCCEEDED);
+        runRequest.setComparisonStatus(ComparisonStatus.EQUIVALENT);
+        runRequest.setDifferenceType(DifferenceType.NONE);
+        runRequest.setAutoApplyPaused(Boolean.FALSE);
+        service.createValidationRun(created.getRewriteRecordId(), runRequest);
+
+        RewritePublishEligibilityVO eligibility = service.getPublishEligibility(created.getRewriteRecordId());
+
+        assertEquals(Boolean.TRUE, eligibility.getEligible());
+        assertEquals("DEFAULT_REWRITE_PUBLISH_ELIGIBILITY", eligibility.getPolicyId());
+        assertEquals("APPROVED", eligibility.getReviewStatus());
+        assertEquals("EQUIVALENT", eligibility.getValidationStatus());
+        assertEquals("UNPUBLISHED", eligibility.getPublishStatus());
+        assertTrue(eligibility.getRefusalReasons().isEmpty());
     }
 
     @Test
