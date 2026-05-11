@@ -11,15 +11,6 @@
 
 ## Todo
 
-### HARN-141: 监控与告警前端联动
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-136`, `HARN-138`, `HARN-140`
-- Scope: 在工作台、推荐中心、SQL 历史展示 validation status、告警入口和自动暂停证据；不得把模拟通知写成真实通知成功。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-141`
-
 ### HARN-142: 加速与改写治理端到端 smoke 与文档收口
 
 - Status: todo

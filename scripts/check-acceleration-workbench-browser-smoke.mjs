@@ -304,10 +304,17 @@ const runBrowserSmoke = async baseUrl => {
       await fulfillJson(route, [
         {
           rewriteRecordId: 'rewrite-138',
-          validationStatus: 'NOT_VALIDATED',
-          alertStatus: 'NONE',
+          validationStatus: 'DIVERGED',
+          alertStatus: 'OPEN',
           autoApplyAllowed: false,
-          manualReviewRequired: true
+          manualReviewRequired: true,
+          traceRefs: {
+            divergenceAlert: {
+              alertType: 'SQL_REWRITE_RESULT_DIVERGENCE',
+              autoApplyPaused: true,
+              linkages: [{ alertId: 'alert-138', alertStatus: 'OPEN' }]
+            }
+          }
         }
       ])
       return
@@ -321,8 +328,14 @@ const runBrowserSmoke = async baseUrl => {
         items: [
           {
             rewriteRecordId: 'rewrite-138',
-            validationStatus: 'NOT_VALIDATED',
-            alertStatus: 'NONE'
+            validationStatus: 'DIVERGED',
+            alertStatus: 'OPEN',
+            traceRefs: {
+              divergenceAlert: {
+                alertType: 'SQL_REWRITE_RESULT_DIVERGENCE',
+                autoApplyPaused: true
+              }
+            }
           }
         ]
       })
@@ -335,9 +348,9 @@ const runBrowserSmoke = async baseUrl => {
         {
           validationRunId: 'validation-138-existing',
           status: 'PENDING',
-          comparisonStatus: 'NOT_COMPARED',
-          differenceType: 'UNKNOWN',
-          autoApplyPaused: false
+          comparisonStatus: 'DIVERGED',
+          differenceType: 'ROW_HASH_MISMATCH',
+          autoApplyPaused: true
         }
       ])
       return
@@ -350,9 +363,9 @@ const runBrowserSmoke = async baseUrl => {
       await fulfillJson(route, {
         validationRunId: 'validation-138',
         status: 'PENDING',
-        comparisonStatus: 'NOT_COMPARED',
-        differenceType: 'UNKNOWN',
-        autoApplyPaused: false
+        comparisonStatus: 'DIVERGED',
+        differenceType: 'ROW_HASH_MISMATCH',
+        autoApplyPaused: true
       })
       return
     }
@@ -396,6 +409,10 @@ const runBrowserSmoke = async baseUrl => {
     await page.getByTestId('acceleration-workbench-history-rewrite-records').click()
     await page.getByTestId('acceleration-workbench-list-validation-runs').click()
     await page.getByTestId('acceleration-workbench-create-validation-run').click()
+    await page.getByTestId('acceleration-workbench-auto-pause-evidence').waitFor({ timeout: defaultTimeoutMs })
+    const pauseEvidenceText = await page.getByTestId('acceleration-workbench-auto-pause-evidence').textContent()
+    assert(pauseEvidenceText.includes('autoApplyPaused'), 'Workbench monitoring tab must expose autoApplyPaused evidence.')
+    assert(pauseEvidenceText.includes('SQL_REWRITE_RESULT_DIVERGENCE'), 'Workbench monitoring tab must expose divergence alert evidence.')
 
     await page.getByRole('tab', { name: /接口证据|Interface evidence/ }).click()
     await page.getByTestId('acceleration-workbench-last-evidence').waitFor({ timeout: defaultTimeoutMs })

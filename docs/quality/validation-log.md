@@ -3610,3 +3610,27 @@
 2026-05-10T22:36:23-05:00 | HARN-140 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-page-contract.mjs (projected-precommit)`
 2026-05-10T22:36:23-05:00 | HARN-140 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `bash -lc 'TMPDIR=.tmp FRONTEND_DEV_SMOKE_TIMEOUT_MS=60000 npm run smoke:frontend-dev' (projected-precommit)`
 2026-05-10T22:36:23-05:00 | HARN-140 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`
+2026-05-10T23:43:51-05:00 | HARN-141 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T23:43:51-05:00 | HARN-141 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T23:44:03-05:00 | HARN-141 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T23:44:03-05:00 | HARN-141 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T23:44:04-05:00 | HARN-141 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-10T23:44:08-05:00 | HARN-141 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-10T23:44:08-05:00 | HARN-141 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-10T23:44:08-05:00 | HARN-141 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-10T23:44:08-05:00 | HARN-141 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-10T23:44:08-05:00 | HARN-141 validate | `R-133`, `R-168` | passed | `node scripts/check-alert-page-contract.mjs`
+2026-05-10T23:44:09-05:00 | HARN-141 validate | `R-133`, `R-168` | passed | `node scripts/check-acceleration-workbench-contract.mjs`
+2026-05-10T23:44:09-05:00 | HARN-141 validate | `R-133`, `R-168` | passed | `node scripts/check-history-page-contract.mjs`
+2026-05-10T23:44:09-05:00 | HARN-141 validate | `R-133`, `R-168` | passed | `node scripts/check-recommendation-page-contract.mjs`
+2026-05-10T23:44:14-05:00 | HARN-141 validate | `R-133`, `R-168` | passed | `npm run smoke:acceleration-workbench`
+2026-05-10T23:45:49-05:00 | HARN-141 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T23:45:49-05:00 | HARN-141 closeout commit | `R-168` | projected | `git commit -m 'feat(frontend): link rewrite monitoring alerts' (projected-precommit)`
+2026-05-10T23:45:49-05:00 | HARN-141 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-10T23:45:49-05:00 | HARN-141 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-alert-page-contract.mjs (projected-precommit)`
+2026-05-10T23:45:49-05:00 | HARN-141 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-acceleration-workbench-contract.mjs (projected-precommit)`
+2026-05-10T23:45:49-05:00 | HARN-141 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-page-contract.mjs (projected-precommit)`
+2026-05-10T23:45:49-05:00 | HARN-141 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-recommendation-page-contract.mjs (projected-precommit)`
+2026-05-10T23:45:49-05:00 | HARN-141 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run test:frontend-page-governance (projected-precommit)`
+2026-05-10T23:45:49-05:00 | HARN-141 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:acceleration-workbench (projected-precommit)`
+2026-05-10T23:45:49-05:00 | HARN-141 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`

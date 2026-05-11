@@ -1,37 +1,62 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import CapabilityPlaceholderDialog from '../common/CapabilityPlaceholderDialog.vue'
 import EvidencePanel from '../common/EvidencePanel.vue'
 import MetricCard from '../common/MetricCard.vue'
 import SectionHeader from '../common/SectionHeader.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
 import {
+  ackGovernanceAlert,
   formatRuntimeError,
-  getDispatchEvents,
-  getGovernanceMessageStats,
-  getParseStatisticsImportantUrgent
+  getGovernanceAlertDetail,
+  getGovernanceAlerts
 } from '../../services/runtimeGateApi'
 
-const ACK_STORAGE_KEY = 'sqlforge-alert-center-acks'
 const backendReadPath = 'GET /api/governance/alerts'
+const notificationBoundaryText = 'SIMULATED_EMAIL / SIMULATED_SENT / DEDUPE_SUPPRESSED'
+const alertStatusOptions = ['', 'OPEN', 'ACKED']
+const notifyStatusOptions = ['', 'SIMULATED_PENDING_NOTIFY', 'SIMULATED_NOTIFIED', 'SIMULATED_NOTIFY_FAILED']
+const alertTypeOptions = [
+  '',
+  'SQL_REWRITE_RESULT_DIVERGENCE',
+  'BENCHMARK_REGRESSION_FAILED',
+  'DISPATCH_COORDINATION_FAILED',
+  'AUDIT_WRITE_EXCEPTION',
+  'DATASOURCE_UNAVAILABLE',
+  'DEPENDENCY_SERVICE_UNAVAILABLE'
+]
 
 const { t } = useI18n()
+const route = useRoute()
 
 const form = reactive({
-  tenantId: 'tenant-a'
+  tenantId: 'tenant-a',
+  alertStatus: '',
+  alertType: '',
+  notifyStatus: '',
+  pageNo: 1,
+  pageSize: 8
 })
 
 const loading = reactive({
-  page: false
+  page: false,
+  detail: false,
+  ack: false
 })
 
-const messageStats = ref(null)
-const dispatchEvents = ref([])
-const importantUrgentItems = ref([])
+const alertPage = ref({
+  items: [],
+  pageNo: 1,
+  pageSize: 8,
+  total: 0,
+  hasNext: false
+})
 const selectedAlertId = ref('')
-const acknowledgedIds = ref([])
+const selectedAlertDetail = ref(null)
 const errorMessage = ref('')
+const detailErrorMessage = ref('')
 const placeholderDialogVisible = ref(false)
 const placeholderPayload = ref({
   title: '',
@@ -40,102 +65,52 @@ const placeholderPayload = ref({
   nextStep: ''
 })
 
-const loadAcknowledgements = () => {
-  try {
-    const raw = window.localStorage.getItem(ACK_STORAGE_KEY)
-    const parsed = raw ? JSON.parse(raw) : []
-    acknowledgedIds.value = Array.isArray(parsed) ? parsed : []
-  } catch (error) {
-    acknowledgedIds.value = []
-  }
-}
-
-const persistAcknowledgements = () => {
-  window.localStorage.setItem(ACK_STORAGE_KEY, JSON.stringify(acknowledgedIds.value))
-}
-
-const derivedAlerts = computed(() => {
-  const alerts = []
-  const stats = messageStats.value
-  if (stats && ((stats.failed || 0) > 0 || (stats.pending || 0) > 0)) {
-    alerts.push({
-      alertId: 'derived-governance-backlog',
-      sourceType: 'MESSAGE_BACKLOG',
-      severity: (stats.failed || 0) > 0 ? 'HIGH' : 'MEDIUM',
-      title: t('alertCenter.derived.backlogTitle'),
-      summary: t('alertCenter.derived.backlogSummary', {
-        failed: stats.failed || 0,
-        pending: stats.pending || 0
-      }),
-      notifyStatus: 'SIMULATED_PENDING_NOTIFY',
-      evidence: stats
-    })
-  }
-
-  for (const item of dispatchEvents.value) {
-    const status = String(item.status || '').toUpperCase()
-    if (!['FAILED', 'PULLED', 'PUBLISHED'].includes(status)) {
-      continue
-    }
-    alerts.push({
-      alertId: `dispatch-${item.dispatchEventId}`,
-      sourceType: 'DISPATCH_EVENT',
-      severity: status === 'FAILED' ? 'HIGH' : 'MEDIUM',
-      title: t('alertCenter.derived.dispatchTitle'),
-      summary: `${item.dispatchEventId} · ${status} · ${item.resultMessage || '-'}`,
-      notifyStatus: status === 'FAILED' ? 'SIMULATED_NOTIFIED' : 'SIMULATED_PENDING_NOTIFY',
-      evidence: item
-    })
-  }
-
-  for (const item of importantUrgentItems.value) {
-    alerts.push({
-      alertId: `parse-${item.itemId || item.parseTaskId || item.sqlDigest}`,
-      sourceType: 'IMPORTANT_URGENT_SQL',
-      severity: item.urgent ? 'HIGH' : 'MEDIUM',
-      title: t('alertCenter.derived.parseTitle'),
-      summary: `${item.reportCode || '-'} · ${item.highestPriorityLevel || '-'} · ${item.issueCount || 0} issues`,
-      notifyStatus: item.urgent ? 'SIMULATED_NOTIFIED' : 'SIMULATED_PENDING_NOTIFY',
-      evidence: item
-    })
-  }
-
-  return alerts
-    .sort(compareAlertSeverity)
-    .map(item => ({
-      ...item,
-      ackStatus: acknowledgedIds.value.includes(item.alertId) ? 'ACK_SIMULATED' : 'OPEN',
-      ackMode: 'FRONTEND_SIMULATED'
-    }))
-})
+const alertRows = computed(() => alertPage.value.items || [])
 
 const alertSummaryCards = computed(() => [
   {
     key: 'total',
     label: t('alertCenter.metrics.total'),
-    value: derivedAlerts.value.length
+    value: alertPage.value.total ?? alertRows.value.length
   },
   {
     key: 'open',
     label: t('alertCenter.metrics.open'),
-    value: derivedAlerts.value.filter(item => item.ackStatus === 'OPEN').length,
+    value: alertRows.value.filter(item => item.alertStatus === 'OPEN').length,
     tone: 'warning'
   },
   {
     key: 'high',
     label: t('alertCenter.metrics.high'),
-    value: derivedAlerts.value.filter(item => item.severity === 'HIGH').length,
+    value: alertRows.value.filter(item => ['HIGH', 'CRITICAL'].includes(item.alertLevel)).length,
     tone: 'danger'
   },
   {
     key: 'simulated',
     label: t('alertCenter.metrics.simulated'),
-    value: derivedAlerts.value.filter(item => item.notifyStatus === 'SIMULATED_NOTIFIED').length
+    value: alertRows.value.filter(item => String(item.notifyStatus || '').startsWith('SIMULATED')).length
   }
 ])
 
 const selectedAlert = computed(() =>
-  derivedAlerts.value.find(item => item.alertId === selectedAlertId.value) || null
+  selectedAlertDetail.value || alertRows.value.find(item => item.alertId === selectedAlertId.value) || null
+)
+
+const selectedNotificationLogs = computed(() => selectedAlert.value?.notificationLogs || [])
+
+const routeContextRows = computed(() =>
+  ['recommendationId', 'historyId', 'rewriteRecordId', 'validationRunId', 'sqlFingerprint']
+    .map(key => field(key, t(`alertCenter.fields.${key}`), route.query[key]))
+    .filter(item => item.value !== '-')
+)
+
+const autoApplyPausedText = computed(() =>
+  boolText(firstDefined(
+    selectedAlert.value?.evidence?.autoApplyPaused,
+    selectedAlert.value?.evidence?.validationRun?.autoApplyPaused,
+    selectedAlert.value?.evidence?.rewriteRecord?.autoApplyPaused,
+    selectedAlert.value?.evidence?.autoApplyPauseEvidence?.autoApplyPaused
+  ))
 )
 
 const openPlaceholderAction = actionType => {
@@ -155,29 +130,29 @@ const openPlaceholderAction = actionType => {
   placeholderDialogVisible.value = true
 }
 
-const refreshAlerts = async () => {
+const refreshAlerts = async ({ preserveSelection = false } = {}) => {
   loading.page = true
   errorMessage.value = ''
   try {
-    const [stats, events, importantUrgent] = await Promise.all([
-      getGovernanceMessageStats(form.tenantId, {
-        requestPrefix: 'frontend-alert-center-message-stats'
-      }),
-      getDispatchEvents(form.tenantId, '', {
-        requestPrefix: 'frontend-alert-center-dispatch-events'
-      }),
-      getParseStatisticsImportantUrgent(form.tenantId, {
-        requestPrefix: 'frontend-alert-center-important-urgent'
-      })
-    ])
-    messageStats.value = stats
-    dispatchEvents.value = Array.isArray(events) ? events : []
-    importantUrgentItems.value = Array.isArray(importantUrgent) ? importantUrgent : []
+    const response = await getGovernanceAlerts(form.tenantId, {
+      alertStatus: form.alertStatus,
+      alertType: form.alertType,
+      notifyStatus: form.notifyStatus,
+      pageNo: form.pageNo,
+      pageSize: form.pageSize
+    }, {
+      requestPrefix: 'frontend-alert-center-alerts'
+    })
+    alertPage.value = normalizeAlertPage(response)
 
-    if (!selectedAlertId.value && derivedAlerts.value.length) {
-      selectedAlertId.value = derivedAlerts.value[0].alertId
-    } else if (selectedAlertId.value && !derivedAlerts.value.some(item => item.alertId === selectedAlertId.value)) {
-      selectedAlertId.value = derivedAlerts.value[0]?.alertId || ''
+    const requestedId = preserveSelection ? selectedAlertId.value : String(route.query.alertId || '')
+    const nextSelectedId = requestedId || alertRows.value[0]?.alertId || ''
+    if (nextSelectedId) {
+      selectedAlertId.value = nextSelectedId
+      await loadAlertDetail(nextSelectedId)
+    } else {
+      selectedAlertId.value = ''
+      selectedAlertDetail.value = null
     }
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
@@ -186,39 +161,124 @@ const refreshAlerts = async () => {
   }
 }
 
-const acknowledgeAlert = alertId => {
-  if (!alertId || acknowledgedIds.value.includes(alertId)) {
+const loadAlertDetail = async alertId => {
+  if (!alertId) {
     return
   }
-  acknowledgedIds.value = [...acknowledgedIds.value, alertId]
-  persistAcknowledgements()
-}
-
-const clearAcknowledgement = alertId => {
-  acknowledgedIds.value = acknowledgedIds.value.filter(item => item !== alertId)
-  persistAcknowledgements()
-}
-
-const compareAlertSeverity = (left, right) => {
-  const rank = {
-    HIGH: 2,
-    MEDIUM: 1,
-    LOW: 0
+  loading.detail = true
+  detailErrorMessage.value = ''
+  try {
+    selectedAlertDetail.value = await getGovernanceAlertDetail(form.tenantId, alertId, {
+      requestPrefix: 'frontend-alert-center-detail'
+    })
+  } catch (error) {
+    detailErrorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.detail = false
   }
-  return (rank[right.severity] || 0) - (rank[left.severity] || 0)
+}
+
+const selectAlert = item => {
+  selectedAlertId.value = item.alertId
+  selectedAlertDetail.value = null
+  loadAlertDetail(item.alertId)
+}
+
+const acknowledgeAlert = async () => {
+  if (!selectedAlertId.value || selectedAlert.value?.alertStatus !== 'OPEN') {
+    return
+  }
+  loading.ack = true
+  detailErrorMessage.value = ''
+  try {
+    const response = await ackGovernanceAlert(form.tenantId, selectedAlertId.value, {
+      requestPrefix: 'frontend-alert-center-ack'
+    })
+    selectedAlertDetail.value = response
+    alertPage.value = {
+      ...alertPage.value,
+      items: alertRows.value.map(item => item.alertId === response.alertId ? { ...item, ...response } : item)
+    }
+  } catch (error) {
+    detailErrorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.ack = false
+  }
+}
+
+const handlePageChange = pageNo => {
+  form.pageNo = pageNo
+  refreshAlerts()
+}
+
+const handlePageSizeChange = pageSize => {
+  form.pageSize = pageSize
+  form.pageNo = 1
+  refreshAlerts()
+}
+
+const applyRouteQuery = () => {
+  form.tenantId = String(route.query.tenantId || form.tenantId)
+  form.alertStatus = String(route.query.alertStatus || form.alertStatus)
+  form.alertType = String(route.query.alertType || form.alertType)
+  form.notifyStatus = String(route.query.notifyStatus || form.notifyStatus)
+  selectedAlertId.value = String(route.query.alertId || '')
 }
 
 const formatJson = value => JSON.stringify(value, null, 2)
+const formatTimestamp = value => displayValue(value)
+
+const normalizeAlertPage = response => ({
+  items: Array.isArray(response?.items) ? response.items : [],
+  pageNo: response?.pageNo || form.pageNo,
+  pageSize: response?.pageSize || form.pageSize,
+  total: response?.total ?? (Array.isArray(response?.items) ? response.items.length : 0),
+  hasNext: Boolean(response?.hasNext)
+})
+
+const statusClass = value => ({
+  'status-pill': true,
+  'status-pill-ok': value === 'ACKED',
+  'status-pill-warn': value === 'OPEN',
+  'status-pill-danger': ['CRITICAL', 'HIGH', 'SIMULATED_NOTIFY_FAILED'].includes(value)
+})
+
+function field(key, label, value) {
+  return { key, label, value: displayValue(value) }
+}
+
+function displayValue(value) {
+  if (value === null || value === undefined || String(value).trim() === '') {
+    return '-'
+  }
+  return String(value)
+}
+
+function boolText(value) {
+  if (value === true) {
+    return 'true'
+  }
+  if (value === false) {
+    return 'false'
+  }
+  return '-'
+}
+
+function firstDefined(...values) {
+  return values.find(value => value !== null && value !== undefined)
+}
 
 watch(
-  () => form.tenantId,
+  () => [form.tenantId, form.alertStatus, form.alertType, form.notifyStatus],
   () => {
     selectedAlertId.value = ''
+    selectedAlertDetail.value = null
+    form.pageNo = 1
   }
 )
 
 onMounted(() => {
-  loadAcknowledgements()
+  applyRouteQuery()
   refreshAlerts()
 })
 </script>
@@ -240,6 +300,39 @@ onMounted(() => {
       <label class="alert-field">
         <span>{{ t('governanceTrace.tenantContext') }}</span>
         <el-input v-model.trim="form.tenantId" data-testid="alert-tenant-id" />
+      </label>
+      <label class="alert-field">
+        <span>{{ t('alertCenter.fields.alertStatus') }}</span>
+        <el-select v-model="form.alertStatus" data-testid="alert-status-filter">
+          <el-option
+            v-for="item in alertStatusOptions"
+            :key="item || 'all-status'"
+            :label="item || t('alertCenter.options.all')"
+            :value="item"
+          />
+        </el-select>
+      </label>
+      <label class="alert-field">
+        <span>{{ t('alertCenter.fields.alertType') }}</span>
+        <el-select v-model="form.alertType" filterable data-testid="alert-type-filter">
+          <el-option
+            v-for="item in alertTypeOptions"
+            :key="item || 'all-type'"
+            :label="item || t('alertCenter.options.all')"
+            :value="item"
+          />
+        </el-select>
+      </label>
+      <label class="alert-field">
+        <span>{{ t('alertCenter.fields.notifyStatus') }}</span>
+        <el-select v-model="form.notifyStatus" data-testid="alert-notify-status-filter">
+          <el-option
+            v-for="item in notifyStatusOptions"
+            :key="item || 'all-notify'"
+            :label="item || t('alertCenter.options.all')"
+            :value="item"
+          />
+        </el-select>
       </label>
       <el-button type="primary" :loading="loading.page" data-testid="alert-refresh" @click="refreshAlerts">
         {{ t('alertCenter.actions.refresh') }}
@@ -264,80 +357,167 @@ onMounted(() => {
       />
     </section>
 
+    <section v-if="routeContextRows.length" class="context-panel" data-testid="alert-linkage-context">
+      <div v-for="item in routeContextRows" :key="item.key" class="context-cell">
+        <span>{{ item.label }}</span>
+        <strong>{{ item.value }}</strong>
+      </div>
+    </section>
+
     <div class="alert-grid">
-      <EvidencePanel eyebrow="derived alerts" :title="t('alertCenter.listTitle')" tone="warning">
+      <EvidencePanel eyebrow="backend alerts" :title="t('alertCenter.listTitle')" tone="warning">
         <div class="alert-list">
           <button
-            v-for="item in derivedAlerts"
+            v-for="item in alertRows"
             :key="item.alertId"
             type="button"
             class="alert-item"
             :class="{ 'alert-item-active': selectedAlertId === item.alertId }"
             data-testid="alert-item"
-            @click="selectedAlertId = item.alertId"
+            @click="selectAlert(item)"
           >
             <div class="alert-item-header">
               <div>
-                <p class="alert-source sqlforge-code-label">{{ item.sourceType }}</p>
-                <h3>{{ item.title }}</h3>
+                <p class="alert-source sqlforge-code-label">{{ item.sourceService || '-' }}</p>
+                <h3>{{ item.alertType }}</h3>
               </div>
-              <span class="status-pill" :class="{ 'status-pill-warn': item.severity === 'HIGH' }">
-                {{ item.severity }}
+              <span :class="statusClass(item.alertLevel)">
+                {{ item.alertLevel }}
               </span>
             </div>
             <p class="alert-summary">{{ item.summary }}</p>
             <div class="pill-row">
-              <span class="mini-pill">{{ item.ackStatus }}</span>
+              <span class="mini-pill">{{ item.alertStatus }}</span>
               <span class="mini-pill">{{ item.notifyStatus }}</span>
-              <span class="mini-pill">{{ item.ackMode }}</span>
+              <span class="mini-pill">{{ formatTimestamp(item.createdAt) }}</span>
             </div>
           </button>
+          <el-empty v-if="!alertRows.length" :description="t('alertCenter.messages.noAlert')" />
         </div>
+        <el-pagination
+          class="alert-pagination"
+          background
+          layout="total, sizes, prev, pager, next"
+          :current-page="alertPage.pageNo"
+          :page-size="alertPage.pageSize"
+          :page-sizes="[8, 16, 32]"
+          :total="alertPage.total"
+          data-testid="alert-pagination"
+          @current-change="handlePageChange"
+          @size-change="handlePageSizeChange"
+        />
       </EvidencePanel>
 
       <EvidencePanel data-testid="alert-detail" eyebrow="alert detail" :title="t('alertCenter.detailTitle')">
+        <p v-if="detailErrorMessage" class="error-banner" data-testid="alert-detail-error">{{ detailErrorMessage }}</p>
         <p v-if="!selectedAlert" class="empty-state">
           {{ t('alertCenter.messages.noAlert') }}
         </p>
 
         <template v-else>
-          <div class="alert-detail-grid">
+          <div v-loading="loading.detail" class="alert-detail-grid">
             <div class="alert-detail-item">
               <span>{{ t('alertCenter.fields.alertId') }}</span>
               <strong>{{ selectedAlert.alertId }}</strong>
             </div>
             <div class="alert-detail-item">
-              <span>{{ t('alertCenter.fields.ackStatus') }}</span>
-              <strong data-testid="alert-ack-status">{{ selectedAlert.ackStatus }}</strong>
+              <span>{{ t('alertCenter.fields.alertType') }}</span>
+              <strong>{{ selectedAlert.alertType }}</strong>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.alertLevel') }}</span>
+              <strong>{{ selectedAlert.alertLevel }}</strong>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.alertStatus') }}</span>
+              <strong data-testid="alert-ack-status">{{ selectedAlert.alertStatus }}</strong>
             </div>
             <div class="alert-detail-item">
               <span>{{ t('alertCenter.fields.notifyStatus') }}</span>
               <strong data-testid="alert-notify-status">{{ selectedAlert.notifyStatus }}</strong>
             </div>
             <div class="alert-detail-item">
-              <span>{{ t('alertCenter.fields.ackMode') }}</span>
-              <strong>{{ selectedAlert.ackMode }}</strong>
+              <span>{{ t('alertCenter.fields.notifyBoundary') }}</span>
+              <strong data-testid="alert-notify-boundary">{{ notificationBoundaryText }}</strong>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.sourceService') }}</span>
+              <strong>{{ displayValue(selectedAlert.sourceService) }}</strong>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.policyId') }}</span>
+              <strong>{{ displayValue(selectedAlert.policyId) }}</strong>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.dedupeKey') }}</span>
+              <strong>{{ displayValue(selectedAlert.dedupeKey) }}</strong>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.recommendationId') }}</span>
+              <strong>{{ displayValue(selectedAlert.recommendationId) }}</strong>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.historyId') }}</span>
+              <strong>{{ displayValue(selectedAlert.historyId) }}</strong>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.sqlFingerprint') }}</span>
+              <strong>{{ displayValue(selectedAlert.sqlFingerprint) }}</strong>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.autoApplyPaused') }}</span>
+              <strong data-testid="alert-auto-apply-paused">{{ autoApplyPausedText }}</strong>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.notifiedAt') }}</span>
+              <strong>{{ formatTimestamp(selectedAlert.notifiedAt) }}</strong>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.ackedBy') }}</span>
+              <strong>{{ displayValue(selectedAlert.ackedBy) }}</strong>
+            </div>
+            <div class="alert-detail-item">
+              <span>{{ t('alertCenter.fields.ackedAt') }}</span>
+              <strong>{{ formatTimestamp(selectedAlert.ackedAt) }}</strong>
             </div>
           </div>
 
           <div class="action-row">
             <el-button
               type="primary"
+              :loading="loading.ack"
               data-testid="alert-ack"
-              :disabled="selectedAlert.ackStatus === 'ACK_SIMULATED'"
-              @click="acknowledgeAlert(selectedAlert.alertId)"
+              :disabled="selectedAlert.alertStatus !== 'OPEN'"
+              @click="acknowledgeAlert"
             >
               {{ t('alertCenter.actions.ack') }}
             </el-button>
-            <el-button
-              :disabled="selectedAlert.ackStatus !== 'ACK_SIMULATED'"
-              @click="clearAcknowledgement(selectedAlert.alertId)"
-            >
-              {{ t('alertCenter.actions.clearAck') }}
-            </el-button>
           </div>
 
-          <pre class="code-block">{{ formatJson(selectedAlert.evidence) }}</pre>
+          <section class="notification-section" data-testid="alert-notification-log">
+            <div class="alert-section-heading">
+              <h3>{{ t('alertCenter.sections.notificationLogs') }}</h3>
+              <span class="mini-pill">{{ selectedNotificationLogs.length }}</span>
+            </div>
+            <article v-for="item in selectedNotificationLogs" :key="item.notificationLogId" class="notification-log-row">
+              <div class="pill-row">
+                <span class="mini-pill">{{ item.deliveryStatus }}</span>
+                <span class="mini-pill">{{ item.notifyChannel }}</span>
+                <span class="mini-pill">{{ item.templateCode }}</span>
+              </div>
+              <p>{{ displayValue(item.deliverySummary || item.messageSubject || item.messageBody) }}</p>
+              <pre class="code-block code-block-compact">{{ formatJson(item.payload || {}) }}</pre>
+            </article>
+            <el-empty v-if="!selectedNotificationLogs.length" :description="t('alertCenter.messages.noNotificationLog')" />
+          </section>
+
+          <section class="notification-section">
+            <div class="alert-section-heading">
+              <h3>{{ t('alertCenter.sections.evidence') }}</h3>
+              <span class="mini-pill">autoApplyPaused {{ autoApplyPausedText }}</span>
+            </div>
+            <pre class="code-block" data-testid="alert-evidence">{{ formatJson(selectedAlert.evidence || {}) }}</pre>
+          </section>
         </template>
       </EvidencePanel>
     </div>
@@ -369,13 +549,45 @@ onMounted(() => {
 }
 
 .summary-grid,
-.alert-grid {
+.alert-grid,
+.context-panel {
   display: grid;
   gap: var(--sqlforge-space-5);
 }
 
 .summary-grid {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.context-panel {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  padding: var(--sqlforge-space-4);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-md);
+  background: var(--sqlforge-surface-1);
+}
+
+.context-cell {
+  min-width: 0;
+}
+
+.context-cell span,
+.context-cell strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.context-cell span {
+  color: var(--sqlforge-text-secondary);
+  font-size: 12px;
+}
+
+.context-cell strong {
+  margin-top: var(--sqlforge-space-2);
+  color: var(--sqlforge-text-primary);
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .alert-grid {
@@ -439,7 +651,12 @@ onMounted(() => {
   border-color: rgba(207, 166, 62, 0.32);
 }
 
+.alert-pagination {
+  margin-top: var(--sqlforge-space-4);
+}
+
 .alert-item-header,
+.alert-section-heading,
 .pill-row,
 .action-row {
   display: flex;
@@ -453,10 +670,22 @@ onMounted(() => {
 }
 
 .alert-source,
+.alert-section-heading h3,
 .alert-item h3,
+.notification-log-row p,
 .alert-summary,
 .empty-state {
   margin: 0;
+}
+
+.alert-section-heading {
+  justify-content: space-between;
+}
+
+.alert-section-heading h3 {
+  color: var(--sqlforge-text-primary);
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .alert-item h3 {
@@ -495,6 +724,16 @@ onMounted(() => {
   color: #ffd6d6;
 }
 
+.status-pill-danger {
+  border-color: rgba(212, 96, 96, 0.45);
+  color: #ffd6d6;
+}
+
+.status-pill-ok {
+  border-color: rgba(62, 207, 142, 0.38);
+  color: #bdf7d6;
+}
+
 .result-banner {
   padding: var(--sqlforge-space-4);
   border: 1px solid var(--sqlforge-border-default);
@@ -505,6 +744,32 @@ onMounted(() => {
 .result-banner-danger {
   border-color: rgba(212, 96, 96, 0.35);
   color: #ffd6d6;
+}
+
+.error-banner {
+  margin: 0 0 var(--sqlforge-space-4);
+  padding: var(--sqlforge-space-3);
+  border: 1px solid rgba(212, 96, 96, 0.35);
+  border-radius: var(--sqlforge-radius-md);
+  color: #ffd6d6;
+}
+
+.notification-section,
+.notification-log-row {
+  margin-top: var(--sqlforge-space-4);
+}
+
+.notification-log-row {
+  padding: var(--sqlforge-space-4);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-md);
+  background: var(--sqlforge-bg-page-deep);
+}
+
+.notification-log-row p {
+  margin-top: var(--sqlforge-space-3);
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.6;
 }
 
 .code-block {
@@ -519,6 +784,11 @@ onMounted(() => {
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.code-block-compact {
+  margin-top: var(--sqlforge-space-3);
+  max-height: 180px;
 }
 
 @media (max-width: 1100px) {

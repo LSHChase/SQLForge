@@ -832,6 +832,25 @@ const openRecommendationCenter = recommendationId => {
   })
 }
 
+const openAlertCenterForRewriteRecord = record => {
+  if (!record) {
+    return
+  }
+  router.push({
+    path: ROUTE_PATHS.alertCenter,
+    query: {
+      tenantId: requestTenantId.value,
+      alertType: 'SQL_REWRITE_RESULT_DIVERGENCE',
+      alertStatus: record.alertStatus === 'NONE' ? '' : record.alertStatus,
+      recommendationId: record.recommendationId || '',
+      historyId: record.historyId || selectedHistoryDetail.value?.historyId || '',
+      rewriteRecordId: record.rewriteRecordId || '',
+      validationRunId: record.lastValidationRunId || '',
+      sqlFingerprint: record.sqlFingerprint || ''
+    }
+  })
+}
+
 const runIndexedLookup = async () => {
   if (!hasLookupCriteria.value) {
     workflowErrorMessage.value = t('sqlHistory.messages.lookupRequired')
@@ -1018,6 +1037,27 @@ const objectValue = value => {
     return value
   }
   return {}
+}
+
+const rewriteRecordAutoApplyPaused = record =>
+  firstValue(
+    record?.autoApplyPaused,
+    record?.traceRefs?.autoApplyPaused,
+    record?.traceRefs?.divergenceAlert?.autoApplyPaused,
+    record?.traceRefs?.autoApplyPauseEvidence?.autoApplyPaused
+  )
+
+const rewriteRecordAlertRefs = record => {
+  const refs = firstValue(
+    record?.alertRefs,
+    record?.traceRefs?.alertRefs,
+    record?.traceRefs?.divergenceAlert?.linkages,
+    record?.traceRefs?.divergenceAlert
+  )
+  if (Array.isArray(refs)) {
+    return refs
+  }
+  return refs && typeof refs === 'object' ? [refs] : []
 }
 
 const isNonEmpty = value => {
@@ -1371,7 +1411,23 @@ watch(
                 <el-table-column :label="t('sqlHistory.rewriteRecords.lastComparedAt')" min-width="170">
                   <template #default="{ row }">{{ formatTimestamp(row.lastComparedAt) }}</template>
                 </el-table-column>
-                <el-table-column prop="alertStatus" :label="t('sqlHistory.rewriteRecords.alertStatus')" min-width="130" />
+                <el-table-column :label="t('sqlHistory.rewriteRecords.alertStatus')" min-width="150">
+                  <template #default="{ row }">
+                    <button
+                      v-if="row.alertStatus && row.alertStatus !== 'NONE'"
+                      type="button"
+                      class="table-link"
+                      data-testid="sql-history-rewrite-record-alert-link"
+                      @click="openAlertCenterForRewriteRecord(row)"
+                    >
+                      {{ row.alertStatus }}
+                    </button>
+                    <span v-else>{{ displayValue(row.alertStatus) }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column :label="t('sqlHistory.rewriteRecords.autoApplyPaused')" min-width="160">
+                  <template #default="{ row }">{{ displayValue(booleanDisplay(rewriteRecordAutoApplyPaused(row))) }}</template>
+                </el-table-column>
                 <template #empty>
                   <el-empty :description="t('sqlHistory.states.noRewriteRecords')" />
                 </template>
@@ -1406,6 +1462,14 @@ watch(
                   <div class="detail-grid__item">
                     <span>{{ t('sqlHistory.rewriteRecords.manualReviewRequired') }}</span>
                     <strong>{{ displayValue(booleanDisplay(record.manualReviewRequired)) }}</strong>
+                  </div>
+                  <div class="detail-grid__item">
+                    <span>{{ t('sqlHistory.rewriteRecords.autoApplyPaused') }}</span>
+                    <strong data-testid="sql-history-rewrite-record-auto-apply-paused">{{ displayValue(booleanDisplay(rewriteRecordAutoApplyPaused(record))) }}</strong>
+                  </div>
+                  <div class="detail-grid__item">
+                    <span>{{ t('sqlHistory.rewriteRecords.alertRefs') }}</span>
+                    <strong>{{ rewriteRecordAlertRefs(record).length }}</strong>
                   </div>
                 </div>
                 <div class="code-grid">
@@ -1445,6 +1509,10 @@ watch(
                   <article class="code-card">
                     <div class="code-card__header">{{ t('sqlHistory.rewriteRecords.traceRefs') }}</div>
                     <pre class="code-block">{{ formatJson(record.traceRefs || {}) }}</pre>
+                  </article>
+                  <article class="code-card" data-testid="sql-history-rewrite-record-alert-refs">
+                    <div class="code-card__header">{{ t('sqlHistory.rewriteRecords.alertRefs') }}</div>
+                    <pre class="code-block">{{ formatJson(rewriteRecordAlertRefs(record)) }}</pre>
                   </article>
                 </div>
               </article>

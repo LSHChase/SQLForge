@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-141: 监控与告警前端联动
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(frontend): link rewrite monitoring alerts`
+- Priority: 1
+- Depends on: `HARN-136`, `HARN-138`, `HARN-140`
+- Scope: 在工作台、推荐中心、SQL 历史展示 validation status、告警入口和自动暂停证据；不得把模拟通知写成真实通知成功。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-141`
+- Context closeout:
+  - Completed scope: Alert center now consumes backend governance alert list/detail/ACK APIs; workbench, recommendation center, and SQL history expose validation status, alert entry points, alert refs, and autoApplyPaused evidence while keeping simulated notification states explicit.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-141 with alert/history/workbench/recommendation contract extras and acceleration workbench browser smoke passed; python3 scripts/task_audit.py --check --phase pre-closeout passed; before screenshot equivalent: pre-change HARN-140/HARN-141 frontend contract baseline inspected; after screenshot: .codex-log/harn-141/after-alert-center.png; Codex visual self-review / 读图 completed, visual review passed with no visual drift.
+  - Residual risk: Browser smoke and after screenshot use repo-closed mocked API responses, not a live backend; external Hetu/MRS evidence remains HARN-016 / INBOX-002, and notification delivery remains simulated rather than real email.
+  - Next step: Proceed to HARN-142 end-to-end repo-closed smoke and documentation closeout.
+
 ### HARN-140: SQL 历史改写记录 tab 与筛选
 
 - Status: done

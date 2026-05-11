@@ -103,6 +103,31 @@ const buildRewriteRecordsQuery = filters => {
   return query ? `?${query}` : ''
 }
 
+const buildGovernanceAlertsQuery = (tenantId, filters = {}) => {
+  const params = new URLSearchParams()
+  const normalizedTenantId = normalizeTenantId(tenantId)
+  if (normalizedTenantId) {
+    params.set('tenantId', normalizedTenantId)
+  }
+  const enumFilterKeys = ['alertStatus', 'alertType', 'notifyStatus']
+  enumFilterKeys.forEach(key => {
+    const value = String(filters?.[key] || '').trim()
+    if (value) {
+      params.set(key, value)
+    }
+  })
+  const pageNo = Number(filters?.pageNo)
+  const pageSize = Number(filters?.pageSize)
+  if (Number.isFinite(pageNo) && pageNo > 0) {
+    params.set('pageNo', String(pageNo))
+  }
+  if (Number.isFinite(pageSize) && pageSize > 0) {
+    params.set('pageSize', String(pageSize))
+  }
+  const query = params.toString()
+  return query ? `?${query}` : ''
+}
+
 const devProxyHeaders = (tenantId, options = {}) => {
   const {
     requestPrefix = 'frontend-runtime',
@@ -313,6 +338,39 @@ export const getGovernanceMessageStats = (tenantId, requestOptions = {}) =>
     tenantId,
     requestOptions: {
       requestPrefix: 'frontend-governance-message-stats',
+      ...requestOptions
+    }
+  })
+
+export const getGovernanceAlerts = (tenantId, filters = {}, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/governance/alerts${buildGovernanceAlertsQuery(tenantId, filters)}`,
+    tenantId: normalizeTenantId(tenantId),
+    requestOptions: {
+      requestPrefix: 'frontend-governance-alerts',
+      ...requestOptions
+    }
+  })
+
+export const getGovernanceAlertDetail = (tenantId, alertId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/governance/alerts/${encodeURIComponent(alertId)}${buildTenantQuerySuffix(tenantId)}`,
+    tenantId: normalizeTenantId(tenantId),
+    requestOptions: {
+      requestPrefix: 'frontend-governance-alert-detail',
+      ...requestOptions
+    }
+  })
+
+export const ackGovernanceAlert = (tenantId, alertId, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/governance/alerts/${encodeURIComponent(alertId)}/ack${buildTenantQuerySuffix(tenantId)}`,
+    tenantId: normalizeTenantId(tenantId),
+    requestOptions: {
+      requestPrefix: 'frontend-governance-alert-ack',
       ...requestOptions
     }
   })

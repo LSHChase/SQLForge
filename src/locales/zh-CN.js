@@ -610,6 +610,8 @@ export default {
       lastValidationRunId: '最近验证 Run',
       lastComparedAt: '最近比对时间',
       alertStatus: '告警状态',
+      autoApplyPaused: '自动应用暂停',
+      alertRefs: '告警引用',
       parseHistoryId: '解析历史 ID',
       sqlFingerprint: 'SQL 指纹',
       manualReviewRequired: '需要人工复核',
@@ -1166,7 +1168,8 @@ export default {
       refresh: '刷新推荐中心',
       openRouting: '打开路由治理',
       openParse: '打开 SQL解析',
-      openHistory: '打开历史页'
+      openHistory: '打开历史页',
+      openAlertCenter: '打开告警中心'
     },
     list: {
       eyebrow: '推荐分类',
@@ -1189,6 +1192,8 @@ export default {
       recommendedSql: '推荐 SQL',
       validationMethod: '验证方法',
       validationStatus: '验证状态',
+      alertStatus: '告警状态',
+      alertRefs: '告警引用',
       manualReviewRequired: '需要人工复核',
       autoApplyAllowed: '允许自动应用',
       diffStatus: 'Diff 状态',
@@ -1228,7 +1233,8 @@ export default {
       ruleChain: '规则链 ruleChain',
       preconditions: '前置条件 preconditions',
       semanticRisks: '语义风险 semanticRisks',
-      unappliedRules: '未应用规则 unappliedRules'
+      unappliedRules: '未应用规则 unappliedRules',
+      alertLinkage: '告警联动'
     },
     reviewGuard: {
       eyebrow: '人工复核',
@@ -1359,7 +1365,8 @@ export default {
       realInterfaceReady: '真实接口',
       notSubmitted: '未提交',
       sourceSummary: '来源 {sourceType} / {sourceKind} / {sourceId} / {evidenceLevel}',
-      missingTraceKey: '缺少必要追溯键'
+      missingTraceKey: '缺少必要追溯键',
+      noPauseEvidence: '当前没有自动暂停或差异告警证据。'
     },
     statuses: {
       appliedPendingVerification: '已应用待验证',
@@ -1378,7 +1385,8 @@ export default {
       runtimeSummary: '展示最近一次接口响应写回的候选、计划、改写和验证追溯键。',
       tableState: '表格状态',
       tabSummary: '当前 tab 使用真实接口和来源摘要，不把未实现能力伪装成成功。',
-      sqlPreview: 'SQL 预览'
+      sqlPreview: 'SQL 预览',
+      autoPauseEvidence: '自动暂停与差异告警证据'
     }
   },
   accessCenter: {
@@ -1433,13 +1441,16 @@ export default {
   },
   alertCenter: {
     title: '告警中心',
-    summary: '查看派生告警、ACK 模拟状态与通知模拟结果。',
+    summary: '查看后端告警、ACK 状态与通知模拟结果。',
     pageTitle: '告警中心与通知状态',
-    refactorSummary: '专用读接口 {readPath} 存在基线，但当前页面在正式接线前仍基于 backlog、dispatch event 和重要/紧急 SQL 派生告警，并明确保留 ACK / 通知模拟边界。',
-    controlsTitle: '告警刷新与模拟动作',
-    controlsSummary: '筛选租户后刷新派生告警；新增规则和通知策略仍展示为缺失写接口的能力边界。',
+    refactorSummary: '当前页面消费后端读接口 {readPath}，ACK 走治理服务接口；通知链路仍显示 SIMULATED / DEDUPE 状态，不写成真实邮件成功。',
+    controlsTitle: '告警查询与治理动作',
+    controlsSummary: '按租户、告警状态、告警类型和通知状态查询；新增规则和通知策略仍展示为缺失写接口的能力边界。',
     listTitle: '告警列表',
-    detailTitle: '详情、ACK 与 notify 状态',
+    detailTitle: '详情、ACK、notify 与暂停证据',
+    options: {
+      all: '全部'
+    },
     metrics: {
       total: '总告警',
       open: '未 ACK',
@@ -1448,16 +1459,34 @@ export default {
     },
     fields: {
       alertId: '告警 ID',
-      ackStatus: 'ACK 状态',
+      alertType: '告警类型',
+      alertLevel: '告警级别',
+      alertStatus: '告警状态',
       notifyStatus: '通知状态',
-      ackMode: 'ACK 模式'
+      notifyBoundary: '通知边界',
+      sourceService: '来源服务',
+      policyId: '策略 ID',
+      dedupeKey: '去重键',
+      recommendationId: '推荐 ID',
+      historyId: '历史 ID',
+      rewriteRecordId: '改写记录 ID',
+      validationRunId: '验证 Run ID',
+      sqlFingerprint: 'SQL 指纹',
+      autoApplyPaused: '自动应用暂停',
+      notifiedAt: '通知时间',
+      ackedBy: 'ACK 人',
+      ackedAt: 'ACK 时间'
     },
     actions: {
       refresh: '刷新告警',
       createRule: '新增告警规则',
       editNotify: '修改通知策略',
-      ack: 'ACK 模拟确认',
+      ack: 'ACK 告警',
       clearAck: '撤销模拟 ACK'
+    },
+    sections: {
+      notificationLogs: '通知日志',
+      evidence: '告警证据'
     },
     derived: {
       backlogTitle: '治理补偿 backlog 告警',
@@ -1476,7 +1505,8 @@ export default {
       editNextStep: '需要真实通知接口和审计链后，再接入编辑动作。'
     },
     messages: {
-      noAlert: '当前没有可展示的告警。'
+      noAlert: '当前没有可展示的告警。',
+      noNotificationLog: '当前没有通知日志。'
     }
   },
   acceleration: {

@@ -626,6 +626,8 @@ export default {
       lastValidationRunId: 'Latest validation run',
       lastComparedAt: 'Last compared at',
       alertStatus: 'Alert status',
+      autoApplyPaused: 'Auto apply paused',
+      alertRefs: 'Alert refs',
       parseHistoryId: 'Parse history ID',
       sqlFingerprint: 'SQL fingerprint',
       manualReviewRequired: 'Manual review required',
@@ -1182,7 +1184,8 @@ export default {
       refresh: 'Refresh center',
       openRouting: 'Open routing governance',
       openParse: 'Open SQL Parse',
-      openHistory: 'Open history page'
+      openHistory: 'Open history page',
+      openAlertCenter: 'Open alert center'
     },
     list: {
       eyebrow: 'recommendation categories',
@@ -1205,6 +1208,8 @@ export default {
       recommendedSql: 'Recommended SQL',
       validationMethod: 'Validation method',
       validationStatus: 'Validation status',
+      alertStatus: 'Alert status',
+      alertRefs: 'Alert refs',
       manualReviewRequired: 'Manual review required',
       autoApplyAllowed: 'Auto apply allowed',
       diffStatus: 'Diff status',
@@ -1244,7 +1249,8 @@ export default {
       ruleChain: 'ruleChain',
       preconditions: 'preconditions',
       semanticRisks: 'semanticRisks',
-      unappliedRules: 'unappliedRules'
+      unappliedRules: 'unappliedRules',
+      alertLinkage: 'Alert linkage'
     },
     reviewGuard: {
       eyebrow: 'manual review',
@@ -1375,7 +1381,8 @@ export default {
       realInterfaceReady: 'Real interface',
       notSubmitted: 'Not submitted',
       sourceSummary: '{sourceType} / {sourceKind} / {sourceId} / {evidenceLevel}',
-      missingTraceKey: 'Missing required trace key'
+      missingTraceKey: 'Missing required trace key',
+      noPauseEvidence: 'No auto-pause or divergence-alert evidence is available.'
     },
     statuses: {
       appliedPendingVerification: 'Applied, pending verification',
@@ -1394,7 +1401,8 @@ export default {
       runtimeSummary: 'Show candidate, plan, rewrite, and validation keys written back by the latest interface response.',
       tableState: 'Table state',
       tabSummary: 'This tab uses real interfaces and source evidence without turning missing capabilities into success.',
-      sqlPreview: 'SQL preview'
+      sqlPreview: 'SQL preview',
+      autoPauseEvidence: 'Auto-pause and divergence alert evidence'
     }
   },
   accessCenter: {
@@ -1449,13 +1457,16 @@ export default {
   },
   alertCenter: {
     title: 'Alert Center',
-    summary: 'Review derived alerts, simulated ACK state, and notify-simulated outcomes.',
+    summary: 'Review backend alerts, ACK state, and notify-simulated outcomes.',
     pageTitle: 'Alert center and notification state',
-    refactorSummary: 'The dedicated read path {readPath} has a baseline, but this page still derives alerts from backlog, dispatch events, and important-or-urgent SQL while keeping ACK and notify explicitly simulated until the dedicated path is wired.',
-    controlsTitle: 'Alert refresh and simulated actions',
-    controlsSummary: 'Refresh derived alerts by tenant; create-rule and notification-policy actions still expose the missing write-interface boundary.',
+    refactorSummary: 'This page consumes the backend read path {readPath}, and ACK uses the governance service. Notification delivery still displays SIMULATED / DEDUPE states and must not be described as real email success.',
+    controlsTitle: 'Alert query and governance actions',
+    controlsSummary: 'Query by tenant, alert status, alert type, and notify status; create-rule and notification-policy actions still expose the missing write-interface boundary.',
     listTitle: 'Alert list',
-    detailTitle: 'Detail, ACK, and notify state',
+    detailTitle: 'Detail, ACK, notify, and pause evidence',
+    options: {
+      all: 'All'
+    },
     metrics: {
       total: 'Total alerts',
       open: 'Open',
@@ -1464,16 +1475,34 @@ export default {
     },
     fields: {
       alertId: 'Alert ID',
-      ackStatus: 'ACK status',
+      alertType: 'Alert type',
+      alertLevel: 'Alert level',
+      alertStatus: 'Alert status',
       notifyStatus: 'Notify status',
-      ackMode: 'ACK mode'
+      notifyBoundary: 'Notify boundary',
+      sourceService: 'Source service',
+      policyId: 'Policy ID',
+      dedupeKey: 'Dedupe key',
+      recommendationId: 'Recommendation ID',
+      historyId: 'History ID',
+      rewriteRecordId: 'Rewrite record ID',
+      validationRunId: 'Validation run ID',
+      sqlFingerprint: 'SQL fingerprint',
+      autoApplyPaused: 'Auto apply paused',
+      notifiedAt: 'Notified at',
+      ackedBy: 'ACKed by',
+      ackedAt: 'ACKed at'
     },
     actions: {
       refresh: 'Refresh alerts',
       createRule: 'Create alert rule',
       editNotify: 'Edit notify strategy',
-      ack: 'Simulate ACK',
+      ack: 'ACK alert',
       clearAck: 'Clear simulated ACK'
+    },
+    sections: {
+      notificationLogs: 'Notification logs',
+      evidence: 'Alert evidence'
     },
     derived: {
       backlogTitle: 'Governance backlog alert',
@@ -1492,7 +1521,8 @@ export default {
       editNextStep: 'Introduce real notification APIs and audit coverage before wiring editing actions.'
     },
     messages: {
-      noAlert: 'No alert is available to display.'
+      noAlert: 'No alert is available to display.',
+      noNotificationLog: 'No notification log is available.'
     }
   },
   acceleration: {

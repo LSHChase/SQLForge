@@ -10,16 +10,31 @@ const targets = [
       'data-testid="alert-ack"',
       'data-testid="alert-ack-status"',
       'data-testid="alert-notify-status"',
+      'data-testid="alert-linkage-context"',
+      'data-testid="alert-notification-log"',
+      'data-testid="alert-auto-apply-paused"',
+      'data-testid="alert-evidence"',
       'SIMULATED_PENDING_NOTIFY',
       'SIMULATED_NOTIFIED',
-      'ACK_SIMULATED',
-      'FRONTEND_SIMULATED',
-      'GET /api/governance/alerts'
+      'SIMULATED_NOTIFY_FAILED',
+      'SIMULATED_EMAIL',
+      'DEDUPE_SUPPRESSED',
+      'GET /api/governance/alerts',
+      'ackGovernanceAlert',
+      'getGovernanceAlertDetail',
+      'getGovernanceAlerts',
+      'autoApplyPaused'
     ]
   },
   {
     path: 'src/services/runtimeGateApi.js',
-    tokens: ['getGovernanceMessageStats', 'getDispatchEvents', 'getParseStatisticsImportantUrgent']
+    tokens: [
+      'export const getGovernanceAlerts',
+      'export const getGovernanceAlertDetail',
+      'export const ackGovernanceAlert',
+      '/api/governance/alerts',
+      'buildGovernanceAlertsQuery'
+    ]
   },
   {
     path: 'src/config/routePaths.mjs',

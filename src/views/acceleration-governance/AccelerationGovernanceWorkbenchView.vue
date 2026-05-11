@@ -242,7 +242,16 @@ const routeTargets = computed(() => [
     key: 'alertCenter',
     label: t('accelerationGovernanceWorkbench.actions.openAlertCenter'),
     path: ROUTE_PATHS.alertCenter,
-    query: compactObject({ tenantId: form.tenantId }),
+    query: compactObject({
+      tenantId: form.tenantId,
+      alertType: 'SQL_REWRITE_RESULT_DIVERGENCE',
+      alertStatus: 'OPEN',
+      recommendationId: form.recommendationId,
+      historyId: form.historyId,
+      rewriteRecordId: form.rewriteRecordId || rewriteRecordResponse.value?.rewriteRecordId,
+      validationRunId: validationRunResponse.value?.validationRunId || validationRuns.value[0]?.validationRunId,
+      sqlFingerprint: form.sqlFingerprint
+    }),
     disabled: false
   }
 ])
@@ -292,6 +301,41 @@ const pageInfo = computed(() => ({
   historyRewriteRecordRows: historyRewriteRecordRows.value.length,
   validationRuns: validationRuns.value.length
 }))
+
+const monitoringPauseEvidenceRows = computed(() => {
+  const rows = []
+  for (const record of [...rewriteRecordRows.value, ...historyRewriteRecordRows.value]) {
+    const divergenceAlert = record?.traceRefs?.divergenceAlert || record?.traceRefs?.alertRefs || record?.alertRefs
+    if (record?.alertStatus && record.alertStatus !== 'NONE') {
+      rows.push({
+        evidenceType: 'rewriteRecordAlert',
+        rewriteRecordId: record.rewriteRecordId,
+        recommendationId: record.recommendationId,
+        validationStatus: record.validationStatus,
+        alertStatus: record.alertStatus,
+        lastValidationRunId: record.lastValidationRunId,
+        autoApplyPaused: record.autoApplyPaused,
+        divergenceAlert
+      })
+    }
+  }
+  for (const run of validationRuns.value) {
+    if (run?.autoApplyPaused || String(run?.comparisonStatus || '').toUpperCase() === 'DIVERGED') {
+      rows.push({
+        evidenceType: 'validationRunPause',
+        validationRunId: run.validationRunId,
+        rewriteRecordId: run.rewriteRecordId,
+        recommendationId: run.recommendationId,
+        historyId: run.historyId,
+        comparisonStatus: run.comparisonStatus,
+        differenceType: run.differenceType,
+        autoApplyPaused: run.autoApplyPaused,
+        executionEvidence: run.executionEvidence
+      })
+    }
+  }
+  return rows
+})
 
 const handleModeSelect = mode => {
   if (!sourceModeConfig[mode] || form.sourceType === mode) {
@@ -1274,6 +1318,32 @@ function queryAccelerationApplied(result) {
                 <el-table-column prop="differenceType" :label="t('accelerationGovernanceWorkbench.fields.differenceType')" min-width="170" />
                 <el-table-column prop="autoApplyPaused" :label="t('accelerationGovernanceWorkbench.fields.autoApplyPaused')" min-width="150" />
               </el-table>
+              <section class="pause-evidence-panel" data-testid="acceleration-workbench-auto-pause-evidence">
+                <div class="table-heading">
+                  <div>
+                    <p class="section-kicker sqlforge-code-label">SQL_REWRITE_RESULT_DIVERGENCE</p>
+                    <h3 class="section-title section-title-small">{{ t('accelerationGovernanceWorkbench.sections.autoPauseEvidence') }}</h3>
+                  </div>
+                  <span class="mini-pill">autoApplyPaused {{ monitoringPauseEvidenceRows.length }}</span>
+                </div>
+                <el-empty
+                  v-if="!monitoringPauseEvidenceRows.length"
+                  :description="t('accelerationGovernanceWorkbench.states.noPauseEvidence')"
+                />
+                <article
+                  v-for="item in monitoringPauseEvidenceRows"
+                  :key="`${item.evidenceType}-${item.validationRunId || item.rewriteRecordId}`"
+                  class="pause-evidence-row"
+                  data-testid="acceleration-workbench-pause-evidence-row"
+                >
+                  <div class="pill-row">
+                    <span class="mini-pill">{{ item.evidenceType }}</span>
+                    <span class="mini-pill">{{ t('accelerationGovernanceWorkbench.fields.autoApplyPaused') }} {{ displayValue(item.autoApplyPaused) }}</span>
+                    <span class="mini-pill">{{ t('accelerationGovernanceWorkbench.fields.alertStatus') }} {{ displayValue(item.alertStatus || item.comparisonStatus) }}</span>
+                  </div>
+                  <pre class="code-block code-block-compact">{{ formatJson(item) }}</pre>
+                </article>
+              </section>
             </template>
 
             <template v-else>
@@ -1580,6 +1650,24 @@ function queryAccelerationApplied(result) {
 .table-state {
   justify-content: space-between;
   color: var(--sqlforge-text-muted);
+}
+
+.pause-evidence-panel {
+  display: grid;
+  gap: var(--sqlforge-space-3);
+  min-width: 0;
+  padding: var(--sqlforge-space-4);
+  border: 1px solid var(--sqlforge-border-subtle);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-surface-1);
+}
+
+.pause-evidence-row {
+  min-width: 0;
+  padding: var(--sqlforge-space-4);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-bg-page-deep);
 }
 
 .interface-action-row > div {

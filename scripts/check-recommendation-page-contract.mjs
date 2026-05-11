@@ -19,6 +19,8 @@ const targets = [
       'data-testid="recommendation-preconditions"',
       'data-testid="recommendation-semantic-risks"',
       'data-testid="recommendation-unapplied-rules"',
+      'data-testid="recommendation-alert-linkage"',
+      'data-testid="recommendation-open-alert-center"',
       'coordinationMode',
       'PULL_ONLY',
       'dispatchEvents',
@@ -33,7 +35,10 @@ const targets = [
       'preconditions',
       'semanticRisks',
       'unappliedRules',
-      'manualReviewRequired'
+      'manualReviewRequired',
+      'alertLinkageCards',
+      'openAlertCenter',
+      'SQL_REWRITE_RESULT_DIVERGENCE'
     ]
   },
   {

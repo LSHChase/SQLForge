@@ -108,6 +108,7 @@ const summaryCards = computed(() => {
     field('benefitLevel', 'benefitLevel', recommendation.benefitLevel),
     field('riskLevel', 'riskLevel', recommendation.riskLevel),
     field('validationStatus', t('recommendationCenter.fields.validationStatus'), recommendation.validationStatus),
+    field('alertStatus', t('recommendationCenter.fields.alertStatus'), recommendation.alertStatus),
     field('manualReviewRequired', t('recommendationCenter.fields.manualReviewRequired'), boolText(recommendation.manualReviewRequired)),
     field('autoApplyAllowed', t('recommendationCenter.fields.autoApplyAllowed'), boolText(recommendation.autoApplyAllowed)),
     field('targetEngine', t('inline.viewsRecommendationCenterRecommendationCenterView.text006'), recommendation.targetEngine),
@@ -193,6 +194,20 @@ const traceabilityCards = computed(() => {
     field('reportCode', 'reportCode', trace.reportCode),
     field('logicalObjectKey', 'logicalObjectKey', trace.logicalObjectKey)
   ].filter(item => displayValue(item.value) !== '-')
+})
+
+const alertLinkageCards = computed(() => {
+  const trace = recommendationTrace.value || {}
+  const recommendation = selectedRecommendation.value || {}
+  const alertRefs = normalizeArray(trace.alertRefs || trace.traceRefs?.alertRefs)
+  return [
+    field('alertId', 'alertId', trace.alertId),
+    field('alertStatus', t('recommendationCenter.fields.alertStatus'), firstDefined(recommendation.alertStatus, trace.alertStatus)),
+    field('validationStatus', t('recommendationCenter.fields.validationStatus'), recommendation.validationStatus),
+    field('manualReviewRequired', t('recommendationCenter.fields.manualReviewRequired'), boolText(recommendation.manualReviewRequired)),
+    field('autoApplyAllowed', t('recommendationCenter.fields.autoApplyAllowed'), boolText(recommendation.autoApplyAllowed)),
+    field('alertRefs', t('recommendationCenter.fields.alertRefs'), alertRefs.length)
+  ]
 })
 
 const contractCards = computed(() => {
@@ -303,6 +318,20 @@ const openParseRecord = () => {
     query: {
       tenantId: form.tenantId,
       reportId: trace.reportCode
+    }
+  })
+}
+
+const openAlertCenter = () => {
+  router.push({
+    path: ROUTE_PATHS.alertCenter,
+    query: {
+      tenantId: form.tenantId,
+      alertType: 'SQL_REWRITE_RESULT_DIVERGENCE',
+      alertId: recommendationTrace.value?.alertId || '',
+      recommendationId: selectedRecommendationId.value,
+      historyId: recommendationTrace.value?.historyId || '',
+      sqlFingerprint: recommendationTrace.value?.sqlFingerprint || ''
     }
   })
 }
@@ -730,6 +759,9 @@ onMounted(() => {
                   <el-button :disabled="!recommendationTrace?.reportCode" @click="openParseRecord">
                     {{ t('recommendationCenter.actions.openHistory') }}
                   </el-button>
+                  <el-button data-testid="recommendation-open-alert-center" @click="openAlertCenter">
+                    {{ t('recommendationCenter.actions.openAlertCenter') }}
+                  </el-button>
                 </div>
                 <div class="pill-row">
                   <span v-for="item in traceabilityCards" :key="item.key" class="mini-pill">
@@ -737,6 +769,18 @@ onMounted(() => {
                   </span>
                 </div>
                 <pre class="code-block code-block-compact">{{ formatJson(recommendationTrace?.traceRefs || {}) }}</pre>
+                <section class="evidence-group" data-testid="recommendation-alert-linkage">
+                  <div class="evidence-group-header">
+                    <h3>{{ t('recommendationCenter.sections.alertLinkage') }}</h3>
+                    <span class="mini-pill">SQL_REWRITE_RESULT_DIVERGENCE</span>
+                  </div>
+                  <dl class="description-grid">
+                    <div v-for="item in alertLinkageCards" :key="item.key" class="description-item">
+                      <dt>{{ item.label }}</dt>
+                      <dd>{{ displayValue(item.value) }}</dd>
+                    </div>
+                  </dl>
+                </section>
               </div>
             </el-tab-pane>
 
