@@ -11,15 +11,6 @@
 
 ## Todo
 
-### HARN-138: 工作台候选、计划审批与应用验证 tabs
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-137`, `HARN-134`
-- Scope: 接入候选建议、SQL 差异、计划审批、应用验证、接口证据 tabs 与真实接口按钮；未实现接口必须显式显示未实现，不得 mock 成功。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-138`
-
 ### HARN-139: 推荐中心 SQL diff 与规则详情
 
 - Status: todo

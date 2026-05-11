@@ -1189,18 +1189,18 @@ export default {
   },
   accelerationGovernanceWorkbench: {
     title: 'Acceleration Governance Workbench',
-    summary: 'Show parse-driven and query-driven acceleration governance source fields, flow, navigation, and evidence boundaries.',
+    summary: 'Orchestrate parse-driven and query-driven candidates, diff, approval, apply validation, and interface evidence.',
     eyebrow: 'acceleration governance',
     pageTitle: 'Acceleration Governance Workbench',
-    boundarySummary: 'This HARN-137 page is a read-only shell: it shows source fields, the flow map, existing-page navigation, and evidence drawers. Candidate, approval, apply, and verify buttons stay for HARN-138 and do not submit mock success.',
+    boundarySummary: 'This HARN-138 workbench calls real existing interfaces only. Actions stay disabled when trace keys are missing; APPLIED means pending verification, not active.',
     source: {
       eyebrow: 'entry evidence',
       title: 'Source fields and trace keys',
-      summary: 'Switching parse-driven or query-driven mode only syncs explainable sourceType, sourceKind, and evidenceLevel values without inventing real benefit evidence.'
+      summary: 'Switching parse-driven or query-driven mode syncs sourceType, sourceKind, sourceId, and evidenceLevel for later request evidence.'
     },
     flow: {
       eyebrow: 'governance flow',
-      title: 'Read-only candidate-to-rollback flow',
+      title: 'Candidate-to-rollback interface flow',
       summary: 'The flow map appears only on this workbench page. Existing parse, recommendation, and SQL history pages keep their complete responsibilities.'
     },
     flowNodes: {
@@ -1223,6 +1223,7 @@ export default {
     fields: {
       tenantId: 'Tenant',
       datasourceCode: 'Datasource',
+      datasourceType: 'Datasource type',
       schemaName: 'Schema',
       stage: 'Stage',
       reportCode: 'Report code',
@@ -1236,9 +1237,36 @@ export default {
       enableHetuExplain: 'Hetu EXPLAIN',
       sqlText: 'SQL text',
       currentMode: 'Current entry',
-      ownerTask: 'Owner task',
+      candidateId: 'candidateId',
+      sourceTaskId: 'sourceTaskId',
+      recommendationId: 'recommendationId',
+      selectedSuggestionTypes: 'Suggestion types',
+      planId: 'planId',
+      planStatus: 'Plan status',
+      rewriteRecordId: 'rewriteRecordId',
+      validationStatus: 'Validation status',
+      reviewNote: 'Review note',
+      actionReason: 'Action reason',
+      originalSql: 'Original SQL',
+      recommendedSql: 'Recommended SQL',
+      baselineResult: 'Baseline query',
+      acceleratedResult: 'Accelerated query',
+      lastAction: 'Last action',
       endpoint: 'Endpoint',
-      state: 'State'
+      state: 'State',
+      status: 'Status',
+      candidateType: 'Candidate type',
+      reason: 'Reason',
+      createdAt: 'Created at',
+      alertStatus: 'Alert status',
+      autoApplyAllowed: 'Auto apply allowed',
+      manualReviewRequired: 'Manual review required',
+      historyRewriteRecordId: 'History rewriteRecordId',
+      validationRunId: 'Validation run ID',
+      comparisonStatus: 'Comparison status',
+      differenceType: 'Difference type',
+      autoApplyPaused: 'Auto apply paused',
+      accelerationApplied: 'accelerationApplied'
     },
     modes: {
       parse: 'Parse-driven',
@@ -1253,25 +1281,52 @@ export default {
       viewSourceEvidence: 'View source evidence',
       viewRouteEvidence: 'View route evidence',
       viewActionEvidence: 'View interface evidence',
-      futureAction: 'Future task wiring'
+      createCandidate: 'Create candidate',
+      listCandidates: 'Refresh candidates',
+      loadCandidate: 'Load candidate',
+      submitSuggestion: 'Submit suggestion task',
+      refreshSuggestion: 'Refresh suggestion task',
+      loadDiff: 'Load SQL diff',
+      createRewriteRecord: 'Create rewrite record',
+      submitPlan: 'Create plan',
+      refreshPlan: 'Refresh plan',
+      approvePlan: 'Approve plan',
+      rejectPlan: 'Reject plan',
+      applyPlan: 'Apply plan',
+      verifyPlan: 'Verify plan',
+      rollbackPlan: 'Rollback plan',
+      baselineQuery: 'Run baseline query',
+      acceleratedQuery: 'Run accelerated query',
+      listRewriteRecords: 'List rewrite records',
+      historyRewriteRecords: 'History aggregation',
+      listValidationRuns: 'List validation runs',
+      createValidationRun: 'Create validation run'
     },
     states: {
       shellOnly: 'Read-only shell',
-      futureTask: 'Requires HARN-138',
+      sourceReady: 'Source ready',
+      realInterfaceReady: 'Real interface',
       notSubmitted: 'Not submitted',
-      disabledUntilNextTask: 'Real interface buttons stay in HARN-138; this page does not submit mock success.',
       sourceSummary: '{sourceType} / {sourceKind} / {sourceId} / {evidenceLevel}',
       missingTraceKey: 'Missing required trace key'
+    },
+    statuses: {
+      appliedPendingVerification: 'Applied, pending verification',
+      active: 'Active',
+      reviewRequired: 'Review required'
     },
     drawers: {
       source: 'Source evidence JSON',
       routes: 'Navigation target JSON',
-      actions: 'Future interface JSON'
+      actions: 'Interface request and response JSON'
     },
     sections: {
       jumpTitle: 'Existing-page navigation',
       jumpSummary: 'The workbench only routes users to existing complete pages instead of copying parse, recommendation, or history detail.',
-      tabSummary: 'This tab only shows governance position, future endpoint, and source summary.',
+      runtimeTitle: 'Runtime traceability',
+      runtimeSummary: 'Show candidate, plan, rewrite, and validation keys written back by the latest interface response.',
+      tableState: 'Table state',
+      tabSummary: 'This tab uses real interfaces and source evidence without turning missing capabilities into success.',
       sqlPreview: 'SQL preview'
     }
   },

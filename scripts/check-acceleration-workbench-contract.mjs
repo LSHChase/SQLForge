@@ -17,6 +17,10 @@ const source = readFileSync(
   new URL('../src/views/acceleration-governance/AccelerationGovernanceWorkbenchView.vue', import.meta.url),
   'utf8'
 )
+const apiSource = readFileSync(
+  new URL('../src/services/runtimeGateApi.js', import.meta.url),
+  'utf8'
+)
 
 const route = APP_ROUTE_DEFINITIONS.find(item => item.name === 'AccelerationGovernanceWorkbench')
 check(ROUTE_PATHS.accelerationGovernanceWorkbench === '/governance/acceleration-workbench', 'Workbench route path drifted.')
@@ -53,8 +57,28 @@ const requiredTokens = [
   'ROUTE_PATHS.recommendationCenter',
   'ROUTE_PATHS.sqlQuery',
   'ROUTE_PATHS.alertCenter',
-  'HARN-137_READ_ONLY_SHELL',
-  'HARN-138'
+  'HARN-138_REAL_INTERFACE_TABS',
+  'createAccelerationCandidate',
+  'getRecommendationDiff',
+  'submitAccelerationPlan',
+  'reviewAccelerationPlan',
+  'applyAccelerationPlan',
+  'verifyAccelerationPlan',
+  'rollbackAccelerationPlan',
+  'createRewriteValidationRun',
+  'getQueryHistoryRewriteRecords',
+  'executeBaselineQuery',
+  'executeAcceleratedQuery',
+  'acceleration-workbench-create-candidate',
+  'acceleration-workbench-load-diff',
+  'acceleration-workbench-submit-plan',
+  'acceleration-workbench-approve-plan',
+  'acceleration-workbench-apply-plan',
+  'acceleration-workbench-verify-plan',
+  'acceleration-workbench-rollback-plan',
+  'acceleration-workbench-baseline-query',
+  'acceleration-workbench-accelerated-query',
+  'acceleration-workbench-last-evidence'
 ]
 
 for (const token of requiredTokens) {
@@ -62,14 +86,11 @@ for (const token of requiredTokens) {
 }
 
 const forbiddenTokens = [
-  'runtimeGateApi',
-  'axios',
   'fetch(',
-  'createCandidate(',
-  'applyPlan(',
-  'verifyPlan(',
   'mock success',
-  'MOCK_SUCCESS'
+  'MOCK_SUCCESS',
+  'HARN-137_READ_ONLY_SHELL',
+  'disabledUntilNextTask'
 ]
 
 for (const token of forbiddenTokens) {
@@ -78,7 +99,34 @@ for (const token of forbiddenTokens) {
 
 check(!/<PageHero\b/.test(source), 'Workbench shell must not use PageHero.')
 check(!/<el-card\b/.test(source), 'Workbench shell must not introduce el-card/card nesting.')
-check(/<el-button disabled[^>]*data-testid="acceleration-workbench-future-action"/.test(source), 'Future interface actions must stay disabled.')
+const requiredApiTokens = [
+  'export const createAccelerationCandidate',
+  'export const getAccelerationCandidates',
+  'export const getAccelerationCandidate',
+  'export const getRecommendationDiff',
+  'export const submitAccelerationPlan',
+  'export const getAccelerationPlan',
+  'export const reviewAccelerationPlan',
+  'export const applyAccelerationPlan',
+  'export const verifyAccelerationPlan',
+  'export const rollbackAccelerationPlan',
+  'export const createSqlRewriteRecord',
+  'export const getSqlRewriteRecords',
+  'export const getSqlRewriteRecord',
+  'export const createRewriteValidationRun',
+  'export const getRewriteValidationRuns',
+  'export const getQueryHistoryRewriteRecords'
+]
+
+for (const token of requiredApiTokens) {
+  check(apiSource.includes(token), `Runtime API source is missing token: ${token}`)
+}
+
+check(!source.includes('acceleration-workbench-future-action'), 'HARN-138 must replace disabled future actions with guarded real buttons.')
+check(source.includes(':disabled="!canApplyPlan"'), 'Apply button must be gated by plan status.')
+check(source.includes(':disabled="!canVerifyPlan"'), 'Verify button must be gated by plan status.')
+check(source.includes(':disabled="!canRollbackPlan"'), 'Rollback button must be gated by plan status.')
+check(source.includes('APPLIED') && source.includes('appliedPendingVerification'), 'APPLIED must map to pending verification, not active.')
 
 if (errors.length > 0) {
   console.error('Acceleration workbench contract check failed.')

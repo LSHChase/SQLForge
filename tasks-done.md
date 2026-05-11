@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-138: 工作台候选、计划审批与应用验证 tabs
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat: HARN-138 wire acceleration workbench tabs`
+- Priority: 1
+- Depends on: `HARN-137`, `HARN-134`
+- Scope: 接入候选建议、SQL 差异、计划审批、应用验证、接口证据 tabs 与真实接口按钮；未实现接口必须显式显示未实现，不得 mock 成功。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-138`
+- Context closeout:
+  - Completed scope: Implemented HARN-138 real acceleration governance workbench tabs: candidate create/list/detail, suggestion task submit/status, SQL diff loading, rewrite record creation, acceleration plan submit/approval/apply/verify/rollback, baseline and accelerated query evidence, rewrite/validation monitoring evidence, guarded interface evidence tab, i18n updates, runtimeGateApi wrappers, static contract updates, focused Playwright API mock smoke, and R-186 before/after screenshots under .codex-log/harn-138.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-138 --include-task-audit --extra-command 'node scripts/check-navigation-shell-contract.mjs' --extra-command 'node scripts/check-acceleration-workbench-contract.mjs' --extra-command 'npm run smoke:acceleration-workbench'; npm run lint; npm run build; npm run test:form-governance; npm run test:sql-ui-contract; npm run test:frontend-page-governance; node scripts/check-navigation-shell-contract.mjs; node scripts/check-acceleration-workbench-contract.mjs; npm run smoke:acceleration-workbench; R-186 screenshots .codex-log/harn-138/before-desktop.png, before-narrow.png, after-desktop.png, after-narrow.png, after-drawer.png; browser layout check passed.
+  - Residual risk: Repo-closed browser smoke uses mocked API responses, not a live backend or real Hetu/MRS evidence; true external Hetu/MRS validation remains HARN-016 / INBOX-002, and broader alert/status cross-page linkage remains HARN-141.
+  - Next step: Proceed to HARN-139 recommendation-center SQL diff/rule detail or HARN-140 SQL history rewrite-record surface, preserving HARN-138 trace keys and evidence contracts.
+
 ### HARN-137: 前端加速治理工作台壳层
 
 - Status: done

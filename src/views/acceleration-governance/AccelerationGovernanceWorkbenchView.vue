@@ -3,6 +3,27 @@ import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
+import {
+  applyAccelerationPlan,
+  createAccelerationCandidate,
+  createRewriteValidationRun,
+  createSqlRewriteRecord,
+  executeQuery,
+  formatRuntimeError,
+  getAccelerationCandidate,
+  getAccelerationCandidates,
+  getAccelerationPlan,
+  getOptimizationTaskStatus,
+  getQueryHistoryRewriteRecords,
+  getRecommendationDiff,
+  getRewriteValidationRuns,
+  getSqlRewriteRecords,
+  reviewAccelerationPlan,
+  rollbackAccelerationPlan,
+  submitAccelerationPlan,
+  submitOptimizationTask,
+  verifyAccelerationPlan
+} from '../../services/runtimeGateApi'
 import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
@@ -25,6 +46,9 @@ const sourceModeConfig = {
   }
 }
 
+const datasourceTypeOptions = ['HETU', 'HIVE', 'SPARK', 'CLICKHOUSE', 'GAUSSDB', 'AUTO']
+const suggestionTypeOptions = ['PRECOMPUTE', 'PARTITION', 'BUCKET', 'SPLIT', 'REPLACE']
+
 const flowNodes = [
   'ENTRY_EVIDENCE',
   'CANDIDATE_SUGGESTION',
@@ -38,6 +62,7 @@ const flowNodes = [
 const form = reactive({
   tenantId: 'tenant-a',
   datasourceCode: 'hetu_main',
+  datasourceType: 'HETU',
   schemaName: 'dwd',
   stage: 'PROD',
   reportCode: 'RPT_SALES_DAILY',
@@ -49,21 +74,55 @@ const form = reactive({
   sqlFingerprint: 'fp_sales_daily_20260401',
   evidenceLevel: 'STATIC_PARSE',
   enableHetuExplain: false,
-  sqlText: "SELECT * FROM vw_sales_daily WHERE dt = '2026-04-01' AND dt = '2026-04-01' ORDER BY id"
+  sqlText: "SELECT * FROM vw_sales_daily WHERE dt = '2026-04-01' AND dt = '2026-04-01' ORDER BY id",
+  candidateId: '',
+  recommendationId: '',
+  sourceTaskId: '',
+  planId: '',
+  rewriteRecordId: '',
+  validationStatus: '',
+  reviewNote: 'HARN-138 governed workbench review',
+  actionReason: 'HARN-138 governed workbench smoke',
+  selectedSuggestionTypes: ['PRECOMPUTE', 'PARTITION']
+})
+
+const loading = reactive({
+  candidate: false,
+  suggestion: false,
+  diff: false,
+  plan: false,
+  approval: false,
+  validation: false,
+  monitoring: false,
+  query: false
 })
 
 const activeTab = ref('candidates')
 const evidenceDrawerVisible = ref(false)
 const evidenceDrawerTitle = ref('')
 const evidenceDrawerPayload = ref(null)
+const errorMessage = ref('')
+const lastEvidence = ref(null)
+const candidateList = ref([])
+const candidateResponse = ref(null)
+const suggestionTask = ref(null)
+const suggestionTaskStatus = ref(null)
+const diffResponse = ref(null)
+const planResponse = ref(null)
+const rewriteRecordResponse = ref(null)
+const rewriteRecords = ref([])
+const historyRewriteRecords = ref(null)
+const validationRuns = ref([])
+const validationRunResponse = ref(null)
+const baselineResult = ref(null)
+const acceleratedResult = ref(null)
 
 const sourceModeOptions = computed(() => [
   { value: 'PARSE', label: t('accelerationGovernanceWorkbench.modes.parse') },
   { value: 'QUERY', label: t('accelerationGovernanceWorkbench.modes.query') }
 ])
-
-const sourceKindOptions = computed(() => sourceModeConfig[form.sourceType].sourceKinds)
-const evidenceLevelOptions = computed(() => sourceModeConfig[form.sourceType].evidenceLevels)
+const sourceKindOptions = computed(() => sourceModeConfig[form.sourceType]?.sourceKinds || [])
+const evidenceLevelOptions = computed(() => sourceModeConfig[form.sourceType]?.evidenceLevels || [])
 
 const resolvedSourceId = computed(() => {
   if (hasValue(form.sourceId)) {
@@ -74,6 +133,23 @@ const resolvedSourceId = computed(() => {
   }
   return form.historyId
 })
+
+const selectedPlanStatus = computed(() => String(planResponse.value?.status || '').toUpperCase())
+const selectedValidationStatus = computed(() => {
+  const recordStatus = rewriteRecordResponse.value?.validationStatus
+  const firstRecordStatus = rewriteRecords.value[0]?.validationStatus
+  const runStatus = validationRunResponse.value?.comparisonStatus
+  return String(recordStatus || firstRecordStatus || runStatus || '').toUpperCase()
+})
+const selectedSourceTaskId = computed(() => form.sourceTaskId || suggestionTask.value?.taskId || '')
+const canSubmitSource = computed(() => hasValue(form.tenantId) && hasValue(resolvedSourceId.value))
+const canSubmitSuggestion = computed(() => hasValue(form.sqlText) || hasValue(form.sqlFingerprint))
+const canSubmitPlan = computed(() => hasValue(form.tenantId) && hasValue(selectedSourceTaskId.value))
+const canLoadDiff = computed(() => hasValue(form.recommendationId))
+const canCreateRewriteRecord = computed(() => hasValue(diffResponse.value?.originalSql) && hasValue(diffResponse.value?.recommendedSql))
+const canApplyPlan = computed(() => ['APPROVED', 'APPLY_FAILED'].includes(selectedPlanStatus.value))
+const canVerifyPlan = computed(() => ['APPLIED', 'VERIFY_FAILED', 'VERIFIED'].includes(selectedPlanStatus.value))
+const canRollbackPlan = computed(() => ['APPLIED', 'VERIFY_FAILED', 'VERIFIED', 'ROLLBACK_FAILED'].includes(selectedPlanStatus.value))
 
 const sourceSummaryText = computed(() =>
   t('accelerationGovernanceWorkbench.states.sourceSummary', {
@@ -95,8 +171,19 @@ const sourceSummaryRows = computed(() => [
   field('evidenceLevel', t('accelerationGovernanceWorkbench.fields.evidenceLevel'), form.evidenceLevel)
 ])
 
+const runtimeSummaryRows = computed(() => [
+  field('candidateId', t('accelerationGovernanceWorkbench.fields.candidateId'), form.candidateId || candidateResponse.value?.candidateId),
+  field('sourceTaskId', t('accelerationGovernanceWorkbench.fields.sourceTaskId'), selectedSourceTaskId.value),
+  field('recommendationId', t('accelerationGovernanceWorkbench.fields.recommendationId'), form.recommendationId),
+  field('planId', t('accelerationGovernanceWorkbench.fields.planId'), form.planId || planResponse.value?.planId),
+  field('planStatus', t('accelerationGovernanceWorkbench.fields.planStatus'), friendlyPlanStatus(selectedPlanStatus.value)),
+  field('rewriteRecordId', t('accelerationGovernanceWorkbench.fields.rewriteRecordId'), form.rewriteRecordId || rewriteRecordResponse.value?.rewriteRecordId),
+  field('validationStatus', t('accelerationGovernanceWorkbench.fields.validationStatus'), selectedValidationStatus.value),
+  field('lastAction', t('accelerationGovernanceWorkbench.fields.lastAction'), lastEvidence.value?.action)
+])
+
 const sourceEvidence = computed(() => ({
-  contractStage: 'HARN-137_READ_ONLY_SHELL',
+  contractStage: 'HARN-138_REAL_INTERFACE_TABS',
   sourceType: form.sourceType,
   sourceKind: form.sourceKind,
   sourceId: resolvedSourceId.value,
@@ -105,13 +192,14 @@ const sourceEvidence = computed(() => ({
   sqlFingerprint: form.sqlFingerprint,
   tenantId: form.tenantId,
   datasourceCode: form.datasourceCode,
+  datasourceType: form.datasourceType,
   schemaName: form.schemaName,
   stage: form.stage,
   reportCode: form.reportCode,
   evidenceLevel: form.evidenceLevel,
   enableHetuExplain: form.enableHetuExplain,
-  shellOnly: true,
-  submitted: false
+  shellOnly: false,
+  submitted: Boolean(lastEvidence.value)
 }))
 
 const routeTargets = computed(() => [
@@ -119,7 +207,7 @@ const routeTargets = computed(() => [
     key: 'parseRecord',
     label: t('accelerationGovernanceWorkbench.actions.openParseRecord'),
     path: ROUTE_PATHS.parseRecord,
-    query: compactQuery({
+    query: compactObject({
       tenantId: form.tenantId,
       parseHistoryId: form.parseHistoryId,
       reportId: form.reportCode
@@ -130,7 +218,7 @@ const routeTargets = computed(() => [
     key: 'sqlHistory',
     label: t('accelerationGovernanceWorkbench.actions.openSqlHistory'),
     path: ROUTE_PATHS.sqlHistory,
-    query: compactQuery({
+    query: compactObject({
       tenantId: form.tenantId,
       historyId: form.historyId
     }),
@@ -140,36 +228,38 @@ const routeTargets = computed(() => [
     key: 'recommendationCenter',
     label: t('accelerationGovernanceWorkbench.actions.openRecommendationCenter'),
     path: ROUTE_PATHS.recommendationCenter,
-    query: compactQuery({ tenantId: form.tenantId }),
+    query: compactObject({ tenantId: form.tenantId, recommendationId: form.recommendationId }),
     disabled: false
   },
   {
     key: 'sqlQuery',
     label: t('accelerationGovernanceWorkbench.actions.openSqlQuery'),
     path: ROUTE_PATHS.sqlQuery,
-    query: compactQuery({ tenantId: form.tenantId }),
+    query: compactObject({ tenantId: form.tenantId }),
     disabled: !hasValue(form.sqlText)
   },
   {
     key: 'alertCenter',
     label: t('accelerationGovernanceWorkbench.actions.openAlertCenter'),
     path: ROUTE_PATHS.alertCenter,
-    query: compactQuery({ tenantId: form.tenantId }),
+    query: compactObject({ tenantId: form.tenantId }),
     disabled: false
   }
 ])
 
-const futureActions = computed(() => [
-  action('candidates', 'POST /api/sql-optimization/acceleration-candidates'),
-  action('candidates', 'POST /api/sql-optimization/tasks'),
-  action('diff', 'GET /api/sql-optimization/recommendations/{recommendationId}/diff'),
-  action('approval', 'POST /api/sql-optimization/acceleration-plans'),
-  action('approval', 'POST /api/sql-optimization/acceleration-plans/{planId}/approval'),
-  action('validation', 'POST /api/sql-optimization/acceleration-plans/{planId}/apply'),
-  action('validation', 'POST /api/sql-optimization/acceleration-plans/{planId}/verify'),
-  action('monitoring', 'GET /api/governance/query-history/{historyId}/rewrite-records'),
-  action('monitoring', 'POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/validation-runs'),
-  action('evidence', 'POST /api/query-execution/queries/execute')
+const interfaceActions = computed(() => [
+  action('candidates', 'POST', '/api/sql-optimization/acceleration-candidates', canSubmitSource.value),
+  action('candidates', 'GET', '/api/sql-optimization/acceleration-candidates', hasValue(form.tenantId)),
+  action('candidates', 'POST', '/api/sql-optimization/tasks', canSubmitSuggestion.value),
+  action('diff', 'GET', '/api/sql-optimization/recommendations/{recommendationId}/diff', canLoadDiff.value),
+  action('approval', 'POST', '/api/sql-optimization/acceleration-plans', canSubmitPlan.value),
+  action('approval', 'POST', '/api/sql-optimization/acceleration-plans/{planId}/approval', hasValue(form.planId)),
+  action('validation', 'POST', '/api/sql-optimization/acceleration-plans/{planId}/apply', canApplyPlan.value),
+  action('validation', 'POST', '/api/sql-optimization/acceleration-plans/{planId}/verify', canVerifyPlan.value),
+  action('validation', 'POST', '/api/sql-optimization/acceleration-plans/{planId}/rollback', canRollbackPlan.value),
+  action('monitoring', 'GET', '/api/governance/query-history/{historyId}/rewrite-records', hasValue(form.historyId)),
+  action('monitoring', 'POST', '/api/sql-optimization/rewrite-records/{rewriteRecordId}/validation-runs', hasValue(form.rewriteRecordId)),
+  action('evidence', 'POST', '/api/query-execution/queries/execute', canSubmitSuggestion.value)
 ])
 
 const tabDefinitions = computed(() => [
@@ -180,6 +270,28 @@ const tabDefinitions = computed(() => [
   tab('monitoring', t('accelerationGovernanceWorkbench.tabs.monitoring')),
   tab('evidence', t('accelerationGovernanceWorkbench.tabs.evidence'))
 ])
+
+const candidateRows = computed(() => {
+  if (candidateList.value.length) {
+    return candidateList.value
+  }
+  return candidateResponse.value ? [candidateResponse.value] : []
+})
+
+const rewriteRecordRows = computed(() => {
+  if (rewriteRecords.value.length) {
+    return rewriteRecords.value
+  }
+  return rewriteRecordResponse.value ? [rewriteRecordResponse.value] : []
+})
+
+const historyRewriteRecordRows = computed(() => historyRewriteRecords.value?.items || [])
+const pageInfo = computed(() => ({
+  candidateRows: candidateRows.value.length,
+  rewriteRecordRows: rewriteRecordRows.value.length,
+  historyRewriteRecordRows: historyRewriteRecordRows.value.length,
+  validationRuns: validationRuns.value.length
+}))
 
 const handleModeSelect = mode => {
   if (!sourceModeConfig[mode] || form.sourceType === mode) {
@@ -211,14 +323,462 @@ const openEvidenceDrawer = (title, payload) => {
   evidenceDrawerVisible.value = true
 }
 
-const tabActions = tabName => futureActions.value.filter(item => item.tab === tabName)
+const createCandidate = () =>
+  runAction(
+    'candidate',
+    'createAccelerationCandidate',
+    'POST /api/sql-optimization/acceleration-candidates',
+    buildCandidateRequest(),
+    (requestPayload, requestOptions) => createAccelerationCandidate(requestPayload, requestOptions),
+    response => {
+      candidateResponse.value = response
+      form.candidateId = response?.candidateId || form.candidateId
+    }
+  )
 
-function action(tabName, endpoint) {
+const refreshCandidates = () =>
+  runAction(
+    'candidate',
+    'getAccelerationCandidates',
+    'GET /api/sql-optimization/acceleration-candidates',
+    { tenantId: form.tenantId },
+    (_requestPayload, requestOptions) => getAccelerationCandidates(form.tenantId, requestOptions),
+    response => {
+      candidateList.value = Array.isArray(response) ? response : []
+    }
+  )
+
+const loadCandidate = () => {
+  if (!hasValue(form.candidateId)) {
+    return
+  }
+  return runAction(
+    'candidate',
+    'getAccelerationCandidate',
+    'GET /api/sql-optimization/acceleration-candidates/{candidateId}',
+    { tenantId: form.tenantId, candidateId: form.candidateId },
+    (_requestPayload, requestOptions) => getAccelerationCandidate(form.tenantId, form.candidateId, requestOptions),
+    response => {
+      candidateResponse.value = response
+      candidateList.value = response ? [response] : candidateList.value
+    }
+  )
+}
+
+const submitSuggestion = () =>
+  runAction(
+    'suggestion',
+    'submitOptimizationTask',
+    'POST /api/sql-optimization/tasks',
+    buildSuggestionTaskRequest(),
+    (requestPayload, requestOptions) => submitOptimizationTask(requestPayload, requestOptions),
+    response => {
+      suggestionTask.value = response
+      form.sourceTaskId = response?.taskId || form.sourceTaskId
+    }
+  )
+
+const refreshSuggestionTask = () => {
+  if (!hasValue(selectedSourceTaskId.value)) {
+    return
+  }
+  return runAction(
+    'suggestion',
+    'getOptimizationTaskStatus',
+    'GET /api/sql-optimization/tasks/{taskId}',
+    { tenantId: form.tenantId, taskId: selectedSourceTaskId.value },
+    (_requestPayload, requestOptions) => getOptimizationTaskStatus(selectedSourceTaskId.value, form.tenantId, requestOptions),
+    response => {
+      suggestionTaskStatus.value = response
+    }
+  )
+}
+
+const loadDiff = () =>
+  runAction(
+    'diff',
+    'getRecommendationDiff',
+    'GET /api/sql-optimization/recommendations/{recommendationId}/diff',
+    { tenantId: form.tenantId, recommendationId: form.recommendationId },
+    (_requestPayload, requestOptions) => getRecommendationDiff(form.tenantId, form.recommendationId, requestOptions),
+    response => {
+      diffResponse.value = response
+      form.sqlFingerprint = response?.sqlFingerprint || form.sqlFingerprint
+    }
+  )
+
+const createRewriteRecordFromDiff = () =>
+  runAction(
+    'monitoring',
+    'createSqlRewriteRecord',
+    'POST /api/sql-optimization/rewrite-records',
+    buildRewriteRecordRequest(),
+    (requestPayload, requestOptions) => createSqlRewriteRecord(requestPayload, requestOptions),
+    response => {
+      rewriteRecordResponse.value = response
+      form.rewriteRecordId = response?.rewriteRecordId || form.rewriteRecordId
+    }
+  )
+
+const submitPlan = () =>
+  runAction(
+    'plan',
+    'submitAccelerationPlan',
+    'POST /api/sql-optimization/acceleration-plans',
+    buildPlanSubmitRequest(),
+    (requestPayload, requestOptions) => submitAccelerationPlan(requestPayload, requestOptions),
+    response => {
+      planResponse.value = response
+      form.planId = response?.planId || form.planId
+    }
+  )
+
+const refreshPlan = () => {
+  if (!hasValue(form.planId)) {
+    return
+  }
+  return runAction(
+    'plan',
+    'getAccelerationPlan',
+    'GET /api/sql-optimization/acceleration-plans/{planId}',
+    { tenantId: form.tenantId, planId: form.planId },
+    (_requestPayload, requestOptions) => getAccelerationPlan(form.tenantId, form.planId, requestOptions),
+    response => {
+      planResponse.value = response
+    }
+  )
+}
+
+const reviewPlan = approve =>
+  runAction(
+    'approval',
+    approve ? 'approveAccelerationPlan' : 'rejectAccelerationPlan',
+    'POST /api/sql-optimization/acceleration-plans/{planId}/approval',
+    { approve, reviewNote: form.reviewNote },
+    (requestPayload, requestOptions) => reviewAccelerationPlan(form.tenantId, form.planId, requestPayload, requestOptions),
+    response => {
+      planResponse.value = response
+    }
+  )
+
+const applyPlan = () => mutatePlan('validation', 'applyAccelerationPlan', 'POST /api/sql-optimization/acceleration-plans/{planId}/apply', applyAccelerationPlan)
+const verifyPlan = () => mutatePlan('validation', 'verifyAccelerationPlan', 'POST /api/sql-optimization/acceleration-plans/{planId}/verify', verifyAccelerationPlan)
+const rollbackPlan = () => mutatePlan('validation', 'rollbackAccelerationPlan', 'POST /api/sql-optimization/acceleration-plans/{planId}/rollback', rollbackAccelerationPlan)
+
+const runBaselineQuery = () => runQueryEvidence('baseline', 'NONE')
+const runAcceleratedQuery = () => runQueryEvidence('accelerated', 'PREFER_ACCELERATED')
+
+const refreshRewriteRecords = () =>
+  runAction(
+    'monitoring',
+    'getSqlRewriteRecords',
+    'GET /api/sql-optimization/rewrite-records',
+    { tenantId: form.tenantId, historyId: form.historyId, recommendationId: form.recommendationId, validationStatus: form.validationStatus, sourceType: form.sourceType },
+    (requestPayload, requestOptions) => getSqlRewriteRecords(form.tenantId, requestPayload, requestOptions),
+    response => {
+      rewriteRecords.value = Array.isArray(response) ? response : []
+      if (rewriteRecords.value[0]?.rewriteRecordId && !form.rewriteRecordId) {
+        form.rewriteRecordId = rewriteRecords.value[0].rewriteRecordId
+      }
+    }
+  )
+
+const refreshHistoryRewriteRecords = () => {
+  if (!hasValue(form.historyId)) {
+    return
+  }
+  return runAction(
+    'monitoring',
+    'getQueryHistoryRewriteRecords',
+    'GET /api/governance/query-history/{historyId}/rewrite-records',
+    { tenantId: form.tenantId, historyId: form.historyId },
+    (_requestPayload, requestOptions) => getQueryHistoryRewriteRecords(form.tenantId, form.historyId, requestOptions),
+    response => {
+      historyRewriteRecords.value = response
+    }
+  )
+}
+
+const refreshValidationRuns = () => {
+  if (!hasValue(form.rewriteRecordId)) {
+    return
+  }
+  return runAction(
+    'monitoring',
+    'getRewriteValidationRuns',
+    'GET /api/sql-optimization/rewrite-records/{rewriteRecordId}/validation-runs',
+    { tenantId: form.tenantId, rewriteRecordId: form.rewriteRecordId },
+    (_requestPayload, requestOptions) => getRewriteValidationRuns(form.tenantId, form.rewriteRecordId, requestOptions),
+    response => {
+      validationRuns.value = Array.isArray(response) ? response : []
+    }
+  )
+}
+
+const createValidationRun = () => {
+  if (!hasValue(form.rewriteRecordId)) {
+    return
+  }
+  return runAction(
+    'monitoring',
+    'createRewriteValidationRun',
+    'POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/validation-runs',
+    buildValidationRunRequest(),
+    (requestPayload, requestOptions) => createRewriteValidationRun(form.tenantId, form.rewriteRecordId, requestPayload, requestOptions),
+    response => {
+      validationRunResponse.value = response
+      validationRuns.value = [response, ...validationRuns.value.filter(item => item.validationRunId !== response?.validationRunId)]
+    }
+  )
+}
+
+const selectCandidate = row => {
+  form.candidateId = row?.candidateId || form.candidateId
+  candidateResponse.value = row || candidateResponse.value
+}
+
+const selectRewriteRecord = row => {
+  form.rewriteRecordId = row?.rewriteRecordId || form.rewriteRecordId
+  rewriteRecordResponse.value = row || rewriteRecordResponse.value
+}
+
+const mutatePlan = (loadingKey, actionName, endpoint, mutator) =>
+  runAction(
+    loadingKey,
+    actionName,
+    endpoint,
+    { reason: form.actionReason },
+    (requestPayload, requestOptions) => mutator(form.tenantId, form.planId, requestPayload, requestOptions),
+    response => {
+      planResponse.value = response
+    }
+  )
+
+const runQueryEvidence = (scenario, accelerationPreference) =>
+  runAction(
+    'query',
+    scenario === 'baseline' ? 'executeBaselineQuery' : 'executeAcceleratedQuery',
+    'POST /api/query-execution/queries/execute',
+    buildQueryRequest(accelerationPreference),
+    (requestPayload, requestOptions) => executeQuery(requestPayload, requestOptions),
+    response => {
+      if (scenario === 'baseline') {
+        baselineResult.value = response
+        return
+      }
+      acceleratedResult.value = response
+    }
+  )
+
+const runAction = async (loadingKey, actionName, endpoint, requestPayload, runner, onSuccess) => {
+  loading[loadingKey] = true
+  errorMessage.value = ''
+  const requestOptions = {
+    requestPrefix: `frontend-acceleration-workbench-${loadingKey}`
+  }
+  const evidence = {
+    action: actionName,
+    endpoint,
+    status: 'PENDING',
+    requestedAt: new Date().toISOString(),
+    requestHeaders: {
+      'X-SQLForge-Dev-Tenant-Id': form.tenantId,
+      'X-SQLForge-Dev-Request-Prefix': requestOptions.requestPrefix
+    },
+    request: requestPayload,
+    response: null
+  }
+  lastEvidence.value = evidence
+  try {
+    const response = await runner(requestPayload, requestOptions)
+    const completedEvidence = {
+      ...evidence,
+      status: 'SUCCEEDED',
+      response,
+      completedAt: new Date().toISOString()
+    }
+    lastEvidence.value = completedEvidence
+    if (onSuccess) {
+      onSuccess(response)
+    }
+    return response
+  } catch (error) {
+    const message = formatRuntimeError(error)
+    const failedEvidence = {
+      ...evidence,
+      status: 'FAILED',
+      error: message,
+      response: error?.response?.data || null,
+      completedAt: new Date().toISOString()
+    }
+    errorMessage.value = message
+    lastEvidence.value = failedEvidence
+    return null
+  } finally {
+    loading[loadingKey] = false
+  }
+}
+
+function buildSourceSnapshot() {
+  return compactObject({
+    tenantId: form.tenantId,
+    sourceType: form.sourceType,
+    sourceKind: form.sourceKind,
+    sourceId: resolvedSourceId.value,
+    historyId: form.historyId,
+    parseHistoryId: form.parseHistoryId,
+    sqlFingerprint: form.sqlFingerprint,
+    datasourceCode: form.datasourceCode,
+    datasourceType: form.datasourceType,
+    stage: form.stage,
+    reportCode: form.reportCode,
+    evidenceLevel: form.evidenceLevel
+  })
+}
+
+function buildCandidateRequest() {
+  const sourceSnapshot = buildSourceSnapshot()
+  return compactObject({
+    ...sourceSnapshot,
+    candidateType: 'ACCELERATION_AND_REWRITE',
+    status: 'DRAFT',
+    confidence: form.evidenceLevel === 'STATIC_PARSE' ? 0.62 : 0.78,
+    priority: form.evidenceLevel === 'STATIC_PARSE' ? 2 : 1,
+    schemaVersion: 'HARN-138',
+    sourceEvidence: {
+      ...sourceSnapshot,
+      staticOnly: form.evidenceLevel === 'STATIC_PARSE',
+      enableHetuExplain: form.enableHetuExplain
+    },
+    issueEvidence: {
+      sqlPreviewAvailable: hasValue(form.sqlText),
+      sourceSummary: sourceSummaryText.value
+    },
+    runtimeEvidence: {
+      evidenceLevel: form.evidenceLevel,
+      runtimeMetricsUnavailable: form.evidenceLevel === 'STATIC_PARSE'
+    },
+    benefitEstimate: {
+      evidenceLevel: form.evidenceLevel,
+      verifiedBenefit: false
+    },
+    costEstimate: {
+      externalExecutionRequired: form.enableHetuExplain
+    },
+    risk: {
+      manualReviewRequired: form.evidenceLevel === 'STATIC_PARSE',
+      boundary: 'APPLIED is not treated as ACTIVE before verification'
+    }
+  })
+}
+
+function buildSuggestionTaskRequest() {
+  return compactObject({
+    tenantId: form.tenantId,
+    taskType: 'ACCELERATION_SUGGESTION',
+    sqlText: form.sqlText,
+    sqlFingerprint: form.sqlFingerprint,
+    datasourceType: form.datasourceType,
+    taskContext: compactObject({
+      parseDepth: 'DEEP',
+      priority: 'NORMAL',
+      requestedSuggestionTypes: form.selectedSuggestionTypes,
+      sourceType: form.sourceType,
+      sourceId: resolvedSourceId.value,
+      historyId: form.historyId,
+      parseTaskId: form.parseHistoryId,
+      datasourceCode: form.datasourceCode,
+      reportCode: form.reportCode
+    })
+  })
+}
+
+function buildPlanSubmitRequest() {
+  return {
+    tenantId: form.tenantId,
+    sourceTaskId: selectedSourceTaskId.value,
+    selectedSuggestionTypes: form.selectedSuggestionTypes
+  }
+}
+
+function buildRewriteRecordRequest() {
+  const sourceSnapshot = buildSourceSnapshot()
+  return compactObject({
+    tenantId: form.tenantId,
+    recommendationId: form.recommendationId || diffResponse.value?.recommendationId,
+    optimizationTaskId: selectedSourceTaskId.value,
+    sourceType: form.sourceType,
+    sourceKind: form.sourceKind,
+    sourceId: resolvedSourceId.value,
+    evidenceLevel: form.evidenceLevel,
+    historyId: form.historyId,
+    parseHistoryId: form.parseHistoryId,
+    sqlFingerprint: form.sqlFingerprint || diffResponse.value?.sqlFingerprint,
+    datasourceCode: form.datasourceCode,
+    status: 'DRAFT',
+    validationStatus: 'NOT_VALIDATED',
+    autoApplyAllowed: false,
+    manualReviewRequired: true,
+    alertStatus: 'NONE',
+    originalSqlText: diffResponse.value?.originalSql,
+    recommendedSqlText: diffResponse.value?.recommendedSql,
+    ruleChain: diffResponse.value?.ruleDiff || [],
+    diffSummary: diffResponse.value?.diffSummary || {},
+    risk: {
+      sourceEvidenceLevel: form.evidenceLevel,
+      manualReviewRequired: true
+    },
+    traceRefs: sourceSnapshot
+  })
+}
+
+function buildValidationRunRequest() {
+  return compactObject({
+    tenantId: form.tenantId,
+    recommendationId: form.recommendationId,
+    historyId: form.historyId,
+    sqlFingerprint: form.sqlFingerprint,
+    datasourceType: form.datasourceType,
+    triggerReason: form.actionReason,
+    status: 'PENDING',
+    comparisonStatus: 'NOT_COMPARED',
+    differenceType: 'UNKNOWN',
+    autoApplyPaused: false,
+    comparisonPolicy: {
+      source: 'HARN-138_WORKBENCH',
+      fullResultPulledToFrontend: false
+    },
+    executionEvidence: {
+      requestedBy: 'acceleration-governance-workbench',
+      evidenceLevel: form.evidenceLevel
+    }
+  })
+}
+
+function buildQueryRequest(accelerationPreference) {
+  return compactObject({
+    tenantId: form.tenantId,
+    sqlText: form.sqlText,
+    datasourceType: form.datasourceType,
+    accelerationPreference,
+    faultToleranceStrategy: 'FAIL_FAST',
+    queryContext: compactObject({
+      source: 'ACCELERATION_GOVERNANCE_WORKBENCH',
+      planId: form.planId,
+      sqlFingerprint: form.sqlFingerprint
+    })
+  })
+}
+
+function action(tabName, method, endpoint, enabled) {
   return {
     tab: tabName,
+    method,
     endpoint,
-    ownerTask: 'HARN-138',
-    state: t('accelerationGovernanceWorkbench.states.futureTask')
+    enabled,
+    state: enabled
+      ? t('accelerationGovernanceWorkbench.states.realInterfaceReady')
+      : t('accelerationGovernanceWorkbench.states.missingTraceKey')
   }
 }
 
@@ -234,6 +794,9 @@ function displayValue(value) {
   if (!hasValue(value)) {
     return '-'
   }
+  if (Array.isArray(value)) {
+    return value.length ? value.join(' / ') : '-'
+  }
   return String(value)
 }
 
@@ -241,9 +804,17 @@ function hasValue(value) {
   return value !== null && value !== undefined && String(value).trim() !== ''
 }
 
-function compactQuery(query) {
+function compactObject(query) {
   return Object.fromEntries(
-    Object.entries(query).filter(([, value]) => hasValue(value))
+    Object.entries(query).filter(([, value]) => {
+      if (Array.isArray(value)) {
+        return value.length > 0
+      }
+      if (value && typeof value === 'object') {
+        return Object.keys(value).length > 0
+      }
+      return hasValue(value)
+    })
   )
 }
 
@@ -253,6 +824,51 @@ function formatJson(value) {
 
 function flowNodeLabel(node) {
   return t(`accelerationGovernanceWorkbench.flowNodes.${node}`)
+}
+
+function flowNodeState(index) {
+  if (index === 0) {
+    return t('accelerationGovernanceWorkbench.states.sourceReady')
+  }
+  return t('accelerationGovernanceWorkbench.states.realInterfaceReady')
+}
+
+function friendlyPlanStatus(status) {
+  if (status === 'APPLIED') {
+    return t('accelerationGovernanceWorkbench.statuses.appliedPendingVerification')
+  }
+  if (status === 'VERIFIED' || status === 'ACTIVE') {
+    return t('accelerationGovernanceWorkbench.statuses.active')
+  }
+  if (status === 'VERIFY_FAILED') {
+    return t('accelerationGovernanceWorkbench.statuses.reviewRequired')
+  }
+  return status || '-'
+}
+
+function tagType(value) {
+  const normalized = String(value || '').toUpperCase()
+  if (['SUCCEEDED', 'SUCCESS', 'VERIFIED', 'ACTIVE', 'EQUIVALENT', 'APPROVED'].includes(normalized)) {
+    return 'success'
+  }
+  if (['APPLIED', 'PENDING_APPROVAL', 'PENDING', 'RUNNING', 'NOT_COMPARED'].includes(normalized)) {
+    return 'warning'
+  }
+  if (['FAILED', 'VERIFY_FAILED', 'DIVERGED', 'ROLLBACK_FAILED', 'APPLY_FAILED', 'REJECTED'].includes(normalized)) {
+    return 'danger'
+  }
+  return 'info'
+}
+
+function queryAccelerationApplied(result) {
+  const value = result?.metadata?.accelerationApplied
+  if (value === true) {
+    return 'true'
+  }
+  if (value === false) {
+    return 'false'
+  }
+  return '-'
 }
 </script>
 
@@ -311,6 +927,12 @@ function flowNodeLabel(node) {
         <label class="field-block">
           <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.datasourceCode') }}</span>
           <el-input v-model.trim="form.datasourceCode" data-testid="acceleration-workbench-datasource-code" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.datasourceType') }}</span>
+          <el-select v-model="form.datasourceType" data-testid="acceleration-workbench-datasource-type">
+            <el-option v-for="item in datasourceTypeOptions" :key="item" :label="item" :value="item" />
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.schemaName') }}</span>
@@ -378,7 +1000,7 @@ function flowNodeLabel(node) {
         <li v-for="(node, index) in flowNodes" :key="node" class="flow-node" :data-testid="`acceleration-workbench-flow-${node}`">
           <span class="flow-index">{{ index + 1 }}</span>
           <strong>{{ flowNodeLabel(node) }}</strong>
-          <span>{{ index === 0 ? t('accelerationGovernanceWorkbench.states.shellOnly') : t('accelerationGovernanceWorkbench.states.futureTask') }}</span>
+          <span>{{ flowNodeState(index) }}</span>
         </li>
       </ol>
     </section>
@@ -412,6 +1034,21 @@ function flowNodeLabel(node) {
       </div>
     </section>
 
+    <section class="workbench-panel" data-testid="acceleration-workbench-runtime-panel">
+      <SectionHeader
+        :title="t('accelerationGovernanceWorkbench.sections.runtimeTitle')"
+        :summary="t('accelerationGovernanceWorkbench.sections.runtimeSummary')"
+        size="compact"
+      />
+      <div class="runtime-grid">
+        <div v-for="item in runtimeSummaryRows" :key="item.key" class="runtime-cell">
+          <span>{{ item.label }}</span>
+          <strong :data-testid="`acceleration-workbench-runtime-${item.key}`">{{ item.value }}</strong>
+        </div>
+      </div>
+      <p v-if="errorMessage" class="error-note" data-testid="acceleration-workbench-error">{{ errorMessage }}</p>
+    </section>
+
     <section class="workbench-panel" data-testid="acceleration-workbench-tabs-panel">
       <el-tabs v-model="activeTab" data-testid="acceleration-workbench-tabs">
         <el-tab-pane v-for="tabItem in tabDefinitions" :key="tabItem.name" :label="tabItem.label" :name="tabItem.name">
@@ -420,27 +1057,242 @@ function flowNodeLabel(node) {
               <span>{{ t('accelerationGovernanceWorkbench.sections.tabSummary') }}</span>
               <strong>{{ sourceSummaryText }}</strong>
             </div>
-            <div class="future-action-list">
-              <article v-for="item in tabActions(tabItem.name)" :key="`${tabItem.name}:${item.endpoint}`" class="future-action-row">
-                <div>
-                  <span class="sqlforge-code-label">{{ t('accelerationGovernanceWorkbench.fields.endpoint') }}</span>
-                  <strong>{{ item.endpoint }}</strong>
-                </div>
-                <div>
-                  <span class="sqlforge-code-label">{{ t('accelerationGovernanceWorkbench.fields.ownerTask') }}</span>
-                  <strong>{{ item.ownerTask }}</strong>
-                </div>
-                <el-button disabled data-testid="acceleration-workbench-future-action">
-                  {{ t('accelerationGovernanceWorkbench.actions.futureAction') }}
+
+            <template v-if="tabItem.name === 'candidates'">
+              <div class="tab-grid">
+                <label class="field-block">
+                  <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.candidateId') }}</span>
+                  <el-input v-model.trim="form.candidateId" data-testid="acceleration-workbench-candidate-id" />
+                </label>
+                <label class="field-block">
+                  <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.sourceTaskId') }}</span>
+                  <el-input v-model.trim="form.sourceTaskId" data-testid="acceleration-workbench-source-task-id" />
+                </label>
+                <label class="field-block">
+                  <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.selectedSuggestionTypes') }}</span>
+                  <el-select v-model="form.selectedSuggestionTypes" multiple collapse-tags data-testid="acceleration-workbench-suggestion-types">
+                    <el-option v-for="item in suggestionTypeOptions" :key="item" :label="item" :value="item" />
+                  </el-select>
+                </label>
+              </div>
+              <div class="action-row">
+                <el-button type="primary" :loading="loading.candidate" :disabled="!canSubmitSource" data-testid="acceleration-workbench-create-candidate" @click="createCandidate">
+                  {{ t('accelerationGovernanceWorkbench.actions.createCandidate') }}
                 </el-button>
-              </article>
-            </div>
-            <p class="state-note">{{ t('accelerationGovernanceWorkbench.states.disabledUntilNextTask') }}</p>
+                <el-button :loading="loading.candidate" data-testid="acceleration-workbench-list-candidates" @click="refreshCandidates">
+                  {{ t('accelerationGovernanceWorkbench.actions.listCandidates') }}
+                </el-button>
+                <el-button :loading="loading.candidate" :disabled="!form.candidateId" data-testid="acceleration-workbench-load-candidate" @click="loadCandidate">
+                  {{ t('accelerationGovernanceWorkbench.actions.loadCandidate') }}
+                </el-button>
+                <el-button type="primary" :loading="loading.suggestion" :disabled="!canSubmitSuggestion" data-testid="acceleration-workbench-submit-suggestion" @click="submitSuggestion">
+                  {{ t('accelerationGovernanceWorkbench.actions.submitSuggestion') }}
+                </el-button>
+                <el-button :loading="loading.suggestion" :disabled="!selectedSourceTaskId" data-testid="acceleration-workbench-refresh-suggestion" @click="refreshSuggestionTask">
+                  {{ t('accelerationGovernanceWorkbench.actions.refreshSuggestion') }}
+                </el-button>
+              </div>
+              <el-table :data="candidateRows" stripe data-testid="acceleration-workbench-candidate-table" @row-click="selectCandidate">
+                <el-table-column prop="candidateId" :label="t('accelerationGovernanceWorkbench.fields.candidateId')" min-width="180" />
+                <el-table-column prop="status" :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="120" />
+                <el-table-column prop="candidateType" :label="t('accelerationGovernanceWorkbench.fields.candidateType')" min-width="180" />
+                <el-table-column prop="evidenceLevel" :label="t('accelerationGovernanceWorkbench.fields.evidenceLevel')" min-width="150" />
+                <el-table-column prop="sourceKind" :label="t('accelerationGovernanceWorkbench.fields.sourceKind')" min-width="170" />
+              </el-table>
+              <div class="evidence-summary">
+                <el-tag :type="tagType(suggestionTaskStatus?.status || suggestionTask?.status)">{{ displayValue(suggestionTaskStatus?.status || suggestionTask?.status) }}</el-tag>
+                <span>{{ displayValue(suggestionTaskStatus?.taskId || suggestionTask?.taskId) }}</span>
+              </div>
+            </template>
+
+            <template v-else-if="tabItem.name === 'diff'">
+              <div class="tab-grid">
+                <label class="field-block">
+                  <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.recommendationId') }}</span>
+                  <el-input v-model.trim="form.recommendationId" data-testid="acceleration-workbench-recommendation-id" />
+                </label>
+              </div>
+              <div class="action-row">
+                <el-button type="primary" :loading="loading.diff" :disabled="!canLoadDiff" data-testid="acceleration-workbench-load-diff" @click="loadDiff">
+                  {{ t('accelerationGovernanceWorkbench.actions.loadDiff') }}
+                </el-button>
+                <el-button :loading="loading.monitoring" :disabled="!canCreateRewriteRecord" data-testid="acceleration-workbench-create-rewrite-record" @click="createRewriteRecordFromDiff">
+                  {{ t('accelerationGovernanceWorkbench.actions.createRewriteRecord') }}
+                </el-button>
+              </div>
+              <div class="sql-diff-grid" data-testid="acceleration-workbench-diff-view">
+                <SqlCodeBlock
+                  :value="diffResponse?.originalSql || form.sqlText"
+                  :label="t('accelerationGovernanceWorkbench.fields.originalSql')"
+                  :copy-label="t('common.actions.copy')"
+                  compact
+                />
+                <SqlCodeBlock
+                  :value="diffResponse?.recommendedSql || ''"
+                  :label="t('accelerationGovernanceWorkbench.fields.recommendedSql')"
+                  :copy-label="t('common.actions.copy')"
+                  compact
+                />
+              </div>
+              <pre class="code-block code-block-compact">{{ formatJson({ diffSummary: diffResponse?.diffSummary, ruleDiff: diffResponse?.ruleDiff, astSummaryDiff: diffResponse?.astSummaryDiff }) }}</pre>
+            </template>
+
+            <template v-else-if="tabItem.name === 'approval'">
+              <div class="tab-grid">
+                <label class="field-block">
+                  <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.sourceTaskId') }}</span>
+                  <el-input v-model.trim="form.sourceTaskId" data-testid="acceleration-workbench-plan-source-task-id" />
+                </label>
+                <label class="field-block">
+                  <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.planId') }}</span>
+                  <el-input v-model.trim="form.planId" data-testid="acceleration-workbench-plan-id" />
+                </label>
+                <label class="field-block field-block-wide">
+                  <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.reviewNote') }}</span>
+                  <el-input v-model="form.reviewNote" data-testid="acceleration-workbench-review-note" />
+                </label>
+              </div>
+              <div class="action-row">
+                <el-button type="primary" :loading="loading.plan" :disabled="!canSubmitPlan" data-testid="acceleration-workbench-submit-plan" @click="submitPlan">
+                  {{ t('accelerationGovernanceWorkbench.actions.submitPlan') }}
+                </el-button>
+                <el-button :loading="loading.plan" :disabled="!form.planId" data-testid="acceleration-workbench-refresh-plan" @click="refreshPlan">
+                  {{ t('accelerationGovernanceWorkbench.actions.refreshPlan') }}
+                </el-button>
+                <el-button type="primary" :loading="loading.approval" :disabled="!form.planId" data-testid="acceleration-workbench-approve-plan" @click="reviewPlan(true)">
+                  {{ t('accelerationGovernanceWorkbench.actions.approvePlan') }}
+                </el-button>
+                <el-button :loading="loading.approval" :disabled="!form.planId" data-testid="acceleration-workbench-reject-plan" @click="reviewPlan(false)">
+                  {{ t('accelerationGovernanceWorkbench.actions.rejectPlan') }}
+                </el-button>
+              </div>
+              <div class="plan-summary" data-testid="acceleration-workbench-plan-summary">
+                <el-tag :type="tagType(planResponse?.status)">{{ friendlyPlanStatus(selectedPlanStatus) }}</el-tag>
+                <span>{{ displayValue(planResponse?.planSummary || planResponse?.statusQueryPath) }}</span>
+                <span>{{ displayValue(planResponse?.configSnapshotId) }}</span>
+                <span>{{ displayValue(planResponse?.resultId) }}</span>
+              </div>
+              <el-table :data="planResponse?.statusHistory || []" stripe>
+                <el-table-column prop="status" :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="130" />
+                <el-table-column prop="reason" :label="t('accelerationGovernanceWorkbench.fields.reason')" min-width="180" />
+                <el-table-column prop="createdAt" :label="t('accelerationGovernanceWorkbench.fields.createdAt')" min-width="180" />
+              </el-table>
+            </template>
+
+            <template v-else-if="tabItem.name === 'validation'">
+              <div class="tab-grid">
+                <label class="field-block">
+                  <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.planId') }}</span>
+                  <el-input v-model.trim="form.planId" data-testid="acceleration-workbench-validation-plan-id" />
+                </label>
+                <label class="field-block field-block-wide">
+                  <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.actionReason') }}</span>
+                  <el-input v-model="form.actionReason" data-testid="acceleration-workbench-action-reason" />
+                </label>
+              </div>
+              <div class="action-row">
+                <el-button type="primary" :loading="loading.validation" :disabled="!canApplyPlan" data-testid="acceleration-workbench-apply-plan" @click="applyPlan">
+                  {{ t('accelerationGovernanceWorkbench.actions.applyPlan') }}
+                </el-button>
+                <el-button type="primary" :loading="loading.validation" :disabled="!canVerifyPlan" data-testid="acceleration-workbench-verify-plan" @click="verifyPlan">
+                  {{ t('accelerationGovernanceWorkbench.actions.verifyPlan') }}
+                </el-button>
+                <el-button :loading="loading.validation" :disabled="!canRollbackPlan" data-testid="acceleration-workbench-rollback-plan" @click="rollbackPlan">
+                  {{ t('accelerationGovernanceWorkbench.actions.rollbackPlan') }}
+                </el-button>
+                <el-button :loading="loading.query" :disabled="!canSubmitSuggestion" data-testid="acceleration-workbench-baseline-query" @click="runBaselineQuery">
+                  {{ t('accelerationGovernanceWorkbench.actions.baselineQuery') }}
+                </el-button>
+                <el-button :loading="loading.query" :disabled="!canSubmitSuggestion" data-testid="acceleration-workbench-accelerated-query" @click="runAcceleratedQuery">
+                  {{ t('accelerationGovernanceWorkbench.actions.acceleratedQuery') }}
+                </el-button>
+              </div>
+              <div class="query-result-grid">
+                <div class="result-box" data-testid="acceleration-workbench-baseline-result">
+                  <span>{{ t('accelerationGovernanceWorkbench.fields.baselineResult') }}</span>
+                  <strong>{{ displayValue(baselineResult?.status) }}</strong>
+                  <small>{{ t('accelerationGovernanceWorkbench.fields.accelerationApplied') }}={{ queryAccelerationApplied(baselineResult) }}</small>
+                </div>
+                <div class="result-box" data-testid="acceleration-workbench-accelerated-result">
+                  <span>{{ t('accelerationGovernanceWorkbench.fields.acceleratedResult') }}</span>
+                  <strong>{{ displayValue(acceleratedResult?.status) }}</strong>
+                  <small>{{ t('accelerationGovernanceWorkbench.fields.accelerationApplied') }}={{ queryAccelerationApplied(acceleratedResult) }}</small>
+                </div>
+              </div>
+              <pre class="code-block code-block-compact">{{ formatJson({ runtimeBindingJson: planResponse?.runtimeBindingJson, verificationEvidenceJson: planResponse?.verificationEvidenceJson, rollbackEvidenceJson: planResponse?.rollbackEvidenceJson }) }}</pre>
+            </template>
+
+            <template v-else-if="tabItem.name === 'monitoring'">
+              <div class="tab-grid">
+                <label class="field-block">
+                  <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.historyId') }}</span>
+                  <el-input v-model.trim="form.historyId" data-testid="acceleration-workbench-monitor-history-id" />
+                </label>
+                <label class="field-block">
+                  <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.rewriteRecordId') }}</span>
+                  <el-input v-model.trim="form.rewriteRecordId" data-testid="acceleration-workbench-rewrite-record-id" />
+                </label>
+                <label class="field-block">
+                  <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.validationStatus') }}</span>
+                  <el-input v-model.trim="form.validationStatus" data-testid="acceleration-workbench-validation-status-filter" />
+                </label>
+              </div>
+              <div class="action-row">
+                <el-button type="primary" :loading="loading.monitoring" data-testid="acceleration-workbench-list-rewrite-records" @click="refreshRewriteRecords">
+                  {{ t('accelerationGovernanceWorkbench.actions.listRewriteRecords') }}
+                </el-button>
+                <el-button :loading="loading.monitoring" :disabled="!form.historyId" data-testid="acceleration-workbench-history-rewrite-records" @click="refreshHistoryRewriteRecords">
+                  {{ t('accelerationGovernanceWorkbench.actions.historyRewriteRecords') }}
+                </el-button>
+                <el-button :loading="loading.monitoring" :disabled="!form.rewriteRecordId" data-testid="acceleration-workbench-list-validation-runs" @click="refreshValidationRuns">
+                  {{ t('accelerationGovernanceWorkbench.actions.listValidationRuns') }}
+                </el-button>
+                <el-button :loading="loading.monitoring" :disabled="!form.rewriteRecordId" data-testid="acceleration-workbench-create-validation-run" @click="createValidationRun">
+                  {{ t('accelerationGovernanceWorkbench.actions.createValidationRun') }}
+                </el-button>
+              </div>
+              <div class="table-state" data-testid="acceleration-workbench-table-state">
+                <span>{{ t('accelerationGovernanceWorkbench.sections.tableState') }}</span>
+                <strong>{{ formatJson(pageInfo) }}</strong>
+              </div>
+              <el-table :data="rewriteRecordRows" stripe data-testid="acceleration-workbench-rewrite-record-table" @row-click="selectRewriteRecord">
+                <el-table-column prop="rewriteRecordId" :label="t('accelerationGovernanceWorkbench.fields.rewriteRecordId')" min-width="190" />
+                <el-table-column prop="validationStatus" :label="t('accelerationGovernanceWorkbench.fields.validationStatus')" min-width="160" />
+                <el-table-column prop="alertStatus" :label="t('accelerationGovernanceWorkbench.fields.alertStatus')" min-width="130" />
+                <el-table-column prop="autoApplyAllowed" :label="t('accelerationGovernanceWorkbench.fields.autoApplyAllowed')" min-width="150" />
+                <el-table-column prop="manualReviewRequired" :label="t('accelerationGovernanceWorkbench.fields.manualReviewRequired')" min-width="180" />
+              </el-table>
+              <el-table :data="historyRewriteRecordRows" stripe data-testid="acceleration-workbench-history-rewrite-record-table">
+                <el-table-column prop="rewriteRecordId" :label="t('accelerationGovernanceWorkbench.fields.historyRewriteRecordId')" min-width="210" />
+                <el-table-column prop="validationStatus" :label="t('accelerationGovernanceWorkbench.fields.validationStatus')" min-width="160" />
+                <el-table-column prop="alertStatus" :label="t('accelerationGovernanceWorkbench.fields.alertStatus')" min-width="130" />
+              </el-table>
+              <el-table :data="validationRuns" stripe data-testid="acceleration-workbench-validation-run-table">
+                <el-table-column prop="validationRunId" :label="t('accelerationGovernanceWorkbench.fields.validationRunId')" min-width="190" />
+                <el-table-column prop="status" :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="120" />
+                <el-table-column prop="comparisonStatus" :label="t('accelerationGovernanceWorkbench.fields.comparisonStatus')" min-width="160" />
+                <el-table-column prop="differenceType" :label="t('accelerationGovernanceWorkbench.fields.differenceType')" min-width="170" />
+                <el-table-column prop="autoApplyPaused" :label="t('accelerationGovernanceWorkbench.fields.autoApplyPaused')" min-width="150" />
+              </el-table>
+            </template>
+
+            <template v-else>
+              <div class="interface-action-list" data-testid="acceleration-workbench-interface-actions">
+                <article v-for="item in interfaceActions" :key="`${item.method}:${item.endpoint}`" class="interface-action-row">
+                  <div>
+                    <span class="sqlforge-code-label">{{ item.method }}</span>
+                    <strong>{{ item.endpoint }}</strong>
+                  </div>
+                  <el-tag :type="item.enabled ? 'success' : 'warning'">{{ item.state }}</el-tag>
+                </article>
+              </div>
+              <pre class="code-block" data-testid="acceleration-workbench-last-evidence">{{ formatJson(lastEvidence) }}</pre>
+            </template>
           </div>
         </el-tab-pane>
       </el-tabs>
       <div class="evidence-actions">
-        <el-button data-testid="acceleration-workbench-action-evidence" @click="openEvidenceDrawer(t('accelerationGovernanceWorkbench.drawers.actions'), futureActions)">
+        <el-button data-testid="acceleration-workbench-action-evidence" @click="openEvidenceDrawer(t('accelerationGovernanceWorkbench.drawers.actions'), { interfaceActions, lastEvidence })">
           {{ t('accelerationGovernanceWorkbench.actions.viewActionEvidence') }}
         </el-button>
       </div>
@@ -491,7 +1343,8 @@ function flowNodeLabel(node) {
   background: var(--sqlforge-border-default);
 }
 
-.status-cell {
+.status-cell,
+.runtime-cell {
   display: grid;
   gap: var(--sqlforge-space-2);
   min-width: 0;
@@ -500,15 +1353,20 @@ function flowNodeLabel(node) {
 }
 
 .status-cell span,
+.runtime-cell span,
 .tab-source-strip span,
-.state-note {
+.state-note,
+.result-box span,
+.result-box small {
   color: var(--sqlforge-text-muted);
 }
 
 .status-cell strong,
+.runtime-cell strong,
 .tab-source-strip strong,
-.future-action-row strong,
-.jump-button strong {
+.interface-action-row strong,
+.jump-button strong,
+.result-box strong {
   min-width: 0;
   overflow-wrap: anywhere;
   color: var(--sqlforge-text-primary);
@@ -518,7 +1376,7 @@ function flowNodeLabel(node) {
 .source-mode-row,
 .source-grid,
 .jump-grid,
-.future-action-row,
+.action-row,
 .evidence-actions {
   display: flex;
   flex-wrap: wrap;
@@ -555,10 +1413,22 @@ function flowNodeLabel(node) {
   color: var(--sqlforge-text-primary);
 }
 
-.source-grid {
+.source-grid,
+.tab-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(180px, 1fr));
   width: 100%;
+  gap: var(--sqlforge-space-3);
+}
+
+.runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-border-default);
 }
 
 .field-block {
@@ -569,6 +1439,7 @@ function flowNodeLabel(node) {
 
 .field-block-wide {
   width: 100%;
+  grid-column: 1 / -1;
 }
 
 .field-block-switch {
@@ -665,23 +1536,65 @@ function flowNodeLabel(node) {
   border-bottom: 1px solid var(--sqlforge-border-subtle);
 }
 
-.future-action-list {
-  display: grid;
-  gap: var(--sqlforge-space-3);
+.action-row {
+  align-items: center;
 }
 
-.future-action-row {
-  justify-content: space-between;
+.sql-diff-grid,
+.query-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sqlforge-space-4);
+}
+
+.result-box,
+.interface-action-row,
+.evidence-summary,
+.plan-summary,
+.table-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sqlforge-space-3);
+  align-items: center;
+  min-width: 0;
   padding: var(--sqlforge-space-4);
   border: 1px solid var(--sqlforge-border-subtle);
   border-radius: var(--sqlforge-radius-sm);
   background: var(--sqlforge-surface-1);
 }
 
-.future-action-row > div {
+.result-box {
+  display: grid;
+  align-items: start;
+}
+
+.interface-action-list {
+  display: grid;
+  gap: var(--sqlforge-space-3);
+}
+
+.interface-action-row {
+  justify-content: space-between;
+}
+
+.table-state {
+  justify-content: space-between;
+  color: var(--sqlforge-text-muted);
+}
+
+.interface-action-row > div {
   display: grid;
   gap: var(--sqlforge-space-2);
   min-width: 0;
+}
+
+.error-note {
+  margin: 0;
+  padding: var(--sqlforge-space-3) var(--sqlforge-space-4);
+  border: 1px solid rgba(255, 119, 117, 0.35);
+  border-radius: var(--sqlforge-radius-sm);
+  background: rgba(255, 119, 117, 0.08);
+  color: #ffb4b4;
 }
 
 .state-note {
@@ -706,13 +1619,21 @@ function flowNodeLabel(node) {
   line-height: 1.55;
 }
 
+.code-block-compact {
+  max-height: 260px;
+}
+
 @media (max-width: 1280px) {
-  .status-strip {
+  .status-strip,
+  .runtime-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .source-grid,
-  .jump-grid {
+  .tab-grid,
+  .jump-grid,
+  .sql-diff-grid,
+  .query-result-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -723,15 +1644,20 @@ function flowNodeLabel(node) {
 
 @media (max-width: 760px) {
   .status-strip,
+  .runtime-grid,
   .source-grid,
+  .tab-grid,
   .jump-grid,
-  .flow-map {
+  .flow-map,
+  .sql-diff-grid,
+  .query-result-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .segmented-control,
   .segmented-option,
-  .future-action-row {
+  .action-row .el-button,
+  .interface-action-row {
     width: 100%;
   }
 }

@@ -1173,18 +1173,18 @@ export default {
   },
   accelerationGovernanceWorkbench: {
     title: '加速治理工作台',
-    summary: '统一展示解析驱动与查询驱动进入加速治理的来源、流程、跳转和接口证据边界。',
+    summary: '统一编排解析驱动与查询驱动进入加速治理的候选、差异、审批、应用验证和接口证据。',
     eyebrow: '加速治理',
     pageTitle: '加速治理工作台',
-    boundarySummary: '本页是 HARN-137 只读壳层：展示来源字段、流程图、已有页面跳转和证据抽屉；候选、审批、应用和验证按钮留给 HARN-138，不提交模拟成功。',
+    boundarySummary: '本页是 HARN-138 真实接口工作台：按钮只调用已存在接口，缺少追溯键时保持禁用；APPLIED 只表示已应用待验证，不等同生效。',
     source: {
       eyebrow: '入口证据',
       title: '来源字段与追溯键',
-      summary: '切换解析驱动或查询驱动后，只同步可解释的 sourceType、sourceKind 与 evidenceLevel，不伪造真实收益。'
+      summary: '切换解析驱动或查询驱动后，同步 sourceType、sourceKind、sourceId 与 evidenceLevel，并作为后续请求证据。'
     },
     flow: {
       eyebrow: '治理流程',
-      title: '候选到回滚的只读流程图',
+      title: '候选到回滚的接口流程',
       summary: '流程图只放在本工作台页，既有解析、推荐和 SQL 历史页面继续承担完整功能。'
     },
     flowNodes: {
@@ -1207,6 +1207,7 @@ export default {
     fields: {
       tenantId: '租户',
       datasourceCode: '数据源',
+      datasourceType: '数据源类型',
       schemaName: 'Schema',
       stage: '环境',
       reportCode: '报表编码',
@@ -1220,9 +1221,36 @@ export default {
       enableHetuExplain: 'Hetu 计划解析',
       sqlText: 'SQL 文本',
       currentMode: '当前入口',
-      ownerTask: '后续任务',
+      candidateId: '候选 ID candidateId',
+      sourceTaskId: '建议任务 ID sourceTaskId',
+      recommendationId: '推荐 ID recommendationId',
+      selectedSuggestionTypes: '建议类型',
+      planId: '计划 ID planId',
+      planStatus: '计划状态',
+      rewriteRecordId: '改写记录 ID rewriteRecordId',
+      validationStatus: '验证状态',
+      reviewNote: '审批意见',
+      actionReason: '动作原因',
+      originalSql: '原 SQL',
+      recommendedSql: '推荐 SQL',
+      baselineResult: '基线查询',
+      acceleratedResult: '加速查询',
+      lastAction: '最近动作',
       endpoint: '接口',
-      state: '状态'
+      state: '状态',
+      status: '状态',
+      candidateType: '候选类型',
+      reason: '原因',
+      createdAt: '创建时间',
+      alertStatus: '告警状态',
+      autoApplyAllowed: '允许自动应用',
+      manualReviewRequired: '需要人工复核',
+      historyRewriteRecordId: '历史改写记录 ID',
+      validationRunId: '验证运行 ID',
+      comparisonStatus: '比对状态',
+      differenceType: '差异类型',
+      autoApplyPaused: '自动应用已暂停',
+      accelerationApplied: '加速已应用'
     },
     modes: {
       parse: '解析驱动',
@@ -1237,25 +1265,52 @@ export default {
       viewSourceEvidence: '查看来源证据',
       viewRouteEvidence: '查看跳转证据',
       viewActionEvidence: '查看接口证据',
-      futureAction: '后续任务接入'
+      createCandidate: '创建候选',
+      listCandidates: '刷新候选',
+      loadCandidate: '读取候选',
+      submitSuggestion: '生成建议任务',
+      refreshSuggestion: '刷新建议任务',
+      loadDiff: '读取 SQL 差异',
+      createRewriteRecord: '创建改写记录',
+      submitPlan: '创建计划',
+      refreshPlan: '刷新计划',
+      approvePlan: '审批通过',
+      rejectPlan: '审批拒绝',
+      applyPlan: '应用计划',
+      verifyPlan: '验证计划',
+      rollbackPlan: '回滚计划',
+      baselineQuery: '执行基线查询',
+      acceleratedQuery: '执行加速查询',
+      listRewriteRecords: '查询改写记录',
+      historyRewriteRecords: '查询历史聚合',
+      listValidationRuns: '查询验证运行',
+      createValidationRun: '创建验证运行'
     },
     states: {
       shellOnly: '只读壳层',
-      futureTask: '需要 HARN-138',
+      sourceReady: '来源已就绪',
+      realInterfaceReady: '真实接口',
       notSubmitted: '未提交',
-      disabledUntilNextTask: '真实接口按钮留给 HARN-138，本页不提交模拟成功。',
       sourceSummary: '来源 {sourceType} / {sourceKind} / {sourceId} / {evidenceLevel}',
       missingTraceKey: '缺少必要追溯键'
+    },
+    statuses: {
+      appliedPendingVerification: '已应用待验证',
+      active: '生效',
+      reviewRequired: '待复核'
     },
     drawers: {
       source: '来源证据 JSON',
       routes: '跳转目标 JSON',
-      actions: '后续接口 JSON'
+      actions: '接口请求与响应 JSON'
     },
     sections: {
       jumpTitle: '已有页面跳转',
       jumpSummary: '工作台只把用户带到已有完整页面，不复制解析、推荐或历史详情。',
-      tabSummary: '当前 tab 只展示治理位置、后续接口和来源摘要。',
+      runtimeTitle: '运行态追溯',
+      runtimeSummary: '展示最近一次接口响应写回的候选、计划、改写和验证追溯键。',
+      tableState: '表格状态',
+      tabSummary: '当前 tab 使用真实接口和来源摘要，不把未实现能力伪装成成功。',
       sqlPreview: 'SQL 预览'
     }
   },

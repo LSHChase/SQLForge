@@ -19,6 +19,7 @@
     "test:i18n-copy": "node scripts/check-frontend-i18n-copy.mjs",
     "portable:start": "node dist-portable/portable-server.mjs --config dist-portable/portable-config.json",
     "smoke:frontend-dev": "node scripts/check-dev-frontend.mjs",
+    "smoke:acceleration-workbench": "node scripts/check-acceleration-workbench-browser-smoke.mjs",
     "smoke:portable-frontend": "node scripts/check-portable-frontend.mjs",
     "smoke:frontend-runtime": "node scripts/frontend-runtime-smoke.mjs"
   },

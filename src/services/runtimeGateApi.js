@@ -81,6 +81,28 @@ const buildReportBatchDetailQuery = filters => {
   return query ? `?${query}` : ''
 }
 
+const buildRewriteRecordsQuery = filters => {
+  const params = new URLSearchParams()
+  const historyId = String(filters?.historyId || '').trim()
+  const recommendationId = String(filters?.recommendationId || '').trim()
+  const validationStatus = String(filters?.validationStatus || '').trim()
+  const sourceType = String(filters?.sourceType || '').trim()
+  if (historyId) {
+    params.set('historyId', historyId)
+  }
+  if (recommendationId) {
+    params.set('recommendationId', recommendationId)
+  }
+  if (validationStatus) {
+    params.set('validationStatus', validationStatus)
+  }
+  if (sourceType) {
+    params.set('sourceType', sourceType)
+  }
+  const query = params.toString()
+  return query ? `?${query}` : ''
+}
+
 const devProxyHeaders = (tenantId, options = {}) => {
   const {
     requestPrefix = 'frontend-runtime',
@@ -559,6 +581,192 @@ export const getRecommendationTrace = (tenantId, recommendationId, requestOption
     tenantId,
     requestOptions: {
       requestPrefix: 'frontend-recommendation-trace',
+      ...requestOptions
+    }
+  })
+
+export const createAccelerationCandidate = (payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: '/api/sql-optimization/acceleration-candidates',
+    data: payload,
+    tenantId: payload.tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-acceleration-candidate-create',
+      ...requestOptions
+    }
+  })
+
+export const getAccelerationCandidates = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: '/api/sql-optimization/acceleration-candidates',
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-acceleration-candidate-list',
+      ...requestOptions
+    }
+  })
+
+export const getAccelerationCandidate = (tenantId, candidateId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/acceleration-candidates/${encodeURIComponent(candidateId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-acceleration-candidate-detail',
+      ...requestOptions
+    }
+  })
+
+export const getRecommendationDiff = (tenantId, recommendationId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/recommendations/${encodeURIComponent(recommendationId)}/diff`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-recommendation-diff',
+      ...requestOptions
+    }
+  })
+
+export const submitAccelerationPlan = (payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: '/api/sql-optimization/acceleration-plans',
+    data: payload,
+    tenantId: payload.tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-acceleration-plan-submit',
+      ...requestOptions
+    }
+  })
+
+export const getAccelerationPlan = (tenantId, planId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/acceleration-plans/${encodeURIComponent(planId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-acceleration-plan-detail',
+      ...requestOptions
+    }
+  })
+
+export const reviewAccelerationPlan = (tenantId, planId, payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/acceleration-plans/${encodeURIComponent(planId)}/approval`,
+    data: payload,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-acceleration-plan-review',
+      ...requestOptions
+    }
+  })
+
+export const applyAccelerationPlan = (tenantId, planId, payload = {}, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/acceleration-plans/${encodeURIComponent(planId)}/apply`,
+    data: payload,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-acceleration-plan-apply',
+      ...requestOptions
+    }
+  })
+
+export const verifyAccelerationPlan = (tenantId, planId, payload = {}, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/acceleration-plans/${encodeURIComponent(planId)}/verify`,
+    data: payload,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-acceleration-plan-verify',
+      ...requestOptions
+    }
+  })
+
+export const rollbackAccelerationPlan = (tenantId, planId, payload = {}, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/acceleration-plans/${encodeURIComponent(planId)}/rollback`,
+    data: payload,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-acceleration-plan-rollback',
+      ...requestOptions
+    }
+  })
+
+export const createSqlRewriteRecord = (payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: '/api/sql-optimization/rewrite-records',
+    data: payload,
+    tenantId: payload.tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-rewrite-record-create',
+      ...requestOptions
+    }
+  })
+
+export const getSqlRewriteRecords = (tenantId, filters = {}, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/rewrite-records${buildRewriteRecordsQuery(filters)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-rewrite-record-list',
+      ...requestOptions
+    }
+  })
+
+export const getSqlRewriteRecord = (tenantId, rewriteRecordId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-rewrite-record-detail',
+      ...requestOptions
+    }
+  })
+
+export const createRewriteValidationRun = (tenantId, rewriteRecordId, payload = {}, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/validation-runs`,
+    data: payload,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-rewrite-validation-run-create',
+      ...requestOptions
+    }
+  })
+
+export const getRewriteValidationRuns = (tenantId, rewriteRecordId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/validation-runs`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-rewrite-validation-run-list',
+      ...requestOptions
+    }
+  })
+
+export const getQueryHistoryRewriteRecords = (tenantId, historyId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url:
+      `/api/governance/query-history/${encodeURIComponent(historyId)}/rewrite-records` +
+      buildTenantQuerySuffix(tenantId),
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-query-history-rewrite-records',
       ...requestOptions
     }
   })
