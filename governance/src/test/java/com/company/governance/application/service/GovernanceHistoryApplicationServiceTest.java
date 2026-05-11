@@ -228,6 +228,8 @@ class GovernanceHistoryApplicationServiceTest {
             "analyst-001",
             LocalDateTime.parse("2026-04-25T00:00:00"),
             LocalDateTime.parse("2026-04-25T23:59:59"),
+            null,
+            null,
             "qh.submitted_at DESC, qh.history_id DESC",
             0,
             3
@@ -255,7 +257,9 @@ class GovernanceHistoryApplicationServiceTest {
             "HETU",
             "analyst-001",
             LocalDateTime.parse("2026-04-25T00:00:00"),
-            LocalDateTime.parse("2026-04-25T23:59:59")
+            LocalDateTime.parse("2026-04-25T23:59:59"),
+            null,
+            null
         )).thenReturn(Integer.valueOf(3));
 
         GovernanceQueryHistoryPageVO page = service.findQueryHistoryPage(
@@ -278,6 +282,10 @@ class GovernanceHistoryApplicationServiceTest {
             "analyst-001",
             "2026-04-25T00:00:00",
             "2026-04-25T23:59:59",
+            null,
+            null,
+            null,
+            null,
             "submittedAt",
             "DESC",
             Integer.valueOf(1),
@@ -292,6 +300,130 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals(Collections.singletonList("BUSINESS_VIEW"), page.getItems().get(0).getLogicalObjectTypes());
         assertEquals("BUSINESS_VIEW:vw_sales_daily", page.getItems().get(0).getLogicalObjectHits().get(0).getObjectKey());
         assertEquals(Integer.valueOf(1), ((Map<String, Integer>) page.getClassificationSummary().get("statusCounts")).get("PARTIAL"));
+    }
+
+    @Test
+    void shouldApplyRewriteRecordFiltersBeforeQueryHistoryPagination() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceSqlOptimizationClient sqlOptimizationClient = mock(GovernanceSqlOptimizationClient.class);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            null,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic,
+            null,
+            sqlOptimizationClient,
+            null,
+            null
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        List<String> includeHistoryIds = Collections.singletonList("history-001");
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(sqlOptimizationClient.listRewriteRecords(null, "rec-rewrite-001", "DIVERGED", "QUERY"))
+            .thenReturn(Arrays.asList(
+                buildRewriteRecord("rewrite-001", "tenant-a", "history-001", "DIVERGED", "OPEN"),
+                buildRewriteRecord("rewrite-cross", "tenant-b", "history-cross", "DIVERGED", "OPEN")
+            ));
+        when(queryHistoryMapper.selectHistoryPage(
+            "tenant-a",
+            "QUERY_EXECUTION",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            includeHistoryIds,
+            null,
+            "qh.submitted_at DESC, qh.history_id DESC",
+            0,
+            11
+        )).thenReturn(Collections.singletonList(
+            buildHistoryProjection("history-001", "trace-001", "SUCCESS", "PAGE")
+        ));
+        when(queryHistoryMapper.countHistoryPage(
+            "tenant-a",
+            "QUERY_EXECUTION",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            includeHistoryIds,
+            null
+        )).thenReturn(Integer.valueOf(1));
+
+        GovernanceQueryHistoryPageVO page = service.findQueryHistoryPage(
+            "tenant-a",
+            "QUERY_EXECUTION",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "DIVERGED",
+            "QUERY",
+            "rec-rewrite-001",
+            null,
+            null,
+            Integer.valueOf(1),
+            Integer.valueOf(10)
+        );
+
+        assertEquals(1, page.getItems().size());
+        assertEquals("history-001", page.getItems().get(0).getHistoryId());
+        assertEquals(Integer.valueOf(1), page.getTotalCount());
+        verify(sqlOptimizationClient).listRewriteRecords(null, "rec-rewrite-001", "DIVERGED", "QUERY");
     }
 
     @Test

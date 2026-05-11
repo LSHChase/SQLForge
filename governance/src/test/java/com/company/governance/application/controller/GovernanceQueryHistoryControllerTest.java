@@ -49,6 +49,10 @@ class GovernanceQueryHistoryControllerTest {
             null,
             null,
             null,
+            null,
+            null,
+            null,
+            null,
             null
         )).thenReturn(new GovernanceQueryHistoryPageVO(
             Collections.singletonList(item),
@@ -91,6 +95,10 @@ class GovernanceQueryHistoryControllerTest {
             null,
             null,
             "JDBC_AGENT",
+            null,
+            null,
+            null,
+            null,
             null,
             null,
             null,

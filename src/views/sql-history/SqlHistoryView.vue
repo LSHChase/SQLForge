@@ -7,6 +7,7 @@ import {
   exportGovernanceQueryHistory,
   formatRuntimeError,
   getGovernanceQueryHistoryDetail,
+  getQueryHistoryRewriteRecords,
   getGovernanceTraceDetail,
   lookupGovernanceTraces
 } from '../../services/runtimeGateApi'
@@ -45,6 +46,20 @@ const booleanValueOptions = [
   { label: 'false', value: 'false' }
 ]
 
+const rewriteValidationStatusValueOptions = [
+  { label: 'NOT_VALIDATED', value: 'NOT_VALIDATED' },
+  { label: 'VALIDATING', value: 'VALIDATING' },
+  { label: 'EQUIVALENT', value: 'EQUIVALENT' },
+  { label: 'DIVERGED', value: 'DIVERGED' },
+  { label: 'FAILED', value: 'FAILED' },
+  { label: 'EXPIRED', value: 'EXPIRED' }
+]
+
+const rewriteSourceTypeValueOptions = [
+  { label: 'PARSE', value: 'PARSE' },
+  { label: 'QUERY', value: 'QUERY' }
+]
+
 const logicalObjectTypeValueOptions = [
   { label: 'BUSINESS_VIEW', value: 'BUSINESS_VIEW' },
   { label: 'DB_VIEW', value: 'DB_VIEW' },
@@ -72,10 +87,14 @@ const exportFormatOptions = [
 const loading = reactive({
   detail: false,
   lookup: false,
-  export: false
+  export: false,
+  rewriteRecords: false
 })
 
 const selectedHistoryDetail = ref(null)
+const rewriteRecordsResponse = ref(null)
+const rewriteRecordsLoadedHistoryId = ref('')
+const rewriteRecordErrorMessage = ref('')
 const detailDrawerVisible = ref(false)
 const evidenceDrawerVisible = ref(false)
 const exportDialogVisible = ref(false)
@@ -135,9 +154,12 @@ const statusFilterOptions = computed(() => withAllOption(statusValueOptions))
 const accessChannelOptions = computed(() => withAllOption(accessChannelValueOptions))
 const targetEngineOptions = computed(() => withAllOption(engineOptions))
 const booleanFilterOptions = computed(() => withAllOption(booleanValueOptions))
+const rewriteValidationStatusOptions = computed(() => withAllOption(rewriteValidationStatusValueOptions))
+const rewriteSourceTypeOptions = computed(() => withAllOption(rewriteSourceTypeValueOptions))
 const logicalObjectTypeOptions = computed(() => withAllOption(logicalObjectTypeValueOptions))
 const sortFieldOptions = computed(() => withDefaultOption(sortFieldValueOptions))
 const sortOrderOptions = computed(() => withDefaultOption(sortOrderValueOptions))
+const rewriteRecordFiltersDisabled = computed(() => searchForm.hasRewriteRecord === 'false')
 
 const searchFields = computed(() => [
   {
@@ -251,6 +273,37 @@ const searchFields = computed(() => [
     options: booleanFilterOptions.value
   },
   {
+    key: 'hasRewriteRecord',
+    type: 'select',
+    label: t('sqlHistory.filters.hasRewriteRecord'),
+    options: booleanFilterOptions.value,
+    testId: 'sql-history-has-rewrite-record-filter'
+  },
+  {
+    key: 'rewriteValidationStatus',
+    type: 'select',
+    label: t('sqlHistory.filters.rewriteValidationStatus'),
+    options: rewriteValidationStatusOptions.value,
+    disabled: rewriteRecordFiltersDisabled.value,
+    testId: 'sql-history-rewrite-validation-status-filter'
+  },
+  {
+    key: 'rewriteSourceType',
+    type: 'select',
+    label: t('sqlHistory.filters.rewriteSourceType'),
+    options: rewriteSourceTypeOptions.value,
+    disabled: rewriteRecordFiltersDisabled.value,
+    testId: 'sql-history-rewrite-source-type-filter'
+  },
+  {
+    key: 'recommendationId',
+    type: 'input',
+    label: t('sqlHistory.filters.recommendationId'),
+    placeholder: t('sqlHistory.filters.recommendationIdPlaceholder'),
+    disabled: rewriteRecordFiltersDisabled.value,
+    testId: 'sql-history-recommendation-id-filter'
+  },
+  {
     key: 'accelerationApplied',
     type: 'select',
     label: t('sqlHistory.filters.accelerationApplied'),
@@ -356,12 +409,14 @@ const selectFieldProps = field => ({
   clearable: true,
   filterable: Boolean(field.filterable),
   allowCreate: Boolean(field.allowCreate),
-  defaultFirstOption: Boolean(field.defaultFirstOption)
+  defaultFirstOption: Boolean(field.defaultFirstOption),
+  disabled: Boolean(field.disabled)
 })
 
 const inputFieldProps = field => ({
   placeholder: field.placeholder,
-  clearable: true
+  clearable: true,
+  disabled: Boolean(field.disabled)
 })
 
 const dateFieldProps = field => ({
@@ -675,6 +730,26 @@ const referenceGroups = computed(() => {
   ]
 })
 
+const rewriteRecordRows = computed(() => rewriteRecordsResponse.value?.items || [])
+
+const rewriteRecordSummaryCards = computed(() => [
+  {
+    key: 'count',
+    label: t('sqlHistory.rewriteRecords.count'),
+    value: rewriteRecordsResponse.value?.rewriteRecordCount ?? rewriteRecordRows.value.length
+  },
+  {
+    key: 'contractStage',
+    label: t('sqlHistory.rewriteRecords.contractStage'),
+    value: rewriteRecordsResponse.value?.contractStage
+  },
+  {
+    key: 'implementationStage',
+    label: t('sqlHistory.rewriteRecords.implementationStage'),
+    value: rewriteRecordsResponse.value?.implementationStage
+  }
+])
+
 const search = async () => {
   workflowErrorMessage.value = ''
   await searchList()
@@ -685,6 +760,42 @@ const clearFilters = async () => {
   await clearListFilters()
 }
 
+const resetRewriteRecords = () => {
+  rewriteRecordsResponse.value = null
+  rewriteRecordsLoadedHistoryId.value = ''
+  rewriteRecordErrorMessage.value = ''
+}
+
+const loadRewriteRecords = async ({ force = false } = {}) => {
+  const historyId = normalizeQueryValue(selectedHistoryDetail.value?.historyId)
+  if (!historyId) {
+    return
+  }
+  if (!force && rewriteRecordsLoadedHistoryId.value === historyId) {
+    return
+  }
+  loading.rewriteRecords = true
+  rewriteRecordErrorMessage.value = ''
+  try {
+    rewriteRecordsResponse.value = await getQueryHistoryRewriteRecords(requestTenantId.value, historyId, {
+      requestPrefix: 'frontend-sql-history-rewrite-records'
+    })
+    rewriteRecordsLoadedHistoryId.value = historyId
+  } catch (error) {
+    rewriteRecordsResponse.value = null
+    rewriteRecordsLoadedHistoryId.value = ''
+    rewriteRecordErrorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.rewriteRecords = false
+  }
+}
+
+const handleDetailTabChange = async tabName => {
+  if (tabName === 'rewriteRecords') {
+    await loadRewriteRecords()
+  }
+}
+
 const openHistoryDetail = async historyId => {
   const normalizedHistoryId = normalizeQueryValue(historyId)
   if (!normalizedHistoryId) {
@@ -693,6 +804,7 @@ const openHistoryDetail = async historyId => {
   loading.detail = true
   workflowErrorMessage.value = ''
   activeDetailTab.value = 'overview'
+  resetRewriteRecords()
   try {
     selectedHistoryDetail.value = await getGovernanceQueryHistoryDetail(requestTenantId.value, normalizedHistoryId, {
       requestPrefix: 'frontend-sql-history-detail'
@@ -704,6 +816,20 @@ const openHistoryDetail = async historyId => {
   } finally {
     loading.detail = false
   }
+}
+
+const openRecommendationCenter = recommendationId => {
+  const normalizedRecommendationId = normalizeQueryValue(recommendationId)
+  if (!normalizedRecommendationId) {
+    return
+  }
+  router.push({
+    path: ROUTE_PATHS.recommendationCenter,
+    query: {
+      tenantId: requestTenantId.value,
+      recommendationId: normalizedRecommendationId
+    }
+  })
 }
 
 const runIndexedLookup = async () => {
@@ -920,6 +1046,17 @@ onMounted(async () => {
 })
 
 watch(
+  () => searchForm.hasRewriteRecord,
+  value => {
+    if (value === 'false') {
+      searchForm.rewriteValidationStatus = ''
+      searchForm.rewriteSourceType = ''
+      searchForm.recommendationId = ''
+    }
+  }
+)
+
+watch(
   () => route.fullPath,
   async () => {
     syncRouteTenant()
@@ -1130,7 +1267,7 @@ watch(
           </div>
         </div>
 
-        <el-tabs v-model="activeDetailTab" data-testid="sql-history-detail-tabs">
+        <el-tabs v-model="activeDetailTab" data-testid="sql-history-detail-tabs" @tab-change="handleDetailTabChange">
           <el-tab-pane :label="t('sqlHistory.tabs.overview')" name="overview">
             <div class="detail-grid">
               <div v-for="item in detailCards" :key="item.label" class="detail-grid__item">
@@ -1176,6 +1313,140 @@ watch(
               <article v-for="item in sqlVariants" :key="item.key" class="code-card">
                 <div class="code-card__header">{{ item.label }}</div>
                 <SqlCodeBlock v-bind="sqlCodeBlockProps(item)" />
+              </article>
+            </div>
+          </el-tab-pane>
+
+          <el-tab-pane :label="t('sqlHistory.tabs.rewriteRecords')" name="rewriteRecords">
+            <div class="rewrite-records-panel" data-testid="sql-history-rewrite-records-tab">
+              <div class="table-heading">
+                <div class="detail-grid rewrite-summary-grid">
+                  <div v-for="item in rewriteRecordSummaryCards" :key="item.key" class="detail-grid__item">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ displayValue(item.value) }}</strong>
+                  </div>
+                </div>
+                <el-button
+                  :loading="loading.rewriteRecords"
+                  data-testid="sql-history-rewrite-records-refresh"
+                  @click="loadRewriteRecords({ force: true })"
+                >
+                  {{ t('sqlHistory.actions.refreshRewriteRecords') }}
+                </el-button>
+              </div>
+              <div
+                v-if="rewriteRecordErrorMessage"
+                class="inline-banner inline-banner-danger"
+                data-testid="sql-history-rewrite-records-error"
+              >
+                <strong>{{ t('sqlHistory.states.errorTitle') }}</strong>
+                <span>{{ rewriteRecordErrorMessage }}</span>
+              </div>
+              <el-table
+                v-loading="loading.rewriteRecords"
+                :data="rewriteRecordRows"
+                border
+                data-testid="sql-history-rewrite-record-table"
+              >
+                <el-table-column prop="rewriteRecordId" :label="t('sqlHistory.rewriteRecords.rewriteRecordId')" min-width="190" />
+                <el-table-column :label="t('sqlHistory.rewriteRecords.recommendationId')" min-width="190">
+                  <template #default="{ row }">
+                    <button
+                      v-if="row.recommendationId"
+                      type="button"
+                      class="table-link"
+                      data-testid="sql-history-rewrite-record-recommendation-link"
+                      @click="openRecommendationCenter(row.recommendationId)"
+                    >
+                      {{ row.recommendationId }}
+                    </button>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="sourceType" :label="t('sqlHistory.rewriteRecords.sourceType')" min-width="110" />
+                <el-table-column prop="sourceKind" :label="t('sqlHistory.rewriteRecords.sourceKind')" min-width="150" />
+                <el-table-column prop="evidenceLevel" :label="t('sqlHistory.rewriteRecords.evidenceLevel')" min-width="150" />
+                <el-table-column prop="validationStatus" :label="t('sqlHistory.rewriteRecords.validationStatus')" min-width="160" />
+                <el-table-column prop="lastValidationRunId" :label="t('sqlHistory.rewriteRecords.lastValidationRunId')" min-width="180" />
+                <el-table-column :label="t('sqlHistory.rewriteRecords.lastComparedAt')" min-width="170">
+                  <template #default="{ row }">{{ formatTimestamp(row.lastComparedAt) }}</template>
+                </el-table-column>
+                <el-table-column prop="alertStatus" :label="t('sqlHistory.rewriteRecords.alertStatus')" min-width="130" />
+                <template #empty>
+                  <el-empty :description="t('sqlHistory.states.noRewriteRecords')" />
+                </template>
+              </el-table>
+
+              <article
+                v-for="record in rewriteRecordRows"
+                :key="record.rewriteRecordId"
+                class="rewrite-record-detail"
+                data-testid="sql-history-rewrite-record-diff"
+              >
+                <div class="table-heading">
+                  <div>
+                    <p class="section-kicker">{{ record.rewriteRecordId }}</p>
+                    <h3 class="section-title section-title-small">{{ displayValue(record.validationStatus) }}</h3>
+                  </div>
+                  <span :class="statusClass(record.validationStatus)">{{ displayValue(record.alertStatus) }}</span>
+                </div>
+                <div class="detail-grid">
+                  <div class="detail-grid__item">
+                    <span>{{ t('sqlHistory.rewriteRecords.sourceId') }}</span>
+                    <strong>{{ displayValue(record.sourceId) }}</strong>
+                  </div>
+                  <div class="detail-grid__item">
+                    <span>{{ t('sqlHistory.rewriteRecords.parseHistoryId') }}</span>
+                    <strong>{{ displayValue(record.parseHistoryId) }}</strong>
+                  </div>
+                  <div class="detail-grid__item">
+                    <span>{{ t('sqlHistory.rewriteRecords.sqlFingerprint') }}</span>
+                    <strong>{{ displayValue(record.sqlFingerprint) }}</strong>
+                  </div>
+                  <div class="detail-grid__item">
+                    <span>{{ t('sqlHistory.rewriteRecords.manualReviewRequired') }}</span>
+                    <strong>{{ displayValue(booleanDisplay(record.manualReviewRequired)) }}</strong>
+                  </div>
+                </div>
+                <div class="code-grid">
+                  <article v-if="hasDisplayValue(record.originalSqlText)" class="code-card">
+                    <div class="code-card__header">{{ t('sqlHistory.rewriteRecords.originalSql') }}</div>
+                    <SqlCodeBlock
+                      :value="record.originalSqlText"
+                      :copy-label="t('sqlHistory.actions.copy')"
+                      :auto-format="false"
+                      data-testid="sql-history-rewrite-record-original-sql"
+                    />
+                  </article>
+                  <article v-if="hasDisplayValue(record.recommendedSqlText)" class="code-card">
+                    <div class="code-card__header">{{ t('sqlHistory.rewriteRecords.recommendedSql') }}</div>
+                    <SqlCodeBlock
+                      :value="record.recommendedSqlText"
+                      :copy-label="t('sqlHistory.actions.copy')"
+                      data-testid="sql-history-rewrite-record-recommended-sql"
+                    />
+                  </article>
+                  <article v-if="hasDisplayValue(record.executedSqlText)" class="code-card">
+                    <div class="code-card__header">{{ t('sqlHistory.rewriteRecords.executedSql') }}</div>
+                    <SqlCodeBlock
+                      :value="record.executedSqlText"
+                      :copy-label="t('sqlHistory.actions.copy')"
+                      data-testid="sql-history-rewrite-record-executed-sql"
+                    />
+                  </article>
+                  <article class="code-card">
+                    <div class="code-card__header">{{ t('sqlHistory.rewriteRecords.diffSummary') }}</div>
+                    <pre class="code-block">{{ formatJson(record.diffSummary || {}) }}</pre>
+                  </article>
+                  <article class="code-card">
+                    <div class="code-card__header">{{ t('sqlHistory.rewriteRecords.ruleChain') }}</div>
+                    <pre class="code-block">{{ formatJson(record.ruleChain || []) }}</pre>
+                  </article>
+                  <article class="code-card">
+                    <div class="code-card__header">{{ t('sqlHistory.rewriteRecords.traceRefs') }}</div>
+                    <pre class="code-block">{{ formatJson(record.traceRefs || {}) }}</pre>
+                  </article>
+                </div>
               </article>
             </div>
           </el-tab-pane>
@@ -1247,7 +1518,9 @@ watch(
 <style scoped>
 .sql-history-page,
 .drawer-stack,
-.dialog-stack {
+.dialog-stack,
+.rewrite-records-panel,
+.rewrite-record-detail {
   display: flex;
   flex-direction: column;
   gap: var(--sqlforge-space-4);
@@ -1516,6 +1789,17 @@ watch(
   overflow: auto;
   padding: var(--sqlforge-space-3);
   white-space: pre-wrap;
+}
+
+.rewrite-summary-grid {
+  flex: 1 1 420px;
+}
+
+.rewrite-record-detail {
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-surface-1);
+  padding: var(--sqlforge-space-4);
 }
 
 @media (max-width: 720px) {

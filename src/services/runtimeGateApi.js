@@ -445,6 +445,9 @@ export const getGovernanceQueryHistoryPage = (filters = {}, requestOptions = {})
     'submittedBy',
     'submittedStart',
     'submittedEnd',
+    'rewriteValidationStatus',
+    'rewriteSourceType',
+    'recommendationId',
     'sortBy',
     'sortOrder'
   ].forEach(key => {
@@ -453,7 +456,7 @@ export const getGovernanceQueryHistoryPage = (filters = {}, requestOptions = {})
       params.set(key, value)
     }
   })
-  ;['cacheHit', 'rewriteApplied', 'accelerationApplied', 'parameterizedSql'].forEach(key => {
+  ;['cacheHit', 'rewriteApplied', 'accelerationApplied', 'parameterizedSql', 'hasRewriteRecord'].forEach(key => {
     if (typeof filters?.[key] === 'boolean') {
       params.set(key, String(filters[key]))
     }

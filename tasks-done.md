@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-140: SQL 历史改写记录 tab 与筛选
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(governance): expose query history rewrite records`
+- Priority: 1
+- Depends on: `HARN-134`, `HARN-110`
+- Scope: SQL 历史列表新增改写记录筛选，详情新增改写记录 tab、diff 跳转和验证状态展示；保留分页、默认筛选、脱敏和原始 SQL 展示契约。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-140`
+- Context closeout:
+  - Completed scope: Added governance query-history rewrite-record filters, backend historyId scoping through sql-optimization rewrite records, frontend SQL history filters and rewrite-record detail tab, localized copy, contract checks, browser smoke coverage, and focused backend tests.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-140 --include-task-audit --extra-command 'node scripts/check-history-page-contract.mjs' --extra-command 'mvn -pl governance -am -Dtest=GovernanceQueryHistoryControllerTest,GovernanceHistoryApplicationServiceTest,AuthWebMvcTest -Dsurefire.failIfNoSpecifiedTests=false test' --extra-command 'git diff --check'; npm run smoke:frontend-dev with TMPDIR=.tmp and FRONTEND_DEV_SMOKE_TIMEOUT_MS=60000; Playwright screenshot self-review under .codex-log/harn-140; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
+  - Residual risk: Local Java validation ran under OpenJDK 1.8.0_482 because this Codex environment does not provide the required JDK 8u112; Java results are compatibility evidence only until rerun on JDK 8u112. Rewrite-record list filtering depends on sql-optimization returning the matching record set for tenant-side historyId scoping.
+  - Next step: Proceed to HARN-141 monitoring and alert frontend linkage using the HARN-140 rewrite-record filters and detail evidence.
+
 ### HARN-139: 推荐中心 SQL diff 与规则详情
 
 - Status: done

@@ -39,6 +39,8 @@ public interface QueryHistoryMapper {
                                                              @Param("submittedBy") String submittedBy,
                                                              @Param("submittedStart") LocalDateTime submittedStart,
                                                              @Param("submittedEnd") LocalDateTime submittedEnd,
+                                                             @Param("includeHistoryIds") List<String> includeHistoryIds,
+                                                             @Param("excludeHistoryIds") List<String> excludeHistoryIds,
                                                              @Param("orderByClause") String orderByClause,
                                                              @Param("offset") int offset,
                                                              @Param("limit") int limit);
@@ -61,7 +63,9 @@ public interface QueryHistoryMapper {
                          @Param("engine") String engine,
                          @Param("submittedBy") String submittedBy,
                          @Param("submittedStart") LocalDateTime submittedStart,
-                         @Param("submittedEnd") LocalDateTime submittedEnd);
+                         @Param("submittedEnd") LocalDateTime submittedEnd,
+                         @Param("includeHistoryIds") List<String> includeHistoryIds,
+                         @Param("excludeHistoryIds") List<String> excludeHistoryIds);
 
     GovernanceQueryHistoryProjection selectHistoryDetail(@Param("tenantId") String tenantId,
                                                          @Param("historyId") String historyId);

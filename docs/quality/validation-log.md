@@ -3590,3 +3590,23 @@
 2026-05-10T21:55:30-05:00 | HARN-139 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-recommendation-page-contract.mjs (projected-precommit)`
 2026-05-10T21:55:30-05:00 | HARN-139 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run test:frontend-page-governance (projected-precommit)`
 2026-05-10T21:55:30-05:00 | HARN-139 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`
+2026-05-10T22:34:19-05:00 | HARN-140 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T22:34:19-05:00 | HARN-140 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T22:34:31-05:00 | HARN-140 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T22:34:31-05:00 | HARN-140 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T22:34:32-05:00 | HARN-140 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-10T22:34:36-05:00 | HARN-140 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-10T22:34:36-05:00 | HARN-140 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-10T22:34:37-05:00 | HARN-140 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-10T22:34:37-05:00 | HARN-140 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-10T22:34:37-05:00 | HARN-140 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T22:34:37-05:00 | HARN-140 validate | `R-133`, `R-168` | passed | `node scripts/check-history-page-contract.mjs`
+2026-05-10T22:34:40-05:00 | HARN-140 validate | `R-133`, `R-168` | passed | `mvn -pl governance -am -Dtest=GovernanceQueryHistoryControllerTest,GovernanceHistoryApplicationServiceTest,AuthWebMvcTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-10T22:34:40-05:00 | HARN-140 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-10T22:35:48-05:00 | HARN-140 local Java tests | `R-040`, `R-119`, `R-185` | residual-risk | `mvn -pl governance -am -Dtest=GovernanceQueryHistoryControllerTest,GovernanceHistoryApplicationServiceTest,AuthWebMvcTest -Dsurefire.failIfNoSpecifiedTests=false test` passed under OpenJDK 1.8.0_482; local Codex environment does not provide required JDK 8u112, so this is compatibility evidence only.
+2026-05-10T22:36:23-05:00 | HARN-140 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T22:36:23-05:00 | HARN-140 closeout commit | `R-168` | projected | `git commit -m 'feat(governance): expose query history rewrite records' (projected-precommit)`
+2026-05-10T22:36:23-05:00 | HARN-140 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-10T22:36:23-05:00 | HARN-140 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-page-contract.mjs (projected-precommit)`
+2026-05-10T22:36:23-05:00 | HARN-140 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `bash -lc 'TMPDIR=.tmp FRONTEND_DEV_SMOKE_TIMEOUT_MS=60000 npm run smoke:frontend-dev' (projected-precommit)`
+2026-05-10T22:36:23-05:00 | HARN-140 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`

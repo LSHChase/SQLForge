@@ -39,12 +39,23 @@ public class GovernanceSqlOptimizationHttpClient implements GovernanceSqlOptimiz
 
     @Override
     public List<SqlOptimizationRewriteRecordResponse> listRewriteRecordsByHistoryId(String historyId) {
+        return listRewriteRecords(historyId, null, null, null);
+    }
+
+    @Override
+    public List<SqlOptimizationRewriteRecordResponse> listRewriteRecords(String historyId,
+                                                                         String recommendationId,
+                                                                         String validationStatus,
+                                                                         String sourceType) {
         try {
+            UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(normalizeBaseUrl())
+                .path("/rewrite-records");
+            appendQueryParam(builder, "historyId", historyId);
+            appendQueryParam(builder, "recommendationId", recommendationId);
+            appendQueryParam(builder, "validationStatus", validationStatus);
+            appendQueryParam(builder, "sourceType", sourceType);
             ResponseEntity<List<SqlOptimizationRewriteRecordResponse>> response = restTemplate.exchange(
-                UriComponentsBuilder.fromHttpUrl(normalizeBaseUrl())
-                    .path("/rewrite-records")
-                    .queryParam("historyId", historyId)
-                    .build(false)
+                builder.build(false)
                     .encode()
                     .toUri(),
                 HttpMethod.GET,
@@ -62,6 +73,12 @@ public class GovernanceSqlOptimizationHttpClient implements GovernanceSqlOptimiz
                 SQL_OPTIMIZATION_ROUTE_UNAVAILABLE_MESSAGE,
                 ex
             );
+        }
+    }
+
+    private void appendQueryParam(UriComponentsBuilder builder, String name, String value) {
+        if (StringUtils.hasText(value)) {
+            builder.queryParam(name, value.trim());
         }
     }
 

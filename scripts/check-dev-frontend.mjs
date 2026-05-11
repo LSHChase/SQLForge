@@ -145,6 +145,7 @@ const runBrowserSmoke = async baseUrl => {
   let governanceStatsCalls = 0
   let queryExecuteCalls = 0
   let sqlHistoryPageCalls = 0
+  let sqlHistoryRewriteRecordCalls = 0
   const sqlHistoryPageRequests = []
   let parseHistoryPageCalls = 0
 
@@ -259,6 +260,97 @@ const runBrowserSmoke = async baseUrl => {
           statusCounts: { SUCCESS: totalCount },
           accessChannelCounts: { PAGE: totalCount }
         }
+      })
+      return
+    }
+
+    if (
+      pathname.startsWith('/api/governance/query-history/') &&
+      !pathname.endsWith('/rewrite-records') &&
+      requestPrefix === 'frontend-sql-history-detail'
+    ) {
+      const historyId = decodeURIComponent(pathname.split('/')[4] || '')
+      await fulfillJson(route, {
+        historyId,
+        tenantId: 'tenant-a',
+        historyType: 'QUERY_EXECUTION',
+        traceId: `trace-${historyId}`,
+        reportCode: `REPORT_${historyId}`,
+        datasourceCode: 'hetu_main',
+        resultStatus: 'SUCCESS',
+        accessChannel: 'PAGE',
+        targetEngine: 'HETU',
+        submittedBy: 'dev-smoke',
+        submittedAt: '2026-05-08T22:30:00',
+        sqlFingerprint: `fingerprint-${historyId}`,
+        sqlText: 'SELECT * FROM sales.orders WHERE dt = ?',
+        sqlTemplateText: 'SELECT * FROM sales.orders WHERE dt = :bizDate',
+        boundSqlText: "SELECT * FROM sales.orders WHERE dt = '2026-05-08'",
+        executionSummary: {
+          cacheHit: false,
+          rewriteApplied: true,
+          accelerationApplied: false,
+          returnedRowCount: 12
+        },
+        queryDateSummary: {
+          queryDateStatus: 'RESOLVED'
+        },
+        recommendationRefs: [],
+        benchmarkRefs: [],
+        auditRefs: [],
+        alertRefs: [],
+        traceDetail: {
+          auditEventCount: 1,
+          auditEvents: [
+            {
+              serviceCode: 'QUERY_EXECUTION',
+              operationType: 'QUERY_EXECUTE',
+              status: 'SUCCESS',
+              createTime: '2026-05-08T22:30:01'
+            }
+          ]
+        }
+      })
+      return
+    }
+
+    if (
+      pathname.startsWith('/api/governance/query-history/') &&
+      pathname.endsWith('/rewrite-records') &&
+      requestPrefix === 'frontend-sql-history-rewrite-records'
+    ) {
+      sqlHistoryRewriteRecordCalls += 1
+      const historyId = decodeURIComponent(pathname.split('/')[4] || '')
+      await fulfillJson(route, {
+        tenantId: 'tenant-a',
+        historyId,
+        rewriteRecordCount: 1,
+        contractStage: 'LONG_TERM_BASELINE',
+        implementationStage: 'QUERY_HISTORY_REWRITE_RECORD_AGGREGATION',
+        items: [
+          {
+            rewriteRecordId: 'rewrite-dev-1',
+            tenantId: 'tenant-a',
+            recommendationId: 'rec-dev-1',
+            sourceType: 'QUERY',
+            sourceKind: 'QUERY_HISTORY',
+            sourceId: historyId,
+            evidenceLevel: 'RUNTIME_HISTORY',
+            historyId,
+            parseHistoryId: 'parse-dev-1',
+            sqlFingerprint: `fingerprint-${historyId}`,
+            validationStatus: 'DIVERGED',
+            lastValidationRunId: 'validation-dev-1',
+            lastComparedAt: '2026-05-08T22:31:00',
+            alertStatus: 'OPEN',
+            originalSqlText: 'SELECT * FROM sales.orders WHERE dt = ?',
+            recommendedSqlText: 'SELECT id FROM sales.orders WHERE dt = ?',
+            executedSqlText: 'SELECT id FROM sales.orders WHERE dt = ?',
+            ruleChain: [{ ruleCode: 'SELECT_STAR', action: 'PROJECT_COLUMNS' }],
+            diffSummary: { changed: 1, manualReviewRequired: true },
+            traceRefs: { alertRefs: [{ alertId: 'alert-dev-1', alertStatus: 'OPEN' }] }
+          }
+        ]
       })
       return
     }
@@ -443,12 +535,36 @@ const runBrowserSmoke = async baseUrl => {
       }),
       page.keyboard.press('Enter')
     ])
+    await page.getByTestId('sql-history-has-rewrite-record-filter').click()
+    await page.getByRole('option', { name: /true/ }).click()
+    await page.getByTestId('sql-history-rewrite-validation-status-filter').click()
+    await page.getByRole('option', { name: /DIVERGED/ }).click()
+    await Promise.all([
+      page.waitForResponse(response => {
+        if (!response.url().includes('/api/governance/query-history')) {
+          return false
+        }
+        const responseUrl = new URL(response.url())
+        return responseUrl.searchParams.get('hasRewriteRecord') === 'true' &&
+          responseUrl.searchParams.get('rewriteValidationStatus') === 'DIVERGED'
+      }),
+      page.getByTestId('sql-history-refresh').click()
+    ])
+    await page.getByTestId('sql-history-trace-item').first().click()
+    await page.getByTestId('sql-history-detail-drawer').waitFor({ timeout: defaultTimeoutMs })
+    await page.getByTestId('sql-history-detail-tabs').getByRole('tab', { name: /改写记录|Rewrite records/ }).click()
+    await expectTextInLocator(page.getByTestId('sql-history-rewrite-record-table'), 'rewrite-dev-1')
+    await expectTextInLocator(page.getByTestId('sql-history-rewrite-records-tab'), 'DIVERGED')
     await page.goto(`${baseUrl}${ROUTE_PATHS.parseRecord}`, { waitUntil: 'domcontentloaded' })
     await page.getByTestId('parse-record-page').waitFor({ timeout: defaultTimeoutMs })
 
     assert(queryExecuteCalls === 2, `Expected 2 query execution calls, got ${queryExecuteCalls}`)
     assert(governanceStatsCalls === 2, `Expected 2 governance stats calls, got ${governanceStatsCalls}`)
     assert(sqlHistoryPageCalls >= 1, `Expected SQL history page calls, got ${sqlHistoryPageCalls}`)
+    assert(
+      sqlHistoryRewriteRecordCalls === 1,
+      `Expected one SQL history rewrite-record call, got ${sqlHistoryRewriteRecordCalls}`
+    )
     assert(
       sqlHistoryPageRequests.some(item => item.pageNo === 2),
       `Expected SQL history next-page request, got ${JSON.stringify(sqlHistoryPageRequests)}`

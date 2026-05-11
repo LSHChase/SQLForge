@@ -255,6 +255,10 @@ public class GovernanceHistoryApplicationService {
                                                              String submittedBy,
                                                              String submittedStart,
                                                              String submittedEnd,
+                                                             Boolean hasRewriteRecord,
+                                                             String rewriteValidationStatus,
+                                                             String rewriteSourceType,
+                                                             String recommendationId,
                                                              String sortBy,
                                                              String sortOrder,
                                                              Integer pageNo,
@@ -277,6 +281,16 @@ public class GovernanceHistoryApplicationService {
         String normalizedSubmittedBy = trimToNull(submittedBy);
         LocalDateTime parsedSubmittedStart = parseWindowValue(submittedStart, "submittedStart");
         LocalDateTime parsedSubmittedEnd = parseWindowValue(submittedEnd, "submittedEnd");
+        RewriteHistoryScope rewriteHistoryScope = resolveRewriteHistoryScope(
+            effectiveTenantId,
+            hasRewriteRecord,
+            rewriteValidationStatus,
+            rewriteSourceType,
+            recommendationId
+        );
+        if (rewriteHistoryScope.isEmptyInclude()) {
+            return emptyQueryHistoryPage(resolvedPageNo, resolvedPageSize);
+        }
         List<GovernanceQueryHistoryProjection> rows = queryHistoryMapper.selectHistoryPage(
             effectiveTenantId,
             normalizedHistoryType,
@@ -297,6 +311,8 @@ public class GovernanceHistoryApplicationService {
             normalizedSubmittedBy,
             parsedSubmittedStart,
             parsedSubmittedEnd,
+            rewriteHistoryScope.includeHistoryIds,
+            rewriteHistoryScope.excludeHistoryIds,
             resolveHistoryOrderBy(sortBy, sortOrder),
             offset,
             resolvedPageSize + LOOKUP_PAGE_FETCH_OVERFLOW
@@ -320,7 +336,9 @@ public class GovernanceHistoryApplicationService {
             normalizedEngine,
             normalizedSubmittedBy,
             parsedSubmittedStart,
-            parsedSubmittedEnd
+            parsedSubmittedEnd,
+            rewriteHistoryScope.includeHistoryIds,
+            rewriteHistoryScope.excludeHistoryIds
         );
         boolean hasMore = rows.size() > resolvedPageSize;
         if (hasMore) {
@@ -339,6 +357,70 @@ public class GovernanceHistoryApplicationService {
             Boolean.valueOf(hasMore),
             buildHistoryClassificationSummary(items)
         );
+    }
+
+    private RewriteHistoryScope resolveRewriteHistoryScope(String tenantId,
+                                                           Boolean hasRewriteRecord,
+                                                           String rewriteValidationStatus,
+                                                           String rewriteSourceType,
+                                                           String recommendationId) {
+        String normalizedValidationStatus = trimToNull(rewriteValidationStatus);
+        String normalizedSourceType = trimToNull(rewriteSourceType);
+        String normalizedRecommendationId = trimToNull(recommendationId);
+        boolean hasRewriteFilters = hasRewriteRecord != null
+            || StringUtils.hasText(normalizedValidationStatus)
+            || StringUtils.hasText(normalizedSourceType)
+            || StringUtils.hasText(normalizedRecommendationId);
+        if (!hasRewriteFilters) {
+            return RewriteHistoryScope.unfiltered();
+        }
+        if (governanceSqlOptimizationClient == null) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "governance sql-optimization client is not configured"
+            );
+        }
+        if (Boolean.FALSE.equals(hasRewriteRecord)) {
+            List<SqlOptimizationRewriteRecordResponse> records =
+                governanceSqlOptimizationClient.listRewriteRecords(null, null, null, null);
+            return RewriteHistoryScope.exclude(extractRewriteHistoryIds(records, tenantId));
+        }
+        List<SqlOptimizationRewriteRecordResponse> records =
+            governanceSqlOptimizationClient.listRewriteRecords(
+                null,
+                normalizedRecommendationId,
+                normalizedValidationStatus,
+                normalizedSourceType
+            );
+        return RewriteHistoryScope.include(extractRewriteHistoryIds(records, tenantId));
+    }
+
+    private GovernanceQueryHistoryPageVO emptyQueryHistoryPage(int pageNo, int pageSize) {
+        List<GovernanceQueryHistorySummaryVO> items = Collections.emptyList();
+        return new GovernanceQueryHistoryPageVO(
+            items,
+            Integer.valueOf(pageNo),
+            Integer.valueOf(pageSize),
+            Integer.valueOf(0),
+            Integer.valueOf(0),
+            Boolean.FALSE,
+            buildHistoryClassificationSummary(items)
+        );
+    }
+
+    private List<String> extractRewriteHistoryIds(List<SqlOptimizationRewriteRecordResponse> records, String tenantId) {
+        LinkedHashSet<String> historyIds = new LinkedHashSet<String>();
+        if (records == null) {
+            return new ArrayList<String>(historyIds);
+        }
+        for (SqlOptimizationRewriteRecordResponse record : records) {
+            String historyId = trimToNull(record == null ? null : record.getHistoryId());
+            if (StringUtils.hasText(historyId) && record != null && tenantId.equals(record.getTenantId())) {
+                historyIds.add(historyId);
+            }
+        }
+        return new ArrayList<String>(historyIds);
     }
 
     public static String allowedHistoryTypeMessage() {
@@ -2819,6 +2901,33 @@ public class GovernanceHistoryApplicationService {
 
         private static String firstNonBlank(String first, String second, String third, String fourth, String fifth) {
             return firstNonBlank(first, firstNonBlank(second, third, fourth, fifth));
+        }
+    }
+
+    private static class RewriteHistoryScope {
+
+        private final List<String> includeHistoryIds;
+        private final List<String> excludeHistoryIds;
+
+        private RewriteHistoryScope(List<String> includeHistoryIds, List<String> excludeHistoryIds) {
+            this.includeHistoryIds = includeHistoryIds;
+            this.excludeHistoryIds = excludeHistoryIds;
+        }
+
+        private static RewriteHistoryScope unfiltered() {
+            return new RewriteHistoryScope(null, null);
+        }
+
+        private static RewriteHistoryScope include(List<String> historyIds) {
+            return new RewriteHistoryScope(historyIds == null ? Collections.<String>emptyList() : historyIds, null);
+        }
+
+        private static RewriteHistoryScope exclude(List<String> historyIds) {
+            return new RewriteHistoryScope(null, historyIds == null ? Collections.<String>emptyList() : historyIds);
+        }
+
+        private boolean isEmptyInclude() {
+            return includeHistoryIds != null && includeHistoryIds.isEmpty();
         }
     }
 

@@ -430,6 +430,7 @@ export default {
       openAuditForensics: '打开审计取证',
       exportEvidence: '导出取证',
       viewRawEvidence: '查看原始证据',
+      refreshRewriteRecords: '刷新改写记录',
       copy: '复制'
     },
     options: {
@@ -459,6 +460,11 @@ export default {
       submittedEnd: '提交结束',
       cacheHit: '缓存命中',
       rewriteApplied: '轻量改写',
+      hasRewriteRecord: '存在改写记录',
+      rewriteValidationStatus: '改写验证状态',
+      rewriteSourceType: '改写来源类型',
+      recommendationId: '推荐 ID',
+      recommendationIdPlaceholder: '输入 recommendationId',
       accelerationApplied: '加速命中',
       parameterizedSql: '参数化 SQL',
       sortBy: '排序字段',
@@ -511,7 +517,8 @@ export default {
       loadFailed: '列表加载失败，请查看上方错误信息。',
       errorTitle: 'SQL 历史查询失败',
       datasourceOptionsFallback: '数据源候选加载失败，保留手动输入。',
-      noSignalEvidence: '当前详情没有可展示的解析、路由或上下文证据。'
+      noSignalEvidence: '当前详情没有可展示的解析、路由或上下文证据。',
+      noRewriteRecords: '当前 SQL 历史没有匹配的改写记录。'
     },
     messages: {
       lookupRequired: '至少输入 traceId、taskId、reportId 中的一项。',
@@ -568,6 +575,7 @@ export default {
       overview: '执行概览',
       execution: '执行取证',
       sql: 'SQL 三态',
+      rewriteRecords: '改写记录',
       signals: '解析与路由',
       refs: '关联证据',
       audit: '审计关联'
@@ -587,6 +595,30 @@ export default {
       benchmarkRefs: '压测关联',
       auditRefs: '审计关联',
       alertRefs: '告警关联'
+    },
+    rewriteRecords: {
+      count: '改写记录数',
+      contractStage: '契约阶段',
+      implementationStage: '实现阶段',
+      rewriteRecordId: '改写记录 ID',
+      recommendationId: '推荐 ID',
+      sourceType: '来源类型',
+      sourceKind: '来源场景',
+      sourceId: '来源 ID',
+      evidenceLevel: '证据级别',
+      validationStatus: '验证状态',
+      lastValidationRunId: '最近验证 Run',
+      lastComparedAt: '最近比对时间',
+      alertStatus: '告警状态',
+      parseHistoryId: '解析历史 ID',
+      sqlFingerprint: 'SQL 指纹',
+      manualReviewRequired: '需要人工复核',
+      originalSql: '原始 SQL',
+      recommendedSql: '推荐 SQL',
+      executedSql: '实际执行 SQL',
+      diffSummary: 'Diff 摘要',
+      ruleChain: '规则链',
+      traceRefs: '追溯引用'
     },
     audit: {
       service: '服务',

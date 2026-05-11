@@ -11,15 +11,6 @@
 
 ## Todo
 
-### HARN-140: SQL 历史改写记录 tab 与筛选
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-134`, `HARN-110`
-- Scope: SQL 历史列表新增改写记录筛选，详情新增改写记录 tab、diff 跳转和验证状态展示；保留分页、默认筛选、脱敏和原始 SQL 展示契约。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-140`
-
 ### HARN-141: 监控与告警前端联动
 
 - Status: todo

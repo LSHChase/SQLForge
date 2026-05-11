@@ -285,6 +285,10 @@ class AuthWebMvcTest {
             null,
             null,
             null,
+            null,
+            null,
+            null,
+            null,
             Integer.valueOf(1),
             Integer.valueOf(5)
         )).thenReturn(new GovernanceQueryHistoryPageVO(
@@ -387,6 +391,10 @@ class AuthWebMvcTest {
             null,
             null,
             "PARTIAL",
+            null,
+            null,
+            null,
+            null,
             null,
             null,
             null,

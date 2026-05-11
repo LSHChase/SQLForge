@@ -446,6 +446,7 @@ export default {
       openAuditForensics: 'Open audit forensics',
       exportEvidence: 'Export evidence',
       viewRawEvidence: 'View raw evidence',
+      refreshRewriteRecords: 'Refresh rewrite records',
       copy: 'Copy'
     },
     options: {
@@ -475,6 +476,11 @@ export default {
       submittedEnd: 'Submitted end',
       cacheHit: 'Cache hit',
       rewriteApplied: 'Rewrite applied',
+      hasRewriteRecord: 'Has rewrite record',
+      rewriteValidationStatus: 'Rewrite validation status',
+      rewriteSourceType: 'Rewrite source type',
+      recommendationId: 'Recommendation ID',
+      recommendationIdPlaceholder: 'Enter recommendationId',
       accelerationApplied: 'Acceleration applied',
       parameterizedSql: 'Parameterized SQL',
       sortBy: 'Sort by',
@@ -527,7 +533,8 @@ export default {
       loadFailed: 'The list failed to load. Check the error above.',
       errorTitle: 'SQL history query failed',
       datasourceOptionsFallback: 'Datasource options are unavailable; manual values remain enabled.',
-      noSignalEvidence: 'No parse, route, or context evidence is available for this detail.'
+      noSignalEvidence: 'No parse, route, or context evidence is available for this detail.',
+      noRewriteRecords: 'No rewrite records match this SQL history.'
     },
     messages: {
       lookupRequired: 'Enter at least one of traceId, taskId, or reportId.',
@@ -584,6 +591,7 @@ export default {
       overview: 'Execution overview',
       execution: 'Execution evidence',
       sql: 'SQL tri-state',
+      rewriteRecords: 'Rewrite records',
       signals: 'Parse and route',
       refs: 'Linked evidence',
       audit: 'Audit links'
@@ -603,6 +611,30 @@ export default {
       benchmarkRefs: 'Benchmark refs',
       auditRefs: 'Audit refs',
       alertRefs: 'Alert refs'
+    },
+    rewriteRecords: {
+      count: 'Rewrite records',
+      contractStage: 'Contract stage',
+      implementationStage: 'Implementation stage',
+      rewriteRecordId: 'Rewrite record ID',
+      recommendationId: 'Recommendation ID',
+      sourceType: 'Source type',
+      sourceKind: 'Source kind',
+      sourceId: 'Source ID',
+      evidenceLevel: 'Evidence level',
+      validationStatus: 'Validation status',
+      lastValidationRunId: 'Latest validation run',
+      lastComparedAt: 'Last compared at',
+      alertStatus: 'Alert status',
+      parseHistoryId: 'Parse history ID',
+      sqlFingerprint: 'SQL fingerprint',
+      manualReviewRequired: 'Manual review required',
+      originalSql: 'Original SQL',
+      recommendedSql: 'Recommended SQL',
+      executedSql: 'Executed SQL',
+      diffSummary: 'Diff summary',
+      ruleChain: 'Rule chain',
+      traceRefs: 'Trace refs'
     },
     audit: {
       service: 'Service',
