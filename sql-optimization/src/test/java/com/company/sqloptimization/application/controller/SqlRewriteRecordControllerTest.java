@@ -49,6 +49,13 @@ class SqlRewriteRecordControllerTest {
         record.setRuntimeRuleVersion("rule-v1");
         record.setContractStage("LONG_TERM_BASELINE");
         record.setImplementationStage("ACCELERATION_REWRITE_CONTRACT_BASELINE");
+        SqlRewriteRecordVO approvedRecord = new SqlRewriteRecordVO();
+        approvedRecord.setRewriteRecordId("rewrite-001");
+        approvedRecord.setTenantId("tenant-a");
+        approvedRecord.setReviewStatus("APPROVED");
+        approvedRecord.setReviewedBy("operator-001");
+        approvedRecord.setReviewNote("looks equivalent");
+        approvedRecord.setPublishStatus("UNPUBLISHED");
         RewriteValidationRunVO run = new RewriteValidationRunVO();
         run.setValidationRunId("validation-001");
         run.setRewriteRecordId("rewrite-001");
@@ -60,6 +67,7 @@ class SqlRewriteRecordControllerTest {
         when(sqlRewriteRecordApplicationService.getRewriteRecord("rewrite-001")).thenReturn(record);
         when(sqlRewriteRecordApplicationService.listRewriteRecords("history-001", null, null, null))
             .thenReturn(Collections.singletonList(record));
+        when(sqlRewriteRecordApplicationService.reviewRewriteRecord(any(), any())).thenReturn(approvedRecord);
         when(sqlRewriteRecordApplicationService.createValidationRun(any(), any())).thenReturn(run);
         when(sqlRewriteRecordApplicationService.listValidationRuns("rewrite-001"))
             .thenReturn(Collections.singletonList(run));
@@ -85,6 +93,15 @@ class SqlRewriteRecordControllerTest {
             .andExpect(jsonPath("$.publishStatus").value("UNPUBLISHED"))
             .andExpect(jsonPath("$.runtimeBindingId").value("binding-001"))
             .andExpect(jsonPath("$.runtimeRuleVersion").value("rule-v1"));
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/review"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"reviewStatus\":\"APPROVED\","
+                    + "\"reviewNote\":\"looks equivalent\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.reviewStatus").value("APPROVED"))
+            .andExpect(jsonPath("$.reviewedBy").value("operator-001"))
+            .andExpect(jsonPath("$.publishStatus").value("UNPUBLISHED"));
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/validation-runs"))
                 .contentType(MediaType.APPLICATION_JSON)

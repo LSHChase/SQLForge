@@ -2,6 +2,8 @@ package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
@@ -13,6 +15,7 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqloptimization.application.controller.dto.AccelerationCandidateCreateRequest;
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
+import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordReviewRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationCandidateVO;
 import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
 import com.company.sqloptimization.application.controller.vo.SqlRewriteRecordVO;
@@ -293,7 +296,7 @@ class AccelerationRewriteContractApplicationServiceTest {
     }
 
     @Test
-    void shouldCarryRewriteReviewPublishAndRuntimeBindingFields() {
+    void shouldIgnoreClientSubmittedReviewFieldsOnCreateAndCarryPublishRuntimeFields() {
         InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
         SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(repository);
         setTenant("tenant-a");
@@ -314,10 +317,10 @@ class AccelerationRewriteContractApplicationServiceTest {
         SqlRewriteRecordVO created = service.createRewriteRecord(request);
         SqlRewriteRecordVO detail = service.getRewriteRecord(created.getRewriteRecordId());
 
-        assertEquals("CHANGES_REQUESTED", detail.getReviewStatus());
-        assertEquals("needs indexed predicate proof", detail.getReviewNote());
-        assertEquals("reviewer-001", detail.getReviewedBy());
-        assertEquals(Instant.parse("2026-05-10T12:00:00Z"), detail.getReviewedAt());
+        assertEquals("PENDING_REVIEW", detail.getReviewStatus());
+        assertNull(detail.getReviewNote());
+        assertNull(detail.getReviewedBy());
+        assertNull(detail.getReviewedAt());
         assertEquals("PUBLISH_FAILED", detail.getPublishStatus());
         assertEquals("binding-003", detail.getRuntimeBindingId());
         assertEquals(Instant.parse("2026-05-10T12:01:00Z"), detail.getRuntimeBindingAt());
@@ -325,6 +328,128 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals("tenant-a:fp-003", detail.getRuntimeBindingScope());
         assertEquals("fp-published-003", detail.getPublishedSqlFingerprint());
         assertEquals("rule-v3", detail.getRuntimeRuleVersion());
+    }
+
+    @Test
+    void shouldReviewRewriteRecordThroughAllowedStateMachineWithoutPublishing() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(repository);
+        setTenant("tenant-a");
+
+        SqlRewriteRecordCreateRequest request = rewriteRecordRequest("tenant-a", "history-004");
+        request.setManualReviewRequired(Boolean.TRUE);
+        request.setPublishStatus(RewritePublishStatus.UNPUBLISHED);
+        request.setRuntimeBindingId("binding-should-stay");
+        SqlRewriteRecordVO created = service.createRewriteRecord(request);
+
+        SqlRewriteRecordReviewRequest approveRequest = reviewRequest(
+            "tenant-a",
+            RewriteReviewStatus.APPROVED,
+            null
+        );
+        SqlRewriteRecordVO approved = service.reviewRewriteRecord(created.getRewriteRecordId(), approveRequest);
+
+        assertEquals("APPROVED", approved.getReviewStatus());
+        assertEquals("operator-001", approved.getReviewedBy());
+        assertNotNull(approved.getReviewedAt());
+        assertEquals(Boolean.TRUE, approved.getManualReviewRequired());
+        assertEquals("UNPUBLISHED", approved.getPublishStatus());
+        assertEquals("binding-should-stay", approved.getRuntimeBindingId());
+        assertEquals("APPROVED", ((Map<?, ?>) approved.getTraceRefs().get("lastReviewTrace")).get("reviewStatus"));
+        assertEquals("trace-001", ((Map<?, ?>) approved.getTraceRefs().get("lastReviewTrace")).get("traceId"));
+    }
+
+    @Test
+    void shouldRejectIllegalReviewTransitionsAndSupportExplicitReopen() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(repository);
+        setTenant("tenant-a");
+
+        SqlRewriteRecordVO created = service.createRewriteRecord(rewriteRecordRequest("tenant-a", "history-005"));
+        SqlRewriteRecordVO rejected = service.reviewRewriteRecord(
+            created.getRewriteRecordId(),
+            reviewRequest("tenant-a", RewriteReviewStatus.REJECTED, "semantic risk")
+        );
+        assertEquals("REJECTED", rejected.getReviewStatus());
+
+        BizException directApprove = assertThrows(
+            BizException.class,
+            () -> service.reviewRewriteRecord(
+                created.getRewriteRecordId(),
+                reviewRequest("tenant-a", RewriteReviewStatus.APPROVED, "fixed")
+            )
+        );
+        assertEquals(ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID, directApprove.getCode());
+        assertEquals(HttpStatus.CONFLICT, directApprove.getHttpStatus());
+
+        SqlRewriteRecordVO reopened = service.reviewRewriteRecord(
+            created.getRewriteRecordId(),
+            reviewRequest("tenant-a", RewriteReviewStatus.PENDING_REVIEW, "regenerated candidate proof")
+        );
+        assertEquals("PENDING_REVIEW", reopened.getReviewStatus());
+        assertEquals("regenerated candidate proof", reopened.getReviewNote());
+
+        SqlRewriteRecordVO approved = service.reviewRewriteRecord(
+            created.getRewriteRecordId(),
+            reviewRequest("tenant-a", RewriteReviewStatus.APPROVED, "equivalent after revision")
+        );
+        assertEquals("APPROVED", approved.getReviewStatus());
+
+        BizException duplicateApprove = assertThrows(
+            BizException.class,
+            () -> service.reviewRewriteRecord(
+                created.getRewriteRecordId(),
+                reviewRequest("tenant-a", RewriteReviewStatus.APPROVED, "repeat")
+            )
+        );
+        assertEquals(ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID, duplicateApprove.getCode());
+    }
+
+    @Test
+    void shouldRequireReviewNoteForRejectChangeRequestAndReopen() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(repository);
+        setTenant("tenant-a");
+
+        SqlRewriteRecordVO created = service.createRewriteRecord(rewriteRecordRequest("tenant-a", "history-006"));
+
+        BizException missingRejectNote = assertThrows(
+            BizException.class,
+            () -> service.reviewRewriteRecord(
+                created.getRewriteRecordId(),
+                reviewRequest("tenant-a", RewriteReviewStatus.CHANGES_REQUESTED, " ")
+            )
+        );
+        assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, missingRejectNote.getCode());
+        assertEquals(HttpStatus.BAD_REQUEST, missingRejectNote.getHttpStatus());
+    }
+
+    @Test
+    void shouldRejectReviewWhenContextTenantOrRequestTenantMismatch() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(repository);
+        setTenant("tenant-a");
+
+        SqlRewriteRecordVO created = service.createRewriteRecord(rewriteRecordRequest("tenant-a", "history-007"));
+
+        assertThrows(
+            AccessDeniedException.class,
+            () -> service.reviewRewriteRecord(
+                created.getRewriteRecordId(),
+                reviewRequest("tenant-b", RewriteReviewStatus.APPROVED, "equivalent")
+            )
+        );
+
+        RequestContext.clear();
+        BizException missingContext = assertThrows(
+            BizException.class,
+            () -> service.reviewRewriteRecord(
+                created.getRewriteRecordId(),
+                reviewRequest("tenant-a", RewriteReviewStatus.APPROVED, "equivalent")
+            )
+        );
+        assertEquals(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, missingContext.getCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, missingContext.getHttpStatus());
     }
 
     private SqlRewriteRecordCreateRequest rewriteRecordRequest(String tenantId, String historyId) {
@@ -337,6 +462,16 @@ class AccelerationRewriteContractApplicationServiceTest {
         request.setHistoryId(historyId);
         request.setOriginalSqlText("SELECT * FROM orders");
         request.setRecommendedSqlText("SELECT id FROM orders");
+        return request;
+    }
+
+    private SqlRewriteRecordReviewRequest reviewRequest(String tenantId,
+                                                        RewriteReviewStatus status,
+                                                        String note) {
+        SqlRewriteRecordReviewRequest request = new SqlRewriteRecordReviewRequest();
+        request.setTenantId(tenantId);
+        request.setReviewStatus(status);
+        request.setReviewNote(note);
         return request;
     }
 

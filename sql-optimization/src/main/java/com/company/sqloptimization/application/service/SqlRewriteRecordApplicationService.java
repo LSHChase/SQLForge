@@ -9,10 +9,12 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequ
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
+import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordReviewRequest;
 import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
 import com.company.sqloptimization.application.controller.vo.SqlRewriteRecordVO;
 import com.company.sqloptimization.domain.governance.ComparisonStatus;
 import com.company.sqloptimization.domain.governance.DifferenceType;
+import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.governance.ValidationRunStatus;
 import com.company.sqloptimization.domain.rewrite.RewriteValidationRun;
@@ -77,10 +79,10 @@ public class SqlRewriteRecordApplicationService {
             .validationStatus(request.getValidationStatus())
             .autoApplyAllowed(Boolean.TRUE.equals(request.getAutoApplyAllowed()))
             .manualReviewRequired(Boolean.TRUE.equals(request.getManualReviewRequired()))
-            .reviewStatus(request.getReviewStatus())
-            .reviewNote(trimToNull(request.getReviewNote()))
-            .reviewedBy(trimToNull(request.getReviewedBy()))
-            .reviewedAt(request.getReviewedAt())
+            .reviewStatus(null)
+            .reviewNote(null)
+            .reviewedBy(null)
+            .reviewedAt(null)
             .publishStatus(request.getPublishStatus())
             .runtimeBindingId(trimToNull(request.getRuntimeBindingId()))
             .runtimeBindingAt(request.getRuntimeBindingAt())
@@ -125,6 +127,32 @@ public class SqlRewriteRecordApplicationService {
     public SqlRewriteRecordVO getRewriteRecord(String rewriteRecordId) {
         SqlRewriteRecord rewriteRecord = requireRewriteRecord(rewriteRecordId);
         return toRewriteRecordVo(rewriteRecord);
+    }
+
+    public SqlRewriteRecordVO reviewRewriteRecord(String rewriteRecordId,
+                                                  SqlRewriteRecordReviewRequest request) {
+        if (request == null) {
+            throw invalidArgument("request", "rewrite record review request is required");
+        }
+        SqlRewriteRecord rewriteRecord = requireRewriteRecord(rewriteRecordId);
+        String tenantId = requireAuthorizedTenant(request.getTenantId());
+        if (!tenantId.equals(rewriteRecord.getTenantId())) {
+            throw new AccessDeniedException("Authenticated tenant cannot review this rewrite record");
+        }
+        RewriteReviewStatus nextStatus = request.getReviewStatus();
+        validateReviewTransition(rewriteRecord, nextStatus);
+        String reviewNote = trimToNull(request.getReviewNote());
+        requireReviewNote(nextStatus, reviewNote);
+        String reviewedBy = requireContextUser();
+        Instant reviewedAt = Instant.now();
+        SqlRewriteRecord reviewed = rewriteRecord.withReview(
+            nextStatus,
+            reviewNote,
+            reviewedBy,
+            reviewedAt,
+            buildReviewTraceRefs(rewriteRecord, nextStatus, reviewedBy, reviewedAt)
+        );
+        return toRewriteRecordVo(sqlRewriteRecordRepository.saveRecord(reviewed));
     }
 
     public RewriteValidationRunVO createValidationRun(String rewriteRecordId,
@@ -326,6 +354,49 @@ public class SqlRewriteRecordApplicationService {
         return result;
     }
 
+    private void validateReviewTransition(SqlRewriteRecord rewriteRecord,
+                                          RewriteReviewStatus nextStatus) {
+        if (nextStatus == null) {
+            throw invalidArgument("reviewStatus", "reviewStatus is required");
+        }
+        if (rewriteRecord.canTransitionReviewTo(nextStatus)) {
+            return;
+        }
+        throw new BizException(
+            ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID,
+            HttpStatus.CONFLICT,
+            "Illegal rewrite review transition from " + rewriteRecord.getReviewStatus() + " to " + nextStatus
+        );
+    }
+
+    private void requireReviewNote(RewriteReviewStatus nextStatus, String reviewNote) {
+        if (nextStatus == RewriteReviewStatus.APPROVED || StringUtils.hasText(reviewNote)) {
+            return;
+        }
+        throw invalidArgument("reviewNote", "reviewNote is required for " + nextStatus);
+    }
+
+    private Map<String, Object> buildReviewTraceRefs(SqlRewriteRecord rewriteRecord,
+                                                     RewriteReviewStatus nextStatus,
+                                                     String reviewedBy,
+                                                     Instant reviewedAt) {
+        Map<String, Object> traceRefs = new LinkedHashMap<String, Object>(rewriteRecord.getTraceRefs());
+        Map<String, Object> reviewTrace = new LinkedHashMap<String, Object>();
+        reviewTrace.put("reviewStatus", nextStatus.name());
+        reviewTrace.put("reviewedBy", reviewedBy);
+        reviewTrace.put("reviewedAt", reviewedAt.toString());
+        String requestId = trimToNull(RequestContext.getRequestId());
+        if (requestId != null) {
+            reviewTrace.put("requestId", requestId);
+        }
+        String traceId = trimToNull(RequestContext.getTraceId());
+        if (traceId != null) {
+            reviewTrace.put("traceId", traceId);
+        }
+        traceRefs.put("lastReviewTrace", reviewTrace);
+        return traceRefs;
+    }
+
     private boolean matches(SqlRewriteRecord record,
                             String historyId,
                             String recommendationId,
@@ -460,6 +531,18 @@ public class SqlRewriteRecordApplicationService {
             );
         }
         return contextTenantId;
+    }
+
+    private String requireContextUser() {
+        String contextUserId = RequestContext.getUserId();
+        if (!StringUtils.hasText(contextUserId)) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
+                HttpStatus.UNAUTHORIZED,
+                "userId is missing from authenticated request context"
+            );
+        }
+        return contextUserId;
     }
 
     private void verifyTenantAccess(String resourceTenantId) {

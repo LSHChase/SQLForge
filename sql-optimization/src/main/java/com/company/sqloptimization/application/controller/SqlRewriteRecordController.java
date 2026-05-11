@@ -2,6 +2,7 @@ package com.company.sqloptimization.application.controller;
 
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
+import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordReviewRequest;
 import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
 import com.company.sqloptimization.application.controller.vo.SqlRewriteRecordVO;
 import com.company.sqloptimization.application.service.SqlRewriteRecordApplicationService;
@@ -47,6 +48,12 @@ public class SqlRewriteRecordController {
     @GetMapping("/{rewriteRecordId}")
     public SqlRewriteRecordVO getRewriteRecord(@PathVariable("rewriteRecordId") String rewriteRecordId) {
         return sqlRewriteRecordApplicationService.getRewriteRecord(rewriteRecordId);
+    }
+
+    @PostMapping("/{rewriteRecordId}/review")
+    public SqlRewriteRecordVO reviewRewriteRecord(@PathVariable("rewriteRecordId") String rewriteRecordId,
+                                                  @Valid @RequestBody SqlRewriteRecordReviewRequest request) {
+        return sqlRewriteRecordApplicationService.reviewRewriteRecord(rewriteRecordId, request);
     }
 
     @PostMapping("/{rewriteRecordId}/validation-runs")

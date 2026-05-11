@@ -4,6 +4,30 @@
 
 ## Done
 
+### PRW-003: 实现改写记录审批状态机
+
+- Status: done
+- Completed at: 2026-05-11
+- Commit subject: `PRW-003 implement rewrite record review state machine`
+- Priority: 1
+- Depends on: `PRW-002`
+- Scope: 未审批或已驳回的改写记录不得发布运行时绑定，所有非法状态迁移必须由后端拒绝。 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `sql-optimization`,`application(controller/service)/domain/infrastructure`,`tests`.
+- Plan ref: docs/exec-plans/completed/PRW-003-full-auto-execution-plan.md
+- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
+- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
+- Data impact: 更新改写记录审批状态和审计字段；不直接创建运行时绑定，不执行推荐 SQL。
+- Rollback / recovery: 停用审批接口并回退状态机服务；保留新增字段的保守默认状态，避免历史记录丢失。
+- Validation:
+  - `mvn -pl sql-optimization test、python3 scripts/foreman.py validate PRW-003`
+  - `python3 scripts/foreman.py validate PRW-003`
+- Progress log:
+  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented rewrite record review API and backend review state machine with controlled reopen path.
+  - Validation evidence: mvn -pl sql-optimization test; python3 scripts/foreman.py validate PRW-003; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
+  - Residual risk: PRW-004 and PRW-006 still own publish eligibility and runtime binding publication.
+  - Next step: Continue with PRW-004 publish eligibility policy.
+
 ### PRW-002: 扩展改写记录审批与发布数据模型
 
 - Status: done

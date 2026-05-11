@@ -110,6 +110,72 @@ public class SqlRewriteRecord {
         return new Builder();
     }
 
+    public boolean canTransitionReviewTo(RewriteReviewStatus nextReviewStatus) {
+        if (nextReviewStatus == null) {
+            return false;
+        }
+        if (reviewStatus == RewriteReviewStatus.PENDING_REVIEW) {
+            return nextReviewStatus == RewriteReviewStatus.APPROVED
+                || nextReviewStatus == RewriteReviewStatus.REJECTED
+                || nextReviewStatus == RewriteReviewStatus.CHANGES_REQUESTED;
+        }
+        if (reviewStatus == RewriteReviewStatus.REJECTED
+            || reviewStatus == RewriteReviewStatus.CHANGES_REQUESTED) {
+            return nextReviewStatus == RewriteReviewStatus.PENDING_REVIEW;
+        }
+        return false;
+    }
+
+    public SqlRewriteRecord withReview(RewriteReviewStatus nextReviewStatus,
+                                       String nextReviewNote,
+                                       String nextReviewedBy,
+                                       Instant nextReviewedAt,
+                                       Map<String, Object> nextTraceRefs) {
+        return SqlRewriteRecord.builder()
+            .rewriteRecordId(rewriteRecordId)
+            .tenantId(tenantId)
+            .recommendationId(recommendationId)
+            .optimizationTaskId(optimizationTaskId)
+            .sourceType(sourceType)
+            .sourceKind(sourceKind)
+            .sourceId(sourceId)
+            .evidenceLevel(evidenceLevel)
+            .historyId(historyId)
+            .parseHistoryId(parseHistoryId)
+            .sqlFingerprint(sqlFingerprint)
+            .datasourceCode(datasourceCode)
+            .status(status)
+            .validationStatus(validationStatus)
+            .autoApplyAllowed(autoApplyAllowed)
+            .manualReviewRequired(manualReviewRequired)
+            .reviewStatus(nextReviewStatus)
+            .reviewNote(nextReviewNote)
+            .reviewedBy(nextReviewedBy)
+            .reviewedAt(nextReviewedAt)
+            .publishStatus(publishStatus)
+            .runtimeBindingId(runtimeBindingId)
+            .runtimeBindingAt(runtimeBindingAt)
+            .runtimeBindingBy(runtimeBindingBy)
+            .runtimeBindingScope(runtimeBindingScope)
+            .publishedSqlFingerprint(publishedSqlFingerprint)
+            .runtimeRuleVersion(runtimeRuleVersion)
+            .validationPolicyId(validationPolicyId)
+            .lastValidationRunId(lastValidationRunId)
+            .lastComparedAt(lastComparedAt)
+            .alertStatus(alertStatus)
+            .originalSqlText(originalSqlText)
+            .recommendedSqlText(recommendedSqlText)
+            .executedSqlText(executedSqlText)
+            .createdBy(createdBy)
+            .createdAt(createdAt)
+            .updatedAt(nextReviewedAt)
+            .ruleChain(ruleChain)
+            .diffSummary(diffSummary)
+            .risk(risk)
+            .traceRefs(nextTraceRefs)
+            .build();
+    }
+
     public SqlRewriteRecord withValidationSummary(RewriteValidationRun run, Instant updatedAt) {
         RewriteValidationStatus nextValidationStatus = validationStatusFrom(run);
         return SqlRewriteRecord.builder()
