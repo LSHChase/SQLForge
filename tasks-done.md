@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-137: 前端加速治理工作台壳层
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(frontend): add acceleration governance workbench shell`
+- Priority: 1
+- Depends on: `HARN-133`, `HARN-116`
+- Scope: 建立加速治理工作台双入口、流程图、source fields、已有页面跳转和证据抽屉；不重复已有解析/推荐/SQL 历史完整页面。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-137`
+- Context closeout:
+  - Completed scope: Implemented HARN-137 read-only acceleration governance workbench shell: independent /governance/acceleration-workbench route, parse/query source fields, flow map, existing-page navigation, disabled HARN-138 future actions, source/route/action evidence drawer, i18n, and navigation/workbench contract checks. R-186 before screenshot: .codex-log/harn-137/before-desktop.png and .codex-log/harn-137/before-narrow.png; after screenshot: .codex-log/harn-137/after-desktop.png, .codex-log/harn-137/after-narrow.png, and .codex-log/harn-137/after-drawer.png. Codex 读图复核 completed; 修复 flow token wrapping and Chinese mock wording; no visual drift remains.
+  - Validation evidence: npm run lint; npm run build; npm run test:form-governance; npm run test:sql-ui-contract; npm run test:frontend-page-governance; node scripts/check-navigation-shell-contract.mjs; node scripts/check-acceleration-workbench-contract.mjs; Playwright smoke for route/mode switch/disabled future actions/evidence drawer; python3 scripts/foreman.py validate HARN-137 --include-task-audit with navigation/workbench contract extras and git diff --check.
+  - Residual risk: HARN-137 intentionally leaves real candidate, plan approval, apply, verify and rollback API actions disabled for HARN-138; screenshot evidence is local Vite rendering evidence, not a full browser matrix.
+  - Next step: Proceed to HARN-138 to wire candidate, diff, plan approval, apply validation and response evidence tabs to real interfaces without mock success.
+
 ### HARN-136: 周期比对调度与差异告警
 
 - Status: done

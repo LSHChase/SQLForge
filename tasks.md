@@ -11,15 +11,6 @@
 
 ## Todo
 
-### HARN-137: 前端加速治理工作台壳层
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-133`, `HARN-116`
-- Scope: 建立加速治理工作台双入口、流程图、source fields、已有页面跳转和证据抽屉；不重复已有解析/推荐/SQL 历史完整页面。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-137`
-
 ### HARN-138: 工作台候选、计划审批与应用验证 tabs
 
 - Status: todo

@@ -30,6 +30,7 @@ const expectedRoutePaths = {
   dashboard: '/dashboard',
   sqlQuery: '/sql-query',
   acceleration: '/acceleration',
+  accelerationGovernanceWorkbench: '/governance/acceleration-workbench',
   benchmark: '/benchmark',
   routingGovernance: '/governance/routing',
   recommendationCenter: '/governance/recommendations',
@@ -75,7 +76,7 @@ for (const [key, value] of Object.entries(expectedLegacyRedirects)) {
 }
 
 const appRequiredTokens = [
-  'Adaptive navigation',
+  'adaptiveNavigation',
   'createNavigationTree',
   'findActiveNavigationItem',
   'buildNavigationBreadcrumb',
@@ -122,6 +123,7 @@ const requiredNavTargets = [
   ROUTE_PATHS.repairEvidence,
   ROUTE_PATHS.auditForensics,
   ROUTE_PATHS.acceleration,
+  ROUTE_PATHS.accelerationGovernanceWorkbench,
   ROUTE_PATHS.parseStatisticsCenter,
   ROUTE_PATHS.parseBatchCenter,
   ROUTE_PATHS.parseRecord,
@@ -154,16 +156,34 @@ const parseRecordItem = findActiveNavigationItem(fullTree, { path: ROUTE_PATHS.p
 check(parseRecordItem?.moduleKey === 'parse-acceleration', 'Parse record active item must stay under parsing and acceleration.')
 check(JSON.stringify(parseRecordItem?.defaultOpeneds) === JSON.stringify(['parse-acceleration']), 'Parse record open state drifted.')
 
+const accelerationWorkbenchItem = findActiveNavigationItem(fullTree, { path: ROUTE_PATHS.accelerationGovernanceWorkbench, query: {} })
+check(
+  accelerationWorkbenchItem?.moduleKey === 'parse-acceleration',
+  'Acceleration governance workbench active item must stay under parsing and acceleration.'
+)
+check(
+  accelerationWorkbenchItem?.menuLabel === 'navigation.items.accelerationGovernanceWorkbench',
+  'Acceleration governance workbench menu label drifted.'
+)
+check(
+  JSON.stringify(accelerationWorkbenchItem?.defaultOpeneds) === JSON.stringify(['parse-acceleration']),
+  'Acceleration governance workbench open state drifted.'
+)
+
 const unknownMenuKey = buildNavigationKey('/unknown', { z: 'last', a: 'first', empty: '' })
 check(unknownMenuKey === '/unknown?a=first&z=last', `Navigation key normalization drifted: ${unknownMenuKey}`)
 
 const runtimeBreadcrumb = buildNavigationBreadcrumb(
   runtimeItem,
-  value => value.en,
-  item => item.menuLabel.en
+  value => value,
+  item => item.menuLabel
 )
 check(
-  JSON.stringify(runtimeBreadcrumb) === JSON.stringify(['System Management', 'Runtime governance', 'Runtime gates']),
+  JSON.stringify(runtimeBreadcrumb) === JSON.stringify([
+    'navigation.modules.system',
+    'navigation.sections.runtimeGovernance',
+    'navigation.items.runtimeGates'
+  ]),
   'Workspace breadcrumb metadata drifted for runtime gates.'
 )
 

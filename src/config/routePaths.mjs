@@ -2,6 +2,7 @@ export const ROUTE_PATHS = {
   dashboard: '/dashboard',
   sqlQuery: '/sql-query',
   acceleration: '/acceleration',
+  accelerationGovernanceWorkbench: '/governance/acceleration-workbench',
   benchmark: '/benchmark',
   routingGovernance: '/governance/routing',
   recommendationCenter: '/governance/recommendations',
@@ -101,6 +102,18 @@ export const APP_ROUTE_DEFINITIONS = [
       pageKind: 'workbench',
       titleKey: 'acceleration.title',
       descriptionKey: 'acceleration.summary'
+    })
+  ),
+  componentRoute(
+    'accelerationGovernanceWorkbench',
+    'AccelerationGovernanceWorkbench',
+    'AccelerationGovernanceWorkbenchView',
+    routeMeta({
+      module: 'parse-acceleration',
+      submodule: 'governance-workbench',
+      pageKind: 'governance',
+      titleKey: 'accelerationGovernanceWorkbench.title',
+      descriptionKey: 'accelerationGovernanceWorkbench.summary'
     })
   ),
   componentRoute(
@@ -444,6 +457,7 @@ export const NAVIGATION_TREE = [
     label: 'navigation.modules.parseAcceleration',
     items: [
       navItem('acceleration', 'acceleration.title', 'navigation.items.sqlParse'),
+      navItem('accelerationGovernanceWorkbench', 'accelerationGovernanceWorkbench.title', 'navigation.items.accelerationGovernanceWorkbench'),
       navItem('parseStatisticsCenter', 'parseStatisticsCenter.title', 'navigation.items.parseStatistics'),
       navItem('parseBatchCenter', 'acceleration.title', 'navigation.items.batchParseCenter'),
       navItem('parseRecord', 'acceleration.title', 'navigation.items.parseHistorySearch'),

@@ -1187,6 +1187,94 @@ export default {
       boundary: 'The current collaboration boundary is fixed at coordinationMode=PULL_ONLY: external modules own real data loading, prewarm execution, and storage changes while SQLForge keeps recommendation plus dispatch callback evidence only.'
     }
   },
+  accelerationGovernanceWorkbench: {
+    title: 'Acceleration Governance Workbench',
+    summary: 'Show parse-driven and query-driven acceleration governance source fields, flow, navigation, and evidence boundaries.',
+    eyebrow: 'acceleration governance',
+    pageTitle: 'Acceleration Governance Workbench',
+    boundarySummary: 'This HARN-137 page is a read-only shell: it shows source fields, the flow map, existing-page navigation, and evidence drawers. Candidate, approval, apply, and verify buttons stay for HARN-138 and do not submit mock success.',
+    source: {
+      eyebrow: 'entry evidence',
+      title: 'Source fields and trace keys',
+      summary: 'Switching parse-driven or query-driven mode only syncs explainable sourceType, sourceKind, and evidenceLevel values without inventing real benefit evidence.'
+    },
+    flow: {
+      eyebrow: 'governance flow',
+      title: 'Read-only candidate-to-rollback flow',
+      summary: 'The flow map appears only on this workbench page. Existing parse, recommendation, and SQL history pages keep their complete responsibilities.'
+    },
+    flowNodes: {
+      ENTRY_EVIDENCE: 'Entry evidence',
+      CANDIDATE_SUGGESTION: 'Candidate suggestions',
+      SQL_DIFF: 'SQL diff',
+      PLAN_APPROVAL: 'Plan approval',
+      APPLY_VALIDATION: 'Apply validation',
+      MONITORING_ALERT: 'Monitoring alerts',
+      ROLLBACK_DISCARD: 'Rollback or discard'
+    },
+    tabs: {
+      candidates: 'Candidates',
+      diff: 'SQL diff',
+      approval: 'Plan approval',
+      validation: 'Apply validation',
+      monitoring: 'Monitoring and alerts',
+      evidence: 'Interface evidence'
+    },
+    fields: {
+      tenantId: 'Tenant',
+      datasourceCode: 'Datasource',
+      schemaName: 'Schema',
+      stage: 'Stage',
+      reportCode: 'Report code',
+      sourceType: 'sourceType',
+      sourceKind: 'sourceKind',
+      sourceId: 'sourceId',
+      parseHistoryId: 'parseHistoryId',
+      historyId: 'historyId',
+      sqlFingerprint: 'sqlFingerprint',
+      evidenceLevel: 'evidenceLevel',
+      enableHetuExplain: 'Hetu EXPLAIN',
+      sqlText: 'SQL text',
+      currentMode: 'Current entry',
+      ownerTask: 'Owner task',
+      endpoint: 'Endpoint',
+      state: 'State'
+    },
+    modes: {
+      parse: 'Parse-driven',
+      query: 'Query-driven'
+    },
+    actions: {
+      openParseRecord: 'Open parse history',
+      openSqlHistory: 'Open SQL history',
+      openRecommendationCenter: 'Open recommendation center',
+      openSqlQuery: 'Open SQL query',
+      openAlertCenter: 'Open alert center',
+      viewSourceEvidence: 'View source evidence',
+      viewRouteEvidence: 'View route evidence',
+      viewActionEvidence: 'View interface evidence',
+      futureAction: 'Future task wiring'
+    },
+    states: {
+      shellOnly: 'Read-only shell',
+      futureTask: 'Requires HARN-138',
+      notSubmitted: 'Not submitted',
+      disabledUntilNextTask: 'Real interface buttons stay in HARN-138; this page does not submit mock success.',
+      sourceSummary: '{sourceType} / {sourceKind} / {sourceId} / {evidenceLevel}',
+      missingTraceKey: 'Missing required trace key'
+    },
+    drawers: {
+      source: 'Source evidence JSON',
+      routes: 'Navigation target JSON',
+      actions: 'Future interface JSON'
+    },
+    sections: {
+      jumpTitle: 'Existing-page navigation',
+      jumpSummary: 'The workbench only routes users to existing complete pages instead of copying parse, recommendation, or history detail.',
+      tabSummary: 'This tab only shows governance position, future endpoint, and source summary.',
+      sqlPreview: 'SQL preview'
+    }
+  },
   accessCenter: {
     title: 'Open Access',
     summary: 'Review API, JDBC Agent, Java SDK, access strategies, and access-audit samples.',
@@ -2614,6 +2702,7 @@ export default {
       repairEvidence: 'Repair evidence',
       auditForensics: 'Audit forensics',
       sqlParse: 'SQL Parse',
+      accelerationGovernanceWorkbench: 'Acceleration governance workbench',
       parseStatistics: 'Parse statistics',
       batchParseCenter: 'Batch parse center',
       parseHistorySearch: 'Parse history search',

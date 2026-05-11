@@ -1171,6 +1171,94 @@ export default {
       boundary: '当前协同边界固定为 coordinationMode=PULL_ONLY：外部模块负责真实装数、预热执行和底层变更，SQLForge 只保留推荐与 dispatch 回执审计。'
     }
   },
+  accelerationGovernanceWorkbench: {
+    title: '加速治理工作台',
+    summary: '统一展示解析驱动与查询驱动进入加速治理的来源、流程、跳转和接口证据边界。',
+    eyebrow: '加速治理',
+    pageTitle: '加速治理工作台',
+    boundarySummary: '本页是 HARN-137 只读壳层：展示来源字段、流程图、已有页面跳转和证据抽屉；候选、审批、应用和验证按钮留给 HARN-138，不提交模拟成功。',
+    source: {
+      eyebrow: '入口证据',
+      title: '来源字段与追溯键',
+      summary: '切换解析驱动或查询驱动后，只同步可解释的 sourceType、sourceKind 与 evidenceLevel，不伪造真实收益。'
+    },
+    flow: {
+      eyebrow: '治理流程',
+      title: '候选到回滚的只读流程图',
+      summary: '流程图只放在本工作台页，既有解析、推荐和 SQL 历史页面继续承担完整功能。'
+    },
+    flowNodes: {
+      ENTRY_EVIDENCE: '入口证据',
+      CANDIDATE_SUGGESTION: '候选建议',
+      SQL_DIFF: 'SQL 差异',
+      PLAN_APPROVAL: '计划审批',
+      APPLY_VALIDATION: '应用验证',
+      MONITORING_ALERT: '监控告警',
+      ROLLBACK_DISCARD: '回滚或废弃'
+    },
+    tabs: {
+      candidates: '候选建议',
+      diff: 'SQL 差异',
+      approval: '计划审批',
+      validation: '应用验证',
+      monitoring: '监控与告警',
+      evidence: '接口证据'
+    },
+    fields: {
+      tenantId: '租户',
+      datasourceCode: '数据源',
+      schemaName: 'Schema',
+      stage: '环境',
+      reportCode: '报表编码',
+      sourceType: '来源类型 sourceType',
+      sourceKind: '来源种类 sourceKind',
+      sourceId: '来源 ID sourceId',
+      parseHistoryId: '解析历史 ID parseHistoryId',
+      historyId: '查询历史 ID historyId',
+      sqlFingerprint: 'SQL 指纹 sqlFingerprint',
+      evidenceLevel: '证据等级 evidenceLevel',
+      enableHetuExplain: 'Hetu 计划解析',
+      sqlText: 'SQL 文本',
+      currentMode: '当前入口',
+      ownerTask: '后续任务',
+      endpoint: '接口',
+      state: '状态'
+    },
+    modes: {
+      parse: '解析驱动',
+      query: '查询驱动'
+    },
+    actions: {
+      openParseRecord: '打开解析历史',
+      openSqlHistory: '打开 SQL 历史',
+      openRecommendationCenter: '打开推荐中心',
+      openSqlQuery: '打开 SQL 查询',
+      openAlertCenter: '打开告警中心',
+      viewSourceEvidence: '查看来源证据',
+      viewRouteEvidence: '查看跳转证据',
+      viewActionEvidence: '查看接口证据',
+      futureAction: '后续任务接入'
+    },
+    states: {
+      shellOnly: '只读壳层',
+      futureTask: '需要 HARN-138',
+      notSubmitted: '未提交',
+      disabledUntilNextTask: '真实接口按钮留给 HARN-138，本页不提交模拟成功。',
+      sourceSummary: '来源 {sourceType} / {sourceKind} / {sourceId} / {evidenceLevel}',
+      missingTraceKey: '缺少必要追溯键'
+    },
+    drawers: {
+      source: '来源证据 JSON',
+      routes: '跳转目标 JSON',
+      actions: '后续接口 JSON'
+    },
+    sections: {
+      jumpTitle: '已有页面跳转',
+      jumpSummary: '工作台只把用户带到已有完整页面，不复制解析、推荐或历史详情。',
+      tabSummary: '当前 tab 只展示治理位置、后续接口和来源摘要。',
+      sqlPreview: 'SQL 预览'
+    }
+  },
   accessCenter: {
     title: '开放接入',
     summary: '查看 API、JDBC Agent、Java SDK、接入策略与接入审计样例。',
@@ -2598,6 +2686,7 @@ export default {
       repairEvidence: '修复证据',
       auditForensics: '审计取证',
       sqlParse: 'SQL 解析',
+      accelerationGovernanceWorkbench: '加速治理工作台',
       parseStatistics: '解析统计',
       batchParseCenter: '批量解析中心',
       parseHistorySearch: '解析历史查询',
