@@ -74,6 +74,12 @@ const requiredTokens = [
   'autoApplyPaused',
   'executeBaselineQuery',
   'executeAcceleratedQuery',
+  'sourceEditorVisible',
+  'pagedCandidateRows',
+  'pagedRewriteRecordRows',
+  'pagedValidationRuns',
+  '<el-dialog',
+  '<el-pagination',
   'acceleration-workbench-create-candidate',
   'acceleration-workbench-load-diff',
   'acceleration-workbench-submit-plan',
@@ -128,6 +134,9 @@ for (const token of requiredApiTokens) {
 }
 
 check(!source.includes('acceleration-workbench-future-action'), 'HARN-138 must replace disabled future actions with guarded real buttons.')
+check(!source.includes('class="workbench-panel"'), 'Workbench must not reintroduce stacked workbench-panel sections.')
+check(!source.includes('class="flow-node"'), 'Workbench must not reintroduce flow cards in the main page.')
+check(!source.includes('class="jump-button"'), 'Workbench must not reintroduce navigation cards in the main page.')
 check(source.includes(':disabled="!canApplyPlan"'), 'Apply button must be gated by plan status.')
 check(source.includes(':disabled="!canVerifyPlan"'), 'Verify button must be gated by plan status.')
 check(source.includes(':disabled="!canRollbackPlan"'), 'Rollback button must be gated by plan status.')

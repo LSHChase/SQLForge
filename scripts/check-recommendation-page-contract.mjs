@@ -38,7 +38,12 @@ const targets = [
       'manualReviewRequired',
       'alertLinkageCards',
       'openAlertCenter',
-      'SQL_REWRITE_RESULT_DIVERGENCE'
+      'SQL_REWRITE_RESULT_DIVERGENCE',
+      '<el-table',
+      '<el-pagination',
+      '<el-drawer',
+      'pagedRecommendations',
+      'openEvidenceDrawer'
     ]
   },
   {
@@ -66,6 +71,14 @@ for (const target of targets) {
   for (const token of target.tokens) {
     if (!content.includes(token)) {
       throw new Error(`Missing token ${JSON.stringify(token)} in ${target.path}`)
+    }
+  }
+  if (target.path === 'src/views/recommendation-center/RecommendationCenterView.vue') {
+    const forbiddenTokens = ['class="recommendation-row"', 'class="dispatch-event-row"', 'class="evidence-group"', '<el-card']
+    for (const token of forbiddenTokens) {
+      if (content.includes(token)) {
+        throw new Error(`Recommendation page must not reintroduce stacked card/list token ${JSON.stringify(token)}`)
+      }
     }
   }
 }

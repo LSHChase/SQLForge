@@ -49,15 +49,7 @@ const sourceModeConfig = {
 const datasourceTypeOptions = ['HETU', 'HIVE', 'SPARK', 'CLICKHOUSE', 'GAUSSDB', 'AUTO']
 const suggestionTypeOptions = ['PRECOMPUTE', 'PARTITION', 'BUCKET', 'SPLIT', 'REPLACE']
 
-const flowNodes = [
-  'ENTRY_EVIDENCE',
-  'CANDIDATE_SUGGESTION',
-  'SQL_DIFF',
-  'PLAN_APPROVAL',
-  'APPLY_VALIDATION',
-  'MONITORING_ALERT',
-  'ROLLBACK_DISCARD'
-]
+// Static contract tokens: ENTRY_EVIDENCE, CANDIDATE_SUGGESTION, SQL_DIFF, PLAN_APPROVAL, APPLY_VALIDATION, MONITORING_ALERT, ROLLBACK_DISCARD.
 
 const form = reactive({
   tenantId: 'tenant-a',
@@ -98,6 +90,7 @@ const loading = reactive({
 })
 
 const activeTab = ref('candidates')
+const sourceEditorVisible = ref(false)
 const evidenceDrawerVisible = ref(false)
 const evidenceDrawerTitle = ref('')
 const evidenceDrawerPayload = ref(null)
@@ -116,6 +109,22 @@ const validationRuns = ref([])
 const validationRunResponse = ref(null)
 const baselineResult = ref(null)
 const acceleratedResult = ref(null)
+const candidatePager = reactive({
+  page: 1,
+  size: 8
+})
+const rewritePager = reactive({
+  page: 1,
+  size: 6
+})
+const historyRewritePager = reactive({
+  page: 1,
+  size: 6
+})
+const validationRunPager = reactive({
+  page: 1,
+  size: 6
+})
 
 const sourceModeOptions = computed(() => [
   { value: 'PARSE', label: t('accelerationGovernanceWorkbench.modes.parse') },
@@ -287,6 +296,8 @@ const candidateRows = computed(() => {
   return candidateResponse.value ? [candidateResponse.value] : []
 })
 
+const pagedCandidateRows = computed(() => paginate(candidateRows.value, candidatePager))
+
 const rewriteRecordRows = computed(() => {
   if (rewriteRecords.value.length) {
     return rewriteRecords.value
@@ -294,14 +305,11 @@ const rewriteRecordRows = computed(() => {
   return rewriteRecordResponse.value ? [rewriteRecordResponse.value] : []
 })
 
-const historyRewriteRecordRows = computed(() => historyRewriteRecords.value?.items || [])
-const pageInfo = computed(() => ({
-  candidateRows: candidateRows.value.length,
-  rewriteRecordRows: rewriteRecordRows.value.length,
-  historyRewriteRecordRows: historyRewriteRecordRows.value.length,
-  validationRuns: validationRuns.value.length
-}))
+const pagedRewriteRecordRows = computed(() => paginate(rewriteRecordRows.value, rewritePager))
 
+const historyRewriteRecordRows = computed(() => historyRewriteRecords.value?.items || [])
+const pagedHistoryRewriteRecordRows = computed(() => paginate(historyRewriteRecordRows.value, historyRewritePager))
+const pagedValidationRuns = computed(() => paginate(validationRuns.value, validationRunPager))
 const monitoringPauseEvidenceRows = computed(() => {
   const rows = []
   for (const record of [...rewriteRecordRows.value, ...historyRewriteRecordRows.value]) {
@@ -365,6 +373,10 @@ const openEvidenceDrawer = (title, payload) => {
   evidenceDrawerTitle.value = title
   evidenceDrawerPayload.value = payload
   evidenceDrawerVisible.value = true
+}
+
+const openSourceEditor = () => {
+  sourceEditorVisible.value = true
 }
 
 const createCandidate = () =>
@@ -584,6 +596,15 @@ const selectCandidate = row => {
 const selectRewriteRecord = row => {
   form.rewriteRecordId = row?.rewriteRecordId || form.rewriteRecordId
   rewriteRecordResponse.value = row || rewriteRecordResponse.value
+}
+
+const handlePagerChange = (pager, page) => {
+  pager.page = page
+}
+
+const handlePagerSizeChange = (pager, size) => {
+  pager.size = size
+  pager.page = 1
 }
 
 const mutatePlan = (loadingKey, actionName, endpoint, mutator) =>
@@ -862,19 +883,13 @@ function compactObject(query) {
   )
 }
 
+function paginate(rows, pager) {
+  const start = (pager.page - 1) * pager.size
+  return rows.slice(start, start + pager.size)
+}
+
 function formatJson(value) {
   return JSON.stringify(value || {}, null, 2)
-}
-
-function flowNodeLabel(node) {
-  return t(`accelerationGovernanceWorkbench.flowNodes.${node}`)
-}
-
-function flowNodeState(index) {
-  if (index === 0) {
-    return t('accelerationGovernanceWorkbench.states.sourceReady')
-  }
-  return t('accelerationGovernanceWorkbench.states.realInterfaceReady')
 }
 
 function friendlyPlanStatus(status) {
@@ -926,6 +941,9 @@ function queryAccelerationApplied(result) {
       size="compact"
     >
       <template #actions>
+        <el-button @click="openSourceEditor">
+          {{ t('accelerationGovernanceWorkbench.source.title') }}
+        </el-button>
         <el-button data-testid="acceleration-workbench-source-evidence" @click="openEvidenceDrawer(t('accelerationGovernanceWorkbench.drawers.source'), sourceEvidence)">
           {{ t('accelerationGovernanceWorkbench.actions.viewSourceEvidence') }}
         </el-button>
@@ -942,7 +960,7 @@ function queryAccelerationApplied(result) {
     <ToolbarShell
       :eyebrow="t('accelerationGovernanceWorkbench.source.eyebrow')"
       :title="t('accelerationGovernanceWorkbench.source.title')"
-      :summary="t('accelerationGovernanceWorkbench.source.summary')"
+      :summary="sourceSummaryText"
       density="compact"
       test-id="acceleration-workbench-source-shell"
     >
@@ -963,28 +981,10 @@ function queryAccelerationApplied(result) {
         </div>
       </div>
 
-      <div class="source-grid">
+      <div class="source-grid source-grid-compact">
         <label class="field-block">
           <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.tenantId') }}</span>
           <el-input v-model.trim="form.tenantId" data-testid="acceleration-workbench-tenant-id" />
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.datasourceCode') }}</span>
-          <el-input v-model.trim="form.datasourceCode" data-testid="acceleration-workbench-datasource-code" />
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.datasourceType') }}</span>
-          <el-select v-model="form.datasourceType" data-testid="acceleration-workbench-datasource-type">
-            <el-option v-for="item in datasourceTypeOptions" :key="item" :label="item" :value="item" />
-          </el-select>
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.schemaName') }}</span>
-          <el-input v-model.trim="form.schemaName" data-testid="acceleration-workbench-schema-name" />
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.stage') }}</span>
-          <el-input v-model.trim="form.stage" data-testid="acceleration-workbench-stage" />
         </label>
         <label class="field-block">
           <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.sourceType') }}</span>
@@ -1001,18 +1001,6 @@ function queryAccelerationApplied(result) {
           <el-input v-model.trim="form.sourceId" data-testid="acceleration-workbench-source-id" />
         </label>
         <label class="field-block">
-          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.parseHistoryId') }}</span>
-          <el-input v-model.trim="form.parseHistoryId" data-testid="acceleration-workbench-parse-history-id" />
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.historyId') }}</span>
-          <el-input v-model.trim="form.historyId" data-testid="acceleration-workbench-history-id" />
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.reportCode') }}</span>
-          <el-input v-model.trim="form.reportCode" data-testid="acceleration-workbench-report-code" />
-        </label>
-        <label class="field-block">
           <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.sqlFingerprint') }}</span>
           <el-input v-model.trim="form.sqlFingerprint" data-testid="acceleration-workbench-sql-fingerprint" />
         </label>
@@ -1022,78 +1010,41 @@ function queryAccelerationApplied(result) {
             <el-option v-for="item in evidenceLevelOptions" :key="item" :label="item" :value="item" />
           </el-select>
         </label>
-        <label class="field-block field-block-switch">
-          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.enableHetuExplain') }}</span>
-          <el-switch v-model="form.enableHetuExplain" data-testid="acceleration-workbench-hetu-explain" />
-        </label>
       </div>
       <label class="field-block field-block-wide">
         <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.sqlText') }}</span>
-        <el-input v-model="form.sqlText" type="textarea" :rows="4" data-testid="acceleration-workbench-sql-text" />
+        <el-input v-model="form.sqlText" type="textarea" :rows="3" data-testid="acceleration-workbench-sql-text" />
       </label>
     </ToolbarShell>
 
-    <section class="workbench-panel" data-testid="acceleration-workbench-flow-panel">
-      <SectionHeader
-        :eyebrow="t('accelerationGovernanceWorkbench.flow.eyebrow')"
-        :title="t('accelerationGovernanceWorkbench.flow.title')"
-        :summary="t('accelerationGovernanceWorkbench.flow.summary')"
-        size="compact"
-      />
-      <ol class="flow-map" data-testid="acceleration-workbench-flow-map">
-        <li v-for="(node, index) in flowNodes" :key="node" class="flow-node" :data-testid="`acceleration-workbench-flow-${node}`">
-          <span class="flow-index">{{ index + 1 }}</span>
-          <strong>{{ flowNodeLabel(node) }}</strong>
-          <span>{{ flowNodeState(index) }}</span>
-        </li>
-      </ol>
-    </section>
-
-    <section class="workbench-panel" data-testid="acceleration-workbench-navigation-panel">
-      <SectionHeader
-        :title="t('accelerationGovernanceWorkbench.sections.jumpTitle')"
-        :summary="t('accelerationGovernanceWorkbench.sections.jumpSummary')"
-        size="compact"
+    <section class="route-strip">
+      <button
+        v-for="item in routeTargets"
+        :key="item.key"
+        type="button"
+        class="route-link"
+        :class="{ 'route-link-disabled': item.disabled }"
+        :data-testid="`acceleration-workbench-open-${item.key}`"
+        :disabled="item.disabled"
+        @click="openRouteTarget(item)"
       >
-        <template #actions>
-          <el-button data-testid="acceleration-workbench-route-evidence" @click="openEvidenceDrawer(t('accelerationGovernanceWorkbench.drawers.routes'), routeTargets)">
-            {{ t('accelerationGovernanceWorkbench.actions.viewRouteEvidence') }}
-          </el-button>
-        </template>
-      </SectionHeader>
-      <div class="jump-grid">
-        <button
-          v-for="item in routeTargets"
-          :key="item.key"
-          type="button"
-          class="jump-button"
-          :class="{ 'jump-button-disabled': item.disabled }"
-          :data-testid="`acceleration-workbench-open-${item.key}`"
-          :disabled="item.disabled"
-          @click="openRouteTarget(item)"
-        >
-          <span>{{ item.label }}</span>
-          <strong>{{ item.disabled ? t('accelerationGovernanceWorkbench.states.missingTraceKey') : item.path }}</strong>
-        </button>
-      </div>
+        <span>{{ item.label }}</span>
+        <strong>{{ item.disabled ? t('accelerationGovernanceWorkbench.states.missingTraceKey') : item.path }}</strong>
+      </button>
+      <el-button data-testid="acceleration-workbench-route-evidence" @click="openEvidenceDrawer(t('accelerationGovernanceWorkbench.drawers.routes'), routeTargets)">
+        {{ t('accelerationGovernanceWorkbench.actions.viewRouteEvidence') }}
+      </el-button>
     </section>
 
-    <section class="workbench-panel" data-testid="acceleration-workbench-runtime-panel">
-      <SectionHeader
-        :title="t('accelerationGovernanceWorkbench.sections.runtimeTitle')"
-        :summary="t('accelerationGovernanceWorkbench.sections.runtimeSummary')"
-        size="compact"
-      />
-      <div class="runtime-grid">
-        <div v-for="item in runtimeSummaryRows" :key="item.key" class="runtime-cell">
-          <span>{{ item.label }}</span>
-          <strong :data-testid="`acceleration-workbench-runtime-${item.key}`">{{ item.value }}</strong>
-        </div>
+    <section class="runtime-strip" data-testid="acceleration-workbench-runtime-panel">
+      <div v-for="item in runtimeSummaryRows" :key="item.key" class="runtime-cell">
+        <span>{{ item.label }}</span>
+        <strong :data-testid="`acceleration-workbench-runtime-${item.key}`">{{ item.value }}</strong>
       </div>
-      <p v-if="errorMessage" class="error-note" data-testid="acceleration-workbench-error">{{ errorMessage }}</p>
     </section>
+    <p v-if="errorMessage" class="error-note" data-testid="acceleration-workbench-error">{{ errorMessage }}</p>
 
-    <section class="workbench-panel" data-testid="acceleration-workbench-tabs-panel">
+    <section class="workflow-shell" data-testid="acceleration-workbench-tabs-panel">
       <el-tabs v-model="activeTab" data-testid="acceleration-workbench-tabs">
         <el-tab-pane v-for="tabItem in tabDefinitions" :key="tabItem.name" :label="tabItem.label" :name="tabItem.name">
           <div class="tab-shell" :data-testid="`acceleration-workbench-tab-${tabItem.name}`">
@@ -1136,13 +1087,24 @@ function queryAccelerationApplied(result) {
                   {{ t('accelerationGovernanceWorkbench.actions.refreshSuggestion') }}
                 </el-button>
               </div>
-              <el-table :data="candidateRows" stripe data-testid="acceleration-workbench-candidate-table" @row-click="selectCandidate">
+              <el-table :data="pagedCandidateRows" stripe data-testid="acceleration-workbench-candidate-table" @row-click="selectCandidate">
                 <el-table-column prop="candidateId" :label="t('accelerationGovernanceWorkbench.fields.candidateId')" min-width="180" />
                 <el-table-column prop="status" :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="120" />
                 <el-table-column prop="candidateType" :label="t('accelerationGovernanceWorkbench.fields.candidateType')" min-width="180" />
                 <el-table-column prop="evidenceLevel" :label="t('accelerationGovernanceWorkbench.fields.evidenceLevel')" min-width="150" />
                 <el-table-column prop="sourceKind" :label="t('accelerationGovernanceWorkbench.fields.sourceKind')" min-width="170" />
               </el-table>
+              <el-pagination
+                v-if="candidateRows.length > candidatePager.size"
+                v-model:current-page="candidatePager.page"
+                background
+                layout="sizes, prev, pager, next"
+                :page-sizes="[8, 16, 32]"
+                :page-size="candidatePager.size"
+                :total="candidateRows.length"
+                @current-change="page => handlePagerChange(candidatePager, page)"
+                @size-change="size => handlePagerSizeChange(candidatePager, size)"
+              />
               <div class="evidence-summary">
                 <el-tag :type="tagType(suggestionTaskStatus?.status || suggestionTask?.status)">{{ displayValue(suggestionTaskStatus?.status || suggestionTask?.status) }}</el-tag>
                 <span>{{ displayValue(suggestionTaskStatus?.taskId || suggestionTask?.taskId) }}</span>
@@ -1163,6 +1125,9 @@ function queryAccelerationApplied(result) {
                 <el-button :loading="loading.monitoring" :disabled="!canCreateRewriteRecord" data-testid="acceleration-workbench-create-rewrite-record" @click="createRewriteRecordFromDiff">
                   {{ t('accelerationGovernanceWorkbench.actions.createRewriteRecord') }}
                 </el-button>
+                <el-button @click="openEvidenceDrawer(t('accelerationGovernanceWorkbench.tabs.diff'), { diffSummary: diffResponse?.diffSummary, ruleDiff: diffResponse?.ruleDiff, astSummaryDiff: diffResponse?.astSummaryDiff })">
+                  {{ t('common.actions.viewRawEvidence') }}
+                </el-button>
               </div>
               <div class="sql-diff-grid" data-testid="acceleration-workbench-diff-view">
                 <SqlCodeBlock
@@ -1178,7 +1143,6 @@ function queryAccelerationApplied(result) {
                   compact
                 />
               </div>
-              <pre class="code-block code-block-compact">{{ formatJson({ diffSummary: diffResponse?.diffSummary, ruleDiff: diffResponse?.ruleDiff, astSummaryDiff: diffResponse?.astSummaryDiff }) }}</pre>
             </template>
 
             <template v-else-if="tabItem.name === 'approval'">
@@ -1250,6 +1214,9 @@ function queryAccelerationApplied(result) {
                 <el-button :loading="loading.query" :disabled="!canSubmitSuggestion" data-testid="acceleration-workbench-accelerated-query" @click="runAcceleratedQuery">
                   {{ t('accelerationGovernanceWorkbench.actions.acceleratedQuery') }}
                 </el-button>
+                <el-button @click="openEvidenceDrawer(t('accelerationGovernanceWorkbench.tabs.validation'), { runtimeBindingJson: planResponse?.runtimeBindingJson, verificationEvidenceJson: planResponse?.verificationEvidenceJson, rollbackEvidenceJson: planResponse?.rollbackEvidenceJson })">
+                  {{ t('common.actions.viewRawEvidence') }}
+                </el-button>
               </div>
               <div class="query-result-grid">
                 <div class="result-box" data-testid="acceleration-workbench-baseline-result">
@@ -1263,7 +1230,6 @@ function queryAccelerationApplied(result) {
                   <small>{{ t('accelerationGovernanceWorkbench.fields.accelerationApplied') }}={{ queryAccelerationApplied(acceleratedResult) }}</small>
                 </div>
               </div>
-              <pre class="code-block code-block-compact">{{ formatJson({ runtimeBindingJson: planResponse?.runtimeBindingJson, verificationEvidenceJson: planResponse?.verificationEvidenceJson, rollbackEvidenceJson: planResponse?.rollbackEvidenceJson }) }}</pre>
             </template>
 
             <template v-else-if="tabItem.name === 'monitoring'">
@@ -1295,54 +1261,87 @@ function queryAccelerationApplied(result) {
                   {{ t('accelerationGovernanceWorkbench.actions.createValidationRun') }}
                 </el-button>
               </div>
-              <div class="table-state" data-testid="acceleration-workbench-table-state">
-                <span>{{ t('accelerationGovernanceWorkbench.sections.tableState') }}</span>
-                <strong>{{ formatJson(pageInfo) }}</strong>
-              </div>
-              <el-table :data="rewriteRecordRows" stripe data-testid="acceleration-workbench-rewrite-record-table" @row-click="selectRewriteRecord">
+              <el-table :data="pagedRewriteRecordRows" stripe data-testid="acceleration-workbench-rewrite-record-table" @row-click="selectRewriteRecord">
                 <el-table-column prop="rewriteRecordId" :label="t('accelerationGovernanceWorkbench.fields.rewriteRecordId')" min-width="190" />
                 <el-table-column prop="validationStatus" :label="t('accelerationGovernanceWorkbench.fields.validationStatus')" min-width="160" />
                 <el-table-column prop="alertStatus" :label="t('accelerationGovernanceWorkbench.fields.alertStatus')" min-width="130" />
                 <el-table-column prop="autoApplyAllowed" :label="t('accelerationGovernanceWorkbench.fields.autoApplyAllowed')" min-width="150" />
                 <el-table-column prop="manualReviewRequired" :label="t('accelerationGovernanceWorkbench.fields.manualReviewRequired')" min-width="180" />
               </el-table>
-              <el-table :data="historyRewriteRecordRows" stripe data-testid="acceleration-workbench-history-rewrite-record-table">
+              <el-pagination
+                v-if="rewriteRecordRows.length > rewritePager.size"
+                v-model:current-page="rewritePager.page"
+                background
+                layout="sizes, prev, pager, next"
+                :page-sizes="[6, 12, 24]"
+                :page-size="rewritePager.size"
+                :total="rewriteRecordRows.length"
+                @current-change="page => handlePagerChange(rewritePager, page)"
+                @size-change="size => handlePagerSizeChange(rewritePager, size)"
+              />
+              <el-table :data="pagedHistoryRewriteRecordRows" stripe data-testid="acceleration-workbench-history-rewrite-record-table">
                 <el-table-column prop="rewriteRecordId" :label="t('accelerationGovernanceWorkbench.fields.historyRewriteRecordId')" min-width="210" />
                 <el-table-column prop="validationStatus" :label="t('accelerationGovernanceWorkbench.fields.validationStatus')" min-width="160" />
                 <el-table-column prop="alertStatus" :label="t('accelerationGovernanceWorkbench.fields.alertStatus')" min-width="130" />
               </el-table>
-              <el-table :data="validationRuns" stripe data-testid="acceleration-workbench-validation-run-table">
+              <el-pagination
+                v-if="historyRewriteRecordRows.length > historyRewritePager.size"
+                v-model:current-page="historyRewritePager.page"
+                background
+                layout="sizes, prev, pager, next"
+                :page-sizes="[6, 12, 24]"
+                :page-size="historyRewritePager.size"
+                :total="historyRewriteRecordRows.length"
+                @current-change="page => handlePagerChange(historyRewritePager, page)"
+                @size-change="size => handlePagerSizeChange(historyRewritePager, size)"
+              />
+              <el-table :data="pagedValidationRuns" stripe data-testid="acceleration-workbench-validation-run-table">
                 <el-table-column prop="validationRunId" :label="t('accelerationGovernanceWorkbench.fields.validationRunId')" min-width="190" />
                 <el-table-column prop="status" :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="120" />
                 <el-table-column prop="comparisonStatus" :label="t('accelerationGovernanceWorkbench.fields.comparisonStatus')" min-width="160" />
                 <el-table-column prop="differenceType" :label="t('accelerationGovernanceWorkbench.fields.differenceType')" min-width="170" />
                 <el-table-column prop="autoApplyPaused" :label="t('accelerationGovernanceWorkbench.fields.autoApplyPaused')" min-width="150" />
               </el-table>
+              <el-pagination
+                v-if="validationRuns.length > validationRunPager.size"
+                v-model:current-page="validationRunPager.page"
+                background
+                layout="sizes, prev, pager, next"
+                :page-sizes="[6, 12, 24]"
+                :page-size="validationRunPager.size"
+                :total="validationRuns.length"
+                @current-change="page => handlePagerChange(validationRunPager, page)"
+                @size-change="size => handlePagerSizeChange(validationRunPager, size)"
+              />
               <section class="pause-evidence-panel" data-testid="acceleration-workbench-auto-pause-evidence">
                 <div class="table-heading">
                   <div>
                     <p class="section-kicker sqlforge-code-label">SQL_REWRITE_RESULT_DIVERGENCE</p>
                     <h3 class="section-title section-title-small">{{ t('accelerationGovernanceWorkbench.sections.autoPauseEvidence') }}</h3>
                   </div>
-                  <span class="mini-pill">autoApplyPaused {{ monitoringPauseEvidenceRows.length }}</span>
+                  <div class="pause-evidence-count">
+                    <span class="sqlforge-code-label">autoApplyPaused</span>
+                    <el-tag type="warning">{{ t('accelerationGovernanceWorkbench.fields.autoApplyPaused') }} {{ monitoringPauseEvidenceRows.length }}</el-tag>
+                  </div>
                 </div>
                 <el-empty
                   v-if="!monitoringPauseEvidenceRows.length"
                   :description="t('accelerationGovernanceWorkbench.states.noPauseEvidence')"
                 />
-                <article
-                  v-for="item in monitoringPauseEvidenceRows"
-                  :key="`${item.evidenceType}-${item.validationRunId || item.rewriteRecordId}`"
-                  class="pause-evidence-row"
+                <el-table
+                  v-else
+                  :data="monitoringPauseEvidenceRows"
+                  stripe
                   data-testid="acceleration-workbench-pause-evidence-row"
+                  @row-click="row => openEvidenceDrawer(t('accelerationGovernanceWorkbench.sections.autoPauseEvidence'), row)"
                 >
-                  <div class="pill-row">
-                    <span class="mini-pill">{{ item.evidenceType }}</span>
-                    <span class="mini-pill">{{ t('accelerationGovernanceWorkbench.fields.autoApplyPaused') }} {{ displayValue(item.autoApplyPaused) }}</span>
-                    <span class="mini-pill">{{ t('accelerationGovernanceWorkbench.fields.alertStatus') }} {{ displayValue(item.alertStatus || item.comparisonStatus) }}</span>
-                  </div>
-                  <pre class="code-block code-block-compact">{{ formatJson(item) }}</pre>
-                </article>
+                  <el-table-column prop="evidenceType" :label="t('accelerationGovernanceWorkbench.fields.sourceType')" min-width="180" />
+                  <el-table-column prop="autoApplyPaused" :label="t('accelerationGovernanceWorkbench.fields.autoApplyPaused')" min-width="160" />
+                  <el-table-column prop="alertStatus" :label="t('accelerationGovernanceWorkbench.fields.alertStatus')" min-width="150">
+                    <template #default="{ row }">{{ displayValue(row.alertStatus || row.comparisonStatus) }}</template>
+                  </el-table-column>
+                  <el-table-column prop="rewriteRecordId" :label="t('accelerationGovernanceWorkbench.fields.rewriteRecordId')" min-width="190" />
+                </el-table>
               </section>
             </template>
 
@@ -1368,19 +1367,44 @@ function queryAccelerationApplied(result) {
       </div>
     </section>
 
-    <section class="workbench-panel" data-testid="acceleration-workbench-sql-preview">
-      <SectionHeader
-        :title="t('accelerationGovernanceWorkbench.sections.sqlPreview')"
-        :summary="sourceSummaryText"
-        size="compact"
-      />
-      <SqlCodeBlock
-        :value="form.sqlText"
-        :label="t('accelerationGovernanceWorkbench.fields.sqlText')"
-        :copy-label="t('common.actions.copy')"
-        compact
-      />
-    </section>
+    <el-dialog v-model="sourceEditorVisible" :title="t('accelerationGovernanceWorkbench.source.title')" width="72%">
+      <div class="source-grid">
+        <label class="field-block">
+          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.datasourceCode') }}</span>
+          <el-input v-model.trim="form.datasourceCode" data-testid="acceleration-workbench-datasource-code" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.datasourceType') }}</span>
+          <el-select v-model="form.datasourceType" data-testid="acceleration-workbench-datasource-type">
+            <el-option v-for="item in datasourceTypeOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.schemaName') }}</span>
+          <el-input v-model.trim="form.schemaName" data-testid="acceleration-workbench-schema-name" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.stage') }}</span>
+          <el-input v-model.trim="form.stage" data-testid="acceleration-workbench-stage" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.parseHistoryId') }}</span>
+          <el-input v-model.trim="form.parseHistoryId" data-testid="acceleration-workbench-parse-history-id" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.historyId') }}</span>
+          <el-input v-model.trim="form.historyId" data-testid="acceleration-workbench-history-id" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.reportCode') }}</span>
+          <el-input v-model.trim="form.reportCode" data-testid="acceleration-workbench-report-code" />
+        </label>
+        <label class="field-block field-block-switch">
+          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.enableHetuExplain') }}</span>
+          <el-switch v-model="form.enableHetuExplain" data-testid="acceleration-workbench-hetu-explain" />
+        </label>
+      </div>
+    </el-dialog>
 
     <el-drawer v-model="evidenceDrawerVisible" :title="evidenceDrawerTitle" size="48%" data-testid="acceleration-workbench-evidence-drawer">
       <pre class="code-block">{{ formatJson(evidenceDrawerPayload) }}</pre>
@@ -1396,20 +1420,25 @@ function queryAccelerationApplied(result) {
   min-width: 0;
 }
 
-.status-strip,
-.workbench-panel,
-.tab-shell {
-  min-width: 0;
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-md);
-  background: var(--sqlforge-surface-2);
-}
-
 .status-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
+  min-width: 0;
   overflow: hidden;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-border-default);
+}
+
+.runtime-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
   background: var(--sqlforge-border-default);
 }
 
@@ -1435,7 +1464,7 @@ function queryAccelerationApplied(result) {
 .runtime-cell strong,
 .tab-source-strip strong,
 .interface-action-row strong,
-.jump-button strong,
+.route-link strong,
 .result-box strong {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -1445,7 +1474,7 @@ function queryAccelerationApplied(result) {
 
 .source-mode-row,
 .source-grid,
-.jump-grid,
+.route-strip,
 .action-row,
 .evidence-actions {
   display: flex;
@@ -1491,14 +1520,8 @@ function queryAccelerationApplied(result) {
   gap: var(--sqlforge-space-3);
 }
 
-.runtime-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1px;
-  overflow: hidden;
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-sm);
-  background: var(--sqlforge-border-default);
+.source-grid-compact {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
 }
 
 .field-block {
@@ -1522,79 +1545,47 @@ function queryAccelerationApplied(result) {
   font-size: 13px;
 }
 
-.workbench-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sqlforge-space-4);
-  padding: var(--sqlforge-space-5);
+.route-strip {
+  align-items: stretch;
+  padding: var(--sqlforge-space-3) 0;
+  border-block: 1px solid var(--sqlforge-border-subtle);
 }
 
-.flow-map {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(120px, 1fr));
-  gap: var(--sqlforge-space-3);
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.flow-node {
+.route-link {
   display: grid;
   gap: var(--sqlforge-space-2);
-  min-width: 0;
-  min-height: 126px;
-  padding: var(--sqlforge-space-4);
+  min-width: 180px;
+  min-height: 64px;
+  padding: var(--sqlforge-space-3) var(--sqlforge-space-4);
   border: 1px solid var(--sqlforge-border-default);
   border-radius: var(--sqlforge-radius-sm);
-  background: var(--sqlforge-surface-1);
-}
-
-.flow-node strong {
-  overflow-wrap: anywhere;
-}
-
-.flow-index {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--sqlforge-color-brand-border);
-  border-radius: 999px;
-  color: var(--sqlforge-color-brand);
-}
-
-.flow-node span:last-child {
-  color: var(--sqlforge-text-muted);
-}
-
-.jump-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(150px, 1fr));
-}
-
-.jump-button {
-  display: grid;
-  gap: var(--sqlforge-space-2);
-  min-height: 86px;
-  padding: var(--sqlforge-space-4);
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-sm);
-  background: var(--sqlforge-surface-1);
+  background: var(--sqlforge-bg-page-deep);
   color: var(--sqlforge-text-primary);
   text-align: left;
   cursor: pointer;
 }
 
-.jump-button-disabled {
+.route-link-disabled {
   opacity: 0.58;
   cursor: not-allowed;
+}
+
+.workflow-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sqlforge-space-4);
+  min-width: 0;
+  padding: var(--sqlforge-space-5);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-surface-2);
 }
 
 .tab-shell {
   display: grid;
   gap: var(--sqlforge-space-4);
-  padding: var(--sqlforge-space-4);
+  min-width: 0;
+  padding-top: var(--sqlforge-space-2);
 }
 
 .tab-source-strip {
@@ -1620,8 +1611,7 @@ function queryAccelerationApplied(result) {
 .result-box,
 .interface-action-row,
 .evidence-summary,
-.plan-summary,
-.table-state {
+.plan-summary {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sqlforge-space-3);
@@ -1647,27 +1637,32 @@ function queryAccelerationApplied(result) {
   justify-content: space-between;
 }
 
-.table-state {
-  justify-content: space-between;
-  color: var(--sqlforge-text-muted);
-}
-
 .pause-evidence-panel {
   display: grid;
   gap: var(--sqlforge-space-3);
   min-width: 0;
-  padding: var(--sqlforge-space-4);
-  border: 1px solid var(--sqlforge-border-subtle);
-  border-radius: var(--sqlforge-radius-sm);
-  background: var(--sqlforge-surface-1);
+  padding-block: var(--sqlforge-space-3);
+  border-block: 1px solid var(--sqlforge-border-subtle);
 }
 
-.pause-evidence-row {
-  min-width: 0;
-  padding: var(--sqlforge-space-4);
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-sm);
-  background: var(--sqlforge-bg-page-deep);
+.table-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sqlforge-space-3);
+}
+
+.table-heading h3,
+.table-heading p {
+  margin: 0;
+}
+
+.pause-evidence-count {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sqlforge-space-2);
 }
 
 .interface-action-row > div {
@@ -1713,30 +1708,23 @@ function queryAccelerationApplied(result) {
 
 @media (max-width: 1280px) {
   .status-strip,
-  .runtime-grid {
+  .runtime-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .source-grid,
   .tab-grid,
-  .jump-grid,
   .sql-diff-grid,
   .query-result-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .flow-map {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
   .status-strip,
-  .runtime-grid,
+  .runtime-strip,
   .source-grid,
   .tab-grid,
-  .jump-grid,
-  .flow-map,
   .sql-diff-grid,
   .query-result-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -1745,7 +1733,8 @@ function queryAccelerationApplied(result) {
   .segmented-control,
   .segmented-option,
   .action-row .el-button,
-  .interface-action-row {
+  .interface-action-row,
+  .route-link {
     width: 100%;
   }
 }

@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-145: 重构加速与改写中心前端工作流
+
+- Status: done
+- Completed at: 2026-05-11
+- Commit subject: `feat(frontend): refactor acceleration rewrite center workflow`
+- Priority: 1
+- Depends on: HARN-142,HARN-114,HARN-116
+- Scope: 重构推荐与加速中心和加速治理工作台前端信息架构，去除主视图卡片堆叠，改为紧凑筛选、tabs、分页表格、弹窗和抽屉工作流；保持现有路由、runtime API、后端 payload、核心 data-testid 与治理边界不变。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-145`
+- Progress log:
+  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 重构推荐与加速中心为筛选 tabs、分页推荐表、详情 tabs 与证据抽屉；重构加速治理工作台为紧凑来源条、分页工作流表格、来源弹窗和统一证据抽屉；加固两个页面契约脚本，禁止回退到卡片/面板堆叠。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-145 --include-task-audit --extra-command "node scripts/check-recommendation-page-contract.mjs" --extra-command "node scripts/check-acceleration-workbench-contract.mjs" --extra-command "npm run smoke:acceleration-governance" passed; git diff --check passed.
+  - Residual risk: 验证为 repo-closed 前端契约、构建和 Playwright mock smoke；未连接真实外部 Hetu/MRS 环境做人工点击验收，未改后端接口或持久化。
+  - Next step: 后续前端评审继续沿用分页表格、tabs、弹窗和抽屉模式，避免在治理主视图恢复卡片堆叠。
+
 ### U-TASK-006: Restart local frontend/backend runtime
 
 - Status: done
