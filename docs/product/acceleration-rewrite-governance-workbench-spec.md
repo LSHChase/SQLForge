@@ -431,24 +431,21 @@ SQL 历史不得只依赖 `recommendationRefs` 中的弱引用展示改写。后
 
 ### Repo-Closed Testable Now
 
+- 统一执行 `npm run smoke:acceleration-governance`，串联 `HARN-142` closeout 契约、工作台/推荐/历史/告警页面契约、前端页面治理与工作台 browser smoke。
 - 提交 `ACCELERATION_SUGGESTION` 任务并轮询完成。
+- 创建 acceleration candidate、加载 SQL diff、写入 rewrite record，并展示 validation run、history 聚合与 `SQL_REWRITE_RESULT_DIVERGENCE` 自动暂停证据。
 - 创建、审批、应用、验证、回滚 acceleration plan。
 - 执行 `PREFER_ACCELERATED` 查询并检查 `metadata.accelerationApplied`。
 - 打开解析、推荐、SQL 历史页面并验证追溯跳转。
 
 ### Requires Follow-Up Implementation
 
-- 统一 candidate 对象。
-- SQL diff API 与规则级 diff。
-- 深度推荐规则。
-- 改写记录持久化与 SQL 历史聚合。
-- 周期性结果比对与差异告警。
-- 加速治理工作台同页审批、验证、监控。
+- `HARN-128` 至 `HARN-142` 的 repo-closed 加速与改写治理拆分项已形成可复跑 smoke 与契约检查；后续新增能力必须另立任务，不得把真实 Hetu / MRS evidence 写成已完成。
 
 ### Environment-Backed Only
 
 - 真实 Hetu / MRS EXPLAIN、扫描量、P99、物化视图收益与生产级外部装数证据。
-- 这些证据继续归入 `HARN-016` / `INBOX-002` 外部环境链，不阻塞 repo-closed 设计和实现任务。
+- 这些证据继续归入 `HARN-016` / `INBOX-002` 外部环境链，not a default blocker for `HARN-142` repo-closed smoke、文档收口和后续任务级验证。
 
 ## Codex Task Decomposition
 
@@ -470,7 +467,7 @@ SQL 历史不得只依赖 `recommendationRefs` 中的弱引用展示改写。后
 | `HARN-139` | 推荐中心 SQL diff 与规则详情 | diff 视图、ruleChain、risk/precondition 展示 | recommendation page contract |
 | `HARN-140` | SQL 历史改写记录 tab 与筛选 | list filters、history detail rewrite tab、diff 跳转 | history page/detail contract |
 | `HARN-141` | 监控与告警前端联动 | validation status、告警入口、自动暂停证据展示 | alert/history/workbench contract |
-| `HARN-142` | 端到端 smoke 与文档收口 | 加速治理工作台 repo-closed smoke、runbook、契约检查脚本 | `foreman validate`, frontend smoke, knowledge lint |
+| `HARN-142` | 端到端 smoke 与文档收口 | 加速治理工作台 repo-closed smoke、runbook、契约检查脚本 | `foreman validate`, `npm run smoke:acceleration-governance`, knowledge lint |
 
 ## Execution Order
 

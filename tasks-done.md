@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-142: 加速与改写治理端到端 smoke 与文档收口
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `chore(governance): close acceleration rewrite smoke`
+- Priority: 1
+- Depends on: `HARN-141`
+- Scope: 补齐 repo-closed smoke、runbook、契约检查脚本、文档同步与残余风险收口；真实 Hetu/MRS 证据仍归 HARN-016 / INBOX-002，不作为默认阻断。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-142`
+- Progress log:
+  - 2026-05-10: HARN-142 preflight bound task context; added unified acceleration/rewrite governance repo-closed smoke entry, closeout contract check, runbook, npm entry, and docs index updates.
+- Context closeout:
+  - Completed scope: Added the HARN-142 acceleration/rewrite governance repo-closed smoke bundle, npm entry, closeout contract check, runbook, document coverage registration, product spec closeout notes, and governance policy digest update.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-142 --include-task-audit --extra-command 'npm run smoke:acceleration-governance' --extra-command 'node scripts/check-acceleration-rewrite-governance-closeout.mjs' --extra-command 'git diff --check' passed after fixing document coverage and governance policy drift; npm run smoke:acceleration-governance passed; node scripts/check-acceleration-rewrite-governance-closeout.mjs passed; python3 scripts/foreman.py compile-governance --check passed.
+  - Residual risk: Repo-closed smoke uses mocked API browser responses and static contracts; real Hetu/MRS EXPLAIN, scan volume, P99, materialized-view benefit, and external data-loading evidence remain HARN-016 / INBOX-002 environment-backed evidence and are not a default blocker for HARN-142.
+  - Next step: No HARN-128 through HARN-142 repo-closed follow-up remains in this decomposition; future CI promotion or real Hetu/MRS evidence work must be handled by a new task with human confirmation.
+
 ### HARN-141: 监控与告警前端联动
 
 - Status: done

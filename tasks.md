@@ -11,14 +11,7 @@
 
 ## Todo
 
-### HARN-142: 加速与改写治理端到端 smoke 与文档收口
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-141`
-- Scope: 补齐 repo-closed smoke、runbook、契约检查脚本、文档同步与残余风险收口；真实 Hetu/MRS 证据仍归 HARN-016 / INBOX-002，不作为默认阻断。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-142`
+_No tasks._
 
 
 ## In Progress

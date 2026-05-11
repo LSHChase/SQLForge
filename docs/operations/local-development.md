@@ -30,6 +30,9 @@
   - 该入口会临时拉起本地 Vite dev server，并在浏览器侧 mock `/api/*` 以验证 history 路由、Vue SFC 页面渲染和 `X-SQLForge-Dev-*` 调试提示头语义
   - 该入口用于本地 `repo-closed` 前端基线回归，不替代 `npm run smoke:frontend-runtime` 的多服务真实业务 smoke
   - 该入口不得被提升为默认 CI、`run-runtime-smoke.sh`、`run-phase-gates.sh` 或 release gate 的 browser runtime gate；它只服务于本地开发时的快速回归
+- 加速与改写治理 smoke：`npm run smoke:acceleration-governance`
+  - 该入口串联 `HARN-142` closeout 契约、工作台/推荐/历史/告警页面契约、前端页面治理和加速工作台 browser smoke
+  - 该入口属于本地 `repo-closed` 任务级验证，不替代 full-stack runtime smoke，也不消费真实 Hetu / MRS environment-backed 证据
 - 前端真实业务 smoke：`npm run smoke:frontend-runtime`
 - 运行时 smoke 编排：`bash scripts/run-runtime-smoke.sh`
   - 如只需要后端服务，不需要前端 browser smoke，可直接使用 `bash scripts/start-backend-services.sh`
@@ -56,6 +59,9 @@
   - 自动拉起本地 Vite dev server，通过浏览器拦截 mock `/api/*`，检查 `dashboard`、`sql-query`、`runtime-gates`、`recovery-drill` 的 dev 路由与请求头语义
   - 用于快速确认当前 Vue SFC + Vite history 路由基线，不替代 full-stack runtime smoke
   - 当前只作为本地 `repo-closed` 开发验证基线，不计入默认 CI 或 phase/release runtime gate
+- 加速与改写治理 smoke：`npm run smoke:acceleration-governance`
+  - 覆盖 `HARN-142` repo-closed closeout 契约、工作台端到端 mocked API browser smoke 与推荐中心 / SQL 历史 / 告警联动静态契约
+  - 真实 Hetu / MRS EXPLAIN、扫描量、P99、物化视图收益和外部装数证据仍归 `HARN-016` / `INBOX-002` environment-backed 链路
 - 前端真实业务 smoke：`npm run smoke:frontend-runtime`
 - Compose 语法检查：`docker compose config`
 - 运行时 smoke 门禁：`bash scripts/run-runtime-smoke.sh --compose-check`、`bash scripts/run-runtime-smoke.sh --runtime-smoke`

@@ -3634,3 +3634,27 @@
 2026-05-10T23:45:49-05:00 | HARN-141 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run test:frontend-page-governance (projected-precommit)`
 2026-05-10T23:45:49-05:00 | HARN-141 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:acceleration-workbench (projected-precommit)`
 2026-05-10T23:45:49-05:00 | HARN-141 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`
+2026-05-10T23:53:44-05:00 | HARN-142 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T23:53:44-05:00 | HARN-142 validate | `R-131`, `R-133` | failed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T23:53:58-05:00 | HARN-142 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T23:53:58-05:00 | HARN-142 validate | `R-133`, `R-168` | failed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T23:53:58-05:00 | HARN-142 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T23:54:03-05:00 | HARN-142 validate | `R-133`, `R-168` | passed | `npm run smoke:acceleration-governance`
+2026-05-10T23:54:03-05:00 | HARN-142 validate | `R-133`, `R-168` | passed | `node scripts/check-acceleration-rewrite-governance-closeout.mjs`
+2026-05-10T23:54:03-05:00 | HARN-142 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-10T23:54:46-05:00 | HARN-142 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-10T23:54:46-05:00 | HARN-142 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-10T23:54:58-05:00 | HARN-142 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-10T23:54:58-05:00 | HARN-142 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-10T23:54:58-05:00 | HARN-142 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T23:55:04-05:00 | HARN-142 validate | `R-133`, `R-168` | passed | `npm run smoke:acceleration-governance`
+2026-05-10T23:55:04-05:00 | HARN-142 validate | `R-133`, `R-168` | passed | `node scripts/check-acceleration-rewrite-governance-closeout.mjs`
+2026-05-10T23:55:04-05:00 | HARN-142 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-10T23:56:00-05:00 | HARN-142 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-10T23:56:00-05:00 | HARN-142 closeout commit | `R-168` | projected | `git commit -m 'chore(governance): close acceleration rewrite smoke' (projected-precommit)`
+2026-05-10T23:56:00-05:00 | HARN-142 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-10T23:56:00-05:00 | HARN-142 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-05-10T23:56:00-05:00 | HARN-142 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`
+2026-05-10T23:56:00-05:00 | HARN-142 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-acceleration-rewrite-governance-closeout.mjs (projected-precommit)`
+2026-05-10T23:56:00-05:00 | HARN-142 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:acceleration-governance (projected-precommit)`
+2026-05-10T23:56:00-05:00 | HARN-142 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`
