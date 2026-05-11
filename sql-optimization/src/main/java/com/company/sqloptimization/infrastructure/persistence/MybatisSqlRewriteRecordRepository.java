@@ -83,6 +83,19 @@ public class MybatisSqlRewriteRecordRepository implements SqlRewriteRecordReposi
     }
 
     @Override
+    public List<SqlRewriteRecord> findScheduledValidationCandidates(int limit, Instant dueBefore) {
+        List<SqlRewriteRecordRecord> records = sqlRewriteRecordMapper.selectScheduledValidationCandidates(
+            toLocalDateTime(dueBefore),
+            limit <= 0 ? 20 : limit
+        );
+        List<SqlRewriteRecord> result = new ArrayList<SqlRewriteRecord>(records.size());
+        for (SqlRewriteRecordRecord record : records) {
+            result.add(toDomain(record));
+        }
+        return result;
+    }
+
+    @Override
     @Transactional
     public RewriteValidationRun saveValidationRun(RewriteValidationRun validationRun) {
         RewriteValidationRunRecord record = toRecord(validationRun);

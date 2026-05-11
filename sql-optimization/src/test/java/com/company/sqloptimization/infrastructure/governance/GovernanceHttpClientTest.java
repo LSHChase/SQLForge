@@ -19,6 +19,8 @@ import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionReq
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertRequest;
+import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertResponse;
 import com.company.sqloptimization.config.OptimizationGovernanceProperties;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
@@ -196,6 +198,37 @@ class GovernanceHttpClientTest {
         assertEquals("jdbc:hetu://coordinator:8080/hive/default", response.getJdbcUrl());
         assertEquals("secret", response.getPassword());
         assertEquals("****cret", response.getCredentialMask());
+        server.verify();
+    }
+
+    @Test
+    void shouldEmitSqlRewriteDivergenceAlertViaProtectedGovernanceRoute() {
+        GovernanceHttpClient client = createClient();
+        RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        setProtectedRequestContext();
+        server.expect(requestTo("http://governance.test/api/governance/internal/alerts/sql-rewrite-divergence/emit"))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"tenantId\":\"tenant-a\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"rewriteRecordId\":\"rewrite-001\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"comparisonStatus\":\"DIVERGED\"")))
+            .andRespond(withSuccess(
+                "{\"rewriteRecordId\":\"rewrite-001\",\"validationRunId\":\"validation-001\","
+                    + "\"alertTriggered\":true,\"alertLinkages\":[]}",
+                MediaType.APPLICATION_JSON
+            ));
+        GovernanceSqlRewriteDivergenceAlertRequest request = new GovernanceSqlRewriteDivergenceAlertRequest();
+        request.setTenantId("tenant-a");
+        request.setRewriteRecordId("rewrite-001");
+        request.setValidationRunId("validation-001");
+        request.setComparisonStatus("DIVERGED");
+        request.setDifferenceType("VALUE_DIFF");
+        request.setAutoApplyPaused(Boolean.TRUE);
+
+        GovernanceSqlRewriteDivergenceAlertResponse response = client.emitSqlRewriteDivergenceAlert(request);
+
+        assertEquals(Boolean.TRUE, response.getAlertTriggered());
+        assertEquals("rewrite-001", response.getRewriteRecordId());
         server.verify();
     }
 

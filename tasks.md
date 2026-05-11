@@ -11,15 +11,6 @@
 
 ## Todo
 
-### HARN-136: 周期比对调度与差异告警
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-135`, `F-TASK-037`
-- Scope: 落地 scheduled validation、自动暂停应用、`SQL_REWRITE_RESULT_DIVERGENCE` 告警联动和审计追溯；不得自动回滚生产配置。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-136`
-
 ### HARN-137: 前端加速治理工作台壳层
 
 - Status: todo

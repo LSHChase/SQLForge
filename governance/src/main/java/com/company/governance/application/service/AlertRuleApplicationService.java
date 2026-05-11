@@ -40,6 +40,7 @@ public class AlertRuleApplicationService {
         evaluateRedisAvailability(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
         evaluateDispatchCoordination(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
         evaluateAuditWrites(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
+        evaluateSqlRewriteDivergence(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
         evaluateBenchmarkRegression(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
         return new ArrayList<AlertEvent>(alerts.values());
     }
@@ -363,6 +364,59 @@ public class AlertRuleApplicationService {
                 null,
                 null,
                 signal.getReportId(),
+                signal.getSqlFingerprint(),
+                JsonUtils.toJson(evidence)
+            ));
+        }
+    }
+
+    private void evaluateSqlRewriteDivergence(AlertSignalSnapshot snapshot,
+                                              List<AlertPolicy> policies,
+                                              String operator,
+                                              Instant evaluatedAt,
+                                              Map<String, AlertEvent> alerts) {
+        for (AlertSignalSnapshot.SqlRewriteDivergenceSignal signal : snapshot.getSqlRewriteDivergenceSignals()) {
+            if (!signal.shouldAlert()) {
+                continue;
+            }
+            Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+            evidence.put("sourceType", signal.getSourceType());
+            evidence.put("sourceKind", signal.getSourceKind());
+            evidence.put("sourceId", signal.getSourceId());
+            evidence.put("evidenceLevel", signal.getEvidenceLevel());
+            evidence.put("historyId", signal.getHistoryId());
+            evidence.put("parseHistoryId", signal.getParseHistoryId());
+            evidence.put("recommendationId", signal.getRecommendationId());
+            evidence.put("rewriteRecordId", signal.getRewriteRecordId());
+            evidence.put("validationRunId", signal.getValidationRunId());
+            evidence.put("planId", signal.getPlanId());
+            evidence.put("sqlFingerprint", signal.getSqlFingerprint());
+            evidence.put("comparisonStatus", signal.getComparisonStatus());
+            evidence.put("differenceType", signal.getDifferenceType());
+            evidence.put("sampleEvidenceJson", signal.getSampleEvidenceJson());
+            evidence.put("autoApplyPaused", Boolean.valueOf(signal.isAutoApplyPaused()));
+            recordAlert(alerts, buildAlert(
+                snapshot.getTenantId(),
+                policies,
+                AlertEvent.AlertType.SQL_REWRITE_RESULT_DIVERGENCE,
+                operator,
+                evaluatedAt,
+                "sql-optimization",
+                normalize(
+                    signal.getSummary(),
+                    "SQL rewrite result divergence: rewriteRecord="
+                        + normalize(signal.getRewriteRecordId(), "unknown-rewrite")
+                        + ", differenceType=" + normalize(signal.getDifferenceType(), "UNKNOWN")
+                ),
+                signal.getHistoryId(),
+                null,
+                null,
+                null,
+                signal.getRecommendationId(),
+                null,
+                null,
+                signal.getSourceId(),
+                signal.getRewriteRecordId(),
                 signal.getSqlFingerprint(),
                 JsonUtils.toJson(evidence)
             ));

@@ -1,0 +1,262 @@
+package com.company.sqloptimization.application.service;
+
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertLinkage;
+import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertRequest;
+import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertResponse;
+import com.company.sqlforge.common.utils.JsonUtils;
+import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
+import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
+import com.company.sqloptimization.config.RewriteValidationSchedulerProperties;
+import com.company.sqloptimization.domain.rewrite.SqlRewriteRecord;
+import com.company.sqloptimization.domain.rewrite.repository.SqlRewriteRecordRepository;
+import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+@Service
+public class RewriteValidationSchedulerService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RewriteValidationSchedulerService.class);
+    private static final String DIVERGED = "DIVERGED";
+
+    private final RewriteValidationSchedulerProperties properties;
+    private final SqlRewriteRecordRepository sqlRewriteRecordRepository;
+    private final SqlRewriteRecordApplicationService sqlRewriteRecordApplicationService;
+    private final GovernanceCapabilityClient governanceCapabilityClient;
+
+    public RewriteValidationSchedulerService(RewriteValidationSchedulerProperties properties,
+                                             SqlRewriteRecordRepository sqlRewriteRecordRepository,
+                                             SqlRewriteRecordApplicationService sqlRewriteRecordApplicationService,
+                                             GovernanceCapabilityClient governanceCapabilityClient) {
+        this.properties = properties;
+        this.sqlRewriteRecordRepository = sqlRewriteRecordRepository;
+        this.sqlRewriteRecordApplicationService = sqlRewriteRecordApplicationService;
+        this.governanceCapabilityClient = governanceCapabilityClient;
+    }
+
+    public RewriteValidationSchedulerResult runScheduledValidationCycle() {
+        if (!properties.isEnabled()) {
+            return RewriteValidationSchedulerResult.disabled();
+        }
+        Instant dueBefore = Instant.now().minusSeconds(properties.getMaxAgeMinutes() * 60L);
+        List<SqlRewriteRecord> candidates = sqlRewriteRecordRepository.findScheduledValidationCandidates(
+            properties.getBatchSize(),
+            dueBefore
+        );
+        RewriteValidationSchedulerResult result = RewriteValidationSchedulerResult.enabled(candidates.size());
+        for (SqlRewriteRecord candidate : candidates) {
+            result.incrementProcessed();
+            try {
+                RewriteValidationRunVO run = executeValidation(candidate);
+                if (DIVERGED.equals(run.getComparisonStatus()) && Boolean.TRUE.equals(run.getAutoApplyPaused())) {
+                    emitDivergenceAlert(candidate, run, result);
+                }
+            } catch (RuntimeException ex) {
+                result.incrementValidationFailures();
+                LOGGER.warn(
+                    "Scheduled rewrite validation failed for rewriteRecordId={}",
+                    candidate.getRewriteRecordId(),
+                    ex
+                );
+            }
+        }
+        return result;
+    }
+
+    private RewriteValidationRunVO executeValidation(SqlRewriteRecord candidate) {
+        RequestContext.ContextValue previous = RequestContext.snapshot();
+        try {
+            Instant now = Instant.now();
+            RequestContext.set(
+                candidate.getTenantId(),
+                "rewrite-validation-scheduler",
+                Arrays.asList("SERVICE"),
+                "rewrite-validation-" + candidate.getRewriteRecordId() + "-" + now.toEpochMilli(),
+                "rewrite-validation-" + candidate.getRewriteRecordId(),
+                "scheduler",
+                now.getEpochSecond(),
+                now.plusSeconds(300L).getEpochSecond()
+            );
+            RewriteValidationRunCreateRequest request = new RewriteValidationRunCreateRequest();
+            request.setTenantId(candidate.getTenantId());
+            request.setRecommendationId(candidate.getRecommendationId());
+            request.setHistoryId(candidate.getHistoryId());
+            request.setSqlFingerprint(candidate.getSqlFingerprint());
+            request.setTriggerReason(resolveTriggerReason());
+            return sqlRewriteRecordApplicationService.createValidationRun(candidate.getRewriteRecordId(), request);
+        } finally {
+            RequestContext.restore(previous);
+        }
+    }
+
+    private void emitDivergenceAlert(SqlRewriteRecord candidate,
+                                     RewriteValidationRunVO run,
+                                     RewriteValidationSchedulerResult result) {
+        RequestContext.ContextValue previous = RequestContext.snapshot();
+        try {
+            Instant now = Instant.now();
+            RequestContext.set(
+                candidate.getTenantId(),
+                "rewrite-validation-scheduler",
+                Arrays.asList("SERVICE"),
+                "rewrite-divergence-alert-" + candidate.getRewriteRecordId() + "-" + now.toEpochMilli(),
+                "rewrite-divergence-alert-" + candidate.getRewriteRecordId(),
+                "scheduler",
+                now.getEpochSecond(),
+                now.plusSeconds(300L).getEpochSecond()
+            );
+            GovernanceSqlRewriteDivergenceAlertResponse response =
+                governanceCapabilityClient.emitSqlRewriteDivergenceAlert(buildAlertRequest(candidate, run));
+            result.incrementAlertEmissions();
+            saveAlertTrace(candidate.getRewriteRecordId(), run, response, null);
+        } catch (RuntimeException ex) {
+            result.incrementAlertFailures();
+            saveAlertTrace(candidate.getRewriteRecordId(), run, null, ex);
+            LOGGER.warn(
+                "SQL rewrite divergence alert emission failed for rewriteRecordId={}, validationRunId={}",
+                candidate.getRewriteRecordId(),
+                run.getValidationRunId(),
+                ex
+            );
+        } finally {
+            RequestContext.restore(previous);
+        }
+    }
+
+    private GovernanceSqlRewriteDivergenceAlertRequest buildAlertRequest(SqlRewriteRecord candidate,
+                                                                         RewriteValidationRunVO run) {
+        GovernanceSqlRewriteDivergenceAlertRequest request = new GovernanceSqlRewriteDivergenceAlertRequest();
+        request.setTenantId(candidate.getTenantId());
+        request.setSourceType(candidate.getSourceType().name());
+        request.setSourceKind(candidate.getSourceKind().name());
+        request.setSourceId(candidate.getSourceId());
+        request.setEvidenceLevel(candidate.getEvidenceLevel().name());
+        request.setHistoryId(candidate.getHistoryId());
+        request.setParseHistoryId(candidate.getParseHistoryId());
+        request.setRecommendationId(candidate.getRecommendationId());
+        request.setRewriteRecordId(candidate.getRewriteRecordId());
+        request.setValidationRunId(run.getValidationRunId());
+        request.setSqlFingerprint(run.getSqlFingerprint());
+        request.setComparisonStatus(run.getComparisonStatus());
+        request.setDifferenceType(run.getDifferenceType());
+        request.setSampleEvidenceJson(JsonUtils.toJson(run.getDifferenceSample()));
+        request.setAutoApplyPaused(run.getAutoApplyPaused());
+        request.setSummary(
+            "SQL rewrite result divergence: rewriteRecord="
+                + candidate.getRewriteRecordId()
+                + ", differenceType=" + run.getDifferenceType()
+        );
+        return request;
+    }
+
+    private void saveAlertTrace(String rewriteRecordId,
+                                RewriteValidationRunVO run,
+                                GovernanceSqlRewriteDivergenceAlertResponse response,
+                                RuntimeException failure) {
+        SqlRewriteRecord latest = sqlRewriteRecordRepository.findRecordById(rewriteRecordId);
+        if (latest == null) {
+            return;
+        }
+        Map<String, Object> traceRefs = new LinkedHashMap<String, Object>(latest.getTraceRefs());
+        Map<String, Object> divergenceAlert = new LinkedHashMap<String, Object>();
+        divergenceAlert.put("alertType", "SQL_REWRITE_RESULT_DIVERGENCE");
+        divergenceAlert.put("validationRunId", run.getValidationRunId());
+        divergenceAlert.put("comparisonStatus", run.getComparisonStatus());
+        divergenceAlert.put("differenceType", run.getDifferenceType());
+        divergenceAlert.put("autoApplyPaused", run.getAutoApplyPaused());
+        if (failure == null) {
+            divergenceAlert.put("emissionStatus", "EMITTED_OR_DEDUPED");
+            divergenceAlert.put("alertTriggered", response == null ? Boolean.FALSE : response.getAlertTriggered());
+            divergenceAlert.put("alertLinkages", response == null
+                ? new ArrayList<Map<String, Object>>()
+                : toLinkageMaps(response.getAlertLinkages()));
+        } else {
+            divergenceAlert.put("emissionStatus", "FAILED");
+            divergenceAlert.put("errorType", failure.getClass().getSimpleName());
+            divergenceAlert.put("errorMessage", failure.getMessage());
+        }
+        traceRefs.put("divergenceAlert", divergenceAlert);
+        sqlRewriteRecordRepository.saveRecord(latest.withTraceRefs(traceRefs, Instant.now()));
+    }
+
+    private List<Map<String, Object>> toLinkageMaps(List<GovernanceSqlRewriteDivergenceAlertLinkage> linkages) {
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        if (linkages == null) {
+            return result;
+        }
+        for (GovernanceSqlRewriteDivergenceAlertLinkage linkage : linkages) {
+            Map<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("alertId", linkage.getAlertId());
+            item.put("alertType", linkage.getAlertType());
+            item.put("alertLevel", linkage.getAlertLevel());
+            item.put("alertStatus", linkage.getAlertStatus());
+            item.put("notifyStatus", linkage.getNotifyStatus());
+            item.put("summary", linkage.getSummary());
+            item.put("detailPath", linkage.getDetailPath());
+            item.put("linkageMode", linkage.getLinkageMode());
+            item.put("notificationLogId", linkage.getNotificationLogId());
+            result.add(item);
+        }
+        return result;
+    }
+
+    private String resolveTriggerReason() {
+        return StringUtils.hasText(properties.getTriggerReason())
+            ? properties.getTriggerReason().trim()
+            : "SCHEDULED_VALIDATION";
+    }
+
+    public static final class RewriteValidationSchedulerResult {
+        private final boolean enabled;
+        private final int candidateCount;
+        private int processedCount;
+        private int validationFailureCount;
+        private int alertEmissionCount;
+        private int alertFailureCount;
+
+        private RewriteValidationSchedulerResult(boolean enabled, int candidateCount) {
+            this.enabled = enabled;
+            this.candidateCount = candidateCount;
+        }
+
+        public static RewriteValidationSchedulerResult disabled() {
+            return new RewriteValidationSchedulerResult(false, 0);
+        }
+
+        public static RewriteValidationSchedulerResult enabled(int candidateCount) {
+            return new RewriteValidationSchedulerResult(true, candidateCount);
+        }
+
+        private void incrementProcessed() {
+            processedCount++;
+        }
+
+        private void incrementValidationFailures() {
+            validationFailureCount++;
+        }
+
+        private void incrementAlertEmissions() {
+            alertEmissionCount++;
+        }
+
+        private void incrementAlertFailures() {
+            alertFailureCount++;
+        }
+
+        public boolean isEnabled() { return enabled; }
+        public int getCandidateCount() { return candidateCount; }
+        public int getProcessedCount() { return processedCount; }
+        public int getValidationFailureCount() { return validationFailureCount; }
+        public int getAlertEmissionCount() { return alertEmissionCount; }
+        public int getAlertFailureCount() { return alertFailureCount; }
+    }
+}

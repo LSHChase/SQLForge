@@ -6,6 +6,7 @@ import com.company.governance.application.controller.vo.AuditWriteResponse;
 import com.company.governance.application.controller.vo.DatasourceAuthorizationChangeResponse;
 import com.company.governance.application.controller.vo.ScheduleExtensionStatusVO;
 import com.company.governance.application.service.GovernanceCapabilityApplicationService;
+import com.company.governance.application.service.GovernanceSqlRewriteDivergenceAlertApplicationService;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
@@ -22,6 +23,8 @@ import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWri
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
+import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertRequest;
+import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantScopeCheckRequest;
@@ -37,10 +40,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class GovernanceCapabilityController {
 
     private final GovernanceCapabilityApplicationService governanceCapabilityApplicationService;
+    private final GovernanceSqlRewriteDivergenceAlertApplicationService sqlRewriteDivergenceAlertApplicationService;
 
     public GovernanceCapabilityController(
-        GovernanceCapabilityApplicationService governanceCapabilityApplicationService) {
+        GovernanceCapabilityApplicationService governanceCapabilityApplicationService,
+        GovernanceSqlRewriteDivergenceAlertApplicationService sqlRewriteDivergenceAlertApplicationService) {
         this.governanceCapabilityApplicationService = governanceCapabilityApplicationService;
+        this.sqlRewriteDivergenceAlertApplicationService = sqlRewriteDivergenceAlertApplicationService;
     }
 
     @PostMapping("/tenant-scope/check")
@@ -86,6 +92,13 @@ public class GovernanceCapabilityController {
         @RequestBody GovernanceBenchmarkRegressionAlertRequest request
     ) {
         return governanceCapabilityApplicationService.emitBenchmarkRegressionAlert(request);
+    }
+
+    @PostMapping("/alerts/sql-rewrite-divergence/emit")
+    public GovernanceSqlRewriteDivergenceAlertResponse emitSqlRewriteDivergenceAlert(
+        @RequestBody GovernanceSqlRewriteDivergenceAlertRequest request
+    ) {
+        return sqlRewriteDivergenceAlertApplicationService.emit(request);
     }
 
     @PostMapping("/acceleration-plan/trace/write")

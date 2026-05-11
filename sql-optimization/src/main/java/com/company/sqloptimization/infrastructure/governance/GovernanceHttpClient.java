@@ -15,6 +15,8 @@ import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveReq
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
+import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertRequest;
+import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertResponse;
 import com.company.sqlforge.common.governance.ProtectedGovernanceRequestSupport;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
@@ -101,6 +103,17 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
         GovernanceReportInterfaceConfigRequest request
     ) {
         return post("/report-interface-configs/resolve", request, GovernanceReportInterfaceConfigResponse.class);
+    }
+
+    @Override
+    public GovernanceSqlRewriteDivergenceAlertResponse emitSqlRewriteDivergenceAlert(
+        GovernanceSqlRewriteDivergenceAlertRequest request
+    ) {
+        return post(
+            "/alerts/sql-rewrite-divergence/emit",
+            request,
+            GovernanceSqlRewriteDivergenceAlertResponse.class
+        );
     }
 
     @Override

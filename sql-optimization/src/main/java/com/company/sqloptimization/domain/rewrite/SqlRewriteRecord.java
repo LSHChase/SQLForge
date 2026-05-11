@@ -122,6 +122,41 @@ public class SqlRewriteRecord {
             .build();
     }
 
+    public SqlRewriteRecord withTraceRefs(Map<String, Object> nextTraceRefs, Instant updatedAt) {
+        return SqlRewriteRecord.builder()
+            .rewriteRecordId(rewriteRecordId)
+            .tenantId(tenantId)
+            .recommendationId(recommendationId)
+            .optimizationTaskId(optimizationTaskId)
+            .sourceType(sourceType)
+            .sourceKind(sourceKind)
+            .sourceId(sourceId)
+            .evidenceLevel(evidenceLevel)
+            .historyId(historyId)
+            .parseHistoryId(parseHistoryId)
+            .sqlFingerprint(sqlFingerprint)
+            .datasourceCode(datasourceCode)
+            .status(status)
+            .validationStatus(validationStatus)
+            .autoApplyAllowed(autoApplyAllowed)
+            .manualReviewRequired(manualReviewRequired)
+            .validationPolicyId(validationPolicyId)
+            .lastValidationRunId(lastValidationRunId)
+            .lastComparedAt(lastComparedAt)
+            .alertStatus(alertStatus)
+            .originalSqlText(originalSqlText)
+            .recommendedSqlText(recommendedSqlText)
+            .executedSqlText(executedSqlText)
+            .createdBy(createdBy)
+            .createdAt(createdAt)
+            .updatedAt(updatedAt)
+            .ruleChain(ruleChain)
+            .diffSummary(diffSummary)
+            .risk(risk)
+            .traceRefs(nextTraceRefs)
+            .build();
+    }
+
     private RewriteValidationStatus validationStatusFrom(RewriteValidationRun run) {
         if (run.getComparisonStatus() == null) {
             return RewriteValidationStatus.VALIDATING;

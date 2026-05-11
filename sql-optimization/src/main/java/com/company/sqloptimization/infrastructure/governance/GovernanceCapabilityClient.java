@@ -9,6 +9,8 @@ import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveReq
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
+import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertRequest;
+import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertResponse;
 
 public interface GovernanceCapabilityClient {
 
@@ -25,6 +27,10 @@ public interface GovernanceCapabilityClient {
     GovernanceJdbcDatasourceResolveResponse resolveJdbcDatasource(GovernanceJdbcDatasourceResolveRequest request);
 
     GovernanceReportInterfaceConfigResponse resolveReportInterfaceConfig(GovernanceReportInterfaceConfigRequest request);
+
+    GovernanceSqlRewriteDivergenceAlertResponse emitSqlRewriteDivergenceAlert(
+        GovernanceSqlRewriteDivergenceAlertRequest request
+    );
 
     void writeAudit(OptimizationAuditRecord auditRecord);
 }

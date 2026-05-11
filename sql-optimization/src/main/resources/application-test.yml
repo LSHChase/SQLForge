@@ -21,5 +21,7 @@ sql-optimization:
     repository: test
   hetu-plan:
     enabled: false
+  rewrite-validation-scheduler:
+    enabled: false
   queues:
     mode: local-placeholder

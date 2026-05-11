@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-136: 周期比对调度与差异告警
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(sql-optimization): add rewrite validation scheduler alerts`
+- Priority: 1
+- Depends on: `HARN-135`, `F-TASK-037`
+- Scope: 落地 scheduled validation、自动暂停应用、`SQL_REWRITE_RESULT_DIVERGENCE` 告警联动和审计追溯；不得自动回滚生产配置。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-136`
+- Context closeout:
+  - Completed scope: Implemented configurable rewrite validation scheduling, DIVERGED-only auto-apply pause evidence, SQL_REWRITE_RESULT_DIVERGENCE governance alert emission, linkage trace writeback, shared DTOs, contract docs and focused scheduler/alert tests.
+  - Validation evidence: mvn -pl sql-optimization,governance,sqlforge-shared -am test; python3 scripts/foreman.py validate HARN-136; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance --check; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check
+  - Residual risk: Local Java runtime is OpenJDK 1.8.0_482 rather than required JDK 8u112, so Maven evidence remains compatibility evidence until rerun in the fixed delivery JDK; scheduler defaults disabled to avoid unconfirmed alert noise.
+  - Next step: Proceed with HARN-137/HARN-138/HARN-140 frontend surfaces before HARN-141 alert/status linkage consumes the HARN-136 backend evidence.
+
 ### HARN-135: 周期比对执行模型与只读比较引擎
 
 - Status: done

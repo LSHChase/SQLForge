@@ -67,6 +67,17 @@
         ORDER BY created_at DESC
     </select>
 
+    <select id="selectScheduledValidationCandidates" resultMap="SqlRewriteRecordRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM sql_rewrite_record
+        WHERE auto_apply_allowed = 1
+          AND status IN ('APPROVED', 'APPLIED')
+          AND validation_status IN ('NOT_VALIDATED', 'EXPIRED')
+          AND (last_compared_at IS NULL OR last_compared_at &lt;= #{dueBefore})
+        ORDER BY COALESCE(last_compared_at, created_at) ASC
+        LIMIT #{limit}
+    </select>
+
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.SqlRewriteRecordRecord">
         INSERT INTO sql_rewrite_record (
             rewrite_record_id, tenant_id, recommendation_id, optimization_task_id, source_type,

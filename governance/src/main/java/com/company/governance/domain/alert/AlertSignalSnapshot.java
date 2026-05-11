@@ -14,6 +14,7 @@ public class AlertSignalSnapshot {
     private final List<RedisRuleAvailabilitySignal> redisRuleAvailabilitySignals;
     private final List<DispatchCoordinationSignal> dispatchCoordinationSignals;
     private final List<AuditWriteSignal> auditWriteSignals;
+    private final List<SqlRewriteDivergenceSignal> sqlRewriteDivergenceSignals;
     private final List<BenchmarkRegressionSignal> benchmarkRegressionSignals;
 
     private AlertSignalSnapshot(Builder builder) {
@@ -25,6 +26,7 @@ public class AlertSignalSnapshot {
         this.redisRuleAvailabilitySignals = immutableCopy(builder.redisRuleAvailabilitySignals);
         this.dispatchCoordinationSignals = immutableCopy(builder.dispatchCoordinationSignals);
         this.auditWriteSignals = immutableCopy(builder.auditWriteSignals);
+        this.sqlRewriteDivergenceSignals = immutableCopy(builder.sqlRewriteDivergenceSignals);
         this.benchmarkRegressionSignals = immutableCopy(builder.benchmarkRegressionSignals);
         validate();
     }
@@ -54,6 +56,7 @@ public class AlertSignalSnapshot {
     public List<RedisRuleAvailabilitySignal> getRedisRuleAvailabilitySignals() { return redisRuleAvailabilitySignals; }
     public List<DispatchCoordinationSignal> getDispatchCoordinationSignals() { return dispatchCoordinationSignals; }
     public List<AuditWriteSignal> getAuditWriteSignals() { return auditWriteSignals; }
+    public List<SqlRewriteDivergenceSignal> getSqlRewriteDivergenceSignals() { return sqlRewriteDivergenceSignals; }
     public List<BenchmarkRegressionSignal> getBenchmarkRegressionSignals() { return benchmarkRegressionSignals; }
 
     public static final class Builder {
@@ -65,6 +68,8 @@ public class AlertSignalSnapshot {
         private final List<RedisRuleAvailabilitySignal> redisRuleAvailabilitySignals = new ArrayList<RedisRuleAvailabilitySignal>();
         private final List<DispatchCoordinationSignal> dispatchCoordinationSignals = new ArrayList<DispatchCoordinationSignal>();
         private final List<AuditWriteSignal> auditWriteSignals = new ArrayList<AuditWriteSignal>();
+        private final List<SqlRewriteDivergenceSignal> sqlRewriteDivergenceSignals =
+            new ArrayList<SqlRewriteDivergenceSignal>();
         private final List<BenchmarkRegressionSignal> benchmarkRegressionSignals = new ArrayList<BenchmarkRegressionSignal>();
 
         private Builder() {
@@ -78,6 +83,7 @@ public class AlertSignalSnapshot {
         public Builder addRedisRuleAvailabilitySignal(RedisRuleAvailabilitySignal signal) { if (signal != null) { this.redisRuleAvailabilitySignals.add(signal); } return this; }
         public Builder addDispatchCoordinationSignal(DispatchCoordinationSignal signal) { if (signal != null) { this.dispatchCoordinationSignals.add(signal); } return this; }
         public Builder addAuditWriteSignal(AuditWriteSignal signal) { if (signal != null) { this.auditWriteSignals.add(signal); } return this; }
+        public Builder addSqlRewriteDivergenceSignal(SqlRewriteDivergenceSignal signal) { if (signal != null) { this.sqlRewriteDivergenceSignals.add(signal); } return this; }
         public Builder addBenchmarkRegressionSignal(BenchmarkRegressionSignal signal) { if (signal != null) { this.benchmarkRegressionSignals.add(signal); } return this; }
 
         public AlertSignalSnapshot build() {
@@ -299,6 +305,79 @@ public class AlertSignalSnapshot {
         public long getPendingCount() { return pendingCount; }
         public boolean shouldAlert() {
             return failedCount > 0;
+        }
+    }
+
+    public static final class SqlRewriteDivergenceSignal {
+        private final String sourceType;
+        private final String sourceKind;
+        private final String sourceId;
+        private final String evidenceLevel;
+        private final String historyId;
+        private final String parseHistoryId;
+        private final String recommendationId;
+        private final String rewriteRecordId;
+        private final String validationRunId;
+        private final String planId;
+        private final String sqlFingerprint;
+        private final String comparisonStatus;
+        private final String differenceType;
+        private final String sampleEvidenceJson;
+        private final boolean autoApplyPaused;
+        private final String summary;
+
+        public SqlRewriteDivergenceSignal(String sourceType,
+                                          String sourceKind,
+                                          String sourceId,
+                                          String evidenceLevel,
+                                          String historyId,
+                                          String parseHistoryId,
+                                          String recommendationId,
+                                          String rewriteRecordId,
+                                          String validationRunId,
+                                          String planId,
+                                          String sqlFingerprint,
+                                          String comparisonStatus,
+                                          String differenceType,
+                                          String sampleEvidenceJson,
+                                          boolean autoApplyPaused,
+                                          String summary) {
+            this.sourceType = sourceType;
+            this.sourceKind = sourceKind;
+            this.sourceId = sourceId;
+            this.evidenceLevel = evidenceLevel;
+            this.historyId = historyId;
+            this.parseHistoryId = parseHistoryId;
+            this.recommendationId = recommendationId;
+            this.rewriteRecordId = rewriteRecordId;
+            this.validationRunId = validationRunId;
+            this.planId = planId;
+            this.sqlFingerprint = sqlFingerprint;
+            this.comparisonStatus = comparisonStatus;
+            this.differenceType = differenceType;
+            this.sampleEvidenceJson = sampleEvidenceJson;
+            this.autoApplyPaused = autoApplyPaused;
+            this.summary = summary;
+        }
+
+        public String getSourceType() { return sourceType; }
+        public String getSourceKind() { return sourceKind; }
+        public String getSourceId() { return sourceId; }
+        public String getEvidenceLevel() { return evidenceLevel; }
+        public String getHistoryId() { return historyId; }
+        public String getParseHistoryId() { return parseHistoryId; }
+        public String getRecommendationId() { return recommendationId; }
+        public String getRewriteRecordId() { return rewriteRecordId; }
+        public String getValidationRunId() { return validationRunId; }
+        public String getPlanId() { return planId; }
+        public String getSqlFingerprint() { return sqlFingerprint; }
+        public String getComparisonStatus() { return comparisonStatus; }
+        public String getDifferenceType() { return differenceType; }
+        public String getSampleEvidenceJson() { return sampleEvidenceJson; }
+        public boolean isAutoApplyPaused() { return autoApplyPaused; }
+        public String getSummary() { return summary; }
+        public boolean shouldAlert() {
+            return autoApplyPaused && "DIVERGED".equalsIgnoreCase(comparisonStatus);
         }
     }
 

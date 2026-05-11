@@ -31,6 +31,7 @@ import com.company.governance.application.controller.vo.TenantConfigVO;
 import com.company.governance.application.service.GovernanceCapabilityApplicationService;
 import com.company.governance.application.service.GovernanceAuditTrailService;
 import com.company.governance.application.service.GovernanceHistoryApplicationService;
+import com.company.governance.application.service.GovernanceSqlRewriteDivergenceAlertApplicationService;
 import com.company.governance.application.service.HealthStatusApplicationService;
 import com.company.governance.application.service.MessageAdminApplicationService;
 import com.company.governance.application.service.TenantConfigApplicationService;
@@ -100,6 +101,9 @@ class AuthWebMvcTest {
 
     @MockBean
     private GovernanceCapabilityApplicationService governanceCapabilityApplicationService;
+
+    @MockBean
+    private GovernanceSqlRewriteDivergenceAlertApplicationService sqlRewriteDivergenceAlertApplicationService;
 
     @MockBean
     private GovernanceAuditTrailService governanceAuditTrailService;
