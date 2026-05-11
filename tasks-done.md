@@ -4,6 +4,33 @@
 
 ## Done
 
+### U-TASK-006: Restart local frontend/backend runtime
+
+- Status: done
+- Completed at: 2026-05-11
+- Commit subject: `U-TASK-006 restart local runtime with JDK 8u112`
+- Priority: 1
+- Depends on: N/A
+- Scope: Restart the local SQLForge frontend and backend runtime for the current developer environment. Scope is limited to process management, health checks, and recording any environment blocker; no business code or long-term configuration changes.
+- Validation:
+  - `curl -fsS http://localhost:8080/api/governance/health`
+  - `curl -fsS http://localhost:8081/actuator/health`
+  - `curl -fsS http://localhost:8082/actuator/health`
+  - `curl -fsS http://localhost:8083/actuator/health`
+  - `curl -fsS http://127.0.0.1:3000`
+- Progress log:
+  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-11: restarted the frontend Vite runtime with pid `3884877`; `http://127.0.0.1:3000` returned successfully after restart.
+  - 2026-05-11: verified backend health endpoints on `8080` through `8083` are `UP`, but did not restart backend because the only discovered Java runtime is `/usr/bin/java` / `1.8.0_482`, while repository rules require JDK `8u112` for backend local runtime.
+  - 2026-05-11: human confirmed installing local JDK `8u112`; resumed task to install a user-level JDK and restart backend under that runtime.
+  - 2026-05-11: installed Azul Zulu `zulu8.19.0.1-jdk8.0.112-linux_x64` under `~/tools/jdks`, linked `~/tools/jdk8u112`, and updated `~/.bashrc` so login/interactive bash resolves `JAVA_HOME=/home/chase007/tools/jdk8u112`.
+  - 2026-05-11: restarted backend services under JDK `1.8.0_112`; `governance`, `query-execution`, `sql-optimization`, and `benchmark-engine` pid environments all show `JAVA_HOME=/home/chase007/tools/jdk8u112`, and all four health endpoints returned `UP`.
+- Context closeout:
+  - Completed scope: Installed local Azul Zulu JDK 8u112 at /home/chase007/tools/jdk8u112, made login/interactive bash prefer it, restarted the frontend and all four backend services, and recorded the resolved runtime decision.
+  - Validation evidence: python3 scripts/foreman.py validate U-TASK-006 --include-task-audit with extra JDK, backend health, and frontend reachability checks; direct health checks for 8080-8083 and 3000; backend pid environments show JAVA_HOME=/home/chase007/tools/jdk8u112.
+  - Residual risk: System /usr/bin/java remains 1.8.0_482 for shells that do not read the user bash configuration; SQLForge local backend runtime and new login/interactive bash sessions use /home/chase007/tools/jdk8u112.
+  - Next step: Use /home/chase007/tools/jdk8u112 as the SQLForge local backend Java runtime; no further backend restart is pending.
+
 ### HARN-142: 加速与改写治理端到端 smoke 与文档收口
 
 - Status: done

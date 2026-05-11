@@ -3658,3 +3658,26 @@
 2026-05-10T23:56:00-05:00 | HARN-142 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-acceleration-rewrite-governance-closeout.mjs (projected-precommit)`
 2026-05-10T23:56:00-05:00 | HARN-142 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:acceleration-governance (projected-precommit)`
 2026-05-10T23:56:00-05:00 | HARN-142 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`
+2026-05-11T01:13:47-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-11T01:13:47-05:00 | U-TASK-006 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-11T01:13:47-05:00 | U-TASK-006 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-11T01:13:47-05:00 | U-TASK-006 validate | `R-133`, `R-168` | failed | `bash --login -c test "" = "/home/chase007/tools/jdk8u112" && java -version && javac -version`
+2026-05-11T01:13:47-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `curl -fsS http://localhost:8080/api/governance/health`
+2026-05-11T01:13:47-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `curl -fsS http://localhost:8081/actuator/health`
+2026-05-11T01:13:47-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `curl -fsS http://localhost:8082/actuator/health`
+2026-05-11T01:13:47-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `curl -fsS http://localhost:8083/actuator/health`
+2026-05-11T01:13:47-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `curl -fsS http://127.0.0.1:3000`
+2026-05-11T01:14:03-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-11T01:14:04-05:00 | U-TASK-006 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-11T01:14:04-05:00 | U-TASK-006 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-11T01:14:04-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `bash --login -c java -version && javac -version`
+2026-05-11T01:14:04-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `/home/chase007/tools/jdk8u112/bin/java -version`
+2026-05-11T01:14:04-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `/home/chase007/tools/jdk8u112/bin/javac -version`
+2026-05-11T01:14:04-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `curl -fsS http://localhost:8080/api/governance/health`
+2026-05-11T01:14:04-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `curl -fsS http://localhost:8081/actuator/health`
+2026-05-11T01:14:04-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `curl -fsS http://localhost:8082/actuator/health`
+2026-05-11T01:14:04-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `curl -fsS http://localhost:8083/actuator/health`
+2026-05-11T01:14:04-05:00 | U-TASK-006 validate | `R-133`, `R-168` | passed | `curl -fsS http://127.0.0.1:3000`
+2026-05-11T01:14:38-05:00 | U-TASK-006 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-11T01:14:38-05:00 | U-TASK-006 closeout commit | `R-168` | projected | `git commit -m 'U-TASK-006 restart local runtime with JDK 8u112' (projected-precommit)`
+2026-05-11T01:14:38-05:00 | U-TASK-006 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

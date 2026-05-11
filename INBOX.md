@@ -31,3 +31,9 @@
 - Status: resolved
 - Needed decision: 人类已再次确认当前环境允许 `@vitejs/plugin-vue` 与 `@vue/compiler-sfc`，因此不再坚持非 SFC 架构；按 `E-TASK-014` 恢复根级前端 `.vue` 源文件与 SFC 构建链，同时保留此前已经交付的 portable 双产物、浏览器 smoke 和分包优化结果。
 - Task refs: E-TASK-010, E-TASK-011, E-TASK-014
+
+### INBOX-004: 本地后端重启 JDK 8u112 环境待确认
+
+- Status: resolved
+- Needed decision: 人类已确认安装本地 JDK `8u112`，用于解除 `U-TASK-006` 的后端重启运行时阻塞。
+- Task refs: U-TASK-006
