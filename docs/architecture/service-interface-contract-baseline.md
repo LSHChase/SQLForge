@@ -421,6 +421,40 @@
 - 当前治理 trace 会为每个 acceleration plan 生成稳定的 `configSnapshotId/resultId/historyId/sagaId`，并在后续 lifecycle 变更时更新 `execution_result`，保持长期追溯链一致。
 - 当前 runtime 闭环仍聚焦“已批准计划的激活/验证/回滚证据”和 `PREFER_ACCELERATED` gating；它不等价于自动创建物化视图、provider-native cache 或引擎侧真实加速对象。
 
+## 3.2.3 Production SQL Rewrite Auto-Apply Contract
+
+本节固化 PRW-001 的生产自动改写闭环目标契约，不代表当前代码已全部实现。该闭环只覆盖“正常解析或执行历史产生推荐 SQL，经人类审批和等价验证后发布到运行时，后续同租户、同 SQL 指纹执行时自动替换为已批准 SQL”的生产路径；投产前本地或测试环境核验闭环不纳入本契约。
+
+生产 SQL 改写闭环不得复用 acceleration plan 的 `approval/apply/verify/rollback` 页面或接口作为改写审批入口。acceleration plan 仍负责物理加速或 runtime gating 计划治理；SQL 文本改写必须由改写推荐或改写记录自己的 review / publish / runtime binding 状态机证明。
+
+状态维度必须保持独立：
+
+| Dimension | Owner | Baseline values | Contract meaning |
+|:---|:---|:---|:---|
+| `manualReviewRequired` | `sql-optimization` recommendation / rewrite record | `true`, `false` | 风险或复核提示，只说明是否需要人工看过；不得自动代表审批通过。 |
+| `reviewStatus` | `sql-optimization` rewrite record | `PENDING_REVIEW`, `APPROVED`, `REJECTED`, `CHANGES_REQUESTED` | 人类审批状态。只有 `APPROVED` 才允许进入发布资格判断。 |
+| `publishStatus` | `sql-optimization` rewrite record | `UNPUBLISHED`, `PUBLISHING`, `PUBLISHED`, `PAUSED`, `UNPUBLISHING`, `UNPUBLISH_FAILED`, `PUBLISH_FAILED` | 改写记录发布状态。审批通过不等于运行时已生效，只有发布成功并绑定 active 才能触发自动改写。 |
+| runtime binding status | `query-execution` runtime rewrite binding | `ACTIVE`, `PAUSED`, `UNPUBLISHED` | 运行时生效状态。`ACTIVE` 是后续 SQL 执行可以自动替换 SQL 文本的唯一状态。 |
+
+目标服务协作契约如下，后续 PRW-002 至 PRW-009 实现时可调整具体 Java 类名，但不得改变语义边界：
+
+| Surface | Contract owner | Required behavior |
+|:---|:---|:---|
+| `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}` | `sql-optimization` | 返回 `manualReviewRequired`, `reviewStatus`, `publishStatus`, `runtimeBindingId`, `runtimeRuleVersion`, `validationStatus`, source evidence 和审计 trace refs。 |
+| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/review` | `sql-optimization` | 接收审批结论与意见，写入审批人、时间和审计 trace；非法状态迁移由后端拒绝。 |
+| `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}/publish-eligibility` | `sql-optimization` | 返回集中式发布资格判断与结构化拒绝原因；前端只能展示，不得自行实现核心门禁。 |
+| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/publish` | `sql-optimization` | 在审批通过、等价验证通过、租户/指纹/来源证据完整且无未关闭差异暂停时，调用 `query-execution` 创建或更新运行时改写绑定。 |
+| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/pause` | `sql-optimization` | 暂停已发布改写记录并同步暂停对应 runtime binding，保留告警、原因和 trace。 |
+| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/unpublish` | `sql-optimization` | 撤销运行时绑定并回写发布状态，不删除历史改写记录。 |
+| `query-execution` internal rewrite binding surface | `query-execution` | 以 tenant + SQL fingerprint 查询、创建、暂停、撤销 active runtime binding；同租户同指纹最多只能存在一个 active binding。 |
+
+运行时执行契约如下：
+
+- `query-execution` 是生产自动改写运行时绑定真值；JDBC Agent / Redis 只能作为后续兼容出口，不能替代主闭环。
+- 只有同租户、同 SQL 指纹且 runtime binding status 为 `ACTIVE` 时，查询执行入口才能把原 SQL 替换为已批准推荐 SQL。
+- 执行历史必须记录原始 SQL、实际执行 SQL、是否改写、改写记录 ID、runtime binding ID、规则版本和发布状态快照，前端不得自行推断 `rewriteApplied`。
+- 周期比对发现结果不等价或超过容忍阈值时，必须暂停或撤销 runtime binding 并更新 `publishStatus`，不能只写告警展示。
+
 ## 3.3 Benchmark Engine Task Contract Baseline
 
 当前 `benchmark-engine` 已将压测任务、测试集导入与报告查询契约接到公共 HTTP + MySQL 基线，并通过 `benchmark_task` / `benchmark_task_report` / `benchmark_test_set` / `benchmark_test_set_case`、MyBatis XML repository、in-process scheduled worker、repo-closed 隔离执行服务和持久化导出产物提供可测的提交、轮询、测试集导入、报告查询与失败路径；当前任务队列 carrier 支持默认 `database-worker` 与显式启用的 `external-file-queue`，并把 carrier evidence 暴露到任务响应与审计载荷。

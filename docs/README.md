@@ -22,6 +22,7 @@
    [架构初始化总文档](./architecture/init.md) 仍是历史初始化基线与总览入口；当前 C4 权威更新落点以 [C4 文字总览](./architecture/c4-overview.md) 为准，当前服务边界以 [服务能力分配图](./architecture/service-capability-map.md) 为准，当前接口契约以 [服务接口契约基线](./architecture/service-interface-contract-baseline.md) 为准，后续新增文档统一补入 `docs/`。
    - [SQL 治理平台实施规格](./product/sql-governance-platform-implementation-spec.md)
    - [加速与改写治理工作台方案](./product/acceleration-rewrite-governance-workbench-spec.md)
+   - [生产自动改写闭环任务拆解计划](./plans/production-rewrite-auto-apply-task-plan.md)
    - [前端复盘补漏基线](./product/frontend-retrospective-gap-closure-baseline.md)
    - [C4 文字总览](./architecture/c4-overview.md)
    - [持久化基线](./architecture/persistence.md)
@@ -130,6 +131,7 @@
   - `codex-governance-integration-blueprint.md`：Codex 运行时接线蓝图，定义 `AGENTS`、`.codex/`、hooks、foreman CLI 与真值体系的关系。
   - `phase-prerequisite-matrix.md`：各阶段输入文档、ADR、规则、验证和确认点矩阵。
   - `process-flow-and-governance-audit-2026-04-20.md`：正式全流程说明、流程缺陷审计、整改建议和文档修订建议。
+  - `production-rewrite-auto-apply-task-plan.md`：生产自动改写闭环任务拆解计划，覆盖改写审批、发布、运行时自动改写、历史留痕、差异暂停和页面追溯；暂不覆盖投产前本地/测试环境核验闭环。
   - `retrospective-template.md`：阶段或复杂批次复盘模板。
   - `document-governance-retrospective-2026-04-20.md`：本轮治理复盘实例。
   - `document-governance-repair-retrospective-2026-04-20.md`：本轮严格核验修复复盘实例。

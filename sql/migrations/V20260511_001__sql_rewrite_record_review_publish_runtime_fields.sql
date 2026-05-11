@@ -1,0 +1,15 @@
+ALTER TABLE sql_rewrite_record
+  ADD COLUMN review_status VARCHAR(32) NOT NULL DEFAULT 'PENDING_REVIEW' COMMENT 'PENDING_REVIEW/APPROVED/REJECTED/CHANGES_REQUESTED human review state' AFTER manual_review_required,
+  ADD COLUMN review_note VARCHAR(512) DEFAULT NULL COMMENT 'Human review note for approval or rejection' AFTER review_status,
+  ADD COLUMN reviewed_by VARCHAR(64) DEFAULT NULL COMMENT 'Human reviewer identifier' AFTER review_note,
+  ADD COLUMN reviewed_at DATETIME DEFAULT NULL COMMENT 'Human review timestamp' AFTER reviewed_by,
+  ADD COLUMN publish_status VARCHAR(32) NOT NULL DEFAULT 'UNPUBLISHED' COMMENT 'UNPUBLISHED/PUBLISHING/PUBLISHED/PAUSED/UNPUBLISHING/UNPUBLISH_FAILED/PUBLISH_FAILED publication state' AFTER reviewed_at,
+  ADD COLUMN runtime_binding_id VARCHAR(64) DEFAULT NULL COMMENT 'Runtime rewrite binding identifier in query-execution' AFTER publish_status,
+  ADD COLUMN runtime_binding_at DATETIME DEFAULT NULL COMMENT 'Runtime binding timestamp' AFTER runtime_binding_id,
+  ADD COLUMN runtime_binding_by VARCHAR(64) DEFAULT NULL COMMENT 'Runtime binding operator identifier' AFTER runtime_binding_at,
+  ADD COLUMN runtime_binding_scope VARCHAR(128) DEFAULT NULL COMMENT 'Runtime binding scope such as tenant and SQL fingerprint' AFTER runtime_binding_by,
+  ADD COLUMN published_sql_fingerprint VARCHAR(128) DEFAULT NULL COMMENT 'Fingerprint of SQL published to runtime binding' AFTER runtime_binding_scope,
+  ADD COLUMN runtime_rule_version VARCHAR(64) DEFAULT NULL COMMENT 'Runtime rewrite rule version returned by query-execution' AFTER published_sql_fingerprint,
+  ADD KEY idx_rewrite_record_review (tenant_id, review_status, created_at),
+  ADD KEY idx_rewrite_record_publish (tenant_id, publish_status, updated_at),
+  ADD KEY idx_rewrite_record_runtime_binding (tenant_id, runtime_binding_id);

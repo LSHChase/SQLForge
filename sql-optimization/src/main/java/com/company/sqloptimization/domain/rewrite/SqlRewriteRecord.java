@@ -4,7 +4,9 @@ import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.domain.governance.RewriteAlertStatus;
+import com.company.sqloptimization.domain.governance.RewritePublishStatus;
 import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
+import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -31,6 +33,17 @@ public class SqlRewriteRecord {
     private final RewriteValidationStatus validationStatus;
     private final boolean autoApplyAllowed;
     private final boolean manualReviewRequired;
+    private final RewriteReviewStatus reviewStatus;
+    private final String reviewNote;
+    private final String reviewedBy;
+    private final Instant reviewedAt;
+    private final RewritePublishStatus publishStatus;
+    private final String runtimeBindingId;
+    private final Instant runtimeBindingAt;
+    private final String runtimeBindingBy;
+    private final String runtimeBindingScope;
+    private final String publishedSqlFingerprint;
+    private final String runtimeRuleVersion;
     private final String validationPolicyId;
     private final String lastValidationRunId;
     private final Instant lastComparedAt;
@@ -65,6 +78,17 @@ public class SqlRewriteRecord {
             : builder.validationStatus;
         this.autoApplyAllowed = builder.autoApplyAllowed;
         this.manualReviewRequired = builder.manualReviewRequired;
+        this.reviewStatus = builder.reviewStatus == null ? RewriteReviewStatus.PENDING_REVIEW : builder.reviewStatus;
+        this.reviewNote = builder.reviewNote;
+        this.reviewedBy = builder.reviewedBy;
+        this.reviewedAt = builder.reviewedAt;
+        this.publishStatus = builder.publishStatus == null ? RewritePublishStatus.UNPUBLISHED : builder.publishStatus;
+        this.runtimeBindingId = builder.runtimeBindingId;
+        this.runtimeBindingAt = builder.runtimeBindingAt;
+        this.runtimeBindingBy = builder.runtimeBindingBy;
+        this.runtimeBindingScope = builder.runtimeBindingScope;
+        this.publishedSqlFingerprint = builder.publishedSqlFingerprint;
+        this.runtimeRuleVersion = builder.runtimeRuleVersion;
         this.validationPolicyId = builder.validationPolicyId;
         this.lastValidationRunId = builder.lastValidationRunId;
         this.lastComparedAt = builder.lastComparedAt;
@@ -105,6 +129,17 @@ public class SqlRewriteRecord {
             .validationStatus(nextValidationStatus)
             .autoApplyAllowed(autoApplyAllowed && !Boolean.TRUE.equals(run.isAutoApplyPaused()))
             .manualReviewRequired(manualReviewRequired)
+            .reviewStatus(reviewStatus)
+            .reviewNote(reviewNote)
+            .reviewedBy(reviewedBy)
+            .reviewedAt(reviewedAt)
+            .publishStatus(publishStatus)
+            .runtimeBindingId(runtimeBindingId)
+            .runtimeBindingAt(runtimeBindingAt)
+            .runtimeBindingBy(runtimeBindingBy)
+            .runtimeBindingScope(runtimeBindingScope)
+            .publishedSqlFingerprint(publishedSqlFingerprint)
+            .runtimeRuleVersion(runtimeRuleVersion)
             .validationPolicyId(validationPolicyId)
             .lastValidationRunId(run.getValidationRunId())
             .lastComparedAt(run.getFinishedAt() == null ? run.getStartedAt() : run.getFinishedAt())
@@ -140,6 +175,17 @@ public class SqlRewriteRecord {
             .validationStatus(validationStatus)
             .autoApplyAllowed(autoApplyAllowed)
             .manualReviewRequired(manualReviewRequired)
+            .reviewStatus(reviewStatus)
+            .reviewNote(reviewNote)
+            .reviewedBy(reviewedBy)
+            .reviewedAt(reviewedAt)
+            .publishStatus(publishStatus)
+            .runtimeBindingId(runtimeBindingId)
+            .runtimeBindingAt(runtimeBindingAt)
+            .runtimeBindingBy(runtimeBindingBy)
+            .runtimeBindingScope(runtimeBindingScope)
+            .publishedSqlFingerprint(publishedSqlFingerprint)
+            .runtimeRuleVersion(runtimeRuleVersion)
             .validationPolicyId(validationPolicyId)
             .lastValidationRunId(lastValidationRunId)
             .lastComparedAt(lastComparedAt)
@@ -236,6 +282,17 @@ public class SqlRewriteRecord {
     public RewriteValidationStatus getValidationStatus() { return validationStatus; }
     public boolean isAutoApplyAllowed() { return autoApplyAllowed; }
     public boolean isManualReviewRequired() { return manualReviewRequired; }
+    public RewriteReviewStatus getReviewStatus() { return reviewStatus; }
+    public String getReviewNote() { return reviewNote; }
+    public String getReviewedBy() { return reviewedBy; }
+    public Instant getReviewedAt() { return reviewedAt; }
+    public RewritePublishStatus getPublishStatus() { return publishStatus; }
+    public String getRuntimeBindingId() { return runtimeBindingId; }
+    public Instant getRuntimeBindingAt() { return runtimeBindingAt; }
+    public String getRuntimeBindingBy() { return runtimeBindingBy; }
+    public String getRuntimeBindingScope() { return runtimeBindingScope; }
+    public String getPublishedSqlFingerprint() { return publishedSqlFingerprint; }
+    public String getRuntimeRuleVersion() { return runtimeRuleVersion; }
     public String getValidationPolicyId() { return validationPolicyId; }
     public String getLastValidationRunId() { return lastValidationRunId; }
     public Instant getLastComparedAt() { return lastComparedAt; }
@@ -268,6 +325,17 @@ public class SqlRewriteRecord {
         private RewriteValidationStatus validationStatus;
         private boolean autoApplyAllowed;
         private boolean manualReviewRequired;
+        private RewriteReviewStatus reviewStatus;
+        private String reviewNote;
+        private String reviewedBy;
+        private Instant reviewedAt;
+        private RewritePublishStatus publishStatus;
+        private String runtimeBindingId;
+        private Instant runtimeBindingAt;
+        private String runtimeBindingBy;
+        private String runtimeBindingScope;
+        private String publishedSqlFingerprint;
+        private String runtimeRuleVersion;
         private String validationPolicyId;
         private String lastValidationRunId;
         private Instant lastComparedAt;
@@ -302,6 +370,17 @@ public class SqlRewriteRecord {
         public Builder validationStatus(RewriteValidationStatus validationStatus) { this.validationStatus = validationStatus; return this; }
         public Builder autoApplyAllowed(boolean autoApplyAllowed) { this.autoApplyAllowed = autoApplyAllowed; return this; }
         public Builder manualReviewRequired(boolean manualReviewRequired) { this.manualReviewRequired = manualReviewRequired; return this; }
+        public Builder reviewStatus(RewriteReviewStatus reviewStatus) { this.reviewStatus = reviewStatus; return this; }
+        public Builder reviewNote(String reviewNote) { this.reviewNote = reviewNote; return this; }
+        public Builder reviewedBy(String reviewedBy) { this.reviewedBy = reviewedBy; return this; }
+        public Builder reviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; return this; }
+        public Builder publishStatus(RewritePublishStatus publishStatus) { this.publishStatus = publishStatus; return this; }
+        public Builder runtimeBindingId(String runtimeBindingId) { this.runtimeBindingId = runtimeBindingId; return this; }
+        public Builder runtimeBindingAt(Instant runtimeBindingAt) { this.runtimeBindingAt = runtimeBindingAt; return this; }
+        public Builder runtimeBindingBy(String runtimeBindingBy) { this.runtimeBindingBy = runtimeBindingBy; return this; }
+        public Builder runtimeBindingScope(String runtimeBindingScope) { this.runtimeBindingScope = runtimeBindingScope; return this; }
+        public Builder publishedSqlFingerprint(String publishedSqlFingerprint) { this.publishedSqlFingerprint = publishedSqlFingerprint; return this; }
+        public Builder runtimeRuleVersion(String runtimeRuleVersion) { this.runtimeRuleVersion = runtimeRuleVersion; return this; }
         public Builder validationPolicyId(String validationPolicyId) { this.validationPolicyId = validationPolicyId; return this; }
         public Builder lastValidationRunId(String lastValidationRunId) { this.lastValidationRunId = lastValidationRunId; return this; }
         public Builder lastComparedAt(Instant lastComparedAt) { this.lastComparedAt = lastComparedAt; return this; }

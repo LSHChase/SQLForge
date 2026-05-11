@@ -16,6 +16,8 @@
    为主计划中的全部 Task 补齐 Harness Engineering 所要求的 10 项字段。
 6. [流程与治理审计说明](./process-flow-and-governance-audit-2026-04-20.md)
    对当前工程交付全流程、产品运行流程、流程缺陷、整改建议和逐文档修订建议做正式归档。
+7. [生产自动改写闭环任务拆解计划](./production-rewrite-auto-apply-task-plan.md)
+   将“解析/执行后发现改写推荐，经人类审批后在生产执行路径自动改写”的闭环拆成可由 Codex 逐项执行的小任务；暂不覆盖投产前本地/测试环境核验闭环。
 
 ## 计划治理要求
 
@@ -55,6 +57,8 @@
   本轮严格核验缺口修复的实际复盘记录。
 - `process-flow-and-governance-audit-2026-04-20.md`
   基于当前仓库文档全量扫描形成的正式流程说明与治理审计文档。
+- `production-rewrite-auto-apply-task-plan.md`
+  基于当前生产闭环缺口，将改写审批、发布、运行时自动改写、历史留痕、差异暂停和页面追溯拆成多个可执行任务。
 
 使用方式：
 

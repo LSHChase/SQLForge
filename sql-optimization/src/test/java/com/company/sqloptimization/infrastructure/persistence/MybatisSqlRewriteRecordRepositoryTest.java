@@ -14,7 +14,9 @@ import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.domain.governance.RewriteAlertStatus;
+import com.company.sqloptimization.domain.governance.RewritePublishStatus;
 import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
+import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.governance.ValidationRunStatus;
 import com.company.sqloptimization.domain.rewrite.RewriteValidationRun;
@@ -52,6 +54,17 @@ class MybatisSqlRewriteRecordRepositoryTest {
         assertEquals("PARSE", record.getSourceType());
         assertEquals("NOT_VALIDATED", record.getValidationStatus());
         assertEquals(Boolean.TRUE, record.getAutoApplyAllowed());
+        assertEquals("CHANGES_REQUESTED", record.getReviewStatus());
+        assertEquals("needs safer predicate", record.getReviewNote());
+        assertEquals("reviewer-001", record.getReviewedBy());
+        assertEquals(LocalDateTime.of(2026, 5, 10, 10, 5), record.getReviewedAt());
+        assertEquals("PUBLISH_FAILED", record.getPublishStatus());
+        assertEquals("binding-001", record.getRuntimeBindingId());
+        assertEquals(LocalDateTime.of(2026, 5, 10, 10, 6), record.getRuntimeBindingAt());
+        assertEquals("operator-002", record.getRuntimeBindingBy());
+        assertEquals("tenant-a:fp-001", record.getRuntimeBindingScope());
+        assertEquals("fp-published-001", record.getPublishedSqlFingerprint());
+        assertEquals("rule-v1", record.getRuntimeRuleVersion());
         assertEquals(LocalDateTime.of(2026, 5, 10, 10, 0), record.getCreatedAt());
         assertEquals("[{\"rule\":\"COUNT_STAR\"}]", record.getRuleChainJson());
         assertEquals("{\"risk\":\"LOW\"}", record.getRiskJson());
@@ -75,6 +88,17 @@ class MybatisSqlRewriteRecordRepositoryTest {
         assertEquals(GovernanceSourceKind.QUERY_HISTORY, restored.getSourceKind());
         assertEquals(RewriteRecordStatus.PAUSED, restored.getStatus());
         assertEquals(RewriteValidationStatus.DIVERGED, restored.getValidationStatus());
+        assertEquals(RewriteReviewStatus.APPROVED, restored.getReviewStatus());
+        assertEquals("review accepted", restored.getReviewNote());
+        assertEquals("reviewer-002", restored.getReviewedBy());
+        assertEquals(Instant.parse("2026-05-10T10:32:00Z"), restored.getReviewedAt());
+        assertEquals(RewritePublishStatus.PUBLISHED, restored.getPublishStatus());
+        assertEquals("binding-002", restored.getRuntimeBindingId());
+        assertEquals(Instant.parse("2026-05-10T10:33:00Z"), restored.getRuntimeBindingAt());
+        assertEquals("operator-002", restored.getRuntimeBindingBy());
+        assertEquals("tenant-a:fp-002", restored.getRuntimeBindingScope());
+        assertEquals("fp-published-002", restored.getPublishedSqlFingerprint());
+        assertEquals("rule-v2", restored.getRuntimeRuleVersion());
         assertFalse(restored.isAutoApplyAllowed());
         assertEquals("LOW", restored.getRisk().get("risk"));
         assertEquals(ValidationRunStatus.SUCCEEDED, run.getStatus());
@@ -114,6 +138,10 @@ class MybatisSqlRewriteRecordRepositoryTest {
         assertEquals("DIVERGED", updated.getValidationStatus());
         assertEquals("OPEN", updated.getAlertStatus());
         assertEquals(Boolean.FALSE, updated.getAutoApplyAllowed());
+        assertEquals("APPROVED", updated.getReviewStatus());
+        assertEquals("PUBLISHED", updated.getPublishStatus());
+        assertEquals("binding-002", updated.getRuntimeBindingId());
+        assertEquals("rule-v2", updated.getRuntimeRuleVersion());
     }
 
     private SqlRewriteRecord sampleRewriteRecord() {
@@ -138,6 +166,17 @@ class MybatisSqlRewriteRecordRepositoryTest {
             .validationStatus(RewriteValidationStatus.NOT_VALIDATED)
             .autoApplyAllowed(true)
             .manualReviewRequired(false)
+            .reviewStatus(RewriteReviewStatus.CHANGES_REQUESTED)
+            .reviewNote("needs safer predicate")
+            .reviewedBy("reviewer-001")
+            .reviewedAt(Instant.parse("2026-05-10T10:05:00Z"))
+            .publishStatus(RewritePublishStatus.PUBLISH_FAILED)
+            .runtimeBindingId("binding-001")
+            .runtimeBindingAt(Instant.parse("2026-05-10T10:06:00Z"))
+            .runtimeBindingBy("operator-002")
+            .runtimeBindingScope("tenant-a:fp-001")
+            .publishedSqlFingerprint("fp-published-001")
+            .runtimeRuleVersion("rule-v1")
             .alertStatus(RewriteAlertStatus.NONE)
             .originalSqlText("SELECT COUNT(1) FROM orders")
             .recommendedSqlText("SELECT COUNT(*) FROM orders")
@@ -187,6 +226,17 @@ class MybatisSqlRewriteRecordRepositoryTest {
         record.setValidationStatus("DIVERGED");
         record.setAutoApplyAllowed(Boolean.FALSE);
         record.setManualReviewRequired(Boolean.TRUE);
+        record.setReviewStatus("APPROVED");
+        record.setReviewNote("review accepted");
+        record.setReviewedBy("reviewer-002");
+        record.setReviewedAt(LocalDateTime.of(2026, 5, 10, 10, 32));
+        record.setPublishStatus("PUBLISHED");
+        record.setRuntimeBindingId("binding-002");
+        record.setRuntimeBindingAt(LocalDateTime.of(2026, 5, 10, 10, 33));
+        record.setRuntimeBindingBy("operator-002");
+        record.setRuntimeBindingScope("tenant-a:fp-002");
+        record.setPublishedSqlFingerprint("fp-published-002");
+        record.setRuntimeRuleVersion("rule-v2");
         record.setLastValidationRunId("validation-002");
         record.setLastComparedAt(LocalDateTime.of(2026, 5, 10, 10, 31));
         record.setAlertStatus("OPEN");

@@ -136,6 +136,27 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 
 默认运行时优先应用门槛：只有 `VERIFIED` / `ACTIVE` 且 `validationStatus=EQUIVALENT`、`benefitStatus=POSITIVE`、`schemaVersion` 未过期的绑定，才能被查询执行默认优先消费。`APPLIED` 仅允许在工作台验证或显式测试模式中使用。
 
+## Production Rewrite Auto-Apply Semantics
+
+生产 SQL 自动改写闭环与 acceleration plan 审批闭环分开展示和验收。页面上的“审核改写并生效”入口必须位于推荐详情或改写记录详情动作区，不得把 acceleration plan 的审批页、应用页或验证页标注为 SQL 文本改写审批入口。
+
+状态展示必须区分以下信号：
+
+| UI signal | Backend source | Display rule |
+|:---|:---|:---|
+| 需人工复核 | `manualReviewRequired=true` | 仅表示推荐或改写记录存在风险，需要人工查看；不表示已审批。 |
+| 待审批 / 已通过 / 已驳回 / 要求修改 | `reviewStatus` | 来自改写记录审批状态。只有已通过才允许展示发布动作或发布资格结果。 |
+| 未发布 / 发布中 / 已发布 / 已暂停 / 撤销中 / 发布失败 / 撤销失败 | `publishStatus` | 来自后端发布状态。审批通过但未发布时，页面必须明确提示“尚未运行时生效”。 |
+| 运行时已生效 | runtime binding status `ACTIVE` | 只有 query-execution 返回 active binding 且绑定租户、指纹、规则版本可追溯时才展示。 |
+| 自动改写已发生 | SQL 历史后端审计字段 | 只能来自执行历史写入的 `rewriteApplied`、原始 SQL、实际执行 SQL、改写记录和 runtime binding 追踪字段，不得由前端通过 SQL 文本差异自行判断。 |
+
+页面行为约束：
+
+- 推荐中心或改写记录详情可以展示发布资格和拒绝原因，但核心门禁必须由后端策略返回。
+- 审批通过不等于运行时生效；运行时生效必须由 `publishStatus=PUBLISHED` 与 runtime binding `ACTIVE` 共同证明。
+- 周期比对发现差异后，页面必须展示暂停或撤销后的后端状态、告警引用和验证 run 证据，不能只显示告警文案。
+- 投产前在本地或测试环境手动调用生成接口并核验能力的闭环线，不属于本生产自动改写页面语义。
+
 ## Workbench Page Design
 
 页面建议命名为 `加速治理工作台`，定位为真实接口 smoke 与正式治理流的统一 operator 页面。它不替代解析工作台、推荐中心或 SQL 历史页面。
@@ -412,8 +433,14 @@ SQL 历史不得只依赖 `recommendationRefs` 中的弱引用展示改写。后
 - `POST /api/sql-optimization/rewrite-records`
 - `GET /api/sql-optimization/rewrite-records`
 - `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}`
+- `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/review`
+- `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}/publish-eligibility`
+- `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/publish`
+- `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/pause`
+- `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/unpublish`
 - `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/validation-runs`
 - `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}/validation-runs`
+- `query-execution` internal runtime rewrite binding surface
 - `GET /api/governance/query-history/{historyId}/rewrite-records`
 
 现有接口继续作为 repo-closed smoke 主路径：

@@ -22,7 +22,9 @@ import com.company.sqloptimization.domain.governance.DifferenceType;
 import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
+import com.company.sqloptimization.domain.governance.RewritePublishStatus;
 import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
+import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.governance.ValidationRunStatus;
 import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionResultDigestClient;
@@ -232,6 +234,7 @@ class AccelerationRewriteContractApplicationServiceTest {
         request.setStatus(RewriteRecordStatus.APPLIED);
         request.setValidationStatus(RewriteValidationStatus.NOT_VALIDATED);
         request.setAutoApplyAllowed(Boolean.TRUE);
+        request.setManualReviewRequired(Boolean.TRUE);
         request.setOriginalSqlText("SELECT * FROM orders");
         request.setRecommendedSqlText("SELECT id FROM orders");
 
@@ -239,6 +242,9 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals("APPLIED", created.getStatus());
         assertEquals("NOT_VALIDATED", created.getValidationStatus());
         assertEquals(Boolean.TRUE, created.getAutoApplyAllowed());
+        assertEquals(Boolean.TRUE, created.getManualReviewRequired());
+        assertEquals("PENDING_REVIEW", created.getReviewStatus());
+        assertEquals("UNPUBLISHED", created.getPublishStatus());
 
         RewriteValidationRunCreateRequest runRequest = new RewriteValidationRunCreateRequest();
         runRequest.setStatus(ValidationRunStatus.SUCCEEDED);
@@ -259,6 +265,8 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals("DIVERGED", updated.getValidationStatus());
         assertEquals("OPEN", updated.getAlertStatus());
         assertEquals(Boolean.FALSE, updated.getAutoApplyAllowed());
+        assertEquals("PENDING_REVIEW", updated.getReviewStatus());
+        assertEquals("UNPUBLISHED", updated.getPublishStatus());
         assertEquals(1, runs.size());
         assertFalse(enumContainsActive(), "rewrite record status must not expose ACTIVE in HARN-128");
         assertEquals(2, digestClient.getRequestCount());
@@ -282,6 +290,41 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals(historyRecord.getRewriteRecordId(), records.get(0).getRewriteRecordId());
         assertEquals("tenant-a", records.get(0).getTenantId());
         assertEquals("history-001", records.get(0).getHistoryId());
+    }
+
+    @Test
+    void shouldCarryRewriteReviewPublishAndRuntimeBindingFields() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(repository);
+        setTenant("tenant-a");
+
+        SqlRewriteRecordCreateRequest request = rewriteRecordRequest("tenant-a", "history-003");
+        request.setReviewStatus(RewriteReviewStatus.CHANGES_REQUESTED);
+        request.setReviewNote("needs indexed predicate proof");
+        request.setReviewedBy("reviewer-001");
+        request.setReviewedAt(Instant.parse("2026-05-10T12:00:00Z"));
+        request.setPublishStatus(RewritePublishStatus.PUBLISH_FAILED);
+        request.setRuntimeBindingId("binding-003");
+        request.setRuntimeBindingAt(Instant.parse("2026-05-10T12:01:00Z"));
+        request.setRuntimeBindingBy("operator-003");
+        request.setRuntimeBindingScope("tenant-a:fp-003");
+        request.setPublishedSqlFingerprint("fp-published-003");
+        request.setRuntimeRuleVersion("rule-v3");
+
+        SqlRewriteRecordVO created = service.createRewriteRecord(request);
+        SqlRewriteRecordVO detail = service.getRewriteRecord(created.getRewriteRecordId());
+
+        assertEquals("CHANGES_REQUESTED", detail.getReviewStatus());
+        assertEquals("needs indexed predicate proof", detail.getReviewNote());
+        assertEquals("reviewer-001", detail.getReviewedBy());
+        assertEquals(Instant.parse("2026-05-10T12:00:00Z"), detail.getReviewedAt());
+        assertEquals("PUBLISH_FAILED", detail.getPublishStatus());
+        assertEquals("binding-003", detail.getRuntimeBindingId());
+        assertEquals(Instant.parse("2026-05-10T12:01:00Z"), detail.getRuntimeBindingAt());
+        assertEquals("operator-003", detail.getRuntimeBindingBy());
+        assertEquals("tenant-a:fp-003", detail.getRuntimeBindingScope());
+        assertEquals("fp-published-003", detail.getPublishedSqlFingerprint());
+        assertEquals("rule-v3", detail.getRuntimeRuleVersion());
     }
 
     private SqlRewriteRecordCreateRequest rewriteRecordRequest(String tenantId, String historyId) {

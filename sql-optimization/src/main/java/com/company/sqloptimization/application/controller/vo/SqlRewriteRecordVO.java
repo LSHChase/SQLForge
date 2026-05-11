@@ -22,6 +22,17 @@ public class SqlRewriteRecordVO {
     private String validationStatus;
     private Boolean autoApplyAllowed;
     private Boolean manualReviewRequired;
+    private String reviewStatus;
+    private String reviewNote;
+    private String reviewedBy;
+    private Instant reviewedAt;
+    private String publishStatus;
+    private String runtimeBindingId;
+    private Instant runtimeBindingAt;
+    private String runtimeBindingBy;
+    private String runtimeBindingScope;
+    private String publishedSqlFingerprint;
+    private String runtimeRuleVersion;
     private String validationPolicyId;
     private String lastValidationRunId;
     private Instant lastComparedAt;
@@ -71,6 +82,28 @@ public class SqlRewriteRecordVO {
     public void setAutoApplyAllowed(Boolean autoApplyAllowed) { this.autoApplyAllowed = autoApplyAllowed; }
     public Boolean getManualReviewRequired() { return manualReviewRequired; }
     public void setManualReviewRequired(Boolean manualReviewRequired) { this.manualReviewRequired = manualReviewRequired; }
+    public String getReviewStatus() { return reviewStatus; }
+    public void setReviewStatus(String reviewStatus) { this.reviewStatus = reviewStatus; }
+    public String getReviewNote() { return reviewNote; }
+    public void setReviewNote(String reviewNote) { this.reviewNote = reviewNote; }
+    public String getReviewedBy() { return reviewedBy; }
+    public void setReviewedBy(String reviewedBy) { this.reviewedBy = reviewedBy; }
+    public Instant getReviewedAt() { return reviewedAt; }
+    public void setReviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; }
+    public String getPublishStatus() { return publishStatus; }
+    public void setPublishStatus(String publishStatus) { this.publishStatus = publishStatus; }
+    public String getRuntimeBindingId() { return runtimeBindingId; }
+    public void setRuntimeBindingId(String runtimeBindingId) { this.runtimeBindingId = runtimeBindingId; }
+    public Instant getRuntimeBindingAt() { return runtimeBindingAt; }
+    public void setRuntimeBindingAt(Instant runtimeBindingAt) { this.runtimeBindingAt = runtimeBindingAt; }
+    public String getRuntimeBindingBy() { return runtimeBindingBy; }
+    public void setRuntimeBindingBy(String runtimeBindingBy) { this.runtimeBindingBy = runtimeBindingBy; }
+    public String getRuntimeBindingScope() { return runtimeBindingScope; }
+    public void setRuntimeBindingScope(String runtimeBindingScope) { this.runtimeBindingScope = runtimeBindingScope; }
+    public String getPublishedSqlFingerprint() { return publishedSqlFingerprint; }
+    public void setPublishedSqlFingerprint(String publishedSqlFingerprint) { this.publishedSqlFingerprint = publishedSqlFingerprint; }
+    public String getRuntimeRuleVersion() { return runtimeRuleVersion; }
+    public void setRuntimeRuleVersion(String runtimeRuleVersion) { this.runtimeRuleVersion = runtimeRuleVersion; }
     public String getValidationPolicyId() { return validationPolicyId; }
     public void setValidationPolicyId(String validationPolicyId) { this.validationPolicyId = validationPolicyId; }
     public String getLastValidationRunId() { return lastValidationRunId; }

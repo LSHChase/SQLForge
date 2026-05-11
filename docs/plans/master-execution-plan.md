@@ -888,6 +888,19 @@ Tasks:
 | `HARN-140` | SQL 历史改写记录 tab 与筛选 | SQL 历史列表筛选、详情改写记录 tab、diff 跳转与验证状态展示 | `HARN-134`,`HARN-110` | history page/detail contract |
 | `HARN-141` | 监控与告警前端联动 | 工作台、推荐中心、SQL 历史展示 validation status、告警入口和自动暂停证据 | `HARN-136`,`HARN-138`,`HARN-140` | alert/history/workbench contract |
 | `HARN-142` | 加速与改写治理端到端 smoke 与文档收口 | repo-closed smoke、runbook、契约检查脚本、文档同步与残余风险收口 | `HARN-141` | `foreman validate`、frontend smoke、knowledge lint |
+| `PRW-001` | 固化生产改写闭环接口与状态契约 | 更新生产自动改写闭环的产品与服务接口契约，明确推荐、人工复核标记、审批状态、发布状态和运行时生效状态的边界；不修改业务代码。 | `HARN-142`,`HARN-145` | node scripts/lint-repository-knowledge.js、python3 scripts/task_audit.py --check --phase pre-closeout、git diff --check |
+| `PRW-002` | 扩展改写记录审批与发布数据模型 | 为 sql_rewrite_record 或等价改写记录模型新增审批、发布和运行时绑定追踪字段，并补齐 migration、entity、DTO、MyBatis 映射和仓储测试。 | `PRW-001` | mvn -pl sql-optimization test、node scripts/lint-repository-knowledge.js、python3 scripts/foreman.py validate PRW-002 |
+| `PRW-003` | 实现改写记录审批状态机 | 在 sql-optimization 中新增改写记录审批应用服务和 review API，支持批准、驳回或要求修改等状态迁移，并写入审批人、时间、意见和审计 trace。 | `PRW-002` | mvn -pl sql-optimization test、python3 scripts/foreman.py validate PRW-003 |
+| `PRW-004` | 实现发布资格策略与验证门禁 | 新增集中式发布资格策略服务，校验审批通过、等价验证通过、来源证据完整、自动应用允许、无未关闭差异告警或暂停标记、目标运行时校验通过，并返回结构化拒绝原因。 | `PRW-003`,`HARN-135` | mvn -pl sql-optimization test、python3 scripts/foreman.py validate PRW-004 |
+| `PRW-005` | 定义 query-execution 运行时改写绑定模型 | 在 query-execution 中建立生产自动改写绑定模型、状态和仓储接口，支持 active/paused/unpublished 状态、租户+SQL 指纹唯一 active 绑定和规则版本追踪；本任务不改真实 SQL 执行逻辑。 | `PRW-001`,`D-TASK-032` | mvn -pl query-execution test、python3 scripts/foreman.py validate PRW-005 |
+| `PRW-006` | 实现改写记录发布、暂停和撤销接口 | 在 sql-optimization 中新增 publish/pause/unpublish 接口，调用发布资格策略和 query-execution 运行时绑定接口，并回写改写记录 publishStatus、runtimeBindingId、runtimeRuleVersion 等字段。 | `PRW-004`,`PRW-005` | mvn -pl sql-optimization,query-execution,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-006 |
+| `PRW-007` | 在 query-execution 执行路径应用自动改写 | 在 query-execution 执行入口按租户和 SQL 指纹查找 active 改写绑定，命中后使用已批准推荐 SQL 作为实际执行 SQL，并保留原始 SQL、实际执行 SQL、绑定 ID 和规则版本。 | `PRW-006` | mvn -pl query-execution,governance,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-007 |
+| `PRW-008` | 补齐 SQL 执行历史的改写审计链 | 扩展 SQL 执行历史写入、查询和详情 DTO，使历史能记录原始 SQL、实际执行 SQL、是否改写、改写记录 ID、运行时绑定 ID、规则版本和发布状态快照。 | `PRW-007`,`HARN-134` | mvn -pl governance,query-execution,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-008 |
+| `PRW-009` | 比对差异触发自动暂停与告警闭环 | 扩展周期验证服务，在改写结果不等价或超过容忍阈值时自动暂停运行时绑定、更新改写记录发布状态，并写入告警、trace 和审计事件。 | `PRW-006`,`PRW-008`,`HARN-136` | mvn -pl sql-optimization,query-execution,governance,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-009 |
+| `PRW-010` | 推荐中心与改写记录详情页面接入审批动作 | 在推荐中心详情或改写记录详情增加审批、发布、暂停、撤销动作区，展示审批状态、发布状态、验证结果、发布资格和拒绝原因；不得把加速计划审批标注为改写审批入口。 | `PRW-003`,`PRW-004`,`PRW-006`,`HARN-145` | npm run lint、npm run build、node scripts/check-recommendation-page-contract.mjs、python3 scripts/foreman.py validate PRW-010 |
+| `PRW-011` | SQL 历史页面展示改写前后链路 | 在 SQL 历史列表和详情中展示自动改写状态、原始 SQL、实际执行 SQL、diff、改写记录、运行时绑定和规则版本，并提供跳转到改写记录详情的入口。 | `PRW-008`,`PRW-010`,`HARN-145` | npm run lint、npm run build、node scripts/check-history-page-contract.mjs、node scripts/check-history-detail-contract.mjs、python3 scripts/foreman.py validate PRW-011 |
+| `PRW-012` | 生产闭环端到端测试与 smoke | 补齐生产自动改写闭环的后端端到端测试和前端 smoke，覆盖推荐生成、改写记录、审批、验证、发布、命中自动改写、历史留痕以及差异暂停。 | `PRW-009`,`PRW-010`,`PRW-011` | mvn test、npm run lint、npm run build、npm run smoke:acceleration-governance、python3 scripts/foreman.py validate PRW-012 |
+| `PRW-013` | JDBC Agent Redis 改写规则桥接 | 在生产主闭环完成后，按需把已发布的 query-execution 运行时改写绑定同步到 JDBC Agent 现有 Redis 改写规则格式，并处理同步失败、过期、撤销和版本覆盖策略。 | `PRW-012` | mvn -pl query-execution,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-013 |
 
 ### Phase-F 部署、运维、生产就绪
 

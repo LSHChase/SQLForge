@@ -3700,3 +3700,15 @@
 2026-05-11T01:55:28-05:00 | HARN-145 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`
 2026-05-11T01:55:28-05:00 | HARN-145 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-recommendation-page-contract.mjs (projected-precommit)`
 2026-05-11T01:55:28-05:00 | HARN-145 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-acceleration-workbench-contract.mjs (projected-precommit)`
+2026-05-11T05:46:44-05:00 | PRW-001 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-11T05:46:44-05:00 | PRW-001 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-11T05:50:37-05:00 | PRW-001 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-11T05:50:37-05:00 | PRW-001 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-11T06:28:32-05:00 | PRW-002 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-11T06:28:32-05:00 | PRW-002 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-11T06:46:30-05:00 | PRW-002 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-11T06:46:30-05:00 | PRW-002 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-11T06:51:23-05:00 | PRW-002 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-11T06:51:23-05:00 | PRW-002 closeout commit | `R-168` | projected | `git commit -m 'PRW-002 extend rewrite record review publish data model' (projected-precommit)`
+2026-05-11T06:51:23-05:00 | PRW-002 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-11T06:51:23-05:00 | PRW-002 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`

@@ -4,6 +4,30 @@
 
 ## Done
 
+### PRW-002: 扩展改写记录审批与发布数据模型
+
+- Status: done
+- Completed at: 2026-05-11
+- Commit subject: `PRW-002 extend rewrite record review publish data model`
+- Priority: 1
+- Depends on: `PRW-001`
+- Scope: 改写记录必须独立持有 reviewStatus、publishStatus 和 runtime binding 追踪字段，manualReviewRequired 不得自动代表审批通过。 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `sql-optimization`,`persistence`,`application(controller/service)/domain/infrastructure`,`docs`.
+- Plan ref: docs/exec-plans/completed/PRW-002-full-auto-execution-plan.md
+- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
+- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
+- Data impact: 新增兼容性数据库字段、映射和 DTO 字段；旧数据必须有保守默认状态，不迁移为已审批或已发布。
+- Rollback / recovery: 通过兼容 DDL 或停用新增读写路径回退；保留旧改写记录查询能力，不删除历史记录。
+- Validation:
+  - `mvn -pl sql-optimization test、node scripts/lint-repository-knowledge.js、python3 scripts/foreman.py validate PRW-002`
+  - `python3 scripts/foreman.py validate PRW-002`
+- Progress log:
+  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added independent rewrite review, publish, and runtime binding fields across compatible SQL DDL, init schema, Java domain model, DTO/VO, MyBatis mappings, repository conversion, and focused tests.
+  - Validation evidence: mvn -pl sql-optimization test; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py validate PRW-002; python3 scripts/task_audit.py --check --phase pre-closeout; python3 scripts/task_audit.py --check --phase post-closeout; git diff --check.
+  - Residual risk: PRW-003 and PRW-006 still own review state transitions and publish actions; PRW-002 only persists and exposes conservative default fields.
+  - Next step: Continue with PRW-003 approval state machine on top of the new review fields.
+
 ### HARN-145: 重构加速与改写中心前端工作流
 
 - Status: done

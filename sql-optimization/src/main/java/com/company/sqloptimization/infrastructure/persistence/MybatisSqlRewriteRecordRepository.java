@@ -7,7 +7,9 @@ import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.domain.governance.RewriteAlertStatus;
+import com.company.sqloptimization.domain.governance.RewritePublishStatus;
 import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
+import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.governance.ValidationRunStatus;
 import com.company.sqloptimization.domain.rewrite.RewriteValidationRun;
@@ -139,6 +141,17 @@ public class MybatisSqlRewriteRecordRepository implements SqlRewriteRecordReposi
         record.setValidationStatus(rewriteRecord.getValidationStatus().name());
         record.setAutoApplyAllowed(Boolean.valueOf(rewriteRecord.isAutoApplyAllowed()));
         record.setManualReviewRequired(Boolean.valueOf(rewriteRecord.isManualReviewRequired()));
+        record.setReviewStatus(rewriteRecord.getReviewStatus().name());
+        record.setReviewNote(rewriteRecord.getReviewNote());
+        record.setReviewedBy(rewriteRecord.getReviewedBy());
+        record.setReviewedAt(toLocalDateTime(rewriteRecord.getReviewedAt()));
+        record.setPublishStatus(rewriteRecord.getPublishStatus().name());
+        record.setRuntimeBindingId(rewriteRecord.getRuntimeBindingId());
+        record.setRuntimeBindingAt(toLocalDateTime(rewriteRecord.getRuntimeBindingAt()));
+        record.setRuntimeBindingBy(rewriteRecord.getRuntimeBindingBy());
+        record.setRuntimeBindingScope(rewriteRecord.getRuntimeBindingScope());
+        record.setPublishedSqlFingerprint(rewriteRecord.getPublishedSqlFingerprint());
+        record.setRuntimeRuleVersion(rewriteRecord.getRuntimeRuleVersion());
         record.setValidationPolicyId(rewriteRecord.getValidationPolicyId());
         record.setLastValidationRunId(rewriteRecord.getLastValidationRunId());
         record.setLastComparedAt(toLocalDateTime(rewriteRecord.getLastComparedAt()));
@@ -176,6 +189,17 @@ public class MybatisSqlRewriteRecordRepository implements SqlRewriteRecordReposi
                 : RewriteValidationStatus.valueOf(record.getValidationStatus()))
             .autoApplyAllowed(Boolean.TRUE.equals(record.getAutoApplyAllowed()))
             .manualReviewRequired(Boolean.TRUE.equals(record.getManualReviewRequired()))
+            .reviewStatus(record.getReviewStatus() == null ? null : RewriteReviewStatus.valueOf(record.getReviewStatus()))
+            .reviewNote(record.getReviewNote())
+            .reviewedBy(record.getReviewedBy())
+            .reviewedAt(toInstant(record.getReviewedAt()))
+            .publishStatus(record.getPublishStatus() == null ? null : RewritePublishStatus.valueOf(record.getPublishStatus()))
+            .runtimeBindingId(record.getRuntimeBindingId())
+            .runtimeBindingAt(toInstant(record.getRuntimeBindingAt()))
+            .runtimeBindingBy(record.getRuntimeBindingBy())
+            .runtimeBindingScope(record.getRuntimeBindingScope())
+            .publishedSqlFingerprint(record.getPublishedSqlFingerprint())
+            .runtimeRuleVersion(record.getRuntimeRuleVersion())
             .validationPolicyId(record.getValidationPolicyId())
             .lastValidationRunId(record.getLastValidationRunId())
             .lastComparedAt(toInstant(record.getLastComparedAt()))

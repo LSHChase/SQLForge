@@ -43,6 +43,10 @@ class SqlRewriteRecordControllerTest {
         record.setValidationStatus("NOT_VALIDATED");
         record.setAutoApplyAllowed(Boolean.FALSE);
         record.setManualReviewRequired(Boolean.TRUE);
+        record.setReviewStatus("PENDING_REVIEW");
+        record.setPublishStatus("UNPUBLISHED");
+        record.setRuntimeBindingId("binding-001");
+        record.setRuntimeRuleVersion("rule-v1");
         record.setContractStage("LONG_TERM_BASELINE");
         record.setImplementationStage("ACCELERATION_REWRITE_CONTRACT_BASELINE");
         RewriteValidationRunVO run = new RewriteValidationRunVO();
@@ -76,7 +80,11 @@ class SqlRewriteRecordControllerTest {
 
         mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/rewrite-records/rewrite-001")))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.manualReviewRequired").value(true));
+            .andExpect(jsonPath("$.manualReviewRequired").value(true))
+            .andExpect(jsonPath("$.reviewStatus").value("PENDING_REVIEW"))
+            .andExpect(jsonPath("$.publishStatus").value("UNPUBLISHED"))
+            .andExpect(jsonPath("$.runtimeBindingId").value("binding-001"))
+            .andExpect(jsonPath("$.runtimeRuleVersion").value("rule-v1"));
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/validation-runs"))
                 .contentType(MediaType.APPLICATION_JSON)

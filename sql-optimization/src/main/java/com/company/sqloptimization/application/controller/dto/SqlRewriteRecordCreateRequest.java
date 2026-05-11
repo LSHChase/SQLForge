@@ -4,8 +4,11 @@ import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.domain.governance.RewriteAlertStatus;
+import com.company.sqloptimization.domain.governance.RewritePublishStatus;
 import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
+import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import javax.validation.constraints.NotBlank;
@@ -37,6 +40,17 @@ public class SqlRewriteRecordCreateRequest {
     private RewriteValidationStatus validationStatus;
     private Boolean autoApplyAllowed;
     private Boolean manualReviewRequired;
+    private RewriteReviewStatus reviewStatus;
+    private String reviewNote;
+    private String reviewedBy;
+    private Instant reviewedAt;
+    private RewritePublishStatus publishStatus;
+    private String runtimeBindingId;
+    private Instant runtimeBindingAt;
+    private String runtimeBindingBy;
+    private String runtimeBindingScope;
+    private String publishedSqlFingerprint;
+    private String runtimeRuleVersion;
     private String validationPolicyId;
     private RewriteAlertStatus alertStatus;
 
@@ -82,6 +96,28 @@ public class SqlRewriteRecordCreateRequest {
     public void setAutoApplyAllowed(Boolean autoApplyAllowed) { this.autoApplyAllowed = autoApplyAllowed; }
     public Boolean getManualReviewRequired() { return manualReviewRequired; }
     public void setManualReviewRequired(Boolean manualReviewRequired) { this.manualReviewRequired = manualReviewRequired; }
+    public RewriteReviewStatus getReviewStatus() { return reviewStatus; }
+    public void setReviewStatus(RewriteReviewStatus reviewStatus) { this.reviewStatus = reviewStatus; }
+    public String getReviewNote() { return reviewNote; }
+    public void setReviewNote(String reviewNote) { this.reviewNote = reviewNote; }
+    public String getReviewedBy() { return reviewedBy; }
+    public void setReviewedBy(String reviewedBy) { this.reviewedBy = reviewedBy; }
+    public Instant getReviewedAt() { return reviewedAt; }
+    public void setReviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; }
+    public RewritePublishStatus getPublishStatus() { return publishStatus; }
+    public void setPublishStatus(RewritePublishStatus publishStatus) { this.publishStatus = publishStatus; }
+    public String getRuntimeBindingId() { return runtimeBindingId; }
+    public void setRuntimeBindingId(String runtimeBindingId) { this.runtimeBindingId = runtimeBindingId; }
+    public Instant getRuntimeBindingAt() { return runtimeBindingAt; }
+    public void setRuntimeBindingAt(Instant runtimeBindingAt) { this.runtimeBindingAt = runtimeBindingAt; }
+    public String getRuntimeBindingBy() { return runtimeBindingBy; }
+    public void setRuntimeBindingBy(String runtimeBindingBy) { this.runtimeBindingBy = runtimeBindingBy; }
+    public String getRuntimeBindingScope() { return runtimeBindingScope; }
+    public void setRuntimeBindingScope(String runtimeBindingScope) { this.runtimeBindingScope = runtimeBindingScope; }
+    public String getPublishedSqlFingerprint() { return publishedSqlFingerprint; }
+    public void setPublishedSqlFingerprint(String publishedSqlFingerprint) { this.publishedSqlFingerprint = publishedSqlFingerprint; }
+    public String getRuntimeRuleVersion() { return runtimeRuleVersion; }
+    public void setRuntimeRuleVersion(String runtimeRuleVersion) { this.runtimeRuleVersion = runtimeRuleVersion; }
     public String getValidationPolicyId() { return validationPolicyId; }
     public void setValidationPolicyId(String validationPolicyId) { this.validationPolicyId = validationPolicyId; }
     public RewriteAlertStatus getAlertStatus() { return alertStatus; }

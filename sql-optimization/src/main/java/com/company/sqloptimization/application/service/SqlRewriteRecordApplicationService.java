@@ -77,6 +77,17 @@ public class SqlRewriteRecordApplicationService {
             .validationStatus(request.getValidationStatus())
             .autoApplyAllowed(Boolean.TRUE.equals(request.getAutoApplyAllowed()))
             .manualReviewRequired(Boolean.TRUE.equals(request.getManualReviewRequired()))
+            .reviewStatus(request.getReviewStatus())
+            .reviewNote(trimToNull(request.getReviewNote()))
+            .reviewedBy(trimToNull(request.getReviewedBy()))
+            .reviewedAt(request.getReviewedAt())
+            .publishStatus(request.getPublishStatus())
+            .runtimeBindingId(trimToNull(request.getRuntimeBindingId()))
+            .runtimeBindingAt(request.getRuntimeBindingAt())
+            .runtimeBindingBy(trimToNull(request.getRuntimeBindingBy()))
+            .runtimeBindingScope(trimToNull(request.getRuntimeBindingScope()))
+            .publishedSqlFingerprint(trimToNull(request.getPublishedSqlFingerprint()))
+            .runtimeRuleVersion(trimToNull(request.getRuntimeRuleVersion()))
             .validationPolicyId(trimToNull(request.getValidationPolicyId()))
             .alertStatus(request.getAlertStatus())
             .originalSqlText(trimToNull(request.getOriginalSqlText()))
@@ -365,6 +376,17 @@ public class SqlRewriteRecordApplicationService {
         vo.setValidationStatus(record.getValidationStatus().name());
         vo.setAutoApplyAllowed(Boolean.valueOf(record.isAutoApplyAllowed()));
         vo.setManualReviewRequired(Boolean.valueOf(record.isManualReviewRequired()));
+        vo.setReviewStatus(record.getReviewStatus().name());
+        vo.setReviewNote(record.getReviewNote());
+        vo.setReviewedBy(record.getReviewedBy());
+        vo.setReviewedAt(record.getReviewedAt());
+        vo.setPublishStatus(record.getPublishStatus().name());
+        vo.setRuntimeBindingId(record.getRuntimeBindingId());
+        vo.setRuntimeBindingAt(record.getRuntimeBindingAt());
+        vo.setRuntimeBindingBy(record.getRuntimeBindingBy());
+        vo.setRuntimeBindingScope(record.getRuntimeBindingScope());
+        vo.setPublishedSqlFingerprint(record.getPublishedSqlFingerprint());
+        vo.setRuntimeRuleVersion(record.getRuntimeRuleVersion());
         vo.setValidationPolicyId(record.getValidationPolicyId());
         vo.setLastValidationRunId(record.getLastValidationRunId());
         vo.setLastComparedAt(record.getLastComparedAt());
