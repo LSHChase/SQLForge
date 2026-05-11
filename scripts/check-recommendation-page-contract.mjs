@@ -10,19 +10,37 @@ const targets = [
       'data-testid="recommendation-dispatch-contract"',
       'data-testid="recommendation-dispatch-event"',
       'data-testid="recommendation-trace-refs"',
+      'data-testid="recommendation-review-guard"',
+      'data-testid="recommendation-sql-diff"',
+      'data-testid="recommendation-text-diff"',
+      'data-testid="recommendation-ast-summary-diff"',
+      'data-testid="recommendation-rule-diff"',
+      'data-testid="recommendation-rule-chain"',
+      'data-testid="recommendation-preconditions"',
+      'data-testid="recommendation-semantic-risks"',
+      'data-testid="recommendation-unapplied-rules"',
       'coordinationMode',
       'PULL_ONLY',
       'dispatchEvents',
       'benefitLevel',
       'riskLevel',
       'recommendedSqlText',
-      'logicalObjectKey'
+      'logicalObjectKey',
+      'getRecommendationDiff',
+      'textDiff',
+      'astSummaryDiff',
+      'ruleChain',
+      'preconditions',
+      'semanticRisks',
+      'unappliedRules',
+      'manualReviewRequired'
     ]
   },
   {
     path: 'src/services/runtimeGateApi.js',
     tokens: [
       'getRecommendations',
+      'getRecommendationDiff',
       'getRecommendationTrace',
       'getDispatchContract',
       'getDispatchEvents'

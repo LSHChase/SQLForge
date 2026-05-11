@@ -11,15 +11,6 @@
 
 ## Todo
 
-### HARN-139: 推荐中心 SQL diff 与规则详情
-
-- Status: todo
-- Priority: 1
-- Depends on: `HARN-132`, `HARN-114`
-- Scope: 推荐详情接入 diff 视图、ruleChain、risk、precondition、unappliedRules 和人工复核标识；前后 SQL 必须能对比差异。
-- Validation:
-  - `python3 scripts/foreman.py validate HARN-139`
-
 ### HARN-140: SQL 历史改写记录 tab 与筛选
 
 - Status: todo

@@ -4,6 +4,22 @@
 
 ## Done
 
+### HARN-139: 推荐中心 SQL diff 与规则详情
+
+- Status: done
+- Completed at: 2026-05-10
+- Commit subject: `feat(frontend): wire recommendation diff details`
+- Priority: 1
+- Depends on: `HARN-132`, `HARN-114`
+- Scope: 推荐详情接入 diff 视图、ruleChain、risk、precondition、unappliedRules 和人工复核标识；前后 SQL 必须能对比差异。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-139`
+- Context closeout:
+  - Completed scope: Implemented HARN-139 recommendation-center SQL diff and rule detail surface: recommendation diff API loading, SQL Diff tab with textDiff/AST/diff summary evidence, Rules & Risk tab with ruleChain/preconditions/semanticRisks/unappliedRules, manual review and high-risk guard, i18n copy, and recommendation page contract updates. No backend API, persistence, SQL execution, or auto-apply behavior was changed.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-139 --include-task-audit --extra-command 'node scripts/check-recommendation-page-contract.mjs' --extra-command 'npm run test:sql-ui-contract' --extra-command 'npm run test:frontend-page-governance'; npm run lint; npm run build; npm run test:sql-ui-contract; npm run test:frontend-page-governance; node scripts/check-recommendation-page-contract.mjs; git diff --check; R-186 screenshots .codex-log/harn-139/after-diff-desktop.png, after-rules-desktop.png, after-rules-narrow.png; Codex visual self-review passed after fixing narrow rule-row overflow, no overlap or hidden risk marker remains.
+  - Residual risk: Browser visual evidence used mocked repo-closed recommendation/diff payloads rather than a live Hetu/MRS environment; live external environment evidence remains outside HARN-139 and continues under HARN-016/INBOX-002.
+  - Next step: Proceed to HARN-140 SQL history rewrite-record tab and filters, preserving HARN-139 diff/rule/manual-review evidence contracts.
+
 ### HARN-138: 工作台候选、计划审批与应用验证 tabs
 
 - Status: done

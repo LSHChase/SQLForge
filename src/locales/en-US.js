@@ -1168,20 +1168,55 @@ export default {
       expectedGain: 'Expected gain',
       riskSummary: 'Risk summary',
       reason: 'Reason',
-      sourceSql: 'Source SQL'
+      sourceSql: 'Source SQL',
+      originalSql: 'Original SQL',
+      recommendedSql: 'Recommended SQL',
+      validationMethod: 'Validation method',
+      validationStatus: 'Validation status',
+      manualReviewRequired: 'Manual review required',
+      autoApplyAllowed: 'Auto apply allowed',
+      diffStatus: 'Diff status',
+      sourceType: 'sourceType',
+      sourceKind: 'sourceKind',
+      sourceId: 'sourceId',
+      evidenceLevel: 'evidenceLevel',
+      sqlFingerprint: 'sqlFingerprint',
+      changeCount: 'Change count',
+      ruleDiffCount: 'Rule diff count',
+      writesBackRecommendation: 'Writes back recommendation',
+      evidenceBoundary: 'Evidence boundary',
+      hunk: 'Diff hunk'
     },
     states: {
       selectRecommendation: 'Select a recommendation to inspect its detail.',
       loadingDetail: 'Loading recommendation detail…',
       emptyDetail: 'No recommendation is available to display yet.',
+      emptyDiff: 'This recommendation has not returned SQL diff evidence yet.',
+      noDiffHunks: 'The original and recommended SQL text have no displayable difference.',
+      noRuleEvidence: 'No rule evidence is available for this recommendation.',
       waitingCallback: 'Waiting for an external callback.'
     },
     tabs: {
       summary: 'Summary',
       sqlEvidence: 'SQL evidence',
+      sqlDiff: 'SQL diff',
+      rulesRisk: 'Rules and risk',
       dispatchContract: 'Dispatch contract',
       traceability: 'Traceability',
       dispatchEvents: 'Dispatch events'
+    },
+    sections: {
+      textDiff: 'Text diff',
+      astSummary: 'AST summary diff',
+      ruleDiff: 'Rule-level diff',
+      ruleChain: 'ruleChain',
+      preconditions: 'preconditions',
+      semanticRisks: 'semanticRisks',
+      unappliedRules: 'unappliedRules'
+    },
+    reviewGuard: {
+      eyebrow: 'manual review',
+      title: 'Review risk and diff evidence first'
     },
     dispatch: {
       boundary: 'The current collaboration boundary is fixed at coordinationMode=PULL_ONLY: external modules own real data loading, prewarm execution, and storage changes while SQLForge keeps recommendation plus dispatch callback evidence only.'

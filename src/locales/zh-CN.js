@@ -1152,20 +1152,55 @@ export default {
       expectedGain: '预期收益',
       riskSummary: '风险摘要',
       reason: '推荐原因',
-      sourceSql: '源 SQL'
+      sourceSql: '源 SQL',
+      originalSql: '原 SQL',
+      recommendedSql: '推荐 SQL',
+      validationMethod: '验证方法',
+      validationStatus: '验证状态',
+      manualReviewRequired: '需要人工复核',
+      autoApplyAllowed: '允许自动应用',
+      diffStatus: 'Diff 状态',
+      sourceType: '来源类型',
+      sourceKind: '来源种类',
+      sourceId: '来源 ID',
+      evidenceLevel: '证据等级',
+      sqlFingerprint: 'SQL 指纹',
+      changeCount: '差异数',
+      ruleDiffCount: '规则差异数',
+      writesBackRecommendation: '写回推荐',
+      evidenceBoundary: '证据边界',
+      hunk: '差异片段'
     },
     states: {
       selectRecommendation: '选择一个 recommendation 查看详情。',
       loadingDetail: '正在加载推荐详情…',
       emptyDetail: '当前没有可展示的 recommendation。',
+      emptyDiff: '当前推荐尚未返回 SQL diff 证据。',
+      noDiffHunks: '原 SQL 与推荐 SQL 文本没有可展示差异。',
+      noRuleEvidence: '当前没有可展示的规则证据。',
       waitingCallback: '等待外部回执。'
     },
     tabs: {
       summary: '摘要',
       sqlEvidence: 'SQL 证据',
+      sqlDiff: 'SQL 差异',
+      rulesRisk: '规则与风险',
       dispatchContract: 'Dispatch 契约',
       traceability: '追溯链',
       dispatchEvents: 'Dispatch 事件'
+    },
+    sections: {
+      textDiff: '文本差异',
+      astSummary: 'AST 摘要差异',
+      ruleDiff: '规则级 diff',
+      ruleChain: '规则链 ruleChain',
+      preconditions: '前置条件 preconditions',
+      semanticRisks: '语义风险 semanticRisks',
+      unappliedRules: '未应用规则 unappliedRules'
+    },
+    reviewGuard: {
+      eyebrow: '人工复核',
+      title: '风险与 diff 证据必须先复核'
     },
     dispatch: {
       boundary: '当前协同边界固定为 coordinationMode=PULL_ONLY：外部模块负责真实装数、预热执行和底层变更，SQLForge 只保留推荐与 dispatch 回执审计。'

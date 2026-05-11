@@ -8,6 +8,7 @@ import {
   getDispatchContract,
   getDispatchEvents,
   getRecommendationDetail,
+  getRecommendationDiff,
   getRecommendations,
   getRecommendationTrace
 } from '../../services/runtimeGateApi'
@@ -33,12 +34,15 @@ const dispatchContract = ref(null)
 const dispatchEvents = ref([])
 const selectedRecommendationId = ref('')
 const selectedRecommendation = ref(null)
+const recommendationDiff = ref(null)
 const recommendationTrace = ref(null)
 const errorMessage = ref('')
+const diffErrorMessage = ref('')
 const activeDetailTab = ref('summary')
+const selectedRuleDiffId = ref('')
 
 
-// Static contract tokens: recommendation detail, coordinationMode, PULL_ONLY, dispatchEvents, benefitLevel, riskLevel, recommendedSqlText, logicalObjectKey.
+// Static contract tokens: recommendation detail, coordinationMode, PULL_ONLY, dispatchEvents, benefitLevel, riskLevel, recommendedSqlText, logicalObjectKey, textDiff, astSummaryDiff, ruleChain, preconditions, semanticRisks, unappliedRules, manualReviewRequired.
 
 const filterOptions = computed(() => {
   const counts = {
@@ -103,11 +107,75 @@ const summaryCards = computed(() => {
     field('status', 'Status', recommendation.status),
     field('benefitLevel', 'benefitLevel', recommendation.benefitLevel),
     field('riskLevel', 'riskLevel', recommendation.riskLevel),
+    field('validationStatus', t('recommendationCenter.fields.validationStatus'), recommendation.validationStatus),
+    field('manualReviewRequired', t('recommendationCenter.fields.manualReviewRequired'), boolText(recommendation.manualReviewRequired)),
+    field('autoApplyAllowed', t('recommendationCenter.fields.autoApplyAllowed'), boolText(recommendation.autoApplyAllowed)),
     field('targetEngine', t('inline.viewsRecommendationCenterRecommendationCenterView.text006'), recommendation.targetEngine),
     field('targetDatasource', t('inline.viewsRecommendationCenterRecommendationCenterView.text007'), recommendation.targetDatasource),
     field('requiresDispatch', t('inline.viewsRecommendationCenterRecommendationCenterView.text008'), boolText(recommendation.requiresDispatch)),
     field('logicalObjectKey', 'logicalObjectKey', recommendation.logicalObjectKey)
   ]
+})
+
+const diffSummaryCards = computed(() => {
+  const diff = recommendationDiff.value
+  const summary = diff?.diffSummary || {}
+  if (!diff) {
+    return []
+  }
+  return [
+    field('diffStatus', t('recommendationCenter.fields.diffStatus'), diff.diffStatus || summary.diffStatus),
+    field('sourceType', t('recommendationCenter.fields.sourceType'), diff.sourceType),
+    field('sourceKind', t('recommendationCenter.fields.sourceKind'), diff.sourceKind),
+    field('sourceId', t('recommendationCenter.fields.sourceId'), diff.sourceId),
+    field('evidenceLevel', t('recommendationCenter.fields.evidenceLevel'), diff.evidenceLevel),
+    field('sqlFingerprint', t('recommendationCenter.fields.sqlFingerprint'), diff.sqlFingerprint),
+    field('changeCount', t('recommendationCenter.fields.changeCount'), summary.changeCount),
+    field('ruleDiffCount', t('recommendationCenter.fields.ruleDiffCount'), summary.ruleDiffCount),
+    field('manualReviewRequired', t('recommendationCenter.fields.manualReviewRequired'), boolText(summary.manualReviewRequired)),
+    field('autoApplyAllowed', t('recommendationCenter.fields.autoApplyAllowed'), boolText(summary.autoApplyAllowed)),
+    field('writesBackRecommendation', t('recommendationCenter.fields.writesBackRecommendation'), boolText(summary.writesBackRecommendation)),
+    field('evidenceBoundary', t('recommendationCenter.fields.evidenceBoundary'), summary.evidenceBoundary)
+  ]
+})
+
+const reviewGuardCards = computed(() => {
+  const recommendation = selectedRecommendation.value
+  const summary = recommendationDiff.value?.diffSummary || {}
+  if (!recommendation) {
+    return []
+  }
+  return [
+    field('riskLevel', 'riskLevel', recommendation.riskLevel),
+    field('riskSummary', t('recommendationCenter.fields.riskSummary'), recommendation.riskSummary),
+    field('validationMethod', t('recommendationCenter.fields.validationMethod'), recommendation.validationMethod),
+    field('validationStatus', t('recommendationCenter.fields.validationStatus'), recommendation.validationStatus),
+    field('manualReviewRequired', t('recommendationCenter.fields.manualReviewRequired'), boolText(firstDefined(recommendation.manualReviewRequired, summary.manualReviewRequired))),
+    field('autoApplyAllowed', t('recommendationCenter.fields.autoApplyAllowed'), boolText(firstDefined(recommendation.autoApplyAllowed, summary.autoApplyAllowed))),
+    field('diffBoundary', t('recommendationCenter.fields.evidenceBoundary'), summary.evidenceBoundary)
+  ]
+})
+
+const textDiffRows = computed(() => normalizeArray(recommendationDiff.value?.textDiff))
+const ruleDiffRows = computed(() => normalizeArray(recommendationDiff.value?.ruleDiff))
+const ruleChainRows = computed(() => normalizeArray(selectedRecommendation.value?.ruleChain))
+const preconditionRows = computed(() => normalizeArray(selectedRecommendation.value?.preconditions))
+const semanticRiskRows = computed(() => normalizeArray(selectedRecommendation.value?.semanticRisks))
+const unappliedRuleRows = computed(() => normalizeArray(selectedRecommendation.value?.unappliedRules))
+
+const selectedRuleDiff = computed(() =>
+  ruleDiffRows.value.find(item => item.diffId === selectedRuleDiffId.value) || null
+)
+
+const highlightedHunkIds = computed(() => {
+  const ids = selectedRuleDiff.value?.textHunkIds
+  return Array.isArray(ids) ? ids.map(item => String(item)) : []
+})
+
+const requiresReviewGuard = computed(() => {
+  const riskLevel = String(selectedRecommendation.value?.riskLevel || '').toUpperCase()
+  const manualReview = selectedRecommendation.value?.manualReviewRequired || recommendationDiff.value?.diffSummary?.manualReviewRequired
+  return Boolean(manualReview) || ['HIGH', 'CRITICAL'].includes(riskLevel)
 })
 
 const traceabilityCards = computed(() => {
@@ -174,6 +242,7 @@ const refreshPage = async () => {
     } else {
       selectedRecommendationId.value = ''
       selectedRecommendation.value = null
+      recommendationDiff.value = null
       recommendationTrace.value = null
     }
   } catch (error) {
@@ -187,12 +256,17 @@ const loadRecommendation = async recommendationId => {
   if (!recommendationId) {
     selectedRecommendationId.value = ''
     selectedRecommendation.value = null
+    recommendationDiff.value = null
     recommendationTrace.value = null
+    diffErrorMessage.value = ''
     return
   }
 
   loading.detail = true
   errorMessage.value = ''
+  diffErrorMessage.value = ''
+  recommendationDiff.value = null
+  selectedRuleDiffId.value = ''
   selectedRecommendationId.value = recommendationId
   try {
     const [detail, trace] = await Promise.all([
@@ -205,6 +279,13 @@ const loadRecommendation = async recommendationId => {
     ])
     selectedRecommendation.value = detail
     recommendationTrace.value = trace
+    try {
+      recommendationDiff.value = await getRecommendationDiff(form.tenantId, recommendationId, {
+        requestPrefix: 'frontend-recommendation-center-diff'
+      })
+    } catch (error) {
+      diffErrorMessage.value = formatRuntimeError(error)
+    }
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
@@ -291,6 +372,19 @@ const listText = value => {
     return value.join(' -> ')
   }
   return value
+}
+
+const normalizeArray = value => (Array.isArray(value) ? value : [])
+
+const firstDefined = (...values) => values.find(value => value !== null && value !== undefined)
+
+const evidenceField = (item, key) => displayValue(item?.[key])
+
+const hunkSelected = hunk => {
+  if (!highlightedHunkIds.value.length) {
+    return false
+  }
+  return highlightedHunkIds.value.includes(String(hunk?.hunkId || ''))
 }
 
 const formatJson = value => JSON.stringify(value, null, 2)
@@ -402,6 +496,17 @@ onMounted(() => {
         <template v-else>
           <el-tabs v-model="activeDetailTab" class="detail-tabs">
             <el-tab-pane :label="t('recommendationCenter.tabs.summary')" name="summary">
+              <div
+                v-if="requiresReviewGuard"
+                class="review-guard"
+                data-testid="recommendation-review-guard"
+              >
+                <div>
+                  <p class="section-kicker sqlforge-code-label">{{ t('recommendationCenter.reviewGuard.eyebrow') }}</p>
+                  <h3>{{ t('recommendationCenter.reviewGuard.title') }}</h3>
+                </div>
+                <span class="status-pill status-pill-warn">{{ t('recommendationCenter.fields.manualReviewRequired') }}</span>
+              </div>
               <dl class="description-grid">
                 <div v-for="item in summaryCards" :key="item.key" class="description-item">
                   <dt>{{ item.label }}</dt>
@@ -441,6 +546,172 @@ onMounted(() => {
                   data-testid="recommendation-recommended-sql"
                 />
               </div>
+            </el-tab-pane>
+
+            <el-tab-pane :label="t('recommendationCenter.tabs.sqlDiff')" name="sqlDiff">
+              <p v-if="diffErrorMessage" class="error-banner" data-testid="recommendation-diff-error">{{ diffErrorMessage }}</p>
+              <p v-if="!recommendationDiff && !diffErrorMessage" class="muted-copy">
+                {{ t('recommendationCenter.states.emptyDiff') }}
+              </p>
+              <template v-else-if="recommendationDiff">
+                <dl class="description-grid" data-testid="recommendation-sql-diff">
+                  <div v-for="item in diffSummaryCards" :key="item.key" class="description-item">
+                    <dt>{{ item.label }}</dt>
+                    <dd>{{ displayValue(item.value) }}</dd>
+                  </div>
+                </dl>
+
+                <div class="sql-grid sql-grid-spacious">
+                  <SqlCodeBlock
+                    :value="recommendationDiff.originalSql || selectedRecommendation.sourceSqlText || ''"
+                    :label="t('recommendationCenter.fields.originalSql')"
+                    :copy-label="t('common.actions.copy')"
+                    compact
+                  />
+                  <SqlCodeBlock
+                    :value="recommendationDiff.recommendedSql || selectedRecommendation.recommendedSqlText || ''"
+                    :label="t('recommendationCenter.fields.recommendedSql')"
+                    :copy-label="t('common.actions.copy')"
+                    compact
+                  />
+                </div>
+
+                <section class="evidence-group" data-testid="recommendation-text-diff">
+                  <div class="evidence-group-header">
+                    <h3>{{ t('recommendationCenter.sections.textDiff') }}</h3>
+                    <span class="mini-pill">{{ textDiffRows.length }}</span>
+                  </div>
+                  <p v-if="!textDiffRows.length" class="muted-copy">{{ t('recommendationCenter.states.noDiffHunks') }}</p>
+                  <article
+                    v-for="hunk in textDiffRows"
+                    :key="hunk.hunkId"
+                    class="diff-hunk"
+                    :class="{ 'diff-hunk-highlighted': hunkSelected(hunk) }"
+                  >
+                    <div class="recommendation-row-header">
+                      <div class="pill-row">
+                        <span class="mini-pill">{{ hunk.hunkId }}</span>
+                        <span class="mini-pill">{{ hunk.type }}</span>
+                        <span class="mini-pill">{{ hunk.granularity }}</span>
+                      </div>
+                      <span class="section-kicker sqlforge-code-label">
+                        {{ t('recommendationCenter.fields.hunk') }}
+                      </span>
+                    </div>
+                    <div class="diff-hunk-columns">
+                      <pre class="code-block code-block-compact">{{ displayValue(hunk.originalText) }}</pre>
+                      <pre class="code-block code-block-compact">{{ displayValue(hunk.recommendedText) }}</pre>
+                    </div>
+                  </article>
+                </section>
+
+                <section class="evidence-group" data-testid="recommendation-ast-summary-diff">
+                  <div class="evidence-group-header">
+                    <h3>{{ t('recommendationCenter.sections.astSummary') }}</h3>
+                    <span class="mini-pill">{{ displayValue(recommendationDiff.astSummaryDiff?.parseStatus) }}</span>
+                  </div>
+                  <pre class="code-block code-block-compact">{{ formatJson(recommendationDiff.astSummaryDiff || {}) }}</pre>
+                </section>
+              </template>
+            </el-tab-pane>
+
+            <el-tab-pane :label="t('recommendationCenter.tabs.rulesRisk')" name="rulesRisk">
+              <dl class="description-grid" data-testid="recommendation-rule-risk-summary">
+                <div v-for="item in reviewGuardCards" :key="item.key" class="description-item">
+                  <dt>{{ item.label }}</dt>
+                  <dd>{{ displayValue(item.value) }}</dd>
+                </div>
+              </dl>
+
+              <section class="evidence-group" data-testid="recommendation-rule-diff">
+                <div class="evidence-group-header">
+                  <h3>{{ t('recommendationCenter.sections.ruleDiff') }}</h3>
+                  <span class="mini-pill">{{ ruleDiffRows.length }}</span>
+                </div>
+                <p v-if="!ruleDiffRows.length" class="muted-copy">{{ t('recommendationCenter.states.noRuleEvidence') }}</p>
+                <button
+                  v-for="item in ruleDiffRows"
+                  :key="item.diffId"
+                  type="button"
+                  class="rule-evidence-row"
+                  :class="{ 'rule-evidence-row-active': selectedRuleDiffId === item.diffId }"
+                  @click="selectedRuleDiffId = item.diffId"
+                >
+                  <div class="recommendation-row-header">
+                    <div>
+                      <p class="section-kicker sqlforge-code-label">{{ item.sourceType }}</p>
+                      <h3>{{ displayValue(item.rule) }}</h3>
+                    </div>
+                    <span class="status-pill" :class="{ 'status-pill-warn': item.manualReviewRequired }">
+                      {{ displayValue(item.status) }}
+                    </span>
+                  </div>
+                  <div class="pill-row">
+                    <span class="mini-pill">{{ displayValue(item.level) }}</span>
+                    <span class="mini-pill">{{ displayValue(item.highlightStatus) }}</span>
+                    <span class="mini-pill">{{ t('recommendationCenter.fields.manualReviewRequired') }} {{ boolText(item.manualReviewRequired) }}</span>
+                  </div>
+                </button>
+              </section>
+
+              <section class="evidence-group" data-testid="recommendation-rule-chain">
+                <div class="evidence-group-header">
+                  <h3>{{ t('recommendationCenter.sections.ruleChain') }}</h3>
+                  <span class="mini-pill">{{ ruleChainRows.length }}</span>
+                </div>
+                <p v-if="!ruleChainRows.length" class="muted-copy">{{ t('recommendationCenter.states.noRuleEvidence') }}</p>
+                <article v-for="(item, index) in ruleChainRows" :key="`rule-${index}`" class="evidence-row">
+                  <div class="pill-row">
+                    <span class="mini-pill">rule {{ evidenceField(item, 'rule') }}</span>
+                    <span class="mini-pill">level {{ evidenceField(item, 'level') }}</span>
+                    <span class="mini-pill">status {{ evidenceField(item, 'status') }}</span>
+                  </div>
+                  <pre class="code-block code-block-compact">{{ formatJson(item) }}</pre>
+                </article>
+              </section>
+
+              <section class="evidence-group" data-testid="recommendation-preconditions">
+                <div class="evidence-group-header">
+                  <h3>{{ t('recommendationCenter.sections.preconditions') }}</h3>
+                  <span class="mini-pill">{{ preconditionRows.length }}</span>
+                </div>
+                <p v-if="!preconditionRows.length" class="muted-copy">{{ t('recommendationCenter.states.noRuleEvidence') }}</p>
+                <article v-for="(item, index) in preconditionRows" :key="`precondition-${index}`" class="evidence-row">
+                  <pre class="code-block code-block-compact">{{ formatJson(item) }}</pre>
+                </article>
+              </section>
+
+              <section class="evidence-group" data-testid="recommendation-semantic-risks">
+                <div class="evidence-group-header">
+                  <h3>{{ t('recommendationCenter.sections.semanticRisks') }}</h3>
+                  <span class="mini-pill">{{ semanticRiskRows.length }}</span>
+                </div>
+                <p v-if="!semanticRiskRows.length" class="muted-copy">{{ t('recommendationCenter.states.noRuleEvidence') }}</p>
+                <article v-for="(item, index) in semanticRiskRows" :key="`risk-${index}`" class="evidence-row">
+                  <div class="pill-row">
+                    <span class="mini-pill">rule {{ evidenceField(item, 'rule') }}</span>
+                    <span class="mini-pill">severity {{ evidenceField(item, 'severity') }}</span>
+                    <span class="mini-pill">category {{ evidenceField(item, 'category') }}</span>
+                  </div>
+                  <pre class="code-block code-block-compact">{{ formatJson(item) }}</pre>
+                </article>
+              </section>
+
+              <section class="evidence-group" data-testid="recommendation-unapplied-rules">
+                <div class="evidence-group-header">
+                  <h3>{{ t('recommendationCenter.sections.unappliedRules') }}</h3>
+                  <span class="mini-pill">{{ unappliedRuleRows.length }}</span>
+                </div>
+                <p v-if="!unappliedRuleRows.length" class="muted-copy">{{ t('recommendationCenter.states.noRuleEvidence') }}</p>
+                <article v-for="(item, index) in unappliedRuleRows" :key="`unapplied-${index}`" class="evidence-row">
+                  <div class="pill-row">
+                    <span class="mini-pill">rule {{ evidenceField(item, 'rule') }}</span>
+                    <span class="mini-pill">reason {{ evidenceField(item, 'reason') }}</span>
+                    <span class="mini-pill">{{ t('recommendationCenter.fields.manualReviewRequired') }} true</span>
+                  </div>
+                  <pre class="code-block code-block-compact">{{ formatJson(item) }}</pre>
+                </article>
+              </section>
             </el-tab-pane>
 
             <el-tab-pane :label="t('recommendationCenter.tabs.dispatchContract')" name="dispatchContract">
@@ -522,6 +793,7 @@ onMounted(() => {
 
 .recommendation-row-header h3 {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .muted-copy,
@@ -558,7 +830,8 @@ onMounted(() => {
 }
 
 .filter-chip,
-.recommendation-row {
+.recommendation-row,
+.rule-evidence-row {
   cursor: pointer;
 }
 
@@ -587,6 +860,11 @@ onMounted(() => {
 .recommendation-row,
 .dispatch-event-row,
 .traceability-group,
+.review-guard,
+.evidence-group,
+.evidence-row,
+.diff-hunk,
+.rule-evidence-row,
 .description-item {
   padding: 16px;
   border: 1px solid var(--sqlforge-border-default);
@@ -594,23 +872,51 @@ onMounted(() => {
   background: rgba(35, 35, 35, 0.72);
 }
 
-.recommendation-row {
+.recommendation-row,
+.rule-evidence-row {
   display: flex;
   flex-direction: column;
   gap: 10px;
   text-align: left;
 }
 
+.rule-evidence-row {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+}
+
 .recommendation-row-active {
   border-color: var(--sqlforge-color-brand-border);
 }
 
+.rule-evidence-row-active,
+.diff-hunk-highlighted {
+  border-color: var(--sqlforge-color-brand-border);
+  background: rgba(62, 207, 142, 0.08);
+}
+
 .recommendation-row-header,
-.pane-actions {
+.pane-actions,
+.review-guard,
+.evidence-group-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.recommendation-row-header > div,
+.evidence-group-header > div {
+  min-width: 0;
+}
+
+.review-guard h3,
+.evidence-group h3,
+.rule-evidence-row h3 {
+  margin: 0;
 }
 
 .filter-chip,
@@ -625,6 +931,10 @@ onMounted(() => {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .filter-chip {
@@ -661,8 +971,30 @@ onMounted(() => {
   margin-top: var(--sqlforge-space-4);
 }
 
+.detail-tabs :deep(.el-tab-pane) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sqlforge-space-4);
+}
+
 .sql-grid {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.sql-grid-spacious {
+  margin-top: var(--sqlforge-space-2);
+}
+
+.evidence-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.diff-hunk-columns {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .description-item {
