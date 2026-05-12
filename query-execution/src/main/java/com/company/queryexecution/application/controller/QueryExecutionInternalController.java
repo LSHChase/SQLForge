@@ -1,11 +1,16 @@
 package com.company.queryexecution.application.controller;
 
+import com.company.queryexecution.application.controller.dto.RuntimeRewriteBindingPublishRequest;
+import com.company.queryexecution.application.controller.dto.RuntimeRewriteBindingResolveRequest;
+import com.company.queryexecution.application.controller.dto.RuntimeRewriteBindingResponse;
+import com.company.queryexecution.application.controller.dto.RuntimeRewriteBindingStateChangeRequest;
 import com.company.queryexecution.application.controller.vo.HetuRouteCalibrationResponse;
 import com.company.queryexecution.application.service.HetuRouteCalibrationService;
-import com.company.queryexecution.application.service.QueryExecutionBenchmarkWorkloadService;
 import com.company.queryexecution.application.service.QueryExecutionAccelerationRuntimeService;
+import com.company.queryexecution.application.service.QueryExecutionBenchmarkWorkloadService;
 import com.company.queryexecution.application.service.QueryExecutionCacheGovernanceRuntimeService;
 import com.company.queryexecution.application.service.QueryExecutionResultDigestService;
+import com.company.queryexecution.application.service.QueryExecutionRuntimeRewriteBindingService;
 import com.company.queryexecution.domain.query.HetuRouteCalibrationSnapshot;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanApplyRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanResponse;
@@ -36,17 +41,20 @@ public class QueryExecutionInternalController {
     private final QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService;
     private final HetuRouteCalibrationService hetuRouteCalibrationService;
     private final QueryExecutionResultDigestService queryExecutionResultDigestService;
+    private final QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService;
 
     public QueryExecutionInternalController(QueryExecutionBenchmarkWorkloadService queryExecutionBenchmarkWorkloadService,
                                             QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService,
                                             QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService,
                                             HetuRouteCalibrationService hetuRouteCalibrationService,
-                                            QueryExecutionResultDigestService queryExecutionResultDigestService) {
+                                            QueryExecutionResultDigestService queryExecutionResultDigestService,
+                                            QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService) {
         this.queryExecutionBenchmarkWorkloadService = queryExecutionBenchmarkWorkloadService;
         this.queryExecutionAccelerationRuntimeService = queryExecutionAccelerationRuntimeService;
         this.queryExecutionCacheGovernanceRuntimeService = queryExecutionCacheGovernanceRuntimeService;
         this.hetuRouteCalibrationService = hetuRouteCalibrationService;
         this.queryExecutionResultDigestService = queryExecutionResultDigestService;
+        this.queryExecutionRuntimeRewriteBindingService = queryExecutionRuntimeRewriteBindingService;
     }
 
     @PostMapping("/benchmark/workload/capture")
@@ -57,6 +65,34 @@ public class QueryExecutionInternalController {
     @PostMapping("/result-digests/execute")
     public QueryExecutionResultDigestResponse executeResultDigest(@RequestBody QueryExecutionResultDigestRequest request) {
         return queryExecutionResultDigestService.executeDigest(request);
+    }
+
+    @PostMapping("/rewrite-bindings/publish")
+    public RuntimeRewriteBindingResponse publishRuntimeRewriteBinding(
+        @RequestBody RuntimeRewriteBindingPublishRequest request
+    ) {
+        return queryExecutionRuntimeRewriteBindingService.publish(request);
+    }
+
+    @PostMapping("/rewrite-bindings/resolve-active")
+    public RuntimeRewriteBindingResponse resolveActiveRuntimeRewriteBinding(
+        @RequestBody RuntimeRewriteBindingResolveRequest request
+    ) {
+        return queryExecutionRuntimeRewriteBindingService.resolveActive(request);
+    }
+
+    @PostMapping("/rewrite-bindings/pause")
+    public RuntimeRewriteBindingResponse pauseRuntimeRewriteBinding(
+        @RequestBody RuntimeRewriteBindingStateChangeRequest request
+    ) {
+        return queryExecutionRuntimeRewriteBindingService.pause(request);
+    }
+
+    @PostMapping("/rewrite-bindings/unpublish")
+    public RuntimeRewriteBindingResponse unpublishRuntimeRewriteBinding(
+        @RequestBody RuntimeRewriteBindingStateChangeRequest request
+    ) {
+        return queryExecutionRuntimeRewriteBindingService.unpublish(request);
     }
 
     @GetMapping("/hetu/route-calibration")

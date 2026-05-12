@@ -9,12 +9,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.company.queryexecution.application.controller.dto.RuntimeRewriteBindingResponse;
 import com.company.queryexecution.application.interceptor.AuthInterceptor;
 import com.company.queryexecution.application.service.HetuRouteCalibrationService;
 import com.company.queryexecution.application.service.QueryExecutionAccelerationRuntimeService;
 import com.company.queryexecution.application.service.QueryExecutionBenchmarkWorkloadService;
 import com.company.queryexecution.application.service.QueryExecutionCacheGovernanceRuntimeService;
 import com.company.queryexecution.application.service.QueryExecutionResultDigestService;
+import com.company.queryexecution.application.service.QueryExecutionRuntimeRewriteBindingService;
 import com.company.queryexecution.config.AuthProperties;
 import com.company.queryexecution.config.WebMvcConfig;
 import com.company.queryexecution.domain.query.HetuClusterEvidenceSnapshot;
@@ -65,6 +67,9 @@ class QueryExecutionInternalControllerTest {
 
     @MockBean
     private QueryExecutionResultDigestService queryExecutionResultDigestService;
+
+    @MockBean
+    private QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService;
 
     @Test
     void shouldReturnBenchmarkWorkloadSnapshot() throws Exception {
@@ -202,6 +207,48 @@ class QueryExecutionInternalControllerTest {
             .andExpect(jsonPath("$.implementationStage").value("READONLY_RESULT_DIGEST_BASELINE"));
 
         verify(queryExecutionResultDigestService).executeDigest(any());
+    }
+
+    @Test
+    void shouldPublishRuntimeRewriteBindingThroughInternalEndpoint() throws Exception {
+        RuntimeRewriteBindingResponse response = new RuntimeRewriteBindingResponse();
+        response.setTenantId("tenant-a");
+        response.setRuntimeBindingId("rwb-001");
+        response.setRewriteRecordId("rewrite-001");
+        response.setSqlFingerprint("fp-001");
+        response.setDatasourceCode("hetu_main");
+        response.setStatus("ACTIVE");
+        response.setActive(true);
+        response.setRuleVersion(Long.valueOf(1));
+        response.setRuntimeRuleVersion("runtime-rewrite-v1");
+        response.setRuntimeSummary("Runtime rewrite binding is active for production auto rewrite lookup.");
+        response.setRuntimeDetailsJson("{\"bindingState\":\"ACTIVE\"}");
+        response.setContractStage("LONG_TERM_BASELINE");
+        response.setImplementationStage("RUNTIME_REWRITE_BINDING_DB_BASELINE");
+        when(queryExecutionRuntimeRewriteBindingService.publish(any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/query-execution/internal/rewrite-bindings/publish")
+                .header("X-Tenant-Id", "tenant-a")
+                .header("X-User-Id", "service-user")
+                .header("X-Role-Codes", "SERVICE")
+                .header("X-Request-Id", "request-006")
+                .header("X-Trace-Id", "trace-006")
+                .header("X-Auth-Source", "header")
+                .header("X-Issued-At", "1713700000000")
+                .header("X-Expires-At", "2713700000000")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"rewriteRecordId\":\"rewrite-001\","
+                    + "\"sourceType\":\"QUERY\",\"sourceKind\":\"QUERY_HISTORY\",\"sourceId\":\"history-001\","
+                    + "\"sqlFingerprint\":\"fp-001\",\"originalSqlDigest\":\"digest-001\","
+                    + "\"recommendedSqlText\":\"SELECT id FROM orders\",\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.runtimeBindingId").value("rwb-001"))
+            .andExpect(jsonPath("$.status").value("ACTIVE"))
+            .andExpect(jsonPath("$.active").value(true))
+            .andExpect(jsonPath("$.runtimeRuleVersion").value("runtime-rewrite-v1"))
+            .andExpect(jsonPath("$.implementationStage").value("RUNTIME_REWRITE_BINDING_DB_BASELINE"));
+
+        verify(queryExecutionRuntimeRewriteBindingService).publish(any());
     }
 
     @Test

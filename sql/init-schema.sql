@@ -1006,6 +1006,41 @@ CREATE TABLE IF NOT EXISTS rewrite_validation_run (
   KEY idx_validation_run_fingerprint (tenant_id, sql_fingerprint)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Governed SQL rewrite validation run persistence';
 
+CREATE TABLE IF NOT EXISTS runtime_rewrite_binding (
+  runtime_binding_id VARCHAR(64) NOT NULL COMMENT 'Runtime rewrite binding identifier owned by query-execution',
+  tenant_id VARCHAR(64) NOT NULL COMMENT 'Owning tenant identifier',
+  rewrite_record_id VARCHAR(64) NOT NULL COMMENT 'Published sql_rewrite_record identifier',
+  recommendation_id VARCHAR(64) DEFAULT NULL COMMENT 'Related recommendation identifier',
+  source_type VARCHAR(32) NOT NULL COMMENT 'Rewrite source type such as PARSE or QUERY',
+  source_kind VARCHAR(64) NOT NULL COMMENT 'Rewrite source kind',
+  source_id VARCHAR(128) NOT NULL COMMENT 'Rewrite source object identifier',
+  sql_fingerprint VARCHAR(128) NOT NULL COMMENT 'Original SQL fingerprint used for runtime lookup',
+  original_sql_digest VARCHAR(128) NOT NULL COMMENT 'Original SQL digest or summary hash',
+  recommended_sql_text MEDIUMTEXT NOT NULL COMMENT 'Approved SQL text to apply when this binding is active',
+  datasource_code VARCHAR(128) NOT NULL COMMENT 'Runtime datasource or dialect evidence',
+  status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE' COMMENT 'ACTIVE/PAUSED/UNPUBLISHED runtime rewrite binding state',
+  rule_version BIGINT NOT NULL DEFAULT 1 COMMENT 'Monotonic runtime rule version per tenant and SQL fingerprint',
+  runtime_rule_version VARCHAR(64) NOT NULL COMMENT 'External runtime rule version returned to sql-optimization',
+  published_by VARCHAR(64) NOT NULL COMMENT 'Publishing operator or service principal',
+  published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Publish timestamp',
+  paused_by VARCHAR(64) DEFAULT NULL COMMENT 'Pausing operator or service principal',
+  paused_at DATETIME DEFAULT NULL COMMENT 'Pause timestamp',
+  pause_reason VARCHAR(512) DEFAULT NULL COMMENT 'Pause reason',
+  unpublished_by VARCHAR(64) DEFAULT NULL COMMENT 'Unpublishing operator or service principal',
+  unpublished_at DATETIME DEFAULT NULL COMMENT 'Unpublish timestamp',
+  unpublish_reason VARCHAR(512) DEFAULT NULL COMMENT 'Unpublish reason',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+  active_binding_key VARCHAR(320) GENERATED ALWAYS AS (
+    CASE WHEN status = 'ACTIVE' THEN CONCAT(tenant_id, '::', sql_fingerprint) ELSE NULL END
+  ) STORED,
+  PRIMARY KEY (runtime_binding_id),
+  UNIQUE KEY uk_runtime_rewrite_active_binding (active_binding_key),
+  KEY idx_runtime_rewrite_tenant_fingerprint (tenant_id, sql_fingerprint, status),
+  KEY idx_runtime_rewrite_record (tenant_id, rewrite_record_id),
+  KEY idx_runtime_rewrite_version (tenant_id, sql_fingerprint, rule_version)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Query-execution production runtime SQL rewrite binding truth';
+
 CREATE TABLE IF NOT EXISTS dispatch_event (
   dispatch_event_id VARCHAR(64) NOT NULL COMMENT 'Dispatch event identifier',
   tenant_id VARCHAR(64) NOT NULL COMMENT 'Owning tenant identifier',

@@ -21,6 +21,10 @@ logging:
     root: INFO
     com.company.queryexecution: INFO
 
+mybatis:
+  config-location: classpath:mybatis-config.xml
+  mapper-locations: classpath*:mapper/*.xml
+
 query-execution:
   safety:
     readonly-first: true

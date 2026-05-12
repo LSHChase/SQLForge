@@ -446,11 +446,14 @@
 | `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/publish` | `sql-optimization` | 在审批通过、等价验证通过、租户/指纹/来源证据完整且无未关闭差异暂停时，调用 `query-execution` 创建或更新运行时改写绑定。 |
 | `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/pause` | `sql-optimization` | 暂停已发布改写记录并同步暂停对应 runtime binding，保留告警、原因和 trace。 |
 | `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/unpublish` | `sql-optimization` | 撤销运行时绑定并回写发布状态，不删除历史改写记录。 |
-| `query-execution` internal rewrite binding surface | `query-execution` | 以 tenant + SQL fingerprint 查询、创建、暂停、撤销 active runtime binding；同租户同指纹最多只能存在一个 active binding。 |
+| `POST /api/query-execution/internal/rewrite-bindings/publish` | `query-execution` | 创建生产 runtime rewrite binding，返回 `runtimeBindingId` 与 `runtimeRuleVersion`；同租户同 SQL 指纹最多只能存在一个 `ACTIVE` binding。 |
+| `POST /api/query-execution/internal/rewrite-bindings/resolve-active` | `query-execution` | 以 tenant + SQL fingerprint 查询 `ACTIVE` runtime rewrite binding；可用 datasource evidence 收窄匹配。 |
+| `POST /api/query-execution/internal/rewrite-bindings/pause` | `query-execution` | 将 runtime rewrite binding 置为 `PAUSED`，保留原因、操作人、时间和版本追踪。 |
+| `POST /api/query-execution/internal/rewrite-bindings/unpublish` | `query-execution` | 将 runtime rewrite binding 置为 `UNPUBLISHED`，保留历史绑定与规则版本，不物理删除。 |
 
 运行时执行契约如下：
 
-- `query-execution` 是生产自动改写运行时绑定真值；JDBC Agent / Redis 只能作为后续兼容出口，不能替代主闭环。
+- `query-execution` 的 `runtime_rewrite_binding` 持久化表是生产自动改写运行时绑定真值；JDBC Agent / Redis 只能作为后续兼容出口，不能替代主闭环。
 - 只有同租户、同 SQL 指纹且 runtime binding status 为 `ACTIVE` 时，查询执行入口才能把原 SQL 替换为已批准推荐 SQL。
 - 执行历史必须记录原始 SQL、实际执行 SQL、是否改写、改写记录 ID、runtime binding ID、规则版本和发布状态快照，前端不得自行推断 `rewriteApplied`。
 - 周期比对发现结果不等价或超过容忍阈值时，必须暂停或撤销 runtime binding 并更新 `publishStatus`，不能只写告警展示。

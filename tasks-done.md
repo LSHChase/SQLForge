@@ -4,6 +4,30 @@
 
 ## Done
 
+### PRW-005: 定义 query-execution 运行时改写绑定模型
+
+- Status: done
+- Completed at: 2026-05-11
+- Commit subject: `PRW-005 implement runtime rewrite binding model`
+- Priority: 1
+- Depends on: `PRW-001`,`D-TASK-032`
+- Scope: query-execution 必须成为生产自动改写运行时绑定的主闭环真值，JDBC Agent/Redis 不得作为唯一真值。 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `query-execution`,`persistence`,`domain`,`infrastructure`,`tests`.
+- Plan ref: docs/exec-plans/completed/PRW-005-full-auto-execution-plan.md
+- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
+- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
+- Data impact: 新增运行时改写绑定持久化或等价存储结构；不改变当前 SQL 执行结果。
+- Rollback / recovery: 停用绑定仓储和服务入口，保持原 query-execution 执行路径不读取改写绑定。
+- Validation:
+  - `mvn -pl query-execution test、python3 scripts/foreman.py validate PRW-005`
+  - `python3 scripts/foreman.py validate PRW-005`
+- Progress log:
+  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented query-execution runtime rewrite binding domain model, DB persistence schema, MyBatis repository, internal publish/resolve/pause/unpublish API surface, and PRW-005 contract tests without changing SQL execution behavior.
+  - Validation evidence: mvn -pl query-execution test; python3 scripts/foreman.py validate PRW-005; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
+  - Residual risk: PRW-006 still owns sql-optimization publish/pause/unpublish orchestration and rewrite record status write-back; PRW-007 still owns applying active bindings in the execution path.
+  - Next step: Continue with PRW-006 publish, pause, and unpublish integration against this query-execution runtime binding surface.
+
 ### PRW-004: 实现发布资格策略与验证门禁
 
 - Status: done

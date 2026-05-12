@@ -152,23 +152,6 @@ _No tasks._
 - Progress log:
   - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
 
-### PRW-005: 定义 query-execution 运行时改写绑定模型
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `PRW-001`,`D-TASK-032`
-- Scope: query-execution 必须成为生产自动改写运行时绑定的主闭环真值，JDBC Agent/Redis 不得作为唯一真值。 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `query-execution`,`persistence`,`domain`,`infrastructure`,`tests`.
-- Plan ref: docs/exec-plans/active/PRW-005-full-auto-execution-plan.md
-- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
-- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
-- Data impact: 新增运行时改写绑定持久化或等价存储结构；不改变当前 SQL 执行结果。
-- Rollback / recovery: 停用绑定仓储和服务入口，保持原 query-execution 执行路径不读取改写绑定。
-- Validation:
-  - `mvn -pl query-execution test、python3 scripts/foreman.py validate PRW-005`
-  - `python3 scripts/foreman.py validate PRW-005`
-- Progress log:
-  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
-
 ### PRW-001: 固化生产改写闭环接口与状态契约
 
 - Status: in_progress
