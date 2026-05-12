@@ -58,6 +58,24 @@ class SqlRewriteRecordControllerTest {
         approvedRecord.setReviewedBy("operator-001");
         approvedRecord.setReviewNote("looks equivalent");
         approvedRecord.setPublishStatus("UNPUBLISHED");
+        SqlRewriteRecordVO publishedRecord = new SqlRewriteRecordVO();
+        publishedRecord.setRewriteRecordId("rewrite-001");
+        publishedRecord.setTenantId("tenant-a");
+        publishedRecord.setPublishStatus("PUBLISHED");
+        publishedRecord.setRuntimeBindingId("rwb-001");
+        publishedRecord.setRuntimeRuleVersion("runtime-rewrite-v1");
+        SqlRewriteRecordVO pausedRecord = new SqlRewriteRecordVO();
+        pausedRecord.setRewriteRecordId("rewrite-001");
+        pausedRecord.setTenantId("tenant-a");
+        pausedRecord.setPublishStatus("PAUSED");
+        pausedRecord.setRuntimeBindingId("rwb-001");
+        pausedRecord.setRuntimeRuleVersion("runtime-rewrite-v1");
+        SqlRewriteRecordVO unpublishedRecord = new SqlRewriteRecordVO();
+        unpublishedRecord.setRewriteRecordId("rewrite-001");
+        unpublishedRecord.setTenantId("tenant-a");
+        unpublishedRecord.setPublishStatus("UNPUBLISHED");
+        unpublishedRecord.setRuntimeBindingId("rwb-001");
+        unpublishedRecord.setRuntimeRuleVersion("runtime-rewrite-v1");
         RewritePublishEligibilityReasonVO reason = new RewritePublishEligibilityReasonVO();
         reason.setCode("VALIDATION_STATUS_NOT_EQUIVALENT");
         reason.setMessage("Rewrite record validationStatus must be EQUIVALENT.");
@@ -91,6 +109,9 @@ class SqlRewriteRecordControllerTest {
             .thenReturn(Collections.singletonList(record));
         when(sqlRewriteRecordApplicationService.reviewRewriteRecord(any(), any())).thenReturn(approvedRecord);
         when(sqlRewriteRecordApplicationService.getPublishEligibility("rewrite-001")).thenReturn(eligibility);
+        when(sqlRewriteRecordApplicationService.publishRewriteRecord(any(), any())).thenReturn(publishedRecord);
+        when(sqlRewriteRecordApplicationService.pauseRewriteRecord(any(), any())).thenReturn(pausedRecord);
+        when(sqlRewriteRecordApplicationService.unpublishRewriteRecord(any(), any())).thenReturn(unpublishedRecord);
         when(sqlRewriteRecordApplicationService.createValidationRun(any(), any())).thenReturn(run);
         when(sqlRewriteRecordApplicationService.listValidationRuns("rewrite-001"))
             .thenReturn(Collections.singletonList(run));
@@ -132,6 +153,28 @@ class SqlRewriteRecordControllerTest {
             .andExpect(jsonPath("$.eligible").value(false))
             .andExpect(jsonPath("$.refusalReasons[0].code").value("VALIDATION_STATUS_NOT_EQUIVALENT"))
             .andExpect(jsonPath("$.refusalReasons[0].blocking").value(true));
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/publish"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"reason\":\"release approved rewrite\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.publishStatus").value("PUBLISHED"))
+            .andExpect(jsonPath("$.runtimeBindingId").value("rwb-001"))
+            .andExpect(jsonPath("$.runtimeRuleVersion").value("runtime-rewrite-v1"));
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/pause"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"reason\":\"validation divergence\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.publishStatus").value("PAUSED"))
+            .andExpect(jsonPath("$.runtimeBindingId").value("rwb-001"));
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/unpublish"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"reason\":\"operator rollback\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.publishStatus").value("UNPUBLISHED"))
+            .andExpect(jsonPath("$.runtimeRuleVersion").value("runtime-rewrite-v1"));
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/validation-runs"))
                 .contentType(MediaType.APPLICATION_JSON)

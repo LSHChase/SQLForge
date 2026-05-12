@@ -9,7 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.company.queryexecution.application.controller.dto.RuntimeRewriteBindingResponse;
 import com.company.queryexecution.application.interceptor.AuthInterceptor;
 import com.company.queryexecution.application.service.HetuRouteCalibrationService;
 import com.company.queryexecution.application.service.QueryExecutionAccelerationRuntimeService;
@@ -29,6 +28,7 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloa
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;

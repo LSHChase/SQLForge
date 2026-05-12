@@ -1,4 +1,4 @@
-package com.company.queryexecution.application.controller.dto;
+package com.company.sqlforge.common.queryexecution;
 
 public class RuntimeRewriteBindingResolveRequest {
 

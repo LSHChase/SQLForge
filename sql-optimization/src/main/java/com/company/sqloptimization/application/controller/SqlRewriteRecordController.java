@@ -2,6 +2,7 @@ package com.company.sqloptimization.application.controller;
 
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
+import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordPublishActionRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordReviewRequest;
 import com.company.sqloptimization.application.controller.vo.RewritePublishEligibilityVO;
 import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
@@ -61,6 +62,27 @@ public class SqlRewriteRecordController {
     public RewritePublishEligibilityVO getPublishEligibility(
         @PathVariable("rewriteRecordId") String rewriteRecordId) {
         return sqlRewriteRecordApplicationService.getPublishEligibility(rewriteRecordId);
+    }
+
+    @PostMapping("/{rewriteRecordId}/publish")
+    public SqlRewriteRecordVO publishRewriteRecord(@PathVariable("rewriteRecordId") String rewriteRecordId,
+                                                   @RequestBody(required = false)
+                                                   SqlRewriteRecordPublishActionRequest request) {
+        return sqlRewriteRecordApplicationService.publishRewriteRecord(rewriteRecordId, request);
+    }
+
+    @PostMapping("/{rewriteRecordId}/pause")
+    public SqlRewriteRecordVO pauseRewriteRecord(@PathVariable("rewriteRecordId") String rewriteRecordId,
+                                                 @RequestBody(required = false)
+                                                 SqlRewriteRecordPublishActionRequest request) {
+        return sqlRewriteRecordApplicationService.pauseRewriteRecord(rewriteRecordId, request);
+    }
+
+    @PostMapping("/{rewriteRecordId}/unpublish")
+    public SqlRewriteRecordVO unpublishRewriteRecord(@PathVariable("rewriteRecordId") String rewriteRecordId,
+                                                     @RequestBody(required = false)
+                                                     SqlRewriteRecordPublishActionRequest request) {
+        return sqlRewriteRecordApplicationService.unpublishRewriteRecord(rewriteRecordId, request);
     }
 
     @PostMapping("/{rewriteRecordId}/validation-runs")

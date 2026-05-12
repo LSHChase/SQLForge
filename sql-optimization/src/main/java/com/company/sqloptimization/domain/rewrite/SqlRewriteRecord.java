@@ -269,6 +269,99 @@ public class SqlRewriteRecord {
             .build();
     }
 
+    public SqlRewriteRecord withPublishedRuntimeBinding(String nextRuntimeBindingId,
+                                                        String nextRuntimeRuleVersion,
+                                                        String nextPublishedSqlFingerprint,
+                                                        String nextRuntimeBindingScope,
+                                                        String operator,
+                                                        Instant updatedAt,
+                                                        Map<String, Object> nextTraceRefs) {
+        return copyBuilder(updatedAt, nextTraceRefs)
+            .publishStatus(RewritePublishStatus.PUBLISHED)
+            .runtimeBindingId(nextRuntimeBindingId)
+            .runtimeBindingAt(updatedAt)
+            .runtimeBindingBy(operator)
+            .runtimeBindingScope(nextRuntimeBindingScope)
+            .publishedSqlFingerprint(nextPublishedSqlFingerprint)
+            .runtimeRuleVersion(nextRuntimeRuleVersion)
+            .build();
+    }
+
+    public SqlRewriteRecord withPublishFailed(String operator,
+                                              Instant updatedAt,
+                                              Map<String, Object> nextTraceRefs) {
+        return copyBuilder(updatedAt, nextTraceRefs)
+            .publishStatus(RewritePublishStatus.PUBLISH_FAILED)
+            .runtimeBindingAt(updatedAt)
+            .runtimeBindingBy(operator)
+            .build();
+    }
+
+    public SqlRewriteRecord withPausedRuntimeBinding(String operator,
+                                                    Instant updatedAt,
+                                                    Map<String, Object> nextTraceRefs) {
+        return copyBuilder(updatedAt, nextTraceRefs)
+            .publishStatus(RewritePublishStatus.PAUSED)
+            .runtimeBindingAt(updatedAt)
+            .runtimeBindingBy(operator)
+            .build();
+    }
+
+    public SqlRewriteRecord withUnpublishedRuntimeBinding(String operator,
+                                                         Instant updatedAt,
+                                                         Map<String, Object> nextTraceRefs) {
+        return copyBuilder(updatedAt, nextTraceRefs)
+            .publishStatus(RewritePublishStatus.UNPUBLISHED)
+            .runtimeBindingAt(updatedAt)
+            .runtimeBindingBy(operator)
+            .build();
+    }
+
+    private Builder copyBuilder(Instant nextUpdatedAt, Map<String, Object> nextTraceRefs) {
+        return SqlRewriteRecord.builder()
+            .rewriteRecordId(rewriteRecordId)
+            .tenantId(tenantId)
+            .recommendationId(recommendationId)
+            .optimizationTaskId(optimizationTaskId)
+            .sourceType(sourceType)
+            .sourceKind(sourceKind)
+            .sourceId(sourceId)
+            .evidenceLevel(evidenceLevel)
+            .historyId(historyId)
+            .parseHistoryId(parseHistoryId)
+            .sqlFingerprint(sqlFingerprint)
+            .datasourceCode(datasourceCode)
+            .status(status)
+            .validationStatus(validationStatus)
+            .autoApplyAllowed(autoApplyAllowed)
+            .manualReviewRequired(manualReviewRequired)
+            .reviewStatus(reviewStatus)
+            .reviewNote(reviewNote)
+            .reviewedBy(reviewedBy)
+            .reviewedAt(reviewedAt)
+            .publishStatus(publishStatus)
+            .runtimeBindingId(runtimeBindingId)
+            .runtimeBindingAt(runtimeBindingAt)
+            .runtimeBindingBy(runtimeBindingBy)
+            .runtimeBindingScope(runtimeBindingScope)
+            .publishedSqlFingerprint(publishedSqlFingerprint)
+            .runtimeRuleVersion(runtimeRuleVersion)
+            .validationPolicyId(validationPolicyId)
+            .lastValidationRunId(lastValidationRunId)
+            .lastComparedAt(lastComparedAt)
+            .alertStatus(alertStatus)
+            .originalSqlText(originalSqlText)
+            .recommendedSqlText(recommendedSqlText)
+            .executedSqlText(executedSqlText)
+            .createdBy(createdBy)
+            .createdAt(createdAt)
+            .updatedAt(nextUpdatedAt)
+            .ruleChain(ruleChain)
+            .diffSummary(diffSummary)
+            .risk(risk)
+            .traceRefs(nextTraceRefs);
+    }
+
     private RewriteValidationStatus validationStatusFrom(RewriteValidationRun run) {
         if (run.getComparisonStatus() == null) {
             return RewriteValidationStatus.VALIDATING;

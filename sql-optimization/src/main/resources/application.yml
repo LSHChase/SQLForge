@@ -49,6 +49,7 @@ sql-optimization:
   query-execution:
     base-url: ${SQL_OPTIMIZATION_QUERY_EXECUTION_BASE_URL:http://localhost:8081/api/query-execution/internal/acceleration-plans}
     result-digest-base-url: ${SQL_OPTIMIZATION_QUERY_EXECUTION_RESULT_DIGEST_BASE_URL:http://localhost:8081/api/query-execution/internal/result-digests}
+    rewrite-binding-base-url: ${SQL_OPTIMIZATION_QUERY_EXECUTION_REWRITE_BINDING_BASE_URL:http://localhost:8081/api/query-execution/internal/rewrite-bindings}
     connect-timeout-ms: ${SQL_OPTIMIZATION_QUERY_EXECUTION_CONNECT_TIMEOUT_MS:3000}
     read-timeout-ms: ${SQL_OPTIMIZATION_QUERY_EXECUTION_READ_TIMEOUT_MS:5000}
   rewrite-validation-scheduler:

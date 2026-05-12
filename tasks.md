@@ -135,23 +135,6 @@ _No tasks._
 - Progress log:
   - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
 
-### PRW-006: 实现改写记录发布、暂停和撤销接口
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `PRW-004`,`PRW-005`
-- Scope: 发布、暂停、撤销必须保持改写记录状态与 query-execution 运行时绑定状态一致；失败不得留下半成功状态。 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `sql-optimization`,`query-execution client`,`application(controller/service)`,`tests`.
-- Plan ref: docs/exec-plans/active/PRW-006-full-auto-execution-plan.md
-- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
-- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
-- Data impact: 发布时创建或更新运行时绑定并回写改写记录发布字段；暂停/撤销会改变自动改写生效状态。
-- Rollback / recovery: 暂停或撤销已发布绑定；回退发布接口后保持改写记录为未发布或暂停状态。
-- Validation:
-  - `mvn -pl sql-optimization,query-execution,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-006`
-  - `python3 scripts/foreman.py validate PRW-006`
-- Progress log:
-  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
-
 ### PRW-001: 固化生产改写闭环接口与状态契约
 
 - Status: in_progress

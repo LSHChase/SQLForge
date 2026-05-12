@@ -1,15 +1,15 @@
 package com.company.queryexecution.application.service;
 
-import com.company.queryexecution.application.controller.dto.RuntimeRewriteBindingPublishRequest;
-import com.company.queryexecution.application.controller.dto.RuntimeRewriteBindingResolveRequest;
-import com.company.queryexecution.application.controller.dto.RuntimeRewriteBindingResponse;
-import com.company.queryexecution.application.controller.dto.RuntimeRewriteBindingStateChangeRequest;
 import com.company.queryexecution.domain.rewrite.RuntimeRewriteBinding;
 import com.company.queryexecution.domain.rewrite.repository.RuntimeRewriteBindingRepository;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingPublishRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
 import com.company.sqlforge.common.utils.JsonUtils;
 import java.time.Instant;
 import java.util.LinkedHashMap;

@@ -1,9 +1,8 @@
-package com.company.queryexecution.application.controller.dto;
+package com.company.sqlforge.common.queryexecution;
 
-public class RuntimeRewriteBindingResponse {
+public class RuntimeRewriteBindingPublishRequest {
 
     private String tenantId;
-    private String runtimeBindingId;
     private String rewriteRecordId;
     private String recommendationId;
     private String sourceType;
@@ -13,19 +12,10 @@ public class RuntimeRewriteBindingResponse {
     private String originalSqlDigest;
     private String recommendedSqlText;
     private String datasourceCode;
-    private String status;
-    private boolean active;
-    private Long ruleVersion;
-    private String runtimeRuleVersion;
-    private String runtimeSummary;
-    private String runtimeDetailsJson;
-    private String contractStage;
-    private String implementationStage;
+    private String publishedBy;
 
     public String getTenantId() { return tenantId; }
     public void setTenantId(String tenantId) { this.tenantId = tenantId; }
-    public String getRuntimeBindingId() { return runtimeBindingId; }
-    public void setRuntimeBindingId(String runtimeBindingId) { this.runtimeBindingId = runtimeBindingId; }
     public String getRewriteRecordId() { return rewriteRecordId; }
     public void setRewriteRecordId(String rewriteRecordId) { this.rewriteRecordId = rewriteRecordId; }
     public String getRecommendationId() { return recommendationId; }
@@ -44,20 +34,6 @@ public class RuntimeRewriteBindingResponse {
     public void setRecommendedSqlText(String recommendedSqlText) { this.recommendedSqlText = recommendedSqlText; }
     public String getDatasourceCode() { return datasourceCode; }
     public void setDatasourceCode(String datasourceCode) { this.datasourceCode = datasourceCode; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-    public boolean isActive() { return active; }
-    public void setActive(boolean active) { this.active = active; }
-    public Long getRuleVersion() { return ruleVersion; }
-    public void setRuleVersion(Long ruleVersion) { this.ruleVersion = ruleVersion; }
-    public String getRuntimeRuleVersion() { return runtimeRuleVersion; }
-    public void setRuntimeRuleVersion(String runtimeRuleVersion) { this.runtimeRuleVersion = runtimeRuleVersion; }
-    public String getRuntimeSummary() { return runtimeSummary; }
-    public void setRuntimeSummary(String runtimeSummary) { this.runtimeSummary = runtimeSummary; }
-    public String getRuntimeDetailsJson() { return runtimeDetailsJson; }
-    public void setRuntimeDetailsJson(String runtimeDetailsJson) { this.runtimeDetailsJson = runtimeDetailsJson; }
-    public String getContractStage() { return contractStage; }
-    public void setContractStage(String contractStage) { this.contractStage = contractStage; }
-    public String getImplementationStage() { return implementationStage; }
-    public void setImplementationStage(String implementationStage) { this.implementationStage = implementationStage; }
+    public String getPublishedBy() { return publishedBy; }
+    public void setPublishedBy(String publishedBy) { this.publishedBy = publishedBy; }
 }
