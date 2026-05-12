@@ -16,22 +16,7 @@ _No tasks._
 
 ## In Progress
 
-### PRW-001: 固化生产改写闭环接口与状态契约
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `HARN-142`,`HARN-145`
-- Scope: 文档必须明确 rewrite review / publish / runtime binding 状态机，以及审批入口不属于 acceleration plan 审批页。只覆盖生产自动改写闭环；不得把投产前核验闭环混入本任务。 Tech: `DOCS`,`OPS`. Layer: `docs`,`architecture`,`product`.
-- Plan ref: docs/exec-plans/active/PRW-001-full-auto-execution-plan.md
-- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
-- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
-- Data impact: 仅影响文档、主计划、接口契约说明和任务治理记录；不修改运行时数据、数据库 schema 或接口实现。
-- Rollback / recovery: 回退本任务文档增量并保留后续任务不执行；若状态命名不合适，用追加文档修正替代覆盖历史。
-- Validation:
-  - `node scripts/lint-repository-knowledge.js、python3 scripts/task_audit.py --check --phase pre-closeout、git diff --check`
-  - `python3 scripts/foreman.py validate PRW-001`
-- Progress log:
-  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
+_No tasks._
 
 
 ## Blocked

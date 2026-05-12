@@ -3806,3 +3806,10 @@
 2026-05-12T02:00:59-05:00 | PRW-013 closeout commit | `R-168` | projected | `git commit -m 'PRW-013 bridge JDBC Agent Redis rewrite rules' (projected-precommit)`
 2026-05-12T02:00:59-05:00 | PRW-013 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-12T02:00:59-05:00 | PRW-013 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `mvn -pl query-execution,sqlforge-shared -am test (projected-precommit)`
+2026-05-12T07:13:24-05:00 | PRW-001 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-12T07:13:24-05:00 | PRW-001 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-12T07:16:33-05:00 | PRW-001 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-12T07:16:33-05:00 | PRW-001 closeout commit | `R-168` | projected | `git commit -m 'PRW-001 production rewrite contract baseline' (projected-precommit)`
+2026-05-12T07:16:33-05:00 | PRW-001 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-12T07:16:33-05:00 | PRW-001 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-05-12T07:16:33-05:00 | PRW-001 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`

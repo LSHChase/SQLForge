@@ -6,9 +6,7 @@
   "master_execution_plan": "docs/plans/master-execution-plan.md",
   "task_spec_matrix": "docs/plans/task-spec-matrix.md",
   "task_governance_matrix": "docs/plans/task-governance-extension-matrix.md",
-  "active_exec_plans": [
-    "docs/exec-plans/active/PRW-001-full-auto-execution-plan.md"
-  ],
+  "active_exec_plans": [],
   "completed_exec_plans": [
     "docs/exec-plans/completed/D-TASK-030-full-auto-execution-plan.md",
     "docs/exec-plans/completed/D-TASK-073-full-auto-execution-plan.md",
@@ -39,6 +37,7 @@
     "docs/exec-plans/completed/HARN-070-full-auto-execution-plan.md",
     "docs/exec-plans/completed/HARN-071-full-auto-execution-plan.md",
     "docs/exec-plans/completed/HARN-084-sql-parse-history-decoupling-plan.md",
+    "docs/exec-plans/completed/PRW-001-full-auto-execution-plan.md",
     "docs/exec-plans/completed/PRW-002-full-auto-execution-plan.md",
     "docs/exec-plans/completed/PRW-003-full-auto-execution-plan.md",
     "docs/exec-plans/completed/PRW-004-full-auto-execution-plan.md",
