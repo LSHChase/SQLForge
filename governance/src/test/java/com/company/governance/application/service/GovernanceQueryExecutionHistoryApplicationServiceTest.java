@@ -126,6 +126,74 @@ class GovernanceQueryExecutionHistoryApplicationServiceTest {
         assertEquals(Long.valueOf(42L), audit.getCostMs());
     }
 
+    @Test
+    void shouldPersistStructuredRewriteAuditFieldsForQueryHistory() {
+        GovernanceProtectedPersistenceService protectedPersistenceService =
+            mock(GovernanceProtectedPersistenceService.class);
+        GovernanceQueryExecutionHistoryApplicationService service =
+            new GovernanceQueryExecutionHistoryApplicationService(
+                protectedPersistenceService,
+                mock(ConfigSnapshotMapper.class),
+                mock(ExecutionResultMapper.class),
+                mock(QueryHistoryMapper.class)
+            );
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN"),
+            "request-001",
+            "trace-001",
+            "header",
+            1L,
+            System.currentTimeMillis() + 60000L
+        );
+        doAnswer(invocation -> {
+            AuditLogRecord record = invocation.getArgument(0);
+            record.setId(Long.valueOf(9002L));
+            return Integer.valueOf(1);
+        }).when(protectedPersistenceService).saveAuditLog(any(AuditLogRecord.class));
+        GovernanceQueryExecutionHistoryWriteRequest request = sampleRequest();
+        request.setRewriteApplied(Boolean.TRUE);
+        request.setSqlTemplate("SELECT * FROM orders");
+        request.setBoundSql("SELECT id FROM orders");
+        request.setBindingSummary("{\"rewriteApplied\":true,\"rewriteRecordId\":\"rewrite-001\","
+            + "\"runtimeBindingId\":\"rwb-001\",\"ruleVersion\":3,"
+            + "\"runtimeRuleVersion\":\"runtime-rewrite-v3\","
+            + "\"rewritePublishStatusSnapshot\":\"PUBLISHED\"}");
+        request.setRewriteRecordId("rewrite-001");
+        request.setRuntimeBindingId("rwb-001");
+        request.setRewriteRuleVersion(Long.valueOf(3L));
+        request.setRuntimeRuleVersion("runtime-rewrite-v3");
+        request.setRuntimeRewriteStatus("ACTIVE");
+        request.setRewritePublishStatusSnapshot("PUBLISHED");
+
+        service.writeQueryExecutionHistory(request);
+
+        ArgumentCaptor<QueryHistoryRecord> historyCaptor =
+            ArgumentCaptor.forClass(QueryHistoryRecord.class);
+        ArgumentCaptor<ExecutionResultRecord> resultCaptor =
+            ArgumentCaptor.forClass(ExecutionResultRecord.class);
+        verify(protectedPersistenceService).saveExecutionResult(resultCaptor.capture());
+        verify(protectedPersistenceService).saveQueryHistoryWithSqlSurfaces(
+            historyCaptor.capture(),
+            org.mockito.Mockito.eq("SELECT * FROM orders WHERE query_date = '2026-04-27'"),
+            org.mockito.Mockito.eq("SELECT * FROM orders"),
+            org.mockito.Mockito.eq("SELECT id FROM orders")
+        );
+
+        ExecutionResultRecord result = resultCaptor.getValue();
+        assertEquals(Boolean.TRUE, result.getRewriteApplied());
+        assertEquals(Boolean.TRUE, result.getResultSummary().contains("\"rewriteRecordId\":\"rewrite-001\""));
+
+        QueryHistoryRecord history = historyCaptor.getValue();
+        assertEquals("rewrite-001", history.getRewriteRecordId());
+        assertEquals("rwb-001", history.getRuntimeBindingId());
+        assertEquals(Long.valueOf(3L), history.getRewriteRuleVersion());
+        assertEquals("runtime-rewrite-v3", history.getRuntimeRuleVersion());
+        assertEquals("ACTIVE", history.getRuntimeRewriteStatus());
+        assertEquals("PUBLISHED", history.getRewritePublishStatusSnapshot());
+    }
+
     private GovernanceQueryExecutionHistoryWriteRequest sampleRequest() {
         GovernanceQueryExecutionHistoryWriteRequest request =
             new GovernanceQueryExecutionHistoryWriteRequest();

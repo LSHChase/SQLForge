@@ -247,7 +247,11 @@ public class GovernanceProtectedPersistenceService {
         Map<String, Object> explicitCommentContext = readMap(queryContext, "commentContext");
         Map<String, Object> storedCommentContext = parseJsonMap(record.getCommentContext());
         Map<String, Object> commentContext = firstMap(explicitCommentContext, storedCommentContext);
-        Map<String, Object> bindingSummary = readMap(queryContext, "bindingSummary");
+        Map<String, Object> bindingSummary = firstMap(
+            readMap(queryContext, "bindingSummary"),
+            parseJsonMap(record.getBindingSummary())
+        );
+        Map<String, Object> rewriteAudit = readMap(queryContext, "rewriteAudit");
         Object logicalObjectHits = firstNonNull(queryContext.get("logicalObjectHits"), queryContext.get("logicalObjects"));
         Map<String, Object> routeSummary = readMap(queryContext, "routeSummary");
         Map<String, Object> cacheSummary = normalizeCacheSummary(
@@ -308,7 +312,61 @@ public class GovernanceProtectedPersistenceService {
         if (!StringUtils.hasText(record.getBoundSqlFingerprint())) {
             record.setBoundSqlFingerprint(firstText(
                 readText(bindingSummary, "boundSqlFingerprint"),
+                readText(bindingSummary, "actualSqlFingerprint"),
+                readText(rewriteAudit, "actualSqlFingerprint"),
                 readText(queryContext, "boundSqlFingerprint")
+            ));
+        }
+        if (!StringUtils.hasText(record.getRewriteRecordId())) {
+            record.setRewriteRecordId(firstText(
+                readText(bindingSummary, "rewriteRecordId"),
+                readText(queryContext, "rewriteRecordId"),
+                readText(rewriteAudit, "rewriteRecordId")
+            ));
+        }
+        if (!StringUtils.hasText(record.getRuntimeBindingId())) {
+            record.setRuntimeBindingId(firstText(
+                readText(bindingSummary, "runtimeBindingId"),
+                readText(queryContext, "runtimeBindingId"),
+                readText(rewriteAudit, "runtimeBindingId")
+            ));
+        }
+        if (record.getRewriteRuleVersion() == null) {
+            record.setRewriteRuleVersion(firstLong(
+                readLong(bindingSummary, "ruleVersion"),
+                readLong(queryContext, "ruleVersion"),
+                readLong(queryContext, "rewriteRuleVersion"),
+                readLong(rewriteAudit, "ruleVersion"),
+                readLong(rewriteAudit, "rewriteRuleVersion")
+            ));
+        }
+        if (!StringUtils.hasText(record.getRuntimeRuleVersion())) {
+            record.setRuntimeRuleVersion(firstText(
+                readText(bindingSummary, "runtimeRuleVersion"),
+                readText(queryContext, "runtimeRuleVersion"),
+                readText(rewriteAudit, "runtimeRuleVersion")
+            ));
+        }
+        if (!StringUtils.hasText(record.getRuntimeRewriteStatus())) {
+            record.setRuntimeRewriteStatus(firstText(
+                readText(bindingSummary, "runtimeRewriteStatus"),
+                readText(queryContext, "runtimeRewriteStatus"),
+                readText(rewriteAudit, "runtimeRewriteStatus")
+            ));
+        }
+        if (!StringUtils.hasText(record.getRewritePublishStatusSnapshot())) {
+            record.setRewritePublishStatusSnapshot(firstText(
+                readText(bindingSummary, "rewritePublishStatusSnapshot"),
+                readText(queryContext, "rewritePublishStatusSnapshot"),
+                readText(rewriteAudit, "publishStatusSnapshot"),
+                readText(rewriteAudit, "rewritePublishStatusSnapshot")
+            ));
+        }
+        if (!StringUtils.hasText(record.getRewriteFallbackReason())) {
+            record.setRewriteFallbackReason(firstText(
+                readText(bindingSummary, "rewriteFallbackReason"),
+                readText(queryContext, "rewriteFallbackReason"),
+                readText(rewriteAudit, "rewriteFallbackReason")
             ));
         }
         if (!StringUtils.hasText(record.getCommentContext()) && !commentContext.isEmpty()) {

@@ -101,23 +101,6 @@ _No tasks._
 - Progress log:
   - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
 
-### PRW-008: 补齐 SQL 执行历史的改写审计链
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `PRW-007`,`HARN-134`
-- Scope: 历史接口必须以后端真实审计字段证明自动改写是否发生，前端不得自行推断 rewriteApplied。 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `governance`,`query-execution`,`persistence`,`application(controller/service)`,`tests`.
-- Plan ref: docs/exec-plans/active/PRW-008-full-auto-execution-plan.md
-- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
-- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
-- Data impact: 新增或扩展执行历史追溯字段；旧历史记录必须有兼容默认值。
-- Rollback / recovery: 保留旧历史展示路径，停止写入新增改写审计字段或将其置为默认未改写状态。
-- Validation:
-  - `mvn -pl governance,query-execution,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-008`
-  - `python3 scripts/foreman.py validate PRW-008`
-- Progress log:
-  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
-
 ### PRW-001: 固化生产改写闭环接口与状态契约
 
 - Status: in_progress

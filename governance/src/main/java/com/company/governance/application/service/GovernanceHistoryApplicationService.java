@@ -1315,7 +1315,7 @@ public class GovernanceHistoryApplicationService {
         item.setTargetEngine(row.getTargetEngine());
         item.setReturnedRowCount(row.getReturnedRowCount());
         item.setCacheHit(row.getCacheHit());
-        item.setRewriteApplied(row.getRewriteApplied());
+        item.setRewriteApplied(normalizeRewriteApplied(row.getRewriteApplied()));
         item.setAccelerationApplied(row.getAccelerationApplied());
         item.setSubmittedBy(row.getSubmittedBy());
         item.setSubmittedAt(row.getSubmittedAt() == null ? row.getCreateTime() : row.getSubmittedAt());
@@ -1352,6 +1352,7 @@ public class GovernanceHistoryApplicationService {
         detail.setCacheSummary(selectFirstNonEmptyMap(parseJsonObject(row.getCacheSummary()), parseJsonObject(row.getResultSummary()), "cacheSummary"));
         detail.setBindingSummary(selectFirstNonEmptyMap(parseJsonObject(row.getBindingSummary()), parseJsonObject(row.getQueryContext()), "bindingSummary"));
         detail.setQueryContext(parseJsonObject(row.getQueryContext()));
+        detail.setRewriteAudit(buildRewriteAudit(row, detail));
         detail.setRecommendationRefs(readNestedList(detail.getQueryContext(), "recommendationRefs"));
         detail.setBenchmarkRefs(readNestedList(detail.getQueryContext(), "benchmarkRefs"));
         detail.setAuditRefs(Collections.<Map<String, Object>>emptyList());
@@ -1763,7 +1764,7 @@ public class GovernanceHistoryApplicationService {
         summary.put("targetEngine", row.getTargetEngine());
         summary.put("returnedRowCount", row.getReturnedRowCount());
         summary.put("cacheHit", row.getCacheHit());
-        summary.put("rewriteApplied", row.getRewriteApplied());
+        summary.put("rewriteApplied", normalizeRewriteApplied(row.getRewriteApplied()));
         summary.put("accelerationApplied", row.getAccelerationApplied());
         summary.put("hitTableSummary", parseJsonValue(row.getHitTableSummary()));
         summary.put("resultSummary", parseJsonObject(row.getResultSummary()));
@@ -1772,6 +1773,83 @@ public class GovernanceHistoryApplicationService {
         summary.put("startedAt", row.getStartedAt());
         summary.put("finishedAt", row.getFinishedAt());
         return summary;
+    }
+
+    private Map<String, Object> buildRewriteAudit(GovernanceQueryHistoryProjection row,
+                                                  GovernanceQueryHistoryDetailVO detail) {
+        Map<String, Object> bindingSummary = detail.getBindingSummary() == null
+            ? Collections.<String, Object>emptyMap()
+            : detail.getBindingSummary();
+        Map<String, Object> queryContext = detail.getQueryContext() == null
+            ? Collections.<String, Object>emptyMap()
+            : detail.getQueryContext();
+        Map<String, Object> nestedAudit = readNestedMap(queryContext, "rewriteAudit");
+        String rewriteRecordId = firstNonBlank(
+            row.getRewriteRecordId(),
+            readText(bindingSummary, "rewriteRecordId"),
+            readText(queryContext, "rewriteRecordId"),
+            readText(nestedAudit, "rewriteRecordId")
+        );
+        LinkedHashMap<String, Object> audit = new LinkedHashMap<String, Object>();
+        audit.put("auditSource", "BACKEND_HISTORY_FIELDS");
+        audit.put("rewriteApplied", normalizeRewriteApplied(row.getRewriteApplied()));
+        audit.put("originalSqlText", firstNonBlank(detail.getSqlTemplateText(), detail.getSqlText()));
+        audit.put("actualSqlText", firstNonBlank(detail.getBoundSqlText(), detail.getSqlText()));
+        audit.put("originalSqlFingerprint", firstNonBlank(
+            row.getSqlTemplateFingerprint(),
+            row.getSqlFingerprint(),
+            readText(bindingSummary, "sqlTemplateFingerprint"),
+            readText(nestedAudit, "originalSqlFingerprint")
+        ));
+        audit.put("actualSqlFingerprint", firstNonBlank(
+            row.getBoundSqlFingerprint(),
+            readText(bindingSummary, "actualSqlFingerprint"),
+            readText(bindingSummary, "boundSqlFingerprint"),
+            readText(nestedAudit, "actualSqlFingerprint")
+        ));
+        audit.put("rewriteRecordId", rewriteRecordId);
+        audit.put("runtimeBindingId", firstNonBlank(
+            row.getRuntimeBindingId(),
+            readText(bindingSummary, "runtimeBindingId"),
+            readText(queryContext, "runtimeBindingId"),
+            readText(nestedAudit, "runtimeBindingId")
+        ));
+        audit.put("ruleVersion", firstNonNull(
+            row.getRewriteRuleVersion(),
+            firstNonNull(
+                bindingSummary.get("ruleVersion"),
+                firstNonNull(queryContext.get("ruleVersion"), nestedAudit.get("ruleVersion"))
+            )
+        ));
+        audit.put("runtimeRuleVersion", firstNonBlank(
+            row.getRuntimeRuleVersion(),
+            readText(bindingSummary, "runtimeRuleVersion"),
+            readText(queryContext, "runtimeRuleVersion"),
+            readText(nestedAudit, "runtimeRuleVersion")
+        ));
+        audit.put("runtimeRewriteStatus", firstNonBlank(
+            row.getRuntimeRewriteStatus(),
+            readText(bindingSummary, "runtimeRewriteStatus"),
+            readText(queryContext, "runtimeRewriteStatus"),
+            readText(nestedAudit, "runtimeRewriteStatus")
+        ));
+        audit.put("publishStatusSnapshot", firstNonBlank(
+            row.getRewritePublishStatusSnapshot(),
+            readText(bindingSummary, "rewritePublishStatusSnapshot"),
+            readText(queryContext, "rewritePublishStatusSnapshot"),
+            readText(nestedAudit, "publishStatusSnapshot")
+        ));
+        audit.put("rewriteFallbackReason", firstNonBlank(
+            row.getRewriteFallbackReason(),
+            readText(bindingSummary, "rewriteFallbackReason"),
+            readText(queryContext, "rewriteFallbackReason"),
+            readText(nestedAudit, "rewriteFallbackReason")
+        ));
+        if (!StringUtils.hasText(String.valueOf(audit.get("publishStatusSnapshot")))
+            || "null".equals(String.valueOf(audit.get("publishStatusSnapshot")))) {
+            audit.put("publishStatusSnapshot", StringUtils.hasText(rewriteRecordId) ? "UNKNOWN" : "UNPUBLISHED");
+        }
+        return audit;
     }
 
     private List<Map<String, Object>> buildAuditRefs(GovernanceTraceDetailVO traceDetail) {
@@ -1867,6 +1945,12 @@ public class GovernanceHistoryApplicationService {
             builder.append("-- report_code=").append(firstNonBlank(detail.getReportCode(), "-")).append('\n');
             builder.append("-- datasource=").append(firstNonBlank(detail.getDatasourceCode(), "-")).append('\n');
             builder.append("-- logical_object_keys=").append(firstNonBlank(logicalObjectSummary, "-")).append('\n');
+            builder.append("-- rewrite_applied=").append(rewriteAuditText(detail, "rewriteApplied", "false")).append('\n');
+            builder.append("-- rewrite_record_id=").append(rewriteAuditText(detail, "rewriteRecordId", "-")).append('\n');
+            builder.append("-- runtime_binding_id=").append(rewriteAuditText(detail, "runtimeBindingId", "-")).append('\n');
+            builder.append("-- rule_version=").append(rewriteAuditText(detail, "ruleVersion", "-")).append('\n');
+            builder.append("-- runtime_rule_version=").append(rewriteAuditText(detail, "runtimeRuleVersion", "-")).append('\n');
+            builder.append("-- publish_status_snapshot=").append(rewriteAuditText(detail, "publishStatusSnapshot", "-")).append('\n');
             builder.append('\n').append("-- sql_text").append('\n').append(firstNonBlank(detail.getSqlText(), "-- unavailable"));
             builder.append('\n').append('\n').append("-- sql_template_text").append('\n')
                 .append(firstNonBlank(detail.getSqlTemplateText(), "-- unavailable"));
@@ -1875,7 +1959,7 @@ public class GovernanceHistoryApplicationService {
             return builder.toString();
         }
         if ("CSV".equals(exportFormat)) {
-            return "historyId,reportCode,datasourceCode,stageCode,resultStatus,targetEngine,returnedRowCount,cacheHit,rewriteApplied,accelerationApplied,logicalObjectKeys\n"
+            return "historyId,reportCode,datasourceCode,stageCode,resultStatus,targetEngine,returnedRowCount,cacheHit,rewriteApplied,rewriteRecordId,runtimeBindingId,ruleVersion,runtimeRuleVersion,publishStatusSnapshot,rewriteFallbackReason,accelerationApplied,logicalObjectKeys\n"
                 + csvCell(detail.getHistoryId()) + ","
                 + csvCell(detail.getReportCode()) + ","
                 + csvCell(detail.getDatasourceCode()) + ","
@@ -1884,12 +1968,18 @@ public class GovernanceHistoryApplicationService {
                 + csvCell(String.valueOf(detail.getExecutionSummary().get("targetEngine"))) + ","
                 + csvCell(String.valueOf(detail.getExecutionSummary().get("returnedRowCount"))) + ","
                 + csvCell(String.valueOf(detail.getExecutionSummary().get("cacheHit"))) + ","
-                + csvCell(String.valueOf(detail.getExecutionSummary().get("rewriteApplied"))) + ","
+                + csvCell(rewriteAuditText(detail, "rewriteApplied", "false")) + ","
+                + csvCell(rewriteAuditText(detail, "rewriteRecordId", "")) + ","
+                + csvCell(rewriteAuditText(detail, "runtimeBindingId", "")) + ","
+                + csvCell(rewriteAuditText(detail, "ruleVersion", "")) + ","
+                + csvCell(rewriteAuditText(detail, "runtimeRuleVersion", "")) + ","
+                + csvCell(rewriteAuditText(detail, "publishStatusSnapshot", "")) + ","
+                + csvCell(rewriteAuditText(detail, "rewriteFallbackReason", "")) + ","
                 + csvCell(String.valueOf(detail.getExecutionSummary().get("accelerationApplied"))) + ","
                 + csvCell(logicalObjectSummary);
         }
         if ("EXCEL".equals(exportFormat)) {
-            return "historyId\treportCode\tdatasourceCode\tstageCode\tresultStatus\ttargetEngine\treturnedRowCount\tcacheHit\trewriteApplied\taccelerationApplied\tlogicalObjectKeys\n"
+            return "historyId\treportCode\tdatasourceCode\tstageCode\tresultStatus\ttargetEngine\treturnedRowCount\tcacheHit\trewriteApplied\trewriteRecordId\truntimeBindingId\truleVersion\truntimeRuleVersion\tpublishStatusSnapshot\trewriteFallbackReason\taccelerationApplied\tlogicalObjectKeys\n"
                 + firstNonBlank(detail.getHistoryId(), "") + "\t"
                 + firstNonBlank(detail.getReportCode(), "") + "\t"
                 + firstNonBlank(detail.getDatasourceCode(), "") + "\t"
@@ -1898,7 +1988,13 @@ public class GovernanceHistoryApplicationService {
                 + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("targetEngine")), "") + "\t"
                 + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("returnedRowCount")), "") + "\t"
                 + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("cacheHit")), "") + "\t"
-                + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("rewriteApplied")), "") + "\t"
+                + rewriteAuditText(detail, "rewriteApplied", "false") + "\t"
+                + rewriteAuditText(detail, "rewriteRecordId", "") + "\t"
+                + rewriteAuditText(detail, "runtimeBindingId", "") + "\t"
+                + rewriteAuditText(detail, "ruleVersion", "") + "\t"
+                + rewriteAuditText(detail, "runtimeRuleVersion", "") + "\t"
+                + rewriteAuditText(detail, "publishStatusSnapshot", "") + "\t"
+                + rewriteAuditText(detail, "rewriteFallbackReason", "") + "\t"
                 + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("accelerationApplied")), "") + "\t"
                 + firstNonBlank(logicalObjectSummary, "");
         }
@@ -1908,9 +2004,27 @@ public class GovernanceHistoryApplicationService {
             + "datasourceCode: " + firstNonBlank(detail.getDatasourceCode(), "-") + "\n"
             + "resultStatus: " + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("status")), "-") + "\n"
             + "targetEngine: " + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("targetEngine")), "-") + "\n"
+            + "rewriteApplied: " + rewriteAuditText(detail, "rewriteApplied", "false") + "\n"
+            + "rewriteRecordId: " + rewriteAuditText(detail, "rewriteRecordId", "-") + "\n"
+            + "runtimeBindingId: " + rewriteAuditText(detail, "runtimeBindingId", "-") + "\n"
+            + "ruleVersion: " + rewriteAuditText(detail, "ruleVersion", "-") + "\n"
+            + "runtimeRuleVersion: " + rewriteAuditText(detail, "runtimeRuleVersion", "-") + "\n"
+            + "publishStatusSnapshot: " + rewriteAuditText(detail, "publishStatusSnapshot", "-") + "\n"
             + "logicalObjectKeys: " + firstNonBlank(logicalObjectSummary, "-") + "\n"
             + "queryDateStatus: " + firstNonBlank(String.valueOf(detail.getQueryDateSummary().get("queryDateStatus")), "-") + "\n"
             + "note: PDF baseline is emitted as an inline textual evidence payload in phase 1.\n";
+    }
+
+    private String rewriteAuditText(GovernanceQueryHistoryDetailVO detail, String key, String fallback) {
+        if (detail == null || detail.getRewriteAudit() == null) {
+            return fallback;
+        }
+        Object value = detail.getRewriteAudit().get(key);
+        if (value == null) {
+            return fallback;
+        }
+        String text = String.valueOf(value);
+        return StringUtils.hasText(text) && !"null".equals(text) ? text : fallback;
     }
 
     private String csvCell(String value) {
@@ -2498,6 +2612,10 @@ public class GovernanceHistoryApplicationService {
         return first != null ? first : second;
     }
 
+    private static Boolean normalizeRewriteApplied(Boolean rewriteApplied) {
+        return Boolean.valueOf(Boolean.TRUE.equals(rewriteApplied));
+    }
+
     private static String firstNonBlank(String first, String second) {
         if (StringUtils.hasText(first)) {
             return first.trim();
@@ -2506,6 +2624,14 @@ public class GovernanceHistoryApplicationService {
             return second.trim();
         }
         return null;
+    }
+
+    private static String firstNonBlank(String first, String second, String third) {
+        return firstNonBlank(first, firstNonBlank(second, third));
+    }
+
+    private static String firstNonBlank(String first, String second, String third, String fourth) {
+        return firstNonBlank(first, firstNonBlank(second, third, fourth));
     }
 
     private static void putIfPresent(Map<String, Object> target, String key, Object value) {

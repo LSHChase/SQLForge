@@ -30,6 +30,10 @@ class TraceabilitySchemaMappingTest {
         assertContains(schema, "query_date_status VARCHAR(32) DEFAULT NULL");
         assertContains(schema, "binding_render_status VARCHAR(16) DEFAULT NULL");
         assertContains(schema, "comment_context JSON DEFAULT NULL");
+        assertContains(schema, "rewrite_record_id VARCHAR(64) DEFAULT NULL");
+        assertContains(schema, "runtime_binding_id VARCHAR(64) DEFAULT NULL");
+        assertContains(schema, "rewrite_publish_status_snapshot VARCHAR(32) DEFAULT NULL");
+        assertContains(schema, "idx_query_history_rewrite_record");
         assertContains(schema, "logical_object_hits JSON DEFAULT NULL");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS business_logical_view");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS logical_object_mapping");
@@ -94,6 +98,19 @@ class TraceabilitySchemaMappingTest {
     }
 
     @Test
+    void shouldProvideIncrementalMigrationForQueryHistoryRewriteAuditFields() throws IOException {
+        String migration = readRepositoryFile("sql/migrations/V20260512_001__query_history_rewrite_audit_fields.sql");
+
+        assertContains(migration, "ALTER TABLE query_history");
+        assertContains(migration, "ADD COLUMN rewrite_record_id VARCHAR(64) DEFAULT NULL");
+        assertContains(migration, "ADD COLUMN runtime_binding_id VARCHAR(64) DEFAULT NULL");
+        assertContains(migration, "ADD COLUMN rewrite_rule_version BIGINT DEFAULT NULL");
+        assertContains(migration, "ADD COLUMN runtime_rule_version VARCHAR(64) DEFAULT NULL");
+        assertContains(migration, "ADD COLUMN rewrite_publish_status_snapshot VARCHAR(32) DEFAULT NULL");
+        assertContains(migration, "ADD KEY idx_query_history_rewrite_record");
+    }
+
+    @Test
     void shouldProvideIncrementalMigrationForBusinessLogicalViewCatalog() throws IOException {
         String migration = readRepositoryFile("sql/migrations/V20260426_002__business_logical_view_catalog.sql");
 
@@ -143,6 +160,9 @@ class TraceabilitySchemaMappingTest {
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "sql_template_cipher");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "comment_context");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "binding_render_status");
+        assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "rewrite_record_id");
+        assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "rewrite_publish_status_snapshot");
+        assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "COALESCE(er.rewrite_applied, 0)");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "qh.history_type = #{historyType}");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "trace_id = #{traceId}");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "updateById");

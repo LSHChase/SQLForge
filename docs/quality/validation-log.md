@@ -3745,3 +3745,12 @@
 2026-05-11T20:59:05-05:00 | PRW-007 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-11T20:59:05-05:00 | PRW-007 closeout commit | `R-168` | projected | `git commit -m 'PRW-007 apply runtime rewrite bindings in execution path' (projected-precommit)`
 2026-05-11T20:59:05-05:00 | PRW-007 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-11T22:47:34-05:00 | PRW-008 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-11T22:47:34-05:00 | PRW-008 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-11T22:49:42-05:00 | PRW-008 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-11T22:49:42-05:00 | PRW-008 closeout commit | `R-168` | projected | `git commit -m 'feat(governance): PRW-008 persist rewrite audit history' (projected-precommit)`
+2026-05-11T22:49:42-05:00 | PRW-008 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-11T22:49:42-05:00 | PRW-008 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `mvn -pl governance,query-execution,sqlforge-shared -am test (projected-precommit)`
+2026-05-11T22:49:42-05:00 | PRW-008 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/foreman.py compile-governance --check (projected-precommit)`
+2026-05-11T22:49:42-05:00 | PRW-008 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-05-11T22:49:42-05:00 | PRW-008 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`

@@ -220,7 +220,14 @@ class QueryExecutionApplicationServiceTest {
         assertEquals(Boolean.TRUE, historyRequest.getRewriteApplied());
         assertEquals(originalSql, historyRequest.getSqlTemplate());
         assertEquals(recommendedSql, historyRequest.getBoundSql());
+        assertEquals("rewrite-001", historyRequest.getRewriteRecordId());
+        assertEquals("rwb-001", historyRequest.getRuntimeBindingId());
+        assertEquals(Long.valueOf(3L), historyRequest.getRewriteRuleVersion());
+        assertEquals("runtime-rewrite-v3", historyRequest.getRuntimeRuleVersion());
+        assertEquals("ACTIVE", historyRequest.getRuntimeRewriteStatus());
+        assertEquals("PUBLISHED", historyRequest.getRewritePublishStatusSnapshot());
         assertTrue(historyRequest.getBindingSummary().contains("\"runtimeBindingId\":\"rwb-001\""));
+        assertTrue(historyRequest.getBindingSummary().contains("\"rewritePublishStatusSnapshot\":\"PUBLISHED\""));
         assertTrue(historyRequest.getQueryContext().contains("\"runtimeRuleVersion\":\"runtime-rewrite-v3\""));
     }
 

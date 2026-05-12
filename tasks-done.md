@@ -4,6 +4,30 @@
 
 ## Done
 
+### PRW-008: 补齐 SQL 执行历史的改写审计链
+
+- Status: done
+- Completed at: 2026-05-11
+- Commit subject: `feat(governance): PRW-008 persist rewrite audit history`
+- Priority: 1
+- Depends on: `PRW-007`,`HARN-134`
+- Scope: 历史接口必须以后端真实审计字段证明自动改写是否发生，前端不得自行推断 rewriteApplied。 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `governance`,`query-execution`,`persistence`,`application(controller/service)`,`tests`.
+- Plan ref: docs/exec-plans/completed/PRW-008-full-auto-execution-plan.md
+- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
+- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
+- Data impact: 新增或扩展执行历史追溯字段；旧历史记录必须有兼容默认值。
+- Rollback / recovery: 保留旧历史展示路径，停止写入新增改写审计字段或将其置为默认未改写状态。
+- Validation:
+  - `mvn -pl governance,query-execution,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-008`
+  - `python3 scripts/foreman.py validate PRW-008`
+- Progress log:
+  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented backend-backed SQL execution history rewrite audit persistence from query-execution write request through governance query_history schema, mapper, projection, detail, and export surfaces, including legacy rewriteApplied defaults plus migration and dev-schema support.
+  - Validation evidence: java -version = 1.8.0_112; mvn -pl governance,query-execution,sqlforge-shared -am clean test; mvn -pl governance,query-execution,sqlforge-shared -am test; python3 scripts/foreman.py validate PRW-008; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance --check; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
+  - Residual risk: External database upgrade execution is covered by migration/schema checks but was not applied to a live shared environment in this local closeout.
+  - Next step: Continue dependent SQL history frontend display work using the backend rewriteAudit fields instead of frontend inference.
+
 ### PRW-007: 在 query-execution 执行路径应用自动改写
 
 - Status: done

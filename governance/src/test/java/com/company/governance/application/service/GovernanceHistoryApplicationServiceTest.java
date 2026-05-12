@@ -482,6 +482,12 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("POSITIONAL", detail.getSqlState().get("bindingMode"));
         assertEquals("RESOLVED", detail.getQueryDateSummary().get("queryDateStatus"));
         assertEquals("HETU", detail.getExecutionSummary().get("targetEngine"));
+        assertEquals(Boolean.TRUE, detail.getRewriteAudit().get("rewriteApplied"));
+        assertEquals("rewrite-001", detail.getRewriteAudit().get("rewriteRecordId"));
+        assertEquals("rwb-001", detail.getRewriteAudit().get("runtimeBindingId"));
+        assertEquals(Long.valueOf(3L), detail.getRewriteAudit().get("ruleVersion"));
+        assertEquals("runtime-rewrite-v3", detail.getRewriteAudit().get("runtimeRuleVersion"));
+        assertEquals("PUBLISHED", detail.getRewriteAudit().get("publishStatusSnapshot"));
         assertEquals("BUSINESS_VIEW", detail.getLogicalObjectHits().get(0).getObjectType());
         assertEquals("BUSINESS_VIEW:vw_sales_daily", detail.getLogicalObjectHits().get(0).getObjectKey());
         assertNotNull(detail.getTraceDetail());
@@ -644,8 +650,64 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("text/sql", response.getContentType());
         assertEquals(Boolean.TRUE, response.getPayload().contains("SELECT * FROM sales.orders"));
         assertEquals(Boolean.TRUE, response.getPayload().contains("logical_object_keys=BUSINESS_VIEW:vw_sales_daily"));
+        assertEquals(Boolean.TRUE, response.getPayload().contains("rewrite_record_id=rewrite-001"));
+        assertEquals(Boolean.TRUE, response.getPayload().contains("publish_status_snapshot=PUBLISHED"));
         verify(protectedPersistenceService).saveExportRecord(any(ExportRecord.class));
         verify(protectedPersistenceService).saveAuditLog(any(AuditLogRecord.class));
+    }
+
+    @Test
+    void shouldDefaultLegacyHistoryRewriteAuditToNotRewritten() {
+        AuditLogMapper auditLogMapper = mock(AuditLogMapper.class);
+        QueryHistoryMapper queryHistoryMapper = mock(QueryHistoryMapper.class);
+        ExportRecordMapper exportRecordMapper = mock(ExportRecordMapper.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        SensitiveDataCryptoProperties cryptoProperties = new SensitiveDataCryptoProperties();
+        cryptoProperties.setBase64Key(TEST_BASE64_KEY);
+        SensitiveDataCryptoService cryptoService = new SensitiveDataCryptoService(cryptoProperties);
+        GovernanceHistoryApplicationService service = new GovernanceHistoryApplicationService(
+            auditLogMapper,
+            null,
+            queryHistoryMapper,
+            exportRecordMapper,
+            tenantAccessLogic,
+            null,
+            null,
+            cryptoService
+        );
+
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN"),
+            "request-001",
+            "trace-request-001",
+            "header",
+            100L,
+            200L
+        );
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        GovernanceQueryHistoryProjection row = buildHistoryProjection("history-legacy-rewrite", "trace-legacy", "SUCCESS", "PAGE");
+        row.setRewriteApplied(null);
+        row.setRewriteRecordId(null);
+        row.setRuntimeBindingId(null);
+        row.setRewriteRuleVersion(null);
+        row.setRuntimeRuleVersion(null);
+        row.setRuntimeRewriteStatus(null);
+        row.setRewritePublishStatusSnapshot(null);
+        when(queryHistoryMapper.selectHistoryDetail("tenant-a", "history-legacy-rewrite")).thenReturn(row);
+        when(queryHistoryMapper.selectById("history-legacy-rewrite"))
+            .thenReturn(buildHistoryRecord("history-legacy-rewrite", "result-history-legacy-rewrite", "tenant-a"));
+        when(auditLogMapper.selectByTraceId("tenant-a", "trace-legacy", 10)).thenReturn(Collections.emptyList());
+        when(queryHistoryMapper.selectByTraceId("tenant-a", "trace-legacy", 10)).thenReturn(Collections.emptyList());
+        when(exportRecordMapper.selectByTraceId("tenant-a", "trace-legacy", 10)).thenReturn(Collections.emptyList());
+
+        GovernanceQueryHistoryDetailVO detail =
+            service.findQueryHistoryDetail("tenant-a", "history-legacy-rewrite");
+
+        assertEquals(Boolean.FALSE, detail.getExecutionSummary().get("rewriteApplied"));
+        assertEquals(Boolean.FALSE, detail.getRewriteAudit().get("rewriteApplied"));
+        assertEquals("UNPUBLISHED", detail.getRewriteAudit().get("publishStatusSnapshot"));
     }
 
     @Test
@@ -1539,6 +1601,12 @@ class GovernanceHistoryApplicationServiceTest {
         row.setCacheHit(Boolean.TRUE);
         row.setRewriteApplied(Boolean.TRUE);
         row.setAccelerationApplied(Boolean.FALSE);
+        row.setRewriteRecordId("rewrite-001");
+        row.setRuntimeBindingId("rwb-001");
+        row.setRewriteRuleVersion(Long.valueOf(3L));
+        row.setRuntimeRuleVersion("runtime-rewrite-v3");
+        row.setRuntimeRewriteStatus("ACTIVE");
+        row.setRewritePublishStatusSnapshot("PUBLISHED");
         row.setHitTableSummary("[\"sales.orders\"]");
         row.setResultSummary("{\"cacheSummary\":{\"cacheHit\":true},\"routeSummary\":{\"selectedEngine\":\"HETU\"}}");
         row.setErrorCode("12000");

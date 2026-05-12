@@ -310,6 +310,13 @@ CREATE TABLE IF NOT EXISTS query_history (
   saga_id VARCHAR(64) DEFAULT NULL COMMENT 'Saga identifier',
   comment_context JSON DEFAULT NULL COMMENT 'Structured SQL comment context JSON',
   binding_summary JSON DEFAULT NULL COMMENT 'Structured parameter binding summary JSON',
+  rewrite_record_id VARCHAR(64) DEFAULT NULL COMMENT 'SQL rewrite record identifier applied or evaluated for this execution',
+  runtime_binding_id VARCHAR(64) DEFAULT NULL COMMENT 'Runtime rewrite binding identifier used by query-execution',
+  rewrite_rule_version BIGINT DEFAULT NULL COMMENT 'Numeric runtime rewrite rule version snapshot',
+  runtime_rule_version VARCHAR(64) DEFAULT NULL COMMENT 'Runtime rewrite rule version label snapshot',
+  runtime_rewrite_status VARCHAR(32) DEFAULT NULL COMMENT 'Runtime rewrite binding resolution status snapshot',
+  rewrite_publish_status_snapshot VARCHAR(32) DEFAULT NULL COMMENT 'Publish status snapshot derived from backend runtime evidence',
+  rewrite_fallback_reason VARCHAR(128) DEFAULT NULL COMMENT 'Reason automatic rewrite fell back to original SQL',
   logical_object_hits JSON DEFAULT NULL COMMENT 'Structured logical object and table hit summary JSON',
   route_summary JSON DEFAULT NULL COMMENT 'Structured route decision summary JSON',
   cache_summary JSON DEFAULT NULL COMMENT 'Structured cache decision summary JSON',
@@ -326,7 +333,9 @@ CREATE TABLE IF NOT EXISTS query_history (
   KEY idx_query_history_query_date (tenant_id, query_date_start, query_date_end),
   KEY idx_query_history_datasource_code (tenant_id, datasource_code, create_time),
   KEY idx_query_history_access_channel (tenant_id, access_channel, create_time),
-  KEY idx_query_history_binding_mode (tenant_id, binding_mode, create_time)
+  KEY idx_query_history_binding_mode (tenant_id, binding_mode, create_time),
+  KEY idx_query_history_rewrite_record (tenant_id, rewrite_record_id, create_time),
+  KEY idx_query_history_runtime_binding (tenant_id, runtime_binding_id, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Historical immutable query snapshots linked to execution results';
 
 CREATE TABLE IF NOT EXISTS export_record (

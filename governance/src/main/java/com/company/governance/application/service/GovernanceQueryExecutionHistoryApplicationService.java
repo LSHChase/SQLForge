@@ -252,6 +252,13 @@ public class GovernanceQueryExecutionHistoryApplicationService {
         record.setSagaId(sagaId);
         record.setCommentContext(request.getCommentContext());
         record.setBindingSummary(request.getBindingSummary());
+        record.setRewriteRecordId(request.getRewriteRecordId());
+        record.setRuntimeBindingId(request.getRuntimeBindingId());
+        record.setRewriteRuleVersion(request.getRewriteRuleVersion());
+        record.setRuntimeRuleVersion(request.getRuntimeRuleVersion());
+        record.setRuntimeRewriteStatus(request.getRuntimeRewriteStatus());
+        record.setRewritePublishStatusSnapshot(request.getRewritePublishStatusSnapshot());
+        record.setRewriteFallbackReason(request.getRewriteFallbackReason());
         record.setLogicalObjectHits(request.getLogicalObjectHits());
         record.setRouteSummary(request.getRouteSummary());
         record.setCacheSummary(request.getCacheSummary());
@@ -316,6 +323,12 @@ public class GovernanceQueryExecutionHistoryApplicationService {
         payload.put("datasourceType", request.getDatasourceType());
         payload.put("targetEngine", request.getTargetEngine());
         payload.put("accessChannel", request.getAccessChannel());
+        payload.put("rewriteRecordId", request.getRewriteRecordId());
+        payload.put("runtimeBindingId", request.getRuntimeBindingId());
+        payload.put("rewriteRuleVersion", request.getRewriteRuleVersion());
+        payload.put("runtimeRuleVersion", request.getRuntimeRuleVersion());
+        payload.put("runtimeRewriteStatus", request.getRuntimeRewriteStatus());
+        payload.put("rewritePublishStatusSnapshot", request.getRewritePublishStatusSnapshot());
         payload.put("queryContext", parseJsonMap(request.getQueryContext()));
         return payload;
     }
@@ -327,6 +340,13 @@ public class GovernanceQueryExecutionHistoryApplicationService {
         payload.put("returnedRowCount", request.getReturnedRowCount());
         payload.put("cacheHit", request.getCacheHit());
         payload.put("rewriteApplied", request.getRewriteApplied());
+        payload.put("rewriteRecordId", request.getRewriteRecordId());
+        payload.put("runtimeBindingId", request.getRuntimeBindingId());
+        payload.put("rewriteRuleVersion", request.getRewriteRuleVersion());
+        payload.put("runtimeRuleVersion", request.getRuntimeRuleVersion());
+        payload.put("runtimeRewriteStatus", request.getRuntimeRewriteStatus());
+        payload.put("rewritePublishStatusSnapshot", request.getRewritePublishStatusSnapshot());
+        payload.put("rewriteFallbackReason", request.getRewriteFallbackReason());
         payload.put("accelerationApplied", request.getAccelerationApplied());
         payload.put("elapsedMs", request.getElapsedMs());
         payload.put("errorCode", request.getErrorCode());
@@ -341,6 +361,7 @@ public class GovernanceQueryExecutionHistoryApplicationService {
         payload.put("commentContext", parseJsonMap(request.getCommentContext()));
         payload.put("queryDateSummary", parseJsonMap(request.getQueryDateSummary()));
         payload.put("bindingSummary", parseJsonMap(request.getBindingSummary()));
+        payload.put("rewriteAudit", rewriteAuditPayload(request));
         payload.put("logicalObjectHits", parseJsonValue(request.getLogicalObjectHits()));
         payload.put("queryContext", parseJsonMap(request.getQueryContext()));
         return payload;
@@ -355,6 +376,8 @@ public class GovernanceQueryExecutionHistoryApplicationService {
         payload.put("datasourceType", request.getDatasourceType());
         payload.put("targetEngine", request.getTargetEngine());
         payload.put("accessChannel", request.getAccessChannel());
+        payload.put("rewriteRecordId", request.getRewriteRecordId());
+        payload.put("runtimeBindingId", request.getRuntimeBindingId());
         payload.put("traceId", firstText(request.getTraceId(), RequestContext.getTraceId()));
         payload.put("requestId", firstText(request.getRequestId(), RequestContext.getRequestId()));
         return payload;
@@ -366,10 +389,30 @@ public class GovernanceQueryExecutionHistoryApplicationService {
         payload.put("returnedRowCount", request.getReturnedRowCount());
         payload.put("cacheHit", request.getCacheHit());
         payload.put("rewriteApplied", request.getRewriteApplied());
+        payload.put("rewriteRecordId", request.getRewriteRecordId());
+        payload.put("runtimeBindingId", request.getRuntimeBindingId());
+        payload.put("rewriteRuleVersion", request.getRewriteRuleVersion());
+        payload.put("runtimeRuleVersion", request.getRuntimeRuleVersion());
+        payload.put("runtimeRewriteStatus", request.getRuntimeRewriteStatus());
+        payload.put("rewritePublishStatusSnapshot", request.getRewritePublishStatusSnapshot());
+        payload.put("rewriteFallbackReason", request.getRewriteFallbackReason());
         payload.put("accelerationApplied", request.getAccelerationApplied());
         payload.put("elapsedMs", request.getElapsedMs());
         payload.put("errorCode", request.getErrorCode());
         payload.put("errorMessage", request.getErrorMessage());
+        return payload;
+    }
+
+    private Map<String, Object> rewriteAuditPayload(GovernanceQueryExecutionHistoryWriteRequest request) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("rewriteApplied", request.getRewriteApplied());
+        payload.put("rewriteRecordId", request.getRewriteRecordId());
+        payload.put("runtimeBindingId", request.getRuntimeBindingId());
+        payload.put("ruleVersion", request.getRewriteRuleVersion());
+        payload.put("runtimeRuleVersion", request.getRuntimeRuleVersion());
+        payload.put("runtimeRewriteStatus", request.getRuntimeRewriteStatus());
+        payload.put("publishStatusSnapshot", request.getRewritePublishStatusSnapshot());
+        payload.put("rewriteFallbackReason", request.getRewriteFallbackReason());
         return payload;
     }
 

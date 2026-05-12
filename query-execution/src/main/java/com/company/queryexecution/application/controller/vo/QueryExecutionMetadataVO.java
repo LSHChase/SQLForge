@@ -26,6 +26,8 @@ public class QueryExecutionMetadataVO {
     private final String runtimeBindingId;
     private final Long ruleVersion;
     private final String runtimeRuleVersion;
+    private final String runtimeRewriteStatus;
+    private final String rewritePublishStatusSnapshot;
     private final String rewriteFallbackReason;
 
     public QueryExecutionMetadataVO(String targetEngine,
@@ -158,6 +160,58 @@ public class QueryExecutionMetadataVO {
                                     Long ruleVersion,
                                     String runtimeRuleVersion,
                                     String rewriteFallbackReason) {
+        this(
+            targetEngine,
+            actualSql,
+            elapsedMs,
+            scannedRows,
+            cacheHit,
+            accelerationApplied,
+            executionMode,
+            attemptedModes,
+            rowCount,
+            routeProfile,
+            routeOrder,
+            routeEvidenceSource,
+            routeVerificationStatus,
+            cacheGovernanceStatus,
+            cacheGovernanceEvidence,
+            originalSql,
+            rewriteApplied,
+            rewriteRecordId,
+            runtimeBindingId,
+            ruleVersion,
+            runtimeRuleVersion,
+            null,
+            null,
+            rewriteFallbackReason
+        );
+    }
+
+    public QueryExecutionMetadataVO(String targetEngine,
+                                    String actualSql,
+                                    long elapsedMs,
+                                    long scannedRows,
+                                    boolean cacheHit,
+                                    boolean accelerationApplied,
+                                    String executionMode,
+                                    List<String> attemptedModes,
+                                    int rowCount,
+                                    String routeProfile,
+                                    List<String> routeOrder,
+                                    String routeEvidenceSource,
+                                    String routeVerificationStatus,
+                                    String cacheGovernanceStatus,
+                                    String cacheGovernanceEvidence,
+                                    String originalSql,
+                                    boolean rewriteApplied,
+                                    String rewriteRecordId,
+                                    String runtimeBindingId,
+                                    Long ruleVersion,
+                                    String runtimeRuleVersion,
+                                    String runtimeRewriteStatus,
+                                    String rewritePublishStatusSnapshot,
+                                    String rewriteFallbackReason) {
         this.targetEngine = targetEngine;
         this.actualSql = actualSql;
         this.elapsedMs = elapsedMs;
@@ -179,6 +233,8 @@ public class QueryExecutionMetadataVO {
         this.runtimeBindingId = runtimeBindingId;
         this.ruleVersion = ruleVersion;
         this.runtimeRuleVersion = runtimeRuleVersion;
+        this.runtimeRewriteStatus = runtimeRewriteStatus;
+        this.rewritePublishStatusSnapshot = rewritePublishStatusSnapshot;
         this.rewriteFallbackReason = rewriteFallbackReason;
     }
 
@@ -264,6 +320,14 @@ public class QueryExecutionMetadataVO {
 
     public String getRuntimeRuleVersion() {
         return runtimeRuleVersion;
+    }
+
+    public String getRuntimeRewriteStatus() {
+        return runtimeRewriteStatus;
+    }
+
+    public String getRewritePublishStatusSnapshot() {
+        return rewritePublishStatusSnapshot;
     }
 
     public String getRewriteFallbackReason() {

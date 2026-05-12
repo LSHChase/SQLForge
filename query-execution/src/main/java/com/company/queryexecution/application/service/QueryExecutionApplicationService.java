@@ -637,6 +637,8 @@ public class QueryExecutionApplicationService {
                 runtimeRewriteResolution.getRuntimeBindingId(),
                 runtimeRewriteResolution.getRuleVersion(),
                 runtimeRewriteResolution.getRuntimeRuleVersion(),
+                runtimeRewriteResolution.getRuntimeStatus(),
+                runtimeRewriteResolution.getRewritePublishStatusSnapshot(),
                 runtimeRewriteResolution.getRewriteFallbackReason()
             ),
             degraded,
@@ -827,6 +829,8 @@ public class QueryExecutionApplicationService {
                 runtimeRewriteResolution.getRuntimeBindingId(),
                 runtimeRewriteResolution.getRuleVersion(),
                 runtimeRewriteResolution.getRuntimeRuleVersion(),
+                runtimeRewriteResolution.getRuntimeStatus(),
+                runtimeRewriteResolution.getRewritePublishStatusSnapshot(),
                 runtimeRewriteResolution.getRewriteFallbackReason()
             ),
             false,
@@ -1160,6 +1164,27 @@ public class QueryExecutionApplicationService {
         historyRequest.setCommentContext(toJson(response == null ? null : response.getCommentContext()));
         historyRequest.setQueryDateSummary(toJson(response == null ? null : response.getQueryDateSummary()));
         historyRequest.setBindingSummary(toJson(bindingSummary));
+        historyRequest.setRewriteRecordId(metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRewriteRecordId()
+            : metadata.getRewriteRecordId());
+        historyRequest.setRuntimeBindingId(metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRuntimeBindingId()
+            : metadata.getRuntimeBindingId());
+        historyRequest.setRewriteRuleVersion(metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRuleVersion()
+            : metadata.getRuleVersion());
+        historyRequest.setRuntimeRuleVersion(metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRuntimeRuleVersion()
+            : metadata.getRuntimeRuleVersion());
+        historyRequest.setRuntimeRewriteStatus(metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRuntimeStatus()
+            : metadata.getRuntimeRewriteStatus());
+        historyRequest.setRewritePublishStatusSnapshot(metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRewritePublishStatusSnapshot()
+            : metadata.getRewritePublishStatusSnapshot());
+        historyRequest.setRewriteFallbackReason(metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRewriteFallbackReason()
+            : metadata.getRewriteFallbackReason());
         historyRequest.setLogicalObjectHits(toJson(response == null ? null : response.getLogicalObjectHits()));
         historyRequest.setRouteSummary(toJson(response == null ? null : response.getRouteSummary()));
         historyRequest.setCacheSummary(toJson(response == null ? null : response.getCacheSummary()));
@@ -1249,6 +1274,12 @@ public class QueryExecutionApplicationService {
         payload.put("runtimeRuleVersion", metadata == null
             ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRuntimeRuleVersion()
             : metadata.getRuntimeRuleVersion());
+        payload.put("runtimeRewriteStatus", metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRuntimeStatus()
+            : metadata.getRuntimeRewriteStatus());
+        payload.put("rewritePublishStatusSnapshot", metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRewritePublishStatusSnapshot()
+            : metadata.getRewritePublishStatusSnapshot());
         payload.put("rewriteFallbackReason", metadata == null
             ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRewriteFallbackReason()
             : metadata.getRewriteFallbackReason());
@@ -1357,7 +1388,7 @@ public class QueryExecutionApplicationService {
         summary.put("runtimeBindingId", runtimeRewriteResolution.getRuntimeBindingId());
         summary.put("ruleVersion", runtimeRewriteResolution.getRuleVersion());
         summary.put("runtimeRuleVersion", runtimeRewriteResolution.getRuntimeRuleVersion());
-        summary.put("rewritePublishStatusSnapshot", runtimeRewriteResolution.getRuntimeStatus());
+        summary.put("rewritePublishStatusSnapshot", runtimeRewriteResolution.getRewritePublishStatusSnapshot());
         if (StringUtils.hasText(runtimeRewriteResolution.getRewriteFallbackReason())) {
             summary.put("rewriteFallbackReason", runtimeRewriteResolution.getRewriteFallbackReason());
         }
@@ -1705,6 +1736,7 @@ public class QueryExecutionApplicationService {
         private final String runtimeBindingId;
         private final Long ruleVersion;
         private final String runtimeRuleVersion;
+        private final String rewritePublishStatusSnapshot;
         private final String rewriteFallbackReason;
 
         private RuntimeRewriteResolution(String originalSql,
@@ -1717,6 +1749,7 @@ public class QueryExecutionApplicationService {
                                          String runtimeBindingId,
                                          Long ruleVersion,
                                          String runtimeRuleVersion,
+                                         String rewritePublishStatusSnapshot,
                                          String rewriteFallbackReason) {
             this.originalSql = originalSql;
             this.originalSqlFingerprint = originalSqlFingerprint;
@@ -1728,6 +1761,7 @@ public class QueryExecutionApplicationService {
             this.runtimeBindingId = runtimeBindingId;
             this.ruleVersion = ruleVersion;
             this.runtimeRuleVersion = runtimeRuleVersion;
+            this.rewritePublishStatusSnapshot = rewritePublishStatusSnapshot;
             this.rewriteFallbackReason = rewriteFallbackReason;
         }
 
@@ -1743,6 +1777,7 @@ public class QueryExecutionApplicationService {
                 null,
                 null,
                 null,
+                "UNPUBLISHED",
                 null
             );
         }
@@ -1762,6 +1797,7 @@ public class QueryExecutionApplicationService {
                 null,
                 null,
                 null,
+                toRewritePublishStatusSnapshot(runtimeStatus, null),
                 summary
             );
         }
@@ -1781,6 +1817,7 @@ public class QueryExecutionApplicationService {
                 response.getRuntimeBindingId(),
                 response.getRuleVersion(),
                 response.getRuntimeRuleVersion(),
+                toRewritePublishStatusSnapshot(response.getStatus(), response.getRewriteRecordId()),
                 null
             );
         }
@@ -1800,8 +1837,22 @@ public class QueryExecutionApplicationService {
                 response == null ? null : response.getRuntimeBindingId(),
                 response == null ? null : response.getRuleVersion(),
                 response == null ? null : response.getRuntimeRuleVersion(),
+                response == null ? "UNKNOWN" : toRewritePublishStatusSnapshot(response.getStatus(), response.getRewriteRecordId()),
                 reason
             );
+        }
+
+        private static String toRewritePublishStatusSnapshot(String runtimeStatus, String rewriteRecordId) {
+            if ("ACTIVE".equals(runtimeStatus)) {
+                return "PUBLISHED";
+            }
+            if ("PAUSED".equals(runtimeStatus) || "UNPUBLISHED".equals(runtimeStatus)) {
+                return runtimeStatus;
+            }
+            if (StringUtils.hasText(rewriteRecordId)) {
+                return "UNKNOWN";
+            }
+            return "UNPUBLISHED";
         }
 
         String getOriginalSql() { return originalSql; }
@@ -1814,6 +1865,7 @@ public class QueryExecutionApplicationService {
         String getRuntimeBindingId() { return runtimeBindingId; }
         Long getRuleVersion() { return ruleVersion; }
         String getRuntimeRuleVersion() { return runtimeRuleVersion; }
+        String getRewritePublishStatusSnapshot() { return rewritePublishStatusSnapshot; }
         String getRewriteFallbackReason() { return rewriteFallbackReason; }
     }
 }

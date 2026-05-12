@@ -25,6 +25,7 @@ public class GovernanceQueryHistoryDetailVO {
     private Map<String, Object> queryDateSummary;
     private List<LogicalObjectSurface> logicalObjectHits;
     private Map<String, Object> executionSummary;
+    private Map<String, Object> rewriteAudit;
     private Map<String, Object> structureParseSummary;
     private Map<String, Object> accessParseSummary;
     private Map<String, Object> routeDecision;
@@ -173,6 +174,14 @@ public class GovernanceQueryHistoryDetailVO {
 
     public void setExecutionSummary(Map<String, Object> executionSummary) {
         this.executionSummary = executionSummary;
+    }
+
+    public Map<String, Object> getRewriteAudit() {
+        return rewriteAudit;
+    }
+
+    public void setRewriteAudit(Map<String, Object> rewriteAudit) {
+        this.rewriteAudit = rewriteAudit;
     }
 
     public Map<String, Object> getStructureParseSummary() {

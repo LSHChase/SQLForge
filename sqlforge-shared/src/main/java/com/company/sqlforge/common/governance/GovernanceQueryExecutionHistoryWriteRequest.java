@@ -23,6 +23,13 @@ public class GovernanceQueryExecutionHistoryWriteRequest {
     private String commentContext;
     private String queryDateSummary;
     private String bindingSummary;
+    private String rewriteRecordId;
+    private String runtimeBindingId;
+    private Long rewriteRuleVersion;
+    private String runtimeRuleVersion;
+    private String runtimeRewriteStatus;
+    private String rewritePublishStatusSnapshot;
+    private String rewriteFallbackReason;
     private String logicalObjectHits;
     private String routeSummary;
     private String cacheSummary;
@@ -79,6 +86,20 @@ public class GovernanceQueryExecutionHistoryWriteRequest {
     public void setQueryDateSummary(String queryDateSummary) { this.queryDateSummary = queryDateSummary; }
     public String getBindingSummary() { return bindingSummary; }
     public void setBindingSummary(String bindingSummary) { this.bindingSummary = bindingSummary; }
+    public String getRewriteRecordId() { return rewriteRecordId; }
+    public void setRewriteRecordId(String rewriteRecordId) { this.rewriteRecordId = rewriteRecordId; }
+    public String getRuntimeBindingId() { return runtimeBindingId; }
+    public void setRuntimeBindingId(String runtimeBindingId) { this.runtimeBindingId = runtimeBindingId; }
+    public Long getRewriteRuleVersion() { return rewriteRuleVersion; }
+    public void setRewriteRuleVersion(Long rewriteRuleVersion) { this.rewriteRuleVersion = rewriteRuleVersion; }
+    public String getRuntimeRuleVersion() { return runtimeRuleVersion; }
+    public void setRuntimeRuleVersion(String runtimeRuleVersion) { this.runtimeRuleVersion = runtimeRuleVersion; }
+    public String getRuntimeRewriteStatus() { return runtimeRewriteStatus; }
+    public void setRuntimeRewriteStatus(String runtimeRewriteStatus) { this.runtimeRewriteStatus = runtimeRewriteStatus; }
+    public String getRewritePublishStatusSnapshot() { return rewritePublishStatusSnapshot; }
+    public void setRewritePublishStatusSnapshot(String rewritePublishStatusSnapshot) { this.rewritePublishStatusSnapshot = rewritePublishStatusSnapshot; }
+    public String getRewriteFallbackReason() { return rewriteFallbackReason; }
+    public void setRewriteFallbackReason(String rewriteFallbackReason) { this.rewriteFallbackReason = rewriteFallbackReason; }
     public String getLogicalObjectHits() { return logicalObjectHits; }
     public void setLogicalObjectHits(String logicalObjectHits) { this.logicalObjectHits = logicalObjectHits; }
     public String getRouteSummary() { return routeSummary; }
