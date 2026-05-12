@@ -555,6 +555,16 @@ export default {
       routeDecision: '路由决策',
       cacheSummary: '缓存摘要'
     },
+    rewriteAudit: {
+      rewriteApplied: '后端审计改写',
+      rewriteRecordId: '改写记录 ID',
+      runtimeBindingId: '运行时绑定 ID',
+      ruleVersion: '规则版本',
+      runtimeRuleVersion: '运行时规则版本',
+      runtimeRewriteStatus: '运行时改写状态',
+      publishStatusSnapshot: '发布状态快照',
+      rewriteFallbackReason: '改写回退原因'
+    },
     sql: {
       sqlFingerprint: '执行指纹',
       templateFingerprint: '模板指纹',

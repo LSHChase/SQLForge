@@ -74,6 +74,12 @@ TASK_POLICY = {
 CURRENT_TASK_SCHEMA_VERSION = 2
 MCP_RULE_IDS = ["R-170", "R-171", "R-172", "R-173", "R-174", "R-175", "R-176"]
 MCP_VALIDATION_RULE_IDS = ["R-170", "R-171", "R-172", "R-173", "R-174", "R-175", "R-176"]
+TASK_VALIDATION_COMMANDS: Dict[str, List[tuple[List[str], str]]] = {
+    "PRW-011": [
+        (["node", "scripts/check-history-page-contract.mjs"], "`R-133`, `R-168`"),
+        (["node", "scripts/check-history-detail-contract.mjs"], "`R-133`, `R-168`"),
+    ],
+}
 MCP_POLICY_DOCS = [
     "docs/security/connectors.md",
     "docs/operations/codex-mcp-playbook.md",
@@ -857,6 +863,7 @@ def command_validate(args: argparse.Namespace) -> int:
                 (["npm", "run", "test:frontend-page-governance"], "`R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186`"),
             ]
         )
+    commands.extend(TASK_VALIDATION_COMMANDS.get(args.task, []))
     if args.include_task_audit:
         commands.append((["python3", "scripts/task_audit.py", "--check", "--phase", "pre-closeout"], "`R-156`, `R-160`, `R-168`"))
     for command_text in args.extra_command:

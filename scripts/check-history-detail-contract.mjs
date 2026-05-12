@@ -4,6 +4,7 @@ import path from 'node:path'
 const root = process.cwd()
 const parseRecordDir = path.join(root, 'src/views/parse-record')
 const helperPath = path.join(root, 'src/views/common/issueSceneHelp.mjs')
+const enLocalePath = path.join(root, 'src/locales/en-US.js')
 const parseRecordSource = fs
   .readdirSync(parseRecordDir)
   .filter(file => /\.(?:vue|js|css)$/.test(file))
@@ -12,7 +13,8 @@ const parseRecordSource = fs
   .join('\n')
 const source = [
   parseRecordSource,
-  fs.readFileSync(helperPath, 'utf8')
+  fs.readFileSync(helperPath, 'utf8'),
+  fs.readFileSync(enLocalePath, 'utf8')
 ].join('\n')
 
 const requiredTokens = [

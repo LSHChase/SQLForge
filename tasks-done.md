@@ -4,6 +4,30 @@
 
 ## Done
 
+### PRW-011: SQL 历史页面展示改写前后链路
+
+- Status: done
+- Completed at: 2026-05-12
+- Commit subject: `feat(frontend): complete PRW-011 rewrite history linkage`
+- Priority: 1
+- Depends on: `PRW-008`,`PRW-010`,`HARN-145`
+- Scope: SQL 历史页面展示必须来自 PRW-008 的后端审计字段，不得由前端推断改写是否发生。 Tech: `VUE-FE`,`DOCS`. Layer: `frontend/router/views/styles`,`api client`,`tests`.
+- Plan ref: docs/exec-plans/completed/PRW-011-full-auto-execution-plan.md
+- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
+- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
+- Data impact: 仅改变历史页面展示和 API 消费，不改写历史持久化数据。
+- Rollback / recovery: 回退历史页面新增列、详情 tab 和跳转入口，恢复既有 SQL 历史视图。
+- Validation:
+  - `npm run lint、npm run build、node scripts/check-history-page-contract.mjs、node scripts/check-history-detail-contract.mjs、python3 scripts/foreman.py validate PRW-011`
+  - `python3 scripts/foreman.py validate PRW-011`
+- Progress log:
+  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: SQL history now displays backend rewriteAudit runtime binding and rule-version evidence, deep-links rewrite records into recommendation detail, and enforces PRW-011 history contracts through foreman validation.
+  - Validation evidence: npm run lint; npm run build; node scripts/check-history-page-contract.mjs; node scripts/check-history-detail-contract.mjs; python3 scripts/foreman.py validate PRW-011; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
+  - Residual risk: Long SQL diff and narrow mobile layouts remain dependent on existing SqlCodeBlock and detail-grid responsive behavior; no additional data or approval risk identified.
+  - Next step: Continue with PRW-012 production closed-loop end-to-end tests and smoke coverage.
+
 ### PRW-010: 推荐中心与改写记录详情页面接入审批动作
 
 - Status: done

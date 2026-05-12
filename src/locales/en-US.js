@@ -571,6 +571,16 @@ export default {
       routeDecision: 'Route decision',
       cacheSummary: 'Cache summary'
     },
+    rewriteAudit: {
+      rewriteApplied: 'Backend audit rewrite',
+      rewriteRecordId: 'Rewrite record ID',
+      runtimeBindingId: 'Runtime binding ID',
+      ruleVersion: 'Rule version',
+      runtimeRuleVersion: 'Runtime rule version',
+      runtimeRewriteStatus: 'Runtime rewrite status',
+      publishStatusSnapshot: 'Publish status snapshot',
+      rewriteFallbackReason: 'Rewrite fallback reason'
+    },
     sql: {
       sqlFingerprint: 'SQL fingerprint',
       templateFingerprint: 'Template fingerprint',

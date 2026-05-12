@@ -138,6 +138,7 @@ const statusCounts = computed(() => classificationSummary.value.statusCounts || 
 const accessChannelCounts = computed(() => classificationSummary.value.accessChannelCounts || {})
 const auditEvents = computed(() => selectedHistoryDetail.value?.traceDetail?.auditEvents || [])
 const executionSummary = computed(() => objectValue(selectedHistoryDetail.value?.executionSummary))
+const rewriteAudit = computed(() => objectValue(selectedHistoryDetail.value?.rewriteAudit))
 const sqlState = computed(() => objectValue(selectedHistoryDetail.value?.sqlState))
 
 const withAllOption = options => [
@@ -615,6 +616,60 @@ const executionCards = computed(() => {
   ].filter(item => hasDisplayValue(item.value))
 })
 
+const rewriteAuditCards = computed(() => {
+  const audit = rewriteAudit.value
+  return [
+    {
+      key: 'rewriteApplied',
+      label: t('sqlHistory.rewriteAudit.rewriteApplied'),
+      value: booleanDisplay(audit.rewriteApplied),
+      testId: 'sql-history-rewrite-audit-applied'
+    },
+    {
+      key: 'rewriteRecordId',
+      label: t('sqlHistory.rewriteAudit.rewriteRecordId'),
+      value: audit.rewriteRecordId,
+      testId: 'sql-history-rewrite-audit-record-id'
+    },
+    {
+      key: 'runtimeBindingId',
+      label: t('sqlHistory.rewriteAudit.runtimeBindingId'),
+      value: audit.runtimeBindingId,
+      testId: 'sql-history-rewrite-audit-runtime-binding-id'
+    },
+    {
+      key: 'ruleVersion',
+      label: t('sqlHistory.rewriteAudit.ruleVersion'),
+      value: firstValue(audit.ruleVersion, audit.rewriteRuleVersion),
+      testId: 'sql-history-rewrite-audit-rule-version'
+    },
+    {
+      key: 'runtimeRuleVersion',
+      label: t('sqlHistory.rewriteAudit.runtimeRuleVersion'),
+      value: audit.runtimeRuleVersion,
+      testId: 'sql-history-rewrite-audit-runtime-rule-version'
+    },
+    {
+      key: 'runtimeRewriteStatus',
+      label: t('sqlHistory.rewriteAudit.runtimeRewriteStatus'),
+      value: audit.runtimeRewriteStatus,
+      testId: 'sql-history-rewrite-audit-runtime-status'
+    },
+    {
+      key: 'publishStatusSnapshot',
+      label: t('sqlHistory.rewriteAudit.publishStatusSnapshot'),
+      value: firstValue(audit.publishStatusSnapshot, audit.rewritePublishStatusSnapshot),
+      testId: 'sql-history-rewrite-audit-publish-status'
+    },
+    {
+      key: 'rewriteFallbackReason',
+      label: t('sqlHistory.rewriteAudit.rewriteFallbackReason'),
+      value: audit.rewriteFallbackReason,
+      testId: 'sql-history-rewrite-audit-fallback-reason'
+    }
+  ].filter(item => hasDisplayValue(item.value))
+})
+
 const contextCards = computed(() => {
   const detail = selectedHistoryDetail.value || {}
   const queryDateSummary = objectValue(detail.queryDateSummary)
@@ -818,16 +873,21 @@ const openHistoryDetail = async historyId => {
   }
 }
 
-const openRecommendationCenter = recommendationId => {
-  const normalizedRecommendationId = normalizeQueryValue(recommendationId)
-  if (!normalizedRecommendationId) {
+const openRecommendationCenter = recommendationOrRecord => {
+  const record = recommendationOrRecord && typeof recommendationOrRecord === 'object' ? recommendationOrRecord : {}
+  const normalizedRecommendationId = normalizeQueryValue(
+    record.recommendationId || (typeof recommendationOrRecord === 'string' ? recommendationOrRecord : '')
+  )
+  const normalizedRewriteRecordId = normalizeQueryValue(record.rewriteRecordId)
+  if (!normalizedRecommendationId && !normalizedRewriteRecordId) {
     return
   }
   router.push({
     path: ROUTE_PATHS.recommendationCenter,
     query: {
       tenantId: requestTenantId.value,
-      recommendationId: normalizedRecommendationId
+      recommendationId: normalizedRecommendationId,
+      rewriteRecordId: normalizedRewriteRecordId
     }
   })
 }
@@ -1330,6 +1390,16 @@ watch(
                 <strong>{{ displayValue(item.value) }}</strong>
               </div>
             </div>
+            <div
+              v-if="rewriteAuditCards.length"
+              class="detail-grid detail-grid-spaced"
+              data-testid="sql-history-rewrite-audit"
+            >
+              <div v-for="item in rewriteAuditCards" :key="item.key" class="detail-grid__item">
+                <span>{{ item.label }}</span>
+                <strong :data-testid="item.testId">{{ displayValue(item.value) }}</strong>
+              </div>
+            </div>
             <div class="code-grid">
               <article v-if="isNonEmpty(selectedHistoryDetail.routeDecision)" class="code-card">
                 <div class="code-card__header">{{ t('sqlHistory.execution.routeDecision') }}</div>
@@ -1388,7 +1458,20 @@ watch(
                 border
                 data-testid="sql-history-rewrite-record-table"
               >
-                <el-table-column prop="rewriteRecordId" :label="t('sqlHistory.rewriteRecords.rewriteRecordId')" min-width="190" />
+                <el-table-column :label="t('sqlHistory.rewriteRecords.rewriteRecordId')" min-width="190">
+                  <template #default="{ row }">
+                    <button
+                      v-if="row.rewriteRecordId"
+                      type="button"
+                      class="table-link"
+                      data-testid="sql-history-rewrite-record-detail-link"
+                      @click="openRecommendationCenter(row)"
+                    >
+                      {{ row.rewriteRecordId }}
+                    </button>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
                 <el-table-column :label="t('sqlHistory.rewriteRecords.recommendationId')" min-width="190">
                   <template #default="{ row }">
                     <button
@@ -1396,7 +1479,7 @@ watch(
                       type="button"
                       class="table-link"
                       data-testid="sql-history-rewrite-record-recommendation-link"
-                      @click="openRecommendationCenter(row.recommendationId)"
+                      @click="openRecommendationCenter(row)"
                     >
                       {{ row.recommendationId }}
                     </button>
