@@ -90,12 +90,17 @@ public class InMemorySqlRewriteRecordRepository implements SqlRewriteRecordRepos
         if (record == null || !record.isAutoApplyAllowed()) {
             return false;
         }
+        if (!"PUBLISHED".equals(record.getPublishStatus().name())) {
+            return false;
+        }
         String status = record.getStatus().name();
         String validationStatus = record.getValidationStatus().name();
         if (!("APPROVED".equals(status) || "APPLIED".equals(status))) {
             return false;
         }
-        if (!("NOT_VALIDATED".equals(validationStatus) || "EXPIRED".equals(validationStatus))) {
+        if (!("NOT_VALIDATED".equals(validationStatus)
+            || "EXPIRED".equals(validationStatus)
+            || "EQUIVALENT".equals(validationStatus))) {
             return false;
         }
         Instant lastComparedAt = record.getLastComparedAt();

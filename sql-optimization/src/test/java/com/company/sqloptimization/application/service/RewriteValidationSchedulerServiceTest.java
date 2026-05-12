@@ -12,16 +12,22 @@ import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAler
 import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingPublishRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
 import com.company.sqloptimization.config.RewriteValidationSchedulerProperties;
 import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.domain.governance.RewriteAlertStatus;
+import com.company.sqloptimization.domain.governance.RewritePublishStatus;
 import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.rewrite.SqlRewriteRecord;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqloptimization.infrastructure.governance.OptimizationAuditRecord;
 import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionResultDigestClient;
+import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionRuntimeRewriteBindingClient;
 import com.company.sqloptimization.infrastructure.repository.InMemorySqlRewriteRecordRepository;
 import java.time.Instant;
 import java.util.Collections;
@@ -60,11 +66,12 @@ class RewriteValidationSchedulerServiceTest {
     void shouldValidateDivergedRewriteAndEmitAlertLinkage() {
         InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
         repository.saveRecord(rewriteRecord("rewrite-001", "SELECT original", "SELECT recommended"));
+        FakeRuntimeRewriteBindingClient runtimeClient = new FakeRuntimeRewriteBindingClient();
         GovernanceCapabilityClient governanceCapabilityClient = Mockito.mock(GovernanceCapabilityClient.class);
         when(governanceCapabilityClient.emitSqlRewriteDivergenceAlert(
             org.mockito.ArgumentMatchers.any(GovernanceSqlRewriteDivergenceAlertRequest.class)
         )).thenReturn(alertResponse());
-        RewriteValidationSchedulerService service = service(repository, governanceCapabilityClient, true);
+        RewriteValidationSchedulerService service = service(repository, governanceCapabilityClient, runtimeClient, true);
 
         RewriteValidationSchedulerService.RewriteValidationSchedulerResult result =
             service.runScheduledValidationCycle();
@@ -72,22 +79,68 @@ class RewriteValidationSchedulerServiceTest {
         SqlRewriteRecord updated = repository.findRecordById("rewrite-001");
         assertEquals(1, result.getProcessedCount());
         assertEquals(1, result.getAlertEmissionCount());
+        assertEquals(1, result.getAuditWriteCount());
         assertEquals(RewriteRecordStatus.PAUSED, updated.getStatus());
         assertEquals(RewriteValidationStatus.DIVERGED, updated.getValidationStatus());
+        assertEquals(RewritePublishStatus.PAUSED, updated.getPublishStatus());
         assertFalse(updated.isAutoApplyAllowed());
         assertEquals(RewriteAlertStatus.OPEN, updated.getAlertStatus());
+        assertEquals(1, runtimeClient.pauseCount);
+        assertEquals("rwb-rewrite-001", runtimeClient.lastPauseRequest.getRuntimeBindingId());
+        assertEquals("scheduled validation divergence: VALUE_DIFF", runtimeClient.lastPauseRequest.getReason());
+        Map<String, Object> runtimeTrace = castMap(updated.getTraceRefs().get("lastRuntimeBindingTrace"));
+        assertEquals("AUTO_PAUSE", runtimeTrace.get("action"));
+        assertEquals("PAUSED", runtimeTrace.get("publishStatus"));
         Map<String, Object> divergenceAlert = castMap(updated.getTraceRefs().get("divergenceAlert"));
         assertEquals("EMITTED_OR_DEDUPED", divergenceAlert.get("emissionStatus"));
         assertEquals("SQL_REWRITE_RESULT_DIVERGENCE", divergenceAlert.get("alertType"));
+        Map<String, Object> divergenceAudit = castMap(updated.getTraceRefs().get("divergencePauseAudit"));
+        assertEquals("WRITTEN", divergenceAudit.get("auditWriteStatus"));
+        assertEquals("SUCCESS", divergenceAudit.get("resultStatus"));
 
         ArgumentCaptor<GovernanceSqlRewriteDivergenceAlertRequest> captor =
             ArgumentCaptor.forClass(GovernanceSqlRewriteDivergenceAlertRequest.class);
         verify(governanceCapabilityClient).emitSqlRewriteDivergenceAlert(captor.capture());
+        verify(governanceCapabilityClient).writeAudit(
+            org.mockito.ArgumentMatchers.any(OptimizationAuditRecord.class)
+        );
         assertEquals("tenant-a", captor.getValue().getTenantId());
         assertEquals("rewrite-001", captor.getValue().getRewriteRecordId());
         assertEquals("DIVERGED", captor.getValue().getComparisonStatus());
         assertEquals("VALUE_DIFF", captor.getValue().getDifferenceType());
         assertEquals(Boolean.TRUE, captor.getValue().getAutoApplyPaused());
+    }
+
+    @Test
+    void shouldRetainFailureTraceAndAlertWhenRuntimePauseFails() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        repository.saveRecord(rewriteRecord("rewrite-001", "SELECT original", "SELECT recommended"));
+        FakeRuntimeRewriteBindingClient runtimeClient = new FakeRuntimeRewriteBindingClient();
+        runtimeClient.failPause = true;
+        GovernanceCapabilityClient governanceCapabilityClient = Mockito.mock(GovernanceCapabilityClient.class);
+        when(governanceCapabilityClient.emitSqlRewriteDivergenceAlert(
+            org.mockito.ArgumentMatchers.any(GovernanceSqlRewriteDivergenceAlertRequest.class)
+        )).thenReturn(alertResponse());
+        RewriteValidationSchedulerService service = service(repository, governanceCapabilityClient, runtimeClient, true);
+
+        RewriteValidationSchedulerService.RewriteValidationSchedulerResult result =
+            service.runScheduledValidationCycle();
+
+        SqlRewriteRecord updated = repository.findRecordById("rewrite-001");
+        assertEquals(1, result.getProcessedCount());
+        assertEquals(1, result.getAlertEmissionCount());
+        assertEquals(1, result.getAuditWriteCount());
+        assertEquals(RewriteRecordStatus.PAUSED, updated.getStatus());
+        assertEquals(RewriteValidationStatus.DIVERGED, updated.getValidationStatus());
+        assertEquals(RewritePublishStatus.PUBLISHED, updated.getPublishStatus());
+        assertFalse(updated.isAutoApplyAllowed());
+        Map<String, Object> runtimeTrace = castMap(updated.getTraceRefs().get("lastRuntimeBindingTrace"));
+        assertEquals("AUTO_PAUSE", runtimeTrace.get("action"));
+        assertEquals("PUBLISHED", runtimeTrace.get("publishStatus"));
+        assertEquals("IllegalStateException", runtimeTrace.get("errorType"));
+        Map<String, Object> divergenceAudit = castMap(updated.getTraceRefs().get("divergencePauseAudit"));
+        assertEquals("WRITTEN", divergenceAudit.get("auditWriteStatus"));
+        assertEquals("FAILED", divergenceAudit.get("resultStatus"));
     }
 
     @Test
@@ -105,6 +158,32 @@ class RewriteValidationSchedulerServiceTest {
         assertEquals(0, result.getAlertEmissionCount());
         assertEquals(RewriteRecordStatus.APPROVED, updated.getStatus());
         assertEquals(RewriteValidationStatus.EQUIVALENT, updated.getValidationStatus());
+        assertEquals(RewritePublishStatus.PUBLISHED, updated.getPublishStatus());
+        verify(governanceCapabilityClient, never()).emitSqlRewriteDivergenceAlert(
+            org.mockito.ArgumentMatchers.any(GovernanceSqlRewriteDivergenceAlertRequest.class)
+        );
+    }
+
+    @Test
+    void shouldRevalidateEquivalentRewriteWhenComparisonAgeIsDue() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        repository.saveRecord(rewriteRecord(
+            "rewrite-001",
+            "SELECT original",
+            "SELECT original",
+            RewriteValidationStatus.EQUIVALENT,
+            Instant.parse("2026-05-09T10:00:00Z")
+        ));
+        GovernanceCapabilityClient governanceCapabilityClient = Mockito.mock(GovernanceCapabilityClient.class);
+        RewriteValidationSchedulerService service = service(repository, governanceCapabilityClient, true);
+
+        RewriteValidationSchedulerService.RewriteValidationSchedulerResult result =
+            service.runScheduledValidationCycle();
+
+        SqlRewriteRecord updated = repository.findRecordById("rewrite-001");
+        assertEquals(1, result.getProcessedCount());
+        assertEquals(0, result.getAlertEmissionCount());
+        assertEquals(RewriteValidationStatus.EQUIVALENT, updated.getValidationStatus());
         verify(governanceCapabilityClient, never()).emitSqlRewriteDivergenceAlert(
             org.mockito.ArgumentMatchers.any(GovernanceSqlRewriteDivergenceAlertRequest.class)
         );
@@ -112,6 +191,13 @@ class RewriteValidationSchedulerServiceTest {
 
     private RewriteValidationSchedulerService service(InMemorySqlRewriteRecordRepository repository,
                                                       GovernanceCapabilityClient governanceCapabilityClient,
+                                                      boolean enabled) {
+        return service(repository, governanceCapabilityClient, new FakeRuntimeRewriteBindingClient(), enabled);
+    }
+
+    private RewriteValidationSchedulerService service(InMemorySqlRewriteRecordRepository repository,
+                                                      GovernanceCapabilityClient governanceCapabilityClient,
+                                                      QueryExecutionRuntimeRewriteBindingClient runtimeClient,
                                                       boolean enabled) {
         RewriteValidationSchedulerProperties properties = new RewriteValidationSchedulerProperties();
         properties.setEnabled(enabled);
@@ -121,7 +207,8 @@ class RewriteValidationSchedulerServiceTest {
             new SqlRewriteRecordApplicationService(
                 repository,
                 new FakeResultDigestClient(),
-                new ResultDigestComparisonEngine()
+                new ResultDigestComparisonEngine(),
+                runtimeClient
             );
         return new RewriteValidationSchedulerService(
             properties,
@@ -132,6 +219,14 @@ class RewriteValidationSchedulerServiceTest {
     }
 
     private SqlRewriteRecord rewriteRecord(String rewriteRecordId, String originalSql, String recommendedSql) {
+        return rewriteRecord(rewriteRecordId, originalSql, recommendedSql, RewriteValidationStatus.NOT_VALIDATED, null);
+    }
+
+    private SqlRewriteRecord rewriteRecord(String rewriteRecordId,
+                                           String originalSql,
+                                           String recommendedSql,
+                                           RewriteValidationStatus validationStatus,
+                                           Instant lastComparedAt) {
         return SqlRewriteRecord.builder()
             .rewriteRecordId(rewriteRecordId)
             .tenantId("tenant-a")
@@ -144,9 +239,13 @@ class RewriteValidationSchedulerServiceTest {
             .sqlFingerprint("fp-001")
             .datasourceCode("hetu_main")
             .status(RewriteRecordStatus.APPROVED)
-            .validationStatus(RewriteValidationStatus.NOT_VALIDATED)
+            .validationStatus(validationStatus)
             .autoApplyAllowed(true)
             .manualReviewRequired(false)
+            .publishStatus(RewritePublishStatus.PUBLISHED)
+            .runtimeBindingId("rwb-" + rewriteRecordId)
+            .runtimeRuleVersion("runtime-rewrite-v1")
+            .lastComparedAt(lastComparedAt)
             .alertStatus(RewriteAlertStatus.NONE)
             .originalSqlText(originalSql)
             .recommendedSqlText(recommendedSql)
@@ -208,6 +307,42 @@ class RewriteValidationSchedulerServiceTest {
             Map<String, Object> row = new LinkedHashMap<String, Object>();
             row.put(key, value);
             return row;
+        }
+    }
+
+    private static final class FakeRuntimeRewriteBindingClient implements QueryExecutionRuntimeRewriteBindingClient {
+        private int pauseCount;
+        private boolean failPause;
+        private RuntimeRewriteBindingStateChangeRequest lastPauseRequest;
+
+        @Override
+        public RuntimeRewriteBindingResponse publish(RuntimeRewriteBindingPublishRequest request) {
+            throw new UnsupportedOperationException("publish is not used by scheduler validation tests");
+        }
+
+        @Override
+        public RuntimeRewriteBindingResponse pause(RuntimeRewriteBindingStateChangeRequest request) {
+            pauseCount++;
+            lastPauseRequest = request;
+            if (failPause) {
+                throw new IllegalStateException("runtime pause unavailable");
+            }
+            RuntimeRewriteBindingResponse response = new RuntimeRewriteBindingResponse();
+            response.setTenantId(request.getTenantId());
+            response.setRuntimeBindingId(request.getRuntimeBindingId());
+            response.setRewriteRecordId(request.getRuntimeBindingId().substring("rwb-".length()));
+            response.setSqlFingerprint(request.getSqlFingerprint());
+            response.setStatus("PAUSED");
+            response.setActive(false);
+            response.setRuleVersion(Long.valueOf(1L));
+            response.setRuntimeRuleVersion("runtime-rewrite-v1");
+            response.setRuntimeSummary("paused by scheduled validation divergence");
+            return response;
+        }
+
+        @Override
+        public RuntimeRewriteBindingResponse unpublish(RuntimeRewriteBindingStateChangeRequest request) {
+            throw new UnsupportedOperationException("unpublish is not used by scheduler validation tests");
         }
     }
 }

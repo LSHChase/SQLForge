@@ -361,8 +361,93 @@ public class SqlRewriteRecordApplicationService {
             ? buildClientSubmittedValidationRun(rewriteRecord, tenantId, request)
             : buildExecutedValidationRun(rewriteRecord, tenantId, request);
         sqlRewriteRecordRepository.saveValidationRun(validationRun);
-        sqlRewriteRecordRepository.saveRecord(rewriteRecord.withValidationSummary(validationRun, Instant.now()));
+        SqlRewriteRecord summarized = rewriteRecord.withValidationSummary(validationRun, Instant.now());
+        sqlRewriteRecordRepository.saveRecord(applyAutomaticRuntimePauseIfRequired(summarized, validationRun));
         return toValidationRunVo(validationRun);
+    }
+
+    private SqlRewriteRecord applyAutomaticRuntimePauseIfRequired(SqlRewriteRecord rewriteRecord,
+                                                                  RewriteValidationRun validationRun) {
+        if (!shouldAutoPauseRuntimeBinding(rewriteRecord, validationRun)) {
+            return rewriteRecord;
+        }
+        String operator = contextUserOrSystem();
+        String reason = "scheduled validation divergence: " + validationRun.getDifferenceType().name();
+        Instant now = Instant.now();
+        if (queryExecutionRuntimeRewriteBindingClient == null) {
+            return rewriteRecord.withTraceRefs(
+                buildRuntimeBindingTraceRefs(
+                    rewriteRecord,
+                    "AUTO_PAUSE",
+                    rewriteRecord.getPublishStatus().name(),
+                    null,
+                    reason,
+                    operator,
+                    now,
+                    runtimeContractFailure("query-execution runtime rewrite binding client is not configured")
+                ),
+                now
+            );
+        }
+        if (!StringUtils.hasText(rewriteRecord.getRuntimeBindingId())) {
+            return rewriteRecord.withTraceRefs(
+                buildRuntimeBindingTraceRefs(
+                    rewriteRecord,
+                    "AUTO_PAUSE",
+                    rewriteRecord.getPublishStatus().name(),
+                    null,
+                    reason,
+                    operator,
+                    now,
+                    runtimeContractFailure("Published rewrite record runtimeBindingId is missing")
+                ),
+                now
+            );
+        }
+        RuntimeRewriteBindingResponse response = null;
+        try {
+            response = queryExecutionRuntimeRewriteBindingClient.pause(
+                buildRuntimeStateChangeRequest(rewriteRecord, operator, reason)
+            );
+            requireRuntimeStateResponse(rewriteRecord, response, "PAUSED");
+            return rewriteRecord.withPausedRuntimeBinding(
+                operator,
+                now,
+                buildRuntimeBindingTraceRefs(
+                    rewriteRecord,
+                    "AUTO_PAUSE",
+                    RewritePublishStatus.PAUSED.name(),
+                    response,
+                    reason,
+                    operator,
+                    now,
+                    null
+                )
+            );
+        } catch (RuntimeException ex) {
+            return rewriteRecord.withTraceRefs(
+                buildRuntimeBindingTraceRefs(
+                    rewriteRecord,
+                    "AUTO_PAUSE",
+                    rewriteRecord.getPublishStatus().name(),
+                    response,
+                    reason,
+                    operator,
+                    now,
+                    ex
+                ),
+                now
+            );
+        }
+    }
+
+    private boolean shouldAutoPauseRuntimeBinding(SqlRewriteRecord rewriteRecord,
+                                                  RewriteValidationRun validationRun) {
+        return validationRun != null
+            && validationRun.getComparisonStatus() == ComparisonStatus.DIVERGED
+            && validationRun.isAutoApplyPaused()
+            && rewriteRecord.getPublishStatus() == RewritePublishStatus.PUBLISHED
+            && "rewrite-validation-scheduler".equals(RequestContext.getUserId());
     }
 
     private RewriteValidationRun buildExecutedValidationRun(SqlRewriteRecord rewriteRecord,
@@ -1019,6 +1104,11 @@ public class SqlRewriteRecordApplicationService {
             );
         }
         return contextUserId;
+    }
+
+    private String contextUserOrSystem() {
+        String contextUserId = RequestContext.getUserId();
+        return StringUtils.hasText(contextUserId) ? contextUserId.trim() : "rewrite-validation-scheduler";
     }
 
     private void verifyTenantAccess(String resourceTenantId) {

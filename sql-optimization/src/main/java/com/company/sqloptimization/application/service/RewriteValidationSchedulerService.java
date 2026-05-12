@@ -11,6 +11,7 @@ import com.company.sqloptimization.config.RewriteValidationSchedulerProperties;
 import com.company.sqloptimization.domain.rewrite.SqlRewriteRecord;
 import com.company.sqloptimization.domain.rewrite.repository.SqlRewriteRecordRepository;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqloptimization.infrastructure.governance.OptimizationAuditRecord;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,6 +28,8 @@ public class RewriteValidationSchedulerService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RewriteValidationSchedulerService.class);
     private static final String DIVERGED = "DIVERGED";
+    private static final String OPERATION_DIVERGENCE_AUTO_PAUSE = "SQL_REWRITE_DIVERGENCE_AUTO_PAUSE";
+    private static final String RESOURCE_TYPE_REWRITE_RECORD = "SQL_REWRITE_RECORD";
 
     private final RewriteValidationSchedulerProperties properties;
     private final SqlRewriteRecordRepository sqlRewriteRecordRepository;
@@ -59,6 +62,7 @@ public class RewriteValidationSchedulerService {
                 RewriteValidationRunVO run = executeValidation(candidate);
                 if (DIVERGED.equals(run.getComparisonStatus()) && Boolean.TRUE.equals(run.getAutoApplyPaused())) {
                     emitDivergenceAlert(candidate, run, result);
+                    writeDivergencePauseAudit(candidate, run, result);
                 }
             } catch (RuntimeException ex) {
                 result.incrementValidationFailures();
@@ -93,6 +97,57 @@ public class RewriteValidationSchedulerService {
             request.setSqlFingerprint(candidate.getSqlFingerprint());
             request.setTriggerReason(resolveTriggerReason());
             return sqlRewriteRecordApplicationService.createValidationRun(candidate.getRewriteRecordId(), request);
+        } finally {
+            RequestContext.restore(previous);
+        }
+    }
+
+    private void writeDivergencePauseAudit(SqlRewriteRecord candidate,
+                                           RewriteValidationRunVO run,
+                                           RewriteValidationSchedulerResult result) {
+        RequestContext.ContextValue previous = RequestContext.snapshot();
+        Instant now = Instant.now();
+        long start = System.currentTimeMillis();
+        String resultStatus = "UNKNOWN";
+        try {
+            RequestContext.set(
+                candidate.getTenantId(),
+                "rewrite-validation-scheduler",
+                Arrays.asList("SERVICE"),
+                "rewrite-divergence-audit-" + candidate.getRewriteRecordId() + "-" + now.toEpochMilli(),
+                "rewrite-divergence-audit-" + candidate.getRewriteRecordId(),
+                "scheduler",
+                now.getEpochSecond(),
+                now.plusSeconds(300L).getEpochSecond()
+            );
+            SqlRewriteRecord latest = latestOrCandidate(candidate);
+            resultStatus = resolvePauseAuditResultStatus(latest);
+            governanceCapabilityClient.writeAudit(
+                new OptimizationAuditRecord(
+                    OPERATION_DIVERGENCE_AUTO_PAUSE,
+                    RESOURCE_TYPE_REWRITE_RECORD,
+                    latest.getRewriteRecordId(),
+                    resultStatus,
+                    System.currentTimeMillis() - start,
+                    JsonUtils.toJson(buildAuditRequestPayload(candidate, run)),
+                    JsonUtils.toJson(buildAuditResponsePayload(latest, run)),
+                    "rewrite-validation-" + latest.getRewriteRecordId(),
+                    null,
+                    null,
+                    latest.getHistoryId()
+                )
+            );
+            result.incrementAuditWrites();
+            saveAuditTrace(candidate.getRewriteRecordId(), run, resultStatus, null);
+        } catch (RuntimeException ex) {
+            result.incrementAuditFailures();
+            saveAuditTrace(candidate.getRewriteRecordId(), run, resultStatus, ex);
+            LOGGER.warn(
+                "SQL rewrite divergence audit write failed for rewriteRecordId={}, validationRunId={}",
+                candidate.getRewriteRecordId(),
+                run.getValidationRunId(),
+                ex
+            );
         } finally {
             RequestContext.restore(previous);
         }
@@ -188,6 +243,85 @@ public class RewriteValidationSchedulerService {
         sqlRewriteRecordRepository.saveRecord(latest.withTraceRefs(traceRefs, Instant.now()));
     }
 
+    private void saveAuditTrace(String rewriteRecordId,
+                                RewriteValidationRunVO run,
+                                String resultStatus,
+                                RuntimeException failure) {
+        SqlRewriteRecord latest = sqlRewriteRecordRepository.findRecordById(rewriteRecordId);
+        if (latest == null) {
+            return;
+        }
+        Map<String, Object> traceRefs = new LinkedHashMap<String, Object>(latest.getTraceRefs());
+        Map<String, Object> auditTrace = new LinkedHashMap<String, Object>();
+        auditTrace.put("operationCode", OPERATION_DIVERGENCE_AUTO_PAUSE);
+        auditTrace.put("validationRunId", run.getValidationRunId());
+        auditTrace.put("comparisonStatus", run.getComparisonStatus());
+        auditTrace.put("differenceType", run.getDifferenceType());
+        auditTrace.put("resultStatus", resultStatus);
+        auditTrace.put("auditWriteStatus", failure == null ? "WRITTEN" : "FAILED");
+        if (failure != null) {
+            auditTrace.put("errorType", failure.getClass().getSimpleName());
+            auditTrace.put("errorMessage", failure.getMessage());
+        }
+        traceRefs.put("divergencePauseAudit", auditTrace);
+        sqlRewriteRecordRepository.saveRecord(latest.withTraceRefs(traceRefs, Instant.now()));
+    }
+
+    private SqlRewriteRecord latestOrCandidate(SqlRewriteRecord candidate) {
+        SqlRewriteRecord latest = sqlRewriteRecordRepository.findRecordById(candidate.getRewriteRecordId());
+        return latest == null ? candidate : latest;
+    }
+
+    private String resolvePauseAuditResultStatus(SqlRewriteRecord latest) {
+        if (latest != null && "PAUSED".equals(latest.getPublishStatus().name())) {
+            return "SUCCESS";
+        }
+        Map<String, Object> runtimeTrace = latest == null
+            ? null
+            : asMap(latest.getTraceRefs().get("lastRuntimeBindingTrace"));
+        if (runtimeTrace != null && runtimeTrace.get("errorType") != null) {
+            return "FAILED";
+        }
+        return "UNKNOWN";
+    }
+
+    private Map<String, Object> buildAuditRequestPayload(SqlRewriteRecord candidate,
+                                                         RewriteValidationRunVO run) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("tenantId", candidate.getTenantId());
+        payload.put("rewriteRecordId", candidate.getRewriteRecordId());
+        payload.put("validationRunId", run.getValidationRunId());
+        payload.put("sqlFingerprint", run.getSqlFingerprint());
+        payload.put("comparisonStatus", run.getComparisonStatus());
+        payload.put("differenceType", run.getDifferenceType());
+        payload.put("publishStatusBefore", candidate.getPublishStatus().name());
+        payload.put("runtimeBindingIdBefore", candidate.getRuntimeBindingId());
+        payload.put("requestId", RequestContext.getRequestId());
+        payload.put("traceId", RequestContext.getTraceId());
+        return payload;
+    }
+
+    private Map<String, Object> buildAuditResponsePayload(SqlRewriteRecord latest,
+                                                          RewriteValidationRunVO run) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("rewriteRecordId", latest.getRewriteRecordId());
+        payload.put("validationRunId", run.getValidationRunId());
+        payload.put("recordStatus", latest.getStatus().name());
+        payload.put("validationStatus", latest.getValidationStatus().name());
+        payload.put("publishStatusAfter", latest.getPublishStatus().name());
+        payload.put("alertStatus", latest.getAlertStatus().name());
+        payload.put("autoApplyAllowed", Boolean.valueOf(latest.isAutoApplyAllowed()));
+        payload.put("runtimeBindingIdAfter", latest.getRuntimeBindingId());
+        payload.put("lastRuntimeBindingTrace", latest.getTraceRefs().get("lastRuntimeBindingTrace"));
+        payload.put("divergenceAlert", latest.getTraceRefs().get("divergenceAlert"));
+        return payload;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asMap(Object value) {
+        return value instanceof Map ? (Map<String, Object>) value : null;
+    }
+
     private List<Map<String, Object>> toLinkageMaps(List<GovernanceSqlRewriteDivergenceAlertLinkage> linkages) {
         List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
         if (linkages == null) {
@@ -222,6 +356,8 @@ public class RewriteValidationSchedulerService {
         private int validationFailureCount;
         private int alertEmissionCount;
         private int alertFailureCount;
+        private int auditWriteCount;
+        private int auditFailureCount;
 
         private RewriteValidationSchedulerResult(boolean enabled, int candidateCount) {
             this.enabled = enabled;
@@ -252,11 +388,21 @@ public class RewriteValidationSchedulerService {
             alertFailureCount++;
         }
 
+        private void incrementAuditWrites() {
+            auditWriteCount++;
+        }
+
+        private void incrementAuditFailures() {
+            auditFailureCount++;
+        }
+
         public boolean isEnabled() { return enabled; }
         public int getCandidateCount() { return candidateCount; }
         public int getProcessedCount() { return processedCount; }
         public int getValidationFailureCount() { return validationFailureCount; }
         public int getAlertEmissionCount() { return alertEmissionCount; }
         public int getAlertFailureCount() { return alertFailureCount; }
+        public int getAuditWriteCount() { return auditWriteCount; }
+        public int getAuditFailureCount() { return auditFailureCount; }
     }
 }

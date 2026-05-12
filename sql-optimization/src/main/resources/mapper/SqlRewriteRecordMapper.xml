@@ -84,8 +84,9 @@
         SELECT <include refid="BaseColumns"/>
         FROM sql_rewrite_record
         WHERE auto_apply_allowed = 1
+          AND publish_status = 'PUBLISHED'
           AND status IN ('APPROVED', 'APPLIED')
-          AND validation_status IN ('NOT_VALIDATED', 'EXPIRED')
+          AND validation_status IN ('NOT_VALIDATED', 'EXPIRED', 'EQUIVALENT')
           AND (last_compared_at IS NULL OR last_compared_at &lt;= #{dueBefore})
         ORDER BY COALESCE(last_compared_at, created_at) ASC
         LIMIT #{limit}

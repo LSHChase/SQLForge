@@ -8,7 +8,6 @@
   "task_governance_matrix": "docs/plans/task-governance-extension-matrix.md",
   "active_exec_plans": [
     "docs/exec-plans/active/PRW-001-full-auto-execution-plan.md",
-    "docs/exec-plans/active/PRW-009-full-auto-execution-plan.md",
     "docs/exec-plans/active/PRW-010-full-auto-execution-plan.md",
     "docs/exec-plans/active/PRW-011-full-auto-execution-plan.md",
     "docs/exec-plans/active/PRW-012-full-auto-execution-plan.md",
@@ -51,6 +50,7 @@
     "docs/exec-plans/completed/PRW-006-full-auto-execution-plan.md",
     "docs/exec-plans/completed/PRW-007-full-auto-execution-plan.md",
     "docs/exec-plans/completed/PRW-008-full-auto-execution-plan.md",
+    "docs/exec-plans/completed/PRW-009-full-auto-execution-plan.md",
     "docs/exec-plans/completed/U-TASK-004-full-auto-execution-plan.md"
   ],
   "authority_entry": [

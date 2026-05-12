@@ -84,23 +84,6 @@ _No tasks._
 - Progress log:
   - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
 
-### PRW-009: 比对差异触发自动暂停与告警闭环
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `PRW-006`,`PRW-008`,`HARN-136`
-- Scope: 周期比对发现差异后必须阻断后续自动改写，不得只停留在告警展示。 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `sql-optimization`,`query-execution client`,`governance alert`,`scheduler`,`tests`.
-- Plan ref: docs/exec-plans/active/PRW-009-full-auto-execution-plan.md
-- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
-- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
-- Data impact: 差异验证会暂停 active 绑定并改变发布状态；必须保留告警和验证运行证据。
-- Rollback / recovery: 关闭自动暂停调度或回退暂停调用，恢复手动暂停路径；保留历史告警记录。
-- Validation:
-  - `mvn -pl sql-optimization,query-execution,governance,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-009`
-  - `python3 scripts/foreman.py validate PRW-009`
-- Progress log:
-  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
-
 ### PRW-001: 固化生产改写闭环接口与状态契约
 
 - Status: in_progress
