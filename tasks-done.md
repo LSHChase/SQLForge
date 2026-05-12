@@ -4,6 +4,30 @@
 
 ## Done
 
+### PRW-007: 在 query-execution 执行路径应用自动改写
+
+- Status: done
+- Completed at: 2026-05-11
+- Commit subject: `PRW-007 apply runtime rewrite bindings in execution path`
+- Priority: 1
+- Depends on: `PRW-006`
+- Scope: 只有 active 运行时绑定可触发自动改写；未命中、跨租户、指纹不匹配或暂停状态必须保持原 SQL 执行路径。 Tech: `JAVA-BE`,`SQL`,`DOCS`. Layer: `query-execution`,`application service`,`domain`,`infrastructure`,`tests`.
+- Plan ref: docs/exec-plans/completed/PRW-007-full-auto-execution-plan.md
+- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
+- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
+- Data impact: 会改变命中绑定后的实际执行 SQL；必须保留原始 SQL 与绑定追踪，不改变未命中路径。
+- Rollback / recovery: 关闭绑定读取或将绑定置为 paused/unpublished，恢复原 SQL 执行路径。
+- Validation:
+  - `mvn -pl query-execution,governance,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-007`
+  - `python3 scripts/foreman.py validate PRW-007`
+- Progress log:
+  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Applied active query-execution runtime rewrite bindings during synchronous SQL execution; preserved original SQL, actual SQL, rewrite status, rewrite record ID, runtime binding ID, and rule version in response metadata, binding summary, and governance history writes; added PRW-007 regressions for active binding, missing binding, datasource evidence, unsafe recommended SQL, and resolver failure fallback.
+  - Validation evidence: java -version = 1.8.0_112; mvn -pl query-execution,governance,sqlforge-shared -am test; python3 scripts/foreman.py validate PRW-007; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
+  - Residual risk: Formal SQL history query/detail DTO expansion remains owned by PRW-008; runtime rewrite resolver or unsafe recommended SQL failures intentionally fall back to the original SQL per confirmed policy.
+  - Next step: Continue with PRW-008 to extend SQL execution history audit query/detail surfaces for rewrite trace display.
+
 ### PRW-006: 实现改写记录发布、暂停和撤销接口
 
 - Status: done

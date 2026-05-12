@@ -27,6 +27,8 @@ import com.company.sqlforge.common.jdbcagent.JdbcAgentSqlCommentParser;
 import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
 import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import com.company.sqlforge.common.logicalobject.LogicalObjectType;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import java.nio.charset.StandardCharsets;
@@ -95,18 +97,21 @@ public class QueryExecutionApplicationService {
     private final QueryExecutionMetricsRecorder metricsRecorder;
     private final QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService;
     private final QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService;
+    private final QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService;
 
     @Autowired
     public QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
                                             GovernanceCapabilityClient governanceCapabilityClient,
                                             QueryExecutionMetricsRecorder metricsRecorder,
                                             QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService,
-                                            QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService) {
+                                            QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService,
+                                            QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService) {
         this.queryExecutionAdapter = queryExecutionAdapter;
         this.governanceCapabilityClient = governanceCapabilityClient;
         this.metricsRecorder = metricsRecorder;
         this.queryExecutionAccelerationRuntimeService = queryExecutionAccelerationRuntimeService;
         this.queryExecutionCacheGovernanceRuntimeService = queryExecutionCacheGovernanceRuntimeService;
+        this.queryExecutionRuntimeRewriteBindingService = queryExecutionRuntimeRewriteBindingService;
     }
 
     QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
@@ -116,7 +121,8 @@ public class QueryExecutionApplicationService {
             governanceCapabilityClient,
             QueryExecutionMetricsRecorder.noop(),
             new QueryExecutionAccelerationRuntimeService(),
-            new QueryExecutionCacheGovernanceRuntimeService()
+            new QueryExecutionCacheGovernanceRuntimeService(),
+            null
         );
     }
 
@@ -128,7 +134,8 @@ public class QueryExecutionApplicationService {
             governanceCapabilityClient,
             metricsRecorder,
             new QueryExecutionAccelerationRuntimeService(),
-            new QueryExecutionCacheGovernanceRuntimeService()
+            new QueryExecutionCacheGovernanceRuntimeService(),
+            null
         );
     }
 
@@ -141,15 +148,33 @@ public class QueryExecutionApplicationService {
             governanceCapabilityClient,
             metricsRecorder,
             queryExecutionAccelerationRuntimeService,
-            new QueryExecutionCacheGovernanceRuntimeService()
+            new QueryExecutionCacheGovernanceRuntimeService(),
+            null
+        );
+    }
+
+    QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
+                                     GovernanceCapabilityClient governanceCapabilityClient,
+                                     QueryExecutionMetricsRecorder metricsRecorder,
+                                     QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService,
+                                     QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService) {
+        this(
+            queryExecutionAdapter,
+            governanceCapabilityClient,
+            metricsRecorder,
+            queryExecutionAccelerationRuntimeService,
+            queryExecutionCacheGovernanceRuntimeService,
+            null
         );
     }
 
     public QueryExecuteResponse executeSynchronously(QueryExecuteRequest request) {
         long start = System.currentTimeMillis();
         request.setTenantId(requireAuthorizedTenant(request.getTenantId()));
-        String actualSql = normalizeSql(request.getSqlText());
-        String sqlFingerprint = SqlFingerprintUtils.fingerprint(actualSql);
+        String originalSql = normalizeSql(request.getSqlText());
+        String sqlFingerprint = SqlFingerprintUtils.fingerprint(originalSql);
+        RuntimeRewriteResolution runtimeRewriteResolution =
+            RuntimeRewriteResolution.noRewrite(originalSql, sqlFingerprint);
         logStart(request, sqlFingerprint);
         try {
             DataSourceTypeEnum primaryEngine = resolvePrimaryEngine(request.getDatasourceType());
@@ -161,7 +186,7 @@ public class QueryExecutionApplicationService {
                 OPERATION
             );
 
-            ReadonlyQueryAssessment readonlyQueryAssessment = ReadonlyQueryGuard.assess(actualSql);
+            ReadonlyQueryAssessment readonlyQueryAssessment = ReadonlyQueryGuard.assess(originalSql);
             if (!readonlyQueryAssessment.isReadonly()) {
                 logStateChange(
                     sqlFingerprint,
@@ -177,7 +202,7 @@ public class QueryExecutionApplicationService {
                     buildFailureResponse(
                         QueryExecutionStatus.FAILED,
                         resolveTargetEngine(primaryEngine, request.getDatasourceType()),
-                        actualSql,
+                        originalSql,
                         0L,
                         0L,
                         Collections.<QueryRetryStepVO>emptyList(),
@@ -187,7 +212,8 @@ public class QueryExecutionApplicationService {
                             readonlyQueryAssessment.getSuggestedAction(),
                             false
                         ),
-                        sqlFingerprint
+                        sqlFingerprint,
+                        runtimeRewriteResolution
                     ),
                     request,
                     start
@@ -209,7 +235,7 @@ public class QueryExecutionApplicationService {
                     buildFailureResponse(
                         QueryExecutionStatus.FAILED,
                         request.getDatasourceType().name(),
-                        actualSql,
+                        originalSql,
                         0L,
                         0L,
                         Collections.<QueryRetryStepVO>emptyList(),
@@ -219,13 +245,21 @@ public class QueryExecutionApplicationService {
                             "Use HETU, HIVE, or AUTO for the current synchronous baseline.",
                             true
                         ),
-                        sqlFingerprint
+                        sqlFingerprint,
+                        runtimeRewriteResolution
                     ),
                     request,
                     start
                 );
             }
 
+            runtimeRewriteResolution = resolveRuntimeRewrite(
+                request,
+                originalSql,
+                sqlFingerprint
+            );
+            String actualSql = runtimeRewriteResolution.getActualSql();
+            String actualSqlFingerprint = runtimeRewriteResolution.getActualSqlFingerprint();
             Long timeoutMs = resolveTimeoutMs(request.getQueryContext());
             logStateChange(
                 sqlFingerprint,
@@ -251,8 +285,7 @@ public class QueryExecutionApplicationService {
                 return logAndReturn(
                     buildFallbackResponse(
                         primaryEngine,
-                        actualSql,
-                        sqlFingerprint,
+                        runtimeRewriteResolution,
                         FALLBACK_IMMEDIATE_REASON,
                         Collections.<QueryRetryStepVO>emptyList(),
                         request
@@ -264,13 +297,13 @@ public class QueryExecutionApplicationService {
 
             ApprovedAccelerationBinding approvedAccelerationBinding = resolveApprovedAccelerationBinding(
                 request,
-                sqlFingerprint,
+                actualSqlFingerprint,
                 primaryEngine
             );
             QueryExecutionCacheGovernanceRuntimeService.CacheResolution cacheResolution =
                 queryExecutionCacheGovernanceRuntimeService.resolve(
                     request.getTenantId(),
-                    sqlFingerprint,
+                    actualSqlFingerprint,
                     primaryEngine.name(),
                     request.getQueryContext()
                 );
@@ -280,8 +313,7 @@ public class QueryExecutionApplicationService {
                     buildSuccessResponse(
                         QueryExecutionStatus.SUCCESS,
                         cachedStep,
-                        actualSql,
-                        sqlFingerprint,
+                        runtimeRewriteResolution,
                         false,
                         null,
                         Collections.<QueryRetryStepVO>emptyList()
@@ -298,8 +330,8 @@ public class QueryExecutionApplicationService {
                 return handleUnavailableHetuRoute(
                     request,
                     primaryEngine,
-                    actualSql,
                     sqlFingerprint,
+                    runtimeRewriteResolution,
                     ex,
                     start,
                     cacheResolution
@@ -349,8 +381,7 @@ public class QueryExecutionApplicationService {
                     return logAndReturn(
                         buildFallbackResponse(
                             primaryEngine,
-                            actualSql,
-                            sqlFingerprint,
+                            runtimeRewriteResolution,
                             TIMEOUT_FALLBACK_REASON,
                             Collections.singletonList(timeoutRecoveryStep),
                             request
@@ -364,7 +395,7 @@ public class QueryExecutionApplicationService {
                     buildFailureResponse(
                         QueryExecutionStatus.TIMEOUT,
                         primaryEngine.name(),
-                        actualSql,
+                        runtimeRewriteResolution,
                         timeoutMs.longValue(),
                         0L,
                         Collections.singletonList(timeoutRecoveryStep),
@@ -393,8 +424,7 @@ public class QueryExecutionApplicationService {
                 buildSuccessResponse(
                     QueryExecutionStatus.SUCCESS,
                     primaryStep,
-                    actualSql,
-                    sqlFingerprint,
+                    runtimeRewriteResolution,
                     false,
                     null,
                     Collections.<QueryRetryStepVO>emptyList()
@@ -421,15 +451,15 @@ public class QueryExecutionApplicationService {
                 null,
                 QueryExecutionStatus.FAILED.name(),
                 System.currentTimeMillis() - start,
-                ex.getMessage()
+                ex.getMessage(),
+                runtimeRewriteResolution
             );
             throw ex;
         }
     }
 
     private QueryExecuteResponse buildFallbackResponse(DataSourceTypeEnum primaryEngine,
-                                                       String actualSql,
-                                                       String sqlFingerprint,
+                                                       RuntimeRewriteResolution runtimeRewriteResolution,
                                                        String degradeReason,
                                                        List<QueryRetryStepVO> recoverySteps,
                                                        QueryExecuteRequest request) {
@@ -438,7 +468,7 @@ public class QueryExecutionApplicationService {
             return buildFailureResponse(
                 QueryExecutionStatus.FAILED,
                 primaryEngine.name(),
-                actualSql,
+                runtimeRewriteResolution,
                 0L,
                 0L,
                 Collections.<QueryRetryStepVO>emptyList(),
@@ -448,12 +478,12 @@ public class QueryExecutionApplicationService {
                     "No fallback route is available for the selected datasource in the current baseline.",
                     true
                 ),
-                sqlFingerprint
+                runtimeRewriteResolution.getOriginalSqlFingerprint()
             );
         }
 
         QueryExecutionStep fallbackStep =
-            queryExecutionAdapter.execute(fallbackEngine, actualSql, null, true);
+            queryExecutionAdapter.execute(fallbackEngine, runtimeRewriteResolution.getActualSql(), null, true);
         fallbackStep = queryExecutionCacheGovernanceRuntimeService.finalizeSuccessfulExecution(
             QueryExecutionCacheGovernanceRuntimeService.CacheResolution.ungoverned(),
             fallbackStep
@@ -468,7 +498,7 @@ public class QueryExecutionApplicationService {
         );
         retryPath.add(compensationStep);
         logStateChange(
-            sqlFingerprint,
+            runtimeRewriteResolution.getOriginalSqlFingerprint(),
             request,
             STATE_FALLBACK_REQUESTED,
             STATE_LOCAL_COMPENSATION_MARKED,
@@ -480,8 +510,7 @@ public class QueryExecutionApplicationService {
         return buildSuccessResponse(
             QueryExecutionStatus.PARTIAL,
             fallbackStep,
-            actualSql,
-            sqlFingerprint,
+            runtimeRewriteResolution,
             true,
             degradeReason,
             retryPath
@@ -490,8 +519,8 @@ public class QueryExecutionApplicationService {
 
     private QueryExecuteResponse handleUnavailableHetuRoute(QueryExecuteRequest request,
                                                             DataSourceTypeEnum primaryEngine,
-                                                            String actualSql,
                                                             String sqlFingerprint,
+                                                            RuntimeRewriteResolution runtimeRewriteResolution,
                                                             HetuExecutionUnavailableException exception,
                                                             long start,
                                                             QueryExecutionCacheGovernanceRuntimeService.CacheResolution cacheResolution) {
@@ -527,8 +556,7 @@ public class QueryExecutionApplicationService {
             return logAndReturn(
                 buildFallbackResponse(
                     primaryEngine,
-                    actualSql,
-                    sqlFingerprint,
+                    runtimeRewriteResolution,
                     exception.getMessage(),
                     Collections.singletonList(routeFailureStep),
                     request
@@ -551,7 +579,7 @@ public class QueryExecutionApplicationService {
             buildFailureResponse(
                 QueryExecutionStatus.FAILED,
                 primaryEngine.name(),
-                actualSql,
+                runtimeRewriteResolution,
                 0L,
                 0L,
                 Collections.singletonList(routeFailureStep),
@@ -578,11 +606,11 @@ public class QueryExecutionApplicationService {
 
     private QueryExecuteResponse buildSuccessResponse(QueryExecutionStatus status,
                                                       QueryExecutionStep executionStep,
-                                                      String actualSql,
-                                                      String sqlFingerprint,
+                                                      RuntimeRewriteResolution runtimeRewriteResolution,
                                                       boolean degraded,
                                                       String degradeReason,
                                                       List<QueryRetryStepVO> retryPath) {
+        String actualSql = runtimeRewriteResolution.getActualSql();
         return new QueryExecuteResponse(
             status,
             executionStep.getRows(),
@@ -602,7 +630,14 @@ public class QueryExecutionApplicationService {
                 executionStep.getRouteEvidenceSource(),
                 executionStep.getRouteVerificationStatus(),
                 executionStep.getCacheGovernanceStatus(),
-                executionStep.getCacheGovernanceEvidence()
+                executionStep.getCacheGovernanceEvidence(),
+                runtimeRewriteResolution.getOriginalSql(),
+                runtimeRewriteResolution.isRewriteApplied(),
+                runtimeRewriteResolution.getRewriteRecordId(),
+                runtimeRewriteResolution.getRuntimeBindingId(),
+                runtimeRewriteResolution.getRuleVersion(),
+                runtimeRewriteResolution.getRuntimeRuleVersion(),
+                runtimeRewriteResolution.getRewriteFallbackReason()
             ),
             degraded,
             degradeReason,
@@ -610,7 +645,7 @@ public class QueryExecutionApplicationService {
             null,
             buildCommentContext(actualSql),
             buildQueryDateSummary(actualSql),
-            buildBindingSummary(actualSql, sqlFingerprint),
+            buildBindingSummary(actualSql, runtimeRewriteResolution),
             buildLogicalObjectHits(actualSql),
             buildRouteSummary(
                 executionStep.getTargetEngine() == null ? null : executionStep.getTargetEngine().name(),
@@ -628,7 +663,7 @@ public class QueryExecutionApplicationService {
                 executionStep.getCacheGovernanceEvidence()
             ),
             buildLightweightParseSummary(actualSql, status, null),
-            sqlFingerprint,
+            runtimeRewriteResolution.getOriginalSqlFingerprint(),
             CONTRACT_STAGE,
             IMPLEMENTATION_STAGE
         );
@@ -645,7 +680,64 @@ public class QueryExecutionApplicationService {
         return buildFailureResponse(
             status,
             targetEngine,
-            actualSql,
+            RuntimeRewriteResolution.noRewrite(actualSql, sqlFingerprint),
+            elapsedMs,
+            scannedRows,
+            retryPath,
+            errorDetail,
+            sqlFingerprint,
+            "NONE",
+            Collections.<String>emptyList(),
+            null,
+            Collections.<String>emptyList(),
+            null,
+            null,
+            null,
+            null
+        );
+    }
+
+    private QueryExecuteResponse buildFailureResponse(QueryExecutionStatus status,
+                                                      String targetEngine,
+                                                      String actualSql,
+                                                      long elapsedMs,
+                                                      long scannedRows,
+                                                      List<QueryRetryStepVO> retryPath,
+                                                      QueryErrorDetailVO errorDetail,
+                                                      String sqlFingerprint,
+                                                      RuntimeRewriteResolution runtimeRewriteResolution) {
+        return buildFailureResponse(
+            status,
+            targetEngine,
+            runtimeRewriteResolution,
+            elapsedMs,
+            scannedRows,
+            retryPath,
+            errorDetail,
+            sqlFingerprint,
+            "NONE",
+            Collections.<String>emptyList(),
+            null,
+            Collections.<String>emptyList(),
+            null,
+            null,
+            null,
+            null
+        );
+    }
+
+    private QueryExecuteResponse buildFailureResponse(QueryExecutionStatus status,
+                                                      String targetEngine,
+                                                      RuntimeRewriteResolution runtimeRewriteResolution,
+                                                      long elapsedMs,
+                                                      long scannedRows,
+                                                      List<QueryRetryStepVO> retryPath,
+                                                      QueryErrorDetailVO errorDetail,
+                                                      String sqlFingerprint) {
+        return buildFailureResponse(
+            status,
+            targetEngine,
+            runtimeRewriteResolution,
             elapsedMs,
             scannedRows,
             retryPath,
@@ -675,7 +767,7 @@ public class QueryExecutionApplicationService {
         return buildFailureResponse(
             status,
             targetEngine,
-            actualSql,
+            RuntimeRewriteResolution.noRewrite(actualSql, sqlFingerprint),
             elapsedMs,
             scannedRows,
             retryPath,
@@ -694,7 +786,7 @@ public class QueryExecutionApplicationService {
 
     private QueryExecuteResponse buildFailureResponse(QueryExecutionStatus status,
                                                       String targetEngine,
-                                                      String actualSql,
+                                                      RuntimeRewriteResolution runtimeRewriteResolution,
                                                       long elapsedMs,
                                                       long scannedRows,
                                                       List<QueryRetryStepVO> retryPath,
@@ -708,6 +800,7 @@ public class QueryExecutionApplicationService {
                                                       String routeVerificationStatus,
                                                       String cacheGovernanceStatus,
                                                       String cacheGovernanceEvidence) {
+        String actualSql = runtimeRewriteResolution.getActualSql();
         return new QueryExecuteResponse(
             status,
             Collections.<java.util.Map<String, Object>>emptyList(),
@@ -727,7 +820,14 @@ public class QueryExecutionApplicationService {
                 routeEvidenceSource,
                 routeVerificationStatus,
                 cacheGovernanceStatus,
-                cacheGovernanceEvidence
+                cacheGovernanceEvidence,
+                runtimeRewriteResolution.getOriginalSql(),
+                runtimeRewriteResolution.isRewriteApplied(),
+                runtimeRewriteResolution.getRewriteRecordId(),
+                runtimeRewriteResolution.getRuntimeBindingId(),
+                runtimeRewriteResolution.getRuleVersion(),
+                runtimeRewriteResolution.getRuntimeRuleVersion(),
+                runtimeRewriteResolution.getRewriteFallbackReason()
             ),
             false,
             null,
@@ -735,7 +835,7 @@ public class QueryExecutionApplicationService {
             errorDetail,
             buildCommentContext(actualSql),
             buildQueryDateSummary(actualSql),
-            buildBindingSummary(actualSql, sqlFingerprint),
+            buildBindingSummary(actualSql, runtimeRewriteResolution),
             buildLogicalObjectHits(actualSql),
             buildRouteSummary(
                 targetEngine,
@@ -749,7 +849,7 @@ public class QueryExecutionApplicationService {
             ),
             buildCacheSummary(false, cacheGovernanceStatus, cacheGovernanceEvidence),
             buildLightweightParseSummary(actualSql, status, errorDetail),
-            sqlFingerprint,
+            runtimeRewriteResolution.getOriginalSqlFingerprint(),
             CONTRACT_STAGE,
             IMPLEMENTATION_STAGE
         );
@@ -889,19 +989,135 @@ public class QueryExecutionApplicationService {
         return requestedEngine == null ? DataSourceTypeEnum.AUTO.name() : requestedEngine.name();
     }
 
+    private RuntimeRewriteResolution resolveRuntimeRewrite(QueryExecuteRequest request,
+                                                           String originalSql,
+                                                           String originalSqlFingerprint) {
+        if (queryExecutionRuntimeRewriteBindingService == null) {
+            return RuntimeRewriteResolution.noRewrite(originalSql, originalSqlFingerprint);
+        }
+        try {
+            RuntimeRewriteBindingResolveRequest resolveRequest = new RuntimeRewriteBindingResolveRequest();
+            resolveRequest.setTenantId(request.getTenantId());
+            resolveRequest.setSqlFingerprint(originalSqlFingerprint);
+            resolveRequest.setDatasourceCode(resolveRuntimeRewriteDatasourceEvidence(request, originalSql));
+            RuntimeRewriteBindingResponse response =
+                queryExecutionRuntimeRewriteBindingService.resolveActive(resolveRequest);
+            if (response == null || !response.isActive()) {
+                return RuntimeRewriteResolution.inactive(
+                    originalSql,
+                    originalSqlFingerprint,
+                    response == null ? "MISSING" : response.getStatus(),
+                    response == null ? null : response.getRuntimeSummary()
+                );
+            }
+            if (!request.getTenantId().equals(response.getTenantId())) {
+                return RuntimeRewriteResolution.fallback(
+                    originalSql,
+                    originalSqlFingerprint,
+                    response,
+                    "TENANT_MISMATCH"
+                );
+            }
+            if (!originalSqlFingerprint.equals(response.getSqlFingerprint())) {
+                return RuntimeRewriteResolution.fallback(
+                    originalSql,
+                    originalSqlFingerprint,
+                    response,
+                    "SQL_FINGERPRINT_MISMATCH"
+                );
+            }
+            String recommendedSql = normalizeSql(response.getRecommendedSqlText());
+            if (!StringUtils.hasText(recommendedSql)) {
+                return RuntimeRewriteResolution.fallback(
+                    originalSql,
+                    originalSqlFingerprint,
+                    response,
+                    "RECOMMENDED_SQL_EMPTY"
+                );
+            }
+            ReadonlyQueryAssessment recommendedAssessment = ReadonlyQueryGuard.assess(recommendedSql);
+            if (!recommendedAssessment.isReadonly()) {
+                return RuntimeRewriteResolution.fallback(
+                    originalSql,
+                    originalSqlFingerprint,
+                    response,
+                    "RECOMMENDED_SQL_NOT_READONLY"
+                );
+            }
+            return RuntimeRewriteResolution.applied(
+                originalSql,
+                originalSqlFingerprint,
+                recommendedSql,
+                response
+            );
+        } catch (RuntimeException ex) {
+            LOGGER.warn(
+                "operation={} entity={} tenantId={} status=RUNTIME_REWRITE_FALLBACK reason={}",
+                OPERATION,
+                originalSqlFingerprint,
+                request.getTenantId(),
+                ex.getMessage()
+            );
+            return RuntimeRewriteResolution.fallback(
+                originalSql,
+                originalSqlFingerprint,
+                null,
+                "RUNTIME_REWRITE_RESOLVE_FAILED"
+            );
+        }
+    }
+
+    private String resolveRuntimeRewriteDatasourceEvidence(QueryExecuteRequest request, String originalSql) {
+        Map<String, String> commentContext = buildCommentContext(originalSql);
+        return firstText(
+            commentContext == null ? null : commentContext.get("datasource"),
+            commentContext == null ? null : commentContext.get("datasource_code"),
+            request.getQueryContext() == null ? null : request.getQueryContext().getDatabaseName()
+        );
+    }
+
     private void writeExecutionHistoryRecord(QueryExecuteRequest request,
                                              String sqlFingerprint,
                                              QueryExecuteResponse response,
                                              String resultStatus,
                                              long elapsedMs,
                                              String failureReason) {
+        writeExecutionHistoryRecord(
+            request,
+            sqlFingerprint,
+            response,
+            resultStatus,
+            elapsedMs,
+            failureReason,
+            null
+        );
+    }
+
+    private void writeExecutionHistoryRecord(QueryExecuteRequest request,
+                                             String sqlFingerprint,
+                                             QueryExecuteResponse response,
+                                             String resultStatus,
+                                             long elapsedMs,
+                                             String failureReason,
+                                             RuntimeRewriteResolution fallbackRewriteResolution) {
         AccessAuditContract accessAuditContract = AccessAuditContract.capture();
-        String actualSql = response == null || response.getMetadata() == null
-            ? normalizeSql(request.getSqlText())
-            : response.getMetadata().getActualSql();
+        QueryExecutionMetadataVO metadata = response == null ? null : response.getMetadata();
+        String originalSql = metadata == null
+            ? fallbackRewriteResolution == null
+                ? normalizeSql(request.getSqlText())
+                : fallbackRewriteResolution.getOriginalSql()
+            : metadata.getOriginalSql();
+        String actualSql = metadata == null
+            ? fallbackRewriteResolution == null ? originalSql : fallbackRewriteResolution.getActualSql()
+            : metadata.getActualSql();
         String effectiveFingerprint = StringUtils.hasText(sqlFingerprint)
             ? sqlFingerprint
-            : SqlFingerprintUtils.fingerprint(actualSql);
+            : fallbackRewriteResolution == null
+                ? SqlFingerprintUtils.fingerprint(originalSql)
+                : fallbackRewriteResolution.getOriginalSqlFingerprint();
+        Object bindingSummary = response == null
+            ? fallbackRewriteResolution == null ? null : buildBindingSummary(actualSql, fallbackRewriteResolution)
+            : response.getBindingSummary();
         String stableKey = stableHash(
             RequestContext.getRequestId(),
             RequestContext.getTraceId(),
@@ -918,7 +1134,7 @@ public class QueryExecutionApplicationService {
         historyRequest.setHistoryId("history-qe-" + stableKey);
         historyRequest.setTenantId(request.getTenantId());
         historyRequest.setSqlText(request.getSqlText());
-        historyRequest.setSqlTemplate(actualSql);
+        historyRequest.setSqlTemplate(originalSql);
         historyRequest.setBoundSql(actualSql);
         historyRequest.setSqlFingerprint(effectiveFingerprint);
         historyRequest.setDatasourceCode(resolveDatasourceCode(request, response));
@@ -934,14 +1150,16 @@ public class QueryExecutionApplicationService {
         historyRequest.setCacheHit(response == null || response.getMetadata() == null
             ? Boolean.FALSE
             : Boolean.valueOf(response.getMetadata().isCacheHit()));
-        historyRequest.setRewriteApplied(Boolean.FALSE);
+        historyRequest.setRewriteApplied(metadata == null
+            ? Boolean.valueOf(fallbackRewriteResolution != null && fallbackRewriteResolution.isRewriteApplied())
+            : Boolean.valueOf(metadata.isRewriteApplied()));
         historyRequest.setAccelerationApplied(response == null || response.getMetadata() == null
             ? Boolean.FALSE
             : Boolean.valueOf(response.getMetadata().isAccelerationApplied()));
         historyRequest.setAccessChannel(accessAuditContract.getAccessChannel().name());
         historyRequest.setCommentContext(toJson(response == null ? null : response.getCommentContext()));
         historyRequest.setQueryDateSummary(toJson(response == null ? null : response.getQueryDateSummary()));
-        historyRequest.setBindingSummary(toJson(response == null ? null : response.getBindingSummary()));
+        historyRequest.setBindingSummary(toJson(bindingSummary));
         historyRequest.setLogicalObjectHits(toJson(response == null ? null : response.getLogicalObjectHits()));
         historyRequest.setRouteSummary(toJson(response == null ? null : response.getRouteSummary()));
         historyRequest.setCacheSummary(toJson(response == null ? null : response.getCacheSummary()));
@@ -950,7 +1168,8 @@ public class QueryExecutionApplicationService {
             response,
             resultStatus,
             failureReason,
-            accessAuditContract
+            accessAuditContract,
+            fallbackRewriteResolution
         )));
         historyRequest.setTraceId(RequestContext.getTraceId());
         historyRequest.setRequestId(RequestContext.getRequestId());
@@ -973,7 +1192,9 @@ public class QueryExecutionApplicationService {
                                                          QueryExecuteResponse response,
                                                          String resultStatus,
                                                          String failureReason,
-                                                         AccessAuditContract accessAuditContract) {
+                                                         AccessAuditContract accessAuditContract,
+                                                         RuntimeRewriteResolution fallbackRewriteResolution) {
+        QueryExecutionMetadataVO metadata = response == null ? null : response.getMetadata();
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("serviceCode", ServiceCodeConstants.QUERY_EXECUTION);
         payload.put("operationCode", OPERATION);
@@ -1013,6 +1234,30 @@ public class QueryExecutionApplicationService {
         payload.put("logicalObjectHits", response == null ? null : response.getLogicalObjectHits());
         payload.put("routeSummary", response == null ? null : response.getRouteSummary());
         payload.put("cacheSummary", response == null ? null : response.getCacheSummary());
+        payload.put("rewriteApplied", metadata == null
+            ? Boolean.valueOf(fallbackRewriteResolution != null && fallbackRewriteResolution.isRewriteApplied())
+            : Boolean.valueOf(metadata.isRewriteApplied()));
+        payload.put("rewriteRecordId", metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRewriteRecordId()
+            : metadata.getRewriteRecordId());
+        payload.put("runtimeBindingId", metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRuntimeBindingId()
+            : metadata.getRuntimeBindingId());
+        payload.put("ruleVersion", metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRuleVersion()
+            : metadata.getRuleVersion());
+        payload.put("runtimeRuleVersion", metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRuntimeRuleVersion()
+            : metadata.getRuntimeRuleVersion());
+        payload.put("rewriteFallbackReason", metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRewriteFallbackReason()
+            : metadata.getRewriteFallbackReason());
+        payload.put("originalSqlFingerprint", response == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getOriginalSqlFingerprint()
+            : response.getSqlFingerprint());
+        payload.put("actualSqlFingerprint", metadata == null
+            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getActualSqlFingerprint()
+            : SqlFingerprintUtils.fingerprint(metadata.getActualSql()));
         if (response != null && response.getQueryDateSummary() != null) {
             payload.put("queryDateStart", response.getQueryDateSummary().get("queryDateStart"));
             payload.put("queryDateEnd", response.getQueryDateSummary().get("queryDateEnd"));
@@ -1081,6 +1326,14 @@ public class QueryExecutionApplicationService {
     }
 
     private Map<String, Object> buildBindingSummary(String sqlText, String sqlFingerprint) {
+        return buildBindingSummary(
+            sqlText,
+            RuntimeRewriteResolution.noRewrite(sqlText, sqlFingerprint)
+        );
+    }
+
+    private Map<String, Object> buildBindingSummary(String sqlText,
+                                                    RuntimeRewriteResolution runtimeRewriteResolution) {
         Map<String, Object> summary = new LinkedHashMap<String, Object>();
         int namedBindings = countMatches(NAMED_BINDING_PATTERN, sqlText);
         int positionalBindings = countMatches(POSITIONAL_BINDING_PATTERN, sqlText);
@@ -1095,8 +1348,19 @@ public class QueryExecutionApplicationService {
         }
         summary.put("bindingRenderStatus", parameterized ? "PARTIAL" : "SUCCESS");
         summary.put("bindingParameterCount", Integer.valueOf(namedBindings + positionalBindings));
-        summary.put("sqlTemplateFingerprint", sqlFingerprint);
-        summary.put("boundSqlFingerprint", parameterized ? null : sqlFingerprint);
+        summary.put("sqlTemplateFingerprint", runtimeRewriteResolution.getOriginalSqlFingerprint());
+        summary.put("boundSqlFingerprint", parameterized ? null : runtimeRewriteResolution.getActualSqlFingerprint());
+        summary.put("actualSqlFingerprint", runtimeRewriteResolution.getActualSqlFingerprint());
+        summary.put("rewriteApplied", Boolean.valueOf(runtimeRewriteResolution.isRewriteApplied()));
+        summary.put("runtimeRewriteStatus", runtimeRewriteResolution.getRuntimeStatus());
+        summary.put("rewriteRecordId", runtimeRewriteResolution.getRewriteRecordId());
+        summary.put("runtimeBindingId", runtimeRewriteResolution.getRuntimeBindingId());
+        summary.put("ruleVersion", runtimeRewriteResolution.getRuleVersion());
+        summary.put("runtimeRuleVersion", runtimeRewriteResolution.getRuntimeRuleVersion());
+        summary.put("rewritePublishStatusSnapshot", runtimeRewriteResolution.getRuntimeStatus());
+        if (StringUtils.hasText(runtimeRewriteResolution.getRewriteFallbackReason())) {
+            summary.put("rewriteFallbackReason", runtimeRewriteResolution.getRewriteFallbackReason());
+        }
         return summary;
     }
 
@@ -1428,5 +1692,128 @@ public class QueryExecutionApplicationService {
         } catch (Exception ex) {
             return String.valueOf(Math.abs(Arrays.hashCode(parts)));
         }
+    }
+
+    private static final class RuntimeRewriteResolution {
+        private final String originalSql;
+        private final String originalSqlFingerprint;
+        private final String actualSql;
+        private final String actualSqlFingerprint;
+        private final boolean rewriteApplied;
+        private final String runtimeStatus;
+        private final String rewriteRecordId;
+        private final String runtimeBindingId;
+        private final Long ruleVersion;
+        private final String runtimeRuleVersion;
+        private final String rewriteFallbackReason;
+
+        private RuntimeRewriteResolution(String originalSql,
+                                         String originalSqlFingerprint,
+                                         String actualSql,
+                                         String actualSqlFingerprint,
+                                         boolean rewriteApplied,
+                                         String runtimeStatus,
+                                         String rewriteRecordId,
+                                         String runtimeBindingId,
+                                         Long ruleVersion,
+                                         String runtimeRuleVersion,
+                                         String rewriteFallbackReason) {
+            this.originalSql = originalSql;
+            this.originalSqlFingerprint = originalSqlFingerprint;
+            this.actualSql = actualSql;
+            this.actualSqlFingerprint = actualSqlFingerprint;
+            this.rewriteApplied = rewriteApplied;
+            this.runtimeStatus = runtimeStatus;
+            this.rewriteRecordId = rewriteRecordId;
+            this.runtimeBindingId = runtimeBindingId;
+            this.ruleVersion = ruleVersion;
+            this.runtimeRuleVersion = runtimeRuleVersion;
+            this.rewriteFallbackReason = rewriteFallbackReason;
+        }
+
+        static RuntimeRewriteResolution noRewrite(String originalSql, String originalSqlFingerprint) {
+            return new RuntimeRewriteResolution(
+                originalSql,
+                originalSqlFingerprint,
+                originalSql,
+                originalSqlFingerprint,
+                false,
+                "NOT_LOOKED_UP",
+                null,
+                null,
+                null,
+                null,
+                null
+            );
+        }
+
+        static RuntimeRewriteResolution inactive(String originalSql,
+                                                 String originalSqlFingerprint,
+                                                 String runtimeStatus,
+                                                 String summary) {
+            return new RuntimeRewriteResolution(
+                originalSql,
+                originalSqlFingerprint,
+                originalSql,
+                originalSqlFingerprint,
+                false,
+                StringUtils.hasText(runtimeStatus) ? runtimeStatus : "MISSING",
+                null,
+                null,
+                null,
+                null,
+                summary
+            );
+        }
+
+        static RuntimeRewriteResolution applied(String originalSql,
+                                                String originalSqlFingerprint,
+                                                String recommendedSql,
+                                                RuntimeRewriteBindingResponse response) {
+            return new RuntimeRewriteResolution(
+                originalSql,
+                originalSqlFingerprint,
+                recommendedSql,
+                SqlFingerprintUtils.fingerprint(recommendedSql),
+                true,
+                response.getStatus(),
+                response.getRewriteRecordId(),
+                response.getRuntimeBindingId(),
+                response.getRuleVersion(),
+                response.getRuntimeRuleVersion(),
+                null
+            );
+        }
+
+        static RuntimeRewriteResolution fallback(String originalSql,
+                                                 String originalSqlFingerprint,
+                                                 RuntimeRewriteBindingResponse response,
+                                                 String reason) {
+            return new RuntimeRewriteResolution(
+                originalSql,
+                originalSqlFingerprint,
+                originalSql,
+                originalSqlFingerprint,
+                false,
+                response == null ? "LOOKUP_FAILED" : response.getStatus(),
+                response == null ? null : response.getRewriteRecordId(),
+                response == null ? null : response.getRuntimeBindingId(),
+                response == null ? null : response.getRuleVersion(),
+                response == null ? null : response.getRuntimeRuleVersion(),
+                reason
+            );
+        }
+
+        String getOriginalSql() { return originalSql; }
+        String getOriginalSqlFingerprint() { return originalSqlFingerprint; }
+        String getActualSql() { return actualSql; }
+        String getActualSqlFingerprint() { return actualSqlFingerprint; }
+        boolean isRewriteApplied() { return rewriteApplied; }
+        String getRuntimeStatus() { return runtimeStatus; }
+        String getRewriteRecordId() { return rewriteRecordId; }
+        String getRuntimeBindingId() { return runtimeBindingId; }
+        Long getRuleVersion() { return ruleVersion; }
+        String getRuntimeRuleVersion() { return runtimeRuleVersion; }
+        String getRewriteFallbackReason() { return rewriteFallbackReason; }
     }
 }

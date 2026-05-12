@@ -26,6 +26,8 @@ import com.company.queryexecution.infrastructure.adapter.QueryExecutionAdapter;
 import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanApplyRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyApplyRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
@@ -33,6 +35,7 @@ import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
+import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Arrays;
 import java.util.Collections;
@@ -169,6 +172,137 @@ class QueryExecutionApplicationServiceTest {
 
         assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
         assertTrue(response.getMetadata().isAccelerationApplied());
+    }
+
+    @Test
+    void shouldApplyActiveRuntimeRewriteBindingBeforeExecution() {
+        setRequestContext("tenant-a");
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        QueryExecutionRuntimeRewriteBindingService rewriteBindingService =
+            mock(QueryExecutionRuntimeRewriteBindingService.class);
+        String originalSql = "SELECT * FROM orders";
+        String recommendedSql = "SELECT id FROM orders";
+        String originalFingerprint = SqlFingerprintUtils.fingerprint(originalSql);
+        when(rewriteBindingService.resolveActive(any()))
+            .thenReturn(activeRuntimeRewriteResponse(originalFingerprint, recommendedSql));
+        RecordingQueryExecutionAdapter adapter = new RecordingQueryExecutionAdapter();
+        QueryExecutionApplicationService service =
+            newService(adapter, governanceCapabilityClient, rewriteBindingService);
+
+        QueryExecuteResponse response = service.executeSynchronously(baseRequest(originalSql));
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        assertEquals(recommendedSql, adapter.actualSql);
+        assertEquals(originalSql, response.getMetadata().getOriginalSql());
+        assertEquals(recommendedSql, response.getMetadata().getActualSql());
+        assertTrue(response.getMetadata().isRewriteApplied());
+        assertEquals("rewrite-001", response.getMetadata().getRewriteRecordId());
+        assertEquals("rwb-001", response.getMetadata().getRuntimeBindingId());
+        assertEquals(Long.valueOf(3L), response.getMetadata().getRuleVersion());
+        assertEquals("runtime-rewrite-v3", response.getMetadata().getRuntimeRuleVersion());
+        assertEquals(originalFingerprint, response.getSqlFingerprint());
+        assertEquals(Boolean.TRUE, response.getBindingSummary().get("rewriteApplied"));
+        assertEquals("rwb-001", response.getBindingSummary().get("runtimeBindingId"));
+        assertEquals(SqlFingerprintUtils.fingerprint(recommendedSql),
+            response.getBindingSummary().get("actualSqlFingerprint"));
+
+        ArgumentCaptor<RuntimeRewriteBindingResolveRequest> resolveCaptor =
+            ArgumentCaptor.forClass(RuntimeRewriteBindingResolveRequest.class);
+        verify(rewriteBindingService).resolveActive(resolveCaptor.capture());
+        assertEquals("tenant-a", resolveCaptor.getValue().getTenantId());
+        assertEquals(originalFingerprint, resolveCaptor.getValue().getSqlFingerprint());
+        assertNull(resolveCaptor.getValue().getDatasourceCode());
+
+        ArgumentCaptor<GovernanceQueryExecutionHistoryWriteRequest> historyCaptor =
+            ArgumentCaptor.forClass(GovernanceQueryExecutionHistoryWriteRequest.class);
+        verify(governanceCapabilityClient).writeQueryExecutionHistory(historyCaptor.capture());
+        GovernanceQueryExecutionHistoryWriteRequest historyRequest = historyCaptor.getValue();
+        assertEquals(Boolean.TRUE, historyRequest.getRewriteApplied());
+        assertEquals(originalSql, historyRequest.getSqlTemplate());
+        assertEquals(recommendedSql, historyRequest.getBoundSql());
+        assertTrue(historyRequest.getBindingSummary().contains("\"runtimeBindingId\":\"rwb-001\""));
+        assertTrue(historyRequest.getQueryContext().contains("\"runtimeRuleVersion\":\"runtime-rewrite-v3\""));
+    }
+
+    @Test
+    void shouldKeepOriginalSqlWhenRuntimeRewriteBindingIsMissing() {
+        setRequestContext("tenant-a");
+        QueryExecutionRuntimeRewriteBindingService rewriteBindingService =
+            mock(QueryExecutionRuntimeRewriteBindingService.class);
+        when(rewriteBindingService.resolveActive(any())).thenReturn(missingRuntimeRewriteResponse());
+        RecordingQueryExecutionAdapter adapter = new RecordingQueryExecutionAdapter();
+        QueryExecutionApplicationService service =
+            newService(adapter, mockGovernanceClient(), rewriteBindingService);
+
+        QueryExecuteResponse response = service.executeSynchronously(baseRequest("SELECT * FROM orders"));
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        assertEquals("SELECT * FROM orders", adapter.actualSql);
+        assertFalse(response.getMetadata().isRewriteApplied());
+        assertEquals(Boolean.FALSE, response.getBindingSummary().get("rewriteApplied"));
+        assertEquals("MISSING", response.getBindingSummary().get("runtimeRewriteStatus"));
+    }
+
+    @Test
+    void shouldPassDatasourceEvidenceWhenResolvingRuntimeRewriteBinding() {
+        setRequestContext("tenant-a");
+        QueryExecutionRuntimeRewriteBindingService rewriteBindingService =
+            mock(QueryExecutionRuntimeRewriteBindingService.class);
+        when(rewriteBindingService.resolveActive(any())).thenReturn(missingRuntimeRewriteResponse());
+        QueryExecutionApplicationService service =
+            newService(new RecordingQueryExecutionAdapter(), mockGovernanceClient(), rewriteBindingService);
+        QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
+        QueryContextDTO queryContext = new QueryContextDTO();
+        queryContext.setDatabaseName("hetu_reporting");
+        request.setQueryContext(queryContext);
+
+        service.executeSynchronously(request);
+
+        ArgumentCaptor<RuntimeRewriteBindingResolveRequest> resolveCaptor =
+            ArgumentCaptor.forClass(RuntimeRewriteBindingResolveRequest.class);
+        verify(rewriteBindingService).resolveActive(resolveCaptor.capture());
+        assertEquals("hetu_reporting", resolveCaptor.getValue().getDatasourceCode());
+    }
+
+    @Test
+    void shouldFallbackToOriginalSqlWhenRecommendedRewriteSqlIsNotReadonly() {
+        setRequestContext("tenant-a");
+        QueryExecutionRuntimeRewriteBindingService rewriteBindingService =
+            mock(QueryExecutionRuntimeRewriteBindingService.class);
+        String originalSql = "SELECT * FROM orders";
+        when(rewriteBindingService.resolveActive(any())).thenReturn(
+            activeRuntimeRewriteResponse(SqlFingerprintUtils.fingerprint(originalSql), "DELETE FROM orders")
+        );
+        RecordingQueryExecutionAdapter adapter = new RecordingQueryExecutionAdapter();
+        QueryExecutionApplicationService service =
+            newService(adapter, mockGovernanceClient(), rewriteBindingService);
+
+        QueryExecuteResponse response = service.executeSynchronously(baseRequest(originalSql));
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        assertEquals(originalSql, adapter.actualSql);
+        assertFalse(response.getMetadata().isRewriteApplied());
+        assertEquals("RECOMMENDED_SQL_NOT_READONLY", response.getMetadata().getRewriteFallbackReason());
+        assertEquals("rwb-001", response.getMetadata().getRuntimeBindingId());
+    }
+
+    @Test
+    void shouldFallbackToOriginalSqlWhenRuntimeRewriteLookupFails() {
+        setRequestContext("tenant-a");
+        QueryExecutionRuntimeRewriteBindingService rewriteBindingService =
+            mock(QueryExecutionRuntimeRewriteBindingService.class);
+        when(rewriteBindingService.resolveActive(any()))
+            .thenThrow(new IllegalStateException("runtime binding store unavailable"));
+        RecordingQueryExecutionAdapter adapter = new RecordingQueryExecutionAdapter();
+        QueryExecutionApplicationService service =
+            newService(adapter, mockGovernanceClient(), rewriteBindingService);
+
+        QueryExecuteResponse response = service.executeSynchronously(baseRequest("SELECT * FROM orders"));
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        assertEquals("SELECT * FROM orders", adapter.actualSql);
+        assertFalse(response.getMetadata().isRewriteApplied());
+        assertEquals("RUNTIME_REWRITE_RESOLVE_FAILED", response.getMetadata().getRewriteFallbackReason());
     }
 
     @Test
@@ -575,6 +709,62 @@ class QueryExecutionApplicationServiceTest {
             new QueryExecutionMetricsRecorder(meterRegistry),
             new QueryExecutionAccelerationRuntimeService()
         );
+    }
+
+    private QueryExecutionApplicationService newService(QueryExecutionAdapter adapter,
+                                                        GovernanceCapabilityClient governanceCapabilityClient,
+                                                        QueryExecutionRuntimeRewriteBindingService rewriteBindingService) {
+        return new QueryExecutionApplicationService(
+            adapter,
+            governanceCapabilityClient,
+            QueryExecutionMetricsRecorder.noop(),
+            new QueryExecutionAccelerationRuntimeService(),
+            new QueryExecutionCacheGovernanceRuntimeService(),
+            rewriteBindingService
+        );
+    }
+
+    private RuntimeRewriteBindingResponse activeRuntimeRewriteResponse(String sqlFingerprint, String recommendedSql) {
+        RuntimeRewriteBindingResponse response = new RuntimeRewriteBindingResponse();
+        response.setTenantId("tenant-a");
+        response.setRuntimeBindingId("rwb-001");
+        response.setRewriteRecordId("rewrite-001");
+        response.setRecommendationId("recommendation-001");
+        response.setSourceType("QUERY");
+        response.setSourceKind("QUERY_HISTORY");
+        response.setSourceId("history-001");
+        response.setSqlFingerprint(sqlFingerprint);
+        response.setOriginalSqlDigest("digest-original-001");
+        response.setRecommendedSqlText(recommendedSql);
+        response.setDatasourceCode("hetu_main");
+        response.setStatus("ACTIVE");
+        response.setActive(true);
+        response.setRuleVersion(Long.valueOf(3L));
+        response.setRuntimeRuleVersion("runtime-rewrite-v3");
+        response.setRuntimeSummary("Active runtime rewrite binding was found.");
+        return response;
+    }
+
+    private RuntimeRewriteBindingResponse missingRuntimeRewriteResponse() {
+        RuntimeRewriteBindingResponse response = new RuntimeRewriteBindingResponse();
+        response.setTenantId("tenant-a");
+        response.setStatus("MISSING");
+        response.setActive(false);
+        response.setRuntimeSummary("No active runtime rewrite binding was found.");
+        return response;
+    }
+
+    private static final class RecordingQueryExecutionAdapter implements QueryExecutionAdapter {
+        private String actualSql;
+
+        @Override
+        public QueryExecutionStep execute(DataSourceTypeEnum targetEngine,
+                                          String actualSql,
+                                          QueryExecuteRequest request,
+                                          boolean degradedPath) {
+            this.actualSql = actualSql;
+            return new DeterministicQueryExecutionAdapter().execute(targetEngine, actualSql, request, degradedPath);
+        }
     }
 
     private void setRequestContext(String tenantId) {
