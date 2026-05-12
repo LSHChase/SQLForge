@@ -7,7 +7,9 @@ public class JdbcAgentProperties {
 
     private JdbcAgentMode agentMode = JdbcAgentMode.OBSERVE;
     private List<String> redisEndpoints = new ArrayList<String>();
-    private String redisNamespace = "sqlforge:jdbc-agent";
+    private String redisNamespace = JdbcAgentRedisRuleKeys.DEFAULT_NAMESPACE;
+    private boolean tenantScopedRedisRules = true;
+    private boolean legacyRedisRuleFallbackEnabled;
     private String apiBaseUrl;
     private boolean routeEnabled;
     private boolean rewriteEnabled;
@@ -37,6 +39,22 @@ public class JdbcAgentProperties {
 
     public void setRedisNamespace(String redisNamespace) {
         this.redisNamespace = redisNamespace;
+    }
+
+    public boolean isTenantScopedRedisRules() {
+        return tenantScopedRedisRules;
+    }
+
+    public void setTenantScopedRedisRules(boolean tenantScopedRedisRules) {
+        this.tenantScopedRedisRules = tenantScopedRedisRules;
+    }
+
+    public boolean isLegacyRedisRuleFallbackEnabled() {
+        return legacyRedisRuleFallbackEnabled;
+    }
+
+    public void setLegacyRedisRuleFallbackEnabled(boolean legacyRedisRuleFallbackEnabled) {
+        this.legacyRedisRuleFallbackEnabled = legacyRedisRuleFallbackEnabled;
     }
 
     public String getApiBaseUrl() {

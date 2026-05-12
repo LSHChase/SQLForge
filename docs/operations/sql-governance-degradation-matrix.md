@@ -21,7 +21,7 @@
 | SQL 语法错误 | 结构解析失败 | 返回结构解析失败与问题详情 | 记录 parse issue 和 error code | 不自动重试 |
 | 参数绑定不完整 | query_date / 路由 / 深度解析精度下降 | 展示模板 SQL、部分参数、低置信度说明 | 写入 `binding_render_status=PARTIAL/FAILED` | 允许人工补参重跑 |
 | 轻量解析超时 | 主执行不应被拖慢 | 继续执行，页面提示 lightweight parse bypassed | 审计记录轻量解析降级 | 不阻断主流程 |
-| Redis 规则源不可用 | JDBC Agent / 轻量路由规则不可用 | Agent 或服务端回退默认策略 / bypass | 写告警与 route fallback evidence | 恢复后重新命中规则 |
+| Redis 规则源不可用 | JDBC Agent / 轻量路由规则不可用 | Agent 或服务端回退默认策略 / bypass；`query-execution` 主 runtime binding 状态不回滚 | 写告警、route fallback evidence 与 `jdbcAgentRedisSync` 失败证据 | 按 `retryable=true` 证据重试同步，恢复后重新命中规则 |
 
 ## 3. Batch and Report Parse Matrix
 

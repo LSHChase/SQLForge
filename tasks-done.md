@@ -4,6 +4,30 @@
 
 ## Done
 
+### PRW-013: JDBC Agent Redis 改写规则桥接
+
+- Status: done
+- Completed at: 2026-05-12
+- Commit subject: `PRW-013 bridge JDBC Agent Redis rewrite rules`
+- Priority: 1
+- Depends on: `PRW-012`
+- Scope: JDBC Agent/Redis 只能作为已发布运行时绑定的兼容出口，不能替代 query-execution 主闭环真值。 Tech: `JAVA-BE`,`REDIS`,`OPS`,`DOCS`. Layer: `query-execution`,`jdbc-agent`,`infrastructure`,`tests`,`docs`.
+- Plan ref: docs/exec-plans/completed/PRW-013-full-auto-execution-plan.md
+- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
+- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
+- Data impact: 同步 Redis 改写规则 key；主闭环状态仍以 query-execution 绑定为准，同步失败必须告警而非篡改主状态。
+- Rollback / recovery: 停用 Redis 同步适配并删除或标记无效的 Redis key，保持 query-execution 主绑定不变。
+- Validation:
+  - `mvn -pl query-execution,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-013`
+  - `python3 scripts/foreman.py validate PRW-013`
+- Progress log:
+  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented tenant-scoped JDBC Agent Redis rewrite rule sync from query-execution runtime bindings, Agent metadata/status validation, Redis failure evidence, and PRW-013 docs/tests.
+  - Validation evidence: mvn -pl query-execution,sqlforge-shared -am test; python3 scripts/foreman.py validate PRW-013; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
+  - Residual risk: Live Redis environment-backed verification remains outside repo-closed tests and should be run in the target test environment when credentials are available.
+  - Next step: Enable QUERY_EXECUTION_JDBC_AGENT_REDIS_* in an environment-backed Redis test and verify JDBC Agent LOCAL_REWRITE_DIRECT_JDBC reads tenant-scoped keys.
+
 ### PRW-012: 生产闭环端到端测试与 smoke
 
 - Status: done

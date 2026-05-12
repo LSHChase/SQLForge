@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,11 +29,23 @@ public class QueryExecutionRuntimeRewriteBindingService {
     private static final String RULE_VERSION_PREFIX = "runtime-rewrite-v";
 
     private final RuntimeRewriteBindingRepository runtimeRewriteBindingRepository;
+    private final JdbcAgentRewriteRuleSyncPort jdbcAgentRewriteRuleSyncPort;
+
+    @Autowired
+    public QueryExecutionRuntimeRewriteBindingService(
+        RuntimeRewriteBindingRepository runtimeRewriteBindingRepository,
+        JdbcAgentRewriteRuleSyncPort jdbcAgentRewriteRuleSyncPort
+    ) {
+        this.runtimeRewriteBindingRepository = runtimeRewriteBindingRepository;
+        this.jdbcAgentRewriteRuleSyncPort = jdbcAgentRewriteRuleSyncPort == null
+            ? new NoopJdbcAgentRewriteRuleSyncPort()
+            : jdbcAgentRewriteRuleSyncPort;
+    }
 
     public QueryExecutionRuntimeRewriteBindingService(
         RuntimeRewriteBindingRepository runtimeRewriteBindingRepository
     ) {
-        this.runtimeRewriteBindingRepository = runtimeRewriteBindingRepository;
+        this(runtimeRewriteBindingRepository, new NoopJdbcAgentRewriteRuleSyncPort());
     }
 
     @Transactional
@@ -45,7 +58,12 @@ public class QueryExecutionRuntimeRewriteBindingService {
             runtimeRewriteBindingRepository.findActiveByTenantIdAndSqlFingerprint(tenantId, sqlFingerprint);
         if (active != null) {
             if (rewriteRecordId.equals(active.getRewriteRecordId())) {
-                return responseFrom(active, "Runtime rewrite binding is already active for this rewrite record.");
+                JdbcAgentRewriteRuleSyncResult syncResult = syncPublish(active);
+                return responseFrom(
+                    active,
+                    "Runtime rewrite binding is already active for this rewrite record.",
+                    syncResult
+                );
             }
             throw new BizException(
                 ErrorCodeConstants.QUERY_EXECUTION_ROUTE_REJECTED,
@@ -78,7 +96,12 @@ public class QueryExecutionRuntimeRewriteBindingService {
             .updatedAt(now)
             .build();
         runtimeRewriteBindingRepository.save(binding);
-        return responseFrom(binding, "Runtime rewrite binding is active for production auto rewrite lookup.");
+        JdbcAgentRewriteRuleSyncResult syncResult = syncPublish(binding);
+        return responseFrom(
+            binding,
+            "Runtime rewrite binding is active for production auto rewrite lookup.",
+            syncResult
+        );
     }
 
     @Transactional
@@ -93,7 +116,12 @@ public class QueryExecutionRuntimeRewriteBindingService {
         RuntimeRewriteBinding paused =
             binding.pause(resolveOperator(request.getOperatorId()), request.getReason(), Instant.now());
         runtimeRewriteBindingRepository.save(paused);
-        return responseFrom(paused, "Runtime rewrite binding is paused and no longer eligible for auto rewrite.");
+        JdbcAgentRewriteRuleSyncResult syncResult = syncDisable(paused);
+        return responseFrom(
+            paused,
+            "Runtime rewrite binding is paused and no longer eligible for auto rewrite.",
+            syncResult
+        );
     }
 
     @Transactional
@@ -108,7 +136,12 @@ public class QueryExecutionRuntimeRewriteBindingService {
         RuntimeRewriteBinding unpublished =
             binding.unpublish(resolveOperator(request.getOperatorId()), request.getReason(), Instant.now());
         runtimeRewriteBindingRepository.save(unpublished);
-        return responseFrom(unpublished, "Runtime rewrite binding is unpublished and retained for version trace.");
+        JdbcAgentRewriteRuleSyncResult syncResult = syncDisable(unpublished);
+        return responseFrom(
+            unpublished,
+            "Runtime rewrite binding is unpublished and retained for version trace.",
+            syncResult
+        );
     }
 
     public RuntimeRewriteBindingResponse resolveActive(RuntimeRewriteBindingResolveRequest request) {
@@ -124,7 +157,7 @@ public class QueryExecutionRuntimeRewriteBindingService {
             && !request.getDatasourceCode().trim().equalsIgnoreCase(binding.getDatasourceCode())) {
             return missingResponse(tenantId, sqlFingerprint, "No active runtime rewrite binding matched datasource evidence.");
         }
-        return responseFrom(binding, "Active runtime rewrite binding was found.");
+        return responseFrom(binding, "Active runtime rewrite binding was found.", null);
     }
 
     private RuntimeRewriteBinding resolveMutationTarget(RuntimeRewriteBindingStateChangeRequest request) {
@@ -143,7 +176,9 @@ public class QueryExecutionRuntimeRewriteBindingService {
         );
     }
 
-    private RuntimeRewriteBindingResponse responseFrom(RuntimeRewriteBinding binding, String summary) {
+    private RuntimeRewriteBindingResponse responseFrom(RuntimeRewriteBinding binding,
+                                                       String summary,
+                                                       JdbcAgentRewriteRuleSyncResult syncResult) {
         RuntimeRewriteBindingResponse response = new RuntimeRewriteBindingResponse();
         response.setTenantId(binding.getTenantId());
         response.setRuntimeBindingId(binding.getRuntimeBindingId());
@@ -161,7 +196,7 @@ public class QueryExecutionRuntimeRewriteBindingService {
         response.setRuleVersion(Long.valueOf(binding.getRuleVersion()));
         response.setRuntimeRuleVersion(binding.getRuntimeRuleVersion());
         response.setRuntimeSummary(summary);
-        response.setRuntimeDetailsJson(JsonUtils.toJson(detailsFrom(binding)));
+        response.setRuntimeDetailsJson(JsonUtils.toJson(detailsFrom(binding, syncResult)));
         response.setContractStage(CONTRACT_STAGE);
         response.setImplementationStage(IMPLEMENTATION_STAGE);
         return response;
@@ -180,7 +215,8 @@ public class QueryExecutionRuntimeRewriteBindingService {
         return response;
     }
 
-    private Map<String, Object> detailsFrom(RuntimeRewriteBinding binding) {
+    private Map<String, Object> detailsFrom(RuntimeRewriteBinding binding,
+                                            JdbcAgentRewriteRuleSyncResult syncResult) {
         Map<String, Object> details = details(
             "bindingState", binding.getStatus().name(),
             "runtimeBindingId", binding.getRuntimeBindingId(),
@@ -199,7 +235,36 @@ public class QueryExecutionRuntimeRewriteBindingService {
             details.put("unpublishedBy", binding.getUnpublishedBy());
             details.put("unpublishReason", binding.getUnpublishReason());
         }
+        if (syncResult != null) {
+            details.put("jdbcAgentRedisSync", syncResult.toDetails());
+        }
         return details;
+    }
+
+    private JdbcAgentRewriteRuleSyncResult syncPublish(RuntimeRewriteBinding binding) {
+        try {
+            return jdbcAgentRewriteRuleSyncPort.publish(binding);
+        } catch (RuntimeException ex) {
+            return syncFailed("PUBLISH", binding, ex);
+        }
+    }
+
+    private JdbcAgentRewriteRuleSyncResult syncDisable(RuntimeRewriteBinding binding) {
+        try {
+            return jdbcAgentRewriteRuleSyncPort.disable(binding);
+        } catch (RuntimeException ex) {
+            return syncFailed("DISABLE", binding, ex);
+        }
+    }
+
+    private JdbcAgentRewriteRuleSyncResult syncFailed(String action, RuntimeRewriteBinding binding, RuntimeException ex) {
+        return JdbcAgentRewriteRuleSyncResult.builder()
+            .syncStatus("FAILED")
+            .syncAction(action)
+            .failureReason(ex.getMessage())
+            .retryable(true)
+            .alertRequired(true)
+            .build();
     }
 
     private Map<String, Object> details(Object... keyValues) {

@@ -94,7 +94,7 @@ public class SqlForgeJdbcAgent {
                                                    JdbcAgentSqlRequest request,
                                                    JdbcAgentDirectExecutor<T> directExecutor) {
         JdbcAgentExecutionMetadata metadata = new JdbcAgentExecutionMetadata();
-        JdbcAgentObservation observation = observe(request);
+        JdbcAgentObservation observation = observe(request, requestContext);
         metadata.setObservation(observation);
         switch (properties.getAgentMode()) {
             case GOVERNED_EXECUTE:
@@ -108,6 +108,10 @@ public class SqlForgeJdbcAgent {
     }
 
     public JdbcAgentObservation observe(JdbcAgentSqlRequest request) {
+        return observe(request, null);
+    }
+
+    private JdbcAgentObservation observe(JdbcAgentSqlRequest request, OpenAccessRequestContext requestContext) {
         String originalSql = request == null ? null : request.getSqlText();
         String boundSqlText = StringUtils.hasText(request == null ? null : request.getBoundSqlText())
             ? request.getBoundSqlText()
@@ -123,11 +127,20 @@ public class SqlForgeJdbcAgent {
             templateSql,
             boundSqlText,
             SqlFingerprintUtils.fingerprint(boundSqlText),
+            resolveObservationTenantId(request, requestContext),
+            request == null ? null : request.getDatasourceCode(),
             commentContext,
             queryDateSummary,
             StringUtils.hasText(templateSql) && StringUtils.hasText(boundSqlText) && !templateSql.equals(boundSqlText),
             parameterCount
         );
+    }
+
+    private String resolveObservationTenantId(JdbcAgentSqlRequest request, OpenAccessRequestContext requestContext) {
+        if (request != null && StringUtils.hasText(request.getTenantId())) {
+            return request.getTenantId().trim();
+        }
+        return requestContext == null ? null : requestContext.getTenantId();
     }
 
     private <T> JdbcAgentExecutionResult<T> executeObserve(OpenAccessRequestContext requestContext,

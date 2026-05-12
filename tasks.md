@@ -16,23 +16,6 @@ _No tasks._
 
 ## In Progress
 
-### PRW-013: JDBC Agent Redis 改写规则桥接
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `PRW-012`
-- Scope: JDBC Agent/Redis 只能作为已发布运行时绑定的兼容出口，不能替代 query-execution 主闭环真值。 Tech: `JAVA-BE`,`REDIS`,`OPS`,`DOCS`. Layer: `query-execution`,`jdbc-agent`,`infrastructure`,`tests`,`docs`.
-- Plan ref: docs/exec-plans/active/PRW-013-full-auto-execution-plan.md
-- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
-- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
-- Data impact: 同步 Redis 改写规则 key；主闭环状态仍以 query-execution 绑定为准，同步失败必须告警而非篡改主状态。
-- Rollback / recovery: 停用 Redis 同步适配并删除或标记无效的 Redis key，保持 query-execution 主绑定不变。
-- Validation:
-  - `mvn -pl query-execution,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-013`
-  - `python3 scripts/foreman.py validate PRW-013`
-- Progress log:
-  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
-
 ### PRW-001: 固化生产改写闭环接口与状态契约
 
 - Status: in_progress

@@ -11,7 +11,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
     com.company.queryexecution.config.AuthProperties.class,
     com.company.queryexecution.config.QueryExecutionGovernanceProperties.class,
     com.company.queryexecution.config.QueryExecutionHetuProperties.class,
-    com.company.queryexecution.config.QueryExecutionCacheBackendProperties.class
+    com.company.queryexecution.config.QueryExecutionCacheBackendProperties.class,
+    com.company.queryexecution.config.QueryExecutionJdbcAgentRedisProperties.class
 })
 @SpringBootApplication(scanBasePackages = {"com.company.queryexecution", "com.company.sqlforge.common"})
 public class QueryExecutionApplication {

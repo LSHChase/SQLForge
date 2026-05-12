@@ -455,6 +455,8 @@
 
 - `query-execution` 的 `runtime_rewrite_binding` 持久化表是生产自动改写运行时绑定真值；JDBC Agent / Redis 只能作为后续兼容出口，不能替代主闭环。
 - 只有同租户、同 SQL 指纹且 runtime binding status 为 `ACTIVE` 时，查询执行入口才能把原 SQL 替换为已批准推荐 SQL。
+- `PRW-013` 后 JDBC Agent Redis 兼容出口使用 tenant-scoped key：`<namespace>:tenant:<tenantId>:rewrite:<sqlFingerprint>` 保存推荐 SQL，`<namespace>:tenant:<tenantId>:meta:<sqlFingerprint>` 保存 `runtimeBindingId`、`ruleVersion`、`runtimeRuleVersion`、`datasourceCode`、`status`、`updatedAt`、可选 `expiresAt` 与 `syncStatus`；旧 `<namespace>:rewrite:<sqlFingerprint>` 只允许作为显式开启的兼容 fallback。
+- 发布、暂停或撤销 runtime binding 时，Redis 同步失败必须返回或记录 `syncStatus=FAILED`、`retryable=true`、`alertRequired=true` 证据，但不得回滚或篡改 `query-execution` 主绑定状态。
 - 执行历史必须记录原始 SQL、实际执行 SQL、是否改写、改写记录 ID、runtime binding ID、规则版本和发布状态快照，前端不得自行推断 `rewriteApplied`。
 - 周期比对发现结果不等价或超过容忍阈值时，必须暂停或撤销 runtime binding 并更新 `publishStatus`，不能只写告警展示。
 

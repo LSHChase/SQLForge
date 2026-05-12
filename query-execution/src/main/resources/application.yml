@@ -86,6 +86,17 @@ query-execution:
         database: ${QUERY_EXECUTION_CACHE_REDIS_DATABASE:0}
         connect-timeout-ms: ${QUERY_EXECUTION_CACHE_REDIS_CONNECT_TIMEOUT_MS:1000}
         read-timeout-ms: ${QUERY_EXECUTION_CACHE_REDIS_READ_TIMEOUT_MS:1000}
+  jdbc-agent:
+    redis:
+      enabled: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_ENABLED:false}
+      namespace: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_NAMESPACE:sqlforge:jdbc-agent}
+      host: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_HOST:}
+      port: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_PORT:6379}
+      password: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_PASSWORD:}
+      database: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_DATABASE:0}
+      connect-timeout-ms: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_CONNECT_TIMEOUT_MS:1000}
+      read-timeout-ms: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_READ_TIMEOUT_MS:1000}
+      ttl-seconds: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_TTL_SECONDS:0}
   governance:
     base-url: ${QUERY_EXECUTION_GOVERNANCE_BASE_URL:http://localhost:8080/api/governance/internal}
     connect-timeout-ms: ${QUERY_EXECUTION_GOVERNANCE_CONNECT_TIMEOUT_MS:3000}
