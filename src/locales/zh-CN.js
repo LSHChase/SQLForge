@@ -1169,7 +1169,13 @@ export default {
       openRouting: '打开路由治理',
       openParse: '打开 SQL解析',
       openHistory: '打开历史页',
-      openAlertCenter: '打开告警中心'
+      openAlertCenter: '打开告警中心',
+      refreshRewriteRecords: '刷新改写记录',
+      approveRewrite: '审批通过',
+      rejectRewrite: '驳回',
+      publishRewrite: '发布',
+      pauseRewrite: '暂停',
+      unpublishRewrite: '撤销'
     },
     list: {
       eyebrow: '推荐分类',
@@ -1206,7 +1212,27 @@ export default {
       ruleDiffCount: '规则差异数',
       writesBackRecommendation: '写回推荐',
       evidenceBoundary: '证据边界',
-      hunk: '差异片段'
+      hunk: '差异片段',
+      rewriteRecordId: '改写记录 ID',
+      reviewStatus: '审批状态',
+      reviewNote: '审批意见',
+      reviewedBy: '审批人',
+      reviewedAt: '审批时间',
+      publishStatus: '发布状态',
+      lastValidationRunId: '最近验证运行 ID',
+      runtimeBindingId: '运行时绑定 ID',
+      runtimeRuleVersion: '规则版本',
+      runtimeBindingScope: '生效范围',
+      runtimeBindingAt: '生效时间',
+      runtimeBindingBy: '发布人',
+      publishEligible: '发布资格',
+      policyId: '策略 ID',
+      actionReason: '动作原因',
+      refusalCode: '拒绝码',
+      refusalMessage: '拒绝原因',
+      refusalField: '字段',
+      evidenceRef: '证据引用',
+      blocking: '阻断'
     },
     states: {
       selectRecommendation: '选择一个 recommendation 查看详情。',
@@ -1215,11 +1241,21 @@ export default {
       emptyDiff: '当前推荐尚未返回 SQL diff 证据。',
       noDiffHunks: '原 SQL 与推荐 SQL 文本没有可展示差异。',
       noRuleEvidence: '当前没有可展示的规则证据。',
-      waitingCallback: '等待外部回执。'
+      waitingCallback: '等待外部回执。',
+      noRewriteRecord: '当前推荐没有关联改写记录。',
+      approvedNotPublished: '审批已通过，尚未运行时生效。',
+      runtimeActive: '运行时已生效。',
+      runtimePaused: '运行时绑定已暂停。',
+      reviewRejected: '改写审批已驳回。',
+      awaitingRewriteReview: '等待改写审批或发布。',
+      reviewNoteRequired: '驳回必须填写审批意见。',
+      lifecycleActionApplied: '改写记录动作已提交，状态已从后端刷新。',
+      noRefusalReasons: '当前没有发布资格拒绝原因。'
     },
     tabs: {
       summary: '摘要',
       sqlEvidence: 'SQL 证据',
+      rewriteLifecycle: '改写复核与发布',
       sqlDiff: 'SQL 差异',
       rulesRisk: '规则与风险',
       dispatchContract: 'Dispatch 契约',
@@ -1234,11 +1270,17 @@ export default {
       preconditions: '前置条件 preconditions',
       semanticRisks: '语义风险 semanticRisks',
       unappliedRules: '未应用规则 unappliedRules',
-      alertLinkage: '告警联动'
+      alertLinkage: '告警联动',
+      publishEligibility: '发布资格与拒绝原因'
     },
     reviewGuard: {
       eyebrow: '人工复核',
       title: '风险与 diff 证据必须先复核'
+    },
+    rewriteLifecycle: {
+      eyebrow: '改写复核',
+      title: '审批、发布、暂停与撤销',
+      boundary: '本区只调用改写记录真实接口；审批通过不等同运行时生效，只有发布成功并返回运行时绑定后才表示自动改写已生效。'
     },
     dispatch: {
       boundary: '当前协同边界固定为 coordinationMode=PULL_ONLY：外部模块负责真实装数、预热执行和底层变更，SQLForge 只保留推荐与 dispatch 回执审计。'

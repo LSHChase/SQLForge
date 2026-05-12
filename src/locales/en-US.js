@@ -1185,7 +1185,13 @@ export default {
       openRouting: 'Open routing governance',
       openParse: 'Open SQL Parse',
       openHistory: 'Open history page',
-      openAlertCenter: 'Open alert center'
+      openAlertCenter: 'Open alert center',
+      refreshRewriteRecords: 'Refresh rewrite records',
+      approveRewrite: 'Approve',
+      rejectRewrite: 'Reject',
+      publishRewrite: 'Publish',
+      pauseRewrite: 'Pause',
+      unpublishRewrite: 'Unpublish'
     },
     list: {
       eyebrow: 'recommendation categories',
@@ -1222,7 +1228,27 @@ export default {
       ruleDiffCount: 'Rule diff count',
       writesBackRecommendation: 'Writes back recommendation',
       evidenceBoundary: 'Evidence boundary',
-      hunk: 'Diff hunk'
+      hunk: 'Diff hunk',
+      rewriteRecordId: 'Rewrite record ID',
+      reviewStatus: 'Review status',
+      reviewNote: 'Review note',
+      reviewedBy: 'Reviewed by',
+      reviewedAt: 'Reviewed at',
+      publishStatus: 'Publish status',
+      lastValidationRunId: 'Last validation run ID',
+      runtimeBindingId: 'Runtime binding ID',
+      runtimeRuleVersion: 'Rule version',
+      runtimeBindingScope: 'Runtime scope',
+      runtimeBindingAt: 'Runtime binding at',
+      runtimeBindingBy: 'Published by',
+      publishEligible: 'Publish eligible',
+      policyId: 'Policy ID',
+      actionReason: 'Action reason',
+      refusalCode: 'Refusal code',
+      refusalMessage: 'Refusal reason',
+      refusalField: 'Field',
+      evidenceRef: 'Evidence ref',
+      blocking: 'Blocking'
     },
     states: {
       selectRecommendation: 'Select a recommendation to inspect its detail.',
@@ -1231,11 +1257,21 @@ export default {
       emptyDiff: 'This recommendation has not returned SQL diff evidence yet.',
       noDiffHunks: 'The original and recommended SQL text have no displayable difference.',
       noRuleEvidence: 'No rule evidence is available for this recommendation.',
-      waitingCallback: 'Waiting for an external callback.'
+      waitingCallback: 'Waiting for an external callback.',
+      noRewriteRecord: 'This recommendation has no linked rewrite record.',
+      approvedNotPublished: 'Approved, but not active in runtime yet.',
+      runtimeActive: 'Runtime rewrite is active.',
+      runtimePaused: 'Runtime binding is paused.',
+      reviewRejected: 'Rewrite review has been rejected.',
+      awaitingRewriteReview: 'Waiting for rewrite review or publish.',
+      reviewNoteRequired: 'A review note is required when rejecting.',
+      lifecycleActionApplied: 'Rewrite record action was submitted and refreshed from the backend.',
+      noRefusalReasons: 'No publish eligibility refusal reason is present.'
     },
     tabs: {
       summary: 'Summary',
       sqlEvidence: 'SQL evidence',
+      rewriteLifecycle: 'Rewrite review and publish',
       sqlDiff: 'SQL diff',
       rulesRisk: 'Rules and risk',
       dispatchContract: 'Dispatch contract',
@@ -1250,11 +1286,17 @@ export default {
       preconditions: 'preconditions',
       semanticRisks: 'semanticRisks',
       unappliedRules: 'unappliedRules',
-      alertLinkage: 'Alert linkage'
+      alertLinkage: 'Alert linkage',
+      publishEligibility: 'Publish eligibility and refusal reasons'
     },
     reviewGuard: {
       eyebrow: 'manual review',
       title: 'Review risk and diff evidence first'
+    },
+    rewriteLifecycle: {
+      eyebrow: 'rewrite review',
+      title: 'Review, publish, pause, and unpublish',
+      boundary: 'This section only calls real rewrite-record APIs. Approval is not runtime activation; automatic rewrite is active only after publish returns a runtime binding.'
     },
     dispatch: {
       boundary: 'The current collaboration boundary is fixed at coordinationMode=PULL_ONLY: external modules own real data loading, prewarm execution, and storage changes while SQLForge keeps recommendation plus dispatch callback evidence only.'

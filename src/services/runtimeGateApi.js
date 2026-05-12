@@ -796,6 +796,65 @@ export const getSqlRewriteRecord = (tenantId, rewriteRecordId, requestOptions = 
     }
   })
 
+export const reviewSqlRewriteRecord = (tenantId, rewriteRecordId, payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/review`,
+    data: payload,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-rewrite-record-review',
+      ...requestOptions
+    }
+  })
+
+export const getRewritePublishEligibility = (tenantId, rewriteRecordId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/publish-eligibility`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-rewrite-record-publish-eligibility',
+      ...requestOptions
+    }
+  })
+
+export const publishSqlRewriteRecord = (tenantId, rewriteRecordId, payload = {}, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/publish`,
+    data: payload,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-rewrite-record-publish',
+      ...requestOptions
+    }
+  })
+
+export const pauseSqlRewriteRecord = (tenantId, rewriteRecordId, payload = {}, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/pause`,
+    data: payload,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-rewrite-record-pause',
+      ...requestOptions
+    }
+  })
+
+export const unpublishSqlRewriteRecord = (tenantId, rewriteRecordId, payload = {}, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/unpublish`,
+    data: payload,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-rewrite-record-unpublish',
+      ...requestOptions
+    }
+  })
+
 export const createRewriteValidationRun = (tenantId, rewriteRecordId, payload = {}, requestOptions = {}) =>
   request({
     method: 'post',

@@ -67,23 +67,6 @@ _No tasks._
 - Progress log:
   - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
 
-### PRW-010: 推荐中心与改写记录详情页面接入审批动作
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `PRW-003`,`PRW-004`,`PRW-006`,`HARN-145`
-- Scope: 页面必须明确“审批通过但未发布”与“运行时已生效”的差异，并只调用后端真实接口。 Tech: `VUE-FE`,`DOCS`. Layer: `frontend/router/views/styles`,`api client`,`tests`.
-- Plan ref: docs/exec-plans/active/PRW-010-full-auto-execution-plan.md
-- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
-- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
-- Data impact: 仅改变前端交互和 API 调用，不直接修改持久化数据；审批/发布状态由后端接口写入。
-- Rollback / recovery: 回退页面动作区和 API client 变更，恢复推荐中心只读或既有工作流显示。
-- Validation:
-  - `npm run lint、npm run build、node scripts/check-recommendation-page-contract.mjs、python3 scripts/foreman.py validate PRW-010`
-  - `python3 scripts/foreman.py validate PRW-010`
-- Progress log:
-  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
-
 ### PRW-001: 固化生产改写闭环接口与状态契约
 
 - Status: in_progress
