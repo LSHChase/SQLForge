@@ -3,6 +3,7 @@ import path from 'node:path'
 
 const root = process.cwd()
 const parseRecordDir = path.join(root, 'src/views/parse-record')
+const sqlHistoryViewPath = path.join(root, 'src/views/sql-history/SqlHistoryView.vue')
 const helperPath = path.join(root, 'src/views/common/issueSceneHelp.mjs')
 const enLocalePath = path.join(root, 'src/locales/en-US.js')
 const parseRecordSource = fs
@@ -11,10 +12,18 @@ const parseRecordSource = fs
   .sort()
   .map(file => fs.readFileSync(path.join(parseRecordDir, file), 'utf8'))
   .join('\n')
+const helperSource = fs.readFileSync(helperPath, 'utf8')
+const enLocaleSource = fs.readFileSync(enLocalePath, 'utf8')
+const parseOnlySource = [
+  parseRecordSource,
+  helperSource,
+  enLocaleSource
+].join('\n')
 const source = [
   parseRecordSource,
-  fs.readFileSync(helperPath, 'utf8'),
-  fs.readFileSync(enLocalePath, 'utf8')
+  fs.readFileSync(sqlHistoryViewPath, 'utf8'),
+  helperSource,
+  enLocaleSource
 ].join('\n')
 
 const requiredTokens = [
@@ -101,7 +110,21 @@ const requiredTokens = [
   'Recommendation refs',
   'Benchmark refs',
   'Alert refs',
-  'Audit refs'
+  'Audit refs',
+  'data-testid="sql-history-detail-drawer"',
+  'data-testid="sql-history-detail-tabs"',
+  'data-testid="sql-history-rewrite-audit"',
+  "testId: 'sql-history-rewrite-audit-record-id'",
+  "testId: 'sql-history-rewrite-audit-runtime-binding-id'",
+  "testId: 'sql-history-rewrite-audit-rule-version'",
+  "testId: 'sql-history-rewrite-audit-runtime-rule-version'",
+  'data-testid="sql-history-rewrite-records-tab"',
+  'data-testid="sql-history-rewrite-record-detail-link"',
+  'data-testid="sql-history-rewrite-record-auto-apply-paused"',
+  'data-testid="sql-history-rewrite-record-alert-refs"',
+  'openRecommendationCenter',
+  'getQueryHistoryRewriteRecords',
+  "name=\"rewriteRecords\""
 ]
 
 const missing = requiredTokens.filter(token => !source.includes(token))
@@ -116,14 +139,14 @@ const forbiddenTokens = [
   'getGovernanceQueryHistoryDetail',
   'exportGovernanceQueryHistory'
 ]
-const forbidden = forbiddenTokens.filter(token => source.includes(token))
+const forbidden = forbiddenTokens.filter(token => parseOnlySource.includes(token))
 const forbiddenPatterns = [
   {
     label: 'selectedReportIssueSceneDetail.reportDetails fixed slice(0, 8)',
     pattern: /selectedReportIssueSceneDetail\.reportDetails[\s\S]{0,120}\.slice\(\s*0\s*,\s*8\s*\)/
   }
 ]
-const forbiddenPatternHits = forbiddenPatterns.filter(item => item.pattern.test(source))
+const forbiddenPatternHits = forbiddenPatterns.filter(item => item.pattern.test(parseOnlySource))
 
 if (missing.length > 0 || forbidden.length > 0 || forbiddenPatternHits.length > 0) {
   console.error('History detail contract check failed.')

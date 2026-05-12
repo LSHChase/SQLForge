@@ -6,6 +6,12 @@ import { chromium } from 'playwright'
 import { ROUTE_PATHS } from '../src/config/routePaths.mjs'
 
 const defaultTimeoutMs = Number(process.env.FRONTEND_ACCELERATION_WORKBENCH_SMOKE_TIMEOUT_MS || 20000)
+const repoRoot = process.cwd()
+const smokeTmpDir = path.join(repoRoot, 'target', 'acceleration-workbench-browser-smoke-tmp')
+fs.mkdirSync(smokeTmpDir, { recursive: true })
+if (!process.env.TMPDIR || process.env.TMPDIR === '/tmp' || process.env.TMPDIR.startsWith('/tmp/')) {
+  process.env.TMPDIR = smokeTmpDir
+}
 const browserCandidates = [
   process.env.FRONTEND_RUNTIME_BROWSER_BIN,
   '/usr/bin/google-chrome-stable',
@@ -24,6 +30,25 @@ const assert = (condition, message) => {
 }
 
 const resolveExecutablePath = () => browserCandidates.find(candidate => fs.existsSync(candidate))
+
+const launchChromium = async () => {
+  const executablePath = resolveExecutablePath()
+  if (!executablePath) {
+    return chromium.launch({ headless: true })
+  }
+
+  try {
+    return await chromium.launch({
+      headless: true,
+      executablePath
+    })
+  } catch (error) {
+    if (process.env.FRONTEND_RUNTIME_BROWSER_BIN) {
+      throw error
+    }
+    return chromium.launch({ headless: true })
+  }
+}
 
 const getAvailablePort = () =>
   new Promise((resolve, reject) => {
@@ -70,6 +95,10 @@ const waitForDevServer = async baseUrl => {
 
 const waitForChildExit = child =>
   new Promise(resolve => {
+    if (child.exitCode !== null || child.signalCode !== null) {
+      resolve()
+      return
+    }
     child.once('exit', () => resolve())
   })
 
@@ -114,10 +143,7 @@ const assertWorkbenchHeaders = request => {
 }
 
 const runBrowserSmoke = async baseUrl => {
-  const browser = await chromium.launch({
-    headless: true,
-    executablePath: resolveExecutablePath()
-  })
+  const browser = await launchChromium()
   const page = await browser.newPage({ viewport: { width: 1440, height: 1200 } })
   const pageErrors = []
   const seen = new Set()

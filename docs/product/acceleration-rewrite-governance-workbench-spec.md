@@ -458,7 +458,7 @@ SQL 历史不得只依赖 `recommendationRefs` 中的弱引用展示改写。后
 
 ### Repo-Closed Testable Now
 
-- 统一执行 `npm run smoke:acceleration-governance`，串联 `HARN-142` closeout 契约、工作台/推荐/历史/告警页面契约、前端页面治理与工作台 browser smoke。
+- 统一执行 `npm run smoke:acceleration-governance`，串联 `HARN-142` closeout 契约、工作台/推荐/历史/告警页面契约、前端页面治理、工作台 browser smoke 与 `PRW-012` 生产改写闭环 browser smoke。
 - 提交 `ACCELERATION_SUGGESTION` 任务并轮询完成。
 - 创建 acceleration candidate、加载 SQL diff、写入 rewrite record，并展示 validation run、history 聚合与 `SQL_REWRITE_RESULT_DIVERGENCE` 自动暂停证据。
 - 创建、审批、应用、验证、回滚 acceleration plan。

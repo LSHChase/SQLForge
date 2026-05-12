@@ -146,7 +146,7 @@
   本地与目标环境部署说明。
   - `hetu-test-environment-deployment-runbook.md`：真实 Hetu / MRS 测试环境的最小部署、配置、启动、smoke 执行与证据留档手册。
   - `test-environment-smoke-baseline.md`：外部测试环境独立 CI/CD 的最小部署后 smoke 入口、覆盖范围与证据边界。
-  - `acceleration-rewrite-governance-smoke-runbook.md`：`HARN-142` 加速与改写治理工作台 repo-closed smoke、契约检查、browser smoke 与 environment-backed 边界说明。
+  - `acceleration-rewrite-governance-smoke-runbook.md`：`HARN-142` 加速与改写治理工作台 repo-closed smoke、`PRW-012` 生产改写闭环 browser smoke、契约检查与 environment-backed 边界说明。
   - `observability-baseline.md`：当前 logs/metrics/alerts 运维落地清单与缺口基线。
   - `backup-recovery-baseline.md`：当前备份对象、恢复目标与演练模板基线。
   - `ci-capability-baseline.md`：当前 GitHub Actions CI 覆盖、缺口与后续门禁接入映射。

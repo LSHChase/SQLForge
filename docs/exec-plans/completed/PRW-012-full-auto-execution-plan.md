@@ -41,7 +41,6 @@
 - `npm run build`
 - `npm run smoke:acceleration-governance`
 - `python3 scripts/foreman.py validate PRW-012`
-- `python3 scripts/foreman.py validate PRW-012`
 - `python3 scripts/task_audit.py --check --phase pre-closeout`
 - `git diff --check`
 

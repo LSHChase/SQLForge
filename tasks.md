@@ -33,23 +33,6 @@ _No tasks._
 - Progress log:
   - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
 
-### PRW-012: 生产闭环端到端测试与 smoke
-
-- Status: in_progress
-- Priority: 1
-- Depends on: `PRW-009`,`PRW-010`,`PRW-011`
-- Scope: 测试必须证明生产路径真的闭合，且不依赖投产前本地/测试环境核验闭环线。 Tech: `JAVA-BE`,`VUE-FE`,`OPS`,`DOCS`. Layer: `tests`,`deployments/ci/scripts`,`frontend`,`backend`,`docs`.
-- Plan ref: docs/exec-plans/active/PRW-012-full-auto-execution-plan.md
-- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
-- Human confirmation point: 若实现需要绕过人类审批、等价验证、租户隔离、审计留痕、发布资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。
-- Data impact: 新增测试、smoke、runbook 或契约检查；不改变业务生产数据。
-- Rollback / recovery: 回退新增测试和 smoke 接线，不影响 PRW-001 至 PRW-011 的已实现业务能力。
-- Validation:
-  - `mvn test、npm run lint、npm run build、npm run smoke:acceleration-governance、python3 scripts/foreman.py validate PRW-012`
-  - `python3 scripts/foreman.py validate PRW-012`
-- Progress log:
-  - 2026-05-11: instantiated from foreman CLI using repository truth and task matrices.
-
 ### PRW-001: 固化生产改写闭环接口与状态契约
 
 - Status: in_progress

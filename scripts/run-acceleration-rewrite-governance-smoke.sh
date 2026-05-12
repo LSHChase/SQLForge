@@ -53,6 +53,7 @@ run_step "frontend page governance" npm run test:frontend-page-governance
 
 if [[ "${RUN_BROWSER_SMOKE}" == "true" ]]; then
   run_step "workbench browser smoke" npm run smoke:acceleration-workbench
+  run_step "production rewrite closed-loop browser smoke" npm run smoke:production-rewrite-closed-loop
 fi
 
 printf '[acceleration-governance-smoke] completed\n'

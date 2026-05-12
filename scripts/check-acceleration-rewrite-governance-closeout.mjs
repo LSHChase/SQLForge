@@ -31,6 +31,11 @@ check(
     'bash scripts/run-acceleration-rewrite-governance-smoke.sh',
   'package.json must expose smoke:acceleration-governance with the HARN-142 smoke script.'
 )
+check(
+  packageJson.scripts?.['smoke:production-rewrite-closed-loop'] ===
+    'node scripts/check-production-rewrite-closed-loop-browser-smoke.mjs',
+  'package.json must expose smoke:production-rewrite-closed-loop with the PRW-012 browser smoke script.'
+)
 
 const requiredSmokeTokens = [
   'check-acceleration-rewrite-governance-closeout.mjs',
@@ -40,6 +45,7 @@ const requiredSmokeTokens = [
   'check-alert-page-contract.mjs',
   'npm run test:frontend-page-governance',
   'npm run smoke:acceleration-workbench',
+  'npm run smoke:production-rewrite-closed-loop',
   '--skip-browser'
 ]
 
@@ -56,6 +62,8 @@ const requiredRunbookTokens = [
   'npm run smoke:acceleration-governance',
   'bash scripts/run-acceleration-rewrite-governance-smoke.sh --skip-browser',
   'npm run smoke:acceleration-workbench',
+  'npm run smoke:production-rewrite-closed-loop',
+  'PRW-012',
   'node scripts/check-acceleration-workbench-contract.mjs',
   'node scripts/check-recommendation-page-contract.mjs',
   'node scripts/check-history-page-contract.mjs',

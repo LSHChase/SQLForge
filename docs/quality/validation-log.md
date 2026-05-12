@@ -3793,3 +3793,8 @@
 2026-05-12T00:20:35-05:00 | PRW-011 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-page-contract.mjs (projected-precommit)`
 2026-05-12T00:20:35-05:00 | PRW-011 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-history-detail-contract.mjs (projected-precommit)`
 2026-05-12T00:20:35-05:00 | PRW-011 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`
+2026-05-12T01:29:14-05:00 | PRW-012 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-12T01:29:14-05:00 | PRW-012 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-12T01:30:38-05:00 | PRW-012 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-12T01:30:38-05:00 | PRW-012 closeout commit | `R-168` | projected | `git commit -m 'PRW-012 production rewrite closed-loop validation' (projected-precommit)`
+2026-05-12T01:30:38-05:00 | PRW-012 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
