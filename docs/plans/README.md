@@ -18,6 +18,8 @@
    对当前工程交付全流程、产品运行流程、流程缺陷、整改建议和逐文档修订建议做正式归档。
 7. [生产自动改写闭环任务拆解计划](./production-rewrite-auto-apply-task-plan.md)
    将“解析/执行后发现改写推荐，经人类审批后在生产执行路径自动改写”的闭环拆成可由 Codex 逐项执行的小任务；暂不覆盖投产前本地/测试环境核验闭环。
+8. [前端核心链路聚焦改造任务包](./frontend-core-workflow-refocus-task-pack.md)
+   将“SQL 查询分析 / SQL 历史查询 / SQL 解析 / 解析历史 / 推荐结果 / 改写记录 / 改写历史”聚焦改造拆成可逐个 materialize、规划、实现和 closeout 的小任务，并明确 `加速治理工作台` 仅作为参考模拟页。
 
 ## 计划治理要求
 
@@ -59,6 +61,8 @@
   基于当前仓库文档全量扫描形成的正式流程说明与治理审计文档。
 - `production-rewrite-auto-apply-task-plan.md`
   基于当前生产闭环缺口，将改写审批、发布、运行时自动改写、历史留痕、差异暂停和页面追溯拆成多个可执行任务。
+- `frontend-core-workflow-refocus-task-pack.md`
+  基于当前前端信息架构重心漂移，将核心 SQL 工作流聚焦改造拆成多个候选前端任务，并明确核心菜单、辅助治理和参考页面边界。
 
 使用方式：
 
@@ -71,3 +75,4 @@
 - 需要追溯本轮治理专项的实际结果时，读 `document-governance-retrospective-2026-04-20.md`
 - 需要追溯本轮严格核验修复结果时，读 `document-governance-repair-retrospective-2026-04-20.md`
 - 需要一次性理解当前全流程、流程缺陷和整改优先级时，读 `process-flow-and-governance-audit-2026-04-20.md`
+- 需要逐步改造前端核心菜单、首页、历史、推荐、改写和参考页边界时，读 `frontend-core-workflow-refocus-task-pack.md`

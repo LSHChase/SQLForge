@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-FE-001: 固化前端核心菜单与功能边界任务包
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `docs(frontend): add core workflow task pack`
+- Priority: 1
+- Depends on: N/A
+- Scope: 新增前端核心链路聚焦改造任务包文档，更新计划索引与文档覆盖矩阵；不改前端代码、后端接口或数据库。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-FE-001`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增前端核心链路聚焦改造任务包文档，固化最终菜单清单、参考页边界和 HARN-FE-001 至 HARN-FE-008 候选任务；更新计划索引与文档覆盖矩阵，不改前端代码、后端接口或数据库。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-FE-001 --include-task-audit --extra-command 'node scripts/lint-repository-knowledge.js' --extra-command 'python3 scripts/foreman.py compile-governance --check' --extra-command 'git diff --check'; node scripts/lint-repository-knowledge.js; git diff --check.
+  - Residual risk: 后续 HARN-FE-* 仍需逐个 materialize 后再实施；本任务只落账候选任务包，不调整实际前端导航或页面。
+  - Next step: Materialize HARN-FE-002 to implement navigation tree and core menu naming changes.
+
 ### HARN-146: 增强推荐中心 SQL compare 差异视图
 
 - Status: done

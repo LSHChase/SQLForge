@@ -3881,3 +3881,16 @@
 2026-05-16T00:48:55-05:00 | HARN-146 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-recommendation-page-contract.mjs (projected-precommit)`
 2026-05-16T00:48:55-05:00 | HARN-146 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `bash -lc 'TMPDIR=.tmp FRONTEND_PRW012_SMOKE_TIMEOUT_MS=60000 npm run smoke:production-rewrite-closed-loop' (projected-precommit)`
 2026-05-16T00:48:55-05:00 | HARN-146 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`
+2026-05-16T01:01:07-05:00 | HARN-FE-001 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-16T01:01:07-05:00 | HARN-FE-001 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-16T01:01:21-05:00 | HARN-FE-001 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-16T01:01:21-05:00 | HARN-FE-001 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-16T01:01:21-05:00 | HARN-FE-001 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-16T01:01:21-05:00 | HARN-FE-001 validate | `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-16T01:01:21-05:00 | HARN-FE-001 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-16T01:01:21-05:00 | HARN-FE-001 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-16T01:01:45-05:00 | HARN-FE-001 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-16T01:01:45-05:00 | HARN-FE-001 closeout commit | `R-168` | projected | `git commit -m 'docs(frontend): add core workflow task pack' (projected-precommit)`
+2026-05-16T01:01:45-05:00 | HARN-FE-001 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-16T01:01:45-05:00 | HARN-FE-001 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-05-16T01:01:45-05:00 | HARN-FE-001 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`

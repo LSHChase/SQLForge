@@ -86,6 +86,7 @@
 | `docs/plans/implementation-readiness.md` | Authority | 编码前置消费顺序、主题权威来源、执行波次 | Consumed | 实施顺序、冲突处理、任务进入条件 |
 | `docs/plans/phase-prerequisite-matrix.md` | Authority | 阶段输入文档、ADR、规则、验证和确认点矩阵 | Consumed | 阶段进入前置条件检查 |
 | `docs/plans/production-rewrite-auto-apply-task-plan.md` | Indexed | 生产自动改写闭环任务拆解计划 | Consumed | 将改写审批、发布、运行时自动改写、历史留痕、差异暂停和页面追溯拆成可执行任务；暂不覆盖投产前核验闭环 |
+| `docs/plans/frontend-core-workflow-refocus-task-pack.md` | Indexed | 前端核心链路聚焦改造任务包 | Consumed | 将核心 SQL 工作流菜单、首页、历史、推荐、改写和参考页边界拆成可逐个 materialize、规划、实现和 closeout 的候选前端任务 |
 | `docs/plans/process-flow-and-governance-audit-2026-04-20.md` | Indexed | 正式全流程说明、流程缺陷审计与整改建议 | Consumed | 供后续接手人与治理批次快速理解当前执行流程与缺陷闭口优先级 |
 | `docs/plans/retrospective-template.md` | Indexed | 阶段与复杂批次复盘模板 | Referenced | 复盘闭环与后续治理沉淀 |
 | `docs/plans/document-governance-retrospective-2026-04-20.md` | Indexed | 本轮文档治理复盘记录 | Consumed | 漂移、缺口和后续治理沉淀 |
