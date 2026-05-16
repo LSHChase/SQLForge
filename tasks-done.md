@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-FE-003: 统一 i18n 文案与页面标题
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `feat(frontend): align core workflow copy`
+- Priority: 1
+- Depends on: HARN-FE-002
+- Scope: 更新 src/locales/zh-CN.js 与 src/locales/en-US.js，统一核心菜单、页面标题、摘要、breadcrumb 和参考页说明；只改 UI 文案与最小防回退检查，不改接口字段、状态枚举、后端契约名称、数据 payload、路由、API 或数据库。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-FE-003`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Aligned frontend i18n copy for HARN-FE-003 across zh-CN and en-US core route titles, page summaries, breadcrumbs, recommendation-result wording, parse-history page heading copy, and acceleration governance workbench reference-page boundary text; added a focused i18n copy regression guard without changing routes, APIs, payload fields, backend contracts, or database semantics.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-FE-003 --include-task-audit --extra-command 'node scripts/check-navigation-shell-contract.mjs' --extra-command 'git diff --check' passed after compile-governance was refreshed; direct npm run lint, npm run build, npm run test:i18n-copy, npm run test:sql-ui-contract, npm run test:frontend-page-governance, node scripts/check-navigation-shell-contract.mjs, and git diff --check passed.
+  - Residual risk: Dashboard information hierarchy, SQL/parse history workflow reshaping, recommendation page visual refocus, rewrite-record navigation, and final reference-page gate cleanup remain scoped to HARN-FE-004 through HARN-FE-008; this task intentionally changed UI copy and regression checks only.
+  - Next step: Proceed to HARN-FE-004 to refocus the Dashboard first-screen workflow without changing backend/API/database semantics.
+
 ### USER-I18N-ZH-20260516: 中文化后端日志异常注释与脚本文案
 
 - Status: done

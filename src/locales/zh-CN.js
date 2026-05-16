@@ -60,21 +60,21 @@ export default {
     defaultUserName: '平台管理员'
   },
   dashboard: {
-    title: '研发驾驶舱',
-    summary: '汇总 SQL 生命周期治理状态、风险建议与五大功能入口。',
-    eyebrow: '运行健康',
-    heroTitle: '让每一条 SQL 在进入生产前先通过治理总览。',
-    heroSummary: '首页集中呈现查询负载、解析稳定性、压测通过、加速命中与审计信号，帮助你快速判断平台是否处于可发布、可追踪、可处置状态。',
-    heroPrimary: '进入 SQL 查询',
+    title: '首页总览',
+    summary: '展示核心 SQL 链路待办、最近查询、最近解析、推荐结果和改写风险摘要。',
+    eyebrow: '核心总览',
+    heroTitle: '让核心 SQL 链路先在首页完成总览判断。',
+    heroSummary: '首页集中呈现查询负载、解析稳定性、推荐结果、改写风险与审计信号，帮助你快速判断平台是否处于可发布、可追踪、可处置状态。',
+    heroPrimary: '进入 SQL 查询分析',
     heroSecondary: '查看压测报告',
     heroFootnote: '深色原生驾驶舱基线',
     operatorHeroTitle: '首页总览与主线待办',
-    operatorHeroSummary: '首页重新聚合解析、治理、推荐与协同证据，但仍只消费当前仓库已有的已审计接口，不把局部样本夸大成全租户最终事实。',
+    operatorHeroSummary: '首页重新聚合 SQL 查询、SQL 历史、解析历史、推荐结果与改写风险证据，但仍只消费当前仓库已有的已审计接口，不把局部样本夸大成全租户最终事实。',
     operatorFocusEyebrow: '操作焦点',
     openRisksTitle: '开放风险',
-    openRisksSummary: '失败消息、dispatch 失败、紧急 SQL 与高风险推荐会在这里合并成一个操作焦点。',
+    openRisksSummary: '失败消息、dispatch 失败、紧急 SQL 与高风险推荐结果会在这里合并成一个操作焦点。',
     coreKpiTitle: '核心 KPI',
-    primaryEntriesTitle: '五大主入口',
+    primaryEntriesTitle: '核心链路入口',
     platformHealthRiskTitle: '平台健康与风险',
     issueDistributionTitle: '问题分布',
     recentActivityTitle: '最近活动',
@@ -114,7 +114,7 @@ export default {
       auditSignal: '审计/异常事件'
     },
     quickEntryTitle: '核心工作流入口',
-    quickEntrySummary: '五个主功能继续独立存在，Dashboard 只做摘要、分发和建议。',
+    quickEntrySummary: '核心功能继续独立存在，首页只做摘要、分发和建议。',
     healthTitle: '平台健康与风险',
     healthSummary: '先给出结论，再给出下一步动作。',
     activityTitle: '最近活动',
@@ -138,7 +138,7 @@ export default {
         {
           title: '名词解释',
           summary: '统一项目中的角色和对象语义，减少前后端、架构与运维之间的理解漂移。',
-          items: ['治理链路: 查询 -> 解析 -> 压测 -> 加速 -> 审计', '任务真值: tasks.md / tasks-done.md / validation-log / git', '研发驾驶舱: 正式首页摘要层，不替代各主业务页']
+          items: ['治理链路: 查询 -> 解析 -> 压测 -> 加速 -> 审计', '任务真值: tasks.md / tasks-done.md / validation-log / git', '首页总览: 正式首页摘要层，不替代各主业务页']
         },
         {
           title: '架构原则速查',
@@ -156,7 +156,7 @@ export default {
         {
           title: '总体架构',
           summary: '以 C4 Level 1-4 组织系统、容器、组件和关键模块，区分正式产品路径与交付辅助路径。',
-          items: ['产品首页保留 `/dashboard`，五大业务页独立承载主流程', '后端坚持 controller -> service -> domain/infrastructure 分层', '领域边界以查询治理、优化、压测、系统管理等服务拆分']
+          items: ['产品首页保留 `/dashboard`，核心业务页独立承载主流程', '后端坚持 controller -> service -> domain/infrastructure 分层', '领域边界以查询治理、优化、压测、系统管理等服务拆分']
         },
         {
           title: '服务拓扑',
@@ -380,10 +380,10 @@ export default {
     }
   },
   sqlQuery: {
-    title: 'SQL查询',
-    summary: '统一提交 SQL、选择执行策略并进入后续治理链路。',
+    title: 'SQL 查询分析',
+    summary: '提供 SQL 输入、格式化、校验、执行、Explain、查询结果、解析摘要、推荐入口与历史关联。',
     hero: {
-      eyebrow: '查询工作台'
+      eyebrow: '查询分析工作台'
     },
     metrics: {
       resultRows: '结果行',
@@ -421,8 +421,8 @@ export default {
     }
   },
   sqlHistory: {
-    title: 'SQL历史',
-    summary: '查询已落库的 query-history 列表、关联 trace 与详情证据。',
+    title: 'SQL 历史查询',
+    summary: '查询执行历史、筛选历史 SQL，查看执行摘要、原 SQL、模板 SQL、绑定后 SQL 以及解析、推荐和改写关联。',
     actions: {
       refresh: '查询/刷新',
       lookup: '精确反查',
@@ -656,8 +656,8 @@ export default {
     }
   },
   parseRecord: {
-    title: '解析历史查询',
-    summary: '查询批量解析与报表导入历史，回看批次级解析记录。',
+    title: '解析历史',
+    summary: '查询解析历史、批次历史和报表解析历史，查看解析状态、失败原因、问题场景、逻辑对象和推荐关联。',
     issueSceneDetail: {
       actions: {
         viewDetail: '查看明细'
@@ -1166,20 +1166,20 @@ export default {
     rawDrawerTitle: '路由原始证据'
   },
   recommendationCenter: {
-    title: '推荐与加速中心',
-    summary: '查看推荐分类、收益风险、dispatch 状态与追溯关联。',
-    eyebrow: '推荐中心',
-    pageTitle: '推荐与加速中心',
-    boundarySummary: '页面消费推荐、dispatchEvents 与 traceability 证据；SQLForge 只管理建议、事件和回执，不执行推荐 SQL、不主动装数。',
+    title: '推荐结果',
+    summary: '查看推荐列表、推荐来源、收益、风险、推荐 SQL、SQL diff、规则链和适用条件。',
+    eyebrow: '推荐结果',
+    pageTitle: '推荐结果',
+    boundarySummary: '页面聚焦推荐结果本身；审批、dispatch 与 trace 只作为详情证据，SQLForge 不执行推荐 SQL、不主动装数。',
     filters: {
       eyebrow: '推荐筛选',
       title: '租户与刷新'
     },
     actions: {
-      refresh: '刷新推荐中心',
+      refresh: '刷新推荐结果',
       openRouting: '打开路由治理',
-      openParse: '打开 SQL解析',
-      openHistory: '打开历史页',
+      openParse: '打开 SQL 解析',
+      openHistory: '打开 SQL 历史查询',
       openAlertCenter: '打开告警中心',
       refreshRewriteRecords: '刷新改写记录',
       approveRewrite: '审批通过',
@@ -1189,13 +1189,13 @@ export default {
       unpublishRewrite: '撤销'
     },
     list: {
-      eyebrow: '推荐分类',
-      title: '推荐分类',
+      eyebrow: '推荐列表',
+      title: '推荐列表',
       summary: '当前租户 {count} 条 recommendation'
     },
     detail: {
       eyebrow: '推荐详情',
-      title: '收益、风险与 SQL 详情'
+      title: '收益、风险与 SQL diff 详情'
     },
     fields: {
       benefitLevel: '收益',
@@ -1300,10 +1300,10 @@ export default {
   },
   accelerationGovernanceWorkbench: {
     title: '加速治理工作台',
-    summary: '统一编排解析驱动与查询驱动进入加速治理的候选、差异、审批、应用验证和接口证据。',
-    eyebrow: '加速治理',
+    summary: '参考页面，用于模拟从入口证据到回滚废弃的治理流程；仅在参考页开关下可见，不作为正式核心功能入口。',
+    eyebrow: '参考页面',
     pageTitle: '加速治理工作台',
-    boundarySummary: '本页是 HARN-138 真实接口工作台：按钮只调用已存在接口，缺少追溯键时保持禁用；APPLIED 只表示已应用待验证，不等同生效。',
+    boundarySummary: '本页按参考页面保留，用于演示入口证据、候选建议、SQL 差异、计划审批、应用验证、监控告警与回滚废弃链路；不作为正式项目交付功能页。',
     source: {
       eyebrow: '入口证据',
       title: '来源字段与追溯键',
@@ -1312,7 +1312,7 @@ export default {
     flow: {
       eyebrow: '治理流程',
       title: '候选到回滚的接口流程',
-      summary: '流程图只放在本工作台页，既有解析、推荐和 SQL 历史页面继续承担完整功能。'
+      summary: '流程图只放在本参考页，既有 SQL 解析、推荐结果和 SQL 历史查询页面继续承担完整功能。'
     },
     flowNodes: {
       ENTRY_EVIDENCE: '入口证据',
@@ -1385,9 +1385,9 @@ export default {
     },
     actions: {
       openParseRecord: '打开解析历史',
-      openSqlHistory: '打开 SQL 历史',
-      openRecommendationCenter: '打开推荐中心',
-      openSqlQuery: '打开 SQL 查询',
+      openSqlHistory: '打开 SQL 历史查询',
+      openRecommendationCenter: '打开推荐结果',
+      openSqlQuery: '打开 SQL 查询分析',
       openAlertCenter: '打开告警中心',
       viewSourceEvidence: '查看来源证据',
       viewRouteEvidence: '查看跳转证据',
@@ -1658,7 +1658,7 @@ export default {
       text003: '单 SQL / 只读 / 影子环境必需',
       text004: '仓库侧任务预设，不代表独立模板管理接口已上线。',
       text005: '双引擎对比模板',
-      text006: '比较 HETU/HIVE 指标，给路由和推荐中心提供基线证据。',
+      text006: '比较 HETU/HIVE 指标，给路由和推荐结果提供基线证据。',
       text007: '跨引擎对比 / 只读 / 中等并发',
       text008: '当前页面用任务预设组织模板，不宣称后端已有模板 CRUD。',
       text009: '回归守卫模板',
@@ -1666,7 +1666,7 @@ export default {
       text011: '回归验证 / 阈值门禁 / 只读',
       text012: '用于回归模式展示，不把“测试集管理”误写成已落库对象。',
       text013: '路由对比集',
-      text014: '以对比模板驱动跨引擎样本，供路由治理和推荐中心复用。',
+      text014: '以对比模板驱动跨引擎样本，供路由治理和推荐结果复用。',
       text015: '基线沉淀集',
       text016: '在 repo-side 以预置任务参数承载，不宣称独立 test-set API 已存在。',
       text017: '回归门禁集',
@@ -1722,8 +1722,8 @@ export default {
       text042: '由失败消息、dispatch 失败、紧急 SQL 与高风险建议共同构成。',
       text043: '查看告警与风险',
       text044: '待下发推荐',
-      text045: '这些建议已经接近协同动作，应回到推荐中心确认 trace 与 dispatch 状态。',
-      text046: '打开推荐中心',
+      text045: '这些建议已经接近协同动作，应回到推荐结果确认 trace 与 dispatch 状态。',
+      text046: '打开推荐结果',
       text047: '接入分布',
       text048: '当前只展示 query-history 当前页可见的接入渠道，不伪装成全局租户统计。',
       text049: '检查历史样本',
@@ -2391,8 +2391,8 @@ export default {
       text003: '清空条件'
     },
     viewsParseRecordUseParseRecordView: {
-      text001: '解析历史查询',
-      text002: 'SQL 解析记录查询',
+      text001: '解析历史',
+      text002: 'SQL 解析记录',
       text003: '后端默认',
       text004: '当前页批次',
       text005: '批次总数',
@@ -2654,7 +2654,7 @@ export default {
       text020: '加速偏好',
       text021: '推荐动作',
       text022: '继续复用缓存链路',
-      text023: '优先验证推荐中心结果',
+      text023: '优先验证推荐结果',
       text024: '下一步',
       text025: '如需长文本说明，打开 explain 或治理抽屉。',
       text026: '输入规范化',

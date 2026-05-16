@@ -60,21 +60,21 @@ export default {
     defaultUserName: 'Platform Admin'
   },
   dashboard: {
-    title: 'Engineering Dashboard',
-    summary: 'Aggregate SQL lifecycle status, risk signals and entry points for the five core workflows.',
-    eyebrow: 'runtime health',
-    heroTitle: 'Force every SQL statement through governance before it reaches production.',
-    heroSummary: 'The dashboard centralizes load, parser stability, benchmark readiness, acceleration hit rate and audit signals so operators can decide whether the platform is ready, traceable and actionable.',
-    heroPrimary: 'Open SQL Query',
+    title: 'Overview',
+    summary: 'Surface core SQL workflow tasks, recent queries, recent parses, recommendation results, and rewrite-risk summaries.',
+    eyebrow: 'core overview',
+    heroTitle: 'Use the homepage to assess the core SQL workflow first.',
+    heroSummary: 'The overview centralizes query load, parser stability, recommendation results, rewrite risk, and audit signals so operators can decide whether the platform is ready, traceable, and actionable.',
+    heroPrimary: 'Open SQL Query Analysis',
     heroSecondary: 'View Benchmark Report',
     heroFootnote: 'Dark-mode-native dashboard baseline',
-    operatorHeroTitle: 'Overview and operator cockpit',
-    operatorHeroSummary: 'The homepage now aggregates parse, governance, recommendation, and dispatch evidence while staying inside audited repository surfaces instead of overstating partial samples.',
+    operatorHeroTitle: 'Overview and mainline tasks',
+    operatorHeroSummary: 'The homepage aggregates SQL query, SQL history, parse history, recommendation results, and rewrite-risk evidence while staying inside audited repository surfaces instead of overstating partial samples.',
     operatorFocusEyebrow: 'operator focus',
     openRisksTitle: 'Open risks',
-    openRisksSummary: 'Failed messages, dispatch failures, urgent SQL, and high-risk recommendations are merged into one operator focus here.',
+    openRisksSummary: 'Failed messages, dispatch failures, urgent SQL, and high-risk recommendation results are merged into one operator focus here.',
     coreKpiTitle: 'Core KPI',
-    primaryEntriesTitle: 'Five primary entries',
+    primaryEntriesTitle: 'Core workflow entries',
     platformHealthRiskTitle: 'Platform health and risk',
     issueDistributionTitle: 'Issue distribution',
     recentActivityTitle: 'Recent activity',
@@ -114,7 +114,7 @@ export default {
       auditSignal: 'Audit / anomaly events'
     },
     quickEntryTitle: 'Core workflow entries',
-    quickEntrySummary: 'The five core workflows stay independent. Dashboard only summarizes, routes and recommends.',
+    quickEntrySummary: 'Core workflows stay independent. The overview only summarizes, routes and recommends.',
     healthTitle: 'Health & risk',
     healthSummary: 'Lead with conclusions, then route into the next action.',
     activityTitle: 'Recent activity',
@@ -299,7 +299,7 @@ export default {
         },
         {
           title: 'Pages & boundaries',
-          summary: 'The dashboard summarizes and routes while major workflows stay on independent pages; frontend can prevalidate, but backend remains the authority for rules and history.',
+          summary: 'The overview summarizes and routes while major workflows stay on independent pages; frontend can prevalidate, but backend remains the authority for rules and history.',
           items: ['Pages are organized around context, state, result and next step', 'Multiple core workflows should not collapse back into one long page', 'Delivered capabilities must stay visible on operator-facing pages']
         },
         {
@@ -396,10 +396,10 @@ export default {
     }
   },
   sqlQuery: {
-    title: 'SQL Query',
-    summary: 'Submit SQL, select an execution strategy and enter the downstream governance flow.',
+    title: 'SQL Query Analysis',
+    summary: 'Enter, format, validate, execute, explain, inspect results, review parse summaries, open recommendations, and link history.',
     hero: {
-      eyebrow: 'query workbench'
+      eyebrow: 'query analysis workbench'
     },
     metrics: {
       resultRows: 'Result rows',
@@ -437,8 +437,8 @@ export default {
     }
   },
   sqlHistory: {
-    title: 'SQL History',
-    summary: 'Search persisted query-history rows, linked traces, and detail evidence.',
+    title: 'SQL History Search',
+    summary: 'Search execution history, filter historical SQL, and inspect execution summaries, original SQL, template SQL, bound SQL, parse links, recommendations, and rewrite records.',
     actions: {
       refresh: 'Search / refresh',
       lookup: 'Indexed lookup',
@@ -672,8 +672,8 @@ export default {
     }
   },
   parseRecord: {
-    title: 'Parse History Search',
-    summary: 'Search batch parse and report-import history with batch-level parse records.',
+    title: 'Parse History',
+    summary: 'Search parse history, batch history, and report-import history, including parse status, failure reasons, issue scenes, logical objects, and recommendation links.',
     issueSceneDetail: {
       actions: {
         viewDetail: 'View detail'
@@ -1182,20 +1182,20 @@ export default {
     rawDrawerTitle: 'Raw routing evidence'
   },
   recommendationCenter: {
-    title: 'Recommendation Center',
-    summary: 'Review recommendation categories, benefit or risk, dispatch status, and traceability links.',
-    eyebrow: 'recommendation center',
-    pageTitle: 'Recommendation Center',
-    boundarySummary: 'This center consumes recommendation, dispatchEvents, and traceability evidence while SQLForge manages suggestions, events, and callbacks only without executing recommended SQL or loading data.',
+    title: 'Recommendation Results',
+    summary: 'Review recommendation lists, sources, benefits, risks, recommended SQL, SQL diff, rule chains, and applicability conditions.',
+    eyebrow: 'recommendation results',
+    pageTitle: 'Recommendation Results',
+    boundarySummary: 'This page centers on recommendation results; approval, dispatch, and trace evidence remain detail support while SQLForge does not execute recommended SQL or load data.',
     filters: {
       eyebrow: 'recommendation filters',
       title: 'Tenant and refresh'
     },
     actions: {
-      refresh: 'Refresh center',
+      refresh: 'Refresh recommendation results',
       openRouting: 'Open routing governance',
       openParse: 'Open SQL Parse',
-      openHistory: 'Open history page',
+      openHistory: 'Open SQL history search',
       openAlertCenter: 'Open alert center',
       refreshRewriteRecords: 'Refresh rewrite records',
       approveRewrite: 'Approve',
@@ -1205,13 +1205,13 @@ export default {
       unpublishRewrite: 'Unpublish'
     },
     list: {
-      eyebrow: 'recommendation categories',
-      title: 'Recommendation categories',
+      eyebrow: 'recommendation list',
+      title: 'Recommendation list',
       summary: '{count} recommendations for the current tenant'
     },
     detail: {
       eyebrow: 'recommendation detail',
-      title: 'Benefit, risk, and SQL detail'
+      title: 'Benefit, risk, and SQL diff detail'
     },
     fields: {
       benefitLevel: 'benefit',
@@ -1316,10 +1316,10 @@ export default {
   },
   accelerationGovernanceWorkbench: {
     title: 'Acceleration Governance Workbench',
-    summary: 'Orchestrate parse-driven and query-driven candidates, diff, approval, apply validation, and interface evidence.',
-    eyebrow: 'acceleration governance',
+    summary: 'Reference page for simulating the governance flow from entry evidence to rollback or discard; visible only behind the reference-page flag and not a formal core feature entry.',
+    eyebrow: 'reference page',
     pageTitle: 'Acceleration Governance Workbench',
-    boundarySummary: 'This HARN-138 workbench calls real existing interfaces only. Actions stay disabled when trace keys are missing; APPLIED means pending verification, not active.',
+    boundarySummary: 'This page is retained as a reference page to demonstrate entry evidence, candidate suggestions, SQL diff, plan approval, apply validation, monitoring alerts, and rollback or discard. It is not a formal delivery feature page.',
     source: {
       eyebrow: 'entry evidence',
       title: 'Source fields and trace keys',
@@ -1328,7 +1328,7 @@ export default {
     flow: {
       eyebrow: 'governance flow',
       title: 'Candidate-to-rollback interface flow',
-      summary: 'The flow map appears only on this workbench page. Existing parse, recommendation, and SQL history pages keep their complete responsibilities.'
+      summary: 'The flow map appears only on this reference page. Existing SQL parse, recommendation results, and SQL history search pages keep their complete responsibilities.'
     },
     flowNodes: {
       ENTRY_EVIDENCE: 'Entry evidence',
@@ -1401,9 +1401,9 @@ export default {
     },
     actions: {
       openParseRecord: 'Open parse history',
-      openSqlHistory: 'Open SQL history',
-      openRecommendationCenter: 'Open recommendation center',
-      openSqlQuery: 'Open SQL query',
+      openSqlHistory: 'Open SQL history search',
+      openRecommendationCenter: 'Open recommendation results',
+      openSqlQuery: 'Open SQL query analysis',
       openAlertCenter: 'Open alert center',
       viewSourceEvidence: 'View source evidence',
       viewRouteEvidence: 'View route evidence',
@@ -1738,8 +1738,8 @@ export default {
       text042: 'Built from failed messages, dispatch failures, urgent SQL, and high-risk recommendations.',
       text043: 'Open alerts and risks',
       text044: 'Dispatch-ready recommendations',
-      text045: 'These recommendations are close to handoff and should be reviewed in the recommendation center.',
-      text046: 'Open recommendation center',
+      text045: 'These recommendations are close to handoff and should be reviewed in recommendation results.',
+      text046: 'Open recommendation results',
       text047: 'Access-channel mix',
       text048: 'Shows only access channels visible in the current query-history page window.',
       text049: 'Inspect history window',
@@ -2407,7 +2407,7 @@ export default {
       text003: 'Clear filters'
     },
     viewsParseRecordUseParseRecordView: {
-      text001: 'Parse history search',
+      text001: 'Parse history',
       text002: 'SQL parse records',
       text003: 'Backend default',
       text004: 'Current page',
