@@ -959,9 +959,45 @@ messaging:
 - closeout 可记录截图路径和已修复问题，但截图路径只是审计链副产物；交付结论必须说明 Codex 已基于截图完成自我复核和必要修复。
 - 标记为 `before/after 截图自检` 的前端页面任务，`task_audit.py` 必须在 closeout 阶段检查 before screenshot、after screenshot、Codex 读图复核和修复 / 未发现漂移结论；缺失时不得归档任务。
 
+## 开发者可读文本中文化治理（R-187 至 R-190）
+
+### R-187 开发者 / 操作者可读文本默认中文
+
+- SQLForge 后端、SQL、运维脚本和仓库自研治理脚本中的开发者 / 操作者可读文本默认使用中文表达。
+- 适用范围包括但不限于：
+  - Java 代码注释、日志文本、异常消息、断言失败消息、校验注解 `message`
+  - 后端 API 返回体中的 `message` / `msg` 类人类可读说明
+  - SQL DDL 与迁移脚本中的 `COMMENT` 文案
+  - 仓库自研脚本中的注释、help、error、usage、print / echo 说明文本
+- 修改上述范围时，不得新增纯英文人类说明句；已有纯英文说明句应在触达文件时一并中文化，或按 `R-189` 记录允许保留原因。
+- 本规则不要求翻译前端 `src/locales/en-US.js`，该文件继续作为英文 locale 事实来源。
+
+### R-188 标识符与协议值禁止翻译
+
+- 包名、类名、方法名、变量名、常量名、表名、字段名、索引名、文件路径、模块名、任务 ID、错误码、枚举值、JSON key、Map key、配置 key、Header 名称、URL、SQL 示例、外部 fixture 与反射 / 序列化依赖字符串不得为追求中文化而翻译。
+- API、数据库、消息、配置、前后端契约和外部系统交互中的协议值必须保持兼容；中文化只能作用于面向人类解释的文本层。
+- 当同一字符串既承担协议值又会被人阅读时，优先保持协议值不变，并在相邻中文说明或 allowlist 中解释保留原因。
+
+### R-189 术语统一与允许例外
+
+- 技术术语可嵌入中文句子中使用，包括但不限于 `SQL`、`JSON`、`HTTP`、`HTTPS`、`API`、`JDBC`、`Redis`、`Kafka`、`MySQL`、`TDSQL`、`DTO`、`VO`、`ID`、`URL`、`URI`、`JDK 8u112`、`Maven`、`Spring Boot`、`MyBatis`、`Vue`、`Element Plus`、`Vite`、`Pinia`、`Docker`、`MCP`、`Codex`、`Foreman`。
+- 中文句子中可以保留错误码、枚举值、字段名、配置 key、SQL/JSON 片段和占位符，例如“`tenantId` 为必填项”。
+- 纯英文文本只有在满足以下任一条件时才允许保留：
+  - 它是 `R-188` 定义的标识符、协议值、示例、fixture 或外部契约原文
+  - 它属于中文化检查脚本中的 allowlist，且 allowlist 项说明其技术 / 协议属性
+  - 它旁边已有中文解释说明为何必须保留英文原文
+- 不得用泛化“技术词”名义保留完整英文说明句。
+
+### R-190 中文化自动验证门禁
+
+- 涉及 Java 后端、SQL、mapper/resources、DB schema helper、仓库自研脚本或开发者 / 操作者可读文本的任务，必须执行中文化检查。
+- `foreman validate` 检测到相关变更时，必须自动追加 `node scripts/check-developer-copy-language.mjs --changed`，并把证据归入 `R-187` 至 `R-190`。
+- 规则、文档或检查器自身变更时，必须至少执行 `node scripts/check-developer-copy-language.mjs --all`、`node scripts/lint-repository-knowledge.js` 和任务标准验证。
+- 中文化检查失败必须阻断 closeout；不得通过跳过检查、改名规避扫描或删除可读文本来规避治理。
+
 ## Current Consumption Note (2026-04-20)
 
 - `R-001` 至 `R-115` 仍是初始化基线，语义来源保持 `docs/architecture/init.md` 不变。
-- `R-116` 至 `R-186` 是初始化后追加的验证、Java 规范、harness 治理、MCP 治理、前端页面工程规则、JDK 8u112 运行时强制基线与前端截图自检门禁。
+- `R-116` 至 `R-190` 是初始化后追加的验证、Java 规范、harness 治理、MCP 治理、前端页面工程规则、JDK 8u112 运行时强制基线、前端截图自检门禁与开发者可读文本中文化治理。
 - 当前仓库执行时，若初始化文档中的目标落点路径与真实文档路径不一致，统一按 `docs/plans/document-truth-baseline.md` 中的漂移映射消费。
 - 本说明不新增规则编号，不改变既有规则语义，只补充当前仓库的实际消费顺序。

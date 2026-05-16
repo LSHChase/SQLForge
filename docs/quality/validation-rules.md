@@ -1,6 +1,6 @@
 # Validation Rules
 
-本文件独立收录 `R-116` 至 `R-186` 的验证规则，并补充 `R-168` 的执行型验证衔接，用于快速查阅阶段门禁、任务验证、回归验证、环境验证、规则自维护、自动触发验证规则、harness 任务治理验证、MCP 治理验证、JDK 运行时验证与前端视觉自检验证。
+本文件独立收录 `R-116` 至 `R-190` 的验证规则，并补充 `R-168` 的执行型验证衔接，用于快速查阅阶段门禁、任务验证、回归验证、环境验证、规则自维护、自动触发验证规则、harness 任务治理验证、MCP 治理验证、JDK 运行时验证、前端视觉自检验证与开发者可读文本中文化验证。
 
 ## 索引
 
@@ -53,6 +53,10 @@
 - `R-176` Auto-planner / full-auto MCP 合同验证
 - `R-185` JDK 8u112 运行时验证
 - `R-186` 前端截图自检验证
+- `R-187` 开发者 / 操作者可读文本中文验证
+- `R-188` 标识符与协议值保留验证
+- `R-189` 技术术语与例外 allowlist 验证
+- `R-190` 中文化自动门禁验证
 
 ## 阶段质量门禁（Phase Gate）
 
@@ -467,6 +471,54 @@
 - 通过标准：适用检查项全部通过，且截图自检记录不替代 lint、build、contract、页面治理脚本和 `foreman validate`。
 - 失败处置：不得 closeout；补抓 before/after 截图、补做 Codex 读图复核并修复问题，或在无法重建 before 状态时记录原因、after 复核证据和 residual risk。
 - 关联规则：`R-124`, `R-133`, `R-156`, `R-168`, `R-184`, `R-186`
+
+## 开发者可读文本中文化验证（R-187 至 R-190）
+
+### R-187 开发者 / 操作者可读文本中文验证
+
+- 触发时机：新增或修改 Java 后端、SQL DDL / migration、MyBatis mapper / resources、DB schema helper、仓库自研脚本，或任何开发者 / 操作者可读文本后。
+- 检查清单：
+  1. Java 注释、日志、异常、断言失败消息、校验注解 `message` 和 API `message` / `msg` 文案默认中文。
+  2. SQL `COMMENT` 与 schema helper 内嵌 DDL `COMMENT` 默认中文。
+  3. 仓库自研脚本的注释、help、error、usage、print / echo 说明文本默认中文。
+  4. 前端 `src/locales/en-US.js` 作为英文 locale 事实来源，不被本规则误判。
+- 通过标准：`node scripts/check-developer-copy-language.mjs --changed` 对相关变更通过；规则或检查器自身变更时 `node scripts/check-developer-copy-language.mjs --all` 通过。
+- 失败处置：将纯英文人类说明句改为中文，或按 `R-189` 写入 allowlist / 相邻中文解释后重新验证。
+- 关联规则：`R-187`, `R-190`
+
+### R-188 标识符与协议值保留验证
+
+- 触发时机：中文化任务修改代码字符串、SQL、配置、API 契约、消息契约、测试 fixture 或外部系统样例时。
+- 检查清单：
+  1. 包 / 类 / 方法 / 变量 / 常量、表 / 字段 / 索引、文件路径、任务 ID、错误码、枚举值没有被翻译。
+  2. JSON key、Map key、配置 key、Header 名称、URL、SQL 示例、外部 fixture 和反射 / 序列化字符串保持兼容。
+  3. 兼具协议值与可读说明的字符串保留协议值，并提供相邻中文说明或 allowlist 原因。
+- 通过标准：中文化 diff 不改变协议值、序列化 key 或外部契约；必要时通过相关单元 / contract 测试证明兼容。
+- 失败处置：恢复标识符 / 协议值，改为只中文化人类解释文本。
+- 关联规则：`R-121`, `R-122`, `R-188`, `R-189`
+
+### R-189 技术术语与例外 allowlist 验证
+
+- 触发时机：中文文案中保留英文缩写、技术词、错误码、枚举值、字段名、SQL / JSON 片段或纯英文文本时。
+- 检查清单：
+  1. `SQL`、`JSON`、`HTTP`、`JDBC`、`Redis`、`Kafka`、`DTO`、`VO`、`ID` 等技术词嵌入中文句子时不被误改。
+  2. 纯英文文本必须是标识符 / 协议值 / fixture / 示例，或存在明确 allowlist。
+  3. allowlist 不得泛化放行完整英文说明句，新增项要能说明技术 / 协议属性。
+- 通过标准：中文化检查脚本能放行合法技术词并阻断非 allowlist 纯英文说明句。
+- 失败处置：收紧 allowlist，补中文解释，或改写为中文句子。
+- 关联规则：`R-187`, `R-188`, `R-189`
+
+### R-190 中文化自动门禁验证
+
+- 触发时机：`foreman validate` 运行且 diff 命中 Java、SQL、mapper/resources、DB schema helper、仓库自研脚本，或任务显式要求中文化治理验证时。
+- 检查清单：
+  1. `scripts/check-developer-copy-language.mjs` 存在并支持 `--changed` 与 `--all`。
+  2. `foreman validate` 在相关变更中自动追加 `node scripts/check-developer-copy-language.mjs --changed`。
+  3. `scripts/lint-repository-knowledge.js` 检查 `R-187` 至 `R-190`、验证规则索引、检查脚本、foreman 接线和任务矩阵叠加。
+  4. closeout 前的验证日志保留中文化检查证据，失败时阻断归档。
+- 通过标准：`python3 scripts/foreman.py validate <TASK_ID>` 自动执行适用门禁；`node scripts/lint-repository-knowledge.js` 通过。
+- 失败处置：补齐脚本、接线、文档索引或矩阵映射后重新验证。
+- 关联规则：`R-131`, `R-133`, `R-156`, `R-160`, `R-187`, `R-188`, `R-189`, `R-190`
 
 ## Harness 任务治理验证（R-156 至 R-161）
 

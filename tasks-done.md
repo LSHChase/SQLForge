@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-CODE-RULES-20260516: 中文化编码规范治理落地
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `chore: add Chinese developer copy governance USER-CN-CODE-RULES-20260516`
+- Priority: 1
+- Depends on: N/A
+- Scope: 追加 R-187 至 R-190 中文化编码规范与验证规则，补充 task matrix 治理叠加和人类约束历史，新增开发者可读文本中文化检查脚本，接入 foreman validate 与知识 lint，并修复当前 Java/SQL/仓库脚本基线缺口。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-CODE-RULES-20260516`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 追加 R-187 至 R-190 中文化规则与验证规则，补充人类约束历史和 Backend/SQL/OPS 默认治理叠加；新增 check-developer-copy-language.mjs，接入 foreman validate 与 knowledge lint；修复 benchmark Java 测试诊断文案和 dev schema helper SQL COMMENT 中文化基线缺口。
+  - Validation evidence: 已执行 node scripts/check-developer-copy-language.mjs --all、node scripts/check-developer-copy-language.mjs --changed、node scripts/check-frontend-i18n-copy.mjs、node scripts/lint-repository-knowledge.js、git diff --check、python3 -m py_compile scripts/foreman.py scripts/ensure_execution_result_dev_schema.py scripts/ensure_query_history_dev_schema.py、java -version=1.8.0_112、mvn -pl benchmark-engine -Dtest=BenchmarkTaskModelApplicationServiceTest test、python3 scripts/foreman.py validate USER-CN-CODE-RULES-20260516 --include-task-audit --extra-command 'node scripts/check-developer-copy-language.mjs --all' --extra-command 'git diff --check'。
+  - Residual risk: 历史脚本 CLI 诊断输出仍存在英文存量；本轮按计划先阻断 Java 可读字符串、SQL/脚本 DDL COMMENT、脚本注释和检查器自身输出，后续如需可拆专项全量中文化脚本 help/error 文案。
+  - Next step: 后续 Java/SQL/OPS 任务通过 foreman validate 自动执行中文化 changed 门禁；若扩大脚本 help/error 扫描范围，应先清理历史存量或建立更细 allowlist。
+
 ### HARN-FE-004: 首页总览聚焦核心链路
 
 - Status: done

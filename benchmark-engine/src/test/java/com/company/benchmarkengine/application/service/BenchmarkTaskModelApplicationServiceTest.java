@@ -191,7 +191,7 @@ class BenchmarkTaskModelApplicationServiceTest {
             new BenchmarkTaskError(
                 14000,
                 "压测 worker 在报告写回完成前失败",
-                "Inspect the benchmark task table, report table, and worker pipeline before retrying.",
+                "重试前请检查 benchmark_task 表、benchmark_task_report 表和 worker 流水线。",
                 true
             ),
             Instant.parse("2026-04-20T00:20:05Z")

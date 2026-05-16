@@ -41,6 +41,18 @@
   - 任务命中的 `scripts/check-*-contract.mjs`
 - `foreman validate` 若检测到 `src/views/**/*.vue`、`src/components/**/*.vue` 或 `src/locales/**` 变更，必须自动追加上述前五项前端验证。
 
+## Backend / SQL / OPS Developer Copy Default Governance Overlay
+
+所有 `Tech` 包含 `JAVA-BE`、`SQL`、`OPS`，或变更 Java、SQL、MyBatis mapper/resources、DB schema helper、仓库自研脚本中的开发者 / 操作者可读文本的任务，默认叠加以下规则和验证；各行不再重复展开时仍视为已映射：
+
+- 默认规则：`R-187`,`R-188`,`R-189`,`R-190`
+- 默认验证：
+  - `node scripts/check-developer-copy-language.mjs --changed`
+  - 规则、检查器、foreman 接线或基线治理任务必须执行 `node scripts/check-developer-copy-language.mjs --all`
+  - `node scripts/lint-repository-knowledge.js`
+- `foreman validate` 若检测到 Java、SQL、mapper/resources、DB schema helper 或仓库自研脚本变更，必须自动追加 `node scripts/check-developer-copy-language.mjs --changed`，并把证据记录为 `R-187` 至 `R-190`。
+- 中文化只作用于人类可读说明；标识符、协议值、错误码、枚举值、JSON key、配置 key、Map key、URL、SQL 示例和外部 fixture 必须保持兼容。
+
 ## Phase-A
 
 | Task ID | Name | ADR | Rules | Context | Contract | Tech | Layer | Tests | Deps | Env |

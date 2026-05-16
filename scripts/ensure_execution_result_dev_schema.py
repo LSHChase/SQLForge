@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Upgrade the local dev execution_result table when an older bootstrap schema exists."""
+"""当本地开发 execution_result 表仍是旧启动 schema 时执行升级。"""
 
 from __future__ import annotations
 
@@ -17,39 +17,39 @@ MYSQL_PASSWORD = os.environ.get("SQLFORGE_DEV_MYSQL_PASSWORD", "sqlforge")
 COLUMN_DEFINITIONS = [
     (
         "access_channel",
-        "ADD COLUMN access_channel VARCHAR(32) DEFAULT NULL COMMENT 'Access channel such as PAGE/API/JDBC_AGENT/SDK/CLIENT' AFTER saga_id",
+        "ADD COLUMN access_channel VARCHAR(32) DEFAULT NULL COMMENT '访问渠道，例如 PAGE/API/JDBC_AGENT/SDK/CLIENT' AFTER saga_id",
     ),
     (
         "target_engine",
-        "ADD COLUMN target_engine VARCHAR(64) DEFAULT NULL COMMENT 'Selected execution engine or routed engine' AFTER access_channel",
+        "ADD COLUMN target_engine VARCHAR(64) DEFAULT NULL COMMENT '选中的执行引擎或路由后的执行引擎' AFTER access_channel",
     ),
     (
         "returned_row_count",
-        "ADD COLUMN returned_row_count BIGINT DEFAULT NULL COMMENT 'Returned row count when known' AFTER target_engine",
+        "ADD COLUMN returned_row_count BIGINT DEFAULT NULL COMMENT '已知时返回的行数' AFTER target_engine",
     ),
     (
         "cache_hit",
-        "ADD COLUMN cache_hit TINYINT(1) DEFAULT NULL COMMENT 'Whether cache was hit' AFTER returned_row_count",
+        "ADD COLUMN cache_hit TINYINT(1) DEFAULT NULL COMMENT '是否命中缓存' AFTER returned_row_count",
     ),
     (
         "rewrite_applied",
-        "ADD COLUMN rewrite_applied TINYINT(1) DEFAULT NULL COMMENT 'Whether lightweight rewrite was applied' AFTER cache_hit",
+        "ADD COLUMN rewrite_applied TINYINT(1) DEFAULT NULL COMMENT '是否应用轻量改写' AFTER cache_hit",
     ),
     (
         "acceleration_applied",
-        "ADD COLUMN acceleration_applied TINYINT(1) DEFAULT NULL COMMENT 'Whether acceleration path was applied' AFTER rewrite_applied",
+        "ADD COLUMN acceleration_applied TINYINT(1) DEFAULT NULL COMMENT '是否应用加速路径' AFTER rewrite_applied",
     ),
     (
         "hit_table_summary",
-        "ADD COLUMN hit_table_summary JSON DEFAULT NULL COMMENT 'Structured hit table summary JSON' AFTER acceleration_applied",
+        "ADD COLUMN hit_table_summary JSON DEFAULT NULL COMMENT '结构化命中表摘要 JSON' AFTER acceleration_applied",
     ),
     (
         "route_summary",
-        "ADD COLUMN route_summary JSON DEFAULT NULL COMMENT 'Structured route summary JSON' AFTER hit_table_summary",
+        "ADD COLUMN route_summary JSON DEFAULT NULL COMMENT '结构化路由摘要 JSON' AFTER hit_table_summary",
     ),
     (
         "cache_summary",
-        "ADD COLUMN cache_summary JSON DEFAULT NULL COMMENT 'Structured cache summary JSON' AFTER route_summary",
+        "ADD COLUMN cache_summary JSON DEFAULT NULL COMMENT '结构化缓存摘要 JSON' AFTER route_summary",
     ),
 ]
 
@@ -139,9 +139,9 @@ def main() -> int:
             details.append("columns: " + ", ".join(applied_columns))
         if applied_indexes:
             details.append("indexes: " + ", ".join(applied_indexes))
-        print("Upgraded execution_result dev schema:", "; ".join(details))
+        print("已升级 execution_result 开发 schema:", "; ".join(details))
     else:
-        print("execution_result dev schema already up to date.")
+        print("execution_result 开发 schema 已是最新。")
     return 0
 
 

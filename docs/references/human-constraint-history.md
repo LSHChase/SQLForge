@@ -299,3 +299,20 @@
   - `docs/plans/task-governance-extension-matrix.md`
   - `tasks.md`
   - `tasks-done.md`
+
+## 2026-05-16T00:00:00-05:00
+
+- 事件：人类要求以 `USER-CN-CODE-RULES-20260516` 固化“开发者 / 操作者可读文本默认中文、标识符和协议值禁止翻译、技术术语允许嵌入中文句子、中文化检查必须自动门禁”长期项目规则，并继续完成已实现一半的治理落地计划。
+- 新增规则：`R-187` 至 `R-190`。
+- 约束：
+  - Java 后端、SQL、DB schema helper 和仓库自研脚本中的注释、日志、异常、断言失败消息、校验注解 message、API message/msg、SQL COMMENT、脚本 help/error/说明文本默认中文。
+  - 包 / 类 / 方法 / 变量、表 / 字段 / 索引、错误码、枚举值、JSON key、配置 key、Map key、反射字符串、URL、SQL 示例、外部 fixture 等协议或标识符不得翻译。
+  - `SQL`、`JSON`、`HTTP`、`JDBC`、`Redis`、`Kafka`、`DTO`、`VO`、`ID` 等技术词可以嵌入中文句子；纯英文保留必须属于 allowlist、协议值、fixture 或带中文解释。
+  - 相关变更必须运行 `node scripts/check-developer-copy-language.mjs --changed`；规则 / 检查器自身变更必须运行 `--all`，失败阻断 closeout。
+- 落点：
+  - `docs/rules/codex-rules.md`
+  - `docs/quality/validation-rules.md`
+  - `docs/plans/task-spec-matrix.md`
+  - `scripts/check-developer-copy-language.mjs`
+  - `scripts/foreman.py`
+  - `scripts/lint-repository-knowledge.js`

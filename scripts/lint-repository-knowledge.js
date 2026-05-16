@@ -98,14 +98,14 @@ const requiredReadmeMarkers = [
   'docs/plans/codex-governance-integration-blueprint.md'
 ]
 
-const expectedRuleEnd = 186
+const expectedRuleEnd = 190
 const expectedValidationIndexRanges = [
   [116, 144],
   [151, 154],
   [156, 161],
   [168, 168],
   [170, 176],
-  [185, 186]
+  [185, 190]
 ]
 const requiredMessagingConfigs = [
   'governance/src/main/resources/application-dev.yml',
@@ -660,6 +660,98 @@ function ensureFrontendDevSmokeBoundary(errors, checks) {
   checks.push('frontend dev smoke boundary ok (docs and gate wiring keep it local-only)')
 }
 
+function ensureDeveloperCopyLanguageGovernance(errors, checks) {
+  const rulesPath = 'docs/rules/codex-rules.md'
+  const validationRulesPath = 'docs/quality/validation-rules.md'
+  const taskSpecPath = 'docs/plans/task-spec-matrix.md'
+  const historyPath = 'docs/references/human-constraint-history.md'
+  const checkerPath = 'scripts/check-developer-copy-language.mjs'
+  const foremanPath = 'scripts/foreman.py'
+  const missingFiles = [rulesPath, validationRulesPath, taskSpecPath, historyPath, checkerPath, foremanPath].filter(item => !pathExists(item))
+  if (missingFiles.length > 0) {
+    errors.push(`Developer copy language governance files missing:\n- ${missingFiles.join('\n- ')}`)
+    return
+  }
+
+  const rulesContent = readFile(rulesPath)
+  const ruleMarkers = [
+    'R-187 开发者 / 操作者可读文本默认中文',
+    'R-188 标识符与协议值禁止翻译',
+    'R-189 术语统一与允许例外',
+    'R-190 中文化自动验证门禁',
+    'src/locales/en-US.js'
+  ]
+  const missingRuleMarkers = ruleMarkers.filter(marker => !rulesContent.includes(marker))
+  if (missingRuleMarkers.length > 0) {
+    errors.push(`codex-rules.md missing developer-copy rule markers:\n- ${missingRuleMarkers.join('\n- ')}`)
+    return
+  }
+
+  const validationContent = readFile(validationRulesPath)
+  const validationMarkers = [
+    'R-187 开发者 / 操作者可读文本中文验证',
+    'R-188 标识符与协议值保留验证',
+    'R-189 技术术语与例外 allowlist 验证',
+    'R-190 中文化自动门禁验证',
+    'node scripts/check-developer-copy-language.mjs --changed',
+    'node scripts/check-developer-copy-language.mjs --all'
+  ]
+  const missingValidationMarkers = validationMarkers.filter(marker => !validationContent.includes(marker))
+  if (missingValidationMarkers.length > 0) {
+    errors.push(`validation-rules.md missing developer-copy validation markers:\n- ${missingValidationMarkers.join('\n- ')}`)
+    return
+  }
+
+  const taskSpecContent = readFile(taskSpecPath)
+  const taskSpecMarkers = [
+    'Backend / SQL / OPS Developer Copy Default Governance Overlay',
+    '`R-187`,`R-188`,`R-189`,`R-190`',
+    'node scripts/check-developer-copy-language.mjs --changed',
+    'node scripts/check-developer-copy-language.mjs --all'
+  ]
+  const missingTaskSpecMarkers = taskSpecMarkers.filter(marker => !taskSpecContent.includes(marker))
+  if (missingTaskSpecMarkers.length > 0) {
+    errors.push(`task-spec-matrix.md missing developer-copy overlay markers:\n- ${missingTaskSpecMarkers.join('\n- ')}`)
+    return
+  }
+
+  const historyContent = readFile(historyPath)
+  if (!historyContent.includes('R-187') || !historyContent.includes('USER-CN-CODE-RULES-20260516')) {
+    errors.push('human-constraint-history.md missing USER-CN-CODE-RULES-20260516 / R-187 developer-copy record')
+    return
+  }
+
+  const checkerContent = readFile(checkerPath)
+  const checkerMarkers = [
+    '--changed|--all',
+    'allowedTechnicalWords',
+    'COMMENT',
+    'LOGGER',
+    'setMessage',
+    'src/locales/en-US.js'
+  ]
+  const missingCheckerMarkers = checkerMarkers.filter(marker => !checkerContent.includes(marker))
+  if (missingCheckerMarkers.length > 0) {
+    errors.push(`check-developer-copy-language.mjs missing required scan markers:\n- ${missingCheckerMarkers.join('\n- ')}`)
+    return
+  }
+
+  const foremanContent = readFile(foremanPath)
+  const foremanMarkers = [
+    'DEVELOPER_COPY_VALIDATE_PATTERN',
+    'developer_copy_validation_touched',
+    'scripts/check-developer-copy-language.mjs',
+    '`R-187`, `R-188`, `R-189`, `R-190`'
+  ]
+  const missingForemanMarkers = foremanMarkers.filter(marker => !foremanContent.includes(marker))
+  if (missingForemanMarkers.length > 0) {
+    errors.push(`foreman.py missing developer-copy validation wiring:\n- ${missingForemanMarkers.join('\n- ')}`)
+    return
+  }
+
+  checks.push('developer copy language governance ok (rules, validation, checker, foreman, matrix)')
+}
+
 function main() {
   const errors = []
   const checks = []
@@ -678,6 +770,7 @@ function main() {
   ensureCoverageMatrixCompleteness(errors, checks)
   ensureMcpGovernanceDocs(errors, checks)
   ensureFrontendDevSmokeBoundary(errors, checks)
+  ensureDeveloperCopyLanguageGovernance(errors, checks)
 
   if (errors.length > 0) {
     console.error('Repository knowledge lint failed:\n')

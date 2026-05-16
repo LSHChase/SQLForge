@@ -825,6 +825,14 @@ def validate_command(command: List[str], label: str, rules: str) -> str | None:
 
 
 FRONTEND_PAGE_VALIDATE_PATTERN = re.compile(r"^(src/(views|components)/.*\.vue|src/locales/)")
+DEVELOPER_COPY_VALIDATE_PATTERN = re.compile(
+    r"^("
+    r"[^/]+/src/(main|test)/java/.*\.java|"
+    r"[^/]+/src/main/resources/.*\.(xml|yml|yaml|properties|sql)|"
+    r"sql/.*\.sql|"
+    r"scripts/.*\.(py|sh|mjs|js)"
+    r")$"
+)
 
 
 def validation_changed_paths() -> List[str]:
@@ -842,6 +850,10 @@ def validation_changed_paths() -> List[str]:
 
 def frontend_page_validation_touched() -> bool:
     return any(FRONTEND_PAGE_VALIDATE_PATTERN.match(path) for path in validation_changed_paths())
+
+
+def developer_copy_validation_touched() -> bool:
+    return any(DEVELOPER_COPY_VALIDATE_PATTERN.match(path) for path in validation_changed_paths())
 
 
 def command_validate(args: argparse.Namespace) -> int:
@@ -863,6 +875,8 @@ def command_validate(args: argparse.Namespace) -> int:
                 (["npm", "run", "test:frontend-page-governance"], "`R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186`"),
             ]
         )
+    if developer_copy_validation_touched():
+        commands.append((["node", "scripts/check-developer-copy-language.mjs", "--changed"], "`R-187`, `R-188`, `R-189`, `R-190`"))
     commands.extend(TASK_VALIDATION_COMMANDS.get(args.task, []))
     if args.include_task_audit:
         commands.append((["python3", "scripts/task_audit.py", "--check", "--phase", "pre-closeout"], "`R-156`, `R-160`, `R-168`"))
