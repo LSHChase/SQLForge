@@ -140,6 +140,40 @@ const auditEvents = computed(() => selectedHistoryDetail.value?.traceDetail?.aud
 const executionSummary = computed(() => objectValue(selectedHistoryDetail.value?.executionSummary))
 const rewriteAudit = computed(() => objectValue(selectedHistoryDetail.value?.rewriteAudit))
 const sqlState = computed(() => objectValue(selectedHistoryDetail.value?.sqlState))
+const recommendationRefRows = computed(() =>
+  normalizeArray(selectedHistoryDetail.value?.recommendationRefs)
+    .map(item => (item && typeof item === 'object' ? item : { recommendationId: item }))
+    .filter(item => hasDisplayValue(referenceValue(item, ['recommendationId', 'id'])))
+)
+const firstRecommendationRef = computed(() => recommendationRefRows.value[0] || null)
+const linkedParseHistoryId = computed(() => {
+  const detail = selectedHistoryDetail.value || {}
+  const queryContext = objectValue(detail.queryContext)
+  const structureParse = objectValue(detail.structureParseSummary)
+  return firstValue(
+    detail.parseHistoryId,
+    detail.sqlParseHistoryId,
+    structureParse.parseHistoryId,
+    queryContext.parseHistoryId
+  )
+})
+const parseHistoryLinkQuery = computed(() => {
+  const detail = selectedHistoryDetail.value || {}
+  return compactObject({
+    tenantId: requestTenantId.value,
+    historyWorkbenchTab: 'sqlHistory',
+    historyId: linkedParseHistoryId.value,
+    traceId: detail.traceId,
+    taskId: firstValue(detail.parseTaskId, detail.traceDetail?.taskId),
+    reportId: firstValue(detail.reportId, detail.reportCode)
+  })
+})
+const hasParseHistoryLink = computed(() =>
+  ['historyId', 'traceId', 'taskId', 'reportId'].some(key => hasDisplayValue(parseHistoryLinkQuery.value[key]))
+)
+const parseHistoryLinkText = computed(() =>
+  linkedParseHistoryId.value || selectedHistoryDetail.value?.traceId || selectedHistoryDetail.value?.reportCode || '-'
+)
 
 const withAllOption = options => [
   { label: t('sqlHistory.options.all'), value: '' },
@@ -723,9 +757,15 @@ const sqlVariants = computed(() =>
     {
       key: 'sqlTemplateText',
       label: t('sqlHistory.sql.templateSql'),
-      value: selectedHistoryDetail.value?.sqlTemplateText
+      value: selectedHistoryDetail.value?.sqlTemplateText,
+      autoFormat: false
     },
-    { key: 'boundSqlText', label: t('sqlHistory.sql.boundSql'), value: selectedHistoryDetail.value?.boundSqlText }
+    {
+      key: 'boundSqlText',
+      label: t('sqlHistory.sql.boundSql'),
+      value: selectedHistoryDetail.value?.boundSqlText,
+      autoFormat: false
+    }
   ].filter(item => hasDisplayValue(item.value))
 )
 
@@ -845,10 +885,35 @@ const loadRewriteRecords = async ({ force = false } = {}) => {
   }
 }
 
+const focusRewriteRecords = async () => {
+  activeDetailTab.value = 'rewriteRecords'
+  await loadRewriteRecords()
+}
+
 const handleDetailTabChange = async tabName => {
   if (tabName === 'rewriteRecords') {
     await loadRewriteRecords()
   }
+}
+
+const openParseRecordForContext = (source = {}) => {
+  const detail = selectedHistoryDetail.value || {}
+  const parseHistoryId = firstValue(source.parseHistoryId, linkedParseHistoryId.value)
+  const query = compactObject({
+    tenantId: requestTenantId.value,
+    historyWorkbenchTab: 'sqlHistory',
+    historyId: parseHistoryId,
+    traceId: firstValue(source.traceId, detail.traceId),
+    taskId: firstValue(source.parseTaskId, source.taskId, detail.parseTaskId, detail.traceDetail?.taskId),
+    reportId: firstValue(source.reportId, detail.reportId, detail.reportCode)
+  })
+  if (!['historyId', 'traceId', 'taskId', 'reportId'].some(key => hasDisplayValue(query[key]))) {
+    return
+  }
+  router.push({
+    path: ROUTE_PATHS.parseRecord,
+    query
+  })
 }
 
 const openHistoryDetail = async historyId => {
@@ -876,9 +941,10 @@ const openHistoryDetail = async historyId => {
 const openRecommendationCenter = recommendationOrRecord => {
   const record = recommendationOrRecord && typeof recommendationOrRecord === 'object' ? recommendationOrRecord : {}
   const normalizedRecommendationId = normalizeQueryValue(
-    record.recommendationId || (typeof recommendationOrRecord === 'string' ? recommendationOrRecord : '')
+    referenceValue(record, ['recommendationId', 'id']) ||
+      (typeof recommendationOrRecord === 'string' ? recommendationOrRecord : '')
   )
-  const normalizedRewriteRecordId = normalizeQueryValue(record.rewriteRecordId)
+  const normalizedRewriteRecordId = normalizeQueryValue(referenceValue(record, ['rewriteRecordId']))
   if (!normalizedRecommendationId && !normalizedRewriteRecordId) {
     return
   }
@@ -1081,6 +1147,18 @@ const firstValue = (...values) => {
 }
 
 const hasDisplayValue = value => !(value === null || value === undefined || String(value).trim() === '')
+
+const normalizeArray = value => (Array.isArray(value) ? value : [])
+
+const compactObject = value =>
+  Object.fromEntries(Object.entries(value).filter(([, entryValue]) => hasDisplayValue(entryValue)))
+
+const referenceValue = (record, keys) => {
+  if (!record || typeof record !== 'object') {
+    return ''
+  }
+  return firstValue(...keys.map(key => record[key]))
+}
 
 const displayValue = value => {
   if (Array.isArray(value)) {
@@ -1367,6 +1445,25 @@ watch(
           </div>
         </div>
 
+        <div class="association-strip" data-testid="sql-history-association-links">
+          <el-button :disabled="!hasParseHistoryLink" data-testid="sql-history-open-parse-history" @click="openParseRecordForContext()">
+            {{ t('sqlHistory.actions.openParseHistory') }}
+            <span class="button-subline">{{ parseHistoryLinkText }}</span>
+          </el-button>
+          <el-button
+            :disabled="!firstRecommendationRef"
+            data-testid="sql-history-open-recommendation-result"
+            @click="openRecommendationCenter(firstRecommendationRef)"
+          >
+            {{ t('sqlHistory.actions.openRecommendationResult') }}
+            <span class="button-subline">{{ recommendationRefRows.length || '-' }}</span>
+          </el-button>
+          <el-button data-testid="sql-history-focus-rewrite-records" @click="focusRewriteRecords">
+            {{ t('sqlHistory.actions.focusRewriteRecords') }}
+            <span class="button-subline">{{ rewriteRecordsResponse?.rewriteRecordCount ?? rewriteRecordRows.length }}</span>
+          </el-button>
+        </div>
+
         <el-tabs v-model="activeDetailTab" data-testid="sql-history-detail-tabs" @tab-change="handleDetailTabChange">
           <el-tab-pane :label="t('sqlHistory.tabs.overview')" name="overview">
             <div class="detail-grid">
@@ -1536,7 +1633,16 @@ watch(
                   </div>
                   <div class="detail-grid__item">
                     <span>{{ t('sqlHistory.rewriteRecords.parseHistoryId') }}</span>
-                    <strong>{{ displayValue(record.parseHistoryId) }}</strong>
+                    <button
+                      v-if="record.parseHistoryId"
+                      type="button"
+                      class="table-link"
+                      data-testid="sql-history-rewrite-record-parse-history-link"
+                      @click="openParseRecordForContext(record)"
+                    >
+                      {{ record.parseHistoryId }}
+                    </button>
+                    <strong v-else>-</strong>
                   </div>
                   <div class="detail-grid__item">
                     <span>{{ t('sqlHistory.rewriteRecords.sqlFingerprint') }}</span>
@@ -1616,6 +1722,18 @@ watch(
           </el-tab-pane>
 
           <el-tab-pane :label="t('sqlHistory.tabs.refs')" name="refs">
+            <div v-if="recommendationRefRows.length" class="reference-action-list" data-testid="sql-history-recommendation-ref-actions">
+              <button
+                v-for="item in recommendationRefRows"
+                :key="referenceValue(item, ['recommendationId', 'id'])"
+                type="button"
+                class="reference-action"
+                @click="openRecommendationCenter(item)"
+              >
+                <span>{{ t('sqlHistory.actions.openRecommendationResult') }}</span>
+                <strong>{{ referenceValue(item, ['recommendationId', 'id']) }}</strong>
+              </button>
+            </div>
             <div class="code-grid">
               <article v-for="group in referenceGroups" :key="group.key" class="code-card">
                 <div class="code-card__header">{{ group.title }}</div>
@@ -1698,12 +1816,48 @@ watch(
 .dialog-header,
 .banner-row,
 .action-row,
-.table-footer {
+.table-footer,
+.association-strip,
+.reference-action-list {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--sqlforge-space-3);
   flex-wrap: wrap;
+}
+
+.association-strip {
+  justify-content: flex-start;
+  padding: var(--sqlforge-space-3);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-surface-1);
+}
+
+.button-subline {
+  margin-left: var(--sqlforge-space-2);
+  color: var(--sqlforge-text-muted);
+  font-family: var(--sqlforge-font-mono);
+  font-size: var(--sqlforge-text-meta);
+}
+
+.reference-action-list {
+  justify-content: flex-start;
+  margin-bottom: var(--sqlforge-space-4);
+}
+
+.reference-action {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--sqlforge-space-1);
+  min-width: 220px;
+  padding: var(--sqlforge-space-3);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-surface-1);
+  color: var(--sqlforge-text-primary);
+  cursor: pointer;
+  text-align: left;
 }
 
 .section-kicker,

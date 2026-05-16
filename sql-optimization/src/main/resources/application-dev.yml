@@ -7,9 +7,9 @@ spring:
 
 logging:
   level:
-    root: DEBUG
-    com.company.sqloptimization: DEBUG
-    org.mybatis: DEBUG
+    root: INFO
+    com.company.sqloptimization: INFO
+    org.mybatis: INFO
 
 auth:
   enabled: false

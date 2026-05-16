@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-FE-005: SQL 历史与解析历史强化关联链路
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `feat: strengthen SQL history parse links HARN-FE-005`
+- Priority: 1
+- Depends on: N/A
+- Scope: 强化 SQL 历史查询与解析历史的页面定位和深链串联，复用现有 SQL 历史、解析历史、推荐引用与改写记录接口；不新增后端字段，不改变历史查询参数、导出字段、脱敏策略或分页语义；落实 SQL 历史到解析历史、推荐结果、改写记录的可操作入口，解析历史默认打开 SQL 解析记录并兼容 parseHistoryId/historyId 深链，保持原始 SQL、模板 SQL、绑定后 SQL 不被前端自动改写。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-FE-005`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 强化 SQL 历史详情到解析历史、推荐结果与改写记录的可操作入口；解析历史详情补齐返回 SQL 历史与推荐结果入口，并兼容 historyId/parseHistoryId 深链；保持原始 SQL、模板 SQL、绑定后 SQL 禁止前端自动格式化；补齐页面契约与 dev browser smoke mock。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-FE-005 --include-task-audit；npm run smoke:frontend-dev；docs/quality/validation-log.md
+  - Residual risk: 未新增后端字段、历史查询参数、导出字段、脱敏策略或分页语义；真实环境截图和外部后端数据仍按 environment-backed 验证链路沉淀。
+  - Next step: 进入 HARN-FE-006 推荐结果页面聚焦 SQL diff 与收益风险。
+
 ### USER-CN-CODE-RULES-FIX456-20260516: 修复中文化门禁后续缺口
 
 - Status: done

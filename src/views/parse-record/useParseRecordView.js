@@ -408,6 +408,34 @@ const traceSummaryCards = computed(() => {
     { label: t('inline.viewsParseRecordUseParseRecordView.text056'), value: traceDetail.queryHistoryCount }
   ]
 })
+const recommendationRefRows = computed(() =>
+  normalizeArray(selectedHistoryDetail.value?.recommendationRefs)
+    .map(item => (item && typeof item === 'object' ? item : { recommendationId: item }))
+    .filter(item => hasDisplayValue(referenceValue(item, ['recommendationId', 'id'])))
+)
+const primaryRecommendationRef = computed(() => recommendationRefRows.value[0] || null)
+const queryExecutionHistoryId = computed(() => {
+  const histories = normalizeArray(selectedHistoryDetail.value?.traceDetail?.queryHistories)
+  const queryHistory = histories.find(item => String(item?.historyType || '').toUpperCase() === 'QUERY_EXECUTION')
+  return firstValue(
+    selectedHistoryDetail.value?.queryHistoryId,
+    selectedHistoryDetail.value?.executionHistoryId,
+    queryHistory?.historyId
+  )
+})
+const sqlHistoryLinkQuery = computed(() => {
+  const detail = selectedHistoryDetail.value || {}
+  return compactObject({
+    tenantId: requestTenantId.value,
+    historyId: queryExecutionHistoryId.value,
+    traceId: detail.traceId,
+    taskId: firstValue(detail.parseTaskId, detail.traceDetail?.taskId),
+    reportId: firstValue(detail.reportId, detail.reportCode)
+  })
+})
+const hasSqlHistoryLink = computed(() =>
+  ['historyId', 'traceId', 'taskId', 'reportId'].some(key => hasDisplayValue(sqlHistoryLinkQuery.value[key]))
+)
 const sqlStateHighlights = computed(() => {
   const sqlState = selectedHistoryDetail.value?.sqlState || {}
   return [
@@ -427,8 +455,18 @@ const sqlVariants = computed(() =>
       value: selectedHistoryDetail.value?.sqlText,
       autoFormat: false
     },
-    { key: 'sqlTemplateText', label: t('inline.viewsParseRecordUseParseRecordView.text063'), value: selectedHistoryDetail.value?.sqlTemplateText },
-    { key: 'boundSqlText', label: t('inline.viewsParseRecordUseParseRecordView.text064'), value: selectedHistoryDetail.value?.boundSqlText }
+    {
+      key: 'sqlTemplateText',
+      label: t('inline.viewsParseRecordUseParseRecordView.text063'),
+      value: selectedHistoryDetail.value?.sqlTemplateText,
+      autoFormat: false
+    },
+    {
+      key: 'boundSqlText',
+      label: t('inline.viewsParseRecordUseParseRecordView.text064'),
+      value: selectedHistoryDetail.value?.boundSqlText,
+      autoFormat: false
+    }
   ].filter(item => hasDisplayValue(item.value))
 )
 const historyQueryContext = computed(() => objectValue(selectedHistoryDetail.value?.queryContext))
@@ -887,6 +925,32 @@ const openAuditForensics = () => {
       traceId: selectedHistoryDetail.value.traceId || '',
       reportId: selectedHistoryDetail.value.reportId || ''
     }
+  })
+}
+
+const openSqlHistoryFromDetail = () => {
+  if (!hasSqlHistoryLink.value) {
+    return
+  }
+  router.push({
+    path: ROUTE_PATHS.sqlHistory,
+    query: sqlHistoryLinkQuery.value
+  })
+}
+
+const openRecommendationCenterFromDetail = (recommendation = primaryRecommendationRef.value) => {
+  const recommendationId = normalizeQueryValue(referenceValue(recommendation, ['recommendationId', 'id']))
+  const rewriteRecordId = normalizeQueryValue(referenceValue(recommendation, ['rewriteRecordId']))
+  if (!recommendationId && !rewriteRecordId) {
+    return
+  }
+  router.push({
+    path: ROUTE_PATHS.recommendationCenter,
+    query: compactObject({
+      tenantId: requestTenantId.value,
+      recommendationId,
+      rewriteRecordId
+    })
   })
 }
 
@@ -1660,6 +1724,16 @@ const firstValue = (...values) => {
   return match === undefined ? '' : match
 }
 
+const compactObject = value =>
+  Object.fromEntries(Object.entries(value).filter(([, entryValue]) => hasDisplayValue(entryValue)))
+
+const referenceValue = (record, keys) => {
+  if (!record || typeof record !== 'object') {
+    return ''
+  }
+  return firstValue(...keys.map(key => record[key]))
+}
+
 const resolveAccessAvailable = (summary, accessParse) => {
   if (typeof summary?.accessAvailable === 'boolean') {
     return booleanLabel(summary.accessAvailable)
@@ -1716,7 +1790,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
 const hasQueryValue = key => hasDisplayValue(route.query[key])
 
 const resolveHistoryWorkbenchTabFromRoute = () => {
-  if (hasQueryValue('historyId')) {
+  if (hasQueryValue('historyId') || hasQueryValue('parseHistoryId')) {
     return 'sqlHistory'
   }
   const queryTab = normalizeQueryValue(
@@ -1744,8 +1818,8 @@ const syncLookupFieldsFromRoute = () => {
 }
 
 const openRouteDeepLink = async () => {
-  if (hasQueryValue('historyId')) {
-    await openHistoryDetail(String(route.query.historyId))
+  if (hasQueryValue('historyId') || hasQueryValue('parseHistoryId')) {
+    await openHistoryDetail(String(route.query.historyId || route.query.parseHistoryId))
     return
   }
   if (hasLookupCriteria.value) {
@@ -1829,6 +1903,7 @@ watch(reportBatchDetailDrawerVisible, visible => {
     handleReportBatchSqlPageChange,
     handleReportBatchSqlPageSizeChange,
     hasDisplayValue,
+    hasSqlHistoryLink,
     hasLookupCriteria,
     hasQueryValue,
     HISTORY_WORKBENCH_TABS,
@@ -1881,11 +1956,13 @@ watch(reportBatchDetailDrawerVisible, visible => {
     openHistoryDetail,
     openParseBatchCenter,
     openRepairEvidence,
+    openRecommendationCenterFromDetail,
     openReportBatchCenter,
     openReportBatchDetail,
     openReportBatchIssueSceneDetail,
     openReportSqlParseDetail,
     openRouteDeepLink,
+    openSqlHistoryFromDetail,
     page,
     pageSummaryCards,
     parseBatchHistoryPagination,
@@ -1893,6 +1970,7 @@ watch(reportBatchDetailDrawerVisible, visible => {
     parseBatchHistorySummary,
     queryDateRange,
     rate,
+    recommendationRefRows,
     referenceGroups,
     refreshSelectedReportSqlPage,
     refreshWorkbench,
@@ -1953,6 +2031,7 @@ watch(reportBatchDetailDrawerVisible, visible => {
     selectReportBatchIssueSceneReport,
     selectedHistoryDetail,
     selectedHistoryId,
+    primaryRecommendationRef,
     selectedReportBackendReportStatistics,
     selectedReportBackendSqlStatistics,
     selectedReportBatchDetail,

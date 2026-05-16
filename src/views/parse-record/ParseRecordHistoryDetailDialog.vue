@@ -16,6 +16,7 @@ const {
   firstValue,
   formatJson,
   formatTimestamp,
+  hasSqlHistoryLink,
   historyAccessHighlights,
   historyAccessParse,
   historyLogicalObjectHits,
@@ -38,6 +39,10 @@ const {
   openAuditForensics,
   openExportDialog,
   openRepairEvidence,
+  openRecommendationCenterFromDetail,
+  openSqlHistoryFromDetail,
+  primaryRecommendationRef,
+  recommendationRefRows,
   referenceGroups,
   resultBannerClass,
   resultValueClass,
@@ -70,6 +75,16 @@ const auditEventPagination = {
         <div class="dialog-actions">
           <el-button type="primary" @click="openRepairEvidence">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text001') }}</el-button>
           <el-button @click="openAuditForensics">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text002') }}</el-button>
+          <el-button :disabled="!hasSqlHistoryLink" data-testid="parse-record-open-sql-history" @click="openSqlHistoryFromDetail">
+            {{ t('parseRecord.actions.openSqlHistory') }}
+          </el-button>
+          <el-button
+            :disabled="!primaryRecommendationRef"
+            data-testid="parse-record-open-recommendation-result"
+            @click="openRecommendationCenterFromDetail(primaryRecommendationRef)"
+          >
+            {{ t('parseRecord.actions.openRecommendationResult') }}
+          </el-button>
           <el-button :loading="loading.export" data-testid="parse-record-export" @click="openExportDialog">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text003') }}</el-button>
           <el-button @click="evidenceDrawerVisible = true">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text004') }}</el-button>
         </div>
@@ -426,6 +441,19 @@ const auditEventPagination = {
         </el-tab-pane>
 
         <el-tab-pane :label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text031')" name="refs">
+          <div v-if="recommendationRefRows.length" class="reference-action-list" data-testid="parse-record-recommendation-ref-actions">
+            <button
+              v-for="item in recommendationRefRows"
+              :key="item.recommendationId || item.id"
+              type="button"
+              class="reference-action"
+              @click="openRecommendationCenterFromDetail(item)"
+            >
+              <span>{{ t('parseRecord.actions.openRecommendationResult') }}</span>
+              <strong>{{ item.recommendationId || item.id }}</strong>
+            </button>
+          </div>
+
           <div v-if="logicalObjectHits.length" class="detail-grid">
             <div
               v-for="(item, index) in logicalObjectHits"

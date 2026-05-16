@@ -97,7 +97,13 @@ const requiredTokens = [
   "sortBy: ''",
   "sortOrder: ''",
   'requestTenantId: requestTenantId.value',
-  'data-testid="parse-record-engine-filter"'
+  'data-testid="parse-record-engine-filter"',
+  "route.query.historyId || route.query.parseHistoryId",
+  'data-testid="parse-record-open-sql-history"',
+  'data-testid="parse-record-open-recommendation-result"',
+  'data-testid="parse-record-recommendation-ref-actions"',
+  'openSqlHistoryFromDetail',
+  'openRecommendationCenterFromDetail'
 ]
 
 const requiredSqlHistoryTokens = [
@@ -110,6 +116,10 @@ const requiredSqlHistoryTokens = [
   'data-testid="sql-history-trace-item"',
   'data-testid="sql-history-detail-drawer"',
   'data-testid="sql-history-detail-tabs"',
+  'data-testid="sql-history-association-links"',
+  'data-testid="sql-history-open-parse-history"',
+  'data-testid="sql-history-open-recommendation-result"',
+  'data-testid="sql-history-focus-rewrite-records"',
   'data-testid="sql-history-rewrite-audit"',
   "testId: 'sql-history-has-rewrite-record-filter'",
   "testId: 'sql-history-rewrite-validation-status-filter'",
@@ -123,6 +133,7 @@ const requiredSqlHistoryTokens = [
   'data-testid="sql-history-rewrite-record-diff"',
   'data-testid="sql-history-rewrite-record-original-sql"',
   'data-testid="sql-history-rewrite-record-detail-link"',
+  'data-testid="sql-history-rewrite-record-parse-history-link"',
   'data-testid="sql-history-rewrite-record-alert-link"',
   'data-testid="sql-history-rewrite-record-auto-apply-paused"',
   'data-testid="sql-history-rewrite-record-alert-refs"',
@@ -156,7 +167,10 @@ const requiredSqlHistoryTokens = [
   "key: 'recommendationId'",
   'rewriteRecordAutoApplyPaused',
   'rewriteRecordAlertRefs',
+  'openParseRecordForContext',
   'openAlertCenterForRewriteRecord',
+  'openRecommendationCenter(firstRecommendationRef)',
+  "historyWorkbenchTab: 'sqlHistory'",
   'frontend-sql-history-page',
   'frontend-sql-history-detail',
   'QUERY_EXECUTION history'
@@ -196,7 +210,7 @@ const requiredRouteTokens = [
   "componentRoute(\n    'parseRecord'",
   "'ParseRecord'",
   "'ParseRecordView'",
-  "historyWorkbenchTab: 'batchHistory'"
+  "historyWorkbenchTab: 'sqlHistory'"
 ]
 
 const requiredMainTokens = [

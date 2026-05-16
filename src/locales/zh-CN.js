@@ -439,6 +439,9 @@ export default {
       openAuditForensics: '打开审计取证',
       exportEvidence: '导出取证',
       viewRawEvidence: '查看原始证据',
+      openParseHistory: '打开解析历史',
+      openRecommendationResult: '打开推荐结果',
+      focusRewriteRecords: '查看改写记录',
       refreshRewriteRecords: '刷新改写记录',
       copy: '复制'
     },
@@ -666,6 +669,10 @@ export default {
   parseRecord: {
     title: '解析历史',
     summary: '查询解析历史、批次历史和报表解析历史，查看解析状态、失败原因、问题场景、逻辑对象和推荐关联。',
+    actions: {
+      openSqlHistory: '打开 SQL 历史',
+      openRecommendationResult: '打开推荐结果'
+    },
     issueSceneDetail: {
       actions: {
         viewDetail: '查看明细'

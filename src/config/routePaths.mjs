@@ -250,7 +250,7 @@ export const APP_ROUTE_DEFINITIONS = [
       titleKey: 'parseRecord.title',
       descriptionKey: 'parseRecord.summary',
       extra: {
-        historyWorkbenchTab: 'batchHistory'
+        historyWorkbenchTab: 'sqlHistory'
       }
     })
   ),

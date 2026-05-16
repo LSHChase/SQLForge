@@ -164,6 +164,12 @@ const parseRecordView = readParseRecordSource()
 if (!/key:\s*'sqlText'[\s\S]{0,180}autoFormat:\s*false/.test(parseRecordView)) {
   errors.push('ParseRecordView raw SQL variant must disable SqlCodeBlock auto formatting.')
 }
+if (!/key:\s*'sqlTemplateText'[\s\S]{0,220}autoFormat:\s*false/.test(parseRecordView)) {
+  errors.push('ParseRecordView template SQL variant must disable SqlCodeBlock auto formatting.')
+}
+if (!/key:\s*'boundSqlText'[\s\S]{0,220}autoFormat:\s*false/.test(parseRecordView)) {
+  errors.push('ParseRecordView bound SQL variant must disable SqlCodeBlock auto formatting.')
+}
 if (!/:auto-format="false"[\s\S]{0,120}data-testid="parse-record-history-original-sql-text"/.test(parseRecordView)) {
   errors.push('ParseRecordView parse-result Original SQL block must copy and display unformatted raw SQL.')
 }
@@ -174,6 +180,12 @@ if (!/:auto-format="item\.autoFormat !== false"/.test(parseRecordView)) {
 const sqlHistoryView = read('src/views/sql-history/SqlHistoryView.vue')
 if (!/key:\s*'sqlText'[\s\S]{0,180}autoFormat:\s*false/.test(sqlHistoryView)) {
   errors.push('SqlHistoryView raw SQL variant must disable SqlCodeBlock auto formatting.')
+}
+if (!/key:\s*'sqlTemplateText'[\s\S]{0,220}autoFormat:\s*false/.test(sqlHistoryView)) {
+  errors.push('SqlHistoryView template SQL variant must disable SqlCodeBlock auto formatting.')
+}
+if (!/key:\s*'boundSqlText'[\s\S]{0,220}autoFormat:\s*false/.test(sqlHistoryView)) {
+  errors.push('SqlHistoryView bound SQL variant must disable SqlCodeBlock auto formatting.')
 }
 if (!/const sqlCodeBlockProps = item => \(\{[\s\S]{0,220}autoFormat: item\.autoFormat !== false/.test(sqlHistoryView)) {
   errors.push('SqlHistoryView SqlCodeBlock props must honor per-variant autoFormat settings.')

@@ -217,6 +217,10 @@ const runBrowserSmoke = async baseUrl => {
         await fulfillJson(route, [])
         return
       }
+      if (pathname === '/api/sql-optimization/rewrite-records') {
+        await fulfillJson(route, [])
+        return
+      }
     }
 
     if (pathname === '/api/governance/query-history' && requestPrefix === 'frontend-sql-history-page') {

@@ -455,6 +455,9 @@ export default {
       openAuditForensics: 'Open audit forensics',
       exportEvidence: 'Export evidence',
       viewRawEvidence: 'View raw evidence',
+      openParseHistory: 'Open parse history',
+      openRecommendationResult: 'Open recommendation result',
+      focusRewriteRecords: 'View rewrite records',
       refreshRewriteRecords: 'Refresh rewrite records',
       copy: 'Copy'
     },
@@ -682,6 +685,10 @@ export default {
   parseRecord: {
     title: 'Parse History',
     summary: 'Search parse history, batch history, and report-import history, including parse status, failure reasons, issue scenes, logical objects, and recommendation links.',
+    actions: {
+      openSqlHistory: 'Open SQL history',
+      openRecommendationResult: 'Open recommendation result'
+    },
     issueSceneDetail: {
       actions: {
         viewDetail: 'View detail'

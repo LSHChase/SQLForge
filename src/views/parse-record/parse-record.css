@@ -30,7 +30,8 @@
 .chip-row,
 .table-heading,
 .dialog-header,
-.dialog-actions {
+.dialog-actions,
+.reference-action-list {
   display: flex;
   gap: 12px;
 }
@@ -206,6 +207,25 @@
 
 .dialog-actions {
   flex-wrap: wrap;
+}
+
+.reference-action-list {
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.reference-action {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+  padding: 12px 14px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: 12px;
+  background: rgba(20, 24, 31, 0.82);
+  color: var(--sqlforge-text-primary);
+  cursor: pointer;
+  text-align: left;
 }
 
 .detail-grid {
