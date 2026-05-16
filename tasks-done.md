@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-FE-002: 重排导航树与核心菜单命名
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `feat(frontend): refocus core navigation menu`
+- Priority: 1
+- Depends on: HARN-FE-001A
+- Scope: 调整前端 NAVIGATION_TREE 与导航契约脚本，使核心菜单优先展示并将加速治理工作台移出正式核心菜单；保留既有 ROUTE_PATHS、route name、legacy redirect、页面组件和后端/API/数据库语义。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-FE-002`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Reordered the frontend navigation tree around the HARN-FE core SQL workflow, moved acceleration governance workbench into a non-default reference-pages group, kept existing route paths/names/legacy redirects/page components intact, updated navigation i18n labels, runtime reference-page visibility, and navigation/workbench contract scripts.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-FE-002 --include-task-audit --extra-command "node scripts/check-navigation-shell-contract.mjs" --extra-command "node scripts/check-acceleration-workbench-contract.mjs" --extra-command "git diff --check" passed; npm run lint, npm run build, npm run test:frontend-page-governance, node scripts/check-navigation-shell-contract.mjs, node scripts/check-acceleration-workbench-contract.mjs, git diff --check, and python3 scripts/task_audit.py --check --phase pre-closeout passed; R-186 before screenshots .codex-log/harn-fe-002/before-desktop.png and before-narrow.png, after screenshots .codex-log/harn-fe-002/after-desktop.png and after-narrow.png; Codex visual self-review passed with no sidebar overlap, text overflow, or visual drift found.
+  - Residual risk: Reference pages remain available only outside production through runtime flags; broader page-title, breadcrumb, dashboard, history, recommendation, rewrite-record, and final reference-page copy cleanup remains in HARN-FE-003 through HARN-FE-008.
+  - Next step: Proceed to HARN-FE-003 to align page titles, breadcrumbs, summaries, and reference-page explanatory copy without changing backend/API/database semantics.
+
 ### HARN-FE-001A: 对齐前端核心菜单文档真值
 
 - Status: done

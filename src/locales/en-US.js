@@ -12,7 +12,8 @@ export default {
       main: 'main workflows',
       governanceHistory: 'governance history',
       governanceOps: 'governance ops',
-      temporary: 'temporary delivery'
+      temporary: 'temporary delivery',
+      reference: 'reference pages'
     },
     defaultEngine: 'Default engine',
     backupEngine: 'Backup engine',
@@ -2883,11 +2884,15 @@ export default {
   },
   navigation: {
     modules: {
-      dashboard: 'Dashboard',
+      dashboard: 'Overview',
       deliveryProgress: 'AI Delivery',
-      sqlQuery: 'SQL Query',
-      sqlHistory: 'SQL History',
-      parseAcceleration: 'Parsing and Acceleration',
+      sqlQuery: 'SQL Query Analysis',
+      sqlHistory: 'SQL History Search',
+      parseAcceleration: 'SQL Parse',
+      parseHistory: 'Parse History',
+      recommendations: 'Recommendation Results',
+      auxiliaryGovernance: 'Auxiliary Governance',
+      referencePages: 'Reference Pages',
       routing: 'Routing Governance',
       assets: 'Data Assets',
       benchmark: 'Benchmark Center',
@@ -2896,23 +2901,24 @@ export default {
     },
     sections: {
       datasourcesInterfaces: 'Datasources and interfaces',
+      auditTrace: 'Audit and trace',
       alertsRemediation: 'Alerts and remediation',
       runtimeGovernance: 'Runtime governance'
     },
     items: {
-      dashboardHome: 'Overview home',
+      dashboardHome: 'Core workflow overview',
       deliveryWorkbench: 'AI delivery workbench',
-      sqlWorkbench: 'SQL workbench',
-      historyList: 'History list',
+      sqlWorkbench: 'SQL query analysis',
+      historyList: 'SQL history search',
       repairEvidence: 'Repair evidence',
       auditForensics: 'Audit forensics',
-      sqlParse: 'SQL Parse',
+      sqlParse: 'Single SQL parse',
       accelerationGovernanceWorkbench: 'Acceleration governance workbench',
       parseStatistics: 'Parse statistics',
       batchParseCenter: 'Batch parse center',
-      parseHistorySearch: 'Parse history search',
-      accelerationRewriteCenter: 'Acceleration and rewrite center',
-      routingEvidence: 'Routing execution evidence',
+      parseHistorySearch: 'Parse history',
+      accelerationRewriteCenter: 'Recommendation results',
+      routingEvidence: 'Trace search',
       assetCatalog: 'Asset catalog',
       benchmarkWorkbench: 'Benchmark workbench',
       systemManagement: 'System management',
@@ -2923,7 +2929,8 @@ export default {
       openAccess: 'Open access'
     },
     badges: {
-      temporary: 'R&D'
+      temporary: 'R&D',
+      reference: 'Reference'
     }
   }
 }

@@ -12,7 +12,8 @@ export default {
       main: '主线业务',
       governanceHistory: '治理历史',
       governanceOps: '治理运维',
-      temporary: '临时交付'
+      temporary: '临时交付',
+      reference: '参考页面'
     },
     defaultEngine: '默认引擎',
     backupEngine: '备用引擎',
@@ -2867,11 +2868,15 @@ export default {
   },
   navigation: {
     modules: {
-      dashboard: '驾驶舱',
+      dashboard: '首页总览',
       deliveryProgress: 'AI 交付',
-      sqlQuery: 'SQL 查询',
-      sqlHistory: 'SQL 历史',
-      parseAcceleration: '解析与加速',
+      sqlQuery: 'SQL 查询分析',
+      sqlHistory: 'SQL 历史查询',
+      parseAcceleration: 'SQL 解析',
+      parseHistory: '解析历史',
+      recommendations: '推荐结果',
+      auxiliaryGovernance: '辅助治理',
+      referencePages: '参考页面',
       routing: '路由治理',
       assets: '数据资产',
       benchmark: '压测中心',
@@ -2880,23 +2885,24 @@ export default {
     },
     sections: {
       datasourcesInterfaces: '数据源与接口',
+      auditTrace: '审计与追踪',
       alertsRemediation: '告警与处置',
       runtimeGovernance: '运行治理'
     },
     items: {
-      dashboardHome: '总览首页',
+      dashboardHome: '核心链路总览',
       deliveryWorkbench: 'AI 交付工作台',
-      sqlWorkbench: '查询工作台',
-      historyList: '历史列表',
+      sqlWorkbench: 'SQL 查询分析',
+      historyList: 'SQL 历史查询',
       repairEvidence: '修复证据',
       auditForensics: '审计取证',
-      sqlParse: 'SQL 解析',
+      sqlParse: '单条 SQL 解析',
       accelerationGovernanceWorkbench: '加速治理工作台',
       parseStatistics: '解析统计',
       batchParseCenter: '批量解析中心',
-      parseHistorySearch: '解析历史查询',
-      accelerationRewriteCenter: '加速与改写中心',
-      routingEvidence: '路由执行证据',
+      parseHistorySearch: '解析历史',
+      accelerationRewriteCenter: '推荐结果',
+      routingEvidence: '追踪查询',
       assetCatalog: '资产目录',
       benchmarkWorkbench: '压测工作台',
       systemManagement: '系统管理',
@@ -2907,7 +2913,8 @@ export default {
       openAccess: '开放接入'
     },
     badges: {
-      temporary: '临时'
+      temporary: '临时',
+      reference: '参考'
     }
   }
 }

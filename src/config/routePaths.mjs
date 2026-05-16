@@ -109,9 +109,10 @@ export const APP_ROUTE_DEFINITIONS = [
     'AccelerationGovernanceWorkbench',
     'AccelerationGovernanceWorkbenchView',
     routeMeta({
-      module: 'parse-acceleration',
+      navGroup: 'reference',
+      module: 'reference-pages',
       submodule: 'governance-workbench',
-      pageKind: 'governance',
+      pageKind: 'reference',
       titleKey: 'accelerationGovernanceWorkbench.title',
       descriptionKey: 'accelerationGovernanceWorkbench.summary'
     })
@@ -422,7 +423,8 @@ const navItem = (routeKey, titleKey, menuLabel, extra = {}) => ({
   routeKey,
   titleKey,
   menuLabel,
-  badge: extra.badge
+  badge: extra.badge,
+  referencePage: Boolean(extra.referencePage)
 })
 
 export const NAVIGATION_TREE = [
@@ -432,13 +434,6 @@ export const NAVIGATION_TREE = [
     directItem: navItem('dashboard', 'dashboard.title', 'navigation.items.dashboardHome')
   },
   {
-    key: 'delivery-progress',
-    label: 'navigation.modules.deliveryProgress',
-    directItem: navItem('deliveryProgress', 'deliveryProgress.title', 'navigation.items.deliveryWorkbench', {
-      badge: 'navigation.badges.temporary'
-    })
-  },
-  {
     key: 'sql-query',
     label: 'navigation.modules.sqlQuery',
     directItem: navItem('sqlQuery', 'sqlQuery.title', 'navigation.items.sqlWorkbench')
@@ -446,47 +441,38 @@ export const NAVIGATION_TREE = [
   {
     key: 'sql-history',
     label: 'navigation.modules.sqlHistory',
-    items: [
-      navItem('sqlHistory', 'sqlHistory.title', 'navigation.items.historyList'),
-      navItem('repairEvidence', 'repairEvidence.title', 'navigation.items.repairEvidence'),
-      navItem('auditForensics', 'auditForensics.title', 'navigation.items.auditForensics')
-    ]
+    directItem: navItem('sqlHistory', 'sqlHistory.title', 'navigation.items.historyList')
   },
   {
     key: 'parse-acceleration',
     label: 'navigation.modules.parseAcceleration',
     items: [
       navItem('acceleration', 'acceleration.title', 'navigation.items.sqlParse'),
-      navItem('accelerationGovernanceWorkbench', 'accelerationGovernanceWorkbench.title', 'navigation.items.accelerationGovernanceWorkbench'),
-      navItem('parseStatisticsCenter', 'parseStatisticsCenter.title', 'navigation.items.parseStatistics'),
-      navItem('parseBatchCenter', 'acceleration.title', 'navigation.items.batchParseCenter'),
-      navItem('parseRecord', 'acceleration.title', 'navigation.items.parseHistorySearch'),
-      navItem('recommendationCenter', 'recommendationCenter.title', 'navigation.items.accelerationRewriteCenter')
+      navItem('parseBatchCenter', 'acceleration.title', 'navigation.items.batchParseCenter')
     ]
   },
   {
-    key: 'routing',
-    label: 'navigation.modules.routing',
-    directItem: navItem('routingGovernance', 'routingGovernance.title', 'navigation.items.routingEvidence')
+    key: 'parse-history',
+    label: 'navigation.modules.parseHistory',
+    directItem: navItem('parseRecord', 'parseRecord.title', 'navigation.items.parseHistorySearch')
   },
   {
-    key: 'assets',
-    label: 'navigation.modules.assets',
-    directItem: navItem('assetCatalog', 'assetCatalog.title', 'navigation.items.assetCatalog')
+    key: 'recommendations',
+    label: 'navigation.modules.recommendations',
+    directItem: navItem('recommendationCenter', 'recommendationCenter.title', 'navigation.items.accelerationRewriteCenter')
   },
   {
-    key: 'benchmark',
-    label: 'navigation.modules.benchmark',
-    directItem: navItem('benchmark', 'benchmark.title', 'navigation.items.benchmarkWorkbench')
-  },
-  {
-    key: 'system',
-    label: 'navigation.modules.system',
+    key: 'auxiliary-governance',
+    label: 'navigation.modules.auxiliaryGovernance',
     sections: [
       {
-        key: 'config',
-        label: 'navigation.sections.datasourcesInterfaces',
-        items: [navItem('system', 'system.title', 'navigation.items.systemManagement')]
+        key: 'audit-trace',
+        label: 'navigation.sections.auditTrace',
+        items: [
+          navItem('auditForensics', 'auditForensics.title', 'navigation.items.auditForensics'),
+          navItem('repairEvidence', 'repairEvidence.title', 'navigation.items.repairEvidence'),
+          navItem('routingGovernance', 'routingGovernance.title', 'navigation.items.routingEvidence')
+        ]
       },
       {
         key: 'alerts',
@@ -507,14 +493,70 @@ export const NAVIGATION_TREE = [
     ]
   },
   {
+    key: 'assets',
+    label: 'navigation.modules.assets',
+    directItem: navItem('assetCatalog', 'assetCatalog.title', 'navigation.items.assetCatalog')
+  },
+  {
+    key: 'benchmark',
+    label: 'navigation.modules.benchmark',
+    directItem: navItem('benchmark', 'benchmark.title', 'navigation.items.benchmarkWorkbench')
+  },
+  {
+    key: 'system',
+    label: 'navigation.modules.system',
+    directItem: navItem('system', 'system.title', 'navigation.items.systemManagement')
+  },
+  {
     key: 'access',
     label: 'navigation.modules.access',
     directItem: navItem('accessCenter', 'accessCenter.title', 'navigation.items.openAccess')
+  },
+  {
+    key: 'reference-pages',
+    label: 'navigation.modules.referencePages',
+    items: [
+      navItem('accelerationGovernanceWorkbench', 'accelerationGovernanceWorkbench.title', 'navigation.items.accelerationGovernanceWorkbench', {
+        badge: 'navigation.badges.reference',
+        referencePage: true
+      }),
+      navItem('deliveryProgress', 'deliveryProgress.title', 'navigation.items.deliveryWorkbench', {
+        badge: 'navigation.badges.temporary',
+        referencePage: true
+      })
+    ]
   }
 ]
 
-export const createNavigationTree = ({ includeDeliveryProgress = false } = {}) =>
-  includeDeliveryProgress ? NAVIGATION_TREE : NAVIGATION_TREE.filter(item => item.key !== 'delivery-progress')
+const navigationItemVisible = (item, { includeDeliveryProgress, includeReferencePages }) => {
+  if (item.routeKey === 'deliveryProgress') {
+    return includeReferencePages && includeDeliveryProgress
+  }
+  if (item.referencePage) {
+    return includeReferencePages
+  }
+  return true
+}
+
+const filterNavigationModule = (module, options) => {
+  if (module.directItem) {
+    return navigationItemVisible(module.directItem, options) ? module : null
+  }
+  if (Array.isArray(module.items)) {
+    const items = module.items.filter(item => navigationItemVisible(item, options))
+    return items.length > 0 ? { ...module, items } : null
+  }
+  const sections = module.sections
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => navigationItemVisible(item, options))
+    }))
+    .filter(section => section.items.length > 0)
+  return sections.length > 0 ? { ...module, sections } : null
+}
+
+export const createNavigationTree = ({ includeDeliveryProgress = false, includeReferencePages = false } = {}) =>
+  NAVIGATION_TREE.map(module => filterNavigationModule(module, { includeDeliveryProgress, includeReferencePages })).filter(Boolean)
 
 export const flattenNavigationItems = tree =>
   tree.flatMap(module => {

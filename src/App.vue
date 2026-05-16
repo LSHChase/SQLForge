@@ -8,7 +8,7 @@ import {
   createNavigationTree,
   findActiveNavigationItem
 } from './config/routePaths.mjs'
-import { deliveryProgressEnabled } from './config/runtimeFlags'
+import { deliveryProgressEnabled, referencePagesEnabled } from './config/runtimeFlags'
 import { useGlobalConfigStore, useTenantStore, useUserStore } from './stores'
 
 const route = useRoute()
@@ -26,7 +26,12 @@ const itemBadgeLabel = item => {
   return t(item.badge)
 }
 
-const navigationTree = computed(() => createNavigationTree({ includeDeliveryProgress: deliveryProgressEnabled }))
+const navigationTree = computed(() =>
+  createNavigationTree({
+    includeDeliveryProgress: deliveryProgressEnabled,
+    includeReferencePages: referencePagesEnabled
+  })
+)
 const activeNavItem = computed(() => findActiveNavigationItem(navigationTree.value, route))
 const activeMenuKey = computed(() => activeNavItem.value?.menuKey || buildNavigationKey(route.path, route.query))
 const defaultOpeneds = computed(() => activeNavItem.value?.defaultOpeneds || [])

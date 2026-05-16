@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs'
 import {
   APP_ROUTE_DEFINITIONS,
-  NAVIGATION_TREE,
-  ROUTE_PATHS
+  ROUTE_PATHS,
+  createNavigationTree,
+  findActiveNavigationItem,
+  flattenNavigationItems
 } from '../src/config/routePaths.mjs'
 
 const errors = []
@@ -26,13 +28,23 @@ const route = APP_ROUTE_DEFINITIONS.find(item => item.name === 'AccelerationGove
 check(ROUTE_PATHS.accelerationGovernanceWorkbench === '/governance/acceleration-workbench', 'Workbench route path drifted.')
 check(route?.path === ROUTE_PATHS.accelerationGovernanceWorkbench, 'Workbench route definition is missing.')
 check(route?.componentKey === 'AccelerationGovernanceWorkbenchView', 'Workbench route must render AccelerationGovernanceWorkbenchView.')
-check(route?.meta?.module === 'parse-acceleration', 'Workbench must stay under parse-acceleration navigation module.')
-check(route?.meta?.pageKind === 'governance', 'Workbench pageKind must remain governance.')
+check(route?.meta?.module === 'reference-pages', 'Workbench route meta must identify reference pages.')
+check(route?.meta?.navGroup === 'reference', 'Workbench navGroup must remain reference-only.')
+check(route?.meta?.pageKind === 'reference', 'Workbench pageKind must remain reference.')
 
-const parseModule = NAVIGATION_TREE.find(item => item.key === 'parse-acceleration')
+const defaultNavigationItems = flattenNavigationItems(createNavigationTree())
+const fullNavigationTree = createNavigationTree({ includeDeliveryProgress: true, includeReferencePages: true })
+const referenceWorkbenchItem = findActiveNavigationItem(fullNavigationTree, {
+  path: ROUTE_PATHS.accelerationGovernanceWorkbench,
+  query: {}
+})
 check(
-  parseModule?.items?.some(item => item.routeKey === 'accelerationGovernanceWorkbench'),
-  'Workbench is missing from parse-acceleration navigation.'
+  !defaultNavigationItems.some(item => item.routeKey === 'accelerationGovernanceWorkbench'),
+  'Workbench must not appear in the default formal navigation.'
+)
+check(
+  referenceWorkbenchItem?.moduleKey === 'reference-pages' && referenceWorkbenchItem?.badge === 'navigation.badges.reference',
+  'Workbench must be available only under the reference-pages navigation group when explicitly enabled.'
 )
 
 const requiredTokens = [
