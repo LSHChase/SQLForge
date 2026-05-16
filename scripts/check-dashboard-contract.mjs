@@ -5,39 +5,50 @@ const targets = [
     path: 'src/views/dashboard/DashboardView.vue',
     tokens: [
       'data-testid="dashboard-page"',
-      'data-testid="dashboard-kpi-card"',
+      'test-id="dashboard-kpi-card"',
       'data-testid="dashboard-workbench-entry"',
-      'data-testid="dashboard-health"',
+      'test-id="dashboard-health"',
       'data-testid="dashboard-health-card"',
-      'data-testid="dashboard-issue-distribution"',
-      'data-testid="dashboard-activity-stream"',
-      'data-testid="dashboard-next-steps"',
+      'test-id="dashboard-issue-distribution"',
+      'data-testid="dashboard-issue-distribution-empty"',
+      'test-id="dashboard-activity-stream"',
+      'data-testid="dashboard-activity-empty"',
+      'test-id="dashboard-next-steps"',
       'data-testid="dashboard-next-step-item"',
       'data-testid="dashboard-activity-item"',
-      "key: 'total-sql'",
-      "key: 'success-rate'",
-      "key: 'failure-rate'",
-      "key: 'cache-hit-rate'",
-      "key: 'rewrite-hit-rate'",
-      "key: 'acceleration-hit-rate'",
-      "key: 'issue-sql'",
+      'coreAttentionCount',
+      'auxiliarySignals',
+      "key: 'query-window'",
+      "key: 'parse-overview'",
+      "key: 'parse-history-window'",
       "key: 'important-urgent'",
-      "key: 'governance-backlog'",
-      "key: 'deep-recommendations'",
-      "key: 'coordination-mode'",
-      "key: 'open-alert-sample'",
-      "key: 'access-channel-sample'",
-      "key: 'route-engine-sample'",
+      "key: 'recommendation-results'",
+      "key: 'rewrite-records'",
+      "key: 'query'",
+      "key: 'history'",
+      "key: 'parse'",
+      "key: 'parse-history'",
+      "key: 'recommendations'",
+      "key: 'rewrite'",
       'path: ROUTE_PATHS.sqlQuery',
       'path: ROUTE_PATHS.acceleration',
       'path: ROUTE_PATHS.sqlHistory',
-      'path: ROUTE_PATHS.benchmark',
-      'path: ROUTE_PATHS.system',
+      'path: ROUTE_PATHS.parseRecord',
+      'path: ROUTE_PATHS.recommendationCenter',
       'query-history',
-      'dispatch events',
-      'message stats',
+      'parse-history',
+      'rewrite-records',
       'recommendations',
-      'frontend-dashboard-dispatch-contract'
+      'frontend-dashboard-dispatch-contract',
+      'frontend-dashboard-parse-history',
+      'frontend-dashboard-rewrite-records'
+    ],
+    forbiddenTokens: [
+      "key: 'benchmark'",
+      "key: 'system'",
+      'path: ROUTE_PATHS.benchmark',
+      'path: ROUTE_PATHS.alertCenter',
+      'frontend-dashboard-dispatch-events'
     ]
   },
   {
@@ -49,8 +60,9 @@ const targets = [
       'getGovernanceMessageStats',
       'getDispatchContract',
       'getGovernanceQueryHistoryPage',
-      'getDispatchEvents',
-      'getRecommendations'
+      'getRecommendations',
+      'getSqlParseHistoryPage',
+      'getSqlRewriteRecords'
     ]
   }
 ]
@@ -60,6 +72,11 @@ for (const target of targets) {
   for (const token of target.tokens) {
     if (!content.includes(token)) {
       throw new Error(`Missing token ${JSON.stringify(token)} in ${target.path}`)
+    }
+  }
+  for (const token of target.forbiddenTokens || []) {
+    if (content.includes(token)) {
+      throw new Error(`Forbidden token ${JSON.stringify(token)} in ${target.path}`)
     }
   }
 }

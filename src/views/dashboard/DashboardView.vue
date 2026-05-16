@@ -7,13 +7,14 @@ import { useTenantStore } from '../../stores'
 import {
   getDispatchContract,
   formatRuntimeError,
-  getDispatchEvents,
   getGovernanceMessageStats,
   getGovernanceQueryHistoryPage,
   getParseStatisticsByIssueScene,
   getParseStatisticsImportantUrgent,
   getParseStatisticsOverview,
-  getRecommendations
+  getRecommendations,
+  getSqlParseHistoryPage,
+  getSqlRewriteRecords
 } from '../../services/runtimeGateApi'
 import EvidencePanel from '../common/EvidencePanel.vue'
 import MetricCard from '../common/MetricCard.vue'
@@ -37,11 +38,13 @@ const importantUrgent = ref([])
 const messageStats = ref(null)
 const dispatchContract = ref(null)
 const queryHistoryPage = ref(null)
-const dispatchEvents = ref([])
 const recommendations = ref([])
+const parseHistoryPage = ref(null)
+const rewriteRecords = ref([])
 
 const isChinese = computed(() => locale.value === 'zh-CN')
 const historyItems = computed(() => queryHistoryPage.value?.items || [])
+const parseHistoryItems = computed(() => parseHistoryPage.value?.items || [])
 const accessCounts = computed(() => queryHistoryPage.value?.classificationSummary?.accessChannelCounts || {})
 const historyWindowStats = computed(() => {
   const stats = {
@@ -96,14 +99,56 @@ const recommendationStats = computed(() => {
   return stats
 })
 
-const dispatchFailures = computed(() =>
-  dispatchEvents.value.filter(item => String(item.status || '').toUpperCase() === 'FAILED')
-)
+const parseHistoryStats = computed(() => {
+  const stats = {
+    total: parseHistoryItems.value.length,
+    failed: 0,
+    partial: 0,
+    completed: 0
+  }
+  parseHistoryItems.value.forEach(item => {
+    const status = String(item.status || item.resultStatus || item.stage || '').toUpperCase()
+    if (['FAILED', 'FAIL', 'ERROR'].includes(status)) {
+      stats.failed += 1
+    } else if (['PARTIAL', 'PARTIAL_SUCCESS'].includes(status)) {
+      stats.partial += 1
+    } else if (['COMPLETED', 'SUCCESS', 'SUCCEEDED', 'DONE'].includes(status)) {
+      stats.completed += 1
+    }
+  })
+  return stats
+})
 
-const openRiskCount = computed(() => {
-  const failed = Number(messageStats.value?.failed || 0)
+const rewriteStats = computed(() => {
+  const stats = {
+    total: rewriteRecords.value.length,
+    attention: 0,
+    paused: 0,
+    validationRisk: 0
+  }
+  rewriteRecords.value.forEach(item => {
+    const validationStatus = String(item.validationStatus || item.rewriteValidationStatus || '').toUpperCase()
+    const publishStatus = String(item.publishStatus || item.runtimeRewriteStatus || '').toUpperCase()
+    const reviewStatus = String(item.reviewStatus || '').toUpperCase()
+    const paused = item.autoApplyPaused === true || ['PAUSED', 'SUSPENDED'].includes(publishStatus)
+    const validationRisk = ['FAILED', 'FAIL', 'DIVERGED', 'SQL_REWRITE_RESULT_DIVERGENCE'].includes(validationStatus)
+    const needsReview = ['PENDING', 'REVIEWING', 'REJECTED'].includes(reviewStatus)
+    if (paused) {
+      stats.paused += 1
+    }
+    if (validationRisk) {
+      stats.validationRisk += 1
+    }
+    if (paused || validationRisk || needsReview) {
+      stats.attention += 1
+    }
+  })
+  return stats
+})
+
+const coreAttentionCount = computed(() => {
   const urgent = importantUrgent.value.filter(item => item.urgent === true).length
-  return failed + urgent + dispatchFailures.value.length + recommendationStats.value.highRisk
+  return historyWindowStats.value.failure + parseHistoryStats.value.failed + urgent + recommendationStats.value.highRisk + rewriteStats.value.attention
 })
 
 const historyWindowRate = value =>
@@ -142,121 +187,54 @@ const overviewPills = computed(() => [
 
 const metricCards = computed(() => {
   const totalSqlCount = Number(overview.value?.totalSqlCount || 0)
-  const issueSqlCount = Number(overview.value?.issueSqlCount || 0)
-  const issueRate = totalSqlCount > 0 ? `${((issueSqlCount / totalSqlCount) * 100).toFixed(1)}%` : '0.0%'
-  const governanceBacklog = Number(messageStats.value?.pending || 0) + Number(messageStats.value?.failed || 0)
   return [
     {
-      key: 'total-sql',
+      key: 'query-window',
       label: t('inline.viewsDashboardDashboardView.text002'),
-      value: totalSqlCount,
-      trend: `${Number(overview.value?.issueSceneCount || 0)} scenes`,
+      value: historyWindowStats.value.total,
+      trend: historyWindowRate(historyWindowStats.value.success),
       detail: t('inline.viewsDashboardDashboardView.text003'),
-      tone: totalSqlCount > 0 ? 'success' : 'neutral'
-    },
-    {
-      key: 'success-rate',
-      label: t('inline.viewsDashboardDashboardView.text004'),
-      value: historyWindowRate(historyWindowStats.value.success),
-      trend: `${historyWindowStats.value.success}/${historyWindowStats.value.total || 0}`,
-      detail: t('inline.viewsDashboardDashboardView.text005'),
       tone: historyWindowStats.value.failure > 0 ? 'warning' : 'success'
     },
     {
-      key: 'failure-rate',
+      key: 'parse-overview',
+      label: t('inline.viewsDashboardDashboardView.text004'),
+      value: totalSqlCount,
+      trend: `${Number(overview.value?.issueSceneCount || 0)} scenes`,
+      detail: t('inline.viewsDashboardDashboardView.text005'),
+      tone: totalSqlCount > 0 ? 'success' : 'neutral'
+    },
+    {
+      key: 'parse-history-window',
       label: t('inline.viewsDashboardDashboardView.text006'),
-      value: historyWindowRate(historyWindowStats.value.failure),
-      trend: `${historyWindowStats.value.failure}/${historyWindowStats.value.total || 0}`,
+      value: parseHistoryStats.value.total,
+      trend: `${parseHistoryStats.value.failed} failed`,
       detail: t('inline.viewsDashboardDashboardView.text007'),
-      tone: historyWindowStats.value.failure > 0 ? 'danger' : 'success'
-    },
-    {
-      key: 'cache-hit-rate',
-      label: t('inline.viewsDashboardDashboardView.text008'),
-      value: historyWindowRate(historyWindowStats.value.cacheHit),
-      trend: `${historyWindowStats.value.cacheHit}/${historyWindowStats.value.total || 0}`,
-      detail: t('inline.viewsDashboardDashboardView.text009'),
-      tone: historyWindowStats.value.cacheHit > 0 ? 'success' : 'neutral'
-    },
-    {
-      key: 'rewrite-hit-rate',
-      label: t('inline.viewsDashboardDashboardView.text010'),
-      value: historyWindowRate(historyWindowStats.value.rewriteHit),
-      trend: `${historyWindowStats.value.rewriteHit}/${historyWindowStats.value.total || 0}`,
-      detail: t('inline.viewsDashboardDashboardView.text011'),
-      tone: historyWindowStats.value.rewriteHit > 0 ? 'success' : 'neutral'
-    },
-    {
-      key: 'acceleration-hit-rate',
-      label: t('inline.viewsDashboardDashboardView.text012'),
-      value: historyWindowRate(historyWindowStats.value.accelerationHit),
-      trend: `${historyWindowStats.value.accelerationHit}/${historyWindowStats.value.total || 0}`,
-      detail: t('inline.viewsDashboardDashboardView.text013'),
-      tone: historyWindowStats.value.accelerationHit > 0 ? 'success' : 'neutral'
-    },
-    {
-      key: 'issue-sql',
-      label: t('inline.viewsDashboardDashboardView.text014'),
-      value: issueSqlCount,
-      trend: issueRate,
-      detail: t('inline.viewsDashboardDashboardView.text015'),
-      tone: issueSqlCount > 0 ? 'warning' : 'success'
+      tone: parseHistoryStats.value.failed > 0 ? 'warning' : 'neutral'
     },
     {
       key: 'important-urgent',
-      label: t('inline.viewsDashboardDashboardView.text016'),
+      label: t('inline.viewsDashboardDashboardView.text008'),
       value: importantUrgent.value.length,
       trend: `${importantUrgent.value.filter(item => item.urgent === true).length} urgent`,
-      detail: t('inline.viewsDashboardDashboardView.text017'),
+      detail: t('inline.viewsDashboardDashboardView.text009'),
       tone: importantUrgent.value.length > 0 ? 'danger' : 'success'
     },
     {
-      key: 'governance-backlog',
-      label: t('inline.viewsDashboardDashboardView.text018'),
-      value: governanceBacklog,
-      trend: `${messageStats.value?.failed || 0} failed`,
-      detail: t('inline.viewsDashboardDashboardView.text019'),
-      tone: governanceBacklog > 0 ? 'warning' : 'success'
-    },
-    {
-      key: 'deep-recommendations',
-      label: t('inline.viewsDashboardDashboardView.text020'),
+      key: 'recommendation-results',
+      label: t('inline.viewsDashboardDashboardView.text010'),
       value: recommendationStats.value.total,
       trend: `${recommendationStats.value.dispatchReady} ready`,
-      detail: t('inline.viewsDashboardDashboardView.text021'),
+      detail: t('inline.viewsDashboardDashboardView.text011'),
       tone: recommendationStats.value.total > 0 ? 'success' : 'neutral'
     },
     {
-      key: 'coordination-mode',
-      label: t('inline.viewsDashboardDashboardView.text022'),
-      value: dispatchContract.value?.coordinationMode || 'PULL_ONLY',
-      trend: dispatchContract.value?.externalPullRequired === true ? 'external pull' : 'repo-side',
-      detail: t('inline.viewsDashboardDashboardView.text023'),
-      tone: 'neutral'
-    },
-    {
-      key: 'open-alert-sample',
-      label: t('inline.viewsDashboardDashboardView.text024'),
-      value: openRiskCount.value,
-      trend: `${dispatchFailures.value.length} dispatch failures`,
-      detail: t('inline.viewsDashboardDashboardView.text025'),
-      tone: openRiskCount.value > 0 ? 'danger' : 'success'
-    },
-    {
-      key: 'access-channel-sample',
-      label: t('inline.viewsDashboardDashboardView.text026'),
-      value: topAccessChannelSample.value.channel,
-      trend: `${topAccessChannelSample.value.count} hits`,
-      detail: t('inline.viewsDashboardDashboardView.text027'),
-      tone: topAccessChannelSample.value.count > 0 ? 'neutral' : 'warning'
-    },
-    {
-      key: 'route-engine-sample',
-      label: t('inline.viewsDashboardDashboardView.text028'),
-      value: topEngineSample.value.engine,
-      trend: `${topEngineSample.value.count} hits`,
-      detail: t('inline.viewsDashboardDashboardView.text029'),
-      tone: topEngineSample.value.count > 0 ? 'neutral' : 'warning'
+      key: 'rewrite-records',
+      label: t('inline.viewsDashboardDashboardView.text012'),
+      value: rewriteStats.value.total,
+      trend: `${rewriteStats.value.attention} attention`,
+      detail: t('inline.viewsDashboardDashboardView.text013'),
+      tone: rewriteStats.value.attention > 0 ? 'warning' : 'neutral'
     }
   ]
 })
@@ -264,83 +242,94 @@ const metricCards = computed(() => {
 const quickEntries = computed(() => [
   {
     key: 'query',
-    title: t('inline.viewsDashboardDashboardView.text030'),
-    description: t('inline.viewsDashboardDashboardView.text031'),
+    step: '01',
+    title: t('inline.viewsDashboardDashboardView.text014'),
+    description: t('inline.viewsDashboardDashboardView.text015'),
     status: isChinese.value ? `${historyItems.value.length} 条近期样本` : `${historyItems.value.length} recent samples`,
     path: ROUTE_PATHS.sqlQuery
   },
   {
-    key: 'parse',
-    title: t('inline.viewsDashboardDashboardView.text032'),
-    description: t('inline.viewsDashboardDashboardView.text033'),
-    status: isChinese.value ? `${Number(overview.value?.issueSceneCount || 0)} 个问题场景` : `${Number(overview.value?.issueSceneCount || 0)} issue scenes`,
-    path: {
-      path: ROUTE_PATHS.acceleration,
-      query: {
-        workspace: 'statistics',
-        analytics: 'issue'
-      }
-    }
-  },
-  {
     key: 'history',
-    title: t('inline.viewsDashboardDashboardView.text034'),
-    description: t('inline.viewsDashboardDashboardView.text035'),
+    step: '02',
+    title: t('inline.viewsDashboardDashboardView.text016'),
+    description: t('inline.viewsDashboardDashboardView.text017'),
     status: isChinese.value ? `${Number(queryHistoryPage.value?.classificationSummary?.totalItems || 0)} 条窗口记录` : `${Number(queryHistoryPage.value?.classificationSummary?.totalItems || 0)} windowed rows`,
     path: ROUTE_PATHS.sqlHistory
   },
   {
-    key: 'benchmark',
-    title: t('inline.viewsDashboardDashboardView.text036'),
-    description: t('inline.viewsDashboardDashboardView.text037'),
-    status: t('inline.viewsDashboardDashboardView.text038'),
-    path: ROUTE_PATHS.benchmark
+    key: 'parse',
+    step: '03',
+    title: t('inline.viewsDashboardDashboardView.text018'),
+    description: t('inline.viewsDashboardDashboardView.text019'),
+    status: isChinese.value ? `${Number(overview.value?.issueSceneCount || 0)} 个问题场景` : `${Number(overview.value?.issueSceneCount || 0)} issue scenes`,
+    path: ROUTE_PATHS.acceleration
   },
   {
-    key: 'system',
-    title: t('inline.viewsDashboardDashboardView.text039'),
-    description: t('inline.viewsDashboardDashboardView.text040'),
-    status: isChinese.value ? `${messageStats.value?.failed || 0} 条失败消息` : `${messageStats.value?.failed || 0} failed messages`,
-    path: ROUTE_PATHS.system
+    key: 'parse-history',
+    step: '04',
+    title: t('inline.viewsDashboardDashboardView.text020'),
+    description: t('inline.viewsDashboardDashboardView.text021'),
+    status: isChinese.value ? `${parseHistoryStats.value.total} 条解析样本` : `${parseHistoryStats.value.total} parse samples`,
+    path: ROUTE_PATHS.parseRecord
+  },
+  {
+    key: 'recommendations',
+    step: '05',
+    title: t('inline.viewsDashboardDashboardView.text022'),
+    description: t('inline.viewsDashboardDashboardView.text023'),
+    status: isChinese.value ? `${recommendationStats.value.total} 条推荐结果` : `${recommendationStats.value.total} recommendation results`,
+    path: ROUTE_PATHS.recommendationCenter
+  },
+  {
+    key: 'rewrite',
+    step: '06',
+    title: t('inline.viewsDashboardDashboardView.text024'),
+    description: t('inline.viewsDashboardDashboardView.text025'),
+    status: isChinese.value ? `${rewriteStats.value.total} 条改写记录样本` : `${rewriteStats.value.total} rewrite-record samples`,
+    path: ROUTE_PATHS.recommendationCenter
   }
 ])
 
-const healthCards = computed(() => [
+const auxiliarySignals = computed(() => [
   {
-    key: 'risk-open',
-    title: t('inline.viewsDashboardDashboardView.text041'),
-    value: openRiskCount.value,
-    detail: t('inline.viewsDashboardDashboardView.text042'),
-    tone: openRiskCount.value > 0 ? 'danger' : 'success',
-    path: ROUTE_PATHS.alertCenter,
-    actionLabel: t('inline.viewsDashboardDashboardView.text043')
-  },
-  {
-    key: 'dispatch-ready',
-    title: t('inline.viewsDashboardDashboardView.text044'),
-    value: recommendationStats.value.dispatchReady,
-    detail: t('inline.viewsDashboardDashboardView.text045'),
-    tone: recommendationStats.value.dispatchReady > 0 ? 'warning' : 'neutral',
-    path: ROUTE_PATHS.recommendationCenter,
-    actionLabel: t('inline.viewsDashboardDashboardView.text046')
-  },
-  {
-    key: 'history-health',
-    title: t('inline.viewsDashboardDashboardView.text047'),
-    value: Object.keys(accessCounts.value).length,
-    detail: t('inline.viewsDashboardDashboardView.text048'),
-    tone: Object.keys(accessCounts.value).length > 0 ? 'neutral' : 'warning',
-    path: ROUTE_PATHS.sqlHistory,
-    actionLabel: t('inline.viewsDashboardDashboardView.text049')
-  },
-  {
-    key: 'benchmark-evidence',
-    title: t('inline.viewsDashboardDashboardView.text050'),
-    value: t('inline.viewsDashboardDashboardView.text051'),
-    detail: t('inline.viewsDashboardDashboardView.text052'),
+    key: 'coordination-mode',
+    title: t('inline.viewsDashboardDashboardView.text026'),
+    value: dispatchContract.value?.coordinationMode || 'PULL_ONLY',
+    detail: t('inline.viewsDashboardDashboardView.text027'),
     tone: 'neutral',
-    path: ROUTE_PATHS.benchmark,
-    actionLabel: t('inline.viewsDashboardDashboardView.text053')
+    path: ROUTE_PATHS.recommendationCenter,
+    actionLabel: t('inline.viewsDashboardDashboardView.text028')
+  },
+  {
+    key: 'access-channel-sample',
+    title: t('inline.viewsDashboardDashboardView.text029'),
+    value: topAccessChannelSample.value.channel,
+    detail: isChinese.value
+      ? `${topAccessChannelSample.value.count} 条 query-history 窗口命中`
+      : `${topAccessChannelSample.value.count} query-history window hits`,
+    tone: topAccessChannelSample.value.count > 0 ? 'neutral' : 'warning',
+    path: ROUTE_PATHS.sqlHistory,
+    actionLabel: t('inline.viewsDashboardDashboardView.text030')
+  },
+  {
+    key: 'route-engine-sample',
+    title: t('inline.viewsDashboardDashboardView.text031'),
+    value: topEngineSample.value.engine,
+    detail: isChinese.value
+      ? `${topEngineSample.value.count} 条 query-history 窗口命中`
+      : `${topEngineSample.value.count} query-history window hits`,
+    tone: topEngineSample.value.count > 0 ? 'neutral' : 'warning',
+    path: ROUTE_PATHS.sqlHistory,
+    actionLabel: t('inline.viewsDashboardDashboardView.text030')
+  },
+  {
+    key: 'governance-message-boundary',
+    title: t('inline.viewsDashboardDashboardView.text032'),
+    value: Number(messageStats.value?.pending || 0) + Number(messageStats.value?.failed || 0),
+    detail: t('inline.viewsDashboardDashboardView.text033'),
+    tone: Number(messageStats.value?.failed || 0) > 0 ? 'warning' : 'neutral',
+    path: ROUTE_PATHS.system,
+    actionLabel: t('inline.viewsDashboardDashboardView.text034')
   }
 ])
 
@@ -364,6 +353,12 @@ const dashboardEvidenceRows = computed(() => [
     detail: t('dashboard.evidenceRows.messageStats.detail')
   },
   {
+    key: 'rewrite-records',
+    label: t('dashboard.evidenceRows.rewriteRecords.label'),
+    value: rewriteStats.value.total,
+    detail: t('dashboard.evidenceRows.rewriteRecords.detail')
+  },
+  {
     key: 'dispatch-mode',
     label: t('dashboard.evidenceRows.dispatchMode.label'),
     value: dispatchContract.value?.coordinationMode || 'PULL_ONLY',
@@ -384,36 +379,47 @@ const issueDistributionCards = computed(() =>
 
 const nextStepItems = computed(() => {
   const items = []
-  if (Number(messageStats.value?.failed || 0) > 0) {
+  if (historyWindowStats.value.failure > 0) {
     items.push({
-      key: 'failed-messages',
+      key: 'failed-query-window',
       tone: 'danger',
-      title: t('inline.viewsDashboardDashboardView.text054'),
+      title: t('inline.viewsDashboardDashboardView.text035'),
       description: isChinese.value
-        ? `当前 failed=${messageStats.value?.failed || 0}，先进入系统管理确认 retry 影响面。`
-        : `Current failed=${messageStats.value?.failed || 0}; verify retry scope from system management first.`,
-      path: ROUTE_PATHS.system
+        ? `当前查询窗口 failed=${historyWindowStats.value.failure}，先从 SQL 历史查询回看原 SQL、绑定后 SQL 与关联解析。`
+        : `Current query window has failed=${historyWindowStats.value.failure}; inspect SQL history, bound SQL, and parse refs first.`,
+      path: ROUTE_PATHS.sqlHistory
     })
   }
-  if (dispatchFailures.value.length > 0) {
+  if (parseHistoryStats.value.failed > 0) {
     items.push({
-      key: 'dispatch-failures',
+      key: 'failed-parse-history',
       tone: 'warning',
-      title: t('inline.viewsDashboardDashboardView.text055'),
+      title: t('inline.viewsDashboardDashboardView.text036'),
       description: isChinese.value
-        ? `${dispatchFailures.value.length} 条 dispatch event 失败或待修复。`
-        : `${dispatchFailures.value.length} dispatch events failed or need follow-up.`,
+        ? `${parseHistoryStats.value.failed} 条解析历史样本失败，优先查看失败原因、问题场景与逻辑对象。`
+        : `${parseHistoryStats.value.failed} parse-history samples failed; inspect failure reason, issue scene, and logical objects.`,
+      path: ROUTE_PATHS.parseRecord
+    })
+  }
+  if (recommendationStats.value.total > 0) {
+    items.push({
+      key: 'recommendation-results',
+      tone: recommendationStats.value.highRisk > 0 ? 'warning' : 'neutral',
+      title: t('inline.viewsDashboardDashboardView.text037'),
+      description: isChinese.value
+        ? `${recommendationStats.value.total} 条推荐结果可复核收益、风险、SQL diff 与规则链。`
+        : `${recommendationStats.value.total} recommendation results can be reviewed for benefit, risk, SQL diff, and rule chain.`,
       path: ROUTE_PATHS.recommendationCenter
     })
   }
-  if (recommendationStats.value.dispatchReady > 0) {
+  if (rewriteStats.value.attention > 0) {
     items.push({
-      key: 'dispatch-ready',
+      key: 'rewrite-record-attention',
       tone: 'warning',
-      title: t('inline.viewsDashboardDashboardView.text056'),
+      title: t('inline.viewsDashboardDashboardView.text038'),
       description: isChinese.value
-        ? `${recommendationStats.value.dispatchReady} 条 recommendation 已到 dispatch-ready。`
-        : `${recommendationStats.value.dispatchReady} recommendations are already dispatch-ready.`,
+        ? `${rewriteStats.value.attention} 条改写记录样本需要关注 review、publish、paused 或 validation 状态。`
+        : `${rewriteStats.value.attention} rewrite-record samples need review, publish, paused, or validation attention.`,
       path: ROUTE_PATHS.recommendationCenter
     })
   }
@@ -421,7 +427,7 @@ const nextStepItems = computed(() => {
     items.push({
       key: `important-${index}`,
       tone: item.urgent ? 'danger' : 'neutral',
-      title: t('inline.viewsDashboardDashboardView.text057'),
+      title: t('inline.viewsDashboardDashboardView.text039'),
       description: `${item.reportCode || '-'} · ${item.highestPriorityLevel || '-'} · ${Number(item.issueCount || 0)} issues`,
       path: {
         path: ROUTE_PATHS.acceleration,
@@ -436,9 +442,9 @@ const nextStepItems = computed(() => {
     items.push({
       key: 'no-open-items',
       tone: 'success',
-      title: t('inline.viewsDashboardDashboardView.text058'),
-      description: t('inline.viewsDashboardDashboardView.text059'),
-      path: ROUTE_PATHS.acceleration
+      title: t('inline.viewsDashboardDashboardView.text040'),
+      description: t('inline.viewsDashboardDashboardView.text041'),
+      path: ROUTE_PATHS.sqlQuery
     })
   }
   return items.slice(0, 5)
@@ -447,23 +453,41 @@ const nextStepItems = computed(() => {
 const activityItems = computed(() => {
   const historyActivities = historyItems.value.map(item => ({
     key: `history-${item.historyId}`,
-    type: t('inline.viewsDashboardDashboardView.text060'),
+    type: t('inline.viewsDashboardDashboardView.text042'),
     target: item.reportCode || item.datasourceCode || item.traceId || item.historyId,
     status: item.resultStatus || 'UNKNOWN',
     time: formatTimestamp(item.submittedAt),
     path: ROUTE_PATHS.sqlHistory,
     sortValue: toEpoch(item.submittedAt)
   }))
-  const dispatchActivities = dispatchEvents.value.map(item => ({
-    key: `dispatch-${item.dispatchEventId || item.recommendationId || item.reportCode || `${item.status || 'UNKNOWN'}-${resolveDispatchTime(item)}`}`,
-    type: t('inline.viewsDashboardDashboardView.text061'),
-    target: item.reportCode || item.dispatchEventId || item.recommendationId || '-',
-    status: item.status || 'UNKNOWN',
-    time: formatTimestamp(resolveDispatchTime(item)),
-    path: ROUTE_PATHS.recommendationCenter,
-    sortValue: toEpoch(resolveDispatchTime(item))
+  const parseActivities = parseHistoryItems.value.map(item => ({
+    key: `parse-${item.parseHistoryId || item.parseTaskId || item.historyId || item.sqlFingerprint}`,
+    type: t('inline.viewsDashboardDashboardView.text043'),
+    target: item.reportCode || item.parseTaskId || item.parseHistoryId || item.sqlFingerprint || '-',
+    status: item.status || item.resultStatus || item.stage || 'UNKNOWN',
+    time: formatTimestamp(item.submittedAt || item.completedAt || item.createdAt),
+    path: ROUTE_PATHS.parseRecord,
+    sortValue: toEpoch(item.submittedAt || item.completedAt || item.createdAt)
   }))
-  return [...historyActivities, ...dispatchActivities]
+  const recommendationActivities = recommendations.value.slice(0, 4).map(item => ({
+    key: `recommendation-${item.recommendationId || item.sqlFingerprint || item.summary}`,
+    type: t('inline.viewsDashboardDashboardView.text044'),
+    target: item.recommendationId || item.reportCode || item.sqlFingerprint || '-',
+    status: item.status || item.riskLevel || 'UNKNOWN',
+    time: formatTimestamp(item.updatedAt || item.createdAt || item.generatedAt),
+    path: ROUTE_PATHS.recommendationCenter,
+    sortValue: toEpoch(item.updatedAt || item.createdAt || item.generatedAt)
+  }))
+  const rewriteActivities = rewriteRecords.value.slice(0, 4).map(item => ({
+    key: `rewrite-${item.rewriteRecordId || item.recommendationId || item.sqlFingerprint}`,
+    type: t('inline.viewsDashboardDashboardView.text045'),
+    target: item.rewriteRecordId || item.recommendationId || item.sqlFingerprint || '-',
+    status: item.validationStatus || item.publishStatus || item.reviewStatus || 'UNKNOWN',
+    time: formatTimestamp(item.updatedAt || item.lastComparedAt || item.createdAt),
+    path: ROUTE_PATHS.recommendationCenter,
+    sortValue: toEpoch(item.updatedAt || item.lastComparedAt || item.createdAt)
+  }))
+  return [...historyActivities, ...parseActivities, ...recommendationActivities, ...rewriteActivities]
     .sort((left, right) => right.sortValue - left.sortValue)
     .slice(0, 8)
 })
@@ -480,8 +504,9 @@ const loadDashboardEvidence = async () => {
       nextMessageStats,
       nextDispatchContract,
       nextQueryHistoryPage,
-      nextDispatchEvents,
-      nextRecommendations
+      nextRecommendations,
+      nextParseHistoryPage,
+      nextRewriteRecords
     ] = await Promise.all([
       getParseStatisticsOverview(tenantId, { requestPrefix: 'frontend-dashboard-overview' }),
       getParseStatisticsByIssueScene(tenantId, { requestPrefix: 'frontend-dashboard-issue-scene' }),
@@ -501,8 +526,21 @@ const loadDashboardEvidence = async () => {
           requestPrefix: 'frontend-dashboard-query-history'
         }
       ),
-      getDispatchEvents(tenantId, '', { requestPrefix: 'frontend-dashboard-dispatch-events' }),
-      getRecommendations(tenantId, { requestPrefix: 'frontend-dashboard-recommendations' })
+      getRecommendations(tenantId, { requestPrefix: 'frontend-dashboard-recommendations' }),
+      getSqlParseHistoryPage(
+        {
+          tenantId,
+          requestTenantId: tenantId,
+          pageNo: 1,
+          pageSize: 6,
+          sortBy: 'submittedAt',
+          sortOrder: 'DESC'
+        },
+        {
+          requestPrefix: 'frontend-dashboard-parse-history'
+        }
+      ),
+      getSqlRewriteRecords(tenantId, {}, { requestPrefix: 'frontend-dashboard-rewrite-records' })
     ])
     overview.value = nextOverview
     issueScenes.value = Array.isArray(nextIssueScenes) ? nextIssueScenes : []
@@ -510,8 +548,9 @@ const loadDashboardEvidence = async () => {
     messageStats.value = nextMessageStats
     dispatchContract.value = nextDispatchContract
     queryHistoryPage.value = nextQueryHistoryPage
-    dispatchEvents.value = Array.isArray(nextDispatchEvents) ? nextDispatchEvents : []
     recommendations.value = Array.isArray(nextRecommendations) ? nextRecommendations : []
+    parseHistoryPage.value = nextParseHistoryPage
+    rewriteRecords.value = Array.isArray(nextRewriteRecords) ? nextRewriteRecords : []
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
   } finally {
@@ -521,10 +560,6 @@ const loadDashboardEvidence = async () => {
 
 const goTo = path => {
   router.push(path)
-}
-
-function resolveDispatchTime(item) {
-  return item.updatedAt || item.dispatchedAt || item.occurredAt || item.createdAt || ''
 }
 
 function toEpoch(value) {
@@ -577,10 +612,10 @@ onMounted(() => {
       <template #aside>
         <ToolbarShell class="dashboard-focus-shell" :eyebrow="t('dashboard.operatorFocusEyebrow')" density="compact">
           <div class="hero-signal">
-            <span class="hero-signal-value">{{ openRiskCount }}</span>
+            <span class="hero-signal-value">{{ coreAttentionCount }}</span>
             <div>
-              <h2>{{ t('dashboard.openRisksTitle') }}</h2>
-              <p>{{ t('dashboard.openRisksSummary') }}</p>
+              <h2>{{ t('dashboard.coreAttentionTitle') }}</h2>
+              <p>{{ t('dashboard.coreAttentionSummary') }}</p>
             </div>
           </div>
           <label class="field-label">
@@ -630,7 +665,7 @@ onMounted(() => {
           class="entry-card"
           data-testid="dashboard-workbench-entry"
         >
-          <p class="entry-label sqlforge-code-label">{{ entry.title }}</p>
+          <p class="entry-label sqlforge-code-label">{{ entry.step }}</p>
           <h3 class="entry-title">{{ entry.title }}</h3>
           <p class="entry-description">{{ entry.description }}</p>
           <p class="entry-status">{{ entry.status }}</p>
@@ -643,13 +678,14 @@ onMounted(() => {
 
     <EvidencePanel
       class="dashboard-section"
-      eyebrow="health & risk"
-      :title="t('dashboard.platformHealthRiskTitle')"
+      eyebrow="boundary evidence"
+      :title="t('dashboard.auxiliarySignalsTitle')"
+      :summary="t('dashboard.auxiliarySignalsSummary')"
       test-id="dashboard-health"
     >
       <div class="health-grid">
         <article
-          v-for="card in healthCards"
+          v-for="card in auxiliarySignals"
           :key="card.key"
           class="health-card"
           :class="`health-card-${card.tone}`"
@@ -695,7 +731,7 @@ onMounted(() => {
         :title="t('dashboard.issueDistributionTitle')"
         test-id="dashboard-issue-distribution"
       >
-        <div class="distribution-grid">
+        <div v-if="issueDistributionCards.length" class="distribution-grid">
           <article
             v-for="item in issueDistributionCards"
             :key="item.key"
@@ -706,6 +742,9 @@ onMounted(() => {
             <p class="distribution-description">{{ item.description }}</p>
           </article>
         </div>
+        <p v-else class="empty-state" data-testid="dashboard-issue-distribution-empty">
+          {{ t('inline.viewsDashboardDashboardView.text048') }}
+        </p>
       </EvidencePanel>
 
       <EvidencePanel
@@ -715,7 +754,7 @@ onMounted(() => {
         :title="t('dashboard.recentActivityTitle')"
         test-id="dashboard-activity-stream"
       >
-        <div class="activity-list">
+        <div v-if="activityItems.length" class="activity-list">
           <article
             v-for="item in activityItems"
             :key="item.key"
@@ -729,10 +768,13 @@ onMounted(() => {
             </div>
             <div class="activity-meta">
               <span class="activity-time">{{ item.time }}</span>
-              <button class="link-button" @click="goTo(item.path)">{{ t('inline.viewsDashboardDashboardView.text063') }}</button>
+              <button class="link-button" @click="goTo(item.path)">{{ t('inline.viewsDashboardDashboardView.text046') }}</button>
             </div>
           </article>
         </div>
+        <p v-else class="empty-state" data-testid="dashboard-activity-empty">
+          {{ t('inline.viewsDashboardDashboardView.text049') }}
+        </p>
       </EvidencePanel>
     </section>
 
@@ -755,7 +797,7 @@ onMounted(() => {
             <p class="todo-description">{{ item.description }}</p>
           </div>
           <button class="link-button" @click="goTo(item.path)">
-            {{ t('inline.viewsDashboardDashboardView.text064') }}
+            {{ t('inline.viewsDashboardDashboardView.text047') }}
           </button>
         </article>
       </div>
@@ -833,7 +875,8 @@ onMounted(() => {
 .metric-detail,
 .entry-description,
 .entry-status,
-.activity-status {
+.activity-status,
+.empty-state {
   margin: 0;
   color: var(--sqlforge-text-secondary);
   line-height: 1.6;

@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-FE-004: 首页总览聚焦核心链路
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `feat(frontend): refocus dashboard core workflow`
+- Priority: 1
+- Depends on: N/A
+- Scope: 改造 Dashboard 的入口排序和首屏信息权重，只突出核心 SQL 工作流摘要和入口；继续使用现有 repo-side 证据、样本或静态摘要，不新增后端聚合接口，不改数据库，不改变推荐、改写、审批、发布或自动应用业务语义；同步 Dashboard contract 与必要 i18n 文案，保留 sample/window/session/PULL_ONLY 事实边界。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-FE-004`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Refocused Dashboard first-screen hierarchy around the core SQL workflow: query analysis, SQL history, single-SQL parse, parse history, recommendation results, and rewrite-record/history summaries; consumed existing query-history, parse-statistics, parse-history, recommendation, rewrite-record, governance-message, and dispatch-contract evidence only; downgraded auxiliary governance signals to boundary evidence and updated Dashboard i18n plus contract guards without backend/API/database semantic changes.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-FE-004 --include-task-audit --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'npm run test:frontend-page-governance' --extra-command 'node scripts/check-dashboard-contract.mjs' --extra-command 'git diff --check' passed; after screenshots captured at .codex-log/harn-fe-004/after-desktop.png and after-narrow.png with no overlap or text overflow observed.
+  - Residual risk: Dashboard still uses current API/window samples and PULL_ONLY boundary facts only; no global tenant KPI or dedicated rewrite-history route was introduced.
+  - Next step: Proceed to HARN-FE-005 to strengthen SQL history and parse history association paths.
+
 ### HARN-FE-003: 统一 i18n 文案与页面标题
 
 - Status: done
