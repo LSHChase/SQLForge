@@ -367,7 +367,7 @@ class SqlOptimizationPipelineServiceTest {
                 return entry;
             }
         }
-        assertNotNull(null, "Expected rule " + rule);
+        assertNotNull(null, "缺少预期规则：" + rule);
         return null;
     }
 

@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-CODE-RULES-FIX-20260516: 修复中文化门禁前三项缺口
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `chore: harden Chinese developer copy gates USER-CN-CODE-RULES-FIX-20260516`
+- Priority: 1
+- Depends on: USER-CN-CODE-RULES-20260516
+- Scope: 修复中文化规则落地复核发现的前三项问题：脚本 help/error/print/echo 检查必须真实覆盖并显式管理历史存量；规则/文档/检查器变更必须自动触发 --all；Java JUnit 断言失败消息必须纳入中文化检查。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-CODE-RULES-FIX-20260516`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复中文化门禁前三项缺口：脚本 help/error/print/echo 检测、治理变更触发 --all、Java 断言失败消息扫描与当前基线整改。
+  - Validation evidence: foreman validate USER-CN-CODE-RULES-FIX-20260516 通过；node scripts/check-developer-copy-language.mjs --changed/--all 通过；node scripts/lint-repository-knowledge.js 通过；JDK 8u112 定向 Maven 测试通过。
+  - Residual risk: 无已知残余风险；脚本英文输出历史存量已由 developer-copy-language-script-legacy-baseline.json 登记，后续触达继续降低。
+  - Next step: 继续按 R-187 至 R-190 阻断新增纯英文开发者可读文本。
+
 ### USER-CN-CODE-RULES-20260516: 中文化编码规范治理落地
 
 - Status: done

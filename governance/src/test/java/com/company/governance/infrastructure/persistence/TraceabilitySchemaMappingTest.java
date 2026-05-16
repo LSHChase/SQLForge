@@ -182,7 +182,7 @@ class TraceabilitySchemaMappingTest {
 
     private static String readMapper(String resourcePath) throws IOException {
         InputStream inputStream = TraceabilitySchemaMappingTest.class.getClassLoader().getResourceAsStream(resourcePath);
-        assertNotNull(inputStream, "missing mapper resource: " + resourcePath);
+        assertNotNull(inputStream, "缺少 mapper 资源：" + resourcePath);
         try (InputStream stream = inputStream) {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             byte[] buffer = new byte[1024];
@@ -208,10 +208,10 @@ class TraceabilitySchemaMappingTest {
     }
 
     private static void assertContains(String content, String expected) {
-        assertTrue(content.contains(expected), "missing expected fragment: " + expected);
+        assertTrue(content.contains(expected), "缺少预期片段：" + expected);
     }
 
     private static void assertNotContains(String content, String unexpected) {
-        assertTrue(!content.contains(unexpected), "unexpected fragment present: " + unexpected);
+        assertTrue(!content.contains(unexpected), "出现了不应存在的片段：" + unexpected);
     }
 }

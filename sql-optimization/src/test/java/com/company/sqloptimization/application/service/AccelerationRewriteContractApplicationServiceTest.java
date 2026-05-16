@@ -278,7 +278,7 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals("PENDING_REVIEW", updated.getReviewStatus());
         assertEquals("UNPUBLISHED", updated.getPublishStatus());
         assertEquals(1, runs.size());
-        assertFalse(enumContainsActive(), "rewrite record status must not expose ACTIVE in HARN-128");
+        assertFalse(enumContainsActive(), "rewrite record status 在 HARN-128 中不得暴露 ACTIVE");
         assertEquals(2, digestClient.getRequestCount());
     }
 

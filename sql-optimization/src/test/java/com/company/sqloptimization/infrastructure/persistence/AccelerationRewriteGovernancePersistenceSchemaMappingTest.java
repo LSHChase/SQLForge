@@ -50,14 +50,14 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         assertContains(migration, "idx_acc_candidate_source");
         assertContains(migration, "idx_rewrite_record_source");
         assertContains(migration, "idx_validation_run_rewrite_started");
-        assertFalse(migration.toUpperCase().contains("FOREIGN KEY"), "migration must not add physical foreign keys");
+        assertFalse(migration.toUpperCase().contains("FOREIGN KEY"), "migration 不得新增物理外键约束");
         assertContains(reviewPublishMigration, "ADD COLUMN review_status VARCHAR(32) NOT NULL DEFAULT 'PENDING_REVIEW'");
         assertContains(reviewPublishMigration, "ADD COLUMN publish_status VARCHAR(32) NOT NULL DEFAULT 'UNPUBLISHED'");
         assertContains(reviewPublishMigration, "ADD COLUMN runtime_binding_id VARCHAR(64) DEFAULT NULL");
         assertContains(reviewPublishMigration, "ADD COLUMN runtime_rule_version VARCHAR(64) DEFAULT NULL");
         assertFalse(
             reviewPublishMigration.toUpperCase().contains("FOREIGN KEY"),
-            "review/publish migration must not add physical foreign keys"
+            "review/publish migration 不得新增物理外键约束"
         );
     }
 
@@ -82,16 +82,16 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         assertContains(validationMapper, "FROM rewrite_validation_run");
         assertContains(validationMapper, "auto_apply_paused");
         assertContains(validationMapper, "ORDER BY started_at DESC");
-        assertFalse(candidateMapper.contains("${"), "candidate mapper must use bound parameters");
-        assertFalse(rewriteMapper.contains("${"), "rewrite mapper must use bound parameters");
-        assertFalse(validationMapper.contains("${"), "validation mapper must use bound parameters");
+        assertFalse(candidateMapper.contains("${"), "candidate mapper 必须使用绑定参数");
+        assertFalse(rewriteMapper.contains("${"), "rewrite mapper 必须使用绑定参数");
+        assertFalse(validationMapper.contains("${"), "validation mapper 必须使用绑定参数");
     }
 
     private static String readMapper(String resourcePath) throws IOException {
         InputStream inputStream =
             AccelerationRewriteGovernancePersistenceSchemaMappingTest.class.getClassLoader()
                 .getResourceAsStream(resourcePath);
-        assertNotNull(inputStream, "missing mapper resource: " + resourcePath);
+        assertNotNull(inputStream, "缺少 mapper 资源：" + resourcePath);
         try (InputStream stream = inputStream) {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             byte[] buffer = new byte[1024];
@@ -117,6 +117,6 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
     }
 
     private static void assertContains(String content, String expected) {
-        assertTrue(content.contains(expected), "missing expected fragment: " + expected);
+        assertTrue(content.contains(expected), "缺少预期片段：" + expected);
     }
 }

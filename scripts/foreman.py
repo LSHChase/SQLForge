@@ -833,6 +833,18 @@ DEVELOPER_COPY_VALIDATE_PATTERN = re.compile(
     r"scripts/.*\.(py|sh|mjs|js)"
     r")$"
 )
+DEVELOPER_COPY_ALL_VALIDATE_PATTERN = re.compile(
+    r"^("
+    r"docs/rules/codex-rules\.md|"
+    r"docs/quality/validation-rules\.md|"
+    r"docs/plans/task-spec-matrix\.md|"
+    r"docs/references/human-constraint-history\.md|"
+    r"docs/quality/developer-copy-language-script-legacy-baseline\.json|"
+    r"scripts/check-developer-copy-language\.mjs|"
+    r"scripts/lint-repository-knowledge\.js|"
+    r"scripts/foreman\.py"
+    r")$"
+)
 
 
 def validation_changed_paths() -> List[str]:
@@ -856,6 +868,10 @@ def developer_copy_validation_touched() -> bool:
     return any(DEVELOPER_COPY_VALIDATE_PATTERN.match(path) for path in validation_changed_paths())
 
 
+def developer_copy_all_validation_touched() -> bool:
+    return any(DEVELOPER_COPY_ALL_VALIDATE_PATTERN.match(path) for path in validation_changed_paths())
+
+
 def command_validate(args: argparse.Namespace) -> int:
     hook_files = sorted(str(path.relative_to(ROOT)) for path in (CODEX_DIR / "hooks").glob("*.py"))
     commands: List[tuple[List[str], str]] = [
@@ -875,7 +891,9 @@ def command_validate(args: argparse.Namespace) -> int:
                 (["npm", "run", "test:frontend-page-governance"], "`R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186`"),
             ]
         )
-    if developer_copy_validation_touched():
+    if developer_copy_all_validation_touched():
+        commands.append((["node", "scripts/check-developer-copy-language.mjs", "--all"], "`R-187`, `R-188`, `R-189`, `R-190`"))
+    elif developer_copy_validation_touched():
         commands.append((["node", "scripts/check-developer-copy-language.mjs", "--changed"], "`R-187`, `R-188`, `R-189`, `R-190`"))
     commands.extend(TASK_VALIDATION_COMMANDS.get(args.task, []))
     if args.include_task_audit:

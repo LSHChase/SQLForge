@@ -970,6 +970,7 @@ messaging:
   - SQL DDL 与迁移脚本中的 `COMMENT` 文案
   - 仓库自研脚本中的注释、help、error、usage、print / echo 说明文本
 - 修改上述范围时，不得新增纯英文人类说明句；已有纯英文说明句应在触达文件时一并中文化，或按 `R-189` 记录允许保留原因。
+- 仓库自研脚本中既有纯英文 help / error / print / echo 存量必须登记在 `docs/quality/developer-copy-language-script-legacy-baseline.json`；新增或超过登记预算的纯英文说明必须阻断验证，触达文件时应优先降低存量。
 - 本规则不要求翻译前端 `src/locales/en-US.js`，该文件继续作为英文 locale 事实来源。
 
 ### R-188 标识符与协议值禁止翻译
@@ -992,7 +993,7 @@ messaging:
 
 - 涉及 Java 后端、SQL、mapper/resources、DB schema helper、仓库自研脚本或开发者 / 操作者可读文本的任务，必须执行中文化检查。
 - `foreman validate` 检测到相关变更时，必须自动追加 `node scripts/check-developer-copy-language.mjs --changed`，并把证据归入 `R-187` 至 `R-190`。
-- 规则、文档或检查器自身变更时，必须至少执行 `node scripts/check-developer-copy-language.mjs --all`、`node scripts/lint-repository-knowledge.js` 和任务标准验证。
+- 规则、文档、检查器自身、foreman 接线或脚本英文存量基线变更时，必须至少执行 `node scripts/check-developer-copy-language.mjs --all`、`node scripts/lint-repository-knowledge.js` 和任务标准验证。
 - 中文化检查失败必须阻断 closeout；不得通过跳过检查、改名规避扫描或删除可读文本来规避治理。
 
 ## Current Consumption Note (2026-04-20)

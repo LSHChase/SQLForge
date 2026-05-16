@@ -38,7 +38,7 @@ class RuntimeRewriteBindingPersistenceSchemaMappingTest {
         assertContains(migration, "运行时改写绑定状态：ACTIVE/PAUSED/UNPUBLISHED");
         assertContains(migration, "UNIQUE KEY uk_runtime_rewrite_active_binding (active_binding_key)");
         assertContains(migration, "KEY idx_runtime_rewrite_tenant_fingerprint");
-        assertFalse(migration.toUpperCase().contains("FOREIGN KEY"), "migration must not add physical foreign keys");
+        assertFalse(migration.toUpperCase().contains("FOREIGN KEY"), "migration 不得新增物理外键约束");
     }
 
     @Test
@@ -50,14 +50,14 @@ class RuntimeRewriteBindingPersistenceSchemaMappingTest {
         assertContains(mapper, "AND status = 'ACTIVE'");
         assertContains(mapper, "ORDER BY rule_version DESC, created_at DESC");
         assertContains(mapper, "runtime_rule_version");
-        assertFalse(mapper.contains("${"), "runtime rewrite binding mapper must use bound parameters");
+        assertFalse(mapper.contains("${"), "runtime rewrite binding mapper 必须使用绑定参数");
     }
 
     private static String readMapper(String resourcePath) throws IOException {
         InputStream inputStream =
             RuntimeRewriteBindingPersistenceSchemaMappingTest.class.getClassLoader()
                 .getResourceAsStream(resourcePath);
-        assertNotNull(inputStream, "missing mapper resource: " + resourcePath);
+        assertNotNull(inputStream, "缺少 mapper 资源：" + resourcePath);
         try (InputStream stream = inputStream) {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             byte[] buffer = new byte[1024];
@@ -83,6 +83,6 @@ class RuntimeRewriteBindingPersistenceSchemaMappingTest {
     }
 
     private static void assertContains(String content, String expected) {
-        assertTrue(content.contains(expected), "missing expected fragment: " + expected);
+        assertTrue(content.contains(expected), "缺少预期片段：" + expected);
     }
 }

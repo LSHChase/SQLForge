@@ -28,7 +28,7 @@ class ParseRuntimeBinaryCompatibilityTest {
         assertEquals(0, constructors[0].getParameterTypes().length);
         assertTrue(constructors[0].getDeclaringClass().getName().endsWith("$ReportSourceRow"));
         for (Method method : rowClass.getDeclaredMethods()) {
-            assertTrue(!method.getName().startsWith("access$"), "ReportSourceRow should not require synthetic access bridges");
+            assertTrue(!method.getName().startsWith("access$"), "ReportSourceRow 不应依赖 synthetic access bridge");
         }
     }
 }

@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
 const root = path.resolve(path.dirname(__filename), '..')
+const legacyScriptOutputBaselineRelativePath = 'docs/quality/developer-copy-language-script-legacy-baseline.json'
+const legacyScriptOutputBaselinePath = path.join(root, legacyScriptOutputBaselineRelativePath)
 
 const mode = process.argv.includes('--all') ? 'all' : process.argv.includes('--changed') ? 'changed' : ''
 
@@ -274,6 +276,14 @@ function runGit(args) {
   }
 }
 
+function runGitText(args) {
+  try {
+    return execFileSync('git', args, { cwd: root, encoding: 'utf8' })
+  } catch {
+    return ''
+  }
+}
+
 function unique(items) {
   return Array.from(new Set(items)).sort()
 }
@@ -338,6 +348,63 @@ function targetFiles() {
   return walk(root).filter(relativePath => classify(relativePath))
 }
 
+const changedLineNumbersByFile = new Map()
+
+function changedLineNumbers(relativePath) {
+  if (mode !== 'changed') {
+    return null
+  }
+  if (changedLineNumbersByFile.has(relativePath)) {
+    return changedLineNumbersByFile.get(relativePath)
+  }
+  const untracked = runGit(['ls-files', '--others', '--exclude-standard', '--', relativePath]).includes(relativePath)
+  if (untracked) {
+    const content = fs.readFileSync(path.join(root, relativePath), 'utf8')
+    const allLines = new Set(content.split(/\r?\n/).map((_, index) => index + 1))
+    changedLineNumbersByFile.set(relativePath, allLines)
+    return allLines
+  }
+
+  const added = new Set()
+  for (const args of [
+    ['diff', '--unified=0', '--', relativePath],
+    ['diff', '--cached', '--unified=0', '--', relativePath]
+  ]) {
+    const output = runGitText(args)
+    let newLine = 0
+    for (const rawLine of output.split(/\r?\n/)) {
+      const hunk = rawLine.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/)
+      if (hunk) {
+        newLine = Number(hunk[1])
+        continue
+      }
+      if (rawLine.startsWith('+++') || rawLine.startsWith('---') || rawLine.startsWith('diff --git')) {
+        continue
+      }
+      if (rawLine.startsWith('+')) {
+        if (newLine > 0) {
+          added.add(newLine)
+        }
+        newLine += 1
+        continue
+      }
+      if (!rawLine.startsWith('-') && newLine > 0) {
+        newLine += 1
+      }
+    }
+  }
+  changedLineNumbersByFile.set(relativePath, added)
+  return added
+}
+
+function lineInScope(relativePath, lineNumber) {
+  if (mode === 'all') {
+    return true
+  }
+  const lines = changedLineNumbers(relativePath)
+  return lines && lines.has(lineNumber)
+}
+
 function hasChinese(value) {
   return /[\u3400-\u9fff]/.test(value)
 }
@@ -371,7 +438,7 @@ function nonTechnicalWords(value) {
   return words.filter(word => !allowedTechnicalWords.has(word.toLowerCase()))
 }
 
-function isAllowedPureEnglish(value) {
+function isAllowedPureEnglish(value, options = {}) {
   const trimmed = value.trim()
   if (!trimmed || exactAllowedEnglish.has(trimmed)) {
     return true
@@ -385,32 +452,160 @@ function isAllowedPureEnglish(value) {
   if (/^[a-zA-Z_$][\w$]*(?:\.[a-zA-Z_$][\w$]*)*$/.test(trimmed)) {
     return true
   }
-  if (/^[./\w:-]+(?:\s+[./\w:=-]+)*$/.test(trimmed) && !/[.!?]$/.test(trimmed)) {
+  const allowLooseIdentifierPhrase = options.allowLooseIdentifierPhrase !== false
+  if (allowLooseIdentifierPhrase && /^[./\w:-]+(?:\s+[./\w:=-]+)*$/.test(trimmed) && !/[.!?]$/.test(trimmed)) {
     return true
   }
   return false
 }
 
-function needsChinese(value, threshold) {
+function needsChinese(value, threshold, options = {}) {
   const trimmed = value.trim()
-  if (!trimmed || hasChinese(trimmed) || isAllowedPureEnglish(trimmed)) {
+  if (!trimmed || hasChinese(trimmed) || isAllowedPureEnglish(trimmed, options)) {
     return false
   }
   return nonTechnicalWords(trimmed).length >= threshold
 }
 
-function addIssue(errors, relativePath, lineNumber, kind, value, words) {
-  const suffix = words.length > 0 ? `；英文词：${words.slice(0, 6).join(', ')}` : ''
-  errors.push(`${relativePath}:${lineNumber} ${kind} 应使用中文或进入 allowlist：${value.trim()}${suffix}`)
+function addIssue(errors, relativePath, lineNumber, kind, value, words, category = kind) {
+  if (!lineInScope(relativePath, lineNumber)) {
+    return
+  }
+  errors.push({
+    relativePath,
+    lineNumber,
+    kind,
+    value: value.trim(),
+    words,
+    category
+  })
+}
+
+function formatIssue(issue) {
+  const suffix = issue.words.length > 0 ? `；英文词：${issue.words.slice(0, 6).join(', ')}` : ''
+  return `${issue.relativePath}:${issue.lineNumber} ${issue.kind} 应使用中文或进入 allowlist：${issue.value}${suffix}`
 }
 
 function extractStringLiterals(line) {
+  return extractStringLiteralsWithOffsets(line).map(item => item.value)
+}
+
+function extractStringLiteralsWithOffsets(line) {
   const literals = []
   const pattern = /(["'`])((?:\\.|(?!\1)[\s\S])*?)\1/g
   for (const match of line.matchAll(pattern)) {
-    literals.push(match[2])
+    literals.push({ value: match[2], index: match.index })
   }
   return literals
+}
+
+function splitTopLevelArgumentRanges(value) {
+  const args = []
+  let current = ''
+  let argumentStart = 0
+  let depth = 0
+  let quote = ''
+  let escaped = false
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index]
+    if (quote) {
+      current += char
+      if (escaped) {
+        escaped = false
+      } else if (char === '\\') {
+        escaped = true
+      } else if (char === quote) {
+        quote = ''
+      }
+      continue
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char
+      current += char
+      continue
+    }
+    if (char === '(' || char === '[' || char === '{') {
+      depth += 1
+      current += char
+      continue
+    }
+    if (char === ')' || char === ']' || char === '}') {
+      depth = Math.max(0, depth - 1)
+      current += char
+      continue
+    }
+    if (char === ',' && depth === 0) {
+      if (current.trim()) {
+        args.push({ raw: current, start: argumentStart })
+      }
+      current = ''
+      argumentStart = index + 1
+      continue
+    }
+    current += char
+  }
+  if (current.trim()) {
+    args.push({ raw: current, start: argumentStart })
+  }
+  return args
+}
+
+function lineNumberForOffset(value, startLineNumber, offset) {
+  const prefix = value.slice(0, offset)
+  return startLineNumber + (prefix.match(/\n/g) || []).length
+}
+
+const assertionMinimumArgumentsBeforeMessage = new Map([
+  ['assertTrue', 1],
+  ['assertFalse', 1],
+  ['assertNull', 1],
+  ['assertNotNull', 1],
+  ['assertEquals', 2],
+  ['assertNotEquals', 2],
+  ['assertSame', 2],
+  ['assertNotSame', 2],
+  ['assertArrayEquals', 2],
+  ['assertIterableEquals', 2],
+  ['assertLinesMatch', 2],
+  ['assertThrows', 2],
+  ['assertDoesNotThrow', 1]
+])
+
+function checkJavaAssertionMessage(relativePath, lineNumber, statement, errors) {
+  const match = statement.match(/\b(assertTrue|assertFalse|assertNull|assertNotNull|assertEquals|assertNotEquals|assertSame|assertNotSame|assertArrayEquals|assertIterableEquals|assertLinesMatch|assertThrows|assertDoesNotThrow)\s*\(/)
+  if (!match) {
+    return
+  }
+  const openIndex = statement.indexOf('(', match.index)
+  const closeIndex = statement.lastIndexOf(')')
+  if (openIndex === -1 || closeIndex <= openIndex) {
+    return
+  }
+  const argumentText = statement.slice(openIndex + 1, closeIndex)
+  const args = splitTopLevelArgumentRanges(argumentText)
+  const minimum = assertionMinimumArgumentsBeforeMessage.get(match[1])
+  if (!minimum || args.length <= minimum) {
+    return
+  }
+  const messageArgument = args[args.length - 1]
+  for (const literal of extractStringLiteralsWithOffsets(messageArgument.raw)) {
+    const literalLineNumber = lineNumberForOffset(
+      statement,
+      lineNumber,
+      openIndex + 1 + messageArgument.start + literal.index
+    )
+    if (needsChinese(literal.value, 2, { allowLooseIdentifierPhrase: false })) {
+      addIssue(
+        errors,
+        relativePath,
+        literalLineNumber,
+        'Java 断言失败消息',
+        literal.value,
+        nonTechnicalWords(literal.value),
+        'java-assertion-message'
+      )
+    }
+  }
 }
 
 function countChar(line, char) {
@@ -455,6 +650,7 @@ function scanJava(relativePath, content, errors) {
   const lines = content.split(/\r?\n/)
   let inBlockComment = false
   let activeHumanStringContext = false
+  let activeAssertionStatement = null
   let parenDepth = 0
 
   lines.forEach((line, index) => {
@@ -480,11 +676,35 @@ function scanJava(relativePath, content, errors) {
       return
     }
 
+    if (activeAssertionStatement) {
+      activeAssertionStatement.statement += `\n${line}`
+      activeAssertionStatement.depth += countChar(line, '(') - countChar(line, ')')
+      if (activeAssertionStatement.depth <= 0) {
+        checkJavaAssertionMessage(
+          relativePath,
+          activeAssertionStatement.startLineNumber,
+          activeAssertionStatement.statement,
+          errors
+        )
+        activeAssertionStatement = null
+      }
+    } else if (/\b(assertTrue|assertFalse|assertNull|assertNotNull|assertEquals|assertNotEquals|assertSame|assertNotSame|assertArrayEquals|assertIterableEquals|assertLinesMatch|assertThrows|assertDoesNotThrow)\s*\(/.test(line)) {
+      activeAssertionStatement = {
+        startLineNumber: lineNumber,
+        statement: line,
+        depth: countChar(line, '(') - countChar(line, ')')
+      }
+      if (activeAssertionStatement.depth <= 0) {
+        checkJavaAssertionMessage(relativePath, lineNumber, line, errors)
+        activeAssertionStatement = null
+      }
+    }
+
     const contextStarted =
       /\b(?:LOGGER|log|logger)\s*\.\s*(?:trace|debug|info|warn|error)\s*\(/.test(line) ||
       /\bthrow\s+new\s+\w*(?:Exception|Error)\s*\(/.test(line) ||
       /\bnew\s+\w*(?:Exception|Error)\s*\(/.test(line) ||
-      /\b(?:fail|assertThrows)\s*\(/.test(line) ||
+      /\bfail\s*\(/.test(line) ||
       /\bnew\s+AssertionError\s*\(/.test(line) ||
       /\bmessage\s*=\s*"/.test(line) ||
       /\b(?:setMessage|setMsg)\s*\(/.test(line) ||
@@ -500,7 +720,7 @@ function scanJava(relativePath, content, errors) {
     if (activeHumanStringContext) {
       for (const literal of extractStringLiterals(line)) {
         if (needsChinese(literal, 2)) {
-          addIssue(errors, relativePath, lineNumber, 'Java 可读字符串', literal, nonTechnicalWords(literal))
+          addIssue(errors, relativePath, lineNumber, 'Java 可读字符串', literal, nonTechnicalWords(literal), 'java-human-string')
         }
       }
       parenDepth += countChar(line, '(') - countChar(line, ')')
@@ -517,7 +737,7 @@ function scanSqlComments(relativePath, content, errors) {
     for (const match of line.matchAll(/\bCOMMENT\s+'((?:''|[^'])*)'/gi)) {
       const value = match[1].replace(/''/g, "'")
       if (needsChinese(value, 2)) {
-        addIssue(errors, relativePath, index + 1, 'SQL COMMENT', value, nonTechnicalWords(value))
+        addIssue(errors, relativePath, index + 1, 'SQL COMMENT', value, nonTechnicalWords(value), 'sql-comment')
       }
     }
   })
@@ -564,15 +784,22 @@ function scanScript(relativePath, content, errors) {
     for (const match of line.matchAll(/\bCOMMENT\s+'((?:''|[^'])*)'/gi)) {
       const value = match[1].replace(/''/g, "'")
       if (needsChinese(value, 2)) {
-        addIssue(errors, relativePath, lineNumber, '脚本内 SQL COMMENT', value, nonTechnicalWords(value))
+        addIssue(errors, relativePath, lineNumber, '脚本内 SQL COMMENT', value, nonTechnicalWords(value), 'script-sql-comment')
       }
     }
 
-    // 历史脚本中存在大量英文 CLI 诊断输出；本轮先阻断注释和 DDL COMMENT 回退。
-    if (relativePath === 'scripts/check-developer-copy-language.mjs' && isScriptHumanStringLine(line)) {
+    if (isScriptHumanStringLine(line)) {
       for (const literal of extractStringLiterals(line)) {
-        if (needsChinese(literal, 3)) {
-          addIssue(errors, relativePath, lineNumber, '脚本可读字符串', literal, nonTechnicalWords(literal))
+        if (needsChinese(literal, 3, { allowLooseIdentifierPhrase: false })) {
+          addIssue(
+            errors,
+            relativePath,
+            lineNumber,
+            '脚本可读字符串',
+            literal,
+            nonTechnicalWords(literal),
+            'script-human-string'
+          )
         }
       }
     }
@@ -591,15 +818,65 @@ function scanFile(relativePath, errors) {
   }
 }
 
+function loadLegacyScriptOutputBaseline() {
+  if (!fs.existsSync(legacyScriptOutputBaselinePath)) {
+    return { maxIssuesByFile: {} }
+  }
+  return JSON.parse(fs.readFileSync(legacyScriptOutputBaselinePath, 'utf8'))
+}
+
+function isLegacyScriptOutputIssue(issue) {
+  return issue.category === 'script-human-string'
+}
+
+function countLegacyScriptOutputIssues(issues) {
+  const counts = new Map()
+  for (const issue of issues.filter(isLegacyScriptOutputIssue)) {
+    counts.set(issue.relativePath, (counts.get(issue.relativePath) || 0) + 1)
+  }
+  return counts
+}
+
+function validateLegacyScriptOutputDebt(issues, errors) {
+  if (mode !== 'all') {
+    return { issueCount: 0, fileCount: 0 }
+  }
+  const baseline = loadLegacyScriptOutputBaseline()
+  const allowedByFile = baseline.maxIssuesByFile || {}
+  const counts = countLegacyScriptOutputIssues(issues)
+  for (const [relativePath, count] of counts.entries()) {
+    const allowed = allowedByFile[relativePath] || 0
+    if (count > allowed) {
+      errors.push(
+        `${relativePath} 新增或超出脚本英文 help/error/print/echo 存量：当前 ${count} 条，baseline 允许 ${allowed} 条。`
+      )
+    }
+  }
+  return {
+    issueCount: Array.from(counts.values()).reduce((sum, count) => sum + count, 0),
+    fileCount: counts.size
+  }
+}
+
 const files = targetFiles()
-const errors = []
+const issues = []
 
-files.forEach(relativePath => scanFile(relativePath, errors))
+files.forEach(relativePath => scanFile(relativePath, issues))
 
-if (errors.length > 0) {
+const validationErrors = []
+const legacyScriptOutputDebt = validateLegacyScriptOutputDebt(issues, validationErrors)
+const blockingIssues = issues.filter(issue => !(mode === 'all' && isLegacyScriptOutputIssue(issue)))
+
+if (validationErrors.length > 0 || blockingIssues.length > 0) {
   console.error('开发者可读文本中文化检查失败：')
-  errors.forEach(error => console.error(`- ${error}`))
+  validationErrors.forEach(error => console.error(`- ${error}`))
+  blockingIssues.forEach(issue => console.error(`- ${formatIssue(issue)}`))
   process.exit(1)
 }
 
+if (mode === 'all' && legacyScriptOutputDebt.issueCount > 0) {
+  console.log(
+    `脚本英文 help/error/print/echo 历史存量已按 ${legacyScriptOutputBaselineRelativePath} 登记（${legacyScriptOutputDebt.fileCount} 个文件，${legacyScriptOutputDebt.issueCount} 条）`
+  )
+}
 console.log(`开发者可读文本中文化检查通过（${mode}，${files.length} 个文件）`)

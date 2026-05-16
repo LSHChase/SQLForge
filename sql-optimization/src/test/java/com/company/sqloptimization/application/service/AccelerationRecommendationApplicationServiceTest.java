@@ -116,7 +116,7 @@ class AccelerationRecommendationApplicationServiceTest {
         assertEquals("TEXT_DIFF_READY_AST_WARNING", diff.getDiffStatus());
         assertEquals(Boolean.TRUE, diff.getDiffSummary().get("textDiffReady"));
         assertEquals("DISPLAY_ONLY_NOT_SEMANTIC_PROOF", diff.getDiffSummary().get("evidenceBoundary"));
-        assertFalse(enumContainsExecuted(), "RecommendationStatus must not expose an executed state");
+        assertFalse(enumContainsExecuted(), "RecommendationStatus 不得暴露已执行状态");
     }
 
     @Test

@@ -665,9 +665,10 @@ function ensureDeveloperCopyLanguageGovernance(errors, checks) {
   const validationRulesPath = 'docs/quality/validation-rules.md'
   const taskSpecPath = 'docs/plans/task-spec-matrix.md'
   const historyPath = 'docs/references/human-constraint-history.md'
+  const legacyBaselinePath = 'docs/quality/developer-copy-language-script-legacy-baseline.json'
   const checkerPath = 'scripts/check-developer-copy-language.mjs'
   const foremanPath = 'scripts/foreman.py'
-  const missingFiles = [rulesPath, validationRulesPath, taskSpecPath, historyPath, checkerPath, foremanPath].filter(item => !pathExists(item))
+  const missingFiles = [rulesPath, validationRulesPath, taskSpecPath, historyPath, legacyBaselinePath, checkerPath, foremanPath].filter(item => !pathExists(item))
   if (missingFiles.length > 0) {
     errors.push(`Developer copy language governance files missing:\n- ${missingFiles.join('\n- ')}`)
     return
@@ -679,6 +680,7 @@ function ensureDeveloperCopyLanguageGovernance(errors, checks) {
     'R-188 标识符与协议值禁止翻译',
     'R-189 术语统一与允许例外',
     'R-190 中文化自动验证门禁',
+    'docs/quality/developer-copy-language-script-legacy-baseline.json',
     'src/locales/en-US.js'
   ]
   const missingRuleMarkers = ruleMarkers.filter(marker => !rulesContent.includes(marker))
@@ -694,7 +696,8 @@ function ensureDeveloperCopyLanguageGovernance(errors, checks) {
     'R-189 技术术语与例外 allowlist 验证',
     'R-190 中文化自动门禁验证',
     'node scripts/check-developer-copy-language.mjs --changed',
-    'node scripts/check-developer-copy-language.mjs --all'
+    'node scripts/check-developer-copy-language.mjs --all',
+    'docs/quality/developer-copy-language-script-legacy-baseline.json'
   ]
   const missingValidationMarkers = validationMarkers.filter(marker => !validationContent.includes(marker))
   if (missingValidationMarkers.length > 0) {
@@ -728,6 +731,10 @@ function ensureDeveloperCopyLanguageGovernance(errors, checks) {
     'COMMENT',
     'LOGGER',
     'setMessage',
+    'checkJavaAssertionMessage',
+    'script-human-string',
+    'legacyScriptOutputBaselineRelativePath',
+    'allowLooseIdentifierPhrase',
     'src/locales/en-US.js'
   ]
   const missingCheckerMarkers = checkerMarkers.filter(marker => !checkerContent.includes(marker))
@@ -739,8 +746,11 @@ function ensureDeveloperCopyLanguageGovernance(errors, checks) {
   const foremanContent = readFile(foremanPath)
   const foremanMarkers = [
     'DEVELOPER_COPY_VALIDATE_PATTERN',
+    'DEVELOPER_COPY_ALL_VALIDATE_PATTERN',
     'developer_copy_validation_touched',
+    'developer_copy_all_validation_touched',
     'scripts/check-developer-copy-language.mjs',
+    '--all',
     '`R-187`, `R-188`, `R-189`, `R-190`'
   ]
   const missingForemanMarkers = foremanMarkers.filter(marker => !foremanContent.includes(marker))
