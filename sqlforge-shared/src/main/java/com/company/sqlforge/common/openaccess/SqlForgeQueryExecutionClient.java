@@ -13,7 +13,7 @@ import org.springframework.web.client.RestTemplate;
 
 public class SqlForgeQueryExecutionClient {
 
-    private static final String QUERY_ROUTE_UNAVAILABLE_MESSAGE = "SQLForge query-execution route is unavailable";
+    private static final String QUERY_ROUTE_UNAVAILABLE_MESSAGE = "SQLForge 查询执行路由不可用";
 
     private final RestTemplate restTemplate;
     private final OpenAccessHttpClientProperties properties;
@@ -71,7 +71,7 @@ public class SqlForgeQueryExecutionClient {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "open-access baseUrl is not configured"
+                "开放接入 baseUrl 未配置"
             );
         }
         return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;

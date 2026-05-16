@@ -1,4 +1,4 @@
 /**
- * Messaging abstraction contracts for governance.
+ * 治理侧消息抽象契约。
  */
 package com.company.governance.domain.messaging;

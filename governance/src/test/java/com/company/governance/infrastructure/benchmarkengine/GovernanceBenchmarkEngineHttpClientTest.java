@@ -92,7 +92,7 @@ class GovernanceBenchmarkEngineHttpClientTest {
         BizException exception = assertThrows(BizException.class, () -> client.operateArtifact(request));
 
         assertEquals(ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID, exception.getCode());
-        assertEquals("Benchmark-engine artifact operation route is unavailable", exception.getMessage());
+        assertEquals("压测引擎产物操作路由不可用", exception.getMessage());
     }
 
     private GovernanceBenchmarkEngineProperties properties() {

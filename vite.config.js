@@ -74,10 +74,8 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: isPortableBuild ? 'dist-portable' : 'dist',
       target: 'es2015',
-      // After lazy-loading routes and replacing full-library Element Plus install with
-      // explicit component registration, the remaining large shared UI runtime stabilizes
-      // around ~785 kB minified. Use a repo-specific threshold so build warnings only fire
-      // when the bundle regresses materially beyond the current measured baseline.
+      // 路由懒加载并改为按组件注册 Element Plus 后，剩余共享 UI 运行时稳定在
+      // 约 785 kB 压缩体积。这里使用仓库专属阈值，只在 bundle 明显退化时触发告警。
       chunkSizeWarningLimit: 800,
       rollupOptions: {
         output: {

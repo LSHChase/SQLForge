@@ -77,7 +77,7 @@ public class MessagingConfig {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "Kafka messaging mode requires enabled bootstrap servers configuration"
+                "Kafka 消息模式需要启用 bootstrap servers 配置"
             );
         }
         String securityProtocol = StringUtils.hasText(kafkaProperties.getSecurityProtocol())
@@ -87,7 +87,7 @@ public class MessagingConfig {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "Kafka messaging mode requires a supported security protocol"
+                "Kafka 消息模式需要受支持的安全协议"
             );
         }
         if ((securityProtocol.startsWith("SASL_"))
@@ -96,7 +96,7 @@ public class MessagingConfig {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "Kafka SASL mode requires mechanism and JAAS configuration"
+                "Kafka SASL 模式需要配置 mechanism 与 JAAS"
             );
         }
         if ((securityProtocol.contains("SSL"))
@@ -105,7 +105,7 @@ public class MessagingConfig {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "Kafka SSL mode requires truststore location and password"
+                "Kafka SSL 模式需要配置 truststore 路径和密码"
             );
         }
     }

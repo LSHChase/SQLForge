@@ -122,11 +122,11 @@ public class ParseBatchApplicationService {
     public ParseBatchStatusResponse ingestBatch(String batchId, ParseBatchIngestRequest request) {
         ParseBatch batch = requireBatch(batchId);
         if (!parseBatchItemRepository.findByBatchId(batch.getBatchId()).isEmpty()) {
-            throw invalidArgument("batchId", "Parse batch has already been ingested");
+            throw invalidArgument("batchId", "解析批次已完成导入");
         }
         List<ImportedBatchRow> rows = parseRows(batch, request);
         if (rows.isEmpty()) {
-            throw invalidArgument("contentBase64", "No parseable records were found in the uploaded payload");
+            throw invalidArgument("contentBase64", "上传载荷中未找到可解析记录");
         }
 
         Instant now = Instant.now();
@@ -240,7 +240,7 @@ public class ParseBatchApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SQL_OPTIMIZATION_TASK_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Parse batch does not exist for batchId=" + batchId
+                "解析批次不存在，batchId=" + batchId
             );
         }
         verifyTenantAccess(batch.getTenantId());
@@ -824,31 +824,31 @@ public class ParseBatchApplicationService {
     private List<ParseBatchTemplateColumnVO> resolveTemplateColumns(ParseBatchImportMode importMode) {
         List<ParseBatchTemplateColumnVO> columns = new ArrayList<ParseBatchTemplateColumnVO>();
         if (importMode == ParseBatchImportMode.SQL_FILE) {
-            columns.add(templateColumn("sql_text", "SQL Text", Boolean.TRUE, "Single SQL or multi-SQL file payload."));
-            columns.add(templateColumn("datasource", "Datasource", Boolean.FALSE, "Optional datasource override for SQL file entries."));
+            columns.add(templateColumn("sql_text", "SQL 文本", Boolean.TRUE, "单条 SQL 或多 SQL 文件载荷。"));
+            columns.add(templateColumn("datasource", "数据源", Boolean.FALSE, "SQL 文件条目的可选数据源覆盖值。"));
             return columns;
         }
         if (importMode == ParseBatchImportMode.REPORT_CATALOG) {
-            columns.add(templateColumn("report_code", "Report Code", Boolean.TRUE, "Unique report key used to resolve SQL text."));
-            columns.add(templateColumn("report_name", "Report Name", Boolean.FALSE, "Human-readable report title."));
-            columns.add(templateColumn("tenant_id", "Tenant ID", Boolean.FALSE, "Optional tenant override when allowed by governance."));
-            columns.add(templateColumn("datasource", "Datasource", Boolean.FALSE, "Optional datasource override for report resolution."));
-            columns.add(templateColumn("stage", "Stage", Boolean.FALSE, "Stage such as DEV/UAT/PROD."));
-            columns.add(templateColumn("priority", "Priority", Boolean.FALSE, "Governance priority hint."));
+            columns.add(templateColumn("report_code", "报表编码", Boolean.TRUE, "用于解析 SQL 文本的唯一报表键。"));
+            columns.add(templateColumn("report_name", "报表名称", Boolean.FALSE, "人可读的报表标题。"));
+            columns.add(templateColumn("tenant_id", "租户 ID", Boolean.FALSE, "治理允许时使用的可选租户覆盖值。"));
+            columns.add(templateColumn("datasource", "数据源", Boolean.FALSE, "报表解析的可选数据源覆盖值。"));
+            columns.add(templateColumn("stage", "阶段", Boolean.FALSE, "阶段，例如 DEV/UAT/PROD。"));
+            columns.add(templateColumn("priority", "优先级", Boolean.FALSE, "治理优先级提示。"));
             return columns;
         }
-        columns.add(templateColumn("report_code", "Report Code", Boolean.FALSE, "Optional report key carried into parse governance context."));
-        columns.add(templateColumn("report_name", "Report Name", Boolean.FALSE, "Optional report title."));
-        columns.add(templateColumn("tenant_id", "Tenant ID", Boolean.FALSE, "Optional tenant override when allowed by governance."));
-        columns.add(templateColumn("datasource", "Datasource", Boolean.FALSE, "Optional datasource override."));
-        columns.add(templateColumn("stage", "Stage", Boolean.FALSE, "Stage such as DEV/UAT/PROD."));
-        columns.add(templateColumn("biz_date", "Biz Date", Boolean.FALSE, "Execution date / batch date metadata."));
-        columns.add(templateColumn("priority", "Priority", Boolean.FALSE, "Governance priority hint."));
-        columns.add(templateColumn("owner", "Owner", Boolean.FALSE, "Responsible analyst or team."));
-        columns.add(templateColumn("sql_text", "SQL Text", Boolean.TRUE, "SQL text to parse."));
-        columns.add(templateColumn("sql_template_text", "SQL Template Text", Boolean.FALSE, "Prepared SQL template when available."));
-        columns.add(templateColumn("bind_parameters", "Bind Parameters", Boolean.FALSE, "Masked bind parameter payload."));
-        columns.add(templateColumn("tags", "Tags", Boolean.FALSE, "Optional free-form tags."));
+        columns.add(templateColumn("report_code", "报表编码", Boolean.FALSE, "带入解析治理上下文的可选报表键。"));
+        columns.add(templateColumn("report_name", "报表名称", Boolean.FALSE, "可选报表标题。"));
+        columns.add(templateColumn("tenant_id", "租户 ID", Boolean.FALSE, "治理允许时使用的可选租户覆盖值。"));
+        columns.add(templateColumn("datasource", "数据源", Boolean.FALSE, "可选数据源覆盖值。"));
+        columns.add(templateColumn("stage", "阶段", Boolean.FALSE, "阶段，例如 DEV/UAT/PROD。"));
+        columns.add(templateColumn("biz_date", "业务日期", Boolean.FALSE, "执行日期/批次日期元数据。"));
+        columns.add(templateColumn("priority", "优先级", Boolean.FALSE, "治理优先级提示。"));
+        columns.add(templateColumn("owner", "负责人", Boolean.FALSE, "负责分析师或团队。"));
+        columns.add(templateColumn("sql_text", "SQL 文本", Boolean.TRUE, "待解析 SQL 文本。"));
+        columns.add(templateColumn("sql_template_text", "SQL 模板文本", Boolean.FALSE, "可用时提供的预处理 SQL 模板。"));
+        columns.add(templateColumn("bind_parameters", "绑定参数", Boolean.FALSE, "脱敏后的绑定参数载荷。"));
+        columns.add(templateColumn("tags", "标签", Boolean.FALSE, "可选自由格式标签。"));
         return columns;
     }
 
@@ -865,10 +865,10 @@ public class ParseBatchApplicationService {
         if (importMode == ParseBatchImportMode.SQL_FILE
             && fileType != ParseBatchFileType.TXT
             && fileType != ParseBatchFileType.SQL) {
-            throw invalidArgument("fileType", "SQL_FILE importMode only supports TXT or SQL");
+            throw invalidArgument("fileType", "SQL_FILE 导入模式仅支持 TXT 或 SQL");
         }
         if (importMode == ParseBatchImportMode.REPORT_CATALOG && fileType == ParseBatchFileType.SQL) {
-            throw invalidArgument("fileType", "REPORT_CATALOG importMode does not support raw SQL fileType");
+            throw invalidArgument("fileType", "REPORT_CATALOG 导入模式不支持原始 SQL fileType");
         }
     }
 
@@ -882,7 +882,7 @@ public class ParseBatchApplicationService {
         try {
             return ParseBatchImportMode.valueOf(requireText(importMode, "importMode"));
         } catch (IllegalArgumentException ex) {
-            throw invalidArgument("importMode", "Unsupported importMode: " + importMode);
+            throw invalidArgument("importMode", "不支持的 importMode：" + importMode);
         }
     }
 
@@ -890,7 +890,7 @@ public class ParseBatchApplicationService {
         try {
             return ParseBatchFileType.valueOf(requireText(fileType, "fileType"));
         } catch (IllegalArgumentException ex) {
-            throw invalidArgument("fileType", "Unsupported fileType: " + fileType);
+            throw invalidArgument("fileType", "不支持的 fileType：" + fileType);
         }
     }
 
@@ -898,10 +898,10 @@ public class ParseBatchApplicationService {
         String contextTenantId = RequestContext.getTenantId();
         if (!StringUtils.hasText(contextTenantId)) {
             throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context");
+                "已认证请求上下文缺少 tenantId");
         }
         if (StringUtils.hasText(requestTenantId) && !contextTenantId.equals(requestTenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -910,10 +910,10 @@ public class ParseBatchApplicationService {
         String contextTenantId = RequestContext.getTenantId();
         if (!StringUtils.hasText(contextTenantId)) {
             throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context");
+                "已认证请求上下文缺少 tenantId");
         }
         if (!contextTenantId.equals(resourceTenantId)) {
-            throw new AccessDeniedException("Authenticated tenant cannot access this parse batch");
+            throw new AccessDeniedException("当前认证租户无权访问该解析批次");
         }
     }
 
@@ -1065,7 +1065,7 @@ public class ParseBatchApplicationService {
             }
             return rows;
         } catch (Exception ex) {
-            throw invalidArgument("contentBase64", "Failed to parse delimited batch payload: " + ex.getMessage());
+            throw invalidArgument("contentBase64", "解析分隔符批次载荷失败：" + ex.getMessage());
         }
     }
 
@@ -1115,10 +1115,10 @@ public class ParseBatchApplicationService {
             if (fileType == ParseBatchFileType.ET) {
                 throw invalidArgument(
                     "contentBase64",
-                    "Failed to parse ET batch payload; please convert the file to XLSX or CSV before retrying."
+                    "解析 ET 批次载荷失败；请先将文件转换为 XLSX 或 CSV 后重试。"
                 );
             }
-            throw invalidArgument("contentBase64", "Failed to parse " + fileType.name() + " batch payload: " + ex.getMessage());
+            throw invalidArgument("contentBase64", "解析 " + fileType.name() + " 批次载荷失败：" + ex.getMessage());
         }
     }
 
@@ -1140,7 +1140,7 @@ public class ParseBatchApplicationService {
             row.sqlText = trimToNull(values.get("sql"));
         }
         if (!StringUtils.hasText(row.sqlText)) {
-            throw invalidArgument("sql_text", "Tabular batch payload must provide sql_text for every record");
+            throw invalidArgument("sql_text", "表格批量载荷必须为每条记录提供 sql_text");
         }
         return row;
     }
@@ -1239,7 +1239,7 @@ public class ParseBatchApplicationService {
         try {
             return JsonUtils.objectMapper().readValue(bindParametersJson, MAP_TYPE);
         } catch (Exception ex) {
-            throw invalidArgument("bind_parameters", "Failed to deserialize bind parameters JSON");
+            throw invalidArgument("bind_parameters", "绑定参数 JSON 反序列化失败");
         }
     }
 
@@ -1292,7 +1292,7 @@ public class ParseBatchApplicationService {
         try {
             return Base64.getDecoder().decode(contentBase64);
         } catch (IllegalArgumentException ex) {
-            throw invalidArgument("contentBase64", "contentBase64 must be valid Base64");
+            throw invalidArgument("contentBase64", "contentBase64 必须为 valid Base64");
         }
     }
 
@@ -1316,7 +1316,7 @@ public class ParseBatchApplicationService {
     private String requireText(String value, String fieldName) {
         String normalized = trimToNull(value);
         if (!StringUtils.hasText(normalized)) {
-            throw invalidArgument(fieldName, fieldName + " is required");
+            throw invalidArgument(fieldName, fieldName + " 为必填项");
         }
         return normalized;
     }

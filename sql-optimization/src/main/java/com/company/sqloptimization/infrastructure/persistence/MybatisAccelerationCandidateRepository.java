@@ -145,7 +145,7 @@ public class MybatisAccelerationCandidateRepository implements AccelerationCandi
                 .constructMapType(Map.class, String.class, Object.class);
             return JsonUtils.objectMapper().readValue(json, type);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize acceleration candidate JSON", ex);
+            throw new IllegalArgumentException("加速候选 JSON 反序列化失败", ex);
         }
     }
 

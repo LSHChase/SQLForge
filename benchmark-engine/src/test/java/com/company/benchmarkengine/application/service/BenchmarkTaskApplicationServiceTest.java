@@ -76,7 +76,7 @@ class BenchmarkTaskApplicationServiceTest {
         assertEquals(23001, ex.getCode());
         assertTrue(output.getOut().contains("operation=BENCHMARK_TASK_STATUS_QUERY"));
         assertTrue(output.getOut().contains("status=FAILED phase=EXCEPTION"));
-        assertTrue(output.getOut().contains("reason=Benchmark task does not exist"));
+        assertTrue(output.getOut().contains("reason=压测任务不存在"));
     }
 
     @Test

@@ -44,10 +44,10 @@ public class HttpHetuClientOperator implements HetuClientOperator {
     public QueryExecutionStep execute(String actualSql, QueryExecuteRequest request, boolean degradedPath) {
         QueryExecutionHetuProperties.Client client = properties.getClient();
         if (!StringUtils.hasText(client.getEndpoint())) {
-            throw new IllegalStateException("Hetu client endpoint is not configured");
+            throw new IllegalStateException("Hetu client 端点未配置");
         }
         if (!StringUtils.hasText(client.getUser())) {
-            throw new IllegalStateException("Hetu client user is not configured");
+            throw new IllegalStateException("Hetu client 用户未配置");
         }
         RestTemplate restTemplate = restTemplateBuilder
             .setConnectTimeout(Duration.ofMillis(client.getConnectTimeoutMs()))
@@ -96,7 +96,7 @@ public class HttpHetuClientOperator implements HetuClientOperator {
                 shouldApplyAcceleration(request, degradedPath)
             );
         } catch (RestClientException ex) {
-            throw new IllegalStateException("Hetu client execution failed", ex);
+            throw new IllegalStateException("Hetu client 执行失败", ex);
         }
     }
 

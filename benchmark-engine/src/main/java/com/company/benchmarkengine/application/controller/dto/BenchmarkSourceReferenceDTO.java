@@ -7,11 +7,11 @@ import javax.validation.constraints.Size;
 
 public class BenchmarkSourceReferenceDTO {
 
-    @NotNull(message = "source reference type is required")
+    @NotNull(message = "source 引用类型为必填项")
     private BenchmarkSourceReferenceType type;
 
-    @NotBlank(message = "source referenceId is required")
-    @Size(max = 128, message = "source referenceId exceeds 128 characters")
+    @NotBlank(message = "source referenceId 为必填项")
+    @Size(max = 128, message = "source referenceId 超过 128 个字符")
     private String referenceId;
 
     public BenchmarkSourceReferenceType getType() {

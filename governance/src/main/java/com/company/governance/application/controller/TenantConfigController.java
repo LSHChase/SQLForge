@@ -27,7 +27,7 @@ public class TenantConfigController {
     @GetMapping
     public TenantConfigVO getTenantConfig(@RequestParam(value = "tenantId", required = false) String tenantId) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
-        LOGGER.info("Handling tenant config query, tenantId={}, traceId={}",
+        LOGGER.info("处理租户配置查询，tenantId={}, traceId={}",
             effectiveTenantId,
             RequestContext.getTraceId());
         return tenantConfigApplicationService.findByTenantId(effectiveTenantId);

@@ -308,15 +308,15 @@ public class BenchmarkTaskModelApplicationService {
 
     private String buildEngineNote(BenchmarkTaskType taskType, int index) {
         if (taskType == BenchmarkTaskType.BASELINE) {
-            return "Baseline run for isolated shadow environment.";
+            return "隔离影子环境的基线运行。";
         }
         if (taskType == BenchmarkTaskType.COMPARISON && index > 0) {
-            return "Secondary engine used for cross-engine comparison.";
+            return "用于跨引擎对比的辅助引擎。";
         }
         if (taskType == BenchmarkTaskType.REGRESSION_GUARD) {
-            return "Regression guard run compared against approved baseline.";
+            return "与已批准基线对比的回归防护运行。";
         }
-        return "Primary benchmark engine result.";
+        return "主压测引擎结果。";
     }
 
     public List<BenchmarkThresholdAssessment> evaluateThresholds(List<BenchmarkThreshold> thresholds,
@@ -368,18 +368,18 @@ public class BenchmarkTaskModelApplicationService {
             return Arrays.asList(
                 new BenchmarkRecommendation(
                     "BASELINE_GOVERNANCE",
-                    "Freeze baseline report and threshold pack",
-                    "Store the baseline profile so later regression tasks can compare against a stable shadow-environment snapshot.",
-                    "Improves future regression detection and report explainability.",
+                    "固化基线报告和阈值包",
+                    "保存基线画像，便于后续回归任务对比稳定的影子环境快照。",
+                    "提升后续回归检测能力和报告可解释性。",
                     BenchmarkRecommendationRiskLevel.LOW
                 ),
                 new BenchmarkRecommendation(
                     "RESOURCE_TUNING",
-                    "Tune concurrency only after threshold pack is stable",
+                    "仅在阈值包稳定后调优并发",
                     reportVerdict == BenchmarkThresholdVerdict.PASS
-                        ? "Current baseline is within target, so concurrency tuning can be considered as a second step."
-                        : "Do not raise concurrency until latency and CPU thresholds stop warning.",
-                    "Avoids amplifying noisy benchmark results before the baseline is trustworthy.",
+                        ? "当前基线在目标范围内，可以把并发调优作为第二步。"
+                        : "延迟和 CPU 阈值停止告警前，不要提高并发。",
+                    "避免在基线可信前放大噪声压测结果。",
                     BenchmarkRecommendationRiskLevel.MEDIUM
                 )
             );
@@ -388,16 +388,16 @@ public class BenchmarkTaskModelApplicationService {
             return Arrays.asList(
                 new BenchmarkRecommendation(
                     "ENGINE_SELECTION",
-                    "Prefer the engine with the stronger p99 and CPU profile",
-                    "Use the comparison report to decide which engine should own the default route for this SQL fingerprint.",
-                    "Reduces routing ambiguity for heavy analytical SQL.",
+                    "优先选择 p99 和 CPU 画像更强的引擎",
+                    "使用对比报告决定该 SQL 指纹的默认路由应归属哪个引擎。",
+                    "降低重型分析 SQL 的路由歧义。",
                     BenchmarkRecommendationRiskLevel.MEDIUM
                 ),
                 new BenchmarkRecommendation(
                     "PLAN_ALIGNMENT",
-                    "Capture routing and session variables alongside the report",
-                    "Comparison reports are only reusable when plan-affecting settings are versioned with the result.",
-                    "Improves reproducibility across engines and later optimization tasks.",
+                    "随报告一起捕获路由和会话变量",
+                    "只有影响计划的设置与结果一起版本化时，对比报告才可复用。",
+                    "提升跨引擎和后续优化任务的可复现性。",
                     BenchmarkRecommendationRiskLevel.LOW
                 )
             );
@@ -405,16 +405,16 @@ public class BenchmarkTaskModelApplicationService {
         return Arrays.asList(
             new BenchmarkRecommendation(
                 "REGRESSION_GATE",
-                "Block release when critical threshold fails",
-                "Regression guard tasks should produce a release gate outcome, not only a descriptive report.",
-                "Stops latency regressions from leaking into production rollout.",
+                "关键阈值失败时阻断发布",
+                "回归防护任务应产出发布门禁结果，而不仅是描述性报告。",
+                "阻止延迟回归进入生产发布。",
                 BenchmarkRecommendationRiskLevel.LOW
             ),
             new BenchmarkRecommendation(
                 "OPTIMIZATION_FEEDBACK",
-                "Route the failed fingerprint back to SQL optimization",
-                "When regression guard detects a p99 or scan-volume failure, emit the fingerprint to the SQL optimization backlog.",
-                "Closes the loop between benchmark evidence and optimization work.",
+                "将失败指纹回传到 SQL 优化",
+                "当回归防护检测到 p99 或扫描量失败时，将指纹发送到 SQL 优化待办。",
+                "闭合压测证据与优化工作的反馈链路。",
                 reportVerdict == BenchmarkThresholdVerdict.FAIL
                     ? BenchmarkRecommendationRiskLevel.HIGH
                     : BenchmarkRecommendationRiskLevel.MEDIUM
@@ -445,8 +445,8 @@ public class BenchmarkTaskModelApplicationService {
         }
         boolean alertRequired = failedCount > 0;
         String summary = hitCount == 0
-            ? "Regression guard stayed within the configured thresholds."
-            : "Regression guard hit " + hitCount + " threshold(s): failed=" + failedCount + ", warning=" + warningCount + ".";
+            ? "回归门禁保持在已配置阈值内。"
+            : "回归门禁命中 " + hitCount + " 个阈值：失败=" + failedCount + "，预警=" + warningCount + "。";
         return new BenchmarkRegressionSummary(
             Integer.valueOf(hitCount),
             Integer.valueOf(failedCount),
@@ -562,9 +562,9 @@ public class BenchmarkTaskModelApplicationService {
         }
         return new BenchmarkTrendChartVO(
             "LATENCY_DISTRIBUTION_HISTOGRAM",
-            "Latency distribution",
-            "Percentile bucket",
-            "Latency (ms)",
+            "延迟分布",
+            "分位桶",
+            "延迟（毫秒）",
             Collections.unmodifiableList(series)
         );
     }
@@ -585,8 +585,8 @@ public class BenchmarkTaskModelApplicationService {
         }
         return new BenchmarkTrendChartVO(
             "THROUGHPUT_TIME_SERIES",
-            "Throughput timeline",
-            "Elapsed time",
+            "吞吐时间线",
+            "已用时间",
             "QPS",
             Collections.unmodifiableList(series)
         );
@@ -599,9 +599,9 @@ public class BenchmarkTaskModelApplicationService {
                 new BenchmarkTrendSeriesVO(
                     profile.getEngine().name() + " CPU",
                     Arrays.asList(
-                        new BenchmarkTrendPointVO("Warmup", scaled(profile.getCpuUsagePercent(), "0.72")),
-                        new BenchmarkTrendPointVO("Steady", scaled(profile.getCpuUsagePercent(), "0.88")),
-                        new BenchmarkTrendPointVO("Peak", profile.getCpuUsagePercent())
+                        new BenchmarkTrendPointVO("预热", scaled(profile.getCpuUsagePercent(), "0.72")),
+                        new BenchmarkTrendPointVO("稳定", scaled(profile.getCpuUsagePercent(), "0.88")),
+                        new BenchmarkTrendPointVO("峰值", profile.getCpuUsagePercent())
                     )
                 )
             );
@@ -609,18 +609,18 @@ public class BenchmarkTaskModelApplicationService {
                 new BenchmarkTrendSeriesVO(
                     profile.getEngine().name() + " Memory",
                     Arrays.asList(
-                        new BenchmarkTrendPointVO("Warmup", scaled(profile.getMemoryUsageMb(), "0.67")),
-                        new BenchmarkTrendPointVO("Steady", scaled(profile.getMemoryUsageMb(), "0.84")),
-                        new BenchmarkTrendPointVO("Peak", profile.getMemoryUsageMb())
+                        new BenchmarkTrendPointVO("预热", scaled(profile.getMemoryUsageMb(), "0.67")),
+                        new BenchmarkTrendPointVO("稳定", scaled(profile.getMemoryUsageMb(), "0.84")),
+                        new BenchmarkTrendPointVO("峰值", profile.getMemoryUsageMb())
                     )
                 )
             );
         }
         return new BenchmarkTrendChartVO(
             "RESOURCE_USAGE_CURVE",
-            "Resource usage curve",
-            "Benchmark stage",
-            "Resource value",
+            "资源使用曲线",
+            "压测阶段",
+            "资源值",
             Collections.unmodifiableList(series)
         );
     }

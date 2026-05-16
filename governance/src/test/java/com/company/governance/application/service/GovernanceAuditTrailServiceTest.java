@@ -391,7 +391,7 @@ class GovernanceAuditTrailServiceTest {
         doAnswer(invocation -> {
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_SYSTEM_MESSAGE_ROUTE_INVALID,
-                "primary route unavailable"
+                "primary route 不可用"
             );
         }).when(messageProducer).send(
             eq(GovernanceMessagingTopics.AUDIT_EVENT),

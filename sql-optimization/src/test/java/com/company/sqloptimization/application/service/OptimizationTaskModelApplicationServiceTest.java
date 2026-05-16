@@ -150,7 +150,7 @@ class OptimizationTaskModelApplicationServiceTest {
         task.markFailed(
             new com.company.sqloptimization.domain.task.OptimizationTaskError(
                 13000,
-                "SQL optimization worker failed before producing a suggestion payload",
+                "SQL 优化 worker 在生成建议载荷前失败",
                 "retry later",
                 true,
                 OptimizationTaskPhase.ACCELERATION_PLANNING,

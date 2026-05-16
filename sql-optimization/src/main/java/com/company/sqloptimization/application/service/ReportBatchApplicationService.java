@@ -142,7 +142,7 @@ public class ReportBatchApplicationService {
             reportCodeField
         );
         if (rows.isEmpty()) {
-            throw invalidArgument("contentBase64", "No report codes were found in the report batch payload");
+            throw invalidArgument("contentBase64", "报表批次载荷中未找到报表编码");
         }
         Instant now = Instant.now();
         ReportBatch batch = ReportBatch.initialize(
@@ -197,7 +197,7 @@ public class ReportBatchApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_PIPELINE_NOT_READY,
                 HttpStatus.SERVICE_UNAVAILABLE,
-                "Report batch parse executor is saturated"
+                "报表批次解析执行器已饱和"
             );
         }
         return toResponse(batch, items);
@@ -313,7 +313,7 @@ public class ReportBatchApplicationService {
             recalculate(batch, resolvedItems, completedAt);
             reportBatchRepository.save(batch);
             LOGGER.info(
-                "operation=REPORT_BATCH_STRUCTURE_PARSE batchId={} tenantId={} totalSqls={} status={}",
+                "操作日志 operation=REPORT_BATCH_STRUCTURE_PARSE batchId={} tenantId={} totalSqls={} status={}",
                 batch.getBatchId(),
                 batch.getTenantId(),
                 Integer.valueOf(resolvedItems.size()),
@@ -321,7 +321,7 @@ public class ReportBatchApplicationService {
             );
         } catch (RuntimeException ex) {
             LOGGER.warn(
-                "operation=REPORT_BATCH_STRUCTURE_PARSE batchId={} tenantId={} status=FAILED reason={}",
+                "操作日志 operation=REPORT_BATCH_STRUCTURE_PARSE batchId={} tenantId={} status=FAILED reason={}",
                 batchId,
                 RequestContext.getTenantId(),
                 ex.getMessage()
@@ -375,9 +375,9 @@ public class ReportBatchApplicationService {
                     }
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
-                    throw new IllegalStateException("Report batch structure parse was interrupted", ex);
+                    throw new IllegalStateException("报表批次结构解析被中断", ex);
                 } catch (Exception ex) {
-                    throw new IllegalStateException("Report batch structure parse failed", ex);
+                    throw new IllegalStateException("报表批次结构解析失败", ex);
                 }
             }
             if (!pendingPersist.isEmpty()) {
@@ -507,7 +507,7 @@ public class ReportBatchApplicationService {
             );
             reportBatchRepository.save(batch);
         } catch (RuntimeException ex) {
-            LOGGER.warn("operation=REPORT_BATCH_STRUCTURE_PARSE_MARK_FAILED batchId={} status=DEGRADED reason={}", batchId, ex.getMessage());
+            LOGGER.warn("操作日志 operation=REPORT_BATCH_STRUCTURE_PARSE_MARK_FAILED batchId={} status=DEGRADED reason={}", batchId, ex.getMessage());
         }
     }
 
@@ -752,9 +752,9 @@ public class ReportBatchApplicationService {
         response.setConnectionStatus("FAILED");
         response.setObjectResolutionStatus("UNAVAILABLE");
         response.setCompatibilityStatus("UNKNOWN");
-        response.setAvailabilityWarning("Access parse failed after structure parse succeeded.");
+        response.setAvailabilityWarning("结构解析成功后，访问解析失败。");
         response.setDegradeReason(SqlParseDiagnosticSupport.compactDiagnosticText(
-            "ACCESS_PARSE_FAILED: " + (ex == null ? "unknown" : ex.getMessage()),
+            "ACCESS_PARSE_FAILED: " + (ex == null ? "未知" : ex.getMessage()),
             FAILURE_REASON_LIMIT
         ));
         return response;
@@ -931,7 +931,7 @@ public class ReportBatchApplicationService {
                 rows.add(row);
             }
         } catch (Exception ex) {
-            throw invalidArgument("contentBase64", "Failed to parse report catalog payload: " + ex.getMessage());
+            throw invalidArgument("contentBase64", "解析报表目录载荷失败：" + ex.getMessage());
         }
         return rows;
     }
@@ -969,7 +969,7 @@ public class ReportBatchApplicationService {
             workbook.close();
             return rows;
         } catch (Exception ex) {
-            throw invalidArgument("contentBase64", "Failed to parse workbook report payload: " + ex.getMessage());
+            throw invalidArgument("contentBase64", "解析 workbook 报表载荷失败：" + ex.getMessage());
         }
     }
 
@@ -1013,7 +1013,7 @@ public class ReportBatchApplicationService {
             }
             return rows;
         } catch (Exception ex) {
-            throw invalidArgument("contentBase64", "Failed to parse report catalog CSV payload: " + ex.getMessage());
+            throw invalidArgument("contentBase64", "解析报表目录 CSV 载荷失败：" + ex.getMessage());
         }
     }
 
@@ -1371,7 +1371,7 @@ public class ReportBatchApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SQL_OPTIMIZATION_TASK_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Report batch does not exist for batchId=" + batchId
+                "报表批次不存在，batchId=" + batchId
             );
         }
         verifyTenantAccess(batch.getTenantId());
@@ -1382,10 +1382,10 @@ public class ReportBatchApplicationService {
         String contextTenantId = RequestContext.getTenantId();
         if (!StringUtils.hasText(contextTenantId)) {
             throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context");
+                "已认证请求上下文缺少 tenantId");
         }
         if (StringUtils.hasText(requestTenantId) && !contextTenantId.equals(requestTenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -1394,10 +1394,10 @@ public class ReportBatchApplicationService {
         String contextTenantId = RequestContext.getTenantId();
         if (!StringUtils.hasText(contextTenantId)) {
             throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context");
+                "已认证请求上下文缺少 tenantId");
         }
         if (!contextTenantId.equals(resourceTenantId)) {
-            throw new AccessDeniedException("Authenticated tenant cannot access this report batch");
+            throw new AccessDeniedException("当前认证租户无权访问该报表批次");
         }
     }
 
@@ -1416,12 +1416,12 @@ public class ReportBatchApplicationService {
 
     private byte[] decodeBase64(String value) {
         if (!StringUtils.hasText(value)) {
-            throw invalidArgument("contentBase64", "contentBase64 is required");
+            throw invalidArgument("contentBase64", "contentBase64 为必填项");
         }
         try {
             return Base64.getDecoder().decode(value);
         } catch (IllegalArgumentException ex) {
-            throw invalidArgument("contentBase64", "contentBase64 must be valid Base64");
+            throw invalidArgument("contentBase64", "contentBase64 必须为 valid Base64");
         }
     }
 
@@ -1441,7 +1441,7 @@ public class ReportBatchApplicationService {
     private String requireText(String value, String fieldName) {
         String normalized = trimToNull(value);
         if (!StringUtils.hasText(normalized)) {
-            throw invalidArgument(fieldName, fieldName + " is required");
+            throw invalidArgument(fieldName, fieldName + " 为必填项");
         }
         return normalized;
     }

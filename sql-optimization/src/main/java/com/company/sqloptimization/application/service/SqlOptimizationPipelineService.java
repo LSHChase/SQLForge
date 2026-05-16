@@ -142,8 +142,8 @@ public class SqlOptimizationPipelineService {
         String normalizedSql = normalizeSql(sqlText);
         if (normalizedSql.trim().isEmpty()) {
             throw invalidTask(
-                "Real optimization pipeline requires SQL text instead of an empty payload.",
-                "Submit the original SQL text so parser, rewrite, and acceleration analysis can run."
+                "真实优化流水线需要 SQL 文本，不能使用空载荷。",
+                "请提交原始 SQL 文本，以便执行解析、改写和加速分析。"
             );
         }
         SqlParserMode resolvedMode = (parserMode == null ? resolveDefaultParserMode() : parserMode).structureMode();
@@ -195,15 +195,15 @@ public class SqlOptimizationPipelineService {
             statement = CCJSqlParserUtil.parse(normalizedSql);
         } catch (JSQLParserException ex) {
             throw parserFailure(
-                "SQL parser could not build an AST for the submitted statement.",
-                "Submit a single supported SELECT statement, or extend parser support for datasource "
-                    + datasourceType.name() + ".",
+                "SQL 解析器无法为提交语句构建 AST。",
+                "请提交单条受支持的 SELECT 语句，或扩展数据源 "
+                    + datasourceType.name() + " 的解析器支持。",
                 Collections.singletonList(
                     new OptimizationTaskRisk(
                         "HIGH",
                         "UNSUPPORTED_DIALECT",
-                        "The submitted SQL could not be parsed into a supported AST.",
-                        "Keep the statement to a single SELECT/WITH query or extend the parser coverage for this datasource."
+                        "提交的 SQL 无法解析为受支持的 AST。",
+                        "请保持语句为单条 SELECT/WITH 查询，或扩展该数据源的解析器覆盖范围。"
                     )
                 ),
                 ex,
@@ -212,8 +212,8 @@ public class SqlOptimizationPipelineService {
         }
         if (!(statement instanceof net.sf.jsqlparser.statement.select.Select)) {
             throw invalidTask(
-                "Real optimization currently supports SELECT/WITH statements only.",
-                "Submit a read-oriented SELECT statement for parse, rewrite, or acceleration analysis."
+                "真实优化当前仅支持 SELECT/WITH 语句。",
+                "请提交面向读取的 SELECT 语句，用于解析、改写或加速分析。"
             );
         }
         Select select = (Select) statement;
@@ -240,14 +240,14 @@ public class SqlOptimizationPipelineService {
             statement = new SqlParser().createStatement(normalizedSql, new ParsingOptions());
         } catch (RuntimeException ex) {
             throw parserFailure(
-                "Trino parser could not build an AST for the submitted statement.",
-                "Submit a single supported SELECT/WITH query or keep the parser strategy on JSQLPARSER for this datasource.",
+                "Trino 解析器无法为提交语句构建 AST。",
+                "请提交单条受支持的 SELECT/WITH 查询，或让该数据源继续使用 JSQLPARSER 解析策略。",
                 Collections.singletonList(
                     new OptimizationTaskRisk(
                         "HIGH",
                         "UNSUPPORTED_TRINO_DIALECT",
-                        "The submitted SQL could not be parsed by the Trino parser adapter.",
-                        "Use a supported Trino SELECT query or keep the existing JSQLParser strategy."
+                        "提交的 SQL 无法由 Trino 解析适配器解析。",
+                        "请使用受支持的 Trino SELECT 查询，或保留现有 JSQLParser 策略。"
                     )
                 ),
                 ex,
@@ -256,8 +256,8 @@ public class SqlOptimizationPipelineService {
         }
         if (!(statement instanceof Query)) {
             throw invalidTask(
-                "Trino parser adapter currently supports SELECT/WITH statements only.",
-                "Submit a read-oriented SELECT statement for query-intent analysis."
+                "Trino 解析适配器当前仅支持 SELECT/WITH 语句。",
+                "请提交面向读取的 SELECT 语句用于查询意图分析。"
             );
         }
         ParsedSqlProfile profile = new ParsedSqlProfile(normalizedSql);
@@ -275,14 +275,14 @@ public class SqlOptimizationPipelineService {
             statement = org.apache.calcite.sql.parser.SqlParser.create(normalizedSql, parserConfig).parseStmt();
         } catch (Exception ex) {
             throw parserFailure(
-                "Apache Calcite parser could not build an AST for the submitted statement.",
-                "Submit a single supported SELECT/WITH query or keep parserMode on JSQLPARSER for this datasource.",
+                "Apache Calcite 解析器无法为提交语句构建 AST。",
+                "请提交单条受支持的 SELECT/WITH 查询，或让该数据源的 parserMode 继续使用 JSQLPARSER。",
                 Collections.singletonList(
                     new OptimizationTaskRisk(
                         "HIGH",
                         "UNSUPPORTED_CALCITE_DIALECT",
-                        "The submitted SQL could not be parsed by the Apache Calcite parser adapter.",
-                        "Use a supported Calcite SELECT query or keep the existing JSQLParser mode."
+                        "提交的 SQL 无法由 Apache Calcite 解析适配器解析。",
+                        "请使用受支持的 Calcite SELECT 查询，或保留现有 JSQLParser 模式。"
                     )
                 ),
                 ex,
@@ -291,8 +291,8 @@ public class SqlOptimizationPipelineService {
         }
         if (!isCalciteSelectLike(statement)) {
             throw invalidTask(
-                "Apache Calcite parser adapter currently supports SELECT/WITH statements only.",
-                "Submit a read-oriented SELECT statement for query-intent analysis."
+                "Apache Calcite 解析适配器当前仅支持 SELECT/WITH 语句。",
+                "请提交面向读取的 SELECT 语句用于查询意图分析。"
             );
         }
         ParsedSqlProfile profile = new ParsedSqlProfile(normalizedSql);
@@ -323,19 +323,19 @@ public class SqlOptimizationPipelineService {
             new OptimizationTaskBenefit(
                 "REWRITE_READINESS",
                 Integer.valueOf(clamp(40 + profile.predicateCount * 5 + profile.joinCount * 4, 20, 85)),
-                "AST analysis isolates tables, predicates, and aggregates so later rewrite rules can stay deterministic."
+                "AST 分析会隔离表、谓词和聚合信息，使后续改写规则保持确定性。"
             ),
             new OptimizationTaskBenefit(
                 "ACCELERATION_SIGNAL",
                 Integer.valueOf(clamp(35 + profile.aggregateFunctions.size() * 10 + profile.datePredicateColumns.size() * 8, 15, 80)),
-                "The parsed shape already exposes partition, precompute, and replacement candidates."
+                "已解析形态会暴露分区、预计算和替换候选信号。"
             )
         );
         List<OptimizationTaskCost> costs = Collections.singletonList(
             new OptimizationTaskCost(
                 "PARSER_OVERHEAD",
                 "LOW",
-                "The parser runs in-process and only materializes statement metadata for the offline optimization task."
+                "解析器在进程内运行，并且只为离线优化任务物化语句元数据。"
             )
         );
         List<OptimizationTaskRisk> risks = buildShapeRisks(profile);
@@ -358,8 +358,8 @@ public class SqlOptimizationPipelineService {
                 new OptimizationTaskRisk(
                     "MEDIUM",
                     "NO_SAFE_AUTOMATIC_REWRITE",
-                    "No conservative AST rewrite rule matched the submitted statement.",
-                    "Use the parse artifact and plan trace to review projection, predicates, and engine-specific tuning manually."
+                    "提交语句未匹配任何保守 AST 改写规则。",
+                    "请使用解析制品和计划追踪人工评审投影、谓词和引擎专属调优。"
                 )
             );
         } else {
@@ -367,8 +367,8 @@ public class SqlOptimizationPipelineService {
                 new OptimizationTaskRisk(
                     "MEDIUM",
                     "SEMANTIC_VALIDATION_REQUIRED",
-                    "Even safe syntactic rewrites still require result-set diff validation before approval.",
-                    "Compare the rewritten SQL against the original statement on a representative sample dataset."
+                    "即使是安全的语法改写，批准前仍需要做结果集差异校验。",
+                    "请在有代表性的样本数据集上对比改写 SQL 与原始语句。"
                 )
             );
         }
@@ -381,32 +381,32 @@ public class SqlOptimizationPipelineService {
             new OptimizationTaskBenefit(
                 "PLAN_SIMPLIFICATION",
                 Integer.valueOf(clamp(20 + outcome.appliedRules.size() * 12, 10, 70)),
-                "Removing duplicate predicates, grouping keys, or order-by items keeps the logical plan smaller and easier to verify."
+                "移除重复谓词、分组键或排序项后，逻辑计划更小且更容易校验。"
             ),
             new OptimizationTaskBenefit(
                 "RULE_TRACEABILITY",
                 Integer.valueOf(clamp(30 + outcome.appliedRules.size() * 10, 15, 75)),
-                "Each rewrite is recorded as a deterministic rule trace instead of an opaque placeholder summary."
+                "每次改写都会记录为确定性规则追踪，而不是不透明的占位摘要。"
             )
         );
         List<OptimizationTaskCost> costs = Arrays.asList(
             new OptimizationTaskCost(
                 "VALIDATION",
                 outcome.appliedRules.isEmpty() ? "LOW" : "MEDIUM",
-                "The candidate SQL should be diff-checked against the original statement before any later approval or apply step."
+                "后续批准或应用前，候选 SQL 应与原始语句进行差异校验。"
             ),
             new OptimizationTaskCost(
                 "RULE_COVERAGE",
                 "LOW",
-                "Current rewrite rules stay intentionally conservative and do not attempt schema-dependent projection expansion."
+                "当前改写规则保持保守策略，不尝试依赖 schema 的投影展开。"
             )
         );
         String summary = outcome.appliedRules.isEmpty()
-            ? "Parsed the statement successfully but found no conservative automatic rewrite candidate."
-            : "Generated a rewritten SQL candidate with " + outcome.appliedRules.size() + " safe AST rule(s).";
+            ? "语句解析成功，但未找到保守的自动改写候选。"
+            : "已生成候选改写 SQL，包含 " + outcome.appliedRules.size() + " 条安全 AST 规则。";
         String recommendation = outcome.appliedRules.isEmpty()
-            ? "Use the parse artifact to review projection width, filter placement, and engine-specific hints manually."
-            : "Validate the rewritten candidate against the original statement, then carry the approved SQL into the next governance step.";
+            ? "请使用解析制品人工评审投影宽度、过滤位置和引擎专属提示。"
+            : "请先将候选改写结果与原始语句做校验，再把批准后的 SQL 带入下一步治理。";
         return new OptimizationTaskSuggestion(
             summary,
             recommendation,
@@ -425,7 +425,7 @@ public class SqlOptimizationPipelineService {
         if (filteredReasons.isEmpty()) {
             filteredReasons.put(
                 AccelerationSuggestionType.REPLACE,
-                "No strong physical-design signal was detected, so the safe default is to replace the wide raw query with a curated serving view."
+                "未检测到强物理设计信号，安全默认方案是用已治理服务视图替换宽原始查询。"
             );
         }
         List<OptimizationTaskArtifact> artifacts = Arrays.asList(
@@ -437,24 +437,24 @@ public class SqlOptimizationPipelineService {
             new OptimizationTaskBenefit(
                 "LATENCY",
                 Integer.valueOf(clamp(25 + filteredReasons.size() * 12 + profile.aggregateFunctions.size() * 6, 20, 85)),
-                "The derived plan targets the query shapes that dominate parse-time hotspots and repeated heavy scans."
+                "派生计划面向主导解析热点和重复重扫描的查询形态。"
             ),
             new OptimizationTaskBenefit(
                 "SCANNED_ROWS",
                 Integer.valueOf(clamp(20 + profile.datePredicateColumns.size() * 15 + profile.joinCount * 8, 15, 88)),
-                "Partition, bucket, or replacement hints reduce the amount of hot data touched by repeated executions."
+                "分区、分桶或替换提示可减少重复执行触达的热点数据量。"
             )
         );
         List<OptimizationTaskCost> costs = Arrays.asList(
             new OptimizationTaskCost(
                 "STORAGE_OR_REFRESH",
                 filteredReasons.containsKey(AccelerationSuggestionType.PRECOMPUTE) ? "HIGH" : "MEDIUM",
-                "Precompute and replacement strategies add storage or refresh overhead that must be justified by repeated query demand."
+                "预计算与替换策略会增加存储或刷新开销，必须由重复查询需求证明其合理性。"
             ),
             new OptimizationTaskCost(
                 "GOVERNANCE_FOLLOW_UP",
                 "MEDIUM",
-                "Acceleration remains a governed object and still needs later approval, validation, and rollback semantics."
+                "加速仍是受治理对象，后续仍需要批准、校验和回滚语义。"
             )
         );
         List<OptimizationTaskRisk> risks = new ArrayList<OptimizationTaskRisk>(buildShapeRisks(profile));
@@ -462,12 +462,12 @@ public class SqlOptimizationPipelineService {
             new OptimizationTaskRisk(
                 "MEDIUM",
                 "FRESHNESS_AND_ROLLBACK",
-                "Acceleration plans can trade freshness or operational simplicity for speed if they are applied without governance.",
-                "Keep approval, activation, validation, and rollback evidence explicit before any future apply step."
+                "如果未经过治理就应用，加速计划可能用新鲜度或运维简单性换取速度。",
+                "后续任何应用步骤前，都要明确保留批准、激活、校验和回滚证据。"
             )
         );
-        String summary = "Derived " + filteredReasons.size() + " acceleration recommendation(s) from the real SQL shape.";
-        String recommendation = "Start with the highest-signal acceleration type, then validate benefit and freshness before any later apply workflow.";
+        String summary = "已从真实 SQL 形态派生 " + filteredReasons.size() + " 条加速推荐。";
+        String recommendation = "请先处理信号最强的加速类型，再在后续应用流程前校验收益和新鲜度。";
         return new OptimizationTaskSuggestion(
             summary,
             recommendation,
@@ -515,8 +515,8 @@ public class SqlOptimizationPipelineService {
                 "L1",
                 "SELECT_STAR_EXPANSION",
                 "COLUMN_METADATA_REQUIRED",
-                "Column metadata and projection ownership are required before expanding SELECT *.",
-                "Projection changes can alter downstream consumers if hidden columns are omitted or reordered.",
+                "展开 SELECT * 前必须具备列元数据与投影归属证据。",
+                "如果隐藏列被遗漏或重排，投影变更可能影响下游消费者。",
                 selectStarEvidence(profile)
             );
         }
@@ -528,8 +528,8 @@ public class SqlOptimizationPipelineService {
                 "L1",
                 "OR_TO_UNION_ALL",
                 "PREDICATE_EXCLUSIVITY_OR_DEDUP_REQUIRED",
-                "Predicate exclusivity or a deduplication strategy is required before OR can become UNION/UNION ALL.",
-                "Rows may duplicate or disappear if OR branches are not mutually exclusive."
+                "将 OR 改写为 UNION/UNION ALL 前必须具备谓词互斥性或去重策略。",
+                "如果 OR 分支不互斥，行可能重复或丢失。"
             );
         }
         if (profile.getFunctionWrappedPredicateCount() > 0) {
@@ -540,8 +540,8 @@ public class SqlOptimizationPipelineService {
                 "L1",
                 "FUNCTION_PREDICATE_TO_RANGE",
                 "COLUMN_TYPE_TIMEZONE_REQUIRED",
-                "Column type, timezone, and boundary precision evidence are required before range conversion.",
-                "Time boundary or precision differences can change result sets.",
+                "范围转换前必须具备列类型、时区和边界精度证据。",
+                "时间边界或精度差异可能改变结果集。",
                 functionPredicateEvidence(profile)
             );
         }
@@ -553,8 +553,8 @@ public class SqlOptimizationPipelineService {
                 "L1",
                 "SCALAR_SUBQUERY_TO_JOIN",
                 "UNIQUENESS_PROOF_REQUIRED",
-                "A uniqueness proof is required before scalar subqueries can become joins.",
-                "A join rewrite can inflate rows when the scalar subquery is not unique."
+                "将标量子查询改写为 join 前必须具备唯一性证明。",
+                "当标量子查询不唯一时，join 改写可能放大行数。"
             );
         }
         if (profile.getRepeatedSubqueryCount() > 0) {
@@ -565,8 +565,8 @@ public class SqlOptimizationPipelineService {
                 "L1",
                 "REPEATED_SUBQUERY_TO_CTE",
                 "SUBQUERY_SIDE_EFFECT_FREE_REQUIRED",
-                "The repeated subquery must be side-effect free and engine CTE behavior must be understood.",
-                "Some engines inline CTEs or optimize them differently, changing performance without guaranteed benefit.",
+                "重复子查询必须无副作用，并且需要理解引擎的 CTE 行为。",
+                "部分引擎会内联 CTE 或采用不同优化方式，可能改变性能且不保证收益。",
                 repeatedSubqueryEvidence(profile)
             );
         }
@@ -578,8 +578,8 @@ public class SqlOptimizationPipelineService {
                 "L1",
                 "NOT_EXISTS_TO_ANTI_JOIN",
                 "NULL_SEMANTICS_PROOF_REQUIRED",
-                "NULL behavior must be proven before NOT EXISTS can become an anti join.",
-                "NULL semantics can change anti-join results."
+                "将 NOT EXISTS 改为 anti join 前必须证明 NULL 行为。",
+                "NULL 语义可能改变反连接结果。"
             );
         }
         if (profile.getLeadingWildcardLikeCount() > 0) {
@@ -590,8 +590,8 @@ public class SqlOptimizationPipelineService {
                 "L1",
                 "LEADING_LIKE_REVIEW",
                 "SEARCH_INDEX_OR_TEXT_CAPABILITY_REQUIRED",
-                "Search index or text search capability evidence is required before changing leading wildcard predicates.",
-                "Text matching semantics and collation may change."
+                "修改前导通配符谓词前，需要搜索索引或文本搜索能力证据。",
+                "文本匹配语义和排序规则可能发生变化。"
             );
         }
         if (profile.getRandomOrderCount() > 0) {
@@ -602,8 +602,8 @@ public class SqlOptimizationPipelineService {
                 "L1",
                 "ORDER_RANDOM_REVIEW",
                 "SAMPLING_INTENT_REQUIRED",
-                "The business sampling intent must be confirmed before replacing random ordering.",
-                "Randomness and repeatability requirements are semantic, not parser-derived."
+                "替换随机排序前必须确认业务抽样意图。",
+                "随机性和可重复性要求属于语义约束，不是解析器可直接推导的结果。"
             );
         }
 
@@ -636,12 +636,12 @@ public class SqlOptimizationPipelineService {
                 "PULL_ONLY_CANDIDATE",
                 "STATIC_PARSE",
                 Boolean.FALSE,
-                "High-reuse aggregation shape can become a materialized-view or precompute recommendation."
+                "高复用聚合形态可转化为物化视图或预计算推荐。"
             ));
             preconditions.add(preconditionEntry(
                 "PRECOMPUTE_MV",
                 "RUNTIME_REUSE_AND_REFRESH_POLICY_REQUIRED",
-                "Runtime frequency, freshness target, and refresh ownership are required before dispatch."
+                "分发前需要运行时频次、新鲜度目标和刷新责任归属。"
             ));
         }
         if (!profile.getDatePredicateColumns().isEmpty()) {
@@ -651,12 +651,12 @@ public class SqlOptimizationPipelineService {
                 "PULL_ONLY_CANDIDATE",
                 "STATIC_PARSE",
                 Boolean.FALSE,
-                "Date-like predicates indicate a partition pruning or partition-key recommendation."
+                "日期类谓词表明存在分区裁剪或分区键推荐机会。"
             ));
             preconditions.add(preconditionEntry(
                 "PARTITION_PRUNING",
                 "PARTITION_METADATA_REQUIRED",
-                "Partition key metadata and current storage layout must be checked before external execution."
+                "外部执行前必须检查分区键元数据和当前存储布局。"
             ));
         }
         if (profile.getJoinCount() > 0) {
@@ -666,18 +666,18 @@ public class SqlOptimizationPipelineService {
                 "PULL_ONLY_CANDIDATE",
                 "STATIC_PARSE",
                 Boolean.FALSE,
-                "Join activity indicates a bucket alignment or co-location recommendation candidate."
+                "join 活动表明存在分桶对齐或共置推荐候选。"
             ));
             preconditions.add(preconditionEntry(
                 "BUCKET_JOIN",
                 "JOIN_KEY_DISTRIBUTION_REQUIRED",
-                "Join-key stability, data skew, and storage ownership evidence are required before bucket changes."
+                "修改分桶前需要 join 键稳定性、数据倾斜和存储责任归属证据。"
             ));
             semanticRisks.add(semanticRiskEntry(
                 "BUCKET_JOIN",
                 "PHYSICAL_LAYOUT_RISK",
                 "MEDIUM",
-                "Bucket or co-location changes are external physical coordination and cannot be auto-applied from static parse."
+                "分桶或共置变更属于外部物理协同，不能仅凭静态解析自动应用。"
             ));
         }
     }
@@ -800,12 +800,12 @@ public class SqlOptimizationPipelineService {
 
     private String l0RuleDescription(String appliedRule) {
         if ("COUNT_LITERAL_TO_COUNT_STAR".equals(appliedRule)) {
-            return "COUNT over a non-null literal is normalized to COUNT(*) in the candidate SQL.";
+            return "候选 SQL 中非空字面量上的 COUNT 已标准化为 COUNT(*)。";
         }
         if ("DEDUPLICATE_GROUP_BY_KEYS".equals(appliedRule) || "DEDUPLICATE_ORDER_BY_KEYS".equals(appliedRule)) {
-            return "Duplicate grouping or ordering keys are removed while preserving first occurrence order.";
+            return "已移除重复分组或排序键，并保留首次出现顺序。";
         }
-        return "Conservative syntax rewrite applied to the candidate SQL.";
+        return "已对候选 SQL 应用保守语法改写。";
     }
 
     private boolean containsManualReviewRule(List<Map<String, Object>> ruleChain) {
@@ -821,7 +821,7 @@ public class SqlOptimizationPipelineService {
         LinkedHashMap<String, Object> benefit = new LinkedHashMap<String, Object>();
         benefit.put("evidenceType", "STATIC_HEURISTIC");
         benefit.put("claimBoundary", "NOT_REAL_EXECUTION_GAIN");
-        benefit.put("summary", "Estimated from parser signals and rule coverage only.");
+        benefit.put("summary", "仅基于解析器信号和规则覆盖估算。");
         benefit.put("appliedRuleCount", Integer.valueOf(outcome.appliedRules.size()));
         benefit.put("riskSignalCount", Integer.valueOf(profile.getWarnings().size()));
         benefit.put("level", staticBenefitLevel(profile, outcome));
@@ -1521,31 +1521,31 @@ public class SqlOptimizationPipelineService {
         if (!profile.aggregateFunctions.isEmpty() || profile.groupByCount > 0) {
             reasons.put(
                 AccelerationSuggestionType.PRECOMPUTE,
-                "Aggregate functions and grouping keys indicate repeated precompute or materialized-view value."
+                "聚合函数和分组键表明存在重复预计算或物化视图价值。"
             );
         }
         if (!profile.datePredicateColumns.isEmpty() || profile.predicateCount >= 2) {
             reasons.put(
                 AccelerationSuggestionType.PARTITION,
-                "Date-like filters or repeated predicates indicate partition pruning opportunities."
+                "日期类过滤或重复谓词表明存在分区裁剪机会。"
             );
         }
         if (profile.joinCount > 0) {
             reasons.put(
                 AccelerationSuggestionType.BUCKET,
-                "Join activity suggests bucket alignment or co-location may reduce shuffle overhead."
+                "join 活动表明分桶对齐或共置可能降低 shuffle 开销。"
             );
         }
         if (profile.joinCount >= 3 || profile.setOperation) {
             reasons.put(
                 AccelerationSuggestionType.SPLIT,
-                "The query graph is large enough that staged execution or decomposition should be evaluated."
+                "查询图规模较大，需要评估分阶段执行或拆解方案。"
             );
         }
         if (profile.selectStar || profile.tables.size() >= 4) {
             reasons.put(
                 AccelerationSuggestionType.REPLACE,
-                "Wide projections or large table graphs suggest replacing the raw query with a curated serving object."
+                "宽投影或大表图表明应考虑用已治理服务对象替换原始查询。"
             );
         }
         return reasons;
@@ -1577,8 +1577,8 @@ public class SqlOptimizationPipelineService {
                 new OptimizationTaskRisk(
                     "MEDIUM",
                     "SELECT_STAR",
-                    "Wide projection hides the actual column footprint and makes downstream rewrites less deterministic.",
-                    "Replace star projection with explicit columns before approving rewrites or accelerations."
+                    "宽投影会隐藏实际列足迹，并降低下游改写确定性。",
+                    "批准改写或加速前，请将星号投影替换为显式列。"
                 )
             );
         }
@@ -1587,8 +1587,8 @@ public class SqlOptimizationPipelineService {
                 new OptimizationTaskRisk(
                     "HIGH",
                     "FULL_SCAN_RISK",
-                    "The parsed statement has no filtering predicate and is likely to scan the full dataset.",
-                    "Add tenant, time, or business-key predicates before online use."
+                    "已解析语句没有过滤谓词，可能扫描完整数据集。",
+                    "上线前请添加租户、时间或业务键谓词。"
                 )
             );
         }
@@ -1597,8 +1597,8 @@ public class SqlOptimizationPipelineService {
                 new OptimizationTaskRisk(
                     "MEDIUM",
                     "ORDER_BY_WITHOUT_LIMIT",
-                    "Sorting without a limiting clause can create unnecessary wide shuffle or memory pressure.",
-                    "Add a limit or move sort work to a precomputed serving object."
+                    "没有限制子句的排序可能产生不必要的宽 shuffle 或内存压力。",
+                    "请添加 limit，或将排序工作迁移到预计算服务对象。"
                 )
             );
         }
@@ -1607,8 +1607,8 @@ public class SqlOptimizationPipelineService {
                 new OptimizationTaskRisk(
                     "MEDIUM",
                     "HEAVY_JOIN_GRAPH",
-                    "The parsed query joins multiple datasets and may need staged execution or stronger acceleration.",
-                    "Review join keys, filter placement, and serving-layer alternatives before approval."
+                    "已解析查询连接多个数据集，可能需要分阶段执行或更强加速。",
+                    "批准前请评审 join 键、过滤位置和服务层替代方案。"
                 )
             );
         }
@@ -1617,8 +1617,8 @@ public class SqlOptimizationPipelineService {
                 new OptimizationTaskRisk(
                     "MEDIUM",
                     "ORDER_BY_COMPLEXITY_RISK",
-                    "The parsed statement carries multiple or repeated ORDER BY keys.",
-                    "Reduce sort keys, remove duplicate ordering, or move sorted serving output behind validation."
+                    "已解析语句包含多个或重复的 ORDER BY 键。",
+                    "请减少排序键、移除重复排序，或在校验后提供已排序服务输出。"
                 )
             );
         }
@@ -1627,8 +1627,8 @@ public class SqlOptimizationPipelineService {
                 new OptimizationTaskRisk(
                     "HIGH",
                     "JOIN_LATENCY_RISK",
-                    "The join graph has static signals that may produce long-running distributed execution.",
-                    "Confirm join keys, filter placement, and row movement with access parse or benchmark evidence."
+                    "join 图存在可能导致长时间分布式执行的静态信号。",
+                    "请通过访问解析或压测证据确认 join 键、过滤位置和行移动。"
                 )
             );
         }
@@ -1637,8 +1637,8 @@ public class SqlOptimizationPipelineService {
                 new OptimizationTaskRisk(
                     "MEDIUM",
                     "AGGREGATION_COMPLEXITY_RISK",
-                    "Aggregation count or string aggregation indicates heavier compute and memory pressure.",
-                    "Pre-aggregate reusable stages or review materialized serving objects before approval."
+                    "聚合数量或字符串聚合表明存在较重的计算和内存压力。",
+                    "批准前请预聚合可复用阶段，或评审物化服务对象。"
                 )
             );
         }
@@ -1646,26 +1646,26 @@ public class SqlOptimizationPipelineService {
     }
 
     private String buildParseSummary(ParsedSqlProfile profile) {
-        return "Parsed a SELECT statement across "
+        return "已解析一条 SELECT 语句，覆盖 "
             + profile.tables.size()
-            + " table(s), "
+            + " 张表、"
             + profile.joinCount
-            + " join(s), and "
+            + " 个 join、"
             + profile.predicateCount
-            + " predicate fragment(s).";
+            + " 个谓词片段。";
     }
 
     private String buildParseRecommendation(ParsedSqlProfile profile) {
         if (profile.selectStar) {
-            return "Replace the star projection first, then use the same AST profile for rewrite and acceleration review.";
+            return "请先替换星号投影，再使用同一 AST 画像开展改写和加速评审。";
         }
         if (profile.predicateCount == 0) {
-            return "Add explicit filters before carrying this statement into rewrite or acceleration planning.";
+            return "将该语句带入改写或加速规划前，请先补充显式过滤条件。";
         }
         if (!profile.aggregateFunctions.isEmpty()) {
-            return "Use the parsed aggregates and group keys to evaluate precompute or serving-layer acceleration.";
+            return "请使用已解析的聚合函数和分组键评估预计算或服务层加速。";
         }
-        return "Use the AST profile as the canonical input for later rewrite validation and acceleration planning.";
+        return "请将 AST 画像作为后续改写校验和加速规划的权威输入。";
     }
 
     private int calculateParseConfidence(ParsedSqlProfile profile) {

@@ -305,7 +305,7 @@ public class QueryExecutionResultDigestService {
             }
             return builder.toString();
         } catch (Exception ex) {
-            throw new IllegalStateException("Unable to compute result digest", ex);
+            throw new IllegalStateException("无法计算结果摘要", ex);
         }
     }
 }

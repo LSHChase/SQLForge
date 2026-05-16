@@ -25,21 +25,21 @@ public class RestTemplateReportSqlHttpClient implements ReportSqlHttpClient {
     @Override
     public String fetchSql(GovernanceReportInterfaceConfigResponse config, ReportSqlResolveRequest request) {
         if (!"GET".equals(config.getHttpMethod())) {
-            throw invalidConfig("Only GET report SQL fetch is implemented in the first HTTP abstraction");
+            throw invalidConfig("第一版 HTTP 抽象仅实现 GET 方式获取报表 SQL");
         }
         String url = buildUrl(config, request);
         try {
             Map response = restTemplate.getForObject(url, Map.class);
             Object sql = response == null ? null : response.get(resolveSqlField(config.getSqlJsonPath()));
             if (sql == null || !StringUtils.hasText(String.valueOf(sql))) {
-                throw invalidConfig("Report SQL response does not contain SQL field " + config.getSqlJsonPath());
+                throw invalidConfig("报表 SQL 响应不包含 SQL 字段 " + config.getSqlJsonPath());
             }
             return String.valueOf(sql);
         } catch (RestClientException ex) {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.SERVICE_UNAVAILABLE,
-                "Report SQL interface is unavailable",
+                "报表 SQL 接口不可用",
                 ex
             );
         }
@@ -72,7 +72,7 @@ public class RestTemplateReportSqlHttpClient implements ReportSqlHttpClient {
 
     private String trimTrailingSlash(String value) {
         if (!StringUtils.hasText(value)) {
-            throw invalidConfig("Report interface baseUrl is required");
+            throw invalidConfig("报表接口 baseUrl 为必填项");
         }
         return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
     }

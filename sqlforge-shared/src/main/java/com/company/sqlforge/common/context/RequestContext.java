@@ -7,7 +7,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 /**
- * Thread-local request context shared by all backend services.
+ * 所有后端服务共享的线程本地请求上下文。
  */
 public final class RequestContext {
 

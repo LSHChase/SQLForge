@@ -15,26 +15,26 @@ public class BenchmarkTaskContextDTO {
 
     private BenchmarkTaskPriority priority;
 
-    @Size(max = 8, message = "targetEngines exceeds 8 items")
+    @Size(max = 8, message = "targetEngines 超过 8 项")
     private List<DataSourceTypeEnum> targetEngines;
 
-    @Min(value = 1L, message = "concurrency must be greater than 0")
+    @Min(value = 1L, message = "concurrency 必须大于 0")
     private Integer concurrency;
 
-    @Min(value = 1L, message = "durationSeconds must be greater than 0")
+    @Min(value = 1L, message = "durationSeconds 必须大于 0")
     private Integer durationSeconds;
 
-    @Min(value = 0L, message = "rampUpSeconds must not be negative")
+    @Min(value = 0L, message = "rampUpSeconds 不能为负数")
     private Integer rampUpSeconds;
 
-    @Size(max = 64, message = "datasetSizeLabel exceeds 64 characters")
+    @Size(max = 64, message = "datasetSizeLabel 超过 64 个字符")
     private String datasetSizeLabel;
-    @Size(max = 64, message = "templateId exceeds 64 characters")
+    @Size(max = 64, message = "templateId 超过 64 个字符")
     private String templateId;
     private BenchmarkTemplateType templateType;
-    @Size(max = 32, message = "templateVersion exceeds 32 characters")
+    @Size(max = 32, message = "templateVersion 超过 32 个字符")
     private String templateVersion;
-    @Size(max = 64, message = "testSetId exceeds 64 characters")
+    @Size(max = 64, message = "testSetId 超过 64 个字符")
     private String testSetId;
     private BenchmarkTestSetSource testSetSource;
     @Valid
@@ -184,7 +184,7 @@ public class BenchmarkTaskContextDTO {
         this.thresholds = thresholds;
     }
 
-    @javax.validation.constraints.AssertTrue(message = "templateType is required when template metadata is provided")
+    @javax.validation.constraints.AssertTrue(message = "提供模板元数据时 templateType 为必填项")
     public boolean isTemplateContractConsistent() {
         if (!hasText(templateId) && templateType == null && !hasText(templateVersion)) {
             return true;
@@ -192,7 +192,7 @@ public class BenchmarkTaskContextDTO {
         return templateType != null;
     }
 
-    @javax.validation.constraints.AssertTrue(message = "testSetSource is required when test set metadata is provided")
+    @javax.validation.constraints.AssertTrue(message = "提供测试集元数据时 testSetSource 为必填项")
     public boolean isTestSetContractConsistent() {
         if (!hasText(testSetId)
             && testSetSource == null

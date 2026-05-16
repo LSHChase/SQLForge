@@ -1,7 +1,7 @@
 package com.company.sqlforge.common.config;
 
 /**
- * Supported authentication source values propagated by trusted entrypoints.
+ * 可信入口传递的受支持认证来源取值。
  */
 public final class AuthSourceConstants {
 

@@ -214,24 +214,24 @@ public class HetuRouteCalibrationService {
                                    boolean adapterAvailable,
                                    boolean configured) {
         if (!allowed) {
-            return "Mode is excluded from query-execution.hetu.allowed-modes.";
+            return "该模式未包含在 query-execution.hetu.allowed-modes 中。";
         }
         if (!adapterAvailable) {
-            return "No HetuExecutionModeAdapter bean is registered for the mode.";
+            return "该模式未注册 HetuExecutionModeAdapter Bean。";
         }
         if (mode == QueryExecutionAccessMode.JDBC && !configured) {
-            return "query-execution.hetu.jdbc.url is empty.";
+            return "query-execution.hetu.jdbc.url 为空。";
         }
         if (mode == QueryExecutionAccessMode.REST && !configured) {
-            return "query-execution.hetu.rest.endpoint is empty.";
+            return "query-execution.hetu.rest.endpoint 为空。";
         }
         if (mode == QueryExecutionAccessMode.CLIENT && !properties.getClient().isEnabled()) {
-            return "query-execution.hetu.client.enabled=false.";
+            return "query-execution.hetu.client.enabled=false，客户端模式已禁用。";
         }
         if (mode == QueryExecutionAccessMode.CLIENT && !configured) {
-            return "query-execution.hetu.client.endpoint or user is empty.";
+            return "query-execution.hetu.client.endpoint 或 user 为空。";
         }
-        return "Mode is ready for calibrated routing.";
+        return "模式已准备好用于校准路由。";
     }
 
     private List<QueryExecutionAccessMode> mergeRouteOrder(List<QueryExecutionAccessMode> declaredAllowedModes,

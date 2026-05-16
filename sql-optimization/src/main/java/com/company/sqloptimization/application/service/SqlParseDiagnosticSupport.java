@@ -38,7 +38,7 @@ final class SqlParseDiagnosticSupport {
         }
         if (builder.length() == "STRUCTURE_PARSE_INVALID".length()
             && StringUtils.hasText(structureParse.getFailureReason())) {
-            builder.append(" reason=").append(compactDiagnosticText(structureParse.getFailureReason(), 80));
+            builder.append(" 原因=").append(compactDiagnosticText(structureParse.getFailureReason(), 80));
         }
         return compactDiagnosticText(builder.toString(), limit);
     }

@@ -65,7 +65,7 @@ public class DatabaseViewCatalogApplicationService {
         ).orElseThrow(() -> new BizException(
             ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
             HttpStatus.NOT_FOUND,
-            "Database view not found"
+            "数据库视图不存在"
         ));
         return toVo(ref);
     }
@@ -89,7 +89,7 @@ public class DatabaseViewCatalogApplicationService {
         response.setObjectKey(ref.getObjectKey());
         response.setResolved(Boolean.TRUE);
         response.setDependencies(toGovernanceDependencies(effectiveTenantId, ref.getId()));
-        LOGGER.info("Resolved DB view dependency evidence, tenantId={}, datasourceCode={}, viewName={}, dependencyCount={}, traceId={}",
+        LOGGER.info("已解析 DB 视图依赖证据，tenantId={}, datasourceCode={}, viewName={}, dependencyCount={}, traceId={}",
             effectiveTenantId,
             datasourceCode,
             viewName,
@@ -102,7 +102,7 @@ public class DatabaseViewCatalogApplicationService {
         String currentTenantId = TenantContext.get();
         boolean platformAdmin = RequestContext.hasRole(PLATFORM_ADMIN);
         if (!StringUtils.hasText(currentTenantId)) {
-            throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED, "Tenant context is missing");
+            throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED, "租户上下文缺失");
         }
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : currentTenantId;
         if (!platformAdmin && !currentTenantId.equals(effectiveTenantId)) {
@@ -184,7 +184,7 @@ public class DatabaseViewCatalogApplicationService {
 
     private String requireText(String value, String fieldName) {
         if (!StringUtils.hasText(value)) {
-            throw new BizException(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, HttpStatus.BAD_REQUEST, fieldName + " must not be empty");
+            throw new BizException(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, HttpStatus.BAD_REQUEST, fieldName + " 不能为空");
         }
         return value;
     }

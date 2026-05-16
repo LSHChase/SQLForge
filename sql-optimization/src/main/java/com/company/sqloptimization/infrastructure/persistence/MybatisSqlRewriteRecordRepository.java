@@ -280,7 +280,7 @@ public class MybatisSqlRewriteRecordRepository implements SqlRewriteRecordReposi
                 .constructMapType(Map.class, String.class, Object.class);
             return JsonUtils.objectMapper().readValue(json, type);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize SQL rewrite JSON", ex);
+            throw new IllegalArgumentException("SQL 改写 JSON 反序列化失败", ex);
         }
     }
 
@@ -293,7 +293,7 @@ public class MybatisSqlRewriteRecordRepository implements SqlRewriteRecordReposi
                 .constructCollectionType(List.class, Map.class);
             return JsonUtils.objectMapper().readValue(json, type);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize SQL rewrite list JSON", ex);
+            throw new IllegalArgumentException("SQL 改写列表 JSON 反序列化失败", ex);
         }
     }
 

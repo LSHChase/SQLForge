@@ -64,7 +64,7 @@ final class RedisProtocolQueryExecutionResultCacheBackend implements QueryExecut
             }
             return CacheEntryWriteResult.failed(
                 "providerWriteStatus=REJECTED;providerCommand=SET",
-                "Unexpected Redis SET response"
+                "Redis SET 响应不符合预期"
             );
         } catch (Exception ex) {
             return CacheEntryWriteResult.failed(
@@ -119,7 +119,7 @@ final class RedisProtocolQueryExecutionResultCacheBackend implements QueryExecut
             }
             return CacheBackendVerifyResult.unavailable(
                 "providerVerifyStatus=UNEXPECTED;providerCommand=PING",
-                "Unexpected Redis PING response"
+                "Redis PING 响应不符合预期"
             );
         } catch (Exception ex) {
             return CacheBackendVerifyResult.unavailable(
@@ -147,7 +147,7 @@ final class RedisProtocolQueryExecutionResultCacheBackend implements QueryExecut
     private Object execute(String... args) throws IOException {
         QueryExecutionCacheBackendProperties.Redis redis = properties.getRedis();
         if (redis == null || !StringUtils.hasText(redis.getHost())) {
-            throw new IOException("Redis backend host is not configured");
+            throw new IOException("Redis 缓存后端主机未配置");
         }
         Socket socket = new Socket();
         socket.connect(new InetSocketAddress(redis.getHost().trim(), redis.getPort()), redis.getConnectTimeoutMs());
@@ -200,7 +200,7 @@ final class RedisProtocolQueryExecutionResultCacheBackend implements QueryExecut
     private Object readResp(BufferedInputStream input) throws IOException {
         int type = input.read();
         if (type == -1) {
-            throw new IOException("Redis closed connection");
+            throw new IOException("Redis 连接已关闭");
         }
         if (type == '+') {
             return readLine(input);
@@ -231,7 +231,7 @@ final class RedisProtocolQueryExecutionResultCacheBackend implements QueryExecut
             }
             return values;
         }
-        throw new IOException("Unsupported Redis response type");
+        throw new IOException("不支持的 Redis 响应类型");
     }
 
     private String readLine(BufferedInputStream input) throws IOException {
@@ -246,7 +246,7 @@ final class RedisProtocolQueryExecutionResultCacheBackend implements QueryExecut
             buffer.write(current);
             previous = current;
         }
-        throw new IOException("Redis response line is incomplete");
+        throw new IOException("Redis 响应行不完整");
     }
 
     private byte[] readBytes(BufferedInputStream input, int length) throws IOException {
@@ -255,7 +255,7 @@ final class RedisProtocolQueryExecutionResultCacheBackend implements QueryExecut
         while (offset < length) {
             int read = input.read(bytes, offset, length - offset);
             if (read == -1) {
-                throw new IOException("Redis bulk response is incomplete");
+                throw new IOException("Redis bulk 响应不完整");
             }
             offset += read;
         }
@@ -268,7 +268,7 @@ final class RedisProtocolQueryExecutionResultCacheBackend implements QueryExecut
 
     private static String sanitize(String value) {
         if (!StringUtils.hasText(value)) {
-            return "provider backend unavailable";
+            return "provider 后端不可用";
         }
         return value.replace(';', ',').replace('\n', ' ').replace('\r', ' ');
     }

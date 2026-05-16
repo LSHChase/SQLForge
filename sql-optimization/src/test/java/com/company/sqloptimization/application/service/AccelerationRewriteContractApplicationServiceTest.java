@@ -737,7 +737,7 @@ class AccelerationRewriteContractApplicationServiceTest {
                 throw new BizException(
                     ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_REWRITE_FAILURE,
                     HttpStatus.SERVICE_UNAVAILABLE,
-                    "runtime route unavailable"
+                    "runtime route 不可用"
                 );
             }
             publishedRewriteRecordId = request.getRewriteRecordId();

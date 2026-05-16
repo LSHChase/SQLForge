@@ -7,15 +7,15 @@ import javax.validation.constraints.NotBlank;
 
 public class AccelerationPlanSubmitRequest {
 
-    @NotBlank(message = "tenantId is required")
+    @NotBlank(message = "tenantId 为必填项")
     private String tenantId;
 
-    @NotBlank(message = "sourceTaskId is required")
+    @NotBlank(message = "sourceTaskId 为必填项")
     private String sourceTaskId;
 
     private List<AccelerationSuggestionType> selectedSuggestionTypes;
 
-    @AssertTrue(message = "selectedSuggestionTypes cannot contain ALL when creating a governed acceleration plan")
+    @AssertTrue(message = "创建受治理加速方案时 selectedSuggestionTypes 不能包含 ALL")
     public boolean isSelectedSuggestionTypesValid() {
         return selectedSuggestionTypes == null || !selectedSuggestionTypes.contains(AccelerationSuggestionType.ALL);
     }

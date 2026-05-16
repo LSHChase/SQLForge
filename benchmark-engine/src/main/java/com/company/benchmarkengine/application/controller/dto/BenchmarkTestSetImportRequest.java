@@ -11,24 +11,24 @@ import javax.validation.constraints.Size;
 
 public class BenchmarkTestSetImportRequest {
 
-    @NotNull(message = "fileType is required")
+    @NotNull(message = "fileType 为必填项")
     private BenchmarkTestSetFileType fileType;
 
-    @NotBlank(message = "fileName is required")
-    @Size(max = 255, message = "fileName exceeds 255 characters")
+    @NotBlank(message = "fileName 为必填项")
+    @Size(max = 255, message = "fileName 超过 255 个字符")
     private String fileName;
 
-    @NotBlank(message = "contentBase64 is required")
+    @NotBlank(message = "contentBase64 为必填项")
     private String contentBase64;
 
-    @Size(max = 32, message = "charset exceeds 32 characters")
+    @Size(max = 32, message = "charset 超过 32 个字符")
     private String charset;
 
-    @Size(max = 1, message = "delimiter must be a single character")
+    @Size(max = 1, message = "delimiter 必须为单个字符")
     private String delimiter;
 
     @Valid
-    @NotEmpty(message = "fieldMappings are required")
+    @NotEmpty(message = "fieldMappings 为必填项")
     private List<BenchmarkTestSetFieldMappingDTO> fieldMappings;
 
     public BenchmarkTestSetFileType getFileType() {
@@ -79,7 +79,7 @@ public class BenchmarkTestSetImportRequest {
         this.fieldMappings = fieldMappings;
     }
 
-    @AssertTrue(message = "sqlText field mapping is required for batch-import benchmark test sets")
+    @AssertTrue(message = "批量导入压测测试集必须配置 sqlText 字段映射")
     public boolean isSqlTextFieldMapped() {
         if (fieldMappings == null) {
             return false;

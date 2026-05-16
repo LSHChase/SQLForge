@@ -19,7 +19,7 @@ public final class OpenAccessHeaderSupport {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "Missing open-access request context"
+                "缺少开放接入请求上下文"
             );
         }
         HttpHeaders headers = new HttpHeaders();
@@ -44,7 +44,7 @@ public final class OpenAccessHeaderSupport {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "Missing open-access request context field: " + fieldName
+                "开放接入请求上下文缺少字段：" + fieldName
             );
         }
         return value.trim();

@@ -1,7 +1,7 @@
 package com.company.sqlforge.common.audit;
 
 /**
- * Minimum cross-service audit contract.
+ * 跨服务最小审计契约。
  */
 public final class AuditEvent {
 

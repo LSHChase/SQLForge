@@ -64,7 +64,7 @@ class QueryExecutionBenchmarkWorkloadHttpClientTest {
         BizException ex = assertThrows(BizException.class, () -> client.captureWorkload(baseRequest()));
 
         assertEquals(ErrorCodeConstants.SYSTEM_CONFIG_INVALID, ex.getCode());
-        assertEquals("benchmark-engine query-execution baseUrl is not configured", ex.getMessage());
+        assertEquals("benchmark-engine 的 query-execution baseUrl 未配置", ex.getMessage());
     }
 
     private QueryExecutionBenchmarkWorkloadHttpClient createClient() {

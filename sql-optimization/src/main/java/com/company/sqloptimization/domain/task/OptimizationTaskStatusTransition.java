@@ -3,7 +3,7 @@ package com.company.sqloptimization.domain.task;
 import java.time.Instant;
 
 /**
- * Immutable transition record used for audit-friendly task status history.
+ * 用于审计友好任务状态历史的不可变流转记录。
  */
 public class OptimizationTaskStatusTransition {
 

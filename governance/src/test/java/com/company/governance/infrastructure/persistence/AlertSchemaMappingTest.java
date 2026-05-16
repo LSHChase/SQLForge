@@ -23,7 +23,7 @@ class AlertSchemaMappingTest {
         assertContains(schema, "CREATE TABLE IF NOT EXISTS alert_notification_log");
         assertContains(schema, "dedupe_window_seconds INT NOT NULL DEFAULT 900");
         assertContains(schema, "notify_status VARCHAR(32) NOT NULL DEFAULT 'SIMULATED_PENDING_NOTIFY'");
-        assertContains(schema, "delivery_status VARCHAR(32) NOT NULL COMMENT 'Delivery state: SIMULATED_SENT/DEDUPE_SUPPRESSED/SIMULATED_FAILED'");
+        assertContains(schema, "delivery_status VARCHAR(32) NOT NULL COMMENT '投递状态：SIMULATED_SENT/DEDUPE_SUPPRESSED/SIMULATED_FAILED'");
         assertContains(schema, "alert_status VARCHAR(16) NOT NULL DEFAULT 'OPEN'");
         assertContains(schema, "idx_alert_event_tenant_dedupe_created");
         assertContains(schema, "idx_alert_notification_tenant_dedupe_created");

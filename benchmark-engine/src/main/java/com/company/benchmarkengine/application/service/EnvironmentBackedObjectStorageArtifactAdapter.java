@@ -69,14 +69,14 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                 tenantPolicy == null ? null : tenantPolicy.getRetentionDeleteAfter()
             );
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to externalize benchmark artifact to environment-backed mirror", ex);
+            throw new IllegalStateException("将压测产物外部化到环境支撑镜像失败", ex);
         }
     }
 
     @Override
     public BenchmarkArtifactReadResult loadArtifact(BenchmarkReportArtifact artifact) {
         if (artifact == null) {
-            throw new IllegalArgumentException("Benchmark artifact must not be null");
+            throw new IllegalArgumentException("压测产物不能为 null");
         }
         try {
             if (artifact.getContent() != null) {
@@ -92,7 +92,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                 );
             }
             if (artifact.getStorageUri() == null) {
-                throw new IllegalStateException("Benchmark artifact content and storageUri are both missing");
+                throw new IllegalStateException("压测产物内容与 storageUri 均缺失");
             }
             LoadedArtifact loadedArtifact = loadBytesWithRecovery(artifact);
             return new BenchmarkArtifactReadResult(
@@ -106,9 +106,9 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                 loadedArtifact.readStatus
             );
         } catch (NoSuchFileException ex) {
-            throw new IllegalStateException("Benchmark artifact is missing from environment-backed mirror", ex);
+            throw new IllegalStateException("环境支撑镜像中缺少压测产物", ex);
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to load benchmark artifact from environment-backed mirror", ex);
+            throw new IllegalStateException("从环境支撑镜像加载压测产物失败", ex);
         }
     }
 
@@ -402,7 +402,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         uploadProviderObject(providerObjectUrl, contentBytes, providerTarget.credentials);
         byte[] reloaded = downloadProviderObject(providerObjectUrl, providerTarget.credentials);
         if (!Arrays.equals(contentBytes, reloaded)) {
-            throw new IllegalStateException("Provider-backed object-storage verification readback mismatch");
+            throw new IllegalStateException("provider 支撑对象存储校验回读不匹配");
         }
         ProviderObjectMetadata metadata = headProviderObject(providerObjectUrl, providerTarget.credentials);
         if (primaryProvider) {
@@ -448,7 +448,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         );
         byte[] reloaded = Files.readAllBytes(externalPath);
         if (!Arrays.equals(contentBytes, reloaded)) {
-            throw new IllegalStateException("External object-storage verification readback mismatch");
+            throw new IllegalStateException("外部对象存储校验回读不匹配");
         }
         return verification.withExternalVerification(externalRoot, externalPath, VERIFIED, VERIFIED);
     }
@@ -641,7 +641,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         if (StringUtils.hasText(mirrorPath)) {
             return Paths.get(mirrorPath);
         }
-        throw new IllegalStateException("Environment-backed artifact is missing mirrorPath evidence");
+        throw new IllegalStateException("环境支撑产物缺少 mirrorPath 证据");
     }
 
     private Path resolveLiveEvidencePath(BenchmarkReportArtifact artifact) {
@@ -672,7 +672,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         try {
             return Files.deleteIfExists(path);
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to cleanup benchmark artifact path " + path, ex);
+            throw new IllegalStateException("清理压测产物路径失败：" + path, ex);
         }
     }
 
@@ -689,7 +689,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                 .forEach(fileName -> staleFileNames.put(fileName, Boolean.TRUE));
             return staleFileNames.keySet();
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to inspect stale environment-backed benchmark artifacts", ex);
+            throw new IllegalStateException("检查陈旧环境支撑压测产物失败", ex);
         }
     }
 
@@ -713,7 +713,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                 .filter(path -> !retainedArtifactKeys.contains(stripJsonSuffix(path.getFileName().toString())))
                 .forEach(this::deleteLocalFile);
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to cleanup stale environment-backed evidence manifests", ex);
+            throw new IllegalStateException("清理陈旧环境支撑证据清单失败", ex);
         }
     }
 
@@ -735,7 +735,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         try {
             deleteProviderObject(providerObjectUrl, credentials);
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to cleanup stale provider-backed artifact " + providerObjectUrl, ex);
+            throw new IllegalStateException("清理陈旧 provider 支撑产物失败：" + providerObjectUrl, ex);
         }
     }
 
@@ -748,7 +748,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
                 return "MISSING";
             }
             if (status < 200 || status >= 300) {
-                throw new IllegalStateException("Provider-backed object-storage delete failed with status " + status);
+                throw new IllegalStateException("provider 支撑对象存储删除失败，状态：" + status);
             }
             return VERIFIED;
         } finally {
@@ -760,7 +760,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         try {
             Files.deleteIfExists(path);
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to delete stale benchmark artifact " + path, ex);
+            throw new IllegalStateException("删除陈旧压测产物失败：" + path, ex);
         }
     }
 
@@ -842,14 +842,14 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
         }
         if (!StringUtils.hasText(credentials)) {
             throw new IllegalStateException(
-                "Provider-authenticated cleanup requires configured credentials for " + providerRole
+                "基于提供方认证的清理要求先为 " + providerRole + " 配置凭据"
             );
         }
         try {
             return ProviderDeleteStatus.attempted(deleteProviderObject(providerObjectUrl, credentials), true);
         } catch (IOException ex) {
             throw new IllegalStateException(
-                "Failed to cleanup provider-backed artifact from " + providerRole + " using authenticated delete",
+                "使用认证删除清理 " + providerRole + " 的提供方制品失败",
                 ex
             );
         }
@@ -970,7 +970,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             }
             int status = connection.getResponseCode();
             if (status < 200 || status >= 300) {
-                throw new IllegalStateException("Provider-backed object-storage write failed with status " + status);
+                throw new IllegalStateException("provider 支撑对象存储写入失败，状态：" + status);
             }
         } finally {
             connection.disconnect();
@@ -983,7 +983,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             connection.connect();
             int status = connection.getResponseCode();
             if (status < 200 || status >= 300) {
-                throw new IllegalStateException("Provider-backed object-storage read failed with status " + status);
+                throw new IllegalStateException("provider 支撑对象存储读取失败，状态：" + status);
             }
             return readAllBytes(connection.getInputStream());
         } finally {
@@ -1164,7 +1164,7 @@ public class EnvironmentBackedObjectStorageArtifactAdapter implements BenchmarkA
             if ("MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER".equals(normalized)) {
                 return new CleanupIntent(true, true, true, true);
             }
-            throw new IllegalStateException("Unsupported environment-backed cleanupScope: " + cleanupScope);
+            throw new IllegalStateException("不支持的 environment-backed cleanupScope：" + cleanupScope);
         }
     }
 

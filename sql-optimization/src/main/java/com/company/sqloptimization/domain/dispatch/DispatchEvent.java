@@ -138,19 +138,19 @@ public class DispatchEvent {
     }
 
     public void publish(Instant occurredAt, String operator) {
-        requireStatus(DispatchEventStatus.CREATED, "Only CREATED dispatch events can be published");
+        requireStatus(DispatchEventStatus.CREATED, "只有 CREATED 状态的分发事件可以发布");
         transitionTo(DispatchEventStatus.PUBLISHED, occurredAt, "DISPATCH_EVENT_PUBLISHED_FOR_PULL", operator);
     }
 
     public void markPulled(Instant occurredAt, String operator) {
-        requireStatus(DispatchEventStatus.PUBLISHED, "Only PUBLISHED dispatch events can be pulled");
+        requireStatus(DispatchEventStatus.PUBLISHED, "只有 PUBLISHED 状态的分发事件可以拉取");
         this.pulledBy = operator;
         this.pulledAt = occurredAt;
         transitionTo(DispatchEventStatus.PULLED, occurredAt, "DISPATCH_EVENT_PULLED_BY_EXTERNAL_MODULE", operator);
     }
 
     public void ack(Instant occurredAt, String operator, String resultMessage) {
-        requireStatus(DispatchEventStatus.PULLED, "Only PULLED dispatch events can be acked");
+        requireStatus(DispatchEventStatus.PULLED, "只有 PULLED 状态的分发事件可以确认");
         this.ackedBy = operator;
         this.ackedAt = occurredAt;
         this.resultMessage = resultMessage;
@@ -158,7 +158,7 @@ public class DispatchEvent {
     }
 
     public void fail(Instant occurredAt, String operator, String resultMessage) {
-        requireStatus(DispatchEventStatus.PULLED, "Only PULLED dispatch events can fail");
+        requireStatus(DispatchEventStatus.PULLED, "只有 PULLED 状态的分发事件可以标记失败");
         this.failedBy = operator;
         this.failedAt = occurredAt;
         this.resultMessage = resultMessage;
@@ -174,7 +174,7 @@ public class DispatchEvent {
 
     private void requireStatus(DispatchEventStatus expected, String message) {
         if (status != expected) {
-            throw new IllegalStateException(message + ", current=" + status);
+            throw new IllegalStateException(message + "，当前状态=" + status);
         }
     }
 
@@ -183,17 +183,17 @@ public class DispatchEvent {
         requireText(tenantId, "tenantId");
         requireText(recommendationId, "recommendationId");
         if (dispatchType == null) {
-            throw new IllegalArgumentException("dispatchType is required");
+            throw new IllegalArgumentException("dispatchType 为必填项");
         }
         requireText(dispatchPayloadJson, "dispatchPayloadJson");
         if (createdAt == null) {
-            throw new IllegalArgumentException("createdAt is required");
+            throw new IllegalArgumentException("createdAt 为必填项");
         }
     }
 
     private void requireText(String value, String field) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(field + " is required");
+            throw new IllegalArgumentException(field + " 为必填项");
         }
     }
 

@@ -116,7 +116,7 @@ public class GovernanceAlertApplicationService {
         auditLogRecord.setRequestId("alert-ack-" + record.getAlertId());
         auditLogRecord.setTraceId(record.getAlertId());
         auditLogRecord.setRequestParams(JsonUtils.toJson(payload));
-        auditLogRecord.setResponseSummary("Alert acknowledged");
+        auditLogRecord.setResponseSummary("告警已确认");
         auditLogRecord.setStatus("SUCCESS");
         auditLogRecord.setCostMs(Long.valueOf(0L));
         auditLogRecord.setCreateTime(toLocalDateTime(ackedAt));
@@ -200,11 +200,11 @@ public class GovernanceAlertApplicationService {
     private AlertEventRecord requireAlertForTenant(String tenantId, String alertId) {
         String effectiveAlertId = trimToNull(alertId);
         if (effectiveAlertId == null) {
-            throw new BizException(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, HttpStatus.BAD_REQUEST, "alertId must not be empty");
+            throw new BizException(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, HttpStatus.BAD_REQUEST, "alertId 不能为空");
         }
         AlertEventRecord record = alertEventMapper.selectByAlertId(effectiveAlertId);
         if (record == null || !tenantId.equals(record.getTenantId())) {
-            throw new BizException(ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Alert not found");
+            throw new BizException(ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "告警不存在");
         }
         return record;
     }
@@ -278,7 +278,7 @@ public class GovernanceAlertApplicationService {
     private String requireTenantId(String tenantId) {
         String effectiveTenantId = trimToNull(tenantId);
         if (effectiveTenantId == null) {
-            throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED, "Tenant context is missing");
+            throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED, "租户上下文缺失");
         }
         return effectiveTenantId;
     }

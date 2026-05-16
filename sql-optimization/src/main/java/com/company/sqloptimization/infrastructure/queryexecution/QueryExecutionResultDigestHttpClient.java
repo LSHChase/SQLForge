@@ -20,7 +20,7 @@ import org.springframework.web.client.RestTemplate;
 public class QueryExecutionResultDigestHttpClient implements QueryExecutionResultDigestClient {
 
     private static final String RESULT_DIGEST_ROUTE_UNAVAILABLE_MESSAGE =
-        "Query-execution readonly result digest route is unavailable";
+        "查询执行只读结果摘要路由不可用";
 
     private final RestTemplate restTemplate;
     private final OptimizationQueryExecutionProperties optimizationQueryExecutionProperties;
@@ -62,7 +62,7 @@ public class QueryExecutionResultDigestHttpClient implements QueryExecutionResul
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "sql-optimization query-execution resultDigestBaseUrl is not configured"
+                "sql-optimization query-execution resultDigestBaseUrl 未配置"
             );
         }
         return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;

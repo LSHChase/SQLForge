@@ -70,7 +70,7 @@ class OptimizationTaskApplicationServiceTest {
         assertEquals(22001, ex.getCode());
         assertTrue(output.getOut().contains("operation=OPTIMIZATION_TASK_STATUS_QUERY"));
         assertTrue(output.getOut().contains("status=FAILED phase=EXCEPTION"));
-        assertTrue(output.getOut().contains("reason=Optimization task does not exist"));
+        assertTrue(output.getOut().contains("reason=优化任务不存在"));
     }
 
     @Test

@@ -212,7 +212,7 @@ public class GovernanceCapabilityApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "Protected request context is missing"
+                "受保护请求上下文缺失"
             );
         }
         return tenantId;
@@ -224,7 +224,7 @@ public class GovernanceCapabilityApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_MESSAGE_MODE_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "Messaging mode is not configured"
+                "消息模式未配置"
             );
         }
         return messagingMode;
@@ -235,7 +235,7 @@ public class GovernanceCapabilityApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " must not be empty"
+                fieldName + " 不能为空"
             );
         }
         return value;

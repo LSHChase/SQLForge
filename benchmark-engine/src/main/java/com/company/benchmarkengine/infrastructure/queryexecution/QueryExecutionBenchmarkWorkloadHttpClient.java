@@ -22,7 +22,7 @@ import org.springframework.web.client.RestTemplate;
 @Component
 public class QueryExecutionBenchmarkWorkloadHttpClient implements QueryExecutionBenchmarkWorkloadClient {
 
-    private static final String QUERY_EXECUTION_ROUTE_UNAVAILABLE_MESSAGE = "Query-execution workload route is unavailable";
+    private static final String QUERY_EXECUTION_ROUTE_UNAVAILABLE_MESSAGE = "查询执行 workload 路由不可用";
 
     private final RestTemplate restTemplate;
     private final BenchmarkEngineQueryExecutionProperties queryExecutionProperties;
@@ -62,7 +62,7 @@ public class QueryExecutionBenchmarkWorkloadHttpClient implements QueryExecution
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "Missing protected request context field: tenantId"
+                "受保护请求上下文字段缺失：tenantId"
             );
         }
         long issuedAt = System.currentTimeMillis();
@@ -99,7 +99,7 @@ public class QueryExecutionBenchmarkWorkloadHttpClient implements QueryExecution
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "benchmark-engine query-execution baseUrl is not configured"
+                "benchmark-engine 的 query-execution baseUrl 未配置"
             );
         }
         return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;

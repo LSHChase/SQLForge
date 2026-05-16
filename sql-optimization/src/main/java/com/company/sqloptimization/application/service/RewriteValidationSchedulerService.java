@@ -67,7 +67,7 @@ public class RewriteValidationSchedulerService {
             } catch (RuntimeException ex) {
                 result.incrementValidationFailures();
                 LOGGER.warn(
-                    "Scheduled rewrite validation failed for rewriteRecordId={}",
+                    "调度改写校验失败，rewriteRecordId={}",
                     candidate.getRewriteRecordId(),
                     ex
                 );
@@ -143,7 +143,7 @@ public class RewriteValidationSchedulerService {
             result.incrementAuditFailures();
             saveAuditTrace(candidate.getRewriteRecordId(), run, resultStatus, ex);
             LOGGER.warn(
-                "SQL rewrite divergence audit write failed for rewriteRecordId={}, validationRunId={}",
+                "SQL 改写差异审计写入失败，rewriteRecordId={}, validationRunId={}",
                 candidate.getRewriteRecordId(),
                 run.getValidationRunId(),
                 ex
@@ -177,7 +177,7 @@ public class RewriteValidationSchedulerService {
             result.incrementAlertFailures();
             saveAlertTrace(candidate.getRewriteRecordId(), run, null, ex);
             LOGGER.warn(
-                "SQL rewrite divergence alert emission failed for rewriteRecordId={}, validationRunId={}",
+                "SQL 改写差异告警发送失败，rewriteRecordId={}, validationRunId={}",
                 candidate.getRewriteRecordId(),
                 run.getValidationRunId(),
                 ex
@@ -206,9 +206,9 @@ public class RewriteValidationSchedulerService {
         request.setSampleEvidenceJson(JsonUtils.toJson(run.getDifferenceSample()));
         request.setAutoApplyPaused(run.getAutoApplyPaused());
         request.setSummary(
-            "SQL rewrite result divergence: rewriteRecord="
+            "SQL 改写结果差异：rewriteRecord="
                 + candidate.getRewriteRecordId()
-                + ", differenceType=" + run.getDifferenceType()
+                + "，差异类型=" + run.getDifferenceType()
         );
         return request;
     }

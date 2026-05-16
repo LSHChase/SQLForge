@@ -197,7 +197,7 @@ public class BenchmarkTaskControllerTest {
                         .andExpect(jsonPath("$.currentPhase").value("FINISHED"))
                         .andExpect(jsonPath("$.error.code").value(14000))
                         .andExpect(jsonPath("$.error.retryable").value(true))
-                        .andExpect(jsonPath("$.error.message", containsString("report write-back completed")));
+                        .andExpect(jsonPath("$.error.message", containsString("报告写回完成")));
                 }
                 return;
             }

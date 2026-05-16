@@ -1,4 +1,4 @@
 /**
- * Service level configuration.
+ * 服务级配置。
  */
 package com.company.governance.config;

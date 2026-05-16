@@ -26,7 +26,7 @@ public enum SqlParserMode {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "Unsupported parserMode: " + value + " [parserMode]"
+                "不支持的 parserMode：" + value + " [parserMode]"
             );
         }
     }

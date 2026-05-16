@@ -15,7 +15,7 @@ public interface HetuPlanAnalysisClient {
                     datasourceCode,
                     "HETU_PLAN_CLIENT_UNAVAILABLE",
                     0L,
-                    Collections.singletonList("client=unavailable")
+                    Collections.singletonList("client=不可用")
                 );
             }
         };

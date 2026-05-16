@@ -67,10 +67,10 @@ public class AlertRuleApplicationService {
                 operator,
                 evaluatedAt,
                 signal.getSourceService(),
-                "Mass failure detected for "
+                "检测到大量失败："
                     + normalize(signal.getSourceService(), "query-execution")
-                    + " in " + normalize(signal.getWindowLabel(), "current-window")
-                    + ": failed=" + signal.getFailedCount()
+                    + "，窗口=" + normalize(signal.getWindowLabel(), "current-window")
+                    + "：失败数=" + signal.getFailedCount()
                     + "/" + signal.getTotalCount(),
                 null,
                 null,
@@ -108,9 +108,9 @@ public class AlertRuleApplicationService {
                 operator,
                 evaluatedAt,
                 "governance-datasource",
-                "Datasource unavailable: "
-                    + normalize(signal.getDatasourceCode(), normalize(signal.getDatasourceId(), "unknown-datasource"))
-                    + " status=" + normalize(signal.getHealthStatus(), "UNKNOWN"),
+                "数据源不可用："
+                    + normalize(signal.getDatasourceCode(), normalize(signal.getDatasourceId(), "未知-datasource"))
+                    + " 状态=" + normalize(signal.getHealthStatus(), "UNKNOWN"),
                 null,
                 null,
                 null,
@@ -147,9 +147,9 @@ public class AlertRuleApplicationService {
                 operator,
                 evaluatedAt,
                 normalize(signal.getServiceCode(), "governance"),
-                "Service unavailable: "
+                "服务不可用："
                     + normalize(signal.getComponentCode(), normalize(signal.getServiceCode(), "dependency"))
-                    + " reason=" + normalize(signal.getUnavailableReason(), "UNKNOWN"),
+                    + " 原因=" + normalize(signal.getUnavailableReason(), "UNKNOWN"),
                 null,
                 null,
                 null,
@@ -187,10 +187,10 @@ public class AlertRuleApplicationService {
                 operator,
                 evaluatedAt,
                 "report-interface",
-                "Report SQL resolve failure: datasource="
-                    + normalize(signal.getDatasourceCode(), "unknown")
-                    + ", stage=" + normalize(signal.getStage(), "UNKNOWN")
-                    + ", status=" + normalize(signal.getResolverStatus(), "UNKNOWN"),
+                "报表 SQL 解析失败：数据源="
+                    + normalize(signal.getDatasourceCode(), "未知")
+                    + "，阶段=" + normalize(signal.getStage(), "UNKNOWN")
+                    + "，状态=" + normalize(signal.getResolverStatus(), "UNKNOWN"),
                 null,
                 null,
                 null,
@@ -228,9 +228,9 @@ public class AlertRuleApplicationService {
                 operator,
                 evaluatedAt,
                 "redis-rule-source",
-                "Redis rule source unavailable: "
+                "Redis 规则来源不可用："
                     + normalize(signal.getSourceName(), normalize(signal.getSourceId(), "rule-source"))
-                    + " status=" + normalize(signal.getHealthStatus(), "UNKNOWN"),
+                    + " 状态=" + normalize(signal.getHealthStatus(), "UNKNOWN"),
                 null,
                 null,
                 null,
@@ -269,9 +269,9 @@ public class AlertRuleApplicationService {
                 operator,
                 evaluatedAt,
                 "dispatch-event",
-                "Dispatch coordination failure: event="
-                    + normalize(signal.getDispatchEventId(), "unknown-dispatch")
-                    + ", status=" + normalize(signal.getDispatchStatus(), "UNKNOWN"),
+                "分发协同失败：事件="
+                    + normalize(signal.getDispatchEventId(), "未知-dispatch")
+                    + "，状态=" + normalize(signal.getDispatchStatus(), "UNKNOWN"),
                 null,
                 null,
                 null,
@@ -307,9 +307,9 @@ public class AlertRuleApplicationService {
                 operator,
                 evaluatedAt,
                 normalize(signal.getSourceService(), "audit-log"),
-                "Audit write exception detected: failed="
+                "检测到审计写入异常：失败数="
                     + signal.getFailedCount()
-                    + ", pending=" + signal.getPendingCount(),
+                    + "，待处理=" + signal.getPendingCount(),
                 null,
                 null,
                 null,
@@ -354,7 +354,7 @@ public class AlertRuleApplicationService {
                 operator,
                 evaluatedAt,
                 "benchmark-engine",
-                normalize(signal.getSummary(), "Benchmark regression failed"),
+                normalize(signal.getSummary(), "压测回归失败"),
                 signal.getHistoryId(),
                 null,
                 null,
@@ -404,9 +404,9 @@ public class AlertRuleApplicationService {
                 "sql-optimization",
                 normalize(
                     signal.getSummary(),
-                    "SQL rewrite result divergence: rewriteRecord="
-                        + normalize(signal.getRewriteRecordId(), "unknown-rewrite")
-                        + ", differenceType=" + normalize(signal.getDifferenceType(), "UNKNOWN")
+                    "SQL 改写结果差异：rewriteRecord="
+                        + normalize(signal.getRewriteRecordId(), "未知-rewrite")
+                        + "，差异类型=" + normalize(signal.getDifferenceType(), "UNKNOWN")
                 ),
                 signal.getHistoryId(),
                 null,
@@ -513,7 +513,7 @@ public class AlertRuleApplicationService {
 
     private void requireSnapshot(AlertSignalSnapshot snapshot) {
         if (snapshot == null) {
-            throw new IllegalArgumentException("snapshot is required");
+            throw new IllegalArgumentException("snapshot 为必填项");
         }
     }
 

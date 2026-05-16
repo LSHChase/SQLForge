@@ -96,16 +96,16 @@ public class BenchmarkTaskQueueService {
         } catch (IOException ex) {
             task.appendOperationalNote(buildFailureEvidence("QUEUE_DISPATCH_FAILED", ex));
             task.markFailed(
-                new BenchmarkTaskError(
-                    ErrorCodeConstants.BENCHMARK_ENGINE_SYSTEM_PIPELINE_NOT_READY,
-                    "Benchmark external queue dispatch failed",
-                    "Inspect benchmark-engine external queue carrier and replay the queued task after the carrier is healthy.",
-                    true
-                ),
+                    new BenchmarkTaskError(
+                        ErrorCodeConstants.BENCHMARK_ENGINE_SYSTEM_PIPELINE_NOT_READY,
+                        "压测外部队列分发失败",
+                        "请检查 benchmark-engine 外部队列载体，待载体恢复健康后重放已入队任务。",
+                        true
+                    ),
                 Instant.now()
             );
             benchmarkTaskRepository.saveTask(task);
-            throw new IllegalStateException("Failed to dispatch benchmark task to external file queue", ex);
+            throw new IllegalStateException("将压测任务分发到外部文件队列失败", ex);
         }
     }
 
@@ -179,7 +179,7 @@ public class BenchmarkTaskQueueService {
                     )
                 );
             } catch (IOException ex) {
-                throw new IllegalStateException("Failed to acquire benchmark task from external file queue", ex);
+                throw new IllegalStateException("从外部文件队列获取压测任务失败", ex);
             }
         }
         return leases;
@@ -261,7 +261,7 @@ public class BenchmarkTaskQueueService {
                 }
             }
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to list benchmark external queue files", ex);
+            throw new IllegalStateException("列出压测外部队列文件失败", ex);
         }
         Collections.sort(queueFiles, new Comparator<Path>() {
             @Override
@@ -357,7 +357,7 @@ public class BenchmarkTaskQueueService {
             try {
                 move(claimedFile, claimedFile.resolveSibling(claimedFile.getFileName().toString() + ".done"));
             } catch (IOException ex) {
-                throw new IllegalStateException("Failed to finalize benchmark external queue message", ex);
+                throw new IllegalStateException("完成压测外部队列消息失败", ex);
             }
         }
 
@@ -368,7 +368,7 @@ public class BenchmarkTaskQueueService {
                 benchmarkTaskRepository.saveTask(task);
                 move(claimedFile, queueFile);
             } catch (IOException ex) {
-                throw new IllegalStateException("Failed to release benchmark external queue message", ex);
+                throw new IllegalStateException("释放压测外部队列消息失败", ex);
             }
         }
     }
@@ -377,7 +377,7 @@ public class BenchmarkTaskQueueService {
         try {
             Files.deleteIfExists(claimedFile);
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to cleanup consumed benchmark external queue message", ex);
+            throw new IllegalStateException("清理已消费的压测外部队列消息失败", ex);
         }
     }
 

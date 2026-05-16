@@ -29,7 +29,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 /**
- * Builds canonical domain and contract objects for async optimization tasks.
+ * 为异步优化任务构建标准领域对象与契约对象。
  */
 @Service
 public class OptimizationTaskModelApplicationService {
@@ -122,16 +122,16 @@ public class OptimizationTaskModelApplicationService {
         if (error == null) {
             return new OptimizationFailureVO(
                 0,
-                "Optimization task was cancelled before suggestion output became available.",
-                "Resubmit the task when the optimization window is available.",
+                "优化任务在建议输出可用前已取消。",
+                "请在优化窗口可用时重新提交任务。",
                 false,
                 task.getCurrentPhase().name(),
                 Collections.singletonList(
                     new OptimizationRiskVO(
                         "LOW",
                         "TASK_CANCELLED",
-                        "No suggestion payload was produced because the task stopped before completion.",
-                        "Requeue only after the caller confirms cancellation intent."
+                        "任务完成前已停止，因此未生成建议载荷。",
+                        "仅在调用方确认取消意图后重新入队。"
                     )
                 )
             );

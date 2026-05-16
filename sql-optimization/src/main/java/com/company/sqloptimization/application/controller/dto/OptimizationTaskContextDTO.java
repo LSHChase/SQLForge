@@ -13,7 +13,7 @@ public class OptimizationTaskContextDTO {
     private OptimizationParseDepth parseDepth = OptimizationParseDepth.DEEP;
     private OptimizationTaskPriority priority = OptimizationTaskPriority.NORMAL;
 
-    @Size(max = 2048, message = "callbackUrl exceeds 2048 characters")
+    @Size(max = 2048, message = "callbackUrl 超过 2048 个字符")
     private String callbackUrl;
 
     private List<AccelerationSuggestionType> requestedSuggestionTypes = Collections.emptyList();

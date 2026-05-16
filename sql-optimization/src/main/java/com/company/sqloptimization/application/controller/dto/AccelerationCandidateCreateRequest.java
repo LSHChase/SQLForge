@@ -13,10 +13,10 @@ public class AccelerationCandidateCreateRequest {
 
     private String tenantId;
 
-    @NotNull(message = "sourceType is required")
+    @NotNull(message = "sourceType 为必填项")
     private GovernanceSourceType sourceType;
 
-    @NotNull(message = "sourceKind is required")
+    @NotNull(message = "sourceKind 为必填项")
     private GovernanceSourceKind sourceKind;
 
     private String sourceId;
@@ -37,7 +37,7 @@ public class AccelerationCandidateCreateRequest {
     private BigDecimal confidence;
     private Integer priority;
 
-    @NotNull(message = "evidenceLevel is required")
+    @NotNull(message = "evidenceLevel 为必填项")
     private EvidenceLevel evidenceLevel;
 
     private String schemaVersion;

@@ -29,7 +29,7 @@ class ModeRoutingQueryExecutionAdapterTest {
             () -> adapter.execute(DataSourceTypeEnum.HETU, "SELECT 1", baseRequest(), false)
         );
 
-        assertEquals("Hetu execution chain is disabled for the current environment", ex.getMessage());
+        assertEquals("当前环境已禁用 Hetu 执行链路", ex.getMessage());
         assertEquals(Collections.singletonList("CHAIN_DISABLED"), ex.getAttemptedModes());
         assertEquals("REPO_CLOSED_BASELINE", ex.getRouteProfile());
     }
@@ -56,7 +56,7 @@ class ModeRoutingQueryExecutionAdapterTest {
             () -> adapter.execute(DataSourceTypeEnum.HETU, "SELECT 1", baseRequest(), false)
         );
 
-        assertEquals("No Hetu execution mode is configured for the current environment", ex.getMessage());
+        assertEquals("当前环境未配置 Hetu 执行模式", ex.getMessage());
         assertEquals(Collections.singletonList("CHAIN_UNCONFIGURED"), ex.getAttemptedModes());
     }
 
@@ -70,7 +70,7 @@ class ModeRoutingQueryExecutionAdapterTest {
             () -> adapter.execute(DataSourceTypeEnum.HETU, "SELECT 1", baseRequest(), false)
         );
 
-        assertEquals("No calibrated Hetu execution mode is currently routable", ex.getMessage());
+        assertEquals("当前没有可路由的已校准 Hetu 执行模式", ex.getMessage());
         assertEquals(Collections.singletonList("JDBC:SKIPPED_ADAPTER_UNAVAILABLE"), ex.getAttemptedModes());
     }
 

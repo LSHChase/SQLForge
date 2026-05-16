@@ -9,7 +9,7 @@ BEGIN
       AND COLUMN_NAME = 'plan_analysis_status'
   ) THEN
     ALTER TABLE parse_batch_item
-      ADD COLUMN plan_analysis_status VARCHAR(32) DEFAULT NULL COMMENT 'Hetu EXPLAIN plan analysis status'
+      ADD COLUMN plan_analysis_status VARCHAR(32) DEFAULT NULL COMMENT 'Hetu EXPLAIN 计划分析状态'
       AFTER access_connection_status;
   END IF;
 
@@ -20,7 +20,7 @@ BEGIN
       AND COLUMN_NAME = 'combined_analysis_status'
   ) THEN
     ALTER TABLE parse_batch_item
-      ADD COLUMN combined_analysis_status VARCHAR(32) DEFAULT NULL COMMENT 'Combined structure and plan analysis status'
+      ADD COLUMN combined_analysis_status VARCHAR(32) DEFAULT NULL COMMENT '结构与计划联合分析状态'
       AFTER plan_analysis_status;
   END IF;
 
@@ -31,7 +31,7 @@ BEGIN
       AND COLUMN_NAME = 'plan_analysis_json'
   ) THEN
     ALTER TABLE parse_batch_item
-      ADD COLUMN plan_analysis_json JSON DEFAULT NULL COMMENT 'Hetu EXPLAIN plan analysis summary payload'
+      ADD COLUMN plan_analysis_json JSON DEFAULT NULL COMMENT 'Hetu EXPLAIN 计划分析摘要载荷'
       AFTER combined_analysis_status;
   END IF;
 
@@ -42,7 +42,7 @@ BEGIN
       AND COLUMN_NAME = 'plan_analysis_status'
   ) THEN
     ALTER TABLE report_batch_item
-      ADD COLUMN plan_analysis_status VARCHAR(32) DEFAULT NULL COMMENT 'Hetu EXPLAIN plan analysis status'
+      ADD COLUMN plan_analysis_status VARCHAR(32) DEFAULT NULL COMMENT 'Hetu EXPLAIN 计划分析状态'
       AFTER access_connection_status;
   END IF;
 
@@ -53,7 +53,7 @@ BEGIN
       AND COLUMN_NAME = 'combined_analysis_status'
   ) THEN
     ALTER TABLE report_batch_item
-      ADD COLUMN combined_analysis_status VARCHAR(32) DEFAULT NULL COMMENT 'Combined structure and plan analysis status'
+      ADD COLUMN combined_analysis_status VARCHAR(32) DEFAULT NULL COMMENT '结构与计划联合分析状态'
       AFTER plan_analysis_status;
   END IF;
 
@@ -64,7 +64,7 @@ BEGIN
       AND COLUMN_NAME = 'plan_analysis_json'
   ) THEN
     ALTER TABLE report_batch_item
-      ADD COLUMN plan_analysis_json JSON DEFAULT NULL COMMENT 'Hetu EXPLAIN plan analysis summary payload'
+      ADD COLUMN plan_analysis_json JSON DEFAULT NULL COMMENT 'Hetu EXPLAIN 计划分析摘要载荷'
       AFTER combined_analysis_status;
   END IF;
 END//

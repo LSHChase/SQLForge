@@ -16,14 +16,14 @@ public class GovernanceMessageListenerRegistrar {
         messageConsumer.listen(GovernanceMessagingTopics.AUDIT_EVENT, new MessageHandler() {
             @Override
             public void handle(MessageEnvelope messageEnvelope) {
-                LOGGER.info("Consumed governance audit event, topic={}, payload={}",
+                LOGGER.info("已消费治理审计事件，topic={}, payload={}",
                     messageEnvelope.getTopic(), messageEnvelope.getMessage());
             }
         });
         messageConsumer.listen(GovernanceMessagingTopics.CONFIG_CHANGED, new MessageHandler() {
             @Override
             public void handle(MessageEnvelope messageEnvelope) {
-                LOGGER.info("Consumed governance config event, topic={}, payload={}",
+                LOGGER.info("已消费治理配置事件，topic={}, payload={}",
                     messageEnvelope.getTopic(), messageEnvelope.getMessage());
             }
         });

@@ -30,7 +30,7 @@ public class DefaultDatasourceJdbcConnectionProbe implements DatasourceJdbcConne
                 try {
                     connection.setReadOnly(true);
                 } catch (SQLException ignored) {
-                    // Some drivers do not support toggling read-only mode after connect.
+                    // 部分驱动不支持连接建立后切换只读模式。
                 }
                 if (!connection.isValid(Math.max(1, timeoutMs / 1000))) {
                     return failed("JDBC_CONNECTION_INVALID", start);

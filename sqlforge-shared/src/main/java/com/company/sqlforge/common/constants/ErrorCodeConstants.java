@@ -1,7 +1,7 @@
 package com.company.sqlforge.common.constants;
 
 /**
- * Unified error-code ownership across shared and governance capabilities.
+ * 共享能力与治理能力统一维护的错误码归属。
  */
 public final class ErrorCodeConstants {
 

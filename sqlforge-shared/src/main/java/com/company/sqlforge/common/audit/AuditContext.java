@@ -1,7 +1,7 @@
 package com.company.sqlforge.common.audit;
 
 /**
- * Thread-local audit event holder propagated across async boundaries.
+ * 跨异步边界传递的线程本地审计事件持有器。
  */
 public final class AuditContext {
 

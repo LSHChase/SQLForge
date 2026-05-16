@@ -59,7 +59,7 @@ class BenchmarkTestSetApplicationServiceTest {
         assertEquals(BenchmarkSourceReferenceType.IMPORT_BATCH, created.getTestSetSourceRefs().get(0).getType());
         assertEquals("safe", created.getCases().get(0).getCaseName());
         assertEquals("unsafe", created.getCases().get(1).getCaseName());
-        assertTrue(created.getCases().get(1).getRejectionReason().contains("read-only"));
+        assertTrue(created.getCases().get(1).getRejectionReason().contains("只读压测边界"));
 
         BenchmarkTestSetResponse loaded = service.getTestSet(created.getTestSetId());
 
@@ -92,7 +92,7 @@ class BenchmarkTestSetApplicationServiceTest {
         assertEquals("FAILED", created.getStatus().name());
         assertEquals(Integer.valueOf(0), created.getAcceptedCases());
         assertEquals(Integer.valueOf(1), created.getRejectedCases());
-        assertTrue(created.getCases().get(0).getRejectionReason().contains("read-only"));
+        assertTrue(created.getCases().get(0).getRejectionReason().contains("只读压测边界"));
     }
 
     private BenchmarkTestSetCreateRequest baseRequest(String csvContent) {

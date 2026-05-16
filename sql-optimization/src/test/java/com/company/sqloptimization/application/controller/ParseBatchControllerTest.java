@@ -223,7 +223,7 @@ class ParseBatchControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"contentBase64\":\"" + encoded + "\"}"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("convert the file to XLSX or CSV")));
+            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("转换为 XLSX 或 CSV")));
     }
 
     private byte[] buildXlsxPayload() throws Exception {

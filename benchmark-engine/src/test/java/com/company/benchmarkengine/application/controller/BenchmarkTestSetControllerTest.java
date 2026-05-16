@@ -81,7 +81,7 @@ class BenchmarkTestSetControllerTest {
             .andExpect(jsonPath("$.testSetId").value(testSetId))
             .andExpect(jsonPath("$.status").value("PARTIAL_READY"))
             .andExpect(jsonPath("$.cases[0].caseName").value("safe"))
-            .andExpect(jsonPath("$.cases[1].rejectionReason").value(org.hamcrest.Matchers.containsString("read-only")));
+            .andExpect(jsonPath("$.cases[1].rejectionReason").value(org.hamcrest.Matchers.containsString("只读压测边界")));
     }
 
     @Test

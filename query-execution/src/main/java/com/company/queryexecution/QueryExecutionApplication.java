@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 /**
- * Query execution service bootstrap.
+ * 查询执行服务启动入口。
  */
 @EnableConfigurationProperties({
     com.company.queryexecution.config.AuthProperties.class,

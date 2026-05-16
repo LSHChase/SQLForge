@@ -120,7 +120,7 @@ class ParseBatchPersistenceSchemaMappingTest {
         assertContains(schema, "rule_chain_json JSON DEFAULT NULL");
         assertContains(schema, "unapplied_rules_json JSON DEFAULT NULL");
         assertContains(schema, "manual_review_required TINYINT(1) NOT NULL DEFAULT 1");
-        assertContains(schema, "no executed state in SQLForge");
+        assertContains(schema, "SQLForge 内无已执行状态");
         String migration = readRepositoryFile("sql/migrations/V20260426_007__acceleration_recommendation_catalog.sql");
         assertContains(migration, "CREATE TABLE IF NOT EXISTS acceleration_recommendation");
         assertContains(migration, "idx_acc_reco_tenant_type_created");

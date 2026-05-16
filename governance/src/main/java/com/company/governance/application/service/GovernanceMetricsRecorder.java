@@ -34,9 +34,9 @@ public class GovernanceMetricsRecorder {
         this.meterRegistry = meterRegistry;
         this.messageQueueRepository = messageQueueRepository;
         this.messagingProperties = messagingProperties;
-        registerQueueGauge(METRIC_QUEUE_TOTAL, "Current governance message-queue total size.", QueueCountType.TOTAL);
-        registerQueueGauge(METRIC_QUEUE_PENDING, "Current governance message-queue pending size.", QueueCountType.PENDING);
-        registerQueueGauge(METRIC_QUEUE_FAILED, "Current governance message-queue failed size.", QueueCountType.FAILED);
+        registerQueueGauge(METRIC_QUEUE_TOTAL, "当前治理消息队列总量。", QueueCountType.TOTAL);
+        registerQueueGauge(METRIC_QUEUE_PENDING, "当前治理消息队列待处理数量。", QueueCountType.PENDING);
+        registerQueueGauge(METRIC_QUEUE_FAILED, "当前治理消息队列失败数量。", QueueCountType.FAILED);
     }
 
     static GovernanceMetricsRecorder noop() {
@@ -47,7 +47,7 @@ public class GovernanceMetricsRecorder {
 
     public void recordAuditFallback() {
         Counter.builder(METRIC_AUDIT_FALLBACKS)
-            .description("Governance audit events that fell back to the database queue.")
+            .description("降级写入数据库队列的治理审计事件数。")
             .tags("messaging_mode", messagingMode())
             .register(meterRegistry)
             .increment();
@@ -58,7 +58,7 @@ public class GovernanceMetricsRecorder {
             return;
         }
         Counter.builder(METRIC_MESSAGE_RETRY_MESSAGES)
-            .description("Governance database-queue messages retried by operators.")
+            .description("操作员重试的治理数据库队列消息数。")
             .tags("messaging_mode", messagingMode())
             .register(meterRegistry)
             .increment(retriedCount);
@@ -91,7 +91,7 @@ public class GovernanceMetricsRecorder {
                     return 0D;
             }
         } catch (RuntimeException ex) {
-            LOGGER.warn("Failed to sample governance message queue gauge, type={}, reason={}",
+            LOGGER.warn("采样治理消息队列 gauge 失败，type={}, reason={}",
                 queueCountType.name(), ex.getMessage());
             return 0D;
         }

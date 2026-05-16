@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Produces deterministic synchronous execution results without opening a real SQL runtime.
+ * 在不打开真实 SQL 运行时的情况下生成确定性同步执行结果。
  */
 public class DeterministicQueryExecutionAdapter implements QueryExecutionAdapter {
 

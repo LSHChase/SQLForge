@@ -304,7 +304,7 @@ class GovernanceProtectedPersistenceServiceTest {
         executionResultRecord.setTenantId("tenant-a");
 
         BizException missingSnapshot = assertThrows(BizException.class, () -> service.saveExecutionResult(executionResultRecord));
-        assertTrue(missingSnapshot.getMessage().contains("missing config snapshot"));
+        assertTrue(missingSnapshot.getMessage().contains("引用的配置快照缺失"));
 
         ConfigSnapshotRecord snapshotRecord = new ConfigSnapshotRecord();
         snapshotRecord.setConfigSnapshotId("cfg-001");
@@ -334,14 +334,14 @@ class GovernanceProtectedPersistenceServiceTest {
         queryHistoryRecord.setResultId("res-001");
         queryHistoryRecord.setTenantId("tenant-c");
         BizException tenantMismatch = assertThrows(BizException.class, () -> service.saveQueryHistory(queryHistoryRecord));
-        assertTrue(tenantMismatch.getMessage().contains("tenantId does not match"));
+        assertTrue(tenantMismatch.getMessage().contains("tenantId 不一致"));
 
         ExportRecord inconsistentExport = new ExportRecord();
         inconsistentExport.setHistoryId("hist-001");
         inconsistentExport.setResultId("res-001");
         inconsistentExport.setTenantId("tenant-a");
         BizException inconsistentHistoryTenant = assertThrows(BizException.class, () -> service.saveExportRecord(inconsistentExport));
-        assertTrue(inconsistentHistoryTenant.getMessage().contains("tenantId does not match"));
+        assertTrue(inconsistentHistoryTenant.getMessage().contains("tenantId 不一致"));
 
         historyRecord.setTenantId("tenant-a");
         historyRecord.setResultId("res-002");
@@ -351,7 +351,7 @@ class GovernanceProtectedPersistenceServiceTest {
         auditLogRecord.setResultId("res-001");
         auditLogRecord.setExportId("exp-001");
         BizException inconsistentAudit = assertThrows(BizException.class, () -> service.saveAuditLog(auditLogRecord));
-        assertTrue(inconsistentAudit.getMessage().contains("history/result references are inconsistent"));
+        assertTrue(inconsistentAudit.getMessage().contains("history/result 引用不一致"));
 
         verify(executionResultMapper, never()).insert(any(ExecutionResultRecord.class));
         verify(queryHistoryMapper, never()).insert(any(QueryHistoryRecord.class));

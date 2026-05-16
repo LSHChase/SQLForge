@@ -139,7 +139,7 @@ class GovernanceHttpClientTest {
         );
 
         assertEquals(ErrorCodeConstants.SYSTEM_CONFIG_INVALID, ex.getCode());
-        assertEquals("Datasource mapping is missing for HIVE", ex.getMessage());
+        assertEquals("缺少数据源映射：HIVE", ex.getMessage());
     }
 
     @Test
@@ -163,7 +163,7 @@ class GovernanceHttpClientTest {
         );
 
         assertEquals(ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID, ex.getCode());
-        assertEquals("Governance capability route is unavailable", ex.getMessage());
+        assertEquals("治理能力路由不可用", ex.getMessage());
         server.verify();
     }
 
@@ -250,7 +250,7 @@ class GovernanceHttpClientTest {
         );
 
         assertEquals(ErrorCodeConstants.SYSTEM_CONFIG_INVALID, ex.getCode());
-        assertEquals("sql-optimization governance baseUrl is not configured", ex.getMessage());
+        assertEquals("sql-optimization governance baseUrl 未配置", ex.getMessage());
     }
 
     @Test

@@ -48,7 +48,7 @@ public class DatabaseMessageConsumer implements MessageConsumer {
     public int dispatch(String topic, int batchSize) {
         MessageHandler handler = messageHandlerRegistry.get(topic);
         if (handler == null) {
-            LOGGER.debug("No message handler registered, topic={}", topic);
+            LOGGER.debug("未注册消息处理器，topic={}", topic);
             return 0;
         }
         List<MessageQueueRecord> records = messageQueueRepository.pollPendingMessages(topic, batchSize);
@@ -60,7 +60,7 @@ public class DatabaseMessageConsumer implements MessageConsumer {
                 consumed++;
             } catch (RuntimeException ex) {
                 messageQueueRepository.markMessageFailed(record.getId(), ex.getMessage());
-                LOGGER.error("Database message dispatch failed, topic={}, id={}, reason={}",
+                LOGGER.error("数据库消息分发失败，topic={}, id={}, reason={}",
                     topic, record.getId(), ex.getMessage());
             }
         }
@@ -73,7 +73,7 @@ public class DatabaseMessageConsumer implements MessageConsumer {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "Stored message is missing required fields"
+                "已存储消息缺少必填字段"
             );
         }
         return new MessageEnvelope(record.getTopic(), record.getPartitionKey(), record.getMessageBody(), headers);

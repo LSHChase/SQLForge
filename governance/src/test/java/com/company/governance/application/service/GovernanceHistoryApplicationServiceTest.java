@@ -586,7 +586,7 @@ class GovernanceHistoryApplicationServiceTest {
         );
 
         assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());
-        assertEquals("query history record does not exist", exception.getMessage());
+        assertEquals("查询历史记录不存在", exception.getMessage());
     }
 
     @Test
@@ -958,7 +958,7 @@ class GovernanceHistoryApplicationServiceTest {
         ))).thenThrow(new BizException(
             ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID,
             org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
-            "Benchmark-engine artifact operation route is unavailable"
+            "压测引擎产物操作路由不可用"
         ));
 
         GovernanceBenchmarkArtifactBatchOperationRequest request = new GovernanceBenchmarkArtifactBatchOperationRequest();
@@ -985,7 +985,7 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("EXECUTE_RETENTION_BATCH", response.getItems().get(0).getOrchestrationType());
         assertEquals("SKIPPED_DUPLICATE", response.getItems().get(1).getOperationStatus());
         assertEquals("FAILED", response.getItems().get(2).getOperationStatus());
-        assertEquals("Benchmark-engine artifact operation route is unavailable", response.getItems().get(2).getErrorMessage());
+        assertEquals("压测引擎产物操作路由不可用", response.getItems().get(2).getErrorMessage());
         verify(governanceBenchmarkEngineClient, org.mockito.Mockito.times(2)).operateArtifact(org.mockito.ArgumentMatchers.any());
     }
 

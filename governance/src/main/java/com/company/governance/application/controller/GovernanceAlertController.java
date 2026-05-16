@@ -36,7 +36,7 @@ public class GovernanceAlertController {
                                            @RequestParam(value = "pageNo", required = false) Integer pageNo,
                                            @RequestParam(value = "pageSize", required = false) Integer pageSize) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
-        LOGGER.info("Handling governance alert page, tenantId={}, alertStatus={}, alertType={}, notifyStatus={}, requestTraceId={}",
+        LOGGER.info("处理治理告警分页查询，tenantId={}, alertStatus={}, alertType={}, notifyStatus={}, requestTraceId={}",
             effectiveTenantId,
             alertStatus,
             alertType,
@@ -56,7 +56,7 @@ public class GovernanceAlertController {
     public GovernanceAlertDetailVO getAlertDetail(@PathVariable("alertId") String alertId,
                                                   @RequestParam(value = "tenantId", required = false) String tenantId) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
-        LOGGER.info("Handling governance alert detail, tenantId={}, alertId={}, requestTraceId={}",
+        LOGGER.info("处理治理告警详情查询，tenantId={}, alertId={}, requestTraceId={}",
             effectiveTenantId,
             alertId,
             RequestContext.getTraceId());
@@ -67,7 +67,7 @@ public class GovernanceAlertController {
     public GovernanceAlertDetailVO ackAlert(@PathVariable("alertId") String alertId,
                                             @RequestParam(value = "tenantId", required = false) String tenantId) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
-        LOGGER.info("Handling governance alert ack, tenantId={}, alertId={}, operator={}, requestTraceId={}",
+        LOGGER.info("处理治理告警确认，tenantId={}, alertId={}, operator={}, requestTraceId={}",
             effectiveTenantId,
             alertId,
             RequestContext.getUserId(),

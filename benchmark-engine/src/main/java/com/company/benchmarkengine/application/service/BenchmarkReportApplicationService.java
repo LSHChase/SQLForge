@@ -59,7 +59,7 @@ public class BenchmarkReportApplicationService {
 
     public BenchmarkReportResponse getJsonReport(String reportId) {
         long start = System.currentTimeMillis();
-        LOGGER.info("operation={} entity={} format={} status=START", QUERY_OPERATION, reportId, BenchmarkReportFormat.JSON);
+        LOGGER.info("操作日志 operation={} entity={} format={} status=START", QUERY_OPERATION, reportId, BenchmarkReportFormat.JSON);
         try {
             BenchmarkReport report = loadReport(reportId);
             BenchmarkReportResponse response = benchmarkTaskModelApplicationService.buildReportResponse(report);
@@ -111,7 +111,7 @@ public class BenchmarkReportApplicationService {
 
     public BenchmarkRenderedReport downloadRawDataReport(String reportId) {
         long start = System.currentTimeMillis();
-        LOGGER.info("operation={} entity={} format={} status=START", QUERY_OPERATION, reportId, "RAW_DATA");
+        LOGGER.info("操作日志 operation={} entity={} format={} status=START", QUERY_OPERATION, reportId, "RAW_DATA");
         try {
             BenchmarkReport report = loadReport(reportId);
             BenchmarkReportArtifact artifact = report.findRawDataArtifact();
@@ -119,7 +119,7 @@ public class BenchmarkReportApplicationService {
                 throw new BizException(
                     ErrorCodeConstants.BENCHMARK_ENGINE_SYSTEM_REPORT_MODEL_INVALID,
                     HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Benchmark raw-data artifact is missing"
+                    "压测原始数据制品缺失"
                 );
             }
             final BenchmarkReport loadedReport = report;
@@ -181,7 +181,7 @@ public class BenchmarkReportApplicationService {
 
     public BenchmarkRenderedReport renderReport(String reportId, BenchmarkReportFormat format) {
         long start = System.currentTimeMillis();
-        LOGGER.info("operation={} entity={} format={} status=START", QUERY_OPERATION, reportId, format);
+        LOGGER.info("操作日志 operation={} entity={} format={} status=START", QUERY_OPERATION, reportId, format);
         try {
             BenchmarkReport report = loadReport(reportId);
             BenchmarkReportResponse response = benchmarkTaskModelApplicationService.buildReportResponse(report);
@@ -190,7 +190,7 @@ public class BenchmarkReportApplicationService {
                 throw new BizException(
                     ErrorCodeConstants.BENCHMARK_ENGINE_SYSTEM_REPORT_MODEL_INVALID,
                     HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Benchmark report export artifact is missing for format=" + format
+                    "压测报告导出制品缺失，format=" + format
                 );
             }
             final BenchmarkReport loadedReport = report;
@@ -259,7 +259,7 @@ public class BenchmarkReportApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "Unsupported benchmark report format: " + rawFormat
+                "不支持的压测报告格式：" + rawFormat
             );
         }
     }
@@ -270,7 +270,7 @@ public class BenchmarkReportApplicationService {
             throw new BizException(
                 ErrorCodeConstants.BENCHMARK_REPORT_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Benchmark report does not exist for reportId=" + reportId
+                "压测报告不存在，reportId=" + reportId
             );
         }
         verifyTenantAccess(report.getTenantId());
@@ -284,11 +284,11 @@ public class BenchmarkReportApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (!contextTenantId.equals(resourceTenantId)) {
-            throw new AccessDeniedException("Authenticated tenant cannot access this benchmark report");
+            throw new AccessDeniedException("当前认证租户无权访问该压测报告");
         }
     }
 
@@ -317,7 +317,7 @@ public class BenchmarkReportApplicationService {
 
     private void logEnd(String reportId, BenchmarkReportFormat format, long start) {
         LOGGER.info(
-            "operation={} entity={} format={} costMs={} status=END",
+            "操作日志 operation={} entity={} format={} costMs={} status=END",
             QUERY_OPERATION,
             reportId,
             format,
@@ -327,7 +327,7 @@ public class BenchmarkReportApplicationService {
 
     private void logFailure(String reportId, BenchmarkReportFormat format, long start, RuntimeException ex) {
         LOGGER.error(
-            "operation={} entity={} format={} costMs={} status=FAILED phase=EXCEPTION reason={}",
+            "操作日志 operation={} entity={} format={} costMs={} status=FAILED phase=EXCEPTION reason={}",
             QUERY_OPERATION,
             reportId,
             format,

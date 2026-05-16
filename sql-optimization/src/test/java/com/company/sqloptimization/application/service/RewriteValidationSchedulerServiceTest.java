@@ -87,7 +87,7 @@ class RewriteValidationSchedulerServiceTest {
         assertEquals(RewriteAlertStatus.OPEN, updated.getAlertStatus());
         assertEquals(1, runtimeClient.pauseCount);
         assertEquals("rwb-rewrite-001", runtimeClient.lastPauseRequest.getRuntimeBindingId());
-        assertEquals("scheduled validation divergence: VALUE_DIFF", runtimeClient.lastPauseRequest.getReason());
+        assertEquals("定时校验发现差异：VALUE_DIFF", runtimeClient.lastPauseRequest.getReason());
         Map<String, Object> runtimeTrace = castMap(updated.getTraceRefs().get("lastRuntimeBindingTrace"));
         assertEquals("AUTO_PAUSE", runtimeTrace.get("action"));
         assertEquals("PAUSED", runtimeTrace.get("publishStatus"));
@@ -325,7 +325,7 @@ class RewriteValidationSchedulerServiceTest {
             pauseCount++;
             lastPauseRequest = request;
             if (failPause) {
-                throw new IllegalStateException("runtime pause unavailable");
+                throw new IllegalStateException("runtime pause 不可用");
             }
             RuntimeRewriteBindingResponse response = new RuntimeRewriteBindingResponse();
             response.setTenantId(request.getTenantId());

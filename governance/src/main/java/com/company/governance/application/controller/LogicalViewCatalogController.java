@@ -27,7 +27,7 @@ public class LogicalViewCatalogController {
     @GetMapping
     public List<BusinessLogicalViewVO> listLogicalViews(@RequestParam(value = "tenantId", required = false) String tenantId,
                                                         @RequestParam(value = "datasourceCode", required = false) String datasourceCode) {
-        LOGGER.info("Handling business logical view list, tenantId={}, datasourceCode={}, traceId={}",
+        LOGGER.info("处理业务逻辑视图列表查询，tenantId={}, datasourceCode={}, traceId={}",
             tenantId,
             datasourceCode,
             RequestContext.getTraceId());
@@ -37,7 +37,7 @@ public class LogicalViewCatalogController {
     @GetMapping("/{viewCode}")
     public BusinessLogicalViewVO getLogicalView(@PathVariable("viewCode") String viewCode,
                                                 @RequestParam(value = "tenantId", required = false) String tenantId) {
-        LOGGER.info("Handling business logical view detail, tenantId={}, viewCode={}, traceId={}",
+        LOGGER.info("处理业务逻辑视图详情查询，tenantId={}, viewCode={}, traceId={}",
             tenantId,
             viewCode,
             RequestContext.getTraceId());

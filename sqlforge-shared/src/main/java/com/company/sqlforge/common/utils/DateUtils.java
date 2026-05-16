@@ -8,7 +8,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
 /**
- * Stateless date helpers shared by all services.
+ * 所有服务共享的无状态日期工具。
  */
 public final class DateUtils {
 

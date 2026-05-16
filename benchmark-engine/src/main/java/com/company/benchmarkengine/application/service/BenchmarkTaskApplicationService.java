@@ -114,17 +114,17 @@ public class BenchmarkTaskApplicationService {
 
     public BenchmarkTaskStatusResponse getTaskStatus(String taskId) {
         long start = System.currentTimeMillis();
-        LOGGER.info("operation={} entity={} status=START", QUERY_OPERATION, taskId);
+        LOGGER.info("操作日志 operation={} entity={} status=START", QUERY_OPERATION, taskId);
         try {
             BenchmarkTask task = benchmarkTaskRepository.findTaskByTaskId(taskId);
             if (task == null) {
                 throw new BizException(
                     ErrorCodeConstants.BENCHMARK_TASK_NOT_FOUND,
                     HttpStatus.NOT_FOUND,
-                    "Benchmark task does not exist for taskId=" + taskId
+                    "压测任务不存在，taskId=" + taskId
                 );
             }
-            verifyTenantAccess(task.getTenantId(), "Authenticated tenant cannot access this benchmark task");
+            verifyTenantAccess(task.getTenantId(), "当前认证租户无权访问该压测任务");
             assertAuthorization(task.getTenantId(), taskId, task.getTargetEngines(), QUERY_OPERATION);
             BenchmarkTaskStatusResponse response = benchmarkTaskModelApplicationService.buildStatusResponse(task);
             logEnd(QUERY_OPERATION, taskId, task.getTenantId(), start, task.getStatus().name());
@@ -159,14 +159,14 @@ public class BenchmarkTaskApplicationService {
             throw new BizException(
                 ErrorCodeConstants.BENCHMARK_ISOLATION_POLICY_REJECTED,
                 HttpStatus.BAD_REQUEST,
-                "readonlyRequired must remain true in the current benchmark-engine baseline"
+                "当前 benchmark-engine 基线要求 readonlyRequired 必须保持为 true"
             );
         }
         if (request.getTaskContext().getShadowEnvironmentMode() == ShadowEnvironmentMode.DISABLED) {
             throw new BizException(
                 ErrorCodeConstants.BENCHMARK_ISOLATION_POLICY_REJECTED,
                 HttpStatus.BAD_REQUEST,
-                "shadowEnvironmentMode=DISABLED is not allowed in the current benchmark-engine baseline"
+                "当前 benchmark-engine 基线不允许 shadowEnvironmentMode=DISABLED"
             );
         }
     }
@@ -184,12 +184,12 @@ public class BenchmarkTaskApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (requestTenantId != null && requestTenantId.trim().length() > 0
             && !contextTenantId.equals(requestTenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -200,7 +200,7 @@ public class BenchmarkTaskApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (!contextTenantId.equals(resourceTenantId)) {
@@ -235,7 +235,7 @@ public class BenchmarkTaskApplicationService {
 
     private void logSubmitStart(BenchmarkTaskSubmitRequest request, String sqlFingerprint) {
         LOGGER.info(
-            "operation={} entity={} tenantId={} taskType={} status=START",
+            "操作日志 operation={} entity={} tenantId={} taskType={} status=START",
             SUBMIT_OPERATION,
             sqlFingerprint,
             request.getTenantId(),
@@ -252,7 +252,7 @@ public class BenchmarkTaskApplicationService {
                                 String resultStatus,
                                 String note) {
         LOGGER.info(
-            "operation={} entity={} tenantId={} taskType={} status=STATE_CHANGE from={} to={} resultStatus={} note={}",
+            "操作日志 operation={} entity={} tenantId={} taskType={} status=STATE_CHANGE from={} to={} resultStatus={} note={}",
             operation,
             entity,
             tenantId,
@@ -266,7 +266,7 @@ public class BenchmarkTaskApplicationService {
 
     private void logEnd(String operation, String entity, String tenantId, long start, String resultStatus) {
         LOGGER.info(
-            "operation={} entity={} tenantId={} costMs={} status=END resultStatus={}",
+            "操作日志 operation={} entity={} tenantId={} costMs={} status=END resultStatus={}",
             operation,
             entity,
             tenantId,
@@ -277,7 +277,7 @@ public class BenchmarkTaskApplicationService {
 
     private void logFailure(String operation, String entity, String tenantId, long start, RuntimeException ex) {
         LOGGER.error(
-            "operation={} entity={} tenantId={} costMs={} status=FAILED phase=EXCEPTION reason={}",
+            "操作日志 operation={} entity={} tenantId={} costMs={} status=FAILED phase=EXCEPTION reason={}",
             operation,
             entity,
             tenantId,

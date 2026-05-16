@@ -30,7 +30,7 @@ public class ClientHetuExecutionModeAdapter implements HetuExecutionModeAdapter 
     @Override
     public QueryExecutionStep execute(String actualSql, QueryExecuteRequest request, boolean degradedPath) {
         if (!properties.getClient().isEnabled()) {
-            throw new IllegalStateException("Hetu client mode is disabled");
+            throw new IllegalStateException("Hetu client 模式已禁用");
         }
         QueryExecutionStep step = hetuClientOperator.execute(actualSql, request, degradedPath);
         return new QueryExecutionStep(

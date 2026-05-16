@@ -5,7 +5,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 /**
- * SQL fingerprint generator for governance aggregation.
+ * 用于治理聚合的 SQL 指纹生成器。
  */
 public final class SqlFingerprintUtils {
 
@@ -225,7 +225,7 @@ public final class SqlFingerprintUtils {
             }
             return builder.toString();
         } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("MD5 algorithm is not available", ex);
+            throw new IllegalStateException("MD5 算法不可用", ex);
         }
     }
 }

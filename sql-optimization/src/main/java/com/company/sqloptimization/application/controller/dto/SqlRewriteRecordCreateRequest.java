@@ -20,16 +20,16 @@ public class SqlRewriteRecordCreateRequest {
     private String recommendationId;
     private String optimizationTaskId;
 
-    @NotNull(message = "sourceType is required")
+    @NotNull(message = "sourceType 为必填项")
     private GovernanceSourceType sourceType;
 
-    @NotNull(message = "sourceKind is required")
+    @NotNull(message = "sourceKind 为必填项")
     private GovernanceSourceKind sourceKind;
 
-    @NotBlank(message = "sourceId is required")
+    @NotBlank(message = "sourceId 为必填项")
     private String sourceId;
 
-    @NotNull(message = "evidenceLevel is required")
+    @NotNull(message = "evidenceLevel 为必填项")
     private EvidenceLevel evidenceLevel;
 
     private String historyId;
@@ -54,10 +54,10 @@ public class SqlRewriteRecordCreateRequest {
     private String validationPolicyId;
     private RewriteAlertStatus alertStatus;
 
-    @NotBlank(message = "originalSqlText is required")
+    @NotBlank(message = "originalSqlText 为必填项")
     private String originalSqlText;
 
-    @NotBlank(message = "recommendedSqlText is required")
+    @NotBlank(message = "recommendedSqlText 为必填项")
     private String recommendedSqlText;
 
     private String executedSqlText;

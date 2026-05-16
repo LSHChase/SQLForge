@@ -1,7 +1,7 @@
 package com.company.sqlforge.common.context;
 
 /**
- * Tenant-focused view over the shared request context.
+ * 共享请求上下文的租户视图。
  */
 public final class TenantContext {
 

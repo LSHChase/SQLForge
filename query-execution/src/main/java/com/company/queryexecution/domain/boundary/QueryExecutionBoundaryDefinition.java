@@ -5,12 +5,12 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Canonical boundary definition for the query execution service.
+ * 查询执行服务的标准边界定义。
  */
 public final class QueryExecutionBoundaryDefinition {
 
     /**
-     * Capabilities owned by the query execution service.
+     * 查询执行服务负责的能力。
      */
     public enum Capability {
         QUERY_SUBMISSION,
@@ -23,7 +23,7 @@ public final class QueryExecutionBoundaryDefinition {
     }
 
     /**
-     * Capabilities explicitly excluded from the query execution service.
+     * 明确排除在查询执行服务之外的能力。
      */
     public enum ExcludedCapability {
         TENANT_AND_ROLE_ADMINISTRATION,
@@ -34,7 +34,7 @@ public final class QueryExecutionBoundaryDefinition {
     }
 
     /**
-     * Governance interactions required before the service executes user traffic.
+     * 服务执行用户流量前必须完成的治理交互。
      */
     public enum GovernanceDependency {
         TENANT_SCOPE_CHECK,
@@ -43,7 +43,7 @@ public final class QueryExecutionBoundaryDefinition {
     }
 
     /**
-     * Supported Hetu access modes defined by ADR-004.
+     * ADR-004 定义的受支持 Hetu 访问模式。
      */
     public enum ExecutionAccessMode {
         JDBC,
@@ -52,21 +52,21 @@ public final class QueryExecutionBoundaryDefinition {
     }
 
     /**
-     * Parser integration boundary defined by ADR-005.
+     * ADR-005 定义的解析器集成边界。
      */
     public enum ParserBoundaryMode {
         OPEN_SOURCE_ABSTRACTION_FOR_LIGHTWEIGHT_PATH
     }
 
     /**
-     * Read-only policy defined by ADR-005 and repository rules.
+     * ADR-005 与仓库规则定义的只读策略。
      */
     public enum ReadonlyPolicy {
         READONLY_FIRST
     }
 
     /**
-     * Acceleration ownership boundary defined by ADR-013.
+     * ADR-013 定义的加速能力归属边界。
      */
     public enum AccelerationOwnershipMode {
         APPLY_APPROVED_RUNTIME_CONFIG_ONLY

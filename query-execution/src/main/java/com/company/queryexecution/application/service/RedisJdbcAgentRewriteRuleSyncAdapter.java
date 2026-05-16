@@ -34,7 +34,7 @@ public class RedisJdbcAgentRewriteRuleSyncAdapter implements JdbcAgentRewriteRul
     @Override
     public JdbcAgentRewriteRuleSyncResult publish(RuntimeRewriteBinding binding) {
         if (!isEnabled()) {
-            return JdbcAgentRewriteRuleSyncResult.skipped("PUBLISH", "JDBC Agent Redis sync is disabled");
+            return JdbcAgentRewriteRuleSyncResult.skipped("PUBLISH", "JDBC Agent Redis 同步已禁用");
         }
         String rewriteKey = rewriteKey(binding);
         String metadataKey = metadataKey(binding);
@@ -57,7 +57,7 @@ public class RedisJdbcAgentRewriteRuleSyncAdapter implements JdbcAgentRewriteRul
     @Override
     public JdbcAgentRewriteRuleSyncResult disable(RuntimeRewriteBinding binding) {
         if (!isEnabled()) {
-            return JdbcAgentRewriteRuleSyncResult.skipped("DISABLE", "JDBC Agent Redis sync is disabled");
+            return JdbcAgentRewriteRuleSyncResult.skipped("DISABLE", "JDBC Agent Redis 同步已禁用");
         }
         String rewriteKey = rewriteKey(binding);
         String metadataKey = metadataKey(binding);
@@ -89,7 +89,7 @@ public class RedisJdbcAgentRewriteRuleSyncAdapter implements JdbcAgentRewriteRul
     private JdbcAgentRewriteRuleSyncResult failed(String action, String rewriteKey, String metadataKey, RuntimeException ex) {
         String reason = sanitize(ex.getMessage());
         LOGGER.warn(
-            "JDBC Agent Redis rewrite rule sync failed. action={}, rewriteKey={}, metadataKey={}, reason={}",
+            "JDBC Agent Redis 改写规则同步失败，action={}, rewriteKey={}, metadataKey={}, reason={}",
             action,
             rewriteKey,
             metadataKey,
@@ -141,7 +141,7 @@ public class RedisJdbcAgentRewriteRuleSyncAdapter implements JdbcAgentRewriteRul
 
     private String sanitize(String value) {
         if (!StringUtils.hasText(value)) {
-            return "Redis sync backend unavailable";
+            return "Redis 同步后端不可用";
         }
         return value.replace(';', ',').replace('\n', ' ').replace('\r', ' ');
     }

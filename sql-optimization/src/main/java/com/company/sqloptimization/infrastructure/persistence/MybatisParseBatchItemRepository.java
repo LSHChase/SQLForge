@@ -145,7 +145,7 @@ public class MybatisParseBatchItemRepository implements ParseBatchItemRepository
         try {
             return JsonUtils.objectMapper().readValue(json, LIST_OF_STRINGS);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize parse batch item list payload", ex);
+            throw new IllegalArgumentException("解析批次明细列表载荷反序列化失败", ex);
         }
     }
 

@@ -208,7 +208,7 @@ public class AccelerationPlanApplicationService {
                 throw new BizException(
                     ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_APPLY_FAILURE,
                     HttpStatus.CONFLICT,
-                    "Approved acceleration plan did not become active in query-execution runtime"
+                    "已批准加速方案未在查询执行运行时变为 active"
                 );
             }
             plan.markApplied(buildRuntimeEvidence(request, runtimeResponse), RequestContext.getUserId(), Instant.now());
@@ -253,7 +253,7 @@ public class AccelerationPlanApplicationService {
             } else {
                 plan.markVerificationFailed(
                     Integer.valueOf(ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_VERIFY_FAILURE),
-                    "Runtime verification did not confirm an active approved acceleration binding",
+                    "运行时校验未确认存在 active 的已批准加速绑定",
                     buildRuntimeEvidence(request, runtimeResponse),
                     RequestContext.getUserId(),
                     Instant.now()
@@ -297,7 +297,7 @@ public class AccelerationPlanApplicationService {
             } else {
                 plan.markRollbackFailed(
                     Integer.valueOf(ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_ROLLBACK_FAILURE),
-                    "Query-execution runtime did not confirm rollback completion",
+                    "查询执行运行时未确认回滚完成",
                     buildRuntimeEvidence(request, runtimeResponse),
                     RequestContext.getUserId(),
                     Instant.now()
@@ -332,7 +332,7 @@ public class AccelerationPlanApplicationService {
                     queryExecutionAccelerationPlanClient.rollback(buildRollbackRequest(plan));
                 compensationPayload = buildCompensationEvidence(compensationPayload, rollbackResponse);
             } catch (RuntimeException rollbackEx) {
-                LOGGER.error("operation={} entity={} status=COMPENSATION_FAILED reason={}",
+                LOGGER.error("操作日志 operation={} entity={} status=COMPENSATION_FAILED reason={}",
                     APPLY_OPERATION, plan.getPlanId(), rollbackEx.getMessage(), rollbackEx);
             }
         }
@@ -355,7 +355,7 @@ public class AccelerationPlanApplicationService {
                 buildStatusResponseSummary(accelerationPlanModelApplicationService.buildStatusResponse(plan), ex.getMessage())
             );
         } catch (RuntimeException persistenceEx) {
-            LOGGER.error("operation={} entity={} status=FAILURE_PERSISTENCE_FAILED reason={}",
+            LOGGER.error("操作日志 operation={} entity={} status=FAILURE_PERSISTENCE_FAILED reason={}",
                 APPLY_OPERATION, plan.getPlanId(), persistenceEx.getMessage(), persistenceEx);
         }
     }
@@ -366,11 +366,11 @@ public class AccelerationPlanApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SQL_OPTIMIZATION_TASK_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Optimization task does not exist for taskId=" + taskId
+                "优化任务不存在，taskId=" + taskId
             );
         }
         if (!tenantId.equals(task.getTenantId())) {
-            throw new AccessDeniedException("Authenticated tenant cannot access this optimization task");
+            throw new AccessDeniedException("当前认证租户无权访问该优化任务");
         }
         if (task.getTaskType() != OptimizationTaskType.ACCELERATION_SUGGESTION
             || task.getStatus() != OptimizationTaskStatus.SUCCEEDED
@@ -378,7 +378,7 @@ public class AccelerationPlanApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SQL_OPTIMIZATION_SUGGESTION_NOT_READY,
                 HttpStatus.CONFLICT,
-                "Acceleration plan can only be created from a succeeded ACCELERATION_SUGGESTION task"
+                "加速计划只能从已成功的 ACCELERATION_SUGGESTION 任务创建"
             );
         }
         return task;
@@ -390,7 +390,7 @@ public class AccelerationPlanApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SQL_OPTIMIZATION_ACCELERATION_PLAN_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Acceleration plan does not exist for planId=" + planId
+                "加速方案不存在，planId=" + planId
             );
         }
         return plan;
@@ -405,7 +405,7 @@ public class AccelerationPlanApplicationService {
         throw new BizException(
             ErrorCodeConstants.SQL_OPTIMIZATION_SUGGESTION_NOT_READY,
             HttpStatus.CONFLICT,
-            "Acceleration suggestion payload does not contain an ACCELERATION_PLAN artifact"
+            "加速建议载荷不包含 ACCELERATION_PLAN 产物"
         );
     }
 
@@ -423,7 +423,7 @@ public class AccelerationPlanApplicationService {
                 throw new BizException(
                     ErrorCodeConstants.SQL_OPTIMIZATION_ACCELERATION_PLAN_INVALID,
                     HttpStatus.BAD_REQUEST,
-                    "Requested suggestion type " + type.name() + " was not present in the source acceleration recommendation"
+                    "请求的建议类型 " + type.name() + " 未出现在来源加速推荐中"
                 );
             }
         }
@@ -608,11 +608,11 @@ public class AccelerationPlanApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (StringUtils.hasText(requestTenantId) && !contextTenantId.equals(requestTenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -623,17 +623,17 @@ public class AccelerationPlanApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (!contextTenantId.equals(resourceTenantId)) {
-            throw new AccessDeniedException("Authenticated tenant cannot access this acceleration plan");
+            throw new AccessDeniedException("当前认证租户无权访问该加速方案");
         }
     }
 
     private void requirePendingApproval(AccelerationPlan plan) {
         if (plan.getStatus() != com.company.sqloptimization.domain.plan.AccelerationPlanStatus.PENDING_APPROVAL) {
-            throw invalidPlanState("Acceleration plan must be pending approval.");
+            throw invalidPlanState("加速方案必须处于待审批状态。");
         }
     }
 
@@ -641,14 +641,14 @@ public class AccelerationPlanApplicationService {
         if (!(plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.APPROVED
             || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.APPLY_FAILED
             || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.ROLLED_BACK)) {
-            throw invalidPlanState("Acceleration plan must be approved before apply.");
+            throw invalidPlanState("加速方案应用前必须已批准。");
         }
     }
 
     private void requireVerifyEligible(AccelerationPlan plan) {
         if (!(plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.APPLIED
             || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.VERIFY_FAILED)) {
-            throw invalidPlanState("Acceleration plan must be applied before verification.");
+            throw invalidPlanState("加速方案校验前必须已应用。");
         }
     }
 
@@ -657,7 +657,7 @@ public class AccelerationPlanApplicationService {
             || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.VERIFIED
             || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.VERIFY_FAILED
             || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.ROLLBACK_FAILED)) {
-            throw invalidPlanState("Acceleration plan must be applied before rollback.");
+            throw invalidPlanState("加速方案回滚前必须已应用。");
         }
     }
 
@@ -744,7 +744,7 @@ public class AccelerationPlanApplicationService {
 
     private void logFailure(String operation, String entity, String tenantId, long start, RuntimeException ex) {
         LOGGER.error(
-            "operation={} entity={} tenantId={} costMs={} status=FAILED phase=EXCEPTION reason={}",
+            "操作日志 operation={} entity={} tenantId={} costMs={} status=FAILED phase=EXCEPTION reason={}",
             operation,
             entity,
             tenantId,

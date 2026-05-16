@@ -1,7 +1,7 @@
 package com.company.sqlforge.common.config;
 
 /**
- * Canonical request header names for protected APIs.
+ * 受保护 API 的标准请求头名称。
  */
 public final class RequestHeaderConstants {
 

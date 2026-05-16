@@ -37,7 +37,7 @@ public class AlertSignalSnapshot {
 
     private void validate() {
         if (tenantId == null || tenantId.trim().isEmpty()) {
-            throw new IllegalArgumentException("tenantId is required");
+            throw new IllegalArgumentException("tenantId 为必填项");
         }
     }
 

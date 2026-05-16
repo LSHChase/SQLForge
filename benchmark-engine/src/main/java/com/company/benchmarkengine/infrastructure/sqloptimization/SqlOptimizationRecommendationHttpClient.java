@@ -20,7 +20,7 @@ import org.springframework.web.client.RestTemplate;
 @Component
 public class SqlOptimizationRecommendationHttpClient implements SqlOptimizationRecommendationClient {
 
-    private static final String SQL_OPTIMIZATION_ROUTE_UNAVAILABLE_MESSAGE = "SQL-optimization recommendation route is unavailable";
+    private static final String SQL_OPTIMIZATION_ROUTE_UNAVAILABLE_MESSAGE = "SQL 优化推荐路由不可用";
 
     private final RestTemplate restTemplate;
     private final BenchmarkEngineSqlOptimizationProperties properties;
@@ -61,7 +61,7 @@ public class SqlOptimizationRecommendationHttpClient implements SqlOptimizationR
         throw new BizException(
             ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
             HttpStatus.UNAUTHORIZED,
-            "Missing protected request context field: tenantId"
+            "受保护请求上下文字段缺失：tenantId"
         );
     }
 
@@ -83,7 +83,7 @@ public class SqlOptimizationRecommendationHttpClient implements SqlOptimizationR
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "benchmark-engine sql-optimization baseUrl is not configured"
+                "benchmark-engine sql-optimization baseUrl 未配置"
             );
         }
         return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;

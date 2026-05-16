@@ -18,7 +18,7 @@ public class AccessParseApplicationService {
     public AccessParseResponseVO parseAccess(AccessParseRequest request, String existingParseTaskId) {
         String parseTaskId = StringUtils.hasText(existingParseTaskId) ? existingParseTaskId : UUID.randomUUID().toString();
         String datasourceCode = trimToNull(request.getDatasourceCode());
-        LOGGER.info("operation=ACCESS_PARSE entity={} datasourceCode={} status=START", parseTaskId, datasourceCode);
+        LOGGER.info("操作日志 operation=ACCESS_PARSE entity={} datasourceCode={} status=START", parseTaskId, datasourceCode);
 
         AccessParseResponseVO response = new AccessParseResponseVO();
         response.setParseTaskId(parseTaskId);
@@ -27,9 +27,9 @@ public class AccessParseApplicationService {
             response.setConnectionStatus("SKIPPED");
             response.setObjectResolutionStatus("SKIPPED");
             response.setCompatibilityStatus("UNKNOWN");
-            response.setAvailabilityWarning("Access parse skipped because connectionRequired=false.");
+            response.setAvailabilityWarning("由于 connectionRequired=false，访问解析已跳过。");
             response.setDegradeReason("ACCESS_PARSE_SKIPPED");
-            LOGGER.info("operation=ACCESS_PARSE entity={} datasourceCode={} status=END serviceStatus=SKIPPED", parseTaskId, datasourceCode);
+            LOGGER.info("操作日志 operation=ACCESS_PARSE entity={} datasourceCode={} status=END serviceStatus=SKIPPED", parseTaskId, datasourceCode);
             return response;
         }
         if (!StringUtils.hasText(datasourceCode)) {
@@ -37,9 +37,9 @@ public class AccessParseApplicationService {
             response.setConnectionStatus("UNAVAILABLE");
             response.setObjectResolutionStatus("UNAVAILABLE");
             response.setCompatibilityStatus("UNKNOWN");
-            response.setAvailabilityWarning("Datasource code is missing, so access parse cannot reach an engine or metadata service.");
+            response.setAvailabilityWarning("缺少数据源编码，访问解析无法访问引擎或元数据服务。");
             response.setDegradeReason("DATASOURCE_CODE_MISSING");
-            LOGGER.info("operation=ACCESS_PARSE entity={} datasourceCode={} status=END serviceStatus=UNAVAILABLE", parseTaskId, datasourceCode);
+            LOGGER.info("操作日志 operation=ACCESS_PARSE entity={} datasourceCode={} status=END serviceStatus=UNAVAILABLE", parseTaskId, datasourceCode);
             return response;
         }
         String normalizedDatasource = datasourceCode.toLowerCase(Locale.ROOT);
@@ -48,9 +48,9 @@ public class AccessParseApplicationService {
             response.setConnectionStatus("UNAVAILABLE");
             response.setObjectResolutionStatus("UNAVAILABLE");
             response.setCompatibilityStatus("UNKNOWN");
-            response.setAvailabilityWarning("Access parse service is unavailable for the selected datasource.");
+            response.setAvailabilityWarning("所选数据源的访问解析服务不可用。");
             response.setDegradeReason("ACCESS_PARSE_SERVICE_UNAVAILABLE");
-            LOGGER.info("operation=ACCESS_PARSE entity={} datasourceCode={} status=END serviceStatus=UNAVAILABLE", parseTaskId, datasourceCode);
+            LOGGER.info("操作日志 operation=ACCESS_PARSE entity={} datasourceCode={} status=END serviceStatus=UNAVAILABLE", parseTaskId, datasourceCode);
             return response;
         }
         if (normalizedDatasource.contains("fail")) {
@@ -58,13 +58,13 @@ public class AccessParseApplicationService {
             response.setConnectionStatus("FAILED");
             response.setObjectResolutionStatus("PARTIAL");
             response.setCompatibilityStatus(resolveCompatibility(request.getCommentContext()));
-            response.setPlanSummary("Access parse reached the provider but failed before a complete plan snapshot was produced.");
+            response.setPlanSummary("访问解析已到达提供方，但在生成完整计划快照前失败。");
             response.setPartitionStatus("UNKNOWN");
             response.setDataFreshnessStatus("UNKNOWN");
             response.setSlaStatus("UNKNOWN");
-            response.setAvailabilityWarning("Provider connection failed during access parse.");
+            response.setAvailabilityWarning("访问解析期间提供方连接失败。");
             response.setDegradeReason("ACCESS_PARSE_CONNECTION_FAILED");
-            LOGGER.info("operation=ACCESS_PARSE entity={} datasourceCode={} status=END serviceStatus=AVAILABLE connectionStatus=FAILED", parseTaskId, datasourceCode);
+            LOGGER.info("操作日志 operation=ACCESS_PARSE entity={} datasourceCode={} status=END serviceStatus=AVAILABLE connectionStatus=FAILED", parseTaskId, datasourceCode);
             return response;
         }
         response.setServiceStatus("AVAILABLE");
@@ -77,14 +77,14 @@ public class AccessParseApplicationService {
         response.setCompatibilityStatus(resolveCompatibility(request.getCommentContext()));
         response.setAvailabilityWarning(null);
         response.setDegradeReason(null);
-        LOGGER.info("operation=ACCESS_PARSE entity={} datasourceCode={} status=END serviceStatus=AVAILABLE connectionStatus=CONNECTED", parseTaskId, datasourceCode);
+        LOGGER.info("操作日志 operation=ACCESS_PARSE entity={} datasourceCode={} status=END serviceStatus=AVAILABLE connectionStatus=CONNECTED", parseTaskId, datasourceCode);
         return response;
     }
 
     private String buildPlanSummary(AccessParseRequest request) {
-        return "Access parse reached datasource "
+        return "访问解析已到达数据源 "
             + request.getDatasourceCode()
-            + " and produced a provider-side plan summary for read-only verification.";
+            + "，并已生成用于只读校验的提供方侧计划摘要。";
     }
 
     private String resolvePartitionStatus(AccessParseRequest request) {

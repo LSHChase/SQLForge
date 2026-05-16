@@ -78,7 +78,7 @@ class SqlRewriteRecordControllerTest {
         unpublishedRecord.setRuntimeRuleVersion("runtime-rewrite-v1");
         RewritePublishEligibilityReasonVO reason = new RewritePublishEligibilityReasonVO();
         reason.setCode("VALIDATION_STATUS_NOT_EQUIVALENT");
-        reason.setMessage("Rewrite record validationStatus must be EQUIVALENT.");
+        reason.setMessage("改写记录 validationStatus 必须为 EQUIVALENT。");
         reason.setBlocking(Boolean.TRUE);
         reason.setField("validationStatus");
         reason.setEvidenceRef("validation-001");

@@ -46,7 +46,7 @@ public class KafkaMessageProducer implements MessageProducer, org.springframewor
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "Kafka message topic and payload must not be empty"
+                "Kafka 消息 topic 和 payload 不能为空"
             );
         }
         ProducerRecord<String, String> producerRecord = new ProducerRecord<String, String>(topic, key, message);
@@ -63,7 +63,7 @@ public class KafkaMessageProducer implements MessageProducer, org.springframewor
         try {
             Future<RecordMetadata> future = getProducer().send(producerRecord);
             future.get();
-            LOGGER.info("Sent Kafka message, topic={}, partitionKey={}, messageLength={}",
+            LOGGER.info("已发送 Kafka 消息，topic={}, partitionKey={}, messageLength={}",
                 topic,
                 key,
                 message.length());
@@ -71,7 +71,7 @@ public class KafkaMessageProducer implements MessageProducer, org.springframewor
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_SYSTEM_MESSAGE_ROUTE_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "Failed to send Kafka message",
+                "发送 Kafka 消息失败",
                 ex
             );
         }

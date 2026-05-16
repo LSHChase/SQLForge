@@ -7,11 +7,11 @@ import javax.validation.constraints.Size;
 
 public class BenchmarkTestSetFieldMappingDTO {
 
-    @NotNull(message = "field is required")
+    @NotNull(message = "field 为必填项")
     private BenchmarkTestSetField field;
 
-    @NotBlank(message = "columnName is required")
-    @Size(max = 128, message = "columnName exceeds 128 characters")
+    @NotBlank(message = "columnName 为必填项")
+    @Size(max = 128, message = "columnName 超过 128 个字符")
     private String columnName;
 
     public BenchmarkTestSetField getField() {

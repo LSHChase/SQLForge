@@ -55,7 +55,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 /**
- * Executes the minimal synchronous query loop while preserving the public HTTP contract.
+ * 在保留公共 HTTP 契约的同时执行最小同步查询闭环。
  */
 @Service
 public class QueryExecutionApplicationService {
@@ -68,8 +68,8 @@ public class QueryExecutionApplicationService {
     private static final String READONLY_SQL_REJECTION_MESSAGE = "当前同步查询路径仅允许只读单语句 SQL";
     private static final String ROUTE_UNAVAILABLE_MESSAGE = "当前同步查询路径尚未为目标数据源开放执行路由";
     private static final String QUERY_TIMEOUT_MESSAGE = "联机查询在当前超时阈值内未完成";
-    private static final String FALLBACK_IMMEDIATE_REASON = "Current fault-tolerance strategy requested immediate fallback.";
-    private static final String TIMEOUT_FALLBACK_REASON = "Primary engine exceeded timeout threshold and fallback was applied.";
+    private static final String FALLBACK_IMMEDIATE_REASON = "当前容错策略要求立即走兜底路径。";
+    private static final String TIMEOUT_FALLBACK_REASON = "主引擎超过超时阈值，已应用兜底策略。";
     private static final String STATE_REQUEST_ACCEPTED = "REQUEST_ACCEPTED";
     private static final String STATE_RISK_REJECTED = "RISK_REJECTED";
     private static final String STATE_ROUTE_UNAVAILABLE = "ROUTE_UNAVAILABLE";
@@ -242,7 +242,7 @@ public class QueryExecutionApplicationService {
                         new QueryErrorDetailVO(
                             ErrorCodeConstants.QUERY_EXECUTION_SYSTEM_ROUTE_UNAVAILABLE,
                             ROUTE_UNAVAILABLE_MESSAGE,
-                            "Use HETU, HIVE, or AUTO for the current synchronous baseline.",
+                            "当前同步基线请使用 HETU、HIVE 或 AUTO。",
                             true
                         ),
                         sqlFingerprint,
@@ -402,7 +402,7 @@ public class QueryExecutionApplicationService {
                         new QueryErrorDetailVO(
                             ErrorCodeConstants.QUERY_EXECUTION_SYSTEM_ENGINE_TIMEOUT,
                             QUERY_TIMEOUT_MESSAGE,
-                            "Increase timeoutMs or use RETRY_THEN_FALLBACK for the current synchronous baseline.",
+                            "请增加 timeoutMs，或在当前同步基线下使用 RETRY_THEN_FALLBACK。",
                             true
                         ),
                         sqlFingerprint,
@@ -434,7 +434,7 @@ public class QueryExecutionApplicationService {
             );
         } catch (RuntimeException ex) {
             LOGGER.error(
-                "operation={} entity={} tenantId={} requestedDatasource={} faultTolerance={} costMs={} status=FAILED phase=EXCEPTION reason={}",
+                "操作日志 operation={} entity={} tenantId={} requestedDatasource={} faultTolerance={} costMs={} status=FAILED phase=EXCEPTION reason={}",
                 OPERATION,
                 sqlFingerprint,
                 request.getTenantId(),
@@ -475,7 +475,7 @@ public class QueryExecutionApplicationService {
                 new QueryErrorDetailVO(
                     ErrorCodeConstants.QUERY_EXECUTION_SYSTEM_ROUTE_UNAVAILABLE,
                     ROUTE_UNAVAILABLE_MESSAGE,
-                    "No fallback route is available for the selected datasource in the current baseline.",
+                    "当前基线下所选数据源没有可用的兜底路由。",
                     true
                 ),
                 runtimeRewriteResolution.getOriginalSqlFingerprint()
@@ -878,7 +878,7 @@ public class QueryExecutionApplicationService {
                                               long start) {
         long costMs = System.currentTimeMillis() - start;
         LOGGER.info(
-            "operation={} entity={} tenantId={} requestedDatasource={} faultTolerance={} costMs={} status=END resultStatus={} degraded={}",
+            "操作日志 operation={} entity={} tenantId={} requestedDatasource={} faultTolerance={} costMs={} status=END resultStatus={} degraded={}",
             OPERATION,
             response.getSqlFingerprint(),
             request.getTenantId(),
@@ -906,19 +906,19 @@ public class QueryExecutionApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (requestTenantId != null && requestTenantId.trim().length() > 0
             && !contextTenantId.equals(requestTenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
 
     private void logStart(QueryExecuteRequest request, String sqlFingerprint) {
         LOGGER.info(
-            "operation={} entity={} tenantId={} requestedDatasource={} faultTolerance={} status=START",
+            "操作日志 operation={} entity={} tenantId={} requestedDatasource={} faultTolerance={} status=START",
             OPERATION,
             sqlFingerprint,
             request.getTenantId(),
@@ -936,7 +936,7 @@ public class QueryExecutionApplicationService {
                                 String resultStatus,
                                 String localRecoveryMarker) {
         LOGGER.info(
-            "operation={} entity={} tenantId={} requestedDatasource={} faultTolerance={} status=STATE_CHANGE from={} to={} engine={} elapsedMs={} resultStatus={} localRecoveryMarker={}",
+            "操作日志 operation={} entity={} tenantId={} requestedDatasource={} faultTolerance={} status=STATE_CHANGE from={} to={} engine={} elapsedMs={} resultStatus={} localRecoveryMarker={}",
             OPERATION,
             sqlFingerprint,
             request.getTenantId(),
@@ -1056,7 +1056,7 @@ public class QueryExecutionApplicationService {
             );
         } catch (RuntimeException ex) {
             LOGGER.warn(
-                "operation={} entity={} tenantId={} status=RUNTIME_REWRITE_FALLBACK reason={}",
+                "操作日志 operation={} entity={} tenantId={} status=RUNTIME_REWRITE_FALLBACK reason={}",
                 OPERATION,
                 originalSqlFingerprint,
                 request.getTenantId(),

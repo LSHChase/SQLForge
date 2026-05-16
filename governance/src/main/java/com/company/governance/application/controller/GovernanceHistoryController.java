@@ -39,7 +39,7 @@ public class GovernanceHistoryController {
         @RequestParam(value = "tenantId", required = false) String tenantId,
         @RequestParam(value = "limit", required = false) Integer limit) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
-        LOGGER.info("Handling governance trace summary query, tenantId={}, traceId={}",
+        LOGGER.info("处理治理追溯摘要查询，tenantId={}, traceId={}",
             effectiveTenantId,
             RequestContext.getTraceId());
         return governanceHistoryApplicationService.findRecentTraces(effectiveTenantId, limit);
@@ -56,7 +56,7 @@ public class GovernanceHistoryController {
         @RequestParam(value = "cursor", required = false) String cursor,
         @RequestParam(value = "limit", required = false) Integer limit) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
-        LOGGER.info("Handling governance trace lookup, tenantId={}, traceId={}, taskId={}, reportId={}, windowStart={}, windowEnd={}, cursor={}, requestTraceId={}",
+        LOGGER.info("处理治理追溯检索，tenantId={}, traceId={}, taskId={}, reportId={}, windowStart={}, windowEnd={}, cursor={}, requestTraceId={}",
             effectiveTenantId,
             traceId,
             taskId,
@@ -82,7 +82,7 @@ public class GovernanceHistoryController {
                                                   @RequestParam(value = "tenantId", required = false) String tenantId,
                                                   @RequestParam(value = "limit", required = false) Integer limit) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
-        LOGGER.info("Handling governance trace detail query, tenantId={}, traceId={}, requestTraceId={}",
+        LOGGER.info("处理治理追溯详情查询，tenantId={}, traceId={}, requestTraceId={}",
             effectiveTenantId,
             traceId,
             RequestContext.getTraceId());
@@ -96,7 +96,7 @@ public class GovernanceHistoryController {
         String effectiveTenantId = StringUtils.hasText(request == null ? null : request.getTenantId())
             ? request.getTenantId()
             : TenantContext.get();
-        LOGGER.info("Handling governance artifact operation, tenantId={}, reportId={}, artifactKey={}, operationType={}, requestTraceId={}",
+        LOGGER.info("处理治理产物操作，tenantId={}, reportId={}, artifactKey={}, operationType={}, requestTraceId={}",
             effectiveTenantId,
             request == null ? null : request.getReportId(),
             request == null ? null : request.getArtifactKey(),
@@ -112,7 +112,7 @@ public class GovernanceHistoryController {
         String effectiveTenantId = StringUtils.hasText(request == null ? null : request.getTenantId())
             ? request.getTenantId()
             : TenantContext.get();
-        LOGGER.info("Handling governance artifact batch operation, tenantId={}, operationType={}, targetCount={}, requestTraceId={}",
+        LOGGER.info("处理治理产物批量操作，tenantId={}, operationType={}, targetCount={}, requestTraceId={}",
             effectiveTenantId,
             request == null ? null : request.getOperationType(),
             request == null || request.getTargets() == null ? Integer.valueOf(0) : Integer.valueOf(request.getTargets().size()),

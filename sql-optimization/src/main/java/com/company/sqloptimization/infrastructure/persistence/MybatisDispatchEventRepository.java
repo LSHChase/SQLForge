@@ -143,7 +143,7 @@ public class MybatisDispatchEventRepository implements DispatchEventRepository {
             }
             return history;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize dispatch event status history", ex);
+            throw new IllegalArgumentException("分发事件状态历史反序列化失败", ex);
         }
     }
 

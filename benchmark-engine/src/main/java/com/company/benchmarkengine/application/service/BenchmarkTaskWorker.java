@@ -95,8 +95,8 @@ public class BenchmarkTaskWorker {
                 task.markFailed(
                     new BenchmarkTaskError(
                         ErrorCodeConstants.BENCHMARK_ENGINE_SYSTEM_PIPELINE_NOT_READY,
-                        "Benchmark worker failed before report write-back completed",
-                        "Inspect the benchmark task table, report table, and worker pipeline before retrying.",
+                        "压测 worker 在报告写回完成前失败",
+                        "重试前请检查压测任务表、报告表和 worker 流水线。",
                         true
                     ),
                     Instant.now()
@@ -141,7 +141,7 @@ public class BenchmarkTaskWorker {
             logEnd(task, start);
         } catch (RuntimeException ex) {
             benchmarkMetricsRecorder.recordWorkerException(task, System.currentTimeMillis() - start);
-            LOGGER.error("operation={} entity={} tenantId={} costMs={} status=FAILED phase=EXCEPTION reason={}",
+            LOGGER.error("操作日志 operation={} entity={} tenantId={} costMs={} status=FAILED phase=EXCEPTION reason={}",
                 OPERATION,
                 task.getTaskId(),
                 task.getTenantId(),
@@ -207,7 +207,7 @@ public class BenchmarkTaskWorker {
 
     private void logStateChange(BenchmarkTask task, String from, String to, String note) {
         LOGGER.info(
-            "operation={} entity={} tenantId={} taskType={} status=STATE_CHANGE from={} to={} resultStatus={} note={}",
+            "操作日志 operation={} entity={} tenantId={} taskType={} status=STATE_CHANGE from={} to={} resultStatus={} note={}",
             OPERATION,
             task.getTaskId(),
             task.getTenantId(),
@@ -221,7 +221,7 @@ public class BenchmarkTaskWorker {
 
     private void logEnd(BenchmarkTask task, long start) {
         LOGGER.info(
-            "operation={} entity={} tenantId={} costMs={} status=END resultStatus={}",
+            "操作日志 operation={} entity={} tenantId={} costMs={} status=END resultStatus={}",
             OPERATION,
             task.getTaskId(),
             task.getTenantId(),
@@ -238,7 +238,7 @@ public class BenchmarkTaskWorker {
             Thread.sleep(executionProperties.getPhaseDelayMs());
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Benchmark worker interrupted", ex);
+            throw new IllegalStateException("压测 worker 被中断", ex);
         }
     }
 }

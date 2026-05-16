@@ -25,7 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 /**
- * Provides the submit/poll API on top of the persisted optimization task carrier.
+ * 基于已持久化的优化任务载体提供提交/轮询 API。
  */
 @Service
 public class OptimizationTaskApplicationService {
@@ -144,14 +144,14 @@ public class OptimizationTaskApplicationService {
 
     public OptimizationTaskStatusResponse getTaskStatus(String taskId) {
         long start = System.currentTimeMillis();
-        LOGGER.info("operation={} entity={} status=START", QUERY_OPERATION, taskId);
+        LOGGER.info("操作日志 operation={} entity={} status=START", QUERY_OPERATION, taskId);
         try {
             OptimizationTask task = optimizationTaskRepository.findByTaskId(taskId);
             if (task == null) {
                 throw new BizException(
                     ErrorCodeConstants.SQL_OPTIMIZATION_TASK_NOT_FOUND,
                     HttpStatus.NOT_FOUND,
-                    "Optimization task does not exist for taskId=" + taskId
+                    "优化任务不存在，taskId=" + taskId
                 );
             }
             verifyTenantAccess(task.getTenantId());
@@ -196,7 +196,7 @@ public class OptimizationTaskApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SQL_OPTIMIZATION_TASK_INVALID,
                 HttpStatus.BAD_REQUEST,
-                "callbackUrl must start with http:// or https://"
+                "callbackUrl 必须以 http:// 或 https:// 开头"
             );
         }
     }
@@ -218,12 +218,12 @@ public class OptimizationTaskApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (requestTenantId != null && requestTenantId.trim().length() > 0
             && !contextTenantId.equals(requestTenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -234,17 +234,17 @@ public class OptimizationTaskApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (!contextTenantId.equals(resourceTenantId)) {
-            throw new AccessDeniedException("Authenticated tenant cannot access this optimization task");
+            throw new AccessDeniedException("当前认证租户无权访问该优化任务");
         }
     }
 
     private void logSubmitStart(OptimizationTaskSubmitRequest request, String sqlFingerprint) {
         LOGGER.info(
-            "operation={} entity={} tenantId={} taskType={} datasourceType={} status=START",
+            "操作日志 operation={} entity={} tenantId={} taskType={} datasourceType={} status=START",
             SUBMIT_OPERATION,
             sqlFingerprint,
             request.getTenantId(),
@@ -262,7 +262,7 @@ public class OptimizationTaskApplicationService {
                                 String resultStatus,
                                 String note) {
         LOGGER.info(
-            "operation={} entity={} tenantId={} taskType={} status=STATE_CHANGE from={} to={} resultStatus={} note={}",
+            "操作日志 operation={} entity={} tenantId={} taskType={} status=STATE_CHANGE from={} to={} resultStatus={} note={}",
             operation,
             entity,
             tenantId,
@@ -276,7 +276,7 @@ public class OptimizationTaskApplicationService {
 
     private void logEnd(String operation, String entity, String tenantId, long start, String resultStatus) {
         LOGGER.info(
-            "operation={} entity={} tenantId={} costMs={} status=END resultStatus={}",
+            "操作日志 operation={} entity={} tenantId={} costMs={} status=END resultStatus={}",
             operation,
             entity,
             tenantId,
@@ -287,7 +287,7 @@ public class OptimizationTaskApplicationService {
 
     private void logFailure(String operation, String entity, String tenantId, long start, RuntimeException ex) {
         LOGGER.error(
-            "operation={} entity={} tenantId={} costMs={} status=FAILED phase=EXCEPTION reason={}",
+            "操作日志 operation={} entity={} tenantId={} costMs={} status=FAILED phase=EXCEPTION reason={}",
             operation,
             entity,
             tenantId,

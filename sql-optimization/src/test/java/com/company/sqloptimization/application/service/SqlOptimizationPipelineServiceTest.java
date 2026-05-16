@@ -28,7 +28,7 @@ class SqlOptimizationPipelineServiceTest {
 
         OptimizationTaskSuggestion suggestion = service.buildParseSuggestion(profile);
 
-        assertTrue(suggestion.getSummary().contains("2 table(s)"));
+        assertTrue(suggestion.getSummary().contains("2 张表"));
         assertEquals("AST_PROFILE", suggestion.getArtifacts().get(0).getCategory());
         assertTrue(suggestion.getArtifacts().get(0).getContent().contains("\"joinCount\":1"));
         assertEquals("SELECT_STAR", suggestion.getRisks().get(0).getCategory());
@@ -201,7 +201,7 @@ class SqlOptimizationPipelineServiceTest {
         String accelerationPlan = suggestion.getArtifacts().get(0).getContent();
         assertTrue(accelerationPlan.contains("PRECOMPUTE"));
         assertTrue(accelerationPlan.contains("PARTITION"));
-        assertTrue(suggestion.getSummary().contains("acceleration recommendation"));
+        assertTrue(suggestion.getSummary().contains("加速推荐"));
     }
 
     @Test

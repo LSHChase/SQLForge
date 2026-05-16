@@ -137,20 +137,20 @@ public class BenchmarkRecommendationComparisonApplicationService {
         SqlOptimizationAccelerationRecommendation recommendation =
             sqlOptimizationRecommendationClient.getRecommendation(trimToNull(recommendationId));
         if (recommendation == null) {
-            throw invalidArgument("recommendationId", "Recommendation was not found");
+            throw invalidArgument("recommendationId", "推荐记录不存在");
         }
         if (!tenantId.equals(recommendation.getTenantId())) {
-            throw new AccessDeniedException("Authenticated tenant cannot access this recommendation");
+            throw new AccessDeniedException("当前认证租户无权访问该推荐");
         }
         return recommendation;
     }
 
     private void validateRecommendationForBenchmark(SqlOptimizationAccelerationRecommendation recommendation) {
         if ("CANCELLED".equals(trimToNull(recommendation.getStatus()))) {
-            throw invalidArgument("recommendationStatus", "Cancelled recommendations cannot be promoted into comparison benchmarks");
+            throw invalidArgument("recommendationStatus", "已取消的推荐不能提升为对比压测");
         }
         if (!hasText(recommendation.getSourceSqlText()) || !hasText(recommendation.getRecommendedSqlText())) {
-            throw invalidArgument("recommendationSql", "Comparison benchmark requires both sourceSqlText and recommendedSqlText");
+            throw invalidArgument("recommendationSql", "对比压测必须同时提供 sourceSqlText 和 recommendedSqlText");
         }
     }
 
@@ -408,11 +408,11 @@ public class BenchmarkRecommendationComparisonApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (hasText(requestTenantId) && !contextTenantId.equals(requestTenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -421,7 +421,7 @@ public class BenchmarkRecommendationComparisonApplicationService {
         return new BizException(
             ErrorCodeConstants.BENCHMARK_TASK_INVALID,
             HttpStatus.BAD_REQUEST,
-            "Invalid recommendation-to-benchmark request " + fieldName + ": " + message
+            "推荐转压测请求无效：" + fieldName + ": " + message
         );
     }
 

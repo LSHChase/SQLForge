@@ -27,6 +27,6 @@ public class DatabaseMessageProducer implements MessageProducer {
             JsonUtils.toJson(headers)
         );
         Long id = messageQueueRepository.enqueueMessage(messageQueueRecord);
-        LOGGER.info("Enqueued database message, id={}, topic={}, partitionKey={}", id, topic, key);
+        LOGGER.info("数据库消息已入队，id={}, topic={}, partitionKey={}", id, topic, key);
     }
 }

@@ -72,7 +72,7 @@ class BenchmarkReportApplicationServiceTest {
         assertTrue(new String(pdf.getContent()).contains(report.getReportId()));
 
         assertEquals("text/html", html.getMediaType().toString());
-        assertTrue(new String(html.getContent()).contains("SQLForge Benchmark Report"));
+        assertTrue(new String(html.getContent()).contains("SQLForge 压测报告"));
         assertTrue(new String(html.getContent()).contains(report.getReportId()));
         verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertAuthorization(
             org.mockito.Mockito.eq("tenant-a"),

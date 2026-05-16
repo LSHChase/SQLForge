@@ -243,7 +243,7 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
             return JdbcAgentRewriteRuleSyncResult.builder()
                 .syncStatus("FAILED")
                 .syncAction("PUBLISH")
-                .failureReason("redis unavailable")
+                .failureReason("redis 不可用")
                 .retryable(true)
                 .alertRequired(true)
                 .build();

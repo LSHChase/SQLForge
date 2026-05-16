@@ -61,7 +61,7 @@ public class AccelerationCandidateApplicationService {
     public AccelerationCandidateVO createCandidate(AccelerationCandidateCreateRequest request) {
         String tenantId = requireAuthorizedTenant(request == null ? null : request.getTenantId());
         if (request == null) {
-            throw invalidArgument("request", "candidate request is required");
+            throw invalidArgument("request", "candidate request 为必填项");
         }
         NormalizedSource normalizedSource = normalizeSource(request);
         Instant now = Instant.now();
@@ -106,13 +106,13 @@ public class AccelerationCandidateApplicationService {
         GovernanceSourceKind sourceKind = request.getSourceKind();
         EvidenceLevel evidenceLevel = request.getEvidenceLevel();
         if (sourceType == null) {
-            throw invalidArgument("sourceType", "sourceType is required");
+            throw invalidArgument("sourceType", "sourceType 为必填项");
         }
         if (sourceKind == null) {
-            throw invalidArgument("sourceKind", "sourceKind is required");
+            throw invalidArgument("sourceKind", "sourceKind 为必填项");
         }
         if (evidenceLevel == null) {
-            throw invalidArgument("evidenceLevel", "evidenceLevel is required");
+            throw invalidArgument("evidenceLevel", "evidenceLevel 为必填项");
         }
         if (sourceType == GovernanceSourceType.PARSE) {
             validateParseSource(request, sourceKind, evidenceLevel);
@@ -122,19 +122,19 @@ public class AccelerationCandidateApplicationService {
             validateQuerySource(sourceKind, evidenceLevel);
             return new NormalizedSource(sourceType, sourceKind, resolveQuerySourceId(request), evidenceLevel);
         }
-        throw invalidArgument("sourceType", "Unsupported sourceType: " + sourceType);
+        throw invalidArgument("sourceType", "不支持的 sourceType：" + sourceType);
     }
 
     private void validateParseSource(AccelerationCandidateCreateRequest request,
                                      GovernanceSourceKind sourceKind,
                                      EvidenceLevel evidenceLevel) {
         if (!PARSE_SOURCE_KINDS.contains(sourceKind)) {
-            throw invalidArgument("sourceKind", "sourceKind " + sourceKind + " is not valid for PARSE sourceType");
+            throw invalidArgument("sourceKind", "sourceKind " + sourceKind + " 对 PARSE sourceType 无效");
         }
         if (!PARSE_EVIDENCE_LEVELS.contains(evidenceLevel)) {
             throw invalidArgument(
                 "evidenceLevel",
-                "evidenceLevel " + evidenceLevel + " is not valid for PARSE sourceType"
+                "evidenceLevel " + evidenceLevel + " 对 PARSE sourceType 无效"
             );
         }
         if (request.getRuntimeEvidence() != null
@@ -142,19 +142,19 @@ public class AccelerationCandidateApplicationService {
             && (evidenceLevel == EvidenceLevel.STATIC_PARSE || evidenceLevel == EvidenceLevel.ACCESS_PARSE)) {
             throw invalidArgument(
                 "runtimeEvidence",
-                "runtimeEvidence requires MIXED or QUERY evidence and cannot be attached to static parse evidence"
+                "runtimeEvidence 需要 MIXED 或 QUERY 证据，不能附加到静态解析证据上"
             );
         }
     }
 
     private void validateQuerySource(GovernanceSourceKind sourceKind, EvidenceLevel evidenceLevel) {
         if (!QUERY_SOURCE_KINDS.contains(sourceKind)) {
-            throw invalidArgument("sourceKind", "sourceKind " + sourceKind + " is not valid for QUERY sourceType");
+            throw invalidArgument("sourceKind", "sourceKind " + sourceKind + " 对 QUERY sourceType 无效");
         }
         if (!QUERY_EVIDENCE_LEVELS.contains(evidenceLevel)) {
             throw invalidArgument(
                 "evidenceLevel",
-                "evidenceLevel " + evidenceLevel + " is not valid for QUERY sourceType"
+                "evidenceLevel " + evidenceLevel + " 对 QUERY sourceType 无效"
             );
         }
     }
@@ -170,7 +170,7 @@ public class AccelerationCandidateApplicationService {
         if (!StringUtils.hasText(sourceId)) {
             throw invalidArgument(
                 "sourceId",
-                "PARSE candidate requires sourceId, parseHistoryId, parseTaskId, batchItemId or batchId"
+                "PARSE 候选需要 sourceId、parseHistoryId、parseTaskId、batchItemId 或 batchId"
             );
         }
         return sourceId;
@@ -183,7 +183,7 @@ public class AccelerationCandidateApplicationService {
             request.getSourceId()
         );
         if (!StringUtils.hasText(sourceId)) {
-            throw invalidArgument("sourceId", "QUERY candidate requires sourceId, historyId or benchmarkTaskId");
+            throw invalidArgument("sourceId", "QUERY 候选需要 sourceId、historyId 或 benchmarkTaskId");
         }
         return sourceId;
     }
@@ -194,7 +194,7 @@ public class AccelerationCandidateApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Acceleration candidate not found: " + candidateId
+                "加速候选不存在：" + candidateId
             );
         }
         verifyTenantAccess(candidate.getTenantId());
@@ -252,7 +252,7 @@ public class AccelerationCandidateApplicationService {
     private String requireAuthorizedTenant(String requestTenantId) {
         String contextTenantId = requireContextTenant();
         if (StringUtils.hasText(requestTenantId) && !contextTenantId.equals(requestTenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -263,7 +263,7 @@ public class AccelerationCandidateApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         return contextTenantId;
@@ -272,7 +272,7 @@ public class AccelerationCandidateApplicationService {
     private void verifyTenantAccess(String resourceTenantId) {
         String contextTenantId = requireContextTenant();
         if (!contextTenantId.equals(resourceTenantId)) {
-            throw new AccessDeniedException("Authenticated tenant cannot access this acceleration candidate");
+            throw new AccessDeniedException("当前认证租户无权访问该加速候选");
         }
     }
 

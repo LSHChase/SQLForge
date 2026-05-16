@@ -23,37 +23,37 @@ public class ResultDigestComparisonEngine {
                 ComparisonStatus.FAILED,
                 DifferenceType.UNKNOWN,
                 false,
-                "readonly digest execution failed",
+                "只读摘要执行失败",
                 original,
                 recommended,
                 comparisonPolicy
             );
         }
         if (!sameDigestValue(original, recommended, "schemaDigest")) {
-            return diverged(DifferenceType.SCHEMA_DIFF, "schema digest differs", original, recommended, comparisonPolicy);
+            return diverged(DifferenceType.SCHEMA_DIFF, "schema 摘要不一致", original, recommended, comparisonPolicy);
         }
         if (!sameLongValue(original, recommended, "rowCount")) {
-            return diverged(DifferenceType.ROW_COUNT_DIFF, "row count differs", original, recommended, comparisonPolicy);
+            return diverged(DifferenceType.ROW_COUNT_DIFF, "行数不一致", original, recommended, comparisonPolicy);
         }
         if (hasDigestValue(original, "keySetDigest") && !sameDigestValue(original, recommended, "keySetDigest")) {
-            return diverged(DifferenceType.KEY_SET_DIFF, "key set digest differs", original, recommended, comparisonPolicy);
+            return diverged(DifferenceType.KEY_SET_DIFF, "键集合摘要不一致", original, recommended, comparisonPolicy);
         }
         if (isOrderSensitive(comparisonPolicy)
             && !sameDigestValue(original, recommended, "orderDigest")) {
-            return diverged(DifferenceType.ORDER_DIFF, "order-sensitive digest differs", original, recommended, comparisonPolicy);
+            return diverged(DifferenceType.ORDER_DIFF, "顺序敏感摘要不一致", original, recommended, comparisonPolicy);
         }
         if (!sameDigestValue(original, recommended, "checksumDigest")) {
             DifferenceType type = sameLimitedSample(original, recommended)
                 ? DifferenceType.CHECKSUM_DIFF
                 : DifferenceType.VALUE_DIFF;
-            return diverged(type, "checksum digest differs", original, recommended, comparisonPolicy);
+            return diverged(type, "checksum 摘要不一致", original, recommended, comparisonPolicy);
         }
         return result(
             ValidationRunStatus.SUCCEEDED,
             ComparisonStatus.EQUIVALENT,
             DifferenceType.NONE,
             false,
-            "result digests are equivalent",
+            "结果摘要等价",
             original,
             recommended,
             comparisonPolicy

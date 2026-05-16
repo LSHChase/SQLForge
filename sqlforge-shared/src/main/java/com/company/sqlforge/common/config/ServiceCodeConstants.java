@@ -1,7 +1,7 @@
 package com.company.sqlforge.common.config;
 
 /**
- * Shared service codes used by audit and observability contracts.
+ * 审计与可观测契约使用的共享服务编码。
  */
 public final class ServiceCodeConstants {
 

@@ -37,7 +37,7 @@ public class QueryExecutionAccelerationRuntimeService {
             throw new BizException(
                 ErrorCodeConstants.QUERY_EXECUTION_ROUTE_REJECTED,
                 HttpStatus.CONFLICT,
-                "An approved acceleration plan is already active for this tenant and SQL fingerprint"
+                "该租户和 SQL 指纹已有已批准的加速方案在运行中"
             );
         }
         ApprovedAccelerationBinding binding = new ApprovedAccelerationBinding(
@@ -55,7 +55,7 @@ public class QueryExecutionAccelerationRuntimeService {
             binding,
             "APPLIED",
             true,
-            "Approved acceleration plan is now active for runtime preference gating."
+            "已批准加速方案已在运行时偏好门控中生效。"
         );
     }
 
@@ -72,7 +72,7 @@ public class QueryExecutionAccelerationRuntimeService {
             response.setTargetEngine(TARGET_ENGINE);
             response.setActive(false);
             response.setStatus("MISSING");
-            response.setRuntimeSummary("No approved acceleration binding is currently active for runtime verification.");
+            response.setRuntimeSummary("当前没有可用于运行时校验的已批准加速绑定。");
             response.setRuntimeDetailsJson(JsonUtils.toJson(details("bindingState", "MISSING", "verified", Boolean.FALSE)));
             response.setContractStage(CONTRACT_STAGE);
             response.setImplementationStage(IMPLEMENTATION_STAGE);
@@ -82,7 +82,7 @@ public class QueryExecutionAccelerationRuntimeService {
             binding,
             "VERIFIED",
             true,
-            "Approved acceleration plan remains active in the runtime registry."
+            "已批准加速方案仍在运行时注册表中保持生效。"
         );
     }
 
@@ -99,8 +99,8 @@ public class QueryExecutionAccelerationRuntimeService {
         response.setActive(false);
         response.setStatus("ROLLED_BACK");
         response.setRuntimeSummary(binding == null
-            ? "No active acceleration binding remained, so rollback completed idempotently."
-            : "Approved acceleration binding was removed from the runtime registry.");
+            ? "当前没有残留的活跃加速绑定，回滚已按幂等方式完成。"
+            : "已从运行时注册表移除已批准加速绑定。");
         response.setRuntimeDetailsJson(
             JsonUtils.toJson(details("bindingState", binding == null ? "ABSENT" : "REMOVED", "verified", Boolean.TRUE))
         );
@@ -171,11 +171,11 @@ public class QueryExecutionAccelerationRuntimeService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (!RequestContext.getTenantId().equals(tenantId == null ? null : tenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
     }
 
@@ -184,7 +184,7 @@ public class QueryExecutionAccelerationRuntimeService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " must not be empty"
+                fieldName + " 不能为空"
             );
         }
         return value.trim();

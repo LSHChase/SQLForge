@@ -58,7 +58,7 @@ public class StructureParseController {
             throw new BizException(
                 ErrorCodeConstants.SQL_OPTIMIZATION_TASK_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Combined parse task does not exist for parseTaskId=" + parseTaskId
+                "组合解析任务不存在，parseTaskId=" + parseTaskId
             );
         }
         return status;

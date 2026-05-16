@@ -50,7 +50,7 @@ public class GovernanceAccelerationPlanTraceabilityApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "request must not be null"
+                "request 不能为 null"
             );
         }
         String tenantId = requireContext("tenantId", RequestContext.getTenantId());
@@ -134,7 +134,7 @@ public class GovernanceAccelerationPlanTraceabilityApplicationService {
         record.setSourceConfigId(request.getPlanId());
         record.setSourceVersion(request.getCreatedAt());
         record.setSnapshotStatus("CAPTURED");
-        record.setSnapshotReason("Acceleration plan governance baseline");
+        record.setSnapshotReason("加速方案治理基线");
         record.setTraceId(traceId);
         record.setRequestId(requestId);
         record.setSagaId(sagaId);
@@ -221,7 +221,7 @@ public class GovernanceAccelerationPlanTraceabilityApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "Protected request context is missing " + fieldName
+                "受保护请求上下文缺失：" + fieldName
             );
         }
         return value;
@@ -232,7 +232,7 @@ public class GovernanceAccelerationPlanTraceabilityApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " must not be empty"
+                fieldName + " 不能为空"
             );
         }
         return value.trim();

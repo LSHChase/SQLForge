@@ -132,7 +132,7 @@ class SqlForgeJdbcAgentObserveTest {
 
         assertEquals("audit-fail-open", result.getDirectResult().getPayload());
         assertFalse(result.getMetadata().isAuditReported());
-        assertTrue(result.getMetadata().getAuditFailureReason().contains("SQLForge governance audit route is unavailable"));
+        assertTrue(result.getMetadata().getAuditFailureReason().contains("SQLForge 治理审计路由不可用"));
         auditServer.verify();
     }
 

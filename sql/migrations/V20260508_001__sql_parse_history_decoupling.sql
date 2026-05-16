@@ -1,44 +1,44 @@
 CREATE TABLE IF NOT EXISTS sql_parse_history (
-  parse_history_id VARCHAR(128) NOT NULL COMMENT 'SQL parse history identifier owned by sql-optimization',
-  tenant_id VARCHAR(64) NOT NULL COMMENT 'Owning tenant identifier',
-  source_type VARCHAR(32) NOT NULL COMMENT 'Parse source such as STRUCTURE_PARSE/COMBINED_PARSE/PARSE_BATCH/REPORT_BATCH/END_OF_DAY_SLOW_SQL',
-  source_id VARCHAR(128) DEFAULT NULL COMMENT 'Source item or execution history identifier',
-  batch_key VARCHAR(255) DEFAULT NULL COMMENT 'Idempotent batch key for scheduled parse jobs',
-  parse_task_id VARCHAR(64) NOT NULL COMMENT 'Structure or combined parse task identifier',
-  sql_fingerprint CHAR(32) NOT NULL COMMENT 'Normalized SQL fingerprint',
-  datasource_code VARCHAR(128) DEFAULT NULL COMMENT 'Datasource business identifier or alias',
-  datasource_type VARCHAR(32) DEFAULT NULL COMMENT 'Datasource type',
-  report_code VARCHAR(128) DEFAULT NULL COMMENT 'Report code parsed from SQL comment context',
-  stage_code VARCHAR(32) DEFAULT NULL COMMENT 'Execution stage parsed from SQL comment context',
-  biz_date VARCHAR(32) DEFAULT NULL COMMENT 'Business date parsed from SQL comment context',
-  query_date_start VARCHAR(32) DEFAULT NULL COMMENT 'Query date lower bound parsed from SQL body',
-  query_date_end VARCHAR(32) DEFAULT NULL COMMENT 'Query date upper bound parsed from SQL body',
-  query_date_status VARCHAR(32) DEFAULT NULL COMMENT 'Query date extraction status such as RESOLVED/UNRESOLVED/PARTIAL',
-  access_channel VARCHAR(32) DEFAULT NULL COMMENT 'Parse access channel or batch source',
-  parser_mode VARCHAR(32) DEFAULT NULL COMMENT 'SQL parser mode: JSQLPARSER, APACHE_CALCITE, JSQLPARSER_WITH_PLAN, or APACHE_CALCITE_WITH_PLAN',
-  sql_text MEDIUMTEXT NOT NULL COMMENT 'SQL text captured for parse management',
-  sql_template_text MEDIUMTEXT DEFAULT NULL COMMENT 'Prepared SQL template text',
-  binding_mode VARCHAR(32) DEFAULT NULL COMMENT 'Binding mode such as POSITIONAL/NAMED',
-  parameterized_sql_flag TINYINT(1) DEFAULT NULL COMMENT 'Whether the SQL was parameterized before binding',
-  result_status VARCHAR(32) NOT NULL COMMENT 'Parse result status such as SUCCESS/PARTIAL/FAILED',
-  target_engine VARCHAR(32) DEFAULT NULL COMMENT 'Target engine resolved by parse flow',
-  structure_parse_summary_json JSON DEFAULT NULL COMMENT 'Structure parse summary payload',
-  access_parse_summary_json JSON DEFAULT NULL COMMENT 'Access parse summary payload',
-  result_summary_json JSON DEFAULT NULL COMMENT 'Combined parse result summary payload',
-  result_payload_json JSON DEFAULT NULL COMMENT 'Full parse result payload',
-  query_context_json JSON DEFAULT NULL COMMENT 'Structured query context for parse management',
-  comment_context_json JSON DEFAULT NULL COMMENT 'Structured SQL comment context JSON',
-  binding_summary_json JSON DEFAULT NULL COMMENT 'Structured parameter binding summary JSON',
-  logical_object_hits_json JSON DEFAULT NULL COMMENT 'Structured logical object hit summary JSON',
-  issue_scenes_json JSON DEFAULT NULL COMMENT 'Issue scene summary payload',
-  logical_object_keys_json JSON DEFAULT NULL COMMENT 'Logical object key summary payload',
-  trace_id VARCHAR(64) DEFAULT NULL COMMENT 'Trace identifier',
-  request_id VARCHAR(64) DEFAULT NULL COMMENT 'Request identifier',
-  saga_id VARCHAR(128) DEFAULT NULL COMMENT 'Saga identifier',
-  submitted_by VARCHAR(64) DEFAULT NULL COMMENT 'Operator identifier',
-  submitted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Submitted timestamp',
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+  parse_history_id VARCHAR(128) NOT NULL COMMENT 'sql-optimization 持有的 SQL 解析历史标识符',
+  tenant_id VARCHAR(64) NOT NULL COMMENT '所属租户标识符',
+  source_type VARCHAR(32) NOT NULL COMMENT '解析来源，例如 STRUCTURE_PARSE/COMBINED_PARSE/PARSE_BATCH/REPORT_BATCH/END_OF_DAY_SLOW_SQL',
+  source_id VARCHAR(128) DEFAULT NULL COMMENT '来源条目或执行历史标识符',
+  batch_key VARCHAR(255) DEFAULT NULL COMMENT '定时解析作业的幂等批次键',
+  parse_task_id VARCHAR(64) NOT NULL COMMENT '结构或组合解析任务标识符',
+  sql_fingerprint CHAR(32) NOT NULL COMMENT '归一化 SQL 指纹',
+  datasource_code VARCHAR(128) DEFAULT NULL COMMENT '数据源业务标识符或别名',
+  datasource_type VARCHAR(32) DEFAULT NULL COMMENT '数据源类型',
+  report_code VARCHAR(128) DEFAULT NULL COMMENT '从 SQL 注释上下文解析出的报表编码',
+  stage_code VARCHAR(32) DEFAULT NULL COMMENT '从 SQL 注释上下文解析出的执行阶段',
+  biz_date VARCHAR(32) DEFAULT NULL COMMENT '从 SQL 注释上下文解析出的业务日期',
+  query_date_start VARCHAR(32) DEFAULT NULL COMMENT '从 SQL 正文解析出的查询日期下界',
+  query_date_end VARCHAR(32) DEFAULT NULL COMMENT '从 SQL 正文解析出的查询日期上界',
+  query_date_status VARCHAR(32) DEFAULT NULL COMMENT '查询日期提取状态，例如 RESOLVED/UNRESOLVED/PARTIAL',
+  access_channel VARCHAR(32) DEFAULT NULL COMMENT '解析访问渠道或批次来源',
+  parser_mode VARCHAR(32) DEFAULT NULL COMMENT 'SQL 解析器模式：JSQLPARSER、APACHE_CALCITE、JSQLPARSER_WITH_PLAN 或 APACHE_CALCITE_WITH_PLAN',
+  sql_text MEDIUMTEXT NOT NULL COMMENT '解析管理捕获的 SQL 文本',
+  sql_template_text MEDIUMTEXT DEFAULT NULL COMMENT '预备 SQL 模板文本',
+  binding_mode VARCHAR(32) DEFAULT NULL COMMENT 'Binding 模式，例如 POSITIONAL/NAMED',
+  parameterized_sql_flag TINYINT(1) DEFAULT NULL COMMENT '绑定前 SQL 是否已参数化',
+  result_status VARCHAR(32) NOT NULL COMMENT '解析结果状态，例如 SUCCESS/PARTIAL/FAILED',
+  target_engine VARCHAR(32) DEFAULT NULL COMMENT '解析流程确定的目标引擎',
+  structure_parse_summary_json JSON DEFAULT NULL COMMENT '结构解析摘要载荷',
+  access_parse_summary_json JSON DEFAULT NULL COMMENT '访问解析摘要载荷',
+  result_summary_json JSON DEFAULT NULL COMMENT '组合解析结果摘要载荷',
+  result_payload_json JSON DEFAULT NULL COMMENT '完整解析结果载荷',
+  query_context_json JSON DEFAULT NULL COMMENT '用于解析管理的结构化查询上下文',
+  comment_context_json JSON DEFAULT NULL COMMENT '结构化 SQL 注释上下文 JSON',
+  binding_summary_json JSON DEFAULT NULL COMMENT '结构化参数绑定摘要 JSON',
+  logical_object_hits_json JSON DEFAULT NULL COMMENT '结构化逻辑对象命中摘要 JSON',
+  issue_scenes_json JSON DEFAULT NULL COMMENT '问题场景摘要载荷',
+  logical_object_keys_json JSON DEFAULT NULL COMMENT '逻辑对象键摘要载荷',
+  trace_id VARCHAR(64) DEFAULT NULL COMMENT '追踪标识符',
+  request_id VARCHAR(64) DEFAULT NULL COMMENT '请求标识符',
+  saga_id VARCHAR(128) DEFAULT NULL COMMENT '跨服务补偿链 Saga 标识符',
+  submitted_by VARCHAR(64) DEFAULT NULL COMMENT '操作人标识符',
+  submitted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间戳',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间戳',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间戳',
   PRIMARY KEY (parse_history_id),
   KEY idx_sql_parse_history_tenant_time (tenant_id, submitted_at),
   KEY idx_sql_parse_history_fingerprint (tenant_id, sql_fingerprint),
@@ -62,7 +62,7 @@ BEGIN
       AND COLUMN_NAME = 'history_id'
   ) THEN
     ALTER TABLE parse_batch_item
-      MODIFY COLUMN history_id VARCHAR(128) DEFAULT NULL COMMENT 'SQL parse history id for this parsed SQL';
+      MODIFY COLUMN history_id VARCHAR(128) DEFAULT NULL COMMENT '该已解析 SQL 的 SQL 解析历史 ID';
   END IF;
 
   IF EXISTS (
@@ -73,7 +73,7 @@ BEGIN
       AND COLUMN_NAME = 'history_persisted'
   ) THEN
     ALTER TABLE parse_batch_item
-      MODIFY COLUMN history_persisted TINYINT(1) DEFAULT NULL COMMENT 'Whether SQL parse history was persisted for this SQL';
+      MODIFY COLUMN history_persisted TINYINT(1) DEFAULT NULL COMMENT '该 SQL 是否已持久化 SQL 解析历史';
   END IF;
 
   IF EXISTS (
@@ -84,7 +84,7 @@ BEGIN
       AND COLUMN_NAME = 'history_id'
   ) THEN
     ALTER TABLE report_batch_item
-      MODIFY COLUMN history_id VARCHAR(128) DEFAULT NULL COMMENT 'SQL parse history id for this parsed report SQL';
+      MODIFY COLUMN history_id VARCHAR(128) DEFAULT NULL COMMENT '该已解析报表 SQL 的 SQL 解析历史 ID';
   END IF;
 
   IF EXISTS (
@@ -95,7 +95,7 @@ BEGIN
       AND COLUMN_NAME = 'history_persisted'
   ) THEN
     ALTER TABLE report_batch_item
-      MODIFY COLUMN history_persisted TINYINT(1) DEFAULT NULL COMMENT 'Whether SQL parse history was persisted for this SQL';
+      MODIFY COLUMN history_persisted TINYINT(1) DEFAULT NULL COMMENT '该 SQL 是否已持久化 SQL 解析历史';
   END IF;
 END//
 

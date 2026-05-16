@@ -79,7 +79,7 @@ class JdbcHetuExecutionModeAdapterTest {
             () -> adapter.execute("SELECT 1", acceleratedRequest(), false)
         );
 
-        assertEquals("Hetu JDBC url is not configured", ex.getMessage());
+        assertEquals("Hetu JDBC url 未配置", ex.getMessage());
     }
 
     private QueryExecuteRequest acceleratedRequest() {

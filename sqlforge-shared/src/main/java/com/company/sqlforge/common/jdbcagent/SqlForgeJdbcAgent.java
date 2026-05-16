@@ -284,7 +284,7 @@ public class SqlForgeJdbcAgent {
                 throw new BizException(
                     ErrorCodeConstants.SYSTEM_OPEN_ACCESS_ROUTE_INVALID,
                     HttpStatus.SERVICE_UNAVAILABLE,
-                    "JDBC Agent lightweight parse timed out"
+                    "JDBC Agent 轻量解析超时"
                 );
             }
             return JdbcAgentRewriteDecision.passthrough("LIGHT_PARSE_TIMEOUT_BYPASS");
@@ -293,7 +293,7 @@ public class SqlForgeJdbcAgent {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_OPEN_ACCESS_ROUTE_INVALID,
                 HttpStatus.SERVICE_UNAVAILABLE,
-                "JDBC Agent lightweight parse was interrupted",
+                "JDBC Agent 轻量解析被中断",
                 ex
             );
         } catch (ExecutionException ex) {
@@ -303,7 +303,7 @@ public class SqlForgeJdbcAgent {
                 throw new BizException(
                     ErrorCodeConstants.SYSTEM_OPEN_ACCESS_ROUTE_INVALID,
                     HttpStatus.SERVICE_UNAVAILABLE,
-                    "JDBC Agent rewrite rule provider failed",
+                    "JDBC Agent 改写规则提供方执行失败",
                     ex.getCause() == null ? ex : ex.getCause()
                 );
             }
@@ -342,12 +342,12 @@ public class SqlForgeJdbcAgent {
         if (ex instanceof RuntimeException) {
             return (RuntimeException) ex;
         }
-        return new IllegalStateException("JDBC Agent direct execution failed", ex);
+        return new IllegalStateException("JDBC Agent 直连执行失败", ex);
     }
 
     private <T> JdbcAgentDirectExecutor<T> requireDirectExecutor(JdbcAgentDirectExecutor<T> directExecutor) {
         if (directExecutor == null) {
-            throw new IllegalArgumentException("JDBC Agent direct executor is required for the selected mode");
+            throw new IllegalArgumentException("所选模式需要配置 JDBC Agent 直连执行器");
         }
         return directExecutor;
     }

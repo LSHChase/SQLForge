@@ -276,7 +276,7 @@ public class AccelerationPlan {
     }
 
     public void approve(String reviewNote, String operator, Instant occurredAt) {
-        requireStatus(AccelerationPlanStatus.PENDING_APPROVAL, "Acceleration plan must be pending approval.");
+        requireStatus(AccelerationPlanStatus.PENDING_APPROVAL, "加速方案必须处于待审批状态。");
         transitionTo(AccelerationPlanStatus.APPROVED, occurredAt, "PLAN_APPROVED");
         this.reviewNote = reviewNote;
         this.approvedBy = operator;
@@ -288,7 +288,7 @@ public class AccelerationPlan {
     }
 
     public void reject(String reviewNote, String operator, Instant occurredAt) {
-        requireStatus(AccelerationPlanStatus.PENDING_APPROVAL, "Acceleration plan must be pending approval.");
+        requireStatus(AccelerationPlanStatus.PENDING_APPROVAL, "加速方案必须处于待审批状态。");
         transitionTo(AccelerationPlanStatus.REJECTED, occurredAt, "PLAN_REJECTED");
         this.reviewNote = reviewNote;
         this.rejectedBy = operator;
@@ -319,7 +319,7 @@ public class AccelerationPlan {
 
     public void markVerified(String verificationEvidenceJson, String operator, Instant occurredAt) {
         if (!(status == AccelerationPlanStatus.APPLIED || status == AccelerationPlanStatus.VERIFY_FAILED)) {
-            throw new IllegalStateException("Acceleration plan must be applied before verification.");
+            throw new IllegalStateException("加速方案校验前必须已应用。");
         }
         transitionTo(AccelerationPlanStatus.VERIFIED, occurredAt, "PLAN_VERIFIED");
         this.verificationEvidenceJson = verificationEvidenceJson;
@@ -331,7 +331,7 @@ public class AccelerationPlan {
 
     public void markVerificationFailed(Integer errorCode, String errorMessage, String verificationEvidenceJson, String operator, Instant occurredAt) {
         if (!(status == AccelerationPlanStatus.APPLIED || status == AccelerationPlanStatus.VERIFY_FAILED)) {
-            throw new IllegalStateException("Acceleration plan must be applied before verification.");
+            throw new IllegalStateException("加速方案校验前必须已应用。");
         }
         transitionTo(AccelerationPlanStatus.VERIFY_FAILED, occurredAt, "PLAN_VERIFY_FAILED");
         this.lastErrorCode = errorCode;
@@ -371,7 +371,7 @@ public class AccelerationPlan {
         if (!(status == AccelerationPlanStatus.APPROVED
             || status == AccelerationPlanStatus.APPLY_FAILED
             || status == AccelerationPlanStatus.ROLLED_BACK)) {
-            throw new IllegalStateException("Acceleration plan must be approved before apply.");
+            throw new IllegalStateException("加速方案应用前必须已批准。");
         }
     }
 
@@ -380,7 +380,7 @@ public class AccelerationPlan {
             || status == AccelerationPlanStatus.VERIFIED
             || status == AccelerationPlanStatus.VERIFY_FAILED
             || status == AccelerationPlanStatus.ROLLBACK_FAILED)) {
-            throw new IllegalStateException("Acceleration plan must be applied before rollback.");
+            throw new IllegalStateException("加速方案回滚前必须已应用。");
         }
     }
 

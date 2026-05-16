@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex,
                                                                    HttpServletRequest request) {
         String message = ex.getBindingResult().getAllErrors().isEmpty()
-            ? "Validation failed"
+            ? "参数校验失败"
             : ex.getBindingResult().getAllErrors().get(0).getDefaultMessage();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(buildErrorResponse(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, message, request));
@@ -39,7 +39,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception ex, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(buildErrorResponse(ErrorCodeConstants.SYSTEM_UNKNOWN_ERROR, "Internal server error", request));
+            .body(buildErrorResponse(ErrorCodeConstants.SYSTEM_UNKNOWN_ERROR, "服务器内部错误", request));
     }
 
     private ErrorResponse buildErrorResponse(int code, String message, HttpServletRequest request) {

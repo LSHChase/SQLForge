@@ -154,7 +154,7 @@ public class BenchmarkArtifactStorageService {
         String effectiveType = StringUtils.hasText(storageType) ? storageType : "LOCAL_FILE";
         BenchmarkArtifactStorageAdapter adapter = adaptersByType.get(effectiveType);
         if (adapter == null) {
-            throw new IllegalStateException("Unsupported benchmark artifact storage type: " + effectiveType);
+            throw new IllegalStateException("不支持的压测产物存储类型：" + effectiveType);
         }
         return adapter;
     }

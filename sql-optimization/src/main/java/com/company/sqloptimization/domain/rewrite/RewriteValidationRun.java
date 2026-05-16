@@ -58,13 +58,13 @@ public class RewriteValidationRun {
         requireText(tenantId, "tenantId");
         requireText(rewriteRecordId, "rewriteRecordId");
         if (startedAt == null) {
-            throw new IllegalArgumentException("startedAt is required");
+            throw new IllegalArgumentException("startedAt 为必填项");
         }
     }
 
     private void requireText(String value, String field) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(field + " is required");
+            throw new IllegalArgumentException(field + " 为必填项");
         }
     }
 

@@ -151,7 +151,7 @@ public class RedisJdbcAgentRewriteRuleProvider implements JdbcAgentRewriteRulePr
 
         private RedisURI toRedisUri(String endpoint) {
             if (!StringUtils.hasText(endpoint)) {
-                throw new IllegalArgumentException("Redis endpoint is blank");
+                throw new IllegalArgumentException("Redis 端点为空");
             }
             String normalized = endpoint.startsWith("redis://") ? endpoint : "redis://" + endpoint.trim();
             return RedisURI.create(normalized);

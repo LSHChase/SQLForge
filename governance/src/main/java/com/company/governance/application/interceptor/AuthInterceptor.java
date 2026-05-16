@@ -57,7 +57,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             response.setHeader(RequestHeaderConstants.REQUEST_ID, requestId);
             response.setHeader(RequestHeaderConstants.TRACE_ID, traceId);
 
-            LOGGER.info("Resolved request context, requestId={}, traceId={}, tenantId={}, userId={}, roleCodes={}, uri={}",
+            LOGGER.info("已解析请求上下文，requestId={}, traceId={}, tenantId={}, userId={}, roleCodes={}, uri={}",
                 requestId,
                 traceId,
                 tenantId,
@@ -113,7 +113,7 @@ public class AuthInterceptor implements HandlerInterceptor {
     private String requireHeader(HttpServletRequest request, String headerName) {
         String headerValue = request.getHeader(headerName);
         if (headerValue == null || headerValue.trim().isEmpty()) {
-            throw new UnauthorizedException("Missing " + headerName + " header");
+            throw new UnauthorizedException("缺少 " + headerName + " 请求头");
         }
         return headerValue.trim();
     }
@@ -124,7 +124,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             .filter(item -> !item.isEmpty())
             .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(roleCodes)) {
-            throw new UnauthorizedException("Missing " + RequestHeaderConstants.ROLE_CODES + " header");
+            throw new UnauthorizedException("缺少 " + RequestHeaderConstants.ROLE_CODES + " 请求头");
         }
         return new ArrayList<String>(roleCodes);
     }
@@ -134,13 +134,13 @@ public class AuthInterceptor implements HandlerInterceptor {
         try {
             return Long.parseLong(value);
         } catch (NumberFormatException ex) {
-            throw new UnauthorizedException("Invalid " + headerName + " header");
+            throw new UnauthorizedException("无效的 " + headerName + " 请求头");
         }
     }
 
     private void validateTimeWindow(long issuedAt, long expiresAt) {
         if (issuedAt <= 0L || expiresAt <= 0L || issuedAt > expiresAt) {
-            throw new UnauthorizedException("Invalid authentication time window");
+            throw new UnauthorizedException("认证时间窗口无效");
         }
     }
 
@@ -150,13 +150,13 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
         List<String> trustedAuthSources = authProperties.getTrustedAuthSources();
         if (!CollectionUtils.isEmpty(trustedAuthSources) && !trustedAuthSources.contains(authSource)) {
-            throw new UnauthorizedException("Unsupported " + RequestHeaderConstants.AUTH_SOURCE + " header");
+            throw new UnauthorizedException("不支持的 " + RequestHeaderConstants.AUTH_SOURCE + " 请求头");
         }
     }
 
     private void validateNotExpired(long expiresAt) {
         if (authProperties.isEnabled() && expiresAt < System.currentTimeMillis()) {
-            throw new UnauthorizedException("Authentication context has expired");
+            throw new UnauthorizedException("认证上下文已过期");
         }
     }
 

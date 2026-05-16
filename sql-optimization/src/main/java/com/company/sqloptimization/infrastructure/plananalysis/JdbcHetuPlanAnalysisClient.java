@@ -156,14 +156,14 @@ public class JdbcHetuPlanAnalysisClient implements HetuPlanAnalysisClient {
     private String buildExplainSql(String sqlText) {
         String normalized = trimTrailingSemicolons(trimToNull(sqlText));
         if (!StringUtils.hasText(normalized)) {
-            throw new IllegalArgumentException("SQL text must not be empty for Hetu plan analysis");
+            throw new IllegalArgumentException("用于 Hetu 计划分析的 SQL 文本不能为空");
         }
         String upper = normalized.toUpperCase(Locale.ROOT);
         if (upper.startsWith("EXPLAIN")) {
-            throw new IllegalArgumentException("Submit the original SQL text; EXPLAIN statements are not accepted as input");
+            throw new IllegalArgumentException("请提交原始 SQL 文本；不接受 EXPLAIN 语句作为输入");
         }
         if (containsStatementSeparator(normalized)) {
-            throw new IllegalArgumentException("Hetu plan analysis accepts a single SQL statement only");
+            throw new IllegalArgumentException("Hetu 计划分析只接受单条 SQL 语句");
         }
         return "EXPLAIN " + normalized;
     }

@@ -387,7 +387,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             }
             return engines;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize benchmark target engines", ex);
+            throw new IllegalArgumentException("压测目标引擎反序列化失败", ex);
         }
     }
 
@@ -411,7 +411,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             }
             return thresholds;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize benchmark thresholds", ex);
+            throw new IllegalArgumentException("压测阈值反序列化失败", ex);
         }
     }
 
@@ -432,7 +432,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             }
             return labels;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize benchmark test-set labels", ex);
+            throw new IllegalArgumentException("压测测试集标签反序列化失败", ex);
         }
     }
 
@@ -453,7 +453,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             }
             return mappings;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize benchmark test-set field mappings", ex);
+            throw new IllegalArgumentException("压测测试集字段映射反序列化失败", ex);
         }
     }
 
@@ -474,7 +474,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             }
             return refs;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize benchmark source references", ex);
+            throw new IllegalArgumentException("压测来源引用反序列化失败", ex);
         }
     }
 
@@ -527,7 +527,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             }
             return history;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize benchmark task status history", ex);
+            throw new IllegalArgumentException("压测任务状态历史反序列化失败", ex);
         }
     }
 
@@ -557,7 +557,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             }
             return profiles;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize benchmark engine profiles", ex);
+            throw new IllegalArgumentException("压测引擎画像反序列化失败", ex);
         }
     }
 
@@ -581,7 +581,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             }
             return assessments;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize benchmark threshold assessments", ex);
+            throw new IllegalArgumentException("压测阈值评估反序列化失败", ex);
         }
     }
 
@@ -605,7 +605,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             }
             return recommendations;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize benchmark recommendations", ex);
+            throw new IllegalArgumentException("压测建议反序列化失败", ex);
         }
     }
 
@@ -624,7 +624,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
                 readStringList(item.get("phaseNotes"))
             );
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize benchmark execution summary", ex);
+            throw new IllegalArgumentException("压测执行摘要反序列化失败", ex);
         }
     }
 
@@ -658,7 +658,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             }
             return artifacts;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize benchmark export artifacts", ex);
+            throw new IllegalArgumentException("压测导出产物反序列化失败", ex);
         }
     }
 
@@ -676,7 +676,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
                 item.get("summary") == null ? null : String.valueOf(item.get("summary"))
             );
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize benchmark regression summary", ex);
+            throw new IllegalArgumentException("压测回归摘要反序列化失败", ex);
         }
     }
 
@@ -704,7 +704,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             }
             return linkages;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize benchmark alert linkages", ex);
+            throw new IllegalArgumentException("压测告警关联反序列化失败", ex);
         }
     }
 
@@ -718,7 +718,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
                 List<String> values = objectMapper.readValue(json, LIST_OF_STRINGS);
                 return values == null ? Collections.<String>emptyList() : values;
             } catch (Exception ex) {
-                throw new IllegalArgumentException("Failed to deserialize benchmark string list", ex);
+                throw new IllegalArgumentException("压测字符串列表反序列化失败", ex);
             }
         }
         if (!(raw instanceof List<?>)) {
@@ -743,7 +743,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
         try {
             return objectMapper.writeValueAsString(value);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to serialize benchmark persistence payload", ex);
+            throw new IllegalArgumentException("压测持久化载荷序列化失败", ex);
         }
     }
 

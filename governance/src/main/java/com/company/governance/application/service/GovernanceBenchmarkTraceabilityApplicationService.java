@@ -62,7 +62,7 @@ public class GovernanceBenchmarkTraceabilityApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "request must not be null"
+                "request 不能为 null"
             );
         }
         String tenantId = requireContext("tenantId", RequestContext.getTenantId());
@@ -118,7 +118,7 @@ public class GovernanceBenchmarkTraceabilityApplicationService {
         record.setSourceConfigId(request.getReportId());
         record.setSourceVersion(request.getGeneratedAt());
         record.setSnapshotStatus("CAPTURED");
-        record.setSnapshotReason("Benchmark report artifact orchestration baseline");
+        record.setSnapshotReason("压测报告产物编排基线");
         record.setTraceId(traceId);
         record.setRequestId(requestId);
         record.setSagaId(sagaId);
@@ -429,7 +429,7 @@ public class GovernanceBenchmarkTraceabilityApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " must not be empty"
+                fieldName + " 不能为空"
             );
         }
         return value.trim();

@@ -42,7 +42,7 @@ public class RestHetuExecutionModeAdapter implements HetuExecutionModeAdapter {
     public QueryExecutionStep execute(String actualSql, QueryExecuteRequest request, boolean degradedPath) {
         QueryExecutionHetuProperties.Rest rest = properties.getRest();
         if (!StringUtils.hasText(rest.getEndpoint())) {
-            throw new IllegalStateException("Hetu REST endpoint is not configured");
+            throw new IllegalStateException("Hetu REST 端点未配置");
         }
         RestTemplate restTemplate = restTemplateBuilder
             .setConnectTimeout(Duration.ofMillis(rest.getConnectTimeoutMs()))
@@ -76,7 +76,7 @@ public class RestHetuExecutionModeAdapter implements HetuExecutionModeAdapter {
                 Collections.singletonList(QueryExecutionAccessMode.REST.name())
             );
         } catch (RestClientException ex) {
-            throw new IllegalStateException("Hetu REST execution failed", ex);
+            throw new IllegalStateException("Hetu REST 执行失败", ex);
         }
     }
 

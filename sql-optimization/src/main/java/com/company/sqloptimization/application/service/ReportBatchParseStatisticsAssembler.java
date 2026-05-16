@@ -823,7 +823,7 @@ class ReportBatchParseStatisticsAssembler {
         }
         return new MergeCandidateEvidence(
             bestItemIds,
-            mergeReason(items, bestItemIds.size(), "logical object " + bestObjectKey)
+            mergeReason(items, bestItemIds.size(), "逻辑对象 " + bestObjectKey)
         );
     }
 
@@ -856,7 +856,7 @@ class ReportBatchParseStatisticsAssembler {
         }
         return new MergeCandidateEvidence(
             candidateItemIds,
-            mergeReason(items, candidateItemIds.size(), "shared issue scenes " + sharedScenes)
+            mergeReason(items, candidateItemIds.size(), "共享问题场景 " + sharedScenes)
         );
     }
 
@@ -872,9 +872,9 @@ class ReportBatchParseStatisticsAssembler {
         String reportCode = firstNonBlank(sample.getReportCode(), "UNSPECIFIED_REPORT");
         String datasourceCode = firstNonBlank(sample.getDatasourceCode(), "UNSPECIFIED_DATASOURCE");
         String stage = firstNonBlank(sample.getStage(), "UNSPECIFIED_STAGE");
-        return "Report " + reportCode + " has " + sqlCount + " SQL rows on datasource "
-            + datasourceCode + " stage " + stage + " sharing " + evidence
-            + "; review whether they can be merged into one query, shared CTE, or serving dataset.";
+        return "报表 " + reportCode + " 在数据源 " + datasourceCode
+            + "、阶段 " + stage + " 下有 " + sqlCount + " 条 SQL 共享 " + evidence
+            + "；请评审它们是否可以合并为一个查询、共享 CTE 或服务化数据集。";
     }
 
     private List<String> effectiveIssueScenes(ReportBatchItem item, MergeCandidateIndex index) {

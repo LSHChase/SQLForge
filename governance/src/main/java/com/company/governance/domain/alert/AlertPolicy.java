@@ -56,19 +56,19 @@ public class AlertPolicy {
         requireText(tenantId, "tenantId");
         requireText(policyName, "policyName");
         if (alertType == null) {
-            throw new IllegalArgumentException("alertType is required");
+            throw new IllegalArgumentException("alertType 为必填项");
         }
         if (dedupeWindowSeconds <= 0) {
-            throw new IllegalArgumentException("dedupeWindowSeconds must be positive");
+            throw new IllegalArgumentException("dedupeWindowSeconds 必须为 positive");
         }
         if (createdAt == null) {
-            throw new IllegalArgumentException("createdAt is required");
+            throw new IllegalArgumentException("createdAt 为必填项");
         }
     }
 
     private static void requireText(String value, String field) {
         if (trimToNull(value) == null) {
-            throw new IllegalArgumentException(field + " is required");
+            throw new IllegalArgumentException(field + " 为必填项");
         }
     }
 

@@ -1,7 +1,7 @@
 package com.company.sqloptimization.domain.task;
 
 /**
- * Internal processing phases shared by parse, rewrite, and acceleration-suggestion tasks.
+ * 解析、改写与加速建议任务共享的内部处理阶段。
  */
 public enum OptimizationTaskPhase {
     SUBMITTED,

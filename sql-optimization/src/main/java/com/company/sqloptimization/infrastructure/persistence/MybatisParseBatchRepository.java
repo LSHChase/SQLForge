@@ -134,7 +134,7 @@ public class MybatisParseBatchRepository implements ParseBatchRepository {
             }
             return history;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize parse batch status history", ex);
+            throw new IllegalArgumentException("解析批次状态历史反序列化失败", ex);
         }
     }
 

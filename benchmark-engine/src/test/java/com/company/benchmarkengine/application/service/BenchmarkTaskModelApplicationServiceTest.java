@@ -138,7 +138,7 @@ class BenchmarkTaskModelApplicationServiceTest {
     }
 
     @Test
-    void shouldBuildRegressionGuardReportWithFailVerdict() {
+    void shouldBuildRegressionGuardReportWithFail结论() {
         BenchmarkTaskModelApplicationService service = new BenchmarkTaskModelApplicationService();
         BenchmarkTaskSubmitRequest request = baseRequest(BenchmarkTaskType.REGRESSION_GUARD);
         request.getTaskContext().setTargetEngines(Arrays.asList(DataSourceTypeEnum.HETU));
@@ -190,7 +190,7 @@ class BenchmarkTaskModelApplicationServiceTest {
         task.markFailed(
             new BenchmarkTaskError(
                 14000,
-                "Benchmark worker failed before report write-back completed",
+                "压测 worker 在报告写回完成前失败",
                 "Inspect the benchmark task table, report table, and worker pipeline before retrying.",
                 true
             ),

@@ -42,10 +42,10 @@ public class AccelerationRecommendationApplicationService {
     public AccelerationRecommendationVO createRecommendation(AccelerationRecommendationCreateRequest request) {
         String tenantId = requireAuthorizedTenant(request == null ? null : request.getTenantId());
         if (request == null || request.getRecommendationType() == null) {
-            throw invalidArgument("recommendationType", "recommendationType is required");
+            throw invalidArgument("recommendationType", "recommendationType 为必填项");
         }
         if (!StringUtils.hasText(request.getRecommendedSqlText())) {
-            throw invalidArgument("recommendedSqlText", "recommendedSqlText is required");
+            throw invalidArgument("recommendedSqlText", "recommendedSqlText 为必填项");
         }
         Instant now = Instant.now();
         AccelerationRecommendation recommendation = AccelerationRecommendation.builder()
@@ -114,7 +114,7 @@ public class AccelerationRecommendationApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Recommendation not found: " + recommendationId
+                "推荐不存在：" + recommendationId
             );
         }
         verifyTenantAccess(recommendation.getTenantId());
@@ -127,7 +127,7 @@ public class AccelerationRecommendationApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Recommendation not found: " + recommendationId
+                "推荐不存在：" + recommendationId
             );
         }
         verifyTenantAccess(recommendation.getTenantId());
@@ -239,7 +239,7 @@ public class AccelerationRecommendationApplicationService {
     private String requireAuthorizedTenant(String requestTenantId) {
         String contextTenantId = requireContextTenant();
         if (StringUtils.hasText(requestTenantId) && !contextTenantId.equals(requestTenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -250,7 +250,7 @@ public class AccelerationRecommendationApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         return contextTenantId;
@@ -259,7 +259,7 @@ public class AccelerationRecommendationApplicationService {
     private void verifyTenantAccess(String resourceTenantId) {
         String contextTenantId = requireContextTenant();
         if (!contextTenantId.equals(resourceTenantId)) {
-            throw new AccessDeniedException("Authenticated tenant cannot access this recommendation");
+            throw new AccessDeniedException("当前认证租户无权访问该推荐");
         }
     }
 

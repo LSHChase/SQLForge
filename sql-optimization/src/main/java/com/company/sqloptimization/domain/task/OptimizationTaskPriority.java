@@ -1,7 +1,7 @@
 package com.company.sqloptimization.domain.task;
 
 /**
- * Queue priority for async optimization workloads.
+ * 异步优化工作负载的队列优先级。
  */
 public enum OptimizationTaskPriority {
     HIGH,

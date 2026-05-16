@@ -1,7 +1,7 @@
 package com.company.sqlforge.common.constants;
 
 /**
- * Shared Redis key prefixes.
+ * 共享 Redis 键前缀。
  */
 public final class CacheKeyConstants {
 

@@ -139,7 +139,7 @@ class GovernanceQueryHistoryControllerTest {
                 .param("accessChannel", "batch_job"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(10001))
-            .andExpect(jsonPath("$.message").value("accessChannel must be one of PAGE/API/JDBC_AGENT/SDK/CLIENT"));
+            .andExpect(jsonPath("$.message").value("accessChannel 必须是 PAGE/API/JDBC_AGENT/SDK/CLIENT 之一"));
     }
 
     @Test

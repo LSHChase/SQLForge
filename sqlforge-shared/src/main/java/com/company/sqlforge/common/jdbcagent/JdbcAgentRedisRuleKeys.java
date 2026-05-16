@@ -39,7 +39,7 @@ public final class JdbcAgentRedisRuleKeys {
 
     private static String requireText(String value, String fieldName) {
         if (!StringUtils.hasText(value)) {
-            throw new IllegalArgumentException(fieldName + " must not be empty");
+            throw new IllegalArgumentException(fieldName + " 不能为空");
         }
         return value.trim();
     }

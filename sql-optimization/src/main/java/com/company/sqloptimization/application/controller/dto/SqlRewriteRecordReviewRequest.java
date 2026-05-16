@@ -7,7 +7,7 @@ public class SqlRewriteRecordReviewRequest {
 
     private String tenantId;
 
-    @NotNull(message = "reviewStatus is required")
+    @NotNull(message = "reviewStatus 为必填项")
     private RewriteReviewStatus reviewStatus;
 
     private String reviewNote;

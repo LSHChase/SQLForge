@@ -54,7 +54,7 @@ public class RedisRuleSourceApplicationService {
             redisRuleSourceRepository.findByTenantIdAndSourceId(tenantId, sourceId).orElseThrow(() -> new BizException(
                 ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Redis rule source not found: " + sourceId
+                "Redis 规则来源不存在：" + sourceId
             ));
         } else {
             effectiveSourceId = UUID.randomUUID().toString();
@@ -108,11 +108,11 @@ public class RedisRuleSourceApplicationService {
         String contextTenantId = RequestContext.getTenantId();
         if (!StringUtils.hasText(contextTenantId)) {
             throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context");
+                "已认证请求上下文缺少 tenantId");
         }
         String normalized = trimToNull(requestTenantId);
         if (StringUtils.hasText(normalized) && !contextTenantId.equals(normalized)) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -121,7 +121,7 @@ public class RedisRuleSourceApplicationService {
         String normalized = trimToNull(value);
         if (!StringUtils.hasText(normalized)) {
             throw new BizException(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, HttpStatus.BAD_REQUEST,
-                fieldName + " is required");
+                fieldName + " 为必填项");
         }
         return normalized;
     }

@@ -10,19 +10,19 @@ import javax.validation.constraints.Size;
 
 public class OptimizationTaskSubmitRequest {
 
-    @NotBlank(message = "tenantId is required")
+    @NotBlank(message = "tenantId 为必填项")
     private String tenantId;
 
-    @NotNull(message = "taskType is required")
+    @NotNull(message = "taskType 为必填项")
     private OptimizationTaskType taskType;
 
-    @Size(max = 10485760, message = "sqlText exceeds 10MB limit")
+    @Size(max = 10485760, message = "sqlText 超过 10MB 限制")
     private String sqlText;
 
-    @Size(max = 128, message = "sqlFingerprint exceeds 128 characters")
+    @Size(max = 128, message = "sqlFingerprint 超过 128 个字符")
     private String sqlFingerprint;
 
-    @NotNull(message = "datasourceType is required")
+    @NotNull(message = "datasourceType 为必填项")
     private DataSourceTypeEnum datasourceType;
 
     @Valid
@@ -76,12 +76,12 @@ public class OptimizationTaskSubmitRequest {
         this.taskContext = taskContext == null ? new OptimizationTaskContextDTO() : taskContext;
     }
 
-    @AssertTrue(message = "Either sqlText or sqlFingerprint must be provided")
+    @AssertTrue(message = "必须提供 sqlText 或 sqlFingerprint")
     public boolean isSqlIdentityProvided() {
         return hasText(sqlText) || hasText(sqlFingerprint);
     }
 
-    @AssertTrue(message = "requestedSuggestionTypes are only supported for ACCELERATION_SUGGESTION tasks")
+    @AssertTrue(message = "requestedSuggestionTypes 仅支持 ACCELERATION_SUGGESTION 任务")
     public boolean isSuggestionTypeUsageValid() {
         return taskContext == null
             || taskContext.getRequestedSuggestionTypes().isEmpty()

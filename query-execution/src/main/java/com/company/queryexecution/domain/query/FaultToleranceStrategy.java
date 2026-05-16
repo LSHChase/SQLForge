@@ -1,7 +1,7 @@
 package com.company.queryexecution.domain.query;
 
 /**
- * Fault-tolerance strategy for the online query path.
+ * 在线查询路径的容错策略。
  */
 public enum FaultToleranceStrategy {
     RETRY_THEN_FALLBACK,

@@ -1,7 +1,7 @@
 package com.company.sqloptimization.domain.task;
 
 /**
- * External lifecycle states for async optimization tasks.
+ * 异步优化任务的外部生命周期状态。
  */
 public enum OptimizationTaskStatus {
     QUEUED(false),

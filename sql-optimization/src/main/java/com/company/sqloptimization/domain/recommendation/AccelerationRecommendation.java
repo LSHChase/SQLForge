@@ -118,17 +118,17 @@ public class AccelerationRecommendation {
         requireText(recommendationId, "recommendationId");
         requireText(tenantId, "tenantId");
         if (recommendationType == null) {
-            throw new IllegalArgumentException("recommendationType is required");
+            throw new IllegalArgumentException("recommendationType 为必填项");
         }
         requireText(recommendedSqlText, "recommendedSqlText");
         if (createdAt == null) {
-            throw new IllegalArgumentException("createdAt is required");
+            throw new IllegalArgumentException("createdAt 为必填项");
         }
     }
 
     private void requireText(String value, String field) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(field + " is required");
+            throw new IllegalArgumentException(field + " 为必填项");
         }
     }
 

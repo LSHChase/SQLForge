@@ -78,7 +78,7 @@ public class ReportInterfaceConfigApplicationService {
             reportInterfaceConfigRepository.findByTenantIdAndConfigId(tenantId, interfaceId).orElseThrow(() -> new BizException(
                 ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Report interface config not found: " + interfaceId
+                "报表接口配置不存在：" + interfaceId
             ));
         } else {
             configId = UUID.randomUUID().toString();
@@ -108,10 +108,10 @@ public class ReportInterfaceConfigApplicationService {
 
     private void validateConfig(ReportInterfaceConfig config) {
         if ("HTTP_API".equals(config.getSourceType()) && !StringUtils.hasText(config.getBaseUrl())) {
-            throw invalidArgument("baseUrl", "baseUrl is required for HTTP_API report interface config");
+            throw invalidArgument("baseUrl", "HTTP_API 报表接口配置必须提供 baseUrl");
         }
         if (!"GET".equals(config.getHttpMethod()) && !"POST".equals(config.getHttpMethod())) {
-            throw invalidArgument("httpMethod", "httpMethod must be GET or POST");
+            throw invalidArgument("httpMethod", "httpMethod 必须为 GET or POST");
         }
     }
 
@@ -145,11 +145,11 @@ public class ReportInterfaceConfigApplicationService {
         String contextTenantId = RequestContext.getTenantId();
         if (!StringUtils.hasText(contextTenantId)) {
             throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context");
+                "已认证请求上下文缺少 tenantId");
         }
         String normalized = trimToNull(requestTenantId);
         if (StringUtils.hasText(normalized) && !contextTenantId.equals(normalized)) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -164,7 +164,7 @@ public class ReportInterfaceConfigApplicationService {
     private String requireText(String value, String fieldName) {
         String normalized = trimToNull(value);
         if (!StringUtils.hasText(normalized)) {
-            throw invalidArgument(fieldName, fieldName + " is required");
+            throw invalidArgument(fieldName, fieldName + " 为必填项");
         }
         return normalized;
     }

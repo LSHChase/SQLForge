@@ -117,7 +117,7 @@ public class ParseTriggeredRewriteRecommendationService {
             String taskId = taskIdFor(idempotencyKey(tenantId, context, sqlFingerprint));
             optimizationTaskApplicationService.submitInternalTaskIfAbsent(submitRequest, taskId);
             LOGGER.info(
-                "operation=PARSE_TRIGGERED_REWRITE_SUBMIT entity={} tenantId={} historyId={} sourceType={} sourceId={} status=QUEUED_OR_REUSED issueScenes={}",
+                "操作日志 operation=PARSE_TRIGGERED_REWRITE_SUBMIT entity={} tenantId={} historyId={} sourceType={} sourceId={} status=QUEUED_OR_REUSED issueScenes={}",
                 taskId,
                 tenantId,
                 structureParse.getHistoryId(),
@@ -127,7 +127,7 @@ public class ParseTriggeredRewriteRecommendationService {
             );
         } catch (RuntimeException ex) {
             LOGGER.warn(
-                "operation=PARSE_TRIGGERED_REWRITE_SUBMIT entity={} tenantId={} status=DEGRADED reason={}",
+                "操作日志 operation=PARSE_TRIGGERED_REWRITE_SUBMIT entity={} tenantId={} status=DEGRADED reason={}",
                 structureParse == null ? null : structureParse.getParseTaskId(),
                 RequestContext.getTenantId(),
                 ex.getMessage()
@@ -205,7 +205,7 @@ public class ParseTriggeredRewriteRecommendationService {
             .build();
         recommendationRepository.save(recommendation);
         LOGGER.info(
-            "operation=PARSE_TRIGGERED_REWRITE_RECOMMENDATION entity={} tenantId={} taskId={} historyId={} status=SAVED issueScenes={}",
+            "操作日志 operation=PARSE_TRIGGERED_REWRITE_RECOMMENDATION entity={} tenantId={} taskId={} historyId={} status=SAVED issueScenes={}",
             recommendationId,
             task.getTenantId(),
             task.getTaskId(),
@@ -223,7 +223,7 @@ public class ParseTriggeredRewriteRecommendationService {
             return pipelineService.buildRecommendationRuleOutputModel(profile);
         } catch (RuntimeException ex) {
             LOGGER.warn(
-                "operation=PARSE_TRIGGERED_RULE_MODEL entity={} tenantId={} status=DEGRADED reason={}",
+                "操作日志 operation=PARSE_TRIGGERED_RULE_MODEL entity={} tenantId={} status=DEGRADED reason={}",
                 task.getTaskId(),
                 task.getTenantId(),
                 ex.getMessage()
@@ -401,8 +401,8 @@ public class ParseTriggeredRewriteRecommendationService {
 
     private String buildSummary(List<String> targetIssueScenes, boolean safeRewriteAvailable) {
         String prefix = safeRewriteAvailable
-            ? "Generated a safe rewrite recommendation from parse issues: "
-            : "Created a manual-review rewrite recommendation from parse issues: ";
+            ? "已从解析问题生成安全改写推荐："
+            : "已从解析问题生成人工评审改写推荐：";
         return prefix + String.join(", ", targetIssueScenes);
     }
 
@@ -411,15 +411,15 @@ public class ParseTriggeredRewriteRecommendationService {
                                List<String> appliedRules,
                                boolean safeRewriteAvailable) {
         StringBuilder builder = new StringBuilder();
-        builder.append("Parse issue scenes matched automatic rewrite review: ")
+        builder.append("解析问题场景已匹配自动改写评审：")
             .append(String.join(", ", targetIssueScenes))
-            .append(". ");
+            .append("。");
         if (safeRewriteAvailable) {
-            builder.append("Applied conservative rewrite rules: ")
+            builder.append("已应用保守改写规则：")
                 .append(String.join(", ", appliedRules))
-                .append(". ");
+                .append("。");
         } else {
-            builder.append("No conservative rewrite rule was safe without additional metadata, so the recommendation preserves the original SQL. ");
+            builder.append("缺少额外元数据时没有保守改写规则可安全应用，因此推荐保留原始 SQL。");
         }
         if (StringUtils.hasText(suggestion.getSummary())) {
             builder.append(suggestion.getSummary());
@@ -429,12 +429,12 @@ public class ParseTriggeredRewriteRecommendationService {
 
     private String buildExpectedGain(OptimizationTaskSuggestion suggestion, boolean safeRewriteAvailable) {
         if (!safeRewriteAvailable) {
-            return "Manual review target identified; no automatic performance gain is asserted until a safe rewrite is approved.";
+            return "已识别需要人工评审的目标；安全改写获批前不承诺自动性能收益。";
         }
         if (suggestion.getBenefits() != null && !suggestion.getBenefits().isEmpty()) {
             return suggestion.getBenefits().get(0).getSummary();
         }
-        return "Safe syntactic rewrite candidate is available for validation.";
+        return "可用于校验的安全语法改写候选已生成。";
     }
 
     private BenefitLevel resolveBenefitLevel(OptimizationTaskSuggestion suggestion, boolean safeRewriteAvailable) {
@@ -456,15 +456,15 @@ public class ParseTriggeredRewriteRecommendationService {
                                     boolean safeRewriteAvailable) {
         StringBuilder builder = new StringBuilder();
         if (safeRewriteAvailable) {
-            builder.append("Validate the candidate SQL against the original result set before approval.");
+            builder.append("批准前请使用原始结果集校验候选 SQL。");
         } else {
-            builder.append("No safe rewrite rule matched; recommended SQL is the original SQL and requires manual handling.");
+            builder.append("未匹配安全改写规则；推荐 SQL 为原始 SQL，需要人工处理。");
         }
         if (targetIssueScenes.contains("SELECT_STAR")) {
-            builder.append(" SELECT_STAR is not expanded automatically because column metadata is not guaranteed in this path.");
+            builder.append(" 该路径无法保证列元数据，因此不会自动展开 SELECT_STAR。");
         }
         if (suggestion.getRisks() != null && !suggestion.getRisks().isEmpty()) {
-            builder.append(" Worker risks: ");
+            builder.append(" Worker 风险：");
             List<String> riskSummaries = new ArrayList<String>();
             for (OptimizationTaskRisk risk : suggestion.getRisks()) {
                 if (risk != null && StringUtils.hasText(risk.getSummary())) {

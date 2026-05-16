@@ -89,7 +89,7 @@ public class KafkaMessageConsumer implements MessageConsumer, org.springframewor
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_SYSTEM_MESSAGE_ROUTE_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "Failed to poll Kafka messages",
+                "轮询 Kafka 消息失败",
                 ex
             );
         } finally {
@@ -99,7 +99,7 @@ public class KafkaMessageConsumer implements MessageConsumer, org.springframewor
 
     @Override
     public void listen(String topic, MessageHandler handler) {
-        LOGGER.info("Kafka listener registered for topic={}", topic);
+        LOGGER.info("Kafka 监听器已注册，topic={}", topic);
         messageHandlerRegistry.register(topic, handler);
         topicListeners.computeIfAbsent(topic, new java.util.function.Function<String, Future<?>>() {
             @Override
@@ -126,7 +126,7 @@ public class KafkaMessageConsumer implements MessageConsumer, org.springframewor
     void handleRecord(ConsumerRecord<String, String> consumerRecord) {
         MessageHandler handler = messageHandlerRegistry.get(consumerRecord.topic());
         if (handler == null) {
-            LOGGER.warn("No Kafka handler registered, topic={}", consumerRecord.topic());
+            LOGGER.warn("未注册 Kafka 处理器，topic={}", consumerRecord.topic());
             return;
         }
         handler.handle(toEnvelope(consumerRecord));
@@ -146,14 +146,14 @@ public class KafkaMessageConsumer implements MessageConsumer, org.springframewor
                             new OffsetAndMetadata(record.offset() + 1L)
                         ));
                     } catch (RuntimeException ex) {
-                        LOGGER.error("Kafka message dispatch failed, topic={}, partition={}, offset={}, reason={}",
+                        LOGGER.error("Kafka 消息分发失败，topic={}, partition={}, offset={}, reason={}",
                             record.topic(), record.partition(), record.offset(), ex.getMessage());
                     }
                 }
             }
         } catch (Exception ex) {
             if (running.get()) {
-                LOGGER.error("Kafka consumer loop stopped unexpectedly, topic={}, reason={}", topic, ex.getMessage(), ex);
+                LOGGER.error("Kafka 消费循环异常停止，topic={}, reason={}", topic, ex.getMessage(), ex);
             }
         } finally {
             consumer.close(CLOSE_TIMEOUT);

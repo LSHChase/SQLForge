@@ -157,7 +157,7 @@ public class GovernanceAuthorizationMatrixApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "actions must not be empty when datasource authorization state is ACTIVE"
+                "数据源授权状态为 ACTIVE 时 actions 不能为空"
             );
         }
 
@@ -406,7 +406,7 @@ public class GovernanceAuthorizationMatrixApplicationService {
         payload.put("actions", actions);
         payload.put("changeReason", changeReason);
         auditRequest.setRequestParams(JsonUtils.toJson(payload));
-        auditRequest.setResponseSummary("Datasource authorization matrix updated");
+        auditRequest.setResponseSummary("数据源授权矩阵已更新");
         governanceAuditTrailService.writeAudit(auditRequest);
     }
 
@@ -454,7 +454,7 @@ public class GovernanceAuthorizationMatrixApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "Protected request context is missing"
+                "受保护请求上下文缺失"
             );
         }
         return tenantId;
@@ -465,7 +465,7 @@ public class GovernanceAuthorizationMatrixApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " must not be empty"
+                fieldName + " 不能为空"
             );
         }
         return value.trim();
@@ -480,7 +480,7 @@ public class GovernanceAuthorizationMatrixApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "Unsupported datasource authorization state: " + value
+                "不支持的数据源授权状态：" + value
             );
         }
         return state;

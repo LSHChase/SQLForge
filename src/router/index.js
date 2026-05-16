@@ -7,7 +7,7 @@ import {
   ROOT_ROUTE_DEFINITION
 } from '../config/routePaths.mjs'
 
-// Static route contract tokens: name: 'RoutingGovernance', name: 'RecommendationCenter', name: 'AccessCenter'.
+// 静态路由契约标记：name: 'RoutingGovernance', name: 'RecommendationCenter', name: 'AccessCenter'。
 
 const DashboardView = () => import('../views/dashboard/DashboardView.vue')
 const SqlQueryView = () => import('../views/query/SqlQueryView.vue')

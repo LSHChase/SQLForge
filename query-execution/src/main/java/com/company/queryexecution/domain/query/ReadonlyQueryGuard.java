@@ -3,7 +3,7 @@ package com.company.queryexecution.domain.query;
 import java.util.Locale;
 
 /**
- * Enforces the current read-only-first policy for the synchronous query path.
+ * 对同步查询路径执行当前只读优先策略。
  */
 public final class ReadonlyQueryGuard {
 
@@ -38,22 +38,22 @@ public final class ReadonlyQueryGuard {
     public static ReadonlyQueryAssessment assess(String actualSql) {
         String normalized = stripLeadingComments(actualSql == null ? "" : actualSql.trim());
         if (normalized.isEmpty()) {
-            return ReadonlyQueryAssessment.reject("Submit a non-empty read-only SQL statement.");
+            return ReadonlyQueryAssessment.reject("请提交非空的只读 SQL 语句。");
         }
         if (normalized.indexOf(';') >= 0) {
-            return ReadonlyQueryAssessment.reject("Submit a single read-only SQL statement without multi-statement batching.");
+            return ReadonlyQueryAssessment.reject("请提交单条只读 SQL 语句，不要使用多语句批量执行。");
         }
 
         String upperSql = normalized.toUpperCase(Locale.ROOT);
         if (!hasReadonlyPrefix(upperSql)) {
-            return ReadonlyQueryAssessment.reject("Use SELECT, WITH, SHOW, DESCRIBE, or EXPLAIN in the current path.");
+            return ReadonlyQueryAssessment.reject("当前路径仅允许使用 SELECT、WITH、SHOW、DESCRIBE 或 EXPLAIN。");
         }
 
         String paddedSql = ' ' + upperSql + ' ';
         int i;
         for (i = 0; i < FORBIDDEN_TOKENS.length; i++) {
             if (paddedSql.contains(FORBIDDEN_TOKENS[i])) {
-                return ReadonlyQueryAssessment.reject("Remove write, DDL, privilege, or load operations from the SQL.");
+                return ReadonlyQueryAssessment.reject("请移除 SQL 中的写入、DDL、权限或加载类操作。");
             }
         }
         return ReadonlyQueryAssessment.allow();

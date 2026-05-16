@@ -168,7 +168,7 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
         try {
             return objectMapper.readValue(json, OptimizationTaskSuggestion.class);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize optimization suggestion payload", ex);
+            throw new IllegalArgumentException("优化建议载荷反序列化失败", ex);
         }
     }
 
@@ -184,7 +184,7 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
             }
             return types;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize optimization suggestion types", ex);
+            throw new IllegalArgumentException("优化建议类型反序列化失败", ex);
         }
     }
 
@@ -195,7 +195,7 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
         try {
             return objectMapper.readValue(json, OptimizationTaskSourceContext.class);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize optimization task context payload", ex);
+            throw new IllegalArgumentException("优化任务上下文载荷反序列化失败", ex);
         }
     }
 
@@ -227,7 +227,7 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
             }
             return history;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize optimization task status history", ex);
+            throw new IllegalArgumentException("优化任务状态历史反序列化失败", ex);
         }
     }
 
@@ -245,7 +245,7 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
         try {
             return objectMapper.readValue(json, LIST_OF_RISKS);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize optimization task risks", ex);
+            throw new IllegalArgumentException("优化任务风险反序列化失败", ex);
         }
     }
 
@@ -253,7 +253,7 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
         try {
             return objectMapper.writeValueAsString(value);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to serialize optimization task persistence payload", ex);
+            throw new IllegalArgumentException("优化任务持久化载荷序列化失败", ex);
         }
     }
 

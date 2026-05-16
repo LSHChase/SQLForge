@@ -7,11 +7,11 @@ import javax.validation.constraints.Size;
 
 public class BenchmarkTestSetLabelDTO {
 
-    @NotNull(message = "testSet label type is required")
+    @NotNull(message = "testSet 标签类型为必填项")
     private BenchmarkTestSetLabelType type;
 
-    @NotBlank(message = "testSet label value is required")
-    @Size(max = 128, message = "testSet label value exceeds 128 characters")
+    @NotBlank(message = "testSet 标签值为必填项")
+    @Size(max = 128, message = "testSet 标签值超过 128 个字符")
     private String value;
 
     public BenchmarkTestSetLabelType getType() {

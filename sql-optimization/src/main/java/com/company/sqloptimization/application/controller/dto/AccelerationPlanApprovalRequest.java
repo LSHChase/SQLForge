@@ -4,7 +4,7 @@ import javax.validation.constraints.NotNull;
 
 public class AccelerationPlanApprovalRequest {
 
-    @NotNull(message = "approve is required")
+    @NotNull(message = "approve 为必填项")
     private Boolean approve;
 
     private String reviewNote;

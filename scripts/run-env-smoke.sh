@@ -138,7 +138,7 @@ validate_config() {
   require_http_url "GOVERNANCE_PROTECTED_CHECK_URL" "${GOVERNANCE_PROTECTED_CHECK_URL}"
 
   if [[ -z "${REQUEST_TENANT_ID}" || -z "${REQUEST_USER_ID}" || -z "${REQUEST_ROLE_CODES}" || -z "${REQUEST_AUTH_SOURCE}" ]]; then
-    echo "Protected request context must define tenant, user, role codes, and auth source." >&2
+    echo "受保护请求上下文必须定义租户、用户、角色代码和认证来源。" >&2
     exit 1
   fi
 

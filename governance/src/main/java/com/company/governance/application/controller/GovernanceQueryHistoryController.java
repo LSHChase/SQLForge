@@ -67,7 +67,7 @@ public class GovernanceQueryHistoryController {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
         String normalizedHistoryType = GovernanceHistoryApplicationService.normalizeHistoryTypeFilter(historyType);
         LOGGER.info(
-            "Handling governance query-history page, tenantId={}, historyType={}, reportCode={}, datasourceCode={}, stage={}, status={}, requestTraceId={}",
+            "处理治理查询历史分页，tenantId={}, historyType={}, reportCode={}, datasourceCode={}, stage={}, status={}, requestTraceId={}",
             effectiveTenantId,
             normalizedHistoryType,
             reportCode,
@@ -113,7 +113,7 @@ public class GovernanceQueryHistoryController {
         @RequestParam(value = "tenantId", required = false) String tenantId) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
         LOGGER.info(
-            "Handling governance query-history detail, tenantId={}, historyId={}, requestTraceId={}",
+            "处理治理查询历史详情，tenantId={}, historyId={}, requestTraceId={}",
             effectiveTenantId,
             historyId,
             RequestContext.getTraceId()
@@ -127,7 +127,7 @@ public class GovernanceQueryHistoryController {
         @RequestParam(value = "tenantId", required = false) String tenantId) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
         LOGGER.info(
-            "Handling governance query-history rewrite records, tenantId={}, historyId={}, requestTraceId={}",
+            "处理治理查询历史改写记录，tenantId={}, historyId={}, requestTraceId={}",
             effectiveTenantId,
             historyId,
             RequestContext.getTraceId()
@@ -141,7 +141,7 @@ public class GovernanceQueryHistoryController {
         @RequestBody GovernanceQueryHistoryExportRequest request) {
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : TenantContext.get();
         LOGGER.info(
-            "Handling governance query-history export, tenantId={}, historyId={}, exportFormat={}, requestTraceId={}",
+            "处理治理查询历史导出，tenantId={}, historyId={}, exportFormat={}, requestTraceId={}",
             effectiveTenantId,
             request == null ? null : request.getHistoryId(),
             request == null ? null : request.getExportFormat(),
@@ -159,7 +159,7 @@ public class GovernanceQueryHistoryController {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "accessChannel must be one of PAGE/API/JDBC_AGENT/SDK/CLIENT"
+                "accessChannel 必须是 PAGE/API/JDBC_AGENT/SDK/CLIENT 之一"
             );
         }
         return normalized.name();

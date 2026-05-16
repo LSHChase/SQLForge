@@ -42,14 +42,14 @@ public class TenantConfigApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "Tenant context is missing"
+                "租户上下文缺失"
             );
         }
         if (!StringUtils.hasText(tenantId)) {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "Tenant id must not be empty"
+                "租户 ID 不能为空"
             );
         }
         if (!platformAdmin && !RequestContext.hasRole(TENANT_ADMIN)) {
@@ -74,7 +74,7 @@ public class TenantConfigApplicationService {
             );
         }
 
-        LOGGER.info("Loading tenant config, currentTenantId={}, targetTenantId={}, traceId={}",
+        LOGGER.info("正在加载租户配置，currentTenantId={}, targetTenantId={}, traceId={}",
             currentTenantId,
             tenantId,
             RequestContext.getTraceId());
@@ -83,7 +83,7 @@ public class TenantConfigApplicationService {
             .orElseThrow(() -> new BizException(
                 ErrorCodeConstants.GOVERNANCE_TENANT_CONFIG_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Tenant config not found"
+                "租户配置不存在"
             ));
     }
 }

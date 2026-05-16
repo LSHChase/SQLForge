@@ -63,7 +63,7 @@ public class SensitiveDataCryptoService implements InitializingBean {
             return;
         }
         if (!StringUtils.hasText(properties.getBase64Key())) {
-            throw invalidCryptoConfiguration("Missing base64Key for sensitive data encryption");
+            throw invalidCryptoConfiguration("缺少敏感数据加密 base64Key");
         }
         secretKey();
     }
@@ -112,7 +112,7 @@ public class SensitiveDataCryptoService implements InitializingBean {
             return null;
         }
         if (cipherBytes.length <= GCM_IV_LENGTH) {
-            throw invalidCryptoConfiguration("Cipher bytes are shorter than the required IV length");
+            throw invalidCryptoConfiguration("密文字节长度小于所需 IV 长度");
         }
         byte[] iv = new byte[GCM_IV_LENGTH];
         byte[] payload = new byte[cipherBytes.length - GCM_IV_LENGTH];
@@ -147,7 +147,7 @@ public class SensitiveDataCryptoService implements InitializingBean {
             cipher.init(Cipher.ENCRYPT_MODE, secretKey(), new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
             return cipher.doFinal(plainBytes);
         } catch (GeneralSecurityException ex) {
-            throw invalidCryptoConfiguration("Failed to encrypt sensitive data", ex);
+            throw invalidCryptoConfiguration("敏感数据加密失败", ex);
         }
     }
 
@@ -160,7 +160,7 @@ public class SensitiveDataCryptoService implements InitializingBean {
             cipher.init(Cipher.DECRYPT_MODE, secretKey(), new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
             return cipher.doFinal(cipherBytes);
         } catch (GeneralSecurityException ex) {
-            throw invalidCryptoConfiguration("Failed to decrypt sensitive data", ex);
+            throw invalidCryptoConfiguration("敏感数据解密失败", ex);
         }
     }
 
@@ -170,16 +170,16 @@ public class SensitiveDataCryptoService implements InitializingBean {
 
     private byte[] secretKeyBytes() {
         if (!StringUtils.hasText(properties.getBase64Key())) {
-            throw invalidCryptoConfiguration("Missing base64Key for sensitive data encryption");
+            throw invalidCryptoConfiguration("缺少敏感数据加密 base64Key");
         }
         byte[] decodedKey;
         try {
             decodedKey = Base64.getDecoder().decode(properties.getBase64Key());
         } catch (IllegalArgumentException ex) {
-            throw invalidCryptoConfiguration("Invalid base64Key for sensitive data encryption", ex);
+            throw invalidCryptoConfiguration("敏感数据加密 base64Key 无效", ex);
         }
         if (decodedKey.length != AES_256_KEY_LENGTH) {
-            throw invalidCryptoConfiguration("Sensitive data encryption key must decode to 32 bytes");
+            throw invalidCryptoConfiguration("敏感数据加密密钥解码后必须为 32 字节");
         }
         return decodedKey;
     }
@@ -200,7 +200,7 @@ public class SensitiveDataCryptoService implements InitializingBean {
         try {
             return doLightweightAesGcm(true, plainBytes, iv);
         } catch (InvalidCipherTextException ex) {
-            throw invalidCryptoConfiguration("Failed to encrypt sensitive data", ex);
+            throw invalidCryptoConfiguration("敏感数据加密失败", ex);
         }
     }
 
@@ -208,7 +208,7 @@ public class SensitiveDataCryptoService implements InitializingBean {
         try {
             return doLightweightAesGcm(false, cipherBytes, iv);
         } catch (InvalidCipherTextException ex) {
-            throw invalidCryptoConfiguration("Failed to decrypt sensitive data", ex);
+            throw invalidCryptoConfiguration("敏感数据解密失败", ex);
         }
     }
 
@@ -230,18 +230,18 @@ public class SensitiveDataCryptoService implements InitializingBean {
     private ParsedEnvelope parseEnvelope(String envelope) {
         String[] segments = envelope.split("::");
         if (segments.length != 5 || !"ENC".equals(segments[0])) {
-            throw invalidCryptoConfiguration("Invalid sensitive data envelope");
+            throw invalidCryptoConfiguration("敏感数据信封无效");
         }
         if (!getAlgorithm().equals(segments[1])) {
-            throw invalidCryptoConfiguration("Sensitive data envelope algorithm does not match active configuration");
+            throw invalidCryptoConfiguration("敏感数据信封算法与当前配置不匹配");
         }
         if (!getKeyId().equals(segments[2])) {
-            throw invalidCryptoConfiguration("Sensitive data envelope key id does not match active configuration");
+            throw invalidCryptoConfiguration("敏感数据信封 key id 与当前配置不匹配");
         }
         try {
             return new ParsedEnvelope(Base64.getDecoder().decode(segments[3]), Base64.getDecoder().decode(segments[4]));
         } catch (IllegalArgumentException ex) {
-            throw invalidCryptoConfiguration("Invalid base64 payload in sensitive data envelope", ex);
+            throw invalidCryptoConfiguration("敏感数据信封中的 base64 载荷无效", ex);
         }
     }
 

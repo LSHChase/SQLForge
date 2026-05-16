@@ -113,7 +113,7 @@ public class SqlRewriteRecordApplicationService {
     public SqlRewriteRecordVO createRewriteRecord(SqlRewriteRecordCreateRequest request) {
         String tenantId = requireAuthorizedTenant(request == null ? null : request.getTenantId());
         if (request == null) {
-            throw invalidArgument("request", "rewrite record request is required");
+            throw invalidArgument("request", "rewrite record request 为必填项");
         }
         Instant now = Instant.now();
         SqlRewriteRecord rewriteRecord = SqlRewriteRecord.builder()
@@ -186,12 +186,12 @@ public class SqlRewriteRecordApplicationService {
     public SqlRewriteRecordVO reviewRewriteRecord(String rewriteRecordId,
                                                   SqlRewriteRecordReviewRequest request) {
         if (request == null) {
-            throw invalidArgument("request", "rewrite record review request is required");
+            throw invalidArgument("request", "rewrite record review request 为必填项");
         }
         SqlRewriteRecord rewriteRecord = requireRewriteRecord(rewriteRecordId);
         String tenantId = requireAuthorizedTenant(request.getTenantId());
         if (!tenantId.equals(rewriteRecord.getTenantId())) {
-            throw new AccessDeniedException("Authenticated tenant cannot review this rewrite record");
+            throw new AccessDeniedException("当前认证租户无权审核该改写记录");
         }
         RewriteReviewStatus nextStatus = request.getReviewStatus();
         validateReviewTransition(rewriteRecord, nextStatus);
@@ -355,7 +355,7 @@ public class SqlRewriteRecordApplicationService {
         SqlRewriteRecord rewriteRecord = requireRewriteRecord(rewriteRecordId);
         String tenantId = requireAuthorizedTenant(request == null ? null : request.getTenantId());
         if (!tenantId.equals(rewriteRecord.getTenantId())) {
-            throw new AccessDeniedException("Authenticated tenant cannot create validation run for this rewrite record");
+            throw new AccessDeniedException("当前认证租户无权为该改写记录创建校验运行");
         }
         RewriteValidationRun validationRun = queryExecutionResultDigestClient == null
             ? buildClientSubmittedValidationRun(rewriteRecord, tenantId, request)
@@ -372,7 +372,7 @@ public class SqlRewriteRecordApplicationService {
             return rewriteRecord;
         }
         String operator = contextUserOrSystem();
-        String reason = "scheduled validation divergence: " + validationRun.getDifferenceType().name();
+        String reason = "定时校验发现差异：" + validationRun.getDifferenceType().name();
         Instant now = Instant.now();
         if (queryExecutionRuntimeRewriteBindingClient == null) {
             return rewriteRecord.withTraceRefs(
@@ -384,7 +384,7 @@ public class SqlRewriteRecordApplicationService {
                     reason,
                     operator,
                     now,
-                    runtimeContractFailure("query-execution runtime rewrite binding client is not configured")
+                    runtimeContractFailure("query-execution 运行时改写绑定客户端未配置")
                 ),
                 now
             );
@@ -399,7 +399,7 @@ public class SqlRewriteRecordApplicationService {
                     reason,
                     operator,
                     now,
-                    runtimeContractFailure("Published rewrite record runtimeBindingId is missing")
+                    runtimeContractFailure("已发布改写记录缺少 runtimeBindingId")
                 ),
                 now
             );
@@ -601,7 +601,7 @@ public class SqlRewriteRecordApplicationService {
     private ResultDigestComparisonResult failedComparisonResult(RuntimeException exception,
                                                                Map<String, Object> comparisonPolicy) {
         Map<String, Object> sample = new LinkedHashMap<String, Object>();
-        sample.put("reason", "readonly digest execution failed");
+        sample.put("reason", "只读摘要执行失败");
         sample.put("differenceType", DifferenceType.UNKNOWN.name());
         sample.put("errorType", exception.getClass().getSimpleName());
         sample.put("errorMessage", exception.getMessage());
@@ -667,7 +667,7 @@ public class SqlRewriteRecordApplicationService {
                                                  RuntimeRewriteBindingResponse response) {
         requireRuntimeStateResponse(rewriteRecord, response, "ACTIVE");
         if (!response.isActive()) {
-            throw runtimeContractFailure("Runtime rewrite binding publish response is not active");
+            throw runtimeContractFailure("运行时改写绑定发布响应未处于生效状态");
         }
         requireText(response.getRuntimeRuleVersion(), "runtimeRuleVersion");
     }
@@ -676,24 +676,24 @@ public class SqlRewriteRecordApplicationService {
                                              RuntimeRewriteBindingResponse response,
                                              String expectedStatus) {
         if (response == null) {
-            throw runtimeContractFailure("Runtime rewrite binding response is missing");
+            throw runtimeContractFailure("运行时改写绑定响应缺失");
         }
         if (!expectedStatus.equals(response.getStatus())) {
-            throw runtimeContractFailure("Runtime rewrite binding response status must be " + expectedStatus);
+            throw runtimeContractFailure("运行时改写绑定响应状态必须为 " + expectedStatus);
         }
         requireText(response.getRuntimeBindingId(), "runtimeBindingId");
         if (!rewriteRecord.getTenantId().equals(response.getTenantId())) {
-            throw runtimeContractFailure("Runtime rewrite binding tenantId does not match rewrite record");
+            throw runtimeContractFailure("运行时改写绑定 tenantId 与改写记录不一致");
         }
         if (!rewriteRecord.getRewriteRecordId().equals(response.getRewriteRecordId())) {
-            throw runtimeContractFailure("Runtime rewrite binding rewriteRecordId does not match rewrite record");
+            throw runtimeContractFailure("运行时改写绑定 rewriteRecordId 与改写记录不一致");
         }
         if (!rewriteRecord.getSqlFingerprint().equals(response.getSqlFingerprint())) {
-            throw runtimeContractFailure("Runtime rewrite binding sqlFingerprint does not match rewrite record");
+            throw runtimeContractFailure("运行时改写绑定 sqlFingerprint 与改写记录不一致");
         }
         if (StringUtils.hasText(rewriteRecord.getRuntimeBindingId())
             && !rewriteRecord.getRuntimeBindingId().equals(response.getRuntimeBindingId())) {
-            throw runtimeContractFailure("Runtime rewrite binding id does not match rewrite record");
+            throw runtimeContractFailure("运行时改写绑定 ID 与改写记录不一致");
         }
     }
 
@@ -704,7 +704,7 @@ public class SqlRewriteRecordApplicationService {
         throw new BizException(
             ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
             HttpStatus.INTERNAL_SERVER_ERROR,
-            "query-execution runtime rewrite binding client is not configured"
+            "query-execution 运行时改写绑定客户端未配置"
         );
     }
 
@@ -712,7 +712,7 @@ public class SqlRewriteRecordApplicationService {
                                          SqlRewriteRecordPublishActionRequest request) {
         String tenantId = requireAuthorizedTenant(request == null ? null : request.getTenantId());
         if (!tenantId.equals(rewriteRecord.getTenantId())) {
-            throw new AccessDeniedException("Authenticated tenant cannot mutate this rewrite record publish state");
+            throw new AccessDeniedException("当前认证租户无权变更该改写记录的发布状态");
         }
     }
 
@@ -723,7 +723,7 @@ public class SqlRewriteRecordApplicationService {
         throw new BizException(
             ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID,
             HttpStatus.CONFLICT,
-            "Only PUBLISHED rewrite records can be " + action + "d"
+            "只有 PUBLISHED 状态的改写记录才能执行 " + action
         );
     }
 
@@ -735,12 +735,12 @@ public class SqlRewriteRecordApplicationService {
         throw new BizException(
             ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID,
             HttpStatus.CONFLICT,
-            "Only PUBLISHED or PAUSED rewrite records can be unpublished"
+            "只有 PUBLISHED 或 PAUSED 状态的改写记录才能下线"
         );
     }
 
     private BizException publishRejected(RewritePublishEligibility eligibility) {
-        String message = "Rewrite record is not eligible for publish";
+        String message = "改写记录不符合发布条件";
         List<RewritePublishEligibilityReason> reasons = eligibility.getRefusalReasons();
         if (!reasons.isEmpty()) {
             message = message + ": " + reasons.get(0).getCode();
@@ -823,10 +823,10 @@ public class SqlRewriteRecordApplicationService {
             compensation.setRuntimeBindingId(response.getRuntimeBindingId());
             compensation.setSqlFingerprint(rewriteRecord.getSqlFingerprint());
             compensation.setOperatorId(operator);
-            compensation.setReason("local rewrite record publish write-back failed");
+            compensation.setReason("本地改写记录发布写回失败");
             queryExecutionRuntimeRewriteBindingClient.unpublish(compensation);
         } catch (RuntimeException ignored) {
-            // The original local write-back failure must remain the primary error.
+            // 原始本地写回失败必须保留为主错误。
         }
     }
 
@@ -883,13 +883,13 @@ public class SqlRewriteRecordApplicationService {
         if (StringUtils.hasText(value)) {
             return;
         }
-        throw invalidArgument(field, field + " is required");
+        throw invalidArgument(field, field + " 为必填项");
     }
 
     private void validateReviewTransition(SqlRewriteRecord rewriteRecord,
                                           RewriteReviewStatus nextStatus) {
         if (nextStatus == null) {
-            throw invalidArgument("reviewStatus", "reviewStatus is required");
+            throw invalidArgument("reviewStatus", "reviewStatus 为必填项");
         }
         if (rewriteRecord.canTransitionReviewTo(nextStatus)) {
             return;
@@ -897,7 +897,7 @@ public class SqlRewriteRecordApplicationService {
         throw new BizException(
             ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID,
             HttpStatus.CONFLICT,
-            "Illegal rewrite review transition from " + rewriteRecord.getReviewStatus() + " to " + nextStatus
+            "非法的改写评审状态流转：" + rewriteRecord.getReviewStatus() + " -> " + nextStatus
         );
     }
 
@@ -905,7 +905,7 @@ public class SqlRewriteRecordApplicationService {
         if (nextStatus == RewriteReviewStatus.APPROVED || StringUtils.hasText(reviewNote)) {
             return;
         }
-        throw invalidArgument("reviewNote", "reviewNote is required for " + nextStatus);
+        throw invalidArgument("reviewNote", nextStatus + " 状态需要提供 reviewNote");
     }
 
     private Map<String, Object> buildReviewTraceRefs(SqlRewriteRecord rewriteRecord,
@@ -954,7 +954,7 @@ public class SqlRewriteRecordApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "SQL rewrite record not found: " + rewriteRecordId
+                "SQL 改写记录不存在：" + rewriteRecordId
             );
         }
         verifyTenantAccess(rewriteRecord.getTenantId());
@@ -1077,7 +1077,7 @@ public class SqlRewriteRecordApplicationService {
     private String requireAuthorizedTenant(String requestTenantId) {
         String contextTenantId = requireContextTenant();
         if (StringUtils.hasText(requestTenantId) && !contextTenantId.equals(requestTenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -1088,7 +1088,7 @@ public class SqlRewriteRecordApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         return contextTenantId;
@@ -1100,7 +1100,7 @@ public class SqlRewriteRecordApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "userId is missing from authenticated request context"
+                "已认证请求上下文缺少 userId"
             );
         }
         return contextUserId;
@@ -1114,7 +1114,7 @@ public class SqlRewriteRecordApplicationService {
     private void verifyTenantAccess(String resourceTenantId) {
         String contextTenantId = requireContextTenant();
         if (!contextTenantId.equals(resourceTenantId)) {
-            throw new AccessDeniedException("Authenticated tenant cannot access this rewrite record");
+            throw new AccessDeniedException("当前认证租户无权访问该改写记录");
         }
     }
 

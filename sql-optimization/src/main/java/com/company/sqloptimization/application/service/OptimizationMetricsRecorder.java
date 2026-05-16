@@ -32,7 +32,7 @@ public class OptimizationMetricsRecorder {
             return;
         }
         Counter.builder(METRIC_TASKS_SUBMITTED)
-            .description("Accepted sql-optimization tasks submitted to the async carrier.")
+            .description("已提交到异步载体的 sql-optimization 任务数。")
             .tags(
                 "task_type", taskType(task),
                 "datasource_type", datasourceType(task.getDatasourceType())
@@ -48,7 +48,7 @@ public class OptimizationMetricsRecorder {
         String taskType = taskType(task);
         String resultStatus = taskStatus(task);
         Counter.builder(METRIC_TASKS_TERMINAL)
-            .description("Terminal sql-optimization worker outcomes.")
+            .description("sql-optimization worker 终态结果数。")
             .tags(
                 "task_type", taskType,
                 "result_status", resultStatus
@@ -57,7 +57,7 @@ public class OptimizationMetricsRecorder {
             .increment();
 
         Timer.builder(METRIC_WORKER_LATENCY)
-            .description("Sql-optimization worker processing latency.")
+            .description("sql-optimization worker 处理延迟。")
             .tags(
                 "task_type", taskType,
                 "result_status", resultStatus
@@ -69,7 +69,7 @@ public class OptimizationMetricsRecorder {
     public void recordWorkerException(OptimizationTask task, long costMs) {
         String taskType = task == null ? UNKNOWN_VALUE : taskType(task);
         Counter.builder(METRIC_TASKS_TERMINAL)
-            .description("Terminal sql-optimization worker outcomes.")
+            .description("sql-optimization worker 终态结果数。")
             .tags(
                 "task_type", taskType,
                 "result_status", "FAILED_EXCEPTION"
@@ -78,7 +78,7 @@ public class OptimizationMetricsRecorder {
             .increment();
 
         Timer.builder(METRIC_WORKER_LATENCY)
-            .description("Sql-optimization worker processing latency.")
+            .description("sql-optimization worker 处理延迟。")
             .tags(
                 "task_type", taskType,
                 "result_status", "FAILED_EXCEPTION"

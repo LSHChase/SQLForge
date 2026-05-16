@@ -1,7 +1,7 @@
 package com.company.queryexecution.domain.query;
 
 /**
- * Result of the read-only SQL guard evaluation.
+ * 只读 SQL 防护评估结果。
  */
 public class ReadonlyQueryAssessment {
 

@@ -6,7 +6,7 @@ public class ParseBatchIngestRequest {
 
     private String fileName;
 
-    @NotBlank(message = "contentBase64 is required")
+    @NotBlank(message = "contentBase64 为必填项")
     private String contentBase64;
 
     private String charset;

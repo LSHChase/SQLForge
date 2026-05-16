@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Canonical submission command used to create a queued optimization task entity.
+ * 用于创建排队优化任务实体的标准提交命令。
  */
 public class OptimizationTaskSubmission {
 

@@ -25,7 +25,7 @@ public class QueryExecutionMetricsRecorder {
     private static final String METRIC_MODE_ATTEMPTS = "sqlforge.query.execution.mode.attempts";
     private static final String METRIC_TIMEOUTS = "sqlforge.query.execution.timeouts";
     private static final String METRIC_FALLBACKS = "sqlforge.query.execution.fallbacks";
-    private static final String METRIC_ROUTE_UNAVAILABLE = "sqlforge.query.execution.route_unavailable";
+    private static final String METRIC_ROUTE_UNAVAILABLE = "sqlforge.query.execution.route_不可用";
     private static final String METRIC_CACHE_GOVERNANCE = "sqlforge.query.execution.cache.governance";
     private static final String UNKNOWN_VALUE = "UNKNOWN";
     private static final String NONE_VALUE = "NONE";
@@ -51,7 +51,7 @@ public class QueryExecutionMetricsRecorder {
         String degraded = Boolean.toString(response != null && response.isDegraded());
 
         Counter.builder(METRIC_REQUESTS)
-            .description("Total query-execution terminal responses.")
+            .description("query-execution 终态响应总数。")
             .tags(
                 "requested_datasource", requestedDatasource,
                 "target_engine", targetEngine,
@@ -64,7 +64,7 @@ public class QueryExecutionMetricsRecorder {
             .increment();
 
         Timer.builder(METRIC_LATENCY)
-            .description("End-to-end query-execution latency.")
+            .description("query-execution 端到端延迟。")
             .tags(
                 "requested_datasource", requestedDatasource,
                 "target_engine", targetEngine,
@@ -75,7 +75,7 @@ public class QueryExecutionMetricsRecorder {
             .record(costMs, TimeUnit.MILLISECONDS);
 
         Counter.builder(METRIC_MODE_HITS)
-            .description("Final execution modes returned by query-execution.")
+            .description("query-execution 返回的最终执行模式。")
             .tags(
                 "requested_datasource", requestedDatasource,
                 "target_engine", targetEngine,
@@ -90,7 +90,7 @@ public class QueryExecutionMetricsRecorder {
         QueryErrorDetailVO error = response == null ? null : response.getError();
         if (isTimeoutResponse(response)) {
             Counter.builder(METRIC_TIMEOUTS)
-                .description("Query-execution timeouts before a terminal response.")
+                .description("query-execution 到达终态前的超时次数。")
                 .tags(
                     "requested_datasource", requestedDatasource,
                     "target_engine", targetEngine,
@@ -101,7 +101,7 @@ public class QueryExecutionMetricsRecorder {
         }
         if (response != null && response.isDegraded()) {
             Counter.builder(METRIC_FALLBACKS)
-                .description("Query-execution degraded or fallback terminal responses.")
+                .description("query-execution 降级或回退的终态响应数。")
                 .tags(
                     "requested_datasource", requestedDatasource,
                     "target_engine", targetEngine,
@@ -113,7 +113,7 @@ public class QueryExecutionMetricsRecorder {
         }
         if (error != null && error.getCode() == ErrorCodeConstants.QUERY_EXECUTION_SYSTEM_ROUTE_UNAVAILABLE) {
             Counter.builder(METRIC_ROUTE_UNAVAILABLE)
-                .description("Query-execution route-unavailable terminal responses.")
+                .description("query-execution 路由不可用的终态响应数。")
                 .tags(
                     "requested_datasource", requestedDatasource,
                     "target_engine", targetEngine,
@@ -127,7 +127,7 @@ public class QueryExecutionMetricsRecorder {
     public void recordException(QueryExecuteRequest request, long costMs) {
         String requestedDatasource = datasourceName(request == null ? null : request.getDatasourceType());
         Counter.builder(METRIC_REQUESTS)
-            .description("Total query-execution terminal responses.")
+            .description("query-execution 终态响应总数。")
             .tags(
                 "requested_datasource", requestedDatasource,
                 "target_engine", resolveRequestedTarget(request),
@@ -139,7 +139,7 @@ public class QueryExecutionMetricsRecorder {
             .register(meterRegistry)
             .increment();
         Timer.builder(METRIC_LATENCY)
-            .description("End-to-end query-execution latency.")
+            .description("query-execution 端到端延迟。")
             .tags(
                 "requested_datasource", requestedDatasource,
                 "target_engine", resolveRequestedTarget(request),
@@ -175,7 +175,7 @@ public class QueryExecutionMetricsRecorder {
                                   String riskCode,
                                   String evictionReason) {
         Counter.builder(METRIC_CACHE_GOVERNANCE)
-            .description("Governed query result-cache events.")
+            .description("受治理查询结果缓存事件数。")
             .tags(
                 "target_engine", targetEngine == null ? NONE_VALUE : targetEngine,
                 "status", normalizeTag(status),
@@ -244,7 +244,7 @@ public class QueryExecutionMetricsRecorder {
         for (String attemptedMode : attemptedModes) {
             ModeAttempt modeAttempt = parseAttemptedMode(attemptedMode);
             Counter.builder(METRIC_MODE_ATTEMPTS)
-                .description("Observed query-execution mode-chain attempts.")
+                .description("观测到的 query-execution 模式链路尝试次数。")
                 .tags(
                     "requested_datasource", requestedDatasource,
                     "mode", modeAttempt.mode,

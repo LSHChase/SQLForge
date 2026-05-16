@@ -395,7 +395,7 @@ public class GovernanceProtectedPersistenceService {
         if (!record.getResultId().equals(historyRecord.getResultId())) {
             throw invalidTraceabilityReference(
                 "export_record.result_id",
-                "export_record history/result references are inconsistent"
+                "export_record 的 history/result 引用不一致"
             );
         }
     }
@@ -421,19 +421,19 @@ public class GovernanceProtectedPersistenceService {
         if (historyRecord != null && resultRecord != null && !historyRecord.getResultId().equals(resultRecord.getResultId())) {
             throw invalidTraceabilityReference(
                 "audit_log.history_id",
-                "audit_log history/result references are inconsistent"
+                "audit_log 的 history/result 引用不一致"
             );
         }
         if (exportRecord != null && historyRecord != null && !exportRecord.getHistoryId().equals(historyRecord.getHistoryId())) {
             throw invalidTraceabilityReference(
                 "audit_log.export_id",
-                "audit_log export/history references are inconsistent"
+                "audit_log 的 export/history 引用不一致"
             );
         }
         if (exportRecord != null && resultRecord != null && !exportRecord.getResultId().equals(resultRecord.getResultId())) {
             throw invalidTraceabilityReference(
                 "audit_log.export_id",
-                "audit_log export/result references are inconsistent"
+                "audit_log 的 export/result 引用不一致"
             );
         }
     }
@@ -466,14 +466,14 @@ public class GovernanceProtectedPersistenceService {
 
     private void requireRecord(Object record, String entityName) {
         if (record == null) {
-            throw invalidTraceabilityReference(entityName, entityName + " record must not be null");
+            throw invalidTraceabilityReference(entityName, entityName + " 记录不能为空");
         }
     }
 
     private ConfigSnapshotRecord requireConfigSnapshot(String configSnapshotId, String fieldName) {
         ConfigSnapshotRecord record = findConfigSnapshot(configSnapshotId);
         if (record == null) {
-            throw invalidTraceabilityReference(fieldName, fieldName + " references a missing config snapshot");
+            throw invalidTraceabilityReference(fieldName, fieldName + " 引用的配置快照缺失");
         }
         return record;
     }
@@ -481,7 +481,7 @@ public class GovernanceProtectedPersistenceService {
     private ExecutionResultRecord requireExecutionResult(String resultId, String fieldName) {
         ExecutionResultRecord record = findExecutionResult(resultId);
         if (record == null) {
-            throw invalidTraceabilityReference(fieldName, fieldName + " references a missing execution result");
+            throw invalidTraceabilityReference(fieldName, fieldName + " 引用的执行结果缺失");
         }
         return record;
     }
@@ -489,7 +489,7 @@ public class GovernanceProtectedPersistenceService {
     private QueryHistoryRecord requireQueryHistory(String historyId, String fieldName) {
         QueryHistoryRecord record = findQueryHistory(historyId);
         if (record == null) {
-            throw invalidTraceabilityReference(fieldName, fieldName + " references a missing query history");
+            throw invalidTraceabilityReference(fieldName, fieldName + " 引用的查询历史缺失");
         }
         return record;
     }
@@ -527,7 +527,7 @@ public class GovernanceProtectedPersistenceService {
         if (!StringUtils.hasText(referenceTenantId)) {
             throw invalidTraceabilityReference(
                 sourceEntity + ".tenant_id",
-                referenceEntity + " tenantId must not be empty"
+                referenceEntity + " tenantId 不能为空"
             );
         }
     }
@@ -539,7 +539,7 @@ public class GovernanceProtectedPersistenceService {
         if (!StringUtils.hasText(sourceTenantId) || !sourceTenantId.trim().equals(referenceTenantId.trim())) {
             throw invalidTraceabilityReference(
                 sourceEntity + ".tenant_id",
-                sourceEntity + " tenantId does not match " + referenceEntity + " tenantId"
+                sourceEntity + " tenantId 与 " + referenceEntity + " tenantId 不一致"
             );
         }
     }

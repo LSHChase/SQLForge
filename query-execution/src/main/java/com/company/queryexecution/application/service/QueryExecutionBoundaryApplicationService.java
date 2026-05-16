@@ -4,7 +4,7 @@ import com.company.queryexecution.domain.boundary.QueryExecutionBoundaryDefiniti
 import org.springframework.stereotype.Service;
 
 /**
- * Provides the baseline boundary definition for the query execution service.
+ * 提供查询执行服务的基线边界定义。
  */
 @Service
 public class QueryExecutionBoundaryApplicationService {

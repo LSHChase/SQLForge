@@ -75,6 +75,6 @@ class AccelerationPlanTest {
             () -> plan.markVerified("{\"runtimeStatus\":\"VERIFIED\"}", "operator-001", baseTime.plusSeconds(20))
         );
 
-        assertEquals("Acceleration plan must be applied before verification.", ex.getMessage());
+        assertEquals("加速方案校验前必须已应用。", ex.getMessage());
     }
 }

@@ -178,7 +178,7 @@ public class MybatisAccelerationRecommendationRepository implements Acceleration
                 .constructMapType(Map.class, String.class, Object.class);
             return JsonUtils.objectMapper().readValue(json, type);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize recommendation JSON", ex);
+            throw new IllegalArgumentException("推荐 JSON 反序列化失败", ex);
         }
     }
 
@@ -191,7 +191,7 @@ public class MybatisAccelerationRecommendationRepository implements Acceleration
                 .constructCollectionType(List.class, Map.class);
             return JsonUtils.objectMapper().readValue(json, type);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize recommendation list JSON", ex);
+            throw new IllegalArgumentException("推荐列表 JSON 反序列化失败", ex);
         }
     }
 

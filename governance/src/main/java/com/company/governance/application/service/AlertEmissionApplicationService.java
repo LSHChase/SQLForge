@@ -156,7 +156,7 @@ public class AlertEmissionApplicationService {
             .stream()
             .filter(candidate -> candidate.getAlertType() == alert.getAlertType())
             .findFirst()
-            .orElseThrow(() -> new IllegalStateException("Missing alert policy for " + alert.getAlertType()));
+            .orElseThrow(() -> new IllegalStateException("缺少告警策略：" + alert.getAlertType()));
     }
 
     private AlertEventRecord findDedupeSource(AlertEvent alert, AlertPolicy policy, Instant emittedAt) {
@@ -182,14 +182,14 @@ public class AlertEmissionApplicationService {
                                                                String operator,
                                                                Instant emittedAt) {
         String subject = "[SQLForge][" + alert.getAlertLevel().name() + "] " + alert.getAlertType().name();
-        String body = "notify simulated\n"
+        String body = "通知已模拟发送\n"
             + "tenant=" + alert.getTenantId() + "\n"
             + "alertId=" + alert.getAlertId() + "\n"
             + "policyId=" + normalize(policy.getPolicyId(), "baseline-policy") + "\n"
-            + "summary=" + alert.getSummary() + "\n"
+            + "摘要=" + alert.getSummary() + "\n"
             + "dedupeKey=" + alert.getDedupeKey();
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
-        payload.put("mode", "notify simulated");
+        payload.put("mode", "通知已模拟发送");
         payload.put("alertId", alert.getAlertId());
         payload.put("alertType", alert.getAlertType().name());
         payload.put("alertLevel", alert.getAlertLevel().name());
@@ -210,7 +210,7 @@ public class AlertEmissionApplicationService {
         record.setTemplateCode(SIMULATED_EMAIL_TEMPLATE);
         record.setMessageSubject(subject);
         record.setMessageBody(body);
-        record.setDeliverySummary("notify simulated via " + policy.getNotifyChannel().name() + ", template=" + SIMULATED_EMAIL_TEMPLATE);
+        record.setDeliverySummary("通知已通过模拟方式发送：" + policy.getNotifyChannel().name() + "，模板=" + SIMULATED_EMAIL_TEMPLATE);
         record.setPayloadJson(JsonUtils.toJson(payload));
         record.setCreatedBy(operator);
         record.setCreatedAt(toLocalDateTime(emittedAt));
@@ -223,14 +223,14 @@ public class AlertEmissionApplicationService {
                                                                 String operator,
                                                                 Instant emittedAt) {
         String subject = "[SQLForge][DEDUPE_SUPPRESSED] " + suppressed.getAlertType().name();
-        String body = "dedupe suppressed\n"
+        String body = "去重抑制已触发\n"
             + "tenant=" + suppressed.getTenantId() + "\n"
             + "sourceAlertId=" + source.getAlertId() + "\n"
             + "suppressedAlertType=" + suppressed.getAlertType().name() + "\n"
-            + "summary=" + suppressed.getSummary() + "\n"
+            + "摘要=" + suppressed.getSummary() + "\n"
             + "dedupeKey=" + suppressed.getDedupeKey();
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
-        payload.put("mode", "dedupe suppressed");
+        payload.put("mode", "去重抑制");
         payload.put("sourceAlertId", source.getAlertId());
         payload.put("dedupeKey", suppressed.getDedupeKey());
         payload.put("suppressedAlertType", suppressed.getAlertType().name());
@@ -250,7 +250,7 @@ public class AlertEmissionApplicationService {
         record.setTemplateCode(DEDUPE_TEMPLATE);
         record.setMessageSubject(subject);
         record.setMessageBody(body);
-        record.setDeliverySummary("dedupe suppressed, sourceAlertId=" + source.getAlertId());
+        record.setDeliverySummary("去重抑制已触发，sourceAlertId=" + source.getAlertId());
         record.setPayloadJson(JsonUtils.toJson(payload));
         record.setCreatedBy(operator);
         record.setCreatedAt(toLocalDateTime(emittedAt));
@@ -348,7 +348,7 @@ public class AlertEmissionApplicationService {
 
     private void requireSnapshot(AlertSignalSnapshot snapshot) {
         if (snapshot == null || trimToNull(snapshot.getTenantId()) == null) {
-            throw new IllegalArgumentException("snapshot.tenantId is required");
+            throw new IllegalArgumentException("snapshot.tenantId 为必填项");
         }
     }
 

@@ -1,7 +1,7 @@
 package com.company.queryexecution.domain.query;
 
 /**
- * Query execution result status exposed by the public contract.
+ * 公共契约暴露的查询执行结果状态。
  */
 public enum QueryExecutionStatus {
     SUCCESS,

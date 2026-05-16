@@ -28,7 +28,7 @@ public class MetadataAssetCatalogController {
     @GetMapping("/schemas")
     public List<MetadataSchemaAssetVO> listSchemas(@RequestParam(value = "tenantId", required = false) String tenantId,
                                                    @RequestParam(value = "datasourceCode", required = false) String datasourceCode) {
-        LOGGER.info("Handling metadata schema list, tenantId={}, datasourceCode={}, traceId={}",
+        LOGGER.info("处理元数据 schema 列表查询，tenantId={}, datasourceCode={}, traceId={}",
             tenantId, datasourceCode, RequestContext.getTraceId());
         return metadataAssetCatalogApplicationService.listSchemas(tenantId, datasourceCode);
     }
@@ -44,7 +44,7 @@ public class MetadataAssetCatalogController {
     public List<MetadataTableAssetVO> listTables(@RequestParam(value = "tenantId", required = false) String tenantId,
                                                  @RequestParam(value = "datasourceCode", required = false) String datasourceCode,
                                                  @RequestParam(value = "schemaName", required = false) String schemaName) {
-        LOGGER.info("Handling metadata table list, tenantId={}, datasourceCode={}, schemaName={}, traceId={}",
+        LOGGER.info("处理元数据表列表查询，tenantId={}, datasourceCode={}, schemaName={}, traceId={}",
             tenantId, datasourceCode, schemaName, RequestContext.getTraceId());
         return metadataAssetCatalogApplicationService.listTables(tenantId, datasourceCode, schemaName);
     }

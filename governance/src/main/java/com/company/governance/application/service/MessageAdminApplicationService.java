@@ -42,11 +42,11 @@ public class MessageAdminApplicationService {
     public MessageRetryResultVO retryFailedMessages() {
         ensureDatabaseQueueAdminEnabled(
             ErrorCodeConstants.GOVERNANCE_MESSAGE_RETRY_FAILED,
-            "Message retry is only supported in DATABASE messaging mode"
+            "消息重试仅在 DATABASE 消息模式下支持"
         );
         int retriedCount = messageQueueRepository.retryFailedMessages();
         metricsRecorder.recordRetriedMessages(retriedCount);
-        LOGGER.info("Retried failed database-queue messages, retriedCount={}", retriedCount);
+        LOGGER.info("已重试失败数据库队列消息，retriedCount={}", retriedCount);
         return new MessageRetryResultVO(retriedCount, "ACCEPTED");
     }
 
@@ -54,7 +54,7 @@ public class MessageAdminApplicationService {
     public MessageStatsVO getMessageStats() {
         ensureDatabaseQueueAdminEnabled(
             ErrorCodeConstants.GOVERNANCE_MESSAGE_STATS_UNAVAILABLE,
-            "Message stats are only available in DATABASE messaging mode"
+            "消息统计仅在 DATABASE 消息模式下可用"
         );
         MessageQueueRecord stats = messageQueueRepository.fetchQueueStats();
         return new MessageStatsVO(

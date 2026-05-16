@@ -6,6 +6,6 @@ public class NoopHetuClientOperator implements HetuClientOperator {
 
     @Override
     public QueryExecutionStep execute(String actualSql, QueryExecuteRequest request, boolean degradedPath) {
-        throw new IllegalStateException("Hetu client mode is not configured");
+        throw new IllegalStateException("Hetu client 模式未配置");
     }
 }

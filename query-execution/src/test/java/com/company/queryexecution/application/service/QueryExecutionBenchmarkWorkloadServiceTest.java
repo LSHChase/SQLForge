@@ -110,7 +110,7 @@ class QueryExecutionBenchmarkWorkloadServiceTest {
                     "HETU_REAL_INTEGRATION"
                 );
             }
-            throw new IllegalStateException("route unavailable");
+            throw new IllegalStateException("route 不可用");
         });
 
         QueryExecutionBenchmarkWorkloadService service =
@@ -137,7 +137,7 @@ class QueryExecutionBenchmarkWorkloadServiceTest {
         QueryExecutionApplicationService queryExecutionApplicationService = mock(QueryExecutionApplicationService.class);
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
         when(queryExecutionApplicationService.executeSynchronously(any()))
-            .thenThrow(new IllegalStateException("route unavailable"));
+            .thenThrow(new IllegalStateException("route 不可用"));
 
         QueryExecutionBenchmarkWorkloadService service =
             new QueryExecutionBenchmarkWorkloadService(queryExecutionApplicationService, governanceCapabilityClient);

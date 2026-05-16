@@ -38,7 +38,7 @@ public class DatabaseMessagePollingJob {
             10
         );
         if (consumedAudit > 0 || consumedConfig > 0) {
-            LOGGER.info("Database message polling completed, auditConsumed={}, configConsumed={}",
+            LOGGER.info("数据库消息轮询完成，auditConsumed={}, configConsumed={}",
                 consumedAudit, consumedConfig);
         }
     }

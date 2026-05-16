@@ -82,16 +82,16 @@ public class OptimizationTaskWorker {
                 task.markFailed(
                     new OptimizationTaskError(
                         ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_PIPELINE_NOT_READY,
-                        "SQL optimization worker failed before producing a suggestion payload",
-                        "Inspect the database-backed worker pipeline and retry after the carrier is healthy.",
+                        "SQL 优化 worker 在生成建议载荷前失败",
+                        "请检查数据库支撑的 worker 流水线，并在载体恢复健康后重试。",
                         true,
                         task.getCurrentPhase(),
                         Collections.singletonList(
                             new OptimizationTaskRisk(
                                 "MEDIUM",
                                 "PIPELINE_READINESS",
-                                "Suggestion output is unavailable because the worker was forced into the failure path before real execution.",
-                                "Inspect the worker carrier and retry only after the async pipeline is healthy."
+                                "由于 worker 在真实执行前被强制进入失败路径，建议输出不可用。",
+                                "请检查 worker 载体，并仅在异步流水线恢复健康后重试。"
                             )
                         )
                     ),
@@ -129,7 +129,7 @@ public class OptimizationTaskWorker {
             logEnd(task, start);
         } catch (RuntimeException ex) {
             optimizationMetricsRecorder.recordWorkerException(task, System.currentTimeMillis() - start);
-            LOGGER.error("operation={} entity={} tenantId={} costMs={} status=FAILED phase=EXCEPTION reason={}",
+            LOGGER.error("操作日志 operation={} entity={} tenantId={} costMs={} status=FAILED phase=EXCEPTION reason={}",
                 OPERATION,
                 task.getTaskId(),
                 task.getTenantId(),
@@ -189,7 +189,7 @@ public class OptimizationTaskWorker {
             parseTriggeredRewriteRecommendationService.persistRecommendationFromSucceededRewriteTask(task);
         } catch (RuntimeException ex) {
             LOGGER.warn(
-                "operation={} entity={} tenantId={} status=RECOMMENDATION_WRITE_DEGRADED reason={}",
+                "操作日志 operation={} entity={} tenantId={} status=RECOMMENDATION_WRITE_DEGRADED reason={}",
                 OPERATION,
                 task.getTaskId(),
                 task.getTenantId(),
@@ -204,7 +204,7 @@ public class OptimizationTaskWorker {
 
     private void logStateChange(OptimizationTask task, String from, String to, String note) {
         LOGGER.info(
-            "operation={} entity={} tenantId={} taskType={} status=STATE_CHANGE from={} to={} resultStatus={} note={}",
+            "操作日志 operation={} entity={} tenantId={} taskType={} status=STATE_CHANGE from={} to={} resultStatus={} note={}",
             OPERATION,
             task.getTaskId(),
             task.getTenantId(),
@@ -218,7 +218,7 @@ public class OptimizationTaskWorker {
 
     private void logEnd(OptimizationTask task, long start) {
         LOGGER.info(
-            "operation={} entity={} tenantId={} costMs={} status=END resultStatus={}",
+            "操作日志 operation={} entity={} tenantId={} costMs={} status=END resultStatus={}",
             OPERATION,
             task.getTaskId(),
             task.getTenantId(),
@@ -235,7 +235,7 @@ public class OptimizationTaskWorker {
             Thread.sleep(executionProperties.getPhaseDelayMs());
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Optimization worker interrupted", ex);
+            throw new IllegalStateException("优化 worker 被中断", ex);
         }
     }
 }

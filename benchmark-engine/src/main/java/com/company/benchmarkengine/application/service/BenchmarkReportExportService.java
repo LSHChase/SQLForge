@@ -68,7 +68,7 @@ public class BenchmarkReportExportService {
                 renderHtml(response)
             );
         }
-        throw new IllegalArgumentException("Unsupported benchmark report format for artifact build: " + format);
+        throw new IllegalArgumentException("不支持用于构建产物的压测报告格式：" + format);
     }
 
     public BenchmarkRenderedReport toRenderedReport(BenchmarkReportArtifact artifact) {
@@ -110,8 +110,8 @@ public class BenchmarkReportExportService {
     private String renderPdf(BenchmarkReportResponse response) {
         StringBuilder builder = new StringBuilder();
         builder.append("%PDF-1.4\n");
-        builder.append("% SQLForge benchmark export snapshot\n");
-        builder.append("SQLForge Benchmark Report\n");
+        builder.append("% SQLForge 压测导出快照\n");
+        builder.append("SQLForge 压测报告\n");
         builder.append("reportId=").append(response.getReportId()).append('\n');
         builder.append("taskId=").append(response.getTaskId()).append('\n');
         builder.append("taskType=").append(response.getTaskType()).append('\n');
@@ -128,21 +128,21 @@ public class BenchmarkReportExportService {
     private String renderHtml(BenchmarkReportResponse response) {
         StringBuilder builder = new StringBuilder();
         builder.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\">");
-        builder.append("<title>SQLForge Benchmark Report</title>");
+        builder.append("<title>SQLForge 压测报告</title>");
         builder.append("<style>");
         builder.append("body{font-family:Helvetica,Arial,sans-serif;margin:32px;color:#1f2937;background:#f8fafc;}");
         builder.append("section{background:#ffffff;border:1px solid #dbe3ee;border-radius:12px;padding:20px;margin-bottom:20px;}");
         builder.append("table{width:100%;border-collapse:collapse;}th,td{padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:left;}");
         builder.append("h1,h2{margin-top:0;} .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;}");
         builder.append("</style></head><body>");
-        builder.append("<h1>SQLForge Benchmark Report</h1>");
+        builder.append("<h1>SQLForge 压测报告</h1>");
         builder.append("<section><div class=\"meta\">");
-        appendHtmlMeta(builder, "Report ID", response.getReportId());
-        appendHtmlMeta(builder, "Task ID", response.getTaskId());
-        appendHtmlMeta(builder, "Task Type", String.valueOf(response.getTaskType()));
-        appendHtmlMeta(builder, "Verdict", String.valueOf(response.getVerdict()));
-        appendHtmlMeta(builder, "Generated At", String.valueOf(response.getGeneratedAt()));
-        appendHtmlMeta(builder, "Target Engines", String.valueOf(response.getTargetEngines()));
+        appendHtmlMeta(builder, "报告 ID", response.getReportId());
+        appendHtmlMeta(builder, "任务 ID", response.getTaskId());
+        appendHtmlMeta(builder, "任务类型", String.valueOf(response.getTaskType()));
+        appendHtmlMeta(builder, "结论", String.valueOf(response.getVerdict()));
+        appendHtmlMeta(builder, "生成时间", String.valueOf(response.getGeneratedAt()));
+        appendHtmlMeta(builder, "目标引擎", String.valueOf(response.getTargetEngines()));
         builder.append("</div></section>");
         appendHtmlEngineTable(builder, response.getEngineResults());
         appendHtmlThresholdTable(builder, response.getThresholdAssessments());
@@ -154,13 +154,13 @@ public class BenchmarkReportExportService {
 
     private void appendEngineSummary(StringBuilder builder, List<BenchmarkEngineMetricVO> engineResults) {
         for (BenchmarkEngineMetricVO engineResult : engineResults) {
-            builder.append("engine=")
+            builder.append("引擎=")
                 .append(engineResult.getEngine())
-                .append(", actualQps=")
+                .append("，实际 QPS=")
                 .append(engineResult.getActualQps())
-                .append(", p99LatencyMs=")
+                .append("，P99 延迟毫秒=")
                 .append(engineResult.getP99LatencyMs())
-                .append(", verdict=")
+                .append("，结论=")
                 .append(engineResult.getVerdict())
                 .append('\n');
         }
@@ -169,13 +169,13 @@ public class BenchmarkReportExportService {
     private void appendThresholdSummary(StringBuilder builder,
                                         List<BenchmarkThresholdAssessmentVO> thresholdAssessments) {
         for (BenchmarkThresholdAssessmentVO assessment : thresholdAssessments) {
-            builder.append("threshold=")
+            builder.append("阈值=")
                 .append(assessment.getMetric())
-                .append(", actual=")
+                .append("，实际值=")
                 .append(assessment.getActualValue())
-                .append(", target=")
+                .append("，目标值=")
                 .append(assessment.getTargetValue())
-                .append(", verdict=")
+                .append("，结论=")
                 .append(assessment.getVerdict())
                 .append('\n');
         }
@@ -199,8 +199,8 @@ public class BenchmarkReportExportService {
     }
 
     private void appendHtmlEngineTable(StringBuilder builder, List<BenchmarkEngineMetricVO> engineResults) {
-        builder.append("<section><h2>Engine Comparison</h2><table><thead><tr>");
-        builder.append("<th>Engine</th><th>QPS</th><th>P50</th><th>P99</th><th>CPU</th><th>Memory</th><th>Verdict</th>");
+        builder.append("<section><h2>引擎对比</h2><table><thead><tr>");
+        builder.append("<th>引擎</th><th>QPS</th><th>P50</th><th>P99</th><th>CPU</th><th>内存</th><th>结论</th>");
         builder.append("</tr></thead><tbody>");
         for (BenchmarkEngineMetricVO engineResult : engineResults) {
             builder.append("<tr><td>").append(engineResult.getEngine()).append("</td><td>")
@@ -216,8 +216,8 @@ public class BenchmarkReportExportService {
 
     private void appendHtmlThresholdTable(StringBuilder builder,
                                           List<BenchmarkThresholdAssessmentVO> thresholdAssessments) {
-        builder.append("<section><h2>Threshold Assessments</h2><table><thead><tr>");
-        builder.append("<th>Metric</th><th>Actual</th><th>Target</th><th>Verdict</th><th>Summary</th>");
+        builder.append("<section><h2>阈值评估</h2><table><thead><tr>");
+        builder.append("<th>指标</th><th>实际值</th><th>目标值</th><th>结论</th><th>摘要</th>");
         builder.append("</tr></thead><tbody>");
         for (BenchmarkThresholdAssessmentVO assessment : thresholdAssessments) {
             builder.append("<tr><td>").append(assessment.getMetric()).append("</td><td>")
@@ -230,7 +230,7 @@ public class BenchmarkReportExportService {
     }
 
     private void appendHtmlTrendCharts(StringBuilder builder, BenchmarkReportResponse response) {
-        builder.append("<section><h2>Trend Charts</h2>");
+        builder.append("<section><h2>趋势图表</h2>");
         for (int index = 0; index < response.getTrendCharts().size(); index++) {
             builder.append("<article><h3>")
                 .append(response.getTrendCharts().get(index).getTitle())
@@ -249,7 +249,7 @@ public class BenchmarkReportExportService {
 
     private void appendHtmlRecommendationList(StringBuilder builder,
                                               List<BenchmarkRecommendationVO> recommendations) {
-        builder.append("<section><h2>Recommendations</h2><ul>");
+        builder.append("<section><h2>建议</h2><ul>");
         for (BenchmarkRecommendationVO recommendation : recommendations) {
             builder.append("<li><strong>")
                 .append(recommendation.getTitle())
@@ -272,7 +272,7 @@ public class BenchmarkReportExportService {
             }
             return builder.toString();
         } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 is not available", ex);
+            throw new IllegalStateException("SHA-256 算法不可用", ex);
         }
     }
 }

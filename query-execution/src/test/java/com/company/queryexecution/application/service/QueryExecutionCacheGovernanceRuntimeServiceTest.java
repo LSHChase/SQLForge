@@ -205,11 +205,11 @@ class QueryExecutionCacheGovernanceRuntimeServiceTest {
 
     private static final class FakeDistributedBackend implements QueryExecutionResultCacheBackend {
 
-        private final boolean unavailable;
+        private final boolean 不可用;
         private final Map<String, QueryExecutionStep> entries = new ConcurrentHashMap<String, QueryExecutionStep>();
 
-        private FakeDistributedBackend(boolean unavailable) {
-            this.unavailable = unavailable;
+        private FakeDistributedBackend(boolean 不可用) {
+            this.不可用 = 不可用;
         }
 
         @Override
@@ -219,7 +219,7 @@ class QueryExecutionCacheGovernanceRuntimeServiceTest {
 
         @Override
         public CacheEntryReadResult read(String cacheKey) {
-            if (unavailable) {
+            if (不可用) {
                 return CacheEntryReadResult.unavailable("providerReadStatus=UNAVAILABLE", "connection refused");
             }
             QueryExecutionStep step = entries.get(cacheKey);
@@ -258,7 +258,7 @@ class QueryExecutionCacheGovernanceRuntimeServiceTest {
 
         @Override
         public CacheBackendVerifyResult verify() {
-            return unavailable
+            return 不可用
                 ? CacheBackendVerifyResult.unavailable("providerVerifyStatus=UNAVAILABLE", "connection refused")
                 : CacheBackendVerifyResult.available("providerVerifyStatus=AVAILABLE");
         }

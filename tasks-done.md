@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-I18N-ZH-20260516: 中文化后端日志异常注释与脚本文案
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `chore(i18n): localize backend Chinese copy`
+- Priority: 1
+- Depends on: N/A
+- Scope: 扫描并中文化后端 Java 日志、异常消息、API 返回 message/msg、代码注释、JPA/Swagger 字段解释、SQL/Shell 脚本注释与 COMMENT 文案；只改文本，不改命名、错误码、序列化键或业务逻辑；完成后运行后端编译/测试与任务审计。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-I18N-ZH-20260516`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 完成后端 Java 日志、异常/API 文案、代码注释、SQL COMMENT、脚本/资源注释中文化，并同步相关测试断言与任务台账。
+  - Validation evidence: JDK 8u112 下通过 mvn compile、mvn test；本地化扫描 java comments/sql COMMENT/script-resource comments/log templates 均为 0；foreman validate 与 pre-closeout task_audit 已通过。
+  - Residual risk: 英文仅保留为类名、字段名、枚举值、协议/路径、SQL 关键字、服务代码、指标名和测试哨兵等不可翻译标识。
+  - Next step: 无需后续动作。
+
 ### HARN-FE-002: 重排导航树与核心菜单命名
 
 - Status: done

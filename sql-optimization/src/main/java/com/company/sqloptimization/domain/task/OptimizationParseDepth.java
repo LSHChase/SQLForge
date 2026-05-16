@@ -1,7 +1,7 @@
 package com.company.sqloptimization.domain.task;
 
 /**
- * Parser depth used by optimization tasks.
+ * 优化任务使用的解析深度。
  */
 public enum OptimizationParseDepth {
     LIGHT,

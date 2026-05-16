@@ -90,7 +90,7 @@ public class StructureParseApplicationService {
     private static final String RISK_SQL_TOO_LONG = "SQL_TOO_LONG";
     private static final String HEURISTIC_FALLBACK_ENGINE = "HEURISTIC_FALLBACK";
     private static final String SQL_TOO_LONG_FAILURE_REASON =
-        "SQL is too long; syntax parser failed or was skipped for bounded diagnostics.";
+        "SQL 过长；语法解析器已失败或为限制诊断范围而跳过。";
     private static final String HISTORY_RESULT_SUCCESS = "SUCCESS";
     private static final String HISTORY_RESULT_FAILED = "FAILED";
     private static final int MAX_DB_VIEW_EXPANSION_DEPTH = 5;
@@ -178,7 +178,7 @@ public class StructureParseApplicationService {
         String tenantId = RequestContext.getTenantId();
         String datasourceCode = trimToNull(request.getDatasourceCode());
         LOGGER.info(
-            "operation=STRUCTURE_PARSE entity={} tenantId={} datasourceCode={} status=START",
+            "操作日志 operation=STRUCTURE_PARSE entity={} tenantId={} datasourceCode={} status=START",
             parseTaskId,
             tenantId,
             datasourceCode
@@ -191,7 +191,7 @@ public class StructureParseApplicationService {
         if (sqlTooLong) {
             result = buildInvalidResult(parseTaskId, request.getSqlText(), null, true);
             LOGGER.info(
-                "operation=STRUCTURE_PARSE entity={} tenantId={} datasourceCode={} costMs={} status=END syntaxStatus={} degradedReason={}",
+                "操作日志 operation=STRUCTURE_PARSE entity={} tenantId={} datasourceCode={} costMs={} status=END syntaxStatus={} degradedReason={}",
                 parseTaskId,
                 tenantId,
                 datasourceCode,
@@ -224,7 +224,7 @@ public class StructureParseApplicationService {
                 result.setIssues(buildIssues(profile, logicalObjectExpansion));
                 result.applyAssessment(StructureParsePriorityScorer.assessAll(result.getIssues()));
                 LOGGER.info(
-                    "operation=STRUCTURE_PARSE entity={} tenantId={} datasourceCode={} costMs={} status=END syntaxStatus={} priorityLevel={}",
+                    "操作日志 operation=STRUCTURE_PARSE entity={} tenantId={} datasourceCode={} costMs={} status=END syntaxStatus={} priorityLevel={}",
                     parseTaskId,
                     tenantId,
                     datasourceCode,
@@ -235,7 +235,7 @@ public class StructureParseApplicationService {
             } catch (SqlOptimizationPipelineService.SqlOptimizationExecutionException ex) {
                 result = buildInvalidResult(parseTaskId, request.getSqlText(), ex, false);
                 LOGGER.info(
-                    "operation=STRUCTURE_PARSE entity={} tenantId={} datasourceCode={} costMs={} status=END syntaxStatus={} degradedReason={}",
+                    "操作日志 operation=STRUCTURE_PARSE entity={} tenantId={} datasourceCode={} costMs={} status=END syntaxStatus={} degradedReason={}",
                     parseTaskId,
                     tenantId,
                     datasourceCode,
@@ -289,7 +289,7 @@ public class StructureParseApplicationService {
         StructureParseIssue syntaxIssue = buildSyntaxInvalidIssue(
             failureReason,
             failureDetail,
-            ex == null ? "Fix SQL syntax or reduce the statement before running full structure parse." : ex.getSuggestedAction(),
+            ex == null ? "运行完整结构解析前，请修复 SQL 语法或缩短语句。" : ex.getSuggestedAction(),
             position,
             failureToken,
             failureSnippet,
@@ -372,7 +372,7 @@ public class StructureParseApplicationService {
         issue.setSeverity(StructureParseIssueSeverity.HIGH);
         issue.setSummary(failureReason);
         issue.setDetail(failureDetail);
-        issue.setSuggestedAction("Reduce SQL size, split the statement into smaller reviewed stages, or raise the parser limit explicitly.");
+        issue.setSuggestedAction("请减少 SQL 大小、将语句拆分为更小的已评审阶段，或显式提高解析器限制。");
         issue.setImportant(Boolean.TRUE);
         issue.setUrgent(Boolean.FALSE);
         issue.setAffectedSqlCount(Integer.valueOf(1));
@@ -865,10 +865,10 @@ public class StructureParseApplicationService {
                                  String diagnosticFailureToken) {
         StringBuilder builder = new StringBuilder();
         builder.append(isNoiseFailureToken(position, diagnosticFailureToken)
-            ? "SQL syntax parser rejected the statement."
+            ? "SQL 语法解析器拒绝了该语句。"
             : normalizeDiagnosticText(ex.getMessage()));
         if (position != null && position.getLine() != null && position.getColumn() != null) {
-            builder.append(" Failure position: line ")
+            builder.append(" 失败位置：第 ")
                 .append(position.getLine())
                 .append(", column ")
                 .append(position.getColumn())
@@ -920,7 +920,7 @@ public class StructureParseApplicationService {
     private String normalizeDiagnosticText(String value) {
         String normalized = trimToNull(value);
         if (normalized == null) {
-            return "SQL syntax parser rejected the statement.";
+            return "SQL 语法解析器拒绝了该语句。";
         }
         StringBuilder builder = new StringBuilder(normalized.length());
         for (int index = 0; index < normalized.length(); index++) {
@@ -928,7 +928,7 @@ public class StructureParseApplicationService {
             builder.append(isDiagnosticNoiseCharacter(current) ? ' ' : current);
         }
         String diagnosticText = compactDiagnosticText(builder.toString(), FAILURE_DETAIL_TEXT_LIMIT);
-        return diagnosticText == null ? "SQL syntax parser rejected the statement." : diagnosticText;
+        return diagnosticText == null ? "SQL 语法解析器拒绝了该语句。" : diagnosticText;
     }
 
     private List<String> buildRiskTags(SqlOptimizationPipelineService.ParsedSqlProfile profile,
@@ -958,9 +958,9 @@ public class StructureParseApplicationService {
         issue.setIssueDomain(StructureParseIssueDomain.STRUCTURE);
         issue.setIssueScene("METADATA_UNRESOLVED");
         issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
-        issue.setSummary("A database view definition could not be fully expanded from live metadata.");
+        issue.setSummary("无法从实时元数据完整展开数据库视图定义。");
         issue.setDetail(String.join("; ", logicalObjectExpansion.getUnresolvedReasons()));
-        issue.setSuggestedAction("Verify datasource metadata permissions or refresh the governed DB view catalog fallback.");
+        issue.setSuggestedAction("请校验数据源元数据权限，或刷新受治理 DB 视图目录兜底数据。");
         issue.setImportant(Boolean.TRUE);
         issue.setUrgent(Boolean.FALSE);
         issue.setAffectedSqlCount(Integer.valueOf(1));
@@ -979,9 +979,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.GOVERNANCE);
             issue.setIssueScene("WIDE_PROJECTION");
             issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
-            issue.setSummary("The statement uses SELECT * and hides the actual column footprint.");
-            issue.setDetail("Wide projections weaken rewrite determinism and increase unnecessary data movement.");
-            issue.setSuggestedAction("Replace star projection with explicit columns before optimization review.");
+            issue.setSummary("该语句使用 SELECT *，会隐藏实际列范围。");
+            issue.setDetail("宽投影会削弱改写确定性，并增加不必要的数据移动。");
+            issue.setSuggestedAction("优化评审前请用显式列替换星号投影。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.FALSE);
         } else if ("NO_PREDICATE".equals(warning)) {
@@ -989,9 +989,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("MISSING_FILTER");
             issue.setSeverity(StructureParseIssueSeverity.HIGH);
-            issue.setSummary("The statement has no filtering predicate and is likely to scan the full dataset.");
-            issue.setDetail("A full scan on a read path usually indicates missing partition or business-key filters.");
-            issue.setSuggestedAction("Add tenant, time, or business-key predicates before online execution.");
+            issue.setSummary("该语句没有过滤谓词，可能扫描全量数据集。");
+            issue.setDetail("读路径上的全表扫描通常表示缺少分区或业务键过滤条件。");
+            issue.setSuggestedAction("在线执行前请补充租户、时间或业务键谓词。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
         } else if ("ORDER_BY_WITHOUT_LIMIT".equals(warning)) {
@@ -999,9 +999,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("UNBOUNDED_SORT");
             issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
-            issue.setSummary("The statement sorts without a limiting clause.");
-            issue.setDetail("Unbounded sort operations can create unnecessary shuffle or memory pressure.");
-            issue.setSuggestedAction("Add LIMIT or move ordering work to a serving object.");
+            issue.setSummary("该语句排序时未限制结果范围。");
+            issue.setDetail("无界排序可能产生不必要的 shuffle 或内存压力。");
+            issue.setSuggestedAction("请添加 LIMIT，或将排序工作转移到服务对象中。");
             issue.setImportant(Boolean.FALSE);
             issue.setUrgent(Boolean.FALSE);
         } else if ("HEAVY_JOIN_GRAPH".equals(warning)) {
@@ -1009,9 +1009,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.STRUCTURE);
             issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
             issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
-            issue.setSummary("The statement joins multiple datasets and may require staged execution.");
-            issue.setDetail("Large join graphs should be reviewed for filter placement, join keys, and serving alternatives.");
-            issue.setSuggestedAction("Review join graph, key selectivity, and acceleration opportunities.");
+            issue.setSummary("该语句连接多个数据集，可能需要分阶段执行。");
+            issue.setDetail("大型 join 图需要评审过滤位置、join key 与服务化替代方案。");
+            issue.setSuggestedAction("请评审 join 图、键选择性和加速机会。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.FALSE);
         } else if ("LARGE_JOIN_PAIR_RISK".equals(warning)) {
@@ -1019,9 +1019,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
             issue.setSeverity(StructureParseIssueSeverity.HIGH);
-            issue.setSummary("The statement has limited static evidence for join conditions or selectivity.");
-            issue.setDetail("Static structure parsing cannot prove table size or runtime cost; it only flags that join evidence is incomplete.");
-            issue.setSuggestedAction("Confirm join keys, filter placement, and selectivity with Access Parse or benchmark evidence before online use.");
+            issue.setSummary("该语句关于 join 条件或选择性的静态证据不足。");
+            issue.setDetail("静态结构解析无法证明表规模或运行时成本，只能标记 join 证据不完整。");
+            issue.setSuggestedAction("在线使用前，请通过访问解析或压测证据确认 join key、过滤位置与选择性。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
         } else if ("REPEATED_EXPRESSION_COMPUTE".equals(warning)) {
@@ -1029,9 +1029,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("GENERAL_WARNING");
             issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
-            issue.setSummary("The statement repeats expression fragments that may be computed more than once.");
-            issue.setDetail("Repeated projection, filter, grouping, or ordering expressions can increase CPU cost.");
-            issue.setSuggestedAction("Deduplicate expressions or move shared calculations into a CTE or serving object.");
+            issue.setSummary("该语句重复了可能被多次计算的表达式片段。");
+            issue.setDetail("重复投影、过滤、分组或排序表达式可能增加 CPU 成本。");
+            issue.setSuggestedAction("请去重表达式，或把共享计算移入 CTE 或服务对象。");
             issue.setImportant(Boolean.FALSE);
             issue.setUrgent(Boolean.FALSE);
         } else if ("LARGE_RESULT_SET_RISK".equals(warning)) {
@@ -1039,9 +1039,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("WIDE_PROJECTION");
             issue.setSeverity(StructureParseIssueSeverity.HIGH);
-            issue.setSummary("The statement may return an oversized result set.");
-            issue.setDetail("Wide projection or missing LIMIT/filter evidence can produce too much data for interactive use.");
-            issue.setSuggestedAction("Add explicit projection, filters, or LIMIT before using the query in an interactive path.");
+            issue.setSummary("该语句可能返回超大结果集。");
+            issue.setDetail("宽投影或缺少 LIMIT/过滤证据，可能为交互场景产生过多数据。");
+            issue.setSuggestedAction("在交互路径使用该查询前，请补充显式投影、过滤条件或 LIMIT。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
         } else if ("SCALAR_SUBQUERY_IN_SELECT".equals(warning)) {
@@ -1049,9 +1049,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
             issue.setSeverity(StructureParseIssueSeverity.HIGH);
-            issue.setSummary("The SELECT list contains scalar subqueries.");
-            issue.setDetail("Scalar subqueries in projection can repeatedly execute lookup or aggregate logic per output row.");
-            issue.setSuggestedAction("Rewrite scalar subqueries as joins, pre-aggregated CTEs, or serving objects.");
+            issue.setSummary("SELECT 列表包含标量子查询。");
+            issue.setDetail("投影中的标量子查询可能对每个输出行重复执行查询或聚合逻辑。");
+            issue.setSuggestedAction("请将标量子查询改写为 join、预聚合 CTE 或服务对象。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
         } else if ("NESTED_SUBQUERY_RISK".equals(warning)) {
@@ -1059,9 +1059,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.STRUCTURE);
             issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
             issue.setSeverity(StructureParseIssueSeverity.HIGH);
-            issue.setSummary("The statement contains multiple nested subqueries.");
-            issue.setDetail("Deep subquery nesting makes filter placement, join order, and runtime cost harder to reason about statically.");
-            issue.setSuggestedAction("Flatten the query into named CTE stages and review each stage independently.");
+            issue.setSummary("该语句包含多层嵌套子查询。");
+            issue.setDetail("深层子查询嵌套会使过滤位置、join 顺序和运行时成本更难静态推断。");
+            issue.setSuggestedAction("请将查询展开为具名 CTE 阶段，并独立评审每个阶段。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
         } else if ("CORRELATED_SUBQUERY_RISK".equals(warning)) {
@@ -1069,9 +1069,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
             issue.setSeverity(StructureParseIssueSeverity.HIGH);
-            issue.setSummary("The statement contains correlated subquery references.");
-            issue.setDetail("Correlated subqueries can create repeated lookups or decorrelation pressure during planning.");
-            issue.setSuggestedAction("Rewrite correlated subqueries into explicit joins or pre-aggregated CTEs.");
+            issue.setSummary("该语句包含关联子查询引用。");
+            issue.setDetail("关联子查询可能在计划阶段产生重复查询或去相关压力。");
+            issue.setSuggestedAction("请将关联子查询改写为显式 join 或预聚合 CTE。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
         } else if ("FUNCTION_WRAPPED_PREDICATE".equals(warning)) {
@@ -1079,9 +1079,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("MISSING_FILTER");
             issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
-            issue.setSummary("A filtering predicate wraps a column in a function.");
-            issue.setDetail("Function-wrapped predicates can block partition pruning or index-style pushdown.");
-            issue.setSuggestedAction("Rewrite the predicate as a range or normalized column comparison when possible.");
+            issue.setSummary("过滤谓词将列包裹在函数中。");
+            issue.setDetail("函数包裹谓词可能阻断分区裁剪或索引式下推。");
+            issue.setSuggestedAction("可行时请将谓词改写为范围条件或标准化列比较。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.FALSE);
         } else if ("NOT_EXISTS_ANTI_JOIN_RISK".equals(warning)) {
@@ -1089,9 +1089,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
             issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
-            issue.setSummary("The statement uses NOT EXISTS anti-join logic.");
-            issue.setDetail("Anti-join logic should be reviewed for null semantics, selectivity, and join placement.");
-            issue.setSuggestedAction("Consider a staged LEFT JOIN ... IS NULL rewrite only after semantic validation.");
+            issue.setSummary("该语句使用 NOT EXISTS anti-join 逻辑。");
+            issue.setDetail("anti-join 逻辑需要评审 null 语义、选择性和 join 位置。");
+            issue.setSuggestedAction("仅在完成语义校验后，才考虑分阶段 LEFT JOIN ... IS NULL 改写。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.FALSE);
         } else if ("LEADING_WILDCARD_LIKE_RISK".equals(warning)) {
@@ -1099,9 +1099,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("MISSING_FILTER");
             issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
-            issue.setSummary("A LIKE predicate starts with a wildcard.");
-            issue.setDetail("Leading wildcard filters usually cannot use prefix pruning and can force wider scans.");
-            issue.setSuggestedAction("Use a normalized search key, inverted index, or prefixable predicate when possible.");
+            issue.setSummary("LIKE 谓词以通配符开头。");
+            issue.setDetail("前置通配符过滤通常无法使用前缀裁剪，可能导致更大范围扫描。");
+            issue.setSuggestedAction("可行时请使用标准化搜索键、倒排索引或可前缀匹配的谓词。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.FALSE);
         } else if ("OR_PREDICATE_INDEX_RISK".equals(warning)) {
@@ -1109,9 +1109,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("MISSING_FILTER");
             issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
-            issue.setSummary("The WHERE clause combines alternatives with OR.");
-            issue.setDetail("OR predicates can weaken static pruning and may need union-based staging for predictable access paths.");
-            issue.setSuggestedAction("Review whether UNION ALL branches or staged filters make the query easier to optimize.");
+            issue.setSummary("WHERE 子句使用 OR 组合多个备选条件。");
+            issue.setDetail("OR 谓词会削弱静态裁剪，可能需要基于 UNION 的分阶段处理以获得可预测访问路径。");
+            issue.setSuggestedAction("请评审 UNION ALL 分支或分阶段过滤是否能让查询更易优化。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.FALSE);
         } else if ("ORDER_BY_RANDOM_RISK".equals(warning)) {
@@ -1119,9 +1119,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("UNBOUNDED_SORT");
             issue.setSeverity(StructureParseIssueSeverity.HIGH);
-            issue.setSummary("The statement orders rows by a random function.");
-            issue.setDetail("ORDER BY RAND/RANDOM forces expensive randomization and sort-style work before limiting results.");
-            issue.setSuggestedAction("Use sampled source data or deterministic sampling keys instead of random ordering.");
+            issue.setSummary("该语句按随机函数排序。");
+            issue.setDetail("ORDER BY RAND/RANDOM 会在限制结果前强制执行昂贵的随机化和排序类工作。");
+            issue.setSuggestedAction("请使用抽样源数据或确定性抽样键替代随机排序。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
         } else if ("REPEATED_TABLE_SCAN_RISK".equals(warning)) {
@@ -1129,9 +1129,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
             issue.setSeverity(StructureParseIssueSeverity.HIGH);
-            issue.setSummary("The statement references the same table multiple times.");
-            issue.setDetail("Repeated table scans can amplify IO, CPU, and shuffle cost when subqueries are not staged.");
-            issue.setSuggestedAction("Pre-stage repeated inputs with CTEs or serving objects and reuse them explicitly.");
+            issue.setSummary("该语句多次引用同一张表。");
+            issue.setDetail("如果子查询未分阶段处理，重复表扫描会放大 IO、CPU 和 shuffle 成本。");
+            issue.setSuggestedAction("请使用 CTE 或服务对象预先分阶段处理重复输入，并显式复用。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
         } else if ("ORDER_BY_COMPLEXITY_RISK".equals(warning)) {
@@ -1139,9 +1139,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("UNBOUNDED_SORT");
             issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
-            issue.setSummary("The statement contains multiple or redundant ORDER BY keys.");
-            issue.setDetail("Static analysis found sort-key breadth, duplicate ordering, or sort plus aggregation/grouping pressure.");
-            issue.setSuggestedAction("Reduce sort keys, remove duplicate ordering, or validate sorted serving output with plan evidence.");
+            issue.setSummary("该语句包含多个或冗余的 ORDER BY 键。");
+            issue.setDetail("静态分析发现排序键过宽、重复排序或排序叠加聚合/分组压力。");
+            issue.setSuggestedAction("请减少排序键、移除重复排序，或用计划证据校验已排序服务输出。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.FALSE);
         } else if ("JOIN_LATENCY_RISK".equals(warning)) {
@@ -1149,9 +1149,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
             issue.setSeverity(StructureParseIssueSeverity.HIGH);
-            issue.setSummary("The join graph has static signals for long-running execution.");
-            issue.setDetail("Multiple joins, weak static join-condition evidence, or join plus subquery composition can increase latency.");
-            issue.setSuggestedAction("Confirm join keys, filter placement, scanned volume, and row movement with access parse or benchmark evidence.");
+            issue.setSummary("join 图存在长时间执行的静态信号。");
+            issue.setDetail("多 join、静态 join 条件证据不足，或 join 叠加子查询结构可能增加延迟。");
+            issue.setSuggestedAction("请通过访问解析或压测证据确认 join key、过滤位置、扫描量和行移动情况。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
         } else if ("AGGREGATION_COMPLEXITY_RISK".equals(warning)) {
@@ -1159,9 +1159,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
             issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
-            issue.setSummary("The statement combines enough aggregation work to need review.");
-            issue.setDetail("Aggregate count, grouping breadth, ordering, or string aggregation can increase CPU and memory pressure.");
-            issue.setSuggestedAction("Pre-aggregate reusable stages or move heavy aggregate output into reviewed serving objects.");
+            issue.setSummary("该语句包含较多聚合工作，需要评审。");
+            issue.setDetail("聚合数量、分组宽度、排序或字符串聚合可能增加 CPU 与内存压力。");
+            issue.setSuggestedAction("请预聚合可复用阶段，或将重型聚合输出移入已评审的服务对象。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.FALSE);
         } else if ("GROUP_BY_WITHOUT_AGGREGATE_RISK".equals(warning)) {
@@ -1169,9 +1169,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.CONVENTION);
             issue.setIssueScene("GENERAL_WARNING");
             issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
-            issue.setSummary("The statement uses GROUP BY without aggregate functions.");
-            issue.setDetail("A GROUP BY without aggregation is often a DISTINCT-style de-duplication or redundant grouping operation.");
-            issue.setSuggestedAction("Use DISTINCT for de-duplication intent or remove the grouping if it is redundant.");
+            issue.setSummary("该语句使用 GROUP BY 但没有聚合函数。");
+            issue.setDetail("不带聚合的 GROUP BY 通常表示 DISTINCT 式去重或冗余分组。");
+            issue.setSuggestedAction("若意图是去重请使用 DISTINCT；若分组冗余请移除。");
             issue.setImportant(Boolean.FALSE);
             issue.setUrgent(Boolean.FALSE);
         } else if ("DUPLICATE_GROUP_OR_ORDER_KEY_RISK".equals(warning)) {
@@ -1179,9 +1179,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.CONVENTION);
             issue.setIssueScene("GENERAL_WARNING");
             issue.setSeverity(StructureParseIssueSeverity.MEDIUM);
-            issue.setSummary("The statement repeats GROUP BY or ORDER BY keys.");
-            issue.setDetail("Duplicate grouping or ordering keys add unnecessary logical-plan work and can obscure query intent.");
-            issue.setSuggestedAction("Remove duplicate grouping or ordering keys before rewrite or acceleration review.");
+            issue.setSummary("该语句重复了 GROUP BY 或 ORDER BY 键。");
+            issue.setDetail("重复分组或排序键会增加不必要的逻辑计划工作，并模糊查询意图。");
+            issue.setSuggestedAction("改写或加速评审前请移除重复分组或排序键。");
             issue.setImportant(Boolean.FALSE);
             issue.setUrgent(Boolean.FALSE);
         } else if ("REPEATED_SUBQUERY_RISK".equals(warning)) {
@@ -1189,9 +1189,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.STRUCTURE);
             issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
             issue.setSeverity(StructureParseIssueSeverity.HIGH);
-            issue.setSummary("The statement repeats a normalized subquery shape.");
-            issue.setDetail("Repeated nested or scalar subqueries can re-plan or re-execute the same lookup/aggregate work.");
-            issue.setSuggestedAction("Extract repeated subqueries into a named CTE or reviewed serving object.");
+            issue.setSummary("该语句重复了标准化后的子查询结构。");
+            issue.setDetail("重复嵌套或标量子查询可能重复规划或执行相同查询/聚合工作。");
+            issue.setSuggestedAction("请将重复子查询抽取为具名 CTE 或已评审的服务对象。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
         } else if ("LARGE_STRING_RESULT_RISK".equals(warning)) {
@@ -1199,9 +1199,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.PERFORMANCE);
             issue.setIssueScene("WIDE_PROJECTION");
             issue.setSeverity(StructureParseIssueSeverity.HIGH);
-            issue.setSummary("The statement may produce a large string-heavy result.");
-            issue.setDetail("String projections, concatenation, or string aggregation can expand returned bytes even when row count is unknown.");
-            issue.setSuggestedAction("Limit string projections, avoid unbounded string aggregation, or validate returned bytes through access parse or benchmark.");
+            issue.setSummary("该语句可能产生大量字符串型结果。");
+            issue.setDetail("即使行数未知，字符串投影、拼接或聚合也可能放大返回字节数。");
+            issue.setSuggestedAction("请限制字符串投影、避免无界字符串聚合，或通过访问解析/压测校验返回字节数。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
         } else if ("COMPLEX_QUERY_GRAPH_RISK".equals(warning)) {
@@ -1209,9 +1209,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.STRUCTURE);
             issue.setIssueScene("MULTI_JOIN_COMPLEXITY");
             issue.setSeverity(StructureParseIssueSeverity.HIGH);
-            issue.setSummary("The query graph is too complex for a lightweight interactive path.");
-            issue.setDetail("The static structure combines joins, predicates, and nested subqueries into a high-risk graph.");
-            issue.setSuggestedAction("Break the SQL into reviewed stages and run access parse or benchmark before online use.");
+            issue.setSummary("该查询图对轻量交互路径过于复杂。");
+            issue.setDetail("该静态结构把 join、谓词和嵌套子查询组合成高风险查询图。");
+            issue.setSuggestedAction("请将 SQL 拆成已评审阶段，并在上线前运行访问解析或压测。");
             issue.setImportant(Boolean.TRUE);
             issue.setUrgent(Boolean.TRUE);
         } else {
@@ -1219,9 +1219,9 @@ public class StructureParseApplicationService {
             issue.setIssueDomain(StructureParseIssueDomain.CONVENTION);
             issue.setIssueScene("GENERAL_WARNING");
             issue.setSeverity(StructureParseIssueSeverity.LOW);
-            issue.setSummary("The parser recorded a conservative warning flag.");
-            issue.setDetail("The warning is preserved so later governance phases can refine it with stronger context.");
-            issue.setSuggestedAction("Review the parse artifact and decide whether deeper analysis is needed.");
+            issue.setSummary("解析器记录了保守警告标记。");
+            issue.setDetail("保留该警告，便于后续治理阶段结合更强上下文继续细化。");
+            issue.setSuggestedAction("请评审解析产物，并判断是否需要更深入分析。");
             issue.setImportant(Boolean.FALSE);
             issue.setUrgent(Boolean.FALSE);
         }
@@ -1313,7 +1313,7 @@ public class StructureParseApplicationService {
             hit.setMappedPhysicalTargets(Collections.<String>emptyList());
             context.getResult().addHit(hit);
             context.getResult().addUnresolvedReason(
-                "view=" + hit.getObjectKey() + ", reason="
+                "view=" + hit.getObjectKey() + "，原因="
                     + metadataFailureReason(metadata, "DB_VIEW_HEURISTIC_WITHOUT_DEFINITION")
             );
             return Collections.emptyList();
@@ -1399,7 +1399,7 @@ public class StructureParseApplicationService {
         }
         viewHit.setResolved(Boolean.FALSE);
         viewHit.setMappedPhysicalTargets(Collections.<String>emptyList());
-        context.getResult().addUnresolvedReason("view=" + viewHit.getObjectKey() + ", reason=" + reason);
+        context.getResult().addUnresolvedReason("view=" + viewHit.getObjectKey() + "，原因=" + reason);
         return Collections.emptyList();
     }
 
@@ -1465,7 +1465,7 @@ public class StructureParseApplicationService {
             return datasourceViewMetadataClient.resolveView(request);
         } catch (RuntimeException ex) {
             LOGGER.warn(
-                "operation=STRUCTURE_PARSE_DB_VIEW_METADATA tenantId={} datasourceCode={} objectName={} status=DEGRADED reason={}",
+                "操作日志 operation=STRUCTURE_PARSE_DB_VIEW_METADATA tenantId={} datasourceCode={} objectName={} status=DEGRADED reason={}",
                 context.getTenantId(),
                 context.getDatasourceCode(),
                 qualifiedObject.getQualifiedName(),
@@ -1488,7 +1488,7 @@ public class StructureParseApplicationService {
             return governanceCapabilityClient.resolveDbView(request);
         } catch (Exception ex) {
             LOGGER.warn(
-                "operation=STRUCTURE_PARSE_DB_VIEW_CATALOG_FALLBACK tenantId={} datasourceCode={} viewName={} status=DEGRADED reason={}",
+                "操作日志 operation=STRUCTURE_PARSE_DB_VIEW_CATALOG_FALLBACK tenantId={} datasourceCode={} viewName={} status=DEGRADED reason={}",
                 context.getTenantId(),
                 context.getDatasourceCode(),
                 qualifiedObject.getQualifiedName(),
@@ -1788,7 +1788,7 @@ public class StructureParseApplicationService {
     private StructureParseResourceEstimateVO heuristicResourceEstimate(HeuristicFallbackProfile profile) {
         StructureParseResourceEstimateVO estimate = unknownResourceEstimate();
         List<String> evidence = new ArrayList<String>();
-        evidence.add("Resource estimate is bounded because the AST parser did not produce a valid profile.");
+        evidence.add("由于 AST 解析器未生成有效画像，资源估算被限定为保守结果。");
         evidence.add("parser=" + HEURISTIC_FALLBACK_ENGINE);
         evidence.add("staticOnly=true");
         evidence.add("tables=" + profile.getTables().size());
@@ -1817,7 +1817,7 @@ public class StructureParseApplicationService {
         summary.setComputeDensity("UNKNOWN");
         summary.setResourceType("UNKNOWN");
         summary.setSlaLevel("UNKNOWN");
-        summary.setEvidence(Collections.singletonList("Parser could not produce a supported AST profile."));
+        summary.setEvidence(Collections.singletonList("解析器无法生成受支持的 AST 画像。"));
         return summary;
     }
 
@@ -1829,7 +1829,7 @@ public class StructureParseApplicationService {
         estimate.setMemory("UNKNOWN");
         estimate.setNetwork("UNKNOWN");
         estimate.setResultSize("UNKNOWN");
-        estimate.setEvidence(Collections.singletonList("Resource estimate is unavailable for invalid SQL."));
+        estimate.setEvidence(Collections.singletonList("无效 SQL 无法生成资源估算。"));
         return estimate;
     }
 
@@ -2048,91 +2048,91 @@ public class StructureParseApplicationService {
         Set<String> emitted = new LinkedHashSet<String>();
         for (String warning : profile.getWarnings()) {
             if ("NO_PREDICATE".equals(warning)) {
-                addRisk(risks, emitted, risk("FULL_TABLE_SCAN_RISK", "HIGH", "Full table scan risk",
-                    "predicateCount=0", "Add tenant, time, partition, or business-key predicates."));
+                addRisk(risks, emitted, risk("FULL_TABLE_SCAN_RISK", "HIGH", "全表扫描风险",
+                    "predicateCount=0", "请添加租户、时间、分区或业务键谓词。"));
             } else if ("LARGE_JOIN_PAIR_RISK".equals(warning) || "HEAVY_JOIN_GRAPH".equals(warning)) {
-                addRisk(risks, emitted, risk("LARGE_TABLE_JOIN_RISK", "HIGH", "Static join evidence risk",
+                addRisk(risks, emitted, risk("LARGE_TABLE_JOIN_RISK", "HIGH", "静态 join 证据风险",
                     "staticOnly=true, joinCount=" + profile.getJoinCount()
                         + ", joinCriteriaCount=" + profile.getJoinCriteriaCount(),
-                    "Confirm join keys, filter placement, and selectivity with Access Parse or benchmark evidence."));
+                    "请通过访问解析或压测证据确认 join key、过滤位置和选择性。"));
             } else if ("ORDER_BY_WITHOUT_LIMIT".equals(warning)) {
-                addRisk(risks, emitted, risk("UNNECESSARY_SORT_RISK", "MEDIUM", "Potentially unnecessary sort",
-                    "orderByCount=" + profile.getOrderByCount() + ", limitPresent=false", "Add LIMIT or move ordering to a serving object."));
+                addRisk(risks, emitted, risk("UNNECESSARY_SORT_RISK", "MEDIUM", "潜在不必要排序",
+                    "orderByCount=" + profile.getOrderByCount() + ", limitPresent=false", "请添加 LIMIT，或将排序迁移到服务对象。"));
             } else if ("REPEATED_EXPRESSION_COMPUTE".equals(warning)) {
-                addRisk(risks, emitted, risk("REPEATED_EXPRESSION_RISK", "MEDIUM", "Repeated expression computation",
-                    "repeatedExpressionCount=" + profile.getRepeatedExpressionCount(), "Deduplicate or materialize shared expressions."));
+                addRisk(risks, emitted, risk("REPEATED_EXPRESSION_RISK", "MEDIUM", "重复表达式计算",
+                    "repeatedExpressionCount=" + profile.getRepeatedExpressionCount(), "请去重或物化共享表达式。"));
             } else if ("LARGE_RESULT_SET_RISK".equals(warning) || "SELECT_STAR".equals(warning)) {
-                addRisk(risks, emitted, risk("LARGE_RESULT_SET_RISK", "HIGH", "Oversized result set risk",
+                addRisk(risks, emitted, risk("LARGE_RESULT_SET_RISK", "HIGH", "超大结果集风险",
                     "selectStar=" + profile.isSelectStar() + ", limitPresent=" + profile.isLimitPresent(),
-                    "Use explicit columns, filters, or LIMIT for interactive paths."));
+                    "交互路径请使用显式列、过滤条件或 LIMIT。"));
             } else if ("SCALAR_SUBQUERY_IN_SELECT".equals(warning)) {
-                addRisk(risks, emitted, risk("SCALAR_SUBQUERY_IN_SELECT", "HIGH", "Scalar subquery in SELECT",
-                    "scalarSubqueryCount=" + profile.getScalarSubqueryCount(), "Rewrite scalar subqueries into joins or staged aggregates."));
+                addRisk(risks, emitted, risk("SCALAR_SUBQUERY_IN_SELECT", "HIGH", "SELECT 中的标量子查询",
+                    "scalarSubqueryCount=" + profile.getScalarSubqueryCount(), "请将标量子查询改写为 join 或分阶段聚合。"));
             } else if ("NESTED_SUBQUERY_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("NESTED_SUBQUERY_RISK", "HIGH", "Nested subquery risk",
+                addRisk(risks, emitted, risk("NESTED_SUBQUERY_RISK", "HIGH", "嵌套子查询风险",
                     "subqueryCount=" + profile.getSubqueryCount() + ", depth=" + profile.getNestedSubqueryDepth(),
-                    "Flatten nested subqueries into named CTE stages."));
+                    "请将嵌套子查询展开为具名 CTE 阶段。"));
             } else if ("CORRELATED_SUBQUERY_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("CORRELATED_SUBQUERY_RISK", "HIGH", "Correlated subquery risk",
-                    "correlatedSubqueryCount=" + profile.getCorrelatedSubqueryCount(), "Rewrite correlated subqueries into joins or precomputed stages."));
+                addRisk(risks, emitted, risk("CORRELATED_SUBQUERY_RISK", "HIGH", "关联子查询风险",
+                    "correlatedSubqueryCount=" + profile.getCorrelatedSubqueryCount(), "请将关联子查询改写为 join 或预计算阶段。"));
             } else if ("FUNCTION_WRAPPED_PREDICATE".equals(warning)) {
-                addRisk(risks, emitted, risk("FUNCTION_WRAPPED_PREDICATE", "MEDIUM", "Function-wrapped predicate",
-                    "functionWrappedPredicateCount=" + profile.getFunctionWrappedPredicateCount(), "Rewrite as range or normalized column comparison."));
+                addRisk(risks, emitted, risk("FUNCTION_WRAPPED_PREDICATE", "MEDIUM", "函数包裹谓词",
+                    "functionWrappedPredicateCount=" + profile.getFunctionWrappedPredicateCount(), "请改写为范围条件或标准化列比较。"));
             } else if ("NOT_EXISTS_ANTI_JOIN_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("NOT_EXISTS_ANTI_JOIN_RISK", "MEDIUM", "NOT EXISTS anti-join risk",
-                    "notExistsCount=" + profile.getNotExistsCount(), "Review anti-join semantics and staged alternatives."));
+                addRisk(risks, emitted, risk("NOT_EXISTS_ANTI_JOIN_RISK", "MEDIUM", "NOT EXISTS anti-join 风险",
+                    "notExistsCount=" + profile.getNotExistsCount(), "请评审 anti-join 语义与分阶段替代方案。"));
             } else if ("LEADING_WILDCARD_LIKE_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("LEADING_WILDCARD_LIKE_RISK", "MEDIUM", "Leading wildcard LIKE risk",
-                    "leadingWildcardLikeCount=" + profile.getLeadingWildcardLikeCount(), "Use searchable keys or prefixable predicates."));
+                addRisk(risks, emitted, risk("LEADING_WILDCARD_LIKE_RISK", "MEDIUM", "前置通配符 LIKE 风险",
+                    "leadingWildcardLikeCount=" + profile.getLeadingWildcardLikeCount(), "请使用可搜索键或可前缀匹配的谓词。"));
             } else if ("OR_PREDICATE_INDEX_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("OR_PREDICATE_INDEX_RISK", "MEDIUM", "OR predicate pruning risk",
-                    "orPredicateCount=" + profile.getOrPredicateCount(), "Consider UNION ALL branches or staged filters."));
+                addRisk(risks, emitted, risk("OR_PREDICATE_INDEX_RISK", "MEDIUM", "OR 谓词裁剪风险",
+                    "orPredicateCount=" + profile.getOrPredicateCount(), "请考虑 UNION ALL 分支或分阶段过滤。"));
             } else if ("ORDER_BY_RANDOM_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("ORDER_BY_RANDOM_RISK", "HIGH", "Random order risk",
-                    "randomOrderCount=" + profile.getRandomOrderCount(), "Use deterministic sampling instead of ORDER BY RAND/RANDOM."));
+                addRisk(risks, emitted, risk("ORDER_BY_RANDOM_RISK", "HIGH", "随机排序风险",
+                    "randomOrderCount=" + profile.getRandomOrderCount(), "请使用确定性抽样替代 ORDER BY RAND/RANDOM。"));
             } else if ("REPEATED_TABLE_SCAN_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("REPEATED_TABLE_SCAN_RISK", "HIGH", "Repeated table scan risk",
-                    "repeatedTableScanCount=" + profile.getRepeatedTableScanCount(), "Pre-stage repeated inputs and reuse them explicitly."));
+                addRisk(risks, emitted, risk("REPEATED_TABLE_SCAN_RISK", "HIGH", "重复表扫描风险",
+                    "repeatedTableScanCount=" + profile.getRepeatedTableScanCount(), "请预先分阶段处理重复输入，并显式复用。"));
             } else if ("ORDER_BY_COMPLEXITY_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("ORDER_BY_COMPLEXITY_RISK", "MEDIUM", "ORDER BY complexity risk",
+                addRisk(risks, emitted, risk("ORDER_BY_COMPLEXITY_RISK", "MEDIUM", "ORDER BY 复杂度风险",
                     "staticOnly=true, orderByExpressionCount=" + profile.getOrderByExpressionCount()
                         + ", duplicateOrderByKeyCount=" + profile.getDuplicateOrderByKeyCount(),
-                    "Reduce sort keys, remove duplicate ordering, or validate sorted output with plan evidence."));
+                    "请减少排序键、移除重复排序，或用计划证据校验排序输出。"));
             } else if ("JOIN_LATENCY_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("JOIN_LATENCY_RISK", "HIGH", "Join latency risk",
+                addRisk(risks, emitted, risk("JOIN_LATENCY_RISK", "HIGH", "join 延迟风险",
                     "staticOnly=true, joinCount=" + profile.getJoinCount()
                         + ", joinCriteriaCount=" + profile.getJoinCriteriaCount()
                         + ", subqueryCount=" + profile.getSubqueryCount(),
-                    "Confirm join keys, filter placement, scanned volume, and row movement with access parse or benchmark."));
+                    "请通过访问解析或压测确认 join 键、过滤位置、扫描量和行移动。"));
             } else if ("AGGREGATION_COMPLEXITY_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("AGGREGATION_COMPLEXITY_RISK", "MEDIUM", "Aggregation complexity risk",
+                addRisk(risks, emitted, risk("AGGREGATION_COMPLEXITY_RISK", "MEDIUM", "聚合复杂度风险",
                     "staticOnly=true, aggregateFunctionCount=" + profile.getAggregateFunctionCount()
                         + ", groupByCount=" + profile.getGroupByCount()
                         + ", largeStringAggregateCount=" + profile.getLargeStringAggregateCount(),
-                    "Pre-aggregate reusable stages or move heavy aggregate output into serving objects."));
+                    "请预聚合可复用阶段，或将重型聚合输出迁移到服务对象。"));
             } else if ("GROUP_BY_WITHOUT_AGGREGATE_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("GROUP_BY_WITHOUT_AGGREGATE_RISK", "MEDIUM", "GROUP BY without aggregate",
+                addRisk(risks, emitted, risk("GROUP_BY_WITHOUT_AGGREGATE_RISK", "MEDIUM", "无聚合函数的 GROUP BY",
                     "staticOnly=true, groupByCount=" + profile.getGroupByCount() + ", aggregateFunctionCount=0",
-                    "Use DISTINCT for de-duplication intent or remove redundant grouping."));
+                    "若意图是去重请使用 DISTINCT，或移除冗余分组。"));
             } else if ("DUPLICATE_GROUP_OR_ORDER_KEY_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("DUPLICATE_GROUP_OR_ORDER_KEY_RISK", "MEDIUM", "Duplicate group/order key risk",
+                addRisk(risks, emitted, risk("DUPLICATE_GROUP_OR_ORDER_KEY_RISK", "MEDIUM", "重复分组或排序键风险",
                     "staticOnly=true, duplicateGroupByKeyCount=" + profile.getDuplicateGroupByKeyCount()
                         + ", duplicateOrderByKeyCount=" + profile.getDuplicateOrderByKeyCount(),
-                    "Remove duplicate grouping or ordering keys before rewrite review."));
+                    "改写评审前请移除重复分组或排序键。"));
             } else if ("REPEATED_SUBQUERY_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("REPEATED_SUBQUERY_RISK", "HIGH", "Repeated subquery risk",
+                addRisk(risks, emitted, risk("REPEATED_SUBQUERY_RISK", "HIGH", "重复子查询风险",
                     "staticOnly=true, repeatedSubqueryCount=" + profile.getRepeatedSubqueryCount(),
-                    "Extract repeated subqueries into a named CTE or reviewed serving object."));
+                    "请将重复子查询抽取为具名 CTE 或已评审的服务对象。"));
             } else if ("LARGE_STRING_RESULT_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("LARGE_STRING_RESULT_RISK", "HIGH", "Large string result risk",
+                addRisk(risks, emitted, risk("LARGE_STRING_RESULT_RISK", "HIGH", "大字符串结果风险",
                     "staticOnly=true, stringProjectionCount=" + profile.getStringProjectionCount()
                         + ", stringConcatenationCount=" + profile.getStringConcatenationCount()
                         + ", largeStringAggregateCount=" + profile.getLargeStringAggregateCount(),
-                    "Limit string projections or validate returned bytes through access parse or benchmark."));
+                    "请限制字符串投影，或通过访问解析/压测校验返回字节数。"));
             } else if ("COMPLEX_QUERY_GRAPH_RISK".equals(warning)) {
-                addRisk(risks, emitted, risk("COMPLEX_QUERY_GRAPH_RISK", "HIGH", "Complex query graph risk",
-                    "subqueryCount=" + profile.getSubqueryCount() + ", predicateCount=" + profile.getPredicateCount(),
-                    "Break the query into reviewed stages before online use."));
+                addRisk(risks, emitted, risk("COMPLEX_QUERY_GRAPH_RISK", "HIGH", "复杂查询图风险",
+                    "subqueryCount=" + profile.getSubqueryCount() + "，谓词数=" + profile.getPredicateCount(),
+                    "在线使用前请将查询拆成已评审阶段。"));
             }
         }
         return risks;
@@ -2257,7 +2257,7 @@ public class StructureParseApplicationService {
             );
         } catch (RuntimeException ex) {
             LOGGER.warn(
-                "operation=STRUCTURE_PARSE_HISTORY_WRITE entity={} tenantId={} status=DEGRADED reason={}",
+                "操作日志 operation=STRUCTURE_PARSE_HISTORY_WRITE entity={} tenantId={} status=DEGRADED reason={}",
                 response.getParseTaskId(),
                 RequestContext.getTenantId(),
                 ex.getMessage()
@@ -2310,7 +2310,7 @@ public class StructureParseApplicationService {
             triggerRewriteRecommendation(structureParse, request, sourceType, sourceId, batchKey);
         } catch (RuntimeException ex) {
             LOGGER.warn(
-                "operation=STRUCTURE_ACCESS_PARSE_HISTORY_WRITE entity={} tenantId={} status=DEGRADED reason={}",
+                "操作日志 operation=STRUCTURE_ACCESS_PARSE_HISTORY_WRITE entity={} tenantId={} status=DEGRADED reason={}",
                 structureParse.getParseTaskId(),
                 RequestContext.getTenantId(),
                 ex.getMessage()

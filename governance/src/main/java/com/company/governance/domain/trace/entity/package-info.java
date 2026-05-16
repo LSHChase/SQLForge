@@ -1,4 +1,4 @@
 /**
- * Domain entities for governance traceability persistence.
+ * 治理追溯持久化领域实体。
  */
 package com.company.governance.domain.trace.entity;

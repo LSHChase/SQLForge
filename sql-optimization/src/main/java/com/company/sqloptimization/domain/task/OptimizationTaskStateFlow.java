@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Centralized transition guard for optimization task statuses and task-type-specific phases.
+ * 优化任务状态与任务类型专属阶段的集中流转防护。
  */
 public final class OptimizationTaskStateFlow {
 
@@ -70,8 +70,8 @@ public final class OptimizationTaskStateFlow {
                                      OptimizationTaskPhase currentPhase) {
         if (currentStatus != OptimizationTaskStatus.QUEUED || currentPhase != OptimizationTaskPhase.SUBMITTED) {
             throw invalidTransition(
-                "Optimization task can only start from QUEUED/SUBMITTED. taskType=" + taskType
-                    + ", status=" + currentStatus
+                "优化任务只能从 QUEUED/SUBMITTED 状态启动。taskType=" + taskType
+                    + "，状态=" + currentStatus
                     + ", phase=" + currentPhase
             );
         }
@@ -83,8 +83,8 @@ public final class OptimizationTaskStateFlow {
                                             OptimizationTaskPhase nextPhase) {
         if (currentStatus != OptimizationTaskStatus.RUNNING) {
             throw invalidTransition(
-                "Optimization task can only advance phases while RUNNING. taskType=" + taskType
-                    + ", status=" + currentStatus
+                "优化任务只能在 RUNNING 状态推进阶段。taskType=" + taskType
+                    + "，状态=" + currentStatus
                     + ", phase=" + currentPhase
             );
         }
@@ -93,7 +93,7 @@ public final class OptimizationTaskStateFlow {
         int nextIndex = phaseFlow.indexOf(nextPhase);
         if (currentIndex < 0 || nextIndex != currentIndex + 1 || nextPhase == OptimizationTaskPhase.FINISHED) {
             throw invalidTransition(
-                "Unsupported phase transition for taskType=" + taskType
+                "不支持该 taskType 的阶段流转：" + taskType
                     + ": " + currentPhase + " -> " + nextPhase
             );
         }
@@ -104,15 +104,15 @@ public final class OptimizationTaskStateFlow {
                                           OptimizationTaskPhase currentPhase) {
         if (currentStatus != OptimizationTaskStatus.RUNNING) {
             throw invalidTransition(
-                "Optimization task can only complete while RUNNING. taskType=" + taskType
-                    + ", status=" + currentStatus
+                "优化任务只能在 RUNNING 状态完成。taskType=" + taskType
+                    + "，状态=" + currentStatus
                     + ", phase=" + currentPhase
             );
         }
         List<OptimizationTaskPhase> phaseFlow = supportedPhaseFlow(taskType);
         if (phaseFlow.get(phaseFlow.size() - 2) != currentPhase) {
             throw invalidTransition(
-                "Optimization task can only finish from the final processing phase. taskType=" + taskType
+                "优化任务只能从最终处理阶段结束。taskType=" + taskType
                     + ", phase=" + currentPhase
             );
         }
@@ -120,7 +120,7 @@ public final class OptimizationTaskStateFlow {
 
     public static void validateTermination(OptimizationTaskStatus currentStatus) {
         if (currentStatus.isTerminal()) {
-            throw invalidTransition("Optimization task is already terminal. status=" + currentStatus);
+            throw invalidTransition("优化任务已是终态。status=" + currentStatus);
         }
     }
 

@@ -43,7 +43,7 @@ public class ModeRoutingQueryExecutionAdapter implements QueryExecutionAdapter {
         HetuRouteCalibrationSnapshot calibrationSnapshot = hetuRouteCalibrationService.currentSnapshot();
         if (!calibrationSnapshot.isEnabled()) {
             throw new HetuExecutionUnavailableException(
-                "Hetu execution chain is disabled for the current environment",
+                "当前环境已禁用 Hetu 执行链路",
                 java.util.Collections.singletonList("CHAIN_DISABLED"),
                 calibrationSnapshot.getRouteProfile(),
                 calibrationSnapshot.routeOrderNames(),
@@ -53,7 +53,7 @@ public class ModeRoutingQueryExecutionAdapter implements QueryExecutionAdapter {
         }
         if (calibrationSnapshot.getEffectiveRouteOrder().isEmpty()) {
             throw new HetuExecutionUnavailableException(
-                "No Hetu execution mode is configured for the current environment",
+                "当前环境未配置 Hetu 执行模式",
                 java.util.Collections.singletonList("CHAIN_UNCONFIGURED"),
                 calibrationSnapshot.getRouteProfile(),
                 calibrationSnapshot.routeOrderNames(),
@@ -90,7 +90,7 @@ public class ModeRoutingQueryExecutionAdapter implements QueryExecutionAdapter {
         }
         if (lastFailure != null) {
             throw new HetuExecutionUnavailableException(
-                "No calibrated Hetu execution mode succeeded. attemptedModes=" + attemptedModes,
+                "已校准的 Hetu 执行模式均未成功，attemptedModes=" + attemptedModes,
                 attemptedModes,
                 lastFailure,
                 calibrationSnapshot.getRouteProfile(),
@@ -100,7 +100,7 @@ public class ModeRoutingQueryExecutionAdapter implements QueryExecutionAdapter {
             );
         }
         throw new HetuExecutionUnavailableException(
-            "No calibrated Hetu execution mode is currently routable",
+            "当前没有可路由的已校准 Hetu 执行模式",
             attemptedModes,
             calibrationSnapshot.getRouteProfile(),
             calibrationSnapshot.routeOrderNames(),

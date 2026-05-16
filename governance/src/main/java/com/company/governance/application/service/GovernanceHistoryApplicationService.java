@@ -229,7 +229,7 @@ public class GovernanceHistoryApplicationService {
                 break;
             }
         }
-        LOGGER.info("Loaded governance trace summaries, tenantId={}, count={}, traceIdSample={}",
+        LOGGER.info("已加载治理追溯摘要，tenantId={}, count={}, traceIdSample={}",
             effectiveTenantId,
             Integer.valueOf(summaries.size()),
             summaries.isEmpty() ? "-" : summaries.get(0).getTraceId());
@@ -378,7 +378,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "governance sql-optimization client is not configured"
+                "governance 的 sql-optimization 客户端未配置"
             );
         }
         if (Boolean.FALSE.equals(hasRewriteRecord)) {
@@ -424,7 +424,7 @@ public class GovernanceHistoryApplicationService {
     }
 
     public static String allowedHistoryTypeMessage() {
-        return "historyType must be one of " + String.join("/", ALLOWED_HISTORY_TYPES);
+        return "historyType 必须是以下值之一：" + String.join("/", ALLOWED_HISTORY_TYPES);
     }
 
     public static String normalizeHistoryTypeFilter(String historyType) {
@@ -449,7 +449,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "historyId must not be empty"
+                "historyId 不能为空"
             );
         }
         GovernanceQueryHistoryProjection row =
@@ -458,7 +458,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.NOT_FOUND,
-                "query history record does not exist"
+                "查询历史记录不存在"
             );
         }
         QueryHistoryRecord historyRecord = queryHistoryMapper.selectById(historyId.trim());
@@ -477,7 +477,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "historyId must not be empty"
+                "historyId 不能为空"
             );
         }
         GovernanceQueryHistoryProjection row =
@@ -486,14 +486,14 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.NOT_FOUND,
-                "query history record does not exist"
+                "查询历史记录不存在"
             );
         }
         if (governanceSqlOptimizationClient == null) {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "governance sql-optimization client is not configured"
+                "governance 的 sql-optimization 客户端未配置"
             );
         }
         List<SqlOptimizationRewriteRecordResponse> records =
@@ -523,7 +523,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "historyId must not be empty"
+                "historyId 不能为空"
             );
         }
         String exportFormat = requireSupportedExportFormat(request == null ? null : request.getExportFormat());
@@ -532,7 +532,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.NOT_FOUND,
-                "query history record does not exist"
+                "查询历史记录不存在"
             );
         }
         QueryHistoryRecord historyRecord = queryHistoryMapper.selectById(historyId);
@@ -599,14 +599,14 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "one of traceId, taskId, or reportId must be provided"
+                "必须提供 traceId、taskId 或 reportId 中的一个"
             );
         }
         if (windowStartAt != null && windowEndAt != null && windowStartAt.isAfter(windowEndAt)) {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "windowStart must not be later than windowEnd"
+                "windowStart 不能晚于 windowEnd"
             );
         }
 
@@ -618,7 +618,7 @@ public class GovernanceHistoryApplicationService {
                 && aggregate.matchesLookupCriteria(normalizedTraceId, normalizedTaskId, normalizedReportId)) {
                 items.add(aggregate.toSummaryVO());
             }
-            LOGGER.info("Loaded governance trace lookup, tenantId={}, traceId={}, taskId={}, reportId={}, count={}, mode=TRACE",
+            LOGGER.info("已加载治理追溯查询结果，tenantId={}, traceId={}, taskId={}, reportId={}, count={}, mode=TRACE",
                 effectiveTenantId,
                 normalizedTraceId,
                 StringUtils.hasText(normalizedTaskId) ? normalizedTaskId : "-",
@@ -638,7 +638,7 @@ public class GovernanceHistoryApplicationService {
             resolvedLimit + LOOKUP_PAGE_FETCH_OVERFLOW
         );
         if (hits.isEmpty()) {
-            LOGGER.info("Loaded governance trace lookup, tenantId={}, traceId=-, taskId={}, reportId={}, count=0, mode=INDEXED",
+            LOGGER.info("已加载治理追溯索引查询结果，tenantId={}, traceId=-, taskId={}, reportId={}, count=0, mode=INDEXED",
                 effectiveTenantId,
                 StringUtils.hasText(normalizedTaskId) ? normalizedTaskId : "-",
                 StringUtils.hasText(normalizedReportId) ? normalizedReportId : "-");
@@ -679,7 +679,7 @@ public class GovernanceHistoryApplicationService {
         }
 
         String nextCursorValue = hasMore ? encodeCursor(lastReturnedHit) : null;
-        LOGGER.info("Loaded governance trace lookup, tenantId={}, traceId=-, taskId={}, reportId={}, count={}, hasMore={}, mode=INDEXED",
+        LOGGER.info("已加载治理追溯索引查询结果，tenantId={}, traceId=-, taskId={}, reportId={}, count={}, hasMore={}, mode=INDEXED",
             effectiveTenantId,
             StringUtils.hasText(normalizedTaskId) ? normalizedTaskId : "-",
             StringUtils.hasText(normalizedReportId) ? normalizedReportId : "-",
@@ -694,7 +694,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "traceId must not be empty"
+                "traceId 不能为空"
             );
         }
 
@@ -704,7 +704,7 @@ public class GovernanceHistoryApplicationService {
         mergeQueryHistories(aggregate, queryHistoryMapper.selectByTraceId(effectiveTenantId, traceId.trim(), resolvedLimit));
         mergeExportRecords(aggregate, exportRecordMapper.selectByTraceId(effectiveTenantId, traceId.trim(), resolvedLimit));
 
-        LOGGER.info("Loaded governance trace detail, tenantId={}, traceId={}, auditEvents={}, histories={}, exports={}",
+        LOGGER.info("已加载治理追溯详情，tenantId={}, traceId={}, auditEvents={}, histories={}, exports={}",
             effectiveTenantId,
             traceId,
             Integer.valueOf(aggregate.getAuditEventCount()),
@@ -720,7 +720,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID,
                 HttpStatus.SERVICE_UNAVAILABLE,
-                "Governance benchmark-engine client is unavailable"
+                "治理侧 benchmark-engine 客户端不可用"
             );
         }
         String effectiveTenantId = resolveAuthorizedTenantId(trimToNull(request == null ? null : request.getTenantId()));
@@ -746,7 +746,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID,
                 HttpStatus.SERVICE_UNAVAILABLE,
-                "Governance benchmark-engine client is unavailable"
+                "治理侧 benchmark-engine 客户端不可用"
             );
         }
         String effectiveTenantId = resolveAuthorizedTenantId(trimToNull(request == null ? null : request.getTenantId()));
@@ -758,7 +758,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "artifact batch operation targets must not be empty"
+                "产物批处理目标不能为空"
             );
         }
 
@@ -790,7 +790,7 @@ public class GovernanceHistoryApplicationService {
                     batchIndex,
                     batchSize,
                     null,
-                    "reportId and artifactKey must not be empty"
+                    "reportId 和 artifactKey 不能为空"
                 ));
                 continue;
             }
@@ -806,7 +806,7 @@ public class GovernanceHistoryApplicationService {
                     batchId,
                     batchIndex,
                     batchSize,
-                    "Duplicate target suppressed by governance batch orchestration"
+                    "治理批处理编排已忽略重复目标"
                 ));
                 continue;
             }
@@ -837,7 +837,7 @@ public class GovernanceHistoryApplicationService {
                         batchIndex,
                         batchSize,
                         null,
-                        "Benchmark-engine artifact operation returned no response"
+                        "压测引擎产物操作未返回响应"
                     ));
                     continue;
                 }
@@ -993,7 +993,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "Tenant context is missing"
+                "租户上下文缺失"
             );
         }
         if (!platformAdmin && !tenantAdmin && !operator) {
@@ -1029,7 +1029,7 @@ public class GovernanceHistoryApplicationService {
         throw new BizException(
             ErrorCodeConstants.GOVERNANCE_ACCESS_DENIED,
             HttpStatus.FORBIDDEN,
-            "current role cannot trigger artifact cleanup or recovery"
+            "当前角色无权触发产物清理或恢复"
         );
     }
 
@@ -1192,7 +1192,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " is invalid"
+                fieldName + " 无效"
             );
         }
     }
@@ -1207,7 +1207,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " is invalid"
+                fieldName + " 无效"
             );
         }
     }
@@ -1243,7 +1243,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "lookup cursor is invalid"
+                "lookup cursor 无效"
             );
         }
         try {
@@ -1252,7 +1252,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "lookup cursor is invalid"
+                "lookup cursor 无效"
             );
         }
     }
@@ -1917,7 +1917,7 @@ public class GovernanceHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "exportFormat must not be empty"
+                "exportFormat 不能为空"
             );
         }
         if ("CSV".equalsIgnoreCase(normalized)
@@ -1930,7 +1930,7 @@ public class GovernanceHistoryApplicationService {
         throw new BizException(
             ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
             HttpStatus.BAD_REQUEST,
-            "unsupported exportFormat"
+            "不支持的 exportFormat"
         );
     }
 
@@ -1941,21 +1941,21 @@ public class GovernanceHistoryApplicationService {
         }
         if ("SQL_TEXT".equals(exportFormat)) {
             StringBuilder builder = new StringBuilder();
-            builder.append("-- history_id=").append(detail.getHistoryId()).append('\n');
-            builder.append("-- report_code=").append(firstNonBlank(detail.getReportCode(), "-")).append('\n');
-            builder.append("-- datasource=").append(firstNonBlank(detail.getDatasourceCode(), "-")).append('\n');
-            builder.append("-- logical_object_keys=").append(firstNonBlank(logicalObjectSummary, "-")).append('\n');
-            builder.append("-- rewrite_applied=").append(rewriteAuditText(detail, "rewriteApplied", "false")).append('\n');
-            builder.append("-- rewrite_record_id=").append(rewriteAuditText(detail, "rewriteRecordId", "-")).append('\n');
-            builder.append("-- runtime_binding_id=").append(rewriteAuditText(detail, "runtimeBindingId", "-")).append('\n');
-            builder.append("-- rule_version=").append(rewriteAuditText(detail, "ruleVersion", "-")).append('\n');
-            builder.append("-- runtime_rule_version=").append(rewriteAuditText(detail, "runtimeRuleVersion", "-")).append('\n');
-            builder.append("-- publish_status_snapshot=").append(rewriteAuditText(detail, "publishStatusSnapshot", "-")).append('\n');
-            builder.append('\n').append("-- sql_text").append('\n').append(firstNonBlank(detail.getSqlText(), "-- unavailable"));
-            builder.append('\n').append('\n').append("-- sql_template_text").append('\n')
-                .append(firstNonBlank(detail.getSqlTemplateText(), "-- unavailable"));
-            builder.append('\n').append('\n').append("-- bound_sql_text").append('\n')
-                .append(firstNonBlank(detail.getBoundSqlText(), "-- unavailable"));
+            builder.append("-- 历史 ID history_id=").append(detail.getHistoryId()).append('\n');
+            builder.append("-- 报表编码 report_code=").append(firstNonBlank(detail.getReportCode(), "-")).append('\n');
+            builder.append("-- 数据源 datasource=").append(firstNonBlank(detail.getDatasourceCode(), "-")).append('\n');
+            builder.append("-- 逻辑对象键 logical_object_keys=").append(firstNonBlank(logicalObjectSummary, "-")).append('\n');
+            builder.append("-- 是否应用改写 rewrite_applied=").append(rewriteAuditText(detail, "rewriteApplied", "false")).append('\n');
+            builder.append("-- 改写记录 ID rewrite_record_id=").append(rewriteAuditText(detail, "rewriteRecordId", "-")).append('\n');
+            builder.append("-- 运行时绑定 ID runtime_binding_id=").append(rewriteAuditText(detail, "runtimeBindingId", "-")).append('\n');
+            builder.append("-- 规则版本 rule_version=").append(rewriteAuditText(detail, "ruleVersion", "-")).append('\n');
+            builder.append("-- 运行时规则版本 runtime_rule_version=").append(rewriteAuditText(detail, "runtimeRuleVersion", "-")).append('\n');
+            builder.append("-- 发布状态快照 publish_status_snapshot=").append(rewriteAuditText(detail, "publishStatusSnapshot", "-")).append('\n');
+            builder.append('\n').append("-- SQL 文本 sql_text").append('\n').append(firstNonBlank(detail.getSqlText(), "-- 不可用"));
+            builder.append('\n').append('\n').append("-- SQL 模板文本 sql_template_text").append('\n')
+                .append(firstNonBlank(detail.getSqlTemplateText(), "-- 不可用"));
+            builder.append('\n').append('\n').append("-- 绑定后 SQL 文本 bound_sql_text").append('\n')
+                .append(firstNonBlank(detail.getBoundSqlText(), "-- 不可用"));
             return builder.toString();
         }
         if ("CSV".equals(exportFormat)) {
@@ -1998,21 +1998,21 @@ public class GovernanceHistoryApplicationService {
                 + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("accelerationApplied")), "") + "\t"
                 + firstNonBlank(logicalObjectSummary, "");
         }
-        return "SQL History Evidentiary Report\n"
-            + "historyId: " + firstNonBlank(detail.getHistoryId(), "-") + "\n"
-            + "reportCode: " + firstNonBlank(detail.getReportCode(), "-") + "\n"
-            + "datasourceCode: " + firstNonBlank(detail.getDatasourceCode(), "-") + "\n"
-            + "resultStatus: " + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("status")), "-") + "\n"
-            + "targetEngine: " + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("targetEngine")), "-") + "\n"
-            + "rewriteApplied: " + rewriteAuditText(detail, "rewriteApplied", "false") + "\n"
-            + "rewriteRecordId: " + rewriteAuditText(detail, "rewriteRecordId", "-") + "\n"
-            + "runtimeBindingId: " + rewriteAuditText(detail, "runtimeBindingId", "-") + "\n"
-            + "ruleVersion: " + rewriteAuditText(detail, "ruleVersion", "-") + "\n"
-            + "runtimeRuleVersion: " + rewriteAuditText(detail, "runtimeRuleVersion", "-") + "\n"
-            + "publishStatusSnapshot: " + rewriteAuditText(detail, "publishStatusSnapshot", "-") + "\n"
-            + "logicalObjectKeys: " + firstNonBlank(logicalObjectSummary, "-") + "\n"
-            + "queryDateStatus: " + firstNonBlank(String.valueOf(detail.getQueryDateSummary().get("queryDateStatus")), "-") + "\n"
-            + "note: PDF baseline is emitted as an inline textual evidence payload in phase 1.\n";
+        return "SQL 历史证据报告\n"
+            + "历史 ID historyId: " + firstNonBlank(detail.getHistoryId(), "-") + "\n"
+            + "报表编码 reportCode: " + firstNonBlank(detail.getReportCode(), "-") + "\n"
+            + "数据源编码 datasourceCode: " + firstNonBlank(detail.getDatasourceCode(), "-") + "\n"
+            + "结果状态 resultStatus: " + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("status")), "-") + "\n"
+            + "目标引擎 targetEngine: " + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("targetEngine")), "-") + "\n"
+            + "是否应用改写 rewriteApplied: " + rewriteAuditText(detail, "rewriteApplied", "false") + "\n"
+            + "改写记录 ID rewriteRecordId: " + rewriteAuditText(detail, "rewriteRecordId", "-") + "\n"
+            + "运行时绑定 ID runtimeBindingId: " + rewriteAuditText(detail, "runtimeBindingId", "-") + "\n"
+            + "规则版本 ruleVersion: " + rewriteAuditText(detail, "ruleVersion", "-") + "\n"
+            + "运行时规则版本 runtimeRuleVersion: " + rewriteAuditText(detail, "runtimeRuleVersion", "-") + "\n"
+            + "发布状态快照 publishStatusSnapshot: " + rewriteAuditText(detail, "publishStatusSnapshot", "-") + "\n"
+            + "逻辑对象键 logicalObjectKeys: " + firstNonBlank(logicalObjectSummary, "-") + "\n"
+            + "查询日期状态 queryDateStatus: " + firstNonBlank(String.valueOf(detail.getQueryDateSummary().get("queryDateStatus")), "-") + "\n"
+            + "备注：阶段 1 的 PDF 基线以内联文本证据载荷形式输出。\n";
     }
 
     private String rewriteAuditText(GovernanceQueryHistoryDetailVO detail, String key, String fallback) {
@@ -2215,7 +2215,7 @@ public class GovernanceHistoryApplicationService {
         throw new BizException(
             ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
             HttpStatus.BAD_REQUEST,
-            "Unsupported governance artifact batch operationType: " + operationType
+            "不支持的治理产物批处理 operationType：" + operationType
         );
     }
 

@@ -13,16 +13,16 @@ import javax.validation.constraints.Size;
 
 public class BenchmarkTaskSubmitRequest {
 
-    @NotBlank(message = "tenantId is required")
+    @NotBlank(message = "tenantId 为必填项")
     private String tenantId;
 
-    @NotNull(message = "taskType is required")
+    @NotNull(message = "taskType 为必填项")
     private BenchmarkTaskType taskType;
 
-    @Size(max = 10485760, message = "sqlText exceeds 10MB limit")
+    @Size(max = 10485760, message = "sqlText 超过 10MB 限制")
     private String sqlText;
 
-    @Size(max = 128, message = "sqlFingerprint exceeds 128 characters")
+    @Size(max = 128, message = "sqlFingerprint 超过 128 个字符")
     private String sqlFingerprint;
 
     @Valid
@@ -68,12 +68,12 @@ public class BenchmarkTaskSubmitRequest {
         this.taskContext = taskContext == null ? new BenchmarkTaskContextDTO() : taskContext;
     }
 
-    @AssertTrue(message = "Either sqlText or sqlFingerprint must be provided")
+    @AssertTrue(message = "必须提供 sqlText 或 sqlFingerprint")
     public boolean isSqlIdentityProvided() {
         return hasText(sqlText) || hasText(sqlFingerprint);
     }
 
-    @AssertTrue(message = "templateType must match benchmark taskType")
+    @AssertTrue(message = "templateType 必须与压测 taskType 匹配")
     public boolean isTemplateTypeCompatible() {
         if (taskType == null || taskContext == null || taskContext.getTemplateType() == null) {
             return true;
@@ -91,7 +91,7 @@ public class BenchmarkTaskSubmitRequest {
         }
     }
 
-    @AssertTrue(message = "comparison template requires at least two target engines")
+    @AssertTrue(message = "对比模板至少需要两个目标引擎")
     public boolean isComparisonTemplateEngineSetCompatible() {
         if (taskContext == null || taskContext.getTemplateType() != BenchmarkTemplateType.CROSS_ENGINE_COMPARISON) {
             return true;
@@ -100,7 +100,7 @@ public class BenchmarkTaskSubmitRequest {
         return targetEngines != null && targetEngines.size() >= 2;
     }
 
-    @AssertTrue(message = "regression guard template requires at least one threshold")
+    @AssertTrue(message = "回归防护模板至少需要一个阈值")
     public boolean isRegressionTemplateThresholdCompatible() {
         if (taskContext == null || taskContext.getTemplateType() != BenchmarkTemplateType.REGRESSION_GUARD) {
             return true;
@@ -109,7 +109,7 @@ public class BenchmarkTaskSubmitRequest {
         return thresholds != null && !thresholds.isEmpty();
     }
 
-    @AssertTrue(message = "derived testSet source requires source references")
+    @AssertTrue(message = "派生测试集来源必须提供来源引用")
     public boolean isDerivedTestSetReferenceComplete() {
         if (taskContext == null || taskContext.getTestSetSource() == null) {
             return true;
@@ -121,7 +121,7 @@ public class BenchmarkTaskSubmitRequest {
         return refs != null && !refs.isEmpty();
     }
 
-    @AssertTrue(message = "recommendation-generated testSet requires a recommendation reference")
+    @AssertTrue(message = "推荐生成的测试集必须提供推荐引用")
     public boolean isRecommendationTestSetReferenceCompatible() {
         if (taskContext == null || taskContext.getTestSetSource() != BenchmarkTestSetSource.RECOMMENDATION_GENERATION) {
             return true;
@@ -129,7 +129,7 @@ public class BenchmarkTaskSubmitRequest {
         return hasReferenceType(taskContext.getTestSetSourceRefs(), BenchmarkSourceReferenceType.RECOMMENDATION);
     }
 
-    @AssertTrue(message = "parse-generated testSet requires parse/history/report/sql references")
+    @AssertTrue(message = "解析生成的测试集必须提供 parse、history、report 或 sql 引用")
     public boolean isParseGeneratedTestSetReferenceCompatible() {
         if (taskContext == null || taskContext.getTestSetSource() != BenchmarkTestSetSource.PARSE_RESULT_GENERATION) {
             return true;
@@ -140,7 +140,7 @@ public class BenchmarkTaskSubmitRequest {
             || hasReferenceType(taskContext.getTestSetSourceRefs(), BenchmarkSourceReferenceType.SQL_FINGERPRINT);
     }
 
-    @AssertTrue(message = "batch-import testSet requires an import batch reference")
+    @AssertTrue(message = "批量导入测试集必须提供导入批次引用")
     public boolean isBatchImportTestSetReferenceCompatible() {
         if (taskContext == null || taskContext.getTestSetSource() != BenchmarkTestSetSource.BATCH_IMPORT) {
             return true;

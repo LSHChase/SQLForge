@@ -125,7 +125,7 @@ public class MybatisReportBatchRepository implements ReportBatchRepository {
             }
             return history;
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize report batch status history", ex);
+            throw new IllegalArgumentException("报表批次状态历史反序列化失败", ex);
         }
     }
 

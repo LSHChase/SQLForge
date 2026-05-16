@@ -9,19 +9,19 @@ import javax.validation.constraints.Size;
 
 public class BenchmarkThresholdDTO {
 
-    @NotNull(message = "threshold metric is required")
+    @NotNull(message = "threshold 指标为必填项")
     private BenchmarkThresholdMetric metric;
 
-    @NotNull(message = "threshold operator is required")
+    @NotNull(message = "threshold 操作符为必填项")
     private BenchmarkThresholdOperator operator;
 
-    @NotNull(message = "threshold targetValue is required")
+    @NotNull(message = "threshold 目标值为必填项")
     private BigDecimal targetValue;
 
-    @NotNull(message = "threshold severity is required")
+    @NotNull(message = "threshold 严重级别为必填项")
     private BenchmarkThresholdSeverity severity;
 
-    @Size(max = 255, message = "threshold description exceeds 255 characters")
+    @Size(max = 255, message = "threshold 描述超过 255 个字符")
     private String description;
 
     public BenchmarkThresholdMetric getMetric() {

@@ -1,7 +1,7 @@
 package com.company.sqloptimization.domain.task;
 
 /**
- * Supported acceleration-suggestion categories.
+ * 受支持的加速建议类别。
  */
 public enum AccelerationSuggestionType {
     PRECOMPUTE,

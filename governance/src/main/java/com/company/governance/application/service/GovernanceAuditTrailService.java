@@ -54,11 +54,11 @@ public class GovernanceAuditTrailService {
     private static final String AUTH_TARGET_TYPE = "AUTH_REQUEST";
     private static final String AUTH_LOGIN_OPERATION = "LOGIN";
     private static final String AUTH_LOGOUT_OPERATION = "LOGOUT";
-    private static final String AUTH_LOGIN_FAILURE_SUMMARY = "Authentication request rejected before protected context was established";
-    private static final String AUTH_LOGIN_SUCCESS_SUMMARY = "Protected request context established through stateless header authentication";
-    private static final String AUTH_LOGOUT_SUMMARY = "Protected request context released after request completion";
+    private static final String AUTH_LOGIN_FAILURE_SUMMARY = "建立受保护上下文前，认证请求已被拒绝";
+    private static final String AUTH_LOGIN_SUCCESS_SUMMARY = "已通过无状态请求头认证建立受保护请求上下文";
+    private static final String AUTH_LOGOUT_SUMMARY = "请求完成后已释放受保护请求上下文";
     private static final String GOVERNANCE_AUDIT_ROUTE_UNAVAILABLE_MESSAGE =
-        "Governance audit contract route is unavailable";
+        "治理审计契约路由不可用";
     private static final String UNKNOWN_VALUE = "UNKNOWN";
 
     private final GovernanceProtectedPersistenceService governanceProtectedPersistenceService;
@@ -180,7 +180,7 @@ public class GovernanceAuditTrailService {
         publishAuditEvent(tenantId, userId, requestId, traceId, serviceCode, operationCode, resourceType, resourceId,
             resultStatus, elapsedMs, accessAuditContract.getAccessChannel().name(), accessAuditContract.getAuthSource(),
             sourceIp, userAgent);
-        LOGGER.info("Persisted governance audit record, auditId={}, serviceCode={}, operationCode={}, status={}",
+        LOGGER.info("治理审计记录已持久化，auditId={}, serviceCode={}, operationCode={}, status={}",
             auditLogRecord.getId(), serviceCode, operationCode, resultStatus);
         return new AuditWriteResponse(
             auditLogRecord.getId(),
@@ -272,7 +272,7 @@ public class GovernanceAuditTrailService {
             resolveSourceIp(request),
             resolveUserAgent(request)
         ));
-        LOGGER.info("Persisted authentication audit record, auditId={}, operationType={}, status={}, uri={}",
+        LOGGER.info("认证审计记录已持久化，auditId={}, operationType={}, status={}, uri={}",
             auditLogRecord.getId(), operationType, resultStatus, requestUri);
     }
 
@@ -313,7 +313,7 @@ public class GovernanceAuditTrailService {
         headers.put("requestId", requestId);
         try {
             if (shouldForcePrimaryDeliveryFailure(traceId)) {
-                throw new IllegalStateException("Simulated primary audit delivery failure for smoke verification");
+                throw new IllegalStateException("用于 smoke 验证的主审计投递模拟失败");
             }
             messageProducer.send(
                 GovernanceMessagingTopics.AUDIT_EVENT,
@@ -349,7 +349,7 @@ public class GovernanceAuditTrailService {
             }
             messageQueueRepository.enqueueMessage(fallbackMessage);
             metricsRecorder.recordAuditFallback();
-            LOGGER.warn("Primary audit message delivery failed, queued fallback message, tenantId={}, reason={}",
+            LOGGER.warn("主审计消息投递失败，已写入兜底队列，tenantId={}, reason={}",
                 tenantId, failure.getMessage());
         } catch (RuntimeException fallbackEx) {
             throw new BizException(
@@ -413,7 +413,7 @@ public class GovernanceAuditTrailService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID,
                 HttpStatus.BAD_REQUEST,
-                "accessChannel must be one of PAGE/API/JDBC_AGENT/SDK/CLIENT"
+                "accessChannel 必须是 PAGE/API/JDBC_AGENT/SDK/CLIENT 之一"
             );
         }
         accessChannel = AccessChannel.fromWireValue(RequestMetadataContext.getAccessChannel());
@@ -500,7 +500,7 @@ public class GovernanceAuditTrailService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_MESSAGE_MODE_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "Messaging mode is not configured"
+                "消息模式未配置"
             );
         }
         return messagingMode;
@@ -511,7 +511,7 @@ public class GovernanceAuditTrailService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "Protected request context is missing: " + fieldName
+                "受保护请求上下文缺失：" + fieldName
             );
         }
         return value;
@@ -522,7 +522,7 @@ public class GovernanceAuditTrailService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " must not be empty"
+                fieldName + " 不能为空"
             );
         }
         return value;
@@ -533,7 +533,7 @@ public class GovernanceAuditTrailService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID,
                 HttpStatus.BAD_REQUEST,
-                "elapsedMs must not be negative"
+                "elapsedMs 不能为负数"
             );
         }
         return elapsedMs.longValue();
@@ -543,7 +543,7 @@ public class GovernanceAuditTrailService {
         return new BizException(
             ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID,
             HttpStatus.BAD_REQUEST,
-            fieldName + " does not reference an existing traceability record: " + fieldValue
+            fieldName + " 未引用已存在的追溯记录：" + fieldValue
         );
     }
 

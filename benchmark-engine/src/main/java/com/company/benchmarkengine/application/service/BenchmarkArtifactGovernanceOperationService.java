@@ -70,7 +70,7 @@ public class BenchmarkArtifactGovernanceOperationService {
             throw new BizException(
                 ErrorCodeConstants.BENCHMARK_REPORT_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Benchmark report artifact does not exist for reportId=" + reportId + ", artifactKey=" + artifactKey
+                "压测报告制品不存在，reportId=" + reportId + ", artifactKey=" + artifactKey
             );
         }
         try {
@@ -191,7 +191,7 @@ public class BenchmarkArtifactGovernanceOperationService {
             throw new BizException(
                 ErrorCodeConstants.BENCHMARK_REPORT_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Benchmark report does not exist for reportId=" + reportId
+                "压测报告不存在，reportId=" + reportId
             );
         }
         verifyTenantAccess(report.getTenantId());
@@ -204,11 +204,11 @@ public class BenchmarkArtifactGovernanceOperationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (!contextTenantId.equals(resourceTenantId)) {
-            throw new AccessDeniedException("Authenticated tenant cannot access this benchmark report");
+            throw new AccessDeniedException("当前认证租户无权访问该压测报告");
         }
     }
 
@@ -360,7 +360,7 @@ public class BenchmarkArtifactGovernanceOperationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "Unsupported benchmark artifact operationType: " + operationType
+                "不支持的压测制品 operationType：" + operationType
             );
         }
         return normalized;
@@ -378,7 +378,7 @@ public class BenchmarkArtifactGovernanceOperationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "Unsupported benchmark artifact cleanupScope: " + cleanupScope
+                "不支持的压测制品 cleanupScope：" + cleanupScope
             );
         }
         return normalized;
@@ -389,7 +389,7 @@ public class BenchmarkArtifactGovernanceOperationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " must not be empty"
+                fieldName + " 不能为空"
             );
         }
         return value;

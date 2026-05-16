@@ -141,7 +141,7 @@ public class GovernanceSqlRewriteDivergenceAlertApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " must not be empty"
+                fieldName + " 不能为空"
             );
         }
         return value.trim();
@@ -153,14 +153,14 @@ public class GovernanceSqlRewriteDivergenceAlertApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "protected governance request context is missing"
+                "受保护治理请求上下文缺失"
             );
         }
         if (!tenantId.equals(contextTenantId)) {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.FORBIDDEN,
-                "request tenantId does not match protected context"
+                "请求 tenantId 与受保护上下文不一致"
             );
         }
     }

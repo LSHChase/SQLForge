@@ -218,19 +218,19 @@ public class DatasourceConfigApplicationService {
 
     private void validateConnectionFields(String connectionMode, DatasourceConfigUpsertRequest request) {
         if ("JDBC".equals(connectionMode) && !StringUtils.hasText(request.getJdbcUrl())) {
-            throw invalidArgument("jdbcUrl", "jdbcUrl is required for JDBC datasource config");
+            throw invalidArgument("jdbcUrl", "JDBC 数据源配置必须提供 jdbcUrl");
         }
         if (("API".equals(connectionMode) || "REST".equals(connectionMode)) && !StringUtils.hasText(request.getApiBaseUrl())) {
-            throw invalidArgument("apiBaseUrl", "apiBaseUrl is required for API/REST datasource config");
+            throw invalidArgument("apiBaseUrl", "API/REST 数据源配置必须提供 apiBaseUrl");
         }
         if ("CLIENT".equals(connectionMode) && !StringUtils.hasText(request.getClientEndpoint())) {
-            throw invalidArgument("clientEndpoint", "clientEndpoint is required for CLIENT datasource config");
+            throw invalidArgument("clientEndpoint", "CLIENT 数据源配置必须提供 clientEndpoint");
         }
         if ("GATEWAY".equals(connectionMode) && !StringUtils.hasText(request.getGatewayEndpoint())) {
-            throw invalidArgument("gatewayEndpoint", "gatewayEndpoint is required for GATEWAY datasource config");
+            throw invalidArgument("gatewayEndpoint", "GATEWAY 数据源配置必须提供 gatewayEndpoint");
         }
         if ("PROXY".equals(connectionMode) && !StringUtils.hasText(request.getProxyEndpoint())) {
-            throw invalidArgument("proxyEndpoint", "proxyEndpoint is required for PROXY datasource config");
+            throw invalidArgument("proxyEndpoint", "PROXY 数据源配置必须提供 proxyEndpoint");
         }
     }
 
@@ -271,7 +271,7 @@ public class DatasourceConfigApplicationService {
             .orElseThrow(() -> new BizException(
                 ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Datasource config not found: " + datasourceId
+                "数据源配置不存在：" + datasourceId
             ));
     }
 
@@ -312,11 +312,11 @@ public class DatasourceConfigApplicationService {
         String contextTenantId = RequestContext.getTenantId();
         if (!StringUtils.hasText(contextTenantId)) {
             throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context");
+                "已认证请求上下文缺少 tenantId");
         }
         String normalized = trimToNull(requestTenantId);
         if (StringUtils.hasText(normalized) && !contextTenantId.equals(normalized)) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -324,7 +324,7 @@ public class DatasourceConfigApplicationService {
     private String normalizeConnectionMode(String value) {
         String normalized = requireText(value, "connectionMode").toUpperCase(Locale.ROOT);
         if (!SUPPORTED_CONNECTION_MODES.contains(normalized)) {
-            throw invalidArgument("connectionMode", "connectionMode must be JDBC/API/REST/CLIENT/GATEWAY/PROXY");
+            throw invalidArgument("connectionMode", "connectionMode 必须是 JDBC/API/REST/CLIENT/GATEWAY/PROXY 之一");
         }
         return normalized;
     }
@@ -343,7 +343,7 @@ public class DatasourceConfigApplicationService {
     private String requireText(String value, String fieldName) {
         String normalized = trimToNull(value);
         if (!StringUtils.hasText(normalized)) {
-            throw invalidArgument(fieldName, fieldName + " is required");
+            throw invalidArgument(fieldName, fieldName + " 为必填项");
         }
         return normalized;
     }

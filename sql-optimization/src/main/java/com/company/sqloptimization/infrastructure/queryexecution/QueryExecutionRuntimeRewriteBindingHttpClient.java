@@ -21,7 +21,7 @@ import org.springframework.web.client.RestTemplate;
 public class QueryExecutionRuntimeRewriteBindingHttpClient implements QueryExecutionRuntimeRewriteBindingClient {
 
     private static final String RUNTIME_REWRITE_ROUTE_UNAVAILABLE_MESSAGE =
-        "Query-execution runtime rewrite binding route is unavailable";
+        "查询执行运行时改写绑定路由不可用";
 
     private final RestTemplate restTemplate;
     private final OptimizationQueryExecutionProperties optimizationQueryExecutionProperties;
@@ -79,7 +79,7 @@ public class QueryExecutionRuntimeRewriteBindingHttpClient implements QueryExecu
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "sql-optimization query-execution rewriteBindingBaseUrl is not configured"
+                "sql-optimization query-execution rewriteBindingBaseUrl 未配置"
             );
         }
         return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;

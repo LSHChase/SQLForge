@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Captures the deterministic output of a single synchronous execution step.
+ * 记录单个同步执行步骤的确定性输出。
  */
 public class QueryExecutionStep {
 

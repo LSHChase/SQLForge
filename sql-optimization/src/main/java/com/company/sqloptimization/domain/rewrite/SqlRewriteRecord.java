@@ -385,25 +385,25 @@ public class SqlRewriteRecord {
         requireText(rewriteRecordId, "rewriteRecordId");
         requireText(tenantId, "tenantId");
         if (sourceType == null) {
-            throw new IllegalArgumentException("sourceType is required");
+            throw new IllegalArgumentException("sourceType 为必填项");
         }
         if (sourceKind == null) {
-            throw new IllegalArgumentException("sourceKind is required");
+            throw new IllegalArgumentException("sourceKind 为必填项");
         }
         requireText(sourceId, "sourceId");
         if (evidenceLevel == null) {
-            throw new IllegalArgumentException("evidenceLevel is required");
+            throw new IllegalArgumentException("evidenceLevel 为必填项");
         }
         requireText(originalSqlText, "originalSqlText");
         requireText(recommendedSqlText, "recommendedSqlText");
         if (createdAt == null) {
-            throw new IllegalArgumentException("createdAt is required");
+            throw new IllegalArgumentException("createdAt 为必填项");
         }
     }
 
     private void requireText(String value, String field) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(field + " is required");
+            throw new IllegalArgumentException(field + " 为必填项");
         }
     }
 

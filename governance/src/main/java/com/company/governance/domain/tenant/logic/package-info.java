@@ -1,4 +1,4 @@
 /**
- * Domain logic for tenant governance.
+ * 租户治理领域逻辑。
  */
 package com.company.governance.domain.tenant.logic;

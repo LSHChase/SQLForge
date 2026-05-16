@@ -10,14 +10,14 @@ import javax.validation.constraints.Size;
 
 public class QueryExecuteRequest {
 
-    @NotBlank(message = "sqlText is required")
-    @Size(max = 10485760, message = "sqlText exceeds 10MB limit")
+    @NotBlank(message = "sqlText 为必填项")
+    @Size(max = 10485760, message = "sqlText 超过 10MB 限制")
     private String sqlText;
 
-    @NotBlank(message = "tenantId is required")
+    @NotBlank(message = "tenantId 为必填项")
     private String tenantId;
 
-    @NotNull(message = "datasourceType is required")
+    @NotNull(message = "datasourceType 为必填项")
     private DataSourceTypeEnum datasourceType;
 
     @Valid

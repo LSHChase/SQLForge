@@ -12,34 +12,34 @@ import javax.validation.constraints.Size;
 
 public class BenchmarkRecommendationComparisonCreateRequest {
 
-    @NotBlank(message = "tenantId is required")
+    @NotBlank(message = "tenantId 为必填项")
     private String tenantId;
 
-    @Size(max = 128, message = "testSetName exceeds 128 characters")
+    @Size(max = 128, message = "testSetName 超过 128 个字符")
     private String testSetName;
 
-    @Size(max = 64, message = "templateId exceeds 64 characters")
+    @Size(max = 64, message = "templateId 超过 64 个字符")
     private String templateId;
 
-    @Size(max = 32, message = "templateVersion exceeds 32 characters")
+    @Size(max = 32, message = "templateVersion 超过 32 个字符")
     private String templateVersion;
 
     private BenchmarkRecommendationSqlRole benchmarkSqlRole = BenchmarkRecommendationSqlRole.RECOMMENDED_SQL;
 
-    @NotEmpty(message = "targetEngines are required")
-    @Size(max = 8, message = "targetEngines exceeds 8 items")
+    @NotEmpty(message = "targetEngines 为必填项")
+    @Size(max = 8, message = "targetEngines 超过 8 项")
     private List<DataSourceTypeEnum> targetEngines;
 
-    @Min(value = 1L, message = "concurrency must be greater than 0")
+    @Min(value = 1L, message = "concurrency 必须大于 0")
     private Integer concurrency;
 
-    @Min(value = 1L, message = "durationSeconds must be greater than 0")
+    @Min(value = 1L, message = "durationSeconds 必须大于 0")
     private Integer durationSeconds;
 
-    @Min(value = 0L, message = "rampUpSeconds must not be negative")
+    @Min(value = 0L, message = "rampUpSeconds 不能为负数")
     private Integer rampUpSeconds;
 
-    @Size(max = 64, message = "datasetSizeLabel exceeds 64 characters")
+    @Size(max = 64, message = "datasetSizeLabel 超过 64 个字符")
     private String datasetSizeLabel;
 
     @Valid
@@ -146,7 +146,7 @@ public class BenchmarkRecommendationComparisonCreateRequest {
         this.testSetLabels = testSetLabels;
     }
 
-    @AssertTrue(message = "comparison benchmark requires at least two target engines")
+    @AssertTrue(message = "对比压测至少需要两个目标引擎")
     public boolean isComparisonTargetEngineSetValid() {
         return targetEngines != null && targetEngines.size() >= 2;
     }

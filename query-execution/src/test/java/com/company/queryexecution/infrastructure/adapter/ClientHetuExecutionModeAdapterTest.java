@@ -58,7 +58,7 @@ class ClientHetuExecutionModeAdapterTest {
             () -> adapter.execute("SELECT 1", new QueryExecuteRequest(), false)
         );
 
-        assertEquals("Hetu client mode is disabled", ex.getMessage());
+        assertEquals("Hetu client 模式已禁用", ex.getMessage());
     }
 
     private static Map<String, Object> sampleRow() {

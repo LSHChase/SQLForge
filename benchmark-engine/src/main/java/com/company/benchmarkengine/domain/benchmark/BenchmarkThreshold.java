@@ -35,10 +35,10 @@ public class BenchmarkThreshold {
             .append(operator.name())
             .append(' ')
             .append(targetValue.toPlainString())
-            .append(", actual=")
+            .append("，实际值=")
             .append(actualValue.toPlainString());
         if (!meetsTarget) {
-            summaryBuilder.append(", severity=").append(severity.name());
+            summaryBuilder.append("，严重级别=").append(severity.name());
         }
         if (description != null && !description.isEmpty()) {
             summaryBuilder.append(", ").append(description);

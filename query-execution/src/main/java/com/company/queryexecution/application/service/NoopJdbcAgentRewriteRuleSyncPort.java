@@ -6,11 +6,11 @@ final class NoopJdbcAgentRewriteRuleSyncPort implements JdbcAgentRewriteRuleSync
 
     @Override
     public JdbcAgentRewriteRuleSyncResult publish(RuntimeRewriteBinding binding) {
-        return JdbcAgentRewriteRuleSyncResult.skipped("PUBLISH", "JDBC Agent Redis sync port is not configured");
+        return JdbcAgentRewriteRuleSyncResult.skipped("PUBLISH", "JDBC Agent Redis 同步端口未配置");
     }
 
     @Override
     public JdbcAgentRewriteRuleSyncResult disable(RuntimeRewriteBinding binding) {
-        return JdbcAgentRewriteRuleSyncResult.skipped("DISABLE", "JDBC Agent Redis sync port is not configured");
+        return JdbcAgentRewriteRuleSyncResult.skipped("DISABLE", "JDBC Agent Redis 同步端口未配置");
     }
 }

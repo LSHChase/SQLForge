@@ -67,7 +67,7 @@ class RestHetuExecutionModeAdapterTest {
             () -> adapter.execute("SELECT 1", acceleratedRequest(), false)
         );
 
-        assertEquals("Hetu REST endpoint is not configured", ex.getMessage());
+        assertEquals("Hetu REST 端点未配置", ex.getMessage());
     }
 
     private QueryExecuteRequest acceleratedRequest() {

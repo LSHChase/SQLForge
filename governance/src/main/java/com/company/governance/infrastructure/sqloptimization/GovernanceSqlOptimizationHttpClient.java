@@ -23,7 +23,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class GovernanceSqlOptimizationHttpClient implements GovernanceSqlOptimizationClient {
 
     private static final String SQL_OPTIMIZATION_ROUTE_UNAVAILABLE_MESSAGE =
-        "SQL-optimization rewrite record route is unavailable";
+        "SQL 优化改写记录路由不可用";
 
     private final RestTemplate restTemplate;
     private final GovernanceSqlOptimizationProperties governanceSqlOptimizationProperties;
@@ -88,7 +88,7 @@ public class GovernanceSqlOptimizationHttpClient implements GovernanceSqlOptimiz
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "governance sql-optimization baseUrl is not configured"
+                "governance sql-optimization baseUrl 未配置"
             );
         }
         return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;

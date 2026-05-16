@@ -15,10 +15,10 @@ import javax.validation.constraints.NotNull;
 
 public class AccelerationRecommendationCreateRequest {
 
-    @NotBlank(message = "tenantId is required")
+    @NotBlank(message = "tenantId 为必填项")
     private String tenantId;
 
-    @NotNull(message = "recommendationType is required")
+    @NotNull(message = "recommendationType 为必填项")
     private RecommendationType recommendationType;
 
     private String sourceSqlId;
@@ -30,7 +30,7 @@ public class AccelerationRecommendationCreateRequest {
     private String sqlFingerprint;
     private String sourceSqlText;
 
-    @NotBlank(message = "recommendedSqlText is required")
+    @NotBlank(message = "recommendedSqlText 为必填项")
     private String recommendedSqlText;
 
     private String targetEngine;

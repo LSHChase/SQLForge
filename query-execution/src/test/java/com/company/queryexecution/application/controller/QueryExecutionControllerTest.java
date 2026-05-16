@@ -145,7 +145,7 @@ class QueryExecutionControllerTest {
                 .content("{\"sqlText\":\"\",\"tenantId\":\"tenant-a\",\"datasourceType\":\"HETU\"}"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(10001))
-            .andExpect(jsonPath("$.message").value("sqlText is required"));
+            .andExpect(jsonPath("$.message").value("sqlText 为必填项"));
     }
 
     @Test

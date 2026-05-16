@@ -55,7 +55,7 @@ public class SqlParseHistoryController {
         @RequestParam(value = "pageSize", required = false) Integer pageSize) {
         String effectiveTenantId = effectiveTenantId(tenantId);
         LOGGER.info(
-            "Handling sql parse-history page, tenantId={}, sourceType={}, datasourceCode={}, status={}, requestTraceId={}",
+            "处理 SQL 解析历史分页，tenantId={}, sourceType={}, datasourceCode={}, status={}, requestTraceId={}",
             effectiveTenantId,
             sourceType,
             datasourceCode,
@@ -93,7 +93,7 @@ public class SqlParseHistoryController {
         @RequestParam(value = "tenantId", required = false) String tenantId) {
         String effectiveTenantId = effectiveTenantId(tenantId);
         LOGGER.info(
-            "Handling sql parse-history detail, tenantId={}, parseHistoryId={}, requestTraceId={}",
+            "处理 SQL 解析历史详情，tenantId={}, parseHistoryId={}, requestTraceId={}",
             effectiveTenantId,
             parseHistoryId,
             RequestContext.getTraceId()
@@ -107,7 +107,7 @@ public class SqlParseHistoryController {
         @RequestBody SqlParseHistoryExportRequest request) {
         String effectiveTenantId = effectiveTenantId(tenantId);
         LOGGER.info(
-            "Handling sql parse-history export, tenantId={}, parseHistoryId={}, exportFormat={}, requestTraceId={}",
+            "处理 SQL 解析历史导出，tenantId={}, parseHistoryId={}, exportFormat={}, requestTraceId={}",
             effectiveTenantId,
             request == null ? null : request.getParseHistoryId(),
             request == null ? null : request.getExportFormat(),

@@ -143,7 +143,7 @@ public class MybatisReportBatchItemRepository implements ReportBatchItemReposito
         try {
             return JsonUtils.objectMapper().readValue(json, LIST_OF_STRINGS);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize report batch item list payload", ex);
+            throw new IllegalArgumentException("报表批次明细列表载荷反序列化失败", ex);
         }
     }
 

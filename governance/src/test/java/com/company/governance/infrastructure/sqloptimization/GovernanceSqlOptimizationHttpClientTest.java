@@ -73,7 +73,7 @@ class GovernanceSqlOptimizationHttpClientTest {
         );
 
         assertEquals(ErrorCodeConstants.SYSTEM_AUDIT_CONTRACT_INVALID, exception.getCode());
-        assertEquals("SQL-optimization rewrite record route is unavailable", exception.getMessage());
+        assertEquals("SQL 优化改写记录路由不可用", exception.getMessage());
     }
 
     private void setRequestContext() {

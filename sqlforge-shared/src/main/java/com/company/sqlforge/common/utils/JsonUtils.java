@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 /**
- * Shared JSON helpers backed by a thread-safe ObjectMapper.
+ * 基于线程安全 ObjectMapper 的共享 JSON 工具。
  */
 public final class JsonUtils {
 
@@ -22,7 +22,7 @@ public final class JsonUtils {
         try {
             return OBJECT_MAPPER.writeValueAsString(value);
         } catch (JsonProcessingException ex) {
-            throw new IllegalArgumentException("Failed to serialize object to JSON", ex);
+            throw new IllegalArgumentException("对象序列化为 JSON 失败", ex);
         }
     }
 
@@ -30,7 +30,7 @@ public final class JsonUtils {
         try {
             return OBJECT_MAPPER.readValue(json, targetType);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize JSON", ex);
+            throw new IllegalArgumentException("JSON 反序列化失败", ex);
         }
     }
 

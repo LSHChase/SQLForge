@@ -6,23 +6,23 @@ import javax.validation.constraints.Pattern;
 
 public class ReportBatchImportRequest {
 
-    @NotBlank(message = "tenantId is required")
+    @NotBlank(message = "tenantId 为必填项")
     private String tenantId;
 
-    @NotBlank(message = "batchName is required")
+    @NotBlank(message = "batchName 为必填项")
     private String batchName;
 
     private String fileType;
 
     private String fileName;
 
-    @NotBlank(message = "reportCodeField is required")
+    @NotBlank(message = "reportCodeField 为必填项")
     private String reportCodeField;
 
     private String datasourceCode;
     private String stage;
     private String priority;
-    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode must be JSQLPARSER, APACHE_CALCITE, JSQLPARSER_WITH_PLAN or APACHE_CALCITE_WITH_PLAN")
+    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode 必须为 JSQLPARSER、APACHE_CALCITE、JSQLPARSER_WITH_PLAN 或 APACHE_CALCITE_WITH_PLAN")
     private String parserMode;
     private String contentBase64;
     private String charset;

@@ -32,7 +32,7 @@ public class MetadataSnapshotController {
                                          @RequestParam(value = "slaStatus", required = false) String slaStatus,
                                          @RequestParam(value = "queryabilityStatus", required = false) String queryabilityStatus,
                                          @RequestParam(value = "evidenceStatus", required = false) String evidenceStatus) {
-        LOGGER.info("Handling metadata snapshot list, tenantId={}, datasourceCode={}, objectType={}, objectKey={}, traceId={}",
+        LOGGER.info("处理元数据快照列表查询，tenantId={}, datasourceCode={}, objectType={}, objectKey={}, traceId={}",
             tenantId,
             datasourceCode,
             objectType,

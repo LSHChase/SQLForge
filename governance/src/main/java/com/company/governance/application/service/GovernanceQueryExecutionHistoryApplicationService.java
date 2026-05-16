@@ -60,7 +60,7 @@ public class GovernanceQueryExecutionHistoryApplicationService {
         GovernanceQueryExecutionHistoryWriteRequest request
     ) {
         if (request == null) {
-            throw invalidArgument("request must not be null");
+            throw invalidArgument("request 不能为 null");
         }
         String contextTenantId = requireContext("tenantId", RequestContext.getTenantId());
         String contextUserId = requireContext("userId", RequestContext.getUserId());
@@ -71,11 +71,11 @@ public class GovernanceQueryExecutionHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "request tenantId does not match protected tenant context"
+                "请求 tenantId 与受保护租户上下文不一致"
             );
         }
         if (!HISTORY_TYPE.equals(requireText(request.getHistoryType(), "historyType"))) {
-            throw invalidArgument("historyType must be QUERY_EXECUTION");
+            throw invalidArgument("historyType 必须为 QUERY_EXECUTION");
         }
         String sqlFingerprint = requireText(request.getSqlFingerprint(), "sqlFingerprint");
         String resultStatus = requireText(request.getResultStatus(), "resultStatus");
@@ -169,7 +169,7 @@ public class GovernanceQueryExecutionHistoryApplicationService {
         record.setSourceConfigId(firstText(request.getRequestId(), request.getHistoryId(), request.getSqlFingerprint()));
         record.setSourceVersion(request.getStartedAt());
         record.setSnapshotStatus("CAPTURED");
-        record.setSnapshotReason("Query execution history persistence");
+        record.setSnapshotReason("查询执行历史持久化");
         record.setTraceId(traceId);
         record.setRequestId(requestId);
         record.setSagaId(sagaId);
@@ -464,7 +464,7 @@ public class GovernanceQueryExecutionHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "Protected request context is missing " + fieldName
+                "受保护请求上下文缺失：" + fieldName
             );
         }
         return value.trim();
@@ -472,7 +472,7 @@ public class GovernanceQueryExecutionHistoryApplicationService {
 
     private String requireText(String value, String fieldName) {
         if (!StringUtils.hasText(value)) {
-            throw invalidArgument(fieldName + " must not be empty");
+            throw invalidArgument(fieldName + " 不能为空");
         }
         return value.trim();
     }

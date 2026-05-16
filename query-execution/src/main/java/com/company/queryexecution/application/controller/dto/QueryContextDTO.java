@@ -9,7 +9,7 @@ public class QueryContextDTO {
     private String schemaVersion;
     private Map<String, String> sessionVariables;
 
-    @Min(value = 1L, message = "timeoutMs must be greater than 0")
+    @Min(value = 1L, message = "timeoutMs 必须大于 0")
     private Long timeoutMs;
 
     public String getDatabaseName() {

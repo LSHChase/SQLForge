@@ -7,7 +7,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Async optimization task aggregate used to freeze task metadata and validated status transitions.
+ * 用于固化任务元数据和已校验状态流转的异步优化任务聚合。
  */
 public class OptimizationTask {
 

@@ -63,7 +63,7 @@ class BenchmarkParseResultTestSetApplicationServiceTest {
         assertTrue(created.getTestSetSourceRefs().stream().anyMatch(ref -> ref.getType() == BenchmarkSourceReferenceType.PARSE_TASK));
         assertTrue(created.getTestSetSourceRefs().stream().anyMatch(ref -> ref.getType() == BenchmarkSourceReferenceType.REPORT));
         assertEquals("report-002", created.getCases().get(1).getCaseName());
-        assertTrue(created.getCases().get(1).getRejectionReason().contains("read-only"));
+        assertTrue(created.getCases().get(1).getRejectionReason().contains("只读压测边界"));
         assertEquals(created.getTestSetId(), repository.findTestSetByTestSetId(created.getTestSetId()).getTestSetId());
 
         verify(governanceCapabilityClient).assertAuthorization(
@@ -117,7 +117,7 @@ class BenchmarkParseResultTestSetApplicationServiceTest {
             () -> service.createFromParseResults(singleParseTaskRequest(Collections.singletonList("route")))
         );
 
-        assertTrue(ex.getMessage().contains("No parse results matched"));
+        assertTrue(ex.getMessage().contains("没有解析结果匹配"));
     }
 
     private BenchmarkParseResultTestSetCreateRequest batchRequest() {

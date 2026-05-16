@@ -18,7 +18,7 @@ public class OperationLogAspect {
     public Object around(ProceedingJoinPoint joinPoint, OperationLog operationLog) throws Throwable {
         long start = System.currentTimeMillis();
         String entity = operationLog.entity().isEmpty() ? joinPoint.getSignature().toShortString() : operationLog.entity();
-        LOGGER.info("operation={} entity={} requestId={} traceId={} status=START",
+        LOGGER.info("操作日志 operation={} entity={} requestId={} traceId={} status=START",
             operationLog.operation(),
             entity,
             RequestContext.getRequestId(),
@@ -26,7 +26,7 @@ public class OperationLogAspect {
         try {
             Object result = joinPoint.proceed();
             long cost = System.currentTimeMillis() - start;
-            LOGGER.info("operation={} entity={} requestId={} traceId={} costMs={} status=SUCCESS",
+            LOGGER.info("操作日志 operation={} entity={} requestId={} traceId={} costMs={} status=SUCCESS",
                 operationLog.operation(),
                 entity,
                 RequestContext.getRequestId(),
@@ -35,7 +35,7 @@ public class OperationLogAspect {
             return result;
         } catch (Throwable ex) {
             long cost = System.currentTimeMillis() - start;
-            LOGGER.error("operation={} entity={} requestId={} traceId={} costMs={} status=FAILED reason={}",
+            LOGGER.error("操作日志 operation={} entity={} requestId={} traceId={} costMs={} status=FAILED reason={}",
                 operationLog.operation(),
                 entity,
                 RequestContext.getRequestId(),

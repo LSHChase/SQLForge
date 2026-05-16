@@ -40,7 +40,7 @@ class GovernanceBackedReportSqlResolverTest {
         GovernanceBackedReportSqlResolver resolver =
             new GovernanceBackedReportSqlResolver(governanceCapabilityClient, reportSqlHttpClient);
         when(governanceCapabilityClient.resolveReportInterfaceConfig(org.mockito.ArgumentMatchers.any(GovernanceReportInterfaceConfigRequest.class)))
-            .thenThrow(new IllegalStateException("governance unavailable"));
+            .thenThrow(new IllegalStateException("governance 不可用"));
 
         ReportSqlResolveResult result = resolver.resolve(
             new ReportSqlResolveRequest("tenant-a", "hetu_main", "PROD", "high", "RPT_A")

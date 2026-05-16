@@ -274,7 +274,7 @@ class StructureParseControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.syntaxStatus").value("INVALID"))
             .andExpect(jsonPath("$.sqlType").value("SELECT"))
-            .andExpect(jsonPath("$.failureReason").value("SQL is too long; syntax parser failed or was skipped for bounded diagnostics."))
+            .andExpect(jsonPath("$.failureReason").value("SQL 过长；语法解析器已失败或为限制诊断范围而跳过。"))
             .andExpect(jsonPath("$.failureToken").value("SQL_TOO_LONG"))
             .andExpect(jsonPath("$.riskTags").value(hasItem("SQL_SYNTAX_INVALID")))
             .andExpect(jsonPath("$.riskTags").value(hasItem("SQL_TOO_LONG")))
@@ -412,7 +412,7 @@ class StructureParseControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"parserMode\":\"TRINO\",\"sqlText\":\"SELECT * FROM orders\"}"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("parserMode must be JSQLPARSER, APACHE_CALCITE, JSQLPARSER_WITH_PLAN or APACHE_CALCITE_WITH_PLAN"));
+            .andExpect(jsonPath("$.message").value("parserMode 必须为 JSQLPARSER、APACHE_CALCITE、JSQLPARSER_WITH_PLAN 或 APACHE_CALCITE_WITH_PLAN"));
     }
 
     @Test
@@ -538,17 +538,17 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
             .andExpect(jsonPath("$.riskTags").value(hasItem("LARGE_JOIN_PAIR_RISK")))
             .andExpect(jsonPath("$.issues[?(@.issueCode == 'LARGE_JOIN_PAIR_RISK')].summary")
-                .value(hasItem("The statement has limited static evidence for join conditions or selectivity.")))
+                .value(hasItem("该语句关于 join 条件或选择性的静态证据不足。")))
             .andExpect(jsonPath("$.issues[?(@.issueCode == 'LARGE_JOIN_PAIR_RISK')].detail")
                 .value(hasItem(not(containsString("large table")))))
             .andExpect(jsonPath("$.issues[?(@.issueCode == 'LARGE_JOIN_PAIR_RISK')].detail")
                 .value(hasItem(not(containsString("large-table")))))
             .andExpect(jsonPath("$.issues[?(@.issueCode == 'LARGE_JOIN_PAIR_RISK')].suggestedAction")
-                .value(hasItem(containsString("Access Parse or benchmark"))))
+                .value(hasItem(containsString("访问解析或压测证据"))))
             .andExpect(jsonPath("$.riskChecklist[?(@.riskCode == 'LARGE_TABLE_JOIN_RISK')].summary")
-                .value(hasItem("Static join evidence risk")))
+                .value(hasItem("静态 join 证据风险")))
             .andExpect(jsonPath("$.riskChecklist[?(@.riskCode == 'LARGE_TABLE_JOIN_RISK')].suggestedAction")
-                .value(hasItem(containsString("Access Parse or benchmark"))))
+                .value(hasItem(containsString("访问解析或压测证据"))))
             .andExpect(jsonPath("$.riskChecklist[?(@.riskCode == 'LARGE_TABLE_JOIN_RISK')].summary")
                 .value(hasItem(not(containsString("Large table")))));
     }

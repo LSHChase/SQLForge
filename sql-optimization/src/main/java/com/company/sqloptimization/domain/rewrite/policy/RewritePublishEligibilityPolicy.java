@@ -53,7 +53,7 @@ public class RewritePublishEligibilityPolicy {
         }
         reasons.add(reason(
             "REVIEW_NOT_APPROVED",
-            "Rewrite record must be approved before publish eligibility can pass.",
+            "改写记录必须先通过审批，才能符合发布资格。",
             "reviewStatus",
             null
         ));
@@ -65,7 +65,7 @@ public class RewritePublishEligibilityPolicy {
         if (record.getValidationStatus() != RewriteValidationStatus.EQUIVALENT) {
             reasons.add(reason(
                 "VALIDATION_STATUS_NOT_EQUIVALENT",
-                "Rewrite record validationStatus must be EQUIVALENT.",
+                "改写记录 validationStatus 必须为 EQUIVALENT。",
                 "validationStatus",
                 record.getLastValidationRunId()
             ));
@@ -73,7 +73,7 @@ public class RewritePublishEligibilityPolicy {
         if (latestValidationRun == null) {
             reasons.add(reason(
                 "EQUIVALENT_VALIDATION_RUN_MISSING",
-                "At least one successful equivalent validation run is required.",
+                "至少需要一次成功且等价的校验运行。",
                 "validationRuns",
                 null
             ));
@@ -83,7 +83,7 @@ public class RewritePublishEligibilityPolicy {
             || latestValidationRun.getComparisonStatus() != ComparisonStatus.EQUIVALENT) {
             reasons.add(reason(
                 "LATEST_VALIDATION_NOT_PASSED",
-                "Latest validation run must be SUCCEEDED and EQUIVALENT.",
+                "最近一次校验运行必须为 SUCCEEDED 且 EQUIVALENT。",
                 "validationRuns",
                 latestValidationRun.getValidationRunId()
             ));
@@ -97,14 +97,14 @@ public class RewritePublishEligibilityPolicy {
         requireText(record.getOriginalSqlText(), "ORIGINAL_SQL_MISSING", "originalSqlText", reasons);
         requireText(record.getRecommendedSqlText(), "RECOMMENDED_SQL_MISSING", "recommendedSqlText", reasons);
         if (record.getSourceType() == null) {
-            reasons.add(reason("SOURCE_TYPE_MISSING", "sourceType is required.", "sourceType", null));
+            reasons.add(reason("SOURCE_TYPE_MISSING", "sourceType 为必填项。", "sourceType", null));
         }
         if (record.getSourceKind() == null) {
-            reasons.add(reason("SOURCE_KIND_MISSING", "sourceKind is required.", "sourceKind", null));
+            reasons.add(reason("SOURCE_KIND_MISSING", "sourceKind 为必填项。", "sourceKind", null));
         }
         requireText(record.getSourceId(), "SOURCE_ID_MISSING", "sourceId", reasons);
         if (record.getEvidenceLevel() == null) {
-            reasons.add(reason("EVIDENCE_LEVEL_MISSING", "evidenceLevel is required.", "evidenceLevel", null));
+            reasons.add(reason("EVIDENCE_LEVEL_MISSING", "evidenceLevel 为必填项。", "evidenceLevel", null));
         }
     }
 
@@ -115,7 +115,7 @@ public class RewritePublishEligibilityPolicy {
         }
         reasons.add(reason(
             "AUTO_APPLY_NOT_ALLOWED",
-            "autoApplyAllowed must be true before publishing a runtime rewrite rule.",
+            "发布运行时改写规则前 autoApplyAllowed 必须为 true。",
             "autoApplyAllowed",
             null
         ));
@@ -128,7 +128,7 @@ public class RewritePublishEligibilityPolicy {
             && record.getAlertStatus() != RewriteAlertStatus.RESOLVED) {
             reasons.add(reason(
                 "REWRITE_ALERT_UNRESOLVED",
-                "Open or unresolved rewrite validation alerts block publishing.",
+                "存在未处理或未解决的改写校验告警，阻止发布。",
                 "alertStatus",
                 record.getLastValidationRunId()
             ));
@@ -139,7 +139,7 @@ public class RewritePublishEligibilityPolicy {
             || record.getStatus() == RewriteRecordStatus.CANCELLED) {
             reasons.add(reason(
                 "REWRITE_RECORD_PAUSED_OR_CLOSED",
-                "Paused, rolled back, deprecated, or cancelled rewrite records cannot be published.",
+                "已暂停、已回滚、已废弃或已取消的改写记录不能发布。",
                 "status",
                 null
             ));
@@ -147,7 +147,7 @@ public class RewritePublishEligibilityPolicy {
         if (latestValidationRun != null && latestValidationRun.isAutoApplyPaused()) {
             reasons.add(reason(
                 "VALIDATION_PAUSE_MARKER_PRESENT",
-                "Latest validation run contains an auto-apply pause marker.",
+                "最近一次校验运行包含自动应用暂停标记。",
                 "validationRuns",
                 latestValidationRun.getValidationRunId()
             ));
@@ -162,7 +162,7 @@ public class RewritePublishEligibilityPolicy {
         }
         reasons.add(reason(
             "PUBLISH_STATUS_NOT_READY",
-            "Only UNPUBLISHED or PUBLISH_FAILED rewrite records can enter publish eligibility.",
+            "只有 UNPUBLISHED 或 PUBLISH_FAILED 状态的改写记录可以进入发布资格检查。",
             "publishStatus",
             record.getRuntimeBindingId()
         ));
@@ -175,7 +175,7 @@ public class RewritePublishEligibilityPolicy {
         }
         reasons.add(reason(
             "RUNTIME_DIALECT_EVIDENCE_MISSING",
-            "datasourceCode is required as conservative runtime schema or dialect evidence.",
+            "datasourceCode 是保守运行时 schema 或方言证据的必填项。",
             "datasourceCode",
             record.getValidationPolicyId()
         ));
@@ -238,7 +238,7 @@ public class RewritePublishEligibilityPolicy {
         if (hasText(value)) {
             return;
         }
-        reasons.add(reason(code, field + " is required.", field, null));
+        reasons.add(reason(code, field + " 为必填项。", field, null));
     }
 
     private RewritePublishEligibilityReason reason(String code,

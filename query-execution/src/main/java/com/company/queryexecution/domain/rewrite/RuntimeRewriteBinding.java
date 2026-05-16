@@ -123,7 +123,7 @@ public class RuntimeRewriteBinding {
     private static String requireText(String value, String fieldName) {
         String trimmed = trimToNull(value);
         if (trimmed == null) {
-            throw new IllegalArgumentException(fieldName + " must not be empty");
+            throw new IllegalArgumentException(fieldName + " 不能为空");
         }
         return trimmed;
     }

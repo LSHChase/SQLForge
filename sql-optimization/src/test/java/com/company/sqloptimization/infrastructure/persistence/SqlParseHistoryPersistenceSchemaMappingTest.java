@@ -27,8 +27,8 @@ class SqlParseHistoryPersistenceSchemaMappingTest {
 
         String migration = readRepositoryFile("sql/migrations/V20260508_001__sql_parse_history_decoupling.sql");
         assertContains(migration, "CREATE TABLE IF NOT EXISTS sql_parse_history");
-        assertContains(migration, "SQL parse history id for this parsed SQL");
-        assertContains(migration, "SQL parse history id for this parsed report SQL");
+        assertContains(migration, "该已解析 SQL 的 SQL 解析历史 ID");
+        assertContains(migration, "该已解析报表 SQL 的 SQL 解析历史 ID");
 
         String compatibilityMigration =
             readRepositoryFile("sql/migrations/V20260509_001__sql_parse_history_compatibility.sql");

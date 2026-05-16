@@ -27,7 +27,7 @@ import org.springframework.web.client.RestTemplate;
 @Component
 public class GovernanceHttpClient implements GovernanceCapabilityClient {
 
-    private static final String GOVERNANCE_ROUTE_UNAVAILABLE_MESSAGE = "Governance capability route is unavailable";
+    private static final String GOVERNANCE_ROUTE_UNAVAILABLE_MESSAGE = "治理能力路由不可用";
 
     private final RestTemplate restTemplate;
     private final QueryExecutionGovernanceProperties governanceProperties;
@@ -54,7 +54,7 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "Datasource mapping is missing for " + datasourceType
+                "缺少数据源映射：" + datasourceType
             );
         }
 
@@ -133,7 +133,7 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "query-execution governance baseUrl is not configured"
+                "query-execution governance baseUrl 未配置"
             );
         }
         return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;

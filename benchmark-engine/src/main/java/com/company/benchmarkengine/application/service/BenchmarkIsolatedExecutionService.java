@@ -38,9 +38,9 @@ public class BenchmarkIsolatedExecutionService {
 
     private static final String EXECUTION_MODE_ISOLATED = "REPO_CLOSED_ISOLATED_EXECUTOR";
     private static final String EXECUTION_MODE_ORCHESTRATED = "QUERY_EXECUTION_WORKLOAD_ORCHESTRATED_REPLAY";
-    private static final String ISOLATION_SUMMARY_ISOLATED = "shadow-only readonly benchmark replay";
+    private static final String ISOLATION_SUMMARY_ISOLATED = "仅影子环境只读压测回放";
     private static final String ISOLATION_SUMMARY_ORCHESTRATED =
-        "shadow-only readonly benchmark replay with query-execution workload orchestration";
+        "通过 query-execution 工作负载编排执行仅影子环境只读压测回放";
     private static final QueryExecutionBenchmarkWorkloadClient NOOP_WORKLOAD_CLIENT =
         new QueryExecutionBenchmarkWorkloadClient() {
             @Override
@@ -156,9 +156,9 @@ public class BenchmarkIsolatedExecutionService {
                 probeToken = future.get().longValue();
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
-                throw new IllegalStateException("Benchmark isolated execution interrupted", ex);
+                throw new IllegalStateException("压测隔离执行被中断", ex);
             } catch (ExecutionException ex) {
-                throw new IllegalStateException("Benchmark isolated execution failed", ex.getCause());
+                throw new IllegalStateException("压测隔离执行失败", ex.getCause());
             }
             long executionDurationMs = Math.max(1L, (System.nanoTime() - startedAt) / 1_000_000L);
             return buildSnapshot(task, engine, index, complexity, datasetWeight, concurrencyWeight, sampleCount, probeToken,
@@ -288,10 +288,10 @@ public class BenchmarkIsolatedExecutionService {
             : "source=" + workloadSignal.getWorkloadSource()
                 + ", mode=" + workloadSignal.getExecutionMode()
                 + ", digest=" + workloadSignal.getWorkloadDigest();
-        return "Isolated " + task.getTaskType().name().toLowerCase(Locale.ROOT)
-            + " replay for " + engine.name()
-            + " with " + sampleCount
-            + " samples, durationMs=" + executionDurationMs
+        return "隔离 " + task.getTaskType().name().toLowerCase(Locale.ROOT)
+            + " 回放，engine=" + engine.name()
+            + "，sampleCount=" + sampleCount
+            + "，durationMs=" + executionDurationMs
             + ", digest=" + workloadDigest
             + ", workload=" + workloadEvidence;
     }
@@ -481,7 +481,7 @@ public class BenchmarkIsolatedExecutionService {
             }
             return builder.toString();
         } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 is not available", ex);
+            throw new IllegalStateException("SHA-256 算法不可用", ex);
         }
     }
 

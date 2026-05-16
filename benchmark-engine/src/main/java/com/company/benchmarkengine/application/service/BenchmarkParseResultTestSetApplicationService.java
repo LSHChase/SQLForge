@@ -76,7 +76,7 @@ public class BenchmarkParseResultTestSetApplicationService {
                 cases = buildCaseFromParseTask(request, refs, labels);
             }
             if (cases.isEmpty()) {
-                throw invalidArgument("parseResultSelector", "No parse results matched the benchmark test-set generation filters");
+                throw invalidArgument("parseResultSelector", "没有解析结果匹配压测测试集生成过滤条件");
             }
             BenchmarkTestSet testSet = modelService.buildGeneratedTestSet(
                 request.getTenantId(),
@@ -122,9 +122,9 @@ public class BenchmarkParseResultTestSetApplicationService {
                                                                 List<BenchmarkTestSetLabel> labels) {
         SqlOptimizationParseBatchStatus batch = sqlOptimizationParseResultClient.getParseBatch(trimToNull(request.getParseBatchId()));
         if (batch == null) {
-            throw invalidArgument("parseBatchId", "Parse batch was not found");
+            throw invalidArgument("parseBatchId", "解析批次不存在");
         }
-        verifyTenantAccess(batch.getTenantId(), "Authenticated tenant cannot access this parse batch");
+        verifyTenantAccess(batch.getTenantId(), "当前认证租户无权访问该解析批次");
         Map<String, SqlOptimizationParseSqlIssueStatistic> importantUrgent = indexByItemId(
             sqlOptimizationParseResultClient.getImportantUrgentSqls(),
             batch.getBatchId()
@@ -168,7 +168,7 @@ public class BenchmarkParseResultTestSetApplicationService {
                                                               List<BenchmarkTestSetLabel> labels) {
         SqlOptimizationCombinedParseStatus status = sqlOptimizationParseResultClient.getCombinedParseStatus(trimToNull(request.getParseTaskId()));
         if (status == null || status.getStructureParse() == null) {
-            throw invalidArgument("parseTaskId", "Combined parse task was not found");
+            throw invalidArgument("parseTaskId", "组合解析任务不存在");
         }
         SqlOptimizationStructureParseStatus structureParse = status.getStructureParse();
         if (!matchesFilters(extractIssueScenes(structureParse), null, request)) {
@@ -206,7 +206,7 @@ public class BenchmarkParseResultTestSetApplicationService {
                                            String rawCaseDataJson) {
         String rejectionReason = null;
         if (!"VALID".equals(syntaxStatus)) {
-            rejectionReason = "parse structure syntax status is not VALID";
+            rejectionReason = "解析结构语法状态不是 VALID";
         } else {
             rejectionReason = BenchmarkReadonlySqlSupport.validateReadonlySql(sqlText);
         }
@@ -434,11 +434,11 @@ public class BenchmarkParseResultTestSetApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (hasText(requestTenantId) && !contextTenantId.equals(requestTenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -449,7 +449,7 @@ public class BenchmarkParseResultTestSetApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (!contextTenantId.equals(resourceTenantId)) {
@@ -461,7 +461,7 @@ public class BenchmarkParseResultTestSetApplicationService {
         return new BizException(
             ErrorCodeConstants.BENCHMARK_TASK_INVALID,
             HttpStatus.BAD_REQUEST,
-            "Invalid parse-to-benchmark request " + fieldName + ": " + message
+            "解析结果转压测请求无效：" + fieldName + ": " + message
         );
     }
 

@@ -80,8 +80,8 @@ public class DispatchEventApplicationService {
             "PREWARM_SQL",
             "MAINTENANCE_SQL"
         ));
-        contract.setAuditBoundary("SQLForge creates and tracks recommendation dispatch events only; external modules pull events and return ACK/FAILED evidence.");
-        contract.setResidualOwner("External loading or data-cluster execution module owns real data loading, prewarm execution, and storage changes.");
+        contract.setAuditBoundary("SQLForge 仅创建并跟踪推荐分发事件；外部模块拉取事件并返回 ACK/FAILED 证据。");
+        contract.setResidualOwner("外部装载或数据集群执行模块负责真实数据装载、预热执行和存储变更。");
         return contract;
     }
 
@@ -133,7 +133,7 @@ public class DispatchEventApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Recommendation not found: " + recommendationId
+                "推荐不存在：" + recommendationId
             );
         }
         return recommendation;
@@ -145,7 +145,7 @@ public class DispatchEventApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Dispatch event not found: " + dispatchEventId
+                "分发事件不存在：" + dispatchEventId
             );
         }
         return event;
@@ -229,7 +229,7 @@ public class DispatchEventApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         return contextTenantId;
@@ -238,7 +238,7 @@ public class DispatchEventApplicationService {
     private void verifyTenantAccess(String resourceTenantId) {
         String contextTenantId = requireContextTenant();
         if (!contextTenantId.equals(resourceTenantId)) {
-            throw new AccessDeniedException("Authenticated tenant cannot access this dispatch event");
+            throw new AccessDeniedException("当前认证租户无权访问该分发事件");
         }
     }
 

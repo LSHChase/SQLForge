@@ -61,14 +61,14 @@ public class QueryExecutionRuntimeRewriteBindingService {
                 JdbcAgentRewriteRuleSyncResult syncResult = syncPublish(active);
                 return responseFrom(
                     active,
-                    "Runtime rewrite binding is already active for this rewrite record.",
+                    "该改写记录的运行时改写绑定已处于生效状态。",
                     syncResult
                 );
             }
             throw new BizException(
                 ErrorCodeConstants.QUERY_EXECUTION_ROUTE_REJECTED,
                 HttpStatus.CONFLICT,
-                "An active runtime rewrite binding already exists for this tenant and SQL fingerprint"
+                "该租户与 SQL 指纹已存在生效的运行时改写绑定"
             );
         }
 
@@ -99,7 +99,7 @@ public class QueryExecutionRuntimeRewriteBindingService {
         JdbcAgentRewriteRuleSyncResult syncResult = syncPublish(binding);
         return responseFrom(
             binding,
-            "Runtime rewrite binding is active for production auto rewrite lookup.",
+            "运行时改写绑定已生效，可用于生产自动改写查找。",
             syncResult
         );
     }
@@ -111,7 +111,7 @@ public class QueryExecutionRuntimeRewriteBindingService {
         RuntimeRewriteBinding binding = resolveMutationTarget(request);
         if (binding == null) {
             return missingResponse(tenantId, request == null ? null : request.getSqlFingerprint(),
-                "No runtime rewrite binding is available to pause.");
+                "没有可暂停的运行时改写绑定。");
         }
         RuntimeRewriteBinding paused =
             binding.pause(resolveOperator(request.getOperatorId()), request.getReason(), Instant.now());
@@ -119,7 +119,7 @@ public class QueryExecutionRuntimeRewriteBindingService {
         JdbcAgentRewriteRuleSyncResult syncResult = syncDisable(paused);
         return responseFrom(
             paused,
-            "Runtime rewrite binding is paused and no longer eligible for auto rewrite.",
+            "运行时改写绑定已暂停，不再参与自动改写。",
             syncResult
         );
     }
@@ -131,7 +131,7 @@ public class QueryExecutionRuntimeRewriteBindingService {
         RuntimeRewriteBinding binding = resolveMutationTarget(request);
         if (binding == null) {
             return missingResponse(tenantId, request == null ? null : request.getSqlFingerprint(),
-                "No runtime rewrite binding is available to unpublish.");
+                "没有可下线的运行时改写绑定。");
         }
         RuntimeRewriteBinding unpublished =
             binding.unpublish(resolveOperator(request.getOperatorId()), request.getReason(), Instant.now());
@@ -139,7 +139,7 @@ public class QueryExecutionRuntimeRewriteBindingService {
         JdbcAgentRewriteRuleSyncResult syncResult = syncDisable(unpublished);
         return responseFrom(
             unpublished,
-            "Runtime rewrite binding is unpublished and retained for version trace.",
+            "运行时改写绑定已下线，并保留用于版本追踪。",
             syncResult
         );
     }
@@ -151,13 +151,13 @@ public class QueryExecutionRuntimeRewriteBindingService {
         RuntimeRewriteBinding binding =
             runtimeRewriteBindingRepository.findActiveByTenantIdAndSqlFingerprint(tenantId, sqlFingerprint);
         if (binding == null) {
-            return missingResponse(tenantId, sqlFingerprint, "No active runtime rewrite binding was found.");
+            return missingResponse(tenantId, sqlFingerprint, "未找到生效的运行时改写绑定。");
         }
         if (StringUtils.hasText(request.getDatasourceCode())
             && !request.getDatasourceCode().trim().equalsIgnoreCase(binding.getDatasourceCode())) {
-            return missingResponse(tenantId, sqlFingerprint, "No active runtime rewrite binding matched datasource evidence.");
+            return missingResponse(tenantId, sqlFingerprint, "没有生效的运行时改写绑定与数据源证据匹配。");
         }
-        return responseFrom(binding, "Active runtime rewrite binding was found.", null);
+        return responseFrom(binding, "已找到生效的运行时改写绑定。", null);
     }
 
     private RuntimeRewriteBinding resolveMutationTarget(RuntimeRewriteBindingStateChangeRequest request) {
@@ -165,7 +165,7 @@ public class QueryExecutionRuntimeRewriteBindingService {
             RuntimeRewriteBinding binding =
                 runtimeRewriteBindingRepository.findByRuntimeBindingId(request.getRuntimeBindingId().trim());
             if (binding != null && !request.getTenantId().trim().equals(binding.getTenantId())) {
-                throw new AccessDeniedException("Request tenantId does not match runtime rewrite binding tenant");
+                throw new AccessDeniedException("请求 tenantId 与运行时改写绑定租户不一致");
             }
             return binding;
         }
@@ -280,11 +280,11 @@ public class QueryExecutionRuntimeRewriteBindingService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (!RequestContext.getTenantId().equals(tenantId == null ? null : tenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
     }
 
@@ -300,7 +300,7 @@ public class QueryExecutionRuntimeRewriteBindingService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " must not be empty"
+                fieldName + " 不能为空"
             );
         }
         return value.trim();

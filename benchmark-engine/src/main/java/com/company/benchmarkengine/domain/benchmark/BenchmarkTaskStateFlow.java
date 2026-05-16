@@ -73,8 +73,8 @@ public final class BenchmarkTaskStateFlow {
                                      BenchmarkTaskPhase currentPhase) {
         if (currentStatus != BenchmarkTaskStatus.QUEUED || currentPhase != BenchmarkTaskPhase.SUBMITTED) {
             throw invalidTransition(
-                "Benchmark task can only start from QUEUED/SUBMITTED. taskType=" + taskType
-                    + ", status=" + currentStatus
+                "压测任务只能从 QUEUED/SUBMITTED 状态启动。taskType=" + taskType
+                    + "，状态=" + currentStatus
                     + ", phase=" + currentPhase
             );
         }
@@ -86,8 +86,8 @@ public final class BenchmarkTaskStateFlow {
                                             BenchmarkTaskPhase nextPhase) {
         if (currentStatus != BenchmarkTaskStatus.RUNNING) {
             throw invalidTransition(
-                "Benchmark task can only advance phases while RUNNING. taskType=" + taskType
-                    + ", status=" + currentStatus
+                "压测任务只能在 RUNNING 状态推进阶段。taskType=" + taskType
+                    + "，状态=" + currentStatus
                     + ", phase=" + currentPhase
             );
         }
@@ -96,7 +96,7 @@ public final class BenchmarkTaskStateFlow {
         int nextIndex = phaseFlow.indexOf(nextPhase);
         if (currentIndex < 0 || nextIndex != currentIndex + 1 || nextPhase == BenchmarkTaskPhase.FINISHED) {
             throw invalidTransition(
-                "Unsupported benchmark phase transition for taskType=" + taskType
+                "不支持该 taskType 的压测阶段流转：" + taskType
                     + ": " + currentPhase + " -> " + nextPhase
             );
         }
@@ -107,15 +107,15 @@ public final class BenchmarkTaskStateFlow {
                                           BenchmarkTaskPhase currentPhase) {
         if (currentStatus != BenchmarkTaskStatus.RUNNING) {
             throw invalidTransition(
-                "Benchmark task can only complete while RUNNING. taskType=" + taskType
-                    + ", status=" + currentStatus
+                "压测任务只能在 RUNNING 状态完成。taskType=" + taskType
+                    + "，状态=" + currentStatus
                     + ", phase=" + currentPhase
             );
         }
         List<BenchmarkTaskPhase> phaseFlow = supportedPhaseFlow(taskType);
         if (phaseFlow.get(phaseFlow.size() - 2) != currentPhase) {
             throw invalidTransition(
-                "Benchmark task can only finish from the reporting phase. taskType=" + taskType
+                "压测任务只能从报告阶段结束。taskType=" + taskType
                     + ", phase=" + currentPhase
             );
         }
@@ -123,7 +123,7 @@ public final class BenchmarkTaskStateFlow {
 
     public static void validateTermination(BenchmarkTaskStatus currentStatus) {
         if (currentStatus.isTerminal()) {
-            throw invalidTransition("Benchmark task is already terminal. status=" + currentStatus);
+            throw invalidTransition("压测任务已是终态。status=" + currentStatus);
         }
     }
 

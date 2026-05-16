@@ -220,7 +220,7 @@ public class SqlParseHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.NOT_FOUND,
-                "SQL parse history record does not exist"
+                "SQL 解析历史记录不存在"
             );
         }
         return toDetail(history);
@@ -570,7 +570,7 @@ public class SqlParseHistoryApplicationService {
                 Object objectKey = hit.getClass().getMethod("getObjectKey").invoke(hit);
                 addTableKey(values, objectKey == null ? null : String.valueOf(objectKey));
             } catch (Exception ignored) {
-                // LogicalObjectSurface keeps objectKey as a bean getter; ignore unexpected shapes.
+                // LogicalObjectSurface 通过 bean getter 暴露 objectKey；忽略非预期结构。
             }
         }
         if (!values.isEmpty()) {
@@ -586,7 +586,7 @@ public class SqlParseHistoryApplicationService {
                     values.add(String.valueOf(objectKey));
                 }
             } catch (Exception ignored) {
-                // Preserve the previous fallback behavior for unexpected logical-object shapes.
+                // 保留非预期逻辑对象结构的既有兜底行为。
             }
         }
         return new ArrayList<String>(values);
@@ -678,7 +678,7 @@ public class SqlParseHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "exportFormat must be JSON or CSV"
+                "exportFormat 必须为 JSON 或 CSV"
             );
         }
         return upper;
@@ -716,7 +716,7 @@ public class SqlParseHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " must be an ISO date or date-time"
+                fieldName + " 必须是 ISO 日期或日期时间"
             );
         }
     }
@@ -739,7 +739,7 @@ public class SqlParseHistoryApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " must not be empty"
+                fieldName + " 不能为空"
             );
         }
         return normalized;

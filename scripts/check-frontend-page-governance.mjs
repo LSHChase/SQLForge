@@ -61,7 +61,7 @@ function diffAddedLines(relativePath) {
     try {
       outputs.push(execFileSync('git', args, { cwd: root, encoding: 'utf8' }))
     } catch {
-      // `git diff` exits 0 for normal diffs, but keep this tolerant for unusual file states.
+  // `git diff` 正常差异退出码为 0，这里仍兼容少见的文件状态。
     }
   }
 
@@ -103,7 +103,7 @@ function diffRemovedLines(relativePath) {
     try {
       outputs.push(execFileSync('git', args, { cwd: root, encoding: 'utf8' }))
     } catch {
-      // Keep this tolerant for unusual file states.
+  // 这里兼容少见的文件状态。
     }
   }
 

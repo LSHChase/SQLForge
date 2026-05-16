@@ -50,7 +50,7 @@ public class LogicalViewCatalogApplicationService {
             effectiveTenantId,
             trimToNull(datasourceCode)
         );
-        LOGGER.info("Listing business logical views, tenantId={}, datasourceCode={}, count={}, traceId={}",
+        LOGGER.info("正在列出业务逻辑视图，tenantId={}, datasourceCode={}, count={}, traceId={}",
             effectiveTenantId,
             datasourceCode,
             Integer.valueOf(records.size()),
@@ -68,16 +68,16 @@ public class LogicalViewCatalogApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                "View code must not be empty"
+                "视图编码不能为空"
             );
         }
         BusinessLogicalView record = businessLogicalViewRepository.findByTenantAndViewCode(effectiveTenantId, viewCode)
             .orElseThrow(() -> new BizException(
                 ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Business logical view not found"
+                "业务逻辑视图不存在"
             ));
-        LOGGER.info("Loaded business logical view, tenantId={}, viewCode={}, traceId={}",
+        LOGGER.info("已加载业务逻辑视图，tenantId={}, viewCode={}, traceId={}",
             effectiveTenantId,
             viewCode,
             RequestContext.getTraceId());
@@ -91,7 +91,7 @@ public class LogicalViewCatalogApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "Tenant context is missing"
+                "租户上下文缺失"
             );
         }
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : currentTenantId;

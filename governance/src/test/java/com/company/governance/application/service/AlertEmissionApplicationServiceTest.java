@@ -69,13 +69,13 @@ class AlertEmissionApplicationServiceTest {
         assertEquals("SIMULATED_SENT", notificationLog.getValue().getDeliveryStatus());
         assertEquals("SIMULATED_EMAIL", notificationLog.getValue().getNotifyChannel());
         assertEquals("governance-alert-simulated-email-v1", notificationLog.getValue().getTemplateCode());
-        assertTrue(notificationLog.getValue().getMessageBody().contains("notify simulated"));
-        assertTrue(notificationLog.getValue().getPayloadJson().contains("\"mode\":\"notify simulated\""));
+        assertTrue(notificationLog.getValue().getMessageBody().contains("通知已模拟发送"));
+        assertTrue(notificationLog.getValue().getPayloadJson().contains("\"mode\":\"通知已模拟发送\""));
 
         ArgumentCaptor<AlertEventRecord> updatedEvent = ArgumentCaptor.forClass(AlertEventRecord.class);
         verify(alertEventMapper).update(updatedEvent.capture());
         assertEquals("SIMULATED_NOTIFIED", updatedEvent.getValue().getNotifyStatus());
-        assertTrue(updatedEvent.getValue().getNotifyMessage().contains("notify simulated via SIMULATED_EMAIL"));
+        assertTrue(updatedEvent.getValue().getNotifyMessage().contains("通知已通过模拟方式发送"));
         assertNotNull(updatedEvent.getValue().getNotifiedAt());
 
         ArgumentCaptor<AuditLogRecord> auditLog = ArgumentCaptor.forClass(AuditLogRecord.class);
@@ -130,7 +130,7 @@ class AlertEmissionApplicationServiceTest {
         assertEquals("DEDUPE_SUPPRESSED", notificationLog.getValue().getDeliveryStatus());
         assertEquals("alert-existing-001", notificationLog.getValue().getAlertId());
         assertEquals("alert-existing-001", notificationLog.getValue().getSourceAlertId());
-        assertTrue(notificationLog.getValue().getMessageBody().contains("dedupe suppressed"));
+        assertTrue(notificationLog.getValue().getMessageBody().contains("去重抑制已触发"));
 
         ArgumentCaptor<AuditLogRecord> auditLog = ArgumentCaptor.forClass(AuditLogRecord.class);
         verify(protectedPersistenceService).saveAuditLog(auditLog.capture());

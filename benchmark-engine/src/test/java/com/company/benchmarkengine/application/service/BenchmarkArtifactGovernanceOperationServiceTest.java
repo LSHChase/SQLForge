@@ -332,7 +332,7 @@ class BenchmarkArtifactGovernanceOperationServiceTest {
 
             IllegalStateException exception = assertThrows(IllegalStateException.class, () -> service.operate(cleanupRequest));
 
-            assertTrue(exception.getMessage().contains("configured credentials"));
+            assertTrue(exception.getMessage().contains("配置凭据"));
             verify(governanceCapabilityClient).writeAudit(any());
         } finally {
             primaryServer.stop(0);

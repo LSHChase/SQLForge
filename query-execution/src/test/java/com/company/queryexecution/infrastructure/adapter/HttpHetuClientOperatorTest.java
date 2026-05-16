@@ -86,7 +86,7 @@ class HttpHetuClientOperatorTest {
             () -> operator.execute("SELECT 1", new QueryExecuteRequest(), false)
         );
 
-        assertEquals("Hetu client endpoint is not configured", ex.getMessage());
+        assertEquals("Hetu client 端点未配置", ex.getMessage());
     }
 
     private static final class InitialStatementHandler implements HttpHandler {

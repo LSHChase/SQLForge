@@ -105,7 +105,7 @@ class GovernanceAlertApplicationServiceTest {
         BizException exception = assertThrows(BizException.class, () -> service.findAlertDetail("tenant-a", "alert-001"));
 
         assertEquals(10004, exception.getCode());
-        assertEquals("Alert not found", exception.getMessage());
+        assertEquals("告警不存在", exception.getMessage());
     }
 
     private AlertEventRecord alertRecord(String alertId, String tenantId, String status, String ackedBy) {
@@ -120,7 +120,7 @@ class GovernanceAlertApplicationServiceTest {
         record.setDedupeKey("tenant-a|DISPATCH_COORDINATION_FAILED|dispatch=dispatch-001");
         record.setSourceService("dispatch-service");
         record.setSummary("Dispatch failed");
-        record.setNotifyMessage("notify simulated");
+        record.setNotifyMessage("通知已模拟发送");
         record.setCreatedBy("alert-emitter");
         record.setCreatedAt(LocalDateTime.ofInstant(Instant.parse("2026-04-27T15:00:00Z"), ZoneOffset.UTC));
         record.setUpdatedAt(LocalDateTime.ofInstant(Instant.parse("2026-04-27T15:05:00Z"), ZoneOffset.UTC));

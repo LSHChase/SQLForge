@@ -60,7 +60,7 @@ class RedisJdbcAgentRewriteRuleSyncAdapterTest {
         RedisRewriteRuleClient client = new RedisRewriteRuleClient(properties) {
             @Override
             void set(String key, String value, long ttlSeconds) {
-                throw new IllegalStateException("redis unavailable");
+                throw new IllegalStateException("redis 不可用");
             }
         };
         RedisJdbcAgentRewriteRuleSyncAdapter adapter = new RedisJdbcAgentRewriteRuleSyncAdapter(properties, client);

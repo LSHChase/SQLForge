@@ -49,7 +49,7 @@ public final class ProtectedGovernanceRequestSupport {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "Missing protected request context field: " + fieldName
+                "受保护请求上下文缺少字段：" + fieldName
             );
         }
         return value;

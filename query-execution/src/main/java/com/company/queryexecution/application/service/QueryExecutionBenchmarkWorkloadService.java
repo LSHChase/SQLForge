@@ -71,7 +71,7 @@ public class QueryExecutionBenchmarkWorkloadService {
                         normalizedSql,
                         sqlFingerprint,
                         targetEngine,
-                        response == null ? "empty response" : summarizeFailure(response)
+                        response == null ? "空响应" : summarizeFailure(response)
                     );
                 }
             } catch (RuntimeException ex) {
@@ -393,7 +393,7 @@ public class QueryExecutionBenchmarkWorkloadService {
 
     private String summarizeFailure(QueryExecuteResponse response) {
         if (response == null) {
-            return "query-execution returned null response";
+            return "query-execution 返回空响应";
         }
         if (response.getError() != null && StringUtils.hasText(response.getError().getMessage())) {
             return response.getError().getMessage();
@@ -401,7 +401,7 @@ public class QueryExecutionBenchmarkWorkloadService {
         if (StringUtils.hasText(response.getDegradeReason())) {
             return response.getDegradeReason();
         }
-        return "query-execution status=" + response.getStatus().name();
+        return "query-execution 状态=" + response.getStatus().name();
     }
 
     private String normalizeSql(String sqlText) {
@@ -459,7 +459,7 @@ public class QueryExecutionBenchmarkWorkloadService {
 
     private String trimReason(String reason) {
         if (!StringUtils.hasText(reason)) {
-            return "query-execution unavailable";
+            return "query-execution 不可用";
         }
         String trimmed = reason.replace('\n', ' ').replace('\r', ' ').trim();
         return trimmed.length() > 160 ? trimmed.substring(0, 160) : trimmed;
@@ -475,7 +475,7 @@ public class QueryExecutionBenchmarkWorkloadService {
             }
             return builder.toString();
         } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 digest is unavailable", ex);
+            throw new IllegalStateException("SHA-256 摘要不可用", ex);
         }
     }
 

@@ -12,10 +12,10 @@ public final class AlertPolicyBaseline {
 
     public static List<AlertPolicy> defaultPoliciesForTenant(String tenantId, String operator, Instant occurredAt) {
         if (tenantId == null || tenantId.trim().isEmpty()) {
-            throw new IllegalArgumentException("tenantId is required");
+            throw new IllegalArgumentException("tenantId 为必填项");
         }
         if (occurredAt == null) {
-            throw new IllegalArgumentException("occurredAt is required");
+            throw new IllegalArgumentException("occurredAt 为必填项");
         }
         List<AlertPolicy> policies = new ArrayList<AlertPolicy>(AlertEvent.AlertType.values().length);
         for (AlertEvent.AlertType type : AlertEvent.AlertType.values()) {

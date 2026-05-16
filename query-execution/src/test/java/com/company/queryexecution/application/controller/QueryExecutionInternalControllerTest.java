@@ -133,7 +133,7 @@ class QueryExecutionInternalControllerTest {
             true,
             true,
             "READY",
-            "Mode is ready for calibrated routing.",
+            "模式已准备好用于校准路由。",
             Collections.<String, Object>singletonMap("clientEnabled", Boolean.TRUE)
         );
         when(hetuRouteCalibrationService.currentSnapshot()).thenReturn(
@@ -221,7 +221,7 @@ class QueryExecutionInternalControllerTest {
         response.setActive(true);
         response.setRuleVersion(Long.valueOf(1));
         response.setRuntimeRuleVersion("runtime-rewrite-v1");
-        response.setRuntimeSummary("Runtime rewrite binding is active for production auto rewrite lookup.");
+        response.setRuntimeSummary("运行时改写绑定已生效，可用于生产自动改写查找。");
         response.setRuntimeDetailsJson("{\"bindingState\":\"ACTIVE\"}");
         response.setContractStage("LONG_TERM_BASELINE");
         response.setImplementationStage("RUNTIME_REWRITE_BINDING_DB_BASELINE");
@@ -260,7 +260,7 @@ class QueryExecutionInternalControllerTest {
         response.setTargetEngine("HETU");
         response.setActive(true);
         response.setStatus("APPLIED");
-        response.setRuntimeSummary("Approved acceleration plan is now active for runtime preference gating.");
+        response.setRuntimeSummary("已批准加速方案已在运行时偏好门控中生效。");
         response.setRuntimeDetailsJson("{\"bindingState\":\"ACTIVE\"}");
         response.setContractStage("LONG_TERM_BASELINE");
         response.setImplementationStage("APPROVED_ACCELERATION_RUNTIME_BASELINE");
@@ -295,7 +295,7 @@ class QueryExecutionInternalControllerTest {
         response.setSchemaVersion("schema-v1");
         response.setActive(true);
         response.setStatus("APPLIED");
-        response.setPolicySummary("Governed cache policy is now active for result-cache eligibility and version validation.");
+        response.setPolicySummary("受治理缓存策略已生效，可用于结果缓存资格判断与版本校验。");
         response.setRuntimeDetailsJson("{\"bindingState\":\"ACTIVE\"}");
         response.setContractStage("LONG_TERM_BASELINE");
         response.setImplementationStage("CACHE_GOVERNANCE_RUNTIME_BASELINE");
@@ -345,7 +345,7 @@ class QueryExecutionInternalControllerTest {
         invalidateResponse.setSchemaVersion("schema-v1");
         invalidateResponse.setActive(true);
         invalidateResponse.setStatus("INVALIDATED");
-        invalidateResponse.setPolicySummary("Governed cache entries were invalidated and will require backfill on the next eligible execution.");
+        invalidateResponse.setPolicySummary("受治理缓存条目已失效，将在下一次符合条件的执行中回填。");
         invalidateResponse.setRuntimeDetailsJson("{\"invalidatedEntryCount\":1}");
         invalidateResponse.setContractStage("LONG_TERM_BASELINE");
         invalidateResponse.setImplementationStage("CACHE_GOVERNANCE_RUNTIME_BASELINE");

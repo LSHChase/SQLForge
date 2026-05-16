@@ -52,7 +52,7 @@ public class HeaderAuthContextSupport {
     private String requireHeader(HttpServletRequest request, String headerName) {
         String headerValue = request.getHeader(headerName);
         if (headerValue == null || headerValue.trim().isEmpty()) {
-            throw new UnauthorizedException("Missing " + headerName + " header");
+            throw new UnauthorizedException("缺少 " + headerName + " 请求头");
         }
         return headerValue.trim();
     }
@@ -63,7 +63,7 @@ public class HeaderAuthContextSupport {
             .filter(item -> !item.isEmpty())
             .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(roleCodes)) {
-            throw new UnauthorizedException("Missing " + RequestHeaderConstants.ROLE_CODES + " header");
+            throw new UnauthorizedException("缺少 " + RequestHeaderConstants.ROLE_CODES + " 请求头");
         }
         return new ArrayList<String>(roleCodes);
     }
@@ -73,13 +73,13 @@ public class HeaderAuthContextSupport {
         try {
             return Long.parseLong(value);
         } catch (NumberFormatException ex) {
-            throw new UnauthorizedException("Invalid " + headerName + " header");
+            throw new UnauthorizedException("无效的 " + headerName + " 请求头");
         }
     }
 
     private void validateTimeWindow(long issuedAt, long expiresAt) {
         if (issuedAt <= 0L || expiresAt <= 0L || issuedAt > expiresAt) {
-            throw new UnauthorizedException("Invalid authentication time window");
+            throw new UnauthorizedException("认证时间窗口无效");
         }
     }
 
@@ -88,13 +88,13 @@ public class HeaderAuthContextSupport {
             return;
         }
         if (!CollectionUtils.isEmpty(trustedAuthSources) && !trustedAuthSources.contains(authSource)) {
-            throw new UnauthorizedException("Unsupported " + RequestHeaderConstants.AUTH_SOURCE + " header");
+            throw new UnauthorizedException("不支持的 " + RequestHeaderConstants.AUTH_SOURCE + " 请求头");
         }
     }
 
     private void validateNotExpired(boolean authEnabled, long expiresAt) {
         if (authEnabled && expiresAt < System.currentTimeMillis()) {
-            throw new UnauthorizedException("Authentication context has expired");
+            throw new UnauthorizedException("认证上下文已过期");
         }
     }
 

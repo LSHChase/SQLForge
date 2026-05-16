@@ -26,7 +26,7 @@ public class InMemoryMetadataSnapshotRepository implements MetadataSnapshotRepos
             "hetu_main",
             "LOGICAL_VIEW",
             "LOGICAL_VIEW:RPT_SALES_DAILY",
-            "Sales Daily",
+            "每日销售",
             "lakehouse",
             "analytics",
             "FRESH",
@@ -83,7 +83,7 @@ public class InMemoryMetadataSnapshotRepository implements MetadataSnapshotRepos
                 new MetadataLineageRef("TABLE", "TABLE:sales.orders", "sales.orders", "SOURCE"),
                 new MetadataLineageRef("TABLE", "TABLE:sales.order_items", "sales.order_items", "SOURCE")
             ),
-            Arrays.asList(new MetadataLineageRef("LOGICAL_VIEW", "LOGICAL_VIEW:RPT_SALES_DAILY", "Sales Daily", "EXPOSED_AS"))
+            Arrays.asList(new MetadataLineageRef("LOGICAL_VIEW", "LOGICAL_VIEW:RPT_SALES_DAILY", "每日销售", "EXPOSED_AS"))
         );
         MetadataSnapshot physicalTableSnapshot = new MetadataSnapshot(
             "snapshot-003",

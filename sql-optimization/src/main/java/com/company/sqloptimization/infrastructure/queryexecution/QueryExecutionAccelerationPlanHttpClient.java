@@ -21,7 +21,7 @@ import org.springframework.web.client.RestTemplate;
 @Component
 public class QueryExecutionAccelerationPlanHttpClient implements QueryExecutionAccelerationPlanClient {
 
-    private static final String QUERY_EXECUTION_ROUTE_UNAVAILABLE_MESSAGE = "Query-execution acceleration runtime route is unavailable";
+    private static final String QUERY_EXECUTION_ROUTE_UNAVAILABLE_MESSAGE = "查询执行加速运行时路由不可用";
 
     private final RestTemplate restTemplate;
     private final OptimizationQueryExecutionProperties optimizationQueryExecutionProperties;
@@ -92,7 +92,7 @@ public class QueryExecutionAccelerationPlanHttpClient implements QueryExecutionA
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "sql-optimization query-execution baseUrl is not configured"
+                "sql-optimization query-execution baseUrl 未配置"
             );
         }
         return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;

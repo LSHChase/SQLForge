@@ -72,7 +72,7 @@ public class BenchmarkTestSetApplicationService {
             String importBatchId = "import-" + UUID.randomUUID().toString();
             List<ImportedRow> rows = parseRows(request);
             if (rows.isEmpty()) {
-                throw invalidArgument("contentBase64", "No parseable benchmark test-set rows were found in the uploaded payload");
+                throw invalidArgument("contentBase64", "上传内容中未找到可解析的压测测试集行");
             }
             List<BenchmarkTestSetCase> cases = toCases(testSetId, rows);
             BenchmarkTestSet testSet = benchmarkTestSetModelApplicationService.buildImportedTestSet(
@@ -116,10 +116,10 @@ public class BenchmarkTestSetApplicationService {
                 throw new BizException(
                     ErrorCodeConstants.BENCHMARK_TASK_NOT_FOUND,
                     HttpStatus.NOT_FOUND,
-                    "Benchmark test set does not exist for testSetId=" + testSetId
+                    "压测测试集不存在，testSetId=" + testSetId
                 );
             }
-            verifyTenantAccess(testSet.getTenantId(), "Authenticated tenant cannot access this benchmark test set");
+            verifyTenantAccess(testSet.getTenantId(), "当前认证租户无权访问该压测测试集");
             assertAuthorization(testSet.getTenantId(), testSetId, QUERY_OPERATION);
             BenchmarkTestSetResponse response = benchmarkTestSetModelApplicationService.buildResponse(testSet);
             writeAudit(
@@ -154,7 +154,7 @@ public class BenchmarkTestSetApplicationService {
             case XLS:
                 return parseWorkbookRows(request, content);
             default:
-                throw invalidArgument("fileType", "Unsupported benchmark test-set file type");
+                throw invalidArgument("fileType", "不支持的压测测试集文件类型");
         }
     }
 
@@ -172,7 +172,7 @@ public class BenchmarkTestSetApplicationService {
             CSVParser parser = format.parse(new InputStreamReader(new ByteArrayInputStream(content), charset));
             return toImportedRows(parser.getRecords(), parser.getHeaderMap().keySet(), request);
         } catch (Exception ex) {
-            throw invalidArgument("contentBase64", "Failed to parse benchmark test-set delimited file: " + ex.getMessage());
+            throw invalidArgument("contentBase64", "解析压测测试集分隔符文件失败：" + ex.getMessage());
         }
     }
 
@@ -208,7 +208,7 @@ public class BenchmarkTestSetApplicationService {
             }
             return toImportedRows(records, headers, request);
         } catch (Exception ex) {
-            throw invalidArgument("contentBase64", "Failed to parse benchmark test-set workbook: " + ex.getMessage());
+            throw invalidArgument("contentBase64", "解析压测测试集工作簿失败：" + ex.getMessage());
         }
     }
 
@@ -293,7 +293,7 @@ public class BenchmarkTestSetApplicationService {
     private String validateImportedRow(ImportedRow row) {
         String sqlText = row.getFieldValue(BenchmarkTestSetField.SQL_TEXT);
         if (sqlText == null) {
-            return "sqlText is required";
+            return "sqlText 为必填项";
         }
         String readonlyFailure = BenchmarkReadonlySqlSupport.validateReadonlySql(sqlText);
         if (readonlyFailure != null) {
@@ -304,7 +304,7 @@ public class BenchmarkTestSetApplicationService {
             try {
                 OBJECT_MAPPER.readTree(bindParametersJson);
             } catch (Exception ex) {
-                return "bindParametersJson must be valid JSON";
+                return "bindParametersJson 必须是有效 JSON";
             }
         }
         return null;
@@ -343,7 +343,7 @@ public class BenchmarkTestSetApplicationService {
         for (index = 0; index < fieldMappings.size(); index++) {
             BenchmarkTestSetFieldMappingDTO mapping = fieldMappings.get(index);
             if (!headers.contains(mapping.getColumnName())) {
-                throw invalidArgument("fieldMappings", "Mapped column is missing from uploaded file header: " + mapping.getColumnName());
+                throw invalidArgument("fieldMappings", "上传文件表头缺少映射列：" + mapping.getColumnName());
             }
         }
     }
@@ -364,7 +364,7 @@ public class BenchmarkTestSetApplicationService {
         try {
             return Charset.forName(charsetName.trim());
         } catch (Exception ex) {
-            throw invalidArgument("charset", "Unsupported charset: " + charsetName);
+            throw invalidArgument("charset", "不支持的 charset：" + charsetName);
         }
     }
 
@@ -382,7 +382,7 @@ public class BenchmarkTestSetApplicationService {
         try {
             return Base64.getDecoder().decode(value);
         } catch (Exception ex) {
-            throw invalidArgument("contentBase64", "contentBase64 is not valid Base64");
+            throw invalidArgument("contentBase64", "contentBase64 不是有效的 Base64");
         }
     }
 
@@ -402,12 +402,12 @@ public class BenchmarkTestSetApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (requestTenantId != null && requestTenantId.trim().length() > 0
             && !contextTenantId.equals(requestTenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return contextTenantId;
     }
@@ -418,7 +418,7 @@ public class BenchmarkTestSetApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (!contextTenantId.equals(resourceTenantId)) {
@@ -428,7 +428,7 @@ public class BenchmarkTestSetApplicationService {
 
     private String requireText(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
-            throw invalidArgument(fieldName, fieldName + " is required");
+            throw invalidArgument(fieldName, fieldName + " 为必填项");
         }
         return value.trim();
     }
@@ -437,7 +437,7 @@ public class BenchmarkTestSetApplicationService {
         return new BizException(
             ErrorCodeConstants.BENCHMARK_TASK_INVALID,
             HttpStatus.BAD_REQUEST,
-            "Invalid benchmark test set " + fieldName + ": " + message
+            "压测测试集无效：" + fieldName + ": " + message
         );
     }
 

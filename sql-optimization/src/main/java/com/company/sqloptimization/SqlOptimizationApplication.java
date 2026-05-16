@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * SQL optimization service bootstrap.
+ * SQL 优化服务启动入口。
  */
 @EnableScheduling
 @EnableConfigurationProperties({

@@ -38,7 +38,7 @@ public class JdbcHetuExecutionModeAdapter implements HetuExecutionModeAdapter {
     public QueryExecutionStep execute(String actualSql, QueryExecuteRequest request, boolean degradedPath) {
         QueryExecutionHetuProperties.Jdbc jdbc = properties.getJdbc();
         if (!StringUtils.hasText(jdbc.getUrl())) {
-            throw new IllegalStateException("Hetu JDBC url is not configured");
+            throw new IllegalStateException("Hetu JDBC url 未配置");
         }
         long start = System.currentTimeMillis();
         try (Connection connection = DriverManager.getConnection(
@@ -62,7 +62,7 @@ public class JdbcHetuExecutionModeAdapter implements HetuExecutionModeAdapter {
                 );
             }
         } catch (SQLException ex) {
-            throw new IllegalStateException("Hetu JDBC execution failed", ex);
+            throw new IllegalStateException("Hetu JDBC 执行失败", ex);
         }
     }
 

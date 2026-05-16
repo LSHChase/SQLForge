@@ -1,7 +1,7 @@
 package com.company.queryexecution.domain.query;
 
 /**
- * Runtime acceleration preference requested by the caller.
+ * 调用方请求的运行时加速偏好。
  */
 public enum AccelerationPreference {
     PREFER_ACCELERATED,

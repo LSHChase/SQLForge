@@ -143,7 +143,7 @@ public class MybatisAccelerationPlanRepository implements AccelerationPlanReposi
             JavaType type = JsonUtils.objectMapper().getTypeFactory().constructCollectionType(List.class, itemType);
             return JsonUtils.objectMapper().readValue(json, type);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to deserialize acceleration plan JSON", ex);
+            throw new IllegalArgumentException("加速方案 JSON 反序列化失败", ex);
         }
     }
 

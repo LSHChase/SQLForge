@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Domain-level failure details for async optimization tasks.
+ * 异步优化任务的领域级失败详情。
  */
 public class OptimizationTaskError {
 

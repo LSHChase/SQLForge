@@ -210,7 +210,7 @@ public class SqlDiffApplicationService {
 
     private ParseResult parseSql(String sqlText) {
         if (!StringUtils.hasText(sqlText)) {
-            return ParseResult.failed("SQL text is blank");
+            return ParseResult.failed("SQL 文本为空");
         }
         try {
             SqlOptimizationPipelineService.ParsedSqlProfile profile =

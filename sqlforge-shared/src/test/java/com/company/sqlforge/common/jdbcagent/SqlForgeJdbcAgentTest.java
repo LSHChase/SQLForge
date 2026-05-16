@@ -110,7 +110,7 @@ class SqlForgeJdbcAgentTest {
 
         assertEquals("direct-fallback", result.getDirectResult().getPayload());
         assertTrue(result.getMetadata().isFallbackApplied());
-        assertTrue(result.getMetadata().getPlatformFailureReason().contains("SQLForge query-execution route is unavailable"));
+        assertTrue(result.getMetadata().getPlatformFailureReason().contains("SQLForge 查询执行路由不可用"));
         queryServer.verify();
         auditServer.verify();
     }

@@ -27,7 +27,7 @@ class RedisRewriteRuleClient {
                 ? execute("SETEX", key, String.valueOf(ttlSeconds), value)
                 : execute("SET", key, value);
             if (!"OK".equalsIgnoreCase(String.valueOf(result))) {
-                throw new IllegalStateException("Unexpected Redis SET response");
+                throw new IllegalStateException("Redis SET 响应不符合预期");
             }
         } catch (IOException ex) {
             throw new IllegalStateException(ex.getMessage(), ex);
@@ -44,7 +44,7 @@ class RedisRewriteRuleClient {
 
     private Object execute(String... args) throws IOException {
         if (properties == null || !StringUtils.hasText(properties.getHost())) {
-            throw new IOException("Redis host is not configured");
+            throw new IOException("Redis 主机未配置");
         }
         Socket socket = new Socket();
         socket.connect(
@@ -96,7 +96,7 @@ class RedisRewriteRuleClient {
     private Object readResp(BufferedInputStream input) throws IOException {
         int type = input.read();
         if (type == -1) {
-            throw new IOException("Redis closed connection");
+            throw new IOException("Redis 连接已关闭");
         }
         if (type == '+') {
             return readLine(input);
@@ -127,7 +127,7 @@ class RedisRewriteRuleClient {
             }
             return values;
         }
-        throw new IOException("Unsupported Redis response type");
+        throw new IOException("不支持的 Redis 响应类型");
     }
 
     private String readLine(BufferedInputStream input) throws IOException {
@@ -142,7 +142,7 @@ class RedisRewriteRuleClient {
             buffer.write(current);
             previous = current;
         }
-        throw new IOException("Redis response line is incomplete");
+        throw new IOException("Redis 响应行不完整");
     }
 
     private byte[] readBytes(BufferedInputStream input, int length) throws IOException {
@@ -151,7 +151,7 @@ class RedisRewriteRuleClient {
         while (offset < length) {
             int read = input.read(bytes, offset, length - offset);
             if (read == -1) {
-                throw new IOException("Redis bulk response is incomplete");
+                throw new IOException("Redis bulk 响应不完整");
             }
             offset += read;
         }

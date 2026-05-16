@@ -87,7 +87,7 @@ public class AlertEvent {
     }
 
     public void ack(Instant occurredAt, String operator) {
-        requireStatus(AlertStatus.OPEN, "Only OPEN alerts can be acknowledged");
+        requireStatus(AlertStatus.OPEN, "只有 OPEN 状态告警可以确认");
         requireInstant(occurredAt, "occurredAt");
         requireText(operator, "operator");
         this.alertStatus = AlertStatus.ACKED;
@@ -100,7 +100,7 @@ public class AlertEvent {
         requireText(alertId, "alertId");
         requireText(tenantId, "tenantId");
         if (alertType == null) {
-            throw new IllegalArgumentException("alertType is required");
+            throw new IllegalArgumentException("alertType 为必填项");
         }
         requireText(summary, "summary");
         requireText(dedupeKey, "dedupeKey");
@@ -109,13 +109,13 @@ public class AlertEvent {
 
     private void requireStatus(AlertStatus expected, String message) {
         if (alertStatus != expected) {
-            throw new IllegalStateException(message + ", current=" + alertStatus);
+            throw new IllegalStateException(message + "，当前状态=" + alertStatus);
         }
     }
 
     private static String buildDefaultDedupeKey(Builder builder) {
         if (builder.alertType == null) {
-            throw new IllegalArgumentException("alertType is required");
+            throw new IllegalArgumentException("alertType 为必填项");
         }
         StringBuilder value = new StringBuilder();
         value.append(sanitize(builder.tenantId));
@@ -166,13 +166,13 @@ public class AlertEvent {
 
     private static void requireText(String value, String field) {
         if (trimToNull(value) == null) {
-            throw new IllegalArgumentException(field + " is required");
+            throw new IllegalArgumentException(field + " 为必填项");
         }
     }
 
     private static void requireInstant(Instant value, String field) {
         if (value == null) {
-            throw new IllegalArgumentException(field + " is required");
+            throw new IllegalArgumentException(field + " 为必填项");
         }
     }
 

@@ -68,7 +68,7 @@ public class BenchmarkReportControllerTest {
             .andExpect(status().isOk())
             .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
             .andExpect(header().string("Content-Disposition", endsWith(".html\"")))
-            .andExpect(content().string(containsString("SQLForge Benchmark Report")));
+            .andExpect(content().string(containsString("SQLForge 压测报告")));
     }
 
     @Test

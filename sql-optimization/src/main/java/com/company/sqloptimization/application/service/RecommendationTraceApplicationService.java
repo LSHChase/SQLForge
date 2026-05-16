@@ -39,7 +39,7 @@ public class RecommendationTraceApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
                 HttpStatus.NOT_FOUND,
-                "Recommendation not found: " + recommendationId
+                "推荐不存在：" + recommendationId
             );
         }
         verifyTenantAccess(recommendation.getTenantId());
@@ -164,11 +164,11 @@ public class RecommendationTraceApplicationService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (!contextTenantId.equals(resourceTenantId)) {
-            throw new AccessDeniedException("Authenticated tenant cannot access this recommendation trace");
+            throw new AccessDeniedException("当前认证租户无权访问该推荐追溯");
         }
     }
 }

@@ -54,14 +54,14 @@ public class LocalFileBenchmarkArtifactStorageAdapter implements BenchmarkArtifa
                 tenantPolicy == null ? null : tenantPolicy.getRetentionDeleteAfter()
             );
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to externalize benchmark artifact", ex);
+            throw new IllegalStateException("外部化压测产物失败", ex);
         }
     }
 
     @Override
     public BenchmarkArtifactReadResult loadArtifact(BenchmarkReportArtifact artifact) {
         if (artifact == null) {
-            throw new IllegalArgumentException("Benchmark artifact must not be null");
+            throw new IllegalArgumentException("压测产物不能为 null");
         }
         try {
             if (artifact.getContent() != null) {
@@ -77,7 +77,7 @@ public class LocalFileBenchmarkArtifactStorageAdapter implements BenchmarkArtifa
                 );
             }
             if (artifact.getStorageUri() == null) {
-                throw new IllegalStateException("Benchmark artifact content and storageUri are both missing");
+                throw new IllegalStateException("压测产物内容与 storageUri 均缺失");
             }
             byte[] bytes = Files.readAllBytes(Paths.get(URI.create(artifact.getStorageUri())));
             return new BenchmarkArtifactReadResult(
@@ -91,9 +91,9 @@ public class LocalFileBenchmarkArtifactStorageAdapter implements BenchmarkArtifa
                 "LOCAL_FILE_READ"
             );
         } catch (NoSuchFileException ex) {
-            throw new IllegalStateException("Benchmark artifact is missing from storage", ex);
+            throw new IllegalStateException("存储中缺少压测产物", ex);
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to load benchmark artifact from storage", ex);
+            throw new IllegalStateException("从存储加载压测产物失败", ex);
         }
     }
 
@@ -108,7 +108,7 @@ public class LocalFileBenchmarkArtifactStorageAdapter implements BenchmarkArtifa
                                                           BenchmarkReportArtifact artifact,
                                                           String cleanupScope) {
         if (artifact == null || artifact.getStorageUri() == null) {
-            throw new IllegalStateException("Local benchmark artifact is missing storageUri");
+            throw new IllegalStateException("本地压测产物缺少 storageUri");
         }
         Path artifactPath = Paths.get(URI.create(artifact.getStorageUri()));
         boolean deleted = deleteIfExists(artifactPath);
@@ -141,7 +141,7 @@ public class LocalFileBenchmarkArtifactStorageAdapter implements BenchmarkArtifa
                 .filter(path -> !retainedFileNames.contains(path.getFileName().toString()))
                 .forEach(this::deleteQuietly);
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to cleanup stale benchmark artifacts", ex);
+            throw new IllegalStateException("清理陈旧压测产物失败", ex);
         }
     }
 
@@ -149,7 +149,7 @@ public class LocalFileBenchmarkArtifactStorageAdapter implements BenchmarkArtifa
         try {
             Files.deleteIfExists(path);
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to delete stale benchmark artifact " + path, ex);
+            throw new IllegalStateException("删除陈旧压测产物失败：" + path, ex);
         }
     }
 
@@ -157,7 +157,7 @@ public class LocalFileBenchmarkArtifactStorageAdapter implements BenchmarkArtifa
         try {
             return Files.deleteIfExists(path);
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to cleanup benchmark artifact " + path, ex);
+            throw new IllegalStateException("清理压测产物失败：" + path, ex);
         }
     }
 }

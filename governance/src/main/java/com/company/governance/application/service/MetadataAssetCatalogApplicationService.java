@@ -80,7 +80,7 @@ public class MetadataAssetCatalogApplicationService {
                 return schema;
             }
         }
-        throw new BizException(ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Schema asset not found");
+        throw new BizException(ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Schema 资产不存在");
     }
 
     public List<MetadataTableAssetVO> listTables(String tenantId, String datasourceCode, String schemaName) {
@@ -114,7 +114,7 @@ public class MetadataAssetCatalogApplicationService {
                 return table;
             }
         }
-        throw new BizException(ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Table asset not found");
+        throw new BizException(ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "表资产不存在");
     }
 
     private MetadataTableAssetVO toTableVo(MetadataSnapshot snapshot) {
@@ -173,12 +173,12 @@ public class MetadataAssetCatalogApplicationService {
         String contextTenantId = RequestContext.getTenantId();
         if (!StringUtils.hasText(contextTenantId)) {
             throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context");
+                "已认证请求上下文缺少 tenantId");
         }
         String normalized = trimToNull(requestTenantId);
         if (StringUtils.hasText(normalized) && !contextTenantId.equals(normalized)
             && !RequestContext.hasRole(PLATFORM_ADMIN)) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return StringUtils.hasText(normalized) ? normalized : contextTenantId;
     }
@@ -201,7 +201,7 @@ public class MetadataAssetCatalogApplicationService {
         String normalized = trimToNull(value);
         if (!StringUtils.hasText(normalized)) {
             throw new BizException(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, HttpStatus.BAD_REQUEST,
-                fieldName + " must not be empty");
+                fieldName + " 不能为空");
         }
         return normalized;
     }

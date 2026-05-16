@@ -242,7 +242,7 @@ public class ParseStatisticsApplicationService {
         String tenantId = RequestContext.getTenantId();
         if (!StringUtils.hasText(tenantId)) {
             throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context");
+                "已认证请求上下文缺少 tenantId");
         }
         List<ParseBatchItem> result = new ArrayList<ParseBatchItem>();
         for (ParseBatchItem item : parseBatchItemRepository.findAll()) {

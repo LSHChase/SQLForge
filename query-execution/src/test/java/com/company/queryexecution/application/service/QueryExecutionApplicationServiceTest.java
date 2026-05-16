@@ -299,7 +299,7 @@ class QueryExecutionApplicationServiceTest {
         QueryExecutionRuntimeRewriteBindingService rewriteBindingService =
             mock(QueryExecutionRuntimeRewriteBindingService.class);
         when(rewriteBindingService.resolveActive(any()))
-            .thenThrow(new IllegalStateException("runtime binding store unavailable"));
+            .thenThrow(new IllegalStateException("runtime binding store 不可用"));
         RecordingQueryExecutionAdapter adapter = new RecordingQueryExecutionAdapter();
         QueryExecutionApplicationService service =
             newService(adapter, mockGovernanceClient(), rewriteBindingService);
@@ -500,7 +500,7 @@ class QueryExecutionApplicationServiceTest {
                                                   QueryExecuteRequest request,
                                                   boolean degradedPath) {
                     throw new HetuExecutionUnavailableException(
-                        "Hetu execution chain is disabled for the current environment",
+                        "当前环境已禁用 Hetu 执行链路",
                         java.util.Collections.singletonList("CHAIN_DISABLED"),
                         "REPO_CLOSED_BASELINE",
                         java.util.Arrays.asList("JDBC", "REST", "CLIENT"),
@@ -520,7 +520,7 @@ class QueryExecutionApplicationServiceTest {
         assertEquals("REPO_CLOSED_CONFIGURATION", response.getMetadata().getRouteEvidenceSource());
         assertEquals(1, response.getRetryPath().size());
         assertEquals("LOCAL_PRIMARY_ROUTE_FAILURE_MARKED", response.getRetryPath().get(0).getLocalRecoveryMarker());
-        assertEquals(1.0D, meterRegistry.get("sqlforge.query.execution.route_unavailable").tags(
+        assertEquals(1.0D, meterRegistry.get("sqlforge.query.execution.route_不可用").tags(
             "requested_datasource", "HETU",
             "target_engine", "HETU",
             "fault_tolerance", "FAIL_FAST"
@@ -546,7 +546,7 @@ class QueryExecutionApplicationServiceTest {
                         return new DeterministicQueryExecutionAdapter().execute(targetEngine, actualSql, request, degradedPath);
                     }
                     throw new HetuExecutionUnavailableException(
-                        "No calibrated Hetu execution mode succeeded. attemptedModes=[JDBC, JDBC:FAILED_EXECUTION, REST, REST:FAILED_EXECUTION]",
+                        "已校准的 Hetu 执行模式均未成功，attemptedModes=[JDBC, JDBC:FAILED_EXECUTION, REST, REST:FAILED_EXECUTION]",
                         java.util.Arrays.asList("JDBC", "JDBC:FAILED_EXECUTION", "REST", "REST:FAILED_EXECUTION"),
                         "REPO_CLOSED_BASELINE",
                         java.util.Arrays.asList("JDBC", "REST"),
@@ -672,7 +672,7 @@ class QueryExecutionApplicationServiceTest {
 
         AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> service.executeSynchronously(request));
 
-        assertEquals("Request tenantId does not match authenticated tenant context", ex.getMessage());
+        assertEquals("请求 tenantId 与已认证租户上下文不一致", ex.getMessage());
         verify(governanceCapabilityClient, org.mockito.Mockito.never()).assertAuthorization(any(), any(), any(), any(), any());
         verify(governanceCapabilityClient, org.mockito.Mockito.never()).writeAudit(any());
         verify(governanceCapabilityClient, org.mockito.Mockito.never()).writeQueryExecutionHistory(any());

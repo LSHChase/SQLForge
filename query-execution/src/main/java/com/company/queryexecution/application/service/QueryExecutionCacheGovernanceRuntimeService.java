@@ -94,7 +94,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             throw new BizException(
                 ErrorCodeConstants.QUERY_EXECUTION_ROUTE_REJECTED,
                 HttpStatus.CONFLICT,
-                "A governed cache policy is already active for this tenant, SQL fingerprint, and datasource"
+                "该租户、SQL 指纹与数据源已存在生效的受治理缓存策略"
             );
         }
         CachePolicyBinding binding = new CachePolicyBinding(
@@ -114,7 +114,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             binding,
             "APPLIED",
             true,
-            "Governed cache policy is now active for result-cache eligibility, backend validation, capacity limits, TTL, and version checks.",
+            "受治理缓存策略已生效，将校验结果缓存资格、后端可用性、容量限制、TTL 和版本。",
             countEntries(binding)
         );
     }
@@ -134,7 +134,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             response.setTargetEngine(datasourceType);
             response.setActive(false);
             response.setStatus("MISSING");
-            response.setPolicySummary("No governed cache policy is currently active for runtime verification.");
+            response.setPolicySummary("当前没有可用于运行时校验的受治理缓存策略。");
             response.setRuntimeDetailsJson(JsonUtils.toJson(withBackendDetails(details(
                 "bindingState", "MISSING",
                 "cachedEntryCount", Integer.valueOf(0),
@@ -148,7 +148,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             binding,
             "VERIFIED",
             true,
-            "Governed cache policy remains active with version-aware runtime checks, capacity limits, TTL, and backend verification.",
+            "受治理缓存策略仍处于生效状态，并保留版本感知的运行时校验、容量限制、TTL 和后端校验。",
             countEntries(binding)
         );
     }
@@ -175,8 +175,8 @@ public class QueryExecutionCacheGovernanceRuntimeService {
         response.setActive(binding != null && policyId.equals(binding.getPolicyId()));
         response.setStatus("INVALIDATED");
         response.setPolicySummary(invalidatedEntries > 0
-            ? "Governed cache entries were invalidated and will require backfill on the next eligible execution."
-            : "No governed cache entries were present, so invalidation completed idempotently.");
+            ? "受治理缓存条目已失效，将在下一次符合条件的执行中回填。"
+            : "没有受治理缓存条目，失效操作已按幂等方式完成。");
         response.setRuntimeDetailsJson(
             JsonUtils.toJson(
                 withBackendDetails(
@@ -214,7 +214,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                 binding,
                 schemaVersion,
                 RISK_SESSION_BYPASS,
-                "Session variable requested cache bypass.",
+                "会话变量要求绕过缓存。",
                 backendEvidence("providerReadStatus=SKIPPED")
             );
         }
@@ -223,7 +223,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                 binding,
                 null,
                 RISK_SCHEMA_VERSION_MISSING,
-                "queryContext.schemaVersion is required for governed cache hits.",
+                "受治理缓存命中要求提供 queryContext.schemaVersion。",
                 backendEvidence("providerReadStatus=SKIPPED")
             );
         }
@@ -237,7 +237,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                 schemaVersion,
                 cacheKey(tenantId, sqlFingerprint, datasourceType, schemaVersion),
                 invalidation.getInvalidatedCount(),
-                "Schema version changed from governed baseline " + binding.getSchemaVersion() + ".",
+                "Schema 版本已不同于治理基线 " + binding.getSchemaVersion() + "。",
                 backendEvidence(invalidation.getProviderEvidence()) + ";evictionReason=" + EVICTION_SCHEMA_VERSION_MISMATCH
             );
         }
@@ -259,7 +259,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                 binding,
                 schemaVersion,
                 RISK_BACKEND_UNAVAILABLE,
-                "Distributed cache backend is unavailable: " + readResult.getFailureReason(),
+                "分布式缓存后端不可用：" + readResult.getFailureReason(),
                 backendEvidence(readResult.getProviderEvidence())
             );
         }
@@ -306,7 +306,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
         if (!writeResult.isWritten()) {
             CacheResolution failedResolution = resolution.withBackendFailure(
                 RISK_BACKEND_WRITE_FAILED,
-                "Distributed cache backend write failed: " + writeResult.getFailureReason(),
+                "分布式缓存后端写入失败：" + writeResult.getFailureReason(),
                 backendEvidence(writeResult.getProviderEvidence())
             );
             return step.withCacheGovernance(false, STATUS_BYPASSED, failedResolution.buildEvidence(false, "BACKFILL_FAILED"));
@@ -652,11 +652,11 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
                 HttpStatus.UNAUTHORIZED,
-                "tenantId is missing from authenticated request context"
+                "已认证请求上下文缺少 tenantId"
             );
         }
         if (!RequestContext.getTenantId().equals(tenantId == null ? null : tenantId.trim())) {
-            throw new AccessDeniedException("Request tenantId does not match authenticated tenant context");
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
     }
 
@@ -665,7 +665,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
-                fieldName + " must not be empty"
+                fieldName + " 不能为空"
             );
         }
         return value.trim();

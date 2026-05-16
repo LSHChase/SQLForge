@@ -38,7 +38,7 @@ public class CombinedParseApplicationService {
         status.setStructureParse(structureParse);
         status.setStatusHistory(new ArrayList<CombinedParseStatusHistoryVO>());
         status.setStatus("STRUCTURE_SUCCEEDED");
-        appendHistory(status, "STRUCTURE_SUCCEEDED", "Structure parse returned immediately.");
+        appendHistory(status, "STRUCTURE_SUCCEEDED", "结构解析已即时返回。");
         status.setConclusion(buildConclusion(status));
         parseStates.put(status.getParseTaskId(), status);
 
@@ -49,14 +49,14 @@ public class CombinedParseApplicationService {
                 status.setStatus("FAILED");
             }
             status.setDegradeReason("STRUCTURE_PARSE_INVALID");
-            appendHistory(status, status.getStatus(), "Structure parse returned INVALID and access parse was not started.");
+            appendHistory(status, status.getStatus(), "结构解析返回 INVALID，未启动访问解析。");
             status.setConclusion(buildConclusion(status));
             writeParseHistory(status, request);
             return status;
         }
 
         status.setStatus("ACCESS_PARSING");
-        appendHistory(status, "ACCESS_PARSING", "Access parse follow-up was scheduled after structure success.");
+        appendHistory(status, "ACCESS_PARSING", "结构解析成功后已调度访问解析跟进流程。");
         status.setConclusion(buildConclusion(status));
         writeParseHistory(status, request);
         scheduleAccessParse(status.getParseTaskId(), request, RequestContext.snapshot());
@@ -98,14 +98,14 @@ public class CombinedParseApplicationService {
                     if (accessSucceeded && analysisSucceeded) {
                         current.setStatus("ACCESS_SUCCEEDED");
                         current.setDegradeReason(null);
-                        appendHistory(current, "ACCESS_SUCCEEDED", "Access parse completed with provider reachability evidence.");
+                        appendHistory(current, "ACCESS_SUCCEEDED", "访问解析已完成，并返回 provider 可达性证据。");
                     } else if (accessSucceeded) {
                         current.setStatus("PARTIAL_SUCCEEDED");
                         current.setDegradeReason(resolvePlanDegradeReason(current));
                         appendHistory(
                             current,
                             "PARTIAL_SUCCEEDED",
-                            "Access parse succeeded but structure/plan analysis ended with a degraded status."
+                            "访问解析成功，但结构或计划分析以降级状态结束。"
                         );
                     } else if ("SKIPPED".equals(accessParse.getServiceStatus())
                         || "UNAVAILABLE".equals(accessParse.getServiceStatus())
@@ -117,12 +117,12 @@ public class CombinedParseApplicationService {
                         appendHistory(
                             current,
                             "PARTIAL_SUCCEEDED",
-                            "Structure parse succeeded but access parse ended with degraded status: " + accessParse.getDegradeReason()
+                            "结构解析成功，但访问解析以降级状态结束：" + accessParse.getDegradeReason()
                         );
                     } else {
                         current.setStatus("PARTIAL_SUCCEEDED");
                         current.setDegradeReason(accessParse.getDegradeReason());
-                        appendHistory(current, "PARTIAL_SUCCEEDED", "Access parse completed with a non-terminal degraded state.");
+                        appendHistory(current, "PARTIAL_SUCCEEDED", "访问解析完成，但仍处于非终态降级状态。");
                     }
                     current.setConclusion(buildConclusion(current));
                     writeParseHistory(current, request);
@@ -178,30 +178,30 @@ public class CombinedParseApplicationService {
         conclusion.setDegradeReason(status.getDegradeReason());
         if ("FAILED".equals(status.getStatus())) {
             conclusion.setOverallStatus("FAILED");
-            conclusion.setSummary("Structure parse returned a failure-grade result, so access parse evidence is unavailable.");
-            conclusion.setRecommendedAction("Fix SQL syntax or unsupported structure issues before retrying parse.");
+            conclusion.setSummary("结构解析返回失败级结果，因此访问解析证据不可用。");
+            conclusion.setRecommendedAction("请先修复 SQL 语法或不受支持的结构问题，再重试解析。");
             return conclusion;
         }
         if ("PARTIAL_SUCCEEDED".equals(status.getStatus())) {
             conclusion.setOverallStatus("PARTIAL_SUCCESS");
             if (status.getStructureParse() != null && !"VALID".equals(status.getStructureParse().getSyntaxStatus())) {
-                conclusion.setSummary("Structure parse failed, but another parse evidence channel is available.");
-                conclusion.setRecommendedAction("Review the plan evidence and fix SQL syntax before rerunning full parse.");
+                conclusion.setSummary("结构解析失败，但仍存在其他解析证据通道。");
+                conclusion.setRecommendedAction("请评审计划证据并修复 SQL 语法后，再重新运行完整解析。");
             } else {
-                conclusion.setSummary("Structure parse succeeded, but access parse evidence is degraded or unavailable.");
-                conclusion.setRecommendedAction("Use structure evidence now and review datasource availability before rerunning access parse.");
+                conclusion.setSummary("结构解析成功，但访问解析证据降级或不可用。");
+                conclusion.setRecommendedAction("当前先使用结构证据，并在重新运行访问解析前检查数据源可用性。");
             }
             return conclusion;
         }
         if ("ACCESS_SUCCEEDED".equals(status.getStatus())) {
             conclusion.setOverallStatus("SUCCESS");
-            conclusion.setSummary("Structure and access parse evidence are both available.");
-            conclusion.setRecommendedAction("Use the combined parse result as the baseline for route, optimization, and history drill-through.");
+            conclusion.setSummary("结构解析与访问解析证据均已可用。");
+            conclusion.setRecommendedAction("请将组合解析结果作为路由、优化和历史下钻的基线。");
             return conclusion;
         }
         conclusion.setOverallStatus("WAITING");
-        conclusion.setSummary("Structure parse is ready and access parse follow-up is still running.");
-        conclusion.setRecommendedAction("Poll the combined parse status until access parse reaches a terminal state.");
+        conclusion.setSummary("结构解析已就绪，访问解析跟进流程仍在运行。");
+        conclusion.setRecommendedAction("请轮询组合解析状态，直到访问解析进入终态。");
         return conclusion;
     }
 
@@ -230,7 +230,7 @@ public class CombinedParseApplicationService {
             Thread.sleep(40L);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Combined parse access follow-up interrupted", ex);
+            throw new IllegalStateException("组合解析访问跟进流程被中断", ex);
         }
     }
 }

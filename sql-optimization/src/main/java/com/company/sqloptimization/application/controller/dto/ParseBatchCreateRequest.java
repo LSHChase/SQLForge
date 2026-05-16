@@ -7,24 +7,24 @@ import javax.validation.constraints.Pattern;
 
 public class ParseBatchCreateRequest {
 
-    @NotBlank(message = "tenantId is required")
+    @NotBlank(message = "tenantId 为必填项")
     private String tenantId;
 
-    @NotBlank(message = "batchName is required")
+    @NotBlank(message = "batchName 为必填项")
     private String batchName;
 
-    @NotBlank(message = "importMode is required")
+    @NotBlank(message = "importMode 为必填项")
     private String importMode;
 
-    @NotBlank(message = "fileType is required")
+    @NotBlank(message = "fileType 为必填项")
     private String fileType;
 
     private String templateVersion;
     private String datasourceCode;
-    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode must be JSQLPARSER, APACHE_CALCITE, JSQLPARSER_WITH_PLAN or APACHE_CALCITE_WITH_PLAN")
+    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode 必须为 JSQLPARSER、APACHE_CALCITE、JSQLPARSER_WITH_PLAN 或 APACHE_CALCITE_WITH_PLAN")
     private String parserMode;
 
-    @NotNull(message = "structureParseOnly is required")
+    @NotNull(message = "structureParseOnly 为必填项")
     private Boolean structureParseOnly;
 
     public String getTenantId() { return tenantId; }

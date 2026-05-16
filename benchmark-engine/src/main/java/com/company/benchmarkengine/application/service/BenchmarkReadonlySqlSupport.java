@@ -10,10 +10,10 @@ final class BenchmarkReadonlySqlSupport {
     static String validateReadonlySql(String sqlText) {
         String normalized = stripLeadingComments(sqlText);
         if (normalized.isEmpty()) {
-            return "sqlText must be a non-empty read-only SQL statement";
+            return "sqlText 必须是非空只读 SQL 语句";
         }
         if (normalized.indexOf(';') >= 0) {
-            return "sqlText must not contain multi-statement batching";
+            return "sqlText 不能包含多语句批处理";
         }
         String upperSql = normalized.toUpperCase(Locale.ROOT);
         if (!(upperSql.startsWith("SELECT ")
@@ -21,7 +21,7 @@ final class BenchmarkReadonlySqlSupport {
             || upperSql.startsWith("SHOW ")
             || upperSql.startsWith("DESCRIBE ")
             || upperSql.startsWith("EXPLAIN "))) {
-            return "sqlText must remain within the read-only benchmark boundary";
+            return "sqlText 必须保持在只读压测边界内";
         }
         String padded = ' ' + upperSql + ' ';
         String[] forbiddenTokens = {
@@ -43,7 +43,7 @@ final class BenchmarkReadonlySqlSupport {
         };
         for (String token : forbiddenTokens) {
             if (padded.contains(token)) {
-                return "sqlText contains write, DDL, privilege, or load operations";
+                return "sqlText 包含写入、DDL、权限或加载操作";
             }
         }
         return null;

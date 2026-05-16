@@ -19,7 +19,7 @@ import org.springframework.web.client.RestTemplate;
 public class GovernanceBenchmarkEngineHttpClient implements GovernanceBenchmarkEngineClient {
 
     private static final String BENCHMARK_ENGINE_ROUTE_UNAVAILABLE_MESSAGE =
-        "Benchmark-engine artifact operation route is unavailable";
+        "压测引擎产物操作路由不可用";
 
     private final RestTemplate restTemplate;
     private final GovernanceBenchmarkEngineProperties governanceBenchmarkEngineProperties;
@@ -57,7 +57,7 @@ public class GovernanceBenchmarkEngineHttpClient implements GovernanceBenchmarkE
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONFIG_INVALID,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "governance benchmark-engine baseUrl is not configured"
+                "governance benchmark-engine baseUrl 未配置"
             );
         }
         return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;

@@ -4,7 +4,9 @@ import com.company.benchmarkengine.application.controller.vo.BenchmarkReportResp
 import com.company.benchmarkengine.application.service.BenchmarkRenderedReport;
 import com.company.benchmarkengine.application.service.BenchmarkReportApplicationService;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
+import java.nio.charset.StandardCharsets;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,7 +34,7 @@ public class BenchmarkReportController {
         }
         BenchmarkRenderedReport renderedReport = benchmarkReportApplicationService.renderReport(reportId, reportFormat);
         return ResponseEntity.ok()
-            .contentType(renderedReport.getMediaType())
+            .contentType(responseMediaType(renderedReport.getMediaType()))
             .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + renderedReport.getFileName() + "\"")
             .body(renderedReport.getContent());
     }
@@ -44,5 +46,12 @@ public class BenchmarkReportController {
             .contentType(renderedReport.getMediaType())
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + renderedReport.getFileName() + "\"")
             .body(renderedReport.getContent());
+    }
+
+    private MediaType responseMediaType(MediaType mediaType) {
+        if (MediaType.TEXT_HTML.isCompatibleWith(mediaType)) {
+            return new MediaType(mediaType, StandardCharsets.UTF_8);
+        }
+        return mediaType;
     }
 }
