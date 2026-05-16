@@ -1273,6 +1273,7 @@ export default {
       dispatchEvents: 'Dispatch 事件'
     },
     sections: {
+      compareView: '改写前后 Compare',
       textDiff: '文本差异',
       astSummary: 'AST 摘要差异',
       ruleDiff: '规则级 diff',

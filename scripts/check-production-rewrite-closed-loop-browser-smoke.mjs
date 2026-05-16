@@ -405,7 +405,21 @@ const runBrowserSmoke = async baseUrl => {
         sqlFingerprint,
         originalSql,
         recommendedSql,
-        textDiff: [{ hunkId: 'hunk-1', type: 'replace', before: '*', after: 'id' }],
+        textDiff: [
+          {
+            hunkId: 'hunk-1',
+            type: 'REPLACE',
+            granularity: 'TOKEN',
+            originalStartLine: 1,
+            recommendedStartLine: 1,
+            originalStartUnit: 2,
+            recommendedStartUnit: 2,
+            originalText: '*',
+            recommendedText: 'id',
+            originalUnits: ['*'],
+            recommendedUnits: ['id']
+          }
+        ],
         ruleDiff: [{ diffId: 'rule-1', ruleCode: 'SELECT_STAR_PRUNE', textHunkIds: ['hunk-1'] }],
         astSummaryDiff: { projectionChanged: true },
         diffSummary: {
@@ -589,6 +603,14 @@ const runBrowserSmoke = async baseUrl => {
       { waitUntil: 'domcontentloaded' }
     )
     await page.getByTestId('recommendation-page').waitFor({ timeout: defaultTimeoutMs })
+    await page.getByRole('tab', { name: /SQL diff|SQL 差异/ }).click()
+    await page.getByTestId('recommendation-sql-compare').waitFor({ timeout: defaultTimeoutMs })
+    const compareText = await page.getByTestId('recommendation-sql-compare').textContent()
+    assert(compareText.includes('hunk-1'), 'Recommendation SQL compare must expose the backend diff hunk id.')
+    assert(compareText.includes('REPLACE'), 'Recommendation SQL compare must expose the replacement type.')
+    assert(compareText.includes('*'), 'Recommendation SQL compare must expose the original SQL fragment.')
+    assert(compareText.includes('id'), 'Recommendation SQL compare must expose the recommended SQL fragment.')
+
     await page.getByRole('tab', { name: /Rewrite review and publish|改写复核与发布/ }).click()
     await page.getByTestId('recommendation-rewrite-lifecycle').waitFor({ timeout: defaultTimeoutMs })
     await page.getByTestId('recommendation-rewrite-review-note').fill('PRW-012 approved equivalent production rewrite')

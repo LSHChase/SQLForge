@@ -1289,6 +1289,7 @@ export default {
       dispatchEvents: 'Dispatch events'
     },
     sections: {
+      compareView: 'Before/after compare',
       textDiff: 'Text diff',
       astSummary: 'AST summary diff',
       ruleDiff: 'Rule-level diff',

@@ -22,6 +22,7 @@ import {
 import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
+import { highlightSql } from '../common/sqlFormatting.mjs'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -75,7 +76,7 @@ const dispatchEventPager = reactive({
   size: 6
 })
 
-// Static contract tokens: recommendation detail, coordinationMode, PULL_ONLY, dispatchEvents, benefitLevel, riskLevel, recommendedSqlText, logicalObjectKey, textDiff, astSummaryDiff, ruleChain, preconditions, semanticRisks, unappliedRules, manualReviewRequired.
+// Static contract tokens: recommendation detail, coordinationMode, PULL_ONLY, dispatchEvents, benefitLevel, riskLevel, recommendedSqlText, logicalObjectKey, textDiff, astSummaryDiff, ruleChain, preconditions, semanticRisks, unappliedRules, manualReviewRequired, compareRows.
 
 const filterOptions = computed(() => {
   const counts = {
@@ -255,6 +256,23 @@ const ruleChainRows = computed(() => normalizeArray(selectedRecommendation.value
 const preconditionRows = computed(() => normalizeArray(selectedRecommendation.value?.preconditions))
 const semanticRiskRows = computed(() => normalizeArray(selectedRecommendation.value?.semanticRisks))
 const unappliedRuleRows = computed(() => normalizeArray(selectedRecommendation.value?.unappliedRules))
+
+const compareRows = computed(() =>
+  textDiffRows.value.map((hunk, index) => ({
+    hunkId: String(hunk?.hunkId || `hunk-${index + 1}`),
+    type: String(hunk?.type || 'REPLACE').toUpperCase(),
+    granularity: String(hunk?.granularity || 'LINE').toUpperCase(),
+    originalPosition: comparePosition(hunk, 'original'),
+    recommendedPosition: comparePosition(hunk, 'recommended'),
+    originalText: displayValue(hunk?.originalText),
+    recommendedText: displayValue(hunk?.recommendedText),
+    originalEmpty: !hasDisplayValue(hunk?.originalText),
+    recommendedEmpty: !hasDisplayValue(hunk?.recommendedText),
+    originalHtml: highlightCompareSql(hunk?.originalText),
+    recommendedHtml: highlightCompareSql(hunk?.recommendedText),
+    selected: hunkSelected(hunk)
+  }))
+)
 
 const selectedRuleDiff = computed(() =>
   ruleDiffRows.value.find(item => item.diffId === selectedRuleDiffId.value) || null
@@ -768,6 +786,43 @@ const hunkSelected = hunk => {
   return highlightedHunkIds.value.includes(String(hunk?.hunkId || ''))
 }
 
+const comparePosition = (hunk, side) => {
+  const lineKey = side === 'original' ? 'originalStartLine' : 'recommendedStartLine'
+  const unitKey = side === 'original' ? 'originalStartUnit' : 'recommendedStartUnit'
+  const line = hunk?.[lineKey]
+  const unit = hunk?.[unitKey]
+  if (Number.isFinite(Number(line)) && Number(line) > 0) {
+    return `L${line}`
+  }
+  if (Number.isFinite(Number(unit)) && Number(unit) > 0) {
+    return `U${unit}`
+  }
+  return '-'
+}
+
+const highlightCompareSql = value => {
+  if (!hasDisplayValue(value)) {
+    return '-'
+  }
+  return highlightSql(value)
+}
+
+const comparePaneClass = (row, side) => ({
+  'compare-pane-delete': side === 'original' && ['DELETE', 'REPLACE'].includes(row.type),
+  'compare-pane-insert': side === 'recommended' && ['INSERT', 'REPLACE'].includes(row.type),
+  'compare-pane-empty': side === 'original' ? row.originalEmpty : row.recommendedEmpty
+})
+
+const hunkTagType = type => {
+  if (type === 'INSERT') {
+    return 'success'
+  }
+  if (type === 'DELETE') {
+    return 'danger'
+  }
+  return 'warning'
+}
+
 const formatJson = value => JSON.stringify(value, null, 2)
 
 onMounted(() => {
@@ -1127,6 +1182,49 @@ onMounted(() => {
                     compact
                   />
                 </div>
+                <section class="evidence-table" data-testid="recommendation-sql-compare">
+                  <div class="evidence-heading">
+                    <h3>{{ t('recommendationCenter.sections.compareView') }}</h3>
+                    <el-button @click="openEvidenceDrawer(t('recommendationCenter.sections.compareView'), compareRows)">
+                      {{ t('common.actions.viewRawEvidence') }}
+                    </el-button>
+                  </div>
+                  <p v-if="!compareRows.length" class="muted-copy">{{ t('recommendationCenter.states.noDiffHunks') }}</p>
+                  <div v-else class="compare-shell">
+                    <div class="compare-header">
+                      <span>{{ t('recommendationCenter.fields.originalSql') }}</span>
+                      <span>{{ t('recommendationCenter.fields.recommendedSql') }}</span>
+                    </div>
+                    <article
+                      v-for="row in compareRows"
+                      :key="row.hunkId"
+                      class="compare-row"
+                      :class="{ 'compare-row-active': row.selected }"
+                    >
+                      <div class="compare-row__meta">
+                        <el-tag :type="hunkTagType(row.type)" size="small">{{ row.type }}</el-tag>
+                        <span>{{ row.hunkId }}</span>
+                        <span>{{ row.granularity }}</span>
+                      </div>
+                      <div class="compare-pane" :class="comparePaneClass(row, 'original')">
+                        <div class="compare-pane__header">
+                          <span>{{ t('recommendationCenter.fields.originalSql') }}</span>
+                          <code>{{ row.originalPosition }}</code>
+                        </div>
+                        <!-- eslint-disable-next-line vue/no-v-html -->
+                        <pre class="compare-code"><code v-html="row.originalHtml" /></pre>
+                      </div>
+                      <div class="compare-pane" :class="comparePaneClass(row, 'recommended')">
+                        <div class="compare-pane__header">
+                          <span>{{ t('recommendationCenter.fields.recommendedSql') }}</span>
+                          <code>{{ row.recommendedPosition }}</code>
+                        </div>
+                        <!-- eslint-disable-next-line vue/no-v-html -->
+                        <pre class="compare-code"><code v-html="row.recommendedHtml" /></pre>
+                      </div>
+                    </article>
+                  </div>
+                </section>
                 <section class="evidence-table" data-testid="recommendation-text-diff">
                   <div class="evidence-heading">
                     <h3>{{ t('recommendationCenter.sections.textDiff') }}</h3>
@@ -1462,6 +1560,107 @@ onMounted(() => {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.compare-shell {
+  display: grid;
+  gap: var(--sqlforge-space-3);
+  min-width: 0;
+}
+
+.compare-header,
+.compare-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.2fr) repeat(2, minmax(0, 1fr));
+  gap: var(--sqlforge-space-3);
+  min-width: 0;
+}
+
+.compare-header {
+  color: var(--sqlforge-text-muted);
+  font-family: var(--sqlforge-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.compare-header::before {
+  content: '';
+}
+
+.compare-row {
+  align-items: stretch;
+  padding-block: var(--sqlforge-space-2);
+  border-top: 1px solid var(--sqlforge-border-subtle);
+}
+
+.compare-row-active {
+  background: rgba(62, 207, 142, 0.06);
+}
+
+.compare-row__meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sqlforge-space-2);
+  align-items: flex-start;
+  min-width: 0;
+  color: var(--sqlforge-text-secondary);
+  font-family: var(--sqlforge-font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.compare-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-bg-page-deep);
+}
+
+.compare-pane-delete {
+  border-color: rgba(212, 96, 96, 0.45);
+  background: rgba(120, 28, 28, 0.16);
+}
+
+.compare-pane-insert {
+  border-color: rgba(62, 207, 142, 0.45);
+  background: rgba(21, 98, 73, 0.18);
+}
+
+.compare-pane-empty {
+  opacity: 0.72;
+}
+
+.compare-pane__header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sqlforge-space-2);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--sqlforge-border-subtle);
+  color: var(--sqlforge-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.compare-pane__header code {
+  color: var(--sqlforge-text-muted);
+  font-family: var(--sqlforge-font-mono);
+}
+
+.compare-code {
+  min-height: 64px;
+  max-height: 260px;
+  margin: 0;
+  padding: 12px;
+  color: var(--sqlforge-text-primary);
+  font-family: var(--sqlforge-font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .description-item {
   display: grid;
   gap: var(--sqlforge-space-2);
@@ -1518,6 +1717,35 @@ onMounted(() => {
   padding: var(--sqlforge-space-4);
 }
 
+:deep(.sql-token-keyword) {
+  color: var(--sqlforge-color-brand);
+  font-weight: 800;
+}
+
+:deep(.sql-token-identifier) {
+  color: #d7d7d7;
+}
+
+:deep(.sql-token-literal) {
+  color: #f0b86e;
+  font-weight: 600;
+}
+
+:deep(.sql-token-number) {
+  color: #9bc8ff;
+  font-weight: 700;
+}
+
+:deep(.sql-token-comment) {
+  color: #7f8a8a;
+  font-style: italic;
+}
+
+:deep(.sql-token-operator) {
+  color: #d6a7ff;
+  font-weight: 700;
+}
+
 @media (max-width: 1280px) {
   .workspace-frame,
   .sql-grid {
@@ -1540,6 +1768,19 @@ onMounted(() => {
 
   .rewrite-action-grid {
     grid-template-columns: 1fr;
+  }
+
+  .compare-header {
+    display: none;
+  }
+
+  .compare-row {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-row__meta {
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 }
 </style>

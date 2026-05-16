@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-146: 增强推荐中心 SQL compare 差异视图
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `feat(frontend): enhance recommendation SQL compare`
+- Priority: 1
+- Depends on: HARN-139
+- Scope: 在推荐中心 SQL 差异页签中增强改写前后 SQL compare 视觉呈现，使用后端 recommendation diff 作为权威证据，前端只负责左右对比、高亮新增/删除/替换和长 SQL 可读性；不改变后端 diff 语义、推荐状态、审批、发布或自动应用行为。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-146`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added a recommendation-center SQL compare view that renders backend textDiff hunks side-by-side with original/recommended positions, INSERT/DELETE/REPLACE highlighting, responsive layout, and raw evidence access; updated i18n, recommendation contract checks, production rewrite browser smoke assertions, and document coverage lint metadata without changing backend diff semantics, approvals, publishing, or auto-apply behavior.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-146 --include-task-audit with recommendation page contract, production rewrite closed-loop browser smoke, and git diff --check extras passed; focused npm run lint, npm run build, npm run test:sql-ui-contract, npm run test:frontend-page-governance, node scripts/lint-repository-knowledge.js, and python3 scripts/task_audit.py --check --phase pre-closeout passed.
+  - Residual risk: Browser smoke uses repo-closed mocked recommendation/diff payloads rather than a live Hetu/MRS environment; backend semantic equivalence remains governed by existing diff/validation services and external live evidence remains under HARN-016 / INBOX-002.
+  - Next step: Inspect real long-form recommendation diff payloads in the live environment when available, keeping the compare view as display-only evidence.
+
 ### OPS-CODEX-TMP-IGNORE-20260516: Ignore Codex tmp runtime files
 
 - Status: done

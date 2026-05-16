@@ -3838,3 +3838,46 @@
 2026-05-15T23:38:01-05:00 | OPS-CODEX-TMP-IGNORE-20260516 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-15T23:38:01-05:00 | OPS-CODEX-TMP-IGNORE-20260516 closeout commit | `R-168` | projected | `git commit -m 'chore: ignore codex tmp files' (projected-precommit)`
 2026-05-15T23:38:01-05:00 | OPS-CODEX-TMP-IGNORE-20260516 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-16T00:44:29-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-16T00:44:29-05:00 | HARN-146 validate | `R-131`, `R-133` | failed | `node scripts/lint-repository-knowledge.js`
+2026-05-16T00:44:42-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-16T00:44:42-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-16T00:44:44-05:00 | HARN-146 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-16T00:44:48-05:00 | HARN-146 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-16T00:44:48-05:00 | HARN-146 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-16T00:44:48-05:00 | HARN-146 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-16T00:44:48-05:00 | HARN-146 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-16T00:44:48-05:00 | HARN-146 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-16T00:44:48-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `node scripts/check-recommendation-page-contract.mjs`
+2026-05-16T00:44:58-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-16T00:44:58-05:00 | HARN-146 validate | `R-131`, `R-133` | failed | `node scripts/lint-repository-knowledge.js`
+2026-05-16T00:45:17-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-16T00:45:17-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-16T00:45:18-05:00 | HARN-146 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-16T00:45:22-05:00 | HARN-146 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-16T00:45:22-05:00 | HARN-146 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-16T00:45:22-05:00 | HARN-146 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-16T00:45:22-05:00 | HARN-146 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-16T00:45:23-05:00 | HARN-146 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-16T00:45:23-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `node scripts/check-recommendation-page-contract.mjs`
+2026-05-16T00:45:26-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `bash -lc TMPDIR=.tmp FRONTEND_PRW012_SMOKE_TIMEOUT_MS=60000 npm run smoke:production-rewrite-closed-loop`
+2026-05-16T00:45:26-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-16T00:46:37-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-16T00:46:37-05:00 | HARN-146 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-16T00:46:50-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-16T00:46:50-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-16T00:46:51-05:00 | HARN-146 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-16T00:46:55-05:00 | HARN-146 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-16T00:46:55-05:00 | HARN-146 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-16T00:46:55-05:00 | HARN-146 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-16T00:46:55-05:00 | HARN-146 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-16T00:46:55-05:00 | HARN-146 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-16T00:46:55-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `node scripts/check-recommendation-page-contract.mjs`
+2026-05-16T00:46:59-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `bash -lc TMPDIR=.tmp FRONTEND_PRW012_SMOKE_TIMEOUT_MS=60000 npm run smoke:production-rewrite-closed-loop`
+2026-05-16T00:46:59-05:00 | HARN-146 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-16T00:48:55-05:00 | HARN-146 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-16T00:48:55-05:00 | HARN-146 closeout commit | `R-168` | projected | `git commit -m 'feat(frontend): enhance recommendation SQL compare' (projected-precommit)`
+2026-05-16T00:48:55-05:00 | HARN-146 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-16T00:48:55-05:00 | HARN-146 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-recommendation-page-contract.mjs (projected-precommit)`
+2026-05-16T00:48:55-05:00 | HARN-146 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `bash -lc 'TMPDIR=.tmp FRONTEND_PRW012_SMOKE_TIMEOUT_MS=60000 npm run smoke:production-rewrite-closed-loop' (projected-precommit)`
+2026-05-16T00:48:55-05:00 | HARN-146 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`

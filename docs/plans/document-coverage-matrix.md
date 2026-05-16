@@ -17,6 +17,9 @@
 | Path | Type | Role | Current status | Plan usage |
 |:---|:---|:---|:---|:---|
 | `docs/README.md` | Authority | 文档入口 | Consumed | 主计划证据基础、阅读顺序入口 |
+| `docs/SQLForge.md` | Archive | 早期 SQLForge 完整技术文档草稿 | Archived | 保留历史产品/架构输入，不替代当前 `docs/` 权威入口与计划矩阵 |
+| `docs/SQLForgeV1.0.md` | Archive | 早期架构初始化与规则草稿 | Archived | 保留历史架构输入，当前规则以 `docs/architecture/init.md` 与 `docs/rules/codex-rules.md` 为准 |
+| `docs/SQLTest.md` | Archive | 早期 Trino/OLAP 压测平台方案草稿 | Archived | 保留历史压测方案输入，当前执行以 benchmark 与 validation 文档为准 |
 | `docs/architecture/c4-overview.md` | Authority | 当前权威的文字版 C4 架构总览与更新落点 | Referenced | 承接 `R-133` 的 C4 同步要求，统一维护 Level 1-4 文字架构说明 |
 | `docs/architecture/init.md` | Authority | 总体架构、规则、阶段、接口契约、任务模板 | Consumed | 主计划主基线 |
 | `docs/architecture/persistence.md` | Authority | MySQL 持久化、核心追溯链、MyBatis XML 与增量脚本基线 | Consumed | `R-031`,`R-055`,`R-065`,`R-129` 当前权威落点 |
