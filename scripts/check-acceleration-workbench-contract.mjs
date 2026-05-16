@@ -23,6 +23,8 @@ const apiSource = readFileSync(
   new URL('../src/services/runtimeGateApi.js', import.meta.url),
   'utf8'
 )
+const zhLocaleSource = readFileSync(new URL('../src/locales/zh-CN.js', import.meta.url), 'utf8')
+const enLocaleSource = readFileSync(new URL('../src/locales/en-US.js', import.meta.url), 'utf8')
 
 const route = APP_ROUTE_DEFINITIONS.find(item => item.name === 'AccelerationGovernanceWorkbench')
 check(ROUTE_PATHS.accelerationGovernanceWorkbench === '/governance/acceleration-workbench', 'Workbench route path drifted.')
@@ -31,6 +33,25 @@ check(route?.componentKey === 'AccelerationGovernanceWorkbenchView', 'Workbench 
 check(route?.meta?.module === 'reference-pages', 'Workbench route meta must identify reference pages.')
 check(route?.meta?.navGroup === 'reference', 'Workbench navGroup must remain reference-only.')
 check(route?.meta?.pageKind === 'reference', 'Workbench pageKind must remain reference.')
+
+check(
+  zhLocaleSource.includes("pageTitle: '加速治理流程模拟参考页'"),
+  'Chinese workbench pageTitle must identify the flow simulation reference page.'
+)
+check(
+  enLocaleSource.includes("pageTitle: 'Acceleration Governance Flow Simulation Reference Page'"),
+  'English workbench pageTitle must identify the flow simulation reference page.'
+)
+check(
+  zhLocaleSource.includes("summary: '流程模拟参考页") &&
+    zhLocaleSource.includes("boundarySummary: '本页按流程模拟参考页"),
+  'Chinese workbench copy must keep the flow simulation reference-page boundary.'
+)
+check(
+  enLocaleSource.includes("summary: 'Flow simulation reference page") &&
+    enLocaleSource.includes("boundarySummary: 'This page is retained as a flow simulation reference page"),
+  'English workbench copy must keep the flow simulation reference-page boundary.'
+)
 
 const defaultNavigationItems = flattenNavigationItems(createNavigationTree())
 const fullNavigationTree = createNavigationTree({ includeDeliveryProgress: true, includeReferencePages: true })

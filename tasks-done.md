@@ -4,6 +4,27 @@
 
 ## Done
 
+### HARN-FE-008: 参考页治理与最终验证
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `feat(frontend): close reference page governance HARN-FE-008`
+- Priority: 1
+- Depends on: HARN-FE-002,HARN-FE-003,HARN-FE-004,HARN-FE-005,HARN-FE-006,HARN-FE-007
+- Scope: 把加速治理工作台按 AI 交付类似逻辑收口为参考模拟页；保留页面代码、路由和现有接口调用，不作为正式功能页面出现在核心菜单；完成前端主路径、专项 contract、smoke、截图自检与任务审计 closeout 验收。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-FE-008`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-16: updated zh/en page title and boundary copy so the workbench renders as a flow simulation reference page while retaining direct route and reference navigation placement.
+  - 2026-05-16: added pageTitle and summary regression guards to frontend i18n copy and acceleration workbench contract checks.
+  - 2026-05-16: R-186 before/after 截图自检 completed with before screenshots at `target/harn-fe-008-screenshots/before-desktop.png` and `target/harn-fe-008-screenshots/before-narrow.png`, after screenshots at `target/harn-fe-008-screenshots/after-desktop.png` and `target/harn-fe-008-screenshots/after-narrow.png`; Codex 读图复核 confirmed the intended title/summary change, existing desktop/narrow stacking, no page-level overflow, and no visual drift requiring修复.
+- Context closeout:
+  - Completed scope: Updated the acceleration governance workbench zh/en pageTitle and boundary copy to explicitly identify the flow simulation reference page; kept the direct route, existing API calls, smoke entry, and reference-only navigation behavior; added i18n and acceleration workbench contract regression guards.
+  - Validation evidence: Validation passed via foreman validate with lint, build, form governance, SQL UI, frontend page governance, navigation/dashboard/recommendation/workbench contracts, frontend dev smoke, acceleration workbench smoke, git diff --check, and task_audit pre-closeout. R-186 before screenshot: target/harn-fe-008-screenshots/before-desktop.png and target/harn-fe-008-screenshots/before-narrow.png; after screenshot: target/harn-fe-008-screenshots/after-desktop.png and target/harn-fe-008-screenshots/after-narrow.png; Codex visual self-review confirmed the intended title/summary change, retained desktop/narrow layout, no page-level overflow, and no visual drift requiring修复.
+  - Residual risk: No residual risk for the scoped frontend reference-page governance; backend/product operator semantics remain intentionally unchanged and the direct reference route stays available for smoke.
+  - Next step: No HARN-FE follow-up required unless humans decide to promote or remove the reference page.
+
 ### HARN-FE-007: 改写记录与改写历史入口收口
 
 - Status: done

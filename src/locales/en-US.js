@@ -1342,10 +1342,10 @@ export default {
   },
   accelerationGovernanceWorkbench: {
     title: 'Acceleration Governance Workbench',
-    summary: 'Reference page for simulating the governance flow from entry evidence to rollback or discard; visible only behind the reference-page flag and not a formal core feature entry.',
+    summary: 'Flow simulation reference page for the governance path from entry evidence to rollback or discard; visible only behind the reference-page flag and not a formal core feature entry.',
     eyebrow: 'reference page',
-    pageTitle: 'Acceleration Governance Workbench',
-    boundarySummary: 'This page is retained as a reference page to demonstrate entry evidence, candidate suggestions, SQL diff, plan approval, apply validation, monitoring alerts, and rollback or discard. It is not a formal delivery feature page.',
+    pageTitle: 'Acceleration Governance Flow Simulation Reference Page',
+    boundarySummary: 'This page is retained as a flow simulation reference page to demonstrate entry evidence, candidate suggestions, SQL diff, plan approval, apply validation, monitoring alerts, and rollback or discard. It is not a formal delivery feature page.',
     source: {
       eyebrow: 'entry evidence',
       title: 'Source fields and trace keys',
