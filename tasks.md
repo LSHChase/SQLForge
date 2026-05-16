@@ -16,18 +16,7 @@ _No tasks._
 
 ## In Progress
 
-### USER-REPORT-IMPORT-SAMPLE-20260516: Generate report import XLSX stress sample
-
-- Status: in_progress
-- Priority: 1
-- Depends on: N/A
-- Scope: Generate docs/report-import-parse-stress-sample.xlsx and companion documentation for report import parsing tests. The XLSX must follow the report_code + sql_N wide-table import template, include 600 reports, use varied 3-120-bounded SQL cells per report, keep all SQL as valid SELECT/WITH queries with comments, and cover high/medium/low complexity plus BI/low-code poor-query performance scenarios.
-- Validation:
-  - `python3 scripts/foreman.py validate USER-REPORT-IMPORT-SAMPLE-20260516`
-- Progress log:
-  - 2026-05-15: instantiated from foreman CLI using repository truth and task matrices.
-  - 2026-05-15: generated `docs/report-import-parse-stress-sample.xlsx` and companion documentation with 600 reports, `sql_1` through `sql_120` template columns, 2749 valid SELECT/WITH SQL cells, 35 BI/low-code poor-query scenarios, and 80% medium/high complexity coverage.
-  - 2026-05-15: validated XLSX structure and ran backend MockMvc import plus representative resolve-sqls slice; full 3..120 wide-row variant was intentionally reduced after it exposed the current backend import `rawLine` heap boundary.
+_No tasks._
 
 
 ## Blocked
