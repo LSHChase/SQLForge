@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-START-BACKEND-20260515: Start all backend services
+
+- Status: done
+- Completed at: 2026-05-15
+- Commit subject: `OPS-START-BACKEND-20260515 start all backend services`
+- Priority: 1
+- Depends on: N/A
+- Scope: Start SQLForge local backend runtime services for this workspace session, verify health endpoints, and avoid source or long-term configuration changes.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-START-BACKEND-20260515`
+- Progress log:
+  - 2026-05-15: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Started the SQLForge local dependency stack and all four backend services; repaired query-execution dev startup by adding its local datasource defaults and explicit Redis sync adapter constructor injection.
+  - Validation evidence: python3 scripts/foreman.py validate OPS-START-BACKEND-20260515 --include-task-audit with query-execution targeted tests and backend health check; bash scripts/health-check.sh --fail-on-error --skip-frontend.
+  - Residual risk: Local MySQL uses replacement volume sqlforge_mysql-runtime-20260515 because the pre-existing sqlforge_mysql-data volume was left intact but unusable after partial initialization.
+  - Next step: Use /tmp/sqlforge-backend-runtime/*.pid to stop backend processes when this local runtime is no longer needed.
+
 ### PRW-001: 固化生产改写闭环接口与状态契约
 
 - Status: done
